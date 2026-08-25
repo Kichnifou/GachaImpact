@@ -84,8 +84,10 @@ function PlayerSidebar({ isOpen, onClose, onNavigate }: PlayerSidebarProps) {
         <div className="objective-content">
           <div className="objective-art" aria-label="Portrait temporaire de Lyra">L</div>
           <div>
-            <span className="stars">★★★★★</span>
-            <h3>Lyra</h3>
+            <div className="objective-name-line">
+              <h3>Lyra</h3>
+              <span className="stars">★★★★★</span>
+            </div>
             <p>Garantie 5★ : non garantie</p>
             <div className="pity-row"><span>Pity 5★</span><strong>42 / 90</strong></div>
             <div className="progress-track"><span className="progress-fill pity" /></div>

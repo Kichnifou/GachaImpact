@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { notifications } from '../data/mockData'
 
 type GameHeaderProps = {
@@ -8,6 +8,21 @@ type GameHeaderProps = {
 
 function GameHeader({ onNavigateHome, onOpenSidebar }: GameHeaderProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+  const notificationAnchorRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!isNotificationsOpen) return
+
+    const closeNotificationsOnOutsideClick = (event: PointerEvent) => {
+      if (!notificationAnchorRef.current?.contains(event.target as Node)) {
+        setIsNotificationsOpen(false)
+      }
+    }
+
+    document.addEventListener('pointerdown', closeNotificationsOnOutsideClick)
+
+    return () => document.removeEventListener('pointerdown', closeNotificationsOnOutsideClick)
+  }, [isNotificationsOpen])
 
   return (
     <header className="game-header">
@@ -30,7 +45,7 @@ function GameHeader({ onNavigateHome, onOpenSidebar }: GameHeaderProps) {
           <strong>Joueur</strong>
         </button>
 
-        <div className="notification-anchor">
+        <div className="notification-anchor" ref={notificationAnchorRef}>
           <button
             type="button"
             className={`header-icon-button${isNotificationsOpen ? ' active' : ''}`}

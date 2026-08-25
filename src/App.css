@@ -405,8 +405,15 @@
   letter-spacing: 0.04em;
 }
 
+.objective-name-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .objective-content h3 {
-  margin: 3px 0 1px;
+  margin: 0 0 1px;
   font-size: 14px;
 }
 
@@ -465,6 +472,8 @@
   display: grid;
   grid-template-columns: repeat(8, minmax(72px, 1fr));
   gap: 8px;
+  padding-top: 2px;
+  overflow: visible;
 }
 
 .navigation-tile {
