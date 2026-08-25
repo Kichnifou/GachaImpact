@@ -25,6 +25,15 @@ body {
   overflow-x: hidden;
 }
 
+@media (min-width: 1121px) {
+  html,
+  body,
+  #root {
+    height: 100%;
+    overflow: hidden;
+  }
+}
+
 button,
 input {
   font: inherit;
