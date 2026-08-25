@@ -1,5 +1,8 @@
 import { activeTeam, particles, player } from '../data/mockData'
 import type { ScreenId } from '../types'
+import { currencyAssetPaths, getElementAssetPath } from '../utils/gameAssets'
+import CharacterAssetImage from './CharacterAssetImage'
+import GameAssetIcon from './GameAssetIcon'
 
 type PlayerSidebarProps = {
   isOpen: boolean
@@ -38,15 +41,15 @@ function PlayerSidebar({ isOpen, onClose, onNavigate }: PlayerSidebarProps) {
         </button>
         <div className="resource-grid">
           <div className="resource-item">
-            <span className="resource-icon cyan" aria-hidden="true">✦</span>
+            <GameAssetIcon className="resource-icon cyan" src={currencyAssetPaths.primogem} fallback="✦" />
             <div><strong>{player.primogems.toLocaleString('fr-FR')}</strong><small>Primogemmes</small></div>
           </div>
           <div className="resource-item">
-            <span className="resource-icon gold" aria-hidden="true">●</span>
+            <GameAssetIcon className="resource-icon gold" src={currencyAssetPaths.mora} fallback="●" />
             <div><strong>{player.moras.toLocaleString('fr-FR')}</strong><small>Moras</small></div>
           </div>
           <div className="resource-item wide">
-            <span className="resource-icon violet" aria-hidden="true">◈</span>
+            <GameAssetIcon className="resource-icon violet" src={currencyAssetPaths.acquaintFate} fallback="◈" />
             <div><strong>{player.wishes}</strong><small>Vœux possibles</small></div>
           </div>
         </div>
@@ -55,7 +58,11 @@ function PlayerSidebar({ isOpen, onClose, onNavigate }: PlayerSidebarProps) {
         <div className="particles-grid">
           {particles.map((particle) => (
             <div className={`particle-value ${particle.tone}`} key={particle.label} title={particle.label}>
-              <span aria-hidden="true">{particle.icon}</span>
+              <GameAssetIcon
+                className="particle-element-icon"
+                src={getElementAssetPath(particle.label)}
+                fallback={particle.icon}
+              />
               <strong>{particle.value}</strong>
             </div>
           ))}
@@ -69,8 +76,18 @@ function PlayerSidebar({ isOpen, onClose, onNavigate }: PlayerSidebarProps) {
         <div className="team-grid">
           {activeTeam.map((member) => (
             <div className={`team-member ${member.tone}`} key={member.id}>
-              <span className="member-element" aria-hidden="true">{member.elementIcon}</span>
-              <div className="member-portrait" aria-hidden="true"><span>{member.name.slice(0, 1)}</span></div>
+              <GameAssetIcon
+                className="member-element"
+                src={getElementAssetPath(member.element, 'badge')}
+                fallback={member.elementIcon}
+              />
+              <div className="member-portrait" aria-hidden="true">
+                <CharacterAssetImage
+                  characterName={member.name}
+                  className="member-asset-image"
+                  fallback={<span>{member.name.slice(0, 1)}</span>}
+                />
+              </div>
               <small>{member.name}</small>
             </div>
           ))}
@@ -82,10 +99,17 @@ function PlayerSidebar({ isOpen, onClose, onNavigate }: PlayerSidebarProps) {
           <span>Objectif actuel</span><span className="card-chevron" aria-hidden="true">›</span>
         </button>
         <div className="objective-content">
-          <div className="objective-art" aria-label="Portrait temporaire de Lyra">L</div>
+          <div className="objective-art" aria-label={`Portrait de ${activeTeam[0].name}`}>
+            <CharacterAssetImage
+              characterName={activeTeam[0].name}
+              className="objective-asset-image"
+              fallback={activeTeam[0].name.slice(0, 1)}
+              alt={activeTeam[0].name}
+            />
+          </div>
           <div>
             <div className="objective-name-line">
-              <h3>Lyra</h3>
+              <h3>{activeTeam[0].name}</h3>
               <span className="stars">★★★★★</span>
             </div>
             <p>Garantie 5★ : non garantie</p>

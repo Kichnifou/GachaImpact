@@ -20,16 +20,16 @@ export const particles = [
 ]
 
 export const characters: Character[] = [
-  { id: 'lyra', name: 'Lyra', element: 'Hydro', elementIcon: '●', tone: 'hydro', rarity: 5, constellation: 1, level: 90, owned: true, role: 'Soutien' },
-  { id: 'kael', name: 'Kael', element: 'Cryo', elementIcon: '❄', tone: 'cryo', rarity: 5, constellation: 2, level: 90, owned: true, role: 'Dégâts' },
-  { id: 'mira', name: 'Mira', element: 'Anémo', elementIcon: '⌁', tone: 'anemo', rarity: 4, constellation: 6, level: 80, owned: true, role: 'Soutien' },
-  { id: 'soren', name: 'Soren', element: 'Pyro', elementIcon: '♨', tone: 'pyro', rarity: 5, constellation: 0, level: 80, owned: true, role: 'Dégâts' },
-  { id: 'nova', name: 'Nova', element: 'Electro', elementIcon: 'ϟ', tone: 'electro', rarity: 4, constellation: 3, level: 70, owned: true, role: 'Sub DPS' },
-  { id: 'orion', name: 'Orion', element: 'Géo', elementIcon: '◆', tone: 'geo', rarity: 4, constellation: 1, level: 60, owned: true, role: 'Protection' },
-  { id: 'selene', name: 'Sélène', element: 'Cryo', elementIcon: '❄', tone: 'cryo', rarity: 5, constellation: 0, level: 1, owned: false, role: 'Dégâts' },
-  { id: 'elio', name: 'Élio', element: 'Pyro', elementIcon: '♨', tone: 'pyro', rarity: 5, constellation: 0, level: 1, owned: false, role: 'Soutien' },
-  { id: 'iris', name: 'Iris', element: 'Hydro', elementIcon: '●', tone: 'hydro', rarity: 4, constellation: 0, level: 1, owned: false, role: 'Soins' },
-  { id: 'zephyr', name: 'Zéphyr', element: 'Anémo', elementIcon: '⌁', tone: 'anemo', rarity: 4, constellation: 0, level: 1, owned: false, role: 'Exploration' },
+  { id: 'furina', name: 'Furina', element: 'Hydro', elementIcon: '●', tone: 'hydro', rarity: 5, constellation: 1, level: 90, owned: true, role: 'Soutien' },
+  { id: 'ganyu', name: 'Ganyu', element: 'Cryo', elementIcon: '❄', tone: 'cryo', rarity: 5, constellation: 2, level: 90, owned: true, role: 'Dégâts' },
+  { id: 'kazuha', name: 'Kazuha', element: 'Anémo', elementIcon: '⌁', tone: 'anemo', rarity: 5, constellation: 6, level: 80, owned: true, role: 'Soutien' },
+  { id: 'hutao', name: 'Hu Tao', element: 'Pyro', elementIcon: '♨', tone: 'pyro', rarity: 5, constellation: 0, level: 80, owned: true, role: 'Dégâts' },
+  { id: 'raiden', name: 'Raiden', element: 'Électro', elementIcon: 'ϟ', tone: 'electro', rarity: 5, constellation: 3, level: 70, owned: true, role: 'Sub DPS' },
+  { id: 'zhongli', name: 'Zhongli', element: 'Géo', elementIcon: '◆', tone: 'geo', rarity: 5, constellation: 1, level: 60, owned: true, role: 'Protection' },
+  { id: 'ayaka', name: 'Ayaka', element: 'Cryo', elementIcon: '❄', tone: 'cryo', rarity: 5, constellation: 0, level: 1, owned: false, role: 'Dégâts' },
+  { id: 'arlecchino', name: 'Arlecchino', element: 'Pyro', elementIcon: '♨', tone: 'pyro', rarity: 5, constellation: 0, level: 1, owned: false, role: 'Dégâts' },
+  { id: 'xingqiu', name: 'Xingqiu', element: 'Hydro', elementIcon: '●', tone: 'hydro', rarity: 4, constellation: 0, level: 1, owned: false, role: 'Soutien' },
+  { id: 'sucrose', name: 'Sucrose', element: 'Anémo', elementIcon: '⌁', tone: 'anemo', rarity: 4, constellation: 0, level: 1, owned: false, role: 'Exploration' },
 ]
 
 export const activeTeam = characters.slice(0, 4)

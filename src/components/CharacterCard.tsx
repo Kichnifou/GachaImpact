@@ -1,4 +1,7 @@
 import type { Character } from '../types'
+import { getElementAssetPath } from '../utils/gameAssets'
+import CharacterAssetImage from './CharacterAssetImage'
+import GameAssetIcon from './GameAssetIcon'
 
 type CharacterCardProps = {
   character: Character
@@ -20,12 +23,20 @@ function CharacterCard({ character, catalog = false, compact = false, selected =
   const content = (
     <>
       <div className="character-card-topline">
-        <span className="character-element" title={character.element}>{character.elementIcon}</span>
+        <GameAssetIcon
+          className="character-element"
+          src={getElementAssetPath(character.element, 'badge')}
+          fallback={character.elementIcon}
+          title={character.element}
+        />
         {character.owned ? <span className="constellation">C{character.constellation}</span> : <span className="lock-mark">⌑</span>}
       </div>
       <div className="character-portrait" aria-hidden="true">
-        <span>{character.name.slice(0, 1)}</span>
-        <i />
+        <CharacterAssetImage
+          characterName={character.name}
+          className="character-asset-image"
+          fallback={<><span>{character.name.slice(0, 1)}</span><i /></>}
+        />
       </div>
       <div className="character-card-copy">
         <div className="character-rarity">{'★'.repeat(character.rarity)}</div>

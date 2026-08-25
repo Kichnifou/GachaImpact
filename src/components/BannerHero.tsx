@@ -24,11 +24,16 @@ function BannerHero({ compact = false, showDetails = false }: BannerHeroProps) {
         )}
       </div>
 
-      <div className="celestial-placeholder" aria-label="Illustration temporaire de la bannière">
-        <span className="featured-character-shadow">L</span>
+      <div className="celestial-placeholder" aria-label={`Illustration de ${characters[0].name}`}>
         <span className="orbit orbit-one" />
         <span className="orbit orbit-two" />
-        <span className="celestial-star">✦</span>
+        <CharacterAssetImage
+          characterName={characters[0].name}
+          className="banner-character-asset"
+          order={BANNER_CHARACTER_ASSET_ORDER}
+          fallback={<span className="celestial-star">✦</span>}
+          alt={characters[0].name}
+        />
         <span className="spark spark-one">✧</span>
         <span className="spark spark-two">·</span>
         <span className="spark spark-three">✦</span>
@@ -47,8 +52,8 @@ function BannerHero({ compact = false, showDetails = false }: BannerHeroProps) {
           <div className="guarantee-summary"><strong>5★</strong><span>non garanti</span></div>
         </div>
         <div className="wish-actions" aria-label="Actions d’invocation fictives">
-          <button type="button" className="wish-button secondary"><span>Invocation x1</span><small>✦ × 160</small></button>
-          <button type="button" className="wish-button primary"><span>Invocation x10</span><small>✦ × 1 600</small></button>
+          <button type="button" className="wish-button secondary"><span>Invocation x1</span><small><GameAssetIcon className="inline-currency-icon" src={currencyAssetPaths.primogem} fallback="✦" /> × 160</small></button>
+          <button type="button" className="wish-button primary"><span>Invocation x10</span><small><GameAssetIcon className="inline-currency-icon" src={currencyAssetPaths.primogem} fallback="✦" /> × 1 600</small></button>
         </div>
       </div>
     </section>
@@ -56,3 +61,7 @@ function BannerHero({ compact = false, showDetails = false }: BannerHeroProps) {
 }
 
 export default BannerHero
+import { characters } from '../data/mockData'
+import { BANNER_CHARACTER_ASSET_ORDER, currencyAssetPaths } from '../utils/gameAssets'
+import CharacterAssetImage from './CharacterAssetImage'
+import GameAssetIcon from './GameAssetIcon'

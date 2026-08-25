@@ -1,0 +1,1136 @@
+{
+  "summary": {
+    "gachaimpactCharacters": 118,
+    "hoyoCharacters": 98,
+    "matched": 96,
+    "unmatched": 22,
+    "ambiguous": 0,
+    "fullbodyFiles": 118,
+    "fullbodyMatched": 118,
+    "fullbodyUnmatched": 0,
+    "fullbodyAmbiguous": 0,
+    "allGeneratedAssetPathsExist": true,
+    "allGeneratedFullbodyPathsExist": true
+  },
+  "matched": [
+    {
+      "id": 1,
+      "nom": "Albedo",
+      "hoyoId": "10000038",
+      "hoyoName": "Albedo",
+      "iconPath": "/assets/genshin/characters/icons/10000038.png",
+      "splashPath": "/assets/genshin/characters/splash/10000038.png",
+      "wishPath": "/assets/genshin/characters/wish/10000038.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Albedo.png"
+    },
+    {
+      "id": 2,
+      "nom": "Alhaitham",
+      "hoyoId": "10000078",
+      "hoyoName": "Alhatham",
+      "iconPath": "/assets/genshin/characters/icons/10000078.png",
+      "splashPath": "/assets/genshin/characters/splash/10000078.png",
+      "wishPath": "/assets/genshin/characters/wish/10000078.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Alhatham.png"
+    },
+    {
+      "id": 3,
+      "nom": "Aloy",
+      "hoyoId": "10000062",
+      "hoyoName": "Aloy",
+      "iconPath": "/assets/genshin/characters/icons/10000062.png",
+      "splashPath": "/assets/genshin/characters/splash/10000062.png",
+      "wishPath": "/assets/genshin/characters/wish/10000062.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Aloy.png"
+    },
+    {
+      "id": 4,
+      "nom": "Itto",
+      "hoyoId": "10000057",
+      "hoyoName": "Itto",
+      "iconPath": "/assets/genshin/characters/icons/10000057.png",
+      "splashPath": "/assets/genshin/characters/splash/10000057.png",
+      "wishPath": "/assets/genshin/characters/wish/10000057.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Itto.png"
+    },
+    {
+      "id": 5,
+      "nom": "Arlecchino",
+      "hoyoId": "10000096",
+      "hoyoName": "Arlecchino",
+      "iconPath": "/assets/genshin/characters/icons/10000096.png",
+      "splashPath": "/assets/genshin/characters/splash/10000096.png",
+      "wishPath": "/assets/genshin/characters/wish/10000096.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Arlecchino.png"
+    },
+    {
+      "id": 6,
+      "nom": "Baizhu",
+      "hoyoId": "10000082",
+      "hoyoName": "Baizhuer",
+      "iconPath": "/assets/genshin/characters/icons/10000082.png",
+      "splashPath": "/assets/genshin/characters/splash/10000082.png",
+      "wishPath": "/assets/genshin/characters/wish/10000082.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Baizhuer.png"
+    },
+    {
+      "id": 7,
+      "nom": "Chasca",
+      "hoyoId": "10000104",
+      "hoyoName": "Chasca",
+      "iconPath": "/assets/genshin/characters/icons/10000104.png",
+      "splashPath": "/assets/genshin/characters/splash/10000104.png",
+      "wishPath": "/assets/genshin/characters/wish/10000104.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Chasca.png"
+    },
+    {
+      "id": 8,
+      "nom": "Chiori",
+      "hoyoId": "10000094",
+      "hoyoName": "Chiori",
+      "iconPath": "/assets/genshin/characters/icons/10000094.png",
+      "splashPath": "/assets/genshin/characters/splash/10000094.png",
+      "wishPath": "/assets/genshin/characters/wish/10000094.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Chiori.png"
+    },
+    {
+      "id": 9,
+      "nom": "Citlali",
+      "hoyoId": "10000107",
+      "hoyoName": "Citlali",
+      "iconPath": "/assets/genshin/characters/icons/10000107.png",
+      "splashPath": "/assets/genshin/characters/splash/10000107.png",
+      "wishPath": "/assets/genshin/characters/wish/10000107.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Citlali.png"
+    },
+    {
+      "id": 10,
+      "nom": "Clorinde",
+      "hoyoId": "10000098",
+      "hoyoName": "Clorinde",
+      "iconPath": "/assets/genshin/characters/icons/10000098.png",
+      "splashPath": "/assets/genshin/characters/splash/10000098.png",
+      "wishPath": "/assets/genshin/characters/wish/10000098.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Clorinde.png"
+    },
+    {
+      "id": 12,
+      "nom": "Cyno",
+      "hoyoId": "10000071",
+      "hoyoName": "Cyno",
+      "iconPath": "/assets/genshin/characters/icons/10000071.png",
+      "splashPath": "/assets/genshin/characters/splash/10000071.png",
+      "wishPath": "/assets/genshin/characters/wish/10000071.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Cyno.png"
+    },
+    {
+      "id": 13,
+      "nom": "Dehya",
+      "hoyoId": "10000079",
+      "hoyoName": "Dehya",
+      "iconPath": "/assets/genshin/characters/icons/10000079.png",
+      "splashPath": "/assets/genshin/characters/splash/10000079.png",
+      "wishPath": "/assets/genshin/characters/wish/10000079.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Dehya.png"
+    },
+    {
+      "id": 14,
+      "nom": "Diluc",
+      "hoyoId": "10000016",
+      "hoyoName": "Diluc",
+      "iconPath": "/assets/genshin/characters/icons/10000016.png",
+      "splashPath": "/assets/genshin/characters/splash/10000016.png",
+      "wishPath": "/assets/genshin/characters/wish/10000016.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Diluc.png"
+    },
+    {
+      "id": 16,
+      "nom": "Émilie",
+      "hoyoId": "10000099",
+      "hoyoName": "Emilie",
+      "iconPath": "/assets/genshin/characters/icons/10000099.png",
+      "splashPath": "/assets/genshin/characters/splash/10000099.png",
+      "wishPath": "/assets/genshin/characters/wish/10000099.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Emilie.png"
+    },
+    {
+      "id": 18,
+      "nom": "Eula",
+      "hoyoId": "10000051",
+      "hoyoName": "Eula",
+      "iconPath": "/assets/genshin/characters/icons/10000051.png",
+      "splashPath": "/assets/genshin/characters/splash/10000051.png",
+      "wishPath": "/assets/genshin/characters/wish/10000051.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Eula.png"
+    },
+    {
+      "id": 20,
+      "nom": "Furina",
+      "hoyoId": "10000089",
+      "hoyoName": "Furina",
+      "iconPath": "/assets/genshin/characters/icons/10000089.png",
+      "splashPath": "/assets/genshin/characters/splash/10000089.png",
+      "wishPath": "/assets/genshin/characters/wish/10000089.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Furina.png"
+    },
+    {
+      "id": 21,
+      "nom": "Ganyu",
+      "hoyoId": "10000037",
+      "hoyoName": "Ganyu",
+      "iconPath": "/assets/genshin/characters/icons/10000037.png",
+      "splashPath": "/assets/genshin/characters/splash/10000037.png",
+      "wishPath": "/assets/genshin/characters/wish/10000037.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Ganyu.png"
+    },
+    {
+      "id": 22,
+      "nom": "Hu Tao",
+      "hoyoId": "10000046",
+      "hoyoName": "Hutao",
+      "iconPath": "/assets/genshin/characters/icons/10000046.png",
+      "splashPath": "/assets/genshin/characters/splash/10000046.png",
+      "wishPath": "/assets/genshin/characters/wish/10000046.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Hutao.png"
+    },
+    {
+      "id": 24,
+      "nom": "Jean",
+      "hoyoId": "10000003",
+      "hoyoName": "Qin",
+      "iconPath": "/assets/genshin/characters/icons/10000003.png",
+      "splashPath": "/assets/genshin/characters/splash/10000003.png",
+      "wishPath": "/assets/genshin/characters/wish/10000003.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Qin.png"
+    },
+    {
+      "id": 25,
+      "nom": "Kazuha",
+      "hoyoId": "10000047",
+      "hoyoName": "Kazuha",
+      "iconPath": "/assets/genshin/characters/icons/10000047.png",
+      "splashPath": "/assets/genshin/characters/splash/10000047.png",
+      "wishPath": "/assets/genshin/characters/wish/10000047.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Kazuha.png"
+    },
+    {
+      "id": 26,
+      "nom": "Ayaka",
+      "hoyoId": "10000002",
+      "hoyoName": "Ayaka",
+      "iconPath": "/assets/genshin/characters/icons/10000002.png",
+      "splashPath": "/assets/genshin/characters/splash/10000002.png",
+      "wishPath": "/assets/genshin/characters/wish/10000002.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Ayaka.png"
+    },
+    {
+      "id": 27,
+      "nom": "Ayato",
+      "hoyoId": "10000066",
+      "hoyoName": "Ayato",
+      "iconPath": "/assets/genshin/characters/icons/10000066.png",
+      "splashPath": "/assets/genshin/characters/splash/10000066.png",
+      "wishPath": "/assets/genshin/characters/wish/10000066.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Ayato.png"
+    },
+    {
+      "id": 28,
+      "nom": "Keqing",
+      "hoyoId": "10000042",
+      "hoyoName": "Keqing",
+      "iconPath": "/assets/genshin/characters/icons/10000042.png",
+      "splashPath": "/assets/genshin/characters/splash/10000042.png",
+      "wishPath": "/assets/genshin/characters/wish/10000042.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Keqing.png"
+    },
+    {
+      "id": 29,
+      "nom": "Kinich",
+      "hoyoId": "10000101",
+      "hoyoName": "Kinich",
+      "iconPath": "/assets/genshin/characters/icons/10000101.png",
+      "splashPath": "/assets/genshin/characters/splash/10000101.png",
+      "wishPath": "/assets/genshin/characters/wish/10000101.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Kinich.png"
+    },
+    {
+      "id": 30,
+      "nom": "Klee",
+      "hoyoId": "10000029",
+      "hoyoName": "Klee",
+      "iconPath": "/assets/genshin/characters/icons/10000029.png",
+      "splashPath": "/assets/genshin/characters/splash/10000029.png",
+      "wishPath": "/assets/genshin/characters/wish/10000029.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Klee.png"
+    },
+    {
+      "id": 33,
+      "nom": "Lyney",
+      "hoyoId": "10000084",
+      "hoyoName": "Liney",
+      "iconPath": "/assets/genshin/characters/icons/10000084.png",
+      "splashPath": "/assets/genshin/characters/splash/10000084.png",
+      "wishPath": "/assets/genshin/characters/wish/10000084.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Liney.png"
+    },
+    {
+      "id": 34,
+      "nom": "Mavuika",
+      "hoyoId": "10000106",
+      "hoyoName": "Mavuika",
+      "iconPath": "/assets/genshin/characters/icons/10000106.png",
+      "splashPath": "/assets/genshin/characters/splash/10000106.png",
+      "wishPath": "/assets/genshin/characters/wish/10000106.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Mavuika.png"
+    },
+    {
+      "id": 35,
+      "nom": "Mona",
+      "hoyoId": "10000041",
+      "hoyoName": "Mona",
+      "iconPath": "/assets/genshin/characters/icons/10000041.png",
+      "splashPath": "/assets/genshin/characters/splash/10000041.png",
+      "wishPath": "/assets/genshin/characters/wish/10000041.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Mona.png"
+    },
+    {
+      "id": 36,
+      "nom": "Mualani",
+      "hoyoId": "10000102",
+      "hoyoName": "Mualani",
+      "iconPath": "/assets/genshin/characters/icons/10000102.png",
+      "splashPath": "/assets/genshin/characters/splash/10000102.png",
+      "wishPath": "/assets/genshin/characters/wish/10000102.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Mualani.png"
+    },
+    {
+      "id": 37,
+      "nom": "Nahida",
+      "hoyoId": "10000073",
+      "hoyoName": "Nahida",
+      "iconPath": "/assets/genshin/characters/icons/10000073.png",
+      "splashPath": "/assets/genshin/characters/splash/10000073.png",
+      "wishPath": "/assets/genshin/characters/wish/10000073.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Nahida.png"
+    },
+    {
+      "id": 38,
+      "nom": "Navia",
+      "hoyoId": "10000091",
+      "hoyoName": "Navia",
+      "iconPath": "/assets/genshin/characters/icons/10000091.png",
+      "splashPath": "/assets/genshin/characters/splash/10000091.png",
+      "wishPath": "/assets/genshin/characters/wish/10000091.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Navia.png"
+    },
+    {
+      "id": 40,
+      "nom": "Neuvillette",
+      "hoyoId": "10000087",
+      "hoyoName": "Neuvillette",
+      "iconPath": "/assets/genshin/characters/icons/10000087.png",
+      "splashPath": "/assets/genshin/characters/splash/10000087.png",
+      "wishPath": "/assets/genshin/characters/wish/10000087.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Neuvillette.png"
+    },
+    {
+      "id": 41,
+      "nom": "Nilou",
+      "hoyoId": "10000070",
+      "hoyoName": "Nilou",
+      "iconPath": "/assets/genshin/characters/icons/10000070.png",
+      "splashPath": "/assets/genshin/characters/splash/10000070.png",
+      "wishPath": "/assets/genshin/characters/wish/10000070.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Nilou.png"
+    },
+    {
+      "id": 42,
+      "nom": "Nomade",
+      "hoyoId": "10000075",
+      "hoyoName": "Wanderer",
+      "iconPath": "/assets/genshin/characters/icons/10000075.png",
+      "splashPath": "/assets/genshin/characters/splash/10000075.png",
+      "wishPath": "/assets/genshin/characters/wish/10000075.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Wanderer.png"
+    },
+    {
+      "id": 43,
+      "nom": "Qiqi",
+      "hoyoId": "10000035",
+      "hoyoName": "Qiqi",
+      "iconPath": "/assets/genshin/characters/icons/10000035.png",
+      "splashPath": "/assets/genshin/characters/splash/10000035.png",
+      "wishPath": "/assets/genshin/characters/wish/10000035.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Qiqi.png"
+    },
+    {
+      "id": 44,
+      "nom": "Kokomi",
+      "hoyoId": "10000054",
+      "hoyoName": "Kokomi",
+      "iconPath": "/assets/genshin/characters/icons/10000054.png",
+      "splashPath": "/assets/genshin/characters/splash/10000054.png",
+      "wishPath": "/assets/genshin/characters/wish/10000054.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Kokomi.png"
+    },
+    {
+      "id": 45,
+      "nom": "Shenhe",
+      "hoyoId": "10000063",
+      "hoyoName": "Shenhe",
+      "iconPath": "/assets/genshin/characters/icons/10000063.png",
+      "splashPath": "/assets/genshin/characters/splash/10000063.png",
+      "wishPath": "/assets/genshin/characters/wish/10000063.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Shenhe.png"
+    },
+    {
+      "id": 46,
+      "nom": "Raiden",
+      "hoyoId": "10000052",
+      "hoyoName": "Shougun",
+      "iconPath": "/assets/genshin/characters/icons/10000052.png",
+      "splashPath": "/assets/genshin/characters/splash/10000052.png",
+      "wishPath": "/assets/genshin/characters/wish/10000052.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Shougun.png"
+    },
+    {
+      "id": 47,
+      "nom": "Sigewinne",
+      "hoyoId": "10000095",
+      "hoyoName": "Sigewinne",
+      "iconPath": "/assets/genshin/characters/icons/10000095.png",
+      "splashPath": "/assets/genshin/characters/splash/10000095.png",
+      "wishPath": "/assets/genshin/characters/wish/10000095.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Sigewinne.png"
+    },
+    {
+      "id": 49,
+      "nom": "Tartaglia",
+      "hoyoId": "10000033",
+      "hoyoName": "Tartaglia",
+      "iconPath": "/assets/genshin/characters/icons/10000033.png",
+      "splashPath": "/assets/genshin/characters/splash/10000033.png",
+      "wishPath": "/assets/genshin/characters/wish/10000033.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Tartaglia.png"
+    },
+    {
+      "id": 50,
+      "nom": "Tighnari",
+      "hoyoId": "10000069",
+      "hoyoName": "Tighnari",
+      "iconPath": "/assets/genshin/characters/icons/10000069.png",
+      "splashPath": "/assets/genshin/characters/splash/10000069.png",
+      "wishPath": "/assets/genshin/characters/wish/10000069.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Tighnari.png"
+    },
+    {
+      "id": 51,
+      "nom": "Varesa",
+      "hoyoId": "10000111",
+      "hoyoName": "Varesa",
+      "iconPath": "/assets/genshin/characters/icons/10000111.png",
+      "splashPath": "/assets/genshin/characters/splash/10000111.png",
+      "wishPath": "/assets/genshin/characters/wish/10000111.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Varesa.png"
+    },
+    {
+      "id": 53,
+      "nom": "Venti",
+      "hoyoId": "10000022",
+      "hoyoName": "Venti",
+      "iconPath": "/assets/genshin/characters/icons/10000022.png",
+      "splashPath": "/assets/genshin/characters/splash/10000022.png",
+      "wishPath": "/assets/genshin/characters/wish/10000022.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Venti.png"
+    },
+    {
+      "id": 54,
+      "nom": "Wriothesley",
+      "hoyoId": "10000086",
+      "hoyoName": "Wriothesley",
+      "iconPath": "/assets/genshin/characters/icons/10000086.png",
+      "splashPath": "/assets/genshin/characters/splash/10000086.png",
+      "wishPath": "/assets/genshin/characters/wish/10000086.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Wriothesley.png"
+    },
+    {
+      "id": 55,
+      "nom": "Xianyun",
+      "hoyoId": "10000093",
+      "hoyoName": "Liuyun",
+      "iconPath": "/assets/genshin/characters/icons/10000093.png",
+      "splashPath": "/assets/genshin/characters/splash/10000093.png",
+      "wishPath": "/assets/genshin/characters/wish/10000093.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Liuyun.png"
+    },
+    {
+      "id": 56,
+      "nom": "Xiao",
+      "hoyoId": "10000026",
+      "hoyoName": "Xiao",
+      "iconPath": "/assets/genshin/characters/icons/10000026.png",
+      "splashPath": "/assets/genshin/characters/splash/10000026.png",
+      "wishPath": "/assets/genshin/characters/wish/10000026.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Xiao.png"
+    },
+    {
+      "id": 57,
+      "nom": "Xilonen",
+      "hoyoId": "10000103",
+      "hoyoName": "Xilonen",
+      "iconPath": "/assets/genshin/characters/icons/10000103.png",
+      "splashPath": "/assets/genshin/characters/splash/10000103.png",
+      "wishPath": "/assets/genshin/characters/wish/10000103.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Xilonen.png"
+    },
+    {
+      "id": 58,
+      "nom": "Yae Miko",
+      "hoyoId": "10000058",
+      "hoyoName": "Yae",
+      "iconPath": "/assets/genshin/characters/icons/10000058.png",
+      "splashPath": "/assets/genshin/characters/splash/10000058.png",
+      "wishPath": "/assets/genshin/characters/wish/10000058.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Yae.png"
+    },
+    {
+      "id": 59,
+      "nom": "Yelan",
+      "hoyoId": "10000060",
+      "hoyoName": "Yelan",
+      "iconPath": "/assets/genshin/characters/icons/10000060.png",
+      "splashPath": "/assets/genshin/characters/splash/10000060.png",
+      "wishPath": "/assets/genshin/characters/wish/10000060.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Yelan.png"
+    },
+    {
+      "id": 60,
+      "nom": "Yoimiya",
+      "hoyoId": "10000049",
+      "hoyoName": "Yoimiya",
+      "iconPath": "/assets/genshin/characters/icons/10000049.png",
+      "splashPath": "/assets/genshin/characters/splash/10000049.png",
+      "wishPath": "/assets/genshin/characters/wish/10000049.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Yoimiya.png"
+    },
+    {
+      "id": 61,
+      "nom": "Mizuki",
+      "hoyoId": "10000109",
+      "hoyoName": "Mizuki",
+      "iconPath": "/assets/genshin/characters/icons/10000109.png",
+      "splashPath": "/assets/genshin/characters/splash/10000109.png",
+      "wishPath": "/assets/genshin/characters/wish/10000109.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Mizuki.png"
+    },
+    {
+      "id": 62,
+      "nom": "Zhongli",
+      "hoyoId": "10000030",
+      "hoyoName": "Zhongli",
+      "iconPath": "/assets/genshin/characters/icons/10000030.png",
+      "splashPath": "/assets/genshin/characters/splash/10000030.png",
+      "wishPath": "/assets/genshin/characters/wish/10000030.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Zhongli.png"
+    },
+    {
+      "id": 65,
+      "nom": "Amber",
+      "hoyoId": "10000021",
+      "hoyoName": "Ambor",
+      "iconPath": "/assets/genshin/characters/icons/10000021.png",
+      "splashPath": "/assets/genshin/characters/splash/10000021.png",
+      "wishPath": "/assets/genshin/characters/wish/10000021.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Ambor.png"
+    },
+    {
+      "id": 66,
+      "nom": "Barbara",
+      "hoyoId": "10000014",
+      "hoyoName": "Barbara",
+      "iconPath": "/assets/genshin/characters/icons/10000014.png",
+      "splashPath": "/assets/genshin/characters/splash/10000014.png",
+      "wishPath": "/assets/genshin/characters/wish/10000014.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Barbara.png"
+    },
+    {
+      "id": 67,
+      "nom": "Beidou",
+      "hoyoId": "10000024",
+      "hoyoName": "Beidou",
+      "iconPath": "/assets/genshin/characters/icons/10000024.png",
+      "splashPath": "/assets/genshin/characters/splash/10000024.png",
+      "wishPath": "/assets/genshin/characters/wish/10000024.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Beidou.png"
+    },
+    {
+      "id": 68,
+      "nom": "Bennett",
+      "hoyoId": "10000032",
+      "hoyoName": "Bennett",
+      "iconPath": "/assets/genshin/characters/icons/10000032.png",
+      "splashPath": "/assets/genshin/characters/splash/10000032.png",
+      "wishPath": "/assets/genshin/characters/wish/10000032.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Bennett.png"
+    },
+    {
+      "id": 69,
+      "nom": "Candace",
+      "hoyoId": "10000072",
+      "hoyoName": "Candace",
+      "iconPath": "/assets/genshin/characters/icons/10000072.png",
+      "splashPath": "/assets/genshin/characters/splash/10000072.png",
+      "wishPath": "/assets/genshin/characters/wish/10000072.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Candace.png"
+    },
+    {
+      "id": 70,
+      "nom": "Charlotte",
+      "hoyoId": "10000088",
+      "hoyoName": "Charlotte",
+      "iconPath": "/assets/genshin/characters/icons/10000088.png",
+      "splashPath": "/assets/genshin/characters/splash/10000088.png",
+      "wishPath": "/assets/genshin/characters/wish/10000088.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Charlotte.png"
+    },
+    {
+      "id": 71,
+      "nom": "Chevreuse",
+      "hoyoId": "10000090",
+      "hoyoName": "Chevreuse",
+      "iconPath": "/assets/genshin/characters/icons/10000090.png",
+      "splashPath": "/assets/genshin/characters/splash/10000090.png",
+      "wishPath": "/assets/genshin/characters/wish/10000090.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Chevreuse.png"
+    },
+    {
+      "id": 72,
+      "nom": "Chongyun",
+      "hoyoId": "10000036",
+      "hoyoName": "Chongyun",
+      "iconPath": "/assets/genshin/characters/icons/10000036.png",
+      "splashPath": "/assets/genshin/characters/splash/10000036.png",
+      "wishPath": "/assets/genshin/characters/wish/10000036.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Chongyun.png"
+    },
+    {
+      "id": 73,
+      "nom": "Collei",
+      "hoyoId": "10000067",
+      "hoyoName": "Collei",
+      "iconPath": "/assets/genshin/characters/icons/10000067.png",
+      "splashPath": "/assets/genshin/characters/splash/10000067.png",
+      "wishPath": "/assets/genshin/characters/wish/10000067.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Collei.png"
+    },
+    {
+      "id": 75,
+      "nom": "Diona",
+      "hoyoId": "10000039",
+      "hoyoName": "Diona",
+      "iconPath": "/assets/genshin/characters/icons/10000039.png",
+      "splashPath": "/assets/genshin/characters/splash/10000039.png",
+      "wishPath": "/assets/genshin/characters/wish/10000039.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Diona.png"
+    },
+    {
+      "id": 76,
+      "nom": "Dori",
+      "hoyoId": "10000068",
+      "hoyoName": "Dori",
+      "iconPath": "/assets/genshin/characters/icons/10000068.png",
+      "splashPath": "/assets/genshin/characters/splash/10000068.png",
+      "wishPath": "/assets/genshin/characters/wish/10000068.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Dori.png"
+    },
+    {
+      "id": 77,
+      "nom": "Faruzan",
+      "hoyoId": "10000076",
+      "hoyoName": "Faruzan",
+      "iconPath": "/assets/genshin/characters/icons/10000076.png",
+      "splashPath": "/assets/genshin/characters/splash/10000076.png",
+      "wishPath": "/assets/genshin/characters/wish/10000076.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Faruzan.png"
+    },
+    {
+      "id": 78,
+      "nom": "Fischl",
+      "hoyoId": "10000031",
+      "hoyoName": "Fischl",
+      "iconPath": "/assets/genshin/characters/icons/10000031.png",
+      "splashPath": "/assets/genshin/characters/splash/10000031.png",
+      "wishPath": "/assets/genshin/characters/wish/10000031.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Fischl.png"
+    },
+    {
+      "id": 79,
+      "nom": "Fréminet",
+      "hoyoId": "10000085",
+      "hoyoName": "Freminet",
+      "iconPath": "/assets/genshin/characters/icons/10000085.png",
+      "splashPath": "/assets/genshin/characters/splash/10000085.png",
+      "wishPath": "/assets/genshin/characters/wish/10000085.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Freminet.png"
+    },
+    {
+      "id": 80,
+      "nom": "Gaming",
+      "hoyoId": "10000092",
+      "hoyoName": "Gaming",
+      "iconPath": "/assets/genshin/characters/icons/10000092.png",
+      "splashPath": "/assets/genshin/characters/splash/10000092.png",
+      "wishPath": "/assets/genshin/characters/wish/10000092.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Gaming.png"
+    },
+    {
+      "id": 81,
+      "nom": "Gorou",
+      "hoyoId": "10000055",
+      "hoyoName": "Gorou",
+      "iconPath": "/assets/genshin/characters/icons/10000055.png",
+      "splashPath": "/assets/genshin/characters/splash/10000055.png",
+      "wishPath": "/assets/genshin/characters/wish/10000055.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Gorou.png"
+    },
+    {
+      "id": 82,
+      "nom": "Iansan",
+      "hoyoId": "10000110",
+      "hoyoName": "Iansan",
+      "iconPath": "/assets/genshin/characters/icons/10000110.png",
+      "splashPath": "/assets/genshin/characters/splash/10000110.png",
+      "wishPath": "/assets/genshin/characters/wish/10000110.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Iansan.png"
+    },
+    {
+      "id": 86,
+      "nom": "Kachina",
+      "hoyoId": "10000100",
+      "hoyoName": "Kachina",
+      "iconPath": "/assets/genshin/characters/icons/10000100.png",
+      "splashPath": "/assets/genshin/characters/splash/10000100.png",
+      "wishPath": "/assets/genshin/characters/wish/10000100.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Kachina.png"
+    },
+    {
+      "id": 87,
+      "nom": "Kaeya",
+      "hoyoId": "10000015",
+      "hoyoName": "Kaeya",
+      "iconPath": "/assets/genshin/characters/icons/10000015.png",
+      "splashPath": "/assets/genshin/characters/splash/10000015.png",
+      "wishPath": "/assets/genshin/characters/wish/10000015.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Kaeya.png"
+    },
+    {
+      "id": 88,
+      "nom": "Kaveh",
+      "hoyoId": "10000081",
+      "hoyoName": "Kaveh",
+      "iconPath": "/assets/genshin/characters/icons/10000081.png",
+      "splashPath": "/assets/genshin/characters/splash/10000081.png",
+      "wishPath": "/assets/genshin/characters/wish/10000081.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Kaveh.png"
+    },
+    {
+      "id": 89,
+      "nom": "Kirara",
+      "hoyoId": "10000061",
+      "hoyoName": "Momoka",
+      "iconPath": "/assets/genshin/characters/icons/10000061.png",
+      "splashPath": "/assets/genshin/characters/splash/10000061.png",
+      "wishPath": "/assets/genshin/characters/wish/10000061.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Momoka.png"
+    },
+    {
+      "id": 90,
+      "nom": "Sara",
+      "hoyoId": "10000056",
+      "hoyoName": "Sara",
+      "iconPath": "/assets/genshin/characters/icons/10000056.png",
+      "splashPath": "/assets/genshin/characters/splash/10000056.png",
+      "wishPath": "/assets/genshin/characters/wish/10000056.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Sara.png"
+    },
+    {
+      "id": 91,
+      "nom": "Kuki",
+      "hoyoId": "10000065",
+      "hoyoName": "Shinobu",
+      "iconPath": "/assets/genshin/characters/icons/10000065.png",
+      "splashPath": "/assets/genshin/characters/splash/10000065.png",
+      "wishPath": "/assets/genshin/characters/wish/10000065.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Shinobu.png"
+    },
+    {
+      "id": 92,
+      "nom": "Lan Yan",
+      "hoyoId": "10000108",
+      "hoyoName": "Lanyan",
+      "iconPath": "/assets/genshin/characters/icons/10000108.png",
+      "splashPath": "/assets/genshin/characters/splash/10000108.png",
+      "wishPath": "/assets/genshin/characters/wish/10000108.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Lanyan.png"
+    },
+    {
+      "id": 93,
+      "nom": "Layla",
+      "hoyoId": "10000074",
+      "hoyoName": "Layla",
+      "iconPath": "/assets/genshin/characters/icons/10000074.png",
+      "splashPath": "/assets/genshin/characters/splash/10000074.png",
+      "wishPath": "/assets/genshin/characters/wish/10000074.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Layla.png"
+    },
+    {
+      "id": 94,
+      "nom": "Lisa",
+      "hoyoId": "10000006",
+      "hoyoName": "Lisa",
+      "iconPath": "/assets/genshin/characters/icons/10000006.png",
+      "splashPath": "/assets/genshin/characters/splash/10000006.png",
+      "wishPath": "/assets/genshin/characters/wish/10000006.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Lisa.png"
+    },
+    {
+      "id": 95,
+      "nom": "Lynette",
+      "hoyoId": "10000083",
+      "hoyoName": "Linette",
+      "iconPath": "/assets/genshin/characters/icons/10000083.png",
+      "splashPath": "/assets/genshin/characters/splash/10000083.png",
+      "wishPath": "/assets/genshin/characters/wish/10000083.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Linette.png"
+    },
+    {
+      "id": 96,
+      "nom": "Mika",
+      "hoyoId": "10000080",
+      "hoyoName": "Mika",
+      "iconPath": "/assets/genshin/characters/icons/10000080.png",
+      "splashPath": "/assets/genshin/characters/splash/10000080.png",
+      "wishPath": "/assets/genshin/characters/wish/10000080.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Mika.png"
+    },
+    {
+      "id": 97,
+      "nom": "Ningguang",
+      "hoyoId": "10000027",
+      "hoyoName": "Ningguang",
+      "iconPath": "/assets/genshin/characters/icons/10000027.png",
+      "splashPath": "/assets/genshin/characters/splash/10000027.png",
+      "wishPath": "/assets/genshin/characters/wish/10000027.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Ningguang.png"
+    },
+    {
+      "id": 98,
+      "nom": "Noëlle",
+      "hoyoId": "10000034",
+      "hoyoName": "Noel",
+      "iconPath": "/assets/genshin/characters/icons/10000034.png",
+      "splashPath": "/assets/genshin/characters/splash/10000034.png",
+      "wishPath": "/assets/genshin/characters/wish/10000034.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Noel.png"
+    },
+    {
+      "id": 99,
+      "nom": "Ororon",
+      "hoyoId": "10000105",
+      "hoyoName": "Olorun",
+      "iconPath": "/assets/genshin/characters/icons/10000105.png",
+      "splashPath": "/assets/genshin/characters/splash/10000105.png",
+      "wishPath": "/assets/genshin/characters/wish/10000105.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Olorun.png"
+    },
+    {
+      "id": 100,
+      "nom": "Razor",
+      "hoyoId": "10000020",
+      "hoyoName": "Razor",
+      "iconPath": "/assets/genshin/characters/icons/10000020.png",
+      "splashPath": "/assets/genshin/characters/splash/10000020.png",
+      "wishPath": "/assets/genshin/characters/wish/10000020.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Razor.png"
+    },
+    {
+      "id": 101,
+      "nom": "Rosalia",
+      "hoyoId": "10000045",
+      "hoyoName": "Rosaria",
+      "iconPath": "/assets/genshin/characters/icons/10000045.png",
+      "splashPath": "/assets/genshin/characters/splash/10000045.png",
+      "wishPath": "/assets/genshin/characters/wish/10000045.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Rosaria.png"
+    },
+    {
+      "id": 102,
+      "nom": "Sayu",
+      "hoyoId": "10000053",
+      "hoyoName": "Sayu",
+      "iconPath": "/assets/genshin/characters/icons/10000053.png",
+      "splashPath": "/assets/genshin/characters/splash/10000053.png",
+      "wishPath": "/assets/genshin/characters/wish/10000053.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Sayu.png"
+    },
+    {
+      "id": 103,
+      "nom": "Sethos",
+      "hoyoId": "10000097",
+      "hoyoName": "Sethos",
+      "iconPath": "/assets/genshin/characters/icons/10000097.png",
+      "splashPath": "/assets/genshin/characters/splash/10000097.png",
+      "wishPath": "/assets/genshin/characters/wish/10000097.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Sethos.png"
+    },
+    {
+      "id": 104,
+      "nom": "Heizou",
+      "hoyoId": "10000059",
+      "hoyoName": "Heizo",
+      "iconPath": "/assets/genshin/characters/icons/10000059.png",
+      "splashPath": "/assets/genshin/characters/splash/10000059.png",
+      "wishPath": "/assets/genshin/characters/wish/10000059.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Heizo.png"
+    },
+    {
+      "id": 105,
+      "nom": "Sucrose",
+      "hoyoId": "10000043",
+      "hoyoName": "Sucrose",
+      "iconPath": "/assets/genshin/characters/icons/10000043.png",
+      "splashPath": "/assets/genshin/characters/splash/10000043.png",
+      "wishPath": "/assets/genshin/characters/wish/10000043.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Sucrose.png"
+    },
+    {
+      "id": 106,
+      "nom": "Thomas",
+      "hoyoId": "10000050",
+      "hoyoName": "Tohma",
+      "iconPath": "/assets/genshin/characters/icons/10000050.png",
+      "splashPath": "/assets/genshin/characters/splash/10000050.png",
+      "wishPath": "/assets/genshin/characters/wish/10000050.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Tohma.png"
+    },
+    {
+      "id": 107,
+      "nom": "Xiangling",
+      "hoyoId": "10000023",
+      "hoyoName": "Xiangling",
+      "iconPath": "/assets/genshin/characters/icons/10000023.png",
+      "splashPath": "/assets/genshin/characters/splash/10000023.png",
+      "wishPath": "/assets/genshin/characters/wish/10000023.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Xiangling.png"
+    },
+    {
+      "id": 108,
+      "nom": "Xingqiu",
+      "hoyoId": "10000025",
+      "hoyoName": "Xingqiu",
+      "iconPath": "/assets/genshin/characters/icons/10000025.png",
+      "splashPath": "/assets/genshin/characters/splash/10000025.png",
+      "wishPath": "/assets/genshin/characters/wish/10000025.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Xingqiu.png"
+    },
+    {
+      "id": 109,
+      "nom": "Xinyan",
+      "hoyoId": "10000044",
+      "hoyoName": "Xinyan",
+      "iconPath": "/assets/genshin/characters/icons/10000044.png",
+      "splashPath": "/assets/genshin/characters/splash/10000044.png",
+      "wishPath": "/assets/genshin/characters/wish/10000044.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Xinyan.png"
+    },
+    {
+      "id": 110,
+      "nom": "Yanfei",
+      "hoyoId": "10000048",
+      "hoyoName": "Feiyan",
+      "iconPath": "/assets/genshin/characters/icons/10000048.png",
+      "splashPath": "/assets/genshin/characters/splash/10000048.png",
+      "wishPath": "/assets/genshin/characters/wish/10000048.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Feiyan.png"
+    },
+    {
+      "id": 111,
+      "nom": "Yaoyao",
+      "hoyoId": "10000077",
+      "hoyoName": "Yaoyao",
+      "iconPath": "/assets/genshin/characters/icons/10000077.png",
+      "splashPath": "/assets/genshin/characters/splash/10000077.png",
+      "wishPath": "/assets/genshin/characters/wish/10000077.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Yaoyao.png"
+    },
+    {
+      "id": 112,
+      "nom": "Yun Jin",
+      "hoyoId": "10000064",
+      "hoyoName": "Yunjin",
+      "iconPath": "/assets/genshin/characters/icons/10000064.png",
+      "splashPath": "/assets/genshin/characters/splash/10000064.png",
+      "wishPath": "/assets/genshin/characters/wish/10000064.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Yunjin.png"
+    }
+  ],
+  "unmatched": [
+    {
+      "id": 11,
+      "nom": "Columbina",
+      "rarete": 5,
+      "element": "Hydro",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Columbina.png"
+    },
+    {
+      "id": 15,
+      "nom": "Durin",
+      "rarete": 5,
+      "element": "Pyro",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Durin.png"
+    },
+    {
+      "id": 17,
+      "nom": "Escoffier",
+      "rarete": 5,
+      "element": "Cryo",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Escoffier.png"
+    },
+    {
+      "id": 19,
+      "nom": "Flins",
+      "rarete": 5,
+      "element": "Électro",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Flins.png"
+    },
+    {
+      "id": 23,
+      "nom": "Ineffa",
+      "rarete": 5,
+      "element": "Électro",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Ineffa.png"
+    },
+    {
+      "id": 31,
+      "nom": "Lauma",
+      "rarete": 5,
+      "element": "Dendro",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Lauma.png"
+    },
+    {
+      "id": 32,
+      "nom": "Linnea",
+      "rarete": 5,
+      "element": "Géo",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Linnea.png"
+    },
+    {
+      "id": 39,
+      "nom": "Nefer",
+      "rarete": 5,
+      "element": "Dendro",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Nefer.png"
+    },
+    {
+      "id": 48,
+      "nom": "Skirk",
+      "rarete": 5,
+      "element": "Cryo",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_SkirkNew.png"
+    },
+    {
+      "id": 52,
+      "nom": "Varka",
+      "rarete": 5,
+      "element": "Anémo",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Varka.png"
+    },
+    {
+      "id": 63,
+      "nom": "Zibai",
+      "rarete": 5,
+      "element": "Géo",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Zibai.png"
+    },
+    {
+      "id": 64,
+      "nom": "Aino",
+      "rarete": 4,
+      "element": "Hydro",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Aino.png"
+    },
+    {
+      "id": 74,
+      "nom": "Dahlia",
+      "rarete": 4,
+      "element": "Hydro",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Dahlia.png"
+    },
+    {
+      "id": 83,
+      "nom": "Ifa",
+      "rarete": 4,
+      "element": "Anémo",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Ifa.png"
+    },
+    {
+      "id": 84,
+      "nom": "Illuga",
+      "rarete": 4,
+      "element": "Géo",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Illuga.png"
+    },
+    {
+      "id": 85,
+      "nom": "Jahoda",
+      "rarete": 4,
+      "element": "Anémo",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Jahoda.png"
+    },
+    {
+      "id": 113,
+      "nom": "Prune",
+      "rarete": 4,
+      "element": "Anémo",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Prune.png"
+    },
+    {
+      "id": 114,
+      "nom": "Nicole",
+      "rarete": 5,
+      "element": "Pyro",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Nicole.png"
+    },
+    {
+      "id": 115,
+      "nom": "Lohen",
+      "rarete": 5,
+      "element": "Cryo",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Lohen.png"
+    },
+    {
+      "id": 116,
+      "nom": "Sandrone",
+      "rarete": 5,
+      "element": "Cryo",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_MarionetteNew.png"
+    },
+    {
+      "id": 117,
+      "nom": "Odette",
+      "rarete": 5,
+      "element": "Cryo",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Odette.png"
+    },
+    {
+      "id": 118,
+      "nom": "Alyosha",
+      "rarete": 4,
+      "element": "Électro",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Alyosha.png"
+    }
+  ],
+  "ambiguous": [],
+  "fullbodyUnmatched": [],
+  "fullbodyAmbiguous": []
+}

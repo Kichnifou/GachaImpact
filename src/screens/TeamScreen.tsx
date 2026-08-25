@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import CharacterCard from '../components/CharacterCard'
+import CharacterAssetImage from '../components/CharacterAssetImage'
+import GameAssetIcon from '../components/GameAssetIcon'
 import ScreenHeader from '../components/ScreenHeader'
 import { activeTeam, characters } from '../data/mockData'
 import type { Character } from '../types'
+import { getElementAssetPath } from '../utils/gameAssets'
 
 function TeamScreen() {
   const [selectedSlot, setSelectedSlot] = useState<Character | null>(null)
@@ -36,8 +39,18 @@ function TeamScreen() {
         ) : (
           <article className={`large-team-card ${character.tone}`} key={character.id}>
             <span className="team-slot-number">0{index + 1}</span>
-            <span className="large-element" aria-hidden="true">{character.elementIcon}</span>
-            <div className="large-character-portrait" aria-hidden="true"><span>{character.name.slice(0, 1)}</span><i /></div>
+            <GameAssetIcon
+              className="large-element"
+              src={getElementAssetPath(character.element, 'badge')}
+              fallback={character.elementIcon}
+            />
+            <div className="large-character-portrait" aria-hidden="true">
+              <CharacterAssetImage
+                characterName={character.name}
+                className="large-character-asset-image"
+                fallback={<><span>{character.name.slice(0, 1)}</span><i /></>}
+              />
+            </div>
             <div className="large-team-copy">
               <span className="character-rarity">{'★'.repeat(character.rarity)}</span>
               <h2>{character.name}</h2>
@@ -56,7 +69,7 @@ function TeamScreen() {
       <section className="panel team-bonuses">
         <div className="section-heading"><span>Bonus et passifs d’équipe</span><small>Aperçu futur</small></div>
         <div className="bonus-grid">
-          <article><span className="hydro">●</span><div><strong>Résonance élémentaire</strong><p>Aucun bonus actif dans ce prototype.</p></div></article>
+          <article><GameAssetIcon className="hydro bonus-element-icon" src={getElementAssetPath('Hydro')} fallback="●" /><div><strong>Résonance élémentaire</strong><p>Aucun bonus actif dans ce prototype.</p></div></article>
           <article><span className="gold">✦</span><div><strong>Passifs combinés</strong><p>Les effets de groupe apparaîtront ici.</p></div></article>
           <article><span className="violet">◇</span><div><strong>Puissance d’équipe</strong><p>Évaluation fictive : 8 420</p></div></article>
         </div>

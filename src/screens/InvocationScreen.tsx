@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import BannerHero from '../components/BannerHero'
+import GameAssetIcon from '../components/GameAssetIcon'
 import ScreenHeader from '../components/ScreenHeader'
+import { currencyAssetPaths } from '../utils/gameAssets'
 
 function InvocationScreen() {
   const [bannerType, setBannerType] = useState<'permanent' | 'temporary'>('permanent')
@@ -60,7 +62,7 @@ function InvocationScreen() {
 
       <section className="invocation-info-grid">
         <article className="panel info-card"><span>✦</span><div><strong>Capture de brillance</strong><p>Inactive · information visuelle fictive</p></div></article>
-        <article className="panel info-card"><span>◈</span><div><strong>Coût d’une invocation</strong><p>160 primogemmes ou 1 vœu astral</p></div></article>
+        <article className="panel info-card"><GameAssetIcon className="info-currency-icon" src={currencyAssetPaths.primogem} fallback="◈" /><div><strong>Coût d’une invocation</strong><p>160 primogemmes ou 1 vœu astral</p></div></article>
         <article className="panel info-card"><span>★</span><div><strong>Garantie actuelle</strong><p>Le prochain 5★ n’est pas garanti</p></div></article>
       </section>
     </div>
