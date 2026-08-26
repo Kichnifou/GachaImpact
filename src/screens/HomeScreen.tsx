@@ -6,8 +6,8 @@ type HomeScreenProps = {
 }
 
 const shortcuts: Array<{ screen: ScreenId; label: string; description: string; icon: string; tone: string }> = [
-  { screen: 'characters', label: 'Personnages', description: 'Découvrir le catalogue', icon: '♙', tone: 'cyan' },
   { screen: 'box', label: 'Box', description: 'Voir vos personnages', icon: '▦', tone: 'violet' },
+  { screen: 'characters', label: 'Personnages', description: 'Découvrir le catalogue', icon: '♙', tone: 'cyan' },
   { screen: 'team', label: 'Équipe', description: 'Préparer votre groupe', icon: '♟', tone: 'gold' },
   { screen: 'inventory', label: 'Sac', description: 'Consulter vos ressources', icon: '◇', tone: 'blue' },
   { screen: 'shop', label: 'Boutique', description: 'Parcourir les échanges', icon: '♢', tone: 'pink' },

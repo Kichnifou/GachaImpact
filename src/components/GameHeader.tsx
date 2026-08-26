@@ -34,11 +34,6 @@ function GameHeader({ onNavigateHome, onOpenSidebar }: GameHeaderProps) {
         </span>
       </button>
 
-      <div className="development-banner">
-        <span aria-hidden="true">◆</span>
-        Version de développement
-      </div>
-
       <div className="header-actions">
         <button type="button" className="mobile-player-button" onClick={onOpenSidebar}>
           <span aria-hidden="true">K</span>

@@ -1,15 +1,21 @@
+import { activeBanner } from '../data/mockData'
+import { BANNER_CHARACTER_ASSET_ORDER, currencyAssetPaths } from '../utils/gameAssets'
+import CharacterAssetImage from './CharacterAssetImage'
+import GameAssetIcon from './GameAssetIcon'
+
 type BannerHeroProps = {
   compact?: boolean
   showDetails?: boolean
 }
 
 function BannerHero({ compact = false, showDetails = false }: BannerHeroProps) {
+  const { featuredCharacter, pityFiveStar, pityFourStar, guaranteeFiveStar, brilliance } = activeBanner
+
   return (
     <section className={`invocation-panel${compact ? ' home-banner' : ''}`} aria-labelledby="invocation-title">
       <div className="banner-glow banner-glow-one" />
       <div className="banner-glow banner-glow-two" />
       <div className="banner-content">
-        <span className="banner-kicker">Bannière permanente</span>
         <h1 id="invocation-title">Éclat des astres</h1>
         <p>Invoquez des compagnons venus d’horizons lointains et écrivez une nouvelle page de votre voyage.</p>
         <div className="banner-tags">
@@ -24,15 +30,15 @@ function BannerHero({ compact = false, showDetails = false }: BannerHeroProps) {
         )}
       </div>
 
-      <div className="celestial-placeholder" aria-label={`Illustration de ${characters[0].name}`}>
+      <div className="celestial-placeholder" aria-label={`Illustration de ${featuredCharacter.name}`}>
         <span className="orbit orbit-one" />
         <span className="orbit orbit-two" />
         <CharacterAssetImage
-          characterName={characters[0].name}
+          characterName={featuredCharacter.name}
           className="banner-character-asset"
           order={BANNER_CHARACTER_ASSET_ORDER}
           fallback={<span className="celestial-star">✦</span>}
-          alt={characters[0].name}
+          alt={featuredCharacter.name}
         />
         <span className="spark spark-one">✧</span>
         <span className="spark spark-two">·</span>
@@ -42,14 +48,15 @@ function BannerHero({ compact = false, showDetails = false }: BannerHeroProps) {
       <div className="invocation-footer">
         <div className="pity-summary">
           <div className="banner-progress">
-            <div className="pity-row"><span>Pity 5★</span><strong>42 / 90</strong></div>
+            <div className="pity-row"><span>Pity 5★</span><strong>{pityFiveStar.current} / {pityFiveStar.maximum}</strong></div>
             <div className="progress-track"><span className="progress-fill pity" /></div>
           </div>
           <div className="banner-progress">
-            <div className="pity-row"><span>Pity 4★</span><strong>7 / 10</strong></div>
+            <div className="pity-row"><span>Pity 4★</span><strong>{pityFourStar.current} / {pityFourStar.maximum}</strong></div>
             <div className="progress-track"><span className="progress-fill pity-four" /></div>
           </div>
-          <div className="guarantee-summary"><strong>5★</strong><span>non garanti</span></div>
+          <div className="banner-status"><span>Garantie 5★</span><strong>{guaranteeFiveStar}</strong></div>
+          <div className="banner-status"><span>Brillance</span><strong>{brilliance.current} / {brilliance.maximum}</strong></div>
         </div>
         <div className="wish-actions" aria-label="Actions d’invocation fictives">
           <button type="button" className="wish-button secondary"><span>Invocation x1</span><small><GameAssetIcon className="inline-currency-icon" src={currencyAssetPaths.primogem} fallback="✦" /> × 160</small></button>
@@ -61,7 +68,3 @@ function BannerHero({ compact = false, showDetails = false }: BannerHeroProps) {
 }
 
 export default BannerHero
-import { characters } from '../data/mockData'
-import { BANNER_CHARACTER_ASSET_ORDER, currencyAssetPaths } from '../utils/gameAssets'
-import CharacterAssetImage from './CharacterAssetImage'
-import GameAssetIcon from './GameAssetIcon'

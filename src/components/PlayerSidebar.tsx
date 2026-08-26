@@ -1,4 +1,4 @@
-import { activeTeam, particles, player } from '../data/mockData'
+import { activeBanner, activeTeam, particles, player } from '../data/mockData'
 import type { ScreenId } from '../types'
 import { currencyAssetPaths, getElementAssetPath } from '../utils/gameAssets'
 import CharacterAssetImage from './CharacterAssetImage'
@@ -11,6 +11,8 @@ type PlayerSidebarProps = {
 }
 
 function PlayerSidebar({ isOpen, onClose, onNavigate }: PlayerSidebarProps) {
+  const { featuredCharacter, pityFiveStar, pityFourStar, guaranteeFiveStar, brilliance } = activeBanner
+
   return (
     <aside className={`player-sidebar${isOpen ? ' mobile-open' : ''}`} aria-label="Informations du joueur">
       <div className="mobile-sidebar-heading">
@@ -94,27 +96,27 @@ function PlayerSidebar({ isOpen, onClose, onNavigate }: PlayerSidebarProps) {
           <span>Objectif actuel</span><span className="card-chevron" aria-hidden="true">›</span>
         </button>
         <div className="objective-content">
-          <div className="objective-art" aria-label={`Portrait de ${activeTeam[0].name}`}>
+          <div className="objective-art" aria-label={`Portrait de ${featuredCharacter.name}`}>
             <CharacterAssetImage
-              characterName={activeTeam[0].name}
+              characterName={featuredCharacter.name}
               className="objective-asset-image"
-              fallback={activeTeam[0].name.slice(0, 1)}
-              alt={activeTeam[0].name}
+              fallback={featuredCharacter.name.slice(0, 1)}
+              alt={featuredCharacter.name}
             />
           </div>
           <div>
             <div className="objective-name-line">
-              <h3>{activeTeam[0].name}</h3>
+              <h3>{featuredCharacter.name}</h3>
               <span className="stars">★★★★★</span>
             </div>
-            <p>Garantie 5★ : non garantie</p>
-            <div className="pity-row"><span>Pity 5★</span><strong>42 / 90</strong></div>
+            <p className="objective-guarantee">Garantie 5★ : {guaranteeFiveStar}</p>
+            <p className="objective-brilliance">Brillance : <strong>{brilliance.current} / {brilliance.maximum}</strong></p>
+            <div className="pity-row"><span>Pity 5★</span><strong>{pityFiveStar.current} / {pityFiveStar.maximum}</strong></div>
             <div className="progress-track"><span className="progress-fill pity" /></div>
-            <div className="pity-row objective-secondary"><span>Pity 4★</span><strong>7 / 10</strong></div>
+            <div className="pity-row objective-secondary"><span>Pity 4★</span><strong>{pityFourStar.current} / {pityFourStar.maximum}</strong></div>
             <div className="progress-track"><span className="progress-fill pity-four" /></div>
           </div>
         </div>
-        <div className="brilliance-line"><span>Capture de brillance</span><strong>✦ Inactive</strong></div>
       </section>
 
       <section className="panel daily-card">

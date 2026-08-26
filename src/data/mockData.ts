@@ -32,6 +32,14 @@ export const characters: Character[] = [
   { id: 'sucrose', name: 'Sucrose', element: 'Anémo', elementIcon: '⌁', tone: 'anemo', rarity: 4, constellation: 0, level: 1, owned: false, role: 'Exploration' },
 ]
 
+export const activeBanner = {
+  featuredCharacter: characters[0],
+  pityFiveStar: { current: 42, maximum: 90 },
+  pityFourStar: { current: 7, maximum: 10 },
+  guaranteeFiveStar: 'Non garantie',
+  brilliance: { current: 1, maximum: 3 },
+}
+
 export const activeTeam = characters.slice(0, 4)
 
 export const onlinePlayers: OnlinePlayer[] = [
