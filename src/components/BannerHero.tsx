@@ -40,6 +40,10 @@ function BannerHero({ compact = false, showDetails = false }: BannerHeroProps) {
           fallback={<span className="celestial-star">✦</span>}
           alt={featuredCharacter.name}
         />
+        <div className="banner-featured-character">
+          <strong>{featuredCharacter.name}</strong>
+          <span aria-label={`${featuredCharacter.rarity} étoiles`}>{'★'.repeat(featuredCharacter.rarity)}</span>
+        </div>
         <span className="spark spark-one">✧</span>
         <span className="spark spark-two">·</span>
         <span className="spark spark-three">✦</span>

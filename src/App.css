@@ -573,7 +573,9 @@
 
 .banner-content {
   position: relative;
-  z-index: 2;
+  z-index: 4;
+  grid-column: 1;
+  grid-row: 1;
   align-self: center;
   padding: 46px 12px 46px 42px;
 }
@@ -616,9 +618,50 @@
 .celestial-placeholder {
   position: relative;
   z-index: 1;
+  grid-column: 1 / -1;
+  grid-row: 1;
   min-height: 360px;
   display: grid;
   place-items: center;
+}
+
+.celestial-placeholder::after {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  content: '';
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(6, 13, 31, 0.96) 0%, rgba(7, 14, 32, 0.84) 30%, rgba(7, 14, 32, 0.46) 52%, rgba(7, 14, 32, 0.08) 76%),
+    linear-gradient(0deg, rgba(6, 12, 28, 0.48), transparent 24%);
+}
+
+.banner-featured-character {
+  position: absolute;
+  z-index: 4;
+  right: clamp(24px, 6%, 72px);
+  bottom: clamp(22px, 5%, 44px);
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 3px;
+  pointer-events: none;
+  text-align: right;
+  text-shadow: 0 3px 16px rgba(1, 7, 20, 0.9);
+}
+
+.banner-featured-character strong {
+  color: #f7f8ff;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(22px, 2.2vw, 34px);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.banner-featured-character span {
+  color: var(--gold);
+  font-size: 14px;
+  letter-spacing: 0.08em;
 }
 
 .celestial-star {
@@ -1043,12 +1086,31 @@
   .invocation-panel {
     min-height: 0;
     grid-template-columns: 1fr;
-    grid-template-rows: auto 230px auto;
+    grid-template-rows: auto 280px auto;
   }
 
-  .banner-content { padding: 32px 24px 0; }
+  .banner-content {
+    grid-column: 1;
+    grid-row: 1;
+    padding: 32px 24px 0;
+  }
   .banner-content h1 { font-size: clamp(37px, 13vw, 53px); }
-  .celestial-placeholder { min-height: 230px; }
+  .celestial-placeholder {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    min-height: 0;
+  }
+
+  .celestial-placeholder::after {
+    background:
+      linear-gradient(180deg, rgba(6, 13, 31, 0.96) 0%, rgba(7, 14, 32, 0.84) 37%, rgba(7, 14, 32, 0.4) 50%, rgba(7, 14, 32, 0.16) 64%, rgba(7, 14, 32, 0.14) 100%),
+      linear-gradient(90deg, rgba(7, 14, 32, 0.34), transparent 72%);
+  }
+
+  .banner-featured-character {
+    right: 22px;
+    bottom: 20px;
+  }
 
   .celestial-star {
     width: 115px;
@@ -1068,6 +1130,7 @@
 
   .invocation-footer {
     grid-column: auto;
+    grid-row: 3;
     grid-template-columns: 1fr;
     gap: 17px;
     padding: 19px;
@@ -2593,18 +2656,20 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 }
 
 .banner-character-asset {
-  --banner-art-scale: 1.06;
+  --banner-art-position-x: 60%;
+  --banner-art-position-y: 50%;
+  --banner-art-scale: 1;
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  object-position: center center;
+  object-fit: cover;
+  object-position: var(--banner-art-position-x) var(--banner-art-position-y);
   filter: drop-shadow(0 18px 28px rgba(1, 9, 28, 0.5));
   transform: scale(var(--banner-art-scale));
   transform-origin: center center;
 }
 
 .celestial-placeholder {
-  height: 360px;
+  height: 100%;
   overflow: hidden;
 }
 
@@ -2658,7 +2723,7 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 
 @media (max-width: 760px) {
   .celestial-placeholder {
-    height: 230px;
+    height: 100%;
   }
 }
 
@@ -3134,9 +3199,9 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   }
 
   .invocation-screen .celestial-placeholder {
-    height: min(580px, 100%);
+    height: 100%;
     min-height: 0;
-    align-self: center;
+    align-self: stretch;
   }
 
   .chat-panel,
@@ -3236,7 +3301,8 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   }
 
   .invocation-screen .banner-character-asset {
-    --banner-art-scale: 1.12;
+    --banner-art-position-x: 61%;
+    --banner-art-scale: 1.02;
   }
 
   .home-screen .banner-content {
@@ -3252,7 +3318,8 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   }
 
   .home-screen .banner-character-asset {
-    --banner-art-scale: 1.09;
+    --banner-art-position-x: 61%;
+    --banner-art-scale: 1.02;
   }
 
   .player-sidebar {
@@ -3403,5 +3470,11 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 
   .banner-status {
     min-width: 0;
+  }
+
+  .banner-character-asset {
+    --banner-art-position-x: 42%;
+    height: 60%;
+    align-self: end;
   }
 }
