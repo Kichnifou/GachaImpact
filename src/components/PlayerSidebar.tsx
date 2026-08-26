@@ -23,7 +23,6 @@ function PlayerSidebar({ isOpen, onClose, onNavigate }: PlayerSidebarProps) {
           <span>K</span>
         </div>
         <div className="profile-copy">
-          <span className="eyebrow">Voyageur</span>
           <h2>{player.name}</h2>
           <div className="level-line">
             <span>Niveau {player.level}</span>
@@ -47,10 +46,6 @@ function PlayerSidebar({ isOpen, onClose, onNavigate }: PlayerSidebarProps) {
           <div className="resource-item">
             <GameAssetIcon className="resource-icon gold" src={currencyAssetPaths.mora} fallback="●" />
             <div><strong>{player.moras.toLocaleString('fr-FR')}</strong><small>Moras</small></div>
-          </div>
-          <div className="resource-item wide">
-            <GameAssetIcon className="resource-icon violet" src={currencyAssetPaths.acquaintFate} fallback="◈" />
-            <div><strong>{player.wishes}</strong><small>Vœux possibles</small></div>
           </div>
         </div>
 

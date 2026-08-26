@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import BannerHero from '../components/BannerHero'
 import GameAssetIcon from '../components/GameAssetIcon'
-import ScreenHeader from '../components/ScreenHeader'
 import { currencyAssetPaths } from '../utils/gameAssets'
 
 function InvocationScreen() {
@@ -9,13 +8,6 @@ function InvocationScreen() {
 
   return (
     <div className="screen-content invocation-screen">
-      <ScreenHeader
-        eyebrow="Portail des vœux"
-        title="Invocation"
-        description="Parcourez les bannières disponibles et consultez leur progression fictive."
-        meta="15 vœux possibles"
-      />
-
       <div className="banner-tabs panel" role="tablist" aria-label="Types de bannière">
         <button
           type="button"
@@ -26,7 +18,7 @@ function InvocationScreen() {
         >
           <span aria-hidden="true">✦</span>
           <strong>Permanente</strong>
-          <small>Éclat des astres</small>
+          <small>Éclat des astres · 15 vœux possibles</small>
         </button>
         <button
           type="button"

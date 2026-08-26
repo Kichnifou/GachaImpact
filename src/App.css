@@ -101,10 +101,10 @@
   justify-self: center;
   display: inline-flex;
   align-items: center;
-  gap: 9px;
-  padding: 9px 16px;
+  gap: 6px;
+  padding: 5px 10px;
   color: #d9e9ff;
-  font-size: 12px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -157,14 +157,14 @@
 .player-sidebar {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .profile-card {
   display: flex;
   align-items: center;
   gap: 13px;
-  padding: 15px;
+  padding: 13px;
 }
 
 .avatar-placeholder {
@@ -216,7 +216,7 @@
 }
 
 .profile-copy h2 {
-  margin: 3px 0 8px;
+  margin: 0 0 8px;
   font-size: 19px;
 }
 
@@ -263,14 +263,14 @@
 .resource-card,
 .team-card,
 .objective-card {
-  padding: 14px;
+  padding: 12px;
 }
 
 .section-heading {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 13px;
+  margin-bottom: 10px;
 }
 
 .section-heading small {
@@ -407,9 +407,9 @@
 
 .objective-name-line {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 1px;
 }
 
 .objective-content h3 {
@@ -418,7 +418,7 @@
 }
 
 .objective-content p {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   color: var(--muted);
   font-size: 10px;
 }
@@ -428,7 +428,7 @@
   grid-template-columns: 48px 1fr;
   align-items: center;
   gap: 11px;
-  padding: 12px 14px;
+  padding: 10px 12px;
 }
 
 .daily-icon {
@@ -520,6 +520,14 @@
 .navigation-tile.active span {
   color: var(--cyan);
   text-shadow: 0 0 15px rgba(81, 200, 255, 0.65);
+}
+
+@media (min-width: 1351px) {
+  .navigation-tile {
+    min-height: 74px;
+    gap: 6px;
+    padding-block: 7px;
+  }
 }
 
 .invocation-panel {
@@ -1378,6 +1386,21 @@
   background: rgba(26, 46, 80, 0.52);
 }
 
+@media (min-width: 761px) {
+  .main-panel {
+    gap: 11px;
+  }
+
+  .catalog-screen,
+  .team-screen {
+    gap: 10px;
+  }
+
+  .catalog-screen .collection-filters {
+    padding-block: 8px;
+  }
+}
+
 .home-screen .home-banner {
   min-height: 475px;
 }
@@ -1631,6 +1654,23 @@
   padding: 10px;
 }
 
+.collection-summary {
+  min-height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.collection-summary span {
+  padding: 3px 8px;
+  color: #bdd4f3;
+  font-size: 8px;
+  white-space: nowrap;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #101d36;
+}
+
 .search-field {
   min-width: 0;
   display: grid;
@@ -1830,8 +1870,12 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 }
 
 .character-card-copy h3 {
-  margin: 3px 0;
+  margin: 0 0 2px;
   font-size: 13px;
+}
+
+.character-card-copy .character-rarity {
+  margin-bottom: 3px;
 }
 
 .character-card-copy p {
@@ -1962,8 +2006,13 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 }
 
 .large-team-copy h2 {
-  margin: 3px 0;
+  margin: 0 0 2px;
   font-size: 19px;
+}
+
+.large-team-copy .character-rarity {
+  display: block;
+  margin-bottom: 3px;
 }
 
 .large-team-copy > p {
@@ -2400,8 +2449,8 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 .shop-disclaimer > span { color: var(--cyan); }
 
 .particles-heading {
-  margin: 13px 0 9px;
-  padding-top: 11px;
+  margin: 10px 0 7px;
+  padding-top: 8px;
   color: var(--cyan);
   font-size: 9px;
   font-weight: 800;
@@ -3017,7 +3066,7 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
     height: 100dvh;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
-    gap: 16px;
+    gap: 12px;
     overflow: hidden;
   }
 
@@ -3069,7 +3118,7 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   .collection-screen {
     height: 100%;
     display: grid;
-    gap: 14px;
+    gap: 8px;
     overflow: hidden;
   }
 
@@ -3078,7 +3127,7 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   }
 
   .catalog-screen {
-    grid-template-rows: auto auto auto minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
   }
 
   .collection-screen .character-grid {
@@ -3093,7 +3142,7 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   .inventory-screen {
     height: 100%;
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     overflow: hidden;
   }
 
@@ -3119,7 +3168,7 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   .shop-screen {
     height: 100%;
     display: grid;
-    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
     overflow: hidden;
   }
 

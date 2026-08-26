@@ -39,8 +39,8 @@ function CharacterCard({ character, catalog = false, compact = false, selected =
         />
       </div>
       <div className="character-card-copy">
-        <div className="character-rarity">{'★'.repeat(character.rarity)}</div>
         <h3>{character.name}</h3>
+        <div className="character-rarity">{'★'.repeat(character.rarity)}</div>
         <p>{catalog && !character.owned ? 'Non obtenu' : `Niv. ${character.level} · ${character.role}`}</p>
       </div>
       {selected && <span className="selected-mark">✓</span>}

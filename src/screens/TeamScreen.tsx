@@ -2,7 +2,6 @@ import { useState } from 'react'
 import CharacterCard from '../components/CharacterCard'
 import CharacterAssetImage from '../components/CharacterAssetImage'
 import GameAssetIcon from '../components/GameAssetIcon'
-import ScreenHeader from '../components/ScreenHeader'
 import { activeTeam, characters } from '../data/mockData'
 import type { Character } from '../types'
 import { getElementAssetPath } from '../utils/gameAssets'
@@ -15,13 +14,6 @@ function TeamScreen() {
 
   return (
     <div className="screen-content team-screen">
-      <ScreenHeader
-        eyebrow="Formation active"
-        title="Équipe"
-        description="Visualisez votre groupe principal et préparez ses futures synergies."
-        meta="4 membres actifs"
-      />
-
       <section className="large-team-grid" aria-label="Équipe active">
         {activeTeam.map((character, index) => emptySlotIds.includes(character.id) ? (
           <article className="large-team-card empty-team-card" key={character.id}>
@@ -52,8 +44,8 @@ function TeamScreen() {
               />
             </div>
             <div className="large-team-copy">
-              <span className="character-rarity">{'★'.repeat(character.rarity)}</span>
               <h2>{character.name}</h2>
+              <span className="character-rarity">{'★'.repeat(character.rarity)}</span>
               <p>{character.element} · {character.role}</p>
               <div><span>Niveau {character.level}</span><span>C{character.constellation}</span></div>
             </div>

@@ -32,12 +32,6 @@ function HomeScreen({ onNavigate }: HomeScreenProps) {
           </button>
         ))}
       </section>
-
-      <section className="notice-panel">
-        <span className="notice-icon" aria-hidden="true">⌁</span>
-        <div><strong>Un monde en construction</strong><p>Explorez les premiers écrans statiques de GachaImpact.</p></div>
-        <span className="notice-badge">Prototype V0</span>
-      </section>
     </div>
   )
 }

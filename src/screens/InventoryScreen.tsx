@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import ScreenHeader from '../components/ScreenHeader'
 import { inventoryCategories } from '../data/mockData'
 
 function InventoryScreen() {
@@ -8,13 +7,6 @@ function InventoryScreen() {
 
   return (
     <div className="screen-content inventory-screen">
-      <ScreenHeader
-        eyebrow="Ressources du voyageur"
-        title="Sac"
-        description="Consultez vos monnaies, matériaux et objets fictifs organisés par catégorie."
-        meta="Capacité illimitée — prototype"
-      />
-
       <div className="inventory-layout">
         <nav className="inventory-categories panel" aria-label="Catégories du sac">
           {inventoryCategories.map((item) => (

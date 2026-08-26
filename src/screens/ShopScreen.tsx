@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import ScreenHeader from '../components/ScreenHeader'
 import { shopCategories, shopItems } from '../data/mockData'
 
 function ShopScreen() {
@@ -7,13 +6,6 @@ function ShopScreen() {
 
   return (
     <div className="screen-content shop-screen">
-      <ScreenHeader
-        eyebrow="Échanges du firmament"
-        title="Boutique"
-        description="Une première maquette statique pour les futurs échanges de ressources du jeu."
-        meta="Aucun achat réel"
-      />
-
       <nav className="shop-tabs panel" aria-label="Catégories de la boutique">
         {shopCategories.map((category) => (
           <button
