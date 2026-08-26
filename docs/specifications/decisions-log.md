@@ -38,3 +38,18 @@ Statut : évolutif.
 - `VALIDÉ` — La logique métier doit être centralisée côté serveur.
 - `VALIDÉ` — Bouton UI, commande chat GachaImpact et future commande Twitch doivent appeler la même action métier.
 - `VALIDÉ` — Streamer.bot disparaît de la logique GachaImpact à terme.
+
+## Ressources
+- `VALIDÉ` — Les Primogemmes servent uniquement aux invocations / pulls.
+- `VALIDÉ` — Les Moras sont utilisées au minimum pour la Boutique et la Banque.
+- `À AUDITER DANS LES SCRIPTS` — Vérifier s'il existe d'autres usages des Moras.
+- `VALIDÉ` — Le joueur peut posséder des particules des sept éléments.
+- `VALIDÉ` — Les particules correspondant à l'élément personnel du joueur peuvent être converties en Primogemmes au taux 1:1.
+- `VALIDÉ` — Les particules des autres éléments peuvent être échangées avec d'autres joueurs.
+- `À AUDITER DANS LES SCRIPTS` — Vérifier s'il existe d'autres usages des particules.
+
+## Élément joueur
+- `VALIDÉ` — Le joueur choisit son élément une seule fois au début du jeu.
+- `VALIDÉ` — L'élément joueur est non modifiable ensuite.
+- `VALIDÉ` — Il s'agit d'une donnée métier permanente, pas d'une préférence d'affichage.
+- `VALIDÉ` — L'élément choisi détermine quelles particules sont ses particules attitrées.
