@@ -1,0 +1,30 @@
+{
+  "pyro": {
+    "strongAgainst": ["cryo", "dendro"],
+    "weakAgainst": ["hydro", "geo"]
+  },
+  "hydro": {
+    "strongAgainst": ["pyro", "geo"],
+    "weakAgainst": ["electro", "dendro"]
+  },
+  "cryo": {
+    "strongAgainst": ["hydro", "anemo"],
+    "weakAgainst": ["pyro", "electro"]
+  },
+  "electro": {
+    "strongAgainst": ["hydro", "cryo"],
+    "weakAgainst": ["dendro", "geo"]
+  },
+  "anemo": {
+    "strongAgainst": ["dendro", "electro"],
+    "weakAgainst": ["cryo", "geo"]
+  },
+  "geo": {
+    "strongAgainst": ["electro", "anemo"],
+    "weakAgainst": ["hydro", "pyro"]
+  },
+  "dendro": {
+    "strongAgainst": ["hydro", "electro"],
+    "weakAgainst": ["pyro", "anemo"]
+  }
+}

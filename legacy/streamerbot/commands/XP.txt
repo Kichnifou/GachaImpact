@@ -1,0 +1,2782 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Crée automatiquement le dossier Data s’il n’existe pas
+- Crée automatiquement viewers_data.json s’il n’existe pas
+- Ajoute un nouveau viewer quand il parle pour la première fois
+- Lit et sauvegarde viewers_data.json en JObject pour préserver toutes les propriétés inconnues
+- Ne reconstruit jamais un viewer existant entièrement
+- Met à jour uniquement les champs nécessaires : xp, level, ressources, stats, dates, missions, tradeRequests
+- Met à jour la date de dernière activité du viewer
+- Compte tous les messages envoyés dans totalMessages
+- Ignore les messages qui commencent par ! pour l’XP
+- Ignore les messages système du bot pour l’XP
+- Applique un cooldown de 2 secondes pour éviter le spam XP
+- Donne de l’XP selon la longueur du message :
+  - 1 XP par défaut
+  - 2 XP si le message fait plus de 100 caractères
+  - 3 XP si le message fait plus de 200 caractères
+- Compte les messages donnant de l’XP dans countedMessages
+- Bloque la progression si le viewer est niveau 1 ou plus sans élément choisi
+- Calcule le niveau avec 30 XP = 1 niveau
+- Cap le niveau maximum à 100
+- Donne les récompenses de level up :
+  - primos = niveau × 160
+  - moras = niveau × 10000
+  - à partir du niveau 5 : particules de l’élément choisi = niveau × 40 + random(1 à 40)
+  - à partir du niveau 10 : particules d’un autre élément = niveau × 40 + random(1 à 40)
+- Affiche les récompenses gagnées avec le total possédé entre parenthèses
+- Initialise automatiquement une bannière hebdomadaire si aucune bannière n’existe ou si la semaine a changé
+- La bannière choisit aléatoirement 3 personnages 5★ et 5 personnages 4★
+- Sauvegarde genshin_characters.json en JObject/JArray
+- Initialise les sections manquantes avec EnsureViewerDefaultsJObject
+- Met à jour la progression des missions journalières de type messages
+- Donne automatiquement la récompense de mission quand l’objectif est atteint
+- Donne une récompense au premier message valide de la journée si le viewer est niveau 2+ et a choisi un élément
+- Nettoie les demandes d’échange expirées du viewer et de l’autre joueur concerné
+- Au niveau 100, donne une récompense équivalente au niveau 100 tous les 30 XP sans monter de niveau
+- Sauvegarde directement les fichiers JSON sans backup ni fichier temporaire
+- Donne +1 monnaie événementielle au premier message valide du jour si le viewer a rejoint l’event mensuel avec !event go
+- Lit monthly_events_data.json pour vérifier la participation event du mois
+- Affiche les messages sociaux Event reçus au prochain message du destinataire
+- Supprime les messages Event affichés pour éviter les répétitions
+- Sauvegarde monthly_events_data.json si des messages Event sont lus ou si une monnaie quotidienne est donnée
+- Le 1er du mois, annonce l’event mensuel au premier message valide d’un viewer niveau 2+ non inscrit.
+- Ajoute dans cette annonce le code mensuel utilisable pendant tout le mois de l’event.
+*/
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    private const int XpPerLevel = 30;
+    private const int MaxLevel = 100;
+    private const int XpCooldownSeconds = 2;
+    private static Random random = new Random();
+    private static readonly object fileLock = new object();
+
+    public bool Execute()
+    {
+        string folderPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data";
+        string viewersPath = Path.Combine(folderPath, "viewers_data.json");
+        string charactersPath = Path.Combine(folderPath, "genshin_characters.json");
+        string c6CharactersPath = Path.Combine(folderPath, "c6_characters.json");
+        string contestsPath = Path.Combine(folderPath, "contests_data.json");
+        string monthlyEventsDataPath = Path.Combine(folderPath, "monthly_events_data.json");
+        string longMissionsPath = Path.Combine(folderPath, "long_missions.json");
+        string friendshipsPath = Path.Combine(folderPath, "friendships_data.json");
+        string giveawayPath = Path.Combine(folderPath, "giveaway.json");
+        
+
+        string username;
+        string message;
+
+        if (!TryGetMessageData(out username, out message))
+            return false;
+
+        EnsureDataFolderExists(folderPath);
+
+        lock (fileLock)
+        {
+            CheckWeeklyBanner(folderPath);
+            ClearOldContestIfNeeded(contestsPath);
+
+            JObject viewers = LoadViewersJObject(viewersPath);
+
+            if (viewers == null)
+            {
+                SendError("Impossible de lire viewers_data.json.");
+                return true;
+            }
+
+            DateTime now = DateTime.Now;
+
+            JObject monthlyEventsData = LoadOrCreateJObject(monthlyEventsDataPath);
+            EnsureMonthlyEventDataDefaults(monthlyEventsData, now);
+
+            JObject viewer = GetOrCreateViewerJObject(viewers, username);
+            EnsureViewerDefaultsJObject(viewer, username);
+
+            JObject charactersFile = LoadOrCreateJObject(charactersPath);
+            JObject c6Characters = LoadOrCreateJObject(c6CharactersPath);
+            JObject longMissionsFile = LoadOrCreateJObject(longMissionsPath);
+            JObject friendshipsData = LoadOrCreateJObject(friendshipsPath);
+
+            bool c6Changed = SyncC6FiveStarCharacters(c6Characters, viewer, username, charactersFile, now);
+
+            if (c6Changed)
+                SaveJObjectNoBackup(c6CharactersPath, c6Characters);
+
+            UpdateViewerActivity(viewer, now);
+            TryCountGiveawayMessage(giveawayPath, viewer, username, message);
+            ExpireOldTradeRequests(viewers, username, now);
+            ExpireDailyMission(viewer, now);
+
+            TryGiveMonthlyEventAnnouncement(viewer, username, message, monthlyEventsData, now);
+
+            TryGiveDailyFirstMessageReward(viewer, username, message, now);
+            ApplyDailyBankInterest(viewer, message, now);
+            TryGiveFavorDailyReward(viewer, username, message, now);
+
+            bool eventDataChanged = false;
+
+            if (!IsCommand(message) && !IsSystemMessage(message))
+            {
+                if (TrySendPendingEventMessages(monthlyEventsData, username))
+                    eventDataChanged = true;
+
+                if (TryGiveDailyEventCurrency(monthlyEventsData, username, message, now))
+                    eventDataChanged = true;
+            }
+
+            if (!CanGainXp(viewer, message, now))
+            {
+                SaveJObjectSafe(viewersPath, viewers);
+
+                if (eventDataChanged)
+                    SaveJObjectNoBackup(monthlyEventsDataPath, monthlyEventsData);
+
+                return true;
+            }
+
+            AddXp(viewer, message, now);
+            UpdateDailyMissionProgress(viewer, username, "messages", 1, now);
+            CheckLevelUp(viewer, username);
+
+            CheckLongMissions(viewer, username, longMissionsFile, charactersFile, friendshipsData);
+
+            SaveJObjectSafe(viewersPath, viewers);
+
+            if (eventDataChanged)
+                SaveJObjectNoBackup(monthlyEventsDataPath, monthlyEventsData);
+        }
+
+        return true;
+    }
+
+    private bool TryGetMessageData(out string username, out string message)
+    {
+        username = "";
+        message = "";
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        username = NormalizeUsername(args["userName"].ToString());
+
+        if (args.ContainsKey("message") && args["message"] != null)
+            message = args["message"].ToString();
+
+        return true;
+    }
+
+    private void EnsureDataFolderExists(string folderPath)
+    {
+        if (!Directory.Exists(folderPath))
+            Directory.CreateDirectory(folderPath);
+    }
+
+    private JObject LoadViewersJObject(string path)
+    {
+        if (!File.Exists(path))
+            return new JObject();
+
+        try
+        {
+            string json = File.ReadAllText(path);
+
+            if (string.IsNullOrWhiteSpace(json))
+                return new JObject();
+
+            JObject viewers = JObject.Parse(json);
+
+            if (viewers == null)
+                return new JObject();
+
+            return viewers;
+        }
+        catch (Exception ex)
+        {
+            CPH.LogError("Erreur lecture viewers_data.json : " + ex.Message);
+            return null;
+        }
+    }
+
+    private void SaveJObjectSafe(string path, JObject data)
+    {
+        string folder = Path.GetDirectoryName(path);
+
+        if (!Directory.Exists(folder))
+            Directory.CreateDirectory(folder);
+
+        File.WriteAllText(path, data.ToString(Formatting.Indented));
+    }
+
+    private JObject GetOrCreateViewerJObject(JObject viewers, string username)
+    {
+        JObject viewer = viewers[username] as JObject;
+
+        if (viewer == null)
+        {
+            viewer = CreateNewViewerJObject(username);
+            viewers[username] = viewer;
+            CPH.LogInfo("Nouveau viewer ajouté : " + username);
+        }
+
+        return viewer;
+    }
+
+    private JObject CreateNewViewerJObject(string username)
+    {
+        DateTime now = DateTime.Now;
+
+        JObject viewer = new JObject();
+        viewer["username"] = username;
+        viewer["xp"] = 0;
+        viewer["level"] = 0;
+        viewer["element"] = "";
+        viewer["primogems"] = 0;
+        viewer["moras"] = 0;
+
+        JObject particles = new JObject();
+        particles["pyro"] = 0;
+        particles["hydro"] = 0;
+        particles["cryo"] = 0;
+        particles["electro"] = 0;
+        particles["anemo"] = 0;
+        particles["geo"] = 0;
+        particles["dendro"] = 0;
+        viewer["particles"] = particles;
+
+        viewer["box"] = new JObject();
+        viewer["team"] = new JArray();
+
+        JObject pity = new JObject();
+        pity["pity5"] = 0;
+        pity["pity4"] = 0;
+        viewer["pity"] = pity;
+
+        JObject guarantee = new JObject();
+        guarantee["guaranteedFeatured5"] = false;
+        viewer["guarantee"] = guarantee;
+
+        viewer["selectedBannerCharacterId"] = 0;
+
+        JObject options = new JObject();
+        options["boxSort"] = "a";
+        options["boxSortDescending"] = false;
+        viewer["options"] = options;
+
+        JObject missions = new JObject();
+        missions["daily"] = CreateEmptyDailyMissionJObject();
+        viewer["missions"] = missions;
+
+        JObject stats = new JObject();
+        stats["totalMessages"] = 0;
+        stats["countedMessages"] = 0;
+        stats["totalPulls"] = 0;
+        stats["totalFiveStars"] = 0;
+        stats["totalFourStars"] = 0;
+        stats["lastPullWasFiveStar"] = false;
+        stats["fiftyFiftyLostStreak"] = 0;
+        stats["fiftyFiftyWon"] = 0;
+        stats["fiftyFiftyLost"] = 0;
+        stats["totalPrimosEarned"] = 0;
+        stats["totalPrimosSpent"] = 0;
+        stats["totalMorasEarned"] = 0;
+        stats["totalMorasSpent"] = 0;
+        stats["level100OverflowRewardsClaimed"] = 0;
+        viewer["stats"] = stats;
+
+        JObject dates = new JObject();
+        dates["firstSeen"] = FormatDateTime(now);
+        dates["lastSeen"] = FormatDateTime(now);
+        dates["lastXpDate"] = "";
+        dates["lastMessageTime"] = "";
+        dates["lastDailyFirstMessageReward"] = "";
+        viewer["dates"] = dates;
+
+        viewer["tradeRequests"] = new JArray();
+        viewer["usedCodes"] = new JArray();
+
+        JObject favor = new JObject();
+        favor["daysRemaining"] = 0;
+        favor["obtainedDate"] = "";
+        favor["lastClaimDate"] = "";
+        viewer["favor"] = favor;
+
+        return viewer;
+    }
+
+    private JObject CreateEmptyDailyMissionJObject()
+    {
+        JObject daily = new JObject();
+        daily["missionId"] = null;
+        daily["type"] = null;
+        daily["progress"] = 0;
+        daily["target"] = 0;
+        daily["completed"] = false;
+        daily["rewardClaimed"] = false;
+        daily["startedAt"] = null;
+        daily["description"] = null;
+        return daily;
+    }
+
+    private void EnsureViewerDefaultsJObject(JObject viewer, string username)
+    {
+        if (viewer["username"] == null || viewer["username"].Type == JTokenType.Null)
+            viewer["username"] = username;
+
+        EnsureInt(viewer, "xp", 0);
+        EnsureInt(viewer, "level", 0);
+        EnsureString(viewer, "element", "");
+        EnsureInt(viewer, "primogems", 0);
+        EnsureInt(viewer, "moras", 0);
+        EnsureInt(viewer, "selectedBannerCharacterId", 0);
+
+        EnsureObject(viewer, "particles");
+        EnsureObject(viewer, "box");
+        EnsureArray(viewer, "team");
+        EnsureObject(viewer, "pity");
+        EnsureObject(viewer, "guarantee");
+        EnsureObject(viewer, "options");
+        EnsureObject(viewer, "missions");
+        EnsureObject(viewer, "stats");
+        EnsureObject(viewer, "dates");
+        EnsureArray(viewer, "tradeRequests");
+        EnsureArray(viewer, "usedCodes");
+        EnsureObject(viewer, "favor");
+        EnsureObject(viewer, "coffre");
+        EnsureObject(viewer, "specialItems");
+        EnsureObject(viewer, "longMissions");
+        EnsureObject(viewer, "bank");
+
+        JObject particles = viewer["particles"] as JObject;
+        EnsureInt(particles, "pyro", 0);
+        EnsureInt(particles, "hydro", 0);
+        EnsureInt(particles, "cryo", 0);
+        EnsureInt(particles, "electro", 0);
+        EnsureInt(particles, "anemo", 0);
+        EnsureInt(particles, "geo", 0);
+        EnsureInt(particles, "dendro", 0);
+
+        JObject pity = viewer["pity"] as JObject;
+        EnsureInt(pity, "pity5", 0);
+        EnsureInt(pity, "pity4", 0);
+
+        JObject guarantee = viewer["guarantee"] as JObject;
+        EnsureBool(guarantee, "guaranteedFeatured5", false);
+
+        JObject options = viewer["options"] as JObject;
+        EnsureString(options, "boxSort", "a");
+        EnsureBool(options, "boxSortDescending", false);
+
+        JObject missions = viewer["missions"] as JObject;
+        EnsureObject(missions, "daily");
+
+        JObject daily = missions["daily"] as JObject;
+        EnsureNullableString(daily, "missionId");
+        EnsureNullableString(daily, "type");
+        EnsureInt(daily, "progress", 0);
+        EnsureInt(daily, "target", 0);
+        EnsureBool(daily, "completed", false);
+        EnsureBool(daily, "rewardClaimed", false);
+        EnsureNullableString(daily, "startedAt");
+        EnsureNullableString(daily, "description");
+
+        JObject stats = viewer["stats"] as JObject;
+        EnsureInt(stats, "totalMessages", 0);
+        EnsureInt(stats, "countedMessages", 0);
+        EnsureInt(stats, "totalPulls", 0);
+        EnsureInt(stats, "totalFiveStars", 0);
+        EnsureInt(stats, "totalFourStars", 0);
+        EnsureBool(stats, "lastPullWasFiveStar", false);
+        EnsureInt(stats, "fiftyFiftyLostStreak", 0);
+        EnsureInt(stats, "fiftyFiftyWon", 0);
+        EnsureInt(stats, "fiftyFiftyLost", 0);
+        EnsureInt(stats, "totalPrimosEarned", 0);
+        EnsureInt(stats, "totalPrimosSpent", 0);
+        EnsureInt(stats, "totalMorasEarned", 0);
+        EnsureInt(stats, "totalMorasSpent", 0);
+		EnsureInt(stats, "totalManualCombatWins", 0);
+        EnsureInt(stats, "level100OverflowRewardsClaimed", 0);
+
+        if (GetInt(viewer, "level") >= MaxLevel && GetInt(stats, "level100OverflowRewardsClaimed") == 0)
+            stats["level100OverflowRewardsClaimed"] = CalculateMaxLevelOverflowSteps(GetInt(viewer, "xp"));
+
+        JObject dates = viewer["dates"] as JObject;
+        EnsureNullableString(dates, "firstSeen");
+        EnsureNullableString(dates, "lastSeen");
+        EnsureNullableString(dates, "lastXpDate");
+        EnsureNullableString(dates, "lastMessageTime");
+        EnsureNullableString(dates, "lastDailyFirstMessageReward");
+        EnsureNullableString(dates, "lastMonthlyEventAnnouncement");
+
+        JObject favor = viewer["favor"] as JObject;
+        EnsureInt(favor, "daysRemaining", 0);
+        EnsureString(favor, "obtainedDate", "");
+        EnsureString(favor, "lastClaimDate", "");
+
+        JObject specialItems = viewer["specialItems"] as JObject;
+        EnsureInt(specialItems, "masterlessStellaFortuna", 0);
+
+        JObject longMissions = viewer["longMissions"] as JObject;
+        EnsureBool(longMissions, "unlockedZ", false);
+        EnsureBool(longMissions, "completedAllMainRanksAnnounced", false);
+        EnsureObject(longMissions, "categories");
+        EnsureObject(longMissions, "z");
+
+        EnsureInt(stats, "totalExpeditionsCompleted", 0);
+        EnsureInt(stats, "totalFriendHeartsSent", 0);
+
+        EnsureInt(stats, "totalMainElementParticlesEarned", 0);
+
+        JObject bank = viewer["bank"] as JObject;
+        EnsureInt(bank, "moras", 0);
+        EnsureString(bank, "lastInterestDate", "");
+    }
+
+    private void CheckWeeklyBanner(string folderPath)
+    {
+        string charactersPath = Path.Combine(folderPath, "genshin_characters.json");
+
+        if (!File.Exists(charactersPath))
+            return;
+
+        JObject characterFile = LoadJObject(charactersPath);
+
+        if (characterFile == null)
+            return;
+
+        JArray characters = characterFile["characters"] as JArray;
+
+        if (characters == null)
+            return;
+
+        string currentWeek = GetCurrentWeekId();
+        string lastBannerUpdate = GetString(characterFile, "lastBannerUpdate");
+
+        bool noBanner = string.IsNullOrEmpty(lastBannerUpdate);
+        bool weekChanged = lastBannerUpdate != currentWeek;
+
+        if (!noBanner && !weekChanged)
+            return;
+
+        JArray previousBannerFeaturedIds = GetCurrentFeaturedIds(characters);
+        characterFile["previousBannerFeaturedIds"] = previousBannerFeaturedIds;
+
+        for (int i = 0; i < characters.Count; i++)
+        {
+            JObject character = characters[i] as JObject;
+
+            if (character != null)
+                character["bannerFeatured"] = false;
+        }
+
+        List<JObject> fiveStars = new List<JObject>();
+        List<JObject> fourStars = new List<JObject>();
+
+        for (int i = 0; i < characters.Count; i++)
+        {
+            JObject character = characters[i] as JObject;
+
+            if (character == null)
+                continue;
+
+            int rarity = GetInt(character, "rarete");
+
+            if (rarity == 5)
+                fiveStars.Add(character);
+            else if (rarity == 4)
+                fourStars.Add(character);
+        }
+
+        RemoveCharactersByIds(fiveStars, previousBannerFeaturedIds);
+        RemoveCharactersByIds(fourStars, previousBannerFeaturedIds);
+
+        PickRandomCharacters(fiveStars, 3);
+        ApplyVoteBannerCharacter(folderPath,characterFile,characters,previousBannerFeaturedIds);
+        PickRandomCharacters(fourStars, 6);
+
+        characterFile["lastBannerUpdate"] = currentWeek;
+
+        SaveJObjectSafe(charactersPath, characterFile);
+
+        CPH.LogInfo("Nouvelle bannière hebdomadaire générée automatiquement.");
+    }
+
+    private string GetCurrentWeekId()
+    {
+        DateTime now = DateTime.Now;
+        DateTime startOfWeek = now.Date.AddDays(-(int)now.DayOfWeek + (int)DayOfWeek.Monday);
+
+        if (now.DayOfWeek == DayOfWeek.Sunday)
+            startOfWeek = now.Date.AddDays(-6);
+
+        return startOfWeek.ToString("yyyy-MM-dd");
+    }
+
+    private JArray GetCurrentFeaturedIds(JArray characters)
+    {
+        JArray ids = new JArray();
+
+        if (characters == null)
+            return ids;
+
+        for (int i = 0; i < characters.Count; i++)
+        {
+            JObject character = characters[i] as JObject;
+
+            if (character == null)
+                continue;
+
+            bool featured = GetBool(character, "bannerFeatured");
+
+            if (featured)
+                ids.Add(GetInt(character, "id"));
+        }
+
+        return ids;
+    }
+
+    private void RemoveCharactersByIds(List<JObject> characters, JArray excludedIds)
+    {
+        if (characters == null || excludedIds == null)
+            return;
+
+        for (int i = characters.Count - 1; i >= 0; i--)
+        {
+            JObject character = characters[i];
+
+            if (character == null)
+                continue;
+
+            int id = GetInt(character, "id");
+
+            for (int j = 0; j < excludedIds.Count; j++)
+            {
+                int excludedId = 0;
+
+                if (int.TryParse(excludedIds[j].ToString(), out excludedId) && id == excludedId)
+                {
+                    characters.RemoveAt(i);
+                    break;
+                }
+            }
+        }
+    }
+
+    private void PickRandomCharacters(List<JObject> characters, int count)
+    {
+        int picked = 0;
+
+        while (picked < count && characters.Count > 0)
+        {
+            int index = random.Next(characters.Count);
+            characters[index]["bannerFeatured"] = true;
+            characters.RemoveAt(index);
+            picked++;
+        }
+    }
+
+    private void UpdateViewerActivity(JObject viewer, DateTime now)
+    {
+        JObject dates = viewer["dates"] as JObject;
+        JObject stats = viewer["stats"] as JObject;
+
+        dates["lastSeen"] = FormatDateTime(now);
+        AddInt(stats, "totalMessages", 1);
+    }
+
+    private void TryCountGiveawayMessage(
+    string giveawayPath,
+    JObject viewer,
+    string username,
+    string message)
+    {
+        if (viewer == null)
+            return;
+
+        username = NormalizeUsername(username);
+
+        // Kichnifou est le créateur + le bot parle sous ce pseudo
+        if (username == "kichnifou")
+            return;
+
+        // Niveau 2 minimum
+        if (GetInt(viewer, "level") < 2)
+            return;
+
+        // Un vrai message doit exister
+        if (string.IsNullOrWhiteSpace(message))
+            return;
+
+        if (!File.Exists(giveawayPath))
+            return;
+
+        JObject giveaway = LoadOrCreateJObject(giveawayPath);
+
+        if (giveaway == null)
+            return;
+
+        // Comptage uniquement entre !giveaway open et !giveaway close
+        if (GetString(giveaway, "status") != "open")
+            return;
+
+        JObject messageCounts = giveaway["messageCounts"] as JObject;
+
+        if (messageCounts == null)
+        {
+            messageCounts = new JObject();
+            giveaway["messageCounts"] = messageCounts;
+        }
+
+        AddInt(messageCounts, username, 1);
+
+        SaveJObjectNoBackup(giveawayPath, giveaway);
+    }
+
+    private void ExpireOldTradeRequests(JObject viewers, string username, DateTime now)
+    {
+        JObject viewer = viewers[username] as JObject;
+
+        if (viewer == null)
+            return;
+
+        JArray tradeRequests = viewer["tradeRequests"] as JArray;
+
+        if (tradeRequests == null || tradeRequests.Count == 0)
+            return;
+
+        string today = now.ToString("yyyy-MM-dd");
+        List<JObject> expiredRequests = new List<JObject>();
+
+        for (int i = 0; i < tradeRequests.Count; i++)
+        {
+            JObject request = tradeRequests[i] as JObject;
+
+            if (request == null)
+                continue;
+
+            string createdAt = GetString(request, "createdAt");
+
+            if (!string.IsNullOrEmpty(createdAt) && !createdAt.StartsWith(today))
+                expiredRequests.Add(request);
+        }
+
+        if (expiredRequests.Count == 0)
+            return;
+
+        for (int i = 0; i < expiredRequests.Count; i++)
+        {
+            RemoveTradeRequestFromBothUsers(viewers, username, expiredRequests[i]);
+        }
+
+        CPH.LogInfo("Trades expirés nettoyés pour " + username + " : " + expiredRequests.Count);
+    }
+
+    private void RemoveTradeRequestFromBothUsers(JObject viewers, string username, JObject request)
+    {
+        string otherUser = GetString(request, "otherUser");
+
+        RemoveMatchingTradeRequest(viewers, username, otherUser);
+
+        if (!string.IsNullOrEmpty(otherUser))
+            RemoveMatchingTradeRequest(viewers, otherUser, username);
+    }
+
+    private void RemoveMatchingTradeRequest(JObject viewers, string user, string otherUser)
+    {
+        if (string.IsNullOrEmpty(user))
+            return;
+
+        JObject viewer = viewers[user] as JObject;
+
+        if (viewer == null)
+            return;
+
+        JArray requests = viewer["tradeRequests"] as JArray;
+
+        if (requests == null)
+            return;
+
+        for (int i = requests.Count - 1; i >= 0; i--)
+        {
+            JObject request = requests[i] as JObject;
+
+            if (request == null)
+                continue;
+
+            if (GetString(request, "otherUser") == otherUser)
+                requests.RemoveAt(i);
+        }
+    }
+
+    private void ExpireDailyMission(JObject viewer, DateTime now)
+    {
+        JObject missions = viewer["missions"] as JObject;
+
+        if (missions == null)
+            return;
+
+        JObject daily = missions["daily"] as JObject;
+
+        if (daily == null)
+            return;
+
+        string missionId = GetString(daily, "missionId");
+
+        if (string.IsNullOrEmpty(missionId))
+            return;
+
+        string today = now.ToString("yyyy-MM-dd");
+
+        if (GetString(daily, "startedAt") != today)
+        {
+            missions["daily"] = CreateEmptyDailyMissionJObject();
+            CPH.LogInfo("Mission journalière expirée pour " + GetString(viewer, "username"));
+        }
+    }
+
+    private void TryGiveDailyFirstMessageReward(JObject viewer, string username, string message, DateTime now)
+    {
+        if (IsCommand(message))
+            return;
+
+        if (IsSystemMessage(message))
+            return;
+
+        if (GetInt(viewer, "level") < 2)
+            return;
+
+        string element = NormalizeElement(GetString(viewer, "element"));
+
+        if (string.IsNullOrEmpty(element))
+            return;
+
+        JObject dates = viewer["dates"] as JObject;
+        string today = now.ToString("yyyy-MM-dd");
+
+        if (GetString(dates, "lastDailyFirstMessageReward") == today)
+            return;
+
+        int primosReward = 160;
+        int particlesReward = 160;
+        int morasReward = 10000;
+
+        AddInt(viewer, "primogems", primosReward);
+        AddInt(viewer, "moras", morasReward);
+        AddParticles(viewer, element, particlesReward);
+        AddMainElementParticlesEarnedIfNeeded(viewer, element, particlesReward);
+
+        AddStat(viewer, "totalPrimosEarned", primosReward);
+        AddStat(viewer, "totalMorasEarned", morasReward);
+
+        dates["lastDailyFirstMessageReward"] = today;
+
+        int particleTotal = GetParticleTotal(viewer, element);
+
+        CPH.SendMessage("✅ Premier message du jour " + username + " ! +💠" + primosReward + " primos (" + GetInt(viewer, "primogems") + ") | +" + particlesReward + " particules " + GetElementDisplayName(element) + " (" + particleTotal + ") | +🪙" + morasReward + " moras (" + GetInt(viewer, "moras") + ")");
+    }
+
+    private void TryGiveFavorDailyReward(JObject viewer, string username, string message, DateTime now)
+    {
+        if (IsCommand(message))
+            return;
+
+        if (IsSystemMessage(message))
+            return;
+
+        if (GetInt(viewer, "level") < 2)
+            return;
+
+        JObject favor = viewer["favor"] as JObject;
+
+        if (favor == null)
+            return;
+
+        int daysRemaining = GetInt(favor, "daysRemaining");
+
+        if (daysRemaining <= 0)
+            return;
+
+        string today = now.ToString("yyyy-MM-dd");
+
+        if (GetString(favor, "obtainedDate") == today)
+            return;
+
+        if (GetString(favor, "lastClaimDate") == today)
+            return;
+
+        int primosReward = 800;
+
+        AddInt(viewer, "primogems", primosReward);
+        AddStat(viewer, "totalPrimosEarned", primosReward);
+
+        daysRemaining--;
+
+        if (daysRemaining < 0)
+            daysRemaining = 0;
+
+        favor["daysRemaining"] = daysRemaining;
+        favor["lastClaimDate"] = today;
+
+        CPH.SendMessage(GetRandomFavorMessage(username, primosReward, daysRemaining, GetInt(viewer, "primogems")));
+    }
+
+    private void TryGiveMonthlyEventAnnouncement(JObject viewer, string username, string message, JObject eventData, DateTime now)
+    {
+        if (now.Day != 1)
+            return;
+
+        if (IsCommand(message))
+            return;
+
+        if (IsSystemMessage(message))
+            return;
+
+        if (viewer == null || eventData == null)
+            return;
+
+        if (GetInt(viewer, "level") < 2)
+            return;
+
+        JObject dates = viewer["dates"] as JObject;
+
+        if (dates == null)
+            return;
+
+        string monthKey = now.ToString("yyyy-MM");
+
+        if (GetString(dates, "lastMonthlyEventAnnouncement") == monthKey)
+            return;
+
+        if (IsMonthlyEventJoined(eventData, username))
+        {
+            dates["lastMonthlyEventAnnouncement"] = monthKey;
+            return;
+        }
+
+        string eventName = GetCurrentEventName(now.Month);
+        string emoji = GetCurrentEventCurrencyEmoji(now.Month);
+        string code = GetCurrentEventGiftCode(now.Month);
+        string monthName = GetCurrentMonthName(now.Month);
+
+        CPH.SendMessage("ℹ️ " + emoji + " " + eventName + " commence ! Tape !event go pour participer, puis !event pour voir les jeux. | Code utilisable tout le mois de " + monthName + " pendant l’event : !code " + code);
+
+        dates["lastMonthlyEventAnnouncement"] = monthKey;
+    }
+
+    private string GetRandomFavorMessage(string username, int primosReward, int daysRemaining, int totalPrimos)
+    {
+        List<string> messages = new List<string>();
+
+        messages.Add("🌙 La Déesse de la Lune veille sur " + username + " : +💠" + primosReward + " primos");
+        messages.Add("🌙 Un rayon lunaire bénit " + username + " : +💠" + primosReward + " primos");
+        messages.Add("🌙 La faveur de l’astre accompagne " + username + " : +💠" + primosReward + " primos");
+        messages.Add("🌙 Les étoiles murmurent le nom de " + username + " : +💠" + primosReward + " primos");
+        messages.Add("🌙 La Déesse Lunaire offre sa douceur à " + username + " : +💠" + primosReward + " primos");
+
+        string text = messages[random.Next(messages.Count)];
+        text += " (" + totalPrimos + ") | ⏳ " + daysRemaining + " jour(s) restants";
+
+        return text;
+    }
+
+    private bool CanGainXp(JObject viewer, string message, DateTime now)
+    {
+        if (IsCommand(message))
+            return false;
+
+        if (IsSystemMessage(message))
+            return false;
+
+        if (IsInXpCooldown(viewer, now))
+            return false;
+
+        if (IsProgressionBlockedByMissingElement(viewer))
+            return false;
+
+        return true;
+    }
+
+    private bool IsCommand(string message)
+    {
+        if (string.IsNullOrEmpty(message))
+            return false;
+
+        return message.StartsWith("!");
+    }
+
+    private bool IsSystemMessage(string message)
+    {
+        if (string.IsNullOrEmpty(message))
+            return false;
+
+        return message.StartsWith("✅")
+            || message.StartsWith("⚠️")
+            || message.StartsWith("❌")
+            || message.StartsWith("🎉")
+            || message.StartsWith("🔥")
+            || message.StartsWith("💥")
+            || message.StartsWith("✨")
+            || message.StartsWith("🛒")
+            || message.StartsWith("🎯")
+            || message.StartsWith("🪙")
+            || message.StartsWith("🔮")
+            || message.StartsWith("📈")
+            || message.StartsWith("🎒")
+            || message.StartsWith("📦")
+            || message.StartsWith("👥")
+            || message.StartsWith("🏆")
+            || message.StartsWith("🎁")
+            || message.StartsWith("🧩")
+            || message.StartsWith("🤖")
+            || message.StartsWith("🎲")
+            || message.StartsWith("🎭")
+            || message.StartsWith("🎪")
+            || message.StartsWith("🤝")
+            || message.StartsWith("💖")
+            || message.StartsWith("🎡")
+            || message.StartsWith("🗳️")
+            || message.StartsWith("🌙")
+            || message.StartsWith("🌠")
+            || message.StartsWith("💫")
+            || message.StartsWith("⭐")
+            || message.StartsWith("🔥")
+            || message.StartsWith("❄️")
+            || message.StartsWith("⚡")
+            || message.StartsWith("🌿")
+            || message.StartsWith("☄️")
+            || message.StartsWith("🌈")
+            || message.StartsWith("🎇")
+            || message.StartsWith("🪽")
+            || message.StartsWith("🌊")
+            || message.StartsWith("🪨")
+            || message.StartsWith("🌸")
+            || message.StartsWith("🍃")
+            || message.StartsWith("🏔️")
+            || message.StartsWith("🧭")
+            || message.StartsWith("🎆")
+            || message.StartsWith("💕")
+            || message.StartsWith("🌱")
+            || message.StartsWith("🥚")
+            || message.StartsWith("🌸")
+            || message.StartsWith("☀️")
+            || message.StartsWith("🌊")
+            || message.StartsWith("🌷")
+            || message.StartsWith("🌾")
+            || message.StartsWith("🗺️")
+            || message.StartsWith("🎃")
+            || message.StartsWith("🎄")
+            || message.StartsWith("🍂")
+            || message.StartsWith("🍁")
+            || message.StartsWith("👻")
+            || message.StartsWith("🎅")
+            || message.StartsWith("🧭")
+            || message.StartsWith("🎊")
+            || message.StartsWith("🌼")
+            || message.StartsWith("🍫")
+            || message.StartsWith("💌")
+            || message.StartsWith("🧺")
+            || message.StartsWith("📜")
+            || message.StartsWith("🧙")
+            || message.StartsWith("🌫️")
+            || message.StartsWith("📅")
+            || message.StartsWith("🔥")
+            || message.StartsWith("❄️")
+            || message.StartsWith("⚡")
+            || message.StartsWith("🌪️")
+            || message.StartsWith("☄️")
+            || message.StartsWith("🌿")
+            || message.StartsWith("🏦")
+            || message.StartsWith("💧")
+            || message.StartsWith("📖")
+			|| message.StartsWith("💬")
+            || message.StartsWith("⚔️")
+            || message.StartsWith("ℹ️");
+    }
+
+    private bool IsInXpCooldown(JObject viewer, DateTime now)
+    {
+        JObject dates = viewer["dates"] as JObject;
+        DateTime lastMsgTime;
+
+        if (DateTime.TryParse(GetString(dates, "lastMessageTime"), out lastMsgTime))
+            return (now - lastMsgTime).TotalSeconds < XpCooldownSeconds;
+
+        return false;
+    }
+
+    private bool IsProgressionBlockedByMissingElement(JObject viewer)
+    {
+        return GetInt(viewer, "level") >= 1 && string.IsNullOrEmpty(NormalizeElement(GetString(viewer, "element")));
+    }
+
+    private void AddXp(JObject viewer, string message, DateTime now)
+    {
+        int xpGained = CalculateXpGained(message);
+        JObject stats = viewer["stats"] as JObject;
+        JObject dates = viewer["dates"] as JObject;
+
+        AddInt(viewer, "xp", xpGained);
+        AddInt(stats, "countedMessages", 1);
+        dates["lastXpDate"] = now.ToString("yyyy-MM-dd");
+        dates["lastMessageTime"] = FormatDateTime(now);
+    }
+
+    private void UpdateDailyMissionProgress(JObject viewer, string username, string missionType, int amount, DateTime now)
+    {
+        JObject missions = viewer["missions"] as JObject;
+
+        if (missions == null)
+            return;
+
+        JObject daily = missions["daily"] as JObject;
+
+        if (daily == null)
+            return;
+
+        if (string.IsNullOrEmpty(GetString(daily, "missionId")))
+            return;
+
+        if (GetString(daily, "startedAt") != now.ToString("yyyy-MM-dd"))
+            return;
+
+        if (GetBool(daily, "completed") || GetBool(daily, "rewardClaimed"))
+            return;
+
+        if (GetString(daily, "type") != missionType)
+            return;
+
+        AddInt(daily, "progress", amount);
+
+        if (GetInt(daily, "progress") >= GetInt(daily, "target"))
+        {
+            daily["progress"] = GetInt(daily, "target");
+            CompleteDailyMission(viewer, username, daily);
+        }
+    }
+
+    private void CompleteDailyMission(JObject viewer, string username, JObject mission)
+    {
+        int rewardPrimos = 800;
+
+        AddInt(viewer, "primogems", rewardPrimos);
+        AddStat(viewer, "totalPrimosEarned", rewardPrimos);
+
+        mission["completed"] = true;
+        mission["rewardClaimed"] = true;
+
+        CPH.SendMessage("🎯 " + username + " termine sa mission : " + GetString(mission, "description") + " | +💠" + rewardPrimos + " primos (" + GetInt(viewer, "primogems") + ")");
+    }
+
+    private int CalculateXpGained(string message)
+    {
+        if (message.Length > 200)
+            return 3;
+
+        if (message.Length > 100)
+            return 2;
+
+        return 1;
+    }
+
+    private void CheckLevelUp(JObject viewer, string username)
+    {
+        int oldLevel = GetInt(viewer, "level");
+        int newLevel = CalculateLevel(GetInt(viewer, "xp"));
+
+        if (newLevel > oldLevel)
+        {
+            List<LevelRewards> rewardsList = new List<LevelRewards>();
+
+            for (int level = oldLevel + 1; level <= newLevel; level++)
+            {
+                rewardsList.Add(GiveLevelRewards(viewer, level));
+            }
+
+            viewer["level"] = newLevel;
+
+            LevelRewards lastRewards = rewardsList[rewardsList.Count - 1];
+
+            string levelMessage = "🎉 " + username + " passe niveau " + newLevel + " ! ";
+            levelMessage += "+💠" + lastRewards.primos + " primos (" + GetInt(viewer, "primogems") + ") | ";
+            levelMessage += "+💰" + lastRewards.moras + " moras (" + GetInt(viewer, "moras") + ")";
+
+            if (newLevel >= 5 && lastRewards.particlesMain > 0)
+            {
+                int mainParticleTotal = GetParticleTotal(viewer, lastRewards.particlesMainElement);
+                levelMessage += " | +" + lastRewards.particlesMain + " particules " + GetElementDisplayName(lastRewards.particlesMainElement) + " (" + mainParticleTotal + ")";
+            }
+
+            if (newLevel >= 10 && lastRewards.particlesOther > 0)
+            {
+                int otherParticleTotal = GetParticleTotal(viewer, lastRewards.particlesOtherElement);
+                levelMessage += " | +" + lastRewards.particlesOther + " particules " + GetElementDisplayName(lastRewards.particlesOtherElement) + " (" + otherParticleTotal + ")";
+            }
+
+            if (newLevel == 1 && string.IsNullOrEmpty(NormalizeElement(GetString(viewer, "element"))))
+                levelMessage += " | Pour continuer à obtenir de l'expérience, tu dois choisir ton élément !";
+
+            CPH.SendMessage(levelMessage);
+            SendLevelTutorials(oldLevel, newLevel);
+        }
+
+        CheckMaxLevelOverflowRewards(viewer, username);
+    }
+
+    private void SendLevelTutorials(int oldLevel, int newLevel)
+    {
+        for (int level = oldLevel + 1; level <= newLevel; level++)
+        {
+            string tutorialMessage = GetLevelTutorialMessage(level);
+
+            if (!string.IsNullOrEmpty(tutorialMessage))
+                CPH.SendMessage(tutorialMessage);
+        }
+    }
+
+    private string GetLevelTutorialMessage(int level)
+    {
+        switch (level)
+        {
+            case 1:
+                return "ℹ️ Utilise !element pour choisir ton element parmis pyro/hydro/cryo/electro/anemo/geo/dendro";
+
+            case 2:
+                return "ℹ️ Utilise !pity pour voir ta pity actuelle.";
+
+            case 3:
+                return "ℹ️ Utilise !sac pour voir tes ressources.";
+
+            case 4:
+                return "ℹ️ Utilise !box pour voir tes personnages et !box a/c/d/e pour trier ta box.";
+
+            case 5:
+                return "ℹ️ Tu peux maintenant obtenir des particules. Utilise !convertir pour les échanger contre des primos.";
+
+            case 6:
+                return "ℹ️ Utilise !team pour créer une équipe de 4 personnages et activer des passifs d’éléments.";
+
+            case 7:
+                return "ℹ️ Utilise !shop pour acheter des primos, tickets et missions avec tes moras.";
+
+            case 8:
+                return "ℹ️ Utilise !top pour voir les classements du stream et tes statistiques.";
+
+            case 9:
+                return "ℹ️ Utilise !obtention NomDuPerso pour voir quand tu l’as obtenu.";
+
+            case 10:
+                return "ℹ️ Tu peux maintenant obtenir des particules d'autres éléments et les échanger via !echanger.";
+
+            default:
+                return "";
+        }
+    }
+
+    private LevelRewards GiveLevelRewards(JObject viewer, int level)
+    {
+        LevelRewards rewards = new LevelRewards();
+
+        int primosGained = 800;
+        int morasGained = 10000;    
+
+        AddInt(viewer, "primogems", primosGained);
+        AddInt(viewer, "moras", morasGained);
+
+        AddStat(viewer, "totalPrimosEarned", primosGained);
+        AddStat(viewer, "totalMorasEarned", morasGained);
+
+        rewards.primos = primosGained;
+        rewards.moras = morasGained;
+
+        string mainElement = NormalizeElement(GetString(viewer, "element"));
+
+        if (level >= 5 && !string.IsNullOrEmpty(mainElement))
+        {
+            int particlesGained = 80;
+
+            AddParticles(viewer, mainElement, particlesGained);
+            AddMainElementParticlesEarnedIfNeeded(viewer, mainElement, particlesGained);
+
+            rewards.particlesMain = particlesGained;
+            rewards.particlesMainElement = mainElement;
+        }
+
+        if (level >= 10)
+        {
+            string otherElement = GetRandomElementExcept(mainElement);
+            int particlesGained = 40;
+
+            AddParticles(viewer, otherElement, particlesGained);
+
+            rewards.particlesOther = particlesGained;
+            rewards.particlesOtherElement = otherElement;
+        }
+
+        return rewards;
+    }
+
+    private void AddMainElementParticlesEarnedIfNeeded(JObject viewer, string element, int amount)
+    {
+        string mainElement = NormalizeElement(GetString(viewer, "element"));
+        string gainedElement = NormalizeElement(element);
+
+        if (string.IsNullOrEmpty(mainElement))
+            return;
+
+        if (mainElement != gainedElement)
+            return;
+
+        AddStat(viewer, "totalMainElementParticlesEarned", amount);
+    }
+
+    private void CheckMaxLevelOverflowRewards(JObject viewer, string username)
+    {
+        if (GetInt(viewer, "level") < MaxLevel)
+            return;
+
+        JObject stats = viewer["stats"] as JObject;
+
+        int currentSteps = CalculateMaxLevelOverflowSteps(GetInt(viewer, "xp"));
+        int claimedSteps = GetInt(stats, "level100OverflowRewardsClaimed");
+
+        if (currentSteps <= claimedSteps)
+            return;
+
+        int rewardsToGive = currentSteps - claimedSteps;
+        LevelRewards totalRewards = new LevelRewards();
+
+        for (int i = 0; i < rewardsToGive; i++)
+        {
+            LevelRewards rewards = GiveLevelRewards(viewer, MaxLevel);
+
+            totalRewards.primos += rewards.primos;
+            totalRewards.moras += rewards.moras;
+            totalRewards.particlesMain += rewards.particlesMain;
+            totalRewards.particlesMainElement = rewards.particlesMainElement;
+            totalRewards.particlesOther += rewards.particlesOther;
+            totalRewards.particlesOtherElement = rewards.particlesOtherElement;
+        }
+
+        stats["level100OverflowRewardsClaimed"] = currentSteps;
+
+        string overflowMessage = "🎉 " + username + " gagne une récompense niveau max ! ";
+        overflowMessage += "+💠" + totalRewards.primos + " primos (" + GetInt(viewer, "primogems") + ") | ";
+        overflowMessage += "+💰" + totalRewards.moras + " moras (" + GetInt(viewer, "moras") + ")";
+
+        if (totalRewards.particlesMain > 0)
+        {
+            int mainParticleTotal = GetParticleTotal(viewer, totalRewards.particlesMainElement);
+            overflowMessage += " | +" + totalRewards.particlesMain + " particules " + GetElementDisplayName(totalRewards.particlesMainElement) + " (" + mainParticleTotal + ")";
+        }
+
+        if (totalRewards.particlesOther > 0)
+        {
+            int otherParticleTotal = GetParticleTotal(viewer, totalRewards.particlesOtherElement);
+            overflowMessage += " | +" + totalRewards.particlesOther + " particules " + GetElementDisplayName(totalRewards.particlesOtherElement) + " (" + otherParticleTotal + ")";
+        }
+
+        if (rewardsToGive > 1)
+            overflowMessage += " | x" + rewardsToGive;
+
+        CPH.SendMessage(overflowMessage);
+    }
+
+    private int CalculateLevel(int xp)
+    {
+        int level = xp / XpPerLevel;
+
+        if (level > MaxLevel)
+            level = MaxLevel;
+
+        return level;
+    }
+
+    private int CalculateMaxLevelOverflowSteps(int xp)
+    {
+        int maxLevelXp = MaxLevel * XpPerLevel;
+
+        if (xp <= maxLevelXp)
+            return 0;
+
+        return (xp - maxLevelXp) / XpPerLevel;
+    }
+
+    private void AddParticles(JObject viewer, string element, int amount)
+    {
+        JObject particles = viewer["particles"] as JObject;
+
+        if (particles == null)
+        {
+            particles = new JObject();
+            viewer["particles"] = particles;
+        }
+
+        string normalized = NormalizeElement(element);
+
+        if (string.IsNullOrEmpty(normalized))
+            return;
+
+        AddInt(particles, normalized, amount);
+    }
+
+    private int GetParticleTotal(JObject viewer, string element)
+    {
+        JObject particles = viewer["particles"] as JObject;
+
+        if (particles == null)
+            return 0;
+
+        return GetInt(particles, NormalizeElement(element));
+    }
+
+    private string GetRandomElementExcept(string excludedElement)
+    {
+        string normalizedExcluded = NormalizeElement(excludedElement);
+
+        List<string> elements = new List<string>();
+        elements.Add("pyro");
+        elements.Add("hydro");
+        elements.Add("cryo");
+        elements.Add("electro");
+        elements.Add("anemo");
+        elements.Add("geo");
+        elements.Add("dendro");
+
+        for (int i = elements.Count - 1; i >= 0; i--)
+        {
+            if (elements[i] == normalizedExcluded)
+                elements.RemoveAt(i);
+        }
+
+        if (elements.Count == 0)
+            return "pyro";
+
+        return elements[random.Next(elements.Count)];
+    }
+
+    private string GetElementDisplayName(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "🔥 Pyro";
+            case "hydro": return "💧 Hydro";
+            case "cryo": return "❄️ Cryo";
+            case "electro": return "⚡ Electro";
+            case "anemo": return "🌪️ Anemo";
+            case "geo": return "☄️ Geo";
+            case "dendro": return "🌿 Dendro";
+            default: return element;
+        }
+    }
+
+    private string NormalizeElement(string element)
+    {
+        if (string.IsNullOrEmpty(element))
+            return "";
+
+        string normalized = element.ToLower().Trim();
+
+        switch (normalized)
+        {
+            case "pyro": return "pyro";
+            case "hydro": return "hydro";
+            case "cryo": return "cryo";
+            case "electro":
+            case "électro": return "electro";
+            case "anemo":
+            case "anémo": return "anemo";
+            case "geo":
+            case "géo": return "geo";
+            case "dendro": return "dendro";
+            default: return normalized;
+        }
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private string FormatDateTime(DateTime date)
+    {
+        return date.ToString("yyyy-MM-dd HH:mm:ss");
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+            return JObject.Parse(json);
+        }
+        catch (Exception ex)
+        {
+            CPH.LogError("Erreur lecture JSON : " + ex.Message);
+            return null;
+        }
+    }
+
+    private void EnsureObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+    }
+
+    private void EnsureArray(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Array)
+            parent[key] = new JArray();
+    }
+
+    private void EnsureInt(JObject obj, string key, int defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureBool(JObject obj, string key, bool defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureString(JObject obj, string key, string defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureNullableString(JObject obj, string key)
+    {
+        if (obj[key] == null)
+            obj[key] = null;
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private bool GetBool(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return false;
+
+        bool value;
+
+        if (bool.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return false;
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private void AddInt(JObject obj, string key, int amount)
+    {
+        int current = GetInt(obj, key);
+        obj[key] = current + amount;
+    }
+
+    private void AddStat(JObject viewer, string statName, int amount)
+    {
+        JObject stats = viewer["stats"] as JObject;
+
+        if (stats == null)
+        {
+            stats = new JObject();
+            viewer["stats"] = stats;
+        }
+
+        AddInt(stats, statName, amount);
+    }
+
+    private void SendError(string message)
+    {
+        CPH.SendMessage("❌ " + message);
+    }
+
+    private void EnsureMonthlyEventDataDefaults(JObject data, DateTime now)
+    {
+        int currentYear = now.Year;
+        int currentMonth = now.Month;
+
+        int savedYear = GetInt(data, "year");
+        int savedMonth = GetInt(data, "month");
+
+        if (savedYear != currentYear || savedMonth != currentMonth)
+        {
+            data.RemoveAll();
+            data["year"] = currentYear;
+            data["month"] = currentMonth;
+            data["participants"] = new JObject();
+            data["dailyWindows"] = new JObject();
+            data["gameB"] = new JObject();
+            data["messages"] = new JObject();
+            data["calendar"] = new JObject();
+            data["collectionPurchases"] = new JObject();
+
+            JObject monthlyDraw = new JObject();
+            monthlyDraw["drawDone"] = false;
+            monthlyDraw["winner"] = "";
+            data["monthlyDraw"] = monthlyDraw;
+
+            return;
+        }
+
+        EnsureInt(data, "year", currentYear);
+        EnsureInt(data, "month", currentMonth);
+        EnsureObject(data, "participants");
+        EnsureObject(data, "dailyWindows");
+        EnsureObject(data, "gameB");
+        EnsureObject(data, "messages");
+        EnsureObject(data, "calendar");
+        EnsureObject(data, "collectionPurchases");
+        EnsureObject(data, "monthlyDraw");
+
+        JObject monthlyDrawObj = data["monthlyDraw"] as JObject;
+        EnsureBool(monthlyDrawObj, "drawDone", false);
+        EnsureString(monthlyDrawObj, "winner", "");
+    }
+
+    private bool TryGiveDailyEventCurrency(JObject eventData, string username, string message, DateTime now)
+    {
+        if (IsCommand(message))
+            return false;
+
+        if (IsSystemMessage(message))
+            return false;
+
+        if (eventData == null)
+            return false;
+
+        JObject participants = eventData["participants"] as JObject;
+
+        if (participants == null)
+            return false;
+
+        JObject participant = participants[username] as JObject;
+
+        if (participant == null)
+            return false;
+
+        if (!GetBool(participant, "joined"))
+            return false;
+
+        JObject daily = participant["daily"] as JObject;
+
+        if (daily == null)
+        {
+            daily = new JObject();
+            participant["daily"] = daily;
+        }
+
+        string today = now.ToString("yyyy-MM-dd");
+
+        JObject todayData = daily[today] as JObject;
+
+        if (todayData == null)
+        {
+            todayData = new JObject();
+            daily[today] = todayData;
+        }
+
+        if (GetBool(todayData, "dailyEventCurrencyClaimed"))
+            return false;
+
+        AddInt(participant, "currency", 1);
+        todayData["dailyEventCurrencyClaimed"] = true;
+
+        string emoji = GetCurrentEventCurrencyEmoji(now.Month);
+        int totalCurrency = GetInt(participant, "currency");
+
+        CPH.SendMessage("🎁 Bonus event quotidien " + username + " ! Gain : +1 " + emoji + " (" + totalCurrency + ")");
+
+        return true;
+    }
+
+    private bool TrySendPendingEventMessages(JObject eventData, string username)
+    {
+        if (eventData == null)
+            return false;
+
+        JObject messages = eventData["messages"] as JObject;
+
+        if (messages == null)
+            return false;
+
+        JArray userMessages = messages[username] as JArray;
+
+        if (userMessages == null || userMessages.Count == 0)
+            return false;
+
+        List<string> parts = new List<string>();
+        string prefix = GetCurrentEventSocialReceivePrefix(DateTime.Now.Month)
+            + " pour toi " + username;
+
+        for (int i = 0; i < userMessages.Count; i++)
+        {
+            JObject msg = userMessages[i] as JObject;
+
+            if (msg == null)
+                continue;
+
+            string sender = GetString(msg, "sender");
+            string text = GetString(msg, "text");
+
+            if (string.IsNullOrEmpty(sender) || string.IsNullOrEmpty(text))
+                continue;
+
+            parts.Add("de la part de " + sender + " : \"" + text + "\"");
+        }
+
+        if (parts.Count == 0)
+        {
+            messages.Remove(username);
+            return true;
+        }
+
+        SendSplitEventMessages(prefix, parts);
+
+        messages.Remove(username);
+
+        return true;
+    }
+
+    private void SendSplitEventMessages(string prefix, List<string> parts)
+    {
+        int maxLength = 450;
+        string current = prefix + " ";
+
+        for (int i = 0; i < parts.Count; i++)
+        {
+            string part = parts[i];
+
+            if (current.Length + part.Length + 3 > maxLength)
+            {
+                CPH.SendMessage(current.TrimEnd());
+                current = prefix + " " + part;
+            }
+            else
+            {
+                if (current != prefix + " " && !current.EndsWith(" "))
+                    current += " | ";
+
+                current += part;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(current))
+            CPH.SendMessage(current.TrimEnd());
+    }
+
+    private bool IsMonthlyEventJoined(JObject eventData, string username)
+    {
+        JObject participants = eventData["participants"] as JObject;
+
+        if (participants == null)
+            return false;
+
+        JObject participant = participants[username] as JObject;
+
+        if (participant == null)
+            return false;
+
+        return GetBool(participant, "joined");
+    }
+
+    private string GetCurrentEventName(int month)
+    {
+        switch (month)
+        {
+            case 1: return "Le Festival du Nouvel An";
+            case 2: return "Le Festival des Cœurs";
+            case 3: return "Le Festival du Printemps";
+            case 4: return "Le Festival des Cloches";
+            case 5: return "Le Festival des Fleurs";
+            case 6: return "Le Festival de l’Été";
+            case 7: return "Le Festival des Étoiles";
+            case 8: return "Le Festival des Aventuriers";
+            case 9: return "Le Festival des Récoltes";
+            case 10: return "Le Festival des Ombres";
+            case 11: return "Le Festival des Brumes";
+            case 12: return "Le Festival de Noël";
+            default: return "L’event mensuel";
+        }
+    }
+
+    private string GetCurrentEventGiftCode(int month)
+    {
+        switch (month)
+        {
+            case 1: return "FESTIVALNOUVELAN";
+            case 2: return "FESTIVALCOEURS";
+            case 3: return "FESTIVALPRINTEMPS";
+            case 4: return "FESTIVALCLOCHES";
+            case 5: return "FESTIVALFLEURS";
+            case 6: return "FESTIVALETE";
+            case 7: return "FESTIVALETOILES";
+            case 8: return "FESTIVALAVENTURIERS";
+            case 9: return "FESTIVALRECOLTES";
+            case 10: return "FESTIVALOMBRES";
+            case 11: return "FESTIVALBRUMES";
+            case 12: return "FESTIVALNOEL";
+            default: return "FESTIVALETE";
+        }
+    }
+
+    private string GetCurrentMonthName(int month)
+    {
+        switch (month)
+        {
+            case 1: return "janvier";
+            case 2: return "février";
+            case 3: return "mars";
+            case 4: return "avril";
+            case 5: return "mai";
+            case 6: return "juin";
+            case 7: return "juillet";
+            case 8: return "août";
+            case 9: return "septembre";
+            case 10: return "octobre";
+            case 11: return "novembre";
+            case 12: return "décembre";
+            default: return "ce mois";
+        }
+    }
+
+    private string GetCurrentEventCurrencyEmoji(int month)
+    {
+        switch (month)
+        {
+            case 1: return "🎆";
+            case 2: return "💖";
+            case 3: return "🌱";
+            case 4: return "🥚";
+            case 5: return "🌸";
+            case 6: return "🏝️";
+            case 7: return "⭐";
+            case 8: return "🧭";
+            case 9: return "🌾";
+            case 10: return "🎃";
+            case 11: return "🍁";
+            case 12: return "🎄";
+            default: return "🎟️";
+        }
+    }
+
+    private string GetCurrentEventSocialReceivePrefix(int month)
+    {
+        switch (month)
+        {
+            case 1: return "🎊 Vœux reçus";
+            case 2: return "💌 Mots doux reçus";
+            case 3: return "🌼 Graines reçues";
+            case 4: return "🍫 Chocolats reçus";
+            case 5: return "🌼 Mots de printemps";
+            case 6: return "💌 Cartes postales";
+            case 7: return "💫 Vœux sous les étoiles";
+            case 8: return "📖 Notes de voyage";
+            case 9: return "🧺 Paniers de récolte";
+            case 10: return "🧙 Sorts reçus";
+            case 11: return "🌫️ Murmures reçus";
+            case 12: return "💌 Cartes de Noël";
+            default: return "💌 Messages event";
+        }
+    }
+
+    private JObject LoadOrCreateJObject(string path)
+    {
+        if (!File.Exists(path))
+            return new JObject();
+
+        try
+        {
+            string json = File.ReadAllText(path);
+
+            if (string.IsNullOrWhiteSpace(json))
+                return new JObject();
+
+            return JObject.Parse(json);
+        }
+        catch
+        {
+            return new JObject();
+        }
+    }
+
+    private void SaveJObjectNoBackup(string path, JObject data)
+    {
+        string folder = Path.GetDirectoryName(path);
+
+        if (!Directory.Exists(folder))
+            Directory.CreateDirectory(folder);
+
+        File.WriteAllText(path, data.ToString(Formatting.Indented));
+    }
+
+    private bool SyncC6FiveStarCharacters(JObject c6Characters, JObject viewer, string username, JObject charactersFile, DateTime now)
+    {
+        JObject box = viewer["box"] as JObject;
+
+        if (box == null)
+            return false;
+
+        JObject userData = c6Characters[username] as JObject;
+
+        if (userData == null)
+        {
+            userData = new JObject();
+            userData["username"] = username;
+            userData["characters"] = new JObject();
+            c6Characters[username] = userData;
+        }
+
+        JObject c6Box = userData["characters"] as JObject;
+
+        if (c6Box == null)
+        {
+            c6Box = new JObject();
+            userData["characters"] = c6Box;
+        }
+
+        bool changed = false;
+
+        foreach (KeyValuePair<string, JToken> entry in box)
+        {
+            JObject owned = entry.Value as JObject;
+
+            if (owned == null)
+                continue;
+
+            int characterId = GetInt(owned, "characterId");
+            int constellation = GetInt(owned, "constellation");
+
+            if (characterId <= 0 || constellation < 6)
+                continue;
+
+            JObject character = FindCharacterById(charactersFile, characterId);
+
+            if (character == null)
+                continue;
+
+            if (GetInt(character, "rarete") != 5)
+                continue;
+
+            string idKey = characterId.ToString();
+
+            if (c6Box[idKey] != null && c6Box[idKey].Type != JTokenType.Null)
+                continue;
+
+            c6Box[idKey] = CreateC6CharacterData(username, character, now);
+            changed = true;
+        }
+
+        return changed;
+    }
+
+    private JObject CreateC6CharacterData(string username, JObject character, DateTime now)
+    {
+        JObject data = new JObject();
+
+        data["owner"] = username;
+        data["characterId"] = GetInt(character, "id");
+        data["name"] = GetString(character, "nom");
+        data["rarity"] = GetInt(character, "rarete");
+        data["element"] = NormalizeElement(GetString(character, "element"));
+        data["weapon"] = GetString(character, "arme");
+        data["region"] = GetString(character, "region");
+        data["class"] = GetString(character, "classe");
+        data["createdAt"] = FormatDateTime(now);
+
+        JObject stats = new JObject();
+        stats["strength"] = 1;
+        stats["intelligence"] = 1;
+        stats["beauty"] = 1;
+        stats["charisma"] = 1;
+        stats["popularity"] = 1;
+        data["stats"] = stats;
+
+        JObject contestStats = new JObject();
+        contestStats["totalContests"] = 0;
+        contestStats["totalWins"] = 0;
+        contestStats["strengthWins"] = 0;
+        contestStats["intelligenceWins"] = 0;
+        contestStats["beautyWins"] = 0;
+        contestStats["charismaWins"] = 0;
+        contestStats["popularityWins"] = 0;
+        data["contestStats"] = contestStats;
+
+        JObject titles = new JObject();
+        titles["strength"] = "";
+        titles["intelligence"] = "";
+        titles["beauty"] = "";
+        titles["charisma"] = "";
+        titles["popularity"] = "";
+        data["titles"] = titles;
+
+        return data;
+    }
+
+    private JObject FindCharacterById(JObject charactersFile, int characterId)
+    {
+        if (charactersFile == null)
+            return null;
+
+        JArray characters = charactersFile["characters"] as JArray;
+
+        if (characters == null)
+            return null;
+
+        for (int i = 0; i < characters.Count; i++)
+        {
+            JObject character = characters[i] as JObject;
+
+            if (character == null)
+                continue;
+
+            if (GetInt(character, "id") == characterId)
+                return character;
+        }
+
+        return null;
+    }
+
+    private void ClearOldContestIfNeeded(string contestsPath)
+    {
+        if (!File.Exists(contestsPath))
+            return;
+
+        JObject contests = LoadOrCreateJObject(contestsPath);
+
+        if (contests == null)
+            return;
+
+        JObject current = contests["currentContest"] as JObject;
+
+        if (current == null)
+            return;
+
+        string status = GetString(current, "status");
+
+        if (status == "none" || string.IsNullOrEmpty(status))
+            return;
+
+        string createdAt = GetString(current, "createdAt");
+
+        if (string.IsNullOrEmpty(createdAt))
+            return;
+
+        DateTime createdDate;
+
+        if (!DateTime.TryParse(createdAt, out createdDate))
+            return;
+
+        string today = DateTime.Now.ToString("yyyy-MM-dd");
+        string contestDay = createdDate.ToString("yyyy-MM-dd");
+
+        if (contestDay == today)
+            return;
+
+        ResetContestOnly(current);
+        SaveJObjectNoBackup(contestsPath, contests);
+
+        CPH.LogInfo("Concours ancien automatiquement annulé.");
+    }
+
+    private void ResetContestOnly(JObject current)
+    {
+        current["status"] = "none";
+        current["organizer"] = "";
+        current["theme"] = "";
+        current["createdAt"] = "";
+        current["startedAt"] = "";
+        current["participants"] = new JArray();
+        current["spectators"] = new JArray();
+        current["turnOrder"] = new JArray();
+        current["currentTurnIndex"] = 0;
+        current["round"] = 0;
+        current["phase"] = "none";
+        current["activePlayer"] = "";
+        current["activeSpectator"] = "";
+        current["scores"] = new JObject();
+
+        JObject pendingSupport = new JObject();
+        pendingSupport["spectator"] = "";
+        pendingSupport["availableTargets"] = new JArray();
+
+        current["pendingSupport"] = pendingSupport;
+    }
+
+    private void ApplyVoteBannerCharacter(string folderPath,JObject characterFile,JArray characters,JArray previousBannerFeaturedIds)
+    {
+        string votesPath = Path.Combine(folderPath, "banner_votes.json");
+
+        JObject votesFile = LoadOrCreateJObject(votesPath);
+
+        JObject votes = votesFile["votes"] as JObject;
+
+        JObject selectedCharacter = null;
+
+        if (votes != null && votes.Count > 0)
+            selectedCharacter = PickWeightedVoteCharacter(characters, votes, previousBannerFeaturedIds);
+
+        if (selectedCharacter == null)
+            selectedCharacter = PickRandomVoteFallbackCharacter(characters, previousBannerFeaturedIds);
+
+        if (selectedCharacter != null)
+        {
+            selectedCharacter["bannerFeatured"] = true;
+            CPH.LogInfo("4e personnage 5★ de bannière choisi : " + GetString(selectedCharacter, "nom"));
+        }
+
+        JObject newVotesFile = new JObject();
+        newVotesFile["version"] = 1;
+        newVotesFile["weekId"] = GetCurrentWeekId();
+        newVotesFile["votes"] = new JObject();
+        newVotesFile["voters"] = new JObject();
+
+        SaveJObjectNoBackup(votesPath, newVotesFile);
+    }
+
+    private JObject PickWeightedVoteCharacter(JArray characters, JObject votes, JArray previousBannerFeaturedIds)
+    {
+        List<JObject> candidates = new List<JObject>();
+        List<int> weights = new List<int>();
+
+        foreach (KeyValuePair<string, JToken> entry in votes)
+        {
+            JObject voteEntry = entry.Value as JObject;
+
+            if (voteEntry == null)
+                continue;
+
+            int characterId = GetInt(voteEntry, "characterId");
+            int voteCount = GetInt(voteEntry, "votes");
+
+            if (characterId <= 0 || voteCount <= 0)
+                continue;
+
+            JObject character = FindCharacterByIdInArray(characters, characterId);
+
+            if (character == null)
+                continue;
+
+            if (GetInt(character, "rarete") != 5)
+                continue;
+
+            if (GetBool(character, "bannerFeatured"))
+                continue;
+
+            if (IsIdInArray(previousBannerFeaturedIds, characterId))
+                continue;
+
+            candidates.Add(character);
+            weights.Add(voteCount);
+        }
+
+        if (candidates.Count == 0)
+            return null;
+
+        int totalWeight = 0;
+
+        for (int i = 0; i < weights.Count; i++)
+            totalWeight += weights[i];
+
+        if (totalWeight <= 0)
+            return null;
+
+        int roll = random.Next(1, totalWeight + 1);
+        int cumulative = 0;
+
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            cumulative += weights[i];
+
+            if (roll <= cumulative)
+                return candidates[i];
+        }
+
+        return candidates[0];
+    }
+
+    private JObject PickRandomVoteFallbackCharacter(JArray characters, JArray previousBannerFeaturedIds)
+    {
+        List<JObject> candidates = new List<JObject>();
+
+        for (int i = 0; i < characters.Count; i++)
+        {
+            JObject character = characters[i] as JObject;
+
+            if (character == null)
+                continue;
+
+            int characterId = GetInt(character, "id");
+
+            if (GetInt(character, "rarete") != 5)
+                continue;
+
+            if (GetBool(character, "bannerFeatured"))
+                continue;
+
+            if (IsIdInArray(previousBannerFeaturedIds, characterId))
+                continue;
+
+            candidates.Add(character);
+        }
+
+        if (candidates.Count == 0)
+            return null;
+
+        return candidates[random.Next(candidates.Count)];
+    }
+
+    private JObject FindCharacterByIdInArray(JArray characters, int characterId)
+    {
+        if (characters == null)
+            return null;
+
+        for (int i = 0; i < characters.Count; i++)
+        {
+            JObject character = characters[i] as JObject;
+
+            if (character == null)
+                continue;
+
+            if (GetInt(character, "id") == characterId)
+                return character;
+        }
+
+        return null;
+    }
+
+    private JObject FindLongMissionById(JObject missionsFile, string rank, string missionId)
+    {
+        JArray missions = GetLongMissionRankArray(missionsFile, rank);
+
+        if (missions == null)
+            return null;
+
+        for (int i = 0; i < missions.Count; i++)
+        {
+            JObject mission = missions[i] as JObject;
+
+            if (mission == null)
+                continue;
+
+            if (GetString(mission, "id") == missionId)
+                return mission;
+        }
+
+        return null;
+    }
+
+    private JObject FindLongMissionByCategory(JObject missionsFile, string rank, string category)
+    {
+        JArray missions = GetLongMissionRankArray(missionsFile, rank);
+
+        if (missions == null)
+            return null;
+
+        for (int i = 0; i < missions.Count; i++)
+        {
+            JObject mission = missions[i] as JObject;
+
+            if (mission == null)
+                continue;
+
+            if (GetString(mission, "category") == category)
+                return mission;
+        }
+
+        return null;
+    }
+
+    private JArray GetLongMissionRankArray(JObject missionsFile, string rank)
+    {
+        JObject ranks = missionsFile["ranks"] as JObject;
+
+        if (ranks == null)
+            return null;
+
+        return ranks[rank] as JArray;
+    }
+
+    private int GetLongMissionReward(JObject missionsFile, string rank)
+    {
+        JObject rewards = missionsFile["rewards"] as JObject;
+
+        if (rewards == null)
+            return 0;
+
+        return GetInt(rewards, rank);
+    }
+
+    private string GetNextLongMissionRank(string rank)
+    {
+        if (rank == "B")
+            return "A";
+
+        if (rank == "A")
+            return "S";
+
+        return "";
+    }
+
+    private bool AreAllMainLongMissionsCompleted(JObject viewer, JObject missionsFile)
+    {
+        string[] ranks = new string[] { "B", "A", "S" };
+
+        for (int r = 0; r < ranks.Length; r++)
+        {
+            JArray missions = GetLongMissionRankArray(missionsFile, ranks[r]);
+
+            if (missions == null)
+                return false;
+
+            for (int i = 0; i < missions.Count; i++)
+            {
+                JObject mission = missions[i] as JObject;
+
+                if (mission == null)
+                    continue;
+
+                string category = GetString(mission, "category");
+                JObject categoryData = GetLongMissionCategoryData(viewer, category);
+
+                if (categoryData == null)
+                    return false;
+
+                JArray completedRanks = categoryData["completedRanks"] as JArray;
+
+                if (!ArrayContainsString(completedRanks, ranks[r]))
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+    private JObject GetLongMissionCategoryData(JObject viewer, string category)
+    {
+        JObject longMissions = viewer["longMissions"] as JObject;
+
+        if (longMissions == null)
+            return null;
+
+        JObject categories = longMissions["categories"] as JObject;
+
+        if (categories == null)
+            return null;
+
+        return categories[category] as JObject;
+    }
+
+    private bool ArrayContainsString(JArray array, string value)
+    {
+        if (array == null)
+            return false;
+
+        for (int i = 0; i < array.Count; i++)
+        {
+            if (array[i] != null && array[i].ToString() == value)
+                return true;
+        }
+
+        return false;
+    }
+
+    private int CountOwnedCharactersByRarity(JObject viewer, JObject charactersFile, int rarity)
+    {
+        JObject box = viewer["box"] as JObject;
+
+        if (box == null)
+            return 0;
+
+        int count = 0;
+
+        foreach (KeyValuePair<string, JToken> entry in box)
+        {
+            JObject owned = entry.Value as JObject;
+
+            if (owned == null)
+                continue;
+
+            int characterId = GetInt(owned, "characterId");
+            JObject character = FindCharacterById(charactersFile, characterId);
+
+            if (character == null)
+                continue;
+
+            if (GetInt(character, "rarete") == rarity)
+                count++;
+        }
+
+        return count;
+    }
+
+    private int CountC6Characters(JObject viewer)
+    {
+        JObject box = viewer["box"] as JObject;
+
+        if (box == null)
+            return 0;
+
+        int count = 0;
+
+        foreach (KeyValuePair<string, JToken> entry in box)
+        {
+            JObject owned = entry.Value as JObject;
+
+            if (owned == null)
+                continue;
+
+            if (GetInt(owned, "constellation") >= 6)
+                count++;
+        }
+
+        return count;
+    }
+
+    private int GetMainElementParticles(JObject viewer)
+    {
+        string element = NormalizeElement(GetString(viewer, "element"));
+
+        if (string.IsNullOrEmpty(element))
+            return 0;
+
+        JObject particles = viewer["particles"] as JObject;
+
+        if (particles == null)
+            return 0;
+
+        return GetInt(particles, element);
+    }
+
+    private bool HasPerfectFriendship(string username, JObject friendshipsData)
+    {
+        if (friendshipsData == null)
+            return false;
+
+        JObject friendships = friendshipsData["friendships"] as JObject;
+
+        if (friendships == null)
+            return false;
+
+        foreach (KeyValuePair<string, JToken> entry in friendships)
+        {
+            JObject friendship = entry.Value as JObject;
+
+            if (friendship == null)
+                continue;
+
+            if (GetString(friendship, "status") != "friends")
+                continue;
+
+            if (GetInt(friendship, "level") < 1000)
+                continue;
+
+            JArray users = friendship["users"] as JArray;
+
+            if (users == null)
+                continue;
+
+            for (int i = 0; i < users.Count; i++)
+            {
+                if (users[i] != null && NormalizeUsername(users[i].ToString()) == username)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool IsIdInArray(JArray ids, int id)
+    {
+        if (ids == null)
+            return false;
+
+        for (int i = 0; i < ids.Count; i++)
+        {
+            int currentId = 0;
+
+            if (int.TryParse(ids[i].ToString(), out currentId) && currentId == id)
+                return true;
+        }
+
+        return false;
+    }
+
+    private void CheckLongMissions(JObject viewer, string username, JObject missionsFile, JObject charactersFile, JObject friendshipsData)
+    {
+        if (viewer == null || missionsFile == null)
+            return;
+
+        JObject ranks = missionsFile["ranks"] as JObject;
+
+        if (ranks == null)
+            return;
+
+        JObject longMissions = viewer["longMissions"] as JObject;
+
+        if (longMissions == null)
+            return;
+
+        JObject categories = longMissions["categories"] as JObject;
+
+        if (categories == null)
+            return;
+
+        List<string> categoryKeys = new List<string>();
+
+        foreach (KeyValuePair<string, JToken> entry in categories)
+            categoryKeys.Add(entry.Key);
+
+        for (int i = 0; i < categoryKeys.Count; i++)
+        {
+            string category = categoryKeys[i];
+            JObject categoryData = categories[category] as JObject;
+
+            if (categoryData == null)
+                continue;
+
+            if (!GetBool(categoryData, "active"))
+                continue;
+
+            string rank = GetString(categoryData, "activeRank");
+            string missionId = GetString(categoryData, "activeMissionId");
+
+            JObject mission = FindLongMissionById(missionsFile, rank, missionId);
+
+            if (mission == null)
+                continue;
+
+            FixMainParticlesMissionBaselineIfNeeded(viewer, categoryData, mission);
+
+            int currentValue = GetLongMissionCurrentValue(viewer, username, GetString(mission, "type"), charactersFile, friendshipsData);
+            EnsureLongMissionBaseline(categoryData, currentValue, GetString(mission, "type"));
+
+            int baseline = GetInt(categoryData, "baselineValue");
+            int progress = currentValue - baseline;
+
+            if (progress < 0)
+                progress = 0;
+
+            int target = GetInt(mission, "target");
+
+            if (progress > target)
+                progress = target;
+
+            categoryData["progress"] = progress;
+
+            if (progress >= target)
+                CompleteLongMission(viewer, username, missionsFile, mission, categoryData, currentValue);
+        }
+
+        CheckUnlockZMissions(viewer, username, missionsFile);
+        CheckActiveZMissions(viewer, username, missionsFile, charactersFile, friendshipsData);
+    }
+
+    private void EnsureLongMissionBaseline(JObject categoryData, int currentValue, string missionType)
+    {
+        if (categoryData["baselineValue"] != null && categoryData["baselineValue"].Type != JTokenType.Null)
+            return;
+
+        int baseline = currentValue;
+
+        if (missionType == "messages" && baseline > 0)
+            baseline--;
+
+        categoryData["baselineValue"] = baseline;
+    }
+
+    private void CompleteLongMission(JObject viewer, string username, JObject missionsFile, JObject mission, JObject categoryData, int currentValue)
+    {
+        string rank = GetString(categoryData, "activeRank");
+
+        JArray completedRanks = categoryData["completedRanks"] as JArray;
+
+        if (completedRanks == null)
+        {
+            completedRanks = new JArray();
+            categoryData["completedRanks"] = completedRanks;
+        }
+
+        if (!ArrayContainsString(completedRanks, rank))
+            completedRanks.Add(rank);
+
+        categoryData["active"] = false;
+
+        int reward = GetLongMissionReward(missionsFile, rank);
+
+        AddInt(viewer, "primogems", reward);
+        AddStat(viewer, "totalPrimosEarned", reward);
+
+        CPH.SendMessage("✅ Mission " + rank + " terminée : " + GetString(mission, "name") + " ! +💠" + reward + " primos (" + GetInt(viewer, "primogems") + ")");
+
+        string nextRank = GetNextLongMissionRank(rank);
+
+        if (!string.IsNullOrEmpty(nextRank))
+            AutoAcceptNextLongMission(viewer, username, missionsFile, mission, categoryData, nextRank, currentValue);
+    }
+
+    private void AutoAcceptNextLongMission(JObject viewer, string username, JObject missionsFile, JObject previousMission, JObject categoryData, string nextRank, int currentValue)
+    {
+        string category = GetString(previousMission, "category");
+        JObject nextMission = FindLongMissionByCategory(missionsFile, nextRank, category);
+
+        if (nextMission == null)
+            return;
+
+        categoryData["active"] = true;
+        categoryData["activeRank"] = nextRank;
+        categoryData["activeMissionId"] = GetString(nextMission, "id");
+
+        JArray acceptedRanks = categoryData["acceptedRanks"] as JArray;
+
+        if (acceptedRanks == null)
+        {
+            acceptedRanks = new JArray();
+            categoryData["acceptedRanks"] = acceptedRanks;
+        }
+
+        if (!ArrayContainsString(acceptedRanks, nextRank))
+            acceptedRanks.Add(nextRank);
+
+        int target = GetInt(nextMission, "target");
+        int baseline = GetInt(categoryData, "baselineValue");
+        int progress = currentValue - baseline;
+
+        if (progress < 0)
+            progress = 0;
+
+        if (progress > target)
+            progress = target;
+
+        categoryData["progress"] = progress;
+
+        CPH.SendMessage("🎯 " + username + " débloque automatiquement [" + nextRank + "] " + GetString(nextMission, "name") + " : " + progress + "/" + target + " " + GetString(nextMission, "progressLabel") + ".");
+    }
+
+    private void CheckUnlockZMissions(JObject viewer, string username, JObject missionsFile)
+    {
+        JObject longMissions = viewer["longMissions"] as JObject;
+
+        if (longMissions == null)
+            return;
+
+        if (GetBool(longMissions, "completedAllMainRanksAnnounced"))
+            return;
+
+        if (!AreAllMainLongMissionsCompleted(viewer, missionsFile))
+            return;
+
+        longMissions["unlockedZ"] = true;
+        longMissions["completedAllMainRanksAnnounced"] = true;
+
+        CPH.SendMessage("🏆 INCROYABLE " + username + " ! Toutes les missions B, A et S sont terminées ! Les missions Z sont maintenant débloquées avec !mission Z !");
+    }
+
+    private void ApplyDailyBankInterest(JObject viewer, string message, DateTime now)
+    {
+        if (IsCommand(message))
+            return;
+
+        if (IsSystemMessage(message))
+            return;
+
+        JObject bank = viewer["bank"] as JObject;
+
+        if (bank == null)
+            return;
+
+        string today = now.ToString("yyyy-MM-dd");
+
+        if (GetString(bank, "lastInterestDate") == today)
+            return;
+
+        int bankMoras = GetInt(bank, "moras");
+
+        if (bankMoras > 0)
+        {
+            int interest = bankMoras * 3 / 100;
+
+            if (interest > 0)
+            {
+                AddInt(bank, "moras", interest);
+                AddStat(viewer, "totalMorasEarned", interest);
+            }
+        }
+
+        bank["lastInterestDate"] = today;
+    }
+
+    private void CheckActiveZMissions(JObject viewer, string username, JObject missionsFile, JObject charactersFile, JObject friendshipsData)
+    {
+        JObject longMissions = viewer["longMissions"] as JObject;
+
+        if (longMissions == null)
+            return;
+
+        if (!GetBool(longMissions, "unlockedZ"))
+            return;
+
+        JObject z = longMissions["z"] as JObject;
+
+        if (z == null)
+            return;
+
+        foreach (KeyValuePair<string, JToken> entry in z)
+        {
+            JObject zMissionData = entry.Value as JObject;
+
+            if (zMissionData == null)
+                continue;
+
+            if (!GetBool(zMissionData, "active"))
+                continue;
+
+            if (GetBool(zMissionData, "completed"))
+                continue;
+
+            JObject mission = FindLongMissionById(missionsFile, "Z", entry.Key);
+
+            if (mission == null)
+                continue;
+
+            int currentValue = GetLongMissionCurrentValue(viewer, username, GetString(mission, "type"), charactersFile, friendshipsData);
+            int target = GetInt(mission, "target");
+
+            zMissionData["progress"] = currentValue;
+
+            if (currentValue >= target)
+            {
+                zMissionData["completed"] = true;
+                zMissionData["active"] = false;
+
+                int reward = GetLongMissionReward(missionsFile, "Z");
+
+                AddInt(viewer, "primogems", reward);
+                AddStat(viewer, "totalPrimosEarned", reward);
+
+                CPH.SendMessage("🏆 Mission Z terminée : " + GetString(mission, "name") + " ! +💠" + reward + " primos (" + GetInt(viewer, "primogems") + ")");
+            }
+        }
+    }
+
+    private void FixMainParticlesMissionBaselineIfNeeded(JObject viewer, JObject categoryData, JObject mission)
+    {
+        if (GetString(mission, "type") != "mainParticlesEarned")
+            return;
+
+        if (GetBool(categoryData, "usesCumulativeMainParticles"))
+            return;
+
+        JObject stats = viewer["stats"] as JObject;
+
+        if (stats == null)
+            return;
+
+        EnsureInt(stats, "totalMainElementParticlesEarned", 0);
+
+        int currentCumulative = GetInt(stats, "totalMainElementParticlesEarned");
+        int currentProgress = GetInt(categoryData, "progress");
+
+        categoryData["baselineValue"] = currentCumulative - currentProgress;
+
+        if (GetInt(categoryData, "baselineValue") < 0)
+            categoryData["baselineValue"] = 0;
+
+        categoryData["usesCumulativeMainParticles"] = true;
+    }
+
+    private int GetLongMissionCurrentValue(JObject viewer, string username, string type, JObject charactersFile, JObject friendshipsData)
+    {
+        JObject stats = viewer["stats"] as JObject;
+
+        switch (type)
+        {
+            case "messages":
+                return GetInt(stats, "countedMessages");
+
+            case "pulls":
+                return GetInt(stats, "totalPulls");
+
+            case "characters4":
+                return CountOwnedCharactersByRarity(viewer, charactersFile, 4);
+
+            case "characters5":
+                return CountOwnedCharactersByRarity(viewer, charactersFile, 5);
+
+            case "morasEarned":
+                return GetInt(stats, "totalMorasEarned");
+
+            case "mainParticlesEarned":
+                return GetInt(stats, "totalMainElementParticlesEarned");
+
+            case "expeditions":
+                return GetInt(stats, "totalExpeditionsCompleted");
+
+            case "combatWins":
+                return GetInt(stats, "totalCombatWins");
+
+			case "manualCombatWins":
+    			return GetInt(stats, "totalManualCombatWins");
+
+            case "friendHeartsSent":
+                return GetInt(stats, "totalFriendHeartsSent");
+
+            case "c6FiveStars":
+                return CountC6Characters(viewer);
+
+            case "perfectFriendship":
+                return HasPerfectFriendship(username, friendshipsData) ? 1 : 0;
+
+            case "level100":
+                return GetInt(viewer, "level");
+
+            default:
+                return 0;
+        }
+    }
+}
+
+public class LevelRewards
+{
+    public int primos { get; set; }
+    public int moras { get; set; }
+    public int particlesMain { get; set; }
+    public string particlesMainElement { get; set; }
+    public int particlesOther { get; set; }
+    public string particlesOtherElement { get; set; }
+}

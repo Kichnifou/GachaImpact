@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "description": "Liste des missions journalières disponibles dans le Kichni Stream Game.",
+  "defaultReward": {
+    "type": "primogems",
+    "amount": 800
+  },
+  "missions": [
+    {
+      "id": "daily_messages_10",
+      "enabled": true,
+      "type": "messages",
+      "target": 10,
+      "descriptionCourte": "Écrire 10 messages",
+      "descriptionLongue": "Écrire 10 messages dans le chat à partir du moment où la mission est obtenue.",
+      "progressLabel": "messages"
+    },
+    {
+      "id": "daily_pulls_5",
+      "enabled": true,
+      "type": "pulls",
+      "target": 5,
+      "descriptionCourte": "Faire 5 pulls",
+      "descriptionLongue": "Faire un total de 5 pulls à partir du moment où la mission est obtenue.",
+      "progressLabel": "pulls"
+    },
+    {
+      "id": "daily_convert_particles_320",
+      "enabled": true,
+      "type": "convert_particles",
+      "target": 320,
+      "descriptionCourte": "Convertir 320 particules",
+      "descriptionLongue": "Convertir un total de 320 particules en primos à partir du moment où la mission est obtenue.",
+      "progressLabel": "particules converties"
+    }
+  ]
+}

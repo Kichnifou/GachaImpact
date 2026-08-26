@@ -1,0 +1,445 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !convertir
+- Convertit les particules de l’élément du viewer en primogems
+- Taux : 1 particule = 1 primo
+- Minimum : 1 particule
+- Permet une conversion multiple avec !convertir nombre
+- Ne crée PAS le viewer s’il n’existe pas
+- Vérifie que le viewer a choisi un élément
+- Vérifie que le nombre demandé est valide
+- Vérifie que le viewer possède assez de particules de son élément
+- Retire les particules converties
+- Ajoute le même nombre de primogems
+- Met à jour totalPrimosEarned
+- Met à jour la progression des missions journalières de type convert_particles
+- Donne automatiquement la récompense de mission quand l’objectif est atteint
+- Lit et sauvegarde viewers_data.json en JObject
+- Ne reconstruit jamais le viewer complet
+- Préserve toutes les propriétés inconnues du JSON
+- Ne crée PAS de backup automatique
+*/
+
+using System;
+using System.IO;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    public bool Execute()
+    {
+        string path = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data\viewers_data.json";
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+
+        if (!File.Exists(path))
+        {
+            SendWarning($"{username}, ton profil n’existe pas encore. Écris d’abord un message dans le chat.");
+            return true;
+        }
+
+        JObject viewers = LoadJObject(path);
+
+        if (viewers == null)
+        {
+            SendWarning("Impossible de lire viewers_data.json.");
+            return true;
+        }
+
+        JObject viewer = viewers[username] as JObject;
+
+        if (viewer == null)
+        {
+            SendWarning($"{username}, ton profil n’existe pas encore. Écris d’abord un message dans le chat.");
+            return true;
+        }
+
+        EnsureViewerDefaultsJObject(viewer, username);
+
+        string element = NormalizeElement(GetString(viewer, "element"));
+
+        if (string.IsNullOrEmpty(element))
+        {
+            SendWarning($"{username}, tu dois d’abord choisir ton élément avec !element.");
+            return true;
+        }
+
+        int amount = GetConvertAmount();
+
+        if (amount <= 0)
+        {
+            SendWarning($"{username}, utilise : !convertir nombre. Exemple : !convertir 100");
+            return true;
+        }
+
+        int currentParticles = GetParticleTotal(viewer, element);
+
+        if (currentParticles < amount)
+        {
+            SendWarning($"{username}, tu n’as pas assez de particules {GetElementDisplayName(element)}. Tu en as {currentParticles}.");
+            return true;
+        }
+
+        AddParticles(viewer, element, -amount);
+        AddInt(viewer, "primogems", amount);
+        AddStat(viewer, "totalPrimosEarned", amount);
+
+        UpdateDailyMissionProgress(viewer, username, "convert_particles", amount);
+
+        SaveJObject(path, viewers);
+
+        SendSuccess($"{username} convertit {amount} particules {GetElementDisplayName(element)} en {amount} primos ({GetInt(viewer, "primogems")}).");
+
+        return true;
+    }
+
+    private int GetConvertAmount()
+    {
+        string input = GetCommandInput();
+
+        if (string.IsNullOrEmpty(input))
+            return -1;
+
+        int amount;
+
+        if (!int.TryParse(input, out amount))
+            return -1;
+
+        return amount;
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private void UpdateDailyMissionProgress(JObject viewer, string username, string missionType, int amount)
+    {
+        JObject missions = viewer["missions"] as JObject;
+
+        if (missions == null)
+            return;
+
+        JObject mission = missions["daily"] as JObject;
+
+        if (mission == null)
+            return;
+
+        if (string.IsNullOrEmpty(GetString(mission, "missionId")))
+            return;
+
+        if (GetString(mission, "startedAt") != DateTime.Now.ToString("yyyy-MM-dd"))
+            return;
+
+        if (GetBool(mission, "completed") || GetBool(mission, "rewardClaimed"))
+            return;
+
+        if (GetString(mission, "type") != missionType)
+            return;
+
+        int newProgress = GetInt(mission, "progress") + amount;
+        int target = GetInt(mission, "target");
+
+        mission["progress"] = newProgress;
+
+        if (newProgress >= target)
+        {
+            mission["progress"] = target;
+            CompleteDailyMission(viewer, username, mission);
+        }
+    }
+
+    private void CompleteDailyMission(JObject viewer, string username, JObject mission)
+    {
+        int rewardPrimos = 800;
+
+        AddInt(viewer, "primogems", rewardPrimos);
+        AddStat(viewer, "totalPrimosEarned", rewardPrimos);
+
+        mission["completed"] = true;
+        mission["rewardClaimed"] = true;
+
+        CPH.SendMessage($"🎯 Mission terminée : {GetString(mission, "description")} | +💠{rewardPrimos} primos ({GetInt(viewer, "primogems")})");
+    }
+
+    private void EnsureViewerDefaultsJObject(JObject viewer, string username)
+    {
+        if (viewer["username"] == null || viewer["username"].Type == JTokenType.Null)
+            viewer["username"] = username;
+
+        EnsureInt(viewer, "xp", 0);
+        EnsureInt(viewer, "level", 0);
+        EnsureString(viewer, "element", "");
+        EnsureInt(viewer, "primogems", 0);
+        EnsureInt(viewer, "moras", 0);
+        EnsureInt(viewer, "selectedBannerCharacterId", 0);
+
+        EnsureObject(viewer, "particles");
+        EnsureObject(viewer, "stats");
+        EnsureObject(viewer, "options");
+        EnsureObject(viewer, "box");
+        EnsureArray(viewer, "team");
+        EnsureObject(viewer, "missions");
+        EnsureArray(viewer, "tradeRequests");
+        EnsureObject(viewer, "dates");
+        EnsureArray(viewer, "usedCodes");
+        EnsureObject(viewer, "pity");
+        EnsureObject(viewer, "guarantee");
+
+        JObject particles = viewer["particles"] as JObject;
+        EnsureInt(particles, "pyro", 0);
+        EnsureInt(particles, "hydro", 0);
+        EnsureInt(particles, "cryo", 0);
+        EnsureInt(particles, "electro", 0);
+        EnsureInt(particles, "anemo", 0);
+        EnsureInt(particles, "geo", 0);
+        EnsureInt(particles, "dendro", 0);
+
+        JObject stats = viewer["stats"] as JObject;
+        EnsureInt(stats, "totalMessages", 0);
+        EnsureInt(stats, "countedMessages", 0);
+        EnsureInt(stats, "totalPulls", 0);
+        EnsureInt(stats, "totalFiveStars", 0);
+        EnsureInt(stats, "totalFourStars", 0);
+        EnsureBool(stats, "lastPullWasFiveStar", false);
+        EnsureInt(stats, "fiftyFiftyLostStreak", 0);
+        EnsureInt(stats, "fiftyFiftyWon", 0);
+        EnsureInt(stats, "fiftyFiftyLost", 0);
+        EnsureInt(stats, "totalPrimosEarned", 0);
+        EnsureInt(stats, "totalPrimosSpent", 0);
+        EnsureInt(stats, "totalMorasEarned", 0);
+        EnsureInt(stats, "totalMorasSpent", 0);
+        EnsureInt(stats, "level100OverflowRewardsClaimed", 0);
+
+        JObject options = viewer["options"] as JObject;
+        EnsureString(options, "boxSort", "a");
+        EnsureBool(options, "boxSortDescending", false);
+
+        JObject missions = viewer["missions"] as JObject;
+        EnsureObject(missions, "daily");
+
+        JObject daily = missions["daily"] as JObject;
+        EnsureNullOrString(daily, "missionId");
+        EnsureNullOrString(daily, "type");
+        EnsureInt(daily, "progress", 0);
+        EnsureInt(daily, "target", 0);
+        EnsureBool(daily, "completed", false);
+        EnsureBool(daily, "rewardClaimed", false);
+        EnsureNullOrString(daily, "startedAt");
+        EnsureNullOrString(daily, "description");
+
+        JObject pity = viewer["pity"] as JObject;
+        EnsureInt(pity, "pity5", 0);
+        EnsureInt(pity, "pity4", 0);
+
+        JObject guarantee = viewer["guarantee"] as JObject;
+        EnsureBool(guarantee, "guaranteedFeatured5", false);
+
+        JObject dates = viewer["dates"] as JObject;
+        EnsureNullOrString(dates, "firstSeen");
+        EnsureNullOrString(dates, "lastSeen");
+        EnsureNullOrString(dates, "lastXpDate");
+        EnsureNullOrString(dates, "lastMessageTime");
+        EnsureNullOrString(dates, "lastDailyFirstMessageReward");
+    }
+
+    private void EnsureObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+    }
+
+    private void EnsureArray(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Array)
+            parent[key] = new JArray();
+    }
+
+    private void EnsureInt(JObject obj, string key, int defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureBool(JObject obj, string key, bool defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureString(JObject obj, string key, string defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureNullOrString(JObject obj, string key)
+    {
+        if (obj[key] == null)
+            obj[key] = null;
+    }
+
+    private int GetParticleTotal(JObject viewer, string element)
+    {
+        JObject particles = viewer["particles"] as JObject;
+
+        if (particles == null)
+            return 0;
+
+        return GetInt(particles, NormalizeElement(element));
+    }
+
+    private void AddParticles(JObject viewer, string element, int amount)
+    {
+        JObject particles = viewer["particles"] as JObject;
+
+        if (particles == null)
+        {
+            particles = new JObject();
+            viewer["particles"] = particles;
+        }
+
+        string normalizedElement = NormalizeElement(element);
+
+        if (string.IsNullOrEmpty(normalizedElement))
+            return;
+
+        AddInt(particles, normalizedElement, amount);
+    }
+
+    private string GetElementDisplayName(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "🔥 Pyro";
+            case "hydro": return "💧 Hydro";
+            case "cryo": return "❄️ Cryo";
+            case "electro": return "⚡ Electro";
+            case "anemo": return "🌪️ Anemo";
+            case "geo": return "☄️ Geo";
+            case "dendro": return "🌿 Dendro";
+            default: return element;
+        }
+    }
+
+    private string NormalizeElement(string element)
+    {
+        if (string.IsNullOrEmpty(element))
+            return "";
+
+        string normalized = element.ToLower().Trim();
+
+        switch (normalized)
+        {
+            case "pyro": return "pyro";
+            case "hydro": return "hydro";
+            case "cryo": return "cryo";
+            case "electro":
+            case "électro": return "electro";
+            case "anemo":
+            case "anémo": return "anemo";
+            case "geo":
+            case "géo": return "geo";
+            case "dendro": return "dendro";
+            default: return normalized;
+        }
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+            return JObject.Parse(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void SaveJObject(string path, JObject data)
+    {
+        File.WriteAllText(path, data.ToString(Formatting.Indented));
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private bool GetBool(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return false;
+
+        bool value;
+
+        if (bool.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return false;
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private void AddInt(JObject obj, string key, int amount)
+    {
+        int current = GetInt(obj, key);
+        obj[key] = current + amount;
+    }
+
+    private void AddStat(JObject viewer, string statName, int amount)
+    {
+        JObject stats = viewer["stats"] as JObject;
+
+        if (stats == null)
+        {
+            stats = new JObject();
+            viewer["stats"] = stats;
+        }
+
+        AddInt(stats, statName, amount);
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private void SendSuccess(string message) { CPH.SendMessage($"✅ {message}"); }
+    private void SendWarning(string message) { CPH.SendMessage($"⚠️ {message}"); }
+}

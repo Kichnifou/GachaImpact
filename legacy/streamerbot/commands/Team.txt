@@ -1,0 +1,1311 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !team
+- Affiche l'équipe actuelle du viewer avec !team
+- Ajoute un personnage possédé avec !team add NomDuPerso
+- Retire un personnage avec !team remove NomDuPerso
+- Limite l'équipe à 4 personnages maximum
+- Empêche les doublons dans l'équipe
+- Vérifie que le personnage est possédé avant ajout
+- Lit viewers_data.json en JObject pour préserver toutes les propriétés inconnues
+- Lit genshin_characters.json
+- Lit element_passives.json
+- Affiche les passifs actifs selon les éléments présents dans l'équipe
+- Limite les passifs à 2 stacks maximum par élément
+- Ne crée PAS le viewer s'il n'existe pas
+- Initialise uniquement les sections manquantes nécessaires avec EnsureViewerDefaultsJObject
+- Ne modifie que la section team du viewer, sauf initialisation prudente des sections absentes
+- Sauvegarde viewers_data.json sans reconstruction complète des viewers
+- Ne crée PAS de backup automatique
+- Permet de sauvegarder jusqu’à 10 teams avec !team save 1
+- Permet d’afficher une team sauvegardée avec !team 1
+- Permet d’appliquer une team sauvegardée avec !team 1 apply
+- Permet de supprimer une team sauvegardée avec !team 1 remove
+- Permet de renommer une team sauvegardée avec !team 1 rename "Nom"
+- Empêche de sauvegarder deux fois la même team, même dans un ordre différent
+*/
+
+using System;
+using System.IO;
+using System.Text;
+using System.Globalization;
+using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    private const int MaxTeamSize = 4;
+    private const int MaxSavedTeams = 10;
+
+    public bool Execute()
+    {
+        string folderPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data";
+        string viewersPath = Path.Combine(folderPath, "viewers_data.json");
+        string charactersPath = Path.Combine(folderPath, "genshin_characters.json");
+        string passivesPath = Path.Combine(folderPath, "element_passives.json");
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+        string input = GetCommandInput();
+
+        if (!File.Exists(viewersPath))
+        {
+            SendWarning($"{username}, ton profil n’existe pas encore. Écris d’abord un message dans le chat.");
+            return true;
+        }
+
+        if (!File.Exists(charactersPath))
+        {
+            SendError("Aucun fichier personnage trouvé.");
+            return true;
+        }
+
+        JObject viewers = LoadJObject(viewersPath);
+
+        if (viewers == null)
+        {
+            SendError("Impossible de lire viewers_data.json.");
+            return true;
+        }
+
+        JObject viewer = viewers[username] as JObject;
+
+        if (viewer == null)
+        {
+            SendWarning($"{username}, ton profil n’existe pas encore. Écris d’abord un message dans le chat.");
+            return true;
+        }
+
+        CharacterFile characterFile = LoadCharacters(charactersPath);
+
+        if (characterFile == null || characterFile.characters == null)
+        {
+            SendError("Impossible de lire la liste des personnages.");
+            return true;
+        }
+
+        ElementPassiveFile passiveFile = LoadPassives(passivesPath);
+        EnsureViewerDefaultsJObject(viewer, username);
+
+        if (string.IsNullOrEmpty(input))
+        {
+            ShowTeam(username, viewer, characterFile, passiveFile);
+            SaveJObject(viewersPath, viewers);
+            return true;
+        }
+
+        string action = "";
+        string characterName = "";
+
+        ParseInput(input, out action, out characterName);
+
+        if (IsHelpKeyword(action))
+        {
+            ShowTeamHelp();
+            return true;
+        }
+
+        if (action == "save")
+        {
+            if (string.IsNullOrEmpty(characterName))
+            {
+                ShowSavedTeams(username, viewer, characterFile);
+                SaveJObject(viewersPath, viewers);
+                return true;
+            }
+
+            int slot = ParseSlot(characterName);
+
+            if (slot <= 0)
+            {
+                SendWarning("Slot invalide. Utilise : !team save 1 à 10");
+                return true;
+            }
+
+            SaveCurrentTeamToSlot(username, viewer, characterFile, slot);
+            SaveJObject(viewersPath, viewers);
+            return true;
+        }
+
+        int directSlot = ParseSlot(action);
+
+        if (directSlot > 0)
+        {
+            string subAction = NormalizeText(characterName);
+
+            if (string.IsNullOrEmpty(subAction))
+            {
+                ShowSavedTeamSlot(username, viewer, characterFile, passiveFile, directSlot);
+                SaveJObject(viewersPath, viewers);
+                return true;
+            }
+
+            if (subAction == "apply")
+            {
+                ApplySavedTeamSlot(username, viewer, characterFile, passiveFile, directSlot);
+                SaveJObject(viewersPath, viewers);
+                return true;
+            }
+
+            if (subAction == "remove" || subAction == "delete" || subAction == "supprimer")
+            {
+                RemoveSavedTeamSlot(username, viewer, directSlot);
+                SaveJObject(viewersPath, viewers);
+                return true;
+            }
+
+            if (subAction.StartsWith("rename"))
+            {
+                RenameSavedTeamSlot(username, viewer, input, directSlot);
+                SaveJObject(viewersPath, viewers);
+                return true;
+            }
+
+            SendWarning("Utilise : !team " + directSlot + " | !team " + directSlot + " apply | !team " + directSlot + " remove | !team " + directSlot + " rename \"Nom\"");
+            return true;
+        }
+
+        if (action == "add")
+        {
+            if (string.IsNullOrEmpty(characterName))
+            {
+                SendWarning("Utilise : !team add NomDuPerso");
+                return true;
+            }
+
+            AddCharacterToTeam(username, viewer, characterName, characterFile, passiveFile);
+            SaveJObject(viewersPath, viewers);
+            return true;
+        }
+
+        if (action == "remove")
+        {
+            if (string.IsNullOrEmpty(characterName))
+            {
+                SendWarning("Utilise : !team remove NomDuPerso ou !team remove all");
+                return true;
+            }
+
+            string normalizedName = NormalizeText(characterName);
+
+            if (normalizedName == "all" || normalizedName == "tous" || normalizedName == "tout")
+            {
+                RemoveAllCharactersFromTeam(username, viewer);
+                SaveJObject(viewersPath, viewers);
+                return true;
+            }
+
+            RemoveCharacterFromTeam(username, viewer, characterName, characterFile, passiveFile);
+            SaveJObject(viewersPath, viewers);
+            return true;
+        }
+
+        SendWarning("Commande invalide. Utilise : !team help");
+        return true;
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        if (args.ContainsKey("message") && args["message"] != null)
+        {
+            string message = args["message"].ToString().Trim();
+
+            if (message.StartsWith("!team"))
+                return message.Substring(5).Trim();
+        }
+
+        return "";
+    }
+
+    private void ParseInput(string input, out string action, out string characterName)
+    {
+        action = "";
+        characterName = "";
+
+        if (string.IsNullOrEmpty(input))
+            return;
+
+        string trimmed = input.Trim();
+        int firstSpaceIndex = trimmed.IndexOf(" ");
+
+        if (firstSpaceIndex < 0)
+        {
+            action = NormalizeText(trimmed);
+            return;
+        }
+
+        action = NormalizeText(trimmed.Substring(0, firstSpaceIndex));
+        characterName = trimmed.Substring(firstSpaceIndex + 1).Trim();
+    }
+
+    private void AddCharacterToTeam(string username, JObject viewer, string characterName, CharacterFile characterFile, ElementPassiveFile passiveFile)
+    {
+        CharacterData character = FindCharacterByName(characterFile, characterName);
+
+        if (character == null)
+        {
+            SendError("Personnage introuvable.");
+            return;
+        }
+
+        if (!ViewerOwnsCharacter(viewer, character.id))
+        {
+            SendError($"Tu ne possèdes pas encore {character.nom}.");
+            return;
+        }
+
+        if (TeamContainsCharacter(viewer, character.id))
+        {
+            SendWarning($"{character.nom} est déjà dans ta team.");
+            return;
+        }
+
+        JArray team = viewer["team"] as JArray;
+
+        if (team == null)
+        {
+            team = new JArray();
+            viewer["team"] = team;
+        }
+
+        if (team.Count >= MaxTeamSize)
+        {
+            SendWarning("Ta team est déjà complète : 4 personnages max.");
+            return;
+        }
+
+        team.Add(character.id);
+
+        SendSuccess($"{character.nom} ajouté à ta team.");
+        ShowTeam(username, viewer, characterFile, passiveFile);
+    }
+
+    private void RemoveCharacterFromTeam(string username, JObject viewer, string characterName, CharacterFile characterFile, ElementPassiveFile passiveFile)
+    {
+        CharacterData character = FindCharacterByName(characterFile, characterName);
+
+        if (character == null)
+        {
+            SendError("Personnage introuvable.");
+            return;
+        }
+
+        if (!TeamContainsCharacter(viewer, character.id))
+        {
+            SendWarning($"{character.nom} n'est pas dans ta team.");
+            return;
+        }
+
+        JArray team = viewer["team"] as JArray;
+
+        if (team == null)
+        {
+            team = new JArray();
+            viewer["team"] = team;
+            return;
+        }
+
+        for (int i = team.Count - 1; i >= 0; i--)
+        {
+            if (ToInt(team[i]) == character.id)
+                team.RemoveAt(i);
+        }
+
+        SendSuccess($"{character.nom} retiré de ta team.");
+        ShowTeam(username, viewer, characterFile, passiveFile);
+    }
+
+    private void RemoveAllCharactersFromTeam(string username, JObject viewer)
+    {
+        JArray team = viewer["team"] as JArray;
+
+        if (team == null || team.Count == 0)
+        {
+            SendWarning("Ta team est déjà vide.");
+            return;
+        }
+
+        int removedCount = team.Count;
+
+        team.Clear();
+
+        SendSuccess("Tous les personnages ont été retirés de ta team (" + removedCount + ").");
+    }
+
+    private void ShowTeamHelp()
+    {
+        SendSuccess("📘 Team : !team = team actuelle | add Nom | remove Nom/all | save = teams sauvées | save 1 = sauvegarder | 1 = voir | 1 apply = appliquer | 1 remove = supprimer | 1 rename \"Nom\"");
+    }
+
+    private bool IsHelpKeyword(string text)
+    {
+        return text == "help"
+            || text == "helps"
+            || text == "tuto"
+            || text == "info"
+            || text == "infos";
+    }
+
+    private int ParseSlot(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return 0;
+
+        string cleaned = text.Trim();
+        string[] parts = cleaned.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length <= 0)
+            return 0;
+
+        int slot;
+
+        if (!int.TryParse(parts[0], out slot))
+            return 0;
+
+        if (slot < 1 || slot > MaxSavedTeams)
+            return 0;
+
+        return slot;
+    }
+
+    private void SaveCurrentTeamToSlot(string username, JObject viewer, CharacterFile characterFile, int slot)
+    {
+        JArray currentTeam = viewer["team"] as JArray;
+
+        if (currentTeam == null || currentTeam.Count != MaxTeamSize)
+        {
+            SendWarning(username + ", ta team doit contenir 4 personnages pour être sauvegardée.");
+            return;
+        }
+
+        if (SavedTeamAlreadyExists(viewer, currentTeam, slot))
+        {
+            SendWarning(username + ", cette team est déjà sauvegardée dans un autre slot.");
+            return;
+        }
+
+        JObject savedTeams = viewer["savedTeams"] as JObject;
+
+        JObject saved = new JObject();
+        saved["name"] = "";
+        saved["characters"] = CloneTeamArray(currentTeam);
+        saved["savedAt"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+        savedTeams[slot.ToString()] = saved;
+
+        SendSuccess(username + ", team sauvegardée en slot " + slot + " : " + FormatTeamFromArray(viewer, currentTeam, characterFile));
+    }
+
+    private void ShowSavedTeams(string username, JObject viewer, CharacterFile characterFile)
+    {
+        JObject savedTeams = viewer["savedTeams"] as JObject;
+
+        if (savedTeams == null || savedTeams.Count == 0)
+        {
+            SendWarning(username + ", aucune team sauvegardée. Fais une team de 4 persos puis : !team save 1");
+            return;
+        }
+
+        List<string> lines = new List<string>();
+
+        for (int slot = 1; slot <= MaxSavedTeams; slot++)
+        {
+            JObject saved = savedTeams[slot.ToString()] as JObject;
+
+            if (saved == null)
+                continue;
+
+            JArray characters = saved["characters"] as JArray;
+
+            if (characters == null || characters.Count == 0)
+                continue;
+
+            string name = GetString(saved, "name");
+            string label = "Slot " + slot;
+
+            if (!string.IsNullOrEmpty(name))
+                label += " [" + name + "]";
+
+            label += " : " + FormatTeamFromArray(viewer, characters, characterFile);
+            lines.Add(label);
+        }
+
+        if (lines.Count == 0)
+        {
+            SendWarning(username + ", aucune team sauvegardée. Fais une team de 4 persos puis : !team save 1");
+            return;
+        }
+
+        string prefix = "💾 Teams sauvegardées de " + username + " : ";
+        string currentMessage = prefix;
+
+        for (int i = 0; i < lines.Count; i++)
+        {
+            string separator = currentMessage == prefix ? "" : " | ";
+            string next = separator + lines[i];
+
+            if ((currentMessage + next).Length > 450)
+            {
+                SendSuccess(currentMessage);
+
+                // Les messages suivants n'ont plus besoin du préfixe
+                currentMessage = "↪️ " + lines[i];
+            }
+            else
+            {
+                currentMessage += next;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(currentMessage))
+            SendSuccess(currentMessage);
+    }
+
+    private void ShowSavedTeamSlot(string username, JObject viewer, CharacterFile characterFile, ElementPassiveFile passiveFile, int slot)
+    {
+        JObject saved = GetSavedTeamSlot(viewer, slot);
+
+        if (saved == null)
+        {
+            SendWarning(username + ", aucune team sauvegardée en slot " + slot + ".");
+            return;
+        }
+
+        JArray characters = saved["characters"] as JArray;
+
+        if (characters == null || characters.Count == 0)
+        {
+            SendWarning(username + ", team sauvegardée invalide en slot " + slot + ".");
+            return;
+        }
+
+        string name = GetString(saved, "name");
+        string label = "Team sauvegardée " + slot;
+
+        if (!string.IsNullOrEmpty(name))
+            label += " [" + name + "]";
+
+        SendSuccess(label + " : " + FormatTeamFromArray(viewer, characters, characterFile));
+    }
+
+    private void ApplySavedTeamSlot(string username, JObject viewer, CharacterFile characterFile, ElementPassiveFile passiveFile, int slot)
+    {
+        JObject saved = GetSavedTeamSlot(viewer, slot);
+
+        if (saved == null)
+        {
+            SendWarning(username + ", aucune team sauvegardée en slot " + slot + ".");
+            return;
+        }
+
+        JArray savedCharacters = saved["characters"] as JArray;
+
+        if (savedCharacters == null || savedCharacters.Count != MaxTeamSize)
+        {
+            SendWarning(username + ", team sauvegardée invalide.");
+            return;
+        }
+
+        for (int i = 0; i < savedCharacters.Count; i++)
+        {
+            int characterId = ToInt(savedCharacters[i]);
+
+            if (!ViewerOwnsCharacter(viewer, characterId))
+            {
+                SendWarning(username + ", tu ne possèdes plus un personnage de cette team.");
+                return;
+            }
+        }
+
+        viewer["team"] = CloneTeamArray(savedCharacters);
+
+        SendSuccess(username + ", team sauvegardée " + slot + " appliquée.");
+        ShowTeam(username, viewer, characterFile, passiveFile);
+    }
+
+    private void RemoveSavedTeamSlot(string username, JObject viewer, int slot)
+    {
+        JObject savedTeams = viewer["savedTeams"] as JObject;
+
+        if (savedTeams == null || savedTeams[slot.ToString()] == null)
+        {
+            SendWarning(username + ", aucune team sauvegardée en slot " + slot + ".");
+            return;
+        }
+
+        savedTeams.Remove(slot.ToString());
+
+        SendSuccess(username + ", team sauvegardée " + slot + " supprimée.");
+    }
+
+    private void RenameSavedTeamSlot(string username, JObject viewer, string rawInput, int slot)
+    {
+        JObject saved = GetSavedTeamSlot(viewer, slot);
+
+        if (saved == null)
+        {
+            SendWarning(username + ", aucune team sauvegardée en slot " + slot + ".");
+            return;
+        }
+
+        string newName = ExtractQuotedName(rawInput);
+
+        if (string.IsNullOrEmpty(newName))
+        {
+            SendWarning("Utilise : !team " + slot + " rename \"Nom\"");
+            return;
+        }
+
+        if (newName.Length > 10)
+        {
+            SendWarning("Nom trop long : 10 caractères maximum.");
+            return;
+        }
+
+        if (newName.Contains(" "))
+        {
+            SendWarning("Nom invalide : pas d’espace.");
+            return;
+        }
+
+        saved["name"] = newName;
+
+        SendSuccess(username + ", team " + slot + " renommée : " + newName + ".");
+    }
+
+    private JObject GetSavedTeamSlot(JObject viewer, int slot)
+    {
+        JObject savedTeams = viewer["savedTeams"] as JObject;
+
+        if (savedTeams == null)
+            return null;
+
+        return savedTeams[slot.ToString()] as JObject;
+    }
+
+    private string ExtractQuotedName(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return "";
+
+        int firstQuote = input.IndexOf("\"");
+
+        if (firstQuote < 0)
+            return "";
+
+        int secondQuote = input.IndexOf("\"", firstQuote + 1);
+
+        if (secondQuote < 0)
+            return "";
+
+        return input.Substring(firstQuote + 1, secondQuote - firstQuote - 1).Trim();
+    }
+
+    private bool SavedTeamAlreadyExists(JObject viewer, JArray currentTeam, int currentSlot)
+    {
+        JObject savedTeams = viewer["savedTeams"] as JObject;
+
+        if (savedTeams == null)
+            return false;
+
+        string currentSignature = GetTeamSignature(currentTeam);
+
+        for (int slot = 1; slot <= MaxSavedTeams; slot++)
+        {
+            if (slot == currentSlot)
+                continue;
+
+            JObject saved = savedTeams[slot.ToString()] as JObject;
+
+            if (saved == null)
+                continue;
+
+            JArray savedCharacters = saved["characters"] as JArray;
+
+            if (savedCharacters == null)
+                continue;
+
+            if (GetTeamSignature(savedCharacters) == currentSignature)
+                return true;
+        }
+
+        return false;
+    }
+
+    private string GetTeamSignature(JArray team)
+    {
+        List<int> ids = new List<int>();
+
+        if (team == null)
+            return "";
+
+        for (int i = 0; i < team.Count; i++)
+            ids.Add(ToInt(team[i]));
+
+        ids.Sort();
+
+        List<string> parts = new List<string>();
+
+        for (int i = 0; i < ids.Count; i++)
+            parts.Add(ids[i].ToString());
+
+        return string.Join("-", parts.ToArray());
+    }
+
+    private JArray CloneTeamArray(JArray source)
+    {
+        JArray result = new JArray();
+
+        if (source == null)
+            return result;
+
+        for (int i = 0; i < source.Count; i++)
+            result.Add(ToInt(source[i]));
+
+        return result;
+    }
+
+    private string FormatTeamFromArray(JObject viewer, JArray team, CharacterFile characterFile)
+    {
+        List<string> characterTexts = new List<string>();
+
+        if (team == null)
+            return "vide";
+
+        for (int i = 0; i < team.Count; i++)
+        {
+            int characterId = ToInt(team[i]);
+            CharacterData character = FindCharacterById(characterFile, characterId);
+
+            if (character == null)
+                continue;
+
+            int constellation = GetCharacterConstellation(viewer, characterId);
+            characterTexts.Add(GetElementEmoji(character.element) + " " + character.nom + " (C" + constellation + ")");
+        }
+
+        if (characterTexts.Count == 0)
+            return "aucun personnage valide";
+
+        return string.Join(" - ", characterTexts.ToArray());
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private void ShowTeam(string username, JObject viewer, CharacterFile characterFile, ElementPassiveFile passiveFile)
+    {
+        JArray team = viewer["team"] as JArray;
+
+        if (team == null || team.Count == 0)
+        {
+            SendWarning("Ta team est vide. Utilise : !team add NomDuPerso");
+            return;
+        }
+
+        List<string> characterTexts = new List<string>();
+
+        for (int i = 0; i < team.Count; i++)
+        {
+            int characterId = ToInt(team[i]);
+            CharacterData character = FindCharacterById(characterFile, characterId);
+
+            if (character == null)
+                continue;
+
+            int constellation = GetCharacterConstellation(viewer, characterId);
+            characterTexts.Add($"{GetElementEmoji(character.element)} {character.nom} (C{constellation})");
+        }
+
+        if (characterTexts.Count == 0)
+        {
+            SendWarning("Ta team ne contient aucun personnage valide.");
+            return;
+        }
+
+        string teamText = string.Join(" - ", characterTexts.ToArray());
+        string passiveText = FormatActivePassives(viewer, characterFile, passiveFile);
+
+        if (!string.IsNullOrEmpty(passiveText))
+            SendSuccess($"Team {username} : {teamText} | 🧩 Passifs actifs : {passiveText}");
+        else
+            SendSuccess($"Team {username} : {teamText} | 🧩 Aucun passif actif");
+    }
+
+    private string FormatActivePassives(JObject viewer, CharacterFile characterFile, ElementPassiveFile passiveFile)
+    {
+        Dictionary<string, int> elementCounts = CountTeamElements(viewer, characterFile);
+        List<string> passiveTexts = new List<string>();
+
+        foreach (KeyValuePair<string, int> entry in elementCounts)
+        {
+            string element = entry.Key;
+            int count = entry.Value;
+
+            if (count <= 0)
+                continue;
+
+            if (passiveFile == null || passiveFile.elements == null || !passiveFile.elements.ContainsKey(element))
+                continue;
+
+            ElementPassiveData passiveData = passiveFile.elements[element];
+
+            int maxStacks = passiveData.maxStacks > 0 ? passiveData.maxStacks : 2;
+            int stack = count;
+
+            if (stack > maxStacks)
+                stack = maxStacks;
+
+            string stackKey = stack.ToString();
+
+            if (passiveData.effects == null || !passiveData.effects.ContainsKey(stackKey))
+                continue;
+
+            PassiveEffect effect = passiveData.effects[stackKey];
+
+            if (effect == null || !effect.showWhenActive)
+                continue;
+
+            passiveTexts.Add($"{GetElementEmoji(element)} {FormatPassiveLabel(effect)}");
+        }
+
+        return string.Join(", ", passiveTexts.ToArray());
+    }
+
+
+    private string FormatPassiveLabel(PassiveEffect effect)
+    {
+        if (effect == null)
+            return "";
+
+        if (!string.IsNullOrEmpty(effect.descriptionCourte))
+            return effect.descriptionCourte;
+
+        switch (effect.passiveType)
+        {
+            case "particleMultiplier":
+                return "Particules x" + FormatValue(effect.value);
+
+            case "fiveStarChanceBonus":
+                return "+" + FormatValue(effect.value) + "% chance 5★";
+
+            case "randomXpBonus":
+                return "1/" + effect.chanceDenominator + " : +" + FormatValue(effect.value) + " XP";
+
+            case "randomPity5Bonus":
+                return "1/" + effect.chanceDenominator + " : +" + FormatValue(effect.value) + " pity 5★";
+
+            case "randomPrimoRefund":
+                return "1/" + effect.chanceDenominator + " : +" + FormatValue(effect.value) + " primos";
+
+            case "moraMultiplier":
+                return "Moras x" + FormatValue(effect.value);
+
+            case "randomResourceBundle":
+                return "1/" + effect.chanceDenominator + " : jackpot ressources";
+
+            default:
+                return effect.passiveType;
+        }
+    }
+
+    private string FormatValue(double value)
+    {
+        if (Math.Abs(value - Math.Round(value)) < 0.0001)
+            return ((int)Math.Round(value)).ToString();
+
+        return value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private Dictionary<string, int> CountTeamElements(JObject viewer, CharacterFile characterFile)
+    {
+        Dictionary<string, int> counts = new Dictionary<string, int>();
+        JArray team = viewer["team"] as JArray;
+
+        if (team == null)
+            return counts;
+
+        for (int i = 0; i < team.Count; i++)
+        {
+            int characterId = ToInt(team[i]);
+            CharacterData character = FindCharacterById(characterFile, characterId);
+
+            if (character == null || string.IsNullOrEmpty(character.element))
+                continue;
+
+            string element = NormalizeElement(character.element);
+
+            if (!counts.ContainsKey(element))
+                counts[element] = 0;
+
+            counts[element]++;
+        }
+
+        return counts;
+    }
+
+    private CharacterData FindCharacterByName(CharacterFile characterFile, string inputName)
+    {
+        if (characterFile == null || characterFile.characters == null)
+            return null;
+
+        string normalizedInput = NormalizeText(inputName);
+
+        for (int i = 0; i < characterFile.characters.Count; i++)
+        {
+            CharacterData character = characterFile.characters[i];
+
+            if (character == null)
+                continue;
+
+            if (NormalizeText(character.nom) == normalizedInput)
+                return character;
+        }
+
+        return null;
+    }
+
+    private CharacterData FindCharacterById(CharacterFile characterFile, int characterId)
+    {
+        if (characterFile == null || characterFile.characters == null)
+            return null;
+
+        for (int i = 0; i < characterFile.characters.Count; i++)
+        {
+            CharacterData character = characterFile.characters[i];
+
+            if (character != null && character.id == characterId)
+                return character;
+        }
+
+        return null;
+    }
+
+    private bool ViewerOwnsCharacter(JObject viewer, int characterId)
+    {
+        JObject box = viewer["box"] as JObject;
+
+        if (box == null)
+            return false;
+
+        string idKey = characterId.ToString();
+
+        if (box[idKey] != null && box[idKey].Type == JTokenType.Object)
+            return true;
+
+        foreach (KeyValuePair<string, JToken> entry in box)
+        {
+            JObject owned = entry.Value as JObject;
+
+            if (owned != null && GetInt(owned, "characterId") == characterId)
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool TeamContainsCharacter(JObject viewer, int characterId)
+    {
+        JArray team = viewer["team"] as JArray;
+
+        if (team == null)
+            return false;
+
+        for (int i = 0; i < team.Count; i++)
+        {
+            if (ToInt(team[i]) == characterId)
+                return true;
+        }
+
+        return false;
+    }
+
+    private int GetCharacterConstellation(JObject viewer, int characterId)
+    {
+        JObject box = viewer["box"] as JObject;
+
+        if (box == null)
+            return 0;
+
+        string idKey = characterId.ToString();
+
+        JObject ownedByKey = box[idKey] as JObject;
+
+        if (ownedByKey != null)
+            return GetInt(ownedByKey, "constellation");
+
+        foreach (KeyValuePair<string, JToken> entry in box)
+        {
+            JObject owned = entry.Value as JObject;
+
+            if (owned != null && GetInt(owned, "characterId") == characterId)
+                return GetInt(owned, "constellation");
+        }
+
+        return 0;
+    }
+
+    private void EnsureViewerDefaultsJObject(JObject viewer, string username)
+    {
+        if (viewer["username"] == null || viewer["username"].Type == JTokenType.Null)
+            viewer["username"] = username;
+
+        if (viewer["xp"] == null || viewer["xp"].Type == JTokenType.Null)
+            viewer["xp"] = 0;
+
+        if (viewer["level"] == null || viewer["level"].Type == JTokenType.Null)
+            viewer["level"] = 0;
+
+        if (viewer["element"] == null || viewer["element"].Type == JTokenType.Null)
+            viewer["element"] = "";
+
+        if (viewer["primogems"] == null || viewer["primogems"].Type == JTokenType.Null)
+            viewer["primogems"] = 0;
+
+        if (viewer["moras"] == null || viewer["moras"].Type == JTokenType.Null)
+            viewer["moras"] = 0;
+
+        EnsureObject(viewer, "particles");
+        EnsureObject(viewer, "box");
+        EnsureArray(viewer, "team");
+        EnsureObject(viewer, "savedTeams");
+        EnsureObject(viewer, "pity");
+        EnsureObject(viewer, "guarantee");
+        EnsureObject(viewer, "options");
+        EnsureObject(viewer, "missions");
+        EnsureObject(viewer, "stats");
+        EnsureObject(viewer, "dates");
+        EnsureArray(viewer, "tradeRequests");
+        EnsureArray(viewer, "usedCodes");
+
+        JObject particles = viewer["particles"] as JObject;
+        EnsureInt(particles, "pyro", 0);
+        EnsureInt(particles, "hydro", 0);
+        EnsureInt(particles, "cryo", 0);
+        EnsureInt(particles, "electro", 0);
+        EnsureInt(particles, "anemo", 0);
+        EnsureInt(particles, "geo", 0);
+        EnsureInt(particles, "dendro", 0);
+
+        JObject pity = viewer["pity"] as JObject;
+        EnsureInt(pity, "pity5", 0);
+        EnsureInt(pity, "pity4", 0);
+
+        JObject guarantee = viewer["guarantee"] as JObject;
+        EnsureBool(guarantee, "guaranteedFeatured5", false);
+
+        JObject options = viewer["options"] as JObject;
+        EnsureString(options, "boxSort", "a");
+        EnsureBool(options, "boxSortDescending", false);
+
+        JObject missions = viewer["missions"] as JObject;
+        EnsureObject(missions, "daily");
+
+        JObject daily = missions["daily"] as JObject;
+        EnsureNullOrString(daily, "missionId");
+        EnsureNullOrString(daily, "type");
+        EnsureInt(daily, "progress", 0);
+        EnsureInt(daily, "target", 0);
+        EnsureBool(daily, "completed", false);
+        EnsureBool(daily, "rewardClaimed", false);
+        EnsureNullOrString(daily, "startedAt");
+        EnsureNullOrString(daily, "description");
+
+        JObject stats = viewer["stats"] as JObject;
+        EnsureInt(stats, "totalMessages", 0);
+        EnsureInt(stats, "countedMessages", 0);
+        EnsureInt(stats, "totalPulls", 0);
+        EnsureInt(stats, "totalFiveStars", 0);
+        EnsureInt(stats, "totalFourStars", 0);
+        EnsureBool(stats, "lastPullWasFiveStar", false);
+        EnsureInt(stats, "fiftyFiftyLostStreak", 0);
+        EnsureInt(stats, "fiftyFiftyWon", 0);
+        EnsureInt(stats, "fiftyFiftyLost", 0);
+        EnsureInt(stats, "totalPrimosEarned", 0);
+        EnsureInt(stats, "totalPrimosSpent", 0);
+        EnsureInt(stats, "totalMorasEarned", 0);
+        EnsureInt(stats, "totalMorasSpent", 0);
+        EnsureInt(stats, "level100OverflowRewardsClaimed", 0);
+
+        JObject dates = viewer["dates"] as JObject;
+        EnsureNullOrString(dates, "firstSeen");
+        EnsureNullOrString(dates, "lastSeen");
+        EnsureNullOrString(dates, "lastXpDate");
+        EnsureNullOrString(dates, "lastMessageTime");
+        EnsureNullOrString(dates, "lastDailyFirstMessageReward");
+    }
+
+    private void EnsureObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+    }
+
+    private void EnsureArray(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Array)
+            parent[key] = new JArray();
+    }
+
+    private void EnsureInt(JObject obj, string key, int defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureBool(JObject obj, string key, bool defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureString(JObject obj, string key, string defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureNullOrString(JObject obj, string key)
+    {
+        if (obj[key] == null)
+            obj[key] = null;
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+            return JObject.Parse(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void SaveJObject(string path, JObject data)
+    {
+        File.WriteAllText(path, data.ToString(Formatting.Indented));
+    }
+
+    private CharacterFile LoadCharacters(string path)
+    {
+        string json = File.ReadAllText(path);
+        CharacterFile characterFile = JsonConvert.DeserializeObject<CharacterFile>(json);
+
+        if (characterFile == null)
+            characterFile = new CharacterFile();
+
+        if (characterFile.characters == null)
+            characterFile.characters = new List<CharacterData>();
+
+        return characterFile;
+    }
+
+    private ElementPassiveFile LoadPassives(string path)
+    {
+        if (!File.Exists(path))
+            return new ElementPassiveFile();
+
+        string json = File.ReadAllText(path);
+        ElementPassiveFile passiveFile = JsonConvert.DeserializeObject<ElementPassiveFile>(json);
+
+        if (passiveFile == null)
+            passiveFile = new ElementPassiveFile();
+
+        if (passiveFile.elements == null)
+            passiveFile.elements = new Dictionary<string, ElementPassiveData>();
+
+        if (passiveFile.globalRules == null)
+            passiveFile.globalRules = new PassiveGlobalRules();
+
+        return passiveFile;
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private int ToInt(JToken token)
+    {
+        if (token == null || token.Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(token.ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private string NormalizeElement(string element)
+    {
+        string normalized = NormalizeText(element);
+
+        if (normalized == "pyro")
+            return "pyro";
+        if (normalized == "hydro")
+            return "hydro";
+        if (normalized == "cryo")
+            return "cryo";
+        if (normalized == "electro" || normalized == "électro")
+            return "electro";
+        if (normalized == "anemo" || normalized == "anémo")
+            return "anemo";
+        if (normalized == "geo" || normalized == "géo")
+            return "geo";
+        if (normalized == "dendro")
+            return "dendro";
+
+        return normalized;
+    }
+
+    private string NormalizeText(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return "";
+
+        text = text.Trim().ToLower();
+
+        string normalized = text.Normalize(NormalizationForm.FormD);
+        StringBuilder builder = new StringBuilder();
+
+        for (int i = 0; i < normalized.Length; i++)
+        {
+            char c = normalized[i];
+            UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(c);
+
+            if (category != UnicodeCategory.NonSpacingMark)
+                builder.Append(c);
+        }
+
+        return builder.ToString().Normalize(NormalizationForm.FormC);
+    }
+
+    private string GetElementEmoji(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "🔥";
+            case "hydro": return "💧";
+            case "cryo": return "❄️";
+            case "electro": return "⚡";
+            case "anemo": return "🌪️";
+            case "geo": return "☄️";
+            case "dendro": return "🌿";
+            default: return "";
+        }
+    }
+
+    private void SendSuccess(string message) { CPH.SendMessage($"✅ {message}"); }
+    private void SendWarning(string message) { CPH.SendMessage($"⚠️ {message}"); }
+    private void SendError(string message) { CPH.SendMessage($"❌ {message}"); }
+}
+
+public class CharacterFile
+{
+    public string lastBannerUpdate { get; set; }
+    public List<CharacterData> characters { get; set; }
+}
+
+public class CharacterData
+{
+    public int id { get; set; }
+    public string nom { get; set; }
+    public int rarete { get; set; }
+    public string element { get; set; }
+    public string arme { get; set; }
+    public string region { get; set; }
+    public string classe { get; set; }
+    public bool bannerFeatured { get; set; }
+    public string passif { get; set; }
+}
+
+public class ElementPassiveFile
+{
+    public int version { get; set; }
+    public string description { get; set; }
+    public PassiveGlobalRules globalRules { get; set; }
+    public Dictionary<string, ElementPassiveData> elements { get; set; }
+}
+
+public class PassiveGlobalRules
+{
+    public int maxTeamSize { get; set; }
+    public int maxStacksPerElement { get; set; }
+    public bool ignoreStacksAboveMax { get; set; }
+    public bool passivesApplyOnlyFromTeam { get; set; }
+    public bool passivesApplyDuringPulls { get; set; }
+    public string triggeredPassivesChatPrefix { get; set; }
+    public string activePassivesChatLabel { get; set; }
+}
+
+public class ElementPassiveData
+{
+    public string displayName { get; set; }
+    public string element { get; set; }
+    public int maxStacks { get; set; }
+    public string category { get; set; }
+    public Dictionary<string, PassiveEffect> effects { get; set; }
+}
+
+public class PassiveEffect
+{
+    public string passiveId { get; set; }
+    public string passiveType { get; set; }
+    public double value { get; set; }
+    public string valueUnit { get; set; }
+    public int chanceDenominator { get; set; }
+    public string descriptionCourte { get; set; }
+    public string descriptionLongue { get; set; }
+    public bool showWhenActive { get; set; }
+    public bool showWhenTriggered { get; set; }
+    public string triggerMessage { get; set; }
+    public PassiveRewards rewards { get; set; }
+}
+
+public class PassiveRewards
+{
+    public int primogems { get; set; }
+    public int moras { get; set; }
+    public int particlesEachElement { get; set; }
+}

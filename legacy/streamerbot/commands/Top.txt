@@ -1,0 +1,545 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !top
+- Affiche différents classements selon l’argument donné
+- Utilise uniquement les données déjà présentes dans viewers_data.json
+- Lit viewers_data.json avec JObject
+- Ne modifie pas le JSON
+- Ne sauvegarde pas le JSON
+- Ne crée pas de viewer
+- Préserve totalement les autres données JSON
+- Supporte :
+  - !top
+  - !top me
+  - !top xp
+  - !top level / lvl / niveau
+  - !top messages / msg
+  - !top counted / messages-xp
+  - !top pulls
+  - !top luck
+  - !top 5stars / 5
+  - !top 4stars / 4
+  - !top primos
+  - !top moras
+  - !top particles / particules
+  - !top pyro/hydro/cryo/electro/anemo/geo/dendro
+  - !top box
+  - !top c6
+  - !top copies
+  - !top pity
+  - !top 5050 / 50/50
+  - !top lose5050 / lost5050
+  - !top primos-earned
+  - !top primos-spent
+  - !top moras-earned
+  - !top moras-spent
+*/
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    private const int MaxResults = 5;
+
+    public bool Execute()
+    {
+        string folderPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data";
+        string viewersPath = Path.Combine(folderPath, "viewers_data.json");
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+        string input = GetCommandInput().ToLower().Trim();
+
+        if (!File.Exists(viewersPath))
+        {
+            SendError("Aucune donnée viewer trouvée.");
+            return true;
+        }
+
+        JObject viewers = LoadJObject(viewersPath);
+
+        if (viewers == null || viewers.Count == 0)
+        {
+            SendWarning("Aucun viewer enregistré.");
+            return true;
+        }
+
+        if (string.IsNullOrEmpty(input))
+        {
+            SendInfos("Utilise : !top me | 📈 xp/lvl/messages | 🎰 pulls/luck/5stars/4stars/5050/pity | 💰 primos/moras/particles | 📦 box/c6/copies");
+            return true;
+        }
+
+        if (input == "me")
+        {
+            ShowMyStats(viewers, username);
+            return true;
+        }
+
+        ShowTop(viewers, input);
+        return true;
+    }
+
+    private void ShowTop(JObject viewers, string mode)
+    {
+        List<TopEntry> entries = new List<TopEntry>();
+
+        foreach (KeyValuePair<string, JToken> entry in viewers)
+        {
+            JObject viewer = entry.Value as JObject;
+
+            if (viewer == null)
+                continue;
+
+            TopEntry topEntry = new TopEntry();
+            topEntry.username = entry.Key;
+            topEntry.value = GetTopValue(viewer, mode);
+            topEntry.displayValue = FormatTopValue(viewer, mode, topEntry.value);
+
+            if (IsValidTopEntry(mode, viewer, topEntry.value))
+                entries.Add(topEntry);
+        }
+
+        if (entries.Count == 0)
+        {
+            SendWarning("Aucune donnée disponible pour ce top.");
+            return;
+        }
+
+        entries.Sort(delegate(TopEntry a, TopEntry b)
+        {
+            return b.value.CompareTo(a.value);
+        });
+
+        string title = GetTopTitle(mode);
+        string message = $"🏆 Top {title} : ";
+
+        int count = Math.Min(MaxResults, entries.Count);
+
+        for (int i = 0; i < count; i++)
+        {
+            if (i > 0)
+                message += " | ";
+
+            message += $"{i + 1}. {entries[i].username} ({entries[i].displayValue})";
+        }
+
+        SendSuccess(message);
+    }
+
+    private double GetTopValue(JObject viewer, string mode)
+    {
+        JObject stats = GetObject(viewer, "stats");
+        JObject particles = GetObject(viewer, "particles");
+        JObject pity = GetObject(viewer, "pity");
+
+        switch (mode)
+        {
+            case "xp":
+                return GetInt(viewer, "xp");
+
+            case "level":
+            case "lvl":
+            case "niveau":
+                return GetInt(viewer, "level");
+
+            case "messages":
+            case "msg":
+                return GetInt(stats, "totalMessages");
+
+            case "counted":
+            case "messages-xp":
+                return GetInt(stats, "countedMessages");
+
+            case "pulls":
+                return GetInt(stats, "totalPulls");
+
+            case "5stars":
+            case "5":
+                return GetInt(stats, "totalFiveStars");
+
+            case "4stars":
+            case "4":
+                return GetInt(stats, "totalFourStars");
+
+            case "luck":
+            {
+                int totalPulls = GetInt(stats, "totalPulls");
+
+                if (totalPulls <= 0)
+                    return 0;
+
+                return ((double)GetInt(stats, "totalFiveStars") / totalPulls) * 100.0;
+            }
+
+            case "primos":
+                return GetInt(viewer, "primogems");
+
+            case "moras":
+                return GetInt(viewer, "moras");
+
+            case "particles":
+            case "particules":
+                return GetTotalParticles(viewer);
+
+            case "pyro":
+                return GetInt(particles, "pyro");
+
+            case "hydro":
+                return GetInt(particles, "hydro");
+
+            case "cryo":
+                return GetInt(particles, "cryo");
+
+            case "electro":
+                return GetInt(particles, "electro");
+
+            case "anemo":
+                return GetInt(particles, "anemo");
+
+            case "geo":
+                return GetInt(particles, "geo");
+
+            case "dendro":
+                return GetInt(particles, "dendro");
+
+            case "box":
+                return GetBoxCount(viewer);
+
+            case "c6":
+                return GetC6Count(viewer);
+
+            case "copies":
+                return GetTotalCopies(viewer);
+
+            case "pity":
+                return GetInt(pity, "pity5");
+
+            case "5050":
+            case "50/50":
+                return GetInt(stats, "fiftyFiftyWon");
+
+            case "lose5050":
+            case "lost5050":
+                return GetInt(stats, "fiftyFiftyLost");
+
+            case "primos-earned":
+                return GetInt(stats, "totalPrimosEarned");
+
+            case "primos-spent":
+                return GetInt(stats, "totalPrimosSpent");
+
+            case "moras-earned":
+                return GetInt(stats, "totalMorasEarned");
+
+            case "moras-spent":
+                return GetInt(stats, "totalMorasSpent");
+
+            default:
+                return -1;
+        }
+    }
+
+    private bool IsValidTopEntry(string mode, JObject viewer, double value)
+    {
+        if (value < 0)
+            return false;
+
+        if (mode == "luck")
+        {
+            JObject stats = GetObject(viewer, "stats");
+            return GetInt(stats, "totalPulls") > 0;
+        }
+
+        return true;
+    }
+
+    private string FormatTopValue(JObject viewer, string mode, double value)
+    {
+        switch (mode)
+        {
+            case "luck":
+                return value.ToString("0.00") + "% 5★";
+
+            case "primos":
+            case "primos-earned":
+            case "primos-spent":
+                return ((int)value).ToString() + " primos";
+
+            case "moras":
+            case "moras-earned":
+            case "moras-spent":
+                return ((int)value).ToString() + " moras";
+
+            case "particles":
+            case "particules":
+            case "pyro":
+            case "hydro":
+            case "cryo":
+            case "electro":
+            case "anemo":
+            case "geo":
+            case "dendro":
+                return ((int)value).ToString() + " particules";
+
+            case "box":
+                return ((int)value).ToString() + " persos";
+
+            case "c6":
+                return ((int)value).ToString() + " C6";
+
+            case "copies":
+                return ((int)value).ToString() + " copies";
+
+            case "pity":
+                return ((int)value).ToString() + "/90";
+
+            default:
+                return ((int)value).ToString();
+        }
+    }
+
+    private string GetTopTitle(string mode)
+    {
+        switch (mode)
+        {
+            case "xp": return "XP";
+
+            case "level":
+            case "lvl":
+            case "niveau": return "niveau";
+
+            case "messages":
+            case "msg": return "messages";
+
+            case "counted":
+            case "messages-xp": return "messages XP";
+
+            case "pulls": return "pulls";
+
+            case "luck": return "luck 5★";
+
+            case "5stars":
+            case "5": return "5★";
+
+            case "4stars":
+            case "4": return "4★";
+
+            case "primos": return "primos";
+
+            case "moras": return "moras";
+
+            case "particles":
+            case "particules": return "particules";
+
+            case "pyro": return "🔥 Pyro";
+            case "hydro": return "💧 Hydro";
+            case "cryo": return "❄️ Cryo";
+            case "electro": return "⚡ Electro";
+            case "anemo": return "🌪️ Anemo";
+            case "geo": return "☄️ Geo";
+            case "dendro": return "🌿 Dendro";
+
+            case "box": return "box";
+            case "c6": return "C6";
+            case "copies": return "copies";
+            case "pity": return "pity 5★";
+
+            case "5050":
+            case "50/50": return "50/50 gagnés";
+
+            case "lose5050":
+            case "lost5050": return "50/50 perdus";
+
+            case "primos-earned": return "primos gagnés";
+            case "primos-spent": return "primos dépensés";
+            case "moras-earned": return "moras gagnées";
+            case "moras-spent": return "moras dépensées";
+
+            default: return mode;
+        }
+    }
+
+    private void ShowMyStats(JObject viewers, string username)
+    {
+        JObject viewer = viewers[username] as JObject;
+
+        if (viewer == null)
+        {
+            SendWarning($"{username}, ton profil n’existe pas encore.");
+            return;
+        }
+
+        JObject stats = GetObject(viewer, "stats");
+        JObject pity = GetObject(viewer, "pity");
+
+        double luck = 0;
+        int totalPulls = GetInt(stats, "totalPulls");
+
+        if (totalPulls > 0)
+            luck = ((double)GetInt(stats, "totalFiveStars") / totalPulls) * 100.0;
+
+        string message = $"{username} : ";
+        message += $"niv {GetInt(viewer, "level")} | ";
+        message += $"XP {GetInt(viewer, "xp")} | ";
+        message += $"pulls {totalPulls} | ";
+        message += $"5★ {GetInt(stats, "totalFiveStars")} | ";
+        message += $"luck {luck.ToString("0.00")}% | ";
+        message += $"pity {GetInt(pity, "pity5")}/90 | ";
+        message += $"primos {GetInt(viewer, "primogems")} | ";
+        message += $"moras {GetInt(viewer, "moras")} | ";
+        message += $"box {GetBoxCount(viewer)} | ";
+        message += $"C6 {GetC6Count(viewer)}";
+
+        SendSuccess(message);
+    }
+
+    private int GetTotalParticles(JObject viewer)
+    {
+        JObject particles = GetObject(viewer, "particles");
+
+        return GetInt(particles, "pyro")
+            + GetInt(particles, "hydro")
+            + GetInt(particles, "cryo")
+            + GetInt(particles, "electro")
+            + GetInt(particles, "anemo")
+            + GetInt(particles, "geo")
+            + GetInt(particles, "dendro");
+    }
+
+    private int GetBoxCount(JObject viewer)
+    {
+        JObject box = viewer["box"] as JObject;
+
+        if (box == null)
+            return 0;
+
+        return box.Count;
+    }
+
+    private int GetC6Count(JObject viewer)
+    {
+        JObject box = viewer["box"] as JObject;
+
+        if (box == null)
+            return 0;
+
+        int count = 0;
+
+        foreach (KeyValuePair<string, JToken> entry in box)
+        {
+            JObject owned = entry.Value as JObject;
+
+            if (owned == null)
+                continue;
+
+            if (GetInt(owned, "constellation") >= 6)
+                count++;
+        }
+
+        return count;
+    }
+
+    private int GetTotalCopies(JObject viewer)
+    {
+        JObject box = viewer["box"] as JObject;
+
+        if (box == null)
+            return 0;
+
+        int total = 0;
+
+        foreach (KeyValuePair<string, JToken> entry in box)
+        {
+            JObject owned = entry.Value as JObject;
+
+            if (owned == null)
+                continue;
+
+            total += GetInt(owned, "copies");
+        }
+
+        return total;
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+            return JObject.Parse(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private JObject GetObject(JObject parent, string key)
+    {
+        if (parent == null)
+            return new JObject();
+
+        JObject obj = parent[key] as JObject;
+
+        if (obj == null)
+            return new JObject();
+
+        return obj;
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private void SendSuccess(string message) { CPH.SendMessage($"✅ {message}"); }
+    private void SendInfos(string message) { CPH.SendMessage($"ℹ️ {message}"); }
+    private void SendWarning(string message) { CPH.SendMessage($"⚠️ {message}"); }
+    private void SendError(string message) { CPH.SendMessage($"❌ {message}"); }
+}
+
+public class TopEntry
+{
+    public string username { get; set; }
+    public double value { get; set; }
+    public string displayValue { get; set; }
+}

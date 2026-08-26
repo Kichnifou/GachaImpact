@@ -1,0 +1,244 @@
+{
+  "codes": [
+    {
+      "code": "FESTIVALNOUVELAN",
+      "expiresAt": "",
+      "month": 1,
+      "annuallyRenewable": true,
+      "rewards": {
+        "primogems": 1600,
+        "moras": 200000,
+        "particles": {
+          "pyro": 0,
+          "hydro": 0,
+          "cryo": 0,
+          "electro": 0,
+          "anemo": 0,
+          "geo": 0,
+          "dendro": 0
+        }
+      },
+      "message": "🎆 Code du Festival du Nouvel An utilisable chaque janvier."
+    },
+    {
+      "code": "FESTIVALCOEURS",
+      "expiresAt": "",
+      "month": 2,
+      "annuallyRenewable": true,
+      "rewards": {
+        "primogems": 1600,
+        "moras": 200000,
+        "particles": {
+          "pyro": 0,
+          "hydro": 0,
+          "cryo": 0,
+          "electro": 0,
+          "anemo": 0,
+          "geo": 0,
+          "dendro": 0
+        }
+      },
+      "message": "💖 Code du Festival des Cœurs utilisable chaque février."
+    },
+    {
+      "code": "FESTIVALPRINTEMPS",
+      "expiresAt": "",
+      "month": 3,
+      "annuallyRenewable": true,
+      "rewards": {
+        "primogems": 1600,
+        "moras": 200000,
+        "particles": {
+          "pyro": 0,
+          "hydro": 0,
+          "cryo": 0,
+          "electro": 0,
+          "anemo": 0,
+          "geo": 0,
+          "dendro": 0
+        }
+      },
+      "message": "🌱 Code du Festival du Printemps utilisable chaque mars."
+    },
+    {
+      "code": "FESTIVALCLOCHES",
+      "expiresAt": "",
+      "month": 4,
+      "annuallyRenewable": true,
+      "rewards": {
+        "primogems": 1600,
+        "moras": 200000,
+        "particles": {
+          "pyro": 0,
+          "hydro": 0,
+          "cryo": 0,
+          "electro": 0,
+          "anemo": 0,
+          "geo": 0,
+          "dendro": 0
+        }
+      },
+      "message": "🥚 Code du Festival des Cloches utilisable chaque avril."
+    },
+    {
+      "code": "FESTIVALFLEURS",
+      "expiresAt": "",
+      "month": 5,
+      "annuallyRenewable": true,
+      "rewards": {
+        "primogems": 1600,
+        "moras": 200000,
+        "particles": {
+          "pyro": 0,
+          "hydro": 0,
+          "cryo": 0,
+          "electro": 0,
+          "anemo": 0,
+          "geo": 0,
+          "dendro": 0
+        }
+      },
+      "message": "🌸 Code du Festival des Fleurs utilisable chaque mai."
+    },
+    {
+      "code": "FESTIVALETE",
+      "expiresAt": "",
+      "month": 6,
+      "annuallyRenewable": true,
+      "rewards": {
+        "primogems": 1600,
+        "moras": 200000,
+        "particles": {
+          "pyro": 0,
+          "hydro": 0,
+          "cryo": 0,
+          "electro": 0,
+          "anemo": 0,
+          "geo": 0,
+          "dendro": 0
+        }
+      },
+      "message": "☀️ Code du Festival de l’Été utilisable chaque juin."
+    },
+    {
+      "code": "FESTIVALETOILES",
+      "expiresAt": "",
+      "month": 7,
+      "annuallyRenewable": true,
+      "rewards": {
+        "primogems": 1600,
+        "moras": 200000,
+        "particles": {
+          "pyro": 0,
+          "hydro": 0,
+          "cryo": 0,
+          "electro": 0,
+          "anemo": 0,
+          "geo": 0,
+          "dendro": 0
+        }
+      },
+      "message": "⭐ Code du Festival des Étoiles utilisable chaque juillet."
+    },
+    {
+      "code": "FESTIVALAVENTURIERS",
+      "expiresAt": "",
+      "month": 8,
+      "annuallyRenewable": true,
+      "rewards": {
+        "primogems": 1600,
+        "moras": 200000,
+        "particles": {
+          "pyro": 0,
+          "hydro": 0,
+          "cryo": 0,
+          "electro": 0,
+          "anemo": 0,
+          "geo": 0,
+          "dendro": 0
+        }
+      },
+      "message": "🧭 Code du Festival des Aventuriers utilisable chaque août."
+    },
+    {
+      "code": "FESTIVALRECOLTES",
+      "expiresAt": "",
+      "month": 9,
+      "annuallyRenewable": true,
+      "rewards": {
+        "primogems": 1600,
+        "moras": 200000,
+        "particles": {
+          "pyro": 0,
+          "hydro": 0,
+          "cryo": 0,
+          "electro": 0,
+          "anemo": 0,
+          "geo": 0,
+          "dendro": 0
+        }
+      },
+      "message": "🌾 Code du Festival des Récoltes utilisable chaque septembre."
+    },
+    {
+      "code": "FESTIVALOMBRES",
+      "expiresAt": "",
+      "month": 10,
+      "annuallyRenewable": true,
+      "rewards": {
+        "primogems": 1600,
+        "moras": 200000,
+        "particles": {
+          "pyro": 0,
+          "hydro": 0,
+          "cryo": 0,
+          "electro": 0,
+          "anemo": 0,
+          "geo": 0,
+          "dendro": 0
+        }
+      },
+      "message": "🎃 Code du Festival des Ombres utilisable chaque octobre."
+    },
+    {
+      "code": "FESTIVALBRUMES",
+      "expiresAt": "",
+      "month": 11,
+      "annuallyRenewable": true,
+      "rewards": {
+        "primogems": 1600,
+        "moras": 200000,
+        "particles": {
+          "pyro": 0,
+          "hydro": 0,
+          "cryo": 0,
+          "electro": 0,
+          "anemo": 0,
+          "geo": 0,
+          "dendro": 0
+        }
+      },
+      "message": "🍁 Code du Festival des Brumes utilisable chaque novembre."
+    },
+    {
+      "code": "FESTIVALNOEL",
+      "expiresAt": "",
+      "month": 12,
+      "annuallyRenewable": true,
+      "rewards": {
+        "primogems": 1600,
+        "moras": 200000,
+        "particles": {
+          "pyro": 0,
+          "hydro": 0,
+          "cryo": 0,
+          "electro": 0,
+          "anemo": 0,
+          "geo": 0,
+          "dendro": 0
+        }
+      },
+      "message": "🎄 Code du Festival de Noël utilisable chaque décembre."
+    }
+  ]
+}

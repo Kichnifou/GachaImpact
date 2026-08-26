@@ -1,0 +1,1158 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !box
+- Lit viewers_data.json en JObject pour préserver toutes les propriétés inconnues
+- Lit genshin_characters.json
+- Ne crée PAS le viewer s’il n’existe pas
+- Ajoute options.boxSort et options.boxSortDescending si absents
+- Ajoute boxFavorites si absent
+- !box affiche la box complète selon le tri préféré du viewer
+- !box a / d / c / e change le tri
+- !box 5 affiche uniquement les personnages 5★
+- !box 4 affiche uniquement les personnages 4★
+- !box 6 affiche uniquement les personnages C6, 5★ puis 4★, en respectant le tri préféré du viewer
+- !box Pyro / Hydro / Cryo / Electro / Anemo / Geo / Dendro affiche uniquement les personnages de cet élément, 5★ puis 4★, en respectant le tri préféré du viewer
+- !box p1, !box p2, etc. affiche 10 personnages par page : priorité 5x 5★ + 5x 4★, puis complète avec l’autre rareté si besoin
+- !box favoris NomPerso ajoute ou retire un personnage des favoris
+- !box favoris affiche la liste des favoris
+- Affiche C6 maximum même si la valeur stockée dépasse 6
+- Sauvegarde viewers_data.json sans reconstruire les viewers
+- Ne fait PAS de backup automatique
+*/
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    public bool Execute()
+    {
+        string folderPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data";
+        string viewersPath = Path.Combine(folderPath, "viewers_data.json");
+        string charactersPath = Path.Combine(folderPath, "genshin_characters.json");
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+
+        if (!File.Exists(viewersPath))
+        {
+            SendWarning(username + ", ton profil n’existe pas encore.");
+            return true;
+        }
+
+        if (!File.Exists(charactersPath))
+        {
+            SendError("Fichier personnages introuvable.");
+            return true;
+        }
+
+        JObject viewers = LoadJObject(viewersPath);
+
+        if (viewers == null)
+        {
+            SendError("Impossible de lire viewers_data.json.");
+            return true;
+        }
+
+        JObject viewer = viewers[username] as JObject;
+
+        if (viewer == null)
+        {
+            SendWarning(username + ", ton profil n’existe pas encore.");
+            return true;
+        }
+
+        EnsureViewerDefaultsJObject(viewer);
+
+        JObject box = viewer["box"] as JObject;
+
+        CharacterFile characterFile = LoadCharacters(charactersPath);
+
+        if (characterFile == null || characterFile.characters == null)
+        {
+            SendError("Impossible de lire les personnages.");
+            return true;
+        }
+
+        string input = GetCommandInput().Trim();
+        string normalizedInput = NormalizeText(input);
+
+        if (!string.IsNullOrEmpty(normalizedInput))
+        {
+            if (normalizedInput == "a" || normalizedInput == "d" || normalizedInput == "c" || normalizedInput == "e")
+            {
+                SetBoxSort(username, viewer, viewersPath, viewers, normalizedInput);
+                return true;
+            }
+
+            if (normalizedInput == "5")
+            {
+                ShowBoxByRarity(username, viewer, box, characterFile, 5);
+                SaveJObject(viewersPath, viewers);
+                return true;
+            }
+
+            if (normalizedInput == "4")
+            {
+                ShowBoxByRarity(username, viewer, box, characterFile, 4);
+                SaveJObject(viewersPath, viewers);
+                return true;
+            }
+
+            if (normalizedInput == "6")
+            {
+                ShowBoxByConstellation(username, viewer, box, characterFile, 6);
+                SaveJObject(viewersPath, viewers);
+                return true;
+            }
+
+            if (IsElementInput(normalizedInput))
+            {
+                ShowBoxByElement(username, viewer, box, characterFile, normalizedInput);
+                SaveJObject(viewersPath, viewers);
+                return true;
+            }
+
+            if (IsPageCommand(normalizedInput))
+            {
+                int page = ParsePageNumber(normalizedInput);
+
+                if (page <= 0)
+                {
+                    SendWarning(username + ", page invalide. Exemple : !box p1");
+                    return true;
+                }
+
+                ShowBoxPage(username, viewer, box, characterFile, page);
+                SaveJObject(viewersPath, viewers);
+                return true;
+            }
+
+            if (normalizedInput == "favoris" || normalizedInput.StartsWith("favoris "))
+            {
+                HandleFavorites(username, viewer, box, characterFile, input, viewersPath, viewers);
+                return true;
+            }
+
+            SendWarning(username + ", option invalide. Utilise : !box | !box 5 | !box 4 | !box 6 | !box Cryo/Pyro/... | !box p1 | !box favoris NomPerso | !box a/d/c/e.");
+            return true;
+        }
+
+        ShowFullBox(username, viewer, box, characterFile);
+        SaveJObject(viewersPath, viewers);
+        return true;
+    }
+
+    private void SetBoxSort(string username, JObject viewer, string viewersPath, JObject viewers, string sortMode)
+    {
+        JObject options = viewer["options"] as JObject;
+
+        string currentSort = GetString(options, "boxSort");
+        bool currentDescending = GetBool(options, "boxSortDescending");
+
+        if (currentSort == sortMode)
+            options["boxSortDescending"] = !currentDescending;
+        else
+        {
+            options["boxSort"] = sortMode;
+            options["boxSortDescending"] = false;
+        }
+
+        SaveJObject(viewersPath, viewers);
+
+        string orderText = GetBool(options, "boxSortDescending") ? "descendant" : "ascendant";
+        SendSuccess(username + ", tri de box enregistré : " + GetSortDisplayName(sortMode) + " (" + orderText + ").");
+    }
+
+    private void ShowFullBox(string username, JObject viewer, JObject box, CharacterFile characterFile)
+    {
+        if (box == null || box.Count == 0)
+        {
+            SendWarning(username + ", ta box est vide pour le moment.");
+            return;
+        }
+
+        List<BoxDisplayItem> fiveStars = new List<BoxDisplayItem>();
+        List<BoxDisplayItem> fourStars = new List<BoxDisplayItem>();
+
+        FillBoxLists(box, characterFile, fiveStars, fourStars);
+        ApplyViewerSort(viewer, fiveStars, fourStars);
+
+        JObject viewerOptions = viewer["options"] as JObject;
+        string sortMode = GetString(viewerOptions, "boxSort");
+        bool descending = GetBool(viewerOptions, "boxSortDescending");
+        string orderIcon = descending ? "↓" : "↑";
+
+        string header = username + ", ta box [" + GetSortDisplayName(sortMode) + " " + orderIcon + "] : ";
+        string fiveStarText = "⭐⭐⭐⭐⭐ " + (fiveStars.Count > 0 ? FormatBoxItems(fiveStars) : "aucun");
+        string fourStarText = "⭐⭐⭐⭐ " + (fourStars.Count > 0 ? FormatBoxItems(fourStars) : "aucun");
+
+        List<string> messages = BuildBoxMessages(header, fiveStarText, fourStarText);
+
+        for (int i = 0; i < messages.Count; i++)
+            SendSuccess(messages[i]);
+    }
+
+    private void ShowBoxByRarity(string username, JObject viewer, JObject box, CharacterFile characterFile, int rarity)
+    {
+        if (box == null || box.Count == 0)
+        {
+            SendWarning(username + ", ta box est vide pour le moment.");
+            return;
+        }
+
+        List<BoxDisplayItem> fiveStars = new List<BoxDisplayItem>();
+        List<BoxDisplayItem> fourStars = new List<BoxDisplayItem>();
+
+        FillBoxLists(box, characterFile, fiveStars, fourStars);
+        ApplyViewerSort(viewer, fiveStars, fourStars);
+
+        List<BoxDisplayItem> selected = rarity == 5 ? fiveStars : fourStars;
+
+        if (selected.Count == 0)
+        {
+            SendWarning(username + ", tu n’as aucun personnage " + rarity + "★.");
+            return;
+        }
+
+        string stars = rarity == 5 ? "⭐⭐⭐⭐⭐" : "⭐⭐⭐⭐";
+        string header = username + ", box " + stars + " : ";
+        SendSplitSuccess(header + FormatBoxItems(selected));
+    }
+
+    private void ShowBoxByConstellation(string username, JObject viewer, JObject box, CharacterFile characterFile, int constellation)
+    {
+        if (box == null || box.Count == 0)
+        {
+            SendWarning(username + ", ta box est vide pour le moment.");
+            return;
+        }
+
+        List<BoxDisplayItem> fiveStars = new List<BoxDisplayItem>();
+        List<BoxDisplayItem> fourStars = new List<BoxDisplayItem>();
+
+        FillBoxLists(box, characterFile, fiveStars, fourStars);
+        ApplyViewerSort(viewer, fiveStars, fourStars);
+
+        List<BoxDisplayItem> filteredFiveStars = new List<BoxDisplayItem>();
+        List<BoxDisplayItem> filteredFourStars = new List<BoxDisplayItem>();
+
+        for (int i = 0; i < fiveStars.Count; i++)
+        {
+            if (fiveStars[i].constellation == constellation)
+                filteredFiveStars.Add(fiveStars[i]);
+        }
+
+        for (int i = 0; i < fourStars.Count; i++)
+        {
+            if (fourStars[i].constellation == constellation)
+                filteredFourStars.Add(fourStars[i]);
+        }
+
+        if (filteredFiveStars.Count == 0 && filteredFourStars.Count == 0)
+        {
+            SendWarning(username + ", tu n’as aucun personnage C" + constellation + ".");
+            return;
+        }
+
+        JObject viewerOptions = viewer["options"] as JObject;
+        string sortMode = GetString(viewerOptions, "boxSort");
+        bool descending = GetBool(viewerOptions, "boxSortDescending");
+        string orderIcon = descending ? "↓" : "↑";
+
+        string header = username + ", box C" + constellation + " [" + GetSortDisplayName(sortMode) + " " + orderIcon + "] : ";
+        string fiveStarText = "⭐⭐⭐⭐⭐ " + (filteredFiveStars.Count > 0 ? FormatBoxItems(filteredFiveStars) : "aucun");
+        string fourStarText = "⭐⭐⭐⭐ " + (filteredFourStars.Count > 0 ? FormatBoxItems(filteredFourStars) : "aucun");
+
+        List<string> messages = BuildBoxMessages(header, fiveStarText, fourStarText);
+
+        for (int i = 0; i < messages.Count; i++)
+            SendSuccess(messages[i]);
+    }
+
+    private void ShowBoxByElement(string username, JObject viewer, JObject box, CharacterFile characterFile, string requestedElement)
+    {
+        if (box == null || box.Count == 0)
+        {
+            SendWarning(username + ", ta box est vide pour le moment.");
+            return;
+        }
+
+        string normalizedElement = NormalizeElement(requestedElement);
+
+        List<BoxDisplayItem> fiveStars = new List<BoxDisplayItem>();
+        List<BoxDisplayItem> fourStars = new List<BoxDisplayItem>();
+
+        FillBoxLists(box, characterFile, fiveStars, fourStars);
+        ApplyViewerSort(viewer, fiveStars, fourStars);
+
+        List<BoxDisplayItem> filteredFiveStars = new List<BoxDisplayItem>();
+        List<BoxDisplayItem> filteredFourStars = new List<BoxDisplayItem>();
+
+        for (int i = 0; i < fiveStars.Count; i++)
+        {
+            if (NormalizeElement(fiveStars[i].element) == normalizedElement)
+                filteredFiveStars.Add(fiveStars[i]);
+        }
+
+        for (int i = 0; i < fourStars.Count; i++)
+        {
+            if (NormalizeElement(fourStars[i].element) == normalizedElement)
+                filteredFourStars.Add(fourStars[i]);
+        }
+
+        if (filteredFiveStars.Count == 0 && filteredFourStars.Count == 0)
+        {
+            SendWarning(username + ", tu n’as aucun personnage " + GetElementDisplayName(normalizedElement) + ".");
+            return;
+        }
+
+        JObject viewerOptions = viewer["options"] as JObject;
+        string sortMode = GetString(viewerOptions, "boxSort");
+        bool descending = GetBool(viewerOptions, "boxSortDescending");
+        string orderIcon = descending ? "↓" : "↑";
+
+        string header = username + ", box " + GetElementEmoji(normalizedElement) + " " + GetElementDisplayName(normalizedElement) +
+                        " [" + GetSortDisplayName(sortMode) + " " + orderIcon + "] : ";
+
+        string fiveStarText = "⭐⭐⭐⭐⭐ " + (filteredFiveStars.Count > 0 ? FormatBoxItems(filteredFiveStars) : "aucun");
+        string fourStarText = "⭐⭐⭐⭐ " + (filteredFourStars.Count > 0 ? FormatBoxItems(filteredFourStars) : "aucun");
+
+        List<string> messages = BuildBoxMessages(header, fiveStarText, fourStarText);
+
+        for (int i = 0; i < messages.Count; i++)
+            SendSuccess(messages[i]);
+    }
+
+    private bool IsElementInput(string input)
+    {
+        string element = NormalizeElement(input);
+
+        return element == "pyro"
+            || element == "hydro"
+            || element == "cryo"
+            || element == "electro"
+            || element == "anemo"
+            || element == "geo"
+            || element == "dendro";
+    }
+
+    private string GetElementDisplayName(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "Pyro";
+            case "hydro": return "Hydro";
+            case "cryo": return "Cryo";
+            case "electro": return "Electro";
+            case "anemo": return "Anemo";
+            case "geo": return "Geo";
+            case "dendro": return "Dendro";
+            default: return "Inconnu";
+        }
+    }
+
+    private void ShowBoxPage(string username, JObject viewer, JObject box, CharacterFile characterFile, int page)
+    {
+        if (box == null || box.Count == 0)
+        {
+            SendWarning(username + ", ta box est vide pour le moment.");
+            return;
+        }
+
+        List<BoxDisplayItem> fiveStars = new List<BoxDisplayItem>();
+        List<BoxDisplayItem> fourStars = new List<BoxDisplayItem>();
+
+        FillBoxLists(box, characterFile, fiveStars, fourStars);
+        ApplyViewerSort(viewer, fiveStars, fourStars);
+
+        List<BoxDisplayItem> pageItems = BuildBalancedPage(fiveStars, fourStars, page);
+
+        if (pageItems.Count == 0)
+        {
+            SendWarning(username + ", cette page est vide.");
+            return;
+        }
+
+        JObject viewerOptions = viewer["options"] as JObject;
+        string sortMode = GetString(viewerOptions, "boxSort");
+        bool descending = GetBool(viewerOptions, "boxSortDescending");
+        string orderIcon = descending ? "↓" : "↑";
+
+        string header = username + ", box p" + page + " [" + GetSortDisplayName(sortMode) + " " + orderIcon + "] : ";
+        SendSplitSuccess(header + FormatBoxItems(pageItems));
+    }
+
+    private List<BoxDisplayItem> BuildBalancedPage(List<BoxDisplayItem> fiveStars, List<BoxDisplayItem> fourStars, int targetPage)
+    {
+        int fiveIndex = 0;
+        int fourIndex = 0;
+        List<BoxDisplayItem> currentPage = new List<BoxDisplayItem>();
+
+        for (int page = 1; page <= targetPage; page++)
+        {
+            currentPage = new List<BoxDisplayItem>();
+
+            int fiveTaken = 0;
+            int fourTaken = 0;
+
+            while (fiveTaken < 5 && fiveIndex < fiveStars.Count)
+            {
+                currentPage.Add(fiveStars[fiveIndex]);
+                fiveIndex++;
+                fiveTaken++;
+            }
+
+            while (fourTaken < 5 && fourIndex < fourStars.Count)
+            {
+                currentPage.Add(fourStars[fourIndex]);
+                fourIndex++;
+                fourTaken++;
+            }
+
+            while (currentPage.Count < 10 && fiveIndex < fiveStars.Count)
+            {
+                currentPage.Add(fiveStars[fiveIndex]);
+                fiveIndex++;
+            }
+
+            while (currentPage.Count < 10 && fourIndex < fourStars.Count)
+            {
+                currentPage.Add(fourStars[fourIndex]);
+                fourIndex++;
+            }
+        }
+
+        return currentPage;
+    }
+
+    private void HandleFavorites(string username, JObject viewer, JObject box, CharacterFile characterFile, string input, string viewersPath, JObject viewers)
+    {
+        JArray favorites = viewer["boxFavorites"] as JArray;
+
+        string raw = input.Trim();
+        string normalized = NormalizeText(raw);
+
+        if (normalized == "favoris")
+        {
+            ShowFavorites(username, viewer, box, characterFile);
+            SaveJObject(viewersPath, viewers);
+            return;
+        }
+
+        string characterName = "";
+
+        if (raw.Length > 7)
+            characterName = raw.Substring(7).Trim();
+
+        if (string.IsNullOrEmpty(characterName))
+        {
+            ShowFavorites(username, viewer, box, characterFile);
+            SaveJObject(viewersPath, viewers);
+            return;
+        }
+
+        CharacterData character = FindOwnedCharacterByName(box, characterFile, characterName);
+
+        if (character == null)
+        {
+            SendWarning(username + ", personnage introuvable dans ta box.");
+            return;
+        }
+
+        string idText = character.id.ToString();
+
+        if (ArrayContainsString(favorites, idText))
+        {
+            RemoveStringFromArray(favorites, idText);
+            SaveJObject(viewersPath, viewers);
+            SendSuccess(username + ", " + character.nom + " retiré des favoris.");
+            return;
+        }
+
+        favorites.Add(idText);
+        SaveJObject(viewersPath, viewers);
+        SendSuccess(username + ", " + character.nom + " ajouté aux favoris.");
+    }
+
+    private void ShowFavorites(string username, JObject viewer, JObject box, CharacterFile characterFile)
+    {
+        JArray favorites = viewer["boxFavorites"] as JArray;
+
+        if (favorites == null || favorites.Count == 0)
+        {
+            SendWarning(username + ", tu n’as aucun favori. Utilise : !box favoris NomPerso");
+            return;
+        }
+
+        List<BoxDisplayItem> items = new List<BoxDisplayItem>();
+
+        for (int i = 0; i < favorites.Count; i++)
+        {
+            int id;
+            if (!int.TryParse(favorites[i].ToString(), out id))
+                continue;
+
+            JObject owned = GetOwnedCharacterObject(box, id);
+
+            if (owned == null)
+                continue;
+
+            CharacterData character = FindCharacterById(characterFile, id);
+
+            if (character == null)
+                continue;
+
+            BoxDisplayItem item = BuildDisplayItem(character, owned);
+            items.Add(item);
+        }
+
+        if (items.Count == 0)
+        {
+            SendWarning(username + ", aucun favori valide trouvé.");
+            return;
+        }
+
+        SortBoxItems(items, "a", false);
+        SendSplitSuccess("⭐ Favoris de " + username + " : " + FormatBoxItems(items));
+    }
+
+    private CharacterData FindOwnedCharacterByName(JObject box, CharacterFile characterFile, string name)
+    {
+        string target = NormalizeText(name);
+
+        foreach (KeyValuePair<string, JToken> entry in box)
+        {
+            JObject owned = entry.Value as JObject;
+
+            if (owned == null)
+                continue;
+
+            int characterId = GetInt(owned, "characterId");
+
+            if (characterId <= 0)
+            {
+                int parsedKey;
+                if (int.TryParse(entry.Key, out parsedKey))
+                    characterId = parsedKey;
+            }
+
+            CharacterData character = FindCharacterById(characterFile, characterId);
+
+            if (character == null)
+                continue;
+
+            if (NormalizeText(character.nom) == target)
+                return character;
+        }
+
+        foreach (KeyValuePair<string, JToken> entry in box)
+        {
+            JObject owned = entry.Value as JObject;
+
+            if (owned == null)
+                continue;
+
+            int characterId = GetInt(owned, "characterId");
+
+            if (characterId <= 0)
+            {
+                int parsedKey;
+                if (int.TryParse(entry.Key, out parsedKey))
+                    characterId = parsedKey;
+            }
+
+            CharacterData character = FindCharacterById(characterFile, characterId);
+
+            if (character == null)
+                continue;
+
+            if (NormalizeText(character.nom).Contains(target))
+                return character;
+        }
+
+        return null;
+    }
+
+    private JObject GetOwnedCharacterObject(JObject box, int characterId)
+    {
+        if (box == null)
+            return null;
+
+        string key = characterId.ToString();
+
+        if (box[key] != null && box[key].Type == JTokenType.Object)
+            return box[key] as JObject;
+
+        foreach (KeyValuePair<string, JToken> entry in box)
+        {
+            JObject owned = entry.Value as JObject;
+
+            if (owned == null)
+                continue;
+
+            if (GetInt(owned, "characterId") == characterId)
+                return owned;
+        }
+
+        return null;
+    }
+
+    private void FillBoxLists(JObject box, CharacterFile characterFile, List<BoxDisplayItem> fiveStars, List<BoxDisplayItem> fourStars)
+    {
+        foreach (KeyValuePair<string, JToken> entry in box)
+        {
+            JObject owned = entry.Value as JObject;
+
+            if (owned == null)
+                continue;
+
+            int characterId = GetInt(owned, "characterId");
+
+            if (characterId <= 0)
+            {
+                int parsedKey;
+
+                if (int.TryParse(entry.Key, out parsedKey))
+                    characterId = parsedKey;
+            }
+
+            CharacterData character = FindCharacterById(characterFile, characterId);
+
+            if (character == null)
+                continue;
+
+            BoxDisplayItem item = BuildDisplayItem(character, owned);
+
+            if (character.rarete == 5)
+                fiveStars.Add(item);
+            else if (character.rarete == 4)
+                fourStars.Add(item);
+        }
+    }
+
+    private BoxDisplayItem BuildDisplayItem(CharacterData character, JObject owned)
+    {
+        BoxDisplayItem item = new BoxDisplayItem();
+        item.id = character.id;
+        item.name = character.nom;
+        item.rarity = character.rarete;
+        item.element = character.element;
+        item.constellation = Math.Min(GetInt(owned, "constellation"), 6);
+        item.firstObtainedAt = GetString(owned, "firstObtainedAt");
+        return item;
+    }
+
+    private void ApplyViewerSort(JObject viewer, List<BoxDisplayItem> fiveStars, List<BoxDisplayItem> fourStars)
+    {
+        JObject viewerOptions = viewer["options"] as JObject;
+        string sortMode = GetString(viewerOptions, "boxSort");
+
+        if (string.IsNullOrEmpty(sortMode))
+            sortMode = "a";
+
+        bool descending = GetBool(viewerOptions, "boxSortDescending");
+
+        SortBoxItems(fiveStars, sortMode, descending);
+        SortBoxItems(fourStars, sortMode, descending);
+    }
+
+    private bool IsPageCommand(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return false;
+
+        if (!input.StartsWith("p"))
+            return false;
+
+        if (input.Length < 2)
+            return false;
+
+        for (int i = 1; i < input.Length; i++)
+        {
+            if (!char.IsDigit(input[i]))
+                return false;
+        }
+
+        return true;
+    }
+
+    private int ParsePageNumber(string input)
+    {
+        if (!IsPageCommand(input))
+            return 0;
+
+        int page;
+        if (int.TryParse(input.Substring(1), out page))
+            return page;
+
+        return 0;
+    }
+
+    private void EnsureViewerDefaultsJObject(JObject viewer)
+    {
+        EnsureObject(viewer, "options");
+        EnsureObject(viewer, "box");
+        EnsureArray(viewer, "team");
+        EnsureObject(viewer, "missions");
+        EnsureArray(viewer, "tradeRequests");
+        EnsureObject(viewer, "dates");
+        EnsureArray(viewer, "usedCodes");
+        EnsureObject(viewer, "stats");
+        EnsureObject(viewer, "particles");
+        EnsureObject(viewer, "pity");
+        EnsureObject(viewer, "guarantee");
+        EnsureArray(viewer, "boxFavorites");
+
+        JObject options = viewer["options"] as JObject;
+
+        if (options["boxSort"] == null || options["boxSort"].Type == JTokenType.Null || string.IsNullOrEmpty(options["boxSort"].ToString()))
+            options["boxSort"] = "a";
+
+        if (options["boxSortDescending"] == null || options["boxSortDescending"].Type == JTokenType.Null)
+            options["boxSortDescending"] = false;
+
+        JObject missions = viewer["missions"] as JObject;
+        EnsureObject(missions, "daily");
+    }
+
+    private void EnsureObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+    }
+
+    private void EnsureArray(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Array)
+            parent[key] = new JArray();
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private void SortBoxItems(List<BoxDisplayItem> items, string sortMode, bool descending)
+    {
+        if (sortMode == "d")
+        {
+            items.Sort(delegate(BoxDisplayItem a, BoxDisplayItem b)
+            {
+                return CompareDates(a.firstObtainedAt, b.firstObtainedAt);
+            });
+
+            if (descending)
+                items.Reverse();
+
+            return;
+        }
+
+        if (sortMode == "c")
+        {
+            items.Sort(delegate(BoxDisplayItem a, BoxDisplayItem b)
+            {
+                int constellationCompare = a.constellation.CompareTo(b.constellation);
+
+                if (constellationCompare != 0)
+                    return constellationCompare;
+
+                return string.Compare(a.name, b.name, StringComparison.OrdinalIgnoreCase);
+            });
+
+            if (descending)
+                items.Reverse();
+
+            return;
+        }
+
+        if (sortMode == "e")
+        {
+            items.Sort(delegate(BoxDisplayItem a, BoxDisplayItem b)
+            {
+                int elementCompare = string.Compare(GetElementSortName(a.element), GetElementSortName(b.element), StringComparison.OrdinalIgnoreCase);
+
+                if (elementCompare != 0)
+                    return elementCompare;
+
+                return string.Compare(a.name, b.name, StringComparison.OrdinalIgnoreCase);
+            });
+
+            if (descending)
+                items.Reverse();
+
+            return;
+        }
+
+        items.Sort(delegate(BoxDisplayItem a, BoxDisplayItem b)
+        {
+            return string.Compare(a.name, b.name, StringComparison.OrdinalIgnoreCase);
+        });
+
+        if (descending)
+            items.Reverse();
+    }
+
+    private int CompareDates(string dateA, string dateB)
+    {
+        DateTime parsedA;
+        DateTime parsedB;
+
+        bool hasA = DateTime.TryParse(dateA, out parsedA);
+        bool hasB = DateTime.TryParse(dateB, out parsedB);
+
+        if (!hasA && !hasB)
+            return 0;
+
+        if (!hasA)
+            return 1;
+
+        if (!hasB)
+            return -1;
+
+        return parsedA.CompareTo(parsedB);
+    }
+
+    private string FormatBoxItems(List<BoxDisplayItem> items)
+    {
+        List<string> names = new List<string>();
+
+        for (int i = 0; i < items.Count; i++)
+        {
+            BoxDisplayItem item = items[i];
+            names.Add(GetElementEmoji(item.element) + " " + item.name + " (C" + item.constellation + ")");
+        }
+
+        return string.Join(", ", names.ToArray());
+    }
+
+    private string GetSortDisplayName(string sortMode)
+    {
+        switch (sortMode)
+        {
+            case "a": return "alphabétique";
+            case "d": return "date d’obtention";
+            case "c": return "constellation";
+            case "e": return "élément";
+            default: return "alphabétique";
+        }
+    }
+
+    private CharacterFile LoadCharacters(string path)
+    {
+        string json = File.ReadAllText(path);
+        CharacterFile characterFile = JsonConvert.DeserializeObject<CharacterFile>(json);
+
+        if (characterFile == null)
+            characterFile = new CharacterFile();
+
+        if (characterFile.characters == null)
+            characterFile.characters = new List<CharacterData>();
+
+        return characterFile;
+    }
+
+    private CharacterData FindCharacterById(CharacterFile characterFile, int characterId)
+    {
+        if (characterFile == null || characterFile.characters == null)
+            return null;
+
+        for (int i = 0; i < characterFile.characters.Count; i++)
+        {
+            CharacterData character = characterFile.characters[i];
+
+            if (character != null && character.id == characterId)
+                return character;
+        }
+
+        return null;
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+            JObject data = JObject.Parse(json);
+
+            if (data == null)
+                return new JObject();
+
+            return data;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void SaveJObject(string path, JObject data)
+    {
+        File.WriteAllText(path, data.ToString(Formatting.Indented));
+    }
+
+    private string GetElementEmoji(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "🔥";
+            case "hydro": return "💧";
+            case "cryo": return "❄️";
+            case "electro": return "⚡";
+            case "anemo": return "🌪️";
+            case "geo": return "☄️";
+            case "dendro": return "🌿";
+            default: return "";
+        }
+    }
+
+    private string NormalizeElement(string element)
+    {
+        if (string.IsNullOrEmpty(element))
+            return "";
+
+        string value = NormalizeText(element);
+
+        switch (value)
+        {
+            case "pyro": return "pyro";
+            case "hydro": return "hydro";
+            case "cryo": return "cryo";
+            case "electro": return "electro";
+            case "anemo": return "anemo";
+            case "geo": return "geo";
+            case "dendro": return "dendro";
+            default: return value;
+        }
+    }
+
+    private string GetElementSortName(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "anemo": return "Anemo";
+            case "cryo": return "Cryo";
+            case "dendro": return "Dendro";
+            case "electro": return "Electro";
+            case "geo": return "Geo";
+            case "hydro": return "Hydro";
+            case "pyro": return "Pyro";
+            default: return "Zzz";
+        }
+    }
+
+    private List<string> BuildBoxMessages(string header, string fiveStarText, string fourStarText)
+    {
+        List<string> messages = new List<string>();
+
+        string current = header;
+
+        current = AppendSection(current, fiveStarText, messages);
+        current = AppendSection(current, " | " + fourStarText, messages);
+
+        if (!string.IsNullOrEmpty(current))
+            messages.Add(current);
+
+        return messages;
+    }
+
+    private string AppendSection(string currentMessage, string sectionText, List<string> messages)
+    {
+        string[] parts = sectionText.Split(new string[] { ", " }, StringSplitOptions.None);
+
+        for (int i = 0; i < parts.Length; i++)
+        {
+            string part = parts[i];
+
+            bool needsComma = i < parts.Length - 1;
+            string addition = needsComma ? part + ", " : part;
+
+            if ((currentMessage + addition).Length > 450)
+            {
+                if (!string.IsNullOrEmpty(currentMessage))
+                    messages.Add(currentMessage.TrimEnd(' ', ','));
+
+                currentMessage = addition;
+
+                if (currentMessage.Length > 450)
+                {
+                    messages.Add(currentMessage.Substring(0, 450));
+                    currentMessage = "";
+                }
+            }
+            else
+            {
+                currentMessage += addition;
+            }
+        }
+
+        return currentMessage;
+    }
+
+    private void SendSplitSuccess(string message)
+    {
+        if (string.IsNullOrEmpty(message))
+            return;
+
+        if (message.Length <= 450)
+        {
+            SendSuccess(message);
+            return;
+        }
+
+        string remaining = message;
+
+        while (remaining.Length > 450)
+        {
+            int cut = remaining.LastIndexOf(", ", 450);
+
+            if (cut <= 0)
+                cut = remaining.LastIndexOf(" | ", 450);
+
+            if (cut <= 0)
+                cut = 450;
+
+            string part = remaining.Substring(0, cut).Trim();
+            SendSuccess(part);
+
+            remaining = remaining.Substring(cut).Trim();
+
+            if (remaining.StartsWith(","))
+                remaining = remaining.Substring(1).Trim();
+
+            if (remaining.StartsWith("|"))
+                remaining = remaining.Substring(1).Trim();
+        }
+
+        if (remaining.Length > 0)
+            SendSuccess(remaining);
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private bool GetBool(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return false;
+
+        bool value;
+
+        if (bool.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return false;
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private bool ArrayContainsString(JArray array, string value)
+    {
+        if (array == null)
+            return false;
+
+        for (int i = 0; i < array.Count; i++)
+        {
+            if (array[i] != null && array[i].ToString() == value)
+                return true;
+        }
+
+        return false;
+    }
+
+    private void RemoveStringFromArray(JArray array, string value)
+    {
+        if (array == null)
+            return;
+
+        for (int i = array.Count - 1; i >= 0; i--)
+        {
+            if (array[i] != null && array[i].ToString() == value)
+                array.RemoveAt(i);
+        }
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private string NormalizeText(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return "";
+
+        string value = text.ToLower().Trim();
+        value = value.Replace("à", "a"); value = value.Replace("á", "a"); value = value.Replace("â", "a"); value = value.Replace("ä", "a"); value = value.Replace("ã", "a");
+        value = value.Replace("ç", "c");
+        value = value.Replace("è", "e"); value = value.Replace("é", "e"); value = value.Replace("ê", "e"); value = value.Replace("ë", "e");
+        value = value.Replace("ì", "i"); value = value.Replace("í", "i"); value = value.Replace("î", "i"); value = value.Replace("ï", "i");
+        value = value.Replace("ò", "o"); value = value.Replace("ó", "o"); value = value.Replace("ô", "o"); value = value.Replace("ö", "o"); value = value.Replace("õ", "o");
+        value = value.Replace("ù", "u"); value = value.Replace("ú", "u"); value = value.Replace("û", "u"); value = value.Replace("ü", "u");
+        value = value.Replace("ÿ", "y"); value = value.Replace("œ", "oe"); value = value.Replace("æ", "ae");
+        return value;
+    }
+
+    private void SendSuccess(string message) { CPH.SendMessage("✅ " + message); }
+    private void SendWarning(string message) { CPH.SendMessage("⚠️ " + message); }
+    private void SendError(string message) { CPH.SendMessage("❌ " + message); }
+}
+
+public class CharacterFile
+{
+    public List<CharacterData> characters { get; set; }
+}
+
+public class CharacterData
+{
+    public int id { get; set; }
+    public string nom { get; set; }
+    public int rarete { get; set; }
+    public string element { get; set; }
+}
+
+public class BoxDisplayItem
+{
+    public int id { get; set; }
+    public string name { get; set; }
+    public int rarity { get; set; }
+    public int constellation { get; set; }
+    public string firstObtainedAt { get; set; }
+    public string element { get; set; }
+}

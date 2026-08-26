@@ -1,0 +1,1054 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !shop
+- Affiche la boutique avec !shop
+- Permet d'acheter un article avec !shop article
+- Permet !shop primos nombre
+- Lit viewers_data.json en JObject pour préserver toutes les propriétés inconnues
+- Lit shop_items.json en JObject
+- Lit missions_pool.json en JObject pour les missions journalières
+- Ne crée PAS le viewer s’il n’existe pas
+- Initialise uniquement les sections manquantes nécessaires avec EnsureViewerDefaultsJObject
+- Achats disponibles :
+  - primos : achète des primos contre des moras
+  - ticket : tire une récompense aléatoire
+  - mission : attribue une mission journalière
+- Vérifie que le viewer a assez de moras
+- Retire les moras dépensées
+- Met à jour totalMorasSpent
+- Met à jour totalPrimosEarned quand des primos sont gagnés
+- Met à jour totalMorasEarned quand des moras sont gagnées
+- Met à jour les particules si une récompense en donne
+- Met à jour la pity 5★ si une récompense en donne
+- Empêche d’acheter une mission plus d’une fois par jour
+- Permet !shop switch pour changer la mission journalière en cours
+- Un switch coûte 20000 moras la première fois et double à chaque switch du même jour
+- Le coût des switches est réinitialisé lors de l’achat d’une nouvelle mission un nouveau jour
+- Lors d’un switch : 10% de chance de retomber sur la même mission, les 90% restants sont répartis entre les autres missions actives
+- Sauvegarde viewers_data.json sans reconstruire les viewers
+*/
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    private static Random random = new Random();
+
+    public bool Execute()
+    {
+        string folderPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data";
+        string viewersPath = Path.Combine(folderPath, "viewers_data.json");
+        string shopPath = Path.Combine(folderPath, "shop_items.json");
+        string missionsPath = Path.Combine(folderPath, "missions_pool.json");
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+
+        string rawInput = GetCommandInput().ToLower().Trim();
+        string input = "";
+        int purchaseAmount = 1;
+
+        ParseShopInput(rawInput, out input, out purchaseAmount);
+
+        if (!File.Exists(viewersPath))
+        {
+            SendWarning($"{username}, ton profil n’existe pas encore.");
+            return true;
+        }
+
+        if (!File.Exists(shopPath))
+        {
+            SendError("Fichier shop_items.json introuvable.");
+            return true;
+        }
+
+        JObject viewers = LoadJObject(viewersPath);
+
+        if (viewers == null)
+        {
+            SendError("Impossible de lire viewers_data.json.");
+            return true;
+        }
+
+        JObject viewer = viewers[username] as JObject;
+
+        if (viewer == null)
+        {
+            SendWarning($"{username}, ton profil n’existe pas encore.");
+            return true;
+        }
+
+        JObject shopFile = LoadJObject(shopPath);
+
+        if (shopFile == null || shopFile["items"] == null || shopFile["items"].Type != JTokenType.Object)
+        {
+            SendError("Impossible de lire la boutique.");
+            return true;
+        }
+
+        JObject items = shopFile["items"] as JObject;
+
+        if (string.IsNullOrEmpty(input))
+        {
+            ShowShop(shopFile);
+            return true;
+        }
+
+        EnsureViewerDefaultsJObject(viewer, username);
+
+        if (input == "switch")
+        {
+            HandleMissionSwitch(viewer, username, missionsPath);
+            SaveJObject(viewersPath, viewers);
+            return true;
+        }
+
+        JObject item = items[input] as JObject;
+
+        if (item == null)
+        {
+            SendWarning($"{username}, article introuvable. Utilise !shop pour voir la boutique.");
+            return true;
+        }
+
+        if (!GetBool(item, "enabled"))
+        {
+            SendWarning($"{username}, cet article n’est pas disponible.");
+            return true;
+        }
+
+        string itemId = GetString(item, "id");
+
+        if (purchaseAmount > 1 && itemId != "primos")
+        {
+            SendWarning($"{username}, la quantité est autorisée uniquement pour !shop primos nombre.");
+            return true;
+        }
+
+        JObject price = item["price"] as JObject;
+
+        if (price == null || GetString(price, "currency") != "moras")
+        {
+            SendError("Prix invalide pour cet article.");
+            return true;
+        }
+
+        int unitPrice = GetInt(price, "amount");
+        int totalPrice = unitPrice * purchaseAmount;
+
+        if (totalPrice <= 0)
+        {
+            SendError("Prix invalide.");
+            return true;
+        }
+
+        int currentMoras = GetInt(viewer, "moras");
+
+        if (currentMoras < totalPrice)
+        {
+            SendWarning($"{username}, il te manque {totalPrice - currentMoras} moras pour acheter {GetString(item, "displayName")}.");
+            return true;
+        }
+
+        AddInt(viewer, "moras", -totalPrice);
+        AddStat(viewer, "totalMorasSpent", totalPrice);
+
+        bool bought = BuyItem(viewer, username, item, missionsPath, purchaseAmount);
+
+        if (!bought)
+        {
+            AddInt(viewer, "moras", totalPrice);
+            AddStat(viewer, "totalMorasSpent", -totalPrice);
+            return true;
+        }
+
+        SaveJObject(viewersPath, viewers);
+        return true;
+    }
+
+    private void ShowShop(JObject shopFile)
+    {
+        JObject items = shopFile["items"] as JObject;
+
+        if (items == null)
+        {
+            SendError("Boutique invalide.");
+            return;
+        }
+
+        List<JObject> sortedItems = new List<JObject>();
+
+        foreach (KeyValuePair<string, JToken> entry in items)
+        {
+            JObject item = entry.Value as JObject;
+
+            if (item == null)
+                continue;
+
+            if (!GetBool(item, "enabled"))
+                continue;
+
+            if (!GetBool(item, "showInShop"))
+                continue;
+
+            sortedItems.Add(item);
+        }
+
+        sortedItems.Sort(delegate(JObject a, JObject b)
+        {
+            JObject priceA = a["price"] as JObject;
+            JObject priceB = b["price"] as JObject;
+
+            int amountA = priceA != null ? GetInt(priceA, "amount") : 0;
+            int amountB = priceB != null ? GetInt(priceB, "amount") : 0;
+
+            return amountA.CompareTo(amountB);
+        });
+
+        List<string> labels = new List<string>();
+
+        for (int i = 0; i < sortedItems.Count; i++)
+        {
+            string label = GetString(sortedItems[i], "shopLabel");
+
+            if (!string.IsNullOrEmpty(label))
+                labels.Add(label);
+        }
+
+        string prefix = "🛒 Shop :";
+        string separator = " | ";
+        string hint = "Achat : !shop article";
+
+        JObject display = shopFile["display"] as JObject;
+
+        if (display != null)
+        {
+            string customPrefix = GetString(display, "shopPrefix");
+            string customSeparator = GetString(display, "separator");
+            string customHint = GetString(display, "buyHint");
+
+            if (!string.IsNullOrEmpty(customPrefix))
+                prefix = customPrefix;
+
+            if (!string.IsNullOrEmpty(customSeparator))
+                separator = customSeparator;
+
+            if (!string.IsNullOrEmpty(customHint))
+                hint = customHint;
+        }
+
+        CPH.SendMessage($"{prefix} {string.Join(separator, labels.ToArray())} {separator} {hint}");
+    }
+
+    private bool BuyItem(JObject viewer, string username, JObject item, string missionsPath, int purchaseAmount)
+    {
+        JObject reward = item["reward"] as JObject;
+
+        if (reward == null)
+        {
+            SendError("Récompense invalide.");
+            return false;
+        }
+
+        string rewardType = GetString(reward, "type");
+
+        switch (rewardType)
+        {
+            case "primogems":
+            {
+                int totalPrimos = GetInt(reward, "amount") * purchaseAmount;
+
+                AddInt(viewer, "primogems", totalPrimos);
+                AddStat(viewer, "totalPrimosEarned", totalPrimos);
+
+                SendSuccess($"{GetString(viewer, "username")} achète 💠{totalPrimos} primos ({GetInt(viewer, "primogems")}) | Reste 💰 {GetInt(viewer, "moras")}");
+                return true;
+            }
+
+            case "randomReward":
+                return BuyRandomTicket(viewer, username, item);
+
+            case "dailyMission":
+                return BuyDailyMission(viewer, username, item, missionsPath);
+
+            default:
+                SendError("Type d’article non géré.");
+                return false;
+        }
+    }
+
+    private bool BuyRandomTicket(JObject viewer, string username, JObject item)
+    {
+        JObject reward = item["reward"] as JObject;
+
+        if (reward == null)
+        {
+            SendError("Ticket invalide.");
+            return false;
+        }
+
+        JArray rewards = reward["rewards"] as JArray;
+
+        if (rewards == null || rewards.Count == 0)
+        {
+            SendError("Ticket invalide.");
+            return false;
+        }
+
+        JObject pickedReward = PickTicketReward(rewards);
+
+        if (pickedReward == null)
+        {
+            SendError("Récompense ticket introuvable.");
+            return false;
+        }
+
+        string resultText = ApplyTicketReward(viewer, pickedReward);
+        string reaction = GetTicketReaction(GetString(pickedReward, "type"));
+
+        SendSuccess($"{reaction} {username} utilise 🎟️ Ticket et remporte... {resultText} | Reste 💰 {GetInt(viewer, "moras")}");
+        return true;
+    }
+
+    private JObject PickTicketReward(JArray rewards)
+    {
+        int totalWeight = 0;
+
+        for (int i = 0; i < rewards.Count; i++)
+        {
+            JObject reward = rewards[i] as JObject;
+
+            if (reward == null)
+                continue;
+
+            int weight = GetInt(reward, "chanceWeight");
+
+            if (weight > 0)
+                totalWeight += weight;
+        }
+
+        if (totalWeight <= 0)
+            return null;
+
+        int roll = random.Next(1, totalWeight + 1);
+        int current = 0;
+
+        for (int i = 0; i < rewards.Count; i++)
+        {
+            JObject reward = rewards[i] as JObject;
+
+            if (reward == null)
+                continue;
+
+            int weight = GetInt(reward, "chanceWeight");
+
+            if (weight <= 0)
+                continue;
+
+            current += weight;
+
+            if (roll <= current)
+                return reward;
+        }
+
+        return rewards[0] as JObject;
+    }
+
+    private string ApplyTicketReward(JObject viewer, JObject reward)
+    {
+        string rewardType = GetString(reward, "type");
+        int amount = GetInt(reward, "amount");
+
+        switch (rewardType)
+        {
+            case "primogems":
+                AddInt(viewer, "primogems", amount);
+                AddStat(viewer, "totalPrimosEarned", amount);
+                return $"💠 +{amount} primos ({GetInt(viewer, "primogems")})";
+
+            case "mainElementParticles":
+            {
+                string element = NormalizeElement(GetString(viewer, "element"));
+
+                if (string.IsNullOrEmpty(element))
+                    return "aucun élément choisi, récompense perdue";
+
+                AddParticles(viewer, element, amount);
+                AddMainElementParticlesEarnedIfNeeded(viewer, element, amount);
+                return $"+{amount} particules {GetElementDisplayName(element)} ({GetParticleTotal(viewer, element)})";
+            }
+
+            case "randomOtherElementParticles":
+            {
+                string otherElement = GetRandomElementExcept(GetString(viewer, "element"));
+                AddParticles(viewer, otherElement, amount);
+                return $"+{amount} particules {GetElementDisplayName(otherElement)} ({GetParticleTotal(viewer, otherElement)})";
+            }
+
+            case "pity5Bonus":
+            {
+                JObject pity = viewer["pity"] as JObject;
+
+                if (pity == null)
+                {
+                    pity = new JObject();
+                    viewer["pity"] = pity;
+                }
+
+                int newPity = GetInt(pity, "pity5") + amount;
+
+                if (newPity > 90)
+                    newPity = 90;
+
+                pity["pity5"] = newPity;
+
+                return $"⭐ +{amount} pity 5★ ({newPity}/90)";
+            }
+
+            case "moras":
+                AddInt(viewer, "moras", amount);
+                AddStat(viewer, "totalMorasEarned", amount);
+                return $"💰 remboursement +{amount} moras ({GetInt(viewer, "moras")})";
+
+            default:
+            {
+                string message = GetString(reward, "message");
+
+                if (!string.IsNullOrEmpty(message))
+                    return message;
+
+                return "récompense inconnue";
+            }
+        }
+    }
+
+    private bool BuyDailyMission(JObject viewer, string username, JObject item, string missionsPath)
+    {
+        string today = DateTime.Now.ToString("yyyy-MM-dd");
+
+        JObject missions = viewer["missions"] as JObject;
+        JObject daily = missions["daily"] as JObject;
+
+        if (daily != null && GetString(daily, "missionId") != "" && GetString(daily, "startedAt") == today)
+        {
+            SendWarning($"{username}, tu as déjà une mission aujourd’hui : {GetString(daily, "description")} ({GetInt(daily, "progress")}/{GetInt(daily, "target")}).");
+            return false;
+        }
+
+        if (!File.Exists(missionsPath))
+        {
+            SendError("Fichier missions_pool.json introuvable.");
+            return false;
+        }
+
+        JObject missionPool = LoadJObject(missionsPath);
+
+        if (missionPool == null)
+        {
+            SendError("Impossible de lire missions_pool.json.");
+            return false;
+        }
+
+        JArray missionList = missionPool["missions"] as JArray;
+
+        if (missionList == null || missionList.Count == 0)
+        {
+            SendError("Aucune mission disponible.");
+            return false;
+        }
+
+        JObject mission = PickRandomMission(missionList);
+
+        if (mission == null)
+        {
+            SendError("Aucune mission valide.");
+            return false;
+        }
+
+        daily["missionId"] = GetString(mission, "id");
+        daily["type"] = GetString(mission, "type");
+        daily["progress"] = 0;
+        daily["target"] = GetInt(mission, "target");
+        daily["completed"] = false;
+        daily["rewardClaimed"] = false;
+        daily["startedAt"] = today;
+        daily["description"] = GetString(mission, "descriptionCourte");
+        daily["switchCount"] = 0;
+        daily["switchDate"] = today;
+
+        JObject reward = item["reward"] as JObject;
+        int rewardPrimogems = reward != null ? GetInt(reward, "rewardPrimogems") : 800;
+
+        if (rewardPrimogems <= 0)
+            rewardPrimogems = 800;
+
+        SendSuccess(
+            $"{username}, mission : {GetString(mission, "descriptionCourte")}" +
+            $" | Récompense 💠{rewardPrimogems}" +
+            $" | Reste 💰 {GetInt(viewer, "moras")}" +
+            $" | 🔄 Changer : !shop switch (💰20000)"
+        );
+        return true;
+    }
+
+    private void HandleMissionSwitch(JObject viewer, string username, string missionsPath)
+    {
+        string today = DateTime.Now.ToString("yyyy-MM-dd");
+
+        JObject missions = viewer["missions"] as JObject;
+
+        if (missions == null)
+        {
+            SendWarning($"{username}, tu n'as aucune mission à changer.");
+            return;
+        }
+
+        JObject daily = missions["daily"] as JObject;
+
+        if (daily == null)
+        {
+            SendWarning($"{username}, tu n'as aucune mission à changer.");
+            return;
+        }
+
+        string missionId = GetString(daily, "missionId");
+        string startedAt = GetString(daily, "startedAt");
+
+        if (string.IsNullOrEmpty(missionId) || startedAt != today)
+        {
+            SendWarning($"{username}, achète d'abord ta mission du jour avec !shop mission.");
+            return;
+        }
+
+        if (GetBool(daily, "completed") || GetBool(daily, "rewardClaimed"))
+        {
+            SendWarning($"{username}, ta mission du jour est déjà terminée.");
+            return;
+        }
+
+        if (GetString(daily, "switchDate") != today)
+        {
+            daily["switchDate"] = today;
+            daily["switchCount"] = 0;
+        }
+
+        int switchCount = GetInt(daily, "switchCount");
+        int switchPrice = GetMissionSwitchPrice(switchCount);
+        int currentMoras = GetInt(viewer, "moras");
+
+        if (currentMoras < switchPrice)
+        {
+            SendWarning(
+                $"{username}, il te manque {switchPrice - currentMoras} moras pour changer de mission. " +
+                $"Coût : 💰{switchPrice}."
+            );
+            return;
+        }
+
+        if (!File.Exists(missionsPath))
+        {
+            SendError("Fichier missions_pool.json introuvable.");
+            return;
+        }
+
+        JObject missionPool = LoadJObject(missionsPath);
+
+        if (missionPool == null)
+        {
+            SendError("Impossible de lire missions_pool.json.");
+            return;
+        }
+
+        JArray missionList = missionPool["missions"] as JArray;
+
+        if (missionList == null || missionList.Count == 0)
+        {
+            SendError("Aucune mission disponible.");
+            return;
+        }
+
+        JObject newMission = PickSwitchMission(missionList, missionId);
+
+        if (newMission == null)
+        {
+            SendError("Impossible de sélectionner une nouvelle mission.");
+            return;
+        }
+
+        AddInt(viewer, "moras", -switchPrice);
+        AddStat(viewer, "totalMorasSpent", switchPrice);
+
+        daily["missionId"] = GetString(newMission, "id");
+        daily["type"] = GetString(newMission, "type");
+        daily["progress"] = 0;
+        daily["target"] = GetInt(newMission, "target");
+        daily["completed"] = false;
+        daily["rewardClaimed"] = false;
+        daily["startedAt"] = today;
+        daily["description"] = GetString(newMission, "descriptionCourte");
+
+        switchCount++;
+        daily["switchCount"] = switchCount;
+        daily["switchDate"] = today;
+
+        int nextPrice = GetMissionSwitchPrice(switchCount);
+
+        SendSuccess(
+            $"{username}, nouvelle mission : {GetString(newMission, "descriptionCourte")}" +
+            $" | Switch : -💰{switchPrice}" +
+            $" | Reste 💰 {GetInt(viewer, "moras")}" +
+            $" | 🔄 Prochain switch : 💰{nextPrice}"
+        );
+    }
+
+    private int GetMissionSwitchPrice(int switchCount)
+    {
+        int price = 20000;
+
+        for (int i = 0; i < switchCount; i++)
+        {
+            if (price > 1000000000 / 2)
+                return 1000000000;
+
+            price *= 2;
+        }
+
+        return price;
+    }
+
+    private JObject PickSwitchMission(JArray missions, string currentMissionId)
+    {
+        List<JObject> enabledMissions = new List<JObject>();
+        JObject currentMission = null;
+        List<JObject> otherMissions = new List<JObject>();
+
+        for (int i = 0; i < missions.Count; i++)
+        {
+            JObject mission = missions[i] as JObject;
+
+            if (mission == null)
+                continue;
+
+            if (!GetBool(mission, "enabled"))
+                continue;
+
+            enabledMissions.Add(mission);
+
+            if (GetString(mission, "id") == currentMissionId)
+                currentMission = mission;
+            else
+                otherMissions.Add(mission);
+        }
+
+        if (enabledMissions.Count == 0)
+            return null;
+
+        if (currentMission == null)
+            return enabledMissions[random.Next(enabledMissions.Count)];
+
+        if (otherMissions.Count == 0)
+            return currentMission;
+
+        int roll = random.Next(1, 101);
+
+        if (roll <= 10)
+            return currentMission;
+
+        return otherMissions[random.Next(otherMissions.Count)];
+    }
+
+    private JObject PickRandomMission(JArray missions)
+    {
+        List<JObject> enabledMissions = new List<JObject>();
+
+        for (int i = 0; i < missions.Count; i++)
+        {
+            JObject mission = missions[i] as JObject;
+
+            if (mission == null)
+                continue;
+
+            if (GetBool(mission, "enabled"))
+                enabledMissions.Add(mission);
+        }
+
+        if (enabledMissions.Count == 0)
+            return null;
+
+        return enabledMissions[random.Next(enabledMissions.Count)];
+    }
+
+    private void EnsureViewerDefaultsJObject(JObject viewer, string username)
+    {
+        if (viewer["username"] == null || viewer["username"].Type == JTokenType.Null)
+            viewer["username"] = username;
+
+        if (viewer["xp"] == null || viewer["xp"].Type == JTokenType.Null)
+            viewer["xp"] = 0;
+
+        if (viewer["level"] == null || viewer["level"].Type == JTokenType.Null)
+            viewer["level"] = 0;
+
+        if (viewer["element"] == null || viewer["element"].Type == JTokenType.Null)
+            viewer["element"] = "";
+
+        if (viewer["primogems"] == null || viewer["primogems"].Type == JTokenType.Null)
+            viewer["primogems"] = 0;
+
+        if (viewer["moras"] == null || viewer["moras"].Type == JTokenType.Null)
+            viewer["moras"] = 0;
+
+        EnsureObject(viewer, "particles");
+        EnsureObject(viewer, "box");
+        EnsureArray(viewer, "team");
+        EnsureObject(viewer, "pity");
+        EnsureObject(viewer, "guarantee");
+        EnsureObject(viewer, "options");
+        EnsureObject(viewer, "missions");
+        EnsureObject(viewer, "stats");
+        EnsureObject(viewer, "dates");
+        EnsureArray(viewer, "tradeRequests");
+        EnsureArray(viewer, "usedCodes");
+
+        JObject particles = viewer["particles"] as JObject;
+        EnsureInt(particles, "pyro", 0);
+        EnsureInt(particles, "hydro", 0);
+        EnsureInt(particles, "cryo", 0);
+        EnsureInt(particles, "electro", 0);
+        EnsureInt(particles, "anemo", 0);
+        EnsureInt(particles, "geo", 0);
+        EnsureInt(particles, "dendro", 0);
+
+        JObject pity = viewer["pity"] as JObject;
+        EnsureInt(pity, "pity5", 0);
+        EnsureInt(pity, "pity4", 0);
+
+        JObject guarantee = viewer["guarantee"] as JObject;
+        EnsureBool(guarantee, "guaranteedFeatured5", false);
+
+        JObject options = viewer["options"] as JObject;
+        EnsureString(options, "boxSort", "a");
+        EnsureBool(options, "boxSortDescending", false);
+
+        JObject missions = viewer["missions"] as JObject;
+        EnsureObject(missions, "daily");
+
+        JObject daily = missions["daily"] as JObject;
+        EnsureNullOrString(daily, "missionId");
+        EnsureNullOrString(daily, "type");
+        EnsureInt(daily, "progress", 0);
+        EnsureInt(daily, "target", 0);
+        EnsureBool(daily, "completed", false);
+        EnsureBool(daily, "rewardClaimed", false);
+        EnsureNullOrString(daily, "startedAt");
+        EnsureNullOrString(daily, "description");
+        EnsureInt(daily, "switchCount", 0);
+        EnsureNullOrString(daily, "switchDate");
+
+        JObject stats = viewer["stats"] as JObject;
+        EnsureInt(stats, "totalMessages", 0);
+        EnsureInt(stats, "countedMessages", 0);
+        EnsureInt(stats, "totalPulls", 0);
+        EnsureInt(stats, "totalFiveStars", 0);
+        EnsureInt(stats, "totalFourStars", 0);
+        EnsureBool(stats, "lastPullWasFiveStar", false);
+        EnsureInt(stats, "fiftyFiftyLostStreak", 0);
+        EnsureInt(stats, "fiftyFiftyWon", 0);
+        EnsureInt(stats, "fiftyFiftyLost", 0);
+        EnsureInt(stats, "totalPrimosEarned", 0);
+        EnsureInt(stats, "totalPrimosSpent", 0);
+        EnsureInt(stats, "totalMorasEarned", 0);
+        EnsureInt(stats, "totalMorasSpent", 0);
+        EnsureInt(stats, "level100OverflowRewardsClaimed", 0);
+        EnsureInt(stats, "totalMainElementParticlesEarned", 0);
+
+        JObject dates = viewer["dates"] as JObject;
+        EnsureNullOrString(dates, "firstSeen");
+        EnsureNullOrString(dates, "lastSeen");
+        EnsureNullOrString(dates, "lastXpDate");
+        EnsureNullOrString(dates, "lastMessageTime");
+        EnsureNullOrString(dates, "lastDailyFirstMessageReward");
+    }
+
+    private void EnsureObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+    }
+
+    private void EnsureArray(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Array)
+            parent[key] = new JArray();
+    }
+
+    private void EnsureInt(JObject obj, string key, int defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureBool(JObject obj, string key, bool defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureString(JObject obj, string key, string defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureNullOrString(JObject obj, string key)
+    {
+        if (obj[key] == null)
+            obj[key] = null;
+    }
+
+    private void AddParticles(JObject viewer, string element, int amount)
+    {
+        JObject particles = viewer["particles"] as JObject;
+
+        if (particles == null)
+        {
+            particles = new JObject();
+            viewer["particles"] = particles;
+        }
+
+        string normalized = NormalizeElement(element);
+
+        if (string.IsNullOrEmpty(normalized))
+            return;
+
+        AddInt(particles, normalized, amount);
+    }
+
+    private void AddMainElementParticlesEarnedIfNeeded(JObject viewer, string element, int amount)
+    {
+        string mainElement = NormalizeElement(GetString(viewer, "element"));
+        string gainedElement = NormalizeElement(element);
+
+        if (string.IsNullOrEmpty(mainElement))
+            return;
+
+        if (mainElement != gainedElement)
+            return;
+
+        AddStat(viewer, "totalMainElementParticlesEarned", amount);
+    }
+
+    private int GetParticleTotal(JObject viewer, string element)
+    {
+        JObject particles = viewer["particles"] as JObject;
+
+        if (particles == null)
+            return 0;
+
+        return GetInt(particles, NormalizeElement(element));
+    }
+
+    private string GetRandomElementExcept(string excludedElement)
+    {
+        string normalizedExcluded = NormalizeElement(excludedElement);
+
+        List<string> elements = new List<string>();
+        elements.Add("pyro");
+        elements.Add("hydro");
+        elements.Add("cryo");
+        elements.Add("electro");
+        elements.Add("anemo");
+        elements.Add("geo");
+        elements.Add("dendro");
+
+        for (int i = elements.Count - 1; i >= 0; i--)
+        {
+            if (elements[i] == normalizedExcluded)
+                elements.RemoveAt(i);
+        }
+
+        if (elements.Count == 0)
+            return "pyro";
+
+        return elements[random.Next(elements.Count)];
+    }
+
+    private string GetElementDisplayName(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "🔥 Pyro";
+            case "hydro": return "💧 Hydro";
+            case "cryo": return "❄️ Cryo";
+            case "electro": return "⚡ Electro";
+            case "anemo": return "🌪️ Anemo";
+            case "geo": return "☄️ Geo";
+            case "dendro": return "🌿 Dendro";
+            default: return element;
+        }
+    }
+
+    private string NormalizeElement(string element)
+    {
+        if (string.IsNullOrEmpty(element))
+            return "";
+
+        string normalized = element.ToLower().Trim();
+
+        switch (normalized)
+        {
+            case "pyro": return "pyro";
+            case "hydro": return "hydro";
+            case "cryo": return "cryo";
+            case "electro":
+            case "électro": return "electro";
+            case "anemo":
+            case "anémo": return "anemo";
+            case "geo":
+            case "géo": return "geo";
+            case "dendro": return "dendro";
+            default: return normalized;
+        }
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private void ParseShopInput(string rawInput, out string itemId, out int purchaseAmount)
+    {
+        itemId = "";
+        purchaseAmount = 1;
+
+        if (string.IsNullOrEmpty(rawInput))
+            return;
+
+        string[] parts = rawInput.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length >= 1)
+            itemId = parts[0].ToLower().Trim();
+
+        if (parts.Length >= 2 && itemId == "primos")
+        {
+            int amount;
+
+            if (int.TryParse(parts[1], out amount) && amount > 0)
+                purchaseAmount = amount;
+        }
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+            return JObject.Parse(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void SaveJObject(string path, JObject data)
+    {
+        File.WriteAllText(path, data.ToString(Formatting.Indented));
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private bool GetBool(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return false;
+
+        bool value;
+
+        if (bool.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return false;
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private void AddInt(JObject obj, string key, int amount)
+    {
+        int current = GetInt(obj, key);
+        obj[key] = current + amount;
+    }
+
+    private void AddStat(JObject viewer, string statName, int amount)
+    {
+        JObject stats = viewer["stats"] as JObject;
+
+        if (stats == null)
+        {
+            stats = new JObject();
+            viewer["stats"] = stats;
+        }
+
+        AddInt(stats, statName, amount);
+    }
+
+    private string GetTicketReaction(string rewardType)
+    {
+        switch (rewardType)
+        {
+            case "moras": return "🪙";
+            case "randomOtherElementParticles": return "🔮";
+            case "mainElementParticles": return "🔥";
+            case "pity5Bonus": return "✨";
+            case "primogems": return "💥";
+            default: return "🎉";
+        }
+    }
+
+    private void SendSuccess(string message) { CPH.SendMessage($"✅ {message}"); }
+    private void SendWarning(string message) { CPH.SendMessage($"⚠️ {message}"); }
+    private void SendError(string message) { CPH.SendMessage($"❌ {message}"); }
+}

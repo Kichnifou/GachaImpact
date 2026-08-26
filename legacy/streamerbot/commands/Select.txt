@@ -1,0 +1,444 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !select
+- Permet au viewer de choisir l’un des 3 personnages 5★ de la bannière actuelle
+- Lit viewers_data.json en JObject pour préserver toutes les propriétés inconnues
+- Lit genshin_characters.json
+- Ne crée PAS le viewer s’il n’existe pas
+- Retourne une erreur si le viewer n’existe pas
+- Retourne une erreur si aucune bannière 5★ n’est active
+- Ignore la casse et les accents dans le nom saisi
+- Refuse un personnage qui n’est pas un 5★ actuellement en bannière
+- Enregistre le personnage sélectionné dans selectedBannerCharacterId
+- Sauvegarde viewers_data.json sans reconstruire les viewers
+- Si le viewer fait !select sans paramètre et qu’il a déjà une sélection, affiche le personnage actuellement sélectionné
+- Si le viewer tente de sélectionner le même personnage, affiche un warning
+*/
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using System.Text;
+using System.Globalization;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    public bool Execute()
+    {
+        string folderPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data";
+        string viewersPath = Path.Combine(folderPath, "viewers_data.json");
+        string charactersPath = Path.Combine(folderPath, "genshin_characters.json");
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+
+        if (!File.Exists(viewersPath))
+        {
+            SendError($"{username}, ton profil n’existe pas encore. Écris d’abord un message dans le chat.");
+            return true;
+        }
+
+        if (!File.Exists(charactersPath))
+        {
+            SendError("Aucun fichier personnage trouvé.");
+            return true;
+        }
+
+        JObject viewers = LoadJObject(viewersPath);
+
+        if (viewers == null)
+        {
+            SendError("Impossible de lire viewers_data.json.");
+            return true;
+        }
+
+        JObject viewer = viewers[username] as JObject;
+
+        if (viewer == null)
+        {
+            SendError($"{username}, ton profil n’existe pas encore. Écris d’abord un message dans le chat.");
+            return true;
+        }
+
+        CharacterFile characterFile = LoadCharacters(charactersPath);
+
+        if (characterFile == null || characterFile.characters == null)
+        {
+            SendError("Impossible de lire la liste des personnages.");
+            return true;
+        }
+
+        List<CharacterData> featured5 = GetFeaturedFiveStars(characterFile);
+
+        EnsureViewerDefaultsJObject(viewer, username);
+
+        if (featured5.Count == 0)
+        {
+            SendWarning("Aucune bannière 5★ active pour le moment.");
+            return true;
+        }
+
+        string input = GetCommandInput();
+        int selectedBannerCharacterId = GetInt(viewer, "selectedBannerCharacterId");
+
+        if (string.IsNullOrEmpty(input))
+        {
+            CharacterData currentSelection = FindCharacterById(featured5, selectedBannerCharacterId);
+
+            if (currentSelection != null)
+            {
+                SendSuccess($"{username}, ton personnage ciblé actuel est {currentSelection.nom} {GetElementEmoji(currentSelection.element)} 🎯");
+                return true;
+            }
+
+            SendWarning($"{username}, choisis un perso 5★ avec !select nom_du_perso | Choix possibles : {FormatCharacters(featured5)}");
+            return true;
+        }
+
+        CharacterData selectedCharacter = FindCharacterByName(featured5, input);
+
+        if (selectedCharacter == null)
+        {
+            SendWarning($"{username}, ce personnage n’est pas dans la bannière 5★ actuelle. Choix possibles : {FormatCharacters(featured5)}");
+            return true;
+        }
+
+        if (selectedBannerCharacterId == selectedCharacter.id)
+        {
+            SendWarning($"{username}, {GetElementEmoji(selectedCharacter.element)} {selectedCharacter.nom} est déjà ton personnage ciblé.");
+            return true;
+        }
+
+        viewer["selectedBannerCharacterId"] = selectedCharacter.id;
+
+        SaveJObject(viewersPath, viewers);
+
+        SendSuccess($"{username} a sélectionné {GetElementEmoji(selectedCharacter.element)} {selectedCharacter.nom} comme personnage ciblé 🎯 Utilise !pull pour tenter de l’obtenir.");
+        return true;
+    }
+
+    private List<CharacterData> GetFeaturedFiveStars(CharacterFile characterFile)
+    {
+        List<CharacterData> result = new List<CharacterData>();
+
+        if (characterFile == null || characterFile.characters == null)
+            return result;
+
+        for (int i = 0; i < characterFile.characters.Count; i++)
+        {
+            CharacterData character = characterFile.characters[i];
+
+            if (character == null)
+                continue;
+
+            if (character.rarete == 5 && character.bannerFeatured)
+                result.Add(character);
+        }
+
+        return result;
+    }
+
+    private void EnsureViewerDefaultsJObject(JObject viewer, string username)
+    {
+        if (viewer["username"] == null || viewer["username"].Type == JTokenType.Null)
+            viewer["username"] = username;
+
+        EnsureInt(viewer, "xp", 0);
+        EnsureInt(viewer, "level", 0);
+        EnsureString(viewer, "element", "");
+        EnsureInt(viewer, "primogems", 0);
+        EnsureInt(viewer, "moras", 0);
+        EnsureInt(viewer, "selectedBannerCharacterId", 0);
+
+        EnsureObject(viewer, "particles");
+        EnsureObject(viewer, "box");
+        EnsureArray(viewer, "team");
+        EnsureObject(viewer, "pity");
+        EnsureObject(viewer, "guarantee");
+        EnsureObject(viewer, "options");
+        EnsureObject(viewer, "stats");
+        EnsureObject(viewer, "dates");
+        EnsureObject(viewer, "missions");
+        EnsureArray(viewer, "tradeRequests");
+        EnsureArray(viewer, "usedCodes");
+
+        JObject particles = viewer["particles"] as JObject;
+        EnsureInt(particles, "pyro", 0);
+        EnsureInt(particles, "hydro", 0);
+        EnsureInt(particles, "cryo", 0);
+        EnsureInt(particles, "electro", 0);
+        EnsureInt(particles, "anemo", 0);
+        EnsureInt(particles, "geo", 0);
+        EnsureInt(particles, "dendro", 0);
+
+        JObject pity = viewer["pity"] as JObject;
+        EnsureInt(pity, "pity5", 0);
+        EnsureInt(pity, "pity4", 0);
+
+        JObject guarantee = viewer["guarantee"] as JObject;
+        EnsureBool(guarantee, "guaranteedFeatured5", false);
+
+        JObject options = viewer["options"] as JObject;
+        EnsureString(options, "boxSort", "a");
+        EnsureBool(options, "boxSortDescending", false);
+
+        JObject missions = viewer["missions"] as JObject;
+        EnsureObject(missions, "daily");
+
+        JObject daily = missions["daily"] as JObject;
+        EnsureNullOrString(daily, "missionId");
+        EnsureNullOrString(daily, "type");
+        EnsureInt(daily, "progress", 0);
+        EnsureInt(daily, "target", 0);
+        EnsureBool(daily, "completed", false);
+        EnsureBool(daily, "rewardClaimed", false);
+        EnsureNullOrString(daily, "startedAt");
+        EnsureNullOrString(daily, "description");
+
+        JObject stats = viewer["stats"] as JObject;
+        EnsureInt(stats, "totalMessages", 0);
+        EnsureInt(stats, "countedMessages", 0);
+        EnsureInt(stats, "totalPulls", 0);
+        EnsureInt(stats, "totalFiveStars", 0);
+        EnsureInt(stats, "totalFourStars", 0);
+        EnsureBool(stats, "lastPullWasFiveStar", false);
+        EnsureInt(stats, "fiftyFiftyLostStreak", 0);
+        EnsureInt(stats, "fiftyFiftyWon", 0);
+        EnsureInt(stats, "fiftyFiftyLost", 0);
+        EnsureInt(stats, "totalPrimosEarned", 0);
+        EnsureInt(stats, "totalPrimosSpent", 0);
+        EnsureInt(stats, "totalMorasEarned", 0);
+        EnsureInt(stats, "totalMorasSpent", 0);
+        EnsureInt(stats, "level100OverflowRewardsClaimed", 0);
+
+        JObject dates = viewer["dates"] as JObject;
+        EnsureNullOrString(dates, "firstSeen");
+        EnsureNullOrString(dates, "lastSeen");
+        EnsureNullOrString(dates, "lastXpDate");
+        EnsureNullOrString(dates, "lastMessageTime");
+        EnsureNullOrString(dates, "lastDailyFirstMessageReward");
+    }
+
+    private void EnsureObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+    }
+
+    private void EnsureArray(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Array)
+            parent[key] = new JArray();
+    }
+
+    private void EnsureInt(JObject obj, string key, int defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureBool(JObject obj, string key, bool defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureString(JObject obj, string key, string defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureNullOrString(JObject obj, string key)
+    {
+        if (obj[key] == null)
+            obj[key] = null;
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private CharacterData FindCharacterByName(List<CharacterData> characters, string input)
+    {
+        string normalizedInput = NormalizeText(input);
+
+        for (int i = 0; i < characters.Count; i++)
+        {
+            CharacterData character = characters[i];
+
+            if (character == null)
+                continue;
+
+            if (NormalizeText(character.nom) == normalizedInput)
+                return character;
+        }
+
+        return null;
+    }
+
+    private CharacterData FindCharacterById(List<CharacterData> characters, int id)
+    {
+        for (int i = 0; i < characters.Count; i++)
+        {
+            CharacterData character = characters[i];
+
+            if (character != null && character.id == id)
+                return character;
+        }
+
+        return null;
+    }
+
+    private string NormalizeText(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return "";
+
+        string lower = text.ToLower().Trim();
+        string normalized = lower.Normalize(NormalizationForm.FormD);
+
+        StringBuilder builder = new StringBuilder();
+
+        for (int i = 0; i < normalized.Length; i++)
+        {
+            char c = normalized[i];
+            UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(c);
+
+            if (category != UnicodeCategory.NonSpacingMark)
+                builder.Append(c);
+        }
+
+        return builder.ToString().Normalize(NormalizationForm.FormC);
+    }
+
+    private string FormatCharacters(List<CharacterData> characters)
+    {
+        List<string> names = new List<string>();
+
+        for (int i = 0; i < characters.Count; i++)
+        {
+            CharacterData character = characters[i];
+
+            if (character != null)
+                names.Add($"{GetElementEmoji(character.element)} {character.nom}");
+        }
+
+        return string.Join(", ", names.ToArray());
+    }
+
+    private string GetElementEmoji(string element)
+    {
+        switch (NormalizeText(element))
+        {
+            case "pyro": return "🔥";
+            case "hydro": return "💧";
+            case "cryo": return "❄️";
+            case "electro": return "⚡";
+            case "anemo": return "🌪️";
+            case "geo": return "☄️";
+            case "dendro": return "🌿";
+            default: return "";
+        }
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+            return JObject.Parse(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void SaveJObject(string path, JObject data)
+    {
+        File.WriteAllText(path, data.ToString(Formatting.Indented));
+    }
+
+    private CharacterFile LoadCharacters(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+            CharacterFile file = JsonConvert.DeserializeObject<CharacterFile>(json);
+
+            if (file == null)
+                return null;
+
+            if (file.characters == null)
+                file.characters = new List<CharacterData>();
+
+            return file;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private void SendSuccess(string message) { CPH.SendMessage($"✅ {message}"); }
+    private void SendWarning(string message) { CPH.SendMessage($"⚠️ {message}"); }
+    private void SendError(string message) { CPH.SendMessage($"❌ {message}"); }
+}
+
+public class CharacterFile
+{
+    public string lastBannerUpdate { get; set; }
+    public List<CharacterData> characters { get; set; }
+}
+
+public class CharacterData
+{
+    public int id { get; set; }
+    public string nom { get; set; }
+    public int rarete { get; set; }
+    public string element { get; set; }
+    public string arme { get; set; }
+    public string region { get; set; }
+    public string classe { get; set; }
+    public bool bannerFeatured { get; set; }
+    public string passif { get; set; }
+}

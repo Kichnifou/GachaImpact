@@ -1,0 +1,229 @@
+{
+  "version": 1,
+  "description": "Configuration des passifs élémentaires liés aux équipes. Les bonus dépendent du nombre de personnages d'un même élément dans la team. Les stacks sont limités à 2.",
+  "globalRules": {
+    "maxTeamSize": 4,
+    "maxStacksPerElement": 2,
+    "ignoreStacksAboveMax": true,
+    "passivesApplyOnlyFromTeam": true,
+    "passivesApplyDuringPulls": true,
+    "triggeredPassivesChatPrefix": "🧩 Passifs :",
+    "activePassivesChatLabel": "🧩 Passifs actifs :"
+  },
+  "elements": {
+    "pyro": {
+      "displayName": "Pyro 🔥",
+      "element": "pyro",
+      "maxStacks": 2,
+      "category": "pull_resources",
+      "effects": {
+        "1": {
+          "passiveId": "pyro_particle_multiplier_1",
+          "passiveType": "particleMultiplier",
+          "value": 1.25,
+          "chanceDenominator": 1,
+          "descriptionCourte": "Particules x1.25",
+          "descriptionLongue": "Multiplie par 1.25 les particules obtenues lors des pulls.",
+          "showWhenActive": true,
+          "showWhenTriggered": false
+        },
+        "2": {
+          "passiveId": "pyro_particle_multiplier_2",
+          "passiveType": "particleMultiplier",
+          "value": 1.5,
+          "chanceDenominator": 1,
+          "descriptionCourte": "Particules x1.5",
+          "descriptionLongue": "Multiplie par 1.5 les particules obtenues lors des pulls.",
+          "showWhenActive": true,
+          "showWhenTriggered": false
+        }
+      }
+    },
+    "hydro": {
+      "displayName": "Hydro 💧",
+      "element": "hydro",
+      "maxStacks": 2,
+      "category": "pull_probability",
+      "effects": {
+        "1": {
+          "passiveId": "hydro_five_star_bonus_1",
+          "passiveType": "fiveStarChanceBonus",
+          "value": 0.3,
+          "valueUnit": "percent",
+          "chanceDenominator": 1,
+          "descriptionCourte": "+0.3% chance 5★",
+          "descriptionLongue": "Ajoute +0.3% de chance d'obtenir un personnage 5★ lors du pull courant.",
+          "showWhenActive": true,
+          "showWhenTriggered": false
+        },
+        "2": {
+          "passiveId": "hydro_five_star_bonus_2",
+          "passiveType": "fiveStarChanceBonus",
+          "value": 0.6,
+          "valueUnit": "percent",
+          "chanceDenominator": 1,
+          "descriptionCourte": "+0.6% chance 5★",
+          "descriptionLongue": "Ajoute +0.6% de chance d'obtenir un personnage 5★ lors du pull courant.",
+          "showWhenActive": true,
+          "showWhenTriggered": false
+        }
+      }
+    },
+    "cryo": {
+      "displayName": "Cryo ❄️",
+      "element": "cryo",
+      "maxStacks": 2,
+      "category": "xp",
+      "effects": {
+        "1": {
+          "passiveId": "cryo_random_xp_bonus_1",
+          "passiveType": "randomXpBonus",
+          "value": 1,
+          "chanceDenominator": 20,
+          "descriptionCourte": "1/20 : +1 XP",
+          "descriptionLongue": "Donne 1 chance sur 20 de gagner +1 XP bonus lors d'un pull.",
+          "showWhenActive": true,
+          "showWhenTriggered": true,
+          "triggerMessage": "Cryo ❄️ +1 XP"
+        },
+        "2": {
+          "passiveId": "cryo_random_xp_bonus_2",
+          "passiveType": "randomXpBonus",
+          "value": 1,
+          "chanceDenominator": 10,
+          "descriptionCourte": "1/10 : +1 XP",
+          "descriptionLongue": "Donne 1 chance sur 10 de gagner +1 XP bonus lors d'un pull.",
+          "showWhenActive": true,
+          "showWhenTriggered": true,
+          "triggerMessage": "Cryo ❄️ +1 XP"
+        }
+      }
+    },
+    "electro": {
+      "displayName": "Electro ⚡",
+      "element": "electro",
+      "maxStacks": 2,
+      "category": "pull_pity",
+      "effects": {
+        "1": {
+          "passiveId": "electro_random_pity5_bonus_1",
+          "passiveType": "randomPity5Bonus",
+          "value": 2,
+          "chanceDenominator": 30,
+          "descriptionCourte": "1/30 : +2 pity 5★",
+          "descriptionLongue": "Donne 1 chance sur 30 d'ajouter +2 à la pity 5★ lors d'un pull.",
+          "showWhenActive": true,
+          "showWhenTriggered": true,
+          "triggerMessage": "Electro ⚡ +2 pity 5★"
+        },
+        "2": {
+          "passiveId": "electro_random_pity5_bonus_2",
+          "passiveType": "randomPity5Bonus",
+          "value": 2,
+          "chanceDenominator": 20,
+          "descriptionCourte": "1/20 : +2 pity 5★",
+          "descriptionLongue": "Donne 1 chance sur 20 d'ajouter +2 à la pity 5★ lors d'un pull.",
+          "showWhenActive": true,
+          "showWhenTriggered": true,
+          "triggerMessage": "Electro ⚡ +2 pity 5★"
+        }
+      }
+    },
+    "anemo": {
+      "displayName": "Anemo 🌪️",
+      "element": "anemo",
+      "maxStacks": 2,
+      "category": "pull_refund",
+      "effects": {
+        "1": {
+          "passiveId": "anemo_random_primo_refund_1",
+          "passiveType": "randomPrimoRefund",
+          "value": 80,
+          "chanceDenominator": 12,
+          "descriptionCourte": "1/12 : +80 primos",
+          "descriptionLongue": "Donne 1 chance sur 12 de récupérer 80 primos lors d'un pull.",
+          "showWhenActive": true,
+          "showWhenTriggered": true,
+          "triggerMessage": "Anemo 🌪️ +80 primos"
+        },
+        "2": {
+          "passiveId": "anemo_random_primo_refund_2",
+          "passiveType": "randomPrimoRefund",
+          "value": 80,
+          "chanceDenominator": 8,
+          "descriptionCourte": "1/8 : +80 primos",
+          "descriptionLongue": "Donne 1 chance sur 8 de récupérer 80 primos lors d'un pull.",
+          "showWhenActive": true,
+          "showWhenTriggered": true,
+          "triggerMessage": "Anemo 🌪️ +80 primos"
+        }
+      }
+    },
+    "geo": {
+      "displayName": "Geo ☄️",
+      "element": "geo",
+      "maxStacks": 2,
+      "category": "pull_resources",
+      "effects": {
+        "1": {
+          "passiveId": "geo_mora_multiplier_1",
+          "passiveType": "moraMultiplier",
+          "value": 1.25,
+          "chanceDenominator": 1,
+          "descriptionCourte": "Moras x1.25",
+          "descriptionLongue": "Multiplie par 1.25 les moras obtenues lors des pulls.",
+          "showWhenActive": true,
+          "showWhenTriggered": false
+        },
+        "2": {
+          "passiveId": "geo_mora_multiplier_2",
+          "passiveType": "moraMultiplier",
+          "value": 1.5,
+          "chanceDenominator": 1,
+          "descriptionCourte": "Moras x1.5",
+          "descriptionLongue": "Multiplie par 1.5 les moras obtenues lors des pulls.",
+          "showWhenActive": true,
+          "showWhenTriggered": false
+        }
+      }
+    },
+    "dendro": {
+      "displayName": "Dendro 🌿",
+      "element": "dendro",
+      "maxStacks": 2,
+      "category": "pull_bundle",
+      "effects": {
+        "1": {
+          "passiveId": "dendro_random_resource_bundle_1",
+          "passiveType": "randomResourceBundle",
+          "chanceDenominator": 25,
+          "rewards": {
+            "primogems": 40,
+            "moras": 1000,
+            "particlesEachElement": 5
+          },
+          "descriptionCourte": "1/25 : bonus ressources",
+          "descriptionLongue": "Donne 1 chance sur 25 de gagner 40 primos, 1000 moras et 5 particules de chaque élément lors d'un pull.",
+          "showWhenActive": true,
+          "showWhenTriggered": true,
+          "triggerMessage": "Dendro 🌿 +40 primos, +1000 moras, +5 particules aléatoires"
+        },
+        "2": {
+          "passiveId": "dendro_random_resource_bundle_2",
+          "passiveType": "randomResourceBundle",
+          "chanceDenominator": 15,
+          "rewards": {
+            "primogems": 40,
+            "moras": 1000,
+            "particlesEachElement": 5
+          },
+          "descriptionCourte": "1/15 : bonus ressources",
+          "descriptionLongue": "Donne 1 chance sur 15 de gagner 40 primos, 1000 moras et 5 particules de chaque élément lors d'un pull.",
+          "showWhenActive": true,
+          "showWhenTriggered": true,
+          "triggerMessage": "Dendro 🌿 +40 primos, +1000 moras, +5 particules aléatoires"
+        }
+      }
+    }
+  }
+}

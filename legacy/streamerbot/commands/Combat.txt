@@ -1,0 +1,1740 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !combat
+- !combat affiche la team ennemie du jour et les commandes utiles
+- !combat help affiche un tutoriel court
+- !combat go lance un combat avec la team actuelle du viewer
+- !combat auto choisit temporairement les 4 meilleurs personnages disponibles de la box, lance le combat, puis ne modifie pas la team sauvegardée
+- Génère automatiquement une team ennemie quotidienne dans combat_data.json dès qu'une commande !combat est utilisée
+- Réinitialise combat_data.json à chaque nouveau jour pour éviter un fichier de log énorme
+- Lit combat_config.json pour connaître les forces et faiblesses élémentaires
+- Lit viewers_data.json et genshin_characters.json en JObject / classes pour préserver les propriétés inconnues
+- Ne crée PAS de viewer si le joueur n'existe pas
+- Ne reconstruit jamais entièrement un viewer
+- Ajoute uniquement les sections manquantes via EnsureViewerDefaults
+- Utilise les personnages de la team du joueur pour !combat go
+- Empêche le combat si la team ne contient pas 4 personnages valides et possédés
+- Empêche le combat si au moins un personnage de la team a déjà combattu aujourd'hui et perdu
+- En cas de défaite, bloque les personnages utilisés jusqu'au lendemain
+- En cas de victoire, donne +800 primogems et +20000 moras une seule fois par jour
+- Calcule les chances selon les éléments, les constellations et la rareté des personnages
+- Les constellations 5★ donnent plus de bonus que les constellations 4★
+- Ajoute des statistiques combat dans stats et combat.characterWins / combat.characterLosses
+- Sauvegarde viewers_data.json après chaque combat
+- Ajoute un Boss Fight global mensuel commun à tous les joueurs
+- !combat boss affiche le boss du mois, ses PV, sa résistance et l'état de l'attaque quotidienne
+- !combat boss go attaque le boss une fois par jour avec la team actuelle du joueur
+- Le Boss Fight est indépendant des KO du combat quotidien et ne bloque aucun personnage
+- Les dégâts Boss dépendent de la rareté et des constellations des 4 personnages
+- Un personnage du même élément que la résistance du boss inflige 50% de dégâts
+- Génère automatiquement un nouveau boss au changement de mois et archive le précédent
+- Récompense tous les participants lors de la défaite du boss : +16000 primogems et +500000 moras
+- Enregistre des statistiques Boss individuelles et globales
+- !combat stat affiche les statistiques du joueur et les statistiques globales Boss
+- Sauvegarde le Boss mensuel dans monthly_boss.json
+- Compatible Streamer.bot
+- Sans LINQ
+*/
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    private const int TeamSize = 4;
+    private const int WinPrimos = 800;
+    private const int WinMoras = 20000;
+    private const double BaseWinChance = 50.0;
+    private const double ElementBonus = 3.0;
+    private const double FourStarConstellationBonus = 0.5;
+    private const double FiveStarConstellationBonus = 1.0;
+    private const double MinWinChance = 20.0;
+    private const double MaxWinChance = 85.0;
+    private const int MaxMessageLength = 450;
+
+    // Boss Fight mensuel
+    private const int BossBaseHp = 1500000;
+    private const double BossHpVariation = 0.15;
+    private const int BossRewardPrimos = 16000;
+    private const int BossRewardMoras = 500000;
+    private const int FiveStarBossBaseDamage = 1000;
+    private const int FiveStarBossConstellationDamage = 650;
+    private const int FourStarBossBaseDamage = 500;
+    private const int FourStarBossConstellationDamage = 150;
+
+    private static Random random = new Random();
+
+    public bool Execute()
+    {
+        string folderPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data";
+        string viewersPath = Path.Combine(folderPath, "viewers_data.json");
+        string charactersPath = Path.Combine(folderPath, "genshin_characters.json");
+        string combatConfigPath = Path.Combine(folderPath, "combat_config.json");
+        string combatDataPath = Path.Combine(folderPath, "combat_data.json");
+        string monthlyBossPath = Path.Combine(folderPath, "monthly_boss.json");
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+        string input = NormalizeText(GetCommandInput());
+        string today = DateTime.Now.ToString("yyyy-MM-dd");
+
+        if (!File.Exists(viewersPath))
+        {
+            SendWarning(username + ", ton profil n’existe pas encore.");
+            return true;
+        }
+
+        if (!File.Exists(charactersPath))
+        {
+            SendError("Fichier personnages introuvable.");
+            return true;
+        }
+
+        if (!File.Exists(combatConfigPath))
+        {
+            SendError("Fichier combat_config.json introuvable.");
+            return true;
+        }
+
+        JObject viewers = LoadJObject(viewersPath);
+
+        if (viewers == null)
+        {
+            SendError("Impossible de lire viewers_data.json.");
+            return true;
+        }
+
+        JObject viewer = viewers[username] as JObject;
+
+        if (viewer == null)
+        {
+            SendWarning(username + ", ton profil n’existe pas encore.");
+            return true;
+        }
+
+        CharacterFile characterFile = LoadCharacters(charactersPath);
+
+        if (characterFile == null || characterFile.characters == null || characterFile.characters.Count == 0)
+        {
+            SendError("Impossible de lire genshin_characters.json.");
+            return true;
+        }
+
+        JObject combatConfig = LoadJObject(combatConfigPath);
+
+        if (combatConfig == null)
+        {
+            SendError("Impossible de lire combat_config.json.");
+            return true;
+        }
+
+        JObject combatData = LoadJObject(combatDataPath);
+
+        if (combatData == null)
+            combatData = new JObject();
+
+        JObject monthlyBossData = LoadJObject(monthlyBossPath);
+
+        if (monthlyBossData == null)
+            monthlyBossData = new JObject();
+
+        EnsureViewerDefaults(viewer, username);
+        CleanOldCombatLocks(viewer, today);
+        EnsureCombatDataForToday(combatData, today, characterFile);
+        SaveJObject(combatDataPath, combatData);
+
+        EnsureMonthlyBossData(monthlyBossData, DateTime.Now);
+        SaveJObject(monthlyBossPath, monthlyBossData);
+
+        if (string.IsNullOrEmpty(input))
+        {
+            ShowEnemyTeam(username, combatData, characterFile);
+            SaveJObject(viewersPath, viewers);
+            return true;
+        }
+
+        if (input == "help" || input == "aide")
+        {
+            ShowHelp(username);
+            SaveJObject(viewersPath, viewers);
+            return true;
+        }
+
+        if (input == "info" || input == "infos")
+        {
+            ShowCurrentTeamEvaluation(username, viewer, combatData, combatConfig, characterFile, today);
+            SaveJObject(viewersPath, viewers);
+            return true;
+        }
+
+        if (input == "element" || input == "elements" || input == "faiblesse" || input == "faiblesses" || input.StartsWith("element ") || input.StartsWith("elements ") || input.StartsWith("faiblesse ") || input.StartsWith("faiblesses "))
+        {
+            ShowElementRelations(input);
+            SaveJObject(viewersPath, viewers);
+            return true;
+        }
+
+        if (input == "go")
+        {
+            List<int> teamIds = GetViewerTeamIds(viewer);
+            RunCombat(viewersPath, viewers, viewer, username, teamIds, false, combatData, combatConfig, characterFile, today);
+            return true;
+        }
+
+        if (input == "auto")
+        {
+            List<int> autoTeam = BuildBestAutoTeam(viewer, combatData, combatConfig, characterFile, today);
+
+            if (autoTeam.Count < TeamSize)
+            {
+                SendWarning(username + ", impossible de créer une team auto : il faut au moins 4 personnages disponibles dans ta box.");
+                SaveJObject(viewersPath, viewers);
+                return true;
+            }
+
+            RunCombat(viewersPath, viewers, viewer, username, autoTeam, true, combatData, combatConfig, characterFile, today);
+            return true;
+        }
+
+        if (input == "boss")
+        {
+            ShowMonthlyBoss(username, viewer, monthlyBossData, today);
+            SaveJObject(viewersPath, viewers);
+            SaveJObject(monthlyBossPath, monthlyBossData);
+            return true;
+        }
+
+        if (input == "boss go")
+        {
+            RunMonthlyBossAttack(
+                viewersPath,
+                monthlyBossPath,
+                viewers,
+                viewer,
+                username,
+                monthlyBossData,
+                characterFile,
+                today
+            );
+            return true;
+        }
+
+        if (input == "stat" || input == "stats")
+        {
+            ShowCombatStats(username, viewer, monthlyBossData);
+            SaveJObject(viewersPath, viewers);
+            SaveJObject(monthlyBossPath, monthlyBossData);
+            return true;
+        }
+
+        SendWarning(username + ", commande invalide. Utilise : !combat | !combat go | !combat auto | !combat boss | !combat boss go | !combat stat | !combat help");
+        SaveJObject(viewersPath, viewers);
+        return true;
+    }
+
+    private void ShowHelp(string username)
+    {
+       SendInfo(username + ", combat : !combat = ennemis | !combat info = chance de ta team | !combat go = combattre | !combat auto = meilleure team temporaire | !combat boss = boss mensuel | !combat boss go = attaquer le boss (1/jour) | !combat stat = statistiques | !combat elements = forces/faiblesses.");
+    }
+
+    private void ShowElementRelations(string input)
+    {
+        string element = "";
+
+        string[] parts = input.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length >= 2)
+            element = NormalizeElement(parts[1]);
+
+        if (string.IsNullOrEmpty(element))
+        {
+            SendInfo("⚔️ Éléments | 🔥 fort vs ❄️🌿 / faible vs 💧☄️ | 💧 fort vs 🔥☄️ / faible vs ⚡🌿 | ❄️ fort vs 💧🌪️ / faible vs 🔥⚡ | ⚡ fort vs 💧❄️ / faible vs 🌿☄️ | 🌪️ fort vs 🌿⚡ / faible vs ❄️☄️ | ☄️ fort vs ⚡🌪️ / faible vs 💧🔥 | 🌿 fort vs 💧⚡ / faible vs 🔥🌪️");
+            return;
+        }
+
+        if (element == "pyro")
+            SendInfo("🔥 Pyro | Fort contre : ❄️ Cryo, 🌿 Dendro | Faible contre : 💧 Hydro, ☄️ Geo");
+
+        else if (element == "hydro")
+            SendInfo("💧 Hydro | Fort contre : 🔥 Pyro, ☄️ Geo | Faible contre : ⚡ Electro, 🌿 Dendro");
+
+        else if (element == "cryo")
+            SendInfo("❄️ Cryo | Fort contre : 💧 Hydro, 🌪️ Anemo | Faible contre : 🔥 Pyro, ⚡ Electro");
+
+        else if (element == "electro")
+            SendInfo("⚡ Electro | Fort contre : 💧 Hydro, ❄️ Cryo | Faible contre : 🌿 Dendro, ☄️ Geo");
+
+        else if (element == "anemo")
+            SendInfo("🌪️ Anemo | Fort contre : 🌿 Dendro, ⚡ Electro | Faible contre : ❄️ Cryo, ☄️ Geo");
+
+        else if (element == "geo")
+            SendInfo("☄️ Geo | Fort contre : ⚡ Electro, 🌪️ Anemo | Faible contre : 💧 Hydro, 🔥 Pyro");
+
+        else if (element == "dendro")
+            SendInfo("🌿 Dendro | Fort contre : 💧 Hydro, ⚡ Electro | Faible contre : 🔥 Pyro, 🌪️ Anemo");
+
+        else
+            SendWarning("Élément invalide. Utilise : pyro, hydro, cryo, electro, anemo, geo ou dendro.");
+    }
+
+    private void ShowEnemyTeam(string username, JObject combatData, CharacterFile characterFile)
+    {
+        JArray enemyTeam = GetArray(combatData, "enemyTeam");
+        string teamText = FormatTeamDisplay(enemyTeam, null, characterFile, false);
+        SendInfo("⚔️ Combat du jour | Ennemis : " + teamText + " | Lance : !combat go | Auto : !combat auto | Aide : !combat help");
+    }
+
+    private void ShowCurrentTeamEvaluation(string username, JObject viewer, JObject combatData, JObject combatConfig, CharacterFile characterFile, string today)
+    {
+        List<int> teamIds = GetViewerTeamIds(viewer);
+        List<string> validationErrors = ValidateTeam(viewer, teamIds, characterFile, today);
+
+        if (validationErrors.Count > 0)
+        {
+            SendWarning(username + ", évaluation impossible : " + string.Join(" | ", validationErrors.ToArray()));
+            return;
+        }
+
+        JArray enemyTeam = GetArray(combatData, "enemyTeam");
+
+        double chance = CalculateWinChance(viewer, teamIds, enemyTeam, combatConfig, characterFile);
+        string teamText = FormatTeamDisplayFromIds(teamIds, viewer, characterFile, true);
+
+        SendInfo("⚔️ Évaluation combat | Chance de victoire : " + FormatPercent(chance) + " | Team : " + teamText);
+    }
+
+    private void RunCombat(string viewersPath, JObject viewers, JObject viewer, string username, List<int> teamIds, bool isAuto, JObject combatData, JObject combatConfig, CharacterFile characterFile, string today)
+    {
+        if (GetString(GetObject(viewer, "combat"), "lastWinDate") == today)
+        {
+            SendWarning(username + ", tu as déjà gagné ton combat aujourd’hui. Reviens demain !");
+            SaveJObject(viewersPath, viewers);
+            return;
+        }
+
+        List<string> validationErrors = ValidateTeam(viewer, teamIds, characterFile, today);
+
+        if (validationErrors.Count > 0)
+        {
+            SendWarning(username + ", combat impossible : " + string.Join(" | ", validationErrors.ToArray()));
+            SaveJObject(viewersPath, viewers);
+            return;
+        }
+
+        JArray enemyTeam = GetArray(combatData, "enemyTeam");
+
+        if (enemyTeam.Count < TeamSize)
+        {
+            SendError("Team ennemie invalide. Réessaie !combat pour régénérer le combat du jour.");
+            SaveJObject(viewersPath, viewers);
+            return;
+        }
+
+        double chance = CalculateWinChance(viewer, teamIds, enemyTeam, combatConfig, characterFile);
+        bool win = random.NextDouble() * 100.0 < chance;
+
+        JObject combat = GetObject(viewer, "combat");
+        combat["lastFightDate"] = today;
+        combat["lastResult"] = win ? "win" : "lose";
+
+        AddStat(viewer, "totalCombatFights", 1);
+
+        if (win)
+        {
+            combat["lastWinDate"] = today;
+            AddInt(viewer, "primogems", WinPrimos);
+            AddInt(viewer, "moras", WinMoras);
+            AddStat(viewer, "totalPrimosEarned", WinPrimos);
+			AddStat(viewer, "totalMorasEarned", WinMoras);
+			AddStat(viewer, "totalCombatWins", 1);
+
+			// Compte uniquement les victoires faites avec !combat go.
+			// !combat auto appelle RunCombat avec isAuto = true.
+			if (!isAuto)
+				AddStat(viewer, "totalManualCombatWins", 1);
+
+			AddCharacterStat(combat, "characterWins", teamIds);
+
+            SaveJObject(viewersPath, viewers);
+
+            string teamText = FormatTeamDisplayFromIds(teamIds, viewer, characterFile, true);
+            string modeText = isAuto ? "Team auto temporaire" : "Team";
+            SendSplit("✅ ⚔️ " + username + " gagne le combat ! Chance de victoire : " + FormatPercent(chance) + " | " + modeText + " : " + teamText + " | Gain : +💠" + WinPrimos + " (" + GetInt(viewer, "primogems") + "), +💰" + WinMoras + " (" + GetInt(viewer, "moras") + ")");
+            return;
+        }
+
+        AddStat(viewer, "totalCombatLosses", 1);
+        AddCharacterStat(combat, "characterLosses", teamIds);
+        LockLostCharacters(viewer, today, teamIds);
+
+        SaveJObject(viewersPath, viewers);
+
+        string lockedText = FormatTeamDisplayFromIds(teamIds, viewer, characterFile, true);
+        string autoText = isAuto ? "Team auto temporaire utilisée. " : "";
+        SendSplit("❌ ⚔️ " + username + " perd le combat. Chance de victoire : " + FormatPercent(chance) + " | " + autoText + "Personnages bloqués jusqu’à demain : " + lockedText);
+    }
+
+    private List<string> ValidateTeam(JObject viewer, List<int> teamIds, CharacterFile characterFile, string today)
+    {
+        List<string> errors = new List<string>();
+
+        if (teamIds == null || teamIds.Count < TeamSize)
+        {
+            errors.Add("ta team doit contenir 4 personnages");
+            return errors;
+        }
+
+        if (teamIds.Count > TeamSize)
+            errors.Add("ta team contient trop de personnages");
+
+        List<int> unique = new List<int>();
+        List<string> lockedNames = new List<string>();
+
+        for (int i = 0; i < teamIds.Count && i < TeamSize; i++)
+        {
+            int characterId = teamIds[i];
+
+            if (characterId <= 0)
+            {
+                errors.Add("personnage invalide dans la team");
+                continue;
+            }
+
+            if (ContainsInt(unique, characterId))
+            {
+                errors.Add("doublon dans la team");
+                continue;
+            }
+
+            unique.Add(characterId);
+
+            CharacterData character = FindCharacterById(characterFile, characterId);
+
+            if (character == null)
+            {
+                errors.Add("personnage introuvable : " + characterId);
+                continue;
+            }
+
+            if (!ViewerOwnsCharacter(viewer, characterId))
+            {
+                errors.Add("tu ne possèdes pas " + character.nom);
+                continue;
+            }
+
+            if (IsCharacterLockedToday(viewer, characterId, today))
+                lockedNames.Add(GetElementEmoji(character.element) + " " + character.nom);
+        }
+
+        if (lockedNames.Count > 0)
+            errors.Add("change " + string.Join(", ", lockedNames.ToArray()) + " déjà KO aujourd’hui");
+
+        return errors;
+    }
+
+    private double CalculateWinChance(JObject viewer, List<int> playerTeam, JArray enemyTeam, JObject combatConfig, CharacterFile characterFile)
+    {
+        double chance = BaseWinChance;
+
+        for (int i = 0; i < playerTeam.Count && i < TeamSize; i++)
+        {
+            CharacterData playerCharacter = FindCharacterById(characterFile, playerTeam[i]);
+
+            if (playerCharacter == null)
+                continue;
+
+            string playerElement = NormalizeElement(playerCharacter.element);
+
+            for (int j = 0; j < enemyTeam.Count && j < TeamSize; j++)
+            {
+                int enemyId = ToInt(enemyTeam[j]);
+                CharacterData enemyCharacter = FindCharacterById(characterFile, enemyId);
+
+                if (enemyCharacter == null)
+                    continue;
+
+                string enemyElement = NormalizeElement(enemyCharacter.element);
+                int relation = GetElementRelation(playerElement, enemyElement, combatConfig);
+                chance += relation * ElementBonus;
+            }
+
+            int constellation = GetCharacterConstellation(viewer, playerCharacter.id);
+
+            if (constellation < 0)
+                constellation = 0;
+
+            if (constellation > 6)
+                constellation = 6;
+
+            if (playerCharacter.rarete == 5)
+                chance += constellation * FiveStarConstellationBonus;
+            else
+                chance += constellation * FourStarConstellationBonus;
+        }
+
+        if (chance < MinWinChance)
+            chance = MinWinChance;
+
+        if (chance > MaxWinChance)
+            chance = MaxWinChance;
+
+        return chance;
+    }
+
+    private List<int> BuildBestAutoTeam(JObject viewer, JObject combatData, JObject combatConfig, CharacterFile characterFile, string today)
+    {
+        List<CombatCandidate> candidates = new List<CombatCandidate>();
+        JObject box = GetObject(viewer, "box");
+        JArray enemyTeam = GetArray(combatData, "enemyTeam");
+
+        foreach (KeyValuePair<string, JToken> entry in box)
+        {
+            JObject owned = entry.Value as JObject;
+
+            if (owned == null)
+                continue;
+
+            int characterId = GetInt(owned, "characterId");
+
+            if (characterId <= 0)
+            {
+                int parsed;
+                if (int.TryParse(entry.Key, out parsed))
+                    characterId = parsed;
+            }
+
+            if (characterId <= 0)
+                continue;
+
+            if (IsCharacterLockedToday(viewer, characterId, today))
+                continue;
+
+            CharacterData character = FindCharacterById(characterFile, characterId);
+
+            if (character == null)
+                continue;
+
+            CombatCandidate candidate = new CombatCandidate();
+            candidate.characterId = characterId;
+            candidate.score = CalculateAutoScore(viewer, character, enemyTeam, combatConfig, characterFile);
+            candidates.Add(candidate);
+        }
+
+        candidates.Sort(delegate(CombatCandidate a, CombatCandidate b)
+        {
+            int scoreCompare = b.score.CompareTo(a.score);
+
+            if (scoreCompare != 0)
+                return scoreCompare;
+
+            return a.characterId.CompareTo(b.characterId);
+        });
+
+        List<int> result = new List<int>();
+
+        for (int i = 0; i < candidates.Count && result.Count < TeamSize; i++)
+            result.Add(candidates[i].characterId);
+
+        return result;
+    }
+
+    private double CalculateAutoScore(JObject viewer, CharacterData character, JArray enemyTeam, JObject combatConfig, CharacterFile characterFile)
+    {
+        double score = 0;
+        string element = NormalizeElement(character.element);
+
+        for (int i = 0; i < enemyTeam.Count && i < TeamSize; i++)
+        {
+            CharacterData enemy = FindCharacterById(characterFile, ToInt(enemyTeam[i]));
+
+            if (enemy == null)
+                continue;
+
+            score += GetElementRelation(element, NormalizeElement(enemy.element), combatConfig) * 10;
+        }
+
+        int constellation = GetCharacterConstellation(viewer, character.id);
+
+        if (constellation < 0)
+            constellation = 0;
+
+        if (constellation > 6)
+            constellation = 6;
+
+        if (character.rarete == 5)
+            score += 20 + (constellation * 3);
+        else
+            score += 10 + (constellation * 1.5);
+
+        return score;
+    }
+
+    private int GetElementRelation(string attackerElement, string defenderElement, JObject combatConfig)
+    {
+        attackerElement = NormalizeElement(attackerElement);
+        defenderElement = NormalizeElement(defenderElement);
+
+        if (string.IsNullOrEmpty(attackerElement) || string.IsNullOrEmpty(defenderElement))
+            return 0;
+
+        JObject rule = combatConfig[attackerElement] as JObject;
+
+        if (rule == null)
+            return 0;
+
+        JArray strongAgainst = rule["strongAgainst"] as JArray;
+        JArray weakAgainst = rule["weakAgainst"] as JArray;
+
+        if (ArrayContainsString(strongAgainst, defenderElement))
+            return 1;
+
+        if (ArrayContainsString(weakAgainst, defenderElement))
+            return -1;
+
+        return 0;
+    }
+
+    // ============================================================
+    // BOSS FIGHT MENSUEL
+    // ============================================================
+
+    private void EnsureMonthlyBossData(JObject data, DateTime now)
+    {
+        if (data == null)
+            return;
+
+        JObject globalStats = GetObject(data, "globalStats");
+        EnsureInt(globalStats, "totalBossesGenerated", 0);
+        EnsureInt(globalStats, "totalBossesDefeated", 0);
+        EnsureInt(globalStats, "totalDamage", 0);
+        EnsureInt(globalStats, "totalAttacks", 0);
+        EnsureInt(globalStats, "highestHit", 0);
+        EnsureString(globalStats, "highestHitPlayer", "");
+
+        GetArray(data, "history");
+
+        string currentMonth = now.ToString("yyyy-MM");
+        JObject currentBoss = data["currentBoss"] as JObject;
+
+        if (currentBoss == null || GetString(currentBoss, "month") != currentMonth)
+        {
+            if (currentBoss != null && !string.IsNullOrEmpty(GetString(currentBoss, "month")))
+                ArchiveCurrentBoss(data, currentBoss);
+
+            data["currentBoss"] = CreateMonthlyBoss(now);
+            AddInt(globalStats, "totalBossesGenerated", 1);
+        }
+        else
+        {
+            EnsureMonthlyBossDefaults(currentBoss);
+        }
+    }
+
+    private JObject CreateMonthlyBoss(DateTime now)
+    {
+        JObject boss = new JObject();
+        string month = now.ToString("yyyy-MM");
+
+        int minHp = (int)Math.Round(BossBaseHp * (1.0 - BossHpVariation));
+        int maxHp = (int)Math.Round(BossBaseHp * (1.0 + BossHpVariation));
+        int rawHp = random.Next(minHp, maxHp + 1);
+
+        // Arrondi à 10 000 pour garder des PV lisibles.
+        int maxBossHp = (int)(Math.Round(rawHp / 10000.0) * 10000.0);
+
+        string[] resistances = new string[]
+        {
+            "pyro", "hydro", "cryo", "electro", "anemo", "geo", "dendro"
+        };
+
+        boss["month"] = month;
+        boss["name"] = GetBossNameForMonth(now.Month);
+        boss["maxHp"] = maxBossHp;
+        boss["currentHp"] = maxBossHp;
+        boss["resistance"] = resistances[random.Next(resistances.Length)];
+        boss["defeated"] = false;
+        boss["defeatedAt"] = "";
+        boss["finalBlowBy"] = "";
+        boss["totalDamage"] = 0;
+        boss["totalAttacks"] = 0;
+        boss["rewardsDistributed"] = false;
+        boss["participants"] = new JObject();
+        boss["createdAt"] = now.ToString("yyyy-MM-dd HH:mm:ss");
+
+        return boss;
+    }
+
+    private void EnsureMonthlyBossDefaults(JObject boss)
+    {
+        EnsureString(boss, "month", "");
+        EnsureString(boss, "name", "Boss inconnu");
+        EnsureInt(boss, "maxHp", BossBaseHp);
+        EnsureInt(boss, "currentHp", GetInt(boss, "maxHp"));
+        EnsureString(boss, "resistance", "pyro");
+        EnsureBool(boss, "defeated", false);
+        EnsureString(boss, "defeatedAt", "");
+        EnsureString(boss, "finalBlowBy", "");
+        EnsureInt(boss, "totalDamage", 0);
+        EnsureInt(boss, "totalAttacks", 0);
+        EnsureBool(boss, "rewardsDistributed", false);
+        GetObject(boss, "participants");
+        EnsureString(boss, "createdAt", "");
+    }
+
+    private void ArchiveCurrentBoss(JObject data, JObject currentBoss)
+    {
+        JArray history = GetArray(data, "history");
+
+        for (int i = 0; i < history.Count; i++)
+        {
+            JObject archived = history[i] as JObject;
+
+            if (archived != null && GetString(archived, "month") == GetString(currentBoss, "month"))
+                return;
+        }
+
+        history.Add(currentBoss.DeepClone());
+    }
+
+    private string GetBossNameForMonth(int month)
+    {
+        switch (month)
+        {
+            case 1: return "Colosse du Givre Éternel";
+            case 2: return "Dévoreur de Lune";
+            case 3: return "Gardien des Racines Anciennes";
+            case 4: return "Bête de l’Orage Céleste";
+            case 5: return "Chimère des Mille Fleurs";
+            case 6: return "Léviathan des Profondeurs";
+            case 7: return "Titan du Soleil Brisé";
+            case 8: return "Monstre Abyssal";
+            case 9: return "Seigneur des Ruines Oubliées";
+            case 10: return "Spectre de la Nuit Sans Fin";
+            case 11: return "Fléau des Brumes Noires";
+            case 12: return "Souverain du Blizzard";
+            default: return "Entité Abyssale";
+        }
+    }
+
+    private void ShowMonthlyBoss(string username, JObject viewer, JObject data, string today)
+    {
+        JObject boss = data["currentBoss"] as JObject;
+
+        if (boss == null)
+        {
+            SendError("Boss mensuel introuvable.");
+            return;
+        }
+
+        string name = GetString(boss, "name");
+        int currentHp = GetInt(boss, "currentHp");
+        int maxHp = GetInt(boss, "maxHp");
+        string resistance = GetString(boss, "resistance");
+        string month = GetString(boss, "month");
+        bool defeated = GetBool(boss, "defeated");
+
+        if (defeated)
+        {
+            SendInfo(
+                "👑 " + name + " a déjà été vaincu ce mois-ci ! " +
+                "Boss " + month + " | RES " + GetElementEmoji(resistance) + " " + GetElementDisplayName(resistance) +
+                " | Revenez le mois prochain pour affronter un nouveau Boss."
+            );
+            return;
+        }
+
+        JObject participants = GetObject(boss, "participants");
+        JObject participant = participants[username] as JObject;
+        bool alreadyAttackedToday = participant != null && GetString(participant, "lastAttackDate") == today;
+
+        string attackStatus = alreadyAttackedToday
+            ? "Attaque du jour déjà utilisée"
+            : "Attaque disponible : !combat boss go";
+
+        SendInfo(
+            "👹 " + name +
+            " | ❤️ " + currentHp + "/" + maxHp + " PV" +
+            " | 🛡️ RES " + GetElementEmoji(resistance) + " " + GetElementDisplayName(resistance) +
+            " | " + attackStatus
+        );
+    }
+
+    private void RunMonthlyBossAttack(
+        string viewersPath,
+        string monthlyBossPath,
+        JObject viewers,
+        JObject viewer,
+        string username,
+        JObject data,
+        CharacterFile characterFile,
+        string today)
+    {
+        JObject boss = data["currentBoss"] as JObject;
+
+        if (boss == null)
+        {
+            SendError("Boss mensuel introuvable.");
+            return;
+        }
+
+        if (GetBool(boss, "defeated") || GetInt(boss, "currentHp") <= 0)
+        {
+            SendWarning(
+                username + ", " + GetString(boss, "name") +
+                " a déjà été vaincu. Attends le mois prochain pour affronter un nouveau Boss."
+            );
+            return;
+        }
+
+        JObject participants = GetObject(boss, "participants");
+        JObject participant = participants[username] as JObject;
+
+        if (participant != null && GetString(participant, "lastAttackDate") == today)
+        {
+            SendWarning(username + ", tu as déjà attaqué le Boss aujourd’hui. Reviens demain !");
+            return;
+        }
+
+        List<int> teamIds = GetViewerTeamIds(viewer);
+        List<string> validationErrors = ValidateBossTeam(viewer, teamIds, characterFile);
+
+        if (validationErrors.Count > 0)
+        {
+            SendWarning(username + ", attaque Boss impossible : " + string.Join(" | ", validationErrors.ToArray()));
+            return;
+        }
+
+        string resistance = GetString(boss, "resistance");
+        int calculatedDamage = CalculateBossTeamDamage(viewer, teamIds, characterFile, resistance);
+        int currentHp = GetInt(boss, "currentHp");
+        int appliedDamage = calculatedDamage;
+
+        if (appliedDamage > currentHp)
+            appliedDamage = currentHp;
+
+        if (appliedDamage < 0)
+            appliedDamage = 0;
+
+        int remainingHp = currentHp - appliedDamage;
+
+        if (remainingHp < 0)
+            remainingHp = 0;
+
+        boss["currentHp"] = remainingHp;
+        AddInt(boss, "totalDamage", appliedDamage);
+        AddInt(boss, "totalAttacks", 1);
+
+        if (participant == null)
+        {
+            participant = new JObject();
+            participant["damage"] = 0;
+            participant["attacks"] = 0;
+            participant["lastAttackDate"] = "";
+            participant["highestHit"] = 0;
+            participants[username] = participant;
+        }
+
+        AddInt(participant, "damage", appliedDamage);
+        AddInt(participant, "attacks", 1);
+        participant["lastAttackDate"] = today;
+
+        if (appliedDamage > GetInt(participant, "highestHit"))
+            participant["highestHit"] = appliedDamage;
+
+        JObject stats = GetObject(viewer, "stats");
+
+        AddInt(stats, "totalBossDamage", appliedDamage);
+        AddInt(stats, "totalBossAttacks", 1);
+
+        if (appliedDamage > GetInt(stats, "highestBossHit"))
+            stats["highestBossHit"] = appliedDamage;
+
+        string bossMonth = GetString(boss, "month");
+
+        if (GetString(stats, "lastBossParticipationMonth") != bossMonth)
+        {
+            AddInt(stats, "bossesParticipated", 1);
+            stats["lastBossParticipationMonth"] = bossMonth;
+        }
+
+        JObject globalStats = GetObject(data, "globalStats");
+        AddInt(globalStats, "totalDamage", appliedDamage);
+        AddInt(globalStats, "totalAttacks", 1);
+
+        if (appliedDamage > GetInt(globalStats, "highestHit"))
+        {
+            globalStats["highestHit"] = appliedDamage;
+            globalStats["highestHitPlayer"] = username;
+        }
+
+        string teamText = FormatTeamDisplayFromIds(teamIds, viewer, characterFile, true);
+
+        if (remainingHp > 0)
+        {
+            SaveJObject(viewersPath, viewers);
+            SaveJObject(monthlyBossPath, data);
+
+            SendSplit(
+                "⚔️ " + username + " inflige " + appliedDamage + " DMG à " +
+                GetString(boss, "name") + " grâce à sa team [" + teamText + "]" +
+                " | ❤️ PV restants : " + remainingHp + "/" + GetInt(boss, "maxHp")
+            );
+            return;
+        }
+
+        boss["defeated"] = true;
+        boss["defeatedAt"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        boss["finalBlowBy"] = username;
+
+        AddInt(stats, "totalBossFinalBlows", 1);
+        AddInt(globalStats, "totalBossesDefeated", 1);
+
+        DistributeBossCommunityRewards(viewers, boss);
+
+        SaveJObject(viewersPath, viewers);
+        SaveJObject(monthlyBossPath, data);
+
+        SendSplit(
+            "⚔️ " + username + " inflige " + appliedDamage + " DMG à " +
+            GetString(boss, "name") + " grâce à sa team [" + teamText + "]" +
+            " | ❤️ PV restants : 0/" + GetInt(boss, "maxHp")
+        );
+
+        SendSplit(
+            "🏆 " + GetString(boss, "name") +
+            " a été vaincu ! Tous les participants remportent +💠" +
+            BossRewardPrimos + " primos et +💰" + BossRewardMoras +
+            " moras ! Un nouveau Boss apparaîtra le mois prochain."
+        );
+    }
+
+    private List<string> ValidateBossTeam(JObject viewer, List<int> teamIds, CharacterFile characterFile)
+    {
+        List<string> errors = new List<string>();
+
+        if (teamIds == null || teamIds.Count != TeamSize)
+        {
+            errors.Add("ta team doit contenir exactement 4 personnages");
+            return errors;
+        }
+
+        List<int> unique = new List<int>();
+
+        for (int i = 0; i < teamIds.Count; i++)
+        {
+            int characterId = teamIds[i];
+
+            if (characterId <= 0)
+            {
+                errors.Add("personnage invalide dans la team");
+                continue;
+            }
+
+            if (ContainsInt(unique, characterId))
+            {
+                errors.Add("doublon dans la team");
+                continue;
+            }
+
+            unique.Add(characterId);
+
+            CharacterData character = FindCharacterById(characterFile, characterId);
+
+            if (character == null)
+            {
+                errors.Add("personnage introuvable : " + characterId);
+                continue;
+            }
+
+            if (!ViewerOwnsCharacter(viewer, characterId))
+                errors.Add("tu ne possèdes pas " + character.nom);
+        }
+
+        return errors;
+    }
+
+    private int CalculateBossTeamDamage(
+        JObject viewer,
+        List<int> teamIds,
+        CharacterFile characterFile,
+        string bossResistance)
+    {
+        int totalDamage = 0;
+
+        for (int i = 0; i < teamIds.Count && i < TeamSize; i++)
+        {
+            CharacterData character = FindCharacterById(characterFile, teamIds[i]);
+
+            if (character == null)
+                continue;
+
+            int constellation = GetCharacterConstellation(viewer, character.id);
+
+            if (constellation < 0)
+                constellation = 0;
+
+            if (constellation > 6)
+                constellation = 6;
+
+            int damage;
+
+            if (character.rarete == 5)
+                damage = FiveStarBossBaseDamage + (constellation * FiveStarBossConstellationDamage);
+            else
+                damage = FourStarBossBaseDamage + (constellation * FourStarBossConstellationDamage);
+
+            if (NormalizeElement(character.element) == NormalizeElement(bossResistance))
+                damage /= 2;
+
+            totalDamage += damage;
+        }
+
+        return totalDamage;
+    }
+
+    private void DistributeBossCommunityRewards(JObject viewers, JObject boss)
+    {
+        if (GetBool(boss, "rewardsDistributed"))
+            return;
+
+        JObject participants = GetObject(boss, "participants");
+
+        foreach (KeyValuePair<string, JToken> entry in participants)
+        {
+            string participantUsername = NormalizeUsername(entry.Key);
+            JObject participantData = entry.Value as JObject;
+
+            if (participantData == null || GetInt(participantData, "damage") <= 0)
+                continue;
+
+            JObject participantViewer = viewers[participantUsername] as JObject;
+
+            if (participantViewer == null)
+                continue;
+
+            EnsureViewerDefaults(participantViewer, participantUsername);
+
+            AddInt(participantViewer, "primogems", BossRewardPrimos);
+            AddInt(participantViewer, "moras", BossRewardMoras);
+            AddStat(participantViewer, "totalPrimosEarned", BossRewardPrimos);
+            AddStat(participantViewer, "totalMorasEarned", BossRewardMoras);
+            AddStat(participantViewer, "bossesDefeated", 1);
+        }
+
+        boss["rewardsDistributed"] = true;
+    }
+
+    private void ShowCombatStats(string username, JObject viewer, JObject data)
+    {
+        JObject stats = GetObject(viewer, "stats");
+        JObject globalStats = GetObject(data, "globalStats");
+        JObject boss = data["currentBoss"] as JObject;
+
+        string currentMonthText = "";
+
+        if (boss != null)
+        {
+            JObject participants = GetObject(boss, "participants");
+            JObject participant = participants[username] as JObject;
+
+            int monthDamage = participant != null ? GetInt(participant, "damage") : 0;
+            int monthAttacks = participant != null ? GetInt(participant, "attacks") : 0;
+
+            currentMonthText =
+                " | Ce mois : " + monthDamage + " DMG / " + monthAttacks + " attaque(s)";
+        }
+
+        string recordPlayer = GetString(globalStats, "highestHitPlayer");
+
+        if (string.IsNullOrEmpty(recordPlayer))
+            recordPlayer = "aucun";
+
+        SendSplit(
+            "📊 " + username +
+            " | Combat : " + GetInt(stats, "totalCombatFights") + " combats, " +
+            GetInt(stats, "totalCombatWins") + " victoires, " +
+            GetInt(stats, "totalCombatLosses") + " défaites" +
+            " | Boss : " + GetInt(stats, "totalBossDamage") + " DMG, " +
+            GetInt(stats, "totalBossAttacks") + " attaque(s), " +
+            GetInt(stats, "bossesParticipated") + " boss participé(s), " +
+            GetInt(stats, "bossesDefeated") + " boss vaincu(s), " +
+            GetInt(stats, "totalBossFinalBlows") + " coup(s) final(aux), record " +
+            GetInt(stats, "highestBossHit") + " DMG" +
+            currentMonthText
+        );
+
+        SendSplit(
+            "🌍 Boss global | " +
+            GetInt(globalStats, "totalBossesGenerated") + " boss généré(s), " +
+            GetInt(globalStats, "totalBossesDefeated") + " vaincu(s)" +
+            " | " + GetInt(globalStats, "totalDamage") + " DMG cumulés" +
+            " | " + GetInt(globalStats, "totalAttacks") + " attaque(s)" +
+            " | Record : " + recordPlayer + " " + GetInt(globalStats, "highestHit") + " DMG"
+        );
+    }
+
+    private string GetElementDisplayName(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "Pyro";
+            case "hydro": return "Hydro";
+            case "cryo": return "Cryo";
+            case "electro": return "Electro";
+            case "anemo": return "Anemo";
+            case "geo": return "Geo";
+            case "dendro": return "Dendro";
+            default: return "Inconnu";
+        }
+    }
+
+    private void EnsureCombatDataForToday(JObject combatData, string today, CharacterFile characterFile)
+    {
+        string currentDate = GetString(combatData, "date");
+        JArray enemyTeam = combatData["enemyTeam"] as JArray;
+
+        if (currentDate != today || enemyTeam == null || enemyTeam.Count < TeamSize)
+        {
+            combatData.RemoveAll();
+            combatData["date"] = today;
+            combatData["enemyTeam"] = GenerateEnemyTeam(characterFile);
+        }
+    }
+
+    private JArray GenerateEnemyTeam(CharacterFile characterFile)
+    {
+        JArray result = new JArray();
+        List<CharacterData> pool = new List<CharacterData>();
+
+        if (characterFile != null && characterFile.characters != null)
+        {
+            for (int i = 0; i < characterFile.characters.Count; i++)
+            {
+                CharacterData c = characterFile.characters[i];
+
+                if (c == null)
+                    continue;
+
+                if (c.id <= 0)
+                    continue;
+
+                if (string.IsNullOrEmpty(NormalizeElement(c.element)))
+                    continue;
+
+                pool.Add(c);
+            }
+        }
+
+        while (result.Count < TeamSize && pool.Count > 0)
+        {
+            int index = random.Next(pool.Count);
+            result.Add(pool[index].id);
+            pool.RemoveAt(index);
+        }
+
+        return result;
+    }
+
+    private void LockLostCharacters(JObject viewer, string today, List<int> teamIds)
+    {
+        JObject combat = GetObject(viewer, "combat");
+        JObject lostCharacters = GetObject(combat, "lostCharacters");
+        JArray todayLocks = GetArray(lostCharacters, today);
+
+        for (int i = 0; i < teamIds.Count; i++)
+        {
+            int id = teamIds[i];
+
+            if (!ArrayContainsInt(todayLocks, id))
+                todayLocks.Add(id);
+        }
+    }
+
+    private bool IsCharacterLockedToday(JObject viewer, int characterId, string today)
+    {
+        JObject combat = GetObject(viewer, "combat");
+        JObject lostCharacters = GetObject(combat, "lostCharacters");
+        JArray todayLocks = lostCharacters[today] as JArray;
+
+        return ArrayContainsInt(todayLocks, characterId);
+    }
+
+    private void CleanOldCombatLocks(JObject viewer, string today)
+    {
+        JObject combat = GetObject(viewer, "combat");
+        JObject lostCharacters = GetObject(combat, "lostCharacters");
+        JObject kept = new JObject();
+
+        JArray todayLocks = lostCharacters[today] as JArray;
+
+        if (todayLocks != null)
+            kept[today] = todayLocks;
+
+        combat["lostCharacters"] = kept;
+    }
+
+    private void AddCharacterStat(JObject combat, string key, List<int> teamIds)
+    {
+        JObject stats = GetObject(combat, key);
+
+        for (int i = 0; i < teamIds.Count; i++)
+        {
+            string idKey = teamIds[i].ToString();
+            AddInt(stats, idKey, 1);
+        }
+    }
+
+    private List<int> GetViewerTeamIds(JObject viewer)
+    {
+        List<int> result = new List<int>();
+        JArray team = GetArray(viewer, "team");
+
+        for (int i = 0; i < team.Count; i++)
+        {
+            int id = ToInt(team[i]);
+
+            if (id > 0)
+                result.Add(id);
+        }
+
+        return result;
+    }
+
+    private bool ViewerOwnsCharacter(JObject viewer, int characterId)
+    {
+        JObject box = GetObject(viewer, "box");
+        string idKey = characterId.ToString();
+
+        if (box[idKey] != null && box[idKey].Type == JTokenType.Object)
+            return true;
+
+        foreach (KeyValuePair<string, JToken> entry in box)
+        {
+            JObject owned = entry.Value as JObject;
+
+            if (owned != null && GetInt(owned, "characterId") == characterId)
+                return true;
+        }
+
+        return false;
+    }
+
+    private int GetCharacterConstellation(JObject viewer, int characterId)
+    {
+        JObject box = GetObject(viewer, "box");
+        string idKey = characterId.ToString();
+        JObject ownedByKey = box[idKey] as JObject;
+
+        if (ownedByKey != null)
+            return GetInt(ownedByKey, "constellation");
+
+        foreach (KeyValuePair<string, JToken> entry in box)
+        {
+            JObject owned = entry.Value as JObject;
+
+            if (owned != null && GetInt(owned, "characterId") == characterId)
+                return GetInt(owned, "constellation");
+        }
+
+        return 0;
+    }
+
+    private string FormatTeamDisplay(JArray ids, JObject viewer, CharacterFile characterFile, bool includeConstellation)
+    {
+        List<int> teamIds = new List<int>();
+
+        for (int i = 0; i < ids.Count; i++)
+            teamIds.Add(ToInt(ids[i]));
+
+        return FormatTeamDisplayFromIds(teamIds, viewer, characterFile, includeConstellation);
+    }
+
+    private string FormatTeamDisplayFromIds(List<int> ids, JObject viewer, CharacterFile characterFile, bool includeConstellation)
+    {
+        List<string> texts = new List<string>();
+
+        for (int i = 0; i < ids.Count && i < TeamSize; i++)
+        {
+            CharacterData character = FindCharacterById(characterFile, ids[i]);
+
+            if (character == null)
+                continue;
+
+            string text = GetElementEmoji(character.element) + " " + character.nom;
+
+            if (includeConstellation && viewer != null)
+                text += " (C" + GetCharacterConstellation(viewer, character.id) + ")";
+            else
+                text += " (" + character.rarete + "★)";
+
+            texts.Add(text);
+        }
+
+        if (texts.Count == 0)
+            return "aucune";
+
+        return string.Join(" - ", texts.ToArray());
+    }
+
+    private CharacterData FindCharacterById(CharacterFile characterFile, int characterId)
+    {
+        if (characterFile == null || characterFile.characters == null)
+            return null;
+
+        for (int i = 0; i < characterFile.characters.Count; i++)
+        {
+            CharacterData character = characterFile.characters[i];
+
+            if (character != null && character.id == characterId)
+                return character;
+        }
+
+        return null;
+    }
+
+    private void EnsureViewerDefaults(JObject viewer, string username)
+    {
+        if (viewer == null)
+            return;
+
+        if (viewer["username"] == null || viewer["username"].Type == JTokenType.Null)
+            viewer["username"] = username;
+
+        EnsureInt(viewer, "xp", 0);
+        EnsureInt(viewer, "level", 0);
+        EnsureString(viewer, "element", "");
+        EnsureInt(viewer, "primogems", 0);
+        EnsureInt(viewer, "moras", 0);
+        EnsureInt(viewer, "selectedBannerCharacterId", 0);
+
+        JObject particles = GetObject(viewer, "particles");
+        EnsureInt(particles, "pyro", 0);
+        EnsureInt(particles, "hydro", 0);
+        EnsureInt(particles, "cryo", 0);
+        EnsureInt(particles, "electro", 0);
+        EnsureInt(particles, "anemo", 0);
+        EnsureInt(particles, "geo", 0);
+        EnsureInt(particles, "dendro", 0);
+
+        GetObject(viewer, "box");
+        GetArray(viewer, "team");
+
+        JObject pity = GetObject(viewer, "pity");
+        EnsureInt(pity, "pity5", 0);
+        EnsureInt(pity, "pity4", 0);
+
+        JObject guarantee = GetObject(viewer, "guarantee");
+        EnsureBool(guarantee, "guaranteedFeatured5", false);
+
+        JObject options = GetObject(viewer, "options");
+        EnsureString(options, "boxSort", "a");
+        EnsureBool(options, "boxSortDescending", false);
+
+        JObject missions = GetObject(viewer, "missions");
+        JObject daily = GetObject(missions, "daily");
+        EnsureNullOrString(daily, "missionId");
+        EnsureNullOrString(daily, "type");
+        EnsureInt(daily, "progress", 0);
+        EnsureInt(daily, "target", 0);
+        EnsureBool(daily, "completed", false);
+        EnsureBool(daily, "rewardClaimed", false);
+        EnsureNullOrString(daily, "startedAt");
+        EnsureNullOrString(daily, "description");
+
+        GetArray(viewer, "tradeRequests");
+        GetArray(viewer, "usedCodes");
+        GetObject(viewer, "coffre");
+
+        JObject favor = GetObject(viewer, "favor");
+        EnsureInt(favor, "daysRemaining", 0);
+        EnsureString(favor, "obtainedDate", "");
+        EnsureString(favor, "lastClaimDate", "");
+
+        JObject specialItems = GetObject(viewer, "specialItems");
+        EnsureInt(specialItems, "masterlessStellaFortuna", 0);
+
+        JObject stats = GetObject(viewer, "stats");
+        EnsureInt(stats, "totalMessages", 0);
+        EnsureInt(stats, "countedMessages", 0);
+        EnsureInt(stats, "totalPulls", 0);
+        EnsureInt(stats, "totalFiveStars", 0);
+        EnsureInt(stats, "totalFourStars", 0);
+        EnsureBool(stats, "lastPullWasFiveStar", false);
+        EnsureInt(stats, "fiftyFiftyLostStreak", 0);
+        EnsureInt(stats, "fiftyFiftyWon", 0);
+        EnsureInt(stats, "fiftyFiftyLost", 0);
+        EnsureInt(stats, "totalPrimosEarned", 0);
+        EnsureInt(stats, "totalPrimosSpent", 0);
+        EnsureInt(stats, "totalMorasEarned", 0);
+        EnsureInt(stats, "totalMorasSpent", 0);
+        EnsureInt(stats, "level100OverflowRewardsClaimed", 0);
+        EnsureInt(stats, "totalCombatFights", 0);
+		EnsureInt(stats, "totalCombatWins", 0);
+		EnsureInt(stats, "totalManualCombatWins", 0);
+		EnsureInt(stats, "totalCombatLosses", 0);
+        EnsureInt(stats, "totalBossDamage", 0);
+        EnsureInt(stats, "totalBossAttacks", 0);
+        EnsureInt(stats, "totalBossFinalBlows", 0);
+        EnsureInt(stats, "bossesParticipated", 0);
+        EnsureInt(stats, "bossesDefeated", 0);
+        EnsureInt(stats, "highestBossHit", 0);
+        EnsureString(stats, "lastBossParticipationMonth", "");
+
+        JObject dates = GetObject(viewer, "dates");
+        EnsureNullOrString(dates, "firstSeen");
+        EnsureNullOrString(dates, "lastSeen");
+        EnsureNullOrString(dates, "lastXpDate");
+        EnsureNullOrString(dates, "lastMessageTime");
+        EnsureNullOrString(dates, "lastDailyFirstMessageReward");
+        EnsureNullOrString(dates, "lastMonthlyEventAnnouncement");
+
+        JObject combat = GetObject(viewer, "combat");
+        EnsureString(combat, "lastWinDate", "");
+        EnsureString(combat, "lastFightDate", "");
+        EnsureString(combat, "lastResult", "");
+        GetObject(combat, "lostCharacters");
+        GetObject(combat, "characterWins");
+        GetObject(combat, "characterLosses");
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        try
+        {
+            if (!File.Exists(path))
+                return new JObject();
+
+            string json = File.ReadAllText(path);
+
+            if (string.IsNullOrWhiteSpace(json))
+                return new JObject();
+
+            JObject data = JObject.Parse(json);
+
+            if (data == null)
+                return new JObject();
+
+            return data;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void SaveJObject(string path, JObject data)
+    {
+        string folder = Path.GetDirectoryName(path);
+
+        if (!Directory.Exists(folder))
+            Directory.CreateDirectory(folder);
+
+        File.WriteAllText(path, data.ToString(Formatting.Indented));
+    }
+
+    private CharacterFile LoadCharacters(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+            CharacterFile characterFile = JsonConvert.DeserializeObject<CharacterFile>(json);
+
+            if (characterFile == null)
+                characterFile = new CharacterFile();
+
+            if (characterFile.characters == null)
+                characterFile.characters = new List<CharacterData>();
+
+            return characterFile;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private JObject GetObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+
+        return parent[key] as JObject;
+    }
+
+    private JArray GetArray(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Array)
+            parent[key] = new JArray();
+
+        return parent[key] as JArray;
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private bool GetBool(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return false;
+
+        bool value;
+        if (bool.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return false;
+    }
+
+    private void AddInt(JObject obj, string key, int amount)
+    {
+        int current = GetInt(obj, key);
+        obj[key] = current + amount;
+    }
+
+    private void AddStat(JObject viewer, string statName, int amount)
+    {
+        JObject stats = GetObject(viewer, "stats");
+        AddInt(stats, statName, amount);
+    }
+
+    private void EnsureInt(JObject obj, string key, int defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureBool(JObject obj, string key, bool defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureString(JObject obj, string key, string defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureNullOrString(JObject obj, string key)
+    {
+        if (obj[key] == null)
+            obj[key] = null;
+    }
+
+    private bool ArrayContainsString(JArray array, string value)
+    {
+        if (array == null)
+            return false;
+
+        for (int i = 0; i < array.Count; i++)
+        {
+            if (array[i] != null && NormalizeElement(array[i].ToString()) == NormalizeElement(value))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool ArrayContainsInt(JArray array, int value)
+    {
+        if (array == null)
+            return false;
+
+        for (int i = 0; i < array.Count; i++)
+        {
+            if (ToInt(array[i]) == value)
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool ContainsInt(List<int> list, int value)
+    {
+        if (list == null)
+            return false;
+
+        for (int i = 0; i < list.Count; i++)
+        {
+            if (list[i] == value)
+                return true;
+        }
+
+        return false;
+    }
+
+    private int ToInt(JToken token)
+    {
+        if (token == null || token.Type == JTokenType.Null)
+            return 0;
+
+        int value;
+        if (int.TryParse(token.ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private string NormalizeText(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return "";
+
+        string value = text.ToLower().Trim();
+        value = value.Replace("à", "a"); value = value.Replace("á", "a"); value = value.Replace("â", "a"); value = value.Replace("ä", "a"); value = value.Replace("ã", "a");
+        value = value.Replace("ç", "c");
+        value = value.Replace("è", "e"); value = value.Replace("é", "e"); value = value.Replace("ê", "e"); value = value.Replace("ë", "e");
+        value = value.Replace("ì", "i"); value = value.Replace("í", "i"); value = value.Replace("î", "i"); value = value.Replace("ï", "i");
+        value = value.Replace("ò", "o"); value = value.Replace("ó", "o"); value = value.Replace("ô", "o"); value = value.Replace("ö", "o"); value = value.Replace("õ", "o");
+        value = value.Replace("ù", "u"); value = value.Replace("ú", "u"); value = value.Replace("û", "u"); value = value.Replace("ü", "u");
+        value = value.Replace("ÿ", "y"); value = value.Replace("œ", "oe"); value = value.Replace("æ", "ae");
+        return value;
+    }
+
+    private string NormalizeElement(string element)
+    {
+        if (string.IsNullOrEmpty(element))
+            return "";
+
+        string normalized = NormalizeText(element);
+
+        switch (normalized)
+        {
+            case "pyro": return "pyro";
+            case "hydro": return "hydro";
+            case "cryo": return "cryo";
+            case "electro": return "electro";
+            case "anemo": return "anemo";
+            case "geo": return "geo";
+            case "dendro": return "dendro";
+            default: return "";
+        }
+    }
+
+    private string GetElementEmoji(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "🔥";
+            case "hydro": return "💧";
+            case "cryo": return "❄️";
+            case "electro": return "⚡";
+            case "anemo": return "🌪️";
+            case "geo": return "☄️";
+            case "dendro": return "🌿";
+            default: return "";
+        }
+    }
+
+    private string FormatPercent(double value)
+    {
+        return value.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + "%";
+    }
+
+    private void SendSplit(string message)
+    {
+        if (string.IsNullOrEmpty(message))
+            return;
+
+        if (message.Length <= MaxMessageLength)
+        {
+            CPH.SendMessage(message);
+            return;
+        }
+
+        string remaining = message;
+
+        while (remaining.Length > MaxMessageLength)
+        {
+            int cut = remaining.LastIndexOf(" | ", MaxMessageLength);
+
+            if (cut <= 0)
+                cut = MaxMessageLength;
+
+            string part = remaining.Substring(0, cut).Trim();
+            CPH.SendMessage(part);
+            remaining = remaining.Substring(cut).Trim();
+
+            if (remaining.StartsWith("|"))
+                remaining = remaining.Substring(1).Trim();
+        }
+
+        if (remaining.Length > 0)
+            CPH.SendMessage(remaining);
+    }
+
+    private void SendInfo(string message) { CPH.SendMessage("ℹ️ " + message); }
+    private void SendWarning(string message) { CPH.SendMessage("⚠️ " + message); }
+    private void SendError(string message) { CPH.SendMessage("❌ " + message); }
+}
+
+public class CombatCandidate
+{
+    public int characterId;
+    public double score;
+}
+
+public class CharacterFile
+{
+    public string lastBannerUpdate { get; set; }
+    public List<CharacterData> characters { get; set; }
+}
+
+public class CharacterData
+{
+    public int id { get; set; }
+    public string nom { get; set; }
+    public int rarete { get; set; }
+    public string element { get; set; }
+    public string arme { get; set; }
+    public string region { get; set; }
+    public string classe { get; set; }
+    public bool bannerFeatured { get; set; }
+    public string passif { get; set; }
+}

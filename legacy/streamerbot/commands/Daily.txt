@@ -1,0 +1,20 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !quotis
+- Affiche les principales activités quotidiennes
+- Sert de rappel rapide aux joueurs
+*/
+using System;
+
+public class CPHInline
+{
+    public bool Execute()
+    {
+        CPH.SendMessage(
+            "📅 Quotis : 🎡 !roue | ⚔️ !combat [auto] | 🧭 !expedition [personnage] | 💖 !ami coeur [pseudo] | 🎪 !event | 🛒 !shop [mission]"
+        );
+
+        return true;
+    }
+}

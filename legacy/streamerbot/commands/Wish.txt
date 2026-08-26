@@ -1,0 +1,267 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !wish
+- Permet à un viewer de participer au giveaway actuellement ouvert
+- Conditions :
+  - giveaway.json doit exister ou être lisible
+  - le giveaway doit être en statut open
+  - le viewer doit exister dans viewers_data.json
+  - le viewer doit être niveau 2 minimum
+  - le viewer ne peut participer qu’une seule fois par giveaway
+- Ajoute le username normalisé dans giveaway.participants
+- Sauvegarde giveaway.json directement sans backup ni fichier temporaire
+- Affiche une phrase aléatoire inspirée de Genshin/Teyvat/Célestia
+- Ne modifie pas viewers_data.json
+- Ne crée PAS de viewer
+- Compatible Streamer.bot
+- Sans LINQ
+*/
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    private const int MinWishLevel = 2;
+    private static Random random = new Random();
+
+    public bool Execute()
+    {
+        string folderPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data";
+        string giveawayPath = Path.Combine(folderPath, "giveaway.json");
+        string viewersPath = Path.Combine(folderPath, "viewers_data.json");
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+
+        if (!File.Exists(giveawayPath))
+        {
+            SendWarning(username + ", aucun giveaway n’est actuellement ouvert.");
+            return true;
+        }
+
+        JObject giveaway = LoadJObject(giveawayPath);
+
+        if (giveaway == null)
+        {
+            SendError("Impossible de lire giveaway.json.");
+            return true;
+        }
+
+        EnsureGiveawayDefaults(giveaway);
+
+        if (GetString(giveaway, "status") != "open")
+        {
+            SendWarning(username + ", aucun giveaway n’est actuellement ouvert.");
+            return true;
+        }
+
+        if (!File.Exists(viewersPath))
+        {
+            SendWarning(username + ", ton profil n’existe pas encore.");
+            return true;
+        }
+
+        JObject viewers = LoadJObject(viewersPath);
+
+        if (viewers == null)
+        {
+            SendError("Impossible de lire viewers_data.json.");
+            return true;
+        }
+
+        JObject viewer = viewers[username] as JObject;
+
+        if (viewer == null)
+        {
+            SendWarning(username + ", ton profil n’existe pas encore. Écris d’abord un message dans le chat.");
+            return true;
+        }
+
+        if (GetInt(viewer, "level") < MinWishLevel)
+        {
+            SendWarning(username + ", tu dois être niveau 2 minimum pour participer au giveaway.");
+            return true;
+        }
+
+        JArray participants = giveaway["participants"] as JArray;
+
+        if (participants == null)
+        {
+            participants = new JArray();
+            giveaway["participants"] = participants;
+        }
+
+        if (IsParticipantAlreadyRegistered(participants, username))
+        {
+            SendWarning(username + ", tu participes déjà au giveaway.");
+            return true;
+        }
+
+        participants.Add(username);
+        giveaway["participantCount"] = participants.Count;
+        giveaway["lastParticipant"] = username;
+        giveaway["lastWishAt"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+        SaveJObject(giveawayPath, giveaway);
+
+        CPH.SendMessage(GetRandomWishMessage(username, participants.Count));
+
+        return true;
+    }
+
+    private void EnsureGiveawayDefaults(JObject giveaway)
+    {
+        EnsureString(giveaway, "status", "closed");
+        EnsureString(giveaway, "openedBy", "");
+        EnsureString(giveaway, "openedAt", "");
+        EnsureString(giveaway, "closedBy", "");
+        EnsureString(giveaway, "closedAt", "");
+        EnsureString(giveaway, "winner", "");
+        EnsureInt(giveaway, "rewardPrimos", 0);
+        EnsureInt(giveaway, "participantCount", 0);
+        EnsureString(giveaway, "lastParticipant", "");
+        EnsureString(giveaway, "lastWishAt", "");
+
+        if (giveaway["participants"] == null || giveaway["participants"].Type == JTokenType.Null || giveaway["participants"].Type != JTokenType.Array)
+            giveaway["participants"] = new JArray();
+    }
+
+    private bool IsParticipantAlreadyRegistered(JArray participants, string username)
+    {
+        if (participants == null)
+            return false;
+
+        for (int i = 0; i < participants.Count; i++)
+        {
+            string participant = NormalizeUsername(participants[i].ToString());
+
+            if (participant == username)
+                return true;
+        }
+
+        return false;
+    }
+
+    private string GetRandomWishMessage(string username, int participantCount)
+    {
+        List<string> messages = new List<string>();
+
+        messages.Add("🌠 " + username + " formule un vœu auprès de Célestia... | 🎁 " + participantCount + " participant(s)");
+        messages.Add("✨ " + username + " confie son souhait aux étoiles de Teyvat. | 🎁 " + participantCount + " participant(s)");
+        messages.Add("💫 " + username + " laisse le vent porter son vœu jusqu’aux cieux. | 🎁 " + participantCount + " participant(s)");
+        messages.Add("⭐ " + username + " observe une étoile filante et tente sa chance. | 🎁 " + participantCount + " participant(s)");
+        messages.Add("🌙 " + username + " remet son destin entre les mains de Célestia. | 🎁 " + participantCount + " participant(s)");
+        messages.Add("🔥 " + username + " implore la chance des Sept Nations. | 🎁 " + participantCount + " participant(s)");
+        messages.Add("❄️ " + username + " fait un vœu sous les étoiles éternelles. | 🎁 " + participantCount + " participant(s)");
+        messages.Add("⚡ " + username + " appelle la faveur des cieux dans un éclat de lumière. | 🎁 " + participantCount + " participant(s)");
+        messages.Add("🌿 " + username + " confie son rêve aux racines de l'Irminsul. | 🎁 " + participantCount + " participant(s)");
+        messages.Add("☄️ " + username + " prie pour que la lumière de Teyvat guide son souhait. | 🎁 " + participantCount + " participant(s)");
+        messages.Add("🌈 " + username + " envoie son vœu au-delà des nuages de Célestia. | 🎁 " + participantCount + " participant(s)");
+        messages.Add("🔮 " + username + " croit en son destin et rejoint le tirage divin. | 🎁 " + participantCount + " participant(s)");
+        messages.Add("🎇 " + username + " grave son souhait dans les étoiles. | 🎁 " + participantCount + " participant(s)");
+        messages.Add("🪽 " + username + " confie son espoir aux vents de Mondstadt. | 🎁 " + participantCount + " participant(s)");
+        messages.Add("🌊 " + username + " laisse son vœu voguer jusqu’aux rivages de Fontaine. | 🎁 " + participantCount + " participant(s)");
+        messages.Add("🪨 " + username + " scelle son souhait dans la pierre de Liyue. | 🎁 " + participantCount + " participant(s)");
+        messages.Add("🌸 " + username + " murmure un souhait sous les sakura d’Inazuma. | 🎁 " + participantCount + " participant(s)");
+        messages.Add("🍃 " + username + " remet son rêve à la sagesse de Sumeru. | 🎁 " + participantCount + " participant(s)");
+        messages.Add("🏔️ " + username + " brave les terres enneigées de Snezhnaya pour formuler son vœu. | 🎁 " + participantCount + " participant(s)");
+        messages.Add("🧭 " + username + " rejoint les voyageurs qui espèrent voir leur souhait exaucé. | 🎁 " + participantCount + " participant(s)");
+
+        return messages[random.Next(messages.Count)];
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+
+            if (string.IsNullOrWhiteSpace(json))
+                return null;
+
+            JObject data = JObject.Parse(json);
+
+            if (data == null)
+                return null;
+
+            return data;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void SaveJObject(string path, JObject data)
+    {
+        string folder = Path.GetDirectoryName(path);
+
+        if (!Directory.Exists(folder))
+            Directory.CreateDirectory(folder);
+
+        File.WriteAllText(path, data.ToString(Formatting.Indented));
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private void EnsureInt(JObject obj, string key, int defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureString(JObject obj, string key, string defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private void SendWarning(string message)
+    {
+        CPH.SendMessage("⚠️ " + message);
+    }
+
+    private void SendError(string message)
+    {
+        CPH.SendMessage("❌ " + message);
+    }
+}

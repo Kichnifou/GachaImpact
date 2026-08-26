@@ -1,0 +1,716 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !stella NomPersonnage
+- Lit viewers_data.json en JObject pour préserver toutes les propriétés inconnues
+- Lit genshin_characters.json pour retrouver le personnage demandé par nom ou ID
+- Lit c6_characters.json pour appliquer la progression concours des 5★ déjà C6
+- Ne crée PAS le viewer s’il n’existe pas
+- Initialise uniquement les sections manquantes nécessaires avec EnsureViewerDefaultsJObject
+- Vérifie que le viewer possède au moins 1 Masterless Stella Fortuna
+- Vérifie que le viewer possède le personnage demandé dans sa box
+- Si le personnage est C0 à C5 :
+  - consomme 1 Masterless Stella Fortuna
+  - ajoute +1 constellation
+  - sauvegarde viewers_data.json
+- Si le personnage est déjà C6 et 5★ :
+  - consomme 1 Masterless Stella Fortuna
+  - applique la même logique que le doublon C6 5★ du Pull
+  - ajoute +1 aléatoire à une stat concours dans c6_characters.json
+  - sauvegarde c6_characters.json puis viewers_data.json
+- Refuse l’utilisation sur un personnage 4★ déjà C6
+- N’effectue aucun backup automatique
+*/
+
+using System;
+using System.IO;
+using System.Text;
+using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    private static Random random = new Random();
+
+    public bool Execute()
+    {
+        string folderPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data";
+        string viewersPath = Path.Combine(folderPath, "viewers_data.json");
+        string charactersPath = Path.Combine(folderPath, "genshin_characters.json");
+        string c6CharactersPath = Path.Combine(folderPath, "c6_characters.json");
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+        string input = GetCommandInput();
+
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            SendInfo($"{username}, utilisation : !stella NomPersonnage");
+            return true;
+        }
+
+        if (!File.Exists(viewersPath))
+        {
+            SendWarning($"{username}, ton profil n’existe pas encore. Écris d’abord un message dans le chat.");
+            return true;
+        }
+
+        if (!File.Exists(charactersPath))
+        {
+            SendError("Aucun fichier personnage trouvé.");
+            return true;
+        }
+
+        JObject viewers = LoadJObject(viewersPath);
+
+        if (viewers == null)
+        {
+            SendError("Impossible de lire viewers_data.json.");
+            return true;
+        }
+
+        JObject viewer = viewers[username] as JObject;
+
+        if (viewer == null)
+        {
+            SendWarning($"{username}, ton profil n’existe pas encore. Écris d’abord un message dans le chat.");
+            return true;
+        }
+
+        CharacterFile characterFile = LoadCharacters(charactersPath);
+
+        if (characterFile == null || characterFile.characters == null)
+        {
+            SendError("Impossible de lire la liste des personnages.");
+            return true;
+        }
+
+        EnsureViewerDefaultsJObject(viewer, username);
+
+        JObject specialItems = viewer["specialItems"] as JObject;
+        int stella = GetInt(specialItems, "masterlessStellaFortuna");
+
+        if (stella <= 0)
+        {
+            SendWarning($"{username}, tu n’as pas de Masterless Stella Fortuna.");
+            return true;
+        }
+
+        CharacterData character = FindCharacterByNameOrId(characterFile, input);
+
+        if (character == null)
+        {
+            SendWarning($"{username}, personnage introuvable : {input}.");
+            return true;
+        }
+
+        JObject box = viewer["box"] as JObject;
+
+        if (box == null)
+        {
+            SendWarning($"{username}, tu ne possèdes aucun personnage.");
+            return true;
+        }
+
+        string idKey = character.id.ToString();
+        JObject owned = box[idKey] as JObject;
+
+        if (owned == null)
+        {
+            SendWarning($"{username}, tu ne possèdes pas {GetElementEmoji(character.element)} {character.nom}.");
+            return true;
+        }
+
+        int constellation = GetInt(owned, "constellation");
+
+        if (constellation < 6)
+        {
+            AddInt(specialItems, "masterlessStellaFortuna", -1);
+            constellation++;
+            owned["constellation"] = constellation;
+
+            SaveJObjectNoBackup(viewersPath, viewers);
+
+            SendSuccess($"{username} utilise 1 Stella sur {GetElementEmoji(character.element)} {character.nom} : passe C{constellation}. Stella restantes : {GetInt(specialItems, "masterlessStellaFortuna")}");
+            return true;
+        }
+
+        if (character.rarete != 5)
+        {
+            SendWarning($"{username}, {GetElementEmoji(character.element)} {character.nom} est déjà C6. Stella réservée aux 5★ C6.");
+            return true;
+        }
+
+        AddInt(specialItems, "masterlessStellaFortuna", -1);
+
+        string c6Progress = UpgradeRandomC6ContestStat(username, character, c6CharactersPath);
+
+        SaveJObjectNoBackup(viewersPath, viewers);
+
+        if (string.IsNullOrEmpty(c6Progress))
+        {
+            SendWarning($"{username}, Stella consommée mais aucune donnée C6 trouvée pour {GetElementEmoji(character.element)} {character.nom}. Stella restantes : {GetInt(specialItems, "masterlessStellaFortuna")}");
+            return true;
+        }
+
+        SendSuccess($"{username} utilise 1 Stella sur {GetElementEmoji(character.element)} {character.nom} C6 | {c6Progress} | Stella restantes : {GetInt(specialItems, "masterlessStellaFortuna")}");
+        return true;
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private CharacterFile LoadCharacters(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+            return JsonConvert.DeserializeObject<CharacterFile>(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private CharacterData FindCharacterByNameOrId(CharacterFile characterFile, string input)
+    {
+        if (characterFile == null || characterFile.characters == null || string.IsNullOrWhiteSpace(input))
+            return null;
+
+        int searchedId;
+
+        if (int.TryParse(input.Trim(), out searchedId))
+            return FindCharacterById(characterFile, searchedId);
+
+        string wanted = NormalizeText(input);
+
+        for (int i = 0; i < characterFile.characters.Count; i++)
+        {
+            CharacterData character = characterFile.characters[i];
+
+            if (character == null)
+                continue;
+
+            if (NormalizeText(character.nom) == wanted)
+                return character;
+        }
+
+        for (int i = 0; i < characterFile.characters.Count; i++)
+        {
+            CharacterData character = characterFile.characters[i];
+
+            if (character == null)
+                continue;
+
+            if (NormalizeText(character.nom).Contains(wanted))
+                return character;
+        }
+
+        return null;
+    }
+
+    private CharacterData FindCharacterById(CharacterFile characterFile, int characterId)
+    {
+        if (characterFile == null || characterFile.characters == null)
+            return null;
+
+        for (int i = 0; i < characterFile.characters.Count; i++)
+        {
+            CharacterData character = characterFile.characters[i];
+
+            if (character != null && character.id == characterId)
+                return character;
+        }
+
+        return null;
+    }
+
+    private string UpgradeRandomC6ContestStat(string username, CharacterData character, string c6CharactersPath)
+    {
+        if (character == null || character.rarete != 5)
+            return "";
+
+        JObject c6Characters = LoadOrCreateJObject(c6CharactersPath);
+
+        JObject userData = c6Characters[username] as JObject;
+
+        if (userData == null)
+            return "";
+
+        JObject characters = userData["characters"] as JObject;
+
+        if (characters == null)
+            return "";
+
+        string idKey = character.id.ToString();
+        JObject c6Data = characters[idKey] as JObject;
+
+        if (c6Data == null)
+            return "";
+
+        JObject stats = c6Data["stats"] as JObject;
+
+        if (stats == null)
+        {
+            stats = new JObject();
+            c6Data["stats"] = stats;
+        }
+
+        EnsureInt(stats, "strength", 1);
+        EnsureInt(stats, "intelligence", 1);
+        EnsureInt(stats, "beauty", 1);
+        EnsureInt(stats, "charisma", 1);
+        EnsureInt(stats, "popularity", 1);
+
+        List<string> availableStats = new List<string>();
+        availableStats.Add("strength");
+        availableStats.Add("intelligence");
+        availableStats.Add("beauty");
+        availableStats.Add("charisma");
+        availableStats.Add("popularity");
+
+        for (int i = availableStats.Count - 1; i >= 0; i--)
+        {
+            if (GetInt(stats, availableStats[i]) >= 20)
+                availableStats.RemoveAt(i);
+        }
+
+        if (availableStats.Count == 0)
+            return "Stats concours déjà max.";
+
+        string selectedStat = availableStats[random.Next(availableStats.Count)];
+        AddInt(stats, selectedStat, 1);
+
+        int newValue = GetInt(stats, selectedStat);
+
+        SaveJObjectNoBackup(c6CharactersPath, c6Characters);
+
+        return "🌟 " + character.nom + " progresse : +1 " + GetContestStatDisplayName(selectedStat) + " (" + newValue + "/20).";
+    }
+
+    private string GetContestStatDisplayName(string stat)
+    {
+        switch (stat)
+        {
+            case "strength": return "💪 Force";
+            case "intelligence": return "🧠 Intelligence";
+            case "beauty": return "✨ Beauté";
+            case "charisma": return "👑 Charisme";
+            case "popularity": return "🎭 Popularité";
+            default: return stat;
+        }
+    }
+
+    private void EnsureViewerDefaultsJObject(JObject viewer, string username)
+    {
+        if (viewer["username"] == null || viewer["username"].Type == JTokenType.Null)
+            viewer["username"] = username;
+
+        EnsureInt(viewer, "xp", 0);
+        EnsureInt(viewer, "level", 0);
+        EnsureString(viewer, "element", "");
+        EnsureInt(viewer, "primogems", 0);
+        EnsureInt(viewer, "moras", 0);
+        EnsureInt(viewer, "selectedBannerCharacterId", 0);
+
+        EnsureObject(viewer, "particles");
+        EnsureObject(viewer, "box");
+        EnsureArray(viewer, "team");
+        EnsureObject(viewer, "pity");
+        EnsureObject(viewer, "guarantee");
+        EnsureObject(viewer, "options");
+        EnsureObject(viewer, "missions");
+        EnsureObject(viewer, "stats");
+        EnsureObject(viewer, "dates");
+        EnsureArray(viewer, "tradeRequests");
+        EnsureArray(viewer, "usedCodes");
+        EnsureObject(viewer, "coffre");
+        EnsureObject(viewer, "specialItems");
+
+        JObject particles = viewer["particles"] as JObject;
+        EnsureInt(particles, "pyro", 0);
+        EnsureInt(particles, "hydro", 0);
+        EnsureInt(particles, "cryo", 0);
+        EnsureInt(particles, "electro", 0);
+        EnsureInt(particles, "anemo", 0);
+        EnsureInt(particles, "geo", 0);
+        EnsureInt(particles, "dendro", 0);
+
+        JObject pity = viewer["pity"] as JObject;
+        EnsureInt(pity, "pity5", 0);
+        EnsureInt(pity, "pity4", 0);
+
+        JObject guarantee = viewer["guarantee"] as JObject;
+        EnsureBool(guarantee, "guaranteedFeatured5", false);
+
+        JObject options = viewer["options"] as JObject;
+        EnsureString(options, "boxSort", "a");
+        EnsureBool(options, "boxSortDescending", false);
+
+        JObject missions = viewer["missions"] as JObject;
+        EnsureObject(missions, "daily");
+
+        JObject daily = missions["daily"] as JObject;
+        EnsureNullOrString(daily, "missionId");
+        EnsureNullOrString(daily, "type");
+        EnsureInt(daily, "progress", 0);
+        EnsureInt(daily, "target", 0);
+        EnsureBool(daily, "completed", false);
+        EnsureBool(daily, "rewardClaimed", false);
+        EnsureNullOrString(daily, "startedAt");
+        EnsureNullOrString(daily, "description");
+
+        JObject stats = viewer["stats"] as JObject;
+        EnsureInt(stats, "totalMessages", 0);
+        EnsureInt(stats, "countedMessages", 0);
+        EnsureInt(stats, "totalPulls", 0);
+        EnsureInt(stats, "totalFiveStars", 0);
+        EnsureInt(stats, "totalFourStars", 0);
+        EnsureBool(stats, "lastPullWasFiveStar", false);
+        EnsureInt(stats, "fiftyFiftyLostStreak", 0);
+        EnsureInt(stats, "fiftyFiftyWon", 0);
+        EnsureInt(stats, "fiftyFiftyLost", 0);
+        EnsureInt(stats, "totalPrimosEarned", 0);
+        EnsureInt(stats, "totalPrimosSpent", 0);
+        EnsureInt(stats, "totalMorasEarned", 0);
+        EnsureInt(stats, "totalMorasSpent", 0);
+        EnsureInt(stats, "level100OverflowRewardsClaimed", 0);
+
+        JObject dates = viewer["dates"] as JObject;
+        EnsureNullOrString(dates, "firstSeen");
+        EnsureNullOrString(dates, "lastSeen");
+        EnsureNullOrString(dates, "lastXpDate");
+        EnsureNullOrString(dates, "lastMessageTime");
+        EnsureNullOrString(dates, "lastDailyFirstMessageReward");
+
+        JObject specialItems = viewer["specialItems"] as JObject;
+        EnsureInt(specialItems, "masterlessStellaFortuna", 0);
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+
+            if (string.IsNullOrWhiteSpace(json))
+                return new JObject();
+
+            return JObject.Parse(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private JObject LoadOrCreateJObject(string path)
+    {
+        if (!File.Exists(path))
+            return new JObject();
+
+        try
+        {
+            string json = File.ReadAllText(path);
+
+            if (string.IsNullOrWhiteSpace(json))
+                return new JObject();
+
+            JObject data = JObject.Parse(json);
+
+            if (data == null)
+                return new JObject();
+
+            return data;
+        }
+        catch
+        {
+            return new JObject();
+        }
+    }
+
+    private void SaveJObjectNoBackup(string path, JObject data)
+    {
+        string folder = Path.GetDirectoryName(path);
+
+        if (!Directory.Exists(folder))
+            Directory.CreateDirectory(folder);
+
+        string tempPath = path + ".tmp";
+
+        File.WriteAllText(tempPath, data.ToString(Formatting.Indented));
+
+        if (File.Exists(path))
+            File.Delete(path);
+
+        File.Move(tempPath, path);
+    }
+
+    private void EnsureObject(JObject obj, string property)
+    {
+        if (obj[property] == null || obj[property].Type == JTokenType.Null || obj[property].Type != JTokenType.Object)
+            obj[property] = new JObject();
+    }
+
+    private void EnsureArray(JObject obj, string property)
+    {
+        if (obj[property] == null || obj[property].Type == JTokenType.Null || obj[property].Type != JTokenType.Array)
+            obj[property] = new JArray();
+    }
+
+    private void EnsureInt(JObject obj, string property, int defaultValue)
+    {
+        if (obj == null)
+            return;
+
+        if (obj[property] == null || obj[property].Type == JTokenType.Null)
+        {
+            obj[property] = defaultValue;
+            return;
+        }
+
+        int value;
+
+        if (!int.TryParse(obj[property].ToString(), out value))
+            obj[property] = defaultValue;
+    }
+
+    private void EnsureString(JObject obj, string property, string defaultValue)
+    {
+        if (obj == null)
+            return;
+
+        if (obj[property] == null || obj[property].Type == JTokenType.Null)
+            obj[property] = defaultValue;
+    }
+
+    private void EnsureNullOrString(JObject obj, string property)
+    {
+        if (obj == null)
+            return;
+
+        if (obj[property] == null)
+            obj[property] = null;
+    }
+
+    private void EnsureBool(JObject obj, string property, bool defaultValue)
+    {
+        if (obj == null)
+            return;
+
+        if (obj[property] == null || obj[property].Type == JTokenType.Null)
+        {
+            obj[property] = defaultValue;
+            return;
+        }
+
+        bool value;
+
+        if (!bool.TryParse(obj[property].ToString(), out value))
+            obj[property] = defaultValue;
+    }
+
+    private int GetInt(JObject obj, string property)
+    {
+        if (obj == null || obj[property] == null || obj[property].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[property].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private void AddInt(JObject obj, string property, int amount)
+    {
+        if (obj == null)
+            return;
+
+        int current = GetInt(obj, property);
+        obj[property] = current + amount;
+    }
+
+    private string GetElementEmoji(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "🔥";
+            case "hydro": return "💧";
+            case "cryo": return "❄️";
+            case "electro": return "⚡";
+            case "anemo": return "🌪️";
+            case "geo": return "☄️";
+            case "dendro": return "🌿";
+            default: return "";
+        }
+    }
+
+    private string NormalizeElement(string element)
+    {
+        if (string.IsNullOrEmpty(element))
+            return "";
+
+        string normalized = element.ToLower().Trim();
+
+        switch (normalized)
+        {
+            case "pyro": return "pyro";
+            case "hydro": return "hydro";
+            case "cryo": return "cryo";
+            case "electro":
+            case "électro": return "electro";
+            case "anemo":
+            case "anémo": return "anemo";
+            case "geo":
+            case "géo": return "geo";
+            case "dendro": return "dendro";
+            default: return normalized;
+        }
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private string NormalizeText(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return "";
+
+        string lower = text.Trim().ToLower();
+
+        StringBuilder builder = new StringBuilder();
+
+        for (int i = 0; i < lower.Length; i++)
+        {
+            char c = lower[i];
+
+            switch (c)
+            {
+                case 'à':
+                case 'á':
+                case 'â':
+                case 'ä':
+                case 'ã':
+                case 'å':
+                    builder.Append('a');
+                    break;
+
+                case 'ç':
+                    builder.Append('c');
+                    break;
+
+                case 'è':
+                case 'é':
+                case 'ê':
+                case 'ë':
+                    builder.Append('e');
+                    break;
+
+                case 'ì':
+                case 'í':
+                case 'î':
+                case 'ï':
+                    builder.Append('i');
+                    break;
+
+                case 'ò':
+                case 'ó':
+                case 'ô':
+                case 'ö':
+                case 'õ':
+                    builder.Append('o');
+                    break;
+
+                case 'ù':
+                case 'ú':
+                case 'û':
+                case 'ü':
+                    builder.Append('u');
+                    break;
+
+                case 'ý':
+                case 'ÿ':
+                    builder.Append('y');
+                    break;
+
+                case 'œ':
+                    builder.Append("oe");
+                    break;
+
+                case 'æ':
+                    builder.Append("ae");
+                    break;
+
+                default:
+                    if (char.IsLetterOrDigit(c) || c == ' ')
+                        builder.Append(c);
+                    break;
+            }
+        }
+
+        return builder.ToString().Replace(" ", "");
+    }
+
+    private void SendSuccess(string message)
+    {
+        CPH.SendMessage("✅ " + message);
+    }
+
+    private void SendWarning(string message)
+    {
+        CPH.SendMessage("⚠️ " + message);
+    }
+
+    private void SendError(string message)
+    {
+        CPH.SendMessage("❌ " + message);
+    }
+
+    private void SendInfo(string message)
+    {
+        CPH.SendMessage("ℹ️ " + message);
+    }
+}
+
+public class CharacterFile
+{
+    public string lastBannerUpdate { get; set; }
+    public List<CharacterData> characters { get; set; }
+}
+
+public class CharacterData
+{
+    public int id { get; set; }
+    public string nom { get; set; }
+    public int rarete { get; set; }
+    public string element { get; set; }
+    public string arme { get; set; }
+    public string region { get; set; }
+    public string classe { get; set; }
+    public bool bannerFeatured { get; set; }
+    public string passif { get; set; }
+}

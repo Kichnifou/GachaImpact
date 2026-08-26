@@ -1,0 +1,310 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !obtention
+- Lit viewers_data.json avec JObject
+- Lit genshin_characters.json
+- Ne crée PAS le viewer s’il n’existe pas
+- Vérifie que le personnage demandé existe
+- Vérifie que le viewer possède le personnage
+- Affiche la date de première obtention du personnage
+- Ignore la casse et les accents dans le nom du personnage
+- Ne sauvegarde rien
+- Préserve totalement les autres données JSON
+*/
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    public bool Execute()
+    {
+        string folderPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data";
+
+        string viewersPath = Path.Combine(folderPath, "viewers_data.json");
+        string charactersPath = Path.Combine(folderPath, "genshin_characters.json");
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+
+        if (!File.Exists(viewersPath))
+        {
+            SendWarning($"{username}, ton profil n’existe pas encore.");
+            return true;
+        }
+
+        if (!File.Exists(charactersPath))
+        {
+            SendError("Impossible de trouver le fichier des personnages.");
+            return true;
+        }
+
+        string input = GetCommandInput();
+
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            SendWarning($"{username}, utilise : !obtention nomdupersonnage");
+            return true;
+        }
+
+        JObject viewers = LoadJObject(viewersPath);
+
+        if (viewers == null)
+        {
+            SendError("Impossible de lire viewers_data.json.");
+            return true;
+        }
+
+        JObject viewer = viewers[username] as JObject;
+
+        if (viewer == null)
+        {
+            SendWarning($"{username}, ton profil n’existe pas encore.");
+            return true;
+        }
+
+        CharacterFile characterFile = LoadCharacters(charactersPath);
+
+        if (characterFile == null || characterFile.characters == null)
+        {
+            SendError("Impossible de lire les personnages.");
+            return true;
+        }
+
+        string normalizedInput = NormalizeText(input);
+        CharacterData character = null;
+
+        for (int i = 0; i < characterFile.characters.Count; i++)
+        {
+            CharacterData current = characterFile.characters[i];
+
+            if (current != null && NormalizeText(current.nom) == normalizedInput)
+            {
+                character = current;
+                break;
+            }
+        }
+
+        if (character == null)
+        {
+            SendWarning($"{username}, personnage introuvable.");
+            return true;
+        }
+
+        JObject box = viewer["box"] as JObject;
+
+        if (box == null)
+        {
+            SendWarning($"{username}, tu ne possèdes pas {character.nom}.");
+            return true;
+        }
+
+        JObject owned = box[character.id.ToString()] as JObject;
+
+        if (owned == null)
+        {
+            owned = FindOwnedCharacterByCharacterId(box, character.id);
+        }
+
+        if (owned == null)
+        {
+            SendWarning($"{username}, tu ne possèdes pas {character.nom}.");
+            return true;
+        }
+
+        string firstObtainedAt = GetString(owned, "firstObtainedAt");
+
+        if (string.IsNullOrEmpty(firstObtainedAt))
+        {
+            SendWarning($"{username}, date d’obtention introuvable pour {character.nom}.");
+            return true;
+        }
+
+        DateTime obtainedDate;
+
+        if (!DateTime.TryParse(firstObtainedAt, out obtainedDate))
+        {
+            SendWarning($"{username}, date d’obtention invalide pour {character.nom}.");
+            return true;
+        }
+
+        string[] mois =
+        {
+            "janvier", "février", "mars", "avril", "mai", "juin",
+            "juillet", "août", "septembre", "octobre", "novembre", "décembre"
+        };
+
+        string formattedDate =
+            $"{obtainedDate.Day} {mois[obtainedDate.Month - 1]} {obtainedDate.Year} à {obtainedDate:HH}h{obtainedDate:mm}";
+
+        SendSuccess($"{username}, tu as obtenu {GetElementEmoji(character.element)} {character.nom} pour la première fois le {formattedDate}.");
+
+        return true;
+    }
+
+    private JObject FindOwnedCharacterByCharacterId(JObject box, int characterId)
+    {
+        foreach (KeyValuePair<string, JToken> entry in box)
+        {
+            JObject owned = entry.Value as JObject;
+
+            if (owned == null)
+                continue;
+
+            if (GetInt(owned, "characterId") == characterId)
+                return owned;
+        }
+
+        return null;
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+            return JObject.Parse(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private CharacterFile LoadCharacters(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+            return JsonConvert.DeserializeObject<CharacterFile>(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private string GetElementEmoji(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "🔥";
+            case "hydro": return "💧";
+            case "cryo": return "❄️";
+            case "electro": return "⚡";
+            case "anemo": return "🌪️";
+            case "geo": return "☄️";
+            case "dendro": return "🌿";
+            default: return "";
+        }
+    }
+
+    private string NormalizeElement(string element)
+    {
+        return NormalizeText(element);
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private string NormalizeText(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return "";
+
+        text = text.ToLower().Trim();
+
+        text = text.Replace("é", "e");
+        text = text.Replace("è", "e");
+        text = text.Replace("ê", "e");
+        text = text.Replace("ë", "e");
+        text = text.Replace("à", "a");
+        text = text.Replace("â", "a");
+        text = text.Replace("ä", "a");
+        text = text.Replace("î", "i");
+        text = text.Replace("ï", "i");
+        text = text.Replace("ô", "o");
+        text = text.Replace("ö", "o");
+        text = text.Replace("ù", "u");
+        text = text.Replace("û", "u");
+        text = text.Replace("ü", "u");
+        text = text.Replace("ç", "c");
+
+        return text;
+    }
+
+    private void SendSuccess(string message)
+    {
+        CPH.SendMessage($"✅ {message}");
+    }
+
+    private void SendWarning(string message)
+    {
+        CPH.SendMessage($"⚠️ {message}");
+    }
+
+    private void SendError(string message)
+    {
+        CPH.SendMessage($"❌ {message}");
+    }
+}
+
+public class CharacterFile
+{
+    public List<CharacterData> characters { get; set; }
+}
+
+public class CharacterData
+{
+    public int id { get; set; }
+    public string nom { get; set; }
+    public string element { get; set; }
+}

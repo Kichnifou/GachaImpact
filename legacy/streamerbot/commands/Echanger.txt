@@ -1,0 +1,955 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !echanger
+- Permet de créer une demande d’échange de particules entre deux viewers
+- Format : !echanger pseudo montant
+- Le demandeur donne les particules de l’élément du joueur cible
+- Le joueur cible donne les particules de l’élément du demandeur
+- Vérifie que les deux viewers existent
+- Vérifie que les deux viewers ont choisi un élément
+- Empêche l’auto-échange
+- Empêche plusieurs demandes entre les deux mêmes joueurs
+- Vérifie les stocks disponibles en tenant compte des demandes déjà en attente
+- Stocke une demande envoyée chez le demandeur
+- Stocke une demande reçue chez le joueur cible
+- !echanger liste affiche les demandes reçues puis envoyées
+- !echanger affiche l’aide et les joueurs possédant des particules de ton élément
+- !echanger accepter accepte toutes les demandes reçues valides
+- !echanger accepter pseudo accepte uniquement la demande reçue du pseudo indiqué
+- !echanger annuler annule toutes les demandes envoyées par le viewer
+- !echanger annuler pseudo annule la demande entre les deux viewers
+- Lit et sauvegarde viewers_data.json en JObject pour préserver toutes les propriétés inconnues
+- Ne reconstruit jamais entièrement un viewer
+- Ne fait PAS de backup automatique
+*/
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    private const int MaxMessageLength = 450;
+
+    public bool Execute()
+    {
+        string path = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data\viewers_data.json";
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+
+        if (!File.Exists(path))
+        {
+            SendWarning($"{username}, ton profil n’existe pas encore.");
+            return true;
+        }
+
+        JObject viewers = LoadViewers(path);
+
+        if (viewers == null)
+        {
+            SendWarning("Impossible de lire viewers_data.json.");
+            return true;
+        }
+
+        JObject viewer = GetViewer(viewers, username);
+
+        if (viewer == null)
+        {
+            SendWarning($"{username}, ton profil n’existe pas encore.");
+            return true;
+        }
+
+        EnsureViewerDefaults(viewer, username);
+
+        string input = GetCommandInput();
+        string[] parts = input.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length == 0)
+        {
+            ShowTradeHelpAndCompatibleUsers(viewers, username, viewer);
+            return true;
+        }
+
+        string command = NormalizeUsername(parts[0]);
+
+        if (command == "liste")
+        {
+            ShowTradeList(username, viewer);
+            return true;
+        }
+
+        if (command == "annuler")
+        {
+            string target = parts.Length >= 2 ? NormalizeUsername(parts[1]) : "";
+            CancelTrades(path, viewers, username, target);
+            return true;
+        }
+
+        if (command == "accepter")
+        {
+            string target = parts.Length >= 2 ? NormalizeUsername(parts[1]) : "";
+            AcceptTrades(path, viewers, username, target);
+            return true;
+        }
+
+        if (parts.Length == 1)
+        {
+            CreateMaxTradeRequest(path, viewers, username, command);
+            return true;
+        }
+
+        if (parts.Length == 2)
+        {
+            int amount;
+
+            if (!int.TryParse(parts[1], out amount) || amount <= 0)
+            {
+                SendWarning($"{username}, montant invalide. Exemple : !echanger pseudo 50");
+                return true;
+            }
+
+            CreateTradeRequest(path, viewers, username, command, amount);
+            return true;
+        }
+
+        SendWarning($"{username}, utilise : !echanger pseudo montant, !echanger liste, !echanger annuler ou !echanger.");
+        return true;
+    }
+
+    private void CreateMaxTradeRequest(string path, JObject viewers, string fromUser, string toUser)
+    {
+        JObject fromViewer = GetViewer(viewers, fromUser);
+        JObject toViewer = GetViewer(viewers, toUser);
+
+        if (toViewer == null)
+        {
+            SendWarning($"{fromUser}, le viewer {toUser} n’existe pas encore.");
+            return;
+        }
+
+        if (fromUser == toUser)
+        {
+            SendWarning($"{fromUser}, tu ne peux pas faire un échange avec toi-même.");
+            return;
+        }
+
+        EnsureViewerDefaults(fromViewer, fromUser);
+        EnsureViewerDefaults(toViewer, toUser);
+
+        string fromElement = NormalizeElement(GetString(fromViewer, "element"));
+        string toElement = NormalizeElement(GetString(toViewer, "element"));
+
+        if (string.IsNullOrEmpty(fromElement))
+        {
+            SendWarning($"{fromUser}, tu dois d’abord choisir ton élément avec !element.");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(toElement))
+        {
+            SendWarning($"{fromUser}, {toUser} n’a pas encore choisi d’élément.");
+            return;
+        }
+
+        if (fromElement == toElement)
+        {
+            SendWarning($"{fromUser}, tu ne peux pas échanger avec un joueur du même élément que toi.");
+            return;
+        }
+
+        int fromAvailable = GetAvailableParticles(fromViewer, toElement);
+        int toAvailable = GetAvailableParticles(toViewer, fromElement);
+
+        int maxAmount = fromAvailable;
+
+        if (toAvailable < maxAmount)
+            maxAmount = toAvailable;
+
+        if (maxAmount <= 0)
+        {
+            SendWarning($"{fromUser}, échange impossible avec {toUser}. Particules disponibles insuffisantes.");
+            return;
+        }
+
+        CreateTradeRequest(path, viewers, fromUser, toUser, maxAmount);
+    }
+
+    private void CreateTradeRequest(string path, JObject viewers, string fromUser, string toUser, int amount)
+    {
+        JObject fromViewer = GetViewer(viewers, fromUser);
+        JObject toViewer = GetViewer(viewers, toUser);
+
+        if (toViewer == null)
+        {
+            SendWarning($"{fromUser}, le viewer {toUser} n’existe pas encore.");
+            return;
+        }
+
+        if (fromUser == toUser)
+        {
+            SendWarning($"{fromUser}, tu ne peux pas faire un échange avec toi-même.");
+            return;
+        }
+
+        EnsureViewerDefaults(fromViewer, fromUser);
+        EnsureViewerDefaults(toViewer, toUser);
+
+        string fromElement = NormalizeElement(GetString(fromViewer, "element"));
+        string toElement = NormalizeElement(GetString(toViewer, "element"));
+
+        if (string.IsNullOrEmpty(fromElement))
+        {
+            SendWarning($"{fromUser}, tu dois d’abord choisir ton élément avec !element.");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(toElement))
+        {
+            SendWarning($"{fromUser}, {toUser} n’a pas encore choisi d’élément.");
+            return;
+        }
+
+        if (fromElement == toElement)
+        {
+            SendWarning($"{fromUser}, tu ne peux pas échanger avec un joueur du même élément que toi.");
+            return;
+        }
+
+        if (HasTradeBetween(fromViewer, toUser) || HasTradeBetween(toViewer, fromUser))
+        {
+            SendWarning($"{fromUser}, il existe déjà une demande d’échange entre {fromUser} et {toUser}.");
+            return;
+        }
+
+        int fromAvailable = GetAvailableParticles(fromViewer, toElement);
+        int toAvailable = GetAvailableParticles(toViewer, fromElement);
+
+        if (fromAvailable < amount)
+        {
+            SendWarning($"{fromUser}, tu n’as pas assez de particules {GetElementDisplayName(toElement)} disponibles. Disponible : {fromAvailable}.");
+            return;
+        }
+
+        if (toAvailable < amount)
+        {
+            SendWarning($"{fromUser}, {toUser} n’a pas assez de particules {GetElementDisplayName(fromElement)} disponibles. Disponible : {toAvailable}.");
+            return;
+        }
+
+        string createdAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+        JArray fromTrades = GetArray(fromViewer, "tradeRequests");
+        JArray toTrades = GetArray(toViewer, "tradeRequests");
+
+        fromTrades.Add(new JObject
+        {
+            ["type"] = "sent",
+            ["otherUser"] = toUser,
+            ["amount"] = amount,
+            ["myElement"] = fromElement,
+            ["otherElement"] = toElement,
+            ["createdAt"] = createdAt
+        });
+
+        toTrades.Add(new JObject
+        {
+            ["type"] = "received",
+            ["otherUser"] = fromUser,
+            ["amount"] = amount,
+            ["myElement"] = toElement,
+            ["otherElement"] = fromElement,
+            ["createdAt"] = createdAt
+        });
+
+        SaveViewers(path, viewers);
+
+        SendSuccess($"{FormatTradeDisplay(fromUser, toUser, fromElement, toElement, amount)} | {toUser} peut faire !echanger accepter.");
+    }
+
+    private void AcceptTrades(string path, JObject viewers, string username, string targetUser)
+    {
+        JObject viewer = GetViewer(viewers, username);
+
+        if (viewer == null)
+        {
+            SendWarning($"{username}, ton profil n’existe pas encore.");
+            return;
+        }
+
+        EnsureViewerDefaults(viewer, username);
+
+        JArray tradeRequests = GetArray(viewer, "tradeRequests");
+        List<JObject> receivedTrades = new List<JObject>();
+
+        for (int i = 0; i < tradeRequests.Count; i++)
+        {
+            JObject request = tradeRequests[i] as JObject;
+
+            if (request == null)
+                continue;
+
+            if (GetString(request, "type") != "received")
+                continue;
+
+            string otherUser = NormalizeUsername(GetString(request, "otherUser"));
+
+            if (string.IsNullOrEmpty(targetUser) || otherUser == targetUser)
+                receivedTrades.Add(request);
+        }
+
+        if (receivedTrades.Count == 0)
+        {
+            if (string.IsNullOrEmpty(targetUser))
+                SendWarning($"{username}, tu n’as aucune demande d’échange reçue.");
+            else
+                SendWarning($"{username}, tu n’as aucune demande d’échange reçue de {targetUser}.");
+
+            return;
+        }
+
+        int accepted = 0;
+        int invalid = 0;
+        List<string> acceptedDisplays = new List<string>();
+
+        for (int i = 0; i < receivedTrades.Count; i++)
+        {
+            JObject request = receivedTrades[i];
+
+            string senderName = NormalizeUsername(GetString(request, "otherUser"));
+            int amount = GetInt(request, "amount");
+            string receiverElement = NormalizeElement(GetString(request, "myElement"));
+            string senderElement = NormalizeElement(GetString(request, "otherElement"));
+
+            JObject sender = GetViewer(viewers, senderName);
+
+            if (sender == null || amount <= 0 || string.IsNullOrEmpty(receiverElement) || string.IsNullOrEmpty(senderElement))
+            {
+                RemoveTradeBetween(viewers, username, senderName);
+                invalid++;
+                continue;
+            }
+
+            EnsureViewerDefaults(sender, senderName);
+
+            bool senderHasEnough = GetParticleTotal(sender, receiverElement) >= amount;
+            bool receiverHasEnough = GetParticleTotal(viewer, senderElement) >= amount;
+
+            if (!senderHasEnough || !receiverHasEnough)
+            {
+                RemoveTradeBetween(viewers, username, senderName);
+                invalid++;
+                continue;
+            }
+
+            AddParticles(sender, receiverElement, -amount);
+            AddParticles(viewer, senderElement, -amount);
+
+            AddParticles(sender, senderElement, amount);
+            AddParticles(viewer, receiverElement, amount);
+
+            acceptedDisplays.Add(FormatTradeDisplay(senderName, username, senderElement, receiverElement, amount));
+
+            RemoveTradeBetween(viewers, username, senderName);
+            accepted++;
+        }
+
+        SaveViewers(path, viewers);
+
+        if (accepted > 0)
+            SendSuccess($"{username}, échange(s) accepté(s) : {string.Join(", ", acceptedDisplays.ToArray())}");
+
+        if (invalid > 0)
+            SendWarning($"{username}, {invalid} demande(s) invalide(s) ont été supprimée(s).");
+    }
+
+    private void CancelTrades(string path, JObject viewers, string username, string targetUser)
+    {
+        JObject viewer = GetViewer(viewers, username);
+
+        if (viewer == null)
+        {
+            SendWarning($"{username}, ton profil n’existe pas encore.");
+            return;
+        }
+
+        EnsureViewerDefaults(viewer, username);
+
+        int removed = 0;
+        targetUser = NormalizeUsername(targetUser);
+
+        if (string.IsNullOrEmpty(targetUser))
+        {
+            JArray trades = GetArray(viewer, "tradeRequests");
+            List<string> sentTargets = new List<string>();
+
+            for (int i = 0; i < trades.Count; i++)
+            {
+                JObject request = trades[i] as JObject;
+
+                if (request == null)
+                    continue;
+
+                if (GetString(request, "type") == "sent")
+                {
+                    string otherUser = NormalizeUsername(GetString(request, "otherUser"));
+
+                    if (!string.IsNullOrEmpty(otherUser))
+                        sentTargets.Add(otherUser);
+                }
+            }
+
+            for (int i = 0; i < sentTargets.Count; i++)
+            {
+                RemoveTradeBetween(viewers, username, sentTargets[i]);
+                removed++;
+            }
+
+            SaveViewers(path, viewers);
+
+            if (removed == 0)
+                SendWarning($"{username}, tu n’as aucune demande envoyée à annuler.");
+            else
+                SendSuccess($"{username}, {removed} demande(s) envoyée(s) annulée(s).");
+
+            return;
+        }
+
+        if (!HasTradeBetween(viewer, targetUser))
+        {
+            SendWarning($"{username}, aucune demande d’échange trouvée avec {targetUser}.");
+            return;
+        }
+
+        RemoveTradeBetween(viewers, username, targetUser);
+        SaveViewers(path, viewers);
+
+        SendSuccess($"{username}, demande d’échange avec {targetUser} annulée.");
+    }
+
+    private void ShowTradeList(string username, JObject viewer)
+    {
+        EnsureViewerDefaults(viewer, username);
+
+        List<string> received = new List<string>();
+        List<string> sent = new List<string>();
+
+        JArray trades = GetArray(viewer, "tradeRequests");
+
+        for (int i = 0; i < trades.Count; i++)
+        {
+            JObject request = trades[i] as JObject;
+
+            if (request == null)
+                continue;
+
+            string type = GetString(request, "type");
+            string otherUser = NormalizeUsername(GetString(request, "otherUser"));
+            int amount = GetInt(request, "amount");
+            string myElement = NormalizeElement(GetString(request, "myElement"));
+            string otherElement = NormalizeElement(GetString(request, "otherElement"));
+
+            if (type == "received")
+            {
+                received.Add(FormatTradeDisplay(otherUser, username, otherElement, myElement, amount));
+            }
+            else if (type == "sent")
+            {
+                sent.Add(FormatTradeDisplay(username, otherUser, myElement, otherElement, amount));
+            }
+        }
+
+        if (received.Count == 0 && sent.Count == 0)
+        {
+            SendWarning($"{username}, tu n’as aucune demande d’échange.");
+            return;
+        }
+
+        SendTradeSection(username, "reçues", received);
+        SendTradeSection(username, "envoyées", sent);
+    }
+
+    private void SendTradeSection(string username, string title, List<string> items)
+    {
+        if (items.Count == 0)
+            return;
+
+        string prefix = $"✅ {username}, [{title}] ";
+        string currentMessage = prefix;
+
+        for (int i = 0; i < items.Count; i++)
+        {
+            string item = items[i];
+            string addition = currentMessage == prefix ? item : ", " + item;
+
+            if ((currentMessage + addition).Length > MaxMessageLength)
+            {
+                CPH.SendMessage(currentMessage);
+                currentMessage = prefix + item;
+            }
+            else
+            {
+                currentMessage += addition;
+            }
+        }
+
+        CPH.SendMessage(currentMessage);
+    }
+
+    private void ShowTradeHelpAndCompatibleUsers(JObject viewers, string username, JObject viewer)
+    {
+        string viewerElement = NormalizeElement(GetString(viewer, "element"));
+
+        if (string.IsNullOrEmpty(viewerElement))
+        {
+            SendWarning($"{username}, choisis d’abord ton élément avec !element avant d’utiliser les échanges.");
+            return;
+        }
+
+        CPH.SendMessage($"ℹ️ {username}, commandes : !echanger pseudo montant | !echanger liste | !echanger accepter | !echanger accepter pseudo | !echanger annuler | !echanger annuler pseudo");
+
+        List<string> compatibleUsers = new List<string>();
+
+        foreach (KeyValuePair<string, JToken> entry in viewers)
+        {
+            string otherUsername = NormalizeUsername(entry.Key);
+
+            if (otherUsername == username)
+                continue;
+
+            JObject otherViewer = entry.Value as JObject;
+
+            if (otherViewer == null)
+                continue;
+
+            EnsureViewerDefaults(otherViewer, otherUsername);
+
+            string otherElement = NormalizeElement(GetString(otherViewer, "element"));
+
+            if (otherElement == viewerElement)
+                continue;
+
+            int available = GetAvailableParticles(otherViewer, viewerElement);
+
+            if (available > 0)
+                compatibleUsers.Add($"{otherUsername} ({available} {GetElementEmoji(viewerElement)})");
+        }
+
+        if (compatibleUsers.Count == 0)
+        {
+            SendWarning($"{username}, aucun viewer ne possède actuellement de particules {GetElementDisplayName(viewerElement)} disponibles.");
+            return;
+        }
+
+        SendSplitMessages($"{username}, viewers avec des particules {GetElementDisplayName(viewerElement)} : ", compatibleUsers, 400);
+    }
+
+    private void SendSplitMessages(string prefix, List<string> items, int maxLength)
+    {
+        string basePrefix = $"✅ {prefix}";
+        string currentMessage = basePrefix;
+
+        for (int i = 0; i < items.Count; i++)
+        {
+            string item = items[i];
+            string addition = currentMessage == basePrefix ? item : ", " + item;
+
+            if ((currentMessage + addition).Length > maxLength)
+            {
+                CPH.SendMessage(currentMessage);
+                currentMessage = basePrefix + item;
+            }
+            else
+            {
+                currentMessage += addition;
+            }
+        }
+
+        CPH.SendMessage(currentMessage);
+    }
+
+    private string FormatTradeDisplay(string fromUser, string toUser, string fromElement, string toElement, int amount)
+    {
+        return $"{fromUser}{GetElementEmoji(toElement)}-> {amount} <-{GetElementEmoji(fromElement)}{toUser}";
+    }
+
+    private bool HasTradeBetween(JObject viewer, string otherUser)
+    {
+        EnsureViewerDefaults(viewer, GetString(viewer, "username"));
+
+        JArray trades = GetArray(viewer, "tradeRequests");
+
+        for (int i = 0; i < trades.Count; i++)
+        {
+            JObject request = trades[i] as JObject;
+
+            if (request == null)
+                continue;
+
+            if (NormalizeUsername(GetString(request, "otherUser")) == otherUser)
+                return true;
+        }
+
+        return false;
+    }
+
+    private void RemoveTradeBetween(JObject viewers, string userA, string userB)
+    {
+        if (string.IsNullOrEmpty(userA) || string.IsNullOrEmpty(userB))
+            return;
+
+        JObject viewerA = GetViewer(viewers, userA);
+        JObject viewerB = GetViewer(viewers, userB);
+
+        if (viewerA != null)
+        {
+            EnsureViewerDefaults(viewerA, userA);
+            RemoveTradesWith(viewerA, userB);
+        }
+
+        if (viewerB != null)
+        {
+            EnsureViewerDefaults(viewerB, userB);
+            RemoveTradesWith(viewerB, userA);
+        }
+    }
+
+    private void RemoveTradesWith(JObject viewer, string otherUser)
+    {
+        JArray trades = GetArray(viewer, "tradeRequests");
+        JArray kept = new JArray();
+
+        for (int i = 0; i < trades.Count; i++)
+        {
+            JObject request = trades[i] as JObject;
+
+            if (request == null)
+                continue;
+
+            if (NormalizeUsername(GetString(request, "otherUser")) != otherUser)
+                kept.Add(request);
+        }
+
+        viewer["tradeRequests"] = kept;
+    }
+
+    private int GetAvailableParticles(JObject viewer, string element)
+    {
+        element = NormalizeElement(element);
+
+        int total = GetParticleTotal(viewer, element);
+        int reserved = 0;
+
+        JArray trades = GetArray(viewer, "tradeRequests");
+
+        for (int i = 0; i < trades.Count; i++)
+        {
+            JObject request = trades[i] as JObject;
+
+            if (request == null)
+                continue;
+
+            string reservedElement = NormalizeElement(GetString(request, "otherElement"));
+
+            if (reservedElement == element)
+                reserved += GetInt(request, "amount");
+        }
+
+        int available = total - reserved;
+
+        if (available < 0)
+            available = 0;
+
+        return available;
+    }
+
+    private int GetParticleTotal(JObject viewer, string element)
+    {
+        JObject particles = GetObject(viewer, "particles");
+        return GetInt(particles, NormalizeElement(element));
+    }
+
+    private void AddParticles(JObject viewer, string element, int amount)
+    {
+        JObject particles = GetObject(viewer, "particles");
+        string normalized = NormalizeElement(element);
+
+        if (string.IsNullOrEmpty(normalized))
+            return;
+
+        AddInt(particles, normalized, amount);
+    }
+
+    private string GetElementDisplayName(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "🔥 Pyro";
+            case "hydro": return "💧 Hydro";
+            case "cryo": return "❄️ Cryo";
+            case "electro": return "⚡ Electro";
+            case "anemo": return "🌪️ Anemo";
+            case "geo": return "☄️ Geo";
+            case "dendro": return "🌿 Dendro";
+            default: return element;
+        }
+    }
+
+    private string GetElementEmoji(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "🔥";
+            case "hydro": return "💧";
+            case "cryo": return "❄️";
+            case "electro": return "⚡";
+            case "anemo": return "🌪️";
+            case "geo": return "☄️";
+            case "dendro": return "🌿";
+            default: return "";
+        }
+    }
+
+    private string NormalizeElement(string element)
+    {
+        if (string.IsNullOrEmpty(element))
+            return "";
+
+        string normalized = element.Trim().ToLower();
+
+        switch (normalized)
+        {
+            case "pyro": return "pyro";
+            case "hydro": return "hydro";
+            case "cryo": return "cryo";
+            case "electro":
+            case "électro": return "electro";
+            case "anemo":
+            case "anémo": return "anemo";
+            case "geo":
+            case "géo": return "geo";
+            case "dendro": return "dendro";
+            default: return normalized;
+        }
+    }
+
+    private void EnsureViewerDefaults(JObject viewer, string username)
+    {
+        if (viewer == null)
+            return;
+
+        if (viewer["username"] == null || viewer["username"].Type == JTokenType.Null)
+            viewer["username"] = username;
+
+        EnsureString(viewer, "element", "");
+        EnsureInt(viewer, "xp", 0);
+        EnsureInt(viewer, "level", 0);
+        EnsureInt(viewer, "primogems", 0);
+        EnsureInt(viewer, "moras", 0);
+        EnsureInt(viewer, "selectedBannerCharacterId", 0);
+
+        JObject particles = GetObject(viewer, "particles");
+        EnsureInt(particles, "pyro", 0);
+        EnsureInt(particles, "hydro", 0);
+        EnsureInt(particles, "cryo", 0);
+        EnsureInt(particles, "electro", 0);
+        EnsureInt(particles, "anemo", 0);
+        EnsureInt(particles, "geo", 0);
+        EnsureInt(particles, "dendro", 0);
+
+        GetObject(viewer, "box");
+        GetArray(viewer, "team");
+
+        JObject pity = GetObject(viewer, "pity");
+        EnsureInt(pity, "pity5", 0);
+        EnsureInt(pity, "pity4", 0);
+
+        JObject guarantee = GetObject(viewer, "guarantee");
+        EnsureBool(guarantee, "guaranteedFeatured5", false);
+
+        JObject options = GetObject(viewer, "options");
+        EnsureString(options, "boxSort", "a");
+        EnsureBool(options, "boxSortDescending", false);
+
+        JObject missions = GetObject(viewer, "missions");
+        JObject daily = GetObject(missions, "daily");
+        EnsureNullOrString(daily, "missionId");
+        EnsureNullOrString(daily, "type");
+        EnsureInt(daily, "progress", 0);
+        EnsureInt(daily, "target", 0);
+        EnsureBool(daily, "completed", false);
+        EnsureBool(daily, "rewardClaimed", false);
+        EnsureNullOrString(daily, "startedAt");
+        EnsureNullOrString(daily, "description");
+
+        GetArray(viewer, "tradeRequests");
+
+        JObject stats = GetObject(viewer, "stats");
+        EnsureInt(stats, "totalMessages", 0);
+        EnsureInt(stats, "countedMessages", 0);
+        EnsureInt(stats, "totalPulls", 0);
+        EnsureInt(stats, "totalFiveStars", 0);
+        EnsureInt(stats, "totalFourStars", 0);
+        EnsureBool(stats, "lastPullWasFiveStar", false);
+        EnsureInt(stats, "fiftyFiftyLostStreak", 0);
+        EnsureInt(stats, "fiftyFiftyWon", 0);
+        EnsureInt(stats, "fiftyFiftyLost", 0);
+        EnsureInt(stats, "totalPrimosEarned", 0);
+        EnsureInt(stats, "totalPrimosSpent", 0);
+        EnsureInt(stats, "totalMorasEarned", 0);
+        EnsureInt(stats, "totalMorasSpent", 0);
+        EnsureInt(stats, "level100OverflowRewardsClaimed", 0);
+
+        JObject dates = GetObject(viewer, "dates");
+        EnsureNullOrString(dates, "firstSeen");
+        EnsureNullOrString(dates, "lastSeen");
+        EnsureNullOrString(dates, "lastXpDate");
+        EnsureNullOrString(dates, "lastMessageTime");
+        EnsureNullOrString(dates, "lastDailyFirstMessageReward");
+
+        GetArray(viewer, "usedCodes");
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private JObject LoadViewers(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+
+            if (string.IsNullOrEmpty(json))
+                return new JObject();
+
+            JObject viewers = JObject.Parse(json);
+
+            if (viewers == null)
+                return new JObject();
+
+            return viewers;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void SaveViewers(string path, JObject viewers)
+    {
+        string output = viewers.ToString(Formatting.Indented);
+        File.WriteAllText(path, output);
+    }
+
+    private JObject GetViewer(JObject viewers, string username)
+    {
+        if (viewers == null || string.IsNullOrEmpty(username))
+            return null;
+
+        return viewers[username] as JObject;
+    }
+
+    private JObject GetObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+
+        return parent[key] as JObject;
+    }
+
+    private JArray GetArray(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Array)
+            parent[key] = new JArray();
+
+        return parent[key] as JArray;
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private bool GetBool(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return false;
+
+        bool value;
+
+        if (bool.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return false;
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private void AddInt(JObject obj, string key, int amount)
+    {
+        int current = GetInt(obj, key);
+        obj[key] = current + amount;
+    }
+
+    private void EnsureInt(JObject obj, string key, int defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureBool(JObject obj, string key, bool defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureString(JObject obj, string key, string defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureNullOrString(JObject obj, string key)
+    {
+        if (obj[key] == null)
+            obj[key] = null;
+    }
+
+    private string NormalizeUsername(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return "";
+
+        return value.Trim().ToLower().TrimStart('@');
+    }
+
+    private void SendSuccess(string message) { CPH.SendMessage($"✅ {message}"); }
+    private void SendWarning(string message) { CPH.SendMessage($"⚠️ {message}"); }
+}

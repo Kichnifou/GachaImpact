@@ -1,0 +1,440 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère l’action Twitch > Faveur
+- Prévu pour être déclenché par :
+  - Subscription
+  - Resubscription
+  - Gift Subscription
+- Donne une Faveur de l’Astre au viewer qui reçoit le sub
+- Si c’est un gift sub :
+  - le receveur gagne la faveur
+  - le gifter peut recevoir +1600 primos en cadeau
+- La faveur ne s’applique QUE si le viewer bénéficiaire est niveau 2 minimum
+- Si le viewer bénéficiaire n’existe pas ou est niveau < 2 : aucun effet
+- Une faveur ajoute jusqu’à 30 jours de faveur
+- Maximum : 180 jours restants
+- Gain direct normal : +1600 primos au bénéficiaire
+- Si le plafond de 180 jours empêche d’ajouter tous les jours :
+  - compensation calculée sur 3200 primos au prorata des jours perdus
+- Ajoute automatiquement la section favor si absente :
+  - daysRemaining
+  - obtainedDate
+  - lastClaimDate
+- Met à jour totalPrimosEarned
+- Lit et sauvegarde viewers_data.json en JObject
+- Ne reconstruit jamais un viewer existant
+- Sauvegarde directe sans backup ni fichier temporaire
+- Compatible Streamer.bot
+- Sans LINQ
+*/
+
+using System;
+using System.IO;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    private const int FavorDaysGranted = 30;
+    private const int FavorMaxDays = 180;
+    private const int FavorBasePrimos = 1600;
+    private const int FavorOverflowPrimos = 3200;
+    private const int GifterPrimos = 1600;
+
+    public bool Execute()
+    {
+        string path = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data\viewers_data.json";
+
+        if (!File.Exists(path))
+        {
+            SendWarning("Aucune donnée viewer trouvée.");
+            return true;
+        }
+
+        JObject viewers = LoadJObject(path);
+
+        if (viewers == null)
+        {
+            SendError("Impossible de lire viewers_data.json.");
+            return true;
+        }
+
+        string gifter = NormalizeUsername(GetArg("userName"));
+        string recipient = GetRecipientUsername();
+
+        if (string.IsNullOrEmpty(recipient))
+            recipient = gifter;
+
+        if (string.IsNullOrEmpty(recipient))
+        {
+            SendWarning("Viewer bénéficiaire introuvable.");
+            return true;
+        }
+
+        JObject recipientViewer = viewers[recipient] as JObject;
+
+        if (recipientViewer == null)
+        {
+            CPH.LogInfo("Faveur ignorée : viewer bénéficiaire introuvable (" + recipient + ").");
+            return true;
+        }
+
+        EnsureViewerDefaults(recipientViewer, recipient);
+
+        if (GetInt(recipientViewer, "level") < 2)
+        {
+            CPH.LogInfo("Faveur ignorée : " + recipient + " est niveau " + GetInt(recipientViewer, "level") + ".");
+            return true;
+        }
+
+        FavorResult result = ApplyFavorToViewer(recipientViewer);
+
+        bool isGift = !string.IsNullOrEmpty(gifter) && gifter != recipient;
+        bool gifterRewarded = false;
+
+        if (isGift)
+            gifterRewarded = TryRewardGifter(viewers, gifter);
+
+        SaveJObject(path, viewers);
+
+        CPH.SendMessage(BuildFavorMessage(gifter, recipient, isGift, gifterRewarded, result));
+
+        return true;
+    }
+
+    private FavorResult ApplyFavorToViewer(JObject viewer)
+    {
+        JObject favor = GetObject(viewer, "favor");
+
+        EnsureInt(favor, "daysRemaining", 0);
+        EnsureString(favor, "obtainedDate", "");
+        EnsureString(favor, "lastClaimDate", "");
+
+        int currentDays = GetInt(favor, "daysRemaining");
+        int spaceLeft = FavorMaxDays - currentDays;
+
+        if (spaceLeft < 0)
+            spaceLeft = 0;
+
+        int daysAdded = FavorDaysGranted;
+
+        if (daysAdded > spaceLeft)
+            daysAdded = spaceLeft;
+
+        int lostDays = FavorDaysGranted - daysAdded;
+
+        int primosGiven = FavorBasePrimos;
+
+        if (lostDays > 0)
+        {
+            double ratio = (double)lostDays / (double)FavorDaysGranted;
+            primosGiven = (int)Math.Round(FavorOverflowPrimos * ratio);
+        }
+
+        favor["daysRemaining"] = currentDays + daysAdded;
+        favor["obtainedDate"] = DateTime.Now.ToString("yyyy-MM-dd");
+
+        AddInt(viewer, "primogems", primosGiven);
+        AddStat(viewer, "totalPrimosEarned", primosGiven);
+
+        FavorResult result = new FavorResult();
+        result.daysBefore = currentDays;
+        result.daysAdded = daysAdded;
+        result.daysAfter = GetInt(favor, "daysRemaining");
+        result.lostDays = lostDays;
+        result.primosGiven = primosGiven;
+
+        return result;
+    }
+
+    private bool TryRewardGifter(JObject viewers, string gifter)
+    {
+        JObject gifterViewer = viewers[gifter] as JObject;
+
+        if (gifterViewer == null)
+        {
+            CPH.LogInfo("Bonus gifter ignoré : " + gifter + " introuvable.");
+            return false;
+        }
+
+        EnsureViewerDefaults(gifterViewer, gifter);
+
+        if (GetInt(gifterViewer, "level") < 2)
+        {
+            CPH.LogInfo("Bonus gifter ignoré : " + gifter + " est niveau " + GetInt(gifterViewer, "level") + ".");
+            return false;
+        }
+
+        AddInt(gifterViewer, "primogems", GifterPrimos);
+        AddStat(gifterViewer, "totalPrimosEarned", GifterPrimos);
+
+        return true;
+    }
+
+    private string BuildFavorMessage(string gifter, string recipient, bool isGift, bool gifterRewarded, FavorResult result)
+    {
+        if (result.lostDays > 0)
+        {
+            if (isGift)
+                return "🌙 " + gifter + " offre une Faveur de l’Astre à " + recipient + " ! Plafond atteint : +" + result.daysAdded + " jours (" + result.daysAfter + "/180) | Compensation +💠" + result.primosGiven + " primos"
+                + (gifterRewarded ? " | " + gifter + " reçoit +💠" + GifterPrimos + " primos" : "");
+
+            return "🌙 " + recipient + " reçoit une Faveur de l’Astre ! Plafond atteint : +" + result.daysAdded + " jours (" + result.daysAfter + "/180) | Compensation +💠" + result.primosGiven + " primos";
+        }
+
+        if (isGift)
+            return "🌙 " + gifter + " offre une Faveur de l’Astre à " + recipient + " ! +" + result.daysAdded + " jours (" + result.daysAfter + "/180) | +💠" + FavorBasePrimos + " primos"
+            + (gifterRewarded ? " | " + gifter + " reçoit +💠" + GifterPrimos + " primos" : "");
+
+        return "🌙 " + recipient + " reçoit une Faveur de l’Astre ! +" + result.daysAdded + " jours (" + result.daysAfter + "/180) | +💠" + FavorBasePrimos + " primos";
+    }
+
+    private string GetRecipientUsername()
+    {
+        string recipient = GetArg("recipientUserName");
+
+        if (!string.IsNullOrEmpty(recipient))
+            return NormalizeUsername(recipient);
+
+        recipient = GetArg("recipientName");
+
+        if (!string.IsNullOrEmpty(recipient))
+            return NormalizeUsername(recipient);
+
+        recipient = GetArg("giftRecipientUserName");
+
+        if (!string.IsNullOrEmpty(recipient))
+            return NormalizeUsername(recipient);
+
+        recipient = GetArg("targetUserName");
+
+        if (!string.IsNullOrEmpty(recipient))
+            return NormalizeUsername(recipient);
+
+        recipient = GetArg("userName");
+
+        return NormalizeUsername(recipient);
+    }
+
+    private string GetArg(string key)
+    {
+        if (string.IsNullOrEmpty(key))
+            return "";
+
+        if (!args.ContainsKey(key) || args[key] == null)
+            return "";
+
+        return args[key].ToString();
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+
+            if (string.IsNullOrWhiteSpace(json))
+                return new JObject();
+
+            JObject data = JObject.Parse(json);
+
+            if (data == null)
+                return new JObject();
+
+            return data;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void SaveJObject(string path, JObject data)
+    {
+        string folder = Path.GetDirectoryName(path);
+
+        if (!Directory.Exists(folder))
+            Directory.CreateDirectory(folder);
+
+        File.WriteAllText(path, data.ToString(Formatting.Indented));
+    }
+
+    private void EnsureViewerDefaults(JObject viewer, string username)
+    {
+        if (viewer == null)
+            return;
+
+        if (viewer["username"] == null || viewer["username"].Type == JTokenType.Null)
+            viewer["username"] = username;
+
+        EnsureInt(viewer, "xp", 0);
+        EnsureInt(viewer, "level", 0);
+        EnsureString(viewer, "element", "");
+        EnsureInt(viewer, "primogems", 0);
+        EnsureInt(viewer, "moras", 0);
+        EnsureInt(viewer, "selectedBannerCharacterId", 0);
+
+        JObject particles = GetObject(viewer, "particles");
+        EnsureInt(particles, "pyro", 0);
+        EnsureInt(particles, "hydro", 0);
+        EnsureInt(particles, "cryo", 0);
+        EnsureInt(particles, "electro", 0);
+        EnsureInt(particles, "anemo", 0);
+        EnsureInt(particles, "geo", 0);
+        EnsureInt(particles, "dendro", 0);
+
+        GetObject(viewer, "box");
+        GetArray(viewer, "team");
+
+        JObject pity = GetObject(viewer, "pity");
+        EnsureInt(pity, "pity5", 0);
+        EnsureInt(pity, "pity4", 0);
+
+        JObject guarantee = GetObject(viewer, "guarantee");
+        EnsureBool(guarantee, "guaranteedFeatured5", false);
+
+        JObject options = GetObject(viewer, "options");
+        EnsureString(options, "boxSort", "a");
+        EnsureBool(options, "boxSortDescending", false);
+
+        JObject missions = GetObject(viewer, "missions");
+        JObject daily = GetObject(missions, "daily");
+        EnsureNullOrString(daily, "missionId");
+        EnsureNullOrString(daily, "type");
+        EnsureInt(daily, "progress", 0);
+        EnsureInt(daily, "target", 0);
+        EnsureBool(daily, "completed", false);
+        EnsureBool(daily, "rewardClaimed", false);
+        EnsureNullOrString(daily, "startedAt");
+        EnsureNullOrString(daily, "description");
+
+        JObject stats = GetObject(viewer, "stats");
+        EnsureInt(stats, "totalMessages", 0);
+        EnsureInt(stats, "countedMessages", 0);
+        EnsureInt(stats, "totalPulls", 0);
+        EnsureInt(stats, "totalFiveStars", 0);
+        EnsureInt(stats, "totalFourStars", 0);
+        EnsureBool(stats, "lastPullWasFiveStar", false);
+        EnsureInt(stats, "fiftyFiftyLostStreak", 0);
+        EnsureInt(stats, "fiftyFiftyWon", 0);
+        EnsureInt(stats, "fiftyFiftyLost", 0);
+        EnsureInt(stats, "totalPrimosEarned", 0);
+        EnsureInt(stats, "totalPrimosSpent", 0);
+        EnsureInt(stats, "totalMorasEarned", 0);
+        EnsureInt(stats, "totalMorasSpent", 0);
+        EnsureInt(stats, "level100OverflowRewardsClaimed", 0);
+
+        JObject dates = GetObject(viewer, "dates");
+        EnsureNullOrString(dates, "firstSeen");
+        EnsureNullOrString(dates, "lastSeen");
+        EnsureNullOrString(dates, "lastXpDate");
+        EnsureNullOrString(dates, "lastMessageTime");
+        EnsureNullOrString(dates, "lastDailyFirstMessageReward");
+
+        GetArray(viewer, "tradeRequests");
+        GetArray(viewer, "usedCodes");
+
+        JObject favor = GetObject(viewer, "favor");
+        EnsureInt(favor, "daysRemaining", 0);
+        EnsureString(favor, "obtainedDate", "");
+        EnsureString(favor, "lastClaimDate", "");
+    }
+
+    private JObject GetObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+
+        return parent[key] as JObject;
+    }
+
+    private JArray GetArray(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Array)
+            parent[key] = new JArray();
+
+        return parent[key] as JArray;
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private void AddInt(JObject obj, string key, int amount)
+    {
+        int current = GetInt(obj, key);
+        obj[key] = current + amount;
+    }
+
+    private void AddStat(JObject viewer, string statName, int amount)
+    {
+        JObject stats = GetObject(viewer, "stats");
+        AddInt(stats, statName, amount);
+    }
+
+    private void EnsureInt(JObject obj, string key, int defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureBool(JObject obj, string key, bool defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureString(JObject obj, string key, string defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureNullOrString(JObject obj, string key)
+    {
+        if (obj[key] == null)
+            obj[key] = null;
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private void SendWarning(string message)
+    {
+        CPH.SendMessage("⚠️ " + message);
+    }
+
+    private void SendError(string message)
+    {
+        CPH.SendMessage("❌ " + message);
+    }
+}
+
+public class FavorResult
+{
+    public int daysBefore;
+    public int daysAdded;
+    public int daysAfter;
+    public int lostDays;
+    public int primosGiven;
+}

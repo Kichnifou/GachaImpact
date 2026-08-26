@@ -1,0 +1,211 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Commande : !liste element
+- Liste les joueurs possédant un élément donné
+- Trie du plus récemment actif au moins récent
+- Maximum 40 joueurs affichés
+- Compatible accents :
+  électro / géo / anémo
+- Ignore les viewers sans élément
+- Ne modifie jamais le JSON
+- Compatible Streamer.bot
+*/
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    public bool Execute()
+    {
+        string folderPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data";
+        string viewersPath = Path.Combine(folderPath, "viewers_data.json");
+
+        if (!File.Exists(viewersPath))
+        {
+            CPH.SendMessage("❌ viewers_data.json introuvable.");
+            return true;
+        }
+
+        string rawInput = "";
+
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            rawInput = args["rawInput"].ToString().Trim();
+
+        if (string.IsNullOrEmpty(rawInput))
+        {
+            CPH.SendMessage("⚠️ Utilise : !liste pyro");
+            return true;
+        }
+
+        string element = NormalizeElement(rawInput);
+
+        if (!IsValidElement(element))
+        {
+            CPH.SendMessage("❌ Élément invalide.");
+            return true;
+        }
+
+        JObject viewers;
+
+        try
+        {
+            viewers = JObject.Parse(File.ReadAllText(viewersPath));
+        }
+        catch
+        {
+            CPH.SendMessage("❌ Impossible de lire viewers_data.json.");
+            return true;
+        }
+
+        List<PlayerEntry> players = new List<PlayerEntry>();
+
+        foreach (var property in viewers.Properties())
+        {
+            JObject viewer = property.Value as JObject;
+
+            if (viewer == null)
+                continue;
+
+            string viewerElement = NormalizeElement(GetString(viewer, "element"));
+
+            if (viewerElement != element)
+                continue;
+
+            JObject dates = viewer["dates"] as JObject;
+
+            string lastSeen = "";
+
+            if (dates != null)
+                lastSeen = GetString(dates, "lastSeen");
+
+            PlayerEntry entry = new PlayerEntry();
+            entry.username = GetString(viewer, "username");
+            entry.lastSeen = lastSeen;
+
+            players.Add(entry);
+        }
+
+        players.Sort(delegate(PlayerEntry a, PlayerEntry b)
+        {
+            DateTime dateA = ParseDate(a.lastSeen);
+            DateTime dateB = ParseDate(b.lastSeen);
+
+            return dateB.CompareTo(dateA);
+        });
+
+        if (players.Count == 0)
+        {
+            CPH.SendMessage("❌ Aucun joueur " + GetElementDisplayName(element));
+            return true;
+        }
+
+        int maxDisplay = 40;
+
+        if (players.Count < maxDisplay)
+            maxDisplay = players.Count;
+
+        string message = GetElementDisplayName(element) + " (" + players.Count + ") : ";
+
+        for (int i = 0; i < maxDisplay; i++)
+        {
+            message += players[i].username;
+
+            if (i < maxDisplay - 1)
+                message += ", ";
+        }
+
+        if (players.Count > maxDisplay)
+            message += "...";
+
+        CPH.SendMessage(message);
+
+        return true;
+    }
+
+    private bool IsValidElement(string element)
+    {
+        return element == "pyro"
+            || element == "hydro"
+            || element == "cryo"
+            || element == "electro"
+            || element == "anemo"
+            || element == "geo"
+            || element == "dendro";
+    }
+
+    private string NormalizeElement(string element)
+    {
+        if (string.IsNullOrEmpty(element))
+            return "";
+
+        string normalized = element.ToLower().Trim();
+
+        switch (normalized)
+        {
+            case "pyro": return "pyro";
+            case "hydro": return "hydro";
+            case "cryo": return "cryo";
+
+            case "electro":
+            case "électro":
+                return "electro";
+
+            case "anemo":
+            case "anémo":
+                return "anemo";
+
+            case "geo":
+            case "géo":
+                return "geo";
+
+            case "dendro":
+                return "dendro";
+
+            default:
+                return normalized;
+        }
+    }
+
+    private string GetElementDisplayName(string element)
+    {
+        switch (element)
+        {
+            case "pyro": return "🔥 Pyro";
+            case "hydro": return "💧 Hydro";
+            case "cryo": return "❄️ Cryo";
+            case "electro": return "⚡ Electro";
+            case "anemo": return "🌪️ Anemo";
+            case "geo": return "☄️ Geo";
+            case "dendro": return "🌿 Dendro";
+            default: return element;
+        }
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private DateTime ParseDate(string value)
+    {
+        DateTime parsed;
+
+        if (DateTime.TryParse(value, out parsed))
+            return parsed;
+
+        return DateTime.MinValue;
+    }
+}
+
+public class PlayerEntry
+{
+    public string username;
+    public string lastSeen;
+}

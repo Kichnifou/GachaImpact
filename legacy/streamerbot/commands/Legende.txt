@@ -1,0 +1,387 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Commande : !legende NomDuPerso
+- Affiche les statistiques légendaires d’un personnage C6 5★ possédé par le joueur
+- Lit c6_characters.json
+- Lit viewers_data.json uniquement pour vérifier que le profil existe
+- Ne modifie jamais aucun JSON
+- Ne crée jamais de viewer
+- Recherche uniquement dans les personnages C6 du joueur
+- Accepte les noms avec ou sans accents autant que possible
+- Affiche un seul message Twitch compact, séparé par |
+- Compatible Streamer.bot
+- Sans LINQ
+*/
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    public bool Execute()
+    {
+        string folderPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data";
+        string viewersPath = Path.Combine(folderPath, "viewers_data.json");
+        string c6CharactersPath = Path.Combine(folderPath, "c6_characters.json");
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+        string input = GetCommandInput();
+
+        if (string.IsNullOrEmpty(input))
+        {
+            SendWarning(username + ", utilise : !legende NomDuPerso | Le personnage doit obligatoirement être l'un de tes perso C6");
+            return true;
+        }
+
+        if (!File.Exists(viewersPath))
+        {
+            SendWarning(username + ", ton profil n’existe pas encore.");
+            return true;
+        }
+
+        if (!File.Exists(c6CharactersPath))
+        {
+            SendWarning(username + ", aucun personnage légendaire trouvé.");
+            return true;
+        }
+
+        JObject viewers = LoadJObject(viewersPath);
+
+        if (viewers == null)
+        {
+            SendError("Impossible de lire viewers_data.json.");
+            return true;
+        }
+
+        JObject viewer = viewers[username] as JObject;
+
+        if (viewer == null)
+        {
+            SendWarning(username + ", ton profil n’existe pas encore.");
+            return true;
+        }
+
+        JObject c6Characters = LoadJObject(c6CharactersPath);
+
+        if (c6Characters == null)
+        {
+            SendError("Impossible de lire c6_characters.json.");
+            return true;
+        }
+
+        JObject userData = c6Characters[username] as JObject;
+
+        if (userData == null)
+        {
+            SendWarning(username + ", tu n’as aucun personnage légendaire.");
+            return true;
+        }
+
+        JObject characters = userData["characters"] as JObject;
+
+        if (characters == null || characters.Count == 0)
+        {
+            SendWarning(username + ", tu n’as aucun personnage légendaire.");
+            return true;
+        }
+
+        JObject legend = FindLegendaryCharacterByName(characters, input);
+
+        if (legend == null)
+        {
+            SendWarning(username + ", ce personnage n’est pas dans tes légendes C6.");
+            return true;
+        }
+
+        string message = BuildLegendMessage(legend);
+        CPH.SendMessage(message);
+
+        return true;
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private JObject FindLegendaryCharacterByName(JObject characters, string input)
+    {
+        string wanted = NormalizeText(input);
+
+        foreach (KeyValuePair<string, JToken> entry in characters)
+        {
+            JObject character = entry.Value as JObject;
+
+            if (character == null)
+                continue;
+
+            string name = GetString(character, "name");
+            string normalizedName = NormalizeText(name);
+
+            if (normalizedName == wanted)
+                return character;
+        }
+
+        foreach (KeyValuePair<string, JToken> entry in characters)
+        {
+            JObject character = entry.Value as JObject;
+
+            if (character == null)
+                continue;
+
+            string name = GetString(character, "name");
+            string normalizedName = NormalizeText(name);
+
+            if (normalizedName.Contains(wanted))
+                return character;
+        }
+
+        return null;
+    }
+
+    private string BuildLegendMessage(JObject legend)
+    {
+        string name = GetString(legend, "name");
+        string element = GetString(legend, "element");
+        string emoji = GetElementEmoji(element);
+
+        JObject stats = legend["stats"] as JObject;
+
+        if (stats == null)
+            stats = new JObject();
+
+        JObject contestStats = legend["contestStats"] as JObject;
+
+        if (contestStats == null)
+            contestStats = new JObject();
+
+        string titlesText = GetTitlesText(legend);
+
+        int strength = GetInt(stats, "strength");
+        int intelligence = GetInt(stats, "intelligence");
+        int beauty = GetInt(stats, "beauty");
+        int charisma = GetInt(stats, "charisma");
+        int popularity = GetInt(stats, "popularity");
+
+        int totalWins = GetInt(contestStats, "totalWins");
+        int totalContests = GetInt(contestStats, "totalContests");
+
+        string message = emoji + " " + name + " (C6)";
+        message += " | 👑 Titre : " + titlesText;
+        message += " | 💪 Force : " + strength + " (" + GetStatRank(strength) + ")";
+        message += " | 🧠 Intelligence : " + intelligence + " (" + GetStatRank(intelligence) + ")";
+        message += " | ✨ Beauté : " + beauty + " (" + GetStatRank(beauty) + ")";
+        message += " | 👑 Charisme : " + charisma + " (" + GetStatRank(charisma) + ")";
+        message += " | 🎭 Popularité : " + popularity + " (" + GetStatRank(popularity) + ")";
+        message += " | 🏆 " + totalWins + " victoire(s)";
+        message += " | 🎪 " + totalContests + " concours";
+
+        return message;
+    }
+
+    private string GetTitlesText(JObject legend)
+    {
+        JObject titles = legend["titles"] as JObject;
+
+        if (titles == null)
+            return "Aucun";
+
+        List<string> values = new List<string>();
+
+        AddTitleIfExists(values, titles, "strength");
+        AddTitleIfExists(values, titles, "intelligence");
+        AddTitleIfExists(values, titles, "beauty");
+        AddTitleIfExists(values, titles, "charisma");
+        AddTitleIfExists(values, titles, "popularity");
+
+        if (values.Count == 0)
+            return "Aucun";
+
+        return string.Join(", ", values.ToArray());
+    }
+
+    private void AddTitleIfExists(List<string> values, JObject titles, string key)
+    {
+        string value = GetString(titles, key);
+
+        if (!string.IsNullOrEmpty(value))
+            values.Add(value);
+    }
+
+    private string GetStatRank(int value)
+    {
+        if (value >= 20)
+            return "Parfait";
+
+        if (value >= 15)
+            return "Excellent";
+
+        if (value >= 10)
+            return "Bon";
+
+        if (value >= 5)
+            return "Moyen";
+
+        return "Faible";
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+
+            if (string.IsNullOrWhiteSpace(json))
+                return new JObject();
+
+            return JObject.Parse(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private string GetElementEmoji(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "🔥";
+            case "hydro": return "💧";
+            case "cryo": return "❄️";
+            case "electro": return "⚡";
+            case "anemo": return "🌪️";
+            case "geo": return "☄️";
+            case "dendro": return "🌿";
+            default: return "⭐";
+        }
+    }
+
+    private string NormalizeElement(string element)
+    {
+        if (string.IsNullOrEmpty(element))
+            return "";
+
+        string normalized = element.ToLower().Trim();
+
+        switch (normalized)
+        {
+            case "pyro": return "pyro";
+            case "hydro": return "hydro";
+            case "cryo": return "cryo";
+            case "electro":
+            case "électro": return "electro";
+            case "anemo":
+            case "anémo": return "anemo";
+            case "geo":
+            case "géo": return "geo";
+            case "dendro": return "dendro";
+            default: return normalized;
+        }
+    }
+
+    private string NormalizeText(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return "";
+
+        string value = text.ToLower().Trim();
+
+        value = value.Replace("à", "a");
+        value = value.Replace("á", "a");
+        value = value.Replace("â", "a");
+        value = value.Replace("ä", "a");
+        value = value.Replace("ã", "a");
+
+        value = value.Replace("ç", "c");
+
+        value = value.Replace("è", "e");
+        value = value.Replace("é", "e");
+        value = value.Replace("ê", "e");
+        value = value.Replace("ë", "e");
+
+        value = value.Replace("ì", "i");
+        value = value.Replace("í", "i");
+        value = value.Replace("î", "i");
+        value = value.Replace("ï", "i");
+
+        value = value.Replace("ò", "o");
+        value = value.Replace("ó", "o");
+        value = value.Replace("ô", "o");
+        value = value.Replace("ö", "o");
+        value = value.Replace("õ", "o");
+
+        value = value.Replace("ù", "u");
+        value = value.Replace("ú", "u");
+        value = value.Replace("û", "u");
+        value = value.Replace("ü", "u");
+
+        value = value.Replace("ÿ", "y");
+        value = value.Replace("œ", "oe");
+        value = value.Replace("æ", "ae");
+
+        value = value.Replace("'", "");
+        value = value.Replace("’", "");
+        value = value.Replace("-", "");
+        value = value.Replace("_", "");
+        value = value.Replace(" ", "");
+
+        return value;
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private void SendWarning(string message)
+    {
+        CPH.SendMessage("⚠️ " + message);
+    }
+
+    private void SendError(string message)
+    {
+        CPH.SendMessage("❌ " + message);
+    }
+}

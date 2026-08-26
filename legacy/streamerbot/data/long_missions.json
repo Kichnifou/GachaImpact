@@ -1,0 +1,332 @@
+{
+  "version": 1,
+  "display": {
+    "help": "📜 Missions : !mission B/A/S pour voir les missions | !mission B 1 pour accepter | !mission abandon B 1 pour abandonner | !mission Z après avoir tout terminé."
+  },
+  "rewards": {
+    "B": 160,
+    "A": 1600,
+    "S": 16000,
+    "Z": 160000
+  },
+  "ranks": {
+    "B": [
+      {
+        "number": 1,
+        "id": "messages_b",
+        "category": "messages",
+        "name": "Bavard du jour",
+        "type": "messages",
+        "target": 50,
+        "description": "Envoyer 50 messages",
+        "progressLabel": "messages"
+      },
+      {
+        "number": 2,
+        "id": "pulls_b",
+        "category": "pulls",
+        "name": "Petit invocateur",
+        "type": "pulls",
+        "target": 50,
+        "description": "Faire 50 pulls",
+        "progressLabel": "pulls"
+      },
+      {
+        "number": 3,
+        "id": "characters4_b",
+        "category": "characters4",
+        "name": "Collectionneur débutant",
+        "type": "characters4",
+        "target": 3,
+        "description": "Obtenir 3 personnages 4★",
+        "progressLabel": "personnages 4★"
+      },
+      {
+        "number": 4,
+        "id": "characters5_b",
+        "category": "characters5",
+        "name": "Première étoile",
+        "type": "characters5",
+        "target": 1,
+        "description": "Obtenir 1 personnage 5★",
+        "progressLabel": "personnages 5★"
+      },
+      {
+        "number": 5,
+        "id": "moras_b",
+        "category": "morasEarned",
+        "name": "Porte-monnaie rempli",
+        "type": "morasEarned",
+        "target": 50000,
+        "description": "Gagner 50000 moras",
+        "progressLabel": "moras"
+      },
+      {
+        "number": 6,
+        "id": "main_particles_b",
+        "category": "mainParticlesEarned",
+        "name": "Étincelle élémentaire",
+        "type": "mainParticlesEarned",
+        "target": 500,
+        "description": "Obtenir 500 particules (son element)",
+        "progressLabel": "particules"
+      },
+      {
+        "number": 7,
+        "id": "expeditions_b",
+        "category": "expeditions",
+        "name": "Voyageur",
+        "type": "expeditions",
+        "target": 3,
+        "description": "Réaliser 3 expéditions",
+        "progressLabel": "expéditions"
+      },
+      {
+        "number": 8,
+        "id": "combat_wins_b",
+        "category": "combatWins",
+        "name": "Combattant novice",
+        "type": "combatWins",
+        "target": 5,
+        "description": "Gagner 5 combats",
+        "progressLabel": "victoires"
+      },
+      {
+        "number": 9,
+        "id": "friend_hearts_b",
+        "category": "friendHeartsSent",
+        "name": "Cœur généreux",
+        "type": "friendHeartsSent",
+        "target": 10,
+        "description": "Envoyer 10 cœurs cœurs paillettes",
+        "progressLabel": "cœurs"
+      }
+    ],
+    "A": [
+      {
+        "number": 1,
+        "id": "messages_a",
+        "category": "messages",
+        "name": "Voix du stream",
+        "type": "messages",
+        "target": 200,
+        "description": "Envoyer 200 messages",
+        "progressLabel": "messages"
+      },
+      {
+        "number": 2,
+        "id": "pulls_a",
+        "category": "pulls",
+        "name": "Grand invocateur",
+        "type": "pulls",
+        "target": 200,
+        "description": "Faire 200 pulls",
+        "progressLabel": "pulls"
+      },
+      {
+        "number": 3,
+        "id": "characters4_a",
+        "category": "characters4",
+        "name": "Collectionneur confirmé",
+        "type": "characters4",
+        "target": 10,
+        "description": "Obtenir 10 personnages 4★",
+        "progressLabel": "personnages 4★"
+      },
+      {
+        "number": 4,
+        "id": "characters5_a",
+        "category": "characters5",
+        "name": "Chasseur d’étoiles",
+        "type": "characters5",
+        "target": 5,
+        "description": "Obtenir 5 personnages 5★",
+        "progressLabel": "personnages 5★"
+      },
+      {
+        "number": 5,
+        "id": "moras_a",
+        "category": "morasEarned",
+        "name": "Fortune croissante",
+        "type": "morasEarned",
+        "target": 200000,
+        "description": "Gagner 200000 moras",
+        "progressLabel": "moras"
+      },
+      {
+        "number": 6,
+        "id": "main_particles_a",
+        "category": "mainParticlesEarned",
+        "name": "Maîtrise élémentaire",
+        "type": "mainParticlesEarned",
+        "target": 2000,
+        "description": "Obtenir 2000 particules (son élément)",
+        "progressLabel": "particules"
+      },
+      {
+        "number": 7,
+        "id": "expeditions_a",
+        "category": "expeditions",
+        "name": "Aventurier",
+        "type": "expeditions",
+        "target": 10,
+        "description": "Réaliser 10 expéditions",
+        "progressLabel": "expéditions"
+      },
+      {
+        "number": 8,
+        "id": "combat_wins_a",
+        "category": "combatWins",
+        "name": "Guerrier confirmé",
+        "type": "combatWins",
+        "target": 20,
+        "description": "Gagner 20 combats",
+        "progressLabel": "victoires"
+      },
+      {
+        "number": 9,
+        "id": "friend_hearts_a",
+        "category": "friendHeartsSent",
+        "name": "Ami fidèle",
+        "type": "friendHeartsSent",
+        "target": 40,
+        "description": "Envoyer 40 cœurs cœurs paillettes",
+        "progressLabel": "cœurs"
+      }
+    ],
+    "S": [
+      {
+        "number": 1,
+        "id": "messages_s",
+        "category": "messages",
+        "name": "Légende du chat",
+        "type": "messages",
+        "target": 1000,
+        "description": "Envoyer 1000 messages",
+        "progressLabel": "messages"
+      },
+      {
+        "number": 2,
+        "id": "pulls_s",
+        "category": "pulls",
+        "name": "Archonte des vœux",
+        "type": "pulls",
+        "target": 1000,
+        "description": "Faire 1000 pulls",
+        "progressLabel": "pulls"
+      },
+      {
+        "number": 3,
+        "id": "characters4_s",
+        "category": "characters4",
+        "name": "Maître de la collection 4★",
+        "type": "characters4",
+        "target": 30,
+        "description": "Obtenir 30 personnages 4★",
+        "progressLabel": "personnages 4★"
+      },
+      {
+        "number": 4,
+        "id": "characters5_s",
+        "category": "characters5",
+        "name": "Constellation divine",
+        "type": "characters5",
+        "target": 20,
+        "description": "Obtenir 20 personnages 5★",
+        "progressLabel": "personnages 5★"
+      },
+      {
+        "number": 5,
+        "id": "moras_s",
+        "category": "morasEarned",
+        "name": "Millionnaire du stream",
+        "type": "morasEarned",
+        "target": 1000000,
+        "description": "Gagner 1000000 moras",
+        "progressLabel": "moras"
+      },
+      {
+        "number": 6,
+        "id": "main_particles_s",
+        "category": "mainParticlesEarned",
+        "name": "Archonte élémentaire",
+        "type": "mainParticlesEarned",
+        "target": 10000,
+        "description": "Obtenir 10000 particules (son element)",
+        "progressLabel": "particules"
+      },
+      {
+        "number": 7,
+        "id": "expeditions_s",
+        "category": "expeditions",
+        "name": "Explorateur légendaire",
+        "type": "expeditions",
+        "target": 30,
+        "description": "Réaliser 30 expéditions",
+        "progressLabel": "expéditions"
+      },
+      {
+        "number": 8,
+        "id": "combat_wins_s",
+        "category": "combatWins",
+        "name": "Héros du royaume",
+        "type": "combatWins",
+        "target": 100,
+        "description": "Gagner 100 combats",
+        "progressLabel": "victoires"
+      },
+      {
+        "number": 9,
+        "id": "friend_hearts_s",
+        "category": "friendHeartsSent",
+        "name": "Lien éternel",
+        "type": "friendHeartsSent",
+        "target": 200,
+        "description": "Envoyer 200 cœurs cœurs paillettes",
+        "progressLabel": "cœurs"
+      }
+    ],
+    "Z": [
+      {
+        "number": 1,
+        "id": "c6_5_characters_z",
+        "category": "c6FiveStars",
+        "name": "Couronne des constellations",
+        "type": "c6FiveStars",
+        "target": 5,
+        "description": "Obtenir 5 personnages C6",
+        "progressLabel": "personnages C6"
+      },
+      {
+        "number": 2,
+        "id": "perfect_friendship_z",
+        "category": "perfectFriendship",
+        "name": "Amitié parfaite",
+        "type": "perfectFriendship",
+        "target": 1,
+        "description": "Atteindre [Amitié Parfaite]",
+        "progressLabel": "amitié parfaite"
+      },
+      {
+        "number": 3,
+        "id": "level_100_z",
+        "category": "level100",
+        "name": "Sommet de l’aventure",
+        "type": "level100",
+        "target": 100,
+        "description": "Atteindre le niveau 100",
+        "progressLabel": "niveau"
+      },
+      {
+        "number": 4,
+        "id": "manual_combat_wins_z",
+        "category": "manualCombatWins",
+        "name": "Maître du combat",
+        "type": "manualCombatWins",
+        "target": 50,
+        "description": "Gagner 50 combats avec !combat go",
+        "progressLabel": "victoires manuelles"
+      }
+    ]
+  }
+}

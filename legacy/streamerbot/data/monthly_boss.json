@@ -1,0 +1,81 @@
+{
+  "currentBoss": {
+    "month": "2026-08",
+    "name": "Monstre Abyssal",
+    "maxHp": 1380000,
+    "currentHp": 52850,
+    "resistance": "electro",
+    "defeated": false,
+    "defeatedAt": "",
+    "finalBlowBy": "",
+    "totalDamage": 1327150,
+    "totalAttacks": 103,
+    "rewardsDistributed": false,
+    "participants": {
+      "dragon_gaming_tv": {
+        "damage": 108700,
+        "attacks": 10,
+        "lastAttackDate": "2026-08-25",
+        "highestHit": 12275
+      },
+      "kichnifou": {
+        "damage": 181050,
+        "attacks": 17,
+        "lastAttackDate": "2026-08-26",
+        "highestHit": 10650
+      },
+      "marabou_malveillant": {
+        "damage": 79200,
+        "attacks": 9,
+        "lastAttackDate": "2026-08-24",
+        "highestHit": 8800
+      },
+      "fred_night0wl": {
+        "damage": 183400,
+        "attacks": 14,
+        "lastAttackDate": "2026-08-26",
+        "highestHit": 13750
+      },
+      "lexceptiondu37": {
+        "damage": 7300,
+        "attacks": 2,
+        "lastAttackDate": "2026-08-14",
+        "highestHit": 4950
+      },
+      "kadraw18": {
+        "damage": 227050,
+        "attacks": 16,
+        "lastAttackDate": "2026-08-26",
+        "highestHit": 19600
+      },
+      "kyo89chasca": {
+        "damage": 231750,
+        "attacks": 14,
+        "lastAttackDate": "2026-08-26",
+        "highestHit": 19600
+      },
+      "plumereveuse66": {
+        "damage": 267400,
+        "attacks": 14,
+        "lastAttackDate": "2026-08-26",
+        "highestHit": 19600
+      },
+      "mathriox612": {
+        "damage": 41300,
+        "attacks": 7,
+        "lastAttackDate": "2026-08-25",
+        "highestHit": 13100
+      }
+    },
+    "createdAt": "2026-08-10 22:29:31"
+  },
+  "globalStats": {
+    "totalBossesGenerated": 1,
+    "totalBossesDefeated": 0,
+    "totalDamage": 1327150,
+    "totalAttacks": 103,
+    "highestHit": 19600,
+    "highestHitPlayer": "plumereveuse66"
+  },
+  "history": []
+}

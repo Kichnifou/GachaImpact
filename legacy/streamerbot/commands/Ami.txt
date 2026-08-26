@@ -1,0 +1,929 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !ami
+- Permet d’envoyer une demande d’ami avec !ami pseudo ou !ami @pseudo
+- Si l’autre joueur avait déjà envoyé une demande, l’amitié est acceptée
+- Les amitiés sont stockées dans friendships_data.json
+- Une amitié est une relation commune unique entre deux joueurs, non dupliquée dans viewers_data.json
+- Permet d’afficher les infos d’amitié quand deux joueurs sont déjà amis
+- Permet d’envoyer un "cœurs cœurs paillettes" avec !ami coeur pseudo ou !ami coeur @pseudo
+- Chaque joueur peut envoyer un cœur cœur paillettes une fois par jour à chaque ami
+- Les deux sens sont indépendants : A peut envoyer à B et B peut envoyer à A le même jour
+- Envoyer un cœur cœur paillettes augmente le niveau d’amitié de +1
+- Augmente aussi le compteur total de cœurs cœurs paillettes échangés
+- Donne +5 primogems aux deux joueurs
+- Affiche une phrase mignonne aléatoire
+- Lit viewers_data.json pour vérifier les joueurs et donner les primogems
+- Ne reconstruit jamais entièrement un viewer
+- Ne fait PAS de backup automatique
+- Compatible Streamer.bot
+- Sans LINQ
+*/
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    private const int HeartPrimosReward = 5;
+    private static Random random = new Random();
+
+    public bool Execute()
+    {
+        string folderPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data";
+        string viewersPath = Path.Combine(folderPath, "viewers_data.json");
+        string friendshipsPath = Path.Combine(folderPath, "friendships_data.json");
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+
+        if (!File.Exists(viewersPath))
+        {
+            SendWarning(username + ", ton profil n’existe pas encore.");
+            return true;
+        }
+
+        JObject viewers = LoadJObject(viewersPath);
+
+        if (viewers == null)
+        {
+            SendWarning("Impossible de lire viewers_data.json.");
+            return true;
+        }
+
+        JObject viewer = GetViewer(viewers, username);
+
+        if (viewer == null)
+        {
+            SendWarning(username + ", ton profil n’existe pas encore.");
+            return true;
+        }
+
+        EnsureViewerDefaults(viewer, username);
+
+        JObject friendships = LoadOrCreateFriendships(friendshipsPath);
+        EnsureFriendshipsDefaults(friendships);
+
+        string input = GetCommandInput();
+        string[] parts = input.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length == 0)
+        {
+            ShowHelp(username, friendships);
+            return true;
+        }
+
+        string first = NormalizeUsername(parts[0]);
+
+        if (first == "coeur" || first == "cœur" || first == "coeurs" || first == "cœurs")
+        {
+            if (parts.Length < 2)
+            {
+                SendWarning(username + ", utilise : !ami coeur pseudo");
+                return true;
+            }
+
+            string target = NormalizeUsername(parts[1]);
+
+            if (target == "all" || target == "tous" || target == "tout")
+            {
+                SendSparkleHeartToAll(viewersPath, friendshipsPath, viewers, friendships, username);
+                return true;
+            }
+
+            SendSparkleHeart(viewersPath, friendshipsPath, viewers, friendships, username, target);
+            return true;
+        }
+
+        if (parts.Length > 1)
+        {
+            SendWarning(username + ", utilise : !ami pseudo ou !ami coeur pseudo");
+            return true;
+        }
+
+        string targetUser = NormalizeUsername(parts[0]);
+        HandleFriendCommand(viewersPath, friendshipsPath, viewers, friendships, username, targetUser);
+
+        return true;
+    }
+
+    private void ShowHelp(string username, JObject friendships)
+    {
+        string friendsList = BuildFriendsListMessage(username, friendships);
+
+        if (!string.IsNullOrEmpty(friendsList))
+            CPH.SendMessage(friendsList);
+
+        string pendingRequests = BuildPendingRequestsMessage(username, friendships);
+
+        SendInfo(
+            username +
+            " | Demandes : " + pendingRequests +
+            " | Commandes : !ami pseudo = demander/voir l’amitié | !ami coeur pseudo = envoyer un cœur | !ami coeur all = envoyer à tous tes amis"
+        );
+    }
+
+    private void HandleFriendCommand(string viewersPath, string friendshipsPath, JObject viewers, JObject friendships, string username, string targetUser)
+    {
+        if (string.IsNullOrEmpty(targetUser))
+        {
+            SendWarning(username + ", utilise : !ami pseudo");
+            return;
+        }
+
+        if (username == targetUser)
+        {
+            SendWarning(username + ", tu ne peux pas devenir ami avec toi-même.");
+            return;
+        }
+
+        JObject targetViewer = GetViewer(viewers, targetUser);
+
+        if (targetViewer == null)
+        {
+            SendWarning(username + ", le joueur " + targetUser + " n’existe pas encore.");
+            return;
+        }
+
+        EnsureViewerDefaults(targetViewer, targetUser);
+
+        string friendshipKey = GetFriendshipKey(username, targetUser);
+        JObject friendship = GetFriendship(friendships, friendshipKey);
+
+        if (friendship != null)
+        {
+            ShowFriendshipInfo(username, friendship, username, targetUser);
+            return;
+        }
+
+        JObject reverseRequest = FindRequest(friendships, targetUser, username);
+
+        if (reverseRequest != null)
+        {
+            AcceptFriendship(friendshipsPath, friendships, username, targetUser, reverseRequest);
+            return;
+        }
+
+        JObject existingRequest = FindRequest(friendships, username, targetUser);
+
+        if (existingRequest != null)
+        {
+            SendWarning(username + ", demande déjà envoyée à " + targetUser + ". " + targetUser + " doit faire !ami " + username + " pour accepter.");
+            return;
+        }
+
+        CreateFriendRequest(friendshipsPath, friendships, username, targetUser);
+    }
+
+    private void CreateFriendRequest(string friendshipsPath, JObject friendships, string fromUser, string toUser)
+    {
+        JArray requests = GetArray(friendships, "requests");
+
+        JObject request = new JObject();
+        request["from"] = fromUser;
+        request["to"] = toUser;
+        request["createdAt"] = FormatDateTime(DateTime.Now);
+
+        requests.Add(request);
+        friendships["requests"] = requests;
+
+        SaveJObject(friendshipsPath, friendships);
+
+        SendSuccess(fromUser + " envoie une demande d’ami à " + toUser + " | " + toUser + " peut accepter avec !ami " + fromUser);
+    }
+
+    private void AcceptFriendship(string friendshipsPath, JObject friendships, string accepter, string requester, JObject reverseRequest)
+    {
+        JArray requests = GetArray(friendships, "requests");
+        RemoveRequest(requests, GetString(reverseRequest, "from"), GetString(reverseRequest, "to"));
+
+        string key = GetFriendshipKey(accepter, requester);
+        JObject allFriendships = GetObject(friendships, "friendships");
+
+        JObject friendship = new JObject();
+        friendship["users"] = CreateUsersArray(accepter, requester);
+        friendship["status"] = "friends";
+        friendship["level"] = 1;
+        friendship["sparkleHearts"] = 0;
+        friendship["createdAt"] = FormatDateTime(DateTime.Now);
+
+        JObject lastHeartSent = new JObject();
+        lastHeartSent[accepter] = "";
+        lastHeartSent[requester] = "";
+        friendship["lastHeartSent"] = lastHeartSent;
+
+        allFriendships[key] = friendship;
+        friendships["friendships"] = allFriendships;
+        friendships["requests"] = requests;
+
+        SaveJObject(friendshipsPath, friendships);
+
+        SendSuccess("🤝 " + accepter + " et " + requester + " sont maintenant amis ! Niveau d’amitié : 1 [Amitié Sincère] 💛");
+    }
+
+    private void SendSparkleHeart(string viewersPath, string friendshipsPath, JObject viewers, JObject friendships, string username, string targetUser)
+    {
+        if (string.IsNullOrEmpty(targetUser))
+        {
+            SendWarning(username + ", utilise : !ami coeur pseudo");
+            return;
+        }
+
+        if (username == targetUser)
+        {
+            SendWarning(username + ", tu ne peux pas t’envoyer des cœurs cœurs paillettes à toi-même.");
+            return;
+        }
+
+        JObject targetViewer = GetViewer(viewers, targetUser);
+
+        if (targetViewer == null)
+        {
+            SendWarning(username + ", le joueur " + targetUser + " n’existe pas encore.");
+            return;
+        }
+
+        EnsureViewerDefaults(targetViewer, targetUser);
+
+        string key = GetFriendshipKey(username, targetUser);
+        JObject friendship = GetFriendship(friendships, key);
+
+        if (friendship == null)
+        {
+            SendWarning(username + ", tu n’es pas encore ami avec " + targetUser + ". Utilise : !ami " + targetUser);
+            return;
+        }
+
+        JObject lastHeartSent = friendship["lastHeartSent"] as JObject;
+
+        if (lastHeartSent == null)
+        {
+            lastHeartSent = new JObject();
+            friendship["lastHeartSent"] = lastHeartSent;
+        }
+
+        string today = DateTime.Now.ToString("yyyy-MM-dd");
+
+        if (GetString(lastHeartSent, username) == today)
+        {
+            SendWarning(username + ", tu as déjà envoyé des cœurs cœurs paillettes à " + targetUser + " aujourd’hui.");
+            return;
+        }
+
+        AddInt(friendship, "level", 1);
+        AddInt(friendship, "sparkleHearts", 1);
+        lastHeartSent[username] = today;
+
+        JObject viewer = GetViewer(viewers, username);
+
+        if (viewer == null)
+        {
+            SendWarning(username + ", ton profil n’existe pas encore.");
+            return;
+        }
+
+        EnsureViewerDefaults(viewer, username);
+
+        AddInt(viewer, "primogems", HeartPrimosReward);
+        AddInt(targetViewer, "primogems", HeartPrimosReward);
+
+        AddStat(viewer, "totalPrimosEarned", HeartPrimosReward);
+        AddStat(targetViewer, "totalPrimosEarned", HeartPrimosReward);
+        AddStat(viewer, "totalFriendHeartsSent", 1);
+
+        SaveJObject(viewersPath, viewers);
+        SaveJObject(friendshipsPath, friendships);
+
+        string phrase = GetRandomFriendshipPhrase();
+
+        CPH.SendMessage("💖💖✨ " + username + " envoie des cœurs cœurs paillettes à " + targetUser + " | " + phrase + " | +💠5 primos chacun");
+    }
+
+    private void SendSparkleHeartToAll(string viewersPath, string friendshipsPath, JObject viewers, JObject friendships, string username)
+    {
+        JObject viewer = GetViewer(viewers, username);
+
+        if (viewer == null)
+        {
+            SendWarning(username + ", ton profil n’existe pas encore.");
+            return;
+        }
+
+        EnsureViewerDefaults(viewer, username);
+
+        JObject allFriendships = GetObject(friendships, "friendships");
+        string today = DateTime.Now.ToString("yyyy-MM-dd");
+
+        int sentCount = 0;
+        int skippedAlreadySent = 0;
+        int skippedMissingViewer = 0;
+
+        foreach (KeyValuePair<string, JToken> entry in allFriendships)
+        {
+            JObject friendship = entry.Value as JObject;
+
+            if (friendship == null)
+                continue;
+
+            JArray users = friendship["users"] as JArray;
+
+            if (users == null || users.Count < 2)
+                continue;
+
+            string userA = NormalizeUsername(users[0].ToString());
+            string userB = NormalizeUsername(users[1].ToString());
+
+            string friend = "";
+
+            if (userA == username)
+                friend = userB;
+            else if (userB == username)
+                friend = userA;
+            else
+                continue;
+
+            JObject targetViewer = GetViewer(viewers, friend);
+
+            if (targetViewer == null)
+            {
+                skippedMissingViewer++;
+                continue;
+            }
+
+            EnsureViewerDefaults(targetViewer, friend);
+
+            JObject lastHeartSent = friendship["lastHeartSent"] as JObject;
+
+            if (lastHeartSent == null)
+            {
+                lastHeartSent = new JObject();
+                friendship["lastHeartSent"] = lastHeartSent;
+            }
+
+            if (GetString(lastHeartSent, username) == today)
+            {
+                skippedAlreadySent++;
+                continue;
+            }
+
+            AddInt(friendship, "level", 1);
+            AddInt(friendship, "sparkleHearts", 1);
+            lastHeartSent[username] = today;
+
+            AddInt(viewer, "primogems", HeartPrimosReward);
+            AddInt(targetViewer, "primogems", HeartPrimosReward);
+
+            AddStat(viewer, "totalPrimosEarned", HeartPrimosReward);
+            AddStat(targetViewer, "totalPrimosEarned", HeartPrimosReward);
+
+            sentCount++;
+        }
+
+        if (sentCount <= 0)
+        {
+            SendWarning(username + ", aucun cœur envoyé. Déjà fait aujourd’hui ou aucun ami disponible.");
+            return;
+        }
+
+        AddStat(viewer, "totalFriendHeartsSent", sentCount);
+
+        SaveJObject(viewersPath, viewers);
+        SaveJObject(friendshipsPath, friendships);
+
+        CPH.SendMessage("💖💖✨ " + username + " envoie des cœurs cœurs paillettes à tous ses amis ! +" + sentCount + " amitié(s) | +💠" + (sentCount * HeartPrimosReward) + " primos pour " + username);
+    }
+
+    private void ShowFriendshipInfo(string requester, JObject friendship, string userA, string userB)
+    {
+        int realLevel = GetInt(friendship, "level");
+        int displayLevel = realLevel;
+
+        if (displayLevel > 1000)
+            displayLevel = 1000;
+
+        int hearts = GetInt(friendship, "sparkleHearts");
+        string tier = GetFriendshipTier(realLevel);
+        string emoji = GetFriendshipTierEmoji(realLevel);
+
+        CPH.SendMessage("🤝 Amitié " + userA + " ↔ " + userB + " | Statut : ami | Niveau d’amitié : " + displayLevel + " " + tier + " " + emoji + " | 💖💖✨ échangés : " + hearts);
+    }
+
+    private string GetFriendshipTier(int level)
+    {
+        if (level >= 1000)
+            return "[Amitié Parfaite]";
+
+        if (level >= 300)
+            return "[Amitié Légendaire]";
+
+        if (level >= 100)
+            return "[Amitié Fusionnelle]";
+
+        return "[Amitié Sincère]";
+    }
+
+    private string GetFriendshipTierEmoji(int level)
+    {
+        if (level >= 1000)
+            return "💞";
+
+        if (level >= 300)
+            return "🌟";
+
+        if (level >= 100)
+            return "💖";
+
+        return "💛";
+    }
+
+    private JObject FindRequest(JObject friendships, string fromUser, string toUser)
+    {
+        JArray requests = GetArray(friendships, "requests");
+
+        for (int i = 0; i < requests.Count; i++)
+        {
+            JObject request = requests[i] as JObject;
+
+            if (request == null)
+                continue;
+
+            string from = NormalizeUsername(GetString(request, "from"));
+            string to = NormalizeUsername(GetString(request, "to"));
+
+            if (from == fromUser && to == toUser)
+                return request;
+        }
+
+        return null;
+    }
+
+    private void RemoveRequest(JArray requests, string fromUser, string toUser)
+    {
+        fromUser = NormalizeUsername(fromUser);
+        toUser = NormalizeUsername(toUser);
+
+        for (int i = requests.Count - 1; i >= 0; i--)
+        {
+            JObject request = requests[i] as JObject;
+
+            if (request == null)
+                continue;
+
+            string from = NormalizeUsername(GetString(request, "from"));
+            string to = NormalizeUsername(GetString(request, "to"));
+
+            if (from == fromUser && to == toUser)
+                requests.RemoveAt(i);
+        }
+    }
+
+    private JObject GetFriendship(JObject friendships, string key)
+    {
+        JObject allFriendships = GetObject(friendships, "friendships");
+        return allFriendships[key] as JObject;
+    }
+
+    private string GetFriendshipKey(string userA, string userB)
+    {
+        userA = NormalizeUsername(userA);
+        userB = NormalizeUsername(userB);
+
+        if (string.Compare(userA, userB) < 0)
+            return userA + "__" + userB;
+
+        return userB + "__" + userA;
+    }
+
+    private JArray CreateUsersArray(string userA, string userB)
+    {
+        JArray array = new JArray();
+
+        string first = NormalizeUsername(userA);
+        string second = NormalizeUsername(userB);
+
+        if (string.Compare(first, second) < 0)
+        {
+            array.Add(first);
+            array.Add(second);
+        }
+        else
+        {
+            array.Add(second);
+            array.Add(first);
+        }
+
+        return array;
+    }
+
+    private JObject LoadOrCreateFriendships(string path)
+    {
+        if (!File.Exists(path))
+        {
+            JObject created = new JObject();
+            created["version"] = 1;
+            created["friendships"] = new JObject();
+            created["requests"] = new JArray();
+            SaveJObject(path, created);
+            return created;
+        }
+
+        JObject data = LoadJObject(path);
+
+        if (data == null)
+        {
+            JObject fallback = new JObject();
+            fallback["version"] = 1;
+            fallback["friendships"] = new JObject();
+            fallback["requests"] = new JArray();
+            return fallback;
+        }
+
+        return data;
+    }
+
+    private void EnsureFriendshipsDefaults(JObject friendships)
+    {
+        EnsureInt(friendships, "version", 1);
+        EnsureObject(friendships, "friendships");
+        EnsureArray(friendships, "requests");
+    }
+
+    private string GetRandomFriendshipPhrase()
+    {
+        string[] phrases = new string[]
+        {
+            "leur amitié s’embellit doucement.",
+            "un petit lien magique brille entre eux.",
+            "leur complicité gagne une étincelle.",
+            "une douce lumière entoure leur amitié.",
+            "leur lien devient encore plus précieux.",
+            "un sourire traverse leur aventure.",
+            "leur amitié fleurit comme un jardin secret.",
+            "une pluie d’étoiles accompagne ce geste.",
+            "leur duo gagne un peu plus de magie.",
+            "une belle énergie les rapproche.",
+            "leur lien scintille.",
+            "un moment tout doux vient d’être partagé.",
+            "leur amitié gagne une nouvelle couleur.",
+            "des petites étoiles dansent autour d’eux.",
+            "leur complicité devient encore plus lumineuse.",
+            "un joli souvenir vient de naître.",
+            "leur amitié rayonne un peu plus fort.",
+            "une vague de douceur traverse le stream.",
+            "leur lien prend une jolie forme brillante.",
+            "un cœur de plus bat dans leur aventure.",
+            "la magie de l’amitié fait son effet.",
+            "leur complicité se couvre de paillettes.",
+            "un petit miracle d’amitié apparaît.",
+            "leur relation gagne une note sucrée.",
+            "le monde sent leur amitié grandir.",
+            "leurs cœurs brillent en rythme.",
+            "une étincelle tendre les accompagne.",
+            "leur amitié devient encore plus adorable.",
+            "une petite constellation naît entre eux.",
+            "leur lien se renforce dans la bonne humeur.",
+            "un rayon de tendresse passe par ici.",
+            "leur aventure commune gagne des paillettes.",
+            "une douce vibration d’amitié se répand.",
+            "leur complicité fait fondre tout le monde.",
+            "les étoiles valident cette amitié.",
+            "leur amitié reçoit une bénédiction sucrée.",
+            "un nuage de tendresse les entoure.",
+            "leur duo devient encore plus attachant.",
+            "un joli éclat traverse leur lien.",
+            "leur amitié gagne un bonus de douceur.",
+            "une petite lumière s’allume entre eux.",
+            "leur lien devient plus chaleureux.",
+            "les paillettes ont choisi leur camp.",
+            "leur amitié avance avec le sourire.",
+            "un câlin cosmique traverse le stream.",
+            "leur complicité brille comme jamais.",
+            "un petit souffle magique les rapproche.",
+            "leur amitié prend un niveau de mignonnerie.",
+            "les cœurs font la fête autour d’eux.",
+            "leur lien devient une vraie petite légende."
+        };
+
+        return phrases[random.Next(phrases.Length)];
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+
+            if (string.IsNullOrWhiteSpace(json))
+                return new JObject();
+
+            return JObject.Parse(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void SaveJObject(string path, JObject data)
+    {
+        string folder = Path.GetDirectoryName(path);
+
+        if (!Directory.Exists(folder))
+            Directory.CreateDirectory(folder);
+
+        string output = data.ToString(Formatting.Indented);
+        File.WriteAllText(path, output);
+    }
+
+    private JObject GetViewer(JObject viewers, string username)
+    {
+        if (viewers == null || string.IsNullOrEmpty(username))
+            return null;
+
+        return viewers[username] as JObject;
+    }
+
+    private JObject GetObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+
+        return parent[key] as JObject;
+    }
+
+    private JArray GetArray(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Array)
+            parent[key] = new JArray();
+
+        return parent[key] as JArray;
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private void AddInt(JObject obj, string key, int amount)
+    {
+        int current = GetInt(obj, key);
+        obj[key] = current + amount;
+    }
+
+    private void AddStat(JObject viewer, string statName, int amount)
+    {
+        JObject stats = GetObject(viewer, "stats");
+        AddInt(stats, statName, amount);
+    }
+
+    private void EnsureViewerDefaults(JObject viewer, string username)
+    {
+        if (viewer == null)
+            return;
+
+        if (viewer["username"] == null || viewer["username"].Type == JTokenType.Null)
+            viewer["username"] = username;
+
+        EnsureString(viewer, "element", "");
+        EnsureInt(viewer, "xp", 0);
+        EnsureInt(viewer, "level", 0);
+        EnsureInt(viewer, "primogems", 0);
+        EnsureInt(viewer, "moras", 0);
+        EnsureInt(viewer, "selectedBannerCharacterId", 0);
+
+        JObject particles = GetObject(viewer, "particles");
+        EnsureInt(particles, "pyro", 0);
+        EnsureInt(particles, "hydro", 0);
+        EnsureInt(particles, "cryo", 0);
+        EnsureInt(particles, "electro", 0);
+        EnsureInt(particles, "anemo", 0);
+        EnsureInt(particles, "geo", 0);
+        EnsureInt(particles, "dendro", 0);
+
+        GetObject(viewer, "box");
+        GetArray(viewer, "team");
+
+        JObject pity = GetObject(viewer, "pity");
+        EnsureInt(pity, "pity5", 0);
+        EnsureInt(pity, "pity4", 0);
+
+        JObject guarantee = GetObject(viewer, "guarantee");
+        EnsureBool(guarantee, "guaranteedFeatured5", false);
+
+        JObject options = GetObject(viewer, "options");
+        EnsureString(options, "boxSort", "a");
+        EnsureBool(options, "boxSortDescending", false);
+
+        JObject missions = GetObject(viewer, "missions");
+        JObject daily = GetObject(missions, "daily");
+        EnsureNullOrString(daily, "missionId");
+        EnsureNullOrString(daily, "type");
+        EnsureInt(daily, "progress", 0);
+        EnsureInt(daily, "target", 0);
+        EnsureBool(daily, "completed", false);
+        EnsureBool(daily, "rewardClaimed", false);
+        EnsureNullOrString(daily, "startedAt");
+        EnsureNullOrString(daily, "description");
+
+        GetArray(viewer, "tradeRequests");
+        GetArray(viewer, "usedCodes");
+
+        JObject stats = GetObject(viewer, "stats");
+        EnsureInt(stats, "totalMessages", 0);
+        EnsureInt(stats, "countedMessages", 0);
+        EnsureInt(stats, "totalPulls", 0);
+        EnsureInt(stats, "totalFiveStars", 0);
+        EnsureInt(stats, "totalFourStars", 0);
+        EnsureBool(stats, "lastPullWasFiveStar", false);
+        EnsureInt(stats, "fiftyFiftyLostStreak", 0);
+        EnsureInt(stats, "fiftyFiftyWon", 0);
+        EnsureInt(stats, "fiftyFiftyLost", 0);
+        EnsureInt(stats, "totalPrimosEarned", 0);
+        EnsureInt(stats, "totalPrimosSpent", 0);
+        EnsureInt(stats, "totalMorasEarned", 0);
+        EnsureInt(stats, "totalMorasSpent", 0);
+        EnsureInt(stats, "level100OverflowRewardsClaimed", 0);
+        EnsureInt(stats, "totalFriendHeartsSent", 0);
+
+        JObject dates = GetObject(viewer, "dates");
+        EnsureNullOrString(dates, "firstSeen");
+        EnsureNullOrString(dates, "lastSeen");
+        EnsureNullOrString(dates, "lastXpDate");
+        EnsureNullOrString(dates, "lastMessageTime");
+        EnsureNullOrString(dates, "lastDailyFirstMessageReward");
+    }
+
+    private void EnsureObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+    }
+
+    private void EnsureArray(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Array)
+            parent[key] = new JArray();
+    }
+
+    private void EnsureInt(JObject obj, string key, int defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureBool(JObject obj, string key, bool defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureString(JObject obj, string key, string defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureNullOrString(JObject obj, string key)
+    {
+        if (obj[key] == null)
+            obj[key] = null;
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private string NormalizeUsername(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return "";
+
+        return value.Trim().ToLower().TrimStart('@');
+    }
+
+    private string FormatDateTime(DateTime date)
+    {
+        return date.ToString("yyyy-MM-dd HH:mm:ss");
+    }
+
+    private string BuildFriendsListMessage(string username, JObject friendships)
+    {
+        JObject allFriendships = GetObject(friendships, "friendships");
+        string today = DateTime.Now.ToString("yyyy-MM-dd");
+        string message = "";
+        int count = 0;
+
+        foreach (KeyValuePair<string, JToken> entry in allFriendships)
+        {
+            JObject friendship = entry.Value as JObject;
+
+            if (friendship == null)
+                continue;
+
+            JArray users = friendship["users"] as JArray;
+
+            if (users == null || users.Count < 2)
+                continue;
+
+            string userA = NormalizeUsername(users[0].ToString());
+            string userB = NormalizeUsername(users[1].ToString());
+
+            string friend = "";
+
+            if (userA == username)
+                friend = userB;
+            else if (userB == username)
+                friend = userA;
+            else
+                continue;
+
+            JObject lastHeartSent = friendship["lastHeartSent"] as JObject;
+            bool alreadySentToday = false;
+
+            if (lastHeartSent != null && GetString(lastHeartSent, username) == today)
+                alreadySentToday = true;
+
+            if (message != "")
+                message += " | ";
+
+            message += friend;
+
+            if (alreadySentToday)
+                message += " ✅";
+
+            count++;
+        }
+
+        if (count == 0)
+            return "";
+
+        return "🤝 Amis de " + username + " : " + message;
+    }
+
+    private string BuildPendingRequestsMessage(string username, JObject friendships)
+    {
+        JArray requests = GetArray(friendships, "requests");
+
+        string message = "";
+        int count = 0;
+
+        for (int i = 0; i < requests.Count; i++)
+        {
+            JObject request = requests[i] as JObject;
+
+            if (request == null)
+                continue;
+
+            string toUser = NormalizeUsername(GetString(request, "to"));
+
+            if (toUser != username)
+                continue;
+
+            string fromUser = NormalizeUsername(GetString(request, "from"));
+
+            if (message != "")
+                message += ", ";
+
+            message += fromUser;
+            count++;
+        }
+
+        if (count == 0)
+            return "aucune";
+
+        return message;
+    }
+
+    private void SendSuccess(string message) { CPH.SendMessage("✅ " + message); }
+    private void SendWarning(string message) { CPH.SendMessage("⚠️ " + message); }
+    private void SendInfo(string message) { CPH.SendMessage("ℹ️ " + message); }
+}

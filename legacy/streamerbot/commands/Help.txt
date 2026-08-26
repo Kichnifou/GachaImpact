@@ -1,0 +1,142 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !help
+- Affiche les commandes principales du Kichni Stream Game
+- Affiche une aide courte par catégorie
+- Ne lit pas viewers_data.json
+- Ne modifie aucun fichier JSON
+- Ne crée pas de viewer
+- Ne sauvegarde rien
+*/
+
+using System;
+
+public class CPHInline
+{
+    public bool Execute()
+    {
+        string input = GetCommandInput().ToLower().Trim();
+
+        if (string.IsNullOrEmpty(input))
+        {
+            SendHelpMain();
+            return true;
+        }
+
+        switch (input)
+        {
+            case "progression":
+            case "xp":
+                SendProgressionHelp();
+                break;
+
+            case "gacha":
+            case "pull":
+            case "pulls":
+                SendGachaHelp();
+                break;
+
+            case "ressources":
+            case "sac":
+                SendResourcesHelp();
+                break;
+
+            case "collection":
+            case "box":
+                SendCollectionHelp();
+                break;
+
+            case "social":
+            case "team":
+            case "echanger":
+            case "échange":
+            case "echange":
+                SendSocialHelp();
+                break;
+
+            case "shop":
+            case "boutique":
+                SendShopHelp();
+                break;
+
+            case "stats":
+            case "top":
+                SendStatsHelp();
+                break;
+
+            case "code":
+            case "codes":
+            case "gift":
+                SendCodeHelp();
+                break;
+
+            default:
+                SendWarning("Catégorie inconnue. Utilise : !help progression/gacha/ressources/collection/social/shop/stats/code");
+                break;
+        }
+
+        return true;
+    }
+
+    private void SendHelpMain()
+    {
+        CPH.SendMessage("ℹ️ Help : !help progression | gacha | ressources | collection | social | shop | stats | code");
+    }
+
+    private void SendProgressionHelp()
+    {
+        CPH.SendMessage("📈 Progression : !element pyro/hydro/cryo/electro/anemo/geo/dendro → choisir ton élément | XP en parlant dans le chat");
+    }
+
+    private void SendGachaHelp()
+    {
+        CPH.SendMessage("🎯 Gacha : !banniere → voir la bannière | !select nom → choisir ton 5★ | !pull / !pull 10 → faire des voeux | !pity → voir ta pity");
+    }
+
+    private void SendResourcesHelp()
+    {
+        CPH.SendMessage("🎒 Ressources : !sac → voir primos/moras/particules | !convertir nombre → convertir tes particules en primos");
+    }
+
+    private void SendCollectionHelp()
+    {
+        CPH.SendMessage("📦 Collection : !box → voir ta box | !box a/c/d/e → tri alpha/constellation/date/élément | !obtention nom → date d’obtention");
+    }
+
+    private void SendSocialHelp()
+    {
+        CPH.SendMessage("👥 Social : !team → voir ta team | !team add/remove nom → modifier ta team | !echanger → échanges de particules");
+    }
+
+    private void SendShopHelp()
+    {
+        CPH.SendMessage("🛒 Shop : !shop → voir la boutique | !shop primos nombre → acheter des primos | !shop ticket | !shop mission");
+    }
+
+    private void SendStatsHelp()
+    {
+        CPH.SendMessage("🏆 Stats : !top me → tes stats | !top xp/pulls/luck/primos/moras/particles/box/c6 → classements");
+    }
+
+    private void SendCodeHelp()
+    {
+        CPH.SendMessage("🎁 Code : !code NOMDUCODE → utiliser un code cadeau une seule fois et récupérer ses récompenses");
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private void SendWarning(string message)
+    {
+        CPH.SendMessage($"⚠️ {message}");
+    }
+}

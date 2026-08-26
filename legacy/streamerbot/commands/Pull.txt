@@ -1,0 +1,1447 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !pull
+- Permet de faire 1 pull par défaut
+- Permet de faire plusieurs pulls avec !pull nombre
+- Refuse si le nombre demandé est invalide
+- Refuse si le viewer demande plus de pulls que ses primos permettent
+- Lit viewers_data.json en JObject pour préserver toutes les propriétés inconnues
+- Lit genshin_characters.json
+- Lit element_passives.json
+- Ne crée PAS le viewer s’il n’existe pas
+- Initialise uniquement les sections manquantes nécessaires avec EnsureViewerDefaultsJObject
+- Vérifie que le viewer a sélectionné un personnage 5★ avec !select
+- Vérifie que le personnage sélectionné est bien dans la bannière actuelle
+- Vérifie que le viewer possède au moins 160 primos par pull
+- Retire 160 primos par pull
+- Applique la pity 5★ :
+  - tirages 1 à 73 : 0,6%
+  - tirage 74 : 6,6%
+  - +6% par tirage jusqu’au 90 garanti
+- Applique le passif Hydro :
+  - +0,3% chance 5★ avec 1 Hydro dans la team
+  - +0,6% chance 5★ avec 2 Hydro ou plus dans la team
+- Applique la pity 4★ :
+  - tirages 1 à 8 : 1,5%
+  - tirage 9 : 19,5%
+  - tirage 10 : 100%
+- Si le 5★ et le 4★ tombent en même temps, le 5★ est prioritaire
+- Gère le 50/50 5★ avec 3 personnages de bannière
+- Gère la garantie 5★ conservée entre les bannières
+- Ajoute le personnage obtenu dans la box sans reconstruire le viewer
+- Gère les constellations C0 à C6
+- Après C6 : remboursement +40 primos pour 4★, +80 primos pour 5★
+- Si aucun 5★ ni 4★ ne tombe, donne une récompense secondaire temporaire
+- Applique le passif Pyro sur les particules obtenues lors des pulls
+- Applique le passif Geo sur les moras obtenues lors des pulls
+- Applique les passifs déclenchables après chaque pull :
+  - Cryo : chance de gagner +1 XP
+  - Electro : chance de gagner +2 pity 5★
+  - Anemo : chance de récupérer 80 primos
+  - Dendro : chance de gagner un bonus ressources
+- Ajoute les passifs déclenchés à la fin du message du pull
+- Sauvegarde viewers_data.json après chaque pull
+- N’effectue aucun backup automatique
+- Pour un doublon C6 5★, ajoute +1 aléatoire à une stat concours dans c6_characters.json
+- Met à jour la progression des missions journalières de type pulls
+- Donne automatiquement la récompense de mission quand l’objectif est atteint
+*/
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    private const int PullCost = 160;
+    private static Random random = new Random();
+
+    public bool Execute()
+    {
+        string folderPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data";
+        string viewersPath = Path.Combine(folderPath, "viewers_data.json");
+        string charactersPath = Path.Combine(folderPath, "genshin_characters.json");
+        string passivesPath = Path.Combine(folderPath, "element_passives.json");
+        string c6CharactersPath = Path.Combine(folderPath, "c6_characters.json");
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+
+        if (!File.Exists(viewersPath))
+        {
+            SendWarning($"{username}, ton profil n’existe pas encore. Écris d’abord un message dans le chat.");
+            return true;
+        }
+
+        if (!File.Exists(charactersPath))
+        {
+            SendError("Aucun fichier personnage trouvé.");
+            return true;
+        }
+
+        JObject viewers = LoadJObject(viewersPath);
+
+        if (viewers == null)
+        {
+            SendError("Impossible de lire viewers_data.json.");
+            return true;
+        }
+
+        JObject viewer = viewers[username] as JObject;
+
+        if (viewer == null)
+        {
+            SendWarning($"{username}, ton profil n’existe pas encore. Écris d’abord un message dans le chat.");
+            return true;
+        }
+
+        CharacterFile characterFile = LoadCharacters(charactersPath);
+        ElementPassiveFile passiveFile = LoadPassives(passivesPath);
+
+        if (characterFile == null || characterFile.characters == null)
+        {
+            SendError("Impossible de lire la liste des personnages.");
+            return true;
+        }
+
+        EnsureViewerDefaultsJObject(viewer, username);
+
+        List<CharacterData> featured5 = GetFeaturedCharacters(characterFile, 5);
+        List<CharacterData> featured4 = GetFeaturedCharacters(characterFile, 4);
+
+        if (featured5.Count < 3)
+        {
+            SendWarning("La bannière 5★ n’est pas correctement initialisée.");
+            return true;
+        }
+
+        int selectedBannerCharacterId = GetInt(viewer, "selectedBannerCharacterId");
+
+        if (selectedBannerCharacterId == 0)
+        {
+            SendWarning($"{username}, tu dois d’abord choisir ton personnage 5★ ciblé avec !select.");
+            return true;
+        }
+
+        CharacterData selectedCharacter = FindCharacterInListById(featured5, selectedBannerCharacterId);
+
+        if (selectedCharacter == null)
+        {
+            SendWarning($"{username}, ton personnage sélectionné n’est plus dans la bannière actuelle. Choisis-en un nouveau avec !select.");
+            return true;
+        }
+
+        int pullCount = GetPullCount();
+
+        if (pullCount <= 0)
+        {
+            SendWarning($"{username}, nombre de pulls invalide. Exemple : !pull ou !pull 10.");
+            return true;
+        }
+
+        if (pullCount > 10)
+        {
+            SendWarning($"{username}, tu peux faire 10 voeux maximum d’un coup.");
+            return true;
+        }
+
+        int primogems = GetInt(viewer, "primogems");
+        int maxPulls = primogems / PullCost;
+
+        if (maxPulls <= 0)
+        {
+            SendWarning($"{username}, tu n’as pas assez de primos. Il te faut 160 primos pour pull. Tu en as {primogems}.");
+            return true;
+        }
+
+        if (pullCount > maxPulls)
+        {
+            SendWarning($"{username}, tu ne peux pas faire {pullCount} pulls. Avec tes {primogems} primos, tu peux faire {maxPulls} pull(s) maximum.");
+            return true;
+        }
+
+        for (int i = 1; i <= pullCount; i++)
+        {
+            DoSinglePull(viewer, username, featured5, featured4, selectedCharacter, characterFile, passiveFile, c6CharactersPath, i, pullCount);
+            SaveJObject(viewersPath, viewers);
+        }
+
+        return true;
+    }
+
+    private int GetPullCount()
+    {
+        string input = GetCommandInput();
+
+        if (string.IsNullOrEmpty(input))
+            return 1;
+
+        int count;
+
+        if (!int.TryParse(input, out count))
+            return -1;
+
+        return count;
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private void DoSinglePull(JObject viewer, string username, List<CharacterData> featured5, List<CharacterData> featured4, CharacterData selectedCharacter, CharacterFile characterFile, ElementPassiveFile passiveFile, string c6CharactersPath, int pullIndex, int totalPulls)
+    {
+        PassiveContext passiveContext = BuildPassiveContext(viewer, characterFile, passiveFile);
+        List<string> triggeredPassives = new List<string>();
+
+        AddInt(viewer, "primogems", -PullCost);
+        AddStat(viewer, "totalPrimosSpent", PullCost);
+        AddStat(viewer, "totalPulls", 1);
+
+        JObject pity = viewer["pity"] as JObject;
+        AddInt(pity, "pity5", 1);
+        AddInt(pity, "pity4", 1);
+
+        int currentPity5 = GetInt(pity, "pity5");
+        int currentPity4 = GetInt(pity, "pity4");
+
+        double fiveStarChance = GetFiveStarChance(currentPity5);
+        fiveStarChance += passiveContext.fiveStarChanceBonus;
+
+        bool gotFiveStar = Roll(fiveStarChance);
+        bool gotFourStar = Roll(GetFourStarChance(currentPity4));
+
+        string prefix = totalPulls > 1 ? $"[{pullIndex}/{totalPulls}] " : "";
+        string specialPrefix = "";
+
+        if (currentPity5 == 74)
+            specialPrefix += "⚠️ Tu entres en soft pity... ";
+
+        if (gotFiveStar && currentPity5 >= 2 && currentPity5 <= 35)
+            specialPrefix += "🔥 WOW EARLY !! ";
+
+        JObject stats = viewer["stats"] as JObject;
+
+        if (gotFiveStar && GetBool(stats, "lastPullWasFiveStar"))
+            specialPrefix += "💥 INCROYABLE BACK-TO-BACK !!! ";
+
+        ApplyTriggeredPassives(viewer, passiveContext, triggeredPassives);
+
+        if (gotFiveStar)
+        {
+            HandleFiveStarPull(viewer, username, featured5, selectedCharacter, prefix, specialPrefix, triggeredPassives, c6CharactersPath);
+            stats["lastPullWasFiveStar"] = true;
+        }
+        else if (gotFourStar)
+        {
+            HandleFourStarPull(viewer, username, featured4, prefix, specialPrefix, passiveContext, triggeredPassives, c6CharactersPath);
+            stats["lastPullWasFiveStar"] = false;
+        }
+        else
+        {
+            HandleSecondaryReward(viewer, username, prefix, specialPrefix, passiveContext, triggeredPassives);
+            stats["lastPullWasFiveStar"] = false;
+        }
+
+        UpdateDailyMissionProgress(viewer, username, "pulls", 1);
+    }
+
+    private void HandleFiveStarPull(JObject viewer, string username, List<CharacterData> featured5, CharacterData selectedCharacter, string prefix, string specialPrefix, List<string> triggeredPassives, string c6CharactersPath)
+    {
+        JObject pity = viewer["pity"] as JObject;
+        JObject guarantee = viewer["guarantee"] as JObject;
+        JObject stats = viewer["stats"] as JObject;
+
+        CharacterData obtainedCharacter = selectedCharacter;
+        bool wonFiftyFifty = true;
+        bool usedGuarantee = false;
+        bool usedLostStreakGuarantee = false;
+        int obtainedAtPity = GetInt(pity, "pity5");
+
+        if (GetBool(guarantee, "guaranteedFeatured5"))
+        {
+            obtainedCharacter = selectedCharacter;
+            guarantee["guaranteedFeatured5"] = false;
+            usedGuarantee = true;
+        }
+        else if (GetInt(stats, "fiftyFiftyLostStreak") >= 3)
+        {
+            obtainedCharacter = selectedCharacter;
+            usedLostStreakGuarantee = true;
+            AddStat(viewer, "fiftyFiftyWon", 1);
+            stats["fiftyFiftyLostStreak"] = 0;
+        }
+        else
+        {
+            bool win = random.Next(1, 101) <= 50;
+
+            if (win)
+            {
+                obtainedCharacter = selectedCharacter;
+                AddStat(viewer, "fiftyFiftyWon", 1);
+                stats["fiftyFiftyLostStreak"] = 0;
+            }
+            else
+            {
+                obtainedCharacter = GetOtherFeaturedFiveStar(featured5, selectedCharacter.id);
+                wonFiftyFifty = false;
+                guarantee["guaranteedFeatured5"] = true;
+                AddStat(viewer, "fiftyFiftyLost", 1);
+                AddStat(viewer, "fiftyFiftyLostStreak", 1);
+            }
+        }
+
+        pity["pity5"] = 0;
+        AddStat(viewer, "totalFiveStars", 1);
+
+        string boxResult = AddCharacterToBox(viewer, username, obtainedCharacter, c6CharactersPath);
+
+        string fiftyText;
+
+        if (usedGuarantee)
+            fiftyText = "garantie utilisée";
+        else if (usedLostStreakGuarantee)
+            fiftyText = "garantie spéciale après 3 pertes de 50/50 d'affilée";
+        else if (wonFiftyFifty)
+            fiftyText = "50/50 gagné";
+        else
+            fiftyText = $"50/50 perdu, prochain 5★ garantie (stacks : {GetInt(stats, "fiftyFiftyLostStreak")}/3)";
+
+        if (usedLostStreakGuarantee)
+            specialPrefix += "✨ CAPTURE DE BRILLANCE ! ";
+
+        string message = $"{specialPrefix}{prefix}{username} obtient ⭐⭐⭐⭐⭐ {GetElementEmoji(obtainedCharacter.element)} {obtainedCharacter.nom} ! {fiftyText}. {boxResult} | Pity {obtainedAtPity}";
+
+        string passiveSuffix = FormatTriggeredPassiveSuffix(triggeredPassives);
+
+        if (!string.IsNullOrEmpty(passiveSuffix))
+            message += " | " + passiveSuffix;
+
+        if (specialPrefix != "")
+            CPH.SendMessage(message);
+        else
+            SendCharacter(message);
+    }
+
+    private void HandleFourStarPull(JObject viewer, string username, List<CharacterData> featured4, string prefix, string specialPrefix, PassiveContext passiveContext, List<string> triggeredPassives, string c6CharactersPath)
+    {
+        if (featured4.Count == 0)
+        {
+            HandleSecondaryReward(viewer, username, prefix, specialPrefix, passiveContext, triggeredPassives);
+            return;
+        }
+
+        CharacterData obtainedCharacter = featured4[random.Next(featured4.Count)];
+
+        JObject pity = viewer["pity"] as JObject;
+        pity["pity4"] = 0;
+
+        AddStat(viewer, "totalFourStars", 1);
+
+        string boxResult = AddCharacterToBox(viewer, username, obtainedCharacter, c6CharactersPath);
+
+        string message = $"{specialPrefix}{prefix}{username} obtient ⭐⭐⭐⭐ {GetElementEmoji(obtainedCharacter.element)} {obtainedCharacter.nom} ! {boxResult}";
+
+        string passiveSuffix = FormatTriggeredPassiveSuffix(triggeredPassives);
+
+        if (!string.IsNullOrEmpty(passiveSuffix))
+            message += " | " + passiveSuffix;
+
+        if (specialPrefix != "")
+            CPH.SendMessage(message);
+        else
+            SendCharacter(message);
+    }
+
+    private void HandleSecondaryReward(JObject viewer, string username, string prefix, string specialPrefix, PassiveContext passiveContext, List<string> triggeredPassives)
+    {
+        int roll = random.Next(1, 101);
+
+        if (roll <= 50)
+        {
+            int morasGained = random.Next(5000, 15001);
+            morasGained = (int)Math.Round(morasGained * passiveContext.moraMultiplier);
+
+            AddInt(viewer, "moras", morasGained);
+            AddStat(viewer, "totalMorasEarned", morasGained);
+
+            string message = $"{specialPrefix}{prefix}{username} obtient +{morasGained} 💰 moras ({GetInt(viewer, "moras")}).";
+
+            string passiveSuffix = FormatTriggeredPassiveSuffix(triggeredPassives);
+
+            if (!string.IsNullOrEmpty(passiveSuffix))
+                message += " | " + passiveSuffix;
+
+            SendPullMessage(message);
+        }
+        else
+        {
+            string element = GetRandomElement();
+            int particlesGained = random.Next(20, 81);
+            particlesGained = (int)Math.Round(particlesGained * passiveContext.particleMultiplier);
+
+            AddParticles(viewer, element, particlesGained);
+            AddMainElementParticlesEarnedIfNeeded(viewer, element, particlesGained);
+
+            int total = GetParticleTotal(viewer, element);
+
+            string message = $"{specialPrefix}{prefix}{username} obtient +{particlesGained} particules {GetElementDisplayName(element)} ({total}).";
+
+            string passiveSuffix = FormatTriggeredPassiveSuffix(triggeredPassives);
+
+            if (!string.IsNullOrEmpty(passiveSuffix))
+                message += " | " + passiveSuffix;
+
+            SendPullMessage(message);
+        }
+    }
+
+    private PassiveContext BuildPassiveContext(JObject viewer, CharacterFile characterFile, ElementPassiveFile passiveFile)
+    {
+        PassiveContext context = new PassiveContext();
+
+        context.particleMultiplier = 1;
+        context.moraMultiplier = 1;
+        context.fiveStarChanceBonus = 0;
+
+        if (viewer == null || passiveFile == null || passiveFile.elements == null)
+            return context;
+
+        Dictionary<string, int> elementCounts = CountTeamElements(viewer, characterFile);
+
+        foreach (KeyValuePair<string, int> entry in elementCounts)
+        {
+            string element = entry.Key;
+            int count = entry.Value;
+
+            if (!passiveFile.elements.ContainsKey(element))
+                continue;
+
+            ElementPassiveData passiveData = passiveFile.elements[element];
+
+            int maxStacks = passiveData.maxStacks > 0 ? passiveData.maxStacks : 2;
+            int stack = count;
+
+            if (stack > maxStacks)
+                stack = maxStacks;
+
+            string stackKey = stack.ToString();
+
+            if (passiveData.effects == null || !passiveData.effects.ContainsKey(stackKey))
+                continue;
+
+            PassiveEffect effect = passiveData.effects[stackKey];
+
+            ApplyPassiveToContext(context, element, effect);
+        }
+
+        return context;
+    }
+
+    private void ApplyPassiveToContext(PassiveContext context, string element, PassiveEffect effect)
+    {
+        if (effect == null || string.IsNullOrEmpty(effect.passiveType))
+            return;
+
+        switch (effect.passiveType)
+        {
+            case "particleMultiplier":
+                context.particleMultiplier = effect.value;
+                break;
+
+            case "moraMultiplier":
+                context.moraMultiplier = effect.value;
+                break;
+
+            case "fiveStarChanceBonus":
+                context.fiveStarChanceBonus = effect.value;
+                break;
+
+            case "randomXpBonus":
+                context.randomXpBonusChance = effect.chanceDenominator;
+                context.randomXpBonusValue = effect.value;
+                context.randomXpBonusMessage = effect.triggerMessage;
+                break;
+
+            case "randomPity5Bonus":
+                context.randomPity5BonusChance = effect.chanceDenominator;
+                context.randomPity5BonusValue = effect.value;
+                context.randomPity5BonusMessage = effect.triggerMessage;
+                break;
+
+            case "randomPrimoRefund":
+                context.randomPrimoRefundChance = effect.chanceDenominator;
+                context.randomPrimoRefundValue = effect.value;
+                context.randomPrimoRefundMessage = effect.triggerMessage;
+                break;
+
+            case "randomResourceBundle":
+                context.randomResourceBundleChance = effect.chanceDenominator;
+                context.randomResourceBundleRewards = effect.rewards;
+                context.randomResourceBundleMessage = effect.triggerMessage;
+                break;
+        }
+    }
+
+    private Dictionary<string, int> CountTeamElements(JObject viewer, CharacterFile characterFile)
+    {
+        Dictionary<string, int> counts = new Dictionary<string, int>();
+
+        JArray team = viewer["team"] as JArray;
+
+        if (team == null || characterFile == null || characterFile.characters == null)
+            return counts;
+
+        for (int i = 0; i < team.Count; i++)
+        {
+            int characterId = 0;
+
+            if (!int.TryParse(team[i].ToString(), out characterId))
+                continue;
+
+            CharacterData character = FindCharacterById(characterFile, characterId);
+
+            if (character == null || string.IsNullOrEmpty(character.element))
+                continue;
+
+            string element = NormalizeElement(character.element);
+
+            if (!counts.ContainsKey(element))
+                counts[element] = 0;
+
+            counts[element]++;
+        }
+
+        return counts;
+    }
+
+    private void ApplyTriggeredPassives(JObject viewer, PassiveContext context, List<string> triggeredPassives)
+    {
+        if (context.randomXpBonusChance > 0 && RollOneIn(context.randomXpBonusChance))
+        {
+            AddInt(viewer, "xp", (int)Math.Round(context.randomXpBonusValue));
+            triggeredPassives.Add(context.randomXpBonusMessage);
+        }
+
+        if (context.randomPity5BonusChance > 0 && RollOneIn(context.randomPity5BonusChance))
+        {
+            JObject pity = viewer["pity"] as JObject;
+
+            int newPity = GetInt(pity, "pity5") + (int)Math.Round(context.randomPity5BonusValue);
+
+            if (newPity > 90)
+                newPity = 90;
+
+            pity["pity5"] = newPity;
+
+            triggeredPassives.Add(context.randomPity5BonusMessage);
+        }
+
+        if (context.randomPrimoRefundChance > 0 && RollOneIn(context.randomPrimoRefundChance))
+        {
+            int primoRefund = (int)Math.Round(context.randomPrimoRefundValue);
+            AddInt(viewer, "primogems", primoRefund);
+            AddStat(viewer, "totalPrimosEarned", primoRefund);
+            triggeredPassives.Add(context.randomPrimoRefundMessage);
+        }
+
+        if (context.randomResourceBundleChance > 0 && RollOneIn(context.randomResourceBundleChance))
+        {
+            PassiveRewards rewards = context.randomResourceBundleRewards;
+
+            if (rewards != null)
+            {
+                AddInt(viewer, "primogems", rewards.primogems);
+                AddInt(viewer, "moras", rewards.moras);
+
+                AddStat(viewer, "totalPrimosEarned", rewards.primogems);
+                AddStat(viewer, "totalMorasEarned", rewards.moras);
+
+                AddParticles(viewer, "pyro", rewards.particlesEachElement);
+                AddParticles(viewer, "hydro", rewards.particlesEachElement);
+                AddParticles(viewer, "cryo", rewards.particlesEachElement);
+                AddParticles(viewer, "electro", rewards.particlesEachElement);
+                AddParticles(viewer, "anemo", rewards.particlesEachElement);
+                AddParticles(viewer, "geo", rewards.particlesEachElement);
+                AddParticles(viewer, "dendro", rewards.particlesEachElement);
+                AddMainElementParticlesEarnedIfNeeded(viewer, "pyro", rewards.particlesEachElement);
+                AddMainElementParticlesEarnedIfNeeded(viewer, "hydro", rewards.particlesEachElement);
+                AddMainElementParticlesEarnedIfNeeded(viewer, "cryo", rewards.particlesEachElement);
+                AddMainElementParticlesEarnedIfNeeded(viewer, "electro", rewards.particlesEachElement);
+                AddMainElementParticlesEarnedIfNeeded(viewer, "anemo", rewards.particlesEachElement);
+                AddMainElementParticlesEarnedIfNeeded(viewer, "geo", rewards.particlesEachElement);
+                AddMainElementParticlesEarnedIfNeeded(viewer, "dendro", rewards.particlesEachElement);
+            }
+
+            triggeredPassives.Add(context.randomResourceBundleMessage);
+        }
+    }
+
+    private void UpdateDailyMissionProgress(JObject viewer, string username, string missionType, int amount)
+    {
+        JObject missions = viewer["missions"] as JObject;
+
+        if (missions == null)
+            return;
+
+        JObject mission = missions["daily"] as JObject;
+
+        if (mission == null)
+            return;
+
+        if (string.IsNullOrEmpty(GetString(mission, "missionId")))
+            return;
+
+        if (GetString(mission, "startedAt") != DateTime.Now.ToString("yyyy-MM-dd"))
+            return;
+
+        if (GetBool(mission, "completed") || GetBool(mission, "rewardClaimed"))
+            return;
+
+        if (GetString(mission, "type") != missionType)
+            return;
+
+        AddInt(mission, "progress", amount);
+
+        if (GetInt(mission, "progress") >= GetInt(mission, "target"))
+        {
+            mission["progress"] = GetInt(mission, "target");
+            CompleteDailyMission(viewer, username, mission);
+        }
+    }
+
+    private void CompleteDailyMission(JObject viewer, string username, JObject mission)
+    {
+        int rewardPrimos = 800;
+
+        AddInt(viewer, "primogems", rewardPrimos);
+        AddStat(viewer, "totalPrimosEarned", rewardPrimos);
+
+        mission["completed"] = true;
+        mission["rewardClaimed"] = true;
+
+        CPH.SendMessage($"🎯 Mission terminée : {GetString(mission, "description")} | +💠{rewardPrimos} primos ({GetInt(viewer, "primogems")})");
+    }
+
+    private string AddCharacterToBox(JObject viewer, string username, CharacterData character, string c6CharactersPath)
+    {
+        JObject box = viewer["box"] as JObject;
+
+        if (box == null)
+        {
+            box = new JObject();
+            viewer["box"] = box;
+        }
+
+        string id = character.id.ToString();
+
+        JObject owned = box[id] as JObject;
+
+        if (owned == null)
+        {
+            owned = new JObject();
+            owned["characterId"] = character.id;
+            owned["constellation"] = 0;
+            owned["copies"] = 1;
+            owned["firstObtainedAt"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+            box[id] = owned;
+
+            return "Nouveau personnage : C0.";
+        }
+
+        AddInt(owned, "copies", 1);
+
+        int constellation = GetInt(owned, "constellation");
+
+        if (constellation < 6)
+        {
+            constellation++;
+            owned["constellation"] = constellation;
+
+            if (constellation == 6 && character.rarete == 5)
+                EnsureC6ContestCharacterExists(username, character, c6CharactersPath);
+
+            return $"Doublon : passe C{constellation}.";
+        }
+
+        int refund = character.rarete == 5 ? 80 : 40;
+
+        AddInt(viewer, "primogems", refund);
+        AddStat(viewer, "totalPrimosEarned", refund);
+
+        if (character.rarete == 5)
+        {
+            string c6Progress = UpgradeRandomC6ContestStat(viewer, username, character, c6CharactersPath);
+
+            if (!string.IsNullOrEmpty(c6Progress))
+                return $"Déjà C6 : +{refund} primos ({GetInt(viewer, "primogems")}) | {c6Progress}";
+        }
+
+        return $"Déjà C6 : remboursement +{refund} primos ({GetInt(viewer, "primogems")}).";
+    }
+
+
+    private string UpgradeRandomC6ContestStat(JObject viewer, string username, CharacterData character, string c6CharactersPath)
+    {
+        if (character == null || character.rarete != 5)
+            return "";
+
+        JObject c6Characters = LoadOrCreateJObject(c6CharactersPath);
+        JObject c6Data = EnsureC6ContestCharacterData(c6Characters, username, character);
+
+        JObject stats = c6Data["stats"] as JObject;
+
+        EnsureInt(stats, "strength", 1);
+        EnsureInt(stats, "intelligence", 1);
+        EnsureInt(stats, "beauty", 1);
+        EnsureInt(stats, "charisma", 1);
+        EnsureInt(stats, "popularity", 1);
+
+        List<string> availableStats = new List<string>();
+        availableStats.Add("strength");
+        availableStats.Add("intelligence");
+        availableStats.Add("beauty");
+        availableStats.Add("charisma");
+        availableStats.Add("popularity");
+
+        for (int i = availableStats.Count - 1; i >= 0; i--)
+        {
+            if (GetInt(stats, availableStats[i]) >= 20)
+                availableStats.RemoveAt(i);
+        }
+
+        if (availableStats.Count == 0)
+        {
+            int maxStatsMorasReward = 100000;
+
+            AddInt(viewer, "moras", maxStatsMorasReward);
+            AddStat(viewer, "totalMorasEarned", maxStatsMorasReward);
+
+            SaveJObjectNoBackup(c6CharactersPath, c6Characters);
+
+            return "Stats concours déjà max : +100000 moras.";
+        }
+
+        string selectedStat = availableStats[random.Next(availableStats.Count)];
+        AddInt(stats, selectedStat, 1);
+
+        int newValue = GetInt(stats, selectedStat);
+
+        SaveJObjectNoBackup(c6CharactersPath, c6Characters);
+
+        return "🌟 " + character.nom + " progresse : +1 " + GetContestStatDisplayName(selectedStat) + " (" + newValue + "/20).";
+    }
+
+    private void EnsureC6ContestCharacterExists(string username, CharacterData character, string c6CharactersPath)
+    {
+        if (character == null || character.rarete != 5)
+            return;
+
+        JObject c6Characters = LoadOrCreateJObject(c6CharactersPath);
+        EnsureC6ContestCharacterData(c6Characters, username, character);
+        SaveJObjectNoBackup(c6CharactersPath, c6Characters);
+    }
+
+    private JObject EnsureC6ContestCharacterData(JObject c6Characters, string username, CharacterData character)
+    {
+        JObject userData = c6Characters[username] as JObject;
+
+        if (userData == null)
+        {
+            userData = new JObject();
+            userData["username"] = username;
+            userData["characters"] = new JObject();
+            c6Characters[username] = userData;
+        }
+
+        JObject characters = userData["characters"] as JObject;
+
+        if (characters == null)
+        {
+            characters = new JObject();
+            userData["characters"] = characters;
+        }
+
+        string idKey = character.id.ToString();
+        JObject c6Data = characters[idKey] as JObject;
+
+        if (c6Data == null)
+        {
+            c6Data = new JObject();
+            c6Data["owner"] = username;
+            c6Data["characterId"] = character.id;
+            c6Data["name"] = character.nom;
+            c6Data["rarity"] = character.rarete;
+            c6Data["element"] = NormalizeElement(character.element);
+            c6Data["weapon"] = character.arme;
+            c6Data["region"] = character.region;
+            c6Data["class"] = character.classe;
+            c6Data["createdAt"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+            JObject stats = new JObject();
+            stats["strength"] = 1;
+            stats["intelligence"] = 1;
+            stats["beauty"] = 1;
+            stats["charisma"] = 1;
+            stats["popularity"] = 1;
+            c6Data["stats"] = stats;
+
+            JObject contestStats = new JObject();
+            contestStats["totalContests"] = 0;
+            contestStats["totalWins"] = 0;
+            contestStats["strengthWins"] = 0;
+            contestStats["intelligenceWins"] = 0;
+            contestStats["beautyWins"] = 0;
+            contestStats["charismaWins"] = 0;
+            contestStats["popularityWins"] = 0;
+            c6Data["contestStats"] = contestStats;
+
+            JObject titles = new JObject();
+            titles["strength"] = "";
+            titles["intelligence"] = "";
+            titles["beauty"] = "";
+            titles["charisma"] = "";
+            titles["popularity"] = "";
+            c6Data["titles"] = titles;
+
+            characters[idKey] = c6Data;
+        }
+
+        return c6Data;
+    }
+
+    private JObject LoadOrCreateJObject(string path)
+    {
+        if (!File.Exists(path))
+            return new JObject();
+
+        try
+        {
+            string json = File.ReadAllText(path);
+
+            if (string.IsNullOrWhiteSpace(json))
+                return new JObject();
+
+            JObject data = JObject.Parse(json);
+
+            if (data == null)
+                return new JObject();
+
+            return data;
+        }
+        catch
+        {
+            return new JObject();
+        }
+    }
+
+    private void SaveJObjectNoBackup(string path, JObject data)
+    {
+        string folder = Path.GetDirectoryName(path);
+
+        if (!Directory.Exists(folder))
+            Directory.CreateDirectory(folder);
+
+        string tempPath = path + ".tmp";
+
+        File.WriteAllText(tempPath, data.ToString(Formatting.Indented));
+
+        if (File.Exists(path))
+            File.Delete(path);
+
+        File.Move(tempPath, path);
+    }
+
+    private string GetContestStatDisplayName(string stat)
+    {
+        switch (stat)
+        {
+            case "strength": return "💪 Force";
+            case "intelligence": return "🧠 Intelligence";
+            case "beauty": return "✨ Beauté";
+            case "charisma": return "👑 Charisme";
+            case "popularity": return "🎭 Popularité";
+            default: return stat;
+        }
+    }
+
+    private List<CharacterData> GetFeaturedCharacters(CharacterFile characterFile, int rarity)
+    {
+        List<CharacterData> result = new List<CharacterData>();
+
+        if (characterFile == null || characterFile.characters == null)
+            return result;
+
+        for (int i = 0; i < characterFile.characters.Count; i++)
+        {
+            CharacterData character = characterFile.characters[i];
+
+            if (character == null)
+                continue;
+
+            if (character.rarete == rarity && character.bannerFeatured)
+                result.Add(character);
+        }
+
+        return result;
+    }
+
+    private CharacterData FindCharacterInListById(List<CharacterData> characters, int id)
+    {
+        if (characters == null)
+            return null;
+
+        for (int i = 0; i < characters.Count; i++)
+        {
+            if (characters[i] != null && characters[i].id == id)
+                return characters[i];
+        }
+
+        return null;
+    }
+
+    private CharacterData FindCharacterById(CharacterFile characterFile, int characterId)
+    {
+        if (characterFile == null || characterFile.characters == null)
+            return null;
+
+        for (int i = 0; i < characterFile.characters.Count; i++)
+        {
+            CharacterData character = characterFile.characters[i];
+
+            if (character != null && character.id == characterId)
+                return character;
+        }
+
+        return null;
+    }
+
+    private CharacterData GetOtherFeaturedFiveStar(List<CharacterData> featured5, int selectedId)
+    {
+        List<CharacterData> others = new List<CharacterData>();
+
+        for (int i = 0; i < featured5.Count; i++)
+        {
+            CharacterData character = featured5[i];
+
+            if (character != null && character.id != selectedId)
+                others.Add(character);
+        }
+
+        if (others.Count == 0)
+            return featured5[0];
+
+        return others[random.Next(others.Count)];
+    }
+
+    private double GetFiveStarChance(int pity)
+    {
+        if (pity >= 90)
+            return 100.0;
+
+        if (pity <= 73)
+            return 0.6;
+
+        return Math.Min(100.0, 0.6 + ((pity - 73) * 6.0));
+    }
+
+    private double GetFourStarChance(int pity)
+    {
+        if (pity >= 10)
+            return 100.0;
+
+        if (pity <= 8)
+            return 1.5;
+
+        return Math.Min(100.0, 1.5 + ((pity - 8) * 18.0));
+    }
+
+    private bool Roll(double chancePercent)
+    {
+        double roll = random.NextDouble() * 100.0;
+        return roll < chancePercent;
+    }
+
+    private bool RollOneIn(int denominator)
+    {
+        if (denominator <= 1)
+            return true;
+
+        return random.Next(1, denominator + 1) == 1;
+    }
+
+    private string FormatTriggeredPassiveSuffix(List<string> triggeredPassives)
+    {
+        if (triggeredPassives == null || triggeredPassives.Count == 0)
+            return "";
+
+        return "🧩 Passifs : " + string.Join(" | ", triggeredPassives.ToArray());
+    }
+
+    private string GetRandomElement()
+    {
+        List<string> elements = new List<string>();
+        elements.Add("pyro");
+        elements.Add("hydro");
+        elements.Add("cryo");
+        elements.Add("electro");
+        elements.Add("anemo");
+        elements.Add("geo");
+        elements.Add("dendro");
+
+        return elements[random.Next(elements.Count)];
+    }
+
+    private void AddParticles(JObject viewer, string element, int amount)
+    {
+        JObject particles = viewer["particles"] as JObject;
+
+        if (particles == null)
+        {
+            particles = new JObject();
+            viewer["particles"] = particles;
+        }
+
+        string normalized = NormalizeElement(element);
+
+        if (string.IsNullOrEmpty(normalized))
+            return;
+
+        AddInt(particles, normalized, amount);
+    }
+
+    private void AddMainElementParticlesEarnedIfNeeded(JObject viewer, string element, int amount)
+    {
+        string mainElement = NormalizeElement(GetString(viewer, "element"));
+        string gainedElement = NormalizeElement(element);
+
+        if (string.IsNullOrEmpty(mainElement))
+            return;
+
+        if (mainElement != gainedElement)
+            return;
+
+        AddStat(viewer, "totalMainElementParticlesEarned", amount);
+    }
+
+    private int GetParticleTotal(JObject viewer, string element)
+    {
+        JObject particles = viewer["particles"] as JObject;
+
+        if (particles == null)
+            return 0;
+
+        return GetInt(particles, NormalizeElement(element));
+    }
+
+    private string GetElementDisplayName(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "🔥 Pyro";
+            case "hydro": return "💧 Hydro";
+            case "cryo": return "❄️ Cryo";
+            case "electro": return "⚡ Electro";
+            case "anemo": return "🌪️ Anemo";
+            case "geo": return "☄️ Geo";
+            case "dendro": return "🌿 Dendro";
+            default: return element;
+        }
+    }
+
+    private string GetElementEmoji(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "🔥";
+            case "hydro": return "💧";
+            case "cryo": return "❄️";
+            case "electro": return "⚡";
+            case "anemo": return "🌪️";
+            case "geo": return "☄️";
+            case "dendro": return "🌿";
+            default: return "";
+        }
+    }
+
+    private string NormalizeElement(string element)
+    {
+        if (string.IsNullOrEmpty(element))
+            return "";
+
+        string normalized = element.ToLower().Trim();
+
+        switch (normalized)
+        {
+            case "pyro": return "pyro";
+            case "hydro": return "hydro";
+            case "cryo": return "cryo";
+            case "electro":
+            case "électro": return "electro";
+            case "anemo":
+            case "anémo": return "anemo";
+            case "geo":
+            case "géo": return "geo";
+            case "dendro": return "dendro";
+            default: return normalized;
+        }
+    }
+
+    private void EnsureViewerDefaultsJObject(JObject viewer, string username)
+    {
+        if (viewer["username"] == null || viewer["username"].Type == JTokenType.Null)
+            viewer["username"] = username;
+
+        EnsureInt(viewer, "xp", 0);
+        EnsureInt(viewer, "level", 0);
+        EnsureString(viewer, "element", "");
+        EnsureInt(viewer, "primogems", 0);
+        EnsureInt(viewer, "moras", 0);
+        EnsureInt(viewer, "selectedBannerCharacterId", 0);
+
+        EnsureObject(viewer, "particles");
+        EnsureObject(viewer, "box");
+        EnsureArray(viewer, "team");
+        EnsureObject(viewer, "pity");
+        EnsureObject(viewer, "guarantee");
+        EnsureObject(viewer, "options");
+        EnsureObject(viewer, "missions");
+        EnsureObject(viewer, "stats");
+        EnsureObject(viewer, "dates");
+        EnsureArray(viewer, "tradeRequests");
+        EnsureArray(viewer, "usedCodes");
+
+        JObject particles = viewer["particles"] as JObject;
+        EnsureInt(particles, "pyro", 0);
+        EnsureInt(particles, "hydro", 0);
+        EnsureInt(particles, "cryo", 0);
+        EnsureInt(particles, "electro", 0);
+        EnsureInt(particles, "anemo", 0);
+        EnsureInt(particles, "geo", 0);
+        EnsureInt(particles, "dendro", 0);
+
+        JObject pity = viewer["pity"] as JObject;
+        EnsureInt(pity, "pity5", 0);
+        EnsureInt(pity, "pity4", 0);
+
+        JObject guarantee = viewer["guarantee"] as JObject;
+        EnsureBool(guarantee, "guaranteedFeatured5", false);
+
+        JObject options = viewer["options"] as JObject;
+        EnsureString(options, "boxSort", "a");
+        EnsureBool(options, "boxSortDescending", false);
+
+        JObject missions = viewer["missions"] as JObject;
+        EnsureObject(missions, "daily");
+
+        JObject daily = missions["daily"] as JObject;
+        EnsureNullOrString(daily, "missionId");
+        EnsureNullOrString(daily, "type");
+        EnsureInt(daily, "progress", 0);
+        EnsureInt(daily, "target", 0);
+        EnsureBool(daily, "completed", false);
+        EnsureBool(daily, "rewardClaimed", false);
+        EnsureNullOrString(daily, "startedAt");
+        EnsureNullOrString(daily, "description");
+
+        JObject stats = viewer["stats"] as JObject;
+        EnsureInt(stats, "totalMessages", 0);
+        EnsureInt(stats, "countedMessages", 0);
+        EnsureInt(stats, "totalPulls", 0);
+        EnsureInt(stats, "totalFiveStars", 0);
+        EnsureInt(stats, "totalFourStars", 0);
+        EnsureBool(stats, "lastPullWasFiveStar", false);
+        EnsureInt(stats, "fiftyFiftyLostStreak", 0);
+        EnsureInt(stats, "fiftyFiftyWon", 0);
+        EnsureInt(stats, "fiftyFiftyLost", 0);
+        EnsureInt(stats, "totalPrimosEarned", 0);
+        EnsureInt(stats, "totalPrimosSpent", 0);
+        EnsureInt(stats, "totalMorasEarned", 0);
+        EnsureInt(stats, "totalMorasSpent", 0);
+        EnsureInt(stats, "level100OverflowRewardsClaimed", 0);
+        EnsureInt(stats, "totalMainElementParticlesEarned", 0);
+
+        JObject dates = viewer["dates"] as JObject;
+        EnsureNullOrString(dates, "firstSeen");
+        EnsureNullOrString(dates, "lastSeen");
+        EnsureNullOrString(dates, "lastXpDate");
+        EnsureNullOrString(dates, "lastMessageTime");
+        EnsureNullOrString(dates, "lastDailyFirstMessageReward");
+    }
+
+    private void EnsureObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+    }
+
+    private void EnsureArray(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Array)
+            parent[key] = new JArray();
+    }
+
+    private void EnsureInt(JObject obj, string key, int defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureBool(JObject obj, string key, bool defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureString(JObject obj, string key, string defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureNullOrString(JObject obj, string key)
+    {
+        if (obj[key] == null)
+            obj[key] = null;
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+            return JObject.Parse(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void SaveJObject(string path, JObject data)
+    {
+        File.WriteAllText(path, data.ToString(Formatting.Indented));
+    }
+
+    private CharacterFile LoadCharacters(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+            return JsonConvert.DeserializeObject<CharacterFile>(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private ElementPassiveFile LoadPassives(string path)
+    {
+        if (!File.Exists(path))
+            return new ElementPassiveFile();
+
+        try
+        {
+            string json = File.ReadAllText(path);
+            ElementPassiveFile passiveFile = JsonConvert.DeserializeObject<ElementPassiveFile>(json);
+
+            if (passiveFile == null)
+                passiveFile = new ElementPassiveFile();
+
+            if (passiveFile.elements == null)
+                passiveFile.elements = new Dictionary<string, ElementPassiveData>();
+
+            return passiveFile;
+        }
+        catch
+        {
+            ElementPassiveFile passiveFile = new ElementPassiveFile();
+            passiveFile.elements = new Dictionary<string, ElementPassiveData>();
+            return passiveFile;
+        }
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private bool GetBool(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return false;
+
+        bool value;
+
+        if (bool.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return false;
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private void AddInt(JObject obj, string key, int amount)
+    {
+        int current = GetInt(obj, key);
+        obj[key] = current + amount;
+    }
+
+    private void AddStat(JObject viewer, string statName, int amount)
+    {
+        JObject stats = viewer["stats"] as JObject;
+
+        if (stats == null)
+        {
+            stats = new JObject();
+            viewer["stats"] = stats;
+        }
+
+        AddInt(stats, statName, amount);
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private void SendSuccess(string message) { CPH.SendMessage($"✅ {message}"); }
+    private void SendCharacter(string message) { CPH.SendMessage($"🎉 {message}"); }
+    private void SendWarning(string message) { CPH.SendMessage($"⚠️ {message}"); }
+    private void SendError(string message) { CPH.SendMessage($"❌ {message}"); }
+
+    private void SendPullMessage(string message)
+    {
+        if (message.StartsWith("🔥") || message.StartsWith("💥") || message.StartsWith("⚠️") || message.StartsWith("✨"))
+            CPH.SendMessage(message);
+        else
+            SendSuccess(message);
+    }
+}
+
+public class CharacterFile
+{
+    public string lastBannerUpdate { get; set; }
+    public List<CharacterData> characters { get; set; }
+}
+
+public class CharacterData
+{
+    public int id { get; set; }
+    public string nom { get; set; }
+    public int rarete { get; set; }
+    public string element { get; set; }
+    public string arme { get; set; }
+    public string region { get; set; }
+    public string classe { get; set; }
+    public bool bannerFeatured { get; set; }
+    public string passif { get; set; }
+}
+
+public class ElementPassiveFile
+{
+    public int version { get; set; }
+    public string description { get; set; }
+    public PassiveGlobalRules globalRules { get; set; }
+    public Dictionary<string, ElementPassiveData> elements { get; set; }
+}
+
+public class PassiveGlobalRules
+{
+    public int maxTeamSize { get; set; }
+    public int maxStacksPerElement { get; set; }
+    public bool ignoreStacksAboveMax { get; set; }
+    public bool passivesApplyOnlyFromTeam { get; set; }
+    public bool passivesApplyDuringPulls { get; set; }
+    public string triggeredPassivesChatPrefix { get; set; }
+    public string activePassivesChatLabel { get; set; }
+}
+
+public class ElementPassiveData
+{
+    public string displayName { get; set; }
+    public string element { get; set; }
+    public int maxStacks { get; set; }
+    public string category { get; set; }
+    public Dictionary<string, PassiveEffect> effects { get; set; }
+}
+
+public class PassiveEffect
+{
+    public string passiveId { get; set; }
+    public string passiveType { get; set; }
+    public double value { get; set; }
+    public string valueUnit { get; set; }
+    public int chanceDenominator { get; set; }
+    public string descriptionCourte { get; set; }
+    public string descriptionLongue { get; set; }
+    public bool showWhenActive { get; set; }
+    public bool showWhenTriggered { get; set; }
+    public string triggerMessage { get; set; }
+    public PassiveRewards rewards { get; set; }
+}
+
+public class PassiveRewards
+{
+    public int primogems { get; set; }
+    public int moras { get; set; }
+    public int particlesEachElement { get; set; }
+}
+
+public class PassiveContext
+{
+    public double particleMultiplier { get; set; }
+    public double moraMultiplier { get; set; }
+    public double fiveStarChanceBonus { get; set; }
+
+    public int randomXpBonusChance { get; set; }
+    public double randomXpBonusValue { get; set; }
+    public string randomXpBonusMessage { get; set; }
+
+    public int randomPity5BonusChance { get; set; }
+    public double randomPity5BonusValue { get; set; }
+    public string randomPity5BonusMessage { get; set; }
+
+    public int randomPrimoRefundChance { get; set; }
+    public double randomPrimoRefundValue { get; set; }
+    public string randomPrimoRefundMessage { get; set; }
+
+    public int randomResourceBundleChance { get; set; }
+    public PassiveRewards randomResourceBundleRewards { get; set; }
+    public string randomResourceBundleMessage { get; set; }
+}

@@ -1,0 +1,331 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !element
+- Lit le fichier viewers_data.json en JObject
+- Ne crée PAS de viewer si le viewer n’existe pas
+- Retourne une erreur si le viewer n’existe pas encore
+- Récupère l’élément demandé en paramètre
+- Ignore la casse et les accents dans la saisie
+- Accepte uniquement : pyro, hydro, cryo, electro, anemo, geo, dendro
+- Affiche une aide si l’élément est absent ou mal écrit
+- Refuse de changer l’élément si le viewer en a déjà choisi un
+- Enregistre uniquement l’élément choisi dans selected viewer
+- Initialise uniquement les sections manquantes avec EnsureViewerDefaultsJObject
+- Préserve toutes les autres propriétés inconnues du viewer
+- Sauvegarde viewers_data.json sans backup auto
+- Après le choix d’élément, indique au viewer d’utiliser !banniere
+*/
+
+using System;
+using System.IO;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    public bool Execute()
+    {
+        string folderPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data";
+        string path = Path.Combine(folderPath, "viewers_data.json");
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+
+        if (!File.Exists(path))
+        {
+            CPH.SendMessage($"❌ {username}, ton profil n’existe pas encore. Écris d’abord un message dans le chat.");
+            return true;
+        }
+
+        JObject viewers = LoadJObject(path);
+
+        if (viewers == null)
+        {
+            CPH.SendMessage("❌ Impossible de lire viewers_data.json.");
+            return true;
+        }
+
+        JObject viewer = viewers[username] as JObject;
+
+        if (viewer == null)
+        {
+            CPH.SendMessage($"❌ {username}, ton profil n’existe pas encore. Écris d’abord un message dans le chat.");
+            return true;
+        }
+
+        EnsureViewerDefaultsJObject(viewer, username);
+
+        string currentElement = GetString(viewer, "element");
+
+        if (!string.IsNullOrEmpty(currentElement))
+        {
+            CPH.SendMessage($"⚠️ {username}, tu as déjà choisi ton élément : {GetElementDisplayName(currentElement)}.");
+            return true;
+        }
+
+        string input = GetCommandInput();
+
+        if (string.IsNullOrEmpty(input))
+        {
+            SendElementHelp(username);
+            return true;
+        }
+
+        string element = NormalizeElement(input);
+
+        if (string.IsNullOrEmpty(element))
+        {
+            SendElementHelp(username);
+            return true;
+        }
+
+        viewer["element"] = element;
+
+        SaveJObject(path, viewers);
+
+        CPH.SendMessage($"✅ {username} a choisi l’élément {GetElementDisplayName(element)}. Utilise !banniere pour voir les personnages disponibles.");
+
+        return true;
+    }
+
+    private void EnsureViewerDefaultsJObject(JObject viewer, string username)
+    {
+        if (viewer["username"] == null || viewer["username"].Type == JTokenType.Null)
+            viewer["username"] = username;
+
+        EnsureString(viewer, "element", "");
+        EnsureInt(viewer, "xp", 0);
+        EnsureInt(viewer, "level", 0);
+        EnsureInt(viewer, "primogems", 0);
+        EnsureInt(viewer, "moras", 0);
+        EnsureInt(viewer, "selectedBannerCharacterId", 0);
+
+        EnsureObject(viewer, "particles");
+        EnsureObject(viewer, "box");
+        EnsureArray(viewer, "team");
+        EnsureObject(viewer, "pity");
+        EnsureObject(viewer, "guarantee");
+        EnsureObject(viewer, "options");
+        EnsureObject(viewer, "stats");
+        EnsureObject(viewer, "dates");
+        EnsureObject(viewer, "missions");
+        EnsureArray(viewer, "tradeRequests");
+        EnsureArray(viewer, "usedCodes");
+
+        JObject particles = viewer["particles"] as JObject;
+        EnsureInt(particles, "pyro", 0);
+        EnsureInt(particles, "hydro", 0);
+        EnsureInt(particles, "cryo", 0);
+        EnsureInt(particles, "electro", 0);
+        EnsureInt(particles, "anemo", 0);
+        EnsureInt(particles, "geo", 0);
+        EnsureInt(particles, "dendro", 0);
+
+        JObject pity = viewer["pity"] as JObject;
+        EnsureInt(pity, "pity5", 0);
+        EnsureInt(pity, "pity4", 0);
+
+        JObject guarantee = viewer["guarantee"] as JObject;
+        EnsureBool(guarantee, "guaranteedFeatured5", false);
+
+        JObject options = viewer["options"] as JObject;
+        EnsureString(options, "boxSort", "a");
+        EnsureBool(options, "boxSortDescending", false);
+
+        JObject missions = viewer["missions"] as JObject;
+        EnsureObject(missions, "daily");
+
+        JObject daily = missions["daily"] as JObject;
+        EnsureNullOrString(daily, "missionId");
+        EnsureNullOrString(daily, "type");
+        EnsureInt(daily, "progress", 0);
+        EnsureInt(daily, "target", 0);
+        EnsureBool(daily, "completed", false);
+        EnsureBool(daily, "rewardClaimed", false);
+        EnsureNullOrString(daily, "startedAt");
+        EnsureNullOrString(daily, "description");
+
+        JObject stats = viewer["stats"] as JObject;
+        EnsureInt(stats, "totalMessages", 0);
+        EnsureInt(stats, "countedMessages", 0);
+        EnsureInt(stats, "totalPulls", 0);
+        EnsureInt(stats, "totalFiveStars", 0);
+        EnsureInt(stats, "totalFourStars", 0);
+        EnsureBool(stats, "lastPullWasFiveStar", false);
+        EnsureInt(stats, "fiftyFiftyLostStreak", 0);
+        EnsureInt(stats, "fiftyFiftyWon", 0);
+        EnsureInt(stats, "fiftyFiftyLost", 0);
+        EnsureInt(stats, "totalPrimosEarned", 0);
+        EnsureInt(stats, "totalPrimosSpent", 0);
+        EnsureInt(stats, "totalMorasEarned", 0);
+        EnsureInt(stats, "totalMorasSpent", 0);
+        EnsureInt(stats, "level100OverflowRewardsClaimed", 0);
+
+        JObject dates = viewer["dates"] as JObject;
+        EnsureNullOrString(dates, "firstSeen");
+        EnsureNullOrString(dates, "lastSeen");
+        EnsureNullOrString(dates, "lastXpDate");
+        EnsureNullOrString(dates, "lastMessageTime");
+        EnsureNullOrString(dates, "lastDailyFirstMessageReward");
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private string NormalizeElement(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return "";
+
+        string value = input.ToLower().Trim();
+
+        value = value.Replace("é", "e");
+        value = value.Replace("è", "e");
+        value = value.Replace("ê", "e");
+        value = value.Replace("ë", "e");
+        value = value.Replace("à", "a");
+        value = value.Replace("â", "a");
+        value = value.Replace("ä", "a");
+
+        switch (value)
+        {
+            case "pyro": return "pyro";
+            case "hydro": return "hydro";
+            case "cryo": return "cryo";
+            case "electro": return "electro";
+            case "anemo": return "anemo";
+            case "geo": return "geo";
+            case "dendro": return "dendro";
+            default: return "";
+        }
+    }
+
+    private string GetElementDisplayName(string element)
+    {
+        switch (NormalizeElementForDisplay(element))
+        {
+            case "pyro": return "🔥 Pyro";
+            case "hydro": return "💧 Hydro";
+            case "cryo": return "❄️ Cryo";
+            case "electro": return "⚡ Electro";
+            case "anemo": return "🌪️ Anemo";
+            case "geo": return "☄️ Geo";
+            case "dendro": return "🌿 Dendro";
+            default: return element;
+        }
+    }
+
+    private string NormalizeElementForDisplay(string element)
+    {
+        if (string.IsNullOrEmpty(element))
+            return "";
+
+        string value = element.ToLower().Trim();
+
+        switch (value)
+        {
+            case "pyro": return "pyro";
+            case "hydro": return "hydro";
+            case "cryo": return "cryo";
+            case "electro":
+            case "électro": return "electro";
+            case "anemo":
+            case "anémo": return "anemo";
+            case "geo":
+            case "géo": return "geo";
+            case "dendro": return "dendro";
+            default: return value;
+        }
+    }
+
+    private void SendElementHelp(string username)
+    {
+        CPH.SendMessage($"⚠️ {username}, élément invalide. Utilise : !element pyro, hydro, cryo, electro, anemo, geo ou dendro.");
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+            return JObject.Parse(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void SaveJObject(string path, JObject data)
+    {
+        File.WriteAllText(path, data.ToString(Formatting.Indented));
+    }
+
+    private void EnsureObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+    }
+
+    private void EnsureArray(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Array)
+            parent[key] = new JArray();
+    }
+
+    private void EnsureInt(JObject obj, string key, int defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureBool(JObject obj, string key, bool defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureString(JObject obj, string key, string defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureNullOrString(JObject obj, string key)
+    {
+        if (obj[key] == null)
+            obj[key] = null;
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+}

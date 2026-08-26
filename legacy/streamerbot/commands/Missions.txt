@@ -1,0 +1,1202 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !mission
+- Affiche un tuto avec !mission
+- Affiche les missions disponibles par rang avec !mission B / !mission A / !mission S / !mission Z
+- Permet d’accepter une mission avec !mission B 1 / !mission A 1 / !mission S 1 / !mission Z 1
+- Permet d’accepter plusieurs missions en même temps, une par catégorie/rang logique
+- Empêche d’accepter A tant que B n’est pas terminée dans la même catégorie
+- Empêche d’accepter S tant que A n’est pas terminée dans la même catégorie
+- Empêche d’afficher ou accepter les missions Z tant que toutes les missions B/A/S ne sont pas terminées
+- Permet d’abandonner une mission avec :
+  - !mission abandon B 1
+  - !mission abandonne B 1
+  - !mission giveup B 1
+  - !mission out B 1
+- Si une seule mission est active, !mission abandon l’abandonne automatiquement
+- Abandonner une mission conserve sa progression
+- Stocke les données persistantes dans viewer["longMissions"]
+- Lit long_missions.json en JObject
+- Lit viewers_data.json en JObject pour préserver toutes les propriétés inconnues
+- Ne crée PAS le viewer s’il n’existe pas
+- Initialise uniquement les sections manquantes avec EnsureViewerDefaultsJObject
+- Ne met PAS encore à jour la progression automatiquement : ce sera fait ensuite dans XP
+*/
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    private static readonly object fileLock = new object();
+
+    public bool Execute()
+    {
+        string folderPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data";
+        string viewersPath = Path.Combine(folderPath, "viewers_data.json");
+        string missionsPath = Path.Combine(folderPath, "long_missions.json");
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+        string rawInput = GetCommandInput().Trim();
+
+        if (!File.Exists(viewersPath))
+        {
+            SendWarning(username + ", ton profil n’existe pas encore.");
+            return true;
+        }
+
+        if (!File.Exists(missionsPath))
+        {
+            SendError("Fichier long_missions.json introuvable.");
+            return true;
+        }
+
+        lock (fileLock)
+        {
+            JObject viewers = LoadJObject(viewersPath);
+
+            if (viewers == null)
+            {
+                SendError("Impossible de lire viewers_data.json.");
+                return true;
+            }
+
+            JObject viewer = viewers[username] as JObject;
+
+            if (viewer == null)
+            {
+                SendWarning(username + ", ton profil n’existe pas encore.");
+                return true;
+            }
+
+            JObject missionsFile = LoadJObject(missionsPath);
+
+            if (missionsFile == null)
+            {
+                SendError("Impossible de lire long_missions.json.");
+                return true;
+            }
+
+            EnsureViewerDefaultsJObject(viewer, username);
+
+            if (string.IsNullOrWhiteSpace(rawInput))
+            {
+                ShowMissionHelp(viewer, missionsFile);
+                return true;
+            }
+
+            string[] parts = rawInput.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (parts.Length == 0)
+            {
+                ShowMissionHelp(viewer, missionsFile);
+                return true;
+            }
+
+            string first = NormalizeText(parts[0]);
+
+            if (IsResumeKeyword(first))
+            {
+                ShowMissionResume(viewer, missionsFile);
+                SaveJObject(viewersPath, viewers);
+                return true;
+            }
+
+            if (IsAbandonKeyword(first))
+            {
+                HandleAbandon(viewer, username, missionsFile, parts);
+                SaveJObject(viewersPath, viewers);
+                return true;
+            }
+
+            string rank = NormalizeRank(parts[0]);
+
+            if (string.IsNullOrEmpty(rank))
+            {
+                SendWarning(username + ", rang invalide. Utilise !mission B, !mission A, !mission S ou !mission Z.");
+                return true;
+            }
+
+            if (parts.Length == 1)
+            {
+                ShowRankMissions(viewer, username, missionsFile, rank);
+                return true;
+            }
+
+            int number = 0;
+
+            if (!int.TryParse(parts[1], out number) || number <= 0)
+            {
+                SendWarning(username + ", numéro invalide. Exemple : !mission B 1.");
+                return true;
+            }
+
+            AcceptMission(viewer, username, missionsFile, rank, number);
+            SaveJObject(viewersPath, viewers);
+        }
+
+        return true;
+    }
+
+    private void ShowMissionHelp(JObject viewer, JObject missionsFile)
+    {
+        JObject longMissions = viewer["longMissions"] as JObject;
+        JObject categories = longMissions["categories"] as JObject;
+        JObject zMissions = longMissions["z"] as JObject;
+
+        int activeCount = CountActiveMissions(categories) + CountActiveZMissions(zMissions);
+
+        string help = GetString(missionsFile["display"] as JObject, "help");
+
+        if (string.IsNullOrEmpty(help))
+            help = "📜 Missions : !mission B/A/S | Accepter : !mission B 1 | Abandon : !mission abandon B 1";
+
+        if (activeCount > 0)
+            help += " | 🎯 Actives : " + activeCount;
+
+        SendInfo(help);
+    }
+
+    private void ShowMissionResume(JObject viewer, JObject missionsFile)
+    {
+        JObject longMissions = viewer["longMissions"] as JObject;
+        JObject categories = longMissions["categories"] as JObject;
+        JObject z = longMissions["z"] as JObject;
+
+        List<string> labels = new List<string>();
+
+        if (categories != null)
+        {
+            foreach (KeyValuePair<string, JToken> entry in categories)
+            {
+                JObject categoryProgress = entry.Value as JObject;
+
+                if (categoryProgress == null)
+                    continue;
+
+                if (!GetBool(categoryProgress, "active"))
+                    continue;
+
+                string rank = GetString(categoryProgress, "activeRank");
+                string missionId = GetString(categoryProgress, "activeMissionId");
+
+                JObject mission = FindMissionById(missionsFile, rank, missionId);
+
+                if (mission == null)
+                    continue;
+
+                RefreshMissionProgressForDisplay(viewer, categoryProgress, mission);
+
+                labels.Add(
+                    rank +
+                    GetInt(mission, "number") +
+                    " " +
+                    GetInt(categoryProgress, "progress") +
+                    "/" +
+                    GetInt(mission, "target") +
+                    " " +
+                    GetString(mission, "progressLabel")
+                );
+            }
+        }
+
+        if (z != null)
+        {
+            foreach (KeyValuePair<string, JToken> entry in z)
+            {
+                JObject zMission = entry.Value as JObject;
+
+                if (zMission == null)
+                    continue;
+
+                if (!GetBool(zMission, "active"))
+                    continue;
+
+                JObject mission = FindMissionById(missionsFile, "Z", entry.Key);
+
+                if (mission == null)
+                    continue;
+
+                labels.Add(
+                    "Z" +
+                    GetInt(mission, "number") +
+                    " " +
+                    GetInt(zMission, "progress") +
+                    "/" +
+                    GetInt(mission, "target") +
+                    " " +
+                    GetString(mission, "progressLabel")
+                );
+            }
+        }
+
+        labels.Sort(CompareMissionResumeLabels);
+        if (labels.Count == 0)
+        {
+            SendInfo("Aucune mission active. Utilise !mission B, A, S ou Z.");
+            return;
+        }
+
+        SendMissionResumeChunks(labels);
+    }
+
+    private void SendMissionResumeChunks(List<string> labels)
+    {
+        string prefix = "📜 Missions actives : ";
+        string message = prefix;
+
+        for (int i = 0; i < labels.Count; i++)
+        {
+            string part = labels[i];
+
+            if (message.Length + part.Length + 3 > 480)
+            {
+                CPH.SendMessage(message);
+                message = prefix + part;
+            }
+            else
+            {
+                if (message != prefix)
+                    message += " | ";
+
+                message += part;
+            }
+        }
+
+        if (message != prefix)
+            CPH.SendMessage(message);
+    }
+
+    private void ShowRankMissions(JObject viewer, string username, JObject missionsFile, string rank)
+    {
+        if (rank == "Z" && !IsZUnlocked(viewer, missionsFile))
+        {
+            SendWarning(username + ", les missions Z sont verrouillées. Termine toutes les missions B, A et S.");
+            return;
+        }
+
+        JArray missions = GetMissionArray(missionsFile, rank);
+
+        if (missions == null || missions.Count == 0)
+        {
+            SendWarning("Aucune mission de rang " + rank + " disponible.");
+            return;
+        }
+
+        List<string> labels = new List<string>();
+
+        for (int i = 0; i < missions.Count; i++)
+        {
+            JObject mission = missions[i] as JObject;
+
+            if (mission == null)
+                continue;
+
+            int number = GetInt(mission, "number");
+            string name = GetString(mission, "name");
+            string description = GetString(mission, "description");
+            string status = GetMissionStatus(viewer, mission, rank);
+
+            labels.Add(number + ". " + status + name + " (" + description + ")");
+        }
+
+        string message = "📜 Missions " + rank + " : " + string.Join(" | ", labels.ToArray());
+
+        if (message.Length > 480)
+            message = message.Substring(0, 477) + "...";
+
+        CPH.SendMessage(message);
+    }
+
+    private void AcceptMission(JObject viewer, string username, JObject missionsFile, string rank, int number)
+    {
+        if (rank == "Z")
+        {
+            AcceptZMission(viewer, username, missionsFile, number);
+            return;
+        }
+
+        JObject mission = FindMissionByNumber(missionsFile, rank, number);
+
+        if (mission == null)
+        {
+            SendWarning(username + ", mission introuvable. Exemple : !mission " + rank + " 1.");
+            return;
+        }
+
+        string category = GetString(mission, "category");
+
+        if (string.IsNullOrEmpty(category))
+        {
+            SendError("Mission invalide : catégorie manquante.");
+            return;
+        }
+
+        JObject categoryProgress = GetOrCreateCategoryProgress(viewer, category);
+
+        if (IsRankCompleted(categoryProgress, rank))
+        {
+            SendWarning(username + ", cette mission est déjà terminée.");
+            return;
+        }
+
+        string requiredRank = GetRequiredPreviousRank(rank);
+
+        if (!string.IsNullOrEmpty(requiredRank) && !IsRankCompleted(categoryProgress, requiredRank))
+        {
+            SendWarning(username + ", tu dois d’abord terminer la mission " + requiredRank + " de cette catégorie.");
+            return;
+        }
+
+        string activeRank = GetString(categoryProgress, "activeRank");
+        bool active = GetBool(categoryProgress, "active");
+
+        if (active && activeRank == rank)
+        {
+            RefreshMissionProgressForDisplay(viewer, categoryProgress, mission);
+
+            int currentProgress = GetInt(categoryProgress, "progress");
+            int currentTarget = GetInt(mission, "target");
+
+            SendInfo(
+                "[" + rank + "] " +
+                GetString(mission, "name") +
+                " : " +
+                currentProgress + "/" + currentTarget + " " +
+                GetString(mission, "progressLabel") + "."
+            );
+
+            return;
+        }
+
+        if (active && activeRank != rank)
+        {
+            SendWarning(username + ", une autre mission de cette catégorie est déjà active : rang " + activeRank + ".");
+            return;
+        }
+
+        categoryProgress["active"] = true;
+        categoryProgress["activeRank"] = rank;
+        categoryProgress["activeMissionId"] = GetString(mission, "id");
+        SetMissionBaselineOnAccept(viewer, categoryProgress, mission);
+
+        JArray acceptedRanks = categoryProgress["acceptedRanks"] as JArray;
+
+        if (!ArrayContainsString(acceptedRanks, rank))
+            acceptedRanks.Add(rank);
+
+        int progress = GetInt(categoryProgress, "progress");
+        int target = GetInt(mission, "target");
+
+        SendSuccess(username + " accepte [" + rank + "] " + GetString(mission, "name") + " : " + progress + "/" + target + " " + GetString(mission, "progressLabel") + ".");
+    }
+
+    private void RefreshMissionProgressForDisplay(JObject viewer, JObject categoryProgress, JObject mission)
+    {
+        string type = GetString(mission, "type");
+        int currentValue = GetCurrentMissionValue(viewer, type);
+
+        if (currentValue < 0)
+            return;
+
+        int baseline = GetInt(categoryProgress, "baselineValue");
+        int progress = currentValue - baseline;
+        int target = GetInt(mission, "target");
+
+        if (progress < 0)
+            progress = 0;
+
+        if (progress > target)
+            progress = target;
+
+        categoryProgress["progress"] = progress;
+    }
+
+    private int GetCurrentMissionValue(JObject viewer, string type)
+    {
+        JObject stats = viewer["stats"] as JObject;
+
+        if (stats == null)
+            return -1;
+
+        switch (type)
+        {
+            case "messages":
+                return GetInt(stats, "countedMessages");
+
+            case "pulls":
+                return GetInt(stats, "totalPulls");
+
+            case "morasEarned":
+                return GetInt(stats, "totalMorasEarned");
+
+            case "mainParticlesEarned":
+                return GetInt(stats, "totalMainElementParticlesEarned");
+
+            case "expeditions":
+                return GetInt(stats, "totalExpeditionsCompleted");
+
+            case "combatWins":
+                return GetInt(stats, "totalCombatWins");
+
+            case "friendHeartsSent":
+                return GetInt(stats, "totalFriendHeartsSent");
+
+            default:
+                return -1;
+        }
+    }
+
+    private int CompareMissionResumeLabels(string a, string b)
+    {
+        return GetMissionResumeSortValue(a).CompareTo(GetMissionResumeSortValue(b));
+    }
+
+    private int GetMissionResumeSortValue(string label)
+    {
+        if (string.IsNullOrEmpty(label))
+            return 999999;
+
+        string rank = label.Substring(0, 1);
+        int rankValue = 9;
+
+        if (rank == "B") rankValue = 1;
+        else if (rank == "A") rankValue = 2;
+        else if (rank == "S") rankValue = 3;
+        else if (rank == "Z") rankValue = 4;
+
+        int number = 0;
+        string digits = "";
+
+        for (int i = 1; i < label.Length; i++)
+        {
+            if (char.IsDigit(label[i]))
+                digits += label[i].ToString();
+            else
+                break;
+        }
+
+        int.TryParse(digits, out number);
+
+        return rankValue * 1000 + number;
+    }
+
+    private void AcceptZMission(JObject viewer, string username, JObject missionsFile, int number)
+    {
+        if (!IsZUnlocked(viewer, missionsFile))
+        {
+            SendWarning(username + ", les missions Z sont verrouillées. Termine toutes les missions B, A et S.");
+            return;
+        }
+
+        JObject mission = FindMissionByNumber(missionsFile, "Z", number);
+
+        if (mission == null)
+        {
+            SendWarning(username + ", mission Z introuvable.");
+            return;
+        }
+
+        JObject longMissions = viewer["longMissions"] as JObject;
+        JObject z = longMissions["z"] as JObject;
+
+        string missionId = GetString(mission, "id");
+        JObject zMission = z[missionId] as JObject;
+
+        if (zMission == null)
+        {
+            zMission = new JObject();
+            zMission["active"] = false;
+            zMission["completed"] = false;
+            zMission["progress"] = 0;
+            zMission["acceptedAt"] = "";
+            z[missionId] = zMission;
+        }
+
+        if (GetBool(zMission, "completed"))
+        {
+            SendWarning(username + ", cette mission Z est déjà terminée.");
+            return;
+        }
+
+        if (GetBool(zMission, "active"))
+        {
+            SendWarning(username + ", cette mission Z est déjà active.");
+            return;
+        }
+
+        zMission["active"] = true;
+        zMission["acceptedAt"] = FormatDateTime(DateTime.Now);
+
+        SendSuccess(username + " accepte [Z] " + GetString(mission, "name") + " : " + GetString(mission, "description") + ".");
+    }
+
+    private void HandleAbandon(JObject viewer, string username, JObject missionsFile, string[] parts)
+    {
+        JObject longMissions = viewer["longMissions"] as JObject;
+        JObject categories = longMissions["categories"] as JObject;
+        JObject z = longMissions["z"] as JObject;
+
+        if (parts.Length == 1)
+        {
+            int activeCount = CountActiveMissions(categories) + CountActiveZMissions(z);
+
+            if (activeCount == 0)
+            {
+                SendWarning(username + ", tu n’as aucune mission active.");
+                return;
+            }
+
+            if (activeCount > 1)
+            {
+                SendWarning(username + ", précise la mission à abandonner. Exemple : !mission abandon B 1.");
+                return;
+            }
+
+            if (AbandonOnlyActiveCategoryMission(categories, username, missionsFile))
+                return;
+
+            if (AbandonOnlyActiveZMission(z, username, missionsFile))
+                return;
+
+            SendWarning(username + ", mission active introuvable.");
+            return;
+        }
+
+        string rank = "";
+
+        if (parts.Length >= 2)
+            rank = NormalizeRank(parts[1]);
+
+        if (string.IsNullOrEmpty(rank))
+        {
+            SendWarning(username + ", rang invalide. Exemple : !mission abandon B 1.");
+            return;
+        }
+
+        if (parts.Length < 3)
+        {
+            SendWarning(username + ", indique le numéro. Exemple : !mission abandon " + rank + " 1.");
+            return;
+        }
+
+        int number = 0;
+
+        if (!int.TryParse(parts[2], out number) || number <= 0)
+        {
+            SendWarning(username + ", numéro invalide. Exemple : !mission abandon " + rank + " 1.");
+            return;
+        }
+
+        JObject mission = FindMissionByNumber(missionsFile, rank, number);
+
+        if (mission == null)
+        {
+            SendWarning(username + ", mission introuvable.");
+            return;
+        }
+
+        if (rank == "Z")
+        {
+            AbandonZMission(z, username, mission);
+            return;
+        }
+
+        string category = GetString(mission, "category");
+        JObject categoryProgress = categories[category] as JObject;
+
+        if (categoryProgress == null)
+        {
+            SendWarning(username + ", cette mission n’est pas active.");
+            return;
+        }
+
+        bool active = GetBool(categoryProgress, "active");
+        string activeRank = GetString(categoryProgress, "activeRank");
+
+        if (!active || activeRank != rank)
+        {
+            SendWarning(username + ", cette mission n’est pas active.");
+            return;
+        }
+
+        categoryProgress["active"] = false;
+
+        SendSuccess(username + " abandonne " + GetString(mission, "name") + ". Progression conservée : " + GetInt(categoryProgress, "progress") + "/" + GetInt(mission, "target") + ".");
+    }
+
+    private bool AbandonOnlyActiveCategoryMission(JObject categories, string username, JObject missionsFile)
+    {
+        foreach (KeyValuePair<string, JToken> entry in categories)
+        {
+            JObject categoryProgress = entry.Value as JObject;
+
+            if (categoryProgress == null)
+                continue;
+
+            if (!GetBool(categoryProgress, "active"))
+                continue;
+
+            string rank = GetString(categoryProgress, "activeRank");
+            string missionId = GetString(categoryProgress, "activeMissionId");
+            JObject mission = FindMissionById(missionsFile, rank, missionId);
+
+            categoryProgress["active"] = false;
+
+            string missionName = mission != null ? GetString(mission, "name") : missionId;
+
+            SendSuccess(username + " abandonne " + missionName + ". Progression conservée.");
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool AbandonOnlyActiveZMission(JObject z, string username, JObject missionsFile)
+    {
+        foreach (KeyValuePair<string, JToken> entry in z)
+        {
+            JObject zMission = entry.Value as JObject;
+
+            if (zMission == null)
+                continue;
+
+            if (!GetBool(zMission, "active"))
+                continue;
+
+            zMission["active"] = false;
+
+            JObject mission = FindMissionById(missionsFile, "Z", entry.Key);
+            string missionName = mission != null ? GetString(mission, "name") : entry.Key;
+
+            SendSuccess(username + " abandonne " + missionName + ". Progression conservée.");
+            return true;
+        }
+
+        return false;
+    }
+
+    private void AbandonZMission(JObject z, string username, JObject mission)
+    {
+        string missionId = GetString(mission, "id");
+        JObject zMission = z[missionId] as JObject;
+
+        if (zMission == null || !GetBool(zMission, "active"))
+        {
+            SendWarning(username + ", cette mission Z n’est pas active.");
+            return;
+        }
+
+        zMission["active"] = false;
+        SendSuccess(username + " abandonne " + GetString(mission, "name") + ". Progression conservée.");
+    }
+
+    private string GetMissionStatus(JObject viewer, JObject mission, string rank)
+    {
+        if (rank == "Z")
+        {
+            JObject longMissions = viewer["longMissions"] as JObject;
+            JObject z = longMissions["z"] as JObject;
+            string missionId = GetString(mission, "id");
+            JObject zMission = z[missionId] as JObject;
+
+            if (zMission != null && GetBool(zMission, "completed"))
+                return "✅ ";
+
+            if (zMission != null && GetBool(zMission, "active"))
+                return "🎯 ";
+
+            return "";
+        }
+
+        string category = GetString(mission, "category");
+        JObject longMissionsMain = viewer["longMissions"] as JObject;
+        JObject categories = longMissionsMain["categories"] as JObject;
+        JObject categoryProgress = categories[category] as JObject;
+
+        if (categoryProgress == null)
+            return "";
+
+        if (IsRankCompleted(categoryProgress, rank))
+            return "✅ ";
+
+        if (GetBool(categoryProgress, "active") && GetString(categoryProgress, "activeRank") == rank)
+            return "🎯 ";
+
+        string requiredRank = GetRequiredPreviousRank(rank);
+
+        if (!string.IsNullOrEmpty(requiredRank) && !IsRankCompleted(categoryProgress, requiredRank))
+            return "🔒 ";
+
+        return "";
+    }
+
+    private bool IsZUnlocked(JObject viewer, JObject missionsFile)
+    {
+        JArray ranks = new JArray();
+        ranks.Add("B");
+        ranks.Add("A");
+        ranks.Add("S");
+
+        for (int r = 0; r < ranks.Count; r++)
+        {
+            string rank = ranks[r].ToString();
+            JArray missions = GetMissionArray(missionsFile, rank);
+
+            if (missions == null)
+                return false;
+
+            for (int i = 0; i < missions.Count; i++)
+            {
+                JObject mission = missions[i] as JObject;
+
+                if (mission == null)
+                    continue;
+
+                string category = GetString(mission, "category");
+                JObject categoryProgress = GetCategoryProgress(viewer, category);
+
+                if (categoryProgress == null)
+                    return false;
+
+                if (!IsRankCompleted(categoryProgress, rank))
+                    return false;
+            }
+        }
+
+        JObject longMissions = viewer["longMissions"] as JObject;
+
+        if (!GetBool(longMissions, "unlockedZ"))
+            longMissions["unlockedZ"] = true;
+
+        return true;
+    }
+
+    private JObject GetOrCreateCategoryProgress(JObject viewer, string category)
+    {
+        JObject longMissions = viewer["longMissions"] as JObject;
+        JObject categories = longMissions["categories"] as JObject;
+
+        JObject categoryProgress = categories[category] as JObject;
+
+        if (categoryProgress == null)
+        {
+            categoryProgress = new JObject();
+            categoryProgress["progress"] = 0;
+            categoryProgress["active"] = false;
+            categoryProgress["activeRank"] = "";
+            categoryProgress["activeMissionId"] = "";
+            categoryProgress["acceptedRanks"] = new JArray();
+            categoryProgress["completedRanks"] = new JArray();
+            categoryProgress["startedAt"] = FormatDateTime(DateTime.Now);
+            categories[category] = categoryProgress;
+        }
+
+        EnsureInt(categoryProgress, "progress", 0);
+        EnsureBool(categoryProgress, "active", false);
+        EnsureString(categoryProgress, "activeRank", "");
+        EnsureString(categoryProgress, "activeMissionId", "");
+        EnsureArray(categoryProgress, "acceptedRanks");
+        EnsureArray(categoryProgress, "completedRanks");
+        EnsureString(categoryProgress, "startedAt", "");
+
+        return categoryProgress;
+    }
+
+    private JObject GetCategoryProgress(JObject viewer, string category)
+    {
+        JObject longMissions = viewer["longMissions"] as JObject;
+
+        if (longMissions == null)
+            return null;
+
+        JObject categories = longMissions["categories"] as JObject;
+
+        if (categories == null)
+            return null;
+
+        return categories[category] as JObject;
+    }
+
+    private bool IsRankCompleted(JObject categoryProgress, string rank)
+    {
+        if (categoryProgress == null)
+            return false;
+
+        JArray completedRanks = categoryProgress["completedRanks"] as JArray;
+
+        return ArrayContainsString(completedRanks, rank);
+    }
+
+    private string GetRequiredPreviousRank(string rank)
+    {
+        if (rank == "A")
+            return "B";
+
+        if (rank == "S")
+            return "A";
+
+        return "";
+    }
+
+    private JArray GetMissionArray(JObject missionsFile, string rank)
+    {
+        JObject ranks = missionsFile["ranks"] as JObject;
+
+        if (ranks == null)
+            return null;
+
+        return ranks[rank] as JArray;
+    }
+
+    private JObject FindMissionByNumber(JObject missionsFile, string rank, int number)
+    {
+        JArray missions = GetMissionArray(missionsFile, rank);
+
+        if (missions == null)
+            return null;
+
+        for (int i = 0; i < missions.Count; i++)
+        {
+            JObject mission = missions[i] as JObject;
+
+            if (mission == null)
+                continue;
+
+            if (GetInt(mission, "number") == number)
+                return mission;
+        }
+
+        return null;
+    }
+
+    private JObject FindMissionById(JObject missionsFile, string rank, string missionId)
+    {
+        JArray missions = GetMissionArray(missionsFile, rank);
+
+        if (missions == null)
+            return null;
+
+        for (int i = 0; i < missions.Count; i++)
+        {
+            JObject mission = missions[i] as JObject;
+
+            if (mission == null)
+                continue;
+
+            if (GetString(mission, "id") == missionId)
+                return mission;
+        }
+
+        return null;
+    }
+
+    private int CountActiveMissions(JObject categories)
+    {
+        if (categories == null)
+            return 0;
+
+        int count = 0;
+
+        foreach (KeyValuePair<string, JToken> entry in categories)
+        {
+            JObject category = entry.Value as JObject;
+
+            if (category != null && GetBool(category, "active"))
+                count++;
+        }
+
+        return count;
+    }
+
+    private int CountActiveZMissions(JObject z)
+    {
+        if (z == null)
+            return 0;
+
+        int count = 0;
+
+        foreach (KeyValuePair<string, JToken> entry in z)
+        {
+            JObject mission = entry.Value as JObject;
+
+            if (mission != null && GetBool(mission, "active"))
+                count++;
+        }
+
+        return count;
+    }
+
+    private bool ArrayContainsString(JArray array, string value)
+    {
+        if (array == null)
+            return false;
+
+        for (int i = 0; i < array.Count; i++)
+        {
+            if (array[i] != null && array[i].ToString() == value)
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool IsAbandonKeyword(string text)
+    {
+        return text == "abandon"
+            || text == "abandonne"
+            || text == "giveup"
+            || text == "out";
+    }
+
+    private bool IsResumeKeyword(string text)
+    {
+        return text == "resume"
+            || text == "résumé"
+            || text == "resumé"
+            || text == "recap"
+            || text == "récap";
+    }
+
+    private string NormalizeRank(string rank)
+    {
+        if (string.IsNullOrEmpty(rank))
+            return "";
+
+        string r = rank.Trim().ToUpper();
+
+        if (r == "B" || r == "A" || r == "S" || r == "Z")
+            return r;
+
+        return "";
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private void SetMissionBaselineOnAccept(JObject viewer, JObject categoryProgress, JObject mission)
+    {
+        string missionType = GetString(mission, "type");
+
+        if (missionType == "mainParticlesEarned")
+        {
+            JObject stats = viewer["stats"] as JObject;
+
+            if (stats == null)
+            {
+                stats = new JObject();
+                viewer["stats"] = stats;
+            }
+
+            EnsureInt(stats, "totalMainElementParticlesEarned", 0);
+
+            categoryProgress["baselineValue"] = GetInt(stats, "totalMainElementParticlesEarned");
+            categoryProgress["usesCumulativeMainParticles"] = true;
+            return;
+        }
+
+        if (categoryProgress["baselineValue"] != null && categoryProgress["baselineValue"].Type != JTokenType.Null)
+            return;
+    }
+
+    private void EnsureViewerDefaultsJObject(JObject viewer, string username)
+    {
+        if (viewer["username"] == null || viewer["username"].Type == JTokenType.Null)
+            viewer["username"] = username;
+
+        EnsureInt(viewer, "xp", 0);
+        EnsureInt(viewer, "level", 0);
+        EnsureString(viewer, "element", "");
+        EnsureInt(viewer, "primogems", 0);
+        EnsureInt(viewer, "moras", 0);
+        EnsureInt(viewer, "selectedBannerCharacterId", 0);
+
+        EnsureObject(viewer, "particles");
+        EnsureObject(viewer, "box");
+        EnsureArray(viewer, "team");
+        EnsureObject(viewer, "pity");
+        EnsureObject(viewer, "guarantee");
+        EnsureObject(viewer, "options");
+        EnsureObject(viewer, "missions");
+        EnsureObject(viewer, "stats");
+
+        JObject stats = viewer["stats"] as JObject;
+        EnsureInt(stats, "totalMainElementParticlesEarned", 0);
+        
+        EnsureObject(viewer, "dates");
+        EnsureArray(viewer, "tradeRequests");
+        EnsureArray(viewer, "usedCodes");
+        EnsureObject(viewer, "favor");
+        EnsureObject(viewer, "coffre");
+        EnsureObject(viewer, "specialItems");
+        EnsureObject(viewer, "longMissions");
+
+        JObject particles = viewer["particles"] as JObject;
+        EnsureInt(particles, "pyro", 0);
+        EnsureInt(particles, "hydro", 0);
+        EnsureInt(particles, "cryo", 0);
+        EnsureInt(particles, "electro", 0);
+        EnsureInt(particles, "anemo", 0);
+        EnsureInt(particles, "geo", 0);
+        EnsureInt(particles, "dendro", 0);
+
+        JObject longMissions = viewer["longMissions"] as JObject;
+        EnsureBool(longMissions, "unlockedZ", false);
+        EnsureBool(longMissions, "completedAllMainRanksAnnounced", false);
+        EnsureObject(longMissions, "categories");
+        EnsureObject(longMissions, "z");
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        try
+        {
+            if (!File.Exists(path))
+                return null;
+
+            string json = File.ReadAllText(path);
+
+            if (string.IsNullOrWhiteSpace(json))
+                return new JObject();
+
+            return JObject.Parse(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void SaveJObject(string path, JObject data)
+    {
+        File.WriteAllText(path, data.ToString(Formatting.Indented));
+    }
+
+    private void EnsureObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+    }
+
+    private void EnsureArray(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Array)
+            parent[key] = new JArray();
+    }
+
+    private void EnsureInt(JObject obj, string key, int defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureBool(JObject obj, string key, bool defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureString(JObject obj, string key, string defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private bool GetBool(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return false;
+
+        bool value;
+
+        if (bool.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return false;
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private string NormalizeText(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return "";
+
+        string normalized = text.ToLower().Trim();
+
+        normalized = normalized.Replace("é", "e");
+        normalized = normalized.Replace("è", "e");
+        normalized = normalized.Replace("ê", "e");
+        normalized = normalized.Replace("ë", "e");
+        normalized = normalized.Replace("à", "a");
+        normalized = normalized.Replace("â", "a");
+        normalized = normalized.Replace("ä", "a");
+        normalized = normalized.Replace("ù", "u");
+        normalized = normalized.Replace("û", "u");
+        normalized = normalized.Replace("ü", "u");
+        normalized = normalized.Replace("î", "i");
+        normalized = normalized.Replace("ï", "i");
+        normalized = normalized.Replace("ô", "o");
+        normalized = normalized.Replace("ö", "o");
+        normalized = normalized.Replace("ç", "c");
+
+        return normalized;
+    }
+
+    private string FormatDateTime(DateTime date)
+    {
+        return date.ToString("yyyy-MM-dd HH:mm:ss");
+    }
+
+    private void SendSuccess(string message) { CPH.SendMessage("✅ " + message); }
+    private void SendWarning(string message) { CPH.SendMessage("⚠️ " + message); }
+    private void SendError(string message) { CPH.SendMessage("❌ " + message); }
+    private void SendInfo(string message) { CPH.SendMessage("ℹ️ " + message); }
+}

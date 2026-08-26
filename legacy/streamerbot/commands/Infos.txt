@@ -1,0 +1,629 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !infos
+- Lit viewers_data.json avec JObject
+- Lit genshin_characters.json avec JObject
+- Ne modifie aucun fichier JSON
+- Ne sauvegarde rien
+- Permet de voir un résumé d’un joueur avec !infos pseudo
+- Permet de voir ses propres infos avec !infos me
+- Permet de cibler une section : team, box, sac, pity, stats, mission
+*/
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    public bool Execute()
+    {
+        string folderPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data";
+
+        string viewersPath = Path.Combine(folderPath, "viewers_data.json");
+        string charactersPath = Path.Combine(folderPath, "genshin_characters.json");
+
+        if (!File.Exists(viewersPath))
+        {
+            SendError("Fichier viewers_data.json introuvable.");
+            return true;
+        }
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string requester = NormalizeUsername(args["userName"].ToString());
+        string input = GetCommandInput();
+
+        JObject viewers = LoadJObject(viewersPath);
+
+        if (viewers == null)
+        {
+            SendError("Impossible de lire viewers_data.json.");
+            return true;
+        }
+
+        JObject charactersFile = File.Exists(charactersPath)
+            ? LoadJObject(charactersPath)
+            : new JObject();
+
+        string targetUser;
+        string section;
+
+        ParseInput(input, requester, out targetUser, out section);
+
+        if (string.IsNullOrEmpty(targetUser))
+        {
+            ShowHelp(requester);
+            return true;
+        }
+
+        JObject viewer = viewers[targetUser] as JObject;
+
+        if (viewer == null)
+        {
+            SendWarning($"{requester}, joueur introuvable : {targetUser}");
+            return true;
+        }
+
+        switch (section)
+        {
+            case "":
+            case "resume":
+                ShowSummary(targetUser, viewer);
+                break;
+
+            case "team":
+                ShowTeam(targetUser, viewer, charactersFile);
+                break;
+
+            case "box":
+            case "collection":
+                ShowBox(targetUser, viewer, charactersFile);
+                break;
+
+            case "sac":
+            case "ressources":
+                ShowBag(targetUser, viewer);
+                break;
+
+            case "pity":
+                ShowPity(targetUser, viewer);
+                break;
+
+            case "stats":
+                ShowStats(targetUser, viewer);
+                break;
+
+            case "mission":
+            case "missions":
+                ShowMission(targetUser, viewer);
+                break;
+
+            default:
+                SendWarning($"{requester}, section invalide. Options : resume, team, box, sac, pity, stats, mission");
+                break;
+        }
+
+        return true;
+    }
+
+    private void ShowHelp(string username)
+    {
+        SendInfo($"{username}, utilise : !infos me | !infos pseudo | !infos pseudo team/box/sac/pity/stats/mission");
+    }
+
+    private void ParseInput(string input, string requester, out string targetUser, out string section)
+    {
+        targetUser = "";
+        section = "";
+
+        if (string.IsNullOrEmpty(input))
+            return;
+
+        string[] parts = input.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length >= 1)
+            targetUser = NormalizeUsername(parts[0]);
+
+        if (targetUser == "me" || targetUser == "moi")
+            targetUser = requester;
+
+        if (parts.Length >= 2)
+            section = NormalizeSection(parts[1]);
+    }
+
+    private void ShowSummary(string username, JObject viewer)
+    {
+        string element = GetString(viewer, "element");
+
+        string elementDisplay = string.IsNullOrEmpty(element)
+            ? "aucun élément"
+            : GetElementDisplayName(element);
+
+        int level = GetInt(viewer, "level");
+        int xp = GetInt(viewer, "xp");
+        int currentLevelXp = xp % 30;
+
+        int xpForNextLevel = (level + 1) * 30;
+        int remainingXp = xpForNextLevel - xp;
+
+        if (remainingXp < 0)
+            remainingXp = 0;
+
+        int primos = GetInt(viewer, "primogems");
+        int moras = GetInt(viewer, "moras");
+
+        int wishes = primos / 160;
+
+        int boxCount = GetObjectCount(viewer, "box");
+        int teamCount = GetArrayCount(viewer, "team");
+
+        JObject stats = GetObject(viewer, "stats");
+
+        int totalPulls = GetInt(stats, "totalPulls");
+        int totalFiveStars = GetInt(stats, "totalFiveStars");
+        int totalFourStars = GetInt(stats, "totalFourStars");
+
+        JObject pity = GetObject(viewer, "pity");
+
+        int pity5 = GetInt(pity, "pity5");
+        int pity4 = GetInt(pity, "pity4");
+
+        SendSuccess(
+            $"ℹ️ {username} : niv.{level} ({xp} XP) | Prochain niveau : {currentLevelXp}/30 | {elementDisplay} | 💠{primos} ({wishes} voeux) | 💰{moras} | 📦 {boxCount} persos | 👥 team {teamCount}/4 | pulls {totalPulls} | 5★ {totalFiveStars} | 4★ {totalFourStars} | pity 5★ {pity5}/90, 4★ {pity4}/10"
+        );
+    }
+
+    private void ShowTeam(string username, JObject viewer, JObject charactersFile)
+    {
+        JArray team = GetArray(viewer, "team");
+
+        if (team.Count == 0)
+        {
+            SendWarning($"{username} n’a pas encore de team.");
+            return;
+        }
+
+        List<string> names = new List<string>();
+
+        foreach (JToken token in team)
+        {
+            int id = SafeInt(token);
+
+            JObject character = FindCharacter(charactersFile, id);
+
+            if (character == null)
+            {
+                names.Add($"ID {id}");
+                continue;
+            }
+
+            string name = GetString(character, "nom");
+            string element = GetString(character, "element");
+
+            names.Add($"{GetElementEmoji(element)} {name}");
+        }
+
+        SendSuccess($"👥 Team {username} : {string.Join(" - ", names.ToArray())}");
+    }
+
+    private void ShowBox(string username, JObject viewer, JObject charactersFile)
+    {
+        JObject box = GetObject(viewer, "box");
+
+        if (box.Count == 0)
+        {
+            SendWarning($"{username} n’a aucun personnage dans sa box.");
+            return;
+        }
+
+        List<string> items = new List<string>();
+
+        int fiveStars = 0;
+        int fourStars = 0;
+        int c6 = 0;
+
+        foreach (KeyValuePair<string, JToken> pair in box)
+        {
+            JObject owned = pair.Value as JObject;
+
+            if (owned == null)
+                continue;
+
+            int id = GetInt(owned, "characterId");
+
+            int constellation = Math.Min(GetInt(owned, "constellation"), 6);
+
+            if (constellation >= 6)
+                c6++;
+
+            JObject character = FindCharacter(charactersFile, id);
+
+            if (character == null)
+            {
+                items.Add($"ID {id} (C{constellation})");
+                continue;
+            }
+
+            string name = GetString(character, "nom");
+            string element = GetString(character, "element");
+
+            int rarity = GetInt(character, "rarete");
+
+            if (rarity == 5)
+                fiveStars++;
+            else if (rarity == 4)
+                fourStars++;
+
+            items.Add($"{GetElementEmoji(element)} {name} (C{constellation})");
+        }
+
+        string header =
+            $"📦 Box {username} : {box.Count} persos | 5★ {fiveStars} | 4★ {fourStars} | C6 {c6} : ";
+
+        SendSplitMessages(header, items);
+    }
+
+    private void ShowBag(string username, JObject viewer)
+    {
+        int primos = GetInt(viewer, "primogems");
+        int moras = GetInt(viewer, "moras");
+
+        int wishes = primos / 160;
+
+        JObject particles = GetObject(viewer, "particles");
+
+        string particleText =
+            $"🔥{GetInt(particles, "pyro")} " +
+            $"💧{GetInt(particles, "hydro")} " +
+            $"❄️{GetInt(particles, "cryo")} " +
+            $"⚡{GetInt(particles, "electro")} " +
+            $"🌪️{GetInt(particles, "anemo")} " +
+            $"☄️{GetInt(particles, "geo")} " +
+            $"🌿{GetInt(particles, "dendro")}";
+
+        SendSuccess($"🎒 Sac {username} : 💠{primos} ({wishes} voeux) | 💰{moras} | {particleText}");
+    }
+
+    private void ShowPity(string username, JObject viewer)
+    {
+        JObject pity = GetObject(viewer, "pity");
+        JObject guarantee = GetObject(viewer, "guarantee");
+        JObject stats = GetObject(viewer, "stats");
+
+        int pity5 = GetInt(pity, "pity5");
+        int pity4 = GetInt(pity, "pity4");
+
+        bool guaranteed = GetBool(guarantee, "guaranteedFeatured5");
+
+        int capture = GetInt(stats, "fiftyFiftyLostStreak");
+
+        string garantie = guaranteed ? "oui" : "non";
+
+        SendSuccess($"📊 Pity {username} : 5★ {pity5}/90 | 4★ {pity4}/10 | 🎯 garantie 5★ : {garantie} | ✨ capture : {capture}/3");
+    }
+
+    private void ShowStats(string username, JObject viewer)
+    {
+        JObject stats = GetObject(viewer, "stats");
+
+        int totalMessages = GetInt(stats, "totalMessages");
+        int xp = GetInt(viewer, "xp");
+
+        int totalPulls = GetInt(stats, "totalPulls");
+
+        int fiveStars = GetInt(stats, "totalFiveStars");
+        int fourStars = GetInt(stats, "totalFourStars");
+
+        int fiftyWon = GetInt(stats, "fiftyFiftyWon");
+        int fiftyLost = GetInt(stats, "fiftyFiftyLost");
+
+        int primosEarned = GetInt(stats, "totalPrimosEarned");
+        int primosSpent = GetInt(stats, "totalPrimosSpent");
+
+        int morasEarned = GetInt(stats, "totalMorasEarned");
+        int morasSpent = GetInt(stats, "totalMorasSpent");
+
+        SendSuccess(
+            $"🏆 Stats {username} : messages {totalMessages} | XP {xp} | pulls {totalPulls} | 5★ {fiveStars} | 4★ {fourStars} | 50/50 gagnés {fiftyWon}, perdus {fiftyLost} | 💠 gagnés {primosEarned}, dépensés {primosSpent} | 💰 gagnés {morasEarned}, dépensés {morasSpent}"
+        );
+    }
+
+    private void ShowMission(string username, JObject viewer)
+    {
+        JObject missions = GetObject(viewer, "missions");
+        JObject daily = GetObject(missions, "daily");
+
+        string missionId = GetString(daily, "missionId");
+
+        if (string.IsNullOrEmpty(missionId))
+        {
+            SendWarning($"{username} n’a pas de mission active.");
+            return;
+        }
+
+        string description = GetString(daily, "description");
+
+        int progress = GetInt(daily, "progress");
+        int target = GetInt(daily, "target");
+
+        bool completed = GetBool(daily, "completed");
+        bool claimed = GetBool(daily, "rewardClaimed");
+
+        string status = completed ? "terminée" : "en cours";
+
+        if (claimed)
+            status += ", récompense prise";
+
+        SendSuccess($"🎯 Mission {username} : {description} | {progress}/{target} | {status}");
+    }
+
+    private JObject FindCharacter(JObject charactersFile, int id)
+    {
+        JArray characters = GetArray(charactersFile, "characters");
+
+        foreach (JToken token in characters)
+        {
+            JObject character = token as JObject;
+
+            if (character == null)
+                continue;
+
+            if (GetInt(character, "id") == id)
+                return character;
+        }
+
+        return null;
+    }
+
+    private void SendSplitMessages(string header, List<string> items)
+    {
+        string current = header;
+
+        foreach (string item in items)
+        {
+            string addition = item + ", ";
+
+            if ((current + addition).Length > 450)
+            {
+                if (!string.IsNullOrEmpty(current))
+                    SendSuccess(current.TrimEnd(' ', ','));
+
+                current = addition;
+
+                if (current.Length > 450)
+                {
+                    SendSuccess(current.Substring(0, 450));
+                    current = "";
+                }
+            }
+            else
+            {
+                current += addition;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(current))
+            SendSuccess(current.TrimEnd(' ', ','));
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+            return JObject.Parse(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private JObject GetObject(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || !(obj[key] is JObject))
+            return new JObject();
+
+        return (JObject)obj[key];
+    }
+
+    private JArray GetArray(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || !(obj[key] is JArray))
+            return new JArray();
+
+        return (JArray)obj[key];
+    }
+
+    private int GetObjectCount(JObject obj, string key)
+    {
+        JObject target = GetObject(obj, key);
+        return target.Count;
+    }
+
+    private int GetArrayCount(JObject obj, string key)
+    {
+        JArray target = GetArray(obj, key);
+        return target.Count;
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private bool GetBool(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return false;
+
+        bool value;
+
+        if (bool.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return false;
+    }
+
+    private int SafeInt(JToken token)
+    {
+        if (token == null || token.Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(token.ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private string NormalizeSection(string section)
+    {
+        if (string.IsNullOrEmpty(section))
+            return "";
+
+        section = section.ToLower().Trim();
+
+        switch (section)
+        {
+            case "résumé":
+            case "resume":
+                return "resume";
+
+            case "équipe":
+            case "equipe":
+                return "team";
+
+            default:
+                return section;
+        }
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private string NormalizeElement(string element)
+    {
+        if (string.IsNullOrEmpty(element))
+            return "";
+
+        element = element.ToLower().Trim();
+
+        switch (element)
+        {
+            case "pyro": return "pyro";
+            case "hydro": return "hydro";
+            case "cryo": return "cryo";
+
+            case "electro":
+            case "électro":
+                return "electro";
+
+            case "anemo":
+            case "anémo":
+                return "anemo";
+
+            case "geo":
+            case "géo":
+                return "geo";
+
+            case "dendro":
+                return "dendro";
+
+            default:
+                return element;
+        }
+    }
+
+    private string GetElementEmoji(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "🔥";
+            case "hydro": return "💧";
+            case "cryo": return "❄️";
+            case "electro": return "⚡";
+            case "anemo": return "🌪️";
+            case "geo": return "☄️";
+            case "dendro": return "🌿";
+            default: return "";
+        }
+    }
+
+    private string GetElementDisplayName(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "🔥 Pyro";
+            case "hydro": return "💧 Hydro";
+            case "cryo": return "❄️ Cryo";
+            case "electro": return "⚡ Electro";
+            case "anemo": return "🌪️ Anemo";
+            case "geo": return "☄️ Geo";
+            case "dendro": return "🌿 Dendro";
+            default: return element;
+        }
+    }
+
+    private void SendSuccess(string message)
+    {
+        CPH.SendMessage($"✅ {message}");
+    }
+
+    private void SendWarning(string message)
+    {
+        CPH.SendMessage($"⚠️ {message}");
+    }
+
+    private void SendError(string message)
+    {
+        CPH.SendMessage($"❌ {message}");
+    }
+
+    private void SendInfo(string message)
+    {
+        CPH.SendMessage($"ℹ️ {message}");
+    }
+}

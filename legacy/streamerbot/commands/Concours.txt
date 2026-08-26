@@ -1,0 +1,1944 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère toute la commande !concours avec paramètres :
+  - !concours
+  - !concours open NomPerso
+  - !concours participant NomPerso
+  - !concours spectateur
+  - !concours annuler
+  - !concours start
+  - !concours basique
+  - !concours risque
+  - !concours NomDuParticipant pour soutenir pendant la phase spectateur
+- Utilise contests_data.json pour stocker le concours en cours, le thème du jour et les verrous journaliers
+- Utilise c6_characters.json pour les personnages légendaires C6 5★
+- Utilise viewers_data.json pour vérifier les profils et donner les récompenses
+- Un seul concours actif à la fois
+- Un joueur ne peut participer qu’à un concours par jour
+- Les spectateurs peuvent assister à autant de concours qu’ils veulent
+- Maximum 4 participants, les places vides sont remplacées par des IA au lancement
+- Maximum 10 spectateurs, jamais remplacés par des IA
+- Thème du jour généré au premier concours de la journée
+- Tour par tour avec actions basique/risque
+- Après chaque round complet, un spectateur aléatoire peut soutenir un participant
+- Premier participant à 50 points gagne
+- Le gagnant joueur reçoit +800 primos et une progression de titre, deuxieme 400 et troisieme 200
+- Les stats concours des personnages joueurs sont mises à jour
+- Ne fait aucun backup .bak
+- Compatible Streamer.bot
+- Sans LINQ
+*/
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    private const int MaxParticipants = 4;
+    private const int MaxSpectators = 10;
+    private const int WinScore = 50;
+    private const int FirstPlacePrimosReward = 800;
+    private const int SecondPlacePrimosReward = 400;
+    private const int ThirdPlacePrimosReward = 200;
+
+    private static Random random = new Random();
+
+    public bool Execute()
+    {
+        string folderPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data";
+        string viewersPath = Path.Combine(folderPath, "viewers_data.json");
+        string c6CharactersPath = Path.Combine(folderPath, "c6_characters.json");
+        string contestsPath = Path.Combine(folderPath, "contests_data.json");
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+        string rawInput = GetCommandInput();
+
+        if (!File.Exists(viewersPath))
+        {
+            SendWarning(username + ", ton profil n’existe pas encore. Écris d’abord un message dans le chat.");
+            return true;
+        }
+
+        JObject viewers = LoadJObject(viewersPath);
+
+        if (viewers == null)
+        {
+            SendError("Impossible de lire viewers_data.json.");
+            return true;
+        }
+
+        JObject viewer = viewers[username] as JObject;
+
+        if (viewer == null)
+        {
+            SendWarning(username + ", ton profil n’existe pas encore. Écris d’abord un message dans le chat.");
+            return true;
+        }
+
+        JObject c6Characters = LoadOrCreateJObject(c6CharactersPath);
+        JObject contests = LoadOrCreateContestsData(contestsPath);
+
+        EnsureContestsDefaults(contests);
+
+        DateTime now = DateTime.Now;
+        ResetDailyThemeIfNeeded(contests, now);
+        ClearOldContestIfNeeded(contests, now);
+
+        ParsedInput parsed = ParseInput(rawInput);
+
+        if (string.IsNullOrEmpty(parsed.command))
+        {
+            ShowHelp();
+            return true;
+        }
+
+        string command = parsed.command;
+        string extra = parsed.extra;
+
+        if (command == "open")
+        {
+            HandleOpen(contests, c6Characters, username, extra, now, contestsPath);
+            return true;
+        }
+
+        if (command == "participant" || command == "participer")
+        {
+            HandleParticipant(contests, c6Characters, username, extra, contestsPath);
+            return true;
+        }
+
+        if (command == "spectateur" || command == "spectate" || command == "viewer")
+        {
+            HandleSpectator(contests, username, contestsPath);
+            return true;
+        }
+
+        if (command == "annuler" || command == "cancel")
+        {
+            HandleCancel(contests, username, contestsPath);
+            return true;
+        }
+
+        if (command == "start" || command == "lancer")
+        {
+            HandleStart(contests, viewers, c6Characters, username, now, contestsPath, viewersPath, c6CharactersPath);
+            return true;
+        }
+
+        if (command == "basique" || command == "basic")
+        {
+            HandlePlayerMove(contests, viewers, c6Characters, username, false, contestsPath, viewersPath, c6CharactersPath);
+            return true;
+        }
+
+        if (command == "risque" || command == "risqué" || command == "risk")
+        {
+            HandlePlayerMove(contests, viewers, c6Characters, username, true, contestsPath, viewersPath, c6CharactersPath);
+            return true;
+        }
+
+        HandleSupport(contests, viewers, c6Characters, username, rawInput, contestsPath, viewersPath, c6CharactersPath);
+        return true;
+    }
+
+    private void ShowHelp()
+    {
+        SendSuccess("🎪 !concours open NomPerso = ouvrir | participant NomPerso = rejoindre | spectateur = regarder | start = lancer | annuler = annuler avant start | basique/risque = jouer | Nom = soutenir");
+    }
+
+    private void HandleOpen(JObject contests, JObject c6Characters, string username, string characterName, DateTime now, string contestsPath)
+    {
+        JObject current = GetObject(contests, "currentContest");
+        string status = GetString(current, "status");
+
+        if (string.IsNullOrEmpty(characterName))
+        {
+            SendWarning(username + ", indique le perso à inscrire : !concours open NomPerso");
+            return;
+        }
+
+        if (status == "open" || status == "running" || status == "support")
+        {
+            SendWarning("Un concours est déjà ouvert ou en cours.");
+            return;
+        }
+
+        string today = now.ToString("yyyy-MM-dd");
+
+        if (IsDailyLocked(contests, username, today))
+        {
+            SendWarning(username + ", tu as déjà participé à un concours aujourd’hui.");
+            return;
+        }
+
+        JObject legend = FindAvailableLegend(c6Characters, contests, username, characterName, today);
+
+        if (legend == null)
+        {
+            SendWarning(username + ", ce perso n’est pas une légende C6 disponible aujourd’hui.");
+            return;
+        }
+
+        string theme = GetOrCreateDailyTheme(contests, now);
+        ResetCurrentContest(current);
+
+        current["status"] = "open";
+        current["organizer"] = username;
+        current["theme"] = theme;
+        current["createdAt"] = FormatDateTime(now);
+        current["startedAt"] = "";
+        current["phase"] = "lobby";
+        current["round"] = 0;
+        current["currentTurnIndex"] = 0;
+        current["activePlayer"] = "";
+        current["activeSpectator"] = "";
+
+        JArray participants = new JArray();
+        participants.Add(CreatePlayerParticipant(username, legend, theme));
+        current["participants"] = participants;
+
+        current["spectators"] = new JArray();
+        current["turnOrder"] = new JArray();
+        current["scores"] = new JObject();
+
+        JObject pendingSupport = new JObject();
+        pendingSupport["spectator"] = "";
+        pendingSupport["availableTargets"] = new JArray();
+        current["pendingSupport"] = pendingSupport;
+
+        SaveJObjectNoBackup(contestsPath, contests);
+
+        CPH.SendMessage("🎪 Concours ouvert par " + username + " ! Thème du jour : " + GetThemeDisplayName(theme) + " | Participants 1/4 | Spectateurs 0/10 | Rejoindre : !concours participant [perso] ou !concours spectateur | Lancer : !concours start");
+    }
+
+    private void HandleParticipant(JObject contests, JObject c6Characters, string username, string characterName, string contestsPath)
+    {
+        JObject current = GetObject(contests, "currentContest");
+
+        if (string.IsNullOrEmpty(characterName))
+        {
+            SendWarning(username + ", indique le perso à inscrire : !concours participant NomPerso");
+            return;
+        }
+
+        string status = GetString(current, "status");
+
+        if (status != "open" &&
+            status != "running" &&
+            status != "support")
+        {
+            SendWarning("Aucun concours en cours.");
+            return;
+        }
+
+        JArray participants = GetArray(current, "participants");
+        JArray spectators = GetArray(current, "spectators");
+
+        if (participants.Count >= MaxParticipants)
+        {
+            SendWarning("Le concours a déjà 4 participants.");
+            return;
+        }
+
+        if (IsParticipant(participants, username))
+        {
+            SendWarning(username + ", tu participes déjà à ce concours.");
+            return;
+        }
+
+        if (IsSpectator(spectators, username))
+        {
+            SendWarning(username + ", tu es déjà spectateur de ce concours.");
+            return;
+        }
+
+        string today = GetString(contests, "date");
+
+        if (IsDailyLocked(contests, username, today))
+        {
+            SendWarning(username + ", tu as déjà participé à un concours aujourd’hui.");
+            return;
+        }
+
+        JObject legend = FindAvailableLegend(c6Characters, contests, username, characterName, today);
+
+        if (legend == null)
+        {
+            SendWarning(username + ", ce perso n’est pas une légende C6 disponible aujourd’hui.");
+            return;
+        }
+
+        string theme = GetString(current, "theme");
+
+        participants.Add(CreatePlayerParticipant(username, legend, theme));
+        current["participants"] = participants;
+
+        SaveJObjectNoBackup(contestsPath, contests);
+
+        SendSuccess(username + " rejoint le concours avec " + GetElementEmoji(GetString(legend, "element")) + " " + GetString(legend, "name") + " ! Participants " + participants.Count + "/4");
+    }
+
+    private void HandleSpectator(JObject contests, string username, string contestsPath)
+    {
+        JObject current = GetObject(contests, "currentContest");
+
+        if (GetString(current, "status") != "open")
+        {
+            SendWarning("Aucun concours ouvert aux spectateurs.");
+            return;
+        }
+
+        JArray participants = GetArray(current, "participants");
+        JArray spectators = GetArray(current, "spectators");
+
+        if (IsParticipant(participants, username))
+        {
+            SendWarning(username + ", tu participes déjà au concours.");
+            return;
+        }
+
+        if (IsSpectator(spectators, username))
+        {
+            SendWarning(username + ", tu es déjà spectateur.");
+            return;
+        }
+
+        if (spectators.Count >= MaxSpectators)
+        {
+            SendWarning("Le concours a déjà 10 spectateurs.");
+            return;
+        }
+
+        spectators.Add(username);
+        current["spectators"] = spectators;
+
+        SaveJObjectNoBackup(contestsPath, contests);
+
+        SendSuccess(username + " rejoint le public ! Spectateurs " + spectators.Count + "/10");
+    }
+
+   private void HandleCancel(JObject contests, string username, string contestsPath)
+    {
+        JObject current = GetObject(contests, "currentContest");
+        string status = GetString(current, "status");
+
+        if (status != "open" && status != "running")
+        {
+            SendWarning("Aucun concours en cours.");
+            return;
+        }
+
+        JArray participants = GetArray(current, "participants");
+        JArray spectators = GetArray(current, "spectators");
+
+        // 1) Si c’est un participant
+        for (int i = 0; i < participants.Count; i++)
+        {
+            JObject participant = participants[i] as JObject;
+
+            if (participant == null || GetBool(participant, "isBot"))
+                continue;
+
+            if (GetString(participant, "username") != username)
+                continue;
+
+            if (status == "open")
+            {
+                participants.RemoveAt(i);
+                current["participants"] = participants;
+                SaveJObjectNoBackup(contestsPath, contests);
+                SendSuccess(username + " quitte le concours.");
+                return;
+            }
+
+            ReplaceParticipantByBot(current, participant, i);
+
+            if (!HasHumanParticipant(participants))
+            {
+                ResetCurrentContest(current);
+                SaveJObjectNoBackup(contestsPath, contests);
+                SendSuccess("Tous les participants ont quitté le concours. Concours annulé automatiquement.");
+                return;
+            }
+
+            SaveJObjectNoBackup(contestsPath, contests);
+            SendSuccess(username + " quitte le concours. Un bot prend sa place avec les mêmes points.");
+            return;
+        }
+
+        // 2) Si c’est un spectateur
+        for (int i = spectators.Count - 1; i >= 0; i--)
+        {
+            if (spectators[i] != null && spectators[i].ToString() == username)
+            {
+                spectators.RemoveAt(i);
+                current["spectators"] = spectators;
+
+                if (GetString(current, "activeSpectator") == username)
+                {
+                    current["phase"] = "participant_turn";
+                    current["activeSpectator"] = "";
+                    GetObject(current, "pendingSupport")["spectator"] = "";
+                    GetObject(current, "pendingSupport")["availableTargets"] = new JArray();
+                }
+
+                SaveJObjectNoBackup(contestsPath, contests);
+                SendSuccess(username + " quitte le public.");
+                return;
+            }
+        }
+
+        // 3) Si c’est l’organisateur
+        if (GetString(current, "organizer") != username && !IsContestAdmin(username))
+        {
+            SendWarning("Seul l’organisateur, Kichnifou, un participant ou un spectateur peut annuler/quitter.");
+            return;
+        }
+
+        ResetCurrentContest(current);
+        SaveJObjectNoBackup(contestsPath, contests);
+
+        SendSuccess("Concours annulé par l’organisateur. Un nouveau concours peut être lancé.");
+    }
+
+    private void ReplaceParticipantByBot(JObject current, JObject oldParticipant, int participantIndex)
+    {
+        string oldId = GetString(oldParticipant, "id");
+        string theme = GetString(current, "theme");
+
+        JObject bot = CreateBotParticipant(participantIndex + 1, theme);
+
+        bot["themeStat"] = GetInt(oldParticipant, "themeStat");
+        bot["score"] = GetInt(oldParticipant, "score");
+
+        JArray participants = GetArray(current, "participants");
+        participants[participantIndex] = bot;
+        current["participants"] = participants;
+
+        JArray turnOrder = GetArray(current, "turnOrder");
+
+        for (int i = 0; i < turnOrder.Count; i++)
+        {
+            if (turnOrder[i] != null && turnOrder[i].ToString() == oldId)
+                turnOrder[i] = GetString(bot, "id");
+        }
+
+        current["turnOrder"] = turnOrder;
+
+        JObject scores = GetObject(current, "scores");
+        scores.Remove(oldId);
+        scores[GetString(bot, "id")] = GetInt(bot, "score");
+        current["scores"] = scores;
+
+        if (GetString(current, "activePlayer") == oldId)
+            current["activePlayer"] = GetString(bot, "id");
+    }
+
+    private bool HasHumanParticipant(JArray participants)
+    {
+        for (int i = 0; i < participants.Count; i++)
+        {
+            JObject participant = participants[i] as JObject;
+
+            if (participant == null)
+                continue;
+
+            if (!GetBool(participant, "isBot"))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool IsContestAdmin(string username)
+    {
+        return username == "kichnifou";
+    }
+
+    private void HandleStart(JObject contests, JObject viewers, JObject c6Characters, string username, DateTime now, string contestsPath, string viewersPath, string c6CharactersPath)
+    {
+        JObject current = GetObject(contests, "currentContest");
+
+        if (GetString(current, "status") != "open")
+        {
+            SendWarning("Aucun concours ouvert à lancer.");
+            return;
+        }
+
+        if (GetString(current, "organizer") != username)
+        {
+            SendWarning("Seul l’organisateur peut lancer le concours.");
+            return;
+        }
+
+        JArray participants = GetArray(current, "participants");
+        string theme = GetString(current, "theme");
+
+        while (participants.Count < MaxParticipants)
+        {
+            participants.Add(CreateBotParticipant(participants.Count + 1, theme));
+        }
+
+        current["participants"] = participants;
+        current["status"] = "running";
+        current["phase"] = "participant_turn";
+        current["startedAt"] = FormatDateTime(now);
+        current["round"] = 1;
+
+        JObject scores = new JObject();
+
+        for (int i = 0; i < participants.Count; i++)
+        {
+            JObject participant = participants[i] as JObject;
+
+            if (participant == null)
+                continue;
+
+            scores[GetString(participant, "id")] = 0;
+            participant["score"] = 0;
+        }
+
+        current["scores"] = scores;
+
+        JArray turnOrder = CreateTurnOrder(participants);
+        current["turnOrder"] = turnOrder;
+        current["currentTurnIndex"] = 0;
+
+        string firstId = turnOrder.Count > 0 ? turnOrder[0].ToString() : "";
+        current["activePlayer"] = firstId;
+
+        SaveJObjectNoBackup(contestsPath, contests);
+
+        CPH.SendMessage("🎪 Concours lancé ! Thème : " + GetThemeDisplayName(theme) + " | Objectif : 50 points | Ordre : " + FormatTurnOrder(current) + " | Premier : " + GetParticipantDisplayNameById(current, firstId));
+
+        AdvanceContest(contests, viewers, c6Characters, contestsPath, viewersPath, c6CharactersPath);
+    }
+
+    private void HandlePlayerMove(JObject contests, JObject viewers, JObject c6Characters, string username, bool risky, string contestsPath, string viewersPath, string c6CharactersPath)
+    {
+        JObject current = GetObject(contests, "currentContest");
+
+        if (GetString(current, "status") != "running" || GetString(current, "phase") != "participant_turn")
+        {
+            SendWarning("Ce n’est pas le moment de jouer un move.");
+            return;
+        }
+
+        string activeId = GetString(current, "activePlayer");
+        JObject participant = FindParticipantById(current, activeId);
+
+        if (participant == null)
+        {
+            SendError("Participant actif introuvable.");
+            return;
+        }
+
+        if (GetBool(participant, "isBot"))
+        {
+            AdvanceContest(contests, viewers, c6Characters, contestsPath, viewersPath, c6CharactersPath);
+            return;
+        }
+
+        if (GetString(participant, "username") != username)
+        {
+            SendWarning("C’est au tour de " + GetString(participant, "username") + ".");
+            return;
+        }
+
+        ApplyMove(current, participant, risky, false);
+
+        if (CheckWinnerAndFinish(contests, viewers, c6Characters, participant, contestsPath, viewersPath, c6CharactersPath))
+            return;
+
+        MoveToNextTurnOrSupport(current);
+        SaveJObjectNoBackup(contestsPath, contests);
+
+        AdvanceContest(contests, viewers, c6Characters, contestsPath, viewersPath, c6CharactersPath);
+    }
+
+    private void HandleSupport(JObject contests, JObject viewers, JObject c6Characters, string username, string targetInput, string contestsPath, string viewersPath, string c6CharactersPath)
+    {
+        JObject current = GetObject(contests, "currentContest");
+
+        if (GetString(current, "status") != "running" || GetString(current, "phase") != "support_turn")
+        {
+            SendWarning("Paramètre inconnu. Tape !concours pour voir l’aide.");
+            return;
+        }
+
+        string activeSpectator = GetString(current, "activeSpectator");
+
+        if (activeSpectator != username)
+        {
+            SendWarning("C’est à " + activeSpectator + " de soutenir un participant.");
+            return;
+        }
+
+        JObject target = FindParticipantByName(current, targetInput);
+
+        if (target == null)
+        {
+            SendWarning("Participant introuvable. Choisis : " + FormatParticipantTargets(current));
+            return;
+        }
+
+        int bonus = random.Next(1, 4);
+        AddScore(current, target, bonus);
+
+        string targetName = GetBool(target, "isBot")
+        ? GetString(target, "characterName")
+        : GetString(target, "username");
+
+        CPH.SendMessage("🎭 " + username + " soutient " + targetName + " : +" + bonus + " points ! Total : " + GetInt(target, "score") + "/" + WinScore);
+
+        if (CheckWinnerAndFinish(contests, viewers, c6Characters, target, contestsPath, viewersPath, c6CharactersPath))
+            return;
+
+        current["phase"] = "participant_turn";
+        current["activeSpectator"] = "";
+        JObject pendingSupport = GetObject(current, "pendingSupport");
+        pendingSupport["spectator"] = "";
+        pendingSupport["availableTargets"] = new JArray();
+
+        AddInt(current, "round", 1);
+        current["currentTurnIndex"] = 0;
+
+        JArray turnOrder = GetArray(current, "turnOrder");
+        if (turnOrder.Count > 0)
+            current["activePlayer"] = turnOrder[0].ToString();
+
+        SaveJObjectNoBackup(contestsPath, contests);
+
+        AdvanceContest(contests, viewers, c6Characters, contestsPath, viewersPath, c6CharactersPath);
+    }
+
+    private void AdvanceContest(JObject contests, JObject viewers, JObject c6Characters, string contestsPath, string viewersPath, string c6CharactersPath)
+    {
+        JObject current = GetObject(contests, "currentContest");
+
+        if (GetString(current, "status") != "running")
+            return;
+
+        int safety = 0;
+
+        while (safety < 20)
+        {
+            safety++;
+
+            if (GetString(current, "phase") == "support_turn")
+            {
+                SaveJObjectNoBackup(contestsPath, contests);
+                CPH.SendMessage("🎭 " + GetString(current, "activeSpectator") + ", soutiens un participant : " + FormatParticipantTargets(current) + " | Commande : !concours Nom");
+                return;
+            }
+
+            string activeId = GetString(current, "activePlayer");
+            JObject participant = FindParticipantById(current, activeId);
+
+            if (participant == null)
+            {
+                MoveToNextTurnOrSupport(current);
+                continue;
+            }
+
+            if (!GetBool(participant, "isBot"))
+            {
+                SaveJObjectNoBackup(contestsPath, contests);
+               CPH.SendMessage("🎲 Tour de " + GetParticipantCommandName(participant) + " | Commandes : !concours basique ou !concours risque");
+                return;
+            }
+
+            bool risky = random.Next(1, 101) <= 40;
+            ApplyMove(current, participant, risky, true);
+
+            if (CheckWinnerAndFinish(contests, viewers, c6Characters, participant, contestsPath, viewersPath, c6CharactersPath))
+                return;
+
+            MoveToNextTurnOrSupport(current);
+            SaveJObjectNoBackup(contestsPath, contests);
+        }
+    }
+
+    private void ApplyMove(JObject current, JObject participant, bool risky, bool isAuto)
+    {
+        string theme = GetString(current, "theme");
+        int statValue = GetInt(participant, "themeStat");
+        int basePoints = GetPointsFromStat(statValue);
+        int gained = basePoints;
+        string actionText = risky ? "risqué" : "basique";
+
+        if (risky)
+        {
+            int roll = random.Next(1, 4);
+
+            if (roll == 1)
+                gained = 0;
+            else if (roll == 2)
+                gained = basePoints;
+            else
+                gained = basePoints * 2;
+        }
+
+        AddScore(current, participant, gained);
+
+        string prefix = isAuto ? "🤖 " : "🎲 ";
+        CPH.SendMessage(prefix + GetParticipantDisplayName(participant) + " fait un move " + actionText + " : +" + gained + " points | Total : " + GetInt(participant, "score") + "/" + WinScore);
+    }
+
+    private bool CheckWinnerAndFinish(JObject contests, JObject viewers, JObject c6Characters, JObject participant, string contestsPath, string viewersPath, string c6CharactersPath)
+    {
+        if (GetInt(participant, "score") < WinScore)
+            return false;
+
+        FinishContest(contests, viewers, c6Characters, participant, contestsPath, viewersPath, c6CharactersPath);
+        return true;
+    }
+
+    private void FinishContest(JObject contests, JObject viewers, JObject c6Characters, JObject winner, string contestsPath, string viewersPath, string c6CharactersPath)
+    {
+        JObject current = GetObject(contests, "currentContest");
+        string theme = GetString(current, "theme");
+        string today = GetString(contests, "date");
+
+        JArray participants = GetArray(current, "participants");
+
+        for (int i = 0; i < participants.Count; i++)
+        {
+            JObject participant = participants[i] as JObject;
+
+            if (participant == null || GetBool(participant, "isBot"))
+                continue;
+
+            string username = GetString(participant, "username");
+            int characterId = GetInt(participant, "characterId");
+
+            LockDailyParticipant(contests, username, characterId, today);
+            AddContestParticipation(c6Characters, username, characterId, theme);
+
+            if (GetString(participant, "id") == GetString(winner, "id"))
+                AddContestWin(c6Characters, username, characterId, theme);
+        }
+
+        bool winnerIsBot = GetBool(winner, "isBot");
+        string titleText = "";
+
+        GiveRankingPrimosRewards(viewers, participants);
+        SaveJObjectNoBackup(viewersPath, viewers);
+
+        if (!winnerIsBot)
+        {
+            string winnerUsername = GetString(winner, "username");
+            int winnerCharacterId = GetInt(winner, "characterId");
+
+            titleText = UpgradeTitle(c6Characters, winnerUsername, winnerCharacterId, theme);
+        }
+
+        SaveJObjectNoBackup(c6CharactersPath, c6Characters);
+
+        AddHistoryEntry(contests, winner, theme);
+
+        string phrase = GetVictoryPhrase(theme);
+        string message = "🏆 " + GetParticipantCommandName(winner) + " remporte le concours " + GetThemeDisplayName(theme) + " ! " + phrase;
+        message += " | Classement : " + FormatFinalRanking(participants);
+
+        if (!winnerIsBot)
+        {
+            message += " | Récompenses : 🥇" + FirstPlacePrimosReward + " 💠 | 🥈" + SecondPlacePrimosReward + " 💠 | 🥉" + ThirdPlacePrimosReward + " 💠";
+
+            if (!string.IsNullOrEmpty(titleText))
+                message += " | 👑 " + titleText;
+        }
+
+        ResetCurrentContest(current);
+        SaveJObjectNoBackup(contestsPath, contests);
+
+        CPH.SendMessage(message);
+    }
+
+    private void MoveToNextTurnOrSupport(JObject current)
+    {
+        JArray turnOrder = GetArray(current, "turnOrder");
+        int index = GetInt(current, "currentTurnIndex");
+        index++;
+
+        if (index < turnOrder.Count)
+        {
+            current["currentTurnIndex"] = index;
+            current["activePlayer"] = turnOrder[index].ToString();
+            current["phase"] = "participant_turn";
+            return;
+        }
+
+        JArray spectators = GetArray(current, "spectators");
+
+        if (spectators.Count > 0)
+        {
+            string spectator = spectators[random.Next(spectators.Count)].ToString();
+
+            current["phase"] = "support_turn";
+            current["activePlayer"] = "";
+            current["activeSpectator"] = spectator;
+
+            JObject pendingSupport = GetObject(current, "pendingSupport");
+            pendingSupport["spectator"] = spectator;
+            pendingSupport["availableTargets"] = GetSupportTargets(current);
+            current["pendingSupport"] = pendingSupport;
+            return;
+        }
+
+        AddInt(current, "round", 1);
+        current["currentTurnIndex"] = 0;
+
+        if (turnOrder.Count > 0)
+            current["activePlayer"] = turnOrder[0].ToString();
+
+        current["phase"] = "participant_turn";
+    }
+
+    private void GiveRankingPrimosRewards(JObject viewers, JArray participants)
+    {
+        List<JObject> ranking = GetSortedRanking(participants);
+
+        for (int i = 0; i < ranking.Count; i++)
+        {
+            JObject participant = ranking[i];
+
+            if (GetBool(participant, "isBot"))
+                continue;
+
+            int reward = 0;
+
+            if (i == 0)
+                reward = FirstPlacePrimosReward;
+            else if (i == 1)
+                reward = SecondPlacePrimosReward;
+            else if (i == 2)
+                reward = ThirdPlacePrimosReward;
+
+            if (reward <= 0)
+                continue;
+
+            string username = GetString(participant, "username");
+            JObject viewer = viewers[username] as JObject;
+
+            if (viewer == null)
+                continue;
+
+            AddInt(viewer, "primogems", reward);
+            AddStat(viewer, "totalPrimosEarned", reward);
+        }
+    }
+
+    private List<JObject> GetSortedRanking(JArray participants)
+    {
+        List<JObject> list = new List<JObject>();
+
+        for (int i = 0; i < participants.Count; i++)
+        {
+            JObject participant = participants[i] as JObject;
+
+            if (participant != null)
+                list.Add(participant);
+        }
+
+        list.Sort(delegate(JObject a, JObject b)
+        {
+            return GetInt(b, "score").CompareTo(GetInt(a, "score"));
+        });
+
+        return list;
+    }
+
+    private JObject FindAvailableLegend(JObject c6Characters, JObject contests, string username, string characterName, string today)
+    {
+        JObject userData = c6Characters[username] as JObject;
+
+        if (userData == null)
+            return null;
+
+        JObject characters = userData["characters"] as JObject;
+
+        if (characters == null || characters.Count == 0)
+            return null;
+
+        if (!string.IsNullOrEmpty(characterName))
+        {
+            JObject found = FindLegendByName(characters, characterName);
+
+            if (found == null)
+                return null;
+
+            if (IsCharacterLockedToday(contests, username, GetInt(found, "characterId"), today))
+                return null;
+
+            return found;
+        }
+
+        foreach (KeyValuePair<string, JToken> entry in characters)
+        {
+            JObject legend = entry.Value as JObject;
+
+            if (legend == null)
+                continue;
+
+            int characterId = GetInt(legend, "characterId");
+
+            if (!IsCharacterLockedToday(contests, username, characterId, today))
+                return legend;
+        }
+
+        return null;
+    }
+
+    private JObject FindLegendByName(JObject characters, string input)
+    {
+        string wanted = NormalizeText(input);
+
+        foreach (KeyValuePair<string, JToken> entry in characters)
+        {
+            JObject character = entry.Value as JObject;
+
+            if (character == null)
+                continue;
+
+            if (NormalizeText(GetString(character, "name")) == wanted)
+                return character;
+        }
+
+        foreach (KeyValuePair<string, JToken> entry in characters)
+        {
+            JObject character = entry.Value as JObject;
+
+            if (character == null)
+                continue;
+
+            if (NormalizeText(GetString(character, "name")).Contains(wanted))
+                return character;
+        }
+
+        return null;
+    }
+
+    private JObject CreatePlayerParticipant(string username, JObject legend, string theme)
+    {
+        JObject participant = new JObject();
+
+        participant["id"] = "player:" + username;
+        participant["username"] = username;
+        participant["displayName"] = username;
+        participant["isBot"] = false;
+        participant["characterId"] = GetInt(legend, "characterId");
+        participant["characterName"] = GetString(legend, "name");
+        participant["element"] = GetString(legend, "element");
+        participant["themeStat"] = GetThemeStatValue(legend, theme);
+        participant["score"] = 0;
+
+        return participant;
+    }
+
+    private JObject CreateBotParticipant(int index, string theme)
+    {
+        string[] names = new string[] {
+            "Astre Errante",
+            "Chevalier Masqué",
+            "Diva Mystère",
+            "Sage Nomade",
+            "Titan Silencieux",
+            "Idole Lunaire",
+            "Éclat Sauvage",
+            "Ombre Royale"
+        };
+
+        string[] elements = new string[] {
+            "pyro",
+            "hydro",
+            "cryo",
+            "electro",
+            "anemo",
+            "geo",
+            "dendro"
+        };
+
+        JObject participant = new JObject();
+
+        string botName = names[random.Next(names.Length)];
+        int stat = random.Next(1, 16);
+
+        participant["id"] = "bot:" + index;
+        participant["username"] = "ordi" + index;
+        participant["displayName"] = "Ordi" + index;
+        participant["isBot"] = true;
+        participant["characterId"] = 0;
+        participant["characterName"] = botName;
+        participant["element"] = elements[random.Next(elements.Length)];
+        participant["themeStat"] = stat;
+        participant["score"] = 0;
+
+        return participant;
+    }
+
+    private int GetThemeStatValue(JObject legend, string theme)
+    {
+        JObject stats = legend["stats"] as JObject;
+
+        if (stats == null)
+            return 1;
+
+        int value = GetInt(stats, theme);
+
+        if (value <= 0)
+            value = 1;
+
+        if (value > 20)
+            value = 20;
+
+        return value;
+    }
+
+    private int GetPointsFromStat(int value)
+    {
+        if (value >= 20)
+            return 5;
+
+        if (value >= 15)
+            return 4;
+
+        if (value >= 10)
+            return 3;
+
+        if (value >= 5)
+            return 2;
+
+        return 1;
+    }
+
+    private string GetOrCreateDailyTheme(JObject contests, DateTime now)
+    {
+        ResetDailyThemeIfNeeded(contests, now);
+
+        string theme = GetString(contests, "dailyTheme");
+
+        if (!string.IsNullOrEmpty(theme))
+            return theme;
+
+        theme = GetRandomTheme();
+        contests["dailyTheme"] = theme;
+        contests["date"] = now.ToString("yyyy-MM-dd");
+
+        return theme;
+    }
+
+    private string GetRandomTheme()
+    {
+        string[] themes = new string[] {
+            "strength",
+            "intelligence",
+            "beauty",
+            "charisma",
+            "popularity"
+        };
+
+        return themes[random.Next(themes.Length)];
+    }
+
+    private void ResetDailyThemeIfNeeded(JObject contests, DateTime now)
+    {
+        string today = now.ToString("yyyy-MM-dd");
+
+        if (GetString(contests, "date") == today)
+            return;
+
+        contests["date"] = today;
+        contests["dailyTheme"] = "";
+        contests["dailyLocks"] = new JObject();
+
+        JObject current = GetObject(contests, "currentContest");
+        ResetCurrentContest(current);
+    }
+
+    private void ClearOldContestIfNeeded(JObject contests, DateTime now)
+    {
+        JObject current = GetObject(contests, "currentContest");
+        string status = GetString(current, "status");
+
+        if (status == "none")
+            return;
+
+        string createdAt = GetString(current, "createdAt");
+
+        if (string.IsNullOrEmpty(createdAt))
+            return;
+
+        DateTime parsed;
+
+        if (!DateTime.TryParse(createdAt, out parsed))
+            return;
+
+        if (parsed.ToString("yyyy-MM-dd") != now.ToString("yyyy-MM-dd"))
+            ResetCurrentContest(current);
+    }
+
+    private void ResetCurrentContest(JObject current)
+    {
+        current["status"] = "none";
+        current["organizer"] = "";
+        current["theme"] = "";
+        current["createdAt"] = "";
+        current["startedAt"] = "";
+        current["participants"] = new JArray();
+        current["spectators"] = new JArray();
+        current["turnOrder"] = new JArray();
+        current["currentTurnIndex"] = 0;
+        current["round"] = 0;
+        current["phase"] = "none";
+        current["activePlayer"] = "";
+        current["activeSpectator"] = "";
+        current["scores"] = new JObject();
+
+        JObject pendingSupport = new JObject();
+        pendingSupport["spectator"] = "";
+        pendingSupport["availableTargets"] = new JArray();
+        current["pendingSupport"] = pendingSupport;
+    }
+
+    private bool IsDailyLocked(JObject contests, string username, string today)
+    {
+        JObject locks = GetObject(contests, "dailyLocks");
+        JObject userLock = locks[username] as JObject;
+
+        if (userLock == null)
+            return false;
+
+        return GetString(userLock, "date") == today;
+    }
+
+    private bool IsCharacterLockedToday(JObject contests, string username, int characterId, string today)
+    {
+        JObject locks = GetObject(contests, "dailyLocks");
+        JObject userLock = locks[username] as JObject;
+
+        if (userLock == null)
+            return false;
+
+        if (GetString(userLock, "date") != today)
+            return false;
+
+        return GetInt(userLock, "characterId") == characterId || GetBool(userLock, "used");
+    }
+
+    private void LockDailyParticipant(JObject contests, string username, int characterId, string today)
+    {
+        JObject locks = GetObject(contests, "dailyLocks");
+
+        JObject userLock = new JObject();
+        userLock["date"] = today;
+        userLock["used"] = true;
+        userLock["characterId"] = characterId;
+
+        locks[username] = userLock;
+        contests["dailyLocks"] = locks;
+    }
+
+    private void AddContestParticipation(JObject c6Characters, string username, int characterId, string theme)
+    {
+        JObject legend = GetLegendById(c6Characters, username, characterId);
+
+        if (legend == null)
+            return;
+
+        JObject stats = legend["contestStats"] as JObject;
+
+        if (stats == null)
+        {
+            stats = new JObject();
+            legend["contestStats"] = stats;
+        }
+
+        AddInt(stats, "totalContests", 1);
+        AddInt(stats, theme + "Contests", 1);
+    }
+
+    private void AddContestWin(JObject c6Characters, string username, int characterId, string theme)
+    {
+        JObject legend = GetLegendById(c6Characters, username, characterId);
+
+        if (legend == null)
+            return;
+
+        JObject stats = legend["contestStats"] as JObject;
+
+        if (stats == null)
+        {
+            stats = new JObject();
+            legend["contestStats"] = stats;
+        }
+
+        AddInt(stats, "totalWins", 1);
+        AddInt(stats, theme + "Wins", 1);
+    }
+
+    private string UpgradeTitle(JObject c6Characters, string username, int characterId, string theme)
+    {
+        JObject legend = GetLegendById(c6Characters, username, characterId);
+
+        if (legend == null)
+            return "";
+
+        JObject titles = legend["titles"] as JObject;
+
+        if (titles == null)
+        {
+            titles = new JObject();
+            legend["titles"] = titles;
+        }
+
+        string currentTitle = GetString(titles, theme);
+        string baseName = GetTitleBaseName(theme);
+        string nextRank = GetNextTitleRank(currentTitle);
+
+        if (string.IsNullOrEmpty(nextRank))
+            return "Titre déjà au rang max";
+
+        string title = BuildTitle(baseName, nextRank);
+        titles[theme] = title;
+
+        return "Titre obtenu : " + title;
+    }
+
+    private string GetNextTitleRank(string currentTitle)
+    {
+        if (string.IsNullOrEmpty(currentTitle))
+            return "Bronze";
+
+        if (currentTitle.Contains("Bronze"))
+            return "Argent";
+
+        if (currentTitle.Contains("Argent"))
+            return "Or";
+
+        if (currentTitle.Contains("Or"))
+            return "Platine";
+
+        return "";
+    }
+
+    private string BuildTitle(string baseName, string rank)
+    {
+        if (rank == "Argent" || rank == "Or")
+            return baseName + " d’" + rank;
+
+        return baseName + " de " + rank;
+    }
+
+    private string GetTitleBaseName(string theme)
+    {
+        switch (theme)
+        {
+            case "strength": return "Titan";
+            case "intelligence": return "Sage";
+            case "beauty": return "Éclat";
+            case "charisma": return "Icône";
+            case "popularity": return "Idôle";
+            default: return "Légende";
+        }
+    }
+
+    private void AddHistoryEntry(JObject contests, JObject winner, string theme)
+    {
+        JArray history = GetArray(contests, "history");
+
+        JObject entry = new JObject();
+        entry["date"] = GetString(contests, "date");
+        entry["theme"] = theme;
+        entry["winnerId"] = GetString(winner, "id");
+        entry["winnerName"] = GetParticipantCommandName(winner);
+        entry["score"] = GetInt(winner, "score");
+
+        history.Add(entry);
+
+        while (history.Count > 20)
+            history.RemoveAt(0);
+
+        contests["history"] = history;
+    }
+
+    private JArray CreateTurnOrder(JArray participants)
+    {
+        List<string> ids = new List<string>();
+
+        for (int i = 0; i < participants.Count; i++)
+        {
+            JObject participant = participants[i] as JObject;
+
+            if (participant != null)
+                ids.Add(GetString(participant, "id"));
+        }
+
+        for (int i = ids.Count - 1; i > 0; i--)
+        {
+            int j = random.Next(i + 1);
+            string temp = ids[i];
+            ids[i] = ids[j];
+            ids[j] = temp;
+        }
+
+        JArray result = new JArray();
+
+        for (int i = 0; i < ids.Count; i++)
+            result.Add(ids[i]);
+
+        return result;
+    }
+
+    private void AddScore(JObject current, JObject participant, int amount)
+    {
+        AddInt(participant, "score", amount);
+
+        JObject scores = GetObject(current, "scores");
+        scores[GetString(participant, "id")] = GetInt(participant, "score");
+        current["scores"] = scores;
+    }
+
+    private JObject GetLegendById(JObject c6Characters, string username, int characterId)
+    {
+        JObject userData = c6Characters[username] as JObject;
+
+        if (userData == null)
+            return null;
+
+        JObject characters = userData["characters"] as JObject;
+
+        if (characters == null)
+            return null;
+
+        return characters[characterId.ToString()] as JObject;
+    }
+
+    private bool IsParticipant(JArray participants, string username)
+    {
+        for (int i = 0; i < participants.Count; i++)
+        {
+            JObject participant = participants[i] as JObject;
+
+            if (participant == null)
+                continue;
+
+            if (!GetBool(participant, "isBot") && GetString(participant, "username") == username)
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool IsSpectator(JArray spectators, string username)
+    {
+        for (int i = 0; i < spectators.Count; i++)
+        {
+            if (spectators[i] != null && spectators[i].ToString() == username)
+                return true;
+        }
+
+        return false;
+    }
+
+    private JObject FindParticipantById(JObject current, string id)
+    {
+        JArray participants = GetArray(current, "participants");
+
+        for (int i = 0; i < participants.Count; i++)
+        {
+            JObject participant = participants[i] as JObject;
+
+            if (participant == null)
+                continue;
+
+            if (GetString(participant, "id") == id)
+                return participant;
+        }
+
+        return null;
+    }
+
+    private JObject FindParticipantByName(JObject current, string input)
+    {
+        string cleanedInput = NormalizeUsername(input);
+        string wanted = NormalizeText(cleanedInput);
+        JArray participants = GetArray(current, "participants");
+
+        for (int i = 0; i < participants.Count; i++)
+        {
+            JObject participant = participants[i] as JObject;
+
+            if (participant == null)
+                continue;
+
+            if (NormalizeText(GetString(participant, "username")) == wanted)
+                return participant;
+
+            if (NormalizeText(GetString(participant, "displayName")) == wanted)
+                return participant;
+
+            if (NormalizeText(GetString(participant, "characterName")) == wanted)
+                return participant;
+        }
+
+        for (int i = 0; i < participants.Count; i++)
+        {
+            JObject participant = participants[i] as JObject;
+
+            if (participant == null)
+                continue;
+
+            if (NormalizeText(GetString(participant, "username")).Contains(wanted))
+                return participant;
+
+            if (NormalizeText(GetString(participant, "displayName")).Contains(wanted))
+                return participant;
+
+            if (NormalizeText(GetString(participant, "characterName")).Contains(wanted))
+                return participant;
+        }
+
+        return null;
+    }
+
+    private JArray GetSupportTargets(JObject current)
+    {
+        JArray result = new JArray();
+        JArray participants = GetArray(current, "participants");
+
+        for (int i = 0; i < participants.Count; i++)
+        {
+            JObject participant = participants[i] as JObject;
+
+            if (participant != null)
+                result.Add(GetString(participant, "id"));
+        }
+
+        return result;
+    }
+
+    private string FormatParticipantTargets(JObject current)
+    {
+        JArray participants = GetArray(current, "participants");
+        string text = "";
+
+        for (int i = 0; i < participants.Count; i++)
+        {
+            JObject participant = participants[i] as JObject;
+
+            if (participant == null)
+                continue;
+
+            if (text != "")
+                text += " | ";
+
+            if (GetBool(participant, "isBot"))
+                text += GetString(participant, "characterName");
+            else
+                text += GetString(participant, "username");
+        }
+
+        return text;
+    }
+
+    private string FormatTurnOrder(JObject current)
+    {
+        JArray turnOrder = GetArray(current, "turnOrder");
+        string text = "";
+
+        for (int i = 0; i < turnOrder.Count; i++)
+        {
+            if (i > 0)
+                text += " > ";
+
+            text += GetParticipantDisplayNameById(current, turnOrder[i].ToString());
+        }
+
+        return text;
+    }
+
+    private string GetParticipantDisplayNameById(JObject current, string id)
+    {
+        JObject participant = FindParticipantById(current, id);
+
+        if (participant == null)
+            return id;
+
+        return GetParticipantDisplayName(participant);
+    }
+
+    private string GetParticipantDisplayName(JObject participant)
+    {
+        string emoji = GetElementEmoji(GetString(participant, "element"));
+        string characterName = GetString(participant, "characterName");
+
+        if (GetBool(participant, "isBot"))
+            return "🤖 " + characterName;
+
+        return emoji + " " + characterName;
+    }
+
+    private string GetParticipantCommandName(JObject participant)
+    {
+        if (participant == null)
+            return "";
+
+        if (GetBool(participant, "isBot"))
+            return GetString(participant, "characterName");
+
+        return GetString(participant, "username");
+    }
+
+    private string GetThemeDisplayName(string theme)
+    {
+        switch (theme)
+        {
+            case "strength": return "💪 Force";
+            case "intelligence": return "🧠 Intelligence";
+            case "beauty": return "✨ Beauté";
+            case "charisma": return "👑 Charisme";
+            case "popularity": return "🎭 Popularité";
+            default: return theme;
+        }
+    }
+
+    private string GetVictoryPhrase(string theme)
+    {
+        List<string> phrases = new List<string>();
+
+        switch (theme)
+        {
+            case "strength":
+                phrases.Add("La puissance a parlé.");
+                phrases.Add("Le public tremble encore.");
+                phrases.Add("Une vraie démonstration de force.");
+                break;
+
+            case "intelligence":
+                phrases.Add("Le génie a dominé la scène.");
+                phrases.Add("Une stratégie brillante.");
+                phrases.Add("Le cerveau l’emporte.");
+                break;
+
+            case "beauty":
+                phrases.Add("La scène entière a scintillé.");
+                phrases.Add("Un éclat impossible à ignorer.");
+                phrases.Add("La grâce a fait la différence.");
+                break;
+
+            case "charisma":
+                phrases.Add("Le public était sous le charme.");
+                phrases.Add("Une présence impossible à détrôner.");
+                phrases.Add("Le charisme a tout emporté.");
+                break;
+
+            case "popularity":
+                phrases.Add("La foule a choisi sa légende.");
+                phrases.Add("Le public n’a vu qu’elle/lui.");
+                phrases.Add("Une vraie star du stream.");
+                break;
+
+            default:
+                phrases.Add("Quelle performance !");
+                break;
+        }
+
+        return phrases[random.Next(phrases.Count)];
+    }
+
+    private ParsedInput ParseInput(string rawInput)
+    {
+        ParsedInput parsed = new ParsedInput();
+        parsed.command = "";
+        parsed.extra = "";
+
+        if (string.IsNullOrWhiteSpace(rawInput))
+            return parsed;
+
+        string trimmed = rawInput.Trim();
+        int spaceIndex = trimmed.IndexOf(" ");
+
+        if (spaceIndex < 0)
+        {
+            parsed.command = trimmed.ToLower();
+            parsed.extra = "";
+            return parsed;
+        }
+
+        parsed.command = trimmed.Substring(0, spaceIndex).ToLower().Trim();
+        parsed.extra = trimmed.Substring(spaceIndex + 1).Trim();
+
+        return parsed;
+    }
+
+    private JObject LoadOrCreateContestsData(string path)
+    {
+        JObject data = LoadOrCreateJObject(path);
+        EnsureContestsDefaults(data);
+        return data;
+    }
+
+    private void EnsureContestsDefaults(JObject contests)
+    {
+        EnsureInt(contests, "version", 1);
+        EnsureString(contests, "date", "");
+        EnsureString(contests, "dailyTheme", "");
+        EnsureObject(contests, "currentContest");
+        EnsureObject(contests, "dailyLocks");
+        EnsureArray(contests, "history");
+
+        JObject current = GetObject(contests, "currentContest");
+        EnsureString(current, "status", "none");
+        EnsureString(current, "organizer", "");
+        EnsureString(current, "theme", "");
+        EnsureString(current, "createdAt", "");
+        EnsureString(current, "startedAt", "");
+        EnsureArray(current, "participants");
+        EnsureArray(current, "spectators");
+        EnsureArray(current, "turnOrder");
+        EnsureInt(current, "currentTurnIndex", 0);
+        EnsureInt(current, "round", 0);
+        EnsureString(current, "phase", "none");
+        EnsureString(current, "activePlayer", "");
+        EnsureString(current, "activeSpectator", "");
+        EnsureObject(current, "scores");
+        EnsureObject(current, "pendingSupport");
+
+        JObject pendingSupport = GetObject(current, "pendingSupport");
+        EnsureString(pendingSupport, "spectator", "");
+        EnsureArray(pendingSupport, "availableTargets");
+
+        current["pendingSupport"] = pendingSupport;
+        contests["currentContest"] = current;
+    }
+
+    private JObject LoadOrCreateJObject(string path)
+    {
+        if (!File.Exists(path))
+            return new JObject();
+
+        try
+        {
+            string json = File.ReadAllText(path);
+
+            if (string.IsNullOrWhiteSpace(json))
+                return new JObject();
+
+            JObject data = JObject.Parse(json);
+
+            if (data == null)
+                return new JObject();
+
+            return data;
+        }
+        catch
+        {
+            return new JObject();
+        }
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+
+            if (string.IsNullOrWhiteSpace(json))
+                return new JObject();
+
+            return JObject.Parse(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void SaveJObjectNoBackup(string path, JObject data)
+    {
+        string folder = Path.GetDirectoryName(path);
+
+        if (!Directory.Exists(folder))
+            Directory.CreateDirectory(folder);
+
+        string tempPath = path + ".tmp";
+        File.WriteAllText(tempPath, data.ToString(Newtonsoft.Json.Formatting.Indented));
+
+        if (File.Exists(path))
+            File.Delete(path);
+
+        File.Move(tempPath, path);
+    }
+
+    private JObject GetObject(JObject parent, string key)
+    {
+        if (parent == null)
+            return new JObject();
+
+        JObject obj = parent[key] as JObject;
+
+        if (obj == null)
+        {
+            obj = new JObject();
+            parent[key] = obj;
+        }
+
+        return obj;
+    }
+
+    private JArray GetArray(JObject parent, string key)
+    {
+        if (parent == null)
+            return new JArray();
+
+        JArray array = parent[key] as JArray;
+
+        if (array == null)
+        {
+            array = new JArray();
+            parent[key] = array;
+        }
+
+        return array;
+    }
+
+    private void EnsureObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+    }
+
+    private void EnsureArray(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Array)
+            parent[key] = new JArray();
+    }
+
+    private void EnsureString(JObject obj, string key, string defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureInt(JObject obj, string key, int defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private bool GetBool(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return false;
+
+        bool value;
+
+        if (bool.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return false;
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private void AddInt(JObject obj, string key, int amount)
+    {
+        int current = GetInt(obj, key);
+        obj[key] = current + amount;
+    }
+
+    private void AddStat(JObject viewer, string statName, int amount)
+    {
+        JObject stats = viewer["stats"] as JObject;
+
+        if (stats == null)
+        {
+            stats = new JObject();
+            viewer["stats"] = stats;
+        }
+
+        AddInt(stats, statName, amount);
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private string NormalizeElement(string element)
+    {
+        if (string.IsNullOrEmpty(element))
+            return "";
+
+        string normalized = element.ToLower().Trim();
+
+        switch (normalized)
+        {
+            case "pyro": return "pyro";
+            case "hydro": return "hydro";
+            case "cryo": return "cryo";
+            case "electro":
+            case "électro": return "electro";
+            case "anemo":
+            case "anémo": return "anemo";
+            case "geo":
+            case "géo": return "geo";
+            case "dendro": return "dendro";
+            default: return normalized;
+        }
+    }
+
+    private string GetElementEmoji(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "🔥";
+            case "hydro": return "💧";
+            case "cryo": return "❄️";
+            case "electro": return "⚡";
+            case "anemo": return "🌪️";
+            case "geo": return "☄️";
+            case "dendro": return "🌿";
+            default: return "⭐";
+        }
+    }
+
+    private string NormalizeText(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return "";
+
+        string value = text.ToLower().Trim();
+
+        value = value.Replace("à", "a");
+        value = value.Replace("á", "a");
+        value = value.Replace("â", "a");
+        value = value.Replace("ä", "a");
+        value = value.Replace("ã", "a");
+
+        value = value.Replace("ç", "c");
+
+        value = value.Replace("è", "e");
+        value = value.Replace("é", "e");
+        value = value.Replace("ê", "e");
+        value = value.Replace("ë", "e");
+
+        value = value.Replace("ì", "i");
+        value = value.Replace("í", "i");
+        value = value.Replace("î", "i");
+        value = value.Replace("ï", "i");
+
+        value = value.Replace("ò", "o");
+        value = value.Replace("ó", "o");
+        value = value.Replace("ô", "o");
+        value = value.Replace("ö", "o");
+        value = value.Replace("õ", "o");
+
+        value = value.Replace("ù", "u");
+        value = value.Replace("ú", "u");
+        value = value.Replace("û", "u");
+        value = value.Replace("ü", "u");
+
+        value = value.Replace("ÿ", "y");
+        value = value.Replace("œ", "oe");
+        value = value.Replace("æ", "ae");
+
+        value = value.Replace("'", "");
+        value = value.Replace("’", "");
+        value = value.Replace("-", "");
+        value = value.Replace("_", "");
+        value = value.Replace(" ", "");
+
+        return value;
+    }
+
+    private string FormatDateTime(DateTime date)
+    {
+        return date.ToString("yyyy-MM-dd HH:mm:ss");
+    }
+
+    private string FormatFinalRanking(JArray participants)
+    {
+        List<JObject> list = new List<JObject>();
+
+        for (int i = 0; i < participants.Count; i++)
+        {
+            JObject participant = participants[i] as JObject;
+
+            if (participant != null)
+                list.Add(participant);
+        }
+
+        list.Sort(delegate(JObject a, JObject b)
+        {
+            return GetInt(b, "score").CompareTo(GetInt(a, "score"));
+        });
+
+        string text = "";
+
+        for (int i = 0; i < list.Count; i++)
+        {
+            if (i > 0)
+                text += " | ";
+
+            text += (i + 1) + ". " + GetParticipantCommandName(list[i]) + " " + GetInt(list[i], "score") + " pts";
+        }
+
+        return text;
+    }
+
+    private void SendSuccess(string message) { CPH.SendMessage("✅ " + message); }
+    private void SendWarning(string message) { CPH.SendMessage("⚠️ " + message); }
+    private void SendError(string message) { CPH.SendMessage("❌ " + message); }
+}
+
+public class ParsedInput
+{
+    public string command;
+    public string extra;
+}

@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "currency": "moras",
+  "description": "Boutique du Kichni Stream Game. Les achats utilisent les moras comme monnaie principale.",
+  "display": {
+    "shopPrefix": "🛒 Shop :",
+    "buyHint": "Achat : !shop article",
+    "separator": " | "
+  },
+  "items": {
+    "primos": {
+      "id": "primos",
+      "enabled": true,
+      "showInShop": true,
+      "displayName": "Primos",
+      "emoji": "💠",
+      "shopLabel": "💠160 Primos [💰50000]",
+      "descriptionCourte": "160 primos",
+      "descriptionLongue": "Permet d'acheter 160 primos avec des moras.",
+      "price": {
+        "currency": "moras",
+        "amount": 50000
+      },
+      "reward": {
+        "type": "primogems",
+        "amount": 160
+      },
+      "maxPurchasePerCommand": 1
+    },
+    "ticket": {
+      "id": "ticket",
+      "enabled": true,
+      "showInShop": true,
+      "displayName": "Ticket",
+      "emoji": "🎟️",
+      "shopLabel": "🎟️ Ticket [💰150000]",
+      "descriptionCourte": "Ticket aléatoire",
+      "descriptionLongue": "Génère une récompense aléatoire parmi 5 possibilités.",
+      "price": {
+        "currency": "moras",
+        "amount": 150000
+      },
+      "reward": {
+        "type": "randomReward",
+        "rollMode": "equalChance",
+        "rewards": [
+          {
+            "id": "ticket_primos_1600",
+            "chanceWeight": 1,
+            "type": "primogems",
+            "amount": 1600,
+            "message": "💠 +1600 primos"
+          },
+          {
+            "id": "ticket_main_particles_1000",
+            "chanceWeight": 1,
+            "type": "mainElementParticles",
+            "amount": 1000,
+            "message": "+1000 particules élément principal"
+          },
+          {
+            "id": "ticket_other_particles_800",
+            "chanceWeight": 1,
+            "type": "randomOtherElementParticles",
+            "amount": 800,
+            "message": "+800 particules élément aléatoire"
+          },
+          {
+            "id": "ticket_pity5_10",
+            "chanceWeight": 1,
+            "type": "pity5Bonus",
+            "amount": 10,
+            "message": "⭐ +10 pity 5★"
+          },
+          {
+            "id": "ticket_mora_refund_50000",
+            "chanceWeight": 1,
+            "type": "moras",
+            "amount": 50000,
+            "message": "💰 remboursement +50000 moras"
+          }
+        ]
+      },
+      "maxPurchasePerCommand": 1
+    },
+    "mission": {
+      "id": "mission",
+      "enabled": true,
+      "showInShop": true,
+      "displayName": "Mission",
+      "emoji": "📜",
+      "shopLabel": "📜 Mission [💰10000]",
+      "descriptionCourte": "Mission du jour",
+      "descriptionLongue": "Attribue une mission journalière aléatoire. Achetable une seule fois par jour.",
+      "price": {
+        "currency": "moras",
+        "amount": 10000
+      },
+      "reward": {
+        "type": "dailyMission",
+        "missionPoolFile": "missions_pool.json",
+        "rewardPrimogems": 800
+      },
+      "limits": {
+        "oncePerDay": true
+      },
+      "maxPurchasePerCommand": 1
+    }
+  }
+}

@@ -1,0 +1,139 @@
+{
+  "version": 1,
+  "date": "2026-07-05",
+  "dailyTheme": "popularity",
+  "currentContest": {
+    "status": "none",
+    "organizer": "",
+    "theme": "",
+    "createdAt": "",
+    "startedAt": "",
+    "participants": [],
+    "spectators": [],
+    "turnOrder": [],
+    "currentTurnIndex": 0,
+    "round": 0,
+    "phase": "none",
+    "activePlayer": "",
+    "activeSpectator": "",
+    "scores": {},
+    "pendingSupport": {
+      "spectator": "",
+      "availableTargets": []
+    }
+  },
+  "dailyLocks": {
+    "kyo89chasca": {
+      "date": "2026-07-05",
+      "used": true,
+      "characterId": 7
+    }
+  },
+  "history": [
+    {
+      "date": "2026-05-17",
+      "theme": "popularity",
+      "winnerId": "bot:2",
+      "winnerName": "🤖 Chevalier Masqué",
+      "score": 51
+    },
+    {
+      "date": "2026-05-18",
+      "theme": "strength",
+      "winnerId": "bot:4",
+      "winnerName": "Ombre Royale",
+      "score": 50
+    },
+    {
+      "date": "2026-05-19",
+      "theme": "intelligence",
+      "winnerId": "player:ceotryd",
+      "winnerName": "ceotryd",
+      "score": 50
+    },
+    {
+      "date": "2026-05-20",
+      "theme": "charisma",
+      "winnerId": "player:ceotryd",
+      "winnerName": "ceotryd",
+      "score": 50
+    },
+    {
+      "date": "2026-05-28",
+      "theme": "charisma",
+      "winnerId": "bot:4",
+      "winnerName": "Sage Nomade",
+      "score": 56
+    },
+    {
+      "date": "2026-06-08",
+      "theme": "beauty",
+      "winnerId": "bot:3",
+      "winnerName": "Chevalier Masqué",
+      "score": 51
+    },
+    {
+      "date": "2026-06-11",
+      "theme": "strength",
+      "winnerId": "bot:3",
+      "winnerName": "Idole Lunaire",
+      "score": 50
+    },
+    {
+      "date": "2026-06-15",
+      "theme": "charisma",
+      "winnerId": "bot:4",
+      "winnerName": "Sage Nomade",
+      "score": 51
+    },
+    {
+      "date": "2026-06-20",
+      "theme": "charisma",
+      "winnerId": "player:fred_night0wl",
+      "winnerName": "fred_night0wl",
+      "score": 50
+    },
+    {
+      "date": "2026-06-20",
+      "theme": "charisma",
+      "winnerId": "bot:3",
+      "winnerName": "Ombre Royale",
+      "score": 53
+    },
+    {
+      "date": "2026-06-22",
+      "theme": "beauty",
+      "winnerId": "bot:2",
+      "winnerName": "Sage Nomade",
+      "score": 52
+    },
+    {
+      "date": "2026-06-25",
+      "theme": "intelligence",
+      "winnerId": "player:plumereveuse66",
+      "winnerName": "plumereveuse66",
+      "score": 50
+    },
+    {
+      "date": "2026-06-27",
+      "theme": "charisma",
+      "winnerId": "bot:4",
+      "winnerName": "Diva Mystère",
+      "score": 52
+    },
+    {
+      "date": "2026-06-29",
+      "theme": "charisma",
+      "winnerId": "player:kyo89chasca",
+      "winnerName": "kyo89chasca",
+      "score": 50
+    },
+    {
+      "date": "2026-07-05",
+      "theme": "popularity",
+      "winnerId": "bot:4",
+      "winnerName": "Idole Lunaire",
+      "score": 52
+    }
+  ]
+}

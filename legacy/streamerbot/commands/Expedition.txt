@@ -1,0 +1,652 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !expedition
+- Affiche un tuto si la commande est utilisée sans paramètre
+- Permet d’envoyer 1 personnage possédé en expédition une fois par jour
+- Stocke l’expédition active dans viewer["expedition"]
+- Refuse une nouvelle expédition si un personnage est déjà parti
+- Refuse le retour si moins de 20h se sont écoulées
+- Affiche le temps restant en heures/minutes
+- Permet de récupérer avec !expedition retour ou !expedition NomDuPersonnageEnvoyé
+- Donne au retour une récompense aléatoire :
+  - 1600 primos : 1 chance sur 10
+  - 800 particules de l’élément du personnage : 3 chances sur 10
+  - 30000 moras : 6 chances sur 10
+- Met à jour les stats totalPrimosEarned / totalMorasEarned
+- Préserve toutes les propriétés inconnues du viewer
+- Ne reconstruit jamais le viewer
+- Initialise les sections manquantes avec EnsureViewerDefaultsJObject
+*/
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    private const int ExpeditionHours = 20;
+    private static Random random = new Random();
+    private static readonly object fileLock = new object();
+
+    public bool Execute()
+    {
+        string folderPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data";
+        string viewersPath = Path.Combine(folderPath, "viewers_data.json");
+        string charactersPath = Path.Combine(folderPath, "genshin_characters.json");
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+        string input = GetCommandInput();
+
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            SendInfo("Expédition : !expedition NomPerso pour envoyer un perso 20h. Retour : !expedition retour ou !expedition NomPerso.");
+            return true;
+        }
+
+        if (!File.Exists(viewersPath))
+        {
+            SendWarning(username + ", ton profil n’existe pas encore. Écris d’abord un message dans le chat.");
+            return true;
+        }
+
+        if (!File.Exists(charactersPath))
+        {
+            SendError("Aucun fichier personnage trouvé.");
+            return true;
+        }
+
+        lock (fileLock)
+        {
+            JObject viewers = LoadJObject(viewersPath);
+
+            if (viewers == null)
+            {
+                SendError("Impossible de lire viewers_data.json.");
+                return true;
+            }
+
+            JObject viewer = viewers[username] as JObject;
+
+            if (viewer == null)
+            {
+                SendWarning(username + ", ton profil n’existe pas encore. Écris d’abord un message dans le chat.");
+                return true;
+            }
+
+            CharacterFile characterFile = LoadCharacters(charactersPath);
+
+            if (characterFile == null || characterFile.characters == null)
+            {
+                SendError("Impossible de lire la liste des personnages.");
+                return true;
+            }
+
+            EnsureViewerDefaultsJObject(viewer, username);
+
+            DateTime now = DateTime.Now;
+            string normalizedInput = NormalizeText(input);
+
+            JObject expedition = viewer["expedition"] as JObject;
+            bool hasActiveExpedition = GetBool(expedition, "active");
+
+            if (hasActiveExpedition)
+            {
+                HandleActiveExpedition(viewer, username, input, normalizedInput, now, viewersPath, viewers);
+                return true;
+            }
+
+            if (normalizedInput == "retour")
+            {
+                SendWarning(username + ", aucun personnage n’est en expédition.");
+                return true;
+            }
+
+            string today = now.ToString("yyyy-MM-dd");
+            string lastStartedDate = GetString(expedition, "lastStartedDate");
+
+            if (lastStartedDate == today)
+            {
+                SendWarning(username + ", tu as déjà lancé une expédition aujourd’hui. Reviens demain.");
+                return true;
+            }
+
+            CharacterData character = FindOwnedCharacterByName(viewer, characterFile, input);
+
+            if (character == null)
+            {
+                SendWarning(username + ", tu ne possèdes pas ce personnage ou le nom est introuvable.");
+                return true;
+            }
+
+            StartExpedition(viewer, username, character, now);
+            SaveJObject(viewersPath, viewers);
+
+            SendSuccess(username + " envoie " + GetElementEmoji(character.element) + " " + character.nom + " en expédition. Retour dans 20h !");
+        }
+
+        return true;
+    }
+
+    private void HandleActiveExpedition(JObject viewer, string username, string input, string normalizedInput, DateTime now, string viewersPath, JObject viewers)
+    {
+        JObject expedition = viewer["expedition"] as JObject;
+
+        string expeditionCharacterName = GetString(expedition, "characterName");
+        string expeditionCharacterElement = GetString(expedition, "element");
+        int expeditionCharacterId = GetInt(expedition, "characterId");
+
+        string normalizedExpeditionName = NormalizeText(expeditionCharacterName);
+
+        bool wantsReturn = normalizedInput == "retour" || normalizedInput == normalizedExpeditionName;
+
+        if (!wantsReturn)
+        {
+            DateTime readyAtBlocked;
+
+            if (DateTime.TryParse(GetString(expedition, "readyAt"), out readyAtBlocked))
+            {
+                string remainingBlocked = FormatRemainingTime(readyAtBlocked - now);
+                SendWarning(username + ", " + expeditionCharacterName + " est déjà en expédition. Retour dans " + remainingBlocked + ".");
+            }
+            else
+            {
+                SendWarning(username + ", " + expeditionCharacterName + " est déjà en expédition.");
+            }
+
+            return;
+        }
+
+        DateTime readyAt;
+
+        if (!DateTime.TryParse(GetString(expedition, "readyAt"), out readyAt))
+        {
+            ResetExpedition(expedition);
+            SaveJObject(viewersPath, viewers);
+            SendWarning(username + ", expédition corrompue réinitialisée. Relance une expédition.");
+            return;
+        }
+
+        if (now < readyAt)
+        {
+            string remaining = FormatRemainingTime(readyAt - now);
+            SendWarning(username + ", " + expeditionCharacterName + " reviendra dans " + remaining + ".");
+            return;
+        }
+
+        GiveExpeditionReward(viewer, username, expeditionCharacterName, expeditionCharacterElement);
+        AddStat(viewer, "totalExpeditionsCompleted", 1);
+        ResetExpedition(expedition);
+        SaveJObject(viewersPath, viewers);
+    }
+
+    private void StartExpedition(JObject viewer, string username, CharacterData character, DateTime now)
+    {
+        JObject expedition = viewer["expedition"] as JObject;
+
+        expedition["active"] = true;
+        expedition["characterId"] = character.id;
+        expedition["characterName"] = character.nom;
+        expedition["element"] = NormalizeElement(character.element);
+        expedition["startedAt"] = FormatDateTime(now);
+        expedition["readyAt"] = FormatDateTime(now.AddHours(ExpeditionHours));
+        expedition["lastStartedDate"] = now.ToString("yyyy-MM-dd");
+    }
+
+    private void GiveExpeditionReward(JObject viewer, string username, string characterName, string element)
+    {
+        int roll = random.Next(1, 11);
+
+        if (roll == 1)
+        {
+            int reward = 1600;
+            AddInt(viewer, "primogems", reward);
+            AddStat(viewer, "totalPrimosEarned", reward);
+
+            SendSuccess(characterName + " revient d’expédition pour " + username + " : +💠" + reward + " primos (" + GetInt(viewer, "primogems") + ")");
+            return;
+        }
+
+        if (roll >= 2 && roll <= 4)
+        {
+            int reward = 800;
+            string normalizedElement = NormalizeElement(element);
+
+            AddParticles(viewer, normalizedElement, reward);
+            AddMainElementParticlesEarnedIfNeeded(viewer, normalizedElement, reward);
+
+            SendSuccess(characterName + " revient d’expédition pour " + username + " : +" + reward + " particules " + GetElementDisplayName(normalizedElement) + " (" + GetParticleTotal(viewer, normalizedElement) + ")");
+            return;
+        }
+
+        int morasReward = 30000;
+        AddInt(viewer, "moras", morasReward);
+        AddStat(viewer, "totalMorasEarned", morasReward);
+
+        SendSuccess(characterName + " revient d’expédition pour " + username + " : +🪙" + morasReward + " moras (" + GetInt(viewer, "moras") + ")");
+    }
+
+    private void ResetExpedition(JObject expedition)
+    {
+        string lastStartedDate = GetString(expedition, "lastStartedDate");
+
+        expedition["active"] = false;
+        expedition["characterId"] = 0;
+        expedition["characterName"] = "";
+        expedition["element"] = "";
+        expedition["startedAt"] = "";
+        expedition["readyAt"] = "";
+        expedition["lastStartedDate"] = lastStartedDate;
+    }
+
+    private CharacterData FindOwnedCharacterByName(JObject viewer, CharacterFile characterFile, string input)
+    {
+        JObject box = viewer["box"] as JObject;
+
+        if (box == null)
+            return null;
+
+        string normalizedInput = NormalizeText(input);
+
+        foreach (KeyValuePair<string, JToken> entry in box)
+        {
+            JObject owned = entry.Value as JObject;
+
+            if (owned == null)
+                continue;
+
+            int characterId = GetInt(owned, "characterId");
+            CharacterData character = FindCharacterById(characterFile, characterId);
+
+            if (character == null)
+                continue;
+
+            if (NormalizeText(character.nom) == normalizedInput)
+                return character;
+        }
+
+        return null;
+    }
+
+    private CharacterData FindCharacterById(CharacterFile characterFile, int characterId)
+    {
+        if (characterFile == null || characterFile.characters == null)
+            return null;
+
+        for (int i = 0; i < characterFile.characters.Count; i++)
+        {
+            CharacterData character = characterFile.characters[i];
+
+            if (character != null && character.id == characterId)
+                return character;
+        }
+
+        return null;
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private void EnsureViewerDefaultsJObject(JObject viewer, string username)
+    {
+        if (viewer["username"] == null || viewer["username"].Type == JTokenType.Null)
+            viewer["username"] = username;
+
+        EnsureInt(viewer, "xp", 0);
+        EnsureInt(viewer, "level", 0);
+        EnsureString(viewer, "element", "");
+        EnsureInt(viewer, "primogems", 0);
+        EnsureInt(viewer, "moras", 0);
+        EnsureInt(viewer, "selectedBannerCharacterId", 0);
+
+        EnsureObject(viewer, "particles");
+        EnsureObject(viewer, "box");
+        EnsureArray(viewer, "team");
+        EnsureObject(viewer, "pity");
+        EnsureObject(viewer, "guarantee");
+        EnsureObject(viewer, "options");
+        EnsureObject(viewer, "missions");
+        EnsureObject(viewer, "stats");
+        EnsureObject(viewer, "dates");
+        EnsureArray(viewer, "tradeRequests");
+        EnsureArray(viewer, "usedCodes");
+        EnsureObject(viewer, "favor");
+        EnsureObject(viewer, "coffre");
+        EnsureObject(viewer, "specialItems");
+        EnsureObject(viewer, "expedition");
+
+        JObject particles = viewer["particles"] as JObject;
+        EnsureInt(particles, "pyro", 0);
+        EnsureInt(particles, "hydro", 0);
+        EnsureInt(particles, "cryo", 0);
+        EnsureInt(particles, "electro", 0);
+        EnsureInt(particles, "anemo", 0);
+        EnsureInt(particles, "geo", 0);
+        EnsureInt(particles, "dendro", 0);
+
+        JObject stats = viewer["stats"] as JObject;
+        EnsureInt(stats, "totalPrimosEarned", 0);
+        EnsureInt(stats, "totalMorasEarned", 0);
+        EnsureInt(stats, "totalMainElementParticlesEarned", 0);
+        EnsureInt(stats, "totalExpeditionsCompleted", 0);
+
+        JObject expedition = viewer["expedition"] as JObject;
+        EnsureBool(expedition, "active", false);
+        EnsureInt(expedition, "characterId", 0);
+        EnsureString(expedition, "characterName", "");
+        EnsureString(expedition, "element", "");
+        EnsureString(expedition, "startedAt", "");
+        EnsureString(expedition, "readyAt", "");
+        EnsureString(expedition, "lastStartedDate", "");
+    }
+
+    private void AddParticles(JObject viewer, string element, int amount)
+    {
+        JObject particles = viewer["particles"] as JObject;
+
+        if (particles == null)
+        {
+            particles = new JObject();
+            viewer["particles"] = particles;
+        }
+
+        string normalized = NormalizeElement(element);
+
+        if (string.IsNullOrEmpty(normalized))
+            return;
+
+        AddInt(particles, normalized, amount);
+    }
+
+    private void AddMainElementParticlesEarnedIfNeeded(JObject viewer, string element, int amount)
+    {
+        string mainElement = NormalizeElement(GetString(viewer, "element"));
+        string gainedElement = NormalizeElement(element);
+
+        if (string.IsNullOrEmpty(mainElement))
+            return;
+
+        if (mainElement != gainedElement)
+            return;
+
+        AddStat(viewer, "totalMainElementParticlesEarned", amount);
+    }
+
+    private int GetParticleTotal(JObject viewer, string element)
+    {
+        JObject particles = viewer["particles"] as JObject;
+
+        if (particles == null)
+            return 0;
+
+        return GetInt(particles, NormalizeElement(element));
+    }
+
+    private string FormatRemainingTime(TimeSpan remaining)
+    {
+        if (remaining.TotalSeconds < 0)
+            return "0h00";
+
+        int hours = (int)Math.Floor(remaining.TotalHours);
+        int minutes = remaining.Minutes;
+
+        return hours + "h" + minutes.ToString("00");
+    }
+
+    private string GetElementDisplayName(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "🔥 Pyro";
+            case "hydro": return "💧 Hydro";
+            case "cryo": return "❄️ Cryo";
+            case "electro": return "⚡ Electro";
+            case "anemo": return "🌪️ Anemo";
+            case "geo": return "☄️ Geo";
+            case "dendro": return "🌿 Dendro";
+            default: return element;
+        }
+    }
+
+    private string GetElementEmoji(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "🔥";
+            case "hydro": return "💧";
+            case "cryo": return "❄️";
+            case "electro": return "⚡";
+            case "anemo": return "🌪️";
+            case "geo": return "☄️";
+            case "dendro": return "🌿";
+            default: return "";
+        }
+    }
+
+    private string NormalizeElement(string element)
+    {
+        if (string.IsNullOrEmpty(element))
+            return "";
+
+        string normalized = element.ToLower().Trim();
+
+        switch (normalized)
+        {
+            case "pyro": return "pyro";
+            case "hydro": return "hydro";
+            case "cryo": return "cryo";
+            case "electro":
+            case "électro": return "electro";
+            case "anemo":
+            case "anémo": return "anemo";
+            case "geo":
+            case "géo": return "geo";
+            case "dendro": return "dendro";
+            default: return normalized;
+        }
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private string NormalizeText(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return "";
+
+        string normalized = text.ToLower().Trim();
+
+        normalized = normalized.Replace("é", "e");
+        normalized = normalized.Replace("è", "e");
+        normalized = normalized.Replace("ê", "e");
+        normalized = normalized.Replace("ë", "e");
+        normalized = normalized.Replace("à", "a");
+        normalized = normalized.Replace("â", "a");
+        normalized = normalized.Replace("ä", "a");
+        normalized = normalized.Replace("ù", "u");
+        normalized = normalized.Replace("û", "u");
+        normalized = normalized.Replace("ü", "u");
+        normalized = normalized.Replace("î", "i");
+        normalized = normalized.Replace("ï", "i");
+        normalized = normalized.Replace("ô", "o");
+        normalized = normalized.Replace("ö", "o");
+        normalized = normalized.Replace("ç", "c");
+        normalized = normalized.Replace("-", " ");
+        normalized = normalized.Replace("_", " ");
+
+        while (normalized.Contains("  "))
+            normalized = normalized.Replace("  ", " ");
+
+        return normalized;
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+
+            if (string.IsNullOrWhiteSpace(json))
+                return new JObject();
+
+            return JObject.Parse(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private CharacterFile LoadCharacters(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+            return JsonConvert.DeserializeObject<CharacterFile>(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void SaveJObject(string path, JObject data)
+    {
+        File.WriteAllText(path, data.ToString(Formatting.Indented));
+    }
+
+    private void EnsureObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+    }
+
+    private void EnsureArray(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Array)
+            parent[key] = new JArray();
+    }
+
+    private void EnsureInt(JObject obj, string key, int defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureBool(JObject obj, string key, bool defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureString(JObject obj, string key, string defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private bool GetBool(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return false;
+
+        bool value;
+
+        if (bool.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return false;
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private void AddInt(JObject obj, string key, int amount)
+    {
+        int current = GetInt(obj, key);
+        obj[key] = current + amount;
+    }
+
+    private void AddStat(JObject viewer, string key, int amount)
+    {
+        JObject stats = viewer["stats"] as JObject;
+
+        if (stats == null)
+        {
+            stats = new JObject();
+            viewer["stats"] = stats;
+        }
+
+        AddInt(stats, key, amount);
+    }
+
+    private string FormatDateTime(DateTime date)
+    {
+        return date.ToString("yyyy-MM-dd HH:mm:ss");
+    }
+
+    private void SendSuccess(string message) { CPH.SendMessage("✅ " + message); }
+    private void SendWarning(string message) { CPH.SendMessage("⚠️ " + message); }
+    private void SendError(string message) { CPH.SendMessage("❌ " + message); }
+    private void SendInfo(string message) { CPH.SendMessage("ℹ️ " + message); }
+}
+
+public class CharacterFile
+{
+    public string lastBannerUpdate { get; set; }
+    public List<CharacterData> characters { get; set; }
+}
+
+public class CharacterData
+{
+    public int id { get; set; }
+    public string nom { get; set; }
+    public int rarete { get; set; }
+    public string element { get; set; }
+    public string arme { get; set; }
+    public string region { get; set; }
+    public string classe { get; set; }
+    public bool bannerFeatured { get; set; }
+    public string passif { get; set; }
+}

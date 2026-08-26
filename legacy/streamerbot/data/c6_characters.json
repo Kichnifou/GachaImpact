@@ -1,0 +1,1338 @@
+{
+  "ceotryd": {
+    "username": "ceotryd",
+    "characters": {
+      "15": {
+        "owner": "ceotryd",
+        "characterId": 15,
+        "name": "Durin",
+        "rarity": 5,
+        "element": "pyro",
+        "weapon": "Épée",
+        "region": "Mondstadt",
+        "class": "",
+        "createdAt": "2026-05-17 21:08:21",
+        "stats": {
+          "strength": 9,
+          "intelligence": 4,
+          "beauty": 8,
+          "charisma": 3,
+          "popularity": 9
+        },
+        "contestStats": {
+          "totalContests": 7,
+          "totalWins": 2,
+          "strengthWins": 0,
+          "intelligenceWins": 1,
+          "beautyWins": 0,
+          "charismaWins": 1,
+          "popularityWins": 0,
+          "popularityContests": 1,
+          "strengthContests": 1,
+          "intelligenceContests": 2,
+          "charismaContests": 2,
+          "beautyContests": 1
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "Sage de Bronze",
+          "beauty": "",
+          "charisma": "Icône de Bronze",
+          "popularity": ""
+        }
+      },
+      "54": {
+        "owner": "ceotryd",
+        "characterId": 54,
+        "name": "Wriothesley",
+        "rarity": 5,
+        "element": "cryo",
+        "weapon": "Catalyseur",
+        "region": "Fontaine",
+        "class": "",
+        "createdAt": "2026-06-08 10:24:52",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 1,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      },
+      "49": {
+        "owner": "ceotryd",
+        "characterId": 49,
+        "name": "Tartaglia",
+        "rarity": 5,
+        "element": "hydro",
+        "weapon": "Arc",
+        "region": "Snezhnaya",
+        "class": "",
+        "createdAt": "2026-06-22 09:30:53",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 2,
+          "charisma": 2,
+          "popularity": 2
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      },
+      "57": {
+        "owner": "ceotryd",
+        "characterId": 57,
+        "name": "Xilonen",
+        "rarity": 5,
+        "element": "geo",
+        "weapon": "Épée",
+        "region": "Natlan",
+        "class": "",
+        "createdAt": "2026-08-17 10:27:39",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 1,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      }
+    }
+  },
+  "dragon_gaming_tv": {
+    "username": "dragon_gaming_tv",
+    "characters": {
+      "15": {
+        "owner": "dragon_gaming_tv",
+        "characterId": 15,
+        "name": "Durin",
+        "rarity": 5,
+        "element": "pyro",
+        "weapon": "Épée",
+        "region": "Mondstadt",
+        "class": "",
+        "createdAt": "2026-05-18 22:39:56",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 1,
+          "charisma": 3,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 1,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0,
+          "charismaContests": 1
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      },
+      "12": {
+        "owner": "dragon_gaming_tv",
+        "characterId": 12,
+        "name": "Cyno",
+        "rarity": 5,
+        "element": "electro",
+        "weapon": "Lance",
+        "region": "Sumeru",
+        "class": "",
+        "createdAt": "2026-08-17 15:29:24",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 1,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      }
+    }
+  },
+  "kyo89chasca": {
+    "username": "kyo89chasca",
+    "characters": {
+      "9": {
+        "owner": "kyo89chasca",
+        "characterId": 9,
+        "name": "Citlali",
+        "rarity": 5,
+        "element": "cryo",
+        "weapon": "Catalyseur",
+        "region": "Natlan",
+        "class": "",
+        "createdAt": "2026-06-08 09:50:51",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 2,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 4,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0,
+          "beautyContests": 1,
+          "charismaContests": 2,
+          "intelligenceContests": 1
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      },
+      "7": {
+        "owner": "kyo89chasca",
+        "characterId": 7,
+        "name": "Chasca",
+        "rarity": 5,
+        "element": "anemo",
+        "weapon": "Arc",
+        "region": "Natlan",
+        "class": "",
+        "createdAt": "2026-06-29 11:03:45",
+        "stats": {
+          "strength": 2,
+          "intelligence": 4,
+          "beauty": 3,
+          "charisma": 4,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 2,
+          "totalWins": 1,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 1,
+          "popularityWins": 0,
+          "charismaContests": 1,
+          "popularityContests": 1
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "Icône de Bronze",
+          "popularity": ""
+        }
+      },
+      "39": {
+        "owner": "kyo89chasca",
+        "characterId": 39,
+        "name": "Nefer",
+        "rarity": 5,
+        "element": "dendro",
+        "weapon": "Catalyseur",
+        "region": "Nod-Krai",
+        "class": "",
+        "createdAt": "2026-08-14 16:10:59",
+        "stats": {
+          "strength": 1,
+          "intelligence": 3,
+          "beauty": 1,
+          "charisma": 3,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      },
+      "60": {
+        "owner": "kyo89chasca",
+        "characterId": 60,
+        "name": "Yoimiya",
+        "rarity": 5,
+        "element": "pyro",
+        "weapon": "Arc",
+        "region": "Inazuma",
+        "class": "",
+        "createdAt": "2026-08-15 15:45:49",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 1,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      },
+      "4": {
+        "owner": "kyo89chasca",
+        "characterId": 4,
+        "name": "Itto",
+        "rarity": 5,
+        "element": "geo",
+        "weapon": "Claymore",
+        "region": "Inazuma",
+        "class": "",
+        "createdAt": "2026-08-16 10:47:45",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 1,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      }
+    }
+  },
+  "plumereveuse66": {
+    "username": "plumereveuse66",
+    "characters": {
+      "58": {
+        "owner": "plumereveuse66",
+        "characterId": 58,
+        "name": "Yae Miko",
+        "rarity": 5,
+        "element": "electro",
+        "weapon": "Catalyseur",
+        "region": "Inazuma",
+        "class": "",
+        "createdAt": "2026-06-08 10:11:14",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 2,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 3,
+          "totalWins": 1,
+          "strengthWins": 0,
+          "intelligenceWins": 1,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0,
+          "strengthContests": 1,
+          "charismaContests": 1,
+          "intelligenceContests": 1
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "Sage de Bronze",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      },
+      "7": {
+        "owner": "plumereveuse66",
+        "characterId": 7,
+        "name": "Chasca",
+        "rarity": 5,
+        "element": "anemo",
+        "weapon": "Arc",
+        "region": "Natlan",
+        "class": "",
+        "createdAt": "2026-06-30 11:14:06",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 1,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      },
+      "62": {
+        "owner": "plumereveuse66",
+        "characterId": 62,
+        "name": "Zhongli",
+        "rarity": 5,
+        "element": "geo",
+        "weapon": "Lance",
+        "region": "Liyue",
+        "class": "Archon",
+        "createdAt": "2026-07-06 11:41:08",
+        "stats": {
+          "strength": 2,
+          "intelligence": 2,
+          "beauty": 1,
+          "charisma": 2,
+          "popularity": 2
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      },
+      "40": {
+        "owner": "plumereveuse66",
+        "characterId": 40,
+        "name": "Neuvillette",
+        "rarity": 5,
+        "element": "hydro",
+        "weapon": "Catalyseur",
+        "region": "Fontaine",
+        "class": "Dragon",
+        "createdAt": "2026-07-06 12:23:45",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 1,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      },
+      "19": {
+        "owner": "plumereveuse66",
+        "characterId": 19,
+        "name": "Flins",
+        "rarity": 5,
+        "element": "electro",
+        "weapon": "Lance",
+        "region": "Nod-Krai",
+        "class": "",
+        "createdAt": "2026-07-20 13:36:37",
+        "stats": {
+          "strength": 1,
+          "intelligence": 2,
+          "beauty": 1,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      },
+      "52": {
+        "owner": "plumereveuse66",
+        "characterId": 52,
+        "name": "Varka",
+        "rarity": 5,
+        "element": "anemo",
+        "weapon": "Claymore",
+        "region": "Mondstadt",
+        "class": "",
+        "createdAt": "2026-08-03 15:15:25",
+        "stats": {
+          "strength": 1,
+          "intelligence": 2,
+          "beauty": 1,
+          "charisma": 2,
+          "popularity": 2
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      },
+      "63": {
+        "owner": "plumereveuse66",
+        "characterId": 63,
+        "name": "Zibai",
+        "rarity": 5,
+        "element": "geo",
+        "weapon": "Épée",
+        "region": "Liyue",
+        "class": "",
+        "createdAt": "2026-08-03 16:14:24",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 1,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      },
+      "56": {
+        "owner": "plumereveuse66",
+        "characterId": 56,
+        "name": "Xiao",
+        "rarity": 5,
+        "element": "anemo",
+        "weapon": "Lance",
+        "region": "Liyue",
+        "class": "",
+        "createdAt": "2026-08-24 16:19:59",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 1,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      }
+    }
+  },
+  "mathriox612": {
+    "username": "mathriox612",
+    "characters": {
+      "54": {
+        "owner": "mathriox612",
+        "characterId": 54,
+        "name": "Wriothesley",
+        "rarity": 5,
+        "element": "cryo",
+        "weapon": "Catalyseur",
+        "region": "Fontaine",
+        "class": "",
+        "createdAt": "2026-06-13 03:24:41",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 1,
+          "charisma": 2,
+          "popularity": 2
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      },
+      "57": {
+        "owner": "mathriox612",
+        "characterId": 57,
+        "name": "Xilonen",
+        "rarity": 5,
+        "element": "geo",
+        "weapon": "Épée",
+        "region": "Natlan",
+        "class": "",
+        "createdAt": "2026-08-17 13:06:48",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 1,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      }
+    }
+  },
+  "kichnifou": {
+    "username": "kichnifou",
+    "characters": {
+      "48": {
+        "owner": "kichnifou",
+        "characterId": 48,
+        "name": "Skirk",
+        "rarity": 5,
+        "element": "cryo",
+        "weapon": "Épée",
+        "region": "Espace",
+        "class": "Abyss",
+        "createdAt": "2026-06-15 14:13:57",
+        "stats": {
+          "strength": 2,
+          "intelligence": 4,
+          "beauty": 1,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 4,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0,
+          "charismaContests": 3,
+          "intelligenceContests": 1
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      }
+    }
+  },
+  "fred_night0wl": {
+    "username": "fred_night0wl",
+    "characters": {
+      "30": {
+        "owner": "fred_night0wl",
+        "characterId": 30,
+        "name": "Klee",
+        "rarity": 5,
+        "element": "pyro",
+        "weapon": "Catalyseur",
+        "region": "Mondstadt",
+        "class": "",
+        "createdAt": "2026-06-16 11:04:46",
+        "stats": {
+          "strength": 2,
+          "intelligence": 3,
+          "beauty": 1,
+          "charisma": 2,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 2,
+          "totalWins": 1,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 1,
+          "popularityWins": 0,
+          "charismaContests": 2
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "Icône de Bronze",
+          "popularity": ""
+        }
+      },
+      "37": {
+        "owner": "fred_night0wl",
+        "characterId": 37,
+        "name": "Nahida",
+        "rarity": 5,
+        "element": "dendro",
+        "weapon": "Catalyseur",
+        "region": "Sumeru",
+        "class": "Archon",
+        "createdAt": "2026-07-06 08:38:31",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 1,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      }
+    }
+  },
+  "marabou_malveillant": {
+    "username": "marabou_malveillant",
+    "characters": {
+      "49": {
+        "owner": "marabou_malveillant",
+        "characterId": 49,
+        "name": "Tartaglia",
+        "rarity": 5,
+        "element": "hydro",
+        "weapon": "Arc",
+        "region": "Snezhnaya",
+        "class": "",
+        "createdAt": "2026-06-27 14:57:35",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 2,
+          "charisma": 1,
+          "popularity": 5
+        },
+        "contestStats": {
+          "totalContests": 1,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0,
+          "charismaContests": 1
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      }
+    }
+  },
+  "kadraw18": {
+    "username": "kadraw18",
+    "characters": {
+      "5": {
+        "owner": "kadraw18",
+        "characterId": 5,
+        "name": "Arlecchino",
+        "rarity": 5,
+        "element": "pyro",
+        "weapon": "Lance",
+        "region": "Snezhnaya",
+        "class": "",
+        "createdAt": "2026-06-29 13:19:38",
+        "stats": {
+          "strength": 2,
+          "intelligence": 2,
+          "beauty": 2,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      },
+      "62": {
+        "owner": "kadraw18",
+        "characterId": 62,
+        "name": "Zhongli",
+        "rarity": 5,
+        "element": "geo",
+        "weapon": "Lance",
+        "region": "Liyue",
+        "class": "Archon",
+        "createdAt": "2026-07-06 11:26:25",
+        "stats": {
+          "strength": 1,
+          "intelligence": 3,
+          "beauty": 3,
+          "charisma": 2,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      },
+      "19": {
+        "owner": "kadraw18",
+        "characterId": 19,
+        "name": "Flins",
+        "rarity": 5,
+        "element": "electro",
+        "weapon": "Lance",
+        "region": "Nod-Krai",
+        "class": "",
+        "createdAt": "2026-07-20 11:16:51",
+        "stats": {
+          "strength": 2,
+          "intelligence": 1,
+          "beauty": 1,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      },
+      "115": {
+        "owner": "kadraw18",
+        "characterId": 115,
+        "name": "Lohen",
+        "rarity": 5,
+        "element": "cryo",
+        "weapon": "Lance",
+        "region": "Mondstadt",
+        "class": "",
+        "createdAt": "2026-08-03 15:03:07",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 1,
+          "charisma": 2,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      },
+      "56": {
+        "owner": "kadraw18",
+        "characterId": 56,
+        "name": "Xiao",
+        "rarity": 5,
+        "element": "anemo",
+        "weapon": "Lance",
+        "region": "Liyue",
+        "class": "",
+        "createdAt": "2026-08-24 16:13:11",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 1,
+          "charisma": 2,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      }
+    }
+  },
+  "lexceptiondu37": {
+    "username": "lexceptiondu37",
+    "characters": {
+      "62": {
+        "owner": "lexceptiondu37",
+        "characterId": 62,
+        "name": "Zhongli",
+        "rarity": 5,
+        "element": "geo",
+        "weapon": "Lance",
+        "region": "Liyue",
+        "class": "Archon",
+        "createdAt": "2026-07-06 08:14:17",
+        "stats": {
+          "strength": 1,
+          "intelligence": 3,
+          "beauty": 2,
+          "charisma": 5,
+          "popularity": 7
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      }
+    }
+  },
+  "mizu__c": {
+    "username": "mizu__c",
+    "characters": {
+      "26": {
+        "owner": "mizu__c",
+        "characterId": 26,
+        "name": "Ayaka",
+        "rarity": 5,
+        "element": "cryo",
+        "weapon": "Épée",
+        "region": "Inazuma",
+        "class": "",
+        "createdAt": "2026-07-13 08:20:27",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 1,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      },
+      "54": {
+        "owner": "mizu__c",
+        "characterId": 54,
+        "name": "Wriothesley",
+        "rarity": 5,
+        "element": "cryo",
+        "weapon": "Catalyseur",
+        "region": "Fontaine",
+        "class": "",
+        "createdAt": "2026-07-13 08:40:16",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 1,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      },
+      "114": {
+        "owner": "mizu__c",
+        "characterId": 114,
+        "name": "Nicole",
+        "rarity": 5,
+        "element": "pyro",
+        "weapon": "Catalyseur",
+        "region": "Celestia",
+        "class": "",
+        "createdAt": "2026-07-20 10:22:05",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 1,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      },
+      "11": {
+        "owner": "mizu__c",
+        "characterId": 11,
+        "name": "Columbina",
+        "rarity": 5,
+        "element": "hydro",
+        "weapon": "Catalyseur",
+        "region": "Nod-Krai",
+        "class": "Déesse",
+        "createdAt": "2026-08-17 11:21:35",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 1,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      }
+    }
+  },
+  "ninamiaizawa": {
+    "username": "ninamiaizawa",
+    "characters": {
+      "2": {
+        "owner": "ninamiaizawa",
+        "characterId": 2,
+        "name": "Alhaitham",
+        "rarity": 5,
+        "element": "dendro",
+        "weapon": "Épée",
+        "region": "Sumeru",
+        "class": "",
+        "createdAt": "2026-07-28 09:32:56",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 1,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      },
+      "11": {
+        "owner": "ninamiaizawa",
+        "characterId": 11,
+        "name": "Columbina",
+        "rarity": 5,
+        "element": "hydro",
+        "weapon": "Catalyseur",
+        "region": "Nod-Krai",
+        "class": "Déesse",
+        "createdAt": "2026-08-17 09:02:10",
+        "stats": {
+          "strength": 1,
+          "intelligence": 1,
+          "beauty": 1,
+          "charisma": 1,
+          "popularity": 1
+        },
+        "contestStats": {
+          "totalContests": 0,
+          "totalWins": 0,
+          "strengthWins": 0,
+          "intelligenceWins": 0,
+          "beautyWins": 0,
+          "charismaWins": 0,
+          "popularityWins": 0
+        },
+        "titles": {
+          "strength": "",
+          "intelligence": "",
+          "beauty": "",
+          "charisma": "",
+          "popularity": ""
+        }
+      }
+    }
+  }
+}

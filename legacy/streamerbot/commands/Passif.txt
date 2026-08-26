@@ -1,0 +1,302 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !passifs
+- Lit element_passives.json
+- Affiche un résumé clair des passifs de tous les éléments
+- Permet d’afficher le détail d’un seul élément avec !passifs pyro/hydro/cryo/electro/anemo/geo/dendro
+- Ne lit pas viewers_data.json
+- Ne modifie aucun fichier JSON
+- Ne sauvegarde rien
+*/
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Newtonsoft.Json;
+
+public class CPHInline
+{
+    public bool Execute()
+    {
+        string folderPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data";
+        string passivesPath = Path.Combine(folderPath, "element_passives.json");
+
+        if (!File.Exists(passivesPath))
+        {
+            SendError("Fichier element_passives.json introuvable.");
+            return true;
+        }
+
+        ElementPassiveFile passiveFile = LoadPassives(passivesPath);
+
+        if (passiveFile == null || passiveFile.elements == null)
+        {
+            SendError("Impossible de lire les passifs.");
+            return true;
+        }
+
+        string input = NormalizeElement(GetCommandInput());
+
+        if (string.IsNullOrEmpty(input))
+        {
+            ShowAllPassives();
+            return true;
+        }
+
+        if (!passiveFile.elements.ContainsKey(input))
+        {
+            SendWarning("Élément invalide. Utilise : !passifs pyro/hydro/cryo/electro/anemo/geo/dendro");
+            return true;
+        }
+
+        ShowElementPassive(input, passiveFile.elements[input]);
+
+        return true;
+    }
+
+    private void ShowAllPassives()
+    {
+        CPH.SendMessage("🧩 Passifs : 🔥 1/2 Pyro = particules x1.25/x1.5 | 💧 1/2 Hydro = +0.3/+0.6% chance 5★ | ❄️ 1/2 Cryo = 1/20 / 1/10 : +1 XP | ⚡ 1/2 Electro = 1/30 / 1/20 : +2 pity 5★ | 🌪️ 1/2 Anemo = 1/12 / 1/8 : remboursement 80 primos | ☄️ 1/2 Geo = moras x1.25/x1.5 | 🌿 1/2 Dendro = 1/25 / 1/15 : +40 primos, +1000 moras, +5 particules aléatoires");
+    }
+
+    private void ShowElementPassive(string element, ElementPassiveData passiveData)
+    {
+        PassiveEffect stack1 = GetEffect(passiveData, "1");
+        PassiveEffect stack2 = GetEffect(passiveData, "2");
+
+        if (stack1 == null && stack2 == null)
+        {
+            SendWarning("Aucun passif configuré pour cet élément.");
+            return;
+        }
+
+        string emoji = GetElementEmoji(element);
+        string name = GetElementDisplayName(element);
+
+        string stack1Text = stack1 != null
+            ? FormatLongEffect(element, stack1, 1)
+            : "1 perso : aucun";
+
+        string stack2Text = stack2 != null
+            ? FormatLongEffect(element, stack2, 2)
+            : "2 persos : aucun";
+
+        CPH.SendMessage($"🧩 {emoji} {name} : {stack1Text} | {stack2Text}");
+    }
+
+    private PassiveEffect GetEffect(ElementPassiveData passiveData, string stack)
+    {
+        if (passiveData == null || passiveData.effects == null)
+            return null;
+
+        if (!passiveData.effects.ContainsKey(stack))
+            return null;
+
+        return passiveData.effects[stack];
+    }
+
+    private string FormatLongEffect(string element, PassiveEffect effect, int stack)
+    {
+        string prefix = stack == 1 ? "1 perso" : "2 persos";
+
+        switch (effect.passiveType)
+        {
+            case "particleMultiplier":
+                return $"{prefix} : particules obtenues x{FormatValue(effect.value)}";
+
+            case "fiveStarChanceBonus":
+                return $"{prefix} : +{FormatValue(effect.value)}% de chance d’avoir un 5★";
+
+            case "randomXpBonus":
+                return $"{prefix} : 1/{effect.chanceDenominator} de gagner +{FormatValue(effect.value)} XP";
+
+            case "randomPity5Bonus":
+                return $"{prefix} : 1/{effect.chanceDenominator} de gagner +{FormatValue(effect.value)} pity 5★";
+
+            case "randomPrimoRefund":
+                return $"{prefix} : 1/{effect.chanceDenominator} de récupérer {FormatValue(effect.value)} primos";
+
+            case "moraMultiplier":
+                return $"{prefix} : moras obtenues x{FormatValue(effect.value)}";
+
+            case "randomResourceBundle":
+            {
+                if (effect.rewards != null)
+                {
+                    return $"{prefix} : 1/{effect.chanceDenominator} jackpot +{effect.rewards.primogems} primos, +{effect.rewards.moras} moras, +{effect.rewards.particlesEachElement} particules aléatoires";
+                }
+
+                return $"{prefix} : jackpot ressources";
+            }
+
+            default:
+                return $"{prefix} : {effect.descriptionCourte}";
+        }
+    }
+
+
+    private string FormatValue(double value)
+    {
+        if (Math.Abs(value - Math.Round(value)) < 0.0001)
+            return ((int)Math.Round(value)).ToString();
+
+        return value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private ElementPassiveFile LoadPassives(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+
+            ElementPassiveFile passiveFile = JsonConvert.DeserializeObject<ElementPassiveFile>(json);
+
+            if (passiveFile == null)
+                passiveFile = new ElementPassiveFile();
+
+            if (passiveFile.elements == null)
+                passiveFile.elements = new Dictionary<string, ElementPassiveData>();
+
+            return passiveFile;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private string NormalizeElement(string element)
+    {
+        if (string.IsNullOrEmpty(element))
+            return "";
+
+        element = element.ToLower().Trim();
+
+        switch (element)
+        {
+            case "pyro": return "pyro";
+            case "hydro": return "hydro";
+            case "cryo": return "cryo";
+
+            case "electro":
+            case "électro":
+                return "electro";
+
+            case "anemo":
+            case "anémo":
+                return "anemo";
+
+            case "geo":
+            case "géo":
+                return "geo";
+
+            case "dendro":
+                return "dendro";
+
+            default:
+                return "";
+        }
+    }
+
+    private string GetElementEmoji(string element)
+    {
+        switch (element)
+        {
+            case "pyro": return "🔥";
+            case "hydro": return "💧";
+            case "cryo": return "❄️";
+            case "electro": return "⚡";
+            case "anemo": return "🌪️";
+            case "geo": return "☄️";
+            case "dendro": return "🌿";
+            default: return "";
+        }
+    }
+
+    private string GetElementDisplayName(string element)
+    {
+        switch (element)
+        {
+            case "pyro": return "Pyro";
+            case "hydro": return "Hydro";
+            case "cryo": return "Cryo";
+            case "electro": return "Electro";
+            case "anemo": return "Anemo";
+            case "geo": return "Geo";
+            case "dendro": return "Dendro";
+            default: return element;
+        }
+    }
+
+    private void SendWarning(string message)
+    {
+        CPH.SendMessage($"⚠️ {message}");
+    }
+
+    private void SendError(string message)
+    {
+        CPH.SendMessage($"❌ {message}");
+    }
+}
+
+public class ElementPassiveFile
+{
+    public int version { get; set; }
+    public string description { get; set; }
+    public PassiveGlobalRules globalRules { get; set; }
+    public Dictionary<string, ElementPassiveData> elements { get; set; }
+}
+
+public class PassiveGlobalRules
+{
+    public int maxTeamSize { get; set; }
+    public int maxStacksPerElement { get; set; }
+    public bool ignoreStacksAboveMax { get; set; }
+    public bool passivesApplyOnlyFromTeam { get; set; }
+    public bool passivesApplyDuringPulls { get; set; }
+    public string triggeredPassivesChatPrefix { get; set; }
+    public string activePassivesChatLabel { get; set; }
+}
+
+public class ElementPassiveData
+{
+    public string displayName { get; set; }
+    public string element { get; set; }
+    public int maxStacks { get; set; }
+    public string category { get; set; }
+    public Dictionary<string, PassiveEffect> effects { get; set; }
+}
+
+public class PassiveEffect
+{
+    public string passiveId { get; set; }
+    public string passiveType { get; set; }
+    public double value { get; set; }
+    public string valueUnit { get; set; }
+    public int chanceDenominator { get; set; }
+    public string descriptionCourte { get; set; }
+    public string descriptionLongue { get; set; }
+    public bool showWhenActive { get; set; }
+    public bool showWhenTriggered { get; set; }
+    public string triggerMessage { get; set; }
+    public PassiveRewards rewards { get; set; }
+}
+
+public class PassiveRewards
+{
+    public int primogems { get; set; }
+    public int moras { get; set; }
+    public int particlesEachElement { get; set; }
+}

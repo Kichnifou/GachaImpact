@@ -1,0 +1,1748 @@
+
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande principale !event du Kichni Stream Game.
+- Script unique avec paramètres, à la manière de !give :
+  - !event
+  - !event go
+  - !event sac
+  - !event boutique
+  - !event top
+  - !event primos N
+  - !event moras N
+  - !event collection
+  - !event calendrier uniquement en décembre
+  - mini-jeu A du mois : fenêtre horaire individuelle
+  - mini-jeu B du mois : code commun quotidien en 0/1
+  - mini-jeu C du mois : message social à un autre viewer
+- Lit viewers_data.json et monthly_events_data.json en JObject.
+- Ne reconstruit jamais entièrement un viewer.
+- Ajoute seulement les sections manquantes via EnsureViewerDefaults.
+- Ne crée PAS de viewer si le joueur n'existe pas.
+- Utilise une configuration mensuelle intégrée pour les 12 mois.
+- Change automatiquement de mois/année en réinitialisant monthly_events_data.json.
+- Gère les paliers 10/20/30/40/50/60/70/80 points.
+- Gère la boutique event : primos, moras, collection.
+- Gère le stockage permanent du coffre dans viewers_data.json.
+- Gère les achats collection 1 fois par année via monthly_events_data.json.
+- Gère le top 10 des points event du mois.
+- Compatible Streamer.bot.
+- Sans LINQ.
+*/
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    private string viewersPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data\viewers_data.json";
+    private string eventDataPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data\monthly_events_data.json";
+
+    private Random rng = new Random();
+
+    public bool Execute()
+    {
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+        string input = GetCommandInput();
+        DateTime now = DateTime.Now;
+        string today = now.ToString("yyyy-MM-dd");
+
+        EventConfig config = GetEventConfig(now.Month);
+
+        if (config == null)
+        {
+            SendError("Configuration event introuvable pour ce mois.");
+            return true;
+        }
+
+        if (string.IsNullOrEmpty(input))
+        {
+            SendSplit(config.helpMessage);
+            return true;
+        }
+
+        string[] parts = input.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length <= 0)
+        {
+            SendSplit(config.helpMessage);
+            return true;
+        }
+
+        string action = NormalizeText(parts[0]);
+
+        JObject viewers = LoadJObject(viewersPath);
+
+        if (viewers == null)
+        {
+            SendError("Impossible de lire viewers_data.json.");
+            return true;
+        }
+
+        JObject eventData = LoadJObject(eventDataPath);
+
+        if (eventData == null)
+        {
+            SendError("Impossible de lire monthly_events_data.json.");
+            return true;
+        }
+
+        EnsureEventDataForCurrentMonth(eventData, now);
+
+        JObject viewer = viewers[username] as JObject;
+
+        if (viewer == null)
+        {
+            SendWarning(username + ", tu dois d'abord exister dans le jeu avant de rejoindre l'event.");
+            return true;
+        }
+
+        EnsureViewerDefaults(viewer, username);
+
+        if (action == "go")
+        {
+            HandleGo(username, config, eventData);
+            SaveJObject(eventDataPath, eventData);
+            return true;
+        }
+
+        if (!IsJoined(eventData, username))
+        {
+            SendWarning(username + ", rejoins d'abord " + config.eventNameNoEmoji + " avec !event go.");
+            return true;
+        }
+
+        if (action == "sac")
+        {
+            HandleSac(username, config, eventData);
+            return true;
+        }
+
+        if (action == "boutique" || action == "shop")
+        {
+            HandleBoutique(config);
+            return true;
+        }
+
+        if (action == "top")
+        {
+            HandleTop(config, eventData);
+            return true;
+        }
+
+        if (action == "primos" || action == "primo" || action == "primogems")
+        {
+            HandleBuyPrimos(username, parts, config, viewer, viewers, eventData);
+            return true;
+        }
+
+        if (action == "moras" || action == "mora")
+        {
+            HandleBuyMoras(username, parts, config, viewer, viewers, eventData);
+            return true;
+        }
+
+        if (action == "collection")
+        {
+            HandleBuyCollection(username, config, viewer, viewers, eventData, now);
+            return true;
+        }
+
+        if (action == "calendrier")
+        {
+            HandleCalendar(username, config, eventData, now);
+            return true;
+        }
+
+        if (action == NormalizeText(config.gameACommand))
+        {
+            HandleGameA(username, config, viewer, viewers, eventData, now, today);
+            return true;
+        }
+
+        if (action == NormalizeText(config.gameBCommand))
+        {
+            HandleGameB(username, input, parts, config, viewers, eventData, today);
+            return true;
+        }
+
+        if (action == NormalizeText(config.gameCCommand))
+        {
+            HandleGameC(username, input, config, viewer, viewers, eventData, today);
+            return true;
+        }
+
+        SendWarning("Commande event invalide. Aide : !event | Boutique : !event primos nombre | !event moras nombre | !event collection");
+        return true;
+    }
+
+    private void HandleGo(string username, EventConfig config, JObject eventData)
+    {
+        JObject participants = GetObject(eventData, "participants");
+        JObject participant = participants[username] as JObject;
+
+        if (participant != null && GetBool(participant, "joined"))
+        {
+            SendWarning(username + ", tu participes déjà à " + config.eventNameNoEmoji + ". Aide : !event");
+            return;
+        }
+
+        participant = EnsureParticipant(eventData, username);
+        participant["joined"] = true;
+        participant["joinedAt"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        AddInt(participant, "currency", 1);
+
+        string message = config.goMessage.Replace("{username}", username);
+
+        string today = DateTime.Now.ToString("yyyy-MM-dd");
+        JObject dayData = EnsureGameBDay(eventData, today);
+
+        if (GetBool(dayData, "found"))
+        {
+            AddInt(participant, "points", 1);
+            AddInt(participant, "currency", 1);
+
+            message += " | 🎁 Le " + config.gameBName + " du jour a déjà été trouvé : +1 point et +1 " + config.currencyEmoji;
+        }
+
+        SendSplit(message);
+    }
+
+    private void HandleSac(string username, EventConfig config, JObject eventData)
+    {
+        JObject participant = EnsureParticipant(eventData, username);
+        int points = GetInt(participant, "points");
+        int currency = GetInt(participant, "currency");
+        int next = GetNextMilestone(points);
+
+        string msg;
+
+        if (next <= 0)
+            msg = "ℹ️ " + config.eventEmoji + " " + username + " | Points : " + points + " | " + config.currencyEmoji + " : " + currency + " | Palier maximal atteint | Boutique : !event boutique";
+        else
+            msg = "ℹ️ " + config.eventEmoji + " " + username + " | Points : " + points + " | " + config.currencyEmoji + " : " + currency + " | Prochain palier : " + points + "/" + next + " | Boutique : !event boutique";
+
+        SendSplit(msg);
+    }
+
+    private void HandleBoutique(EventConfig config)
+    {
+        string msg = "🛒 Boutique " + config.eventNameNoEmoji + " : ";
+        msg += "1" + config.currencyEmoji + " = 160 💠 Primos | ";
+        msg += "1" + config.currencyEmoji + " = 20000 💰 Moras | ";
+        msg += config.collectionDisplay + " = 80" + config.currencyEmoji + " | ";
+        msg += "Acheter : !event primos N / !event moras N / !event collection";
+
+        SendSplit(msg);
+    }
+
+    private void HandleTop(EventConfig config, JObject eventData)
+    {
+        JObject participants = GetObject(eventData, "participants");
+        List<TopEntry> top = new List<TopEntry>();
+
+        foreach (var prop in participants.Properties())
+        {
+            JObject p = prop.Value as JObject;
+            if (p == null || !GetBool(p, "joined"))
+                continue;
+
+            TopEntry entry = new TopEntry();
+            entry.username = prop.Name;
+            entry.points = GetInt(p, "points");
+            top.Add(entry);
+        }
+
+        for (int i = 0; i < top.Count - 1; i++)
+        {
+            for (int j = i + 1; j < top.Count; j++)
+            {
+                if (top[j].points > top[i].points)
+                {
+                    TopEntry tmp = top[i];
+                    top[i] = top[j];
+                    top[j] = tmp;
+                }
+            }
+        }
+
+        if (top.Count == 0)
+        {
+            SendWarning("Aucun participant pour l'event du mois.");
+            return;
+        }
+
+        string msg = "🏆 " + config.eventNameNoEmoji + " | ";
+        int max = top.Count;
+        if (max > 10)
+            max = 10;
+
+        for (int i = 0; i < max; i++)
+        {
+            if (i > 0)
+                msg += " | ";
+
+            msg += (i + 1) + "." + top[i].username + " " + top[i].points + "pts";
+        }
+
+        SendSplit(msg);
+    }
+
+    private void HandleBuyPrimos(string username, string[] parts, EventConfig config, JObject viewer, JObject viewers, JObject eventData)
+    {
+        if (parts.Length < 2)
+        {
+            SendWarning("Achat invalide. Boutique : !event primos nombre | !event moras nombre | !event collection");
+            return;
+        }
+
+        int count = ParsePositiveInt(parts[1]);
+
+        if (count <= 0)
+        {
+            SendWarning("Achat invalide. Boutique : !event primos nombre | !event moras nombre | !event collection");
+            return;
+        }
+
+        JObject participant = EnsureParticipant(eventData, username);
+        int currency = GetInt(participant, "currency");
+
+        if (currency < count)
+        {
+            SendWarning(username + ", pas assez de " + config.currencyEmoji + ". Solde : " + currency + ".");
+            return;
+        }
+
+        int amount = count * 160;
+        AddInt(participant, "currency", -count);
+        AddInt(viewer, "primogems", amount);
+        AddStat(viewer, "totalPrimosEarned", amount);
+
+        SaveJObject(eventDataPath, eventData);
+        SaveJObject(viewersPath, viewers);
+
+        SendSplit("✅ " + username + " échange " + count + config.currencyEmoji + " contre +💠" + amount + " primos (" + GetInt(viewer, "primogems") + ").");
+    }
+
+    private void HandleBuyMoras(string username, string[] parts, EventConfig config, JObject viewer, JObject viewers, JObject eventData)
+    {
+        if (parts.Length < 2)
+        {
+            SendWarning("Achat invalide. Boutique : !event primos nombre | !event moras nombre | !event collection");
+            return;
+        }
+
+        int count = ParsePositiveInt(parts[1]);
+
+        if (count <= 0)
+        {
+            SendWarning("Achat invalide. Boutique : !event primos nombre | !event moras nombre | !event collection");
+            return;
+        }
+
+        JObject participant = EnsureParticipant(eventData, username);
+        int currency = GetInt(participant, "currency");
+
+        if (currency < count)
+        {
+            SendWarning(username + ", pas assez de " + config.currencyEmoji + ". Solde : " + currency + ".");
+            return;
+        }
+
+        int amount = count * 20000;
+        AddInt(participant, "currency", -count);
+        AddInt(viewer, "moras", amount);
+        AddStat(viewer, "totalMorasEarned", amount);
+
+        SaveJObject(eventDataPath, eventData);
+        SaveJObject(viewersPath, viewers);
+
+        SendSplit("✅ " + username + " échange " + count + config.currencyEmoji + " contre +💰" + amount + " moras (" + GetInt(viewer, "moras") + ").");
+    }
+
+    private void HandleBuyCollection(string username, EventConfig config, JObject viewer, JObject viewers, JObject eventData, DateTime now)
+    {
+        JObject participant = EnsureParticipant(eventData, username);
+        int currency = GetInt(participant, "currency");
+
+        if (currency < 80)
+        {
+            SendWarning(username + ", pas assez de " + config.currencyEmoji + ". Solde : " + currency + ".");
+            return;
+        }
+
+        JObject purchases = GetObject(eventData, "collectionPurchases");
+        string yearKey = now.Year.ToString();
+        JObject yearPurchases = GetObject(purchases, yearKey);
+        JArray userPurchases = GetArray(yearPurchases, username);
+
+        if (ArrayContainsString(userPurchases, config.collectionItemId))
+        {
+            SendWarning(username + ", tu as déjà obtenu " + config.collectionDisplay + " cette année.");
+            return;
+        }
+
+        AddInt(participant, "currency", -80);
+        userPurchases.Add(config.collectionItemId);
+
+        JObject coffre = GetObject(viewer, "coffre");
+        AddInt(coffre, config.collectionItemId, 1);
+
+        SaveJObject(eventDataPath, eventData);
+        SaveJObject(viewersPath, viewers);
+
+        SendSplit("✅ " + username + " ajoute " + config.collectionDisplay + " à son coffre ! Voir : !coffre");
+    }
+
+    private void HandleGameA(string username, EventConfig config, JObject viewer, JObject viewers, JObject eventData, DateTime now, string today)
+    {
+        JObject participant = EnsureParticipant(eventData, username);
+        JObject daily = EnsureDaily(participant, today);
+
+        if (GetBool(daily, "gameASuccess"))
+        {
+            SendWarning(config.gameAAlready.Replace("{username}", username));
+            return;
+        }
+
+        JArray windows = GetDailyWindows(eventData, username, today);
+
+        bool inWindow = false;
+        string windowText = BuildWindowsText(windows);
+
+        for (int i = 0; i < windows.Count; i++)
+        {
+            JObject w = windows[i] as JObject;
+            if (w == null)
+                continue;
+
+            string start = GetString(w, "start");
+            string end = GetString(w, "end");
+
+            TimeSpan startTime;
+            TimeSpan endTime;
+
+            if (!TimeSpan.TryParse(start, out startTime))
+                continue;
+
+            if (!TimeSpan.TryParse(end, out endTime))
+                continue;
+
+            TimeSpan nowTime = new TimeSpan(now.Hour, now.Minute, 0);
+
+            if (nowTime >= startTime && nowTime <= endTime)
+                inWindow = true;
+        }
+
+        if (!inWindow)
+        {
+            string msg = config.gameAOutside.Replace("{username}", username);
+            msg = msg.Replace("{window1}", GetWindowDisplay(windows, 0));
+            msg = msg.Replace("{window2}", GetWindowDisplay(windows, 1));
+            msg = msg.Replace("{window3}", GetWindowDisplay(windows, 2));
+            SendSplit(msg);
+            SaveJObject(eventDataPath, eventData);
+            return;
+        }
+
+        int roll = rng.Next(1, 6);
+
+        if (roll != 1)
+        {
+            SendSplit(config.gameAFail.Replace("{username}", username));
+            SaveJObject(eventDataPath, eventData);
+            return;
+        }
+
+        daily["gameASuccess"] = true;
+        AwardEventReward(username, config, viewer, viewers, eventData, 1, 1, true);
+
+        JObject refreshedParticipant = EnsureParticipant(eventData, username);
+        string success = config.gameASuccess.Replace("{username}", username);
+        success = success.Replace("{totalPoints}", GetInt(refreshedParticipant, "points").ToString());
+        success = success.Replace("{totalCurrency}", GetInt(refreshedParticipant, "currency").ToString());
+        SendSplit(success);
+
+        SaveJObject(eventDataPath, eventData);
+        SaveJObject(viewersPath, viewers);
+    }
+
+    private void HandleGameB(string username, string input, string[] parts, EventConfig config, JObject viewers, JObject eventData, string today)
+    {
+        JObject dayData = EnsureGameBDay(eventData, today);
+
+        if (parts.Length < 2)
+        {
+            JArray testedCodesHelp = GetArray(dayData, "testedCodes");
+            SendSplit(BuildGameBHelpMessage(config, testedCodesHelp));
+            SaveJObject(eventDataPath, eventData);
+            return;
+        }
+
+        string code = parts[1].Trim();
+
+        if (code.Length != 5)
+        {
+            SendWarning("Format invalide. Utilise : !event " + config.gameBCommand + " 01101");
+            return;
+        }
+
+        for (int i = 0; i < code.Length; i++)
+        {
+            if (code[i] != '0' && code[i] != '1')
+            {
+                SendWarning("Les coordonnées doivent contenir exactement 5 chiffres composés uniquement de 0 et de 1. Exemple : !event " + config.gameBCommand + " 01101");
+                return;
+            }
+        }
+
+        if (GetBool(dayData, "found"))
+        {
+            string msg = config.gameBAlreadyFound.Replace("{winningCode}", GetString(dayData, "winningCode"));
+            SendSplit(msg);
+            return;
+        }
+
+        JArray testedCodes = GetArray(dayData, "testedCodes");
+
+        if (ArrayContainsString(testedCodes, code))
+        {
+            SendWarning(config.gameBAlreadyTried);
+            return;
+        }
+
+        JObject participant = EnsureParticipant(eventData, username);
+        JObject daily = EnsureDaily(participant, today);
+        int attempts = GetInt(daily, "gameBAttempts");
+
+        if (attempts >= 3)
+        {
+            SendWarning(username + ", tu as déjà utilisé tes 3 essais du jour. Reviens demain !");
+            return;
+        }
+
+        attempts++;
+        daily["gameBAttempts"] = attempts;
+        testedCodes.Add(code);
+
+        string winningCode = GetString(dayData, "winningCode");
+
+        if (code == winningCode)
+        {
+            dayData["found"] = true;
+            dayData["foundBy"] = username;
+
+            JObject participants = GetObject(eventData, "participants");
+
+            foreach (var prop in participants.Properties())
+            {
+                JObject p = prop.Value as JObject;
+                if (p == null || !GetBool(p, "joined"))
+                    continue;
+
+                string targetName = prop.Name;
+                JObject targetViewer = viewers[targetName] as JObject;
+
+                if (targetViewer != null)
+                {
+                    EnsureViewerDefaults(targetViewer, targetName);
+                    AwardEventReward(targetName, config, targetViewer, viewers, eventData, 1, 1, true);
+                }
+                else
+                {
+                    AddInt(p, "points", 1);
+                    AddInt(p, "currency", 1);
+                }
+            }
+
+            SaveJObject(eventDataPath, eventData);
+            SaveJObject(viewersPath, viewers);
+
+            string foundMsg = config.gameBFound.Replace("{username}", username).Replace("{code}", code);
+            SendSplit(foundMsg);
+            return;
+        }
+
+        SaveJObject(eventDataPath, eventData);
+
+        int triesLeft = 3 - attempts;
+        string fail = config.gameBFail.Replace("{username}", username).Replace("{code}", code).Replace("{triesLeft}", triesLeft.ToString());
+        SendSplit(fail);
+    }
+
+    private void HandleGameC(string username, string input, EventConfig config, JObject viewer, JObject viewers, JObject eventData, string today)
+    {
+        string raw = input.Trim();
+        int firstSpace = raw.IndexOf(' ');
+
+        if (firstSpace < 0 || firstSpace >= raw.Length - 1)
+        {
+            SendSplit(config.gameCHelp);
+            return;
+        }
+
+        string rest = raw.Substring(firstSpace + 1).Trim();
+        int firstQuote = rest.IndexOf('"');
+        int lastQuote = rest.LastIndexOf('"');
+
+        if (firstQuote < 0 || lastQuote <= firstQuote)
+        {
+            SendWarning("Le message doit être entre guillemets. Exemple : !event " + config.gameCCommand + " pseudo \"" + config.gameCExample + "\"");
+            return;
+        }
+
+        string targetPart = rest.Substring(0, firstQuote).Trim();
+        string message = rest.Substring(firstQuote + 1, lastQuote - firstQuote - 1).Trim();
+        string target = NormalizeUsername(targetPart);
+
+        if (string.IsNullOrEmpty(target) || string.IsNullOrEmpty(message))
+        {
+            SendWarning("Format invalide. Utilise : !event " + config.gameCCommand + " pseudo \"message\"");
+            return;
+        }
+
+        if (target == username)
+        {
+            SendWarning(config.gameCSelf.Replace("{username}", username));
+            return;
+        }
+
+        JObject targetViewer = viewers[target] as JObject;
+
+        if (targetViewer == null)
+        {
+            SendWarning("Destinataire introuvable. Le viewer doit déjà exister dans le jeu.");
+            return;
+        }
+
+        JObject participant = EnsureParticipant(eventData, username);
+        JObject daily = EnsureDaily(participant, today);
+
+        if (GetBool(daily, "gameCSent"))
+        {
+            SendWarning(config.gameCAlready.Replace("{username}", username));
+            return;
+        }
+
+        daily["gameCSent"] = true;
+
+        JObject messages = GetObject(eventData, "messages");
+        JArray targetMessages = GetArray(messages, target);
+        JObject msg = new JObject();
+        msg["sender"] = username;
+        msg["text"] = message;
+        msg["read"] = false;
+        msg["type"] = config.gameCCommand;
+        msg["createdAt"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        targetMessages.Add(msg);
+
+        AwardEventReward(username, config, viewer, viewers, eventData, 1, 1, true);
+
+        JObject refreshedParticipant = EnsureParticipant(eventData, username);
+        string success = config.gameCSuccess.Replace("{username}", username).Replace("{target}", target);
+        success = success.Replace("{totalPoints}", GetInt(refreshedParticipant, "points").ToString());
+        success = success.Replace("{totalCurrency}", GetInt(refreshedParticipant, "currency").ToString());
+
+        SaveJObject(eventDataPath, eventData);
+        SaveJObject(viewersPath, viewers);
+        SendSplit(success);
+    }
+
+    private void HandleCalendar(string username, EventConfig config, JObject eventData, DateTime now)
+    {
+        if (now.Month != 12 || now.Day < 1 || now.Day > 25)
+        {
+            SendWarning("Le calendrier de Noël n'est disponible que du 1er au 25 décembre.");
+            return;
+        }
+
+        JObject calendar = GetObject(eventData, "calendar");
+        JObject userCal = GetObject(calendar, username);
+        JArray openedDays = GetArray(userCal, "openedDays");
+
+        if (ArrayContainsInt(openedDays, now.Day))
+        {
+            SendWarning(username + ", tu as déjà ouvert la case du jour. Reviens demain !");
+            return;
+        }
+
+        int reward = now.Day == 25 ? 50 : rng.Next(1, 6);
+        openedDays.Add(now.Day);
+
+        JObject participant = EnsureParticipant(eventData, username);
+        AddInt(participant, "currency", reward);
+
+        SaveJObject(eventDataPath, eventData);
+
+        string msg = GetCalendarMessage(now.Day, username, reward, config.currencyEmoji, GetInt(participant, "currency"));
+        SendSplit(msg);
+    }
+
+    private void AwardEventReward(string username, EventConfig config, JObject viewer, JObject viewers, JObject eventData, int points, int currency, bool checkMilestones)
+    {
+        JObject participant = EnsureParticipant(eventData, username);
+        AddInt(participant, "points", points);
+        AddInt(participant, "currency", currency);
+
+        if (checkMilestones)
+            CheckMilestones(username, config, viewer, participant);
+    }
+
+    private void CheckMilestones(string username, EventConfig config, JObject viewer, JObject participant)
+    {
+        int points = GetInt(participant, "points");
+        JArray claimed = GetArray(participant, "milestonesClaimed");
+        int[] milestones = new int[] { 10, 20, 30, 40, 50, 60, 70, 80 };
+
+        for (int i = 0; i < milestones.Length; i++)
+        {
+            int milestone = milestones[i];
+
+            if (points < milestone)
+                continue;
+
+            if (ArrayContainsInt(claimed, milestone))
+                continue;
+
+            claimed.Add(milestone);
+
+            if (milestone == 10)
+            {
+                string element = GetRandomElement();
+                JObject particles = GetObject(viewer, "particles");
+                AddInt(particles, element, 500);
+                AddMainElementParticlesEarnedIfNeeded(viewer, element, 500);
+                string display = GetElementDisplayName(element);
+                SendSplit("✅ " + config.currencyEmoji + " " + username + " atteint le palier des 10 points de " + config.eventNameNoEmoji + " ! Gain : +500 particules " + display + " (" + GetInt(particles, element) + ")");
+            }
+            else if (milestone == 20)
+            {
+                AddInt(participant, "currency", 1);
+                SendSplit("✅ " + config.currencyEmoji + " Déjà 20 points pour " + username + " ! Gain : +1 " + config.currencyEmoji + " (" + GetInt(participant, "currency") + ")");
+            }
+            else if (milestone == 30)
+            {
+                string element = GetString(viewer, "element");
+                if (string.IsNullOrEmpty(element))
+                    element = GetRandomElement();
+
+                element = NormalizeText(element);
+                JObject particles = GetObject(viewer, "particles");
+                AddInt(particles, element, 500);
+                AddMainElementParticlesEarnedIfNeeded(viewer, element, 500);
+                string display = GetElementDisplayName(element);
+                SendSplit("✅ " + config.eventEmoji + " " + username + " atteint le palier des 30 points de " + config.eventNameNoEmoji + " ! Gain : +500 particules " + display + " (" + GetInt(particles, element) + ")");
+            }
+            else if (milestone == 40)
+            {
+                AddInt(participant, "currency", 2);
+                SendSplit("✅ " + config.currencyEmoji + " " + username + " atteint le palier des 40 points ! Gain : +2 " + config.currencyEmoji + " (" + GetInt(participant, "currency") + ")");
+            }
+            else if (milestone == 50)
+            {
+                AddInt(viewer, "moras", 50000);
+                AddStat(viewer, "totalMorasEarned", 50000);
+                SendSplit("✅ ⭐ Impressionnant ! " + username + " atteint le palier des 50 points ! Gain : +50000 moras (" + GetInt(viewer, "moras") + ")");
+            }
+            else if (milestone == 60)
+            {
+                AddInt(participant, "currency", 5);
+                SendSplit("✅ " + config.currencyEmoji + " " + username + " atteint le palier des 60 points ! Gain : +5 " + config.currencyEmoji + " (" + GetInt(participant, "currency") + ")");
+            }
+            else if (milestone == 70)
+            {
+                AddInt(viewer, "primogems", 1600);
+                AddStat(viewer, "totalPrimosEarned", 1600);
+                SendSplit("✅ ⭐ Incroyable participation ! " + username + " atteint le palier des 70 points ! Gain : +1600 primos (" + GetInt(viewer, "primogems") + ")");
+            }
+            else if (milestone == 80)
+            {
+                AddInt(participant, "currency", 10);
+                SendSplit("✅ 👑 " + username + " atteint le palier maximal des 80 points de " + config.eventNameNoEmoji + " ! Gain : +10 " + config.currencyEmoji + " (" + GetInt(participant, "currency") + ")");
+            }
+        }
+    }
+
+    private JObject EnsureParticipant(JObject eventData, string username)
+    {
+        JObject participants = GetObject(eventData, "participants");
+        JObject participant = participants[username] as JObject;
+
+        if (participant == null)
+        {
+            participant = new JObject();
+            participant["joined"] = false;
+            participant["points"] = 0;
+            participant["currency"] = 0;
+            participant["milestonesClaimed"] = new JArray();
+            participant["daily"] = new JObject();
+            participant["joinedAt"] = "";
+            participants[username] = participant;
+        }
+
+        EnsureBool(participant, "joined", false);
+        EnsureInt(participant, "points", 0);
+        EnsureInt(participant, "currency", 0);
+        GetArray(participant, "milestonesClaimed");
+        GetObject(participant, "daily");
+        EnsureString(participant, "joinedAt", "");
+
+        return participant;
+    }
+
+    private JObject EnsureDaily(JObject participant, string date)
+    {
+        JObject daily = GetObject(participant, "daily");
+        JObject day = daily[date] as JObject;
+
+        if (day == null)
+        {
+            day = new JObject();
+            day["gameASuccess"] = false;
+            day["gameBAttempts"] = 0;
+            day["gameCSent"] = false;
+            daily[date] = day;
+        }
+
+        EnsureBool(day, "gameASuccess", false);
+        EnsureInt(day, "gameBAttempts", 0);
+        EnsureBool(day, "gameCSent", false);
+
+        return day;
+    }
+
+    private bool IsJoined(JObject eventData, string username)
+    {
+        JObject participants = GetObject(eventData, "participants");
+        JObject participant = participants[username] as JObject;
+
+        if (participant == null)
+            return false;
+
+        return GetBool(participant, "joined");
+    }
+
+    private JObject EnsureGameBDay(JObject eventData, string date)
+    {
+        JObject gameB = GetObject(eventData, "gameB");
+        JObject day = gameB[date] as JObject;
+
+        if (day == null)
+        {
+            day = new JObject();
+            day["winningCode"] = GenerateBinaryCode();
+            day["found"] = false;
+            day["foundBy"] = "";
+            day["testedCodes"] = new JArray();
+            gameB[date] = day;
+        }
+
+        EnsureString(day, "winningCode", GenerateBinaryCode());
+        EnsureBool(day, "found", false);
+        EnsureString(day, "foundBy", "");
+        GetArray(day, "testedCodes");
+
+        return day;
+    }
+
+    private JArray GetDailyWindows(JObject eventData, string username, string date)
+    {
+        JObject dailyWindows = GetObject(eventData, "dailyWindows");
+        JObject userWindows = GetObject(dailyWindows, username);
+        JArray windows = userWindows[date] as JArray;
+
+        if (windows == null)
+        {
+            windows = GenerateWindows();
+            userWindows[date] = windows;
+        }
+
+        return windows;
+    }
+
+    private JArray GenerateWindows()
+    {
+        List<WindowRange> list = new List<WindowRange>();
+
+        AddWindowInRange(list, 7 * 60, 12 * 60);
+        AddWindowInRange(list, 12 * 60, 18 * 60);
+        AddWindowInRange(list, 18 * 60, 23 * 60);
+
+        JArray result = new JArray();
+
+        for (int i = 0; i < list.Count; i++)
+        {
+            JObject w = new JObject();
+            w["start"] = MinuteToTime(list[i].startMinute);
+            w["end"] = MinuteToTime(list[i].endMinute);
+            result.Add(w);
+        }
+
+        return result;
+    }
+
+    private void AddWindowInRange(List<WindowRange> list, int rangeStartMinute, int rangeEndMinute)
+    {
+        int duration = 60;
+        int latestStart = rangeEndMinute - duration;
+
+        if (latestStart < rangeStartMinute)
+            latestStart = rangeStartMinute;
+
+        WindowRange wr = new WindowRange();
+        wr.startMinute = rng.Next(rangeStartMinute, latestStart + 1);
+        wr.endMinute = wr.startMinute + duration;
+
+        list.Add(wr);
+    }
+
+    private string MinuteToTime(int minute)
+    {
+        int h = minute / 60;
+        int m = minute % 60;
+        return h.ToString("00") + ":" + m.ToString("00");
+    }
+
+    private string GetWindowDisplay(JArray windows, int index)
+    {
+        if (windows == null || index < 0 || index >= windows.Count)
+            return "??h?? à ??:??";
+
+        JObject w = windows[index] as JObject;
+
+        if (w == null)
+            return "??h?? à ??:??";
+
+        string start = GetString(w, "start").Replace(":", "h");
+        string end = GetString(w, "end").Replace(":", "h");
+
+        return start + " à " + end;
+    }
+
+    private string BuildWindowsText(JArray windows)
+    {
+        return GetWindowDisplay(windows, 0) + " | " + GetWindowDisplay(windows, 1) + " | " + GetWindowDisplay(windows, 2);
+    }
+
+    private string FormatRemainingCodes(JArray testedCodes)
+    {
+        List<string> remaining = new List<string>();
+
+        for (int i = 0; i < 32; i++)
+        {
+            string code = Convert.ToString(i, 2).PadLeft(5, '0');
+
+            if (!ArrayContainsString(testedCodes, code))
+                remaining.Add(code);
+        }
+
+        if (remaining.Count == 0)
+            return "aucune";
+
+        return string.Join(", ", remaining.ToArray());
+    }
+
+    private string BuildGameBHelpMessage(EventConfig config, JArray testedCodes)
+    {
+        return "ℹ️ Combinaisons restantes : " + FormatRemainingCodes(testedCodes)
+            + " | Utilise : !event " + config.gameBCommand + " 01101"
+            + " | Une seule combinaison est correcte parmi 32 possibilités"
+            + " | 3 essais par joueur et par jour.";
+    }
+
+    private string GenerateBinaryCode()
+    {
+        string code = "";
+
+        for (int i = 0; i < 5; i++)
+            code += rng.Next(0, 2).ToString();
+
+        return code;
+    }
+
+    private void EnsureEventDataForCurrentMonth(JObject data, DateTime now)
+    {
+        int year = GetInt(data, "year");
+        int month = GetInt(data, "month");
+
+        if (year != now.Year || month != now.Month)
+        {
+            data.RemoveAll();
+            data["year"] = now.Year;
+            data["month"] = now.Month;
+            data["participants"] = new JObject();
+            data["dailyWindows"] = new JObject();
+            data["gameB"] = new JObject();
+            data["messages"] = new JObject();
+            data["calendar"] = new JObject();
+            data["collectionPurchases"] = new JObject();
+            JObject draw = new JObject();
+            draw["drawDone"] = false;
+            draw["winner"] = "";
+            data["monthlyDraw"] = draw;
+            SaveJObject(eventDataPath, data);
+            return;
+        }
+
+        EnsureInt(data, "year", now.Year);
+        EnsureInt(data, "month", now.Month);
+        GetObject(data, "participants");
+        GetObject(data, "dailyWindows");
+        GetObject(data, "gameB");
+        GetObject(data, "messages");
+        GetObject(data, "calendar");
+        GetObject(data, "collectionPurchases");
+        JObject monthlyDraw = GetObject(data, "monthlyDraw");
+        EnsureBool(monthlyDraw, "drawDone", false);
+        EnsureString(monthlyDraw, "winner", "");
+    }
+
+    private EventConfig GetEventConfig(int month)
+    {
+        EventConfig c = new EventConfig();
+
+        if (month == 1)
+        {
+            c.eventEmoji = "🎆"; c.eventNameNoEmoji = "Festival du Nouvel An"; c.currencyName = "Éclats de Fortune"; c.currencyEmoji = "🎆";
+            c.collectionItemId = "lanterne_nouvel_an"; c.collectionDisplay = "🎆 Lanterne du Nouvel An";
+            c.gameACommand = "feu"; c.gameBCommand = "coffre"; c.gameCCommand = "voeu";
+            c.gameAName = "feu d’artifice"; c.gameBName = "coffre de fortune"; c.gameCName = "vœu";
+            c.gameCExample = "Bonne année !";
+            c.helpMessage = "ℹ️ 🎆 Festival du Nouvel An : !event go | !event sac | !event boutique | !event top | !event feu | !event coffre | !event voeu pseudo \"message\"";
+            c.goMessage = "✅ 🎆 {username} rejoint le Festival du Nouvel An ! Gagne des 🎆 Éclats de Fortune avec !event feu, !event coffre et !event voeu.";
+            c.boutiqueMessage = "🛒 Boutique du Nouvel An : !event primos N = N🎆×160 primos | !event moras N = N🎆×20000 moras | !event collection = Lanterne du Nouvel An [80🎆]";
+            c.gameAOutside = "⚠️ {username}, ce n’est pas le bon moment pour lancer un feu d’artifice. Fenêtres du jour : {window1} | {window2} | {window3}";
+            c.gameAFail = "🎇 {username} tente d’allumer un feu d’artifice... mais la mèche s’éteint. Retente avant la fin de la fenêtre de temps !";
+            c.gameASuccess = "✅ 🎆 {username} lance un magnifique feu d’artifice du Nouvel An ! +1 point ({totalPoints}) | +1 🎆 ({totalCurrency})";
+            c.gameAAlready = "{username}, tu as déjà lancé ton feu d’artifice du jour. Reviens demain !";
+            c.gameBHelp = "ℹ️ Trouve le code du coffre de fortune du jour. Utilise : !event coffre 01101 | Une seule combinaison est correcte parmi 32 possibilités | 3 essais par joueur et par jour.";
+            c.gameBAlreadyTried = "Ce code a déjà été testé. Essaie-en un autre, ton essai n’est pas consommé.";
+            c.gameBFail = "🎆 {username} tente d’ouvrir le coffre avec le code {code}... le coffre reste fermé. Essais restants : {triesLeft}/3";
+            c.gameBFound = "✅ 🎁 {username} ouvre le coffre de fortune avec le code {code} ! Tous les participants gagnent +1 point et +1 🎆.";
+            c.gameBAlreadyFound = "⚠️ Le coffre de fortune du jour a déjà été ouvert avec le code {winningCode}. Reviens demain !";
+            c.gameCHelp = "ℹ️ Envoie un vœu du Nouvel An avec : !event voeu pseudo \"message\" | 1 envoi par jour.";
+            c.gameCSelf = "{username}, tu ne peux pas t’envoyer un vœu à toi-même.";
+            c.gameCAlready = "{username}, tu as déjà envoyé ton vœu du jour. Reviens demain !";
+            c.gameCSuccess = "✅ 🎊 {username} envoie un vœu du Nouvel An à {target} ! +1 point ({totalPoints}) | +1 🎆 ({totalCurrency})";
+        }
+        else if (month == 2)
+        {
+            c.eventEmoji = "💖"; c.eventNameNoEmoji = "Festival des Cœurs"; c.currencyName = "Cœurs Étincelants"; c.currencyEmoji = "💖";
+            c.collectionItemId = "coeur_cristallin"; c.collectionDisplay = "💖 Cœur Cristallin";
+            c.gameACommand = "coeur"; c.gameBCommand = "cadeau"; c.gameCCommand = "motdoux";
+            c.gameCExample = "Tu es formidable !";
+            c.helpMessage = "ℹ️ 💖 Festival des Cœurs : !event go | !event sac | !event boutique | !event top | !event coeur | !event cadeau | !event motdoux pseudo \"message\"";
+            c.goMessage = "✅ 💖 {username} rejoint le Festival des Cœurs ! Gagne des 💖 Cœurs Étincelants avec !event coeur, !event cadeau et !event motdoux.";
+            c.boutiqueMessage = "🛒 Boutique des Cœurs : !event primos N = N💖×160 primos | !event moras N = N💖×20000 moras | !event collection = Cœur Cristallin [80💖]";
+            c.gameAOutside = "⚠️ {username}, ce n’est pas le bon moment pour invoquer un cœur étincelant. Fenêtres du jour : {window1} | {window2} | {window3}";
+            c.gameAFail = "💕 {username} tente d'invoquer un cœur étincelant... mais la magie ne prend pas. Retente avant la fin de la fenêtre de temps !";
+            c.gameASuccess = "✅ 💖 {username} fait apparaître un magnifique cœur étincelant ! +1 point ({totalPoints}) | +1 💖 ({totalCurrency})";
+            c.gameAAlready = "{username}, tu as déjà invoqué ton cœur étincelant du jour. Reviens demain !";
+            c.gameBHelp = "ℹ️ Trouve le code du cadeau mystère du jour. Utilise : !event cadeau 01101 | Une seule combinaison est correcte parmi 32 possibilités | 3 essais par joueur et par jour.";
+            c.gameBAlreadyTried = "Ce code a déjà été testé. Essaie-en un autre, ton essai n’est pas consommé.";
+            c.gameBFail = "🎁 {username} tente d’ouvrir le cadeau avec le code {code}... il reste fermé. Essais restants : {triesLeft}/3";
+            c.gameBFound = "✅ 🎀 {username} ouvre le cadeau mystère avec le code {code} ! Tous les participants gagnent +1 point et +1 💖.";
+            c.gameBAlreadyFound = "⚠️ Le cadeau mystère du jour a déjà été ouvert avec le code {winningCode}. Reviens demain !";
+            c.gameCHelp = "ℹ️ Envoie un mot doux avec : !event motdoux pseudo \"message\" | 1 envoi par jour.";
+            c.gameCSelf = "{username}, tu ne peux pas t’envoyer un mot doux à toi-même.";
+            c.gameCAlready = "{username}, tu as déjà envoyé ton mot doux du jour. Reviens demain !";
+            c.gameCSuccess = "✅ 💌 {username} envoie un mot doux à {target} ! +1 point ({totalPoints}) | +1 💖 ({totalCurrency})";
+        }
+        else if (month == 3)
+        {
+            c.eventEmoji = "🌱"; c.eventNameNoEmoji = "Festival du Printemps"; c.currencyName = "Bourgeons Mystiques"; c.currencyEmoji = "🌱";
+            c.collectionItemId = "bourgeon_eternel"; c.collectionDisplay = "🌱 Bourgeon Éternel";
+            c.gameACommand = "pousse"; c.gameBCommand = "racine"; c.gameCCommand = "graine"; c.gameCExample = "Passe une belle journée !";
+            c.helpMessage = "ℹ️ 🌱 Festival du Printemps : !event go | !event sac | !event boutique | !event top | !event pousse | !event racine | !event graine pseudo \"message\"";
+            c.goMessage = "✅ 🌱 {username} rejoint le Festival du Printemps ! Gagne des 🌱 Bourgeons Mystiques avec !event pousse, !event racine et !event graine.";
+            c.boutiqueMessage = "🛒 Boutique du Printemps : !event primos N = N🌱×160 primos | !event moras N = N🌱×20000 moras | !event collection = Bourgeon Éternel [80🌱]";
+            c.gameAOutside = "⚠️ {username}, ce n’est pas le bon moment pour faire pousser un bourgeon. Fenêtres du jour : {window1} | {window2} | {window3}";
+            c.gameAFail = "🌿 {username} arrose son bourgeon... mais rien ne pousse encore. Retente avant la fin de la fenêtre de temps !";
+            c.gameASuccess = "✅ 🌱 {username} fait éclore un magnifique bourgeon printanier ! +1 point ({totalPoints}) | +1 🌱 ({totalCurrency})";
+            c.gameAAlready = "{username}, tu as déjà fait pousser ton bourgeon du jour. Reviens demain !";
+            c.gameBHelp = "ℹ️ Trouve les coordonnées de la racine mystique du jour. Utilise : !event racine 01101 | Une seule combinaison est correcte parmi 32 possibilités | 3 essais par joueur et par jour.";
+            c.gameBAlreadyTried = "Ces coordonnées ont déjà été testées. Essaie-en d’autres, ton essai n’est pas consommé.";
+            c.gameBFail = "🌱 {username} cherche la racine mystique aux coordonnées {code}... rien trouvé. Essais restants : {triesLeft}/3";
+            c.gameBFound = "✅ 🌳 {username} découvre la racine mystique aux coordonnées {code} ! Tous les participants gagnent +1 point et +1 🌱.";
+            c.gameBAlreadyFound = "⚠️ La racine mystique du jour a déjà été trouvée aux coordonnées {winningCode}. Reviens demain !";
+            c.gameCHelp = "ℹ️ Envoie une graine d'encouragement avec : !event graine pseudo \"message\" | 1 envoi par jour.";
+            c.gameCSelf = "{username}, tu ne peux pas t’envoyer une graine à toi-même.";
+            c.gameCAlready = "{username}, tu as déjà envoyé ta graine du jour. Reviens demain !";
+            c.gameCSuccess = "✅ 🌼 {username} plante une graine d'encouragement pour {target} ! +1 point ({totalPoints}) | +1 🌱 ({totalCurrency})";
+        }
+        else if (month == 4)
+        {
+            c.eventEmoji = "🥚"; c.eventNameNoEmoji = "Festival des Cloches"; c.currencyName = "Œufs Enchantés"; c.currencyEmoji = "🥚";
+            c.collectionItemId = "oeuf_enchante"; c.collectionDisplay = "🥚 Œuf Enchanté";
+            c.gameACommand = "oeuf"; c.gameBCommand = "panier"; c.gameCCommand = "chocolat"; c.gameCExample = "Joyeuses Pâques !";
+            c.helpMessage = "ℹ️ 🥚 Festival des Cloches : !event go | !event sac | !event boutique | !event top | !event oeuf | !event panier | !event chocolat pseudo \"message\"";
+            c.goMessage = "✅ 🥚 {username} rejoint le Festival des Cloches ! Gagne des 🥚 Œufs Enchantés avec !event oeuf, !event panier et !event chocolat.";
+            c.boutiqueMessage = "🛒 Boutique des Cloches : !event primos N = N🥚×160 primos | !event moras N = N🥚×20000 moras | !event collection = Œuf Enchanté [80🥚]";
+            c.gameAOutside = "⚠️ {username}, ce n’est pas le bon moment pour chercher un œuf. Fenêtres du jour : {window1} | {window2} | {window3}";
+            c.gameAFail = "🥚 {username} fouille les buissons... mais aucun œuf en vue. Retente avant la fin de la fenêtre de temps !";
+            c.gameASuccess = "✅ 🥚 {username} trouve un œuf enchanté ! +1 point ({totalPoints}) | +1 🥚 ({totalCurrency})";
+            c.gameAAlready = "{username}, tu as déjà trouvé ton œuf du jour. Reviens demain !";
+            c.gameBHelp = "ℹ️ Trouve les coordonnées du panier de Pâques du jour. Utilise : !event panier 01101 | Une seule combinaison est correcte parmi 32 possibilités | 3 essais par joueur et par jour.";
+            c.gameBAlreadyTried = "Ces coordonnées ont déjà été testées. Essaie-en d’autres, ton essai n’est pas consommé.";
+            c.gameBFail = "🥚 {username} cherche le panier aux coordonnées {code}... rien trouvé. Essais restants : {triesLeft}/3";
+            c.gameBFound = "✅ 🧺 {username} trouve le panier de Pâques aux coordonnées {code} ! Tous les participants gagnent +1 point et +1 🥚.";
+            c.gameBAlreadyFound = "⚠️ Le panier de Pâques du jour a déjà été trouvé aux coordonnées {winningCode}. Reviens demain !";
+            c.gameCHelp = "ℹ️ Offre un chocolat avec : !event chocolat pseudo \"message\" | 1 envoi par jour.";
+            c.gameCSelf = "{username}, tu ne peux pas t’envoyer un chocolat à toi-même.";
+            c.gameCAlready = "{username}, tu as déjà envoyé ton chocolat du jour. Reviens demain !";
+            c.gameCSuccess = "✅ 🍫 {username} offre un chocolat à {target} ! +1 point ({totalPoints}) | +1 🥚 ({totalCurrency})";
+        }
+        else if (month == 5)
+        {
+            c.eventEmoji = "🌸"; c.eventNameNoEmoji = "Festival des Fleurs"; c.currencyName = "Pétales Magiques"; c.currencyEmoji = "🌸";
+            c.collectionItemId = "fleur_de_printemps"; c.collectionDisplay = "🌸 Fleur de Printemps";
+            c.gameACommand = "fleur"; c.gameBCommand = "bouquet"; c.gameCCommand = "motprintemps"; c.gameCExample = "Passe une belle journée !";
+            c.helpMessage = "ℹ️ 🌸 Festival des Fleurs : !event go | !event sac | !event boutique | !event top | !event fleur | !event bouquet | !event motprintemps pseudo \"message\"";
+            c.goMessage = "✅ 🌸 {username} rejoint le Festival des Fleurs ! Gagne des 🌸 Pétales Magiques avec !event fleur, !event bouquet et !event motprintemps.";
+            c.boutiqueMessage = "🛒 Boutique des Fleurs : !event primos N = N🌸×160 primos | !event moras N = N🌸×20000 moras | !event collection = Fleur de Printemps [80🌸]";
+            c.gameAOutside = "⚠️ {username}, ce n’est pas le bon moment pour cueillir une fleur. Fenêtres du jour : {window1} | {window2} | {window3}";
+            c.gameAFail = "🌷 {username} cherche une fleur rare... mais ne trouve rien. Retente avant la fin de la fenêtre de temps !";
+            c.gameASuccess = "✅ 🌸 {username} cueille une magnifique fleur de printemps ! +1 point ({totalPoints}) | +1 🌸 ({totalCurrency})";
+            c.gameAAlready = "{username}, tu as déjà cueilli ta fleur du jour. Reviens demain !";
+            c.gameBHelp = "ℹ️ Trouve les coordonnées du bouquet légendaire du jour. Utilise : !event bouquet 01101 | Une seule combinaison est correcte parmi 32 possibilités | 3 essais par joueur et par jour.";
+            c.gameBAlreadyTried = "Ces coordonnées ont déjà été testées. Essaie-en d’autres, ton essai n’est pas consommé.";
+            c.gameBFail = "🌸 {username} cherche le bouquet aux coordonnées {code}... rien trouvé. Essais restants : {triesLeft}/3";
+            c.gameBFound = "✅ 💐 {username} découvre le bouquet légendaire aux coordonnées {code} ! Tous les participants gagnent +1 point et +1 🌸.";
+            c.gameBAlreadyFound = "⚠️ Le bouquet légendaire du jour a déjà été trouvé aux coordonnées {winningCode}. Reviens demain !";
+            c.gameCHelp = "ℹ️ Envoie un mot de printemps avec : !event motprintemps pseudo \"message\" | 1 envoi par jour.";
+            c.gameCSelf = "{username}, tu ne peux pas t’envoyer un mot de printemps à toi-même.";
+            c.gameCAlready = "{username}, tu as déjà envoyé ton mot de printemps du jour. Reviens demain !";
+            c.gameCSuccess = "✅ 🌼 {username} envoie un mot de printemps à {target} ! +1 point ({totalPoints}) | +1 🌸 ({totalCurrency})";
+        }
+        else if (month == 6)
+        {
+            c.eventEmoji = "☀️"; c.eventNameNoEmoji = "Festival de l’Été"; c.currencyName = "Coquillages Dorés"; c.currencyEmoji = "🏝️";
+            c.collectionItemId = "coquillage_dore"; c.collectionDisplay = "🏝️ Coquillage Doré";
+            c.gameACommand = "peche"; c.gameBCommand = "tresor"; c.gameCCommand = "lettre"; c.gameCExample = "Bel été à toi !";
+            c.helpMessage = "ℹ️ ☀️ Festival de l’Été : !event go | !event sac | !event boutique | !event top | !event peche | !event tresor | !event lettre pseudo \"message\"";
+            c.goMessage = "✅ ☀️ {username} rejoint le Festival de l’Été ! Gagne des 🏝️ Coquillages Dorés avec !event peche, !event tresor et !event lettre.";
+            c.boutiqueMessage = "🛒 Boutique d’été : !event primos N = N🏝️×160 primos | !event moras N = N🏝️×20000 moras | !event collection = Coquillage Doré [80🏝️]";
+            c.gameAOutside = "⚠️ {username}, ce n’est pas le bon moment pour pêcher. Fenêtres du jour : {window1} | {window2} | {window3}";
+            c.gameAFail = "🌊 {username} lance sa ligne... rien ne mord. Retente avant la fin de la fenêtre de temps !";
+            c.gameASuccess = "✅ 🎣 {username} pêche un poisson d’été ! +1 point ({totalPoints}) | +1 🏝️ ({totalCurrency})";
+            c.gameAAlready = "{username}, tu as déjà pêché ton poisson du jour. Reviens demain !";
+            c.gameBHelp = "ℹ️ Trouve les coordonnées du trésor du jour. Utilise : !event tresor 01101 | Une seule combinaison est correcte parmi 32 possibilités | 3 essais par joueur et par jour.";
+            c.gameBAlreadyTried = "Ces coordonnées ont déjà été testées. Essaie-en d’autres, ton essai n’est pas consommé.";
+            c.gameBFail = "🌊 {username} fouille le sable avec les coordonnées {code}... rien trouvé. Essais restants : {triesLeft}/3";
+            c.gameBFound = "✅ 🗺️ {username} trouve le trésor d’été aux coordonnées {code} ! Tous les participants gagnent +1 point et +1 🏝️.";
+            c.gameBAlreadyFound = "⚠️ Le trésor du jour a déjà été trouvé aux coordonnées {winningCode}. Reviens demain pour une nouvelle chasse !";
+            c.gameCHelp = "ℹ️ Envoie une carte postale estivale avec : !event lettre pseudo \"message\" | 1 envoi par jour.";
+            c.gameCSelf = "{username}, tu ne peux pas t’envoyer une carte postale à toi-même.";
+            c.gameCAlready = "{username}, tu as déjà envoyé ta carte postale du jour. Reviens demain !";
+            c.gameCSuccess = "✅ 💌 {username} envoie une carte postale d’été à {target} ! +1 point ({totalPoints}) | +1 🏝️ ({totalCurrency})";
+        }
+        else if (month == 7)
+        {
+            c.eventEmoji = "⭐"; c.eventNameNoEmoji = "Festival des Étoiles"; c.currencyName = "Étoiles Tombées"; c.currencyEmoji = "⭐";
+            c.collectionItemId = "etoile_filante"; c.collectionDisplay = "⭐ Étoile Filante";
+            c.gameACommand = "etoile"; c.gameBCommand = "constellation"; c.gameCCommand = "voeu"; c.gameCExample = "Que la chance t’accompagne !";
+            c.helpMessage = "ℹ️ ⭐ Festival des Étoiles : !event go | !event sac | !event boutique | !event top | !event etoile | !event constellation | !event voeu pseudo \"message\"";
+            c.goMessage = "✅ ⭐ {username} rejoint le Festival des Étoiles ! Gagne des ⭐ Étoiles Tombées avec !event etoile, !event constellation et !event voeu.";
+            c.boutiqueMessage = "🛒 Boutique des Étoiles : !event primos N = N⭐×160 primos | !event moras N = N⭐×20000 moras | !event collection = Étoile Filante [80⭐]";
+            c.gameAOutside = "⚠️ {username}, ce n’est pas le bon moment pour observer une étoile filante. Fenêtres du jour : {window1} | {window2} | {window3}";
+            c.gameAFail = "🌠 {username} scrute le ciel nocturne... mais aucune étoile filante n’apparaît. Retente avant la fin de la fenêtre de temps !";
+            c.gameASuccess = "✅ ⭐ {username} aperçoit une magnifique étoile filante ! +1 point ({totalPoints}) | +1 ⭐ ({totalCurrency})";
+            c.gameAAlready = "{username}, tu as déjà observé ton étoile filante du jour. Reviens demain !";
+            c.gameBHelp = "ℹ️ Trouve les coordonnées de la constellation secrète du jour. Utilise : !event constellation 01101 | Une seule combinaison est correcte parmi 32 possibilités | 3 essais par joueur et par jour.";
+            c.gameBAlreadyTried = "Ces coordonnées ont déjà été testées. Essaie-en d’autres, ton essai n’est pas consommé.";
+            c.gameBFail = "⭐ {username} recherche la constellation aux coordonnées {code}... rien trouvé. Essais restants : {triesLeft}/3";
+            c.gameBFound = "✅ 🌌 {username} découvre la constellation secrète aux coordonnées {code} ! Tous les participants gagnent +1 point et +1 ⭐.";
+            c.gameBAlreadyFound = "⚠️ La constellation secrète du jour a déjà été trouvée aux coordonnées {winningCode}. Reviens demain !";
+            c.gameCHelp = "ℹ️ Fais un vœu sous les étoiles avec : !event voeu pseudo \"message\" | 1 envoi par jour.";
+            c.gameCSelf = "{username}, tu ne peux pas t’envoyer un vœu à toi-même.";
+            c.gameCAlready = "{username}, tu as déjà envoyé ton vœu du jour. Reviens demain !";
+            c.gameCSuccess = "✅ 💫 {username} adresse un vœu sous les étoiles à {target} ! +1 point ({totalPoints}) | +1 ⭐ ({totalCurrency})";
+        }
+        else if (month == 8)
+        {
+            c.eventEmoji = "🧭"; c.eventNameNoEmoji = "Festival des Aventuriers"; c.currencyName = "Reliques d’Exploration"; c.currencyEmoji = "🧭";
+            c.collectionItemId = "boussole_antique"; c.collectionDisplay = "🧭 Boussole Antique";
+            c.gameACommand = "expedition"; c.gameBCommand = "ruine"; c.gameCCommand = "carnet"; c.gameCExample = "Cette aventure était incroyable !";
+            c.helpMessage = "ℹ️ 🧭 Festival des Aventuriers : !event go | !event sac | !event boutique | !event top | !event expedition | !event ruine | !event carnet pseudo \"message\"";
+            c.goMessage = "✅ 🧭 {username} rejoint le Festival des Aventuriers ! Gagne des 🧭 Reliques d’Exploration avec !event expedition, !event ruine et !event carnet.";
+            c.boutiqueMessage = "🛒 Boutique des Aventuriers : !event primos N = N🧭×160 primos | !event moras N = N🧭×20000 moras | !event collection = Boussole Antique [80🧭]";
+            c.gameAOutside = "⚠️ {username}, ce n’est pas le bon moment pour partir en expédition. Fenêtres du jour : {window1} | {window2} | {window3}";
+            c.gameAFail = "🗺️ {username} explore les environs... mais ne découvre rien d’intéressant. Retente avant la fin de la fenêtre de temps !";
+            c.gameASuccess = "✅ 🧭 {username} revient d’expédition avec une relique rare ! +1 point ({totalPoints}) | +1 🧭 ({totalCurrency})";
+            c.gameAAlready = "{username}, tu as déjà terminé ton expédition du jour. Reviens demain !";
+            c.gameBHelp = "ℹ️ Trouve les coordonnées de la ruine antique du jour. Utilise : !event ruine 01101 | Une seule combinaison est correcte parmi 32 possibilités | 3 essais par joueur et par jour.";
+            c.gameBAlreadyTried = "Ces coordonnées ont déjà été testées. Essaie-en d’autres, ton essai n’est pas consommé.";
+            c.gameBFail = "🧭 {username} explore la ruine aux coordonnées {code}... rien trouvé. Essais restants : {triesLeft}/3";
+            c.gameBFound = "✅ 🏛️ {username} découvre la ruine antique aux coordonnées {code} ! Tous les participants gagnent +1 point et +1 🧭.";
+            c.gameBAlreadyFound = "⚠️ La ruine antique du jour a déjà été trouvée aux coordonnées {winningCode}. Reviens demain !";
+            c.gameCHelp = "ℹ️ Écris une note de voyage avec : !event carnet pseudo \"message\" | 1 envoi par jour.";
+            c.gameCSelf = "{username}, tu ne peux pas t’envoyer une note de voyage à toi-même.";
+            c.gameCAlready = "{username}, tu as déjà envoyé ta note de voyage du jour. Reviens demain !";
+            c.gameCSuccess = "✅ 📖 {username} partage une note de voyage avec {target} ! +1 point ({totalPoints}) | +1 🧭 ({totalCurrency})";
+        }
+        else if (month == 9)
+        {
+            c.eventEmoji = "🌾"; c.eventNameNoEmoji = "Festival des Récoltes"; c.currencyName = "Jetons de Récolte"; c.currencyEmoji = "🌾";
+            c.collectionItemId = "gerbe_de_recolte"; c.collectionDisplay = "🌾 Gerbe de Récolte";
+            c.gameACommand = "recolte"; c.gameBCommand = "grenier"; c.gameCCommand = "panier"; c.gameCExample = "Je partage cette récolte avec toi !";
+            c.helpMessage = "ℹ️ 🌾 Festival des Récoltes : !event go | !event sac | !event boutique | !event top | !event recolte | !event grenier | !event panier pseudo \"message\"";
+            c.goMessage = "✅ 🌾 {username} rejoint le Festival des Récoltes ! Gagne des 🌾 Jetons de Récolte avec !event recolte, !event grenier et !event panier.";
+            c.boutiqueMessage = "🛒 Boutique des Récoltes : !event primos N = N🌾×160 primos | !event moras N = N🌾×20000 moras | !event collection = Gerbe de Récolte [80🌾]";
+            c.gameAOutside = "⚠️ {username}, ce n’est pas le bon moment pour récolter. Fenêtres du jour : {window1} | {window2} | {window3}";
+            c.gameAFail = "🌾 {username} inspecte les champs... mais rien n’est prêt à être récolté. Retente avant la fin de la fenêtre de temps !";
+            c.gameASuccess = "✅ 🌾 {username} réalise une belle récolte ! +1 point ({totalPoints}) | +1 🌾 ({totalCurrency})";
+            c.gameAAlready = "{username}, tu as déjà effectué ta récolte du jour. Reviens demain !";
+            c.gameBHelp = "ℹ️ Trouve les coordonnées du grenier ancien du jour. Utilise : !event grenier 01101 | Une seule combinaison est correcte parmi 32 possibilités | 3 essais par joueur et par jour.";
+            c.gameBAlreadyTried = "Ces coordonnées ont déjà été testées. Essaie-en d’autres, ton essai n’est pas consommé.";
+            c.gameBFail = "🌾 {username} fouille le grenier aux coordonnées {code}... rien trouvé. Essais restants : {triesLeft}/3";
+            c.gameBFound = "✅ 🏚️ {username} découvre le grenier ancien aux coordonnées {code} ! Tous les participants gagnent +1 point et +1 🌾.";
+            c.gameBAlreadyFound = "⚠️ Le grenier ancien du jour a déjà été trouvé aux coordonnées {winningCode}. Reviens demain !";
+            c.gameCHelp = "ℹ️ Partage un panier de récolte avec : !event panier pseudo \"message\" | 1 envoi par jour.";
+            c.gameCSelf = "{username}, tu ne peux pas t’envoyer un panier à toi-même.";
+            c.gameCAlready = "{username}, tu as déjà partagé ton panier du jour. Reviens demain !";
+            c.gameCSuccess = "✅ 🧺 {username} partage un panier de récolte avec {target} ! +1 point ({totalPoints}) | +1 🌾 ({totalCurrency})";
+        }
+        else if (month == 10)
+        {
+            c.eventEmoji = "🎃"; c.eventNameNoEmoji = "Festival des Ombres"; c.currencyName = "Bonbons Maudits"; c.currencyEmoji = "🎃";
+            c.collectionItemId = "citrouille_hantee"; c.collectionDisplay = "🎃 Citrouille Hantée";
+            c.gameACommand = "fantome"; c.gameBCommand = "crypte"; c.gameCCommand = "sort"; c.gameCExample = "Je te transforme en citrouille chanceuse !";
+            c.helpMessage = "ℹ️ 🎃 Festival des Ombres : !event go | !event sac | !event boutique | !event top | !event fantome | !event crypte | !event sort pseudo \"message\"";
+            c.goMessage = "✅ 🎃 {username} rejoint le Festival des Ombres ! Gagne des 🎃 Bonbons Maudits avec !event fantome, !event crypte et !event sort.";
+            c.boutiqueMessage = "🛒 Boutique des Ombres : !event primos N = N🎃×160 primos | !event moras N = N🎃×20000 moras | !event collection = Citrouille Hantée [80🎃]";
+            c.gameAOutside = "⚠️ {username}, ce n’est pas le bon moment pour traquer un fantôme. Fenêtres du jour : {window1} | {window2} | {window3}";
+            c.gameAFail = "👻 {username} explore les ténèbres... mais aucun fantôme n’apparaît. Retente avant la fin de la fenêtre de temps !";
+            c.gameASuccess = "✅ 👻 {username} capture un fantôme farceur ! +1 point ({totalPoints}) | +1 🎃 ({totalCurrency})";
+            c.gameAAlready = "{username}, tu as déjà capturé ton fantôme du jour. Reviens demain !";
+            c.gameBHelp = "ℹ️ Trouve les coordonnées de la crypte hantée du jour. Utilise : !event crypte 01101 | Une seule combinaison est correcte parmi 32 possibilités | 3 essais par joueur et par jour.";
+            c.gameBAlreadyTried = "Ces coordonnées ont déjà été testées. Essaie-en d’autres, ton essai n’est pas consommé.";
+            c.gameBFail = "🎃 {username} explore la crypte aux coordonnées {code}... rien trouvé. Essais restants : {triesLeft}/3";
+            c.gameBFound = "✅ 🪦 {username} découvre la crypte hantée aux coordonnées {code} ! Tous les participants gagnent +1 point et +1 🎃.";
+            c.gameBAlreadyFound = "⚠️ La crypte hantée du jour a déjà été trouvée aux coordonnées {winningCode}. Reviens demain !";
+            c.gameCHelp = "ℹ️ Lance un sort avec : !event sort pseudo \"message\" | 1 envoi par jour.";
+            c.gameCSelf = "{username}, tu ne peux pas te lancer un sort à toi-même.";
+            c.gameCAlready = "{username}, tu as déjà lancé ton sort du jour. Reviens demain !";
+            c.gameCSuccess = "✅ 🧙 {username} lance un sort à {target} ! +1 point ({totalPoints}) | +1 🎃 ({totalCurrency})";
+        }
+        else if (month == 11)
+        {
+            c.eventEmoji = "🍁"; c.eventNameNoEmoji = "Festival des Brumes"; c.currencyName = "Feuilles Anciennes"; c.currencyEmoji = "🍁";
+            c.collectionItemId = "feuille_ancienne"; c.collectionDisplay = "🍁 Feuille Ancienne";
+            c.gameACommand = "feuille"; c.gameBCommand = "relique"; c.gameCCommand = "murmure"; c.gameCExample = "Que la brume te soit favorable.";
+            c.helpMessage = "ℹ️ 🍁 Festival des Brumes : !event go | !event sac | !event boutique | !event top | !event feuille | !event relique | !event murmure pseudo \"message\"";
+            c.goMessage = "✅ 🍁 {username} rejoint le Festival des Brumes ! Gagne des 🍁 Feuilles Anciennes avec !event feuille, !event relique et !event murmure.";
+            c.boutiqueMessage = "🛒 Boutique des Brumes : !event primos N = N🍁×160 primos | !event moras N = N🍁×20000 moras | !event collection = Feuille Ancienne [80🍁]";
+            c.gameAOutside = "⚠️ {username}, ce n’est pas le bon moment pour suivre une feuille portée par le vent. Fenêtres du jour : {window1} | {window2} | {window3}";
+            c.gameAFail = "🍂 {username} suit une feuille dans la brume... mais elle disparaît dans le brouillard. Retente avant la fin de la fenêtre de temps !";
+            c.gameASuccess = "✅ 🍁 {username} retrouve une feuille ancienne portée par le vent ! +1 point ({totalPoints}) | +1 🍁 ({totalCurrency})";
+            c.gameAAlready = "{username}, tu as déjà retrouvé ta feuille ancienne du jour. Reviens demain !";
+            c.gameBHelp = "ℹ️ Trouve les coordonnées de la relique oubliée du jour. Utilise : !event relique 01101 | Une seule combinaison est correcte parmi 32 possibilités | 3 essais par joueur et par jour.";
+            c.gameBAlreadyTried = "Ces coordonnées ont déjà été testées. Essaie-en d’autres, ton essai n’est pas consommé.";
+            c.gameBFail = "🍁 {username} recherche la relique aux coordonnées {code}... rien trouvé. Essais restants : {triesLeft}/3";
+            c.gameBFound = "✅ 🏺 {username} découvre la relique oubliée aux coordonnées {code} ! Tous les participants gagnent +1 point et +1 🍁.";
+            c.gameBAlreadyFound = "⚠️ La relique oubliée du jour a déjà été trouvée aux coordonnées {winningCode}. Reviens demain !";
+            c.gameCHelp = "ℹ️ Envoie un murmure avec : !event murmure pseudo \"message\" | 1 envoi par jour.";
+            c.gameCSelf = "{username}, tu ne peux pas t’envoyer un murmure à toi-même.";
+            c.gameCAlready = "{username}, tu as déjà envoyé ton murmure du jour. Reviens demain !";
+            c.gameCSuccess = "✅ 🌫️ {username} adresse un murmure à {target} ! +1 point ({totalPoints}) | +1 🍁 ({totalCurrency})";
+        }
+        else if (month == 12)
+        {
+            c.eventEmoji = "🎄"; c.eventNameNoEmoji = "Festival de Noël"; c.currencyName = "Étoiles de Noël"; c.currencyEmoji = "🎄";
+            c.collectionItemId = "flocon_enchante"; c.collectionDisplay = "❄️ Flocon Enchanté";
+            c.gameACommand = "cadeau"; c.gameBCommand = "hotte"; c.gameCCommand = "carte"; c.gameCExample = "Joyeux Noël !";
+            c.helpMessage = "ℹ️ 🎄 Festival de Noël : !event go | !event sac | !event boutique | !event top | !event cadeau | !event hotte | !event carte pseudo \"message\" | !event calendrier";
+            c.goMessage = "✅ 🎄 {username} rejoint le Festival de Noël ! Gagne des 🎄 Étoiles de Noël avec !event cadeau, !event hotte et !event carte.";
+            c.boutiqueMessage = "🛒 Boutique de Noël : !event primos N = N🎄×160 primos | !event moras N = N🎄×20000 moras | !event collection = Flocon Enchanté [80🎄]";
+            c.gameAOutside = "⚠️ {username}, ce n’est pas le bon moment pour préparer un cadeau de Noël. Fenêtres du jour : {window1} | {window2} | {window3}";
+            c.gameAFail = "🎁 {username} emballe un cadeau... mais il manque encore quelque chose. Retente avant la fin de la fenêtre de temps !";
+            c.gameASuccess = "✅ 🎁 {username} prépare un magnifique cadeau de Noël ! +1 point ({totalPoints}) | +1 🎄 ({totalCurrency})";
+            c.gameAAlready = "{username}, tu as déjà préparé ton cadeau de Noël du jour. Reviens demain !";
+            c.gameBHelp = "ℹ️ Trouve les coordonnées de la hotte du Père Noël. Utilise : !event hotte 01101 | Une seule combinaison est correcte parmi 32 possibilités | 3 essais par joueur et par jour.";
+            c.gameBAlreadyTried = "Ces coordonnées ont déjà été testées. Essaie-en d’autres, ton essai n’est pas consommé.";
+            c.gameBFail = "🎄 {username} fouille la hotte du Père Noël aux coordonnées {code}... rien trouvé. Essais restants : {triesLeft}/3";
+            c.gameBFound = "✅ 🎅 {username} découvre la hotte du Père Noël aux coordonnées {code} ! Tous les participants gagnent +1 point et +1 🎄.";
+            c.gameBAlreadyFound = "⚠️ La hotte du Père Noël du jour a déjà été trouvée aux coordonnées {winningCode}. Reviens demain !";
+            c.gameCHelp = "ℹ️ Envoie une carte de Noël avec : !event carte pseudo \"message\" | 1 envoi par jour.";
+            c.gameCSelf = "{username}, tu ne peux pas t’envoyer une carte à toi-même.";
+            c.gameCAlready = "{username}, tu as déjà envoyé ta carte du jour. Reviens demain !";
+            c.gameCSuccess = "✅ 💌 {username} envoie une carte de Noël à {target} ! +1 point ({totalPoints}) | +1 🎄 ({totalCurrency})";
+        }
+        else
+        {
+            return null;
+        }
+
+        return c;
+    }
+
+    private string GetCalendarMessage(int day, string username, int reward, string emoji, int total)
+    {
+        if (day == 25)
+            return "🎅 JOYEUX NOËL ! " + username + " ouvre la case 25 du calendrier de l'Avent ! Gain exceptionnel : +50 " + emoji + " (" + total + ")";
+
+        string[] texts = new string[] {
+            "Un petit lutin t'accueille pour les fêtes.",
+            "Les décorations commencent à illuminer le sapin.",
+            "Une douce odeur de biscuits flotte dans l'air.",
+            "Le traîneau est presque prêt pour le départ.",
+            "Un lutin emballe des cadeaux à toute vitesse.",
+            "Une guirlande scintille de mille couleurs.",
+            "Les chants de Noël résonnent dans le village.",
+            "Une étoile brille au sommet du sapin.",
+            "Les cadeaux s'accumulent sous le sapin.",
+            "La magie de Noël grandit chaque jour.",
+            "Les lutins travaillent sans relâche.",
+            "Déjà la moitié du calendrier !",
+            "Un bonhomme de neige te salue.",
+            "Les rennes se préparent pour leur voyage.",
+            "La grande nuit approche doucement.",
+            "Une pluie d'étincelles illumine le ciel.",
+            "Les ateliers du Père Noël tournent à plein régime.",
+            "Les cloches de Noël commencent à sonner.",
+            "Les cadeaux sont presque tous prêts.",
+            "Plus que quelques jours avant Noël !",
+            "Les rennes s'échauffent avant le grand départ.",
+            "Le sapin rayonne de mille lumières.",
+            "La magie est partout autour de toi.",
+            "Le réveillon est enfin arrivé !"
+        };
+
+        string text = texts[day - 1];
+        return "🎁 Case " + day + " ouverte ! " + text + " Gain : +" + reward + " " + emoji + " (" + total + ")";
+    }
+
+    private int GetNextMilestone(int points)
+    {
+        int[] milestones = new int[] { 10, 20, 30, 40, 50, 60, 70, 80 };
+
+        for (int i = 0; i < milestones.Length; i++)
+        {
+            if (points < milestones[i])
+                return milestones[i];
+        }
+
+        return 0;
+    }
+
+    private string GetRandomElement()
+    {
+        string[] elements = new string[] { "pyro", "hydro", "cryo", "electro", "anemo", "geo", "dendro" };
+        return elements[rng.Next(0, elements.Length)];
+    }
+
+    private string GetElementDisplayName(string element)
+    {
+        element = NormalizeText(element);
+
+        if (element == "pyro") return "🔥 Pyro";
+        if (element == "hydro") return "💧 Hydro";
+        if (element == "cryo") return "❄️ Cryo";
+        if (element == "electro") return "⚡ Electro";
+        if (element == "anemo") return "🌪️ Anemo";
+        if (element == "geo") return "☄️ Geo";
+        if (element == "dendro") return "🌿 Dendro";
+
+        return element;
+    }
+
+    private void AddMainElementParticlesEarnedIfNeeded(JObject viewer, string element, int amount)
+    {
+        string mainElement = NormalizeText(GetString(viewer, "element"));
+        string gainedElement = NormalizeText(element);
+
+        if (string.IsNullOrEmpty(mainElement))
+            return;
+
+        if (mainElement != gainedElement)
+            return;
+
+        AddStat(viewer, "totalMainElementParticlesEarned", amount);
+    }
+
+    private void EnsureViewerDefaults(JObject viewer, string username)
+    {
+        if (viewer == null)
+            return;
+
+        if (viewer["username"] == null || viewer["username"].Type == JTokenType.Null)
+            viewer["username"] = username;
+
+        EnsureInt(viewer, "xp", 0);
+        EnsureInt(viewer, "level", 0);
+        EnsureString(viewer, "element", "");
+        EnsureInt(viewer, "primogems", 0);
+        EnsureInt(viewer, "moras", 0);
+        EnsureInt(viewer, "selectedBannerCharacterId", 0);
+
+        JObject particles = GetObject(viewer, "particles");
+        EnsureInt(particles, "pyro", 0);
+        EnsureInt(particles, "hydro", 0);
+        EnsureInt(particles, "cryo", 0);
+        EnsureInt(particles, "electro", 0);
+        EnsureInt(particles, "anemo", 0);
+        EnsureInt(particles, "geo", 0);
+        EnsureInt(particles, "dendro", 0);
+
+        GetObject(viewer, "box");
+        GetArray(viewer, "team");
+
+        JObject pity = GetObject(viewer, "pity");
+        EnsureInt(pity, "pity5", 0);
+        EnsureInt(pity, "pity4", 0);
+
+        JObject guarantee = GetObject(viewer, "guarantee");
+        EnsureBool(guarantee, "guaranteedFeatured5", false);
+
+        JObject options = GetObject(viewer, "options");
+        EnsureString(options, "boxSort", "a");
+        EnsureBool(options, "boxSortDescending", false);
+
+        JObject missions = GetObject(viewer, "missions");
+        JObject daily = GetObject(missions, "daily");
+        EnsureNullOrString(daily, "missionId");
+        EnsureNullOrString(daily, "type");
+        EnsureInt(daily, "progress", 0);
+        EnsureInt(daily, "target", 0);
+        EnsureBool(daily, "completed", false);
+        EnsureBool(daily, "rewardClaimed", false);
+        EnsureNullOrString(daily, "startedAt");
+        EnsureNullOrString(daily, "description");
+
+        JObject stats = GetObject(viewer, "stats");
+        EnsureInt(stats, "totalMessages", 0);
+        EnsureInt(stats, "countedMessages", 0);
+        EnsureInt(stats, "totalPulls", 0);
+        EnsureInt(stats, "totalFiveStars", 0);
+        EnsureInt(stats, "totalFourStars", 0);
+        EnsureBool(stats, "lastPullWasFiveStar", false);
+        EnsureInt(stats, "fiftyFiftyLostStreak", 0);
+        EnsureInt(stats, "fiftyFiftyWon", 0);
+        EnsureInt(stats, "fiftyFiftyLost", 0);
+        EnsureInt(stats, "totalPrimosEarned", 0);
+        EnsureInt(stats, "totalPrimosSpent", 0);
+        EnsureInt(stats, "totalMorasEarned", 0);
+        EnsureInt(stats, "totalMorasSpent", 0);
+        EnsureInt(stats, "level100OverflowRewardsClaimed", 0);
+        EnsureInt(stats, "totalMainElementParticlesEarned", 0);
+
+        JObject dates = GetObject(viewer, "dates");
+        EnsureNullOrString(dates, "firstSeen");
+        EnsureNullOrString(dates, "lastSeen");
+        EnsureNullOrString(dates, "lastXpDate");
+        EnsureNullOrString(dates, "lastMessageTime");
+        EnsureNullOrString(dates, "lastDailyFirstMessageReward");
+
+        GetArray(viewer, "tradeRequests");
+        GetArray(viewer, "usedCodes");
+
+        JObject favor = GetObject(viewer, "favor");
+        EnsureInt(favor, "daysRemaining", 0);
+        EnsureString(favor, "obtainedDate", "");
+        EnsureString(favor, "lastClaimDate", "");
+
+        GetObject(viewer, "coffre");
+        JObject specialItems = GetObject(viewer, "specialItems");
+        EnsureInt(specialItems, "masterlessStellaFortuna", 0);
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        try
+        {
+            if (!File.Exists(path))
+                return new JObject();
+
+            string json = File.ReadAllText(path);
+
+            if (string.IsNullOrWhiteSpace(json))
+                return new JObject();
+
+            JObject data = JObject.Parse(json);
+
+            if (data == null)
+                return new JObject();
+
+            return data;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void SaveJObject(string path, JObject data)
+    {
+        string folder = Path.GetDirectoryName(path);
+
+        if (!Directory.Exists(folder))
+            Directory.CreateDirectory(folder);
+
+        File.WriteAllText(path, data.ToString(Formatting.Indented));
+    }
+
+    private JObject GetObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+
+        return parent[key] as JObject;
+    }
+
+    private JArray GetArray(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Array)
+            parent[key] = new JArray();
+
+        return parent[key] as JArray;
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private bool GetBool(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return false;
+
+        bool value;
+        if (bool.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return false;
+    }
+
+    private void AddInt(JObject obj, string key, int amount)
+    {
+        int current = GetInt(obj, key);
+        obj[key] = current + amount;
+    }
+
+    private void AddStat(JObject viewer, string statName, int amount)
+    {
+        JObject stats = GetObject(viewer, "stats");
+        AddInt(stats, statName, amount);
+    }
+
+    private void EnsureInt(JObject obj, string key, int defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureBool(JObject obj, string key, bool defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureString(JObject obj, string key, string defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureNullOrString(JObject obj, string key)
+    {
+        if (obj[key] == null)
+            obj[key] = null;
+    }
+
+    private bool ArrayContainsString(JArray array, string value)
+    {
+        if (array == null)
+            return false;
+
+        for (int i = 0; i < array.Count; i++)
+        {
+            if (array[i] != null && array[i].ToString() == value)
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool ArrayContainsInt(JArray array, int value)
+    {
+        if (array == null)
+            return false;
+
+        for (int i = 0; i < array.Count; i++)
+        {
+            int current;
+            if (array[i] != null && int.TryParse(array[i].ToString(), out current))
+            {
+                if (current == value)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    private int ParsePositiveInt(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return 0;
+
+        int result;
+        if (!int.TryParse(value.Trim(), out result))
+            return 0;
+
+        if (result <= 0)
+            return 0;
+
+        return result;
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private string NormalizeText(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return "";
+
+        string value = text.ToLower().Trim();
+        value = value.Replace("à", "a"); value = value.Replace("á", "a"); value = value.Replace("â", "a"); value = value.Replace("ä", "a"); value = value.Replace("ã", "a");
+        value = value.Replace("ç", "c");
+        value = value.Replace("è", "e"); value = value.Replace("é", "e"); value = value.Replace("ê", "e"); value = value.Replace("ë", "e");
+        value = value.Replace("ì", "i"); value = value.Replace("í", "i"); value = value.Replace("î", "i"); value = value.Replace("ï", "i");
+        value = value.Replace("ò", "o"); value = value.Replace("ó", "o"); value = value.Replace("ô", "o"); value = value.Replace("ö", "o"); value = value.Replace("õ", "o");
+        value = value.Replace("ù", "u"); value = value.Replace("ú", "u"); value = value.Replace("û", "u"); value = value.Replace("ü", "u");
+        value = value.Replace("ÿ", "y"); value = value.Replace("œ", "oe"); value = value.Replace("æ", "ae");
+        return value;
+    }
+
+    private void SendWarning(string message)
+    {
+        CPH.SendMessage("⚠️ " + message);
+    }
+
+    private void SendError(string message)
+    {
+        CPH.SendMessage("❌ " + message);
+    }
+
+    private void SendSplit(string message)
+    {
+        if (string.IsNullOrEmpty(message))
+            return;
+
+        if (message.Length <= 450)
+        {
+            CPH.SendMessage(message);
+            return;
+        }
+
+        string remaining = message;
+
+        while (remaining.Length > 450)
+        {
+            int cut = remaining.LastIndexOf(" | ", 450);
+
+            if (cut <= 0)
+                cut = 450;
+
+            string part = remaining.Substring(0, cut).Trim();
+            CPH.SendMessage(part);
+            remaining = remaining.Substring(cut).Trim();
+
+            if (remaining.StartsWith("|"))
+                remaining = remaining.Substring(1).Trim();
+        }
+
+        if (remaining.Length > 0)
+            CPH.SendMessage(remaining);
+    }
+}
+
+public class EventConfig
+{
+    public string eventEmoji;
+    public string eventNameNoEmoji;
+    public string currencyName;
+    public string currencyEmoji;
+    public string collectionItemId;
+    public string collectionDisplay;
+    public string gameACommand;
+    public string gameBCommand;
+    public string gameCCommand;
+    public string gameAName;
+    public string gameBName;
+    public string gameCName;
+    public string gameCExample;
+    public string helpMessage;
+    public string goMessage;
+    public string boutiqueMessage;
+    public string gameAOutside;
+    public string gameAFail;
+    public string gameASuccess;
+    public string gameAAlready;
+    public string gameBHelp;
+    public string gameBAlreadyTried;
+    public string gameBFail;
+    public string gameBFound;
+    public string gameBAlreadyFound;
+    public string gameCHelp;
+    public string gameCSelf;
+    public string gameCAlready;
+    public string gameCSuccess;
+}
+
+public class TopEntry
+{
+    public string username;
+    public int points;
+}
+
+public class WindowRange
+{
+    public int startMinute;
+    public int endMinute;
+}

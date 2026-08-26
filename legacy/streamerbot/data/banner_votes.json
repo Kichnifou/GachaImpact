@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "weekId": "2026-08-24",
+  "votes": {
+    "3": {
+      "characterId": 3,
+      "name": "Aloy",
+      "votes": 1,
+      "voters": [
+        "samiia_euh"
+      ]
+    },
+    "117": {
+      "characterId": 117,
+      "name": "Odette",
+      "votes": 5,
+      "voters": [
+        "kichnifou",
+        "kyo89chasca",
+        "marabou_malveillant",
+        "plumereveuse66",
+        "kadraw18"
+      ]
+    },
+    "37": {
+      "characterId": 37,
+      "name": "Nahida",
+      "votes": 1,
+      "voters": [
+        "mathriox612"
+      ]
+    }
+  },
+  "voters": {
+    "samiia_euh": 3,
+    "kichnifou": 117,
+    "kyo89chasca": 117,
+    "marabou_malveillant": 117,
+    "plumereveuse66": 117,
+    "kadraw18": 117,
+    "mathriox612": 37
+  }
+}

@@ -1,0 +1,1344 @@
+{
+  "version": 1,
+  "friendships": {
+    "ceotryd__kichnifou": {
+      "users": [
+        "ceotryd",
+        "kichnifou"
+      ],
+      "status": "friends",
+      "level": 183,
+      "sparkleHearts": 182,
+      "createdAt": "2026-05-19 11:00:43",
+      "lastHeartSent": {
+        "ceotryd": "2026-08-26",
+        "kichnifou": "2026-08-26"
+      }
+    },
+    "kichnifou__marabou_malveillant": {
+      "users": [
+        "kichnifou",
+        "marabou_malveillant"
+      ],
+      "status": "friends",
+      "level": 147,
+      "sparkleHearts": 146,
+      "createdAt": "2026-05-19 11:26:00",
+      "lastHeartSent": {
+        "kichnifou": "2026-08-26",
+        "marabou_malveillant": "2026-08-24"
+      }
+    },
+    "ceotryd__marabou_malveillant": {
+      "users": [
+        "ceotryd",
+        "marabou_malveillant"
+      ],
+      "status": "friends",
+      "level": 146,
+      "sparkleHearts": 145,
+      "createdAt": "2026-05-19 11:28:56",
+      "lastHeartSent": {
+        "ceotryd": "2026-08-26",
+        "marabou_malveillant": "2026-08-24"
+      }
+    },
+    "ceotryd__plumereveuse66": {
+      "users": [
+        "ceotryd",
+        "plumereveuse66"
+      ],
+      "status": "friends",
+      "level": 183,
+      "sparkleHearts": 182,
+      "createdAt": "2026-05-19 11:34:48",
+      "lastHeartSent": {
+        "plumereveuse66": "2026-08-26",
+        "ceotryd": "2026-08-26"
+      }
+    },
+    "kichnifou__plumereveuse66": {
+      "users": [
+        "kichnifou",
+        "plumereveuse66"
+      ],
+      "status": "friends",
+      "level": 188,
+      "sparkleHearts": 187,
+      "createdAt": "2026-05-19 11:34:57",
+      "lastHeartSent": {
+        "plumereveuse66": "2026-08-26",
+        "kichnifou": "2026-08-26"
+      }
+    },
+    "kichnifou__klaroline_forbes": {
+      "users": [
+        "kichnifou",
+        "klaroline_forbes"
+      ],
+      "status": "friends",
+      "level": 91,
+      "sparkleHearts": 90,
+      "createdAt": "2026-05-19 12:00:06",
+      "lastHeartSent": {
+        "klaroline_forbes": "2026-05-25",
+        "kichnifou": "2026-08-26"
+      }
+    },
+    "ceotryd__klaroline_forbes": {
+      "users": [
+        "ceotryd",
+        "klaroline_forbes"
+      ],
+      "status": "friends",
+      "level": 88,
+      "sparkleHearts": 87,
+      "createdAt": "2026-05-19 12:01:23",
+      "lastHeartSent": {
+        "ceotryd": "2026-08-26",
+        "klaroline_forbes": "2026-05-20"
+      }
+    },
+    "klaroline_forbes__plumereveuse66": {
+      "users": [
+        "klaroline_forbes",
+        "plumereveuse66"
+      ],
+      "status": "friends",
+      "level": 96,
+      "sparkleHearts": 95,
+      "createdAt": "2026-05-19 12:02:27",
+      "lastHeartSent": {
+        "plumereveuse66": "2026-08-26",
+        "klaroline_forbes": "2026-05-29"
+      }
+    },
+    "ceotryd__samiia_euh": {
+      "users": [
+        "ceotryd",
+        "samiia_euh"
+      ],
+      "status": "friends",
+      "level": 99,
+      "sparkleHearts": 98,
+      "createdAt": "2026-05-19 19:39:54",
+      "lastHeartSent": {
+        "samiia_euh": "2026-08-07",
+        "ceotryd": "2026-08-26"
+      }
+    },
+    "ninamiaizawa__samiia_euh": {
+      "users": [
+        "ninamiaizawa",
+        "samiia_euh"
+      ],
+      "status": "friends",
+      "level": 16,
+      "sparkleHearts": 15,
+      "createdAt": "2026-05-19 19:41:39",
+      "lastHeartSent": {
+        "ninamiaizawa": "2026-07-04",
+        "samiia_euh": "2026-08-07"
+      }
+    },
+    "plumereveuse66__samiia_euh": {
+      "users": [
+        "plumereveuse66",
+        "samiia_euh"
+      ],
+      "status": "friends",
+      "level": 96,
+      "sparkleHearts": 95,
+      "createdAt": "2026-05-23 19:53:52",
+      "lastHeartSent": {
+        "samiia_euh": "2026-08-07",
+        "plumereveuse66": "2026-08-26"
+      }
+    },
+    "ninamiaizawa__plumereveuse66": {
+      "users": [
+        "ninamiaizawa",
+        "plumereveuse66"
+      ],
+      "status": "friends",
+      "level": 87,
+      "sparkleHearts": 86,
+      "createdAt": "2026-05-23 19:54:54",
+      "lastHeartSent": {
+        "ninamiaizawa": "2026-07-04",
+        "plumereveuse66": "2026-08-26"
+      }
+    },
+    "ceotryd__mizu__c": {
+      "users": [
+        "ceotryd",
+        "mizu__c"
+      ],
+      "status": "friends",
+      "level": 121,
+      "sparkleHearts": 120,
+      "createdAt": "2026-05-23 19:58:01",
+      "lastHeartSent": {
+        "ceotryd": "2026-08-26",
+        "mizu__c": "2026-08-17"
+      }
+    },
+    "mizu__c__plumereveuse66": {
+      "users": [
+        "mizu__c",
+        "plumereveuse66"
+      ],
+      "status": "friends",
+      "level": 125,
+      "sparkleHearts": 124,
+      "createdAt": "2026-05-23 20:00:40",
+      "lastHeartSent": {
+        "mizu__c": "2026-08-17",
+        "plumereveuse66": "2026-08-26"
+      }
+    },
+    "ossahiana__plumereveuse66": {
+      "users": [
+        "ossahiana",
+        "plumereveuse66"
+      ],
+      "status": "friends",
+      "level": 83,
+      "sparkleHearts": 82,
+      "createdAt": "2026-05-23 20:06:20",
+      "lastHeartSent": {
+        "plumereveuse66": "2026-08-26",
+        "ossahiana": ""
+      }
+    },
+    "klaroline_forbes__mizu__c": {
+      "users": [
+        "klaroline_forbes",
+        "mizu__c"
+      ],
+      "status": "friends",
+      "level": 44,
+      "sparkleHearts": 43,
+      "createdAt": "2026-05-23 20:08:01",
+      "lastHeartSent": {
+        "klaroline_forbes": "2026-05-31",
+        "mizu__c": "2026-08-17"
+      }
+    },
+    "kichnifou__kyo89chasca": {
+      "users": [
+        "kichnifou",
+        "kyo89chasca"
+      ],
+      "status": "friends",
+      "level": 153,
+      "sparkleHearts": 152,
+      "createdAt": "2026-05-23 21:40:56",
+      "lastHeartSent": {
+        "kyo89chasca": "2026-08-26",
+        "kichnifou": "2026-08-26"
+      }
+    },
+    "batou_de_batuu__kichnifou": {
+      "users": [
+        "batou_de_batuu",
+        "kichnifou"
+      ],
+      "status": "friends",
+      "level": 85,
+      "sparkleHearts": 84,
+      "createdAt": "2026-05-23 21:41:01",
+      "lastHeartSent": {
+        "batou_de_batuu": "2026-05-23",
+        "kichnifou": "2026-08-26"
+      }
+    },
+    "lynicarion__plumereveuse66": {
+      "users": [
+        "lynicarion",
+        "plumereveuse66"
+      ],
+      "status": "friends",
+      "level": 84,
+      "sparkleHearts": 83,
+      "createdAt": "2026-05-23 21:41:30",
+      "lastHeartSent": {
+        "lynicarion": "",
+        "plumereveuse66": "2026-08-26"
+      }
+    },
+    "batou_de_batuu__plumereveuse66": {
+      "users": [
+        "batou_de_batuu",
+        "plumereveuse66"
+      ],
+      "status": "friends",
+      "level": 84,
+      "sparkleHearts": 83,
+      "createdAt": "2026-05-23 21:41:46",
+      "lastHeartSent": {
+        "batou_de_batuu": "",
+        "plumereveuse66": "2026-08-26"
+      }
+    },
+    "kyo89chasca__plumereveuse66": {
+      "users": [
+        "kyo89chasca",
+        "plumereveuse66"
+      ],
+      "status": "friends",
+      "level": 149,
+      "sparkleHearts": 148,
+      "createdAt": "2026-05-23 21:41:50",
+      "lastHeartSent": {
+        "plumereveuse66": "2026-08-26",
+        "kyo89chasca": "2026-08-26"
+      }
+    },
+    "doudoudeau__plumereveuse66": {
+      "users": [
+        "doudoudeau",
+        "plumereveuse66"
+      ],
+      "status": "friends",
+      "level": 84,
+      "sparkleHearts": 83,
+      "createdAt": "2026-05-23 21:41:56",
+      "lastHeartSent": {
+        "doudoudeau": "",
+        "plumereveuse66": "2026-08-26"
+      }
+    },
+    "plumereveuse66__poutineee62": {
+      "users": [
+        "plumereveuse66",
+        "poutineee62"
+      ],
+      "status": "friends",
+      "level": 84,
+      "sparkleHearts": 83,
+      "createdAt": "2026-05-23 21:42:29",
+      "lastHeartSent": {
+        "poutineee62": "",
+        "plumereveuse66": "2026-08-26"
+      }
+    },
+    "kyo89chasca__poutineee62": {
+      "users": [
+        "kyo89chasca",
+        "poutineee62"
+      ],
+      "status": "friends",
+      "level": 68,
+      "sparkleHearts": 67,
+      "createdAt": "2026-05-23 21:42:41",
+      "lastHeartSent": {
+        "poutineee62": "2026-05-28",
+        "kyo89chasca": "2026-08-26"
+      }
+    },
+    "kadraw18__kichnifou": {
+      "users": [
+        "kadraw18",
+        "kichnifou"
+      ],
+      "status": "friends",
+      "level": 181,
+      "sparkleHearts": 180,
+      "createdAt": "2026-05-26 14:00:09",
+      "lastHeartSent": {
+        "kadraw18": "2026-08-26",
+        "kichnifou": "2026-08-26"
+      }
+    },
+    "ceotryd__kadraw18": {
+      "users": [
+        "ceotryd",
+        "kadraw18"
+      ],
+      "status": "friends",
+      "level": 175,
+      "sparkleHearts": 174,
+      "createdAt": "2026-05-26 14:13:12",
+      "lastHeartSent": {
+        "ceotryd": "2026-08-26",
+        "kadraw18": "2026-08-26"
+      }
+    },
+    "klaroline_forbes__ninamiaizawa": {
+      "users": [
+        "klaroline_forbes",
+        "ninamiaizawa"
+      ],
+      "status": "friends",
+      "level": 5,
+      "sparkleHearts": 4,
+      "createdAt": "2026-05-26 20:59:14",
+      "lastHeartSent": {
+        "ninamiaizawa": "2026-07-04",
+        "klaroline_forbes": ""
+      }
+    },
+    "kadraw18__plumereveuse66": {
+      "users": [
+        "kadraw18",
+        "plumereveuse66"
+      ],
+      "status": "friends",
+      "level": 177,
+      "sparkleHearts": 176,
+      "createdAt": "2026-05-26 22:01:15",
+      "lastHeartSent": {
+        "kadraw18": "2026-08-26",
+        "plumereveuse66": "2026-08-26"
+      }
+    },
+    "kichnifou__ninamiaizawa": {
+      "users": [
+        "kichnifou",
+        "ninamiaizawa"
+      ],
+      "status": "friends",
+      "level": 87,
+      "sparkleHearts": 86,
+      "createdAt": "2026-05-28 18:13:09",
+      "lastHeartSent": {
+        "kichnifou": "2026-08-26",
+        "ninamiaizawa": "2026-07-04"
+      }
+    },
+    "dragon_gaming_tv__kichnifou": {
+      "users": [
+        "dragon_gaming_tv",
+        "kichnifou"
+      ],
+      "status": "friends",
+      "level": 137,
+      "sparkleHearts": 136,
+      "createdAt": "2026-05-28 18:13:18",
+      "lastHeartSent": {
+        "kichnifou": "2026-08-26",
+        "dragon_gaming_tv": "2026-08-25"
+      }
+    },
+    "dragon_gaming_tv__ninamiaizawa": {
+      "users": [
+        "dragon_gaming_tv",
+        "ninamiaizawa"
+      ],
+      "status": "friends",
+      "level": 59,
+      "sparkleHearts": 58,
+      "createdAt": "2026-05-28 18:13:46",
+      "lastHeartSent": {
+        "dragon_gaming_tv": "2026-08-25",
+        "ninamiaizawa": "2026-07-04"
+      }
+    },
+    "dragon_gaming_tv__samiia_euh": {
+      "users": [
+        "dragon_gaming_tv",
+        "samiia_euh"
+      ],
+      "status": "friends",
+      "level": 65,
+      "sparkleHearts": 64,
+      "createdAt": "2026-05-28 18:13:55",
+      "lastHeartSent": {
+        "samiia_euh": "2026-08-07",
+        "dragon_gaming_tv": "2026-08-25"
+      }
+    },
+    "dragon_gaming_tv__kyo89chasca": {
+      "users": [
+        "dragon_gaming_tv",
+        "kyo89chasca"
+      ],
+      "status": "friends",
+      "level": 118,
+      "sparkleHearts": 117,
+      "createdAt": "2026-05-28 18:14:06",
+      "lastHeartSent": {
+        "dragon_gaming_tv": "2026-08-25",
+        "kyo89chasca": "2026-08-26"
+      }
+    },
+    "kichnifou__poutineee62": {
+      "users": [
+        "kichnifou",
+        "poutineee62"
+      ],
+      "status": "friends",
+      "level": 84,
+      "sparkleHearts": 83,
+      "createdAt": "2026-05-28 18:14:45",
+      "lastHeartSent": {
+        "kichnifou": "2026-08-26",
+        "poutineee62": ""
+      }
+    },
+    "ninamiaizawa__poutineee62": {
+      "users": [
+        "ninamiaizawa",
+        "poutineee62"
+      ],
+      "status": "friends",
+      "level": 6,
+      "sparkleHearts": 5,
+      "createdAt": "2026-05-28 18:14:49",
+      "lastHeartSent": {
+        "poutineee62": "",
+        "ninamiaizawa": "2026-07-04"
+      }
+    },
+    "dragon_gaming_tv__poutineee62": {
+      "users": [
+        "dragon_gaming_tv",
+        "poutineee62"
+      ],
+      "status": "friends",
+      "level": 55,
+      "sparkleHearts": 54,
+      "createdAt": "2026-05-28 18:15:04",
+      "lastHeartSent": {
+        "poutineee62": "2026-05-28",
+        "dragon_gaming_tv": "2026-08-25"
+      }
+    },
+    "kichnifou__samiia_euh": {
+      "users": [
+        "kichnifou",
+        "samiia_euh"
+      ],
+      "status": "friends",
+      "level": 96,
+      "sparkleHearts": 95,
+      "createdAt": "2026-05-28 18:15:04",
+      "lastHeartSent": {
+        "kichnifou": "2026-08-26",
+        "samiia_euh": "2026-08-07"
+      }
+    },
+    "poutineee62__samiia_euh": {
+      "users": [
+        "poutineee62",
+        "samiia_euh"
+      ],
+      "status": "friends",
+      "level": 13,
+      "sparkleHearts": 12,
+      "createdAt": "2026-05-28 18:15:41",
+      "lastHeartSent": {
+        "samiia_euh": "2026-08-07",
+        "poutineee62": "2026-05-28"
+      }
+    },
+    "kyo89chasca__samiia_euh": {
+      "users": [
+        "kyo89chasca",
+        "samiia_euh"
+      ],
+      "status": "friends",
+      "level": 77,
+      "sparkleHearts": 76,
+      "createdAt": "2026-05-28 18:16:09",
+      "lastHeartSent": {
+        "kyo89chasca": "2026-08-26",
+        "samiia_euh": "2026-08-07"
+      }
+    },
+    "kichnifou__mizu__c": {
+      "users": [
+        "kichnifou",
+        "mizu__c"
+      ],
+      "status": "friends",
+      "level": 122,
+      "sparkleHearts": 121,
+      "createdAt": "2026-05-28 21:51:57",
+      "lastHeartSent": {
+        "mizu__c": "2026-08-17",
+        "kichnifou": "2026-08-26"
+      }
+    },
+    "fred_night0wl__kichnifou": {
+      "users": [
+        "fred_night0wl",
+        "kichnifou"
+      ],
+      "status": "friends",
+      "level": 156,
+      "sparkleHearts": 155,
+      "createdAt": "2026-05-31 15:24:45",
+      "lastHeartSent": {
+        "fred_night0wl": "2026-08-23",
+        "kichnifou": "2026-08-26"
+      }
+    },
+    "fred_night0wl__kadraw18": {
+      "users": [
+        "fred_night0wl",
+        "kadraw18"
+      ],
+      "status": "friends",
+      "level": 155,
+      "sparkleHearts": 154,
+      "createdAt": "2026-05-31 15:25:43",
+      "lastHeartSent": {
+        "kadraw18": "2026-08-26",
+        "fred_night0wl": "2026-08-23"
+      }
+    },
+    "fred_night0wl__lexceptiondu37": {
+      "users": [
+        "fred_night0wl",
+        "lexceptiondu37"
+      ],
+      "status": "friends",
+      "level": 155,
+      "sparkleHearts": 154,
+      "createdAt": "2026-05-31 15:33:47",
+      "lastHeartSent": {
+        "lexceptiondu37": "2026-08-26",
+        "fred_night0wl": "2026-08-23"
+      }
+    },
+    "fred_night0wl__mathriox612": {
+      "users": [
+        "fred_night0wl",
+        "mathriox612"
+      ],
+      "status": "friends",
+      "level": 103,
+      "sparkleHearts": 102,
+      "createdAt": "2026-05-31 16:13:07",
+      "lastHeartSent": {
+        "mathriox612": "2026-08-26",
+        "fred_night0wl": "2026-08-23"
+      }
+    },
+    "kichnifou__mathriox612": {
+      "users": [
+        "kichnifou",
+        "mathriox612"
+      ],
+      "status": "friends",
+      "level": 121,
+      "sparkleHearts": 120,
+      "createdAt": "2026-05-31 16:13:32",
+      "lastHeartSent": {
+        "mathriox612": "2026-08-26",
+        "kichnifou": "2026-08-26"
+      }
+    },
+    "ceotryd__mathriox612": {
+      "users": [
+        "ceotryd",
+        "mathriox612"
+      ],
+      "status": "friends",
+      "level": 119,
+      "sparkleHearts": 118,
+      "createdAt": "2026-05-31 16:13:39",
+      "lastHeartSent": {
+        "mathriox612": "2026-08-26",
+        "ceotryd": "2026-08-26"
+      }
+    },
+    "kadraw18__mathriox612": {
+      "users": [
+        "kadraw18",
+        "mathriox612"
+      ],
+      "status": "friends",
+      "level": 122,
+      "sparkleHearts": 121,
+      "createdAt": "2026-05-31 16:14:00",
+      "lastHeartSent": {
+        "mathriox612": "2026-08-26",
+        "kadraw18": "2026-08-26"
+      }
+    },
+    "mathriox612__ninamiaizawa": {
+      "users": [
+        "mathriox612",
+        "ninamiaizawa"
+      ],
+      "status": "friends",
+      "level": 40,
+      "sparkleHearts": 39,
+      "createdAt": "2026-05-31 16:17:05",
+      "lastHeartSent": {
+        "mathriox612": "2026-08-26",
+        "ninamiaizawa": "2026-07-04"
+      }
+    },
+    "fred_night0wl__klaroline_forbes": {
+      "users": [
+        "fred_night0wl",
+        "klaroline_forbes"
+      ],
+      "status": "friends",
+      "level": 69,
+      "sparkleHearts": 68,
+      "createdAt": "2026-05-31 22:11:40",
+      "lastHeartSent": {
+        "klaroline_forbes": "2026-05-31",
+        "fred_night0wl": "2026-08-23"
+      }
+    },
+    "fred_night0wl__plumereveuse66": {
+      "users": [
+        "fred_night0wl",
+        "plumereveuse66"
+      ],
+      "status": "friends",
+      "level": 151,
+      "sparkleHearts": 150,
+      "createdAt": "2026-06-03 14:42:18",
+      "lastHeartSent": {
+        "plumereveuse66": "2026-08-26",
+        "fred_night0wl": "2026-08-23"
+      }
+    },
+    "kadraw18__kyo89chasca": {
+      "users": [
+        "kadraw18",
+        "kyo89chasca"
+      ],
+      "status": "friends",
+      "level": 145,
+      "sparkleHearts": 144,
+      "createdAt": "2026-06-07 18:39:33",
+      "lastHeartSent": {
+        "kadraw18": "2026-08-26",
+        "kyo89chasca": "2026-08-26"
+      }
+    },
+    "fred_night0wl__marabou_malveillant": {
+      "users": [
+        "fred_night0wl",
+        "marabou_malveillant"
+      ],
+      "status": "friends",
+      "level": 117,
+      "sparkleHearts": 116,
+      "createdAt": "2026-06-07 19:38:04",
+      "lastHeartSent": {
+        "marabou_malveillant": "2026-08-24",
+        "fred_night0wl": "2026-08-23"
+      }
+    },
+    "fred_night0wl__mizu__c": {
+      "users": [
+        "fred_night0wl",
+        "mizu__c"
+      ],
+      "status": "friends",
+      "level": 100,
+      "sparkleHearts": 99,
+      "createdAt": "2026-06-07 19:43:55",
+      "lastHeartSent": {
+        "mizu__c": "2026-08-17",
+        "fred_night0wl": "2026-08-23"
+      }
+    },
+    "lexceptiondu37__mizu__c": {
+      "users": [
+        "lexceptiondu37",
+        "mizu__c"
+      ],
+      "status": "friends",
+      "level": 116,
+      "sparkleHearts": 115,
+      "createdAt": "2026-06-07 19:44:15",
+      "lastHeartSent": {
+        "lexceptiondu37": "2026-08-26",
+        "mizu__c": "2026-08-17"
+      }
+    },
+    "mizu__c__ninamiaizawa": {
+      "users": [
+        "mizu__c",
+        "ninamiaizawa"
+      ],
+      "status": "friends",
+      "level": 39,
+      "sparkleHearts": 38,
+      "createdAt": "2026-06-07 19:49:07",
+      "lastHeartSent": {
+        "ninamiaizawa": "2026-07-04",
+        "mizu__c": "2026-08-17"
+      }
+    },
+    "fred_night0wl__ninamiaizawa": {
+      "users": [
+        "fred_night0wl",
+        "ninamiaizawa"
+      ],
+      "status": "friends",
+      "level": 71,
+      "sparkleHearts": 70,
+      "createdAt": "2026-06-07 19:49:20",
+      "lastHeartSent": {
+        "ninamiaizawa": "2026-07-04",
+        "fred_night0wl": "2026-08-23"
+      }
+    },
+    "lexceptiondu37__ninamiaizawa": {
+      "users": [
+        "lexceptiondu37",
+        "ninamiaizawa"
+      ],
+      "status": "friends",
+      "level": 85,
+      "sparkleHearts": 84,
+      "createdAt": "2026-06-07 19:49:33",
+      "lastHeartSent": {
+        "ninamiaizawa": "2026-07-04",
+        "lexceptiondu37": "2026-08-26"
+      }
+    },
+    "kichnifou__lexceptiondu37": {
+      "users": [
+        "kichnifou",
+        "lexceptiondu37"
+      ],
+      "status": "friends",
+      "level": 161,
+      "sparkleHearts": 160,
+      "createdAt": "2026-06-07 19:51:10",
+      "lastHeartSent": {
+        "kichnifou": "2026-08-26",
+        "lexceptiondu37": "2026-08-26"
+      }
+    },
+    "mathriox612__plumereveuse66": {
+      "users": [
+        "mathriox612",
+        "plumereveuse66"
+      ],
+      "status": "friends",
+      "level": 113,
+      "sparkleHearts": 112,
+      "createdAt": "2026-06-07 20:22:59",
+      "lastHeartSent": {
+        "plumereveuse66": "2026-08-26",
+        "mathriox612": "2026-08-26"
+      }
+    },
+    "dragon_gaming_tv__plumereveuse66": {
+      "users": [
+        "dragon_gaming_tv",
+        "plumereveuse66"
+      ],
+      "status": "friends",
+      "level": 131,
+      "sparkleHearts": 130,
+      "createdAt": "2026-06-07 20:38:14",
+      "lastHeartSent": {
+        "plumereveuse66": "2026-08-26",
+        "dragon_gaming_tv": "2026-08-25"
+      }
+    },
+    "dragon_gaming_tv__mathriox612": {
+      "users": [
+        "dragon_gaming_tv",
+        "mathriox612"
+      ],
+      "status": "friends",
+      "level": 86,
+      "sparkleHearts": 85,
+      "createdAt": "2026-06-07 21:25:55",
+      "lastHeartSent": {
+        "mathriox612": "2026-08-26",
+        "dragon_gaming_tv": "2026-08-25"
+      }
+    },
+    "lexceptiondu37__mathriox612": {
+      "users": [
+        "lexceptiondu37",
+        "mathriox612"
+      ],
+      "status": "friends",
+      "level": 115,
+      "sparkleHearts": 114,
+      "createdAt": "2026-06-07 21:39:41",
+      "lastHeartSent": {
+        "mathriox612": "2026-08-26",
+        "lexceptiondu37": "2026-08-26"
+      }
+    },
+    "lexceptiondu37__plumereveuse66": {
+      "users": [
+        "lexceptiondu37",
+        "plumereveuse66"
+      ],
+      "status": "friends",
+      "level": 157,
+      "sparkleHearts": 156,
+      "createdAt": "2026-06-08 09:00:20",
+      "lastHeartSent": {
+        "plumereveuse66": "2026-08-26",
+        "lexceptiondu37": "2026-08-26"
+      }
+    },
+    "fred_night0wl__kyo89chasca": {
+      "users": [
+        "fred_night0wl",
+        "kyo89chasca"
+      ],
+      "status": "friends",
+      "level": 129,
+      "sparkleHearts": 128,
+      "createdAt": "2026-06-08 09:29:29",
+      "lastHeartSent": {
+        "kyo89chasca": "2026-08-26",
+        "fred_night0wl": "2026-08-23"
+      }
+    },
+    "ceotryd__fred_night0wl": {
+      "users": [
+        "ceotryd",
+        "fred_night0wl"
+      ],
+      "status": "friends",
+      "level": 141,
+      "sparkleHearts": 140,
+      "createdAt": "2026-06-08 09:30:24",
+      "lastHeartSent": {
+        "ceotryd": "2026-08-26",
+        "fred_night0wl": "2026-08-23"
+      }
+    },
+    "ceotryd__kyo89chasca": {
+      "users": [
+        "ceotryd",
+        "kyo89chasca"
+      ],
+      "status": "friends",
+      "level": 139,
+      "sparkleHearts": 138,
+      "createdAt": "2026-06-08 09:30:44",
+      "lastHeartSent": {
+        "ceotryd": "2026-08-26",
+        "kyo89chasca": "2026-08-26"
+      }
+    },
+    "kadraw18__samiia_euh": {
+      "users": [
+        "kadraw18",
+        "samiia_euh"
+      ],
+      "status": "friends",
+      "level": 88,
+      "sparkleHearts": 87,
+      "createdAt": "2026-06-08 12:41:54",
+      "lastHeartSent": {
+        "samiia_euh": "2026-08-07",
+        "kadraw18": "2026-08-26"
+      }
+    },
+    "kadraw18__ninamiaizawa": {
+      "users": [
+        "kadraw18",
+        "ninamiaizawa"
+      ],
+      "status": "friends",
+      "level": 84,
+      "sparkleHearts": 83,
+      "createdAt": "2026-06-08 13:15:33",
+      "lastHeartSent": {
+        "ninamiaizawa": "2026-07-04",
+        "kadraw18": "2026-08-26"
+      }
+    },
+    "dragon_gaming_tv__fred_night0wl": {
+      "users": [
+        "dragon_gaming_tv",
+        "fred_night0wl"
+      ],
+      "status": "friends",
+      "level": 117,
+      "sparkleHearts": 116,
+      "createdAt": "2026-06-08 15:56:01",
+      "lastHeartSent": {
+        "fred_night0wl": "2026-08-23",
+        "dragon_gaming_tv": "2026-08-25"
+      }
+    },
+    "fred_night0wl__samiia_euh": {
+      "users": [
+        "fred_night0wl",
+        "samiia_euh"
+      ],
+      "status": "friends",
+      "level": 74,
+      "sparkleHearts": 73,
+      "createdAt": "2026-06-08 17:42:56",
+      "lastHeartSent": {
+        "samiia_euh": "2026-08-07",
+        "fred_night0wl": "2026-08-23"
+      }
+    },
+    "mizu__c__samiia_euh": {
+      "users": [
+        "mizu__c",
+        "samiia_euh"
+      ],
+      "status": "friends",
+      "level": 41,
+      "sparkleHearts": 40,
+      "createdAt": "2026-06-08 17:45:38",
+      "lastHeartSent": {
+        "mizu__c": "2026-08-17",
+        "samiia_euh": "2026-08-07"
+      }
+    },
+    "ceotryd__lexceptiondu37": {
+      "users": [
+        "ceotryd",
+        "lexceptiondu37"
+      ],
+      "status": "friends",
+      "level": 152,
+      "sparkleHearts": 151,
+      "createdAt": "2026-06-09 07:37:49",
+      "lastHeartSent": {
+        "ceotryd": "2026-08-26",
+        "lexceptiondu37": "2026-08-26"
+      }
+    },
+    "lexceptiondu37__marabou_malveillant": {
+      "users": [
+        "lexceptiondu37",
+        "marabou_malveillant"
+      ],
+      "status": "friends",
+      "level": 128,
+      "sparkleHearts": 127,
+      "createdAt": "2026-06-09 07:42:58",
+      "lastHeartSent": {
+        "marabou_malveillant": "2026-08-24",
+        "lexceptiondu37": "2026-08-26"
+      }
+    },
+    "kadraw18__lexceptiondu37": {
+      "users": [
+        "kadraw18",
+        "lexceptiondu37"
+      ],
+      "status": "friends",
+      "level": 157,
+      "sparkleHearts": 156,
+      "createdAt": "2026-06-09 09:49:24",
+      "lastHeartSent": {
+        "kadraw18": "2026-08-26",
+        "lexceptiondu37": "2026-08-26"
+      }
+    },
+    "lexceptiondu37__samiia_euh": {
+      "users": [
+        "lexceptiondu37",
+        "samiia_euh"
+      ],
+      "status": "friends",
+      "level": 81,
+      "sparkleHearts": 80,
+      "createdAt": "2026-06-12 08:04:20",
+      "lastHeartSent": {
+        "samiia_euh": "2026-08-07",
+        "lexceptiondu37": "2026-08-26"
+      }
+    },
+    "kyo89chasca__lexceptiondu37": {
+      "users": [
+        "kyo89chasca",
+        "lexceptiondu37"
+      ],
+      "status": "friends",
+      "level": 137,
+      "sparkleHearts": 136,
+      "createdAt": "2026-06-12 12:41:54",
+      "lastHeartSent": {
+        "kyo89chasca": "2026-08-26",
+        "lexceptiondu37": "2026-08-26"
+      }
+    },
+    "dragon_gaming_tv__lexceptiondu37": {
+      "users": [
+        "dragon_gaming_tv",
+        "lexceptiondu37"
+      ],
+      "status": "friends",
+      "level": 122,
+      "sparkleHearts": 121,
+      "createdAt": "2026-06-12 20:21:17",
+      "lastHeartSent": {
+        "dragon_gaming_tv": "2026-08-25",
+        "lexceptiondu37": "2026-08-26"
+      }
+    },
+    "dragon_gaming_tv__kadraw18": {
+      "users": [
+        "dragon_gaming_tv",
+        "kadraw18"
+      ],
+      "status": "friends",
+      "level": 117,
+      "sparkleHearts": 116,
+      "createdAt": "2026-06-15 15:07:44",
+      "lastHeartSent": {
+        "dragon_gaming_tv": "2026-08-25",
+        "kadraw18": "2026-08-26"
+      }
+    },
+    "kyo89chasca__ninamiaizawa": {
+      "users": [
+        "kyo89chasca",
+        "ninamiaizawa"
+      ],
+      "status": "friends",
+      "level": 60,
+      "sparkleHearts": 59,
+      "createdAt": "2026-06-19 13:50:28",
+      "lastHeartSent": {
+        "ninamiaizawa": "2026-07-04",
+        "kyo89chasca": "2026-08-26"
+      }
+    },
+    "kyo89chasca__marabou_malveillant": {
+      "users": [
+        "kyo89chasca",
+        "marabou_malveillant"
+      ],
+      "status": "friends",
+      "level": 93,
+      "sparkleHearts": 92,
+      "createdAt": "2026-06-20 16:45:39",
+      "lastHeartSent": {
+        "kyo89chasca": "2026-08-26",
+        "marabou_malveillant": "2026-08-24"
+      }
+    },
+    "kadraw18__mizu__c": {
+      "users": [
+        "kadraw18",
+        "mizu__c"
+      ],
+      "status": "friends",
+      "level": 88,
+      "sparkleHearts": 87,
+      "createdAt": "2026-06-25 10:50:10",
+      "lastHeartSent": {
+        "mizu__c": "2026-08-17",
+        "kadraw18": "2026-08-26"
+      }
+    },
+    "kyo89chasca__mizu__c": {
+      "users": [
+        "kyo89chasca",
+        "mizu__c"
+      ],
+      "status": "friends",
+      "level": 76,
+      "sparkleHearts": 75,
+      "createdAt": "2026-06-25 10:50:52",
+      "lastHeartSent": {
+        "mizu__c": "2026-08-17",
+        "kyo89chasca": "2026-08-26"
+      }
+    },
+    "kadraw18__marabou_malveillant": {
+      "users": [
+        "kadraw18",
+        "marabou_malveillant"
+      ],
+      "status": "friends",
+      "level": 97,
+      "sparkleHearts": 96,
+      "createdAt": "2026-06-25 11:08:21",
+      "lastHeartSent": {
+        "marabou_malveillant": "2026-08-24",
+        "kadraw18": "2026-08-26"
+      }
+    },
+    "kyo89chasca__laciafiorshepherdess": {
+      "users": [
+        "kyo89chasca",
+        "laciafiorshepherdess"
+      ],
+      "status": "friends",
+      "level": 46,
+      "sparkleHearts": 45,
+      "createdAt": "2026-07-01 19:12:14",
+      "lastHeartSent": {
+        "laciafiorshepherdess": "",
+        "kyo89chasca": "2026-08-26"
+      }
+    },
+    "kyo89chasca__pauragon_": {
+      "users": [
+        "kyo89chasca",
+        "pauragon_"
+      ],
+      "status": "friends",
+      "level": 46,
+      "sparkleHearts": 45,
+      "createdAt": "2026-07-01 19:14:59",
+      "lastHeartSent": {
+        "pauragon_": "",
+        "kyo89chasca": "2026-08-26"
+      }
+    },
+    "kyo89chasca__nightcall93": {
+      "users": [
+        "kyo89chasca",
+        "nightcall93"
+      ],
+      "status": "friends",
+      "level": 46,
+      "sparkleHearts": 45,
+      "createdAt": "2026-07-01 19:15:15",
+      "lastHeartSent": {
+        "nightcall93": "",
+        "kyo89chasca": "2026-08-26"
+      }
+    },
+    "docussan__kyo89chasca": {
+      "users": [
+        "docussan",
+        "kyo89chasca"
+      ],
+      "status": "friends",
+      "level": 45,
+      "sparkleHearts": 44,
+      "createdAt": "2026-07-01 19:20:05",
+      "lastHeartSent": {
+        "docussan": "",
+        "kyo89chasca": "2026-08-26"
+      }
+    },
+    "marabou_malveillant__plumereveuse66": {
+      "users": [
+        "marabou_malveillant",
+        "plumereveuse66"
+      ],
+      "status": "friends",
+      "level": 74,
+      "sparkleHearts": 73,
+      "createdAt": "2026-07-07 12:18:56",
+      "lastHeartSent": {
+        "plumereveuse66": "2026-08-26",
+        "marabou_malveillant": "2026-08-24"
+      }
+    }
+  },
+  "requests": [
+    {
+      "from": "ninamiaizawa",
+      "to": "ceotryd",
+      "createdAt": "2026-05-28 18:13:08"
+    },
+    {
+      "from": "samiia_euh",
+      "to": "mathriox612",
+      "createdAt": "2026-06-01 14:38:52"
+    },
+    {
+      "from": "fred_night0wl",
+      "to": "batou_de_batuu",
+      "createdAt": "2026-06-07 19:42:19"
+    },
+    {
+      "from": "fred_night0wl",
+      "to": "poutineee62",
+      "createdAt": "2026-06-07 20:08:14"
+    },
+    {
+      "from": "lexceptiondu37",
+      "to": "poutineee62",
+      "createdAt": "2026-06-07 20:08:35"
+    },
+    {
+      "from": "dragon_gaming_tv",
+      "to": "marabou_malveillant",
+      "createdAt": "2026-06-15 17:32:08"
+    },
+    {
+      "from": "dragon_gaming_tv",
+      "to": "mizu__c",
+      "createdAt": "2026-06-15 17:32:30"
+    },
+    {
+      "from": "dragon_gaming_tv",
+      "to": "ceotryd",
+      "createdAt": "2026-06-15 17:32:45"
+    },
+    {
+      "from": "dragon_gaming_tv",
+      "to": "klaroline_forbes",
+      "createdAt": "2026-06-15 17:32:52"
+    },
+    {
+      "from": "dragon_gaming_tv",
+      "to": "batou_de_batuu",
+      "createdAt": "2026-06-15 17:33:12"
+    },
+    {
+      "from": "kyo89chasca",
+      "to": "mathriox612",
+      "createdAt": "2026-07-01 09:33:57"
+    },
+    {
+      "from": "kyo89chasca",
+      "to": "doudoudeau",
+      "createdAt": "2026-07-01 09:34:23"
+    },
+    {
+      "from": "kyo89chasca",
+      "to": "lynicarion",
+      "createdAt": "2026-07-01 09:35:13"
+    },
+    {
+      "from": "kyo89chasca",
+      "to": "klaroline_forbes",
+      "createdAt": "2026-07-01 09:35:34"
+    },
+    {
+      "from": "kyo89chasca",
+      "to": "ossahiana",
+      "createdAt": "2026-07-01 09:36:15"
+    },
+    {
+      "from": "kyo89chasca",
+      "to": "mezrick",
+      "createdAt": "2026-07-01 19:14:00"
+    },
+    {
+      "from": "lexceptiondu37",
+      "to": "doudoudeau",
+      "createdAt": "2026-07-07 12:19:57"
+    },
+    {
+      "from": "lexceptiondu37",
+      "to": "ossahiana",
+      "createdAt": "2026-07-07 12:22:30"
+    },
+    {
+      "from": "lexceptiondu37",
+      "to": "klaroline_forbes",
+      "createdAt": "2026-07-07 12:24:20"
+    },
+    {
+      "from": "lexceptiondu37",
+      "to": "lynicarion",
+      "createdAt": "2026-07-22 11:49:29"
+    },
+    {
+      "from": "lexceptiondu37",
+      "to": "batou_de_batuu",
+      "createdAt": "2026-07-22 11:50:08"
+    }
+  ]
+}

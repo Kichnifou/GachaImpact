@@ -1,0 +1,441 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !roue
+- Disponible une fois par jour par joueur
+- Lit et sauvegarde viewers_data.json en JObject
+- Ne reconstruit jamais entièrement un viewer existant
+- Ajoute automatiquement les champs manquants utiles :
+  - dates.lastWheelDate
+  - stats.totalWheelSpins
+  - stats.totalWheelJackpots
+- Tire une récompense sur 50 chances :
+  - 10/50 : rien
+  - 5/50 : +500 particules Cryo
+  - 5/50 : +500 particules Pyro
+  - 5/50 : +500 particules Dendro
+  - 5/50 : +500 particules Electro
+  - 5/50 : +500 particules Geo
+  - 5/50 : +500 particules Anemo
+  - 5/50 : +500 particules Hydro
+  - 4/50 : +20000 moras
+  - 1/50 : +1600 primos
+- Met à jour les ressources et les stats économiques concernées
+- Sauvegarde sans backup .bak
+- Compatible Streamer.bot
+- Sans LINQ
+*/
+
+using System;
+using System.IO;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    private static Random random = new Random();
+
+    public bool Execute()
+    {
+        string path = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data\viewers_data.json";
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+
+        if (!File.Exists(path))
+        {
+            SendWarning(username + ", ton profil n’existe pas encore.");
+            return true;
+        }
+
+        JObject viewers = LoadViewers(path);
+
+        if (viewers == null)
+        {
+            SendWarning("Impossible de lire viewers_data.json.");
+            return true;
+        }
+
+        JObject viewer = GetViewer(viewers, username);
+
+        if (viewer == null)
+        {
+            SendWarning(username + ", ton profil n’existe pas encore.");
+            return true;
+        }
+
+        EnsureViewerDefaults(viewer, username);
+
+        JObject dates = GetObject(viewer, "dates");
+        string today = DateTime.Now.ToString("yyyy-MM-dd");
+
+        if (GetString(dates, "lastWheelDate") == today)
+        {
+            SendWarning(username + ", tu as déjà lancé la roue aujourd’hui.");
+            return true;
+        }
+
+        dates["lastWheelDate"] = today;
+
+        JObject stats = GetObject(viewer, "stats");
+        AddInt(stats, "totalWheelSpins", 1);
+
+        WheelReward reward = RollReward();
+
+        ApplyReward(viewer, stats, reward);
+
+        SaveViewers(path, viewers);
+
+        CPH.SendMessage(BuildRewardMessage(username, reward, viewer));
+
+        return true;
+    }
+
+    private WheelReward RollReward()
+    {
+        int roll = random.Next(1, 51);
+
+        if (roll <= 1)
+            return new WheelReward("nothing", "", 0);
+        if (roll <= 6)
+            return new WheelReward("particles", "cryo", 500);
+        if (roll <= 11)
+            return new WheelReward("particles", "pyro", 500);
+        if (roll <= 16)
+            return new WheelReward("particles", "dendro", 500);
+        if (roll <= 21)
+            return new WheelReward("particles", "electro", 500);
+        if (roll <= 26)
+            return new WheelReward("particles", "geo", 500);
+        if (roll <= 31)
+            return new WheelReward("particles", "anemo", 500);
+        if (roll <= 36)
+            return new WheelReward("particles", "hydro", 500);
+        if (roll <= 46)
+            return new WheelReward("moras", "", 50000);
+
+        return new WheelReward("primos", "", 1600);
+    }
+
+    private void ApplyReward(JObject viewer, JObject stats, WheelReward reward)
+    {
+        if (reward.type == "particles")
+        {
+            AddParticles(viewer, reward.element, reward.amount);
+            return;
+        }
+
+        if (reward.type == "moras")
+        {
+            AddInt(viewer, "moras", reward.amount);
+            AddInt(stats, "totalMorasEarned", reward.amount);
+            return;
+        }
+
+        if (reward.type == "primos")
+        {
+            AddInt(viewer, "primogems", reward.amount);
+            AddInt(stats, "totalPrimosEarned", reward.amount);
+            AddInt(stats, "totalWheelJackpots", 1);
+            return;
+        }
+    }
+
+    private string BuildRewardMessage(string username, WheelReward reward, JObject viewer)
+    {
+        if (reward.type == "nothing")
+            return "🎡 La roue tourne pour " + username + " et… rien du tout 😭 La roue a choisi le chaos aujourd’hui.";
+
+        if (reward.type == "particles")
+        {
+            int total = GetParticleTotal(viewer, reward.element);
+            return "🎡 La roue tourne pour " + username + " et… +500 particules " + GetElementDisplayName(reward.element) + " (" + total + ") ! Une belle énergie élémentaire apparaît.";
+        }
+
+        if (reward.type == "moras")
+            return "🎡 La roue tourne pour " + username + " et… +💰20000 moras (" + GetInt(viewer, "moras") + ") ! Le pactole commence à tomber.";
+
+        return "🎡 La roue tourne pour " + username + " et… JACKPOT 💠 +1600 primos (" + GetInt(viewer, "primogems") + ") ! La roue bénit officiellement ce moment ✨";
+    }
+
+    private JObject LoadViewers(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+
+            if (string.IsNullOrWhiteSpace(json))
+                return new JObject();
+
+            JObject viewers = JObject.Parse(json);
+
+            if (viewers == null)
+                return new JObject();
+
+            return viewers;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void SaveViewers(string path, JObject viewers)
+    {
+        string folder = Path.GetDirectoryName(path);
+
+        if (!Directory.Exists(folder))
+            Directory.CreateDirectory(folder);
+
+        string tempPath = path + ".tmp";
+        File.WriteAllText(tempPath, viewers.ToString(Formatting.Indented));
+
+        if (File.Exists(path))
+            File.Delete(path);
+
+        File.Move(tempPath, path);
+    }
+
+    private JObject GetViewer(JObject viewers, string username)
+    {
+        if (viewers == null || string.IsNullOrEmpty(username))
+            return null;
+
+        return viewers[username] as JObject;
+    }
+
+    private void EnsureViewerDefaults(JObject viewer, string username)
+    {
+        if (viewer == null)
+            return;
+
+        if (viewer["username"] == null || viewer["username"].Type == JTokenType.Null)
+            viewer["username"] = username;
+
+        EnsureInt(viewer, "xp", 0);
+        EnsureInt(viewer, "level", 0);
+        EnsureString(viewer, "element", "");
+        EnsureInt(viewer, "primogems", 0);
+        EnsureInt(viewer, "moras", 0);
+        EnsureInt(viewer, "selectedBannerCharacterId", 0);
+
+        JObject particles = GetObject(viewer, "particles");
+        EnsureInt(particles, "pyro", 0);
+        EnsureInt(particles, "hydro", 0);
+        EnsureInt(particles, "cryo", 0);
+        EnsureInt(particles, "electro", 0);
+        EnsureInt(particles, "anemo", 0);
+        EnsureInt(particles, "geo", 0);
+        EnsureInt(particles, "dendro", 0);
+
+        GetObject(viewer, "box");
+        GetArray(viewer, "team");
+
+        JObject pity = GetObject(viewer, "pity");
+        EnsureInt(pity, "pity5", 0);
+        EnsureInt(pity, "pity4", 0);
+
+        JObject guarantee = GetObject(viewer, "guarantee");
+        EnsureBool(guarantee, "guaranteedFeatured5", false);
+
+        JObject options = GetObject(viewer, "options");
+        EnsureString(options, "boxSort", "a");
+        EnsureBool(options, "boxSortDescending", false);
+
+        JObject missions = GetObject(viewer, "missions");
+        JObject daily = GetObject(missions, "daily");
+        EnsureNullOrString(daily, "missionId");
+        EnsureNullOrString(daily, "type");
+        EnsureInt(daily, "progress", 0);
+        EnsureInt(daily, "target", 0);
+        EnsureBool(daily, "completed", false);
+        EnsureBool(daily, "rewardClaimed", false);
+        EnsureNullOrString(daily, "startedAt");
+        EnsureNullOrString(daily, "description");
+
+        GetArray(viewer, "tradeRequests");
+        GetArray(viewer, "usedCodes");
+
+        JObject stats = GetObject(viewer, "stats");
+        EnsureInt(stats, "totalMessages", 0);
+        EnsureInt(stats, "countedMessages", 0);
+        EnsureInt(stats, "totalPulls", 0);
+        EnsureInt(stats, "totalFiveStars", 0);
+        EnsureInt(stats, "totalFourStars", 0);
+        EnsureBool(stats, "lastPullWasFiveStar", false);
+        EnsureInt(stats, "fiftyFiftyLostStreak", 0);
+        EnsureInt(stats, "fiftyFiftyWon", 0);
+        EnsureInt(stats, "fiftyFiftyLost", 0);
+        EnsureInt(stats, "totalPrimosEarned", 0);
+        EnsureInt(stats, "totalPrimosSpent", 0);
+        EnsureInt(stats, "totalMorasEarned", 0);
+        EnsureInt(stats, "totalMorasSpent", 0);
+        EnsureInt(stats, "level100OverflowRewardsClaimed", 0);
+        EnsureInt(stats, "totalWheelSpins", 0);
+        EnsureInt(stats, "totalWheelJackpots", 0);
+
+        JObject dates = GetObject(viewer, "dates");
+        EnsureNullOrString(dates, "firstSeen");
+        EnsureNullOrString(dates, "lastSeen");
+        EnsureNullOrString(dates, "lastXpDate");
+        EnsureNullOrString(dates, "lastMessageTime");
+        EnsureNullOrString(dates, "lastDailyFirstMessageReward");
+        EnsureString(dates, "lastWheelDate", "");
+    }
+
+    private JObject GetObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+
+        return parent[key] as JObject;
+    }
+
+    private JArray GetArray(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Array)
+            parent[key] = new JArray();
+
+        return parent[key] as JArray;
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private void AddInt(JObject obj, string key, int amount)
+    {
+        int current = GetInt(obj, key);
+        obj[key] = current + amount;
+    }
+
+    private void AddParticles(JObject viewer, string element, int amount)
+    {
+        JObject particles = GetObject(viewer, "particles");
+        string normalized = NormalizeElement(element);
+
+        if (string.IsNullOrEmpty(normalized))
+            return;
+
+        AddInt(particles, normalized, amount);
+    }
+
+    private int GetParticleTotal(JObject viewer, string element)
+    {
+        JObject particles = GetObject(viewer, "particles");
+        return GetInt(particles, NormalizeElement(element));
+    }
+
+    private void EnsureInt(JObject obj, string key, int defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureBool(JObject obj, string key, bool defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureString(JObject obj, string key, string defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureNullOrString(JObject obj, string key)
+    {
+        if (obj[key] == null)
+            obj[key] = null;
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private string NormalizeElement(string element)
+    {
+        if (string.IsNullOrEmpty(element))
+            return "";
+
+        string normalized = element.ToLower().Trim();
+
+        switch (normalized)
+        {
+            case "pyro": return "pyro";
+            case "hydro": return "hydro";
+            case "cryo": return "cryo";
+            case "electro":
+            case "électro": return "electro";
+            case "anemo":
+            case "anémo": return "anemo";
+            case "geo":
+            case "géo": return "geo";
+            case "dendro": return "dendro";
+            default: return normalized;
+        }
+    }
+
+    private string GetElementDisplayName(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "🔥 Pyro";
+            case "hydro": return "💧 Hydro";
+            case "cryo": return "❄️ Cryo";
+            case "electro": return "⚡ Electro";
+            case "anemo": return "🌪️ Anemo";
+            case "geo": return "☄️ Geo";
+            case "dendro": return "🌿 Dendro";
+            default: return element;
+        }
+    }
+
+    private void SendWarning(string message)
+    {
+        CPH.SendMessage("⚠️ " + message);
+    }
+}
+
+public class WheelReward
+{
+    public string type;
+    public string element;
+    public int amount;
+
+    public WheelReward(string rewardType, string rewardElement, int rewardAmount)
+    {
+        type = rewardType;
+        element = rewardElement;
+        amount = rewardAmount;
+    }
+}

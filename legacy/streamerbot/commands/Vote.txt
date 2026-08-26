@@ -1,0 +1,637 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !vote
+- Permet aux viewers de voter pour un personnage 5★ qu’ils aimeraient voir en bannière
+- Commandes : !vote / !vote NomPerso
+- !vote tout court affiche la liste des personnages ayant reçu des votes
+- Chaque joueur peut voter 1 fois par semaine
+- Le vote est stocké dans banner_votes.json
+- Refuse les personnages inexistants
+- Refuse les personnages qui ne sont pas 5★
+- Refuse les personnages déjà présents dans la bannière actuelle
+- Accepte les noms avec accents, sans accents, majuscules/minuscules
+- Tente de retrouver un personnage si le nom est écrit dans une phrase
+- Tente une correction approximative si petite faute
+- Ne modifie pas viewers_data.json
+- Ne modifie pas genshin_characters.json
+- Sauvegarde directement banner_votes.json sans backup ni fichier temporaire
+- Compatible Streamer.bot
+- Sans LINQ
+*/
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    public bool Execute()
+    {
+        string folderPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data";
+        string charactersPath = Path.Combine(folderPath, "genshin_characters.json");
+        string votesPath = Path.Combine(folderPath, "banner_votes.json");
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+        string input = GetCommandInput();
+
+        if (!File.Exists(charactersPath))
+        {
+            SendError("Aucun fichier personnage trouvé.");
+            return true;
+        }
+
+        JObject charactersFile = LoadJObject(charactersPath);
+
+        if (charactersFile == null)
+        {
+            SendError("Impossible de lire genshin_characters.json.");
+            return true;
+        }
+
+        JArray characters = charactersFile["characters"] as JArray;
+
+        if (characters == null)
+        {
+            SendError("Liste des personnages introuvable.");
+            return true;
+        }
+
+        JObject votesFile = LoadOrCreateVotesFile(votesPath);
+        EnsureVotesDefaults(votesFile);
+
+        string currentWeek = GetCurrentWeekId();
+        string weekId = GetString(votesFile, "weekId");
+
+        if (weekId != currentWeek)
+            ResetVotesForNewWeek(votesFile, currentWeek);
+
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            ShowVotesHelp(votesFile, characters);
+            SaveJObject(votesPath, votesFile);
+            return true;
+        }
+
+        JObject character = FindBestCharacterMatch(characters, input);
+
+        if (character == null)
+        {
+            SendWarning(username + ", personnage introuvable. Exemple : !vote Durin");
+            return true;
+        }
+
+        int characterId = GetInt(character, "id");
+        string characterName = GetString(character, "nom");
+        int rarity = GetInt(character, "rarete");
+
+        if (rarity != 5)
+        {
+            SendWarning(username + ", tu peux voter uniquement pour un personnage 5★.");
+            return true;
+        }
+
+        if (GetBool(character, "bannerFeatured"))
+        {
+            SendWarning(username + ", " + characterName + " est déjà en bannière. Vote pour un autre personnage.");
+            return true;
+        }
+
+        JObject voters = GetObject(votesFile, "voters");
+
+        if (voters[username] != null && voters[username].Type != JTokenType.Null)
+        {
+            int previousId = 0;
+            int.TryParse(voters[username].ToString(), out previousId);
+
+            JObject previousCharacter = FindCharacterById(characters, previousId);
+            string previousName = previousCharacter != null ? GetString(previousCharacter, "nom") : "un personnage";
+
+            SendWarning(username + ", tu as déjà voté cette semaine pour " + previousName + ".");
+            return true;
+        }
+
+        JObject votes = GetObject(votesFile, "votes");
+        string idKey = characterId.ToString();
+
+        JObject voteEntry = votes[idKey] as JObject;
+
+        if (voteEntry == null)
+        {
+            voteEntry = new JObject();
+            voteEntry["characterId"] = characterId;
+            voteEntry["name"] = characterName;
+            voteEntry["votes"] = 0;
+            voteEntry["voters"] = new JArray();
+            votes[idKey] = voteEntry;
+        }
+
+        AddInt(voteEntry, "votes", 1);
+
+        JArray entryVoters = voteEntry["voters"] as JArray;
+
+        if (entryVoters == null)
+        {
+            entryVoters = new JArray();
+            voteEntry["voters"] = entryVoters;
+        }
+
+        entryVoters.Add(username);
+        voters[username] = characterId;
+
+        SaveJObject(votesPath, votesFile);
+
+        SendSuccess(username + " vote pour " + GetElementEmoji(GetString(character, "element")) + " " + characterName + " ! (" + GetInt(voteEntry, "votes") + " vote(s))");
+
+        return true;
+    }
+
+    private void ShowVotesHelp(JObject votesFile, JArray characters)
+    {
+        JObject votes = GetObject(votesFile, "votes");
+        string message = "🗳️ Votes bannière : ";
+
+        List<JObject> sortedVotes = new List<JObject>();
+
+        foreach (KeyValuePair<string, JToken> entry in votes)
+        {
+            JObject voteEntry = entry.Value as JObject;
+
+            if (voteEntry == null)
+                continue;
+
+            if (GetInt(voteEntry, "votes") <= 0)
+                continue;
+
+            sortedVotes.Add(voteEntry);
+        }
+
+        for (int i = 0; i < sortedVotes.Count - 1; i++)
+        {
+            for (int j = i + 1; j < sortedVotes.Count; j++)
+            {
+                if (GetInt(sortedVotes[j], "votes") > GetInt(sortedVotes[i], "votes"))
+                {
+                    JObject temp = sortedVotes[i];
+                    sortedVotes[i] = sortedVotes[j];
+                    sortedVotes[j] = temp;
+                }
+            }
+        }
+
+        int count = 0;
+
+        for (int i = 0; i < sortedVotes.Count; i++)
+        {
+            JObject voteEntry = sortedVotes[i];
+
+            int characterId = GetInt(voteEntry, "characterId");
+            int voteCount = GetInt(voteEntry, "votes");
+
+            JObject character = FindCharacterById(characters, characterId);
+
+            string name = GetString(voteEntry, "name");
+            string emoji = "";
+
+            if (character != null)
+            {
+                name = GetString(character, "nom");
+                emoji = GetElementEmoji(GetString(character, "element")) + " ";
+            }
+
+            if (count > 0)
+                message += " | ";
+
+            message += emoji + name + " (" + voteCount + ")";
+            count++;
+        }
+
+        if (count == 0)
+            message += "aucun vote pour le moment";
+
+        message += " | Augmentez les chances que votre personnage favori arrive en bannière via : !vote NomPerso";
+
+        CPH.SendMessage(message);
+    }
+
+    private JObject LoadOrCreateVotesFile(string path)
+    {
+        JObject data = LoadJObject(path);
+
+        if (data == null)
+            data = new JObject();
+
+        return data;
+    }
+
+    private void EnsureVotesDefaults(JObject votesFile)
+    {
+        EnsureInt(votesFile, "version", 1);
+        EnsureString(votesFile, "weekId", "");
+        EnsureObject(votesFile, "votes");
+        EnsureObject(votesFile, "voters");
+    }
+
+    private void ResetVotesForNewWeek(JObject votesFile, string currentWeek)
+    {
+        votesFile["version"] = 1;
+        votesFile["weekId"] = currentWeek;
+        votesFile["votes"] = new JObject();
+        votesFile["voters"] = new JObject();
+    }
+
+    private string GetCurrentWeekId()
+    {
+        DateTime now = DateTime.Now;
+        DateTime startOfWeek = now.Date.AddDays(-(int)now.DayOfWeek + (int)DayOfWeek.Monday);
+
+        if (now.DayOfWeek == DayOfWeek.Sunday)
+            startOfWeek = now.Date.AddDays(-6);
+
+        return startOfWeek.ToString("yyyy-MM-dd");
+    }
+
+    private JObject FindBestCharacterMatch(JArray characters, string input)
+    {
+        string normalizedInput = NormalizeSearchText(input);
+
+        if (string.IsNullOrEmpty(normalizedInput))
+            return null;
+
+        JObject exactMatch = null;
+        JObject containsMatch = null;
+        int containsLength = 0;
+
+        for (int i = 0; i < characters.Count; i++)
+        {
+            JObject character = characters[i] as JObject;
+
+            if (character == null)
+                continue;
+
+            string name = GetString(character, "nom");
+            string normalizedName = NormalizeSearchText(name);
+
+            if (string.IsNullOrEmpty(normalizedName))
+                continue;
+
+            if (normalizedInput == normalizedName)
+            {
+                exactMatch = character;
+                break;
+            }
+
+            if (normalizedInput.Contains(normalizedName) && normalizedName.Length > containsLength)
+            {
+                containsMatch = character;
+                containsLength = normalizedName.Length;
+            }
+        }
+
+        if (exactMatch != null)
+            return exactMatch;
+
+        if (containsMatch != null)
+            return containsMatch;
+
+        JObject bestMatch = null;
+        int bestDistance = 9999;
+
+        for (int i = 0; i < characters.Count; i++)
+        {
+            JObject character = characters[i] as JObject;
+
+            if (character == null)
+                continue;
+
+            string name = GetString(character, "nom");
+            string normalizedName = NormalizeSearchText(name);
+
+            if (string.IsNullOrEmpty(normalizedName))
+                continue;
+
+            int distance = LevenshteinDistance(normalizedInput, normalizedName);
+
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                bestMatch = character;
+            }
+        }
+
+        if (bestMatch == null)
+            return null;
+
+        string bestName = NormalizeSearchText(GetString(bestMatch, "nom"));
+        int maxAllowedDistance = GetMaxAllowedDistance(bestName);
+
+        if (bestDistance <= maxAllowedDistance)
+            return bestMatch;
+
+        return null;
+    }
+
+    private int GetMaxAllowedDistance(string value)
+    {
+        int length = value.Length;
+
+        if (length <= 4)
+            return 1;
+
+        if (length <= 8)
+            return 2;
+
+        return 3;
+    }
+
+    private int LevenshteinDistance(string a, string b)
+    {
+        if (string.IsNullOrEmpty(a))
+            return string.IsNullOrEmpty(b) ? 0 : b.Length;
+
+        if (string.IsNullOrEmpty(b))
+            return a.Length;
+
+        int[,] matrix = new int[a.Length + 1, b.Length + 1];
+
+        for (int i = 0; i <= a.Length; i++)
+            matrix[i, 0] = i;
+
+        for (int j = 0; j <= b.Length; j++)
+            matrix[0, j] = j;
+
+        for (int i = 1; i <= a.Length; i++)
+        {
+            for (int j = 1; j <= b.Length; j++)
+            {
+                int cost = a[i - 1] == b[j - 1] ? 0 : 1;
+
+                int deletion = matrix[i - 1, j] + 1;
+                int insertion = matrix[i, j - 1] + 1;
+                int substitution = matrix[i - 1, j - 1] + cost;
+
+                int min = deletion;
+
+                if (insertion < min)
+                    min = insertion;
+
+                if (substitution < min)
+                    min = substitution;
+
+                matrix[i, j] = min;
+            }
+        }
+
+        return matrix[a.Length, b.Length];
+    }
+
+    private JObject FindCharacterById(JArray characters, int characterId)
+    {
+        if (characters == null)
+            return null;
+
+        for (int i = 0; i < characters.Count; i++)
+        {
+            JObject character = characters[i] as JObject;
+
+            if (character == null)
+                continue;
+
+            if (GetInt(character, "id") == characterId)
+                return character;
+        }
+
+        return null;
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        if (!File.Exists(path))
+            return new JObject();
+
+        try
+        {
+            string json = File.ReadAllText(path);
+
+            if (string.IsNullOrWhiteSpace(json))
+                return new JObject();
+
+            JObject data = JObject.Parse(json);
+
+            if (data == null)
+                return new JObject();
+
+            return data;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void SaveJObject(string path, JObject data)
+    {
+        string folder = Path.GetDirectoryName(path);
+
+        if (!Directory.Exists(folder))
+            Directory.CreateDirectory(folder);
+
+        File.WriteAllText(path, data.ToString(Formatting.Indented));
+    }
+
+    private JObject GetObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+
+        return parent[key] as JObject;
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private bool GetBool(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return false;
+
+        bool value;
+
+        if (bool.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return false;
+    }
+
+    private void AddInt(JObject obj, string key, int amount)
+    {
+        int current = GetInt(obj, key);
+        obj[key] = current + amount;
+    }
+
+    private void EnsureObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+    }
+
+    private void EnsureInt(JObject obj, string key, int defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureString(JObject obj, string key, string defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private string NormalizeSearchText(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return "";
+
+        string value = text.ToLower().Trim();
+
+        value = value.Replace("@", "");
+        value = value.Replace("à", "a");
+        value = value.Replace("á", "a");
+        value = value.Replace("â", "a");
+        value = value.Replace("ä", "a");
+        value = value.Replace("ã", "a");
+        value = value.Replace("ç", "c");
+        value = value.Replace("è", "e");
+        value = value.Replace("é", "e");
+        value = value.Replace("ê", "e");
+        value = value.Replace("ë", "e");
+        value = value.Replace("ì", "i");
+        value = value.Replace("í", "i");
+        value = value.Replace("î", "i");
+        value = value.Replace("ï", "i");
+        value = value.Replace("ò", "o");
+        value = value.Replace("ó", "o");
+        value = value.Replace("ô", "o");
+        value = value.Replace("ö", "o");
+        value = value.Replace("õ", "o");
+        value = value.Replace("ù", "u");
+        value = value.Replace("ú", "u");
+        value = value.Replace("û", "u");
+        value = value.Replace("ü", "u");
+        value = value.Replace("ÿ", "y");
+        value = value.Replace("œ", "oe");
+        value = value.Replace("æ", "ae");
+
+        string cleaned = "";
+
+        for (int i = 0; i < value.Length; i++)
+        {
+            char c = value[i];
+
+            if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'))
+                cleaned += c;
+        }
+
+        return cleaned;
+    }
+
+    private string NormalizeElement(string element)
+    {
+        if (string.IsNullOrEmpty(element))
+            return "";
+
+        string normalized = element.ToLower().Trim();
+
+        switch (normalized)
+        {
+            case "pyro": return "pyro";
+            case "hydro": return "hydro";
+            case "cryo": return "cryo";
+            case "electro":
+            case "électro": return "electro";
+            case "anemo":
+            case "anémo": return "anemo";
+            case "geo":
+            case "géo": return "geo";
+            case "dendro": return "dendro";
+            default: return normalized;
+        }
+    }
+
+    private string GetElementEmoji(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "🔥";
+            case "hydro": return "💧";
+            case "cryo": return "❄️";
+            case "electro": return "⚡";
+            case "anemo": return "🌪️";
+            case "geo": return "☄️";
+            case "dendro": return "🌿";
+            default: return "";
+        }
+    }
+
+    private void SendSuccess(string message)
+    {
+        CPH.SendMessage("✅ " + message);
+    }
+
+    private void SendWarning(string message)
+    {
+        CPH.SendMessage("⚠️ " + message);
+    }
+
+    private void SendError(string message)
+    {
+        CPH.SendMessage("❌ " + message);
+    }
+}

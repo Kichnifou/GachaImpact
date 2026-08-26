@@ -1,0 +1,522 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande / action !gift
+- Prévu pour être déclenché par une récompense de points de chaîne Twitch
+- Le viewer qui utilise la récompense saisit le nom d’un viewer cible dans le champ texte
+- Lit rawInput pour récupérer le texte saisi
+- Accepte un pseudo avec ou sans @
+- Si le texte est une phrase, tente de détecter un pseudo existant dedans
+- Si le pseudo est mal orthographié, tente de trouver le viewer le plus proche
+- Donne 1600 particules de l’élément DU VIEWER CIBLÉ
+- Ne donne rien si le viewer cible n’existe pas ou n’a pas choisi d’élément
+- Lit et sauvegarde viewers_data.json en JObject
+- Ne reconstruit jamais entièrement un viewer existant
+- Ne fait PAS de backup .bak
+- Compatible Streamer.bot
+- Sans LINQ
+*/
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    private const int GiftParticlesReward = 1600;
+
+    public bool Execute()
+    {
+        string path = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data\viewers_data.json";
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string giver = NormalizeUsername(args["userName"].ToString());
+        string input = GetCommandInput();
+
+        if (string.IsNullOrEmpty(input))
+        {
+            SendWarning(giver + ", indique le viewer à récompenser.");
+            return true;
+        }
+
+        if (!File.Exists(path))
+        {
+            SendWarning("Aucune donnée viewer trouvée.");
+            return true;
+        }
+
+        JObject viewers = LoadViewers(path);
+
+        if (viewers == null)
+        {
+            SendWarning("Impossible de lire viewers_data.json.");
+            return true;
+        }
+
+        string targetUsername = FindBestViewerMatch(viewers, input);
+
+        if (string.IsNullOrEmpty(targetUsername))
+        {
+            SendWarning(giver + ", je n’ai pas trouvé le viewer à récompenser.");
+            return true;
+        }
+
+        JObject targetViewer = viewers[targetUsername] as JObject;
+
+        if (targetViewer == null)
+        {
+            SendWarning(giver + ", le viewer " + targetUsername + " est introuvable.");
+            return true;
+        }
+
+        EnsureViewerDefaults(targetViewer, targetUsername);
+
+        string element = NormalizeElement(GetString(targetViewer, "element"));
+
+        if (string.IsNullOrEmpty(element))
+        {
+            SendWarning(giver + ", " + targetUsername + " n’a pas encore choisi d’élément.");
+            return true;
+        }
+
+        AddParticles(targetViewer, element, GiftParticlesReward);
+
+        SaveViewers(path, viewers);
+
+        int total = GetParticleTotal(targetViewer, element);
+
+        CPH.SendMessage("🎁 " + giver + " offre un Gift Suprême à " + targetUsername + " ! +" + GiftParticlesReward + " particules " + GetElementDisplayName(element) + " (" + total + ")");
+
+        return true;
+    }
+
+    private string FindBestViewerMatch(JObject viewers, string input)
+    {
+        string normalizedInput = NormalizeSearchText(input);
+
+        if (string.IsNullOrEmpty(normalizedInput))
+            return "";
+
+        string bestContainsMatch = "";
+
+        foreach (KeyValuePair<string, JToken> entry in viewers)
+        {
+            string username = NormalizeUsername(entry.Key);
+            string normalizedUsername = NormalizeSearchText(username);
+
+            if (string.IsNullOrEmpty(normalizedUsername))
+                continue;
+
+            if (normalizedInput == normalizedUsername)
+                return username;
+
+            if (normalizedInput.Contains(normalizedUsername))
+            {
+                if (string.IsNullOrEmpty(bestContainsMatch) || normalizedUsername.Length > NormalizeSearchText(bestContainsMatch).Length)
+                    bestContainsMatch = username;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(bestContainsMatch))
+            return bestContainsMatch;
+
+        string bestUser = "";
+        int bestDistance = 9999;
+
+        foreach (KeyValuePair<string, JToken> entry in viewers)
+        {
+            string username = NormalizeUsername(entry.Key);
+            string normalizedUsername = NormalizeSearchText(username);
+
+            if (string.IsNullOrEmpty(normalizedUsername))
+                continue;
+
+            int distance = LevenshteinDistance(normalizedInput, normalizedUsername);
+
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                bestUser = username;
+            }
+        }
+
+        if (string.IsNullOrEmpty(bestUser))
+            return "";
+
+        int maxAllowedDistance = GetMaxAllowedDistance(NormalizeSearchText(bestUser));
+
+        if (bestDistance <= maxAllowedDistance)
+            return bestUser;
+
+        return "";
+    }
+
+    private int GetMaxAllowedDistance(string username)
+    {
+        int length = username.Length;
+
+        if (length <= 4)
+            return 1;
+
+        if (length <= 8)
+            return 2;
+
+        return 3;
+    }
+
+    private int LevenshteinDistance(string a, string b)
+    {
+        if (string.IsNullOrEmpty(a))
+            return string.IsNullOrEmpty(b) ? 0 : b.Length;
+
+        if (string.IsNullOrEmpty(b))
+            return a.Length;
+
+        int[,] matrix = new int[a.Length + 1, b.Length + 1];
+
+        for (int i = 0; i <= a.Length; i++)
+            matrix[i, 0] = i;
+
+        for (int j = 0; j <= b.Length; j++)
+            matrix[0, j] = j;
+
+        for (int i = 1; i <= a.Length; i++)
+        {
+            for (int j = 1; j <= b.Length; j++)
+            {
+                int cost = a[i - 1] == b[j - 1] ? 0 : 1;
+                int deletion = matrix[i - 1, j] + 1;
+                int insertion = matrix[i, j - 1] + 1;
+                int substitution = matrix[i - 1, j - 1] + cost;
+                int min = deletion;
+
+                if (insertion < min)
+                    min = insertion;
+
+                if (substitution < min)
+                    min = substitution;
+
+                matrix[i, j] = min;
+            }
+        }
+
+        return matrix[a.Length, b.Length];
+    }
+
+    private JObject LoadViewers(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+
+            if (string.IsNullOrWhiteSpace(json))
+                return new JObject();
+
+            JObject viewers = JObject.Parse(json);
+
+            if (viewers == null)
+                return new JObject();
+
+            return viewers;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void SaveViewers(string path, JObject viewers)
+    {
+        string folder = Path.GetDirectoryName(path);
+
+        if (!Directory.Exists(folder))
+            Directory.CreateDirectory(folder);
+
+        string tempPath = path + ".tmp";
+        File.WriteAllText(tempPath, viewers.ToString(Formatting.Indented));
+
+        if (File.Exists(path))
+            File.Delete(path);
+
+        File.Move(tempPath, path);
+    }
+
+    private void EnsureViewerDefaults(JObject viewer, string username)
+    {
+        if (viewer == null)
+            return;
+
+        if (viewer["username"] == null || viewer["username"].Type == JTokenType.Null)
+            viewer["username"] = username;
+
+        EnsureInt(viewer, "xp", 0);
+        EnsureInt(viewer, "level", 0);
+        EnsureString(viewer, "element", "");
+        EnsureInt(viewer, "primogems", 0);
+        EnsureInt(viewer, "moras", 0);
+        EnsureInt(viewer, "selectedBannerCharacterId", 0);
+
+        JObject particles = GetObject(viewer, "particles");
+        EnsureInt(particles, "pyro", 0);
+        EnsureInt(particles, "hydro", 0);
+        EnsureInt(particles, "cryo", 0);
+        EnsureInt(particles, "electro", 0);
+        EnsureInt(particles, "anemo", 0);
+        EnsureInt(particles, "geo", 0);
+        EnsureInt(particles, "dendro", 0);
+
+        GetObject(viewer, "box");
+        GetArray(viewer, "team");
+
+        JObject pity = GetObject(viewer, "pity");
+        EnsureInt(pity, "pity5", 0);
+        EnsureInt(pity, "pity4", 0);
+
+        JObject guarantee = GetObject(viewer, "guarantee");
+        EnsureBool(guarantee, "guaranteedFeatured5", false);
+
+        JObject options = GetObject(viewer, "options");
+        EnsureString(options, "boxSort", "a");
+        EnsureBool(options, "boxSortDescending", false);
+
+        JObject missions = GetObject(viewer, "missions");
+        JObject daily = GetObject(missions, "daily");
+        EnsureNullOrString(daily, "missionId");
+        EnsureNullOrString(daily, "type");
+        EnsureInt(daily, "progress", 0);
+        EnsureInt(daily, "target", 0);
+        EnsureBool(daily, "completed", false);
+        EnsureBool(daily, "rewardClaimed", false);
+        EnsureNullOrString(daily, "startedAt");
+        EnsureNullOrString(daily, "description");
+
+        GetArray(viewer, "tradeRequests");
+        GetArray(viewer, "usedCodes");
+
+        JObject stats = GetObject(viewer, "stats");
+        EnsureInt(stats, "totalMessages", 0);
+        EnsureInt(stats, "countedMessages", 0);
+        EnsureInt(stats, "totalPulls", 0);
+        EnsureInt(stats, "totalFiveStars", 0);
+        EnsureInt(stats, "totalFourStars", 0);
+        EnsureBool(stats, "lastPullWasFiveStar", false);
+        EnsureInt(stats, "fiftyFiftyLostStreak", 0);
+        EnsureInt(stats, "fiftyFiftyWon", 0);
+        EnsureInt(stats, "fiftyFiftyLost", 0);
+        EnsureInt(stats, "totalPrimosEarned", 0);
+        EnsureInt(stats, "totalPrimosSpent", 0);
+        EnsureInt(stats, "totalMorasEarned", 0);
+        EnsureInt(stats, "totalMorasSpent", 0);
+        EnsureInt(stats, "level100OverflowRewardsClaimed", 0);
+
+        JObject dates = GetObject(viewer, "dates");
+        EnsureNullOrString(dates, "firstSeen");
+        EnsureNullOrString(dates, "lastSeen");
+        EnsureNullOrString(dates, "lastXpDate");
+        EnsureNullOrString(dates, "lastMessageTime");
+        EnsureNullOrString(dates, "lastDailyFirstMessageReward");
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private JObject GetObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+
+        return parent[key] as JObject;
+    }
+
+    private JArray GetArray(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Array)
+            parent[key] = new JArray();
+
+        return parent[key] as JArray;
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private void AddInt(JObject obj, string key, int amount)
+    {
+        int current = GetInt(obj, key);
+        obj[key] = current + amount;
+    }
+
+    private void AddParticles(JObject viewer, string element, int amount)
+    {
+        JObject particles = GetObject(viewer, "particles");
+        string normalized = NormalizeElement(element);
+
+        if (string.IsNullOrEmpty(normalized))
+            return;
+
+        AddInt(particles, normalized, amount);
+    }
+
+    private int GetParticleTotal(JObject viewer, string element)
+    {
+        JObject particles = GetObject(viewer, "particles");
+        return GetInt(particles, NormalizeElement(element));
+    }
+
+    private void EnsureInt(JObject obj, string key, int defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureBool(JObject obj, string key, bool defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureString(JObject obj, string key, string defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureNullOrString(JObject obj, string key)
+    {
+        if (obj[key] == null)
+            obj[key] = null;
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private string NormalizeElement(string element)
+    {
+        if (string.IsNullOrEmpty(element))
+            return "";
+
+        string normalized = element.ToLower().Trim();
+
+        switch (normalized)
+        {
+            case "pyro": return "pyro";
+            case "hydro": return "hydro";
+            case "cryo": return "cryo";
+            case "electro":
+            case "électro": return "electro";
+            case "anemo":
+            case "anémo": return "anemo";
+            case "geo":
+            case "géo": return "geo";
+            case "dendro": return "dendro";
+            default: return normalized;
+        }
+    }
+
+    private string GetElementDisplayName(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "🔥 Pyro";
+            case "hydro": return "💧 Hydro";
+            case "cryo": return "❄️ Cryo";
+            case "electro": return "⚡ Electro";
+            case "anemo": return "🌪️ Anemo";
+            case "geo": return "☄️ Geo";
+            case "dendro": return "🌿 Dendro";
+            default: return element;
+        }
+    }
+
+    private string NormalizeSearchText(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return "";
+
+        string value = text.ToLower().Trim();
+
+        value = value.Replace("@", "");
+        value = value.Replace("à", "a");
+        value = value.Replace("á", "a");
+        value = value.Replace("â", "a");
+        value = value.Replace("ä", "a");
+        value = value.Replace("ã", "a");
+        value = value.Replace("ç", "c");
+        value = value.Replace("è", "e");
+        value = value.Replace("é", "e");
+        value = value.Replace("ê", "e");
+        value = value.Replace("ë", "e");
+        value = value.Replace("ì", "i");
+        value = value.Replace("í", "i");
+        value = value.Replace("î", "i");
+        value = value.Replace("ï", "i");
+        value = value.Replace("ò", "o");
+        value = value.Replace("ó", "o");
+        value = value.Replace("ô", "o");
+        value = value.Replace("ö", "o");
+        value = value.Replace("õ", "o");
+        value = value.Replace("ù", "u");
+        value = value.Replace("ú", "u");
+        value = value.Replace("û", "u");
+        value = value.Replace("ü", "u");
+        value = value.Replace("ÿ", "y");
+        value = value.Replace("œ", "oe");
+        value = value.Replace("æ", "ae");
+
+        string cleaned = "";
+
+        for (int i = 0; i < value.Length; i++)
+        {
+            char c = value[i];
+
+            if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_')
+                cleaned += c;
+        }
+
+        return cleaned;
+    }
+
+    private void SendWarning(string message)
+    {
+        CPH.SendMessage("⚠️ " + message);
+    }
+}

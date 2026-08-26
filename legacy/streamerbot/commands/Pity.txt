@@ -1,0 +1,171 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande !pity
+- Lit viewers_data.json
+- Utilise JObject au lieu de ViewerData
+- Ne crée PAS le viewer s’il n’existe pas
+- Affiche la pity 5★ actuelle
+- Affiche la pity 4★ actuelle
+- Affiche si le viewer est en garantie 5★
+- Affiche les stacks de capture de brillance
+- Ne sauvegarde rien
+- Préserve totalement les autres données JSON
+*/
+
+using System;
+using System.IO;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    public bool Execute()
+    {
+        string path = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data\viewers_data.json";
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+
+        if (!File.Exists(path))
+        {
+            SendWarning($"{username}, ton profil n’existe pas encore.");
+            return true;
+        }
+
+        JObject viewers = LoadJObject(path);
+
+        if (viewers == null)
+        {
+            SendWarning("Impossible de lire viewers_data.json.");
+            return true;
+        }
+
+        JObject viewer = viewers[username] as JObject;
+
+        if (viewer == null)
+        {
+            SendWarning($"{username}, ton profil n’existe pas encore.");
+            return true;
+        }
+
+        EnsureViewerDefaults(viewer);
+
+        JObject pity = viewer["pity"] as JObject;
+        JObject guarantee = viewer["guarantee"] as JObject;
+        JObject stats = viewer["stats"] as JObject;
+
+        int pity5 = GetInt(pity, "pity5");
+        int pity4 = GetInt(pity, "pity4");
+
+        bool guaranteed = GetBool(guarantee, "guaranteedFeatured5");
+
+        int captureStacks = GetInt(stats, "fiftyFiftyLostStreak");
+
+        string garantieText = guaranteed ? "oui" : "non";
+
+        SendSuccess(
+            $"{username}, pity : 5★ {pity5}/90 | 4★ {pity4}/10 | 🎯 garantie 5★ : {garantieText} | ✨ capture : {captureStacks}/3"
+        );
+
+        return true;
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        try
+        {
+            string json = File.ReadAllText(path);
+            return JObject.Parse(json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void EnsureViewerDefaults(JObject viewer)
+    {
+        EnsureObject(viewer, "pity");
+        EnsureObject(viewer, "guarantee");
+        EnsureObject(viewer, "stats");
+
+        JObject pity = viewer["pity"] as JObject;
+        EnsureInt(pity, "pity5", 0);
+        EnsureInt(pity, "pity4", 0);
+
+        JObject guarantee = viewer["guarantee"] as JObject;
+        EnsureBool(guarantee, "guaranteedFeatured5", false);
+
+        JObject stats = viewer["stats"] as JObject;
+        EnsureInt(stats, "fiftyFiftyLostStreak", 0);
+    }
+
+    private void EnsureObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+    }
+
+    private void EnsureInt(JObject obj, string key, int defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureBool(JObject obj, string key, bool defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private bool GetBool(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null)
+            return false;
+
+        bool value;
+
+        if (bool.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return false;
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private void SendSuccess(string message)
+    {
+        CPH.SendMessage($"✅ {message}");
+    }
+
+    private void SendWarning(string message)
+    {
+        CPH.SendMessage($"⚠️ {message}");
+    }
+}
