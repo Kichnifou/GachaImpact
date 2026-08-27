@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.4
+Version : 0.5
 Date : 2026-08-27  
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -550,6 +550,19 @@ Direction standalone validée :
 - XP chat et XP du mode dédié sont cumulables ;
 - nom, contenu, plafond et équilibrage de ce mode seront conçus plus tard.
 
+Compteurs de messages validés :
+- conserver les valeurs legacy `totalMessages` et `countedMessages` à la migration sans recalcul ;
+- `totalMessages` = vrais messages envoyés par le joueur sur Twitch ou dans le chat interne, commandes comprises, hors réponses bot/système ;
+- `countedMessages` = messages ayant réellement donné de l'XP ;
+- l'XP du futur mode interface n'incrémente pas `countedMessages` ;
+- cooldown XP de 2 secondes global au joueur entre Twitch et chat interne.
+
+Tutoriels de niveau validés :
+- conserver la découverte progressive historique associée aux montées de niveau ;
+- montée provoquée par XP de chat → tutoriel dans le canal de chat concerné ;
+- montée provoquée par le futur mode XP de l'interface → notification dans la zone Notifications avec orientation vers la fonctionnalité concernée ;
+- les messages tutoriels legacy ne sont pas considérés comme preuve d'un verrou métier : les prérequis exacts seront confirmés dans les audits dédiés.
+
 ## 11.2 Niveau des personnages
 Actuellement :
 - les personnages NE MONTENT PAS DE NIVEAU.
@@ -966,7 +979,9 @@ Document : `docs/legacy/04-xp-audit.md`.
 - Q3 intérêt bancaire : VALIDÉ — 3 % automatiques au reset serveur de 00:00 `Europe/Paris`, sur le solde présent au reset, sans activité joueur ;
 - Q4 modèle de gain d'XP standalone : VALIDÉ — messages +1/+2/+3 avec cooldown 2 secondes conservés, pas d'XP directe sur les actions ordinaires, futur mode XP dédié dans l'interface avec plafond quotidien à concevoir, cumul chat + mode autorisé ;
 - principe Q5 onboarding élément standalone : VALIDÉ — choix obligatoire pendant l'onboarding, donc pas de verrou legacy « niveau 1 sans élément » dans le standalone ;
-- prochaine étape : finaliser l'audit XP et identifier les responsabilités restantes à reporter vers leurs audits dédiés avant de passer au domaine suivant.
+- Q6 tutoriels de montée de niveau : VALIDÉ — rendu dans le chat si le niveau provient d'XP chat, notification UI si le niveau provient du futur mode XP de l'interface ;
+- Q7 compteurs/messages/cooldown : VALIDÉ — historique conservé sans recalcul, `totalMessages` et `countedMessages` clairement séparés, cooldown 2 secondes global Twitch + chat interne ;
+- prochaine étape : finaliser les derniers points du cœur XP et déterminer si le domaine peut être clôturé, les responsabilités étrangères à XP étant reportées vers leurs audits dédiés.
 
 
 Ordre recommandé :
@@ -1301,17 +1316,18 @@ L'accès aux sources legacy et la matrice commandes ↔ données ont été valid
 4. Q2 — récompense quotidienne / onboarding associé : validé ;
 5. Q3 — intérêt bancaire quotidien : validé ;
 6. Q4 — modèle de gain d'XP standalone : validé ;
-7. Q5 — principe d'onboarding élément standalone : validé, détails Auth/Twitch reportés à la spécification dédiée.
+7. Q5 — principe d'onboarding élément standalone : validé, détails Auth/Twitch reportés à la spécification dédiée ;
+8. Q6 — tutoriels de montée de niveau multi-canaux : validé ;
+9. Q7 — compteurs de messages et cooldown XP multi-canaux : validé.
 
 **Prochaine étape unique : finaliser l'audit du domaine XP, vérifier quelles responsabilités de `XP.txt` doivent être simplement reportées vers leurs futurs audits dédiés, puis déterminer si le domaine XP peut être clôturé.**
 
 Avant de passer au domaine suivant :
-- comprendre le comportement legacy exact de l'intérêt ;
-- décider s'il reste à +3 % ;
-- décider comment le déclencher côté serveur sans dépendre d'un message Twitch ;
-- documenter la décision dans `04-xp-audit.md`, `decisions-log.md` et ce document maître si nécessaire.
+- terminer les derniers points directement liés au cœur XP / activité joueur ;
+- confirmer que les autres responsabilités actuellement hébergées dans `XP.txt` sont correctement reportées vers leurs audits dédiés ;
+- mettre `04-xp-audit.md`, `decisions-log.md` et ce document maître dans un état permettant de considérer le premier domaine comme clôturé.
 
-Après finalisation de toutes les décisions XP restantes, passer seulement ensuite au domaine suivant de la Phase 1D.
+Les responsabilités Faveur, Missions, échanges, bannière, C6, Giveaway, Events et Concours découvertes dans `XP.txt` ne doivent pas être décidées artificiellement pendant l'audit XP : elles seront approfondies dans leurs domaines respectifs.
 
 ---
 
@@ -1392,6 +1408,8 @@ Décisions clés :
 - intérêt bancaire V1 : +3 % automatiques chaque jour à 00:00 Europe/Paris sur le solde bancaire présent au reset, même sans activité du joueur ;
 - standalone : élément obligatoire pendant l'onboarding ;
 - standalone : XP chat conservée (+1/+2/+3, cooldown 2 s), pas d'XP directe sur les actions ordinaires, futur mode XP dédié dans l'interface avec plafond quotidien à concevoir, cumul chat + mode autorisé ;
+- XP multi-canaux : cooldown 2 s global entre Twitch/chat interne ; `totalMessages` conserve tous les vrais messages joueur, `countedMessages` uniquement ceux ayant réellement donné de l'XP ;
+- tutoriels de niveau : chat si montée via XP chat, notification UI si montée via le futur mode XP interface ;
 - Twitch : nouveau chatter enregistré passivement, progression jusqu'au seuil d'onboarding puis blocage des mécaniques actives tant que l'élément n'est pas choisi ;
 - suivi quotidien UI prévu dans le bloc bas gauche avec chevrons compacts.
 

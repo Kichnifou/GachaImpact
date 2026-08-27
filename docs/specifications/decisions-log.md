@@ -27,6 +27,12 @@ Statut : évolutif.
 - `VALIDÉ` — Le standalone disposera d'un mode ou d'une activité dédiée permettant de gagner de l'XP depuis l'interface, probablement via de petits mini-jeux / épreuves rapides avec un plafond quotidien.
 - `VALIDÉ` — L'XP gagnée par le chat et celle gagnée via ce futur mode dédié sont cumulables.
 - `À CONCEVOIR PLUS TARD` — Nom et contenu du mode XP, mini-jeux exacts, plafond quotidien, récompenses et équilibrage.
+- `VALIDÉ` — Les tutoriels/découvertes liés aux montées de niveau sont conservés, mais leur présentation dépend de la source de l'XP : montée via chat → tutoriel dans le canal de chat concerné ; montée via le futur mode XP de l'interface → notification dans la zone Notifications orientant vers la fonctionnalité concernée.
+- `VALIDÉ` — Les niveaux tutoriels legacy 1 à 10 constituent une base de découverte progressive ; ils ne prouvent pas à eux seuls l'existence d'un verrou métier, qui doit être confirmé lors de l'audit de chaque système.
+- `VALIDÉ` — Les valeurs legacy de `stats.totalMessages` et `stats.countedMessages` sont migrées telles quelles, sans recalcul rétroactif.
+- `VALIDÉ` — Dans GachaImpact, `totalMessages` compte les vrais messages envoyés par le joueur sur Twitch ou dans le chat interne, commandes comprises, mais exclut les réponses automatiques/bot/notifications système.
+- `VALIDÉ` — Dans GachaImpact, `countedMessages` augmente uniquement lorsqu'un message donne réellement de l'XP ; l'XP gagnée via le futur mode dédié de l'interface ne l'incrémente pas.
+- `VALIDÉ` — Le cooldown XP de 2 secondes est global au joueur entre Twitch et le chat interne GachaImpact afin d'empêcher le contournement par alternance de canaux.
 
 ## Personnages / C6
 - `VALIDÉ` — `constellation` reste plafonnée à C6.

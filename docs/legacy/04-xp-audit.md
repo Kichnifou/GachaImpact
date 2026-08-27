@@ -1,6 +1,6 @@
 # 04 — Audit legacy : XP / cycle de vie joueur
 
-Statut : AUDIT TECHNIQUE INITIAL — Q1 À Q4 VALIDÉS, Q5 PRINCIPE VALIDÉ — FINALISATION EN COURS 
+Statut : AUDIT TECHNIQUE INITIAL — Q1 À Q4, Q6 ET Q7 VALIDÉS ; Q5 PRINCIPE VALIDÉ — FINALISATION EN COURS 
 Date : 2026-08-27  
 Source : `legacy/streamerbot/commands/XP.txt`
 
@@ -97,6 +97,47 @@ Code réel :
 Important :
 le code réel est la référence. Les commentaires de tête doivent être vérifiés car ils peuvent être obsolètes.
 
+### Décisions cibles — ✅ VALIDÉES le 2026-08-27
+
+Les deux compteurs historiques sont conservés, mais leur sémantique future est explicitement définie.
+
+#### `stats.totalMessages`
+
+Migration :
+- conserver la valeur legacy existante telle quelle ;
+- ne pas tenter de la recalculer rétroactivement.
+
+Dans GachaImpact :
+- incrémenter pour chaque vrai message envoyé par le joueur dans le chat interne ou sur Twitch ;
+- une commande envoyée par le joueur compte bien comme un message dans `totalMessages` ;
+- les réponses automatiques du jeu, messages bot et notifications système ne doivent pas augmenter le compteur personnel du joueur.
+
+#### `stats.countedMessages`
+
+Migration :
+- conserver la valeur legacy existante telle quelle ;
+- ne pas tenter de la recalculer rétroactivement.
+
+Dans GachaImpact :
+- incrémenter uniquement lorsqu'un message donne réellement de l'XP ;
+- un message Twitch éligible donnant +1/+2/+3 XP ajoute +1 à `countedMessages` ;
+- un message du chat interne éligible donnant +1/+2/+3 XP ajoute +1 à `countedMessages` ;
+- une commande ne l'incrémente pas ;
+- un message refusé par le cooldown XP ne l'incrémente pas ;
+- l'XP gagnée via le futur mode XP de l'interface ne l'incrémente pas, puisqu'il ne s'agit pas d'un message.
+
+Les futures mécaniques utilisant une statistique « nombre de messages comptés », notamment certaines missions, pourront continuer à s'appuyer sur ce compteur si leur audit dédié confirme cette règle.
+
+#### Cooldown XP multi-canaux
+
+Le cooldown de **2 secondes** appartient au joueur et au système XP, pas à chaque canal séparément.
+
+Pour un même joueur/profil résolu :
+- Twitch et chat interne GachaImpact partagent donc le même cooldown XP ;
+- alterner rapidement entre Twitch et le chat interne ne permet pas de contourner le cooldown.
+
+La manière exacte d'unifier un profil Twitch-only avec un compte GachaImpact lié sera définie plus tard dans la spécification Auth/Twitch.
+
 ---
 
 ## 3. Niveau
@@ -117,6 +158,39 @@ Cela sert actuellement de tutoriel/porte d'entrée vers `!element`.
 Dans GachaImpact standalone, le choix de l'élément est une étape obligatoire de l'inscription/onboarding.
 
 Le joueur possède donc déjà un élément lorsqu'il se trouve au niveau 1, et le verrou legacy « niveau 1 sans élément » ne s'applique pas au parcours standalone.
+
+### Tutoriels de montée de niveau — comportement legacy
+
+`XP.txt` possède également une progression tutorielle envoyée lors des niveaux 1 à 10 :
+
+- niveau 1 : `!element` ;
+- niveau 2 : `!pity` ;
+- niveau 3 : `!sac` ;
+- niveau 4 : `!box` et ses tris ;
+- niveau 5 : découverte des particules et `!convertir` ;
+- niveau 6 : `!team` et les passifs ;
+- niveau 7 : `!shop` ;
+- niveau 8 : `!top` ;
+- niveau 9 : `!obtention` ;
+- niveau 10 : particules des autres éléments et `!echanger`.
+
+Ces messages tutoriels ne suffisent pas à prouver à eux seuls que toutes ces fonctionnalités sont réellement verrouillées par ces niveaux. Les éventuels prérequis métier seront confirmés pendant l'audit des scripts concernés.
+
+### Décision cible tutoriels — ✅ VALIDÉE le 2026-08-27
+
+Conserver le principe de découverte progressive lors des montées de niveau, mais adapter la présentation au canal ayant provoqué le gain d'XP.
+
+Si la montée de niveau est provoquée par de l'XP gagnée via un message :
+- conserver un tutoriel/conseil envoyé dans le canal de chat concerné ;
+- Twitch peut présenter les commandes adaptées à Twitch ;
+- le chat interne GachaImpact peut présenter les commandes ou accès adaptés au jeu.
+
+Si la montée de niveau est provoquée par l'XP du futur mode dédié de l'interface :
+- ne pas envoyer artificiellement un message de chat ;
+- créer une notification dans la zone **Notifications** en haut à droite de l'interface ;
+- la notification indique la fonctionnalité à découvrir et oriente le joueur vers l'écran correspondant.
+
+La progression tutorielle reste donc commune, tandis que son rendu dépend du contexte ayant déclenché la montée de niveau.
 
 ---
 
@@ -661,3 +735,57 @@ Restent à définir lors de la spécification Auth/Onboarding/Twitch :
 - représentation technique d'un profil Twitch-only avant liaison éventuelle avec un compte GachaImpact ;
 - règles exactes de notifications/pings d'onboarding Twitch pour éviter le spam ;
 - comportement de liaison lorsqu'un profil Twitch existant est rattaché ultérieurement à un compte GachaImpact.
+
+## Q6 — Tutoriels de montée de niveau — ✅ VALIDÉ
+
+La progression tutorielle par niveaux est conservée, mais son rendu dépend de la source de l'XP ayant provoqué la montée de niveau.
+
+### Montée de niveau via un message
+
+Si le niveau est gagné grâce à l'XP provenant d'un message Twitch ou du chat interne GachaImpact :
+- le tutoriel reste présenté dans le chat ;
+- le contenu est adapté au canal et à la fonctionnalité concernée ;
+- le principe historique de découverte progressive est conservé.
+
+### Montée de niveau via le mode XP de l'interface
+
+Si le niveau est gagné grâce au futur mode XP dédié à l'interface :
+- une notification est créée dans la zone Notifications en haut à droite ;
+- elle présente la fonctionnalité à découvrir ;
+- elle indique/oriente vers l'écran concerné.
+
+Les niveaux historiques 1 à 10 servent de base à cette progression tutorielle.
+
+Les éventuels vrais déblocages de mécaniques à certains niveaux ne sont pas déduits des messages tutoriels : ils seront confirmés lors de l'audit des domaines concernés.
+
+## Q7 — Compteurs de messages et cooldown multi-canaux — ✅ VALIDÉ
+
+### Migration
+
+Conserver les valeurs historiques existantes de :
+- `stats.totalMessages` ;
+- `stats.countedMessages`.
+
+Aucun recalcul rétroactif.
+
+### `totalMessages`
+
+Dans GachaImpact :
+- compte les vrais messages envoyés par le joueur sur Twitch ou dans le chat interne ;
+- les commandes envoyées par le joueur sont incluses ;
+- les réponses automatiques, messages bot et notifications système ne sont pas inclus.
+
+### `countedMessages`
+
+Dans GachaImpact :
+- augmente uniquement lorsqu'un message donne réellement de l'XP ;
+- fonctionne aussi bien pour Twitch que pour le chat interne ;
+- une commande ne compte pas ;
+- un message bloqué par le cooldown ne compte pas ;
+- l'XP obtenue via le futur mode XP de l'interface ne compte pas comme message.
+
+### Cooldown
+
+Le cooldown XP de **2 secondes est global au joueur** entre Twitch et le chat interne GachaImpact.
+
+Il ne doit donc pas être possible de contourner le cooldown en alternant les deux canaux.
