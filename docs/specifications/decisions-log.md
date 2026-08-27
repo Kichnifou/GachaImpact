@@ -22,6 +22,8 @@ Statut : évolutif.
 - `VALIDÉ` — Le code réel XP utilise 30 XP par palier, avec gains de +1/+2/+3 XP selon la longueur du message éligible (seuils exacts documentés dans `legacy/04-xp-audit.md`).
 - `VALIDÉ` — Récompense de level-up V1 : +800 Primogemmes et +10 000 Moras à chaque palier ; à partir du niveau 5, +80 particules de l'élément personnel ; à partir du niveau 10, +40 particules d'un autre élément aléatoire.
 - `VALIDÉ` — Les montants de level-up sont conservés pour la V1 et seront réévalués seulement lors d'un futur audit global de l'économie.
+- `VALIDÉ` — Dans GachaImpact standalone, le chat reste une source possible d'XP mais ne doit pas être l'unique moyen de progresser ; des actions de jeu via l'interface et les mécaniques pourront également donner de l'XP.
+- `À DÉFINIR PENDANT Q4` — Actions exactes donnant de l'XP, quantités, limites/cooldowns éventuels et équilibrage global de la progression.
 
 ## Personnages / C6
 - `VALIDÉ` — `constellation` reste plafonnée à C6.
@@ -56,6 +58,7 @@ Statut : évolutif.
 - `VALIDÉ` — Il s'agit d'une donnée métier permanente, pas d'une préférence d'affichage.
 - `VALIDÉ` — L'élément choisi détermine quelles particules sont ses particules attitrées.
 - `VALIDÉ` — Dans l'application standalone, le choix de l'élément fait partie obligatoirement de l'inscription/onboarding afin que le joueur dispose immédiatement des prérequis élémentaires dès son premier niveau.
+- `VALIDÉ` — Le verrou legacy « niveau 1 sans élément » ne s'applique pas au parcours standalone, puisque l'élément est déjà choisi pendant l'onboarding.
 
 ## Twitch / entrée dans le jeu
 - `VALIDÉ` — Un nouveau chatter Twitch continue à être enregistré automatiquement dans les données du jeu lors de ses premiers messages, comme dans le legacy.

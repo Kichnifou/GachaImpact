@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.2  
+Version : 0.3 
 Date : 2026-08-27  
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -541,6 +541,12 @@ Récompense de level-up V1 validée :
 
 Ces montants sont conservés pour la V1 ; l'équilibrage global de l'économie sera traité plus tard.
 
+Direction standalone validée :
+- le chat reste une source possible d'XP ;
+- le chat ne doit pas être l'unique moyen de progresser ;
+- des actions de jeu réalisées directement via l'interface et les mécaniques de GachaImpact pourront également donner de l'XP ;
+- les actions exactes, les quantités d'XP, les limites/cooldowns éventuels et l'équilibrage seront définis plus tard pendant Q4.
+
 ## 11.2 Niveau des personnages
 Actuellement :
 - les personnages NE MONTENT PAS DE NIVEAU.
@@ -572,6 +578,7 @@ Règles validées :
 - donnée métier permanente ;
 - détermine les particules attitrées du joueur ;
 - dans l'application standalone, le choix de l'élément est obligatoire pendant l'inscription/onboarding ;
+- le joueur possède donc déjà un élément lorsqu'il se trouve au niveau 1 ; le verrou legacy « niveau 1 sans élément » ne s'applique pas au parcours standalone ;
 - côté Twitch, un nouveau chatter peut être enregistré et progresser jusqu'au seuil d'onboarding (direction validée : niveau 2), puis les mécaniques actives sont bloquées tant que `!element` n'a pas été utilisé.
 
 Exemple :
@@ -948,6 +955,8 @@ Document : `docs/legacy/04-xp-audit.md`.
 État de validation XP au 2026-08-27 :
 - Q1 récompenses de level-up : VALIDÉ ;
 - Q2 récompense quotidienne : VALIDÉ ;
+- principe Q4 XP standalone : VALIDÉ — la progression ne dépendra pas uniquement du chat ; des actions de jeu pourront également donner de l'XP, détails à définir plus tard ;
+- principe Q5 onboarding élément standalone : VALIDÉ — choix obligatoire pendant l'onboarding, donc pas de verrou legacy « niveau 1 sans élément » dans le standalone ;
 - prochaine décision : Q3 intérêt bancaire.
 
 
@@ -1369,6 +1378,7 @@ Décisions clés :
 - récompenses de level-up V1 conservées selon le code legacy réel ;
 - récompense quotidienne V1 conservée avec reset global à minuit Europe/Paris ;
 - standalone : élément obligatoire pendant l'onboarding ;
+- standalone : l'XP ne dépendra pas uniquement du chat ; des actions de jeu via l'interface et les mécaniques pourront aussi donner de l'XP ;
 - Twitch : nouveau chatter enregistré passivement, progression jusqu'au seuil d'onboarding puis blocage des mécaniques actives tant que l'élément n'est pas choisi ;
 - suivi quotidien UI prévu dans le bloc bas gauche avec chevrons compacts.
 

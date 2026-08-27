@@ -112,8 +112,11 @@ Une fois niveau 1 atteint, l'XP est bloquée tant que le joueur n'a pas choisi d
 
 Cela sert actuellement de tutoriel/porte d'entrée vers `!element`.
 
-### À décider pour GachaImpact
-Dans une UI standalone, il sera probablement plus propre de demander l'élément lors de l'onboarding plutôt que de laisser le joueur atteindre niveau 1 puis bloquer sa progression.
+### Décision cible — ✅ VALIDÉE le 2026-08-27
+
+Dans GachaImpact standalone, le choix de l'élément est une étape obligatoire de l'inscription/onboarding.
+
+Le joueur possède donc déjà un élément lorsqu'il se trouve au niveau 1, et le verrou legacy « niveau 1 sans élément » ne s'applique pas au parcours standalone.
 
 ---
 
@@ -564,15 +567,25 @@ Roadmap :
 Souhaites-tu conserver le +3% quotidien ?
 Si oui, recommandation : calcul serveur par date, plus du tout dépendant du premier message.
 
-## Q4 — XP dans GachaImpact
-Twitch ne sera plus obligatoire. Il faut donc décider plus tard quelles activités GachaImpact donnent de l'XP.
-Recommandation provisoire :
-- conserver les messages du chat interne comme source possible ;
-- mais ne pas lier toute la progression du jeu uniquement au chat.
+## Q4 — XP dans GachaImpact — 🟡 PRINCIPE VALIDÉ, DÉTAILS À DÉFINIR
 
-## Q5 — Onboarding élément — 🟡 DIRECTION DÉJÀ CADRÉE
+Principe validé :
+- dans GachaImpact standalone, le chat reste une source possible d'XP ;
+- le chat ne doit pas être l'unique moyen de progresser ;
+- des actions de jeu réalisées directement via l'interface et les mécaniques de GachaImpact pourront également donner de l'XP.
+
+À définir plus tard pendant Q4 :
+- les actions exactes donnant de l'XP ;
+- les quantités d'XP ;
+- les limites/cooldowns éventuels ;
+- l'équilibrage global de la progression.
+
+## Q5 — Onboarding élément — ✅ PRINCIPE VALIDÉ
+
 Une décision directement liée à Q2 est déjà actée :
 - dans l'application GachaImpact, le choix de l'élément sera une étape obligatoire de l'inscription/onboarding ;
+- le joueur possède donc déjà un élément lorsqu'il se trouve au niveau 1 ;
+- le verrou legacy « niveau 1 sans élément » ne s'applique pas au parcours standalone ;
 - le nouveau joueur standalone ne doit donc pas être bloqué derrière un niveau 2 avant d'accéder aux systèmes dépendant de l'élément ;
 - côté Twitch, un nouveau chatter continue à être enregistré automatiquement comme aujourd'hui ;
 - il peut progresser par ses messages jusqu'au seuil d'onboarding (direction validée : niveau 2) ;
