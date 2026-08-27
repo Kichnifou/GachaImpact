@@ -1,7 +1,7 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.1  
-Date : 2026-08-26  
+Version : 0.2  
+Date : 2026-08-27  
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
@@ -175,7 +175,7 @@ Contient actuellement :
 - pity 4★ ;
 - garantie ;
 - brillance ;
-- récompense quotidienne.
+- suivi des activités quotidiennes (actuellement présenté comme récompense quotidienne).
 
 Décisions :
 - le label "Voyageur" a été supprimé ;
@@ -185,6 +185,11 @@ Décisions :
 - le compteur de brillance doit être placé avec les informations de garantie/pity ;
 - la sidebar ne doit pas afficher une scrollbar au chargement normal 1920×1080 ;
 - les chevrons permettent d'aller vers les écrans correspondants.
+- le bloc du bas évolue vers un **suivi quotidien général** : la récompense quotidienne n'est qu'une activité parmi d'autres (combat, roue, etc.) ;
+- navigation de ce petit bloc par chevrons compacts `‹` / `›` plutôt que par boutons texte « Précédent / Suivant » ;
+- possibilité de masquer une proposition pour la journée ;
+- préférences futures permettant de choisir les types de quotidiennes à afficher ;
+- quand toutes les propositions pertinentes sont terminées ou masquées, le bloc reste visible avec un état du type « Tout est bon, tu es à jour ».
 
 ---
 
@@ -506,20 +511,35 @@ Bots connus :
 - autres bots identifiés
 => exclus de la migration.
 
+### Entrée Twitch sans compte standalone
+Décision :
+- lorsqu'une personne parle pour la première fois sur Twitch, elle continue à être enregistrée dans les données du jeu comme dans le legacy ;
+- cet enregistrement passif ne constitue pas encore un compte GachaImpact standalone complet ;
+- elle peut progresser via ses messages jusqu'au seuil d'onboarding Twitch ; direction validée : niveau 2 ;
+- si elle n'a pas choisi d'élément à ce stade, le jeu lui demande de le faire puis bloque les mécaniques actives tant que l'élément n'est pas choisi ;
+- `!element <élément>` reste la porte d'activation naturelle du profil Twitch ;
+- la représentation technique de ce profil Twitch-only et sa future fusion/liaison avec un compte GachaImpact seront spécifiées plus tard.
+
 ---
 
 # 11. PROGRESSION JOUEUR
 
 ## 11.1 Niveau
 - niveau max : 100 ;
-- le joueur monte de niveau grâce à l'XP ;
-- actuellement 30 XP / progression par palier selon système XP à auditer précisément ;
+- 30 XP par palier ;
+- gain par message éligible selon longueur : +1 XP jusqu'à 100 caractères, +2 XP de 101 à 200, +3 XP au-delà ;
 - au niveau 100 :
   - le niveau reste 100 ;
   - la progression continue ;
-  - les récompenses périodiques continuent.
+  - une récompense d'overflow est redonnée tous les 30 XP supplémentaires.
 
-À auditer précisément dans `XP.txt`.
+Récompense de level-up V1 validée :
+- +800 primogemmes ;
+- +10 000 moras ;
+- à partir du niveau 5 : +80 particules de l'élément personnel ;
+- à partir du niveau 10 : +40 particules d'un autre élément aléatoire.
+
+Ces montants sont conservés pour la V1 ; l'équilibrage global de l'économie sera traité plus tard.
 
 ## 11.2 Niveau des personnages
 Actuellement :
@@ -550,7 +570,9 @@ Règles validées :
 - choix unique ;
 - non modifiable ensuite ;
 - donnée métier permanente ;
-- détermine les particules attitrées du joueur.
+- détermine les particules attitrées du joueur ;
+- dans l'application standalone, le choix de l'élément est obligatoire pendant l'inscription/onboarding ;
+- côté Twitch, un nouveau chatter peut être enregistré et progresser jusqu'au seuil d'onboarding (direction validée : niveau 2), puis les mécaniques actives sont bloquées tant que `!element` n'a pas été utilisé.
 
 Exemple :
 joueur Cryo
@@ -592,6 +614,26 @@ Règles :
   - échangeables avec d'autres joueurs ;
 - pas d'autre usage connu pour l'instant ;
 - vérifier dans les scripts.
+
+## 13.4 Récompense quotidienne
+Décision V1 validée :
+- +160 primogemmes ;
+- +160 particules de l'élément du joueur ;
+- +10 000 moras ;
+- reset global à 00:00 `Europe/Paris` ;
+- jour non réclamé = perdu ;
+- aucune accumulation des jours manqués.
+
+Une seule opération métier idempotente doit gérer le claim, qu'il soit déclenché par :
+- le bouton `Réclamer` de l'interface ;
+- le premier message éligible du chat GachaImpact ;
+- le premier message Twitch éligible d'un profil ayant déjà choisi son élément.
+
+Le bloc UI correspondant doit évoluer vers un suivi quotidien plus général avec chevrons `‹` / `›`, masquage pour la journée et préférences futures.
+
+Idées futures non V1 :
+- streak de connexion avec bonus au 7e jour consécutif ;
+- calendriers de connexion événementiels.
 
 ---
 
@@ -807,6 +849,8 @@ Sous `docs/` :
 - `README.md`
 - `legacy/01-data-sources-inventory.md`
 - `legacy/02-current-player-model.md`
+- `legacy/03-command-data-matrix.md`
+- `legacy/04-xp-audit.md`
 - `specifications/decisions-log.md`
 - `commands/command-reference.md`
 - `roadmap/development-roadmap.md`
@@ -880,7 +924,9 @@ Fait.
 En cours.
 
 ### 1C — Matrice commandes ↔ données
-À faire.
+Fait.
+
+Document : `docs/legacy/03-command-data-matrix.md`.
 
 Objectif :
 pour chaque script :
@@ -894,7 +940,16 @@ pour chaque script :
 - logique spécifique Streamer.bot.
 
 ### 1D — Audit domaine par domaine
-À faire.
+EN COURS.
+
+Premier domaine : `XP.txt` / cycle de vie joueur.
+Document : `docs/legacy/04-xp-audit.md`.
+
+État de validation XP au 2026-08-27 :
+- Q1 récompenses de level-up : VALIDÉ ;
+- Q2 récompense quotidienne : VALIDÉ ;
+- prochaine décision : Q3 intérêt bancaire.
+
 
 Ordre recommandé :
 
@@ -1219,44 +1274,23 @@ git status
 
 # 38. PROCHAINE ÉTAPE EXACTE
 
-Dès que GitHub expose correctement le dernier commit contenant `legacy/streamerbot/` :
+L'accès aux sources legacy et la matrice commandes ↔ données ont été validés. L'audit `XP.txt` est maintenant le travail actif.
 
-1. vérifier que ChatGPT peut lire :
-   - commandes ;
-   - JSON ;
-   - docs.
+État :
+1. `docs/legacy/03-command-data-matrix.md` : créé ;
+2. `docs/legacy/04-xp-audit.md` : créé et en validation ;
+3. Q1 — récompenses de level-up : validé ;
+4. Q2 — récompense quotidienne / onboarding associé : validé.
 
-2. construire :
-   `docs/legacy/03-command-data-matrix.md`
+**Prochaine étape unique : Q3 — intérêt bancaire quotidien.**
 
-Ce document doit recenser :
-- chaque commande ;
-- fichiers JSON lus ;
-- fichiers JSON écrits ;
-- sections joueur utilisées ;
-- systèmes touchés ;
-- dépendances ;
-- logique dupliquée ;
-- commentaire/notes ;
-- statut futur.
+Avant de passer au domaine suivant :
+- comprendre le comportement legacy exact de l'intérêt ;
+- décider s'il reste à +3 % ;
+- décider comment le déclencher côté serveur sans dépendre d'un message Twitch ;
+- documenter la décision dans `04-xp-audit.md`, `decisions-log.md` et ce document maître si nécessaire.
 
-3. commencer l'audit détaillé par :
-   `XP.txt`
-
-Pourquoi XP :
-- probablement central pour création/defaults ;
-- progression ;
-- récompenses ;
-- activité quotidienne ;
-- plusieurs systèmes persistants ;
-- idéal pour comprendre le cycle de vie joueur.
-
-4. mettre à jour :
-- `02-current-player-model.md`
-- `decisions-log.md`
-- ce document maître.
-
-5. continuer ensuite domaine par domaine.
+Après finalisation de toutes les décisions XP restantes, passer seulement ensuite au domaine suivant de la Phase 1D.
 
 ---
 
@@ -1331,7 +1365,12 @@ Décisions clés :
 - C6 ouvre stats/concours ;
 - bannière hebdo avec cible sélectionnée ;
 - vote pour bannière future ;
-- une seule logique serveur partagée par UI/chat/Twitch.
+- une seule logique serveur partagée par UI/chat/Twitch ;
+- récompenses de level-up V1 conservées selon le code legacy réel ;
+- récompense quotidienne V1 conservée avec reset global à minuit Europe/Paris ;
+- standalone : élément obligatoire pendant l'onboarding ;
+- Twitch : nouveau chatter enregistré passivement, progression jusqu'au seuil d'onboarding puis blocage des mécaniques actives tant que l'élément n'est pas choisi ;
+- suivi quotidien UI prévu dans le bloc bas gauche avec chevrons compacts.
 
 Prochaine étape :
-audit legacy complet, matrice commandes ↔ données, puis XP en premier.
+continuer l'audit XP étape par étape ; Q3 = intérêt bancaire quotidien.

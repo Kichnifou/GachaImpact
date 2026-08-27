@@ -1,6 +1,6 @@
 # 04 — Audit legacy : XP / cycle de vie joueur
 
-Statut : AUDIT TECHNIQUE INITIAL — VALIDATION EN COURS  
+Statut : AUDIT TECHNIQUE INITIAL — Q1 ET Q2 VALIDÉS, VALIDATION EN COURS  
 Date : 2026-08-27  
 Source : `legacy/streamerbot/commands/XP.txt`
 
@@ -63,9 +63,15 @@ Defaults majeurs observés :
 - `bank`
 
 ### Décision architecture cible
-Le nouveau compte ne doit PAS être “créé au premier message Twitch”.
+Il faut distinguer **compte GachaImpact standalone** et **présence Twitch enregistrée**.
 
-Il sera créé par l'authentification GachaImpact, puis ses sous-domaines seront initialisés via un service central de création/provisionnement.
+- Un vrai compte GachaImpact standalone est créé par l'authentification GachaImpact, puis ses sous-domaines sont initialisés via un service central de création/provisionnement.
+- Côté Twitch, le comportement d'entrée historique est conservé : lorsqu'une personne parle pour la première fois, le système crée/enregistre son profil Twitch legacy comme aujourd'hui.
+- Cet enregistrement passif ne signifie pas que la personne a terminé l'onboarding ni qu'elle doit être sollicitée en permanence par le jeu.
+- Le viewer Twitch peut progresser par ses messages jusqu'au seuil d'onboarding prévu ; la direction produit validée est de conserver le passage jusqu'au niveau 2, puis de demander le choix d'un élément.
+- Tant que l'élément n'a pas été choisi, les mécaniques actives du jeu restent bloquées pour ce profil Twitch, en dehors de ce qui est nécessaire pour terminer l'onboarding.
+
+Le modèle technique exact permettant de distinguer un profil Twitch-only d'un compte GachaImpact complet sera figé pendant l'audit Auth/Twitch.
 
 ---
 
@@ -201,19 +207,22 @@ Canaux voulus :
 
 Si la récompense a déjà été récupérée par un canal, les autres canaux ne donnent rien de plus.
 
-### Important — ne plus enrôler les simples viewers Twitch passivement
+### Twitch : enregistrement passif conservé, activation du jeu verrouillée par l'élément
 
-Le garde-fou legacy `niveau >= 2` existe notamment parce que Streamer.bot crée/enregistre beaucoup de personnes qui écrivent simplement dans le chat sans réellement jouer.
-
-Ce fonctionnement ne doit pas être reproduit tel quel.
+Le fonctionnement Twitch ne doit pas être confondu avec l'onboarding standalone.
 
 Direction validée :
 - dans l'application GachaImpact, le **choix de l'élément fait partie de l'inscription/onboarding obligatoire** ;
-- un compte standalone réellement créé possède donc déjà son élément et peut utiliser le jeu dès le début, sans attendre le niveau 2 ;
-- le verrou `niveau >= 2` n'est plus une condition souhaitée pour la récompense quotidienne standalone ;
-- un simple message Twitch d'une personne qui n'a jamais choisi de jouer ne doit **ni créer silencieusement un joueur actif, ni la ping, ni déclencher des messages/récompenses du jeu** ;
-- côté Twitch, l'entrée dans le jeu doit passer par une action explicite du viewer, avec `!element <élément>` comme mécanisme legacy naturel à conserver/adapter ;
-- le modèle exact d'identité d'un joueur Twitch non encore lié à un compte GachaImpact sera figé pendant l'audit Auth/Twitch.
+- un compte standalone réellement créé possède donc déjà son élément et peut utiliser le jeu dès le niveau 1, sans attendre le niveau 2 ;
+- côté Twitch, lorsqu'une personne parle pour la première fois, elle doit continuer à être **enregistrée dans le jeu comme aujourd'hui** ;
+- cette personne peut gagner l'XP de chat et progresser jusqu'au seuil d'onboarding ; la direction produit est de conserver le passage jusqu'au **niveau 2** ;
+- à ce stade, si elle n'a pas encore choisi d'élément, le jeu lui demande de le faire ;
+- tant que l'élément n'est pas choisi, **plus aucune progression/mécanique active ne doit se déclencher pour elle**, hors ce qui est nécessaire au choix de l'élément ;
+- `!element <élément>` reste la porte d'activation naturelle du joueur Twitch ;
+- une personne Twitch déjà dotée d'un élément est éligible aux mécaniques quotidiennes Twitch, sous réserve des autres règles du système ;
+- le modèle exact d'identité et de liaison d'un joueur Twitch-only avec un compte GachaImpact sera figé pendant l'audit Auth/Twitch.
+
+Cette décision conserve le comportement communautaire historique sans transformer immédiatement chaque chatter en joueur pleinement actif.
 
 ### UI — le rectangle devient un suivi des activités quotidiennes
 
@@ -224,7 +233,7 @@ Principes validés :
 - après sa réclamation, elle quitte l'élément actuellement proposé et laisse la place à une autre activité quotidienne ;
 - exemples d'autres activités : combat quotidien, roue, etc. ;
 - un ordre/priorité d'affichage sera défini plus tard ;
-- le joueur pourra parcourir les activités visibles avec des contrôles **Précédent / Suivant** sans être obligé d'accomplir l'activité courante pour voir les suivantes ;
+- le joueur pourra parcourir les activités visibles avec de petits boutons **chevron gauche / chevron droit** (`‹` / `›`) sans être obligé d'accomplir l'activité courante pour voir les suivantes ; les libellés « Précédent » / « Suivant » ne seront pas affichés dans cette petite carte afin de ne pas la surcharger ;
 - certaines activités proposées pourront être **masquées pour la journée** via une petite croix ; ce masquage ne les accomplit pas et elles pourront réapparaître le lendemain ;
 - plus tard, les paramètres du joueur permettront de choisir quelles catégories d'activités il souhaite ou non voir dans ce suivi ;
 - lorsque toutes les activités visibles sont terminées ou écartées pour la journée, le bloc reste affiché avec un message du type **« Tout est bon, tu es à jour »**.
@@ -533,11 +542,11 @@ V1 :
 Réclamation possible via la même opération métier :
 - bouton `Réclamer` dans l'interface ;
 - premier message éligible dans le chat GachaImpact ;
-- premier message Twitch éligible pour un joueur ayant explicitement rejoint/activé le jeu.
+- premier message Twitch éligible pour un joueur Twitch ayant déjà choisi son élément.
 
-Le niveau 2 ne doit plus servir de garde-fou dans le standalone. Le choix de l'élément devient obligatoire pendant l'onboarding GachaImpact. Côté Twitch, un viewer ordinaire ne doit jamais être enrôlé/pingé passivement ; l'entrée dans le jeu doit être explicite, avec `!element` comme base legacy à conserver/adapter.
+Le niveau 2 ne doit plus servir de garde-fou dans le standalone : le choix de l'élément devient obligatoire pendant l'onboarding GachaImpact. Côté Twitch, l'enregistrement passif au premier message est conservé : le viewer peut progresser par le chat jusqu'au seuil d'onboarding (direction validée : niveau 2), puis le jeu lui demande de choisir son élément. Tant que cet élément n'est pas choisi, les mécaniques actives restent bloquées.
 
-Le bloc en bas à gauche évoluera plus tard vers un **suivi des quotidiennes** parcourable (précédent/suivant), avec masquage pour la journée et préférences d'affichage.
+Le bloc en bas à gauche évoluera plus tard vers un **suivi des quotidiennes** parcourable avec des chevrons `‹` / `›`, sans libellés textuels visibles, avec masquage pour la journée et préférences d'affichage.
 
 Feedback de claim :
 mise à jour des compteurs + animation temporaire des gains près des ressources.
@@ -565,10 +574,14 @@ Recommandation provisoire :
 Une décision directement liée à Q2 est déjà actée :
 - dans l'application GachaImpact, le choix de l'élément sera une étape obligatoire de l'inscription/onboarding ;
 - le nouveau joueur standalone ne doit donc pas être bloqué derrière un niveau 2 avant d'accéder aux systèmes dépendant de l'élément ;
-- côté Twitch, les viewers ordinaires ne doivent plus devenir des joueurs actifs simplement parce qu'ils écrivent un message.
+- côté Twitch, un nouveau chatter continue à être enregistré automatiquement comme aujourd'hui ;
+- il peut progresser par ses messages jusqu'au seuil d'onboarding (direction validée : niveau 2) ;
+- à partir de ce seuil, le jeu lui demande de choisir un élément et les mécaniques actives restent bloquées tant qu'il ne l'a pas fait ;
+- `!element` reste la porte d'activation naturelle du profil Twitch.
 
 Restent à définir lors de la spécification Auth/Onboarding/Twitch :
-- niveau de départ exact ;
-- moment précis où le compte est considéré comme complètement créé ;
-- fonctionnement d'un joueur Twitch-only avant liaison éventuelle avec un compte GachaImpact ;
-- mécanisme final d'opt-in Twitch autour de `!element`.
+- niveau de départ exact du compte standalone ;
+- moment précis où le compte standalone est considéré comme complètement créé ;
+- représentation technique d'un profil Twitch-only avant liaison éventuelle avec un compte GachaImpact ;
+- règles exactes de notifications/pings d'onboarding Twitch pour éviter le spam ;
+- comportement de liaison lorsqu'un profil Twitch existant est rattaché ultérieurement à un compte GachaImpact.
