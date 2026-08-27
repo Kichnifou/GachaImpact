@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.5
+Version : 0.6
 Date : 2026-08-27  
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -222,6 +222,18 @@ Décision :
 - possibilité future de marquer lu / archiver ;
 - clic sur notification -> écran concerné ;
 - possibilité future d'un écran Notifications dédié.
+
+État frontend actuel :
+- la coque React possède déjà le panneau Notifications dans `GameHeader.tsx` ;
+- la liste est actuellement alimentée par des données fictives de `src/data/mockData.ts` ;
+- le compteur visible est encore statique dans le prototype ;
+- le type actuel de notification est minimal et ne contient pas encore toute la navigation métier future ;
+- ces mocks devront être remplacés plus tard par de vraies notifications provenant du backend.
+
+Décision progression :
+- lorsqu'un gain d'XP obtenu via le futur mode interface fait franchir plusieurs niveaux, les notifications de level-up s'ajoutent à cette liste ;
+- plusieurs niveaux franchis peuvent produire plusieurs notifications afin que chaque progression reste visible ;
+- les paliers d'overflow multiples au niveau 100 doivent également être présentés clairement.
 
 ---
 
@@ -562,6 +574,31 @@ Tutoriels de niveau validés :
 - montée provoquée par XP de chat → tutoriel dans le canal de chat concerné ;
 - montée provoquée par le futur mode XP de l'interface → notification dans la zone Notifications avec orientation vers la fonctionnalité concernée ;
 - les messages tutoriels legacy ne sont pas considérés comme preuve d'un verrou métier : les prérequis exacts seront confirmés dans les audits dédiés.
+Source de vérité progression validée :
+- l'XP cumulée est la source de vérité métier du niveau ;
+- formule V1 : `niveau = min(floor(xp / 30), 100)` ;
+- le niveau ne doit pas évoluer indépendamment de l'XP ;
+- pendant la migration, une incohérence XP/niveau doit être signalée plutôt que corrigée silencieusement.
+
+Gains multi-paliers validés :
+- une attribution d'XP peut faire franchir plusieurs niveaux ;
+- toutes les récompenses de chaque niveau intermédiaire doivent être attribuées ;
+- toutes les découvertes/tutoriels concernés restent traités ;
+- une montée multiple via le futur mode XP interface doit être clairement visible dans la liste Notifications.
+
+Niveau 100 :
+- conserver `level100OverflowRewardsClaimed` legacy ou un état futur strictement équivalent ;
+- plusieurs paliers d'overflow gagnés en une fois donnent toutes les récompenses correspondantes ;
+- leur multiplicité doit être clairement visible pour le joueur.
+
+XP V1 :
+- cumulative ;
+- non dépensable ;
+- aucun reset.
+
+Idées futures uniquement :
+- niveau réel supérieur à 100 ;
+- prestige / rebirth.
 
 ## 11.2 Niveau des personnages
 Actuellement :
@@ -828,6 +865,12 @@ Décisions validées :
 - conserver historiques de combats/missions/events si existants ;
 - conserver les données même si la fonctionnalité ne sera développée que plus tard.
 
+Précisions dates legacy :
+- conserver toutes les dates réellement connues sans recalcul ni invention ;
+- interpréter les timestamps Streamer.bot sans timezone comme `Europe/Paris` ;
+- conserver séparément la première présence Twitch/legacy et la future date de création du compte GachaImpact ;
+- ne pas figer maintenant une unique notion future de `lastSeen` : connexion, présence, activité de jeu et activité chat seront distinguées lors de la conception des domaines concernés.
+
 Champ supposé obsolète :
 - marquer `LEGACY / OBSOLÈTE À VÉRIFIER`
 - ne pas supprimer tant que la suppression n'a pas été explicitement validée.
@@ -981,7 +1024,9 @@ Document : `docs/legacy/04-xp-audit.md`.
 - principe Q5 onboarding élément standalone : VALIDÉ — choix obligatoire pendant l'onboarding, donc pas de verrou legacy « niveau 1 sans élément » dans le standalone ;
 - Q6 tutoriels de montée de niveau : VALIDÉ — rendu dans le chat si le niveau provient d'XP chat, notification UI si le niveau provient du futur mode XP de l'interface ;
 - Q7 compteurs/messages/cooldown : VALIDÉ — historique conservé sans recalcul, `totalMessages` et `countedMessages` clairement séparés, cooldown 2 secondes global Twitch + chat interne ;
-- prochaine étape : finaliser les derniers points du cœur XP et déterminer si le domaine peut être clôturé, les responsabilités étrangères à XP étant reportées vers leurs audits dédiés.
+- Q8 dates/activité : VALIDÉ — dates legacy conservées sans invention, timestamps legacy interprétés en `Europe/Paris`, `firstSeen` Twitch distinct de la création du compte, futurs concepts de dernière activité séparés ;
+- Q9 source de vérité XP / multi-level : VALIDÉ — XP source de vérité du niveau, état overflow conservé, toutes les récompenses intermédiaires accordées, XP cumulative/non dépensable, retours UI adaptés aux montées multiples ;
+- prochaine étape : effectuer la vérification finale de clôture du domaine XP et confirmer qu'aucune décision cœur XP importante ne reste ouverte avant de passer au domaine suivant.
 
 
 Ordre recommandé :
@@ -1318,14 +1363,17 @@ L'accès aux sources legacy et la matrice commandes ↔ données ont été valid
 6. Q4 — modèle de gain d'XP standalone : validé ;
 7. Q5 — principe d'onboarding élément standalone : validé, détails Auth/Twitch reportés à la spécification dédiée ;
 8. Q6 — tutoriels de montée de niveau multi-canaux : validé ;
-9. Q7 — compteurs de messages et cooldown XP multi-canaux : validé.
+9. Q7 — compteurs de messages et cooldown XP multi-canaux : validé ;
+10. Q8 — dates et activité joueur : validé ;
+11. Q9 — source de vérité XP, niveaux multiples et overflow : validé.
 
-**Prochaine étape unique : finaliser l'audit du domaine XP, vérifier quelles responsabilités de `XP.txt` doivent être simplement reportées vers leurs futurs audits dédiés, puis déterminer si le domaine XP peut être clôturé.**
+**Prochaine étape unique : effectuer la vérification finale de clôture de l'audit XP, confirmer qu'aucune règle cœur XP importante ne reste ouverte, puis figer le statut du domaine avant de passer au domaine suivant de la Phase 1D.**
 
 Avant de passer au domaine suivant :
-- terminer les derniers points directement liés au cœur XP / activité joueur ;
-- confirmer que les autres responsabilités actuellement hébergées dans `XP.txt` sont correctement reportées vers leurs audits dédiés ;
-- mettre `04-xp-audit.md`, `decisions-log.md` et ce document maître dans un état permettant de considérer le premier domaine comme clôturé.
+- relire une dernière fois le cœur XP et les décisions Q1 à Q9 ;
+- confirmer que les responsabilités étrangères à XP sont bien reportées vers leurs audits dédiés ;
+- identifier les éventuelles incertitudes restantes sans les résoudre artificiellement hors de leur domaine ;
+- si aucun blocage cœur XP ne subsiste, marquer officiellement le domaine XP comme clôturé.
 
 Les responsabilités Faveur, Missions, échanges, bannière, C6, Giveaway, Events et Concours découvertes dans `XP.txt` ne doivent pas être décidées artificiellement pendant l'audit XP : elles seront approfondies dans leurs domaines respectifs.
 
@@ -1410,8 +1458,11 @@ Décisions clés :
 - standalone : XP chat conservée (+1/+2/+3, cooldown 2 s), pas d'XP directe sur les actions ordinaires, futur mode XP dédié dans l'interface avec plafond quotidien à concevoir, cumul chat + mode autorisé ;
 - XP multi-canaux : cooldown 2 s global entre Twitch/chat interne ; `totalMessages` conserve tous les vrais messages joueur, `countedMessages` uniquement ceux ayant réellement donné de l'XP ;
 - tutoriels de niveau : chat si montée via XP chat, notification UI si montée via le futur mode XP interface ;
+- XP = source de vérité du niveau ; gains multi-level récompensent chaque niveau traversé et sont clairement affichés dans les notifications ;
+- niveau 100 : état d'overflow historique conservé, récompenses multiples prises en charge ;
+- dates legacy conservées sans invention, timestamps historiques interprétés comme Europe/Paris ;
 - Twitch : nouveau chatter enregistré passivement, progression jusqu'au seuil d'onboarding puis blocage des mécaniques actives tant que l'élément n'est pas choisi ;
 - suivi quotidien UI prévu dans le bloc bas gauche avec chevrons compacts.
 
 Prochaine étape :
-finaliser l'audit XP et déterminer quelles responsabilités restantes sont à reporter vers leurs audits dédiés avant de clôturer ce premier domaine.
+effectuer la vérification finale de clôture du domaine XP ; si aucune règle cœur XP importante ne reste ouverte, clôturer officiellement ce premier audit et passer au domaine suivant.

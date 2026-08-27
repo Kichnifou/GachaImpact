@@ -1,6 +1,6 @@
 # 04 — Audit legacy : XP / cycle de vie joueur
 
-Statut : AUDIT TECHNIQUE INITIAL — Q1 À Q4, Q6 ET Q7 VALIDÉS ; Q5 PRINCIPE VALIDÉ — FINALISATION EN COURS 
+Statut : AUDIT TECHNIQUE INITIAL — Q1 À Q4, Q6 À Q9 VALIDÉS ; Q5 PRINCIPE VALIDÉ — FINALISATION EN COURS 
 Date : 2026-08-27  
 Source : `legacy/streamerbot/commands/XP.txt`
 
@@ -138,6 +138,47 @@ Pour un même joueur/profil résolu :
 
 La manière exacte d'unifier un profil Twitch-only avec un compte GachaImpact lié sera définie plus tard dans la spécification Auth/Twitch.
 
+### Dates d'activité / XP legacy
+
+`XP.txt` utilise notamment les champs suivants :
+
+- `dates.firstSeen` : date de première création/enregistrement connu du viewer ;
+- `dates.lastSeen` : mis à jour à chaque message traité par le script ;
+- `dates.lastXpDate` : mis à jour lorsqu'un message donne réellement de l'XP ;
+- `dates.lastMessageTime` : malgré son nom, correspond au dernier message ayant réellement donné de l'XP et sert au cooldown XP ;
+- `dates.lastDailyFirstMessageReward` : dernière récompense quotidienne legacy obtenue.
+
+Le legacy écrit ces timestamps avec `DateTime.Now`, sans information de fuseau intégrée dans la chaîne.
+
+### Décisions cibles dates — ✅ VALIDÉES le 2026-08-27
+
+Migration :
+- conserver toutes les dates legacy existantes telles qu'elles sont connues ;
+- ne pas inventer une date manquante ;
+- ne pas recalculer rétroactivement les anciennes dates ;
+- interpréter les timestamps legacy sans fuseau comme étant en **`Europe/Paris`**, le PC Streamer.bot historique étant configuré sur l'heure française.
+
+Identité :
+- `firstSeen` Twitch/legacy reste une information historique distincte de la date de création du futur compte GachaImpact ;
+- une création de compte GachaImpact ne doit jamais écraser ou remplacer le premier `firstSeen` Twitch connu.
+
+`lastSeen` :
+- conserver la valeur legacy à la migration ;
+- ne pas figer maintenant sa future signification globale ;
+- les notions « dernière connexion », « dernière activité de jeu », « dernier message Twitch », « dernier message interne » et présence en ligne seront définies plus tard dans les domaines Compte / Social / Présence.
+
+`lastMessageTime` :
+- le nom legacy est trompeur ;
+- dans le futur système XP, utiliser conceptuellement un état du type `lastXpMessageAt` ;
+- il représente le dernier message ayant réellement accordé de l'XP ;
+- il est commun entre Twitch et le chat interne pour appliquer le cooldown global de 2 secondes ;
+- le futur mode XP de l'interface ne le modifie pas.
+
+`lastXpDate` :
+- doit représenter dans le futur la dernière fois où le joueur a réellement gagné de l'XP, quelle que soit la source ;
+- XP via Twitch, chat interne ou futur mode XP interface mettent donc à jour cette information ;
+- le choix exact entre date ou timestamp sera figé lors de la conception du modèle cible.
+
 ---
 
 ## 3. Niveau
@@ -215,6 +256,34 @@ C'est donc cette mécanique qui doit être considérée comme le comportement le
 - `totalMorasEarned`
 - `totalMainElementParticlesEarned` si particules de l'élément personnel.
 
+### Franchissement de plusieurs niveaux en une seule attribution d'XP
+
+Le code legacy sait déjà traiter un gain d'XP suffisamment important pour franchir plusieurs niveaux :
+- `newLevel` est recalculé depuis l'XP totale ;
+- le script boucle de `oldLevel + 1` jusqu'à `newLevel` ;
+- `GiveLevelRewards` est exécuté pour chaque niveau traversé ;
+- les tutoriels sont également parcourus pour chaque niveau franchi.
+
+Limite d'affichage legacy :
+le message principal de level-up n'affiche actuellement que les informations de récompense du dernier niveau atteint, même si plusieurs récompenses ont réellement été accordées.
+
+### Décision cible — ✅ VALIDÉE le 2026-08-27
+
+Un gain d'XP important, notamment via le futur mode XP de l'interface, peut faire franchir plusieurs niveaux en une seule opération.
+
+Dans ce cas :
+- toutes les récompenses intermédiaires doivent être attribuées ;
+- aucune récompense de niveau traversé ne doit être perdue ;
+- toutes les découvertes/tutoriels concernés restent déclenchés ;
+- l'interface doit rendre clairement visible le nombre de niveaux gagnés et les récompenses correspondantes.
+
+Pour une montée via le futur mode XP interface :
+- une notification peut être ajoutée à la liste Notifications pour chaque niveau franchi ;
+- plusieurs niveaux gagnés peuvent donc produire plusieurs notifications successives ;
+- ces notifications utilisent le système de notifications déjà prévu dans la coque frontend.
+
+L'attribution XP, le calcul des niveaux, les récompenses et l'état de progression associé devront être traités de manière atomique côté serveur afin d'éviter les doubles gains lors d'un retry ou d'une requête répétée.
+
 ---
 
 ## 5. Niveau 100
@@ -235,6 +304,30 @@ La récompense utilise la même fonction `GiveLevelRewards(100)` :
 Cette observation confirme la décision déjà validée :
 - niveau bloqué à 100 ;
 - progression/récompenses continues.
+
+### État d'overflow
+
+Le champ legacy :
+
+`stats.level100OverflowRewardsClaimed`
+
+sert à distinguer :
+- le nombre de paliers d'overflow théoriquement atteints d'après l'XP totale ;
+- le nombre de paliers déjà effectivement récompensés.
+
+Cette information est indispensable pour éviter de redonner des récompenses historiques après une migration ou une reconnexion.
+
+### Décisions cibles — ✅ VALIDÉES le 2026-08-27
+
+- conserver exactement la valeur legacy de `level100OverflowRewardsClaimed` lors de la migration ;
+- le futur modèle peut renommer ou représenter différemment cette information, mais doit préserver un état métier équivalent ;
+- si plusieurs paliers d'overflow sont franchis en une seule attribution d'XP, toutes les récompenses correspondantes sont données ;
+- l'interface doit indiquer clairement qu'il y a eu plusieurs récompenses de niveau maximum, par exemple via une multiplicité explicite ou plusieurs entrées adaptées dans le système de notifications ;
+- le niveau reste plafonné à 100 pour la V1 actuelle.
+
+Idée future uniquement :
+- permettre éventuellement un jour de dépasser réellement le niveau 100 ;
+- cette idée n'est pas une modification de la V1 et ne doit pas être implémentée maintenant.
 
 ---
 
@@ -789,3 +882,108 @@ Dans GachaImpact :
 Le cooldown XP de **2 secondes est global au joueur** entre Twitch et le chat interne GachaImpact.
 
 Il ne doit donc pas être possible de contourner le cooldown en alternant les deux canaux.
+
+## Q8 — Dates et activité joueur — ✅ VALIDÉ
+
+### Conservation historique
+
+Toutes les dates legacy existantes sont conservées à la migration :
+- aucune date connue n'est supprimée ;
+- aucune date absente n'est inventée ;
+- aucun recalcul rétroactif.
+
+Les timestamps legacy sans information de fuseau sont interprétés comme `Europe/Paris`, correspondant au fuseau du PC Streamer.bot historique.
+
+### `firstSeen`
+
+La première présence Twitch/legacy et la création du compte GachaImpact sont deux événements différents.
+
+Le futur modèle doit donc pouvoir distinguer conceptuellement :
+- première présence connue dans le legacy/Twitch ;
+- date de création du compte GachaImpact.
+
+### `lastSeen`
+
+La valeur legacy est conservée.
+
+La définition du futur « dernier vu / dernière activité » est reportée aux domaines Compte / Social / Présence afin de ne pas mélanger :
+- connexion au jeu ;
+- présence en ligne ;
+- activité de jeu ;
+- message Twitch ;
+- message du chat interne.
+
+### `lastMessageTime`
+
+Le nom legacy est trompeur.
+
+Dans le futur système XP, il correspond conceptuellement à un état du type `lastXpMessageAt` :
+- dernier message ayant réellement accordé de l'XP ;
+- partagé entre Twitch et chat interne ;
+- utilisé pour le cooldown global de 2 secondes ;
+- non modifié par le futur mode XP de l'interface.
+
+### `lastXpDate`
+
+Dans le futur, cette information représente la dernière fois où le joueur a gagné de l'XP, quelle que soit la source :
+- Twitch ;
+- chat interne ;
+- futur mode XP interface.
+
+Le format DB exact sera défini pendant le modèle cible.
+
+## Q9 — Source de vérité XP / niveaux multiples — ✅ VALIDÉ
+
+### XP comme source de vérité
+
+L'XP cumulée est la source de vérité métier de la progression joueur.
+
+Pour la V1 actuelle :
+
+`niveau = min(floor(xp / 30), 100)`
+
+Le niveau ne doit pas être une progression indépendante pouvant diverger arbitrairement de l'XP.
+
+Pendant la migration :
+- importer l'XP legacy telle quelle ;
+- conserver également les données historiques nécessaires ;
+- comparer le niveau legacy avec le niveau attendu depuis l'XP ;
+- en cas d'incohérence, la signaler dans le rapport de migration ;
+- ne pas corriger silencieusement une incohérence historique.
+
+Le choix final consistant à stocker matériellement `level` en DB ou à le dériver sera décidé pendant la conception du modèle cible.
+
+### Overflow niveau 100
+
+Conserver l'état historique `level100OverflowRewardsClaimed` ou un équivalent strict afin de ne jamais redonner des récompenses déjà obtenues.
+
+### Gain d'XP franchissant plusieurs paliers
+
+Si une attribution d'XP franchit plusieurs niveaux :
+- toutes les récompenses intermédiaires sont accordées ;
+- tous les tutoriels/découvertes concernés sont traités ;
+- le retour visuel doit montrer clairement les multiples niveaux gagnés.
+
+Le futur mode XP interface peut donc par exemple donner 100 XP et faire franchir plusieurs niveaux d'un coup.
+
+Dans l'interface actuelle, une liste de notifications existe déjà dans la cloche du header. Elle utilise encore des données `mockData` et n'est pas encore reliée à un vrai backend.
+
+Direction future :
+- les montées de niveau provoquées par le mode XP pourront alimenter cette vraie liste de notifications ;
+- plusieurs niveaux gagnés peuvent produire plusieurs notifications ;
+- les données factices actuelles seront remplacées ultérieurement par les notifications réelles du serveur.
+
+Au niveau 100, plusieurs paliers d'overflow gagnés simultanément doivent eux aussi être présentés clairement au joueur.
+
+### XP cumulative
+
+Pour la V1 :
+- l'XP ne se dépense pas ;
+- l'XP ne se reset pas ;
+- elle continue à augmenter après le niveau 100 pour les cycles d'overflow.
+
+Idées futures, non validées pour implémentation immédiate :
+- niveau supérieur à 100 ;
+- prestige / rebirth.
+
+Ces idées restent en roadmap potentielle et ne modifient pas les règles V1 actuelles.

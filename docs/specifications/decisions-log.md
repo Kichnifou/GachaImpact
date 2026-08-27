@@ -8,6 +8,8 @@ Statut : évolutif.
 - `VALIDÉ` — Un compte Twitch peut être lié séparément.
 - `VALIDÉ` — Le pseudo / identifiant Twitch nécessaire à la correspondance legacy doit être conservé.
 - `VALIDÉ` — Un joueur sans Twitch doit profiter de 100 % du jeu.
+- `VALIDÉ` — La première présence Twitch/legacy (`firstSeen`) est distincte de la date de création du compte GachaImpact ; aucune des deux notions ne doit écraser l'autre.
+- `À DÉFINIR PLUS TARD` — La future notion globale de dernière activité / dernier vu sera conçue avec les domaines Compte / Social / Présence plutôt que de réutiliser aveuglément le `lastSeen` legacy.
 
 ## Migration
 - `VALIDÉ` — Tous les historiques utiles, statistiques et dates sont migrés.
@@ -15,6 +17,9 @@ Statut : évolutif.
 - `VALIDÉ` — Une donnée supposée obsolète n'est supprimée qu'après validation explicite.
 - `VALIDÉ` — La migration doit pouvoir être relancée avec des JSON Streamer.bot plus récents sans duplication ni corruption.
 - `VALIDÉ` — Le profil Kichnifou sert de référence fonctionnelle la plus complète pour le schéma actuel.
+- `VALIDÉ` — Toutes les dates/timestamps legacy connus sont conservés tels quels ; une date manquante n'est jamais inventée et les historiques ne sont pas recalculés rétroactivement.
+- `VALIDÉ` — Les timestamps legacy sans fuseau provenant de Streamer.bot doivent être interprétés comme `Europe/Paris` lors de l'import.
+- `VALIDÉ` — Une incohérence historique entre `xp` et `level` doit être détectée et signalée dans le rapport de migration plutôt que corrigée silencieusement.
 
 ## XP
 - `VALIDÉ` — Niveau maximal : 100.
@@ -33,6 +38,16 @@ Statut : évolutif.
 - `VALIDÉ` — Dans GachaImpact, `totalMessages` compte les vrais messages envoyés par le joueur sur Twitch ou dans le chat interne, commandes comprises, mais exclut les réponses automatiques/bot/notifications système.
 - `VALIDÉ` — Dans GachaImpact, `countedMessages` augmente uniquement lorsqu'un message donne réellement de l'XP ; l'XP gagnée via le futur mode dédié de l'interface ne l'incrémente pas.
 - `VALIDÉ` — Le cooldown XP de 2 secondes est global au joueur entre Twitch et le chat interne GachaImpact afin d'empêcher le contournement par alternance de canaux.
+- `VALIDÉ` — L'XP cumulée est la source de vérité métier du niveau joueur ; pour la V1, le niveau correspond à `min(floor(xp / 30), 100)`.
+- `VALIDÉ` — `level100OverflowRewardsClaimed` doit être conservé à la migration, ou remplacé par un état strictement équivalent, afin d'éviter tout double paiement de récompenses d'overflow.
+- `VALIDÉ` — Si une attribution d'XP franchit plusieurs niveaux, toutes les récompenses intermédiaires sont accordées.
+- `VALIDÉ` — Les montées multiples déclenchées via le futur mode XP interface doivent être clairement représentées dans la liste Notifications ; plusieurs niveaux peuvent générer plusieurs notifications.
+- `VALIDÉ` — Plusieurs paliers d'overflow niveau 100 gagnés simultanément doivent eux aussi être clairement représentés visuellement.
+- `VALIDÉ` — L'XP joueur est cumulative, ne se dépense pas et ne se reset pas dans la V1 actuelle.
+- `VALIDÉ` — Le futur équivalent de `lastMessageTime` représente uniquement le dernier message ayant réellement accordé de l'XP et sert au cooldown global Twitch/chat interne.
+- `VALIDÉ` — La future information de dernière XP gagnée doit être mise à jour quelle que soit la source de l'XP : Twitch, chat interne ou mode XP interface.
+- `FUTUR / À CONCEVOIR` — Une progression réelle au-delà du niveau 100 pourra éventuellement être étudiée plus tard.
+- `FUTUR / À CONCEVOIR` — Une mécanique de prestige/rebirth pourra éventuellement être étudiée plus tard.
 
 ## Personnages / C6
 - `VALIDÉ` — `constellation` reste plafonnée à C6.
