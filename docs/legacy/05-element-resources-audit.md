@@ -1,6 +1,6 @@
 # 05 — Audit legacy : Élément / ressources / conversion / échanges
 
-Statut : AUDIT EN COURS — R1 À R9 VALIDÉS
+Statut : AUDIT EN COURS — R1 À R23 VALIDÉS — ÉCHANGES QUASI FINALISÉS
 Date : 2026-08-27
 
 Sources principales :
@@ -342,6 +342,287 @@ s'il existe déjà une demande entre A et B, une deuxième demande entre ces deu
 
 ---
 
+## R10 — Réservation uniquement côté expéditeur — ✅ VALIDÉ
+
+Le comportement cible diffère volontairement du legacy.
+
+Lors de la création d'une demande :
+- seul le stock que l'expéditeur promet de céder est réservé ;
+- le stock du destinataire n'est pas réservé tant qu'il n'a pas accepté ;
+- le destinataire reste donc libre d'utiliser ses particules pour d'autres opérations.
+
+Objectif :
+éviter qu'un autre joueur puisse bloquer les ressources du destinataire simplement en lui envoyant une demande.
+
+Le stock disponible reste :
+
+`stock disponible = stock total - réservations des demandes envoyées`
+
+Le serveur doit garantir cette réservation côté expéditeur.
+
+---
+
+## R11 — Raccourci MAX — ✅ VALIDÉ
+
+Conserver le comportement legacy :
+
+`!echanger <pseudo>`
+
+sans montant signifie :
+créer une demande pour le maximum actuellement échangeable entre les deux joueurs.
+
+Dans l'UI :
+- proposer un bouton `MAX` ;
+- cliquer sur `MAX` remplit directement le champ quantité ;
+- pas besoin d'afficher en permanence une ligne séparée « maximum possible ».
+
+---
+
+## R12 — Accepter tout — ✅ VALIDÉ
+
+Conserver une action permettant de traiter toutes les demandes reçues.
+
+Chat legacy :
+`!echanger accepter`
+
+UI cible :
+bouton conceptuel `Accepter tout`.
+
+Chaque demande doit être revalidée et exécutée individuellement.
+
+L'échec ou l'ajustement d'une demande ne doit pas empêcher les autres demandes encore réalisables d'être traitées.
+
+L'ordre détaillé est défini dans R17.
+
+---
+
+## R13 — Historique serveur des échanges — ✅ VALIDÉ
+
+Le legacy ne possède pas d'historique complet des échanges résolus.
+
+Migration :
+- ne pas inventer rétroactivement des échanges historiques qui ne sont pas présents dans les données legacy.
+
+À partir de GachaImpact :
+- conserver côté serveur les données nécessaires à l'audit des échanges ;
+- demande créée ;
+- acceptée ;
+- refusée ;
+- annulée ;
+- expirée ;
+- éventuellement réduite automatiquement ;
+- participants ;
+- éléments ;
+- montant initial ;
+- montant final ;
+- dates pertinentes.
+
+Cet historique n'a pas besoin d'être affiché dans l'interface V1.
+
+Utilités :
+- diagnostic ;
+- sécurité ;
+- résolution de bugs ;
+- statistiques futures ;
+- audit des transactions.
+
+Idée future :
+un écran de statistiques pourra présenter des statistiques personnelles et éventuellement globales du jeu, dont certaines pourront être dérivées de cet historique.
+
+Ne pas créer inutilement des compteurs dérivés si les données transactionnelles permettent de les recalculer proprement.
+
+---
+
+## R14 — Découverte des partenaires réellement échangeables — ✅ VALIDÉ
+
+Le comportement legacy de `!echanger` doit être amélioré.
+
+Ne proposer que des joueurs avec lesquels un échange est réellement possible au moment de la consultation.
+
+Conditions principales :
+- profil valide ;
+- élément choisi ;
+- élément différent ;
+- aucune demande active entre la paire ;
+- maximum réellement échangeable supérieur à 0.
+
+Chat :
+- conserver une présentation proche du legacy ;
+- afficher le montant échangeable entre parenthèses à côté du pseudo.
+
+Exemple conceptuel :
+
+`Bob (350) | Alice (120)`
+
+UI :
+- liste/recherche de partenaires réellement échangeables ;
+- ne pas griser par défaut les joueurs impossibles ;
+- les masquer ;
+- des filtres/recherches pourront être proposés.
+
+---
+
+## R15 — Vérification du stock destinataire à la création — ✅ VALIDÉ
+
+Même si le stock du destinataire n'est pas réservé, le serveur doit vérifier au moment de la création que le destinataire possède actuellement suffisamment de particules pour le montant demandé.
+
+Exemple :
+- demande = 500 ;
+- destinataire disponible = 200 ;
+- la demande de 500 ne peut pas être créée.
+
+Cette vérification évite de créer volontairement des demandes impossibles.
+
+Une fois la demande créée, le stock du destinataire reste libre et peut évoluer.
+
+---
+
+## R16 — Réduction dynamique du montant — ✅ VALIDÉ
+
+Le montant d'une demande peut diminuer automatiquement après sa création si le stock disponible du destinataire devient insuffisant.
+
+Exemple :
+1. demande créée à 500 ;
+2. l'expéditeur réserve 500 ;
+3. le destinataire ne dispose ensuite plus que de 200 ;
+4. la demande devient automatiquement une demande de 200 ;
+5. l'expéditeur ne conserve plus que 200 réservées.
+
+Si le maximum réalisable tombe à 0 :
+- la demande est automatiquement supprimée ;
+- aucune notification spécifique d'annulation n'est nécessaire ;
+- la réservation restante de l'expéditeur est libérée.
+
+Cette cohérence doit être assurée côté serveur lorsqu'une opération modifie les stocks concernés.
+
+---
+
+## R17 — Ordre de `Accepter tout` — ✅ VALIDÉ
+
+`Accepter tout` traite les demandes reçues de la plus ancienne à la plus récente.
+
+Chaque demande est traitée transactionnellement.
+
+Après chaque échange :
+- les stocks sont mis à jour ;
+- les demandes restantes sont réévaluées selon R16 ;
+- une demande peut donc être réduite ;
+- une demande dont le montant devient 0 disparaît automatiquement ;
+- le traitement continue ensuite avec les demandes encore existantes.
+
+Une demande devenue impossible ne bloque pas arbitrairement les autres.
+
+---
+
+## R18 — Affichage chat des partenaires — ✅ VALIDÉ
+
+`!echanger` sans argument ne doit plus afficher un joueur simplement parce qu'il possède des particules de l'élément du demandeur.
+
+Il doit uniquement afficher les partenaires pour lesquels un échange réel est actuellement possible.
+
+La quantité échangeable reste affichée entre parenthèses à côté du pseudo, dans l'esprit du rendu legacy.
+
+---
+
+## R19 — Notification agrégée dynamique — ✅ VALIDÉ
+
+La notification d'échanges représente un état agrégé.
+
+Exemple :
+
+`3 demandes d'échange en attente`
+
+Comportement :
+- elle peut passer en état lu après consultation ;
+- elle peut rester visible tant que des demandes existent ;
+- le joueur peut la supprimer manuellement ;
+- une petite croix de suppression apparaît au survol ;
+- si une nouvelle demande arrive après suppression ou lecture, la notification réapparaît / redevient non lue ;
+- elle indique alors le nombre total actuel de demandes reçues en attente.
+
+La notification n'est pas un historique d'une demande individuelle.
+
+---
+
+## R20 — Une demande réduite ne remonte jamais — ✅ VALIDÉ
+
+Si une demande a été automatiquement réduite :
+- son montant courant peut encore diminuer ;
+- il ne remonte jamais automatiquement vers son montant initial.
+
+Exemple :
+- initial : 500 ;
+- réduit à 200 ;
+- le destinataire récupère ensuite du stock ;
+- la demande reste à 200.
+
+Pour revenir à 500 :
+- annuler/résoudre la demande existante ;
+- créer ensuite une nouvelle demande.
+
+Cette règle garantit un comportement prévisible et évite de tenter de réserver de nouveau des particules que l'expéditeur a pu utiliser entre-temps.
+
+---
+
+## R21 — Libération immédiate de la réservation — ✅ VALIDÉ
+
+Lorsqu'une demande est réduite, la réservation côté expéditeur est immédiatement réduite du même montant.
+
+Exemple :
+- demande : 500 ;
+- réservation expéditeur : 500 ;
+- demande réduite à 200 ;
+- nouvelle réservation : 200 ;
+- 300 particules redeviennent immédiatement disponibles.
+
+Tous les calculs de stock et toutes les nouvelles demandes doivent utiliser cette nouvelle disponibilité sans délai.
+
+---
+
+## R22 — Plusieurs demandes reçues peuvent viser le même stock — ✅ VALIDÉ
+
+Puisque le stock du destinataire n'est pas réservé, plusieurs demandes reçues peuvent chacune être réalisables individuellement au moment de leur création même si elles ne peuvent pas toutes être acceptées simultanément.
+
+Exemple :
+- destinataire disponible : 500 ;
+- demande A : 300 ;
+- demande B : 300.
+
+Les deux peuvent exister à 300.
+
+Le système ne réserve pas indirectement 300 pour A puis seulement 200 pour B.
+
+Lors d'un `Accepter tout` :
+1. A, plus ancienne, est acceptée pour 300 ;
+2. il reste 200 ;
+3. B est réévaluée et réduite automatiquement à 200 ;
+4. B peut ensuite être acceptée pour 200 ;
+5. si le stock arrive à 0, les autres demandes dépendant de ce stock disparaissent conformément à R16.
+
+La priorité temporelle intervient donc lors de l'exécution, pas comme réservation préalable du stock du destinataire.
+
+---
+
+## R23 — Pas d'acceptation partielle manuelle — ✅ VALIDÉ
+
+Le destinataire accepte ou refuse le montant courant complet de la demande.
+
+Exemple :
+demande courante = 200.
+
+Le joueur peut :
+- accepter 200 ;
+- refuser.
+
+Il ne peut pas répondre manuellement :
+`j'accepte seulement 75`.
+
+Si les joueurs souhaitent négocier un autre montant :
+- annuler/refuser la demande ;
+- créer une nouvelle demande.
+
+La réduction automatique R16 reste distincte d'une négociation manuelle.
+
 # 12. Expiration cible — ✅ VALIDÉE
 
 Les demandes envoyées et reçues non résolues expirent au reset quotidien global du serveur :
@@ -390,6 +671,23 @@ Il doit permettre de voir clairement :
 
 Le joueur doit pouvoir traiter plusieurs demandes reçues depuis cet écran.
 
+Actions prévues :
+- accepter une demande ;
+- refuser une demande ;
+- `Accepter tout` ;
+- annuler une demande envoyée ;
+- créer une demande avec quantité libre ;
+- raccourci `MAX` remplissant le champ quantité.
+
+Découverte des partenaires :
+- afficher/rechercher uniquement les partenaires réellement échangeables par défaut ;
+- un partenaire dont le maximum échangeable est 0 n'est pas affiché dans la liste normale ;
+- filtres/recherche pourront compléter cette vue.
+
+Stocks :
+- rendre lisibles le total, le réservé côté expéditeur et le réellement disponible lorsque pertinent ;
+- toute réduction automatique d'une demande doit être reflétée dynamiquement dans l'interface.
+
 La présentation exacte reste à concevoir avec Codex lors de l'implémentation UI.
 
 ---
@@ -409,6 +707,13 @@ Exemple conceptuel :
 
 La notification doit évoluer lorsque le nombre de demandes change.
 
+Comportement validé :
+- ouverture/consultation peut marquer la notification comme lue ;
+- une notification lue peut rester visible tant que l'état correspondant existe ;
+- toutes les notifications de l'application doivent pouvoir être supprimées manuellement via une petite croix affichée au survol ;
+- si la notification agrégée d'échanges est supprimée mais qu'une nouvelle demande est reçue ensuite, elle est recréée/réaffichée en non-lue avec le nombre total courant ;
+- les demandes elles-mêmes expirant au reset, la notification agrégée disparaît également lorsque plus aucune demande n'existe.
+
 ---
 
 # 16. Stockage futur — NE PAS FIGER MAINTENANT
@@ -421,18 +726,32 @@ Ne pas reproduire automatiquement cette duplication dans la future DB.
 
 Le modèle relationnel cible sera décidé en Phase 2.
 
-Il devra au minimum être capable de représenter :
+Il devra au minimum être capable de représenter conceptuellement :
 - demandeur ;
 - destinataire ;
-- quantité ;
-- éléments concernés ;
+- élément fourni par chaque côté ;
+- montant initial demandé ;
+- montant courant après éventuelles réductions automatiques ;
+- montant finalement échangé ;
 - état ;
 - date de création ;
 - expiration ;
-- réservation ;
-- résolution / annulation.
+- réservation côté expéditeur ;
+- résolution / acceptation / refus / annulation.
+
+Le choix exact des colonnes/tables reste réservé à la Phase 2.
 
 La source de vérité d'une demande devra être unique.
+
+À partir de GachaImpact, conserver également un historique serveur suffisant des changements importants :
+- création ;
+- réduction automatique si utile à l'audit ;
+- acceptation ;
+- refus ;
+- annulation ;
+- expiration.
+
+Cet historique est destiné d'abord à l'intégrité, au diagnostic et aux statistiques futures ; il n'a pas besoin d'un écran utilisateur en V1.
 
 ---
 
@@ -469,13 +788,31 @@ Validé :
 - R7 : échange symétrique X contre X ;
 - R8 : réservation de stock ;
 - R9 : une demande active par paire ;
+- R10 : seul le stock de l'expéditeur est réservé ;
+- R11 : raccourci MAX conservé ;
+- R12 : Accepter tout conservé ;
+- R13 : historique serveur futur des échanges ;
+- R14 : ne proposer que les partenaires réellement échangeables ;
+- R15 : stock du destinataire vérifié à la création ;
+- R16 : réduction automatique d'une demande si le stock destinataire baisse, suppression silencieuse à 0 ;
+- R17 : Accepter tout traite de la plus ancienne à la plus récente ;
+- R18 : montant échangeable affiché entre parenthèses dans `!echanger` ;
+- R19 : notification agrégée dynamique ;
+- R20 : une demande réduite ne peut jamais remonter automatiquement ;
+- R21 : réservation expéditeur libérée immédiatement lors d'une réduction ;
+- R22 : plusieurs demandes reçues peuvent viser le même stock non réservé ;
+- R23 : aucune acceptation partielle manuelle ;
 - expiration automatique au reset 00:00 Europe/Paris ;
 - annulation/refus possible ;
 - écran UI avec reçues/envoyées ;
 - notification agrégée des demandes reçues.
 
 Audit encore en cours :
-- autres usages éventuels des particules ;
-- autres interactions de ressources ;
-- éventuelles statistiques liées aux échanges ;
-- détails restants du système legacy à confronter avant clôture du domaine.
+- vérifier les derniers edge cases et interactions de `Echanger.txt` ;
+- vérifier les autres usages éventuels des particules dans les autres scripts ;
+- vérifier les autres interactions de ressources avant clôture du domaine.
+
+Idée future documentée :
+- écran de statistiques joueur / statistiques globales du jeu ;
+- l'historique serveur des échanges pourra alimenter certaines de ces statistiques ;
+- aucune UI d'historique des échanges n'est prévue en V1.

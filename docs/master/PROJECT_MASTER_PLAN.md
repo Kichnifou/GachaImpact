@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.7
+Version : 0.8
 Date : 2026-08-27  
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -234,6 +234,18 @@ Décision progression :
 - lorsqu'un gain d'XP obtenu via le futur mode interface fait franchir plusieurs niveaux, les notifications de level-up s'ajoutent à cette liste ;
 - plusieurs niveaux franchis peuvent produire plusieurs notifications afin que chaque progression reste visible ;
 - les paliers d'overflow multiples au niveau 100 doivent également être présentés clairement.
+Décisions générales notifications :
+- toute notification peut être supprimée manuellement via une petite croix apparaissant au survol ;
+- une notification consultée peut être marquée comme lue sans nécessairement disparaître immédiatement ;
+- les notifications lues encore présentes sont nettoyées automatiquement au reset serveur quotidien ;
+- une notification dynamique supprimée/lue peut réapparaître en non-lue si un nouvel événement pertinent survient.
+
+Échanges :
+- une seule notification agrégée représente les demandes d'échange reçues en attente ;
+- elle affiche le nombre total courant ;
+- clic -> futur écran Échanges ;
+- si une nouvelle demande arrive, la notification réapparaît/redevient non lue avec le nouveau total ;
+- les demandes expirant au reset quotidien, cette notification disparaît également lorsqu'il ne reste plus de demande.
 
 ---
 
@@ -696,7 +708,13 @@ Conversion V1 validée :
 - échange symétrique X contre X ;
 - auto-échange interdit ;
 - une seule demande active entre une même paire ;
-- stock disponible = stock total - stock réservé ;
+- seul le stock engagé par l'expéditeur est réservé ;
+- le stock du destinataire est vérifié à la création mais reste libre jusqu'à acceptation ;
+- stock disponible expéditeur = stock total - réservations de ses demandes envoyées ;
+- si la disponibilité du destinataire baisse, la demande diminue automatiquement ;
+- une demande réduite ne remonte jamais automatiquement ;
+- à montant 0, elle disparaît silencieusement ;
+- toute réduction libère immédiatement la réservation correspondante de l'expéditeur ;
 - annulation/refus libère le stock réservé ;
 - expiration des demandes au reset serveur de 00:00 `Europe/Paris` ;
 - expiration automatique, indépendante de l'activité joueur.
@@ -706,11 +724,21 @@ UI cible :
 - possibilité de traiter plusieurs demandes ;
 - affichage clair du stock réellement échangeable ;
 - notification agrégée indiquant le nombre de demandes reçues en attente et menant vers cet écran.
+- bouton `MAX` remplissant le champ quantité ;
+- `Accepter tout` traite les demandes de la plus ancienne à la plus récente ;
+- pas d'acceptation partielle manuelle ;
+- liste normale limitée aux partenaires réellement échangeables.
 
 Important :
 - le legacy duplique chaque demande en `sent` / `received` dans les deux profils ;
 - ne pas reproduire automatiquement cette duplication dans la future DB ;
 - le modèle cible devra avoir une source de vérité unique pour chaque demande.
+
+Historique futur :
+- ne pas inventer d'historique d'échanges legacy absent ;
+- à partir de GachaImpact, journaliser les opérations importantes d'échange côté serveur ;
+- historique non affiché en V1 mais disponible pour audit, diagnostic et statistiques futures ;
+- idée future : écran de statistiques joueur / globales du jeu.
 
 Autres usages potentiels des particules :
 - restent à vérifier au fil des autres audits.
@@ -1079,6 +1107,20 @@ Décisions déjà validées :
 - R7 échange X contre X ;
 - R8 réservation des stocks ;
 - R9 une seule demande active par paire ;
+- R10 réservation uniquement côté expéditeur ;
+- R11 raccourci MAX ;
+- R12 Accepter tout ;
+- R13 historique serveur futur des échanges ;
+- R14 partenaires réellement échangeables uniquement ;
+- R15 vérification initiale du stock destinataire ;
+- R16 réduction dynamique des demandes ;
+- R17 traitement Accepter tout de la plus ancienne à la plus récente ;
+- R18 quantité échangeable affichée dans le chat ;
+- R19 notification agrégée dynamique ;
+- R20 une demande réduite ne remonte pas ;
+- R21 libération immédiate des réservations après réduction ;
+- R22 plusieurs demandes reçues peuvent viser le même stock non réservé ;
+- R23 pas d'acceptation partielle manuelle ;
 - expiration des demandes au reset serveur 00:00 `Europe/Paris` ;
 - annulation/refus des demandes ;
 - écran UI reçues/envoyées ;
@@ -1426,12 +1468,14 @@ Document :
 2. `Convertir.txt` : lecture initiale effectuée ;
 3. `Echanger.txt` : lecture initiale effectuée ;
 4. R1 à R4 — conversion : validés ;
-5. R5 à R9 — principes d'échange : validés ;
-6. expiration serveur des demandes : direction validée ;
-7. UI reçues/envoyées + annulation/refus : direction validée ;
-8. notification agrégée des demandes reçues : direction validée.
+5. R5 à R9 — principes d'échange initiaux : validés ;
+6. R10 à R23 — réservation, montant dynamique, acceptation, découverte partenaires, historique et notifications : validés ;
+7. expiration serveur des demandes : validée ;
+8. UI reçues/envoyées + annulation/refus/MAX/Accepter tout : direction validée ;
+9. notification agrégée dynamique des demandes reçues : validée ;
+10. historique serveur futur des échanges : validé, sans affichage V1.
 
-**Prochaine étape unique : poursuivre l'audit détaillé de `Echanger.txt` et des interactions ressources afin d'identifier les règles/edge cases encore non décidés avant de clôturer ce deuxième domaine.**
+**Prochaine étape unique : effectuer la vérification finale de `Echanger.txt`, puis poursuivre les autres usages/interactions des particules et ressources avant de déterminer si le deuxième domaine peut être clôturé.**
 
 Ne pas commencer le Gacha tant que ce domaine n'est pas suffisamment clôturé et documenté.
 
@@ -1503,8 +1547,9 @@ Décisions clés :
 - primos = pulls ;
 - moras = shop/banque ;
 - particules personnelles -> Primogemmes 1:1, conversion manuelle ;
-- échanges de particules entre éléments différents : X contre X, stock réservé, une demande par paire, expiration au reset serveur ;
-- UI échange future : reçues/envoyées, annulation/refus, stock disponible clair, notification agrégée des demandes reçues ;
+- échanges de particules : X contre X entre éléments différents, une demande par paire, réservation uniquement côté expéditeur, montant dynamique si le stock destinataire baisse, expiration au reset serveur ;
+- UI échange future : reçues/envoyées, annulation/refus, MAX, Accepter tout, partenaires réellement échangeables uniquement, notification agrégée dynamique ;
+- historique des échanges conservé côté serveur à partir de GachaImpact pour audit/statistiques, sans affichage V1 ;
 - copies continuent après C6 ;
 - C6 ouvre stats/concours ;
 - bannière hebdo avec cible sélectionnée ;
@@ -1524,4 +1569,4 @@ Décisions clés :
 - suivi quotidien UI prévu dans le bloc bas gauche avec chevrons compacts.
 
 Prochaine étape :
-poursuivre le domaine Élément / ressources / conversion / échanges dans `legacy/05-element-resources-audit.md`, actuellement après validation de R1 à R9.
+finaliser `Echanger.txt`, puis vérifier les autres usages et interactions des particules/ressources avant de clôturer le deuxième domaine.

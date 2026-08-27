@@ -82,7 +82,7 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 
 ## `!echanger`
 
-- **Statut audit :** Audit en cours — R5 à R9 validées
+- **Statut audit :** Audit en cours — R5 à R23 validées
 - **But :** Échanger des particules avec un joueur d'un autre élément.
 - **Syntaxes :**
   - `!echanger`
@@ -96,12 +96,20 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Bouton UI équivalent :** oui, futur écran Échanges
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
-- **Préconditions :** profils existants ; éléments choisis ; joueurs différents ; éléments différents ; stocks disponibles suffisants ; aucune demande active entre la paire
+- **Préconditions :** profils existants ; éléments choisis ; joueurs différents ; éléments différents ; montant réalisable ; aucune demande active entre la paire
 - **Coûts :** X particules de l'élément de l'autre joueur contre X particules de son propre élément
 - **Cooldown :** aucun observé
 - **Données lues :** `element`, `particles`, `tradeRequests`
-- **Données écrites :** `particles`, `tradeRequests`
-- **Réponses utilisateur :** création, liste, acceptation, annulation, erreurs de stock
-- **Erreurs / edge cases :** auto-échange ; même élément ; montant invalide ; joueur absent ; élément manquant ; stock insuffisant ; demande déjà existante ; demande devenue invalide avant acceptation
-- **Interactions :** réservation de stock ; expiration quotidienne actuellement nettoyée depuis `XP.txt`
-- **Décisions de migration :** troc X contre X conservé ; stock réservé ; une demande par paire ; expiration serveur à 00:00 Europe/Paris ; écran UI reçues/envoyées ; notification agrégée des demandes reçues
+- **Données écrites legacy :** `particles`, `tradeRequests`
+- **`!echanger` sans argument :** ne devra plus proposer que les joueurs avec lesquels un échange est réellement possible ; afficher la quantité échangeable entre parenthèses
+- **`!echanger <pseudo>` :** raccourci MAX, demande le maximum actuellement échangeable
+- **`!echanger accepter` :** accepter toutes les demandes de la plus ancienne à la plus récente, avec revalidation/réduction dynamique entre chaque opération
+- **Réponses utilisateur :** création, liste, acceptation, annulation, erreurs de stock, partenaires réellement compatibles
+- **Erreurs / edge cases :** auto-échange ; même élément ; montant invalide ; joueur absent ; élément manquant ; stock insuffisant ; demande déjà existante ; demande réduite automatiquement si le stock destinataire baisse
+- **Réservation cible :** uniquement le stock de l'expéditeur est réservé
+- **Stock destinataire :** vérifié à la création mais non réservé ; une baisse ultérieure réduit automatiquement le montant courant
+- **Montant dynamique :** peut uniquement diminuer ; à 0 la demande disparaît silencieusement ; la réservation libérée redevient immédiatement disponible
+- **Acceptation :** pas d'acceptation partielle manuelle
+- **Interactions :** réservation de stock ; expiration quotidienne ; notifications ; historique serveur futur
+- **Décisions de migration :** troc X contre X conservé ; une demande par paire ; expiration serveur à 00:00 Europe/Paris ; écran UI reçues/envoyées ; notification agrégée ; source de vérité DB unique
+- **Historique futur :** conserver les événements importants d'échange côté serveur à partir de GachaImpact, sans inventer d'historique rétroactif

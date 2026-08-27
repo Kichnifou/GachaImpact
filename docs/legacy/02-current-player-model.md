@@ -140,16 +140,26 @@ Règles métier confirmées :
 - pas d'auto-échange ;
 - une seule demande active par paire ;
 - échange symétrique X contre X ;
-- stocks réservés pendant l'attente ;
-- stock disponible = total - réservé ;
+- comportement legacy : les deux côtés sont considérés réservés pendant l'attente ;
+- cible GachaImpact validée : seul le stock engagé par l'expéditeur est réservé ;
+- stock disponible de l'expéditeur = total - réservations de ses demandes envoyées ;
+- le stock du destinataire reste libre jusqu'à acceptation ;
 - les demandes expirent au changement de journée ;
 - cible GachaImpact : expiration automatique au reset serveur 00:00 `Europe/Paris` ;
-- annulation/refus libère les réservations.
+- le stock destinataire est vérifié lors de la création sans être réservé ;
+- si sa disponibilité baisse ensuite, le montant courant de la demande diminue automatiquement ;
+- à 0, la demande disparaît silencieusement ;
+- une réduction ne remonte jamais automatiquement ;
+- la réservation de l'expéditeur diminue immédiatement avec la demande ;
+- `Accepter tout` traite les demandes reçues de la plus ancienne à la plus récente ;
+- pas d'acceptation partielle manuelle ;
+- le futur système conserve un historique serveur des échanges à partir de GachaImpact, sans inventer d'historique legacy absent.
 
 Important :
 la duplication `sent` / `received` est une nécessité du modèle JSON legacy et ne doit pas être reproduite aveuglément dans le futur schéma relationnel.
 
 Le futur modèle devra posséder une source de vérité unique pour chaque demande d'échange.
+Le futur modèle devra également pouvoir distinguer conceptuellement le montant initial demandé, le montant courant après réductions éventuelles et le montant finalement échangé, sans figer ici le schéma SQL exact.
 
 ## 4. À auditer ensuite
 

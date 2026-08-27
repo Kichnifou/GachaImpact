@@ -91,7 +91,7 @@ Statut : évolutif.
 - `VALIDÉ` — L'auto-échange et l'échange entre deux joueurs du même élément sont interdits.
 - `VALIDÉ` — Le taux d'échange est symétrique : X particules contre X particules.
 - `VALIDÉ` — Une seule demande d'échange active peut exister entre une même paire de joueurs.
-- `VALIDÉ` — Une demande en attente réserve le stock nécessaire des deux joueurs.
+- `VALIDÉ` — Une demande en attente réserve uniquement le stock engagé par l'expéditeur ; le stock du destinataire n'est jamais bloqué avant acceptation.
 - `VALIDÉ` — Le stock réellement échangeable correspond au stock total moins le stock réservé.
 - `VALIDÉ` — L'UI devra afficher clairement le stock total, le stock réservé et le stock encore disponible lorsque pertinent.
 - `VALIDÉ` — Une demande envoyée peut être annulée et une demande reçue peut être refusée/annulée ; la suppression libère immédiatement les réservations.
@@ -100,7 +100,28 @@ Statut : évolutif.
 - `VALIDÉ` — L'écran d'échange doit présenter séparément les demandes reçues et envoyées et permettre de traiter plusieurs demandes reçues.
 - `VALIDÉ` — Les demandes reçues en attente utilisent une notification agrégée indiquant leur nombre ; cliquer dessus mène vers l'écran d'échange.
 - `VALIDÉ` — Ne pas créer une notification séparée par demande d'échange.
+- `VALIDÉ` — À la création, le destinataire doit néanmoins posséder suffisamment de stock disponible pour le montant demandé.
+- `VALIDÉ` — Si le stock disponible du destinataire diminue après création, le montant courant de la demande diminue automatiquement pour rester réalisable.
+- `VALIDÉ` — Si le montant réalisable tombe à 0, la demande est supprimée automatiquement et silencieusement.
+- `VALIDÉ` — Une demande réduite ne remonte jamais automatiquement vers son montant initial.
+- `VALIDÉ` — Toute réduction libère immédiatement la partie correspondante de la réservation de l'expéditeur.
+- `VALIDÉ` — Plusieurs demandes reçues peuvent viser le même stock du destinataire, puisque ce stock n'est pas réservé avant acceptation.
+- `VALIDÉ` — `Accepter tout` traite les demandes de la plus ancienne à la plus récente et réévalue dynamiquement les demandes restantes après chaque échange.
+- `VALIDÉ` — Une demande ne peut pas être acceptée partiellement manuellement : elle est acceptée ou refusée pour son montant courant complet.
+- `VALIDÉ` — `!echanger <pseudo>` sans montant conserve le comportement MAX ; dans l'UI, un bouton `MAX` remplit le champ quantité.
+- `VALIDÉ` — `!echanger` et l'écran UI ne doivent proposer par défaut que les partenaires avec lesquels un échange est actuellement réellement possible.
+- `VALIDÉ` — Dans le chat, la quantité réellement échangeable est affichée entre parenthèses à côté du pseudo.
+- `VALIDÉ` — À partir de GachaImpact, conserver côté serveur un historique des événements importants d'échange pour sécurité, diagnostic et statistiques futures, sans inventer d'historique rétroactif legacy.
+- `VALIDÉ` — L'historique détaillé des échanges n'a pas besoin d'être exposé dans l'interface V1.
+- `FUTUR / À CONCEVOIR` — Un écran de statistiques joueur et éventuellement globales du jeu pourra exploiter ces données plus tard.
 - `À CONCEVOIR EN PHASE 2` — Le stockage legacy dupliqué `sent` / `received` ne doit pas être copié automatiquement ; le futur modèle doit avoir une source de vérité unique pour la demande.
+
+## Notifications
+- `VALIDÉ` — Toute notification doit pouvoir être supprimée manuellement par le joueur via une petite croix affichée au survol.
+- `VALIDÉ` — Les notifications lues qui n'ont pas été supprimées manuellement sont nettoyées automatiquement au reset serveur quotidien.
+- `VALIDÉ` — Une notification représentant un état dynamique peut réapparaître/redevenir non lue lorsqu'un nouvel événement pertinent survient.
+- `VALIDÉ` — Pour les échanges, une seule notification agrégée représente le nombre total actuel de demandes reçues en attente.
+- `VALIDÉ` — Si cette notification a été lue ou supprimée puis qu'une nouvelle demande arrive, elle est réaffichée en non-lue avec le nouveau total.
 
 ## Élément joueur
 - `VALIDÉ` — Le joueur choisit son élément une seule fois au début du jeu.
