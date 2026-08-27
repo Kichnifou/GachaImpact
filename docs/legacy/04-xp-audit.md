@@ -155,9 +155,11 @@ Cette observation confirme la décision déjà validée :
 
 ---
 
-## 6. Premier message valide du jour
+## 6. Récompense quotidienne — legacy « premier message valide »
 
-Conditions :
+### Comportement legacy observé
+
+Conditions actuelles :
 - pas une commande ;
 - pas un message système ;
 - niveau >= 2 ;
@@ -177,14 +179,101 @@ Stats :
 - `totalMorasEarned`
 - progression particules principales.
 
-### À décider
-Dans GachaImpact standalone, “premier message Twitch du jour” n'est plus un trigger universel acceptable.
+### Décision cible — ✅ VALIDÉE le 2026-08-27
 
-Il faudra décider si cette récompense devient :
-- récompense de connexion quotidienne ;
-- récompense réclamable dans l'UI ;
-- premier message du chat GachaImpact ;
-- ou autre mécanisme.
+La mécanique est **conservée sur le long terme** comme véritable récompense quotidienne de GachaImpact.
+
+Pour la V1 :
+- conserver les montants actuels : **160 primogemmes + 160 particules de l'élément du joueur + 10 000 moras** ;
+- aucun rééquilibrage maintenant ; les montants pourront être revus lors de l'audit global de l'économie ;
+- la récompense se renouvelle selon un **reset global quotidien à 00:00 dans le fuseau `Europe/Paris`** ;
+- un jour non réclamé est perdu ;
+- aucune récompense quotidienne normale ne s'accumule ou ne se reporte au jour suivant.
+
+### Plusieurs moyens de réclamer, une seule règle métier
+
+Le backend devra exposer **une seule opération idempotente de réclamation**. Tous les canaux utilisent cette même règle afin d'éviter les doubles gains.
+
+Canaux voulus :
+1. **Interface GachaImpact** : bouton `Réclamer` dans le suivi quotidien ;
+2. **chat interne GachaImpact** : le premier message éligible du jour peut déclencher automatiquement la même réclamation ;
+3. **Twitch** : le premier message éligible d'un joueur réellement inscrit/activé dans le jeu peut également déclencher la même réclamation.
+
+Si la récompense a déjà été récupérée par un canal, les autres canaux ne donnent rien de plus.
+
+### Important — ne plus enrôler les simples viewers Twitch passivement
+
+Le garde-fou legacy `niveau >= 2` existe notamment parce que Streamer.bot crée/enregistre beaucoup de personnes qui écrivent simplement dans le chat sans réellement jouer.
+
+Ce fonctionnement ne doit pas être reproduit tel quel.
+
+Direction validée :
+- dans l'application GachaImpact, le **choix de l'élément fait partie de l'inscription/onboarding obligatoire** ;
+- un compte standalone réellement créé possède donc déjà son élément et peut utiliser le jeu dès le début, sans attendre le niveau 2 ;
+- le verrou `niveau >= 2` n'est plus une condition souhaitée pour la récompense quotidienne standalone ;
+- un simple message Twitch d'une personne qui n'a jamais choisi de jouer ne doit **ni créer silencieusement un joueur actif, ni la ping, ni déclencher des messages/récompenses du jeu** ;
+- côté Twitch, l'entrée dans le jeu doit passer par une action explicite du viewer, avec `!element <élément>` comme mécanisme legacy naturel à conserver/adapter ;
+- le modèle exact d'identité d'un joueur Twitch non encore lié à un compte GachaImpact sera figé pendant l'audit Auth/Twitch.
+
+### UI — le rectangle devient un suivi des activités quotidiennes
+
+Le bloc actuellement intitulé `RÉCOMPENSE QUOTIDIENNE`, en bas à gauche de l'interface, est destiné à évoluer vers un **suivi quotidien général**.
+
+Principes validés :
+- la récompense quotidienne est l'un des éléments pouvant être affichés dans ce bloc ;
+- après sa réclamation, elle quitte l'élément actuellement proposé et laisse la place à une autre activité quotidienne ;
+- exemples d'autres activités : combat quotidien, roue, etc. ;
+- un ordre/priorité d'affichage sera défini plus tard ;
+- le joueur pourra parcourir les activités visibles avec des contrôles **Précédent / Suivant** sans être obligé d'accomplir l'activité courante pour voir les suivantes ;
+- certaines activités proposées pourront être **masquées pour la journée** via une petite croix ; ce masquage ne les accomplit pas et elles pourront réapparaître le lendemain ;
+- plus tard, les paramètres du joueur permettront de choisir quelles catégories d'activités il souhaite ou non voir dans ce suivi ;
+- lorsque toutes les activités visibles sont terminées ou écartées pour la journée, le bloc reste affiché avec un message du type **« Tout est bon, tu es à jour »**.
+
+Le détail complet de ce `DailyTracker`/suivi quotidien fera l'objet d'une spécification dédiée ultérieure. Il ne faut pas mélanger ici la règle métier de la récompense avec toutes les futures règles d'affichage des autres quotidiennes.
+
+### Feedback visuel lors de la réclamation
+
+La carte n'a pas besoin d'afficher en permanence les trois montants.
+
+Lors d'une réclamation :
+- les compteurs de ressources de la colonne gauche sont mis à jour ;
+- un feedback temporaire et translucide affiche les gains à proximité des compteurs concernés, par exemple `+160`, `+10 000`, etc. ;
+- ce feedback disparaît automatiquement après une courte animation ;
+- aucun badge supplémentaire n'est nécessaire pour signaler une récompense disponible puisque le bloc est déjà très visible.
+
+### Rafraîchissement temps réel
+
+Objectif UX :
+- si le joueur reste connecté pendant le passage de 23:59 à 00:00, l'interface doit pouvoir détecter le nouveau jour et rafraîchir automatiquement l'état des quotidiennes ;
+- le même principe pourra servir aux autres états temporels du jeu, par exemple un changement de bannière ;
+- le serveur reste la source de vérité du reset ; le client ne doit pas décider seul qu'une récompense est disponible.
+
+### Données à conserver
+
+Pour la nouvelle implémentation :
+- conserver l'équivalent de la **dernière date de réclamation** pour empêcher les doubles gains ;
+- conserver également la **date de toute première réclamation quotidienne** comme information historique/statistique ;
+- aucun historique dédié contenant une ligne pour chaque journée réclamée n'est requis pour cette mécanique.
+
+Point migration :
+`dates.lastDailyFirstMessageReward` permet de connaître la dernière réclamation legacy, mais ne suffit pas à reconstruire la toute première réclamation historique. Si aucune autre source n'est découverte, la première date historique des joueurs legacy devra rester inconnue plutôt que d'être inventée.
+
+### Idées futures — non V1
+
+À conserver dans la roadmap, sans les implémenter pendant la migration initiale :
+
+**Streak quotidien**
+- suivi des jours consécutifs ;
+- idée de bonus après 7 jours consécutifs :
+  - +1 000 primogemmes ;
+  - +30 000 moras ;
+  - +800 particules de l'élément du joueur ;
+- la règle exacte reste à définir plus tard : bonus au 7e claim consécutif, dimanche calendaire, ou autre.
+
+**Calendriers événementiels**
+- certains événements pourront proposer un calendrier de connexion temporaire ;
+- récompenses différentes selon le jour ;
+- durée et contenu propres à chaque événement.
 
 ---
 
@@ -196,6 +285,15 @@ Si `favor.daysRemaining > 0` et conditions respectées :
 - stocke `lastClaimDate`.
 
 La date d'obtention empêche également une réclamation le jour même de l'activation selon le code.
+
+### Clarification utilisateur
+
+La Faveur est inspirée de la **Blessing of the Welkin Moon** de Genshin Impact, mais son comportement GachaImpact est volontairement différent sur un point important :
+
+- dans GachaImpact legacy, un jour de Faveur n'est consommé que lorsqu'il est effectivement réclamé ;
+- si le joueur ne se connecte pas, son nombre de jours restants ne diminue pas ;
+- les Faveurs peuvent notamment être obtenues lors d'événements spéciaux du stream ou via certains abonnements Twitch ;
+- la possibilité de détecter et attribuer proprement une Faveur à partir d'un abonnement Twitch devra être auditée séparément lors du domaine Twitch/Faveur.
 
 ### Architecture cible
 Cette logique appartient à un service Faveur/abonnement, pas au service XP.
@@ -419,9 +517,39 @@ L'objectif de cette phase est de migrer fidèlement le jeu avant de rééquilibr
 
 Pour la migration historique, les niveaux, XP, ressources et statistiques déjà acquis sont conservés tels quels : aucun recalcul rétroactif des récompenses de niveau.
 
-## Q2 — Premier message quotidien
-Dans le standalone, faut-il transformer cette récompense en **récompense de connexion quotidienne / bouton Réclamer** ?
-C'est cohérent avec l'UI actuelle qui possède déjà “Récompense quotidienne”.
+## Q2 — Récompense quotidienne — ✅ VALIDÉ
+
+### Décision
+Conserver cette mécanique comme **récompense quotidienne permanente** de GachaImpact.
+
+V1 :
+- +160 primogemmes ;
+- +160 particules de l'élément du joueur ;
+- +10 000 moras ;
+- reset global à 00:00 `Europe/Paris` ;
+- récompense non réclamée = perdue à la fin du jour ;
+- aucune accumulation des jours manqués.
+
+Réclamation possible via la même opération métier :
+- bouton `Réclamer` dans l'interface ;
+- premier message éligible dans le chat GachaImpact ;
+- premier message Twitch éligible pour un joueur ayant explicitement rejoint/activé le jeu.
+
+Le niveau 2 ne doit plus servir de garde-fou dans le standalone. Le choix de l'élément devient obligatoire pendant l'onboarding GachaImpact. Côté Twitch, un viewer ordinaire ne doit jamais être enrôlé/pingé passivement ; l'entrée dans le jeu doit être explicite, avec `!element` comme base legacy à conserver/adapter.
+
+Le bloc en bas à gauche évoluera plus tard vers un **suivi des quotidiennes** parcourable (précédent/suivant), avec masquage pour la journée et préférences d'affichage.
+
+Feedback de claim :
+mise à jour des compteurs + animation temporaire des gains près des ressources.
+
+Historique spécifique :
+- conserver la dernière réclamation ;
+- conserver la première réclamation à partir de la nouvelle implémentation ;
+- ne pas créer un historique quotidien dédié complet.
+
+Roadmap :
+- streak de 7 jours avec bonus envisagé ;
+- calendriers de connexion événementiels envisagés.
 
 ## Q3 — Intérêt bancaire
 Souhaites-tu conserver le +3% quotidien ?
@@ -433,7 +561,14 @@ Recommandation provisoire :
 - conserver les messages du chat interne comme source possible ;
 - mais ne pas lier toute la progression du jeu uniquement au chat.
 
-## Q5 — Onboarding élément
-Recommandation : lors de la création du compte, le joueur commence niveau 0/1 puis l'UI lui demande obligatoirement son élément au moment approprié, plutôt que reproduire le blocage silencieux legacy.
+## Q5 — Onboarding élément — 🟡 DIRECTION DÉJÀ CADRÉE
+Une décision directement liée à Q2 est déjà actée :
+- dans l'application GachaImpact, le choix de l'élément sera une étape obligatoire de l'inscription/onboarding ;
+- le nouveau joueur standalone ne doit donc pas être bloqué derrière un niveau 2 avant d'accéder aux systèmes dépendant de l'élément ;
+- côté Twitch, les viewers ordinaires ne doivent plus devenir des joueurs actifs simplement parce qu'ils écrivent un message.
 
-À valider lors de la spécification Auth/Onboarding.
+Restent à définir lors de la spécification Auth/Onboarding/Twitch :
+- niveau de départ exact ;
+- moment précis où le compte est considéré comme complètement créé ;
+- fonctionnement d'un joueur Twitch-only avant liaison éventuelle avec un compte GachaImpact ;
+- mécanisme final d'opt-in Twitch autour de `!element`.
