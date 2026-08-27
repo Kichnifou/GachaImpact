@@ -19,11 +19,14 @@ Statut : évolutif.
 ## XP
 - `VALIDÉ` — Niveau maximal : 100.
 - `VALIDÉ` — Après le niveau 100, l'XP/progression continue à produire les récompenses périodiques sans augmenter le niveau.
-- `VALIDÉ` — Le code réel XP utilise 30 XP par palier, avec gains de +1/+2/+3 XP selon la longueur du message éligible (seuils exacts documentés dans `legacy/04-xp-audit.md`).
+- `VALIDÉ` — Le code réel XP utilise 30 XP par palier, avec gains de +1/+2/+3 XP selon la longueur du message éligible et un cooldown de gain de 2 secondes (seuils exacts documentés dans `legacy/04-xp-audit.md`).
 - `VALIDÉ` — Récompense de level-up V1 : +800 Primogemmes et +10 000 Moras à chaque palier ; à partir du niveau 5, +80 particules de l'élément personnel ; à partir du niveau 10, +40 particules d'un autre élément aléatoire.
 - `VALIDÉ` — Les montants de level-up sont conservés pour la V1 et seront réévalués seulement lors d'un futur audit global de l'économie.
-- `VALIDÉ` — Dans GachaImpact standalone, le chat reste une source possible d'XP mais ne doit pas être l'unique moyen de progresser ; des actions de jeu via l'interface et les mécaniques pourront également donner de l'XP.
-- `À DÉFINIR PENDANT Q4` — Actions exactes donnant de l'XP, quantités, limites/cooldowns éventuels et équilibrage global de la progression.
+- `VALIDÉ` — Le gain d'XP par messages est conservé : +1/+2/+3 XP selon la longueur du message éligible, avec cooldown de 2 secondes ; une commande ne donne pas d'XP simplement parce qu'elle est envoyée dans le chat.
+- `VALIDÉ` — Les actions ordinaires du jeu (Pull, Combat, Expédition, Banque, quotidiennes, Boutique, etc.) ne donnent pas directement d'XP, quel que soit leur canal de déclenchement UI/chat/Twitch.
+- `VALIDÉ` — Le standalone disposera d'un mode ou d'une activité dédiée permettant de gagner de l'XP depuis l'interface, probablement via de petits mini-jeux / épreuves rapides avec un plafond quotidien.
+- `VALIDÉ` — L'XP gagnée par le chat et celle gagnée via ce futur mode dédié sont cumulables.
+- `À CONCEVOIR PLUS TARD` — Nom et contenu du mode XP, mini-jeux exacts, plafond quotidien, récompenses et équilibrage.
 
 ## Personnages / C6
 - `VALIDÉ` — `constellation` reste plafonnée à C6.
@@ -42,6 +45,14 @@ Statut : évolutif.
 - `VALIDÉ` — La logique métier doit être centralisée côté serveur.
 - `VALIDÉ` — Bouton UI, commande chat GachaImpact et future commande Twitch doivent appeler la même action métier.
 - `VALIDÉ` — Streamer.bot disparaît de la logique GachaImpact à terme.
+
+## Banque
+- `VALIDÉ` — L'intérêt bancaire quotidien reste fixé à **3 %** pour GachaImpact V1.
+- `VALIDÉ` — L'intérêt est calculé automatiquement côté serveur chaque jour au reset global de **00:00 `Europe/Paris`**, sans nécessiter de connexion, message ou action du joueur.
+- `VALIDÉ` — La base du calcul est le solde présent dans la banque exactement au moment du reset.
+- `VALIDÉ` — L'intérêt est arrondi à l'entier inférieur.
+- `VALIDÉ` — Les Moras gagnées par intérêt continuent à être comptabilisées dans l'équivalent futur de `stats.totalMorasEarned`.
+- `VALIDÉ` — Un joueur absent continue à recevoir ses intérêts quotidiennement ; cette mécanique temporelle appartient au domaine Banque / scheduler serveur et ne doit plus dépendre du système XP.
 
 ## Ressources
 - `VALIDÉ` — Les Primogemmes servent uniquement aux invocations / pulls.

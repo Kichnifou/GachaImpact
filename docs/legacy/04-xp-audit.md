@@ -1,6 +1,6 @@
 # 04 — Audit legacy : XP / cycle de vie joueur
 
-Statut : AUDIT TECHNIQUE INITIAL — Q1 ET Q2 VALIDÉS, VALIDATION EN COURS  
+Statut : AUDIT TECHNIQUE INITIAL — Q1 À Q4 VALIDÉS, Q5 PRINCIPE VALIDÉ — FINALISATION EN COURS 
 Date : 2026-08-27  
 Source : `legacy/streamerbot/commands/XP.txt`
 
@@ -323,8 +323,22 @@ Au premier message valide du jour :
 - `totalMorasEarned` augmenté ;
 - `bank.lastInterestDate` mis à jour.
 
-### À décider
-Dans GachaImpact, l'intérêt devrait être déterminé par le temps/date serveur, indépendamment d'un message Twitch.
+### Décision cible — ✅ VALIDÉE le 2026-08-27
+
+Pour GachaImpact V1 :
+- conserver le taux historique de **3 % par jour** ;
+- l'intérêt devient une mécanique **automatique côté serveur** et ne dépend plus d'un message, d'une connexion ou d'une autre action du joueur ;
+- le calcul est exécuté lors du reset quotidien global à **00:00 dans le fuseau `Europe/Paris`** ;
+- la base de calcul est le nombre de Moras présentes dans la banque exactement au moment de ce reset ;
+- l'intérêt est arrondi à l'entier inférieur, comme dans le legacy ;
+- l'intérêt obtenu est ajouté au solde `bank.moras` et continue également à alimenter l'équivalent futur de `stats.totalMorasEarned`.
+
+Conséquence volontaire par rapport au legacy :
+un joueur absent continue à recevoir automatiquement ses intérêts quotidiens, puisque le serveur exécute désormais lui-même la mécanique chaque jour.
+
+Cette décision illustre un principe d'architecture cible plus général : lorsqu'une mécanique dépend uniquement du temps serveur, elle ne doit plus être artificiellement déclenchée par une action du joueur comme c'était souvent nécessaire dans Streamer.bot.
+
+La logique d'intérêt devra donc appartenir au domaine Banque / scheduler serveur, et non au futur service XP.
 
 ---
 
@@ -563,22 +577,71 @@ Roadmap :
 - streak de 7 jours avec bonus envisagé ;
 - calendriers de connexion événementiels envisagés.
 
-## Q3 — Intérêt bancaire
-Souhaites-tu conserver le +3% quotidien ?
-Si oui, recommandation : calcul serveur par date, plus du tout dépendant du premier message.
+## Q3 — Intérêt bancaire — ✅ VALIDÉ
 
-## Q4 — XP dans GachaImpact — 🟡 PRINCIPE VALIDÉ, DÉTAILS À DÉFINIR
+### Décision
 
-Principe validé :
-- dans GachaImpact standalone, le chat reste une source possible d'XP ;
-- le chat ne doit pas être l'unique moyen de progresser ;
-- des actions de jeu réalisées directement via l'interface et les mécaniques de GachaImpact pourront également donner de l'XP.
+Pour GachaImpact V1 :
+- conserver **+3 % d'intérêt bancaire par jour** ;
+- calcul automatique côté serveur au reset global de **00:00 `Europe/Paris`** ;
+- aucune connexion, aucun message et aucune autre action joueur ne sont nécessaires pour déclencher l'intérêt ;
+- base de calcul = solde présent dans la banque exactement au moment du reset ;
+- arrondi à l'entier inférieur ;
+- intérêt ajouté au solde bancaire ;
+- intérêt également comptabilisé dans l'équivalent futur de `stats.totalMorasEarned`.
 
-À définir plus tard pendant Q4 :
-- les actions exactes donnant de l'XP ;
-- les quantités d'XP ;
-- les limites/cooldowns éventuels ;
-- l'équilibrage global de la progression.
+Contrairement au legacy, un joueur absent reçoit donc quand même ses intérêts chaque jour.
+
+La mécanique doit être retirée du futur domaine XP et confiée au domaine Banque / scheduler serveur.
+
+## Q4 — XP dans GachaImpact — ✅ VALIDÉ
+
+### XP gagnée par discussion
+
+Le système historique de gain d'XP par messages est conservé :
+- message éligible jusqu'à 100 caractères : **+1 XP** ;
+- 101 à 200 caractères : **+2 XP** ;
+- plus de 200 caractères : **+3 XP** ;
+- cooldown de gain d'XP : **2 secondes** ;
+- une commande ne donne pas d'XP simplement parce qu'elle est envoyée sous forme de message.
+
+Cette logique pourra s'appliquer aux messages éligibles du chat interne GachaImpact et de Twitch.
+
+### Actions ordinaires du jeu
+
+Les actions métier ordinaires ne donnent **pas directement d'XP**, quel que soit leur canal de déclenchement.
+
+Exemples :
+- Invocation / Pull ;
+- Combat ;
+- Expédition ;
+- Banque ;
+- récompenses quotidiennes ;
+- Boutique ;
+- autres mécaniques normales du jeu.
+
+Ainsi, exécuter une même action via l'interface, le chat interne ou Twitch ne nécessite pas de créer une récompense XP différente selon son canal.
+
+### Progression XP pour les joueurs utilisant principalement l'interface
+
+GachaImpact standalone disposera d'une **activité ou d'un mode dédié au gain d'XP**, afin qu'un joueur puisse progresser normalement sans être obligé d'écrire dans le chat.
+
+Direction retenue :
+- activité accessible depuis l'interface ;
+- probablement composée de petits mini-jeux / épreuves rapides ;
+- quantité maximale d'XP gagnable par ce mode chaque jour ;
+- le nom du mode, les mini-jeux exacts, le plafond quotidien et l'équilibrage restent à concevoir plus tard.
+
+### Cumul des sources
+
+Le gain d'XP par chat et le gain d'XP via le futur mode dédié sont **cumulables**.
+
+Un joueur utilisant à la fois le chat et le mode XP peut donc progresser par les deux sources.
+
+Cette décision permet :
+- de conserver le fonctionnement historique pour les joueurs Twitch/chat ;
+- de permettre une progression complète aux joueurs utilisant principalement l'interface ;
+- d'éviter d'ajouter artificiellement une récompense XP à chaque mécanique du jeu.
 
 ## Q5 — Onboarding élément — ✅ PRINCIPE VALIDÉ
 

@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.3 
+Version : 0.4
 Date : 2026-08-27  
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -542,10 +542,13 @@ Récompense de level-up V1 validée :
 Ces montants sont conservés pour la V1 ; l'équilibrage global de l'économie sera traité plus tard.
 
 Direction standalone validée :
-- le chat reste une source possible d'XP ;
-- le chat ne doit pas être l'unique moyen de progresser ;
-- des actions de jeu réalisées directement via l'interface et les mécaniques de GachaImpact pourront également donner de l'XP ;
-- les actions exactes, les quantités d'XP, les limites/cooldowns éventuels et l'équilibrage seront définis plus tard pendant Q4.
+- le gain d'XP par messages est conservé avec les règles legacy actuelles : +1/+2/+3 XP selon la longueur du message éligible et cooldown de 2 secondes ;
+- les commandes et les actions ordinaires du jeu ne donnent pas directement d'XP ;
+- cette règle reste identique quel que soit le canal utilisé pour déclencher une mécanique : UI, chat interne ou Twitch ;
+- le standalone disposera d'un mode/activité dédié permettant aux joueurs utilisant principalement l'interface de gagner de l'XP, probablement sous forme de mini-jeux ou d'épreuves rapides ;
+- ce mode disposera d'un plafond quotidien d'XP à définir ;
+- XP chat et XP du mode dédié sont cumulables ;
+- nom, contenu, plafond et équilibrage de ce mode seront conçus plus tard.
 
 ## 11.2 Niveau des personnages
 Actuellement :
@@ -602,12 +605,17 @@ Usage actuel validé :
 - uniquement pour les pulls / invocations.
 
 ## 13.2 Moras
-Usages actuels connus :
-- Boutique ;
-- Banque.
+### Intérêt bancaire V1 — décision validée
+- taux quotidien conservé : **3 %** ;
+- calcul automatique côté serveur au reset global de **00:00 `Europe/Paris`** ;
+- aucune activité du joueur n'est nécessaire ;
+- base de calcul : solde bancaire présent exactement au moment du reset ;
+- arrondi à l'entier inférieur ;
+- les gains alimentent également l'équivalent futur de `stats.totalMorasEarned` ;
+- les intérêts continuent donc à être appliqués quotidiennement même lorsque le joueur est absent.
 
-Autres usages :
-- à vérifier dans les scripts.
+Principe architectural associé :
+une mécanique dépendant uniquement du temps serveur ne doit plus être artificiellement déclenchée par un message ou une autre action joueur lorsque le backend peut l'exécuter lui-même.
 
 ## 13.3 Particules
 7 types élémentaires.
@@ -955,9 +963,10 @@ Document : `docs/legacy/04-xp-audit.md`.
 État de validation XP au 2026-08-27 :
 - Q1 récompenses de level-up : VALIDÉ ;
 - Q2 récompense quotidienne : VALIDÉ ;
-- principe Q4 XP standalone : VALIDÉ — la progression ne dépendra pas uniquement du chat ; des actions de jeu pourront également donner de l'XP, détails à définir plus tard ;
+- Q3 intérêt bancaire : VALIDÉ — 3 % automatiques au reset serveur de 00:00 `Europe/Paris`, sur le solde présent au reset, sans activité joueur ;
+- Q4 modèle de gain d'XP standalone : VALIDÉ — messages +1/+2/+3 avec cooldown 2 secondes conservés, pas d'XP directe sur les actions ordinaires, futur mode XP dédié dans l'interface avec plafond quotidien à concevoir, cumul chat + mode autorisé ;
 - principe Q5 onboarding élément standalone : VALIDÉ — choix obligatoire pendant l'onboarding, donc pas de verrou legacy « niveau 1 sans élément » dans le standalone ;
-- prochaine décision : Q3 intérêt bancaire.
+- prochaine étape : finaliser l'audit XP et identifier les responsabilités restantes à reporter vers leurs audits dédiés avant de passer au domaine suivant.
 
 
 Ordre recommandé :
@@ -1287,11 +1296,14 @@ L'accès aux sources legacy et la matrice commandes ↔ données ont été valid
 
 État :
 1. `docs/legacy/03-command-data-matrix.md` : créé ;
-2. `docs/legacy/04-xp-audit.md` : créé et en validation ;
+2. `docs/legacy/04-xp-audit.md` : créé et en finalisation ;
 3. Q1 — récompenses de level-up : validé ;
-4. Q2 — récompense quotidienne / onboarding associé : validé.
+4. Q2 — récompense quotidienne / onboarding associé : validé ;
+5. Q3 — intérêt bancaire quotidien : validé ;
+6. Q4 — modèle de gain d'XP standalone : validé ;
+7. Q5 — principe d'onboarding élément standalone : validé, détails Auth/Twitch reportés à la spécification dédiée.
 
-**Prochaine étape unique : Q3 — intérêt bancaire quotidien.**
+**Prochaine étape unique : finaliser l'audit du domaine XP, vérifier quelles responsabilités de `XP.txt` doivent être simplement reportées vers leurs futurs audits dédiés, puis déterminer si le domaine XP peut être clôturé.**
 
 Avant de passer au domaine suivant :
 - comprendre le comportement legacy exact de l'intérêt ;
@@ -1377,10 +1389,11 @@ Décisions clés :
 - une seule logique serveur partagée par UI/chat/Twitch ;
 - récompenses de level-up V1 conservées selon le code legacy réel ;
 - récompense quotidienne V1 conservée avec reset global à minuit Europe/Paris ;
+- intérêt bancaire V1 : +3 % automatiques chaque jour à 00:00 Europe/Paris sur le solde bancaire présent au reset, même sans activité du joueur ;
 - standalone : élément obligatoire pendant l'onboarding ;
-- standalone : l'XP ne dépendra pas uniquement du chat ; des actions de jeu via l'interface et les mécaniques pourront aussi donner de l'XP ;
+- standalone : XP chat conservée (+1/+2/+3, cooldown 2 s), pas d'XP directe sur les actions ordinaires, futur mode XP dédié dans l'interface avec plafond quotidien à concevoir, cumul chat + mode autorisé ;
 - Twitch : nouveau chatter enregistré passivement, progression jusqu'au seuil d'onboarding puis blocage des mécaniques actives tant que l'élément n'est pas choisi ;
 - suivi quotidien UI prévu dans le bloc bas gauche avec chevrons compacts.
 
 Prochaine étape :
-continuer l'audit XP étape par étape ; Q3 = intérêt bancaire quotidien.
+finaliser l'audit XP et déterminer quelles responsabilités restantes sont à reporter vers leurs audits dédiés avant de clôturer ce premier domaine.
