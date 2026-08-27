@@ -1,6 +1,6 @@
 # 05 — Audit legacy : Élément / ressources / conversion / échanges
 
-Statut : AUDIT EN COURS — R1 À R23 VALIDÉS — ÉCHANGES QUASI FINALISÉS
+Statut : AUDIT EN COURS — R1 À R27 VALIDÉS — SOUS-DOMAINE ÉCHANGES FINALISÉ
 Date : 2026-08-27
 
 Sources principales :
@@ -417,7 +417,13 @@ Migration :
 - montant final ;
 - dates pertinentes.
 
-Cet historique n'a pas besoin d'être affiché dans l'interface V1.
+L'historique serveur complet n'a pas vocation à être affiché intégralement dans l'interface.
+
+En revanche, l'écran Échanges affichera un historique récent limité :
+- environ 3 transactions visibles immédiatement ;
+- scroll jusqu'à environ 20–30 dernières transactions maximum.
+
+Le reste demeure disponible côté serveur pour diagnostic, sécurité et statistiques futures.
 
 Utilités :
 - diagnostic ;
@@ -623,6 +629,107 @@ Si les joueurs souhaitent négocier un autre montant :
 
 La réduction automatique R16 reste distincte d'une négociation manuelle.
 
+---
+
+## R24 — Résolution des échanges et historique UI — ✅ VALIDÉ
+
+Ne pas créer de notification individuelle lorsqu'une demande est :
+- acceptée ;
+- refusée ;
+- annulée ;
+- réduite automatiquement ;
+- supprimée automatiquement à montant 0 ;
+- expirée au reset.
+
+La notification dédiée aux échanges reste uniquement la notification agrégée des **demandes reçues actuellement en attente**.
+
+Pour informer le joueur des échanges réellement effectués, l'écran Échanges doit posséder une zone d'historique récent.
+
+Direction UI validée :
+- section discrète mais clairement visible dans l'écran Échanges ;
+- environ les 3 dernières transactions visibles immédiatement ;
+- possibilité de scroller dans cette zone ;
+- limiter l'affichage à environ 20 à 30 transactions récentes maximum ;
+- ne pas charger/afficher tout l'historique serveur.
+
+Cette vue récente est distincte de l'historique serveur complet destiné à l'audit, au diagnostic et aux statistiques futures.
+
+---
+
+## R25 — Refuser tout — ✅ VALIDÉ
+
+Ajouter une action `Refuser tout` pour les demandes reçues.
+
+UI :
+- action disponible depuis l'écran Échanges ;
+- supprime toutes les demandes reçues actuellement concernées ;
+- libère immédiatement les réservations correspondantes chez leurs expéditeurs.
+
+Chat :
+- conserver la possibilité d'exposer la même action métier par commande ;
+- la syntaxe exacte de cette future sous-commande sera figée lors de l'adaptation finale de la grammaire des commandes.
+
+Comme pour les autres actions :
+UI et chat doivent appeler la même logique métier serveur.
+
+---
+
+## R26 — Migration des demandes en attente — ✅ VALIDÉ
+
+Les demandes d'échange encore en attente au moment du cutover legacy → GachaImpact **ne sont pas migrées**.
+
+Raisons :
+- une demande non acceptée n'est pas une progression définitivement acquise ;
+- elle est éphémère et expire déjà quotidiennement ;
+- les règles cible de réservation diffèrent du legacy ;
+- les joueurs pourront recréer simplement leurs demandes dans GachaImpact.
+
+À migrer :
+- les stocks réels de particules ;
+- les autres données historiques persistantes réellement disponibles.
+
+À ne pas migrer :
+- les demandes `tradeRequests` encore ouvertes ;
+- les réservations temporaires associées.
+
+Ne pas modifier les soldes de particules pour simuler l'exécution d'une demande non résolue.
+
+---
+
+## R27 — Identité interne des participants — ✅ VALIDÉ
+
+Dans GachaImpact, une demande d'échange et son historique ne doivent jamais utiliser un pseudo modifiable comme identité métier.
+
+La relation doit utiliser :
+- ID interne immuable du demandeur ;
+- ID interne immuable du destinataire.
+
+Les pseudos GachaImpact / Twitch sont uniquement des informations d'affichage ou de recherche.
+
+Le nom exact des clés/colonnes sera décidé en Phase 2.
+
+Cette règle s'applique également :
+- à l'historique serveur ;
+- aux transactions réalisées ;
+- aux statistiques futures liées aux échanges.
+
+---
+
+## Règle technique — Réconciliation après changement de stock — ✅ VALIDÉE
+
+Toute transaction serveur susceptible de modifier un stock de particules doit réconcilier immédiatement les demandes d'échange affectées.
+
+Après une modification de stock :
+- recalculer les montants concernés ;
+- appliquer R16 si une réduction est nécessaire ;
+- supprimer silencieusement une demande tombée à 0 ;
+- libérer immédiatement la réservation devenue inutile ;
+- rendre le nouvel état visible aux autres opérations et aux clients concernés.
+
+Il ne faut pas dépendre d'un timer de polling permanent pour maintenir cette cohérence.
+
+Cette logique fait partie du domaine métier Ressources / Échanges et devra être exécutée transactionnellement côté serveur.
+
 # 12. Expiration cible — ✅ VALIDÉE
 
 Les demandes envoyées et reçues non résolues expirent au reset quotidien global du serveur :
@@ -675,6 +782,7 @@ Actions prévues :
 - accepter une demande ;
 - refuser une demande ;
 - `Accepter tout` ;
+- `Refuser tout` ;
 - annuler une demande envoyée ;
 - créer une demande avec quantité libre ;
 - raccourci `MAX` remplissant le champ quantité.
@@ -687,6 +795,12 @@ Découverte des partenaires :
 Stocks :
 - rendre lisibles le total, le réservé côté expéditeur et le réellement disponible lorsque pertinent ;
 - toute réduction automatique d'une demande doit être reflétée dynamiquement dans l'interface.
+
+Historique récent :
+- petite section dédiée aux dernières transactions réalisées ;
+- environ 3 entrées visibles sans scroll ;
+- scroll interne pour consulter environ 20 à 30 dernières transactions maximum ;
+- ne pas exposer tout l'historique serveur.
 
 La présentation exacte reste à concevoir avec Codex lors de l'implémentation UI.
 
@@ -727,8 +841,8 @@ Ne pas reproduire automatiquement cette duplication dans la future DB.
 Le modèle relationnel cible sera décidé en Phase 2.
 
 Il devra au minimum être capable de représenter conceptuellement :
-- demandeur ;
-- destinataire ;
+- ID interne immuable du demandeur ;
+- ID interne immuable du destinataire ;
 - élément fourni par chaque côté ;
 - montant initial demandé ;
 - montant courant après éventuelles réductions automatiques ;
@@ -751,7 +865,9 @@ La source de vérité d'une demande devra être unique.
 - annulation ;
 - expiration.
 
-Cet historique est destiné d'abord à l'intégrité, au diagnostic et aux statistiques futures ; il n'a pas besoin d'un écran utilisateur en V1.
+Cet historique complet est destiné à l'intégrité, au diagnostic et aux statistiques futures.
+
+L'UI V1 n'en expose qu'une fenêtre récente limitée, d'environ 20 à 30 transactions maximum dans l'écran Échanges.
 
 ---
 
@@ -802,17 +918,22 @@ Validé :
 - R21 : réservation expéditeur libérée immédiatement lors d'une réduction ;
 - R22 : plusieurs demandes reçues peuvent viser le même stock non réservé ;
 - R23 : aucune acceptation partielle manuelle ;
+- R24 : pas de notifications individuelles de résolution ; historique récent directement dans l'écran Échanges ;
+- R25 : action Refuser tout ;
+- R26 : ne pas migrer les demandes legacy encore en attente ;
+- R27 : participants identifiés par IDs internes immuables, jamais par pseudo comme clé métier ;
+- réconciliation immédiate des demandes après toute transaction modifiant un stock concerné ;
 - expiration automatique au reset 00:00 Europe/Paris ;
 - annulation/refus possible ;
 - écran UI avec reçues/envoyées ;
 - notification agrégée des demandes reçues.
 
 Audit encore en cours :
-- vérifier les derniers edge cases et interactions de `Echanger.txt` ;
+- sous-domaine `Echanger.txt` : finalisé ;
 - vérifier les autres usages éventuels des particules dans les autres scripts ;
 - vérifier les autres interactions de ressources avant clôture du domaine.
 
 Idée future documentée :
 - écran de statistiques joueur / statistiques globales du jeu ;
 - l'historique serveur des échanges pourra alimenter certaines de ces statistiques ;
-- aucune UI d'historique des échanges n'est prévue en V1.
+- l'écran Échanges possède un historique récent limité ; l'écran de statistiques futur pourra exploiter l'historique serveur plus largement.

@@ -82,7 +82,7 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 
 ## `!echanger`
 
-- **Statut audit :** Audit en cours — R5 à R23 validées
+- **Statut audit :** Audité — sous-domaine Échanges finalisé, R5 à R27 validées
 - **But :** Échanger des particules avec un joueur d'un autre élément.
 - **Syntaxes :**
   - `!echanger`
@@ -93,6 +93,7 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
   - `!echanger accepter <pseudo>`
   - `!echanger annuler`
   - `!echanger annuler <pseudo>`
+  
 - **Bouton UI équivalent :** oui, futur écran Échanges
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
@@ -104,12 +105,18 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **`!echanger` sans argument :** ne devra plus proposer que les joueurs avec lesquels un échange est réellement possible ; afficher la quantité échangeable entre parenthèses
 - **`!echanger <pseudo>` :** raccourci MAX, demande le maximum actuellement échangeable
 - **`!echanger accepter` :** accepter toutes les demandes de la plus ancienne à la plus récente, avec revalidation/réduction dynamique entre chaque opération
+- **Refuser tout :** supprime toutes les demandes reçues concernées et libère immédiatement les réservations chez les expéditeurs
 - **Réponses utilisateur :** création, liste, acceptation, annulation, erreurs de stock, partenaires réellement compatibles
 - **Erreurs / edge cases :** auto-échange ; même élément ; montant invalide ; joueur absent ; élément manquant ; stock insuffisant ; demande déjà existante ; demande réduite automatiquement si le stock destinataire baisse
 - **Réservation cible :** uniquement le stock de l'expéditeur est réservé
 - **Stock destinataire :** vérifié à la création mais non réservé ; une baisse ultérieure réduit automatiquement le montant courant
 - **Montant dynamique :** peut uniquement diminuer ; à 0 la demande disparaît silencieusement ; la réservation libérée redevient immédiatement disponible
 - **Acceptation :** pas d'acceptation partielle manuelle
-- **Interactions :** réservation de stock ; expiration quotidienne ; notifications ; historique serveur futur
+- **Interactions :** réservation de stock ; expiration quotidienne ; notification agrégée des demandes en attente ; historique récent UI ; historique serveur ; réconciliation automatique lors des variations de stock
 - **Décisions de migration :** troc X contre X conservé ; une demande par paire ; expiration serveur à 00:00 Europe/Paris ; écran UI reçues/envoyées ; notification agrégée ; source de vérité DB unique
 - **Historique futur :** conserver les événements importants d'échange côté serveur à partir de GachaImpact, sans inventer d'historique rétroactif
+- **Action future supplémentaire :** `Refuser tout` pour les demandes reçues ; syntaxe chat exacte à figer lors de l'adaptation finale des commandes.
+- **Notifications :** aucune notification individuelle lors d'une acceptation/refus/annulation/expiration ; seule la notification agrégée des demandes en attente est utilisée
+- **Historique UI :** environ 3 transactions visibles puis scroll jusqu'à environ 20–30 dernières
+- **Migration :** les demandes en attente ne sont pas migrées au cutover
+- **Identité cible :** relations basées sur les IDs internes immuables des joueurs

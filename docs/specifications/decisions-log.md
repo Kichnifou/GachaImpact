@@ -112,9 +112,18 @@ Statut : évolutif.
 - `VALIDÉ` — `!echanger` et l'écran UI ne doivent proposer par défaut que les partenaires avec lesquels un échange est actuellement réellement possible.
 - `VALIDÉ` — Dans le chat, la quantité réellement échangeable est affichée entre parenthèses à côté du pseudo.
 - `VALIDÉ` — À partir de GachaImpact, conserver côté serveur un historique des événements importants d'échange pour sécurité, diagnostic et statistiques futures, sans inventer d'historique rétroactif legacy.
-- `VALIDÉ` — L'historique détaillé des échanges n'a pas besoin d'être exposé dans l'interface V1.
+- `VALIDÉ` — L'historique serveur complet n'est pas exposé intégralement ; l'écran Échanges affiche seulement une fenêtre récente limitée à environ 20–30 transactions.
+- `VALIDÉ` — Une résolution d'échange (acceptation, refus, annulation, réduction automatique, suppression à 0 ou expiration) ne crée pas de notification individuelle.
+- `VALIDÉ` — L'écran Échanges affiche un historique récent des transactions : environ 3 visibles immédiatement, avec scroll jusqu'à environ 20–30 dernières transactions maximum.
+- `VALIDÉ` — L'historique serveur complet reste disponible au-delà de cette fenêtre UI pour audit, diagnostic et statistiques futures.
+- `VALIDÉ` — Ajouter une action `Refuser tout` pour les demandes reçues ; UI et future commande chat doivent appeler la même logique métier, syntaxe chat exacte à définir plus tard.
+- `VALIDÉ` — Les demandes d'échange legacy encore en attente au cutover ne sont pas migrées et leurs réservations temporaires ne sont pas conservées.
+- `VALIDÉ` — Les soldes réels de particules sont migrés indépendamment des demandes temporaires.
+- `VALIDÉ` — Les demandes et historiques GachaImpact référencent les joueurs par leurs IDs internes immuables, jamais par leurs pseudos comme clés métier.
+- `VALIDÉ` — Toute transaction modifiant un stock de particules doit réconcilier immédiatement les demandes affectées : réduction, suppression à 0 et libération de réservation si nécessaire.
 - `FUTUR / À CONCEVOIR` — Un écran de statistiques joueur et éventuellement globales du jeu pourra exploiter ces données plus tard.
 - `À CONCEVOIR EN PHASE 2` — Le stockage legacy dupliqué `sent` / `received` ne doit pas être copié automatiquement ; le futur modèle doit avoir une source de vérité unique pour la demande.
+
 
 ## Notifications
 - `VALIDÉ` — Toute notification doit pouvoir être supprimée manuellement par le joueur via une petite croix affichée au survol.

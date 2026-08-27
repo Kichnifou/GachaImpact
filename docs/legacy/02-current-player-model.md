@@ -119,7 +119,7 @@ Autres usages : `À CONFIRMER DANS LES SCRIPTS`.
 
 ### `tradeRequests`
 
-Statut : `MIGRER / STRUCTURE LEGACY À NORMALISER`
+Statut : `NE PAS MIGRER LES DEMANDES EN ATTENTE / STRUCTURE LEGACY À COMPRENDRE POUR LA TRANSITION`
 
 Le legacy stocke les demandes d'échange directement dans chaque profil.
 
@@ -154,12 +154,18 @@ Règles métier confirmées :
 - `Accepter tout` traite les demandes reçues de la plus ancienne à la plus récente ;
 - pas d'acceptation partielle manuelle ;
 - le futur système conserve un historique serveur des échanges à partir de GachaImpact, sans inventer d'historique legacy absent.
+- les demandes legacy encore ouvertes au cutover ne sont pas migrées ;
+- leurs réservations temporaires ne sont pas migrées ;
+- seuls les soldes réels de particules sont conservés ;
+- les joueurs recréent leurs demandes après migration ;
+- les nouvelles demandes GachaImpact utilisent les IDs internes immuables des joueurs et non leurs pseudos.
 
 Important :
 la duplication `sent` / `received` est une nécessité du modèle JSON legacy et ne doit pas être reproduite aveuglément dans le futur schéma relationnel.
 
 Le futur modèle devra posséder une source de vérité unique pour chaque demande d'échange.
 Le futur modèle devra également pouvoir distinguer conceptuellement le montant initial demandé, le montant courant après réductions éventuelles et le montant finalement échangé, sans figer ici le schéma SQL exact.
+Toute modification transactionnelle d'un stock de particules devra déclencher la réconciliation immédiate des demandes affectées.
 
 ## 4. À auditer ensuite
 
