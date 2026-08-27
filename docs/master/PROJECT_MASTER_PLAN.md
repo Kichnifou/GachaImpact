@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.6
+Version : 0.7
 Date : 2026-08-27  
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -639,12 +639,17 @@ joueur Cryo
 => particules Cryo = particules personnelles.
 
 Particules personnelles :
-- convertibles 1:1 en Primogemmes.
+- convertibles manuellement en Primogemmes ;
+- taux V1 validé : 1:1 ;
+- toute quantité entière >= 1 dans la limite du stock ;
+- logique métier unique accessible depuis UI / chat interne / Twitch.
 
 Particules des autres éléments :
-- échangeables avec d'autres joueurs ;
-- sous conditions de stock ;
-- règles précises à auditer via les scripts d'échange.
+- échangeables avec des joueurs d'un élément différent ;
+- échange symétrique X contre X ;
+- stock disponible = total - réservé ;
+- une seule demande active entre une même paire ;
+- règles détaillées documentées dans `docs/legacy/05-element-resources-audit.md`.
 
 ---
 
@@ -668,17 +673,47 @@ Principe architectural associé :
 une mécanique dépendant uniquement du temps serveur ne doit plus être artificiellement déclenchée par un message ou une autre action joueur lorsque le backend peut l'exécuter lui-même.
 
 ## 13.3 Particules
-7 types élémentaires.
+7 types élémentaires :
+- Pyro
+- Hydro
+- Cryo
+- Electro
+- Anemo
+- Geo
+- Dendro
 
-Règles :
-- obtenables de plusieurs façons ;
-- peuvent tomber pendant les pulls ;
-- particules du même élément que le joueur :
-  - conversion 1:1 en primogemmes ;
-- particules d'un autre élément :
-  - échangeables avec d'autres joueurs ;
-- pas d'autre usage connu pour l'instant ;
-- vérifier dans les scripts.
+Conversion V1 validée :
+- le joueur peut posséder les sept types ;
+- seules les particules correspondant à son élément personnel sont directement convertibles ;
+- taux : 1 particule = 1 Primogemme ;
+- conversion volontaire/manuelle ;
+- toute quantité entière >= 1 dans la limite du stock.
+
+Échanges V1 — décisions déjà validées :
+- uniquement entre joueurs d'éléments différents ;
+- chacun donne des particules de l'élément de l'autre ;
+- chacun reçoit donc des particules de son propre élément ;
+- échange symétrique X contre X ;
+- auto-échange interdit ;
+- une seule demande active entre une même paire ;
+- stock disponible = stock total - stock réservé ;
+- annulation/refus libère le stock réservé ;
+- expiration des demandes au reset serveur de 00:00 `Europe/Paris` ;
+- expiration automatique, indépendante de l'activité joueur.
+
+UI cible :
+- écran dédié avec demandes reçues et envoyées ;
+- possibilité de traiter plusieurs demandes ;
+- affichage clair du stock réellement échangeable ;
+- notification agrégée indiquant le nombre de demandes reçues en attente et menant vers cet écran.
+
+Important :
+- le legacy duplique chaque demande en `sent` / `received` dans les deux profils ;
+- ne pas reproduire automatiquement cette duplication dans la future DB ;
+- le modèle cible devra avoir une source de vérité unique pour chaque demande.
+
+Autres usages potentiels des particules :
+- restent à vérifier au fil des autres audits.
 
 ## 13.4 Récompense quotidienne
 Décision V1 validée :
@@ -922,6 +957,7 @@ Sous `docs/` :
 - `legacy/02-current-player-model.md`
 - `legacy/03-command-data-matrix.md`
 - `legacy/04-xp-audit.md`
+- `legacy/05-element-resources-audit.md`
 - `specifications/decisions-log.md`
 - `commands/command-reference.md`
 - `roadmap/development-roadmap.md`
@@ -1015,6 +1051,7 @@ EN COURS.
 
 Premier domaine : `XP.txt` / cycle de vie joueur.
 Document : `docs/legacy/04-xp-audit.md`.
+Statut : **CLÔTURÉ le 2026-08-27**.
 
 État de validation XP au 2026-08-27 :
 - Q1 récompenses de level-up : VALIDÉ ;
@@ -1026,7 +1063,26 @@ Document : `docs/legacy/04-xp-audit.md`.
 - Q7 compteurs/messages/cooldown : VALIDÉ — historique conservé sans recalcul, `totalMessages` et `countedMessages` clairement séparés, cooldown 2 secondes global Twitch + chat interne ;
 - Q8 dates/activité : VALIDÉ — dates legacy conservées sans invention, timestamps legacy interprétés en `Europe/Paris`, `firstSeen` Twitch distinct de la création du compte, futurs concepts de dernière activité séparés ;
 - Q9 source de vérité XP / multi-level : VALIDÉ — XP source de vérité du niveau, état overflow conservé, toutes les récompenses intermédiaires accordées, XP cumulative/non dépensable, retours UI adaptés aux montées multiples ;
-- prochaine étape : effectuer la vérification finale de clôture du domaine XP et confirmer qu'aucune décision cœur XP importante ne reste ouverte avant de passer au domaine suivant.
+- domaine XP clôturé ; les responsabilités hors XP découvertes dans le script sont reportées vers leurs audits dédiés.
+
+Deuxième domaine : Élément / ressources / conversion / échanges.
+Document : `docs/legacy/05-element-resources-audit.md`.
+Statut : **EN COURS**.
+
+Décisions déjà validées :
+- R1 conversion 1:1 ;
+- R2 seules les particules personnelles sont directement convertibles ;
+- R3 conversion manuelle ;
+- R4 toute quantité entière >= 1 dans la limite du stock ;
+- R5 troc élémentaire bilatéral conservé ;
+- R6 joueurs d'éléments différents uniquement ;
+- R7 échange X contre X ;
+- R8 réservation des stocks ;
+- R9 une seule demande active par paire ;
+- expiration des demandes au reset serveur 00:00 `Europe/Paris` ;
+- annulation/refus des demandes ;
+- écran UI reçues/envoyées ;
+- notification agrégée pour les demandes reçues.
 
 
 Ordre recommandé :
@@ -1352,30 +1408,32 @@ git status
 
 # 38. PROCHAINE ÉTAPE EXACTE
 
-L'accès aux sources legacy et la matrice commandes ↔ données ont été validés. L'audit `XP.txt` est maintenant le travail actif.
+Le premier domaine détaillé de la Phase 1D est maintenant clôturé :
+
+- `docs/legacy/04-xp-audit.md` : **CLÔTURÉ** ;
+- Q1 à Q9 : traités/validés selon leur statut ;
+- responsabilités hors XP reportées vers les audits dédiés.
+
+Le travail actif est désormais le deuxième domaine :
+
+**Élément / ressources / conversion / échanges**
+
+Document :
+`docs/legacy/05-element-resources-audit.md`
 
 État :
-1. `docs/legacy/03-command-data-matrix.md` : créé ;
-2. `docs/legacy/04-xp-audit.md` : créé et en finalisation ;
-3. Q1 — récompenses de level-up : validé ;
-4. Q2 — récompense quotidienne / onboarding associé : validé ;
-5. Q3 — intérêt bancaire quotidien : validé ;
-6. Q4 — modèle de gain d'XP standalone : validé ;
-7. Q5 — principe d'onboarding élément standalone : validé, détails Auth/Twitch reportés à la spécification dédiée ;
-8. Q6 — tutoriels de montée de niveau multi-canaux : validé ;
-9. Q7 — compteurs de messages et cooldown XP multi-canaux : validé ;
-10. Q8 — dates et activité joueur : validé ;
-11. Q9 — source de vérité XP, niveaux multiples et overflow : validé.
+1. `Element.txt` : lecture initiale effectuée ;
+2. `Convertir.txt` : lecture initiale effectuée ;
+3. `Echanger.txt` : lecture initiale effectuée ;
+4. R1 à R4 — conversion : validés ;
+5. R5 à R9 — principes d'échange : validés ;
+6. expiration serveur des demandes : direction validée ;
+7. UI reçues/envoyées + annulation/refus : direction validée ;
+8. notification agrégée des demandes reçues : direction validée.
 
-**Prochaine étape unique : effectuer la vérification finale de clôture de l'audit XP, confirmer qu'aucune règle cœur XP importante ne reste ouverte, puis figer le statut du domaine avant de passer au domaine suivant de la Phase 1D.**
+**Prochaine étape unique : poursuivre l'audit détaillé de `Echanger.txt` et des interactions ressources afin d'identifier les règles/edge cases encore non décidés avant de clôturer ce deuxième domaine.**
 
-Avant de passer au domaine suivant :
-- relire une dernière fois le cœur XP et les décisions Q1 à Q9 ;
-- confirmer que les responsabilités étrangères à XP sont bien reportées vers leurs audits dédiés ;
-- identifier les éventuelles incertitudes restantes sans les résoudre artificiellement hors de leur domaine ;
-- si aucun blocage cœur XP ne subsiste, marquer officiellement le domaine XP comme clôturé.
-
-Les responsabilités Faveur, Missions, échanges, bannière, C6, Giveaway, Events et Concours découvertes dans `XP.txt` ne doivent pas être décidées artificiellement pendant l'audit XP : elles seront approfondies dans leurs domaines respectifs.
+Ne pas commencer le Gacha tant que ce domaine n'est pas suffisamment clôturé et documenté.
 
 ---
 
@@ -1444,8 +1502,9 @@ Décisions clés :
 - élément joueur permanent ;
 - primos = pulls ;
 - moras = shop/banque ;
-- particules du même élément -> primos 1:1 ;
-- autres particules -> échange ;
+- particules personnelles -> Primogemmes 1:1, conversion manuelle ;
+- échanges de particules entre éléments différents : X contre X, stock réservé, une demande par paire, expiration au reset serveur ;
+- UI échange future : reçues/envoyées, annulation/refus, stock disponible clair, notification agrégée des demandes reçues ;
 - copies continuent après C6 ;
 - C6 ouvre stats/concours ;
 - bannière hebdo avec cible sélectionnée ;
@@ -1465,4 +1524,4 @@ Décisions clés :
 - suivi quotidien UI prévu dans le bloc bas gauche avec chevrons compacts.
 
 Prochaine étape :
-effectuer la vérification finale de clôture du domaine XP ; si aucune règle cœur XP importante ne reste ouverte, clôturer officiellement ce premier audit et passer au domaine suivant.
+poursuivre le domaine Élément / ressources / conversion / échanges dans `legacy/05-element-resources-audit.md`, actuellement après validation de R1 à R9.

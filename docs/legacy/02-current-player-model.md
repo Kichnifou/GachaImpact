@@ -67,7 +67,7 @@ Règles :
 - les particules de cet élément sont ses particules attitrées ;
 - les particules de son propre élément peuvent être converties en primogemmes au taux 1:1 ;
 - les particules des autres éléments peuvent être échangées avec d'autres joueurs, sous réserve des règles d'échange et des stocks disponibles ;
-- les règles exactes de conversion et d'échange seront confirmées dans les scripts concernés.
+- les règles de conversion et les premières règles d'échange ont été confirmées dans `legacy/05-element-resources-audit.md`.
 
 ## 3. Ressources principales
 
@@ -107,12 +107,49 @@ Structure :
 
 Règles validées :
 - le joueur peut obtenir des particules de n'importe quel élément ;
-- les particules correspondant à son élément personnel sont convertibles en primogemmes au taux 1:1 ;
-- les particules des autres éléments sont échangeables avec d'autres joueurs ;
-- les échanges nécessitent des stocks échangeables suffisants et respecteront les règles métier du système d'échange ;
-- aucun autre usage des particules n'est connu actuellement.
+- les particules correspondant à son élément personnel sont convertibles manuellement en Primogemmes au taux 1:1 ;
+- toute quantité entière >= 1 peut être convertie dans la limite du stock disponible ;
+- les particules des autres éléments sont échangeables avec des joueurs d'un élément différent ;
+- les échanges sont symétriques : X particules contre X particules ;
+- le stock disponible pour un échange correspond au stock total moins les quantités déjà réservées ;
+- une seule demande d'échange active est autorisée entre deux mêmes joueurs ;
+- aucun autre usage des particules n'est considéré définitivement absent avant la fin de l'audit des autres systèmes.
 
 Autres usages : `À CONFIRMER DANS LES SCRIPTS`.
+
+### `tradeRequests`
+
+Statut : `MIGRER / STRUCTURE LEGACY À NORMALISER`
+
+Le legacy stocke les demandes d'échange directement dans chaque profil.
+
+Pour une même demande :
+- l'expéditeur possède une entrée `sent` ;
+- le destinataire possède une entrée `received`.
+
+Champs observés :
+- `type`
+- `otherUser`
+- `amount`
+- `myElement`
+- `otherElement`
+- `createdAt`
+
+Règles métier confirmées :
+- demande uniquement entre deux joueurs d'éléments différents ;
+- pas d'auto-échange ;
+- une seule demande active par paire ;
+- échange symétrique X contre X ;
+- stocks réservés pendant l'attente ;
+- stock disponible = total - réservé ;
+- les demandes expirent au changement de journée ;
+- cible GachaImpact : expiration automatique au reset serveur 00:00 `Europe/Paris` ;
+- annulation/refus libère les réservations.
+
+Important :
+la duplication `sent` / `received` est une nécessité du modèle JSON legacy et ne doit pas être reproduite aveuglément dans le futur schéma relationnel.
+
+Le futur modèle devra posséder une source de vérité unique pour chaque demande d'échange.
 
 ## 4. À auditer ensuite
 
@@ -129,7 +166,6 @@ Puis :
 - missions ;
 - stats ;
 - dates ;
-- échanges ;
 - codes ;
 - faveur ;
 - coffre ;

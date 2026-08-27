@@ -1,8 +1,27 @@
 # 04 — Audit legacy : XP / cycle de vie joueur
 
-Statut : AUDIT TECHNIQUE INITIAL — Q1 À Q4, Q6 À Q9 VALIDÉS ; Q5 PRINCIPE VALIDÉ — FINALISATION EN COURS 
+Statut : AUDIT TECHNIQUE INITIAL CLÔTURÉ — Q1 À Q9 TRAITÉS ; RESPONSABILITÉS HORS XP REPORTÉES AUX AUDITS DÉDIÉS 
 Date : 2026-08-27  
 Source : `legacy/streamerbot/commands/XP.txt`
+
+## Statut de clôture — ✅ CLÔTURÉ le 2026-08-27
+
+Le cœur métier XP / cycle de vie joueur a été audité et les décisions nécessaires à la V1 ont été prises.
+
+Les responsabilités étrangères au domaine XP découvertes dans `XP.txt` ne sont pas supprimées ni ignorées. Elles sont reportées vers leurs audits dédiés :
+- Faveur ;
+- Banque ;
+- Missions ;
+- échanges ;
+- Gacha / bannière / votes ;
+- C6 / Concours ;
+- Giveaway ;
+- Events.
+
+Le futur backend ne doit donc pas reproduire `XP.txt` comme un orchestrateur monolithique.
+
+Le domaine suivant de la Phase 1D est :
+**Élément / ressources / conversion / échanges de particules.**
 
 ## Conclusion immédiate
 

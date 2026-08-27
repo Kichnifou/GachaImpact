@@ -83,6 +83,24 @@ Statut : évolutif.
 - `VALIDÉ` — Les particules correspondant à l'élément personnel du joueur peuvent être converties en Primogemmes au taux 1:1.
 - `VALIDÉ` — Les particules des autres éléments peuvent être échangées avec d'autres joueurs.
 - `À AUDITER DANS LES SCRIPTS` — Vérifier s'il existe d'autres usages des particules.
+- `VALIDÉ` — La conversion des particules personnelles reste volontaire/manuelle ; aucune conversion automatique.
+- `VALIDÉ` — Toute quantité entière >= 1 peut être convertie au taux 1:1, dans la limite du stock disponible.
+
+## Échanges de particules
+- `VALIDÉ` — Les échanges restent un troc bilatéral entre joueurs d'éléments différents : chaque joueur donne des particules de l'élément de l'autre et reçoit des particules de son propre élément.
+- `VALIDÉ` — L'auto-échange et l'échange entre deux joueurs du même élément sont interdits.
+- `VALIDÉ` — Le taux d'échange est symétrique : X particules contre X particules.
+- `VALIDÉ` — Une seule demande d'échange active peut exister entre une même paire de joueurs.
+- `VALIDÉ` — Une demande en attente réserve le stock nécessaire des deux joueurs.
+- `VALIDÉ` — Le stock réellement échangeable correspond au stock total moins le stock réservé.
+- `VALIDÉ` — L'UI devra afficher clairement le stock total, le stock réservé et le stock encore disponible lorsque pertinent.
+- `VALIDÉ` — Une demande envoyée peut être annulée et une demande reçue peut être refusée/annulée ; la suppression libère immédiatement les réservations.
+- `VALIDÉ` — Les demandes non résolues expirent au reset serveur quotidien à 00:00 `Europe/Paris`.
+- `VALIDÉ` — L'expiration devient automatique côté serveur et ne dépend plus d'un message joueur comme dans le legacy.
+- `VALIDÉ` — L'écran d'échange doit présenter séparément les demandes reçues et envoyées et permettre de traiter plusieurs demandes reçues.
+- `VALIDÉ` — Les demandes reçues en attente utilisent une notification agrégée indiquant leur nombre ; cliquer dessus mène vers l'écran d'échange.
+- `VALIDÉ` — Ne pas créer une notification séparée par demande d'échange.
+- `À CONCEVOIR EN PHASE 2` — Le stockage legacy dupliqué `sent` / `received` ne doit pas être copié automatiquement ; le futur modèle doit avoir une source de vérité unique pour la demande.
 
 ## Élément joueur
 - `VALIDÉ` — Le joueur choisit son élément une seule fois au début du jeu.
