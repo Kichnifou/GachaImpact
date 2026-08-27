@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.9
+Version : 0.10
 Date : 2026-08-27  
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -752,10 +752,56 @@ Migration :
 - aucune réservation temporaire associée n'est conservée au cutover ;
 - les soldes réels de particules restent évidemment migrés.
 
-Autres usages potentiels des particules :
-- restent à vérifier au fil des autres audits.
+Balayage global des particules :
+- les usages métier fondamentaux actuels identifiés sont Conversion et Échange ;
+- de nombreuses mécaniques peuvent générer des particules ;
+- ne pas inventer de nouvelle dépense en particules pendant la migration ;
+- les incohérences legacy de statistiques sont corrigées à partir de GachaImpact sans reconstruction rétroactive incertaine.
 
-## 13.4 Récompense quotidienne
+## 13.4 Principes globaux de ressources
+
+Source de vérité :
+- les soldes courants sont les sources de vérité financières ;
+- les compteurs cumulés `Earned/Spent` servent aux statistiques ;
+- le futur journal des mutations sert à la traçabilité.
+
+Mutations :
+- toute mutation de ressource passe par une logique métier centrale ;
+- chaque mutation possède une cause/source métier ;
+- aucune ressource ne peut devenir négative ;
+- aucun plafond artificiel n'est imposé en V1.
+
+Statistiques :
+- `totalPrimosEarned` = Primogemmes générées/créditées par le jeu ;
+- `totalPrimosSpent` = Primogemmes définitivement consommées ;
+- `totalMorasEarned` / `totalMorasSpent` suivent la même logique ;
+- `totalMainElementParticlesEarned` = particules de l'élément personnel générées comme récompense ;
+- un transfert joueur↔joueur n'est pas un gain généré ;
+- les compteurs legacy sont migrés tels quels sans reconstruction incertaine.
+
+Sécurité :
+- opérations économiques multi-étapes atomiques/transactionnelles ;
+- protection contre double clic / retry / double exécution ;
+- journalisation des mutations importantes ;
+- stocks/réservations vérifiés côté serveur.
+
+Automatisation :
+- une mécanique dépendant du temps ou d'un état serveur fonctionne même joueur hors ligne ;
+- l'activité/message joueur ne sert plus artificiellement de scheduler.
+
+UI :
+- toute modification autoritative est répercutée sans F5 dans toutes les vues concernées ;
+- une même ressource ne doit pas présenter plusieurs valeurs divergentes dans différents écrans.
+
+Moras :
+- portefeuille et banque restent deux soldes distincts ;
+- richesse totale = somme dérivable ;
+- les dépenses ordinaires utilisent le portefeuille uniquement.
+
+Données dérivées :
+- ne pas persister des valeurs comme le nombre d'invocations possibles si elles peuvent être calculées depuis le solde et le coût courant.
+
+## 13.5 Récompense quotidienne
 Décision V1 validée :
 - +160 primogemmes ;
 - +160 particules de l'élément du joueur ;
@@ -1137,6 +1183,11 @@ Décisions déjà validées :
 - R25 Refuser tout ;
 - R26 demandes legacy en attente non migrées ;
 - R27 IDs internes immuables pour les participants ;
+- R28 à R31 usages des particules / définition Main / migration des statistiques : validés ;
+- R32 mutation centralisée des ressources avec cause/source : validé ;
+- R33 à R38 définitions statistiques économiques / journalisation / soldes sources de vérité : validés ;
+- R39 à R44 invariants économiques / atomicité / idempotence / automatisation serveur / stats dérivées : validés ;
+- R45 à R50 visibilité joueur / données dérivées / portefeuille-banque / synchronisation UI : validés ;
 - réconciliation immédiate des demandes après toute modification de stock ;
 - expiration des demandes au reset serveur 00:00 `Europe/Paris` ;
 - annulation/refus des demandes ;
@@ -1316,6 +1367,12 @@ Prévu :
 - messages privés ;
 - espace social.
 
+Direction actuelle pour la fiche joueur :
+- permettre pour l'instant de consulter les ressources et statistiques des autres joueurs ;
+- la liste exacte des informations visibles sera affinée plus tard si certaines doivent devenir privées ;
+- un futur écran Statistiques pourra exploiter les historiques/transactions pour afficher des statistiques joueur ;
+- des statistiques globales du jeu pourront également être ajoutées plus tard.
+
 Les MP sont indépendants de Twitch.
 
 ---
@@ -1341,16 +1398,20 @@ Streamer.bot ne doit plus être requis.
 Principes :
 - jamais faire confiance au navigateur pour une transaction ;
 - ressources modifiées côté serveur ;
+- toute mutation de ressource passe par une logique centrale avec cause/source métier ;
 - pull calculé côté serveur ;
 - pity calculée côté serveur ;
 - shop côté serveur ;
 - banque côté serveur ;
 - échanges validés côté serveur ;
 - stocks disponibles = stock total - stock réservé si système de réservation ;
-- opérations sensibles transactionnelles ;
-- prévention double clic/double dépense ;
+- aucun solde ne peut devenir négatif ;
+- opérations sensibles transactionnelles et atomiques ;
+- protection idempotente contre double clic, retry réseau et double exécution ;
 - timestamps serveur ;
-- journalisation des transactions importantes.
+- journalisation des transactions importantes ;
+- mécaniques temporelles exécutables même si le joueur est hors ligne ;
+- changements autoritatifs répercutés immédiatement dans les clients/UI concernés.
 
 ---
 
@@ -1358,6 +1419,11 @@ Principes :
 
 Principe :
 ne pas sauvegarder inutilement ce qui peut être calculé depuis une source centrale.
+
+Exemples :
+- nombre d'invocations possibles = solde Primogemmes / coût courant ;
+- richesse Moras totale = portefeuille + banque ;
+- statistiques calculables depuis des transactions fiables lorsque le coût de calcul reste raisonnable.
 
 Exemple legacy :
 une expédition peut stocker :
@@ -1493,11 +1559,14 @@ Document :
 9. notification agrégée dynamique des demandes reçues : validée ;
 10. historique serveur complet des échanges : validé ; affichage UI limité aux 20–30 transactions récentes ;
 11. demandes legacy ouvertes : non migrées au cutover ;
-12. sous-domaine `Echanger.txt` : finalisé.
+12. sous-domaine `Echanger.txt` : finalisé ;
+13. balayage global des usages de particules : effectué ;
+14. R28 à R50 — usages, statistiques économiques, centralisation, invariants serveur, visibilité et synchronisation UI : validés ;
+15. anomalies legacy ressources identifiées et reportées vers leurs audits dédiés.
 
-**Prochaine étape unique : `Echanger.txt` étant finalisé, rechercher dans l'ensemble des scripts legacy les autres lectures/écritures/usages des particules et ressources afin de terminer le deuxième domaine avant de passer au Gacha.**
+**Prochaine étape unique : effectuer la dernière vérification du domaine Ressources (Primogemmes / Moras / particules / interactions restantes), puis déterminer si le deuxième domaine peut être officiellement clôturé avant de commencer le Gacha.**
 
-Ne pas commencer le Gacha tant que ce domaine n'est pas suffisamment clôturé et documenté.
+Ne pas commencer le Gacha tant que cette vérification finale n'est pas terminée.
 
 ---
 

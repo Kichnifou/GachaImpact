@@ -1,6 +1,6 @@
 # 05 — Audit legacy : Élément / ressources / conversion / échanges
 
-Statut : AUDIT EN COURS — R1 À R27 VALIDÉS — SOUS-DOMAINE ÉCHANGES FINALISÉ
+Statut : AUDIT EN COURS — R1 À R50 VALIDÉS — SOUS-DOMAINE ÉCHANGES FINALISÉ — RESSOURCES GÉNÉRALES EN FINALISATION
 Date : 2026-08-27
 
 Sources principales :
@@ -892,7 +892,457 @@ Les demandes d'échange devront plus tard s'y intégrer avec la notification agr
 
 ---
 
-# 18. État des décisions
+# 18. Balayage global des ressources — R28 à R50
+
+## Résultat du balayage legacy
+
+Le balayage des commandes legacy confirme que les particules peuvent être générées par plusieurs systèmes, notamment :
+- XP / level-up / récompenses quotidiennes ;
+- Pull ;
+- Expedition ;
+- Event ;
+- Roue ;
+- Shop ;
+- Gift ;
+- Code.
+
+Leurs usages métier actuels sont beaucoup plus limités :
+- `Convertir.txt` consomme les particules de l'élément personnel pour produire des Primogemmes ;
+- `Echanger.txt` transfère les particules entre joueurs.
+
+Aucun autre système legacy audité ne consomme directement les particules comme monnaie de crafting, de boutique ou autre coût métier.
+
+## Anomalies legacy détectées — À CORRIGER DANS GACHAIMPACT
+
+Ces incohérences ne sont pas des mécaniques à conserver.
+
+### `totalMainElementParticlesEarned`
+
+Plusieurs scripts génèrent des particules sans maintenir cette statistique de manière uniforme.
+
+Exemples identifiés :
+- certaines sources la mettent correctement à jour ;
+- `Gift.txt`, `Code.txt` ou `Roue.txt` peuvent générer des particules sans garantir la mise à jour cohérente du compteur.
+
+Conséquence :
+la valeur legacy historique de `totalMainElementParticlesEarned` peut être inférieure au nombre réel de particules principales gagnées historiquement.
+
+Décision :
+- ne pas essayer de reconstruire rétroactivement une valeur impossible à prouver ;
+- migrer la valeur legacy telle quelle ;
+- corriger le problème pour tous les nouveaux gains GachaImpact grâce à la mutation centralisée des ressources.
+
+### `Roue.txt`
+
+Incohérence détectée :
+- le code réel attribue actuellement 50 000 Moras dans le cas concerné ;
+- le message utilisateur parle de 20 000 Moras.
+
+À traiter pendant l'audit Roue/Daily :
+- déterminer la valeur métier cible ;
+- aligner obligatoirement code et message.
+
+Ne pas reproduire cette divergence.
+
+### Passif Dendro
+
+Incohérence détectée :
+- configuration/code : +5 particules sur chacun des sept éléments dans le cas concerné ;
+- texte de déclenchement : parle de particules « aléatoires ».
+
+À traiter pendant l'audit Passif/Gacha :
+- confirmer la mécanique cible ;
+- aligner obligatoirement texte, configuration et logique réelle.
+
+---
+
+## R28 — Usages fondamentaux des particules V1 — ✅ VALIDÉ
+
+Pour la V1, conserver comme usages fondamentaux actuels :
+- conversion ;
+- échange.
+
+Ne pas inventer maintenant :
+- crafting ;
+- boutique en particules ;
+- nouvelle dépense artificielle.
+
+De nouveaux usages pourront être conçus ultérieurement.
+
+---
+
+## R29 — Définition des particules principales gagnées — ✅ VALIDÉ
+
+`Main` signifie :
+**l'élément personnel du joueur**.
+
+`totalMainElementParticlesEarned` représente les particules de cet élément qui ont été **générées comme récompense par le jeu**.
+
+Exemple joueur Cryo :
+- +80 Cryo de level-up → compte ;
+- +500 Cryo via Roue → compte ;
+- Cryo via code cadeau → compte ;
+- Cryo générées par Event / Pull / Shop / Gift → compte si la récompense correspond à l'élément personnel.
+
+La future logique centralisée doit rendre cette mise à jour automatique et cohérente.
+
+---
+
+## R30 — Transfert ≠ gain — ✅ VALIDÉ
+
+Une ressource transférée depuis un autre joueur n'est pas une ressource générée par le jeu.
+
+Donc :
+- particules reçues par échange → ne comptent pas dans `totalMainElementParticlesEarned` ;
+- particules envoyées → ne représentent pas une dépense économique générée par le jeu ;
+- conversion → consommation de particules, pas gain de particules.
+
+En revanche, une récompense comme `Gift.txt` génère réellement des particules chez le bénéficiaire et constitue donc un gain.
+
+---
+
+## R31 — Statistique legacy non reconstruite — ✅ VALIDÉ
+
+Migrer `totalMainElementParticlesEarned` exactement dans son état legacy.
+
+Ne pas :
+- estimer ;
+- recalculer depuis le solde actuel ;
+- inventer les gains historiques manquants.
+
+À partir de GachaImpact, la statistique devient cohérente grâce à la logique centralisée.
+
+---
+
+## R32 — Mutations de ressources centralisées — ✅ VALIDÉ
+
+Toute mutation de ressource doit passer par une logique métier centrale.
+
+Une mutation doit connaître au minimum conceptuellement :
+- joueur concerné ;
+- ressource ;
+- quantité / delta ;
+- cause / source métier.
+
+Exemples conceptuels :
+- `+500 Cryo / WHEEL_REWARD`
+- `-160 Primogems / GACHA_PULL`
+- `+800 Cryo / EXPEDITION_REWARD`
+
+Cette logique centrale doit pouvoir assurer automatiquement selon le cas :
+- modification du solde ;
+- mise à jour des statistiques cumulatives pertinentes ;
+- journalisation ;
+- réconciliation des réservations/demandes ;
+- cohérence des données dérivées.
+
+Ne pas figer ici les noms de services ou tables.
+
+---
+
+## R33 — `totalPrimosEarned` — ✅ VALIDÉ
+
+`totalPrimosEarned` représente les Primogemmes effectivement créditées au joueur par une opération du jeu.
+
+Exemples :
+- récompense ;
+- level-up ;
+- Daily ;
+- conversion ;
+- code ;
+- remboursement/récompense système ;
+- Event ;
+- autres générations réelles de Primogemmes.
+
+Un transfert éventuel entre joueurs ne serait pas une génération de Primogemmes.
+
+---
+
+## R34 — `totalPrimosSpent` — ✅ VALIDÉ
+
+`totalPrimosSpent` représente les Primogemmes réellement consommées définitivement par une mécanique.
+
+Une opération annulée/rollbackée ne doit pas rester enregistrée comme dépense définitive.
+
+Un remboursement partiel réel peut être représenté comme :
+- dépense effectuée ;
+- crédit/remboursement distinct.
+
+---
+
+## R35 — Moras gagnées / dépensées — ✅ VALIDÉ
+
+`totalMorasEarned` :
+- Moras réellement générées/créditées par le jeu.
+
+`totalMorasSpent` :
+- Moras réellement consommées définitivement par une mécanique.
+
+Un mouvement :
+- portefeuille → banque ;
+- banque → portefeuille
+
+est un transfert interne et ne constitue ni un gain ni une dépense.
+
+---
+
+## R36 — Compteurs économiques legacy — ✅ VALIDÉ
+
+Tous les compteurs legacy de type :
+- `totalPrimosEarned`
+- `totalPrimosSpent`
+- `totalMorasEarned`
+- `totalMorasSpent`
+- `totalMainElementParticlesEarned`
+
+sont migrés dans leur état historique réel.
+
+Ne pas tenter une reconstruction rétroactive incertaine.
+
+À partir de GachaImpact, les nouvelles opérations utilisent la logique centrale cohérente.
+
+---
+
+## R37 — Journal des mutations de ressources — ✅ VALIDÉ
+
+À partir de GachaImpact, conserver une trace serveur exploitable des mouvements importants de ressources.
+
+Conceptuellement :
+- joueur ;
+- ressource ;
+- delta ;
+- source/cause ;
+- timestamp ;
+- référence vers l'opération métier si pertinente.
+
+Utilités :
+- diagnostic ;
+- sécurité ;
+- détection de doubles opérations ;
+- audit économique ;
+- statistiques futures ;
+- compréhension de l'origine d'un solde.
+
+Ce journal n'a pas besoin d'être affiché intégralement dans l'UI.
+
+---
+
+## R38 — Solde = source de vérité financière — ✅ VALIDÉ
+
+Pour savoir ce qu'un joueur possède ou peut dépenser :
+**utiliser le solde courant réel**.
+
+Ne jamais calculer le solde avec :
+
+`totalEarned - totalSpent`
+
+Les compteurs cumulés servent aux statistiques.
+
+Le journal futur sert à la traçabilité.
+
+Le solde courant reste la source de vérité financière.
+
+---
+
+## R39 — Aucun solde négatif — ✅ VALIDÉ
+
+Aucune ressource ne peut descendre sous 0.
+
+Toute consommation doit vérifier le stock réellement disponible avant validation.
+
+Lorsqu'un système de réservation existe :
+
+`disponible = total - réservé`
+
+La vérification et la mutation doivent être réalisées côté serveur dans la même opération sécurisée.
+
+---
+
+## R40 — Aucun plafond artificiel V1 — ✅ VALIDÉ
+
+Aucun plafond métier artificiel n'est imposé en V1 pour :
+- Primogemmes ;
+- Moras ;
+- particules ;
+- autres ressources similaires sauf règle métier explicitement définie ultérieurement.
+
+Le futur stockage doit utiliser un type numérique suffisamment large pour éviter les limitations techniques du legacy.
+
+---
+
+## R41 — Atomicité des opérations économiques — ✅ VALIDÉ
+
+Une opération économique multi-étapes doit être transactionnelle.
+
+Exemples :
+- Pull ;
+- achat ;
+- échange ;
+- claim ;
+- transfert ;
+- opération modifiant plusieurs ressources/états.
+
+Soit l'ensemble de l'opération réussit, soit aucun changement partiel ne reste appliqué.
+
+Éviter les systèmes legacy de rollback manuel lorsque la DB peut garantir une transaction atomique.
+
+---
+
+## R42 — Idempotence / double clic / retry — ✅ VALIDÉ
+
+Les opérations sensibles doivent être protégées contre :
+- double clic ;
+- double soumission ;
+- retry réseau ;
+- requête répétée ;
+- traitement concurrent accidentel.
+
+Une même opération logique ne doit pas pouvoir être exécutée deux fois involontairement.
+
+La stratégie exacte d'idempotence sera conçue avec le backend.
+
+---
+
+## R43 — Mécaniques automatiques indépendantes de l'activité joueur — ✅ VALIDÉ
+
+Une règle dépendant uniquement :
+- du temps ;
+- d'un état serveur ;
+- d'une échéance
+
+doit pouvoir être exécutée même si :
+- le joueur est déconnecté ;
+- le jeu n'est pas ouvert ;
+- aucun message Twitch n'est envoyé.
+
+Exemples :
+- intérêts bancaires ;
+- expiration des échanges ;
+- resets quotidiens ;
+- rotations de bannières ;
+- activation/expiration d'Events.
+
+Le serveur / la DB restent la source de vérité.
+
+---
+
+## R44 — Statistiques dérivées autant que possible — ✅ VALIDÉ
+
+Ne pas créer un compteur persistant pour chaque statistique imaginable.
+
+Lorsque cela reste raisonnable :
+- conserver les événements/transactions fiables ;
+- dériver les statistiques depuis ces sources.
+
+Exemples futurs :
+- nombre d'échanges ;
+- Moras obtenues via intérêts ;
+- Primogemmes obtenues via conversion ;
+- gains par type de source.
+
+Une optimisation/caching pourra être ajoutée plus tard si nécessaire.
+
+---
+
+## R45 — Visibilité des ressources et statistiques joueur — ✅ VALIDÉ POUR LA DIRECTION ACTUELLE
+
+Lorsqu'un joueur consulte la fiche d'un autre joueur, la direction actuelle est de permettre l'accès à ses informations et statistiques, y compris ses ressources.
+
+Pour l'instant :
+- Primogemmes ;
+- Moras ;
+- particules ;
+- statistiques cumulatives
+
+peuvent être publiques dans la fiche joueur.
+
+Une politique de confidentialité plus restrictive pourra être décidée ultérieurement si certaines données doivent finalement être masquées.
+
+---
+
+## R46 — Statistiques cumulatives publiques — ✅ VALIDÉ
+
+Le futur profil / écran Statistiques pourra présenter des statistiques cumulatives joueur.
+
+Exemples possibles :
+- Pulls ;
+- gains ;
+- dépenses ;
+- échanges ;
+- autres accomplissements/statistiques.
+
+La liste exacte sera conçue plus tard.
+
+Un futur écran pourra également proposer des statistiques globales du jeu.
+
+---
+
+## R47 — Données dérivées non persistées — ✅ VALIDÉ
+
+Exemple :
+nombre d'invocations possibles.
+
+Le legacy peut calculer :
+
+`primogems / coût d'une invocation`
+
+Cette valeur ne doit pas être stockée comme donnée persistante.
+
+Elle doit être dérivée depuis :
+- le solde réel ;
+- le coût actuel provenant de la source métier correspondante.
+
+Même principe pour toute autre donnée facilement dérivable.
+
+---
+
+## R48 — Portefeuille Moras et Banque distincts — ✅ VALIDÉ
+
+Conserver deux emplacements distincts :
+- Moras disponibles dans le portefeuille ;
+- Moras déposées en banque.
+
+Le dépôt/retrait déplace les Moras sans en créer ni en détruire.
+
+La richesse totale en Moras est dérivable :
+
+`portefeuille + banque`
+
+Ne pas stocker inutilement ce total s'il peut être calculé.
+
+---
+
+## R49 — Dépenses depuis le portefeuille uniquement — ✅ VALIDÉ
+
+Conserver le comportement V1 :
+- les dépenses ordinaires utilisent les Moras du portefeuille ;
+- les Moras en banque ne sont pas automatiquement utilisées pour compléter un achat ;
+- le joueur doit retirer les Moras avant de pouvoir les dépenser.
+
+La Banque reste ainsi un espace distinct.
+
+---
+
+## R50 — Synchronisation UI immédiate — ✅ VALIDÉ
+
+Lorsqu'une donnée autoritative change côté serveur :
+- toutes les zones pertinentes de l'UI doivent refléter le nouvel état sans nécessiter de F5.
+
+Exemples :
+- sidebar ;
+- Sac ;
+- Banque ;
+- Échanges ;
+- Boutique ;
+- Invocation ;
+- notifications ;
+- fiche joueur lorsque pertinent.
+
+Les différentes vues ne doivent pas maintenir des versions divergentes du même solde.
+
+---
+
+# 19. État des décisions
 
 Validé :
 - R1 : conversion 1:1 ;
@@ -922,6 +1372,29 @@ Validé :
 - R25 : action Refuser tout ;
 - R26 : ne pas migrer les demandes legacy encore en attente ;
 - R27 : participants identifiés par IDs internes immuables, jamais par pseudo comme clé métier ;
+- R28 : conversion et échange restent les usages fondamentaux des particules V1 ;
+- R29 : `Main` = élément personnel ; récompenses générées dans cet élément alimentent `totalMainElementParticlesEarned` ;
+- R30 : transfert joueur↔joueur ≠ gain généré ;
+- R31 : compteur de particules principales legacy migré sans reconstruction ;
+- R32 : mutations de ressources centralisées avec une cause/source ;
+- R33 : définition centralisée de `totalPrimosEarned` ;
+- R34 : définition centralisée de `totalPrimosSpent` ;
+- R35 : définitions Moras gagnées/dépensées et distinction des transferts bancaires ;
+- R36 : compteurs économiques legacy migrés tels quels ;
+- R37 : journal serveur futur des mutations importantes ;
+- R38 : solde courant = source de vérité financière ;
+- R39 : aucun solde négatif ;
+- R40 : aucun plafond artificiel en V1 ;
+- R41 : opérations économiques atomiques ;
+- R42 : protection contre double clic / retry / double exécution ;
+- R43 : mécaniques temporelles automatiques même joueur hors ligne ;
+- R44 : statistiques dérivées autant que possible ;
+- R45 : ressources/statistiques joueur visibles dans la fiche pour la direction actuelle ;
+- R46 : statistiques cumulatives utilisables dans le futur profil/écran Statistiques ;
+- R47 : données dérivées comme les invocations possibles non persistées ;
+- R48 : portefeuille Moras et Banque restent deux soldes distincts ;
+- R49 : dépenses Moras depuis le portefeuille uniquement ;
+- R50 : synchronisation immédiate de l'état serveur dans toute l'UI ;
 - réconciliation immédiate des demandes après toute transaction modifiant un stock concerné ;
 - expiration automatique au reset 00:00 Europe/Paris ;
 - annulation/refus possible ;
@@ -930,8 +1403,9 @@ Validé :
 
 Audit encore en cours :
 - sous-domaine `Echanger.txt` : finalisé ;
-- vérifier les autres usages éventuels des particules dans les autres scripts ;
-- vérifier les autres interactions de ressources avant clôture du domaine.
+- balayage global des usages de particules effectué ;
+- principes économiques généraux R28 à R50 validés ;
+- effectuer une dernière vérification des interactions Primogemmes / Moras / particules et des anomalies reportées avant de décider la clôture du domaine.
 
 Idée future documentée :
 - écran de statistiques joueur / statistiques globales du jeu ;

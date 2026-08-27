@@ -76,15 +76,48 @@ Statut : évolutif.
 - `VALIDÉ` — Un joueur absent continue à recevoir ses intérêts quotidiennement ; cette mécanique temporelle appartient au domaine Banque / scheduler serveur et ne doit plus dépendre du système XP.
 
 ## Ressources
-- `VALIDÉ` — Les Primogemmes servent uniquement aux invocations / pulls.
-- `VALIDÉ` — Les Moras sont utilisées au minimum pour la Boutique et la Banque.
-- `À AUDITER DANS LES SCRIPTS` — Vérifier s'il existe d'autres usages des Moras.
+- `VALIDÉ` — Les Primogemmes servent actuellement aux invocations / pulls.
+- `VALIDÉ` — Les Moras sont utilisées au minimum pour la Boutique et la Banque ; les usages précis supplémentaires seront confirmés dans leurs audits dédiés.
 - `VALIDÉ` — Le joueur peut posséder des particules des sept éléments.
-- `VALIDÉ` — Les particules correspondant à l'élément personnel du joueur peuvent être converties en Primogemmes au taux 1:1.
-- `VALIDÉ` — Les particules des autres éléments peuvent être échangées avec d'autres joueurs.
-- `À AUDITER DANS LES SCRIPTS` — Vérifier s'il existe d'autres usages des particules.
-- `VALIDÉ` — La conversion des particules personnelles reste volontaire/manuelle ; aucune conversion automatique.
-- `VALIDÉ` — Toute quantité entière >= 1 peut être convertie au taux 1:1, dans la limite du stock disponible.
+- `VALIDÉ` — Les particules correspondant à l'élément personnel du joueur peuvent être converties manuellement en Primogemmes au taux 1:1.
+- `VALIDÉ` — Toute quantité entière >= 1 peut être convertie dans la limite du stock disponible.
+- `VALIDÉ` — Pour la V1 actuelle, les usages fondamentaux des particules restent Conversion et Échange ; ne pas inventer de nouvelle dépense pendant la migration.
+- `VALIDÉ` — `Main` signifie l'élément personnel du joueur ; `totalMainElementParticlesEarned` compte les particules de cet élément générées comme récompense par le jeu.
+- `VALIDÉ` — Une ressource reçue depuis un autre joueur par transfert/échange n'est pas considérée comme une ressource générée par le jeu.
+- `VALIDÉ` — Les statistiques économiques legacy sont migrées telles quelles sans reconstruction rétroactive incertaine.
+- `VALIDÉ` — Aucun solde de ressource ne peut devenir négatif.
+- `VALIDÉ` — Aucun plafond artificiel de ressources n'est imposé en V1.
+- `VALIDÉ` — Portefeuille Moras et Banque sont deux soldes distincts.
+- `VALIDÉ` — Une dépense en Moras utilise le portefeuille ; la Banque n'est pas débitée automatiquement pour compléter un achat.
+- `VALIDÉ` — La richesse Moras totale portefeuille + banque est une donnée dérivable, pas un champ à persister inutilement.
+- `VALIDÉ` — Le nombre d'invocations possibles et les données équivalentes sont dérivés des sources réelles, pas stockés comme champs persistants.
+
+## Statistiques économiques
+- `VALIDÉ` — `totalPrimosEarned` représente les Primogemmes réellement créditées/générées par une opération du jeu.
+- `VALIDÉ` — `totalPrimosSpent` représente les Primogemmes réellement consommées définitivement.
+- `VALIDÉ` — `totalMorasEarned` représente les Moras réellement générées/créditées par le jeu.
+- `VALIDÉ` — `totalMorasSpent` représente les Moras réellement consommées définitivement.
+- `VALIDÉ` — Dépôt/retrait bancaire = transfert interne, pas gain/dépense.
+- `VALIDÉ` — Le solde courant reste la source de vérité financière ; les compteurs cumulés sont des statistiques.
+- `VALIDÉ` — À partir de GachaImpact, les mouvements importants de ressources sont journalisés côté serveur avec une cause/source.
+- `VALIDÉ` — Les statistiques futures doivent être dérivées autant que raisonnablement possible depuis des transactions/événements fiables.
+
+## Architecture économique
+- `VALIDÉ` — Toute mutation de ressource passe par une logique métier centrale accompagnée de sa cause/source.
+- `VALIDÉ` — Une opération économique multi-étapes importante doit être atomique/transactionnelle.
+- `VALIDÉ` — Les opérations sensibles doivent être protégées contre double clic, retry réseau et double exécution accidentelle.
+- `VALIDÉ` — Les mécaniques dépendant uniquement du temps ou de l'état serveur doivent fonctionner même lorsque le joueur est hors ligne.
+- `VALIDÉ` — Toute donnée autoritative modifiée côté serveur doit être reflétée immédiatement dans toutes les zones pertinentes de l'UI sans F5.
+
+## Fiche joueur / statistiques
+- `VALIDÉ POUR LA DIRECTION ACTUELLE` — La fiche d'un autre joueur peut pour l'instant afficher ses ressources et ses statistiques ; des restrictions de confidentialité pourront être décidées ultérieurement.
+- `VALIDÉ` — Les statistiques cumulatives peuvent alimenter un futur écran Statistiques joueur.
+- `FUTUR / À CONCEVOIR` — Un écran de statistiques globales du jeu pourra également exploiter les données transactionnelles/historiques.
+
+## Anomalies legacy à corriger
+- `BUG LEGACY` — `totalMainElementParticlesEarned` n'est pas alimenté uniformément par tous les scripts générant des particules ; migrer la valeur historique telle quelle mais corriger toutes les nouvelles mutations GachaImpact.
+- `BUG LEGACY À TRAITER DANS ROUE` — Divergence entre récompense Moras du code et message utilisateur ; code/message devront être alignés.
+- `BUG LEGACY À TRAITER DANS PASSIF/GACHA` — Divergence entre la mécanique Dendro code/config et son texte de déclenchement ; logique/config/texte devront être alignés.
 
 ## Échanges de particules
 - `VALIDÉ` — Les échanges restent un troc bilatéral entre joueurs d'éléments différents : chaque joueur donne des particules de l'élément de l'autre et reçoit des particules de son propre élément.

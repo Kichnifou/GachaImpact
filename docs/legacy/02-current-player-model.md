@@ -39,12 +39,13 @@ Statut : `MIGRER TEL QUEL`
 
 ### `xp`
 
-Statut : `MIGRER TEL QUEL / LOGIQUE À CONFIRMER DANS XP`
+Statut : `MIGRER TEL QUEL / LOGIQUE XP AUDITÉE`
 
-- L'XP continue d'être gagnée après le niveau 100.
-- Avant le niveau 100, la progression permet de monter de niveau et recevoir des récompenses.
-- Au niveau 100, la progression continue à donner les récompenses périodiques mais sans augmenter le niveau.
-- Les seuils, calculs et récompenses exacts seront confirmés lors de l'audit du script XP.
+- L'XP cumulée est la source de vérité métier du niveau.
+- 30 XP par palier.
+- Niveau plafonné à 100 pour la V1.
+- Après le niveau 100, l'XP continue d'augmenter et produit les récompenses d'overflow tous les 30 XP.
+- Les règles complètes sont documentées dans `legacy/04-xp-audit.md`.
 
 ### `element`
 
@@ -90,7 +91,15 @@ Usages actuels connus :
 - boutique ;
 - banque.
 
-Autres usages : `À CONFIRMER DANS LES SCRIPTS`.
+Principes déjà validés :
+- `moras` représente le portefeuille disponible ;
+- les Moras déposées en banque restent un solde distinct ;
+- un dépôt/retrait est un transfert interne et non un gain/dépense ;
+- les dépenses ordinaires utilisent le portefeuille et ne prélèvent pas automatiquement la banque ;
+- aucun solde ne peut devenir négatif ;
+- aucun plafond artificiel n'est prévu en V1.
+
+Les règles métier complètes de Banque seront approfondies dans son audit dédié.
 
 ### `particles`
 
@@ -113,9 +122,30 @@ Règles validées :
 - les échanges sont symétriques : X particules contre X particules ;
 - le stock disponible pour un échange correspond au stock total moins les quantités déjà réservées ;
 - une seule demande d'échange active est autorisée entre deux mêmes joueurs ;
-- aucun autre usage des particules n'est considéré définitivement absent avant la fin de l'audit des autres systèmes.
+- le balayage global du legacy n'a identifié comme usages métier fondamentaux actuels que Conversion et Échange ;
+- une nouvelle utilisation des particules ne doit pas être inventée pendant la migration ;
+- `Main` désigne l'élément personnel du joueur ;
+- `totalMainElementParticlesEarned` représente les particules de cet élément générées comme récompense par le jeu ;
+- les particules reçues par transfert/échange ne sont pas comptées comme gain généré.
 
-Autres usages : `À CONFIRMER DANS LES SCRIPTS`.
+### Statistiques économiques cumulatives
+
+Statut : `MIGRER TEL QUEL / HISTORIQUE POTENTIELLEMENT IMPARFAIT`
+
+Champs principaux identifiés :
+- `stats.totalPrimosEarned`
+- `stats.totalPrimosSpent`
+- `stats.totalMorasEarned`
+- `stats.totalMorasSpent`
+- `stats.totalMainElementParticlesEarned`
+
+Décisions :
+- migrer les valeurs legacy telles quelles ;
+- ne pas reconstruire rétroactivement les oublis historiques ;
+- les soldes courants restent les sources de vérité financières ;
+- les compteurs servent aux statistiques ;
+- à partir de GachaImpact, les mutations passent par une logique centrale et maintiennent ces informations de façon cohérente ;
+- un journal serveur des mouvements importants est conservé à partir de la nouvelle implémentation.
 
 ### `tradeRequests`
 
