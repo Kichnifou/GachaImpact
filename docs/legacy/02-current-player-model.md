@@ -210,7 +210,9 @@ Cible :
 - référence vers le personnage ciblé de la bannière active ;
 - vidée automatiquement à chaque rotation hebdomadaire ;
 - nouvelle sélection obligatoire avant Invocation ;
-- changement libre sans reset pity/garantie/Capture.
+- changement libre sans reset pity/garantie/Capture ;
+- au cutover legacy → standalone, conserver la cible si elle reste valide dans la bannière active importée ;
+- si elle est invalide, la vider sans modifier pity/garantie/Capture.
 
 ### Pity
 

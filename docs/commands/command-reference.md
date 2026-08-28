@@ -121,7 +121,7 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Migration :** les demandes en attente ne sont pas migrées au cutover
 - **Identité cible :** relations basées sur les IDs internes immuables des joueurs
 ## `!banniere`
-- **Statut audit :** Audit Gacha en cours — R54 à R65 validées
+- **Statut audit :** Audité — domaine Gacha / Invocation clôturé
 - **But :** Afficher la bannière active et la cible 5★ personnelle lorsqu'elle est valide.
 - **Syntaxe :** `!banniere`
 - **Bouton UI équivalent :** écran Invocation complet
@@ -131,10 +131,10 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Coûts :** aucun
 - **Données lues :** catalogue personnages, bannière active, cible personnelle
 - **Données écrites :** aucune
-- **Décisions cible :** bannière hebdomadaire 4×5★ + 6×4★ ; UI beaucoup plus riche que la réponse Twitch
+- **Décisions cible :** bannière hebdomadaire 4×5★ + 6×4★ ; conserver un seul message Twitch contenant tous les personnages et la cible personnelle ; UI standalone beaucoup plus riche
 
 ## `!select`
-- **Statut audit :** Audit Gacha en cours — R59 validée
+- **Statut audit :** Audité — domaine Gacha / Invocation clôturé
 - **But :** Sélectionner le 5★ ciblé parmi les quatre personnages actifs.
 - **Syntaxes :** `!select`, `!select <nom>`
 - **Bouton UI équivalent :** sélection visuelle des quatre 5★ + bouton `Changer`
@@ -147,19 +147,19 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Décisions cible :** cible librement modifiable ; vidée automatiquement à chaque nouvelle bannière ; aucune pity/garantie reset lors d'un changement
 
 ## `!vote`
-- **Statut audit :** Audit Gacha en cours — R57/R58 validées
+- **Statut audit :** Audité — domaine Gacha / Invocation clôturé
 - **But :** Influencer le quatrième personnage 5★ de la bannière suivante.
 - **Syntaxes :** `!vote`, `!vote <nom>`
-- **Bouton UI équivalent :** future zone de vote communautaire
+- **Bouton UI équivalent :** vote directement depuis l'écran Personnages ; nombre de votes public sur les 5★ éligibles
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
 - **Préconditions :** personnage 5★ valide ; pas déjà en bannière ; joueur n'ayant pas encore voté cette semaine
 - **Coûts :** aucun
 - **Données lues/écrites legacy :** `banner_votes.json`, catalogue personnages
-- **Décisions cible :** un vote définitif par semaine ; résultat pondéré par nombre de votes ; reset lors de la rotation
+- **Décisions cible :** un vote définitif par ID joueur/semaine tous canaux confondus ; résultat pondéré ; conservation du fuzzy matching legacy côté texte ; snapshot + votes individuels historisés à partir de GachaImpact
 
 ## `!pity`
-- **Statut audit :** Audit Gacha avancé — pity/garantie/Capture R61 à R74 validées
+- **Statut audit :** Audité — domaine Gacha / Invocation clôturé
 - **But :** Afficher pity 5★, pity 4★, garantie et Capture de brillance.
 - **Syntaxe :** `!pity`
 - **Bouton UI équivalent :** informations intégrées directement dans l'écran Invocation/sidebar
@@ -168,10 +168,10 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Coûts :** aucun
 - **Données lues :** pity 5★/4★, `guaranteedFeatured5`, `captureProgress`
 - **Données écrites :** aucune
-- **Décisions cible :** progression conservée entre rotations/cibles ; `fiftyFiftyLostStreak` et `captureProgress` sont deux données distinctes ; affichage compact `Garantie 5★ : oui/non` et `Capture : X/3`
+- **Décisions cible :** progression conservée entre rotations/cibles ; `fiftyFiftyLostStreak` et `captureProgress` sont distincts ; affichage compact `Garantie 5★ : oui/non` + `Capture : X/3` ; le streak n'est pas affiché par `!pity`
 
 ## `!pull`
-- **Statut audit :** Audit Gacha avancé — R60 à R95 validées ; derniers edge cases globaux Gacha à vérifier
+- **Statut audit :** Audité — domaine Gacha / Invocation clôturé après R116
 - **But :** Exécuter une ou plusieurs invocations.
 - **Syntaxes :** `!pull`, `!pull <1..10>`
 - **Bouton UI équivalent :** `Invocation x1` / `Invocation x10`
@@ -180,6 +180,7 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Préconditions :** profil valide ; cible 5★ active ; Primogemmes suffisantes ; bannière serveur valide
 - **Coût :** 160 Primogemmes par Pull
 - **Maximum :** 10 Pulls par action
+- **Pré-paiement :** le coût complet est requis avant l'opération ; un x10 nécessite 1 600 Primogemmes avant tout remboursement/proc interne
 - **Pity 5★ :** 0,6 % jusqu'à 73 ; soft pity dès 74 ; garantie 90
 - **Pity 4★ :** 1,5 % jusqu'à 8 ; 19,5 % au 9e ; garantie 10
 - **Priorité :** 5★ prioritaire si les deux jets réussissent ensemble ; pity 4★ conservée
@@ -208,4 +209,4 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Mentions chat :** Early, Back-to-back et Hard (pity >= 80) conservés
 - **Stats futures :** Early/Back-to-back/Hard et autres métriques dérivables depuis l'historique
 - **Arrondi Pyro/Geo :** entier le plus proche, `.5` vers le haut
-- **Interactions encore à auditer :** derniers edge cases Bannière/Vote/Select/Pity et détails globaux avant clôture du domaine Gacha
+- **Interactions reportées :** chaque Pull individuel contribue aux éventuelles missions de type `pulls`, mais les règles et récompenses Missions appartiennent au domaine Missions ; règles Concours détaillées reportées au domaine Concours/C6

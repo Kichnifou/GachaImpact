@@ -52,14 +52,17 @@ Statut : évolutif.
 ## Personnages / C6
 - `VALIDÉ` — `constellation` reste plafonnée à C6.
 - `VALIDÉ` — `copies` conserve le nombre historique total, y compris au-delà de C6.
-- `À AUDITER DANS SCRIPT` — Les doublons après C6 peuvent augmenter des caractéristiques utilisées dans les concours.
+- `VALIDÉ GACHA` — Lorsqu'un 5★ atteint C6, ses cinq statistiques Concours sont initialisées à 1.
+- `VALIDÉ GACHA` — Chaque doublon 5★ C6+ déclenche la progression Concours définie pendant l'audit Gacha ; les règles détaillées du Concours restent à approfondir dans son domaine dédié.
+- `VALIDÉ` — La future section Concours est visible uniquement pour un joueur possédant au moins un personnage 5★ C6.
 
 ## Bannière / invocation
 - `VALIDÉ` — Une seule bannière active est présentée dans la nouvelle interface ; pas de sélecteur Permanent/Temporaire.
-- `VALIDÉ` — La bannière hebdomadaire peut proposer plusieurs personnages 5★.
-- `VALIDÉ` — Le joueur sélectionne une cible avant d'invoquer.
-- `VALIDÉ` — Les joueurs peuvent voter chaque semaine pour influencer une future bannière.
-- `À AUDITER DANS SCRIPT` — Règles exactes de sélection, pity, garantie, brillance, votes et rotation.
+- `VALIDÉ` — Bannière hebdomadaire : 4×5★ + 6×4★.
+- `VALIDÉ` — Le joueur sélectionne une cible 5★ avant d'invoquer.
+- `VALIDÉ` — Les joueurs votent chaque semaine pour influencer le quatrième 5★ d'une future bannière.
+- `VALIDÉ` — Règles détaillées sélection / pity / garantie / Capture / votes / rotation définies dans `legacy/06-gacha-invocation-audit.md`.
+- `CLÔTURÉ` — Domaine Gacha / Invocation clôturé après R116.
 
 ## Architecture
 - `VALIDÉ` — Le navigateur ne détient jamais la sauvegarde autoritative.
@@ -235,7 +238,29 @@ Statut : évolutif.
 - `VALIDÉ` — Ces mentions restent principalement destinées au chat ; un effet UI temporaire pourra éventuellement être ajouté plus tard.
 - `VALIDÉ` — Les statistiques Early / Back-to-back / Hard pourront être dérivées de l'historique.
 - `VALIDÉ` — Les multiplicateurs Pyro/Geo utilisent un arrondi à l'entier le plus proche avec `.5` vers le haut.
-- `À AUDITER` — Derniers edge cases Bannière / Vote / Select / Pity avant clôture éventuelle du domaine Gacha.
+- `VALIDÉ` — Les nombres de votes restent publics ; possibilité de voter directement depuis l'écran Personnages.
+- `VALIDÉ` — Si un personnage voté est déjà sélectionné parmi les trois 5★ aléatoires, il est retiré du tirage communautaire restant.
+- `VALIDÉ` — Une génération de bannière invalide échoue sans casser l'exclusion de la semaine précédente ; l'ancienne bannière reste active.
+- `VALIDÉ` — Un personnage importé en cours de semaine apparaît immédiatement dans le catalogue mais ne modifie pas la bannière active.
+- `VALIDÉ` — `!vote` conserve la tolérance/fuzzy matching legacy sans confirmation supplémentaire.
+- `VALIDÉ` — `!banniere` conserve une réponse Twitch unique contenant les 4×5★, 6×4★ et la cible.
+- `VALIDÉ` — `!pity` n'affiche pas `fiftyFiftyLostStreak`.
+- `VALIDÉ` — Prévoir un écran Historique transversal avec au minimum les onglets Invocations et Bannières.
+- `VALIDÉ` — Conserver un snapshot des votes utilisés pour chaque bannière native.
+- `VALIDÉ` — Un seul vote hebdomadaire par ID joueur interne tous canaux confondus.
+- `VALIDÉ` — Un échec de rotation conserve le snapshot de votes fermé et retente exactement avec celui-ci.
+- `VALIDÉ` — Conserver les personnages référencés via désactivation/archivage plutôt que suppression destructive.
+- `VALIDÉ` — Kichnifou est l'administrateur initial ; la promotion d'autres administrateurs sera conçue avec les rôles/permissions.
+- `VALIDÉ` — Import automatique personnage : nom, rareté, élément et sortie réelle confirmée sont obligatoires.
+- `VALIDÉ` — Une cible rendue invalide administrativement est vidée sans modifier pity/garantie/Capture.
+- `VALIDÉ` — Un x10 exige les 1 600 Primogemmes avant le début de l'opération, indépendamment des remboursements futurs.
+- `VALIDÉ` — Conserver chaque vote individuel depuis GachaImpact via l'ID joueur interne.
+- `VALIDÉ` — L'historique des bannières conserve l'origine exacte des quatre 5★, le snapshot de vote et les métadonnées de rotation.
+- `VALIDÉ` — Au cutover, conserver la bannière legacy active jusqu'à sa rotation normale.
+- `VALIDÉ` — Au cutover, migrer les votes encore actifs de la semaine.
+- `VALIDÉ` — Au cutover, conserver la cible personnelle si elle reste valide.
+- `VALIDÉ` — La bannière legacy active devient la première entrée d'historique avec origine `import legacy`, sans inventer les informations inconnues.
+- `CLÔTURÉ` — Domaine Gacha / Invocation clôturé après R116.
 
 ## Notifications
 - `VALIDÉ` — Toute notification doit pouvoir être supprimée manuellement par le joueur via une petite croix affichée au survol.

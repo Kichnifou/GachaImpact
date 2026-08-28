@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.12
+Version : 0.13
 Date : 2026-08-28
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -47,6 +47,35 @@ Le jeu doit :
 Le but n'est donc PAS de faire une interface graphique au-dessus de Streamer.bot.
 
 Le but est de créer un jeu complet, maintenable et centralisé, dont Twitch deviendra seulement une intégration optionnelle.
+
+## 1.2 Projet futur original séparé — DIRECTION À CONSERVER
+
+Un second jeu original est envisagé à plus long terme.
+
+Direction actuelle :
+- il s'agirait d'un **jeu séparé** de GachaImpact, et non d'une simple section interne ;
+- GachaImpact pourra proposer un lien vers ce futur jeu ;
+- une grande partie des principes techniques et mécaniques développés ici pourra être réutilisée/adaptée ;
+- le futur jeu devra cependant se détacher réellement de Genshin : noms, personnages, univers, terminologie, identité visuelle et concepts devront être suffisamment originaux ;
+- objectif : créer un véritable gacha original appartenant au projet ;
+- une exploitation/monétisation permettant éventuellement de financer le projet pourra être étudiée plus tard.
+
+Différences importantes déjà envisagées :
+- personnages entièrement originaux ;
+- lore original ;
+- véritable catégorie `Histoire` ;
+- narration pouvant prendre la forme d'un visual novel ;
+- possibilité de scènes plus poussées avec animations et cinématiques.
+
+Direction artistique envisagée :
+- personnages et assets pouvant être produits avec l'aide de l'IA ;
+- possibilité de commander des croquis/model sheets à des artistes humains puis de les utiliser comme références canoniques ;
+- forte exigence de cohérence du même personnage entre poses, angles, émotions et scènes ;
+- benchmark futur des outils de génération d'images avant de choisir le pipeline ;
+- pour les cinématiques, privilégier une production pré-générée/hybride plutôt qu'une génération vidéo coûteuse en temps réel.
+
+Ce projet futur reste séparé du périmètre métier actuel de GachaImpact.
+Ne pas modifier les règles GachaImpact pour anticiper arbitrairement ce futur jeu.
 
 ---
 
@@ -249,6 +278,31 @@ Décisions générales notifications :
 - acceptation, refus, annulation, réduction automatique ou expiration d'une demande ne génèrent pas de notification individuelle ;
 - le détail des échanges récemment réalisés est consultable directement dans l'écran Échanges.
 
+## 3.7 Écran Historique global — DIRECTION VALIDÉE
+
+Prévoir un futur écran transversal `Historique`.
+
+Premiers onglets validés :
+- `Invocations` ;
+- `Bannières`.
+
+### Invocations
+- historique détaillé depuis le lancement standalone ;
+- 10 résultats par page ;
+- pagination serveur ;
+- pas de purge annuelle par défaut.
+
+### Bannières
+- historique depuis le lancement standalone ;
+- la bannière active au cutover peut devenir la première entrée avec origine `import legacy` ;
+- composition 4×5★ + 6×4★ ;
+- distinction des trois 5★ aléatoires et du 5★ communautaire ;
+- snapshot des votes ;
+- possibilité future d'afficher qui avait voté pour quel personnage ;
+- dates/statut de rotation.
+
+D'autres domaines pourront ajouter un onglet plus tard uniquement si leur historique apporte une réelle utilité.
+
 ---
 
 # 4. ÉCRAN INVOCATION — DIRECTION VISUELLE VALIDÉE
@@ -387,6 +441,12 @@ But :
 - grisé si non possédé ;
 - grille + filtres + tri ;
 - inutile d'avoir un bandeau séparé "possédé / non possédé" si le visuel suffit.
+
+Vote Gacha :
+- les personnages 5★ éligibles au vote hebdomadaire peuvent afficher leur nombre de votes courant ;
+- permettre de voter directement depuis cet écran ;
+- réutiliser les filtres / tris / recherche existants plutôt que recréer inutilement une seconde liste complète ;
+- une fois le vote utilisé, afficher clairement le choix du joueur pour la semaine.
 
 ## 6.3 Équipe
 But :
@@ -988,7 +1048,7 @@ Pour un personnage possédé :
 
 ---
 
-# 17. SYSTÈME DE BANNIÈRE / GACHA — AUDIT EN COURS
+# 17. SYSTÈME DE BANNIÈRE / GACHA — AUDIT CLÔTURÉ
 
 Document spécialisé :
 `docs/legacy/06-gacha-invocation-audit.md`
@@ -1060,13 +1120,20 @@ Sources actuelles à revalider lors de l'implémentation :
 
 Prévoir une vue Admin/Modérateur permettant notamment :
 - gestion/correction du catalogue personnages ;
-- suppression/désactivation rapide d'un import incorrect ;
+- désactivation/archivage rapide d'un import incorrect ;
+- éviter la suppression destructive des personnages déjà référencés ;
+- remplacement d'urgence de bannière via action spécifique et journalisée si nécessaire ;
 - ajout manuel exceptionnel ;
 - corrections de ressources ;
 - corrections de possessions/personnages ;
 - actions sur un ou plusieurs joueurs ;
 - permissions fortes ;
 - journalisation des actions sensibles.
+
+Administration initiale :
+- Kichnifou = administrateur initial ;
+- prévoir plus tard un système de rôles permettant de promouvoir d'autres comptes administrateurs ;
+- gestion/révocation des permissions à concevoir dans le futur domaine Admin/Modération.
 
 ## 50/50 / Garantie / Capture — R66 à R74 validées
 
@@ -1120,18 +1187,50 @@ Prévoir une vue Admin/Modérateur permettant notamment :
 - stats correspondantes dérivables de l'historique ;
 - arrondi Pyro/Geo `.5` vers le haut.
 
-## Prochaine passe Gacha
+## Finalisation Gacha — R96 à R116 validées
 
-Le cœur de `Pull.txt` est quasi finalisé.
+Derniers edge cases :
+- votes publics et vote intégré à l'écran Personnages ;
+- personnage voté déjà présent parmi les trois 5★ aléatoires correctement géré ;
+- aucune bannière invalide/incomplète publiée ;
+- nouveau personnage importé en cours de semaine sans modification de la bannière active ;
+- `!vote` conserve son fuzzy matching legacy sans confirmation ;
+- `!banniere` reste un message Twitch unique ;
+- `!pity` n'affiche pas le streak statistique.
 
-À vérifier avant clôture éventuelle :
-- derniers edge cases `Banniere.txt` ;
-- derniers edge cases `Vote.txt` ;
-- derniers edge cases `Select.txt` ;
-- derniers edge cases `Pity.txt` ;
-- interactions catalogue automatique / rotation / votes ;
-- génération impossible faute de suffisamment de personnages éligibles ;
-- éventuels champs ou comportements Gacha legacy encore non classés.
+Historique :
+- écran Historique global ;
+- onglets Invocations / Bannières au minimum ;
+- snapshots des votes ;
+- votes individuels conservés via IDs internes ;
+- origine exacte du 5★ communautaire ;
+- possibilité future de consulter qui avait voté pour quoi.
+
+Robustesse :
+- votes figés avant génération ;
+- échec de rotation = ancien cycle conservé + snapshot intact ;
+- bannière séparée conceptuellement du catalogue ;
+- désactivation/archivage préférée à suppression destructive ;
+- cible devenue invalide vidée sans perte de progression ;
+- coût complet requis avant x10.
+
+Cutover :
+- conserver la bannière legacy active jusqu'à sa rotation normale ;
+- migrer les votes actifs ;
+- conserver les cibles valides ;
+- bannière legacy active = première entrée Historique avec origine `import legacy` ;
+- ne jamais inventer les informations historiques inconnues.
+
+Vérification croisée finale effectuée sur :
+- `Pull.txt` ;
+- `Banniere.txt` ;
+- `Vote.txt` ;
+- `Select.txt` ;
+- `Pity.txt` ;
+- génération hebdomadaire de `XP.txt` ;
+- JSON liés.
+
+**Domaine Gacha / Invocation : CLÔTURÉ après R116.**
 
 ---
 
@@ -1393,9 +1492,9 @@ Décisions validées :
 
 Domaine Élément / Ressources / Conversion / Échanges : **CLÔTURÉ**.
 
-Troisième domaine actif : Gacha / Invocation.
+Troisième domaine : Gacha / Invocation.
 Document : `docs/legacy/06-gacha-invocation-audit.md`.
-Statut : **EN COURS**.
+Statut : **CLÔTURÉ le 2026-08-28**.
 Décisions validées :
 - R54 à R59 : bannière / rotation / vote / sélection ;
 - R60 à R65 : coût / pity / priorité / récompenses secondaires ;
@@ -1403,12 +1502,30 @@ Décisions validées :
 - R75 à R84 : passifs élémentaires du Pull ;
 - R85 à R88 : copies / C6 / hook Concours ;
 - R89 à R95 : atomicité x10 / historique / statistiques / Early-Back-to-back-Hard / arrondis ;
+- R96 à R102 : derniers edge cases Bannière / Vote / Pity ;
+- R103 à R112 : historique global / historique bannière-votes / robustesse / Admin ;
+- R113 à R116 : cutover legacy Gacha ;
 - direction animation UI validée ;
 - historique Invocation complet avec pagination 10/page validé ;
+- historique des bannières et votes validé ;
 - direction synchronisation automatique catalogue validée ;
 - direction vue Admin/Modérateur validée.
 
-Cœur de `Pull.txt` : **QUASI FINALISÉ**.
+Domaine Gacha / Invocation : **CLÔTURÉ**.
+
+Quatrième domaine à auditer :
+**Box / Obtention / Liste**
+
+Objectifs initiaux :
+- possession des personnages ;
+- différence catalogue / Box ;
+- constellation / copies côté consultation ;
+- première obtention ;
+- affichage/liste ;
+- favoris éventuels ;
+- interactions avec autres scripts.
+
+Le document spécialisé sera créé au démarrage de cette passe.
 
 Ordre recommandé :
 
@@ -1756,37 +1873,33 @@ git status
 
 Domaines clôturés :
 - `docs/legacy/04-xp-audit.md` — XP / cycle de vie joueur : **CLÔTURÉ** ;
-- `docs/legacy/05-element-resources-audit.md` — Élément / Ressources / Conversion / Échanges : **CLÔTURÉ**.
+- `docs/legacy/05-element-resources-audit.md` — Élément / Ressources / Conversion / Échanges : **CLÔTURÉ** ;
+- `docs/legacy/06-gacha-invocation-audit.md` — Gacha / Invocation : **CLÔTURÉ**.
 
-Domaine actif :
-**Gacha / Invocation**
+Gacha :
+- R54 à R116 validées ;
+- cœur Pull finalisé ;
+- Bannière / Vote / Select / Pity finalisés ;
+- animation UI spécifiée conceptuellement ;
+- historique Pull/Bannière/Votes spécifié ;
+- synchronisation catalogue cadrée ;
+- cutover Gacha cadré ;
+- dépendances Missions / Concours / Admin reportées dans leurs domaines dédiés.
 
-Document :
-`docs/legacy/06-gacha-invocation-audit.md`
+**Prochaine étape unique : démarrer le Domaine 4 — Box / Obtention / Liste en lisant intégralement les scripts legacy concernés et les JSON de possession avant de prendre de nouvelles décisions.**
 
-État :
-1. R54–R59 : Bannière / Vote / Sélection validés ;
-2. R60–R65 : coût / pity / récompenses secondaires validés ;
-3. R66–R74 : 50/50 / garantie / Capture validés ;
-4. `fiftyFiftyLostStreak` séparé de `captureProgress` ;
-5. R75–R84 : passifs du Pull validés ;
-6. correction Cryo → moteur XP central validée ;
-7. correction Electro → proc après résolution validée ;
-8. correction texte Dendro validée ;
-9. R85–R88 : copies / C6 / hook Concours validés ;
-10. remboursements C6+ cible : 80 primos 4★ / 160 primos 5★ ;
-11. R89 : x10 séquentiel mais transaction atomique persistée avant animation ;
-12. R90 : 4★ uniforme parmi les six actifs ;
-13. R91 : historique complet permanent depuis GachaImpact, 10 résultats par page ;
-14. R92/R93 : migration statistiques + suppression future de `lastPullWasFiveStar` comme donnée redondante ;
-15. R94 : Early / Back-to-back / Hard validés ;
-16. R95 : arrondi `.5` vers le haut ;
-17. animation UI / catalogue automatique / Admin toujours validés ;
-18. cœur de `Pull.txt` : **QUASI FINALISÉ**.
+Document spécialisé à créer lors du démarrage :
+`docs/legacy/07-box-obtention-liste-audit.md`
 
-**Prochaine étape unique : effectuer la dernière passe des edge cases de `Banniere.txt`, `Vote.txt`, `Select.txt` et `Pity.txt`, puis déterminer si le domaine Gacha / Invocation peut être clôturé ou s'il reste un dernier bloc métier à décider.**
+Priorités de cette passe :
+1. déterminer la vraie source de vérité des possessions ;
+2. auditer `Box.txt`, `Obtention.txt`, `Liste.txt` et leurs dépendances réelles ;
+3. vérifier constellation / copies / `firstObtainedAt` ;
+4. identifier les interactions avec favoris, teams, C6 et autres données ;
+5. décider la différence métier entre écran Box et écran Personnages ;
+6. préparer progressivement la partie possession du futur modèle de données.
 
-Ne pas figer le modèle SQL Gacha avant cette vérification finale.
+Ne pas implémenter le backend avant cet audit.
 
 ---
 
@@ -1875,10 +1988,16 @@ Décisions clés :
 - C6 5★ ouvre la future section Concours ;
 - x10 entièrement persisté avant animation ; un crash UI ne change jamais les résultats ;
 - historique complet des Pulls depuis GachaImpact avec 10 résultats/page ;
+- historique des bannières/votes depuis le standalone, avec snapshot et votes individuels ;
+- écran Historique global prévu avec onglets Invocations / Bannières et futurs onglets pertinents ;
 - Early / Back-to-back / Hard conservés et statistiques dérivables ;
 - animation UI de Pull avec révélation progressive et anticipation dorée du 5★ ; Twitch reste textuel ;
 - futur catalogue personnages automatiquement synchronisé avec vérification de sortie/complet + français ;
-- future vue Admin/Modérateur pour corrections catalogue/joueurs ;
+- nouveaux 5★ importés en cours de semaine immédiatement votables sans modifier la bannière active ;
+- vote possible directement depuis l'écran Personnages ;
+- future vue Admin/Modérateur pour corrections catalogue/joueurs ; Kichnifou admin initial, autres admins promouvables plus tard ;
+- cutover Gacha : bannière/votes/cible actifs conservés si valides ;
+- domaine Gacha / Invocation clôturé après R116 ;
 - `Wish.txt` = Giveaway Twitch, pas Gacha ;
 - une seule logique serveur partagée par UI/chat/Twitch ;
 - récompenses de level-up V1 conservées selon le code legacy réel ;
@@ -1895,4 +2014,4 @@ Décisions clés :
 - suivi quotidien UI prévu dans le bloc bas gauche avec chevrons compacts.
 
 Prochaine étape :
-effectuer la dernière passe Gacha sur `Banniere.txt`, `Vote.txt`, `Select.txt` et `Pity.txt` avant clôture éventuelle du domaine.
+démarrer l'audit du Domaine 4 — Box / Obtention / Liste.

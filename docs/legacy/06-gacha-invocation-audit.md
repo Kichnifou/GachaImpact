@@ -1,6 +1,6 @@
 # 06 — Audit legacy : Gacha / Invocation
 
-Statut : AUDIT EN COURS — R54 À R95 VALIDÉS — CŒUR DE PULL QUASI FINALISÉ
+Statut : CLÔTURÉ — R54 À R116 VALIDÉS
 Date : 2026-08-28
 
 Sources legacy principales :
@@ -1068,74 +1068,550 @@ Le passage en soft pity n'a pas besoin d'une information permanente supplémenta
 
 ---
 
-## R95 — Arrondi Pyro / Geo — ✅ VALIDÉ
+# 17. Derniers edge cases Bannière / Vote / Select / Pity
 
-Lorsqu'un multiplicateur produit une valeur décimale :
-- arrondir à l'entier le plus proche ;
-- une valeur exactement à `.5` est arrondie vers le haut.
+## Correction architecture legacy — rotation / votes
 
-Exemples :
-- 34,4 → 34 ;
-- 34,5 → 35 ;
-- 34,6 → 35.
+Le legacy répartit la gestion du changement de semaine entre plusieurs scripts.
 
-Ne pas dépendre implicitement du comportement `Math.Round` legacy « au pair ».
+Notamment :
+- `Vote.txt` peut détecter seul une nouvelle semaine et réinitialiser les votes ;
+- la génération de bannière présente dans `XP.txt` consomme également ces votes.
 
----
+Cela crée une possibilité de race condition autour du changement de semaine.
 
-# 17. Décisions validées à ce checkpoint
+GachaImpact ne reproduit pas cette architecture.
 
-- R54 à R65 : bannière, vote, sélection, coût, pity et récompenses secondaires ;
-- R66 : perte 50/50 = un des trois autres 5★ actifs ;
-- R67 : garantie normale sur la cible actuelle ;
-- R68/R69 : `captureProgress` +1 sur perte, -1 sur victoire, reset uniquement après Capture ;
-- R70 : plusieurs 5★ d'un x10 interagissent séquentiellement ;
-- R71 : `fiftyFiftyWon/Lost` uniquement pour de vrais 50/50 + nouveau `capturesTriggered` ;
-- R72 : affichage compact Garantie oui/non + Capture X/3 ;
-- R73 : séparation `fiftyFiftyLostStreak` / `captureProgress` ;
-- R74 : garantie et Capture suivent la cible actuelle ;
-- R75 : passifs issus uniquement de la team active, maximum deux stacks ;
-- R76 : Pyro/Geo x1,25/x1,5 sur récompenses secondaires correspondantes ;
-- R77 : Hydro +0,3/+0,6 point de chance 5★ ;
-- R78 : Cryo +1 XP avec 1/20 ou 1/10 via moteur XP ;
-- R79 : Electro +2 pity après résolution du Pull ;
-- R80 : Anemo remboursement 80 Primogemmes ;
-- R81 : Dendro +40 primos/+1000 Moras/+5 de chaque particule ;
-- R82 : streak de pertes pur et potentiellement >3 ;
-- R83 : plusieurs passifs peuvent proc ensemble ;
-- R84 : passifs calculés individuellement pour chaque Pull d'un x10 ;
-- R85 : copies continuent après C6 ;
-- R86 : remboursement C6+ = 80 primos 4★ / 160 primos 5★ ;
-- R87 : doublon 5★ C6+ progresse une statistique Concours ;
-- R88 : C6 5★ initialise les cinq stats Concours à 1 et débloque la section Concours ;
-- R89 : x10 calculé/persisté atomiquement avant animation ;
-- R90 : 4★ uniforme parmi les six actifs ;
-- R91 : historique complet permanent depuis GachaImpact, 10 résultats par page ;
-- R92 : statistiques legacy migrées telles quelles ;
-- R93 : `lastPullWasFiveStar` devient dérivable ;
-- R94 : Early / Back-to-back / Hard conservés ;
-- R95 : arrondi `.5` vers le haut pour Pyro/Geo.
+Séquence serveur cible du lundi 00:00 `Europe/Paris` :
 
-Autres directions déjà validées :
-- animation UI ;
-- Twitch textuel ;
-- catalogue Genshin auto-synchronisé ;
-- garde-fous anti-leaks ;
-- français ;
-- Admin/Modérateur ;
-- `Wish.txt` reporté au Giveaway Twitch.
+1. fermer le cycle de votes courant ;
+2. figer son snapshot ;
+3. utiliser exactement ce snapshot pour générer la bannière suivante ;
+4. valider la nouvelle bannière ;
+5. l'activer ;
+6. vider les anciennes cibles personnelles ;
+7. ouvrir seulement ensuite le nouveau cycle de votes.
+
+Un vote enregistré après l'ouverture du nouveau cycle concerne donc la rotation suivante.
 
 ---
 
-# 18. Audit restant
+## R96 — Votes publics et intégration dans l'écran Personnages — ✅ VALIDÉ
 
-Le cœur de `Pull.txt` est désormais quasi entièrement spécifié.
+Le nombre de votes reçu par chaque personnage 5★ éligible reste public.
 
-Dernière passe Gacha avant de décider une éventuelle clôture du domaine :
-- relire `Banniere.txt`, `Vote.txt`, `Select.txt` et `Pity.txt` pour leurs derniers edge cases ;
-- vérifier les interactions restantes entre génération hebdomadaire, votes et catalogue auto-synchronisé ;
-- vérifier les cas catalogue insuffisant pour produire 4×5★ + 6×4★ ;
-- vérifier les détails de présentation chat/Twitch qui appartiennent réellement au Gacha ;
-- vérifier s'il reste des champs Gacha legacy non classés.
+L'UI peut exploiter directement l'écran `Personnages`, qui possède déjà conceptuellement :
+- recherche ;
+- filtres ;
+- tris ;
+- cartes personnages.
 
-Le fonctionnement détaillé du Concours reste reporté au domaine Concours/C6 même si ses hooks Gacha sont désormais identifiés.
+Direction validée :
+- afficher sur les 5★ éligibles une petite indication de vote ;
+- afficher le nombre courant de votes ;
+- permettre de voter directement depuis cet écran ;
+- une fois le vote utilisé, indiquer clairement le choix du joueur pour la semaine.
+
+L'écran Personnages évite ainsi de recréer inutilement une seconde grande liste de personnages uniquement pour le vote.
+
+---
+
+## R97 — Personnage voté déjà sélectionné parmi les trois aléatoires — ✅ VALIDÉ
+
+La génération choisit :
+1. trois 5★ aléatoires ;
+2. puis le quatrième via le tirage communautaire pondéré.
+
+Si un personnage ayant reçu des votes est déjà présent parmi les trois 5★ aléatoires :
+- il est retiré du tirage communautaire restant ;
+- ses votants obtiennent malgré tout le personnage qu'ils souhaitaient voir en bannière ;
+- le quatrième 5★ est tiré parmi les autres candidats pondérés encore éligibles.
+
+Une bannière peut donc contenir plusieurs personnages fortement soutenus par les votes.
+
+---
+
+## R98 — Catalogue insuffisant pour générer une bannière valide — ✅ VALIDÉ
+
+Ne jamais casser silencieusement la règle R56 interdisant à un personnage de revenir deux semaines consécutives.
+
+Si le serveur ne dispose pas de suffisamment de personnages éligibles pour produire :
+- 4 × 5★ ;
+- 6 × 4★ ;
+
+alors :
+- la nouvelle bannière n'est pas activée ;
+- l'ancienne bannière reste temporairement active ;
+- l'erreur est journalisée ;
+- l'administration est alertée ;
+- la génération est retentée après correction/synchronisation du catalogue.
+
+Ne jamais publier une bannière incomplète uniquement pour respecter l'heure de rotation.
+
+---
+
+## R99 — Nouveau personnage importé en cours de semaine — ✅ VALIDÉ
+
+Lorsqu'un nouveau personnage officiellement sorti est importé pendant une semaine active :
+
+### Tous personnages
+- il apparaît immédiatement dans l'écran Personnages.
+
+### Nouveau 5★
+- il devient immédiatement éligible au vote s'il respecte les autres conditions ;
+- il peut donc recevoir des votes pour la prochaine rotation.
+
+### Nouveau 4★
+- il rejoint le pool disponible pour les futures générations.
+
+Dans tous les cas :
+- la bannière actuellement active n'est jamais modifiée automatiquement en plein milieu de semaine.
+
+---
+
+## Correction architecture — bannière distincte du catalogue
+
+Le futur catalogue personnage ne doit pas utiliser un simple booléen `bannerFeatured` comme source de vérité de la bannière active.
+
+Conceptuellement distinguer :
+- catalogue personnages ;
+- cycle/bannière ;
+- personnages liés à cette bannière ;
+- origine/position de ces personnages ;
+- dates et statut du cycle.
+
+Cette séparation permettra notamment :
+- historique des bannières ;
+- audit ;
+- statistiques ;
+- conservation des anciennes compositions ;
+- distinction entre 5★ aléatoires et 5★ issu du système communautaire.
+
+Le schéma SQL exact reste à définir en Phase 2.
+
+---
+
+## R100 — Tolérance de `!vote` Twitch/chat — ✅ VALIDÉ
+
+Conserver la philosophie legacy actuelle pour la saisie textuelle :
+- casse ignorée ;
+- accents normalisés ;
+- nom pouvant être extrait d'une phrase ;
+- correction approximative via distance de Levenshtein lorsque le résultat est suffisamment proche.
+
+Ne pas ajouter de confirmation ou de proposition de plusieurs choix.
+
+Si l'algorithme legacy considère qu'un personnage correspond suffisamment :
+- le vote est enregistré directement, comme aujourd'hui.
+
+Cette règle s'applique aux interfaces textuelles.
+L'UI graphique utilise évidemment une sélection explicite du personnage.
+
+---
+
+## R101 — `!banniere` reste un message Twitch unique — ✅ VALIDÉ
+
+Conserver le comportement de présentation actuel de `!banniere`.
+
+Le message contient dans un seul envoi :
+- les 4 personnages 5★ ;
+- les 6 personnages 4★ ;
+- la cible personnelle si elle existe.
+
+Ne pas découper artificiellement cette réponse en plusieurs messages.
+
+Le contenu reste conçu pour respecter la limite Twitch d'environ 500 caractères.
+
+Pity / garantie / Capture restent dans `!pity`, pas dans `!banniere`.
+
+---
+
+## R102 — `!pity` n'affiche pas le streak statistique — ✅ VALIDÉ
+
+La commande affiche :
+- pity 5★ ;
+- pity 4★ ;
+- `Garantie 5★ : oui/non` ;
+- `Capture : X/3`.
+
+La Capture utilise désormais `captureProgress`.
+
+`fiftyFiftyLostStreak` :
+- n'est pas affiché dans `!pity` ;
+- appartient aux statistiques joueur.
+
+---
+
+# 18. Historique global GachaImpact
+
+## R103 — Écran Historique global — ✅ VALIDÉ
+
+Prévoir à terme un véritable écran `Historique` transversal.
+
+Il peut contenir plusieurs onglets selon les domaines qui en ont réellement besoin.
+
+Premiers onglets validés :
+
+### Invocations
+- historique complet des Pulls natifs GachaImpact ;
+- 10 résultats par page ;
+- pagination serveur.
+
+### Bannières
+- historique des bannières connues depuis le lancement standalone ;
+- composition 4×5★ + 6×4★ ;
+- dates ;
+- informations de génération disponibles.
+
+D'autres domaines pourront rejoindre cet écran plus tard uniquement si cela présente un intérêt réel.
+
+Ne pas transformer l'écran Historique en fourre-tout.
+
+Ne jamais inventer d'historique absent du legacy.
+
+---
+
+## R104 — Snapshot des votes de chaque bannière — ✅ VALIDÉ
+
+Pour chaque bannière native GachaImpact, conserver le snapshot du cycle de vote utilisé pour sa génération.
+
+Conserver notamment :
+- personnage communautaire finalement sélectionné ;
+- nombre de votes de chaque candidat ;
+- snapshot figé au moment de la fermeture du vote.
+
+Cela permet :
+- audit ;
+- explication d'une ancienne bannière ;
+- statistiques ;
+- affichage futur dans l'historique.
+
+L'UI pourra notamment indiquer quel personnage occupait la quatrième place issue du système communautaire.
+
+---
+
+## R105 — Un vote hebdomadaire par joueur, tous canaux confondus — ✅ VALIDÉ
+
+La limite est attachée à l'ID interne immuable du joueur GachaImpact.
+
+Un vote effectué depuis :
+- l'UI ;
+- le chat GachaImpact ;
+- Twitch
+
+consomme le même unique vote de la semaine.
+
+Il est impossible de contourner la limite en changeant de canal.
+
+Tous les canaux appellent le même service métier Vote.
+
+---
+
+## R106 — Un échec de rotation ne détruit jamais les votes — ✅ VALIDÉ
+
+Lors du changement de semaine :
+
+1. fermer le cycle de votes ;
+2. sauvegarder son snapshot ;
+3. tenter de générer la nouvelle bannière.
+
+Si la génération échoue :
+- l'ancienne bannière reste active ;
+- le snapshot fermé reste intact ;
+- aucun nouveau vote ne remplace les anciens ;
+- la génération est retentée avec exactement le même snapshot après résolution du problème.
+
+Le nouveau cycle de vote ne doit être ouvert qu'après activation réussie de la nouvelle bannière.
+
+---
+
+# 19. Catalogue / administration
+
+## R107 — Désactivation / archivage plutôt que suppression destructive — ✅ VALIDÉ
+
+Pour un personnage déjà référencé par le jeu, préférer :
+- désactivation ;
+- archivage ;
+
+plutôt qu'une suppression physique destructive.
+
+### Désactivation
+
+Un personnage désactivé :
+- disparaît des futurs pools ;
+- disparaît des futurs votes ;
+- reste dans les possessions existantes ;
+- reste dans les historiques ;
+- peut terminer sa présence dans la bannière active si nécessaire.
+
+### Suppression définitive
+
+Action exceptionnelle et dangereuse.
+
+Ne pas permettre normalement de casser :
+- historiques ;
+- possessions ;
+- relations ;
+- anciennes bannières.
+
+### Erreur critique sur bannière active
+
+Prévoir plus tard une action Admin spécifique de :
+- remplacement/correction d'urgence de bannière ;
+- fortement protégée ;
+- entièrement journalisée.
+
+### Administration
+
+Le compte/profil Kichnifou est prévu comme administrateur initial.
+
+Prévoir ultérieurement un système de rôles/permissions permettant notamment :
+- de promouvoir d'autres comptes administrateurs ;
+- de gérer/révoquer ces permissions.
+
+Le modèle précis des rôles sera conçu avec le domaine Admin/Modération.
+
+---
+
+## R108 — Conditions minimales d'import automatique d'un personnage — ✅ VALIDÉ
+
+Un personnage ne peut être activé automatiquement dans le catalogue que si les informations fondamentales sont suffisamment fiables.
+
+Obligatoire :
+- nom exploitable ;
+- rareté 4★ ou 5★ ;
+- élément ;
+- confirmation que le personnage est réellement sorti.
+
+À récupérer si disponibles :
+- arme ;
+- région ;
+- images/assets ;
+- nom/localisation française.
+
+Les champs propres à GachaImpact :
+- classe ;
+- passif ;
+- autres métadonnées internes futures
+
+ne sont pas obligatoires pour l'import.
+
+Ils ne doivent surtout jamais être inventés automatiquement simplement pour compléter le personnage.
+
+---
+
+## R109 — Cible rendue invalide hors rotation — ✅ VALIDÉ
+
+Si une intervention Admin exceptionnelle retire ou invalide le personnage actuellement ciblé :
+
+- vider la cible des joueurs concernés ;
+- conserver pity 5★ ;
+- conserver pity 4★ ;
+- conserver garantie ;
+- conserver `captureProgress` ;
+- exiger une nouvelle sélection avant le prochain Pull.
+
+Le joueur ne perd aucune progression Gacha.
+
+---
+
+# 20. Derniers invariants Pull / votes
+
+## Dépendance Missions trouvée dans `Pull.txt`
+
+Le legacy fait progresser directement une mission de type `pulls`.
+
+Règle métier à conserver :
+- **chaque Pull individuel compte**.
+
+Donc :
+- x1 = +1 Pull pour une condition de mission ;
+- x10 = +10 Pulls.
+
+Correction architecture :
+- le domaine Gacha émet/retourne le nombre réel de Pulls effectués ;
+- le domaine Missions est responsable de sa propre progression et de ses récompenses ;
+- Gacha ne doit pas contenir les règles métier détaillées des Missions.
+
+Montants/conditions exacts seront réaudités dans le domaine Missions.
+
+---
+
+## R110 — Coût complet obligatoire avant un x10 — ✅ VALIDÉ
+
+Avant d'exécuter un x10 :
+- le joueur doit posséder les 1 600 Primogemmes nécessaires.
+
+Les éventuels gains produits pendant ces dix Pulls ne peuvent pas servir à financer rétroactivement l'opération.
+
+Exemple :
+- solde avant : 1 550 ;
+- demande x10 : refusée.
+
+Même si l'opération aurait potentiellement produit :
+- remboursement Anemo ;
+- jackpot Dendro ;
+- remboursement C6+ ;
+
+elle n'est pas commencée.
+
+---
+
+## R111 — Historique individuel des votes — ✅ VALIDÉ
+
+À partir du standalone, conserver également chaque vote individuel :
+
+conceptuellement :
+- cycle de vote ;
+- ID joueur interne ;
+- personnage choisi ;
+- timestamp si utile.
+
+Cela permet :
+- audit ;
+- statistiques ;
+- reconstitution exacte des agrégats ;
+- historique personnel ;
+- savoir rétrospectivement qui avait voté pour quoi.
+
+Direction UI future :
+dans l'Historique des bannières, prévoir la possibilité d'ouvrir un petit détail permettant de voir :
+- quel joueur avait voté pour quel personnage ;
+- les totaux ;
+- quel personnage a finalement obtenu la quatrième place communautaire.
+
+La présentation exacte sera conçue plus tard.
+
+---
+
+## R112 — Historique des bannières suffisamment explicatif — ✅ VALIDÉ
+
+Une bannière native doit conserver suffisamment de contexte pour expliquer sa génération.
+
+Conceptuellement :
+- début réel ;
+- fin réelle ;
+- trois 5★ sélectionnés aléatoirement ;
+- 5★ communautaire ;
+- six 4★ ;
+- snapshot de vote utilisé ;
+- statut de la génération ;
+- éventuel incident/retard de rotation.
+
+Le détail précis du schéma sera défini en Phase 2.
+
+---
+
+# 21. Cutover legacy → standalone
+
+## R113 — Conserver la bannière legacy active jusqu'à sa rotation normale — ✅ VALIDÉ
+
+Si le cutover a lieu en milieu de semaine :
+- ne pas générer immédiatement une nouvelle bannière artificielle ;
+- importer la bannière legacy active ;
+- continuer à l'utiliser jusqu'à la rotation normale suivante.
+
+La première rotation réellement générée par le standalone se produit ensuite au prochain lundi 00:00 `Europe/Paris`.
+
+---
+
+## R114 — Migrer les votes encore actifs — ✅ VALIDÉ
+
+Les votes de la semaine legacy en cours concernent déjà la prochaine bannière.
+
+Au cutover :
+- importer ces votes ;
+- résoudre autant que possible les votants vers leurs IDs joueurs internes ;
+- conserver leur choix comme vote déjà utilisé pour le cycle ;
+- utiliser ces votes lors de la première rotation standalone suivante.
+
+Ne pas remettre arbitrairement le compteur à zéro au cutover.
+
+---
+
+## R115 — Conserver la cible personnelle au cutover — ✅ VALIDÉ
+
+Le cutover n'est pas une rotation de bannière.
+
+Si la cible legacy :
+- existe ;
+- est toujours un 5★ de la bannière active importée ;
+
+elle est conservée.
+
+Si elle est absente ou invalide :
+- cible vide ;
+- aucune modification de pity ;
+- aucune modification de garantie ;
+- aucune modification de Capture.
+
+Les autres états Gacha sont migrés selon les règles déjà validées.
+
+---
+
+## R116 — Première entrée de l'historique des bannières — ✅ VALIDÉ
+
+La bannière legacy active au moment du cutover devient la première entrée connue de l'historique standalone.
+
+Marqueur conceptuel :
+
+`origine = import legacy`
+
+Conserver uniquement ce que le legacy permet réellement d'affirmer :
+- composition ;
+- date de début connue si disponible ;
+- date de fin lorsqu'elle arrivera ;
+- origine importée.
+
+Ne pas inventer pour cette bannière :
+- snapshot de votes ayant produit la composition ;
+- détail du tirage aléatoire ;
+- identité du 5★ communautaire si elle ne peut pas être prouvée.
+
+Les bannières générées ensuite nativement par GachaImpact disposent de l'historique complet R104/R111/R112.
+
+---
+
+# 22. État final du domaine
+
+Décisions :
+- R54 à R65 : bannière / vote / sélection / pity / coût / récompenses secondaires ;
+- R66 à R74 : 50/50 / garantie / Capture / statistiques ;
+- R75 à R84 : passifs élémentaires du Pull ;
+- R85 à R88 : copies / C6 / hooks Concours ;
+- R89 à R95 : atomicité x10 / historique Pull / statistiques / Early-Back-to-back-Hard / arrondis ;
+- R96 à R102 : derniers edge cases Vote / Bannière / Pity / catalogue ;
+- R103 à R112 : historique global, historique bannière/votes, administration et robustesse des rotations ;
+- R113 à R116 : stratégie de cutover Gacha.
+
+Corrections legacy validées :
+- rotation/votes centralisés et atomiques au changement de semaine ;
+- bannière invalide jamais publiée ;
+- `fiftyFiftyWon` ne compte plus une Capture comme un vrai 50/50 gagné ;
+- `fiftyFiftyLostStreak` séparé de `captureProgress` ;
+- Cryo utilise le moteur XP central ;
+- Electro s'applique après résolution du Pull ;
+- texte Dendro aligné sur la mécanique réelle ;
+- `lastPullWasFiveStar` devient dérivable ;
+- bannière séparée conceptuellement du catalogue personnage ;
+- progression Missions déclenchée par le Gacha mais possédée par le domaine Missions.
+
+Dépendances volontairement reportées :
+- règles détaillées Concours/C6 → domaine Concours ;
+- missions `pulls` et leurs récompenses → domaine Missions ;
+- rôles/permissions Admin → domaine Admin/Modération ;
+- commandes Twitch Giveaway dont `Wish.txt` → audit Twitch/Giveaway ;
+- modèle SQL exact → Phase 2.
+
+Vérification finale effectuée :
+- `Pull.txt` ;
+- `Banniere.txt` ;
+- `Select.txt` ;
+- `Vote.txt` ;
+- `Pity.txt` ;
+- génération hebdomadaire dans `XP.txt` ;
+- états Gacha des JSON legacy.
+
+Aucune mécanique Gacha legacy majeure non classée n'a été identifiée lors de la dernière passe.
+
+**Domaine Gacha / Invocation : CLÔTURÉ.**
