@@ -1,7 +1,7 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.11
-Date : 2026-08-28 
+Version : 0.12
+Date : 2026-08-28
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
@@ -302,7 +302,10 @@ Décisions :
 
 Standalone :
 - le serveur calcule et persiste le Pull avant toute animation ;
+- un x10 calcule séquentiellement les dix Pulls puis persiste l'ensemble atomiquement ;
 - l'animation ne décide jamais du résultat ;
+- crash/fermeture pendant l'animation n'annule aucune récompense déjà validée ;
+- à la reconnexion, l'état joueur reflète immédiatement les résultats acquis ;
 - séquence de lancement ;
 - signal visuel de rareté ;
 - doré si le résultat/x10 contient au moins un 5★ ;
@@ -311,10 +314,33 @@ Standalone :
 - skip possible ;
 - récapitulatif final.
 
+Early / Back-to-back / Hard :
+- principalement conservés comme mentions chat ;
+- aucune information permanente supplémentaire requise dans l'UI ;
+- possibilité future d'une petite mention/animation temporaire si souhaité.
+
 Twitch/chat :
 - aucune animation ;
 - restitution textuelle rapide résultat par résultat ;
 - même résultat métier serveur.
+
+## 4.4 Historique d'Invocation
+
+Prévoir un bouton `Historique` sur l'écran Invocation.
+
+Ouverture :
+- fenêtre/panneau superposé ;
+- 10 résultats par page ;
+- page 1 = les 10 Pulls les plus récents ;
+- pagination vers les Pulls plus anciens.
+
+Stockage :
+- conserver tout l'historique détaillé depuis le lancement de GachaImpact ;
+- pas de purge automatique annuelle par défaut ;
+- pagination côté serveur ;
+- si la volumétrie l'exige un jour, possibilité d'archivage technique sans retirer l'accès aux anciennes données.
+
+Le legacy ne permet pas de reconstruire précisément chaque ancien Pull.
 
 Référence d'intention visuelle :
 `https://www.youtube.com/watch?v=Zea_pd2AXEY`
@@ -936,14 +962,20 @@ ContestStats :
 Titles :
 - titres par statistique
 
-Règle connue :
-- au-delà de C6, les doublons supplémentaires peuvent augmenter certaines caractéristiques ;
-- ces caractéristiques servent aux concours réservés aux personnages C6.
+Règles Gacha déjà validées :
+- lorsqu'un personnage 5★ atteint C6, ses cinq statistiques Concours sont initialisées à 1 ;
+- à partir de la copie suivante, un doublon 5★ C6+ augmente aléatoirement de +1 une statistique encore inférieure à 20 ;
+- si toutes les statistiques sont à 20, compensation actuelle : +100 000 Moras ;
+- doublon 4★ C6+ : +80 Primogemmes ;
+- doublon 5★ C6+ : +160 Primogemmes ;
+- `copies` continue d'augmenter après C6 ;
+- la future section Concours apparaît seulement aux joueurs possédant au moins un 5★ C6.
 
-À auditer dans :
-- Pull
-- Concours
+À approfondir dans :
+- Concours ;
 - éventuellement Obtention / autres scripts liés.
+
+Le domaine Gacha ne doit pas absorber toute la logique Concours : il déclenche seulement les hooks appropriés.
 
 ---
 
@@ -1036,18 +1068,70 @@ Prévoir une vue Admin/Modérateur permettant notamment :
 - permissions fortes ;
 - journalisation des actions sensibles.
 
+## 50/50 / Garantie / Capture — R66 à R74 validées
+
+- perte 50/50 → un des trois autres 5★ actifs ;
+- garantie normale → cible actuelle au prochain 5★ ;
+- garantie prioritaire sur Capture si les deux états coexistent ;
+- `captureProgress` séparé du streak ;
+- perte 50/50 → Capture +1 ;
+- victoire 50/50 → Capture -1 ;
+- Capture à 3/3 → cible garantie puis reset 0 ;
+- `fiftyFiftyLostStreak` mesure uniquement les vraies pertes consécutives et peut dépasser 3 ;
+- vraie victoire 50/50 → streak 0 ;
+- garantie/Capture suivent toujours la cible actuelle ;
+- `fiftyFiftyWon/Lost` ne comptent que de vrais 50/50 ;
+- nouvelle statistique `capturesTriggered`.
+
+## Passifs Pull — R75 à R84 validées
+
+- passifs uniquement depuis la team active ;
+- maximum deux stacks par élément ;
+- plusieurs éléments et plusieurs procs simultanés possibles ;
+- Pyro ×1,25/×1,5 particules secondaires ;
+- Geo ×1,25/×1,5 Moras secondaires ;
+- Hydro +0,3/+0,6 point de chance 5★ ;
+- Cryo 1/20 ou 1/10 pour +1 XP via moteur XP ;
+- Electro 1/30 ou 1/20 pour +2 pity appliqué après résolution ;
+- Anemo 1/12 ou 1/8 pour +80 Primogemmes ;
+- Dendro 1/25 ou 1/15 pour +40 Primogemmes, +1 000 Moras et +5 particules de chacun des sept éléments ;
+- chaque Pull individuel d'un x10 effectue ses propres tests.
+
+## Copies / C6 — R85 à R88 validées
+
+- C0 première copie, C6 septième copie ;
+- `copies` continue ensuite ;
+- C6+ 4★ : +80 Primogemmes ;
+- C6+ 5★ : +160 Primogemmes + progression Concours ;
+- accès UI Concours uniquement avec au moins un 5★ C6.
+
+## Exécution / historique — R89 à R95 validées
+
+- x10 calculé séquentiellement puis persisté atomiquement avant animation ;
+- crash UI après validation serveur = aucune perte de résultat ;
+- 4★ uniforme parmi les six actifs ;
+- historique complet des Pulls depuis GachaImpact ;
+- 10 résultats par page dans l'UI ;
+- aucune purge annuelle par défaut ;
+- statistiques legacy migrées telles quelles ;
+- `lastPullWasFiveStar` devient dérivable ;
+- Early / Back-to-back conservés ;
+- Hard = 5★ obtenu à partir de pity 80 ;
+- stats correspondantes dérivables de l'historique ;
+- arrondi Pyro/Geo `.5` vers le haut.
+
 ## Prochaine passe Gacha
 
-À auditer :
-- 50/50 ;
-- perte du 50/50 ;
-- garantie ;
-- `fiftyFiftyLostStreak` ;
-- Capture de brillance ;
-- interactions entre ces systèmes ;
-- multi-pull contenant plusieurs 5★ ;
-- passifs affectant le Pull ;
-- doublons/C6 ensuite.
+Le cœur de `Pull.txt` est quasi finalisé.
+
+À vérifier avant clôture éventuelle :
+- derniers edge cases `Banniere.txt` ;
+- derniers edge cases `Vote.txt` ;
+- derniers edge cases `Select.txt` ;
+- derniers edge cases `Pity.txt` ;
+- interactions catalogue automatique / rotation / votes ;
+- génération impossible faute de suffisamment de personnages éligibles ;
+- éventuels champs ou comportements Gacha legacy encore non classés.
 
 ---
 
@@ -1313,21 +1397,18 @@ Troisième domaine actif : Gacha / Invocation.
 Document : `docs/legacy/06-gacha-invocation-audit.md`.
 Statut : **EN COURS**.
 Décisions validées :
-- R54 rotation automatique hebdomadaire ;
-- R55 composition 4×5★ + 6×4★ ;
-- R56 exclusion de la bannière précédente pour 5★ et 4★ ;
-- R57 vote communautaire pondéré ;
-- R58 un vote définitif par semaine ;
-- R59 sélection personnelle + reset de cible à la rotation ;
-- R60 coût / x1 / x10 ;
-- R61 pity 5★ ;
-- R62 pity 4★ ;
-- R63 priorité 5★ ;
-- R64 carry pity/garantie/Capture ;
-- R65 récompenses secondaires ;
+- R54 à R59 : bannière / rotation / vote / sélection ;
+- R60 à R65 : coût / pity / priorité / récompenses secondaires ;
+- R66 à R74 : 50/50 / garantie / Capture / statistiques associées ;
+- R75 à R84 : passifs élémentaires du Pull ;
+- R85 à R88 : copies / C6 / hook Concours ;
+- R89 à R95 : atomicité x10 / historique / statistiques / Early-Back-to-back-Hard / arrondis ;
 - direction animation UI validée ;
+- historique Invocation complet avec pagination 10/page validé ;
 - direction synchronisation automatique catalogue validée ;
 - direction vue Admin/Modérateur validée.
+
+Cœur de `Pull.txt` : **QUASI FINALISÉ**.
 
 Ordre recommandé :
 
@@ -1441,7 +1522,9 @@ Objectif :
   - équipe ;
   - pity ;
   - garantie ;
-  - brillance ;
+  - `fiftyFiftyLostStreak` ;
+  - `captureProgress` / brillance ;
+  - stats Gacha historiques ;
   - stats C6 ;
   - dates ;
   - autres historiques.
@@ -1682,23 +1765,28 @@ Document :
 `docs/legacy/06-gacha-invocation-audit.md`
 
 État :
-1. bannière réelle identifiée : 4×5★ + 6×4★ ;
-2. R54 à R59 — rotation / vote / sélection : validés ;
-3. direction UX sélection des quatre 5★ : validée ;
-4. six 4★ visibles dans la bannière UI : validé ;
-5. R60 — coût / x1/x10 : validé ;
-6. R61/R62 — pity 5★ et 4★ : validées ;
-7. R63 — priorité 5★ : validée ;
-8. R64 — pity/garantie/Capture traversent rotations/cibles : validé ;
-9. R65 — récompenses secondaires : validé ;
-10. animation UI d'Invocation : direction validée ;
-11. synchronisation automatique du catalogue : direction validée ;
-12. Admin/Modérateur : direction validée ;
-13. `Wish.txt` reclassé Giveaway Twitch.
+1. R54–R59 : Bannière / Vote / Sélection validés ;
+2. R60–R65 : coût / pity / récompenses secondaires validés ;
+3. R66–R74 : 50/50 / garantie / Capture validés ;
+4. `fiftyFiftyLostStreak` séparé de `captureProgress` ;
+5. R75–R84 : passifs du Pull validés ;
+6. correction Cryo → moteur XP central validée ;
+7. correction Electro → proc après résolution validée ;
+8. correction texte Dendro validée ;
+9. R85–R88 : copies / C6 / hook Concours validés ;
+10. remboursements C6+ cible : 80 primos 4★ / 160 primos 5★ ;
+11. R89 : x10 séquentiel mais transaction atomique persistée avant animation ;
+12. R90 : 4★ uniforme parmi les six actifs ;
+13. R91 : historique complet permanent depuis GachaImpact, 10 résultats par page ;
+14. R92/R93 : migration statistiques + suppression future de `lastPullWasFiveStar` comme donnée redondante ;
+15. R94 : Early / Back-to-back / Hard validés ;
+16. R95 : arrondi `.5` vers le haut ;
+17. animation UI / catalogue automatique / Admin toujours validés ;
+18. cœur de `Pull.txt` : **QUASI FINALISÉ**.
 
-**Prochaine étape unique : auditer en détail le 50/50, la garantie, `fiftyFiftyLostStreak` et la Capture de brillance dans `Pull.txt`, puis décider leurs interactions exactes avant de poursuivre les passifs et doublons.**
+**Prochaine étape unique : effectuer la dernière passe des edge cases de `Banniere.txt`, `Vote.txt`, `Select.txt` et `Pity.txt`, puis déterminer si le domaine Gacha / Invocation peut être clôturé ou s'il reste un dernier bloc métier à décider.**
 
-Ne pas figer le modèle SQL Gacha avant cette passe.
+Ne pas figer le modèle SQL Gacha avant cette vérification finale.
 
 ---
 
@@ -1778,7 +1866,16 @@ Décisions clés :
 - Gacha : rotation automatique lundi 00:00 Europe/Paris, 4×5★ + 6×4★, pas de personnage deux semaines consécutives ;
 - vote hebdo définitif, tirage pondéré pour le quatrième 5★ ;
 - cible 5★ obligatoire parmi les quatre actifs, vidée à chaque rotation et modifiable librement ;
-- coût 160 primos ; UI x1/x10 ; pity 5★ 90 / pity 4★ 10 selon courbes legacy validées ;
+- coût 160 primos ; UI x1/x10 ; pity 5★ 90 / pity 4★ 10 selon courbes validées ;
+- 50/50 perdu = un des trois autres 5★ ; garantie normale + Capture séparées ;
+- `fiftyFiftyLostStreak` = streak statistique ; `captureProgress` = mécanique 0..3 ;
+- Capture : perte +1, victoire -1, déclenchement à 3 puis reset ;
+- passifs Pyro/Hydro/Cryo/Electro/Anemo/Geo/Dendro du Pull spécifiés ;
+- copies continuent après C6 ; remboursements C6+ 80 primos 4★ / 160 primos 5★ ;
+- C6 5★ ouvre la future section Concours ;
+- x10 entièrement persisté avant animation ; un crash UI ne change jamais les résultats ;
+- historique complet des Pulls depuis GachaImpact avec 10 résultats/page ;
+- Early / Back-to-back / Hard conservés et statistiques dérivables ;
 - animation UI de Pull avec révélation progressive et anticipation dorée du 5★ ; Twitch reste textuel ;
 - futur catalogue personnages automatiquement synchronisé avec vérification de sortie/complet + français ;
 - future vue Admin/Modérateur pour corrections catalogue/joueurs ;
@@ -1798,4 +1895,4 @@ Décisions clés :
 - suivi quotidien UI prévu dans le bloc bas gauche avec chevrons compacts.
 
 Prochaine étape :
-poursuivre l'audit Gacha dans `legacy/06-gacha-invocation-audit.md` avec le 50/50, la garantie et la Capture de brillance.
+effectuer la dernière passe Gacha sur `Banniere.txt`, `Vote.txt`, `Select.txt` et `Pity.txt` avant clôture éventuelle du domaine.

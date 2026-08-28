@@ -159,32 +159,53 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Décisions cible :** un vote définitif par semaine ; résultat pondéré par nombre de votes ; reset lors de la rotation
 
 ## `!pity`
-- **Statut audit :** Audit Gacha en cours — R61 à R64 validées
+- **Statut audit :** Audit Gacha avancé — pity/garantie/Capture R61 à R74 validées
 - **But :** Afficher pity 5★, pity 4★, garantie et Capture de brillance.
 - **Syntaxe :** `!pity`
 - **Bouton UI équivalent :** informations intégrées directement dans l'écran Invocation/sidebar
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
 - **Coûts :** aucun
-- **Données lues :** pity 5★/4★, garantie, compteur de pertes/Capture
+- **Données lues :** pity 5★/4★, `guaranteedFeatured5`, `captureProgress`
 - **Données écrites :** aucune
-- **Décisions cible :** progression conservée entre rotations et changements de cible
+- **Décisions cible :** progression conservée entre rotations/cibles ; `fiftyFiftyLostStreak` et `captureProgress` sont deux données distinctes ; affichage compact `Garantie 5★ : oui/non` et `Capture : X/3`
 
 ## `!pull`
-- **Statut audit :** Audit Gacha en cours — R60 à R65 validées ; 50/50/Capture encore à terminer
+- **Statut audit :** Audit Gacha avancé — R60 à R95 validées ; derniers edge cases globaux Gacha à vérifier
 - **But :** Exécuter une ou plusieurs invocations.
 - **Syntaxes :** `!pull`, `!pull <1..10>`
 - **Bouton UI équivalent :** `Invocation x1` / `Invocation x10`
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
-- **Préconditions :** profil valide ; cible 5★ active ; Primogemmes suffisantes
+- **Préconditions :** profil valide ; cible 5★ active ; Primogemmes suffisantes ; bannière serveur valide
 - **Coût :** 160 Primogemmes par Pull
-- **Maximum :** 10 pulls par action
-- **Données principales :** Primogemmes, pity, garantie, statistiques, box, personnages de bannière, passifs
+- **Maximum :** 10 Pulls par action
 - **Pity 5★ :** 0,6 % jusqu'à 73 ; soft pity dès 74 ; garantie 90
 - **Pity 4★ :** 1,5 % jusqu'à 8 ; 19,5 % au 9e ; garantie 10
-- **Priorité :** 5★ prioritaire si 5★ et 4★ réussissent ensemble ; pity 4★ conservée
+- **Priorité :** 5★ prioritaire si les deux jets réussissent ensemble ; pity 4★ conservée
+- **50/50 gagné :** personnage 5★ ciblé
+- **50/50 perdu :** un des trois autres 5★ actifs choisi uniformément
+- **Garantie :** après perte, prochain 5★ = cible actuelle
+- **Capture :** `captureProgress` +1 sur perte, -1 sur victoire, max 3 ; déclenchement à 3/3 puis reset 0
+- **Streak :** `fiftyFiftyLostStreak` distinct de Capture ; perte +1, vraie victoire → 0
+- **4★ :** tirage uniforme parmi les six personnages actifs
 - **Récompense secondaire :** 50 % Moras 5k–15k / 50 % particules 20–80 d'un élément aléatoire
-- **UI :** résultat calculé/persisté côté serveur avant animation ; révélation progressive et skip
+- **Passifs :** team active uniquement ; max deux stacks par élément ; plusieurs procs simultanés possibles
+- **Pyro :** ×1,25 / ×1,5 particules secondaires
+- **Geo :** ×1,25 / ×1,5 Moras secondaires
+- **Hydro :** +0,3 / +0,6 point de chance 5★
+- **Cryo :** 1/20 / 1/10 pour +1 XP via moteur XP
+- **Electro :** 1/30 / 1/20 pour +2 pity après résolution
+- **Anemo :** 1/12 / 1/8 pour remboursement 80 Primogemmes
+- **Dendro :** 1/25 / 1/15 pour +40 Primogemmes, +1 000 Moras et +5 particules de chacun des 7 éléments
+- **Copies :** C0 première copie ; C6 septième copie ; `copies` continue ensuite
+- **C6+ 4★ :** remboursement 80 Primogemmes
+- **C6+ 5★ :** remboursement 160 Primogemmes + progression Concours
+- **x10 :** dix résultats calculés séquentiellement mais persistés dans une opération atomique avant animation
+- **UI :** animation uniquement après persistance serveur ; fermeture/crash n'annule jamais les gains
+- **Historique :** historique complet depuis GachaImpact ; bouton Historique ; 10 résultats par page
 - **Twitch :** résultat textuel rapide, résultat par résultat
-- **Interactions encore à auditer :** 50/50, garantie, Capture, passifs, doublons/C6
+- **Mentions chat :** Early, Back-to-back et Hard (pity >= 80) conservés
+- **Stats futures :** Early/Back-to-back/Hard et autres métriques dérivables depuis l'historique
+- **Arrondi Pyro/Geo :** entier le plus proche, `.5` vers le haut
+- **Interactions encore à auditer :** derniers edge cases Bannière/Vote/Select/Pity et détails globaux avant clôture du domaine Gacha

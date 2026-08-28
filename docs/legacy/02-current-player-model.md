@@ -197,15 +197,112 @@ Le futur modèle devra posséder une source de vérité unique pour chaque deman
 Le futur modèle devra également pouvoir distinguer conceptuellement le montant initial demandé, le montant courant après réductions éventuelles et le montant finalement échangé, sans figer ici le schéma SQL exact.
 Toute modification transactionnelle d'un stock de particules devra déclencher la réconciliation immédiate des demandes affectées.
 
-## 4. À auditer ensuite
+## 4. État personnel Gacha / Invocation
+
+### `selectedBannerCharacterId`
+
+Statut : `MIGRER / CIBLE PERSONNELLE`
+
+Legacy :
+- identifie le 5★ ciblé.
+
+Cible :
+- référence vers le personnage ciblé de la bannière active ;
+- vidée automatiquement à chaque rotation hebdomadaire ;
+- nouvelle sélection obligatoire avant Invocation ;
+- changement libre sans reset pity/garantie/Capture.
+
+### Pity
+
+À migrer :
+- pity 5★ ;
+- pity 4★.
+
+Règles :
+- progression conservée entre rotations et changements de cible ;
+- 5★ garanti au 90e selon la courbe validée ;
+- 4★ garanti au 10e selon la courbe validée.
+
+### `guaranteedFeatured5`
+
+Statut : `MIGRER TEL QUEL`
+
+- active après une vraie perte de 50/50 ;
+- garantit le prochain 5★ ciblé ;
+- consommée avant une Capture de brillance éventuelle ;
+- traverse les rotations et changements de cible.
+
+### `fiftyFiftyLostStreak`
+
+Statut : `MIGRER TEL QUEL / SÉMANTIQUE CIBLE CLARIFIÉE`
+
+Dans GachaImpact :
+- compteur statistique des vrais 50/50 perdus consécutivement ;
+- vraie perte → +1 ;
+- vraie victoire → 0 ;
+- garantie normale / Capture ne modifient pas ce streak ;
+- peut dépasser 3 ;
+- ne pilote plus directement la Capture.
+
+### `captureProgress`
+
+Statut : `NOUVELLE DONNÉE MÉTIER`
+
+Valeur :
+- 0..3.
+
+Migration :
+- initialiser depuis la valeur legacy actuelle de `fiftyFiftyLostStreak`, bornée à 0..3.
+
+Après cutover :
+- vraie perte 50/50 → +1 ;
+- vraie victoire → -1, minimum 0 ;
+- garantie normale → inchangé ;
+- Capture déclenchée → 0.
+
+### Statistiques Gacha cumulatives
+
+Migrer telles quelles :
+- `totalPulls`
+- `totalFiveStars`
+- `totalFourStars`
+- `fiftyFiftyWon`
+- `fiftyFiftyLost`
+- `fiftyFiftyLostStreak`
+
+Ne pas réparer rétroactivement les incohérences historiques.
+
+Nouveau :
+- `capturesTriggered`, démarrant à 0 faute d'historique legacy fiable.
+
+### `lastPullWasFiveStar`
+
+Statut cible : `TRANSITION / DONNÉE DÉRIVABLE`
+
+- peut être importé pour préserver le contexte immédiat au cutover ;
+- ne doit pas rester une source de vérité durable ;
+- une fois l'historique natif disponible, le dernier résultat permet de déterminer un Back-to-back.
+
+### Historique des Pulls
+
+Le legacy ne permet pas de reconstruire un historique détaillé complet.
+
+À partir de GachaImpact :
+- conserver chaque Pull ;
+- historique permanent ;
+- x1/x10 groupés par opération ;
+- ordre interne conservé ;
+- 10 résultats par page dans l'UI ;
+- pas de purge automatique annuelle par défaut.
+
+## 5. À auditer ensuite
 
 Prochain bloc prévu :
 - Box / possessions de personnages
-- `constellation`
-- `copies`
-- dates de première obtention
 - équipe active
-- pity / garantie / sélection de bannière
+- options
+- missions
+- autres statistiques
 
 Puis :
 - options ;

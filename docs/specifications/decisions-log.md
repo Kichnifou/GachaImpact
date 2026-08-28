@@ -194,7 +194,48 @@ Statut : évolutif.
 - `VALIDÉ` — Prévoir une vue Admin/Modérateur permettant de corriger/ajouter/supprimer des entrées catalogue et d'effectuer des corrections de ressources/personnages sur un ou plusieurs joueurs.
 - `VALIDÉ` — Les changements administratifs sensibles devront être protégés et journalisés.
 - `À SPÉCIFIER` — Les champs propres à GachaImpact comme classe/passif ne doivent jamais être inventés par une source externe ; leur traitement automatique reste à concevoir.
-- `À AUDITER` — 50/50, garantie, Capture de brillance, pertes successives et interactions exactes constituent la prochaine passe.
+- `VALIDÉ` — Un 50/50 perdu donne aléatoirement l'un des trois autres 5★ actifs de la bannière.
+- `VALIDÉ` — Une perte de 50/50 active la garantie du prochain 5★ ciblé.
+- `VALIDÉ` — La garantie normale est consommée avant une Capture de brillance à 3/3 et ne modifie pas `captureProgress`.
+- `VALIDÉ` — `captureProgress` est distinct de `fiftyFiftyLostStreak`.
+- `VALIDÉ` — Perte de vrai 50/50 : `captureProgress +1`, maximum 3.
+- `VALIDÉ` — Victoire de vrai 50/50 : `captureProgress -1`, minimum 0.
+- `VALIDÉ` — Déclenchement de Capture : cible garantie puis `captureProgress = 0`.
+- `VALIDÉ` — `fiftyFiftyLostStreak` représente seulement les vrais 50/50 perdus consécutivement et revient à 0 lors d'une vraie victoire ; il peut dépasser 3.
+- `VALIDÉ` — `fiftyFiftyWon` et `fiftyFiftyLost` ne comptent que de vrais tirages 50/50.
+- `BUG LEGACY CORRIGÉ` — Une Capture ne doit plus incrémenter `fiftyFiftyWon`.
+- `VALIDÉ` — Ajouter `capturesTriggered` pour les Captures réellement déclenchées depuis GachaImpact.
+- `VALIDÉ` — Garantie/Capture concernent toujours la cible actuellement sélectionnée.
+- `VALIDÉ` — Plusieurs 5★ dans un x10 sont résolus séquentiellement.
+- `VALIDÉ` — Seule la team active fournit les passifs ; maximum deux stacks par élément ; plusieurs éléments peuvent être actifs ensemble.
+- `VALIDÉ` — Pyro : ×1,25 / ×1,5 sur les particules de récompense secondaire uniquement.
+- `VALIDÉ` — Geo : ×1,25 / ×1,5 sur les Moras de récompense secondaire uniquement.
+- `VALIDÉ` — Hydro : +0,3 / +0,6 point de pourcentage de chance 5★.
+- `VALIDÉ` — Cryo : 1/20 ou 1/10 de +1 XP par Pull via le moteur XP central.
+- `VALIDÉ` — Electro : 1/30 ou 1/20 de +2 pity 5★, appliqué après résolution du Pull.
+- `VALIDÉ` — Anemo : 1/12 ou 1/8 de remboursement de 80 Primogemmes.
+- `VALIDÉ` — Dendro : 1/25 ou 1/15 de +40 Primogemmes, +1 000 Moras et +5 particules de chacun des sept éléments.
+- `BUG LEGACY CORRIGÉ` — Le texte Dendro doit être aligné sur la mécanique réelle et ne plus parler de particules aléatoires.
+- `VALIDÉ` — Plusieurs passifs peuvent proc sur le même Pull et chaque Pull d'un x10 possède ses propres tests de passifs.
+- `VALIDÉ` — 1re copie = C0 ; 7e = C6 ; `copies` continue après C6.
+- `VALIDÉ` — Doublon C6+ : remboursement 4★ = 80 Primogemmes ; remboursement 5★ = 160 Primogemmes.
+- `VALIDÉ` — Doublon 5★ C6+ : +1 stat Concours aléatoire encore sous 20 ; si toutes sont à 20, compensation actuelle +100 000 Moras.
+- `VALIDÉ` — Lorsqu'un 5★ atteint C6, ses cinq statistiques Concours sont initialisées à 1.
+- `VALIDÉ` — La future section Concours n'apparaît qu'aux joueurs possédant au moins un personnage 5★ C6.
+- `VALIDÉ` — Un x10 est intégralement calculé et persisté atomiquement avant toute animation.
+- `VALIDÉ` — Un crash/fermeture pendant l'animation n'annule jamais les récompenses déjà persistées.
+- `VALIDÉ` — Un résultat 4★ est choisi uniformément parmi les six 4★ actifs, sans cible/protection anti-répétition.
+- `VALIDÉ` — Une bannière invalide/incomplète ne doit jamais être activée.
+- `VALIDÉ` — Conserver tout l'historique détaillé des Pulls depuis GachaImpact.
+- `VALIDÉ` — Historique Invocation : 10 résultats par page, pagination serveur, pas de purge automatique à un an.
+- `VALIDÉ` — Les statistiques Gacha legacy sont migrées telles quelles sans reconstruction rétroactive.
+- `VALIDÉ` — `captureProgress` est initialisé depuis l'état legacy disponible au cutover ; `capturesTriggered` démarre à 0.
+- `VALIDÉ` — `lastPullWasFiveStar` devient une donnée dérivable depuis l'historique natif.
+- `VALIDÉ` — Conserver les notions Early et Back-to-back ; ajouter Hard à partir de pity 80.
+- `VALIDÉ` — Ces mentions restent principalement destinées au chat ; un effet UI temporaire pourra éventuellement être ajouté plus tard.
+- `VALIDÉ` — Les statistiques Early / Back-to-back / Hard pourront être dérivées de l'historique.
+- `VALIDÉ` — Les multiplicateurs Pyro/Geo utilisent un arrondi à l'entier le plus proche avec `.5` vers le haut.
+- `À AUDITER` — Derniers edge cases Bannière / Vote / Select / Pity avant clôture éventuelle du domaine Gacha.
 
 ## Notifications
 - `VALIDÉ` — Toute notification doit pouvoir être supprimée manuellement par le joueur via une petite croix affichée au survol.
