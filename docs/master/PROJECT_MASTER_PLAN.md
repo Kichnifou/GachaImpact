@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.14
+Version : 0.15
 Date : 2026-08-28
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -478,6 +478,52 @@ Twitch/chat :
 - les présentations historiques de `!box`, pages, tris et `!box favoris` peuvent rester différentes de l'UI standalone ;
 - la source métier de possession/favoris reste commune.
 
+Filtres UI Box :
+- onglets `Tous` / `5★` / `4★` ;
+- filtre élément ;
+- filtre constellation complet C0 à C6 ;
+- recherche ;
+- filtres combinables ;
+- tri.
+
+Cartes :
+- ne pas afficher le nombre de copies ;
+- constellation visible ;
+- favori directement modifiable dans la Box personnelle.
+
+Fiche personnage :
+- fiche commune avec l'écran `Personnages` ;
+- constellation ;
+- copies ;
+- première obtention ;
+- `Favoris : Oui/Non` ;
+- futures statistiques propres au personnage ajoutées par leurs domaines.
+
+Résumé Box :
+- total de personnages actifs/visibles ;
+- nombre de 5★ ;
+- nombre de 4★ ;
+- nombre de C6 ;
+- pas de total copies dans ce résumé.
+
+Box publique :
+- consultable depuis le profil d'un autre joueur si les permissions le permettent ;
+- consultable même lorsque le propriétaire est hors ligne ;
+- structure quasi identique à la Box personnelle ;
+- mêmes onglets / recherche / filtres / tris ;
+- aucune action modifiant les données du propriétaire ;
+- pas d'étoile favorite sur les cartes publiques ;
+- `Favoris : Oui/Non` peut apparaître dans la fiche ;
+- les favoris du propriétaire ne changent pas l'ordre public.
+
+À chaque ouverture d'une Box publique :
+- `Tous` ;
+- `Alphabétique ↑` ;
+- aucun filtre ;
+- les réglages de consultation sont temporaires.
+
+Une Box vide conserve sa section avec un état vide graphique propre.
+
 ## 6.2 Personnages
 But :
 - montrer tous les personnages obtenables ;
@@ -542,6 +588,39 @@ Architecture :
 - un futur service Objectifs évalue les objectifs concernés.
 
 La liste exacte des catégories, limites et historiques sera définie plus tard.
+
+## 6.7 Confidentialité joueur — DIRECTION VALIDÉE
+
+Prévoir dans le futur écran `Paramètres` un onglet `Confidentialité`.
+
+Principe :
+- informations publiques par défaut ;
+- selon la catégorie, possibilité de choisir :
+  - `Public` ;
+  - `Amis uniquement` ;
+  - `Privé`.
+
+Le système doit être capable à terme d'une granularité plus fine que la simple Box entière.
+
+Exemples potentiels :
+- Box ;
+- date d'obtention ;
+- favoris ;
+- copies ;
+- ressources ;
+- statistiques ;
+- statistiques Combat ;
+- autres catégories futures.
+
+La V1 n'est pas obligée d'exposer immédiatement toute cette granularité.
+
+Sécurité :
+- appliquer les permissions côté serveur ;
+- ne jamais dépendre uniquement du masquage frontend.
+
+UX :
+- une section inaccessible reste visible avec un état de confidentialité ;
+- distinguer clairement contenu vide et contenu privé.
 
 ---
 
@@ -729,13 +808,36 @@ Bots connus :
 => exclus de la migration.
 
 ### Entrée Twitch sans compte standalone
+
 Décision :
-- lorsqu'une personne parle pour la première fois sur Twitch, elle continue à être enregistrée dans les données du jeu comme dans le legacy ;
-- cet enregistrement passif ne constitue pas encore un compte GachaImpact standalone complet ;
+- un joueur peut commencer et continuer à jouer depuis Twitch sans avoir créé de compte web GachaImpact ;
+- le backend lui associe un joueur interne Twitch-only ;
+- la liaison autoritative repose sur le Twitch User ID stable, jamais sur le pseudo comme clé métier ;
 - elle peut progresser via ses messages jusqu'au seuil d'onboarding Twitch ; direction validée : niveau 2 ;
 - si elle n'a pas choisi d'élément à ce stade, le jeu lui demande de le faire puis bloque les mécaniques actives tant que l'élément n'est pas choisi ;
-- `!element <élément>` reste la porte d'activation naturelle du profil Twitch ;
-- la représentation technique de ce profil Twitch-only et sa future fusion/liaison avec un compte GachaImpact seront spécifiées plus tard.
+- `!element <élément>` reste la porte d'activation naturelle du profil Twitch.
+
+Si ce joueur crée plus tard un compte web :
+- il choisit `Connecter Twitch` ;
+- l'identité Twitch est vérifiée ;
+- si le Twitch User ID possède déjà un profil Twitch-only, le compte web est rattaché à ce même joueur interne ;
+- ne pas créer un second profil ;
+- ne pas recommencer sa progression ;
+- ne pas copier les données : elles appartenaient déjà au même joueur interne.
+
+Anciens joueurs Streamer.bot :
+- leurs données historiques suivent la stratégie de migration legacy déjà prévue ;
+- la liaison Twitch ultérieure permet de retrouver leur identité migrée.
+
+Direction intégration Twitch :
+- prévoir un service serveur de pont Twitch, conceptuellement `TwitchBridge` ;
+- réception des messages Twitch via les mécanismes Twitch prévus pour les chatbots ;
+- résolution Twitch User ID → joueur interne ;
+- appel des mêmes services métier que l'UI/chat interne ;
+- réponse sur Twitch via le compte bot ;
+- Streamer.bot ne fait pas partie de l'architecture finale.
+
+L'implémentation technique exacte OAuth/EventSub/bot sera définie avec le backend et le domaine Twitch.
 
 ---
 
@@ -1692,7 +1794,7 @@ Document :
 `docs/legacy/07-box-possession-obtention-audit.md`
 
 Statut :
-**EN COURS — R117 À R143 VALIDÉS**
+**EN COURS — R117 À R174 VALIDÉS — CŒUR POSSESSION/BOX TRÈS AVANCÉ**
 
 Correction de périmètre :
 - `Liste.txt` ne concerne pas la Box ;
@@ -1718,10 +1820,19 @@ Décisions déjà validées :
 - R126 : statistiques collection dérivées ;
 - R132 : correction minimale certaine de `copies` au cutover ;
 - R134/R139–R142 : comportement des personnages désactivés ;
-- R143 : possessions orphelines conservées et signalées.
+- R143 : possessions orphelines conservées et signalées ;
+- R144 à R149 : règles de réparation/quarantaine des anomalies Box legacy ;
+- R150 : service central de possession personnage ;
+- R151 à R156 : tris legacy, désactivation/réactivation, C6 et permanence des possessions ;
+- R157 à R159 : filtres constellation, cartes Box et favori UI ;
+- R160 à R169 : Box publique, fiche commune, consultation, filtres et résumé collection ;
+- R170/R172/R173/R174 : système de confidentialité public/amis/privé et granularité future ;
+- R171 : copies visibles dans la fiche détaillée mais pas sur les cartes.
 
-Idée transverse découverte :
-- futur système `Objectifs` personnels, à spécifier dans un domaine dédié.
+Idées transverses découvertes :
+- futur système `Objectifs` personnels, à spécifier dans un domaine dédié ;
+- confidentialité joueur transversale à spécifier avec Paramètres / Social / Permissions ;
+- profil Twitch-only rattachable ultérieurement au compte web via Twitch User ID.
 
 Ordre recommandé :
 
@@ -2097,22 +2208,30 @@ Document :
 13. R139/R140 — désactivation réconciliée avec Team/Expedition ;
 14. R141/R142 — historique placeholder + stats visibles validés ;
 15. R143 — possession orpheline conservée et signalée ;
-16. `Liste.txt` reclassé hors domaine ;
-17. futur système Objectifs identifié et conservé pour audit ultérieur.
+16. R144–R149 — politique de migration des anomalies Box finalisée ;
+17. R150 — service central de possession validé ;
+18. R151–R156 — préférences legacy, C6, désactivation/réactivation et permanence validées ;
+19. R157–R159 — filtres et interaction favori UI validés ;
+20. R160–R169 — Box publique et fiche personnage commune validées ;
+21. R170–R174 — confidentialité transversale validée conceptuellement ;
+22. `Liste.txt` reclassé hors domaine ;
+23. futur système Objectifs identifié et conservé pour audit ultérieur ;
+24. profil Twitch-only + rattachement futur au compte web clarifiés.
 
-**Prochaine étape unique : analyser les données legacy réelles de Box sur plusieurs profils afin de mesurer les anomalies de migration, puis vérifier tous les scripts qui mutent directement une possession personnage.**
+**Prochaine étape unique : effectuer la dernière passe croisée Box / Obtention / Stella / Infos et vérifier les consommateurs de possession avant clôture éventuelle du Domaine 4.**
 
 À vérifier :
-- constellation hors bornes ;
-- `copies` absentes, nulles, 0/négatives ou inférieures au minimum ;
-- clé de Box différente du `characterId` ;
-- doublons éventuels de possession ;
-- favoris orphelins ;
-- personnages catalogue introuvables ;
-- autres scripts écrivant directement dans `box` ;
-- dépendances Team / Expedition / Stella.
+- aucun mutateur métier de possession important oublié ;
+- derniers comportements utiles de `Box.txt` ;
+- derniers comportements utiles de `Obtention.txt` ;
+- cohérence finale de `Stella.txt` avec les décisions cibles ;
+- frontière avec Team / Expedition / Combat / Concours ;
+- éventuels champs legacy Box encore non classés ;
+- intégration de la Box publique au futur système de profil/confidentialité.
 
-Ne pas figer le schéma SQL exact avant cette passe.
+Les anomalies de migration pure dont la résolution est évidente peuvent désormais être tranchées techniquement et simplement journalisées.
+
+Ne pas figer le schéma SQL exact avant la clôture du domaine.
 
 ---
 

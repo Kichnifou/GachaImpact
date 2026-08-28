@@ -212,17 +212,22 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Interactions reportées :** chaque Pull individuel contribue aux éventuelles missions de type `pulls`, mais les règles et récompenses Missions appartiennent au domaine Missions ; règles Concours détaillées reportées au domaine Concours/C6
 
 ## `!box`
-- **Statut audit :** Audit Box en cours — R117 à R143 validées
+- **Statut audit :** Audit Box très avancé — R117 à R174 validées
 - **But :** Consulter et organiser les personnages possédés.
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
 - **Bouton UI équivalent :** écran Box complet
 - **Données principales :** possessions joueur, catalogue personnage, favoris, préférences de tri
 - **Sous-commandes legacy conservées côté texte :** `!box`, `!box 5`, `!box 4`, `!box 6`, `!box <élément>`, `!box pN`, `!box favoris`, tris textuels
-- **UI standalone :** onglets Tous / 5★ / 4★, grille, recherche, filtres et tri
-- **Favoris UI :** toujours avant les non-favoris ; pas de limite
+- **UI standalone :** onglets Tous / 5★ / 4★, grille, recherche, filtres combinables élément + constellation C0..C6, et tri
+- **Favoris UI personnel :** toujours avant les non-favoris ; pas de limite ; toggle direct en un clic
+- **Cartes :** ne pas afficher `copies`
+- **Fiche détaillée :** constellation, copies, première obtention, `Favoris : Oui/Non`, futures stats propres au personnage
 - **Tri UI persistant :** alphabétique, date d'obtention, constellation, élément
 - **Filtres/onglet :** non persistants
+- **Box publique :** mêmes outils de consultation mais aucune mutation ; favoris sans priorité d'ordre et sans étoile sur les cartes
+- **État public initial :** Tous + Alphabétique ↑ + aucun filtre à chaque ouverture
+- **Confidentialité :** accès soumis au futur système Public / Amis / Privé
 - **Présentation Twitch :** peut conserver le comportement legacy différent de l'UI, notamment `!box favoris`
 - **Données dérivées :** taille Box, nombre de C6 et total copies
 - **Personnage désactivé :** invisible/inutilisable côté joueur

@@ -1,6 +1,6 @@
 # GachaImpact — Audit legacy Domaine 4 : Box / Possessions / Obtention
 
-Statut : AUDIT EN COURS — R117 À R143 VALIDÉS
+Statut : AUDIT EN COURS — R117 À R174 VALIDÉS — CŒUR POSSESSION/BOX TRÈS AVANCÉ
 Date : 2026-08-28
 
 ## 0. Périmètre réel du domaine
@@ -442,23 +442,499 @@ La liste exacte des objectifs et leur historique éventuel seront définis plus 
 
 ---
 
-# 12. État des décisions
+# 12. Deuxième passe — migration / invariants / service de possession
 
-R117 à R143 validées.
+## R144 — `characterId` récupérable depuis la clé legacy — ✅ VALIDÉ
+
+Si :
+- `characterId` est absent ou invalide ;
+- la clé numérique de la Box correspond sans ambiguïté à un personnage valide ;
+
+alors l'importer utilise cette clé comme `characterId`.
+
+Journaliser la récupération dans le rapport de migration.
 
 ---
 
-# 13. Audit restant du domaine
+## R145 — Constellation hors bornes — ✅ VALIDÉ
 
-Prochaine passe :
-- vérifier les données legacy Box sur plusieurs profils ;
-- rechercher constellation hors bornes ;
-- rechercher copies nulles/0/négatives ou inférieures au minimum possible ;
-- vérifier doublons de `characterId` et clés de Box incohérentes ;
-- vérifier `boxFavorites` invalides/orphelins ;
-- détailler les règles de migration de chaque anomalie certaine ;
-- vérifier les dépendances Team / Expedition / Stella autour de la possession ;
-- déterminer les dernières informations de fiche Box réellement possédées par ce domaine ;
-- vérifier si d'autres scripts mutent directement la Box et doivent utiliser un futur service central de possession.
+Invariant cible :
 
-Ne pas figer le schéma SQL exact avant la fin de cette passe.
+`0 <= constellation <= 6`
+
+Migration :
+- valeur < 0 → 0 ;
+- valeur > 6 → 6 ;
+- journaliser la correction ;
+- appliquer ensuite la règle de cohérence des copies.
+
+Il n'existe jamais de C7.
+
+---
+
+## R146 — Plusieurs possessions legacy pour le même personnage — ✅ VALIDÉ
+
+Si plusieurs entrées legacy représentent sans ambiguïté le même personnage, fusion conservatrice :
+
+- constellation = valeur valide maximale ;
+- copies = valeur maximale, jamais la somme ;
+- appliquer ensuite le minimum `constellation + 1` ;
+- `firstObtainedAt` = plus ancienne date valide ;
+- favori = vrai si au moins une source legacy l'indique.
+
+Journaliser la fusion.
+
+Ne jamais additionner aveuglément les copies.
+
+---
+
+## R147 — Clé Box et `characterId` contradictoires — ✅ VALIDÉ
+
+Si :
+- la clé Box est un ID valide ;
+- `characterId` est également un ID valide ;
+- les deux désignent deux personnages différents ;
+
+ne pas arbitrer automatiquement.
+
+La possession :
+- est conservée comme anomalie ;
+- reste masquée côté joueur ;
+- est signalée dans le rapport Admin/import ;
+- conserve les données legacy brutes pour résolution.
+
+---
+
+## R148 — `copies` absentes / nulles / 0 / négatives / invalides — ✅ VALIDÉ
+
+Une valeur legacy invalide est considérée comme 0 pour la réparation.
+
+Puis :
+
+`copiesCible = max(0, constellationCorrigée + 1)`
+
+Aucune possession valide migrée ne peut donc avoir `copies < 1`.
+
+---
+
+## R149 — Entrée Box illisible — ✅ VALIDÉ
+
+Si une entrée Box n'est pas un objet exploitable :
+- ne pas créer une possession artificielle ;
+- ne pas supprimer silencieusement l'information source ;
+- enregistrer joueur, clé et valeur brute dans le rapport d'anomalies.
+
+---
+
+## R150 — Service central de possession personnage — ✅ VALIDÉ
+
+Prévoir une logique métier centrale conceptuelle de type `CharacterOwnershipService`.
+
+Responsabilités fondamentales :
+- unicité joueur/personnage ;
+- création d'une première possession ;
+- `firstObtainedAt` ;
+- `copies` ;
+- constellation C0..C6 ;
+- favori ;
+- validation de l'existence/activité du personnage ;
+- cohérence fondamentale de la possession.
+
+Producteurs autorisés :
+- Gacha/Pull ;
+- Stella ;
+- Admin ;
+- futures récompenses explicitement prévues.
+
+Les autres domaines ne modifient pas directement `copies`, `constellation` ou `firstObtainedAt`.
+
+Team, Expedition, Combat, Infos, Stats, etc. sont consommateurs de la possession.
+
+---
+
+## R151 — Préférences de tri legacy invalides — ✅ VALIDÉ
+
+Valeurs de tri legacy valides :
+- `a` ;
+- `d` ;
+- `c` ;
+- `e`.
+
+Valeur absente/invalide :
+- fallback alphabétique.
+
+`boxSortDescending` absent/invalide :
+- fallback `false`.
+
+État de repli :
+`Alphabétique ↑`.
+
+---
+
+## R152 — Favori conservé intérieurement pendant une désactivation — ✅ VALIDÉ
+
+Lorsqu'un personnage favori est désactivé :
+- son statut favori peut rester conservé côté serveur ;
+- absolument rien concernant ce personnage ne doit être affiché côté joueur tant qu'il est désactivé.
+
+S'il est réactivé :
+- il peut retrouver son statut favori historique.
+
+---
+
+## R153 — Matching de `!box favoris` — ✅ VALIDÉ
+
+Conserver côté Twitch/chat le matching legacy :
+- normalisation casse/accents ;
+- correspondance exacte du nom normalisé ;
+- pas de fuzzy matching.
+
+L'UI utilise directement l'action favorite sur la carte.
+
+---
+
+## R154 — `!box 6` = constellation C6 — ✅ VALIDÉ
+
+`!box 6` signifie :
+- personnages dont la constellation actuelle est C6.
+
+Il n'existe pas de C7.
+
+Un personnage C6 avec 7, 20 ou 50 copies reste :
+- C6 ;
+- visible dans le filtre C6.
+
+---
+
+## R155 — Réactivation d'un personnage — ✅ VALIDÉ
+
+Lorsqu'un personnage désactivé est réactivé :
+- sa possession historique réapparaît automatiquement ;
+- constellation conservée ;
+- copies conservées ;
+- première obtention conservée ;
+- favori interne conservé.
+
+Ne pas recréer une possession C0.
+
+Ne pas restaurer automatiquement :
+- ancienne Team active ;
+- anciennes teams sauvegardées ;
+- Expedition annulée.
+
+---
+
+## R156 — Permanence des possessions — ✅ VALIDÉ
+
+Une mécanique normale de gameplay ne supprime jamais un personnage possédé.
+
+Pas de :
+- vente de personnage ;
+- sacrifice ;
+- échange de personnage ;
+- suppression volontaire de la Box.
+
+Exceptions uniquement :
+- correction Admin exceptionnelle ;
+- désactivation globale, qui masque mais ne détruit pas la possession.
+
+---
+
+# 13. Deuxième passe — UX Box / consultation publique
+
+## R157 — Filtre constellation complet — ✅ VALIDÉ
+
+Dans l'UI Box, permettre de filtrer par :
+
+- Toutes ;
+- C0 ;
+- C1 ;
+- C2 ;
+- C3 ;
+- C4 ;
+- C5 ;
+- C6.
+
+Les filtres sont combinables avec :
+- onglet Tous / 5★ / 4★ ;
+- élément ;
+- recherche ;
+- tri.
+
+---
+
+## R158 — Copies absentes des cartes Box — ✅ VALIDÉ
+
+Le nombre de copies n'est pas affiché directement sur les cartes de la grille.
+
+Les cartes restent centrées sur les informations visuellement utiles :
+- personnage ;
+- rareté ;
+- élément ;
+- constellation ;
+- favori pour la Box personnelle.
+
+`copies` reste disponible dans la fiche détaillée.
+
+---
+
+## R159 — Favori UI en un clic — ✅ VALIDÉ
+
+Dans la Box personnelle :
+- étoile directement accessible sur la carte ;
+- clic = ajout/retrait immédiat ;
+- aucune confirmation ;
+- l'ordre de la Box se met à jour immédiatement selon les règles de favoris.
+
+---
+
+## R160 — Box d'un autre joueur publiquement consultable — ✅ VALIDÉ
+
+La Box fait partie du profil consultable d'un autre joueur, sous réserve des futures règles de confidentialité.
+
+Elle reste consultable même si le propriétaire est hors ligne.
+
+---
+
+## R161 — Fiche publique détaillée — ✅ VALIDÉ
+
+Lorsqu'un visiteur possède l'autorisation de consulter une Box, il peut ouvrir une fiche détaillée raisonnable.
+
+Informations possibles :
+- personnage ;
+- rareté ;
+- élément ;
+- constellation ;
+- copies ;
+- première date d'obtention ;
+- favori Oui/Non ;
+- futures statistiques propres au personnage définies par les autres domaines, par exemple Combat.
+
+---
+
+## R162 — Favori public uniquement dans la fiche — ✅ VALIDÉ
+
+Dans une Box publique :
+- ne pas afficher d'étoile favorite sur les cartes ;
+- la fiche détaillée peut afficher explicitement `Favoris : Oui/Non`.
+
+---
+
+## R163 — Les favoris ne modifient pas l'ordre d'une Box publique — ✅ VALIDÉ
+
+La priorité favorite est propre à la Box personnelle.
+
+Dans la Box publique d'un autre joueur :
+- ne pas regrouper ses favoris en haut ;
+- le statut favorite n'influence pas le tri ;
+- il reste consultable uniquement dans la fiche si la confidentialité l'autorise.
+
+---
+
+### Consultation publique — état temporaire
+
+À chaque ouverture d'une Box publique :
+
+- onglet `Tous` ;
+- tri `Alphabétique ↑` ;
+- aucun filtre.
+
+Les changements de tri/filtres effectués par le visiteur :
+- sont temporaires ;
+- n'affectent jamais les préférences du propriétaire ;
+- sont réinitialisés lors d'une nouvelle ouverture de la Box.
+
+---
+
+## R165 — Onglet Box conservé même si vide — ✅ VALIDÉ
+
+Un profil conserve son onglet/section Box même sans personnage visible.
+
+Afficher un état vide graphique cohérent avec l'interface.
+
+Éviter les emojis décoratifs de type Twitch dans l'UI finale.
+
+---
+
+## R166 — Résumé de collection — ✅ VALIDÉ
+
+Afficher discrètement en haut de la Box :
+
+- total de personnages actifs/visibles ;
+- nombre de 5★ ;
+- nombre de 4★ ;
+- nombre de C6.
+
+Ne pas afficher le total de copies dans ce résumé.
+
+Ces statistiques concernent la collection entière, pas uniquement le résultat des filtres courants.
+
+---
+
+## R167 — Fiche personnage commune Box / Personnages — ✅ VALIDÉ
+
+Utiliser une fiche personnage commune plutôt que deux systèmes divergents.
+
+Informations catalogue communes :
+- nom ;
+- rareté ;
+- élément ;
+- arme ;
+- région ;
+- assets ;
+- autres métadonnées.
+
+Si le personnage est possédé, ajouter la section de possession :
+- constellation ;
+- copies ;
+- première obtention ;
+- favori ;
+- statistiques personnelles futures.
+
+---
+
+## R168 — Filtres UI combinables — ✅ VALIDÉ
+
+L'UI peut combiner simultanément :
+- onglet de rareté ;
+- élément ;
+- constellation ;
+- recherche ;
+- tri.
+
+Cette logique vaut pour :
+- Box personnelle ;
+- Box publique autorisée.
+
+---
+
+## R169 — Box consultable hors ligne — ✅ VALIDÉ
+
+La disponibilité d'une Box publique ne dépend pas de la présence en ligne du propriétaire.
+
+---
+
+## R170 — Confidentialité configurable — ✅ VALIDÉ
+
+Direction transversale :
+- informations publiques par défaut ;
+- futur écran `Paramètres` ;
+- onglet `Confidentialité`.
+
+Un joueur pourra choisir selon les catégories :
+- `Public` ;
+- `Amis uniquement` ;
+- `Privé`.
+
+La Box doit respecter ces permissions.
+
+---
+
+## R171 — Copies visibles dans la fiche détaillée — ✅ VALIDÉ
+
+`copies` reste absent des cartes de grille mais apparaît dans la fiche détaillée au même titre que :
+- constellation ;
+- favori ;
+- première obtention.
+
+---
+
+## R172 — Confidentialité transversale — ✅ VALIDÉ
+
+La confidentialité ne concerne pas uniquement la Box.
+
+Le futur système doit pouvoir protéger différentes catégories de données joueur.
+
+Les permissions doivent être appliquées côté serveur, jamais uniquement dans React.
+
+Un appel API direct ne doit pas contourner un réglage privé.
+
+---
+
+## R173 — Confidentialité potentiellement granulaire — ✅ VALIDÉ
+
+Le système doit être capable à terme de protéger des sous-informations distinctes.
+
+Exemples conceptuels :
+- Box ;
+- date d'obtention ;
+- favori ;
+- copies ;
+- statistiques Combat ;
+- ressources ;
+- autres catégories futures.
+
+La V1 pourra volontairement exposer un nombre plus réduit de réglages simples.
+
+Ne pas obliger l'UI initiale à proposer des dizaines d'options.
+
+---
+
+## R174 — Section inaccessible conservée avec état de confidentialité — ✅ VALIDÉ
+
+Si une Box ou une autre section est inaccessible :
+- conserver l'onglet/la section dans le profil ;
+- afficher un état indiquant qu'elle est privée ou réservée aux amis.
+
+Ne pas masquer totalement la fonctionnalité.
+
+Cela distingue clairement :
+- Box vide ;
+- Box privée ;
+- Box amis uniquement.
+
+---
+
+# 14. Décisions techniques prises directement pendant la passe
+
+Conformément à la délégation validée pour les micro-décisions techniques :
+
+- une nouvelle possession commence avec `favorite = false` ;
+- les anomalies de migration rares sont journalisées plutôt que silencieusement supprimées ;
+- une anomalie d'un joueur ne doit pas bloquer l'import complet des autres possessions valides ;
+- les possessions désactivées/non résolues sont filtrées centralement ;
+- les compteurs visibles utilisent uniquement les personnages actifs et résolus ;
+- les permissions de confidentialité sont vérifiées côté serveur ;
+- les filtres publics ne modifient jamais les préférences du propriétaire ;
+- Pull, Stella, Admin et futures récompenses autorisées utilisent le service central de possession ;
+- les consommateurs comme Team, Expedition ou Combat ne réécrivent pas eux-mêmes les données fondamentales de possession.
+
+Ces choix sont techniques et ne modifient pas le gameplay validé.
+
+---
+
+# 15. État des décisions
+
+R117 à R174 validées.
+
+Le cœur métier de la possession est désormais très avancé :
+- identité possession ;
+- copies ;
+- constellation ;
+- première obtention ;
+- Stella ;
+- favoris ;
+- désactivation ;
+- migration ;
+- permanence ;
+- service central ;
+- UX Box personnelle ;
+- Box publique ;
+- fiche personnage ;
+- confidentialité.
+
+---
+
+# 16. Audit restant du domaine
+
+Dernière passe prévue avant clôture éventuelle :
+
+- relire intégralement `Box.txt`, `Obtention.txt` et `Stella.txt` après les décisions finales ;
+- vérifier les consommateurs principaux de la possession ;
+- confirmer qu'aucun autre mutateur métier important n'a été oublié ;
+- vérifier les dernières interactions visibles avec `Infos.txt` / profils ;
+- vérifier la frontière exacte avec Team, Expedition, Combat et Concours sans auditer leurs règles internes ;
+- classer les éventuels derniers champs legacy Box ;
+- déterminer si le domaine peut être officiellement clôturé.
+
+Les détails SQL exacts restent réservés à la Phase 2.

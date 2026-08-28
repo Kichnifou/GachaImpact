@@ -21,11 +21,14 @@ Statut : `MIGRATION / IDENTITÉ TWITCH`
 Dans le système legacy, `username` correspond au pseudo Twitch utilisé comme clé du joueur.
 
 Dans GachaImpact :
-- le compte possède un ID interne immuable ;
+- le joueur possède un ID interne immuable ;
 - le joueur choisit un pseudo GachaImpact distinct ;
 - le pseudo GachaImpact est celui affiché dans le jeu ;
 - Twitch est optionnel ;
-- si Twitch est lié, l'identité Twitch doit être conservée séparément pour permettre la correspondance avec les anciennes données.
+- l'identité Twitch est conservée séparément ;
+- le Twitch User ID stable sert de référence autoritative pour la liaison Twitch ;
+- un profil Twitch-only peut exister avant création d'un compte web ;
+- connecter ultérieurement ce Twitch à un compte web rattache le compte au même joueur interne et à sa progression existante.
 
 ## 2. Progression
 
@@ -363,6 +366,36 @@ Si le `characterId` n'existe pas dans le catalogue au cutover :
 - masquer côté joueur ;
 - signaler dans le rapport d'import ;
 - permettre un rattachement futur.
+
+### Invariants supplémentaires
+
+- une possession est permanente en gameplay normal ;
+- constellation bornée à C0..C6 ;
+- pas de C7 ;
+- `copies` continue au-delà de C6 ;
+- un service central est propriétaire des mutations fondamentales de possession ;
+- Pull, Stella, Admin et futures récompenses explicitement autorisées passent par ce service ;
+- Team, Expedition, Combat, Infos et autres consommateurs ne modifient pas directement copies/constellation/date.
+
+Migration :
+- `characterId` récupérable depuis la clé Box si cela est certain ;
+- constellation invalide bornée 0..6 ;
+- copies invalides réparées selon le minimum certain ;
+- doublons fusionnés conservativement ;
+- ambiguïtés réelles mises en quarantaine pour résolution ;
+- données illisibles consignées sans inventer une possession.
+
+### Visibilité / confidentialité
+
+La possession peut exister côté serveur sans être visible au visiteur.
+
+La visibilité publique dépend du futur système de confidentialité :
+- Public ;
+- Amis uniquement ;
+- Privé ;
+- granularité potentiellement plus fine selon les informations.
+
+Les contrôles de permissions sont appliqués côté serveur.
 
 ## 6. À auditer ensuite
 

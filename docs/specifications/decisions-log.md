@@ -6,6 +6,10 @@ Statut : évolutif.
 - `VALIDÉ` — Le compte GachaImpact possède un ID interne immuable.
 - `VALIDÉ` — Le pseudo GachaImpact est distinct du pseudo Twitch et peut être le pseudo affiché.
 - `VALIDÉ` — Un compte Twitch peut être lié séparément.
+- `VALIDÉ` — Le Twitch User ID stable est l'identité Twitch autoritative ; le pseudo Twitch n'est pas une clé métier durable.
+- `VALIDÉ` — Un joueur peut commencer comme profil Twitch-only et progresser sans compte web GachaImpact.
+- `VALIDÉ` — Lorsqu'un joueur Twitch-only crée plus tard son compte web et connecte Twitch, le compte est rattaché au même joueur interne et à ses données existantes ; ne jamais recréer sa progression.
+- `VALIDÉ` — Les anciens joueurs Streamer.bot passent par la migration legacy déjà prévue puis peuvent être rattachés à leur identité Twitch.
 - `VALIDÉ` — Le pseudo / identifiant Twitch nécessaire à la correspondance legacy doit être conservé.
 - `VALIDÉ` — Un joueur sans Twitch doit profiter de 100 % du jeu.
 - `VALIDÉ` — La première présence Twitch/legacy (`firstSeen`) est distincte de la date de création du compte GachaImpact ; aucune des deux notions ne doit écraser l'autre.
@@ -76,6 +80,29 @@ Statut : évolutif.
 - `VALIDÉ` — Les historiques remplacent un personnage désactivé par `Personnage indisponible` côté joueur.
 - `VALIDÉ` — Les statistiques player-facing de collection excluent les personnages désactivés.
 - `VALIDÉ MIGRATION` — Une possession dont le personnage catalogue est introuvable est conservée, masquée et signalée, jamais supprimée.
+- `VALIDÉ MIGRATION` — `characterId` absent/invalide peut être récupéré depuis la clé Box lorsqu'elle est certaine.
+- `VALIDÉ MIGRATION` — Constellation legacy bornée à C0..C6 puis copies réparées selon le minimum certain.
+- `VALIDÉ MIGRATION` — Plusieurs possessions du même personnage sont fusionnées conservativement sans additionner les copies.
+- `VALIDÉ MIGRATION` — Une contradiction ambiguë clé Box / `characterId` n'est jamais résolue automatiquement.
+- `VALIDÉ MIGRATION` — Entrées Box illisibles conservées dans le rapport d'anomalies plutôt que supprimées silencieusement.
+- `VALIDÉ` — Toutes les mutations fondamentales de possession passent par un service métier central.
+- `VALIDÉ` — Une possession est permanente en gameplay normal.
+- `VALIDÉ` — Il n'existe jamais de constellation au-delà de C6 ; les copies continuent néanmoins à augmenter.
+- `VALIDÉ` — Un personnage désactivé conserve intérieurement son statut favori mais reste totalement invisible côté joueur.
+- `VALIDÉ` — Réactivation restaure la possession historique, pas les anciennes Teams/Expeditions supprimées.
+- `VALIDÉ` — Filtre UI constellation complet C0 à C6.
+- `VALIDÉ` — Les cartes Box n'affichent pas `copies` ; la fiche détaillée les affiche.
+- `VALIDÉ` — Favori de la Box personnelle modifiable directement en un clic.
+- `VALIDÉ` — La Box d'un autre joueur est consultable depuis son profil si les permissions le permettent.
+- `VALIDÉ` — Une Box publique reprend recherche, onglets, filtres et tris en lecture métier seule.
+- `VALIDÉ` — La Box publique ne montre pas d'étoile favorite et n'utilise pas les favoris pour ordonner les cartes.
+- `VALIDÉ` — La fiche publique peut afficher `Favoris : Oui/Non`.
+- `VALIDÉ` — À chaque ouverture d'une Box publique : Tous + Alphabétique ↑ + aucun filtre.
+- `VALIDÉ` — La Box reste consultable hors ligne.
+- `VALIDÉ` — Une Box vide conserve son onglet avec un état vide graphique.
+- `VALIDÉ` — Résumé Box : total personnages, 5★, 4★, C6 ; pas de total copies.
+- `VALIDÉ` — Personnages et Box utilisent une fiche personnage commune enrichie par la possession.
+- `VALIDÉ` — Les filtres Box sont combinables.
 - `VALIDÉ` — `Liste.txt` n'appartient pas au domaine Box et sera réaudité plus tard.
 
 ## Objectifs personnels — FUTUR
@@ -146,7 +173,12 @@ Statut : évolutif.
 - `VALIDÉ` — Domaine Élément / Ressources / Conversion / Échanges clôturé après R53.
 
 ## Fiche joueur / statistiques
-- `VALIDÉ POUR LA DIRECTION ACTUELLE` — La fiche d'un autre joueur peut pour l'instant afficher ses ressources et ses statistiques ; des restrictions de confidentialité pourront être décidées ultérieurement.
+- `VALIDÉ` — Les données joueur sont publiques par défaut, sous réserve des réglages de confidentialité.
+- `VALIDÉ` — Prévoir des niveaux de visibilité `Public`, `Amis uniquement`, `Privé`.
+- `VALIDÉ` — Le système doit pouvoir gérer à terme une granularité par catégorie/sous-information.
+- `VALIDÉ` — Les permissions doivent être contrôlées côté serveur et ne doivent pas pouvoir être contournées par appel API direct.
+- `VALIDÉ` — Une section inaccessible reste visible avec un état de confidentialité plutôt que d'être supprimée de l'interface.
+- `À CONCEVOIR` — Granularité exacte et liste des réglages dans l'audit Paramètres / Confidentialité / Social.
 - `VALIDÉ` — Les statistiques cumulatives peuvent alimenter un futur écran Statistiques joueur.
 - `FUTUR / À CONCEVOIR` — Un écran de statistiques globales du jeu pourra également exploiter les données transactionnelles/historiques.
 
