@@ -212,7 +212,7 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Interactions reportées :** chaque Pull individuel contribue aux éventuelles missions de type `pulls`, mais les règles et récompenses Missions appartiennent au domaine Missions ; règles Concours détaillées reportées au domaine Concours/C6
 
 ## `!box`
-- **Statut audit :** Audit Box très avancé — R117 à R174 validées
+- **Statut audit :** Audité — domaine Box / Possessions / Obtention clôturé après R176
 - **But :** Consulter et organiser les personnages possédés.
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
@@ -228,12 +228,12 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Box publique :** mêmes outils de consultation mais aucune mutation ; favoris sans priorité d'ordre et sans étoile sur les cartes
 - **État public initial :** Tous + Alphabétique ↑ + aucun filtre à chaque ouverture
 - **Confidentialité :** accès soumis au futur système Public / Amis / Privé
-- **Présentation Twitch :** peut conserver le comportement legacy différent de l'UI, notamment `!box favoris`
+- **Présentation Twitch :** peut conserver un format différent de l'UI ; `!box favoris <nom>` cible cependant désormais un nom exact normalisé et ne conserve pas le fallback legacy par nom partiel
 - **Données dérivées :** taille Box, nombre de C6 et total copies
 - **Personnage désactivé :** invisible/inutilisable côté joueur
 
 ## `!obtention`
-- **Statut audit :** Audité dans le Domaine Box
+- **Statut audit :** Audité — domaine Box / Possessions / Obtention clôturé
 - **But :** Afficher la date de première obtention d'un personnage possédé.
 - **Syntaxe :** `!obtention <personnage>`
 - **Disponible chat GachaImpact :** oui
@@ -244,11 +244,13 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Décision cible :** la première date est immuable ; date legacy absente/invalide → fallback à la date de migration, traçable intérieurement
 
 ## `!stella`
-- **Statut audit :** Audit Box en cours — règles Stella R119/R127/R128/R129 validées
+- **Statut audit :** Audité — domaine Box / Possessions / Obtention clôturé après R176
 - **But :** Utiliser une Masterless Stella Fortuna comme copie synthétique sur un personnage 5★ possédé.
-- **Disponible chat GachaImpact :** oui, syntaxe exacte à conserver/confirmer lors de la finalisation du domaine
+- **Syntaxe cible :** `!stella <nom exact>`
+- **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
-- **UI équivalente :** action future depuis l'inventaire/fiche appropriée, UX à définir
+- **UI équivalente :** action future depuis l'inventaire/fiche appropriée ; confirmation obligatoire avant consommation
+- **Matching texte :** nom exact après normalisation casse/accents ; pas de nom partiel, fuzzy matching ou ID technique
 - **Préconditions cible :** personnage possédé, rareté 5★, Stella disponible
 - **Sous C6 :** `copies +1` et `constellation +1`
 - **Passage C6 :** initialise le système Concours du 5★

@@ -1,6 +1,6 @@
 # GachaImpact — Audit legacy Domaine 4 : Box / Possessions / Obtention
 
-Statut : AUDIT EN COURS — R117 À R174 VALIDÉS — CŒUR POSSESSION/BOX TRÈS AVANCÉ
+Statut : CLÔTURÉ — R117 À R176 VALIDÉS
 Date : 2026-08-28
 
 ## 0. Périmètre réel du domaine
@@ -584,12 +584,17 @@ S'il est réactivé :
 
 ## R153 — Matching de `!box favoris` — ✅ VALIDÉ
 
-Conserver côté Twitch/chat le matching legacy :
+Cible GachaImpact côté Twitch/chat :
 - normalisation casse/accents ;
 - correspondance exacte du nom normalisé ;
+- pas de nom partiel ;
 - pas de fuzzy matching.
 
 L'UI utilise directement l'action favorite sur la carte.
+
+Correction par rapport au legacy :
+- le legacy essaie d'abord le nom exact puis accepte également un premier nom contenant le texte saisi ;
+- ce fallback partiel n'est volontairement pas conservé dans GachaImpact.
 
 ---
 
@@ -903,38 +908,110 @@ Ces choix sont techniques et ne modifient pas le gameplay validé.
 
 ---
 
-# 15. État des décisions
+# 15. Dernières décisions Stella
 
-R117 à R174 validées.
+## R175 — Saisie sécurisée de `!stella` — ✅ VALIDÉ
 
-Le cœur métier de la possession est désormais très avancé :
-- identité possession ;
-- copies ;
-- constellation ;
-- première obtention ;
-- Stella ;
-- favoris ;
-- désactivation ;
-- migration ;
-- permanence ;
-- service central ;
-- UX Box personnelle ;
-- Box publique ;
-- fiche personnage ;
-- confidentialité.
+Côté Twitch/chat, une Stella cible un personnage par son nom exact après normalisation casse/accents.
+
+Autorisé :
+- `!stella Skirk`
+- variante équivalente après normalisation des accents/casse.
+
+Refusé :
+- nom partiel ;
+- fuzzy matching ;
+- ID technique du personnage.
+
+L'UI sélectionne explicitement le personnage et n'utilise jamais un ID technique visible comme saisie joueur.
+
+Correction par rapport au legacy :
+- le legacy accepte actuellement un ID numérique ;
+- puis un nom exact ;
+- puis un premier nom contenant le texte saisi.
+
+Ces comportements approximatifs/techniques ne sont pas conservés.
 
 ---
 
-# 16. Audit restant du domaine
+## R176 — Confirmation UI avant consommation d'une Stella — ✅ VALIDÉ
 
-Dernière passe prévue avant clôture éventuelle :
+Twitch/chat :
+- la commande explicite `!stella <nom exact>` effectue directement l'action après validation métier.
 
-- relire intégralement `Box.txt`, `Obtention.txt` et `Stella.txt` après les décisions finales ;
-- vérifier les consommateurs principaux de la possession ;
-- confirmer qu'aucun autre mutateur métier important n'a été oublié ;
-- vérifier les dernières interactions visibles avec `Infos.txt` / profils ;
-- vérifier la frontière exacte avec Team, Expedition, Combat et Concours sans auditer leurs règles internes ;
-- classer les éventuels derniers champs legacy Box ;
-- déterminer si le domaine peut être officiellement clôturé.
+Standalone :
+- demander confirmation avant de consommer la Stella.
+
+Sous C6, la confirmation peut présenter notamment :
+- personnage ;
+- constellation actuelle → future constellation ;
+- copies actuelles → futures copies.
+
+Pour un 5★ déjà C6 :
+- indiquer qu'une statistique Concours éligible recevra +1.
+
+La confirmation ne remplace jamais les validations serveur.
+
+L'emplacement final de l'action Stella dans l'UI sera défini avec le domaine Sac / Inventaire.
+
+---
+
+# 16. Vérification finale croisée
+
+Scripts relus :
+- `Box.txt` ;
+- `Obtention.txt` ;
+- `Stella.txt` ;
+- `Pull.txt` pour la création/modification de possession ;
+- `Infos.txt` pour la consultation publique ;
+- consommateurs principaux tels que Team, Expedition et XP.
+
+Constats finaux :
+- `Pull` crée une nouvelle possession puis augmente copies/constellation sur les doublons ;
+- `Stella` est un mutateur de possession dont plusieurs comportements legacy ont été explicitement corrigés ;
+- `Box` gère principalement consultation, favoris et préférences de tri ;
+- `Obtention` ne modifie aucune possession ;
+- `Infos` consulte la Box ;
+- Team / Expedition / Combat / Stats / Concours sont consommateurs des données de possession selon leurs domaines respectifs ;
+- aucun autre mutateur métier majeur de possession n'a été identifié pendant cette passe.
+
+Architecture cible :
+- toutes les mutations fondamentales de possession passent par le futur service central de possession ;
+- les consommateurs ne modifient jamais directement `copies`, `constellation` ou `firstObtainedAt`.
 
 Les détails SQL exacts restent réservés à la Phase 2.
+
+---
+
+# 17. État final du domaine
+
+Décisions :
+- R117 à R126 : modèle possession, Box, favoris, tris, fiche et données dérivées ;
+- R127 à R143 : Stella, désactivation, migration et interactions possession ;
+- R144 à R156 : anomalies legacy, service central, permanence et réactivation ;
+- R157 à R169 : UX Box personnelle/publique, filtres, fiche commune et consultation sociale ;
+- R170 à R174 : confidentialité transversale ;
+- R175/R176 : saisie sécurisée et confirmation Stella.
+
+Corrections legacy principales :
+- Stella augmente désormais `copies` ;
+- Stella réservée aux 5★ ;
+- Stella refusée avant consommation si progression C6 impossible ;
+- pas de remboursement Primogemmes C6+ via Stella ;
+- `!stella` n'accepte plus ID ou nom partiel ;
+- `!box favoris` cible un nom exact normalisé ;
+- constellations bornées C0..C6 ;
+- anomalies de migration traitées explicitement plutôt qu'ignorées silencieusement ;
+- possessions non résolues conservées et mises en quarantaine ;
+- personnage désactivé totalement absent de l'expérience joueur sans destruction historique.
+
+Dépendances reportées :
+- règles Team → domaine Team ;
+- règles Expedition → domaine Expedition ;
+- statistiques Combat → domaine Combat ;
+- progression Concours détaillée → domaine Concours/C6 ;
+- emplacement/gestion complète des Stella dans l'inventaire → domaine Sac / Inventaire ;
+- granularité finale confidentialité → domaine Paramètres / Social ;
+- SQL exact → Phase 2.
+
+**Domaine Box / Possessions / Obtention : CLÔTURÉ.**

@@ -104,6 +104,10 @@ Statut : évolutif.
 - `VALIDÉ` — Personnages et Box utilisent une fiche personnage commune enrichie par la possession.
 - `VALIDÉ` — Les filtres Box sont combinables.
 - `VALIDÉ` — `Liste.txt` n'appartient pas au domaine Box et sera réaudité plus tard.
+- `VALIDÉ` — Cible `!box favoris` : nom exact après normalisation casse/accents ; le fallback legacy par nom partiel n'est pas conservé.
+- `VALIDÉ` — Cible `!stella` : nom exact après normalisation casse/accents ; pas de nom partiel, fuzzy matching ou ID technique joueur.
+- `VALIDÉ` — L'UI demande confirmation avant consommation d'une Stella ; Twitch/chat reste une action directe après validation de la commande explicite.
+- `CLÔTURÉ` — Domaine Box / Possessions / Obtention clôturé après R176.
 
 ## Objectifs personnels — FUTUR
 - `DIRECTION VALIDÉE` — Prévoir un futur système transversal d'Objectifs personnels.

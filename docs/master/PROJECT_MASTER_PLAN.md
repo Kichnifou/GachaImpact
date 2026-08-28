@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.15
+Version : 0.16
 Date : 2026-08-28
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -1128,7 +1128,7 @@ Idées futures non V1 :
 
 ---
 
-# 14. PERSONNAGES / BOX / CONSTELLATIONS — AUDIT EN COURS
+# 14. PERSONNAGES / BOX / CONSTELLATIONS — AUDIT CLÔTURÉ
 
 Document spécialisé :
 `docs/legacy/07-box-possession-obtention-audit.md`
@@ -1189,7 +1189,10 @@ Règles supplémentaires :
 - Stella ne donne jamais le remboursement Primogemmes d'un doublon C6+ obtenu via Pull ;
 - si un 5★ C6 possède déjà toutes ses statistiques Concours au maximum, l'utilisation est refusée avant consommation ;
 - aucune compensation +100 000 Moras via Stella dans ce cas ;
-- validation, consommation et mise à jour doivent être transactionnelles.
+- validation, consommation et mise à jour doivent être transactionnelles ;
+- `!stella` côté texte exige le nom exact après normalisation casse/accents ;
+- ne pas accepter de nom partiel, fuzzy matching ou ID technique ;
+- l'UI demande confirmation avant consommation.
 
 Correction legacy :
 `Stella.txt` augmente actuellement la constellation sans augmenter `copies` et autorise certains 4★ ; ces comportements ne sont pas conservés.
@@ -1787,14 +1790,14 @@ Décisions validées :
 
 Domaine Gacha / Invocation : **CLÔTURÉ**.
 
-Quatrième domaine actif :
+Quatrième domaine :
 **Box / Possessions / Obtention**
 
 Document :
 `docs/legacy/07-box-possession-obtention-audit.md`
 
 Statut :
-**EN COURS — R117 À R174 VALIDÉS — CŒUR POSSESSION/BOX TRÈS AVANCÉ**
+**CLÔTURÉ le 2026-08-28 — R117 À R176 VALIDÉS**
 
 Correction de périmètre :
 - `Liste.txt` ne concerne pas la Box ;
@@ -1827,12 +1830,34 @@ Décisions déjà validées :
 - R157 à R159 : filtres constellation, cartes Box et favori UI ;
 - R160 à R169 : Box publique, fiche commune, consultation, filtres et résumé collection ;
 - R170/R172/R173/R174 : système de confidentialité public/amis/privé et granularité future ;
-- R171 : copies visibles dans la fiche détaillée mais pas sur les cartes.
+- R171 : copies visibles dans la fiche détaillée mais pas sur les cartes ;
+- R175 : `!stella` sécurisé par nom exact, sans ID ni correspondance partielle ;
+- R176 : confirmation UI obligatoire avant consommation d'une Stella.
+
+**Domaine Box / Possessions / Obtention : CLÔTURÉ.**
 
 Idées transverses découvertes :
 - futur système `Objectifs` personnels, à spécifier dans un domaine dédié ;
 - confidentialité joueur transversale à spécifier avec Paramètres / Social / Permissions ;
 - profil Twitch-only rattachable ultérieurement au compte web via Twitch User ID.
+
+Cinquième domaine à auditer :
+**Team**
+
+Objectifs initiaux :
+- équipe active ;
+- nombre et règles des slots ;
+- ajout / retrait / remplacement ;
+- teams sauvegardées ;
+- renommage / application / suppression ;
+- validation des personnages possédés et actifs ;
+- doublons éventuels ;
+- interactions avec passifs ;
+- comportement lorsqu'un personnage est désactivé ;
+- présentation UI et commandes Twitch/chat ;
+- dépendances avec Combat, Expedition et autres domaines.
+
+Le document spécialisé sera créé au démarrage de cette passe.
 
 Ordre recommandé :
 
@@ -2184,54 +2209,41 @@ git status
 Domaines clôturés :
 - `docs/legacy/04-xp-audit.md` — XP / cycle de vie joueur : **CLÔTURÉ** ;
 - `docs/legacy/05-element-resources-audit.md` — Élément / Ressources / Conversion / Échanges : **CLÔTURÉ** ;
-- `docs/legacy/06-gacha-invocation-audit.md` — Gacha / Invocation : **CLÔTURÉ**.
+- `docs/legacy/06-gacha-invocation-audit.md` — Gacha / Invocation : **CLÔTURÉ** ;
+- `docs/legacy/07-box-possession-obtention-audit.md` — Box / Possessions / Obtention : **CLÔTURÉ**.
 
-Domaine actif :
-**Box / Possessions / Obtention**
+Domaine Box :
+- R117 à R176 validées ;
+- modèle conceptuel de possession finalisé ;
+- copies / constellation / première obtention finalisées ;
+- comportement Stella finalisé ;
+- favoris / tri / filtres finalisés ;
+- Box personnelle/publique cadrée ;
+- confidentialité intégrée conceptuellement ;
+- désactivation/réactivation cadrée ;
+- migration Box cadrée ;
+- service central de possession validé ;
+- dernière passe croisée `Box.txt` / `Obtention.txt` / `Stella.txt` / `Infos.txt` / consommateurs effectuée ;
+- aucun autre mutateur métier majeur de possession identifié.
 
-Document :
-`docs/legacy/07-box-possession-obtention-audit.md`
+**Prochaine étape unique : démarrer le Domaine 5 — Team en lisant intégralement les scripts legacy liés à l'équipe active et aux teams sauvegardées avant de prendre de nouvelles décisions.**
 
-État :
-1. R117/R118 — source de vérité catalogue/possession validée ;
-2. R119 — Stella doit augmenter `copies` ;
-3. R120 — première obtention immuable ;
-4. R121/R122 — favoris Box uniquement et illimités ;
-5. R123/R124 — tris/présentation UI vs Twitch définis ;
-6. R125 — fiche Box enrichissable par statistiques des autres domaines ;
-7. R126 — compteurs collection dérivés ;
-8. R127–R129 — comportement exact Stella validé ;
-9. R130/R131 — ordre favoris et onglets validés ;
-10. R132/R133 — migration minimale des copies et favoris validée ;
-11. R134 — personnage désactivé totalement invisible/inutilisable côté joueur ;
-12. R135–R138 — dates fallback et UX Box validées ;
-13. R139/R140 — désactivation réconciliée avec Team/Expedition ;
-14. R141/R142 — historique placeholder + stats visibles validés ;
-15. R143 — possession orpheline conservée et signalée ;
-16. R144–R149 — politique de migration des anomalies Box finalisée ;
-17. R150 — service central de possession validé ;
-18. R151–R156 — préférences legacy, C6, désactivation/réactivation et permanence validées ;
-19. R157–R159 — filtres et interaction favori UI validés ;
-20. R160–R169 — Box publique et fiche personnage commune validées ;
-21. R170–R174 — confidentialité transversale validée conceptuellement ;
-22. `Liste.txt` reclassé hors domaine ;
-23. futur système Objectifs identifié et conservé pour audit ultérieur ;
-24. profil Twitch-only + rattachement futur au compte web clarifiés.
+Document spécialisé à créer au démarrage :
+`docs/legacy/08-team-audit.md`
 
-**Prochaine étape unique : effectuer la dernière passe croisée Box / Obtention / Stella / Infos et vérifier les consommateurs de possession avant clôture éventuelle du Domaine 4.**
+Priorités :
+1. auditer la vraie structure de l'équipe active ;
+2. vérifier les quatre slots et les validations de possession ;
+3. auditer ajout / retrait / remplacement ;
+4. auditer les teams sauvegardées ;
+5. vérifier noms, limites, renommage, application et suppression ;
+6. vérifier la prévention des doublons ;
+7. inventorier les passifs dépendant de la Team ;
+8. vérifier les interactions avec personnage désactivé ;
+9. séparer ce qui appartient à Team de ce qui appartient à Combat ou Expedition ;
+10. préparer la partie Team du futur modèle de données.
 
-À vérifier :
-- aucun mutateur métier de possession important oublié ;
-- derniers comportements utiles de `Box.txt` ;
-- derniers comportements utiles de `Obtention.txt` ;
-- cohérence finale de `Stella.txt` avec les décisions cibles ;
-- frontière avec Team / Expedition / Combat / Concours ;
-- éventuels champs legacy Box encore non classés ;
-- intégration de la Box publique au futur système de profil/confidentialité.
-
-Les anomalies de migration pure dont la résolution est évidente peuvent désormais être tranchées techniquement et simplement journalisées.
-
-Ne pas figer le schéma SQL exact avant la clôture du domaine.
+Ne pas implémenter le backend avant cet audit.
 
 ---
 
