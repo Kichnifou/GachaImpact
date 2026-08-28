@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.13
+Version : 0.14
 Date : 2026-08-28
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -425,14 +425,58 @@ Décisions :
 
 ## 6.1 Box
 But :
-- montrer uniquement les personnages possédés ;
+- montrer uniquement les personnages possédés et actuellement actifs côté jeu ;
+- utiliser le même catalogue personnage que l'écran `Personnages`, mais enrichi par la possession propre au joueur ;
 - grille de cartes ;
+- recherche ;
 - filtres ;
 - tri ;
-- recherche ;
-- éléments ;
-- rareté ;
-- constellation.
+- constellation ;
+- informations personnelles de possession.
+
+Source métier :
+- le catalogue porte les informations du personnage : nom, élément, rareté, assets, etc. ;
+- la possession joueur/personnage porte notamment constellation, copies, première obtention et favori ;
+- un seul enregistrement de possession par couple joueur/personnage.
+
+Onglets UI :
+- `Tous` ;
+- `5★` ;
+- `4★`.
+
+Persistance UI :
+- le tri choisi est mémorisé entre sessions ;
+- les filtres et l'onglet courant ne sont pas mémorisés ;
+- au retour dans Box, l'onglet revient sur `Tous`.
+
+Tris actuellement validés :
+- alphabétique ;
+- date de première obtention ;
+- constellation ;
+- élément.
+
+Pas de tri `copies` prévu actuellement.
+
+Ordre :
+- les favoris sont toujours remontés avant les non-favoris ;
+- un 4★ favori peut donc apparaître avant un 5★ non favori ;
+- dans chaque groupe favoris/non-favoris, les 5★ restent avant les 4★ ;
+- le tri actif s'applique à l'intérieur de chaque groupe/rareté.
+
+État par défaut :
+- onglet `Tous` ;
+- tri alphabétique ascendant.
+
+Fiche d'un personnage possédé :
+- première date d'obtention ;
+- constellation ;
+- copies ;
+- favori ;
+- futures statistiques propres au personnage ajoutées par leurs domaines respectifs, par exemple plus gros dégâts, victoires ou défaites lorsque Combat sera audité.
+
+Twitch/chat :
+- les présentations historiques de `!box`, pages, tris et `!box favoris` peuvent rester différentes de l'UI standalone ;
+- la source métier de possession/favoris reste commune.
 
 ## 6.2 Personnages
 But :
@@ -473,6 +517,31 @@ But :
 ## 6.5 Boutique
 Prototype visuel déjà présent.
 La logique réelle sera auditée via `Shop.txt` + `shop_items.json`.
+
+## 6.6 Objectifs personnels — FUTUR / DIRECTION VALIDÉE
+
+Prévoir plus tard un système transversal `Objectifs`.
+
+Exemples de catégories :
+- obtenir un personnage précis ;
+- atteindre un montant de Primogemmes ;
+- atteindre un montant de Moras ;
+- pour les Moras, possibilité future de choisir si la Banque est incluse ;
+- autres types à définir dans un audit dédié.
+
+UX envisagée :
+- écran `Objectifs` dédié ;
+- possibilité de définir un personnage comme objectif depuis l'écran `Personnages` ;
+- si ce personnage apparaît dans une bannière, afficher une indication discrète comme `🎯` ;
+- lorsqu'un objectif est atteint, il est automatiquement considéré comme terminé/retiré ;
+- possibilité d'une notification d'accomplissement.
+
+Architecture :
+- ne pas coder séparément une logique d'objectif dans chaque domaine ;
+- les systèmes métier produisent leurs changements/événements autoritatifs ;
+- un futur service Objectifs évalue les objectifs concernés.
+
+La liste exacte des catégories, limites et historiques sera définie plus tard.
 
 ---
 
@@ -957,34 +1026,129 @@ Idées futures non V1 :
 
 ---
 
-# 14. PERSONNAGES / BOX / CONSTELLATIONS
+# 14. PERSONNAGES / BOX / CONSTELLATIONS — AUDIT EN COURS
 
-## 14.1 Première obtention
+Document spécialisé :
+`docs/legacy/07-box-possession-obtention-audit.md`
+
+## 14.1 Catalogue et possession
+
+Séparer conceptuellement :
+- le personnage du catalogue ;
+- la possession de ce personnage par un joueur.
+
+Une seule possession par couple joueur/personnage.
+
+La possession porte notamment :
+- `constellation` ;
+- `copies` ;
+- `firstObtainedAt` ;
+- statut favori ;
+- futures données personnelles du personnage si nécessaire.
+
+## 14.2 Première obtention
+
 Première copie :
-- `copies = 1`
-- `constellation = 0`
+- `copies = 1` ;
+- `constellation = 0` ;
+- `firstObtainedAt` initialisé.
 
-## 14.2 Doublons
+`firstObtainedAt` reste ensuite immuable.
+
+Dans l'UI, cette date est consultable depuis la fiche Box du personnage.
+
+## 14.3 Doublons
+
 Deuxième copie :
-- C1
+- C1.
 
 Troisième :
-- C2
+- C2.
 
 ...
 
 Septième :
-- C6
+- C6.
 
 À partir de la huitième :
 - constellation reste C6 ;
 - `copies` continue à augmenter.
 
-Donc :
-- `constellation` = progression limitée ;
-- `copies` = nombre historique total.
+## 14.4 Masterless Stella Fortuna
 
-Ne jamais reconstruire `copies` depuis `constellation`.
+Dans GachaImpact, une Stella utilisée sur un personnage 5★ compte comme une copie synthétique :
+- `copies +1` ;
+- si le personnage est inférieur à C6 : `constellation +1` ;
+- si le passage atteint C6 : initialisation normale du système Concours ;
+- si le 5★ est déjà C6 : progression Concours correspondante.
+
+Règles supplémentaires :
+- Stella interdite sur tous les personnages 4★ ;
+- Stella ne donne jamais le remboursement Primogemmes d'un doublon C6+ obtenu via Pull ;
+- si un 5★ C6 possède déjà toutes ses statistiques Concours au maximum, l'utilisation est refusée avant consommation ;
+- aucune compensation +100 000 Moras via Stella dans ce cas ;
+- validation, consommation et mise à jour doivent être transactionnelles.
+
+Correction legacy :
+`Stella.txt` augmente actuellement la constellation sans augmenter `copies` et autorise certains 4★ ; ces comportements ne sont pas conservés.
+
+## 14.5 Favoris
+
+- favoris uniquement pour les personnages possédés ;
+- aucune limite ;
+- favoris visibles dans Box, pas comme favoris dans l'écran catalogue Personnages ;
+- favoris toujours remontés en haut de la Box ;
+- ordre interne dépend du tri actif ;
+- Twitch `!box favoris` conserve son affichage legacy propre.
+
+## 14.6 Données dérivées
+
+Ne pas stocker inutilement :
+- nombre de personnages possédés ;
+- nombre de C6 ;
+- total de copies.
+
+Ces valeurs sont dérivées depuis les possessions actives/visibles.
+
+## 14.7 Personnage désactivé
+
+Un personnage désactivé est entièrement invisible et inutilisable côté joueur :
+- Personnages ;
+- Box ;
+- Team ;
+- passifs ;
+- Expedition ;
+- Combat ;
+- votes ;
+- bannières ;
+- autres usages player-facing.
+
+Ses données et anciennes relations restent conservées côté serveur/Admin.
+
+Conséquences :
+- retirer le personnage des Teams active et sauvegardées ;
+- annuler une Expedition active sans consommer la tentative quotidienne ;
+- historiques player-facing : afficher un placeholder `Personnage indisponible` ;
+- statistiques visibles de collection excluent le personnage tant qu'il est désactivé.
+
+## 14.8 Migration Box
+
+Correction certaine de `copies` :
+
+`copiesCible = max(copiesLegacy, constellation + 1)`
+
+Objectif :
+- réparer le minimum mathématiquement certain causé notamment par l'ancien comportement Stella ;
+- ne jamais inventer davantage de copies.
+
+Favoris orphelins :
+- ne créent jamais de possession.
+
+Possession dont le personnage catalogue est introuvable :
+- conserver les données ;
+- masquer côté joueur ;
+- signaler dans le rapport d'import ;
+- permettre un rattachement futur après correction du catalogue.
 
 ---
 
@@ -1044,7 +1208,14 @@ Le domaine Gacha ne doit pas absorber toute la logique Concours : il déclenche 
 Pour un personnage possédé :
 - conserver la date de la toute première obtention ;
 - les copies suivantes ne remplacent pas cette date ;
+- une Stella ne remplace pas cette date ;
+- l'information est consultable depuis la Box/fiche personnage ;
 - il n'existe pas, à ce stade, de besoin validé de stocker l'historique de chaque copie.
+
+Migration :
+- date legacy valide → conserver la date réelle ;
+- date absente/invalide → utiliser le timestamp du cutover/import comme date fallback ;
+- conserver intérieurement la provenance `legacy` ou `migration_fallback` afin de ne pas confondre une date artificielle avec une vérité historique.
 
 ---
 
@@ -1339,6 +1510,7 @@ Sous `docs/` :
 - `legacy/04-xp-audit.md`
 - `legacy/05-element-resources-audit.md`
 - `legacy/06-gacha-invocation-audit.md`
+- `legacy/07-box-possession-obtention-audit.md`
 - `specifications/decisions-log.md`
 - `commands/command-reference.md`
 - `roadmap/development-roadmap.md`
@@ -1513,19 +1685,43 @@ Décisions validées :
 
 Domaine Gacha / Invocation : **CLÔTURÉ**.
 
-Quatrième domaine à auditer :
-**Box / Obtention / Liste**
+Quatrième domaine actif :
+**Box / Possessions / Obtention**
 
-Objectifs initiaux :
-- possession des personnages ;
-- différence catalogue / Box ;
-- constellation / copies côté consultation ;
-- première obtention ;
-- affichage/liste ;
-- favoris éventuels ;
-- interactions avec autres scripts.
+Document :
+`docs/legacy/07-box-possession-obtention-audit.md`
 
-Le document spécialisé sera créé au démarrage de cette passe.
+Statut :
+**EN COURS — R117 À R143 VALIDÉS**
+
+Correction de périmètre :
+- `Liste.txt` ne concerne pas la Box ;
+- `!liste <élément>` liste des joueurs selon leur élément ;
+- ce script est reporté à un futur domaine utilitaire/social/joueurs.
+
+Sources principales actuelles :
+- `Box.txt` ;
+- `Obtention.txt` ;
+- `Stella.txt` ;
+- possessions `box` dans `viewers_data.json` ;
+- `boxFavorites` ;
+- options de tri Box ;
+- dépendances Team / Expedition / Concours / Gacha.
+
+Décisions déjà validées :
+- R117/R118 : catalogue et possession séparés, une possession unique joueur/personnage ;
+- R119/R127–R129 : Stella = copie synthétique 5★ avec règles corrigées ;
+- R120/R135/R138 : première date d'obtention + fallback migration traçable ;
+- R121–R123/R130/R131/R133/R136/R137 : favoris, tris et onglets Box ;
+- R124 : présentation paginée Twitch distincte de l'UI ;
+- R125 : `!obtention` côté chat, information intégrée à la fiche UI ;
+- R126 : statistiques collection dérivées ;
+- R132 : correction minimale certaine de `copies` au cutover ;
+- R134/R139–R142 : comportement des personnages désactivés ;
+- R143 : possessions orphelines conservées et signalées.
+
+Idée transverse découverte :
+- futur système `Objectifs` personnels, à spécifier dans un domaine dédié.
 
 Ordre recommandé :
 
@@ -1537,7 +1733,7 @@ Ordre recommandé :
    - Pull
    - Pity
    - Vote
-4. Box / Obtention / Liste
+4. Box / Possessions / Obtention
 5. Team
 6. Banque
 7. Sac / Coffre / Shop
@@ -1633,9 +1829,12 @@ Objectif :
   - primos ;
   - moras ;
   - particules ;
-  - box ;
+  - box / possessions ;
   - constellation ;
   - copies ;
+  - `firstObtainedAt` + provenance fallback éventuelle ;
+  - favoris ;
+  - possessions orphelines/non résolues ;
   - équipe ;
   - pity ;
   - garantie ;
@@ -1876,30 +2075,44 @@ Domaines clôturés :
 - `docs/legacy/05-element-resources-audit.md` — Élément / Ressources / Conversion / Échanges : **CLÔTURÉ** ;
 - `docs/legacy/06-gacha-invocation-audit.md` — Gacha / Invocation : **CLÔTURÉ**.
 
-Gacha :
-- R54 à R116 validées ;
-- cœur Pull finalisé ;
-- Bannière / Vote / Select / Pity finalisés ;
-- animation UI spécifiée conceptuellement ;
-- historique Pull/Bannière/Votes spécifié ;
-- synchronisation catalogue cadrée ;
-- cutover Gacha cadré ;
-- dépendances Missions / Concours / Admin reportées dans leurs domaines dédiés.
+Domaine actif :
+**Box / Possessions / Obtention**
 
-**Prochaine étape unique : démarrer le Domaine 4 — Box / Obtention / Liste en lisant intégralement les scripts legacy concernés et les JSON de possession avant de prendre de nouvelles décisions.**
+Document :
+`docs/legacy/07-box-possession-obtention-audit.md`
 
-Document spécialisé à créer lors du démarrage :
-`docs/legacy/07-box-obtention-liste-audit.md`
+État :
+1. R117/R118 — source de vérité catalogue/possession validée ;
+2. R119 — Stella doit augmenter `copies` ;
+3. R120 — première obtention immuable ;
+4. R121/R122 — favoris Box uniquement et illimités ;
+5. R123/R124 — tris/présentation UI vs Twitch définis ;
+6. R125 — fiche Box enrichissable par statistiques des autres domaines ;
+7. R126 — compteurs collection dérivés ;
+8. R127–R129 — comportement exact Stella validé ;
+9. R130/R131 — ordre favoris et onglets validés ;
+10. R132/R133 — migration minimale des copies et favoris validée ;
+11. R134 — personnage désactivé totalement invisible/inutilisable côté joueur ;
+12. R135–R138 — dates fallback et UX Box validées ;
+13. R139/R140 — désactivation réconciliée avec Team/Expedition ;
+14. R141/R142 — historique placeholder + stats visibles validés ;
+15. R143 — possession orpheline conservée et signalée ;
+16. `Liste.txt` reclassé hors domaine ;
+17. futur système Objectifs identifié et conservé pour audit ultérieur.
 
-Priorités de cette passe :
-1. déterminer la vraie source de vérité des possessions ;
-2. auditer `Box.txt`, `Obtention.txt`, `Liste.txt` et leurs dépendances réelles ;
-3. vérifier constellation / copies / `firstObtainedAt` ;
-4. identifier les interactions avec favoris, teams, C6 et autres données ;
-5. décider la différence métier entre écran Box et écran Personnages ;
-6. préparer progressivement la partie possession du futur modèle de données.
+**Prochaine étape unique : analyser les données legacy réelles de Box sur plusieurs profils afin de mesurer les anomalies de migration, puis vérifier tous les scripts qui mutent directement une possession personnage.**
 
-Ne pas implémenter le backend avant cet audit.
+À vérifier :
+- constellation hors bornes ;
+- `copies` absentes, nulles, 0/négatives ou inférieures au minimum ;
+- clé de Box différente du `characterId` ;
+- doublons éventuels de possession ;
+- favoris orphelins ;
+- personnages catalogue introuvables ;
+- autres scripts écrivant directement dans `box` ;
+- dépendances Team / Expedition / Stella.
+
+Ne pas figer le schéma SQL exact avant cette passe.
 
 ---
 
@@ -2009,9 +2222,9 @@ Décisions clés :
 - tutoriels de niveau : chat si montée via XP chat, notification UI si montée via le futur mode XP interface ;
 - XP = source de vérité du niveau ; gains multi-level récompensent chaque niveau traversé et sont clairement affichés dans les notifications ;
 - niveau 100 : état d'overflow historique conservé, récompenses multiples prises en charge ;
-- dates legacy conservées sans invention, timestamps historiques interprétés comme Europe/Paris ;
+- dates legacy valides conservées et timestamps historiques interprétés comme Europe/Paris ; exception explicitement validée pour `firstObtainedAt` manquant/invalide : utiliser la date de migration comme fallback traçable ;
 - Twitch : nouveau chatter enregistré passivement, progression jusqu'au seuil d'onboarding puis blocage des mécaniques actives tant que l'élément n'est pas choisi ;
 - suivi quotidien UI prévu dans le bloc bas gauche avec chevrons compacts.
 
 Prochaine étape :
-démarrer l'audit du Domaine 4 — Box / Obtention / Liste.
+poursuivre l'audit Box / Possessions / Obtention par l'analyse des anomalies réelles des données legacy et des scripts qui mutent les possessions.

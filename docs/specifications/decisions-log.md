@@ -17,7 +17,8 @@ Statut : évolutif.
 - `VALIDÉ` — Une donnée supposée obsolète n'est supprimée qu'après validation explicite.
 - `VALIDÉ` — La migration doit pouvoir être relancée avec des JSON Streamer.bot plus récents sans duplication ni corruption.
 - `VALIDÉ` — Le profil Kichnifou sert de référence fonctionnelle la plus complète pour le schéma actuel.
-- `VALIDÉ` — Toutes les dates/timestamps legacy connus sont conservés tels quels ; une date manquante n'est jamais inventée et les historiques ne sont pas recalculés rétroactivement.
+- `VALIDÉ` — Toutes les dates/timestamps legacy connus sont conservés tels quels et les historiques ne sont pas recalculés rétroactivement.
+- `EXCEPTION VALIDÉE R135/R138` — Pour une possession personnage dont `firstObtainedAt` legacy est absent ou invalide, utiliser le timestamp de migration comme fallback et conserver intérieurement que cette date provient de `migration_fallback`.
 - `VALIDÉ` — Les timestamps legacy sans fuseau provenant de Streamer.bot doivent être interprétés comme `Europe/Paris` lors de l'import.
 - `VALIDÉ` — Une incohérence historique entre `xp` et `level` doit être détectée et signalée dans le rapport de migration plutôt que corrigée silencieusement.
 
@@ -49,12 +50,40 @@ Statut : évolutif.
 - `FUTUR / À CONCEVOIR` — Une progression réelle au-delà du niveau 100 pourra éventuellement être étudiée plus tard.
 - `FUTUR / À CONCEVOIR` — Une mécanique de prestige/rebirth pourra éventuellement être étudiée plus tard.
 
-## Personnages / C6
-- `VALIDÉ` — `constellation` reste plafonnée à C6.
-- `VALIDÉ` — `copies` conserve le nombre historique total, y compris au-delà de C6.
-- `VALIDÉ GACHA` — Lorsqu'un 5★ atteint C6, ses cinq statistiques Concours sont initialisées à 1.
-- `VALIDÉ GACHA` — Chaque doublon 5★ C6+ déclenche la progression Concours définie pendant l'audit Gacha ; les règles détaillées du Concours restent à approfondir dans son domaine dédié.
-- `VALIDÉ` — La future section Concours est visible uniquement pour un joueur possédant au moins un personnage 5★ C6.
+## Box / Possessions
+- `VALIDÉ` — L'écran Personnages représente le catalogue global ; Box représente uniquement les possessions du joueur.
+- `VALIDÉ` — Une seule possession existe par couple joueur/personnage.
+- `VALIDÉ` — Catalogue et possession ne dupliquent pas les mêmes données : nom/élément/rareté/assets viennent du catalogue ; constellation/copies/première obtention/favori appartiennent à la possession.
+- `VALIDÉ` — Une Stella utilisée sur un 5★ compte comme une copie synthétique et incrémente `copies`.
+- `VALIDÉ` — Une Stella est interdite sur tous les personnages 4★.
+- `VALIDÉ` — Une Stella sur un 5★ C6 ne donne jamais le remboursement Primogemmes C6+ du Pull.
+- `VALIDÉ` — Si toutes les statistiques Concours du 5★ C6 sont maxées, la Stella est refusée avant consommation.
+- `VALIDÉ` — `firstObtainedAt` reste immuable après première acquisition.
+- `VALIDÉ` — Favoris limités aux personnages possédés, sans limite de quantité.
+- `VALIDÉ` — Les favoris sont épinglés avant les non-favoris dans l'UI Box.
+- `VALIDÉ` — Onglets UI Box : Tous / 5★ / 4★.
+- `VALIDÉ` — Tri Box mémorisé ; filtres et onglet courant non persistants.
+- `VALIDÉ` — Tris actuels : alphabétique, date d'obtention, constellation, élément.
+- `VALIDÉ` — Dans les groupes Box, 5★ avant 4★ ; un 4★ favori reste néanmoins avant un 5★ non favori.
+- `VALIDÉ` — La pagination/présentation `!box pN` reste spécifique au chat/Twitch.
+- `VALIDÉ` — La fiche UI d'un personnage possédé affiche notamment date, constellation et copies.
+- `VALIDÉ` — Nombre de personnages possédés, C6 et total copies sont dérivés des possessions.
+- `VALIDÉ MIGRATION` — `copiesCible = max(copiesLegacy, constellation + 1)`.
+- `VALIDÉ MIGRATION` — Un favori orphelin ne crée jamais une possession.
+- `VALIDÉ` — Un personnage désactivé est totalement invisible/inutilisable côté joueur, mais ses données restent conservées côté serveur/Admin.
+- `VALIDÉ` — Désactivation retire le personnage des Teams actives et sauvegardées.
+- `VALIDÉ` — Désactivation pendant Expedition annule l'Expedition sans consommer la tentative quotidienne.
+- `VALIDÉ` — Les historiques remplacent un personnage désactivé par `Personnage indisponible` côté joueur.
+- `VALIDÉ` — Les statistiques player-facing de collection excluent les personnages désactivés.
+- `VALIDÉ MIGRATION` — Une possession dont le personnage catalogue est introuvable est conservée, masquée et signalée, jamais supprimée.
+- `VALIDÉ` — `Liste.txt` n'appartient pas au domaine Box et sera réaudité plus tard.
+
+## Objectifs personnels — FUTUR
+- `DIRECTION VALIDÉE` — Prévoir un futur système transversal d'Objectifs personnels.
+- `DIRECTION VALIDÉE` — Exemples : obtenir un personnage, atteindre X Primogemmes, atteindre X Moras avec choix futur d'inclure ou non la Banque.
+- `DIRECTION VALIDÉE` — Un personnage objectif peut recevoir un indicateur discret lorsqu'il apparaît en bannière.
+- `DIRECTION VALIDÉE` — Un objectif atteint est automatiquement considéré comme terminé/retiré et peut générer une notification.
+- `À CONCEVOIR` — Écran Objectifs, catégories exactes, limites et historique.
 
 ## Bannière / invocation
 - `VALIDÉ` — Une seule bannière active est présentée dans la nouvelle interface ; pas de sélecteur Permanent/Temporaire.

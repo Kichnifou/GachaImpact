@@ -297,28 +297,84 @@ Le legacy ne permet pas de reconstruire un historique détaillé complet.
 - 10 résultats par page dans l'UI ;
 - pas de purge automatique annuelle par défaut.
 
-## 5. À auditer ensuite
+## 5. Box / possessions de personnages
 
-Prochain bloc prévu :
-- Box / possessions de personnages
-- équipe active
-- options
-- missions
-- autres statistiques
+### Relation de possession
 
-Puis :
+Cible conceptuelle :
+- une seule possession par `playerId + characterId`.
+
+Données portées par la possession :
+- `characterId` ;
+- `constellation` ;
+- `copies` ;
+- `firstObtainedAt` ;
+- favori ;
+- provenance de la date de première obtention si nécessaire pour la migration.
+
+Le nom, élément, rareté et assets viennent du catalogue personnage.
+
+### `constellation`
+
+- entier métier C0..C6 ;
+- ne dépasse jamais 6.
+
+### `copies`
+
+- nombre de copies réelles ou synthétiques obtenues ;
+- continue à augmenter après C6 ;
+- une Stella utilisée sur un 5★ incrémente désormais `copies`.
+
+Migration :
+`copiesCible = max(copiesLegacy, constellation + 1)`
+
+### `firstObtainedAt`
+
+- première acquisition du personnage ;
+- immuable après création de la possession ;
+- doublons et Stella ne la remplacent pas.
+
+Migration :
+- date valide → conserver ;
+- date absente/invalide → timestamp de migration ;
+- conserver intérieurement que la valeur vient d'un fallback.
+
+### Favori
+
+Cible :
+- propriété liée à une possession existante ;
+- aucun favori sans possession ;
+- favoris legacy orphelins ignorés côté possession et signalés dans le rapport d'import.
+
+### Personnage désactivé
+
+La possession reste conservée côté serveur.
+
+Côté joueur :
+- personnage totalement masqué et inutilisable ;
+- exclu de Box, Personnages, Team, Expedition, Combat, votes et statistiques visibles.
+
+Les anciennes références historiques restent conservées.
+
+### Possession non résolue
+
+Si le `characterId` n'existe pas dans le catalogue au cutover :
+- conserver la possession ;
+- masquer côté joueur ;
+- signaler dans le rapport d'import ;
+- permettre un rattachement futur.
+
+## 6. À auditer ensuite
+
+Prochains blocs :
+- équipe active ;
+- teams sauvegardées ;
 - options ;
 - missions ;
-- stats ;
-- dates ;
-- codes ;
-- faveur ;
-- coffre ;
-- objets spéciaux ;
+- autres statistiques ;
 - combat ;
 - expédition ;
-- missions longues ;
 - banque ;
-- favoris ;
-- équipes sauvegardées ;
-- données joueur réparties dans les autres JSON.
+- coffre ;
+- objets spéciaux ;
+- autres données joueur réparties dans les JSON.

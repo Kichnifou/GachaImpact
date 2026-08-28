@@ -210,3 +210,46 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Stats futures :** Early/Back-to-back/Hard et autres métriques dérivables depuis l'historique
 - **Arrondi Pyro/Geo :** entier le plus proche, `.5` vers le haut
 - **Interactions reportées :** chaque Pull individuel contribue aux éventuelles missions de type `pulls`, mais les règles et récompenses Missions appartiennent au domaine Missions ; règles Concours détaillées reportées au domaine Concours/C6
+
+## `!box`
+- **Statut audit :** Audit Box en cours — R117 à R143 validées
+- **But :** Consulter et organiser les personnages possédés.
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui
+- **Bouton UI équivalent :** écran Box complet
+- **Données principales :** possessions joueur, catalogue personnage, favoris, préférences de tri
+- **Sous-commandes legacy conservées côté texte :** `!box`, `!box 5`, `!box 4`, `!box 6`, `!box <élément>`, `!box pN`, `!box favoris`, tris textuels
+- **UI standalone :** onglets Tous / 5★ / 4★, grille, recherche, filtres et tri
+- **Favoris UI :** toujours avant les non-favoris ; pas de limite
+- **Tri UI persistant :** alphabétique, date d'obtention, constellation, élément
+- **Filtres/onglet :** non persistants
+- **Présentation Twitch :** peut conserver le comportement legacy différent de l'UI, notamment `!box favoris`
+- **Données dérivées :** taille Box, nombre de C6 et total copies
+- **Personnage désactivé :** invisible/inutilisable côté joueur
+
+## `!obtention`
+- **Statut audit :** Audité dans le Domaine Box
+- **But :** Afficher la date de première obtention d'un personnage possédé.
+- **Syntaxe :** `!obtention <personnage>`
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui
+- **Bouton UI équivalent :** aucune commande dédiée nécessaire ; information intégrée à la fiche du personnage dans Box
+- **Données lues :** possession, `firstObtainedAt`, catalogue personnage
+- **Données écrites :** aucune
+- **Décision cible :** la première date est immuable ; date legacy absente/invalide → fallback à la date de migration, traçable intérieurement
+
+## `!stella`
+- **Statut audit :** Audit Box en cours — règles Stella R119/R127/R128/R129 validées
+- **But :** Utiliser une Masterless Stella Fortuna comme copie synthétique sur un personnage 5★ possédé.
+- **Disponible chat GachaImpact :** oui, syntaxe exacte à conserver/confirmer lors de la finalisation du domaine
+- **Disponible Twitch :** oui
+- **UI équivalente :** action future depuis l'inventaire/fiche appropriée, UX à définir
+- **Préconditions cible :** personnage possédé, rareté 5★, Stella disponible
+- **Sous C6 :** `copies +1` et `constellation +1`
+- **Passage C6 :** initialise le système Concours du 5★
+- **Déjà C6 :** `copies +1` + progression Concours
+- **4★ :** utilisation interdite
+- **Stats Concours toutes max :** utilisation refusée avant consommation
+- **Remboursement Primogemmes :** aucun remboursement C6+ via Stella
+- **Atomicité :** vérification, consommation et progression doivent former une seule transaction
+- **Bug legacy corrigé :** `Stella.txt` n'incrémente actuellement pas `copies` et autorise des 4★ sous C6
