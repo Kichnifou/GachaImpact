@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.16
+Version : 0.17
 Date : 2026-08-28
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -539,15 +539,68 @@ Vote Gacha :
 - une fois le vote utilisé, afficher clairement le choix du joueur pour la semaine.
 
 ## 6.3 Équipe
-But :
-- 4 slots actifs ;
-- hover PC / tap mobile ;
-- actions :
-  - Fiche
-  - Changer
-  - Retirer
-  - Ajouter si slot vide
-- possibilité future d'afficher passifs/synergies.
+
+Équipe active :
+- de 0 à 4 personnages ;
+- aucun doublon ;
+- l'ordre des personnages est visuel et sans effet gameplay ;
+- les domaines consommateurs peuvent imposer leurs propres conditions, par exemple Combat 4/4.
+
+UI :
+- la sidebar/colonne gauche affiche l'équipe active ;
+- l'écran Équipe contient l'équipe active et la gestion des équipes sauvegardées ;
+- les personnages peuvent être ajoutés, retirés, remplacés et réordonnés ;
+- les passifs actifs sont visibles ;
+- une fiche personnage reste accessible.
+
+Saved Teams :
+- 10 emplacements permanents de base ;
+- les 10 premiers ne peuvent jamais être supprimés ;
+- ils peuvent être vidés ;
+- au-delà de 10, création d'autant d'équipes supplémentaires que souhaité ;
+- un contrôle `+` permet d'ajouter une équipe supplémentaire ;
+- les équipes >10 sont supprimables depuis l'UI ;
+- Twitch/chat peut uniquement les vider ;
+- suppression d'une équipe supplémentaire → compactage des numéros visibles suivants.
+
+Composition :
+- une composition complète contient 4 personnages ;
+- une Saved Team peut exister vide ou temporairement incomplète dans l'UI pendant son édition ;
+- une même combinaison de quatre personnages ne peut exister qu'une seule fois ;
+- l'ordre des quatre personnages ne différencie pas deux compositions ;
+- les doublons sont également bloqués côté Twitch/chat.
+
+Noms :
+- facultatifs ;
+- espaces et accents autorisés ;
+- maximum cible 20 caractères ;
+- noms identiques autorisés.
+
+Passifs :
+- dérivés de la composition ;
+- aperçu sur l'équipe active et les Saved Teams ;
+- valeurs déjà définies par le Domaine Gacha.
+
+Équipe active publique :
+- consultable depuis le profil d'un autre joueur si les permissions le permettent ;
+- visible même hors ligne ;
+- Saved Teams privées ;
+- personnages de l'équipe publique ouvrables via la fiche publique commune Box/Personnages.
+
+Désactivation personnage :
+- équipe active → retirer uniquement le personnage ;
+- Saved Team 1..10 contenant ce personnage → vider toute la composition ;
+- Saved Team >10 contenant ce personnage → supprimer l'équipe supplémentaire ;
+- aucune restauration automatique à la réactivation.
+
+Direction UX d'activation :
+- la liste des équipes possède un sélecteur exclusif ;
+- une seule équipe peut être active à la fois ;
+- sélectionner une équipe met immédiatement à jour la sidebar ;
+- l'équipe active reste à sa position dans la liste et reçoit une mise en évidence visuelle.
+
+À clarifier :
+- interaction exacte entre cette sélection d'une Saved Team comme équipe active et la règle d'indépendance après application validée en R186.
 
 ## 6.4 Sac
 But :
@@ -1616,6 +1669,7 @@ Sous `docs/` :
 - `legacy/05-element-resources-audit.md`
 - `legacy/06-gacha-invocation-audit.md`
 - `legacy/07-box-possession-obtention-audit.md`
+- `legacy/08-team-audit.md`
 - `specifications/decisions-log.md`
 - `commands/command-reference.md`
 - `roadmap/development-roadmap.md`
@@ -1841,23 +1895,37 @@ Idées transverses découvertes :
 - confidentialité joueur transversale à spécifier avec Paramètres / Social / Permissions ;
 - profil Twitch-only rattachable ultérieurement au compte web via Twitch User ID.
 
-Cinquième domaine à auditer :
+Cinquième domaine actif :
 **Team**
 
-Objectifs initiaux :
-- équipe active ;
-- nombre et règles des slots ;
-- ajout / retrait / remplacement ;
-- teams sauvegardées ;
-- renommage / application / suppression ;
-- validation des personnages possédés et actifs ;
-- doublons éventuels ;
-- interactions avec passifs ;
-- comportement lorsqu'un personnage est désactivé ;
-- présentation UI et commandes Twitch/chat ;
-- dépendances avec Combat, Expedition et autres domaines.
+Document :
+`docs/legacy/08-team-audit.md`
 
-Le document spécialisé sera créé au démarrage de cette passe.
+Statut :
+**EN COURS — R177 À R196 VALIDÉS — PREMIÈRE PASSE TRÈS AVANCÉE**
+
+Décisions principales :
+- R177 : équipe active 0..4 ;
+- R178 : aucun doublon personnage ;
+- R179 : composition complète 4/4 pour sauvegarde Twitch / application complète ;
+- R180/R183/R184 : 10 emplacements permanents + extensions illimitées, distinction vider/supprimer ;
+- R181/R195 : ordre uniquement visuel mais conservé ;
+- R182 : noms facultatifs, espaces/accents, max 20 caractères ;
+- R185 : règles de désactivation différentes pour active / slots 1..10 / slots >10 ;
+- R186 : direction d'indépendance preset/active validée, à réconcilier avec l'UX R192 ;
+- R187 : compactage des numéros après suppression d'une équipe supplémentaire ;
+- R188 : passifs visibles et dérivés ;
+- R189 : équipe active potentiellement publique selon confidentialité ;
+- R190 : Saved Teams privées ;
+- R191 : édition directe des Saved Teams dans l'UI ;
+- R192 : sélecteur exclusif d'équipe active et mise à jour immédiate de la sidebar ;
+- R193/R194 : compositions Saved Teams uniques et doublons bloqués UI/chat/Twitch ;
+- R196 : fiche publique personnage accessible depuis l'équipe publique.
+
+Prochaine priorité :
+- clarifier l'interaction R186/R192 ;
+- poursuivre les comportements UI et commandes Team ;
+- vérifier les consommateurs et la migration legacy.
 
 Ordre recommandé :
 
@@ -2212,38 +2280,40 @@ Domaines clôturés :
 - `docs/legacy/06-gacha-invocation-audit.md` — Gacha / Invocation : **CLÔTURÉ** ;
 - `docs/legacy/07-box-possession-obtention-audit.md` — Box / Possessions / Obtention : **CLÔTURÉ**.
 
-Domaine Box :
-- R117 à R176 validées ;
-- modèle conceptuel de possession finalisé ;
-- copies / constellation / première obtention finalisées ;
-- comportement Stella finalisé ;
-- favoris / tri / filtres finalisés ;
-- Box personnelle/publique cadrée ;
-- confidentialité intégrée conceptuellement ;
-- désactivation/réactivation cadrée ;
-- migration Box cadrée ;
-- service central de possession validé ;
-- dernière passe croisée `Box.txt` / `Obtention.txt` / `Stella.txt` / `Infos.txt` / consommateurs effectuée ;
-- aucun autre mutateur métier majeur de possession identifié.
+Domaine actif :
+- `docs/legacy/08-team-audit.md` — Team : **EN COURS — R177 À R196 VALIDÉS**.
 
-**Prochaine étape unique : démarrer le Domaine 5 — Team en lisant intégralement les scripts legacy liés à l'équipe active et aux teams sauvegardées avant de prendre de nouvelles décisions.**
+Team déjà cadré :
+- équipe active 0..4 ;
+- aucun doublon ;
+- 10 emplacements permanents ;
+- extensions illimitées ;
+- vidage/suppression différenciés ;
+- noms modernisés ;
+- ordre visuel ;
+- édition directe UI ;
+- passifs dérivés ;
+- Saved Teams privées ;
+- équipe active publique selon confidentialité ;
+- règles de désactivation ;
+- compositions dupliquées interdites ;
+- sélection exclusive d'une équipe comme active dans l'UI.
 
-Document spécialisé à créer au démarrage :
-`docs/legacy/08-team-audit.md`
+**Prochaine étape unique : reprendre le Domaine Team en clarifiant d'abord l'interaction entre R186 et R192, puis poursuivre la dernière partie des règles de gestion/commandes/consommateurs avant migration et clôture.**
 
-Priorités :
-1. auditer la vraie structure de l'équipe active ;
-2. vérifier les quatre slots et les validations de possession ;
-3. auditer ajout / retrait / remplacement ;
-4. auditer les teams sauvegardées ;
-5. vérifier noms, limites, renommage, application et suppression ;
-6. vérifier la prévention des doublons ;
-7. inventorier les passifs dépendant de la Team ;
-8. vérifier les interactions avec personnage désactivé ;
-9. séparer ce qui appartient à Team de ce qui appartient à Combat ou Expedition ;
-10. préparer la partie Team du futur modèle de données.
+À vérifier ensuite :
+1. relation exacte Saved Team sélectionnée ↔ équipe active après modification ;
+2. comportements d'une équipe vide/incomplète ;
+3. dernières syntaxes `!team` à conserver/adapter ;
+4. `!passifs` ;
+5. interactions Expedition ;
+6. autres consommateurs de l'équipe active ;
+7. migration `team` et `savedTeams` ;
+8. anomalies legacy évidentes ;
+9. éventuelles dernières données Team ;
+10. critères de clôture du Domaine 5.
 
-Ne pas implémenter le backend avant cet audit.
+Ne pas figer le schéma SQL exact avant la fin de l'audit Team.
 
 ---
 
@@ -2358,4 +2428,4 @@ Décisions clés :
 - suivi quotidien UI prévu dans le bloc bas gauche avec chevrons compacts.
 
 Prochaine étape :
-poursuivre l'audit Box / Possessions / Obtention par l'analyse des anomalies réelles des données legacy et des scripts qui mutent les possessions.
+poursuivre le Domaine Team après R196, en commençant par clarifier l'interaction R186/R192 puis les derniers comportements, consommateurs et règles de migration.

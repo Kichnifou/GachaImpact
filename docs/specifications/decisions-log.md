@@ -327,6 +327,28 @@ Statut : évolutif.
 - `VALIDÉ` — La bannière legacy active devient la première entrée d'historique avec origine `import legacy`, sans inventer les informations inconnues.
 - `CLÔTURÉ` — Domaine Gacha / Invocation clôturé après R116.
 
+## Team
+- `VALIDÉ` — L'équipe active contient de 0 à 4 personnages.
+- `VALIDÉ` — Aucun même personnage ne peut apparaître deux fois dans une composition.
+- `VALIDÉ` — Une composition complète contient 4 personnages ; Twitch exige 4/4 pour sauvegarder.
+- `VALIDÉ` — Dix emplacements d'équipe permanents sont fournis de base.
+- `VALIDÉ` — Les dix premiers emplacements ne peuvent jamais être supprimés, seulement vidés/modifiés.
+- `VALIDÉ` — Des équipes supplémentaires peuvent être créées sans plafond métier au-delà de 10.
+- `VALIDÉ` — Les équipes supplémentaires sont supprimables uniquement depuis l'UI ; Twitch/chat les vide sans supprimer l'emplacement.
+- `VALIDÉ` — Supprimer une équipe supplémentaire compacte les numéros d'affichage suivants.
+- `VALIDÉ` — L'ordre des personnages est visuel et ne change pas l'identité d'une composition.
+- `VALIDÉ` — Le nom d'une équipe est facultatif, accepte espaces/accents et vise 20 caractères maximum.
+- `VALIDÉ` — Les Saved Teams peuvent être éditées directement depuis l'UI.
+- `VALIDÉ` — Une même combinaison de quatre personnages ne peut exister que dans une seule Saved Team.
+- `VALIDÉ` — UI et Twitch/chat empêchent la création d'une composition Saved Team dupliquée.
+- `VALIDÉ` — Les passifs sont dérivés de la composition et visibles sur l'équipe active ainsi qu'en aperçu sur les Saved Teams.
+- `VALIDÉ` — Une Saved Team reste privée ; seule l'équipe active peut être exposée sur le profil selon confidentialité.
+- `VALIDÉ` — L'équipe active reste consultable hors ligne si les permissions l'autorisent.
+- `VALIDÉ` — Un personnage d'une équipe publique ouvre la même fiche publique que depuis la Box.
+- `VALIDÉ` — Désactivation personnage : retrait de l'équipe active ; slot 1..10 contenant ce personnage entièrement vidé ; équipe >10 entièrement supprimée ; aucune restauration automatique.
+- `VALIDÉ` — Direction UI : un seul sélecteur d'équipe active ; activer une ligne désactive l'ancienne, met à jour immédiatement la sidebar et ne déplace pas la ligne.
+- `À PRÉCISER` — Réconcilier la notion de copie indépendante R186 avec le sélecteur d'équipe active R192 lors de la prochaine passe.
+
 ## Notifications
 - `VALIDÉ` — Toute notification doit pouvoir être supprimée manuellement par le joueur via une petite croix affichée au survol.
 - `VALIDÉ` — Les notifications lues qui n'ont pas été supprimées manuellement sont nettoyées automatiquement au reset serveur quotidien.

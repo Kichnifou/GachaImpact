@@ -397,7 +397,69 @@ La visibilité publique dépend du futur système de confidentialité :
 
 Les contrôles de permissions sont appliqués côté serveur.
 
-## 6. À auditer ensuite
+## 6. Team
+
+### Équipe active
+
+Cible conceptuelle :
+- 0 à 4 personnages ;
+- références vers des personnages possédés et actifs ;
+- aucune duplication d'un même personnage ;
+- ordre conservé pour présentation ;
+- ordre sans effet gameplay actuellement.
+
+Les passifs sont dérivés de cette équipe active et ne constituent pas un état indépendant.
+
+### Saved Teams
+
+Direction cible :
+- 10 emplacements permanents de base ;
+- possibilité de créer des emplacements supplémentaires sans plafond métier ;
+- les 10 premiers ne sont pas supprimables ;
+- les équipes >10 sont supprimables dans l'UI ;
+- un emplacement peut exister vide ou temporairement incomplet pendant son édition ;
+- une composition complète contient 4 personnages.
+
+Chaque équipe possède conceptuellement :
+- une identité interne indépendante de son numéro affiché ;
+- une position/numéro d'affichage ;
+- un nom facultatif ;
+- une liste ordonnée de personnages ;
+- les éventuelles métadonnées historiques utiles comme `savedAt`.
+
+Ne pas figer les tables SQL exactes avant Phase 2.
+
+### Unicité des compositions
+
+Deux Saved Teams complètes ne peuvent pas contenir la même combinaison de personnages.
+
+L'ordre n'entre pas dans cette comparaison.
+
+### Personnage désactivé
+
+- équipe active → retirer le personnage ;
+- Saved Team 1..10 concernée → vider toute sa composition ;
+- Saved Team >10 concernée → supprimer cet emplacement ;
+- réactivation sans restauration automatique.
+
+### Visibilité
+
+- équipe active potentiellement publique selon confidentialité ;
+- Saved Teams privées ;
+- équipe publique consultable hors ligne ;
+- fiches personnages accessibles selon les mêmes permissions que la Box.
+
+### UX d'activation
+
+Direction validée :
+- une seule équipe sélectionnée active ;
+- changement de sélection → mise à jour immédiate de l'équipe affichée en sidebar ;
+- la ligne active ne change pas de position.
+
+À préciser :
+- interaction exacte entre ce sélecteur et la règle R186 d'indépendance entre preset et équipe active.
+
+## 7. À auditer ensuite
 
 Prochains blocs :
 - équipe active ;

@@ -260,3 +260,38 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Remboursement Primogemmes :** aucun remboursement C6+ via Stella
 - **Atomicité :** vérification, consommation et progression doivent former une seule transaction
 - **Bug legacy corrigé :** `Stella.txt` n'incrémente actuellement pas `copies` et autorise des 4★ sous C6
+
+## `!team`
+- **Statut audit :** Audit Team en cours — R177 à R196 validées
+- **But :** Consulter/modifier l'équipe active et gérer les équipes sauvegardées.
+- **Syntaxes legacy principales :** `!team`, `!team help`, `!team add <nom>`, `!team remove <nom>`, `!team remove all`, `!team save`, `!team save <N>`, `!team <N>`, `!team <N> apply`, `!team <N> remove`, `!team <N> rename "Nom"`
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui
+- **UI équivalente :** écran Équipe complet
+- **Équipe active :** 0 à 4 personnages, sans doublon
+- **Matching personnage texte :** nom exact après normalisation casse/accents
+- **Saved Teams de base :** 10 emplacements permanents
+- **Saved Teams supplémentaires :** création illimitée au-delà de 10
+- **Suppression UI :** uniquement équipes >10
+- **Twitch/chat remove :** vide l'équipe, ne supprime pas physiquement l'emplacement
+- **Nom :** facultatif, espaces/accents autorisés, cible 20 caractères
+- **Composition dupliquée :** interdite, ordre des personnages ignoré pour la comparaison
+- **Ordre :** conservé visuellement mais sans effet gameplay
+- **Passifs :** dérivés de la composition ; maximum deux stacks par élément selon les règles Gacha validées
+- **Saved Teams :** privées
+- **Équipe active :** potentiellement publique selon les permissions Public / Amis / Privé
+- **UI :** Saved Teams directement éditables ; sélecteur exclusif d'équipe active ; sidebar mise à jour immédiatement
+- **Point restant :** interaction précise R186/R192 à définir
+- **Personnage désactivé :** retrait active ; équipe 1..10 concernée vidée ; équipe >10 concernée supprimée
+- **Interactions :** Box/Possession, Passifs, Gacha, Combat, Expedition, confidentialité
+
+## `!passifs`
+- **Statut audit :** Lu dans le Domaine Team — règles générales déjà liées au Domaine Gacha
+- **But :** Afficher la table générale des passifs élémentaires et leur détail par élément.
+- **Données joueur lues :** aucune
+- **Données écrites :** aucune
+- **Disponible chat GachaImpact :** à conserver
+- **Disponible Twitch :** oui
+- **UI équivalente :** présentation contextuelle des passifs dans l'écran Team, avec possibilité de détail
+- **Source métier :** règles de passifs validées dans le Domaine Gacha R75–R84
+- **Différence avec `!team` :** `!passifs` décrit les règles générales ; Team calcule les passifs réellement actifs pour une composition
