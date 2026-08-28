@@ -1,7 +1,7 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.10
-Date : 2026-08-27  
+Version : 0.11
+Date : 2026-08-28 
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
@@ -253,35 +253,71 @@ Décisions générales notifications :
 
 # 4. ÉCRAN INVOCATION — DIRECTION VISUELLE VALIDÉE
 
-L'écran Invocation est désormais proche du rendu souhaité.
+Le prototype visuel constitue une base UX, mais n'est jamais une source de vérité métier.
 
-Direction actuelle :
+Direction principale :
+- un seul type de bannière active ;
+- rotation hebdomadaire ;
+- 4 personnages 5★ ;
+- 6 personnages 4★ ;
+- cible 5★ personnelle obligatoire avant Invocation.
+
+## 4.1 État sans cible
+
+Après une nouvelle rotation :
+- l'ancienne cible est vidée ;
+- présenter les 4 personnages 5★ disponibles ;
+- le joueur choisit celui qu'il souhaite cibler ;
+- aucune sélection automatique à sa place.
+
+Direction UX :
+- présentation visuelle des quatre choix ;
+- inspiration possible des écrans de sélection des bannières nostalgiques de Genshin ;
+- ne pas copier aveuglément le jeu d'origine.
+
+## 4.2 État avec cible
+
+Après sélection :
 - grande bannière visuelle ;
-- artwork personnage très grand ;
+- artwork très grand du personnage ciblé ;
 - artwork intégré comme fond/composition ;
-- texte au-dessus de l'artwork ;
-- gradient sombre pour conserver la lisibilité ;
-- nom du personnage vedette affiché ;
-- rareté affichée avec étoiles ;
-- zone basse contenant :
-  - Pity 5★ ;
-  - Pity 4★ ;
-  - Garantie 5★ ;
-  - Brillance ;
-  - Invocation x1 ;
-  - Invocation x10.
+- texte et gradient adaptés à la lisibilité ;
+- nom et rareté du personnage ciblé ;
+- bouton `Changer` permettant de rouvrir la sélection à tout moment ;
+- les 6 personnages 4★ actifs restent visibles, par exemple via de petites vignettes/portraits en bas ;
+- pity 5★ ;
+- pity 4★ ;
+- garantie 5★ ;
+- Capture de brillance ;
+- Invocation x1 ;
+- Invocation x10.
 
-Décisions importantes :
-- ne plus afficher de sélecteur Permanent / Temporaire ;
-- il n'y aura qu'un type de bannière active dans le jeu final ;
-- ne pas afficher "Bannière permanente" ;
-- la mention "Version de développement" a été supprimée ;
-- les petits blocs séparés "Capture de brillance", "Coût d'une invocation", "Garantie actuelle" ont été supprimés ;
-- les informations utiles ont été intégrées au panneau principal.
+Décisions :
+- aucun sélecteur Permanent / Temporaire ;
+- aucune « Bannière permanente » ;
+- coût : 160 Primogemmes par Pull ;
+- x10 = 1 600 Primogemmes, sans remise.
 
-À corriger plus tard côté logique :
-- la mention "Disponible en permanence" est héritée du prototype et ne correspond pas forcément au vrai fonctionnement final ;
-- la bannière réelle sera liée au système hebdomadaire / sélection / vote.
+## 4.3 Animation d'Invocation
+
+Standalone :
+- le serveur calcule et persiste le Pull avant toute animation ;
+- l'animation ne décide jamais du résultat ;
+- séquence de lancement ;
+- signal visuel de rareté ;
+- doré si le résultat/x10 contient au moins un 5★ ;
+- révélation résultat par résultat ;
+- 5★ avec présentation plus spectaculaire ;
+- skip possible ;
+- récapitulatif final.
+
+Twitch/chat :
+- aucune animation ;
+- restitution textuelle rapide résultat par résultat ;
+- même résultat métier serveur.
+
+Référence d'intention visuelle :
+`https://www.youtube.com/watch?v=Zea_pd2AXEY`
 
 ---
 
@@ -801,6 +837,18 @@ Moras :
 Données dérivées :
 - ne pas persister des valeurs comme le nombre d'invocations possibles si elles peuvent être calculées depuis le solde et le coût courant.
 
+Catégories conceptuelles :
+- ressources cœur : Primogemmes, Moras portefeuille, sept particules ;
+- solde spécifique : Banque ;
+- ressources/objets spéciaux : ex. Masterless Stella Fortuna ;
+- ressources temporaires/scopées : monnaies d'Events ;
+- collections/inventaire : Coffre et autres objets.
+
+Frontières de responsabilité :
+- tous les domaines utilisent la logique centrale Ressources pour modifier un solde ;
+- chaque domaine reste propriétaire de ses propres montants, probabilités et conditions ;
+- le moteur Ressources ne doit pas devenir un monolithe connaissant toutes les règles du jeu.
+
 ## 13.5 Récompense quotidienne
 Décision V1 validée :
 - +160 primogemmes ;
@@ -908,35 +956,98 @@ Pour un personnage possédé :
 
 ---
 
-# 17. SYSTÈME DE BANNIÈRE / GACHA — CONCEPT ACTUEL
+# 17. SYSTÈME DE BANNIÈRE / GACHA — AUDIT EN COURS
 
-Le système s'inspire fortement de Genshin Impact.
+Document spécialisé :
+`docs/legacy/06-gacha-invocation-audit.md`
 
-Concept connu :
-- une bannière hebdomadaire propose plusieurs personnages 5★ ;
-- le joueur doit sélectionner un personnage cible avant de pull ;
-- `selectedBannerCharacterId` semble correspondre à cette cible personnelle ;
-- les joueurs peuvent voter chaque semaine pour influencer la bannière future ;
-- pity 5★ ;
-- pity 4★ ;
+Sources principales :
+- `Banniere.txt`
+- `Select.txt`
+- `Pull.txt`
+- `Pity.txt`
+- `Vote.txt`
+- génération hebdomadaire présente dans `XP.txt`
+- `banner_votes.json`
+- `genshin_characters.json`
+- `viewers_data.json`
+
+Correction importante :
+- `Wish.txt` ne fait pas partie du Gacha ;
+- il appartient au Giveaway Twitch ;
+- il reste dans le legacy et sera audité plus tard avec les commandes Twitch de giveaway.
+
+## Bannière
+
+Décisions R54–R59 :
+- rotation automatique chaque lundi à 00:00 `Europe/Paris` ;
+- 4 personnages 5★ + 6 personnages 4★ ;
+- aucun personnage 5★ ou 4★ deux semaines consécutives ;
+- 3 des 5★ sont tirés aléatoirement ;
+- le 4e dépend du vote communautaire pondéré ;
+- fallback aléatoire si aucun vote exploitable ;
+- un vote définitif par joueur/semaine ;
+- cible personnelle obligatoire parmi les quatre 5★ ;
+- changement de cible libre ;
+- ancienne cible vidée à chaque rotation.
+
+## Pull / Pity
+
+Décisions R60–R65 :
+- 160 Primogemmes par Pull ;
+- UI x1/x10, aucune remise ;
+- chat/Twitch 1 à 10 pulls ;
+- pity 5★ : 0,6 % jusqu'à 73, soft pity +6 points/pull à partir de 74, garantie à 90 ;
+- pity 4★ : 1,5 % jusqu'à 8, 19,5 % au 9e, garantie à 10 ;
+- priorité du 5★ lorsque les deux jets réussissent ;
+- obtenir un 5★ ne reset pas la pity 4★ ;
+- pity/garantie/Capture traversent les rotations et changements de cible ;
+- sans personnage : 50 % Moras 5k–15k ou 50 % particules 20–80 d'un élément aléatoire.
+
+## Catalogue personnages automatique
+
+Direction validée :
+- synchronisation externe périodique automatique ;
+- pas de validation manuelle obligatoire à chaque nouveau personnage ;
+- job séparé des resets critiques du jeu ;
+- ne pas importer un personnage incomplet ou non encore réellement sorti ;
+- vérifier la date de release ;
+- rareté et élément notamment obligatoires ;
+- croiser plusieurs sources avec priorité à la confirmation officielle ;
+- rechercher les équivalents/localisations françaises ;
+- personnage importé correctement -> apparaît naturellement dans l'écran Personnages ;
+- ne jamais inventer les champs propres à GachaImpact à partir d'une source externe.
+
+Sources actuelles à revalider lors de l'implémentation :
+1. annonces officielles / archives fiables d'annonces officielles pour confirmer la sortie ;
+2. Honey Hunter live / autres bases structurées récentes pour les détails ;
+3. Gachabase en excluant strictement les données bêta pour confirmer une sortie ;
+4. `genshin-db` / API pour données structurées et multilingues lorsqu'il est à jour sur la version courante.
+
+## Administration
+
+Prévoir une vue Admin/Modérateur permettant notamment :
+- gestion/correction du catalogue personnages ;
+- suppression/désactivation rapide d'un import incorrect ;
+- ajout manuel exceptionnel ;
+- corrections de ressources ;
+- corrections de possessions/personnages ;
+- actions sur un ou plusieurs joueurs ;
+- permissions fortes ;
+- journalisation des actions sensibles.
+
+## Prochaine passe Gacha
+
+À auditer :
+- 50/50 ;
+- perte du 50/50 ;
 - garantie ;
-- Capture de brillance avec compteur /3 ;
-- pulls x1 et x10.
-
-À auditer ensemble via :
-- Banniere.txt
-- Select.txt
-- Pull.txt
-- Pity.txt
-- Vote.txt
-- Wish.txt
-- banner_votes.json
-- genshin_characters.json
-- viewers_data.json
-
-Important :
-ces commandes ne doivent probablement pas devenir six services indépendants.
-Elles représentent un **domaine fonctionnel commun : Gacha / Invocation**.
+- `fiftyFiftyLostStreak` ;
+- Capture de brillance ;
+- interactions entre ces systèmes ;
+- multi-pull contenant plusieurs 5★ ;
+- passifs affectant le Pull ;
+- doublons/C6 ensuite.
 
 ---
 
@@ -1044,6 +1155,7 @@ Sous `docs/` :
 - `legacy/03-command-data-matrix.md`
 - `legacy/04-xp-audit.md`
 - `legacy/05-element-resources-audit.md`
+- `legacy/06-gacha-invocation-audit.md`
 - `specifications/decisions-log.md`
 - `commands/command-reference.md`
 - `roadmap/development-roadmap.md`
@@ -1153,9 +1265,9 @@ Statut : **CLÔTURÉ le 2026-08-27**.
 
 Deuxième domaine : Élément / ressources / conversion / échanges.
 Document : `docs/legacy/05-element-resources-audit.md`.
-Statut : **EN COURS**.
+Statut : **CLÔTURÉ le 2026-08-28**.
 
-Décisions déjà validées :
+Décisions validées :
 - R1 conversion 1:1 ;
 - R2 seules les particules personnelles sont directement convertibles ;
 - R3 conversion manuelle ;
@@ -1188,13 +1300,34 @@ Décisions déjà validées :
 - R33 à R38 définitions statistiques économiques / journalisation / soldes sources de vérité : validés ;
 - R39 à R44 invariants économiques / atomicité / idempotence / automatisation serveur / stats dérivées : validés ;
 - R45 à R50 visibilité joueur / données dérivées / portefeuille-banque / synchronisation UI : validés ;
+- R51 à R53 catégorisation des ressources / moteur central partagé / responsabilités des domaines : validés ;
 - réconciliation immédiate des demandes après toute modification de stock ;
 - expiration des demandes au reset serveur 00:00 `Europe/Paris` ;
 - annulation/refus des demandes ;
 - écran UI reçues/envoyées ;
 - notification agrégée pour les demandes reçues.
-Sous-domaine `Echanger.txt` : **FINALISÉ**.
 
+Domaine Élément / Ressources / Conversion / Échanges : **CLÔTURÉ**.
+
+Troisième domaine actif : Gacha / Invocation.
+Document : `docs/legacy/06-gacha-invocation-audit.md`.
+Statut : **EN COURS**.
+Décisions validées :
+- R54 rotation automatique hebdomadaire ;
+- R55 composition 4×5★ + 6×4★ ;
+- R56 exclusion de la bannière précédente pour 5★ et 4★ ;
+- R57 vote communautaire pondéré ;
+- R58 un vote définitif par semaine ;
+- R59 sélection personnelle + reset de cible à la rotation ;
+- R60 coût / x1 / x10 ;
+- R61 pity 5★ ;
+- R62 pity 4★ ;
+- R63 priorité 5★ ;
+- R64 carry pity/garantie/Capture ;
+- R65 récompenses secondaires ;
+- direction animation UI validée ;
+- direction synchronisation automatique catalogue validée ;
+- direction vue Admin/Modérateur validée.
 
 Ordre recommandé :
 
@@ -1206,7 +1339,6 @@ Ordre recommandé :
    - Pull
    - Pity
    - Vote
-   - Wish
 4. Box / Obtention / Liste
 5. Team
 6. Banque
@@ -1218,6 +1350,11 @@ Ordre recommandé :
 12. Concours / C6
 13. Event / monthly
 14. autres utilitaires
+15. Twitch / Giveaway :
+   - `Wish.txt`
+   - `giveaway.json`
+   - autres commandes/triggers Twitch de giveaway à identifier ;
+   - non prioritaire pour le cœur standalone mais à ne pas oublier avant la fin de l'audit.
 
 ---
 
@@ -1534,39 +1671,34 @@ git status
 
 # 38. PROCHAINE ÉTAPE EXACTE
 
-Le premier domaine détaillé de la Phase 1D est maintenant clôturé :
+Domaines clôturés :
+- `docs/legacy/04-xp-audit.md` — XP / cycle de vie joueur : **CLÔTURÉ** ;
+- `docs/legacy/05-element-resources-audit.md` — Élément / Ressources / Conversion / Échanges : **CLÔTURÉ**.
 
-- `docs/legacy/04-xp-audit.md` : **CLÔTURÉ** ;
-- Q1 à Q9 : traités/validés selon leur statut ;
-- responsabilités hors XP reportées vers les audits dédiés.
-
-Le travail actif est désormais le deuxième domaine :
-
-**Élément / ressources / conversion / échanges**
+Domaine actif :
+**Gacha / Invocation**
 
 Document :
-`docs/legacy/05-element-resources-audit.md`
+`docs/legacy/06-gacha-invocation-audit.md`
 
 État :
-1. `Element.txt` : lecture initiale effectuée ;
-2. `Convertir.txt` : lecture initiale effectuée ;
-3. `Echanger.txt` : lecture initiale effectuée ;
-4. R1 à R4 — conversion : validés ;
-5. R5 à R9 — principes d'échange initiaux : validés ;
-6. R10 à R27 — réservation, montant dynamique, acceptation, découverte partenaires, historique, migration, identité et notifications : validés ;
-7. expiration serveur des demandes : validée ;
-8. UI reçues/envoyées + annulation/refus/MAX/Accepter tout : direction validée ;
-9. notification agrégée dynamique des demandes reçues : validée ;
-10. historique serveur complet des échanges : validé ; affichage UI limité aux 20–30 transactions récentes ;
-11. demandes legacy ouvertes : non migrées au cutover ;
-12. sous-domaine `Echanger.txt` : finalisé ;
-13. balayage global des usages de particules : effectué ;
-14. R28 à R50 — usages, statistiques économiques, centralisation, invariants serveur, visibilité et synchronisation UI : validés ;
-15. anomalies legacy ressources identifiées et reportées vers leurs audits dédiés.
+1. bannière réelle identifiée : 4×5★ + 6×4★ ;
+2. R54 à R59 — rotation / vote / sélection : validés ;
+3. direction UX sélection des quatre 5★ : validée ;
+4. six 4★ visibles dans la bannière UI : validé ;
+5. R60 — coût / x1/x10 : validé ;
+6. R61/R62 — pity 5★ et 4★ : validées ;
+7. R63 — priorité 5★ : validée ;
+8. R64 — pity/garantie/Capture traversent rotations/cibles : validé ;
+9. R65 — récompenses secondaires : validé ;
+10. animation UI d'Invocation : direction validée ;
+11. synchronisation automatique du catalogue : direction validée ;
+12. Admin/Modérateur : direction validée ;
+13. `Wish.txt` reclassé Giveaway Twitch.
 
-**Prochaine étape unique : effectuer la dernière vérification du domaine Ressources (Primogemmes / Moras / particules / interactions restantes), puis déterminer si le deuxième domaine peut être officiellement clôturé avant de commencer le Gacha.**
+**Prochaine étape unique : auditer en détail le 50/50, la garantie, `fiftyFiftyLostStreak` et la Capture de brillance dans `Pull.txt`, puis décider leurs interactions exactes avant de poursuivre les passifs et doublons.**
 
-Ne pas commencer le Gacha tant que cette vérification finale n'est pas terminée.
+Ne pas figer le modèle SQL Gacha avant cette passe.
 
 ---
 
@@ -1643,8 +1775,14 @@ Décisions clés :
 - historique des échanges conservé côté serveur à partir de GachaImpact pour audit/statistiques, sans affichage V1 ;
 - copies continuent après C6 ;
 - C6 ouvre stats/concours ;
-- bannière hebdo avec cible sélectionnée ;
-- vote pour bannière future ;
+- Gacha : rotation automatique lundi 00:00 Europe/Paris, 4×5★ + 6×4★, pas de personnage deux semaines consécutives ;
+- vote hebdo définitif, tirage pondéré pour le quatrième 5★ ;
+- cible 5★ obligatoire parmi les quatre actifs, vidée à chaque rotation et modifiable librement ;
+- coût 160 primos ; UI x1/x10 ; pity 5★ 90 / pity 4★ 10 selon courbes legacy validées ;
+- animation UI de Pull avec révélation progressive et anticipation dorée du 5★ ; Twitch reste textuel ;
+- futur catalogue personnages automatiquement synchronisé avec vérification de sortie/complet + français ;
+- future vue Admin/Modérateur pour corrections catalogue/joueurs ;
+- `Wish.txt` = Giveaway Twitch, pas Gacha ;
 - une seule logique serveur partagée par UI/chat/Twitch ;
 - récompenses de level-up V1 conservées selon le code legacy réel ;
 - récompense quotidienne V1 conservée avec reset global à minuit Europe/Paris ;
@@ -1660,4 +1798,4 @@ Décisions clés :
 - suivi quotidien UI prévu dans le bloc bas gauche avec chevrons compacts.
 
 Prochaine étape :
-`Echanger.txt` finalisé ; balayer les autres scripts utilisant les particules/ressources afin de clôturer le deuxième domaine.
+poursuivre l'audit Gacha dans `legacy/06-gacha-invocation-audit.md` avec le 50/50, la garantie et la Capture de brillance.

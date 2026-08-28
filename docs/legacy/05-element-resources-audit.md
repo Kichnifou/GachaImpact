@@ -1,7 +1,7 @@
 # 05 — Audit legacy : Élément / ressources / conversion / échanges
 
-Statut : AUDIT EN COURS — R1 À R50 VALIDÉS — SOUS-DOMAINE ÉCHANGES FINALISÉ — RESSOURCES GÉNÉRALES EN FINALISATION
-Date : 2026-08-27
+Statut : CLÔTURÉ — R1 À R53 VALIDÉS
+Date : 2026-08-28
 
 Sources principales :
 - `legacy/streamerbot/commands/Element.txt`
@@ -1342,6 +1342,93 @@ Les différentes vues ne doivent pas maintenir des versions divergentes du même
 
 ---
 
+## R51 — Catégories conceptuelles de ressources — ✅ VALIDÉ
+
+Le futur modèle ne doit pas traiter indistinctement tout ce que le joueur possède comme une seule catégorie de ressource.
+
+Distinguer conceptuellement :
+
+### Ressources cœur joueur
+- Primogemmes ;
+- Moras du portefeuille ;
+- sept types de particules élémentaires.
+
+### Solde spécifique
+- Moras déposées en banque.
+
+### Ressources / objets spéciaux
+- Masterless Stella Fortuna ;
+- autres futurs objets comparables.
+
+### Ressources temporaires ou scopées
+- monnaies propres à un Event ;
+- ressources liées à une saison, un événement ou un contexte temporaire.
+
+### Collections / inventaire
+- objets du Coffre ;
+- collectibles ;
+- autres possessions ne fonctionnant pas comme une monnaie cœur.
+
+Le schéma SQL exact reste à définir en Phase 2.
+
+Objectif :
+éviter un modèle joueur géant contenant une nouvelle colonne pour chaque future monnaie, Event ou objet.
+
+---
+
+## R52 — Tous les domaines utilisent le moteur central Ressources — ✅ VALIDÉ
+
+Les systèmes futurs qui donnent ou consomment des ressources ne doivent pas modifier directement les soldes chacun de leur côté.
+
+Exemples :
+- Combat ;
+- Expedition ;
+- Event ;
+- Gacha ;
+- Missions ;
+- Faveur ;
+- Boutique ;
+- récompenses diverses.
+
+Ils expriment une intention métier :
+
+`attribuer / consommer X ressource pour telle cause`
+
+puis utilisent la logique Ressources centrale validée en R32.
+
+La logique centrale gère ensuite selon le contexte :
+- solde ;
+- statistiques ;
+- journalisation ;
+- invariants ;
+- transactions ;
+- synchronisation UI ;
+- dépendances comme les réservations d'échange.
+
+---
+
+## R53 — Le domaine producteur reste propriétaire de ses règles — ✅ VALIDÉ
+
+Le moteur Ressources définit **comment** une ressource est ajoutée, retirée, transférée et journalisée.
+
+Il ne doit pas connaître les règles métier détaillées de tous les autres systèmes.
+
+Exemple :
+- Combat décide qu'une victoire donne X Primogemmes ;
+- le moteur Ressources exécute proprement le crédit.
+
+Ainsi :
+- les montants ;
+- probabilités ;
+- conditions ;
+- limites spécifiques
+
+restent définis par le domaine qui produit ou consomme la ressource.
+
+Cela évite de transformer le moteur Ressources en monolithe connaissant Combat, Gacha, Events, Missions, etc.
+
+---
+
 # 19. État des décisions
 
 Validé :
@@ -1395,17 +1482,25 @@ Validé :
 - R48 : portefeuille Moras et Banque restent deux soldes distincts ;
 - R49 : dépenses Moras depuis le portefeuille uniquement ;
 - R50 : synchronisation immédiate de l'état serveur dans toute l'UI ;
+- R51 : séparation conceptuelle ressources cœur / banque / objets spéciaux / ressources temporaires / collections ;
+- R52 : tous les domaines utilisent le moteur central de mutations de ressources ;
+- R53 : chaque domaine reste propriétaire de ses montants, probabilités et conditions métier ;
 - réconciliation immédiate des demandes après toute transaction modifiant un stock concerné ;
 - expiration automatique au reset 00:00 Europe/Paris ;
 - annulation/refus possible ;
 - écran UI avec reçues/envoyées ;
 - notification agrégée des demandes reçues.
 
-Audit encore en cours :
-- sous-domaine `Echanger.txt` : finalisé ;
-- balayage global des usages de particules effectué ;
-- principes économiques généraux R28 à R50 validés ;
-- effectuer une dernière vérification des interactions Primogemmes / Moras / particules et des anomalies reportées avant de décider la clôture du domaine.
+Statut final du domaine :
+- `Element.txt` : audité ;
+- `Convertir.txt` : audité ;
+- `Echanger.txt` : audité et finalisé ;
+- balayage global des usages Primogemmes / Moras / particules effectué ;
+- principes économiques généraux R28 à R53 validés ;
+- anomalies appartenant à d'autres systèmes reportées vers leurs audits dédiés ;
+- domaine Élément / Ressources / Conversion / Échanges : **CLÔTURÉ**.
+
+Les montants/règles appartenant à Combat, Gacha, Events, Banque, Boutique, etc. restent volontairement la responsabilité de leurs audits respectifs.
 
 Idée future documentée :
 - écran de statistiques joueur / statistiques globales du jeu ;

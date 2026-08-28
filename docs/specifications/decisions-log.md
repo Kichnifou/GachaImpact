@@ -108,6 +108,10 @@ Statut : évolutif.
 - `VALIDÉ` — Les opérations sensibles doivent être protégées contre double clic, retry réseau et double exécution accidentelle.
 - `VALIDÉ` — Les mécaniques dépendant uniquement du temps ou de l'état serveur doivent fonctionner même lorsque le joueur est hors ligne.
 - `VALIDÉ` — Toute donnée autoritative modifiée côté serveur doit être reflétée immédiatement dans toutes les zones pertinentes de l'UI sans F5.
+- `VALIDÉ` — Distinguer conceptuellement ressources cœur, solde bancaire, objets/ressources spéciales, monnaies temporaires d'Events et collections/inventaire.
+- `VALIDÉ` — Tous les domaines futurs donnant/consommant une ressource utilisent la logique centrale de mutation des ressources.
+- `VALIDÉ` — Le domaine Ressources définit comment une ressource est mutée ; chaque domaine producteur/consommateur reste propriétaire de ses montants, probabilités et conditions.
+- `VALIDÉ` — Domaine Élément / Ressources / Conversion / Échanges clôturé après R53.
 
 ## Fiche joueur / statistiques
 - `VALIDÉ POUR LA DIRECTION ACTUELLE` — La fiche d'un autre joueur peut pour l'instant afficher ses ressources et ses statistiques ; des restrictions de confidentialité pourront être décidées ultérieurement.
@@ -157,6 +161,40 @@ Statut : évolutif.
 - `FUTUR / À CONCEVOIR` — Un écran de statistiques joueur et éventuellement globales du jeu pourra exploiter ces données plus tard.
 - `À CONCEVOIR EN PHASE 2` — Le stockage legacy dupliqué `sent` / `received` ne doit pas être copié automatiquement ; le futur modèle doit avoir une source de vérité unique pour la demande.
 
+## Gacha / Invocation
+- `VALIDÉ` — La bannière tourne automatiquement chaque lundi à 00:00 `Europe/Paris`, sans dépendre d'un message ou d'un joueur connecté.
+- `VALIDÉ` — Une bannière contient 4 personnages 5★ et 6 personnages 4★.
+- `VALIDÉ` — Les headers legacy parlant de 3×5★ / 5×4★ sont périmés ; le code réel de génération fait foi.
+- `VALIDÉ` — Un personnage 5★ ou 4★ présent une semaine ne peut pas revenir immédiatement la semaine suivante.
+- `VALIDÉ` — Trois des quatre 5★ sont tirés aléatoirement ; le quatrième provient du vote communautaire ou d'un fallback aléatoire.
+- `VALIDÉ` — Le vote communautaire est un tirage pondéré par nombre de votes et non une victoire automatique du premier.
+- `VALIDÉ` — Un joueur possède un seul vote par semaine et ne peut plus le modifier après validation.
+- `VALIDÉ` — Le vote porte uniquement sur des personnages 5★ non présents dans la bannière actuelle.
+- `VALIDÉ` — Le joueur doit sélectionner un des quatre 5★ actifs avant de pouvoir invoquer.
+- `VALIDÉ` — La cible peut être changée librement à tout moment hors opération de Pull en cours.
+- `VALIDÉ` — À chaque nouvelle rotation hebdomadaire, l'ancienne cible est vidée et le joueur choisit à nouveau.
+- `VALIDÉ` — UI : sans cible, présenter les quatre 5★ disponibles ; après sélection, afficher le grand artwork du personnage ciblé avec un bouton `Changer`.
+- `VALIDÉ` — UI : les six 4★ actifs restent visibles sur la bannière principale, par exemple sous forme de petites vignettes/portraits.
+- `VALIDÉ` — 160 Primogemmes par Pull.
+- `VALIDÉ` — UI : x1 et x10 ; aucune remise sur le x10.
+- `VALIDÉ` — Chat/Twitch : `!pull` ou `!pull 1..10`.
+- `VALIDÉ` — Pity 5★ : 0,6 % jusqu'au 73e ; 6,6 % au 74e ; +6 points de pourcentage par Pull ensuite ; garantie au 90e ; reset lors d'un 5★.
+- `VALIDÉ` — Pity 4★ : 1,5 % jusqu'au 8e ; 19,5 % au 9e ; garantie au 10e ; reset lors d'un 4★.
+- `VALIDÉ` — Si les jets 5★ et 4★ réussissent ensemble, le 5★ est prioritaire et la pity 4★ n'est pas reset.
+- `VALIDÉ` — Pity 5★, pity 4★, garantie et Capture traversent les changements de bannière et les changements de cible.
+- `VALIDÉ` — Sans 4★/5★ : 50 % Moras aléatoires 5 000–15 000 ; 50 % particules aléatoires 20–80 dans un élément aléatoire, avant prise en compte des passifs.
+- `VALIDÉ` — L'animation UI ne décide jamais du résultat : le Pull complet doit être calculé/persisté côté serveur avant sa révélation.
+- `VALIDÉ` — UI : animation d'invocation avec anticipation de rareté, signal doré lorsqu'au moins un 5★ est présent, révélation progressive, skip et récapitulatif final.
+- `VALIDÉ` — Twitch/chat conserve une restitution textuelle rapide, résultat par résultat, sans animation.
+- `VALIDÉ` — `Wish.txt` n'appartient pas au Gacha : il relève du Giveaway Twitch et reste conservé pour un audit ultérieur.
+- `VALIDÉ` — Prévoir une synchronisation périodique automatique du catalogue des personnages Genshin, sans validation humaine obligatoire pour chaque ajout.
+- `VALIDÉ` — Ne pas importer automatiquement un candidat incomplet/non sorti : release vérifiée, rareté et élément notamment obligatoires.
+- `VALIDÉ` — Rechercher également la localisation française officielle/fiable des informations importées.
+- `VALIDÉ` — Les personnages importés correctement apparaissent naturellement dans l'écran Personnages.
+- `VALIDÉ` — Prévoir une vue Admin/Modérateur permettant de corriger/ajouter/supprimer des entrées catalogue et d'effectuer des corrections de ressources/personnages sur un ou plusieurs joueurs.
+- `VALIDÉ` — Les changements administratifs sensibles devront être protégés et journalisés.
+- `À SPÉCIFIER` — Les champs propres à GachaImpact comme classe/passif ne doivent jamais être inventés par une source externe ; leur traitement automatique reste à concevoir.
+- `À AUDITER` — 50/50, garantie, Capture de brillance, pertes successives et interactions exactes constituent la prochaine passe.
 
 ## Notifications
 - `VALIDÉ` — Toute notification doit pouvoir être supprimée manuellement par le joueur via une petite croix affichée au survol.

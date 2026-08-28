@@ -120,3 +120,71 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Historique UI :** environ 3 transactions visibles puis scroll jusqu'à environ 20–30 dernières
 - **Migration :** les demandes en attente ne sont pas migrées au cutover
 - **Identité cible :** relations basées sur les IDs internes immuables des joueurs
+## `!banniere`
+- **Statut audit :** Audit Gacha en cours — R54 à R65 validées
+- **But :** Afficher la bannière active et la cible 5★ personnelle lorsqu'elle est valide.
+- **Syntaxe :** `!banniere`
+- **Bouton UI équivalent :** écran Invocation complet
+- **Disponible chat GachaImpact :** oui, sous forme compacte
+- **Disponible Twitch :** oui
+- **Préconditions :** bannière active
+- **Coûts :** aucun
+- **Données lues :** catalogue personnages, bannière active, cible personnelle
+- **Données écrites :** aucune
+- **Décisions cible :** bannière hebdomadaire 4×5★ + 6×4★ ; UI beaucoup plus riche que la réponse Twitch
+
+## `!select`
+- **Statut audit :** Audit Gacha en cours — R59 validée
+- **But :** Sélectionner le 5★ ciblé parmi les quatre personnages actifs.
+- **Syntaxes :** `!select`, `!select <nom>`
+- **Bouton UI équivalent :** sélection visuelle des quatre 5★ + bouton `Changer`
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui
+- **Préconditions :** profil valide ; bannière active ; personnage 5★ présent dans la bannière
+- **Coûts :** aucun
+- **Données lues :** bannière active, cible actuelle
+- **Données écrites legacy :** `selectedBannerCharacterId`
+- **Décisions cible :** cible librement modifiable ; vidée automatiquement à chaque nouvelle bannière ; aucune pity/garantie reset lors d'un changement
+
+## `!vote`
+- **Statut audit :** Audit Gacha en cours — R57/R58 validées
+- **But :** Influencer le quatrième personnage 5★ de la bannière suivante.
+- **Syntaxes :** `!vote`, `!vote <nom>`
+- **Bouton UI équivalent :** future zone de vote communautaire
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui
+- **Préconditions :** personnage 5★ valide ; pas déjà en bannière ; joueur n'ayant pas encore voté cette semaine
+- **Coûts :** aucun
+- **Données lues/écrites legacy :** `banner_votes.json`, catalogue personnages
+- **Décisions cible :** un vote définitif par semaine ; résultat pondéré par nombre de votes ; reset lors de la rotation
+
+## `!pity`
+- **Statut audit :** Audit Gacha en cours — R61 à R64 validées
+- **But :** Afficher pity 5★, pity 4★, garantie et Capture de brillance.
+- **Syntaxe :** `!pity`
+- **Bouton UI équivalent :** informations intégrées directement dans l'écran Invocation/sidebar
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui
+- **Coûts :** aucun
+- **Données lues :** pity 5★/4★, garantie, compteur de pertes/Capture
+- **Données écrites :** aucune
+- **Décisions cible :** progression conservée entre rotations et changements de cible
+
+## `!pull`
+- **Statut audit :** Audit Gacha en cours — R60 à R65 validées ; 50/50/Capture encore à terminer
+- **But :** Exécuter une ou plusieurs invocations.
+- **Syntaxes :** `!pull`, `!pull <1..10>`
+- **Bouton UI équivalent :** `Invocation x1` / `Invocation x10`
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui
+- **Préconditions :** profil valide ; cible 5★ active ; Primogemmes suffisantes
+- **Coût :** 160 Primogemmes par Pull
+- **Maximum :** 10 pulls par action
+- **Données principales :** Primogemmes, pity, garantie, statistiques, box, personnages de bannière, passifs
+- **Pity 5★ :** 0,6 % jusqu'à 73 ; soft pity dès 74 ; garantie 90
+- **Pity 4★ :** 1,5 % jusqu'à 8 ; 19,5 % au 9e ; garantie 10
+- **Priorité :** 5★ prioritaire si 5★ et 4★ réussissent ensemble ; pity 4★ conservée
+- **Récompense secondaire :** 50 % Moras 5k–15k / 50 % particules 20–80 d'un élément aléatoire
+- **UI :** résultat calculé/persisté côté serveur avant animation ; révélation progressive et skip
+- **Twitch :** résultat textuel rapide, résultat par résultat
+- **Interactions encore à auditer :** 50/50, garantie, Capture, passifs, doublons/C6
