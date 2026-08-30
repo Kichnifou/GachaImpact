@@ -16,6 +16,16 @@ Pour chaque commande :
 7. décider ce qui reste disponible par bouton, chat GachaImpact et Twitch ;
 8. documenter les réponses / erreurs pertinentes.
 
+### Règles globales des helpers Twitch/chat
+
+Lorsqu'une commande est mal écrite, incomplète ou utilise une syntaxe qui n'est plus l'action cible :
+- répondre avec un helper court ;
+- indiquer uniquement comment utiliser correctement le système actuel ;
+- ne jamais mentionner une migration, un ancien comportement ou le fait qu'une commande « a changé » ;
+- ne montrer qu'une seule syntaxe recommandée même si plusieurs alias sont techniquement acceptés ;
+- éviter les confirmations en plusieurs messages côté Twitch/chat ;
+- structurer les réponses Twitch sur une seule ligne.
+
 ## Commandes repérées dans la capture du dossier `Commandes`
 
 Ami, Bannière, Banque, Box, Code, Coffre, Combat, Concours, Convertir, Daily, Échanger, Élément, Event, Expedition, Faveur, Gift, Help, Infos, Légende, Liste, Missions, Obtention, Passif, Pity, Pull, Roue, Sac, Select, Shop, Stella, Subscription, Team, Top, Vote, Wish, XP.
@@ -262,28 +272,52 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Bug legacy corrigé :** `Stella.txt` n'incrémente actuellement pas `copies` et autorise des 4★ sous C6
 
 ## `!team`
-- **Statut audit :** Audit Team en cours — R177 à R196 validées
-- **But :** Consulter/modifier l'équipe active et gérer les équipes sauvegardées.
-- **Syntaxes legacy principales :** `!team`, `!team help`, `!team add <nom>`, `!team remove <nom>`, `!team remove all`, `!team save`, `!team save <N>`, `!team <N>`, `!team <N> apply`, `!team <N> remove`, `!team <N> rename "Nom"`
+- **Statut audit :** Audit Team en cours — R177 à R235 validées
+- **But :** Consulter, activer et modifier les Teams du joueur.
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
 - **UI équivalente :** écran Équipe complet
-- **Équipe active :** 0 à 4 personnages, sans doublon
+- **Équipe active :** une des Teams du joueur, 0 à 4 personnages, sans doublon
+- **Team par défaut :** Team 1 pour un nouveau joueur
 - **Matching personnage texte :** nom exact après normalisation casse/accents
-- **Saved Teams de base :** 10 emplacements permanents
-- **Saved Teams supplémentaires :** création illimitée au-delà de 10
-- **Suppression UI :** uniquement équipes >10
-- **Twitch/chat remove :** vide l'équipe, ne supprime pas physiquement l'emplacement
-- **Nom :** facultatif, espaces/accents autorisés, cible 20 caractères
-- **Composition dupliquée :** interdite, ordre des personnages ignoré pour la comparaison
-- **Ordre :** conservé visuellement mais sans effet gameplay
-- **Passifs :** dérivés de la composition ; maximum deux stacks par élément selon les règles Gacha validées
+- **Commandes cibles principales :**
+  - `!team`
+  - `!team <N>`
+  - `!team <N> apply`
+  - `!team add <nom>`
+  - `!team remove <nom>`
+  - `!team remove all`
+  - `!team <N> remove`
+  - `!team <N> rename "Nom"`
+  - `!team rename "Nom"`
+  - `!team list`
+  - `!team list <page>`
+  - `!team new`
+- **`apply` :** sélectionne la Team N comme active ; 0..4 autorisé
+- **`add` :** ajoute au premier slot vide de la Team active
+- **`remove` personnage :** retire de la Team active
+- **`remove all` :** vide la Team active sans changer son nom ni son état actif
+- **`<N> remove` :** vide la Team N côté Twitch/chat ; ne supprime jamais physiquement l'emplacement
+- **`rename` :** nom facultatif, espaces/accents autorisés, cible 20 caractères
+- **`list` :** pagination de 10 Teams ; Team active clairement indiquée ; Teams partielles affichées avec leur remplissage
+- **Alias accepté :** `liste`, mais les helpers recommandent uniquement `list`
+- **`new` :** crée la prochaine Team supplémentaire, vide et non active
+- **`save` / `save N` :** aucune mutation cible ; helper vers les commandes actuelles
+- **Saved Teams de base :** positions actuelles 1 à 10 non supprimables
+- **Positions 11+ :** supprimables depuis l'UI si non actives
+- **Réorganisation UI :** drag vertical des Teams → renumérotation immédiate
+- **Réorganisation personnage :** drag horizontal uniquement à l'intérieur d'une Team
+- **Composition dupliquée :** interdite pour les Teams complètes, ordre personnage ignoré
+- **Passifs :** dérivés de la Team ; actifs même si composition partielle ; maximum deux stacks par élément
 - **Saved Teams :** privées
-- **Équipe active :** potentiellement publique selon les permissions Public / Amis / Privé
-- **UI :** Saved Teams directement éditables ; sélecteur exclusif d'équipe active ; sidebar mise à jour immédiatement
-- **Point restant :** interaction précise R186/R192 à définir
-- **Personnage désactivé :** retrait active ; équipe 1..10 concernée vidée ; équipe >10 concernée supprimée
-- **Interactions :** Box/Possession, Passifs, Gacha, Combat, Expedition, confidentialité
+- **Équipe active :** potentiellement publique selon Public / Amis / Privé
+- **Profil public :** numéro/nom/composition/passifs selon permissions
+- **UI :** autosave, remplacement direct, picker filtré, sélecteur actif séparé
+- **Sidebar :** affiche numéro/nom/composition active ; non éditable dans la V1
+- **Personnage désactivé :** actif → retrait ; position 1..10 concernée → composition vidée ; position 11+ concernée → Team supprimée
+- **Réponses Twitch :** toujours structurées sur une seule ligne
+- **Helpers :** courts, une syntaxe recommandée, aucune référence à une migration
+- **Interactions :** Box/Possession, Passifs, Gacha, Combat, confidentialité
 
 ## `!passifs`
 - **Statut audit :** Lu dans le Domaine Team — règles générales déjà liées au Domaine Gacha

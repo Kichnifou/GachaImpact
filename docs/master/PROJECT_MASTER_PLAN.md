@@ -1,7 +1,7 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.17
-Date : 2026-08-28
+Version : 0.18
+Date : 2026-08-30
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
@@ -540,67 +540,188 @@ Vote Gacha :
 
 ## 6.3 Équipe
 
+### Modèle général
+
+Chaque joueur possède plusieurs Teams.
+
+Une seule Team est sélectionnée comme active.
+
+Il n'existe pas dans la cible standalone une composition active indépendante copiée depuis un preset :
+- la Team sélectionnée est elle-même l'équipe active ;
+- l'UI, Twitch et les systèmes métier utilisent cette même Team.
+
 Équipe active :
-- de 0 à 4 personnages ;
+- 0 à 4 personnages ;
 - aucun doublon ;
-- l'ordre des personnages est visuel et sans effet gameplay ;
-- les domaines consommateurs peuvent imposer leurs propres conditions, par exemple Combat 4/4.
+- une Team vide/incomplète peut rester active ;
+- Team 1 active par défaut pour un nouveau joueur ;
+- sélection active persistante entre sessions ;
+- les domaines consommateurs peuvent imposer leurs propres préconditions.
 
-UI :
-- la sidebar/colonne gauche affiche l'équipe active ;
-- l'écran Équipe contient l'équipe active et la gestion des équipes sauvegardées ;
-- les personnages peuvent être ajoutés, retirés, remplacés et réordonnés ;
-- les passifs actifs sont visibles ;
-- une fiche personnage reste accessible.
+### Sidebar
 
-Saved Teams :
-- 10 emplacements permanents de base ;
-- les 10 premiers ne peuvent jamais être supprimés ;
-- ils peuvent être vidés ;
-- au-delà de 10, création d'autant d'équipes supplémentaires que souhaité ;
-- un contrôle `+` permet d'ajouter une équipe supplémentaire ;
-- les équipes >10 sont supprimables depuis l'UI ;
-- Twitch/chat peut uniquement les vider ;
-- suppression d'une équipe supplémentaire → compactage des numéros visibles suivants.
+La sidebar/colonne gauche :
+- affiche la Team active ;
+- affiche discrètement son numéro et son nom éventuel ;
+- se met à jour immédiatement ;
+- est en lecture seule dans la V1.
 
-Composition :
-- une composition complète contient 4 personnages ;
-- une Saved Team peut exister vide ou temporairement incomplète dans l'UI pendant son édition ;
-- une même combinaison de quatre personnages ne peut exister qu'une seule fois ;
-- l'ordre des quatre personnages ne différencie pas deux compositions ;
-- les doublons sont également bloqués côté Twitch/chat.
+Préserver une architecture permettant éventuellement son édition future.
 
-Noms :
+### Gestion des Teams
+
+- 10 positions permanentes de base ;
+- positions actuelles 1..10 non supprimables ;
+- positions 11+ supprimables depuis l'UI ;
+- extensions illimitées ;
+- contrôle `+` après la dernière Team ;
+- créer une Team supplémentaire ne l'active pas ;
+- plusieurs Teams supplémentaires peuvent rester vides ;
+- une Team supplémentaire active doit être désactivée avant suppression.
+
+Vider ≠ supprimer :
+- vider conserve emplacement et nom ;
+- supprimer retire l'entité supplémentaire ;
+- Twitch/chat ne supprime jamais physiquement une Team.
+
+### Réorganisation des Teams
+
+Drag & drop vertical :
+- effectué depuis la carte hors de la zone personnages ;
+- permet de déplacer librement une Team à n'importe quelle position ;
+- renumérotation automatique ;
+- sauvegarde immédiate ;
+- une Team active déplacée reste active.
+
+La suppression dépend de la position actuelle :
+- 1..10 protégées ;
+- 11+ supprimables.
+
+L'identité interne ne dépend jamais du numéro affiché.
+
+### Composition
+
+- quatre slots maximum ;
+- une Team peut être temporairement 0..4 ;
+- ajout, retrait et remplacement direct ;
+- sauvegarde immédiate après chaque action valide ;
+- aucune composition complète dupliquée entre Teams ;
+- l'ordre des personnages n'entre pas dans la détection de doublon.
+
+Drag & drop personnage :
+- uniquement horizontalement à l'intérieur de sa Team ;
+- ne doit jamais déclencher le déplacement vertical de la Team ;
+- ordre uniquement visuel, sans effet gameplay actuel.
+
+### Sélecteur personnage
+
+Ajouter/Changer utilise un sélecteur inspiré de la Box :
+- personnages possédés ;
+- personnages actifs ;
+- recherche temps réel ;
+- filtres ;
+- personnage déjà présent dans cette Team non sélectionnable.
+
+### Recherche transversale
+
+Pour les listes pertinentes du projet :
+- filtrage instantané à chaque caractère ;
+- sous-chaîne contiguë uniquement ;
+- normalisation casse/accents ;
+- pas de fuzzy implicite par lettres dispersées.
+
+Exemple :
+`Ya` trouve Yanfei/Yaoyao mais pas Yelan.
+
+Cette direction vaut aussi pour :
+- Personnages ;
+- Box ;
+- joueurs ;
+- objets ;
+- autres listes de recherche adaptées.
+
+### Noms
+
 - facultatifs ;
 - espaces et accents autorisés ;
 - maximum cible 20 caractères ;
 - noms identiques autorisés.
 
-Passifs :
-- dérivés de la composition ;
-- aperçu sur l'équipe active et les Saved Teams ;
-- valeurs déjà définies par le Domaine Gacha.
+### Passifs
 
-Équipe active publique :
-- consultable depuis le profil d'un autre joueur si les permissions le permettent ;
+- uniquement dérivés de la Team active pour le gameplay ;
+- jusqu'à deux stacks par élément ;
+- Team partielle comprise ;
+- recalcul immédiat lors d'une modification ;
+- aperçu des passifs également visible sur les autres Teams dans l'écran de gestion ;
+- valeurs déjà définies dans le Domaine Gacha.
+
+### Présentation des cartes Team
+
+Cartes/lignes horizontales :
+- quatre personnages utilisent la largeur horizontale utile ;
+- nom/passifs/informations complémentaires au-dessus ou en dessous ;
+- activation séparée de l'édition ;
+- contrôle d'activation compact en haut à droite, préférence actuelle pour un interrupteur gauche/droite ;
+- Team active visuellement mise en évidence sans changer automatiquement de position.
+
+### Twitch/chat
+
+Commandes cibles principales :
+- `!team`
+- `!team <N>`
+- `!team <N> apply`
+- `!team add <nom>`
+- `!team remove <nom>`
+- `!team remove all`
+- `!team <N> remove`
+- `!team <N> rename "Nom"`
+- `!team rename "Nom"`
+- `!team list`
+- `!team list <page>`
+- `!team new`
+
+Règles :
+- `apply` sélectionne une Team comme active ;
+- `add/remove` modifient la Team active ;
+- `add` utilise le premier slot vide ;
+- `remove` d'une Team vide sa composition, ne détruit pas son emplacement ;
+- `new` crée la prochaine Team à la fin sans l'activer ;
+- `list` pagine 10 Teams ;
+- alias `liste` accepté mais non mis en avant ;
+- `save` / `save N` ne modifient plus les données et renvoient un helper de syntaxe ;
+- helpers courts, une seule syntaxe recommandée ;
+- aucune formulation donnant l'impression d'une migration ;
+- réponses Twitch sur une seule ligne ;
+- aucune confirmation en plusieurs étapes sur Twitch.
+
+### Visibilité
+
+- équipe active potentiellement publique selon confidentialité ;
 - visible même hors ligne ;
+- Team vide/incomplète affichée telle quelle ;
+- numéro visible avec la Team ;
+- nom soumis à la granularité future de confidentialité ;
+- passifs visibles uniquement si la Team elle-même est visible ;
 - Saved Teams privées ;
-- personnages de l'équipe publique ouvrables via la fiche publique commune Box/Personnages.
+- personnages de la Team publique ouvrables via la fiche publique commune.
 
-Désactivation personnage :
-- équipe active → retirer uniquement le personnage ;
-- Saved Team 1..10 contenant ce personnage → vider toute la composition ;
-- Saved Team >10 contenant ce personnage → supprimer l'équipe supplémentaire ;
+### Désactivation personnage
+
+- Team active → retirer uniquement le personnage ;
+- position 1..10 contenant ce personnage → vider la composition complète ;
+- position 11+ contenant ce personnage → supprimer la Team supplémentaire ;
 - aucune restauration automatique à la réactivation.
 
-Direction UX d'activation :
-- la liste des équipes possède un sélecteur exclusif ;
-- une seule équipe peut être active à la fois ;
-- sélectionner une équipe met immédiatement à jour la sidebar ;
-- l'équipe active reste à sa position dans la liste et reçoit une mise en évidence visuelle.
+### Migration
 
-À clarifier :
-- interaction exacte entre cette sélection d'une Saved Team comme équipe active et la règle d'indépendance après application validée en R186.
+Le legacy possède encore `team` + `savedTeams`.
+
+La cible devra convertir ces deux états vers :
+- collection de Teams ;
+- identité de la Team active.
+
+Stratégie détaillée à finaliser pendant la dernière passe de migration Team.
 
 ## 6.4 Sac
 But :
@@ -1902,30 +2023,25 @@ Document :
 `docs/legacy/08-team-audit.md`
 
 Statut :
-**EN COURS — R177 À R196 VALIDÉS — PREMIÈRE PASSE TRÈS AVANCÉE**
+**EN COURS — R177 À R235 VALIDÉS — GESTION / UX / COMMANDES TRÈS AVANCÉES**
 
 Décisions principales :
-- R177 : équipe active 0..4 ;
-- R178 : aucun doublon personnage ;
-- R179 : composition complète 4/4 pour sauvegarde Twitch / application complète ;
-- R180/R183/R184 : 10 emplacements permanents + extensions illimitées, distinction vider/supprimer ;
-- R181/R195 : ordre uniquement visuel mais conservé ;
-- R182 : noms facultatifs, espaces/accents, max 20 caractères ;
-- R185 : règles de désactivation différentes pour active / slots 1..10 / slots >10 ;
-- R186 : direction d'indépendance preset/active validée, à réconcilier avec l'UX R192 ;
-- R187 : compactage des numéros après suppression d'une équipe supplémentaire ;
-- R188 : passifs visibles et dérivés ;
-- R189 : équipe active potentiellement publique selon confidentialité ;
-- R190 : Saved Teams privées ;
-- R191 : édition directe des Saved Teams dans l'UI ;
-- R192 : sélecteur exclusif d'équipe active et mise à jour immédiate de la sidebar ;
-- R193/R194 : compositions Saved Teams uniques et doublons bloqués UI/chat/Twitch ;
-- R196 : fiche publique personnage accessible depuis l'équipe publique.
+- R177–R185 : taille, unicité, 10 positions de base, extensions, noms et désactivation ;
+- R186/R192/R197 : correction du modèle — la Team sélectionnée est directement l'équipe active ;
+- R187/R232–R235 : numérotation, drag vertical des Teams, réorganisation libre et sauvegarde immédiate ;
+- R188/R227/R228 : passifs dérivés, actifs même en Team partielle et recalcul immédiat ;
+- R189/R190/R196/R209–R211 : Team active publique selon confidentialité, Saved Teams privées et fiche personnage ;
+- R191/R220–R222/R229/R230 : édition directe UI, autosave, remplacement, picker et cartes horizontales ;
+- R193/R194 : compositions complètes dupliquées interdites ;
+- R198–R202 : comportement des Teams actives vides/incomplètes et création/suppression ;
+- R203–R218/R223–R225 : commandes Twitch/chat modernisées ;
+- R226 : recherche temps réel par sous-chaîne contiguë étendue aux listes pertinentes du projet ;
+- R231 : numéro/nom de Team active dans la sidebar.
 
 Prochaine priorité :
-- clarifier l'interaction R186/R192 ;
-- poursuivre les comportements UI et commandes Team ;
-- vérifier les consommateurs et la migration legacy.
+- terminer les consommateurs de Team ;
+- finaliser la migration `team` + `savedTeams` ;
+- dernière passe de cohérence avant clôture éventuelle du domaine.
 
 Ordre recommandé :
 
@@ -2281,37 +2397,44 @@ Domaines clôturés :
 - `docs/legacy/07-box-possession-obtention-audit.md` — Box / Possessions / Obtention : **CLÔTURÉ**.
 
 Domaine actif :
-- `docs/legacy/08-team-audit.md` — Team : **EN COURS — R177 À R196 VALIDÉS**.
+- `docs/legacy/08-team-audit.md` — Team : **EN COURS — R177 À R235 VALIDÉS**.
 
 Team déjà cadré :
+- Team sélectionnée = équipe active ;
 - équipe active 0..4 ;
-- aucun doublon ;
-- 10 emplacements permanents ;
+- Team 1 active par défaut ;
+- 10 positions protégées selon l'ordre actuel ;
 - extensions illimitées ;
-- vidage/suppression différenciés ;
-- noms modernisés ;
-- ordre visuel ;
-- édition directe UI ;
-- passifs dérivés ;
+- Teams supplémentaires supprimables uniquement depuis l'UI ;
+- numérotation dynamique ;
+- drag vertical des Teams ;
+- drag horizontal des personnages dans une Team ;
+- autosave ;
+- ajout/retrait/remplacement direct ;
+- compositions dupliquées interdites ;
+- passifs dérivés/recalculés immédiatement ;
 - Saved Teams privées ;
 - équipe active publique selon confidentialité ;
-- règles de désactivation ;
-- compositions dupliquées interdites ;
-- sélection exclusive d'une équipe comme active dans l'UI.
+- commandes Twitch/chat adaptées au nouveau modèle ;
+- `!team new` et `!team list` ;
+- `save` devenu helper uniquement ;
+- recherche temps réel transversale validée.
 
-**Prochaine étape unique : reprendre le Domaine Team en clarifiant d'abord l'interaction entre R186 et R192, puis poursuivre la dernière partie des règles de gestion/commandes/consommateurs avant migration et clôture.**
+**Prochaine étape unique : terminer les consommateurs et la migration Team, puis effectuer la passe finale de cohérence pour déterminer si le Domaine 5 peut être clôturé.**
 
-À vérifier ensuite :
-1. relation exacte Saved Team sélectionnée ↔ équipe active après modification ;
-2. comportements d'une équipe vide/incomplète ;
-3. dernières syntaxes `!team` à conserver/adapter ;
-4. `!passifs` ;
-5. interactions Expedition ;
-6. autres consommateurs de l'équipe active ;
-7. migration `team` et `savedTeams` ;
-8. anomalies legacy évidentes ;
-9. éventuelles dernières données Team ;
-10. critères de clôture du Domaine 5.
+À vérifier :
+1. tous les scripts lisant réellement `team` ;
+2. frontière finale Combat ;
+3. confirmation qu'Expedition ne dépend pas de Team ;
+4. `Infos.txt` et exposition publique ;
+5. `Passif.txt` ;
+6. migration du tableau legacy `team` ;
+7. migration de `savedTeams` ;
+8. détection des compositions identiques ;
+9. migration de l'équipe active vers une Team cible sans perte ;
+10. anomalies réelles du snapshot ;
+11. comportement de numérotation/positions au cutover ;
+12. dernière relecture de `Team.txt`.
 
 Ne pas figer le schéma SQL exact avant la fin de l'audit Team.
 
@@ -2428,4 +2551,4 @@ Décisions clés :
 - suivi quotidien UI prévu dans le bloc bas gauche avec chevrons compacts.
 
 Prochaine étape :
-poursuivre le Domaine Team après R196, en commençant par clarifier l'interaction R186/R192 puis les derniers comportements, consommateurs et règles de migration.
+terminer les consommateurs et la migration du Domaine Team après R235, puis effectuer la passe finale avant clôture éventuelle.

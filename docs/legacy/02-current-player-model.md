@@ -399,65 +399,92 @@ Les contrôles de permissions sont appliqués côté serveur.
 
 ## 6. Team
 
+### Modèle cible conceptuel
+
+Un joueur possède plusieurs Teams.
+
+Une Team possède conceptuellement :
+- une identité interne stable ;
+- une position d'affichage courante ;
+- un nom facultatif ;
+- 0 à 4 références ordonnées de personnages ;
+- ses métadonnées utiles ;
+- éventuellement l'historique legacy `savedAt` importé.
+
+Le joueur possède également une référence vers la Team actuellement active.
+
+Il n'existe pas de composition `active team` séparée à copier.
+
 ### Équipe active
 
-Cible conceptuelle :
+- exactement une Team active ;
+- Team 1 par défaut à la création ;
 - 0 à 4 personnages ;
-- références vers des personnages possédés et actifs ;
-- aucune duplication d'un même personnage ;
-- ordre conservé pour présentation ;
-- ordre sans effet gameplay actuellement.
+- personnages possédés et actifs ;
+- aucun doublon ;
+- peut rester vide/incomplète ;
+- ordre personnage conservé mais sans effet gameplay actuel.
 
-Les passifs sont dérivés de cette équipe active et ne constituent pas un état indépendant.
+Les passifs sont dérivés de cette Team.
 
-### Saved Teams
+### Positions et suppression
 
-Direction cible :
-- 10 emplacements permanents de base ;
-- possibilité de créer des emplacements supplémentaires sans plafond métier ;
-- les 10 premiers ne sont pas supprimables ;
-- les équipes >10 sont supprimables dans l'UI ;
-- un emplacement peut exister vide ou temporairement incomplet pendant son édition ;
-- une composition complète contient 4 personnages.
+- positions 1..10 protégées contre suppression ;
+- positions 11+ supprimables depuis l'UI si non actives ;
+- déplacement vertical libre des Teams ;
+- renumérotation automatique ;
+- identité interne indépendante du numéro.
 
-Chaque équipe possède conceptuellement :
-- une identité interne indépendante de son numéro affiché ;
-- une position/numéro d'affichage ;
-- un nom facultatif ;
-- une liste ordonnée de personnages ;
-- les éventuelles métadonnées historiques utiles comme `savedAt`.
+La protection 1..10 dépend de la position actuelle après réorganisation.
 
-Ne pas figer les tables SQL exactes avant Phase 2.
+### Composition / ordre
 
-### Unicité des compositions
+Deux Teams complètes ne peuvent pas contenir la même combinaison de personnages.
 
-Deux Saved Teams complètes ne peuvent pas contenir la même combinaison de personnages.
+L'ordre personnage :
+- est visuel ;
+- est réorganisable horizontalement dans une Team ;
+- ne change pas l'identité d'une composition.
 
-L'ordre n'entre pas dans cette comparaison.
+### UX
+
+- autosave après chaque mutation valide ;
+- remplacement direct d'un personnage ;
+- picker basé sur les possessions actives ;
+- recherche temps réel ;
+- activation séparée de l'édition ;
+- sidebar = vue non éditable de la Team active en V1.
 
 ### Personnage désactivé
 
-- équipe active → retirer le personnage ;
-- Saved Team 1..10 concernée → vider toute sa composition ;
-- Saved Team >10 concernée → supprimer cet emplacement ;
-- réactivation sans restauration automatique.
+- Team active → retirer le personnage ;
+- position 1..10 concernée → vider toute la composition ;
+- position 11+ concernée → supprimer cette Team ;
+- aucune restauration automatique.
 
 ### Visibilité
 
-- équipe active potentiellement publique selon confidentialité ;
+- Team active potentiellement publique selon confidentialité ;
 - Saved Teams privées ;
-- équipe publique consultable hors ligne ;
-- fiches personnages accessibles selon les mêmes permissions que la Box.
+- Team publique consultable hors ligne ;
+- état vide/incomplet visible tel quel ;
+- numéro visible ;
+- nom/passifs soumis aux règles de visibilité appropriées ;
+- fiches personnages accessibles selon les permissions de la Box.
 
-### UX d'activation
+### Migration legacy
 
-Direction validée :
-- une seule équipe sélectionnée active ;
-- changement de sélection → mise à jour immédiate de l'équipe affichée en sidebar ;
-- la ligne active ne change pas de position.
+Legacy :
+- `team` = composition active séparée ;
+- `savedTeams` = presets.
 
-À préciser :
-- interaction exacte entre ce sélecteur et la règle R186 d'indépendance entre preset et équipe active.
+Cible :
+- plusieurs Teams ;
+- une référence `activeTeam`.
+
+Stratégie détaillée de fusion/conversion à finaliser pendant la dernière passe Team.
+
+Ne pas figer la forme SQL exacte avant Phase 2.
 
 ## 7. À auditer ensuite
 

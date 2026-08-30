@@ -346,8 +346,37 @@ Statut : évolutif.
 - `VALIDÉ` — L'équipe active reste consultable hors ligne si les permissions l'autorisent.
 - `VALIDÉ` — Un personnage d'une équipe publique ouvre la même fiche publique que depuis la Box.
 - `VALIDÉ` — Désactivation personnage : retrait de l'équipe active ; slot 1..10 contenant ce personnage entièrement vidé ; équipe >10 entièrement supprimée ; aucune restauration automatique.
-- `VALIDÉ` — Direction UI : un seul sélecteur d'équipe active ; activer une ligne désactive l'ancienne, met à jour immédiatement la sidebar et ne déplace pas la ligne.
-- `À PRÉCISER` — Réconcilier la notion de copie indépendante R186 avec le sélecteur d'équipe active R192 lors de la prochaine passe.
+- `VALIDÉ` — Direction UI : un seul sélecteur d'équipe active ; activer une ligne désactive l'ancienne et met à jour immédiatement la sidebar.
+- `VALIDÉ` — La Team sélectionnée est directement l'équipe active ; il n'existe plus de copie métier indépendante séparée.
+- `VALIDÉ` — La sidebar est uniquement une vue de la Team active en V1 ; architecture compatible avec une future édition depuis cette sidebar.
+- `VALIDÉ` — Team 1 est active par défaut pour un nouveau joueur ; une Team active peut rester vide ou incomplète.
+- `VALIDÉ` — Créer une Team supplémentaire ne la rend pas active.
+- `VALIDÉ` — Une Team supplémentaire active doit être désactivée avant suppression.
+- `VALIDÉ` — `!team <N> apply` sélectionne la Team N comme active, même vide/incomplète.
+- `VALIDÉ` — `!team add` et `remove` modifient la Team actuellement active.
+- `VALIDÉ` — `!team new` crée la prochaine Team supplémentaire sans l'activer.
+- `VALIDÉ` — `!team list <page>` pagine les Teams par 10 ; `liste` peut être accepté comme alias mais n'est pas mis en avant.
+- `VALIDÉ` — `!team save` / `save N` ne réalisent plus de copie métier et servent de helper de syntaxe.
+- `VALIDÉ` — Les helpers de commande restent courts, montrent une seule syntaxe recommandée et ne font jamais référence à une migration/ancien fonctionnement.
+- `VALIDÉ` — Aucune confirmation en plusieurs étapes côté Twitch/chat.
+- `VALIDÉ` — Une Team vide peut être renommée.
+- `VALIDÉ` — Les modifications UI de Team sont persistées immédiatement, sans bouton global Sauvegarder.
+- `VALIDÉ` — L'UI permet le remplacement direct d'un personnage.
+- `VALIDÉ` — Le sélecteur Team utilise les possessions actives avec recherche/filtres.
+- `VALIDÉ` — Une Team partielle fournit normalement les passifs correspondant à ses membres.
+- `VALIDÉ` — Les passifs UI sont recalculés immédiatement pendant l'édition.
+- `VALIDÉ` — Les cartes Team restent horizontales ; personnages sur la largeur, informations complémentaires au-dessus/dessous.
+- `VALIDÉ` — Activation distincte de l'édition via un contrôle compact en haut à droite.
+- `VALIDÉ` — Deux drag & drop distincts : personnages horizontalement dans une Team ; Teams verticalement dans la liste.
+- `VALIDÉ` — Le drag vertical renumérote immédiatement les Teams et conserve l'état actif.
+- `VALIDÉ` — La protection contre suppression dépend des positions actuelles 1..10 ; 11+ sont les positions supplémentaires.
+- `VALIDÉ` — Une Team peut être déplacée librement entre toutes les positions.
+- `VALIDÉ` — L'ordre des Teams est sauvegardé immédiatement.
+
+## UX transverse / recherche
+- `VALIDÉ` — Les listes pertinentes utilisent une recherche temps réel mise à jour à chaque caractère.
+- `VALIDÉ` — Le matching est une sous-chaîne contiguë normalisée, pas un fuzzy matching par lettres dispersées.
+- `VALIDÉ` — Cette direction concerne notamment personnages, Box, sélecteurs Team, joueurs, objets et autres listes adaptées.
 
 ## Notifications
 - `VALIDÉ` — Toute notification doit pouvoir être supprimée manuellement par le joueur via une petite croix affichée au survol.

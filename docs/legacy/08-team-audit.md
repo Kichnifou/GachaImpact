@@ -1,7 +1,7 @@
 # 08 — Audit legacy Team
 
-Statut : AUDIT EN COURS — R177 À R196 VALIDÉS — GESTION DES TEAMS / PRESETS TRÈS AVANCÉE
-Date : 2026-08-28
+Statut : AUDIT EN COURS — R177 À R235 VALIDÉS — GESTION / UX / COMMANDES TEAM TRÈS AVANCÉES
+Date : 2026-08-30
 
 ## 1. Périmètre
 
@@ -405,15 +405,26 @@ Réactivation :
 
 ---
 
-### R186 — Application d'un preset — ✅ VALIDÉ
+### R186 — Application / activation d'une Team — ✅ REMPLACÉ / CLARIFIÉ PAR R192–R197
 
-Direction validée initialement :
-- appliquer un preset copie sa composition vers l'équipe active ;
-- le preset et l'équipe active ne doivent pas être accidentellement modifiés l'un par l'autre.
+La direction initiale « copie indépendante du preset vers une équipe active séparée » n'est plus la cible standalone.
 
-Cette règle doit être réconciliée avec R192 lors de la prochaine passe afin de préciser le comportement exact après sélection d'une équipe comme active puis modification de cette équipe.
+Cible finale :
+- l'équipe active est directement l'une des Teams du joueur ;
+- il existe toujours exactement une Team sélectionnée comme active ;
+- activer/appliquer une Team sélectionne cette Team comme active ;
+- la sidebar reflète cette même Team, elle n'en possède pas une copie indépendante.
 
-Ne pas inventer cette sémantique avant validation.
+Dans la V1 :
+- la sidebar est une vue uniquement ;
+- elle ne permet pas directement de modifier la composition ;
+- les modifications se font depuis l'écran Team.
+
+Si une future version rend la sidebar éditable :
+- elle modifiera la Team actuellement active elle-même.
+
+Côté Twitch/chat :
+- `!team <N> apply` signifie sélectionner la Team N comme équipe active.
 
 ---
 
@@ -485,7 +496,12 @@ Il n'est pas nécessaire de passer systématiquement par :
 - équipe active ;
 - puis sauvegarde dans un slot.
 
-Twitch/chat peut conserver un workflow plus simple basé sur l'équipe active et les commandes `save` / `apply`.
+Twitch/chat conserve un workflow plus simple basé sur :
+- activation de la Team avec `apply` ;
+- modification de la Team active avec `add` / `remove` ;
+- création d'une Team supplémentaire avec `new`.
+
+L'ancien concept de `save` comme copie vers un preset n'est plus une action métier cible.
 
 ---
 
@@ -510,12 +526,13 @@ Exemple :
 - la sidebar affiche immédiatement sa composition.
 
 Twitch/chat :
-- conserver le fonctionnement textuel actuel de sauvegarde/remplacement explicite ;
+- `!team <N> apply` est l'équivalent textuel de l'activation de la Team N ;
 - pas besoin de reproduire le sélecteur graphique.
 
-À préciser lors de la prochaine passe :
-- interaction exacte entre cette notion d'équipe sélectionnée comme active et R186 ;
-- notamment savoir si une modification ultérieure de l'équipe active modifie ou non automatiquement le preset sélectionné.
+Clarification finale :
+- la Team sélectionnée et l'équipe active sont la même entité métier ;
+- une modification de la Team active modifie donc cette Team ;
+- la sidebar reflète immédiatement les changements.
 
 ---
 
@@ -566,7 +583,492 @@ La fiche respecte la granularité de confidentialité déjà validée :
 
 ---
 
-## 14. Décisions techniques prises directement
+## 14. Deuxième passe fonctionnelle — équipe active / commandes / UX
+
+### R197 — La Team sélectionnée est l'équipe active — ✅ VALIDÉ
+
+Il n'existe pas de composition active séparée des Teams.
+
+Concept :
+- chaque joueur possède plusieurs Teams ;
+- une seule possède l'état actif ;
+- cette Team est celle utilisée par les systèmes du jeu ;
+- la sidebar affiche cette même Team.
+
+La sidebar est en lecture seule dans la V1.
+
+---
+
+### R198 — Une Team incomplète reste active — ✅ VALIDÉ
+
+Une Team active peut rester active avec :
+- 4/4 ;
+- 3/4 ;
+- 2/4 ;
+- 1/4 ;
+- 0/4 personnages.
+
+Aucune bascule automatique vers une autre Team.
+
+Les domaines consommateurs appliquent leurs propres préconditions.
+
+---
+
+### R199 — Team 1 active par défaut — ✅ VALIDÉ
+
+Pour un nouveau joueur :
+- les 10 emplacements de base existent ;
+- Team 1 est active par défaut ;
+- elle peut être entièrement vide.
+
+Une sélection historique existante reste conservée entre les sessions.
+
+---
+
+### R200 — Créer une Team supplémentaire ne l'active pas — ✅ VALIDÉ
+
+Créer Team 11, 12, etc. :
+- crée seulement l'emplacement ;
+- ne modifie jamais la Team active actuelle.
+
+L'activation reste une action explicite.
+
+---
+
+### R201 — Une Team supplémentaire active ne peut pas être supprimée — ✅ VALIDÉ
+
+Si une Team >10 est active :
+- l'action de suppression UI est refusée ;
+- le joueur doit d'abord activer une autre Team.
+
+Ne jamais choisir automatiquement une autre Team à sa place.
+
+---
+
+### R202 — Une Team vide peut être activée — ✅ VALIDÉ
+
+Une Team 0/4 peut devenir active.
+
+La sidebar affiche alors quatre emplacements vides.
+
+---
+
+### R203 — `!team` indique la Team active — ✅ VALIDÉ
+
+La réponse Twitch/chat de `!team` indique :
+- le numéro actuel de la Team active ;
+- son nom s'il existe ;
+- sa composition ;
+- ses constellations utiles ;
+- ses passifs actifs.
+
+Le message Twitch reste sur une seule ligne.
+
+---
+
+### R204 — `!team <N> apply` accepte 0..4 — ✅ VALIDÉ
+
+`apply` sélectionne une Team comme active même si elle est :
+- vide ;
+- partielle ;
+- complète.
+
+Les personnages présents doivent rester valides, possédés et actifs.
+
+---
+
+### R205 — Vider une Team active ne la désactive pas — ✅ VALIDÉ
+
+`!team <N> remove` côté Twitch/chat vide l'emplacement.
+
+Si cette Team est active :
+- elle reste active ;
+- sa composition devient vide ;
+- son nom reste conservé.
+
+Même logique pour `!team remove all` sur la Team active.
+
+---
+
+### R206 — Une Team vide peut être renommée — ✅ VALIDÉ
+
+Le nom appartient à la Team, pas à sa composition.
+
+Une Team vide peut donc recevoir ou conserver un nom.
+
+---
+
+### R207 — Listing Twitch paginé — ✅ VALIDÉ
+
+Commandes recommandées :
+- `!team list`
+- `!team list <page>`
+
+Compatibilité acceptée :
+- `!team liste`
+- `!team liste <page>`
+
+Les helpers/documentation ne montrent qu'une seule syntaxe recommandée : `list`.
+
+Pagination :
+- 10 Teams par page ;
+- `list`, `list 1`, `liste`, `liste 1` → première page.
+
+`!team save` n'est plus une commande de listing.
+
+---
+
+### R208 — Slots vides compactés côté Twitch — ✅ VALIDÉ
+
+Dans `!team list` :
+- afficher les Teams non vides de la page ;
+- afficher la Team active même si elle est vide ;
+- ne pas écrire une ligne pour chaque emplacement vide ;
+- permettre un résumé du nombre d'emplacements vides.
+
+Une Team partielle peut être présentée avec son remplissage, par exemple `2/4`.
+
+---
+
+### R209 — Team active publique vide/incomplète — ✅ VALIDÉ
+
+Si les permissions autorisent la consultation :
+- une Team publique 2/4 affiche ses deux personnages et deux slots vides ;
+- une Team publique 0/4 reste visible comme Team vide.
+
+Ne pas masquer son état réel.
+
+---
+
+### R210 — Nom de Team potentiellement public — ✅ VALIDÉ
+
+Si la Team active est visible :
+- son numéro est visible ;
+- son nom peut être visible.
+
+Le nom fait partie des sous-informations qui pourront être contrôlées par la future confidentialité granulaire.
+
+---
+
+### R211 — Passifs d'une Team publique — ✅ VALIDÉ
+
+Les passifs de l'équipe active peuvent être affichés avec la Team publique.
+
+Si la Team elle-même n'est pas visible :
+- ne jamais exposer ses passifs séparément.
+
+---
+
+### R212 — Renommage Twitch — ✅ VALIDÉ
+
+Accepter :
+- `!team <N> rename "Nom"`
+- `!team rename "Nom"` pour la Team active.
+
+Les helpers n'affichent qu'une seule syntaxe recommandée selon le contexte.
+
+---
+
+### R213 — Ajout Twitch dans le premier slot vide — ✅ VALIDÉ
+
+`!team add <nom>` :
+- agit sur la Team active ;
+- place le personnage dans le premier slot vide ;
+- ne propose pas de syntaxe de positionnement par numéro de slot.
+
+L'ordre reste modifiable graphiquement dans l'UI.
+
+---
+
+### R214 — `remove all` — ✅ DÉRIVÉ
+
+`!team remove all` :
+- vide la Team active ;
+- conserve son nom ;
+- conserve son emplacement ;
+- conserve son état actif.
+
+---
+
+### R215 — Fin de `save` comme action métier — ✅ VALIDÉ
+
+Le modèle standalone ne copie plus une équipe active séparée vers des presets.
+
+Toutes les Teams sont éditées directement.
+
+`!team save` et `!team save <N>` :
+- ne modifient plus les données ;
+- servent uniquement de helper lorsqu'ils sont utilisés ;
+- indiquent la syntaxe actuelle sans mentionner d'ancien système ou de migration.
+
+Exemple de direction de helper :
+`Utilise !team 4 apply pour activer la team, puis !team add <personnage>. Pour créer une Team supplémentaire : !team new.`
+
+---
+
+### R216 — `!team new` — ✅ VALIDÉ
+
+Commande recommandée unique :
+`!team new`
+
+Effet :
+- créer la prochaine Team à la fin de la liste ;
+- numéro continu ;
+- Team vide ;
+- nom vide ;
+- non active.
+
+Ne pas proposer systématiquement un alias français.
+
+---
+
+### R217 — Plusieurs Teams supplémentaires vides autorisées — ✅ VALIDÉ
+
+La création d'une nouvelle Team n'exige pas de remplir les précédentes.
+
+Plusieurs Teams >10 peuvent rester vides simultanément.
+
+---
+
+### R218 — Suppression UI d'une Team supplémentaire — ✅ VALIDÉ
+
+Une Team >10 peut être supprimée depuis l'UI :
+- vide ou remplie ;
+- jamais si elle est active.
+
+Si elle contient des données :
+- confirmation UI acceptable.
+
+Twitch/chat :
+- aucune confirmation en plusieurs étapes ;
+- aucune suppression physique de l'emplacement.
+
+---
+
+### R219 — Numéro public — ✅ DÉRIVÉ
+
+Le numéro de Team est une position d'organisation et peut être affiché lorsque la Team elle-même est visible.
+
+Pas de permission de confidentialité spécifique nécessaire pour le numéro.
+
+---
+
+### R220 — Sauvegarde immédiate des modifications UI — ✅ VALIDÉ
+
+Les modifications de Team sont persistées immédiatement après validation :
+- ajout ;
+- retrait ;
+- remplacement ;
+- réorganisation.
+
+Pas de bouton global `Sauvegarder`.
+
+Si la Team est active :
+- sidebar et passifs se mettent à jour immédiatement.
+
+---
+
+### R221 — Remplacement direct d'un personnage — ✅ VALIDÉ
+
+Dans l'UI :
+- `Changer` remplace directement un personnage par un autre ;
+- `Retirer` reste disponible séparément.
+
+Ne pas obliger à retirer puis ajouter manuellement.
+
+---
+
+### R222 — Sélecteur personnage inspiré de la Box — ✅ VALIDÉ
+
+`Ajouter` / `Changer` ouvre un sélecteur utilisant :
+- recherche temps réel ;
+- filtres pertinents ;
+- personnages possédés ;
+- personnages actifs uniquement.
+
+Un personnage déjà présent dans la même Team :
+- ne peut pas être sélectionné une seconde fois ;
+- peut rester visible mais désactivé/grisé.
+
+---
+
+### R223 — Détail Twitch d'une Team — ✅ VALIDÉ
+
+`!team` :
+- Team active ;
+- composition ;
+- passifs.
+
+`!team <N>` :
+- Team N ;
+- composition ;
+- passifs même si non active.
+
+`!team list` :
+- aperçu compact paginé.
+
+Toutes les réponses Twitch sont structurées sur une seule ligne.
+
+---
+
+### R224 — Team active identifiable dans `!team list` — ✅ VALIDÉ
+
+Le listing paginé indique clairement quelle Team est active.
+
+---
+
+### R225 — Team partielle dans le listing — ✅ DÉRIVÉ
+
+Une Team partielle non vide peut être affichée par exemple sous forme `2/4`.
+
+Une Team vide non active est résumée avec les autres emplacements vides.
+
+---
+
+### R226 — Recherche temps réel transversale — ✅ VALIDÉ
+
+La recherche UI est instantanée :
+- mise à jour à chaque caractère ;
+- aucun bouton Rechercher requis.
+
+Matching :
+- sous-chaîne contiguë après normalisation ;
+- pas de lettres dispersées / fuzzy implicite.
+
+Exemple :
+- `Ya` → Yanfei ;
+- `Ya` → Yaoyao ;
+- `Ya` ne doit pas trouver Yelan.
+
+Cette règle est transversale et vaut pour les listes pertinentes :
+- personnages ;
+- Box ;
+- Team ;
+- joueurs ;
+- objets ;
+- autres interfaces de recherche.
+
+---
+
+### R227 — Passifs actifs même en Team partielle — ✅ VALIDÉ
+
+Les passifs sont calculés sur les personnages réellement présents.
+
+Exemple :
+- 1 Pyro → Pyro I ;
+- 2 Pyro → Pyro II ;
+- 3 ou 4 Pyro → toujours Pyro II.
+
+Une Team n'a pas besoin d'être 4/4 pour fournir ses passifs aux domaines qui les utilisent.
+
+---
+
+### R228 — Recalcul visuel immédiat des passifs — ✅ VALIDÉ
+
+Pendant l'édition :
+- toute modification recalcule immédiatement les passifs ;
+- aucune actualisation manuelle nécessaire.
+
+---
+
+### R229 — Carte Team horizontale et activation distincte — ✅ VALIDÉ
+
+Chaque Team conserve une carte/ligne horizontale.
+
+Disposition :
+- les quatre personnages occupent la largeur utile de la carte ;
+- informations comme nom/passifs au-dessus ou au-dessous ;
+- ne pas réduire la zone personnages pour placer les passifs à côté.
+
+Activation :
+- action distincte de l'édition ;
+- petit contrôle en haut à droite ;
+- préférence actuelle : interrupteur/curseur gauche → droite ;
+- position droite = actif.
+
+La Team active peut recevoir une mise en évidence supplémentaire.
+
+---
+
+### R230 — Même éditeur pour la Team active — ✅ VALIDÉ
+
+La Team active utilise le même éditeur que toutes les autres.
+
+Pas d'écran spécial d'édition de la Team active.
+
+La différence est seulement :
+- état actif ;
+- synchronisation immédiate sidebar/passifs.
+
+---
+
+### R231 — Nom/numéro actif dans la sidebar — ✅ VALIDÉ
+
+La sidebar affiche discrètement :
+- numéro de la Team active ;
+- nom s'il existe ;
+- composition.
+
+La sidebar reste non éditable en V1.
+
+---
+
+### R232 — Deux drag & drop distincts — ✅ VALIDÉ
+
+#### Réorganisation des personnages
+- drag & drop uniquement à l'intérieur d'une Team ;
+- déplacement horizontal ;
+- change uniquement l'ordre visuel des personnages de cette Team.
+
+#### Réorganisation des Teams
+- drag de la carte depuis une zone extérieure aux personnages ;
+- déplacement vertical dans la liste des Teams ;
+- change la position/numéro de la Team.
+
+Les deux interactions doivent être techniquement et visuellement dissociées afin qu'un drag personnage ne déplace jamais accidentellement la Team entière.
+
+Si la Team déplacée est active :
+- elle reste active.
+
+---
+
+### R233 — Protection basée sur les positions 1 à 10 — ✅ VALIDÉ
+
+Après réorganisation :
+- positions actuelles 1..10 = non supprimables ;
+- positions actuelles 11+ = supprimables sous les autres conditions.
+
+La protection ne suit pas dix anciennes entités historiques.
+
+---
+
+### R234 — Drag libre entre toutes les positions — ✅ VALIDÉ
+
+Une Team peut être déplacée :
+- de 18 vers 2 ;
+- de 3 vers 14 ;
+- ou toute autre position.
+
+Il n'existe pas deux zones bloquées `base` / `supplémentaires`.
+
+La règle de suppression est recalculée selon la nouvelle position.
+
+---
+
+### R235 — Ordre des Teams persisté immédiatement — ✅ VALIDÉ
+
+Le drag vertical :
+- renumérote immédiatement les positions ;
+- persiste immédiatement le nouvel ordre ;
+- ne nécessite pas de bouton Sauvegarder.
+
+Au prochain chargement, le même ordre est restauré.
+
+Les numéros Twitch/chat correspondent toujours à l'ordre courant.
+
+---
+
+## 15. Décisions techniques prises directement
 
 - les personnages d'une équipe sont référencés par leur identité canonique, jamais par leur nom ;
 - les passifs sont dérivés de la composition courante ;
@@ -578,39 +1080,39 @@ La fiche respecte la granularité de confidentialité déjà validée :
 
 ---
 
-## 15. État
+## 16. État
 
-R177 à R196 validées.
+R177 à R235 validées.
 
-Première passe Team très avancée :
-- équipe active 0..4 ;
-- unicité ;
-- Saved Teams ;
-- 10 emplacements permanents ;
+Le modèle Team standalone est désormais très avancé :
+- une Team du joueur est directement sélectionnée comme active ;
+- Team 1 active par défaut ;
+- équipe active autorisée 0..4 ;
+- 10 positions de base non supprimables selon l'ordre courant ;
 - extensions illimitées ;
-- suppression/vidage ;
-- nommage ;
-- doublons ;
-- réorganisation ;
-- passifs ;
-- désactivation ;
-- confidentialité ;
-- équipe publique ;
-- édition directe UI ;
-- sélection visuelle de l'équipe active.
-
-Point important à reprendre :
-- clarifier précisément l'interaction R186 / R192 avant de figer le modèle métier d'activation.
+- création `!team new` ;
+- édition directe et autosave ;
+- ajout / retrait / remplacement ;
+- Teams et personnages réordonnables par deux drag & drop distincts ;
+- numérotation dynamique ;
+- compositions dupliquées interdites ;
+- noms modernisés ;
+- passifs dérivés et recalculés immédiatement ;
+- visibilité publique de la Team active selon confidentialité ;
+- Saved Teams privées ;
+- commandes Twitch adaptées au nouveau modèle ;
+- helpers courts sans référence à une migration ;
+- pagination `!team list` ;
+- recherche temps réel transversale validée.
 
 Audit restant :
-- finaliser la relation entre équipe active et Saved Team sélectionnée ;
-- auditer les détails restants de `!team` ;
-- définir les comportements UI autour des équipes vides/incomplètes ;
-- vérifier les derniers consommateurs de Team ;
-- vérifier migration réelle `team` / `savedTeams` ;
-- vérifier les interactions avec Expedition ;
-- confirmer la frontière avec Combat ;
-- préciser si d'autres commandes exposent ou modifient la Team ;
-- poursuivre jusqu'à clôture du domaine.
+- vérifier tous les derniers consommateurs de Team ;
+- confirmer définitivement que Expedition n'utilise pas Team comme prérequis ;
+- scanner les autres scripts lisant `team` ;
+- finaliser la migration legacy `team` + `savedTeams` vers le modèle cible ;
+- mesurer les anomalies réelles du snapshot ;
+- vérifier les cas liés à la réorganisation/numérotation au cutover ;
+- faire une dernière passe `Team.txt` / `Passif.txt` / `Infos.txt` / consommateurs ;
+- déterminer si le Domaine Team peut être clôturé.
 
 Les détails SQL exacts restent réservés à la Phase 2.
