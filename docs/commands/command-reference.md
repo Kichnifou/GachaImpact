@@ -272,7 +272,7 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Bug legacy corrigé :** `Stella.txt` n'incrémente actuellement pas `copies` et autorise des 4★ sous C6
 
 ## `!team`
-- **Statut audit :** Audit Team en cours — R177 à R235 validées
+- **Statut audit :** Audité — Domaine Team clôturé après R236
 - **But :** Consulter, activer et modifier les Teams du joueur.
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
@@ -320,12 +320,13 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Interactions :** Box/Possession, Passifs, Gacha, Combat, confidentialité
 
 ## `!passifs`
-- **Statut audit :** Lu dans le Domaine Team — règles générales déjà liées au Domaine Gacha
+- **Statut audit :** Audité — Domaine Team clôturé après R236
 - **But :** Afficher la table générale des passifs élémentaires et leur détail par élément.
 - **Données joueur lues :** aucune
 - **Données écrites :** aucune
-- **Disponible chat GachaImpact :** à conserver
+- **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
 - **UI équivalente :** présentation contextuelle des passifs dans l'écran Team, avec possibilité de détail
 - **Source métier :** règles de passifs validées dans le Domaine Gacha R75–R84
+- **Correction cible :** les textes affichés doivent refléter les règles Gacha finales, y compris les corrections apportées aux descriptions legacy
 - **Différence avec `!team` :** `!passifs` décrit les règles générales ; Team calcule les passifs réellement actifs pour une composition

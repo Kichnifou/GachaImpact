@@ -38,7 +38,7 @@ Sources : 36 scripts du snapshot Streamer.bot + 17 JSON du snapshot Data.
 | Liste | `viewers_data.json` | R | Social / Présence legacy | liste joueurs selon données Streamer.bot |
 | Missions | `long_missions.json`, `viewers_data.json` | R/W | Missions longues | B/A/S/Z, abandon, reprise, auto-chaînage |
 | Obtention | `genshin_characters.json`, `viewers_data.json` | R | Collection / Historique | première date d'obtention |
-| Passif | `element_passives.json`, `viewers_data.json` | R | Équipe / Passifs | calcul/affichage passifs élémentaires |
+| Passif | `element_passives.json` | R | Équipe / Passifs | référentiel général des passifs ; aucune donnée joueur lue |
 | Pity | `viewers_data.json` | R | Gacha / Invocation | pity, garantie, etc. |
 | Pull | `viewers_data.json`, `genshin_characters.json`, `element_passives.json`, `c6_characters.json` | R/W | Gacha / Invocation | cœur du système de tirage |
 | Roue | `viewers_data.json` | R/W | Daily / Roue | 1/jour + récompenses |

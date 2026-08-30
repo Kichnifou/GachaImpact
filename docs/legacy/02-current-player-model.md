@@ -482,21 +482,29 @@ Cible :
 - plusieurs Teams ;
 - une référence `activeTeam`.
 
-Stratégie détaillée de fusion/conversion à finaliser pendant la dernière passe Team.
+Migration :
+- créer les 10 positions de base ;
+- importer les Saved Teams valides dans leurs positions historiques ;
+- si l'ancienne `team` correspond à une composition importée, sélectionner cette Team comme active ;
+- si la combinaison correspond mais que l'ordre diffère, conserver l'ordre de l'ancienne Team active ;
+- si l'ancienne Team active non vide n'existe dans aucun preset, utiliser la première position de base vide ou créer une Team supplémentaire ;
+- si l'ancienne Team active est vide, sélectionner une position vide sans écraser les presets ;
+- dédupliquer conservativement les Saved Teams historiques de composition identique ;
+- conserver `savedAt` valide comme métadonnée historique ;
+- journaliser les anomalies/corrections ;
+- rendre l'import rerunnable/idempotent.
 
 Ne pas figer la forme SQL exacte avant Phase 2.
 
 ## 7. À auditer ensuite
 
 Prochains blocs :
-- équipe active ;
-- teams sauvegardées ;
+- banque ;
+- coffre / inventaire ;
 - options ;
 - missions ;
 - autres statistiques ;
 - combat ;
 - expédition ;
-- banque ;
-- coffre ;
 - objets spéciaux ;
 - autres données joueur réparties dans les JSON.

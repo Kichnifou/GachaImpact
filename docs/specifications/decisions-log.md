@@ -372,6 +372,13 @@ Statut : évolutif.
 - `VALIDÉ` — La protection contre suppression dépend des positions actuelles 1..10 ; 11+ sont les positions supplémentaires.
 - `VALIDÉ` — Une Team peut être déplacée librement entre toutes les positions.
 - `VALIDÉ` — L'ordre des Teams est sauvegardé immédiatement.
+- `VALIDÉ` — `!passifs` est conservé sur Twitch et dans le chat GachaImpact comme référentiel général des passifs.
+- `VALIDÉ` — L'écran Team fournit également un accès au référentiel général des passifs.
+- `VALIDÉ` — Les textes de passifs doivent utiliser les règles finales du Domaine Gacha R75–R84 et non une description legacy obsolète.
+- `VALIDÉ MIGRATION` — Importer les `savedTeams` dans leurs positions historiques puis rattacher l'ancien tableau `team` à une Team existante de même composition ou à une position libre sans perte.
+- `VALIDÉ MIGRATION` — Une ancienne Team active vide doit rester représentable sans écraser une Saved Team historique.
+- `VALIDÉ MIGRATION` — L'import Team est rerunnable/idempotent et ne recrée pas de Teams à chaque passage.
+- `CLÔTURÉ` — Domaine Team clôturé après R236.
 
 ## UX transverse / recherche
 - `VALIDÉ` — Les listes pertinentes utilisent une recherche temps réel mise à jour à chaque caractère.

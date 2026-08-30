@@ -1,6 +1,6 @@
 # 08 — Audit legacy Team
 
-Statut : AUDIT EN COURS — R177 À R235 VALIDÉS — GESTION / UX / COMMANDES TEAM TRÈS AVANCÉES
+Statut : CLÔTURÉ — R177 À R236 VALIDÉS
 Date : 2026-08-30
 
 ## 1. Périmètre
@@ -1080,39 +1080,208 @@ Les numéros Twitch/chat correspondent toujours à l'ordre courant.
 
 ---
 
-## 16. État
+## 16. Dernière décision
 
-R177 à R235 validées.
+### R236 — Conserver `!passifs` — ✅ VALIDÉ
 
-Le modèle Team standalone est désormais très avancé :
-- une Team du joueur est directement sélectionnée comme active ;
-- Team 1 active par défaut ;
-- équipe active autorisée 0..4 ;
-- 10 positions de base non supprimables selon l'ordre courant ;
-- extensions illimitées ;
-- création `!team new` ;
-- édition directe et autosave ;
-- ajout / retrait / remplacement ;
-- Teams et personnages réordonnables par deux drag & drop distincts ;
-- numérotation dynamique ;
-- compositions dupliquées interdites ;
-- noms modernisés ;
-- passifs dérivés et recalculés immédiatement ;
-- visibilité publique de la Team active selon confidentialité ;
-- Saved Teams privées ;
-- commandes Twitch adaptées au nouveau modèle ;
-- helpers courts sans référence à une migration ;
-- pagination `!team list` ;
-- recherche temps réel transversale validée.
+Conserver la commande :
+- sur Twitch ;
+- dans le chat interne GachaImpact.
 
-Audit restant :
-- vérifier tous les derniers consommateurs de Team ;
-- confirmer définitivement que Expedition n'utilise pas Team comme prérequis ;
-- scanner les autres scripts lisant `team` ;
-- finaliser la migration legacy `team` + `savedTeams` vers le modèle cible ;
-- mesurer les anomalies réelles du snapshot ;
-- vérifier les cas liés à la réorganisation/numérotation au cutover ;
-- faire une dernière passe `Team.txt` / `Passif.txt` / `Infos.txt` / consommateurs ;
-- déterminer si le Domaine Team peut être clôturé.
+Formes principales :
+- `!passifs`
+- `!passifs <élément>`
+
+But :
+- `!passifs` décrit le référentiel général des passifs disponibles ;
+- `!team` décrit les passifs réellement actifs pour la Team du joueur.
+
+Standalone :
+- l'écran Team possède également un accès permettant de consulter le référentiel complet des passifs ;
+- les cartes Team continuent d'afficher les passifs dérivés de leur propre composition.
+
+Les textes présentés doivent refléter les règles finales validées dans le Domaine Gacha R75–R84.
+
+Ne pas conserver un ancien texte legacy devenu incohérent avec ces règles.
+
+---
+
+## 17. Vérification finale des consommateurs
+
+Dernière passe effectuée sur les usages réels de `team`.
+
+### `Team.txt`
+Ancien propriétaire de :
+- équipe active ;
+- Saved Teams ;
+- ajout/retrait ;
+- sauvegarde/application ;
+- renommage ;
+- affichage des passifs.
+
+La cible standalone remplace la séparation legacy `team` + `savedTeams` par plusieurs Teams dont une seule est sélectionnée active.
+
+### `Pull.txt`
+Consomme la Team active pour :
+- compter les éléments ;
+- déterminer les stacks ;
+- appliquer les passifs Gacha.
+
+Il ne devient pas propriétaire de la Team.
+
+### `Combat.txt`
+Consomme la Team active.
+
+Le Domaine Combat reste propriétaire de ses propres préconditions, notamment l'exigence éventuelle d'une composition 4/4.
+
+`!combat auto` construit une composition temporaire propre au Combat et ne modifie pas la Team active.
+
+### `Infos.txt`
+Lit l'équipe active pour la consultation/profil.
+
+La future exposition respecte les règles de confidentialité.
+
+### `Passif.txt`
+Ne lit pas le profil joueur.
+Ne modifie aucune donnée.
+Lit uniquement le référentiel général des passifs.
+
+### `XP.txt`
+Peut initialiser des defaults ou présenter des tutoriels liés à Team mais n'utilise pas la composition comme mécanique métier.
+
+### `Expedition.txt`
+Ne dépend pas de la Team comme prérequis métier.
+
+Expedition utilise directement les possessions selon ses propres règles.
+
+La désactivation d'un personnage peut affecter Team et Expedition parallèlement, sans créer une dépendance Team → Expedition.
+
+Conclusion :
+- aucun autre consommateur majeur imposant une nouvelle règle Team n'a été identifié ;
+- Team reste une source de composition consommée par Gacha, Combat et certaines vues/profils ;
+- les règles internes de ces domaines restent chez eux.
+
+---
+
+## 18. Migration legacy `team` + `savedTeams`
+
+Legacy :
+- `team` = équipe active indépendante ;
+- `savedTeams` = jusqu'à 10 presets séparés.
+
+Cible :
+- collection de Teams ;
+- position ordonnée ;
+- une référence vers la Team active ;
+- aucune composition active séparée.
+
+### Procédure cible
+
+1. Créer les 10 positions de base du joueur.
+2. Importer les Saved Teams legacy valides dans leurs positions historiques.
+3. Examiner ensuite l'ancien tableau `team`.
+
+Si l'ancienne Team active possède la même combinaison de personnages qu'une Team importée :
+- sélectionner cette Team comme active ;
+- si l'ordre legacy actif diffère, conserver l'ordre de l'ancienne Team active comme ordre courant de cette Team ;
+- ne pas créer de doublon supplémentaire.
+
+Si l'ancienne Team active est non vide et ne correspond à aucune Team importée :
+- utiliser la première position de base vide ;
+- si aucune position 1..10 n'est disponible, créer une Team supplémentaire ;
+- sélectionner cette Team comme active.
+
+Si l'ancienne Team active est vide :
+- sélectionner une position vide existante sans écraser une composition importée ;
+- si nécessaire, créer une Team vide supplémentaire plutôt que détruire une Saved Team historique.
+
+### Doublons legacy de Saved Teams
+
+Si plusieurs Saved Teams historiques possèdent exactement la même combinaison de personnages :
+- ne pas créer plusieurs compositions cibles identiques ;
+- conserver conservativement une composition canonique ;
+- privilégier la position historique la plus basse ;
+- conserver les autres métadonnées legacy dans le rapport de migration lorsque nécessaire ;
+- journaliser le doublon.
+
+### Données invalides
+
+Si un preset :
+- référence un personnage introuvable ;
+- référence un personnage non possédé ;
+- contient des IDs invalides ;
+- contient des doublons internes ;
+- possède une structure illisible ;
+
+ne pas l'appliquer aveuglément.
+
+Réparer uniquement ce qui est certain.
+Sinon :
+- conserver l'information source dans le rapport de migration ;
+- laisser la position cible vide ou mettre la donnée en quarantaine selon le cas ;
+- ne jamais inventer un personnage ou une composition.
+
+### `savedAt`
+
+Une valeur legacy valide est conservée comme métadonnée historique.
+
+Son affichage dans l'UI n'est pas obligatoire.
+
+### Idempotence
+
+L'importer doit être rerunnable.
+
+Relancer l'import :
+- ne doit pas recréer les mêmes Teams ;
+- ne doit pas ajouter de nouvelles Teams supplémentaires à chaque exécution ;
+- ne doit pas changer arbitrairement la Team active ;
+- doit pouvoir mettre à jour le même joueur depuis un snapshot legacy plus récent.
+
+---
+
+## 19. Corrections / évolutions majeures par rapport au legacy
+
+Le standalone ne conserve pas aveuglément :
+- la séparation `team` / `savedTeams` ;
+- la limite absolue de 10 Teams ;
+- `save` comme copie vers un preset ;
+- la suppression physique Twitch d'un slot ;
+- les restrictions de nom 10 caractères / sans espace ;
+- l'exigence 4/4 pour activer une Team ;
+- la copie d'un preset vers un tableau actif indépendant.
+
+La cible possède :
+- une collection de Teams ;
+- une Team active sélectionnée ;
+- 10 positions protégées + extensions illimitées ;
+- édition directe ;
+- autosave ;
+- réorganisation des Teams ;
+- réorganisation visuelle des personnages ;
+- passifs dérivés ;
+- intégration UI/chat/Twitch commune.
+
+---
+
+## 20. État final du domaine
+
+Décisions :
+- R177 à R185 : structure générale, slots, extensions, désactivation ;
+- R186 à R197 : transformation du modèle legacy vers Team sélectionnée = équipe active ;
+- R198 à R218 : états actifs, commandes, listing, création et suppression ;
+- R219 à R231 : autosave, édition UI, confidentialité, passifs et sidebar ;
+- R232 à R235 : drag & drop / numérotation / positions ;
+- R236 : conservation du référentiel `!passifs`.
+
+Frontières finales :
+- Gacha consomme les passifs dérivés de la Team active ;
+- Combat consomme la Team active avec ses propres règles ;
+- Profil/Infos consulte la Team active selon confidentialité ;
+- Expedition ne dépend pas de Team ;
+- Passif fournit le référentiel général sans état joueur.
+
+Migration `team` + `savedTeams` cadrée.
 
 Les détails SQL exacts restent réservés à la Phase 2.
+
+**Domaine Team : CLÔTURÉ.**

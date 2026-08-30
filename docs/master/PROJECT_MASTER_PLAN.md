@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.18
+Version : 0.19
 Date : 2026-08-30
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -2016,32 +2016,76 @@ Idées transverses découvertes :
 - confidentialité joueur transversale à spécifier avec Paramètres / Social / Permissions ;
 - profil Twitch-only rattachable ultérieurement au compte web via Twitch User ID.
 
-Cinquième domaine actif :
+Cinquième domaine :
 **Team**
 
 Document :
 `docs/legacy/08-team-audit.md`
 
 Statut :
-**EN COURS — R177 À R235 VALIDÉS — GESTION / UX / COMMANDES TRÈS AVANCÉES**
+**CLÔTURÉ le 2026-08-30 — R177 À R236 VALIDÉS**
 
 Décisions principales :
-- R177–R185 : taille, unicité, 10 positions de base, extensions, noms et désactivation ;
-- R186/R192/R197 : correction du modèle — la Team sélectionnée est directement l'équipe active ;
-- R187/R232–R235 : numérotation, drag vertical des Teams, réorganisation libre et sauvegarde immédiate ;
-- R188/R227/R228 : passifs dérivés, actifs même en Team partielle et recalcul immédiat ;
-- R189/R190/R196/R209–R211 : Team active publique selon confidentialité, Saved Teams privées et fiche personnage ;
-- R191/R220–R222/R229/R230 : édition directe UI, autosave, remplacement, picker et cartes horizontales ;
-- R193/R194 : compositions complètes dupliquées interdites ;
-- R198–R202 : comportement des Teams actives vides/incomplètes et création/suppression ;
-- R203–R218/R223–R225 : commandes Twitch/chat modernisées ;
-- R226 : recherche temps réel par sous-chaîne contiguë étendue aux listes pertinentes du projet ;
-- R231 : numéro/nom de Team active dans la sidebar.
+- équipe active = une Team directement sélectionnée ;
+- Team 1 active par défaut ;
+- 0 à 4 personnages ;
+- aucune duplication d'un personnage ;
+- 10 positions protégées selon l'ordre courant ;
+- extensions illimitées ;
+- Teams >10 supprimables depuis l'UI si non actives ;
+- drag vertical des Teams avec renumérotation ;
+- drag horizontal des personnages au sein d'une Team ;
+- autosave ;
+- ajout / retrait / remplacement direct ;
+- compositions complètes dupliquées interdites ;
+- noms facultatifs jusqu'à 20 caractères avec espaces/accents ;
+- passifs dérivés et recalculés immédiatement ;
+- passifs actifs même avec Team partielle ;
+- Team active potentiellement publique selon confidentialité ;
+- Saved Teams privées ;
+- sidebar en lecture seule dans la V1 ;
+- `!team new` pour créer une Team supplémentaire ;
+- `!team list` paginé par 10 ;
+- `apply` sélectionne la Team active ;
+- `save` ne réalise plus de mutation métier et renvoie un helper ;
+- réponses Twitch en une seule ligne ;
+- recherche temps réel transversale par sous-chaîne contiguë ;
+- `!passifs` conservé comme référentiel général.
 
-Prochaine priorité :
-- terminer les consommateurs de Team ;
-- finaliser la migration `team` + `savedTeams` ;
-- dernière passe de cohérence avant clôture éventuelle du domaine.
+Consommateurs confirmés :
+- Gacha/Pull → passifs ;
+- Combat → composition active ;
+- Profil/Infos → consultation ;
+- Expedition → aucune dépendance métier Team ;
+- Passif → référentiel général sans état joueur.
+
+Migration :
+- conversion de `team` + `savedTeams` vers collection de Teams + Team active ;
+- conservation des positions/presets historiques autant que possible ;
+- détection des compositions identiques ;
+- préservation d'une ancienne équipe active distincte sans écraser les presets ;
+- importer rerunnable/idempotent.
+
+**Domaine Team : CLÔTURÉ.**
+
+Sixième domaine à auditer :
+**Banque**
+
+Document spécialisé prévu :
+`docs/legacy/09-banque-audit.md`
+
+Décisions déjà connues à ne pas redécider :
+- portefeuille Moras et Banque sont deux soldes distincts ;
+- dépôt/retrait = transfert interne, pas gain/dépense ;
+- dépenses ordinaires depuis le portefeuille uniquement ;
+- intérêt quotidien 3 % ;
+- intérêt automatique au reset 00:00 `Europe/Paris` ;
+- base = solde bancaire exactement présent au reset ;
+- arrondi inférieur ;
+- intérêt ajouté à `stats.totalMorasEarned` ;
+- fonctionnement même joueur hors ligne.
+
+Le Domaine Banque devra encore auditer le code réel de `Banque.txt`, les commandes dépôt/retrait/consultation, limites éventuelles, UX, messages Twitch/chat, migration et autres interactions.
 
 Ordre recommandé :
 
@@ -2394,49 +2438,48 @@ Domaines clôturés :
 - `docs/legacy/04-xp-audit.md` — XP / cycle de vie joueur : **CLÔTURÉ** ;
 - `docs/legacy/05-element-resources-audit.md` — Élément / Ressources / Conversion / Échanges : **CLÔTURÉ** ;
 - `docs/legacy/06-gacha-invocation-audit.md` — Gacha / Invocation : **CLÔTURÉ** ;
-- `docs/legacy/07-box-possession-obtention-audit.md` — Box / Possessions / Obtention : **CLÔTURÉ**.
+- `docs/legacy/07-box-possession-obtention-audit.md` — Box / Possessions / Obtention : **CLÔTURÉ** ;
+- `docs/legacy/08-team-audit.md` — Team : **CLÔTURÉ — R177 À R236**.
 
-Domaine actif :
-- `docs/legacy/08-team-audit.md` — Team : **EN COURS — R177 À R235 VALIDÉS**.
+Domaine Team :
+- modèle `Teams + activeTeam` cadré conceptuellement ;
+- consommateurs vérifiés ;
+- Expedition confirmée hors dépendance Team ;
+- passifs généraux séparés des passifs effectifs ;
+- migration `team` + `savedTeams` cadrée ;
+- commandes Twitch/chat cadrées ;
+- UX standalone cadrée ;
+- dernière passe effectuée.
 
-Team déjà cadré :
-- Team sélectionnée = équipe active ;
-- équipe active 0..4 ;
-- Team 1 active par défaut ;
-- 10 positions protégées selon l'ordre actuel ;
-- extensions illimitées ;
-- Teams supplémentaires supprimables uniquement depuis l'UI ;
-- numérotation dynamique ;
-- drag vertical des Teams ;
-- drag horizontal des personnages dans une Team ;
-- autosave ;
-- ajout/retrait/remplacement direct ;
-- compositions dupliquées interdites ;
-- passifs dérivés/recalculés immédiatement ;
-- Saved Teams privées ;
-- équipe active publique selon confidentialité ;
-- commandes Twitch/chat adaptées au nouveau modèle ;
-- `!team new` et `!team list` ;
-- `save` devenu helper uniquement ;
-- recherche temps réel transversale validée.
+**Prochaine étape unique : démarrer le Domaine 6 — Banque en lisant intégralement `Banque.txt` et les données/champs bancaires legacy avant de poser de nouvelles décisions.**
 
-**Prochaine étape unique : terminer les consommateurs et la migration Team, puis effectuer la passe finale de cohérence pour déterminer si le Domaine 5 peut être clôturé.**
+Document à créer au démarrage :
+`docs/legacy/09-banque-audit.md`
 
-À vérifier :
-1. tous les scripts lisant réellement `team` ;
-2. frontière finale Combat ;
-3. confirmation qu'Expedition ne dépend pas de Team ;
-4. `Infos.txt` et exposition publique ;
-5. `Passif.txt` ;
-6. migration du tableau legacy `team` ;
-7. migration de `savedTeams` ;
-8. détection des compositions identiques ;
-9. migration de l'équipe active vers une Team cible sans perte ;
-10. anomalies réelles du snapshot ;
-11. comportement de numérotation/positions au cutover ;
-12. dernière relecture de `Team.txt`.
+Points déjà validés à réutiliser :
+- intérêt 3 % quotidien ;
+- reset automatique 00:00 Europe/Paris ;
+- solde exact au reset comme base ;
+- arrondi inférieur ;
+- intérêt = gain Mora ;
+- banque/portefeuille distincts ;
+- transferts internes non comptés comme gains/dépenses.
 
-Ne pas figer le schéma SQL exact avant la fin de l'audit Team.
+À auditer :
+- structure legacy exacte ;
+- dépôt ;
+- retrait ;
+- consultation ;
+- syntaxes Twitch ;
+- éventuels minimums/maximums ;
+- validations ;
+- stats ;
+- migration ;
+- UI Banque ;
+- exposition profil/confidentialité ;
+- interactions avec les autres systèmes économiques.
+
+Ne pas recoder ni redécider les règles déjà validées dans Ressources/XP.
 
 ---
 
@@ -2551,4 +2594,4 @@ Décisions clés :
 - suivi quotidien UI prévu dans le bloc bas gauche avec chevrons compacts.
 
 Prochaine étape :
-terminer les consommateurs et la migration du Domaine Team après R235, puis effectuer la passe finale avant clôture éventuelle.
+démarrer le Domaine Banque en auditant le code legacy réel, sans redécider les règles d'intérêt et de ressources déjà validées.
