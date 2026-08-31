@@ -330,3 +330,32 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Source métier :** règles de passifs validées dans le Domaine Gacha R75–R84
 - **Correction cible :** les textes affichés doivent refléter les règles Gacha finales, y compris les corrections apportées aux descriptions legacy
 - **Différence avec `!team` :** `!passifs` décrit les règles générales ; Team calcule les passifs réellement actifs pour une composition
+
+## `!banque`
+- **Statut audit :** Audité — Domaine Banque clôturé après R255
+- **But :** Consulter et transférer les Moras entre portefeuille et Banque.
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui
+- **UI équivalente :** écran Banque dédié
+- **Syntaxes cibles :**
+  - `!banque`
+  - `!banque deposer <montant>`
+  - `!banque deposer max`
+  - `!banque retirer <montant>`
+  - `!banque retirer max`
+- **Montant :** entier positif ou `max`; pas de `k`, `m`, décimales ou abréviations
+- **Dépôt :** portefeuille → Banque
+- **Retrait :** Banque → portefeuille
+- **Frais :** aucun
+- **Cooldown :** aucun
+- **Plafond :** aucun en V1
+- **Stats :** dépôt/retrait ne modifient pas `totalMorasEarned` / `totalMorasSpent`
+- **Intérêt :** 3 % quotidien automatique au reset serveur, arrondi inférieur
+- **Intérêt hors ligne :** oui
+- **Message consultation :** une seule ligne, conserve emojis legacy, soldes, intérêt estimé et aide dépôt/retrait
+- **Format cible :** `🏦 Banque <joueur> : X moras | 💰 Portefeuille : Y | Intérêt estimé (3%) : +Z | 📥 !banque deposer X | 📤 !banque retirer X`
+- **UI :** MAX, intérêt estimé, compte à rebours, patrimoine total dérivé, historique récent, animation légère
+- **Historique :** complet via écran Historique ; détaillé privé
+- **Profil :** solde Banque exposable selon Public / Amis / Privé
+- **Migration :** wallet/banque/stats exacts ; aucun historique ou intérêt rétroactif inventé
+- **Interactions reportées :** `!top moras` / Classements à auditer séparément pour respecter la confidentialité Banque

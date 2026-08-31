@@ -135,8 +135,23 @@ Statut : évolutif.
 - `VALIDÉ` — L'intérêt est calculé automatiquement côté serveur chaque jour au reset global de **00:00 `Europe/Paris`**, sans nécessiter de connexion, message ou action du joueur.
 - `VALIDÉ` — La base du calcul est le solde présent dans la banque exactement au moment du reset.
 - `VALIDÉ` — L'intérêt est arrondi à l'entier inférieur.
-- `VALIDÉ` — Les Moras gagnées par intérêt continuent à être comptabilisées dans l'équivalent futur de `stats.totalMorasEarned`.
-- `VALIDÉ` — Un joueur absent continue à recevoir ses intérêts quotidiennement ; cette mécanique temporelle appartient au domaine Banque / scheduler serveur et ne doit plus dépendre du système XP.
+- `VALIDÉ` — Les Moras gagnées par intérêt sont créditées en Banque et comptabilisées dans `totalMorasEarned`.
+- `VALIDÉ` — Un joueur absent continue à recevoir ses intérêts.
+- `VALIDÉ` — Dépôt/retrait sont des transferts internes atomiques, sans frais/cooldown/plafond V1 et sans Earned/Spent.
+- `VALIDÉ` — UI Banque dédiée avec portefeuille, solde Banque, patrimoine dérivé, dépôt/retrait, MAX, intérêt estimé, compte à rebours et historique récent.
+- `VALIDÉ` — Twitch/chat accepte montant entier positif ou `max`.
+- `VALIDÉ` — `!banque` conserve une réponse complète sur une seule ligne avec emojis, soldes, intérêt estimé et aide dépôt/retrait.
+- `VALIDÉ` — Aucun format abrégé `k/m` ou montant décimal en V1.
+- `VALIDÉ` — Aucun notification dédiée au crédit d'intérêt.
+- `VALIDÉ` — Historique récent dans Banque + `Voir tout` vers l'Historique global filtrable Tous/Dépôts/Retraits/Intérêts.
+- `VALIDÉ` — L'historique bancaire détaillé est privé au propriétaire.
+- `VALIDÉ` — Le solde Banque peut être Public / Amis / Privé selon confidentialité.
+- `VALIDÉ` — Ne jamais exposer une donnée dérivée permettant de reconstruire une Banque privée.
+- `VALIDÉ` — La sidebar affiche seulement le portefeuille Moras.
+- `VALIDÉ MIGRATION` — Importer wallet/banque/stats exacts sans inventer d'intérêts rétroactifs ni faux historique.
+- `VALIDÉ MIGRATION` — `lastInterestDate` legacy ne pilote pas le scheduler standalone.
+- `À AUDITER DANS TOP/CLASSEMENTS` — Le legacy `!top moras` classe le portefeuille uniquement ; décider plus tard de la définition du classement tout en respectant la confidentialité Banque.
+- `CLÔTURÉ` — Domaine Banque clôturé après R255.
 
 ## Ressources
 - `VALIDÉ` — Les Primogemmes servent actuellement aux invocations / pulls.

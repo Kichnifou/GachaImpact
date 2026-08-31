@@ -102,7 +102,16 @@ Principes déjà validés :
 - aucun solde ne peut devenir négatif ;
 - aucun plafond artificiel n'est prévu en V1.
 
-Les règles métier complètes de Banque seront approfondies dans son audit dédié.
+Les règles métier Banque sont désormais clôturées dans `legacy/09-banque-audit.md`.
+
+Banque :
+- `bank.moras` = solde bancaire séparé ;
+- dépôt/retrait = transferts internes atomiques ;
+- intérêt automatique 3 % au reset serveur ;
+- `bank.lastInterestDate` = donnée legacy de transition/provenance, pas source de vérité du futur scheduler ;
+- historique bancaire natif créé uniquement à partir du standalone ;
+- patrimoine total dérivé `wallet + bank`, jamais stocké inutilement ;
+- visibilité Banque soumise à la confidentialité.
 
 ### `particles`
 

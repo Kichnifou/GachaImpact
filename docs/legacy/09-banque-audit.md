@@ -1,7 +1,7 @@
 # 09 — Audit legacy Banque
 
-Statut : AUDIT EN COURS — OUVERT APRÈS CLÔTURE DU DOMAINE TEAM R177–R236
-Date : 2026-08-30
+Statut : CLÔTURÉ — R237 À R255 VALIDÉS
+Date : 2026-08-31
 
 ## 1. Périmètre
 

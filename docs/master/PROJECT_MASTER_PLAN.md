@@ -1,7 +1,7 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.19
-Date : 2026-08-30
+Version : 0.20
+Date : 2026-08-31
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
@@ -2068,24 +2068,64 @@ Migration :
 
 **Domaine Team : CLÔTURÉ.**
 
-Sixième domaine à auditer :
+Sixième domaine :
 **Banque**
 
-Document spécialisé prévu :
+Document :
 `docs/legacy/09-banque-audit.md`
 
-Décisions déjà connues à ne pas redécider :
-- portefeuille Moras et Banque sont deux soldes distincts ;
-- dépôt/retrait = transfert interne, pas gain/dépense ;
-- dépenses ordinaires depuis le portefeuille uniquement ;
-- intérêt quotidien 3 % ;
-- intérêt automatique au reset 00:00 `Europe/Paris` ;
-- base = solde bancaire exactement présent au reset ;
-- arrondi inférieur ;
-- intérêt ajouté à `stats.totalMorasEarned` ;
-- fonctionnement même joueur hors ligne.
+Statut :
+**CLÔTURÉ le 2026-08-31 — R237 À R255 VALIDÉS**
 
-Le Domaine Banque devra encore auditer le code réel de `Banque.txt`, les commandes dépôt/retrait/consultation, limites éventuelles, UX, messages Twitch/chat, migration et autres interactions.
+Décisions principales :
+- portefeuille et Banque = soldes distincts ;
+- dépôt/retrait = transferts internes ;
+- aucun frais/cooldown/plafond V1 ;
+- MAX UI et `max` Twitch/chat ;
+- écran Banque dédié ;
+- patrimoine total dérivé ;
+- intérêt 3 % automatique au reset serveur ;
+- joueur hors ligne inclus ;
+- estimation dynamique de l'intérêt ;
+- compte à rebours uniquement UI ;
+- pas de notification quotidienne d'intérêt ;
+- historique récent Banque + Historique global complet ;
+- historique bancaire détaillé privé ;
+- solde Banque soumis à Public / Amis / Privé ;
+- protection contre fuite via données dérivées ;
+- sidebar = portefeuille uniquement ;
+- message `!banque` complet sur une ligne avec emojis et helpers ;
+- montants texte = entier ou `max`.
+
+Migration :
+- importer portefeuille / Banque / stats exacts ;
+- ne pas reconstruire d'intérêts passés ;
+- ne pas fabriquer d'historique Banque legacy ;
+- `lastInterestDate` legacy ne pilote pas le scheduler cible ;
+- premier intérêt standalone au prochain reset normal.
+
+Dépendance reportée :
+- `Top / Classements` devra décider la définition d'un classement Moras ;
+- le legacy `!top moras` utilise actuellement le portefeuille uniquement ;
+- aucun classement ne devra permettre de déduire une Banque privée.
+
+**Domaine Banque : CLÔTURÉ.**
+
+Septième domaine à auditer :
+**Sac / Coffre / Shop**
+
+Document spécialisé à créer au démarrage :
+`docs/legacy/10-sac-coffre-shop-audit.md`
+
+Objectifs initiaux :
+- comprendre le vrai contenu du Sac ;
+- comprendre ce que `Coffre.txt` représente réellement ;
+- auditer `Shop.txt` et `shop_items.json` ;
+- distinguer ressources cœur, objets spéciaux, tickets, monnaies temporaires et inventaire ;
+- vérifier achats/prix/stocks ;
+- vérifier interactions Missions/Daily ;
+- cadrer l'UI Sac/Boutique ;
+- préparer la future modélisation inventaire.
 
 Ordre recommandé :
 
@@ -2435,51 +2475,44 @@ git status
 # 38. PROCHAINE ÉTAPE EXACTE
 
 Domaines clôturés :
-- `docs/legacy/04-xp-audit.md` — XP / cycle de vie joueur : **CLÔTURÉ** ;
-- `docs/legacy/05-element-resources-audit.md` — Élément / Ressources / Conversion / Échanges : **CLÔTURÉ** ;
-- `docs/legacy/06-gacha-invocation-audit.md` — Gacha / Invocation : **CLÔTURÉ** ;
-- `docs/legacy/07-box-possession-obtention-audit.md` — Box / Possessions / Obtention : **CLÔTURÉ** ;
-- `docs/legacy/08-team-audit.md` — Team : **CLÔTURÉ — R177 À R236**.
+- `docs/legacy/04-xp-audit.md` — XP / cycle de vie joueur ;
+- `docs/legacy/05-element-resources-audit.md` — Élément / Ressources / Conversion / Échanges ;
+- `docs/legacy/06-gacha-invocation-audit.md` — Gacha / Invocation ;
+- `docs/legacy/07-box-possession-obtention-audit.md` — Box / Possessions / Obtention ;
+- `docs/legacy/08-team-audit.md` — Team ;
+- `docs/legacy/09-banque-audit.md` — Banque — **R237 À R255**.
 
-Domaine Team :
-- modèle `Teams + activeTeam` cadré conceptuellement ;
-- consommateurs vérifiés ;
-- Expedition confirmée hors dépendance Team ;
-- passifs généraux séparés des passifs effectifs ;
-- migration `team` + `savedTeams` cadrée ;
-- commandes Twitch/chat cadrées ;
-- UX standalone cadrée ;
-- dernière passe effectuée.
+Domaine Banque :
+- code legacy lu ;
+- dépôt/retrait cadrés ;
+- intérêt automatique cadré ;
+- UI cadrée ;
+- Twitch/chat cadré ;
+- historique cadré ;
+- confidentialité cadrée ;
+- migration cadrée ;
+- dépendance Top/Classements explicitement reportée.
 
-**Prochaine étape unique : démarrer le Domaine 6 — Banque en lisant intégralement `Banque.txt` et les données/champs bancaires legacy avant de poser de nouvelles décisions.**
+**Prochaine étape unique : démarrer le Domaine 7 — Sac / Coffre / Shop en lisant intégralement les trois scripts et leurs données associées avant de poser de nouvelles décisions.**
 
-Document à créer au démarrage :
-`docs/legacy/09-banque-audit.md`
+Document à créer :
+`docs/legacy/10-sac-coffre-shop-audit.md`
 
-Points déjà validés à réutiliser :
-- intérêt 3 % quotidien ;
-- reset automatique 00:00 Europe/Paris ;
-- solde exact au reset comme base ;
-- arrondi inférieur ;
-- intérêt = gain Mora ;
-- banque/portefeuille distincts ;
-- transferts internes non comptés comme gains/dépenses.
+À vérifier :
+1. rôle réel de `Sac.txt` ;
+2. rôle réel de `Coffre.txt` ;
+3. rôle réel de `Shop.txt` ;
+4. `shop_items.json` ;
+5. objets/ressources spéciales ;
+6. monnaies/tickets ;
+7. prix et achats ;
+8. stocks éventuels ;
+9. interactions Missions/Daily ;
+10. architecture future inventaire / boutique.
 
-À auditer :
-- structure legacy exacte ;
-- dépôt ;
-- retrait ;
-- consultation ;
-- syntaxes Twitch ;
-- éventuels minimums/maximums ;
-- validations ;
-- stats ;
-- migration ;
-- UI Banque ;
-- exposition profil/confidentialité ;
-- interactions avec les autres systèmes économiques.
-
-Ne pas recoder ni redécider les règles déjà validées dans Ressources/XP.
+Dépendance future à conserver :
+- lors de l'audit `Top / Classements`, décider explicitement portefeuille vs patrimoine total pour les Moras ;
+- respecter la confidentialité Banque et empêcher toute déduction indirecte d'un solde privé.
 
 ---
 
@@ -2594,4 +2627,4 @@ Décisions clés :
 - suivi quotidien UI prévu dans le bloc bas gauche avec chevrons compacts.
 
 Prochaine étape :
-démarrer le Domaine Banque en auditant le code legacy réel, sans redécider les règles d'intérêt et de ressources déjà validées.
+démarrer le Domaine Sac / Coffre / Shop ; la question `!top moras` portefeuille vs patrimoine total reste explicitement reportée au futur audit Classements.
