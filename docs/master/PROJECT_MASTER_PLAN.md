@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.21
+Version : 0.22
 Date : 2026-08-31
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -738,47 +738,68 @@ Stratégie détaillée à finaliser pendant la dernière passe de migration Team
 
 ## 6.4 Sac
 
-Le Sac devient la vue complète des possessions pertinentes du joueur.
+Le Sac est la vue complète des possessions pertinentes du propriétaire.
 
 La sidebar reste un résumé compact.
 
+Le Sac complet est privé :
+- aucun autre joueur ne peut ouvrir le véritable écran Sac ;
+- les informations publiques passent par les sections dédiées du profil et leurs règles de confidentialité.
+
 ### Catégories V1
+
 - `Tout`
 - `Ressources`
+- `Objets`
 - `Collection`
 
-L'architecture reste extensible pour de futures catégories.
-
 ### Ressources
-Le Sac continue d'afficher :
+
+Inclure notamment :
 - Primogemmes ;
 - Moras ;
-- particules des sept éléments ;
-- autres ressources persistantes pertinentes.
+- particules des sept éléments.
 
 Les ressources à quantité `0` restent visibles, y compris dans `Tout`.
 
+Le nombre d'invocations possibles :
+- reste dérivé de `Primogemmes / 160` ;
+- peut être affiché dans le Sac ;
+- n'est jamais persisté ;
+- reste hors sidebar.
+
+### Objets
+
+Contient les objets spéciaux persistants.
+
+Premier objet confirmé :
+- Masterless Stella Fortuna.
+
+Stella :
+- quantité visible ;
+- utilisable depuis sa fiche dans le Sac ;
+- ouvre un picker des 5★ éligibles ;
+- réutilise strictement le service métier Stella déjà validé.
+
 ### Collection
-L'ancien `Coffre` legacy devient la catégorie `Collection` du Sac.
+
+L'ancien Coffre legacy devient la Collection.
 
 Ordre :
 1. objets possédés ;
 2. objets non possédés ;
-3. tri alphabétique dans chacun des deux groupes.
+3. alphabétique dans chacun des groupes.
 
-Chaque carte affiche :
-- objet ;
-- quantité si possédé, y compris `x1` ;
-- état visuel non possédé.
+Cartes :
+- quantité visible, y compris `x1` ;
+- non possédés visibles ;
+- hover = méthode d'obtention courte ;
+- clic = fiche détaillée.
 
 Compteur :
-- objets distincts possédés / total ;
-- exemple `8 / 12` ;
-- pas de compteur global d'exemplaires.
-
-Obtention :
-- hover = indication courte ;
-- clic = fiche complète.
+- objets distincts connus possédés / total connu ;
+- aucun compteur global d'exemplaires ;
+- les IDs inconnus ne faussent pas le compteur.
 
 Fiche :
 - description ;
@@ -787,46 +808,75 @@ Fiche :
 - méthode d'obtention ;
 - historique d'obtention.
 
-Legacy sans date fiable :
-- date de migration comme fallback ;
+Legacy sans dates :
+- fallback à la date de migration ;
 - provenance interne traçable ;
 - ne jamais inventer d'ancienne date.
 
+ID legacy inconnu :
+- possession conservée ;
+- placeholder joueur ;
+- ID original conservé en interne ;
+- rattachement futur si correspondance certaine.
+
 Confidentialité :
-- Collection consultable sur profil selon Public / Amis / Privé ;
-- lecture seule chez autrui.
+- Collection potentiellement Public / Amis / Privé ;
+- quantité et méthode d'obtention visibles lorsque la Collection l'est ;
+- historique d'obtention prévu comme sous-information contrôlable par confidentialité granulaire.
 
 Twitch/chat :
-- `!sac` reste une vue ressources ;
-- `!coffre` reste une vue textuelle des objets réellement possédés.
+- `!sac` = consultation personnelle ;
+- pas de `!sac <pseudo>` ;
+- Primogemmes + invocations possibles ;
+- Moras ;
+- élément principal en premier dans les particules ;
+- six autres éléments ensuite ;
+- objets spéciaux persistants possédés ;
+- Collection conservée séparément via `!coffre`.
+
+`!coffre` :
+- objets possédés uniquement ;
+- ordre alphabétique.
 
 ## 6.5 Boutique
 
-Le Shop legacy réel et `shop_items.json` sont désormais audités en grande partie.
+La Boutique standalone est pilotée par un catalogue serveur dynamique.
 
 ### Catalogue
 
-La Boutique standalone est pilotée par un catalogue serveur dynamique.
-
-Un article possède des métadonnées structurées :
+Un article peut notamment définir :
 - ID ;
 - nom ;
 - description ;
+- visuel ;
 - prix ;
 - monnaie ;
-- visuel ;
-- ordre ;
+- `displayOrder` ;
 - visibilité ;
 - disponibilité ;
 - type d'effet ;
-- règles de quantité.
+- règles de quantité ;
+- limite d'achat éventuelle.
+
+Ordre initial :
+1. Mission ;
+2. Primos ;
+3. Ticket.
 
 Trois états :
 - visible + achetable ;
 - visible + indisponible ;
 - masqué.
 
-Les effets sensibles appellent des services métier autorisés.
+Un article indisponible affiche une raison utile lorsque connue.
+
+Le catalogue peut supporter des limites par joueur/période.
+
+Aucune nouvelle limite n'est imposée aux articles actuels par défaut.
+
+Pas de stock mondial partagé en V1.
+
+L'architecture peut permettre cette évolution plus tard si une vraie mécanique le justifie.
 
 ### Primos
 
@@ -846,8 +896,6 @@ Twitch/chat :
 - `!shop primos <quantité>`
 - `!shop primos max`
 
-La propriété legacy `maxPurchasePerCommand: 1` est considérée incohérente avec le comportement réel.
-
 ### Ticket
 
 Prix legacy courant :
@@ -858,47 +906,74 @@ V1 :
 - consommation immédiate ;
 - un Ticket à la fois ;
 - aucune confirmation préalable ;
-- feedback visuel après résultat ;
-- probabilités affichées clairement.
+- résultat visuel immédiatement après achat ;
+- probabilités affichées depuis les poids du catalogue.
 
-Récompenses actuellement configurées :
+Récompenses actuelles :
 - +1 600 Primogemmes ;
 - +1 000 particules principales ;
 - +800 particules d'un autre élément ;
 - +10 pity 5★ ;
 - +50 000 Moras.
 
-Les poids du catalogue déterminent les probabilités affichées.
-
-`+10 pity` passe obligatoirement par le moteur Gacha central et reste plafonné à 90.
+Le `+10 pity` passe exclusivement par le moteur Gacha et reste plafonné à 90.
 
 ### Mission quotidienne
 
-Achat initial possible :
-- depuis Boutique ;
-- depuis l'écran Missions.
+Achat initial accessible depuis :
+- Boutique ;
+- écran Missions.
 
-Une seule action métier / limite quotidienne commune.
+Même action métier.
 
-Après achat :
-- carte Shop toujours visible ;
-- état indisponible `Déjà obtenue aujourd'hui`.
+Après achat du jour :
+- carte toujours visible ;
+- état indisponible explicite.
 
-La gestion et le changement de mission vivent principalement dans Missions.
+Le switch/reroll vit principalement dans Missions.
 
 Twitch/chat conserve :
 - `!shop mission`
 - `!shop switch`
 
-La sémantique complète des missions permanentes B/A/S/Z et du switch sera finalisée dans le Domaine Missions.
+Les missions permanentes B/A/S/Z restent à auditer dans le Domaine Missions.
+
+### Twitch/chat
+
+`!shop` utilise `displayOrder`.
+
+Si plus de 5 articles visibles :
+- `!shop` = page 1 ;
+- `!shop <page>` ;
+- 5 articles maximum par page.
+
+Les articles visibles mais indisponibles restent affichés avec leur état.
+
+Les articles masqués sont absents.
+
+Toujours une seule ligne par réponse Twitch.
 
 ### Historique
 
-La Boutique montre quelques achats récents.
+La Boutique affiche quelques achats récents.
 
-`Voir tout` ouvre l'écran global `Historique` directement sur `Boutique / Achats`.
+`Voir tout` ouvre :
+- écran global `Historique` ;
+- catégorie `Boutique / Achats`.
 
-Ne pas créer un écran historique Shop indépendant.
+L'historique détaillé Shop est privé au propriétaire.
+
+Ne jamais fabriquer d'historique legacy absent.
+
+### Sécurité
+
+Tout achat est atomique/idempotent.
+
+Débit + effet + récompense + journalisation :
+- réussissent ensemble ;
+- ou aucun effet n'est conservé.
+
+Les effets sensibles sont délégués au service métier propriétaire.
 
 ## 6.6 Objectifs personnels — FUTUR / DIRECTION VALIDÉE
 
@@ -2280,41 +2355,69 @@ Document :
 `docs/legacy/10-sac-coffre-shop-audit.md`
 
 Statut :
-**EN COURS — R256 À R280 VALIDÉS — SAC / COLLECTION / CŒUR SHOP TRÈS AVANCÉS**
+**CLÔTURÉ le 2026-08-31 — R256 À R298 VALIDÉS / DÉRIVÉS**
 
 Décisions principales :
-- Coffre intégré au Sac comme catégorie Collection ;
-- Sac = Tout / Ressources / Collection ;
-- ressources à zéro conservées ;
-- Collection montre possédés puis non possédés, tri alphabétique ;
-- quantités visibles ;
-- compteur de complétion distinct ;
-- hover d'obtention + fiche détaillée ;
-- fallback migration daté au cutover si historique legacy absent ;
+- Sac complet privé au propriétaire ;
+- catégories Tout / Ressources / Objets / Collection ;
+- ressources à zéro visibles ;
+- invocations possibles dérivées dans le Sac ;
+- Masterless Stella Fortuna dans Objets et utilisable depuis le Sac ;
+- Collection = ancien Coffre ;
+- possédés puis non possédés, tri alphabétique ;
+- quantités + compteur de complétion ;
+- hover / fiche / méthode d'obtention / historique ;
+- IDs inconnus préservés sous placeholder ;
 - Collection publique selon confidentialité ;
-- Shop piloté par catalogue serveur ;
-- article visible/indisponible/masqué ;
-- achat multiple de lots Primos ;
-- MAX UI et Twitch ;
-- Ticket consommé immédiatement, unitaire et sans confirmation ;
-- probabilités Ticket affichées ;
-- récompense +10 pity déléguée au moteur Gacha ;
-- achat Mission disponible depuis Shop et Missions ;
-- switch principalement géré dans Missions ;
-- historique Shop intégré au futur écran Historique global.
+- historique détaillé d'acquisition compatible avec confidentialité granulaire ;
+- catalogue Shop serveur dynamique ;
+- `displayOrder` explicite ;
+- article visible / indisponible / masqué ;
+- limites d'achat extensibles ;
+- aucun stock mondial en V1 ;
+- Primos multi-lots + MAX ;
+- Ticket immédiat/unitaire/probabilités visibles ;
+- pity Ticket via moteur Gacha ;
+- Mission achetable depuis Shop ou Missions ;
+- `!shop` paginé au-delà de 5 articles ;
+- historique Shop privé via écran Historique global ;
+- achats atomiques/idempotents.
 
 Frontières reportées :
-- acquisition exacte des objets Collection → Domaine Event ;
-- missions permanentes B/A/S/Z → Domaine Missions ;
-- comportement détaillé du switch → Domaine Missions.
+- détail des missions quotidiennes et permanentes B/A/S/Z → Domaine Missions ;
+- switch/reroll final → Domaine Missions ;
+- acquisition réelle des objets Collection et événements mensuels → Domaine Event.
 
-Prochaine priorité :
-- derniers comportements Sac/Shop ;
-- commandes textuelles finales ;
-- migration Collection ;
-- confidentialité restante ;
-- consommateurs/producteurs ;
-- dernière passe avant clôture éventuelle.
+Migration :
+- ressources par leurs domaines propriétaires ;
+- quantité Stella conservée ;
+- Collection legacy conservée par ID + quantité ;
+- IDs inconnus préservés ;
+- date migration comme fallback uniquement lorsque l'historique réel manque ;
+- aucun faux historique Shop rétroactif.
+
+**Domaine Sac / Coffre / Shop : CLÔTURÉ.**
+
+Huitième domaine à auditer :
+**Missions / Daily**
+
+Document spécialisé à créer :
+`docs/legacy/11-missions-daily-audit.md`
+
+Sources prioritaires :
+- `Missions.txt` ;
+- `Daily.txt` ;
+- `missions_pool.json` ;
+- `long_missions.json` ;
+- données `missions` de `viewers_data.json` ;
+- consommateurs/producteurs de progression mission.
+
+Points déjà connus à réutiliser sans les figer avant lecture :
+- mission quotidienne achetable depuis Shop ou Missions ;
+- une seule acquisition quotidienne commune ;
+- switch accessible via Missions et `!shop switch` ;
+- missions permanentes de rang B / A / S / Z existantes ;
+- piste UX Quotidiennes / Permanentes à évaluer après lecture réelle.
 
 Ordre recommandé :
 
@@ -2682,37 +2785,49 @@ Domaine Banque :
 - migration cadrée ;
 - dépendance Top/Classements explicitement reportée.
 
-Domaine actif :
-- `docs/legacy/10-sac-coffre-shop-audit.md` — Sac / Coffre / Shop : **EN COURS — R256 À R280 VALIDÉS**.
+Domaine clôturé :
+- `docs/legacy/10-sac-coffre-shop-audit.md` — Sac / Coffre / Shop : **CLÔTURÉ — R256 À R298**.
 
-Déjà cadré :
-- rôle réel de Sac ;
-- rôle réel du Coffre ;
-- intégration Collection ;
-- structure initiale du Sac ;
-- catalogue Shop dynamique ;
-- lots Primos ;
+Sac / Shop désormais cadrés :
+- catégories du Sac ;
+- objets spéciaux ;
+- Stella ;
+- Collection ;
+- confidentialité ;
+- migration Collection ;
+- catalogue Boutique ;
+- quantités / MAX ;
 - Ticket ;
-- probabilités ;
-- récompense pity ;
 - Mission initiale ;
-- historique global partagé ;
-- confidentialité Collection ;
-- fallback migration d'obtention.
+- états disponibilité ;
+- limites extensibles ;
+- pagination Twitch ;
+- historique Shop ;
+- atomicité.
 
-**Prochaine étape unique : terminer les derniers comportements Sac / Collection / Shop avant d'ouvrir le Domaine Missions.**
+Frontières volontairement reportées :
+- Missions / switch / missions permanentes → Domaine Missions ;
+- acquisition Collection / événements mensuels → Domaine Event ;
+- classement Moras → Domaine Top / Classements.
 
-À vérifier :
-1. commandes `!sac`, `!coffre`, `!shop` finales ;
-2. comportement d'affichage du Shop ;
-3. derniers cas d'achat / erreurs / stocks ;
-4. migration `viewer["coffre"]` ;
-5. IDs Collection inconnus ;
-6. frontières Event ;
-7. confidentialité des ressources du Sac ;
-8. historique Shop ;
-9. consommateurs/producteurs supplémentaires ;
-10. ce qui doit explicitement être reporté au Domaine Missions.
+**Prochaine étape unique : démarrer le Domaine 8 — Missions / Daily en lisant intégralement `Missions.txt`, `Daily.txt`, `missions_pool.json`, `long_missions.json` et les données mission réelles des joueurs avant de décider l'organisation standalone.**
+
+Document à créer :
+`docs/legacy/11-missions-daily-audit.md`
+
+À vérifier en priorité :
+1. vraie différence Daily / Missions ;
+2. mission quotidienne ;
+3. achat initial ;
+4. switch / coûts ;
+5. progression ;
+6. claim / récompenses ;
+7. missions permanentes ;
+8. rangs B / A / S / Z ;
+9. resets ;
+10. consommateurs des actions joueur ;
+11. migration des missions actives/historiques ;
+12. organisation UI finale.
 
 Dépendance future à conserver :
 - lors de l'audit `Top / Classements`, décider explicitement portefeuille vs patrimoine total pour les Moras ;
@@ -2831,4 +2946,4 @@ Décisions clés :
 - suivi quotidien UI prévu dans le bloc bas gauche avec chevrons compacts.
 
 Prochaine étape :
-terminer le Domaine Sac / Coffre / Shop après R280 ; les règles détaillées Missions et Event restent reportées à leurs audits respectifs, et `!top moras` reste reporté au futur audit Classements.
+démarrer le Domaine Missions / Daily ; Sac / Coffre / Shop est clôturé après R298, tandis que Event et Top / Classements restent reportés à leurs audits respectifs.

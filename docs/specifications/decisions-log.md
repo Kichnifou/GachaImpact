@@ -416,6 +416,24 @@ Statut : évolutif.
 - `VALIDÉ` — Le switch de mission vit principalement dans l'écran Missions ; Twitch/chat conserve `!shop switch`.
 - `À AUDITER DANS MISSIONS` — Missions permanentes B/A/S/Z et sémantique complète du switch.
 - `À AUDITER DANS EVENT` — Règles définitives d'acquisition des objets Collection événementiels.
+- `VALIDÉ` — Le Sac V1 possède Tout / Ressources / Objets / Collection.
+- `VALIDÉ` — Masterless Stella Fortuna appartient à Objets et peut être utilisée depuis le Sac via le service Stella commun.
+- `VALIDÉ` — Le catalogue Shop possède un `displayOrder` explicite ; ordre initial Mission / Primos / Ticket.
+- `VALIDÉ` — Le nombre d'invocations possibles reste visible dans le Sac et `!sac`, uniquement comme donnée dérivée.
+- `VALIDÉ` — `!coffre` trie les possessions alphabétiquement.
+- `VALIDÉ MIGRATION` — Un ID Collection inconnu est conservé et affiché sous placeholder sans fausser le compteur des objets connus.
+- `VALIDÉ` — Le Sac complet est privé ; seules des sous-sections autorisées apparaissent sur un profil.
+- `VALIDÉ TECHNIQUE` — Le catalogue peut supporter des limites d'achat par joueur/période sans en imposer aux articles actuels.
+- `VALIDÉ` — Aucun stock mondial limité en V1 ; extensibilité future autorisée.
+- `VALIDÉ` — `!sac` garde l'élément principal en premier et affiche aussi les objets spéciaux persistants possédés.
+- `VALIDÉ` — `!shop` utilise une pagination de 5 articles lorsque nécessaire.
+- `VALIDÉ` — Les articles visibles mais indisponibles restent présentés dans `!shop`.
+- `VALIDÉ` — L'historique détaillé Boutique est privé.
+- `VALIDÉ` — Quantité et méthode d'obtention peuvent être publiques avec la Collection ; l'historique d'acquisition doit supporter une confidentialité granulaire.
+- `VALIDÉ TECHNIQUE` — Une limite d'achat affiche sa progression.
+- `VALIDÉ TECHNIQUE` — Un article indisponible affiche sa raison lorsqu'elle est connue.
+- `VALIDÉ TECHNIQUE` — Un achat Shop est atomique/idempotent, y compris débit, effet, récompense et historique.
+- `CLÔTURÉ` — Domaine Sac / Coffre / Shop clôturé après R298.
 
 ## Historique transversal
 - `VALIDÉ` — Il existe un seul écran global Historique réutilisé par tous les domaines.
@@ -470,54 +488,62 @@ Statut : évolutif.
 - `À AUDITER` — Les attributions par événements de stream et abonnements Twitch, ainsi que leur future intégration sans Streamer.bot, seront traitées dans le domaine Faveur/Twitch.
 
 ## `!sac`
-- **Statut audit :** Audit Sac / Coffre / Shop en cours — R256 à R280 validées
-- **But :** Consulter les ressources principales du joueur.
+- **Statut audit :** Audité — Domaine Sac / Coffre / Shop clôturé après R298
+- **But :** Consulter les ressources et objets spéciaux personnels.
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
 - **UI équivalente :** écran Sac
-- **Données principales :** Primogemmes, Moras, particules des sept éléments
-- **Données dérivées :** informations calculables depuis ces ressources uniquement si utiles
+- **Profil ciblé :** propriétaire uniquement ; pas de `!sac <pseudo>`
+- **Contenu :** Primogemmes, invocations possibles dérivées, Moras, sept particules, objets spéciaux persistants possédés
+- **Particules :** élément principal affiché en premier
+- **Stella :** visible comme objet spécial si possédée
+- **Collection :** non incluse dans la ligne `!sac`; utiliser `!coffre`
 - **Mutation :** aucune
-- **Standalone :** le Sac contient aussi la catégorie Collection
-- **Réponses Twitch :** une seule ligne
+- **Réponse Twitch :** une seule ligne
+- **Donnée dérivée :** invocations possibles = `floor(primogems / 160)`
 
 ## `!coffre`
-- **Statut audit :** Audit Sac / Coffre / Shop en cours — R256 à R280 validées
+- **Statut audit :** Audité — Domaine Sac / Coffre / Shop clôturé après R298
 - **But :** Consulter les objets de Collection possédés.
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
 - **UI équivalente :** Sac → Collection
-- **Données principales :** collection legacy `coffre`
+- **Affichage texte :** objets possédés uniquement
+- **Tri :** alphabétique
+- **Quantité :** affichée
 - **Mutation :** aucune
-- **Affichage Twitch :** objets réellement possédés
-- **Standalone :** UI montre aussi les objets non possédés
-- **Obtention :** appartient principalement au Domaine Event
-- **Migration :** quantités préservées ; dates absentes → fallback cutover traçable
+- **Obtention :** propriété du Domaine Event
+- **ID inconnu :** possession conservée sous placeholder
+- **Migration :** quantité préservée ; dates absentes → fallback cutover traçable
+- **UI standalone :** montre aussi les objets non possédés et leur méthode d'obtention
 
 ## `!shop`
-- **Statut audit :** Audit Sac / Coffre / Shop en cours — R256 à R280 validées
-- **But :** Consulter la Boutique et acheter les articles disponibles.
+- **Statut audit :** Audité — Domaine Sac / Coffre / Shop clôturé après R298
+- **But :** Consulter et acheter les articles de la Boutique.
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
 - **UI équivalente :** écran Boutique
 - **Catalogue :** serveur dynamique
-- **Monnaie actuelle :** Moras du portefeuille
-- **Banque :** jamais débitée automatiquement
-- **Primos :**
+- **Ordre :** `displayOrder`
+- **Pagination :** 5 articles par page lorsque nécessaire
+- **Syntaxes principales :**
+  - `!shop`
+  - `!shop <page>`
   - `!shop primos <quantité>`
   - `!shop primos max`
-  - 50 000 Moras → 160 Primogemmes par lot
-- **Ticket :**
-  - achat immédiat ;
-  - unitaire ;
-  - tirage immédiat ;
-  - probabilités définies par le catalogue ;
-  - aucune confirmation préalable ;
-  - `+10 pity 5★` délégué au moteur Gacha
-- **Mission :**
+  - `!shop ticket`
   - `!shop mission`
   - `!shop switch`
-  - achat initial également disponible depuis l'écran Missions
-- **Historique :** achats standalone journalisés ; `Voir tout` via écran Historique global
-- **Stats :** dépenses réelles Moras → `totalMorasSpent`; récompenses réelles suivent leurs compteurs Earned
-- **Helpers :** courts, une seule ligne, syntaxe cible uniquement
+- **Primos :** 50 000 Moras → 160 Primogemmes par lot ; quantité multiple autorisée
+- **Ticket :** 150 000 Moras legacy actuel ; achat/tirage immédiat ; unitaire ; probabilités visibles
+- **Ticket pity :** +10 pity 5★ via moteur Gacha, plafond 90
+- **Mission :** achat initial partagé avec l'écran Missions
+- **Switch :** logique détaillée finalisée dans Domaine Missions
+- **États article :** achetable / visible indisponible / masqué
+- **Limites futures :** supportées par catalogue si nécessaire
+- **Stock mondial V1 :** aucun
+- **Historique :** journalisé à partir du standalone ; détaillé privé ; `Voir tout` via Historique global
+- **Atomicité :** débit + effet + récompense + historique forment une opération atomique/idempotente
+- **Banque :** jamais débitée automatiquement
+- **Stats :** dépenses Moras réelles → `totalMorasSpent`; gains réels suivent leurs compteurs Earned
+- **Réponses Twitch :** une seule ligne

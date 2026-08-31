@@ -1,6 +1,6 @@
 # 10 — Audit legacy Sac / Coffre / Shop
 
-Statut : AUDIT EN COURS — R256 À R280 VALIDÉS — SAC / COLLECTION / CŒUR SHOP TRÈS AVANCÉS
+Statut : CLÔTURÉ — R256 À R298 VALIDÉS / DÉRIVÉS
 Date : 2026-08-31
 
 ## 1. Périmètre
@@ -718,39 +718,437 @@ D'autres catégories sont ajoutées uniquement lorsqu'elles apportent une utilit
 
 ---
 
-## 16. État
+## 16. Dernière passe — R281 à R298
 
-R256 à R280 validées.
+### R281 — Onglet `Objets` dès la V1 — ✅ VALIDÉ
+
+Le Sac standalone utilise :
+
+- `Tout`
+- `Ressources`
+- `Objets`
+- `Collection`
+
+`Objets` existe dès la V1 car Masterless Stella Fortuna est déjà un objet spécial persistant réel.
+
+Répartition cible :
+- Ressources → Primogemmes, Moras, particules ;
+- Objets → Stella et futurs objets/consommables persistants ;
+- Collection → souvenirs / objets événementiels permanents.
+
+---
+
+### R282 — Stella utilisable depuis le Sac — ✅ VALIDÉ
+
+Masterless Stella Fortuna apparaît dans `Objets`.
+
+Sa fiche peut afficher :
+- quantité ;
+- description ;
+- bouton `Utiliser`.
+
+`Utiliser` ouvre un sélecteur des personnages 5★ possédés et éligibles.
+
+Le Sac ne possède aucune logique Stella indépendante :
+- utiliser le même service métier que Box / `!stella` ;
+- mêmes validations ;
+- mêmes invariants ;
+- même confirmation UI finale avant consommation.
+
+---
+
+### R283 — `displayOrder` du catalogue Shop — ✅ VALIDÉ
+
+Le catalogue Shop possède un ordre explicite de présentation, par exemple :
+
+`displayOrder`
+
+Cet ordre est utilisé :
+- dans l'UI ;
+- dans `!shop`.
+
+Ne plus dépendre automatiquement du prix.
+
+Ordre initial cible correspondant à la présentation actuelle :
+1. Mission ;
+2. Primos ;
+3. Ticket.
+
+L'identité d'un article reste indépendante de sa position.
+
+---
+
+### R284 — Vœux possibles conservés dans le Sac — ✅ VALIDÉ
+
+Conserver la donnée dérivée :
+
+`floor(primogems / 160)`
+
+dans :
+- `!sac` ;
+- la présentation détaillée des Primogemmes dans l'écran Sac si utile.
+
+Ne jamais persister cette valeur.
+
+Elle reste absente de la sidebar afin d'éviter la surcharge permanente.
+
+---
+
+### R285 — Tri `!coffre` alphabétique — ✅ VALIDÉ
+
+`!coffre` :
+- affiche uniquement les objets possédés ;
+- trie alphabétiquement ;
+- ne conserve pas l'ordre calendrier Janvier → Décembre du legacy.
+
+L'UI Collection conserve :
+1. possédés ;
+2. non possédés ;
+3. tri alphabétique dans chaque groupe.
+
+---
+
+### R286 — Objet Collection inconnu — ✅ VALIDÉ
+
+Lorsqu'un ID legacy de Collection est inconnu :
+- ne jamais supprimer la possession ;
+- conserver la quantité ;
+- afficher un placeholder joueur, par exemple `Objet de collection inconnu` ;
+- conserver l'ID original en interne ;
+- journaliser l'anomalie.
+
+Si le catalogue est réparé plus tard et que la correspondance devient certaine :
+- rattacher automatiquement la possession au véritable objet.
+
+Un objet inconnu ne compte pas dans le compteur de complétion des objets connus.
+
+---
+
+### R287 — Le Sac complet reste privé — ✅ VALIDÉ
+
+Le véritable écran Sac est accessible uniquement à son propriétaire.
+
+Le profil public peut exposer des sous-sections autorisées :
+- Collection ;
+- certaines ressources ;
+- autres informations selon confidentialité.
+
+Un autre joueur ne peut pas ouvrir le Sac complet avec :
+- tous les onglets ;
+- les objets privés ;
+- les actions d'utilisation.
+
+`!sac` reste une commande personnelle.
+
+Pas de `!sac <pseudo>` cible.
+
+---
+
+### R288 — Limites d'achat configurables — ✅ VALIDÉ / TECHNIQUE
+
+Le catalogue peut supporter une limite d'achat par joueur et par période.
+
+Exemples futurs :
+- X par jour ;
+- X par semaine ;
+- X sur toute une période.
+
+Aucune nouvelle limite n'est imposée aux articles actuels par cette décision.
+
+Les règles métier spécifiques, par exemple la mission quotidienne, restent également vérifiées par leur service propriétaire.
+
+---
+
+### R289 — Pas de stock mondial limité en V1 — ✅ VALIDÉ
+
+V1 :
+- aucun stock global partagé entre tous les joueurs.
+
+L'architecture peut permettre d'ajouter plus tard un stock mondial si une véritable mécanique le justifie.
+
+Ne pas introduire dès maintenant :
+- compétition de stock ;
+- réservation globale ;
+- pénurie mondiale.
+
+---
+
+### R290 — Élément principal en premier dans `!sac` — ✅ VALIDÉ
+
+Ordre Twitch/chat :
+
+1. Primogemmes + nombre d'invocations possibles ;
+2. Moras ;
+3. particules de l'élément principal ;
+4. six autres éléments dans un ordre stable ;
+5. objets spéciaux possédés selon R293.
+
+---
+
+### R291 — Pagination de `!shop` — ✅ VALIDÉ
+
+Lorsque le catalogue dépasse 5 articles visibles :
+
+- `!shop` → page 1 ;
+- `!shop <page>` → page demandée ;
+- 5 articles maximum par page.
+
+Avec 5 articles ou moins :
+- aucune complexité inutile ;
+- `!shop` présente tout.
+
+Chaque réponse Twitch reste sur une seule ligne.
+
+---
+
+### R292 — Articles indisponibles visibles dans `!shop` — ✅ VALIDÉ
+
+Un article :
+- visible + achetable → affiché normalement ;
+- visible + indisponible → affiché avec son état ;
+- masqué → absent.
+
+UI et Twitch doivent refléter le même catalogue visible.
+
+---
+
+### R293 — Objets spéciaux dans `!sac` — ✅ VALIDÉ
+
+`!sac` ne se limite plus strictement aux ressources cœur.
+
+Il affiche également les objets spéciaux persistants possédés, notamment :
+- Masterless Stella Fortuna.
+
+La Collection événementielle reste consultée avec `!coffre` afin de ne pas surcharger `!sac`.
+
+---
+
+### R294 — Historique Shop privé — ✅ VALIDÉ
+
+L'historique détaillé des achats Boutique est privé au propriétaire.
+
+Il peut contenir notamment :
+- article ;
+- quantité ;
+- coût ;
+- résultat ;
+- récompense aléatoire ;
+- date.
+
+Il n'est jamais exposé dans le profil d'un autre joueur.
+
+---
+
+### R295 — Confidentialité de l'historique Collection — ✅ VALIDÉ
+
+Lorsque la Collection est visible :
+- objet visible ;
+- quantité visible ;
+- méthode d'obtention visible.
+
+L'historique détaillé des acquisitions est considéré comme une sous-information pouvant être contrôlée par la confidentialité granulaire.
+
+L'architecture doit permettre ce contrôle.
+
+La V1 n'est pas obligée de créer immédiatement un réglage séparé uniquement pour cette sous-information.
+
+---
+
+### R296 — Progression d'une limite d'achat — ✅ DÉRIVÉ / TECHNIQUE
+
+Si un futur article possède une limite :
+- afficher clairement sa progression.
+
+Exemple :
+
+`2 / 5 achetés aujourd'hui`
+
+Le backend est la source de vérité.
+
+Twitch/chat peut utiliser une version compacte si nécessaire.
+
+---
+
+### R297 — Raison d'indisponibilité — ✅ DÉRIVÉ / TECHNIQUE
+
+Lorsqu'une raison est connue, un article indisponible explique pourquoi.
+
+Exemples :
+- `Déjà obtenue aujourd'hui` ;
+- `Limite quotidienne atteinte` ;
+- `Disponible à partir du ...` ;
+- `Indisponible actuellement`.
+
+Éviter un simple bouton gris sans explication.
+
+---
+
+### R298 — Atomicité complète d'un achat Shop — ✅ DÉRIVÉ / TECHNIQUE
+
+Un achat Shop forme une seule opération métier cohérente.
+
+Le débit, l'effet de l'article et la journalisation doivent réussir ensemble.
+
+Pour le Ticket :
+- débit ;
+- tirage aléatoire ;
+- récompense ;
+- mise à jour des statistiques ;
+- historique ;
+
+forment une seule opération logique atomique/idempotente.
+
+En cas d'échec :
+- aucun achat partiel ;
+- aucune ressource perdue ;
+- aucun faux historique.
+
+---
+
+## 17. Vérification finale des frontières
+
+### Sac
+
+Rôle :
+- vue complète des possessions du propriétaire ;
+- agrège des données venant de domaines centraux ;
+- ne possède pas lui-même les soldes.
+
+Twitch :
+- `!sac` = consultation personnelle uniquement.
+
+### Collection / ancien Coffre
+
+Source de possession legacy :
+- `viewer["coffre"]`.
+
+Le Coffre ne produit aucune récompense.
+
+Producteur principal confirmé :
+- Domaine Event.
+
+La mécanique d'acquisition exacte reste donc volontairement propriétaire d'Event.
+
+### Stella
+
+Stella est un objet spécial du Sac mais :
+- la logique d'utilisation reste propriétaire du service Stella / Ownership ;
+- aucun doublon métier dans Inventaire.
+
+### Shop
+
+Le Shop orchestre des achats en appelant :
+- Ressources pour l'économie ;
+- Gacha pour pity ;
+- Missions pour mission quotidienne / switch ;
+- futurs services d'inventaire si nécessaire.
+
+Le Shop ne doit pas écrire directement les états internes des autres domaines.
+
+### Missions
+
+Sont explicitement reportés au Domaine Missions :
+- structure finale de la mission quotidienne ;
+- récompense ;
+- progression ;
+- switch/reroll ;
+- missions permanentes B/A/S/Z ;
+- organisation finale de l'écran Missions.
+
+### Event
+
+Sont explicitement reportés au Domaine Event :
+- fonctionnement des événements mensuels ;
+- monnaies Event ;
+- obtention exacte des objets Collection ;
+- coût / limites / disponibilité ;
+- mécanique annuelle.
+
+---
+
+## 18. Migration finale
+
+### Sac / Ressources
+
+Les soldes sont migrés par leurs domaines propriétaires.
+
+Ne pas dupliquer les valeurs dans une structure d'inventaire.
+
+### Stella
+
+Préserver exactement la quantité legacy de Masterless Stella Fortuna.
+
+### Collection
+
+Pour chaque entrée legacy `viewer["coffre"]` :
+- préserver l'ID ;
+- préserver la quantité positive ;
+- rattacher au catalogue si l'ID est reconnu ;
+- conserver sous placeholder si inconnu.
+
+Dates historiques absentes :
+- une entrée de migration à la date du cutover ;
+- quantité legacy agrégée ;
+- provenance interne de migration ;
+- aucune fausse date historique inventée.
+
+### Historique Shop
+
+Le legacy ne fournit pas un historique fiable des achats.
+
+Donc :
+- aucun faux historique rétroactif ;
+- historique natif seulement à partir du standalone.
+
+### Idempotence
+
+L'import doit être rerunnable :
+- aucune duplication de possession Collection ;
+- aucune multiplication de quantité à chaque réimport ;
+- aucune nouvelle fausse entrée d'historique.
+
+---
+
+## 19. État final
+
+R256 à R295 validées par décision produit.
+
+R296 à R298 fixées comme conséquences techniques.
 
 Sac :
-- Coffre intégré comme Collection ;
-- onglets Tout / Ressources / Collection ;
+- Tout / Ressources / Objets / Collection ;
 - ressources à zéro visibles ;
-- recherche transverse applicable ;
-- Collection possédée/non possédée ;
-- tri alphabétique avec possédés en premier ;
+- objets spéciaux ;
+- Stella utilisable ;
+- Sac complet privé ;
+- `!sac` personnel avec ressources, invocations possibles et objets spéciaux.
+
+Collection :
+- possédés puis non possédés ;
+- tri alphabétique ;
+- quantités ;
 - compteur de complétion ;
-- fiche et méthode d'obtention ;
-- Collection publique selon confidentialité.
+- hover d'obtention ;
+- fiche détaillée ;
+- historique d'acquisition ;
+- visibilité publique selon confidentialité ;
+- IDs inconnus préservés.
 
 Shop :
 - catalogue serveur dynamique ;
+- `displayOrder` ;
+- trois états visibilité/disponibilité ;
+- limites d'achat extensibles ;
+- pas de stock mondial V1 ;
 - Primos multi-lots + MAX ;
-- Ticket immédiat, unitaire, probabilités visibles ;
-- `+10 pity` délégué à Gacha ;
-- Mission initiale accessible depuis Shop et Missions ;
-- changement de mission principalement dans Missions ;
-- historique des achats.
+- Ticket immédiat/unitaire ;
+- probabilités visibles ;
+- pity via Gacha ;
+- Mission via Missions ;
+- pagination Twitch au-delà de 5 articles ;
+- historique privé ;
+- achats atomiques/idempotents.
 
-Audit restant :
-- finir les comportements Shop restants ;
-- vérifier présentation/commande `!shop` complète ;
-- vérifier `!sac` / `!coffre` cibles ;
-- finaliser migration Collection ;
-- vérifier les autres consommateurs/producteurs du Coffre ;
-- fixer les derniers détails de confidentialité Sac/Ressources ;
-- terminer la frontière avec Event ;
-- reporter proprement la logique Mission non tranchée au Domaine Missions ;
-- déterminer si le domaine peut ensuite être clôturé.
+Frontières Missions et Event explicitement reportées.
 
-**Domaine toujours EN COURS.**
+**Domaine Sac / Coffre / Shop : CLÔTURÉ.**
