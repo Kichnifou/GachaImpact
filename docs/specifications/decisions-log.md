@@ -395,6 +395,34 @@ Statut : évolutif.
 - `VALIDÉ MIGRATION` — L'import Team est rerunnable/idempotent et ne recrée pas de Teams à chaque passage.
 - `CLÔTURÉ` — Domaine Team clôturé après R236.
 
+## Sac / Collection / Shop
+- `VALIDÉ` — Le Coffre legacy devient la catégorie Collection du Sac dans l'UI standalone.
+- `VALIDÉ` — Le Sac contient initialement Tout / Ressources / Collection et reste extensible.
+- `VALIDÉ` — Les ressources à quantité zéro restent visibles dans Tout.
+- `VALIDÉ` — Collection : objets possédés en premier, puis non possédés ; tri alphabétique dans chaque groupe.
+- `VALIDÉ` — Les quantités Collection sont visibles, y compris x1.
+- `VALIDÉ` — Compteur Collection = objets distincts possédés / total ; pas de total global d'exemplaires.
+- `VALIDÉ` — Hover d'obtention sur objets possédés ou non ; clic = fiche détaillée.
+- `VALIDÉ MIGRATION` — Si les dates legacy d'obtention Collection manquent, utiliser la date du cutover comme fallback traçable sans inventer d'historique antérieur.
+- `VALIDÉ` — Collection consultable publiquement selon confidentialité.
+- `VALIDÉ` — Boutique pilotée par catalogue serveur dynamique.
+- `VALIDÉ` — Un article peut être visible+achetable, visible+indisponible ou masqué.
+- `VALIDÉ` — Lots Primos multiples conservés ; MAX en UI et `!shop primos max`.
+- `VALIDÉ` — Le Ticket est acheté/consommé immédiatement, un par un, sans confirmation préalable.
+- `VALIDÉ` — Les probabilités Ticket sont affichées depuis les poids du catalogue.
+- `VALIDÉ` — `+10 pity 5★` du Ticket passe par le moteur Gacha et reste plafonné à 90.
+- `VALIDÉ` — Mission quotidienne achetable depuis Boutique ou Missions via la même action métier.
+- `VALIDÉ` — Après achat quotidien, la carte Mission reste visible mais indisponible.
+- `VALIDÉ` — Le switch de mission vit principalement dans l'écran Missions ; Twitch/chat conserve `!shop switch`.
+- `À AUDITER DANS MISSIONS` — Missions permanentes B/A/S/Z et sémantique complète du switch.
+- `À AUDITER DANS EVENT` — Règles définitives d'acquisition des objets Collection événementiels.
+
+## Historique transversal
+- `VALIDÉ` — Il existe un seul écran global Historique réutilisé par tous les domaines.
+- `VALIDÉ` — Banque, Boutique, Invocation, etc. peuvent afficher un aperçu récent mais ne recréent pas chacun un écran complet.
+- `VALIDÉ` — `Voir tout` ouvre l'écran Historique directement sur la catégorie correspondant au domaine d'origine.
+- `VALIDÉ` — Catégories actuellement prévues : Invocations, Bannières, Banque, Boutique/Achats.
+
 ## UX transverse / recherche
 - `VALIDÉ` — Les listes pertinentes utilisent une recherche temps réel mise à jour à chaque caractère.
 - `VALIDÉ` — Le matching est une sous-chaîne contiguë normalisée, pas un fuzzy matching par lettres dispersées.
@@ -440,3 +468,56 @@ Statut : évolutif.
 - `VALIDÉ` — Une Faveur GachaImpact est inspirée de la Blessing of the Welkin Moon, mais ses jours ne diminuent que lorsqu'une récompense est effectivement réclamée.
 - `VALIDÉ` — Une absence ne consomme donc pas de jour de Faveur.
 - `À AUDITER` — Les attributions par événements de stream et abonnements Twitch, ainsi que leur future intégration sans Streamer.bot, seront traitées dans le domaine Faveur/Twitch.
+
+## `!sac`
+- **Statut audit :** Audit Sac / Coffre / Shop en cours — R256 à R280 validées
+- **But :** Consulter les ressources principales du joueur.
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui
+- **UI équivalente :** écran Sac
+- **Données principales :** Primogemmes, Moras, particules des sept éléments
+- **Données dérivées :** informations calculables depuis ces ressources uniquement si utiles
+- **Mutation :** aucune
+- **Standalone :** le Sac contient aussi la catégorie Collection
+- **Réponses Twitch :** une seule ligne
+
+## `!coffre`
+- **Statut audit :** Audit Sac / Coffre / Shop en cours — R256 à R280 validées
+- **But :** Consulter les objets de Collection possédés.
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui
+- **UI équivalente :** Sac → Collection
+- **Données principales :** collection legacy `coffre`
+- **Mutation :** aucune
+- **Affichage Twitch :** objets réellement possédés
+- **Standalone :** UI montre aussi les objets non possédés
+- **Obtention :** appartient principalement au Domaine Event
+- **Migration :** quantités préservées ; dates absentes → fallback cutover traçable
+
+## `!shop`
+- **Statut audit :** Audit Sac / Coffre / Shop en cours — R256 à R280 validées
+- **But :** Consulter la Boutique et acheter les articles disponibles.
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui
+- **UI équivalente :** écran Boutique
+- **Catalogue :** serveur dynamique
+- **Monnaie actuelle :** Moras du portefeuille
+- **Banque :** jamais débitée automatiquement
+- **Primos :**
+  - `!shop primos <quantité>`
+  - `!shop primos max`
+  - 50 000 Moras → 160 Primogemmes par lot
+- **Ticket :**
+  - achat immédiat ;
+  - unitaire ;
+  - tirage immédiat ;
+  - probabilités définies par le catalogue ;
+  - aucune confirmation préalable ;
+  - `+10 pity 5★` délégué au moteur Gacha
+- **Mission :**
+  - `!shop mission`
+  - `!shop switch`
+  - achat initial également disponible depuis l'écran Missions
+- **Historique :** achats standalone journalisés ; `Voir tout` via écran Historique global
+- **Stats :** dépenses réelles Moras → `totalMorasSpent`; récompenses réelles suivent leurs compteurs Earned
+- **Helpers :** courts, une seule ligne, syntaxe cible uniquement

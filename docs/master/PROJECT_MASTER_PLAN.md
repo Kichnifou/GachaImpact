@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.20
+Version : 0.21
 Date : 2026-08-31
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -282,9 +282,24 @@ Décisions générales notifications :
 
 Prévoir un futur écran transversal `Historique`.
 
-Premiers onglets validés :
+Onglets / catégories actuellement validés :
 - `Invocations` ;
-- `Bannières`.
+- `Bannières` ;
+- `Banque` ;
+- `Boutique / Achats`.
+
+Principe transversal :
+- il existe un seul écran complet `Historique` ;
+- ne pas développer un écran d'historique complet différent pour chaque domaine ;
+- chaque écran métier peut afficher quelques entrées récentes ;
+- `Voir tout` navigue vers l'écran global directement ouvert sur la catégorie correspondant au contexte d'origine.
+
+Exemples :
+- Banque → Historique / Banque ;
+- Boutique → Historique / Boutique ;
+- Invocation → Historique / Invocations.
+
+D'autres domaines pourront ajouter une catégorie plus tard uniquement si leur historique apporte une réelle utilité.
 
 ### Invocations
 - historique détaillé depuis le lancement standalone ;
@@ -300,8 +315,6 @@ Premiers onglets validés :
 - snapshot des votes ;
 - possibilité future d'afficher qui avait voté pour quel personnage ;
 - dates/statut de rotation.
-
-D'autres domaines pourront ajouter un onglet plus tard uniquement si leur historique apporte une réelle utilité.
 
 ---
 
@@ -724,19 +737,168 @@ La cible devra convertir ces deux états vers :
 Stratégie détaillée à finaliser pendant la dernière passe de migration Team.
 
 ## 6.4 Sac
-But :
-- garder les ressources essentielles dans la sidebar ;
-- afficher dans Sac une vue plus complète ;
-- catégories ;
-- monnaies ;
-- particules ;
-- objets ;
-- ressources spéciales ;
-- événements.
+
+Le Sac devient la vue complète des possessions pertinentes du joueur.
+
+La sidebar reste un résumé compact.
+
+### Catégories V1
+- `Tout`
+- `Ressources`
+- `Collection`
+
+L'architecture reste extensible pour de futures catégories.
+
+### Ressources
+Le Sac continue d'afficher :
+- Primogemmes ;
+- Moras ;
+- particules des sept éléments ;
+- autres ressources persistantes pertinentes.
+
+Les ressources à quantité `0` restent visibles, y compris dans `Tout`.
+
+### Collection
+L'ancien `Coffre` legacy devient la catégorie `Collection` du Sac.
+
+Ordre :
+1. objets possédés ;
+2. objets non possédés ;
+3. tri alphabétique dans chacun des deux groupes.
+
+Chaque carte affiche :
+- objet ;
+- quantité si possédé, y compris `x1` ;
+- état visuel non possédé.
+
+Compteur :
+- objets distincts possédés / total ;
+- exemple `8 / 12` ;
+- pas de compteur global d'exemplaires.
+
+Obtention :
+- hover = indication courte ;
+- clic = fiche complète.
+
+Fiche :
+- description ;
+- quantité ;
+- origine ;
+- méthode d'obtention ;
+- historique d'obtention.
+
+Legacy sans date fiable :
+- date de migration comme fallback ;
+- provenance interne traçable ;
+- ne jamais inventer d'ancienne date.
+
+Confidentialité :
+- Collection consultable sur profil selon Public / Amis / Privé ;
+- lecture seule chez autrui.
+
+Twitch/chat :
+- `!sac` reste une vue ressources ;
+- `!coffre` reste une vue textuelle des objets réellement possédés.
 
 ## 6.5 Boutique
-Prototype visuel déjà présent.
-La logique réelle sera auditée via `Shop.txt` + `shop_items.json`.
+
+Le Shop legacy réel et `shop_items.json` sont désormais audités en grande partie.
+
+### Catalogue
+
+La Boutique standalone est pilotée par un catalogue serveur dynamique.
+
+Un article possède des métadonnées structurées :
+- ID ;
+- nom ;
+- description ;
+- prix ;
+- monnaie ;
+- visuel ;
+- ordre ;
+- visibilité ;
+- disponibilité ;
+- type d'effet ;
+- règles de quantité.
+
+Trois états :
+- visible + achetable ;
+- visible + indisponible ;
+- masqué.
+
+Les effets sensibles appellent des services métier autorisés.
+
+### Primos
+
+Un lot :
+- 50 000 Moras ;
+- +160 Primogemmes.
+
+Quantité multiple autorisée.
+
+UI :
+- quantité ;
+- coût total ;
+- gain total ;
+- `MAX`.
+
+Twitch/chat :
+- `!shop primos <quantité>`
+- `!shop primos max`
+
+La propriété legacy `maxPurchasePerCommand: 1` est considérée incohérente avec le comportement réel.
+
+### Ticket
+
+Prix legacy courant :
+- 150 000 Moras.
+
+V1 :
+- achat immédiat ;
+- consommation immédiate ;
+- un Ticket à la fois ;
+- aucune confirmation préalable ;
+- feedback visuel après résultat ;
+- probabilités affichées clairement.
+
+Récompenses actuellement configurées :
+- +1 600 Primogemmes ;
+- +1 000 particules principales ;
+- +800 particules d'un autre élément ;
+- +10 pity 5★ ;
+- +50 000 Moras.
+
+Les poids du catalogue déterminent les probabilités affichées.
+
+`+10 pity` passe obligatoirement par le moteur Gacha central et reste plafonné à 90.
+
+### Mission quotidienne
+
+Achat initial possible :
+- depuis Boutique ;
+- depuis l'écran Missions.
+
+Une seule action métier / limite quotidienne commune.
+
+Après achat :
+- carte Shop toujours visible ;
+- état indisponible `Déjà obtenue aujourd'hui`.
+
+La gestion et le changement de mission vivent principalement dans Missions.
+
+Twitch/chat conserve :
+- `!shop mission`
+- `!shop switch`
+
+La sémantique complète des missions permanentes B/A/S/Z et du switch sera finalisée dans le Domaine Missions.
+
+### Historique
+
+La Boutique montre quelques achats récents.
+
+`Voir tout` ouvre l'écran global `Historique` directement sur `Boutique / Achats`.
+
+Ne pas créer un écran historique Shop indépendant.
 
 ## 6.6 Objectifs personnels — FUTUR / DIRECTION VALIDÉE
 
@@ -2111,21 +2273,48 @@ Dépendance reportée :
 
 **Domaine Banque : CLÔTURÉ.**
 
-Septième domaine à auditer :
+Septième domaine :
 **Sac / Coffre / Shop**
 
-Document spécialisé à créer au démarrage :
+Document :
 `docs/legacy/10-sac-coffre-shop-audit.md`
 
-Objectifs initiaux :
-- comprendre le vrai contenu du Sac ;
-- comprendre ce que `Coffre.txt` représente réellement ;
-- auditer `Shop.txt` et `shop_items.json` ;
-- distinguer ressources cœur, objets spéciaux, tickets, monnaies temporaires et inventaire ;
-- vérifier achats/prix/stocks ;
-- vérifier interactions Missions/Daily ;
-- cadrer l'UI Sac/Boutique ;
-- préparer la future modélisation inventaire.
+Statut :
+**EN COURS — R256 À R280 VALIDÉS — SAC / COLLECTION / CŒUR SHOP TRÈS AVANCÉS**
+
+Décisions principales :
+- Coffre intégré au Sac comme catégorie Collection ;
+- Sac = Tout / Ressources / Collection ;
+- ressources à zéro conservées ;
+- Collection montre possédés puis non possédés, tri alphabétique ;
+- quantités visibles ;
+- compteur de complétion distinct ;
+- hover d'obtention + fiche détaillée ;
+- fallback migration daté au cutover si historique legacy absent ;
+- Collection publique selon confidentialité ;
+- Shop piloté par catalogue serveur ;
+- article visible/indisponible/masqué ;
+- achat multiple de lots Primos ;
+- MAX UI et Twitch ;
+- Ticket consommé immédiatement, unitaire et sans confirmation ;
+- probabilités Ticket affichées ;
+- récompense +10 pity déléguée au moteur Gacha ;
+- achat Mission disponible depuis Shop et Missions ;
+- switch principalement géré dans Missions ;
+- historique Shop intégré au futur écran Historique global.
+
+Frontières reportées :
+- acquisition exacte des objets Collection → Domaine Event ;
+- missions permanentes B/A/S/Z → Domaine Missions ;
+- comportement détaillé du switch → Domaine Missions.
+
+Prochaine priorité :
+- derniers comportements Sac/Shop ;
+- commandes textuelles finales ;
+- migration Collection ;
+- confidentialité restante ;
+- consommateurs/producteurs ;
+- dernière passe avant clôture éventuelle.
 
 Ordre recommandé :
 
@@ -2493,22 +2682,37 @@ Domaine Banque :
 - migration cadrée ;
 - dépendance Top/Classements explicitement reportée.
 
-**Prochaine étape unique : démarrer le Domaine 7 — Sac / Coffre / Shop en lisant intégralement les trois scripts et leurs données associées avant de poser de nouvelles décisions.**
+Domaine actif :
+- `docs/legacy/10-sac-coffre-shop-audit.md` — Sac / Coffre / Shop : **EN COURS — R256 À R280 VALIDÉS**.
 
-Document à créer :
-`docs/legacy/10-sac-coffre-shop-audit.md`
+Déjà cadré :
+- rôle réel de Sac ;
+- rôle réel du Coffre ;
+- intégration Collection ;
+- structure initiale du Sac ;
+- catalogue Shop dynamique ;
+- lots Primos ;
+- Ticket ;
+- probabilités ;
+- récompense pity ;
+- Mission initiale ;
+- historique global partagé ;
+- confidentialité Collection ;
+- fallback migration d'obtention.
+
+**Prochaine étape unique : terminer les derniers comportements Sac / Collection / Shop avant d'ouvrir le Domaine Missions.**
 
 À vérifier :
-1. rôle réel de `Sac.txt` ;
-2. rôle réel de `Coffre.txt` ;
-3. rôle réel de `Shop.txt` ;
-4. `shop_items.json` ;
-5. objets/ressources spéciales ;
-6. monnaies/tickets ;
-7. prix et achats ;
-8. stocks éventuels ;
-9. interactions Missions/Daily ;
-10. architecture future inventaire / boutique.
+1. commandes `!sac`, `!coffre`, `!shop` finales ;
+2. comportement d'affichage du Shop ;
+3. derniers cas d'achat / erreurs / stocks ;
+4. migration `viewer["coffre"]` ;
+5. IDs Collection inconnus ;
+6. frontières Event ;
+7. confidentialité des ressources du Sac ;
+8. historique Shop ;
+9. consommateurs/producteurs supplémentaires ;
+10. ce qui doit explicitement être reporté au Domaine Missions.
 
 Dépendance future à conserver :
 - lors de l'audit `Top / Classements`, décider explicitement portefeuille vs patrimoine total pour les Moras ;
@@ -2627,4 +2831,4 @@ Décisions clés :
 - suivi quotidien UI prévu dans le bloc bas gauche avec chevrons compacts.
 
 Prochaine étape :
-démarrer le Domaine Sac / Coffre / Shop ; la question `!top moras` portefeuille vs patrimoine total reste explicitement reportée au futur audit Classements.
+terminer le Domaine Sac / Coffre / Shop après R280 ; les règles détaillées Missions et Event restent reportées à leurs audits respectifs, et `!top moras` reste reporté au futur audit Classements.

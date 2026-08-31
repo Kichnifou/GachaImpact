@@ -1,6 +1,6 @@
 # 10 — Audit legacy Sac / Coffre / Shop
 
-Statut : AUDIT EN COURS — OUVERT APRÈS CLÔTURE DU DOMAINE BANQUE R237–R255
+Statut : AUDIT EN COURS — R256 À R280 VALIDÉS — SAC / COLLECTION / CŒUR SHOP TRÈS AVANCÉS
 Date : 2026-08-31
 
 ## 1. Périmètre
@@ -327,23 +327,430 @@ Les IDs inconnus du Coffre doivent être conservés et signalés, pas supprimés
 
 ---
 
-## 14. Points fonctionnels à décider
+## 14. Décisions standalone — R256 à R280
 
-Première passe :
-- relation UI entre Sac et Coffre ;
-- place des ressources déjà visibles ailleurs dans le Sac ;
-- comportement du Ticket : immédiat ou véritable objet stockable ;
-- quantité d'achat des lots de Primos ;
-- place de la Mission dans l'UI Boutique ;
-- évolution future de la boutique vers des articles dynamiques ;
-- présentation/recherche/filtres du Sac ;
-- confidentialité du Sac/Coffre ;
-- historique d'achats éventuel.
+### R256 — Coffre intégré au Sac — ✅ VALIDÉ
+
+Dans l'UI standalone :
+- le Coffre n'est pas un écran séparé ;
+- les objets de `viewer["coffre"]` deviennent la catégorie `Collection` du Sac.
+
+Twitch/chat :
+- `!coffre` reste disponible comme commande de consultation.
 
 ---
 
-## 15. État
+### R257 — Le Sac reste la vue complète des possessions — ✅ VALIDÉ
 
-Domaine ouvert.
+Même si certaines ressources sont déjà visibles dans la sidebar :
+- le Sac les affiche aussi ;
+- le Sac représente la vue détaillée et complète des possessions pertinentes.
 
-Aucune nouvelle décision R256+ n'est encore inscrite.
+La sidebar reste un résumé compact.
+
+---
+
+### R258 — Ticket consommé immédiatement — ✅ VALIDÉ
+
+Le Ticket Shop ne devient pas un objet stockable en V1.
+
+Flux :
+
+`achat → paiement → tirage immédiat → récompense`
+
+Aucun Ticket n'est ajouté au Sac.
+
+---
+
+### R259 — Achat multiple de lots de Primogemmes — ✅ VALIDÉ
+
+Conserver :
+
+`!shop primos <quantité>`
+
+Un lot :
+- 50 000 Moras ;
+- 160 Primogemmes.
+
+Le prix et la récompense sont multipliés par la quantité.
+
+La propriété legacy `maxPurchasePerCommand: 1` est considérée comme incohérente/obsolète par rapport au comportement réel du code.
+
+---
+
+### R260 — Mission quotidienne achetable depuis Shop et Missions — ✅ VALIDÉ
+
+La même action métier d'achat de mission quotidienne est accessible :
+- depuis la Boutique ;
+- directement depuis l'écran Missions si aucune mission quotidienne n'a encore été achetée ce jour-là.
+
+Il ne s'agit pas de deux achats distincts.
+
+Standalone :
+- l'écran Missions devient le workflow principal de gestion des missions ;
+- la Boutique peut conserver une carte/raccourci vers l'achat initial.
+
+Twitch/chat :
+- conserver notamment `!shop mission`.
+
+Les missions permanentes B/A/S/Z seront auditées dans le Domaine Missions.
+
+Piste UX à évaluer plus tard :
+- onglet Missions quotidiennes ;
+- onglet Missions permanentes.
+
+Ne pas figer cette organisation avant audit du vrai système Missions.
+
+---
+
+### R261 — Catégories initiales du Sac — ✅ VALIDÉ
+
+V1 :
+
+- `Tout`
+- `Ressources`
+- `Collection`
+
+Ne pas créer artificiellement une catégorie vide.
+
+L'architecture doit permettre d'ajouter plus tard d'autres catégories si de vrais objets/consommables persistants apparaissent.
+
+---
+
+### R262 — Quantité visible sur les objets Collection — ✅ VALIDÉ
+
+Chaque carte Collection affiche sa quantité :
+- `x1` compris ;
+- quantités >1 possibles.
+
+---
+
+### R263 — `Tout` montre réellement tout — ✅ VALIDÉ
+
+L'onglet `Tout` conserve aussi les ressources ayant une quantité égale à zéro.
+
+Exemple :
+- particules Pyro = 0 → toujours visibles.
+
+Ne pas masquer les ressources structurelles à zéro.
+
+---
+
+### R264 — Boutique pilotée par catalogue serveur — ✅ VALIDÉ
+
+La Boutique standalone est pilotée par un catalogue serveur dynamique.
+
+Un article peut conceptuellement définir :
+- ID stable ;
+- nom ;
+- description ;
+- visuel ;
+- prix ;
+- monnaie ;
+- ordre ;
+- disponibilité ;
+- visibilité ;
+- type d'effet ;
+- règles de quantité ;
+- autres métadonnées nécessaires.
+
+Les effets sensibles ne sont jamais du code arbitraire stocké en base.
+
+Chaque type d'article appelle un service métier autorisé.
+
+---
+
+### R265 — Probabilités Ticket visibles — ✅ VALIDÉ
+
+La fiche Ticket affiche clairement :
+- toutes les récompenses possibles ;
+- leurs probabilités.
+
+Les pourcentages sont calculés depuis les poids du catalogue.
+
+Configuration legacy actuelle :
+- 5 résultats ;
+- poids égaux ;
+- 20 % chacun.
+
+---
+
+### R266 — Pas de confirmation avant Ticket — ✅ VALIDÉ
+
+Dans l'UI :
+- clic sur `Acheter` = achat immédiat ;
+- aucune popup de confirmation préalable.
+
+Même philosophie côté Twitch/chat.
+
+---
+
+### R267 — MAX pour les lots Primos — ✅ VALIDÉ
+
+UI :
+- bouton `MAX`.
+
+Twitch/chat :
+- `!shop primos max`.
+
+`MAX` représente le nombre entier maximum de lots achetables avec le portefeuille Moras courant.
+
+---
+
+### R268 — Ticket +10 pity 5★ — ✅ VALIDÉ
+
+Conserver la récompense :
+
+`+10 pity 5★`
+
+Règles :
+- appliquée via le moteur Gacha central ;
+- jamais par écriture directe depuis Shop ;
+- plafond 90 ;
+- peut donc rendre le prochain 5★ garanti par hard pity.
+
+Le domaine Gacha reste source de vérité sur les invariants de pity.
+
+---
+
+### R269 — Objets non possédés visibles — ✅ VALIDÉ
+
+La Collection montre :
+1. tous les objets possédés ;
+2. puis tous les objets non possédés.
+
+Les objets non possédés ne sont pas supprimés de la vue.
+
+Obtention :
+- hover possible pour afficher une indication courte ;
+- clic pour ouvrir la fiche complète.
+
+Pour les objets événementiels, la méthode d'obtention décrit l'événement concerné.
+
+Exemple conceptuel :
+`Échanger 80 unités de la monnaie de l'événement du mois concerné.`
+
+Le Domaine Event définira précisément la mécanique événementielle.
+
+---
+
+### R270 — Tri Collection — ✅ VALIDÉ
+
+Ordre par défaut :
+
+1. possédés ;
+2. non possédés.
+
+Dans chacun de ces deux groupes :
+- ordre alphabétique.
+
+Ne pas utiliser l'ordre Janvier → Décembre comme tri principal.
+
+---
+
+### R271 — Fiche Collection complète — ✅ VALIDÉ
+
+Cliquer sur un objet ouvre une fiche contenant notamment :
+- nom ;
+- illustration ;
+- description ;
+- quantité ;
+- origine ;
+- méthode d'obtention ;
+- historique d'obtention.
+
+Le hover reste une version courte de la méthode d'obtention.
+
+#### Historique legacy
+
+Si les dates historiques exactes sont absentes :
+- ne jamais inventer d'anciennes dates ;
+- créer au cutover une entrée de migration à la date de migration ;
+- quantité correspondante = quantité legacy connue ;
+- conserver une provenance interne `migration_fallback` ou équivalente.
+
+Les nouvelles acquisitions standalone utilisent leur vraie date.
+
+---
+
+### R272 — Collection publique — ✅ VALIDÉ
+
+La Collection peut être consultée depuis le profil d'un joueur selon confidentialité :
+- Public ;
+- Amis uniquement ;
+- Privé.
+
+Vue publique :
+- lecture seule ;
+- aucun achat/utilisation ;
+- même logique de collection.
+
+---
+
+### R273 — Trois états de visibilité Shop — ✅ VALIDÉ
+
+Le catalogue doit pouvoir représenter :
+
+1. visible + achetable ;
+2. visible + indisponible ;
+3. complètement masqué.
+
+Un article temporairement indisponible peut donc rester présenté avec action d'achat désactivée.
+
+---
+
+### R274 — Compteur de complétion Collection — ✅ VALIDÉ
+
+Afficher :
+
+`8 / 12`
+
+Le compteur mesure :
+- le nombre d'objets distincts possédés ;
+- pas le nombre total d'exemplaires.
+
+Ne pas afficher de compteur global d'exemplaires.
+
+---
+
+### R275 — Obtention visible même si l'objet est possédé — ✅ VALIDÉ
+
+Le hover d'obtention fonctionne :
+- sur objet possédé ;
+- sur objet non possédé.
+
+Le clic ouvre toujours la fiche complète.
+
+---
+
+### R276 — Révélation visuelle après Ticket — ✅ VALIDÉ
+
+Après achat :
+- afficher immédiatement la récompense obtenue ;
+- animation/feedback court possible ;
+- aucun écran de confirmation avant achat.
+
+Le résultat métier est déjà validé/persisté côté serveur avant son affichage.
+
+---
+
+### R277 — Ticket unitaire — ✅ VALIDÉ
+
+V1 :
+- un achat = un Ticket ;
+- un Ticket = un tirage immédiat.
+
+Pas d'achat multiple de Tickets.
+
+---
+
+### R278 — Historique des achats Shop — ✅ VALIDÉ
+
+Conserver un historique détaillé des achats standalone.
+
+L'écran Boutique affiche quelques achats récents.
+
+Un bouton `Voir tout` ouvre l'écran transversal `Historique` directement sur la catégorie Boutique/Achats.
+
+Exemples d'informations :
+- date ;
+- article ;
+- quantité ;
+- coût ;
+- récompense/résultat ;
+- résultat aléatoire pour Ticket.
+
+Ne pas fabriquer d'historique d'achats legacy absent.
+
+---
+
+### R279 — Mission quotidienne déjà achetée — ✅ VALIDÉ
+
+Après acquisition quotidienne :
+- la carte Shop reste visible ;
+- elle devient indisponible ;
+- afficher un état clair du type `Déjà obtenue aujourd'hui`.
+
+Ne pas la faire disparaître.
+
+---
+
+### R280 — Changement de mission dans l'écran Missions — ✅ VALIDÉ
+
+Standalone :
+- le changement/re-roll d'une mission quotidienne appartient principalement à l'écran Missions.
+
+La Boutique :
+- fournit l'achat initial ;
+- peut conserver un raccourci vers cette mécanique.
+
+Twitch/chat :
+- `!shop mission`
+- `!shop switch`
+
+restent des points d'entrée pratiques vers les mêmes services métier.
+
+La logique fine de switch reste à recroiser avec le futur Domaine Missions.
+
+---
+
+## 15. Historique transversal — décision renforcée
+
+Il existe un seul écran global `Historique`.
+
+Les domaines ne doivent pas recréer chacun leur propre écran complet.
+
+Principe :
+- Banque affiche un aperçu récent ;
+- Boutique affiche un aperçu récent ;
+- Invocation peut proposer un raccourci ;
+- autres domaines futurs peuvent faire de même.
+
+`Voir tout` navigue vers le même écran `Historique`, directement ouvert sur l'onglet/catégorie correspondant au contexte d'origine.
+
+Catégories actuellement prévues :
+- Invocations ;
+- Bannières ;
+- Banque ;
+- Boutique / Achats.
+
+D'autres catégories sont ajoutées uniquement lorsqu'elles apportent une utilité réelle.
+
+---
+
+## 16. État
+
+R256 à R280 validées.
+
+Sac :
+- Coffre intégré comme Collection ;
+- onglets Tout / Ressources / Collection ;
+- ressources à zéro visibles ;
+- recherche transverse applicable ;
+- Collection possédée/non possédée ;
+- tri alphabétique avec possédés en premier ;
+- compteur de complétion ;
+- fiche et méthode d'obtention ;
+- Collection publique selon confidentialité.
+
+Shop :
+- catalogue serveur dynamique ;
+- Primos multi-lots + MAX ;
+- Ticket immédiat, unitaire, probabilités visibles ;
+- `+10 pity` délégué à Gacha ;
+- Mission initiale accessible depuis Shop et Missions ;
+- changement de mission principalement dans Missions ;
+- historique des achats.
+
+Audit restant :
+- finir les comportements Shop restants ;
+- vérifier présentation/commande `!shop` complète ;
+- vérifier `!sac` / `!coffre` cibles ;
+- finaliser migration Collection ;
+- vérifier les autres consommateurs/producteurs du Coffre ;
+- fixer les derniers détails de confidentialité Sac/Ressources ;
+- terminer la frontière avec Event ;
+- reporter proprement la logique Mission non tranchée au Domaine Missions ;
+- déterminer si le domaine peut ensuite être clôturé.
+
+**Domaine toujours EN COURS.**
