@@ -411,7 +411,7 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Ticket :** 150 000 Moras legacy actuel ; achat/tirage immédiat ; unitaire ; probabilités visibles
 - **Ticket pity :** +10 pity 5★ via moteur Gacha, plafond 90
 - **Mission :** achat initial partagé avec l'écran Missions
-- **Switch :** logique détaillée finalisée dans Domaine Missions
+- **Switch :** mission quotidienne incomplète uniquement ; 20 000 Moras puis coût doublé à chaque switch du même jour ; nouvelle mission obligatoirement différente ; progression remise à 0 ; indisponible s'il n'existe aucune alternative active
 - **États article :** achetable / visible indisponible / masqué
 - **Limites futures :** supportées par catalogue si nécessaire
 - **Stock mondial V1 :** aucun
@@ -420,3 +420,41 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Banque :** jamais débitée automatiquement
 - **Stats :** dépenses Moras réelles → `totalMorasSpent`; gains réels suivent leurs compteurs Earned
 - **Réponses Twitch :** une seule ligne
+
+## `!mission`
+
+- **Statut audit :** En cours — décisions R299 à R315 traitées
+- **But :** Consulter l'état des missions permanentes et obtenir un résumé de progression.
+- **Syntaxes cible :**
+  - `!mission`
+  - `!mission B`
+  - `!mission A`
+  - `!mission S`
+  - `!mission Z`
+- **Bouton UI équivalent :** écran Missions, onglet Permanentes
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui
+- **Activation :** aucune ; les missions permanentes progressent automatiquement dès le provisionnement du joueur
+- **Abandon :** supprimé du fonctionnement cible
+- **Progression :** B→A→S cumulative
+- **Rang Z :** verrouillé jusqu'à complétion de toutes les B/A/S ; avant déblocage, ne révéler ni intitulés, ni objectifs, ni récompenses
+- **Récompenses :** automatiques à la complétion
+- **Réponses chat/Twitch :** résumé compact ; une réussite est annoncée uniquement lorsqu'elle est la conséquence immédiate d'une action effectuée dans ce même canal
+- **Twitch :** aucune notification asynchrone de réussite vers un joueur potentiellement absent
+- **Interactions :** MissionService, Chat/XP, Gacha, Ressources, Expedition, Combat, Social
+- **Décisions cible :** les anciennes syntaxes d'acceptation `!mission B 1` et d'abandon ne font plus partie de la syntaxe recommandée standalone
+
+## `!quotis`
+
+- **Statut audit :** En cours — principe cible validé R311
+- **But :** Afficher un résumé compact et dynamique des activités quotidiennes du joueur.
+- **Syntaxe :** `!quotis`
+- **Bouton UI équivalent :** suivi quotidien général dans l'écran Missions / sidebar
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui
+- **Coût :** aucun
+- **Données lues :** vrais états quotidiens serveur
+- **Données écrites :** aucune
+- **Distinction :** `!quotis` n'est pas la mission quotidienne payante ; il agrège les activités quotidiennes
+- **Réponse :** état dynamique des activités pertinentes, avec présentation compacte
+- **Évolution :** la liste exacte sera enrichie/finalisée lors des audits Roue, Combat, Expedition, Ami et Event

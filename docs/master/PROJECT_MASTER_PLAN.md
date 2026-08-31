@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.22
+Version : 0.23
 Date : 2026-08-31
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -268,6 +268,14 @@ Décisions générales notifications :
 - une notification consultée peut être marquée comme lue sans nécessairement disparaître immédiatement ;
 - les notifications lues encore présentes sont nettoyées automatiquement au reset serveur quotidien ;
 - une notification dynamique supprimée/lue peut réapparaître en non-lue si un nouvel événement pertinent survient.
+
+Missions :
+- une mission terminée via une action UI génère une notification cliquable menant vers l'écran Missions ;
+- l'écran Missions conserve également un indicateur visuel clair pour les permanentes terminées ;
+- une réussite provoquée depuis le chat interne est restituée dans ce chat ;
+- une réussite provoquée depuis Twitch est restituée immédiatement dans la réponse Twitch correspondante ;
+- ne pas dupliquer automatiquement une réussite vers les autres canaux ;
+- ne jamais envoyer sur Twitch une notification asynchrone à un joueur potentiellement absent.
 
 Échanges :
 - une seule notification agrégée représente les demandes d'échange reçues en attente ;
@@ -2810,24 +2818,39 @@ Frontières volontairement reportées :
 - acquisition Collection / événements mensuels → Domaine Event ;
 - classement Moras → Domaine Top / Classements.
 
-**Prochaine étape unique : démarrer le Domaine 8 — Missions / Daily en lisant intégralement `Missions.txt`, `Daily.txt`, `missions_pool.json`, `long_missions.json` et les données mission réelles des joueurs avant de décider l'organisation standalone.**
+**Domaine 8 — Missions / Daily : AUDIT EN COURS.**
 
-Document à créer :
+Document spécialisé :
 `docs/legacy/11-missions-daily-audit.md`
 
-À vérifier en priorité :
-1. vraie différence Daily / Missions ;
-2. mission quotidienne ;
-3. achat initial ;
-4. switch / coûts ;
-5. progression ;
-6. claim / récompenses ;
-7. missions permanentes ;
-8. rangs B / A / S / Z ;
-9. resets ;
-10. consommateurs des actions joueur ;
-11. migration des missions actives/historiques ;
-12. organisation UI finale.
+Décisions R299 à R315 traitées :
+- écran Missions séparé en Quotidienne / Permanentes ;
+- suivi général des activités quotidiennes intégré à la direction de l'onglet Quotidienne ;
+- B→A→S cumulatifs ;
+- missions permanentes automatiques dès le provisionnement du joueur, standalone ou Twitch-only ;
+- suppression de l'acceptation et de l'abandon ;
+- récompenses automatiques ;
+- reset quotidien serveur à 00:00 Europe/Paris ;
+- switch 20k puis coût doublé, avec mission obligatoirement différente ;
+- Z débloqué après toutes les B/A/S puis activé automatiquement ;
+- contenu et récompenses Z entièrement secrets avant déblocage ;
+- `!mission` devient une commande de consultation ;
+- `!quotis` est conservé et devient dynamique ;
+- restitution d'une réussite limitée au canal ayant directement provoqué l'action ;
+- aucune notification Twitch asynchrone ;
+- récompenses B/A/S conservées à 160 / 1 600 / 16 000 Primogemmes ;
+- récompense Z provisoire conservée à 160 000 Primogemmes ;
+- aucun historique player-facing Missions ; permanentes terminées conservées visuellement dans l'écran.
+
+**Prochaine étape : poursuivre le Domaine 8 à partir de R316.**
+
+À finaliser notamment :
+1. catalogue et équilibrage exact de la mission quotidienne ;
+2. récompense quotidienne ;
+3. sémantique détaillée des producteurs de progression ;
+4. dépendances Combat / Expedition / Social des objectifs permanents et Z ;
+5. stratégie finale de migration Missions ;
+6. derniers détails UI / confidentialité nécessaires à la clôture.
 
 Dépendance future à conserver :
 - lors de l'audit `Top / Classements`, décider explicitement portefeuille vs patrimoine total pour les Moras ;

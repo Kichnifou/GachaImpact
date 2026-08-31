@@ -128,6 +128,8 @@ Statut : évolutif.
 - `VALIDÉ` — Le navigateur ne détient jamais la sauvegarde autoritative.
 - `VALIDÉ` — La logique métier doit être centralisée côté serveur.
 - `VALIDÉ` — Bouton UI, commande chat GachaImpact et future commande Twitch doivent appeler la même action métier.
+- `VALIDÉ` — Le canal ayant déclenché une action détermine sa restitution ; l'état métier reste commun mais une réponse ne doit pas être dupliquée automatiquement vers les autres canaux.
+- `VALIDÉ` — Twitch ne doit jamais être utilisé pour pousser une notification asynchrone à un joueur potentiellement absent ; un résultat Twitch est la conséquence immédiate d'une action/message Twitch.
 - `VALIDÉ` — Streamer.bot disparaît de la logique GachaImpact à terme.
 
 ## Banque
@@ -434,6 +436,25 @@ Statut : évolutif.
 - `VALIDÉ TECHNIQUE` — Un article indisponible affiche sa raison lorsqu'elle est connue.
 - `VALIDÉ TECHNIQUE` — Un achat Shop est atomique/idempotent, y compris débit, effet, récompense et historique.
 - `CLÔTURÉ` — Domaine Sac / Coffre / Shop clôturé après R298.
+
+## Missions / Daily
+- `VALIDÉ R299` — L'écran Missions possède deux onglets principaux : Quotidienne / Permanentes ; Quotidienne peut aussi présenter le suivi général des activités quotidiennes.
+- `VALIDÉ R300` — Les rangs B→A→S sont des paliers cumulatifs et ne redémarrent pas à zéro à chaque rang.
+- `VALIDÉ R301` — Les missions permanentes progressent automatiquement dès le provisionnement du joueur, standalone ou Twitch-only ; aucune activation manuelle n'est requise.
+- `VALIDÉ R302` — Le concept métier d'abandon des missions permanentes est supprimé.
+- `VALIDÉ R303` — Les récompenses sont auto-claim à la complétion.
+- `VALIDÉ R304` — La mission quotidienne expire au reset serveur 00:00 Europe/Paris si elle n'est pas terminée ; aucune nouvelle mission payante n'est attribuée automatiquement.
+- `VALIDÉ R305` — Switch quotidien : 20k Moras puis coût doublé à chaque switch ; la nouvelle mission doit obligatoirement être différente et repart à 0.
+- `VALIDÉ R306/R307` — Z se débloque après toutes les B/A/S et toutes les missions Z deviennent alors automatiquement actives.
+- `VALIDÉ R308` — Avant déblocage, le joueur sait seulement que le rang Z existe et est verrouillé ; intitulés, objectifs et récompenses restent secrets.
+- `À RECROISER R309` — Les objectifs Z legacy seront finalisés avec les audits Combat et Social/Ami.
+- `VALIDÉ R310` — `!mission` devient une commande de consultation ; acceptation et abandon disparaissent du fonctionnement cible.
+- `VALIDÉ R311` — `!quotis` est conservé mais devient dynamique à partir des vrais états quotidiens serveur.
+- `VALIDÉ R312` — Les réussites ne sont pas dupliquées entre les canaux : UI → notification UI ; chat interne → retour immédiat chat interne ; Twitch → retour immédiat Twitch.
+- `VALIDÉ R313` — Récompenses permanentes V1 : B 160 / A 1 600 / S 16 000 Primogemmes.
+- `VALIDÉ R314` — Récompense Z provisoire V1 : 160 000 Primogemmes par mission.
+- `VALIDÉ R315` — Aucun historique player-facing des missions ; les permanentes terminées restent visibles avec un état graphique de complétion, les quotidiennes n'ont pas d'historique.
+- `VALIDÉ TECHNIQUE` — La progression et les récompenses Missions sont centralisées dans `MissionService`, déclenchées immédiatement par les vraies mutations métier et protégées par atomicité/idempotence.
 
 ## Historique transversal
 - `VALIDÉ` — Il existe un seul écran global Historique réutilisé par tous les domaines.

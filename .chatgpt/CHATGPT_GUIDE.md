@@ -123,6 +123,11 @@ Exemples de fin de bloc :
 
 `R288 : A/B`
 
+Quand plusieurs décisions sont proposées dans un même message :
+- expliquer chaque décision dans le corps du message ;
+- regrouper toutes les lignes de réponse `Rxxx : ...` ensemble à la toute fin du message ;
+- ne pas disperser les choix de réponse entre les explications.
+
 L'utilisateur doit pouvoir répondre très vite.
 
 Ne pas redemander des choses déjà décidées.
@@ -299,6 +304,11 @@ Les messages Twitch doivent rester :
 - courts ;
 - clairs ;
 - sur une seule ligne.
+
+Ne jamais utiliser le chat Twitch comme canal de notification asynchrone vers un joueur potentiellement absent :
+- un résultat, une progression ou une réussite peut être envoyé sur Twitch lorsqu'il est la conséquence immédiate d'une action ou d'un message que le joueur vient d'effectuer sur Twitch ;
+- une action effectuée depuis l'UI standalone, le chat interne, un traitement serveur ou un autre canal ne doit pas provoquer plus tard un message Twitch destiné à ce joueur ;
+- l'état métier reste partagé entre tous les canaux, mais sa restitution dépend du canal ayant déclenché l'action.
 
 Conserver les emojis utiles quand ils font partie de la présentation validée.
 
