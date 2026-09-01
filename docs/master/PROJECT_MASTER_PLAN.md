@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.27
+Version : 0.28
 Date : 2026-09-01
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -2892,9 +2892,9 @@ Missions / Daily désormais cadrés :
 
 Recroisements après clôture Missions :
 - Expedition → résolu : une expédition est comptabilisée uniquement lors d'une récupération réussie ; cette mutation produit `totalExpeditionsCompleted +1` et l'événement Mission ;
-- Combat → victoires et combats manuels Z restent à auditer ;
+- Combat → résolu R387/R388 : B/A/S utilisent `totalCombatWins` ; Z `Maître du combat` utilise 50 `totalManualCombatWins` sans Auto ;
 - Ami / Social → cœurs et Amitié Parfaite restent à auditer ;
-- Roue / Combat / Ami / Event → leurs états continueront à enrichir le hub `Quotidiennes` / `!quotis`.
+- Roue / Ami / Event → leurs états continueront à enrichir le hub `Quotidiennes` / `!quotis`.
 
 **Domaine 9 — Expedition : CLÔTURÉ — R340 À R369.**
 
@@ -2946,7 +2946,41 @@ Dernières règles de clôture :
 
 **Domaine Expedition : CLÔTURÉ.**
 
-**Prochaine étape : Domaine 10 — Combat.**
+**Domaine 10 — Combat : AUDIT EN COURS — COMBAT QUOTIDIEN R370 À R389 TRAITÉ.**
+
+Document spécialisé :
+`docs/legacy/13-combat-audit.md`
+
+Combat quotidien désormais cadré notamment sur :
+- équipe ennemie globale de 4 personnages actifs, renouvelée chaque jour ;
+- Team active 4/4 pour le mode manuel ;
+- mode Auto temporaire ne modifiant jamais la Team active ;
+- plusieurs tentatives possibles après défaite ;
+- personnages perdants KO uniquement pour le combat quotidien ;
+- KO reset à 00:00 Europe/Paris ;
+- victoire quotidienne unique ;
+- récompense V1 +800 Primogemmes / +20 000 Moras ;
+- chance exacte affichée ;
+- détail du calcul accessible ;
+- matrice élémentaire legacy conservée ;
+- nouvelle formule V1 : base 50, 4★ +3, 5★ +6, C4★ +0,5/C, C5★ +1/C, élément ±4 ;
+- clamp 5–95 % ;
+- un 4★ C6 rejoint approximativement un 5★ C0 en puissance brute ;
+- Auto utilise strictement la même formule autoritative que le Combat ;
+- UI Auto sélectionne puis laisse confirmer `Combattre` ;
+- Twitch `!combat auto` reste direct ;
+- états Quotidiennes : À faire / En cours / Terminé / Bloqué aujourd'hui ;
+- `totalCombatWins` = manuel + Auto ;
+- `totalManualCombatWins` = Team active sans Auto ;
+- missions B/A/S = totalCombatWins ;
+- Z `Maître du combat` = 50 totalManualCombatWins.
+
+Boss mensuel communautaire :
+- concept conservé par R379 ;
+- audit détaillé volontairement séparé ;
+- valeurs/règles legacy non encore considérées définitives.
+
+**Prochaine reprise Combat : R390 — Boss mensuel communautaire.**
 
 Dépendance future à conserver :
 - lors de l'audit `Top / Classements`, décider explicitement portefeuille vs patrimoine total pour les Moras ;
@@ -3063,7 +3097,8 @@ Décisions clés :
 - dates legacy valides conservées et timestamps historiques interprétés comme Europe/Paris ; exception explicitement validée pour `firstObtainedAt` manquant/invalide : utiliser la date de migration comme fallback traçable ;
 - Twitch : nouveau chatter enregistré passivement, progression jusqu'au seuil d'onboarding puis blocage des mécaniques actives tant que l'élément n'est pas choisi ;
 - écran transversal `Quotidiennes` dédié, distinct de Missions, servant de hub vers Roue / Combat / Box-Expedition / Amis / Event / Shop ; `!quotis` en est l'équivalent texte compact ;
-- Expedition clôturé après R369 : 20 h, un départ/jour, récupération manuelle, personnage toujours utilisable, workflow Box, états Quotidiennes détaillés, récompense tirée au claim, personnage prêt temporairement remonté avant les favoris, reset sans annulation.
+- Expedition clôturé après R369 : 20 h, un départ/jour, récupération manuelle, personnage toujours utilisable, workflow Box, états Quotidiennes détaillés, récompense tirée au claim, personnage prêt temporairement remonté avant les favoris, reset sans annulation ;
+- Combat quotidien cadré R370-R389 : ennemis globaux quotidiens, tentatives multiples, KO journalier limité au Combat, Team active manuelle, Auto temporaire, chance détaillée, formule 4★/5★/constellations/éléments, clamp 5–95 %, récompense 800 Primos + 20k Moras.
 
 Prochaine étape :
-démarrer le Domaine Combat à partir de R370 ; Missions / Daily est clôturé après R339 et Expedition après R369. Ami / Social, Event et Top / Classements restent explicitement reportés à leurs audits respectifs.
+poursuivre le Domaine Combat à R390 avec le Boss mensuel communautaire ; Missions / Daily est clôturé après R339 et Expedition après R369. Ami / Social, Event et Top / Classements restent explicitement reportés à leurs audits respectifs.

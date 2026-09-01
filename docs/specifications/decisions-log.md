@@ -483,7 +483,8 @@ Statut : évolutif.
 - `VALIDÉ MIGRATION R338` — Un déblocage Z historiquement certain n'est jamais retiré et une récompense Z déjà acquise n'est jamais redonnée.
 - `VALIDÉ TECHNIQUE` — La progression et les récompenses Missions sont centralisées dans `MissionService`, déclenchées immédiatement par les vraies mutations métier et protégées par atomicité/idempotence.
 - `VALIDÉ TECHNIQUE` — Les services économiques/jeu produisent des événements autoritatifs avec leur cause ; MissionService les consomme sans reconstruire les gains depuis les clients.
-- `REPORTÉ` — Combat et Ami/Social restent propriétaires de la définition exacte de leurs événements de progression ; Roue/Combat/Ami/Event continueront à finaliser leurs états dans `!quotis`.
+- `RÉSOLU DANS COMBAT R387/R388` — B/A/S Combat utilisent `totalCombatWins` ; Z `Maître du combat` utilise `totalManualCombatWins`, uniquement sans mode Auto.
+- `REPORTÉ` — Ami/Social reste propriétaire de la définition exacte de ses événements de progression ; Roue/Ami/Event continueront à finaliser leurs états dans `!quotis`.
 - `RÉSOLU DANS EXPEDITION` — Une expédition compte pour Missions uniquement lors d'une récupération réussie ; `totalExpeditionsCompleted +1` et événement Mission sont produits à ce moment.
 - `CLÔTURÉ R339` — Domaine Missions / Daily clôturé après R339.
 
@@ -524,6 +525,30 @@ Statut : évolutif.
 - `VALIDÉ MIGRATION` — `readyAt` peut être reconstruit depuis un `startedAt` fiable ; ne jamais reconstruire une Expedition depuis des données résiduelles insuffisantes ni déclencher gain/statistique pendant une réparation de migration.
 - `REPORTÉ R368` — La visibilité de `totalExpeditionsCompleted` sera décidée dans Profil / Statistiques / Confidentialité ; l'état de l'Expedition actuelle reste privé.
 - `CLÔTURÉ R369` — Domaine Expedition clôturé après R369.
+
+## Combat
+- `VALIDÉ R370` — Une seule équipe ennemie quotidienne globale de 4 personnages actifs est commune à tous les joueurs et change à 00:00 Europe/Paris.
+- `VALIDÉ R371` — Après une défaite, le joueur peut retenter tant qu'il possède 4 personnages non-KO disponibles ; une victoire clôt le combat quotidien.
+- `VALIDÉ R372` — Le KO est limité au combat quotidien et n'empêche pas Team, Expedition, Boss ou autres mécaniques.
+- `VALIDÉ R373` — Le mode manuel utilise la Team active et exige exactement 4 personnages valides/non-KO.
+- `VALIDÉ R374` — Mode Auto conservé ; Team temporaire sans modification de la Team active ; l'Auto doit utiliser exactement la même formule que le vrai Combat.
+- `VALIDÉ R375` — Afficher la probabilité exacte de victoire avant le combat.
+- `VALIDÉ R376` — Première victoire quotidienne : +800 Primogemmes et +20 000 Moras.
+- `VALIDÉ R377` — Conserver la matrice élémentaire legacy.
+- `VALIDÉ R378` — Les 5★ obtiennent un vrai avantage intrinsèque de rareté dans la formule de victoire.
+- `VALIDÉ R379` — Conserver le Boss mensuel communautaire ; audit détaillé à partir de R390.
+- `VALIDÉ ÉQUILIBRAGE R380` — Bonus rareté V1 : 4★ +3 points ; 5★ +6 points.
+- `VALIDÉ ÉQUILIBRAGE R381` — Constellations : 4★ +0,5/C ; 5★ +1/C ; relations élémentaires : +4 avantage / -4 désavantage.
+- `VALIDÉ R382` — Clamp final Combat : minimum 5 %, maximum 95 %.
+- `VALIDÉ R383` — KO visible dans Combat et statut `OK` / `KO` dans la fiche personnage ; aucune modification automatique de Team.
+- `VALIDÉ R384` — Hub Quotidiennes Combat : À faire / En cours / Terminé / Bloqué aujourd'hui.
+- `VALIDÉ R385` — Le quotidien Combat n'est considéré réussi qu'après une victoire.
+- `VALIDÉ R386` — UI Auto sélectionne/affiche d'abord la meilleure Team temporaire et sa chance puis attend le clic Combattre ; `!combat auto` reste direct.
+- `VALIDÉ R387` — Une victoire manuelle utilise obligatoirement la Team active sans Auto ; le mode Auto reste Auto même si le joueur clique ensuite sur Combattre.
+- `VALIDÉ R388` — B/A/S Combat utilisent `totalCombatWins` ; Z `Maître du combat` utilise `totalManualCombatWins` avec objectif 50.
+- `VALIDÉ R389` — Un détail du calcul de probabilité est accessible dans l'UI : base, rareté, constellations, éléments, brut, clamp, final.
+- `VALIDÉ TECHNIQUE` — La formule de preview, de sélection Auto et de tirage est une seule formule serveur autoritative.
+- `AUDIT EN COURS` — Combat quotidien cadré R370-R389 ; prochaine reprise R390 sur le Boss mensuel communautaire.
 
 ## Quotidiennes — direction transverse
 - `VALIDÉ R355` — Écran `Quotidiennes` dédié : Roue → Roue, Combat → Combat, Expedition → Box, Ami cœur → Amis, Event → Event, Shop → Boutique.

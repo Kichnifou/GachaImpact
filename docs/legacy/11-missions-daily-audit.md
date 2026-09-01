@@ -1098,11 +1098,19 @@ Les dépendances suivantes sont volontairement reportées et devront recroiser c
 ### Expedition
 Définir précisément quel événement autoritatif constitue une expédition terminée et alimente la progression Mission correspondante.
 
-### Combat
-Définir précisément :
-- `combatWins` ;
-- les combats manuels utilisés par la mission Z ;
-- les interactions nécessaires avec les missions permanentes.
+### Combat — ✅ RÉSOLU PAR R387 / R388
+
+Le Domaine Combat définit maintenant :
+
+- `totalCombatWins` = toutes les victoires du combat quotidien, Team active ou Auto ;
+- les missions permanentes B/A/S Combat utilisent `totalCombatWins` ;
+- seuils conservés : B 5 / A 20 / S 100 victoires ;
+- `totalManualCombatWins` = uniquement les victoires avec Team active choisie par le joueur, sans mode Auto ;
+- UI avec Team active + `Combattre` et `!combat go` comptent comme manuels ;
+- UI après `Équipe automatique` et `!combat auto` ne comptent pas comme manuels ;
+- la mission Z `Maître du combat` conserve son objectif de 50 victoires manuelles.
+
+Le Domaine Combat produit les événements autoritatifs correspondants et `MissionService` consomme ces événements sans recalculer le combat.
 
 ### Ami / Social
 Définir précisément :
@@ -1136,7 +1144,7 @@ Lorsqu'un domaine propriétaire fixe sa règle :
 - les termes nécessaires d'une quotidienne attribuée sont snapshotés afin qu'une modification de catalogue ne la transforme pas rétroactivement ;
 - les mutations économiques autoritatives produisent les informations de gain/dépense/transfert utilisées par les Missions ;
 - `MissionService` consomme ces événements métier fiables au lieu de déduire les gains depuis l'UI ou depuis un futur message ;
-- les domaines Expedition, Combat et Social restent propriétaires de la définition exacte de leurs événements de progression.
+- Expedition et Combat ont désormais défini leurs événements autoritatifs de progression ; Social reste propriétaire de la définition exacte de ses événements.
 
 ---
 
@@ -1163,11 +1171,12 @@ Sont maintenant cadrés :
 - migration ;
 - architecture de progression centralisée.
 
-Dépendances explicitement reportées :
-- Expedition ;
-- Combat ;
+Recroisements effectués après clôture :
+- Expedition → résolu par R362 ;
+- Combat → résolu par R387/R388.
+
+Dépendances restant explicitement reportées :
 - Ami / Social ;
 - Roue / Event pour leur contribution au suivi `!quotis`.
 
-Prochain domaine d'audit :
-**Expedition**.
+Le Domaine Missions reste clôturé.

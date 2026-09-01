@@ -398,6 +398,7 @@ Pour le détail :
 - Sac / Coffre / Shop : `docs/legacy/10-sac-coffre-shop-audit.md`
 - Missions / Daily : `docs/legacy/11-missions-daily-audit.md`
 - Expedition : `docs/legacy/12-expedition-audit.md`
+- Combat : `docs/legacy/13-combat-audit.md`
 - domaine actif suivant : voir le Master puis lire son document spécialisé
 
 Toujours préférer ces documents au contenu d'anciens chats.

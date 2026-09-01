@@ -463,7 +463,7 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Distinction :** `!quotis` n'est pas la mission quotidienne payante ; il est l'équivalent texte compact du hub `Quotidiennes`
 - **Réponse :** état dynamique des activités pertinentes, avec présentation compacte
 - **Architecture :** chaque activité reste propriétaire de sa logique ; l'écran Quotidiennes et `!quotis` ne font qu'agréger les états
-- **Évolution :** Roue, Combat, Ami et Event continueront à préciser leurs états lors de leurs audits
+- **Évolution :** le Combat quotidien possède désormais ses états À faire / En cours / Terminé / Bloqué ; Roue, Ami et Event continueront à préciser leurs états lors de leurs audits
 
 ## `!expedition`
 
@@ -495,3 +495,38 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Notification :** notification UI à `readyAt`, aucune notification Twitch asynchrone
 - **Historique player-facing :** aucun en V1
 - **Migration :** préserver une Expedition active valide et son `readyAt`; aucune récompense automatique au cutover
+
+## `!combat`
+
+- **Statut audit :** Combat quotidien cadré R370 à R389 ; Boss mensuel encore en audit
+- **But :** Consulter puis effectuer le combat quotidien ; accès également au Boss mensuel.
+- **Syntaxes quotidiennes :**
+  - `!combat`
+  - `!combat info`
+  - `!combat go`
+  - `!combat auto`
+  - `!combat elements`
+- **Syntaxes Boss legacy conservées pour audit :**
+  - `!combat boss`
+  - `!combat boss go`
+- **Statistiques :**
+  - `!combat stat`
+- **Bouton UI équivalent :** écran Combat ; accès depuis le hub `Quotidiennes`
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui
+- **Équipe ennemie :** 4 personnages actifs, commune à tous les joueurs pour la journée
+- **Reset :** 00:00 Europe/Paris
+- **Mode manuel :** Team active obligatoire de 4 personnages non-KO
+- **Mode Auto :** composition temporaire optimisée sans modifier la Team active
+- **UI Auto :** sélectionne et affiche la Team/chance puis attend le clic `Combattre`
+- **Twitch Auto :** `!combat auto` sélectionne puis combat directement
+- **KO :** uniquement pour le combat quotidien jusqu'au reset ; personnages toujours utilisables ailleurs
+- **Tentatives :** après défaite, retenter avec d'autres personnages jusqu'à victoire ou moins de 4 personnages disponibles
+- **Quotidiennes :** À faire / En cours / Terminé / Bloqué aujourd'hui
+- **Récompense première victoire :** +800 Primogemmes / +20 000 Moras
+- **Chance :** valeur exacte affichée
+- **Formule V1 :** base 50 ; 4★ +3 ; 5★ +6 ; C4★ +0,5/C ; C5★ +1/C ; avantage élémentaire +4 ; désavantage -4 ; clamp 5–95 %
+- **Détail calcul UI :** base / rareté / constellations / éléments / brut / clamp / final
+- **Missions B/A/S :** toutes les victoires via `totalCombatWins`
+- **Mission Z :** 50 victoires sans Auto via `totalManualCombatWins`
+- **Boss mensuel :** concept conservé ; règles finales encore à auditer R390+
