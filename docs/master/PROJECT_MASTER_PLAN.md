@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.26
+Version : 0.27
 Date : 2026-09-01
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -2896,7 +2896,7 @@ Recroisements après clôture Missions :
 - Ami / Social → cœurs et Amitié Parfaite restent à auditer ;
 - Roue / Combat / Ami / Event → leurs états continueront à enrichir le hub `Quotidiennes` / `!quotis`.
 
-**Domaine 9 — Expedition : AUDIT EN COURS — R340 À R363 TRAITÉS.**
+**Domaine 9 — Expedition : CLÔTURÉ — R340 À R369.**
 
 Document spécialisé :
 `docs/legacy/12-expedition-audit.md`
@@ -2935,7 +2935,18 @@ Direction transverse nouvellement validée :
 - le hub agrège les états mais ne duplique jamais les mécaniques métier ;
 - `!quotis` est son équivalent texte compact.
 
-**Prochaine reprise Expedition : R364.**
+Dernières règles de clôture :
+- hub Quotidiennes : `À faire` / `En cours` / `À récupérer` / `Fait aujourd'hui` ;
+- une Expedition d'un jour précédent peut bloquer le nouveau départ sans compter comme départ du jour actuel ;
+- bouton `Accéder` toujours disponible et redirige vers la vraie Box ;
+- passage à `readyAt` répercuté en temps réel dans la Box sans popup forcée ;
+- reset quotidien sans annulation ni modification de l'Expedition en cours ;
+- edge cases de migration conservateurs et sans récompense/statistique déclenchée par une réparation ;
+- visibilité publique de `totalExpeditionsCompleted` reportée à Profil / Statistiques / Confidentialité.
+
+**Domaine Expedition : CLÔTURÉ.**
+
+**Prochaine étape : Domaine 10 — Combat.**
 
 Dépendance future à conserver :
 - lors de l'audit `Top / Classements`, décider explicitement portefeuille vs patrimoine total pour les Moras ;
@@ -3052,7 +3063,7 @@ Décisions clés :
 - dates legacy valides conservées et timestamps historiques interprétés comme Europe/Paris ; exception explicitement validée pour `firstObtainedAt` manquant/invalide : utiliser la date de migration comme fallback traçable ;
 - Twitch : nouveau chatter enregistré passivement, progression jusqu'au seuil d'onboarding puis blocage des mécaniques actives tant que l'élément n'est pas choisi ;
 - écran transversal `Quotidiennes` dédié, distinct de Missions, servant de hub vers Roue / Combat / Box-Expedition / Amis / Event / Shop ; `!quotis` en est l'équivalent texte compact ;
-- Expedition : 20 h, un départ/jour, récupération manuelle, personnage toujours utilisable, workflow Box, récompense tirée au claim, personnage prêt temporairement remonté avant les favoris.
+- Expedition clôturé après R369 : 20 h, un départ/jour, récupération manuelle, personnage toujours utilisable, workflow Box, états Quotidiennes détaillés, récompense tirée au claim, personnage prêt temporairement remonté avant les favoris, reset sans annulation.
 
 Prochaine étape :
-poursuivre le Domaine Expedition à partir de R364 ; Missions / Daily est clôturé après R339. Les dépendances Combat, Ami / Social, Event et Top / Classements restent explicitement reportées à leurs audits respectifs.
+démarrer le Domaine Combat à partir de R370 ; Missions / Daily est clôturé après R339 et Expedition après R369. Ami / Social, Event et Top / Classements restent explicitement reportés à leurs audits respectifs.

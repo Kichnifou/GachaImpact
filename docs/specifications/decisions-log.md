@@ -517,7 +517,13 @@ Statut : évolutif.
 - `VALIDÉ R363` — Tout personnage possédé et actif peut partir sans restriction supplémentaire.
 - `VALIDÉ TECHNIQUE` — `readyAt` et le tirage sont server-authoritative ; récupération atomique/idempotente.
 - `VALIDÉ TECHNIQUE` — La désactivation administrative d'un personnage pendant son Expedition conserve la règle Box : annulation, aucune récompense, tentative quotidienne non consommée.
-- `AUDIT EN COURS` — Domaine Expedition traité jusqu'à R363 ; prochaine reprise R364.
+- `VALIDÉ R364` — Le hub Quotidiennes distingue À faire / En cours / À récupérer / Fait aujourd'hui et distingue une Expedition issue d'un départ précédent du départ quotidien actuel encore à effectuer.
+- `VALIDÉ R365` — Le bouton `Accéder` de la carte Expedition reste disponible dans tous les états et redirige toujours vers la vraie Box.
+- `VALIDÉ TECHNIQUE R366` — À `readyAt`, la Box ouverte se met à jour en temps réel ; personnage remonté, badge `À récupérer`, notification UI, aucune popup forcée ni récompense automatique.
+- `VALIDÉ TECHNIQUE R367` — Le reset quotidien n'annule ni ne modifie une Expedition active ; une Expedition précédente continue à bloquer le nouveau départ jusqu'à récupération.
+- `VALIDÉ MIGRATION` — `readyAt` peut être reconstruit depuis un `startedAt` fiable ; ne jamais reconstruire une Expedition depuis des données résiduelles insuffisantes ni déclencher gain/statistique pendant une réparation de migration.
+- `REPORTÉ R368` — La visibilité de `totalExpeditionsCompleted` sera décidée dans Profil / Statistiques / Confidentialité ; l'état de l'Expedition actuelle reste privé.
+- `CLÔTURÉ R369` — Domaine Expedition clôturé après R369.
 
 ## Quotidiennes — direction transverse
 - `VALIDÉ R355` — Écran `Quotidiennes` dédié : Roue → Roue, Combat → Combat, Expedition → Box, Ami cœur → Amis, Event → Event, Shop → Boutique.

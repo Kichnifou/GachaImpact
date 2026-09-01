@@ -467,7 +467,7 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 
 ## `!expedition`
 
-- **Statut audit :** En cours — R340 à R363 traités
+- **Statut audit :** Clôturé — R340 à R369
 - **But :** Lancer, consulter puis récupérer l'Expedition quotidienne.
 - **Syntaxes :**
   - `!expedition`
@@ -475,11 +475,13 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
   - `!expedition retour`
   - `!expedition <personnage envoyé>` peut également récupérer l'Expedition lorsqu'elle est prête
 - **Bouton UI équivalent :** Box > fiche d'un personnage possédé ; accès également depuis le hub `Quotidiennes`
+- **Hub Quotidiennes :** états `À faire` / `En cours` / `À récupérer` / `Fait aujourd'hui` ; un départ précédent peut bloquer l'action tout en laissant la quotidienne actuelle encore à faire ; bouton `Accéder` toujours disponible
 - **Écran dédié :** aucun
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
 - **Durée :** 20 heures
 - **Limite :** un nouveau départ par journée serveur, reset 00:00 Europe/Paris
+- **Reset avec Expedition active :** l'Expedition continue normalement et bloque le nouveau départ jusqu'à récupération ; `readyAt` n'est jamais modifié par le reset
 - **Personnage éligible :** tout personnage possédé et actif
 - **Disponibilité du personnage :** reste utilisable dans Team/Combat/autres systèmes pendant l'Expedition
 - **Récupération :** manuelle après `readyAt`

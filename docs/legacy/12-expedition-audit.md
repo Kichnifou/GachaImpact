@@ -1,6 +1,6 @@
 # 12 — Audit legacy Expedition
 
-Statut : AUDIT EN COURS — R340 À R363 TRAITÉS ; PROCHAINE REPRISE À R364
+Statut : CLÔTURÉ — R340 À R369 VALIDÉS / DÉRIVÉS
 Date : 2026-09-01
 
 ## 1. Périmètre
@@ -142,7 +142,7 @@ Ces règles restent prioritaires.
 
 ---
 
-# 8. Décisions standalone validées — R340 à R363
+# 8. Décisions standalone validées — R340 à R369
 
 ## R340 — Durée
 
@@ -511,6 +511,151 @@ Aucune condition supplémentaire de :
 
 Le choix est principalement personnel/esthétique puisque R344 rend la récompense de particules indépendante de l'élément du personnage.
 
+## R364 — États Expedition dans le hub Quotidiennes
+
+La carte Expedition du hub `Quotidiennes` doit distinguer l'état opérationnel de l'Expedition et le fait que le départ quotidien actuel ait ou non été effectué.
+
+États principaux :
+
+### À faire
+Aucune Expedition active ne bloque le joueur et aucun départ n'a encore été effectué pour la journée serveur actuelle.
+
+### En cours
+Une Expedition est active et `readyAt` n'est pas encore atteint.
+
+Afficher notamment :
+- personnage concerné si utile ;
+- temps restant ;
+- bouton `Accéder`.
+
+Si cette Expedition a été démarrée pendant la journée actuelle :
+- le départ quotidien est déjà considéré comme effectué selon R350.
+
+Si cette Expedition vient d'une journée précédente :
+- indiquer qu'il s'agit d'un départ précédent ;
+- le départ de la journée actuelle reste à faire après récupération.
+
+### À récupérer
+`readyAt` est atteint mais le joueur n'a pas encore récupéré la récompense.
+
+Si le départ appartient à une journée précédente :
+- indiquer que le départ quotidien actuel reste encore à faire après récupération.
+
+### Fait aujourd'hui
+Le départ de la journée actuelle a été effectué et aucune action Expedition prioritaire n'est actuellement en attente.
+
+Le hub ne doit jamais réduire tous ces cas à un simple booléen fait/pas fait lorsqu'une information opérationnelle plus utile existe.
+
+## R365 — Bouton Accéder toujours disponible
+
+La carte Expedition du hub `Quotidiennes` conserve un bouton `Accéder` quel que soit son état.
+
+Comportement :
+- `À faire` → ouvrir la Box ;
+- `En cours` → ouvrir la Box et, lorsque l'architecture le permet proprement, la fiche du personnage concerné ;
+- `À récupérer` → ouvrir directement la Box / fiche du personnage concerné ;
+- `Fait aujourd'hui` → ouvrir la Box normalement.
+
+Le hub ne récupère jamais lui-même la récompense.
+
+Il redirige vers la vraie Box.
+
+## R366 — Passage à l'état prêt pendant que la Box est ouverte — ✅ DÉRIVÉ / TECHNIQUE
+
+Lorsque `readyAt` est atteint pendant que le joueur est connecté :
+
+- l'état serveur devient immédiatement récupérable ;
+- les clients ouverts reçoivent l'état actualisé ;
+- la Box se met à jour sans rechargement manuel ;
+- le personnage passe temporairement devant les autres selon R346 ;
+- son badge devient `✅ À récupérer` ;
+- si sa fiche est déjà ouverte, l'action devient `Récupérer l'expédition` ;
+- la notification UI R356 est créée/mise à jour normalement.
+
+Ne pas ouvrir automatiquement une modale ou interrompre le joueur avec une popup forcée.
+
+Aucune récompense n'est encore tirée.
+
+## R367 — Reset quotidien pendant une Expedition — ✅ DÉRIVÉ / TECHNIQUE
+
+Le reset de 00:00 `Europe/Paris` :
+
+- n'annule jamais une Expedition active ;
+- ne modifie jamais son `startedAt` ;
+- ne modifie jamais son `readyAt` ;
+- ne déclenche aucune récompense ;
+- ouvre simplement une nouvelle journée de départ.
+
+Une Expedition précédente encore active ou prête continue cependant à bloquer tout nouveau départ selon R351.
+
+Après récupération :
+- si aucun départ n'a encore été effectué pour la journée serveur actuelle → nouveau départ immédiatement autorisé ;
+- si le départ de la journée actuelle a déjà été consommé → attendre le prochain reset.
+
+Exemple :
+- lundi 22h → départ ;
+- mardi 00h → reset sans modification de l'Expedition ;
+- mardi 18h → récupération ;
+- mardi 18h01 → nouveau départ autorisé.
+
+## Edge cases migration supplémentaires — ✅ DÉRIVÉ / TECHNIQUE
+
+Lors de la migration :
+
+- `readyAt` invalide mais `startedAt` fiable → reconstruire `readyAt = startedAt + 20h` ;
+- `startedAt` et `readyAt` tous deux fiables → préserver les valeurs historiques ;
+- `characterId` valide mais nom/élément legacy incohérents → le catalogue rattaché au `characterId` fait autorité ;
+- personnage introuvable/invalide → ne jamais inventer une possession ; annuler conservativement l'Expedition et journaliser l'anomalie ;
+- `active = false` avec anciennes dates résiduelles → ne jamais reconstruire artificiellement une Expedition ;
+- `active = true` sans personnage identifiable et sans dates suffisamment fiables → annulation conservatrice, aucune récompense ;
+- aucune réparation ou normalisation de migration ne déclenche `totalExpeditionsCompleted` ;
+- aucune réparation de migration ne tire une récompense.
+
+## R368 — Visibilité des statistiques Expedition reportée
+
+`totalExpeditionsCompleted` reste une statistique autoritative conservée côté serveur.
+
+Le Domaine Expedition ne décide pas si cette statistique globale est :
+- publique ;
+- réservée aux amis ;
+- privée ;
+- affichée ou non sur un profil.
+
+Cette décision appartient au futur domaine transversal :
+**Profil / Statistiques / Confidentialité**.
+
+Cela ne change pas R349 :
+- l'état de l'Expedition actuelle reste privé ;
+- personnage envoyé, timer et état `À récupérer` ne sont pas exposés dans la Box publique.
+
+## R369 — Clôture du Domaine Expedition
+
+Le Domaine Expedition est considéré comme clôturé après R369.
+
+Sont maintenant cadrés :
+- durée ;
+- départ quotidien ;
+- reset ;
+- personnage éligible ;
+- disponibilité du personnage ;
+- intégration Box ;
+- intégration Quotidiennes ;
+- récupération manuelle ;
+- récompenses ;
+- tirage ;
+- notifications ;
+- statistiques ;
+- progression Missions ;
+- confidentialité de l'état courant ;
+- commandes ;
+- migration ;
+- atomicité/idempotence.
+
+Les futurs domaines peuvent recroiser Expedition si nécessaire, mais ils ne doivent pas réimplémenter sa logique.
+
+Prochain domaine :
+**Combat**.
+
 ---
 
 # 9. Architecture cible provisoire
@@ -555,20 +700,39 @@ Le nom exact des classes/tables/événements sera défini en Phase 2/3.
 
 ---
 
-# 11. État
+# 11. État final
 
-Domaine toujours ouvert.
+Décisions R340 à R369 validées / dérivées.
 
-Décisions R340 à R363 traitées.
+**Domaine Expedition : CLÔTURÉ.**
 
-Prochaine reprise :
-**R364**
+Sont cadrés :
+- durée 20 h ;
+- un départ maximum par journée serveur ;
+- reset 00:00 Europe/Paris ;
+- récupération manuelle ;
+- récompenses V1 ;
+- particules de l'élément personnel ;
+- personnage restant utilisable ;
+- Box comme interface principale ;
+- priorité temporaire `À récupérer` ;
+- badges Expedition ;
+- écran transversal Quotidiennes ;
+- états détaillés dans Quotidiennes ;
+- bouton Accéder permanent ;
+- notification UI au retour ;
+- absence de notification Twitch asynchrone ;
+- absence d'annulation volontaire ;
+- tirage au claim ;
+- `totalExpeditionsCompleted` au claim uniquement ;
+- progression Mission immédiate ;
+- aucun historique player-facing V1 ;
+- migration des Expeditions actives ;
+- edge cases de corruption/migration ;
+- confidentialité de l'état courant.
 
-Points restant notamment à finaliser :
-- présentation exacte de l'état Expedition dans le hub `Quotidiennes` ;
-- comportement de notification si l'Expedition devient prête alors que le joueur est déjà connecté dans la Box ;
-- précision des états serveur après reset lorsqu'une ancienne Expedition est encore en cours ;
-- éventuelles interactions avec d'autres futures activités utilisant un personnage ;
-- migration/corruption edge cases supplémentaires ;
-- confidentialité éventuelle hors Box si un futur profil expose des statistiques Expedition ;
-- dernière passe de clôture et recroisement Missions/Box/Quotidiennes.
+Report explicite :
+- visibilité publique des statistiques globales Expedition → futur domaine Profil / Statistiques / Confidentialité.
+
+Prochain domaine d'audit :
+**Combat**.
