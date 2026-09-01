@@ -222,7 +222,13 @@ Respecter :
 Éviter :
 - « ajoute ça quelque part dans la section X » ;
 - des ancres floues ;
+- des repères du type « juste après Rxxx », « à la fin de cette section » ou « avant le prochain titre » sans fournir le texte exact à rechercher ;
 - des snippets qui incluent inutilement le prochain gros heading si celui-ci ne change pas.
+
+Pour chaque modification manuelle :
+- fournir un bloc de texte actuel exact que l'utilisateur peut rechercher directement dans le fichier ;
+- puis fournir le remplacement exact ;
+- le repère textuel doit être suffisamment précis pour retrouver sans ambiguïté l'emplacement.
 
 Si un nouveau fichier de documentation doit être créé, générer un fichier téléchargeable.
 
@@ -389,6 +395,9 @@ Pour le détail :
 - Box / possessions : `docs/legacy/07-box-possession-obtention-audit.md`
 - Team : `docs/legacy/08-team-audit.md`
 - Banque : `docs/legacy/09-banque-audit.md`
+- Sac / Coffre / Shop : `docs/legacy/10-sac-coffre-shop-audit.md`
+- Missions / Daily : `docs/legacy/11-missions-daily-audit.md`
+- Expedition : `docs/legacy/12-expedition-audit.md`
 - domaine actif suivant : voir le Master puis lire son document spécialisé
 
 Toujours préférer ces documents au contenu d'anciens chats.

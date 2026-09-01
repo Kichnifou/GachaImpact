@@ -225,6 +225,42 @@ Le comportement legacy côté Twitch reste indépendant de l'UI standalone.
 
 L'UI standalone utilise les nouvelles règles de favoris épinglés.
 
+### Complément transverse Expedition — R346 / R349 / R357
+
+Le Domaine Expedition ajoute une exception temporaire aux priorités normales de la Box.
+
+Personnage actuellement en expédition :
+- reste à sa position normale ;
+- les favoris et le tri continuent de s'appliquer normalement ;
+- affiche un badge discret du type `🧭 En expédition`.
+
+Personnage dont les 20 heures sont terminées mais dont la récompense n'a pas encore été récupérée :
+- reçoit temporairement la priorité la plus haute de la Box ;
+- apparaît avant les favoris ;
+- affiche un badge du type `✅ À récupérer`.
+
+Cette priorité spéciale :
+- ne modifie pas la préférence de tri enregistrée ;
+- ne modifie pas le statut favori ;
+- ne contourne pas les onglets, filtres ou recherches ;
+- disparaît immédiatement après récupération.
+
+Après récupération :
+- le personnage retourne automatiquement à sa position normale selon favoris, rareté et tri actif.
+
+La fiche d'un personnage possédé peut proposer `Envoyer en expédition` uniquement lorsqu'un départ est actuellement autorisé.
+
+La fiche du personnage revenu propose `Récupérer l'expédition`.
+
+La Box publique d'un autre joueur :
+- n'expose pas l'état Expedition ;
+- n'affiche aucun timer Expedition ;
+- n'applique pas la priorité temporaire Expedition ;
+- n'affiche aucune action Expedition.
+
+La mécanique détaillée est autoritative dans :
+`docs/legacy/12-expedition-audit.md`.
+
 ---
 
 # 5. Tri / onglets / présentation Box

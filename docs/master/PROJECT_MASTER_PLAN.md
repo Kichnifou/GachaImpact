@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.25
+Version : 0.26
 Date : 2026-09-01
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -2857,7 +2857,8 @@ Document spécialisé :
 
 Missions / Daily désormais cadrés :
 - écran Missions séparé en Quotidienne / Permanentes ;
-- suivi général des activités quotidiennes dans Quotidienne ;
+- l'onglet Quotidienne de Missions est réservé à la mission quotidienne payante ;
+- le suivi général des activités quotidiennes a été déplacé par R355 vers l'écran transversal distinct `Quotidiennes` ;
 - mission quotidienne achetée 10 000 Moras ;
 - récompense quotidienne de mission : 800 Primogemmes ;
 - pool initial : 10 messages éligibles / 5 Pulls / 320 particules converties ;
@@ -2889,13 +2890,52 @@ Missions / Daily désormais cadrés :
 - quotidienne du jour du cutover conservée lorsqu'elle est certaine ;
 - aucun double paiement pendant migration.
 
-Dépendances reportées à leurs domaines propriétaires :
-- Expedition → définition exacte de l'expédition comptabilisée ;
-- Combat → victoires et combats manuels Z ;
-- Ami / Social → cœurs et Amitié Parfaite ;
-- Roue / Combat / Expedition / Ami / Event → contenu final du suivi `!quotis`.
+Recroisements après clôture Missions :
+- Expedition → résolu : une expédition est comptabilisée uniquement lors d'une récupération réussie ; cette mutation produit `totalExpeditionsCompleted +1` et l'événement Mission ;
+- Combat → victoires et combats manuels Z restent à auditer ;
+- Ami / Social → cœurs et Amitié Parfaite restent à auditer ;
+- Roue / Combat / Ami / Event → leurs états continueront à enrichir le hub `Quotidiennes` / `!quotis`.
 
-**Prochaine étape : Domaine 9 — Expedition.**
+**Domaine 9 — Expedition : AUDIT EN COURS — R340 À R363 TRAITÉS.**
+
+Document spécialisé :
+`docs/legacy/12-expedition-audit.md`
+
+Expedition désormais cadré notamment sur :
+- durée 20 h ;
+- un départ par journée serveur ;
+- récupération manuelle ;
+- récompenses 10 % / 30 % / 60 % conservées ;
+- 800 particules de l'élément personnel du joueur ;
+- personnage toujours utilisable pendant l'Expedition ;
+- workflow principal directement dans la Box ;
+- aucune vue Expedition dédiée ;
+- personnage prêt temporairement placé avant les favoris ;
+- état Expedition privé dans la Box ;
+- badges `En expédition` / `À récupérer` ;
+- Expedition considérée faite dans les Quotidiennes dès le départ ;
+- Expedition prête bloquant un nouveau départ ;
+- tirage serveur au moment de la récupération ;
+- `totalExpeditionsCompleted +1` au claim réussi uniquement ;
+- aucun historique player-facing V1 ;
+- migration d'une Expedition active conservée ;
+- notification UI lorsque le personnage est prêt ;
+- aucune notification Twitch asynchrone ;
+- tout personnage possédé et actif est éligible.
+
+Direction transverse nouvellement validée :
+- créer un écran `Quotidiennes` distinct de Missions ;
+- Roue → écran Roue ;
+- Combat → écran Combat ;
+- Expedition → Box ;
+- Ami cœur → liste d'amis ;
+- Event → écran Event ;
+- Shop → Boutique ;
+- chaque carte possède un bouton `Accéder` ;
+- le hub agrège les états mais ne duplique jamais les mécaniques métier ;
+- `!quotis` est son équivalent texte compact.
+
+**Prochaine reprise Expedition : R364.**
 
 Dépendance future à conserver :
 - lors de l'audit `Top / Classements`, décider explicitement portefeuille vs patrimoine total pour les Moras ;
@@ -3011,7 +3051,8 @@ Décisions clés :
 - niveau 100 : état d'overflow historique conservé, récompenses multiples prises en charge ;
 - dates legacy valides conservées et timestamps historiques interprétés comme Europe/Paris ; exception explicitement validée pour `firstObtainedAt` manquant/invalide : utiliser la date de migration comme fallback traçable ;
 - Twitch : nouveau chatter enregistré passivement, progression jusqu'au seuil d'onboarding puis blocage des mécaniques actives tant que l'élément n'est pas choisi ;
-- suivi quotidien UI prévu dans le bloc bas gauche avec chevrons compacts.
+- écran transversal `Quotidiennes` dédié, distinct de Missions, servant de hub vers Roue / Combat / Box-Expedition / Amis / Event / Shop ; `!quotis` en est l'équivalent texte compact ;
+- Expedition : 20 h, un départ/jour, récupération manuelle, personnage toujours utilisable, workflow Box, récompense tirée au claim, personnage prêt temporairement remonté avant les favoris.
 
 Prochaine étape :
-démarrer le Domaine Expedition ; Missions / Daily est clôturé après R339. Les dépendances Combat, Ami / Social, Event et Top / Classements restent explicitement reportées à leurs audits respectifs.
+poursuivre le Domaine Expedition à partir de R364 ; Missions / Daily est clôturé après R339. Les dépendances Combat, Ami / Social, Event et Top / Classements restent explicitement reportées à leurs audits respectifs.

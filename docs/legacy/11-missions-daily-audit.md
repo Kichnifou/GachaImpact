@@ -524,18 +524,27 @@ Le SQL exact reste Phase 2.
 
 Les décisions de cette section sont autoritatives pour la cible standalone et remplacent les mentions `À décider` encore présentes dans les constats legacy précédents.
 
-## R299 — Organisation de l'écran Missions
+## R299 — Organisation de l'écran Missions — mise à jour transverse R355
 
 Un seul écran `Missions` avec deux onglets principaux :
 - `Quotidienne` ;
 - `Permanentes`.
 
-L'onglet Quotidienne accueille :
-- la vraie mission quotidienne achetée ;
-- son état, sa progression, son switch et sa récompense ;
-- le suivi général des autres actions quotidiennes disponibles.
+L'onglet Quotidienne accueille uniquement la mécanique de mission quotidienne payante :
+- achat ;
+- état ;
+- progression ;
+- switch ;
+- récompense.
 
-Le suivi général s'inspire de l'intention de `!quotis`, mais reste distinct de la mécanique `missions.daily`.
+L'onglet Permanentes porte les missions B/A/S/Z selon les décisions du présent domaine.
+
+La direction initiale qui plaçait aussi le suivi général des activités quotidiennes dans cet écran est remplacée par R355.
+
+Le suivi général appartient désormais à un écran transversal distinct :
+`Quotidiennes`.
+
+Cette correction ne change aucune règle métier de `missions.daily`.
 
 ## R300 — Progression cumulative B → A → S
 
@@ -665,7 +674,7 @@ Supprimer du fonctionnement cible :
 
 Les helpers ne montrent que la syntaxe cible recommandée.
 
-## R311 — `!quotis` dynamique
+## R311 — `!quotis` dynamique — précisé par R355
 
 Conserver `!quotis` dans le chat interne et sur Twitch.
 
@@ -673,7 +682,12 @@ Il ne doit plus envoyer une chaîne statique.
 
 Il interroge les vrais états serveur des activités quotidiennes et produit un résumé compact de leur état.
 
-La liste exacte des activités pourra évoluer à mesure que Roue, Combat, Expedition, Ami et Event seront audités.
+R355 précise son équivalent UI :
+- `!quotis` est la version texte compacte de l'écran transversal `Quotidiennes` ;
+- cet écran est distinct de `Missions` ;
+- chaque activité renvoie vers son véritable domaine propriétaire.
+
+La liste exacte des activités peut encore évoluer à mesure que Roue, Combat, Ami et Event sont audités.
 
 ## R312 — Pas de duplication inter-canaux
 

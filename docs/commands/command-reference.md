@@ -451,15 +451,45 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 
 ## `!quotis`
 
-- **Statut audit :** Domaine Missions clôturé — principe dynamique validé ; contenu final recroisé avec Roue / Combat / Expedition / Ami / Event
+- **Statut audit :** Principe transverse validé R355 ; contenu enrichi progressivement avec les domaines quotidiens
 - **But :** Afficher un résumé compact et dynamique des activités quotidiennes du joueur.
 - **Syntaxe :** `!quotis`
-- **Bouton UI équivalent :** suivi quotidien général dans l'écran Missions / sidebar
+- **Bouton UI équivalent :** écran transversal `Quotidiennes`
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
 - **Coût :** aucun
 - **Données lues :** vrais états quotidiens serveur
 - **Données écrites :** aucune
-- **Distinction :** `!quotis` n'est pas la mission quotidienne payante ; il agrège les activités quotidiennes
+- **Distinction :** `!quotis` n'est pas la mission quotidienne payante ; il est l'équivalent texte compact du hub `Quotidiennes`
 - **Réponse :** état dynamique des activités pertinentes, avec présentation compacte
-- **Évolution :** la liste exacte sera enrichie/finalisée lors des audits Roue, Combat, Expedition, Ami et Event
+- **Architecture :** chaque activité reste propriétaire de sa logique ; l'écran Quotidiennes et `!quotis` ne font qu'agréger les états
+- **Évolution :** Roue, Combat, Ami et Event continueront à préciser leurs états lors de leurs audits
+
+## `!expedition`
+
+- **Statut audit :** En cours — R340 à R363 traités
+- **But :** Lancer, consulter puis récupérer l'Expedition quotidienne.
+- **Syntaxes :**
+  - `!expedition`
+  - `!expedition <personnage>`
+  - `!expedition retour`
+  - `!expedition <personnage envoyé>` peut également récupérer l'Expedition lorsqu'elle est prête
+- **Bouton UI équivalent :** Box > fiche d'un personnage possédé ; accès également depuis le hub `Quotidiennes`
+- **Écran dédié :** aucun
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui
+- **Durée :** 20 heures
+- **Limite :** un nouveau départ par journée serveur, reset 00:00 Europe/Paris
+- **Personnage éligible :** tout personnage possédé et actif
+- **Disponibilité du personnage :** reste utilisable dans Team/Combat/autres systèmes pendant l'Expedition
+- **Récupération :** manuelle après `readyAt`
+- **Récompenses V1 :** 10 % = 1 600 Primogemmes ; 30 % = 800 particules de l'élément personnel du joueur ; 60 % = 30 000 Moras
+- **Tirage :** serveur, uniquement lors de la récupération
+- **Statistique :** `totalExpeditionsCompleted +1` uniquement lors d'une récupération réussie
+- **Missions :** la récupération réussie produit immédiatement l'événement de progression permanent Expedition
+- **Box :** personnage en cours à sa place normale ; personnage prêt temporairement devant les favoris ; retour au tri normal après récupération
+- **Badges Box :** `🧭 En expédition` / `✅ À récupérer`
+- **Annulation volontaire :** non
+- **Notification :** notification UI à `readyAt`, aucune notification Twitch asynchrone
+- **Historique player-facing :** aucun en V1
+- **Migration :** préserver une Expedition active valide et son `readyAt`; aucune récompense automatique au cutover

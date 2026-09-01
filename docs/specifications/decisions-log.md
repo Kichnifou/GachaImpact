@@ -439,7 +439,7 @@ Statut : évolutif.
 - `CLÔTURÉ` — Domaine Sac / Coffre / Shop clôturé après R298.
 
 ## Missions / Daily
-- `VALIDÉ R299` — L'écran Missions possède deux onglets principaux : Quotidienne / Permanentes ; Quotidienne peut aussi présenter le suivi général des activités quotidiennes.
+- `VALIDÉ R299 / MIS À JOUR R355` — L'écran Missions possède deux onglets principaux : Quotidienne / Permanentes ; le suivi général des activités quotidiennes appartient désormais à l'écran transversal distinct `Quotidiennes`.
 - `VALIDÉ R300` — Les rangs B→A→S sont des paliers cumulatifs et ne redémarrent pas à zéro à chaque rang.
 - `VALIDÉ R301` — Les missions permanentes progressent automatiquement dès le provisionnement du joueur, standalone ou Twitch-only ; aucune activation manuelle n'est requise.
 - `VALIDÉ R302` — Le concept métier d'abandon des missions permanentes est supprimé.
@@ -483,8 +483,45 @@ Statut : évolutif.
 - `VALIDÉ MIGRATION R338` — Un déblocage Z historiquement certain n'est jamais retiré et une récompense Z déjà acquise n'est jamais redonnée.
 - `VALIDÉ TECHNIQUE` — La progression et les récompenses Missions sont centralisées dans `MissionService`, déclenchées immédiatement par les vraies mutations métier et protégées par atomicité/idempotence.
 - `VALIDÉ TECHNIQUE` — Les services économiques/jeu produisent des événements autoritatifs avec leur cause ; MissionService les consomme sans reconstruire les gains depuis les clients.
-- `REPORTÉ` — Expedition, Combat et Ami/Social restent propriétaires de la définition exacte de leurs événements de progression ; Roue/Combat/Expedition/Ami/Event finaliseront leurs états dans `!quotis`.
+- `REPORTÉ` — Combat et Ami/Social restent propriétaires de la définition exacte de leurs événements de progression ; Roue/Combat/Ami/Event continueront à finaliser leurs états dans `!quotis`.
+- `RÉSOLU DANS EXPEDITION` — Une expédition compte pour Missions uniquement lors d'une récupération réussie ; `totalExpeditionsCompleted +1` et événement Mission sont produits à ce moment.
 - `CLÔTURÉ R339` — Domaine Missions / Daily clôturé après R339.
+
+## Expedition
+- `VALIDÉ R340` — Durée V1 conservée à 20 heures.
+- `VALIDÉ R341` — Un nouveau départ maximum par journée serveur, reset 00:00 Europe/Paris ; aucun cumul de départs manqués.
+- `VALIDÉ R342` — Après 20 h, l'Expedition devient prête mais la récupération reste manuelle.
+- `VALIDÉ R343` — Récompenses V1 : 10 % = 1 600 Primogemmes ; 30 % = 800 particules ; 60 % = 30 000 Moras.
+- `VALIDÉ R344` — Les 800 particules utilisent toujours l'élément personnel du joueur, et non celui du personnage envoyé.
+- `VALIDÉ R345` — Un personnage envoyé reste utilisable dans Team, Combat et les autres systèmes.
+- `VALIDÉ R346` — Le workflow UI Expedition utilise directement la Box et la fiche personnage ; aucune deuxième Box/picker métier séparé.
+- `VALIDÉ R346` — Un personnage prêt à récupérer passe temporairement devant tous les autres personnages, favoris compris, tout en respectant filtres/recherche/onglets ; après récupération le tri normal reprend.
+- `VALIDÉ R347` — Conserver `!expedition retour` et la récupération via `!expedition <personnage envoyé>`.
+- `VALIDÉ R348` — Aucun écran Expedition dédié ; Expedition vit dans la Box et dans le hub transversal `Quotidiennes`.
+- `VALIDÉ R349` — L'état Expedition de la Box reste privé au propriétaire et n'affecte pas la Box publique.
+- `VALIDÉ R350` — Le hub Quotidiennes considère Expedition faite dès le départ valide, pas lors de la récupération.
+- `VALIDÉ R351` — Une Expedition prête mais non récupérée bloque tout nouveau départ.
+- `VALIDÉ R352` — Le tirage aléatoire est effectué côté serveur uniquement au moment de la récupération.
+- `VALIDÉ MIGRATION R353` — Une Expedition legacy active valide est conservée au cutover ; si déjà prête elle attend une récupération normale sans récompense automatique.
+- `VALIDÉ R354` — `!expedition` sans argument devient contextuel selon l'état réel du joueur.
+- `VALIDÉ R355` — Créer un écran transversal `Quotidiennes`, distinct de Missions, affichant les états du jour et des boutons `Accéder` vers chaque domaine propriétaire.
+- `VALIDÉ R355` — `!quotis` devient l'équivalent texte compact de l'écran `Quotidiennes`.
+- `DIRECTION À RECROISER SOCIAL` — Liste d'amis : cœur par ami, feedback `Cœur envoyé !`, état rouge jusqu'au reset et bouton Envoyer à tous.
+- `VALIDÉ R356` — Lorsque l'Expedition devient prête, notification UI ouvrable vers la Box/fiche ; aucune récompense ni notification Twitch asynchrone.
+- `VALIDÉ R357` — Badges Box `🧭 En expédition` puis `✅ À récupérer`.
+- `VALIDÉ R358` — Aucune annulation volontaire d'Expedition en V1.
+- `VALIDÉ R359` — Récupération depuis la fiche ; transaction complète puis fiche maintenue ouverte avec résultat.
+- `VALIDÉ R360` — Petit feedback/animation de récompense directement dans la fiche.
+- `VALIDÉ R361` — Aucun historique Expedition player-facing en V1.
+- `VALIDÉ R362` — `totalExpeditionsCompleted` augmente uniquement au claim réussi et produit au même moment l'événement Mission.
+- `VALIDÉ R363` — Tout personnage possédé et actif peut partir sans restriction supplémentaire.
+- `VALIDÉ TECHNIQUE` — `readyAt` et le tirage sont server-authoritative ; récupération atomique/idempotente.
+- `VALIDÉ TECHNIQUE` — La désactivation administrative d'un personnage pendant son Expedition conserve la règle Box : annulation, aucune récompense, tentative quotidienne non consommée.
+- `AUDIT EN COURS` — Domaine Expedition traité jusqu'à R363 ; prochaine reprise R364.
+
+## Quotidiennes — direction transverse
+- `VALIDÉ R355` — Écran `Quotidiennes` dédié : Roue → Roue, Combat → Combat, Expedition → Box, Ami cœur → Amis, Event → Event, Shop → Boutique.
+- `VALIDÉ` — Le hub Quotidiennes affiche les états mais ne réimplémente jamais les mécaniques des domaines propriétaires.
 
 ## Historique transversal
 - `VALIDÉ` — Il existe un seul écran global Historique réutilisé par tous les domaines.
