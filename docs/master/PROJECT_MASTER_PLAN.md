@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.24
+Version : 0.25
 Date : 2026-09-01
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -2435,23 +2435,29 @@ Document spécialisé :
 `docs/legacy/11-missions-daily-audit.md`
 
 Statut :
-**AUDIT EN COURS — R299 À R335 TRAITÉS**
+**CLÔTURÉ — R299 À R339**
 
-Sources principales :
-- `Missions.txt` ;
-- `Daily.txt` ;
-- `missions_pool.json` ;
-- `long_missions.json` ;
-- données `missions` de `viewers_data.json` ;
-- producteurs/consommateurs de progression mission.
+Sont cadrés :
+- mission quotidienne ;
+- achat / récompense / reset ;
+- switch ;
+- catalogue initial ;
+- progression quotidienne ;
+- B / A / S ;
+- rang Z ;
+- UI ;
+- Twitch / chat ;
+- visibilité publique ;
+- migration ;
+- architecture MissionService.
 
-Les décisions détaillées sont autoritatives dans le document spécialisé.
-
-Dépendances restant volontairement à recroiser :
+Dépendances à recroiser dans leurs domaines propriétaires :
 - Expedition ;
 - Combat ;
 - Ami / Social ;
-- certains objectifs Z.
+- Roue / Event pour leur contribution au suivi quotidien.
+
+Ces dépendances ne maintiennent pas le Domaine Missions ouvert.
 
 Ordre recommandé :
 
@@ -2839,58 +2845,57 @@ Sac / Shop désormais cadrés :
 - historique Shop ;
 - atomicité.
 
-Frontières volontairement reportées :
-- Missions / switch / missions permanentes → Domaine Missions ;
+Frontières :
+- Missions / switch / missions permanentes → résolus dans le Domaine Missions, clôturé après R339 ;
 - acquisition Collection / événements mensuels → Domaine Event ;
 - classement Moras → Domaine Top / Classements.
 
-**Domaine 8 — Missions / Daily : AUDIT EN COURS.**
+**Domaine 8 — Missions / Daily : CLÔTURÉ — R299 À R339.**
 
 Document spécialisé :
 `docs/legacy/11-missions-daily-audit.md`
 
-Décisions R299 à R315 traitées :
+Missions / Daily désormais cadrés :
 - écran Missions séparé en Quotidienne / Permanentes ;
-- suivi général des activités quotidiennes intégré à la direction de l'onglet Quotidienne ;
-- B→A→S cumulatifs ;
-- missions permanentes automatiques dès le provisionnement du joueur, standalone ou Twitch-only ;
-- suppression de l'acceptation et de l'abandon ;
-- récompenses automatiques ;
-- reset quotidien serveur à 00:00 Europe/Paris ;
-- switch 20k puis coût doublé, avec mission obligatoirement différente ;
-- Z débloqué après toutes les B/A/S puis activé automatiquement ;
-- contenu et récompenses Z entièrement secrets avant déblocage ;
-- `!mission` devient une commande de consultation ;
-- `!quotis` est conservé et devient dynamique ;
-- restitution d'une réussite limitée au canal ayant directement provoqué l'action ;
-- aucune notification Twitch asynchrone ;
-- récompenses B/A/S conservées à 160 / 1 600 / 16 000 Primogemmes ;
-- récompense Z provisoire conservée à 160 000 Primogemmes ;
-- aucun historique player-facing Missions ; permanentes terminées conservées visuellement dans l'écran ;
-- quotidienne : 10 000 Moras → 800 Primogemmes ;
+- suivi général des activités quotidiennes dans Quotidienne ;
+- mission quotidienne achetée 10 000 Moras ;
+- récompense quotidienne de mission : 800 Primogemmes ;
 - pool initial : 10 messages éligibles / 5 Pulls / 320 particules converties ;
-- progression quotidienne uniquement après attribution ;
-- mission exacte inconnue avant achat et probabilités non affichées ;
-- Messages quotidien/permanent basés sur `countedMessages` ;
-- personnages 4★/5★ = personnages distincts possédés ;
-- Moras = gains réellement générés, intérêts compris et transferts internes exclus ;
+- progression uniquement après attribution ;
+- mission exacte inconnue avant achat ;
+- probabilités de tirage non affichées ;
+- reset quotidien 00:00 Europe/Paris ;
+- switch 20k puis coût doublé, mission obligatoirement différente ;
+- confirmation UI du switch uniquement si progression à perdre ;
+- B→A→S cumulatifs ;
+- missions permanentes automatiques dès le provisionnement du joueur ;
+- aucune acceptation ni abandon ;
+- récompenses automatiques ;
 - objectifs B/A/S legacy conservés ;
-- migration conservatrice sans crédit rétroactif de carrière pour les chaînes jamais commencées ;
-- intitulés standalone débarrassés des références obligatoires au stream ;
-- UI Permanentes = sous-onglets B / A / S / Z avec ✅ / ▶ / 🔒 ;
-- Z visible mais grisé et secret avant déblocage ;
-- quotidienne terminée visible jusqu'au reset ;
-- confirmation du switch UI uniquement si progression à perdre ;
-- missions et progressions publiques en V1.
+- Messages basés sur `countedMessages` ;
+- personnages 4★/5★ comptés distinctement ;
+- Moras basées sur les gains réellement générés ;
+- Z débloqué après toutes les B/A/S puis activé automatiquement ;
+- Z évalué immédiatement depuis l'état/statistiques déjà acquis ;
+- contenu Z secret avant déblocage ;
+- `!mission` devient consultation personnelle uniquement ;
+- pas de `!mission <pseudo>` ;
+- `!mission resume` peut survivre comme alias non recommandé ;
+- `!quotis` devient dynamique ;
+- aucune notification Twitch asynchrone ;
+- missions/progressions publiques depuis le profil standalone ;
+- aucune catégorie Historique Missions player-facing ;
+- migration conservatrice des permanentes ;
+- quotidienne du jour du cutover conservée lorsqu'elle est certaine ;
+- aucun double paiement pendant migration.
 
-**Prochaine étape : poursuivre le Domaine 8 à partir de R336.**
+Dépendances reportées à leurs domaines propriétaires :
+- Expedition → définition exacte de l'expédition comptabilisée ;
+- Combat → victoires et combats manuels Z ;
+- Ami / Social → cœurs et Amitié Parfaite ;
+- Roue / Combat / Expedition / Ami / Event → contenu final du suivi `!quotis`.
 
-À finaliser notamment :
-1. derniers comportements de consultation UI / `!mission` si nécessaires ;
-2. stratégie finale des edge cases de migration ;
-3. déterminer les éléments pouvant être clôturés maintenant ;
-4. reporter explicitement les dépendances Expedition / Combat / Social ;
-5. recroiser les objectifs Z concernés lors de ces audits.
+**Prochaine étape : Domaine 9 — Expedition.**
 
 Dépendance future à conserver :
 - lors de l'audit `Top / Classements`, décider explicitement portefeuille vs patrimoine total pour les Moras ;
@@ -3009,4 +3014,4 @@ Décisions clés :
 - suivi quotidien UI prévu dans le bloc bas gauche avec chevrons compacts.
 
 Prochaine étape :
-démarrer le Domaine Missions / Daily ; Sac / Coffre / Shop est clôturé après R298, tandis que Event et Top / Classements restent reportés à leurs audits respectifs.
+démarrer le Domaine Expedition ; Missions / Daily est clôturé après R339. Les dépendances Combat, Ami / Social, Event et Top / Classements restent explicitement reportées à leurs audits respectifs.

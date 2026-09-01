@@ -1062,13 +1062,25 @@ Le Shop ne doit pas écrire directement les états internes des autres domaines.
 
 ### Missions
 
-Sont explicitement reportés au Domaine Missions :
+La frontière Missions est désormais résolue dans :
+`docs/legacy/11-missions-daily-audit.md`.
+
+Le Domaine Missions / Daily est clôturé après R339.
+
+Sont notamment définis :
 - structure finale de la mission quotidienne ;
-- récompense ;
+- achat / récompense / reset ;
 - progression ;
 - switch/reroll ;
 - missions permanentes B/A/S/Z ;
-- organisation finale de l'écran Missions.
+- organisation finale de l'écran Missions ;
+- migration Missions.
+
+Les seules dépendances encore à recroiser appartiennent à leurs domaines propriétaires :
+- Expedition ;
+- Combat ;
+- Ami / Social ;
+- états quotidiens de Roue / Event et autres contributeurs de `!quotis`.
 
 ### Event
 

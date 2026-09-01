@@ -475,8 +475,16 @@ Statut : évolutif.
 - `VALIDÉ R333` — La mission quotidienne exacte reste inconnue avant paiement et tirage serveur.
 - `VALIDÉ R334` — Ne pas afficher aux joueurs les pourcentages/chances de tirage des quotidiennes.
 - `VALIDÉ R335` — Missions et progressions publiques en V1 ; le contenu Z reste secret pour tous tant qu'il est verrouillé.
+- `VALIDÉ R336` — `!mission` Twitch/chat consulte uniquement les propres missions du joueur ; la consultation publique d'un autre joueur passe par son profil standalone en lecture seule.
+- `VALIDÉ R336` — `!mission` résume quotidienne + permanentes ; B/A/S/Z restent consultables individuellement ; `!mission resume` peut survivre comme alias de compatibilité non recommandé.
+- `VALIDÉ TECHNIQUE R336` — Une longue consultation chat/Twitch est découpée proprement si nécessaire plutôt que tronquée silencieusement.
+- `VALIDÉ MIGRATION R337` — Une quotidienne legacy valide du jour du cutover est conservée avec progression et switchCount jusqu'au reset ; les quotidiennes anciennes expirent et aucune récompense ambiguë n'est créditée pendant l'import.
+- `VALIDÉ R338` — À son déblocage, le rang Z évalue immédiatement l'état/statistiques déjà acquis ; une condition déjà satisfaite peut terminer immédiatement une Z.
+- `VALIDÉ MIGRATION R338` — Un déblocage Z historiquement certain n'est jamais retiré et une récompense Z déjà acquise n'est jamais redonnée.
 - `VALIDÉ TECHNIQUE` — La progression et les récompenses Missions sont centralisées dans `MissionService`, déclenchées immédiatement par les vraies mutations métier et protégées par atomicité/idempotence.
 - `VALIDÉ TECHNIQUE` — Les services économiques/jeu produisent des événements autoritatifs avec leur cause ; MissionService les consomme sans reconstruire les gains depuis les clients.
+- `REPORTÉ` — Expedition, Combat et Ami/Social restent propriétaires de la définition exacte de leurs événements de progression ; Roue/Combat/Expedition/Ami/Event finaliseront leurs états dans `!quotis`.
+- `CLÔTURÉ R339` — Domaine Missions / Daily clôturé après R339.
 
 ## Historique transversal
 - `VALIDÉ` — Il existe un seul écran global Historique réutilisé par tous les domaines.

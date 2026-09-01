@@ -423,31 +423,35 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 
 ## `!mission`
 
-- **Statut audit :** En cours — décisions R299 à R335 traitées
-- **But :** Consulter l'état des missions permanentes et obtenir un résumé de progression.
+- **Statut audit :** Clôturé — R299 à R339
+- **But :** Consulter la mission quotidienne et les progressions permanentes du joueur.
 - **Syntaxes cible :**
   - `!mission`
   - `!mission B`
   - `!mission A`
   - `!mission S`
   - `!mission Z`
-- **Bouton UI équivalent :** écran Missions > Permanentes, avec sous-onglets B / A / S / Z
+- **Alias de compatibilité accepté :** `!mission resume` peut agir comme `!mission`, mais n'est pas mis en avant dans les helpers
+- **Bouton UI équivalent :** écran Missions avec Quotidienne / Permanentes puis sous-onglets B / A / S / Z
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
+- **Consultation d'un autre joueur :** non via commande ; la visibilité publique passe par le profil standalone
 - **Activation :** aucune ; les missions permanentes progressent automatiquement dès le provisionnement du joueur
 - **Abandon :** supprimé du fonctionnement cible
 - **Progression :** B→A→S cumulative
 - **Rang Z :** verrouillé jusqu'à complétion de toutes les B/A/S ; l'onglet Z peut être visible mais grisé ; avant déblocage, ne révéler ni intitulés, ni objectifs, ni récompenses
+- **Évaluation Z :** à son déblocage, évaluer immédiatement les états/statistiques déjà acquis
 - **Récompenses :** automatiques à la complétion
 - **Visibilité V1 :** missions/progressions publiques depuis le profil joueur ; le secret du rang Z verrouillé reste absolu
 - **Réponses chat/Twitch :** résumé compact ; une réussite est annoncée uniquement lorsqu'elle est la conséquence immédiate d'une action effectuée dans ce même canal
+- **Longue réponse :** découper proprement en plusieurs messages d'une ligne si nécessaire plutôt que tronquer silencieusement
 - **Twitch :** aucune notification asynchrone de réussite vers un joueur potentiellement absent
 - **Interactions :** MissionService, Chat/XP, Gacha, Ressources, Expedition, Combat, Social
-- **Décisions cible :** les anciennes syntaxes d'acceptation `!mission B 1` et d'abandon ne font plus partie de la syntaxe recommandée standalone
+- **Décisions cible :** les anciennes syntaxes d'acceptation `!mission B 1` et d'abandon ne font plus partie du fonctionnement standalone
 
 ## `!quotis`
 
-- **Statut audit :** En cours — principe cible validé R311
+- **Statut audit :** Domaine Missions clôturé — principe dynamique validé ; contenu final recroisé avec Roue / Combat / Expedition / Ami / Event
 - **But :** Afficher un résumé compact et dynamique des activités quotidiennes du joueur.
 - **Syntaxe :** `!quotis`
 - **Bouton UI équivalent :** suivi quotidien général dans l'écran Missions / sidebar

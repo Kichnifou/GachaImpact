@@ -1,6 +1,6 @@
 # 11 — Audit legacy Missions / Daily
 
-Statut : AUDIT EN COURS — R299 À R335 TRAITÉS ; PROCHAINE REPRISE À R336
+Statut : CLÔTURÉ — R299 À R339 VALIDÉS / DÉRIVÉS
 Date : 2026-09-01
 
 ## 1. Périmètre
@@ -520,7 +520,7 @@ Le SQL exact reste Phase 2.
 
 ---
 
-# 21. Décisions standalone validées — R299 à R335
+# 21. Décisions standalone validées — R299 à R339
 
 Les décisions de cette section sont autoritatives pour la cible standalone et remplacent les mentions `À décider` encore présentes dans les constats legacy précédents.
 
@@ -993,6 +993,119 @@ Le secret de R308/R330 reste prioritaire :
 
 Une future évolution globale de la confidentialité pourra éventuellement rendre cette catégorie configurable, mais la règle V1 est publique.
 
+## R336 — Consultation des missions d'autres joueurs
+
+Les commandes `!mission` du chat interne et de Twitch consultent uniquement les missions du joueur qui exécute la commande.
+
+Ne pas ajouter de syntaxe :
+- `!mission <pseudo>` ;
+- ou équivalent destiné à consulter les missions d'un autre joueur depuis le chat.
+
+La visibilité publique validée en R335 est portée par la fiche/profil joueur du standalone.
+
+Règles de consultation :
+- `!mission` → résumé compact comprenant la quotidienne actuelle ainsi qu'un aperçu des progressions permanentes ;
+- `!mission B` → consultation du rang B ;
+- `!mission A` → consultation du rang A ;
+- `!mission S` → consultation du rang S ;
+- `!mission Z` → consultation du rang Z ou information de verrouillage.
+
+`!mission resume` peut rester accepté comme alias de compatibilité de `!mission`, mais il n'est pas présenté comme syntaxe recommandée dans les helpers.
+
+Si une réponse de rang dépasse la taille raisonnable d'un message Twitch/chat :
+- découper proprement en plusieurs messages ;
+- chaque message reste sur une seule ligne ;
+- ne pas tronquer silencieusement des missions pour tenir artificiellement dans un seul message.
+
+La vue publique d'un autre joueur dans le standalone réutilise l'écran Missions en lecture seule :
+- même structure Quotidienne / Permanentes ;
+- mêmes rangs B / A / S / Z ;
+- mêmes progressions autorisées ;
+- aucune action d'achat, switch ou mutation ;
+- Z verrouillé conserve exactement le même secret que pour le propriétaire.
+
+## R337 — Mission quotidienne lors du cutover
+
+Si une mission quotidienne legacy appartient réellement au jour du cutover, elle est conservée jusqu'au reset normal.
+
+Préserver lorsque les données sont certaines :
+- mission attribuée ;
+- progression ;
+- état de complétion ;
+- `switchCount` du jour ;
+- informations nécessaires à son prochain coût de switch.
+
+Une mission appartenant à un jour précédent n'est pas importée comme quotidienne active.
+
+Règles conservatrices :
+- mission du jour valide et connue → import ;
+- mission inconnue/incompatible avec le catalogue → signaler l'anomalie sans inventer de correspondance ;
+- `completed = true` et `rewardClaimed = true` → conserver l'état terminé jusqu'au reset, sans nouvelle récompense ;
+- état contradictoire tel que `completed = true` / `rewardClaimed = false` → ne jamais créditer automatiquement une récompense pendant la migration ; signaler pour contrôle ;
+- charger une donnée de migration ne déclenche jamais à lui seul une récompense.
+
+Le reset suivant à 00:00 `Europe/Paris` reprend ensuite le fonctionnement standalone normal.
+
+## R338 — Évaluation rétroactive des missions Z
+
+Les missions Z utilisent l'état ou les statistiques autoritatives déjà acquis par le joueur.
+
+Lors du déblocage du rang Z :
+- toutes les missions Z deviennent actives selon R307 ;
+- elles sont immédiatement évaluées ;
+- une condition déjà satisfaite peut donc compléter immédiatement la mission correspondante.
+
+Exemples :
+- le joueur était déjà niveau 100 ;
+- il possédait déjà suffisamment de personnages C6 ;
+- une condition Amitié était déjà satisfaite ;
+- un compteur Combat déjà acquis satisfait l'objectif, sous réserve de sa définition finale dans le Domaine Combat.
+
+Le joueur n'a jamais à reproduire artificiellement une condition déjà atteinte avant le déblocage de Z.
+
+Une complétion immédiate :
+- utilise l'auto-claim normal ;
+- respecte les mêmes règles atomiques/idempotentes ;
+- restitue éventuellement la réussite uniquement dans le canal de l'action qui vient de provoquer le déblocage.
+
+Migration Z :
+- `unlockedZ = true` certain → conserver le déblocage ;
+- sinon, toutes les B/A/S certainement terminées → Z est débloqué ;
+- une contradiction ne doit pas retirer un déblocage historiquement certain ;
+- journaliser l'anomalie ;
+- une mission Z déjà certainement terminée ne redonne jamais sa récompense.
+
+## R339 — Clôture du Domaine Missions / Daily
+
+Le Domaine Missions / Daily est considéré comme clôturé après R339.
+
+Les dépendances suivantes sont volontairement reportées et devront recroiser ce document lors de leurs audits :
+
+### Expedition
+Définir précisément quel événement autoritatif constitue une expédition terminée et alimente la progression Mission correspondante.
+
+### Combat
+Définir précisément :
+- `combatWins` ;
+- les combats manuels utilisés par la mission Z ;
+- les interactions nécessaires avec les missions permanentes.
+
+### Ami / Social
+Définir précisément :
+- les cœurs envoyés comptabilisés ;
+- Amitié Parfaite ;
+- les interactions nécessaires avec les missions permanentes/Z.
+
+### Roue / Combat / Expedition / Ami / Event
+Finaliser les états quotidiens réellement exposés par `!quotis` et le suivi quotidien général.
+
+Ces dépendances ne rouvrent pas automatiquement le Domaine Missions.
+
+Lorsqu'un domaine propriétaire fixe sa règle :
+- mettre à jour son audit ;
+- mettre également à jour `11-missions-daily-audit.md` si nécessaire ;
+- ne pas réinventer une seconde logique dans `MissionService`.
+
 ---
 
 # 22. Règles techniques dérivées déjà fixées
@@ -1013,18 +1126,34 @@ Une future évolution globale de la confidentialité pourra éventuellement rend
 
 ---
 
-# 23. État
+# 23. État final
 
-Domaine toujours ouvert, proche de sa clôture propre hors dépendances reportées.
+Décisions R299 à R339 validées / dérivées.
 
-Décisions R299 à R335 traitées.
+**Domaine Missions / Daily : CLÔTURÉ.**
 
-Prochaine reprise :
-**R336**
+Sont maintenant cadrés :
+- mission quotidienne ;
+- achat ;
+- switch ;
+- reset ;
+- catalogue initial ;
+- progression ;
+- récompenses ;
+- missions permanentes B/A/S ;
+- rang Z ;
+- activation automatique ;
+- consultation UI/chat/Twitch ;
+- restitution multi-canaux ;
+- visibilité publique ;
+- migration ;
+- architecture de progression centralisée.
 
-Points restant notamment à finaliser :
-- derniers comportements de consultation `!mission` / UI si nécessaires ;
-- migration finale et edge cases restants ;
-- identifier ce qui peut être clôturé maintenant versus explicitement reporté ;
-- conserver les dépendances Expedition / Combat / Social pour recroisement lors de leurs audits ;
-- recroiser les objectifs Z concernés après audit Combat et Social/Ami.
+Dépendances explicitement reportées :
+- Expedition ;
+- Combat ;
+- Ami / Social ;
+- Roue / Event pour leur contribution au suivi `!quotis`.
+
+Prochain domaine d'audit :
+**Expedition**.
