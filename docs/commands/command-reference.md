@@ -410,8 +410,8 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Primos :** 50 000 Moras → 160 Primogemmes par lot ; quantité multiple autorisée
 - **Ticket :** 150 000 Moras legacy actuel ; achat/tirage immédiat ; unitaire ; probabilités visibles
 - **Ticket pity :** +10 pity 5★ via moteur Gacha, plafond 90
-- **Mission :** achat initial partagé avec l'écran Missions
-- **Switch :** mission quotidienne incomplète uniquement ; 20 000 Moras puis coût doublé à chaque switch du même jour ; nouvelle mission obligatoirement différente ; progression remise à 0 ; indisponible s'il n'existe aucune alternative active
+- **Mission :** `!shop mission` partage l'action de l'écran Missions ; coût 10 000 Moras ; mission aléatoire inconnue avant achat ; récompense 800 Primogemmes ; progression à partir de l'attribution
+- **Switch :** mission quotidienne incomplète uniquement ; 20 000 Moras puis coût doublé à chaque switch du même jour ; nouvelle mission obligatoirement différente ; progression remise à 0 ; indisponible s'il n'existe aucune alternative active ; aucune confirmation Twitch/chat
 - **États article :** achetable / visible indisponible / masqué
 - **Limites futures :** supportées par catalogue si nécessaire
 - **Stock mondial V1 :** aucun
@@ -423,7 +423,7 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 
 ## `!mission`
 
-- **Statut audit :** En cours — décisions R299 à R315 traitées
+- **Statut audit :** En cours — décisions R299 à R335 traitées
 - **But :** Consulter l'état des missions permanentes et obtenir un résumé de progression.
 - **Syntaxes cible :**
   - `!mission`
@@ -431,14 +431,15 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
   - `!mission A`
   - `!mission S`
   - `!mission Z`
-- **Bouton UI équivalent :** écran Missions, onglet Permanentes
+- **Bouton UI équivalent :** écran Missions > Permanentes, avec sous-onglets B / A / S / Z
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
 - **Activation :** aucune ; les missions permanentes progressent automatiquement dès le provisionnement du joueur
 - **Abandon :** supprimé du fonctionnement cible
 - **Progression :** B→A→S cumulative
-- **Rang Z :** verrouillé jusqu'à complétion de toutes les B/A/S ; avant déblocage, ne révéler ni intitulés, ni objectifs, ni récompenses
+- **Rang Z :** verrouillé jusqu'à complétion de toutes les B/A/S ; l'onglet Z peut être visible mais grisé ; avant déblocage, ne révéler ni intitulés, ni objectifs, ni récompenses
 - **Récompenses :** automatiques à la complétion
+- **Visibilité V1 :** missions/progressions publiques depuis le profil joueur ; le secret du rang Z verrouillé reste absolu
 - **Réponses chat/Twitch :** résumé compact ; une réussite est annoncée uniquement lorsqu'elle est la conséquence immédiate d'une action effectuée dans ce même canal
 - **Twitch :** aucune notification asynchrone de réussite vers un joueur potentiellement absent
 - **Interactions :** MissionService, Chat/XP, Gacha, Ressources, Expedition, Combat, Social

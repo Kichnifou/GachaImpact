@@ -416,7 +416,8 @@ Statut : évolutif.
 - `VALIDÉ` — Mission quotidienne achetable depuis Boutique ou Missions via la même action métier.
 - `VALIDÉ` — Après achat quotidien, la carte Mission reste visible mais indisponible.
 - `VALIDÉ` — Le switch de mission vit principalement dans l'écran Missions ; Twitch/chat conserve `!shop switch`.
-- `À AUDITER DANS MISSIONS` — Missions permanentes B/A/S/Z et sémantique complète du switch.
+- `RÉSOLU DANS MISSIONS` — Switch quotidien : 20k Moras puis coût doublé ; nouvelle mission obligatoirement différente ; progression perdue ; détails dans `legacy/11-missions-daily-audit.md`.
+- `RÉSOLU / DÉPENDANCES REPORTÉES` — Missions permanentes B/A/S largement définies dans le Domaine Missions ; objectifs dépendant de Combat/Expedition/Social seront recroisés dans leurs domaines.
 - `À AUDITER DANS EVENT` — Règles définitives d'acquisition des objets Collection événementiels.
 - `VALIDÉ` — Le Sac V1 possède Tout / Ressources / Objets / Collection.
 - `VALIDÉ` — Masterless Stella Fortuna appartient à Objets et peut être utilisée depuis le Sac via le service Stella commun.
@@ -454,7 +455,28 @@ Statut : évolutif.
 - `VALIDÉ R313` — Récompenses permanentes V1 : B 160 / A 1 600 / S 16 000 Primogemmes.
 - `VALIDÉ R314` — Récompense Z provisoire V1 : 160 000 Primogemmes par mission.
 - `VALIDÉ R315` — Aucun historique player-facing des missions ; les permanentes terminées restent visibles avec un état graphique de complétion, les quotidiennes n'ont pas d'historique.
+- `VALIDÉ R316` — Achat de la mission quotidienne V1 : 10 000 Moras.
+- `VALIDÉ R317` — Récompense quotidienne V1 : 800 Primogemmes.
+- `VALIDÉ R318` — Pool quotidien initial : 10 messages éligibles / 5 Pulls / 320 particules converties ; catalogue serveur extensible ; poids initiaux identiques.
+- `VALIDÉ R319` — Une quotidienne commence à progresser uniquement après son attribution ; aucune activité antérieure de la journée n'est créditée.
+- `VALIDÉ R320/R324` — Les missions Messages quotidiennes et permanentes utilisent la sémantique `countedMessages`, donc les messages éligibles à l'XP.
+- `VALIDÉ R321` — Quotidienne Pulls : chaque Pull réellement exécuté compte ; x10 = +10 ; opération refusée = 0.
+- `VALIDÉ R322` — Quotidienne Conversion : progression égale à la quantité réellement convertie.
+- `VALIDÉ R323` — Achat autorisé jusqu'au reset avec avertissement UI ; les termes nécessaires d'une mission attribuée sont snapshotés et une désactivation catalogue ultérieure ne l'annule pas.
+- `VALIDÉ R325` — Missions personnages 4★/5★ = nombre de personnages distincts possédés de la rareté concernée, pas nombre de copies.
+- `VALIDÉ R326` — Missions Moras = toutes les Moras réellement générées/gagnées, intérêts Banque compris ; transferts internes exclus.
+- `VALIDÉ` — Missions particules principales = particules de l'élément personnel générées comme récompense par le jeu ; échanges reçus exclus.
+- `VALIDÉ R327` — Conserver les seuils B/A/S legacy pour les neuf catégories.
+- `VALIDÉ MIGRATION R328` — Préserver rangs/progressions certains sans recalcul rétroactif de toute la carrière des chaînes jamais commencées ; reprise automatique après cutover.
+- `VALIDÉ R329` — Renommer les intitulés trop Twitch : `Voix du stream` → `Voix infatigable` ; `Millionnaire du stream` → `Millionnaire`.
+- `VALIDÉ R330` — UI Permanentes : quatre sous-onglets B/A/S/Z ; ✅ terminé, ▶ en cours, 🔒 verrouillé ; Z visible mais grisé et totalement secret avant déblocage.
+- `VALIDÉ R331` — Une quotidienne terminée reste affichée jusqu'au reset avec `✅ Terminée` et progression pleine.
+- `VALIDÉ R332` — Confirmation UI du switch uniquement si une progression >0 sera perdue ; Twitch/chat reste direct.
+- `VALIDÉ R333` — La mission quotidienne exacte reste inconnue avant paiement et tirage serveur.
+- `VALIDÉ R334` — Ne pas afficher aux joueurs les pourcentages/chances de tirage des quotidiennes.
+- `VALIDÉ R335` — Missions et progressions publiques en V1 ; le contenu Z reste secret pour tous tant qu'il est verrouillé.
 - `VALIDÉ TECHNIQUE` — La progression et les récompenses Missions sont centralisées dans `MissionService`, déclenchées immédiatement par les vraies mutations métier et protégées par atomicité/idempotence.
+- `VALIDÉ TECHNIQUE` — Les services économiques/jeu produisent des événements autoritatifs avec leur cause ; MissionService les consomme sans reconstruire les gains depuis les clients.
 
 ## Historique transversal
 - `VALIDÉ` — Il existe un seul écran global Historique réutilisé par tous les domaines.

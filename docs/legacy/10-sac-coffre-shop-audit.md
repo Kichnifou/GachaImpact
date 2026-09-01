@@ -242,7 +242,14 @@ Le Shop initialise notamment :
 - `switchCount`
 - `switchDate`
 
-La logique détaillée des objectifs/progression/récompenses appartient au futur audit Missions.
+La logique détaillée des objectifs/progression/récompenses est désormais portée par `docs/legacy/11-missions-daily-audit.md`.
+
+Décisions Missions déjà résolues :
+- achat V1 : 10 000 Moras ;
+- récompense : 800 Primogemmes ;
+- mission exacte inconnue avant achat ;
+- progression uniquement après attribution ;
+- pool initial conservé à trois missions.
 
 ---
 
@@ -271,7 +278,15 @@ Le changement :
 - remet sa progression à zéro ;
 - incrémente `switchCount`.
 
-Cette mécanique doit être recroisée avec le futur audit Missions avant clôture définitive de sa sémantique.
+Sémantique standalone résolue dans le Domaine Missions :
+- premier switch : 20 000 Moras ;
+- coût doublé ensuite le même jour ;
+- nouvelle mission obligatoirement différente ;
+- progression remise à 0 ;
+- impossible après complétion ;
+- indisponible sans mission alternative active ;
+- UI : confirmation uniquement si une progression >0 sera perdue ;
+- Twitch/chat : action directe sans confirmation supplémentaire.
 
 ---
 

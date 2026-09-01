@@ -1,7 +1,7 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.23
-Date : 2026-08-31
+Version : 0.24
+Date : 2026-09-01
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
@@ -934,17 +934,31 @@ Achat initial accessible depuis :
 
 Même action métier.
 
+V1 :
+- coût : 10 000 Moras ;
+- récompense : 800 Primogemmes auto-claim ;
+- pool initial : 10 messages éligibles / 5 Pulls / 320 particules converties ;
+- progression uniquement à partir de l'attribution ;
+- mission exacte inconnue avant paiement/tirage ;
+- ne pas afficher les pourcentages/chances de tirage au joueur ;
+- une mission terminée reste visible avec `✅ Terminée` jusqu'au reset.
+
 Après achat du jour :
 - carte toujours visible ;
-- état indisponible explicite.
+- état indisponible explicite côté Boutique.
 
-Le switch/reroll vit principalement dans Missions.
+Switch :
+- principalement depuis Missions ;
+- 20k Moras puis coût doublé ;
+- mission obligatoirement différente ;
+- progression remise à zéro ;
+- confirmation UI uniquement lorsqu'une progression >0 sera perdue.
 
 Twitch/chat conserve :
 - `!shop mission`
 - `!shop switch`
 
-Les missions permanentes B/A/S/Z restent à auditer dans le Domaine Missions.
+Les règles détaillées B/A/S/Z et de progression sont documentées dans `docs/legacy/11-missions-daily-audit.md`.
 
 ### Twitch/chat
 
@@ -1029,9 +1043,17 @@ Exemples potentiels :
 - ressources ;
 - statistiques ;
 - statistiques Combat ;
+- Missions ;
 - autres catégories futures.
 
-La V1 n'est pas obligée d'exposer immédiatement toute cette granularité.
+Décision Missions V1 :
+- missions et progressions publiques ;
+- quotidienne actuelle consultable publiquement ;
+- progressions B/A/S publiques ;
+- Z consultable après déblocage ;
+- avant déblocage Z, aucun intitulé/objectif/récompense n'est révélé, même à un autre joueur.
+
+La V1 n'est pas obligée d'exposer immédiatement toute cette granularité pour les autres catégories.
 
 Sécurité :
 - appliquer les permissions côté serveur ;
@@ -2406,26 +2428,30 @@ Migration :
 
 **Domaine Sac / Coffre / Shop : CLÔTURÉ.**
 
-Huitième domaine à auditer :
+Huitième domaine :
 **Missions / Daily**
 
-Document spécialisé à créer :
+Document spécialisé :
 `docs/legacy/11-missions-daily-audit.md`
 
-Sources prioritaires :
+Statut :
+**AUDIT EN COURS — R299 À R335 TRAITÉS**
+
+Sources principales :
 - `Missions.txt` ;
 - `Daily.txt` ;
 - `missions_pool.json` ;
 - `long_missions.json` ;
 - données `missions` de `viewers_data.json` ;
-- consommateurs/producteurs de progression mission.
+- producteurs/consommateurs de progression mission.
 
-Points déjà connus à réutiliser sans les figer avant lecture :
-- mission quotidienne achetable depuis Shop ou Missions ;
-- une seule acquisition quotidienne commune ;
-- switch accessible via Missions et `!shop switch` ;
-- missions permanentes de rang B / A / S / Z existantes ;
-- piste UX Quotidiennes / Permanentes à évaluer après lecture réelle.
+Les décisions détaillées sont autoritatives dans le document spécialisé.
+
+Dépendances restant volontairement à recroiser :
+- Expedition ;
+- Combat ;
+- Ami / Social ;
+- certains objectifs Z.
 
 Ordre recommandé :
 
@@ -2840,17 +2866,31 @@ Décisions R299 à R315 traitées :
 - aucune notification Twitch asynchrone ;
 - récompenses B/A/S conservées à 160 / 1 600 / 16 000 Primogemmes ;
 - récompense Z provisoire conservée à 160 000 Primogemmes ;
-- aucun historique player-facing Missions ; permanentes terminées conservées visuellement dans l'écran.
+- aucun historique player-facing Missions ; permanentes terminées conservées visuellement dans l'écran ;
+- quotidienne : 10 000 Moras → 800 Primogemmes ;
+- pool initial : 10 messages éligibles / 5 Pulls / 320 particules converties ;
+- progression quotidienne uniquement après attribution ;
+- mission exacte inconnue avant achat et probabilités non affichées ;
+- Messages quotidien/permanent basés sur `countedMessages` ;
+- personnages 4★/5★ = personnages distincts possédés ;
+- Moras = gains réellement générés, intérêts compris et transferts internes exclus ;
+- objectifs B/A/S legacy conservés ;
+- migration conservatrice sans crédit rétroactif de carrière pour les chaînes jamais commencées ;
+- intitulés standalone débarrassés des références obligatoires au stream ;
+- UI Permanentes = sous-onglets B / A / S / Z avec ✅ / ▶ / 🔒 ;
+- Z visible mais grisé et secret avant déblocage ;
+- quotidienne terminée visible jusqu'au reset ;
+- confirmation du switch UI uniquement si progression à perdre ;
+- missions et progressions publiques en V1.
 
-**Prochaine étape : poursuivre le Domaine 8 à partir de R316.**
+**Prochaine étape : poursuivre le Domaine 8 à partir de R336.**
 
 À finaliser notamment :
-1. catalogue et équilibrage exact de la mission quotidienne ;
-2. récompense quotidienne ;
-3. sémantique détaillée des producteurs de progression ;
-4. dépendances Combat / Expedition / Social des objectifs permanents et Z ;
-5. stratégie finale de migration Missions ;
-6. derniers détails UI / confidentialité nécessaires à la clôture.
+1. derniers comportements de consultation UI / `!mission` si nécessaires ;
+2. stratégie finale des edge cases de migration ;
+3. déterminer les éléments pouvant être clôturés maintenant ;
+4. reporter explicitement les dépendances Expedition / Combat / Social ;
+5. recroiser les objectifs Z concernés lors de ces audits.
 
 Dépendance future à conserver :
 - lors de l'audit `Top / Classements`, décider explicitement portefeuille vs patrimoine total pour les Moras ;

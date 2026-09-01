@@ -1,7 +1,7 @@
 # 11 — Audit legacy Missions / Daily
 
-Statut : AUDIT EN COURS — R299 À R315 TRAITÉS ; PROCHAINE REPRISE À R316
-Date : 2026-08-31
+Statut : AUDIT EN COURS — R299 À R335 TRAITÉS ; PROCHAINE REPRISE À R336
+Date : 2026-09-01
 
 ## 1. Périmètre
 
@@ -520,7 +520,7 @@ Le SQL exact reste Phase 2.
 
 ---
 
-# 21. Décisions standalone validées — R299 à R315
+# 21. Décisions standalone validées — R299 à R335
 
 Les décisions de cette section sont autoritatives pour la cible standalone et remplacent les mentions `À décider` encore présentes dans les constats legacy précédents.
 
@@ -720,6 +720,279 @@ Missions permanentes :
 
 Les données techniques strictement nécessaires à la cohérence, l'idempotence et au diagnostic serveur restent autorisées sans constituer un écran d'historique joueur.
 
+## R316 — Prix de la mission quotidienne
+
+Conserver pour la V1 :
+- achat quotidien : 10 000 Moras ;
+- débit depuis le portefeuille ;
+- aucune utilisation automatique de la Banque.
+
+Le montant pourra être revu uniquement dans un futur équilibrage économique global.
+
+## R317 — Récompense de la mission quotidienne
+
+Conserver pour la V1 :
+- +800 Primogemmes à la complétion.
+
+La récompense est auto-claim selon R303.
+
+## R318 — Catalogue quotidien V1
+
+Conserver comme pool initial les trois missions legacy actives :
+- écrire 10 messages éligibles ;
+- faire 5 Pulls ;
+- convertir 320 particules.
+
+Le catalogue reste serveur, dynamique et extensible.
+
+Les trois missions initiales utilisent le même poids de sélection.
+
+De nouvelles missions pourront être ajoutées après audit de leurs domaines propriétaires plutôt que d'inventer prématurément des objectifs sur des systèmes encore non audités.
+
+## R319 — Début de progression quotidienne
+
+La progression commence uniquement à partir du moment où la mission quotidienne est attribuée.
+
+Les actions effectuées plus tôt dans la même journée ne sont jamais créditées rétroactivement.
+
+Exemple :
+- 20 Pulls effectués ;
+- achat ultérieur de la quotidienne `Faire 5 Pulls` ;
+- progression initiale = 0/5.
+
+## R320 — Quotidienne Messages
+
+La quotidienne Messages repose sur les messages réellement éligibles au gain d'XP, donc sur la même sémantique que `countedMessages`.
+
+Ne comptent notamment pas :
+- les commandes ;
+- les messages système/bot ;
+- les messages rejetés par le cooldown XP ;
+- tout message non éligible à l'XP.
+
+Le cooldown XP reste global entre Twitch et le chat interne.
+
+## R321 — Quotidienne Pulls — règle dérivée
+
+Chaque Pull réellement exécuté contribue de +1.
+
+Donc :
+- Pull x1 réellement exécuté → +1 ;
+- Pull x10 réellement exécuté → +10 ;
+- opération refusée avant exécution → +0 ;
+- progression clampée à la cible ;
+- aucun surplus n'est reporté sur une future mission.
+
+La règle est identique quel que soit le canal.
+
+## R322 — Quotidienne Conversion — règle dérivée
+
+La progression correspond à la quantité réellement convertie.
+
+Exemple :
+- +100 ;
+- +150 ;
+- +100 ;
+- mission 320 terminée à 320/320.
+
+Une conversion refusée ne produit aucune progression.
+
+La règle est identique quel que soit le canal.
+
+## R323 — Achat proche du reset
+
+L'achat reste autorisé jusqu'au reset serveur de 00:00 `Europe/Paris`.
+
+Standalone UI :
+- afficher clairement le temps restant avant le reset ;
+- rendre l'avertissement plus visible lorsque le reset est proche.
+
+Twitch/chat :
+- action directe ;
+- aucune confirmation supplémentaire en plusieurs messages ;
+- la réponse peut rappeler le temps restant lorsque celui-ci est particulièrement court.
+
+Règles techniques associées :
+- une mission déjà attribuée puis désactivée du catalogue reste valable pour ce joueur jusqu'à son reset normal ;
+- lors de l'attribution, conserver un snapshot suffisant des termes métier de la mission, notamment son ID/version, sa cible et sa récompense ;
+- une modification ultérieure du catalogue ne change pas rétroactivement une mission déjà achetée.
+
+## R324 — Messages des missions permanentes
+
+Les missions permanentes Messages utilisent la même sémantique que `countedMessages`.
+
+Donc seuls les messages éligibles à l'XP font progresser ces missions.
+
+Les commandes ou messages rejetés par le cooldown ne permettent pas de farmer la progression.
+
+## R325 — Personnages 4★ / 5★
+
+Les missions `characters4` et `characters5` comptent les personnages distincts possédés de la rareté concernée.
+
+Les copies/constellations supplémentaires du même personnage ne comptent pas comme de nouveaux personnages.
+
+Exemple :
+- un personnage 4★ C6 = 1 personnage pour cette progression.
+
+## R326 — Moras gagnées
+
+Les missions Moras utilisent les Moras réellement générées/gagnées par le joueur.
+
+Comptent notamment :
+- récompenses de jeu ;
+- Daily ;
+- level-up ;
+- Combat ;
+- Expedition ;
+- intérêts Banque ;
+- Ticket ;
+- Event ;
+- toute autre source légitime produisant réellement des Moras.
+
+Ne comptent pas :
+- retrait Banque ;
+- dépôt Banque ;
+- transfert interne entre deux soldes appartenant au joueur.
+
+Le service économique central est autoritatif sur la distinction gain / dépense / transfert.
+
+## Particules principales — règle transverse déjà validée
+
+La progression `mainParticlesEarned` utilise les particules de l'élément personnel réellement générées comme récompense par le jeu.
+
+Les particules reçues d'un autre joueur via échange/transfert ne comptent pas comme un gain généré.
+
+L'anomalie legacy où certains producteurs n'alimentent pas correctement ce compteur ne doit pas être reproduite.
+
+## R327 — Objectifs B / A / S
+
+Conserver pour la V1 les seuils legacy :
+
+| Catégorie | B | A | S |
+|---|---:|---:|---:|
+| Messages | 50 | 200 | 1 000 |
+| Pulls | 50 | 200 | 1 000 |
+| Personnages 4★ distincts | 3 | 10 | 30 |
+| Personnages 5★ distincts | 1 | 5 | 20 |
+| Moras gagnées | 50 000 | 200 000 | 1 000 000 |
+| Particules principales gagnées | 500 | 2 000 | 10 000 |
+| Expéditions | 3 | 10 | 30 |
+| Combats gagnés | 5 | 20 | 100 |
+| Cœurs envoyés | 10 | 40 | 200 |
+
+Ces valeurs pourront être réévaluées seulement lors d'un futur équilibrage global.
+
+## R328 — Migration des progressions permanentes
+
+Respecter la progression réellement acquise dans le legacy plutôt que recalculer rétroactivement toute la carrière du joueur.
+
+À importer :
+- rangs certainement terminés → restent terminés ;
+- progression certaine d'une mission commencée/en cours → conservée ;
+- informations de baseline fiables → utilisables pour reconstruire le minimum certain.
+
+Un rang ou une chaîne jamais commencée dans le legacy ne reçoit pas rétroactivement toute la progression historique du joueur.
+
+Après le cutover :
+- toutes les missions accessibles progressent automatiquement selon R301.
+
+Principes conservateurs :
+- ne jamais retirer un rang certainement terminé ;
+- ne jamais inventer de progression depuis une baseline ambiguë/corrompue ;
+- conserver le minimum certain ;
+- signaler les anomalies ;
+- ne jamais reverser une récompense dont il n'est pas certain qu'elle n'a pas déjà été attribuée.
+
+## R329 — Renommage des intitulés trop liés à Twitch
+
+Les intitulés de mission ne doivent pas supposer que le joueur utilise Twitch.
+
+Renommages cibles :
+- `Voix du stream` → `Voix infatigable` ;
+- `Millionnaire du stream` → `Millionnaire`.
+
+Les autres intitulés legacy restent conservés tant qu'ils fonctionnent naturellement dans le standalone.
+
+Les fichiers legacy sources ne sont pas modifiés ; ces nouveaux intitulés appartiennent au catalogue standalone.
+
+## R330 — Présentation UI des missions permanentes
+
+L'onglet `Permanentes` contient quatre sous-onglets :
+- `B` ;
+- `A` ;
+- `S` ;
+- `Z`.
+
+Dans les rangs B/A/S, chaque mission affiche clairement son état :
+- `✅` mission terminée, avec traitement visuel grisé ;
+- `▶` mission actuellement en progression ;
+- `🔒` mission encore verrouillée.
+
+Le rang Z :
+- possède son onglet visible ;
+- l'onglet reste grisé/verrouillé tant que toutes les missions B/A/S ne sont pas terminées ;
+- avant déblocage, son contenu n'est pas révélé ;
+- afficher uniquement un message indiquant que le rang Z sera accessible après accomplissement de toutes les missions de rang B, A et S ;
+- ne révéler ni intitulés, ni objectifs, ni récompenses Z avant ce déblocage.
+
+## R331 — Quotidienne terminée
+
+Après complétion :
+- la récompense est immédiatement attribuée ;
+- la mission reste visible jusqu'au reset quotidien ;
+- afficher `✅ Terminée` ;
+- conserver la barre de progression pleine.
+
+Elle disparaît/réinitialise seulement au reset de 00:00.
+
+## R332 — Confirmation du switch dans l'UI
+
+Standalone UI :
+- progression actuelle = 0 → switch direct ;
+- progression actuelle > 0 → demander confirmation avant de détruire cette progression.
+
+La confirmation affiche au minimum :
+- progression qui sera perdue ;
+- coût actuel du switch.
+
+Twitch/chat :
+- `!shop switch` reste une action directe ;
+- aucune confirmation en deux étapes.
+
+## R333 — Mission inconnue avant achat
+
+La mission quotidienne exacte n'est pas révélée avant le paiement des 10 000 Moras.
+
+Flux :
+`achat → paiement validé → tirage serveur → révélation de la mission`.
+
+Le joueur ne choisit pas sa mission quotidienne initiale.
+
+## R334 — Probabilités quotidiennes non affichées
+
+Ne pas afficher au joueur les pourcentages/chances de tirage des missions quotidiennes.
+
+Aucune vue player-facing de probabilités n'est nécessaire.
+
+Le catalogue serveur peut néanmoins conserver des poids configurables pour le fonctionnement interne.
+
+Cette décision ne change pas R333 : la mission effectivement obtenue reste inconnue avant l'achat.
+
+## R335 — Missions publiques en V1
+
+Les missions et leurs progressions sont publiques en V1 et peuvent être consultées depuis le profil d'un autre joueur.
+
+Cela concerne :
+- mission quotidienne actuelle et sa progression ;
+- missions permanentes B/A/S et leurs états/progressions ;
+- rang Z après son déblocage.
+
+Le secret de R308/R330 reste prioritaire :
+- tant que le rang Z d'un joueur est verrouillé, les autres joueurs ne voient pas davantage d'informations que le propriétaire ;
+- intitulés, objectifs et récompenses Z restent cachés.
+
+Une future évolution globale de la confidentialité pourra éventuellement rendre cette catégorie configurable, mais la règle V1 est publique.
+
 ---
 
 # 22. Règles techniques dérivées déjà fixées
@@ -731,23 +1004,27 @@ Les données techniques strictement nécessaires à la cohérence, l'idempotence
 - les anciens champs d'activation/abandon ne doivent pas dicter le modèle standalone ;
 - toute complétion/récompense sensible est atomique et idempotente ;
 - plusieurs missions terminées par une même action de chat peuvent être regroupées dans une réponse compacte afin d'éviter le spam ;
-- le backend détecte la réussite immédiatement au moment de la vraie action métier, et non au prochain message du joueur.
+- le backend détecte la réussite immédiatement au moment de la vraie action métier, et non au prochain message du joueur ;
+- le catalogue quotidien supporte des poids configurables sans obligation de les exposer aux joueurs ;
+- les termes nécessaires d'une quotidienne attribuée sont snapshotés afin qu'une modification de catalogue ne la transforme pas rétroactivement ;
+- les mutations économiques autoritatives produisent les informations de gain/dépense/transfert utilisées par les Missions ;
+- `MissionService` consomme ces événements métier fiables au lieu de déduire les gains depuis l'UI ou depuis un futur message ;
+- les domaines Expedition, Combat et Social restent propriétaires de la définition exacte de leurs événements de progression.
 
 ---
 
 # 23. État
 
-Domaine toujours ouvert.
+Domaine toujours ouvert, proche de sa clôture propre hors dépendances reportées.
 
-Décisions R299 à R315 traitées.
+Décisions R299 à R335 traitées.
 
 Prochaine reprise :
-**R316**
+**R336**
 
 Points restant notamment à finaliser :
-- catalogue et équilibrage exact de la mission quotidienne ;
-- récompense quotidienne exacte ;
-- sémantique détaillée de chaque type de progression ;
-- cas particuliers liés aux objectifs dépendant de Combat / Expedition / Social ;
-- migration finale des progressions permanentes legacy ;
-- éventuels derniers détails UI / confidentialité avant clôture.
+- derniers comportements de consultation `!mission` / UI si nécessaires ;
+- migration finale et edge cases restants ;
+- identifier ce qui peut être clôturé maintenant versus explicitement reporté ;
+- conserver les dépendances Expedition / Combat / Social pour recroisement lors de leurs audits ;
+- recroiser les objectifs Z concernés après audit Combat et Social/Ami.
