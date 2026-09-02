@@ -3244,11 +3244,7 @@ Décisions clés :
 - commandes Combat/Boss finalisées pour UI, chat interne et Twitch ;
 - migration Combat/Boss conservatrice avec réconciliation des deux JSON legacy, quarantaine des ambiguïtés et aucune donnée historique inventée ;
 - coup final, distribution communautaire et changement de mois conçus de manière atomique/idempotente ;
-- aucun historique player-facing du Combat quotidien en V1 ; statistiques par personnage affichées dans la fiche personnelle ;
-- notifications non lues persistantes jusqu'à lecture/suppression ; notifications lues nettoyées au reset suivant.
-
-Prochaine étape :
-commencer le Domaine 11 — Ami / social à partir des vrais scripts et JSON legacy ; Combat est clôturé après R450. Concours / C6, Event / monthly, autres utilitaires, Top / Classements et Twitch / Giveaway restent à auditer selon la roadmap.- aucun historique player-facing du Combat quotidien en V1 ; statistiques par personnage affichées dans la fiche personnelle selon confidentialité ;
+- aucun historique player-facing du Combat quotidien en V1 ; statistiques par personnage affichées dans sa fiche personnelle selon confidentialité ;
 - notifications non lues persistantes jusqu'à lecture/suppression ; notifications lues nettoyées au reset suivant ;
 - Ami / Social cadré jusqu'à R493 : demandes persistantes, relations archivables, cœurs +5/+5, niveau 1000, présence standalone, profil, confidentialité, MP, blocage, avatars et titres ;
 - toutes les rubriques de gameplay peuvent être rendues Public/Amis/Privé ; les catégories sensibles sont privées par défaut mais ne sont plus définitivement interdites au partage ;
