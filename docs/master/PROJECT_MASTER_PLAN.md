@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.30
+Version : 0.31
 Date : 2026-09-02
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -2946,7 +2946,7 @@ Dernières règles de clôture :
 
 **Domaine Expedition : CLÔTURÉ.**
 
-**Domaine 10 — Combat : AUDIT EN COURS — CADRÉ / RÉVISÉ JUSQU'À R429.**
+**Domaine 10 — Combat : CLÔTURÉ — R370 À R450.**
 
 Document spécialisé :
 `docs/legacy/13-combat-audit.md`
@@ -3018,13 +3018,36 @@ Direction UI Combat révisée R423-R429 :
 - vue normale quotidien : chance finale uniquement, calcul détaillé déroulant ;
 - vue normale Boss : dégâts totaux uniquement, détail par personnage/résistance déroulant.
 
+Commandes, migration et sécurité finalisées R430-R450 :
+- `!combat go` copie volontairement la Team active dans les slots quotidiens puis combat en mode manuel ;
+- `!combat info` prévisualise la Team active sans mutation ;
+- `!combat boss go` copie volontairement la Team active dans les slots Boss puis attaque ;
+- `!combat boss` affiche l'état et les dégâts prévus de la Team active ;
+- `!combat stat` reste compact dans un seul message normal ;
+- le Boss vaincu produit également un bilan chat compact dans un seul message normal ;
+- compteurs quotidiens globaux et par personnage migrés sans reconstruire les anciennes victoires manuelles ;
+- données journalières conservées uniquement si elles correspondent au jour du cutover ;
+- Boss actif conservé uniquement s'il correspond au mois du cutover ;
+- `monthly_boss.json` autoritatif par Boss, statistiques joueur utilisées comme minimum historique ;
+- anomalies financières mises en quarantaine ;
+- attaque, coup final et récompenses Boss atomiques/idempotents ;
+- attaque visant une ancienne instance refusée sans redirection ;
+- historique legacy partiel conservé sans inventer les attaques/compositions absentes ;
+- aucun historique player-facing du Combat quotidien en V1 ;
+- statistiques quotidiennes par personnage affichées dans sa fiche personnelle ;
+- douze noms de Boss conservés selon les mois de l'année ;
+- variation `maxHp` uniforme ±15 %, arrondie aux 10 000 PV ;
+- résistance mensuelle aléatoire avec répétition autorisée.
+
 Règle Notifications précisée :
 - les notifications non lues ne sont jamais expirées automatiquement par ancienneté ;
 - les notifications lues sont nettoyées au reset suivant ;
 - toute notification, lue ou non, reste supprimable manuellement ;
 - supprimer la notification ne modifie jamais l'état métier associé.
 
-**Prochaine reprise Combat : R430 — commandes Combat/Boss, migration, edge cases et clôture.**
+**Domaine Combat clôturé après R450.**
+
+**Prochaine reprise : Domaine 11 — Ami / social.**
 
 Dépendance future à conserver :
 - lors de l'audit `Top / Classements`, décider explicitement portefeuille vs patrimoine total pour les Moras ;
@@ -3142,10 +3165,13 @@ Décisions clés :
 - Twitch : nouveau chatter enregistré passivement, progression jusqu'au seuil d'onboarding puis blocage des mécaniques actives tant que l'élément n'est pas choisi ;
 - écran transversal `Quotidiennes` dédié, distinct de Missions, servant de hub vers Roue / Combat / Box-Expedition / Amis / Event / Shop ; `!quotis` en est l'équivalent texte compact ;
 - Expedition clôturé après R369 : 20 h, un départ/jour, récupération manuelle, personnage toujours utilisable, workflow Box, états Quotidiennes détaillés, récompense tirée au claim, personnage prêt temporairement remonté avant les favoris, reset sans annulation ;
-- Combat quotidien cadré/révisé jusqu'à R429 : ennemis globaux quotidiens, tentatives multiples, KO journalier limité au Combat, composition persistante indépendante des Teams, copie volontaire de la Team active, Auto mémorisable, chance détaillée, formule 4★/5★/constellations/éléments, clamp 5–95 %, récompense 800 Primos + 20k Moras ;
-- Boss mensuel cadré/révisé jusqu'à R429 : Boss unique mensuel, difficulté adaptative, composition persistante indépendante des Teams et des mois, dégâts déterministes, résistance, une attaque/jour, récompense communautaire, classements et historique ;
-- Combat quotidien/Boss vivent dans deux onglets distincts de l'écran Combat, chacun avec quatre slots persistants indépendants ; première utilisation vide ; Team active copiable uniquement sur action volontaire ;
+- Combat clôturé après R450 : rencontre quotidienne globale, tentatives multiples, KO limités au quotidien, slots persistants indépendants, copie volontaire de la Team active, Auto temporaire, formule 5–95 %, récompense 800 Primogemmes + 20 000 Moras ;
+- Boss mensuel clôturé après R450 : cycle mensuel, noms calendaires, difficulté adaptative, variation ±15 %, résistance, attaque quotidienne, slots indépendants, récompense communautaire, coup final, classements, historique et bilan ;
+- commandes Combat/Boss finalisées pour UI, chat interne et Twitch ;
+- migration Combat/Boss conservatrice avec réconciliation des deux JSON legacy, quarantaine des ambiguïtés et aucune donnée historique inventée ;
+- coup final, distribution communautaire et changement de mois conçus de manière atomique/idempotente ;
+- aucun historique player-facing du Combat quotidien en V1 ; statistiques par personnage affichées dans la fiche personnelle ;
 - notifications non lues persistantes jusqu'à lecture/suppression ; notifications lues nettoyées au reset suivant.
 
 Prochaine étape :
-poursuivre le Domaine Combat à R430 pour les commandes Combat/Boss, la migration, les edge cases puis la clôture ; Missions / Daily est clôturé après R339 et Expedition après R369. Ami / Social, Event et Top / Classements restent explicitement reportés à leurs audits respectifs.
+commencer le Domaine 11 — Ami / social à partir des vrais scripts et JSON legacy ; Combat est clôturé après R450. Concours / C6, Event / monthly, autres utilitaires, Top / Classements et Twitch / Giveaway restent à auditer selon la roadmap.

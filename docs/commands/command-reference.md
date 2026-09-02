@@ -498,57 +498,131 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 
 ## `!combat`
 
-- **Statut audit :** Combat quotidien et Boss cadrés/révisés jusqu'à R429 ; domaine encore ouvert pour commandes, migration et edge cases
-- **But :** Consulter puis effectuer le combat quotidien ; accès également au Boss mensuel.
-- **Syntaxes quotidiennes :**
-  - `!combat`
-  - `!combat info`
-  - `!combat go`
-  - `!combat auto`
-  - `!combat elements`
-- **Syntaxes Boss legacy conservées pour audit :**
-  - `!combat boss`
-  - `!combat boss go`
-- **Statistiques :**
-  - `!combat stat`
-- **Bouton UI équivalent :** écran Combat ; accès depuis le hub `Quotidiennes`
-- **Navigation UI :** deux onglets distincts : `Combat quotidien` ouvert par défaut / `Boss mensuel`
-- **Mémoires UI :** chaque onglet possède ses propres 4 slots persistants ; modifier l'un n'affecte jamais l'autre
+- **Statut audit :** Clôturé — R370 à R450
+- **But :** Consulter puis effectuer le Combat quotidien ; consulter et attaquer le Boss mensuel.
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
-- **Équipe ennemie :** 4 personnages actifs, commune à tous les joueurs pour la journée
-- **Reset :** 00:00 Europe/Paris
-- **Composition quotidienne UI :** quatre slots persistants indépendants de la Team active ; première utilisation vide ; bouton `Sélectionner l'équipe active` pour copie ponctuelle
-- **Mode manuel :** toute tentative lancée sans sélection Auto pour cette tentative ; 4 personnages valides/non-KO requis
-- **Mode Auto :** remplit les quatre slots avec la meilleure composition puis mémorise ces personnages sans modifier la Team active
-- **UI Auto :** sélectionne et affiche la composition/chance puis attend le clic `Combattre`; seule cette tentative est Auto
-- **Twitch Auto :** `!combat auto` sélectionne puis combat directement
-- **KO :** uniquement pour le combat quotidien jusqu'au reset ; personnages toujours utilisables ailleurs
-- **Tentatives :** après défaite, retenter avec d'autres personnages jusqu'à victoire ou moins de 4 personnages disponibles
+- **Bouton UI équivalent :** écran Combat ; accès également depuis le hub `Quotidiennes`
+- **Navigation UI :** `Combat quotidien` ouvert par défaut / `Boss mensuel`
+- **Mémoires :** chaque mode possède quatre slots persistants indépendants des Teams et indépendants l'un de l'autre
+
+### Syntaxes quotidiennes
+
+- `!combat`
+- `!combat info`
+- `!combat go`
+- `!combat auto`
+- `!combat elements`
+- `!combat help`
+
+### Consultation quotidienne
+
+- `!combat` affiche les quatre ennemis globaux du jour, l'état quotidien et les actions utiles
+- `!combat info` évalue en lecture seule la Team active que `!combat go` utiliserait
+- `!combat elements` affiche la matrice élémentaire
+- **Reset :** 00:00 `Europe/Paris`
+- **Équipe ennemie :** quatre personnages actifs distincts, identiques pour tous les joueurs pendant la journée
+
+### `!combat go`
+
+- valide la Team active
+- exige exactement quatre personnages distincts, possédés, actifs et non-KO
+- copie la Team active dans les slots persistants du Combat quotidien
+- lance immédiatement une tentative `MANUAL`
+- ne modifie jamais la Team active
+- en cas d'échec de validation, ne modifie pas les slots et ne crée aucune tentative
+
+### `!combat auto`
+
+- sélectionne les quatre meilleurs personnages valides/non-KO
+- utilise la même formule autoritative que le vrai Combat
+- remplit et mémorise les slots Combat
+- lance immédiatement la tentative côté chat/Twitch
+- marque cette tentative `AUTO`
+- ne modifie jamais la Team active
+- une réutilisation ultérieure de la composition sans nouvel Auto devient `MANUAL`
+
+### Règles quotidiennes
+
+- **KO :** uniquement pour le Combat quotidien jusqu'au reset
+- **Tentatives :** après défaite, retenter avec d'autres personnages jusqu'à victoire ou impossibilité d'en composer quatre
+- **Victoire :** clôt le Combat quotidien du joueur
+- **Récompense :** +800 Primogemmes et +20 000 Moras à la première victoire
 - **Quotidiennes :** À faire / En cours / Terminé / Bloqué aujourd'hui
-- **Récompense première victoire :** +800 Primogemmes / +20 000 Moras
-- **Chance :** valeur exacte affichée
-- **Formule V1 :** base 50 ; 4★ +3 ; 5★ +6 ; C4★ +0,5/C ; C5★ +1/C ; avantage élémentaire +4 ; désavantage -4 ; clamp 5–95 %
-- **Résumé calcul quotidien :** seul le pourcentage final est visible par défaut
-- **Détail calcul UI :** panneau déroulant base / rareté / constellations / éléments / brut / clamp / final
-- **Résumé Boss :** seuls les dégâts totaux prévisionnels sont visibles par défaut ; détail individuel/résistance dans le panneau déroulant
-- **Missions B/A/S :** toutes les victoires via `totalCombatWins`
-- **Mission Z :** 50 victoires sans Auto via `totalManualCombatWins`
-- **Boss mensuel :** un Boss global par mois civil ; nouvelle instance le 1er à 00:00 Europe/Paris ; aucun respawn avant le mois suivant
-- **PV Boss :** `baseHp` initial 1 500 000 avec scaling adaptatif ; `maxHp` réel = base ±15 %
-- **Scaling victoire :** +75 000 `baseHp` par journée restant après la victoire, hausse mensuelle max +1 500 000
-- **Scaling échec :** retirer les PV restants du `baseHp` suivant ; plancher 500 000
-- **Attaque Boss :** une par joueur/jour ; indépendante du KO/combat quotidien
-- **Composition Boss UI :** 4 slots indépendants et persistants sans limite mensuelle ; première utilisation vide ; bouton `Sélectionner l'équipe active` = copie ponctuelle
+- **Formule V1 :** base 50 ; 4★ +3 ; 5★ +6 ; constellation 4★ +0,5/C ; constellation 5★ +1/C ; élément ±4 ; clamp 5–95 %
+- **Résumé :** seule la chance finale est visible normalement
+- **Détails UI :** base / rareté / constellations / éléments / brut / clamp / final
+- **Missions B/A/S :** `totalCombatWins`
+- **Mission Z :** 50 `totalManualCombatWins`
+
+### Syntaxes Boss
+
+- `!combat boss`
+- `!combat boss go`
+
+### `!combat boss`
+
+Boss vivant :
+- affiche nom, PV, résistance et disponibilité de l'attaque
+- affiche les dégâts prévus de la Team active si elle est valide
+- reste entièrement en lecture seule
+
+Boss vaincu :
+- affiche dans un seul message compact le bilan mensuel et la contribution du joueur
+- utilise plusieurs messages uniquement si la limite du canal impose une coupure
+- réserve le classement et l'historique détaillés à l'interface
+
+### `!combat boss go`
+
+- vérifie que le Boss est vivant et actuel
+- vérifie que l'attaque quotidienne est disponible
+- valide la Team active complète
+- copie la Team active dans les slots Boss
+- snapshotte les personnages et constellations
+- attaque immédiatement
+- ne modifie jamais la Team active
+- un refus ne modifie pas les slots et ne consomme pas l'attaque
+
+### Règles Boss
+
+- **Cycle :** un Boss global par mois civil
+- **Création :** premier du mois à 00:00 `Europe/Paris`
+- **Respawn :** aucun avant le mois suivant
+- **Noms :** rotation fixe de douze Boss liée aux mois calendaires
+- **Base initiale :** 1 500 000 `baseHp`
+- **Variation :** `maxHp` uniforme à ±15 %, arrondi aux 10 000 PV
+- **Scaling victoire :** +75 000 `baseHp` par journée restante, hausse mensuelle max +1 500 000
+- **Scaling échec :** retirer les PV restants, même sans attaque ; plancher 500 000
+- **Attaque :** une par joueur/jour
+- **Indépendance :** les KO du quotidien ne s'appliquent pas au Boss
+- **Slots Boss :** quatre slots persistants indépendants ; première utilisation vide
 - **Auto Boss :** aucun
-- **Résistance :** un élément mensuel ; personnage correspondant inflige ×0,5
-- **Formule Boss :** 4★ = 500 +150/C ; 5★ = 1 000 +650/C
-- **Preview Boss :** dégâts totaux recalculés en temps réel ; détail individuel/résistance uniquement dans le panneau déroulant
-- **Récompense Boss :** 16 000 Primogemmes + 500 000 Moras à chaque participant ayant réalisé au moins une attaque valide >0
-- **Distribution :** automatique à la mort, offline compris, atomique/idempotente
-- **Coup final :** honorifique/statistique, sans récompense supplémentaire
-- **Classements :** publics ; dégâts totaux principaux + records secondaires
-- **Historique Boss :** player-facing avec fiche détaillée par mois
-- **Boss vaincu :** écran remplacé par un bilan complet jusqu'au mois suivant
-- **Quotidiennes :** Boss affiché comme sous-indicateur de la carte Combat, pas comme carte séparée
-- **Chat/Twitch Boss :** les syntaxes legacy restent conservées pendant l'audit ; la source exacte de composition de `!combat boss go` reste à finaliser à partir de R430
+- **Résistance :** élément mensuel ; personnage correspondant → dégâts ×0,5
+- **Dégâts 4★ :** 500 +150 × constellation
+- **Dégâts 5★ :** 1 000 +650 × constellation
+- **Preview :** total uniquement par défaut ; détail individuel/résistance dans le panneau déroulant
+- **Participation :** une attaque valide ayant infligé plus de zéro dégât
+- **Récompense :** +16 000 Primogemmes et +500 000 Moras à chaque participant
+- **Distribution :** automatique, offline, atomique et idempotente
+- **Coup final :** honorifique/statistique, sans bonus économique
+- **Classements :** publics
+- **Historique :** player-facing avec fiches détaillées par mois
+- **Quotidiennes :** sous-indicateur dans la carte Combat, jamais une carte séparée
+
+### `!combat stat`
+
+- **Syntaxe canonique :** `!combat stat`
+- **Alias accepté :** `!combat stats`
+- **Réponse normale :** un seul message compact
+- **Coupure :** uniquement si la limite technique du canal l'impose
+- **Contenu :** combats, victoires, victoires manuelles, défaites, dégâts/attaques Boss, participations, Boss vaincus, coups finaux, meilleur coup et résumé global public
+
+### Alias
+
+- `help` / `aide`
+- `info` / `infos`
+- `stat` / `stats`
+- `element` / `elements`
+- `faiblesse` / `faiblesses`
+
+Les aides ne recommandent qu'une seule syntaxe canonique.

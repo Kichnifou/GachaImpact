@@ -1,6 +1,6 @@
 # 13 — Audit legacy Combat
 
-Statut : AUDIT EN COURS — COMBAT QUOTIDIEN ET BOSS CADRÉS JUSQU'À R429 ; PROCHAINE REPRISE R430
+Statut : AUDIT CLÔTURÉ — R370 À R450
 Date : 2026-09-02
 
 ## 1. Périmètre
@@ -1157,7 +1157,385 @@ Les informations détaillées ne sont pas ouvertes par défaut.
 
 ---
 
-# 10. Règles techniques communes des compositions
+# 10. Commandes, migration et clôture — R430 à R450
+
+## R430 — `!combat go`
+
+`!combat go` utilise la Team active comme choix volontaire du joueur.
+
+Lors d'une demande valide :
+
+1. vérifier que la Team active contient exactement quatre personnages distincts, possédés, actifs et non-KO ;
+2. copier cette composition dans les slots persistants du Combat quotidien ;
+3. lancer immédiatement une tentative `MANUAL`.
+
+Cette action est l'équivalent chat/Twitch de :
+
+`Sélectionner l'équipe active` puis `Combattre`.
+
+La Team active n'est jamais modifiée.
+
+Si une précondition échoue :
+- les slots Combat restent inchangés ;
+- aucune tentative n'est créée ;
+- aucun personnage ne devient KO.
+
+## R431 — Consultation du Combat quotidien
+
+`!combat` affiche de manière compacte :
+- les quatre ennemis du jour ;
+- l'état quotidien du joueur ;
+- les actions principales disponibles.
+
+`!combat info` :
+- évalue la Team active que `!combat go` utiliserait ;
+- reste entièrement en lecture seule ;
+- affiche la composition et la chance finale ;
+- ne copie rien dans les slots Combat.
+
+`!combat elements` conserve la consultation de la matrice élémentaire.
+
+## R432 — `!combat boss go`
+
+`!combat boss go` utilise également la Team active comme choix volontaire.
+
+L'opération valide :
+
+1. vérifie que le Boss est toujours attaquable ;
+2. vérifie que l'attaque quotidienne du joueur est disponible ;
+3. vérifie les quatre personnages de la Team active ;
+4. copie cette composition dans les slots Boss persistants ;
+5. snapshotte les personnages et constellations ;
+6. applique l'attaque.
+
+Si l'opération est refusée :
+- les anciens slots Boss restent inchangés ;
+- l'attaque quotidienne n'est pas consommée.
+
+La Team active n'est jamais modifiée.
+
+## R433 — Consultation du Boss actif
+
+Tant que le Boss est vivant, `!combat boss` affiche dans un message compact :
+- nom ;
+- PV ;
+- résistance ;
+- attaque disponible ou déjà utilisée ;
+- dégâts prévus de la Team active si elle est valide.
+
+Cette commande est en lecture seule et ne copie pas la Team active dans les slots Boss.
+
+## R434 — Migration du Combat quotidien
+
+Migrer sans reconstruction incertaine :
+- `totalCombatFights` ;
+- `totalCombatWins` ;
+- `totalCombatLosses` ;
+- la valeur exacte de `totalManualCombatWins`, avec zéro si absente ;
+- `characterWins` ;
+- `characterLosses`.
+
+Les données legacy observées sont cohérentes :
+- combats = victoires + défaites ;
+- somme des victoires personnage = quatre fois les victoires ;
+- somme des défaites personnage = quatre fois les défaites.
+
+Ne jamais reconstruire rétroactivement les anciennes victoires manuelles : le compteur a été ajouté tardivement et ne permet pas de distinguer les anciennes tentatives Auto.
+
+Les états journaliers suivants sont conservés uniquement s'ils correspondent exactement à la journée du cutover en `Europe/Paris` :
+- `lastWinDate` ;
+- `lastFightDate` ;
+- `lastResult` ;
+- KO du jour ;
+- équipe ennemie de `combat_data.json`.
+
+Toute donnée journalière périmée est ignorée.
+
+Les nouveaux slots Combat et Boss commencent vides, car aucune mémoire équivalente n'existe dans le legacy.
+
+## R435 — Migration du Boss actif
+
+Si `currentBoss.month` correspond au mois du cutover :
+- conserver le Boss ;
+- conserver ses PV ;
+- conserver sa résistance ;
+- conserver ses participants ;
+- conserver les attaques quotidiennes déjà utilisées ;
+- conserver son état vaincu/non vaincu ;
+- conserver son coup final et son état de distribution.
+
+Si le Boss appartient à un mois antérieur :
+- l'archiver avec son véritable état ;
+- créer directement le Boss du mois courant ;
+- ne créer aucun faux Boss pour les mois intermédiaires absents.
+
+Le Boss legacy importé reçoit :
+
+`baseHp = 1 500 000`
+
+Cette valeur correspond à la constante réellement utilisée par le legacy.
+
+Le scaling adaptatif commence à partir du résultat de ce dernier Boss connu.
+
+## R436 — Réconciliation des statistiques Boss
+
+`monthly_boss.json` est la source autoritative pour :
+- les Boss connus ;
+- leurs participants ;
+- leurs attaques ;
+- leurs dégâts mensuels ;
+- les coups finaux ;
+- les attaques quotidiennes utilisées.
+
+`viewers_data.json` reste le minimum historique connu pour les statistiques cumulées du joueur.
+
+Pour les compteurs cumulés :
+- utiliser le maximum entre le compteur joueur et la somme reconstructible des Boss importés ;
+- ne jamais additionner aveuglément les deux sources ;
+- conserver le maximum des records connus ;
+- produire un rapport pour chaque divergence.
+
+Cette règle corrige notamment les sauvegardes legacy où `viewers_data.json` est en retard d'une ou plusieurs attaques sur `monthly_boss.json`.
+
+## R437 — Coup final et distribution atomiques
+
+Chaque attaque Boss utilise :
+- l'ID du Boss ciblé ;
+- l'ID interne du joueur ;
+- la journée serveur ;
+- une clé d'idempotence.
+
+Une transaction unique :
+1. verrouille le Boss ;
+2. vérifie qu'il est actuel et vivant ;
+3. garantit une seule attaque par joueur/jour ;
+4. snapshotte la composition ;
+5. calcule et applique les dégâts ;
+6. met à jour les statistiques ;
+7. attribue une seule fois le coup final ;
+8. fige les participants ;
+9. crédite les récompenses ;
+10. crée les notifications UI.
+
+Les récompenses possèdent une unicité par Boss, joueur et type de récompense.
+
+Deux attaques simultanées sont sérialisées. Si la première tue le Boss, la seconde est refusée sans consommer l'attaque quotidienne.
+
+## R438 — Changement de mois concurrent
+
+Le changement mensuel utilise :
+- une contrainte d'unicité par mois ;
+- un verrou transactionnel ;
+- un traitement planifié à 00:00 `Europe/Paris` ;
+- une vérification de secours lors du premier accès.
+
+Chaque attaque cible explicitement un `bossId`.
+
+Si le Boss change avant la validation d'une attaque :
+- l'attaque visant l'ancien Boss est refusée ;
+- elle n'est jamais redirigée vers le nouveau Boss ;
+- l'attaque quotidienne du nouveau Boss reste disponible.
+
+## R439 — Boss non vaincu
+
+À la clôture d'un Boss non vaincu :
+
+`nouveauBaseHp = max(500 000, ancienBaseHp - currentHp)`
+
+Cette formule s'applique également si aucune attaque valide n'a eu lieu.
+
+Un mois sans participation peut donc ramener la difficulté au plancher de 500 000 PV.
+
+Le Boss non vaincu :
+- ne distribue aucune récompense ;
+- est archivé avec ses PV restants ;
+- affiche dans son bilan la réduction appliquée au Boss suivant.
+
+Une valeur incohérente de PV est mise en quarantaine plutôt que réparée silencieusement.
+
+## R440 — Snapshot de cutover et anomalies financières
+
+Avant l'import final :
+- arrêter les écritures legacy ou placer Streamer.bot en lecture seule ;
+- copier ensemble les fichiers Combat, Boss et joueurs ;
+- vérifier leurs totaux avant l'import.
+
+Un état ambigu est mis en quarantaine, notamment :
+- Boss vaincu mais distribution non confirmée ;
+- récompenses joueur et état Boss incompatibles ;
+- Boss à zéro PV non marqué vaincu ;
+- totaux participants/Boss impossibles à réconcilier.
+
+Aucune récompense ambiguë n'est automatiquement recréditée ou supprimée.
+
+Un rapport nominatif permet une résolution administrative.
+
+## R441 — Historique Boss legacy partiel
+
+Conserver toutes les données historiques réellement disponibles :
+- mois ;
+- nom ;
+- résistance ;
+- `baseHp` lorsqu'il peut être établi ;
+- `maxHp` ;
+- PV restants ;
+- état vaincu/non vaincu ;
+- participants ;
+- dégâts ;
+- attaques ;
+- meilleur coup ;
+- coup final ;
+- date de victoire.
+
+Ne jamais inventer :
+- une attaque individuelle absente ;
+- une composition historique ;
+- une constellation utilisée ;
+- une heure d'attaque.
+
+Les archives importées portent une origine `LEGACY` et un indicateur de complétude.
+
+## R442 — `!combat stat`
+
+Conserver `!combat stat`.
+
+La commande retourne normalement un seul message compact contenant :
+- combats ;
+- victoires ;
+- victoires manuelles ;
+- défaites ;
+- dégâts Boss ;
+- attaques Boss ;
+- Boss participés/vaincus ;
+- coups finaux ;
+- meilleur coup ;
+- résumé global public du Boss.
+
+Un second message est utilisé uniquement si la limite technique du canal impose une coupure.
+
+`!combat stats` reste un alias accepté, mais n'est pas la syntaxe recommandée.
+
+## R443 — Boss vaincu dans le chat
+
+Après la mort du Boss, `!combat boss` affiche normalement un seul message compact avec :
+- Boss et mois ;
+- résistance ;
+- date de victoire ;
+- participants ;
+- attaques ;
+- coup final ;
+- contribution, rang et meilleur coup du joueur s'il a participé.
+
+Le classement complet et l'historique détaillé restent dans l'interface.
+
+Une coupure en plusieurs messages est autorisée uniquement si la limite du canal l'impose.
+
+## R444 — Alias et aide
+
+Alias acceptés :
+- `help` / `aide` ;
+- `info` / `infos` ;
+- `stat` / `stats` ;
+- `element` / `elements` ;
+- `faiblesse` / `faiblesses`.
+
+Les aides montrent uniquement les syntaxes canoniques actuelles.
+
+## R445 — État Auto temporaire
+
+L'action `Équipe automatique` crée une autorisation Auto temporaire liée :
+- à la composition exacte ;
+- à la rencontre quotidienne ;
+- à l'état des personnages ;
+- à la prochaine tentative valide.
+
+Elle est invalidée par :
+- une modification manuelle d'un slot ;
+- `Sélectionner l'équipe active` ;
+- une nouvelle sélection Auto ;
+- le reset quotidien ;
+- l'exécution de la tentative.
+
+Un simple rafraîchissement de page ne transforme pas la tentative en manuel.
+
+Après consommation ou invalidation, réutiliser la composition mémorisée sans relancer Auto produit une tentative `MANUAL`.
+
+## R446 — Pas d'historique quotidien player-facing en V1
+
+Chaque tentative quotidienne est conservée côté serveur pour :
+- audit ;
+- diagnostic ;
+- idempotence ;
+- statistiques ;
+- évolution future.
+
+Aucune catégorie player-facing `Historique / Combat quotidien` n'est créée en V1.
+
+Le joueur conserve l'accès :
+- à son état du jour ;
+- à ses KO ;
+- à son dernier résultat ;
+- à ses statistiques globales ;
+- à ses statistiques par personnage.
+
+## R447 — Statistiques par personnage
+
+La fiche personnelle d'un personnage affiche pour le Combat quotidien :
+- combats ;
+- victoires ;
+- défaites ;
+- taux de victoire dérivé.
+
+Une victoire ou défaite incrémente le compteur des quatre personnages utilisés.
+
+Les compteurs legacy valides sont migrés.
+
+Leur exposition publique sera décidée plus tard avec Profil / Statistiques / Confidentialité.
+
+Les attaques Boss ne sont pas mélangées avec ces compteurs quotidiens.
+
+## R448 — Rotation calendaire des noms de Boss
+
+Conserver les douze noms legacy liés à leur période de l'année :
+
+| Mois | Boss |
+|---|---|
+| Janvier | Colosse du Givre Éternel |
+| Février | Dévoreur de Lune |
+| Mars | Gardien des Racines Anciennes |
+| Avril | Bête de l'Orage Céleste |
+| Mai | Chimère des Mille Fleurs |
+| Juin | Léviathan des Profondeurs |
+| Juillet | Titan du Soleil Brisé |
+| Août | Monstre Abyssal |
+| Septembre | Seigneur des Ruines Oubliées |
+| Octobre | Spectre de la Nuit Sans Fin |
+| Novembre | Fléau des Brumes Noires |
+| Décembre | Souverain du Blizzard |
+
+Le nom revient chaque année, car il correspond à la période calendaire.
+
+Les PV et la résistance restent propres à chaque instance mensuelle.
+
+## R449 — Variation des PV
+
+À la création du Boss :
+- tirer uniformément une variation entre -15 % et +15 % autour de `baseHp` ;
+- arrondir `maxHp` aux 10 000 PV les plus proches ;
+- effectuer le tirage une seule fois ;
+- conserver `baseHp`, la variation et `maxHp` dans le snapshot.
+
+## R450 — Résistance mensuelle
+
+La résistance est tirée uniformément parmi les sept éléments.
+
+La même résistance peut apparaître deux mois consécutifs.
+
+La résistance est snapshotée à la création et ne change jamais pendant l'instance.
+
+---
+
+# 11. Règles techniques communes des compositions
 
 Prévoir deux mémoires persistantes distinctes, conceptuellement :
 - `dailyCombatComposition` ;
@@ -1178,43 +1556,54 @@ Les attaques exécutées utilisent des snapshots autoritatifs.
 
 ---
 
-# 11. État
+# 12. État
 
-Domaine Combat toujours ouvert.
+**Domaine Combat clôturé — R370 à R450.**
 
-Combat quotidien :
-- gameplay cadré ;
-- formule cadrée ;
-- KO cadrés ;
-- Auto cadré ;
-- slots persistants cadrés ;
-- Missions cadrées ;
-- UX principale cadrée.
+Sont cadrés :
 
-Boss mensuel :
-- cycle cadré ;
-- scaling cadré ;
-- composition cadrée ;
-- dégâts cadrés ;
-- résistance cadrée ;
-- participation/récompenses cadrées ;
-- classement/historique cadrés ;
-- UX principale cadrée.
+### Combat quotidien
+- rencontre globale quotidienne ;
+- reset `Europe/Paris` ;
+- slots persistants indépendants ;
+- copie volontaire de la Team active ;
+- tentatives multiples ;
+- KO quotidiens ;
+- formule de chance ;
+- Auto et mode manuel ;
+- récompense ;
+- statistiques globales et par personnage ;
+- Missions ;
+- Quotidiennes ;
+- commandes ;
+- migration ;
+- historique serveur sans historique player-facing V1.
 
-Décisions traitées jusqu'à :
-**R429**
+### Boss mensuel
+- cycle mensuel ;
+- rotation calendaire des noms ;
+- `baseHp`, `maxHp` et scaling adaptatif ;
+- variation ±15 % ;
+- résistance ;
+- slots persistants indépendants ;
+- attaque quotidienne ;
+- dégâts et snapshots ;
+- participation ;
+- récompenses communautaires ;
+- coup final ;
+- classements ;
+- bilan ;
+- historique ;
+- commandes ;
+- migration ;
+- concurrence et idempotence ;
+- changement de mois ;
+- anomalies de cutover.
 
-Prochaine reprise :
-**R430**
+Dépendances reportées :
+- visibilité publique détaillée des statistiques Combat → Profil / Statistiques / Confidentialité ;
+- présentation transversale des classements → Top / Classements ;
+- équilibrage final des valeurs → playtests et passe d'économie globale.
 
-Restent notamment :
-- comportement exact de `!combat go` avec les nouveaux slots ;
-- comportement exact de `!combat boss go` ;
-- migration du Combat quotidien legacy ;
-- migration du Boss legacy actif ;
-- migration participants/statistiques Boss ;
-- initialisation de baseHp au cutover ;
-- concurrence/idempotence sur le coup final ;
-- changement de mois pendant une attaque ;
-- edge cases du Boss non vaincu ;
-- dernière passe de clôture Combat.
+Prochain domaine recommandé :
+**Domaine 11 — Ami / social.**

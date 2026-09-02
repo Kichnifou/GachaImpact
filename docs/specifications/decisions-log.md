@@ -586,7 +586,28 @@ Statut : évolutif.
 - `VALIDÉ R427` — Auto mémorise les personnages choisis mais pas un état Auto permanent ; une réutilisation ultérieure sans Auto est manuelle.
 - `VALIDÉ R428` — Écran Combat avec deux onglets distincts : Combat quotidien ouvert par défaut / Boss mensuel ; interfaces et mémoires indépendantes.
 - `VALIDÉ R429` — Vue compacte : seulement chance finale pour le quotidien et dégâts totaux pour le Boss ; détails accessibles via panneau déroulant.
-- `AUDIT EN COURS` — Combat cadré jusqu'à R429 ; prochaine reprise R430 sur commandes/migration/edge cases/finalisation.
+- `VALIDÉ R430` — `!combat go` valide puis copie la Team active dans les slots quotidiens et lance immédiatement une tentative `MANUAL`; aucun changement de slots si l'action échoue.
+- `VALIDÉ R431` — `!combat info` évalue en lecture seule la Team active que `!combat go` utiliserait ; `!combat` affiche rencontre, état quotidien et actions.
+- `VALIDÉ R432` — `!combat boss go` valide puis copie la Team active dans les slots Boss et attaque dans une seule opération ; un refus ne modifie pas les slots et ne consomme pas l'attaque.
+- `VALIDÉ R433` — `!combat boss` vivant affiche état, résistance, disponibilité et dégâts prévus de la Team active, sans mutation.
+- `VALIDÉ MIGRATION R434` — Migrer les compteurs quotidiens globaux/par personnage et la valeur exacte du compteur manuel ; ne conserver les états journaliers que s'ils correspondent au jour du cutover ; nouveaux slots vides.
+- `VALIDÉ MIGRATION R435` — Conserver le Boss actif s'il correspond au mois du cutover ; sinon l'archiver et créer le Boss courant sans inventer les mois absents ; `baseHp` legacy importé = 1 500 000.
+- `VALIDÉ MIGRATION R436` — `monthly_boss.json` est autoritatif par Boss ; les stats joueur sont un minimum historique ; réconciliation par maximum/sommes reconstructibles, jamais par addition aveugle.
+- `VALIDÉ TECHNIQUE R437` — Attaque, coup final, récompenses, statistiques et notifications Boss sont transactionnels et idempotents ; unicités par attaque quotidienne et récompense.
+- `VALIDÉ TECHNIQUE R438` — Rollover mensuel sérialisé ; une attaque visant une ancienne instance est refusée sans être redirigée ni consommer l'attaque du nouveau Boss.
+- `VALIDÉ R439` — La réduction après échec s'applique même sans aucune attaque ; plancher 500 000 ; aucun lot de consolation.
+- `VALIDÉ MIGRATION R440` — Cutover avec écritures legacy figées ; toute ambiguïté financière est mise en quarantaine avec rapport nominatif.
+- `VALIDÉ MIGRATION R441` — Historique Boss legacy conservé avec indicateur de complétude ; aucune attaque, composition, constellation ou heure inexistante n'est inventée.
+- `VALIDÉ R442` — `!combat stat` est conservé dans un seul message compact normal ; `stats` est un alias ; coupure seulement si la limite technique l'exige.
+- `VALIDÉ R443` — Après la victoire, `!combat boss` fournit un bilan compact dans un seul message normal ; détail complet dans l'UI.
+- `VALIDÉ TECHNIQUE R444` — Alias legacy utiles acceptés, mais une seule syntaxe canonique est présentée dans les aides.
+- `VALIDÉ TECHNIQUE R445` — L'état Auto appartient à la prochaine tentative inchangée ; modification/copie/reset/exécution l'invalide, mais pas un simple rafraîchissement.
+- `VALIDÉ R446` — Pas d'historique player-facing du Combat quotidien en V1 ; les tentatives restent journalisées côté serveur.
+- `VALIDÉ R447` — La fiche personnelle du personnage affiche combats, victoires, défaites et taux dérivé du Combat quotidien ; visibilité publique reportée.
+- `VALIDÉ R448` — Les douze noms de Boss restent liés aux mois calendaires car ils correspondent aux périodes de l'année.
+- `VALIDÉ TECHNIQUE R449` — `maxHp` utilise une variation uniforme ±15 % autour de `baseHp`, arrondie aux 10 000 PV et snapshotée.
+- `VALIDÉ TECHNIQUE R450` — Résistance uniforme parmi sept éléments, répétition mensuelle autorisée, valeur snapshotée.
+- `CLÔTURÉ` — Domaine Combat clôturé après R450.
 
 ## Quotidiennes — direction transverse
 - `VALIDÉ R355` — Écran `Quotidiennes` dédié : Roue → Roue, Combat → Combat, Expedition → Box, Ami cœur → Amis, Event → Event, Shop → Boutique.
