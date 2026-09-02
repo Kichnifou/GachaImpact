@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.28
+Version : 0.29
 Date : 2026-09-01
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -2975,12 +2975,47 @@ Combat quotidien désormais cadré notamment sur :
 - missions B/A/S = totalCombatWins ;
 - Z `Maître du combat` = 50 totalManualCombatWins.
 
-Boss mensuel communautaire :
-- concept conservé par R379 ;
-- audit détaillé volontairement séparé ;
-- valeurs/règles legacy non encore considérées définitives.
+Boss mensuel communautaire désormais cadré R390-R422 :
+- un Boss par mois civil, nouvelle instance le 1er à 00:00 Europe/Paris ;
+- aucun respawn si vaincu tôt ;
+- `baseHp` initial 1 500 000 puis difficulté adaptative ;
+- victoire : +75k `baseHp` par journée restante, hausse mensuelle max +1,5M ;
+- échec : soustraction des PV restants ; plancher 500k ;
+- `maxHp` réel = `baseHp` avec variation mensuelle ±15 % ;
+- une attaque par joueur/jour ;
+- attaque indépendante du KO et du combat quotidien ;
+- quatre slots Boss indépendants du système Team ;
+- bouton `Sélectionner l'équipe active` = copie ponctuelle ;
+- composition Boss mémorisée d'un jour à l'autre jusqu'à mort/changement de Boss ;
+- aucun Auto Boss ;
+- résistance élémentaire mensuelle : ×0,5 sur l'élément concerné ;
+- dégâts Boss : 4★ 500+150/C ; 5★ 1000+650/C ;
+- preview des dégâts en temps réel ;
+- récompense égalitaire : 16 000 Primogemmes + 500 000 Moras ;
+- une attaque valide >0 suffit à devenir participant ;
+- distribution automatique aux participants lorsque le Boss meurt, offline compris ;
+- notification UI ; aucune notification Twitch asynchrone ;
+- coup final honorifique ;
+- classements mensuels publics ;
+- écran de bilan enrichi après la mort ;
+- historique Boss player-facing ;
+- sous-indicateur Boss dans la carte Combat de Quotidiennes ;
+- chaque attaque snapshotte les personnages/constellations utilisés.
 
-**Prochaine reprise Combat : R390 — Boss mensuel communautaire.**
+Direction UI Combat précisée :
+- Combat quotidien et Boss utilisent une structure visuelle générale commune ;
+- quotidien : 4 slots joueur face aux 4 ennemis du jour ;
+- Boss : 4 slots joueur face au Boss ;
+- le quotidien affiche par défaut la Team active dans ses slots ;
+- le quotidien possède `Équipe automatique`, contrairement au Boss.
+
+Règle Notifications précisée :
+- les notifications non lues ne sont jamais expirées automatiquement par ancienneté ;
+- les notifications lues sont nettoyées au reset suivant ;
+- toute notification, lue ou non, reste supprimable manuellement ;
+- supprimer la notification ne modifie jamais l'état métier associé.
+
+**Prochaine reprise Combat : R423 — migration, commandes Boss, edge cases et clôture.**
 
 Dépendance future à conserver :
 - lors de l'audit `Top / Classements`, décider explicitement portefeuille vs patrimoine total pour les Moras ;
@@ -3098,7 +3133,10 @@ Décisions clés :
 - Twitch : nouveau chatter enregistré passivement, progression jusqu'au seuil d'onboarding puis blocage des mécaniques actives tant que l'élément n'est pas choisi ;
 - écran transversal `Quotidiennes` dédié, distinct de Missions, servant de hub vers Roue / Combat / Box-Expedition / Amis / Event / Shop ; `!quotis` en est l'équivalent texte compact ;
 - Expedition clôturé après R369 : 20 h, un départ/jour, récupération manuelle, personnage toujours utilisable, workflow Box, états Quotidiennes détaillés, récompense tirée au claim, personnage prêt temporairement remonté avant les favoris, reset sans annulation ;
-- Combat quotidien cadré R370-R389 : ennemis globaux quotidiens, tentatives multiples, KO journalier limité au Combat, Team active manuelle, Auto temporaire, chance détaillée, formule 4★/5★/constellations/éléments, clamp 5–95 %, récompense 800 Primos + 20k Moras.
+- Combat quotidien cadré R370-R389 : ennemis globaux quotidiens, tentatives multiples, KO journalier limité au Combat, Team active manuelle, Auto temporaire, chance détaillée, formule 4★/5★/constellations/éléments, clamp 5–95 %, récompense 800 Primos + 20k Moras ;
+- Boss mensuel cadré R390-R422 : Boss unique mensuel, difficulté adaptative, composition Boss mémorisée indépendante des Teams, dégâts déterministes, résistance, une attaque/jour, récompense communautaire, classements et historique ;
+- Combat quotidien/Boss partagent une structure UI commune ; Team active affichée par défaut dans les slots du quotidien ;
+- notifications non lues persistantes jusqu'à lecture/suppression ; notifications lues nettoyées au reset suivant.
 
 Prochaine étape :
-poursuivre le Domaine Combat à R390 avec le Boss mensuel communautaire ; Missions / Daily est clôturé après R339 et Expedition après R369. Ami / Social, Event et Top / Classements restent explicitement reportés à leurs audits respectifs.
+poursuivre le Domaine Combat à R423 pour la migration, les commandes Boss, les edge cases puis la clôture ; Missions / Daily est clôturé après R339 et Expedition après R369. Ami / Social, Event et Top / Classements restent explicitement reportés à leurs audits respectifs.

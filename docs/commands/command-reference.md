@@ -498,7 +498,7 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 
 ## `!combat`
 
-- **Statut audit :** Combat quotidien cadré R370 à R389 ; Boss mensuel encore en audit
+- **Statut audit :** Combat quotidien cadré R370 à R389 ; Boss mensuel cadré R390 à R422 ; domaine encore ouvert pour migration/edge cases
 - **But :** Consulter puis effectuer le combat quotidien ; accès également au Boss mensuel.
 - **Syntaxes quotidiennes :**
   - `!combat`
@@ -529,4 +529,21 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Détail calcul UI :** base / rareté / constellations / éléments / brut / clamp / final
 - **Missions B/A/S :** toutes les victoires via `totalCombatWins`
 - **Mission Z :** 50 victoires sans Auto via `totalManualCombatWins`
-- **Boss mensuel :** concept conservé ; règles finales encore à auditer R390+
+- **Boss mensuel :** un Boss global par mois civil ; nouvelle instance le 1er à 00:00 Europe/Paris ; aucun respawn avant le mois suivant
+- **PV Boss :** `baseHp` initial 1 500 000 avec scaling adaptatif ; `maxHp` réel = base ±15 %
+- **Scaling victoire :** +75 000 `baseHp` par journée restant après la victoire, hausse mensuelle max +1 500 000
+- **Scaling échec :** retirer les PV restants du `baseHp` suivant ; plancher 500 000
+- **Attaque Boss :** une par joueur/jour ; indépendante du KO/combat quotidien
+- **Composition Boss UI :** 4 slots indépendants, mémorisés pour le Boss courant ; bouton `Sélectionner l'équipe active` = copie ponctuelle
+- **Auto Boss :** aucun
+- **Résistance :** un élément mensuel ; personnage correspondant inflige ×0,5
+- **Formule Boss :** 4★ = 500 +150/C ; 5★ = 1 000 +650/C
+- **Preview Boss :** dégâts individuels + total recalculés en temps réel
+- **Récompense Boss :** 16 000 Primogemmes + 500 000 Moras à chaque participant ayant réalisé au moins une attaque valide >0
+- **Distribution :** automatique à la mort, offline compris, atomique/idempotente
+- **Coup final :** honorifique/statistique, sans récompense supplémentaire
+- **Classements :** publics ; dégâts totaux principaux + records secondaires
+- **Historique Boss :** player-facing avec fiche détaillée par mois
+- **Boss vaincu :** écran remplacé par un bilan complet jusqu'au mois suivant
+- **Quotidiennes :** Boss affiché comme sous-indicateur de la carte Combat, pas comme carte séparée
+- **Chat/Twitch Boss :** les syntaxes legacy restent conservées pendant l'audit ; la source exacte de composition de `!combat boss go` reste à finaliser après R422

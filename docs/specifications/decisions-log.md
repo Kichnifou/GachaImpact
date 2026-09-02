@@ -548,7 +548,38 @@ Statut : évolutif.
 - `VALIDÉ R388` — B/A/S Combat utilisent `totalCombatWins` ; Z `Maître du combat` utilise `totalManualCombatWins` avec objectif 50.
 - `VALIDÉ R389` — Un détail du calcul de probabilité est accessible dans l'UI : base, rareté, constellations, éléments, brut, clamp, final.
 - `VALIDÉ TECHNIQUE` — La formule de preview, de sélection Auto et de tirage est une seule formule serveur autoritative.
-- `AUDIT EN COURS` — Combat quotidien cadré R370-R389 ; prochaine reprise R390 sur le Boss mensuel communautaire.
+- `VALIDÉ R390` — Un seul Boss par mois civil ; nouvelle instance le premier du mois à 00:00 Europe/Paris.
+- `VALIDÉ R391` — Un Boss vaincu reste vaincu jusqu'au mois suivant ; aucun respawn intra-mois.
+- `VALIDÉ R392/R402` — `baseHp` initial 1 500 000 ; victoire : +75k par journée restante, hausse mensuelle plafonnée à +1,5M ; échec : retirer les PV restants ; plancher 500k.
+- `VALIDÉ R393` — Une attaque Boss par joueur/jour, indépendante du combat quotidien et de ses KO.
+- `RÉVISÉ R394` — Le Boss utilise quatre slots de composition indépendants ; `Sélectionner l'équipe active` effectue seulement une copie ponctuelle.
+- `VALIDÉ R395` — Aucun mode Auto Boss.
+- `VALIDÉ R396` — Une résistance mensuelle aléatoire parmi les sept éléments ; personnage du même élément = dégâts ×0,5.
+- `VALIDÉ R397` — Preview en temps réel des dégâts individuels et totaux dans l'écran Boss.
+- `VALIDÉ R398` — Formule Boss V1 : 4★ = 500 +150/C ; 5★ = 1000 +650/C.
+- `VALIDÉ R399/R406` — Une attaque valide >0 suffit pour être participant ; récompense identique quel que soit le total de dégâts.
+- `VALIDÉ R400` — À la mort du Boss, récompenses créditées automatiquement à tous les participants, offline compris, de façon atomique/idempotente ; notification UI ; aucune notification Twitch asynchrone.
+- `VALIDÉ R401` — Coup final conservé comme statistique/prestige sans bonus économique.
+- `VALIDÉ R403` — Une notification non lue n'expire pas automatiquement ; une notification lue est nettoyée au prochain reset ; toute notification reste supprimable manuellement.
+- `VALIDÉ R404` — Après victoire, l'écran Boss devient un bilan détaillé : Boss, communauté, records, Top 3 et statistiques personnelles.
+- `VALIDÉ R405` — Récompense Boss V1 : 16 000 Primogemmes + 500 000 Moras par participant éligible.
+- `VALIDÉ R407` — Classements Boss mensuels publics ; dégâts totaux comme classement principal, records secondaires possibles.
+- `VALIDÉ R408` — Historique Boss player-facing avec fiches des Boss archivés et statistiques détaillées.
+- `VALIDÉ R409` — Quotidiennes garde une seule carte Combat ; le Boss apparaît comme sous-indicateur d'attaque disponible/effectuée.
+- `VALIDÉ R410` — L'écran Boss explique directement les pénalités de résistance sans choisir automatiquement la composition.
+- `VALIDÉ TECHNIQUE R411` — Chaque attaque snapshotte la composition et les valeurs utilisées avant application des dégâts.
+- `VALIDÉ R412` — Personnage désactivé interdit au Boss ; validation refusée sans consommer l'attaque quotidienne.
+- `VALIDÉ R413` — La composition Boss est mémorisée dès sa modification pour tout le Boss courant.
+- `VALIDÉ TECHNIQUE R414` — 0..4 slots possibles en préparation ; attaque exige exactement 4 personnages distincts/possédés/actifs.
+- `VALIDÉ TECHNIQUE R415` — Un personnage mémorisé puis désactivé vide seulement son slot ; les snapshots historiques restent intacts.
+- `VALIDÉ R416` — Le reset quotidien recharge l'attaque Boss mais conserve les slots mémorisés.
+- `VALIDÉ R417` — Les slots mémorisent l'identité ; preview/attaque utilisent l'état actuel du personnage, puis l'attaque snapshotte cet état.
+- `VALIDÉ R418` — Le bilan affiche explicitement le buff/debuff de `baseHp` appliqué au Boss suivant.
+- `VALIDÉ TECHNIQUE R419` — Séparer `baseHp` adaptatif de `maxHp` réel après variation ±15 %.
+- `VALIDÉ R420` — En cas d'échec mensuel, soustraire les PV absolus restants du `baseHp` suivant, avec plancher 500k.
+- `VALIDÉ R421` — Combat quotidien et Boss partagent une structure visuelle commune ; ennemis 4 personnages vs Boss, avec différences métier propres.
+- `VALIDÉ R422` — Combat quotidien affiche par défaut la Team active dans ses quatre slots ; Auto remplace seulement temporairement cette composition.
+- `AUDIT EN COURS` — Combat cadré jusqu'à R422 ; prochaine reprise R423 sur migration/edge cases/finalisation.
 
 ## Quotidiennes — direction transverse
 - `VALIDÉ R355` — Écran `Quotidiennes` dédié : Roue → Roue, Combat → Combat, Expedition → Box, Ami cœur → Amis, Event → Event, Shop → Boutique.
@@ -566,8 +597,10 @@ Statut : évolutif.
 - `VALIDÉ` — Cette direction concerne notamment personnages, Box, sélecteurs Team, joueurs, objets et autres listes adaptées.
 
 ## Notifications
-- `VALIDÉ` — Toute notification doit pouvoir être supprimée manuellement par le joueur via une petite croix affichée au survol.
-- `VALIDÉ` — Les notifications lues qui n'ont pas été supprimées manuellement sont nettoyées automatiquement au reset serveur quotidien.
+- `VALIDÉ` — Toute notification peut être supprimée manuellement par le joueur via une petite croix affichée au survol, qu'elle soit lue ou non lue.
+- `VALIDÉ R403` — Une notification non lue n'expire jamais automatiquement simplement à cause de son âge ; elle reste jusqu'à lecture ou suppression manuelle.
+- `VALIDÉ` — Une notification lue qui n'a pas été supprimée manuellement est nettoyée automatiquement au prochain reset serveur quotidien.
+- `VALIDÉ R403` — Supprimer une notification ne modifie jamais l'état métier sous-jacent : récompense, claim, demande, action disponible ou autre donnée restent gérés par leur propre domaine.
 - `VALIDÉ` — Une notification représentant un état dynamique peut réapparaître/redevenir non lue lorsqu'un nouvel événement pertinent survient.
 - `VALIDÉ` — Pour les échanges, une seule notification agrégée représente le nombre total actuel de demandes reçues en attente.
 - `VALIDÉ` — Si cette notification a été lue ou supprimée puis qu'une nouvelle demande arrive, elle est réaffichée en non-lue avec le nouveau total.

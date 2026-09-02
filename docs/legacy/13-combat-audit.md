@@ -1,6 +1,6 @@
 # 13 — Audit legacy Combat
 
-Statut : AUDIT EN COURS — COMBAT QUOTIDIEN R370 À R389 TRAITÉ ; PROCHAINE REPRISE R390 — BOSS MENSUEL
+Statut : AUDIT EN COURS — COMBAT QUOTIDIEN R370 À R389 CADRÉ ; BOSS MENSUEL R390 À R422 CADRÉ ; PROCHAINE REPRISE R423
 Date : 2026-09-01
 
 ## 1. Périmètre
@@ -568,11 +568,13 @@ Le nom exact des services/tables/API sera fixé en Phase 2/3.
 
 ---
 
-# 9. Boss mensuel legacy — constat initial
+# 9. Boss mensuel communautaire — R390 à R422
 
-Le script contient aussi un Boss global mensuel.
+## 9.1 Réalité legacy conservée comme base
 
-Constantes legacy :
+Le script legacy contient un Boss global mensuel.
+
+Constantes historiques :
 - PV de base : 1 500 000 ;
 - variation : ±15 % ;
 - récompense participant si Boss vaincu :
@@ -583,47 +585,63 @@ Constantes legacy :
 - dégâts de base 4★ : 500 ;
 - +150 par constellation 4★.
 
-Le Boss :
-- possède une résistance élémentaire aléatoire ;
-- reçoit 50 % des dégâts d'un personnage de même élément que sa résistance ;
+Le Boss legacy :
+- possède une résistance élémentaire ;
+- réduit de moitié les dégâts d'un personnage du même élément que cette résistance ;
 - accepte une attaque par joueur et par jour ;
-- utilise la Team active ;
 - ignore les KO du combat quotidien ;
 - cumule les dégâts de toute la communauté ;
-- attribue la récompense à tous les participants ayant fait des dégâts lorsque le Boss est vaincu ;
+- récompense les participants lorsque le Boss est vaincu ;
 - enregistre le coup final ;
-- possède des statistiques globales et individuelles ;
+- possède des statistiques individuelles/globales ;
 - est archivé au changement de mois.
 
-R379 conserve ce concept.
-
-Aucune de ces valeurs/règles Boss n'est encore considérée définitive pour le standalone tant que R390+ ne les a pas auditées.
+R379 conserve le concept.
 
 ---
 
-# 10. État
+## R390 — Un Boss par mois civil
 
-Domaine Combat toujours ouvert.
+Créer exactement un nouveau Boss par mois civil.
 
-**Sous-système Combat quotidien : cadré R370 à R389.**
+Reset :
+- premier jour du mois ;
+- 00:00 `Europe/Paris`.
 
-Prochaine reprise :
-**R390 — Boss mensuel communautaire.**
+À ce moment :
+- Boss précédent archivé ;
+- nouvelle instance générée ;
+- nouvelle résistance ;
+- nouveaux PV ;
+- nouvelle période de participation.
 
-Points principaux à auditer ensuite :
-- génération mensuelle / moment du reset ;
-- Boss déjà vaincu avant fin du mois ;
-- PV et scaling selon population ;
-- résistance élémentaire ;
-- une attaque/jour ;
-- Team active / Auto éventuel ;
-- formule dégâts ;
-- récompenses ;
-- distribution immédiate vs notification ;
-- participants offline ;
-- coup final ;
-- statistiques / classement ;
-- historique Boss ;
-- migration du Boss actif ;
-- intégration Quotidiennes / Event éventuelle ;
-- confidentialité / affichage public.
+Le Boss n'est jamais remplacé en cours de mois simplement parce qu'il a été vaincu.
+
+## R391 — Boss vaincu avant la fin du mois
+
+Un seul Boss existe pour le mois.
+
+S'il est vaincu avant la fin :
+- il reste vaincu ;
+- aucun autre Boss n'apparaît ;
+- l'écran passe en mode bilan/statistiques ;
+- prochain Boss au premier jour du mois suivant.
+
+Cette mécanique reste mensuelle et ne devient pas un farming permanent.
+
+## R392 / R402 — PV de référence et difficulté adaptative
+
+La première référence standalone reste :
+
+`baseHp = 1 500 000`
+
+Le nouveau système rend ensuite cette valeur adaptative selon la performance communautaire du mois précédent.
+
+### Boss vaincu
+
+Si le Boss est vaincu avant la fin du mois :
+
+```text
+bonus suivant =
+jours calendaires complets restant après le jour de victoire
+× 75 000 PV
