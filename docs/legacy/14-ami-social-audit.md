@@ -1368,4 +1368,4 @@ Sont finalisés :
 - concurrence, idempotence et migration ;
 - producteurs et consommateurs.
 
-Prochain domaine : **Concours / C6**, selon l'ordre du Master.
+Le domaine actif et la prochaine reprise sont indiqués uniquement dans le Master.

@@ -1607,9 +1607,3 @@ Dépendances reportées :
 - consommation des réglages de visibilité Combat → résolue conceptuellement par Ami / Social R469/R473/R474/R486/R488 ;
 - présentation transversale des classements → Top / Classements ;
 - équilibrage final des valeurs → playtests et passe d'économie globale.
-
-Domaine suivant désormais clôturé :
-**Domaine 11 — Ami / Social, clôturé après R525.**
-
-Prochain domaine actif :
-**Domaine 12 — Concours / C6.**
