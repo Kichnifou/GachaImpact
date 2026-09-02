@@ -624,9 +624,11 @@ Le Domaine Expedition ne décide pas si cette statistique globale est :
 Cette décision appartient au futur domaine transversal :
 **Profil / Statistiques / Confidentialité**.
 
-Cela ne change pas R349 :
-- l'état de l'Expedition actuelle reste privé ;
-- personnage envoyé, timer et état `À récupérer` ne sont pas exposés dans la Box publique.
+Révision Social R473/R486/R487 :
+- l'état de l'Expedition actuelle est `Privé` par défaut ;
+- sa rubrique peut être réglée Public/Amis uniquement/Privé ;
+- personnage envoyé, timer et état `À récupérer` ne sont exposés que si cette rubrique l'autorise ;
+- la visibilité de la Box seule ne révèle jamais implicitement l'état Expedition.
 
 ## R369 — Clôture du Domaine Expedition
 
@@ -693,7 +695,7 @@ Le nom exact des classes/tables/événements sera défini en Phase 2/3.
 - Expedition n'altère pas la Team ;
 - Expedition ne rend pas le personnage indisponible ;
 - un personnage désactivé n'est jamais proposé dans la Box comme candidat ;
-- les données Expedition sont privées dans la vue Box d'un autre joueur ;
+- les données Expedition sont privées par défaut et ne deviennent visibles que par leur rubrique de confidentialité dédiée, jamais implicitement par la seule visibilité de la Box ;
 - la priorité `À récupérer` est une priorité UI temporaire, pas une modification persistante du tri utilisateur ;
 - la priorité `À récupérer` ne contourne jamais les filtres/recherches ;
 - le hub Quotidiennes appelle/redirige vers les vrais domaines au lieu de les réimplémenter.

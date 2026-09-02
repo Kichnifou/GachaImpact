@@ -626,3 +626,44 @@ Boss vaincu :
 - `faiblesse` / `faiblesses`
 
 Les aides ne recommandent qu'une seule syntaxe canonique.
+
+## `!ami`
+
+- **Statut audit :** EN COURS — R451 à R493
+- **Canaux :** UI standalone, chat interne et Twitch partagent les mêmes services métier
+- **Legacy constaté :** demande/consultation par `!ami <pseudo>` ; acceptation implicite par demande réciproque ; cœur individuel ou `all` ; aucune acceptation/refus/annulation/retrait explicite
+- **Cible demandes :** accepter/refuser les demandes reçues, annuler les demandes envoyées, retirer un ami, acceptation réciproque conservée
+- **Expiration :** aucune
+- **Relation :** paire unique par IDs ; retrait archivé ; progression restaurée au réajout
+- **Cœur :** un par relation, par sens et par journée Europe/Paris
+- **Récompense :** +5 Primogemmes aux deux joueurs
+- **Niveau :** partagé, plafonné à 1000 ; total de cœurs toujours cumulatif
+- **`Envoyer à tous` :** atomique/idempotent, un seul retour compact
+- **Notifications :** aucune notification dédiée au cœur
+- **Missions :** B/A/S comptent les cœurs sortants validés ; Z à la première relation niveau 1000
+- **UI :** liste d'amis avec recherche, tris, cœur par ami et action globale
+- **Syntaxes finales :** acceptation/refus/annulation/retrait et messages exacts à finaliser à partir de R494
+
+## `!infos`
+
+- **Statut audit :** CIBLE PARTIELLEMENT CADRÉE — R471/R489/R490
+- **Syntaxe canonique :** `!infos <pseudo>`
+- **Alias accepté :** `!info <pseudo>`
+- **Aide :** présente uniquement `!infos`
+- **Chat interne/Twitch :** une seule réponse compacte
+- **Contenu autorisé :** pseudo, niveau, élément, nombre de personnages sans liste, remplissage Team active, total Pulls, victoires Combat et niveau d'amitié avec le demandeur
+- **Confidentialité :** chaque champ non autorisé est omis ; aucune donnée privée n'est récupérée pour être seulement masquée
+- **Supprimé de la cible chat :** sections détaillées `team`, `box`, `sac`, `pity`, `stats`, `mission`
+- **UI standalone :** le Profil porte les vues détaillées en lecture seule selon permissions
+- **Titre :** jamais affiché dans les chats
+
+## `!liste`
+
+- **Statut audit :** CIBLE PARTIELLEMENT CADRÉE — R462/R464/R472
+- **Syntaxe conservée :** `!liste <élément>`
+- **Nouvelle syntaxe :** `!liste online`
+- **`<élément>` :** annuaire des joueurs de l'élément demandé ; ne prétend pas représenter une présence temps réel
+- **`online` :** joueurs réellement En ligne/Absents selon les sessions standalone
+- **Confidentialité :** respecte blocages et permissions applicables
+- **UI standalone :** l'écran Social fournit recherche, filtres et listes détaillées
+- **Format/pagination Twitch :** à finaliser à partir de R494

@@ -474,13 +474,20 @@ Visibilités prévues :
 
 ---
 
-### R190 — Saved Teams privées — ✅ VALIDÉ
+### R190 — Saved Teams privées par défaut — ✅ RÉVISÉ PAR R473/R486/R487
 
-Les équipes sauvegardées sont un outil personnel.
+Les équipes sauvegardées restent un outil personnel et sont `Privé` par défaut.
 
-Elles ne sont pas automatiquement exposées sur le profil d'un joueur.
+La rubrique `Saved Teams` peut néanmoins être réglée :
+- Public ;
+- Amis uniquement ;
+- Privé.
 
-Une éventuelle fonctionnalité future de partage explicite d'une équipe devra être conçue séparément.
+Lorsqu'elles sont partagées :
+- consultation standalone en lecture seule ;
+- aucune mutation depuis le profil du visiteur ;
+- permissions vérifiées côté serveur ;
+- aucune exposition détaillée par une commande Twitch/chat.
 
 ---
 

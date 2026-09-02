@@ -117,18 +117,28 @@ Quand une décision réelle est nécessaire, utiliser une numérotation continue
 
 `Rxxx`
 
-Exemples de fin de bloc :
+Dans le corps du message, conserver un titre explicite :
 
-`R287 : Oui/Non`
+`Rxxx — Intitulé de la décision`
 
-`R288 : A/B`
+Pour chaque décision :
+- expliquer suffisamment la réalité actuelle et les conséquences du choix ;
+- viser plusieurs lignes utiles plutôt qu'une alternative trop maigre ;
+- indiquer explicitement le canal concerné lorsqu'il existe une différence : `UI standalone`, `chat interne`, `Twitch`, `migration` ou `transversal` ;
+- utiliser A/B/C seulement lorsque le nombre d'alternatives le justifie ;
+- utiliser Oui/Non lorsqu'il s'agit réellement d'une décision binaire.
 
 Quand plusieurs décisions sont proposées dans un même message :
 - expliquer chaque décision dans le corps du message ;
 - regrouper toutes les lignes de réponse `Rxxx : ...` ensemble à la toute fin du message ;
-- ne pas disperser les choix de réponse entre les explications.
+- ne pas disperser les choix de réponse entre les explications ;
+- terminer par une liste sobre contenant uniquement les formats attendus, par exemple :
+  - `R287 : Oui/Non`
+  - `R288 : A/B`
+- ne pas répéter les descriptions longues dans cette liste finale ;
+- ne pas ajouter à cette liste les décisions que ChatGPT a déjà prises seul.
 
-L'utilisateur doit pouvoir répondre très vite.
+L'utilisateur doit pouvoir copier la liste finale et répondre très vite.
 
 Ne pas redemander des choses déjà décidées.
 
@@ -167,6 +177,13 @@ prévoir qu'un article de boutique puisse avoir une limite d'achat configurable 
 
 En revanche, activer réellement une limite d'achat sur un article existant est une décision gameplay/économie qui peut demander validation.
 
+Quand ChatGPT prend directement une décision évidente, technique, de structure de données ou de migration conservatrice :
+- l'annoncer brièvement à l'utilisateur ;
+- expliquer seulement la conséquence utile ;
+- préciser que l'utilisateur peut lever un flag s'il n'est pas d'accord ;
+- si l'utilisateur ne conteste pas cette décision, la considérer ensuite comme acquise ;
+- ne pas la remettre en validation dans un bloc `Rxxx : A/B`.
+
 ---
 
 # 6. Checkpoints
@@ -193,15 +210,16 @@ Lors d'un checkpoint :
 5. donner les commandes Git ;
 6. donner un tableau d'avancement en pourcentage.
 
-Le tableau d'avancement doit au minimum inclure :
-- domaines déjà clôturés ;
-- domaine actif ;
-- audit legacy global ;
-- niveau de définition du modèle de données ;
-- préparation backend / DB ;
-- préparation du premier test standalone jouable.
+Le tableau d'avancement doit :
+- omettre les domaines d'audit déjà clôturés à 100 %, sauf raison particulière de les rappeler ;
+- remplacer la ligne générique `Audit legacy global` par une ligne séparée pour chaque audit restant ;
+- donner pour chaque audit restant une estimation approximative de son avancement ;
+- inclure le domaine actif ;
+- inclure le niveau de définition du modèle de données ;
+- inclure la préparation backend / DB ;
+- inclure la préparation du premier test standalone jouable.
 
-Les pourcentages sont des estimations, pas des métriques contractuelles.
+Les pourcentages sont des estimations à la louche, pas des métriques contractuelles.
 
 ---
 
@@ -474,6 +492,7 @@ Pour le détail :
 - Missions / Daily : `docs/legacy/11-missions-daily-audit.md`
 - Expedition : `docs/legacy/12-expedition-audit.md`
 - Combat : `docs/legacy/13-combat-audit.md`
+- Ami / Social : `docs/legacy/14-ami-social-audit.md`
 - domaine actif suivant : voir le Master puis lire son document spécialisé
 
 Toujours préférer ces documents au contenu d'anciens chats.
@@ -492,10 +511,12 @@ Lorsqu'une nouvelle conversation commence :
 6. lire le document spécialisé du domaine actif depuis le même HEAD ;
 7. lire les passages pertinents de `docs/specifications/decisions-log.md` ;
 8. lire `docs/commands/command-reference.md` si le domaine touche des commandes ;
-9. si l'audit legacy du domaine continue, lire les vrais scripts et JSON concernés avant de proposer de nouvelles décisions ;
-10. vérifier le dernier Rxxx réellement documenté et reprendre au numéro suivant indiqué par le repo ;
-11. conserver exactement le style de décision Rxxx et regrouper toutes les lignes de réponse à la fin ;
-12. continuer à signaler spontanément les checkpoints utiles.
+9. lors de la première reprise, lire une fois les sources principales du prototype frontend déjà codé, notamment `src/App.tsx`, la navigation, la sidebar, le chat, les panneaux globaux, les types, les données de démonstration et les écrans existants, afin de garder l'interface réelle en mémoire ; le prototype inspire l'UX mais ne devient pas une source de vérité métier ;
+10. ne pas relire tout le prototype à chaque réponse si aucun changement frontend pertinent n'est intervenu ;
+11. si l'audit legacy du domaine continue, lire les vrais scripts et JSON concernés avant de proposer de nouvelles décisions ;
+12. vérifier le dernier Rxxx réellement documenté et reprendre au numéro suivant indiqué par le repo ;
+13. conserver exactement le style de décision Rxxx, expliquer suffisamment chaque choix, distinguer les canaux concernés et regrouper la liste sobre des réponses à la fin ;
+14. continuer à signaler spontanément les checkpoints utiles.
 
 Ne pas demander à l'utilisateur de réexpliquer le projet si les fichiers permettent de reprendre.
 

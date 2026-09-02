@@ -359,7 +359,7 @@ Statut : évolutif.
 - `VALIDÉ` — Une même combinaison de quatre personnages ne peut exister que dans une seule Saved Team.
 - `VALIDÉ` — UI et Twitch/chat empêchent la création d'une composition Saved Team dupliquée.
 - `VALIDÉ` — Les passifs sont dérivés de la composition et visibles sur l'équipe active ainsi qu'en aperçu sur les Saved Teams.
-- `VALIDÉ` — Une Saved Team reste privée ; seule l'équipe active peut être exposée sur le profil selon confidentialité.
+- `RÉVISÉ R473/R486/R487` — Une Saved Team est privée par défaut mais sa rubrique peut être rendue publique ou réservée aux amis ; toute consultation tierce reste en lecture seule selon permissions serveur.
 - `VALIDÉ` — L'équipe active reste consultable hors ligne si les permissions l'autorisent.
 - `VALIDÉ` — Un personnage d'une équipe publique ouvre la même fiche publique que depuis la Box.
 - `VALIDÉ` — Désactivation personnage : retrait de l'équipe active ; slot 1..10 contenant ce personnage entièrement vidé ; équipe >10 entièrement supprimée ; aucune restauration automatique.
@@ -425,7 +425,7 @@ Statut : évolutif.
 - `VALIDÉ` — Le nombre d'invocations possibles reste visible dans le Sac et `!sac`, uniquement comme donnée dérivée.
 - `VALIDÉ` — `!coffre` trie les possessions alphabétiquement.
 - `VALIDÉ MIGRATION` — Un ID Collection inconnu est conservé et affiché sous placeholder sans fausser le compteur des objets connus.
-- `VALIDÉ` — Le Sac complet est privé ; seules des sous-sections autorisées apparaissent sur un profil.
+- `RÉVISÉ R473/R486/R487` — Le Sac complet est privé par défaut mais sa rubrique peut être rendue publique ou réservée aux amis ; `!sac` reste une commande personnelle et la consultation tierce passe par l'UI en lecture seule.
 - `VALIDÉ TECHNIQUE` — Le catalogue peut supporter des limites d'achat par joueur/période sans en imposer aux articles actuels.
 - `VALIDÉ` — Aucun stock mondial limité en V1 ; extensibilité future autorisée.
 - `VALIDÉ` — `!sac` garde l'élément principal en premier et affiche aussi les objets spéciaux persistants possédés.
@@ -474,7 +474,7 @@ Statut : évolutif.
 - `VALIDÉ R332` — Confirmation UI du switch uniquement si une progression >0 sera perdue ; Twitch/chat reste direct.
 - `VALIDÉ R333` — La mission quotidienne exacte reste inconnue avant paiement et tirage serveur.
 - `VALIDÉ R334` — Ne pas afficher aux joueurs les pourcentages/chances de tirage des quotidiennes.
-- `VALIDÉ R335` — Missions et progressions publiques en V1 ; le contenu Z reste secret pour tous tant qu'il est verrouillé.
+- `RÉVISÉ R469/R474/R486/R487` — Missions et progressions sont publiques par défaut mais configurables Public/Amis/Privé ; le contenu Z reste secret pour tous tant qu'il est verrouillé.
 - `VALIDÉ R336` — `!mission` Twitch/chat consulte uniquement les propres missions du joueur ; la consultation publique d'un autre joueur passe par son profil standalone en lecture seule.
 - `VALIDÉ R336` — `!mission` résume quotidienne + permanentes ; B/A/S/Z restent consultables individuellement ; `!mission resume` peut survivre comme alias de compatibilité non recommandé.
 - `VALIDÉ TECHNIQUE R336` — Une longue consultation chat/Twitch est découpée proprement si nécessaire plutôt que tronquée silencieusement.
@@ -523,7 +523,7 @@ Statut : évolutif.
 - `VALIDÉ TECHNIQUE R366` — À `readyAt`, la Box ouverte se met à jour en temps réel ; personnage remonté, badge `À récupérer`, notification UI, aucune popup forcée ni récompense automatique.
 - `VALIDÉ TECHNIQUE R367` — Le reset quotidien n'annule ni ne modifie une Expedition active ; une Expedition précédente continue à bloquer le nouveau départ jusqu'à récupération.
 - `VALIDÉ MIGRATION` — `readyAt` peut être reconstruit depuis un `startedAt` fiable ; ne jamais reconstruire une Expedition depuis des données résiduelles insuffisantes ni déclencher gain/statistique pendant une réparation de migration.
-- `REPORTÉ R368` — La visibilité de `totalExpeditionsCompleted` sera décidée dans Profil / Statistiques / Confidentialité ; l'état de l'Expedition actuelle reste privé.
+- `RÉSOLU R473/R474/R486/R487` — `totalExpeditionsCompleted` appartient aux statistiques publiques par défaut et configurables ; l'état de l'Expedition actuelle est privé par défaut mais sa rubrique peut être rendue publique ou réservée aux amis.
 - `CLÔTURÉ R369` — Domaine Expedition clôturé après R369.
 
 ## Combat
@@ -608,6 +608,52 @@ Statut : évolutif.
 - `VALIDÉ TECHNIQUE R449` — `maxHp` utilise une variation uniforme ±15 % autour de `baseHp`, arrondie aux 10 000 PV et snapshotée.
 - `VALIDÉ TECHNIQUE R450` — Résistance uniforme parmi sept éléments, répétition mensuelle autorisée, valeur snapshotée.
 - `CLÔTURÉ` — Domaine Combat clôturé après R450.
+
+## Ami / Social
+- `VALIDÉ R451` — UI et chats permettent accepter/refuser une demande reçue et annuler une demande envoyée ; une demande réciproque continue à accepter rapidement la relation.
+- `VALIDÉ R452` — Les demandes d'ami n'expirent pas automatiquement.
+- `VALIDÉ R453` — Retirer un ami archive la relation ; un réajout restaure progression et verrou quotidien.
+- `VALIDÉ TECHNIQUE R454` — Relations par IDs, paire unique, reset cœur à 00:00 Europe/Paris, transaction idempotente.
+- `VALIDÉ R455` — Chaque cœur valide donne +5 Primogemmes aux deux joueurs, sans plafond supplémentaire.
+- `VALIDÉ TECHNIQUE R456` — `Envoyer à tous` est atomique/idempotent et produit un seul retour compact.
+- `VALIDÉ R457` — Niveau d'amitié réellement plafonné à 1000 ; total historique des cœurs toujours cumulatif.
+- `VALIDÉ R458` — B/A/S comptent les cœurs sortants validés ; Z se termine lorsqu'une relation atteint 1000.
+- `VALIDÉ MIGRATION R459` — Relations, demandes et compteurs exacts sont conservés sans reconstruire l'écart historique de 612 cœurs.
+- `VALIDÉ R460` — Écran Social unique avec Amis/Demandes/Joueurs/Messages ; Amis ouvert par défaut.
+- `VALIDÉ R461` — Tri par défaut présence puis alphabet ; tris alternatifs mémorisés.
+- `VALIDÉ R462` — Présence standalone En ligne/Absent/Hors ligne.
+- `VALIDÉ R463` — Dernière activité configurable Public/Amis/Privé.
+- `VALIDÉ R464` — Le panneau du chat montre seulement En ligne/Absents.
+- `VALIDÉ R465` — Aucune notification dédiée aux cœurs ; gains visibles/auditables sans popup sociale.
+- `VALIDÉ R466` — MP internes configurables Public/Amis/Privé, Public par défaut au cutover.
+- `VALIDÉ R467` — Aucun plafond d'amis.
+- `VALIDÉ R468` — Profil standalone complet avec rubriques autorisées.
+- `VALIDÉ R469` — Confidentialité indépendante par catégorie.
+- `VALIDÉ R470` — Pseudo, avatar, niveau et élément toujours visibles.
+- `VALIDÉ R471` — `!infos <pseudo>` reste compact dans les chats ; aucune Box ou section longue ; l'UI porte le détail.
+- `VALIDÉ R472` — `!liste <élément>` est conservé et `!liste online` ajouté.
+- `RÉVISION TRANSVERSE R473` — Toutes les catégories de gameplay, y compris Sac, Saved Teams et états tactiques, peuvent être Public/Amis/Privé ; catégories sensibles privées par défaut au cutover.
+- `VALIDÉ R474` — Statistiques cumulatives non sensibles publiques par défaut dans une rubrique configurable.
+- `VALIDÉ R475` — Le premier MP d'un non-ami autorisé crée une demande de conversation.
+- `VALIDÉ R476` — Retirer un ami ne supprime pas l'historique des MP.
+- `VALIDÉ R477` — Le blocage empêche demandes, MP, interactions sociales directes et visibilité présence/dernière activité entre les comptes.
+- `VALIDÉ R478` — Avatars officiels uniquement, aucun upload personnel.
+- `VALIDÉ R479` — Avatar élémentaire par défaut puis choix libre parmi les avatars débloqués.
+- `VALIDÉ R480` — Avatars/titres déblocables par plusieurs systèmes et ressources virtuelles.
+- `VALIDÉ MIGRATION R481` — Déblocages cosmétiques rétroactifs lorsqu'ils sont prouvables, jamais inventés.
+- `VALIDÉ R482` — Cosmétique débloqué définitivement acquis.
+- `VALIDÉ R483` — Un titre ou aucun ; titre visible uniquement sur la page Profil.
+- `VALIDÉ R484` — Avatar GachaImpact visible dans le chat interne/standalone ; aucun titre dans les chats ; Twitch conserve son avatar réel.
+- `VALIDÉ R485` — Déblocage cosmétique notifié dans l'UI et intégré au résultat chat immédiat sans second message.
+- `VALIDÉ R486` — Confidentialité par rubriques cohérentes, avec sous-rubriques seulement si utiles.
+- `VALIDÉ R487` — Même politique initiale prudente pour comptes migrés et nouveaux.
+- `VALIDÉ R488` — Une rubrique partagée réutilise la vraie vue en lecture seule, permissions appliquées côté serveur.
+- `VALIDÉ R489` — `!infos` affiche un résumé fixe autorisé, compact et sans titre.
+- `VALIDÉ TECHNIQUE R490` — `!infos` canonique ; `!info` alias accepté mais non présenté par l'aide.
+- `VALIDÉ R491` — Avatar/pseudo ouvrent le profil depuis les vues standalone pertinentes.
+- `VALIDÉ R492` — Profil > Personnalisation avec onglets Avatars/Titres.
+- `VALIDÉ R493` — Chaque cosmétique verrouillé choisit condition visible, silhouette mystérieuse ou secret total.
+- `EN COURS` — Domaine Ami / Social documenté dans `legacy/14-ami-social-audit.md` ; prochaine reprise R494.
 
 ## Quotidiennes — direction transverse
 - `VALIDÉ R355` — Écran `Quotidiennes` dédié : Roue → Roue, Combat → Combat, Expedition → Box, Ami cœur → Amis, Event → Event, Shop → Boutique.

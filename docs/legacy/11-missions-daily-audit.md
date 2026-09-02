@@ -992,9 +992,14 @@ Le catalogue serveur peut néanmoins conserver des poids configurables pour le f
 
 Cette décision ne change pas R333 : la mission effectivement obtenue reste inconnue avant l'achat.
 
-## R335 — Missions publiques en V1
+## R335 — Missions publiques par défaut et configurables — ✅ RÉVISÉ PAR R469/R474/R486/R487
 
-Les missions et leurs progressions sont publiques en V1 et peuvent être consultées depuis le profil d'un autre joueur.
+Les missions et leurs progressions sont `Public` par défaut et peuvent être consultées depuis le profil d'un autre joueur.
+
+La rubrique `Missions` peut être réglée :
+- Public ;
+- Amis uniquement ;
+- Privé.
 
 Cela concerne :
 - mission quotidienne actuelle et sa progression ;
@@ -1003,9 +1008,9 @@ Cela concerne :
 
 Le secret de R308/R330 reste prioritaire :
 - tant que le rang Z d'un joueur est verrouillé, les autres joueurs ne voient pas davantage d'informations que le propriétaire ;
-- intitulés, objectifs et récompenses Z restent cachés.
+- intitulés, objectifs et récompenses Z restent cachés, même si la rubrique Missions est publique.
 
-Une future évolution globale de la confidentialité pourra éventuellement rendre cette catégorie configurable, mais la règle V1 est publique.
+La consultation tierce détaillée reste portée par le profil standalone en lecture seule ; `!mission` demeure personnelle.
 
 ## R336 — Consultation des missions d'autres joueurs
 

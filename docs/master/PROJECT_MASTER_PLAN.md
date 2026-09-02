@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.31
+Version : 0.32
 Date : 2026-09-02
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -1022,46 +1022,63 @@ Architecture :
 
 La liste exacte des catégories, limites et historiques sera définie plus tard.
 
-## 6.7 Confidentialité joueur — DIRECTION VALIDÉE
+## 6.7 Confidentialité joueur — DIRECTION VALIDÉE / PRÉCISÉE R463–R489
 
-Prévoir dans le futur écran `Paramètres` un onglet `Confidentialité`.
+Prévoir dans l'écran `Paramètres` un onglet `Confidentialité`.
 
-Principe :
-- informations publiques par défaut ;
-- selon la catégorie, possibilité de choisir :
-  - `Public` ;
-  - `Amis uniquement` ;
-  - `Privé`.
+Valeurs possibles pour chaque rubrique configurable :
+- `Public` ;
+- `Amis uniquement` ;
+- `Privé`.
 
-Le système doit être capable à terme d'une granularité plus fine que la simple Box entière.
+Identité toujours visible :
+- pseudo ;
+- avatar ;
+- niveau ;
+- élément.
 
-Exemples potentiels :
+Rubriques prévues :
+- Team active ;
+- Saved Teams ;
 - Box ;
-- date d'obtention ;
-- favoris ;
-- copies ;
-- ressources ;
+- Collection ;
+- monnaies ;
+- Sac ;
+- Banque ;
+- pity/garantie ;
 - statistiques ;
-- statistiques Combat ;
 - Missions ;
-- autres catégories futures.
+- Expedition ;
+- Combat quotidien ;
+- Boss mensuel ;
+- dernière activité ;
+- historiques.
 
-Décision Missions V1 :
-- missions et progressions publiques ;
-- quotidienne actuelle consultable publiquement ;
-- progressions B/A/S publiques ;
-- Z consultable après déblocage ;
-- avant déblocage Z, aucun intitulé/objectif/récompense n'est révélé, même à un autre joueur.
+La granularité cible est une rubrique métier cohérente, avec sous-rubrique seulement lorsqu'elle apporte une vraie valeur. Elle ne descend pas par défaut jusqu'à chaque champ ou slot atomique.
 
-La V1 n'est pas obligée d'exposer immédiatement toute cette granularité pour les autres catégories.
+Valeurs initiales :
+- comptes migrés et nouveaux comptes utilisent la même politique prudente ;
+- identité toujours visible ;
+- rubriques sociales générales non sensibles publiques par défaut ;
+- données économiques détaillées, presets et états tactiques sensibles privés par défaut ;
+- le propriétaire peut ensuite modifier chaque rubrique configurable.
 
-Sécurité :
-- appliquer les permissions côté serveur ;
-- ne jamais dépendre uniquement du masquage frontend.
+Clarification transverse :
+- Sac exact, Saved Teams, états Expedition, slots/KO Combat et autres données tactiques ne sont plus déclarés définitivement privés ;
+- ils restent privés par défaut mais peuvent être rendus publics ou réservés aux amis ;
+- Missions et statistiques sont publiques par défaut mais configurables ;
+- les règles de secret Z restent prioritaires même si Missions est public.
 
-UX :
+Consultation :
+- une rubrique autorisée réutilise la vraie vue du domaine en lecture seule ;
+- les actions de mutation sont absentes pour le visiteur ;
 - une section inaccessible reste visible avec un état de confidentialité ;
 - distinguer clairement contenu vide et contenu privé.
+
+Sécurité :
+- appliquer les permissions côté serveur avant de récupérer ou retourner les données ;
+- ne jamais dépendre uniquement du masquage frontend ;
+- ne jamais envoyer au client une donnée privée pour ensuite seulement la cacher.
 
 ---
 
@@ -2628,24 +2645,61 @@ Les commandes internes doivent appeler les mêmes services que les boutons.
 
 ---
 
-# 30. PHASE 8 — SOCIAL
+# 30. PHASE 8 — SOCIAL — AUDIT EN COURS R451–R493
 
-Prévu :
-- liste joueurs en ligne ;
-- fiche joueur ;
-- amis ;
-- demandes ;
-- retirer ami ;
-- messages privés ;
-- espace social.
+Document spécialisé :
+`docs/legacy/14-ami-social-audit.md`
 
-Direction actuelle pour la fiche joueur :
-- permettre pour l'instant de consulter les ressources et statistiques des autres joueurs ;
-- la liste exacte des informations visibles sera affinée plus tard si certaines doivent devenir privées ;
-- un futur écran Statistiques pourra exploiter les historiques/transactions pour afficher des statistiques joueur ;
-- des statistiques globales du jeu pourront également être ajoutées plus tard.
+Espace Social unique :
+- onglet `Amis` ouvert par défaut ;
+- `Demandes` ;
+- `Joueurs` ;
+- `Messages` ;
+- recherche temps réel ;
+- tris de présence, ordre alphabétique, niveau d'amitié et cœur disponible.
 
-Les MP sont indépendants de Twitch.
+Présence :
+- `En ligne` ;
+- `Absent` ;
+- `Hors ligne` ;
+- panneau du chat limité aux joueurs En ligne/Absents ;
+- dernière activité soumise à Public/Amis/Privé ;
+- `lastSeen` legacy conservé comme activité Twitch historique, jamais comme fausse session standalone.
+
+Profil :
+- Aperçu, Team, Box, Collection, Statistiques, Missions et autres rubriques autorisées ;
+- identité pseudo/avatar/niveau/élément toujours visible ;
+- clic sur l'identité depuis les vues pertinentes pour ouvrir le profil ;
+- rubriques visibles réutilisées en lecture seule ;
+- confidentialité par rubriques cohérentes.
+
+Amis :
+- demandes persistantes avec accepter/refuser/annuler ;
+- acceptation réciproque conservée ;
+- retrait archivant la relation et restauration après réajout ;
+- aucun plafond d'amis ;
+- un cœur par relation, par sens et par journée Europe/Paris ;
+- +5 Primogemmes à chacun, sans plafond supplémentaire ;
+- niveau partagé plafonné à 1000 ;
+- aucun notification dédiée aux cœurs.
+
+Messages privés :
+- strictement internes à GachaImpact ;
+- réglage Public/Amis/Privé, Public par défaut au cutover ;
+- premier message d'un non-ami sous forme de demande de conversation ;
+- historique conservé après retrait d'ami ;
+- blocage social complet.
+
+Cosmétiques :
+- avatars officiels seulement ;
+- avatar élémentaire par défaut ;
+- avatars et titres déblocables par plusieurs systèmes ;
+- déblocages permanents et rétroactifs lorsqu'ils sont prouvables ;
+- un titre équipable, visible uniquement sur le Profil ;
+- avatar GachaImpact visible dans le chat interne, sans remplacement de l'avatar Twitch ;
+- notification UI de déblocage et mention intégrée au résultat chat immédiat sans second message.
+
+L'audit Social reste ouvert et reprend à R494.
 
 ---
 
@@ -2884,7 +2938,7 @@ Missions / Daily désormais cadrés :
 - `!mission resume` peut survivre comme alias non recommandé ;
 - `!quotis` devient dynamique ;
 - aucune notification Twitch asynchrone ;
-- missions/progressions publiques depuis le profil standalone ;
+- missions/progressions publiques par défaut depuis le profil standalone, avec rubrique configurable Public/Amis/Privé ;
 - aucune catégorie Historique Missions player-facing ;
 - migration conservatrice des permanentes ;
 - quotidienne du jour du cutover conservée lorsqu'elle est certaine ;
@@ -2911,7 +2965,7 @@ Expedition désormais cadré notamment sur :
 - workflow principal directement dans la Box ;
 - aucune vue Expedition dédiée ;
 - personnage prêt temporairement placé avant les favoris ;
-- état Expedition privé dans la Box ;
+- état Expedition privé par défaut, configurable par sa rubrique dédiée et jamais révélé implicitement par la seule visibilité de la Box ;
 - badges `En expédition` / `À récupérer` ;
 - Expedition considérée faite dans les Quotidiennes dès le départ ;
 - Expedition prête bloquant un nouveau départ ;
@@ -2942,7 +2996,7 @@ Dernières règles de clôture :
 - passage à `readyAt` répercuté en temps réel dans la Box sans popup forcée ;
 - reset quotidien sans annulation ni modification de l'Expedition en cours ;
 - edge cases de migration conservateurs et sans récompense/statistique déclenchée par une réparation ;
-- visibilité publique de `totalExpeditionsCompleted` reportée à Profil / Statistiques / Confidentialité.
+- `totalExpeditionsCompleted` intégré aux statistiques publiques par défaut et configurables par Social.
 
 **Domaine Expedition : CLÔTURÉ.**
 
@@ -3034,7 +3088,7 @@ Commandes, migration et sécurité finalisées R430-R450 :
 - attaque visant une ancienne instance refusée sans redirection ;
 - historique legacy partiel conservé sans inventer les attaques/compositions absentes ;
 - aucun historique player-facing du Combat quotidien en V1 ;
-- statistiques quotidiennes par personnage affichées dans sa fiche personnelle ;
+- statistiques quotidiennes par personnage affichées dans sa fiche personnelle et consultables selon les réglages de confidentialité ;
 - douze noms de Boss conservés selon les mois de l'année ;
 - variation `maxHp` uniforme ±15 %, arrondie aux 10 000 PV ;
 - résistance mensuelle aléatoire avec répétition autorisée.
@@ -3047,11 +3101,31 @@ Règle Notifications précisée :
 
 **Domaine Combat clôturé après R450.**
 
-**Prochaine reprise : Domaine 11 — Ami / social.**
+**Domaine 11 — Ami / Social : EN COURS — R451 À R493.**
+
+Document spécialisé :
+`docs/legacy/14-ami-social-audit.md`
+
+Déjà cadrés :
+- demandes explicites accepter/refuser/annuler et acceptation réciproque ;
+- demandes sans expiration ;
+- retrait archivé et progression restaurée au réajout ;
+- cœurs quotidiens +5/+5 sans plafond supplémentaire ;
+- niveau d'amitié plafonné à 1000 ;
+- Missions cœurs/Amitié Parfaite recroisées ;
+- migration conservatrice des relations, demandes et compteurs ;
+- écran Social, listes, présence et dernière activité ;
+- profil détaillé et confidentialité par rubriques ;
+- MP selon Public/Amis/Privé ;
+- blocage social ;
+- avatars et titres déblocables/rétroactifs ;
+- commandes `!infos` / `!info` et `!liste` orientées vers des réponses compactes.
+
+**Prochaine reprise : R494 — finir les MP, les commandes Ami, la concurrence, les valeurs exactes de confidentialité et la migration avant clôture.**
 
 Dépendance future à conserver :
 - lors de l'audit `Top / Classements`, décider explicitement portefeuille vs patrimoine total pour les Moras ;
-- respecter la confidentialité Banque et empêcher toute déduction indirecte d'un solde privé.
+- respecter les réglages de confidentialité et empêcher toute déduction indirecte d'une donnée privée.
 
 ---
 
@@ -3174,4 +3248,11 @@ Décisions clés :
 - notifications non lues persistantes jusqu'à lecture/suppression ; notifications lues nettoyées au reset suivant.
 
 Prochaine étape :
-commencer le Domaine 11 — Ami / social à partir des vrais scripts et JSON legacy ; Combat est clôturé après R450. Concours / C6, Event / monthly, autres utilitaires, Top / Classements et Twitch / Giveaway restent à auditer selon la roadmap.
+commencer le Domaine 11 — Ami / social à partir des vrais scripts et JSON legacy ; Combat est clôturé après R450. Concours / C6, Event / monthly, autres utilitaires, Top / Classements et Twitch / Giveaway restent à auditer selon la roadmap.- aucun historique player-facing du Combat quotidien en V1 ; statistiques par personnage affichées dans la fiche personnelle selon confidentialité ;
+- notifications non lues persistantes jusqu'à lecture/suppression ; notifications lues nettoyées au reset suivant ;
+- Ami / Social cadré jusqu'à R493 : demandes persistantes, relations archivables, cœurs +5/+5, niveau 1000, présence standalone, profil, confidentialité, MP, blocage, avatars et titres ;
+- toutes les rubriques de gameplay peuvent être rendues Public/Amis/Privé ; les catégories sensibles sont privées par défaut mais ne sont plus définitivement interdites au partage ;
+- `!infos` / `!info` et `!liste` restent des commandes compactes ; l'UI porte les vues détaillées.
+
+Prochaine étape :
+continuer le Domaine 11 — Ami / Social à R494 depuis `docs/legacy/14-ami-social-audit.md`. Finir les MP, les commandes Ami, la concurrence, les valeurs exactes de confidentialité et la migration avant clôture. Concours / C6, Event / monthly, autres utilitaires, Top / Classements et Twitch / Giveaway restent à auditer selon la roadmap.

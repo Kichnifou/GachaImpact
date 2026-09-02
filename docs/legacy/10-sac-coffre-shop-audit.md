@@ -839,23 +839,24 @@ Un objet inconnu ne compte pas dans le compteur de complétion des objets connus
 
 ---
 
-### R287 — Le Sac complet reste privé — ✅ VALIDÉ
+### R287 — Sac privé par défaut, partage configurable — ✅ RÉVISÉ PAR R473/R486/R488
 
-Le véritable écran Sac est accessible uniquement à son propriétaire.
+Le véritable écran Sac est `Privé` par défaut.
 
-Le profil public peut exposer des sous-sections autorisées :
-- Collection ;
-- certaines ressources ;
-- autres informations selon confidentialité.
+La rubrique `Sac` peut être réglée :
+- Public ;
+- Amis uniquement ;
+- Privé.
 
-Un autre joueur ne peut pas ouvrir le Sac complet avec :
-- tous les onglets ;
-- les objets privés ;
-- les actions d'utilisation.
+Lorsqu'elle est partagée :
+- le visiteur ouvre la vraie vue Sac en lecture seule ;
+- les onglets autorisés peuvent être consultés ;
+- aucune action d'utilisation, conversion, échange ou achat n'est disponible ;
+- les permissions sont vérifiées côté serveur avant retour des données.
 
 `!sac` reste une commande personnelle.
 
-Pas de `!sac <pseudo>` cible.
+Pas de `!sac <pseudo>` cible : la consultation tierce détaillée appartient uniquement à l'UI standalone.
 
 ---
 

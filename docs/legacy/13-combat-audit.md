@@ -1490,7 +1490,10 @@ Une victoire ou défaite incrémente le compteur des quatre personnages utilisé
 
 Les compteurs legacy valides sont migrés.
 
-Leur exposition publique sera décidée plus tard avec Profil / Statistiques / Confidentialité.
+Révision Social R469/R473/R474/R486/R487 :
+- statistiques Combat dans la rubrique Statistiques, publique par défaut et configurable ;
+- slots, KO, état quotidien et composition Boss privés par défaut mais configurables par leurs rubriques ;
+- toute consultation tierce utilise les vues standalone en lecture seule et les permissions serveur.
 
 Les attaques Boss ne sont pas mélangées avec ces compteurs quotidiens.
 
@@ -1601,7 +1604,7 @@ Sont cadrés :
 - anomalies de cutover.
 
 Dépendances reportées :
-- visibilité publique détaillée des statistiques Combat → Profil / Statistiques / Confidentialité ;
+- consommation des réglages de visibilité Combat → résolue conceptuellement par Ami / Social R469/R473/R474/R486/R488 ;
 - présentation transversale des classements → Top / Classements ;
 - équilibrage final des valeurs → playtests et passe d'économie globale.
 

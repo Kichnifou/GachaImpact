@@ -394,17 +394,23 @@ Migration :
 - ambiguïtés réelles mises en quarantaine pour résolution ;
 - données illisibles consignées sans inventer une possession.
 
-### Visibilité / confidentialité
+### Visibilité / confidentialité — précisée par Social R469/R473/R486/R488
 
 La possession peut exister côté serveur sans être visible au visiteur.
 
-La visibilité publique dépend du futur système de confidentialité :
+Chaque rubrique configurable utilise :
 - Public ;
 - Amis uniquement ;
-- Privé ;
-- granularité potentiellement plus fine selon les informations.
+- Privé.
 
-Les contrôles de permissions sont appliqués côté serveur.
+Les catégories sensibles sont privées par défaut mais peuvent être volontairement partagées.
+
+Lorsqu'une rubrique est autorisée :
+- la vraie vue métier peut être réutilisée en lecture seule ;
+- les actions de mutation sont absentes ;
+- une donnée privée reste distincte d'une donnée vide.
+
+Les contrôles de permissions sont appliqués côté serveur avant la récupération ou le retour des données.
 
 ## 6. Team
 

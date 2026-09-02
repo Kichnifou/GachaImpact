@@ -182,9 +182,11 @@ Identité :
 - une création de compte GachaImpact ne doit jamais écraser ou remplacer le premier `firstSeen` Twitch connu.
 
 `lastSeen` :
-- conserver la valeur legacy à la migration ;
-- ne pas figer maintenant sa future signification globale ;
-- les notions « dernière connexion », « dernière activité de jeu », « dernier message Twitch », « dernier message interne » et présence en ligne seront définies plus tard dans les domaines Compte / Social / Présence.
+- conserver la valeur legacy à la migration comme dernière activité Twitch/legacy connue ;
+- ne jamais l'utiliser comme preuve d'une session standalone en ligne ;
+- distinguer session connectée, activité récente de l'application, dernière activité de jeu, dernier message interne et dernier message Twitch ;
+- la présence standalone utilise En ligne/Absent/Hors ligne ;
+- la dernière activité exposée est soumise au réglage Public/Amis/Privé défini par Social R462/R463.
 
 `lastMessageTime` :
 - le nom legacy est trompeur ;
