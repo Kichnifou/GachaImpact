@@ -205,6 +205,63 @@ Les pourcentages sont des estimations, pas des métriques contractuelles.
 
 ---
 
+# 6A. Vérification GitHub obligatoire
+
+Le repository de référence est :
+
+`Kichnifou/GachaImpact`
+
+Branche de travail de référence :
+
+`main`
+
+ChatGPT doit utiliser le connecteur GitHub disponible pour consulter directement le repository plutôt que demander à l'utilisateur de recopier les fichiers.
+
+Une vérification GitHub est obligatoire :
+- au début d'une nouvelle conversation ;
+- avant tout checkpoint documentaire ;
+- après que l'utilisateur indique avoir pushé ;
+- avant de fournir des ancres de recherche/remplacement ;
+- lorsqu'un fichier ou une décision semble différent de ce qui était attendu.
+
+Procédure :
+
+1. récupérer le HEAD actuel de `main`, avec son SHA et son message de commit ;
+2. lire les fichiers nécessaires depuis ce HEAD précis ;
+3. utiliser autant que possible le même SHA pour tous les fichiers comparés pendant une même vérification ;
+4. si un ancien HEAD de référence est connu, comparer l'ancien et le nouveau HEAD ;
+5. vérifier la liste exacte des fichiers modifiés ;
+6. inspecter les fichiers critiques réellement modifiés ;
+7. vérifier notamment les titres, le dernier Rxxx documenté, la prochaine étape et la fin réelle des fichiers longs ;
+8. seulement ensuite considérer le checkpoint comme valide.
+
+Une recherche GitHub peut servir à localiser un texte ou un fichier, mais son résultat peut provenir d'un index ou d'un ancien commit.
+
+Par conséquent :
+- ne jamais considérer un snippet de recherche comme preuve suffisante de l'état courant ;
+- après avoir localisé un fichier, lire sa version réelle au HEAD actuel avant de s'appuyer dessus ;
+- pour une ancre manuelle, le texte doit provenir de la version actuelle du fichier, pas d'un ancien résultat de recherche.
+
+Si le HEAD actuel ne correspond pas au baseline attendu :
+- ne pas continuer comme si le repo était inchangé ;
+- inspecter les commits supplémentaires ;
+- comparer les changements ;
+- réconcilier d'abord l'état réel du repo.
+
+Après un push utilisateur :
+- vérifier que le nouveau commit existe bien sur `main` ;
+- vérifier le nombre de commits depuis le précédent HEAD connu ;
+- vérifier que seuls les fichiers attendus ont changé, ou inspecter explicitement tout fichier supplémentaire ;
+- vérifier que les fichiers importants ne sont ni tronqués ni partiellement remplacés ;
+- ne reprendre les décisions suivantes qu'après cette validation.
+
+Si une incohérence est détectée :
+- arrêter le checkpoint concerné ;
+- expliquer précisément le problème ;
+- ne pas inventer une correction à partir de la mémoire.
+
+---
+
 # 7. Modifications manuelles des documents
 
 Quand l'utilisateur doit modifier un fichier à la main :
@@ -228,7 +285,25 @@ Respecter :
 Pour chaque modification manuelle :
 - fournir un bloc de texte actuel exact que l'utilisateur peut rechercher directement dans le fichier ;
 - puis fournir le remplacement exact ;
-- le repère textuel doit être suffisamment précis pour retrouver sans ambiguïté l'emplacement.
+- le repère textuel doit être suffisamment précis pour retrouver sans ambiguïté l'emplacement ;
+- l'ancre doit avoir été relue dans la version réelle du fichier au HEAD GitHub actuel immédiatement avant de préparer le checkpoint ;
+- ne jamais reconstruire une ancre depuis la mémoire, un ancien message, un résumé de conversation ou le contenu que ChatGPT pensait avoir fait ajouter précédemment.
+
+Si l'ancre exacte annoncée n'existe pas :
+- ne pas proposer une ancre approximative ;
+- relire le fichier réel sur GitHub ;
+- comprendre pourquoi le contenu diffère ;
+- fournir ensuite une nouvelle instruction basée sur le texte réellement présent.
+
+Pour les très gros remplacements Markdown :
+- faire attention aux blocs de code imbriqués ;
+- si le contenu à copier contient lui-même des clôtures Markdown, utiliser pour le bloc externe une clôture plus longue que les clôtures internes, ou découper le remplacement en plusieurs blocs sûrs ;
+- ne jamais fournir un bloc copiable dont une clôture interne peut fermer prématurément le bloc externe.
+
+Après le push d'un gros remplacement :
+- vérifier également la fin réelle du fichier ;
+- confirmer que les sections attendues après le premier bloc de code existent toujours ;
+- détecter explicitement une éventuelle troncature avant de poursuivre.
 
 Si un nouveau fichier de documentation doit être créé, générer un fichier téléchargeable.
 
@@ -410,20 +485,38 @@ Toujours préférer ces documents au contenu d'anciens chats.
 Lorsqu'une nouvelle conversation commence :
 
 1. lire ce fichier ;
-2. lire `docs/master/PROJECT_MASTER_PLAN.md` sur le repo actuel ;
-3. identifier le domaine actif ;
-4. lire son document spécialisé ;
-5. vérifier la prochaine étape exacte dans le Master ;
-6. reprendre le travail à cet endroit ;
-7. conserver le style de décision Rxxx ;
-8. continuer à signaler spontanément les checkpoints utiles.
+2. récupérer le HEAD actuel de `main` sur GitHub ;
+3. noter son SHA et ne pas supposer qu'un SHA cité dans un ancien prompt est encore le dernier ;
+4. lire `docs/master/PROJECT_MASTER_PLAN.md` depuis ce HEAD ;
+5. identifier le domaine actif et la prochaine étape exacte ;
+6. lire le document spécialisé du domaine actif depuis le même HEAD ;
+7. lire les passages pertinents de `docs/specifications/decisions-log.md` ;
+8. lire `docs/commands/command-reference.md` si le domaine touche des commandes ;
+9. si l'audit legacy du domaine continue, lire les vrais scripts et JSON concernés avant de proposer de nouvelles décisions ;
+10. vérifier le dernier Rxxx réellement documenté et reprendre au numéro suivant indiqué par le repo ;
+11. conserver exactement le style de décision Rxxx et regrouper toutes les lignes de réponse à la fin ;
+12. continuer à signaler spontanément les checkpoints utiles.
 
 Ne pas demander à l'utilisateur de réexpliquer le projet si les fichiers permettent de reprendre.
 
+Si un prompt de reprise fournit un ancien SHA comme baseline :
+- l'utiliser comme repère historique uniquement ;
+- vérifier immédiatement si `main` possède un HEAD plus récent ;
+- le repository actuel prime sur le SHA du prompt.
+
 Si le Master indique un domaine actif déjà avancé :
 - ne pas recommencer son audit depuis zéro ;
-- lire son doc spécialisé ;
-- reprendre aux points restant à décider.
+- lire son document spécialisé ;
+- identifier les décisions déjà validées ;
+- reprendre uniquement les points encore ouverts.
+
+Avant de poser de nouvelles questions :
+- vérifier que leur réponse n'existe pas déjà dans le document spécialisé, le Master ou le decisions-log ;
+- ne pas redemander une décision déjà prise ;
+- ne pas remettre en vote une décision technique que ChatGPT avait explicitement prise sous réserve d'objection et que l'utilisateur n'a pas contestée.
+
+Lorsqu'un utilisateur indique ensuite avoir pushé :
+- appliquer immédiatement la procédure de vérification GitHub de la section 6A avant de poursuivre.
 
 ---
 
