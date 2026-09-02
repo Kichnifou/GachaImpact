@@ -2203,7 +2203,20 @@ Statut : EN COURS
 Fait.
 
 ### 1B — Profil canonique Kichnifou
-En cours.
+Statut : CARTOGRAPHIE INITIALE RÉALISÉE / ENRICHISSEMENT CONTINU.
+
+Document : `docs/legacy/02-current-player-model.md`.
+
+La première cartographie conceptuelle du profil canonique existe déjà.
+
+Elle continue à être enrichie pendant les audits lorsqu'un domaine :
+- précise le rôle d'une propriété ;
+- révèle une donnée externe au profil principal ;
+- définit une règle de migration ;
+- distingue une donnée persistée d'une donnée dérivée ;
+- révèle une ancienne structure ou un cas limite joueur.
+
+Cette étape n'est donc pas une tâche non commencée à refaire après les audits : le modèle joueur évolue en parallèle de ceux-ci puis sera consolidé avant le modèle de données cible.
 
 ### 1C — Matrice commandes ↔ données
 Fait.
@@ -2909,8 +2922,7 @@ Routine générale :
 ```powershell
 git status
 git add .
-git status
-git commit -m "Description courte"
+git commit -m "message adapté"
 git push
 git status
 ```

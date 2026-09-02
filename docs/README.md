@@ -45,7 +45,7 @@ Le code actuel de la V0 se trouve principalement dans `src/`.
 
 Commencer par :
 
-`/.chatgpt/CHATGPT_GUIDE.md`
+`.chatgpt/CHATGPT_GUIDE.md`
 
 Ce Guide indique ensuite la procédure de reprise complète et les documents à lire selon l'état courant.
 
