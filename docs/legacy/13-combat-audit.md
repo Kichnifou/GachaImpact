@@ -189,35 +189,44 @@ Le KO signifie uniquement :
 
 La règle initiale imposant directement la Team active au mode manuel est supprimée.
 
-Le Combat quotidien utilise désormais sa propre composition mémorisée de 4 slots.
+Le Combat quotidien utilise désormais sa propre composition persistante de quatre slots.
 
 La Team active :
-- n'est jamais utilisée automatiquement ;
+- n'est jamais appliquée automatiquement ;
 - n'est jamais modifiée par Combat ;
-- peut uniquement être copiée volontairement via `Sélectionner l'équipe active`.
+- peut être copiée volontairement via `Sélectionner l'équipe active`.
+
+Une attaque nécessite toujours exactement 4 personnages valides, possédés, actifs et non-KO.
 
 La définition finale du mode manuel est donnée par R426.
 
-## R374 — Mode Auto conservé et formule unifiée
+## R374 — Mode Auto conservé et formule unifiée — MIS À JOUR R423 / R427
 
-Conserver le mode Auto.
+Conserver le mode Auto uniquement pour le Combat quotidien.
 
 Twitch/chat :
 - `!combat auto` sélectionne automatiquement la meilleure composition disponible et lance immédiatement le combat.
 
 Standalone UI :
-- R386 précise que l'Auto sélectionne d'abord une composition temporaire puis laisse le joueur lancer le combat.
+- `Équipe automatique` calcule la meilleure composition disponible ;
+- remplit les quatre slots persistants du Combat quotidien ;
+- affiche la chance calculée ;
+- attend ensuite le clic `Combattre`.
 
-La Team Auto :
+La composition Auto :
 - utilise uniquement les personnages possédés, actifs et non-KO ;
 - ne modifie jamais la Team active ;
-- reste temporaire au contexte Combat.
+- est mémorisée dans les slots Combat selon R427.
 
-Correction cible :
-- la sélection Auto doit utiliser exactement la même formule autoritative que la vraie probabilité de victoire ;
-- aucun score Auto parallèle ne doit diverger du moteur Combat.
+La tentative immédiatement associée à l'utilisation d'Auto est marquée `AUTO`.
 
-R374 impose également que l'ancien avantage artificiel donné aux 5★ par l'algorithme Auto devienne un vrai avantage de rareté dans le calcul de victoire.
+La composition elle-même n'est pas marquée Auto éternellement.
+
+La sélection Auto utilise exactement la même formule autoritative que le vrai calcul de victoire.
+
+L'ancien avantage artificiel donné aux 5★ par l'algorithme Auto est intégré à la vraie formule via R380/R381.
+
+Le Boss ne possède aucun Auto.
 
 ## R375 — Afficher la chance exacte
 
@@ -395,10 +404,11 @@ Dans la fiche du personnage :
 
 Le statut KO ne modifie pas la présence du personnage dans la Box/Team.
 
-Si la Team active contient un KO :
+Si la composition Combat quotidienne contient un KO :
 - Combat indique clairement le ou les personnages bloquants ;
-- proposer l'accès à l'écran Team ;
-- ne jamais modifier automatiquement la Team active.
+- l'attaque est impossible tant que la composition n'est pas valide ;
+- le joueur peut remplacer directement les personnages dans les slots ou utiliser `Sélectionner l'équipe active` ;
+- la Team active n'est jamais modifiée automatiquement.
 
 ## R384 — États Combat dans Quotidiennes
 
@@ -433,38 +443,46 @@ Si le joueur n'a plus 4 personnages disponibles sans avoir gagné :
 - état `Bloqué aujourd'hui` ;
 - activité quotidienne non réussie.
 
-## R386 — Auto UI = sélection puis confirmation
+## R386 — Auto UI = sélection puis confirmation — MIS À JOUR R427
 
 Standalone UI :
 
 Bouton `Équipe automatique` :
 1. calcule la meilleure composition disponible ;
-2. l'affiche comme composition temporaire Combat ;
-3. affiche sa chance exacte ;
+2. remplit les quatre slots persistants du Combat quotidien ;
+3. affiche la chance exacte ;
 4. ne lance pas encore le combat.
 
 Le joueur clique ensuite sur `Combattre`.
 
-Cette composition :
-- ne remplace jamais la Team active ;
-- reste identifiée comme `Auto`.
+La tentative associée à cette utilisation d'Auto est marquée `AUTO`.
+
+Les personnages sélectionnés restent ensuite mémorisés dans les slots.
+
+Lors d'une future tentative, si le joueur réutilise simplement cette composition sans recliquer sur `Équipe automatique`, la tentative devient `MANUAL`.
+
+L'origine Auto n'est donc jamais attachée définitivement à la composition.
 
 Twitch/chat :
 - `!combat auto` conserve le comportement direct sélection + combat.
 
-## R387 — Définition autoritative d'une victoire manuelle
+## R387 — Définition autoritative d'une victoire manuelle — RÉVISÉ R426 / R427
 
-Une victoire est `manuelle` uniquement lorsqu'elle utilise la Team active sélectionnée par le joueur sans recours au mode Auto.
+Une victoire est `manuelle` lorsque la tentative exécutée n'a pas utilisé l'action Auto pour générer sa composition.
 
-Compte dans `totalManualCombatWins` :
-- UI avec Team active puis `Combattre` ;
-- `!combat go`.
+Peuvent donc compter dans `totalManualCombatWins` :
+- composition construite manuellement dans les quatre slots ;
+- composition persistante réutilisée ;
+- `Sélectionner l'équipe active` puis `Combattre` ;
+- ancienne composition créée par Auto mais réutilisée ultérieurement sans relancer Auto.
 
-Ne compte pas :
-- UI après sélection `Équipe automatique`, même si le joueur clique ensuite lui-même sur `Combattre` ;
+Ne comptent pas :
+- tentative exécutée après `Équipe automatique` pour cette tentative ;
 - `!combat auto`.
 
-Le mode d'origine de la tentative doit donc être conservé côté serveur.
+Le serveur conserve explicitement le mode `MANUAL` ou `AUTO` de chaque tentative.
+
+La sémantique précise de `!combat go` avec les nouveaux slots persistants sera finalisée dans le bloc commandes R430+.
 
 ## R388 — Missions Combat
 
@@ -567,80 +585,636 @@ Le nom exact des services/tables/API sera fixé en Phase 2/3.
 
 ---
 
-# 9. Boss mensuel communautaire — R390 à R422
+# 9. Boss mensuel communautaire — décisions R390 à R422
 
-## 9.1 Réalité legacy conservée comme base
+## 9.1 Base legacy
 
-Le script legacy contient un Boss global mensuel.
-
-Constantes historiques :
-- PV de base : 1 500 000 ;
-- variation : ±15 % ;
-- récompense participant si Boss vaincu :
-  - 16 000 Primogemmes ;
-  - 500 000 Moras ;
-- dégâts de base 5★ : 1 000 ;
-- +650 par constellation 5★ ;
-- dégâts de base 4★ : 500 ;
-- +150 par constellation 4★.
-
-Le Boss legacy :
-- possède une résistance élémentaire ;
-- réduit de moitié les dégâts d'un personnage du même élément que cette résistance ;
-- accepte une attaque par joueur et par jour ;
-- ignore les KO du combat quotidien ;
-- cumule les dégâts de toute la communauté ;
-- récompense les participants lorsque le Boss est vaincu ;
-- enregistre le coup final ;
-- possède des statistiques individuelles/globales ;
-- est archivé au changement de mois.
+Le Boss legacy fournit la base suivante :
+- un Boss communautaire ;
+- environ 1 500 000 PV ;
+- variation de PV ±15 % ;
+- une résistance élémentaire ;
+- une attaque par joueur/jour ;
+- dégâts cumulés globalement ;
+- récompense de tous les participants lorsque le Boss est vaincu ;
+- coup final ;
+- statistiques globales et individuelles ;
+- historique mensuel.
 
 R379 conserve le concept.
 
----
-
 ## R390 — Un Boss par mois civil
 
-Créer exactement un nouveau Boss par mois civil.
+Un seul Boss est généré par mois.
 
-Reset :
+Nouvelle instance :
 - premier jour du mois ;
 - 00:00 `Europe/Paris`.
 
-À ce moment :
-- Boss précédent archivé ;
-- nouvelle instance générée ;
-- nouvelle résistance ;
-- nouveaux PV ;
-- nouvelle période de participation.
+L'ancien Boss est archivé avant création du suivant.
 
-Le Boss n'est jamais remplacé en cours de mois simplement parce qu'il a été vaincu.
+## R391 — Pas de respawn intra-mois
 
-## R391 — Boss vaincu avant la fin du mois
-
-Un seul Boss existe pour le mois.
-
-S'il est vaincu avant la fin :
+Si le Boss est vaincu avant la fin du mois :
 - il reste vaincu ;
-- aucun autre Boss n'apparaît ;
-- l'écran passe en mode bilan/statistiques ;
-- prochain Boss au premier jour du mois suivant.
+- aucun nouveau Boss n'apparaît immédiatement ;
+- l'écran affiche son bilan ;
+- attendre le premier du mois suivant.
 
-Cette mécanique reste mensuelle et ne devient pas un farming permanent.
+## R392 / R402 — Difficulté adaptative des PV
 
-## R392 / R402 — PV de référence et difficulté adaptative
-
-La première référence standalone reste :
+La première valeur de référence standalone est :
 
 `baseHp = 1 500 000`
 
-Le nouveau système rend ensuite cette valeur adaptative selon la performance communautaire du mois précédent.
+Cette valeur évolue ensuite selon le résultat du mois précédent.
 
 ### Boss vaincu
 
-Si le Boss est vaincu avant la fin du mois :
+Pour chaque journée calendaire restant après le jour de la victoire :
 
-```text
-bonus suivant =
-jours calendaires complets restant après le jour de victoire
-× 75 000 PV
+`+75 000 baseHp`
+
+Augmentation maximale d'un mois au suivant :
+
+`+1 500 000`
+
+Exemple :
+- Boss vaincu le 20 d'un mois de 30 jours ;
+- 10 jours restants ;
+- augmentation : +750 000 ;
+- base suivante depuis 1,5M : 2,25M.
+
+### Boss non vaincu
+
+La base suivante perd exactement les PV qui restaient au Boss :
+
+`nouveauBaseHp = ancienBaseHp - currentHp`
+
+Plancher :
+
+`500 000 baseHp`
+
+Il n'existe pas de plafond absolu global de difficulté.
+
+## R393 — Une attaque Boss par joueur et par jour
+
+Chaque joueur dispose d'une attaque Boss quotidienne.
+
+Reset :
+- 00:00 `Europe/Paris`.
+
+Cette attaque est indépendante :
+- du combat quotidien ;
+- de sa victoire/défaite ;
+- de ses personnages KO.
+
+## R394 — Composition Boss indépendante — RÉVISÉ R423/R424/R425
+
+Le Boss possède quatre slots de composition propres.
+
+Ces slots :
+- ne sont pas la Team active ;
+- ne modifient jamais la Team active ;
+- ne sont pas une Saved Team ;
+- sont indépendants des quatre slots du Combat quotidien.
+
+Le joueur peut :
+- sélectionner manuellement ses personnages ;
+- remplacer individuellement un slot ;
+- cliquer sur `Sélectionner l'équipe active` pour effectuer une copie ponctuelle ;
+- ouvrir `Modifier mes Teams` s'il souhaite modifier ses vraies Teams.
+
+Première utilisation :
+- les quatre slots sont vides.
+
+La composition Boss est persistante indéfiniment.
+
+Elle n'est vidée :
+- ni au reset quotidien ;
+- ni lorsque le Boss est vaincu ;
+- ni au changement de mois.
+
+## R395 — Aucun Auto Boss
+
+Le Boss ne propose aucune composition automatique.
+
+Pas de :
+- bouton Auto ;
+- meilleure équipe automatique ;
+- `!combat boss auto`.
+
+La composition appartient au joueur.
+
+## R396 — Résistance élémentaire
+
+Chaque Boss possède une résistance aléatoire parmi les sept éléments.
+
+Un personnage du même élément que cette résistance inflige :
+
+`dégâts × 0,5`
+
+La résistance reste identique pendant tout le Boss.
+
+## R397 / R429 — Preview des dégâts
+
+Les dégâts sont recalculés en temps réel quand la composition ou l'état des personnages change.
+
+Dans la vue normale, afficher uniquement :
+
+`Dégâts prévus : X`
+
+Les détails sont masqués par défaut.
+
+Le panneau `Voir les détails` peut afficher :
+- chaque personnage ;
+- rareté ;
+- constellation ;
+- dégâts avant résistance ;
+- pénalité de résistance éventuelle ;
+- dégâts finaux individuels ;
+- total.
+
+Le serveur reste source de vérité.
+
+## R398 — Formule Boss
+
+Conserver la formule legacy V1.
+
+4★ :
+
+`500 + 150 × constellation`
+
+5★ :
+
+`1 000 + 650 × constellation`
+
+Puis appliquer la résistance élémentaire éventuelle.
+
+## R399 / R406 — Participation
+
+Une attaque valide ayant infligé plus de 0 dégât suffit à devenir participant du Boss.
+
+Aucun minimum supplémentaire :
+- de dégâts ;
+- d'attaques ;
+- de classement.
+
+Tous les participants éligibles reçoivent la même récompense si le Boss est vaincu.
+
+## R400 — Distribution automatique
+
+Lorsque le Boss atteint 0 PV :
+- figer les participants éligibles ;
+- créditer automatiquement chaque participant ;
+- joueurs offline compris ;
+- aucune action Claim requise ;
+- opération atomique et idempotente ;
+- aucun double paiement.
+
+Chaque participant reçoit une notification UI.
+
+Aucune notification Twitch asynchrone.
+
+## R401 — Coup final
+
+Conserver :
+- identité du joueur ayant porté le coup final ;
+- statistique de coups finaux.
+
+Le coup final est honorifique.
+
+Aucun bonus économique supplémentaire.
+
+## R403 — Notifications persistantes tant qu'elles sont non lues
+
+Règle transverse :
+
+Notification non lue :
+- aucune expiration automatique liée à l'âge ;
+- reste présente jusqu'à lecture ou suppression manuelle.
+
+Notification lue :
+- peut être supprimée manuellement ;
+- sinon nettoyée au prochain reset quotidien.
+
+Toute notification :
+- lue ou non ;
+- peut être supprimée manuellement.
+
+Supprimer une notification ne supprime jamais :
+- une récompense ;
+- un claim ;
+- une demande ;
+- un état métier.
+
+## R404 — Écran du Boss vaincu
+
+Lorsque le Boss est vaincu, l'écran de combat Boss laisse place au bilan du mois.
+
+Afficher notamment :
+
+### Boss
+- nom ;
+- mois ;
+- résistance ;
+- baseHp ;
+- maxHp ;
+- date/heure de victoire ;
+- temps/nombre de jours nécessaires.
+
+### Communauté
+- nombre de participants ;
+- nombre d'attaques ;
+- dégâts totaux ;
+- moyenne de dégâts par attaque.
+
+### Records
+- plus gros contributeur total ;
+- plus gros coup ;
+- coup final ;
+- plus grand nombre d'attaques ;
+- Top 3 des dégâts.
+
+### Joueur courant
+- dégâts totaux ;
+- nombre d'attaques ;
+- meilleur coup ;
+- pourcentage des dégâts du Boss ;
+- position au classement.
+
+## R405 — Récompense Boss
+
+Conserver en V1 pour chaque participant éligible :
+- 16 000 Primogemmes ;
+- 500 000 Moras.
+
+Les gains utilisent le service économique central.
+
+## R407 — Classement public
+
+Le classement mensuel Boss est public.
+
+Classement principal :
+- dégâts totaux.
+
+Records secondaires notamment :
+- meilleur coup ;
+- attaques ;
+- coup final.
+
+## R408 — Historique Boss
+
+L'écran Boss possède :
+- `Boss actuel` ;
+- `Historique`.
+
+Chaque ancien Boss peut conserver :
+- mois ;
+- nom ;
+- résistance ;
+- baseHp ;
+- maxHp ;
+- vaincu ou non ;
+- date de victoire ;
+- PV restants si non vaincu ;
+- participants ;
+- attaques ;
+- dégâts ;
+- coup final ;
+- meilleur contributeur ;
+- meilleur coup ;
+- statistiques utiles au bilan.
+
+## R409 — Intégration Quotidiennes
+
+Ne pas créer une carte Boss séparée.
+
+La carte Combat conserve comme état principal le Combat quotidien.
+
+Elle peut afficher un sous-indicateur :
+- `Attaque Boss disponible` ;
+- `Boss attaqué aujourd'hui ✅`.
+
+L'attaque Boss n'est pas nécessaire pour considérer le Combat quotidien terminé.
+
+## R410 — Informations de résistance
+
+L'écran Boss explique clairement l'effet de la résistance.
+
+Exemple :
+
+`Electro — Résistance du Boss : dégâts ×0,5`
+
+Aucune composition n'est automatiquement suggérée.
+
+## R411 — Snapshot d'une attaque Boss
+
+Au lancement d'une attaque :
+1. revalider les quatre personnages ;
+2. snapshotter leur identité ;
+3. snapshotter les constellations/valeurs nécessaires ;
+4. calculer les dégâts ;
+5. appliquer/persister l'attaque.
+
+Une évolution ultérieure du personnage ne modifie jamais cette attaque historique.
+
+## R412 — Personnage désactivé
+
+Un personnage désactivé ne peut pas être utilisé contre le Boss.
+
+Si une composition contient un personnage devenu invalide :
+- attaque refusée ;
+- attaque quotidienne non consommée.
+
+## R413 / R424 — Mémoire Boss persistante
+
+La composition Boss est mémorisée dès qu'elle change.
+
+Cette mémoire persiste indéfiniment :
+- d'un jour à l'autre ;
+- après victoire du Boss ;
+- d'un mois à l'autre.
+
+Elle disparaît seulement si :
+- le joueur la modifie ;
+- un personnage devient invalide/désactivé.
+
+## R414 — Composition partielle
+
+Pendant la préparation :
+- 0 à 4 slots remplis sont autorisés.
+
+Pour attaquer :
+- exactement 4 personnages ;
+- tous distincts ;
+- possédés ;
+- actifs.
+
+`Sélectionner l'équipe active` peut copier une Team partielle sans erreur ; seuls les slots existants sont remplis.
+
+## R415 — Désactivation d'un personnage mémorisé
+
+Si un personnage mémorisé est désactivé :
+- vider uniquement son slot ;
+- conserver les autres personnages.
+
+Les anciennes attaques conservent leur snapshot historique.
+
+## R416 — Reset quotidien
+
+Le reset quotidien :
+- rend une nouvelle attaque Boss disponible ;
+- ne modifie pas la composition Boss.
+
+## R417 — État actuel des personnages
+
+Les slots mémorisent les IDs des personnages, pas leurs anciennes stats.
+
+Si un personnage passe par exemple de C2 à C3 :
+- le prochain preview utilise C3 ;
+- la prochaine attaque utilise C3 ;
+- l'attaque exécutée snapshotte ensuite C3.
+
+## R418 — Scaling visible
+
+Le bilan indique l'effet sur le Boss suivant.
+
+Exemple victoire :
+
+`10 jours d'avance → +750 000 baseHp le mois prochain`
+
+Exemple échec :
+
+`300 000 PV restants → -300 000 baseHp le mois prochain`
+
+## R419 — baseHp et maxHp
+
+Conserver deux notions distinctes :
+
+`baseHp`
+- difficulté adaptative persistante.
+
+`maxHp`
+- PV réels du Boss après variation mensuelle de ±15 % autour de baseHp.
+
+Le scaling agit sur baseHp.
+
+## R420 — Réduction après échec
+
+Si le Boss n'est pas vaincu :
+
+`nouveauBaseHp = ancienBaseHp - currentHp`
+
+Réduction absolue, pas proportionnelle.
+
+Plancher :
+`500 000`
+
+## R421 / R428 — Écran Combat à deux onglets
+
+L'écran `Combat` possède deux onglets distincts :
+
+1. `Combat quotidien` — ouvert par défaut ;
+2. `Boss mensuel`.
+
+Ce sont deux vues différentes.
+
+Elles ne partagent pas :
+- leur composition ;
+- leur état ;
+- leur mémoire.
+
+Une cohérence générale de design est souhaitée, mais il ne faut pas imposer un composant unique si les deux vues doivent évoluer différemment.
+
+## R422 / R423 / R425 — Slots du Combat quotidien
+
+Le Combat quotidien possède lui aussi quatre slots indépendants du système Team.
+
+Première utilisation :
+- quatre slots vides.
+
+Le joueur peut :
+- sélectionner manuellement les personnages ;
+- cliquer sur `Sélectionner l'équipe active` ;
+- utiliser `Équipe automatique`.
+
+Aucune de ces opérations ne modifie la Team active.
+
+## R423 — Principe commun des compositions
+
+Combat quotidien et Boss utilisent le même principe métier général :
+- quatre slots propres au mode ;
+- 0..4 en préparation ;
+- 4/4 pour agir ;
+- copie volontaire de la Team active ;
+- aucune modification des vraies Teams ;
+- mémoire persistante.
+
+Mais les deux mémoires restent totalement indépendantes.
+
+## R424 — Persistance indéfinie
+
+La composition quotidienne et la composition Boss ne sont jamais vidées automatiquement pour une raison temporelle.
+
+Pas de reset :
+- quotidien ;
+- hebdomadaire ;
+- mensuel ;
+- après victoire.
+
+Exception :
+- personnage rendu invalide/désactivé.
+
+## R425 — Première utilisation
+
+Lors de la toute première ouverture d'un mode sans composition mémorisée :
+
+- Combat quotidien : 4 slots vides ;
+- Boss : 4 slots vides.
+
+La Team active n'est jamais préremplie automatiquement.
+
+## R426 — Tentative manuelle
+
+Pour le Combat quotidien, une tentative est `MANUAL` lorsque Auto n'a pas été utilisé pour générer la composition de cette tentative.
+
+Sont notamment manuels :
+- sélection personnage par personnage ;
+- composition persistante réutilisée ;
+- `Sélectionner l'équipe active` puis attaque ;
+- ancienne composition issue d'Auto réutilisée plus tard sans relancer Auto.
+
+Le serveur persiste le mode réel de chaque tentative.
+
+## R427 — Auto et mémoire
+
+`Équipe automatique` :
+- calcule la meilleure composition ;
+- remplit les quatre slots ;
+- mémorise cette composition ;
+- marque la tentative associée `AUTO`.
+
+La composition n'est pas elle-même marquée Auto de manière permanente.
+
+Si elle est réutilisée plus tard sans relancer Auto :
+- la nouvelle tentative est `MANUAL`.
+
+## R428 — Deux interfaces et deux mémoires
+
+`Combat quotidien` et `Boss mensuel` restent deux onglets/interfaces différents.
+
+Chacun possède :
+- sa propre composition persistante ;
+- son propre rendu ;
+- ses propres actions.
+
+Combat quotidien :
+- 4 ennemis ;
+- chance de victoire ;
+- KO ;
+- plusieurs tentatives ;
+- Auto.
+
+Boss :
+- Boss unique ;
+- PV ;
+- résistance ;
+- dégâts prévus ;
+- une attaque/jour ;
+- aucun Auto.
+
+## R429 — Informations compactes + détails déroulants
+
+### Combat quotidien
+
+Vue principale :
+`Chance de victoire : X %`
+
+Panneau détaillé :
+- base ;
+- rareté ;
+- constellations ;
+- avantages ;
+- désavantages ;
+- valeur brute ;
+- clamp ;
+- valeur finale.
+
+### Boss
+
+Vue principale :
+`Dégâts prévus : X`
+
+Panneau détaillé :
+- dégâts par personnage ;
+- constellation ;
+- résistance ;
+- réduction ;
+- total.
+
+Les informations détaillées ne sont pas ouvertes par défaut.
+
+---
+
+# 10. Règles techniques communes des compositions
+
+Prévoir deux mémoires persistantes distinctes, conceptuellement :
+- `dailyCombatComposition` ;
+- `bossCombatComposition`.
+
+Les noms définitifs seront décidés avec le modèle de données.
+
+Chaque mémoire :
+- référence des IDs de personnages ;
+- contient au maximum 4 IDs distincts ;
+- accepte des slots vides ;
+- ne constitue jamais une Team ;
+- ne modifie jamais `activeTeamId`.
+
+Les previews utilisent l'état actuel des personnages.
+
+Les attaques exécutées utilisent des snapshots autoritatifs.
+
+---
+
+# 11. État
+
+Domaine Combat toujours ouvert.
+
+Combat quotidien :
+- gameplay cadré ;
+- formule cadrée ;
+- KO cadrés ;
+- Auto cadré ;
+- slots persistants cadrés ;
+- Missions cadrées ;
+- UX principale cadrée.
+
+Boss mensuel :
+- cycle cadré ;
+- scaling cadré ;
+- composition cadrée ;
+- dégâts cadrés ;
+- résistance cadrée ;
+- participation/récompenses cadrées ;
+- classement/historique cadrés ;
+- UX principale cadrée.
+
+Décisions traitées jusqu'à :
+**R429**
+
+Prochaine reprise :
+**R430**
+
+Restent notamment :
+- comportement exact de `!combat go` avec les nouveaux slots ;
+- comportement exact de `!combat boss go` ;
+- migration du Combat quotidien legacy ;
+- migration du Boss legacy actif ;
+- migration participants/statistiques Boss ;
+- initialisation de baseHp au cutover ;
+- concurrence/idempotence sur le coup final ;
+- changement de mois pendant une attaque ;
+- edge cases du Boss non vaincu ;
+- dernière passe de clôture Combat.
