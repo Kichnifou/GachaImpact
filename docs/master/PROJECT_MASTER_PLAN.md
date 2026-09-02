@@ -138,6 +138,44 @@ Il ne doit jamais exister trois versions différentes de la logique du pull.
 
 # 3. ÉTAT ACTUEL DU FRONTEND
 
+## 3.0 Convention V0 / V1
+
+Convention actuelle du projet :
+
+### V0 — prototype visuel existant
+
+La V0 désigne la coque frontend déjà construite dans le repository.
+
+Elle sert à :
+- matérialiser la direction générale de l'interface ;
+- disposer d'une navigation et d'écrans existants ;
+- tester progressivement les futurs branchements métier ;
+- éviter de repartir d'une page blanche lors de la construction de la vraie application.
+
+Elle utilise encore des données fictives / mocks.
+
+La V0 :
+- n'est pas la source de vérité métier ;
+- ne possède pas encore le vrai backend du jeu ;
+- ne doit pas imposer son modèle de données fictif à la future architecture ;
+- peut contenir des noms, valeurs, textes ou comportements de démonstration devenus obsolètes.
+
+### V1 — première vraie version métier standalone
+
+La V1 désigne la première implémentation réelle du jeu standalone construite progressivement à partir des audits validés.
+
+Elle doit remplacer progressivement les mocks par :
+- les vraies entités métier ;
+- des services centralisés ;
+- un backend autoritaire ;
+- une persistance serveur ;
+- les données migrées du legacy ;
+- les vraies règles validées dans la documentation.
+
+La V1 sera construite par lots avec Codex. Il ne s'agit pas d'un remplacement complet du frontend en une seule opération.
+
+Cette convention V0 / V1 prévaut sur d'anciennes formulations du repository qui pourraient utiliser ces termes différemment.
+
 ## 3.1 Stack actuelle
 
 Frontend :

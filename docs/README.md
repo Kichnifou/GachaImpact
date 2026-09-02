@@ -35,6 +35,46 @@ La finalité opérationnelle principale de cette documentation est de préparer 
 - `commands/` : contrats des commandes et future aide intégrée.
 - `roadmap/` : trajectoire macro de développement, sans dupliquer l'état courant du Master.
 
+Les sources brutes de l'ancien jeu restent hors de `docs/`, principalement dans `legacy/streamerbot/`.
+
+Le code actuel de la V0 se trouve principalement dans `src/`.
+
+## Parcours de lecture recommandé
+
+### Nouvelle conversation ChatGPT
+
+Commencer par :
+
+`/.chatgpt/CHATGPT_GUIDE.md`
+
+Ce Guide indique ensuite la procédure de reprise complète et les documents à lire selon l'état courant.
+
+Il ne faut donc pas essayer de charger toute la documentation dans chaque nouvelle conversation.
+
+### Audit d'un domaine
+
+Ordre général :
+
+1. Master ;
+2. audit spécialisé du domaine ;
+3. vrais scripts / JSON legacy concernés ;
+4. modèle joueur ou matrice commandes/données lorsque nécessaire ;
+5. decisions-log pour les décisions transverses ;
+6. command-reference lorsqu'une commande est concernée.
+
+### Développement avec Codex
+
+Ordre général :
+
+1. `AGENTS.md` ;
+2. Master ;
+3. audit(s) spécialisé(s) du lot demandé ;
+4. décisions transverses nécessaires ;
+5. command-reference si nécessaire ;
+6. code réel déjà présent dans le repository.
+
+Codex ne doit pas être obligé de lire tous les audits pour implémenter un seul domaine. Le lot préparé doit lui indiquer les sources pertinentes.
+
 ## Convention de statut
 
 Chaque point peut être marqué :

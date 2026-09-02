@@ -1,3 +1,19 @@
+/**
+ * V0 VISUAL MOCK DATA ONLY.
+ *
+ * Ce fichier contient uniquement des données fictives destinées à alimenter
+ * le prototype visuel existant.
+ *
+ * Il ne constitue PAS une source de vérité métier pour GachaImpact V1.
+ *
+ * Les noms, valeurs, objets, textes, règles ou structures présents ici peuvent
+ * volontairement différer des spécifications validées dans `docs/`.
+ *
+ * Ne jamais déduire le futur modèle de données, le backend ou une règle métier
+ * à partir de ce fichier. Lors de l'implémentation V1, consulter les documents
+ * de référence puis remplacer progressivement ces mocks par les vraies données.
+ */
+
 import type { Character, InventoryCategory, NotificationItem, OnlinePlayer } from '../types'
 
 export const player = {

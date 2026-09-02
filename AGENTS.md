@@ -99,24 +99,37 @@ La connexion, l'activité, la présence, le chat, les tâches temporelles et les
 
 Un panneau administrateur privé sera créé ultérieurement pour gérer notamment les joueurs, ressources, bannières, événements, chat et modération, boss, récompenses et configuration du pont Twitch. Ne pas le créer avant qu'il soit explicitement demandé.
 
-## Périmètre prévu pour la première V0
+## État du produit : V0 existante et V1 métier future
 
-La première V0 doit être construite progressivement et devrait inclure :
+La **V0 existe déjà** dans le repository.
 
-- compte et profil joueur ;
-- niveau, XP et ressources ;
-- bonus de connexion quotidien avec action « Récupérer » ;
-- bannière active unique de développement, sans sélecteur Permanent / Temporaire ;
-- Pull x1 et Pull x10 ;
-- pity et garantie ;
-- box de personnages ;
-- équipe active et modification de l'équipe ;
-- sac ou inventaire ;
-- chat global et commandes `!` ;
-- joueurs en ligne ou récemment connectés ;
-- interface responsive PC/mobile.
+Elle correspond au prototype frontend React / TypeScript / Vite actuellement navigable :
+- coque générale ;
+- écrans ;
+- composants ;
+- responsive ;
+- navigation ;
+- données de démonstration.
 
-Cette liste décrit une trajectoire, pas l'autorisation de tout implémenter immédiatement. Les bannières temporaires, la boutique complète, les missions, combats, expéditions, événements, banque, amis, échanges, concours, giveaways, boss communautaires, Twitch et l'administration avancée viendront uniquement lorsque leurs étapes seront demandées.
+Les données et comportements fictifs utilisés pour remplir cette interface ne constituent jamais une spécification produit.
+
+En particulier :
+- `src/data/mockData.ts` est uniquement une source de démonstration visuelle ;
+- les types TypeScript conçus pour les mocks ne doivent pas être transformés mécaniquement en modèle de base de données ;
+- un texte, une valeur, un objet ou une mécanique visible dans la V0 peut être remplacé si les audits V1 disent autre chose ;
+- inversement, ne pas reconstruire inutilement l'interface existante lorsqu'elle peut être adaptée proprement.
+
+La **V1** est la première vraie version métier standalone.
+
+Son périmètre exact est défini progressivement par :
+- le Master ;
+- les audits spécialisés ;
+- les décisions validées ;
+- les contrats de commandes.
+
+Ne pas maintenir ici une liste détaillée des fonctionnalités V1 : elle deviendrait une copie concurrente des spécifications et risquerait de devenir obsolète.
+
+Chaque fonctionnalité V1 doit être implémentée uniquement lorsque le lot correspondant est explicitement demandé et suffisamment spécifié.
 
 ## Principes d'architecture
 

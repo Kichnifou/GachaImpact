@@ -20,6 +20,46 @@ Repository public :
 
 GachaImpact est la reconstruction standalone d'un ancien jeu Twitch / Streamer.bot inspiré de Genshin Impact.
 
+## Origine du projet et méthode de construction
+
+Le projet est né de la volonté de construire un jeu principalement avec l'aide d'agents IA, en s'inspirant de démonstrations où des jeux sont développés progressivement par IA à partir d'instructions humaines.
+
+GachaImpact ne part cependant pas d'une idée abstraite : un jeu communautaire fonctionnel existe déjà sur Twitch via Streamer.bot.
+
+Ce legacy contient :
+- de vraies mécaniques déjà jouées ;
+- de vrais profils joueurs ;
+- des données JSON historiques ;
+- une économie et une progression ;
+- de nombreuses commandes Twitch ;
+- des scripts Streamer.bot développés progressivement et souvent indépendamment les uns des autres.
+
+Au démarrage du projet standalone, ChatGPT a notamment servi à :
+- réfléchir à la faisabilité du projet ;
+- définir une trajectoire de développement assistée par IA ;
+- guider la mise en place de Git, GitHub, VS Code et Codex ;
+- préparer la structure initiale du repository ;
+- faire construire par Codex une première coque frontend ;
+- réfléchir aux futures étapes de backend, base de données, authentification, migration et intégrations.
+
+Répartition générale des rôles :
+
+- **Axel / propriétaire du projet** : décide de l'expérience joueur, des règles produit, du gameplay, de l'économie et des orientations importantes ;
+- **ChatGPT** : aide à auditer le legacy, poser les décisions utiles, maintenir la cohérence documentaire, préparer la roadmap et construire des demandes précises pour Codex ;
+- **Codex** : agent principal d'implémentation du code, utilisé progressivement sur des lots bornés à partir des documents validés ;
+- **repository GitHub** : mémoire externe durable et source de contexte commune, afin que le projet ne dépende pas de la mémoire d'une conversation ou d'un agent.
+
+Les propositions techniques formulées historiquement par ChatGPT ne sont pas automatiquement des décisions actuelles. Une technologie, architecture ou fonctionnalité n'est considérée comme décidée que si les documents actuels du repository la présentent comme validée.
+
+### Convention V0 / V1
+
+Dans le vocabulaire actuel du projet :
+
+- **V0** = prototype visuel standalone déjà présent dans le repository, construit en React / TypeScript / Vite, avec navigation, écrans et données fictives destinées à remplir l'interface ;
+- **V1** = première vraie version métier standalone construite progressivement à partir des audits validés, avec données réelles, services métier centralisés, backend autoritaire, persistance et migration du legacy.
+
+La V0 est une base d'interface et d'UX. Elle n'est pas une spécification métier et ses mocks peuvent volontairement être faux, incomplets ou obsolètes par rapport à la V1.
+
 L'objectif n'est pas de recopier aveuglément le legacy.
 
 ## Objectif principal de la phase documentaire
@@ -383,12 +423,42 @@ Ne jamais demander :
 
 Workflow attendu :
 
-1. faire lire à Codex le Master et les docs spécialisés ;
-2. lui faire auditer le repo ;
-3. lui demander une architecture / roadmap technique ;
+1. faire lire à Codex `AGENTS.md`, le Master et les docs spécialisés nécessaires ;
+2. lui faire auditer le code réellement présent dans le repo avant modification ;
+3. lui demander une architecture / roadmap technique lorsque le lot le justifie ;
 4. découper l'implémentation en lots bornés ;
 5. demander tests et critères d'acceptation ;
-6. limiter clairement les fichiers / systèmes qu'il peut toucher.
+6. limiter clairement les fichiers / systèmes qu'il peut toucher ;
+7. vérifier le résultat réel du lot avant d'enchaîner sur le suivant.
+
+## Definition of Ready documentaire pour Codex
+
+Avant de préparer un prompt d'implémentation d'un domaine métier important, ChatGPT doit effectuer une courte **revue de readiness Codex**.
+
+Le domaine est suffisamment prêt lorsque les éléments pertinents suivants sont connus ou explicitement reportés :
+
+- comportement cible V1 ;
+- source(s) de vérité métier ;
+- données persistées et données dérivées ;
+- producteurs et consommateurs du système ;
+- interactions avec les autres domaines ;
+- comportement UI, chat interne et Twitch lorsqu'ils diffèrent ;
+- règles de migration legacy ;
+- règles temporelles / reset serveur lorsqu'elles existent ;
+- concurrence, atomicité et idempotence lorsqu'elles sont pertinentes ;
+- erreurs et edge cases significatifs ;
+- sujets volontairement reportés clairement distingués des règles déjà validées ;
+- critères d'acceptation suffisamment précis pour vérifier l'implémentation.
+
+Tous ces points n'ont pas besoin d'exister artificiellement pour chaque petit système. La checklist doit être appliquée selon la nature réelle du domaine.
+
+Si une information nécessaire à l'implémentation manque :
+- ne pas demander à Codex de la deviner ;
+- revenir au document spécialisé ;
+- résoudre la décision avec l'utilisateur si elle a un impact produit ;
+- ou prendre/documenter directement la décision si elle est purement technique.
+
+Un audit n'a pas besoin d'être réécrit dans un format uniforme pour être `Codex-ready`. Il doit surtout contenir suffisamment d'informations fiables et non contradictoires pour le lot demandé.
 
 Les prompts destinés à Codex doivent toujours être fournis dans un bloc de code prêt à copier.
 
