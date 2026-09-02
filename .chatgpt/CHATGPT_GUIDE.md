@@ -196,7 +196,8 @@ Pour chaque décision :
 - viser plusieurs lignes utiles plutôt qu'une alternative trop maigre ;
 - indiquer explicitement le canal concerné lorsqu'il existe une différence : `UI standalone`, `chat interne`, `Twitch`, `migration` ou `transversal` ;
 - utiliser A/B/C seulement lorsque le nombre d'alternatives le justifie ;
-- utiliser Oui/Non lorsqu'il s'agit réellement d'une décision binaire.
+- utiliser Oui/Non lorsqu'il s'agit réellement d'une décision binaire ;
+- lorsqu'une option est recommandée par ChatGPT, inscrire explicitement `— RECOMMANDÉ` directement dans l'intitulé de cette option afin que la recommandation soit immédiatement visible.
 
 Quand plusieurs décisions sont proposées dans un même message :
 - expliquer chaque décision dans le corps du message ;
@@ -269,7 +270,14 @@ Faire un checkpoint notamment :
 - après un changement important de modèle ;
 - après une décision transverse structurante ;
 - avant de changer de domaine ;
-- à la clôture d'un domaine.
+- à la clôture d'un domaine ;
+- dès qu'un ensemble cohérent de décisions non encore persistées devient assez important pour rendre la mémoire de conversation fragile ou risquer une reprise inexacte.
+
+Un checkpoint sert notamment à sortir régulièrement les décisions validées de la mémoire temporaire de conversation pour les inscrire dans la mémoire durable du repository.
+
+Ne pas attendre systématiquement la fin complète d'un gros domaine si de nombreuses décisions importantes ont déjà été validées.
+
+Après le push et sa vérification GitHub, reprendre l'audit depuis la prochaine décision non traitée à partir des documents persistés plutôt que de dépendre du souvenir détaillé de la conversation.
 
 Lors d'un checkpoint :
 

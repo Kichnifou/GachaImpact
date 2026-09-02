@@ -3336,11 +3336,11 @@ Domaine actif :
 
 État actuel du domaine :
 - audit legacy en cours ;
-- décisions R526 à R534 validées et documentées ;
-- prochaine décision à reprendre : **R535**.
+- décisions R526 à R541 validées et documentées ;
+- prochaine décision à reprendre : **R542**.
 
 Prochaine étape exacte :
-reprendre le Domaine 12 — Concours / C6 à **R535**, à partir des vrais scripts et données legacy concernés, sans redemander R526 à R534.
+reprendre le Domaine 12 — Concours / C6 à **R542**, à partir des vrais scripts et données legacy concernés, sans redemander R526 à R541.
 
 ## Familles legacy restant à auditer
 

@@ -1,7 +1,7 @@
 # 15 — Audit Concours / C6
 
 > Domaine 12 de l'audit legacy GachaImpact.  
-> Statut : **EN COURS — décisions R526 à R534 déjà validées**.  
+> Statut : **EN COURS — décisions R526 à R541 déjà validées**.  
 > Ce document devient la source spécialisée du domaine Concours / C6.  
 > L'état global du projet et la prochaine reprise exacte restent la responsabilité du Master.
 
@@ -254,26 +254,173 @@ Les conséquences économiques/statistiques exactes d'une annulation après lanc
 
 ---
 
+## R535 — Conséquences d'une annulation globale après lancement — ✅ VALIDÉ C
+
+Une annulation globale après lancement ne produit :
+- aucun podium ;
+- aucune récompense ;
+- aucune victoire ;
+- aucun titre ;
+- aucune statistique de concours terminé.
+
+L'annulation reste néanmoins journalisée côté serveur pour permettre la traçabilité.
+
+### Annulation volontaire par l'organisateur
+
+Si l'organisateur annule volontairement le concours après son lancement :
+- sa propre participation quotidienne reste consommée ;
+- les autres participants humains concernés récupèrent leur participation quotidienne ;
+- aucun résultat sportif ou économique n'est validé.
+
+Cette règle évite qu'un organisateur puisse reroll gratuitement son propre concours tout en empêchant qu'il puisse faire perdre arbitrairement la tentative quotidienne des autres joueurs.
+
+### Annulation technique / administrative légitime
+
+Lorsqu'un concours doit être invalidé pour une raison technique ou administrative légitime :
+- tous les participants humains récupèrent leur participation quotidienne ;
+- aucune progression de résultat n'est conservée ;
+- la cause de l'annulation est journalisée.
+
+Un simple départ individuel reste régi par les règles de remplacement et ne constitue pas une annulation technique.
+
+---
+
+## R536 — Plus aucun participant humain — ✅ VALIDÉ A
+
+Si, après le lancement, il ne reste plus aucun participant humain :
+- le concours est automatiquement annulé ;
+- les bots ne continuent pas seuls jusqu'à produire un classement ;
+- aucune récompense, victoire ou titre n'est attribué.
+
+Un joueur ayant volontairement quitté le concours ou ayant été remplacé pour inactivité :
+- ne récupère pas sa participation quotidienne du fait de cette annulation automatique.
+
+Les bots servent à compléter et maintenir un concours communautaire, pas à faire continuer seuls une partie devenue entièrement automatisée.
+
+---
+
+## R537 — Conséquences du remplacement d'un humain par un bot — ✅ VALIDÉ B
+
+Lorsqu'un participant humain est remplacé par un bot après le lancement :
+- sa participation quotidienne reste consommée ;
+- le bot reprend la place et l'état courant nécessaires à la continuité du concours ;
+- le joueur remplacé n'est plus éligible aux récompenses de classement ;
+- une éventuelle victoire ultérieure de cette place ne devient pas une victoire du joueur ;
+- aucun titre n'est accordé au joueur remplacé ;
+- le concours finalisé ne compte pas comme une participation terminée dans les statistiques de Concours de son personnage.
+
+Le serveur conserve néanmoins la trace historique que le joueur avait commencé le concours puis avait été remplacé.
+
+Le bot devient donc le propriétaire métier de cette place pour le résultat final, sans réattribuer rétroactivement ses performances au joueur initial.
+
+---
+
+## R538 — Les bots occupent de vraies places dans le classement — ✅ VALIDÉ A
+
+Le classement final inclut réellement les humains et les bots.
+
+Un bot peut donc :
+- gagner le concours ;
+- terminer deuxième ou troisième ;
+- empêcher un humain d'occuper une meilleure place.
+
+Les bots ne reçoivent évidemment aucune récompense économique.
+
+Les récompenses humaines dépendent néanmoins de la véritable position obtenue dans le classement complet.
+
+Exemple :
+
+1. Bot ;
+2. Joueur A ;
+3. Joueur B ;
+4. Bot.
+
+Résultat :
+- le Bot ne reçoit rien ;
+- Joueur A reçoit la récompense de deuxième place ;
+- Joueur B reçoit la récompense de troisième place.
+
+Les places prises par les bots ne sont pas compressées pour recalculer un second classement réservé aux humains.
+
+---
+
+## R539 — Actions `basique` et `risque` — ✅ VALIDÉ A
+
+Conserver le fonctionnement réel du code legacy.
+
+### Action `basique`
+
+Le participant reçoit toujours :
+- `pointsDeBase`.
+
+### Action `risque`
+
+Le serveur tire uniformément l'un des trois résultats suivants :
+- 1/3 → `0` point ;
+- 1/3 → `pointsDeBase` ;
+- 1/3 → `pointsDeBase × 2`.
+
+L'espérance mathématique de l'action risquée reste donc égale à celle de l'action basique.
+
+Le choix porte sur :
+- `basique` → sécurité ;
+- `risque` → variance.
+
+Le résultat aléatoire doit être calculé côté serveur.
+
+---
+
+## R540 — Conversion de la statistique C6 en points — ✅ VALIDÉ A
+
+Conserver les paliers du code legacy :
+
+| Statistique du thème | Points de base |
+|---:|---:|
+| 1 à 4 | 1 |
+| 5 à 9 | 2 |
+| 10 à 14 | 3 |
+| 15 à 19 | 4 |
+| 20 | 5 |
+
+La valeur maximale `20` reste donc un palier exceptionnel donnant à elle seule accès au maximum de 5 points de base.
+
+Une statistique invalide ou inférieure au minimum devra être normalisée de manière conservatrice côté backend sans modifier cette règle de gameplay.
+
+---
+
+## R541 — Limite des spectateurs actifs — ✅ VALIDÉ A
+
+Conserver un maximum de **10 spectateurs actifs inscrits** par concours.
+
+Cette limite ne concerne pas le visionnage passif.
+
+Dans le standalone :
+- le nombre de joueurs pouvant regarder le concours passivement dans l'UI n'est pas limité par cette règle ;
+- seules les places de spectateurs actifs sont limitées à 10 ;
+- seuls ces spectateurs actifs peuvent être sélectionnés pour la mécanique de soutien selon R533.
+
+Les 10 places constituent donc des places interactives plutôt qu'une limite de public total.
+
+---
+
 # 5. Points encore ouverts
 
-À reprendre à partir de **R535** après relecture des scripts et données concernés.
+À reprendre à partir de **R542** après relecture des scripts et données concernés.
 
 À auditer notamment :
 
-- conséquences exactes d'une annulation après lancement ;
-- comportement du verrou quotidien en cas d'annulation ;
-- règles précises des actions `basique` / `risque` ;
-- conversion des statistiques C6 en points ;
-- comportement des bots ;
-- sélection et fonctionnement du soutien ;
-- condition de victoire et égalités éventuelles ;
-- récompenses de classement ;
-- statistiques de participation/victoire ;
+- condition de victoire et éventuelles égalités / dépassements ;
+- comportement détaillé des bots et choix entre `basique` / `risque` ;
+- récompenses finales de classement ;
+- statistiques de participation et de victoire ;
 - progression et paliers de titres ;
-- historique cible ;
+- historique cible des concours ;
+- modèle cible des statistiques C6 ;
 - migration de `c6_characters.json` et `contests_data.json` ;
 - interactions avec Pull, Stella, Légende et XP ;
-- producteurs/consommateurs ;
-- concurrence, idempotence et scheduler.
+- producteurs et consommateurs transverses ;
+- reprise après crash / concours interrompu ;
+- concurrence, atomicité, idempotence et scheduler ;
+- permissions et actions administratives finales.
 
 Le domaine actif et la prochaine étape exacte du projet doivent être indiqués uniquement dans `docs/master/PROJECT_MASTER_PLAN.md`.
