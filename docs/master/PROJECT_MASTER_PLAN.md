@@ -25,6 +25,20 @@ Quand une décision structurante change :
 
 Le projet ne doit pas dépendre de la mémoire d'une conversation.
 
+## Responsabilité de suivi global
+
+Ce Master est le **seul document autorisé à porter le pointeur global vivant du projet** :
+- phase actuellement active ;
+- domaine d'audit actuellement actif ;
+- état global d'avancement ;
+- prochaine étape exacte de reprise.
+
+Les documents spécialisés peuvent indiquer leur propre état (`EN COURS`, `CLÔTURÉ`, dépendances restantes, etc.), mais ne doivent pas annoncer ou maintenir le prochain domaine global.
+
+Le journal des décisions conserve l'historique validé et la roadmap conserve la trajectoire macro ; aucun des deux ne doit devenir un second tracker de reprise.
+
+Cette séparation vise notamment à fournir plus tard à Codex une documentation non contradictoire avant chaque lot d'implémentation.
+
 ---
 
 # 1. VISION GLOBALE

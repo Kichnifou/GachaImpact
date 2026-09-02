@@ -655,9 +655,6 @@ Sont maintenant cadrés :
 
 Les futurs domaines peuvent recroiser Expedition si nécessaire, mais ils ne doivent pas réimplémenter sa logique.
 
-Prochain domaine :
-**Combat**.
-
 ---
 
 # 9. Architecture cible provisoire
@@ -735,6 +732,3 @@ Sont cadrés :
 
 Report explicite :
 - visibilité publique des statistiques globales Expedition → futur domaine Profil / Statistiques / Confidentialité.
-
-Prochain domaine d'audit :
-**Combat**.

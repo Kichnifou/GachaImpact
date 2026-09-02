@@ -80,8 +80,12 @@ Les autres joueurs seront ensuite utilisés pour tester :
 - sections ajoutées après la création d'un profil ;
 - cas limites de migration.
 
-## Prochaine sous-étape
+## Rôle durable de ce document
 
-Construire `02-current-player-model.md` en recensant toutes les propriétés du profil `Kichnifou` dans `viewers_data.json`, puis y rattacher ses données externes depuis les autres JSON.
+Ce fichier reste l'inventaire factuel des sources de données legacy et de leur rôle identifié.
 
-Aucune structure de base de données cible ne doit être figée avant cette cartographie.
+Il peut être enrichi lorsqu'un audit révèle une nouvelle relation entre fichiers, mais il ne doit pas servir de tracker de reprise du projet.
+
+Le domaine actif et la prochaine étape exacte sont indiqués uniquement dans le Master.
+
+Aucune structure de base de données cible ne doit être déduite mécaniquement de la structure des JSON legacy.

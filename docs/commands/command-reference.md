@@ -1,6 +1,6 @@
 # Registre des commandes GachaImpact
 
-Statut : À CONSTRUIRE pendant l'audit des scripts.
+Statut : EN CONSTRUCTION — alimenté et consolidé domaine par domaine pendant l'audit des scripts.
 
 Ce fichier deviendra la base documentaire de la future section **Aide / Commandes** intégrée à GachaImpact.
 

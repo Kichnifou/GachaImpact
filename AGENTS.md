@@ -2,6 +2,20 @@
 
 Ce document est la référence permanente destinée aux agents qui interviennent sur GachaImpact. Il décrit la vision fondatrice, les contraintes d'architecture et les règles de travail à respecter. Il ne s'agit pas d'une documentation destinée aux joueurs.
 
+## Source de vérité produit
+
+`AGENTS.md` définit des **garde-fous permanents de développement**. Il n'est pas la spécification exhaustive ni le tracker d'avancement du projet.
+
+Avant d'implémenter un système, un agent doit consulter :
+1. `docs/master/PROJECT_MASTER_PLAN.md` pour l'état global, le périmètre courant et la navigation documentaire ;
+2. le ou les documents spécialisés concernés dans `docs/legacy/` ;
+3. `docs/specifications/decisions-log.md` lorsqu'une décision transverse doit être vérifiée ;
+4. `docs/commands/command-reference.md` lorsqu'une commande est concernée.
+
+Les règles produit validées dans ces documents priment sur les exemples ou trajectoires générales plus anciennes présentes dans `AGENTS.md`.
+
+Ne jamais extrapoler une fonctionnalité uniquement parce qu'elle est mentionnée comme orientation future dans ce fichier.
+
 ## Vision du projet
 
 GachaImpact est un nouveau jeu web standalone, développé progressivement à partir de zéro. Il reprend et fait évoluer le concept d'un ancien jeu communautaire inspiré de Genshin Impact, auparavant piloté avec Twitch et Streamer.bot.
@@ -92,7 +106,7 @@ La première V0 doit être construite progressivement et devrait inclure :
 - compte et profil joueur ;
 - niveau, XP et ressources ;
 - bonus de connexion quotidien avec action « Récupérer » ;
-- bannière permanente de développement ;
+- bannière active unique de développement, sans sélecteur Permanent / Temporaire ;
 - Pull x1 et Pull x10 ;
 - pity et garantie ;
 - box de personnages ;

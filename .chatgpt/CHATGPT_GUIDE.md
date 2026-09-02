@@ -22,6 +22,21 @@ GachaImpact est la reconstruction standalone d'un ancien jeu Twitch / Streamer.b
 
 L'objectif n'est pas de recopier aveuglément le legacy.
 
+## Objectif principal de la phase documentaire
+
+Le but principal de l'audit legacy et de toute la documentation produite dans `docs/` est de construire une **spécification d'implémentation fiable, cohérente et exploitable par Codex** lorsque le développement réel commencera.
+
+Chaque audit, décision, dépendance, règle de migration et contrat de commande doit donc être rédigé de façon à permettre plus tard à Codex :
+- de comprendre ce qui doit être implémenté sans réinterpréter le legacy ;
+- d'identifier clairement les sources de vérité et les dépendances ;
+- de travailler par lots bornés, étape par étape ;
+- de distinguer les règles validées, les comportements legacy conservés, les bugs à corriger et les sujets encore ouverts ;
+- de coder et tester sans dépendre de la mémoire d'une conversation.
+
+La documentation n'est donc pas seulement un historique de nos échanges ou une mémoire destinée à ChatGPT : **elle prépare directement l'implémentation future du jeu**.
+
+La qualité, la non-contradiction, la précision et la lisibilité de la documentation pour Codex sont des objectifs prioritaires à chaque checkpoint.
+
 Il faut :
 - comprendre les vraies règles métier à partir du code et des JSON ;
 - distinguer comportement voulu, bug, incohérence et contrainte historique ;
@@ -58,6 +73,21 @@ lire en priorité :
 6. `docs/legacy/03-command-data-matrix.md` pour les relations scripts/données
 
 Le Master doit indiquer la prochaine étape exacte.
+
+## Responsabilité unique des documents
+
+Pour éviter les contradictions et rendre la documentation sûre pour Codex :
+
+- `docs/master/PROJECT_MASTER_PLAN.md` est le **seul pointeur global vivant** : phase active, domaine actif, état global et prochaine étape exacte ;
+- un document `docs/legacy/*-audit.md` décrit uniquement son domaine : legacy réel, décisions validées, cible standalone, migration, dépendances et état propre du domaine ;
+- `docs/specifications/decisions-log.md` conserve les décisions validées de manière durable et cumulative, sans devenir un tracker de reprise ;
+- `docs/commands/command-reference.md` décrit les contrats et comportements des commandes ;
+- `docs/roadmap/development-roadmap.md` décrit uniquement la trajectoire macro du projet et ne doit pas dupliquer l'avancement courant du Master ;
+- `AGENTS.md` définit les garde-fous permanents de développement pour les agents, mais ne doit pas dupliquer les spécifications métier détaillées.
+
+Un audit spécialisé peut indiquer qu'il est `EN COURS` ou `CLÔTURÉ` et mentionner ses dépendances, mais il ne doit pas annoncer le prochain domaine global du projet.
+
+Lorsqu'une information possède déjà un document propriétaire, éviter de la recopier ailleurs si cette copie devra être maintenue dans le temps. Préférer un renvoi vers la source de vérité.
 
 Ordre de priorité en cas de contradiction :
 

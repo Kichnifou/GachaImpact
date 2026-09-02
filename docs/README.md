@@ -14,6 +14,8 @@ Il doit permettre :
 - de documenter progressivement la migration depuis Streamer.bot ;
 - de constituer plus tard l'aide intégrée du jeu, notamment la liste des commandes.
 
+La finalité opérationnelle principale de cette documentation est de préparer une base suffisamment précise, cohérente et non contradictoire pour que Codex puisse ensuite implémenter GachaImpact progressivement, par lots bornés, sans devoir redécider ou deviner les règles métier à partir du legacy.
+
 ## Règle de travail
 
 1. Les JSON et scripts Streamer.bot sont des **sources legacy**.
@@ -27,10 +29,11 @@ Il doit permettre :
 
 ## Structure
 
-- `legacy/` : inventaire et compréhension de l'ancien jeu.
-- `specifications/` : décisions validées pour le nouveau GachaImpact.
-- `commands/` : registre des commandes et future aide intégrée.
-- `roadmap/` : ordre de développement et état d'avancement.
+- `master/` : source centrale de navigation, état global, domaine actif et prochaine étape exacte.
+- `legacy/` : inventaire, compréhension de l'ancien jeu et audits spécialisés par domaine.
+- `specifications/` : décisions validées et durables pour le nouveau GachaImpact.
+- `commands/` : contrats des commandes et future aide intégrée.
+- `roadmap/` : trajectoire macro de développement, sans dupliquer l'état courant du Master.
 
 ## Convention de statut
 

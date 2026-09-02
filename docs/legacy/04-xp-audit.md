@@ -20,9 +20,6 @@ Les responsabilités étrangères au domaine XP découvertes dans `XP.txt` ne so
 
 Le futur backend ne doit donc pas reproduire `XP.txt` comme un orchestrateur monolithique.
 
-Le domaine suivant de la Phase 1D est :
-**Élément / ressources / conversion / échanges de particules.**
-
 ## Conclusion immédiate
 
 Le nom `XP` est trompeur : ce script est actuellement le **principal orchestrateur de cycle de vie du jeu Streamer.bot**.
