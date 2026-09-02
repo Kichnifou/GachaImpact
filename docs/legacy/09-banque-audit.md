@@ -363,15 +363,23 @@ Les erreurs de syntaxe utilisent en plus les helpers globaux courts déjà défi
 
 ---
 
-### R245 — Historique bancaire privé — ✅ VALIDÉ
+### R245 — Historique bancaire privé par défaut — ✅ RÉVISÉ PAR R518
 
-L'historique détaillé Banque appartient uniquement au propriétaire.
+La rubrique Historique Banque est `Privé` par défaut, mais configurable :
+- Public ;
+- Amis uniquement ;
+- Privé.
 
-Même si le joueur autorise l'affichage public de son solde :
+Le réglage du solde Banque et celui de l'historique détaillé restent indépendants.
+
+Lorsqu'il est partagé, l'historique est consultable uniquement en lecture seule selon permissions serveur.
+
+Si l'historique reste privé :
 - ne pas exposer dépôts ;
 - retraits ;
 - intérêts détaillés ;
-- chronologie bancaire.
+- chronologie bancaire ;
+- donnée dérivée permettant de le reconstruire.
 
 ---
 

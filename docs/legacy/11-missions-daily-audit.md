@@ -1121,14 +1121,15 @@ Le Domaine Combat définit maintenant :
 
 `CombatService` fournit explicitement le mode `MANUAL` / `AUTO` de la victoire et `MissionService` consomme cet événement sans recalculer la composition.
 
-### Ami / Social
-Définir précisément :
-- les cœurs envoyés comptabilisés ;
-- Amitié Parfaite ;
-- les interactions nécessaires avec les missions permanentes/Z.
+### Ami / Social — ✅ RÉSOLU R458/R525
+- B/A/S utilisent uniquement les cœurs sortants réellement validés ;
+- le destinataire ne progresse pas dans une mission d'envoi ;
+- Z Amitié Parfaite est satisfaite dès qu'une relation atteint le niveau plafonné 1000 ;
+- récompense économique, compteur et événement Mission appartiennent à la même transaction ;
+- `!quotis`/Quotidiennes indiquent si au moins un cœur sortant reste disponible.
 
-### Roue / Combat / Expedition / Ami / Event
-Finaliser les états quotidiens réellement exposés par `!quotis` et le suivi quotidien général.
+### Roue / Combat / Expedition / Event
+Les autres domaines continuent à produire leurs propres états pour `!quotis` et le suivi quotidien général.
 
 Ces dépendances ne rouvrent pas automatiquement le Domaine Missions.
 

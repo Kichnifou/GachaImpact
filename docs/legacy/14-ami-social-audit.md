@@ -1,8 +1,8 @@
 # Audit legacy — Ami / Social
 
 > Domaine 11 de l'audit legacy GachaImpact.  
-> État au checkpoint : **EN COURS — décisions R451 à R493 cadrées**.  
-> Prochaine reprise : **R494**.
+> État final : **CLÔTURÉ — décisions R451 à R525**.  
+> Dernière passe : commandes, MP, confidentialité, présence, migration et producteurs/consommateurs finalisés.
 
 ---
 
@@ -31,7 +31,7 @@ Le domaine couvre notamment :
 - commandes `!ami`, `!infos` / `!info` et `!liste` ;
 - migration des données sociales.
 
-Le domaine n'est pas encore clôturé. Les règles détaillées des MP, les dernières syntaxes de commandes, les cas de concurrence et la migration finale restent à auditer à partir de R494.
+Le domaine est clôturé après R525. Les règles détaillées des MP, les syntaxes de commandes, les cas de concurrence, la confidentialité, la présence, les cosmétiques et la migration finale sont cadrés ci-dessous.
 
 ---
 
@@ -891,36 +891,481 @@ Prévoir conceptuellement :
 
 ---
 
-# 12. Points encore ouverts — reprise R494
+# 12. Commandes et concurrence — R494 à R500
 
-Le prochain lot doit reprendre à R494, sans redemander R451 à R493.
+## R494 — Syntaxes finales de `!ami`
 
-Points restant notamment à cadrer :
+Les syntaxes canoniques du chat interne et de Twitch sont :
 
-- syntaxes finales de `!ami` dans le chat interne et sur Twitch ;
-- contenu compact et pagination de `!ami` ;
-- résultat exact de `!ami coeur <pseudo>` et `!ami coeur all` ;
-- concurrence demande réciproque / acceptation / refus / annulation ;
-- concurrence d'envoi de cœurs individuels et groupés ;
-- historique économique des cœurs sans notification dédiée ;
-- tableau exact des valeurs initiales de confidentialité ;
-- détails des MP : texte, longueur, conservation, suppression locale, non-lus et notifications ;
-- modération, signalement, blocage et éventuel déblocage ;
-- visibilité et comportement d'une conversation après changement de confidentialité ;
-- sémantique exacte des timestamps de présence et dernière activité ;
-- migration de `lastSeen` et distinction des activités futures ;
-- formats finaux de `!infos` / `!info` et `!liste` ;
-- premier catalogue d'avatars/titres et règles administratives ;
-- migration et attribution rétroactive des cosmétiques ;
-- dernière passe producteurs/consommateurs ;
-- clôture du Domaine Ami / Social.
+- `!ami` ;
+- `!ami liste [page]` ;
+- `!ami demandes [page]` ;
+- `!ami ajouter <pseudo>` ;
+- `!ami accepter <pseudo>` ;
+- `!ami refuser <pseudo>` ;
+- `!ami annuler <pseudo>` ;
+- `!ami retirer <pseudo>` ;
+- `!ami voir <pseudo>` ;
+- `!ami coeur <pseudo|all>`.
+
+`!ami <pseudo>` est un alias exact de `!ami voir <pseudo>` : il ne crée ni n'accepte implicitement une demande.
+
+L'acceptation réciproque reste conservée par l'action explicite : si une demande inverse existe déjà, `!ami ajouter <pseudo>` l'accepte au lieu de créer une seconde demande.
+
+Les aides ne présentent que les syntaxes canoniques.
+
+## R495 — Résumé compact de `!ami`
+
+Sans argument, `!ami` produit un seul message compact contenant :
+
+- nombre d'amis ;
+- nombre de cœurs encore disponibles ;
+- demandes reçues ;
+- demandes envoyées ;
+- renvoi vers `!ami liste` et `!ami demandes`.
+
+Les listes sont paginées. L'UI standalone conserve les listes complètes, la recherche et les tris interactifs.
+
+## R496 — Visibilité des résultats sociaux
+
+Depuis l'UI, le retour reste dans l'interface et les notifications prévues sont créées.
+
+Dans le chat interne et sur Twitch :
+
+- demande, acceptation et cœur peuvent produire une réponse publique ;
+- refus, annulation et retrait utilisent une confirmation sobre adressée à l'auteur ;
+- une réponse Twitch nomme toujours explicitement l'action réalisée ;
+- aucune formule humiliante ou annonce théâtrale n'est produite.
+
+Exemples :
+
+- `Demande d'ami envoyée à Bob` ;
+- `Demande de Bob refusée` ;
+- `Bob a été retiré de tes amis`.
+
+## R497 — Phrases des cœurs
+
+Les phrases aléatoires legacy sont conservées pour un envoi individuel.
+
+Le message contient également :
+
+- expéditeur et destinataire ;
+- nouveau niveau plafonné ;
+- palier d'amitié ;
+- +5 Primogemmes pour chacun.
+
+L'envoi global ne tire pas une phrase par ami.
+
+## R498 — Résultat de `!ami coeur all`
+
+La réponse globale indique sans lister les pseudos :
+
+- cœurs envoyés ;
+- cœurs déjà envoyés aujourd'hui ;
+- gain total de l'expéditeur ;
+- gain individuel de chaque destinataire.
+
+Une absence d'envoi distingue :
+
+- aucun ami actif ;
+- tout déjà envoyé ;
+- anomalie d'intégrité.
+
+## R499 — Confidentialité de la liste d'amis
+
+La rubrique `Amis` est `Amis uniquement` par défaut, puis configurable Public/Amis/Privé.
+
+Elle couvre liste, nombre et identités liées. Elle n'expose jamais le niveau d'amitié entre deux autres joueurs. Chaque participant voit toujours sa propre relation avec le propriétaire du profil.
+
+## R500 — `!ami voir <pseudo>`
+
+`!ami voir <pseudo>` et `!ami <pseudo>` retournent exactement le même résumé :
+
+- niveau plafonné ;
+- palier ;
+- total commun de cœurs ;
+- `Envoi cœur : disponible` ou `Envoi cœur : déjà envoyé` pour le demandeur.
+
+La commande ne permet jamais d'observer une relation entre deux tiers.
+
+## Concurrence finalisée
+
+- demande à états explicites pending/accepted/refused/cancelled ;
+- une seule demande ouverte par paire ;
+- demandes opposées simultanées transformées en une seule amitié ;
+- première transition validée gagnante lors d'acceptation/refus/annulation concurrents ;
+- opérations idempotentes ;
+- contrainte unique cœur sur relation + expéditeur + journée Europe/Paris ;
+- envoi individuel et global utilisant la même primitive ;
+- concurrence individuel/global comptant un seul cœur pour la relation ;
+- écritures économiques individuelles pour chaque bénéficiaire, même après une action globale.
 
 ---
 
-# 13. État du domaine
+# 13. Messages privés — R501 à R517
 
-**Domaine Ami / Social : EN COURS — R451 À R493.**
+## Frontière absolue avec Twitch
 
-Prochaine décision : **R494**.
+Les MP sont strictement internes au standalone :
 
-Le checkpoint ne clôture pas le domaine.
+- jamais envoyés vers Twitch ;
+- jamais lus ou envoyés avec une commande Twitch ;
+- aucun recours aux whispers Twitch ;
+- aucun `!mp` dans le chat global interne ;
+- accès uniquement depuis l'onglet `MP`.
+
+Le pont Twitch futur concerne uniquement le chat global public.
+
+## R501/R502 — Contenu et longueur
+
+- texte brut et emojis Unicode ;
+- aucune image/GIF/pièce jointe en V1 ;
+- URL sans aperçu automatique et ouverture externe clairement identifiée ;
+- aucun HTML interprété ;
+- 1 000 caractères maximum ;
+- retours à la ligne autorisés ;
+- Entrée envoie, Maj+Entrée crée une nouvelle ligne.
+
+## R503 — Conservation et fenêtre des 500
+
+Il n'existe aucune expiration automatique des conversations.
+
+Vue normale :
+
+- scroll naturel jusqu'aux 500 derniers messages ;
+- chargement progressif invisible pour le joueur ;
+- aucun numéro de page dans la conversation ;
+- lorsqu'un nouveau message arrive, le plus ancien sort dynamiquement de la fenêtre des 500 ;
+- au-delà, accès par `Voir tout l'historique`.
+
+Historique complet :
+
+- fenêtre dédiée ;
+- scroll chronologique ;
+- recherche textuelle ;
+- navigation vers une date ;
+- chargement paginé côté serveur sans imposer des pages à l'utilisateur.
+
+## R504/R513 — Modification, suppression et restauration
+
+Seul l'auteur peut modifier ou supprimer son message.
+
+- modification à tout moment ;
+- contenu actuel synchronisé chez les deux participants ;
+- mention `Modifié` ;
+- anciennes versions non consultables par les participants ;
+- suppression pour les deux participants ;
+- emplacement remplacé par `Message supprimé` ;
+- bouton `Annuler la suppression` visible uniquement par l'auteur tant que le message reste parmi les 500 derniers ;
+- restauration chez les deux participants à la place chronologique d'origine ;
+- lorsque le message sort des 500 derniers, suppression définitive du contenu ;
+- une copie déjà signalée reste figée dans le dossier de modération.
+
+## R505 — Accusés de lecture
+
+- réglage activé par défaut ;
+- désactivable par le destinataire ;
+- états Envoyé/Lu ;
+- heure exacte récente puis durée relative ;
+- date/heure exacte accessible dans le détail ;
+- désactivation empêchant la communication des lectures futures.
+
+## R506 — Onglets et non-lus
+
+Le panneau de droite contient `Chat` et `MP`.
+
+- badge MP si au moins un message privé non lu ;
+- badge Chat si des messages globaux arrivent pendant la consultation des MP ;
+- conversations non lues en premier ;
+- badge et mention `N nouveaux messages` par conversation ;
+- ouvrir l'onglet MP ne marque rien comme lu ;
+- seule l'ouverture réelle d'une conversation marque ses messages comme lus ;
+- aucune notification MP dans le panneau général Notifications.
+
+## R507 — Demande de conversation ignorée
+
+- une seule demande ouverte par paire ;
+- un seul premier message tant que la demande attend ;
+- ignorer ferme la demande ;
+- nouvel essai interdit pendant 24 heures exactes ;
+- blocage disponible pour une interdiction durable.
+
+## R508 — Changement de permission
+
+Les MP sont toujours privés quant à leur contenu. Public/Amis/Privé détermine uniquement qui peut écrire au destinataire.
+
+Chaque nouvel envoi vérifie la permission actuelle. Une conversation devenue non autorisée reste lisible mais passe en lecture seule.
+
+## R509/R510/R517 — Signalement
+
+- aucun administrateur ne peut parcourir librement les MP ;
+- un participant signale volontairement un message ;
+- le dossier contient le message, les dix précédents et les dix suivants déjà existants ;
+- le joueur voit ce qui sera transmis avant confirmation ;
+- snapshot figé au moment du signalement ;
+- aucune notification immédiate du joueur signalé ;
+- information seulement si une décision de modération produit avertissement ou sanction.
+
+## R511 — Blocage
+
+- blocage empêchant MP, demandes et interactions sociales directes ;
+- amitié automatiquement archivée ;
+- conversation masquée de la liste normale ;
+- message d'échec neutre `Ce message ne peut pas être envoyé` ;
+- déblocage restaurant l'accès à l'historique mais pas automatiquement l'amitié ;
+- conversation restant archivée jusqu'à restauration manuelle ou nouveau message autorisé.
+
+## R512/R514 — Archivage
+
+- archivage individuel ;
+- aucun effet chez l'autre participant ;
+- rubrique Conversations archivées ;
+- nouveau message reçu désarchivant automatiquement ;
+- envoyer depuis une conversation archivée la désarchive ;
+- archivage ne marquant pas les messages comme lus ;
+- aucune notification de l'archivage ;
+- aucune suppression complète de conversation : l'archivage est l'action globale prévue.
+
+## R515 — Historique complet
+
+La fenêtre utilise scroll complet, recherche textuelle et navigation vers une date. Un message supprimé n'apparaît jamais dans les résultats de recherche.
+
+## R516 — Retour au joueur bloqué
+
+L'envoi échoue réellement avec un texte neutre, sans révéler explicitement le blocage et sans simuler une livraison.
+
+## Protection technique
+
+Maximum dix MP en dix secondes par joueur. Le brouillon n'est pas perdu lors d'un refus temporaire.
+
+---
+
+# 14. Confidentialité et présence — R518 à R521
+
+## R518 — Matrice initiale
+
+Même politique pour comptes migrés et nouveaux comptes :
+
+| Rubrique | Valeur initiale |
+|---|---|
+| Pseudo, avatar, niveau, élément | Toujours visible |
+| Team active | Public |
+| Box | Public |
+| Collection | Public |
+| Statistiques générales | Public |
+| Missions | Public |
+| Dernière activité | Public |
+| Pity et garantie | Public |
+| Liste d'amis | Amis uniquement |
+| Autorisation de recevoir des MP | Public |
+| Soldes de monnaies | Privé |
+| Banque | Privé |
+| Sac | Privé |
+| Saved Teams | Privé |
+| Expedition active | Privé |
+| État Combat quotidien | Privé |
+| Slots, KO et composition Boss | Privé |
+| Historiques détaillés | Privé |
+
+Toutes les rubriques non marquées Toujours visible restent configurables Public/Amis/Privé. Les historiques privés par défaut ne sont donc plus déclarés définitivement impossibles à partager.
+
+## R519 — Visibilité de la présence
+
+Réglage séparé Public/Amis/Privé, Public par défaut.
+
+Une présence non autorisée :
+
+- n'apparaît pas dans le panneau connecté ;
+- n'apparaît pas dans `!liste online` ;
+- n'est jamais transformée en faux statut Hors ligne.
+
+## R520 — Dernière activité
+
+- durée relative principale ;
+- date/heure exacte au survol ou dans le détail ;
+- toucher sur mobile pour le détail ;
+- `Dernière activité privée` si non autorisée ;
+- aucune fausse date.
+
+## R521 — Activité Twitch historique
+
+`lastSeen` devient uniquement `lastTwitchMessageAt`/activité Twitch legacy :
+
+- jamais une session standalone ;
+- ligne distincte `Dernière activité Twitch` si compte lié et permission accordée ;
+- aucune activité standalone inventée avant la première vraie connexion.
+
+## Machine de présence
+
+- En ligne pendant les dix premières minutes depuis la dernière interaction réelle ;
+- Absent après dix minutes ;
+- Hors ligne si toutes les sessions sont fermées ;
+- Hors ligne après deux heures d'inactivité même si un onglet reste ouvert ;
+- activité la plus récente parmi tous les onglets/appareils ;
+- tâche serveur, message reçu ou fin d'Expedition ne réactivant jamais la présence ;
+- tolérance courte pour microcoupures ;
+- timestamps séparés pour activité standalone, gameplay, chat interne et Twitch.
+
+---
+
+# 15. Commandes finales et cosmétiques — R522 à R525
+
+## R522 — MP uniquement dans leur onglet
+
+Aucun `!mp` interne ou Twitch. L'onglet MP est l'unique point d'entrée d'envoi/lecture.
+
+## R523/R524 — `!liste`
+
+`!liste <élément> [page]` :
+
+- annuaire par élément ;
+- ordre alphabétique ;
+- aucun statut de présence ;
+- vingt joueurs par page.
+
+`!liste online [page]` :
+
+- vingt joueurs par page ;
+- En ligne alphabétiques en premier ;
+- Absents alphabétiques ensuite ;
+- marqueurs 🟢/🟡 ;
+- aucune présence privée ou non autorisée ;
+- aucun joueur hors ligne.
+
+## Format final de `!infos`
+
+- `!infos <pseudo>` canonique ;
+- `!info <pseudo>` alias ;
+- `me`/`moi` acceptés ;
+- pseudo, niveau, élément, nombre de personnages, remplissage Team, pulls, victoires Combat et amitié avec le demandeur ;
+- champs privés omis sans fausse valeur zéro ;
+- aucune section longue ;
+- pity/garantie consultables dans l'UI même si publiques, pas ajoutées au résumé chat.
+
+## R525 — Premier catalogue
+
+- sept avatars élémentaires de base ;
+- fallback neutre pour profil sans élément ;
+- premier catalogue déblocable fondé sur données auditées : niveaux, personnages, pulls, Combat, Expedition, cœurs et Amitié ;
+- exacts noms/illustrations différés à la passe contenu ;
+- rétroactivité uniquement si preuve fiable.
+
+Administration :
+
+- IDs stables ;
+- conditions pilotées par données ;
+- désactivation bloquant les nouveaux déblocages sans retirer les possessions ;
+- masquage d'urgence empêchant temporairement l'équipement ;
+- fallback visuel si cosmétique équipé masqué ;
+- réactivation restaurant l'utilisation ;
+- attribution/migration idempotente avec preuve.
+
+---
+
+# 16. Migration finale
+
+## Relations et demandes
+
+- importer les 88 relations actives observées ;
+- rattacher les pseudos normalisés aux playerId immuables ;
+- contrainte unique sur paire canonique ;
+- importer niveau, sparkleHearts, createdAt et dates directionnelles ;
+- niveau cible plafonné à 1000 ;
+- compteur de cœurs commun conservé exactement ;
+- importer les 21 demandes sans expiration ;
+- aucune relation archivée legacy inventée.
+
+## Compteurs individuels
+
+- conserver `totalFriendHeartsSent` exact de chaque viewer ;
+- conserver séparément les totaux communs des relations ;
+- ne pas réattribuer les 612 cœurs d'écart historique ;
+- documenter cet écart dans le rapport de migration.
+
+## Dates
+
+- interpréter les dates legacy comme Europe/Paris selon la règle transversale ;
+- dates de cœur conservées comme journées métier historiques ;
+- `lastSeen` conservé comme dernière activité Twitch/legacy ;
+- aucune présence standalone créée au cutover.
+
+## MP, confidentialité et cosmétiques
+
+- aucun MP legacy à migrer ;
+- appliquer la matrice R518 aux nouveaux paramètres ;
+- avatar élémentaire par défaut selon l'élément migré ;
+- fallback neutre si profil Twitch-only non onboardé ;
+- calculer les déblocages cosmétiques après import des sources autoritatives ;
+- ne jamais débloquer depuis une donnée insuffisante ;
+- migration réexécutable/idempotente ;
+- aucune notification ou récompense économique déclenchée par le simple import.
+
+## Anomalies
+
+- joueur introuvable : quarantaine, jamais suppression silencieuse ;
+- paire dupliquée : fusion seulement si identité certaine, sinon rapport ;
+- relation incohérente : préserver valeurs sources et signaler ;
+- demande devenue relation : résoudre selon l'état autoritatif sans double relation ;
+- date invalide : conserver la source brute dans le rapport ;
+- aucune réparation ne crédite de Primogemmes ni de progression Mission.
+
+---
+
+# 17. Producteurs et consommateurs
+
+## Producteurs
+
+Le service Ami est l'unique producteur de :
+
+- demandes et transitions ;
+- relations actives/archivées ;
+- envois de cœurs ;
+- niveau et total relationnels ;
+- `totalFriendHeartsSent` ;
+- récompenses +5/+5 ;
+- événements de déblocage cosmétique associés.
+
+UI, chat interne et Twitch appellent ce même service.
+
+## Consommateurs
+
+- Missions B/A/S : cœurs sortants réellement validés via `totalFriendHeartsSent` ;
+- Mission Z : première relation atteignant exactement le niveau plafonné 1000 ;
+- Quotidiennes : disponibilité d'au moins un envoi sortant ;
+- Profil/Social : relation, progression, demandes, liste et confidentialité ;
+- Historique économique : gains individuels des deux joueurs ;
+- Cosmétiques : conditions d'amitié/cœurs ;
+- `!ami`, `!infos`, `!liste` : projections compactes sans logique métier dupliquée.
+
+## Invariants
+
+- niveau partagé borné 1..1000 ;
+- total historique relationnel cumulatif non borné ;
+- niveau initial 1 et relation legacy cohérente `level = sparkleHearts + 1` avant plafond ;
+- un cœur maximum par sens/relation/journée ;
+- récompense et compteur Mission dans la même transaction ;
+- aucun cœur reçu ne compte dans la Mission d'envoi du destinataire ;
+- aucune notification dédiée au cœur ;
+- aucune donnée privée récupérée puis seulement masquée par le client.
+
+---
+
+# 18. Clôture
+
+**Domaine Ami / Social : CLÔTURÉ APRÈS R525.**
+
+Sont finalisés :
+
+- demandes, relations, retrait/réajout ;
+- cœurs, paliers, Missions et économie ;
+- espace Social et profil ;
+- présence et dernière activité ;
+- confidentialité et valeurs initiales ;
+- MP, non-lus, historique, édition/suppression/restauration ;
+- archivage, blocage et signalement ;
+- commandes `!ami`, `!infos`/`!info`, `!liste` ;
+- avatars/titres et migration rétroactive ;
+- concurrence, idempotence et migration ;
+- producteurs et consommateurs.
+
+Prochain domaine : **Concours / C6**, selon l'ordre du Master.

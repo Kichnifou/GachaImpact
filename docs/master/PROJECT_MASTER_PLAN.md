@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.32
+Version : 0.33
 Date : 2026-09-02
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -724,7 +724,7 @@ Règles :
 - numéro visible avec la Team ;
 - nom soumis à la granularité future de confidentialité ;
 - passifs visibles uniquement si la Team elle-même est visible ;
-- Saved Teams privées ;
+- Saved Teams privées par défaut, configurables Public/Amis/Privé et consultables uniquement en lecture seule par un tiers autorisé ;
 - personnages de la Team publique ouvrables via la fiche publique commune.
 
 ### Désactivation personnage
@@ -983,7 +983,7 @@ La Boutique affiche quelques achats récents.
 - écran global `Historique` ;
 - catégorie `Boutique / Achats`.
 
-L'historique détaillé Shop est privé au propriétaire.
+L'historique détaillé Shop est privé par défaut mais configurable Public/Amis/Privé.
 
 Ne jamais fabriquer d'historique legacy absent.
 
@@ -1022,7 +1022,7 @@ Architecture :
 
 La liste exacte des catégories, limites et historiques sera définie plus tard.
 
-## 6.7 Confidentialité joueur — DIRECTION VALIDÉE / PRÉCISÉE R463–R489
+## 6.7 Confidentialité joueur — VALIDÉE R463–R521
 
 Prévoir dans l'écran `Paramètres` un onglet `Confidentialité`.
 
@@ -1037,48 +1037,54 @@ Identité toujours visible :
 - niveau ;
 - élément.
 
-Rubriques prévues :
-- Team active ;
-- Saved Teams ;
-- Box ;
-- Collection ;
-- monnaies ;
-- Sac ;
-- Banque ;
-- pity/garantie ;
-- statistiques ;
-- Missions ;
-- Expedition ;
-- Combat quotidien ;
-- Boss mensuel ;
-- dernière activité ;
-- historiques.
+Valeurs initiales communes aux comptes migrés et nouveaux :
+
+| Rubrique | Valeur initiale |
+|---|---|
+| Pseudo, avatar, niveau, élément | Toujours visible |
+| Team active | Public |
+| Box | Public |
+| Collection | Public |
+| Statistiques générales | Public |
+| Missions | Public |
+| Dernière activité | Public |
+| Pity et garantie | Public |
+| Liste d'amis | Amis uniquement |
+| Autorisation de recevoir des MP | Public |
+| Soldes de monnaies | Privé |
+| Banque | Privé |
+| Sac | Privé |
+| Saved Teams | Privé |
+| Expedition active | Privé |
+| État Combat quotidien | Privé |
+| Slots, KO et composition Boss | Privé |
+| Historiques détaillés | Privé |
+
+Toutes les rubriques non marquées `Toujours visible` restent configurables Public/Amis/Privé.
 
 La granularité cible est une rubrique métier cohérente, avec sous-rubrique seulement lorsqu'elle apporte une vraie valeur. Elle ne descend pas par défaut jusqu'à chaque champ ou slot atomique.
 
-Valeurs initiales :
-- comptes migrés et nouveaux comptes utilisent la même politique prudente ;
-- identité toujours visible ;
-- rubriques sociales générales non sensibles publiques par défaut ;
-- données économiques détaillées, presets et états tactiques sensibles privés par défaut ;
-- le propriétaire peut ensuite modifier chaque rubrique configurable.
-
-Clarification transverse :
-- Sac exact, Saved Teams, états Expedition, slots/KO Combat et autres données tactiques ne sont plus déclarés définitivement privés ;
-- ils restent privés par défaut mais peuvent être rendus publics ou réservés aux amis ;
-- Missions et statistiques sont publiques par défaut mais configurables ;
-- les règles de secret Z restent prioritaires même si Missions est public.
+Clarifications :
+- Sac exact, Saved Teams, états tactiques et historiques détaillés sont privés par défaut mais peuvent être volontairement partagés ;
+- Missions, statistiques, Box, Collection, Team active et pity/garantie sont publiques par défaut ;
+- les règles de secret Z restent prioritaires même si Missions est public ;
+- la liste d'amis est Amis uniquement par défaut ;
+- la visibilité de la présence possède son propre réglage Public/Amis/Privé, Public par défaut ;
+- le réglage MP contrôle qui peut écrire, jamais qui peut lire le contenu ;
+- le contenu des MP reste toujours limité aux participants, sauf contexte volontairement joint à un signalement.
 
 Consultation :
 - une rubrique autorisée réutilise la vraie vue du domaine en lecture seule ;
 - les actions de mutation sont absentes pour le visiteur ;
 - une section inaccessible reste visible avec un état de confidentialité ;
-- distinguer clairement contenu vide et contenu privé.
+- distinguer clairement contenu vide et contenu privé ;
+- ne jamais afficher une fausse valeur zéro à la place d'une donnée privée.
 
 Sécurité :
 - appliquer les permissions côté serveur avant de récupérer ou retourner les données ;
 - ne jamais dépendre uniquement du masquage frontend ;
-- ne jamais envoyer au client une donnée privée pour ensuite seulement la cacher.
+- ne jamais envoyer au client une donnée privée pour ensuite seulement la cacher ;
+- empêcher les déductions indirectes permettant de reconstruire une donnée privée.
 
 ---
 
@@ -2374,7 +2380,7 @@ Décisions principales :
 - compte à rebours uniquement UI ;
 - pas de notification quotidienne d'intérêt ;
 - historique récent Banque + Historique global complet ;
-- historique bancaire détaillé privé ;
+- historique bancaire détaillé privé par défaut mais configurable Public/Amis/Privé ;
 - solde Banque soumis à Public / Amis / Privé ;
 - protection contre fuite via données dérivées ;
 - sidebar = portefeuille uniquement ;
@@ -2427,7 +2433,7 @@ Décisions principales :
 - pity Ticket via moteur Gacha ;
 - Mission achetable depuis Shop ou Missions ;
 - `!shop` paginé au-delà de 5 articles ;
-- historique Shop privé via écran Historique global ;
+- historique Shop privé par défaut via l'écran Historique global, mais configurable Public/Amis/Privé ;
 - achats atomiques/idempotents.
 
 Frontières reportées :
@@ -2645,61 +2651,84 @@ Les commandes internes doivent appeler les mêmes services que les boutons.
 
 ---
 
-# 30. PHASE 8 — SOCIAL — AUDIT EN COURS R451–R493
+# 30. PHASE 8 — SOCIAL — AUDIT CLÔTURÉ R451–R525
 
 Document spécialisé :
 `docs/legacy/14-ami-social-audit.md`
 
 Espace Social unique :
-- onglet `Amis` ouvert par défaut ;
-- `Demandes` ;
-- `Joueurs` ;
-- `Messages` ;
+- onglets Amis, Demandes, Joueurs et Messages ;
 - recherche temps réel ;
-- tris de présence, ordre alphabétique, niveau d'amitié et cœur disponible.
-
-Présence :
-- `En ligne` ;
-- `Absent` ;
-- `Hors ligne` ;
-- panneau du chat limité aux joueurs En ligne/Absents ;
-- dernière activité soumise à Public/Amis/Privé ;
-- `lastSeen` legacy conservé comme activité Twitch historique, jamais comme fausse session standalone.
-
-Profil :
-- Aperçu, Team, Box, Collection, Statistiques, Missions et autres rubriques autorisées ;
-- identité pseudo/avatar/niveau/élément toujours visible ;
-- clic sur l'identité depuis les vues pertinentes pour ouvrir le profil ;
-- rubriques visibles réutilisées en lecture seule ;
-- confidentialité par rubriques cohérentes.
+- tris mémorisés ;
+- profils ouvrables depuis les identités standalone ;
+- vues partagées en lecture seule selon permissions serveur.
 
 Amis :
-- demandes persistantes avec accepter/refuser/annuler ;
-- acceptation réciproque conservée ;
-- retrait archivant la relation et restauration après réajout ;
+- demandes persistantes avec ajouter/accepter/refuser/annuler ;
+- paire unique par IDs joueur ;
+- retrait archivant la relation et restauration de la progression après réajout ;
 - aucun plafond d'amis ;
-- un cœur par relation, par sens et par journée Europe/Paris ;
-- +5 Primogemmes à chacun, sans plafond supplémentaire ;
+- un cœur par relation, sens et journée Europe/Paris ;
+- +5 Primogemmes pour chacun ;
 - niveau partagé plafonné à 1000 ;
-- aucun notification dédiée aux cœurs.
+- total historique des cœurs non plafonné ;
+- envoi individuel/global atomique et idempotent ;
+- aucune notification dédiée au cœur.
+
+Présence :
+- En ligne jusqu'à dix minutes d'inactivité ;
+- Absent après dix minutes ;
+- Hors ligne après fermeture de toutes les sessions ou deux heures d'inactivité ;
+- visibilité Public/Amis/Privé ;
+- dernière activité relative avec détail exact ;
+- `lastSeen` legacy conservé séparément comme activité Twitch historique.
 
 Messages privés :
-- strictement internes à GachaImpact ;
-- réglage Public/Amis/Privé, Public par défaut au cutover ;
-- premier message d'un non-ami sous forme de demande de conversation ;
-- historique conservé après retrait d'ami ;
-- blocage social complet.
+- strictement internes au standalone, jamais reliés à Twitch ;
+- onglet MP unique, aucun `!mp` ;
+- 1 000 caractères, texte/emojis, retours à la ligne ;
+- 500 derniers messages dans la vue courante ;
+- Historique complet avec scroll, recherche et navigation par date ;
+- modification/suppression synchronisée chez les deux participants ;
+- restauration d'un message supprimé tant qu'il reste parmi les 500 derniers ;
+- archivage individuel et désarchivage automatique au prochain message ;
+- badges non lus dans les onglets et conversations ;
+- accusés de lecture configurables, activés par défaut ;
+- demandes de conversation, blocage et signalement cadrés ;
+- aucun administrateur ne peut parcourir librement les MP.
+
+Confidentialité :
+- matrice initiale exacte définie par R518 ;
+- pity/garantie publiques par défaut ;
+- liste d'amis Amis uniquement par défaut ;
+- données économiques, tactiques et historiques privées par défaut mais configurables ;
+- contenu MP toujours privé aux participants.
+
+Commandes :
+- famille `!ami` explicite ;
+- `!ami <pseudo>` alias de `!ami voir <pseudo>` ;
+- `!infos`/`!info` compact ;
+- `!liste <élément> [page]` alphabétique ;
+- `!liste online [page]` En ligne puis Absents ;
+- vingt joueurs par page pour `!liste`.
 
 Cosmétiques :
-- avatars officiels seulement ;
-- avatar élémentaire par défaut ;
-- avatars et titres déblocables par plusieurs systèmes ;
+- avatars officiels ;
+- sept avatars élémentaires et fallback neutre ;
+- premier catalogue lié aux données auditées ;
+- titres visibles uniquement sur le Profil ;
 - déblocages permanents et rétroactifs lorsqu'ils sont prouvables ;
-- un titre équipable, visible uniquement sur le Profil ;
-- avatar GachaImpact visible dans le chat interne, sans remplacement de l'avatar Twitch ;
-- notification UI de déblocage et mention intégrée au résultat chat immédiat sans second message.
+- catalogue piloté par données et administrable.
 
-L'audit Social reste ouvert et reprend à R494.
+Migration :
+- 88 relations et 21 demandes observées conservées ;
+- compteurs relationnels et individuels préservés séparément ;
+- écart historique de 612 cœurs documenté sans réattribution inventée ;
+- aucun MP legacy à migrer ;
+- migration réexécutable et idempotente ;
+- aucune récompense déclenchée par l'import.
+
+**Domaine Ami / Social clôturé après R525.**
 
 ---
 
@@ -2947,7 +2976,7 @@ Missions / Daily désormais cadrés :
 Recroisements après clôture Missions :
 - Expedition → résolu : une expédition est comptabilisée uniquement lors d'une récupération réussie ; cette mutation produit `totalExpeditionsCompleted +1` et l'événement Mission ;
 - Combat → résolu R387/R388 : B/A/S utilisent `totalCombatWins` ; Z `Maître du combat` utilise 50 `totalManualCombatWins` sans Auto ;
-- Ami / Social → cœurs et Amitié Parfaite restent à auditer ;
+- Ami / Social → résolu R458/R525 : B/A/S utilisent les cœurs sortants réellement validés ; Z se termine lorsqu'une relation atteint le niveau plafonné 1000 ;
 - Roue / Ami / Event → leurs états continueront à enrichir le hub `Quotidiennes` / `!quotis`.
 
 **Domaine 9 — Expedition : CLÔTURÉ — R340 À R369.**
@@ -3101,27 +3130,25 @@ Règle Notifications précisée :
 
 **Domaine Combat clôturé après R450.**
 
-**Domaine 11 — Ami / Social : EN COURS — R451 À R493.**
+**Domaine 11 — Ami / Social clôturé après R525.**
 
 Document spécialisé :
 `docs/legacy/14-ami-social-audit.md`
 
-Déjà cadrés :
-- demandes explicites accepter/refuser/annuler et acceptation réciproque ;
-- demandes sans expiration ;
-- retrait archivé et progression restaurée au réajout ;
-- cœurs quotidiens +5/+5 sans plafond supplémentaire ;
-- niveau d'amitié plafonné à 1000 ;
-- Missions cœurs/Amitié Parfaite recroisées ;
-- migration conservatrice des relations, demandes et compteurs ;
-- écran Social, listes, présence et dernière activité ;
-- profil détaillé et confidentialité par rubriques ;
-- MP selon Public/Amis/Privé ;
-- blocage social ;
-- avatars et titres déblocables/rétroactifs ;
-- commandes `!infos` / `!info` et `!liste` orientées vers des réponses compactes.
+Sont finalisés :
+- demandes et relations archivables ;
+- cœurs +5/+5, niveau 1000 et compteurs Missions ;
+- espace Social, profils et confidentialité ;
+- présence En ligne/Absent/Hors ligne ;
+- MP internes, historique, édition, suppression, restauration et archivage ;
+- badges non lus et accusés de lecture ;
+- blocage, signalement et modération respectueuse de la confidentialité ;
+- commandes `!ami`, `!infos`/`!info` et `!liste` ;
+- avatars, titres et déblocages rétroactifs ;
+- concurrence, idempotence et migration ;
+- producteurs et consommateurs.
 
-**Prochaine reprise : R494 — finir les MP, les commandes Ami, la concurrence, les valeurs exactes de confidentialité et la migration avant clôture.**
+**Prochaine reprise : Domaine 12 — Concours / C6.**
 
 Dépendance future à conserver :
 - lors de l'audit `Top / Classements`, décider explicitement portefeuille vs patrimoine total pour les Moras ;
@@ -3246,9 +3273,12 @@ Décisions clés :
 - coup final, distribution communautaire et changement de mois conçus de manière atomique/idempotente ;
 - aucun historique player-facing du Combat quotidien en V1 ; statistiques par personnage affichées dans sa fiche personnelle selon confidentialité ;
 - notifications non lues persistantes jusqu'à lecture/suppression ; notifications lues nettoyées au reset suivant ;
-- Ami / Social cadré jusqu'à R493 : demandes persistantes, relations archivables, cœurs +5/+5, niveau 1000, présence standalone, profil, confidentialité, MP, blocage, avatars et titres ;
-- toutes les rubriques de gameplay peuvent être rendues Public/Amis/Privé ; les catégories sensibles sont privées par défaut mais ne sont plus définitivement interdites au partage ;
-- `!infos` / `!info` et `!liste` restent des commandes compactes ; l'UI porte les vues détaillées.
+- Ami / Social clôturé après R525 : demandes, relations, cœurs, présence, profil, confidentialité, MP, blocage, signalement, avatars et titres ;
+- MP strictement internes au standalone, avec 500 derniers messages dans la vue courante et Historique complet séparé ;
+- toutes les rubriques de gameplay sont configurables Public/Amis/Privé ; les catégories sensibles et historiques sont privés par défaut ;
+- pity et garantie sont publiques par défaut ;
+- `!ami`, `!infos`/`!info` et `!liste` sont finalisées pour les chats ;
+- migration sociale conservatrice, réexécutable et sans attribution historique inventée.
 
 Prochaine étape :
-continuer le Domaine 11 — Ami / Social à R494 depuis `docs/legacy/14-ami-social-audit.md`. Finir les MP, les commandes Ami, la concurrence, les valeurs exactes de confidentialité et la migration avant clôture. Concours / C6, Event / monthly, autres utilitaires, Top / Classements et Twitch / Giveaway restent à auditer selon la roadmap.
+commencer le Domaine 12 — Concours / C6 depuis les vrais scripts, `c6_characters.json` et les consommateurs Gacha/Concours. Event / monthly, autres utilitaires, Top / Classements et Twitch / Giveaway restent à auditer selon la roadmap.

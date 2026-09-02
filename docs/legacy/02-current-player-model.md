@@ -480,7 +480,7 @@ L'ordre personnage :
 ### Visibilité
 
 - Team active potentiellement publique selon confidentialité ;
-- Saved Teams privées ;
+- Saved Teams privées par défaut mais configurables Public/Amis/Privé ;
 - Team publique consultable hors ligne ;
 - état vide/incomplet visible tel quel ;
 - numéro visible ;

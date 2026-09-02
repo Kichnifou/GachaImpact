@@ -146,7 +146,7 @@ Statut : évolutif.
 - `VALIDÉ` — Aucun format abrégé `k/m` ou montant décimal en V1.
 - `VALIDÉ` — Aucun notification dédiée au crédit d'intérêt.
 - `VALIDÉ` — Historique récent dans Banque + `Voir tout` vers l'Historique global filtrable Tous/Dépôts/Retraits/Intérêts.
-- `VALIDÉ` — L'historique bancaire détaillé est privé au propriétaire.
+- `RÉVISÉ R518` — L'historique bancaire détaillé est privé par défaut mais configurable Public/Amis/Privé ; aucune donnée dérivée ne contourne ce réglage.
 - `VALIDÉ` — Le solde Banque peut être Public / Amis / Privé selon confidentialité.
 - `VALIDÉ` — Ne jamais exposer une donnée dérivée permettant de reconstruire une Banque privée.
 - `VALIDÉ` — La sidebar affiche seulement le portefeuille Moras.
@@ -431,7 +431,7 @@ Statut : évolutif.
 - `VALIDÉ` — `!sac` garde l'élément principal en premier et affiche aussi les objets spéciaux persistants possédés.
 - `VALIDÉ` — `!shop` utilise une pagination de 5 articles lorsque nécessaire.
 - `VALIDÉ` — Les articles visibles mais indisponibles restent présentés dans `!shop`.
-- `VALIDÉ` — L'historique détaillé Boutique est privé.
+- `RÉVISÉ R518` — L'historique détaillé Boutique est privé par défaut mais configurable Public/Amis/Privé.
 - `VALIDÉ` — Quantité et méthode d'obtention peuvent être publiques avec la Collection ; l'historique d'acquisition doit supporter une confidentialité granulaire.
 - `VALIDÉ TECHNIQUE` — Une limite d'achat affiche sa progression.
 - `VALIDÉ TECHNIQUE` — Un article indisponible affiche sa raison lorsqu'elle est connue.
@@ -653,7 +653,42 @@ Statut : évolutif.
 - `VALIDÉ R491` — Avatar/pseudo ouvrent le profil depuis les vues standalone pertinentes.
 - `VALIDÉ R492` — Profil > Personnalisation avec onglets Avatars/Titres.
 - `VALIDÉ R493` — Chaque cosmétique verrouillé choisit condition visible, silhouette mystérieuse ou secret total.
-- `EN COURS` — Domaine Ami / Social documenté dans `legacy/14-ami-social-audit.md` ; prochaine reprise R494.
+- `VALIDÉ R494` — Famille `!ami` explicite ; `!ami <pseudo>` est un alias de `!ami voir <pseudo>`.
+- `VALIDÉ R495` — `!ami` sans argument produit un résumé compact ; listes et demandes sont paginées.
+- `VALIDÉ R496` — Résultats adaptés au canal ; confirmations Twitch toujours explicites mais refus/retrait sobres.
+- `VALIDÉ R497` — Phrases legacy conservées pour les cœurs individuels avec niveau/palier/récompense.
+- `VALIDÉ R498` — `!ami coeur all` affiche comptes envoyés/déjà faits et gains, sans liste de pseudos.
+- `VALIDÉ R499` — Liste d'amis Amis uniquement par défaut, puis configurable.
+- `VALIDÉ R500` — `!ami voir` affiche niveau, palier, total commun et disponibilité de l'envoi sortant.
+- `VALIDÉ R501` — MP texte/emojis uniquement ; URL sans aperçu ; aucun média ou fichier V1.
+- `VALIDÉ R502` — MP limités à 1 000 caractères avec retours à la ligne.
+- `VALIDÉ R503` — Vue courante limitée dynamiquement aux 500 derniers messages ; Historique complet séparé.
+- `VALIDÉ R504` — Auteur libre de modifier/supprimer pour tous ; suppression annulable tant que le message reste dans les 500 derniers.
+- `VALIDÉ R505` — Accusés de lecture configurables et activés par défaut.
+- `VALIDÉ R506` — Onglets Chat/MP avec badges croisés, conversations non lues en premier et compteur par conversation.
+- `VALIDÉ R507` — Demande de conversation ignorée bloquée pendant 24 heures.
+- `VALIDÉ R508` — Chaque nouvel envoi respecte la permission actuelle ; historique conservé en lecture seule si l'envoi devient interdit.
+- `VALIDÉ R509` — Aucun accès libre des administrateurs aux MP ; consultation uniquement par signalement volontaire.
+- `VALIDÉ R510` — Signalement = message + dix précédents + dix suivants déjà existants, snapshot figé.
+- `VALIDÉ R511` — Blocage archive l'amitié, masque la conversation et ne restaure pas automatiquement l'amitié au déblocage.
+- `VALIDÉ R512` — Archivage individuel d'une conversation ; nouveau message autorisé la désarchive.
+- `VALIDÉ R513` — Seul le contenu courant modifié est visible avec mention `Modifié`.
+- `VALIDÉ R514` — Pas de suppression globale d'une conversation entière ; utiliser l'archivage.
+- `VALIDÉ R515` — Historique complet avec scroll, recherche textuelle et navigation vers une date.
+- `VALIDÉ R516` — Un joueur bloqué reçoit un échec neutre sans fausse livraison.
+- `VALIDÉ R517` — Aucun avertissement immédiat lors d'un signalement ; information seulement en cas de décision de modération.
+- `VALIDÉ R518` — Matrice initiale exacte ; pity/garantie publiques, amis Amis uniquement, données sensibles/historiques privées par défaut.
+- `VALIDÉ R519` — Présence configurable séparément Public/Amis/Privé, Public par défaut.
+- `VALIDÉ R520` — Dernière activité relative avec date exacte accessible en détail.
+- `VALIDÉ R521` — `lastSeen` migré comme activité Twitch distincte, jamais comme présence standalone.
+- `VALIDÉ R522` — MP accessibles uniquement depuis leur onglet standalone ; aucun `!mp`.
+- `VALIDÉ R523` — `!liste <élément>` alphabétique et sans présence.
+- `VALIDÉ R524` — `!liste` et `!liste online` utilisent vingt joueurs par page.
+- `VALIDÉ R525` — Premier catalogue : sept avatars élémentaires, fallback neutre et cosmétiques liés aux données auditées.
+- `VALIDÉ TECHNIQUE` — En ligne jusqu'à 10 min, Absent ensuite, Hors ligne à fermeture de toutes les sessions ou après 2 h d'inactivité.
+- `VALIDÉ TECHNIQUE` — Maximum dix MP en dix secondes ; brouillon préservé si l'envoi est temporairement refusé.
+- `VALIDÉ MIGRATION` — 88 relations et 21 demandes conservées ; écart historique de 612 cœurs documenté sans réattribution.
+- `CLÔTURÉ` — Domaine Ami / Social clôturé après R525.
 
 ## Quotidiennes — direction transverse
 - `VALIDÉ R355` — Écran `Quotidiennes` dédié : Roue → Roue, Combat → Combat, Expedition → Box, Ami cœur → Amis, Event → Event, Shop → Boutique.

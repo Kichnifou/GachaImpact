@@ -939,11 +939,14 @@ La Collection événementielle reste consultée avec `!coffre` afin de ne pas su
 
 ---
 
-### R294 — Historique Shop privé — ✅ VALIDÉ
+### R294 — Historique Shop privé par défaut — ✅ RÉVISÉ PAR R518
 
-L'historique détaillé des achats Boutique est privé au propriétaire.
+La rubrique Historique Boutique est `Privé` par défaut, mais configurable :
+- Public ;
+- Amis uniquement ;
+- Privé.
 
-Il peut contenir notamment :
+Elle peut contenir notamment :
 - article ;
 - quantité ;
 - coût ;
@@ -951,7 +954,11 @@ Il peut contenir notamment :
 - récompense aléatoire ;
 - date.
 
-Il n'est jamais exposé dans le profil d'un autre joueur.
+Lorsqu'elle est partagée :
+- consultation standalone en lecture seule ;
+- permissions vérifiées côté serveur ;
+- aucune mutation depuis le profil visiteur ;
+- aucune exposition détaillée dans une commande Twitch/chat.
 
 ---
 
@@ -1174,7 +1181,7 @@ Shop :
 - pity via Gacha ;
 - Mission via Missions ;
 - pagination Twitch au-delà de 5 articles ;
-- historique privé ;
+- historique privé par défaut mais configurable Public/Amis/Privé ;
 - achats atomiques/idempotents.
 
 Frontières Missions et Event explicitement reportées.

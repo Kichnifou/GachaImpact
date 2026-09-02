@@ -1608,5 +1608,8 @@ Dépendances reportées :
 - présentation transversale des classements → Top / Classements ;
 - équilibrage final des valeurs → playtests et passe d'économie globale.
 
-Prochain domaine recommandé :
-**Domaine 11 — Ami / social.**
+Domaine suivant désormais clôturé :
+**Domaine 11 — Ami / Social, clôturé après R525.**
+
+Prochain domaine actif :
+**Domaine 12 — Concours / C6.**
