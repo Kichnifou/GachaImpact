@@ -747,3 +747,16 @@ Statut : évolutif.
 - `VALIDÉ` — Une Faveur GachaImpact est inspirée de la Blessing of the Welkin Moon, mais ses jours ne diminuent que lorsqu'une récompense est effectivement réclamée.
 - `VALIDÉ` — Une absence ne consomme donc pas de jour de Faveur.
 - `À AUDITER` — Les attributions par événements de stream et abonnements Twitch, ainsi que leur future intégration sans Streamer.bot, seront traitées dans le domaine Faveur/Twitch.
+
+## Concours / C6 — domaine en cours
+- `VALIDÉ R526` — Le Concours est visible par tous. Sans personnage 5★ C6 éligible, un joueur peut consulter le système et agir comme spectateur/support, mais pas participer comme concurrent.
+- `VALIDÉ R527` — Un seul concours global peut exister à la fois. Tout joueur peut le regarder passivement dans l'UI sans s'enregistrer comme spectateur ; ce visionnage passif ne donne aucune action de spectateur.
+- `VALIDÉ R528` — Le thème Concours est mondial et quotidien, avec reset serveur selon `Europe/Paris`.
+- `VALIDÉ R529` — Un joueur ne peut participer comme concurrent qu'à un seul concours par jour, indépendamment du personnage C6 utilisé. Le visionnage et le rôle de spectateur ne consomment pas cette participation.
+- `VALIDÉ R530` — La participation quotidienne est consommée uniquement au lancement effectif du concours. Un lobby quitté ou annulé avant lancement ne consomme rien.
+- `VALIDÉ R531` — Un concours possède quatre places participantes, peut être lancé avec un seul humain et complète toutes les places libres par des bots.
+- `VALIDÉ R532` — Lobby : 10 minutes d'inactivité puis annulation automatique sans consommation quotidienne. Tour humain : 60 secondes puis action `basique` automatique. Soutien : 30 secondes puis soutien ignoré. Après trois tours consécutifs d'un participant sans action humaine, sa place est reprise par un bot héritant de son état courant. Le joueur remplacé ne peut pas revenir dans le concours courant et reste soumis à la limite quotidienne déjà consommée au lancement.
+- `VALIDÉ R532` — L'organisateur et les administrateurs autorisés peuvent retirer manuellement un participant, remplacé par un bot héritant de l'état courant, ou retirer simplement un spectateur.
+- `VALIDÉ R533` — Après chaque round complet, un spectateur actif inscrit est choisi aléatoirement et peut choisir un participant à soutenir. Un simple viewer UI non inscrit n'est jamais éligible au soutien. UI, chat interne et Twitch futur utilisent le même service métier.
+- `VALIDÉ R534` — L'organisateur peut annuler l'intégralité du concours même après son lancement. Participants et spectateurs peuvent également quitter individuellement ; un participant quittant un concours lancé est remplacé par un bot.
+- `À AUDITER` — Les conséquences exactes d'une annulation globale après lancement sur la participation quotidienne, les statistiques, récompenses et autres progressions restent à décider dans la suite du domaine.

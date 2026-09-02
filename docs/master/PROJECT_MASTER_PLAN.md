@@ -3162,7 +3162,7 @@ Sont finalisés :
 - concurrence, idempotence et migration ;
 - producteurs et consommateurs.
 
-**Prochaine reprise : Domaine 12 — Concours / C6.**
+La reprise globale et le domaine actuellement actif sont indiqués uniquement dans la section `# 38. PROCHAINE ÉTAPE EXACTE`.
 
 Dépendance future à conserver :
 - lors de l'audit `Top / Classements`, décider explicitement portefeuille vs patrimoine total pour les Moras ;
@@ -3294,5 +3294,15 @@ Décisions clés :
 - `!ami`, `!infos`/`!info` et `!liste` sont finalisées pour les chats ;
 - migration sociale conservatrice, réexécutable et sans attribution historique inventée.
 
-Prochaine étape :
-commencer le Domaine 12 — Concours / C6 depuis les vrais scripts, `c6_characters.json` et les consommateurs Gacha/Concours. Event / monthly, autres utilitaires, Top / Classements et Twitch / Giveaway restent à auditer selon la roadmap.
+Domaine actif :
+`docs/legacy/15-concours-c6-audit.md` — Concours / C6.
+
+État actuel du domaine :
+- audit legacy en cours ;
+- décisions R526 à R534 validées et documentées ;
+- prochaine décision à reprendre : **R535**.
+
+Prochaine étape exacte :
+reprendre le Domaine 12 — Concours / C6 à **R535**, à partir des vrais scripts et données legacy concernés, sans redemander R526 à R534.
+
+Event / monthly, autres utilitaires, Top / Classements et Twitch / Giveaway restent à auditer ensuite selon la roadmap.

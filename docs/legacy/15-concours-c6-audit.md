@@ -167,29 +167,50 @@ Au lancement :
 
 Le standalone utilise des délais explicites et visibles dans l'UI.
 
-Cible actuelle :
+### Lobby
 
-- lobby : **10 minutes** ;
-- tour d'un participant : **60 secondes** ;
-- fenêtre de soutien d'un spectateur : **30 secondes**.
+Le lobby possède un délai d'inactivité de **10 minutes**.
 
-Si un participant humain ne joue pas pendant son tour :
+Si aucune activité pertinente ne relance ce délai :
+- le lobby est automatiquement annulé ;
+- aucun concours n'est lancé ;
+- aucune participation quotidienne n'est consommée.
 
+### Tour d'un participant humain
+
+Un participant humain dispose de **60 secondes** pour agir.
+
+S'il n'effectue aucune action humaine pendant ce délai :
 - une action `basique` est exécutée automatiquement pour ce tour ;
-- après **3 tours manqués**, le participant est remplacé par un bot.
+- ce tour compte comme un tour consécutif sans action humaine.
+
+Après **3 tours consécutifs de ce participant sans aucune action humaine**, il est automatiquement remplacé par un bot.
+
+Une nouvelle action humaine valide remet ce compteur d'inactivité consécutive à zéro.
 
 Lors du remplacement :
+- le bot reprend exactement la place du participant ;
+- il hérite de l'état courant nécessaire à la continuité du concours, notamment le score et les données de concours déjà engagées ;
+- le concours continue sans réinitialiser la progression de cette place ;
+- le joueur remplacé ne peut pas reprendre sa place dans ce concours.
 
-- le bot reprend la place du participant ;
-- il hérite de l'état courant nécessaire à la continuité du concours, notamment son score ;
-- la partie peut continuer sans reconstruction incohérente du concours.
+Le joueur pourra participer à un futur concours uniquement selon les règles normales, notamment la limite d'une participation par jour. Puisque la participation quotidienne est consommée au lancement selon R530, un remplacement après lancement ne restitue pas cette participation.
+
+### Tour de soutien
+
+Lorsqu'un spectateur actif est sélectionné pour soutenir, il dispose de **30 secondes**.
+
+S'il n'effectue aucune action pendant ce délai :
+- le soutien est simplement ignoré pour ce round ;
+- le concours continue normalement.
+
+### Retrait manuel
 
 L'organisateur et les administrateurs autorisés peuvent également retirer manuellement :
+- un participant → remplacé par un bot qui hérite de l'état courant nécessaire à la continuité ;
+- un spectateur → retiré du rôle de spectateur sans autre remplacement.
 
-- un participant → remplacé par un bot en conservant l'état nécessaire à la continuité ;
-- un spectateur → simplement retiré du rôle de spectateur.
-
-Les détails techniques de scheduler, de concurrence et d'idempotence sont à définir sans nouvelle décision produit tant qu'ils respectent ces règles.
+Les détails techniques de scheduler, concurrence, verrouillage et idempotence seront définis côté backend sans nouvelle décision produit tant qu'ils respectent ces règles.
 
 ---
 
@@ -197,15 +218,24 @@ Les détails techniques de scheduler, de concurrence et d'idempotence sont à d�
 
 La mécanique de soutien des spectateurs est conservée.
 
-Elle doit être utilisable depuis les canaux où le Concours est exposé :
+Après chaque **round complet** :
+- parmi les spectateurs actifs réellement inscrits au concours, un spectateur est choisi aléatoirement ;
+- ce spectateur devient le spectateur autorisé à soutenir pour cette fenêtre ;
+- il choisit l'un des participants qu'il souhaite aider ;
+- il dispose de **30 secondes** pour effectuer ce choix conformément à R532 ;
+- en l'absence d'action dans le délai, le soutien de ce round est ignoré.
 
-- UI standalone ;
-- chat interne GachaImpact ;
-- Twitch lorsque l'intégration Twitch existera.
+Le simple viewer UI qui regarde le concours sans être inscrit comme spectateur :
+- peut suivre le concours ;
+- n'entre jamais dans le tirage du soutien ;
+- ne dispose d'aucune action de soutien.
 
-Tous les canaux doivent appeler le même service métier Concours.
+L'action doit être accessible selon le canal :
+- **UI standalone** : bouton/action de soutien avec sélection du participant ciblé ;
+- **chat interne GachaImpact** : action/commande permettant de cibler le participant à soutenir ;
+- **Twitch futur** : commande équivalente lorsque l'intégration Twitch sera disponible.
 
-Le simple viewer UI non inscrit comme spectateur ne peut pas soutenir.
+Tous les canaux appellent exactement le même service métier de soutien Concours.
 
 ---
 
