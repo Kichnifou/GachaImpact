@@ -2917,7 +2917,7 @@ ChatGPT doit :
 Dépôt public :
 `https://github.com/Kichnifou/GachaImpact`
 
-Routine générale :
+Workflow Git canonique du projet :
 
 ```powershell
 git status
@@ -2927,27 +2927,14 @@ git push
 git status
 ```
 
-Docs uniquement :
+Toujours utiliser `git add .`.
 
-```powershell
-git status
-git add docs
-git status
-git commit -m "docs: update project documentation"
-git push
-git status
-```
+Avant chaque commit :
+- vérifier `git status` ;
+- s'assurer que les changements présents correspondent bien au checkpoint voulu ;
+- utiliser un message de commit adapté au lot réellement poussé.
 
-Sources legacy uniquement :
-
-```powershell
-git status
-git add legacy
-git status
-git commit -m "Update Streamerbot legacy snapshot"
-git push
-git status
-```
+Après chaque push important, ChatGPT doit vérifier le commit réellement présent sur GitHub avant de poursuivre l'audit ou le développement.
 
 ---
 
@@ -3355,4 +3342,99 @@ Domaine actif :
 Prochaine étape exacte :
 reprendre le Domaine 12 — Concours / C6 à **R535**, à partir des vrais scripts et données legacy concernés, sans redemander R526 à R534.
 
-Event / monthly, autres utilitaires, Top / Classements et Twitch / Giveaway restent à auditer ensuite selon la roadmap.
+## Familles legacy restant à auditer
+
+Cet inventaire évite qu'un système legacy soit oublié.
+
+Il ne définit pas la prochaine reprise : seule la section `Prochaine étape exacte` ci-dessus joue ce rôle.
+
+### Event / monthly
+Domaine important à auditer séparément.
+
+Sources principales déjà identifiées :
+- `Event.txt` ;
+- `monthly_events_data.json` ;
+- `monthly_events.json` ;
+- données Event présentes dans `viewers_data.json` ;
+- responsabilités Event transverses découvertes dans `XP.txt`.
+
+Le domaine comprend notamment :
+- les configurations des douze mois ;
+- les mini-jeux mensuels ;
+- les points et paliers ;
+- la monnaie Event ;
+- la boutique Event ;
+- les collections ;
+- les mécaniques saisonnières ;
+- le classement Event ;
+- le changement de mois/année.
+
+Le Boss mensuel a déjà été audité avec Combat. `monthly_boss.json` ne devra être recroisé ici que si une dépendance avec Event l'exige.
+
+### Roue / quotidien
+Sources principales :
+- `Roue.txt` ;
+- données associées dans `viewers_data.json`.
+
+À recroiser avec les Quotidiennes, les Missions, le reset serveur et les statistiques économiques.
+
+### Faveur / Subscription
+Sources principales :
+- `Faveur.txt` ;
+- `Subscription.txt` ;
+- section `favor` de `viewers_data.json` ;
+- traitements associés découverts dans `XP.txt`.
+
+### Codes cadeaux
+Sources principales :
+- `Code.txt` ;
+- `gift_codes.json` ;
+- données `usedCodes` des joueurs.
+
+### Gift / récompenses Twitch
+Source principale :
+- `Gift.txt`.
+
+Cette mécanique legacy dépend actuellement d'une récompense de points de chaîne Twitch et devra être réévaluée pour le standalone et l'intégration Twitch optionnelle.
+
+### Giveaway / Wish
+Sources principales :
+- `Wish.txt` ;
+- `giveaway.json` ;
+- producteurs et consommateurs associés, notamment dans `XP.txt`.
+
+`Wish.txt` appartient au Giveaway et non au domaine Invocation.
+
+### Top / Classements
+Source principale :
+- `Top.txt` ;
+- statistiques utilisées depuis `viewers_data.json`.
+
+À recroiser notamment avec :
+- les définitions statistiques validées ;
+- la confidentialité ;
+- les classements propres aux différents domaines.
+
+### Help / cohérence finale des commandes
+Source principale :
+- `Help.txt`.
+
+Ce script ne nécessite pas nécessairement un domaine métier autonome.
+
+Il devra être recroisé en fin d'audit avec :
+- `docs/commands/command-reference.md` ;
+- les commandes réellement conservées ;
+- la future aide intégrée au standalone.
+
+### Sweep final obligatoire de couverture legacy
+
+Avant de déclarer la Phase 1 terminée :
+- reprendre les 36 scripts recensés dans `docs/legacy/03-command-data-matrix.md` ;
+- vérifier que chacun appartient à un audit clôturé, au domaine actif ou à une décision explicite de suppression/report ;
+- effectuer la même vérification pour les 17 JSON inventoriés ;
+- contrôler les producteurs et consommateurs transverses ;
+- vérifier qu'aucune responsabilité découverte dans `XP.txt` ou dans un autre orchestrateur legacy n'est restée sans propriétaire documentaire.
+
+Les scripts déjà absorbés par un audit clôturé ne doivent pas être réaudités artificiellement. Par exemple, `Passif.txt` et `element_passives.json` sont déjà couverts par l'audit Team.
+
+Les dépendances Twitch spécifiques seront consolidées après les audits métier correspondants et avant l'intégration Twitch réelle.
