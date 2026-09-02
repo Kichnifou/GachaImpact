@@ -531,7 +531,7 @@ Statut : évolutif.
 - `VALIDÉ R371` — Après une défaite, le joueur peut retenter tant qu'il possède 4 personnages non-KO disponibles ; une victoire clôt le combat quotidien.
 - `VALIDÉ R372` — Le KO est limité au combat quotidien et n'empêche pas Team, Expedition, Boss ou autres mécaniques.
 - `RÉVISÉ R373 / R423 / R425` — Le Combat quotidien n'utilise plus directement la Team active : il possède quatre slots persistants indépendants ; la Team active peut uniquement être copiée volontairement.
-- `VALIDÉ R374` — Mode Auto conservé ; Team temporaire sans modification de la Team active ; l'Auto doit utiliser exactement la même formule que le vrai Combat.
+- `RÉVISÉ R374 / R423 / R427` — Mode Auto conservé uniquement pour le Combat quotidien ; il remplit et mémorise les slots Combat sans modifier la Team active ; l'Auto utilise exactement la même formule que le vrai Combat.
 - `VALIDÉ R375` — Afficher la probabilité exacte de victoire avant le combat.
 - `VALIDÉ R376` — Première victoire quotidienne : +800 Primogemmes et +20 000 Moras.
 - `VALIDÉ R377` — Conserver la matrice élémentaire legacy.
@@ -543,7 +543,7 @@ Statut : évolutif.
 - `VALIDÉ R383` — KO visible dans Combat et statut `OK` / `KO` dans la fiche personnage ; aucune modification automatique de Team.
 - `VALIDÉ R384` — Hub Quotidiennes Combat : À faire / En cours / Terminé / Bloqué aujourd'hui.
 - `VALIDÉ R385` — Le quotidien Combat n'est considéré réussi qu'après une victoire.
-- `VALIDÉ R386` — UI Auto sélectionne/affiche d'abord la meilleure Team temporaire et sa chance puis attend le clic Combattre ; `!combat auto` reste direct.
+- `RÉVISÉ R386 / R427` — UI Auto remplit les slots persistants avec la meilleure composition et affiche sa chance avant confirmation ; la tentative associée est Auto, mais la composition mémorisée peut être réutilisée manuellement plus tard ; `!combat auto` reste direct.
 - `RÉVISÉ R387 / R426 / R427` — Une victoire est manuelle si la tentative n'a pas été générée par Auto ; la composition utilisée n'a pas besoin d'être la Team active.
 - `VALIDÉ R388` — B/A/S Combat utilisent `totalCombatWins` ; Z `Maître du combat` utilise `totalManualCombatWins` avec objectif 50.
 - `VALIDÉ R389` — Un détail du calcul de probabilité est accessible dans l'UI : base, rareté, constellations, éléments, brut, clamp, final.

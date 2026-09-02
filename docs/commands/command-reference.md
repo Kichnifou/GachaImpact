@@ -543,7 +543,7 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Auto Boss :** aucun
 - **Résistance :** un élément mensuel ; personnage correspondant inflige ×0,5
 - **Formule Boss :** 4★ = 500 +150/C ; 5★ = 1 000 +650/C
-- **Preview Boss :** dégâts individuels + total recalculés en temps réel
+- **Preview Boss :** dégâts totaux recalculés en temps réel ; détail individuel/résistance uniquement dans le panneau déroulant
 - **Récompense Boss :** 16 000 Primogemmes + 500 000 Moras à chaque participant ayant réalisé au moins une attaque valide >0
 - **Distribution :** automatique à la mort, offline compris, atomique/idempotente
 - **Coup final :** honorifique/statistique, sans récompense supplémentaire
@@ -551,4 +551,4 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Historique Boss :** player-facing avec fiche détaillée par mois
 - **Boss vaincu :** écran remplacé par un bilan complet jusqu'au mois suivant
 - **Quotidiennes :** Boss affiché comme sous-indicateur de la carte Combat, pas comme carte séparée
-- **Chat/Twitch Boss :** les syntaxes legacy restent conservées pendant l'audit ; la source exacte de composition de `!combat boss go` reste à finaliser après R422
+- **Chat/Twitch Boss :** les syntaxes legacy restent conservées pendant l'audit ; la source exacte de composition de `!combat boss go` reste à finaliser à partir de R430

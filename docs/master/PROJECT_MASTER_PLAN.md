@@ -2946,36 +2946,39 @@ Dernières règles de clôture :
 
 **Domaine Expedition : CLÔTURÉ.**
 
-**Domaine 10 — Combat : AUDIT EN COURS — COMBAT QUOTIDIEN R370 À R389 TRAITÉ.**
+**Domaine 10 — Combat : AUDIT EN COURS — CADRÉ / RÉVISÉ JUSQU'À R429.**
 
 Document spécialisé :
 `docs/legacy/13-combat-audit.md`
 
 Combat quotidien désormais cadré notamment sur :
 - équipe ennemie globale de 4 personnages actifs, renouvelée chaque jour ;
-- Team active 4/4 pour le mode manuel ;
-- mode Auto temporaire ne modifiant jamais la Team active ;
+- quatre slots Combat persistants indépendants du système Team ;
+- première utilisation avec quatre slots vides ;
+- `Sélectionner l'équipe active` effectue uniquement une copie volontaire ;
+- les slots ne modifient jamais la Team active ;
 - plusieurs tentatives possibles après défaite ;
 - personnages perdants KO uniquement pour le combat quotidien ;
 - KO reset à 00:00 Europe/Paris ;
 - victoire quotidienne unique ;
 - récompense V1 +800 Primogemmes / +20 000 Moras ;
-- chance exacte affichée ;
-- détail du calcul accessible ;
+- chance finale visible directement, détail du calcul dans un panneau déroulant ;
 - matrice élémentaire legacy conservée ;
 - nouvelle formule V1 : base 50, 4★ +3, 5★ +6, C4★ +0,5/C, C5★ +1/C, élément ±4 ;
 - clamp 5–95 % ;
 - un 4★ C6 rejoint approximativement un 5★ C0 en puissance brute ;
 - Auto utilise strictement la même formule autoritative que le Combat ;
-- UI Auto sélectionne puis laisse confirmer `Combattre` ;
+- UI Auto remplit et mémorise les slots puis laisse confirmer `Combattre` ;
+- une tentative immédiatement issue d'Auto est `AUTO` ;
+- une composition Auto mémorisée puis réutilisée sans relancer Auto devient `MANUAL` ;
 - Twitch `!combat auto` reste direct ;
 - états Quotidiennes : À faire / En cours / Terminé / Bloqué aujourd'hui ;
 - `totalCombatWins` = manuel + Auto ;
-- `totalManualCombatWins` = Team active sans Auto ;
+- `totalManualCombatWins` = victoires dont la tentative autoritative est `MANUAL` ;
 - missions B/A/S = totalCombatWins ;
 - Z `Maître du combat` = 50 totalManualCombatWins.
 
-Boss mensuel communautaire désormais cadré R390-R422 :
+Boss mensuel communautaire désormais cadré / révisé R390-R429 :
 - un Boss par mois civil, nouvelle instance le 1er à 00:00 Europe/Paris ;
 - aucun respawn si vaincu tôt ;
 - `baseHp` initial 1 500 000 puis difficulté adaptative ;
@@ -2986,7 +2989,7 @@ Boss mensuel communautaire désormais cadré R390-R422 :
 - attaque indépendante du KO et du combat quotidien ;
 - quatre slots Boss indépendants du système Team ;
 - bouton `Sélectionner l'équipe active` = copie ponctuelle ;
-- composition Boss mémorisée d'un jour à l'autre jusqu'à mort/changement de Boss ;
+- composition Boss persistante indéfiniment, y compris après mort du Boss et changement de mois ;
 - aucun Auto Boss ;
 - résistance élémentaire mensuelle : ×0,5 sur l'élément concerné ;
 - dégâts Boss : 4★ 500+150/C ; 5★ 1000+650/C ;
@@ -3139,10 +3142,10 @@ Décisions clés :
 - Twitch : nouveau chatter enregistré passivement, progression jusqu'au seuil d'onboarding puis blocage des mécaniques actives tant que l'élément n'est pas choisi ;
 - écran transversal `Quotidiennes` dédié, distinct de Missions, servant de hub vers Roue / Combat / Box-Expedition / Amis / Event / Shop ; `!quotis` en est l'équivalent texte compact ;
 - Expedition clôturé après R369 : 20 h, un départ/jour, récupération manuelle, personnage toujours utilisable, workflow Box, états Quotidiennes détaillés, récompense tirée au claim, personnage prêt temporairement remonté avant les favoris, reset sans annulation ;
-- Combat quotidien cadré R370-R389 : ennemis globaux quotidiens, tentatives multiples, KO journalier limité au Combat, Team active manuelle, Auto temporaire, chance détaillée, formule 4★/5★/constellations/éléments, clamp 5–95 %, récompense 800 Primos + 20k Moras ;
-- Boss mensuel cadré R390-R422 : Boss unique mensuel, difficulté adaptative, composition Boss mémorisée indépendante des Teams, dégâts déterministes, résistance, une attaque/jour, récompense communautaire, classements et historique ;
+- Combat quotidien cadré/révisé jusqu'à R429 : ennemis globaux quotidiens, tentatives multiples, KO journalier limité au Combat, composition persistante indépendante des Teams, copie volontaire de la Team active, Auto mémorisable, chance détaillée, formule 4★/5★/constellations/éléments, clamp 5–95 %, récompense 800 Primos + 20k Moras ;
+- Boss mensuel cadré/révisé jusqu'à R429 : Boss unique mensuel, difficulté adaptative, composition persistante indépendante des Teams et des mois, dégâts déterministes, résistance, une attaque/jour, récompense communautaire, classements et historique ;
 - Combat quotidien/Boss vivent dans deux onglets distincts de l'écran Combat, chacun avec quatre slots persistants indépendants ; première utilisation vide ; Team active copiable uniquement sur action volontaire ;
 - notifications non lues persistantes jusqu'à lecture/suppression ; notifications lues nettoyées au reset suivant.
 
 Prochaine étape :
-poursuivre le Domaine Combat à R423 pour la migration, les commandes Boss, les edge cases puis la clôture ; Missions / Daily est clôturé après R339 et Expedition après R369. Ami / Social, Event et Top / Classements restent explicitement reportés à leurs audits respectifs.
+poursuivre le Domaine Combat à R430 pour les commandes Combat/Boss, la migration, les edge cases puis la clôture ; Missions / Daily est clôturé après R339 et Expedition après R369. Ami / Social, Event et Top / Classements restent explicitement reportés à leurs audits respectifs.
