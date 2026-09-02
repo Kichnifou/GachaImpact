@@ -1,7 +1,7 @@
 # 13 — Audit legacy Combat
 
-Statut : AUDIT EN COURS — COMBAT QUOTIDIEN R370 À R389 CADRÉ ; BOSS MENSUEL R390 À R422 CADRÉ ; PROCHAINE REPRISE R423
-Date : 2026-09-01
+Statut : AUDIT EN COURS — COMBAT QUOTIDIEN ET BOSS CADRÉS JUSQU'À R429 ; PROCHAINE REPRISE R430
+Date : 2026-09-02
 
 ## 1. Périmètre
 
@@ -185,19 +185,18 @@ Le KO ne retire pas le personnage :
 Le KO signifie uniquement :
 `indisponible pour une nouvelle tentative du combat quotidien jusqu'au prochain reset`.
 
-## R373 — Combat manuel avec Team active
+## R373 — ⚠️ RÉVISÉ PAR R423 / R425 / R426
 
-Le mode manuel utilise la Team active du joueur.
+La règle initiale imposant directement la Team active au mode manuel est supprimée.
 
-Précondition :
-- exactement 4 personnages valides, possédés et actifs ;
-- aucun des quatre ne doit être KO pour le combat quotidien.
+Le Combat quotidien utilise désormais sa propre composition mémorisée de 4 slots.
 
-Si la Team active est vide/incomplète ou contient un KO :
-- le combat ne peut pas être lancé ;
-- l'UI propose de modifier l'équipe via le vrai écran Team.
+La Team active :
+- n'est jamais utilisée automatiquement ;
+- n'est jamais modifiée par Combat ;
+- peut uniquement être copiée volontairement via `Sélectionner l'équipe active`.
 
-Combat ne crée pas une copie métier indépendante de la Team active pour le mode manuel.
+La définition finale du mode manuel est donnée par R426.
 
 ## R374 — Mode Auto conservé et formule unifiée
 

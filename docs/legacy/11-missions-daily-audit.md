@@ -1098,19 +1098,23 @@ Les dépendances suivantes sont volontairement reportées et devront recroiser c
 ### Expedition
 Définir précisément quel événement autoritatif constitue une expédition terminée et alimente la progression Mission correspondante.
 
-### Combat — ✅ RÉSOLU PAR R387 / R388
+### Combat — ✅ RÉSOLU PAR R387 / R388, MIS À JOUR R426 / R427
 
 Le Domaine Combat définit maintenant :
 
-- `totalCombatWins` = toutes les victoires du combat quotidien, Team active ou Auto ;
+- `totalCombatWins` = toutes les victoires du combat quotidien, manuelles ou Auto ;
 - les missions permanentes B/A/S Combat utilisent `totalCombatWins` ;
 - seuils conservés : B 5 / A 20 / S 100 victoires ;
-- `totalManualCombatWins` = uniquement les victoires avec Team active choisie par le joueur, sans mode Auto ;
-- UI avec Team active + `Combattre` et `!combat go` comptent comme manuels ;
-- UI après `Équipe automatique` et `!combat auto` ne comptent pas comme manuels ;
+- `totalManualCombatWins` = victoires obtenues lors d'une tentative dont le mode autoritatif est `MANUAL` ;
+- une composition construite manuellement compte comme manuelle ;
+- `Sélectionner l'équipe active` puis combattre compte comme manuel ;
+- une composition Auto mémorisée puis réutilisée ultérieurement sans relancer Auto compte comme manuelle ;
+- une tentative exécutée immédiatement après `Équipe automatique` est Auto ;
+- `!combat auto` reste Auto ;
+- la sémantique exacte de `!combat go` sera finalisée dans Combat, mais MissionService ne la déduit jamais lui-même ;
 - la mission Z `Maître du combat` conserve son objectif de 50 victoires manuelles.
 
-Le Domaine Combat produit les événements autoritatifs correspondants et `MissionService` consomme ces événements sans recalculer le combat.
+`CombatService` fournit explicitement le mode `MANUAL` / `AUTO` de la victoire et `MissionService` consomme cet événement sans recalculer la composition.
 
 ### Ami / Social
 Définir précisément :

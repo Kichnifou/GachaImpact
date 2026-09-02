@@ -530,7 +530,7 @@ Statut : évolutif.
 - `VALIDÉ R370` — Une seule équipe ennemie quotidienne globale de 4 personnages actifs est commune à tous les joueurs et change à 00:00 Europe/Paris.
 - `VALIDÉ R371` — Après une défaite, le joueur peut retenter tant qu'il possède 4 personnages non-KO disponibles ; une victoire clôt le combat quotidien.
 - `VALIDÉ R372` — Le KO est limité au combat quotidien et n'empêche pas Team, Expedition, Boss ou autres mécaniques.
-- `VALIDÉ R373` — Le mode manuel utilise la Team active et exige exactement 4 personnages valides/non-KO.
+- `RÉVISÉ R373 / R423 / R425` — Le Combat quotidien n'utilise plus directement la Team active : il possède quatre slots persistants indépendants ; la Team active peut uniquement être copiée volontairement.
 - `VALIDÉ R374` — Mode Auto conservé ; Team temporaire sans modification de la Team active ; l'Auto doit utiliser exactement la même formule que le vrai Combat.
 - `VALIDÉ R375` — Afficher la probabilité exacte de victoire avant le combat.
 - `VALIDÉ R376` — Première victoire quotidienne : +800 Primogemmes et +20 000 Moras.
@@ -544,7 +544,7 @@ Statut : évolutif.
 - `VALIDÉ R384` — Hub Quotidiennes Combat : À faire / En cours / Terminé / Bloqué aujourd'hui.
 - `VALIDÉ R385` — Le quotidien Combat n'est considéré réussi qu'après une victoire.
 - `VALIDÉ R386` — UI Auto sélectionne/affiche d'abord la meilleure Team temporaire et sa chance puis attend le clic Combattre ; `!combat auto` reste direct.
-- `VALIDÉ R387` — Une victoire manuelle utilise obligatoirement la Team active sans Auto ; le mode Auto reste Auto même si le joueur clique ensuite sur Combattre.
+- `RÉVISÉ R387 / R426 / R427` — Une victoire est manuelle si la tentative n'a pas été générée par Auto ; la composition utilisée n'a pas besoin d'être la Team active.
 - `VALIDÉ R388` — B/A/S Combat utilisent `totalCombatWins` ; Z `Maître du combat` utilise `totalManualCombatWins` avec objectif 50.
 - `VALIDÉ R389` — Un détail du calcul de probabilité est accessible dans l'UI : base, rareté, constellations, éléments, brut, clamp, final.
 - `VALIDÉ TECHNIQUE` — La formule de preview, de sélection Auto et de tirage est une seule formule serveur autoritative.
@@ -552,10 +552,10 @@ Statut : évolutif.
 - `VALIDÉ R391` — Un Boss vaincu reste vaincu jusqu'au mois suivant ; aucun respawn intra-mois.
 - `VALIDÉ R392/R402` — `baseHp` initial 1 500 000 ; victoire : +75k par journée restante, hausse mensuelle plafonnée à +1,5M ; échec : retirer les PV restants ; plancher 500k.
 - `VALIDÉ R393` — Une attaque Boss par joueur/jour, indépendante du combat quotidien et de ses KO.
-- `RÉVISÉ R394` — Le Boss utilise quatre slots de composition indépendants ; `Sélectionner l'équipe active` effectue seulement une copie ponctuelle.
+- `RÉVISÉ R394 / R423-R425` — Le Boss utilise quatre slots persistants indépendants ; `Sélectionner l'équipe active` est une copie ponctuelle ; les slots ne sont plus vidés à la mort/changement de Boss.
 - `VALIDÉ R395` — Aucun mode Auto Boss.
 - `VALIDÉ R396` — Une résistance mensuelle aléatoire parmi les sept éléments ; personnage du même élément = dégâts ×0,5.
-- `VALIDÉ R397` — Preview en temps réel des dégâts individuels et totaux dans l'écran Boss.
+- `VALIDÉ R397 / MIS À JOUR R429` — La vue Boss normale affiche seulement les dégâts totaux prévisionnels ; le détail par personnage/résistance est accessible dans un panneau déroulant.
 - `VALIDÉ R398` — Formule Boss V1 : 4★ = 500 +150/C ; 5★ = 1000 +650/C.
 - `VALIDÉ R399/R406` — Une attaque valide >0 suffit pour être participant ; récompense identique quel que soit le total de dégâts.
 - `VALIDÉ R400` — À la mort du Boss, récompenses créditées automatiquement à tous les participants, offline compris, de façon atomique/idempotente ; notification UI ; aucune notification Twitch asynchrone.
@@ -569,7 +569,7 @@ Statut : évolutif.
 - `VALIDÉ R410` — L'écran Boss explique directement les pénalités de résistance sans choisir automatiquement la composition.
 - `VALIDÉ TECHNIQUE R411` — Chaque attaque snapshotte la composition et les valeurs utilisées avant application des dégâts.
 - `VALIDÉ R412` — Personnage désactivé interdit au Boss ; validation refusée sans consommer l'attaque quotidienne.
-- `VALIDÉ R413` — La composition Boss est mémorisée dès sa modification pour tout le Boss courant.
+- `RÉVISÉ R413 / R424` — La composition Boss est mémorisée indéfiniment et persiste entre les Boss/mois jusqu'à modification ou invalidation d'un personnage.
 - `VALIDÉ TECHNIQUE R414` — 0..4 slots possibles en préparation ; attaque exige exactement 4 personnages distincts/possédés/actifs.
 - `VALIDÉ TECHNIQUE R415` — Un personnage mémorisé puis désactivé vide seulement son slot ; les snapshots historiques restent intacts.
 - `VALIDÉ R416` — Le reset quotidien recharge l'attaque Boss mais conserve les slots mémorisés.
@@ -577,9 +577,16 @@ Statut : évolutif.
 - `VALIDÉ R418` — Le bilan affiche explicitement le buff/debuff de `baseHp` appliqué au Boss suivant.
 - `VALIDÉ TECHNIQUE R419` — Séparer `baseHp` adaptatif de `maxHp` réel après variation ±15 %.
 - `VALIDÉ R420` — En cas d'échec mensuel, soustraire les PV absolus restants du `baseHp` suivant, avec plancher 500k.
-- `VALIDÉ R421` — Combat quotidien et Boss partagent une structure visuelle commune ; ennemis 4 personnages vs Boss, avec différences métier propres.
-- `VALIDÉ R422` — Combat quotidien affiche par défaut la Team active dans ses quatre slots ; Auto remplace seulement temporairement cette composition.
-- `AUDIT EN COURS` — Combat cadré jusqu'à R422 ; prochaine reprise R423 sur migration/edge cases/finalisation.
+- `PRÉCISÉ R421 / R428` — L'écran Combat possède deux onglets/vues distincts, Combat quotidien par défaut et Boss mensuel ; les deux restent cohérents visuellement mais ne partagent pas une mémoire/composition.
+- `RÉVISÉ R422 / R425` — Les quatre slots du Combat quotidien sont vides lors de la toute première utilisation ; la Team active n'est jamais préremplie automatiquement.
+- `VALIDÉ R423` — Quotidien et Boss possèdent chacun quatre slots indépendants du système Team et indépendants l'un de l'autre.
+- `VALIDÉ R424` — Les deux compositions persistent indéfiniment ; aucun reset quotidien, mensuel ou à la mort du Boss ne les vide.
+- `VALIDÉ R425` — Première utilisation de chaque mode : quatre slots vides ; `Sélectionner l'équipe active` est volontaire.
+- `VALIDÉ R426` — Le mode manuel dépend de l'absence d'Auto pour la tentative, pas de l'utilisation de la Team active.
+- `VALIDÉ R427` — Auto mémorise les personnages choisis mais pas un état Auto permanent ; une réutilisation ultérieure sans Auto est manuelle.
+- `VALIDÉ R428` — Écran Combat avec deux onglets distincts : Combat quotidien ouvert par défaut / Boss mensuel ; interfaces et mémoires indépendantes.
+- `VALIDÉ R429` — Vue compacte : seulement chance finale pour le quotidien et dégâts totaux pour le Boss ; détails accessibles via panneau déroulant.
+- `AUDIT EN COURS` — Combat cadré jusqu'à R429 ; prochaine reprise R430 sur commandes/migration/edge cases/finalisation.
 
 ## Quotidiennes — direction transverse
 - `VALIDÉ R355` — Écran `Quotidiennes` dédié : Roue → Roue, Combat → Combat, Expedition → Box, Ami cœur → Amis, Event → Event, Shop → Boutique.

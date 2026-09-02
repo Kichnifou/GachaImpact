@@ -1,7 +1,7 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.29
-Date : 2026-09-01
+Version : 0.30
+Date : 2026-09-02
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
@@ -3002,12 +3002,18 @@ Boss mensuel communautaire désormais cadré R390-R422 :
 - sous-indicateur Boss dans la carte Combat de Quotidiennes ;
 - chaque attaque snapshotte les personnages/constellations utilisés.
 
-Direction UI Combat précisée :
-- Combat quotidien et Boss utilisent une structure visuelle générale commune ;
-- quotidien : 4 slots joueur face aux 4 ennemis du jour ;
-- Boss : 4 slots joueur face au Boss ;
-- le quotidien affiche par défaut la Team active dans ses slots ;
-- le quotidien possède `Équipe automatique`, contrairement au Boss.
+Direction UI Combat révisée R423-R429 :
+- écran Combat avec deux onglets distincts : `Combat quotidien` ouvert par défaut / `Boss mensuel` ;
+- chaque onglet possède une interface et une mémoire de quatre slots indépendantes ;
+- les compositions ne sont jamais des Teams et ne modifient jamais la Team active ;
+- première utilisation de chaque mode : quatre slots vides ;
+- `Sélectionner l'équipe active` effectue seulement une copie volontaire ;
+- les compositions quotidien/Boss persistent indéfiniment et ne sont pas vidées par les resets ou le changement de Boss ;
+- le quotidien possède `Équipe automatique` ; le Boss n'en possède jamais ;
+- une tentative quotidienne est manuelle si Auto n'a pas été utilisé pour cette tentative ;
+- une composition issue d'Auto peut être réutilisée plus tard comme composition manuelle ;
+- vue normale quotidien : chance finale uniquement, calcul détaillé déroulant ;
+- vue normale Boss : dégâts totaux uniquement, détail par personnage/résistance déroulant.
 
 Règle Notifications précisée :
 - les notifications non lues ne sont jamais expirées automatiquement par ancienneté ;
@@ -3015,7 +3021,7 @@ Règle Notifications précisée :
 - toute notification, lue ou non, reste supprimable manuellement ;
 - supprimer la notification ne modifie jamais l'état métier associé.
 
-**Prochaine reprise Combat : R423 — migration, commandes Boss, edge cases et clôture.**
+**Prochaine reprise Combat : R430 — commandes Combat/Boss, migration, edge cases et clôture.**
 
 Dépendance future à conserver :
 - lors de l'audit `Top / Classements`, décider explicitement portefeuille vs patrimoine total pour les Moras ;
@@ -3135,7 +3141,7 @@ Décisions clés :
 - Expedition clôturé après R369 : 20 h, un départ/jour, récupération manuelle, personnage toujours utilisable, workflow Box, états Quotidiennes détaillés, récompense tirée au claim, personnage prêt temporairement remonté avant les favoris, reset sans annulation ;
 - Combat quotidien cadré R370-R389 : ennemis globaux quotidiens, tentatives multiples, KO journalier limité au Combat, Team active manuelle, Auto temporaire, chance détaillée, formule 4★/5★/constellations/éléments, clamp 5–95 %, récompense 800 Primos + 20k Moras ;
 - Boss mensuel cadré R390-R422 : Boss unique mensuel, difficulté adaptative, composition Boss mémorisée indépendante des Teams, dégâts déterministes, résistance, une attaque/jour, récompense communautaire, classements et historique ;
-- Combat quotidien/Boss partagent une structure UI commune ; Team active affichée par défaut dans les slots du quotidien ;
+- Combat quotidien/Boss vivent dans deux onglets distincts de l'écran Combat, chacun avec quatre slots persistants indépendants ; première utilisation vide ; Team active copiable uniquement sur action volontaire ;
 - notifications non lues persistantes jusqu'à lecture/suppression ; notifications lues nettoyées au reset suivant.
 
 Prochaine étape :

@@ -498,7 +498,7 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 
 ## `!combat`
 
-- **Statut audit :** Combat quotidien cadré R370 à R389 ; Boss mensuel cadré R390 à R422 ; domaine encore ouvert pour migration/edge cases
+- **Statut audit :** Combat quotidien et Boss cadrés/révisés jusqu'à R429 ; domaine encore ouvert pour commandes, migration et edge cases
 - **But :** Consulter puis effectuer le combat quotidien ; accès également au Boss mensuel.
 - **Syntaxes quotidiennes :**
   - `!combat`
@@ -512,13 +512,16 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Statistiques :**
   - `!combat stat`
 - **Bouton UI équivalent :** écran Combat ; accès depuis le hub `Quotidiennes`
+- **Navigation UI :** deux onglets distincts : `Combat quotidien` ouvert par défaut / `Boss mensuel`
+- **Mémoires UI :** chaque onglet possède ses propres 4 slots persistants ; modifier l'un n'affecte jamais l'autre
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
 - **Équipe ennemie :** 4 personnages actifs, commune à tous les joueurs pour la journée
 - **Reset :** 00:00 Europe/Paris
-- **Mode manuel :** Team active obligatoire de 4 personnages non-KO
-- **Mode Auto :** composition temporaire optimisée sans modifier la Team active
-- **UI Auto :** sélectionne et affiche la Team/chance puis attend le clic `Combattre`
+- **Composition quotidienne UI :** quatre slots persistants indépendants de la Team active ; première utilisation vide ; bouton `Sélectionner l'équipe active` pour copie ponctuelle
+- **Mode manuel :** toute tentative lancée sans sélection Auto pour cette tentative ; 4 personnages valides/non-KO requis
+- **Mode Auto :** remplit les quatre slots avec la meilleure composition puis mémorise ces personnages sans modifier la Team active
+- **UI Auto :** sélectionne et affiche la composition/chance puis attend le clic `Combattre`; seule cette tentative est Auto
 - **Twitch Auto :** `!combat auto` sélectionne puis combat directement
 - **KO :** uniquement pour le combat quotidien jusqu'au reset ; personnages toujours utilisables ailleurs
 - **Tentatives :** après défaite, retenter avec d'autres personnages jusqu'à victoire ou moins de 4 personnages disponibles
@@ -526,7 +529,9 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Récompense première victoire :** +800 Primogemmes / +20 000 Moras
 - **Chance :** valeur exacte affichée
 - **Formule V1 :** base 50 ; 4★ +3 ; 5★ +6 ; C4★ +0,5/C ; C5★ +1/C ; avantage élémentaire +4 ; désavantage -4 ; clamp 5–95 %
-- **Détail calcul UI :** base / rareté / constellations / éléments / brut / clamp / final
+- **Résumé calcul quotidien :** seul le pourcentage final est visible par défaut
+- **Détail calcul UI :** panneau déroulant base / rareté / constellations / éléments / brut / clamp / final
+- **Résumé Boss :** seuls les dégâts totaux prévisionnels sont visibles par défaut ; détail individuel/résistance dans le panneau déroulant
 - **Missions B/A/S :** toutes les victoires via `totalCombatWins`
 - **Mission Z :** 50 victoires sans Auto via `totalManualCombatWins`
 - **Boss mensuel :** un Boss global par mois civil ; nouvelle instance le 1er à 00:00 Europe/Paris ; aucun respawn avant le mois suivant
@@ -534,7 +539,7 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Scaling victoire :** +75 000 `baseHp` par journée restant après la victoire, hausse mensuelle max +1 500 000
 - **Scaling échec :** retirer les PV restants du `baseHp` suivant ; plancher 500 000
 - **Attaque Boss :** une par joueur/jour ; indépendante du KO/combat quotidien
-- **Composition Boss UI :** 4 slots indépendants, mémorisés pour le Boss courant ; bouton `Sélectionner l'équipe active` = copie ponctuelle
+- **Composition Boss UI :** 4 slots indépendants et persistants sans limite mensuelle ; première utilisation vide ; bouton `Sélectionner l'équipe active` = copie ponctuelle
 - **Auto Boss :** aucun
 - **Résistance :** un élément mensuel ; personnage correspondant inflige ×0,5
 - **Formule Boss :** 4★ = 500 +150/C ; 5★ = 1 000 +650/C
