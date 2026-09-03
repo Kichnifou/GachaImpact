@@ -766,4 +766,30 @@ Statut : évolutif.
 - `VALIDÉ R539` — `basique` donne toujours les points de base. `risque` donne uniformément 0, les points de base ou le double des points de base, chacun avec une probabilité de 1/3.
 - `VALIDÉ R540` — Conversion statistique Concours conservée : 1–4 → 1 point, 5–9 → 2, 10–14 → 3, 15–19 → 4, 20 → 5.
 - `VALIDÉ R541` — Maximum de 10 spectateurs actifs inscrits par concours. Le visionnage passif UI reste indépendant et non limité par cette règle ; seuls les spectateurs actifs peuvent être sélectionnés pour soutenir.
-- `À AUDITER` — La suite du domaine doit traiter à partir de R542 la condition de victoire/égalités, le comportement détaillé des bots, les récompenses, statistiques/titres, historique, modèle C6, migration, interactions transverses et reprise technique d'un concours.
+- `VALIDÉ R542` — Le premier participant atteignant ou dépassant 50 points gagne immédiatement, y compris si le seuil est franchi par un soutien.
+- `VALIDÉ R543` — Les bots utilisent une stratégie adaptative selon la situation du concours plutôt qu'un taux fixe de prise de risque ; comportement détaillé par R551.
+- `VALIDÉ R544` — La puissance des bots de remplissage est adaptée à celle des participants humains ; calibrage détaillé par R552.
+- `VALIDÉ R545` — Un soutien donne uniformément +1, +2 ou +3 points et peut déclencher immédiatement la victoire.
+- `VALIDÉ R546` — Récompenses conservées : 800 / 400 / 200 Primogemmes pour les trois premières places. Les bots occupent réellement leurs positions mais ne reçoivent rien.
+- `VALIDÉ R547` — Les statistiques de concours terminé sont ajoutées uniquement aux humains encore présents à la fin ; un joueur parti/remplacé ne reçoit ni participation terminée ni victoire.
+- `VALIDÉ R548` — Les titres Bronze / Argent / Or / Platine progressent selon des seuils cumulés de victoires plutôt qu'un rang gagné à chaque victoire.
+- `VALIDÉ R549` — Chaque personnage possède un titre indépendant pour chacun des cinq thèmes.
+- `VALIDÉ R550` — Les nouveaux concours disposent d'un historique joueur détaillé : date, thème, classement, participants/personnages, humain/bot, scores et résultat.
+- `VALIDÉ R551` — IA bot contextuelle : basique si victoire garantie ; davantage de risque lorsqu'elle est en retard, comportement intermédiaire autour de 40 %, prudence accrue lorsqu'elle est bien placée.
+- `VALIDÉ R552` — Bots de remplissage calibrés autour de la moyenne humaine avec léger handicap et variation aléatoire, valeur finale bornée entre 1 et 20.
+- `VALIDÉ R553` — Seuils de titres par thème : Bronze 1 victoire, Argent 3, Or 7, Platine 15.
+- `VALIDÉ R554` — À la migration, un titre déjà acquis est un plancher garanti : pas de rétrogradation et aucune victoire historique inventée.
+- `VALIDÉ R555` — L'ordre des participants est mélangé une seule fois au lancement puis conservé pendant tous les rounds.
+- `VALIDÉ R556` — Les spectateurs peuvent soutenir les humains comme les bots.
+- `VALIDÉ R557` — Le tirage du spectateur est indépendant à chaque round ; une même personne peut être choisie plusieurs fois de suite.
+- `VALIDÉ R558` — Un joueur peut devenir spectateur actif après lancement s'il reste une place ; une arrivée pendant une fenêtre de soutien n'est éligible qu'à partir du round suivant.
+- `VALIDÉ R559` — Si l'organisateur quitte après lancement, sa place devient bot et son rôle d'organisateur est transféré au premier humain restant ; sans humain, R536 annule le concours.
+- `VALIDÉ R560` — Un concours lancé avant minuit continue après le reset en conservant sa date métier et son thème de lancement.
+- `VALIDÉ R561` — Après crash/redémarrage, reprendre automatiquement un concours cohérent depuis son état persistant ; sinon annulation technique selon R535.
+- `VALIDÉ R562` — Le créateur du lobby est obligatoirement le premier participant et doit inscrire un 5★ C6 éligible.
+- `VALIDÉ R563` — Les titres sont honorifiques et sans bonus de gameplay. Le rang du thème courant doit être clairement représenté visuellement dans l'UI Concours, notamment par cadre et/ou badge Bronze/Argent/Or/Platine autour de l'avatar/carte.
+- `VALIDÉ R564` — L'ancien historique de `contests_data.json` n'est pas migré : le nouvel historique Concours commence à zéro. Le terme interne `legacy` ne doit jamais être affiché aux joueurs.
+- `VALIDÉ R565` — Les Légendes C6 d'un autre joueur sont consultables selon Public/Amis/Privé. Cible chat/Twitch : `!legende`, `!legende <joueur>` et `!legende <joueur> <personnage>`, sans contournement des permissions.
+- `VALIDÉ R566` — L'historique durable conserve résultat détaillé et événements importants sans imposer un replay éternel action par action.
+- `TECHNIQUE` — La progression C6 cible référence le personnage sans dupliquer ses métadonnées de catalogue ; seules les données propres au C6/Concours sont persistées dans ce domaine.
+- `À AUDITER` — Reprendre à R567 pour finaliser modèle/migration C6, producteurs/consommateurs, contrats Concours, permissions administratives, atomicité/concurrence, reprise technique et critères d'acceptation.

@@ -56,6 +56,8 @@ La maquette `Concept1.png` fournie par le propriétaire constitue la référence
 
 Toute décision d'interface doit préserver la compatibilité PC/mobile. Ne pas commencer ou étendre l'interface sans demande explicite.
 
+Le terme interne `legacy` ne doit jamais être affiché aux joueurs dans l'interface, les aides, les notifications, les commandes ou les messages du jeu. Il peut être utilisé librement dans le code, les logs techniques et la documentation interne du repository, mais toute formulation player-facing doit employer un vocabulaire naturel compréhensible sans connaissance de l'ancien projet Streamer.bot.
+
 ## Logique métier et points d'entrée
 
 Une même action de jeu doit toujours appeler une seule logique métier commune, quelle que soit son origine : bouton graphique, commande `!` dans le chat ou intégration Twitch future.

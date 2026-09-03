@@ -271,6 +271,26 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Atomicité :** vérification, consommation et progression doivent former une seule transaction
 - **Bug legacy corrigé :** `Stella.txt` n'incrémente actuellement pas `copies` et autorise des 4★ sous C6
 
+## `!legende`
+
+- **Statut audit :** EN COURS — Domaine Concours / C6, règles validées jusqu'à R566
+- **But :** consulter les personnages 5★ C6 et leur progression Concours
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui lorsque l'intégration Twitch sera disponible
+- **UI équivalente :** consultation des Légendes depuis le profil / les écrans concernés
+- **Liste personnelle :** `!legende`
+- **Liste d'un joueur :** `!legende <joueur>`
+- **Détail d'un personnage :** `!legende <joueur> <personnage>`
+- **Cible personnelle explicite :** `me` et `moi`
+- **Exemple personnel détaillé :** `!legende moi <personnage>`
+- **Liste :** affiche les personnages C6 accessibles de la cible
+- **Détail :** peut afficher les cinq statistiques Concours, titres par thème, total de concours, total de victoires et statistiques thématiques utiles
+- **Confidentialité :** la rubrique du propriétaire est soumise à Public / Amis uniquement / Privé
+- **Tous les canaux :** UI, chat interne et Twitch utilisent les mêmes permissions et la même source métier
+- **Refus de permission :** ne révèle ni nombre de C6, ni noms, ni statistiques privées
+- **Données catalogue :** nom, élément, rareté et autres métadonnées sont lus depuis le catalogue personnage et non recopiés dans la progression C6
+- **Vocabulaire player-facing :** ne jamais afficher le terme interne `legacy`
+
 ## `!team`
 - **Statut audit :** Audité — Domaine Team clôturé après R236
 - **But :** Consulter, activer et modifier les Teams du joueur.

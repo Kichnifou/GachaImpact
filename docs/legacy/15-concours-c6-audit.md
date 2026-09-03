@@ -1,7 +1,7 @@
 # 15 — Audit Concours / C6
 
 > Domaine 12 de l'audit legacy GachaImpact.  
-> Statut : **EN COURS — décisions R526 à R541 déjà validées**.  
+> Statut : **EN COURS — décisions R526 à R566 déjà validées**.  
 > Ce document devient la source spécialisée du domaine Concours / C6.  
 > L'état global du projet et la prochaine reprise exacte restent la responsabilité du Master.
 
@@ -403,24 +403,500 @@ Les 10 places constituent donc des places interactives plutôt qu'une limite de 
 
 ---
 
+## R542 — Condition de victoire — ✅ VALIDÉ A
+
+Le premier participant qui atteint ou dépasse **50 points** gagne immédiatement.
+
+- il n'est pas nécessaire d'obtenir exactement 50 ;
+- le concours s'arrête dès l'action gagnante ;
+- les autres participants ne terminent pas le round ;
+- un soutien de spectateur peut également provoquer directement la victoire ;
+- il n'existe donc pas d'égalité simultanée à départager dans le fonctionnement normal.
+
+---
+
+## R543 — Stratégie des bots — ✅ VALIDÉ C
+
+Les bots n'utilisent plus un simple taux fixe de `risque`.
+
+Ils prennent une décision adaptative selon l'état courant du concours.
+
+Le comportement exact est précisé par R551.
+
+---
+
+## R544 — Puissance des bots de remplissage — ✅ VALIDÉ C
+
+Les bots créés au lancement pour compléter les quatre places ne reçoivent plus une statistique totalement indépendante de celle des humains.
+
+Leur puissance est adaptée à celle des participants humains du concours.
+
+Les bots issus du remplacement d'un humain restent un autre cas : ils héritent de l'état et de la statistique du participant remplacé conformément aux décisions précédentes.
+
+Le calibrage cible est précisé par R552.
+
+---
+
+## R545 — Bonus de soutien — ✅ VALIDÉ A
+
+Lorsqu'un spectateur soutient un participant :
+
+- le serveur tire uniformément `+1`, `+2` ou `+3` points ;
+- chaque valeur possède une probabilité de 1/3 ;
+- le bonus est ajouté immédiatement ;
+- il peut déclencher la victoire selon R542.
+
+Le tirage est toujours autoritaire côté serveur.
+
+---
+
+## R546 — Récompenses de classement — ✅ VALIDÉ A
+
+Conserver les récompenses actuelles :
+
+- 🥇 1er : **800 Primogemmes** ;
+- 🥈 2e : **400 Primogemmes** ;
+- 🥉 3e : **200 Primogemmes** ;
+- 4e : aucune récompense.
+
+Les bots occupent de vraies places conformément à R538 mais ne reçoivent aucune récompense.
+
+Une place occupée par un bot n'est pas retirée du classement pour améliorer artificiellement la récompense d'un humain.
+
+Ces montants peuvent être revus lors d'un futur équilibrage économique global sans modifier la règle fonctionnelle du Concours.
+
+---
+
+## R547 — Statistiques d'un concours terminé — ✅ VALIDÉ A
+
+Les statistiques de participation Concours sont ajoutées uniquement aux participants humains encore présents lorsque le concours se termine normalement.
+
+Pour chacun :
+
+- `totalContests +1` ;
+- compteur de participations du thème `+1`.
+
+Pour le gagnant humain :
+
+- `totalWins +1` ;
+- compteur de victoires du thème `+1`.
+
+Un joueur ayant quitté ou ayant été remplacé par un bot :
+
+- conserve sa consommation quotidienne ;
+- ne reçoit aucune statistique de concours terminé.
+
+Un concours annulé ne produit aucune de ces statistiques.
+
+---
+
+## R548 — Progression des titres — ✅ VALIDÉ B
+
+Les rangs de titres sont conservés :
+
+- Bronze ;
+- Argent ;
+- Or ;
+- Platine.
+
+Ils ne progressent plus automatiquement d'un rang à chaque victoire.
+
+Chaque rang exige désormais un nombre cumulé de victoires dans le thème concerné.
+
+Les seuils exacts sont définis par R553.
+
+---
+
+## R549 — Un titre distinct par thème — ✅ VALIDÉ A
+
+Chaque personnage C6 possède une progression de titre indépendante pour chacun des cinq thèmes :
+
+- Force → Titan ;
+- Intelligence → Sage ;
+- Beauté → Éclat ;
+- Charisme → Icône ;
+- Popularité → Idôle.
+
+Un même personnage peut donc être Platine dans un thème et Bronze ou sans titre dans un autre.
+
+---
+
+## R550 — Historique player-facing détaillé — ✅ VALIDÉ B
+
+Les nouveaux concours terminés produisent un historique consultable par les joueurs.
+
+Une fiche de concours peut notamment présenter :
+
+- date et heure ;
+- thème ;
+- classement complet ;
+- participants ;
+- personnages utilisés ;
+- distinction humain / bot ;
+- scores finaux ;
+- vainqueur ;
+- informations importantes de déroulement lorsque pertinentes.
+
+L'écran Concours peut afficher quelques résultats récents puis proposer un accès à un historique plus complet.
+
+La migration de l'ancien historique est traitée séparément par R564.
+
+---
+
+## R551 — IA contextuelle des bots — ✅ VALIDÉ A
+
+Les bots utilisent une stratégie contextuelle simple.
+
+Direction cible :
+
+- si une action `basique` garantit immédiatement la victoire → toujours `basique` ;
+- bot nettement en retard → environ **70 %** de chance de choisir `risque` ;
+- situation intermédiaire → environ **40 %** ;
+- bot en position favorable ou proche de la victoire → environ **20 %** ;
+- l'IA conserve donc une part d'aléatoire et ne cherche pas une stratégie mathématique parfaite.
+
+Les seuils numériques exacts permettant de qualifier retard / situation normale / position favorable sont des paramètres techniques du moteur et pourront être ajustés sans nouvelle décision produit tant que cette intention est respectée.
+
+---
+
+## R552 — Calibrage de puissance des bots de remplissage — ✅ VALIDÉ A
+
+Au lancement :
+
+1. calculer la moyenne de la statistique du thème des participants humains ;
+2. utiliser cette moyenne comme référence ;
+3. générer les statistiques des bots légèrement sous cette référence avec une petite variation aléatoire ;
+4. borner le résultat final entre 1 et 20.
+
+Direction de calibrage :
+
+`statBot ≈ moyenneHumaine - 2`, avec une variation d'environ `±2`.
+
+Le but est que :
+
+- les bots suivent globalement le niveau des joueurs présents ;
+- un joueur ayant développé une excellente Légende conserve néanmoins un avantage naturel ;
+- les fillers ne deviennent pas automatiquement aussi puissants qu'un personnage optimisé.
+
+Les détails exacts d'arrondi, clamp et tirage sont des décisions techniques du backend.
+
+---
+
+## R553 — Seuils exacts des titres — ✅ VALIDÉ A
+
+Les seuils sont cumulatifs et propres à chaque thème :
+
+- **Bronze** : 1 victoire ;
+- **Argent** : 3 victoires ;
+- **Or** : 7 victoires ;
+- **Platine** : 15 victoires.
+
+Le rang est donc dérivable du nombre de victoires du thème, sous réserve de la règle de migration R554.
+
+---
+
+## R554 — Migration des titres déjà acquis — ✅ VALIDÉ A
+
+Un titre déjà acquis par un ancien personnage constitue un **plancher garanti**.
+
+À la migration :
+
+- conserver le vrai compteur historique de victoires connu ;
+- conserver au minimum le meilleur rang déjà acquis ;
+- ne jamais rétrograder un joueur à cause des nouveaux seuils ;
+- ne jamais inventer de victoire supplémentaire pour faire correspondre artificiellement compteur et rang.
+
+Exemple :
+
+un personnage possédant historiquement 2 victoires et un rang Argent reste Argent, puis devra atteindre le nouveau seuil d'Or pour continuer sa progression.
+
+---
+
+## R555 — Ordre des participants — ✅ VALIDÉ A
+
+L'ordre des quatre participants est mélangé aléatoirement une seule fois au lancement.
+
+Cet ordre :
+
+- est déterminé côté serveur ;
+- devient visible aux joueurs ;
+- reste identique pour les rounds suivants.
+
+Il n'est pas remélangé à chaque round.
+
+---
+
+## R556 — Soutien possible sur un bot — ✅ VALIDÉ A
+
+Un spectateur actif peut soutenir n'importe lequel des quatre participants :
+
+- humain ;
+- bot.
+
+Un bot reste donc une cible valide de soutien et peut gagner grâce à ce bonus.
+
+---
+
+## R557 — Sélection indépendante des spectateurs — ✅ VALIDÉ A
+
+Le tirage du spectateur actif est indépendant à chaque round.
+
+Une même personne peut donc être sélectionnée :
+
+- deux rounds consécutifs ;
+- ou plusieurs fois sur un même concours.
+
+Aucune protection anti-répétition ni rotation complète n'est imposée.
+
+---
+
+## R558 — Inscription spectateur après lancement — ✅ VALIDÉ A
+
+Un joueur peut devenir spectateur actif même après le lancement du concours si :
+
+- le concours existe encore ;
+- il n'est pas participant ;
+- il reste une place parmi les 10 spectateurs actifs.
+
+Si le joueur rejoint pendant une fenêtre de soutien déjà commencée :
+
+- il n'est pas ajouté au tirage déjà effectué ;
+- il devient éligible à partir du prochain round.
+
+Le visionnage passif reste accessible indépendamment de cette inscription.
+
+---
+
+## R559 — Départ de l'organisateur après lancement — ✅ VALIDÉ A
+
+Si l'organisateur quitte individuellement le concours après lancement :
+
+- sa place participante est remplacée par un bot selon les règles normales ;
+- il perd son rôle d'organisateur ;
+- le rôle est transféré au premier participant humain encore présent selon l'ordre du concours ;
+- les administrateurs conservent leurs pouvoirs indépendamment de ce rôle.
+
+S'il ne reste plus aucun humain, R536 s'applique et le concours est annulé.
+
+Un joueur ayant quitté ne peut donc pas conserver un pouvoir extérieur lui permettant d'annuler ensuite la partie.
+
+---
+
+## R560 — Concours traversant le changement de journée — ✅ VALIDÉ A
+
+Le changement de journée serveur n'annule pas un concours déjà lancé.
+
+Au lancement, le concours fige notamment :
+
+- sa date métier ;
+- son thème ;
+- ses participants ;
+- les consommations quotidiennes associées.
+
+S'il se termine après minuit :
+
+- il conserve son ancien thème ;
+- son résultat appartient à sa date de lancement ;
+- il continue normalement jusqu'à sa résolution.
+
+Une fois ce concours terminé, un nouveau concours peut utiliser le nouveau jour et le nouveau thème serveur.
+
+---
+
+## R561 — Reprise après crash / redémarrage — ✅ VALIDÉ A
+
+L'état d'un concours lancé doit être suffisamment persisté pour permettre une reprise après redémarrage serveur.
+
+Au redémarrage :
+
+- recharger l'état autoritaire ;
+- vérifier sa cohérence ;
+- recalculer les délais depuis les timestamps serveur ;
+- reprendre le concours à son état courant lorsque cela est fiable.
+
+Si l'état est incohérent ou insuffisant pour reprendre correctement :
+
+- effectuer une annulation technique ;
+- appliquer R535 ;
+- restituer les participations concernées ;
+- ne produire aucun résultat ;
+- journaliser la cause technique.
+
+Un redémarrage normal ne doit donc pas annuler systématiquement les concours.
+
+---
+
+## R562 — L'organisateur est obligatoirement participant — ✅ VALIDÉ A
+
+Pour créer un nouveau lobby Concours, un joueur doit :
+
+- posséder un 5★ C6 éligible ;
+- être encore autorisé à participer ce jour-là ;
+- sélectionner le personnage utilisé ;
+- devenir immédiatement le premier participant du lobby.
+
+Il n'existe pas de rôle normal d'organisateur extérieur ne participant pas au concours.
+
+---
+
+## R563 — Titres honorifiques et représentation visuelle — ✅ VALIDÉ A ENRICHI
+
+Les titres Concours sont honorifiques.
+
+Ils :
+
+- ne donnent aucun bonus de statistiques ;
+- ne modifient pas les points obtenus ;
+- ne renforcent pas les chances de victoire ;
+- servent à valoriser la progression du personnage.
+
+Dans l'UI Concours, le rang correspondant au **thème courant** doit être visuellement identifiable sur le participant.
+
+Direction visuelle validée :
+
+- cadre autour de l'avatar/carte du participant correspondant au rang Bronze / Argent / Or / Platine ;
+- et/ou symbole/badge distinctif permettant d'identifier immédiatement le rang ;
+- Platine doit notamment être clairement reconnaissable au premier regard.
+
+Cette représentation peut également être réutilisée sur les fiches de Légendes et autres emplacements adaptés.
+
+Les choix graphiques précis restent une décision UI à réaliser lors de l'implémentation sans modifier le fonctionnement métier.
+
+---
+
+## R564 — Ancien historique Concours — ✅ VALIDÉ B
+
+L'ancien historique stocké dans `contests_data.json` n'est **pas migré** dans l'historique joueur du standalone.
+
+Le nouvel historique Concours commence donc à **zéro** au démarrage de GachaImpact.
+
+Les anciennes entrées ne sont pas reconstruites à partir des statistiques C6 et aucune information historique manquante n'est inventée.
+
+Règle de vocabulaire globale :
+
+- le terme interne `legacy` ne doit jamais être affiché aux joueurs ;
+- l'UI, les aides et les messages du jeu utilisent toujours un vocabulaire naturel propre à GachaImpact.
+
+---
+
+## R565 — Consultation des Légendes d'autres joueurs — ✅ VALIDÉ B ENRICHI
+
+Les informations C6 / Légendes peuvent être consultées selon les autorisations sociales du propriétaire :
+
+- `Public` ;
+- `Amis uniquement` ;
+- `Privé`.
+
+Les mêmes permissions s'appliquent :
+
+- dans l'UI standalone ;
+- dans le chat interne ;
+- via Twitch lorsque l'intégration existera.
+
+### Commandes cibles
+
+`!legende`
+- affiche la liste des personnages C6 du demandeur.
+
+`!legende <joueur>`
+- affiche la liste des personnages C6 du joueur ciblé si les permissions l'autorisent.
+
+`!legende <joueur> <personnage>`
+- affiche les informations détaillées du personnage C6 ciblé si les permissions l'autorisent.
+
+Les cibles `me` et `moi` peuvent représenter le demandeur lui-même.
+
+Pour consulter son propre personnage précisément, on peut donc utiliser :
+
+`!legende moi <personnage>`
+
+La réponse détaillée peut présenter notamment :
+
+- les cinq statistiques Concours ;
+- les rangs/titres des cinq thèmes ;
+- le nombre total de concours terminés ;
+- le nombre total de victoires ;
+- les compteurs par thème utiles.
+
+Une commande ne doit jamais permettre de contourner une rubrique `Privé` ou `Amis uniquement`.
+
+Un refus de confidentialité ne doit pas révéler indirectement le nombre de C6, leurs noms ou leurs statistiques.
+
+---
+
+## R566 — Niveau de détail de l'historique — ✅ VALIDÉ B
+
+Le stockage durable player-facing conserve le résultat détaillé et les événements importants, sans devenir obligatoirement un replay complet action par action.
+
+Conserver notamment :
+
+- participants ;
+- personnages utilisés ;
+- statistiques de thème figées au lancement ;
+- ordre des tours ;
+- classement final ;
+- scores ;
+- vainqueur ;
+- durée / nombre de rounds ;
+- abandons ;
+- remplacements humain → bot ;
+- soutiens importants ;
+- état d'annulation éventuel et raison lorsqu'un enregistrement technique est nécessaire.
+
+Il n'est pas nécessaire de conserver éternellement chaque action `basique`, chaque jet `risque` ou chaque variation intermédiaire de score dans l'historique joueur.
+
+Des logs techniques plus détaillés peuvent être conservés séparément selon les besoins d'audit et de diagnostic.
+
+---
+
+## Décisions techniques acquises pendant ce lot
+
+### Normalisation des données C6
+
+Le futur modèle C6 ne doit pas recopier les métadonnées du catalogue personnage comme le fait actuellement `c6_characters.json`.
+
+Ne pas dupliquer durablement :
+
+- nom ;
+- rareté ;
+- élément ;
+- arme ;
+- région ;
+- classe ;
+- autres métadonnées de catalogue.
+
+La progression C6 référence le personnage concerné par son identité interne et conserve uniquement les données réellement propres à cette progression, notamment :
+
+- cinq statistiques Concours ;
+- statistiques de participations/victoires ;
+- progression de titres ;
+- métadonnées techniques utiles.
+
+Le catalogue personnage reste la source de vérité pour l'identité et les caractéristiques statiques du personnage.
+
+### Paramètres techniques des bots
+
+Les seuils exacts utilisés par l'IA adaptative, les arrondis et le tirage final de puissance des bots sont des paramètres techniques serveur.
+
+Ils peuvent être ajustés sans nouvelle décision Rxxx tant qu'ils respectent R551 et R552.
+
+---
+
 # 5. Points encore ouverts
 
-À reprendre à partir de **R542** après relecture des scripts et données concernés.
+À reprendre à partir de **R567**.
 
-À auditer notamment :
+À finaliser notamment :
 
-- condition de victoire et éventuelles égalités / dépassements ;
-- comportement détaillé des bots et choix entre `basique` / `risque` ;
-- récompenses finales de classement ;
-- statistiques de participation et de victoire ;
-- progression et paliers de titres ;
-- historique cible des concours ;
-- modèle cible des statistiques C6 ;
-- migration de `c6_characters.json` et `contests_data.json` ;
-- interactions avec Pull, Stella, Légende et XP ;
-- producteurs et consommateurs transverses ;
-- reprise après crash / concours interrompu ;
-- concurrence, atomicité, idempotence et scheduler ;
-- permissions et actions administratives finales.
+- modèle cible précis des données C6 persistées ;
+- migration de `c6_characters.json`, notamment stats, compteurs et titres ;
+- producteurs et consommateurs C6 : Pull, Stella, XP, Légende et Concours ;
+- suppression de l'ancien rôle de synchronisation C6 détenu par XP lorsqu'il devient inutile ;
+- contrats finaux des actions/commandes Concours ;
+- permissions administratives finales ;
+- règles de concurrence, atomicité et idempotence entre lancement, tours, soutien, annulation et récompenses ;
+- état persistant minimal nécessaire à une reprise sûre après incident ;
+- UI cible de l'écran Concours et des fiches Légendes ;
+- critères d'acceptation et cas limites nécessaires à l'implémentation Codex.
 
 Le domaine actif et la prochaine étape exacte du projet doivent être indiqués uniquement dans `docs/master/PROJECT_MASTER_PLAN.md`.
