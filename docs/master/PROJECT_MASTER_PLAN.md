@@ -3448,32 +3448,47 @@ Dernier domaine clôturé :
 - migration conservatrice documentée ;
 - bug legacy `totalMainElementParticlesEarned` corrigé pour les nouveaux gains via les mutations Ressources centrales.
 
-finaliser techniquement le Domaine Faveur / Subscription dans `docs/legacy/18-faveur-subscription-audit.md` : représentation temporelle, migration détaillée, contrat `!faveur`, producteurs/consommateurs et critères d'acceptation ; si aucune nouvelle décision produit réelle n'apparaît, clôturer le domaine sans créer artificiellement R673.
+Dernier domaine clôturé :
+`docs/legacy/18-faveur-subscription-audit.md` — Faveur / Subscription — **CLÔTURÉ après R672**.
+
+État du domaine clôturé :
+- 30 jours par attribution, plafond 180 ;
+- jours écoulés automatiquement selon `Europe/Paris` même en cas d'absence ;
+- +800 Primogemmes quotidiennes uniquement les jours où le joueur se manifeste ;
+- claim quotidien commun Twitch / standalone ;
+- Tier 1 +1 600, Tier 2 +4 800, Tier 3 +9 600 immédiates ;
+- compensation supplémentaire des jours bloqués par le plafond ;
+- Twitch-only : `élément choisi` utilisé comme verrou central d'activation, sans seuil de niveau spécifique ;
+- standalone onboardé : élément déjà obligatoire ;
+- gift au bénéficiaire + bonus gifter proportionnel au nombre de subs offerts ;
+- resubs seulement lorsqu'un événement Twitch fiable les prouve ;
+- informations Faveur dans Profil / Quotidiennes, sans écran dédié ;
+- `!faveur` finalisé ;
+- migration conservatrice et critères d'acceptation documentés.
+
+Domaine actif :
+`docs/legacy/19-codes-cadeaux-audit.md` — Codes cadeaux.
 
 État actuel du domaine :
 - audit technique initial réalisé ;
-- décisions produit R657 à R672 validées ;
-- durée : +30 jours par attribution, plafond 180 jours ;
-- les jours s'écoulent désormais selon le calendrier serveur `Europe/Paris`, même en l'absence du joueur ;
-- +800 Primogemmes sont récupérables une fois par journée active seulement si le joueur se manifeste ce jour-là ;
-- claim quotidien partagé entre Twitch et standalone, avec état visible sur le profil ;
-- standalone : petite animation uniquement lorsqu'il accorde réellement les +800 ;
-- récompense immédiate bénéficiaire : Tier 1 +1 600, Tier 2 +4 800, Tier 3 +9 600 ;
-- jours bloqués par le plafond : compensation supplémentaire sur base 1 600 / 30 jours perdus ;
-- les daily rewards de la nouvelle attribution commencent le lendemain ;
-- Twitch-only : niveau ≥2 conservé comme filtre de joueur actif ;
-- standalone onboardé + Twitch lié : aucune condition de niveau ;
-- un événement subscription/gift ne crée pas un joueur et aucune ancienne Faveur ignorée n'est mise en attente ;
-- bonus gifter : +1 600 par abonnement offert, proportionnel aux gift multiples ;
-- resubs : uniquement lorsqu'un événement Twitch suffisamment fiable les prouve ;
-- Faveur visible dans Profil / Quotidiennes, sans écran dédié ;
-- joueur sans Faveur : lien possible vers `https://www.twitch.tv/kichnifou` ;
-- `!faveur pseudo` respecte les règles de confidentialité ;
-- modèle Twitch-only déjà validé confirmé : premier message → joueur interne Twitch-only ; liaison web ultérieure → même joueur, même progression ;
-- aucun nouvel arbitrage produit majeur n'est actuellement identifié.
+- `Code.txt`, `gift_codes.json`, `usedCodes` et les interactions Event / Notifications / Ressources recroisés ;
+- commande legacy canonique : `!code NOMDUCODE` ;
+- un code ponctuel est réclamable une seule fois définitivement par joueur ;
+- un code annuel utilise une clé de claim `CODE-YYYY` et peut revenir chaque année ;
+- le catalogue legacy contient actuellement 12 codes, tous associés aux Festivals mensuels ;
+- chacun de ces 12 codes donne actuellement +1 600 Primogemmes et +200 000 Moras ;
+- le moteur legacy supporte Primogemmes, Moras et particules des sept éléments ;
+- aucun écran joueur Codes, aucune liste de codes actifs, aucune notification et aucune interface Admin n'existent dans le legacy ;
+- la cible prévoit un écran joueur avec bouton `Récupérer` et un outil Admin de création/publication ;
+- publication d'un code → notification standalone ;
+- claim / expiration / désactivation → résolution automatique de la notification actionnable correspondante ;
+- Event reste uniquement consommateur de l'information qu'un code Festival est disponible et redirige vers Codes ;
+- la stratégie de rappel Twitch reste à décider ;
+- claims et récompenses devront devenir transactionnels et idempotents ;
+- premières décisions produit : **R673**.
 
 Prochaine étape exacte :
-finaliser techniquement le Domaine Faveur / Subscription dans `docs/legacy/18-faveur-subscription-audit.md` : représentation temporelle, migration détaillée, contrat `!faveur`, producteurs/consommateurs et critères d'acceptation ; si aucune nouvelle décision produit réelle n'apparaît, clôturer le domaine sans créer artificiellement R673.
+reprendre le Domaine Codes cadeaux à **R673** depuis `docs/legacy/19-codes-cadeaux-audit.md`, afin de définir le cycle de vie Admin, les périodes de disponibilité, les récompenses configurables, l'UX joueur après claim, les notifications, le comportement Twitch et les statistiques Admin.
 
 Étape obligatoire avant modèle de données / V1 :
 après clôture d'Event et des audits restants, effectuer un **sweep exhaustif final des 36 scripts `.txt` et des 17 fichiers JSON inventoriés** afin de confirmer qu'aucune mécanique, donnée, dépendance, commande ou source de vérité n'a été oubliée. Le modèle de données cible final et le passage à la V1 ne doivent être engagés qu'après cette vérification de couverture.
