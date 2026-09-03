@@ -845,8 +845,21 @@ Statut : évolutif.
 - `VALIDÉ R609` — Jeu C : tout joueur existant peut être ciblé sous réserve des règles Social, blocages, permissions et modération.
 - `VALIDÉ R610` — Jeu C : seul l'expéditeur gagne +1 point et +1 monnaie ; le destinataire ne reçoit pas de récompense économique.
 - `VALIDÉ R611` — Jeu C : un seul envoi réussi par jour ; une tentative invalide ne consomme pas l'action.
-- `VALIDÉ R612` — L'UI ne transforme pas le Jeu C en MP : l'écran Event possède une liste dédiée des messages Event du jour, en complément du fonctionnement chat interne/Twitch.
+- `VALIDÉ R612` — L'écran Event du destinataire possède une liste personnelle des messages Event reçus dans la journée, visible uniquement par lui ; ce n'est ni un chat public, ni un MP général, ni une rubrique partageable.
 - `VALIDÉ R613` — La liste UI des messages Event est vidée à minuit `Europe/Paris`; ce reset de présentation reste séparé d'une éventuelle livraison chat/Twitch encore en attente.
+- `VALIDÉ R614` — Conserver huit paliers Event à 10/20/30/40/50/60/70/80 points.
+- `VALIDÉ R615` — Conserver la table actuelle des récompenses. L'écran Event affiche en permanence en haut une barre temps réel avec chevrons clairs pour chaque palier.
+- `VALIDÉ R616` — Les récompenses de palier sont attribuées automatiquement au franchissement ; aucune réclamation manuelle.
+- `VALIDÉ R617` — Les points continuent au-delà de 80 pour le classement et restent affichés, même si la barre est déjà pleine.
+- `VALIDÉ R618` — Boutique Event : 1 monnaie saisonnière = 160 Primogemmes.
+- `VALIDÉ R619` — Boutique Event : 1 monnaie saisonnière = 20 000 Moras.
+- `VALIDÉ R620` — Conversions Primogemmes/Moras en quantité libre dans la limite du solde, avec MAX UI et `max` chat/Twitch.
+- `VALIDÉ R621` — L'objet Collection de l'édition coûte 80 monnaies Event.
+- `VALIDÉ R622` — Un même objet saisonnier peut être obtenu à nouveau lors des éditions futures, mais au maximum une fois par joueur et par édition annuelle.
+- `VALIDÉ R623` — Le solde saisonnier conservé des anciennes éditions est entièrement utilisable pendant la nouvelle édition, y compris pour l'objet Collection.
+- `VALIDÉ R624` — Après acquisition, l'objet Collection reste visible dans la Boutique avec l'état `Obtenu — édition YYYY` et un achat désactivé jusqu'à l'édition suivante.
 - `TECHNIQUE` — Les monnaies Event sont identifiées par Festival/saison afin de pouvoir survivre entre deux éditions annuelles.
 - `TECHNIQUE` — Le cooldown Jeu A et la réclamation quotidienne Event sont communs aux canaux et autoritaires côté serveur.
-- `À AUDITER` — Reprendre Event / monthly à R614 : visibilité des messages UI, paliers, boutique, collections, calendrier de décembre, classement, historique, contrats `!event`, migration et clôture technique.
+- `TECHNIQUE` — Barre de progression dérivée des points ; gains de points/paliers et achats Event protégés par atomicité/idempotence côté serveur.
+- `TECHNIQUE` — L'acquisition Collection est identifiée par joueur + Festival + édition ; le solde saisonnier reste fongible quelle que soit l'année où il a été gagné.
+- `À AUDITER` — Reprendre Event / monthly à R625 : calendrier de décembre, classement, historique, UI globale, contrats `!event`, annonces, migration et clôture technique.

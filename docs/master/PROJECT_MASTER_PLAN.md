@@ -3347,18 +3347,21 @@ Domaine actif :
 
 État actuel du domaine :
 - audit technique initial réalisé ;
-- décisions produit R594 à R607 et R609 à R613 validées ;
+- décisions produit R594 à R607 et R609 à R624 validées ;
 - calendrier annuel, inscription et conservation saisonnière de la monnaie cadrés ;
 - Jeu A cadré : trois fenêtres, 20 % de réussite, cooldown serveur 3 secondes ;
 - Jeu B cadré : 32 combinaisons, trois essais, progression communautaire visible, rattrapage des nouveaux inscrits et découvreur honorifique ;
-- Jeu C cadré dans son principe : un envoi social récompensé par jour, cible soumise aux règles Social, liste dédiée quotidienne dans l'écran Event ;
+- Jeu C cadré : un envoi social récompensé par jour, cible soumise aux règles Social, liste quotidienne privée au destinataire ;
+- progression Event cadrée : huit paliers automatiques jusqu'à 80, barre temps réel permanente et points continuant au-delà ;
+- Boutique Event cadrée : conversions Primogemmes/Moras, MAX et objet Collection à 80 monnaies ;
+- collection saisonnière cadrée : une acquisition maximum par édition, quantité permanente cumulable entre les années ;
 - `monthly_events.json` reste sans fonctionnalité identifiée ;
 - `monthlyDraw` reste sans mécanique de tirage identifiée ;
-- prochaine décision : **R614** ;
+- prochaine décision : **R625** ;
 - Boss mensuel déjà traité avec Combat et ne doit pas être réaudité sans dépendance réelle.
 
 Prochaine étape exacte :
-reprendre le Domaine Event / monthly à **R614** depuis `docs/legacy/16-event-monthly-audit.md`, en finalisant d'abord la visibilité de la liste sociale UI puis les paliers, la boutique, les collections, le calendrier de décembre et le classement.
+reprendre le Domaine Event / monthly à **R625** depuis `docs/legacy/16-event-monthly-audit.md`, en auditant le calendrier de décembre, le classement/historique mensuel, puis la présentation globale et les contrats finaux de l'Event.
 
 Étape obligatoire avant modèle de données / V1 :
 après clôture d'Event et des audits restants, effectuer un **sweep exhaustif final des 36 scripts `.txt` et des 17 fichiers JSON inventoriés** afin de confirmer qu'aucune mécanique, donnée, dépendance, commande ou source de vérité n'a été oubliée. Le modèle de données cible final et le passage à la V1 ne doivent être engagés qu'après cette vérification de couverture.

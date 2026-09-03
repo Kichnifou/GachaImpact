@@ -1,7 +1,7 @@
 # 16 — Audit Event / monthly
 
 > Domaine 13 de l'audit GachaImpact.  
-> Statut : **EN COURS — décisions R594 à R607 et R609 à R613 validées ; reprise à R614**.  
+> Statut : **EN COURS — décisions R594 à R607 et R609 à R624 validées ; reprise à R625**.  
 > Ce document devient la source spécialisée du domaine Event / monthly.  
 > L'état global du projet et la prochaine reprise exacte restent la responsabilité du Master.
 
@@ -869,14 +869,17 @@ Le fonctionnement prévu pour le chat interne et Twitch n'est pas remplacé par 
 
 Les messages Event continuent à pouvoir être restitués via le fonctionnement chat/Twitch correspondant au joueur.
 
-En complément, l'écran Event possède une **zone dédiée aux messages Event du jour**.
+En complément, l'écran Event possède une **zone personnelle dédiée aux messages Event reçus pendant la journée**.
 
 Cette zone :
 - n'est pas un chat temps réel ;
-- n'est pas une boîte de MP ;
-- présente une simple liste structurée des messages Event envoyés pendant la journée.
+- n'est pas une boîte de MP générale ;
+- présente une simple liste structurée des messages Event reçus pendant la journée ;
+- est visible uniquement par le joueur destinataire sur son propre écran Event ;
+- n'est jamais visible par les autres joueurs ;
+- n'est pas une rubrique de profil partageable et n'est pas affectée par les réglages de visibilité Public / Amis / Privé.
 
-La visibilité exacte de cette liste entre joueurs sera précisée séparément lors de la poursuite de l'audit afin de ne pas inventer une règle de confidentialité non explicitement décidée.
+Le contenu reste donc privé au destinataire.
 
 ---
 
@@ -894,6 +897,207 @@ La visibilité quotidienne UI et l'état technique de livraison vers un canal so
 
 ---
 
+## R614 — Structure des paliers — ✅ VALIDÉ A
+
+Conserver les huit paliers de progression Event :
+
+- 10 points ;
+- 20 points ;
+- 30 points ;
+- 40 points ;
+- 50 points ;
+- 60 points ;
+- 70 points ;
+- 80 points.
+
+80 reste le dernier palier récompensé.
+
+---
+
+## R615 — Récompenses des paliers et barre de progression — ✅ VALIDÉ A ENRICHI
+
+Conserver les récompenses actuelles :
+
+| Points | Récompense |
+|---:|---|
+| 10 | +500 particules d'un élément aléatoire |
+| 20 | +1 monnaie Event |
+| 30 | +500 particules de l'élément personnel du joueur |
+| 40 | +2 monnaies Event |
+| 50 | +50 000 Moras |
+| 60 | +5 monnaies Event |
+| 70 | +1 600 Primogemmes |
+| 80 | +10 monnaies Event |
+
+Si l'élément personnel nécessaire au palier 30 est exceptionnellement indisponible lors d'une migration/anomalie, utiliser un fallback sûr cohérent avec les règles de ressources plutôt que bloquer la progression.
+
+### UI
+
+Une barre de progression Event est toujours clairement visible en haut de l'écran Event.
+
+Elle :
+- se met à jour automatiquement et en temps réel lorsque les points changent ;
+- affiche la progression vers 80 ;
+- matérialise chaque palier par un chevron / marqueur clair ;
+- permet de distinguer les paliers déjà atteints des suivants ;
+- atteint visuellement son maximum à 80 points.
+
+Exemple conceptuel :
+
+`0 ─ 10 ─ 20 ─ 30 ─ 40 ─ 50 ─ 60 ─ 70 ─ 80`
+
+---
+
+## R616 — Récompenses de palier automatiques — ✅ VALIDÉ A
+
+Les récompenses de palier sont attribuées automatiquement lorsque le joueur atteint ou dépasse pour la première fois le seuil correspondant.
+
+Aucune action manuelle `Réclamer` n'est nécessaire pour les paliers.
+
+Cette règle est identique quel que soit le canal ayant provoqué le gain de points :
+- UI ;
+- chat interne ;
+- Twitch futur.
+
+Le bouton de réclamation défini par R602 concerne uniquement le bonus quotidien Event et ne s'applique pas aux paliers.
+
+---
+
+## R617 — Points au-delà de 80 — ✅ VALIDÉ A ENRICHI
+
+Les points Event continuent à augmenter après 80.
+
+Après 80 :
+- la barre de progression reste visuellement pleine ;
+- aucun nouveau palier automatique n'est ajouté dans la V1 actuelle ;
+- le nombre réel de points continue à être affiché ;
+- le nombre réel continue à servir au classement mensuel.
+
+Exemple :
+
+`124 points — tous les paliers atteints`
+
+Les points ne sont donc jamais plafonnés artificiellement à 80.
+
+---
+
+## R618 — Conversion Primogemmes — ✅ VALIDÉ A
+
+Conserver le taux Boutique Event :
+
+**1 monnaie Event = 160 Primogemmes**
+
+Une unité de monnaie Event correspond donc symboliquement au coût d'une invocation.
+
+---
+
+## R619 — Conversion Moras — ✅ VALIDÉ A
+
+Conserver le taux Boutique Event :
+
+**1 monnaie Event = 20 000 Moras**
+
+---
+
+## R620 — Achat en quantité et MAX — ✅ VALIDÉ A
+
+Les conversions Primogemmes et Moras acceptent toute quantité entière valide dans la limite du solde disponible.
+
+### UI
+
+Prévoir notamment :
+- quantité ;
+- contrôles `-` / `+` ;
+- saisie adaptée ;
+- bouton `MAX`.
+
+### Chat interne / Twitch
+
+Exemples :
+
+- `!event primos 5`
+- `!event moras 5`
+- `!event primos max`
+- `!event moras max`
+
+Toutes les interfaces utilisent la même opération économique serveur.
+
+---
+
+## R621 — Coût de l'objet Collection — ✅ VALIDÉ A
+
+L'objet de Collection propre au Festival coûte :
+
+**80 monnaies Event**
+
+Il constitue le principal achat permanent de l'édition.
+
+Le joueur choisit donc librement entre :
+- économiser pour l'objet Collection ;
+- convertir sa monnaie en Primogemmes ;
+- convertir sa monnaie en Moras.
+
+---
+
+## R622 — Une acquisition Collection par édition annuelle — ✅ VALIDÉ A
+
+Un joueur peut obtenir plusieurs exemplaires du même objet saisonnier au fil des années.
+
+Exemple :
+
+- Festival 2026 → Lanterne du Nouvel An ×1 ;
+- Festival 2027 → possibilité d'obtenir une nouvelle Lanterne → ×2 ;
+- Festival 2028 → possibilité de passer à ×3.
+
+Limite :
+
+**maximum une acquisition de cet objet par joueur et par édition annuelle du Festival.**
+
+Il n'est donc pas possible d'acheter plusieurs copies pendant la même édition, même avec une importante réserve de monnaie.
+
+La quantité permanente dans la Collection/Coffre continue néanmoins à représenter le nombre total d'éditions où l'objet a été obtenu.
+
+---
+
+## R623 — Ancienne monnaie utilisable pour la nouvelle édition — ✅ VALIDÉ A
+
+La monnaie saisonnière conservée selon R597 est exactement la même ressource lorsqu'un Festival revient.
+
+Elle peut donc être utilisée normalement pendant la nouvelle édition, y compris pour acheter l'objet Collection de cette édition.
+
+Exemple :
+
+- janvier précédent : 70 Éclats de Fortune restants ;
+- nouvelle édition : +10 obtenus ;
+- solde disponible : 80 ;
+- l'objet Collection de la nouvelle édition peut être acheté.
+
+Aucune distinction artificielle n'est faite entre :
+- monnaie gagnée cette année ;
+- monnaie conservée des années précédentes.
+
+---
+
+## R624 — Objet Collection déjà obtenu pendant l'édition — ✅ VALIDÉ A
+
+Après achat, l'objet Collection reste visible dans la Boutique Event.
+
+La carte affiche clairement son état, par exemple :
+
+`✓ Obtenu — édition 2026`
+
+Le bouton d'achat devient indisponible pour le reste de l'édition.
+
+La carte continue à afficher :
+- illustration ;
+- nom ;
+- coût ;
+- état d'acquisition.
+
+Cela permet de comprendre immédiatement pourquoi aucun nouvel achat n'est possible cette année.
+
+---
+
 # 23. Décisions techniques acquises
 
 - Les douze Festivals utilisent une configuration commune plutôt que douze implémentations métier copiées.
@@ -907,20 +1111,22 @@ La visibilité quotidienne UI et l'état technique de livraison vers un canal so
 - Pour le Jeu B, la première requête correcte validée côté serveur devient le découvreur ; la résolution, l'attribution collective et le marquage `found` sont atomiques.
 - Deux requêtes simultanées ne peuvent jamais distribuer deux fois les récompenses du Jeu B.
 - La liste UI quotidienne du Jeu C et la file technique de livraison chat/Twitch sont séparées afin que le reset visuel de minuit n'entraîne pas une perte involontaire.
+- La barre de progression Event est dérivée du nombre de points courant ; il n'existe pas de pourcentage de progression autoritatif séparé à maintenir.
+- Les récompenses de palier sont attribuées dans la même opération logique que le gain de points qui franchit le seuil, afin d'éviter point accordé sans récompense ou récompense dupliquée.
+- Une récompense de palier déjà accordée ne peut jamais être attribuée deux fois lors d'un retry ou d'un appel concurrent.
+- Les conversions de monnaie Event et l'achat Collection sont des transactions serveur atomiques : vérification du solde, débit, gain et journalisation forment une seule opération logique.
+- L'éligibilité à l'objet Collection est suivie par joueur + Festival + édition annuelle, et non par l'origine temporelle des monnaies dépensées.
+- Le solde saisonnier est unique par type de monnaie/Festival : les unités conservées d'une ancienne édition et celles gagnées pendant l'édition actuelle sont fongibles.
+- L'état `Obtenu cette année` est dérivé de l'acquisition de l'édition courante et ne dépend pas uniquement de la quantité totale possédée dans le Coffre.
 
 ---
 
 # 24. Points produit encore ouverts
 
-Reprendre à **R614**.
+Reprendre à **R625**.
 
 À traiter notamment :
 
-- visibilité exacte de la liste quotidienne des messages du Jeu C ;
-- maintien ou évolution des paliers 10/20/30/40/50/60/70/80 ;
-- valeurs de la boutique Event ;
-- vraie règle d'achat et de conservation des objets de collection ;
-- relation entre ancienne monnaie saisonnière conservée et nouvelle édition annuelle ;
 - calendrier de décembre ;
 - rattrapage éventuel des cases manquées ;
 - classement mensuel ;
@@ -937,7 +1143,7 @@ Reprendre à **R614**.
 
 ---
 
-# 23. Sweep final obligatoire du projet
+# 25. Sweep final obligatoire du projet
 
 Même après clôture d'Event et des audits restants, le projet devra effectuer une passe exhaustive finale sur :
 
