@@ -3440,10 +3440,22 @@ Dernier domaine clôturé :
 - Boss mensuel reste la responsabilité du Domaine Combat.
 
 Domaine actif :
-**Roue / quotidien — audit spécialisé à initialiser après validation de ce checkpoint.**
+`docs/legacy/17-roue-quotidien-audit.md` — Roue / quotidien.
+
+État actuel du domaine :
+- audit technique initial réalisé ;
+- `Roue.txt`, `Daily.txt`, `viewers_data.json` et les dépendances Ressources / Missions / Quotidiennes recroisés ;
+- une seule utilisation quotidienne par joueur est confirmée ;
+- le vrai code utilise actuellement une distribution 2 % rien / 70 % particules / 20 % Moras / 8 % Primogemmes ;
+- le commentaire d'en-tête de `Roue.txt` décrit une distribution différente et ne constitue donc pas la source de vérité ;
+- incohérence confirmée : le code crédite +50 000 Moras alors que le message utilisateur annonce +20 000 ;
+- `totalWheelSpins`, `totalWheelJackpots` et `lastWheelDate` sont des données réellement utilisées à migrer ;
+- la Roue legacy ne maintient pas correctement `totalMainElementParticlesEarned` lorsqu'elle génère des particules de l'élément personnel ; la V1 devra appliquer la règle Ressources déjà validée ;
+- `!quotis` et l'écran transversal `Quotidiennes` sont déjà cadrés par les audits précédents et ne doivent pas être redécidés ;
+- premières décisions produit à reprendre : **R645**.
 
 Prochaine étape exacte :
-créer le document spécialisé d'audit Roue / quotidien, puis inspecter `Roue.txt`, les données Roue de `viewers_data.json`, les interactions avec le hub Quotidiennes / `!quotis`, les statistiques économiques et le reset quotidien avant de commencer les décisions produit de ce domaine.
+reprendre le Domaine Roue / quotidien à **R645** depuis `docs/legacy/17-roue-quotidien-audit.md`, en décidant d'abord la fréquence, la vraie distribution de récompenses, la valeur Moras cible et l'UX de l'écran Roue, sans rouvrir les décisions déjà acquises sur `!quotis` et le hub `Quotidiennes`.
 
 Étape obligatoire avant modèle de données / V1 :
 après clôture d'Event et des audits restants, effectuer un **sweep exhaustif final des 36 scripts `.txt` et des 17 fichiers JSON inventoriés** afin de confirmer qu'aucune mécanique, donnée, dépendance, commande ou source de vérité n'a été oubliée. Le modèle de données cible final et le passage à la V1 ne doivent être engagés qu'après cette vérification de couverture.
