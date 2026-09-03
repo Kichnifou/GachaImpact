@@ -868,10 +868,25 @@ Statut : évolutif.
 - `VALIDÉ R633` — Les nouvelles éditions Event possèdent un historique durable. L'écran Event n'intègre pas cet historique directement : un bouton ouvre la catégorie Event de l'écran Historique transversal.
 - `VALIDÉ R634` — Les anciens Top 10 Event et leurs points sont publics ; rang/points/paliers/Collection personnels détaillés restent privés au propriétaire.
 - `VALIDÉ R635` — Le classement de l'édition active se met à jour en temps réel dans l'UI.
+- `VALIDÉ R636` — Écran Event : en-tête progression permanent, onglets Activités/Boutique/Classement, bouton Historique et bouton Collection ouvrant Sac → Collection.
+- `VALIDÉ R637` — `!event` devient le tableau de bord texte contextuel de l'édition, enrichi de l'état personnel après inscription.
+- `VALIDÉ R638` — Avant inscription, `!event`, `!event boutique` et `!event top` restent consultables ; toute mutation Event exige l'inscription.
+- `VALIDÉ R639` — `!event sac` est conservé comme résumé personnel points/monnaie/rang/palier/Collection.
+- `VALIDÉ R640` — Les trois mini-jeux conservent des commandes thématiques différentes selon le Festival ; pas de `jeu1/jeu2/jeu3` canonique.
+- `VALIDÉ R641` — L'annonce du nouveau Festival est délivrée à la première présence pertinente du joueur dans l'édition, avec déduplication inter-canaux.
+- `VALIDÉ R642` — Event signale seulement qu'un code cadeau est disponible et redirige vers l'écran Codes ; la liste, la réclamation et les récompenses appartiennent au Domaine Codes.
+- `VALIDÉ R643` — Le dernier jour produit un rappel court du type « l'Event se termine aujourd'hui » + sous-texte invitant à utiliser la monnaie, sans surcharger la notification.
+- `VALIDÉ R644` — Du 26 au 31 décembre, le calendrier reste visible comme bilan, sans nouvelle ouverture possible.
 - `TECHNIQUE` — Les monnaies Event sont identifiées par Festival/saison afin de pouvoir survivre entre deux éditions annuelles.
 - `TECHNIQUE` — Le cooldown Jeu A et la réclamation quotidienne Event sont communs aux canaux et autoritaires côté serveur.
 - `TECHNIQUE` — Barre de progression dérivée des points ; gains de points/paliers et achats Event protégés par atomicité/idempotence côté serveur.
 - `TECHNIQUE` — L'acquisition Collection est identifiée par joueur + Festival + édition ; le solde saisonnier reste fongible quelle que soit l'année où il a été gagné.
 - `TECHNIQUE` — Calendrier par édition+jour, attribution idempotente ; classement par points autoritatifs, égalité de points = même rang.
 - `TECHNIQUE` — La clôture mensuelle snapshotte le palmarès Event avant ouverture de la nouvelle édition ; un historique archivé devient immuable.
-- `À AUDITER` — Reprendre Event / monthly à R636 : UI globale, contrats `!event`, annonces/codes mensuels, rollover, migration et clôture technique.
+- `TECHNIQUE` — Rollover Event serveur à 00:00 Europe/Paris, sérialisé/idempotent ; requêtes d'une ancienne édition refusées au lieu d'être redirigées.
+- `TECHNIQUE` — Une nouvelle édition remet participation/points/paliers/daily à zéro mais conserve soldes saisonniers, Collection et acquisitions durables.
+- `TECHNIQUE` — XP ne possède plus le bonus quotidien Event, l'annonce mensuelle, la livraison Jeu C ou le rollover.
+- `MIGRATION` — Snapshot du mois courant : importer l'état actif certain sans déclencher de récompense ; snapshot d'un ancien mois : ne pas l'activer, mais préserver sa monnaie comme solde saisonnier.
+- `MIGRATION` — Conserver les fenêtres/états quotidiens utiles du jour, Jeu B courant, calendrier décembre et messages non délivrés lorsque leur provenance est certaine.
+- `MIGRATION` — Ne jamais inventer de palmarès historique, monnaie saisonnière absente, tirage `monthlyDraw` ou fonctionnalité issue de `monthly_events.json`.
+- `CLÔTURÉ R644` — Domaine Event / monthly clôturé.

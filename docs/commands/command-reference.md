@@ -328,6 +328,48 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Confidentialité :** seules les informations nécessaires au match deviennent publiques
 - **Atomicité :** lancement, actions, récompenses et résultat autoritaires côté serveur et protégés contre double exécution
 
+## `!event`
+
+- **Statut audit :** CLÔTURÉ — Domaine Event / monthly après R644
+- **But :** consulter et participer au Festival mensuel courant
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui lorsque l'intégration Twitch sera disponible
+- **UI équivalente :** écran Event avec onglets Activités / Boutique / Classement
+- **Résumé :** `!event`
+- **Inscription :** `!event go`
+- **État personnel :** `!event sac`
+- **Boutique :** `!event boutique`
+- **Classement :** `!event top`
+- **Primogemmes :** `!event primos <quantité|max>`
+- **Moras :** `!event moras <quantité|max>`
+- **Collection :** `!event collection`
+- **Calendrier Noël :** `!event calendrier`
+- **Jeu A :** `!event <commande thématique>`
+- **Jeu B :** `!event <commande thématique> <code 5 bits>`
+- **Jeu C :** `!event <commande thématique> <pseudo> "message"`
+- **Avant inscription :** `!event`, `!event boutique` et `!event top` restent consultables
+- **Mutations :** inscription obligatoire
+- **Inscription :** +1 monnaie saisonnière, une seule fois par édition
+- **Jeu A :** trois fenêtres personnelles quotidiennes ; 20 % par tentative ; cooldown serveur 3 s ; une réussite par jour
+- **Jeu B :** 32 combinaisons ; trois essais consommables/joueur/jour ; combinaison déjà testée non consommée ; récompense communautaire +1 point/+1 monnaie
+- **Jeu B déjà résolu :** nouvelle inscription le même jour reçoit le rattrapage +1 point/+1 monnaie
+- **Découvreur Jeu B :** honorifique, aucun bonus économique supplémentaire
+- **Jeu C :** un envoi réussi/jour ; cible existante soumise aux règles Social ; expéditeur +1 point/+1 monnaie
+- **Messages Jeu C UI :** visibles uniquement par le destinataire dans son écran Event et uniquement pour la journée courante
+- **Bonus quotidien :** +1 monnaie ; bouton Réclamer UI ; premier message normal éligible chat/Twitch peut effectuer la même réclamation
+- **Paliers :** 10/20/30/40/50/60/70/80, récompenses automatiques
+- **Boutique :** 1 monnaie = 160 Primogemmes ou 20 000 Moras
+- **Collection :** 80 monnaies ; maximum une acquisition par édition annuelle ; anciennes monnaies saisonnières utilisables
+- **Classement :** complet en temps réel dans l'UI ; `!event top` = Top 10 ; classement honorifique
+- **Historique :** via écran transversal Historique → Event
+- **Collection UI :** bouton Event → Sac → Collection
+- **Noël :** calendrier 1–25 décembre ; aucun rattrapage ; jours 1–24 = 1–5 monnaies ; jour 25 = 50 ; aucun point
+- **Commandes mensuelles :** conservent leurs noms thématiques ; l'aide du mois indique les syntaxes utiles
+- **Code cadeau :** Event peut signaler qu'un code est disponible mais la consultation/réclamation appartient au Domaine Codes
+- **Rollover :** 00:00 Europe/Paris au changement de mois ; nouvelle inscription requise ; monnaie saisonnière conservée
+- **Atomicité :** gains, paliers, Jeu B, calendrier, boutique, Collection et rollover protégés contre concurrence/retry/double exécution
+- **Migration :** état actif conservé uniquement lorsqu'il correspond au cutover ; monnaie du snapshot conservée comme solde saisonnier ; aucun historique ou gain absent inventé
+
 ## `!team`
 - **Statut audit :** Audité — Domaine Team clôturé après R236
 - **But :** Consulter, activer et modifier les Teams du joueur.

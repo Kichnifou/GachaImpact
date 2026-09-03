@@ -1,8 +1,8 @@
 # 16 — Audit Event / monthly
 
 > Domaine 13 de l'audit GachaImpact.  
-> Statut : **EN COURS — décisions R594 à R607 et R609 à R635 validées ; reprise à R636**.  
-> Ce document devient la source spécialisée du domaine Event / monthly.  
+> Statut : **CLÔTURÉ — décisions produit R594 à R607 et R609 à R644 validées ; R608 et R632 traitées comme décisions techniques**.  
+> Ce document est la source spécialisée validée du domaine Event / monthly.  
 > L'état global du projet et la prochaine reprise exacte restent la responsabilité du Master.
 
 ---
@@ -1285,6 +1285,235 @@ reste une lecture ponctuelle de l'état autoritatif au moment où la commande es
 
 ---
 
+## R636 — Organisation générale de l'écran Event — ✅ VALIDÉ A ENRICHI
+
+L'écran Event possède une zone d'en-tête toujours visible contenant au minimum :
+
+- identité visuelle et nom du Festival courant ;
+- temps restant avant la fin de l'édition ;
+- points personnels ;
+- solde de monnaie saisonnière ;
+- rang personnel courant ;
+- barre de progression R615 ;
+- bouton `Voir l'historique` ;
+- bouton `Collection`.
+
+Le bouton `Voir l'historique` ouvre :
+
+`Historique → Event`
+
+Le bouton `Collection` ouvre directement :
+
+`Sac → Collection`
+
+Sous cet en-tête, l'écran est organisé en trois onglets internes.
+
+### Activités
+
+Contient notamment :
+
+- bonus quotidien `Réclamer` ;
+- Jeu A ;
+- Jeu B ;
+- Jeu C ;
+- messages Event personnels reçus aujourd'hui ;
+- calendrier de Noël en décembre.
+
+### Boutique
+
+Contient :
+
+- conversion en Primogemmes ;
+- conversion en Moras ;
+- objet Collection de l'édition.
+
+### Classement
+
+Contient :
+
+- Top 3 particulièrement mis en valeur ;
+- classement complet ;
+- propre position facilement identifiable.
+
+Cette organisation évite une page unique excessivement longue tout en conservant les informations essentielles de progression toujours visibles.
+
+---
+
+## R637 — `!event` devient le tableau de bord texte — ✅ VALIDÉ A
+
+`!event` sans argument fournit un résumé contextuel du Festival courant.
+
+### Avant inscription
+
+Le message indique notamment :
+
+- Festival actif ;
+- durée / fin de l'édition de manière compacte ;
+- possibilité de rejoindre avec `!event go` ;
+- accès aux consultations publiques utiles ;
+- commandes thématiques principales.
+
+### Après inscription
+
+Le résumé personnel ajoute notamment :
+
+- points ;
+- monnaie Event ;
+- prochain palier ou palier maximal atteint ;
+- état compact des activités quotidiennes ;
+- commandes mensuelles utiles.
+
+La réponse reste adaptée aux contraintes du chat et de Twitch et ne cherche pas à reproduire toute l'interface graphique.
+
+---
+
+## R638 — Lectures publiques avant inscription — ✅ VALIDÉ A
+
+Un joueur non encore inscrit peut consulter :
+
+- `!event` ;
+- `!event boutique` ;
+- `!event top`.
+
+Il ne peut pas avant inscription :
+
+- utiliser les Jeux A/B/C ;
+- réclamer le bonus quotidien ;
+- effectuer un achat Event ;
+- acheter l'objet Collection ;
+- ouvrir une case du calendrier ;
+- recevoir une récompense de participation.
+
+L'UI suit la même philosophie : le contenu général du Festival est consultable avant de cliquer sur `Participer à l'événement`.
+
+---
+
+## R639 — Conservation de `!event sac` — ✅ VALIDÉ A
+
+`!event sac` reste la consultation personnelle compacte du joueur.
+
+Il affiche notamment :
+
+- points Event ;
+- monnaie Event ;
+- rang personnel ;
+- prochain palier ou indication que tous les paliers sont atteints ;
+- état de l'objet Collection de l'édition.
+
+Il ne remplace pas le Sac global du jeu.
+
+La commande reste strictement personnelle et nécessite une participation à l'édition courante.
+
+---
+
+## R640 — Commandes thématiques mensuelles — ✅ VALIDÉ A
+
+Les commandes des trois mini-jeux restent thématiques et changent selon le Festival.
+
+Exemples :
+
+### Janvier
+
+- `!event feu`
+- `!event coffre 01101`
+- `!event voeu pseudo "message"`
+
+### Octobre
+
+les commandes utilisent les appellations propres au Festival des Ombres.
+
+Le moteur métier reste commun, mais les commandes player-facing utilisent l'identité du Festival.
+
+Les syntaxes génériques `jeu1`, `jeu2`, `jeu3` ne deviennent pas les commandes canoniques.
+
+L'aide `!event` fournit les commandes pertinentes du mois courant.
+
+---
+
+## R641 — Annonce du Festival à la première présence de l'édition — ✅ VALIDÉ A
+
+L'annonce du nouveau Festival n'est plus limitée au seul premier jour du mois.
+
+Chaque joueur peut recevoir l'annonce lors de sa première présence / activité pertinente pendant l'édition.
+
+### Standalone
+
+Créer une notification personnelle cliquable vers l'écran Event.
+
+### Chat interne / Twitch
+
+Au premier message normal éligible, une annonce compacte peut être restituée si le joueur n'a pas encore reçu l'annonce de cette édition.
+
+L'annonce est dédupliquée par joueur + édition.
+
+Une fois délivrée par un canal pertinent, elle ne doit pas être répétée inutilement sur les autres canaux.
+
+Un joueur revenant au milieu du mois découvre donc toujours le Festival actif.
+
+---
+
+## R642 — Code mensuel signalé mais géré par l'écran Codes — ✅ VALIDÉ C ENRICHI
+
+Event n'affiche pas directement le code cadeau et ne possède pas l'action de réclamation.
+
+L'écran Event indique seulement qu'un **code lié au Festival est disponible**.
+
+Une action permet d'ouvrir l'écran dédié aux Codes.
+
+Le futur Domaine Codes cadeaux décidera notamment :
+
+- présentation de la liste des codes disponibles ;
+- valeurs des codes ;
+- récompenses ;
+- dates de validité ;
+- règles annuelles ;
+- boutons de réclamation ;
+- commande texte correspondante.
+
+Event reste uniquement consommateur de l'information :
+
+`un code Event est disponible`
+
+et ne duplique pas le moteur de codes cadeaux.
+
+---
+
+## R643 — Rappel minimal du dernier jour — ✅ VALIDÉ A ENRICHI
+
+Le dernier jour du Festival, le joueur reçoit un rappel personnel court.
+
+Exemple :
+
+`🎃 Le Festival des Ombres se termine aujourd'hui !`
+
+Sous-texte possible :
+
+`Utilise ta monnaie avant la fin de l'Event.`
+
+La notification ne doit pas devenir une fiche détaillée contenant tous les soldes et toutes les informations du Festival.
+
+Elle peut être cliquable et conduire vers l'écran Event / sa Boutique.
+
+Dans le chat interne ou Twitch, le premier message normal éligible du dernier jour peut également produire une version compacte si ce rappel n'a pas encore été délivré.
+
+Le rappel est dédupliqué par joueur + édition.
+
+---
+
+## R644 — Calendrier de Noël visible jusqu'au 31 décembre — ✅ VALIDÉ A
+
+Du 26 au 31 décembre, le calendrier de Noël reste visible dans l'écran Event.
+
+À ce stade :
+
+- aucune nouvelle case ne peut être ouverte ;
+- les cases 1 à 25 sont toutes dans l'état `Ouverte` ou `Manquée` ;
+- le calendrier sert de bilan visuel de la participation de décembre.
+
+Il disparaît avec la clôture du Festival de Noël au changement de mois.
+
+---
+
 # 23. Décisions techniques acquises
 
 - Les douze Festivals utilisent une configuration commune plutôt que douze implémentations métier copiées.
@@ -1315,31 +1544,346 @@ reste une lecture ponctuelle de l'état autoritatif au moment où la commande es
 - La clôture mensuelle snapshotte l'historique de l'édition avant d'ouvrir la suivante.
 - L'historique Event et l'état actif du mois sont des données distinctes : une nouvelle édition ne modifie jamais un classement final déjà archivé.
 - L'actualisation temps réel du classement est une projection de l'état serveur ; le client ne calcule ni ne décide lui-même les points.
+- Chaque édition possède un identifiant métier stable permettant de distinguer explicitement le Festival et son année.
+- Les requêtes de mutation Event ciblent explicitement l'édition active ; une requête devenue obsolète après rollover est refusée et n'est jamais redirigée silencieusement vers la nouvelle édition.
+- Le rollover est effectué par le serveur à 00:00 `Europe/Paris` au premier jour du nouveau mois.
+- Le rollover n'attend jamais une commande, un message Twitch ou une connexion joueur.
+- Le rollover est sérialisé avec les mutations Event et peut être rejoué sans double clôture ni double création.
+- La clôture archive l'édition précédente avant d'activer la suivante.
+- Nouvelle édition : participation, points, paliers de l'édition et états quotidiens repartent à zéro.
+- Les soldes saisonniers R597 ne sont jamais détruits par le rollover.
+- Les objets Collection permanents et leurs acquisitions annuelles ne sont jamais détruits par le rollover.
+- Une nouvelle édition exige une nouvelle inscription volontaire conformément à R595.
+- Une UI déjà ouverte reçoit le changement autoritatif d'édition et se met à jour sans rechargement manuel obligatoire.
+- XP n'est plus propriétaire du bonus quotidien Event, de l'annonce mensuelle, de la livraison sociale Event ou du rollover.
+- Le système Codes est propriétaire de la réclamation des codes ; Event consomme uniquement l'état nécessaire pour signaler qu'un code associé est disponible.
+- La navigation `Collection` d'Event est uniquement un lien vers `Sac → Collection` et ne duplique pas le système de Collection.
+- Les lectures publiques pré-inscription ne doivent jamais créer implicitement une participation.
+- Toute mutation économique Event est journalisée avec sa cause métier et l'édition concernée.
 
 ---
 
-# 24. Points produit encore ouverts
+# 24. Migration Event
 
-Reprendre à **R636**.
+## 24.1 Principe général
 
-À traiter notamment :
+L'import Event doit être :
 
-- présentation générale de l'écran Event ;
-- organisation des différentes zones Event ;
-- contrats finaux de `!event` ;
-- annonces de début/fin d'Event ;
-- interaction avec les codes cadeaux mensuels ;
-- comportement exact au changement de mois ;
-- migration de l'état Event actif au cutover ;
-- migration des soldes saisonniers ;
-- producteurs / consommateurs finaux ;
-- garanties de concurrence / reprise ;
-- critères d'acceptation ;
-- clôture du Domaine Event / monthly.
+- conservateur ;
+- réexécutable ;
+- idempotent ;
+- sans attribution de récompense pendant l'import ;
+- sans création d'historique fictif.
+
+Le snapshot Streamer.bot peut être remplacé par un snapshot plus récent et l'import doit pouvoir être relancé sans doubler les soldes, objets, récompenses ou acquisitions.
 
 ---
 
-# 25. Sweep final obligatoire du projet
+## 24.2 `monthly_events_data.json` correspondant au mois du cutover
+
+Si `year` + `month` correspondent réellement à la période serveur du cutover, importer l'édition comme édition active.
+
+Préserver lorsque les données sont valides :
+
+- participants inscrits ;
+- `joinedAt` ;
+- points ;
+- monnaie restante ;
+- paliers déjà obtenus ;
+- état quotidien utile du jour du cutover ;
+- fenêtres Jeu A du jour ;
+- progression globale Jeu B du jour ;
+- essais individuels Jeu B du jour ;
+- réussite Jeu A du jour ;
+- envoi Jeu C du jour ;
+- réclamation quotidienne Event du jour ;
+- calendrier de Noël si décembre ;
+- acquisitions Collection explicitement connues ;
+- messages Event encore en attente de livraison.
+
+Les paliers déjà indiqués comme obtenus constituent un verrou anti-double paiement.
+
+Une incohérence entre points et paliers déjà obtenus est signalée dans le rapport d'import ; elle ne déclenche jamais automatiquement une nouvelle récompense.
+
+---
+
+## 24.3 Snapshot Event d'un ancien mois
+
+Le legacy changeait de mois de manière opportuniste.
+
+Il est donc possible que `monthly_events_data.json` décrive encore un ancien mois au moment du cutover.
+
+Dans ce cas :
+
+- ne jamais activer cet ancien mois comme Event courant ;
+- ne pas transférer ses points, daily states ou classement vers le nouveau mois ;
+- conserver néanmoins le solde `currency` explicitement présent comme **solde saisonnier du Festival correspondant**, car il s'agit de la meilleure valeur de solde réellement disponible ;
+- conserver les acquisitions Collection annuelles explicitement prouvées ;
+- ne pas créer de palmarès historique complet à partir de ce seul snapshot.
+
+Les monnaies des onze autres Festivals absentes du snapshot ne sont pas inventées.
+
+---
+
+## 24.4 Monnaie saisonnière
+
+Le champ legacy `participant.currency` du snapshot importé devient le solde saisonnier du Festival correspondant.
+
+Il n'est pas additionné à chaque réexécution de migration.
+
+L'import associe donc la valeur source à une provenance de migration et converge vers la même valeur cible lorsque le même snapshot est retraité.
+
+---
+
+## 24.5 Jeu A au cutover
+
+Si l'édition et le jour correspondent au cutover :
+
+- conserver les trois fenêtres déjà générées pour le joueur ;
+- conserver `gameASuccess` ;
+- ne pas générer de nouvelles fenêtres susceptibles de déplacer artificiellement ses opportunités du jour.
+
+Le nouveau cooldown de 3 secondes commence à être appliqué par la V1 après cutover.
+
+Aucun ancien échec n'a besoin d'être inventé.
+
+---
+
+## 24.6 Jeu B au cutover
+
+Pour la journée active, conserver lorsque disponibles :
+
+- code gagnant ;
+- codes déjà testés ;
+- état trouvé / non trouvé ;
+- découvreur ;
+- essais déjà consommés par chaque joueur.
+
+Aucune solution n'est rerollée pendant l'import.
+
+Si le Jeu B est déjà résolu, aucune nouvelle récompense collective n'est versée au moment de la migration.
+
+---
+
+## 24.7 Jeu C et messages
+
+Les messages non encore délivrés peuvent être importés comme file de livraison Event.
+
+Pour l'affichage UI quotidien R612/R613 :
+
+- seuls les messages appartenant à la journée serveur courante sont affichés dans la liste du jour ;
+- un message plus ancien encore techniquement en attente peut rester dans la file de livraison sans réapparaître dans cette liste UI quotidienne.
+
+Aucun message historique absent n'est inventé.
+
+---
+
+## 24.8 Calendrier de Noël
+
+Lors d'un cutover en décembre :
+
+- conserver les jours déjà ouverts connus ;
+- ces jours restent ouverts ;
+- les jours antérieurs non ouverts restent manqués ;
+- aucune récompense de calendrier n'est rejouée pendant l'import.
+
+---
+
+## 24.9 Collection
+
+Importer les quantités permanentes du Coffre selon les règles déjà définies par le Domaine Sac / Coffre.
+
+Lorsque `collectionPurchases` prouve explicitement une acquisition pour Festival + année :
+
+- conserver cette acquisition annuelle ;
+- empêcher un second achat pour cette édition.
+
+Ne jamais déduire arbitrairement l'année d'acquisition depuis la seule quantité totale présente dans le Coffre.
+
+---
+
+## 24.10 Annonces
+
+`dates.lastMonthlyEventAnnouncement` peut être utilisé comme provenance pour éviter de répéter immédiatement une annonce déjà certainement montrée pendant l'édition courante.
+
+Il ne devient pas le futur mécanisme de scheduling.
+
+---
+
+## 24.11 Données sans mécanique
+
+`monthly_events.json` :
+
+- fichier vide ;
+- aucune fonctionnalité V1 créée depuis ce fichier.
+
+`monthlyDraw` :
+
+- aucune mécanique réelle trouvée ;
+- aucune fonctionnalité de tirage mensuel migrée.
+
+Ces deux conclusions restent soumises à la confirmation du sweep exhaustif final.
+
+---
+
+# 25. Producteurs / consommateurs cibles
+
+## Producteurs principaux
+
+Le domaine Event produit notamment :
+
+- participation à une édition ;
+- points Event ;
+- soldes saisonniers ;
+- progression quotidienne A/B/C ;
+- récompenses de paliers ;
+- état Jeu B communautaire ;
+- messages sociaux Event ;
+- état du calendrier de Noël ;
+- acquisitions annuelles de l'objet Collection ;
+- classement courant ;
+- snapshot historique de clôture.
+
+## Consommateurs / services partagés
+
+### Économie
+
+Reçoit les mutations réelles :
+
+- Primogemmes ;
+- Moras ;
+- particules.
+
+### Sac / Collection
+
+Reçoit l'acquisition permanente de l'objet Collection.
+
+### Social
+
+Fournit :
+
+- identité joueur ;
+- blocage ;
+- permissions ;
+- contraintes nécessaires au Jeu C.
+
+### Notifications
+
+Fournit notamment :
+
+- annonce du nouveau Festival ;
+- rappel du dernier jour.
+
+### Historique
+
+Conserve les snapshots des éditions terminées.
+
+### Codes cadeaux
+
+Reste propriétaire :
+
+- des codes ;
+- de leur disponibilité exacte ;
+- de leur validation ;
+- de leur réclamation ;
+- de leurs récompenses.
+
+Event peut seulement signaler qu'un code lié au Festival est disponible.
+
+### Quotidiennes
+
+Consomme l'état Event nécessaire pour représenter l'activité quotidienne dans le hub transversal.
+
+### UI / chat interne / Twitch
+
+Appellent les mêmes opérations métier Event.
+
+Aucun canal ne possède une version indépendante des règles.
+
+---
+
+# 26. Contrats texte cibles
+
+Famille conservée :
+
+- `!event`
+- `!event go`
+- `!event sac`
+- `!event boutique`
+- `!event top`
+- `!event primos <quantité|max>`
+- `!event moras <quantité|max>`
+- `!event collection`
+- `!event calendrier` en décembre
+- `!event <commande thématique Jeu A>`
+- `!event <commande thématique Jeu B> <code>`
+- `!event <commande thématique Jeu C> <pseudo> "message"`
+
+Alias utiles historiques peuvent être acceptés techniquement lorsque sans ambiguïté, mais les aides affichent une seule syntaxe canonique.
+
+`!event boutique` et `!event top` sont consultables avant inscription.
+
+Les actions de mutation nécessitent l'inscription.
+
+Les commandes restent compactes et adaptées aux contraintes Twitch/chat.
+
+---
+
+# 27. Critères d'acceptation du domaine
+
+Le Domaine Event est considéré prêt pour une future implémentation V1 si les tests peuvent prouver notamment que :
+
+1. consulter l'Event ne crée jamais une participation ;
+2. rejoindre donne exactement une fois le bonus d'inscription ;
+3. rejoindre après résolution du Jeu B du jour donne exactement une fois son rattrapage ;
+4. les trois fenêtres Jeu A sont personnelles et utilisent `Europe/Paris` ;
+5. les tentatives Jeu A appliquent 20 % et un cooldown serveur multi-canaux de 3 secondes ;
+6. la réussite Jeu A ne peut être payée qu'une fois par journée ;
+7. Jeu B partage exactement une solution quotidienne et trois essais consommables par joueur ;
+8. une combinaison Jeu B déjà testée ne consomme pas d'essai ;
+9. la résolution Jeu B ne peut distribuer la récompense collective qu'une fois ;
+10. Jeu C respecte les restrictions Social et ne consomme l'action quotidienne qu'après envoi valide ;
+11. la liste UI des messages reçus est privée au destinataire et se vide visuellement à minuit ;
+12. le reset UI ne détruit pas une livraison chat/Twitch encore en attente ;
+13. le bonus quotidien Event ne peut être réclamé qu'une fois tous canaux confondus ;
+14. chaque palier est payé automatiquement exactement une fois ;
+15. les points peuvent dépasser 80 sans créer de nouveau palier ;
+16. la monnaie du Festival survit à sa clôture et redevient utilisable au retour de ce Festival ;
+17. la monnaie d'un Festival est inutilisable dans les onze autres Festivals ;
+18. conversions Primogemmes/Moras et achats Collection sont atomiques ;
+19. un objet Collection ne peut être acheté qu'une fois par édition annuelle ;
+20. son ancien solde saisonnier peut financer l'achat lors d'une édition future ;
+21. le calendrier de Noël interdit tout rattrapage ;
+22. le 25 décembre donne exactement 50 monnaies ;
+23. le calendrier ne donne aucun point Event ;
+24. le classement temps réel est dérivé des points autoritatifs ;
+25. les ex æquo possèdent le même rang ;
+26. aucun gain économique n'est distribué selon le rang ;
+27. la clôture archive l'édition avant d'ouvrir la suivante ;
+28. le rollover ne supprime ni monnaie saisonnière ni Collection permanente ;
+29. une requête visant l'ancienne édition après rollover ne mute jamais la nouvelle ;
+30. la migration peut être relancée sans créer de second gain, solde ou objet ;
+31. aucune récompense n'est déclenchée uniquement parce qu'une donnée a été importée ;
+32. aucun ancien historique mensuel absent n'est inventé ;
+33. `monthly_events.json` et `monthlyDraw` ne créent aucune fonctionnalité V1 sans nouvelle preuve lors du sweep final.
+
+---
+
+# 28. Conclusion du domaine
+
+**Domaine Event / monthly : CLÔTURÉ après R644.**
+
+Le comportement produit, les responsabilités serveur, les contrats texte, la migration, les interactions transversales et les principaux critères d'acceptation sont suffisamment définis pour permettre ultérieurement une implémentation V1 bornée.
+
+Le domaine ne doit pas être rouvert pendant les audits suivants sauf :
+
+- découverte d'une dépendance réelle ;
+- contradiction détectée pendant le sweep exhaustif final ;
+- décision produit explicitement révisée.
+
+---
+
+# 29. Sweep final obligatoire du projet
 
 Même après clôture d'Event et des audits restants, le projet devra effectuer une passe exhaustive finale sur :
 

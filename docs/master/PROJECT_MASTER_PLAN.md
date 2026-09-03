@@ -66,22 +66,85 @@ Le but est de créer un jeu complet, maintenable et centralisé, dont Twitch dev
 
 Un second jeu original est envisagé à plus long terme.
 
+### Rôle de GachaImpact
+
+GachaImpact doit aussi servir de **laboratoire fonctionnel grandeur nature** pour ce futur jeu.
+
+L'objectif est d'utiliser GachaImpact pour :
+
+- construire une première architecture complète de jeu standalone ;
+- expérimenter les boucles de progression ;
+- expérimenter le Gacha ;
+- tester l'économie ;
+- tester les événements ;
+- tester les systèmes sociaux ;
+- tester les interfaces ;
+- identifier ce qui est amusant, inutile, trop complexe ou mal équilibré ;
+- apprendre des usages réels avant de concevoir la version originale commerciale.
+
+Le futur jeu ne sera donc pas une simple copie renommée de GachaImpact.
+
+Il pourra reprendre ou adapter les **principes techniques et mécaniques qui auront fait leurs preuves**, tout en abandonnant ceux qui ne fonctionnent pas.
+
+### Séparation avec GachaImpact
+
 Direction actuelle :
-- il s'agirait d'un **jeu séparé** de GachaImpact, et non d'une simple section interne ;
+
+- il s'agira d'un **jeu séparé** de GachaImpact, et non d'une simple section interne ;
 - GachaImpact pourra proposer un lien vers ce futur jeu ;
-- une grande partie des principes techniques et mécaniques développés ici pourra être réutilisée/adaptée ;
-- le futur jeu devra cependant se détacher réellement de Genshin : noms, personnages, univers, terminologie, identité visuelle et concepts devront être suffisamment originaux ;
-- objectif : créer un véritable gacha original appartenant au projet ;
-- une exploitation/monétisation permettant éventuellement de financer le projet pourra être étudiée plus tard.
+- une grande partie des services, patterns d'architecture et mécaniques développés ici pourra être réutilisée/adaptée ;
+- le futur jeu devra se détacher réellement de Genshin : noms, personnages, univers, terminologie, identité visuelle, assets, scénario et concepts player-facing devront être originaux ;
+- GachaImpact inspiré de Genshin n'est pas le produit destiné à devenir le jeu commercial original.
+
+Conséquence d'architecture :
+
+quand plusieurs solutions techniques sont équivalentes pour GachaImpact, préférer les concepts génériques et réutilisables plutôt que des hardcodes inutilement dépendants de Genshin, **sans modifier pour autant les règles produit GachaImpact déjà validées**.
+
+### Ambition commerciale future
+
+Objectif possible à long terme :
+
+- créer un véritable gacha original appartenant au projet ;
+- permettre une diffusion à une audience nettement plus large ;
+- étudier une distribution Web / PC / plateformes mobiles ou stores appropriés ;
+- permettre potentiellement des transactions financières réelles ;
+- permettre une vraie monétisation si le jeu atteint le niveau de qualité nécessaire ;
+- faire évoluer l'infrastructure selon la taille réelle de la communauté.
+
+Cette ambition commerciale appartient au futur jeu original et ne constitue pas une instruction de monétiser GachaImpact avec ses éléments inspirés de Genshin.
+
+Avant toute commercialisation réelle, prévoir un chantier spécifique séparé portant notamment sur :
+
+- paiements ;
+- stores / plateformes ;
+- commissions ;
+- backend et montée en charge ;
+- sécurité financière ;
+- fiscalité ;
+- CGU / CGV ;
+- protection des données ;
+- mineurs ;
+- règles de consommation ;
+- affichage des probabilités du gacha ;
+- réglementation applicable aux mécaniques aléatoires ;
+- propriété intellectuelle ;
+- validation juridique adaptée aux pays de distribution.
+
+Aucune architecture de paiement ni règle juridique détaillée ne doit être figée aujourd'hui : ce chantier sera étudié au moment du développement réel du jeu original avec des informations à jour.
+
+### Univers / narration
 
 Différences importantes déjà envisagées :
+
 - personnages entièrement originaux ;
 - lore original ;
 - véritable catégorie `Histoire` ;
 - narration pouvant prendre la forme d'un visual novel ;
-- possibilité de scènes plus poussées avec animations et cinématiques.
+- possibilité de scènes plus poussées avec animations et cinématiques ;
+- protagoniste et scénario originaux déjà explorés séparément dans le projet créatif.
 
-Direction artistique envisagée :
+### Direction artistique envisagée
+
 - personnages et assets pouvant être produits avec l'aide de l'IA ;
 - possibilité de commander des croquis/model sheets à des artistes humains puis de les utiliser comme références canoniques ;
 - forte exigence de cohérence du même personnage entre poses, angles, émotions et scènes ;
@@ -89,7 +152,8 @@ Direction artistique envisagée :
 - pour les cinématiques, privilégier une production pré-générée/hybride plutôt qu'une génération vidéo coûteuse en temps réel.
 
 Ce projet futur reste séparé du périmètre métier actuel de GachaImpact.
-Ne pas modifier les règles GachaImpact pour anticiper arbitrairement ce futur jeu.
+
+Ne pas modifier arbitrairement les règles produit de GachaImpact pour anticiper ce futur jeu ; construire toutefois une base technique propre, modulaire et instructive afin que les apprentissages puissent être réutilisés plus tard.
 
 ---
 
@@ -3350,29 +3414,36 @@ Domaine Concours / C6 :
 - `!concours` et `!legende` finalisés ;
 - garanties de reprise, atomicité, concurrence et permissions administratives documentées.
 
-Domaine actif :
-`docs/legacy/16-event-monthly-audit.md` — Event / monthly.
+Dernier domaine clôturé :
+`docs/legacy/16-event-monthly-audit.md` — Event / monthly — **CLÔTURÉ après R644**.
 
-État actuel du domaine :
-- audit technique initial réalisé ;
-- décisions produit R594 à R607 et R609 à R635 validées ;
-- calendrier annuel, inscription et conservation saisonnière de la monnaie cadrés ;
-- Jeu A cadré : trois fenêtres, 20 % de réussite, cooldown serveur 3 secondes ;
-- Jeu B cadré : 32 combinaisons, trois essais, progression communautaire visible, rattrapage des nouveaux inscrits et découvreur honorifique ;
-- Jeu C cadré : un envoi social récompensé par jour, cible soumise aux règles Social, liste quotidienne privée au destinataire ;
-- progression Event cadrée : huit paliers automatiques jusqu'à 80, barre temps réel permanente et points continuant au-delà ;
-- Boutique Event cadrée : conversions Primogemmes/Moras, MAX et objet Collection à 80 monnaies ;
-- collection saisonnière cadrée : une acquisition maximum par édition, quantité permanente cumulable entre les années ;
-- calendrier de Noël cadré : 25 cases, sans rattrapage, monnaie uniquement, grosse récompense le 25 ;
-- classement mensuel cadré : classement complet temps réel dans l'UI, Top 10 chat/Twitch, aucun gain économique de classement ;
-- historique Event cadré : éditions standalone archivées dans la catégorie Event de l'écran Historique transversal, palmarès public et détails personnels privés ;
+État du domaine clôturé :
+- douze Festivals mensuels fixes et moteur commun data-driven cadrés ;
+- inscription volontaire et soldes saisonniers persistants cadrés ;
+- Jeux A/B/C finalisés ;
+- bonus quotidien Event finalisé ;
+- progression 10–80 et barre temps réel finalisées ;
+- Boutique Event et conversions finalisées ;
+- Collection annuelle finalisée ;
+- calendrier de Noël finalisé ;
+- classement temps réel et historique Event finalisés ;
+- organisation UI Activités / Boutique / Classement finalisée ;
+- navigation Event → Historique et Event → Sac / Collection finalisée ;
+- contrats `!event` finalisés ;
+- annonces début/fin finalisées ;
+- frontière avec Codes cadeaux explicitement définie ;
+- rollover serveur `Europe/Paris` cadré ;
+- migration conservatrice cadrée ;
+- producteurs / consommateurs et critères d'acceptation documentés ;
 - `monthly_events.json` reste sans fonctionnalité identifiée ;
-- `monthlyDraw` reste sans mécanique de tirage identifiée ;
-- prochaine décision : **R636** ;
-- Boss mensuel déjà traité avec Combat et ne doit pas être réaudité sans dépendance réelle.
+- `monthlyDraw` reste sans mécanique réelle identifiée ;
+- Boss mensuel reste la responsabilité du Domaine Combat.
+
+Domaine actif :
+**Roue / quotidien — audit spécialisé à initialiser après validation de ce checkpoint.**
 
 Prochaine étape exacte :
-reprendre le Domaine Event / monthly à **R636** depuis `docs/legacy/16-event-monthly-audit.md`, afin de finaliser l'organisation de l'écran Event, les contrats `!event`, les annonces/codes mensuels, le rollover mensuel, la migration et les critères de clôture du domaine.
+créer le document spécialisé d'audit Roue / quotidien, puis inspecter `Roue.txt`, les données Roue de `viewers_data.json`, les interactions avec le hub Quotidiennes / `!quotis`, les statistiques économiques et le reset quotidien avant de commencer les décisions produit de ce domaine.
 
 Étape obligatoire avant modèle de données / V1 :
 après clôture d'Event et des audits restants, effectuer un **sweep exhaustif final des 36 scripts `.txt` et des 17 fichiers JSON inventoriés** afin de confirmer qu'aucune mécanique, donnée, dépendance, commande ou source de vérité n'a été oubliée. Le modèle de données cible final et le passage à la V1 ne doivent être engagés qu'après cette vérification de couverture.
@@ -3382,29 +3453,6 @@ après clôture d'Event et des audits restants, effectuer un **sweep exhaustif f
 Cet inventaire évite qu'un système legacy soit oublié.
 
 Il ne définit pas la prochaine reprise : seule la section `Prochaine étape exacte` ci-dessus joue ce rôle.
-
-### Event / monthly
-Domaine important à auditer séparément.
-
-Sources principales déjà identifiées :
-- `Event.txt` ;
-- `monthly_events_data.json` ;
-- `monthly_events.json` ;
-- données Event présentes dans `viewers_data.json` ;
-- responsabilités Event transverses découvertes dans `XP.txt`.
-
-Le domaine comprend notamment :
-- les configurations des douze mois ;
-- les mini-jeux mensuels ;
-- les points et paliers ;
-- la monnaie Event ;
-- la boutique Event ;
-- les collections ;
-- les mécaniques saisonnières ;
-- le classement Event ;
-- le changement de mois/année.
-
-Le Boss mensuel a déjà été audité avec Combat. `monthly_boss.json` ne devra être recroisé ici que si une dépendance avec Event l'exige.
 
 ### Roue / quotidien
 Sources principales :
