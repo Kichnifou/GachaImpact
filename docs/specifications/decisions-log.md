@@ -827,3 +827,26 @@ Statut : évolutif.
 - `TECHNIQUE` — L'état persistant d'un concours lancé contient suffisamment de phase, participants, snapshots, scores, ordre, timers et soutien pour permettre une reprise fiable ou une annulation technique sûre.
 - `TECHNIQUE` — La présence des viewers de l'écran Concours est uniquement un état temps réel best-effort, jamais une donnée de gameplay ni un historique.
 - `CLÔTURÉ R593` — Domaine Concours / C6 clôturé.
+- `VALIDÉ R594` — Les douze Festivals Event restent associés à leurs mois fixes chaque année.
+- `VALIDÉ R595` — La participation Event est volontaire : bouton UI ou `!event go`; l'écran reste consultable avant inscription.
+- `VALIDÉ R596` — La première inscription à l'édition courante donne +1 monnaie Event.
+- `VALIDÉ R597` — La monnaie non utilisée est conservée jusqu'au retour du même Festival l'année suivante ; elle reste inutilisable entre deux éditions. Notification le dernier jour pour prévenir le joueur.
+- `VALIDÉ R598` — La V1 conserve trois archétypes communs de mini-jeux Event, reskinnés/configurés pour les douze Festivals.
+- `VALIDÉ R599` — Jeu A : trois fenêtres personnelles quotidiennes d'une heure, matin / après-midi / soir.
+- `VALIDÉ R600` — Jeu A : essais répétés pendant une fenêtre avec cooldown serveur global de 3 secondes entre deux tentatives.
+- `VALIDÉ R601` — Jeu A : conserver 20 % de réussite par tentative ; réussite quotidienne = +1 point et +1 monnaie.
+- `VALIDÉ R602` — Bonus quotidien Event de +1 monnaie : bouton Réclamer dans l'UI ; premier message normal éligible du jour dans chat/Twitch effectue automatiquement la même réclamation.
+- `VALIDÉ R603` — Jeu B : conserver une solution globale quotidienne sous forme d'un code de 5 bits, soit 32 combinaisons.
+- `VALIDÉ R604` — Jeu B : 3 essais consommables par joueur et par jour ; une combinaison déjà testée globalement ne consomme pas d'essai.
+- `VALIDÉ R605` — Les combinaisons déjà testées et encore disponibles du Jeu B sont publiquement consultables.
+- `VALIDÉ R606` — Un joueur rejoignant après résolution du Jeu B du jour reçoit rétroactivement +1 point et +1 monnaie.
+- `VALIDÉ R607` — Aucun bonus économique supplémentaire pour le découvreur du Jeu B ; l'UI valorise publiquement qui a découvert la solution ou indique qu'elle reste à trouver.
+- `TECHNIQUE` — Résolution Jeu B atomique : la première requête correcte validée gagne la course ; `found`, découvreur et récompenses collectives ne peuvent être appliqués qu'une fois.
+- `VALIDÉ R609` — Jeu C : tout joueur existant peut être ciblé sous réserve des règles Social, blocages, permissions et modération.
+- `VALIDÉ R610` — Jeu C : seul l'expéditeur gagne +1 point et +1 monnaie ; le destinataire ne reçoit pas de récompense économique.
+- `VALIDÉ R611` — Jeu C : un seul envoi réussi par jour ; une tentative invalide ne consomme pas l'action.
+- `VALIDÉ R612` — L'UI ne transforme pas le Jeu C en MP : l'écran Event possède une liste dédiée des messages Event du jour, en complément du fonctionnement chat interne/Twitch.
+- `VALIDÉ R613` — La liste UI des messages Event est vidée à minuit `Europe/Paris`; ce reset de présentation reste séparé d'une éventuelle livraison chat/Twitch encore en attente.
+- `TECHNIQUE` — Les monnaies Event sont identifiées par Festival/saison afin de pouvoir survivre entre deux éditions annuelles.
+- `TECHNIQUE` — Le cooldown Jeu A et la réclamation quotidienne Event sont communs aux canaux et autoritaires côté serveur.
+- `À AUDITER` — Reprendre Event / monthly à R614 : visibilité des messages UI, paliers, boutique, collections, calendrier de décembre, classement, historique, contrats `!event`, migration et clôture technique.

@@ -1,7 +1,7 @@
 # 16 — Audit Event / monthly
 
 > Domaine 13 de l'audit GachaImpact.  
-> Statut : **EN COURS — audit technique initial réalisé, premières décisions produit à reprendre à R594**.  
+> Statut : **EN COURS — décisions R594 à R607 et R609 à R613 validées ; reprise à R614**.  
 > Ce document devient la source spécialisée du domaine Event / monthly.  
 > L'état global du projet et la prochaine reprise exacte restent la responsabilité du Master.
 
@@ -574,28 +574,366 @@ Aucune donnée historique mensuelle antérieure fiable ne doit être inventée.
 
 ---
 
-# 22. Points produit à auditer
+# 22. Décisions produit validées
 
-Première reprise produit : **R594**.
+## R594 — Calendrier annuel — ✅ VALIDÉ A
+
+Les douze Festivals restent associés à leurs mois fixes chaque année.
+
+Exemples :
+- janvier → Festival du Nouvel An ;
+- février → Festival des Cœurs ;
+- octobre → Festival des Ombres ;
+- décembre → Festival de Noël.
+
+Le calendrier n'est ni aléatoire ni réordonné chaque année.
+
+Les contenus pourront évoluer ultérieurement, mais l'identité saisonnière mensuelle reste stable.
+
+---
+
+## R595 — Inscription volontaire — ✅ VALIDÉ A
+
+La participation à l'Event mensuel reste explicite.
+
+UI :
+- bouton/action `Participer à l'événement`.
+
+Chat interne / Twitch :
+- `!event go`.
+
+Avant inscription, le joueur peut consulter l'écran Event, ses règles, son contenu et les informations publiques utiles.
+
+L'inscription crée sa participation réelle au Festival courant.
+
+---
+
+## R596 — Cadeau d'inscription — ✅ VALIDÉ A
+
+La première inscription du joueur au Festival courant donne immédiatement :
+
+**+1 monnaie Event**
+
+Ce bonus n'est attribué qu'une fois pour cette édition du Festival.
+
+---
+
+## R597 — Conservation saisonnière de la monnaie — ✅ VALIDÉ C ENRICHI
+
+La monnaie Event non dépensée à la fin du mois n'est ni supprimée ni convertie automatiquement.
+
+Elle reste associée au Festival correspondant.
+
+Exemple :
+
+des Éclats de Fortune non utilisés en janvier restent stockés puis redeviennent utilisables au retour du Festival du Nouvel An l'année suivante.
+
+Entre deux éditions :
+- la monnaie reste possédée ;
+- elle n'est pas utilisable dans les autres Festivals.
+
+Le dernier jour du Festival, le joueur reçoit une notification claire indiquant :
+- que l'Event se termine ;
+- que sa monnaie peut encore être utilisée dans la boutique courante ;
+- que le solde restant sera conservé mais ne redeviendra utilisable qu'au retour du même Festival l'année suivante.
+
+Cette notification ne doit pas être répétée inutilement plusieurs fois au même joueur.
+
+---
+
+## R598 — Trois archétypes communs — ✅ VALIDÉ A
+
+La V1 conserve les trois archétypes de mini-jeux du moteur Event :
+
+1. Jeu A — activité personnelle dépendant de fenêtres horaires ;
+2. Jeu B — recherche coopérative d'une solution globale quotidienne ;
+3. Jeu C — interaction/message social quotidien.
+
+Les douze Festivals changent :
+- noms ;
+- textes ;
+- commandes ;
+- monnaie ;
+- objet de collection ;
+- identité visuelle ;
+- ambiance.
+
+Ils ne possèdent pas douze moteurs métier distincts.
+
+---
+
+## R599 — Trois fenêtres personnelles quotidiennes — ✅ VALIDÉ A
+
+Le Jeu A conserve trois fenêtres horaires personnelles quotidiennes :
+
+- une fenêtre aléatoire d'une heure entre 07:00 et 12:00 ;
+- une fenêtre aléatoire d'une heure entre 12:00 et 18:00 ;
+- une fenêtre aléatoire d'une heure entre 18:00 et 23:00.
+
+Les heures exactes sont propres au joueur et au jour.
+
+L'UI doit rendre ces fenêtres clairement consultables.
+
+---
+
+## R600 — Essais répétés avec cooldown — ✅ VALIDÉ B ENRICHI
+
+Pendant une fenêtre active du Jeu A :
+
+- le joueur peut effectuer plusieurs tentatives ;
+- un cooldown de **3 secondes** s'applique entre deux tentatives ;
+- il n'existe pas de limite fixe du nombre d'essais tant que la fenêtre reste ouverte ;
+- une réussite termine le Jeu A pour la journée.
+
+Le cooldown est serveur et commun aux différents canaux.
+
+Alterner rapidement UI, chat interne et Twitch ne permet donc pas de le contourner.
+
+---
+
+## R601 — Probabilité du Jeu A — ✅ VALIDÉ A
+
+Chaque tentative valide du Jeu A conserve la probabilité historique :
+
+**20 % de réussite**
+
+Une réussite donne :
+- +1 point Event ;
+- +1 monnaie Event ;
+- validation des éventuels paliers atteints.
+
+Un échec ne consomme pas la possibilité quotidienne et permet de retenter après le cooldown R600 tant que la fenêtre est active.
+
+---
+
+## R602 — Réclamation du bonus quotidien — ✅ VALIDÉ B ENRICHI
+
+Le bonus quotidien Event reste :
+
+**+1 monnaie Event par jour pour un participant inscrit.**
+
+### UI
+
+L'écran Event propose un bouton explicite :
+
+`Réclamer`
+
+Le joueur choisit donc volontairement de récupérer son bonus depuis l'interface.
+
+### Chat interne / Twitch
+
+Pour conserver l'approche actuelle :
+
+- le premier message normal éligible du jour du joueur fait automatiquement office de réclamation ;
+- aucune commande spécifique supplémentaire n'est nécessaire.
+
+La réclamation est commune à tous les canaux et ne peut jamais être obtenue plusieurs fois dans la même journée.
+
+---
+
+## R603 — Jeu B à 32 combinaisons — ✅ VALIDÉ A
+
+Conserver le fonctionnement général du Jeu B :
+
+- une solution quotidienne globale ;
+- code de 5 bits ;
+- 32 combinaisons possibles ;
+- même solution pour tous les participants ;
+- nouvelle solution au reset quotidien.
+
+L'habillage dépend du Festival :
+- coffre ;
+- ruine ;
+- constellation ;
+- crypte ;
+- etc.
+
+---
+
+## R604 — Trois essais par joueur — ✅ VALIDÉ A
+
+Chaque participant dispose de :
+
+**3 essais consommables par jour**
+
+sur le Jeu B.
+
+Un code déjà essayé globalement par un autre joueur :
+- ne consomme pas de nouvel essai ;
+- doit être refusé avant consommation.
+
+Une personne ne peut donc pas brute-force seule les 32 possibilités avec ses trois essais.
+
+---
+
+## R605 — Combinaisons restantes visibles — ✅ VALIDÉ A
+
+L'état communautaire du Jeu B est publiquement consultable.
+
+L'UI peut notamment représenter :
+- les 32 combinaisons ;
+- celles déjà testées comme barrées/grisées ;
+- celles encore disponibles ;
+- le nombre restant.
+
+Chat interne / Twitch peuvent fournir une présentation textuelle compacte adaptée.
+
+La solution correcte reste évidemment secrète tant qu'elle n'a pas été trouvée.
+
+---
+
+## R606 — Rattrapage après découverte — ✅ VALIDÉ A
+
+Un joueur qui rejoint l'Event après que le Jeu B du jour a déjà été résolu reçoit rétroactivement la récompense communautaire de cette journée :
+
+- +1 point Event ;
+- +1 monnaie Event.
+
+Cela s'ajoute au bonus normal d'inscription R596 lorsqu'il s'agit de sa première inscription au Festival courant.
+
+---
+
+## R607 — Découvreur sans bonus économique — ✅ VALIDÉ A ENRICHI
+
+Le participant qui trouve la combinaison correcte ne reçoit pas de bonus économique supplémentaire par rapport aux autres participants.
+
+La récompense de résolution reste collective.
+
+En revanche, le découvreur est valorisé visuellement.
+
+L'écran Event affiche clairement l'état quotidien du Jeu B :
+
+avant résolution :
+- `Encore à découvrir` ou équivalent ;
+
+après résolution :
+- solution trouvée ;
+- joueur ayant effectué la découverte.
+
+Exemple :
+
+`✅ Découvert par Kyo`
+
+Cette reconnaissance est honorifique.
+
+---
+
+## R609 — Destinataire du Jeu C — ✅ VALIDÉ A
+
+Le message social quotidien peut cibler tout joueur existant, même s'il ne participe pas lui-même au Festival.
+
+Les règles Social restent prioritaires :
+- joueur bloqué ;
+- restrictions de contact ;
+- permissions applicables ;
+- modération.
+
+Une relation interdite par le système Social ne peut pas être contournée via l'Event.
+
+---
+
+## R610 — Récompense du destinataire — ✅ VALIDÉ A
+
+Seul l'expéditeur du message social reçoit la récompense du Jeu C :
+
+- +1 point Event ;
+- +1 monnaie Event.
+
+Le destinataire ne reçoit aucune monnaie ni aucun point simplement parce qu'il a été ciblé.
+
+Cela évite notamment le farming réciproque ou via comptes secondaires.
+
+---
+
+## R611 — Un envoi réussi par jour — ✅ VALIDÉ A
+
+Chaque participant peut effectuer au maximum :
+
+**1 envoi social Event réussi par jour.**
+
+Une tentative invalide ne consomme pas cette action quotidienne.
+
+Exemples :
+- cible inexistante ;
+- soi-même ;
+- joueur bloqué ;
+- message refusé par validation/modération.
+
+L'action est consommée uniquement lorsque le message est réellement accepté.
+
+---
+
+## R612 — Restitution des messages Event — ✅ VALIDÉ PERSONNALISÉ
+
+Le fonctionnement prévu pour le chat interne et Twitch n'est pas remplacé par une messagerie privée UI.
+
+Les messages Event continuent à pouvoir être restitués via le fonctionnement chat/Twitch correspondant au joueur.
+
+En complément, l'écran Event possède une **zone dédiée aux messages Event du jour**.
+
+Cette zone :
+- n'est pas un chat temps réel ;
+- n'est pas une boîte de MP ;
+- présente une simple liste structurée des messages Event envoyés pendant la journée.
+
+La visibilité exacte de cette liste entre joueurs sera précisée séparément lors de la poursuite de l'audit afin de ne pas inventer une règle de confidentialité non explicitement décidée.
+
+---
+
+## R613 — Reset quotidien de la liste UI — ✅ VALIDÉ PERSONNALISÉ
+
+La zone dédiée R612 affiche les messages de la journée serveur courante.
+
+À **00:00 Europe/Paris** :
+- les messages de la journée précédente disparaissent de cette liste UI ;
+- la nouvelle journée commence avec une liste vide.
+
+Ce reset de présentation ne doit pas, à lui seul, casser une éventuelle livraison chat/Twitch encore en attente.
+
+La visibilité quotidienne UI et l'état technique de livraison vers un canal sont donc deux responsabilités distinctes.
+
+---
+
+# 23. Décisions techniques acquises
+
+- Les douze Festivals utilisent une configuration commune plutôt que douze implémentations métier copiées.
+- Le changement de journée et de mois dépend du temps serveur `Europe/Paris`.
+- `monthly_events.json` reste considéré comme fichier vide / résidu sans fonctionnalité V1 tant que le sweep final n'apporte aucune preuve contraire.
+- `monthlyDraw` ne devient pas un tirage mensuel V1 sans preuve d'une mécanique réellement existante.
+- Le cooldown de 3 secondes du Jeu A est imposé côté serveur et partagé entre UI, chat interne et Twitch.
+- Les soldes de monnaie sont identifiés par Festival / monnaie saisonnière afin de pouvoir survivre jusqu'à l'édition suivante.
+- La réclamation quotidienne R602 est idempotente et commune aux canaux.
+- La notification de dernier jour R597 est dédupliquée par joueur et édition du Festival.
+- Pour le Jeu B, la première requête correcte validée côté serveur devient le découvreur ; la résolution, l'attribution collective et le marquage `found` sont atomiques.
+- Deux requêtes simultanées ne peuvent jamais distribuer deux fois les récompenses du Jeu B.
+- La liste UI quotidienne du Jeu C et la file technique de livraison chat/Twitch sont séparées afin que le reset visuel de minuit n'entraîne pas une perte involontaire.
+
+---
+
+# 24. Points produit encore ouverts
+
+Reprendre à **R614**.
 
 À traiter notamment :
 
-- conserver les douze événements fixes par mois ou changer le calendrier ;
-- inscription explicite ou automatique ;
-- reset / expiration de la monnaie au changement de mois ;
-- maintien des trois mêmes archétypes de mini-jeux ;
-- adaptation du Jeu A au standalone pour éviter le spam instantané ;
-- mécanique collaborative du Jeu B et récompense des arrivants tardifs ;
-- destinataires / confidentialité / blocage du Jeu C ;
-- bonus quotidien Event indépendant du chat ;
-- maintien des valeurs des paliers et de la boutique ;
-- vraie règle annuelle des objets de collection ;
-- calendrier de décembre et éventuel rattrapage ;
-- classement et éventuel historique mensuel ;
-- présentation UI Event ;
-- contrats `!event` ;
+- visibilité exacte de la liste quotidienne des messages du Jeu C ;
+- maintien ou évolution des paliers 10/20/30/40/50/60/70/80 ;
+- valeurs de la boutique Event ;
+- vraie règle d'achat et de conservation des objets de collection ;
+- relation entre ancienne monnaie saisonnière conservée et nouvelle édition annuelle ;
+- calendrier de décembre ;
+- rattrapage éventuel des cases manquées ;
+- classement mensuel ;
+- éventuelles récompenses de classement ;
+- historique des éditions précédentes ;
+- présentation générale de l'écran Event ;
+- contrats finaux de `!event` ;
+- annonces de début/fin d'Event ;
+- interaction avec les codes cadeaux mensuels ;
+- migration de l'état Event actif au cutover ;
 - changement de mois atomique ;
-- migration de l'état actif.
+- producteurs / consommateurs finaux ;
+- critères d'acceptation.
 
 ---
 
