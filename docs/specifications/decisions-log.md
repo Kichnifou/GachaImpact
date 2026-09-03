@@ -858,8 +858,20 @@ Statut : évolutif.
 - `VALIDÉ R622` — Un même objet saisonnier peut être obtenu à nouveau lors des éditions futures, mais au maximum une fois par joueur et par édition annuelle.
 - `VALIDÉ R623` — Le solde saisonnier conservé des anciennes éditions est entièrement utilisable pendant la nouvelle édition, y compris pour l'objet Collection.
 - `VALIDÉ R624` — Après acquisition, l'objet Collection reste visible dans la Boutique avec l'état `Obtenu — édition YYYY` et un achat désactivé jusqu'à l'édition suivante.
+- `VALIDÉ R625` — Le Festival de Noël conserve un calendrier spécial de 25 cases, du 1er au 25 décembre.
+- `VALIDÉ R626` — Une case de calendrier manquée n'est pas rattrapable ; seule la case du jour courant peut être ouverte.
+- `VALIDÉ R627` — Calendrier : jours 1–24 = 1 à 5 monnaies Event aléatoires ; jour 25 = 50 monnaies garanties.
+- `VALIDÉ R628` — Le calendrier donne uniquement de la monnaie Event et aucun point de classement.
+- `VALIDÉ R629` — UI Noël : grille complète de 25 cases avec états Ouverte / Disponible / Manquée / À venir.
+- `VALIDÉ R630` — L'UI affiche le classement Event complet avec Top 3 mis en valeur ; `!event top` reste limité au Top 10.
+- `VALIDÉ R631` — Le classement Event reste honorifique et ne distribue aucune récompense économique supplémentaire.
+- `VALIDÉ R633` — Les nouvelles éditions Event possèdent un historique durable. L'écran Event n'intègre pas cet historique directement : un bouton ouvre la catégorie Event de l'écran Historique transversal.
+- `VALIDÉ R634` — Les anciens Top 10 Event et leurs points sont publics ; rang/points/paliers/Collection personnels détaillés restent privés au propriétaire.
+- `VALIDÉ R635` — Le classement de l'édition active se met à jour en temps réel dans l'UI.
 - `TECHNIQUE` — Les monnaies Event sont identifiées par Festival/saison afin de pouvoir survivre entre deux éditions annuelles.
 - `TECHNIQUE` — Le cooldown Jeu A et la réclamation quotidienne Event sont communs aux canaux et autoritaires côté serveur.
 - `TECHNIQUE` — Barre de progression dérivée des points ; gains de points/paliers et achats Event protégés par atomicité/idempotence côté serveur.
 - `TECHNIQUE` — L'acquisition Collection est identifiée par joueur + Festival + édition ; le solde saisonnier reste fongible quelle que soit l'année où il a été gagné.
-- `À AUDITER` — Reprendre Event / monthly à R625 : calendrier de décembre, classement, historique, UI globale, contrats `!event`, annonces, migration et clôture technique.
+- `TECHNIQUE` — Calendrier par édition+jour, attribution idempotente ; classement par points autoritatifs, égalité de points = même rang.
+- `TECHNIQUE` — La clôture mensuelle snapshotte le palmarès Event avant ouverture de la nouvelle édition ; un historique archivé devient immuable.
+- `À AUDITER` — Reprendre Event / monthly à R636 : UI globale, contrats `!event`, annonces/codes mensuels, rollover, migration et clôture technique.

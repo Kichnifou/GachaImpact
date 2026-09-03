@@ -1,7 +1,7 @@
 # 16 — Audit Event / monthly
 
 > Domaine 13 de l'audit GachaImpact.  
-> Statut : **EN COURS — décisions R594 à R607 et R609 à R624 validées ; reprise à R625**.  
+> Statut : **EN COURS — décisions R594 à R607 et R609 à R635 validées ; reprise à R636**.  
 > Ce document devient la source spécialisée du domaine Event / monthly.  
 > L'état global du projet et la prochaine reprise exacte restent la responsabilité du Master.
 
@@ -1098,6 +1098,193 @@ Cela permet de comprendre immédiatement pourquoi aucun nouvel achat n'est possi
 
 ---
 
+## R625 — Calendrier de Noël du 1er au 25 — ✅ VALIDÉ A
+
+Le Festival de Noël conserve un calendrier spécial composé de 25 cases :
+
+- disponible uniquement en décembre ;
+- du 1er au 25 décembre ;
+- une case associée à chaque date ;
+- intégré visuellement à l'écran Event de décembre.
+
+Les Jeux A/B/C restent également disponibles normalement pendant le Festival de Noël.
+
+---
+
+## R626 — Pas de rattrapage des cases manquées — ✅ VALIDÉ A
+
+Une case du calendrier ne peut être ouverte que le jour correspondant.
+
+Exemple :
+
+- case du 4 décembre non ouverte le 4 ;
+- connexion le 5 décembre ;
+- la case 4 est définitivement marquée comme manquée ;
+- seule la case 5 peut être ouverte ce jour-là.
+
+Le calendrier reste donc une récompense réelle de présence quotidienne.
+
+---
+
+## R627 — Récompenses du calendrier — ✅ VALIDÉ A
+
+Conserver les valeurs actuelles :
+
+- jours 1 à 24 : **1 à 5 monnaies Event aléatoires** ;
+- jour 25 : **50 monnaies Event garanties**.
+
+Le tirage 1–5 est uniforme.
+
+Le 25 décembre constitue volontairement une récompense nettement supérieure.
+
+---
+
+## R628 — Calendrier sans points Event — ✅ VALIDÉ A
+
+Les récompenses du calendrier donnent uniquement de la monnaie saisonnière.
+
+Elles n'accordent aucun point Event.
+
+Ainsi, le classement du Festival de Noël reste comparable dans son principe aux classements des autres Festivals et n'obtient pas automatiquement jusqu'à 25 points supplémentaires.
+
+---
+
+## R629 — Présentation UI du calendrier — ✅ VALIDÉ A
+
+L'écran Event de décembre affiche une vraie grille visuelle de 25 cases.
+
+Chaque case possède un état clair :
+
+- `Ouverte` ;
+- `Disponible` ;
+- `Manquée` ;
+- `À venir`.
+
+Le jour courant est clairement mis en avant.
+
+Les récompenses futures des jours 1 à 24 ne sont pas révélées à l'avance.
+
+Le jour 25 peut clairement être présenté comme la grosse récompense finale de 50 monnaies.
+
+---
+
+## R630 — Classement complet dans l'UI — ✅ VALIDÉ A
+
+L'écran Event présente le classement mensuel complet.
+
+Présentation cible :
+
+- Top 3 particulièrement mis en valeur ;
+- autres participants accessibles par scroll ou pagination ;
+- points affichés ;
+- propre ligne du joueur facilement identifiable ;
+- classement actualisé à partir des points réels.
+
+Dans le chat interne / Twitch :
+
+`!event top`
+
+reste une présentation compacte limitée au Top 10.
+
+---
+
+## R631 — Classement honorifique — ✅ VALIDÉ A
+
+Le classement mensuel Event ne distribue aucune récompense économique supplémentaire.
+
+Les récompenses de participation proviennent déjà :
+
+- des activités quotidiennes ;
+- du bonus quotidien ;
+- des paliers ;
+- de la Boutique ;
+- de la Collection ;
+- du calendrier de Noël lorsqu'il s'applique.
+
+Le classement Event reste donc une mécanique de prestige / activité communautaire.
+
+---
+
+## R633 — Historique des éditions Event — ✅ VALIDÉ A ENRICHI
+
+À partir de la V1, chaque édition terminée possède un historique durable.
+
+Conserver au minimum :
+
+- Festival ;
+- mois ;
+- année ;
+- nombre total de participants ;
+- classement final public utile ;
+- Top 10 final ;
+- propres points du joueur ;
+- propre rang final du joueur ;
+- paliers qu'il a atteints ;
+- acquisition ou non de l'objet Collection de cette édition.
+
+Aucun historique mensuel antérieur n'est inventé lorsque les anciennes données ne permettent pas de le reconstruire de manière fiable.
+
+### Navigation UI
+
+L'historique n'est **pas directement intégré dans l'écran Event courant**.
+
+L'écran Event possède seulement une action claire :
+
+`Voir l'historique`
+
+Cette action ouvre l'écran transversal `Historique` directement sur la catégorie `Event`.
+
+Ainsi :
+- Event reste centré sur l'édition en cours ;
+- l'historique complet reste regroupé avec les autres historiques du jeu.
+
+---
+
+## R634 — Palmarès public + détail personnel privé — ✅ VALIDÉ A
+
+Pour une ancienne édition :
+
+### Partie publique
+
+Les joueurs peuvent consulter notamment :
+
+- Festival ;
+- année ;
+- nombre de participants ;
+- Top 10 final ;
+- points des joueurs classés dans ce palmarès.
+
+### Partie personnelle
+
+Le propriétaire peut également consulter :
+
+- son rang exact même hors Top 10 ;
+- ses points ;
+- ses paliers atteints ;
+- son acquisition Collection pour cette édition.
+
+Ces informations personnelles détaillées ne deviennent pas automatiquement publiques.
+
+---
+
+## R635 — Classement en temps réel — ✅ VALIDÉ A
+
+Pendant l'édition active, le classement se met à jour lorsque les points changent.
+
+Dans l'UI :
+
+- la barre de progression personnelle est actualisée ;
+- le total de points est actualisé ;
+- la position du joueur peut évoluer sans rechargement manuel de la page.
+
+Chat interne / Twitch :
+
+`!event top`
+
+reste une lecture ponctuelle de l'état autoritatif au moment où la commande est exécutée.
+
+---
+
 # 23. Décisions techniques acquises
 
 - Les douze Festivals utilisent une configuration commune plutôt que douze implémentations métier copiées.
@@ -1118,28 +1305,37 @@ Cela permet de comprendre immédiatement pourquoi aucun nouvel achat n'est possi
 - L'éligibilité à l'objet Collection est suivie par joueur + Festival + édition annuelle, et non par l'origine temporelle des monnaies dépensées.
 - Le solde saisonnier est unique par type de monnaie/Festival : les unités conservées d'une ancienne édition et celles gagnées pendant l'édition actuelle sont fongibles.
 - L'état `Obtenu cette année` est dérivé de l'acquisition de l'édition courante et ne dépend pas uniquement de la quantité totale possédée dans le Coffre.
+- Chaque case de calendrier est identifiée par édition annuelle + jour ; son attribution est atomique et idempotente tous canaux confondus.
+- Le tirage 1–5 du calendrier est effectué côté serveur au moment de l'ouverture.
+- Les dates du calendrier utilisent `Europe/Paris`.
+- Le classement utilise les points autoritatifs du participant et ne persiste pas une seconde valeur de score indépendante.
+- À égalité de points, les joueurs possèdent le même rang affiché.
+- Un ordre technique secondaire stable peut ordonner visuellement des joueurs ex æquo sans leur attribuer artificiellement un rang différent.
+- Si plusieurs joueurs sont ex æquo au rang 10 dans un palmarès archivé, tous les joueurs possédant réellement ce rang 10 sont conservés.
+- La clôture mensuelle snapshotte l'historique de l'édition avant d'ouvrir la suivante.
+- L'historique Event et l'état actif du mois sont des données distinctes : une nouvelle édition ne modifie jamais un classement final déjà archivé.
+- L'actualisation temps réel du classement est une projection de l'état serveur ; le client ne calcule ni ne décide lui-même les points.
 
 ---
 
 # 24. Points produit encore ouverts
 
-Reprendre à **R625**.
+Reprendre à **R636**.
 
 À traiter notamment :
 
-- calendrier de décembre ;
-- rattrapage éventuel des cases manquées ;
-- classement mensuel ;
-- éventuelles récompenses de classement ;
-- historique des éditions précédentes ;
 - présentation générale de l'écran Event ;
+- organisation des différentes zones Event ;
 - contrats finaux de `!event` ;
 - annonces de début/fin d'Event ;
 - interaction avec les codes cadeaux mensuels ;
+- comportement exact au changement de mois ;
 - migration de l'état Event actif au cutover ;
-- changement de mois atomique ;
+- migration des soldes saisonniers ;
 - producteurs / consommateurs finaux ;
-- critères d'acceptation.
+- garanties de concurrence / reprise ;
+- critères d'acceptation ;
+- clôture du Domaine Event / monthly.
 
 ---
 

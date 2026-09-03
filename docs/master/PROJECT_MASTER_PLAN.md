@@ -346,18 +346,26 @@ Onglets / catégories actuellement validés :
 - `Invocations` ;
 - `Bannières` ;
 - `Banque` ;
-- `Boutique / Achats`.
+- `Boutique / Achats` ;
+- `Event`.
 
 Principe transversal :
 - il existe un seul écran complet `Historique` ;
 - ne pas développer un écran d'historique complet différent pour chaque domaine ;
-- chaque écran métier peut afficher quelques entrées récentes ;
-- `Voir tout` navigue vers l'écran global directement ouvert sur la catégorie correspondant au contexte d'origine.
+- chaque écran métier peut afficher quelques entrées récentes seulement lorsqu'elles apportent une vraie valeur ;
+- un bouton `Voir l'historique` / `Voir tout` navigue vers l'écran global directement ouvert sur la catégorie correspondant au contexte d'origine.
 
 Exemples :
 - Banque → Historique / Banque ;
 - Boutique → Historique / Boutique ;
-- Invocation → Historique / Invocations.
+- Invocation → Historique / Invocations ;
+- Event → Historique / Event.
+
+Event :
+- l'écran Event courant ne contient pas directement la liste des anciennes éditions ;
+- un bouton dédié ouvre Historique / Event ;
+- le palmarès public d'une édition contient notamment son Top 10 final ;
+- le propriétaire retrouve également son rang exact, ses points, ses paliers et son acquisition Collection dans son détail personnel.
 
 D'autres domaines pourront ajouter une catégorie plus tard uniquement si leur historique apporte une réelle utilité.
 
@@ -3347,7 +3355,7 @@ Domaine actif :
 
 État actuel du domaine :
 - audit technique initial réalisé ;
-- décisions produit R594 à R607 et R609 à R624 validées ;
+- décisions produit R594 à R607 et R609 à R635 validées ;
 - calendrier annuel, inscription et conservation saisonnière de la monnaie cadrés ;
 - Jeu A cadré : trois fenêtres, 20 % de réussite, cooldown serveur 3 secondes ;
 - Jeu B cadré : 32 combinaisons, trois essais, progression communautaire visible, rattrapage des nouveaux inscrits et découvreur honorifique ;
@@ -3355,13 +3363,16 @@ Domaine actif :
 - progression Event cadrée : huit paliers automatiques jusqu'à 80, barre temps réel permanente et points continuant au-delà ;
 - Boutique Event cadrée : conversions Primogemmes/Moras, MAX et objet Collection à 80 monnaies ;
 - collection saisonnière cadrée : une acquisition maximum par édition, quantité permanente cumulable entre les années ;
+- calendrier de Noël cadré : 25 cases, sans rattrapage, monnaie uniquement, grosse récompense le 25 ;
+- classement mensuel cadré : classement complet temps réel dans l'UI, Top 10 chat/Twitch, aucun gain économique de classement ;
+- historique Event cadré : éditions standalone archivées dans la catégorie Event de l'écran Historique transversal, palmarès public et détails personnels privés ;
 - `monthly_events.json` reste sans fonctionnalité identifiée ;
 - `monthlyDraw` reste sans mécanique de tirage identifiée ;
-- prochaine décision : **R625** ;
+- prochaine décision : **R636** ;
 - Boss mensuel déjà traité avec Combat et ne doit pas être réaudité sans dépendance réelle.
 
 Prochaine étape exacte :
-reprendre le Domaine Event / monthly à **R625** depuis `docs/legacy/16-event-monthly-audit.md`, en auditant le calendrier de décembre, le classement/historique mensuel, puis la présentation globale et les contrats finaux de l'Event.
+reprendre le Domaine Event / monthly à **R636** depuis `docs/legacy/16-event-monthly-audit.md`, afin de finaliser l'organisation de l'écran Event, les contrats `!event`, les annonces/codes mensuels, le rollover mensuel, la migration et les critères de clôture du domaine.
 
 Étape obligatoire avant modèle de données / V1 :
 après clôture d'Event et des audits restants, effectuer un **sweep exhaustif final des 36 scripts `.txt` et des 17 fichiers JSON inventoriés** afin de confirmer qu'aucune mécanique, donnée, dépendance, commande ou source de vérité n'a été oubliée. Le modèle de données cible final et le passage à la V1 ne doivent être engagés qu'après cette vérification de couverture.
