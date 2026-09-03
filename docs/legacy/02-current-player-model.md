@@ -412,6 +412,65 @@ Lorsqu'une rubrique est autorisée :
 
 Les contrôles de permissions sont appliqués côté serveur avant la récupération ou le retour des données.
 
+### Progression 5★ C6 / Concours
+
+Statut : `MIGRER / DOMAINE CONCOURS C6 CLÔTURÉ`
+
+Un personnage possède une progression Concours uniquement lorsqu'une véritable possession 5★ a atteint C6.
+
+La possession reste la source de vérité d'éligibilité.
+
+Une progression C6 est conceptuellement unique par :
+- `playerId` ;
+- `characterId`.
+
+Elle contient les données propres au Concours :
+- cinq statistiques bornées à 1..20 ;
+- total de concours terminés ;
+- total de victoires ;
+- participations par thème ;
+- victoires par thème ;
+- éventuel plancher de rang historique nécessaire à la migration ;
+- éventuelle date historique connue de déblocage C6.
+
+Elle ne duplique pas :
+- nom ;
+- rareté ;
+- élément ;
+- arme ;
+- région ;
+- assets ;
+- autres métadonnées du catalogue.
+
+Les titres affichés sont dérivés des victoires du thème et du plancher historique éventuel :
+- Bronze : 1 victoire ;
+- Argent : 3 ;
+- Or : 7 ;
+- Platine : 15.
+
+Migration :
+- importer conservativement les stats/compteurs connus ;
+- compteur thématique absent → 0 ;
+- ne pas reconstruire artificiellement les totaux historiques ;
+- stat invalide → bornage 1..20 ;
+- titre historique reconnu → plancher de rang conservé ;
+- `createdAt` C6 valide → information historique conservée ;
+- date inconnue → reste inconnue ;
+- vrai 5★ C6 sans entrée → stats à 1, compteurs à 0 ;
+- entrée C6 orpheline → ne crée aucune possession et doit être signalée.
+
+Producteurs futurs :
+- passage C6 ;
+- doublon C6+ via Pull ;
+- Stella C6+ ;
+- résultat valide d'un Concours.
+
+XP ne possède plus de synchronisation périodique des C6.
+
+Un personnage désactivé conserve cette progression et son historique, mais n'est pas sélectionnable pour un nouveau Concours.
+
+Les informations complètes sont soumises aux permissions Public / Amis uniquement / Privé, sauf les informations de match explicitement publiques définies par le domaine Concours.
+
 ## 6. Team
 
 ### Modèle cible conceptuel

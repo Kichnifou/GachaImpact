@@ -3331,17 +3331,27 @@ Décisions clés :
 - `!ami`, `!infos`/`!info` et `!liste` sont finalisées pour les chats ;
 - migration sociale conservatrice, réexécutable et sans attribution historique inventée.
 
+Domaine Concours / C6 :
+- **CLÔTURÉ après R593** ;
+- cycle de vie complet du Concours défini ;
+- lobby, Ready, bots, spectateurs, présence passive, timeouts, soutien et annulations cadrés ;
+- économie et classement final définis ;
+- progression C6 et titres définis ;
+- modèle/migration C6 cadrés ;
+- historique public cible défini ;
+- `!concours` et `!legende` finalisés ;
+- garanties de reprise, atomicité, concurrence et permissions administratives documentées.
+
 Domaine actif :
-`docs/legacy/15-concours-c6-audit.md` — Concours / C6.
+**Event / monthly — audit spécialisé à initialiser après validation de ce checkpoint.**
 
 État actuel du domaine :
-- audit legacy en cours ;
-- décisions R526 à R566 validées et documentées ;
-- cycle de vie principal du Concours, bots, spectateurs, récompenses, titres et historique cible largement cadrés ;
-- prochaine décision à reprendre : **R567**.
+- sources principales déjà identifiées ;
+- aucun audit spécialisé Event encore créé ;
+- Boss mensuel déjà traité avec Combat et ne doit pas être réaudité sans dépendance réelle.
 
 Prochaine étape exacte :
-reprendre le Domaine 12 — Concours / C6 à **R567** afin de finaliser le modèle et la migration C6, les producteurs/consommateurs, les contrats Concours restants et les garanties techniques nécessaires avant clôture, sans redemander R526 à R566.
+créer le document spécialisé d'audit Event / monthly, puis inspecter `Event.txt`, `monthly_events_data.json`, le fichier vide `monthly_events.json`, les données Event de `viewers_data.json` et les responsabilités Event présentes dans `XP.txt`, avant de commencer les premières décisions produit du domaine.
 
 ## Familles legacy restant à auditer
 

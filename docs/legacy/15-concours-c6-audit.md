@@ -1,8 +1,8 @@
 # 15 — Audit Concours / C6
 
 > Domaine 12 de l'audit legacy GachaImpact.  
-> Statut : **EN COURS — décisions R526 à R566 déjà validées**.  
-> Ce document devient la source spécialisée du domaine Concours / C6.  
+> Statut : **CLÔTURÉ — décisions R526 à R593 validées**.  
+> Ce document est la source spécialisée du domaine Concours / C6.  
 > L'état global du projet et la prochaine reprise exacte restent la responsabilité du Master.
 
 ---
@@ -849,6 +849,460 @@ Des logs techniques plus détaillés peuvent être conservés séparément selon
 
 ---
 
+## R567 — Retrait forcé après lancement — ✅ VALIDÉ B
+
+Avant lancement :
+- l'organisateur peut retirer un participant du lobby.
+
+Après lancement :
+- l'organisateur ne peut plus expulser arbitrairement un autre participant ;
+- seul un administrateur autorisé peut effectuer un retrait forcé exceptionnel ;
+- le participant retiré est remplacé par un bot selon les règles normales de continuité ;
+- l'action administrative est journalisée.
+
+Les absences ordinaires sont gérées par les délais et remplacements automatiques de R532 et ne nécessitent pas de pouvoir d'expulsion supplémentaire pour l'organisateur.
+
+---
+
+## R568 — Snapshot de puissance au lancement — ✅ VALIDÉ A
+
+Au lancement du concours, chaque place participante fige notamment :
+
+- le personnage utilisé ;
+- la statistique du thème ;
+- les points de base correspondants ;
+- le rang/titre utile à l'affichage du thème courant.
+
+Une progression C6 obtenue pendant le concours via Pull, Stella ou une autre source n'affecte donc pas la partie déjà lancée.
+
+Elle s'applique au concours suivant.
+
+---
+
+## R569 — Changement de Légende dans le lobby — ✅ VALIDÉ B ENRICHI
+
+Avant lancement, un participant peut librement remplacer sa Légende par un autre de ses 5★ C6 éligibles.
+
+Dans l'UI :
+- action `Changer de Légende`.
+
+Dans le chat interne ou Twitch :
+- refaire `!concours rejoindre <personnage>` avec un autre personnage remplace simplement la sélection actuelle du joueur ;
+- cela ne crée jamais une seconde place participante.
+
+Le changement :
+- conserve la place dans le lobby ;
+- ne consomme aucune participation quotidienne ;
+- remet le participant en état `Pas prêt`.
+
+Après lancement, le personnage est définitivement figé pour le concours.
+
+---
+
+## R570 — Confidentialité pendant un concours public — ✅ VALIDÉ A
+
+Participer à un Concours global rend publiques uniquement les informations nécessaires au déroulement de la partie.
+
+Peuvent être visibles :
+- joueur ;
+- personnage utilisé ;
+- humain / bot ;
+- score ;
+- ordre et tour courant ;
+- rang du thème courant ;
+- informations de puissance explicitement autorisées par R574.
+
+Ne deviennent pas publiques pour autant :
+- les quatre autres statistiques C6 ;
+- les valeurs détaillées non nécessaires ;
+- les titres des autres thèmes ;
+- la fiche Légende complète lorsqu'elle est protégée par les paramètres Public / Amis uniquement / Privé.
+
+Participer publiquement n'annule donc pas les préférences générales de confidentialité.
+
+---
+
+## R571 — Historique global public — ✅ VALIDÉ A
+
+L'historique des Concours terminés est un palmarès communautaire public.
+
+Tous les joueurs peuvent consulter les informations publiques d'un concours terminé, notamment :
+- thème ;
+- participants ;
+- personnages utilisés ;
+- classement ;
+- scores ;
+- vainqueur ;
+- rangs/informations qui étaient publiques pendant cette partie.
+
+Les informations C6 privées qui n'étaient pas nécessaires au match ne sont pas ajoutées à l'historique.
+
+---
+
+## R572 — Famille de commandes `!concours` — ✅ VALIDÉ A
+
+Commandes canoniques :
+
+- `!concours` → état/résumé ;
+- `!concours open <personnage>` → créer le lobby ;
+- `!concours rejoindre <personnage>` → rejoindre ou changer de Légende avant lancement ;
+- `!concours spectateur` → devenir spectateur actif ;
+- `!concours quitter` → quitter son rôle courant ;
+- `!concours pret` → confirmer que le participant est prêt ;
+- `!concours start` → lancer lorsque les conditions sont réunies ;
+- `!concours annuler` → annuler lorsque l'utilisateur en a le droit ;
+- `!concours basique` → action sûre ;
+- `!concours risque` → action risquée ;
+- `!concours soutenir <participant>` → soutenir pendant la fenêtre correspondante.
+
+Alias textuels possibles :
+- `participant` / `participer` → `rejoindre` ;
+- `lancer` → `start` ;
+- `cancel` → `annuler` ;
+- `basic` → `basique` ;
+- `risk` / `risqué` → `risque`.
+
+Les aides recommandent toujours une seule syntaxe canonique.
+
+---
+
+## R573 — Matching des personnages Concours — ✅ VALIDÉ A
+
+Dans les commandes texte :
+
+- le personnage doit être réellement possédé en 5★ C6 ;
+- le nom demandé correspond au nom exact après normalisation de casse et d'accents ;
+- pas de fuzzy matching ni de nom partiel pouvant sélectionner accidentellement une autre Légende.
+
+Dans l'UI, la sélection passe par un picker des personnages éligibles.
+
+---
+
+## R574 — Informations de puissance publiques — ✅ VALIDÉ B
+
+Sur la carte d'un participant, le Concours peut afficher :
+
+- son rang/titre du thème courant ;
+- ses points de base pour ce concours ;
+- son score courant.
+
+La valeur C6 exacte n'est pas affichée publiquement.
+
+Exemple :
+- `Icône d'Or` ;
+- `Puissance : 4 pts` ;
+- `Score : 37`.
+
+Ainsi, une statistique comprise entre 15 et 19 reste privée tout en permettant de comprendre la puissance réelle des actions.
+
+---
+
+## R575 — Ancien participant et rôle spectateur — ✅ VALIDÉ B
+
+Un joueur ayant déjà été participant au concours courant puis ayant quitté ou été remplacé :
+
+- peut continuer à regarder passivement ;
+- ne peut pas devenir spectateur actif du même concours ;
+- ne peut donc pas influencer ensuite le résultat via un soutien.
+
+---
+
+## R576 — Départ de l'organisateur dans le lobby — ✅ VALIDÉ A
+
+Avant lancement, si l'organisateur quitte :
+
+- sa place participante disparaît ;
+- s'il reste au moins un autre participant humain, le rôle d'organisateur est transféré au premier humain restant ;
+- s'il ne reste plus aucun participant, le lobby est annulé.
+
+Aucune participation quotidienne n'est consommée.
+
+---
+
+## R577 — Retraits répétés du lobby — ✅ VALIDÉ A ENRICHI
+
+Lorsqu'un organisateur retire un joueur du lobby :
+
+- aucune participation quotidienne n'est consommée ;
+- le joueur peut normalement rejoindre de nouveau.
+
+Le serveur compte cependant les retraits effectués par l'organisateur contre ce joueur dans le lobby courant.
+
+Après le **troisième retrait** :
+- le joueur ne peut plus rejoindre ce lobby ;
+- il peut toujours le regarder passivement ;
+- un nouveau lobby remet ce compteur à zéro et restaure son éligibilité normale.
+
+Le compteur appartient donc au couple `lobby + joueur ciblé`.
+
+---
+
+## R578 — Identité des bots — ✅ VALIDÉ A
+
+Les bots utilisent des noms fictifs distinctifs, par exemple ceux déjà présents dans le système historique.
+
+Présentation cible :
+- nom fictif ;
+- avatar générique dédié ;
+- badge ou symbole `BOT` / `🤖` clairement visible ;
+- identités distinctes entre les bots d'un même concours.
+
+Un bot ne prétend pas posséder un vrai personnage du catalogue.
+
+---
+
+## R579 — Cible du soutien — ✅ VALIDÉ A ENRICHI
+
+`!concours soutenir` accepte une cible non ambiguë.
+
+L'aide recommande le **nom affiché du participant ou du bot**, par exemple :
+
+`!concours soutenir Kyo`
+
+Les numéros de place `1` à `4` peuvent également être acceptés comme raccourci pratique, notamment sur Twitch.
+
+Ils ne constituent cependant pas la syntaxe mise en avant dans l'aide.
+
+---
+
+## R580 — Spectateurs actifs et viewers passifs — ✅ VALIDÉ A ENRICHI
+
+Les spectateurs actifs sont publiquement visibles dans le Concours, puisqu'ils ont volontairement pris un rôle interactif.
+
+L'écran peut afficher par exemple :
+
+`Spectateurs actifs : 4/10`
+
+avec la liste correspondante.
+
+### Viewers passifs de l'écran Concours
+
+Il est également prévu, lorsque l'infrastructure temps réel est disponible, d'afficher le nombre de joueurs ayant actuellement l'écran Concours ouvert sans être :
+- participant ;
+- spectateur actif.
+
+Exemple :
+
+`👁 4 regardent`
+
+Cette information peut être cliquable pour afficher les joueurs autorisés.
+
+La faisabilité technique a été vérifiée : une infrastructure de présence temps réel peut maintenir ce type d'état éphémère de page/canal.
+
+Règles :
+- information temps réel best-effort ;
+- jamais persistée comme historique ;
+- jamais utilisée comme vérité métier du Concours ;
+- plusieurs onglets/appareils d'un même compte sont dédupliqués côté affichage ;
+- les permissions Social de présence Public / Amis uniquement / Privé restent appliquées ;
+- un utilisateur non autorisé n'est pas révélé dans cette liste.
+
+---
+
+## R581 — Notification du spectateur sélectionné — ✅ VALIDÉ A
+
+Lorsqu'un spectateur actif est choisi pour soutenir :
+
+- UI ouverte → mise en évidence de la zone de soutien et notification visuelle ;
+- chat interne → message ou mention adaptée ;
+- Twitch futur → information adaptée lorsque ce canal est pertinent.
+
+Le délai reste de 30 secondes pour tous les canaux.
+
+La présentation doit éviter d'envoyer inutilement plusieurs notifications identiques au même joueur.
+
+---
+
+## R582 — Sélection du thème quotidien — ✅ VALIDÉ A
+
+Conserver un tirage aléatoire pur parmi les cinq thèmes :
+
+- Force ;
+- Intelligence ;
+- Beauté ;
+- Charisme ;
+- Popularité.
+
+Chaque thème possède la même probabilité.
+
+Le même thème peut donc être tiré plusieurs jours consécutifs.
+
+---
+
+## R583 — État `Prêt` du lobby — ✅ VALIDÉ B
+
+Chaque participant humain possède un état :
+- `Prêt` ;
+- `Pas prêt`.
+
+Dans l'UI :
+- bouton `Prêt`.
+
+Chat interne / Twitch :
+- `!concours pret`.
+
+Changer de Légende remet automatiquement le joueur en `Pas prêt`.
+
+Quitter puis rejoindre produit également un nouvel état `Pas prêt`.
+
+Le concours ne peut être lancé que lorsque tous les humains présents sont prêts.
+
+Les bots n'utilisent pas cet état.
+
+L'état `Prêt` ne dépend pas du fait que la page web soit encore ouverte : le joueur peut ensuite utiliser un autre canal.
+
+---
+
+## R584 — Même personnage chez plusieurs joueurs — ✅ VALIDÉ A
+
+Plusieurs participants peuvent utiliser le même personnage du catalogue.
+
+Exemple :
+- Chasca d'Axel ;
+- Chasca de Kyo.
+
+Chaque place utilise la progression C6 propre au propriétaire concerné.
+
+Aucune exclusivité globale sur le personnage n'est appliquée au lobby.
+
+---
+
+## R585 — Concours annulés dans l'historique public — ✅ VALIDÉ A
+
+L'historique visible aux joueurs contient uniquement les concours terminés normalement.
+
+Les concours annulés :
+- restent traçables côté serveur lorsque nécessaire ;
+- ne sont pas ajoutés au palmarès public ;
+- ne révèlent pas inutilement les motifs techniques ou administratifs.
+
+---
+
+## R586 — Conservation de l'historique GachaImpact — ✅ VALIDÉ A
+
+Tous les concours terminés à partir du standalone sont conservés sans limite arbitraire de type 20 ou 100 résultats.
+
+L'UI utilise :
+- pagination ;
+- chargement progressif ;
+- ou action `Voir plus`.
+
+La croissance de l'historique ne provoque pas de purge métier automatique.
+
+---
+
+## R587 — Thème et choix de Légende — ✅ VALIDÉ A
+
+Le thème quotidien est clairement visible avant de choisir ou changer sa Légende.
+
+Le joueur peut également voir ses **propres** valeurs utiles dans le picker de sélection.
+
+Exemple pour le thème Charisme :
+- Chasca — 17/20 ;
+- Itto — 8/20 ;
+- Zhongli — 12/20.
+
+Ces informations appartiennent au joueur lui-même et ne constituent pas une divulgation publique de sa fiche C6.
+
+---
+
+## R588 — Classement en direct — ✅ VALIDÉ A
+
+Les scores et le classement sont visibles en direct.
+
+La disposition principale des cartes reste toutefois stable selon l'ordre de tour fixé par R555.
+
+Les cartes ne sautent donc pas de position à chaque changement de score.
+
+Un badge ou indicateur dynamique peut afficher :
+- 1er ;
+- 2e ;
+- 3e ;
+- 4e.
+
+---
+
+## R589 — Passage spectateur actif → participant — ✅ VALIDÉ A
+
+Avant lancement, un spectateur actif peut rejoindre comme participant s'il :
+- possède un 5★ C6 éligible ;
+- dispose encore de sa participation quotidienne ;
+- dispose d'une place participante libre.
+
+Son rôle spectateur est alors retiré automatiquement et il devient participant `Pas prêt`.
+
+Après lancement, aucun passage spectateur → participant n'est autorisé.
+
+---
+
+## R590 — Tous prêts ne lance pas automatiquement — ✅ VALIDÉ B
+
+Lorsque tous les humains sont prêts :
+
+- le concours devient lançable ;
+- il ne démarre pas automatiquement.
+
+L'organisateur conserve l'action explicite :
+- bouton `Lancer` ;
+- ou `!concours start`.
+
+Cela évite qu'une simple confirmation `Prêt` du dernier joueur déclenche immédiatement le concours.
+
+---
+
+## R591 — Annonce publique du résultat — ✅ VALIDÉ B
+
+La fin d'un Concours produit un résultat public adapté au canal.
+
+### UI
+Résultat détaillé :
+- podium ;
+- scores ;
+- vainqueur ;
+- récompenses ;
+- promotions de titre éventuelles.
+
+### Chat interne
+Message compact avec au minimum le vainqueur et le podium utile.
+
+### Twitch futur
+Même information adaptée aux contraintes du canal lorsque le pont Twitch est actif.
+
+Un bot gagnant est annoncé comme tel, sans récompense économique.
+
+---
+
+## R592 — Promotion de titre publique — ✅ VALIDÉ A
+
+Lorsqu'une victoire fait franchir un seuil de titre :
+
+- la promotion est clairement affichée dans le résultat final ;
+- elle peut également être mentionnée dans le message public compact.
+
+Exemple :
+
+`✨ Chasca devient Icône d'Or !`
+
+Les titres restent honorifiques conformément à R563.
+
+---
+
+## R593 — Conservation visuelle du dernier résultat — ✅ VALIDÉ A
+
+Après la fin d'un concours, l'écran Concours continue d'afficher son résultat tant qu'aucun nouveau lobby n'existe.
+
+Il peut notamment proposer :
+- podium ;
+- résultat détaillé ;
+- `Voir l'historique` ;
+- `Créer un nouveau concours` pour un joueur éligible.
+
+La création d'un nouveau lobby remplace naturellement cet affichage.
+
+Aucun délai artificiel n'empêche de créer le concours suivant.
+
+---
+
 ## Décisions techniques acquises pendant ce lot
 
 ### Normalisation des données C6
@@ -880,23 +1334,203 @@ Les seuils exacts utilisés par l'IA adaptative, les arrondis et le tirage final
 
 Ils peuvent être ajustés sans nouvelle décision Rxxx tant qu'ils respectent R551 et R552.
 
+### Source de vérité C6
+
+La possession du personnage est la source de vérité permettant de déterminer qu'un joueur possède réellement un 5★ C6.
+
+Une entrée isolée de `c6_characters.json` ne crée jamais artificiellement une possession.
+
+La progression Concours cible est unique pour le couple :
+- joueur ;
+- personnage possédé.
+
+Les cinq statistiques sont bornées entre 1 et 20.
+
+Les métadonnées du catalogue ne sont pas dupliquées dans cette progression.
+
+### Modèle conceptuel C6
+
+Pour chaque 5★ C6 concerné, conserver conceptuellement :
+
+- référence du joueur ;
+- référence du personnage ;
+- éventuelle date historique connue de déblocage C6 ;
+- `strength` ;
+- `intelligence` ;
+- `beauty` ;
+- `charisma` ;
+- `popularity` ;
+- total de concours terminés ;
+- total de victoires ;
+- participations par thème ;
+- victoires par thème ;
+- plancher de rang migré lorsque nécessaire pour préserver R554.
+
+Les chaînes comme `Sage de Bronze` ou `Icône d'Or` ne sont pas la source de vérité cible.
+
+Le titre affiché est dérivé :
+- du thème ;
+- du nombre de victoires ;
+- du plancher historique éventuellement migré.
+
+### Migration de `c6_characters.json`
+
+Pour chaque véritable possession 5★ C6 :
+- importer les cinq statistiques connues ;
+- borner les valeurs invalides à 1..20 de manière conservatrice ;
+- importer les compteurs globaux connus ;
+- importer les compteurs thématiques connus ;
+- un compteur thématique absent est initialisé à 0 ;
+- ne pas recalculer artificiellement les totaux pour les faire correspondre aux sous-compteurs historiques ;
+- importer le rang de titre historique reconnaissable comme plancher de migration ;
+- conserver `createdAt` comme information historique de déblocage lorsqu'il est valide ;
+- une date inconnue reste inconnue plutôt que d'être inventée.
+
+Si un vrai 5★ C6 possédé ne possède aucune entrée C6 :
+- initialiser ses cinq statistiques à 1 ;
+- initialiser ses compteurs à 0 ;
+- aucun titre initial ;
+- signaler l'initialisation dans le rapport de migration.
+
+Une entrée C6 ne correspondant pas à une possession 5★ C6 certaine :
+- n'est pas transformée en possession ;
+- est signalée/quarantainée pour inspection.
+
+### Producteurs / consommateurs
+
+Une logique centrale de progression C6 devient propriétaire de ces mutations.
+
+Producteurs :
+- passage d'un 5★ à C6 ;
+- nouvelle copie d'un 5★ déjà C6 via Pull ;
+- Stella sur un 5★ déjà C6 ;
+- fin valide d'un Concours.
+
+Consommateurs :
+- Concours ;
+- `!legende` ;
+- fiches UI de Légendes ;
+- historique/statistiques ;
+- autres systèmes explicitement autorisés à lire ces informations.
+
+XP ne synchronise plus périodiquement Box → C6.
+
+Cette responsabilité historique disparaît du futur moteur XP.
+
+### Personnage désactivé
+
+Si un personnage devient désactivé dans le catalogue :
+- sa progression C6 est conservée ;
+- son historique reste valide ;
+- il n'est plus sélectionnable dans un nouveau Concours tant qu'il reste désactivé.
+
+### Atomicité / concurrence / idempotence
+
+Les actions sensibles sont autoritaires côté serveur.
+
+Le lancement :
+- revalide tous les participants ;
+- revalide leur état `Prêt` ;
+- snapshotte les informations nécessaires ;
+- consomme les participations quotidiennes dans une même opération logique ;
+- ne peut jamais consommer partiellement certaines tentatives si le lancement échoue.
+
+Les tours, soutiens, départs, remplacements, annulations et fin de concours utilisent :
+- validation de l'état/phase courant ;
+- protection contre les appels concurrents ;
+- idempotence adaptée aux requêtes rejouées ;
+- versionnement/verrouillage transactionnel ou mécanisme équivalent du backend retenu.
+
+Une seule mutation peut clôturer avec succès un concours.
+
+Les récompenses et statistiques de fin sont persistées côté serveur même si le navigateur du joueur est fermé.
+
+### Permissions administratives
+
+Avant lancement :
+- l'organisateur gère son lobby selon les règles validées.
+
+Après lancement :
+- seul un administrateur autorisé peut forcer le retrait d'un autre participant ;
+- les actions administratives exceptionnelles sont journalisées ;
+- une invalidation technique/administrative applique R535.
+
+Aucune interface client ne peut s'accorder elle-même ces permissions.
+
+### État persistant de reprise
+
+Un concours lancé doit persister au minimum les informations nécessaires à une reprise fiable, conceptuellement :
+
+- identité stable du concours ;
+- statut et phase ;
+- date métier ;
+- thème ;
+- organisateur ;
+- timestamps de création et lancement ;
+- participants et origine humain/bot ;
+- snapshots de personnages/statistiques/points de base ;
+- scores ;
+- ordre des tours ;
+- round courant ;
+- joueur ou spectateur actif ;
+- délais/timestamps utiles aux timeouts ;
+- soutien en attente ;
+- informations nécessaires aux remplacements ;
+- compteurs de retraits du lobby lorsque pertinents avant lancement ;
+- métadonnées techniques de version/concurrence.
+
+Après redémarrage :
+- état cohérent → reprise ;
+- état impossible à reprendre sûrement → annulation technique selon R561/R535.
+
+### Présence de l'écran Concours
+
+La liste des viewers passifs définie par R580 :
+- repose sur une présence temps réel éphémère ;
+- est dédupliquée par joueur pour l'affichage ;
+- respecte les permissions Social ;
+- n'est pas enregistrée comme historique ;
+- n'est jamais utilisée pour déterminer une règle de gameplay.
+
+Cette fonctionnalité nécessite une capacité de présence temps réel dans l'infrastructure finalement retenue, capacité dont la faisabilité a été vérifiée pour la trajectoire technique actuellement envisagée.
+
 ---
 
-# 5. Points encore ouverts
+# 5. Clôture du domaine
 
-À reprendre à partir de **R567**.
+**Concours / C6 est clôturé après R593.**
 
-À finaliser notamment :
+Le domaine possède désormais suffisamment de décisions pour permettre ultérieurement une implémentation bornée par Codex sans reprendre l'audit produit depuis zéro.
 
-- modèle cible précis des données C6 persistées ;
-- migration de `c6_characters.json`, notamment stats, compteurs et titres ;
-- producteurs et consommateurs C6 : Pull, Stella, XP, Légende et Concours ;
-- suppression de l'ancien rôle de synchronisation C6 détenu par XP lorsqu'il devient inutile ;
-- contrats finaux des actions/commandes Concours ;
-- permissions administratives finales ;
-- règles de concurrence, atomicité et idempotence entre lancement, tours, soutien, annulation et récompenses ;
-- état persistant minimal nécessaire à une reprise sûre après incident ;
-- UI cible de l'écran Concours et des fiches Légendes ;
-- critères d'acceptation et cas limites nécessaires à l'implémentation Codex.
+## Critères d'acceptation principaux
+
+Une future implémentation devra notamment vérifier :
+
+- un seul concours global à la fois ;
+- lobby, Ready, changement de Légende et transferts d'organisateur conformes ;
+- consommation quotidienne uniquement au lancement effectif ;
+- lancement atomique ;
+- quatre places complétées par bots ;
+- snapshots immuables après lancement ;
+- ordre de tour stable ;
+- timeouts humain/soutien ;
+- remplacement automatique après inactivité ;
+- interdiction d'expulsion arbitraire post-lancement par l'organisateur ;
+- actions `basique` / `risque` conformes ;
+- premier score >= 50 gagnant immédiatement ;
+- soutien +1/+2/+3 ;
+- bots adaptatifs selon R551/R552 ;
+- classement incluant les bots ;
+- récompenses 800/400/200 selon rang global ;
+- progression statistique uniquement pour les humains ayant terminé ;
+- titres 1/3/7/15 et plancher de migration ;
+- historique public des concours terminés uniquement ;
+- aucune migration de l'ancien historique de `contests_data.json` ;
+- confidentialité C6 respectée hors informations nécessaires au match public ;
+- `!concours` et `!legende` utilisent exactement les mêmes services métier que l'UI ;
+- reprise après crash ou annulation technique sûre ;
+- appels concurrents/retry incapables de dupliquer tours, récompenses, participation ou résultat.
+
+Les détails d'implémentation SQL, classes, tables, indexes et primitives de verrouillage seront choisis lors de la conception backend en respectant ces invariants.
 
 Le domaine actif et la prochaine étape exacte du projet doivent être indiqués uniquement dans `docs/master/PROJECT_MASTER_PLAN.md`.

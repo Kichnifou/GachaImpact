@@ -253,7 +253,9 @@ Quand ChatGPT prend directement une décision évidente, technique, de structure
 - expliquer seulement la conséquence utile ;
 - préciser que l'utilisateur peut lever un flag s'il n'est pas d'accord ;
 - si l'utilisateur ne conteste pas cette décision, la considérer ensuite comme acquise ;
-- ne pas la remettre en validation dans un bloc `Rxxx : A/B`.
+- ne pas la remettre en validation dans un bloc `Rxxx : A/B` ;
+- si cette décision dépend d'une faisabilité technique non triviale ou incertaine, vérifier cette faisabilité avant de la considérer acquise à partir du code réel, de la documentation officielle de la technologie envisagée ou d'une preuve technique équivalente ;
+- ne pas alourdir les audits avec des vérifications externes systématiques lorsque la faisabilité est évidente et ne présente pas de risque particulier.
 
 ---
 

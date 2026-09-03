@@ -791,5 +791,39 @@ Statut : évolutif.
 - `VALIDÉ R564` — L'ancien historique de `contests_data.json` n'est pas migré : le nouvel historique Concours commence à zéro. Le terme interne `legacy` ne doit jamais être affiché aux joueurs.
 - `VALIDÉ R565` — Les Légendes C6 d'un autre joueur sont consultables selon Public/Amis/Privé. Cible chat/Twitch : `!legende`, `!legende <joueur>` et `!legende <joueur> <personnage>`, sans contournement des permissions.
 - `VALIDÉ R566` — L'historique durable conserve résultat détaillé et événements importants sans imposer un replay éternel action par action.
-- `TECHNIQUE` — La progression C6 cible référence le personnage sans dupliquer ses métadonnées de catalogue ; seules les données propres au C6/Concours sont persistées dans ce domaine.
-- `À AUDITER` — Reprendre à R567 pour finaliser modèle/migration C6, producteurs/consommateurs, contrats Concours, permissions administratives, atomicité/concurrence, reprise technique et critères d'acceptation.
+- `VALIDÉ R567` — Après lancement, l'organisateur ne peut plus retirer arbitrairement un concurrent ; seul un administrateur autorisé peut effectuer un retrait forcé exceptionnel. L'organisateur garde ce pouvoir dans le lobby.
+- `VALIDÉ R568` — Personnage, statistique du thème, points de base et rang utile sont snapshotés au lancement ; une progression C6 obtenue ensuite ne modifie pas le concours courant.
+- `VALIDÉ R569` — Avant lancement, un participant peut changer librement de Légende. `!concours rejoindre <autre C6>` remplace directement sa sélection actuelle et le remet `Pas prêt`.
+- `VALIDÉ R570` — Un Concours public révèle uniquement les informations nécessaires au match ; les autres données C6 restent soumises aux permissions de confidentialité.
+- `VALIDÉ R571` — L'historique des concours terminés est un palmarès global public.
+- `VALIDÉ R572` — Famille `!concours` cible : résumé, open, rejoindre, spectateur, quitter, pret, start, annuler, basique, risque, soutenir ; aides avec une syntaxe canonique.
+- `VALIDÉ R573` — Sélection de Légende par nom exact après normalisation casse/accents ; pas de fuzzy matching.
+- `VALIDÉ R574` — Les cartes publiques montrent rang du thème, points de base et score, mais pas la valeur C6 exacte.
+- `VALIDÉ R575` — Un ancien participant du concours courant ne peut pas revenir comme spectateur actif ; visionnage passif seulement.
+- `VALIDÉ R576` — Départ de l'organisateur dans le lobby : transfert au premier humain restant, sinon annulation du lobby.
+- `VALIDÉ R577` — Un joueur retiré du lobby peut revenir après les deux premiers retraits ; au troisième retrait dans le même lobby il est bloqué de ce lobby, sans consommation quotidienne.
+- `VALIDÉ R578` — Bots avec noms fictifs, identité visuelle clairement BOT et aucun faux personnage du catalogue.
+- `VALIDÉ R579` — Le soutien accepte une cible non ambiguë ; le nom du participant/bot reste la forme recommandée par l'aide, les numéros 1–4 sont acceptés comme raccourci.
+- `VALIDÉ R580` — Spectateurs actifs publics ; présence passive de l'écran Concours affichable en temps réel si autorisée, dédupliquée, éphémère et filtrée selon les permissions Social.
+- `VALIDÉ R581` — Le spectateur sélectionné reçoit une notification adaptée aux canaux pertinents pendant sa fenêtre de 30 secondes.
+- `VALIDÉ R582` — Thème quotidien tiré aléatoirement parmi les cinq thèmes, avec répétition consécutive autorisée.
+- `VALIDÉ R583` — Chaque humain possède un état Prêt/Pas prêt ; `!concours pret` est prévu ; changer de Légende remet Pas prêt ; tous doivent être prêts avant lancement.
+- `VALIDÉ R584` — Plusieurs joueurs peuvent utiliser le même personnage du catalogue dans le même concours ; leurs progressions C6 restent distinctes.
+- `VALIDÉ R585` — Le palmarès public contient uniquement les concours terminés ; les annulations restent des données serveur/audit.
+- `VALIDÉ R586` — Tout l'historique des nouveaux Concours GachaImpact est conservé sans limite arbitraire et paginé côté UI.
+- `VALIDÉ R587` — Le thème du jour et les propres statistiques C6 utiles du joueur sont visibles dans le picker avant choix de Légende.
+- `VALIDÉ R588` — Classement live visible sans réordonner les cartes, qui restent placées selon l'ordre de tour.
+- `VALIDÉ R589` — Avant lancement, un spectateur actif peut devenir participant directement s'il est éligible ; après lancement, impossible.
+- `VALIDÉ R590` — Tous les joueurs prêts rendent le concours lançable mais ne le lancent pas automatiquement ; l'organisateur garde l'action explicite Start.
+- `VALIDÉ R591` — Fin de concours annoncée publiquement avec résultat adapté à l'UI, au chat interne et au futur Twitch ; un bot gagnant est annoncé sans récompense.
+- `VALIDÉ R592` — Une promotion Bronze/Argent/Or/Platine obtenue au résultat est publiquement mise en valeur.
+- `VALIDÉ R593` — Le dernier résultat reste affiché sur l'écran Concours tant qu'aucun nouveau lobby n'a été créé.
+- `TECHNIQUE` — La possession 5★ C6 est la vérité d'éligibilité ; une entrée C6 orpheline ne crée jamais une possession.
+- `TECHNIQUE` — Progression C6 unique par joueur/personnage, statistiques bornées 1..20, métadonnées catalogue non dupliquées et titres dérivés des victoires avec plancher historique de migration.
+- `TECHNIQUE` — Migration C6 conservatrice : compteurs absents à 0, totaux historiques non reconstruits, dates inconnues non inventées, entrées orphelines signalées.
+- `TECHNIQUE` — XP ne synchronise plus les C6 ; passage C6, Pull C6+, Stella C6+ et Concours utilisent une même logique centrale de progression.
+- `TECHNIQUE` — Lancement Concours atomique : revalidation, Ready, snapshots et consommations quotidiennes forment une seule opération logique.
+- `TECHNIQUE` — Tours, soutiens, remplacements, annulations, récompenses et clôture sont protégés contre concurrence/retry/double exécution côté serveur.
+- `TECHNIQUE` — L'état persistant d'un concours lancé contient suffisamment de phase, participants, snapshots, scores, ordre, timers et soutien pour permettre une reprise fiable ou une annulation technique sûre.
+- `TECHNIQUE` — La présence des viewers de l'écran Concours est uniquement un état temps réel best-effort, jamais une donnée de gameplay ni un historique.
+- `CLÔTURÉ R593` — Domaine Concours / C6 clôturé.

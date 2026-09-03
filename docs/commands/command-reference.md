@@ -273,7 +273,7 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 
 ## `!legende`
 
-- **Statut audit :** EN COURS — Domaine Concours / C6, règles validées jusqu'à R566
+- **Statut audit :** CLÔTURÉ — Domaine Concours / C6 après R593
 - **But :** consulter les personnages 5★ C6 et leur progression Concours
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui lorsque l'intégration Twitch sera disponible
@@ -284,12 +284,49 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Cible personnelle explicite :** `me` et `moi`
 - **Exemple personnel détaillé :** `!legende moi <personnage>`
 - **Liste :** affiche les personnages C6 accessibles de la cible
-- **Détail :** peut afficher les cinq statistiques Concours, titres par thème, total de concours, total de victoires et statistiques thématiques utiles
-- **Confidentialité :** la rubrique du propriétaire est soumise à Public / Amis uniquement / Privé
-- **Tous les canaux :** UI, chat interne et Twitch utilisent les mêmes permissions et la même source métier
+- **Détail :** cinq statistiques Concours, titres par thème, total concours/victoires et statistiques thématiques utiles
+- **Confidentialité :** Public / Amis uniquement / Privé
+- **Tous les canaux :** mêmes permissions et même source métier
 - **Refus de permission :** ne révèle ni nombre de C6, ni noms, ni statistiques privées
-- **Données catalogue :** nom, élément, rareté et autres métadonnées sont lus depuis le catalogue personnage et non recopiés dans la progression C6
+- **Données catalogue :** jamais recopiées dans la progression C6
+- **Personnage désactivé :** progression/historique conservés mais personnage non sélectionnable pour un nouveau concours
 - **Vocabulaire player-facing :** ne jamais afficher le terme interne `legacy`
+
+## `!concours`
+
+- **Statut audit :** CLÔTURÉ — Domaine Concours / C6 après R593
+- **But :** créer, rejoindre, regarder et jouer le Concours global
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui lorsque l'intégration Twitch sera disponible
+- **UI équivalente :** écran Concours complet
+- **Résumé :** `!concours`
+- **Créer :** `!concours open <personnage>`
+- **Rejoindre / changer avant lancement :** `!concours rejoindre <personnage>`
+- **Spectateur actif :** `!concours spectateur`
+- **Quitter :** `!concours quitter`
+- **Prêt :** `!concours pret`
+- **Lancer :** `!concours start`
+- **Annuler :** `!concours annuler`
+- **Action sûre :** `!concours basique`
+- **Action risquée :** `!concours risque`
+- **Soutenir :** `!concours soutenir <participant>`
+- **Alias :** `participant` / `participer`, `lancer`, `cancel`, `basic`, `risk` / `risqué`
+- **Matching Légende :** nom exact après normalisation casse/accents
+- **Soutien :** l'aide recommande le nom du participant/bot ; numéro de place 1–4 accepté comme raccourci
+- **Lobby :** quatre places ; organisateur participant ; changement de Légende libre ; Ready obligatoire ; lancement manuel par l'organisateur
+- **Participation quotidienne :** une par joueur et par journée Europe/Paris, consommée seulement au lancement effectif
+- **Bots :** complètent les places vides et occupent de vraies positions de classement
+- **Tours :** ordre aléatoire au lancement puis fixe
+- **Timeout humain :** 60 s → action basique automatique
+- **Inactivité :** trois tours consécutifs sans action humaine → remplacement par bot
+- **Soutien :** après round complet, spectateur actif aléatoire ; 30 s ; +1/+2/+3
+- **Actions :** basique = points de base ; risque = 0 / base / double à 1/3 chacun
+- **Victoire :** premier participant atteignant ou dépassant 50
+- **Récompenses :** 800 / 400 / 200 Primogemmes selon rang global ; bots non récompensés
+- **Titres :** Bronze 1 victoire, Argent 3, Or 7, Platine 15 ; honorifiques
+- **Historique :** public, détaillé, permanent à partir de GachaImpact ; anciens résultats non migrés
+- **Confidentialité :** seules les informations nécessaires au match deviennent publiques
+- **Atomicité :** lancement, actions, récompenses et résultat autoritaires côté serveur et protégés contre double exécution
 
 ## `!team`
 - **Statut audit :** Audité — Domaine Team clôturé après R236
