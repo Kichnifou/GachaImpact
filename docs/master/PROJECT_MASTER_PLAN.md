@@ -366,7 +366,14 @@ Décision :
 - fermeture possible par clic extérieur ;
 - possibilité future de marquer lu / archiver ;
 - clic sur notification -> écran concerné ;
-- possibilité future d'un écran Notifications dédié.
+- possibilité future d'un écran Notifications dédié ;
+- une notification liée à une action encore à effectuer est automatiquement retirée de la liste active dès que cette action est accomplie, même si la notification n'a jamais été ouverte ;
+- cette résolution est transversale : effectuer l'action depuis l'écran métier, le chat interne ou un autre canal met à jour la notification correspondante.
+
+Exemple :
+- notification `Un code cadeau est disponible` ;
+- le joueur ouvre directement l'écran Codes et réclame le code ;
+- la notification disparaît automatiquement sans nécessiter une lecture ou suppression manuelle.
 
 État frontend actuel :
 - la coque React possède déjà le panneau Notifications dans `GameHeader.tsx` ;
@@ -1412,6 +1419,13 @@ Si ce joueur crée plus tard un compte web :
 - ne pas créer un second profil ;
 - ne pas recommencer sa progression ;
 - ne pas copier les données : elles appartenaient déjà au même joueur interne.
+
+Règle centrale d'activation Twitch :
+- un profil Twitch-only peut exister avant d'être pleinement activé ;
+- `élément choisi` est le verrou canonique indiquant que ce joueur participe réellement au jeu ;
+- lorsqu'un ancien script utilise un niveau minimum uniquement comme filtre d'onboarding / activité réelle, la V1 doit préférer cette règle centrale plutôt qu'un seuil de niveau spécifique ;
+- les vraies préconditions métier propres aux systèmes restent évidemment inchangées ;
+- le standalone impose l'élément dans son onboarding et satisfait donc naturellement cette règle.
 
 Anciens joueurs Streamer.bot :
 - leurs données historiques suivent la stratégie de migration legacy déjà prévue ;
@@ -3434,8 +3448,7 @@ Dernier domaine clôturé :
 - migration conservatrice documentée ;
 - bug legacy `totalMainElementParticlesEarned` corrigé pour les nouveaux gains via les mutations Ressources centrales.
 
-Domaine actif :
-`docs/legacy/18-faveur-subscription-audit.md` — Faveur / Subscription.
+finaliser techniquement le Domaine Faveur / Subscription dans `docs/legacy/18-faveur-subscription-audit.md` : représentation temporelle, migration détaillée, contrat `!faveur`, producteurs/consommateurs et critères d'acceptation ; si aucune nouvelle décision produit réelle n'apparaît, clôturer le domaine sans créer artificiellement R673.
 
 État actuel du domaine :
 - audit technique initial réalisé ;
@@ -3471,17 +3484,25 @@ Cet inventaire évite qu'un système legacy soit oublié.
 
 Il ne définit pas la prochaine reprise : seule la section `Prochaine étape exacte` ci-dessus joue ce rôle.
 
-### Faveur / Subscription
-Sources principales :
-- `Faveur.txt` ;
-- `Subscription.txt` ;
-- section `favor` de `viewers_data.json` ;
-- traitements associés découverts dans `XP.txt`.
-
 ### Codes cadeaux
 Sources principales :
 - `Code.txt` ;
 - `gift_codes.json` ;
+- `usedCodes` dans les profils joueurs ;
+- interactions Event / Notifications / économie à recroiser.
+
+Directions produit déjà fournies avant l'audit :
+- les codes peuvent être créés librement par l'administrateur, pas uniquement pour les Events ;
+- un écran joueur `Codes` liste les codes actuellement récupérables ;
+- chaque code récupérable possède une action `Récupérer` ;
+- un code peut contenir des récompenses configurables, notamment Primogemmes, Moras et autres types réellement supportés après audit ;
+- un écran / outil Admin doit permettre de créer puis publier les codes et leurs récompenses ;
+- publier un nouveau code crée une notification standalone pour les joueurs concernés ;
+- réclamer le code par n'importe quel chemin résout automatiquement la notification associée ;
+- l'Event peut signaler qu'un code Event existe mais la consultation et la réclamation restent la responsabilité de l'écran Codes ;
+- côté Twitch, la stratégie exacte de notification reste à auditer : annonce manuelle du streamer et/ou rappel unique lors du premier message éligible du joueur.
+
+Ces directions doivent être recroisées avec le vrai `Code.txt` et `gift_codes.json` avant validation finale.
 - données `usedCodes` des joueurs.
 
 ### Gift / récompenses Twitch

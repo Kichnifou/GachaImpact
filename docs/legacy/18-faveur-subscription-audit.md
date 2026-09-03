@@ -1,8 +1,8 @@
 # 18 — Audit Faveur / Subscription
 
 > Domaine 15 de l'audit GachaImpact.  
-> Statut : **EN COURS — décisions produit R657 à R672 validées ; clôture technique à finaliser**.  
-> Ce document devient la source spécialisée du domaine Faveur / Subscription.  
+> Statut : **CLÔTURÉ — décisions produit R657 à R672 validées ; clôture technique finalisée**.  
+> Ce document est la source spécialisée validée du domaine Faveur / Subscription.  
 > L'état global du projet et la prochaine reprise exacte restent la responsabilité du Master.
 
 ---
@@ -733,34 +733,37 @@ Les différentes attributions se cumulent jusqu'à ce plafond.
 
 ---
 
-## R664 — Éligibilité différente Twitch-only / standalone — ✅ VALIDÉ PERSONNALISÉ
+## R664 — Éligibilité basée sur l'activation par l'élément — ✅ VALIDÉ PERSONNALISÉ
 
 L'objectif est d'éviter qu'un viewer Twitch passif ou totalement extérieur au jeu profite automatiquement de la Faveur simplement parce qu'il reçoit un gift sub.
 
+La Faveur applique la règle centrale d'activation Twitch :
+
+**élément choisi = joueur activé.**
+
 ### Joueur Twitch-only
 
-Conserver le filtre historique :
+Pour recevoir une nouvelle Faveur :
 
-**niveau ≥2**
+- le joueur interne doit déjà exister ;
+- son élément personnel doit être choisi.
 
-pour recevoir une nouvelle Faveur via un événement Twitch.
+Aucun niveau minimum supplémentaire n'est requis.
 
-Cette règle sert de filtre de participation réelle au jeu.
+Un profil Twitch-only peut donc exister sans être encore éligible à la Faveur tant que son élément est vide.
 
-Elle est cohérente avec l'onboarding Twitch déjà validé :
-
-- le premier message peut créer le profil Twitch-only ;
-- à partir du niveau 1, la progression est bloquée tant que l'élément n'est pas choisi ;
-- atteindre le niveau 2 implique donc que le joueur a franchi cette étape d'activation.
+Cette règle remplace le filtre legacy `niveau >= 2`.
 
 ### Joueur standalone complet
 
-Si le Twitch User ID est relié à un joueur ayant terminé l'onboarding standalone :
+Le standalone impose déjà le choix d'élément pendant l'onboarding.
 
-- aucune condition de niveau minimum pour recevoir la Faveur ;
-- son élément existe déjà obligatoirement grâce à l'onboarding standalone.
+Si son Twitch User ID est correctement relié au même joueur interne :
 
-Le niveau n'est donc pas utilisé comme filtre artificiel dans ce cas.
+- il satisfait automatiquement le verrou d'activation ;
+- son niveau n'a aucune importance pour recevoir une Faveur.
+
+Faveur ne possède donc pas sa propre définition de « joueur actif » : elle réutilise la règle centrale de l'élément.
 
 ---
 
@@ -774,25 +777,28 @@ Le fonctionnement général reste cohérent avec l'architecture déjà validée 
 
 - le premier message Twitch peut créer un profil joueur Twitch-only ;
 - ce profil appartient déjà au joueur interne ;
-- il peut ensuite progresser et choisir son élément ;
+- `!element` permet ensuite de terminer son activation ;
 - il pourra éventuellement être rattaché plus tard à un compte web.
 
 Si un bénéficiaire d'un gift :
 
 - n'a encore aucun joueur interne GachaImpact ;
-- ou possède un profil Twitch-only ne remplissant pas la condition R664 ;
+- ou possède un profil Twitch-only sans élément choisi ;
 
 la Faveur n'est pas appliquée.
 
 Elle n'est pas mise dans une file d'attente de plusieurs semaines/mois pour être récupérée plus tard.
 
-Créer plus tard un profil ou relier ultérieurement Twitch ne ressuscite donc pas une ancienne attribution ignorée.
+Créer plus tard un profil ou choisir ultérieurement son élément ne ressuscite donc pas une ancienne attribution ignorée.
 
 ### Standalone
 
-Un joueur ayant terminé l'onboarding standalone possède déjà un joueur interne et un élément.
+Un joueur ayant terminé l'onboarding standalone possède déjà :
 
-Si son Twitch est correctement relié, son niveau n'empêche pas l'attribution conformément à R664.
+- son joueur interne ;
+- son élément.
+
+Si son Twitch est correctement relié, il satisfait donc automatiquement R664.
 
 ---
 
@@ -969,8 +975,8 @@ L'obtention/prolongation Twitch peut produire son message de confirmation adapt�
 - L'événement `channel.subscription.gift` ou équivalent est propriétaire du bonus gifter afin de ne pas le doubler avec les événements individuels de bénéficiaires.
 - Un gift multiple applique le nombre autoritatif de gifts exactement une fois.
 - Un événement de subscription ne crée jamais à lui seul un joueur interne.
-- Twitch-only : l'éligibilité Faveur conserve le filtre niveau ≥2.
-- Standalone onboardé + Twitch lié : aucune condition de niveau.
+- Twitch-only : l'éligibilité Faveur utilise la règle centrale `élément choisi = joueur activé` ; aucun seuil de niveau supplémentaire.
+- Standalone onboardé + Twitch lié : l'élément est déjà obligatoire, donc aucune condition supplémentaire d'activation ou de niveau.
 - Le pseudo Twitch n'est jamais utilisé comme identité métier ; utiliser le Twitch User ID résolu vers le player ID interne.
 - Une Faveur ignorée pour absence de joueur / inéligibilité n'est pas conservée comme entitlement différé.
 - La migration conserve le `daysRemaining` certain au cutover sans recalcul rétroactif.
@@ -980,26 +986,208 @@ L'obtention/prolongation Twitch peut produire son message de confirmation adapt�
 
 ---
 
-# 24. Points restants avant clôture
+# 24. Modèle temporel cible
 
-Aucun arbitrage produit majeur supplémentaire n'est actuellement identifié.
+`daysRemaining` ne doit plus être un compteur décrémenté lorsqu'un joueur parle.
 
-À finaliser techniquement :
+La cible conserve une échéance serveur permettant de dériver les jours réellement restants.
 
-- représentation exacte de l'échéance / jours restants dans le modèle cible ;
-- contrat final `!faveur` ;
-- états précis de la carte Profil / Quotidiennes ;
-- traitement migration des `obtainedDate` / `lastClaimDate` ;
-- garanties de concurrence ;
-- gestion des événements Twitch anonymes/incomplets ;
-- producteurs / consommateurs ;
-- critères d'acceptation ;
-- clôture du domaine.
+Conceptuellement :
 
-Si aucun nouveau choix produit réel n'émerge de cette vérification, ne pas créer artificiellement R673 dans ce domaine.
+- journée métier en `Europe/Paris` ;
+- une attribution ajoute jusqu'à 30 journées futures ;
+- maximum 180 journées restantes ;
+- une nouvelle attribution reçue aujourd'hui commence ses nouvelles journées à partir du lendemain ;
+- les journées passent automatiquement avec le calendrier.
+
+Le modèle de données final pourra matérialiser cette règle avec une date d'expiration / dernière journée active plutôt qu'un compteur mutable.
+
+Le claim quotidien reste une donnée séparée identifiée par :
+
+`player + businessDate`
+
+Il ne modifie jamais la durée de la Faveur.
 
 ---
 
-# 25. Sweep final obligatoire
+# 25. Migration Faveur
+
+Migrer lorsque présents :
+
+- `favor.daysRemaining` ;
+- `favor.obtainedDate` ;
+- `favor.lastClaimDate`.
+
+Principe :
+
+**la valeur `daysRemaining` du legacy au cutover est considérée certaine.**
+
+Ne pas appliquer rétroactivement la nouvelle consommation calendaire aux jours antérieurs au cutover.
+
+### Reward du jour du cutover
+
+Si `lastClaimDate` correspond déjà à la journée du cutover :
+
+- considérer les +800 du jour comme déjà reçues ;
+- ne jamais les repayer.
+
+Si le joueur possède une Faveur active et que le reward du jour n'a pas encore été reçu :
+
+- il peut rester récupérable ce jour-là si les règles legacy ne l'interdisaient pas déjà ;
+- à partir de minuit suivant, la nouvelle consommation calendaire s'applique normalement.
+
+Si `obtainedDate` correspond au jour du cutover :
+
+- préserver la règle empêchant le reward quotidien le jour même de l'obtention.
+
+Aucune récompense immédiate, compensation ou journée supplémentaire n'est déclenchée uniquement par l'import.
+
+La migration est idempotente.
+
+---
+
+# 26. Producteurs / consommateurs cibles
+
+## Intégration Twitch
+
+Produit les événements externes nécessaires :
+
+- nouveau sub ;
+- gift sub ;
+- gifter / quantité offerte ;
+- resub fiable lorsqu'il existe.
+
+Elle résout le Twitch User ID vers le joueur interne.
+
+Elle ne décide pas elle-même des montants économiques.
+
+## Service Faveur
+
+Produit :
+
+- attribution / prolongation ;
+- durée active ;
+- compensation overflow ;
+- éligibilité quotidienne ;
+- état `reward reçu aujourd'hui`.
+
+## Économie
+
+Reçoit :
+
+- bonus immédiat Tier 1 / 2 / 3 ;
+- compensation du plafond ;
+- +800 quotidien ;
+- bonus gifter.
+
+Toutes ces mutations maintiennent `totalPrimosEarned`.
+
+## Profil
+
+Consomme :
+
+- Faveur active / inactive ;
+- jours restants ;
+- maximum 180 ;
+- état du reward quotidien.
+
+## Quotidiennes
+
+Consomme :
+
+- reward Faveur disponible aujourd'hui ;
+- reward déjà reçu ;
+- Faveur inactive.
+
+## Notifications / UI
+
+Peut restituer :
+
+- obtention/prolongation de Faveur ;
+- animation des +800 lorsqu'ils sont réellement accordés depuis le standalone.
+
+---
+
+# 27. Contrat cible `!faveur`
+
+Syntaxes :
+
+- `!faveur`
+- `!faveur <pseudo>`
+
+La commande reste une **consultation**.
+
+Elle ne constitue pas elle-même un claim quotidien.
+
+### Sa propre Faveur
+
+Afficher de manière compacte :
+
+- active / inactive ;
+- jours restants ;
+- +800 par jour ;
+- reward du jour déjà reçu ou encore disponible.
+
+### Faveur d'un autre joueur
+
+Respecter les règles de confidentialité du profil.
+
+### Twitch
+
+Le premier message normal éligible peut réclamer les +800.
+
+`!faveur` n'est pas utilisé comme deuxième chemin économique indépendant.
+
+---
+
+# 28. Critères d'acceptation
+
+Le Domaine Faveur / Subscription est prêt pour la V1 si les tests peuvent prouver notamment que :
+
+1. une attribution normale ajoute 30 jours au maximum ;
+2. la durée ne dépasse jamais 180 jours ;
+3. les jours passent même si le joueur est totalement absent ;
+4. une journée absente consomme un jour sans accorder +800 ;
+5. un reward quotidien ne peut être payé qu'une fois tous canaux confondus ;
+6. Twitch puis standalone le même jour ne paient pas deux fois ;
+7. standalone puis Twitch le même jour ne paient pas deux fois ;
+8. le profil indique correctement `Récompense du jour reçue` ;
+9. l'animation standalone n'apparaît que lorsqu'un vrai paiement est effectué ;
+10. Tier 1 donne +1 600 immédiates ;
+11. Tier 2 donne +4 800 immédiates ;
+12. Tier 3 donne +9 600 immédiates ;
+13. chaque jour bloqué par le plafond produit la compensation proportionnelle validée ;
+14. la compensation s'ajoute au bonus immédiat ;
+15. un nouveau bloc de 30 jours commence ses daily rewards le lendemain ;
+16. un profil Twitch-only sans élément choisi ne reçoit pas de Faveur ;
+17. un profil Twitch-only avec élément choisi est éligible sans seuil de niveau supplémentaire ;
+18. un joueur standalone onboardé et correctement Twitch-lié est éligible quel que soit son niveau ;
+19. un gift ne crée pas automatiquement un joueur GachaImpact ;
+20. une Faveur ignorée n'est pas réclamable rétroactivement après activation ;
+21. le gifter éligible reçoit exactement +1 600 par sub offert ;
+22. un gift multiple n'est jamais doublé par les événements des bénéficiaires ;
+23. un même événement Twitch retraité ne produit aucune seconde récompense ;
+24. un resub n'est crédité que lorsqu'une preuve Twitch suffisamment fiable existe ;
+25. `!faveur pseudo` respecte la confidentialité ;
+26. la migration conserve les jours restants certains sans punition rétroactive ;
+27. aucun reward historique absent n'est inventé pendant la migration.
+
+---
+
+# 29. Conclusion du domaine
+
+**Domaine Faveur / Subscription : CLÔTURÉ après R672.**
+
+Le comportement produit, l'intégration Twitch, l'activation par élément, le calendrier de Faveur, les rewards, l'overflow, les gifts, les tiers, la migration et les contrats de consultation sont suffisamment définis pour une future implémentation V1 bornée.
+
+Le domaine ne doit être rouvert que si :
+
+- l'intégration Twitch réelle révèle une limitation nouvelle ;
+- le sweep final découvre une dépendance oubliée ;
+- une décision produit est explicitement modifiée.
+
+---
+
+# 30. Sweep final obligatoire
 
 Même après clôture de Faveur / Subscription et des audits restants, le sweep exhaustif final des 36 scripts `.txt` et 17 JSON reste obligatoire avant le modèle de données cible final et la V1.

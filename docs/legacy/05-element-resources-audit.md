@@ -66,6 +66,20 @@ Commande legacy :
 - standalone : choix obligatoire pendant l'inscription/onboarding ;
 - Twitch : `!element` reste le mécanisme naturel d'activation du profil Twitch au moment prévu par l'onboarding.
 
+### Règle centrale d'activation Twitch
+
+Pour un profil Twitch-only :
+
+**élément choisi = profil joueur activé pour les mécaniques normales du jeu.**
+
+Lors des audits restants et du sweep final :
+
+- lorsqu'un script legacy utilise un niveau minimum ou une condition similaire uniquement pour vérifier que le viewer participe réellement au jeu, remplacer cette condition par `élément choisi` ;
+- ne pas multiplier les seuils artificiels `niveau >= 2`, `niveau >= X`, etc. lorsqu'ils servent uniquement d'onboarding ;
+- conserver évidemment les véritables préconditions métier propres aux systèmes : possession, ressources, cooldowns, progression, permissions, etc.
+
+Le standalone impose déjà le choix d'élément pendant son onboarding et satisfait donc naturellement ce verrou.
+
 Le futur modèle technique d'identité Twitch-only / compte standalone sera défini dans la spécification Auth/Twitch.
 
 ---

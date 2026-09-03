@@ -548,6 +548,30 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Interactions :** MissionService, Chat/XP, Gacha, Ressources, Expedition, Combat, Social
 - **Décisions cible :** les anciennes syntaxes d'acceptation `!mission B 1` et d'abandon ne font plus partie du fonctionnement standalone
 
+## `!faveur`
+
+- **Statut audit :** CLÔTURÉ — Domaine Faveur / Subscription après R672
+- **But :** Consulter l'état de la Faveur de l'Astre.
+- **Syntaxes :** `!faveur` ; `!faveur <pseudo>`
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui lorsque l'intégration Twitch sera disponible
+- **UI équivalente :** informations Faveur dans Profil et Quotidiennes ; aucun écran Faveur complet dédié
+- **Acquisition :** uniquement via événements de subscription Twitch compatibles
+- **Activation Twitch-only :** élément personnel choisi obligatoire ; aucun seuil de niveau supplémentaire
+- **Standalone :** onboarding déjà terminé = élément déjà choisi
+- **Durée :** +30 jours par attribution, maximum 180 jours
+- **Daily :** +800 Primogemmes une fois par journée active si le joueur se manifeste
+- **Temps :** les jours s'écoulent même si le joueur est absent
+- **Tier 1 :** +1 600 Primogemmes immédiates
+- **Tier 2 :** +4 800 Primogemmes immédiates
+- **Tier 3 :** +9 600 Primogemmes immédiates
+- **Overflow :** compensation supplémentaire `1600 × jours perdus / 30`
+- **Gift :** la Faveur appartient au bénéficiaire ; gifter éligible = +1 600 par sub offert
+- **Confidentialité :** `!faveur <pseudo>` respecte la visibilité du profil
+- **Commande :** consultation uniquement ; `!faveur` ne constitue pas un claim économique séparé
+- **Migration :** préserver les jours restants certains et le claim du jour sans reconstruire les anciens jours absents
+- **Atomicité :** attribution, overflow, daily et bonus gifter protégés contre retry et doublons Twitch
+
 ## `!roue`
 
 - **Statut audit :** CLÔTURÉ — Domaine Roue / quotidien après R656
