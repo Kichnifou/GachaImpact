@@ -1,8 +1,8 @@
 # 17 — Audit Roue / quotidien
 
 > Domaine 14 de l'audit GachaImpact.  
-> Statut : **EN COURS — audit technique initial réalisé, premières décisions produit à reprendre à R645**.  
-> Ce document devient la source spécialisée du domaine Roue / quotidien.  
+> Statut : **CLÔTURÉ — décisions produit R645 à R656 validées**.  
+> Ce document est la source spécialisée validée du domaine Roue / quotidien.  
 > L'état global du projet et la prochaine reprise exacte restent la responsabilité du Master.
 
 ---
@@ -602,28 +602,237 @@ Aucune récompense n'est déclenchée pendant l'import.
 
 ---
 
-# 26. Points produit à auditer
+# 26. Décisions produit validées
 
-Première reprise produit :
+## R645 — Une Roue par jour — ✅ VALIDÉ A
 
-**R645**
+La Roue reste utilisable :
 
-À traiter notamment :
+**une seule fois par joueur et par journée serveur.**
 
-- conserver une Roue par jour ;
-- choisir entre la distribution du vrai code, celle du commentaire ou une nouvelle distribution ;
-- fixer définitivement la récompense Moras 20 000 vs 50 000 ;
-- confirmer +500 particules ;
-- confirmer +1 600 Primogemmes ;
-- conserver ou supprimer le résultat `rien` ;
-- présentation visuelle de la Roue ;
-- visibilité des probabilités ;
-- comportement de l'écran après le spin ;
-- conservation du résultat du jour ;
-- présentation des statistiques `totalWheelSpins` / `totalWheelJackpots` ;
-- contrat final `!roue` ;
-- migration / critères d'acceptation ;
-- clôture du domaine.
+Le reset quotidien utilise :
+
+`00:00 Europe/Paris`
+
+Cette utilisation est commune à tous les canaux :
+
+- UI standalone ;
+- chat interne ;
+- Twitch futur.
+
+Alterner les canaux ne permet jamais d'obtenir plusieurs spins.
+
+---
+
+## R646 — Distribution réelle du code conservée — ✅ VALIDÉ A
+
+La V1 conserve la distribution réellement exécutée par le legacy, et non celle indiquée dans l'ancien commentaire erroné.
+
+Répartition cible :
+
+| Résultat | Probabilité |
+|---|---:|
+| Rien | 2 % |
+| +500 Cryo | 10 % |
+| +500 Pyro | 10 % |
+| +500 Dendro | 10 % |
+| +500 Electro | 10 % |
+| +500 Geo | 10 % |
+| +500 Anemo | 10 % |
+| +500 Hydro | 10 % |
+| +50 000 Moras | 20 % |
+| +1 600 Primogemmes | 8 % |
+
+Répartition agrégée :
+
+- rien : 2 % ;
+- particules : 70 % ;
+- Moras : 20 % ;
+- Primogemmes : 8 %.
+
+Le commentaire historique annonçant 20 % de `rien` et seulement 2 % de Primogemmes ne définit pas la cible.
+
+---
+
+## R647 — Récompense Moras — ✅ VALIDÉ A
+
+La récompense Moras devient officiellement :
+
+**+50 000 Moras**
+
+Il s'agit de la valeur réellement créditée par le code legacy.
+
+L'ancien texte annonçant +20 000 était erroné et doit disparaître.
+
+Le gain met normalement à jour les statistiques économiques centrales correspondantes.
+
+---
+
+## R648 — Récompense Particules — ✅ VALIDÉ A
+
+Chaque résultat élémentaire donne :
+
+**+500 particules de l'élément tiré**
+
+Les sept éléments restent équiprobables :
+
+**10 % chacun.**
+
+L'élément personnel du joueur n'influence pas le tirage.
+
+Si l'élément tiré correspond à son élément personnel, les règles Ressources déjà validées s'appliquent également à `totalMainElementParticlesEarned`.
+
+---
+
+## R649 — Jackpot Primogemmes — ✅ VALIDÉ A
+
+Le jackpot reste :
+
+**+1 600 Primogemmes**
+
+Probabilité :
+
+**8 %**
+
+Le résultat incrémente également :
+
+`totalWheelJackpots`
+
+Le terme `jackpot` désigne donc ce résultat Primogemmes.
+
+---
+
+## R650 — Vraie roue graphique animée — ✅ VALIDÉ A
+
+L'écran Roue standalone présente une vraie roue circulaire animée.
+
+Les différentes zones représentent les résultats possibles.
+
+Leur taille doit refléter de manière cohérente les probabilités réelles.
+
+Le déroulement cible est :
+
+1. le joueur demande à tourner ;
+2. le serveur valide et détermine le résultat ;
+3. le résultat est persisté ;
+4. l'animation démarre ;
+5. la roue s'arrête visuellement sur le résultat déjà déterminé ;
+6. le gain est affiché.
+
+La position visuelle du client ne décide jamais du résultat métier.
+
+---
+
+## R651 — Probabilités consultables — ✅ VALIDÉ A
+
+Les probabilités exactes sont consultables depuis l'écran Roue.
+
+Une action du type :
+
+`Probabilités`
+
+peut ouvrir un détail clair de la table.
+
+L'interface n'a pas besoin d'afficher un pourcentage sur chaque portion en permanence si cela surcharge visuellement la Roue.
+
+Les probabilités affichées doivent provenir de la même configuration autoritative que celle utilisée par le serveur pour les tirages.
+
+Il ne doit jamais exister une table UI différente de la table métier réelle.
+
+---
+
+## R652 — Résultat du jour conservé dans l'écran — ✅ VALIDÉ A
+
+Après utilisation de la Roue :
+
+- la Roue devient indisponible jusqu'au prochain reset ;
+- le résultat du jour reste visible ;
+- le gain obtenu reste visible ;
+- l'écran indique clairement `Déjà tournée aujourd'hui` ;
+- un compte à rebours jusqu'au reset suivant peut être affiché.
+
+Exemple conceptuel :
+
+`🎡 Résultat du jour : +50 000 Moras`
+
+`Prochaine Roue dans 06:42:18`
+
+Une reconnexion pendant la même journée retrouve ce résultat.
+
+---
+
+## R653 — Statistiques personnelles visibles — ✅ VALIDÉ A
+
+L'écran Roue affiche discrètement les statistiques historiques déjà réellement disponibles :
+
+- nombre total de spins ;
+- nombre total de jackpots.
+
+Exemple :
+
+`Tours effectués : 99`
+
+`Jackpots : 11`
+
+La V1 n'invente pas de nouveaux compteurs historiques par type de récompense uniquement pour enrichir cet écran.
+
+---
+
+## R654 — `!roue` après utilisation rappelle le résultat — ✅ VALIDÉ A
+
+Si le joueur utilise `!roue` alors que son spin du jour est déjà consommé :
+
+- aucune nouvelle récompense ;
+- aucun nouveau tirage ;
+- la réponse rappelle que la Roue est déjà utilisée ;
+- si le résultat quotidien est disponible, elle rappelle également ce résultat.
+
+Exemple :
+
+`⚠️ Roue déjà utilisée aujourd'hui — résultat : +500 particules Hydro.`
+
+La réponse peut également indiquer que la prochaine Roue sera disponible le lendemain.
+
+---
+
+## R655 — Gain du jour dans le hub Quotidiennes — ✅ VALIDÉ A
+
+La carte Roue du hub transversal `Quotidiennes` conserve ses deux états principaux :
+
+- `À faire` ;
+- `Fait aujourd'hui`.
+
+Après utilisation, elle affiche également le gain du jour lorsque celui-ci est disponible.
+
+Exemple :
+
+`🎡 Roue`
+
+`✅ Fait aujourd'hui`
+
+`+1 600 Primogemmes`
+
+La carte reste un résumé.
+
+L'action `Accéder` continue d'ouvrir le véritable écran Roue.
+
+---
+
+## R656 — Animation courte et skippable — ✅ VALIDÉ A
+
+L'animation de la Roue doit rester assez courte pour une activité quotidienne.
+
+Elle peut durer quelques secondes afin de conserver un effet de suspense.
+
+Le joueur peut la passer pour afficher immédiatement le résultat.
+
+Passer l'animation :
+
+- ne change pas le résultat ;
+- ne produit pas un second appel métier ;
+- ne modifie pas la récompense.
+
+Fermer ou recharger l'écran pendant l'animation ne reroll jamais.
 
 ---
 
@@ -631,18 +840,192 @@ Première reprise produit :
 
 - Heure métier : `Europe/Paris`.
 - Une utilisation maximum par joueur et par journée serveur.
+- L'unicité logique est portée par joueur + journée métier.
 - L'état Roue est commun à UI, chat interne et Twitch.
-- `!quotis` reste dynamique et l'écran `Quotidiennes` reste un agrégateur, conformément aux décisions déjà validées.
-- La carte Roue du hub ne possède que les états `À faire` et `Fait aujourd'hui`.
-- Le résultat est tiré côté serveur.
-- Le résultat est persisté avant de dépendre de l'animation client.
-- Spin + récompense + statistiques forment une opération atomique/idempotente.
+- `!quotis` reste dynamique et l'écran `Quotidiennes` reste un agrégateur.
+- La carte Roue du hub possède les états `À faire` / `Fait aujourd'hui` et peut restituer le gain du jour.
+- Le résultat est tiré exclusivement côté serveur.
+- Les probabilités métier utilisent une configuration serveur unique réutilisable également pour la présentation UI.
+- Le résultat du jour contient suffisamment d'informations pour restituer au minimum le type de récompense, l'élément éventuel, le montant et la journée concernée.
+- Le résultat est persisté avant que l'animation client ne constitue une restitution.
+- Spin + consommation quotidienne + récompense + statistiques forment une opération transactionnelle logique.
+- Un retry, double clic ou appel concurrent ne peut jamais produire un second résultat ni une seconde récompense.
+- Passer l'animation est une action client sans nouvel effet économique.
 - Une récompense de particules correspondant à l'élément personnel met à jour `totalMainElementParticlesEarned`.
-- Les compteurs historiques Roue sont migrés sans reconstruction rétroactive.
-- Le message utilisateur et la valeur réellement créditée devront obligatoirement être identiques en V1.
+- +50 000 Moras met à jour les statistiques de Moras générées selon les règles économiques centrales.
+- +1 600 Primogemmes met à jour les statistiques de Primogemmes générées et `totalWheelJackpots`.
+- `totalWheelSpins` augmente exactement une fois pour un spin validé, y compris lorsque le résultat est `rien`.
+- Le message utilisateur et la valeur réellement créditée sont toujours dérivés du même résultat autoritatif.
+- Le compte à rebours UI est dérivé du prochain reset serveur ; il n'est pas une source de vérité pour l'éligibilité.
 
 ---
 
-# 28. Sweep final obligatoire du projet
+# 28. Migration Roue
+
+Migrer :
+
+- `dates.lastWheelDate` ;
+- `stats.totalWheelSpins` ;
+- `stats.totalWheelJackpots`.
+
+Les compteurs historiques sont conservés tels quels.
+
+Ne pas tenter de reconstruire :
+
+- les dates de tous les anciens spins ;
+- les récompenses de tous les anciens spins ;
+- le nombre historique de chaque type de récompense ;
+- les particules personnelles anciennes qui auraient dû augmenter `totalMainElementParticlesEarned`.
+
+Si `lastWheelDate` correspond à la journée serveur du cutover :
+
+- considérer le spin du jour comme déjà consommé ;
+- ne jamais offrir un nouveau spin pour compenser l'absence de détail historique.
+
+Le legacy ne permettant pas de connaître le résultat exact de ce spin, l'UI peut exceptionnellement afficher :
+
+`✅ Roue déjà effectuée aujourd'hui — ancien résultat non disponible`
+
+jusqu'au reset suivant.
+
+Dès le premier spin réalisé dans GachaImpact, le résultat quotidien complet devient disponible pour R652/R654/R655.
+
+Une date legacy invalide ou future est journalisée comme anomalie de migration et traitée conservativement.
+
+Aucune récompense n'est déclenchée par l'import lui-même.
+
+La migration doit être idempotente.
+
+---
+
+# 29. Producteurs / consommateurs cibles
+
+## Roue
+
+Produit :
+
+- utilisation quotidienne ;
+- résultat quotidien ;
+- récompense ;
+- `totalWheelSpins` ;
+- `totalWheelJackpots`.
+
+## Économie / Ressources
+
+Reçoit :
+
+- +50 000 Moras ;
+- +1 600 Primogemmes ;
+- +500 particules élémentaires.
+
+Les statistiques économiques centrales sont maintenues par les mutations de ressources correspondantes.
+
+## Quotidiennes
+
+Consomme :
+
+- Roue disponible ou effectuée ;
+- gain du jour lorsqu'il existe.
+
+Le hub ne produit jamais le spin.
+
+## UI / chat interne / Twitch
+
+Appellent tous la même opération serveur.
+
+---
+
+# 30. Contrat cible `!roue`
+
+Commande canonique :
+
+`!roue`
+
+Aucun argument nécessaire.
+
+### Si disponible
+
+La commande :
+
+- valide le spin ;
+- tire côté serveur ;
+- applique immédiatement la récompense ;
+- retourne le résultat.
+
+### Si déjà utilisée
+
+La commande :
+
+- ne relance pas la Roue ;
+- rappelle que le spin est consommé ;
+- rappelle le résultat du jour lorsqu'il est disponible.
+
+### UI
+
+L'écran Roue possède :
+
+- roue graphique ;
+- bouton `Tourner` ;
+- accès aux probabilités ;
+- résultat quotidien ;
+- compte à rebours ;
+- total de spins ;
+- total de jackpots.
+
+### Twitch / chat interne
+
+La réponse reste compacte.
+
+Aucune animation n'est nécessaire côté texte.
+
+---
+
+# 31. Critères d'acceptation
+
+Le Domaine Roue / quotidien est considéré prêt pour une future implémentation V1 si les tests peuvent prouver notamment que :
+
+1. un joueur ne peut obtenir qu'un seul spin par journée `Europe/Paris` ;
+2. UI, chat et Twitch partagent exactement le même verrou ;
+3. le serveur utilise bien la distribution 2 % / 70 % / 20 % / 8 % validée ;
+4. chacun des sept éléments possède 10 % ;
+5. la récompense élémentaire vaut exactement 500 particules ;
+6. la récompense Moras vaut exactement 50 000 ;
+7. le jackpot vaut exactement 1 600 Primogemmes ;
+8. `rien` reste un résultat valide à 2 % ;
+9. les probabilités affichées utilisent la même configuration que le tirage serveur ;
+10. un double clic ne produit pas deux récompenses ;
+11. deux appels simultanés provenant de canaux différents ne produisent pas deux récompenses ;
+12. un retry réseau ne reroll pas ;
+13. fermer l'écran pendant l'animation ne reroll pas ;
+14. passer l'animation ne produit aucun nouvel effet métier ;
+15. le résultat du jour est retrouvable après reconnexion ;
+16. `!roue` après utilisation rappelle le résultat sans payer à nouveau ;
+17. la carte Quotidiennes affiche correctement `À faire` ou `Fait aujourd'hui` ;
+18. le gain du jour est affiché dans cette carte lorsqu'il est connu ;
+19. `totalWheelSpins` augmente exactement une fois par spin valide ;
+20. `totalWheelJackpots` augmente uniquement sur +1 600 Primogemmes ;
+21. les gains Moras/Primogemmes maintiennent leurs statistiques économiques ;
+22. une récompense de l'élément personnel maintient `totalMainElementParticlesEarned` ;
+23. la migration conserve les compteurs historiques sans inventer les anciens résultats ;
+24. un spin legacy déjà effectué le jour du cutover reste consommé ;
+25. l'import ne distribue aucune récompense.
+
+---
+
+# 32. Conclusion du domaine
+
+**Domaine Roue / quotidien : CLÔTURÉ après R656.**
+
+Le comportement produit, l'économie, les probabilités, l'UX standalone, le contrat `!roue`, l'intégration au hub Quotidiennes, la migration et les garanties de concurrence sont suffisamment définis pour une future implémentation V1 bornée.
+
+Le domaine ne doit être rouvert que si :
+
+- le sweep final révèle une dépendance oubliée ;
+- un audit restant introduit une vraie interaction nouvelle ;
+- une décision produit est explicitement révisée.
+
+---
+
+# 33. Sweep final obligatoire du projet
 
 Même après clôture de Roue / quotidien et des audits restants, le projet devra toujours effectuer le sweep exhaustif final des 36 scripts `.txt` et 17 JSON avant la conception finale du modèle de données et le passage à la V1.

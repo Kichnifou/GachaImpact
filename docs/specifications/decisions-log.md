@@ -484,7 +484,7 @@ Statut : évolutif.
 - `VALIDÉ TECHNIQUE` — La progression et les récompenses Missions sont centralisées dans `MissionService`, déclenchées immédiatement par les vraies mutations métier et protégées par atomicité/idempotence.
 - `VALIDÉ TECHNIQUE` — Les services économiques/jeu produisent des événements autoritatifs avec leur cause ; MissionService les consomme sans reconstruire les gains depuis les clients.
 - `RÉSOLU DANS COMBAT R387/R388` — B/A/S Combat utilisent `totalCombatWins` ; Z `Maître du combat` utilise `totalManualCombatWins`, uniquement sans mode Auto.
-- `REPORTÉ` — Ami/Social reste propriétaire de la définition exacte de ses événements de progression ; Roue/Ami/Event continueront à finaliser leurs états dans `!quotis`.
+- `RÉSOLU` — Roue, Combat, Expedition, Ami/Social, Event et la mission quotidienne exposent désormais leurs états autoritatifs au hub `Quotidiennes` / `!quotis` ; chaque domaine reste propriétaire de sa mécanique.
 - `RÉSOLU DANS EXPEDITION` — Une expédition compte pour Missions uniquement lors d'une récupération réussie ; `totalExpeditionsCompleted +1` et événement Mission sont produits à ce moment.
 - `CLÔTURÉ R339` — Domaine Missions / Daily clôturé après R339.
 
@@ -890,3 +890,19 @@ Statut : évolutif.
 - `MIGRATION` — Conserver les fenêtres/états quotidiens utiles du jour, Jeu B courant, calendrier décembre et messages non délivrés lorsque leur provenance est certaine.
 - `MIGRATION` — Ne jamais inventer de palmarès historique, monnaie saisonnière absente, tirage `monthlyDraw` ou fonctionnalité issue de `monthly_events.json`.
 - `CLÔTURÉ R644` — Domaine Event / monthly clôturé.
+- `VALIDÉ R645` — La Roue reste utilisable une fois par joueur et par journée `Europe/Paris`, tous canaux confondus.
+- `VALIDÉ R646` — Conserver la distribution réellement exécutée : 2 % rien, 70 % particules, 20 % Moras, 8 % Primogemmes.
+- `VALIDÉ R647` — La récompense Moras officielle de la Roue est +50 000 ; l'ancien message +20 000 était erroné.
+- `VALIDÉ R648` — Chaque résultat élémentaire donne +500 particules ; les sept éléments possèdent chacun 10 %.
+- `VALIDÉ R649` — Le jackpot Roue reste +1 600 Primogemmes à 8 %.
+- `VALIDÉ R650` — L'écran standalone utilise une vraie roue animée dont les zones reflètent les probabilités, mais le résultat est déterminé côté serveur avant l'animation.
+- `VALIDÉ R651` — Les probabilités exactes sont consultables dans l'écran Roue et utilisent la même configuration que le moteur de tirage.
+- `VALIDÉ R652` — Après le spin, le résultat du jour reste visible avec Roue désactivée et prochain reset affichable.
+- `VALIDÉ R653` — L'écran Roue affiche `totalWheelSpins` et `totalWheelJackpots`, sans inventer une multitude de statistiques supplémentaires.
+- `VALIDÉ R654` — `!roue` après utilisation rappelle le résultat quotidien lorsqu'il est connu, sans nouvelle récompense.
+- `VALIDÉ R655` — La carte Roue de `Quotidiennes` affiche `À faire` / `Fait aujourd'hui` et peut également afficher le gain du jour.
+- `VALIDÉ R656` — L'animation Roue est courte et skippable ; la passer, fermer l'écran ou recharger ne modifie jamais le résultat.
+- `TECHNIQUE` — Unicité joueur+journée, tirage serveur, résultat quotidien persistant et transaction spin/récompense/statistiques protégés contre concurrence et retry.
+- `TECHNIQUE` — Les gains Roue utilisent les mutations Ressources centrales afin de maintenir automatiquement les statistiques économiques et `totalMainElementParticlesEarned` lorsque pertinent.
+- `MIGRATION` — Conserver `lastWheelDate`, `totalWheelSpins`, `totalWheelJackpots` sans reconstruire les résultats historiques absents ; un spin legacy du jour du cutover reste consommé.
+- `CLÔTURÉ R656` — Domaine Roue / quotidien clôturé.

@@ -687,7 +687,18 @@ R355 précise son équivalent UI :
 - cet écran est distinct de `Missions` ;
 - chaque activité renvoie vers son véritable domaine propriétaire.
 
-La liste exacte des activités peut encore évoluer à mesure que Roue, Combat, Ami et Event sont audités.
+Les principaux contributeurs historiques de `!quotis` sont désormais audités :
+
+- Roue ;
+- Combat ;
+- Expedition ;
+- Ami / cœur ;
+- Event ;
+- mission quotidienne portée par Shop / Missions.
+
+Chaque carte du hub `Quotidiennes` lit l'état autoritatif de son domaine propriétaire et renvoie vers son véritable écran métier.
+
+Un audit restant pourra encore ajouter une activité uniquement s'il apporte une dépendance quotidienne réelle ; ne pas enrichir arbitrairement la liste.
 
 ## R312 — Pas de duplication inter-canaux
 

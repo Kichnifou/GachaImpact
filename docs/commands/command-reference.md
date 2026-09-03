@@ -548,6 +548,29 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Interactions :** MissionService, Chat/XP, Gacha, Ressources, Expedition, Combat, Social
 - **Décisions cible :** les anciennes syntaxes d'acceptation `!mission B 1` et d'abandon ne font plus partie du fonctionnement standalone
 
+## `!roue`
+
+- **Statut audit :** CLÔTURÉ — Domaine Roue / quotidien après R656
+- **But :** Effectuer la Roue quotidienne et recevoir immédiatement son résultat.
+- **Syntaxe :** `!roue`
+- **Bouton UI équivalent :** écran Roue dédié avec roue graphique et bouton `Tourner`
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui lorsque l'intégration Twitch sera disponible
+- **Préconditions :** profil joueur valide ; spin du jour encore disponible
+- **Cooldown :** une utilisation maximum par journée `Europe/Paris`, tous canaux confondus
+- **Distribution :** 2 % rien ; 70 % particules ; 20 % Moras ; 8 % Primogemmes
+- **Particules :** 10 % par élément, +500 particules
+- **Moras :** +50 000
+- **Jackpot :** +1 600 Primogemmes
+- **Résultat quotidien :** persisté et consultable jusqu'au reset ; une reconnexion ne reroll pas
+- **Après utilisation :** `!roue` rappelle que la Roue est consommée et restitue le résultat du jour lorsqu'il est connu
+- **UI :** probabilités consultables ; animation courte/skippable ; résultat, prochain reset, total spins et total jackpots visibles
+- **Quotidiennes :** état `À faire` / `Fait aujourd'hui` ; gain du jour affichable après le spin
+- **Statistiques :** `totalWheelSpins` +1 par spin valide ; `totalWheelJackpots` +1 uniquement sur jackpot Primogemmes
+- **Ressources :** les mutations centrales maintiennent aussi `totalPrimosEarned`, `totalMorasEarned` et `totalMainElementParticlesEarned` lorsque pertinent
+- **Atomicité :** spin, verrou quotidien, résultat, récompense et statistiques protégés contre double clic, concurrence inter-canaux et retry
+- **Migration :** conserver `lastWheelDate`, `totalWheelSpins`, `totalWheelJackpots` ; ne pas inventer les anciens résultats détaillés
+
 ## `!quotis`
 
 - **Statut audit :** Principe transverse validé R355 ; contenu enrichi progressivement avec les domaines quotidiens
