@@ -1,7 +1,7 @@
 # 18 — Audit Faveur / Subscription
 
 > Domaine 15 de l'audit GachaImpact.  
-> Statut : **EN COURS — audit technique initial réalisé, directions produit utilisateur intégrées, premières décisions à reprendre à R657**.  
+> Statut : **EN COURS — décisions produit R657 à R672 validées ; clôture technique à finaliser**.  
 > Ce document devient la source spécialisée du domaine Faveur / Subscription.  
 > L'état global du projet et la prochaine reprise exacte restent la responsabilité du Master.
 
@@ -581,47 +581,422 @@ Les mutations Faveur et économiques doivent être transactionnelles.
 
 ---
 
-# 23. Directions produit déjà acquises
+## R657 — Décompte calendaire même en cas d'absence — ✅ VALIDÉ A
 
-Sans consommer de nouvelles décisions techniques :
+Chaque journée de Faveur s'écoule selon le calendrier serveur, indépendamment de l'activité du joueur.
 
-- plafond 180 jours conservé ;
-- calendrier serveur `Europe/Paris` ;
-- le temps de Faveur ne dépend plus des messages ;
-- l'acquisition reste issue de Twitch, pas d'un achat standalone ;
-- le bénéficiaire d'un gift est le recipient du subscription ;
-- identité future basée sur Twitch ID lié à un player ID ;
-- événements Twitch idempotents ;
-- migration de `daysRemaining` sans punition rétroactive pour les jours qui n'étaient pas décrémentés par le legacy.
+La durée ne dépend plus :
+
+- d'un message Twitch ;
+- d'un message dans le chat interne ;
+- d'une connexion standalone ;
+- d'une commande ;
+- d'une tâche déclenchée par le joueur.
+
+Référence temporelle :
+
+`Europe/Paris`
+
+Une absence ne met donc jamais la Faveur en pause.
 
 ---
 
-# 24. Points produit à décider
+## R658 — Récompense quotidienne conditionnée à une présence — ✅ VALIDÉ A ENRICHI
 
-Reprendre à :
+Chaque journée active de Faveur consomme un jour, que le joueur soit présent ou non.
 
-**R657**
+Les **+800 Primogemmes quotidiennes ne sont cependant accordées que si le joueur se manifeste pendant cette journée**.
 
-À préciser notamment :
+Une seule réclamation est possible tous canaux confondus.
 
-- chaque journée calendaire doit-elle consommer un jour même si le reward +800 n'est pas réclamé ? direction utilisateur : oui ;
-- les +800 sont-ils perdus si le joueur ne se connecte pas, comme une Welkin classique, ou crédités automatiquement hors ligne ?
-- conserver +800/jour ?
-- conserver +1 600 Primogemmes immédiates sur une Faveur normale ?
-- relation exacte entre +1 600 normal et compensation overflow ;
-- commencer le reward quotidien le jour même de l'obtention ou le lendemain ;
-- conserver 30 jours par Faveur ;
-- conserver ou supprimer le filtre niveau 2 ;
-- comportement si le Twitch bénéficiaire n'a pas encore de compte lié ;
-- bonus gifter +1 600 : conserver / modifier / supprimer ;
-- gift multiple : bonus gifter par sub ou par événement ;
-- Tier 1 / 2 / 3 : même Faveur ou valeur différente ;
-- règle cible pour les resubs étant donné les limites EventSub ;
-- visibilité de `!faveur pseudo` ;
-- présentation standalone ;
+### Standalone
+
+La première présence authentifiée pertinente peut réclamer automatiquement la récompense du jour.
+
+Lorsqu'elle est réellement accordée depuis le standalone :
+
+- afficher une petite animation Faveur ;
+- montrer clairement `+800 Primogemmes` ;
+- mettre immédiatement à jour le profil.
+
+### Twitch
+
+Le premier message normal éligible du joueur peut continuer à déclencher la récompense quotidienne, comme dans l'esprit du système actuel.
+
+### État partagé
+
+Si la récompense a déjà été reçue sur Twitch puis que le joueur ouvre le standalone :
+
+- aucune seconde récompense ;
+- aucune seconde animation de gain ;
+- le profil affiche clairement que la récompense du jour a déjà été reçue.
+
+Le profil personnel affiche notamment :
+
+- jours de Faveur restants ;
+- état actif / inactif ;
+- `✓ Récompense du jour reçue` lorsque le claim a déjà eu lieu ;
+- état contraire lorsqu'elle reste encore récupérable aujourd'hui.
+
+Une journée passée sans présence consomme normalement un jour de Faveur et ses +800 sont définitivement perdues.
+
+---
+
+## R659 — Récompense quotidienne — ✅ VALIDÉ A
+
+Conserver :
+
+**+800 Primogemmes par journée réclamée**
+
+Le gain maintient les statistiques économiques centrales de Primogemmes.
+
+---
+
+## R660 — Récompense immédiate normale — ✅ VALIDÉ A
+
+Une nouvelle Faveur Tier 1 donne immédiatement :
+
+**+1 600 Primogemmes**
+
+Cette récompense est distincte :
+
+- des 30 jours ajoutés ;
+- des +800 quotidiennes ;
+- de la compensation éventuelle due au plafond.
+
+---
+
+## R661 — Compensation du dépassement en plus du bonus normal — ✅ VALIDÉ A
+
+La récompense immédiate normale de la Faveur est toujours accordée.
+
+En complément, chaque jour que le plafond de 180 empêche d'ajouter donne une compensation proportionnelle.
+
+Base de compensation :
+
+**30 jours perdus = 1 600 Primogemmes**
+
+Formule conceptuelle :
+
+`compensation = round(1600 × jours_perdus / 30)`
+
+Exemples Tier 1 :
+
+### Joueur à 100 jours
+
+- +30 jours ;
+- 130/180 ;
+- +1 600 immédiates ;
+- aucune compensation.
+
+### Joueur à 170 jours
+
+- +10 jours ;
+- 180/180 ;
+- 20 jours perdus ;
+- compensation ≈ +1 067 Primogemmes ;
+- gain immédiat total ≈ +2 667.
+
+### Joueur déjà à 180 jours
+
+- +0 jour ;
+- 30 jours perdus ;
+- compensation +1 600 ;
+- bonus normal +1 600 ;
+- gain immédiat total **+3 200 Primogemmes**.
+
+La compensation représente uniquement la valeur des jours impossibles à ajouter.
+
+---
+
+## R662 — Premier reward quotidien le lendemain — ✅ VALIDÉ A
+
+Le jour où une nouvelle Faveur est obtenue ou prolongée ne consomme pas immédiatement un jour de cette nouvelle attribution.
+
+Le premier jour quotidien correspondant commence le lendemain selon `Europe/Paris`.
+
+Cela évite notamment qu'un sub reçu très tard dans la journée fasse perdre presque instantanément une journée.
+
+---
+
+## R663 — Durée d'une attribution — ✅ VALIDÉ A
+
+Une Faveur ajoute normalement :
+
+**30 jours**
+
+Plafond :
+
+**180 jours**
+
+Les différentes attributions se cumulent jusqu'à ce plafond.
+
+---
+
+## R664 — Éligibilité différente Twitch-only / standalone — ✅ VALIDÉ PERSONNALISÉ
+
+L'objectif est d'éviter qu'un viewer Twitch passif ou totalement extérieur au jeu profite automatiquement de la Faveur simplement parce qu'il reçoit un gift sub.
+
+### Joueur Twitch-only
+
+Conserver le filtre historique :
+
+**niveau ≥2**
+
+pour recevoir une nouvelle Faveur via un événement Twitch.
+
+Cette règle sert de filtre de participation réelle au jeu.
+
+Elle est cohérente avec l'onboarding Twitch déjà validé :
+
+- le premier message peut créer le profil Twitch-only ;
+- à partir du niveau 1, la progression est bloquée tant que l'élément n'est pas choisi ;
+- atteindre le niveau 2 implique donc que le joueur a franchi cette étape d'activation.
+
+### Joueur standalone complet
+
+Si le Twitch User ID est relié à un joueur ayant terminé l'onboarding standalone :
+
+- aucune condition de niveau minimum pour recevoir la Faveur ;
+- son élément existe déjà obligatoirement grâce à l'onboarding standalone.
+
+Le niveau n'est donc pas utilisé comme filtre artificiel dans ce cas.
+
+---
+
+## R665 — Aucun entitlement différé pour un viewer extérieur au jeu — ✅ VALIDÉ PERSONNALISÉ
+
+Un événement de subscription ou gift sub ne crée pas à lui seul un joueur GachaImpact.
+
+### Twitch
+
+Le fonctionnement général reste cohérent avec l'architecture déjà validée :
+
+- le premier message Twitch peut créer un profil joueur Twitch-only ;
+- ce profil appartient déjà au joueur interne ;
+- il peut ensuite progresser et choisir son élément ;
+- il pourra éventuellement être rattaché plus tard à un compte web.
+
+Si un bénéficiaire d'un gift :
+
+- n'a encore aucun joueur interne GachaImpact ;
+- ou possède un profil Twitch-only ne remplissant pas la condition R664 ;
+
+la Faveur n'est pas appliquée.
+
+Elle n'est pas mise dans une file d'attente de plusieurs semaines/mois pour être récupérée plus tard.
+
+Créer plus tard un profil ou relier ultérieurement Twitch ne ressuscite donc pas une ancienne attribution ignorée.
+
+### Standalone
+
+Un joueur ayant terminé l'onboarding standalone possède déjà un joueur interne et un élément.
+
+Si son Twitch est correctement relié, son niveau n'empêche pas l'attribution conformément à R664.
+
+---
+
+## R666 — Bonus du gifter — ✅ VALIDÉ A
+
+Conserver :
+
+**+1 600 Primogemmes au gifter par abonnement offert**
+
+Le gifter doit lui-même correspondre à un joueur GachaImpact éligible.
+
+Pour un joueur Twitch-only, appliquer le même principe de participation active que R664.
+
+Pour un joueur standalone correctement lié, le niveau ne constitue pas un blocage.
+
+Un gifter anonyme ou ne correspondant à aucun joueur éligible ne reçoit aucun bonus GachaImpact.
+
+---
+
+## R667 — Gift multiple proportionnel — ✅ VALIDÉ A
+
+Le bonus gifter est accordé **par abonnement réellement offert**.
+
+Exemple :
+
+5 gift subs éligibles :
+
+`5 × 1 600 = 8 000 Primogemmes`
+
+Le backend doit utiliser les données autoritatives Twitch de quantité du gift et garantir l'idempotence.
+
+Un même gift ne doit jamais être comptabilisé une fois via l'événement global puis une deuxième fois via les événements des bénéficiaires.
+
+---
+
+## R668 — Tier Twitch modifie uniquement la récompense immédiate — ✅ VALIDÉ PERSONNALISÉ
+
+Les tiers ne changent pas :
+
+- la durée de 30 jours ;
+- le cap 180 ;
+- les +800 quotidiennes ;
+- la formule de compensation des jours perdus.
+
+Ils modifient uniquement la récompense immédiate du bénéficiaire.
+
+### Tier 1
+
+**+1 600 Primogemmes**
+
+### Tier 2
+
+**+4 800 Primogemmes**
+
+### Tier 3
+
+**+9 600 Primogemmes**
+
+La compensation du plafond reste calculée sur :
+
+**1 600 Primogemmes pour 30 jours perdus**
+
+quel que soit le tier.
+
+Le bonus gifter défini par R666 reste lui aussi à +1 600 par abonnement offert, quel que soit le tier, sauf révision produit explicite ultérieure.
+
+---
+
+## R669 — Resub uniquement sur événement fiable — ✅ VALIDÉ A
+
+Une nouvelle attribution de Faveur est produite lorsqu'un événement Twitch suffisamment fiable prouve le resub.
+
+Sont notamment acceptables :
+
+- nouveau subscription ;
+- gift subscription ;
+- resub explicitement remonté par Twitch selon l'intégration disponible.
+
+Un renouvellement automatique silencieux que l'intégration ne peut pas identifier de manière fiable ne doit pas être inventé à partir d'une estimation de date.
+
+Si Twitch expose ultérieurement un événement fiable couvrant ces renouvellements, l'intégration pourra l'utiliser sans changer la règle métier.
+
+---
+
+## R670 — Consultation de la Faveur soumise à la confidentialité — ✅ VALIDÉ A
+
+`!faveur`
+
+permet toujours de consulter sa propre Faveur.
+
+`!faveur <pseudo>`
+
+peut être conservé, mais l'accès aux informations d'un autre joueur respecte les règles de visibilité de profil déjà définies.
+
+La durée restante d'une Faveur ne contourne pas les préférences de confidentialité du joueur.
+
+---
+
+## R671 — Pas d'écran Faveur dédié — ✅ VALIDÉ A ENRICHI
+
+La Faveur ne possède pas de grand écran métier indépendant dans la V1.
+
+Elle est présentée principalement :
+
+### Profil personnel
+
+Afficher notamment :
+
+- Faveur active / inactive ;
+- jours restants sur 180 ;
+- +800 Primogemmes/jour ;
+- état de la récompense du jour.
+
+### Hub Quotidiennes
+
+Lorsqu'une Faveur est active, une carte peut afficher :
+
+- reward du jour disponible ;
+- reward déjà reçu ;
+- jours restants.
+
+### Faveur inactive
+
+Afficher une mention expliquant que la Faveur peut être obtenue en s'abonnant à la chaîne Twitch de Kichnifou.
+
+Lien externe :
+
+`https://www.twitch.tv/kichnifou`
+
+L'action ouvre Twitch ; aucun paiement Twitch n'est exécuté par GachaImpact lui-même.
+
+---
+
+## R672 — Animation quotidienne et état persistant — ✅ VALIDÉ PERSONNALISÉ
+
+La restitution principale de la Faveur dans le standalone concerne la récompense quotidienne.
+
+Lorsque la première présence standalone du jour déclenche réellement les +800 :
+
+- petite animation dédiée à la Faveur ;
+- affichage du gain ;
+- mise à jour immédiate des Primogemmes ;
+- profil marqué `Récompense du jour reçue`.
+
+Si les +800 ont déjà été obtenues auparavant dans la journée via Twitch :
+
+- ne rien repayer ;
+- ne pas rejouer une fausse animation de récompense ;
+- afficher simplement dans le profil que la récompense du jour a déjà été reçue.
+
+Inversement, une récompense déjà obtenue dans le standalone empêche naturellement un nouveau paiement lors du premier message Twitch ultérieur.
+
+L'état quotidien est donc global au joueur et non propre au canal.
+
+L'obtention/prolongation Twitch peut produire son message de confirmation adapté au canal, tandis que le standalone reflète immédiatement les nouveaux jours et les Primogemmes dans le profil.
+
+---
+
+# 23. Décisions techniques acquises
+
+- Plafond métier : 180 jours.
+- Une attribution normale représente 30 jours.
+- Calendrier métier : `Europe/Paris`.
+- La durée restante est indépendante de la présence et doit pouvoir être dérivée à partir d'une échéance serveur plutôt que d'un compteur décrémenté par des messages.
+- Chaque journée possède au maximum une récompense Faveur par joueur, tous canaux confondus.
+- Un claim Twitch et un claim standalone concurrents sont sérialisés/idempotents.
+- Le standalone vérifie l'état autoritatif du jour avant d'afficher une animation de gain.
+- Une animation ne constitue jamais la preuve métier d'un paiement.
+- La récompense quotidienne et son état sont persistés de manière à être immédiatement visibles depuis l'autre canal.
+- Le profil affiche un état dérivé du serveur et ne décrémente jamais localement les jours.
+- Les récompenses immédiates par tier sont : T1 1 600, T2 4 800, T3 9 600.
+- La compensation du plafond est distincte du bonus immédiat et utilise `round(1600 × jours_perdus / 30)`.
+- Les événements Twitch sont dédupliqués par identifiant externe / clé d'idempotence.
+- L'événement `channel.subscription.gift` ou équivalent est propriétaire du bonus gifter afin de ne pas le doubler avec les événements individuels de bénéficiaires.
+- Un gift multiple applique le nombre autoritatif de gifts exactement une fois.
+- Un événement de subscription ne crée jamais à lui seul un joueur interne.
+- Twitch-only : l'éligibilité Faveur conserve le filtre niveau ≥2.
+- Standalone onboardé + Twitch lié : aucune condition de niveau.
+- Le pseudo Twitch n'est jamais utilisé comme identité métier ; utiliser le Twitch User ID résolu vers le player ID interne.
+- Une Faveur ignorée pour absence de joueur / inéligibilité n'est pas conservée comme entitlement différé.
+- La migration conserve le `daysRemaining` certain au cutover sans recalcul rétroactif.
+- À partir du cutover seulement, la nouvelle consommation calendaire s'applique.
+- Une attribution Faveur déjà active au cutover n'est jamais repayée pendant la migration.
+- Les +800 historiques non réclamés ne sont pas reconstruits.
+
+---
+
+# 24. Points restants avant clôture
+
+Aucun arbitrage produit majeur supplémentaire n'est actuellement identifié.
+
+À finaliser techniquement :
+
+- représentation exacte de l'échéance / jours restants dans le modèle cible ;
 - contrat final `!faveur` ;
-- migration / critères d'acceptation ;
-- clôture.
+- états précis de la carte Profil / Quotidiennes ;
+- traitement migration des `obtainedDate` / `lastClaimDate` ;
+- garanties de concurrence ;
+- gestion des événements Twitch anonymes/incomplets ;
+- producteurs / consommateurs ;
+- critères d'acceptation ;
+- clôture du domaine.
+
+Si aucun nouveau choix produit réel n'émerge de cette vérification, ne pas créer artificiellement R673 dans ce domaine.
 
 ---
 

@@ -906,3 +906,24 @@ Statut : évolutif.
 - `TECHNIQUE` — Les gains Roue utilisent les mutations Ressources centrales afin de maintenir automatiquement les statistiques économiques et `totalMainElementParticlesEarned` lorsque pertinent.
 - `MIGRATION` — Conserver `lastWheelDate`, `totalWheelSpins`, `totalWheelJackpots` sans reconstruire les résultats historiques absents ; un spin legacy du jour du cutover reste consommé.
 - `CLÔTURÉ R656` — Domaine Roue / quotidien clôturé.
+- `VALIDÉ R657` — Les jours de Faveur s'écoulent selon le calendrier `Europe/Paris` même si le joueur est absent.
+- `VALIDÉ R658` — Les +800 quotidiennes nécessitent une présence dans la journée et sont perdues si le joueur ne vient pas ; Twitch et standalone partagent un seul claim quotidien. Le profil affiche l'état reçu/non reçu.
+- `VALIDÉ R659` — Conserver +800 Primogemmes par journée de Faveur effectivement réclamée.
+- `VALIDÉ R660` — Une Faveur Tier 1 donne +1 600 Primogemmes immédiatement en plus de sa durée.
+- `VALIDÉ R661` — Les jours bloqués par le cap 180 produisent en plus du bonus immédiat une compensation `1600 × jours perdus / 30`.
+- `VALIDÉ R662` — Les journées quotidiennes de la nouvelle attribution commencent le lendemain de l'obtention.
+- `VALIDÉ R663` — Une attribution ajoute 30 jours, cumulables jusqu'à 180.
+- `VALIDÉ R664` — Twitch-only conserve une condition niveau ≥2 pour recevoir une Faveur ; un joueur standalone onboardé et Twitch-lié est éligible quel que soit son niveau.
+- `VALIDÉ R665` — Un sub/gift ne crée pas de joueur et aucune Faveur ignorée n'est mise en attente : le profil Twitch-only naît via le fonctionnement joueur Twitch déjà prévu, puis peut être rattaché au même joueur web.
+- `VALIDÉ R666` — Le gifter éligible reçoit +1 600 Primogemmes par abonnement offert.
+- `VALIDÉ R667` — Un gift multiple récompense le gifter proportionnellement au nombre réel de subs offerts.
+- `VALIDÉ R668` — Récompense immédiate bénéficiaire : Tier 1 = 1 600, Tier 2 = 4 800, Tier 3 = 9 600 ; durée, daily et compensation overflow restent identiques.
+- `VALIDÉ R669` — Une resub donne une nouvelle Faveur seulement lorsqu'un événement Twitch suffisamment fiable la prouve ; aucun renouvellement silencieux n'est estimé.
+- `VALIDÉ R670` — `!faveur pseudo` respecte la visibilité du profil ; sa propre Faveur reste toujours consultable.
+- `VALIDÉ R671` — Pas d'écran Faveur dédié : informations dans Profil et Quotidiennes ; si inactive, lien vers `https://www.twitch.tv/kichnifou` pour s'abonner.
+- `VALIDÉ R672` — Le standalone affiche une petite animation uniquement lorsqu'il accorde réellement les +800 du jour ; si Twitch les a déjà accordées, le profil indique simplement `Récompense du jour reçue`.
+- `TECHNIQUE` — Claim Faveur journalier global, serveur-authoritaire et idempotent entre Twitch/standalone.
+- `TECHNIQUE` — Faveur Twitch-only éligible à partir du niveau 2 ; standalone onboardé éligible sans condition de niveau ; Twitch User ID → player ID reste l'identité autoritative.
+- `TECHNIQUE` — Le bonus gifter est produit depuis l'événement gift global afin de compter la quantité une fois sans double crédit via les événements bénéficiaires.
+- `MIGRATION` — `daysRemaining` au cutover devient le solde certain de départ ; aucune journée absente ni reward historique n'est recalculé rétroactivement.
+- `À FINALISER` — Faveur / Subscription : modèle temporel, contrat `!faveur`, migration détaillée, producteurs/consommateurs et critères d'acceptation ; aucun nouveau Rxxx produit requis sauf découverte réelle.

@@ -3439,22 +3439,28 @@ Domaine actif :
 
 État actuel du domaine :
 - audit technique initial réalisé ;
-- `Faveur.txt`, `Subscription.txt`, `XP.txt` et les données `favor` réelles de `viewers_data.json` recroisés ;
-- une Faveur legacy ajoute 30 jours avec plafond à 180 ;
-- le bénéficiaire d'un gift sub reçoit la Faveur ; le gifter possède actuellement un bonus Primogemmes séparé ;
-- le legacy donne +1 600 Primogemmes immédiatement sur une attribution normale et +800 Primogemmes par journée réclamée ;
-- le décompte legacy dépend de l'activité du joueur via `XP.txt` et doit être remplacé par un écoulement calendaire serveur indépendant de la présence ;
-- le propriétaire confirme le maintien du plafond 180 jours ;
-- les jours impossibles à ajouter au plafond doivent être compensés sur une base cible de 1 600 Primogemmes pour 30 jours perdus, avec prorata à préciser ;
-- l'acquisition de la Faveur reste liée à Twitch ; aucune souscription n'est achetée depuis l'UI standalone ;
-- faisabilité Twitch vérifiée : nouveaux subs, bénéficiaires de gifts et gifters sont détectables via EventSub avec `channel:read:subscriptions` ;
-- les resubs explicitement annoncés sont détectables, mais chaque renouvellement automatique silencieux n'est pas considéré garanti par les événements Twitch actuellement documentés ;
-- l'intégration future devra relier l'identité Twitch par `user_id` au compte GachaImpact ;
-- les Faveurs legacy actives seront migrées depuis leur `daysRemaining` réel sans appliquer rétroactivement la nouvelle consommation calendaire ;
-- prochaines décisions produit : **R657**.
+- décisions produit R657 à R672 validées ;
+- durée : +30 jours par attribution, plafond 180 jours ;
+- les jours s'écoulent désormais selon le calendrier serveur `Europe/Paris`, même en l'absence du joueur ;
+- +800 Primogemmes sont récupérables une fois par journée active seulement si le joueur se manifeste ce jour-là ;
+- claim quotidien partagé entre Twitch et standalone, avec état visible sur le profil ;
+- standalone : petite animation uniquement lorsqu'il accorde réellement les +800 ;
+- récompense immédiate bénéficiaire : Tier 1 +1 600, Tier 2 +4 800, Tier 3 +9 600 ;
+- jours bloqués par le plafond : compensation supplémentaire sur base 1 600 / 30 jours perdus ;
+- les daily rewards de la nouvelle attribution commencent le lendemain ;
+- Twitch-only : niveau ≥2 conservé comme filtre de joueur actif ;
+- standalone onboardé + Twitch lié : aucune condition de niveau ;
+- un événement subscription/gift ne crée pas un joueur et aucune ancienne Faveur ignorée n'est mise en attente ;
+- bonus gifter : +1 600 par abonnement offert, proportionnel aux gift multiples ;
+- resubs : uniquement lorsqu'un événement Twitch suffisamment fiable les prouve ;
+- Faveur visible dans Profil / Quotidiennes, sans écran dédié ;
+- joueur sans Faveur : lien possible vers `https://www.twitch.tv/kichnifou` ;
+- `!faveur pseudo` respecte les règles de confidentialité ;
+- modèle Twitch-only déjà validé confirmé : premier message → joueur interne Twitch-only ; liaison web ultérieure → même joueur, même progression ;
+- aucun nouvel arbitrage produit majeur n'est actuellement identifié.
 
 Prochaine étape exacte :
-reprendre le Domaine Faveur / Subscription à **R657** depuis `docs/legacy/18-faveur-subscription-audit.md`, afin de fixer la récompense quotidienne, les +1 600 immédiates, la formule exacte de compensation au plafond, le comportement des gifts/gifters, les comptes Twitch non liés, les resubs et la présentation standalone.
+finaliser techniquement le Domaine Faveur / Subscription dans `docs/legacy/18-faveur-subscription-audit.md` : représentation temporelle, migration détaillée, contrat `!faveur`, producteurs/consommateurs et critères d'acceptation ; si aucune nouvelle décision produit réelle n'apparaît, clôturer le domaine sans créer artificiellement R673.
 
 Étape obligatoire avant modèle de données / V1 :
 après clôture d'Event et des audits restants, effectuer un **sweep exhaustif final des 36 scripts `.txt` et des 17 fichiers JSON inventoriés** afin de confirmer qu'aucune mécanique, donnée, dépendance, commande ou source de vérité n'a été oubliée. Le modèle de données cible final et le passage à la V1 ne doivent être engagés qu'après cette vérification de couverture.
