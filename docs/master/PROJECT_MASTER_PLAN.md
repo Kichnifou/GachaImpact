@@ -3343,15 +3343,22 @@ Domaine Concours / C6 :
 - garanties de reprise, atomicité, concurrence et permissions administratives documentées.
 
 Domaine actif :
-**Event / monthly — audit spécialisé à initialiser après validation de ce checkpoint.**
+`docs/legacy/16-event-monthly-audit.md` — Event / monthly.
 
 État actuel du domaine :
-- sources principales déjà identifiées ;
-- aucun audit spécialisé Event encore créé ;
+- audit technique initial réalisé ;
+- sources réelles `Event.txt`, `XP.txt`, `monthly_events_data.json`, `monthly_events.json` et dépendances associées recroisées ;
+- les douze mois utilisent principalement un moteur Event commun avec trois archétypes de mini-jeux reskinnés ;
+- `monthly_events.json` est vide et sans consommateur identifié ;
+- `monthlyDraw` est initialisé mais aucune mécanique de tirage réelle n'a été identifiée ;
+- premières décisions produit à reprendre : **R594** ;
 - Boss mensuel déjà traité avec Combat et ne doit pas être réaudité sans dépendance réelle.
 
 Prochaine étape exacte :
-créer le document spécialisé d'audit Event / monthly, puis inspecter `Event.txt`, `monthly_events_data.json`, le fichier vide `monthly_events.json`, les données Event de `viewers_data.json` et les responsabilités Event présentes dans `XP.txt`, avant de commencer les premières décisions produit du domaine.
+reprendre le Domaine Event / monthly à **R594** depuis `docs/legacy/16-event-monthly-audit.md`, en auditant d'abord le calendrier mensuel, l'inscription, le cycle de vie de la monnaie et les trois mécaniques quotidiennes communes, sans réauditer le Boss mensuel.
+
+Étape obligatoire avant modèle de données / V1 :
+après clôture d'Event et des audits restants, effectuer un **sweep exhaustif final des 36 scripts `.txt` et des 17 fichiers JSON inventoriés** afin de confirmer qu'aucune mécanique, donnée, dépendance, commande ou source de vérité n'a été oubliée. Le modèle de données cible final et le passage à la V1 ne doivent être engagés qu'après cette vérification de couverture.
 
 ## Familles legacy restant à auditer
 
