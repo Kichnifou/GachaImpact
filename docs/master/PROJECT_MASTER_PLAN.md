@@ -3435,10 +3435,26 @@ Dernier domaine clôturé :
 - bug legacy `totalMainElementParticlesEarned` corrigé pour les nouveaux gains via les mutations Ressources centrales.
 
 Domaine actif :
-**Faveur / Subscription — audit spécialisé à initialiser après validation de ce checkpoint.**
+`docs/legacy/18-faveur-subscription-audit.md` — Faveur / Subscription.
+
+État actuel du domaine :
+- audit technique initial réalisé ;
+- `Faveur.txt`, `Subscription.txt`, `XP.txt` et les données `favor` réelles de `viewers_data.json` recroisés ;
+- une Faveur legacy ajoute 30 jours avec plafond à 180 ;
+- le bénéficiaire d'un gift sub reçoit la Faveur ; le gifter possède actuellement un bonus Primogemmes séparé ;
+- le legacy donne +1 600 Primogemmes immédiatement sur une attribution normale et +800 Primogemmes par journée réclamée ;
+- le décompte legacy dépend de l'activité du joueur via `XP.txt` et doit être remplacé par un écoulement calendaire serveur indépendant de la présence ;
+- le propriétaire confirme le maintien du plafond 180 jours ;
+- les jours impossibles à ajouter au plafond doivent être compensés sur une base cible de 1 600 Primogemmes pour 30 jours perdus, avec prorata à préciser ;
+- l'acquisition de la Faveur reste liée à Twitch ; aucune souscription n'est achetée depuis l'UI standalone ;
+- faisabilité Twitch vérifiée : nouveaux subs, bénéficiaires de gifts et gifters sont détectables via EventSub avec `channel:read:subscriptions` ;
+- les resubs explicitement annoncés sont détectables, mais chaque renouvellement automatique silencieux n'est pas considéré garanti par les événements Twitch actuellement documentés ;
+- l'intégration future devra relier l'identité Twitch par `user_id` au compte GachaImpact ;
+- les Faveurs legacy actives seront migrées depuis leur `daysRemaining` réel sans appliquer rétroactivement la nouvelle consommation calendaire ;
+- prochaines décisions produit : **R657**.
 
 Prochaine étape exacte :
-créer le document spécialisé d'audit Faveur / Subscription, puis inspecter intégralement `Faveur.txt`, `Subscription.txt`, les champs `favor` et statistiques/dates associées de `viewers_data.json`, ainsi que leurs interactions avec Twitch, XP, Primogemmes, notifications et migration avant de commencer les décisions produit de ce domaine.
+reprendre le Domaine Faveur / Subscription à **R657** depuis `docs/legacy/18-faveur-subscription-audit.md`, afin de fixer la récompense quotidienne, les +1 600 immédiates, la formule exacte de compensation au plafond, le comportement des gifts/gifters, les comptes Twitch non liés, les resubs et la présentation standalone.
 
 Étape obligatoire avant modèle de données / V1 :
 après clôture d'Event et des audits restants, effectuer un **sweep exhaustif final des 36 scripts `.txt` et des 17 fichiers JSON inventoriés** afin de confirmer qu'aucune mécanique, donnée, dépendance, commande ou source de vérité n'a été oubliée. Le modèle de données cible final et le passage à la V1 ne doivent être engagés qu'après cette vérification de couverture.
