@@ -579,23 +579,28 @@ L'import reste rerunnable/idempotent.
 
 ---
 
-## 13. Dépendances reportées
+## 13. Dépendance Top / Classements — ✅ RÉSOLUE PAR R714/R715
 
-### Top / Classements — À AUDITER PLUS TARD
+Le legacy `!top moras` utilisait uniquement le portefeuille Moras.
 
-Le legacy `!top moras` utilise actuellement le portefeuille Moras, pas `portefeuille + banque`.
+La V1 utilise désormais :
 
-Lors de l'audit `Top / Classements`, décider explicitement :
-- ce que signifie un classement `Moras` ;
-- portefeuille uniquement ;
-- richesse totale ;
-- ou classements distincts.
+`patrimoine Moras = portefeuille + banque`
 
-Contraintes de confidentialité :
-- un classement public ne doit jamais permettre de déduire un solde Banque privé ;
-- une donnée dérivée doit respecter les permissions de ses composantes.
+pour le classement global Moras.
 
-Ne pas trancher cette question dans le Domaine Banque.
+Ce patrimoine reste une donnée dérivée et non une nouvelle ressource persistée.
+
+Confidentialité :
+
+- seuls les joueurs dont les données nécessaires sont `Public` peuvent entrer dans le classement global ;
+- le portefeuille/solde de monnaies doit être Public ;
+- la Banque doit être Public ;
+- si l'une des composantes est `Amis uniquement` ou `Privé`, le joueur est entièrement absent du classement ;
+- un joueur absent ne consomme aucun rang ;
+- aucune valeur dérivée ne permet de reconstruire un solde Banque non public.
+
+La dépendance reportée du Domaine Banque est donc clôturée.
 
 ---
 
@@ -617,6 +622,6 @@ Cœur Banque finalisé :
 - message Twitch ;
 - migration ;
 - journalisation ;
-- dépendance Top reportée explicitement.
+- dépendance Top résolue par R714/R715.
 
 **Domaine Banque : CLÔTURÉ.**

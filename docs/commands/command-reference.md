@@ -328,6 +328,77 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Confidentialité :** seules les informations nécessaires au match deviennent publiques
 - **Atomicité :** lancement, actions, récompenses et résultat autoritaires côté serveur et protégés contre double exécution
 
+## `!top`
+
+- **Statut audit :** CLÔTURÉ — Domaine Top / Classements globaux après R727
+- **But :** consulter les classements globaux publics ou son résumé personnel
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui
+- **UI équivalente :** écran `Classements`
+- **Aide :** `!top`
+- **Résumé personnel :** `!top me`
+- **Classement :** `!top <métrique>`
+- **Résultat chat :** Top 5 compact ; rang personnel ajouté s'il est classé hors du Top affiché
+- **Éligibilité globale :** joueur existant avec élément choisi
+- **Niveau minimum :** aucun
+- **Confidentialité :** seules les données `Public` entrent dans les classements globaux
+- **Amis uniquement / Privé :** joueur totalement absent, sans rang réservé
+- **Valeur 0 :** exclue
+- **Ex æquo :** classement compétition `1er, 1er, 3e`
+- **Moras :** patrimoine `portefeuille + Banque`; les deux composantes nécessaires doivent être Public
+- **Taux 5★ :** `totalFiveStars / totalPulls × 100`, minimum 100 Pulls ; `luck` accepté comme alias historique
+- **Pity :** classement du pity 5★ actuel si Public
+- **Soldes actuels conservés :** Primogemmes, patrimoine Moras, particules totales et par élément
+- **Statistiques économiques cumulatives :** Primogemmes/Moras gagnées et dépensées
+- **Collection :** Box, C6, copies depuis les possessions player-facing actives
+- **Activité ajoutée :** Combat total, Combat manuel, Expeditions terminées, cœurs envoyés
+- **Classements spécialisés :** Event, Boss, Concours et Giveaway restent dans leurs propres domaines
+- **Historique/saisons :** aucun pour le Top global V1
+- **Récompenses :** aucune ; classement honorifique
+- **Architecture :** lecture seule depuis les sources métier canoniques
+
+### Métriques / aliases
+
+Principales métriques legacy conservées :
+
+- `xp`
+- `niveau` / `level` / `lvl`
+- `messages` / `msg`
+- `messages-xp` / `counted`
+- `pulls`
+- `luck` → Taux de 5★
+- `5stars` / `5`
+- `4stars` / `4`
+- `pity`
+- `5050` / `50/50`
+- `lose5050` / `lost5050`
+- `primos`
+- `moras`
+- `particles` / `particules`
+- `pyro`
+- `hydro`
+- `cryo`
+- `electro`
+- `anemo`
+- `geo`
+- `dendro`
+- `box`
+- `c6`
+- `copies`
+- `primos-earned`
+- `primos-spent`
+- `moras-earned`
+- `moras-spent`
+
+Nouvelles métriques V1 :
+
+- `combat`
+- `combat-manuel`
+- `expeditions`
+- `coeurs`
+
+L'aide player-facing peut n'afficher que les syntaxes canoniques principales afin de rester compacte.
+
 ## `!giveaway`
 
 - **Statut audit :** CLÔTURÉ — Domaine Giveaway / Wish après R713

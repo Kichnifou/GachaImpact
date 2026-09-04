@@ -1,8 +1,8 @@
 # 22 — Audit Top / Classements globaux
 
 > Domaine 19 de l'audit GachaImpact.  
-> Statut : **EN COURS — audit technique initial réalisé, `Top.txt` recroisé avec Banque / Social / Box / Gacha ; premières décisions produit à reprendre à R714**.  
-> Ce document devient la source spécialisée du domaine Top / Classements globaux.  
+> Statut : **CLÔTURÉ — décisions produit R714 à R727 validées ; clôture technique finalisée**.  
+> Ce document est la source spécialisée validée du domaine Top / Classements globaux.  
 > L'état global du projet et la prochaine reprise exacte restent la responsabilité du Master.
 
 ---
@@ -946,58 +946,638 @@ La future aide peut afficher une syntaxe canonique unique tout en conservant cer
 
 # 36. Décisions techniques acquises
 
-Sans consommer de Rxxx :
+Sans consommer de Rxxx supplémentaires :
 
-- Top reste read-only ;
+- Top reste strictement read-only ;
 - aucune statistique n'est possédée par Top ;
-- aucune donnée Top spécifique à migrer ;
+- aucune donnée de rang global n'est une source de vérité persistante ;
+- aucune donnée Top spécifique n'est à migrer ;
 - les rangs sont dérivés des sources canoniques ;
 - un profil sans élément n'entre pas dans les classements gameplay globaux ;
-- aucun seuil de niveau spécifique ;
+- aucun seuil de niveau spécifique n'est appliqué à Top ;
 - personnages désactivés exclus des métriques player-facing Box/C6/copies ;
-- les permissions sont filtrées côté serveur avant renvoi des résultats ;
-- aucune donnée privée n'est envoyée au client puis seulement masquée ;
-- un cache de classement éventuel n'est jamais autoritatif ;
-- changement de confidentialité invalide toute exposition cachée/cachée en cache ;
+- les permissions sont évaluées côté serveur avant la construction du classement ;
+- aucune donnée privée ou `Amis uniquement` n'est envoyée au client d'un classement global ;
+- un joueur exclu pour confidentialité ne consomme aucun rang ;
+- un cache éventuel de classement n'est jamais autoritatif ;
+- un changement de confidentialité invalide immédiatement toute exposition mise en cache ;
 - les domaines Event / Boss / Concours / Giveaway restent propriétaires de leurs classements spécialisés ;
-- un mode `!top` inconnu renvoie une aide, pas un faux classement vide ;
-- UI et chats utilisent le même service de classement.
+- un mode `!top` inconnu renvoie une aide compacte ;
+- UI standalone, chat interne et Twitch appellent le même service de Ranking ;
+- les égalités utilisent un classement compétition ;
+- l'ordre d'affichage de joueurs partageant exactement la même valeur peut être déterministe sans modifier leur rang ;
+- les joueurs dont la valeur classée est `0` sont exclus du classement ;
+- `!top me` reste une consultation personnelle et peut lire les propres données du joueur indépendamment de leur visibilité publique ;
+- `!top <métrique>` reste une consultation d'un classement global public.
 
 ---
 
-# 37. Points produit à décider
+# 37. Décisions produit validées
 
-Reprendre à :
+## R714 — Classement Moras = patrimoine total — ✅ VALIDÉ
 
-**R714**
+Le classement global `Moras` ne classe plus uniquement le portefeuille comme dans le legacy.
 
-À traiter notamment :
+Valeur cible :
 
-- créer un véritable écran standalone `Classements` ?
-- conserver `!top me` ?
-- Top chat : conserver Top 5 ?
-- UI : combien de joueurs / pagination ?
-- politique d'égalité ;
-- politique de confidentialité : uniquement valeurs Public ou classement personnalisé selon requester ?
-- que faire des joueurs masquant une métrique ?
-- définition de `!top moras` : portefeuille / patrimoine / deux classements ;
-- classement des Primogemmes / Moras / Particules actuelles : conserver malgré soldes privés par défaut ?
-- classer ou non les compteurs économiques `earned/spent` ;
-- conserver `luck` tel quel, le renommer, minimum de Pulls ou suppression ;
-- conserver Top Pity ?
-- conserver Top par particule élémentaire individuelle ?
-- afficher les valeurs égales à zéro ?
-- conserver toutes les métriques legacy ou simplifier ?
-- ajouter certaines statistiques globales récentes (Combat, Expedition, cœurs, etc.) ?
-- comment organiser les catégories de l'écran ;
-- rang personnel hors Top visible ?
-- éventuel affichage avatar / ouverture du Profil ;
-- contrat final `!top` ;
-- critères d'acceptation ;
-- clôture.
+`patrimoine Moras = portefeuille + Banque`
+
+Cette valeur reste dérivée et n'est pas persistée comme une nouvelle ressource.
+
+### Confidentialité
+
+Pour qu'un joueur puisse apparaître dans ce classement global :
+
+- la visibilité de son solde de monnaies nécessaire au portefeuille doit être `Public` ;
+- la visibilité de sa Banque doit être `Public`.
+
+Si l'une de ces composantes est :
+
+- `Amis uniquement` ;
+- ou `Privé` ;
+
+le joueur est entièrement absent du classement Moras.
+
+Il :
+
+- n'est pas affiché anonymement ;
+- n'affiche pas une valeur masquée ;
+- ne consomme aucun rang ;
+- ne décale pas les joueurs publics placés derrière lui.
+
+Exemple :
+
+- Alice : patrimoine 8 000 000 — Public ;
+- Bob : patrimoine 20 000 000 — Banque privée ;
+- Chloé : patrimoine 6 000 000 — Public.
+
+Classement public :
+
+1. Alice ;
+2. Chloé.
+
+Bob n'existe pas dans la projection publique.
+
+Cette décision résout la dépendance volontairement reportée par le Domaine Banque.
 
 ---
 
-# 38. Sweep final obligatoire
+## R715 — Classements globaux basés uniquement sur les données publiques — ✅ VALIDÉ A
+
+Un classement global possède une vue unique et cohérente pour tous les utilisateurs.
+
+Pour la métrique concernée :
+
+- `Public` → joueur éligible au classement ;
+- `Amis uniquement` → joueur absent du classement global ;
+- `Privé` → joueur absent du classement global.
+
+Les classements ne changent donc pas selon la personne qui les regarde.
+
+Un ami peut éventuellement consulter une métrique `Amis uniquement` depuis le Profil si cette permission l'autorise, mais cette donnée ne rejoint jamais le classement global.
+
+Aucun classement anonyme de joueurs privés.
+
+Un joueur exclu par confidentialité ne possède aucun rang public.
+
+---
+
+## R716 — Écran standalone `Classements` — ✅ VALIDÉ A
+
+Créer un véritable écran standalone :
+
+**Classements**
+
+Il propose notamment :
+
+- catégories ;
+- sélection d'une métrique ;
+- rang ;
+- avatar ;
+- pseudo ;
+- valeur ;
+- liste complète chargeable ;
+- pagination ou virtualisation adaptée ;
+- mise en évidence de la ligne du joueur courant lorsqu'il est lui-même classé ;
+- clic sur avatar/pseudo ouvrant le Profil conformément aux règles Social.
+
+L'UI n'est pas artificiellement limitée aux cinq premiers joueurs.
+
+Si le propriétaire a rendu la métrique non publique :
+
+- il n'est pas intégré au classement ;
+- l'UI peut lui indiquer qu'il n'est pas classé car cette donnée n'est pas publique.
+
+---
+
+## R717 — Chats : Top 5 + rang personnel — ✅ VALIDÉ A
+
+Dans Twitch et le chat interne :
+
+`!top <métrique>`
+
+affiche au maximum les cinq premiers rangs/lignes utiles dans un message compact.
+
+Lorsque le demandeur :
+
+- est éligible au classement ;
+- possède une valeur > 0 ;
+- et se trouve hors du Top affiché ;
+
+la réponse ajoute son rang personnel compact.
+
+Exemple :
+
+`🏆 XP : 1. Alice (52 000) | 2. Bob (48 000) | 3. Chloé (41 000) | ... | Toi : #12 (21 000)`
+
+Si le demandeur figure déjà parmi les résultats affichés :
+
+- ne pas dupliquer sa ligne.
+
+Si sa métrique n'est pas publique :
+
+- ne pas calculer pour lui un faux rang dans le classement public.
+
+Les réponses Twitch normales restent sur une seule ligne.
+
+---
+
+## R718 — Classement compétition pour les égalités — ✅ VALIDÉ A
+
+Top utilise la même convention de rang que Giveaway :
+
+**classement compétition**
+
+Exemple :
+
+- Alice : 100 → rang 1 ;
+- Bob : 100 → rang 1 ;
+- Chloé : 80 → rang 3 ;
+- David : 70 → rang 4.
+
+Le rang 2 est sauté.
+
+L'ordre visuel à l'intérieur d'un groupe ex æquo peut rester déterministe, par exemple alphabétique, mais ne change jamais le rang.
+
+---
+
+## R719 — `!top me` conservé — ✅ VALIDÉ A
+
+`!top me` reste disponible dans les chats.
+
+Cette commande :
+
+- affiche uniquement les données du demandeur ;
+- n'est pas un classement public ;
+- ne dépend donc pas de la visibilité publique de ses propres rubriques.
+
+Elle conserve un résumé compact des statistiques personnelles utiles.
+
+Le standalone utilise principalement le Profil, mais `!top me` reste utile sur Twitch et dans le chat interne.
+
+La définition du classement Moras R714 ne force pas `!top me` à masquer les informations personnelles du propriétaire.
+
+---
+
+## R720 — Classements des soldes actuels conservés — ✅ VALIDÉ A
+
+Conserver les classements de soldes actuels :
+
+- Primogemmes ;
+- patrimoine Moras ;
+- particules totales ;
+- Pyro ;
+- Hydro ;
+- Cryo ;
+- Electro ;
+- Anemo ;
+- Geo ;
+- Dendro.
+
+Ces métriques appartiennent à des catégories économiques sensibles.
+
+Elles ne participent au classement global que lorsque leur visibilité nécessaire est `Public`.
+
+Comme les soldes de monnaies et la Banque sont privés par défaut :
+
+- beaucoup de joueurs seront naturellement absents de ces classements tant qu'ils n'ont pas choisi de les rendre publics.
+
+---
+
+## R721 — Statistiques économiques `Earned / Spent` conservées — ✅ VALIDÉ A
+
+Conserver :
+
+- Primogemmes gagnées ;
+- Primogemmes dépensées ;
+- Moras gagnées ;
+- Moras dépensées.
+
+Ces compteurs sont classés dans :
+
+**Statistiques générales cumulatives**
+
+et non dans les soldes actuels.
+
+Ils suivent donc la confidentialité de la rubrique Statistiques :
+
+- `Public` par défaut ;
+- configurable `Amis uniquement` ;
+- configurable `Privé`.
+
+Seule la valeur `Public` participe aux classements globaux.
+
+Ces compteurs ne permettent pas de déterminer directement le solde courant.
+
+---
+
+## R722 — `Luck` devient `Taux de 5★` avec minimum de 100 Pulls — ✅ VALIDÉ A
+
+La formule reste :
+
+`totalFiveStars / totalPulls × 100`
+
+Mais le libellé player-facing principal devient :
+
+**Taux de 5★**
+
+car cette valeur représente un taux observé et non une mesure pure de chance.
+
+Condition d'entrée :
+
+**au moins 100 Pulls**
+
+Un joueur avec moins de 100 Pulls :
+
+- n'apparaît pas dans ce classement ;
+- ne possède pas de rang public pour cette métrique.
+
+L'alias historique :
+
+`!top luck`
+
+peut rester accepté pour compatibilité.
+
+L'UI utilise le libellé clair `Taux de 5★`.
+
+---
+
+## R723 — Top Pity conservé — ✅ VALIDÉ A
+
+Conserver un classement instantané du :
+
+**pity 5★ actuel**
+
+Valeur :
+
+`pity5 / 90`
+
+Il permet notamment de voir quels joueurs publics sont actuellement les plus proches de leur prochain 5★.
+
+La métrique suit la rubrique de confidentialité Pity/Garantie.
+
+Seules les valeurs `Public` apparaissent dans le classement global.
+
+---
+
+## R724 — Exclure les valeurs égales à zéro — ✅ VALIDÉ A
+
+Une entrée avec valeur `0` n'apparaît pas dans un classement.
+
+Exemples :
+
+- 0 Pull ;
+- 0 C6 ;
+- 0 victoire ;
+- 0 Expedition ;
+- 0 particule.
+
+Le service ne complète jamais artificiellement un Top 5 avec des joueurs sans activité pour cette métrique.
+
+Cette exclusion intervient avant le calcul des rangs.
+
+---
+
+## R725 — Ajouter les statistiques globales récentes — ✅ VALIDÉ A
+
+En plus des métriques legacy pertinentes, ajouter les classements permanents basés sur les statistiques cumulatives fiables déjà définies par les domaines récents.
+
+Au minimum :
+
+### Combat
+
+- victoires Combat totales : `totalCombatWins` ;
+- victoires Combat manuel : `totalManualCombatWins`.
+
+### Expedition
+
+- Expeditions terminées : `totalExpeditionsCompleted`.
+
+### Social
+
+- cœurs envoyés : `totalFriendHeartsSent`.
+
+Ces métriques suivent la rubrique :
+
+**Statistiques générales**
+
+et nécessitent donc une visibilité `Public` pour apparaître globalement.
+
+Ne pas recopier dans Top :
+
+- classement Event ;
+- Boss mensuel ;
+- Concours ;
+- Giveaway ;
+
+car ces domaines possèdent déjà leurs propres classements spécialisés.
+
+---
+
+## R726 — Organisation de l'écran par catégories — ✅ VALIDÉ A
+
+L'écran `Classements` organise les métriques par catégories.
+
+### Progression
+
+- XP ;
+- Niveau ;
+- Messages ;
+- Messages XP.
+
+### Gacha
+
+- Pulls ;
+- Taux de 5★ ;
+- 5★ obtenus ;
+- 4★ obtenus ;
+- Pity ;
+- 50/50 gagnés ;
+- 50/50 perdus.
+
+### Ressources
+
+- Primogemmes ;
+- patrimoine Moras ;
+- particules totales ;
+- particules par élément ;
+- Primogemmes gagnées ;
+- Primogemmes dépensées ;
+- Moras gagnées ;
+- Moras dépensées.
+
+### Collection
+
+- personnages possédés / Box ;
+- C6 ;
+- copies.
+
+### Activité
+
+- victoires Combat ;
+- victoires Combat manuel ;
+- Expeditions terminées ;
+- cœurs envoyés.
+
+La structure peut évoluer à partir du registre de métriques sans transformer chaque nouveau Top en logique frontend hardcodée.
+
+---
+
+## R727 — Classements globaux live, sans saisons ni récompenses — ✅ VALIDÉ A
+
+Les classements globaux V1 représentent l'état courant.
+
+Ne pas créer :
+
+- saisons globales ;
+- récompenses de rang ;
+- ancien Top 1 ;
+- podium hebdomadaire/mensuel ;
+- historique mondial des rangs ;
+- snapshots périodiques de tous les Tops.
+
+Les classements spécialisés disposant déjà de leur propre historique ou récompenses continuent à les gérer dans leur domaine.
+
+Top global reste :
+
+**consultatif et honorifique.**
+
+---
+
+# 38. Contrat cible `!top`
+
+## `!top`
+
+Sans argument :
+
+- aide compacte avec les principales catégories/métriques.
+
+## `!top me`
+
+- résumé personnel ;
+- aucune exposition tierce ;
+- disponible Twitch et chat interne.
+
+## `!top <métrique>`
+
+- classement global public ;
+- maximum cinq résultats dans le chat ;
+- rang personnel ajouté s'il est éligible et hors des lignes déjà affichées ;
+- égalités en classement compétition ;
+- valeurs 0 exclues ;
+- profils sans élément exclus ;
+- métriques non publiques exclues.
+
+Aliases historiques ergonomiques peuvent rester acceptés.
+
+Les aides doivent privilégier une syntaxe canonique lisible.
+
+De nouvelles syntaxes simples peuvent notamment exposer :
+
+- `!top combat`
+- `!top combat-manuel`
+- `!top expeditions`
+- `!top coeurs`
+
+Le mapping exact des aliases appartient au CommandRouter/configuration, pas à une logique métier dupliquée.
+
+---
+
+# 39. Confidentialité et calcul de rang
+
+Pipeline conceptuel :
+
+1. sélectionner la métrique ;
+2. déterminer sa catégorie de confidentialité ;
+3. filtrer les profils sans élément ;
+4. filtrer les joueurs dont la métrique n'est pas `Public` ;
+5. calculer la valeur depuis la source autoritative ;
+6. exclure les valeurs <= 0 lorsque la métrique suit cette règle ;
+7. trier décroissant ;
+8. calculer les rangs compétition ;
+9. retourner uniquement les résultats autorisés.
+
+Une entrée masquée n'est jamais :
+
+- conservée comme rang fantôme ;
+- remplacée par `Privé` ;
+- exposée anonymement.
+
+Le calcul se fait directement sur la population visible.
+
+---
+
+# 40. Moras / Banque
+
+`!top moras` et l'écran `Patrimoine Moras` utilisent :
+
+`walletMoras + bankMoras`
+
+Le portefeuille et la Banque restent deux ressources distinctes.
+
+Le patrimoine :
+
+- est dérivé ;
+- n'est pas dépensable directement ;
+- n'est pas persisté comme solde autonome.
+
+Pour entrer dans ce classement global :
+
+- portefeuille/monnaies = Public ;
+- Banque = Public.
+
+Aucune donnée dérivée ne doit permettre de reconstruire une Banque non publique.
+
+---
+
+# 41. Métriques cibles
+
+Le registre de Ranking V1 doit au minimum pouvoir représenter les métriques validées de ce domaine.
+
+Chaque définition conceptuelle possède :
+
+- ID stable ;
+- libellé ;
+- catégorie UI ;
+- source autoritative ;
+- format d'affichage ;
+- direction de tri ;
+- catégorie de confidentialité ;
+- règle d'éligibilité ;
+- aliases chat ;
+- disponibilité UI/chat.
+
+Le Top ne possède jamais une copie autoritative de ces valeurs.
+
+---
+
+# 42. UI standalone
+
+L'écran `Classements` :
+
+- utilise le même RankingService que les chats ;
+- peut afficher bien plus que cinq joueurs ;
+- utilise pagination / chargement progressif / virtualisation selon le volume réel ;
+- met en valeur le Top 3 visuellement ;
+- affiche les ex æquo avec le même rang ;
+- permet d'ouvrir le Profil depuis l'identité d'un joueur ;
+- permet de changer rapidement de catégorie et métrique ;
+- indique proprement une absence de données visibles ;
+- indique au propriétaire lorsqu'il ne participe pas parce que sa donnée n'est pas publique.
+
+Aucun rang caché n'est calculé côté client.
+
+---
+
+# 43. Migration
+
+Aucun rang Top legacy n'est à migrer.
+
+Après migration des sources :
+
+- tous les classements sont recalculés depuis les données canoniques ;
+- les règles de confidentialité V1 sont immédiatement appliquées ;
+- les personnages désactivés sont exclus des métriques Collection player-facing ;
+- aucun ancien Top 5 n'est reconstruit.
+
+Ne pas inventer :
+
+- historique des rangs ;
+- ancien podium ;
+- record de classement ;
+- saison passée.
+
+---
+
+# 44. Critères d'acceptation
+
+Le Domaine Top / Classements est prêt pour la V1 si les tests peuvent prouver notamment que :
+
+1. Top n'écrit aucune statistique métier ;
+2. un profil sans élément n'apparaît dans aucun classement gameplay global ;
+3. aucun niveau minimum supplémentaire n'est nécessaire ;
+4. une donnée `Privé` est totalement absente du classement ;
+5. une donnée `Amis uniquement` est totalement absente du classement global, même pour un ami ;
+6. un joueur absent pour confidentialité ne consomme aucun rang ;
+7. un joueur à valeur 0 ne consomme aucun rang ;
+8. les égalités donnent `1er, 1er, 3e` ;
+9. le Top chat renvoie au maximum cinq résultats principaux ;
+10. le rang personnel hors Top est affiché uniquement si le demandeur participe réellement au classement ;
+11. `!top me` reste consultable pour ses propres données ;
+12. l'écran standalone permet de parcourir la liste complète ;
+13. les identités classées ouvrent le Profil ;
+14. `!top moras` utilise portefeuille + Banque ;
+15. un patrimoine Moras n'est classé que si portefeuille/monnaies et Banque sont tous deux Public ;
+16. Primogemmes et particules actuelles suivent la confidentialité des soldes ;
+17. les statistiques Earned/Spent suivent la rubrique Statistiques ;
+18. `Taux de 5★` utilise la formule historique ;
+19. moins de 100 Pulls exclut du classement Taux de 5★ ;
+20. Pity reste classable lorsqu'il est Public ;
+21. Box/C6/copies ignorent les personnages actuellement désactivés player-facing ;
+22. Combat total est disponible ;
+23. Combat manuel est disponible ;
+24. Expeditions terminées sont disponibles ;
+25. cœurs envoyés sont disponibles ;
+26. Event/Boss/Concours/Giveaway ne sont pas dupliqués dans Top global ;
+27. aucune récompense n'est accordée pour un rang global ;
+28. aucune saison Top globale n'est créée ;
+29. aucun historique de rang legacy absent n'est inventé ;
+30. un changement Public → Privé retire la donnée du classement et des caches applicables ;
+31. UI et chats obtiennent leurs résultats du même service ;
+32. une métrique inconnue renvoie une aide et non un faux Top vide.
+
+---
+
+# 45. Conclusion du domaine
+
+**Domaine Top / Classements globaux : CLÔTURÉ après R727.**
+
+Le domaine définit maintenant :
+
+- métriques globales ;
+- confidentialité ;
+- patrimoine Moras ;
+- ex æquo ;
+- Top chat ;
+- rang personnel ;
+- écran standalone ;
+- nouveaux classements cumulés ;
+- Taux de 5★ ;
+- Pity ;
+- exclusion des zéros ;
+- absence de saisons/récompenses ;
+- migration ;
+- architecture read-only.
+
+Le domaine ne doit être rouvert que si :
+
+- une nouvelle statistique globale nécessite réellement un classement transversal ;
+- la politique de confidentialité est explicitement révisée ;
+- le sweep final révèle une dépendance oubliée ;
+- une décision produit est explicitement modifiée.
+
+---
+
+# 46. Sweep final obligatoire
 
 Même après clôture Top / Classements et du dernier audit Help, le sweep exhaustif final des **37 scripts `.txt` et 17 JSON** reste obligatoire avant le modèle de données cible final et la V1.

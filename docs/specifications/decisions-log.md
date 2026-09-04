@@ -152,7 +152,7 @@ Statut : évolutif.
 - `VALIDÉ` — La sidebar affiche seulement le portefeuille Moras.
 - `VALIDÉ MIGRATION` — Importer wallet/banque/stats exacts sans inventer d'intérêts rétroactifs ni faux historique.
 - `VALIDÉ MIGRATION` — `lastInterestDate` legacy ne pilote pas le scheduler standalone.
-- `À AUDITER DANS TOP/CLASSEMENTS` — Le legacy `!top moras` classe le portefeuille uniquement ; décider plus tard de la définition du classement tout en respectant la confidentialité Banque.
+- `RÉSOLU R714/R715` — Le classement Moras utilise le patrimoine dérivé `portefeuille + banque` ; seules les composantes Public permettent au joueur d'entrer dans le classement global, sinon il est entièrement absent et ne consomme aucun rang.
 - `CLÔTURÉ` — Domaine Banque clôturé après R255.
 
 ## Ressources
@@ -994,3 +994,24 @@ Statut : évolutif.
 - `TECHNIQUE` — Un `open` ne peut plus écraser une session déjà ouverte.
 - `MIGRATION` — Conserver le dernier état Giveaway legacy connu sans rejouer les récompenses ni reconstruire un historique absent.
 - `CLÔTURÉ R713` — Domaine Giveaway / Wish clôturé.
+- `VALIDÉ R714` — Le classement Moras utilise le patrimoine total `portefeuille + Banque`; si l'une des données nécessaires n'est pas Public, le joueur est absent et ne consomme aucun rang.
+- `VALIDÉ R715` — Les classements globaux utilisent uniquement les données Public ; `Amis uniquement` et `Privé` n'entrent jamais dans un Top global, même lorsque le demandeur serait autorisé à voir la donnée sur le Profil.
+- `VALIDÉ R716` — Créer un véritable écran standalone `Classements` avec catégories, liste complète paginée/virtualisée, rangs, valeurs, avatars et accès au Profil.
+- `VALIDÉ R717` — `!top <métrique>` conserve un Top 5 compact et ajoute le rang personnel du demandeur lorsqu'il est éligible et hors des lignes déjà affichées.
+- `VALIDÉ R718` — Les Tops globaux utilisent un classement compétition pour les égalités : `1er, 1er, 3e`.
+- `VALIDÉ R719` — `!top me` est conservé comme résumé personnel dans les chats.
+- `VALIDÉ R720` — Conserver les Tops de soldes actuels : Primogemmes, patrimoine Moras, particules totales et par élément ; leur participation dépend de leur visibilité Public.
+- `VALIDÉ R721` — Conserver `primos-earned`, `primos-spent`, `moras-earned`, `moras-spent` comme Statistiques générales cumulatives, publiques par défaut mais configurables.
+- `VALIDÉ R722` — Le legacy `luck` devient player-facing `Taux de 5★`, garde la formule `5★ / Pulls × 100` et exige au moins 100 Pulls pour être classé ; `luck` peut rester alias.
+- `VALIDÉ R723` — Conserver le Top Pity 5★ actuel sous réserve de visibilité Public.
+- `VALIDÉ R724` — Les valeurs égales à zéro sont exclues des classements et ne consomment aucun rang.
+- `VALIDÉ R725` — Ajouter les Tops globaux cumulés Combat total, Combat manuel, Expeditions terminées et cœurs envoyés ; ne pas dupliquer Event/Boss/Concours/Giveaway.
+- `VALIDÉ R726` — L'écran Classements est organisé par catégories Progression / Gacha / Ressources / Collection / Activité.
+- `VALIDÉ R727` — Les classements globaux V1 sont live et honorifiques : aucune saison globale, récompense de rang ou histoire de podium.
+- `TECHNIQUE` — Un profil sans élément n'entre pas dans les classements gameplay globaux ; aucun niveau minimum spécifique Top.
+- `TECHNIQUE` — Ranking est read-only et consomme les sources autoritatives des autres domaines ; aucun rang global autoritatif n'est persisté.
+- `TECHNIQUE` — Le filtrage de confidentialité et des valeurs 0 intervient avant le calcul des rangs ; une entrée invisible ne crée jamais de rang fantôme.
+- `TECHNIQUE` — Les caches éventuels de Ranking ne sont pas sources de vérité et sont invalidés lorsqu'une permission susceptible d'exposer la métrique change.
+- `TECHNIQUE` — UI standalone, chat interne et Twitch utilisent le même service de Ranking.
+- `MIGRATION` — Aucun historique de rang, podium ou saison Top legacy n'est inventé ; les classements sont recalculés depuis les données sources migrées.
+- `CLÔTURÉ R727` — Domaine Top / Classements globaux clôturé.

@@ -49,7 +49,7 @@ Sources : 37 scripts du snapshot Streamer.bot + 17 JSON du snapshot Data.
 | Stella | `viewers_data.json`, `genshin_characters.json`, `c6_characters.json` | R/W | Personnages / Constellations | Stella Fortuna ; C0→C6 ou stat C6 5★ |
 | Subscription | `viewers_data.json` | R/W | Twitch / Faveur | trigger Twitch, faveur + primos |
 | Team | `viewers_data.json`, `genshin_characters.json`, `element_passives.json` | R/W | Équipe | team active + jusqu'à 10 teams sauvegardées |
-| Top | `viewers_data.json` | R | Classements | agrégats historiques |
+| Top | `viewers_data.json` | R | Classements | classements globaux dérivés / lecture seule |
 | Vote | `banner_votes.json`, `genshin_characters.json`, `viewers_data.json` | R/W (`banner_votes`) | Gacha / Vote hebdo | 1 vote/semaine |
 | Wish | `giveaway.json`, `viewers_data.json` | R/W (`giveaway`) | Giveaway | participation giveaway |
 | XP | `viewers_data.json`, `genshin_characters.json`, `c6_characters.json`, `contests_data.json`, `monthly_events_data.json`, `long_missions.json`, `friendships_data.json`, `giveaway.json`, `banner_votes.json` | R/W massif | Cycle de vie / Orchestrateur legacy | énorme script central à découpler |

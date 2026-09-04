@@ -3498,59 +3498,37 @@ Dernier domaine clôturé :
 - critères d'acceptation documentés.
 
 Dernier domaine clôturé :
-`docs/legacy/21-giveaway-wish-audit.md` — Giveaway / Wish — **CLÔTURÉ après R713**.
+`docs/legacy/22-top-classements-audit.md` — Top / Classements globaux — **CLÔTURÉ après R727**.
 
 État du domaine clôturé :
-- Giveaway joueur strictement Twitch ;
-- aucune participation `!wish` depuis le standalone ;
-- petit panneau Admin standalone Open / Close / Reroll utilisant le même GiveawayService ;
-- `!wish` unique par joueur/session ;
-- élément choisi obligatoire, aucun seuil de niveau ;
-- gagnant aléatoire parmi les participants `!wish` ;
-- +1 600 Primogemmes au gagnant ;
-- classement séparé basé sur les vrais messages Twitch ;
-- commandes `!xxx`, bot et système exclus du compteur ;
-- aucun cooldown Giveaway ;
-- vrais messages humains de Kichnifou comptés normalement ;
-- rangs ex æquo avec classement compétition `1er, 1er, 3e` ;
-- rang 1 +2 000 particules personnelles, rang 2 +1 500, rang 3 +1 000, rang >=4 +500 ;
-- `!giveaway stats` public ;
-- open/close/reroll administratifs ;
-- reroll uniquement après fermeture, ancien gagnant conservant son gain et nouveau gagnant recevant +1 600 ;
-- notifications standalone informationnelles pour tous les récompensés ;
-- aucun historique player-facing dédié ;
-- fermeture Twitch conservant les deux messages actuels sur une seule ligne chacun : résultat du tirage puis classement ;
-- comptage Twitch réalisable via EventSub `channel.chat.message` ;
-- fermeture, récompenses et rerolls idempotents ;
-- migration conservatrice ;
-- inventaire legacy désormais fixé à 37 scripts `.txt`.
+- Top reste entièrement read-only et dérive ses valeurs depuis les domaines propriétaires ;
+- aucun rang, podium ou historique global legacy n'est migré ou inventé ;
+- écran standalone `Classements` validé ;
+- `!top me` conservé ;
+- `!top <métrique>` affiche un Top 5 compact avec rang personnel lorsqu'il est éligible ;
+- uniquement les données `Public` entrent dans les classements globaux ;
+- `Amis uniquement` et `Privé` sont entièrement absents et ne consomment aucun rang ;
+- profil avec élément choisi obligatoire ; aucun seuil de niveau supplémentaire ;
+- valeurs égales à 0 exclues ;
+- égalités selon classement compétition `1er, 1er, 3e` ;
+- `!top moras` utilise désormais le patrimoine `portefeuille + Banque` ;
+- pour le patrimoine Moras, portefeuille/monnaies et Banque doivent tous deux être Public ;
+- Primogemmes et particules actuelles restent classables sous réserve de visibilité Public ;
+- Primogemmes/Moras Earned/Spent appartiennent aux Statistiques générales ;
+- `luck` devient `Taux de 5★`, formule historique conservée avec minimum 100 Pulls ;
+- Top Pity conservé ;
+- Box/C6/copies respectent les possessions player-facing actives ;
+- nouveaux Tops globaux : Combat total, Combat manuel, Expeditions terminées, cœurs envoyés ;
+- catégories UI : Progression / Gacha / Ressources / Collection / Activité ;
+- Event, Boss, Concours et Giveaway conservent leurs propres classements spécialisés ;
+- aucun système de saisons ou récompenses pour les classements globaux V1 ;
+- dette Top du Domaine Banque résolue par R714/R715.
 
 Domaine actif :
-`docs/legacy/22-top-classements-audit.md` — Top / Classements globaux.
-
-État actuel du domaine :
-- audit technique initial de `Top.txt` réalisé ;
-- le script legacy est entièrement read-only et recalcule les classements à la demande depuis `viewers_data.json` ;
-- aucun classement, historique de rang ou podium passé n'est persisté ;
-- `!top me` affiche le résumé personnel niveau/XP/Pulls/5★/luck/pity/Primos/Moras/Box/C6 ;
-- classements legacy confirmés : XP, niveau, messages, messages XP, Pulls, taux 5★, 5★, 4★, Primogemmes, Moras, particules totales et par élément, Box, C6, copies, pity, 50/50 gagnés/perdus, Primogemmes/Moras gagnées et dépensées ;
-- le chat legacy affiche au maximum cinq résultats et ne possède aucune pagination ;
-- le legacy parcourt tous les profils sans filtre d'activation ; la cible utilisera `élément choisi = joueur Twitch activé` pour les classements gameplay globaux ;
-- aucune confidentialité n'est appliquée dans `Top.txt` ;
-- Social impose désormais des permissions serveur : niveau toujours visible, statistiques/Box/pity publiques par défaut mais configurables, soldes de monnaies et Banque privés par défaut ;
-- un classement global ne devra jamais exposer ou permettre de déduire une donnée privée ;
-- `!top moras` classe actuellement uniquement le portefeuille ;
-- la décision portefeuille / patrimoine / classements distincts reportée par Banque est maintenant active dans ce domaine ;
-- `luck` legacy = `totalFiveStars / totalPulls × 100`, sans minimum de Pulls ;
-- les égalités legacy n'ont aucune vraie politique métier ;
-- les métriques Box/C6/copies devront respecter les personnages actifs/player-facing et les corrections de possession déjà validées ;
-- Event, Boss, Concours et Giveaway conservent leurs propres classements spécialisés et ne doivent pas être dupliqués arbitrairement dans Top ;
-- la future UI peut devenir un écran `Classements`, tandis que `!top` reste une restitution compacte du même service ;
-- aucune donnée Top spécifique n'est à migrer : les rangs seront dérivés des données canoniques migrées ;
-- premières décisions produit à reprendre : **R714**.
+**Help / cohérence finale des commandes — audit spécialisé à initialiser après validation de ce checkpoint.**
 
 Prochaine étape exacte :
-reprendre le Domaine Top / Classements globaux à **R714** depuis `docs/legacy/22-top-classements-audit.md`, afin de définir l'écran standalone, les métriques conservées/ajoutées, la confidentialité, les égalités, la définition du classement Moras, le traitement de `luck`, les soldes actuels et le contrat final `!top`.
+créer le document spécialisé d'audit Help / cohérence finale des commandes, inspecter intégralement `Help.txt`, le recroiser avec `docs/commands/command-reference.md` et l'ensemble des commandes réellement validées dans les audits, puis décider uniquement les derniers écarts player-facing nécessaires avant le sweep exhaustif final.
 
 Étape obligatoire avant modèle de données / V1 :
 après clôture d'Event et des audits restants, effectuer un **sweep exhaustif final des 37 scripts `.txt` et des 17 fichiers JSON inventoriés** afin de confirmer qu'aucune mécanique, donnée, dépendance, commande ou source de vérité n'a été oubliée. Le modèle de données cible final et le passage à la V1 ne doivent être engagés qu'après cette vérification de couverture.
@@ -3560,16 +3538,6 @@ après clôture d'Event et des audits restants, effectuer un **sweep exhaustif f
 Cet inventaire évite qu'un système legacy soit oublié.
 
 Il ne définit pas la prochaine reprise : seule la section `Prochaine étape exacte` ci-dessus joue ce rôle.
-
-### Top / Classements
-Source principale :
-- `Top.txt` ;
-- statistiques utilisées depuis `viewers_data.json`.
-
-À recroiser notamment avec :
-- les définitions statistiques validées ;
-- la confidentialité ;
-- les classements propres aux différents domaines.
 
 ### Help / cohérence finale des commandes
 Source principale :
