@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.36
+Version : 0.37
 Date : 2026-09-04
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3522,17 +3522,26 @@ Couverture legacy globale :
 - source legacy sans propriétaire documentaire : **0** ;
 - nouvelle décision produit issue des sweeps : **0**.
 
+Dernière consolidation clôturée :
+`docs/specifications/v1-data-model.md` — Modèle de données V1 — **CONSOLIDÉ : entités métier, sources de vérité, états temporels, cardinalités, contraintes, mapping exhaustif des 17 JSON, provenance, idempotence et ordre de migration cadrés ; aucune nouvelle décision produit.**
+
 Domaine actif :
-**Consolidation du modèle de données V1.**
+**Finalisation des deux documentations Twitch externes.**
 
 Prochaine étape exacte :
-construire le modèle de données cible V1 à partir de `docs/legacy/02-current-player-model.md`, des audits spécialisés clôturés, de `docs/legacy/24-final-script-sweep.md` et de `docs/legacy/25-final-json-sweep.md`.
+finaliser les deux documentations Twitch prévues à partir des audits clôturés, de `docs/commands/command-reference.md` et du modèle V1 consolidé :
 
-Cette consolidation doit définir explicitement les entités métier, identités, relations, propriétaires des écritures, sources de vérité, données dérivées, historiques, états temporaires, catalogues/configurations, contraintes d'unicité, règles de confidentialité ayant un impact sur les projections, mapping de migration, provenance, idempotence d'import et ordre de cutover.
+- **Guide de démarrage Twitch** : parcours joueur pédagogique, de l'arrivée dans le chat jusqu'aux systèmes avancés ;
+- **Documentation Technique Twitch** : référence exhaustive des commandes, syntaxes, prérequis, coûts, cooldowns, resets, récompenses, probabilités, comportements spéciaux et commandes administratives.
 
-La structure technique finale ne doit pas reproduire mécaniquement `viewers_data.json` ni les autres JSON legacy. `genshin_characters.json` doit notamment être séparé conceptuellement entre catalogue personnages et état de bannière/rotation.
+Ces documents doivent refléter les règles V1 validées et ne pas recopier les incohérences du legacy.
 
-Une fois le modèle de données V1 consolidé et checkpointé, finaliser les deux documentations Twitch externes prévues avant l'intégration Twitch réelle.
+Le Guide de démarrage doit privilégier l'ordre d'apprentissage du joueur :
+élément → activité/XP → `!quotis` / quotidiennes → Roue/Combat/Expedition → Gacha → ressources/Sac → Collection/Team → Social → Events/Twitch spéciaux.
+
+La Documentation Technique doit être structurée par domaine et rester exploitable comme référence exhaustive.
+
+Après leur checkpoint, effectuer la revue de préparation backend / DB / architecture avant les premiers lots d'implémentation métier Codex.
 
 ## Vérification legacy
 

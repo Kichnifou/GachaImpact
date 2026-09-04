@@ -1,7 +1,7 @@
 # GachaImpact — Modèle de données V1 consolidé
 
-> Statut : **EN COURS — Phase B / consolidation du modèle cible**  
-> Baseline documentaire : `main` au commit `fae1d4e6884af6375b8f12dd4fb5f9263075a4f8`  
+> Statut : **CONSOLIDÉ — Phase B / modèle de données cible V1 finalisé**  
+> Baseline documentaire : `main` au commit `cb663d1c58a4d28aeee3e4c99a859c6704b5db58`  
 > Nature du document : modèle conceptuel/relational cible destiné à préparer le backend et la migration.  
 > Il ne fige pas encore le fournisseur de base de données ni le DDL SQL final.
 
@@ -147,37 +147,41 @@ Domaines concernés notamment :
 
 Le modèle est organisé autour des domaines suivants :
 
-1. Identité / Compte
-2. Progression
-3. Ressources / Économie
-4. Banque
-5. Échanges
-6. Catalogue personnages
-7. Gacha / Bannière / Votes
-8. Collection / Possessions
-9. Concours / C6
-10. Teams / Passifs
-11. Inventaire / Objets
-12. Boutique
-13. Missions
-14. Quotidiennes
-15. Expedition
-16. Combat quotidien
-17. Boss mensuel
-18. Social / Amitié
-19. Présence
-20. Confidentialité
-21. Cosmétiques
-22. Messages privés
-23. Events mensuels
-24. Codes cadeaux
-25. Faveur
-26. Giveaway / Wish
-27. Notifications
-28. Historique / projections
-29. Top / Classements
-30. Help / métadonnées de commandes
-31. Migration / provenance
+- Identité / Compte
+- Progression
+- Ressources / Économie
+- Banque
+- Échanges
+- Catalogue personnages
+- Gacha / Bannière / Votes
+- Collection / Possessions
+- Concours / C6
+- Teams / Passifs
+- Inventaire / Objets
+- Boutique
+- Missions
+- Quotidiennes
+- Roue
+- Expedition
+- Combat quotidien
+- Boss mensuel
+- Social / Amitié
+- Présence
+- Confidentialité
+- Cosmétiques
+- Messages privés
+- Chat global
+- Events mensuels
+- Codes cadeaux
+- Faveur
+- Giveaway / Wish
+- Twitch / Gift Suprême / événements externes
+- Notifications
+- Administration / permissions
+- Historique / projections
+- Top / Classements
+- Help / métadonnées de commandes
+- Migration / provenance
 
 ---
 
@@ -250,6 +254,125 @@ Prévoir les informations minimales nécessaires pour distinguer :
 
 Le détail technique exact pourra être soit un petit état du Player, soit une structure dédiée selon le backend retenu.
 
+## 4.5 `PlayerPreference`
+
+Préférences personnelles non autoritatives de présentation.
+
+Clé conceptuelle :
+
+`playerId + preferenceKey`
+
+Peut notamment accueillir les préférences V1 réellement conservées comme :
+
+- tri de Box ;
+- ordre de tri ;
+- autres préférences d'affichage explicitement utiles.
+
+Une préférence ne peut jamais devenir une source de vérité pour :
+
+- ressources ;
+- progression ;
+- permissions ;
+- disponibilité d'une mécanique ;
+- confidentialité métier.
+
+Les anciennes `options` de `viewers_data.json` ne sont migrées que lorsqu'une préférence équivalente existe réellement dans la V1.
+
+## 4.6 `PlayerRoleAssignment`
+
+Attribution d'un rôle privilégié à un Player.
+
+Conceptuellement :
+
+- `playerId`
+- rôle
+- `grantedAt`
+- `grantedByPlayerId` éventuel
+- `revokedAt`
+- provenance
+
+Rôles initiaux utiles :
+
+- Modérateur ;
+- Administrateur.
+
+Le rôle joueur normal n'a pas besoin d'une ligne explicite.
+
+Contrainte :
+
+`playerId + role` ne peut posséder qu'une attribution active.
+
+L'administrateur initial validé est provisionné par configuration/migration.
+
+Aucun contrôle d'autorisation ne repose sur un pseudo codé en dur.
+
+## 4.7 `AdminAuditEntry`
+
+Journal des opérations administratives sensibles.
+
+Contient conceptuellement :
+
+- acteur ;
+- action ;
+- type et ID de cible ;
+- domaine ;
+- valeur avant/après lorsque nécessaire ;
+- raison/commentaire éventuel ;
+- timestamp ;
+- opération/correlation ID.
+
+Une correction Admin de ressources, personnages, configuration ou données joueur doit rester traçable.
+
+## 4.8 `TwitchEventReceipt`
+
+Inbox technique des événements Twitch reçus par le backend.
+
+Contient conceptuellement :
+
+- identifiant externe Twitch/EventSub ;
+- type d'événement ;
+- identifiant Twitch de l'acteur lorsque disponible ;
+- timestamps réception/traitement ;
+- état de traitement ;
+- références externes utiles ;
+- hash ou payload minimal nécessaire au diagnostic.
+
+Contrainte fondamentale :
+
+**un même événement externe ne peut être traité métier qu'une seule fois.**
+
+Les domaines Faveur, Gift Suprême, Giveaway et autres consommateurs Twitch référencent cette réception lorsqu'une déduplication externe est nécessaire.
+
+Le stockage intégral et permanent de tous les payloads Twitch n'est pas imposé si les informations minimales suffisent.
+
+## 4.9 `GiftSupremeRedemption`
+
+État métier d'une redemption Gift Suprême.
+
+Conceptuellement :
+
+- `redemptionId` Twitch ;
+- `twitchEventReceiptId` ;
+- `rewardId` ;
+- identifiant Twitch du gifter ;
+- Player du gifter lorsque résolu, facultatif ;
+- Player bénéficiaire ;
+- statut ;
+- ressource/récompense appliquée ;
+- opération économique ;
+- timestamps.
+
+Contraintes :
+
+- `redemptionId` unique ;
+- un gifter Twitch peut ne posséder aucun Player GachaImpact ;
+- le bénéficiaire doit satisfaire les règles Gift validées ;
+- une redemption ne paie jamais deux fois.
+
+Cette donnée sert à l'idempotence, l'audit et au support.
+
+Elle ne crée pas d'Historique Gift player-facing dédié.
+
 ---
 
 # 5. Progression
@@ -261,12 +384,16 @@ Source autoritative :
 - `playerId`
 - XP cumulée
 - état d'overflow niveau max si nécessaire
-- compteurs de messages utiles
-- dates de claim quotidien utiles
+- `totalMessages`
+- `countedMessages`
+- dernier gain XP utile
+- dernier message ayant réellement donné de l'XP
 
 Le niveau est dérivé de l'XP selon les règles validées.
 
 Si le niveau est matérialisé techniquement pour lecture rapide, il reste une projection contrôlée et ne peut pas diverger de l'XP.
+
+Les notions legacy `lastXpDate` et `lastMessageTime` sont migrées selon leur vraie sémantique documentée, sans conserver leurs noms trompeurs comme contrat V1.
 
 ## 5.2 Statistiques de progression
 
@@ -281,6 +408,33 @@ Préférer :
 - champs dédiés pour compteurs fortement structurants et souvent utilisés ;
 - agrégats spécialisés dans leurs domaines ;
 - vues/projections pour les classements.
+
+## 5.3 `PlayerDailyRewardState`
+
+État minimal de la récompense quotidienne générale.
+
+Un seul état par joueur :
+
+- `playerId`
+- première journée de claim connue, nullable
+- dernière journée de claim connue, nullable
+- timestamp du dernier claim si utile
+
+Il n'existe pas d'historique player-facing ligne par ligne de toutes les anciennes récompenses quotidiennes.
+
+Contrainte logique :
+
+`player + businessDate`
+
+ne peut produire qu'un seul claim économique.
+
+UI, chat interne et Twitch utilisent exactement la même opération métier.
+
+Migration :
+
+- `dates.lastDailyFirstMessageReward` devient la dernière réclamation legacy connue ;
+- ne pas inventer la première réclamation historique si elle est inconnue ;
+- à partir de GachaImpact, la première réclamation réelle peut être conservée.
 
 ---
 
@@ -807,6 +961,51 @@ Le hub Quotidiennes est une projection à partir de :
 
 `!quotis` et l'écran graphique lisent la même projection.
 
+## 17.1 Roue — propriété métier séparée
+
+Le hub Quotidiennes ne possède pas la Roue.
+
+Il lit son état depuis le domaine Roue.
+
+### `PlayerWheelStats`
+
+État cumulatif par joueur :
+
+- `playerId`
+- `totalWheelSpins`
+- `totalWheelJackpots`
+
+Les compteurs legacy sont importés tels quels.
+
+### `PlayerWheelDailyState`
+
+État autoritatif d'utilisation pour une journée :
+
+- joueur ;
+- journée `Europe/Paris` ;
+- état consommé ;
+- timestamp du spin lorsqu'il est connu ;
+- statut du résultat : connu / inconnu legacy ;
+- type de résultat éventuel ;
+- élément éventuel ;
+- quantité éventuelle ;
+- opération économique associée.
+
+Contrainte :
+
+`UNIQUE(playerId, businessDate)`
+
+Une ligne native possède toujours son résultat autoritatif.
+
+Lors de la migration :
+
+- `lastWheelDate` empêche correctement un second spin le jour du cutover ;
+- si le spin a été effectué dans le legacy mais que son résultat exact n'est pas reconstructible, l'état peut être importé comme `consommé / résultat legacy inconnu` ;
+- aucune récompense n'est recréée ;
+- aucun résultat historique absent n'est inventé.
+
+Il n'existe pas de besoin player-facing d'un historique complet des anciennes Roues.
+
 ---
 
 # 18. Expedition
@@ -872,6 +1071,21 @@ Distincte de Team.
 
 Les KO sont propres au quotidien et reset selon la journée serveur.
 
+## 19.5 `ElementCombatRule`
+
+Configuration serveur de la matrice élémentaire utilisée par Combat.
+
+Une définition par élément peut contenir :
+
+- élément ;
+- élément favorisé ;
+- élément défavorisé ;
+- statut/version de configuration.
+
+`combat_config.json` devient une source de seed/configuration initiale.
+
+Cette configuration n'est pas une donnée joueur et ne nécessite aucun historique legacy.
+
 ---
 
 # 20. Boss mensuel
@@ -908,9 +1122,34 @@ Chaque attaque valide :
 
 ## 20.4 Récompenses / statistiques
 
-La participation et les classements sont dérivés des attaques autoritatives.
+Pour les données natives, la participation et les classements sont dérivés des attaques autoritatives.
 
 L'historique Boss natif conserve les instances passées.
+
+## 20.5 `BossLegacyContribution`
+
+Support de migration uniquement pour les agrégats certains présents dans `monthly_boss.json` lorsqu'aucune attaque détaillée correspondante n'existe.
+
+Clé conceptuelle :
+
+`bossId + playerId`
+
+Peut conserver :
+
+- dégâts cumulés legacy ;
+- nombre d'attaques legacy ;
+- plus gros coup connu ;
+- dernière date d'attaque connue ;
+- état de récompense connu ;
+- provenance du snapshot.
+
+Il ne faut jamais générer de faux `BossAttack` afin de reconstruire un détail historique qui n'existe pas.
+
+Après le cutover :
+
+- les nouvelles attaques sont de vrais `BossAttack` ;
+- les projections Boss additionnent proprement le carry-over legacy certain et les nouvelles attaques natives ;
+- aucune nouvelle donnée n'est ajoutée à `BossLegacyContribution`.
 
 ---
 
@@ -990,6 +1229,33 @@ Selon besoin :
 Certaines valeurs peuvent être stockées directement comme timestamps récents plutôt qu'en historique exhaustif si aucun produit ne demande l'historique complet.
 
 La présence en ligne est un état temps réel distinct de l'historique métier.
+
+## 22.3 `GlobalChatMessage`
+
+Message du chat global GachaImpact.
+
+Conceptuellement :
+
+- `id`
+- `authorPlayerId` nullable pour les messages système
+- source : INTERNAL / TWITCH / SYSTEM
+- type : PLAYER / COMMAND / GAME_RESULT / SYSTEM
+- contenu
+- `createdAt`
+- identifiant externe du message lorsque pertinent
+- opération métier liée lorsque pertinent
+- état de modération/suppression lorsque nécessaire
+
+Contraintes :
+
+- un identifiant de message Twitch ne peut être importé/traité deux fois ;
+- une réponse automatique du jeu n'est pas attribuée statistiquement au joueur ;
+- envoyer une commande reste bien un message du joueur pour les compteurs qui le prévoient ;
+- l'exécution métier d'une commande reste séparée du stockage/transport du message.
+
+Le pont Twitch futur peut injecter un message dans ce même flux selon la configuration validée.
+
+La durée exacte de conservation du chat global est un choix technique ultérieur et n'est pas figée par ce modèle.
 
 ---
 
@@ -1112,15 +1378,79 @@ Instance mensuelle :
 
 ## 26.4 Sous-états Event
 
-Prévoir des entités spécialisées uniquement lorsque nécessaires :
+Les blobs imbriqués de `monthly_events_data.json` sont séparés en états spécialisés lorsque leur cycle de vie le nécessite.
 
-- claim de palier ;
-- état quotidien ;
-- messages sociaux Event ;
-- achats/collection Event ;
-- état du Jeu B ;
-- tirage mensuel ;
-- résultat final / classement snapshot.
+Prévoir notamment :
+
+### `EventDailyPlayerState`
+
+Clé :
+
+`eventEditionId + playerId + businessDate`
+
+Peut porter :
+
+- réussite Jeu A ;
+- tentatives Jeu B personnelles ;
+- Jeu C envoyé ;
+- bonus quotidien Event ;
+- fenêtres personnelles du Jeu A.
+
+### `EventGameBDailyState`
+
+Clé :
+
+`eventEditionId + businessDate`
+
+Porte l'état coopératif global du Jeu B :
+
+- solution ;
+- état trouvé ;
+- découvreur ;
+- codes déjà testés.
+
+### `EventMilestoneClaim`
+
+Clé :
+
+`eventEditionId + playerId + milestone`
+
+Empêche tout double paiement d'un palier.
+
+### `EventSocialMessage`
+
+Message du Jeu C :
+
+- édition ;
+- expéditeur ;
+- destinataire ;
+- texte ;
+- création ;
+- état de lecture/livraison.
+
+### `EventCollectionAcquisition`
+
+Mémoire durable de l'acquisition annuelle d'un objet saisonnier.
+
+Clé conceptuelle :
+
+`playerId + itemDefinitionId + year`
+
+Référence également l'édition Event ayant produit l'acquisition.
+
+Cette entité est volontairement séparée de l'état mensuel afin que le changement de mois ne supprime plus la règle validée d'une acquisition par édition annuelle.
+
+### `EventCalendarClaim`
+
+État du calendrier de décembre lorsqu'il est actif.
+
+Contrainte adaptée au contrat :
+
+`eventEditionId + playerId + calendarDay`
+
+### Tirage / résultat mensuel
+
+Le tirage mensuel et un éventuel snapshot final/classement sont persistés comme résultats de l'édition lorsqu'ils sont nécessaires au contrat Event.
 
 Ne pas introduire `monthly_events.json` dans le modèle : ce fichier legacy est vide et non migré.
 
@@ -1130,35 +1460,78 @@ Ne pas introduire `monthly_events.json` dans le modèle : ce fichier legacy est 
 
 ## 27.1 `GiftCode`
 
-Définition du code :
+Définition durable du code :
 
 - ID
 - token
 - titre
-- disponibilité
-- expiration/annualité
+- type ponctuel/annuel
+- statut de publication
+- métadonnées Admin
+- timestamps utiles
+
+Le token n'est pas l'identifiant métier interne.
+
+## 27.2 `GiftCodeEdition`
+
+Une période concrète pendant laquelle un code peut être réclamé.
+
+Conceptuellement :
+
+- `id`
+- `giftCodeId`
+- clé d'édition
+- début
+- fin éventuelle
 - statut
-- métadonnées
+- année/mois lorsque pertinent
 
-## 27.2 `GiftCodeReward`
+Pour un code ponctuel :
 
-Récompenses attachées à la définition.
+- une seule édition logique.
 
-Supporte les types autorisés par le moteur de ressources.
+Pour un code annuel :
 
-## 27.3 `GiftCodeClaim`
+- chaque nouvelle période annuelle crée/représente une nouvelle édition de claim.
+
+Contrainte :
+
+`UNIQUE(giftCodeId, editionKey)`
+
+## 27.3 `GiftCodeReward`
+
+Récompenses attachées à la définition/édition selon l'implémentation retenue.
+
+Supporte uniquement les types validés par le moteur Codes/Ressources.
+
+Le serveur conserve suffisamment d'information pour expliquer ce qu'une édition a réellement distribué.
+
+## 27.4 `GiftCodeClaim`
 
 Clé conceptuelle unique :
 
-`giftCodeId + playerId`
+`giftCodeEditionId + playerId`
 
 Contient :
 
 - claimAt
+- canal/source
 - opération de récompense
 - provenance migration/native
 
-Définition et claim sont deux concepts séparés.
+Conséquences :
+
+- un code annuel peut être réclamé une fois en 2026 puis une fois en 2027 ;
+- il ne peut jamais être réclamé deux fois pendant la même édition ;
+- un retry UI/chat/Twitch ne double jamais la récompense.
+
+Migration de `usedCodes` :
+
+- `CODE` → édition ponctuelle correspondante ;
+- `CODE-YYYY` → édition annuelle correspondante ;
+- une référence impossible à résoudre produit une `MigrationIssue` au lieu d'attribuer une récompense.
+
+Définition, édition et claim sont trois concepts séparés.
 
 ---
 
@@ -1166,27 +1539,72 @@ Définition et claim sont deux concepts séparés.
 
 ## 28.1 `PlayerFavor`
 
-État courant :
+État courant calendaire par joueur.
 
-- player
-- jours/solde de Faveur ou représentation métier équivalente
-- dates nécessaires au cycle validé
+Un seul état par Player.
 
-La représentation exacte doit préserver le comportement métier sans recopier obligatoirement `daysRemaining`.
+Représentation cible :
+
+- `playerId`
+- première journée active utile
+- dernière journée active / échéance
+- provenance legacy utile
+
+Le nombre de jours restants est dérivé du calendrier serveur.
+
+Il ne doit plus être décrémenté parce que le joueur écrit un message.
+
+Une attribution nouvelle reçue aujourd'hui ajoute ses nouvelles journées à partir du lendemain conformément au contrat Faveur.
 
 ## 28.2 `FavorGrant`
 
-Historique natif des acquisitions de Faveur :
+Historique natif d'une attribution de Faveur :
 
-- bénéficiaire
-- cause Twitch/subscription
-- quantité/durée
-- timestamp
-- source event/idempotency key
+- bénéficiaire ;
+- `twitchEventReceiptId` éventuel ;
+- type/tier de subscription ;
+- durée demandée ;
+- durée réellement ajoutée ;
+- jours bloqués par le plafond ;
+- Primogemmes immédiates ;
+- compensation éventuelle ;
+- timestamp ;
+- idempotency/external event key.
 
-## 28.3 Claims
+Une même preuve Twitch ne peut produire qu'une attribution.
 
-Les claims quotidiens utilisent l'état Faveur mais passent par le moteur de récompenses central.
+## 28.3 `FavorDailyClaim`
+
+Claim quotidien réellement obtenu :
+
+- player ;
+- journée métier ;
+- canal/source de manifestation ;
+- timestamp ;
+- opération économique +800 Primogemmes.
+
+Contrainte :
+
+`UNIQUE(playerId, businessDate)`
+
+La journée de Faveur s'écoule même sans ligne `FavorDailyClaim`.
+
+Une absence signifie donc :
+
+- journée consommée par le calendrier ;
+- aucune récompense +800.
+
+## 28.4 Migration Faveur
+
+`favor.daysRemaining` au cutover est considéré comme certain.
+
+Le migrateur :
+
+- ne recalcule pas rétroactivement les jours passés ;
+- transforme prospectivement l'état restant vers l'intervalle calendaire V1 ;
+- tient compte de `lastClaimDate` pour éviter un double claim le jour du cutover ;
+- conserve `obtainedDate` / `lastClaimDate` comme provenance lorsqu'elles sont valides ;
+- ne crée aucun historique quotidien fictif.
 
 ---
 
@@ -1365,6 +1783,82 @@ Anomalie détectée :
 - bots exclus selon les décisions existantes ;
 - les demandes temporaires explicitement non migrées restent non migrées.
 
+## 34.6 Mapping exhaustif des 17 JSON legacy
+
+| Source legacy | Cible V1 principale | Règle d'import |
+|---|---|---|
+| `banner_votes.json` | `BannerRotation`, `BannerVote` | reprendre uniquement l'état pertinent de la rotation/semaine active selon l'audit ; total de votes dérivé |
+| `c6_characters.json` | `PlayerCharacter`, `C6CompetitionProgress` | préserver statistiques/titres C6 certains ; ignorer les métadonnées catalogue dupliquées |
+| `combat_config.json` | `ElementCombatRule` | seed/configuration métier ; aucun historique |
+| `combat_data.json` | `DailyCombatEncounter` | reprendre uniquement si l'état correspond à la journée du cutover |
+| `contests_data.json` | `Contest`, participations/spectateurs/verrous journaliers | traiter l'état actif selon le cutover ; ancien historique Concours non recréé |
+| `element_passives.json` | `ElementPassiveDefinition` | seed/configuration commune Team/Gacha |
+| `friendships_data.json` | `Friendship`, `FriendRequest` + état directionnel migré | conserver relations/demandes/compteurs/dates certains ; ne pas inventer de `FriendHeart` historiques |
+| `genshin_characters.json` | `Character`, `BannerRotation`, `BannerFeaturedCharacter` | séparer catalogue et rotation mutable |
+| `gift_codes.json` | `GiftCode`, `GiftCodeEdition`, `GiftCodeReward` | importer les définitions ; claims récupérés séparément depuis `usedCodes` |
+| `giveaway.json` | `GiveawaySession`, `GiveawayParticipant`, `GiveawayChatStat` | cutover hors session active préféré ; sinon reprise strictement selon audit |
+| `long_missions.json` | `MissionDefinition` | catalogue des missions permanentes |
+| `missions_pool.json` | `MissionDefinition` | catalogue des missions quotidiennes |
+| `monthly_boss.json` | `MonthlyBoss`, `BossLegacyContribution` | reprendre état/agrégats certains sans créer de fausses attaques |
+| `monthly_events.json` | aucune entité | résidu vide confirmé ; non migré |
+| `monthly_events_data.json` | `EventEdition`, `EventParticipant` et sous-états Event | reprendre uniquement l'édition/état certain prévu par le contrat Event |
+| `shop_items.json` | `ShopItemDefinition` | seed/catalogue Boutique ; aucun achat historique inventé |
+| `viewers_data.json` | décomposition multi-domaines | Player/TwitchIdentity, progression, préférences, ressources, Banque, possessions, Teams, Gacha, Missions, Roue, Expedition, Combat/Boss loadouts, Faveur, inventaire/Coffre, claims Codes, statistiques et autres états propriétaires |
+
+`viewers_data.json` reste donc une **source d'import**, jamais une entité V1.
+
+Lorsqu'une information existe dans `viewers_data.json` et dans une source spécialisée plus autoritative :
+
+- appliquer la règle de propriété déjà définie par l'audit concerné ;
+- enregistrer toute contradiction réellement ambiguë dans `MigrationIssue` ;
+- ne pas fusionner silencieusement deux valeurs incompatibles.
+
+## 34.7 Cardinalités et contraintes relationnelles structurantes
+
+| Relation / état | Cardinalité ou unicité cible |
+|---|---|
+| Player → WebIdentity | 0..1 |
+| Player → TwitchIdentity | 0..1 |
+| Twitch User ID → Player | au plus 1 |
+| Player + rôle privilégié | une attribution active maximum |
+| Player + préférence | unique par `preferenceKey` |
+| Player + ResourceDefinition | un solde |
+| Player → Banque | 0..1 compte |
+| Player + Character | une possession |
+| Team + position | un membre |
+| Team + Character | personnage unique dans la Team |
+| Team | 0..4 membres |
+| Player | une seule Team active |
+| BannerRotation + Player | un vote définitif |
+| PullOperation | 1..10 `PullResult` ordonnés |
+| Player + journée | un état Roue maximum |
+| Player | un `PlayerWheelStats` |
+| Player | un `PlayerDailyRewardState` |
+| Player + journée | une mission quotidienne au maximum |
+| DailyCombatEncounter + Player | un état quotidien |
+| MonthlyBoss + Player + journée | une attaque Boss maximum |
+| Friendship | une paire canonique de joueurs |
+| Friendship + sender + journée | un cœur maximum |
+| paire de joueurs | une demande d'ami ouverte maximum |
+| Player + privacyCategory | un réglage |
+| EventEdition + Player | une participation |
+| EventEdition + Player + journée | un état Event quotidien |
+| EventEdition + Player + palier | un claim de palier |
+| Player + objet Collection + année | une acquisition Event annuelle |
+| GiftCode + editionKey | une édition |
+| GiftCodeEdition + Player | un claim |
+| Player | un état Faveur |
+| Player + journée | un claim quotidien Faveur |
+| GiveawaySession + Player | une participation `!wish` |
+| GiveawaySession + Player | un compteur chat |
+| Twitch/EventSub event ID | une réception |
+| Gift Supreme redemption ID | une opération |
+| source + externalMessageId du chat | un message externe |
+
+Les contraintes exprimant un état `actif uniquement` pourront être réalisées par index partiels, contraintes applicatives transactionnelles ou mécanisme équivalent selon la base retenue.
+
+Le choix SQL exact appartient à la prochaine phase technique.
+
 ---
 
 # 35. Ordre logique de migration
@@ -1399,17 +1893,30 @@ Le backend devra pouvoir imposer au minimum :
 - une possession unique par joueur/personnage ;
 - constellation 0..6 ;
 - une identité Twitch liée à au plus un Player ;
+- un identifiant Twitch externe lié à au plus une identité ;
 - une Team membre uniquement de personnages possédés et actifs pour les nouvelles mutations ;
 - aucune duplication de personnage dans une Team ;
+- une seule Team active par joueur ;
 - une demande d'échange logique unique et cohérente ;
 - une relation d'amitié logique par paire ;
 - un cœur par relation/expéditeur/journée ;
 - un vote hebdomadaire définitif par joueur selon la règle Gacha ;
-- un claim de code par joueur/code ;
+- un état Roue maximum par joueur/journée ;
+- un claim de récompense quotidienne maximum par joueur/journée ;
+- un état Combat quotidien par joueur/rencontre ;
+- une attaque Boss maximum par joueur/journée/instance ;
+- un claim de code par joueur/édition ;
+- un claim Faveur maximum par joueur/journée ;
+- une participation Giveaway maximum par joueur/session ;
+- une acquisition Collection Event maximum par joueur/objet/édition annuelle ;
+- un même EventSub/event externe traité une seule fois ;
+- une même redemption Gift Suprême traitée une seule fois ;
 - récompenses économiques atomiques ;
 - mutations sensibles idempotentes ;
 - permissions appliquées côté serveur ;
-- aucune projection ne devient une vérité concurrente.
+- actions administratives sensibles journalisées ;
+- aucune projection ne devient une vérité concurrente ;
+- aucune donnée historique absente n'est fabriquée pour satisfaire le nouveau schéma.
 
 ---
 
