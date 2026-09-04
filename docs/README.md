@@ -33,6 +33,7 @@ La finalité opérationnelle principale de cette documentation est de préparer 
 - `legacy/` : inventaire, compréhension de l'ancien jeu et audits spécialisés par domaine.
 - `specifications/` : décisions validées et durables pour le nouveau GachaImpact.
 - `commands/` : contrats des commandes et future aide intégrée.
+- `notion/` : documentations externes prêtes à être publiées dans Notion, notamment les guides Twitch joueur et technique.
 - `roadmap/` : trajectoire macro de développement, sans dupliquer l'état courant du Master.
 
 Les sources brutes de l'ancien jeu restent hors de `docs/`, principalement dans `legacy/streamerbot/`.

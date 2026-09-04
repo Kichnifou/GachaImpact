@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.37
+Version : 0.38
 Date : 2026-09-04
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3525,23 +3525,26 @@ Couverture legacy globale :
 Dernière consolidation clôturée :
 `docs/specifications/v1-data-model.md` — Modèle de données V1 — **CONSOLIDÉ : entités métier, sources de vérité, états temporels, cardinalités, contraintes, mapping exhaustif des 17 JSON, provenance, idempotence et ordre de migration cadrés ; aucune nouvelle décision produit.**
 
+Documentations Twitch externes finalisées :
+- `docs/notion/guide-demarrage-twitch.md` — Guide de démarrage Twitch — **TERMINÉ / NOTION READY** ;
+- `docs/notion/guide-technique-twitch.md` — Documentation Technique Twitch — **TERMINÉ / NOTION READY**.
+
 Domaine actif :
-**Finalisation des deux documentations Twitch externes.**
+**Phase C — Architecture backend / authentification / base.**
 
 Prochaine étape exacte :
-finaliser les deux documentations Twitch prévues à partir des audits clôturés, de `docs/commands/command-reference.md` et du modèle V1 consolidé :
+effectuer la revue de préparation backend / DB / architecture à partir du modèle de données V1 consolidé et de l'ensemble des décisions métier clôturées.
 
-- **Guide de démarrage Twitch** : parcours joueur pédagogique, de l'arrivée dans le chat jusqu'aux systèmes avancés ;
-- **Documentation Technique Twitch** : référence exhaustive des commandes, syntaxes, prérequis, coûts, cooldowns, resets, récompenses, probabilités, comportements spéciaux et commandes administratives.
+Cette phase doit maintenant :
+- choisir et valider le socle backend ;
+- définir l'architecture serveur et les frontières des services métier ;
+- définir l'authentification et la liaison future des identités Twitch ;
+- traduire le modèle conceptuel V1 en schéma relationnel cible ;
+- définir les transactions, contraintes, idempotence, schedulers et traitements temporels ;
+- préparer les mécanismes de migration et d'observabilité ;
+- identifier le premier lot backend suffisamment borné pour Codex.
 
-Ces documents doivent refléter les règles V1 validées et ne pas recopier les incohérences du legacy.
-
-Le Guide de démarrage doit privilégier l'ordre d'apprentissage du joueur :
-élément → activité/XP → `!quotis` / quotidiennes → Roue/Combat/Expedition → Gacha → ressources/Sac → Collection/Team → Social → Events/Twitch spéciaux.
-
-La Documentation Technique doit être structurée par domaine et rester exploitable comme référence exhaustive.
-
-Après leur checkpoint, effectuer la revue de préparation backend / DB / architecture avant les premiers lots d'implémentation métier Codex.
+Avant toute implémentation métier importante, effectuer une revue de readiness afin de vérifier que Codex ne devra ni deviner une règle produit ni reconstruire l'architecture depuis le legacy.
 
 ## Vérification legacy
 
