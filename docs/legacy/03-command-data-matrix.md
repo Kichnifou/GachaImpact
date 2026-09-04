@@ -2,7 +2,7 @@
 
 Statut : PREMIER AUDIT STRUCTUREL  
 Date : 2026-08-27  
-Sources : 36 scripts du snapshot Streamer.bot + 17 JSON du snapshot Data.
+Sources : 37 scripts du snapshot Streamer.bot + 17 JSON du snapshot Data.
 
 > Cette matrice est volontairement séparée des futures spécifications métier. Elle décrit d'abord **ce que fait réellement le legacy**. Les décisions “garder / adapter / supprimer” seront prises domaine par domaine.
 
@@ -32,6 +32,7 @@ Sources : 36 scripts du snapshot Streamer.bot + 17 JSON du snapshot Data.
 | Expedition | `viewers_data.json`, `genshin_characters.json` | R/W | Expédition | état temporisé + récompenses |
 | Faveur | `viewers_data.json` | R/W | Faveur / Abonnement | consultation/réclamation selon mécanique |
 | Gift | `viewers_data.json` | R/W | Modération / Récompense admin | don de ressources / progression selon script |
+| Giveaway | `giveaway.json`, `viewers_data.json` | R/W | Giveaway / Twitch | ouverture, fermeture, tirage, classement chat, récompenses, stats, reroll |
 | Help | `viewers_data.json` | R | Aide | aide contextualisée selon niveau/profil |
 | Infos | `viewers_data.json`, `genshin_characters.json` | R | Personnages / Fiche | infos catalogue + possession |
 | Legende | `c6_characters.json`, `viewers_data.json` | R | Concours / C6 | affiche personnages C6/statistiques |

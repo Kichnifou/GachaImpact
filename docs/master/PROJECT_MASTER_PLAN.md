@@ -1301,6 +1301,7 @@ Chemin :
 - Expedition
 - Faveur
 - Gift
+- Giveaway
 - Help
 - Infos
 - Legende
@@ -3345,7 +3346,7 @@ Frontend :
 prototype très avancé, assets Genshin intégrés, UI quasi validée.
 
 Legacy :
-36 scripts + 17 JSON intégrés sous `legacy/streamerbot/`.
+37 scripts + 17 JSON intégrés sous `legacy/streamerbot/`.
 
 Docs :
 déjà présentes sous `docs/`.
@@ -3520,13 +3521,34 @@ Dernier domaine clôturé :
 - distinction Notifications actionnables / informationnelles / feedbacks éphémères désormais explicitée.
 
 Domaine actif :
-**Giveaway / Wish — audit spécialisé à initialiser après validation de ce checkpoint.**
+`docs/legacy/21-giveaway-wish-audit.md` — Giveaway / Wish.
+
+État actuel du domaine :
+- audit technique initial refait après ajout de `legacy/streamerbot/commands/Giveaway.txt` ;
+- `Giveaway.txt`, `Wish.txt`, `XP.txt` et `giveaway.json` ont été recroisés ;
+- `!giveaway open`, `!giveaway close`, `!giveaway stats` et `!giveaway reroll` sont maintenant confirmés ;
+- `!wish` inscrit une seule fois le joueur au tirage d'une session ouverte ;
+- le tirage `!wish` et le classement d'activité Twitch utilisent deux populations distinctes ;
+- le gagnant aléatoire reçoit +1 600 Primogemmes ;
+- le classement messages distribue au total +2 000 / +1 500 / +1 000 particules personnelles aux trois premiers, puis +500 à tous les autres joueurs classés ;
+- ces récompenses sont conservées telles quelles pour la V1 ;
+- le comptage legacy Giveaway accepte tout message Twitch non vide pendant la session ouverte, commandes comprises, sans cooldown spécifique ;
+- `kichnifou` est actuellement exclu du comptage et du classement parce que le bot legacy parle sous le même pseudo ;
+- les égalités legacy sont départagées alphabétiquement après le nombre de messages ;
+- `!giveaway open` peut actuellement écraser une session déjà ouverte ; la cible refusera techniquement cette opération destructive ;
+- `!giveaway close` peut fermer sans participant éligible au tirage tout en distribuant les récompenses d'activité chat ;
+- `!giveaway reroll` exclut le gagnant courant, choisit un autre participant et lui donne +1 600 Primogemmes supplémentaires sans retirer la récompense du gagnant précédent ;
+- les permissions streamer/modérateur sont actuellement externes au script ; la cible les vérifiera côté serveur ;
+- le filtre legacy niveau ≥2 sera remplacé par la règle centrale Twitch `élément choisi = joueur activé` ;
+- le comptage Twitch sans Streamer.bot est faisable via EventSub `channel.chat.message` et sera centralisé dans TwitchBridge / GiveawayService ;
+- l'ajout de `Giveaway.txt` porte l'inventaire legacy à 37 scripts `.txt` ;
+- premières décisions produit restantes : **R702**.
 
 Prochaine étape exacte :
-créer le document spécialisé d'audit Giveaway / Wish, puis inspecter intégralement `Wish.txt`, `giveaway.json` et les producteurs/consommateurs du Giveaway, notamment les interactions présentes dans `XP.txt`, avant de commencer les décisions produit R702+.
+reprendre le Domaine Giveaway / Wish à **R702** depuis `docs/legacy/21-giveaway-wish-audit.md` afin de finaliser le périmètre standalone, les messages comptabilisés, l'exclusion éventuelle de l'administrateur, les égalités, `stats`, la sémantique du `reroll`, les notifications et la restitution finale.
 
 Étape obligatoire avant modèle de données / V1 :
-après clôture d'Event et des audits restants, effectuer un **sweep exhaustif final des 36 scripts `.txt` et des 17 fichiers JSON inventoriés** afin de confirmer qu'aucune mécanique, donnée, dépendance, commande ou source de vérité n'a été oubliée. Le modèle de données cible final et le passage à la V1 ne doivent être engagés qu'après cette vérification de couverture.
+après clôture d'Event et des audits restants, effectuer un **sweep exhaustif final des 37 scripts `.txt` et des 17 fichiers JSON inventoriés** afin de confirmer qu'aucune mécanique, donnée, dépendance, commande ou source de vérité n'a été oubliée. Le modèle de données cible final et le passage à la V1 ne doivent être engagés qu'après cette vérification de couverture.
 
 ## Familles legacy restant à auditer
 
