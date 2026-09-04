@@ -3493,10 +3493,30 @@ Dernier domaine clôturé :
 - critères d'acceptation documentés.
 
 Domaine actif :
-**Gift / récompenses Twitch-admin — audit spécialisé à initialiser après validation de ce checkpoint.**
+`docs/legacy/20-gift-twitch-audit.md` — Gift Suprême / récompense Points de chaîne Twitch.
+
+État actuel du domaine :
+- audit technique initial réalisé ;
+- configuration Twitch actuelle fournie et recroisée avec le vrai `Gift.txt` ;
+- Gift Suprême coûte actuellement 10 000 Points de chaîne et exige une saisie texte ;
+- le viewer saisit le nom d'un joueur cible ;
+- la cible doit exister et posséder un élément ;
+- la cible reçoit +1 600 particules de son propre élément ;
+- le gifter legacy n'a pas besoin d'être lui-même joueur GachaImpact ;
+- `Gift.txt` utilise actuellement exact / contains / fuzzy Levenshtein pour résoudre le pseudo cible ;
+- le bug legacy de `totalMainElementParticlesEarned` sera corrigé via le service Ressources central ;
+- aucune donnée ou historique Gift spécifique n'est persisté dans le legacy ;
+- faisabilité Twitch sans Streamer.bot confirmée via EventSub `channel.channel_points_custom_reward_redemption.add` ;
+- EventSub fournit notamment redemption ID, Twitch User ID, `user_input`, reward ID, titre, coût et date ;
+- la future intégration doit identifier Gift Suprême par `reward.id` et dédupliquer les redemptions par leur ID ;
+- aucun bouton standalone ne permet de dépenser des Points de chaîne ;
+- les gains reçus via Twitch modifient néanmoins le même joueur et sont immédiatement visibles dans le standalone ;
+- nuance Twitch confirmée : GachaImpact peut écouter la reward actuelle créée manuellement, mais ne peut pas supposer pouvoir modifier/refund sa redemption via l'API ;
+- direction technique recommandée à arbitrer : recréer ultérieurement Gift Suprême via l'application GachaImpact afin de pouvoir marquer les redemptions réussies `FULFILLED` et les erreurs `CANCELED` avec remboursement des Points de chaîne ;
+- premières décisions produit à reprendre : **R692**.
 
 Prochaine étape exacte :
-créer le document spécialisé d'audit Gift / récompenses Twitch-admin, puis inspecter intégralement `Gift.txt`, ses triggers/permissions Streamer.bot, les ressources et progressions qu'il peut modifier, ses dépendances Twitch / points de chaîne / administration ainsi que son comportement souhaitable dans le standalone avant de commencer les décisions produit R692+.
+reprendre le Domaine Gift Suprême / Points de chaîne Twitch à **R692** depuis `docs/legacy/20-gift-twitch-audit.md`, afin de confirmer coût/récompense, éligibilité du gifter, résolution du pseudo, restitution Twitch/standalone et stratégie de gestion/refund de la Custom Reward avant clôture rapide du domaine.
 
 Étape obligatoire avant modèle de données / V1 :
 après clôture d'Event et des audits restants, effectuer un **sweep exhaustif final des 36 scripts `.txt` et des 17 fichiers JSON inventoriés** afin de confirmer qu'aucune mécanique, donnée, dépendance, commande ou source de vérité n'a été oubliée. Le modèle de données cible final et le passage à la V1 ne doivent être engagés qu'après cette vérification de couverture.
