@@ -7,5 +7,191 @@ datasource db {
   provider = "postgresql"
 }
 
-// Business models are intentionally added only after the Supabase development
-// project exists and the first versioned migration can be reviewed.
+enum PlayerStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+
+  @@map("player_status")
+}
+
+enum SourceChannel {
+  UI
+  INTERNAL_CHAT
+  TWITCH
+  SYSTEM
+  ADMIN
+  MIGRATION
+
+  @@map("source_channel")
+}
+
+enum OperationStatus {
+  PENDING
+  COMPLETED
+  FAILED
+
+  @@map("operation_status")
+}
+
+model Element {
+  key          String               @id @db.Text
+  displayName  String               @map("display_name") @db.Text
+  displayOrder Int                  @unique(map: "elements_display_order_key") @map("display_order") @db.SmallInt
+  isActive     Boolean              @default(true) @map("is_active")
+  createdAt    DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  resources    ResourceDefinition[]
+  players      Player[]
+
+  @@map("elements")
+}
+
+model ResourceDefinition {
+  key               String                  @id @db.Text
+  displayName       String                  @map("display_name") @db.Text
+  category          String                  @db.Text
+  elementKey        String?                 @map("element_key") @db.Text
+  isActive          Boolean                 @default(true) @map("is_active")
+  createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  element           Element?                @relation(fields: [elementKey], references: [key], onDelete: Restrict)
+  playerBalances    PlayerResourceBalance[]
+  resourceMovements ResourceMovement[]
+  wheelDailyStates  PlayerWheelDailyState[]
+
+  @@map("resource_definitions")
+}
+
+model Player {
+  id                 String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  displayName        String                  @map("display_name") @db.Text
+  elementKey         String?                 @map("element_key") @db.Text
+  status             PlayerStatus            @default(ACTIVE)
+  createdAt          DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  migrationRunId     String?                 @map("migration_run_id") @db.Uuid
+  legacyUsername     String?                 @map("legacy_username") @db.Text
+  element            Element?                @relation(fields: [elementKey], references: [key], onDelete: Restrict)
+  webIdentity        WebIdentity?
+  businessOperations BusinessOperation[]
+  resourceBalances   PlayerResourceBalance[]
+  resourceMovements  ResourceMovement[]
+  economyStats       PlayerEconomyStats?
+  wheelStats         PlayerWheelStats?
+  wheelDailyStates   PlayerWheelDailyState[]
+
+  @@index([status], map: "players_status_idx")
+  @@index([elementKey], map: "players_element_key_idx")
+  @@map("players")
+}
+
+model WebIdentity {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId        String   @unique(map: "web_identities_player_id_key") @map("player_id") @db.Uuid
+  provider        String   @db.Text
+  providerSubject String   @map("provider_subject") @db.Text
+  linkedAt        DateTime @default(now()) @map("linked_at") @db.Timestamptz(6)
+  state           String   @default("ACTIVE") @db.Text
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  player          Player   @relation(fields: [playerId], references: [id], onDelete: Restrict)
+
+  @@unique([provider, providerSubject], map: "web_identities_provider_provider_subject_key")
+  @@map("web_identities")
+}
+
+model BusinessOperation {
+  id                String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId          String?                @map("player_id") @db.Uuid
+  operationType     String                 @map("operation_type") @db.Text
+  sourceChannel     SourceChannel          @map("source_channel")
+  idempotencyKey    String?                @map("idempotency_key") @db.Text
+  status            OperationStatus        @default(PENDING)
+  resultSummary     Json?                  @map("result_summary") @db.JsonB
+  startedAt         DateTime               @default(now()) @map("started_at") @db.Timestamptz(6)
+  completedAt       DateTime?              @map("completed_at") @db.Timestamptz(6)
+  player            Player?                @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  resourceMovements ResourceMovement[]
+  wheelDailyState   PlayerWheelDailyState?
+
+  @@index([playerId, startedAt(sort: Desc)], map: "business_operations_player_started_at_idx")
+  @@index([operationType, startedAt(sort: Desc)], map: "business_operations_type_started_at_idx")
+  @@map("business_operations")
+}
+
+model PlayerResourceBalance {
+  playerId    String             @map("player_id") @db.Uuid
+  resourceKey String             @map("resource_key") @db.Text
+  amount      BigInt             @default(0)
+  updatedAt   DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player      Player             @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  resource    ResourceDefinition @relation(fields: [resourceKey], references: [key], onDelete: Restrict)
+
+  @@id([playerId, resourceKey])
+  @@map("player_resource_balances")
+}
+
+model ResourceMovement {
+  id            String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId      String             @map("player_id") @db.Uuid
+  resourceKey   String             @map("resource_key") @db.Text
+  delta         BigInt
+  balanceBefore BigInt             @map("balance_before")
+  balanceAfter  BigInt             @map("balance_after")
+  causeKey      String             @map("cause_key") @db.Text
+  domainKey     String             @map("domain_key") @db.Text
+  operationId   String?            @map("operation_id") @db.Uuid
+  sourceChannel SourceChannel      @map("source_channel")
+  createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  player        Player             @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  resource      ResourceDefinition @relation(fields: [resourceKey], references: [key], onDelete: Restrict)
+  operation     BusinessOperation? @relation(fields: [operationId], references: [id], onDelete: SetNull)
+
+  @@index([playerId, createdAt(sort: Desc)], map: "resource_movements_player_created_at_idx")
+  @@index([playerId, resourceKey, createdAt(sort: Desc)], map: "resource_movements_player_resource_created_at_idx")
+  @@index([operationId], map: "resource_movements_operation_id_idx")
+  @@index([causeKey, createdAt(sort: Desc)], map: "resource_movements_cause_created_at_idx")
+  @@map("resource_movements")
+}
+
+model PlayerEconomyStats {
+  playerId                        String   @id @map("player_id") @db.Uuid
+  totalPrimosEarned               BigInt   @default(0) @map("total_primos_earned")
+  totalPrimosSpent                BigInt   @default(0) @map("total_primos_spent")
+  totalMorasEarned                BigInt   @default(0) @map("total_moras_earned")
+  totalMorasSpent                 BigInt   @default(0) @map("total_moras_spent")
+  totalMainElementParticlesEarned BigInt   @default(0) @map("total_main_element_particles_earned")
+  createdAt                       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player                          Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@map("player_economy_stats")
+}
+
+model PlayerWheelStats {
+  playerId      String   @id @map("player_id") @db.Uuid
+  totalSpins    BigInt   @default(0) @map("total_spins")
+  totalJackpots BigInt   @default(0) @map("total_jackpots")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player        Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@map("player_wheel_stats")
+}
+
+model PlayerWheelDailyState {
+  playerId         String              @map("player_id") @db.Uuid
+  businessDate     DateTime            @map("business_date") @db.Date
+  spunAt           DateTime?           @map("spun_at") @db.Timestamptz(6)
+  resultKnown      Boolean             @default(true) @map("result_known")
+  resultType       String?             @map("result_type") @db.Text
+  resourceKey      String?             @map("resource_key") @db.Text
+  amount           BigInt?
+  operationId      String?             @unique(map: "player_wheel_daily_states_operation_id_key") @map("operation_id") @db.Uuid
+  legacyProvenance Json?               @map("legacy_provenance") @db.JsonB
+  createdAt        DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  player           Player              @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  resource         ResourceDefinition? @relation(fields: [resourceKey], references: [key], onDelete: Restrict)
+  operation        BusinessOperation?  @relation(fields: [operationId], references: [id], onDelete: SetNull)
+
+  @@id([playerId, businessDate])
+  @@index([businessDate], map: "player_wheel_daily_states_business_date_idx")
+  @@map("player_wheel_daily_states")
+}

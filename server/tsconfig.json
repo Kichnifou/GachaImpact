@@ -16,5 +16,12 @@
       "vitest/globals"
     ]
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "generated/prisma/**/*.ts"]
+  "include": [
+    "src/**/*.ts",
+    "tests/**/*.ts",
+    "tests-db/**/*.ts",
+    "prisma/seed.ts",
+    "vitest*.config.ts",
+    "generated/prisma/**/*.ts"
+  ]
 }

@@ -11,8 +11,10 @@
     "build": "tsc --project tsconfig.build.json",
     "start": "node dist/src/server.js",
     "test": "vitest run",
+    "test:db": "vitest run --config vitest.db.config.ts",
     "typecheck": "tsc --noEmit --project tsconfig.json",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "prisma generate",
+    "db:seed": "prisma db seed"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.0",
