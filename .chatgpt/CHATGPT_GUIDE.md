@@ -213,6 +213,8 @@ L'utilisateur doit pouvoir copier la liste finale et répondre très vite.
 
 Ne pas redemander des choses déjà décidées.
 
+Préférer des lots cohérents de plusieurs décisions Rxxx dans un même message plutôt qu'une seule décision par tour, sauf lorsqu'un point est réellement bloquant, structurel ou nécessite d'être résolu avant de pouvoir formuler correctement les décisions suivantes.
+
 Quand une décision est évidente ou purement technique, la prendre directement.
 
 ---
@@ -297,9 +299,12 @@ Le tableau d'avancement doit :
 - inclure le domaine actif ;
 - inclure le niveau de définition du modèle de données ;
 - inclure la préparation backend / DB ;
-- inclure la préparation du premier test standalone jouable.
+- inclure la préparation du premier test standalone jouable ;
+- utiliser uniquement les colonnes `Étape à venir` et `Avancement estimé` ; ne jamais ajouter de colonne `Reste estimé`.
 
 Les pourcentages sont des estimations à la louche, pas des métriques contractuelles.
+
+Comme rythme de travail, viser en général un checkpoint après environ 10 à 15 décisions simples lorsque le domaine s'y prête. Faire un checkpoint plus tôt uniquement lorsqu'une décision est structurelle, transverse, substantiellement complexe ou qu'un ensemble déjà validé doit être sécurisé avant de poursuivre.
 
 ---
 
@@ -351,6 +356,7 @@ Après un push utilisateur :
 - vérifier le nombre de commits depuis le précédent HEAD connu ;
 - vérifier que seuls les fichiers attendus ont changé, ou inspecter explicitement tout fichier supplémentaire ;
 - vérifier que les fichiers importants ne sont ni tronqués ni partiellement remplacés ;
+- si le commit attendu n'est pas visible sur `main`, s'arrêter immédiatement et demander à l'utilisateur de pousser à nouveau avant toute autre action, décision ou modification documentaire ;
 - ne reprendre les décisions suivantes qu'après cette validation.
 
 Si une incohérence est détectée :
@@ -364,9 +370,19 @@ Si une incohérence est détectée :
 
 Quand l'utilisateur doit modifier un fichier à la main :
 
-Toujours montrer :
-- le snippet actuel exact ;
-- puis le remplacement exact.
+Toujours utiliser cette présentation :
+
+`### À chercher`
+
+puis un bloc copiable contenant uniquement le snippet actuel exact.
+
+Ensuite :
+
+`### Remplacer par`
+
+puis un bloc copiable contenant uniquement le remplacement exact.
+
+Ne pas mélanger dans ces blocs des explications, commentaires ou sections suivantes qui ne font pas partie du remplacement.
 
 Respecter :
 - espaces ;
@@ -402,6 +418,8 @@ Après le push d'un gros remplacement :
 - vérifier également la fin réelle du fichier ;
 - confirmer que les sections attendues après le premier bloc de code existent toujours ;
 - détecter explicitement une éventuelle troncature avant de poursuivre.
+
+Pour un fichier de documentation déjà existant dans le repository, privilégier les modifications manuelles exactes et ne pas fournir une nouvelle copie téléchargeable du fichier complet.
 
 Si un nouveau fichier de documentation doit être créé, générer un fichier téléchargeable.
 
