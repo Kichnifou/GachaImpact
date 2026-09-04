@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.38
+Version : 0.39
 Date : 2026-09-04
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3529,22 +3529,41 @@ Documentations Twitch externes finalisées :
 - `docs/notion/guide-demarrage-twitch.md` — Guide de démarrage Twitch — **TERMINÉ / NOTION READY** ;
 - `docs/notion/guide-technique-twitch.md` — Documentation Technique Twitch — **TERMINÉ / NOTION READY**.
 
+Architecture backend consolidée :
+- `docs/architecture/backend-architecture-v1.md` — **socle V1 retenu : PostgreSQL/Supabase, Supabase Auth, Node.js/TypeScript/Fastify, Prisma, Railway, Cloudflare Pages et Realtime ; trajectoire Free-first puis montée en gamme sans refonte** ;
+- `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
+
 Domaine actif :
-**Phase C — Architecture backend / authentification / base.**
+**Phase C3 — Implémentation du squelette backend et du premier vertical slice.**
 
 Prochaine étape exacte :
-effectuer la revue de préparation backend / DB / architecture à partir du modèle de données V1 consolidé et de l'ensemble des décisions métier clôturées.
+commencer l'implémentation réelle du backend par un premier lot Codex borné.
 
-Cette phase doit maintenant :
-- choisir et valider le socle backend ;
-- définir l'architecture serveur et les frontières des services métier ;
-- définir l'authentification et la liaison future des identités Twitch ;
-- traduire le modèle conceptuel V1 en schéma relationnel cible ;
-- définir les transactions, contraintes, idempotence, schedulers et traitements temporels ;
-- préparer les mécanismes de migration et d'observabilité ;
-- identifier le premier lot backend suffisamment borné pour Codex.
+Premier lot :
+- créer le squelette `server/` Node.js / TypeScript / Fastify ;
+- installer/configurer Prisma pour PostgreSQL ;
+- préparer la configuration par variables d'environnement ;
+- créer l'adaptateur Supabase Auth ;
+- créer la connexion PostgreSQL ;
+- ajouter gestion structurée des erreurs et logs ;
+- ajouter `/health` ;
+- préparer les premières migrations nécessaires au vertical slice ;
+- ajouter les tests de base.
 
-Avant toute implémentation métier importante, effectuer une revue de readiness afin de vérifier que Codex ne devra ni deviner une règle produit ni reconstruire l'architecture depuis le legacy.
+Premier vertical slice métier immédiatement après ce squelette :
+**Onboarding → Player → Élément → Ressources → Roue quotidienne.**
+
+Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
+
+Codex doit lire :
+- `AGENTS.md` ;
+- `docs/master/PROJECT_MASTER_PLAN.md` ;
+- `docs/architecture/backend-architecture-v1.md` ;
+- `docs/architecture/postgresql-schema-v1.md` ;
+- `docs/specifications/v1-data-model.md` ;
+- les audits spécialisés strictement nécessaires au premier vertical slice.
+
+Aucune nouvelle règle produit ne doit être devinée pendant ce lot.
 
 ## Vérification legacy
 

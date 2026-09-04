@@ -32,6 +32,7 @@ La finalité opérationnelle principale de cette documentation est de préparer 
 - `master/` : source centrale de navigation, état global, domaine actif et prochaine étape exacte.
 - `legacy/` : inventaire, compréhension de l'ancien jeu et audits spécialisés par domaine.
 - `specifications/` : décisions validées et durables pour le nouveau GachaImpact.
+- `architecture/` : choix du socle backend, schéma PostgreSQL physique, sécurité, infrastructure et préparation technique de l'implémentation.
 - `commands/` : contrats des commandes et future aide intégrée.
 - `notion/` : documentations externes prêtes à être publiées dans Notion, notamment les guides Twitch joueur et technique.
 - `roadmap/` : trajectoire macro de développement, sans dupliquer l'état courant du Master.

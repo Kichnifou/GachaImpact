@@ -135,9 +135,12 @@ Les changements de schéma passent par des migrations versionnées dans Git.
 Cible initiale :
 
 - développement : backend local ;
-- tests hébergés ponctuels : Free/Trial si suffisant ;
-- première version réellement disponible 24 h/24 : Railway Hobby ;
+- première alpha en ligne : Railway Free avec mode Serverless lorsque l'usage réel le permet ;
+- si le crédit mensuel Free devient insuffisant ou ses limitations gênantes : passage direct à Railway Hobby ;
+- première version réellement persistante nécessitant une disponibilité plus forte : Railway Hobby ;
 - montée vers Pro uniquement lorsque les métriques le justifient.
+
+Le passage Free → Hobby ne nécessite aucune modification d'architecture ou de code applicatif.
 
 Le backend doit disposer d'un `Dockerfile` standard.
 
@@ -200,11 +203,15 @@ Aucune mutation économique sensible ne doit être acceptée directement parce q
 
 La logique temporelle reste dans le code métier du backend.
 
-Les tâches planifiées utilisent le **même code applicatif** que les actions normales.
+La correction de l'état métier ne doit jamais dépendre exclusivement de la présence d'un scheduler externe.
 
-Déclencheur recommandé pour la première version hébergée :
+Chaque traitement temporel possède donc une opération de réconciliation idempotente capable de rattraper les périodes non encore traitées depuis l'état enregistré en base.
 
-**Railway Cron Jobs** exécutant des commandes dédiées du backend.
+Cette réconciliation peut être appelée notamment :
+
+- au démarrage du backend ;
+- lors d'une requête pertinente ;
+- par un déclencheur planifié.
 
 Exemples :
 
@@ -215,7 +222,13 @@ Exemples :
 - nettoyage d'états temporaires ;
 - réconciliation de notifications.
 
-Chaque job doit être :
+Pour la première alpha gratuite, aucun service Cron payant n'est requis pour garantir la cohérence des données.
+
+Supabase Cron peut éventuellement servir de déclencheur supplémentaire lorsque cela apporte une vraie valeur, mais il ne devient jamais la source de vérité de la logique temporelle.
+
+Lorsque Railway Hobby est utilisé, Railway Cron Jobs pourra déclencher les mêmes opérations applicatives afin d'obtenir des traitements plus ponctuels.
+
+Chaque traitement doit être :
 
 - rejouable ;
 - idempotent ;
@@ -226,7 +239,7 @@ Le scheduler ne doit pas supposer que le navigateur d'un joueur est ouvert.
 
 Les règles calendaires utilisent `Europe/Paris` dans la couche métier.
 
-Si un cron s'exécute plusieurs fois ou avec quelques minutes de retard, il ne doit jamais créer un double gain.
+Un traitement exécuté plusieurs fois ou avec du retard ne doit jamais créer de double gain.
 
 ---
 
@@ -716,13 +729,19 @@ Les daily backups Pro + export externe sont proportionnés au projet.
 | Service | Plan | Coût cible |
 |---|---|---:|
 | Supabase | Free | 0 $ |
-| Railway | Hobby | 5 $ minimum |
+| Railway | Free | 0 $ |
 | Cloudflare Pages | Free | 0 $ |
-| **Total** |  | **≈ 5 $/mois** |
+| **Total** |  | **0 $/mois** |
 
-Ce niveau est acceptable si les données sont encore considérées comme testables/recréables.
+Railway Free fournit un crédit mensuel limité. Le mode Serverless doit être utilisé lorsque possible afin de réduire la consommation pendant les périodes sans activité.
 
-Il n'est pas la recommandation pour une vraie progression joueur importante.
+Avec la petite communauté actuelle, cette configuration doit être essayée avant de payer quoi que ce soit.
+
+Si le crédit Railway Free devient insuffisant, le premier passage payant est simplement Railway Hobby, sans migration ni changement d'architecture.
+
+Supabase Free est également suffisant pour la petite alpha mais ne fournit pas les sauvegardes automatiques du plan Pro.
+
+Tant que de vraies données joueurs importantes sont conservées sur Free, prévoir des exports PostgreSQL réguliers vers un emplacement privé et séparé.
 
 ---
 
