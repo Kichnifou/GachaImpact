@@ -1,0 +1,889 @@
+/*
+CE QUE FAIT LE CODE :
+
+- Gère la commande streamer/modérateur !giveaway
+- Commandes :
+  - !giveaway
+  - !giveaway open
+  - !giveaway close
+  - !giveaway stats
+  - !giveaway reroll
+- !giveaway open :
+  - crée giveaway.json si besoin
+  - vide l’ancienne liste des participants
+  - passe le statut à open
+  - enregistre openedBy et openedAt
+  - annonce l’ouverture du giveaway
+- !giveaway close :
+  - vérifie que le giveaway est open
+  - vérifie qu’il y a des participants
+  - tire un gagnant aléatoire parmi les participants niveau 2+
+  - ignore automatiquement les participants introuvables ou niveau < 2
+  - donne +1600 primos au gagnant
+  - met à jour stats.totalPrimosEarned
+  - passe le statut à closed
+  - annonce le gagnant avec une phrase aléatoire
+- Lit et sauvegarde giveaway.json
+- Lit et sauvegarde viewers_data.json en JObject
+- Ne crée PAS de viewer
+- Ne reconstruit jamais entièrement un viewer
+- Sauvegarde directe sans backup ni fichier temporaire
+- Compatible Streamer.bot
+- Sans LINQ
+*/
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+public class CPHInline
+{
+    private const int GiveawayRewardPrimos = 1600;
+    private const int MinWinnerLevel = 2;
+
+    private static Random random = new Random();
+
+    public bool Execute()
+    {
+        string folderPath = @"C:\Users\axeld\Documents\Kichnifou\Twitch\Streambot\Data";
+        string giveawayPath = Path.Combine(folderPath, "giveaway.json");
+        string viewersPath = Path.Combine(folderPath, "viewers_data.json");
+
+        if (!args.ContainsKey("userName") || args["userName"] == null)
+            return false;
+
+        string username = NormalizeUsername(args["userName"].ToString());
+        string input = GetCommandInput();
+
+        if (string.IsNullOrEmpty(input))
+        {
+            ShowHelp(username);
+            return true;
+        }
+
+        string[] parts = input.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length < 1)
+        {
+            ShowHelp(username);
+            return true;
+        }
+
+        string action = NormalizeText(parts[0]);
+
+        if (!Directory.Exists(folderPath))
+            Directory.CreateDirectory(folderPath);
+
+        if (action == "open" || action == "ouvrir")
+        {
+            OpenGiveaway(giveawayPath, username);
+            return true;
+        }
+
+        if (action == "close" || action == "fermer")
+        {
+            CloseGiveaway(giveawayPath, viewersPath, username);
+            return true;
+        }
+
+        if (action == "stats" || action == "stat")
+        {
+            ShowGiveawayStats(giveawayPath, username);
+            return true;
+        }
+
+        if (action == "reroll")
+        {
+            RerollGiveaway(giveawayPath, viewersPath, username);
+            return true;
+        }
+
+        ShowHelp(username);
+        return true;
+    }
+
+    private void OpenGiveaway(string giveawayPath, string username)
+    {
+        JObject giveaway = CreateDefaultGiveaway();
+
+        giveaway["status"] = "open";
+        giveaway["openedBy"] = username;
+        giveaway["openedAt"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        giveaway["participants"] = new JArray();
+        giveaway["messageCounts"] = new JObject();
+        giveaway["chatRewardsDistributed"] = false; 
+
+        SaveJObject(giveawayPath, giveaway);
+
+        CPH.SendMessage("🎁 Un cadeau venu de Célestia est apparu ! Utilisez !wish pour tenter votre chance de remporter 1600 primos à la fin du live.");
+    }
+
+    private void CloseGiveaway(string giveawayPath, string viewersPath, string username)
+    {
+        JObject giveaway = LoadOrCreateGiveaway(giveawayPath);
+
+        if (giveaway == null)
+        {
+            SendError("Impossible de lire giveaway.json.");
+            return;
+        }
+
+        string status = GetString(giveaway, "status");
+
+        if (status != "open")
+        {
+            SendWarning(username + ", aucun giveaway n’est actuellement ouvert.");
+            return;
+        }
+
+        JArray participants = giveaway["participants"] as JArray;
+
+        if (!File.Exists(viewersPath))
+        {
+            SendError("viewers_data.json introuvable.");
+            return;
+        }
+
+        JObject viewers = LoadJObject(viewersPath);
+
+        if (viewers == null)
+        {
+            SendError("Impossible de lire viewers_data.json.");
+            return;
+        }
+
+        GiveChatActivityRewards(giveaway, viewers);
+
+        List<string> eligibleParticipants = GetEligibleParticipants(participants, viewers);
+
+        string winner = "";
+
+        if (eligibleParticipants.Count > 0)
+        {
+            winner = eligibleParticipants[random.Next(eligibleParticipants.Count)];
+
+            JObject winnerViewer = viewers[winner] as JObject;
+
+            if (winnerViewer != null)
+            {
+                EnsureViewerDefaults(winnerViewer, winner);
+
+                AddInt(winnerViewer, "primogems", GiveawayRewardPrimos);
+                AddStat(winnerViewer, "totalPrimosEarned", GiveawayRewardPrimos);
+
+                giveaway["winner"] = winner;
+                giveaway["rewardPrimos"] = GiveawayRewardPrimos;
+            }
+        }
+
+        giveaway["status"] = "closed";
+        giveaway["closedBy"] = username;
+        giveaway["closedAt"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+        SaveJObject(viewersPath, viewers);
+        SaveJObject(giveawayPath, giveaway);
+
+        if (!string.IsNullOrEmpty(winner))
+        {
+            JObject winnerViewer = viewers[winner] as JObject;
+
+            CPH.SendMessage(
+                GetRandomVictoryMessage(
+                    winner,
+                    GiveawayRewardPrimos,
+                    GetInt(winnerViewer, "primogems")
+                )
+            );
+        }
+        else
+        {
+            CPH.SendMessage("ℹ️ Le giveaway est terminé. Aucun joueur éligible n’a participé au tirage !wish.");
+        }
+
+        SendChatActivityRanking(giveaway, viewers);
+    }
+
+    private List<string> GetEligibleParticipants(JArray participants, JObject viewers)
+    {
+        List<string> eligible = new List<string>();
+
+        for (int i = 0; i < participants.Count; i++)
+        {
+            string participant = NormalizeUsername(participants[i].ToString());
+
+            if (string.IsNullOrEmpty(participant))
+                continue;
+
+            if (IsStringInList(eligible, participant))
+                continue;
+
+            JObject viewer = viewers[participant] as JObject;
+
+            if (viewer == null)
+                continue;
+
+            if (GetInt(viewer, "level") < MinWinnerLevel)
+                continue;
+
+            eligible.Add(participant);
+        }
+
+        return eligible;
+    }
+
+    private bool IsStringInList(List<string> list, string value)
+    {
+        if (list == null)
+            return false;
+
+        for (int i = 0; i < list.Count; i++)
+        {
+            if (list[i] == value)
+                return true;
+        }
+
+        return false;
+    }
+
+    private JObject CreateDefaultGiveaway()
+    {
+        JObject giveaway = new JObject();
+
+        giveaway["status"] = "closed";
+        giveaway["openedBy"] = "";
+        giveaway["openedAt"] = "";
+        giveaway["closedBy"] = "";
+        giveaway["closedAt"] = "";
+        giveaway["winner"] = "";
+        giveaway["rewardPrimos"] = 0;
+        giveaway["participants"] = new JArray();
+        giveaway["messageCounts"] = new JObject();
+        giveaway["chatRewardsDistributed"] = false;
+
+        return giveaway;
+    }
+
+    private JObject LoadOrCreateGiveaway(string path)
+    {
+        JObject giveaway = LoadJObject(path);
+
+        if (giveaway == null)
+            giveaway = CreateDefaultGiveaway();
+
+        EnsureString(giveaway, "status", "closed");
+        EnsureString(giveaway, "openedBy", "");
+        EnsureString(giveaway, "openedAt", "");
+        EnsureString(giveaway, "closedBy", "");
+        EnsureString(giveaway, "closedAt", "");
+        EnsureString(giveaway, "winner", "");
+        EnsureInt(giveaway, "rewardPrimos", 0);
+
+        if (giveaway["participants"] == null || giveaway["participants"].Type == JTokenType.Null || giveaway["participants"].Type != JTokenType.Array)
+            giveaway["participants"] = new JArray();
+
+        if (giveaway["messageCounts"] == null ||
+            giveaway["messageCounts"].Type == JTokenType.Null ||
+            giveaway["messageCounts"].Type != JTokenType.Object)
+        {
+            giveaway["messageCounts"] = new JObject();
+        }
+
+        if (giveaway["chatRewardsDistributed"] == null ||
+            giveaway["chatRewardsDistributed"].Type == JTokenType.Null)
+        {
+            giveaway["chatRewardsDistributed"] = false;
+        }
+
+        return giveaway;
+    }
+
+    private string GetRandomVictoryMessage(string winner, int primos, int totalPrimos)
+    {
+        List<string> messages = new List<string>();
+
+        messages.Add("🎉 Les étoiles ont parlé ! " + winner + " voit son vœu exaucé et reçoit +💠" + primos + " primos (" + totalPrimos + ") !");
+        messages.Add("🌠 Célestia a choisi " + winner + " parmi tous les voyageurs ! +💠" + primos + " primos (" + totalPrimos + ") !");
+        messages.Add("✨ Les Archons ont entendu l'appel de " + winner + " ! Son souhait est réalisé : +💠" + primos + " primos (" + totalPrimos + ") !");
+        messages.Add("🏆 Après avoir traversé les étoiles de Teyvat, " + winner + " est désigné gagnant du giveaway ! +💠" + primos + " primos (" + totalPrimos + ") !");
+        messages.Add("💫 Une lumière descend de Célestia sur " + winner + " ! +💠" + primos + " primos (" + totalPrimos + ") !");
+        messages.Add("🌙 La destinée sourit à " + winner + " ! Les cieux lui offrent +💠" + primos + " primos (" + totalPrimos + ") !");
+        messages.Add("⭐ Le vœu de " + winner + " résonne jusqu’aux étoiles ! +💠" + primos + " primos (" + totalPrimos + ") !");
+        messages.Add("🔥 Les Sept Nations célèbrent " + winner + " ! +💠" + primos + " primos (" + totalPrimos + ") !");
+        messages.Add("☄️ Une étoile filante s’arrête au-dessus de " + winner + " ! +💠" + primos + " primos (" + totalPrimos + ") !");
+        messages.Add("🌈 Teyvat s’illumine pour " + winner + " ! Son vœu est récompensé : +💠" + primos + " primos (" + totalPrimos + ") !");
+
+        return messages[random.Next(messages.Count)];
+    }
+
+    private void ShowGiveawayStats(string giveawayPath, string username)
+    {
+        JObject giveaway = LoadOrCreateGiveaway(giveawayPath);
+
+        if (giveaway == null)
+        {
+            SendError("Impossible de lire giveaway.json.");
+            return;
+        }
+
+        JArray participants = giveaway["participants"] as JArray;
+        int count = participants != null ? participants.Count : 0;
+
+        string status = GetString(giveaway, "status");
+        string winner = GetString(giveaway, "winner");
+
+        if (status == "open")
+        {
+            CPH.SendMessage("🎁 Giveaway ouvert | 👥 " + count + " participant(s) | Commande : !wish");
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(winner))
+        {
+            CPH.SendMessage("🎁 Giveaway fermé | 👥 " + count + " participant(s) | 🏆 Dernier gagnant : " + winner);
+            return;
+        }
+
+        CPH.SendMessage("ℹ️ Aucun giveaway ouvert | 👥 " + count + " participant(s)");
+    }
+
+    private void RerollGiveaway(string giveawayPath, string viewersPath, string username)
+    {
+        JObject giveaway = LoadOrCreateGiveaway(giveawayPath);
+
+        if (giveaway == null)
+        {
+            SendError("Impossible de lire giveaway.json.");
+            return;
+        }
+
+        JArray participants = giveaway["participants"] as JArray;
+
+        if (participants == null || participants.Count == 0)
+        {
+            SendWarning(username + ", aucun participant à reroll.");
+            return;
+        }
+
+        if (!File.Exists(viewersPath))
+        {
+            SendError("viewers_data.json introuvable.");
+            return;
+        }
+
+        JObject viewers = LoadJObject(viewersPath);
+
+        if (viewers == null)
+        {
+            SendError("Impossible de lire viewers_data.json.");
+            return;
+        }
+
+        string previousWinner = GetString(giveaway, "winner");
+        List<string> eligibleParticipants = GetEligibleParticipantsExcept(participants, viewers, previousWinner);
+
+        if (eligibleParticipants.Count == 0)
+        {
+            SendWarning("Aucun autre participant éligible pour le reroll.");
+            return;
+        }
+
+        string winner = eligibleParticipants[random.Next(eligibleParticipants.Count)];
+        JObject winnerViewer = viewers[winner] as JObject;
+
+        if (winnerViewer == null)
+        {
+            SendError("Erreur lors du reroll.");
+            return;
+        }
+
+        EnsureViewerDefaults(winnerViewer, winner);
+
+        AddInt(winnerViewer, "primogems", GiveawayRewardPrimos);
+        AddStat(winnerViewer, "totalPrimosEarned", GiveawayRewardPrimos);
+
+        giveaway["status"] = "closed";
+        giveaway["closedBy"] = username;
+        giveaway["closedAt"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        giveaway["winner"] = winner;
+        giveaway["rewardPrimos"] = GiveawayRewardPrimos;
+        giveaway["rerolledAt"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        giveaway["previousWinner"] = previousWinner;
+
+        SaveJObject(viewersPath, viewers);
+        SaveJObject(giveawayPath, giveaway);
+
+        CPH.SendMessage("🎲 Reroll giveaway ! " + GetRandomVictoryMessage(winner, GiveawayRewardPrimos, GetInt(winnerViewer, "primogems")));
+    }
+
+    private List<string> GetEligibleParticipantsExcept(JArray participants, JObject viewers, string excludedWinner)
+    {
+        List<string> eligible = new List<string>();
+        string excluded = NormalizeUsername(excludedWinner);
+
+        for (int i = 0; i < participants.Count; i++)
+        {
+            string participant = NormalizeUsername(participants[i].ToString());
+
+            if (string.IsNullOrEmpty(participant))
+                continue;
+
+            if (!string.IsNullOrEmpty(excluded) && participant == excluded)
+                continue;
+
+            if (IsStringInList(eligible, participant))
+                continue;
+
+            JObject viewer = viewers[participant] as JObject;
+
+            if (viewer == null)
+                continue;
+
+            if (GetInt(viewer, "level") < MinWinnerLevel)
+                continue;
+
+            eligible.Add(participant);
+        }
+
+        return eligible;
+    }
+
+    private void GiveChatActivityRewards(JObject giveaway, JObject viewers)
+    {
+        if (GetBool(giveaway, "chatRewardsDistributed"))
+            return;
+
+        JObject messageCounts = giveaway["messageCounts"] as JObject;
+
+        if (messageCounts == null || messageCounts.Count == 0)
+        {
+            giveaway["chatRewardsDistributed"] = true;
+            return;
+        }
+
+        List<GiveawayChatPlayer> ranking = BuildChatRanking(messageCounts, viewers);
+
+        for (int i = 0; i < ranking.Count; i++)
+        {
+            GiveawayChatPlayer player = ranking[i];
+
+            JObject viewer = viewers[player.username] as JObject;
+
+            if (viewer == null)
+                continue;
+
+            EnsureViewerDefaults(viewer, player.username);
+
+            string element = NormalizeElement(GetString(viewer, "element"));
+
+            if (string.IsNullOrEmpty(element))
+                continue;
+
+            int reward = 500;
+
+            if (i == 0)
+                reward = 2000;
+            else if (i == 1)
+                reward = 1500;
+            else if (i == 2)
+                reward = 1000;
+
+            AddParticles(viewer, element, reward);
+        }
+
+        giveaway["chatRewardsDistributed"] = true;
+    }
+
+    private string GetCommandInput()
+    {
+        if (args.ContainsKey("rawInput") && args["rawInput"] != null)
+            return args["rawInput"].ToString().Trim();
+
+        if (args.ContainsKey("input0") && args["input0"] != null)
+            return args["input0"].ToString().Trim();
+
+        return "";
+    }
+
+    private JObject LoadJObject(string path)
+    {
+        if (!File.Exists(path))
+            return null;
+
+        try
+        {
+            string json = File.ReadAllText(path);
+
+            if (string.IsNullOrWhiteSpace(json))
+                return null;
+
+            JObject data = JObject.Parse(json);
+
+            if (data == null)
+                return null;
+
+            return data;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void SaveJObject(string path, JObject data)
+    {
+        string folder = Path.GetDirectoryName(path);
+
+        if (!Directory.Exists(folder))
+            Directory.CreateDirectory(folder);
+
+        File.WriteAllText(path, data.ToString(Formatting.Indented));
+    }
+
+    private void EnsureViewerDefaults(JObject viewer, string username)
+    {
+        if (viewer == null)
+            return;
+
+        if (viewer["username"] == null || viewer["username"].Type == JTokenType.Null)
+            viewer["username"] = username;
+
+        EnsureInt(viewer, "xp", 0);
+        EnsureInt(viewer, "level", 0);
+        EnsureString(viewer, "element", "");
+        EnsureInt(viewer, "primogems", 0);
+        EnsureInt(viewer, "moras", 0);
+
+        JObject particles = GetObject(viewer, "particles");
+        EnsureInt(particles, "pyro", 0);
+        EnsureInt(particles, "hydro", 0);
+        EnsureInt(particles, "cryo", 0);
+        EnsureInt(particles, "electro", 0);
+        EnsureInt(particles, "anemo", 0);
+        EnsureInt(particles, "geo", 0);
+        EnsureInt(particles, "dendro", 0);
+
+        EnsureInt(viewer, "selectedBannerCharacterId", 0);
+
+        JObject stats = GetObject(viewer, "stats");
+        EnsureInt(stats, "totalPrimosEarned", 0);
+    }
+
+    private List<GiveawayChatPlayer> BuildChatRanking(JObject messageCounts, JObject viewers)
+    {
+        List<GiveawayChatPlayer> ranking = new List<GiveawayChatPlayer>();
+
+        foreach (KeyValuePair<string, JToken> entry in messageCounts)
+        {
+            string username = NormalizeUsername(entry.Key);
+
+            if (string.IsNullOrEmpty(username))
+                continue;
+
+            if (username == "kichnifou")
+                continue;
+
+            JObject viewer = viewers[username] as JObject;
+
+            if (viewer == null)
+                continue;
+
+            if (GetInt(viewer, "level") < MinWinnerLevel)
+                continue;
+
+            int messages = 0;
+
+            if (!int.TryParse(entry.Value.ToString(), out messages))
+                continue;
+
+            if (messages <= 0)
+                continue;
+
+            GiveawayChatPlayer player = new GiveawayChatPlayer();
+            player.username = username;
+            player.messages = messages;
+
+            ranking.Add(player);
+        }
+
+        ranking.Sort(delegate(GiveawayChatPlayer a, GiveawayChatPlayer b)
+        {
+            int messageCompare = b.messages.CompareTo(a.messages);
+
+            if (messageCompare != 0)
+                return messageCompare;
+
+            return string.Compare(
+                a.username,
+                b.username,
+                StringComparison.OrdinalIgnoreCase
+            );
+        });
+
+        return ranking;
+    }
+
+    private void SendChatActivityRanking(JObject giveaway, JObject viewers)
+    {
+        JObject messageCounts = giveaway["messageCounts"] as JObject;
+
+        if (messageCounts == null || messageCounts.Count == 0)
+        {
+            CPH.SendMessage("💬 Activité Giveaway : aucun joueur éligible n’a envoyé de message.");
+            return;
+        }
+
+        List<GiveawayChatPlayer> ranking = BuildChatRanking(messageCounts, viewers);
+
+        if (ranking.Count == 0)
+        {
+            CPH.SendMessage("💬 Activité Giveaway : aucun joueur éligible n’a envoyé de message.");
+            return;
+        }
+
+        List<string> podium = new List<string>();
+
+        for (int i = 0; i < ranking.Count && i < 3; i++)
+        {
+            GiveawayChatPlayer player = ranking[i];
+            JObject viewer = viewers[player.username] as JObject;
+
+            string element = NormalizeElement(GetString(viewer, "element"));
+            string elementText = GetElementDisplayName(element);
+
+            int reward = 500;
+            string medal = "";
+
+            if (i == 0)
+            {
+                medal = "🥇";
+                reward = 2000;
+            }
+            else if (i == 1)
+            {
+                medal = "🥈";
+                reward = 1500;
+            }
+            else
+            {
+                medal = "🥉";
+                reward = 1000;
+            }
+
+            podium.Add(
+                medal + " " +
+                player.username +
+                " : " +
+                player.messages +
+                " messages = +" +
+                reward +
+                " particules " +
+                elementText
+            );
+        }
+
+        CPH.SendMessage(
+            "💬 Classement activité Giveaway : " +
+            string.Join(" | ", podium.ToArray()) +
+            " | Tous les autres joueurs ayant parlé : +500 particules de leur élément."
+        );
+    }
+
+    private void AddParticles(JObject viewer, string element, int amount)
+    {
+        JObject particles = GetObject(viewer, "particles");
+
+        string normalized = NormalizeElement(element);
+
+        if (string.IsNullOrEmpty(normalized))
+            return;
+
+        AddInt(particles, normalized, amount);
+    }
+
+    private string NormalizeElement(string element)
+    {
+        if (string.IsNullOrEmpty(element))
+            return "";
+
+        string value = element.ToLower().Trim();
+
+        switch (value)
+        {
+            case "pyro": return "pyro";
+            case "hydro": return "hydro";
+            case "cryo": return "cryo";
+
+            case "electro":
+            case "électro":
+                return "electro";
+
+            case "anemo":
+            case "anémo":
+                return "anemo";
+
+            case "geo":
+            case "géo":
+                return "geo";
+
+            case "dendro":
+                return "dendro";
+
+            default:
+                return value;
+        }
+    }
+
+    private string GetElementDisplayName(string element)
+    {
+        switch (NormalizeElement(element))
+        {
+            case "pyro": return "🔥 Pyro";
+            case "hydro": return "💧 Hydro";
+            case "cryo": return "❄️ Cryo";
+            case "electro": return "⚡ Electro";
+            case "anemo": return "🌪️ Anemo";
+            case "geo": return "☄️ Geo";
+            case "dendro": return "🌿 Dendro";
+            default: return element;
+        }
+    }
+
+    private JObject GetObject(JObject parent, string key)
+    {
+        if (parent[key] == null || parent[key].Type == JTokenType.Null || parent[key].Type != JTokenType.Object)
+            parent[key] = new JObject();
+
+        return parent[key] as JObject;
+    }
+
+    private int GetInt(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return 0;
+
+        int value;
+
+        if (int.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return 0;
+    }
+
+    private bool GetBool(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return false;
+
+        bool value;
+
+        if (bool.TryParse(obj[key].ToString(), out value))
+            return value;
+
+        return false;
+    }
+
+    private string GetString(JObject obj, string key)
+    {
+        if (obj == null || obj[key] == null || obj[key].Type == JTokenType.Null)
+            return "";
+
+        return obj[key].ToString();
+    }
+
+    private void AddInt(JObject obj, string key, int amount)
+    {
+        int current = GetInt(obj, key);
+        obj[key] = current + amount;
+    }
+
+    private void AddStat(JObject viewer, string statName, int amount)
+    {
+        JObject stats = GetObject(viewer, "stats");
+        AddInt(stats, statName, amount);
+    }
+
+    private void EnsureInt(JObject obj, string key, int defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private void EnsureString(JObject obj, string key, string defaultValue)
+    {
+        if (obj[key] == null || obj[key].Type == JTokenType.Null)
+            obj[key] = defaultValue;
+    }
+
+    private string NormalizeUsername(string username)
+    {
+        if (string.IsNullOrEmpty(username))
+            return "";
+
+        username = username.Trim();
+
+        if (username.StartsWith("@"))
+            username = username.Substring(1);
+
+        return username.ToLower();
+    }
+
+    private string NormalizeText(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return "";
+
+        string value = text.ToLower().Trim();
+
+        value = value.Replace("à", "a");
+        value = value.Replace("á", "a");
+        value = value.Replace("â", "a");
+        value = value.Replace("ä", "a");
+        value = value.Replace("ã", "a");
+        value = value.Replace("ç", "c");
+        value = value.Replace("è", "e");
+        value = value.Replace("é", "e");
+        value = value.Replace("ê", "e");
+        value = value.Replace("ë", "e");
+        value = value.Replace("ì", "i");
+        value = value.Replace("í", "i");
+        value = value.Replace("î", "i");
+        value = value.Replace("ï", "i");
+        value = value.Replace("ò", "o");
+        value = value.Replace("ó", "o");
+        value = value.Replace("ô", "o");
+        value = value.Replace("ö", "o");
+        value = value.Replace("õ", "o");
+        value = value.Replace("ù", "u");
+        value = value.Replace("ú", "u");
+        value = value.Replace("û", "u");
+        value = value.Replace("ü", "u");
+        value = value.Replace("ÿ", "y");
+        value = value.Replace("œ", "oe");
+        value = value.Replace("æ", "ae");
+
+        return value;
+    }
+
+    private void ShowHelp(string username)
+    {
+        CPH.SendMessage("ℹ️ Commandes giveaway : !giveaway open | !giveaway close | !giveaway stats | !giveaway reroll");
+    }
+
+    private void SendWarning(string message)
+    {
+        CPH.SendMessage("⚠️ " + message);
+    }
+
+    private void SendError(string message)
+    {
+        CPH.SendMessage("❌ " + message);
+    }
+}
+
+public class GiveawayChatPlayer
+{
+    public string username { get; set; }
+    public int messages { get; set; }
+}
