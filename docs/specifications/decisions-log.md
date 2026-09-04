@@ -928,5 +928,32 @@ Statut : évolutif.
 - `TECHNIQUE TRANSVERSAL` — Une notification actionnable est automatiquement résolue/retirée de la liste active lorsque l'action correspondante est accomplie par n'importe quel chemin, même si la notification n'a jamais été ouverte.
 - `TECHNIQUE` — Le bonus gifter est produit depuis l'événement gift global afin de compter la quantité une fois sans double crédit via les événements bénéficiaires.
 - `MIGRATION` — `daysRemaining` au cutover devient le solde certain de départ ; aucune journée absente ni reward historique n'est recalculé rétroactivement.
-- `À FINALISER` — Faveur / Subscription : modèle temporel, contrat `!faveur`, migration détaillée, producteurs/consommateurs et critères d'acceptation ; aucun nouveau Rxxx produit requis sauf découverte réelle.
+- `FINALISÉ` — Faveur / Subscription : modèle temporel, contrat `!faveur`, migration, producteurs/consommateurs et critères d'acceptation documentés avant clôture R672.
 - `CLÔTURÉ R672` — Domaine Faveur / Subscription clôturé.
+- `VALIDÉ R673` — Conserver les codes ponctuels et les codes annuels réutilisables par édition.
+- `VALIDÉ R674` — Workflow Admin `Brouillon → Publié` ; créer un code ne le rend jamais automatiquement public.
+- `VALIDÉ R675` — Le token du code peut être saisi manuellement ; génération automatique optionnelle dans l'Admin.
+- `VALIDÉ R676` — Nom/titre d'affichage séparé du token technique du code.
+- `VALIDÉ R677` — Disponibilité flexible : immédiate, début/fin programmés, sans expiration ou récurrence annuelle selon le type.
+- `VALIDÉ R678` — Conserver les douze codes Festivals actuels avec +1 600 Primogemmes et +200 000 Moras, une fois par joueur et par année.
+- `VALIDÉ R679` — Admin V1 configure Primogemmes, Moras et particules des sept éléments ; moteur de récompenses conçu pour être extensible.
+- `VALIDÉ R680` — Écran Codes séparé en `Disponibles` et `Récupérés`.
+- `VALIDÉ R681` — Après claim, le code reste consultable dans `Récupérés` avec son état et ses récompenses ; sa notification actionnable disparaît.
+- `VALIDÉ R682` — Les récompenses exactes sont visibles avant de cliquer `Récupérer`.
+- `VALIDÉ R683` — Un joueur arrivant après publication peut voir, réclamer et être notifié d'un code tant qu'il reste actif.
+- `VALIDÉ R684` — Twitch peut produire au premier message éligible un rappel compact lorsqu'un nouveau code est disponible ; ne pas spammer les messages suivants.
+- `VALIDÉ R685` — Un profil Twitch-only interne existant peut utiliser les Codes même sans élément choisi ; ne pas ajouter un verrou d'activation absent du legacy.
+- `VALIDÉ R686` — Un administrateur peut désactiver un code publié ; les claims passés restent conservés.
+- `VALIDÉ R687` — Après le premier claim, identité/token/type/récompenses sont verrouillés ; textes, disponibilité contrôlée et désactivation restent modifiables.
+- `VALIDÉ R688` — Admin affiche au minimum état, nombre de claims, création, publication et période ; détail des claimants accessible uniquement à l'administration lorsque nécessaire.
+- `VALIDÉ R689` — `!code` sans argument liste les codes disponibles ; `!code <CODE>` effectue le claim.
+- `VALIDÉ R690` — Les Codes sont globaux pour tous les joueurs en V1 ; aucun ciblage avancé initial.
+- `VALIDÉ R691` — Chaque nouvelle édition annuelle réactive automatiquement le code et produit une nouvelle notification/rappel possible.
+- `TECHNIQUE` — Définition Code et relation Claim séparées ; unicité serveur par joueur + code + édition.
+- `TECHNIQUE` — Publication immédiate notifie immédiatement ; publication programmée ne notifie qu'au moment où le code devient réellement récupérable.
+- `TECHNIQUE` — Claim, récompenses, statistiques et résolution de notification forment une opération transactionnelle/idempotente.
+- `TECHNIQUE` — Rappel Twitch dédupliqué par joueur et nouvelles disponibilités ; plusieurs codes actifs peuvent être regroupés dans un seul rappel compact.
+- `TECHNIQUE` — Après le premier claim, le snapshot de récompenses d'une définition déjà utilisée ne peut plus être altéré pour les futurs joueurs.
+- `MIGRATION` — Importer les douze codes Event comme définitions annuelles publiées et conserver leurs montants actuels.
+- `MIGRATION` — Importer `usedCodes` comme claims historiques sans récompense, sans date inventée et sans perdre les clés non encore mappables.
+- `CLÔTURÉ R691` — Domaine Codes cadeaux clôturé.

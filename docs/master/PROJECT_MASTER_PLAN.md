@@ -3466,29 +3466,37 @@ Dernier domaine clôturé :
 - `!faveur` finalisé ;
 - migration conservatrice et critères d'acceptation documentés.
 
-Domaine actif :
-`docs/legacy/19-codes-cadeaux-audit.md` — Codes cadeaux.
+Dernier domaine clôturé :
+`docs/legacy/19-codes-cadeaux-audit.md` — Codes cadeaux — **CLÔTURÉ après R691**.
 
-État actuel du domaine :
-- audit technique initial réalisé ;
-- `Code.txt`, `gift_codes.json`, `usedCodes` et les interactions Event / Notifications / Ressources recroisés ;
-- commande legacy canonique : `!code NOMDUCODE` ;
-- un code ponctuel est réclamable une seule fois définitivement par joueur ;
-- un code annuel utilise une clé de claim `CODE-YYYY` et peut revenir chaque année ;
-- le catalogue legacy contient actuellement 12 codes, tous associés aux Festivals mensuels ;
-- chacun de ces 12 codes donne actuellement +1 600 Primogemmes et +200 000 Moras ;
-- le moteur legacy supporte Primogemmes, Moras et particules des sept éléments ;
-- aucun écran joueur Codes, aucune liste de codes actifs, aucune notification et aucune interface Admin n'existent dans le legacy ;
-- la cible prévoit un écran joueur avec bouton `Récupérer` et un outil Admin de création/publication ;
-- publication d'un code → notification standalone ;
-- claim / expiration / désactivation → résolution automatique de la notification actionnable correspondante ;
-- Event reste uniquement consommateur de l'information qu'un code Festival est disponible et redirige vers Codes ;
-- la stratégie de rappel Twitch reste à décider ;
-- claims et récompenses devront devenir transactionnels et idempotents ;
-- premières décisions produit : **R673**.
+État du domaine clôturé :
+- codes ponctuels et codes annuels conservés ;
+- workflow Admin Brouillon → Publié ;
+- token manuel avec génération optionnelle ;
+- titre d'affichage séparé du code ;
+- disponibilité immédiate, programmée, sans expiration ou annuelle ;
+- douze codes Festivals conservés à +1 600 Primogemmes +200 000 Moras ;
+- récompenses Admin V1 : Primogemmes, Moras et sept types de particules ;
+- écran joueur `Disponibles` / `Récupérés` ;
+- récompenses visibles avant claim ;
+- nouveau joueur éligible tant que le code reste actif ;
+- rappel Twitch compact et dédupliqué ;
+- Codes accessibles à un profil Twitch-only existant même sans élément choisi ;
+- désactivation Admin ;
+- récompenses/token/type verrouillés après le premier claim ;
+- statistiques Admin simples ;
+- `!code` finalisé ;
+- réactivation/notifi­cation annuelle finalisée ;
+- Event reste uniquement consommateur de la disponibilité d'un code Festival ;
+- claims, récompenses et notifications transactionnels/idempotents ;
+- migration de `gift_codes.json` et `usedCodes` cadrée ;
+- critères d'acceptation documentés.
+
+Domaine actif :
+**Gift / récompenses Twitch-admin — audit spécialisé à initialiser après validation de ce checkpoint.**
 
 Prochaine étape exacte :
-reprendre le Domaine Codes cadeaux à **R673** depuis `docs/legacy/19-codes-cadeaux-audit.md`, afin de définir le cycle de vie Admin, les périodes de disponibilité, les récompenses configurables, l'UX joueur après claim, les notifications, le comportement Twitch et les statistiques Admin.
+créer le document spécialisé d'audit Gift / récompenses Twitch-admin, puis inspecter intégralement `Gift.txt`, ses triggers/permissions Streamer.bot, les ressources et progressions qu'il peut modifier, ses dépendances Twitch / points de chaîne / administration ainsi que son comportement souhaitable dans le standalone avant de commencer les décisions produit R692+.
 
 Étape obligatoire avant modèle de données / V1 :
 après clôture d'Event et des audits restants, effectuer un **sweep exhaustif final des 36 scripts `.txt` et des 17 fichiers JSON inventoriés** afin de confirmer qu'aucune mécanique, donnée, dépendance, commande ou source de vérité n'a été oubliée. Le modèle de données cible final et le passage à la V1 ne doivent être engagés qu'après cette vérification de couverture.
@@ -3498,27 +3506,6 @@ après clôture d'Event et des audits restants, effectuer un **sweep exhaustif f
 Cet inventaire évite qu'un système legacy soit oublié.
 
 Il ne définit pas la prochaine reprise : seule la section `Prochaine étape exacte` ci-dessus joue ce rôle.
-
-### Codes cadeaux
-Sources principales :
-- `Code.txt` ;
-- `gift_codes.json` ;
-- `usedCodes` dans les profils joueurs ;
-- interactions Event / Notifications / économie à recroiser.
-
-Directions produit déjà fournies avant l'audit :
-- les codes peuvent être créés librement par l'administrateur, pas uniquement pour les Events ;
-- un écran joueur `Codes` liste les codes actuellement récupérables ;
-- chaque code récupérable possède une action `Récupérer` ;
-- un code peut contenir des récompenses configurables, notamment Primogemmes, Moras et autres types réellement supportés après audit ;
-- un écran / outil Admin doit permettre de créer puis publier les codes et leurs récompenses ;
-- publier un nouveau code crée une notification standalone pour les joueurs concernés ;
-- réclamer le code par n'importe quel chemin résout automatiquement la notification associée ;
-- l'Event peut signaler qu'un code Event existe mais la consultation et la réclamation restent la responsabilité de l'écran Codes ;
-- côté Twitch, la stratégie exacte de notification reste à auditer : annonce manuelle du streamer et/ou rappel unique lors du premier message éligible du joueur.
-
-Ces directions doivent être recroisées avec le vrai `Code.txt` et `gift_codes.json` avant validation finale.
-- données `usedCodes` des joueurs.
 
 ### Gift / récompenses Twitch
 Source principale :

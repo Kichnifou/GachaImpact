@@ -328,6 +328,31 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Confidentialité :** seules les informations nécessaires au match deviennent publiques
 - **Atomicité :** lancement, actions, récompenses et résultat autoritaires côté serveur et protégés contre double exécution
 
+## `!code`
+
+- **Statut audit :** CLÔTURÉ — Domaine Codes cadeaux après R691
+- **But :** consulter et réclamer les Codes cadeaux actuellement disponibles
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui lorsque l'intégration Twitch sera disponible
+- **UI équivalente :** écran `Codes` avec zones `Disponibles` / `Récupérés`
+- **Liste :** `!code`
+- **Réclamation :** `!code <CODE>`
+- **Matching :** token normalisé et insensible à la casse
+- **Code ponctuel :** une seule réclamation par joueur
+- **Code annuel :** une réclamation par joueur et par édition annuelle
+- **Codes Event :** douze codes annuels conservés, +1 600 Primogemmes et +200 000 Moras
+- **Récompenses Admin V1 :** Primogemmes, Moras et particules des sept éléments
+- **UI :** récompenses visibles avant claim ; bouton `Récupérer`
+- **Après claim :** code déplacé vers `Récupérés` et notification actionnable résolue
+- **Nouveau joueur :** peut voir/réclamer tout code global encore actif
+- **Twitch-only :** un profil interne existant peut utiliser Codes même sans élément choisi
+- **Rappel Twitch :** premier message éligible peut signaler compactement qu'un nouveau code est disponible, sans spam
+- **Event :** peut signaler la disponibilité et ouvrir Codes mais ne possède jamais le claim
+- **Admin :** Brouillon → Publication ; programmation, désactivation et statistiques simples
+- **Modification :** récompenses/token/type verrouillés après le premier claim
+- **Atomicité :** claim + récompenses dans une seule opération serveur idempotente
+- **Migration :** conserver les douze définitions Event et tous les `usedCodes` sans repayer les anciens claims
+
 ## `!event`
 
 - **Statut audit :** CLÔTURÉ — Domaine Event / monthly après R644
