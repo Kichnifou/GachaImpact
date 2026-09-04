@@ -3498,37 +3498,19 @@ Dernier domaine clôturé :
 - critères d'acceptation documentés.
 
 Dernier domaine clôturé :
-`docs/legacy/22-top-classements-audit.md` — Top / Classements globaux — **CLÔTURÉ après R727**.
+`docs/legacy/23-help-command-coherence-audit.md` — Help / cohérence finale des commandes — **CLÔTURÉ après R731**.
 
 État du domaine clôturé :
-- Top reste entièrement read-only et dérive ses valeurs depuis les domaines propriétaires ;
-- aucun rang, podium ou historique global legacy n'est migré ou inventé ;
-- écran standalone `Classements` validé ;
-- `!top me` conservé ;
-- `!top <métrique>` affiche un Top 5 compact avec rang personnel lorsqu'il est éligible ;
-- uniquement les données `Public` entrent dans les classements globaux ;
-- `Amis uniquement` et `Privé` sont entièrement absents et ne consomment aucun rang ;
-- profil avec élément choisi obligatoire ; aucun seuil de niveau supplémentaire ;
-- valeurs égales à 0 exclues ;
-- égalités selon classement compétition `1er, 1er, 3e` ;
-- `!top moras` utilise désormais le patrimoine `portefeuille + Banque` ;
-- pour le patrimoine Moras, portefeuille/monnaies et Banque doivent tous deux être Public ;
-- Primogemmes et particules actuelles restent classables sous réserve de visibilité Public ;
-- Primogemmes/Moras Earned/Spent appartiennent aux Statistiques générales ;
-- `luck` devient `Taux de 5★`, formule historique conservée avec minimum 100 Pulls ;
-- Top Pity conservé ;
-- Box/C6/copies respectent les possessions player-facing actives ;
-- nouveaux Tops globaux : Combat total, Combat manuel, Expeditions terminées, cœurs envoyés ;
-- catégories UI : Progression / Gacha / Ressources / Collection / Activité ;
-- Event, Boss, Concours et Giveaway conservent leurs propres classements spécialisés ;
-- aucun système de saisons ou récompenses pour les classements globaux V1 ;
-- dette Top du Domaine Banque résolue par R714/R715.
-- Domaine Help / cohérence finale des commandes clôturé après R731 ;
-- `!help` cible : catégories + aide directe par commande ;
+- Help reste entièrement read-only, sans JSON, persistance ou dépendance à l'état joueur ;
+- `!help` cible utilise catégories, résumé de catégorie et aide directe par commande ;
 - catégories Help : Progression / Gacha / Ressources / Collection / Équipe / Activités / Social / Events / Classements / Twitch ;
-- aide Admin séparée de l'aide publique ;
-- `!top taux5` devient la syntaxe canonique du Taux de 5★ ; `!top luck` reste alias historique ;
-- Help reste read-only, sans JSON ni état joueur, avec restitution filtrée selon canal et permissions.
+- lorsqu'un token correspond à une vraie commande, l'aide directe de cette commande est prioritaire sur un ancien alias de catégorie ;
+- l'aide est filtrée selon le canal courant et les permissions ;
+- l'administration Giveaway reste séparée de l'aide joueur publique ;
+- aucun `!xp`, `!gift` ou `!subscription` canonique n'est inventé ;
+- `!top taux5` est la syntaxe canonique du Taux de 5★ ; `!top luck` reste alias historique ;
+- le futur écran standalone `Aide / Guide` reste plus riche et distinct du Help textuel ;
+- le domaine reste susceptible de recevoir uniquement des corrections factuelles découvertes pendant le sweep exhaustif final.
 
 Domaine actif :
 **Sweep exhaustif final des scripts legacy — 37 scripts à recroiser contre les audits et contrats V1 validés.**
@@ -3539,22 +3521,13 @@ effectuer un sweep exhaustif des 37 scripts de `legacy/streamerbot/commands/`, v
 Étape obligatoire avant modèle de données / V1 :
 après clôture d'Event et des audits restants, effectuer un **sweep exhaustif final des 37 scripts `.txt` et des 17 fichiers JSON inventoriés** afin de confirmer qu'aucune mécanique, donnée, dépendance, commande ou source de vérité n'a été oubliée. Le modèle de données cible final et le passage à la V1 ne doivent être engagés qu'après cette vérification de couverture.
 
-## Familles legacy restant à auditer
+## Vérification legacy restante
 
-Cet inventaire évite qu'un système legacy soit oublié.
+Tous les domaines métier et le domaine Help sont désormais audités et clôturés.
 
-Il ne définit pas la prochaine reprise : seule la section `Prochaine étape exacte` ci-dessus joue ce rôle.
+La vérification restante consiste à confirmer exhaustivement la couverture des sources legacy avant de figer le modèle de données V1.
 
-### Help / cohérence finale des commandes
-Source principale :
-- `Help.txt`.
-
-Ce script ne nécessite pas nécessairement un domaine métier autonome.
-
-Il devra être recroisé en fin d'audit avec :
-- `docs/commands/command-reference.md` ;
-- les commandes réellement conservées ;
-- la future aide intégrée au standalone.
+Seule la section `Prochaine étape exacte` ci-dessus définit le pointeur global vivant du projet.
 
 ### Sweep final obligatoire de couverture legacy
 
