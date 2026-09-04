@@ -1,6 +1,6 @@
 # Registre des commandes GachaImpact
 
-Statut : CONSOLIDÉ APRÈS SWEEP DES 37 SCRIPTS — sous réserve du sweep final des 17 JSON.
+Statut : CONSOLIDÉ APRÈS SWEEPS LEGACY — 37 scripts + 17 JSON vérifiés.
 
 Ce fichier deviendra la base documentaire de la future section **Aide / Commandes** intégrée à GachaImpact.
 

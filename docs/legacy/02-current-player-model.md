@@ -1,6 +1,6 @@
 # 02 — Modèle joueur legacy actuel
 
-Statut : EN CONSTRUCTION  
+Statut : MODÈLE LEGACY CONSOLIDÉ APRÈS SWEEPS 37 SCRIPTS + 17 JSON — base factuelle pour la conception du modèle V1  
 Référence canonique principale : profil `Kichnifou` dans les données Streamer.bot les plus récentes.
 
 ## Méthode
@@ -570,15 +570,24 @@ Migration :
 
 Ne pas figer la forme SQL exacte avant Phase 2.
 
-## 7. À auditer ensuite
+## 7. État après les sweeps legacy
 
-Prochains blocs :
-- banque ;
-- coffre / inventaire ;
-- options ;
-- missions ;
-- autres statistiques ;
-- combat ;
-- expédition ;
-- objets spéciaux ;
-- autres données joueur réparties dans les JSON.
+Les domaines joueur listés historiquement comme restant à auditer sont désormais couverts par les audits spécialisés.
+
+Le sweep final confirme également que le profil complet d'un joueur legacy ne se limite pas à `viewers_data.json`.
+
+Des données joueur existent notamment dans :
+- `c6_characters.json` ;
+- `friendships_data.json` ;
+- certaines parties de `banner_votes.json` ;
+- `monthly_boss.json` ;
+- `monthly_events_data.json`.
+
+`monthly_events.json` est au contraire confirmé comme fichier vide résiduel et n'entre pas dans la migration.
+
+Ce document décrit désormais le **modèle joueur legacy consolidé**.
+
+Il ne constitue pas encore le schéma de données V1 et ne doit pas être traduit mécaniquement en tables ou objets techniques.
+
+Prochaine étape :
+consolider le modèle de données V1 à partir de ce document, des audits spécialisés et des sweeps `24-final-script-sweep.md` et `25-final-json-sweep.md`, puis seulement figer les entités, relations, sources de vérité, données dérivées et règles d'import.

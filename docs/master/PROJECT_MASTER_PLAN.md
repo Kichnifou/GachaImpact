@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.35
+Version : 0.36
 Date : 2026-09-04
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3512,38 +3512,34 @@ Dernier domaine clôturé :
 - le futur écran standalone `Aide / Guide` reste plus riche et distinct du Help textuel ;
 - le domaine reste susceptible de recevoir uniquement des corrections factuelles découvertes pendant le sweep exhaustif final.
 
-Dernière vérification de couverture clôturée :
-`docs/legacy/24-final-script-sweep.md` — Sweep final des 37 scripts legacy — **CLÔTURÉ : 37/37 scripts couverts ; aucun script orphelin ; aucune nouvelle décision produit.**
+Dernières vérifications de couverture clôturées :
+- `docs/legacy/24-final-script-sweep.md` — Sweep final des 37 scripts legacy — **CLÔTURÉ : 37/37 scripts couverts** ;
+- `docs/legacy/25-final-json-sweep.md` — Sweep final des 17 JSON legacy — **CLÔTURÉ : 17/17 JSON vérifiés ; `monthly_events.json` confirmé comme résidu vide non migré**.
+
+Couverture legacy globale :
+- scripts `.txt` : **37/37 vérifiés** ;
+- JSON : **17/17 vérifiés** ;
+- source legacy sans propriétaire documentaire : **0** ;
+- nouvelle décision produit issue des sweeps : **0**.
 
 Domaine actif :
-**Sweep exhaustif final des JSON legacy — 17 fichiers à recroiser contre les audits, producteurs/consommateurs et règles de migration validées.**
+**Consolidation du modèle de données V1.**
 
 Prochaine étape exacte :
-effectuer un sweep exhaustif des 17 fichiers de `legacy/streamerbot/data/`, vérifier pour chacun son rôle réel, ses producteurs et consommateurs, son autorité métier, sa migration et les éventuelles données dérivables ou résiduelles ; recroiser spécialement `monthly_events.json`, actuellement vide / potentiellement résiduel. Corriger les incohérences documentaires sans réouvrir les décisions déjà validées sauf contradiction réelle. Une fois ce sweep JSON terminé et checkpointé, consolider le modèle de données V1 puis finaliser les deux documentations Twitch externes prévues avant l'intégration Twitch réelle.
+construire le modèle de données cible V1 à partir de `docs/legacy/02-current-player-model.md`, des audits spécialisés clôturés, de `docs/legacy/24-final-script-sweep.md` et de `docs/legacy/25-final-json-sweep.md`.
 
-Étape obligatoire avant modèle de données / V1 :
-le sweep exhaustif des 37 scripts est désormais clôturé dans `docs/legacy/24-final-script-sweep.md`. Le sweep des 17 JSON reste obligatoire avant de figer le modèle de données cible final et d'engager l'implémentation V1.
+Cette consolidation doit définir explicitement les entités métier, identités, relations, propriétaires des écritures, sources de vérité, données dérivées, historiques, états temporaires, catalogues/configurations, contraintes d'unicité, règles de confidentialité ayant un impact sur les projections, mapping de migration, provenance, idempotence d'import et ordre de cutover.
 
-## Vérification legacy restante
+La structure technique finale ne doit pas reproduire mécaniquement `viewers_data.json` ni les autres JSON legacy. `genshin_characters.json` doit notamment être séparé conceptuellement entre catalogue personnages et état de bannière/rotation.
 
-Tous les domaines métier, le domaine Help et le sweep des 37 scripts sont désormais audités et clôturés.
+Une fois le modèle de données V1 consolidé et checkpointé, finaliser les deux documentations Twitch externes prévues avant l'intégration Twitch réelle.
 
-La seule vérification legacy de couverture restante est le sweep des 17 JSON.
+## Vérification legacy
 
-Seule la section `Prochaine étape exacte` ci-dessus définit le pointeur global vivant du projet.
+La vérification exhaustive des sources legacy est désormais terminée.
 
-### Sweep final obligatoire de couverture legacy
+Les 37 scripts et les 17 JSON ont tous un traitement documentaire explicite.
 
-État :
-- scripts `.txt` : **37/37 vérifiés — terminé** ;
-- JSON : **17/17 à vérifier**.
+`monthly_events.json` est le seul fichier sans rôle métier actif : il est strictement vide, aucun producteur ou consommateur runtime n'a été trouvé, et il ne doit pas être migré ni servir à inventer une fonctionnalité V1.
 
-Pour le sweep JSON :
-- vérifier que chaque fichier possède un rôle/document propriétaire explicite ;
-- contrôler les producteurs et consommateurs transverses ;
-- confirmer source de vérité vs configuration vs état temporel vs relation vs donnée dérivable ;
-- confirmer les règles de migration ;
-- résoudre `monthly_events.json` comme résidu/placeholder si aucune lecture réelle n'est trouvée ;
-- ne figer la structure V1 qu'après cette vérification.
-
-Les dépendances Twitch spécifiques seront consolidées après les audits métier correspondants et avant l'intégration Twitch réelle.
+Les audits spécialisés restent les propriétaires des décisions métier. Les sweeps finaux servent uniquement de garantie de couverture et de cohérence.
