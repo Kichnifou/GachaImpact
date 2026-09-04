@@ -1,8 +1,12 @@
 import 'dotenv/config';
 
+import { randomUUID } from 'node:crypto';
+
 import { afterAll, describe, expect, it } from 'vitest';
 
 import { loadConfig } from '../src/config/environment.js';
+import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
+import { PrismaCurrentPlayerStore } from '../src/infrastructure/database/prisma-current-player-store.js';
 import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 
 const config = loadConfig();
@@ -136,5 +140,92 @@ describe('Supabase development database', () => {
       expectedCheckConstraints,
     );
     expect(indexes.map(({ indexName }) => indexName)).toEqual(expectedManualIndexes);
+  });
+
+  it('provisions one complete Player atomically and remains idempotent under concurrency', async () => {
+    const subject = `test-auth-subject-${randomUUID()}`;
+    const displayName = `DB Test ${randomUUID().slice(0, 8)}`;
+    const identity = { subject };
+    const store = new PrismaCurrentPlayerStore(database);
+    const service = new GetOrProvisionCurrentPlayer(store);
+
+    try {
+      const concurrentResults = await Promise.all([
+        service.execute(identity, displayName),
+        service.execute(identity, displayName),
+      ]);
+      const playerIds = new Set(concurrentResults.map(({ player }) => player.id));
+      const playerId = concurrentResults[0]?.player.id;
+
+      expect(playerId).toBeDefined();
+      expect(playerIds.size).toBe(1);
+      expect(concurrentResults.filter(({ created }) => created)).toHaveLength(1);
+
+      const repeatedResult = await service.execute(identity, 'Ignored Repeated Name');
+      expect(repeatedResult).toMatchObject({
+        created: false,
+        player: {
+          id: playerId,
+          displayName,
+        },
+      });
+
+      const [players, identities, balances, economyStats, wheelStats] = await Promise.all([
+        database.player.count({ where: { id: playerId } }),
+        database.webIdentity.count({
+          where: { provider: 'supabase', providerSubject: subject },
+        }),
+        database.playerResourceBalance.findMany({
+          where: { playerId },
+          orderBy: { resourceKey: 'asc' },
+        }),
+        database.playerEconomyStats.findUnique({ where: { playerId } }),
+        database.playerWheelStats.findUnique({ where: { playerId } }),
+      ]);
+
+      expect(players).toBe(1);
+      expect(identities).toBe(1);
+      expect(balances).toHaveLength(9);
+      expect(balances.every(({ amount }) => amount === 0n)).toBe(true);
+      expect(economyStats).toMatchObject({
+        totalPrimosEarned: 0n,
+        totalPrimosSpent: 0n,
+        totalMorasEarned: 0n,
+        totalMorasSpent: 0n,
+        totalMainElementParticlesEarned: 0n,
+      });
+      expect(wheelStats).toMatchObject({ totalSpins: 0n, totalJackpots: 0n });
+    } finally {
+      const [testIdentities, testPlayers] = await Promise.all([
+        database.webIdentity.findMany({
+          where: { provider: 'supabase', providerSubject: subject },
+          select: { playerId: true },
+        }),
+        database.player.findMany({ where: { displayName }, select: { id: true } }),
+      ]);
+      const playerIds = [
+        ...new Set([
+          ...testIdentities.map(({ playerId }) => playerId),
+          ...testPlayers.map(({ id }) => id),
+        ]),
+      ];
+
+      if (playerIds.length > 0) {
+        await database.$transaction([
+          database.playerResourceBalance.deleteMany({ where: { playerId: { in: playerIds } } }),
+          database.playerEconomyStats.deleteMany({ where: { playerId: { in: playerIds } } }),
+          database.playerWheelStats.deleteMany({ where: { playerId: { in: playerIds } } }),
+          database.webIdentity.deleteMany({ where: { playerId: { in: playerIds } } }),
+          database.player.deleteMany({ where: { id: { in: playerIds } } }),
+        ]);
+      }
+
+      await expect(
+        database.webIdentity.count({
+          where: { provider: 'supabase', providerSubject: subject },
+        }),
+      ).resolves.toBe(0);
+      await expect(database.player.count({ where: { displayName } })).resolves.toBe(0);
+    }
   });
 });

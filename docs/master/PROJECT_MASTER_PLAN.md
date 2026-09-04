@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.40
+Version : 0.41
 Date : 2026-09-04
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3544,30 +3544,20 @@ Domaine actif :
 - un accord explicite du propriétaire mettra à jour ce Master avant tout upgrade ;
 - lorsqu'un fournisseur le permet, un changement Free → payant doit éviter toute refonte d'architecture.
 
-État du squelette backend local :
+État du backend et de Supabase DEV :
 
-- Fastify / TypeScript ;
+- squelette Fastify / TypeScript checkpointé au commit `e17d77dfc610b8f69cfe89026354581ce2abda4a` ;
 - Prisma ORM 7.10.0 stable ;
-- abstractions Auth et DB ;
-- configuration typée ;
-- `/health` et tests locaux ;
-- aucune connexion Supabase réelle, migration distante ni mécanique métier.
-
-Ce squelette existe mais n'est pas encore checkpointé. La Phase C3 reste en cours tant que le code n'est pas validé puis enregistré dans Git et que Supabase n'est pas branché.
+- Supabase DEV provisionné et connexion PostgreSQL fonctionnelle ;
+- première migration versionnée appliquée ;
+- 10 tables de fondation présentes pour Identité / Ressources / Roue ;
+- référentiels seedés avec 7 éléments et 9 ressources ;
+- RLS activée sur les tables de fondation, sans policy client permissive ;
+- vérification JWT Supabase par JWKS, contexte Auth Fastify, provisioning initial transactionnel et routes `/api/v1/me` / `/api/v1/onboarding/player` implémentés dans le lot Auth en cours ;
+- validation avec un véritable access token utilisateur Supabase encore à effectuer lorsque le premier utilisateur Auth de test sera disponible.
 
 Prochaine étape exacte :
-finaliser le checkpoint du squelette backend local, puis provisionner Supabase Free avant le premier vertical slice.
-
-Premier lot :
-- créer le squelette `server/` Node.js / TypeScript / Fastify ;
-- installer/configurer Prisma pour PostgreSQL ;
-- préparer la configuration par variables d'environnement ;
-- créer l'adaptateur Supabase Auth ;
-- créer la connexion PostgreSQL ;
-- ajouter gestion structurée des erreurs et logs ;
-- ajouter `/health` ;
-- préparer les premières migrations nécessaires au vertical slice ;
-- ajouter les tests de base.
+valider le flux Auth avec un véritable utilisateur Supabase de test, enregistrer le checkpoint du lot Auth, puis poursuivre le vertical slice avec le choix d'élément et les ressources avant la Roue.
 
 Premier vertical slice métier immédiatement après ce squelette :
 **Onboarding → Player → Élément → Ressources → Roue quotidienne.**
