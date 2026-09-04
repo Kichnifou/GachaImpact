@@ -1,6 +1,6 @@
 # Registre des commandes GachaImpact
 
-Statut : EN CONSTRUCTION — alimenté et consolidé domaine par domaine pendant l'audit des scripts.
+Statut : CONSOLIDÉ APRÈS SWEEP DES 37 SCRIPTS — sous réserve du sweep final des 17 JSON.
 
 Ce fichier deviendra la base documentaire de la future section **Aide / Commandes** intégrée à GachaImpact.
 
@@ -26,11 +26,16 @@ Lorsqu'une commande est mal écrite, incomplète ou utilise une syntaxe qui n'es
 - éviter les confirmations en plusieurs messages côté Twitch/chat ;
 - structurer les réponses Twitch sur une seule ligne.
 
-## Commandes repérées dans la capture du dossier `Commandes`
+## Scripts legacy réellement présents dans le dossier `Commandes`
 
-Ami, Bannière, Banque, Box, Code, Coffre, Combat, Concours, Convertir, Daily, Échanger, Élément, Event, Expedition, Faveur, Gift, Help, Infos, Légende, Liste, Missions, Obtention, Passif, Pity, Pull, Roue, Sac, Select, Shop, Stella, Subscription, Team, Top, Vote, Wish, XP.
+Ami, Bannière, Banque, Box, Code, Coffre, Combat, Concours, Convertir, Daily, Échanger, Élément, Event, Expedition, Faveur, Gift, Giveaway, Help, Infos, Légende, Liste, Missions, Obtention, Passif, Pity, Pull, Roue, Sac, Select, Shop, Stella, Subscription, Team, Top, Vote, Wish, XP.
 
-Cette liste est un inventaire visuel initial et sera confirmée par les fichiers réels.
+Le sweep final confirme 37 scripts legacy.
+
+Trois de ces scripts ne correspondent pas à une commande player-facing canonique :
+- `XP` est un orchestrateur de messages / cycle de vie, pas `!xp` ;
+- `Gift` est l'action Twitch du Gift Suprême, pas un `!gift` canonique ;
+- `Subscription` est un trigger Twitch de Faveur, pas un `!subscription` canonique.
 
 ## Modèle d'entrée
 

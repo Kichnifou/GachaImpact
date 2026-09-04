@@ -30,8 +30,8 @@ Sources : 37 scripts du snapshot Streamer.bot + 17 JSON du snapshot Data.
 | Element | `viewers_data.json` | R/W | Profil joueur | choix permanent élément |
 | Event | `monthly_events_data.json`, `viewers_data.json` | R/W | Events mensuels | participation, monnaie, social, achats/tirages |
 | Expedition | `viewers_data.json`, `genshin_characters.json` | R/W | Expédition | état temporisé + récompenses |
-| Faveur | `viewers_data.json` | R/W | Faveur / Abonnement | consultation/réclamation selon mécanique |
-| Gift | `viewers_data.json` | R/W | Modération / Récompense admin | don de ressources / progression selon script |
+| Faveur | `viewers_data.json` | R | Faveur / Abonnement | consultation de l'état uniquement ; claim quotidien legacy porté par XP, acquisition portée par Subscription |
+| Gift | `viewers_data.json` | R/W | Twitch / Custom Reward | Gift Suprême : cible saisie dans la redemption, +1600 particules de l'élément du viewer cible ; aucun `!gift` canonique V1 |
 | Giveaway | `giveaway.json`, `viewers_data.json` | R/W | Giveaway / Twitch | ouverture, fermeture, tirage, classement chat, récompenses, stats, reroll |
 | Help | — | — | Aide | aide statique par catégories ; aucune donnée joueur ni persistance |
 | Infos | `viewers_data.json`, `genshin_characters.json` | R | Personnages / Fiche | infos catalogue + possession |
@@ -50,7 +50,7 @@ Sources : 37 scripts du snapshot Streamer.bot + 17 JSON du snapshot Data.
 | Subscription | `viewers_data.json` | R/W | Twitch / Faveur | trigger Twitch, faveur + primos |
 | Team | `viewers_data.json`, `genshin_characters.json`, `element_passives.json` | R/W | Équipe | team active + jusqu'à 10 teams sauvegardées |
 | Top | `viewers_data.json` | R | Classements | classements globaux dérivés / lecture seule |
-| Vote | `banner_votes.json`, `genshin_characters.json`, `viewers_data.json` | R/W (`banner_votes`) | Gacha / Vote hebdo | 1 vote/semaine |
+| Vote | `banner_votes.json`, `genshin_characters.json` | R (`genshin_characters`) + R/W (`banner_votes`) | Gacha / Vote hebdo | 1 vote/semaine |
 | Wish | `giveaway.json`, `viewers_data.json` | R/W (`giveaway`) | Giveaway | participation giveaway |
 | XP | `viewers_data.json`, `genshin_characters.json`, `c6_characters.json`, `contests_data.json`, `monthly_events_data.json`, `long_missions.json`, `friendships_data.json`, `giveaway.json`, `banner_votes.json` | R/W massif | Cycle de vie / Orchestrateur legacy | énorme script central à découpler |
 
