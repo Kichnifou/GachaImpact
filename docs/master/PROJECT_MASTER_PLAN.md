@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.41
+Version : 0.42
 Date : 2026-09-04
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3546,18 +3546,27 @@ Domaine actif :
 
 État du backend et de Supabase DEV :
 
-- squelette Fastify / TypeScript checkpointé au commit `e17d77dfc610b8f69cfe89026354581ce2abda4a` ;
+- squelette Fastify / TypeScript checkpointé ;
 - Prisma ORM 7.10.0 stable ;
 - Supabase DEV provisionné et connexion PostgreSQL fonctionnelle ;
 - première migration versionnée appliquée ;
 - 10 tables de fondation présentes pour Identité / Ressources / Roue ;
 - référentiels seedés avec 7 éléments et 9 ressources ;
 - RLS activée sur les tables de fondation, sans policy client permissive ;
-- vérification JWT Supabase par JWKS, contexte Auth Fastify, provisioning initial transactionnel et routes `/api/v1/me` / `/api/v1/onboarding/player` implémentés dans le lot Auth en cours ;
-- validation avec un véritable access token utilisateur Supabase encore à effectuer lorsque le premier utilisateur Auth de test sera disponible.
+- Auth Supabase réel checkpointé au commit `027d230f7d047e0469076418d3d5122e831bdce6` ;
+- vérification JWT Supabase via JWKS, contexte Auth Fastify, provisioning initial transactionnel et routes `/api/v1/me` / `/api/v1/onboarding/player` opérationnels ;
+- flux réel validé manuellement avec un véritable utilisateur Supabase Auth et un véritable access token ;
+- premier Player réel `Kichnifou` provisionné avec succès ;
+- `GET /api/v1/me` retrouve correctement le Player existant ;
+- un second appel d'onboarding avec un autre displayName ne recrée pas le Player et ne renomme pas silencieusement `Kichnifou`.
 
 Prochaine étape exacte :
-valider le flux Auth avec un véritable utilisateur Supabase de test, enregistrer le checkpoint du lot Auth, puis poursuivre le vertical slice avec le choix d'élément et les ressources avant la Roue.
+poursuivre le premier vertical slice backend avec :
+1. choix permanent de l'élément ;
+2. lecture des ressources du Player ;
+3. Roue quotidienne complète avec RNG serveur, transaction économique, idempotence, journée `Europe/Paris`, mémorisation du résultat et refus de double récompense.
+
+Une fois ce vertical slice backend validé et checkpointé, brancher le frontend sur Supabase Auth et sur ces API pour obtenir le premier parcours graphique réellement jouable.
 
 Premier vertical slice métier immédiatement après ce squelette :
 **Onboarding → Player → Élément → Ressources → Roue quotidienne.**
