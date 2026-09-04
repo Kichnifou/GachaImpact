@@ -1015,3 +1015,18 @@ Statut : évolutif.
 - `TECHNIQUE` — UI standalone, chat interne et Twitch utilisent le même service de Ranking.
 - `MIGRATION` — Aucun historique de rang, podium ou saison Top legacy n'est inventé ; les classements sont recalculés depuis les données sources migrées.
 - `CLÔTURÉ R727` — Domaine Top / Classements globaux clôturé.
+
+## Help / cohérence finale des commandes
+- `VALIDÉ R728` — `!help` utilise trois niveaux : catégories principales, résumé d'une catégorie et aide directe par commande.
+- `VALIDÉ R728` — Lorsqu'un token correspond à une vraie commande, l'aide directe de cette commande est prioritaire sur un ancien alias de catégorie ; par exemple `!help box` décrit `!box`.
+- `VALIDÉ R729` — Les dix catégories principales sont Progression, Gacha, Ressources, Collection, Équipe, Activités, Social, Events, Classements et Twitch.
+- `VALIDÉ R730` — L'aide joueur publique est séparée de l'administration ; `!giveaway open`, `close` et `reroll` ne sont pas placardés dans le Help public.
+- `VALIDÉ R730` — La catégorie Twitch peut expliquer Faveur/Subscriptions, Gift Suprême, `!wish` et `!giveaway stats`; une aide Admin dédiée peut exister uniquement pour les utilisateurs autorisés.
+- `VALIDÉ R731` — La syntaxe canonique player-facing du classement Taux de 5★ est `!top taux5`; `!top luck` reste accepté comme alias historique.
+- `TECHNIQUE` — Le vrai `Help.txt` ne lit aucun JSON ni aucune donnée joueur et ne possède aucune persistance.
+- `TECHNIQUE` — Le catalogue player-facing comporte 34 racines en comptant `!help`; `XP.txt`, `Gift.txt` et `Subscription.txt` ne créent respectivement aucun `!xp`, `!gift` ou `!subscription` canonique.
+- `TECHNIQUE` — Help doit respecter le canal courant et les permissions avant de présenter une commande comme utilisable.
+- `TECHNIQUE` — Les helpers Twitch restent courts, sur une ligne et ne recommandent qu'une syntaxe canonique.
+- `TECHNIQUE` — La future section standalone `Aide / Guide` est plus riche et distincte du Help textuel.
+- `MIGRATION` — Aucune donnée Help à migrer ; certains aliases peuvent être conservés uniquement pour compatibilité.
+- `CLÔTURÉ R731` — Domaine Help / cohérence finale des commandes clôturé, sous réserve de corrections factuelles découvertes pendant le sweep exhaustif final.

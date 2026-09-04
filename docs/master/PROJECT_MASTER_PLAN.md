@@ -1,7 +1,7 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.33
-Date : 2026-09-02
+Version : 0.34
+Date : 2026-09-04
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
@@ -3523,12 +3523,18 @@ Dernier domaine clôturé :
 - Event, Boss, Concours et Giveaway conservent leurs propres classements spécialisés ;
 - aucun système de saisons ou récompenses pour les classements globaux V1 ;
 - dette Top du Domaine Banque résolue par R714/R715.
+- Domaine Help / cohérence finale des commandes clôturé après R731 ;
+- `!help` cible : catégories + aide directe par commande ;
+- catégories Help : Progression / Gacha / Ressources / Collection / Équipe / Activités / Social / Events / Classements / Twitch ;
+- aide Admin séparée de l'aide publique ;
+- `!top taux5` devient la syntaxe canonique du Taux de 5★ ; `!top luck` reste alias historique ;
+- Help reste read-only, sans JSON ni état joueur, avec restitution filtrée selon canal et permissions.
 
 Domaine actif :
-**Help / cohérence finale des commandes — audit spécialisé à initialiser après validation de ce checkpoint.**
+**Sweep exhaustif final des scripts legacy — 37 scripts à recroiser contre les audits et contrats V1 validés.**
 
 Prochaine étape exacte :
-créer le document spécialisé d'audit Help / cohérence finale des commandes, inspecter intégralement `Help.txt`, le recroiser avec `docs/commands/command-reference.md` et l'ensemble des commandes réellement validées dans les audits, puis décider uniquement les derniers écarts player-facing nécessaires avant le sweep exhaustif final.
+effectuer un sweep exhaustif des 37 scripts de `legacy/streamerbot/commands/`, vérifier pour chacun la couverture documentaire, les syntaxes, prérequis, données, producteurs/consommateurs et écarts player-facing encore présents, puis corriger les incohérences documentaires sans réouvrir les décisions déjà validées sauf contradiction réelle. Une fois ce sweep scripts terminé et checkpointé, effectuer le sweep exhaustif des 17 JSON legacy, puis seulement finaliser les deux documentations Twitch externes prévues.
 
 Étape obligatoire avant modèle de données / V1 :
 après clôture d'Event et des audits restants, effectuer un **sweep exhaustif final des 37 scripts `.txt` et des 17 fichiers JSON inventoriés** afin de confirmer qu'aucune mécanique, donnée, dépendance, commande ou source de vérité n'a été oubliée. Le modèle de données cible final et le passage à la V1 ne doivent être engagés qu'après cette vérification de couverture.

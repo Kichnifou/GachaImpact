@@ -1212,11 +1212,15 @@ Un joueur avec moins de 100 Pulls :
 - n'apparaît pas dans ce classement ;
 - ne possède pas de rang public pour cette métrique.
 
+La syntaxe canonique player-facing a ensuite été fixée par R731 :
+
+`!top taux5`
+
 L'alias historique :
 
 `!top luck`
 
-peut rester accepté pour compatibilité.
+reste accepté pour compatibilité mais n'est plus la syntaxe recommandée dans les helpers.
 
 L'UI utilise le libellé clair `Taux de 5★`.
 

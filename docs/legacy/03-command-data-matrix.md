@@ -33,7 +33,7 @@ Sources : 37 scripts du snapshot Streamer.bot + 17 JSON du snapshot Data.
 | Faveur | `viewers_data.json` | R/W | Faveur / Abonnement | consultation/réclamation selon mécanique |
 | Gift | `viewers_data.json` | R/W | Modération / Récompense admin | don de ressources / progression selon script |
 | Giveaway | `giveaway.json`, `viewers_data.json` | R/W | Giveaway / Twitch | ouverture, fermeture, tirage, classement chat, récompenses, stats, reroll |
-| Help | `viewers_data.json` | R | Aide | aide contextualisée selon niveau/profil |
+| Help | — | — | Aide | aide statique par catégories ; aucune donnée joueur ni persistance |
 | Infos | `viewers_data.json`, `genshin_characters.json` | R | Personnages / Fiche | infos catalogue + possession |
 | Legende | `c6_characters.json`, `viewers_data.json` | R | Concours / C6 | affiche personnages C6/statistiques |
 | Liste | `viewers_data.json` | R | Social / Présence legacy | liste joueurs selon données Streamer.bot |

@@ -53,6 +53,35 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 
 ---
 
+## `!help`
+
+- **Statut audit :** CLÔTURÉ — Domaine Help / cohérence finale des commandes après R731
+- **But :** Orienter le joueur vers les catégories fonctionnelles puis fournir une aide compacte par commande.
+- **Syntaxes canoniques :**
+  - `!help`
+  - `!help <categorie>`
+  - `!help <commande>`
+- **Catégories :** `progression`, `gacha`, `ressources`, `collection`, `equipe`, `activites`, `social`, `events`, `classements`, `twitch`
+- **Disponible chat GachaImpact :** oui
+- **Disponible Twitch :** oui
+- **UI standalone équivalente :** futur écran `Aide / Guide`, plus riche et distinct du Help textuel
+- **Préconditions :** aucune pour l'aide générale
+- **Coûts :** aucun
+- **Cooldown :** aucun
+- **Données lues :** aucune donnée joueur nécessaire
+- **Données écrites :** aucune
+- **Aide par catégorie :** liste courte des commandes principales disponibles dans la catégorie et sur le canal courant
+- **Aide directe :** `!help pull`, `!help team`, `!help banque`, etc. affichent l'usage compact de la commande elle-même
+- **Priorité de résolution :** un token correspondant à une vraie commande cible d'abord cette commande ; par exemple `!help box` décrit `!box`
+- **Canaux :** le catalogue d'aide est filtré selon chat interne, Twitch et permissions Admin
+- **Administration :** les mutations Giveaway Admin ne sont pas affichées dans l'aide joueur normale
+- **Twitch spécifique :** la catégorie Twitch présente notamment Faveur/Subscriptions, Gift Suprême, `!wish` et `!giveaway stats`
+- **Commandes inexistantes à ne pas inventer :** aucun `!xp`, `!gift` ou `!subscription` canonique
+- **Top :** la syntaxe canonique du Taux de 5★ est `!top taux5`; `!top luck` reste un alias historique accepté
+- **Helpers :** courts, une seule syntaxe recommandée, une ligne côté Twitch
+- **Migration :** aucune donnée Help à migrer
+- **Architecture cible :** métadonnées de commandes centralisées ; Help ne duplique jamais les règles métier possédées par les domaines spécialisés
+
 ## `!element`
 
 - **Statut audit :** Audité — domaine Élément
@@ -346,7 +375,7 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Valeur 0 :** exclue
 - **Ex æquo :** classement compétition `1er, 1er, 3e`
 - **Moras :** patrimoine `portefeuille + Banque`; les deux composantes nécessaires doivent être Public
-- **Taux 5★ :** `totalFiveStars / totalPulls × 100`, minimum 100 Pulls ; `luck` accepté comme alias historique
+- **Taux 5★ :** `totalFiveStars / totalPulls × 100`, minimum 100 Pulls ; syntaxe canonique `!top taux5` ; `luck` accepté comme alias historique
 - **Pity :** classement du pity 5★ actuel si Public
 - **Soldes actuels conservés :** Primogemmes, patrimoine Moras, particules totales et par élément
 - **Statistiques économiques cumulatives :** Primogemmes/Moras gagnées et dépensées
@@ -366,7 +395,7 @@ Principales métriques legacy conservées :
 - `messages` / `msg`
 - `messages-xp` / `counted`
 - `pulls`
-- `luck` → Taux de 5★
+- `taux5` → Taux de 5★ ; `luck` accepté comme alias historique
 - `5stars` / `5`
 - `4stars` / `4`
 - `pity`
