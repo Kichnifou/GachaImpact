@@ -1,14 +1,18 @@
 import { z } from 'zod';
 
+import { BusinessError } from '../errors.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import type { CurrentPlayerResult, CurrentPlayerStore } from './current-player-store.js';
 
 const SUPABASE_PROVIDER = 'supabase';
 const displayNameSchema = z.string().trim().min(1).max(40);
 
-export class OnboardingDisplayNameRequiredError extends Error {
+export class OnboardingDisplayNameRequiredError extends BusinessError {
   public constructor() {
-    super('A display name between 1 and 40 characters is required to complete onboarding.');
+    super(
+      'ONBOARDING_DISPLAY_NAME_REQUIRED',
+      'A display name between 1 and 40 characters is required to complete onboarding.',
+    );
     this.name = 'OnboardingDisplayNameRequiredError';
   }
 }

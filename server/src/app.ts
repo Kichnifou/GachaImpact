@@ -6,14 +6,22 @@ import { createAuthenticationHook, registerAuthenticationContext } from './api/a
 import { registerErrorHandler } from './api/error-handler.js';
 import { registerCurrentPlayerRoutes } from './api/routes/current-player.js';
 import { registerHealthRoute } from './api/routes/health.js';
+import { registerPlayerGameRoutes } from './api/routes/player-game.js';
+import { registerWheelRoutes } from './api/routes/wheel.js';
 import type { AuthIdentityVerifier } from './application/auth/auth-identity-verifier.js';
+import type { ChoosePlayerElement } from './application/player/choose-player-element.js';
+import type { GetCurrentPlayerResources } from './application/player/get-current-player-resources.js';
 import type { GetOrProvisionCurrentPlayer } from './application/player/get-or-provision-current-player.js';
+import type { SpinDailyWheel } from './application/wheel/spin-daily-wheel.js';
 import type { AppConfig } from './config/environment.js';
 import { loadConfig } from './config/environment.js';
 
 export type AppDependencies = Readonly<{
   authIdentityVerifier: AuthIdentityVerifier;
   getOrProvisionCurrentPlayer: GetOrProvisionCurrentPlayer;
+  choosePlayerElement?: ChoosePlayerElement;
+  getCurrentPlayerResources?: GetCurrentPlayerResources;
+  spinDailyWheel?: SpinDailyWheel;
   close?: () => Promise<void>;
 }>;
 
@@ -42,6 +50,23 @@ export async function buildApp(
       authenticate: createAuthenticationHook(dependencies.authIdentityVerifier),
       getOrProvisionCurrentPlayer: dependencies.getOrProvisionCurrentPlayer,
     });
+
+    if (
+      dependencies.choosePlayerElement &&
+      dependencies.getCurrentPlayerResources &&
+      dependencies.spinDailyWheel
+    ) {
+      const authenticate = createAuthenticationHook(dependencies.authIdentityVerifier);
+      await app.register(registerPlayerGameRoutes, {
+        authenticate,
+        choosePlayerElement: dependencies.choosePlayerElement,
+        getCurrentPlayerResources: dependencies.getCurrentPlayerResources,
+      });
+      await app.register(registerWheelRoutes, {
+        authenticate,
+        spinDailyWheel: dependencies.spinDailyWheel,
+      });
+    }
 
     if (dependencies.close) {
       app.addHook('onClose', dependencies.close);

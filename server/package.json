@@ -12,6 +12,7 @@
     "start": "node dist/src/server.js",
     "test": "vitest run",
     "test:db": "vitest run --config vitest.db.config.ts",
+    "test:manual:player-flow": "node scripts/test-player-flow.mjs",
     "typecheck": "tsc --noEmit --project tsconfig.json",
     "prisma:generate": "prisma generate",
     "db:seed": "prisma db seed"

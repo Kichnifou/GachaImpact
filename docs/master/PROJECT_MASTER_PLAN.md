@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.42
+Version : 0.43
 Date : 2026-09-04
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3558,18 +3558,16 @@ Domaine actif :
 - flux réel validé manuellement avec un véritable utilisateur Supabase Auth et un véritable access token ;
 - premier Player réel `Kichnifou` provisionné avec succès ;
 - `GET /api/v1/me` retrouve correctement le Player existant ;
-- un second appel d'onboarding avec un autre displayName ne recrée pas le Player et ne renomme pas silencieusement `Kichnifou`.
+- un second appel d'onboarding avec un autre displayName ne recrée pas le Player et ne renomme pas silencieusement `Kichnifou` ;
+- premier vertical slice métier backend terminé et validé sur Supabase DEV ;
+- choix permanent et idempotent de l'élément via `POST /api/v1/me/element` ;
+- lecture lossless des neuf soldes via `GET /api/v1/me/resources` ;
+- Roue quotidienne réelle via `POST /api/v1/wheel/spin`, avec RNG serveur, journée `Europe/Paris`, résultat mémorisé, mouvement économique, statistiques et protection transactionnelle contre les doubles gains ;
+- tests unitaires, tests DB réels et scénario concurrent de la Roue validés.
 
 Prochaine étape exacte :
-poursuivre le premier vertical slice backend avec :
-1. choix permanent de l'élément ;
-2. lecture des ressources du Player ;
-3. Roue quotidienne complète avec RNG serveur, transaction économique, idempotence, journée `Europe/Paris`, mémorisation du résultat et refus de double récompense.
-
-Une fois ce vertical slice backend validé et checkpointé, brancher le frontend sur Supabase Auth et sur ces API pour obtenir le premier parcours graphique réellement jouable.
-
-Premier vertical slice métier immédiatement après ce squelette :
-**Onboarding → Player → Élément → Ressources → Roue quotidienne.**
+brancher le frontend existant sur Supabase Auth et les API du vertical slice pour construire le parcours graphique réel :
+**Login / Register → Onboarding → choix de l'élément → ressources → Roue quotidienne.**
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 
