@@ -925,7 +925,10 @@ Statut : évolutif.
 - `TECHNIQUE` — Claim Faveur journalier global, serveur-authoritaire et idempotent entre Twitch/standalone.
 - `TECHNIQUE` — Faveur Twitch-only éligible lorsque l'élément est choisi ; le standalone onboardé satisfait déjà cette règle ; Twitch User ID → player ID reste l'identité autoritative.
 - `TECHNIQUE TRANSVERSAL` — Lorsqu'un verrou legacy de niveau sert uniquement à distinguer un vrai joueur Twitch d'un viewer passif, utiliser la règle centrale `élément choisi = joueur activé` plutôt qu'un seuil de niveau arbitraire.
-- `TECHNIQUE TRANSVERSAL` — Une notification actionnable est automatiquement résolue/retirée de la liste active lorsque l'action correspondante est accomplie par n'importe quel chemin, même si la notification n'a jamais été ouverte.
+- `TECHNIQUE TRANSVERSAL` — Une notification actionnable est automatiquement résolue/retirée de la liste active lorsque l'action correspondante est accomplie, expire ou devient impossible par n'importe quel chemin, même si la notification n'a jamais été ouverte.
+- `TECHNIQUE TRANSVERSAL` — Une notification informationnelle représente un événement déjà accompli ; elle n'est pas auto-résolue par l'effet métier déjà appliqué et reste jusqu'à lecture/suppression selon les règles générales.
+- `TECHNIQUE TRANSVERSAL` — Un feedback éphémère peut rester un toast/une animation sans persistance dans Notifications.
+- `SWEEP FINAL` — Repasser toutes les notifications définies dans les audits afin de les classer explicitement actionnables / informationnelles / feedbacks éphémères et corriger les incohérences.
 - `TECHNIQUE` — Le bonus gifter est produit depuis l'événement gift global afin de compter la quantité une fois sans double crédit via les événements bénéficiaires.
 - `MIGRATION` — `daysRemaining` au cutover devient le solde certain de départ ; aucune journée absente ni reward historique n'est recalculé rétroactivement.
 - `FINALISÉ` — Faveur / Subscription : modèle temporel, contrat `!faveur`, migration, producteurs/consommateurs et critères d'acceptation documentés avant clôture R672.
@@ -957,3 +960,18 @@ Statut : évolutif.
 - `MIGRATION` — Importer les douze codes Event comme définitions annuelles publiées et conserver leurs montants actuels.
 - `MIGRATION` — Importer `usedCodes` comme claims historiques sans récompense, sans date inventée et sans perdre les clés non encore mappables.
 - `CLÔTURÉ R691` — Domaine Codes cadeaux clôturé.
+- `VALIDÉ R692` — Gift Suprême conserve un coût de 10 000 Points de chaîne Twitch.
+- `VALIDÉ R693` — Le bénéficiaire reçoit +1 600 particules de son élément personnel.
+- `VALIDÉ R694` — Le gifter n'a pas besoin d'être joueur GachaImpact ; n'importe quel viewer Twitch peut offrir à un bénéficiaire valide.
+- `VALIDÉ R695` — Conserver la résolution legacy exact / contains / fuzzy Levenshtein et ses seuils de tolérance.
+- `VALIDÉ R696` — Un Gift réussi produit un message public Twitch compact.
+- `VALIDÉ R697` — Le bénéficiaire reçoit une notification standalone informationnelle du Gift déjà crédité ; elle reste disponible afin d'être vue ultérieurement et ne possède aucun second claim.
+- `VALIDÉ R698` — Lors du branchement Twitch réel, recréer Gift Suprême comme Custom Reward appartenant à l'application GachaImpact ; aucun bouton standalone ne permet de dépenser les Points de chaîne.
+- `VALIDÉ R699` — Une cible invalide produit zéro gain et une redemption `CANCELED` afin de rembourser les Points de chaîne ; succès → `FULFILLED`.
+- `VALIDÉ R700` — Le gifter peut se cibler lui-même s'il est un bénéficiaire GachaImpact valide.
+- `VALIDÉ R701` — Aucun historique Gift player-facing dédié ; conserver uniquement un journal serveur/admin minimal des nouvelles redemptions.
+- `TECHNIQUE` — Gift Suprême est lié au `reward.id` Twitch et chaque redemption est dédupliquée par son identifiant externe.
+- `TECHNIQUE` — La Custom Reward GachaImpact utilise la saisie utilisateur obligatoire et conserve les redemptions en état traitable jusqu'à validation métier.
+- `TECHNIQUE` — Crédit des +1 600 particules, statistique de particules personnelles, journal Gift et notification constituent une opération métier idempotente.
+- `MIGRATION` — Aucun historique Gift legacy n'est reconstruit ; les stocks existants restent couverts par la migration Ressources.
+- `CLÔTURÉ R701` — Domaine Gift Suprême / Points de chaîne Twitch clôturé.

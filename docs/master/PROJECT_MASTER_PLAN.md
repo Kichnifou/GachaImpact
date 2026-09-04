@@ -367,13 +367,17 @@ Décision :
 - possibilité future de marquer lu / archiver ;
 - clic sur notification -> écran concerné ;
 - possibilité future d'un écran Notifications dédié ;
-- une notification liée à une action encore à effectuer est automatiquement retirée de la liste active dès que cette action est accomplie, même si la notification n'a jamais été ouverte ;
-- cette résolution est transversale : effectuer l'action depuis l'écran métier, le chat interne ou un autre canal met à jour la notification correspondante.
+- distinguer trois formes : `actionnable`, `informationnelle` et `feedback éphémère` ;
+- une notification actionnable correspond à une action encore réellement disponible pour le joueur ;
+- une notification actionnable est automatiquement retirée de la liste active dès que l'action est accomplie, expire ou devient impossible, même si la notification n'a jamais été ouverte ;
+- cette résolution est transversale : effectuer l'action depuis l'écran métier, le chat interne, Twitch ou un autre canal met à jour la notification correspondante ;
+- une notification informationnelle signale au contraire un événement déjà accompli et reste visible jusqu'à lecture/suppression selon les règles générales ;
+- un feedback éphémère est une animation/toast immédiat qui n'a pas nécessairement besoin d'être persisté dans Notifications ;
+- pendant le sweep final, classer explicitement toutes les notifications prévues dans les audits et corriger les éventuelles ambiguïtés.
 
-Exemple :
-- notification `Un code cadeau est disponible` ;
-- le joueur ouvre directement l'écran Codes et réclame le code ;
-- la notification disparaît automatiquement sans nécessiter une lecture ou suppression manuelle.
+Exemples :
+- `Un code cadeau est disponible` → actionnable ; si le code est réclamé directement depuis Codes, la notification disparaît ;
+- `Gift Suprême reçu : +1 600 particules Hydro` → informationnelle ; la récompense est déjà appliquée mais la notification reste pour que le joueur puisse la découvrir plus tard.
 
 État frontend actuel :
 - la coque React possède déjà le panneau Notifications dans `GameHeader.tsx` ;
@@ -3492,31 +3496,34 @@ Dernier domaine clôturé :
 - migration de `gift_codes.json` et `usedCodes` cadrée ;
 - critères d'acceptation documentés.
 
-Domaine actif :
-`docs/legacy/20-gift-twitch-audit.md` — Gift Suprême / récompense Points de chaîne Twitch.
+Dernier domaine clôturé :
+`docs/legacy/20-gift-twitch-audit.md` — Gift Suprême / Points de chaîne Twitch — **CLÔTURÉ après R701**.
 
-État actuel du domaine :
-- audit technique initial réalisé ;
-- configuration Twitch actuelle fournie et recroisée avec le vrai `Gift.txt` ;
-- Gift Suprême coûte actuellement 10 000 Points de chaîne et exige une saisie texte ;
-- le viewer saisit le nom d'un joueur cible ;
-- la cible doit exister et posséder un élément ;
-- la cible reçoit +1 600 particules de son propre élément ;
-- le gifter legacy n'a pas besoin d'être lui-même joueur GachaImpact ;
-- `Gift.txt` utilise actuellement exact / contains / fuzzy Levenshtein pour résoudre le pseudo cible ;
-- le bug legacy de `totalMainElementParticlesEarned` sera corrigé via le service Ressources central ;
-- aucune donnée ou historique Gift spécifique n'est persisté dans le legacy ;
-- faisabilité Twitch sans Streamer.bot confirmée via EventSub `channel.channel_points_custom_reward_redemption.add` ;
-- EventSub fournit notamment redemption ID, Twitch User ID, `user_input`, reward ID, titre, coût et date ;
-- la future intégration doit identifier Gift Suprême par `reward.id` et dédupliquer les redemptions par leur ID ;
-- aucun bouton standalone ne permet de dépenser des Points de chaîne ;
-- les gains reçus via Twitch modifient néanmoins le même joueur et sont immédiatement visibles dans le standalone ;
-- nuance Twitch confirmée : GachaImpact peut écouter la reward actuelle créée manuellement, mais ne peut pas supposer pouvoir modifier/refund sa redemption via l'API ;
-- direction technique recommandée à arbitrer : recréer ultérieurement Gift Suprême via l'application GachaImpact afin de pouvoir marquer les redemptions réussies `FULFILLED` et les erreurs `CANCELED` avec remboursement des Points de chaîne ;
-- premières décisions produit à reprendre : **R692**.
+État du domaine clôturé :
+- Gift Suprême reste une Custom Reward Twitch à 10 000 Points de chaîne ;
+- bénéficiaire : +1 600 particules de son élément personnel ;
+- n'importe quel viewer Twitch peut offrir, même s'il ne joue pas à GachaImpact ;
+- bénéficiaire joueur existant avec élément obligatoire ;
+- matching exact / contains / fuzzy Levenshtein legacy conservé ;
+- auto-ciblage autorisé ;
+- message public Twitch après succès ;
+- notification standalone informationnelle au bénéficiaire ;
+- aucun bouton standalone permettant de dépenser des Points de chaîne ;
+- Custom Reward à recréer via l'application GachaImpact lors du branchement Twitch réel ;
+- redemption réussie → `FULFILLED` ;
+- cible invalide → `CANCELED` + remboursement Twitch ;
+- reward identifiée par `reward.id` ;
+- redemption dédupliquée par son ID ;
+- aucun historique Gift player-facing ;
+- aucun historique Gift legacy inventé ;
+- `totalMainElementParticlesEarned` maintenu via Ressources central ;
+- distinction Notifications actionnables / informationnelles / feedbacks éphémères désormais explicitée.
+
+Domaine actif :
+**Giveaway / Wish — audit spécialisé à initialiser après validation de ce checkpoint.**
 
 Prochaine étape exacte :
-reprendre le Domaine Gift Suprême / Points de chaîne Twitch à **R692** depuis `docs/legacy/20-gift-twitch-audit.md`, afin de confirmer coût/récompense, éligibilité du gifter, résolution du pseudo, restitution Twitch/standalone et stratégie de gestion/refund de la Custom Reward avant clôture rapide du domaine.
+créer le document spécialisé d'audit Giveaway / Wish, puis inspecter intégralement `Wish.txt`, `giveaway.json` et les producteurs/consommateurs du Giveaway, notamment les interactions présentes dans `XP.txt`, avant de commencer les décisions produit R702+.
 
 Étape obligatoire avant modèle de données / V1 :
 après clôture d'Event et des audits restants, effectuer un **sweep exhaustif final des 36 scripts `.txt` et des 17 fichiers JSON inventoriés** afin de confirmer qu'aucune mécanique, donnée, dépendance, commande ou source de vérité n'a été oubliée. Le modèle de données cible final et le passage à la V1 ne doivent être engagés qu'après cette vérification de couverture.
@@ -3526,12 +3533,6 @@ après clôture d'Event et des audits restants, effectuer un **sweep exhaustif f
 Cet inventaire évite qu'un système legacy soit oublié.
 
 Il ne définit pas la prochaine reprise : seule la section `Prochaine étape exacte` ci-dessus joue ce rôle.
-
-### Gift / récompenses Twitch
-Source principale :
-- `Gift.txt`.
-
-Cette mécanique legacy dépend actuellement d'une récompense de points de chaîne Twitch et devra être réévaluée pour le standalone et l'intégration Twitch optionnelle.
 
 ### Giveaway / Wish
 Sources principales :

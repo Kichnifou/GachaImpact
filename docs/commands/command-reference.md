@@ -328,6 +328,26 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Confidentialité :** seules les informations nécessaires au match deviennent publiques
 - **Atomicité :** lancement, actions, récompenses et résultat autoritaires côté serveur et protégés contre double exécution
 
+## Gift Suprême — Custom Reward Twitch
+
+- **Statut audit :** CLÔTURÉ — Domaine Gift Suprême après R701
+- **Déclenchement cible :** redemption de la Custom Reward Twitch `Gift Suprême`
+- **Legacy :** l'action/script `Gift.txt` pouvait être assimilé à `!gift`, mais aucune commande joueur `!gift` n'est canonique en V1
+- **Coût Twitch :** 10 000 Points de chaîne
+- **Saisie :** pseudo du bénéficiaire obligatoire
+- **Matching cible :** exact / contains / fuzzy Levenshtein legacy
+- **Bénéficiaire :** joueur GachaImpact existant avec élément choisi
+- **Gifter :** peut être n'importe quel viewer Twitch, même non-joueur
+- **Auto-ciblage :** autorisé
+- **Récompense :** +1 600 particules de l'élément personnel du bénéficiaire
+- **Twitch :** message public après succès
+- **Standalone :** aucun déclenchement ni dépense de Points de chaîne ; notification informationnelle du Gift reçu
+- **Custom Reward :** créée/gérée à terme par l'application GachaImpact et identifiée par `reward.id`
+- **Succès :** redemption `FULFILLED`
+- **Erreur cible :** redemption `CANCELED`, aucun gain, remboursement Twitch
+- **Atomicité :** une redemption ID ne peut produire qu'un Gift
+- **Historique :** journal serveur/admin des nouvelles redemptions uniquement ; aucun historique player-facing dédié
+
 ## `!code`
 
 - **Statut audit :** CLÔTURÉ — Domaine Codes cadeaux après R691
