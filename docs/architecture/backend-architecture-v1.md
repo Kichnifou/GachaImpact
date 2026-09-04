@@ -96,7 +96,9 @@ Pas de microservices en V1.
 
 ## 2.4 Accès PostgreSQL
 
-**Prisma ORM 8 avec PostgreSQL**, en gardant les contraintes importantes dans les migrations SQL.
+**Prisma ORM 7.10.0 stable avec PostgreSQL**, en gardant les contraintes importantes dans les migrations SQL.
+
+La V1 retient Prisma 7.10.0 stable : le socle ne doit pas être construit sur une release candidate de Prisma 8. Une migration vers une future version majeure sera réévaluée uniquement lorsqu'elle sera stable et apportera une valeur suffisante au projet.
 
 Prisma est retenu pour :
 

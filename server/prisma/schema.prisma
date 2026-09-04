@@ -1,0 +1,11 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Business models are intentionally added only after the Supabase development
+// project exists and the first versioned migration can be reviewed.

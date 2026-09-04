@@ -42,6 +42,8 @@ La sauvegarde autoritaire d'un joueur et toute logique sensible doivent résider
 
 Privilégier les solutions gratuites ou disposant d'un free tier véritablement exploitable et durable. Ne jamais introduire un service payant sans en informer le propriétaire du projet et obtenir son accord préalable.
 
+L'état vivant de cette autorisation est porté uniquement par `PAID_INFRA_APPROVED` dans le Master. Tant que sa valeur est `false`, un agent ne doit souscrire, activer ni exiger aucun plan ou service payant. Il peut préparer une architecture compatible avec une évolution future et expliquer ou recommander un passage payant, mais attend l'accord explicite du propriétaire. Seul le propriétaire peut faire passer ce flag à `true`, en précisant le service concerné lorsque nécessaire. Un upgrade Free → payant ne doit jamais être effectué implicitement.
+
 ## Direction de l'interface
 
 L'interface principale suit une structure générale en trois zones :

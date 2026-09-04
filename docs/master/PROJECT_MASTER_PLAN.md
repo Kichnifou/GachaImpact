@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.39
+Version : 0.40
 Date : 2026-09-04
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3530,14 +3530,33 @@ Documentations Twitch externes finalisées :
 - `docs/notion/guide-technique-twitch.md` — Documentation Technique Twitch — **TERMINÉ / NOTION READY**.
 
 Architecture backend consolidée :
-- `docs/architecture/backend-architecture-v1.md` — **socle V1 retenu : PostgreSQL/Supabase, Supabase Auth, Node.js/TypeScript/Fastify, Prisma, Railway, Cloudflare Pages et Realtime ; trajectoire Free-first puis montée en gamme sans refonte** ;
+- `docs/architecture/backend-architecture-v1.md` — **socle V1 retenu : PostgreSQL/Supabase, Supabase Auth, Node.js/TypeScript/Fastify, Prisma ORM 7.10.0 stable, Railway, Cloudflare Pages et Realtime ; trajectoire Free-first puis montée en gamme sans refonte** ;
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
 **Phase C3 — Implémentation du squelette backend et du premier vertical slice.**
 
+État d'autorisation infrastructure :
+`PAID_INFRA_APPROVED = false`
+
+- développement et première alpha : approche Free-first ;
+- aucun service payant n'est actuellement autorisé ;
+- un accord explicite du propriétaire mettra à jour ce Master avant tout upgrade ;
+- lorsqu'un fournisseur le permet, un changement Free → payant doit éviter toute refonte d'architecture.
+
+État du squelette backend local :
+
+- Fastify / TypeScript ;
+- Prisma ORM 7.10.0 stable ;
+- abstractions Auth et DB ;
+- configuration typée ;
+- `/health` et tests locaux ;
+- aucune connexion Supabase réelle, migration distante ni mécanique métier.
+
+Ce squelette existe mais n'est pas encore checkpointé. La Phase C3 reste en cours tant que le code n'est pas validé puis enregistré dans Git et que Supabase n'est pas branché.
+
 Prochaine étape exacte :
-commencer l'implémentation réelle du backend par un premier lot Codex borné.
+finaliser le checkpoint du squelette backend local, puis provisionner Supabase Free avant le premier vertical slice.
 
 Premier lot :
 - créer le squelette `server/` Node.js / TypeScript / Fastify ;
