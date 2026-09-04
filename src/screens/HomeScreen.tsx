@@ -1,8 +1,12 @@
 import BannerHero from '../components/BannerHero'
+import WheelCard from '../components/WheelCard'
+import type { WheelSpinDto, WheelTodayDto } from '../api/types'
 import type { ScreenId } from '../types'
 
 type HomeScreenProps = {
   onNavigate: (screen: ScreenId) => void
+  wheelToday: WheelTodayDto
+  onSpinWheel: () => Promise<WheelSpinDto>
 }
 
 const shortcuts: Array<{ screen: ScreenId; label: string; description: string; icon: string; tone: string }> = [
@@ -13,10 +17,12 @@ const shortcuts: Array<{ screen: ScreenId; label: string; description: string; i
   { screen: 'shop', label: 'Boutique', description: 'Parcourir les échanges', icon: '♢', tone: 'pink' },
 ]
 
-function HomeScreen({ onNavigate }: HomeScreenProps) {
+function HomeScreen({ onNavigate, wheelToday, onSpinWheel }: HomeScreenProps) {
   return (
     <div className="screen-content home-screen">
       <BannerHero compact />
+
+      <WheelCard today={wheelToday} onSpin={onSpinWheel} />
 
       <section className="home-shortcuts" aria-label="Raccourcis principaux">
         {shortcuts.map((shortcut) => (

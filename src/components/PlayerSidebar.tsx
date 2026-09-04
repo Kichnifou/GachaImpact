@@ -1,6 +1,8 @@
-import { activeBanner, activeTeam, particles, player } from '../data/mockData'
+import type { PlayerDto, PlayerResourcesDto } from '../api/types'
+import { activeBanner, activeTeam, player as mockPlayer } from '../data/mockData'
 import type { ScreenId } from '../types'
 import { currencyAssetPaths, getElementAssetPath } from '../utils/gameAssets'
+import { elementLabels, formatResourceAmount } from '../utils/formatters'
 import CharacterAssetImage from './CharacterAssetImage'
 import GameAssetIcon from './GameAssetIcon'
 
@@ -8,9 +10,13 @@ type PlayerSidebarProps = {
   isOpen: boolean
   onClose: () => void
   onNavigate: (screen: ScreenId) => void
+  playerData: PlayerDto
+  resources: PlayerResourcesDto
 }
 
-function PlayerSidebar({ isOpen, onClose, onNavigate }: PlayerSidebarProps) {
+const particleElements = ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro'] as const
+
+function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources }: PlayerSidebarProps) {
   const { featuredCharacter, pityFiveStar, pityFourStar, guaranteeFiveStar, brilliance } = activeBanner
 
   return (
@@ -21,14 +27,14 @@ function PlayerSidebar({ isOpen, onClose, onNavigate }: PlayerSidebarProps) {
       </div>
 
       <section className="panel profile-card">
-        <div className="avatar-placeholder" aria-label={`Avatar fictif de ${player.name}`}>
-          <span>K</span>
+        <div className="avatar-placeholder" aria-label={`Avatar de ${playerData.displayName}`}>
+          <span>{playerData.displayName.slice(0, 1).toUpperCase()}</span>
         </div>
         <div className="profile-copy">
-          <h2>{player.name}</h2>
+          <h2>{playerData.displayName}</h2>
           <div className="level-line">
-            <span>Niveau {player.level}</span>
-            <small>{player.currentXp.toLocaleString('fr-FR')} / {player.requiredXp.toLocaleString('fr-FR')} XP</small>
+            <span>Niveau {mockPlayer.level}</span>
+            <small>{mockPlayer.currentXp.toLocaleString('fr-FR')} / {mockPlayer.requiredXp.toLocaleString('fr-FR')} XP</small>
           </div>
           <div className="progress-track" aria-label="Expérience complète">
             <span className="progress-fill full" />
@@ -43,24 +49,28 @@ function PlayerSidebar({ isOpen, onClose, onNavigate }: PlayerSidebarProps) {
         <div className="resource-grid">
           <div className="resource-item">
             <GameAssetIcon className="resource-icon cyan" src={currencyAssetPaths.primogem} fallback="✦" />
-            <div><strong>{player.primogems.toLocaleString('fr-FR')}</strong><small>Primogemmes</small></div>
+            <div><strong>{formatResourceAmount(resources.primogems)}</strong><small>Primogemmes</small></div>
           </div>
           <div className="resource-item">
             <GameAssetIcon className="resource-icon gold" src={currencyAssetPaths.mora} fallback="●" />
-            <div><strong>{player.moras.toLocaleString('fr-FR')}</strong><small>Moras</small></div>
+            <div><strong>{formatResourceAmount(resources.moras)}</strong><small>Moras</small></div>
           </div>
         </div>
 
         <div className="particles-heading">Particules</div>
         <div className="particles-grid">
-          {particles.map((particle) => (
-            <div className={`particle-value ${particle.tone}`} key={particle.label} title={particle.label}>
+          {particleElements.map((elementKey) => (
+            <div
+              className={`particle-value ${elementKey}${playerData.elementKey === elementKey ? ' personal' : ''}`}
+              key={elementKey}
+              title={`${elementLabels[elementKey]}${playerData.elementKey === elementKey ? ' — élément personnel' : ''}`}
+            >
               <GameAssetIcon
                 className="particle-element-icon"
-                src={getElementAssetPath(particle.label)}
-                fallback={particle.icon}
+                src={getElementAssetPath(elementLabels[elementKey])}
+                fallback="✦"
               />
-              <strong>{particle.value}</strong>
+              <strong>{formatResourceAmount(resources.particles[elementKey])}</strong>
             </div>
           ))}
         </div>

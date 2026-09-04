@@ -18,6 +18,12 @@ export type WheelSpinResult = WheelReward &
     alreadySpun: boolean;
   }>;
 
+export type WheelTodayState = Readonly<{
+  spun: boolean;
+  businessDate: string;
+  result: WheelReward | null;
+}>;
+
 export function getWheelStatsIncrement(reward: WheelReward) {
   return {
     totalSpins: 1n,

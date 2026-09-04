@@ -9,6 +9,7 @@ import { GetCurrentPlayer } from '../src/application/player/get-current-player.j
 import { GetCurrentPlayerResources } from '../src/application/player/get-current-player-resources.js';
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
 import { SpinDailyWheel } from '../src/application/wheel/spin-daily-wheel.js';
+import { GetTodayWheelState } from '../src/application/wheel/get-today-wheel-state.js';
 import { loadConfig } from '../src/config/environment.js';
 import type { Clock } from '../src/domain/time/business-date.js';
 import type { RandomSource } from '../src/domain/wheel/wheel.js';
@@ -57,10 +58,13 @@ describe('authenticated Player vertical slice on the development database', () =
       new PrismaPlayerResourceStore(database),
     );
     const random = new JackpotRandom();
+    const wheelStore = new PrismaWheelStore(database);
+    const clock = new FixedClock();
+    const getTodayWheelState = new GetTodayWheelState(getCurrentPlayer, wheelStore, clock);
     const spinWheel = new SpinDailyWheel(
       getCurrentPlayer,
-      new PrismaWheelStore(database),
-      new FixedClock(),
+      wheelStore,
+      clock,
       random,
     );
     let playerId: string | undefined;
@@ -86,6 +90,12 @@ describe('authenticated Player vertical slice on the development database', () =
         code: 'ELEMENT_ALREADY_CHOSEN',
       });
 
+      await expect(getTodayWheelState.execute(identity)).resolves.toEqual({
+        spun: false,
+        businessDate: '2026-09-04',
+        result: null,
+      });
+
       const concurrent = await Promise.all([spinWheel.execute(identity), spinWheel.execute(identity)]);
       const firstResult = concurrent.find(({ alreadySpun }) => !alreadySpun);
       const repeatedResult = concurrent.find(({ alreadySpun }) => alreadySpun);
@@ -102,6 +112,28 @@ describe('authenticated Player vertical slice on the development database', () =
 
       await expect(spinWheel.execute(identity)).resolves.toEqual(repeatedResult);
       expect(random.nextInt).toHaveBeenCalledTimes(1);
+
+      const countsBeforeRead = await Promise.all([
+        database.playerWheelDailyState.count({ where: { playerId } }),
+        database.businessOperation.count({ where: { playerId } }),
+        database.resourceMovement.count({ where: { playerId } }),
+      ]);
+      await expect(getTodayWheelState.execute(identity)).resolves.toEqual({
+        spun: true,
+        businessDate: '2026-09-04',
+        result: {
+          resultType: 'primogems',
+          resourceKey: 'primogems',
+          amount: 1_600n,
+        },
+      });
+      await expect(
+        Promise.all([
+          database.playerWheelDailyState.count({ where: { playerId } }),
+          database.businessOperation.count({ where: { playerId } }),
+          database.resourceMovement.count({ where: { playerId } }),
+        ]),
+      ).resolves.toEqual(countsBeforeRead);
 
       const [dailyStates, operations, movements, wheelStats, economyStats, balances] =
         await Promise.all([

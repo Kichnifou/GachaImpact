@@ -13,6 +13,7 @@ import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-pr
 import type { PlayerElementStore } from '../src/application/player/player-element-store.js';
 import type { PlayerResourceStore } from '../src/application/player/player-resource-store.js';
 import { SpinDailyWheel } from '../src/application/wheel/spin-daily-wheel.js';
+import { GetTodayWheelState } from '../src/application/wheel/get-today-wheel-state.js';
 import type { WheelStore, WheelStoreInput } from '../src/application/wheel/wheel-store.js';
 import { resourceKeys, type ResourceKey } from '../src/domain/economy/resources.js';
 import type { CurrentPlayer } from '../src/domain/player/current-player.js';
@@ -48,7 +49,10 @@ class RouteResourceStore implements PlayerResourceStore {
 }
 
 class RouteWheelStore implements WheelStore {
+  public persisted = false;
+
   public async spin(input: WheelStoreInput) {
+    this.persisted = true;
     return {
       businessDate: input.businessDate,
       resultType: 'nothing' as const,
@@ -56,6 +60,17 @@ class RouteWheelStore implements WheelStore {
       amount: null,
       alreadySpun: false,
     };
+  }
+
+  public async findByDate(_playerId: string, businessDate: string) {
+    return this.persisted
+      ? {
+          businessDate,
+          resultType: 'nothing' as const,
+          resourceKey: null,
+          amount: null,
+        }
+      : null;
   }
 }
 
@@ -69,6 +84,8 @@ describe('gameplay HTTP routes', () => {
   async function createApp() {
     const playerStore = new RouteCurrentPlayerStore();
     const getCurrentPlayer = new GetCurrentPlayer(playerStore);
+    const wheelStore = new RouteWheelStore();
+    const clock = { now: () => new Date('2026-09-04T12:00:00.000Z') };
     const app = await buildApp(
       { host: '127.0.0.1', port: 3001, supabase: {} },
       {
@@ -79,10 +96,11 @@ describe('gameplay HTTP routes', () => {
           getCurrentPlayer,
           new RouteResourceStore(),
         ),
+        getTodayWheelState: new GetTodayWheelState(getCurrentPlayer, wheelStore, clock),
         spinDailyWheel: new SpinDailyWheel(
           getCurrentPlayer,
-          new RouteWheelStore(),
-          { now: () => new Date('2026-09-04T12:00:00.000Z') },
+          wheelStore,
+          clock,
           { nextInt: () => 0 },
         ),
       },
@@ -94,7 +112,7 @@ describe('gameplay HTTP routes', () => {
   it('protects the new routes with the existing Bearer authentication', async () => {
     const app = await createApp();
 
-    const response = await app.inject({ method: 'POST', url: '/api/v1/wheel/spin' });
+    const response = await app.inject({ method: 'GET', url: '/api/v1/wheel/today' });
 
     expect(response.statusCode).toBe(401);
     expect(response.json().error.code).toBe('UNAUTHORIZED');
@@ -115,9 +133,19 @@ describe('gameplay HTTP routes', () => {
       url: '/api/v1/me/resources',
       headers,
     });
+    const unusedWheelResponse = await app.inject({
+      method: 'GET',
+      url: '/api/v1/wheel/today',
+      headers,
+    });
     const wheelResponse = await app.inject({
       method: 'POST',
       url: '/api/v1/wheel/spin',
+      headers,
+    });
+    const usedWheelResponse = await app.inject({
+      method: 'GET',
+      url: '/api/v1/wheel/today',
       headers,
     });
 
@@ -127,12 +155,26 @@ describe('gameplay HTTP routes', () => {
       moras: '0',
       particles: { pyro: '0', hydro: '0', dendro: '0' },
     });
+    expect(unusedWheelResponse.json()).toEqual({
+      spun: false,
+      businessDate: '2026-09-04',
+      result: null,
+    });
     expect(wheelResponse.json()).toEqual({
       businessDate: '2026-09-04',
       resultType: 'nothing',
       resourceKey: null,
       amount: null,
       alreadySpun: false,
+    });
+    expect(usedWheelResponse.json()).toEqual({
+      spun: true,
+      businessDate: '2026-09-04',
+      result: {
+        resultType: 'nothing',
+        resourceKey: null,
+        amount: null,
+      },
     });
   });
 });

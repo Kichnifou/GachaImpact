@@ -3,6 +3,7 @@ import { GetCurrentPlayer } from '../application/player/get-current-player.js';
 import { GetCurrentPlayerResources } from '../application/player/get-current-player-resources.js';
 import { GetOrProvisionCurrentPlayer } from '../application/player/get-or-provision-current-player.js';
 import { SpinDailyWheel } from '../application/wheel/spin-daily-wheel.js';
+import { GetTodayWheelState } from '../application/wheel/get-today-wheel-state.js';
 import type { AppConfig } from '../config/environment.js';
 import { createSupabaseAuthAdapter } from './auth/supabase-auth-adapter.js';
 import { PrismaCurrentPlayerStore } from './database/prisma-current-player-store.js';
@@ -22,6 +23,8 @@ export function createRuntimeDependencies(config: AppConfig) {
   const database = createDatabase(config.databaseUrl);
   const store = new PrismaCurrentPlayerStore(database);
   const getCurrentPlayer = new GetCurrentPlayer(store);
+  const wheelStore = new PrismaWheelStore(database);
+  const clock = new SystemClock();
 
   return {
     authIdentityVerifier: createSupabaseAuthAdapter(issuer),
@@ -34,12 +37,8 @@ export function createRuntimeDependencies(config: AppConfig) {
       getCurrentPlayer,
       new PrismaPlayerResourceStore(database),
     ),
-    spinDailyWheel: new SpinDailyWheel(
-      getCurrentPlayer,
-      new PrismaWheelStore(database),
-      new SystemClock(),
-      new NodeRandomSource(),
-    ),
+    getTodayWheelState: new GetTodayWheelState(getCurrentPlayer, wheelStore, clock),
+    spinDailyWheel: new SpinDailyWheel(getCurrentPlayer, wheelStore, clock, new NodeRandomSource()),
     close: () => database.$disconnect(),
   };
 }

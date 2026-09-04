@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { notifications } from '../data/mockData'
 
 type GameHeaderProps = {
+  displayName: string
   onNavigateHome: () => void
   onOpenSidebar: () => void
+  onSignOut: () => Promise<void>
 }
 
-function GameHeader({ onNavigateHome, onOpenSidebar }: GameHeaderProps) {
+function GameHeader({ displayName, onNavigateHome, onOpenSidebar, onSignOut }: GameHeaderProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const notificationAnchorRef = useRef<HTMLDivElement>(null)
 
@@ -36,8 +38,12 @@ function GameHeader({ onNavigateHome, onOpenSidebar }: GameHeaderProps) {
 
       <div className="header-actions">
         <button type="button" className="mobile-player-button" onClick={onOpenSidebar}>
-          <span aria-hidden="true">K</span>
-          <strong>Joueur</strong>
+          <span aria-hidden="true">{displayName.slice(0, 1).toUpperCase()}</span>
+          <strong>{displayName}</strong>
+        </button>
+
+        <button type="button" className="sign-out-button" onClick={() => void onSignOut()}>
+          Déconnexion
         </button>
 
         <div className="notification-anchor" ref={notificationAnchorRef}>

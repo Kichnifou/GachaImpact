@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.43
+Version : 0.44
 Date : 2026-09-04
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3565,9 +3565,17 @@ Domaine actif :
 - Roue quotidienne réelle via `POST /api/v1/wheel/spin`, avec RNG serveur, journée `Europe/Paris`, résultat mémorisé, mouvement économique, statistiques et protection transactionnelle contre les doubles gains ;
 - tests unitaires, tests DB réels et scénario concurrent de la Roue validés.
 
+État du premier parcours frontend standalone :
+
+- frontend Supabase Auth branché pour Login / Register et restauration de session ;
+- onboarding du displayName relié aux routes backend existantes ;
+- choix permanent de l’élément relié au backend avant l’entrée dans le jeu ;
+- shell V0 conservé et alimenté avec le Player et les ressources réels du vertical slice ;
+- Roue quotidienne accessible graphiquement, sans RNG client, avec rafraîchissement des soldes après le résultat serveur ;
+- premier parcours standalone fonctionnel en local et prêt pour le test manuel du propriétaire.
+
 Prochaine étape exacte :
-brancher le frontend existant sur Supabase Auth et les API du vertical slice pour construire le parcours graphique réel :
-**Login / Register → Onboarding → choix de l'élément → ressources → Roue quotidienne.**
+effectuer le test manuel du propriétaire sur le parcours complet, puis préparer le déploiement Free-first du backend et du frontend. Railway et Cloudflare Pages ne sont pas encore déployés.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

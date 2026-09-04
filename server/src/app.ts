@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
+import cors from '@fastify/cors';
 import fastify, { type FastifyInstance } from 'fastify';
 
 import { createAuthenticationHook, registerAuthenticationContext } from './api/auth/authentication.js';
@@ -13,6 +14,7 @@ import type { ChoosePlayerElement } from './application/player/choose-player-ele
 import type { GetCurrentPlayerResources } from './application/player/get-current-player-resources.js';
 import type { GetOrProvisionCurrentPlayer } from './application/player/get-or-provision-current-player.js';
 import type { SpinDailyWheel } from './application/wheel/spin-daily-wheel.js';
+import type { GetTodayWheelState } from './application/wheel/get-today-wheel-state.js';
 import type { AppConfig } from './config/environment.js';
 import { loadConfig } from './config/environment.js';
 
@@ -21,6 +23,7 @@ export type AppDependencies = Readonly<{
   getOrProvisionCurrentPlayer: GetOrProvisionCurrentPlayer;
   choosePlayerElement?: ChoosePlayerElement;
   getCurrentPlayerResources?: GetCurrentPlayerResources;
+  getTodayWheelState?: GetTodayWheelState;
   spinDailyWheel?: SpinDailyWheel;
   close?: () => Promise<void>;
 }>;
@@ -36,6 +39,16 @@ export async function buildApp(
   });
 
   registerErrorHandler(app);
+
+  const frontendOrigin = config.frontendOrigin ?? 'http://localhost:5173';
+  await app.register(cors, {
+    origin: (requestOrigin, callback) => {
+      callback(null, requestOrigin === frontendOrigin);
+    },
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['authorization', 'content-type', 'x-request-id'],
+    exposedHeaders: ['x-request-id'],
+  });
 
   app.addHook('onRequest', (request, reply, done) => {
     reply.header('x-request-id', request.id);
@@ -54,6 +67,7 @@ export async function buildApp(
     if (
       dependencies.choosePlayerElement &&
       dependencies.getCurrentPlayerResources &&
+      dependencies.getTodayWheelState &&
       dependencies.spinDailyWheel
     ) {
       const authenticate = createAuthenticationHook(dependencies.authIdentityVerifier);
@@ -64,6 +78,7 @@ export async function buildApp(
       });
       await app.register(registerWheelRoutes, {
         authenticate,
+        getTodayWheelState: dependencies.getTodayWheelState,
         spinDailyWheel: dependencies.spinDailyWheel,
       });
     }

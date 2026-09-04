@@ -1,5 +1,5 @@
 import type { PlayerResourceBalances } from '../../application/player/player-resource-store.js';
-import type { WheelSpinResult } from '../../domain/wheel/wheel.js';
+import type { WheelSpinResult, WheelTodayState } from '../../domain/wheel/wheel.js';
 
 /** Bigint-backed amounts cross the JSON boundary as lossless base-10 strings. */
 export function toPlayerResourcesDto(balances: PlayerResourceBalances) {
@@ -25,5 +25,19 @@ export function toWheelSpinDto(result: WheelSpinResult) {
     resourceKey: result.resourceKey,
     amount: result.amount?.toString() ?? null,
     alreadySpun: result.alreadySpun,
+  };
+}
+
+export function toWheelTodayDto(state: WheelTodayState) {
+  return {
+    spun: state.spun,
+    businessDate: state.businessDate,
+    result: state.result
+      ? {
+          resultType: state.result.resultType,
+          resourceKey: state.result.resourceKey,
+          amount: state.result.amount?.toString() ?? null,
+        }
+      : null,
   };
 }

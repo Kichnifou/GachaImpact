@@ -15,8 +15,13 @@ import type {
 } from '../src/application/player/player-element-store.js';
 import type { PlayerResourceStore } from '../src/application/player/player-resource-store.js';
 import { SpinDailyWheel } from '../src/application/wheel/spin-daily-wheel.js';
+import { GetTodayWheelState } from '../src/application/wheel/get-today-wheel-state.js';
 import type { WheelStore, WheelStoreInput } from '../src/application/wheel/wheel-store.js';
-import { toPlayerResourcesDto, toWheelSpinDto } from '../src/api/serializers/gameplay.js';
+import {
+  toPlayerResourcesDto,
+  toWheelSpinDto,
+  toWheelTodayDto,
+} from '../src/api/serializers/gameplay.js';
 import { resourceKeys, type ResourceKey } from '../src/domain/economy/resources.js';
 import type { Clock } from '../src/domain/time/business-date.js';
 import type { RandomSource, WheelSpinResult } from '../src/domain/wheel/wheel.js';
@@ -63,8 +68,11 @@ class SequenceRandom implements RandomSource {
 
 class MemoryWheelStore implements WheelStore {
   private readonly states = new Map<string, Omit<WheelSpinResult, 'alreadySpun'>>();
+  public spinCalls = 0;
+  public findCalls = 0;
 
   public async spin(input: WheelStoreInput): Promise<WheelSpinResult> {
+    this.spinCalls += 1;
     const existing = this.states.get(input.businessDate);
 
     if (existing) {
@@ -75,6 +83,15 @@ class MemoryWheelStore implements WheelStore {
     const result = { businessDate: input.businessDate, ...reward };
     this.states.set(input.businessDate, result);
     return { ...result, alreadySpun: false };
+  }
+
+  public async findByDate(_playerId: string, businessDate: string) {
+    this.findCalls += 1;
+    return this.states.get(businessDate) ?? null;
+  }
+
+  public get stateCount() {
+    return this.states.size;
   }
 }
 
@@ -167,6 +184,54 @@ describe('Player resources', () => {
 });
 
 describe('daily Wheel service', () => {
+  it('reads unused and persisted daily states without spinning or changing rewards', async () => {
+    const clock = new MutableClock(new Date('2026-09-04T21:59:00Z'));
+    const random = new SequenceRandom();
+    const store = new MemoryWheelStore();
+    const getCurrentPlayer = new GetCurrentPlayer(
+      new FakeCurrentPlayerStore(createPlayer('hydro')),
+    );
+    const getToday = new GetTodayWheelState(getCurrentPlayer, store, clock);
+    const spin = new SpinDailyWheel(getCurrentPlayer, store, clock, random);
+
+    const unused = await getToday.execute(identity);
+
+    expect(unused).toEqual({
+      spun: false,
+      businessDate: '2026-09-04',
+      result: null,
+    });
+    expect(store.spinCalls).toBe(0);
+    expect(store.stateCount).toBe(0);
+    expect(random.nextInt).not.toHaveBeenCalled();
+
+    await spin.execute(identity);
+    const stateCountAfterSpin = store.stateCount;
+    const persisted = await getToday.execute(identity);
+
+    expect(persisted).toEqual({
+      spun: true,
+      businessDate: '2026-09-04',
+      result: {
+        resultType: 'primogems',
+        resourceKey: 'primogems',
+        amount: 1_600n,
+      },
+    });
+    expect(toWheelTodayDto(persisted).result?.amount).toBe('1600');
+    expect(store.spinCalls).toBe(1);
+    expect(store.stateCount).toBe(stateCountAfterSpin);
+
+    clock.value = new Date('2026-09-04T22:00:00Z');
+    await expect(getToday.execute(identity)).resolves.toEqual({
+      spun: false,
+      businessDate: '2026-09-05',
+      result: null,
+    });
+    expect(store.spinCalls).toBe(1);
+    expect(random.nextInt).toHaveBeenCalledTimes(1);
+  });
+
   it('requires a permanent element', async () => {
     const service = new SpinDailyWheel(
       new GetCurrentPlayer(new FakeCurrentPlayerStore(createPlayer())),

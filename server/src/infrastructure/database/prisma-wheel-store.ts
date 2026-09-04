@@ -39,7 +39,7 @@ export class PrismaWheelStore implements WheelStore {
           throw error;
         }
 
-        const persistedResult = await this.findPersistedResult(
+        const persistedResult = await this.findByDate(
           input.playerId,
           input.businessDate,
         );
@@ -157,7 +157,7 @@ export class PrismaWheelStore implements WheelStore {
     });
   }
 
-  private async findPersistedResult(playerId: string, businessDate: string) {
+  public async findByDate(playerId: string, businessDate: string) {
     const state = await this.database.playerWheelDailyState.findUnique({
       where: {
         playerId_businessDate: {

@@ -10,4 +10,8 @@ export type WheelStoreInput = Readonly<{
 
 export interface WheelStore {
   spin(input: WheelStoreInput): Promise<WheelSpinResult>;
+  findByDate(
+    playerId: string,
+    businessDate: string,
+  ): Promise<Omit<WheelSpinResult, 'alreadySpun'> | null>;
 }
