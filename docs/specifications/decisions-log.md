@@ -975,3 +975,22 @@ Statut : évolutif.
 - `TECHNIQUE` — Crédit des +1 600 particules, statistique de particules personnelles, journal Gift et notification constituent une opération métier idempotente.
 - `MIGRATION` — Aucun historique Gift legacy n'est reconstruit ; les stocks existants restent couverts par la migration Ressources.
 - `CLÔTURÉ R701` — Domaine Gift Suprême / Points de chaîne Twitch clôturé.
+- `VALIDÉ R702` — Le classement Giveaway exclut toutes les commandes `!xxx` ainsi que les messages bot/système ; les vrais messages Twitch comptent sans cooldown Giveaway spécifique.
+- `VALIDÉ R703` — Le Giveaway reste Twitch-only côté joueur : le classement repose uniquement sur l'activité réelle du chat Twitch.
+- `VALIDÉ R704` — Aucun bouton standalone joueur ne permet de rejoindre le tirage ; `!wish` Twitch reste le moyen de participation.
+- `VALIDÉ R705` — Les vrais messages humains de Kichnifou sont désormais comptés/classés ; seule l'identité bot/système est exclue.
+- `VALIDÉ R706` — Les joueurs ayant le même nombre de messages partagent le même rang ; abandon du départage de rang par ordre alphabétique.
+- `VALIDÉ R707` — `!giveaway stats` est une consultation publique ; open/close/reroll restent administratifs.
+- `VALIDÉ R708` — `reroll` n'est autorisé qu'après fermeture, exclut le gagnant courant, paie +1 600 au nouveau gagnant et ne retire aucune récompense précédente.
+- `VALIDÉ R709` — Tous les joueurs récompensés obtiennent une notification standalone informationnelle ; plusieurs gains d'une même fermeture peuvent être regroupés.
+- `VALIDÉ R710` — Aucun historique Giveaway player-facing dédié ; conserver uniquement l'état/résultat utile et un historique serveur/Admin.
+- `VALIDÉ R711` — L'Admin standalone possède des contrôles Open / Close / Reroll appelant exactement le même GiveawayService que Twitch.
+- `VALIDÉ R712` — Conserver la restitution Twitch actuelle : deux messages séparés à la fermeture, chacun sur une seule ligne — résultat du tirage puis classement activité.
+- `VALIDÉ R713` — Les ex æquo utilisent un classement compétition : `1er, 1er, 3e` ; les récompenses sont déterminées par le rang partagé.
+- `TECHNIQUE` — Tout filtre legacy `niveau >= 2` du Giveaway devient `élément choisi = joueur Twitch activé`.
+- `TECHNIQUE` — Comptage Giveaway centralisé depuis `channel.chat.message`, dédupliqué par `message_id` et séparé du service XP.
+- `TECHNIQUE` — Participants `!wish` et chatters classés sont deux populations distinctes.
+- `TECHNIQUE` — Fermeture, tirage, récompenses, notifications et rerolls sont serveur-autoritaires et idempotents.
+- `TECHNIQUE` — Un `open` ne peut plus écraser une session déjà ouverte.
+- `MIGRATION` — Conserver le dernier état Giveaway legacy connu sans rejouer les récompenses ni reconstruire un historique absent.
+- `CLÔTURÉ R713` — Domaine Giveaway / Wish clôturé.

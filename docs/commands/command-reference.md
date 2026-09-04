@@ -328,6 +328,45 @@ Cette liste est un inventaire visuel initial et sera confirmée par les fichiers
 - **Confidentialité :** seules les informations nécessaires au match deviennent publiques
 - **Atomicité :** lancement, actions, récompenses et résultat autoritaires côté serveur et protégés contre double exécution
 
+## `!giveaway`
+
+- **Statut audit :** CLÔTURÉ — Domaine Giveaway / Wish après R713
+- **But :** administrer ou consulter le Giveaway Twitch courant
+- **Canal joueur :** Twitch
+- **UI équivalente :** petit panneau Admin standalone pour Open / Close / Reroll ; aucune participation joueur standalone
+- **Consultation publique :** `!giveaway stats`
+- **Ouvrir :** `!giveaway open` — Admin
+- **Fermer :** `!giveaway close` — Admin
+- **Reroll :** `!giveaway reroll` — Admin, uniquement après fermeture
+- **Ouverture :** impossible si une session est déjà ouverte
+- **Gagnant :** tiré aléatoirement parmi les participants `!wish` éligibles
+- **Récompense gagnant :** +1 600 Primogemmes
+- **Reroll :** le gagnant précédent conserve son gain ; le nouveau reçoit également +1 600
+- **Classement chat :** messages Twitch normaux pendant la session
+- **Exclusions compteur :** commandes `!xxx`, bot, système
+- **Cooldown Giveaway :** aucun
+- **Kichnifou :** ses vrais messages humains comptent normalement
+- **Ex æquo :** classement compétition `1er, 1er, 3e`
+- **Récompenses chat :** rang 1 +2 000 particules personnelles ; rang 2 +1 500 ; rang 3 +1 000 ; rang >=4 +500
+- **Restitution Twitch :** deux messages séparés à la fermeture, chacun sur une seule ligne : tirage puis classement
+- **Notifications :** informationnelles pour tous les joueurs récompensés
+- **Historique :** aucun écran joueur dédié ; historique serveur/Admin uniquement
+- **Atomicité :** fermeture, tirage, récompenses et rerolls idempotents
+
+## `!wish`
+
+- **Statut audit :** CLÔTURÉ — Domaine Giveaway / Wish après R713
+- **But :** s'inscrire au tirage aléatoire du Giveaway Twitch ouvert
+- **Disponible Twitch :** oui
+- **Disponible chat GachaImpact :** non
+- **UI joueur équivalente :** aucune
+- **Précondition :** profil joueur existant avec élément choisi
+- **Niveau minimum :** aucun
+- **Limite :** une inscription maximum par joueur et par session
+- **Classement messages :** `!wish` étant une commande, il ne compte pas dans `messageCounts`
+- **Récompense au moment du `!wish` :** aucune
+- **Résultat :** le gagnant éventuel est déterminé uniquement lors de la fermeture
+
 ## Gift Suprême — Custom Reward Twitch
 
 - **Statut audit :** CLÔTURÉ — Domaine Gift Suprême après R701

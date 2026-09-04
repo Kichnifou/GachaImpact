@@ -1455,4 +1455,4 @@ Le domaine ne doit être rouvert que si :
 
 # 38. Sweep final obligatoire
 
-Même après clôture de Codes cadeaux et des audits restants, le sweep exhaustif final des 36 scripts `.txt` et 17 JSON reste obligatoire avant le modèle de données cible final et la V1.
+Même après clôture de Codes cadeaux et des audits restants, le sweep exhaustif final des 37 scripts `.txt` et 17 JSON reste obligatoire avant le modèle de données cible final et la V1.

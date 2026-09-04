@@ -1887,7 +1887,7 @@ Le domaine ne doit pas être rouvert pendant les audits suivants sauf :
 
 Même après clôture d'Event et des audits restants, le projet devra effectuer une passe exhaustive finale sur :
 
-- les **36 scripts / commandes `.txt`** inventoriés ;
+- les **37 scripts / commandes `.txt`** inventoriés ;
 - les **17 fichiers JSON** inventoriés.
 
 Objectif :

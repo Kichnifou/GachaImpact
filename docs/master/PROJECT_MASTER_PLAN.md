@@ -3498,54 +3498,38 @@ Dernier domaine clôturé :
 - critères d'acceptation documentés.
 
 Dernier domaine clôturé :
-`docs/legacy/20-gift-twitch-audit.md` — Gift Suprême / Points de chaîne Twitch — **CLÔTURÉ après R701**.
+`docs/legacy/21-giveaway-wish-audit.md` — Giveaway / Wish — **CLÔTURÉ après R713**.
 
 État du domaine clôturé :
-- Gift Suprême reste une Custom Reward Twitch à 10 000 Points de chaîne ;
-- bénéficiaire : +1 600 particules de son élément personnel ;
-- n'importe quel viewer Twitch peut offrir, même s'il ne joue pas à GachaImpact ;
-- bénéficiaire joueur existant avec élément obligatoire ;
-- matching exact / contains / fuzzy Levenshtein legacy conservé ;
-- auto-ciblage autorisé ;
-- message public Twitch après succès ;
-- notification standalone informationnelle au bénéficiaire ;
-- aucun bouton standalone permettant de dépenser des Points de chaîne ;
-- Custom Reward à recréer via l'application GachaImpact lors du branchement Twitch réel ;
-- redemption réussie → `FULFILLED` ;
-- cible invalide → `CANCELED` + remboursement Twitch ;
-- reward identifiée par `reward.id` ;
-- redemption dédupliquée par son ID ;
-- aucun historique Gift player-facing ;
-- aucun historique Gift legacy inventé ;
-- `totalMainElementParticlesEarned` maintenu via Ressources central ;
-- distinction Notifications actionnables / informationnelles / feedbacks éphémères désormais explicitée.
+- Giveaway joueur strictement Twitch ;
+- aucune participation `!wish` depuis le standalone ;
+- petit panneau Admin standalone Open / Close / Reroll utilisant le même GiveawayService ;
+- `!wish` unique par joueur/session ;
+- élément choisi obligatoire, aucun seuil de niveau ;
+- gagnant aléatoire parmi les participants `!wish` ;
+- +1 600 Primogemmes au gagnant ;
+- classement séparé basé sur les vrais messages Twitch ;
+- commandes `!xxx`, bot et système exclus du compteur ;
+- aucun cooldown Giveaway ;
+- vrais messages humains de Kichnifou comptés normalement ;
+- rangs ex æquo avec classement compétition `1er, 1er, 3e` ;
+- rang 1 +2 000 particules personnelles, rang 2 +1 500, rang 3 +1 000, rang >=4 +500 ;
+- `!giveaway stats` public ;
+- open/close/reroll administratifs ;
+- reroll uniquement après fermeture, ancien gagnant conservant son gain et nouveau gagnant recevant +1 600 ;
+- notifications standalone informationnelles pour tous les récompensés ;
+- aucun historique player-facing dédié ;
+- fermeture Twitch conservant les deux messages actuels sur une seule ligne chacun : résultat du tirage puis classement ;
+- comptage Twitch réalisable via EventSub `channel.chat.message` ;
+- fermeture, récompenses et rerolls idempotents ;
+- migration conservatrice ;
+- inventaire legacy désormais fixé à 37 scripts `.txt`.
 
 Domaine actif :
-`docs/legacy/21-giveaway-wish-audit.md` — Giveaway / Wish.
-
-État actuel du domaine :
-- audit technique initial refait après ajout de `legacy/streamerbot/commands/Giveaway.txt` ;
-- `Giveaway.txt`, `Wish.txt`, `XP.txt` et `giveaway.json` ont été recroisés ;
-- `!giveaway open`, `!giveaway close`, `!giveaway stats` et `!giveaway reroll` sont maintenant confirmés ;
-- `!wish` inscrit une seule fois le joueur au tirage d'une session ouverte ;
-- le tirage `!wish` et le classement d'activité Twitch utilisent deux populations distinctes ;
-- le gagnant aléatoire reçoit +1 600 Primogemmes ;
-- le classement messages distribue au total +2 000 / +1 500 / +1 000 particules personnelles aux trois premiers, puis +500 à tous les autres joueurs classés ;
-- ces récompenses sont conservées telles quelles pour la V1 ;
-- le comptage legacy Giveaway accepte tout message Twitch non vide pendant la session ouverte, commandes comprises, sans cooldown spécifique ;
-- `kichnifou` est actuellement exclu du comptage et du classement parce que le bot legacy parle sous le même pseudo ;
-- les égalités legacy sont départagées alphabétiquement après le nombre de messages ;
-- `!giveaway open` peut actuellement écraser une session déjà ouverte ; la cible refusera techniquement cette opération destructive ;
-- `!giveaway close` peut fermer sans participant éligible au tirage tout en distribuant les récompenses d'activité chat ;
-- `!giveaway reroll` exclut le gagnant courant, choisit un autre participant et lui donne +1 600 Primogemmes supplémentaires sans retirer la récompense du gagnant précédent ;
-- les permissions streamer/modérateur sont actuellement externes au script ; la cible les vérifiera côté serveur ;
-- le filtre legacy niveau ≥2 sera remplacé par la règle centrale Twitch `élément choisi = joueur activé` ;
-- le comptage Twitch sans Streamer.bot est faisable via EventSub `channel.chat.message` et sera centralisé dans TwitchBridge / GiveawayService ;
-- l'ajout de `Giveaway.txt` porte l'inventaire legacy à 37 scripts `.txt` ;
-- premières décisions produit restantes : **R702**.
+**Top / Classements globaux — audit spécialisé à initialiser après validation de ce checkpoint.**
 
 Prochaine étape exacte :
-reprendre le Domaine Giveaway / Wish à **R702** depuis `docs/legacy/21-giveaway-wish-audit.md` afin de finaliser le périmètre standalone, les messages comptabilisés, l'exclusion éventuelle de l'administrateur, les égalités, `stats`, la sémantique du `reroll`, les notifications et la restitution finale.
+créer le document spécialisé d'audit Top / Classements globaux, inspecter intégralement `Top.txt`, recroiser toutes les statistiques et ressources exposées avec leurs domaines propriétaires ainsi qu'avec les règles de confidentialité Social, puis commencer les décisions produit à **R714+**.
 
 Étape obligatoire avant modèle de données / V1 :
 après clôture d'Event et des audits restants, effectuer un **sweep exhaustif final des 37 scripts `.txt` et des 17 fichiers JSON inventoriés** afin de confirmer qu'aucune mécanique, donnée, dépendance, commande ou source de vérité n'a été oubliée. Le modèle de données cible final et le passage à la V1 ne doivent être engagés qu'après cette vérification de couverture.
@@ -3555,14 +3539,6 @@ après clôture d'Event et des audits restants, effectuer un **sweep exhaustif f
 Cet inventaire évite qu'un système legacy soit oublié.
 
 Il ne définit pas la prochaine reprise : seule la section `Prochaine étape exacte` ci-dessus joue ce rôle.
-
-### Giveaway / Wish
-Sources principales :
-- `Wish.txt` ;
-- `giveaway.json` ;
-- producteurs et consommateurs associés, notamment dans `XP.txt`.
-
-`Wish.txt` appartient au Giveaway et non au domaine Invocation.
 
 ### Top / Classements
 Source principale :
@@ -3588,7 +3564,7 @@ Il devra être recroisé en fin d'audit avec :
 ### Sweep final obligatoire de couverture legacy
 
 Avant de déclarer la Phase 1 terminée :
-- reprendre les 36 scripts recensés dans `docs/legacy/03-command-data-matrix.md` ;
+- reprendre les 37 scripts recensés dans `docs/legacy/03-command-data-matrix.md` ;
 - vérifier que chacun appartient à un audit clôturé, au domaine actif ou à une décision explicite de suppression/report ;
 - effectuer la même vérification pour les 17 JSON inventoriés ;
 - contrôler les producteurs et consommateurs transverses ;

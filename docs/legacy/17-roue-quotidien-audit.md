@@ -1028,4 +1028,4 @@ Le domaine ne doit être rouvert que si :
 
 # 33. Sweep final obligatoire du projet
 
-Même après clôture de Roue / quotidien et des audits restants, le projet devra toujours effectuer le sweep exhaustif final des 36 scripts `.txt` et 17 JSON avant la conception finale du modèle de données et le passage à la V1.
+Même après clôture de Roue / quotidien et des audits restants, le projet devra toujours effectuer le sweep exhaustif final des 37 scripts `.txt` et 17 JSON avant la conception finale du modèle de données et le passage à la V1.

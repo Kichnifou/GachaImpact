@@ -1,8 +1,8 @@
 # 21 — Audit Giveaway / Wish
 
 > Domaine 18 de l'audit GachaImpact.  
-> Statut : **EN COURS — audit technique initial refait avec `Giveaway.txt`, faisabilité Twitch confirmée, récompenses legacy confirmées à conserver ; premières décisions restantes à reprendre à R702**.  
-> Ce document devient la source spécialisée du domaine Giveaway / Wish.  
+> Statut : **CLÔTURÉ — décisions produit R702 à R713 validées ; clôture technique finalisée**.  
+> Ce document est la source spécialisée validée du domaine Giveaway / Wish.  
 > L'état global du projet et la prochaine reprise exacte restent la responsabilité du Master.
 
 ---
@@ -764,77 +764,534 @@ Peut restituer les gains et l'état du Giveaway selon les décisions produit res
 
 # 31. Décisions techniques acquises
 
-Sans consommer de Rxxx :
+Sans consommer de Rxxx supplémentaires :
 
 - le Giveaway est reproductible sans Streamer.bot via `channel.chat.message` ;
-- Twitch User ID est la vraie identité externe ;
-- le comptage quitte `XP.txt` ;
+- Twitch User ID est l'identité Twitch autoritative ;
+- le comptage quitte `XP.txt` et appartient à GiveawayService ;
 - les commandes Giveaway sont routées par le CommandRouter ;
 - les permissions Admin sont vérifiées côté serveur ;
 - un `open` ne peut plus écraser une session déjà ouverte ;
 - `!wish` est unique par session/joueur ;
-- le filtre legacy niveau >=2 devient la règle centrale `élément choisi` ;
+- tout ancien filtre `niveau >= 2` du Giveaway est remplacé par la règle centrale `élément choisi = joueur Twitch activé` ;
 - gagnant `!wish` et classement messages restent deux populations distinctes ;
-- les commandes Twitch comptent actuellement comme messages dans le legacy ;
-- le legacy ne possède aucun cooldown de message Giveaway ;
-- Kichnifou est historiquement exclu du classement/comptage ;
-- les égalités legacy sont départagées alphabétiquement ;
-- Top 3 = montants totaux 2 000 / 1 500 / 1 000, pas +500 supplémentaires ;
-- tous les autres classés reçoivent 500 ;
-- récompenses via services économiques centraux ;
-- `totalMainElementParticlesEarned` doit être maintenu ;
-- fermeture / récompenses / rerolls deviennent reprise-sûrs et idempotents ;
-- aucun historique ancien absent n'est inventé.
+- les commandes `!xxx` sont exclues du compteur Giveaway en V1 ;
+- les messages bot / système sont également exclus ;
+- aucun cooldown spécifique n'est appliqué aux vrais messages Giveaway ;
+- Kichnifou n'est plus exclu par son pseudo : ses vrais messages humains peuvent compter, tandis que l'identité bot est séparée ;
+- les égalités produisent des rangs ex æquo selon un classement compétition ;
+- l'ordre d'affichage de joueurs partageant exactement le même rang peut rester déterministe sans modifier leur récompense ;
+- rang 1 = 2 000 particules, rang 2 = 1 500, rang 3 = 1 000, rang >=4 = 500 ;
+- les montants Top 3 sont des montants totaux et non `500 + bonus` ;
+- toutes les récompenses passent par les services économiques centraux ;
+- `totalMainElementParticlesEarned` est maintenu pour toutes les particules personnelles générées ;
+- fermeture / récompenses / rerolls sont reprise-sûrs et idempotents ;
+- le tirage final est persisté avant sa restitution Twitch ;
+- aucun historique legacy absent n'est inventé.
 
 ---
 
-# 32. Directions produit déjà explicitement fournies
+# 32. Décisions produit validées
 
-Le propriétaire a déjà confirmé vouloir conserver :
+## R702 — Filtrage des messages du classement — ✅ VALIDÉ
 
-- principe `!giveaway open` → inscriptions `!wish` → `!giveaway close` ;
-- tirage aléatoire parmi les participants ;
-- classement par nombre de messages Twitch ;
-- récompense gagnant : +1 600 Primogemmes ;
-- récompense rang 1 : +2 000 particules personnelles ;
-- récompense rang 2 : +1 500 ;
-- récompense rang 3 : +1 000 ;
-- autres joueurs classés : +500 ;
-- principe global des récompenses actuelles sans rééquilibrage dans cet audit.
+Contrairement au legacy, toutes les commandes Twitch sont exclues du compteur Giveaway.
 
-Ces points ne doivent pas être redemandés sans raison.
+Ne comptent donc pas :
 
----
+- `!wish` ;
+- `!pull` ;
+- `!box` ;
+- `!giveaway` ;
+- toute autre commande commençant par `!` ;
+- messages bot ;
+- messages système.
 
-# 33. Points produit restant à décider
+Comptent :
 
-Reprendre à :
+- les vrais messages de discussion Twitch d'un joueur éligible.
 
-**R702**
+Aucun cooldown Giveaway spécifique n'est ajouté.
 
-Le domaine reste court.
-
-À trancher principalement :
-
-- le Giveaway reste-t-il strictement Twitch côté joueur ou le standalone affiche-t-il aussi un état en direct ?
-- `!wish` reste-t-il le seul moyen joueur de rejoindre ou un bouton standalone peut-il s'inscrire au tirage Twitch ?
-- commandes Twitch : conserver le fait qu'elles comptent dans `messageCounts` ?
-- Kichnifou / administrateur : rester exclu du classement ou compter ses vrais messages maintenant que le bot aura une identité séparée ?
-- égalités : conserver le départage alphabétique ou créer des rangs ex æquo ?
-- `!giveaway stats` : public ou Admin uniquement ?
-- `reroll` : deuxième gagnant payé en plus, remplacement logique, ou autre comportement ?
-- autoriser `reroll` uniquement après fermeture ?
-- notifications standalone pour gagnant / Top 3 / autres récompensés ?
-- afficher un historique récent de Giveaways ou uniquement état courant/dernier résultat ?
-- boutons Admin standalone open/close/reroll ou commandes Twitch seulement ?
-- message final Twitch : format gagnant + podium actuel ou présentation adaptée ?
-
-Aucun nouvel arbitrage sur les montants de récompenses n'est nécessaire.
+Chaque vrai message normal éligible compte donc pour `+1 message`, même s'il ne donne pas nécessairement de l'XP pour une autre raison.
 
 ---
 
-# 34. Sweep final obligatoire
+## R703 — Participation joueur strictement Twitch — ✅ VALIDÉ A
 
-Même après clôture Giveaway / Wish et des audits restants, le sweep exhaustif final de toutes les commandes legacy et JSON reste obligatoire avant le modèle de données cible final et la V1.
+Le Giveaway reste une animation de live Twitch.
 
-`Giveaway.txt` est désormais une source connue et doit être inclus dans ce sweep comme script legacy supplémentaire s'il est ajouté au repository.
+Côté joueur :
+
+- inscription depuis Twitch ;
+- activité mesurée uniquement dans le chat Twitch ;
+- tirage lié au Giveaway Twitch.
+
+Le chat interne GachaImpact n'alimente jamais `messageCounts`.
+
+Les récompenses appartiennent néanmoins au même joueur serveur et sont immédiatement visibles dans le standalone.
+
+---
+
+## R704 — Aucun bouton standalone `Participer` — ✅ VALIDÉ A
+
+Le moyen joueur de rejoindre le tirage reste :
+
+`!wish`
+
+sur Twitch.
+
+Le standalone ne possède pas de bouton permettant à un joueur ordinaire de rejoindre le tirage.
+
+Cette restriction ne concerne pas les futurs contrôles Admin du Giveaway.
+
+---
+
+## R705 — Les vrais messages de Kichnifou comptent — ✅ VALIDÉ B
+
+La V1 ne conserve pas l'exclusion historique :
+
+`username == "kichnifou"`
+
+Le bot Twitch possède sa propre identité technique.
+
+Par conséquent :
+
+- les messages du bot restent exclus ;
+- les messages système restent exclus ;
+- les vrais messages humains envoyés par Kichnifou sont comptés normalement s'il satisfait les mêmes règles d'éligibilité que les autres joueurs.
+
+Kichnifou peut donc apparaître dans le classement et recevoir la récompense de rang correspondante.
+
+---
+
+## R706 — Rangs ex æquo — ✅ VALIDÉ B
+
+Deux joueurs possédant le même nombre de messages partagent le même rang.
+
+Le départage alphabétique legacy n'est plus utilisé pour attribuer des rangs différents.
+
+L'ordre d'affichage au sein d'un même rang peut rester déterministe, par exemple alphabétique, mais il ne modifie jamais :
+
+- le rang ;
+- la médaille ;
+- la récompense.
+
+---
+
+## R707 — `!giveaway stats` public — ✅ VALIDÉ A
+
+`!giveaway stats` reste consultable par les viewers.
+
+Il s'agit d'une commande de lecture.
+
+Elle peut notamment afficher selon l'état :
+
+### Ouvert
+
+- Giveaway ouvert ;
+- nombre de participants ;
+- rappel `!wish`.
+
+### Fermé
+
+- nombre de participants ;
+- dernier gagnant courant lorsqu'il existe.
+
+Les actions :
+
+- `open`
+- `close`
+- `reroll`
+
+restent réservées à l'administration.
+
+---
+
+## R708 — Reroll conservant les gains précédents — ✅ VALIDÉ A
+
+`!giveaway reroll` est autorisé uniquement sur une session déjà fermée.
+
+Le reroll :
+
+- exclut le gagnant actuellement affiché ;
+- choisit aléatoirement un autre participant éligible ;
+- donne au nouveau gagnant +1 600 Primogemmes ;
+- ne retire jamais les +1 600 déjà accordées au gagnant précédent ;
+- remplace le gagnant courant affiché par le nouveau ;
+- conserve l'historique serveur des gagnants successifs.
+
+La sémantique économique legacy est donc conservée :
+
+**un reroll crée un nouveau paiement.**
+
+Si plusieurs rerolls sont effectués, seule la personne qui est gagnante courante est obligatoirement exclue du tirage suivant, conformément au comportement legacy.
+
+Un ancien gagnant plus ancien peut donc redevenir éligible lors d'un reroll ultérieur.
+
+Chaque opération reste idempotente : retry technique d'un même reroll ≠ nouveau reroll économique.
+
+---
+
+## R709 — Notification standalone pour tous les récompensés — ✅ VALIDÉ A
+
+Tout joueur recevant une récompense Giveaway reçoit une notification standalone **informationnelle**.
+
+Exemples :
+
+### Gagnant du tirage
+
+`🎟️ Giveaway remporté — +1 600 Primogemmes`
+
+### Classement
+
+`🥇 1er du classement Giveaway — +2 000 particules Hydro`
+
+### Autre chatter récompensé
+
+`🎉 Récompense Giveaway — +500 particules Cryo`
+
+La récompense est déjà créditée.
+
+Aucun bouton `Récupérer`.
+
+Si un même joueur cumule plusieurs gains pendant la fermeture, par exemple :
+
+- gagnant du `!wish` ;
+- rang du classement chat ;
+
+la notification peut agréger les récompenses dans une seule restitution informationnelle.
+
+Un profil Twitch-only conserve cette information sur son joueur interne et peut la retrouver après liaison au standalone selon les règles générales de Notifications.
+
+---
+
+## R710 — Aucun historique Giveaway player-facing dédié — ✅ VALIDÉ A
+
+La V1 ne crée pas d'écran complet d'historique des Giveaways.
+
+Restent possibles :
+
+- état courant ;
+- dernier gagnant via `stats` ;
+- résultat immédiatement restitué lors de la fermeture.
+
+Le serveur/Admin conserve en revanche les sessions nécessaires à :
+
+- audit ;
+- support ;
+- statistiques ;
+- idempotence ;
+- rerolls.
+
+---
+
+## R711 — Contrôles Giveaway dans l'Admin standalone — ✅ VALIDÉ A
+
+L'interface Admin standalone peut gérer le Giveaway Twitch.
+
+Elle peut au minimum afficher :
+
+- état ouvert / fermé ;
+- nombre de participants ;
+- informations utiles sur la session.
+
+Actions :
+
+- `Ouvrir`
+- `Fermer`
+- `Reroll`
+
+Ces boutons appellent exactement le même GiveawayService que :
+
+- `!giveaway open`
+- `!giveaway close`
+- `!giveaway reroll`
+
+Aucune logique économique n'est dupliquée dans le frontend.
+
+Cela ne crée aucun bouton de participation pour les joueurs ordinaires.
+
+---
+
+## R712 — Restitution Twitch actuelle conservée — ✅ VALIDÉ A PERSONNALISÉ
+
+Conserver le principe actuel de `Giveaway.txt`.
+
+Une fermeture normale génère **deux messages Twitch distincts**, sans faux retour à la ligne interne.
+
+### Message 1
+
+Résultat du tirage `!wish` :
+
+- message de victoire aléatoire du gagnant ;
+- ou message indiquant qu'aucun participant éligible n'a gagné.
+
+### Message 2
+
+Classement activité :
+
+- podium ;
+- nombre de messages ;
+- récompense de chaque rang du podium ;
+- mention générique de la récompense des autres joueurs classés.
+
+Ne pas chercher à fusionner artificiellement ces deux restitutions.
+
+Le Giveaway peut donc volontairement être l'un des rares systèmes produisant deux messages lors d'une seule clôture.
+
+Chaque message Twitch reste sur une seule ligne.
+
+---
+
+## R713 — Classement compétition pour les ex æquo — ✅ VALIDÉ A
+
+Utiliser un **classement compétition**.
+
+Exemple :
+
+- Alice : 100 messages → rang 1 ;
+- Bob : 100 messages → rang 1 ;
+- Chloé : 80 messages → rang 3 ;
+- David : 70 messages → rang 4.
+
+Récompenses :
+
+- Alice → +2 000 particules ;
+- Bob → +2 000 ;
+- Chloé → +1 000 ;
+- David → +500.
+
+Le rang 2 est sauté puisqu'il est occupé par la deuxième personne partageant le rang 1.
+
+Autre exemple avec trois joueurs premiers ex æquo :
+
+- rang 1 ;
+- rang 1 ;
+- rang 1 ;
+- joueur suivant = rang 4.
+
+Les trois premiers reçoivent chacun +2 000.
+
+Table des récompenses par **rang**, et non par index dans le tableau :
+
+- rang 1 → +2 000 ;
+- rang 2 → +1 500 ;
+- rang 3 → +1 000 ;
+- rang >=4 → +500.
+
+---
+
+# 33. Contrats cibles
+
+## `!wish`
+
+Canal :
+
+**Twitch uniquement.**
+
+Préconditions :
+
+- Giveaway ouvert ;
+- joueur interne existant ;
+- élément choisi ;
+- aucune inscription préalable dans cette session.
+
+Succès :
+
+- inscription unique au tirage ;
+- confirmation Twitch.
+
+`!wish` ne compte pas lui-même dans `messageCounts` conformément à R702.
+
+---
+
+## `!giveaway`
+
+### `!giveaway stats`
+
+Lecture publique.
+
+### `!giveaway open`
+
+Admin uniquement.
+
+Refuse si une session est déjà ouverte.
+
+### `!giveaway close`
+
+Admin uniquement.
+
+Ferme exactement une fois la session ouverte.
+
+### `!giveaway reroll`
+
+Admin uniquement.
+
+Autorisé uniquement après fermeture.
+
+Aucun reroll implicite ou automatique.
+
+---
+
+# 34. Comptage Twitch cible
+
+Un message augmente `messageCounts` uniquement si :
+
+- une session Giveaway est ouverte ;
+- le Twitch User ID est résolu vers un joueur GachaImpact existant ;
+- le joueur a choisi son élément ;
+- le message n'est pas une commande ;
+- le message n'est pas bot/système ;
+- le `message_id` n'a pas déjà été traité pour cette session.
+
+Aucun cooldown Giveaway.
+
+Les messages internes GachaImpact ne participent pas au classement.
+
+Le comptage s'arrête dès que la fermeture autoritative verrouille la session.
+
+---
+
+# 35. Fermeture et classement
+
+La fermeture :
+
+1. verrouille la session ;
+2. arrête le comptage ;
+3. snapshotte participants et compteurs ;
+4. construit les rangs avec ex æquo compétition ;
+5. distribue les récompenses chat ;
+6. tire le gagnant parmi les participants éligibles ;
+7. distribue +1 600 Primogemmes ;
+8. enregistre le résultat ;
+9. crée les notifications informationnelles ;
+10. produit les deux messages Twitch validés.
+
+Participants et chatters classés restent deux populations distinctes.
+
+Une fermeture sans participant `!wish` reste valide :
+
+- aucun gagnant aléatoire ;
+- classement chat et récompenses d'activité toujours distribuables.
+
+---
+
+# 36. Atomicité / idempotence
+
+Doivent être protégés :
+
+- inscription `!wish` ;
+- comptage par `message_id` ;
+- fermeture ;
+- tirage gagnant ;
+- récompense +1 600 ;
+- récompenses de classement ;
+- notifications ;
+- rerolls.
+
+Une même fermeture retryée :
+
+- ne reroll jamais le gagnant ;
+- ne recompte pas les messages ;
+- ne repaie aucune récompense ;
+- restitue le résultat déjà persisté si nécessaire.
+
+Un reroll explicitement demandé est une nouvelle action économique.
+
+Un retry technique du même reroll ne l'est pas.
+
+---
+
+# 37. Migration
+
+Le snapshot legacy actuel peut être conservé comme provenance de dernière session connue.
+
+Ne jamais :
+
+- redistribuer les anciennes récompenses ;
+- reconstruire un historique de sessions absent ;
+- inventer des dates ;
+- inventer des gagnants.
+
+Si `chatRewardsDistributed = true` :
+
+- considérer les récompenses chat de cette session comme déjà distribuées.
+
+Conserver lorsque connus :
+
+- gagnant ;
+- participants ;
+- compteurs ;
+- openedAt / closedAt ;
+- previousWinner ;
+- rerolledAt.
+
+Préférer effectuer le cutover Twitch hors Giveaway actif.
+
+---
+
+# 38. Critères d'acceptation
+
+Le Domaine Giveaway / Wish est prêt pour la V1 si les tests peuvent prouver notamment que :
+
+1. un Admin peut ouvrir un Giveaway ;
+2. un second `open` ne peut pas écraser une session ouverte ;
+3. un joueur sans élément ne peut pas participer ;
+4. aucun niveau minimum n'est requis si l'élément est choisi ;
+5. `!wish` inscrit une seule fois ;
+6. `!wish` ne compte pas dans le classement messages ;
+7. aucune commande `!xxx` ne compte ;
+8. les messages bot/système ne comptent pas ;
+9. chaque vrai message normal éligible compte sans cooldown Giveaway ;
+10. une redelivery du même `message_id` ne compte pas deux fois ;
+11. les messages du chat interne standalone ne comptent jamais ;
+12. les vrais messages de Kichnifou peuvent compter ;
+13. le tirage choisit uniquement parmi les participants `!wish` éligibles ;
+14. un chatter non inscrit à `!wish` peut quand même être classé ;
+15. le gagnant reçoit exactement +1 600 Primogemmes ;
+16. rang 1 reçoit exactement +2 000 particules personnelles ;
+17. rang 2 reçoit exactement +1 500 ;
+18. rang 3 reçoit exactement +1 000 ;
+19. rang >=4 reçoit exactement +500 ;
+20. deux joueurs à égalité peuvent partager le même rang ;
+21. `1er, 1er, 3e` applique correctement les récompenses ;
+22. `totalPrimosEarned` est maintenu ;
+23. `totalMainElementParticlesEarned` est maintenu ;
+24. une fermeture sans participant `!wish` peut toujours distribuer le classement chat ;
+25. `!giveaway stats` est public ;
+26. open/close/reroll restent administratifs ;
+27. le panneau Admin appelle le même service que les commandes Twitch ;
+28. un reroll n'est possible qu'après fermeture ;
+29. le gagnant précédent conserve ses +1 600 après reroll ;
+30. le nouveau gagnant reçoit +1 600 ;
+31. une même fermeture retryée ne redistribue rien ;
+32. une même requête de reroll retryée ne paie pas deux fois ;
+33. les récompensés obtiennent une notification informationnelle ;
+34. aucune notification Giveaway ne possède de second claim ;
+35. la fermeture Twitch produit le message résultat puis le message classement ;
+36. aucun faux retour à la ligne n'est requis dans ces messages ;
+37. aucun historique player-facing Giveaway dédié n'est nécessaire ;
+38. aucune récompense legacy n'est rejouée pendant la migration.
+
+---
+
+# 39. Conclusion du domaine
+
+**Domaine Giveaway / Wish : CLÔTURÉ après R713.**
+
+Le tirage, l'activité chat, les récompenses, les ex æquo, les commandes, le reroll, les notifications, l'administration standalone, l'intégration Twitch, la migration et l'idempotence sont suffisamment définis pour une future implémentation V1 bornée.
+
+Le domaine ne doit être rouvert que si :
+
+- Twitch modifie réellement les capacités nécessaires au chat ;
+- le sweep final révèle une dépendance oubliée ;
+- une décision produit est explicitement révisée.
+
+---
+
+# 40. Sweep final obligatoire
+
+Même après clôture Giveaway / Wish et des audits restants, le sweep exhaustif final des **37 scripts `.txt` et 17 JSON** reste obligatoire avant le modèle de données cible final et la V1.
+
+`Giveaway.txt` fait désormais officiellement partie des sources à couvrir pendant ce sweep.
