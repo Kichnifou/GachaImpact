@@ -35,6 +35,7 @@ La finalité opérationnelle principale de cette documentation est de préparer 
 - `architecture/` : choix du socle backend, schéma PostgreSQL physique, sécurité, infrastructure et préparation technique de l'implémentation.
 - `commands/` : contrats des commandes et future aide intégrée.
 - `notion/` : documentations externes prêtes à être publiées dans Notion, notamment les guides Twitch joueur et technique.
+- `process/` : workflow de conception, implémentation, review, validation publique et checkpoint.
 - `roadmap/` : trajectoire macro de développement, sans dupliquer l'état courant du Master.
 
 Les sources brutes de l'ancien jeu restent hors de `docs/`, principalement dans `legacy/streamerbot/`.
@@ -70,10 +71,11 @@ Ordre général :
 
 1. `AGENTS.md` ;
 2. Master ;
-3. audit(s) spécialisé(s) du lot demandé ;
-4. décisions transverses nécessaires ;
-5. command-reference si nécessaire ;
-6. code réel déjà présent dans le repository.
+3. `docs/process/implementation-workflow.md` ;
+4. audit(s) spécialisé(s) du lot demandé ;
+5. décisions transverses nécessaires ;
+6. command-reference si nécessaire ;
+7. code réel déjà présent dans le repository.
 
 Codex ne doit pas être obligé de lire tous les audits pour implémenter un seul domaine. Le lot préparé doit lui indiquer les sources pertinentes.
 

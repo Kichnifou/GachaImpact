@@ -19,35 +19,39 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget }
 
   if (choosing || !selected) {
     return <section className={`invocation-panel target-picker${compact ? ' home-banner' : ''}`} aria-labelledby="invocation-title">
-      <div className="banner-content"><h1 id="invocation-title">Choisissez votre cible</h1><p>Définissez le personnage 5★ que vous visez pour cette rotation hebdomadaire.</p><span className="banner-period">Jusqu’au {new Date(gacha.banner.endsAt).toLocaleDateString('fr-FR')}</span></div>
-      <div className="target-choice-grid">{gacha.banner.featuredFiveStars.map((character) => <button type="button" className={`target-choice ${character.elementKey}`} style={{ '--target-element': elementThemes[character.elementKey].color } as CSSProperties} disabled={pending !== null} onClick={() => void choose(character)} key={character.id}><CharacterAssetImage characterName={character.name} className="target-choice-image" assetPaths={[character.iconPath, character.fullbodyPath, character.wishPath, character.splashPath]} fallback={character.name.slice(0, 1)} alt="" /><strong>{character.name}</strong><span>★★★★★</span></button>)}</div>
-      <FeaturedFourStars characters={gacha.banner.featuredFourStars} />
+      <div className="banner-copy-column">
+        <div className="banner-content"><h1 id="invocation-title">Choisissez votre cible</h1><p>Définissez le personnage 5★ que vous visez pour cette rotation hebdomadaire.</p><span className="banner-period">Jusqu’au {new Date(gacha.banner.endsAt).toLocaleDateString('fr-FR')}</span></div>
+        <FeaturedFourStars characters={gacha.banner.featuredFourStars} />
+      </div>
+      <div className="target-choice-grid">{gacha.banner.featuredFiveStars.map((character) => <button type="button" className={`banner-character-card target-choice ${character.elementKey}`} style={{ '--character-element': elementThemes[character.elementKey].color } as CSSProperties} disabled={pending !== null} onClick={() => void choose(character)} key={character.id}><GameAssetIcon className="banner-card-element" src={getElementAssetPath(character.elementKey, 'badge')} fallback="" /><CharacterAssetImage characterName={character.name} className="target-choice-image" assetPaths={[character.iconPath, character.fullbodyPath, character.wishPath, character.splashPath]} fallback={character.name.slice(0, 1)} alt="" /><strong>{character.name}</strong><span>★★★★★</span></button>)}</div>
     </section>
   }
 
   return <section className={`invocation-panel${compact ? ' home-banner' : ''}`} aria-labelledby="invocation-title">
     <div className="banner-glow banner-glow-one" /><div className="banner-glow banner-glow-two" />
-    <div className="banner-content">
-      <div className="banner-title-lockup">
-        <GameAssetIcon className="banner-element-watermark" src={getElementAssetPath(selected.elementKey)} fallback="" />
-        <h1 id="invocation-title">{selected.name}</h1>
+    <div className="banner-copy-column">
+      <div className="banner-content">
+        <div className="banner-title-lockup">
+          <GameAssetIcon className="banner-element-watermark" src={getElementAssetPath(selected.elementKey)} fallback="" />
+          <h1 id="invocation-title">{selected.name}</h1>
+        </div>
+        <div className="banner-description">
+          <p>Cible 5★ de la rotation hebdomadaire.</p>
+          <p>Pity, Garantie et Capture sont conservées entre les rotations.</p>
+        </div>
+        <div className="banner-meta-actions">
+          <span className="banner-end-date">Fin le {new Date(gacha.banner.endsAt).toLocaleDateString('fr-FR')}</span>
+          {showDetails && <button type="button" className="banner-change-button" onClick={() => setChoosing(true)}>Changer</button>}
+        </div>
       </div>
-      <div className="banner-description">
-        <p>Cible 5★ de la rotation hebdomadaire.</p>
-        <p>Pity, Garantie et Capture sont conservées entre les rotations.</p>
-      </div>
-      <div className="banner-meta-actions">
-        <span className="banner-end-date">Fin le {new Date(gacha.banner.endsAt).toLocaleDateString('fr-FR')}</span>
-        {showDetails && <button type="button" className="banner-change-button" onClick={() => setChoosing(true)}>Changer</button>}
-      </div>
+      {!compact && <FeaturedFourStars characters={gacha.banner.featuredFourStars} />}
     </div>
     <div className="celestial-placeholder" aria-label={`Illustration de ${selected.name}`}><CharacterAssetImage characterName={selected.name} className="banner-character-asset" assetPaths={[selected.splashPath, selected.fullbodyPath, selected.wishPath, selected.iconPath]} fallback={<span className="celestial-star">✦</span>} alt={selected.name} /><div className="banner-featured-character"><strong>{selected.name}</strong><span>★★★★★</span></div></div>
     <div className="invocation-footer"><div className="gacha-state-summary"><Progress className="primary-pity" label="Pity 5★" value={gacha.playerState.pity5} maximum={90} /><div className="gacha-state-secondary"><Progress className="secondary-pity" label="Pity 4★" value={gacha.playerState.pity4} maximum={10} /><div className="banner-status"><span>Garantie 5★</span><strong>{gacha.playerState.guaranteedFeatured5 ? 'Oui' : 'Non'}</strong></div><div className="banner-status"><span>Capture</span><strong>{gacha.playerState.captureProgress} / 3</strong></div></div></div><div className="wish-actions" aria-label="Invocations indisponibles dans ce lot"><WishButton count="x1" cost="160" /><WishButton count="x10" cost="1 600" /></div></div>
-    {!compact && <FeaturedFourStars characters={gacha.banner.featuredFourStars} />}
   </section>
 }
 
 function Progress({ className = '', label, value, maximum }: { className?: string; label: string; value: number; maximum: number }) { return <div className={`banner-progress ${className}`}><div className="pity-row"><span>{label}</span><strong>{value} / {maximum}</strong></div><div className="progress-track"><span className="progress-fill pity" style={{ width: `${value / maximum * 100}%` }} /></div></div> }
 function WishButton({ count, cost }: { count: string; cost: string }) { return <button type="button" className="wish-button secondary" disabled><span>Invocation {count}</span><small><GameAssetIcon className="inline-currency-icon" src={currencyAssetPaths.primogem} fallback="✦" /> × {cost}</small></button> }
-function FeaturedFourStars({ characters }: { characters: readonly GachaCharacterDto[] }) { return <div className="featured-four-stars" aria-label="Personnages 4 étoiles de la semaine"><small>Personnages 4★</small><div>{characters.map((character) => <span key={character.id} title={character.name}><CharacterAssetImage characterName={character.name} className="featured-four-image" assetPaths={[character.iconPath, character.fullbodyPath]} fallback={character.name.slice(0, 1)} alt={character.name} /></span>)}</div></div> }
+function FeaturedFourStars({ characters }: { characters: readonly GachaCharacterDto[] }) { return <div className="featured-four-stars" aria-label="Personnages quatre étoiles de la semaine"><div>{characters.map((character) => <span className="banner-character-card featured-four-card" style={{ '--character-element': elementThemes[character.elementKey].color } as CSSProperties} key={character.id}><GameAssetIcon className="banner-card-element" src={getElementAssetPath(character.elementKey, 'badge')} fallback="" /><CharacterAssetImage characterName={character.name} className="featured-four-image" assetPaths={[character.iconPath, character.fullbodyPath]} fallback={character.name.slice(0, 1)} alt={character.name} /><span className="featured-four-copy"><strong>{character.name}</strong><small>★★★★</small></span></span>)}</div></div> }
 export default BannerHero

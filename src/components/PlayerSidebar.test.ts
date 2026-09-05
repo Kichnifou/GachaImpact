@@ -54,6 +54,8 @@ describe('Player sidebar progression', () => {
     expect(html).toContain('Capture : <strong>2 / 3</strong>')
     expect(html).toContain('12 / 90')
     expect(html).toContain('3 / 10')
+    expect((html.match(/class="team-member /g) ?? [])).toHaveLength(4)
+    expect((html.match(/class="member-element"/g) ?? [])).toHaveLength(4)
   })
 
   it('renders a level transition and its dynamic bar', () => {

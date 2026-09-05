@@ -8,9 +8,10 @@ Ce document est la référence permanente destinée aux agents qui interviennent
 
 Avant d'implémenter un système, un agent doit consulter :
 1. `docs/master/PROJECT_MASTER_PLAN.md` pour l'état global, le périmètre courant et la navigation documentaire ;
-2. le ou les documents spécialisés concernés dans `docs/legacy/` ;
-3. `docs/specifications/decisions-log.md` lorsqu'une décision transverse doit être vérifiée ;
-4. `docs/commands/command-reference.md` lorsqu'une commande est concernée.
+2. `docs/process/implementation-workflow.md` pour le déroulement opérationnel d'un lot ;
+3. le ou les documents spécialisés concernés dans `docs/legacy/` ;
+4. `docs/specifications/decisions-log.md` lorsqu'une décision transverse doit être vérifiée ;
+5. `docs/commands/command-reference.md` lorsqu'une commande est concernée.
 
 Les règles produit validées dans ces documents priment sur les exemples ou trajectoires générales plus anciennes présentes dans `AGENTS.md`.
 
@@ -32,17 +33,15 @@ Streamer.bot ne fait pas partie de la nouvelle architecture et aucune dépendanc
 
 Le projet compte actuellement environ 10 joueurs. Il doit pouvoir accueillir raisonnablement 50 à 100 joueurs et rester capable d'évoluer davantage si le besoin devient réel.
 
-## Socle technique et backend futur
+## Socle technique et backend actuel
 
-Le frontend utilise React, TypeScript et Vite.
-
-Supabase est envisagé pour une phase ultérieure, notamment pour PostgreSQL, l'authentification, les données des joueurs, le Realtime, la présence, le chat, les fonctions serveur et les tâches planifiées. Ne pas installer ni configurer Supabase avant qu'une étape le demande explicitement.
+Le frontend utilise React, TypeScript et Vite et sa version publique est déployée sur Cloudflare Pages. Le backend utilise Node.js, TypeScript et Fastify ; il est déployé publiquement sur Railway. PostgreSQL et l'authentification sont fournis par Supabase, avec Prisma utilisé côté backend pour l'accès aux données. Supabase Realtime pourra être utilisé plus tard si un besoin explicitement demandé le justifie.
 
 La sauvegarde autoritaire d'un joueur et toute logique sensible doivent résider côté serveur. Le navigateur ne doit jamais être considéré comme une source fiable pour les primogemmes, personnages, constellations, pity, garanties, inventaire, récompenses, progression ou autres données ayant une valeur en jeu. Le client affiche les données et formule des demandes d'action ; le serveur valide, exécute et persiste les résultats.
 
 Privilégier les solutions gratuites ou disposant d'un free tier véritablement exploitable et durable. Ne jamais introduire un service payant sans en informer le propriétaire du projet et obtenir son accord préalable.
 
-L'état vivant de cette autorisation est porté uniquement par `PAID_INFRA_APPROVED` dans le Master. Tant que sa valeur est `false`, un agent ne doit souscrire, activer ni exiger aucun plan ou service payant. Il peut préparer une architecture compatible avec une évolution future et expliquer ou recommander un passage payant, mais attend l'accord explicite du propriétaire. Seul le propriétaire peut faire passer ce flag à `true`, en précisant le service concerné lorsque nécessaire. Un upgrade Free → payant ne doit jamais être effectué implicitement.
+L'état vivant de cette autorisation est porté uniquement par `PAID_INFRA_APPROVED` dans le Master ; sa valeur actuelle est `false` et demeure autoritative. Tant que sa valeur est `false`, un agent ne doit souscrire, activer ni exiger aucun plan ou service payant. Il peut préparer une architecture compatible avec une évolution future et expliquer ou recommander un passage payant, mais attend l'accord explicite du propriétaire. Seul le propriétaire peut faire passer ce flag à `true`, en précisant le service concerné lorsque nécessaire. Un upgrade Free → payant ne doit jamais être effectué implicitement.
 
 ## Direction de l'interface
 

@@ -83,6 +83,8 @@ La migration générale ne commence qu'après validation suffisante du pilote.
 
 Codex doit travailler par **lots bornés**.
 
+Le déroulement opérationnel détaillé de chaque lot appartient à [implementation-workflow.md](../process/implementation-workflow.md). Cette roadmap conserve uniquement la trajectoire macro.
+
 Pour chaque lot :
 1. lire le Master et les documents spécialisés concernés ;
 2. auditer le code déjà présent ;

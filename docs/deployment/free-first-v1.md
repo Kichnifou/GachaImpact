@@ -43,6 +43,8 @@ Depuis [https://gachaimpact.pages.dev](https://gachaimpact.pages.dev), sans back
 
 ## Workflow de validation alpha
 
+Le workflow général de conception, implémentation, review et checkpoint appartient à [implementation-workflow.md](../process/implementation-workflow.md). Le présent document reste propriétaire des particularités Railway, Cloudflare Pages, alpha publique et déploiement.
+
 - `main` reste actuellement la branche alpha auto-déployée vers Railway et Cloudflare Pages.
 - Codex exécute les tests automatisés pertinents avant toute proposition de checkpoint.
 - Un smoke test local reste possible mais n'est plus obligatoire par défaut : l'alpha actuelle accepte le workflow tests automatisés → review → push → test public. Pour un changement visible ou backend sensible, le propriétaire peut toujours tester avant le push avec le backend/frontend locaux et Supabase DEV.

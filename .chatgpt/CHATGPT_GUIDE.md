@@ -106,12 +106,13 @@ Pour savoir :
 lire en priorité :
 
 1. `docs/master/PROJECT_MASTER_PLAN.md`
-2. `docs/roadmap/implementation-order-v1.md` lorsqu’il faut connaître la séquence de développement prévue
-3. le document spécialisé du domaine actif dans `docs/legacy/`
-4. `docs/specifications/decisions-log.md` si une décision transverse doit être vérifiée
-5. `docs/commands/command-reference.md` pour les commandes
-6. `docs/legacy/02-current-player-model.md` pour la vision conceptuelle du joueur
-7. `docs/legacy/03-command-data-matrix.md` pour les relations scripts/données
+2. `docs/process/implementation-workflow.md` lorsqu’il faut préparer, reviewer ou valider un lot d’implémentation
+3. `docs/roadmap/implementation-order-v1.md` lorsqu’il faut connaître la séquence de développement prévue
+4. le document spécialisé du domaine actif dans `docs/legacy/`
+5. `docs/specifications/decisions-log.md` si une décision transverse doit être vérifiée
+6. `docs/commands/command-reference.md` pour les commandes
+7. `docs/legacy/02-current-player-model.md` pour la vision conceptuelle du joueur
+8. `docs/legacy/03-command-data-matrix.md` pour les relations scripts/données
 
 Le Master doit indiquer la prochaine étape exacte.
 
@@ -124,6 +125,7 @@ Pour éviter les contradictions et rendre la documentation sûre pour Codex :
 - `docs/specifications/decisions-log.md` conserve les décisions validées de manière durable et cumulative, sans devenir un tracker de reprise ;
 - `docs/commands/command-reference.md` décrit les contrats et comportements des commandes ;
 - `docs/roadmap/development-roadmap.md` décrit uniquement la trajectoire macro du projet et ne doit pas dupliquer l'avancement courant du Master ;
+- `docs/process/implementation-workflow.md` décrit le déroulement opérationnel d’un lot, de sa conception à sa validation publique et son checkpoint ;
 - `AGENTS.md` définit les garde-fous permanents de développement pour les agents, mais ne doit pas dupliquer les spécifications métier détaillées.
 
 Un audit spécialisé peut indiquer qu'il est `EN COURS` ou `CLÔTURÉ` et mentionner ses dépendances, mais il ne doit pas annoncer le prochain domaine global du projet.
@@ -424,6 +426,14 @@ Après le push d'un gros remplacement :
 Pour un fichier de documentation déjà existant dans le repository, privilégier les modifications manuelles exactes et ne pas fournir une nouvelle copie téléchargeable du fichier complet.
 
 Si un nouveau fichier de documentation doit être créé, générer un fichier téléchargeable.
+
+---
+
+## Boucle de conception et d’implémentation
+
+Avant de produire un prompt Codex, ChatGPT analyse le feedback du propriétaire, inspecte les captures et le vrai code concerné, pose les questions utiles puis consolide les décisions. Le prompt n’est généré que lorsque les choix sont suffisamment mûrs ou que le propriétaire le demande explicitement.
+
+Le cycle reste : Codex implémente et produit son rapport → ChatGPT review → le propriétaire committe et pousse → ChatGPT vérifie GitHub. Le détail, les responsabilités, la validation publique et le rollback sont définis dans [implementation-workflow.md](../docs/process/implementation-workflow.md).
 
 ---
 

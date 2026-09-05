@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.52
+Version : 0.53
 Date : 2026-09-05
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -297,10 +297,9 @@ Objectif :
 
 ### Mobile
 Priorité :
-- zone centrale ;
-- chat accessible en dessous ou via panneau ;
-- sidebar consultable comme volet ;
-- possibilité future d'épingler ou non certains panneaux ;
+- ordre validé : Header → Profil → Primogemmes / Moras → Navigation → Contenu principal → Particules → Équipe → Objectif → Daily Reward → Chat ;
+- les informations secondaires restent après le contenu principal et ne sont pas remontées intégralement avant le jeu ;
+- sur téléphone paysage, les panneaux secondaires joueur restent eux aussi empilés verticalement avec un scroll naturel ;
 - aucun overflow horizontal.
 
 ---
@@ -3577,7 +3576,7 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - tests unitaires frontend/backend, builds, lint, tests DB réels et statut Prisma : **VALIDÉS TECHNIQUEMENT**.
 - Gacha — catalogue / bannière / cible / état joueur : **FONDATIONS VALIDÉES PUBLIQUEMENT PAR LE PROPRIÉTAIRE — DOMAINE ENCORE ACTIF POUR VALIDATION PUBLIQUE FINALE DU CORRECTIF** ; catalogue et bannière réels, sélection/changement de cible, persistance après F5 puis logout/login, vrais Pity 5★ et Pity 4★, vraie Garantie et vraie Capture validés ;
 - UX Gacha déjà validée publiquement : bouton `Changer` agrandi, date de fin, symbole élémentaire du hero et structure mobile hybride du joueur ; boutons Pull x1/x10 toujours désactivés ; aucune régression Ressources, XP, Roue ou Daily Reward constatée ;
-- passe corrective portrait/cadrage, miniatures 4★, watermarks et alignement du footer : **TECHNIQUEMENT TERMINÉE — VALIDATION PUBLIQUE FINALE PROPRIÉTAIRE À FAIRE** ;
+- dernière passe UI ciblée sur les cartes personnage, les six 4★, les watermarks, le footer Gacha et le téléphone paysage : **TECHNIQUEMENT TERMINÉE — VALIDATION PUBLIQUE FINALE PROPRIÉTAIRE À FAIRE** ; fondations Gacha fonctionnelles, domaine encore actif et non clôturé ;
 - le moteur Pull x1/x10 reste volontairement absent et constitue le prochain lot seulement après cette validation publique finale et la clôture du domaine.
 
 État du premier parcours frontend standalone :
@@ -3608,7 +3607,7 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-Review ChatGPT → commit/push par le propriétaire → attendre Railway/Cloudflare verts → validation publique rapide des corrections UX/responsive → clôturer le domaine Gacha fondations → implémenter le moteur Pull. `PAID_INFRA_APPROVED = false` reste inchangé.
+Review ChatGPT → commit/push par le propriétaire → attendre Railway/Cloudflare verts → validation publique rapide des corrections UX/responsive → clôturer le domaine Gacha fondations → implémenter **Invocation x1/x10 réelle**. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 
