@@ -69,7 +69,7 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
 
         <section className="panel resource-card currency-summary-card">
           <button type="button" className="section-heading section-link" onClick={() => onNavigate('inventory')}>
-            <span>Ressources principales</span><span className="card-chevron" aria-hidden="true">›</span>
+            <span className="section-heading-label"><span>Ressources principales</span><span className="card-chevron" aria-hidden="true">›</span></span>
           </button>
           <div className="resource-grid">
             <div className="resource-item">
@@ -87,7 +87,7 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
       <div className="player-secondary">
         <section className="panel resource-card particles-card">
           <button type="button" className="section-heading section-link" onClick={() => onNavigate('inventory')}>
-            <span>Particules</span><span className="card-chevron" aria-hidden="true">›</span>
+            <span className="section-heading-label"><span>Particules</span><span className="card-chevron" aria-hidden="true">›</span></span>
           </button>
           <div className="particles-grid">
             {particleElements.map((elementKey) => (
@@ -101,24 +101,28 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
 
         <section className="panel team-card">
         <button type="button" className="section-heading section-link" onClick={() => onNavigate('team')}>
-          <span>Équipe active</span><span className="section-heading-trailing"><small>4 / 4</small><i className="card-chevron" aria-hidden="true">›</i></span>
+          <span className="section-heading-label"><span>Équipe active</span><span className="card-chevron" aria-hidden="true">›</span></span><small>4 / 4</small>
         </button>
         <div className="team-grid">
           {activeTeam.map((member) => (
-            <div className={`team-member ${member.tone}`} key={member.id}>
+            <div className={`team-member character-display-card ${member.tone}`} key={member.id}>
               <GameAssetIcon
-                className="member-element"
+                className="member-element character-element-badge"
                 src={getElementAssetPath(member.element, 'badge')}
                 fallback={member.elementIcon}
               />
-              <div className="member-portrait" aria-hidden="true">
+              <div className="member-portrait character-display-portrait" aria-hidden="true">
                 <CharacterAssetImage
                   characterName={member.name}
                   className="member-asset-image"
                   fallback={<span>{member.name.slice(0, 1)}</span>}
                 />
               </div>
-              <small>{member.name}</small>
+              <div className="team-member-copy character-display-copy">
+                <strong>{member.name}</strong>
+                <span className="character-rarity">{'★'.repeat(member.rarity)}</span>
+                <div className="character-display-meta"><small>Niv. {member.level}</small><small>C{member.constellation}</small></div>
+              </div>
             </div>
           ))}
         </div>
@@ -127,7 +131,7 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
         <section className="panel objective-card" style={objectiveStyle}>
         {featuredCharacter && <GameAssetIcon className="objective-element-watermark" src={getElementAssetPath(featuredCharacter.elementKey)} fallback="" />}
         <button type="button" className="section-heading section-link" onClick={() => onNavigate('invocation')}>
-          <span>Objectif actuel</span><span className="card-chevron" aria-hidden="true">›</span>
+          <span className="section-heading-label"><span>Objectif actuel</span><span className="card-chevron" aria-hidden="true">›</span></span>
         </button>
         {featuredCharacter ? <div className="objective-content">
           <div className="objective-art" aria-label={`Portrait de ${featuredCharacter.name}`}>

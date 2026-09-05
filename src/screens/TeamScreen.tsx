@@ -14,6 +14,10 @@ function TeamScreen() {
 
   return (
     <div className="screen-content team-screen">
+      <header className="team-screen-heading">
+        <span className="eyebrow">Équipe 1</span>
+        <h1>Équipe principale</h1>
+      </header>
       <section className="large-team-grid" aria-label="Équipe active">
         {activeTeam.map((character, index) => emptySlotIds.includes(character.id) ? (
           <article className="large-team-card empty-team-card" key={character.id}>
@@ -29,25 +33,24 @@ function TeamScreen() {
             </div>
           </article>
         ) : (
-          <article className={`large-team-card ${character.tone}`} key={character.id}>
+          <article className={`large-team-card character-display-card ${character.tone}`} key={character.id}>
             <span className="team-slot-number">0{index + 1}</span>
             <GameAssetIcon
-              className="large-element"
+              className="large-element character-element-badge"
               src={getElementAssetPath(character.element, 'badge')}
               fallback={character.elementIcon}
             />
-            <div className="large-character-portrait" aria-hidden="true">
+            <div className="large-character-portrait character-display-portrait" aria-hidden="true">
               <CharacterAssetImage
                 characterName={character.name}
                 className="large-character-asset-image"
                 fallback={<><span>{character.name.slice(0, 1)}</span><i /></>}
               />
             </div>
-            <div className="large-team-copy">
+            <div className="large-team-copy character-display-copy">
               <h2>{character.name}</h2>
               <span className="character-rarity">{'★'.repeat(character.rarity)}</span>
-              <p>{character.element} · {character.role}</p>
-              <div><span>Niveau {character.level}</span><span>C{character.constellation}</span></div>
+              <div className="character-display-meta"><span>Niveau {character.level}</span><span>C{character.constellation}</span></div>
             </div>
             <div className="team-card-actions">
               <button type="button">Fiche</button>

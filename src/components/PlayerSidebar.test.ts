@@ -54,8 +54,12 @@ describe('Player sidebar progression', () => {
     expect(html).toContain('Capture : <strong>2 / 3</strong>')
     expect(html).toContain('12 / 90')
     expect(html).toContain('3 / 10')
-    expect((html.match(/class="team-member /g) ?? [])).toHaveLength(4)
-    expect((html.match(/class="member-element"/g) ?? [])).toHaveLength(4)
+    expect((html.match(/class="team-member character-display-card /g) ?? [])).toHaveLength(4)
+    expect((html.match(/class="member-element character-element-badge"/g) ?? [])).toHaveLength(4)
+    expect((html.match(/class="team-member-copy character-display-copy"/g) ?? [])).toHaveLength(4)
+    expect((html.match(/★★★★★/g) ?? [])).toHaveLength(5)
+    expect(html).toContain('Niv. 90')
+    expect(html).toContain('C1')
   })
 
   it('renders a level transition and its dynamic bar', () => {
@@ -91,5 +95,8 @@ describe('Player sidebar progression', () => {
     expect(html.indexOf('player-priority')).toBeLessThan(html.indexOf('player-secondary'))
     expect((html.match(/Ressources principales/g) ?? [])).toHaveLength(1)
     expect((html.match(/>Particules</g) ?? [])).toHaveLength(1)
+    expect((html.match(/class="section-heading-label"/g) ?? [])).toHaveLength(4)
+    expect((html.match(/class="card-chevron"/g) ?? [])).toHaveLength(4)
+    expect(html).toContain('<small>4 / 4</small>')
   })
 })
