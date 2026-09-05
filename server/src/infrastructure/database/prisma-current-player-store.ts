@@ -102,6 +102,7 @@ export class PrismaCurrentPlayerStore implements CurrentPlayerStore {
             wheelStats: { create: {} },
             dailyRewardState: { create: {} },
             progression: { create: {} },
+            gachaState: { create: {} },
             resourceBalances: {
               create: resources.map(({ key }) => ({
                 resourceKey: key,

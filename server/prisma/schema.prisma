@@ -36,6 +36,21 @@ enum OperationStatus {
   @@map("operation_status")
 }
 
+enum BannerStatus {
+  ACTIVE
+  ENDED
+
+  @@map("banner_status")
+}
+
+enum BannerSelectionSource {
+  RANDOM
+  COMMUNITY_VOTE
+  RANDOM_FALLBACK
+
+  @@map("banner_selection_source")
+}
+
 model Element {
   key          String               @id @db.Text
   displayName  String               @map("display_name") @db.Text
@@ -44,6 +59,7 @@ model Element {
   createdAt    DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   resources    ResourceDefinition[]
   players      Player[]
+  characters   Character[]
 
   @@map("elements")
 }
@@ -82,10 +98,108 @@ model Player {
   wheelDailyStates   PlayerWheelDailyState[]
   dailyRewardState   PlayerDailyRewardState?
   progression        PlayerProgression?
+  gachaState         PlayerGachaState?
+  bannerVotes        BannerVote[]
 
   @@index([status], map: "players_status_idx")
   @@index([elementKey], map: "players_element_key_idx")
   @@map("players")
+}
+
+model Character {
+  id                     String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  externalKey            String                    @unique(map: "characters_external_key_key") @map("external_key") @db.Text
+  name                   String                    @db.Text
+  rarity                 Int                       @db.SmallInt
+  elementKey             String                    @map("element_key") @db.Text
+  weaponType             String?                   @map("weapon_type") @db.Text
+  region                 String?                   @db.Text
+  classKey               String?                   @map("class_key") @db.Text
+  iconPath               String?                   @map("icon_path") @db.Text
+  splashPath             String?                   @map("splash_path") @db.Text
+  wishPath               String?                   @map("wish_path") @db.Text
+  fullbodyPath           String?                   @map("fullbody_path") @db.Text
+  displayOrder           Int?                      @map("display_order")
+  isActive               Boolean                   @default(true) @map("is_active")
+  releaseDate            DateTime?                 @map("release_date") @db.Date
+  sourceMetadata         Json?                     @map("source_metadata") @db.JsonB
+  createdAt              DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime                  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  element                Element                   @relation(fields: [elementKey], references: [key], onDelete: Restrict)
+  bannerAppearances      BannerFeaturedCharacter[]
+  bannerVotes            BannerVote[]
+  selectedByGachaStates  PlayerGachaState[]
+
+  @@index([isActive, rarity], map: "characters_active_rarity_idx")
+  @@index([elementKey, isActive], map: "characters_element_active_idx")
+  @@map("characters")
+}
+
+model BannerRotation {
+  id                 String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  startsAt           DateTime                  @unique(map: "banner_rotations_starts_at_key") @map("starts_at") @db.Timestamptz(6)
+  endsAt             DateTime                  @map("ends_at") @db.Timestamptz(6)
+  status             BannerStatus
+  createdAt          DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  featuredCharacters BannerFeaturedCharacter[]
+  votes              BannerVote[]
+
+  @@index([status], map: "banner_rotations_status_idx")
+  @@map("banner_rotations")
+}
+
+model BannerFeaturedCharacter {
+  bannerRotationId String                    @map("banner_rotation_id") @db.Uuid
+  characterId      String                    @map("character_id") @db.Uuid
+  rarity           Int                       @db.SmallInt
+  slot             Int                       @db.SmallInt
+  selectionSource  BannerSelectionSource     @map("selection_source")
+  createdAt        DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  bannerRotation   BannerRotation            @relation(fields: [bannerRotationId], references: [id], onDelete: Cascade)
+  character        Character                 @relation(fields: [characterId], references: [id], onDelete: Restrict)
+
+  @@id([bannerRotationId, characterId])
+  @@unique([bannerRotationId, rarity, slot], map: "banner_featured_characters_banner_rarity_slot_key")
+  @@map("banner_featured_characters")
+}
+
+model BannerVote {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bannerRotationId String         @map("banner_rotation_id") @db.Uuid
+  playerId         String         @map("player_id") @db.Uuid
+  characterId      String         @map("character_id") @db.Uuid
+  sourceChannel    SourceChannel  @map("source_channel")
+  votedAt          DateTime       @default(now()) @map("voted_at") @db.Timestamptz(6)
+  bannerRotation   BannerRotation @relation(fields: [bannerRotationId], references: [id], onDelete: Restrict)
+  player           Player         @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  character        Character      @relation(fields: [characterId], references: [id], onDelete: Restrict)
+
+  @@unique([bannerRotationId, playerId], map: "banner_votes_banner_player_key")
+  @@index([bannerRotationId, characterId], map: "banner_votes_banner_character_idx")
+  @@map("banner_votes")
+}
+
+model PlayerGachaState {
+  playerId                  String     @id @map("player_id") @db.Uuid
+  pity5                     Int        @default(0) @map("pity_5") @db.SmallInt
+  pity4                     Int        @default(0) @map("pity_4") @db.SmallInt
+  guaranteedFeatured5      Boolean    @default(false) @map("guaranteed_featured_5")
+  captureProgress           Int        @default(0) @map("capture_progress") @db.SmallInt
+  fiftyFiftyLostStreak      Int        @default(0) @map("fifty_fifty_lost_streak")
+  selectedBannerCharacterId String?    @map("selected_banner_character_id") @db.Uuid
+  totalPulls                BigInt     @default(0) @map("total_pulls")
+  totalFiveStars            BigInt     @default(0) @map("total_five_stars")
+  totalFourStars            BigInt     @default(0) @map("total_four_stars")
+  fiftyFiftyWon             BigInt     @default(0) @map("fifty_fifty_won")
+  fiftyFiftyLost            BigInt     @default(0) @map("fifty_fifty_lost")
+  capturesTriggered         BigInt     @default(0) @map("captures_triggered")
+  createdAt                 DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                 DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player                    Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  selectedBannerCharacter  Character? @relation(fields: [selectedBannerCharacterId], references: [id], onDelete: SetNull)
+
+  @@index([selectedBannerCharacterId], map: "player_gacha_states_selected_character_idx")
+  @@map("player_gacha_states")
 }
 
 model PlayerProgression {

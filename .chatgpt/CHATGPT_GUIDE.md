@@ -442,6 +442,21 @@ git status
 Préférence explicite :
 toujours utiliser `git add .`.
 
+## Workflow de review d'un lot Codex
+
+Après chaque lot de code Codex :
+
+1. Codex termine le lot et exécute ses tests automatisés.
+2. Codex ne committe et ne pousse pas par défaut.
+3. Le propriétaire transmet le rapport final à ChatGPT.
+4. ChatGPT review le rapport et indique les éventuelles corrections.
+5. ChatGPT fournit systématiquement une checklist précise des tests manuels à valider ainsi que les résultats attendus.
+6. Si la review est bonne, ChatGPT fournit au propriétaire les commandes Git.
+7. Le propriétaire effectue lui-même le commit et le push.
+8. ChatGPT vérifie GitHub.
+9. Après Railway et Cloudflare verts, le propriétaire teste directement la version publique.
+10. Si un lot public doit être annulé, privilégier un `git revert` propre du commit concerné plutôt qu'un force-push ou un reset destructif de `main`.
+
 ---
 
 # 9. Codex

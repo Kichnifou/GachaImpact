@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { ApiError, getGameApiClient } from './api/game-api'
-import type { DailyRewardTodayDto, ElementKey, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, WheelTodayDto } from './api/types'
+import type { CurrentGachaDto, DailyRewardTodayDto, ElementKey, GachaCharacterDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, WheelTodayDto } from './api/types'
 import { useAuth } from './auth/auth-context'
 import { resolveBootstrapStage } from './auth/bootstrap-state'
 import AuthScreen from './components/AuthScreen'
@@ -20,6 +20,8 @@ function AppBootstrap() {
   const [progression, setProgression] = useState<PlayerProgressionDto | null>(null)
   const [wheelToday, setWheelToday] = useState<WheelTodayDto | null>(null)
   const [dailyRewardToday, setDailyRewardToday] = useState<DailyRewardTodayDto | null>(null)
+  const [gacha, setGacha] = useState<CurrentGachaDto | null>(null)
+  const [characters, setCharacters] = useState<readonly GachaCharacterDto[] | null>(null)
   const [resolvedUserId, setResolvedUserId] = useState<string | null>(null)
   const [fatalError, setFatalError] = useState<{ userId: string; message: string } | null>(null)
 
@@ -31,16 +33,20 @@ function AppBootstrap() {
 
   const loadGameState = useCallback(async () => {
     const api = getGameApiClient()
-    const [nextResources, nextProgression, nextWheelToday, nextDailyRewardToday] = await Promise.all([
+    const [nextResources, nextProgression, nextWheelToday, nextDailyRewardToday, nextGacha, nextCatalog] = await Promise.all([
       api.getResources(),
       api.getProgression(),
       api.getWheelToday(),
       api.getDailyRewardToday(),
+      api.getCurrentGacha(),
+      api.getCharacters(),
     ])
     setResources(nextResources)
     setProgression(nextProgression)
     setWheelToday(nextWheelToday)
     setDailyRewardToday(nextDailyRewardToday)
+    setGacha(nextGacha)
+    setCharacters(nextCatalog.characters)
   }, [])
 
   useEffect(() => {
@@ -67,6 +73,8 @@ function AppBootstrap() {
           setProgression(null)
           setWheelToday(null)
           setDailyRewardToday(null)
+          setGacha(null)
+          setCharacters(null)
           setFatalError(null)
           setResolvedUserId(sessionUserId)
           return
@@ -89,7 +97,7 @@ function AppBootstrap() {
     authStatus,
     player,
     playerResolved,
-    resources !== null && progression !== null && wheelToday !== null && dailyRewardToday !== null,
+    resources !== null && progression !== null && wheelToday !== null && dailyRewardToday !== null && gacha !== null && characters !== null,
   )
   const currentFatalError =
     fatalError && fatalError.userId === sessionUserId ? fatalError.message : null
@@ -134,7 +142,7 @@ function AppBootstrap() {
     )
   }
 
-  if (!player || !resources || !progression || !wheelToday || !dailyRewardToday) {
+  if (!player || !resources || !progression || !wheelToday || !dailyRewardToday || !gacha || !characters) {
     return <StatusScreen title="Chargement du profil…" message="Synchronisation de vos ressources." loading />
   }
 
@@ -145,6 +153,12 @@ function AppBootstrap() {
       progression={progression}
       wheelToday={wheelToday}
       dailyRewardToday={dailyRewardToday}
+      gacha={gacha}
+      characters={characters}
+      onSetGachaTarget={async (characterId) => {
+        const { playerState } = await getGameApiClient().setGachaTarget(characterId)
+        setGacha((current) => current ? { ...current, playerState } : current)
+      }}
       onClaimDailyReward={async () => {
         const { result, resources: nextResources } = await claimDailyRewardAndRefresh(getGameApiClient())
         setResources(nextResources)

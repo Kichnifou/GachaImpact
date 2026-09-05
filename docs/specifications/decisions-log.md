@@ -1031,3 +1031,6 @@ Statut : évolutif.
 - `TECHNIQUE` — La future section standalone `Aide / Guide` est plus riche et distincte du Help textuel.
 - `MIGRATION` — Aucune donnée Help à migrer ; certains aliases peuvent être conservés uniquement pour compatibilité.
 - `CLÔTURÉ R731` — Domaine Help / cohérence finale des commandes clôturé, sous réserve de corrections factuelles découvertes pendant le sweep exhaustif final.
+
+## UX profil persistant
+- `VALIDÉ R732` — Identité élémentaire visuelle dans le profil joueur : la carte Profil persistante utilise le symbole existant de l'élément personnel comme grand watermark décoratif surdimensionné, partiellement coupé, de faible opacité et sans interaction, accompagné d'une très légère teinte ou lueur de fond issue d'un mapping de couleurs typé unique. Le traitement reste subtil, préserve pseudo, niveau, XP, contraste et responsive PC/mobile, peut teinter légèrement un accent existant tel que le contour de l'avatar, et n'ajoute ni nouvelle image ni ligne texte `Élément : ...` obligatoire.

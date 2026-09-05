@@ -18,10 +18,15 @@ if (!config.databaseUrl) {
 const database = createDatabase(config.databaseUrl);
 
 const expectedTables = [
+  'banner_featured_characters',
+  'banner_rotations',
+  'banner_votes',
   'business_operations',
+  'characters',
   'elements',
   'player_daily_reward_state',
   'player_economy_stats',
+  'player_gacha_states',
   'player_progression',
   'player_resource_balances',
   'player_wheel_daily_states',
@@ -33,6 +38,11 @@ const expectedTables = [
 ] as const;
 
 const expectedCheckConstraints = [
+  'banner_featured_rarity_check',
+  'banner_featured_slot_check',
+  'banner_rotations_dates_check',
+  'characters_name_check',
+  'characters_rarity_check',
   'elements_display_order_positive_check',
   'player_daily_reward_state_claim_dates_check',
   'player_economy_stats_main_particles_earned_nonnegative_check',
@@ -40,6 +50,10 @@ const expectedCheckConstraints = [
   'player_economy_stats_moras_spent_nonnegative_check',
   'player_economy_stats_primos_earned_nonnegative_check',
   'player_economy_stats_primos_spent_nonnegative_check',
+  'player_gacha_state_capture_check',
+  'player_gacha_state_counters_check',
+  'player_gacha_state_pity_4_check',
+  'player_gacha_state_pity_5_check',
   'player_progression_counted_messages_nonnegative_check',
   'player_progression_counted_messages_not_above_total_check',
   'player_progression_overflow_claimed_nonnegative_check',
@@ -56,7 +70,9 @@ const expectedCheckConstraints = [
 ] as const;
 
 const expectedManualIndexes = [
+  'banner_rotations_one_active_idx',
   'business_operations_source_idempotency_key',
+  'characters_name_lower_idx',
   'players_display_name_lower_idx',
 ] as const;
 
@@ -138,7 +154,9 @@ describe('Supabase development database', () => {
       FROM pg_indexes
       WHERE schemaname = 'public'
         AND indexname IN (
+          'banner_rotations_one_active_idx',
           'business_operations_source_idempotency_key',
+          'characters_name_lower_idx',
           'players_display_name_lower_idx'
         )
       ORDER BY indexname
@@ -189,7 +207,7 @@ describe('Supabase development database', () => {
         },
       });
 
-      const [players, identities, balances, economyStats, wheelStats, dailyRewardState, progressions] = await Promise.all([
+      const [players, identities, balances, economyStats, wheelStats, dailyRewardState, progressions, gachaState] = await Promise.all([
         database.player.count({ where: { id: playerId } }),
         database.webIdentity.count({
           where: { provider: 'supabase', providerSubject: subject },
@@ -202,6 +220,7 @@ describe('Supabase development database', () => {
         database.playerWheelStats.findUnique({ where: { playerId } }),
         database.playerDailyRewardState.findUnique({ where: { playerId } }),
         database.playerProgression.findMany({ where: { playerId } }),
+        database.playerGachaState.findUnique({ where: { playerId } }),
       ]);
 
       expect(players).toBe(1);
@@ -227,6 +246,7 @@ describe('Supabase development database', () => {
           lastXpMessageAt: null,
         }),
       ]);
+      expect(gachaState).toMatchObject({ pity5: 0, pity4: 0, guaranteedFeatured5: false, captureProgress: 0, selectedBannerCharacterId: null, totalPulls: 0n });
 
       await expect(
         database.playerProgression.update({ where: { playerId }, data: { xp: -1n } }),
@@ -268,6 +288,7 @@ describe('Supabase development database', () => {
           database.playerWheelStats.deleteMany({ where: { playerId: { in: playerIds } } }),
           database.playerDailyRewardState.deleteMany({ where: { playerId: { in: playerIds } } }),
           database.playerProgression.deleteMany({ where: { playerId: { in: playerIds } } }),
+          database.playerGachaState.deleteMany({ where: { playerId: { in: playerIds } } }),
           database.webIdentity.deleteMany({ where: { playerId: { in: playerIds } } }),
           database.player.deleteMany({ where: { id: { in: playerIds } } }),
         ]);

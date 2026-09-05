@@ -11,6 +11,9 @@ import type {
   WheelTodayDto,
   DailyRewardTodayDto,
   DailyRewardClaimDto,
+  CharacterCatalogDto,
+  CurrentGachaDto,
+  PlayerGachaStateDto,
 } from './types'
 
 type ApiClientDependencies = Readonly<{
@@ -101,6 +104,9 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     spinWheel: () => request<WheelSpinDto>('/api/v1/wheel/spin', { method: 'POST' }),
     getDailyRewardToday: () => request<DailyRewardTodayDto>('/api/v1/daily-reward/today'),
     claimDailyReward: () => request<DailyRewardClaimDto>('/api/v1/daily-reward/claim', { method: 'POST' }),
+    getCharacters: () => request<CharacterCatalogDto>('/api/v1/characters'),
+    getCurrentGacha: () => request<CurrentGachaDto>('/api/v1/gacha/current'),
+    setGachaTarget: (characterId: string) => request<{ playerState: PlayerGachaStateDto }>('/api/v1/gacha/target', { method: 'POST', body: JSON.stringify({ characterId }) }),
   }
 }
 

@@ -1,0 +1,2008 @@
+[
+  {
+    "externalKey": "legacy:1",
+    "name": "Albedo",
+    "rarity": 5,
+    "elementKey": "geo",
+    "weaponType": "Épée",
+    "region": "Mondstadt",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000038.png",
+    "splashPath": "/assets/genshin/characters/splash/10000038.png",
+    "wishPath": "/assets/genshin/characters/wish/10000038.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Albedo.png",
+    "displayOrder": 1,
+    "sourceMetadata": {
+      "legacyId": 1
+    }
+  },
+  {
+    "externalKey": "legacy:2",
+    "name": "Alhaitham",
+    "rarity": 5,
+    "elementKey": "dendro",
+    "weaponType": "Épée",
+    "region": "Sumeru",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000078.png",
+    "splashPath": "/assets/genshin/characters/splash/10000078.png",
+    "wishPath": "/assets/genshin/characters/wish/10000078.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Alhatham.png",
+    "displayOrder": 2,
+    "sourceMetadata": {
+      "legacyId": 2
+    }
+  },
+  {
+    "externalKey": "legacy:3",
+    "name": "Aloy",
+    "rarity": 5,
+    "elementKey": "cryo",
+    "weaponType": "Arc",
+    "region": "Horizon",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000062.png",
+    "splashPath": "/assets/genshin/characters/splash/10000062.png",
+    "wishPath": "/assets/genshin/characters/wish/10000062.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Aloy.png",
+    "displayOrder": 3,
+    "sourceMetadata": {
+      "legacyId": 3
+    }
+  },
+  {
+    "externalKey": "legacy:4",
+    "name": "Itto",
+    "rarity": 5,
+    "elementKey": "geo",
+    "weaponType": "Claymore",
+    "region": "Inazuma",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000057.png",
+    "splashPath": "/assets/genshin/characters/splash/10000057.png",
+    "wishPath": "/assets/genshin/characters/wish/10000057.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Itto.png",
+    "displayOrder": 4,
+    "sourceMetadata": {
+      "legacyId": 4
+    }
+  },
+  {
+    "externalKey": "legacy:5",
+    "name": "Arlecchino",
+    "rarity": 5,
+    "elementKey": "pyro",
+    "weaponType": "Lance",
+    "region": "Snezhnaya",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000096.png",
+    "splashPath": "/assets/genshin/characters/splash/10000096.png",
+    "wishPath": "/assets/genshin/characters/wish/10000096.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Arlecchino.png",
+    "displayOrder": 5,
+    "sourceMetadata": {
+      "legacyId": 5
+    }
+  },
+  {
+    "externalKey": "legacy:6",
+    "name": "Baizhu",
+    "rarity": 5,
+    "elementKey": "dendro",
+    "weaponType": "Catalyseur",
+    "region": "Liyue",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000082.png",
+    "splashPath": "/assets/genshin/characters/splash/10000082.png",
+    "wishPath": "/assets/genshin/characters/wish/10000082.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Baizhuer.png",
+    "displayOrder": 6,
+    "sourceMetadata": {
+      "legacyId": 6
+    }
+  },
+  {
+    "externalKey": "legacy:7",
+    "name": "Chasca",
+    "rarity": 5,
+    "elementKey": "anemo",
+    "weaponType": "Arc",
+    "region": "Natlan",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000104.png",
+    "splashPath": "/assets/genshin/characters/splash/10000104.png",
+    "wishPath": "/assets/genshin/characters/wish/10000104.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Chasca.png",
+    "displayOrder": 7,
+    "sourceMetadata": {
+      "legacyId": 7
+    }
+  },
+  {
+    "externalKey": "legacy:8",
+    "name": "Chiori",
+    "rarity": 5,
+    "elementKey": "geo",
+    "weaponType": "Épée",
+    "region": "Inazuma",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000094.png",
+    "splashPath": "/assets/genshin/characters/splash/10000094.png",
+    "wishPath": "/assets/genshin/characters/wish/10000094.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Chiori.png",
+    "displayOrder": 8,
+    "sourceMetadata": {
+      "legacyId": 8
+    }
+  },
+  {
+    "externalKey": "legacy:9",
+    "name": "Citlali",
+    "rarity": 5,
+    "elementKey": "cryo",
+    "weaponType": "Catalyseur",
+    "region": "Natlan",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000107.png",
+    "splashPath": "/assets/genshin/characters/splash/10000107.png",
+    "wishPath": "/assets/genshin/characters/wish/10000107.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Citlali.png",
+    "displayOrder": 9,
+    "sourceMetadata": {
+      "legacyId": 9
+    }
+  },
+  {
+    "externalKey": "legacy:10",
+    "name": "Clorinde",
+    "rarity": 5,
+    "elementKey": "electro",
+    "weaponType": "Épée",
+    "region": "Fontaine",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000098.png",
+    "splashPath": "/assets/genshin/characters/splash/10000098.png",
+    "wishPath": "/assets/genshin/characters/wish/10000098.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Clorinde.png",
+    "displayOrder": 10,
+    "sourceMetadata": {
+      "legacyId": 10
+    }
+  },
+  {
+    "externalKey": "legacy:11",
+    "name": "Columbina",
+    "rarity": 5,
+    "elementKey": "hydro",
+    "weaponType": "Catalyseur",
+    "region": "Nod-Krai",
+    "classKey": "Déesse",
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Columbina.png",
+    "displayOrder": 11,
+    "sourceMetadata": {
+      "legacyId": 11
+    }
+  },
+  {
+    "externalKey": "legacy:12",
+    "name": "Cyno",
+    "rarity": 5,
+    "elementKey": "electro",
+    "weaponType": "Lance",
+    "region": "Sumeru",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000071.png",
+    "splashPath": "/assets/genshin/characters/splash/10000071.png",
+    "wishPath": "/assets/genshin/characters/wish/10000071.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Cyno.png",
+    "displayOrder": 12,
+    "sourceMetadata": {
+      "legacyId": 12
+    }
+  },
+  {
+    "externalKey": "legacy:13",
+    "name": "Dehya",
+    "rarity": 5,
+    "elementKey": "pyro",
+    "weaponType": "Claymore",
+    "region": "Sumeru",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000079.png",
+    "splashPath": "/assets/genshin/characters/splash/10000079.png",
+    "wishPath": "/assets/genshin/characters/wish/10000079.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Dehya.png",
+    "displayOrder": 13,
+    "sourceMetadata": {
+      "legacyId": 13
+    }
+  },
+  {
+    "externalKey": "legacy:14",
+    "name": "Diluc",
+    "rarity": 5,
+    "elementKey": "pyro",
+    "weaponType": "Claymore",
+    "region": "Mondstadt",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000016.png",
+    "splashPath": "/assets/genshin/characters/splash/10000016.png",
+    "wishPath": "/assets/genshin/characters/wish/10000016.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Diluc.png",
+    "displayOrder": 14,
+    "sourceMetadata": {
+      "legacyId": 14
+    }
+  },
+  {
+    "externalKey": "legacy:15",
+    "name": "Durin",
+    "rarity": 5,
+    "elementKey": "pyro",
+    "weaponType": "Épée",
+    "region": "Mondstadt",
+    "classKey": null,
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Durin.png",
+    "displayOrder": 15,
+    "sourceMetadata": {
+      "legacyId": 15
+    }
+  },
+  {
+    "externalKey": "legacy:16",
+    "name": "Émilie",
+    "rarity": 5,
+    "elementKey": "dendro",
+    "weaponType": "Lance",
+    "region": "Fontaine",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000099.png",
+    "splashPath": "/assets/genshin/characters/splash/10000099.png",
+    "wishPath": "/assets/genshin/characters/wish/10000099.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Emilie.png",
+    "displayOrder": 16,
+    "sourceMetadata": {
+      "legacyId": 16
+    }
+  },
+  {
+    "externalKey": "legacy:17",
+    "name": "Escoffier",
+    "rarity": 5,
+    "elementKey": "cryo",
+    "weaponType": "Lance",
+    "region": "Fontaine",
+    "classKey": null,
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Escoffier.png",
+    "displayOrder": 17,
+    "sourceMetadata": {
+      "legacyId": 17
+    }
+  },
+  {
+    "externalKey": "legacy:18",
+    "name": "Eula",
+    "rarity": 5,
+    "elementKey": "cryo",
+    "weaponType": "Claymore",
+    "region": "Mondstadt",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000051.png",
+    "splashPath": "/assets/genshin/characters/splash/10000051.png",
+    "wishPath": "/assets/genshin/characters/wish/10000051.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Eula.png",
+    "displayOrder": 18,
+    "sourceMetadata": {
+      "legacyId": 18
+    }
+  },
+  {
+    "externalKey": "legacy:19",
+    "name": "Flins",
+    "rarity": 5,
+    "elementKey": "electro",
+    "weaponType": "Lance",
+    "region": "Nod-Krai",
+    "classKey": null,
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Flins.png",
+    "displayOrder": 19,
+    "sourceMetadata": {
+      "legacyId": 19
+    }
+  },
+  {
+    "externalKey": "legacy:20",
+    "name": "Furina",
+    "rarity": 5,
+    "elementKey": "hydro",
+    "weaponType": "Épée",
+    "region": "Fontaine",
+    "classKey": "Archon",
+    "iconPath": "/assets/genshin/characters/icons/10000089.png",
+    "splashPath": "/assets/genshin/characters/splash/10000089.png",
+    "wishPath": "/assets/genshin/characters/wish/10000089.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Furina.png",
+    "displayOrder": 20,
+    "sourceMetadata": {
+      "legacyId": 20
+    }
+  },
+  {
+    "externalKey": "legacy:21",
+    "name": "Ganyu",
+    "rarity": 5,
+    "elementKey": "cryo",
+    "weaponType": "Arc",
+    "region": "Liyue",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000037.png",
+    "splashPath": "/assets/genshin/characters/splash/10000037.png",
+    "wishPath": "/assets/genshin/characters/wish/10000037.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Ganyu.png",
+    "displayOrder": 21,
+    "sourceMetadata": {
+      "legacyId": 21
+    }
+  },
+  {
+    "externalKey": "legacy:22",
+    "name": "Hu Tao",
+    "rarity": 5,
+    "elementKey": "pyro",
+    "weaponType": "Lance",
+    "region": "Liyue",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000046.png",
+    "splashPath": "/assets/genshin/characters/splash/10000046.png",
+    "wishPath": "/assets/genshin/characters/wish/10000046.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Hutao.png",
+    "displayOrder": 22,
+    "sourceMetadata": {
+      "legacyId": 22
+    }
+  },
+  {
+    "externalKey": "legacy:23",
+    "name": "Ineffa",
+    "rarity": 5,
+    "elementKey": "electro",
+    "weaponType": "Lance",
+    "region": "Nod-Krai",
+    "classKey": null,
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Ineffa.png",
+    "displayOrder": 23,
+    "sourceMetadata": {
+      "legacyId": 23
+    }
+  },
+  {
+    "externalKey": "legacy:24",
+    "name": "Jean",
+    "rarity": 5,
+    "elementKey": "anemo",
+    "weaponType": "Épée",
+    "region": "Mondstadt",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000003.png",
+    "splashPath": "/assets/genshin/characters/splash/10000003.png",
+    "wishPath": "/assets/genshin/characters/wish/10000003.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Qin.png",
+    "displayOrder": 24,
+    "sourceMetadata": {
+      "legacyId": 24
+    }
+  },
+  {
+    "externalKey": "legacy:25",
+    "name": "Kazuha",
+    "rarity": 5,
+    "elementKey": "anemo",
+    "weaponType": "Épée",
+    "region": "Inazuma",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000047.png",
+    "splashPath": "/assets/genshin/characters/splash/10000047.png",
+    "wishPath": "/assets/genshin/characters/wish/10000047.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Kazuha.png",
+    "displayOrder": 25,
+    "sourceMetadata": {
+      "legacyId": 25
+    }
+  },
+  {
+    "externalKey": "legacy:26",
+    "name": "Ayaka",
+    "rarity": 5,
+    "elementKey": "cryo",
+    "weaponType": "Épée",
+    "region": "Inazuma",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000002.png",
+    "splashPath": "/assets/genshin/characters/splash/10000002.png",
+    "wishPath": "/assets/genshin/characters/wish/10000002.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Ayaka.png",
+    "displayOrder": 26,
+    "sourceMetadata": {
+      "legacyId": 26
+    }
+  },
+  {
+    "externalKey": "legacy:27",
+    "name": "Ayato",
+    "rarity": 5,
+    "elementKey": "hydro",
+    "weaponType": "Épée",
+    "region": "Inazuma",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000066.png",
+    "splashPath": "/assets/genshin/characters/splash/10000066.png",
+    "wishPath": "/assets/genshin/characters/wish/10000066.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Ayato.png",
+    "displayOrder": 27,
+    "sourceMetadata": {
+      "legacyId": 27
+    }
+  },
+  {
+    "externalKey": "legacy:28",
+    "name": "Keqing",
+    "rarity": 5,
+    "elementKey": "electro",
+    "weaponType": "Épée",
+    "region": "Liyue",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000042.png",
+    "splashPath": "/assets/genshin/characters/splash/10000042.png",
+    "wishPath": "/assets/genshin/characters/wish/10000042.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Keqing.png",
+    "displayOrder": 28,
+    "sourceMetadata": {
+      "legacyId": 28
+    }
+  },
+  {
+    "externalKey": "legacy:29",
+    "name": "Kinich",
+    "rarity": 5,
+    "elementKey": "dendro",
+    "weaponType": "Claymore",
+    "region": "Natlan",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000101.png",
+    "splashPath": "/assets/genshin/characters/splash/10000101.png",
+    "wishPath": "/assets/genshin/characters/wish/10000101.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Kinich.png",
+    "displayOrder": 29,
+    "sourceMetadata": {
+      "legacyId": 29
+    }
+  },
+  {
+    "externalKey": "legacy:30",
+    "name": "Klee",
+    "rarity": 5,
+    "elementKey": "pyro",
+    "weaponType": "Catalyseur",
+    "region": "Mondstadt",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000029.png",
+    "splashPath": "/assets/genshin/characters/splash/10000029.png",
+    "wishPath": "/assets/genshin/characters/wish/10000029.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Klee.png",
+    "displayOrder": 30,
+    "sourceMetadata": {
+      "legacyId": 30
+    }
+  },
+  {
+    "externalKey": "legacy:31",
+    "name": "Lauma",
+    "rarity": 5,
+    "elementKey": "dendro",
+    "weaponType": "Catalyseur",
+    "region": "Nod-Krai",
+    "classKey": null,
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Lauma.png",
+    "displayOrder": 31,
+    "sourceMetadata": {
+      "legacyId": 31
+    }
+  },
+  {
+    "externalKey": "legacy:32",
+    "name": "Linnea",
+    "rarity": 5,
+    "elementKey": "geo",
+    "weaponType": "Arc",
+    "region": "Nod-Krai",
+    "classKey": null,
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Linnea.png",
+    "displayOrder": 32,
+    "sourceMetadata": {
+      "legacyId": 32
+    }
+  },
+  {
+    "externalKey": "legacy:33",
+    "name": "Lyney",
+    "rarity": 5,
+    "elementKey": "pyro",
+    "weaponType": "Arc",
+    "region": "Fontaine",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000084.png",
+    "splashPath": "/assets/genshin/characters/splash/10000084.png",
+    "wishPath": "/assets/genshin/characters/wish/10000084.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Liney.png",
+    "displayOrder": 33,
+    "sourceMetadata": {
+      "legacyId": 33
+    }
+  },
+  {
+    "externalKey": "legacy:34",
+    "name": "Mavuika",
+    "rarity": 5,
+    "elementKey": "pyro",
+    "weaponType": "Claymore",
+    "region": "Natlan",
+    "classKey": "Archon",
+    "iconPath": "/assets/genshin/characters/icons/10000106.png",
+    "splashPath": "/assets/genshin/characters/splash/10000106.png",
+    "wishPath": "/assets/genshin/characters/wish/10000106.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Mavuika.png",
+    "displayOrder": 34,
+    "sourceMetadata": {
+      "legacyId": 34
+    }
+  },
+  {
+    "externalKey": "legacy:35",
+    "name": "Mona",
+    "rarity": 5,
+    "elementKey": "hydro",
+    "weaponType": "Catalyseur",
+    "region": "Mondstadt",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000041.png",
+    "splashPath": "/assets/genshin/characters/splash/10000041.png",
+    "wishPath": "/assets/genshin/characters/wish/10000041.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Mona.png",
+    "displayOrder": 35,
+    "sourceMetadata": {
+      "legacyId": 35
+    }
+  },
+  {
+    "externalKey": "legacy:36",
+    "name": "Mualani",
+    "rarity": 5,
+    "elementKey": "hydro",
+    "weaponType": "Catalyseur",
+    "region": "Natlan",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000102.png",
+    "splashPath": "/assets/genshin/characters/splash/10000102.png",
+    "wishPath": "/assets/genshin/characters/wish/10000102.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Mualani.png",
+    "displayOrder": 36,
+    "sourceMetadata": {
+      "legacyId": 36
+    }
+  },
+  {
+    "externalKey": "legacy:37",
+    "name": "Nahida",
+    "rarity": 5,
+    "elementKey": "dendro",
+    "weaponType": "Catalyseur",
+    "region": "Sumeru",
+    "classKey": "Archon",
+    "iconPath": "/assets/genshin/characters/icons/10000073.png",
+    "splashPath": "/assets/genshin/characters/splash/10000073.png",
+    "wishPath": "/assets/genshin/characters/wish/10000073.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Nahida.png",
+    "displayOrder": 37,
+    "sourceMetadata": {
+      "legacyId": 37
+    }
+  },
+  {
+    "externalKey": "legacy:38",
+    "name": "Navia",
+    "rarity": 5,
+    "elementKey": "geo",
+    "weaponType": "Claymore",
+    "region": "Fontaine",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000091.png",
+    "splashPath": "/assets/genshin/characters/splash/10000091.png",
+    "wishPath": "/assets/genshin/characters/wish/10000091.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Navia.png",
+    "displayOrder": 38,
+    "sourceMetadata": {
+      "legacyId": 38
+    }
+  },
+  {
+    "externalKey": "legacy:39",
+    "name": "Nefer",
+    "rarity": 5,
+    "elementKey": "dendro",
+    "weaponType": "Catalyseur",
+    "region": "Nod-Krai",
+    "classKey": null,
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Nefer.png",
+    "displayOrder": 39,
+    "sourceMetadata": {
+      "legacyId": 39
+    }
+  },
+  {
+    "externalKey": "legacy:40",
+    "name": "Neuvillette",
+    "rarity": 5,
+    "elementKey": "hydro",
+    "weaponType": "Catalyseur",
+    "region": "Fontaine",
+    "classKey": "Dragon",
+    "iconPath": "/assets/genshin/characters/icons/10000087.png",
+    "splashPath": "/assets/genshin/characters/splash/10000087.png",
+    "wishPath": "/assets/genshin/characters/wish/10000087.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Neuvillette.png",
+    "displayOrder": 40,
+    "sourceMetadata": {
+      "legacyId": 40
+    }
+  },
+  {
+    "externalKey": "legacy:41",
+    "name": "Nilou",
+    "rarity": 5,
+    "elementKey": "hydro",
+    "weaponType": "Épée",
+    "region": "Sumeru",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000070.png",
+    "splashPath": "/assets/genshin/characters/splash/10000070.png",
+    "wishPath": "/assets/genshin/characters/wish/10000070.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Nilou.png",
+    "displayOrder": 41,
+    "sourceMetadata": {
+      "legacyId": 41
+    }
+  },
+  {
+    "externalKey": "legacy:42",
+    "name": "Nomade",
+    "rarity": 5,
+    "elementKey": "anemo",
+    "weaponType": "Catalyseur",
+    "region": "Sumeru",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000075.png",
+    "splashPath": "/assets/genshin/characters/splash/10000075.png",
+    "wishPath": "/assets/genshin/characters/wish/10000075.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Wanderer.png",
+    "displayOrder": 42,
+    "sourceMetadata": {
+      "legacyId": 42
+    }
+  },
+  {
+    "externalKey": "legacy:43",
+    "name": "Qiqi",
+    "rarity": 5,
+    "elementKey": "cryo",
+    "weaponType": "Épée",
+    "region": "Liyue",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000035.png",
+    "splashPath": "/assets/genshin/characters/splash/10000035.png",
+    "wishPath": "/assets/genshin/characters/wish/10000035.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Qiqi.png",
+    "displayOrder": 43,
+    "sourceMetadata": {
+      "legacyId": 43
+    }
+  },
+  {
+    "externalKey": "legacy:44",
+    "name": "Kokomi",
+    "rarity": 5,
+    "elementKey": "hydro",
+    "weaponType": "Catalyseur",
+    "region": "Inazuma",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000054.png",
+    "splashPath": "/assets/genshin/characters/splash/10000054.png",
+    "wishPath": "/assets/genshin/characters/wish/10000054.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Kokomi.png",
+    "displayOrder": 44,
+    "sourceMetadata": {
+      "legacyId": 44
+    }
+  },
+  {
+    "externalKey": "legacy:45",
+    "name": "Shenhe",
+    "rarity": 5,
+    "elementKey": "cryo",
+    "weaponType": "Lance",
+    "region": "Liyue",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000063.png",
+    "splashPath": "/assets/genshin/characters/splash/10000063.png",
+    "wishPath": "/assets/genshin/characters/wish/10000063.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Shenhe.png",
+    "displayOrder": 45,
+    "sourceMetadata": {
+      "legacyId": 45
+    }
+  },
+  {
+    "externalKey": "legacy:46",
+    "name": "Raiden",
+    "rarity": 5,
+    "elementKey": "electro",
+    "weaponType": "Lance",
+    "region": "Inazuma",
+    "classKey": "Archon",
+    "iconPath": "/assets/genshin/characters/icons/10000052.png",
+    "splashPath": "/assets/genshin/characters/splash/10000052.png",
+    "wishPath": "/assets/genshin/characters/wish/10000052.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Shougun.png",
+    "displayOrder": 46,
+    "sourceMetadata": {
+      "legacyId": 46
+    }
+  },
+  {
+    "externalKey": "legacy:47",
+    "name": "Sigewinne",
+    "rarity": 5,
+    "elementKey": "hydro",
+    "weaponType": "Arc",
+    "region": "Fontaine",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000095.png",
+    "splashPath": "/assets/genshin/characters/splash/10000095.png",
+    "wishPath": "/assets/genshin/characters/wish/10000095.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Sigewinne.png",
+    "displayOrder": 47,
+    "sourceMetadata": {
+      "legacyId": 47
+    }
+  },
+  {
+    "externalKey": "legacy:48",
+    "name": "Skirk",
+    "rarity": 5,
+    "elementKey": "cryo",
+    "weaponType": "Épée",
+    "region": "Espace",
+    "classKey": "Abyss",
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_SkirkNew.png",
+    "displayOrder": 48,
+    "sourceMetadata": {
+      "legacyId": 48
+    }
+  },
+  {
+    "externalKey": "legacy:49",
+    "name": "Tartaglia",
+    "rarity": 5,
+    "elementKey": "hydro",
+    "weaponType": "Arc",
+    "region": "Snezhnaya",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000033.png",
+    "splashPath": "/assets/genshin/characters/splash/10000033.png",
+    "wishPath": "/assets/genshin/characters/wish/10000033.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Tartaglia.png",
+    "displayOrder": 49,
+    "sourceMetadata": {
+      "legacyId": 49
+    }
+  },
+  {
+    "externalKey": "legacy:50",
+    "name": "Tighnari",
+    "rarity": 5,
+    "elementKey": "dendro",
+    "weaponType": "Arc",
+    "region": "Sumeru",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000069.png",
+    "splashPath": "/assets/genshin/characters/splash/10000069.png",
+    "wishPath": "/assets/genshin/characters/wish/10000069.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Tighnari.png",
+    "displayOrder": 50,
+    "sourceMetadata": {
+      "legacyId": 50
+    }
+  },
+  {
+    "externalKey": "legacy:51",
+    "name": "Varesa",
+    "rarity": 5,
+    "elementKey": "electro",
+    "weaponType": "Catalyseur",
+    "region": "Natlan",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000111.png",
+    "splashPath": "/assets/genshin/characters/splash/10000111.png",
+    "wishPath": "/assets/genshin/characters/wish/10000111.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Varesa.png",
+    "displayOrder": 51,
+    "sourceMetadata": {
+      "legacyId": 51
+    }
+  },
+  {
+    "externalKey": "legacy:52",
+    "name": "Varka",
+    "rarity": 5,
+    "elementKey": "anemo",
+    "weaponType": "Claymore",
+    "region": "Mondstadt",
+    "classKey": null,
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Varka.png",
+    "displayOrder": 52,
+    "sourceMetadata": {
+      "legacyId": 52
+    }
+  },
+  {
+    "externalKey": "legacy:53",
+    "name": "Venti",
+    "rarity": 5,
+    "elementKey": "anemo",
+    "weaponType": "Arc",
+    "region": "Mondstadt",
+    "classKey": "Archon",
+    "iconPath": "/assets/genshin/characters/icons/10000022.png",
+    "splashPath": "/assets/genshin/characters/splash/10000022.png",
+    "wishPath": "/assets/genshin/characters/wish/10000022.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Venti.png",
+    "displayOrder": 53,
+    "sourceMetadata": {
+      "legacyId": 53
+    }
+  },
+  {
+    "externalKey": "legacy:54",
+    "name": "Wriothesley",
+    "rarity": 5,
+    "elementKey": "cryo",
+    "weaponType": "Catalyseur",
+    "region": "Fontaine",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000086.png",
+    "splashPath": "/assets/genshin/characters/splash/10000086.png",
+    "wishPath": "/assets/genshin/characters/wish/10000086.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Wriothesley.png",
+    "displayOrder": 54,
+    "sourceMetadata": {
+      "legacyId": 54
+    }
+  },
+  {
+    "externalKey": "legacy:55",
+    "name": "Xianyun",
+    "rarity": 5,
+    "elementKey": "anemo",
+    "weaponType": "Catalyseur",
+    "region": "Liyue",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000093.png",
+    "splashPath": "/assets/genshin/characters/splash/10000093.png",
+    "wishPath": "/assets/genshin/characters/wish/10000093.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Liuyun.png",
+    "displayOrder": 55,
+    "sourceMetadata": {
+      "legacyId": 55
+    }
+  },
+  {
+    "externalKey": "legacy:56",
+    "name": "Xiao",
+    "rarity": 5,
+    "elementKey": "anemo",
+    "weaponType": "Lance",
+    "region": "Liyue",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000026.png",
+    "splashPath": "/assets/genshin/characters/splash/10000026.png",
+    "wishPath": "/assets/genshin/characters/wish/10000026.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Xiao.png",
+    "displayOrder": 56,
+    "sourceMetadata": {
+      "legacyId": 56
+    }
+  },
+  {
+    "externalKey": "legacy:57",
+    "name": "Xilonen",
+    "rarity": 5,
+    "elementKey": "geo",
+    "weaponType": "Épée",
+    "region": "Natlan",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000103.png",
+    "splashPath": "/assets/genshin/characters/splash/10000103.png",
+    "wishPath": "/assets/genshin/characters/wish/10000103.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Xilonen.png",
+    "displayOrder": 57,
+    "sourceMetadata": {
+      "legacyId": 57
+    }
+  },
+  {
+    "externalKey": "legacy:58",
+    "name": "Yae Miko",
+    "rarity": 5,
+    "elementKey": "electro",
+    "weaponType": "Catalyseur",
+    "region": "Inazuma",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000058.png",
+    "splashPath": "/assets/genshin/characters/splash/10000058.png",
+    "wishPath": "/assets/genshin/characters/wish/10000058.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Yae.png",
+    "displayOrder": 58,
+    "sourceMetadata": {
+      "legacyId": 58
+    }
+  },
+  {
+    "externalKey": "legacy:59",
+    "name": "Yelan",
+    "rarity": 5,
+    "elementKey": "hydro",
+    "weaponType": "Arc",
+    "region": "Liyue",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000060.png",
+    "splashPath": "/assets/genshin/characters/splash/10000060.png",
+    "wishPath": "/assets/genshin/characters/wish/10000060.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Yelan.png",
+    "displayOrder": 59,
+    "sourceMetadata": {
+      "legacyId": 59
+    }
+  },
+  {
+    "externalKey": "legacy:60",
+    "name": "Yoimiya",
+    "rarity": 5,
+    "elementKey": "pyro",
+    "weaponType": "Arc",
+    "region": "Inazuma",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000049.png",
+    "splashPath": "/assets/genshin/characters/splash/10000049.png",
+    "wishPath": "/assets/genshin/characters/wish/10000049.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Yoimiya.png",
+    "displayOrder": 60,
+    "sourceMetadata": {
+      "legacyId": 60
+    }
+  },
+  {
+    "externalKey": "legacy:61",
+    "name": "Mizuki",
+    "rarity": 5,
+    "elementKey": "anemo",
+    "weaponType": "Catalyseur",
+    "region": "Inazuma",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000109.png",
+    "splashPath": "/assets/genshin/characters/splash/10000109.png",
+    "wishPath": "/assets/genshin/characters/wish/10000109.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Mizuki.png",
+    "displayOrder": 61,
+    "sourceMetadata": {
+      "legacyId": 61
+    }
+  },
+  {
+    "externalKey": "legacy:62",
+    "name": "Zhongli",
+    "rarity": 5,
+    "elementKey": "geo",
+    "weaponType": "Lance",
+    "region": "Liyue",
+    "classKey": "Archon",
+    "iconPath": "/assets/genshin/characters/icons/10000030.png",
+    "splashPath": "/assets/genshin/characters/splash/10000030.png",
+    "wishPath": "/assets/genshin/characters/wish/10000030.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Zhongli.png",
+    "displayOrder": 62,
+    "sourceMetadata": {
+      "legacyId": 62
+    }
+  },
+  {
+    "externalKey": "legacy:63",
+    "name": "Zibai",
+    "rarity": 5,
+    "elementKey": "geo",
+    "weaponType": "Épée",
+    "region": "Liyue",
+    "classKey": null,
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Zibai.png",
+    "displayOrder": 63,
+    "sourceMetadata": {
+      "legacyId": 63
+    }
+  },
+  {
+    "externalKey": "legacy:64",
+    "name": "Aino",
+    "rarity": 4,
+    "elementKey": "hydro",
+    "weaponType": "Claymore",
+    "region": "Nod-Krai",
+    "classKey": null,
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Aino.png",
+    "displayOrder": 64,
+    "sourceMetadata": {
+      "legacyId": 64
+    }
+  },
+  {
+    "externalKey": "legacy:65",
+    "name": "Amber",
+    "rarity": 4,
+    "elementKey": "pyro",
+    "weaponType": "Arc",
+    "region": "Mondstadt",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000021.png",
+    "splashPath": "/assets/genshin/characters/splash/10000021.png",
+    "wishPath": "/assets/genshin/characters/wish/10000021.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Ambor.png",
+    "displayOrder": 65,
+    "sourceMetadata": {
+      "legacyId": 65
+    }
+  },
+  {
+    "externalKey": "legacy:66",
+    "name": "Barbara",
+    "rarity": 4,
+    "elementKey": "hydro",
+    "weaponType": "Catalyseur",
+    "region": "Mondstadt",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000014.png",
+    "splashPath": "/assets/genshin/characters/splash/10000014.png",
+    "wishPath": "/assets/genshin/characters/wish/10000014.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Barbara.png",
+    "displayOrder": 66,
+    "sourceMetadata": {
+      "legacyId": 66
+    }
+  },
+  {
+    "externalKey": "legacy:67",
+    "name": "Beidou",
+    "rarity": 4,
+    "elementKey": "electro",
+    "weaponType": "Claymore",
+    "region": "Liyue",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000024.png",
+    "splashPath": "/assets/genshin/characters/splash/10000024.png",
+    "wishPath": "/assets/genshin/characters/wish/10000024.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Beidou.png",
+    "displayOrder": 67,
+    "sourceMetadata": {
+      "legacyId": 67
+    }
+  },
+  {
+    "externalKey": "legacy:68",
+    "name": "Bennett",
+    "rarity": 4,
+    "elementKey": "pyro",
+    "weaponType": "Épée",
+    "region": "Mondstadt",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000032.png",
+    "splashPath": "/assets/genshin/characters/splash/10000032.png",
+    "wishPath": "/assets/genshin/characters/wish/10000032.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Bennett.png",
+    "displayOrder": 68,
+    "sourceMetadata": {
+      "legacyId": 68
+    }
+  },
+  {
+    "externalKey": "legacy:69",
+    "name": "Candace",
+    "rarity": 4,
+    "elementKey": "hydro",
+    "weaponType": "Lance",
+    "region": "Sumeru",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000072.png",
+    "splashPath": "/assets/genshin/characters/splash/10000072.png",
+    "wishPath": "/assets/genshin/characters/wish/10000072.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Candace.png",
+    "displayOrder": 69,
+    "sourceMetadata": {
+      "legacyId": 69
+    }
+  },
+  {
+    "externalKey": "legacy:70",
+    "name": "Charlotte",
+    "rarity": 4,
+    "elementKey": "cryo",
+    "weaponType": "Catalyseur",
+    "region": "Fontaine",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000088.png",
+    "splashPath": "/assets/genshin/characters/splash/10000088.png",
+    "wishPath": "/assets/genshin/characters/wish/10000088.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Charlotte.png",
+    "displayOrder": 70,
+    "sourceMetadata": {
+      "legacyId": 70
+    }
+  },
+  {
+    "externalKey": "legacy:71",
+    "name": "Chevreuse",
+    "rarity": 4,
+    "elementKey": "pyro",
+    "weaponType": "Lance",
+    "region": "Fontaine",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000090.png",
+    "splashPath": "/assets/genshin/characters/splash/10000090.png",
+    "wishPath": "/assets/genshin/characters/wish/10000090.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Chevreuse.png",
+    "displayOrder": 71,
+    "sourceMetadata": {
+      "legacyId": 71
+    }
+  },
+  {
+    "externalKey": "legacy:72",
+    "name": "Chongyun",
+    "rarity": 4,
+    "elementKey": "cryo",
+    "weaponType": "Claymore",
+    "region": "Liyue",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000036.png",
+    "splashPath": "/assets/genshin/characters/splash/10000036.png",
+    "wishPath": "/assets/genshin/characters/wish/10000036.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Chongyun.png",
+    "displayOrder": 72,
+    "sourceMetadata": {
+      "legacyId": 72
+    }
+  },
+  {
+    "externalKey": "legacy:73",
+    "name": "Collei",
+    "rarity": 4,
+    "elementKey": "dendro",
+    "weaponType": "Arc",
+    "region": "Sumeru",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000067.png",
+    "splashPath": "/assets/genshin/characters/splash/10000067.png",
+    "wishPath": "/assets/genshin/characters/wish/10000067.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Collei.png",
+    "displayOrder": 73,
+    "sourceMetadata": {
+      "legacyId": 73
+    }
+  },
+  {
+    "externalKey": "legacy:74",
+    "name": "Dahlia",
+    "rarity": 4,
+    "elementKey": "hydro",
+    "weaponType": "Épée",
+    "region": "Mondstadt",
+    "classKey": null,
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Dahlia.png",
+    "displayOrder": 74,
+    "sourceMetadata": {
+      "legacyId": 74
+    }
+  },
+  {
+    "externalKey": "legacy:75",
+    "name": "Diona",
+    "rarity": 4,
+    "elementKey": "cryo",
+    "weaponType": "Arc",
+    "region": "Mondstadt",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000039.png",
+    "splashPath": "/assets/genshin/characters/splash/10000039.png",
+    "wishPath": "/assets/genshin/characters/wish/10000039.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Diona.png",
+    "displayOrder": 75,
+    "sourceMetadata": {
+      "legacyId": 75
+    }
+  },
+  {
+    "externalKey": "legacy:76",
+    "name": "Dori",
+    "rarity": 4,
+    "elementKey": "electro",
+    "weaponType": "Claymore",
+    "region": "Sumeru",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000068.png",
+    "splashPath": "/assets/genshin/characters/splash/10000068.png",
+    "wishPath": "/assets/genshin/characters/wish/10000068.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Dori.png",
+    "displayOrder": 76,
+    "sourceMetadata": {
+      "legacyId": 76
+    }
+  },
+  {
+    "externalKey": "legacy:77",
+    "name": "Faruzan",
+    "rarity": 4,
+    "elementKey": "anemo",
+    "weaponType": "Arc",
+    "region": "Sumeru",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000076.png",
+    "splashPath": "/assets/genshin/characters/splash/10000076.png",
+    "wishPath": "/assets/genshin/characters/wish/10000076.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Faruzan.png",
+    "displayOrder": 77,
+    "sourceMetadata": {
+      "legacyId": 77
+    }
+  },
+  {
+    "externalKey": "legacy:78",
+    "name": "Fischl",
+    "rarity": 4,
+    "elementKey": "electro",
+    "weaponType": "Arc",
+    "region": "Mondstadt",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000031.png",
+    "splashPath": "/assets/genshin/characters/splash/10000031.png",
+    "wishPath": "/assets/genshin/characters/wish/10000031.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Fischl.png",
+    "displayOrder": 78,
+    "sourceMetadata": {
+      "legacyId": 78
+    }
+  },
+  {
+    "externalKey": "legacy:79",
+    "name": "Fréminet",
+    "rarity": 4,
+    "elementKey": "cryo",
+    "weaponType": "Claymore",
+    "region": "Fontaine",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000085.png",
+    "splashPath": "/assets/genshin/characters/splash/10000085.png",
+    "wishPath": "/assets/genshin/characters/wish/10000085.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Freminet.png",
+    "displayOrder": 79,
+    "sourceMetadata": {
+      "legacyId": 79
+    }
+  },
+  {
+    "externalKey": "legacy:80",
+    "name": "Gaming",
+    "rarity": 4,
+    "elementKey": "pyro",
+    "weaponType": "Claymore",
+    "region": "Liyue",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000092.png",
+    "splashPath": "/assets/genshin/characters/splash/10000092.png",
+    "wishPath": "/assets/genshin/characters/wish/10000092.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Gaming.png",
+    "displayOrder": 80,
+    "sourceMetadata": {
+      "legacyId": 80
+    }
+  },
+  {
+    "externalKey": "legacy:81",
+    "name": "Gorou",
+    "rarity": 4,
+    "elementKey": "geo",
+    "weaponType": "Arc",
+    "region": "Inazuma",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000055.png",
+    "splashPath": "/assets/genshin/characters/splash/10000055.png",
+    "wishPath": "/assets/genshin/characters/wish/10000055.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Gorou.png",
+    "displayOrder": 81,
+    "sourceMetadata": {
+      "legacyId": 81
+    }
+  },
+  {
+    "externalKey": "legacy:82",
+    "name": "Iansan",
+    "rarity": 4,
+    "elementKey": "electro",
+    "weaponType": "Lance",
+    "region": "Natlan",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000110.png",
+    "splashPath": "/assets/genshin/characters/splash/10000110.png",
+    "wishPath": "/assets/genshin/characters/wish/10000110.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Iansan.png",
+    "displayOrder": 82,
+    "sourceMetadata": {
+      "legacyId": 82
+    }
+  },
+  {
+    "externalKey": "legacy:83",
+    "name": "Ifa",
+    "rarity": 4,
+    "elementKey": "anemo",
+    "weaponType": "Catalyseur",
+    "region": "Natlan",
+    "classKey": null,
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Ifa.png",
+    "displayOrder": 83,
+    "sourceMetadata": {
+      "legacyId": 83
+    }
+  },
+  {
+    "externalKey": "legacy:84",
+    "name": "Illuga",
+    "rarity": 4,
+    "elementKey": "geo",
+    "weaponType": "Lance",
+    "region": "Nod-Krai",
+    "classKey": null,
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Illuga.png",
+    "displayOrder": 84,
+    "sourceMetadata": {
+      "legacyId": 84
+    }
+  },
+  {
+    "externalKey": "legacy:85",
+    "name": "Jahoda",
+    "rarity": 4,
+    "elementKey": "anemo",
+    "weaponType": "Arc",
+    "region": "Nod-Krai",
+    "classKey": null,
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Jahoda.png",
+    "displayOrder": 85,
+    "sourceMetadata": {
+      "legacyId": 85
+    }
+  },
+  {
+    "externalKey": "legacy:86",
+    "name": "Kachina",
+    "rarity": 4,
+    "elementKey": "geo",
+    "weaponType": "Lance",
+    "region": "Natlan",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000100.png",
+    "splashPath": "/assets/genshin/characters/splash/10000100.png",
+    "wishPath": "/assets/genshin/characters/wish/10000100.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Kachina.png",
+    "displayOrder": 86,
+    "sourceMetadata": {
+      "legacyId": 86
+    }
+  },
+  {
+    "externalKey": "legacy:87",
+    "name": "Kaeya",
+    "rarity": 4,
+    "elementKey": "cryo",
+    "weaponType": "Épée",
+    "region": "Mondstadt",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000015.png",
+    "splashPath": "/assets/genshin/characters/splash/10000015.png",
+    "wishPath": "/assets/genshin/characters/wish/10000015.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Kaeya.png",
+    "displayOrder": 87,
+    "sourceMetadata": {
+      "legacyId": 87
+    }
+  },
+  {
+    "externalKey": "legacy:88",
+    "name": "Kaveh",
+    "rarity": 4,
+    "elementKey": "dendro",
+    "weaponType": "Claymore",
+    "region": "Sumeru",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000081.png",
+    "splashPath": "/assets/genshin/characters/splash/10000081.png",
+    "wishPath": "/assets/genshin/characters/wish/10000081.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Kaveh.png",
+    "displayOrder": 88,
+    "sourceMetadata": {
+      "legacyId": 88
+    }
+  },
+  {
+    "externalKey": "legacy:89",
+    "name": "Kirara",
+    "rarity": 4,
+    "elementKey": "dendro",
+    "weaponType": "Épée",
+    "region": "Inazuma",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000061.png",
+    "splashPath": "/assets/genshin/characters/splash/10000061.png",
+    "wishPath": "/assets/genshin/characters/wish/10000061.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Momoka.png",
+    "displayOrder": 89,
+    "sourceMetadata": {
+      "legacyId": 89
+    }
+  },
+  {
+    "externalKey": "legacy:90",
+    "name": "Sara",
+    "rarity": 4,
+    "elementKey": "electro",
+    "weaponType": "Arc",
+    "region": "Inazuma",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000056.png",
+    "splashPath": "/assets/genshin/characters/splash/10000056.png",
+    "wishPath": "/assets/genshin/characters/wish/10000056.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Sara.png",
+    "displayOrder": 90,
+    "sourceMetadata": {
+      "legacyId": 90
+    }
+  },
+  {
+    "externalKey": "legacy:91",
+    "name": "Kuki",
+    "rarity": 4,
+    "elementKey": "electro",
+    "weaponType": "Épée",
+    "region": "Inazuma",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000065.png",
+    "splashPath": "/assets/genshin/characters/splash/10000065.png",
+    "wishPath": "/assets/genshin/characters/wish/10000065.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Shinobu.png",
+    "displayOrder": 91,
+    "sourceMetadata": {
+      "legacyId": 91
+    }
+  },
+  {
+    "externalKey": "legacy:92",
+    "name": "Lan Yan",
+    "rarity": 4,
+    "elementKey": "anemo",
+    "weaponType": "Catalyseur",
+    "region": "Liyue",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000108.png",
+    "splashPath": "/assets/genshin/characters/splash/10000108.png",
+    "wishPath": "/assets/genshin/characters/wish/10000108.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Lanyan.png",
+    "displayOrder": 92,
+    "sourceMetadata": {
+      "legacyId": 92
+    }
+  },
+  {
+    "externalKey": "legacy:93",
+    "name": "Layla",
+    "rarity": 4,
+    "elementKey": "cryo",
+    "weaponType": "Épée",
+    "region": "Sumeru",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000074.png",
+    "splashPath": "/assets/genshin/characters/splash/10000074.png",
+    "wishPath": "/assets/genshin/characters/wish/10000074.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Layla.png",
+    "displayOrder": 93,
+    "sourceMetadata": {
+      "legacyId": 93
+    }
+  },
+  {
+    "externalKey": "legacy:94",
+    "name": "Lisa",
+    "rarity": 4,
+    "elementKey": "electro",
+    "weaponType": "Catalyseur",
+    "region": "Mondstadt",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000006.png",
+    "splashPath": "/assets/genshin/characters/splash/10000006.png",
+    "wishPath": "/assets/genshin/characters/wish/10000006.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Lisa.png",
+    "displayOrder": 94,
+    "sourceMetadata": {
+      "legacyId": 94
+    }
+  },
+  {
+    "externalKey": "legacy:95",
+    "name": "Lynette",
+    "rarity": 4,
+    "elementKey": "anemo",
+    "weaponType": "Épée",
+    "region": "Fontaine",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000083.png",
+    "splashPath": "/assets/genshin/characters/splash/10000083.png",
+    "wishPath": "/assets/genshin/characters/wish/10000083.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Linette.png",
+    "displayOrder": 95,
+    "sourceMetadata": {
+      "legacyId": 95
+    }
+  },
+  {
+    "externalKey": "legacy:96",
+    "name": "Mika",
+    "rarity": 4,
+    "elementKey": "cryo",
+    "weaponType": "Lance",
+    "region": "Mondstadt",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000080.png",
+    "splashPath": "/assets/genshin/characters/splash/10000080.png",
+    "wishPath": "/assets/genshin/characters/wish/10000080.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Mika.png",
+    "displayOrder": 96,
+    "sourceMetadata": {
+      "legacyId": 96
+    }
+  },
+  {
+    "externalKey": "legacy:97",
+    "name": "Ningguang",
+    "rarity": 4,
+    "elementKey": "geo",
+    "weaponType": "Catalyseur",
+    "region": "Liyue",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000027.png",
+    "splashPath": "/assets/genshin/characters/splash/10000027.png",
+    "wishPath": "/assets/genshin/characters/wish/10000027.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Ningguang.png",
+    "displayOrder": 97,
+    "sourceMetadata": {
+      "legacyId": 97
+    }
+  },
+  {
+    "externalKey": "legacy:98",
+    "name": "Noëlle",
+    "rarity": 4,
+    "elementKey": "geo",
+    "weaponType": "Claymore",
+    "region": "Mondstadt",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000034.png",
+    "splashPath": "/assets/genshin/characters/splash/10000034.png",
+    "wishPath": "/assets/genshin/characters/wish/10000034.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Noel.png",
+    "displayOrder": 98,
+    "sourceMetadata": {
+      "legacyId": 98
+    }
+  },
+  {
+    "externalKey": "legacy:99",
+    "name": "Ororon",
+    "rarity": 4,
+    "elementKey": "electro",
+    "weaponType": "Arc",
+    "region": "Natlan",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000105.png",
+    "splashPath": "/assets/genshin/characters/splash/10000105.png",
+    "wishPath": "/assets/genshin/characters/wish/10000105.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Olorun.png",
+    "displayOrder": 99,
+    "sourceMetadata": {
+      "legacyId": 99
+    }
+  },
+  {
+    "externalKey": "legacy:100",
+    "name": "Razor",
+    "rarity": 4,
+    "elementKey": "electro",
+    "weaponType": "Claymore",
+    "region": "Mondstadt",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000020.png",
+    "splashPath": "/assets/genshin/characters/splash/10000020.png",
+    "wishPath": "/assets/genshin/characters/wish/10000020.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Razor.png",
+    "displayOrder": 100,
+    "sourceMetadata": {
+      "legacyId": 100
+    }
+  },
+  {
+    "externalKey": "legacy:101",
+    "name": "Rosalia",
+    "rarity": 4,
+    "elementKey": "cryo",
+    "weaponType": "Lance",
+    "region": "Mondstadt",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000045.png",
+    "splashPath": "/assets/genshin/characters/splash/10000045.png",
+    "wishPath": "/assets/genshin/characters/wish/10000045.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Rosaria.png",
+    "displayOrder": 101,
+    "sourceMetadata": {
+      "legacyId": 101
+    }
+  },
+  {
+    "externalKey": "legacy:102",
+    "name": "Sayu",
+    "rarity": 4,
+    "elementKey": "anemo",
+    "weaponType": "Claymore",
+    "region": "Inazuma",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000053.png",
+    "splashPath": "/assets/genshin/characters/splash/10000053.png",
+    "wishPath": "/assets/genshin/characters/wish/10000053.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Sayu.png",
+    "displayOrder": 102,
+    "sourceMetadata": {
+      "legacyId": 102
+    }
+  },
+  {
+    "externalKey": "legacy:103",
+    "name": "Sethos",
+    "rarity": 4,
+    "elementKey": "electro",
+    "weaponType": "Arc",
+    "region": "Sumeru",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000097.png",
+    "splashPath": "/assets/genshin/characters/splash/10000097.png",
+    "wishPath": "/assets/genshin/characters/wish/10000097.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Sethos.png",
+    "displayOrder": 103,
+    "sourceMetadata": {
+      "legacyId": 103
+    }
+  },
+  {
+    "externalKey": "legacy:104",
+    "name": "Heizou",
+    "rarity": 4,
+    "elementKey": "anemo",
+    "weaponType": "Catalyseur",
+    "region": "Inazuma",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000059.png",
+    "splashPath": "/assets/genshin/characters/splash/10000059.png",
+    "wishPath": "/assets/genshin/characters/wish/10000059.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Heizo.png",
+    "displayOrder": 104,
+    "sourceMetadata": {
+      "legacyId": 104
+    }
+  },
+  {
+    "externalKey": "legacy:105",
+    "name": "Sucrose",
+    "rarity": 4,
+    "elementKey": "anemo",
+    "weaponType": "Catalyseur",
+    "region": "Mondstadt",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000043.png",
+    "splashPath": "/assets/genshin/characters/splash/10000043.png",
+    "wishPath": "/assets/genshin/characters/wish/10000043.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Sucrose.png",
+    "displayOrder": 105,
+    "sourceMetadata": {
+      "legacyId": 105
+    }
+  },
+  {
+    "externalKey": "legacy:106",
+    "name": "Thomas",
+    "rarity": 4,
+    "elementKey": "pyro",
+    "weaponType": "Lance",
+    "region": "Inazuma",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000050.png",
+    "splashPath": "/assets/genshin/characters/splash/10000050.png",
+    "wishPath": "/assets/genshin/characters/wish/10000050.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Tohma.png",
+    "displayOrder": 106,
+    "sourceMetadata": {
+      "legacyId": 106
+    }
+  },
+  {
+    "externalKey": "legacy:107",
+    "name": "Xiangling",
+    "rarity": 4,
+    "elementKey": "pyro",
+    "weaponType": "Lance",
+    "region": "Liyue",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000023.png",
+    "splashPath": "/assets/genshin/characters/splash/10000023.png",
+    "wishPath": "/assets/genshin/characters/wish/10000023.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Xiangling.png",
+    "displayOrder": 107,
+    "sourceMetadata": {
+      "legacyId": 107
+    }
+  },
+  {
+    "externalKey": "legacy:108",
+    "name": "Xingqiu",
+    "rarity": 4,
+    "elementKey": "hydro",
+    "weaponType": "Épée",
+    "region": "Liyue",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000025.png",
+    "splashPath": "/assets/genshin/characters/splash/10000025.png",
+    "wishPath": "/assets/genshin/characters/wish/10000025.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Xingqiu.png",
+    "displayOrder": 108,
+    "sourceMetadata": {
+      "legacyId": 108
+    }
+  },
+  {
+    "externalKey": "legacy:109",
+    "name": "Xinyan",
+    "rarity": 4,
+    "elementKey": "pyro",
+    "weaponType": "Claymore",
+    "region": "Liyue",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000044.png",
+    "splashPath": "/assets/genshin/characters/splash/10000044.png",
+    "wishPath": "/assets/genshin/characters/wish/10000044.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Xinyan.png",
+    "displayOrder": 109,
+    "sourceMetadata": {
+      "legacyId": 109
+    }
+  },
+  {
+    "externalKey": "legacy:110",
+    "name": "Yanfei",
+    "rarity": 4,
+    "elementKey": "pyro",
+    "weaponType": "Catalyseur",
+    "region": "Liyue",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000048.png",
+    "splashPath": "/assets/genshin/characters/splash/10000048.png",
+    "wishPath": "/assets/genshin/characters/wish/10000048.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Feiyan.png",
+    "displayOrder": 110,
+    "sourceMetadata": {
+      "legacyId": 110
+    }
+  },
+  {
+    "externalKey": "legacy:111",
+    "name": "Yaoyao",
+    "rarity": 4,
+    "elementKey": "dendro",
+    "weaponType": "Lance",
+    "region": "Liyue",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000077.png",
+    "splashPath": "/assets/genshin/characters/splash/10000077.png",
+    "wishPath": "/assets/genshin/characters/wish/10000077.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Yaoyao.png",
+    "displayOrder": 111,
+    "sourceMetadata": {
+      "legacyId": 111
+    }
+  },
+  {
+    "externalKey": "legacy:112",
+    "name": "Yun Jin",
+    "rarity": 4,
+    "elementKey": "geo",
+    "weaponType": "Lance",
+    "region": "Liyue",
+    "classKey": null,
+    "iconPath": "/assets/genshin/characters/icons/10000064.png",
+    "splashPath": "/assets/genshin/characters/splash/10000064.png",
+    "wishPath": "/assets/genshin/characters/wish/10000064.png",
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Yunjin.png",
+    "displayOrder": 112,
+    "sourceMetadata": {
+      "legacyId": 112
+    }
+  },
+  {
+    "externalKey": "legacy:113",
+    "name": "Prune",
+    "rarity": 4,
+    "elementKey": "anemo",
+    "weaponType": "Catalyseur",
+    "region": "Nod-Krai",
+    "classKey": null,
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Prune.png",
+    "displayOrder": 113,
+    "sourceMetadata": {
+      "legacyId": 113
+    }
+  },
+  {
+    "externalKey": "legacy:114",
+    "name": "Nicole",
+    "rarity": 5,
+    "elementKey": "pyro",
+    "weaponType": "Catalyseur",
+    "region": "Celestia",
+    "classKey": null,
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Nicole.png",
+    "displayOrder": 114,
+    "sourceMetadata": {
+      "legacyId": 114
+    }
+  },
+  {
+    "externalKey": "legacy:115",
+    "name": "Lohen",
+    "rarity": 5,
+    "elementKey": "cryo",
+    "weaponType": "Lance",
+    "region": "Mondstadt",
+    "classKey": null,
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Lohen.png",
+    "displayOrder": 115,
+    "sourceMetadata": {
+      "legacyId": 115
+    }
+  },
+  {
+    "externalKey": "legacy:116",
+    "name": "Sandrone",
+    "rarity": 5,
+    "elementKey": "cryo",
+    "weaponType": "Claymore",
+    "region": "Snezhnaya",
+    "classKey": null,
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_MarionetteNew.png",
+    "displayOrder": 116,
+    "sourceMetadata": {
+      "legacyId": 116
+    }
+  },
+  {
+    "externalKey": "legacy:117",
+    "name": "Odette",
+    "rarity": 5,
+    "elementKey": "cryo",
+    "weaponType": "Épée",
+    "region": "Snezhnaya",
+    "classKey": null,
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Odette.png",
+    "displayOrder": 117,
+    "sourceMetadata": {
+      "legacyId": 117
+    }
+  },
+  {
+    "externalKey": "legacy:118",
+    "name": "Alyosha",
+    "rarity": 4,
+    "elementKey": "electro",
+    "weaponType": "Lance",
+    "region": "Snezhnaya",
+    "classKey": null,
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Alyosha.png",
+    "displayOrder": 118,
+    "sourceMetadata": {
+      "legacyId": 118
+    }
+  }
+]

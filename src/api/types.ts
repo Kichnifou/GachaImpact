@@ -64,6 +64,43 @@ export type ElementChoiceDto = Readonly<{
   alreadySelected: boolean
 }>
 
+export type GachaCharacterDto = Readonly<{
+  id: string
+  externalKey: string
+  name: string
+  rarity: 4 | 5
+  elementKey: ElementKey
+  weaponType: string | null
+  region: string | null
+  classKey: string | null
+  iconPath: string | null
+  splashPath: string | null
+  wishPath: string | null
+  fullbodyPath: string | null
+}>
+
+export type PlayerGachaStateDto = Readonly<{
+  pity5: number
+  pity4: number
+  guaranteedFeatured5: boolean
+  captureProgress: number
+  fiftyFiftyLostStreak: number
+  selectedBannerCharacterId: string | null
+  totalPulls: string
+  totalFiveStars: string
+  totalFourStars: string
+  fiftyFiftyWon: string
+  fiftyFiftyLost: string
+  capturesTriggered: string
+}>
+
+export type CurrentGachaDto = Readonly<{
+  banner: Readonly<{ id: string; startsAt: string; endsAt: string; featuredFiveStars: readonly GachaCharacterDto[]; featuredFourStars: readonly GachaCharacterDto[] }>
+  playerState: PlayerGachaStateDto
+}>
+
+export type CharacterCatalogDto = Readonly<{ characters: readonly GachaCharacterDto[] }>
+
 export type BackendErrorDto = Readonly<{
   error: Readonly<{
     code: string

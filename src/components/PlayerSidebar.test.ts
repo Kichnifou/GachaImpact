@@ -2,13 +2,18 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
-import type { PlayerProgressionDto } from '../api/types'
+import type { ElementKey, PlayerProgressionDto } from '../api/types'
 import PlayerSidebar from './PlayerSidebar'
 
 const resources = {
   primogems: '0',
   moras: '0',
   particles: { pyro: '0', hydro: '0', cryo: '0', electro: '0', anemo: '0', geo: '0', dendro: '0' },
+} as const
+
+const gacha = {
+  banner: { id: 'banner', startsAt: '2026-09-01T00:00:00.000Z', endsAt: '2026-09-08T00:00:00.000Z', featuredFiveStars: [], featuredFourStars: [] },
+  playerState: { pity5: 0, pity4: 0, guaranteedFeatured5: false, captureProgress: 0, fiftyFiftyLostStreak: 0, selectedBannerCharacterId: null, totalPulls: '0', totalFiveStars: '0', totalFourStars: '0', fiftyFiftyWon: '0', fiftyFiftyLost: '0', capturesTriggered: '0' },
 } as const
 
 function progression(level: number, xpIntoCurrentStep: string): PlayerProgressionDto {
@@ -18,16 +23,17 @@ function progression(level: number, xpIntoCurrentStep: string): PlayerProgressio
   }
 }
 
-function renderProgression(value: PlayerProgressionDto) {
+function renderProgression(value: PlayerProgressionDto, elementKey: ElementKey | null = 'hydro') {
   return renderToStaticMarkup(createElement(PlayerSidebar, {
     isOpen: false,
     onClose: vi.fn(),
     onNavigate: vi.fn(),
-    playerData: { id: 'p1', displayName: 'Kichnifou', elementKey: 'hydro', status: 'ACTIVE' },
+    playerData: { id: 'p1', displayName: 'Kichnifou', elementKey, status: 'ACTIVE' },
     resources,
     progression: value,
     dailyRewardToday: { claimed: false, businessDate: '2026-09-05', rewards: { primogems: '160', mainElementParticles: '160', moras: '10000' } },
     onClaimDailyReward: vi.fn(),
+    gacha,
   }))
 }
 
@@ -38,6 +44,8 @@ describe('Player sidebar progression', () => {
     expect(html).toContain('0 / 30 XP')
     expect(html).toContain('width:0%')
     expect(html).not.toContain('Niveau 42')
+    expect(html).toContain('profile-element-watermark')
+    expect(html).toContain('Aucune cible sélectionnée')
   })
 
   it('renders a level transition and its dynamic bar', () => {
@@ -52,5 +60,10 @@ describe('Player sidebar progression', () => {
     expect(html).toContain('Niveau 100')
     expect(html).toContain('29 / 30 XP')
     expect(html).not.toContain('Niveau 101')
+  })
+
+  it('uses the typed element theme and handles a missing element', () => {
+    expect(renderProgression(progression(0, '0'), 'pyro')).toContain('--profile-element:#ff795d')
+    expect(renderProgression(progression(0, '0'), null)).not.toContain('profile-element-watermark')
   })
 })

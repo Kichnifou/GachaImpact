@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import type { DailyRewardClaimDto, DailyRewardTodayDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, WheelSpinDto, WheelTodayDto } from '../api/types'
+import type { CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import type { ScreenId } from '../types'
 import BoxScreen from '../screens/BoxScreen'
 import CharactersScreen from '../screens/CharactersScreen'
@@ -31,9 +31,12 @@ type GameShellProps = {
   dailyRewardToday: DailyRewardTodayDto
   onClaimDailyReward: () => Promise<DailyRewardClaimDto>
   onSignOut: () => Promise<void>
+  gacha: CurrentGachaDto
+  characters: readonly GachaCharacterDto[]
+  onSetGachaTarget: (characterId: string) => Promise<void>
 }
 
-function GameShell({ player, resources, progression, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut }: GameShellProps) {
+function GameShell({ player, resources, progression, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, onSetGachaTarget }: GameShellProps) {
   const [activeScreen, setActiveScreen] = useState<ScreenId>(getScreenFromHash)
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -55,11 +58,11 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
   const renderScreen = () => {
     switch (activeScreen) {
       case 'invocation':
-        return <InvocationScreen />
+        return <InvocationScreen gacha={gacha} onSetTarget={onSetGachaTarget} />
       case 'box':
         return <BoxScreen />
       case 'characters':
-        return <CharactersScreen />
+        return <CharactersScreen characters={characters} />
       case 'team':
         return <TeamScreen />
       case 'inventory':
@@ -67,7 +70,7 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
       case 'shop':
         return <ShopScreen />
       default:
-        return <HomeScreen onNavigate={navigate} wheelToday={wheelToday} onSpinWheel={onSpinWheel} />
+        return <HomeScreen onNavigate={navigate} wheelToday={wheelToday} onSpinWheel={onSpinWheel} gacha={gacha} onSetGachaTarget={onSetGachaTarget} />
     }
   }
 
@@ -85,6 +88,7 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
           playerData={player}
           resources={resources}
           progression={progression}
+          gacha={gacha}
           dailyRewardToday={dailyRewardToday}
           onClaimDailyReward={onClaimDailyReward}
           isOpen={isSidebarOpen}

@@ -141,11 +141,20 @@
 }
 
 .profile-card {
+  --profile-element: #4fc7ff;
+  position: relative;
   display: flex;
   align-items: center;
   gap: 13px;
   padding: 13px;
+  overflow: hidden;
+  background: radial-gradient(circle at 88% 50%, color-mix(in srgb, var(--profile-element) 14%, transparent), transparent 62%), linear-gradient(145deg, rgba(15, 27, 51, 0.94), rgba(8, 15, 31, 0.94));
 }
+
+.profile-element-watermark { position: absolute; z-index: 0; width: 155px; height: 155px; right: -34px; top: -34px; opacity: .1; pointer-events: none; filter: drop-shadow(0 0 18px var(--profile-element)); }
+.profile-element-watermark img { width: 100%; height: 100%; object-fit: contain; }
+.profile-card .avatar-placeholder, .profile-card .profile-copy { position: relative; z-index: 1; }
+.profile-card .avatar-placeholder { border-color: color-mix(in srgb, var(--profile-element) 72%, white); box-shadow: 0 0 20px color-mix(in srgb, var(--profile-element) 25%, transparent); }
 
 .avatar-placeholder {
   position: relative;
@@ -413,6 +422,31 @@
 .objective-brilliance strong {
   color: #91bfff;
   font-weight: 600;
+}
+
+.objective-empty { width: 100%; display: flex; flex-direction: column; gap: 5px; padding: 16px 10px; color: var(--text); text-align: left; border: 1px dashed rgba(103, 174, 255, .3); border-radius: 10px; background: rgba(27, 55, 99, .16); }
+.objective-empty span { color: var(--cyan); font-size: 10px; }
+
+.target-choice-grid { position: relative; z-index: 4; grid-column: 2; grid-row: 1; align-self: center; display: grid; grid-template-columns: repeat(4, minmax(90px, 1fr)); gap: 10px; padding: 24px; }
+.target-choice { position: relative; min-width: 0; height: 220px; overflow: hidden; color: white; border: 1px solid rgba(103, 174, 255, .3); border-radius: 13px; background: rgba(10, 23, 48, .82); cursor: pointer; }
+.target-choice:hover { border-color: var(--cyan); transform: translateY(-2px); }
+.target-choice-image { width: 100%; height: 170px; object-fit: contain; object-position: center bottom; }
+.target-choice strong, .target-choice > span { display: block; position: relative; z-index: 2; }
+.target-choice > span { color: var(--gold); font-size: 9px; }
+.featured-four-stars { position: relative; z-index: 4; grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; padding: 10px 30px; border-top: 1px solid rgba(103,145,213,.18); background: rgba(7,13,29,.79); }
+.featured-four-stars > small { color: var(--muted); white-space: nowrap; }
+.featured-four-stars > div { display: flex; gap: 7px; }
+.featured-four-stars > div > span { width: 42px; height: 42px; display: grid; place-items: center; overflow: hidden; border: 1px solid rgba(153, 124, 255, .35); border-radius: 9px; background: #101a34; }
+.featured-four-image { width: 100%; height: 100%; object-fit: cover; }
+.banner-period { display: inline-block; margin-top: 14px; color: var(--cyan); font-size: 11px; }
+.wish-button:disabled { cursor: not-allowed; opacity: .58; filter: saturate(.5); }
+
+@media (max-width: 760px) {
+  .target-picker { display: block; }
+  .target-choice-grid { grid-template-columns: repeat(2, 1fr); padding: 12px; }
+  .target-choice { height: 180px; }
+  .target-choice-image { height: 135px; }
+  .featured-four-stars { overflow-x: auto; padding-inline: 14px; }
 }
 
 .daily-card {

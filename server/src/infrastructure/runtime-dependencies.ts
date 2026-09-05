@@ -18,6 +18,9 @@ import { SystemClock } from './time/system-clock.js';
 import { GetTodayDailyReward } from '../application/daily-reward/get-today-daily-reward.js';
 import { ClaimDailyReward } from '../application/daily-reward/claim-daily-reward.js';
 import { PrismaDailyRewardStore } from './database/prisma-daily-reward-store.js';
+import { PrismaGachaStore } from './database/prisma-gacha-store.js';
+import { GetCharacters, GetCurrentGacha, SetGachaTarget } from '../application/gacha/gacha-services.js';
+import { WeeklyBannerScheduler } from '../application/gacha/weekly-banner-scheduler.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
   if (!config.databaseUrl) {
@@ -31,6 +34,9 @@ export function createRuntimeDependencies(config: AppConfig) {
   const wheelStore = new PrismaWheelStore(database);
   const clock = new SystemClock();
   const dailyRewardStore = new PrismaDailyRewardStore(database);
+  const gachaStore = new PrismaGachaStore(database);
+  const random = new NodeRandomSource();
+  const scheduler = new WeeklyBannerScheduler(gachaStore, clock, random);
 
   return {
     authIdentityVerifier: createSupabaseAuthAdapter(issuer),
@@ -48,10 +54,14 @@ export function createRuntimeDependencies(config: AppConfig) {
       new PrismaPlayerProgressionStore(database),
     ),
     getTodayWheelState: new GetTodayWheelState(getCurrentPlayer, wheelStore, clock),
-    spinDailyWheel: new SpinDailyWheel(getCurrentPlayer, wheelStore, clock, new NodeRandomSource()),
+    spinDailyWheel: new SpinDailyWheel(getCurrentPlayer, wheelStore, clock, random),
     getTodayDailyReward: new GetTodayDailyReward(getCurrentPlayer, dailyRewardStore, clock),
     claimDailyReward: new ClaimDailyReward(getCurrentPlayer, dailyRewardStore, clock),
-    close: () => database.$disconnect(),
+    getCharacters: new GetCharacters(gachaStore),
+    getCurrentGacha: new GetCurrentGacha(getCurrentPlayer, gachaStore),
+    setGachaTarget: new SetGachaTarget(getCurrentPlayer, gachaStore),
+    start: () => scheduler.start(),
+    close: async () => { scheduler.stop(); await database.$disconnect(); },
   };
 }
 

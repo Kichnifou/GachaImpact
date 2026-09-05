@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.49
+Version : 0.50
 Date : 2026-09-05
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3534,7 +3534,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Phase C3 — Progression Player réelle et dé-mock du profil.**
+**Phase C4 — Gacha : catalogue / bannière / cible / état joueur.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3552,7 +3552,7 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Prisma ORM 7.10.0 stable ;
 - Supabase DEV provisionné et connexion PostgreSQL fonctionnelle ;
 - première migration versionnée appliquée ;
-- 12 tables présentes pour Identité / Ressources / Roue / Récompense quotidienne / Progression Player ;
+- 17 tables présentes pour Identité / Ressources / Roue / Récompense quotidienne / Progression Player / fondations Gacha ;
 - référentiels seedés avec 7 éléments et 9 ressources ;
 - RLS activée sur les tables de fondation, sans policy client permissive ;
 - Auth Supabase réel checkpointé au commit `027d230f7d047e0469076418d3d5122e831bdce6` ;
@@ -3571,10 +3571,12 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - migration additive `002_add_player_daily_reward_state` appliquée et tests DB/concurrence validés ;
 - récompense quotidienne réelle : **VALIDÉE PUBLIQUEMENT PAR LE PROPRIÉTAIRE** sur [https://gachaimpact.pages.dev](https://gachaimpact.pages.dev) ; disponibilité, claim, +160 Primogemmes, +160 particules principales, +10 000 Moras, mise à jour immédiate des soldes, F5, logout/login et absence de second gain validés ;
 - domaine Récompense quotidienne réelle : **CLÔTURÉ comme checkpoint fonctionnel**.
-- Progression Player réelle : **IMPLÉMENTATION CODEX TECHNIQUEMENT TERMINÉE — VALIDATION MANUELLE PROPRIÉTAIRE À FAIRE** ; migration additive `003_add_player_progression` appliquée sur Supabase DEV, backfill à zéro des Players standalone existants, provisioning futur transactionnel, RLS sans policy client permissive et contraintes d'intégrité validés ;
+- Progression Player réelle / dé-mock Niveau-XP : **VALIDÉE PUBLIQUEMENT PAR LE PROPRIÉTAIRE / CLÔTURÉE** sur [https://gachaimpact.pages.dev](https://gachaimpact.pages.dev) ; vrai Niveau 0, `0 / 30 XP`, barre réelle, F5, logout/login, second compte et non-régression Ressources / Daily Reward / Roue validés ;
 - `GET /api/v1/me/progression` expose les compteurs `bigint` lossless et le niveau dérivé de l'XP cumulative selon `min(floor(xp / 30), 100)`, sans endpoint de gain ou de mutation d'XP ;
 - la sidebar charge désormais niveau, XP du palier et barre depuis l'état serveur au bootstrap authentifié ; les mocks Team, objectif Gacha, pity, garantie et Capture de brillance restent volontairement hors de ce lot ;
 - tests unitaires frontend/backend, builds, lint, tests DB réels et statut Prisma : **VALIDÉS TECHNIQUEMENT**.
+- Gacha — catalogue / bannière / cible / état joueur : **IMPLÉMENTATION CODEX TECHNIQUEMENT TERMINÉE — VALIDATION MANUELLE PROPRIÉTAIRE À FAIRE** ; migration additive `004_add_gacha_foundation` appliquée sur Supabase DEV, catalogue 118 personnages importé, première rotation hebdomadaire native créée, état joueur/backfill, scheduler serveur, API authentifiée et dé-mock Invocation / Objectif / Personnages intégrés ;
+- le moteur Pull x1/x10 reste volontairement absent et constitue le prochain lot seulement après validation publique de ces fondations.
 
 État du premier parcours frontend standalone :
 
@@ -3604,7 +3606,7 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-Tester localement la progression réelle et la sidebar, puis valider/review le lot, le committer/pousser uniquement sur instruction du propriétaire et effectuer le smoke test public après les déploiements automatiques Railway et Cloudflare. `PAID_INFRA_APPROVED = false` reste inchangé.
+Review ChatGPT → commit/push par le propriétaire → attendre Railway/Cloudflare verts → tests publics du catalogue, de la bannière, de la cible, de la sidebar et du profil élémentaire. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

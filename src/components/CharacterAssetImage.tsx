@@ -7,6 +7,7 @@ type CharacterAssetImageProps = {
   fallback: ReactNode
   order?: readonly CharacterAssetKind[]
   alt?: string
+  assetPaths?: readonly (string | null)[]
 }
 
 function CharacterAssetImage({
@@ -15,8 +16,10 @@ function CharacterAssetImage({
   fallback,
   order = DEFAULT_CHARACTER_ASSET_ORDER,
   alt = '',
+  assetPaths: providedAssetPaths,
 }: CharacterAssetImageProps) {
-  const assetPaths = useCharacterAssetPaths(characterName, order)
+  const discoveredAssetPaths = useCharacterAssetPaths(characterName, order)
+  const assetPaths = providedAssetPaths?.filter((path): path is string => Boolean(path)) ?? discoveredAssetPaths
   const assetKey = `${characterName}|${assetPaths.join('|')}`
   const [assetState, setAssetState] = useState({ key: assetKey, index: 0, isLoaded: false })
   const currentState = assetState.key === assetKey

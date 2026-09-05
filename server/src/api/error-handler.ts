@@ -11,6 +11,8 @@ const businessStatusCodes: Readonly<Record<BusinessErrorCode, number>> = {
   PLAYER_NOT_FOUND: 404,
   PLAYER_PROGRESSION_STATE_MISSING: 500,
   RESOURCE_STATE_INCOMPLETE: 500,
+  GACHA_BANNER_UNAVAILABLE: 503,
+  GACHA_TARGET_INVALID: 422,
 };
 
 export function registerErrorHandler(app: FastifyInstance): void {

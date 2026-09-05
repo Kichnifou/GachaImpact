@@ -1,5 +1,6 @@
-import type { DailyRewardClaimDto, DailyRewardTodayDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto } from '../api/types'
-import { activeBanner, activeTeam } from '../data/mockData'
+import type { CSSProperties } from 'react'
+import type { CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto } from '../api/types'
+import { activeTeam } from '../data/mockData'
 import { getProgressionPercent } from '../progression/presentation'
 import type { ScreenId } from '../types'
 import { currencyAssetPaths, getElementAssetPath } from '../utils/gameAssets'
@@ -7,6 +8,7 @@ import { elementLabels, formatResourceAmount } from '../utils/formatters'
 import CharacterAssetImage from './CharacterAssetImage'
 import GameAssetIcon from './GameAssetIcon'
 import DailyRewardCard from './DailyRewardCard'
+import { elementColors } from '../utils/elementTheme'
 
 type PlayerSidebarProps = {
   isOpen: boolean
@@ -17,12 +19,13 @@ type PlayerSidebarProps = {
   progression: PlayerProgressionDto
   dailyRewardToday: DailyRewardTodayDto
   onClaimDailyReward: () => Promise<DailyRewardClaimDto>
+  gacha: CurrentGachaDto
 }
 
 const particleElements = ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro'] as const
 
-function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, progression, dailyRewardToday, onClaimDailyReward }: PlayerSidebarProps) {
-  const { featuredCharacter, pityFiveStar, pityFourStar, guaranteeFiveStar, brilliance } = activeBanner
+function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, progression, dailyRewardToday, onClaimDailyReward, gacha }: PlayerSidebarProps) {
+  const featuredCharacter = gacha.banner.featuredFiveStars.find(({ id }) => id === gacha.playerState.selectedBannerCharacterId)
   const progressionPercent = getProgressionPercent(progression)
 
   return (
@@ -32,7 +35,8 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
         <button type="button" className="icon-button" onClick={onClose} aria-label="Fermer"><span className="icon-glyph">×</span></button>
       </div>
 
-      <section className="panel profile-card">
+      <section className="panel profile-card" style={playerData.elementKey ? { '--profile-element': elementColors[playerData.elementKey] } as CSSProperties : undefined}>
+        {playerData.elementKey && <GameAssetIcon className="profile-element-watermark" src={getElementAssetPath(playerData.elementKey)} fallback="" />}
         <div className="avatar-placeholder" aria-label={`Avatar de ${playerData.displayName}`}>
           <span>{playerData.displayName.slice(0, 1).toUpperCase()}</span>
         </div>
@@ -111,10 +115,11 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
         <button type="button" className="section-heading section-link" onClick={() => onNavigate('invocation')}>
           <span>Objectif actuel</span><span className="card-chevron" aria-hidden="true">›</span>
         </button>
-        <div className="objective-content">
+        {featuredCharacter ? <div className="objective-content">
           <div className="objective-art" aria-label={`Portrait de ${featuredCharacter.name}`}>
             <CharacterAssetImage
               characterName={featuredCharacter.name}
+              assetPaths={[featuredCharacter.iconPath, featuredCharacter.fullbodyPath]}
               className="objective-asset-image"
               fallback={featuredCharacter.name.slice(0, 1)}
               alt={featuredCharacter.name}
@@ -125,14 +130,14 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
               <h3>{featuredCharacter.name}</h3>
               <span className="stars">★★★★★</span>
             </div>
-            <p className="objective-guarantee">Garantie 5★ : {guaranteeFiveStar}</p>
-            <p className="objective-brilliance">Brillance : <strong>{brilliance.current} / {brilliance.maximum}</strong></p>
-            <div className="pity-row"><span>Pity 5★</span><strong>{pityFiveStar.current} / {pityFiveStar.maximum}</strong></div>
-            <div className="progress-track"><span className="progress-fill pity" /></div>
-            <div className="pity-row objective-secondary"><span>Pity 4★</span><strong>{pityFourStar.current} / {pityFourStar.maximum}</strong></div>
-            <div className="progress-track"><span className="progress-fill pity-four" /></div>
+            <p className="objective-guarantee">Garantie 5★ : {gacha.playerState.guaranteedFeatured5 ? 'Oui' : 'Non'}</p>
+            <p className="objective-brilliance">Capture : <strong>{gacha.playerState.captureProgress} / 3</strong></p>
+            <div className="pity-row"><span>Pity 5★</span><strong>{gacha.playerState.pity5} / 90</strong></div>
+            <div className="progress-track"><span className="progress-fill pity" style={{ width: `${gacha.playerState.pity5 / 90 * 100}%` }} /></div>
+            <div className="pity-row objective-secondary"><span>Pity 4★</span><strong>{gacha.playerState.pity4} / 10</strong></div>
+            <div className="progress-track"><span className="progress-fill pity-four" style={{ width: `${gacha.playerState.pity4 / 10 * 100}%` }} /></div>
           </div>
-        </div>
+        </div> : <button type="button" className="objective-empty" onClick={() => onNavigate('invocation')}><strong>Aucune cible sélectionnée</strong><span>Choisir parmi les quatre 5★ →</span></button>}
       </section>
 
       {playerData.elementKey && <DailyRewardCard today={dailyRewardToday} elementKey={playerData.elementKey} onClaim={onClaimDailyReward} />}

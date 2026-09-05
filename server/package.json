@@ -15,6 +15,7 @@
     "test:manual:player-flow": "node scripts/test-player-flow.mjs",
     "typecheck": "tsc --noEmit --project tsconfig.json",
     "prisma:generate": "prisma generate",
+    "catalog:generate": "node scripts/generate-gacha-catalog.mjs",
     "db:seed": "prisma db seed"
   },
   "dependencies": {

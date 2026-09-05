@@ -1,12 +1,14 @@
 import BannerHero from '../components/BannerHero'
 import WheelCard from '../components/WheelCard'
-import type { WheelSpinDto, WheelTodayDto } from '../api/types'
+import type { CurrentGachaDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import type { ScreenId } from '../types'
 
 type HomeScreenProps = {
   onNavigate: (screen: ScreenId) => void
   wheelToday: WheelTodayDto
   onSpinWheel: () => Promise<WheelSpinDto>
+  gacha: CurrentGachaDto
+  onSetGachaTarget: (id: string) => Promise<void>
 }
 
 const shortcuts: Array<{ screen: ScreenId; label: string; description: string; icon: string; tone: string }> = [
@@ -17,10 +19,10 @@ const shortcuts: Array<{ screen: ScreenId; label: string; description: string; i
   { screen: 'shop', label: 'Boutique', description: 'Parcourir les échanges', icon: '♢', tone: 'pink' },
 ]
 
-function HomeScreen({ onNavigate, wheelToday, onSpinWheel }: HomeScreenProps) {
+function HomeScreen({ onNavigate, wheelToday, onSpinWheel, gacha, onSetGachaTarget }: HomeScreenProps) {
   return (
     <div className="screen-content home-screen">
-      <BannerHero compact />
+      <BannerHero compact gacha={gacha} onSetTarget={onSetGachaTarget} />
 
       <WheelCard today={wheelToday} onSpin={onSpinWheel} />
 

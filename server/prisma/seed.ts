@@ -1,5 +1,7 @@
 import 'dotenv/config';
 
+import { readFile } from 'node:fs/promises';
+
 import { loadConfig } from '../src/config/environment.js';
 import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 
@@ -24,6 +26,22 @@ const resources = [
   })),
 ] as const;
 
+type CatalogCharacter = Readonly<{
+  externalKey: string;
+  name: string;
+  rarity: 4 | 5;
+  elementKey: string;
+  weaponType: string | null;
+  region: string | null;
+  classKey: string | null;
+  iconPath: string | null;
+  splashPath: string | null;
+  wishPath: string | null;
+  fullbodyPath: string | null;
+  displayOrder: number;
+  sourceMetadata: { legacyId: number };
+}>;
+
 const config = loadConfig();
 
 if (!config.databaseUrl) {
@@ -31,6 +49,9 @@ if (!config.databaseUrl) {
 }
 
 const database = createDatabase(config.databaseUrl);
+const characters = JSON.parse(
+  await readFile(new URL('./data/characters.json', import.meta.url), 'utf8'),
+) as CatalogCharacter[];
 
 try {
   await database.$transaction(async (transaction) => {
@@ -55,6 +76,27 @@ try {
           category: resource.category,
           elementKey: resource.elementKey,
           isActive: true,
+        },
+      });
+    }
+
+    for (const character of characters) {
+      await transaction.character.upsert({
+        where: { externalKey: character.externalKey },
+        create: character,
+        update: {
+          name: character.name,
+          rarity: character.rarity,
+          elementKey: character.elementKey,
+          weaponType: character.weaponType,
+          region: character.region,
+          classKey: character.classKey,
+          iconPath: character.iconPath,
+          splashPath: character.splashPath,
+          wishPath: character.wishPath,
+          fullbodyPath: character.fullbodyPath,
+          displayOrder: character.displayOrder,
+          sourceMetadata: character.sourceMetadata,
         },
       });
     }

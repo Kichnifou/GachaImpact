@@ -18,6 +18,7 @@ process.once('SIGINT', () => void stop('SIGINT'));
 process.once('SIGTERM', () => void stop('SIGTERM'));
 
 try {
+  await dependencies.start();
   await app.listen({ host: config.host, port: config.port });
 } catch (error) {
   app.log.error(error, 'Unable to start server');

@@ -45,10 +45,11 @@ Depuis [https://gachaimpact.pages.dev](https://gachaimpact.pages.dev), sans back
 
 - `main` reste actuellement la branche alpha auto-déployée vers Railway et Cloudflare Pages.
 - Codex exécute les tests automatisés pertinents avant toute proposition de checkpoint.
-- Pour un changement visible ou backend sensible, effectuer si nécessaire un smoke test local avant le push : backend et frontend locaux utilisent la configuration locale existante et Supabase DEV.
+- Un smoke test local reste possible mais n'est plus obligatoire par défaut : l'alpha actuelle accepte le workflow tests automatisés → review → push → test public. Pour un changement visible ou backend sensible, le propriétaire peut toujours tester avant le push avec le backend/frontend locaux et Supabase DEV.
 - Le frontend local doit cibler le backend local via ses variables d'environnement ; l'URL Railway ne doit jamais être codée en dur. Un push n'est donc pas nécessaire pour tester localement le code.
 - Après validation et review par le propriétaire seulement : commit/push, attente des déploiements Railway et Cloudflare verts, puis smoke test public sur le lien alpha.
-- Un environnement staging séparé reste reporté tant que la taille de l'alpha ne justifie pas sa complexité ou son coût.
+- Les checkpoints Git validés permettent un rollback propre ; annuler un lot public avec `git revert` plutôt qu'un force-push ou un reset destructif de `main`.
+- Les quelques testeurs publics actuels ne justifient pas encore un environnement staging séparé. Aucun environnement payant supplémentaire n'est ajouté ; le staging reste reporté tant que la taille de l'alpha ne justifie pas sa complexité ou son coût.
 - `PAID_INFRA_APPROVED = false` reste inchangé.
 
 ## Checklist de redéploiement utile
