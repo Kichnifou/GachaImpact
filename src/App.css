@@ -4364,3 +4364,171 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
     font-size: 7px;
   }
 }
+
+/* Target selection and compact Gacha identity corrections */
+.target-choice {
+  border-color: color-mix(in srgb, var(--target-element) 34%, rgba(103, 174, 255, .3));
+  background:
+    radial-gradient(circle at 50% 22%, color-mix(in srgb, var(--target-element) 10%, transparent), transparent 57%),
+    rgba(10, 23, 48, .84);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--target-element) 12%, transparent);
+}
+
+.target-choice:hover,
+.target-choice:focus-visible {
+  border-color: color-mix(in srgb, var(--target-element) 72%, white);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--target-element) 14%, transparent), inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+
+.target-choice-image {
+  box-sizing: border-box;
+  padding: 8px 8px 1px;
+  object-fit: contain;
+  object-position: center top;
+}
+
+.objective-card {
+  --objective-element: #4fc7ff;
+  --objective-tint-strength: 6%;
+  --objective-watermark-opacity: .25;
+  --objective-watermark-brightness: 1.5;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 92% 48%, color-mix(in srgb, var(--objective-element) var(--objective-tint-strength), transparent), transparent 62%),
+    linear-gradient(145deg, rgba(15, 27, 51, .94), rgba(8, 15, 31, .94));
+}
+
+.objective-element-watermark {
+  position: absolute;
+  z-index: 0;
+  top: -24px;
+  right: -33px;
+  width: 134px;
+  height: 134px;
+  opacity: calc(var(--objective-watermark-opacity) * .72);
+  pointer-events: none;
+  filter: brightness(var(--objective-watermark-brightness)) saturate(.82) drop-shadow(0 0 14px color-mix(in srgb, var(--objective-element) 64%, white));
+}
+
+.objective-element-watermark img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.objective-card > :not(.objective-element-watermark) {
+  position: relative;
+  z-index: 1;
+}
+
+.gacha-state-secondary {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 17px;
+}
+
+.gacha-state-secondary .banner-status {
+  align-items: center;
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .game-navigation {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+
+  .navigation-tile {
+    grid-column: span 2;
+  }
+
+  .navigation-tile:nth-child(5) {
+    grid-column: 2 / span 2;
+  }
+
+  .featured-four-stars > div > span {
+    height: auto;
+    aspect-ratio: 1;
+  }
+
+  .featured-four-image {
+    padding: 3px;
+    object-fit: contain;
+    object-position: center top;
+  }
+
+  .gacha-state-secondary {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 10px;
+  }
+}
+
+@media (orientation: landscape) and (min-width: 761px) and (max-width: 950px) and (max-height: 500px) {
+  .target-picker {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .target-picker .banner-content,
+  .target-choice-grid,
+  .target-picker .featured-four-stars {
+    width: 100%;
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .target-picker .banner-content {
+    padding: 22px 24px 8px;
+  }
+
+  .target-choice-grid {
+    align-self: stretch;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 7px;
+    padding: 8px 12px 12px;
+  }
+
+  .target-choice {
+    width: 100%;
+    height: 148px;
+    padding-inline: 4px;
+  }
+
+  .target-choice-image {
+    height: 104px;
+    padding: 5px 5px 0;
+  }
+
+  .target-choice strong {
+    font-size: 10px;
+  }
+
+  .featured-four-stars {
+    display: block;
+    padding: 9px 12px 11px;
+    overflow: visible;
+  }
+
+  .featured-four-stars > small {
+    display: block;
+    margin-bottom: 7px;
+  }
+
+  .featured-four-stars > div {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .featured-four-stars > div > span {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+  }
+
+  .featured-four-image {
+    padding: 3px;
+    object-fit: contain;
+    object-position: center top;
+  }
+}

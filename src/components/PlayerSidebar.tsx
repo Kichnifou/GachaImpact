@@ -30,9 +30,16 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
   const elementTheme = playerData.elementKey ? elementThemes[playerData.elementKey] : null
   const profileStyle = elementTheme ? {
     '--profile-element': elementTheme.color,
-    '--profile-tint-strength': elementTheme.profileTintStrength,
+    '--profile-tint-strength': elementTheme.surfaceTintStrength,
     '--profile-watermark-opacity': elementTheme.watermarkOpacity,
     '--profile-watermark-brightness': elementTheme.watermarkBrightness,
+  } as CSSProperties : undefined
+  const objectiveTheme = featuredCharacter ? elementThemes[featuredCharacter.elementKey] : null
+  const objectiveStyle = objectiveTheme ? {
+    '--objective-element': objectiveTheme.color,
+    '--objective-tint-strength': objectiveTheme.surfaceTintStrength,
+    '--objective-watermark-opacity': objectiveTheme.watermarkOpacity,
+    '--objective-watermark-brightness': objectiveTheme.watermarkBrightness,
   } as CSSProperties : undefined
 
   return (
@@ -117,7 +124,8 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
         </div>
         </section>
 
-        <section className="panel objective-card">
+        <section className="panel objective-card" style={objectiveStyle}>
+        {featuredCharacter && <GameAssetIcon className="objective-element-watermark" src={getElementAssetPath(featuredCharacter.elementKey)} fallback="" />}
         <button type="button" className="section-heading section-link" onClick={() => onNavigate('invocation')}>
           <span>Objectif actuel</span><span className="card-chevron" aria-hidden="true">›</span>
         </button>

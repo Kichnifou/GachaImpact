@@ -12,9 +12,10 @@ const resources = {
   particles: { pyro: '0', hydro: '0', cryo: '0', electro: '0', anemo: '0', geo: '0', dendro: '0' },
 } as const
 
+const target = { id: 'target', externalKey: 'legacy:target', name: 'Mavuika', rarity: 5, elementKey: 'pyro', weaponType: null, region: null, classKey: null, iconPath: '/mavuika.png', splashPath: null, wishPath: null, fullbodyPath: null } as const
 const gacha = {
-  banner: { id: 'banner', startsAt: '2026-09-01T00:00:00.000Z', endsAt: '2026-09-08T00:00:00.000Z', featuredFiveStars: [], featuredFourStars: [] },
-  playerState: { pity5: 0, pity4: 0, guaranteedFeatured5: false, captureProgress: 0, fiftyFiftyLostStreak: 0, selectedBannerCharacterId: null, totalPulls: '0', totalFiveStars: '0', totalFourStars: '0', fiftyFiftyWon: '0', fiftyFiftyLost: '0', capturesTriggered: '0' },
+  banner: { id: 'banner', startsAt: '2026-09-01T00:00:00.000Z', endsAt: '2026-09-08T00:00:00.000Z', featuredFiveStars: [target], featuredFourStars: [] },
+  playerState: { pity5: 12, pity4: 3, guaranteedFeatured5: true, captureProgress: 2, fiftyFiftyLostStreak: 0, selectedBannerCharacterId: target.id, totalPulls: '0', totalFiveStars: '0', totalFourStars: '0', fiftyFiftyWon: '0', fiftyFiftyLost: '0', capturesTriggered: '0' },
 } as const
 
 function progression(level: number, xpIntoCurrentStep: string): PlayerProgressionDto {
@@ -46,7 +47,13 @@ describe('Player sidebar progression', () => {
     expect(html).toContain('width:0%')
     expect(html).not.toContain('Niveau 42')
     expect(html).toContain('profile-element-watermark')
-    expect(html).toContain('Aucune cible sélectionnée')
+    expect(html).toContain('Mavuika')
+    expect(html).toContain('objective-element-watermark')
+    expect(html).toContain('/assets/genshin/elements/pyro.png')
+    expect(html).toContain('Garantie 5★ : Oui')
+    expect(html).toContain('Capture : <strong>2 / 3</strong>')
+    expect(html).toContain('12 / 90')
+    expect(html).toContain('3 / 10')
   })
 
   it('renders a level transition and its dynamic bar', () => {

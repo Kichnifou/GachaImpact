@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import type { CSSProperties } from 'react'
 import type { CurrentGachaDto, GachaCharacterDto } from '../api/types'
 import { currencyAssetPaths, getElementAssetPath } from '../utils/gameAssets'
+import { elementThemes } from '../utils/elementTheme'
 import CharacterAssetImage from './CharacterAssetImage'
 import GameAssetIcon from './GameAssetIcon'
 
@@ -18,7 +20,7 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget }
   if (choosing || !selected) {
     return <section className={`invocation-panel target-picker${compact ? ' home-banner' : ''}`} aria-labelledby="invocation-title">
       <div className="banner-content"><h1 id="invocation-title">Choisissez votre cible</h1><p>Définissez le personnage 5★ que vous visez pour cette rotation hebdomadaire.</p><span className="banner-period">Jusqu’au {new Date(gacha.banner.endsAt).toLocaleDateString('fr-FR')}</span></div>
-      <div className="target-choice-grid">{gacha.banner.featuredFiveStars.map((character) => <button type="button" className={`target-choice ${character.elementKey}`} disabled={pending !== null} onClick={() => void choose(character)} key={character.id}><CharacterAssetImage characterName={character.name} className="target-choice-image" assetPaths={[character.fullbodyPath, character.wishPath, character.iconPath, character.splashPath]} fallback={character.name.slice(0, 1)} alt="" /><strong>{character.name}</strong><span>★★★★★</span></button>)}</div>
+      <div className="target-choice-grid">{gacha.banner.featuredFiveStars.map((character) => <button type="button" className={`target-choice ${character.elementKey}`} style={{ '--target-element': elementThemes[character.elementKey].color } as CSSProperties} disabled={pending !== null} onClick={() => void choose(character)} key={character.id}><CharacterAssetImage characterName={character.name} className="target-choice-image" assetPaths={[character.iconPath, character.fullbodyPath, character.wishPath, character.splashPath]} fallback={character.name.slice(0, 1)} alt="" /><strong>{character.name}</strong><span>★★★★★</span></button>)}</div>
       <FeaturedFourStars characters={gacha.banner.featuredFourStars} />
     </section>
   }

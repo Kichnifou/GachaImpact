@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.51
+Version : 0.52
 Date : 2026-09-05
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3575,9 +3575,9 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - `GET /api/v1/me/progression` expose les compteurs `bigint` lossless et le niveau dérivé de l'XP cumulative selon `min(floor(xp / 30), 100)`, sans endpoint de gain ou de mutation d'XP ;
 - la sidebar charge désormais niveau, XP du palier et barre depuis l'état serveur au bootstrap authentifié ; les mocks Team, objectif Gacha, pity, garantie et Capture de brillance restent volontairement hors de ce lot ;
 - tests unitaires frontend/backend, builds, lint, tests DB réels et statut Prisma : **VALIDÉS TECHNIQUEMENT**.
-- Gacha — catalogue / bannière / cible / état joueur : **FONDATIONS VALIDÉES PUBLIQUEMENT PAR LE PROPRIÉTAIRE — DOMAINE ENCORE ACTIF POUR REVALIDATION UX/RESPONSIVE** ; chargement général, catalogue et bannière réels, absence de cible initiale automatique, rotation `4×5★ + 6×4★`, sélection/changement de cible et persistance après F5 puis logout/login validés ;
-- état Gacha public validé : Pity 5★ `0 / 90`, Pity 4★ `0 / 10`, Garantie `Non`, Capture `0 / 3` et boutons Pull inactifs ; aucune mutation des Primogemmes, Moras, particules, XP, de la Roue ou du Daily Reward constatée ;
-- corrections UX/responsive de ce checkpoint : **TECHNIQUEMENT TERMINÉES — VALIDATION PUBLIQUE FINALE PROPRIÉTAIRE À FAIRE** ;
+- Gacha — catalogue / bannière / cible / état joueur : **FONDATIONS VALIDÉES PUBLIQUEMENT PAR LE PROPRIÉTAIRE — DOMAINE ENCORE ACTIF POUR VALIDATION PUBLIQUE FINALE DU CORRECTIF** ; catalogue et bannière réels, sélection/changement de cible, persistance après F5 puis logout/login, vrais Pity 5★ et Pity 4★, vraie Garantie et vraie Capture validés ;
+- UX Gacha déjà validée publiquement : bouton `Changer` agrandi, date de fin, symbole élémentaire du hero et structure mobile hybride du joueur ; boutons Pull x1/x10 toujours désactivés ; aucune régression Ressources, XP, Roue ou Daily Reward constatée ;
+- passe corrective portrait/cadrage, miniatures 4★, watermarks et alignement du footer : **TECHNIQUEMENT TERMINÉE — VALIDATION PUBLIQUE FINALE PROPRIÉTAIRE À FAIRE** ;
 - le moteur Pull x1/x10 reste volontairement absent et constitue le prochain lot seulement après cette validation publique finale et la clôture du domaine.
 
 État du premier parcours frontend standalone :
