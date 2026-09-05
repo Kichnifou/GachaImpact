@@ -22,6 +22,7 @@ const expectedTables = [
   'elements',
   'player_daily_reward_state',
   'player_economy_stats',
+  'player_progression',
   'player_resource_balances',
   'player_wheel_daily_states',
   'player_wheel_stats',
@@ -39,6 +40,11 @@ const expectedCheckConstraints = [
   'player_economy_stats_moras_spent_nonnegative_check',
   'player_economy_stats_primos_earned_nonnegative_check',
   'player_economy_stats_primos_spent_nonnegative_check',
+  'player_progression_counted_messages_nonnegative_check',
+  'player_progression_counted_messages_not_above_total_check',
+  'player_progression_overflow_claimed_nonnegative_check',
+  'player_progression_total_messages_nonnegative_check',
+  'player_progression_xp_nonnegative_check',
   'player_resource_balances_amount_nonnegative_check',
   'player_wheel_stats_jackpots_not_above_spins_check',
   'player_wheel_stats_total_jackpots_nonnegative_check',
@@ -144,6 +150,17 @@ describe('Supabase development database', () => {
     expect(indexes.map(({ indexName }) => indexName)).toEqual(expectedManualIndexes);
   });
 
+  it('backfills exactly one progression row for every existing Player', async () => {
+    const missingProgressions = await database.$queryRaw<{ count: bigint }[]>`
+      SELECT count(*) AS "count"
+      FROM "players" AS player
+      LEFT JOIN "player_progression" AS progression ON progression."player_id" = player."id"
+      WHERE progression."player_id" IS NULL
+    `;
+
+    expect(missingProgressions[0]?.count).toBe(0n);
+  });
+
   it('provisions one complete Player atomically and remains idempotent under concurrency', async () => {
     const subject = `test-auth-subject-${randomUUID()}`;
     const displayName = `DB Test ${randomUUID().slice(0, 8)}`;
@@ -172,7 +189,7 @@ describe('Supabase development database', () => {
         },
       });
 
-      const [players, identities, balances, economyStats, wheelStats, dailyRewardState] = await Promise.all([
+      const [players, identities, balances, economyStats, wheelStats, dailyRewardState, progressions] = await Promise.all([
         database.player.count({ where: { id: playerId } }),
         database.webIdentity.count({
           where: { provider: 'supabase', providerSubject: subject },
@@ -184,6 +201,7 @@ describe('Supabase development database', () => {
         database.playerEconomyStats.findUnique({ where: { playerId } }),
         database.playerWheelStats.findUnique({ where: { playerId } }),
         database.playerDailyRewardState.findUnique({ where: { playerId } }),
+        database.playerProgression.findMany({ where: { playerId } }),
       ]);
 
       expect(players).toBe(1);
@@ -199,6 +217,35 @@ describe('Supabase development database', () => {
       });
       expect(wheelStats).toMatchObject({ totalSpins: 0n, totalJackpots: 0n });
       expect(dailyRewardState).toMatchObject({ firstClaimDate: null, lastClaimDate: null, lastClaimedAt: null });
+      expect(progressions).toEqual([
+        expect.objectContaining({
+          xp: 0n,
+          level100OverflowRewardsClaimed: 0,
+          totalMessages: 0n,
+          countedMessages: 0n,
+          lastXpAt: null,
+          lastXpMessageAt: null,
+        }),
+      ]);
+
+      await expect(
+        database.playerProgression.update({ where: { playerId }, data: { xp: -1n } }),
+      ).rejects.toThrow();
+      await expect(
+        database.playerProgression.update({
+          where: { playerId },
+          data: { level100OverflowRewardsClaimed: -1 },
+        }),
+      ).rejects.toThrow();
+      await expect(
+        database.playerProgression.update({ where: { playerId }, data: { totalMessages: -1n } }),
+      ).rejects.toThrow();
+      await expect(
+        database.playerProgression.update({ where: { playerId }, data: { countedMessages: -1n } }),
+      ).rejects.toThrow();
+      await expect(
+        database.playerProgression.update({ where: { playerId }, data: { countedMessages: 1n } }),
+      ).rejects.toThrow();
     } finally {
       const [testIdentities, testPlayers] = await Promise.all([
         database.webIdentity.findMany({
@@ -220,6 +267,7 @@ describe('Supabase development database', () => {
           database.playerEconomyStats.deleteMany({ where: { playerId: { in: playerIds } } }),
           database.playerWheelStats.deleteMany({ where: { playerId: { in: playerIds } } }),
           database.playerDailyRewardState.deleteMany({ where: { playerId: { in: playerIds } } }),
+          database.playerProgression.deleteMany({ where: { playerId: { in: playerIds } } }),
           database.webIdentity.deleteMany({ where: { playerId: { in: playerIds } } }),
           database.player.deleteMany({ where: { id: { in: playerIds } } }),
         ]);

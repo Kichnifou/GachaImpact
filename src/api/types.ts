@@ -15,6 +15,17 @@ export type PlayerResourcesDto = Readonly<{
   particles: Readonly<Record<ElementKey, string>>
 }>
 
+export type PlayerProgressionDto = Readonly<{
+  totalXp: string
+  level: number
+  xpIntoCurrentStep: string
+  xpPerStep: string
+  isMaxLevel: boolean
+  level100OverflowRewardsClaimed: number
+  totalMessages: string
+  countedMessages: string
+}>
+
 export type WheelRewardDto = Readonly<{
   resultType: 'nothing' | 'particles' | 'moras' | 'primogems'
   resourceKey: string | null

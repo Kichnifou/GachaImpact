@@ -8,10 +8,12 @@ import { registerErrorHandler } from './api/error-handler.js';
 import { registerCurrentPlayerRoutes } from './api/routes/current-player.js';
 import { registerHealthRoute } from './api/routes/health.js';
 import { registerPlayerGameRoutes } from './api/routes/player-game.js';
+import { registerPlayerProgressionRoutes } from './api/routes/player-progression.js';
 import { registerWheelRoutes } from './api/routes/wheel.js';
 import type { AuthIdentityVerifier } from './application/auth/auth-identity-verifier.js';
 import type { ChoosePlayerElement } from './application/player/choose-player-element.js';
 import type { GetCurrentPlayerResources } from './application/player/get-current-player-resources.js';
+import type { GetCurrentPlayerProgression } from './application/player/get-current-player-progression.js';
 import type { GetOrProvisionCurrentPlayer } from './application/player/get-or-provision-current-player.js';
 import type { SpinDailyWheel } from './application/wheel/spin-daily-wheel.js';
 import type { GetTodayWheelState } from './application/wheel/get-today-wheel-state.js';
@@ -26,6 +28,7 @@ export type AppDependencies = Readonly<{
   getOrProvisionCurrentPlayer: GetOrProvisionCurrentPlayer;
   choosePlayerElement?: ChoosePlayerElement;
   getCurrentPlayerResources?: GetCurrentPlayerResources;
+  getCurrentPlayerProgression?: GetCurrentPlayerProgression;
   getTodayWheelState?: GetTodayWheelState;
   spinDailyWheel?: SpinDailyWheel;
   getTodayDailyReward?: GetTodayDailyReward;
@@ -75,6 +78,12 @@ export async function buildApp(
         authenticate,
         choosePlayerElement: dependencies.choosePlayerElement,
         getCurrentPlayerResources: dependencies.getCurrentPlayerResources,
+      });
+    }
+    if (dependencies.getCurrentPlayerProgression) {
+      await app.register(registerPlayerProgressionRoutes, {
+        authenticate,
+        getCurrentPlayerProgression: dependencies.getCurrentPlayerProgression,
       });
     }
     if (dependencies.getTodayWheelState && dependencies.spinDailyWheel) {

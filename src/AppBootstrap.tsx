@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { ApiError, getGameApiClient } from './api/game-api'
-import type { DailyRewardTodayDto, ElementKey, PlayerDto, PlayerResourcesDto, WheelTodayDto } from './api/types'
+import type { DailyRewardTodayDto, ElementKey, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, WheelTodayDto } from './api/types'
 import { useAuth } from './auth/auth-context'
 import { resolveBootstrapStage } from './auth/bootstrap-state'
 import AuthScreen from './components/AuthScreen'
@@ -17,6 +17,7 @@ function AppBootstrap() {
   const sessionUserId = session?.user.id
   const [player, setPlayer] = useState<PlayerDto | null>(null)
   const [resources, setResources] = useState<PlayerResourcesDto | null>(null)
+  const [progression, setProgression] = useState<PlayerProgressionDto | null>(null)
   const [wheelToday, setWheelToday] = useState<WheelTodayDto | null>(null)
   const [dailyRewardToday, setDailyRewardToday] = useState<DailyRewardTodayDto | null>(null)
   const [resolvedUserId, setResolvedUserId] = useState<string | null>(null)
@@ -30,12 +31,14 @@ function AppBootstrap() {
 
   const loadGameState = useCallback(async () => {
     const api = getGameApiClient()
-    const [nextResources, nextWheelToday, nextDailyRewardToday] = await Promise.all([
+    const [nextResources, nextProgression, nextWheelToday, nextDailyRewardToday] = await Promise.all([
       api.getResources(),
+      api.getProgression(),
       api.getWheelToday(),
       api.getDailyRewardToday(),
     ])
     setResources(nextResources)
+    setProgression(nextProgression)
     setWheelToday(nextWheelToday)
     setDailyRewardToday(nextDailyRewardToday)
   }, [])
@@ -61,6 +64,7 @@ function AppBootstrap() {
         if (error instanceof ApiError && error.code === 'ONBOARDING_DISPLAY_NAME_REQUIRED') {
           setPlayer(null)
           setResources(null)
+          setProgression(null)
           setWheelToday(null)
           setDailyRewardToday(null)
           setFatalError(null)
@@ -85,7 +89,7 @@ function AppBootstrap() {
     authStatus,
     player,
     playerResolved,
-    resources !== null && wheelToday !== null && dailyRewardToday !== null,
+    resources !== null && progression !== null && wheelToday !== null && dailyRewardToday !== null,
   )
   const currentFatalError =
     fatalError && fatalError.userId === sessionUserId ? fatalError.message : null
@@ -130,7 +134,7 @@ function AppBootstrap() {
     )
   }
 
-  if (!player || !resources || !wheelToday || !dailyRewardToday) {
+  if (!player || !resources || !progression || !wheelToday || !dailyRewardToday) {
     return <StatusScreen title="Chargement du profil…" message="Synchronisation de vos ressources." loading />
   }
 
@@ -138,6 +142,7 @@ function AppBootstrap() {
     <GameShell
       player={player}
       resources={resources}
+      progression={progression}
       wheelToday={wheelToday}
       dailyRewardToday={dailyRewardToday}
       onClaimDailyReward={async () => {

@@ -1,6 +1,7 @@
 import type { PlayerResourceBalances } from '../../application/player/player-resource-store.js';
 import type { WheelSpinResult, WheelTodayState } from '../../domain/wheel/wheel.js';
 import type { DailyRewardClaimResult, DailyRewardTodayState } from '../../domain/daily-reward/daily-reward.js';
+import type { PlayerProgression } from '../../domain/player/player-progression.js';
 
 /** Bigint-backed amounts cross the JSON boundary as lossless base-10 strings. */
 export function toPlayerResourcesDto(balances: PlayerResourceBalances) {
@@ -16,6 +17,19 @@ export function toPlayerResourcesDto(balances: PlayerResourceBalances) {
       geo: balances.particles_geo.toString(),
       dendro: balances.particles_dendro.toString(),
     },
+  };
+}
+
+export function toPlayerProgressionDto(progression: PlayerProgression) {
+  return {
+    totalXp: progression.totalXp.toString(),
+    level: progression.level,
+    xpIntoCurrentStep: progression.xpIntoCurrentStep.toString(),
+    xpPerStep: progression.xpPerStep.toString(),
+    isMaxLevel: progression.isMaxLevel,
+    level100OverflowRewardsClaimed: progression.level100OverflowRewardsClaimed,
+    totalMessages: progression.totalMessages.toString(),
+    countedMessages: progression.countedMessages.toString(),
   };
 }
 

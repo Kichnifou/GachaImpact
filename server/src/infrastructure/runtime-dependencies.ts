@@ -2,6 +2,7 @@ import { ChoosePlayerElement } from '../application/player/choose-player-element
 import { GetCurrentPlayer } from '../application/player/get-current-player.js';
 import { GetCurrentPlayerResources } from '../application/player/get-current-player-resources.js';
 import { GetOrProvisionCurrentPlayer } from '../application/player/get-or-provision-current-player.js';
+import { GetCurrentPlayerProgression } from '../application/player/get-current-player-progression.js';
 import { SpinDailyWheel } from '../application/wheel/spin-daily-wheel.js';
 import { GetTodayWheelState } from '../application/wheel/get-today-wheel-state.js';
 import type { AppConfig } from '../config/environment.js';
@@ -10,6 +11,7 @@ import { PrismaCurrentPlayerStore } from './database/prisma-current-player-store
 import { createDatabase } from './database/prisma-database.js';
 import { PrismaPlayerElementStore } from './database/prisma-player-element-store.js';
 import { PrismaPlayerResourceStore } from './database/prisma-player-resource-store.js';
+import { PrismaPlayerProgressionStore } from './database/prisma-player-progression-store.js';
 import { PrismaWheelStore } from './database/prisma-wheel-store.js';
 import { NodeRandomSource } from './random/node-random-source.js';
 import { SystemClock } from './time/system-clock.js';
@@ -40,6 +42,10 @@ export function createRuntimeDependencies(config: AppConfig) {
     getCurrentPlayerResources: new GetCurrentPlayerResources(
       getCurrentPlayer,
       new PrismaPlayerResourceStore(database),
+    ),
+    getCurrentPlayerProgression: new GetCurrentPlayerProgression(
+      getCurrentPlayer,
+      new PrismaPlayerProgressionStore(database),
     ),
     getTodayWheelState: new GetTodayWheelState(getCurrentPlayer, wheelStore, clock),
     spinDailyWheel: new SpinDailyWheel(getCurrentPlayer, wheelStore, clock, new NodeRandomSource()),

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import type { DailyRewardClaimDto, DailyRewardTodayDto, PlayerDto, PlayerResourcesDto, WheelSpinDto, WheelTodayDto } from '../api/types'
+import type { DailyRewardClaimDto, DailyRewardTodayDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import type { ScreenId } from '../types'
 import BoxScreen from '../screens/BoxScreen'
 import CharactersScreen from '../screens/CharactersScreen'
@@ -25,6 +25,7 @@ const getScreenFromHash = (): ScreenId => {
 type GameShellProps = {
   player: PlayerDto
   resources: PlayerResourcesDto
+  progression: PlayerProgressionDto
   wheelToday: WheelTodayDto
   onSpinWheel: () => Promise<WheelSpinDto>
   dailyRewardToday: DailyRewardTodayDto
@@ -32,7 +33,7 @@ type GameShellProps = {
   onSignOut: () => Promise<void>
 }
 
-function GameShell({ player, resources, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut }: GameShellProps) {
+function GameShell({ player, resources, progression, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut }: GameShellProps) {
   const [activeScreen, setActiveScreen] = useState<ScreenId>(getScreenFromHash)
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -83,6 +84,7 @@ function GameShell({ player, resources, wheelToday, onSpinWheel, dailyRewardToda
         <PlayerSidebar
           playerData={player}
           resources={resources}
+          progression={progression}
           dailyRewardToday={dailyRewardToday}
           onClaimDailyReward={onClaimDailyReward}
           isOpen={isSidebarOpen}

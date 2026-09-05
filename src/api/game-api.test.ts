@@ -92,6 +92,29 @@ describe('game API client', () => {
     expect(fetchImplementation.mock.calls[0]?.[1]?.method).toBeUndefined()
   })
 
+  it('loads lossless Player progression through the read-only endpoint', async () => {
+    const fetchImplementation = vi.fn<typeof fetch>(async () =>
+      new Response(JSON.stringify({
+        totalXp: '9007199254740993', level: 100, xpIntoCurrentStep: '3', xpPerStep: '30',
+        isMaxLevel: true, level100OverflowRewardsClaimed: 2,
+        totalMessages: '9007199254740993', countedMessages: '42',
+      })),
+    )
+    const client = createGameApiClient({
+      baseUrl: 'http://127.0.0.1:3001',
+      getAccessToken: async () => 'token',
+      fetchImplementation,
+    })
+
+    await expect(client.getProgression()).resolves.toMatchObject({
+      totalXp: '9007199254740993', level: 100, xpIntoCurrentStep: '3',
+    })
+    expect(fetchImplementation.mock.calls[0]?.[0]).toBe(
+      'http://127.0.0.1:3001/api/v1/me/progression',
+    )
+    expect(fetchImplementation.mock.calls[0]?.[1]?.method).toBeUndefined()
+  })
+
   it('returns a stable network error without logging the token', async () => {
     const client = createGameApiClient({
       baseUrl: 'http://127.0.0.1:3001',

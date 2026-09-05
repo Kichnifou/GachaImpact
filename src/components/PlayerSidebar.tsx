@@ -1,5 +1,6 @@
-import type { DailyRewardClaimDto, DailyRewardTodayDto, PlayerDto, PlayerResourcesDto } from '../api/types'
-import { activeBanner, activeTeam, player as mockPlayer } from '../data/mockData'
+import type { DailyRewardClaimDto, DailyRewardTodayDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto } from '../api/types'
+import { activeBanner, activeTeam } from '../data/mockData'
+import { getProgressionPercent } from '../progression/presentation'
 import type { ScreenId } from '../types'
 import { currencyAssetPaths, getElementAssetPath } from '../utils/gameAssets'
 import { elementLabels, formatResourceAmount } from '../utils/formatters'
@@ -13,14 +14,16 @@ type PlayerSidebarProps = {
   onNavigate: (screen: ScreenId) => void
   playerData: PlayerDto
   resources: PlayerResourcesDto
+  progression: PlayerProgressionDto
   dailyRewardToday: DailyRewardTodayDto
   onClaimDailyReward: () => Promise<DailyRewardClaimDto>
 }
 
 const particleElements = ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro'] as const
 
-function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, dailyRewardToday, onClaimDailyReward }: PlayerSidebarProps) {
+function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, progression, dailyRewardToday, onClaimDailyReward }: PlayerSidebarProps) {
   const { featuredCharacter, pityFiveStar, pityFourStar, guaranteeFiveStar, brilliance } = activeBanner
+  const progressionPercent = getProgressionPercent(progression)
 
   return (
     <aside className={`player-sidebar${isOpen ? ' mobile-open' : ''}`} aria-label="Informations du joueur">
@@ -36,11 +39,11 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, dai
         <div className="profile-copy">
           <h2>{playerData.displayName}</h2>
           <div className="level-line">
-            <span>Niveau {mockPlayer.level}</span>
-            <small>{mockPlayer.currentXp.toLocaleString('fr-FR')} / {mockPlayer.requiredXp.toLocaleString('fr-FR')} XP</small>
+            <span>Niveau {progression.level}</span>
+            <small>{formatResourceAmount(progression.xpIntoCurrentStep)} / {formatResourceAmount(progression.xpPerStep)} XP</small>
           </div>
-          <div className="progress-track" aria-label="Expérience complète">
-            <span className="progress-fill full" />
+          <div className="progress-track" aria-label={`Progression d’expérience : ${progressionPercent.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} %`}>
+            <span className="progress-fill" style={{ width: `${progressionPercent}%` }} />
           </div>
         </div>
       </section>

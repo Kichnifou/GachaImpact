@@ -81,10 +81,26 @@ model Player {
   wheelStats         PlayerWheelStats?
   wheelDailyStates   PlayerWheelDailyState[]
   dailyRewardState   PlayerDailyRewardState?
+  progression        PlayerProgression?
 
   @@index([status], map: "players_status_idx")
   @@index([elementKey], map: "players_element_key_idx")
   @@map("players")
+}
+
+model PlayerProgression {
+  playerId                       String   @id @map("player_id") @db.Uuid
+  xp                             BigInt   @default(0)
+  level100OverflowRewardsClaimed Int      @default(0) @map("level_100_overflow_rewards_claimed")
+  totalMessages                  BigInt   @default(0) @map("total_messages")
+  countedMessages                BigInt   @default(0) @map("counted_messages")
+  lastXpAt                       DateTime? @map("last_xp_at") @db.Timestamptz(6)
+  lastXpMessageAt                DateTime? @map("last_xp_message_at") @db.Timestamptz(6)
+  createdAt                      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player                         Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@map("player_progression")
 }
 
 model WebIdentity {
