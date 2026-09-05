@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.47
+Version : 0.48
 Date : 2026-09-05
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3534,7 +3534,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Phase C3 — Récompense quotidienne réelle, server-authoritative.**
+**Phase C3 — Progression Player réelle et dé-mock du profil.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3569,7 +3569,8 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - récompense quotidienne réelle implémentée par Codex : état serveur par Player, reset `Europe/Paris`, claim atomique/idempotent et trois crédits via le moteur économique central ;
 - routes Auth `GET /api/v1/daily-reward/today` et `POST /api/v1/daily-reward/claim` couvertes par les tests ;
 - migration additive `002_add_player_daily_reward_state` appliquée et tests DB/concurrence validés ;
-- validation publique manuelle de cette récompense quotidienne par le propriétaire : **À FAIRE**.
+- récompense quotidienne réelle : **VALIDÉE PUBLIQUEMENT PAR LE PROPRIÉTAIRE** sur [https://gachaimpact.pages.dev](https://gachaimpact.pages.dev) ; disponibilité, claim, +160 Primogemmes, +160 particules principales, +10 000 Moras, mise à jour immédiate des soldes, F5, logout/login et absence de second gain validés ;
+- domaine Récompense quotidienne réelle : **CLÔTURÉ comme checkpoint fonctionnel**.
 
 État du premier parcours frontend standalone :
 
@@ -3599,7 +3600,7 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-Déployer ce lot après validation/commit du propriétaire, puis valider publiquement la récompense quotidienne réelle : état disponible, premier claim, trois soldes actualisés, F5 et logout/login sans second gain. Après cette validation, le prochain domaine prévu est **Progression Player réelle et dé-mock du profil**. `PAID_INFRA_APPROVED = false` reste inchangé.
+Implémenter l’état XP/niveau réel côté serveur, puis remplacer le niveau et l’XP fictifs de la sidebar par les vraies données. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

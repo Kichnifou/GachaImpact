@@ -13,7 +13,7 @@ Ce fichier n’est pas un tracker vivant et ne doit pas être modifié pour enre
 ## Séquence retenue
 
 1. **Récompense quotidienne réelle**
-   - Implémentée techniquement ; validation publique propriétaire encore à faire.
+   - Implémentée et validée publiquement par le propriétaire ; checkpoint fonctionnel clôturé.
 
 2. **Progression Player réelle et dé-mock du profil**
    - XP réelle, niveau réel, état de progression serveur.
