@@ -14,10 +14,11 @@ FROM node:24-alpine AS runtime
 
 WORKDIR /app
 ENV NODE_ENV=production
+ENV HOST=0.0.0.0
 
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 
 EXPOSE 3001
-CMD ["npm", "run", "start"]
+CMD ["node", "dist/src/server.js"]

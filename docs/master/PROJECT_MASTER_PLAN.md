@@ -1,7 +1,7 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.44
-Date : 2026-09-04
+Version : 0.45
+Date : 2026-09-05
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
@@ -3572,10 +3572,16 @@ Domaine actif :
 - choix permanent de l’élément relié au backend avant l’entrée dans le jeu ;
 - shell V0 conservé et alimenté avec le Player et les ressources réels du vertical slice ;
 - Roue quotidienne accessible graphiquement, sans RNG client, avec rafraîchissement des soldes après le résultat serveur ;
-- premier parcours standalone fonctionnel en local et prêt pour le test manuel du propriétaire.
+- test manuel propriétaire complet : **VALIDÉ**, au checkpoint `27e3a96d64f77dd3e85f1c3f475c5296836e9ed2` ;
+- connexion existante, inscription et confirmation e-mail : **VALIDÉ** ;
+- onboarding pseudo et choix permanent de l’élément : **VALIDÉ** ;
+- ressources réelles, premier spin Roue et solde actualisé : **VALIDÉ** ;
+- reload/persistance, absence de second gain et logout/login : **VALIDÉ** ;
+- Accueil : carte Roue compacte avec action rapide ; feedback de récompense fraîche éphémère, état historique au retour/reload ;
+- futur écran Quotidiens : `WheelGraphic` réutilisable, même état backend et même spin quotidien ; écran non implémenté.
 
 Prochaine étape exacte :
-effectuer le test manuel du propriétaire sur le parcours complet, puis préparer le déploiement Free-first du backend et du frontend. Railway et Cloudflare Pages ne sont pas encore déployés.
+Préparer puis effectuer le déploiement Free-first : backend Railway, frontend Cloudflare Pages, variables production, CORS, URL/redirect Supabase Auth, test public puis premier lien alpha partageable. Railway et Cloudflare Pages ne sont pas encore déployés. Checklist : [Déploiement Free-first V1](../deployment/free-first-v1.md). `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

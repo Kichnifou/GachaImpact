@@ -30,6 +30,13 @@ export function formatWheelResult(result: WheelRewardDto): string {
   return `+${formatResourceAmount(result.amount ?? '0')} particules ${label}`
 }
 
+export function formatFreshWheelResult(result: WheelRewardDto): string {
+  if (result.resultType === 'nothing') return 'Pas de gain cette fois. Retente ta chance demain !'
+  if (result.resultType === 'primogems') return `🌟 JACKPOT ! ${formatWheelResult(result)} !`
+  const symbol = result.resultType === 'moras' ? '🎉' : '✨'
+  return `${symbol} Félicitations ! Tu obtiens ${formatWheelResult(result)} !`
+}
+
 export function apiErrorMessage(error: unknown): string {
   if (!error || typeof error !== 'object' || !('code' in error)) {
     return 'Une erreur inattendue est survenue.'

@@ -27,11 +27,11 @@ describe('application', () => {
     expect(response.headers['x-request-id']).toBeDefined();
   });
 
-  it('allows only the configured frontend origin through CORS', async () => {
+  it.each(['http://localhost:5173', 'https://alpha.example.pages.dev'])('allows only configured origin %s through CORS', async (frontendOrigin) => {
     const app = await buildApp({
       host: '127.0.0.1',
       port: 3001,
-      frontendOrigin: 'http://localhost:5173',
+      frontendOrigin,
       supabase: {},
     });
     apps.push(app);
@@ -40,7 +40,7 @@ describe('application', () => {
       method: 'OPTIONS',
       url: '/api/v1/me',
       headers: {
-        origin: 'http://localhost:5173',
+        origin: frontendOrigin,
         'access-control-request-method': 'GET',
       },
     });
@@ -53,7 +53,7 @@ describe('application', () => {
       },
     });
 
-    expect(allowed.headers['access-control-allow-origin']).toBe('http://localhost:5173');
+    expect(allowed.headers['access-control-allow-origin']).toBe(frontendOrigin);
     expect(rejected.headers['access-control-allow-origin']).toBeUndefined();
   });
 });

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import type { WheelSpinDto, WheelTodayDto } from '../api/types'
-import { apiErrorMessage, formatWheelResult } from '../utils/formatters'
+import { apiErrorMessage, formatWheelResult, formatFreshWheelResult } from '../utils/formatters'
 
 type WheelCardProps = {
   today: WheelTodayDto
@@ -11,6 +11,7 @@ type WheelCardProps = {
 function WheelCard({ today, onSpin }: WheelCardProps) {
   const [isSpinning, setIsSpinning] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [freshResult, setFreshResult] = useState<WheelSpinDto | null>(null)
 
   const spin = async () => {
     if (today.spun || isSpinning) return
@@ -19,7 +20,8 @@ function WheelCard({ today, onSpin }: WheelCardProps) {
     setErrorMessage(null)
 
     try {
-      await onSpin()
+      const result = await onSpin()
+      setFreshResult(result.alreadySpun ? null : result)
     } catch (error) {
       setErrorMessage(apiErrorMessage(error))
     } finally {
@@ -33,7 +35,11 @@ function WheelCard({ today, onSpin }: WheelCardProps) {
       <div className="wheel-copy">
         <span className="eyebrow">Activité quotidienne</span>
         <h2 id="wheel-title">Roue astrale</h2>
-        {today.result ? (
+        {freshResult && freshResult.businessDate === today.businessDate ? (
+          <p className="wheel-result" role="status">
+            <strong>{formatFreshWheelResult(freshResult)}</strong>
+          </p>
+        ) : today.result && !isSpinning ? (
           <p className="wheel-result" role="status">
             <strong>Déjà utilisée aujourd’hui — </strong>
             {formatWheelResult(today.result)}
