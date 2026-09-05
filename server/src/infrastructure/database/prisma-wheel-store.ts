@@ -1,6 +1,5 @@
 import {
   OperationStatus,
-  Prisma,
   SourceChannel,
   type PlayerWheelDailyState,
   type PrismaClient,
@@ -18,6 +17,7 @@ import {
   type WheelSpinResult,
 } from '../../domain/wheel/wheel.js';
 import { PrismaEconomyService } from './prisma-economy-service.js';
+import { isPrismaConcurrencyCollision } from './prisma-concurrency.js';
 
 const MAX_SPIN_ATTEMPTS = 2;
 const resultTypes = ['nothing', 'particles', 'moras', 'primogems'] as const;
@@ -35,7 +35,7 @@ export class PrismaWheelStore implements WheelStore {
       try {
         return await this.spinInTransaction(input);
       } catch (error) {
-        if (!this.isConcurrencyCollision(error)) {
+        if (!isPrismaConcurrencyCollision(error)) {
           throw error;
         }
 
@@ -191,10 +191,4 @@ export class PrismaWheelStore implements WheelStore {
     return value !== null && (resultTypes as readonly string[]).includes(value);
   }
 
-  private isConcurrencyCollision(error: unknown): boolean {
-    return (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      (error.code === 'P2002' || error.code === 'P2034')
-    );
-  }
 }

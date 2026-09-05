@@ -13,6 +13,9 @@ import { PrismaPlayerResourceStore } from './database/prisma-player-resource-sto
 import { PrismaWheelStore } from './database/prisma-wheel-store.js';
 import { NodeRandomSource } from './random/node-random-source.js';
 import { SystemClock } from './time/system-clock.js';
+import { GetTodayDailyReward } from '../application/daily-reward/get-today-daily-reward.js';
+import { ClaimDailyReward } from '../application/daily-reward/claim-daily-reward.js';
+import { PrismaDailyRewardStore } from './database/prisma-daily-reward-store.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
   if (!config.databaseUrl) {
@@ -25,6 +28,7 @@ export function createRuntimeDependencies(config: AppConfig) {
   const getCurrentPlayer = new GetCurrentPlayer(store);
   const wheelStore = new PrismaWheelStore(database);
   const clock = new SystemClock();
+  const dailyRewardStore = new PrismaDailyRewardStore(database);
 
   return {
     authIdentityVerifier: createSupabaseAuthAdapter(issuer),
@@ -39,6 +43,8 @@ export function createRuntimeDependencies(config: AppConfig) {
     ),
     getTodayWheelState: new GetTodayWheelState(getCurrentPlayer, wheelStore, clock),
     spinDailyWheel: new SpinDailyWheel(getCurrentPlayer, wheelStore, clock, new NodeRandomSource()),
+    getTodayDailyReward: new GetTodayDailyReward(getCurrentPlayer, dailyRewardStore, clock),
+    claimDailyReward: new ClaimDailyReward(getCurrentPlayer, dailyRewardStore, clock),
     close: () => database.$disconnect(),
   };
 }

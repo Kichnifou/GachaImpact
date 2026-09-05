@@ -106,4 +106,15 @@ describe('game API client', () => {
       status: null,
     })
   })
+
+  it('uses read-only today and POST claim endpoints for the daily reward', async () => {
+    const fetchImplementation = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ claimed: false, businessDate: '2026-09-05', rewards: { primogems: '160', mainElementParticles: '160', moras: '10000' } })))
+    const client = createGameApiClient({ baseUrl: 'http://127.0.0.1:3001', getAccessToken: async () => 'token', fetchImplementation })
+    await client.getDailyRewardToday()
+    await client.claimDailyReward()
+    expect(fetchImplementation.mock.calls[0]?.[0]).toContain('/api/v1/daily-reward/today')
+    expect(fetchImplementation.mock.calls[0]?.[1]?.method).toBeUndefined()
+    expect(fetchImplementation.mock.calls[1]?.[0]).toContain('/api/v1/daily-reward/claim')
+    expect(fetchImplementation.mock.calls[1]?.[1]?.method).toBe('POST')
+  })
 })

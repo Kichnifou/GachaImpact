@@ -126,6 +126,7 @@ Statut : évolutif.
 
 ## Architecture
 - `VALIDÉ` — Le navigateur ne détient jamais la sauvegarde autoritative.
+- `VALIDÉ` — Dé-mock progressif : lorsqu’un domaine V1 est implémenté, les zones UI correspondantes utilisent les données serveur réelles ; les mocks restent tolérés uniquement pour les domaines non implémentés et ne doivent pas être présentés comme l’état réel du joueur.
 - `VALIDÉ` — La logique métier doit être centralisée côté serveur.
 - `VALIDÉ` — Bouton UI, commande chat GachaImpact et future commande Twitch doivent appeler la même action métier.
 - `VALIDÉ` — Le canal ayant déclenché une action détermine sa restitution ; l'état métier reste commun mais une réponse ne doit pas être dupliquée automatiquement vers les autres canaux.

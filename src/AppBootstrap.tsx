@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { ApiError, getGameApiClient } from './api/game-api'
-import type { ElementKey, PlayerDto, PlayerResourcesDto, WheelTodayDto } from './api/types'
+import type { DailyRewardTodayDto, ElementKey, PlayerDto, PlayerResourcesDto, WheelTodayDto } from './api/types'
 import { useAuth } from './auth/auth-context'
 import { resolveBootstrapStage } from './auth/bootstrap-state'
 import AuthScreen from './components/AuthScreen'
@@ -10,6 +10,7 @@ import GameShell from './components/GameShell'
 import OnboardingScreen from './components/OnboardingScreen'
 import { apiErrorMessage } from './utils/formatters'
 import { wheelTodayFromSpin } from './wheel/wheel-presentation'
+import { claimDailyRewardAndRefresh } from './daily-reward/claim-daily-reward'
 
 function AppBootstrap() {
   const { status: authStatus, session, configurationMessage, signOut } = useAuth()
@@ -17,6 +18,7 @@ function AppBootstrap() {
   const [player, setPlayer] = useState<PlayerDto | null>(null)
   const [resources, setResources] = useState<PlayerResourcesDto | null>(null)
   const [wheelToday, setWheelToday] = useState<WheelTodayDto | null>(null)
+  const [dailyRewardToday, setDailyRewardToday] = useState<DailyRewardTodayDto | null>(null)
   const [resolvedUserId, setResolvedUserId] = useState<string | null>(null)
   const [fatalError, setFatalError] = useState<{ userId: string; message: string } | null>(null)
 
@@ -28,12 +30,14 @@ function AppBootstrap() {
 
   const loadGameState = useCallback(async () => {
     const api = getGameApiClient()
-    const [nextResources, nextWheelToday] = await Promise.all([
+    const [nextResources, nextWheelToday, nextDailyRewardToday] = await Promise.all([
       api.getResources(),
       api.getWheelToday(),
+      api.getDailyRewardToday(),
     ])
     setResources(nextResources)
     setWheelToday(nextWheelToday)
+    setDailyRewardToday(nextDailyRewardToday)
   }, [])
 
   useEffect(() => {
@@ -58,6 +62,7 @@ function AppBootstrap() {
           setPlayer(null)
           setResources(null)
           setWheelToday(null)
+          setDailyRewardToday(null)
           setFatalError(null)
           setResolvedUserId(sessionUserId)
           return
@@ -80,7 +85,7 @@ function AppBootstrap() {
     authStatus,
     player,
     playerResolved,
-    resources !== null && wheelToday !== null,
+    resources !== null && wheelToday !== null && dailyRewardToday !== null,
   )
   const currentFatalError =
     fatalError && fatalError.userId === sessionUserId ? fatalError.message : null
@@ -125,7 +130,7 @@ function AppBootstrap() {
     )
   }
 
-  if (!player || !resources || !wheelToday) {
+  if (!player || !resources || !wheelToday || !dailyRewardToday) {
     return <StatusScreen title="Chargement du profil…" message="Synchronisation de vos ressources." loading />
   }
 
@@ -134,6 +139,13 @@ function AppBootstrap() {
       player={player}
       resources={resources}
       wheelToday={wheelToday}
+      dailyRewardToday={dailyRewardToday}
+      onClaimDailyReward={async () => {
+        const { result, resources: nextResources } = await claimDailyRewardAndRefresh(getGameApiClient())
+        setResources(nextResources)
+        setDailyRewardToday({ claimed: true, businessDate: result.businessDate, rewards: result.rewards })
+        return result
+      }}
       onSpinWheel={async () => {
         const result = await getGameApiClient().spinWheel()
         setWheelToday(wheelTodayFromSpin(result))

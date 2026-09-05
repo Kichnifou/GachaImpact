@@ -20,6 +20,7 @@ const database = createDatabase(config.databaseUrl);
 const expectedTables = [
   'business_operations',
   'elements',
+  'player_daily_reward_state',
   'player_economy_stats',
   'player_resource_balances',
   'player_wheel_daily_states',
@@ -32,6 +33,7 @@ const expectedTables = [
 
 const expectedCheckConstraints = [
   'elements_display_order_positive_check',
+  'player_daily_reward_state_claim_dates_check',
   'player_economy_stats_main_particles_earned_nonnegative_check',
   'player_economy_stats_moras_earned_nonnegative_check',
   'player_economy_stats_moras_spent_nonnegative_check',
@@ -170,7 +172,7 @@ describe('Supabase development database', () => {
         },
       });
 
-      const [players, identities, balances, economyStats, wheelStats] = await Promise.all([
+      const [players, identities, balances, economyStats, wheelStats, dailyRewardState] = await Promise.all([
         database.player.count({ where: { id: playerId } }),
         database.webIdentity.count({
           where: { provider: 'supabase', providerSubject: subject },
@@ -181,6 +183,7 @@ describe('Supabase development database', () => {
         }),
         database.playerEconomyStats.findUnique({ where: { playerId } }),
         database.playerWheelStats.findUnique({ where: { playerId } }),
+        database.playerDailyRewardState.findUnique({ where: { playerId } }),
       ]);
 
       expect(players).toBe(1);
@@ -195,6 +198,7 @@ describe('Supabase development database', () => {
         totalMainElementParticlesEarned: 0n,
       });
       expect(wheelStats).toMatchObject({ totalSpins: 0n, totalJackpots: 0n });
+      expect(dailyRewardState).toMatchObject({ firstClaimDate: null, lastClaimDate: null, lastClaimedAt: null });
     } finally {
       const [testIdentities, testPlayers] = await Promise.all([
         database.webIdentity.findMany({
@@ -215,6 +219,7 @@ describe('Supabase development database', () => {
           database.playerResourceBalance.deleteMany({ where: { playerId: { in: playerIds } } }),
           database.playerEconomyStats.deleteMany({ where: { playerId: { in: playerIds } } }),
           database.playerWheelStats.deleteMany({ where: { playerId: { in: playerIds } } }),
+          database.playerDailyRewardState.deleteMany({ where: { playerId: { in: playerIds } } }),
           database.webIdentity.deleteMany({ where: { playerId: { in: playerIds } } }),
           database.player.deleteMany({ where: { id: { in: playerIds } } }),
         ]);

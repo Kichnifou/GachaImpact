@@ -106,11 +106,12 @@ Pour savoir :
 lire en priorité :
 
 1. `docs/master/PROJECT_MASTER_PLAN.md`
-2. le document spécialisé du domaine actif dans `docs/legacy/`
-3. `docs/specifications/decisions-log.md` si une décision transverse doit être vérifiée
-4. `docs/commands/command-reference.md` pour les commandes
-5. `docs/legacy/02-current-player-model.md` pour la vision conceptuelle du joueur
-6. `docs/legacy/03-command-data-matrix.md` pour les relations scripts/données
+2. `docs/roadmap/implementation-order-v1.md` lorsqu’il faut connaître la séquence de développement prévue
+3. le document spécialisé du domaine actif dans `docs/legacy/`
+4. `docs/specifications/decisions-log.md` si une décision transverse doit être vérifiée
+5. `docs/commands/command-reference.md` pour les commandes
+6. `docs/legacy/02-current-player-model.md` pour la vision conceptuelle du joueur
+7. `docs/legacy/03-command-data-matrix.md` pour les relations scripts/données
 
 Le Master doit indiquer la prochaine étape exacte.
 
@@ -286,6 +287,7 @@ Après le push et sa vérification GitHub, reprendre l'audit depuis la prochaine
 Lors d'un checkpoint :
 
 1. vérifier les fichiers actuels du repo avant de proposer des edits ;
+2. avant chaque checkpoint important, inscrire toute nouvelle décision produit, UX, architecture ou stratégie durable validée dans son document propriétaire ;
 2. fournir des modifications exactes ;
 3. utiliser des ancres fiables ;
 4. mettre à jour uniquement les fichiers réellement nécessaires ;

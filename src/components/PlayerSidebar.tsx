@@ -1,10 +1,11 @@
-import type { PlayerDto, PlayerResourcesDto } from '../api/types'
+import type { DailyRewardClaimDto, DailyRewardTodayDto, PlayerDto, PlayerResourcesDto } from '../api/types'
 import { activeBanner, activeTeam, player as mockPlayer } from '../data/mockData'
 import type { ScreenId } from '../types'
 import { currencyAssetPaths, getElementAssetPath } from '../utils/gameAssets'
 import { elementLabels, formatResourceAmount } from '../utils/formatters'
 import CharacterAssetImage from './CharacterAssetImage'
 import GameAssetIcon from './GameAssetIcon'
+import DailyRewardCard from './DailyRewardCard'
 
 type PlayerSidebarProps = {
   isOpen: boolean
@@ -12,11 +13,13 @@ type PlayerSidebarProps = {
   onNavigate: (screen: ScreenId) => void
   playerData: PlayerDto
   resources: PlayerResourcesDto
+  dailyRewardToday: DailyRewardTodayDto
+  onClaimDailyReward: () => Promise<DailyRewardClaimDto>
 }
 
 const particleElements = ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro'] as const
 
-function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources }: PlayerSidebarProps) {
+function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, dailyRewardToday, onClaimDailyReward }: PlayerSidebarProps) {
   const { featuredCharacter, pityFiveStar, pityFourStar, guaranteeFiveStar, brilliance } = activeBanner
 
   return (
@@ -129,14 +132,7 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources }: P
         </div>
       </section>
 
-      <section className="panel daily-card">
-        <div className="daily-icon" aria-hidden="true">♢</div>
-        <div>
-          <span className="eyebrow">Récompense quotidienne</span>
-          <p>Votre cadeau du jour est prêt.</p>
-          <button type="button" className="small-primary-button">Récupérer</button>
-        </div>
-      </section>
+      {playerData.elementKey && <DailyRewardCard today={dailyRewardToday} elementKey={playerData.elementKey} onClaim={onClaimDailyReward} />}
     </aside>
   )
 }

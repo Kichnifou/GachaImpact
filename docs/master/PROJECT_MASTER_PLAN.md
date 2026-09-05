@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.46
+Version : 0.47
 Date : 2026-09-05
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3534,7 +3534,9 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Phase C3 — Implémentation du squelette backend et du premier vertical slice.**
+**Phase C3 — Récompense quotidienne réelle, server-authoritative.**
+
+Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
 État d'autorisation infrastructure :
 `PAID_INFRA_APPROVED = false`
@@ -3550,7 +3552,7 @@ Domaine actif :
 - Prisma ORM 7.10.0 stable ;
 - Supabase DEV provisionné et connexion PostgreSQL fonctionnelle ;
 - première migration versionnée appliquée ;
-- 10 tables de fondation présentes pour Identité / Ressources / Roue ;
+- 11 tables de fondation présentes pour Identité / Ressources / Roue / Récompense quotidienne ;
 - référentiels seedés avec 7 éléments et 9 ressources ;
 - RLS activée sur les tables de fondation, sans policy client permissive ;
 - Auth Supabase réel checkpointé au commit `027d230f7d047e0469076418d3d5122e831bdce6` ;
@@ -3564,6 +3566,10 @@ Domaine actif :
 - lecture lossless des neuf soldes via `GET /api/v1/me/resources` ;
 - Roue quotidienne réelle via `POST /api/v1/wheel/spin`, avec RNG serveur, journée `Europe/Paris`, résultat mémorisé, mouvement économique, statistiques et protection transactionnelle contre les doubles gains ;
 - tests unitaires, tests DB réels et scénario concurrent de la Roue validés.
+- récompense quotidienne réelle implémentée par Codex : état serveur par Player, reset `Europe/Paris`, claim atomique/idempotent et trois crédits via le moteur économique central ;
+- routes Auth `GET /api/v1/daily-reward/today` et `POST /api/v1/daily-reward/claim` couvertes par les tests ;
+- migration additive `002_add_player_daily_reward_state` appliquée et tests DB/concurrence validés ;
+- validation publique manuelle de cette récompense quotidienne par le propriétaire : **À FAIRE**.
 
 État du premier parcours frontend standalone :
 
@@ -3593,7 +3599,7 @@ Domaine actif :
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-Observer brièvement la consommation réelle Railway pendant le Trial Free, réaliser éventuellement un premier test externe avec un ami, puis reprendre l’implémentation gameplay / vertical slice suivant la décision du propriétaire. Déploiement et procédure de redéploiement : [Déploiement Free-first V1](../deployment/free-first-v1.md). `PAID_INFRA_APPROVED = false` reste inchangé.
+Déployer ce lot après validation/commit du propriétaire, puis valider publiquement la récompense quotidienne réelle : état disponible, premier claim, trois soldes actualisés, F5 et logout/login sans second gain. Après cette validation, le prochain domaine prévu est **Progression Player réelle et dé-mock du profil**. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

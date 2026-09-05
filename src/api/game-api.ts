@@ -8,6 +8,8 @@ import type {
   PlayerResourcesDto,
   WheelSpinDto,
   WheelTodayDto,
+  DailyRewardTodayDto,
+  DailyRewardClaimDto,
 } from './types'
 
 type ApiClientDependencies = Readonly<{
@@ -95,6 +97,8 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getResources: () => request<PlayerResourcesDto>('/api/v1/me/resources'),
     getWheelToday: () => request<WheelTodayDto>('/api/v1/wheel/today'),
     spinWheel: () => request<WheelSpinDto>('/api/v1/wheel/spin', { method: 'POST' }),
+    getDailyRewardToday: () => request<DailyRewardTodayDto>('/api/v1/daily-reward/today'),
+    claimDailyReward: () => request<DailyRewardClaimDto>('/api/v1/daily-reward/claim', { method: 'POST' }),
   }
 }
 

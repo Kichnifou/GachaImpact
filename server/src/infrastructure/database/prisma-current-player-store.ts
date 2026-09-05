@@ -4,6 +4,7 @@ import type {
   CurrentPlayerStore,
   ProvisionCurrentPlayerInput,
 } from '../../application/player/current-player-store.js';
+import { isPrismaConcurrencyCollision } from './prisma-concurrency.js';
 
 const currentPlayerSelection = {
   id: true,
@@ -36,7 +37,7 @@ export class PrismaCurrentPlayerStore implements CurrentPlayerStore {
       try {
         return await this.provisionInTransaction(input);
       } catch (error) {
-        if (!this.isConcurrencyCollision(error)) {
+        if (!isPrismaConcurrencyCollision(error)) {
           throw error;
         }
 
@@ -99,6 +100,7 @@ export class PrismaCurrentPlayerStore implements CurrentPlayerStore {
             },
             economyStats: { create: {} },
             wheelStats: { create: {} },
+            dailyRewardState: { create: {} },
             resourceBalances: {
               create: resources.map(({ key }) => ({
                 resourceKey: key,
@@ -115,10 +117,4 @@ export class PrismaCurrentPlayerStore implements CurrentPlayerStore {
     );
   }
 
-  private isConcurrencyCollision(error: unknown): boolean {
-    return (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      (error.code === 'P2002' || error.code === 'P2034')
-    );
-  }
 }

@@ -32,6 +32,22 @@ export type WheelTodayDto = Readonly<{
   result: WheelRewardDto | null
 }>
 
+export type DailyRewardAmountsDto = Readonly<{
+  primogems: string
+  mainElementParticles: string
+  moras: string
+}>
+
+export type DailyRewardTodayDto = Readonly<{
+  claimed: boolean
+  businessDate: string
+  rewards: DailyRewardAmountsDto
+}>
+
+export type DailyRewardClaimDto = DailyRewardTodayDto & Readonly<{
+  alreadyClaimed: boolean
+}>
+
 export type ElementChoiceDto = Readonly<{
   elementKey: ElementKey
   alreadySelected: boolean

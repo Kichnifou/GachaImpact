@@ -1,5 +1,6 @@
 import type { PlayerResourceBalances } from '../../application/player/player-resource-store.js';
 import type { WheelSpinResult, WheelTodayState } from '../../domain/wheel/wheel.js';
+import type { DailyRewardClaimResult, DailyRewardTodayState } from '../../domain/daily-reward/daily-reward.js';
 
 /** Bigint-backed amounts cross the JSON boundary as lossless base-10 strings. */
 export function toPlayerResourcesDto(balances: PlayerResourceBalances) {
@@ -40,4 +41,14 @@ export function toWheelTodayDto(state: WheelTodayState) {
         }
       : null,
   };
+}
+
+export function toDailyRewardTodayDto(state: DailyRewardTodayState) {
+  return { claimed: state.claimed, businessDate: state.businessDate, rewards: {
+    primogems: state.rewards.primogems.toString(), mainElementParticles: state.rewards.mainElementParticles.toString(), moras: state.rewards.moras.toString(),
+  } };
+}
+
+export function toDailyRewardClaimDto(result: DailyRewardClaimResult) {
+  return { ...toDailyRewardTodayDto(result), alreadyClaimed: result.alreadyClaimed };
 }

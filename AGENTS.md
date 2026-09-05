@@ -153,5 +153,6 @@ Ne pas sur-concevoir le projet pour des besoins hypothétiques à très long ter
 8. À la fin d'une intervention, signaler clairement les fichiers modifiés et les vérifications effectuées, ainsi que tout avertissement restant.
 9. Ne jamais introduire un service payant sans prévenir le propriétaire du projet et obtenir son accord.
 10. Préserver la compatibilité PC/mobile dans toutes les décisions d'interface.
+11. Lorsqu’une décision durable explicitement validée est introduite ou appliquée, s’assurer qu’elle est inscrite dans sa source de vérité avant le checkpoint, sans créer de source de vérité concurrente.
 
 Toujours respecter le périmètre exact de l'étape demandée. Une orientation future documentée dans ce fichier n'est pas, à elle seule, une autorisation d'implémentation.

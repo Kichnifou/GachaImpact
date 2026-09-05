@@ -80,6 +80,7 @@ model Player {
   economyStats       PlayerEconomyStats?
   wheelStats         PlayerWheelStats?
   wheelDailyStates   PlayerWheelDailyState[]
+  dailyRewardState   PlayerDailyRewardState?
 
   @@index([status], map: "players_status_idx")
   @@index([elementKey], map: "players_element_key_idx")
@@ -113,6 +114,7 @@ model BusinessOperation {
   player            Player?                @relation(fields: [playerId], references: [id], onDelete: Restrict)
   resourceMovements ResourceMovement[]
   wheelDailyState   PlayerWheelDailyState?
+  dailyRewardState  PlayerDailyRewardState?
 
   @@index([playerId, startedAt(sort: Desc)], map: "business_operations_player_started_at_idx")
   @@index([operationType, startedAt(sort: Desc)], map: "business_operations_type_started_at_idx")
@@ -196,4 +198,17 @@ model PlayerWheelDailyState {
   @@id([playerId, businessDate])
   @@index([businessDate], map: "player_wheel_daily_states_business_date_idx")
   @@map("player_wheel_daily_states")
+}
+
+model PlayerDailyRewardState {
+  playerId        String             @id @map("player_id") @db.Uuid
+  firstClaimDate  DateTime?          @map("first_claim_date") @db.Date
+  lastClaimDate   DateTime?          @map("last_claim_date") @db.Date
+  lastClaimedAt   DateTime?          @map("last_claimed_at") @db.Timestamptz(6)
+  lastOperationId String?            @unique(map: "player_daily_reward_state_last_operation_id_key") @map("last_operation_id") @db.Uuid
+  updatedAt       DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player          Player             @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  lastOperation   BusinessOperation? @relation(fields: [lastOperationId], references: [id], onDelete: SetNull)
+
+  @@map("player_daily_reward_state")
 }

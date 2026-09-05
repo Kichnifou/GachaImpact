@@ -15,6 +15,9 @@ import type { GetCurrentPlayerResources } from './application/player/get-current
 import type { GetOrProvisionCurrentPlayer } from './application/player/get-or-provision-current-player.js';
 import type { SpinDailyWheel } from './application/wheel/spin-daily-wheel.js';
 import type { GetTodayWheelState } from './application/wheel/get-today-wheel-state.js';
+import { registerDailyRewardRoutes } from './api/routes/daily-reward.js';
+import type { GetTodayDailyReward } from './application/daily-reward/get-today-daily-reward.js';
+import type { ClaimDailyReward } from './application/daily-reward/claim-daily-reward.js';
 import type { AppConfig } from './config/environment.js';
 import { loadConfig } from './config/environment.js';
 
@@ -25,6 +28,8 @@ export type AppDependencies = Readonly<{
   getCurrentPlayerResources?: GetCurrentPlayerResources;
   getTodayWheelState?: GetTodayWheelState;
   spinDailyWheel?: SpinDailyWheel;
+  getTodayDailyReward?: GetTodayDailyReward;
+  claimDailyReward?: ClaimDailyReward;
   close?: () => Promise<void>;
 }>;
 
@@ -64,23 +69,23 @@ export async function buildApp(
       getOrProvisionCurrentPlayer: dependencies.getOrProvisionCurrentPlayer,
     });
 
-    if (
-      dependencies.choosePlayerElement &&
-      dependencies.getCurrentPlayerResources &&
-      dependencies.getTodayWheelState &&
-      dependencies.spinDailyWheel
-    ) {
-      const authenticate = createAuthenticationHook(dependencies.authIdentityVerifier);
+    const authenticate = createAuthenticationHook(dependencies.authIdentityVerifier);
+    if (dependencies.choosePlayerElement && dependencies.getCurrentPlayerResources) {
       await app.register(registerPlayerGameRoutes, {
         authenticate,
         choosePlayerElement: dependencies.choosePlayerElement,
         getCurrentPlayerResources: dependencies.getCurrentPlayerResources,
       });
+    }
+    if (dependencies.getTodayWheelState && dependencies.spinDailyWheel) {
       await app.register(registerWheelRoutes, {
         authenticate,
         getTodayWheelState: dependencies.getTodayWheelState,
         spinDailyWheel: dependencies.spinDailyWheel,
       });
+    }
+    if (dependencies.getTodayDailyReward && dependencies.claimDailyReward) {
+      await app.register(registerDailyRewardRoutes, { authenticate, getTodayDailyReward: dependencies.getTodayDailyReward, claimDailyReward: dependencies.claimDailyReward });
     }
 
     if (dependencies.close) {
