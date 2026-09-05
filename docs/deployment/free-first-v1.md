@@ -1,61 +1,53 @@
-# Checklist de déploiement Free-first V1
+# Déploiement Free-first V1 — état public et checklist
 
-État au 2026-09-05 : préparation locale uniquement. Parcours manuel propriétaire validé ; aucun déploiement effectué par ce lot. `PAID_INFRA_APPROVED = false`.
+État au 2026-09-05 : premier déploiement public validé. `PAID_INFRA_APPROVED = false`.
 
-## 1. Avant publication
+## État réalisé
 
-- Faire valider puis committer/pousser le lot séparément, sur instruction du propriétaire.
-- Vérifier l'éligibilité, les crédits et limites Free du compte Railway avant activation. Aucun upgrade payant automatique autorisé ; si Free est insuffisant, demander une décision au propriétaire.
-- Choisir explicitement le projet Supabase cible ; ne pas réinitialiser la base DEV ni migrer implicitement ses profils.
-- Prévoir un export PostgreSQL privé avant toute future opération de schéma. Aucune migration ni seed automatique au démarrage du conteneur.
+### Backend Railway — FAIT
 
-## 2. Backend Railway
+- Projet Railway : `precious-nourishment` (nom automatique, renommable plus tard sans impact technique).
+- Service : `GachaImpact` ; environnement : `production`.
+- Dépôt : `Kichnifou/GachaImpact`, branche `main`, Root Directory : `/server`.
+- Le `server/Dockerfile` a construit et démarré le backend avec succès sous Linux/Railway.
+- Variables runtime configurées, sans valeur secrète dans Git : `HOST`, `FRONTEND_ORIGIN`, `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_JWT_ISSUER`. Le port est fourni par Railway.
+- Healthcheck : `/health` ; domaine public : [https://gachaimpact-production.up.railway.app](https://gachaimpact-production.up.railway.app). `GET /health` retourne `{"status":"ok"}`.
 
-- Connecter le dépôt GitHub et choisir la branche/checkpoint validé.
-- Racine du service : `server` ; utiliser le `Dockerfile` présent dans cette racine. Aucune configuration Railway supplémentaire nécessaire.
-- Build : `npm ci` → `npm run prisma:generate` → `npm run build`. Prisma généré est compilé dans `dist/generated/prisma` et copié avec `dist` dans l'image runtime.
-- Start Docker : `node dist/src/server.js` (équivalent au script `npm start`, Node reçoit directement SIGTERM). Ne pas remplacer cette commande par `npm run dev`.
-- Healthcheck : `/health` (santé HTTP, pas une preuve de disponibilité PostgreSQL/JWKS). Vérifier séparément le parcours authentifié.
-- Variables runtime à saisir dans Railway, jamais dans Git :
+Railway est actuellement en **Trial Free** (30 jours ou 5 USD de crédits). Railway Hobby n’est pas activé. Observer la consommation réelle avant toute décision ; aucune disponibilité 24/7 ne doit être promise après l’expiration du Trial.
 
-| Variable | Valeur attendue |
-| --- | --- |
-| `HOST` | `0.0.0.0` (défaut Docker) |
-| `PORT` | Port injecté par la plateforme ; `EXPOSE 3001` est seulement indicatif |
-| `FRONTEND_ORIGIN` | Origine HTTPS exacte de Pages une fois connue, sans chemin ni slash final |
-| `DATABASE_URL` | URL PostgreSQL privée du projet choisi ; conserver le mode de connexion/TLS validé |
-| `SUPABASE_URL` | URL publique du même projet Supabase |
-| `SUPABASE_PUBLISHABLE_KEY` | Clé publishable publique du même projet |
-| `SUPABASE_JWT_ISSUER` | URL du projet suivie de `/auth/v1`, correspondant à l'issuer des JWT |
+### Frontend Cloudflare Pages — FAIT
 
-- Activer le domaine public HTTPS du backend et conserver son URL pour Pages. Tant que l'URL Pages n'est pas connue, ne pas ouvrir CORS à `*`.
-- Vérifier les logs de démarrage, `/health`, puis l'arrêt propre (`app.close()` ferme aussi Prisma).
-- Le build Docker/Linux reste à exécuter sur une machine équipée de Docker ou lors du déploiement : les builds Node locaux ne le remplacent pas.
+- Dépôt GitHub connecté, branche `main`, Root Directory : racine du dépôt.
+- Framework preset : `None` ; build : `npm run build` ; sortie : `dist` ; `NODE_VERSION=24`.
+- Variables de build configurées : `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_API_BASE_URL`.
+- Domaine public : [https://gachaimpact.pages.dev](https://gachaimpact.pages.dev).
 
-## 3. Frontend Cloudflare Pages
+Les variables `VITE_*` sont intégrées au build. Elles ne doivent jamais contenir `DATABASE_URL`, un mot de passe PostgreSQL, une clé service-role ou une autre clé secrète.
 
-- Connecter le dépôt GitHub, même branche validée ; racine du projet : racine du dépôt.
-- Node : version 24 (variable de build `NODE_VERSION=24`). Build command : `npm run build`. Output directory : `dist`.
-- Variables de build publiques : `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_API_BASE_URL` (URL HTTPS Railway).
-- Aucune `DATABASE_URL`, aucun mot de passe PostgreSQL, aucune clé service-role/secret dans Pages ou dans une variable `VITE_*`.
-- Les variables Vite sont incorporées au build : reconstruire après toute modification.
-- Navigation actuelle par hash (`#home`, etc.) : un seul document statique, pas de configuration serveur pour chaque écran.
-- Vérifier la taille et le nombre des assets contre les limites Pages du compte avant publication.
+### CORS et Supabase Auth — FAIT
 
-## 4. CORS et confirmation e-mail
+- `FRONTEND_ORIGIN` Railway : `https://gachaimpact.pages.dev` (origine exacte, sans wildcard).
+- Supabase Auth Site URL : `https://gachaimpact.pages.dev`.
+- Redirect URLs autorisées : `https://gachaimpact.pages.dev` et `http://localhost:5173`.
+- Cloudflare Pages et Supabase utilisent leurs offres Free actuelles.
 
-- Reporter l'origine Pages finale dans `FRONTEND_ORIGIN` sur Railway, puis redémarrer/redéployer le backend.
-- L'origine locale reste `http://localhost:5173` dans l'environnement serveur local. Les previews Pages ne sont pas autorisées automatiquement.
-- Dans Supabase Auth → URL Configuration : définir la Site URL sur l'URL frontend publique et autoriser le retour exact vers sa racine. Le signup actuel utilise cette Site URL par défaut.
-- Conserver les redirects locaux nécessaires ; vérifier le lien de confirmation et ses templates. Aucun wildcard global en production.
-- Ce changement sur un projet Supabase partagé affecte aussi les confirmations du développement : en tenir compte lors des tests locaux.
+### Validation publique — FAIT
 
-## 5. Validation publique avant partage
+Depuis [https://gachaimpact.pages.dev](https://gachaimpact.pages.dev), sans backend ni frontend local, le propriétaire a validé : connexion, chargement du Player réel, élément et ressources persistants, état quotidien de la Roue restauré, logout/login et communication Cloudflare → Railway → Supabase. Le premier lien alpha est disponible.
 
-- `/health` public ; CORS autorisé depuis Pages et refusé depuis une origine étrangère.
-- Inscription avec un compte de test, réception/confirmation e-mail, pseudo, élément permanent.
-- Ressources, premier spin et feedback frais ; navigation aller/retour, F5, logout/login : résultat quotidien historique restauré et aucun second gain.
-- PC/mobile, absence d'images cassées, erreurs réseau lisibles ; aucune grosse Roue sur l'Accueil.
-- Vérifier les limites d'envoi d'e-mails/Free, les crédits consommés et la disponibilité effective avant de partager le premier lien alpha. Aucun engagement de disponibilité 24 h/24 sans mesure.
+## À surveiller
 
-Sources officielles consultées : [Railway Dockerfile](https://docs.railway.com/builds/dockerfiles), [Cloudflare Pages Vite](https://developers.cloudflare.com/pages/framework-guides/deploy-a-vite3-project/), [Supabase redirects](https://supabase.com/docs/guides/auth/redirect-urls). Revérifier les offres au moment de l'activation.
+- Consommation Railway et fin du Trial Free ; ne pas activer Hobby ou un autre service payant sans accord explicite du propriétaire.
+- Healthcheck public et parcours authentifié après les futurs déploiements.
+- Limites Free effectives (Railway, Cloudflare Pages, Supabase et e-mails Auth) avant d’élargir les tests externes.
+
+## Checklist de redéploiement utile
+
+1. Faire valider puis committer/pousser le lot concerné, uniquement sur instruction du propriétaire.
+2. Vérifier le déploiement Railway, ses logs et [le healthcheck public](https://gachaimpact-production.up.railway.app/health).
+3. Vérifier le build Pages et que `VITE_API_BASE_URL` cible l’URL Railway HTTPS publique.
+4. Après tout changement d’URL Pages, reporter l’origine exacte dans `FRONTEND_ORIGIN`, redéployer Railway, puis ajuster Site URL et redirects Supabase Auth.
+5. Tester : connexion, confirmation e-mail si concernée, onboarding, élément, ressources, premier spin, navigation, F5, logout/login, PC/mobile et absence d’erreurs réseau.
+6. Ne jamais lancer une migration, un seed ou une réinitialisation PostgreSQL automatiquement au démarrage ; prévoir un export privé avant toute future opération de schéma.
+
+Sources utiles : [Railway Dockerfile](https://docs.railway.com/builds/dockerfiles), [Cloudflare Pages Vite](https://developers.cloudflare.com/pages/framework-guides/deploy-a-vite3-project/), [Supabase redirects](https://supabase.com/docs/guides/auth/redirect-urls).

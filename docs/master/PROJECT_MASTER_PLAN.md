@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.45
+Version : 0.46
 Date : 2026-09-05
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3580,8 +3580,20 @@ Domaine actif :
 - Accueil : carte Roue compacte avec action rapide ; feedback de récompense fraîche éphémère, état historique au retour/reload ;
 - futur écran Quotidiens : `WheelGraphic` réutilisable, même état backend et même spin quotidien ; écran non implémenté.
 
+État du premier déploiement public Free-first :
+
+- préparation Railway : **VALIDÉE** ; Docker Linux/Railway, variables runtime, arrêt propre et healthcheck : **VALIDÉS** ;
+- backend Railway public : **DÉPLOYÉ ET ACTIF** ; projet `precious-nourishment`, service `GachaImpact`, environnement `production`, dépôt `Kichnifou/GachaImpact`, branche `main`, racine `/server` ;
+- domaine backend : [https://gachaimpact-production.up.railway.app](https://gachaimpact-production.up.railway.app) ; `GET /health` retourne `{"status":"ok"}` ;
+- frontend Cloudflare Pages : **DÉPLOYÉ ET ACTIF** ; dépôt/branche `main`, racine du dépôt, build `npm run build`, sortie `dist`, Node 24 et variables Vite de production configurés ;
+- domaine frontend et premier lien alpha partageable : [https://gachaimpact.pages.dev](https://gachaimpact.pages.dev) ;
+- CORS de production : `FRONTEND_ORIGIN` pointe vers l’origine Pages exacte ;
+- Supabase Auth : Site URL et redirects de production configurés ; le redirect local `http://localhost:5173` reste autorisé ;
+- test public sans frontend/backend local : **VALIDÉ** — connexion, Player réel, élément et ressources persistants, état quotidien de la Roue restauré, logout/login et chaîne Cloudflare → Railway → Supabase ;
+- `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
+
 Prochaine étape exacte :
-Préparer puis effectuer le déploiement Free-first : backend Railway, frontend Cloudflare Pages, variables production, CORS, URL/redirect Supabase Auth, test public puis premier lien alpha partageable. Railway et Cloudflare Pages ne sont pas encore déployés. Checklist : [Déploiement Free-first V1](../deployment/free-first-v1.md). `PAID_INFRA_APPROVED = false` reste inchangé.
+Observer brièvement la consommation réelle Railway pendant le Trial Free, réaliser éventuellement un premier test externe avec un ami, puis reprendre l’implémentation gameplay / vertical slice suivant la décision du propriétaire. Déploiement et procédure de redéploiement : [Déploiement Free-first V1](../deployment/free-first-v1.md). `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 
