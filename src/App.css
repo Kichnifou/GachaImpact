@@ -3980,3 +3980,387 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
     align-self: end;
   }
 }
+
+/* Gacha foundation UX hierarchy */
+.player-priority,
+.player-secondary {
+  display: contents;
+}
+
+.profile-card {
+  --profile-tint-strength: 8%;
+  --profile-watermark-opacity: .2;
+  --profile-watermark-brightness: 1.35;
+  background:
+    radial-gradient(circle at 88% 50%, color-mix(in srgb, var(--profile-element) var(--profile-tint-strength), transparent), transparent 58%),
+    linear-gradient(145deg, rgba(15, 27, 51, 0.94), rgba(8, 15, 31, 0.94));
+}
+
+.profile-element-watermark {
+  z-index: 1;
+  opacity: var(--profile-watermark-opacity);
+  filter: brightness(var(--profile-watermark-brightness)) saturate(.82) drop-shadow(0 0 15px color-mix(in srgb, var(--profile-element) 74%, white));
+}
+
+.profile-card .avatar-placeholder,
+.profile-card .profile-copy {
+  z-index: 2;
+}
+
+.particles-card .section-heading {
+  margin-bottom: 8px;
+}
+
+.banner-title-lockup {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.banner-title-lockup h1 {
+  position: relative;
+  z-index: 1;
+}
+
+.banner-element-watermark {
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  left: clamp(-26px, -2vw, -14px);
+  width: clamp(78px, 8vw, 122px);
+  height: clamp(78px, 8vw, 122px);
+  opacity: .23;
+  pointer-events: none;
+  filter: brightness(1.45) saturate(.86) drop-shadow(0 0 18px rgba(111, 190, 255, .42));
+  transform: translateY(-54%);
+}
+
+.banner-element-watermark img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.banner-description {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 4px;
+  max-width: 470px;
+}
+
+.banner-description p {
+  margin: 0;
+  color: #bac5dc;
+  font-size: 13px;
+  line-height: 1.45;
+  text-shadow: 0 2px 14px rgba(2, 7, 20, .86);
+}
+
+.banner-meta-actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 21px;
+}
+
+.banner-end-date {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 8px 13px;
+  color: #d6e9ff;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid rgba(126, 178, 239, .32);
+  border-radius: 999px;
+  background: rgba(12, 32, 65, .78);
+}
+
+.banner-change-button {
+  min-height: 44px;
+  padding: 0 24px;
+  cursor: pointer;
+  color: #dff3ff;
+  font-size: 13px;
+  font-weight: 750;
+  border: 1px solid rgba(78, 184, 255, .55);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(34, 111, 182, .9), rgba(22, 70, 129, .9));
+  box-shadow: 0 7px 18px rgba(13, 82, 151, .22);
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.banner-change-button:hover,
+.banner-change-button:focus-visible {
+  border-color: #7ed8ff;
+  box-shadow: 0 8px 24px rgba(31, 136, 218, .32);
+  transform: translateY(-1px);
+}
+
+.celestial-placeholder::after {
+  background:
+    linear-gradient(90deg, rgba(6, 13, 31, .96) 0%, rgba(7, 14, 32, .88) 25%, rgba(7, 14, 32, .42) 42%, rgba(7, 14, 32, .1) 57%, transparent 72%),
+    linear-gradient(0deg, rgba(6, 12, 28, .34), transparent 19%);
+}
+
+.invocation-footer {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, .82fr);
+  align-items: stretch;
+  gap: 24px;
+}
+
+.gacha-state-summary {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 13px;
+}
+
+.primary-pity .pity-row {
+  margin-bottom: 7px;
+  font-size: 12px;
+}
+
+.primary-pity .progress-track {
+  height: 7px;
+}
+
+.gacha-state-secondary {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 15px;
+}
+
+.gacha-state-secondary .pity-row,
+.gacha-state-secondary .banner-status {
+  font-size: 9px;
+}
+
+.gacha-state-secondary .banner-status {
+  min-width: 0;
+  gap: 3px;
+}
+
+.gacha-state-secondary .banner-status strong {
+  font-size: 11px;
+}
+
+.secondary-pity .progress-track {
+  height: 3px;
+}
+
+.target-choice {
+  height: 194px;
+  padding: 0 7px 8px;
+}
+
+.target-choice-image {
+  height: 145px;
+  object-fit: contain;
+  object-position: center top;
+}
+
+.target-choice strong {
+  overflow: hidden;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 761px) {
+  .invocation-screen .invocation-footer,
+  .home-screen .invocation-footer {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, .82fr);
+    gap: 20px;
+  }
+}
+
+@media (max-width: 760px) {
+  .mobile-player-button,
+  .mobile-sidebar-heading,
+  .sidebar-backdrop {
+    display: none;
+  }
+
+  .game-layout,
+  .chat-is-collapsed .game-layout {
+    grid-template-areas:
+      'player-priority'
+      'main'
+      'player-secondary'
+      'chat';
+  }
+
+  .player-sidebar,
+  .player-sidebar.mobile-open {
+    display: contents;
+  }
+
+  .player-priority,
+  .player-secondary {
+    min-width: 0;
+    display: grid;
+    gap: 10px;
+  }
+
+  .player-priority {
+    grid-area: player-priority;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .player-secondary {
+    grid-area: player-secondary;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .player-secondary > .daily-card {
+    grid-column: 1 / -1;
+  }
+
+  .profile-card,
+  .currency-summary-card {
+    min-width: 0;
+  }
+
+  .target-picker {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .target-picker .banner-content,
+  .target-choice-grid,
+  .target-picker .featured-four-stars {
+    width: 100%;
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .target-picker .banner-content {
+    padding: 24px 18px 10px;
+  }
+
+  .target-choice-grid {
+    align-self: stretch;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+    padding: 10px 12px 14px;
+  }
+
+  .target-choice {
+    width: 100%;
+    height: 172px;
+  }
+
+  .target-choice-image {
+    height: 124px;
+  }
+
+  .featured-four-stars {
+    display: block;
+    padding: 12px;
+    overflow: visible;
+  }
+
+  .featured-four-stars > small {
+    display: block;
+    margin-bottom: 9px;
+  }
+
+  .featured-four-stars > div {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .featured-four-stars > div > span {
+    width: 100%;
+    height: 54px;
+  }
+
+  .banner-element-watermark {
+    left: -13px;
+    width: 82px;
+    height: 82px;
+  }
+
+  .banner-description {
+    gap: 5px;
+  }
+
+  .banner-description p {
+    font-size: 12px;
+  }
+
+  .banner-meta-actions {
+    gap: 9px;
+    margin-top: 16px;
+  }
+
+  .celestial-placeholder::after {
+    background:
+      linear-gradient(180deg, rgba(6, 13, 31, .96) 0%, rgba(7, 14, 32, .82) 32%, rgba(7, 14, 32, .3) 50%, rgba(7, 14, 32, .08) 67%, rgba(7, 14, 32, .12) 100%),
+      linear-gradient(90deg, rgba(7, 14, 32, .28), transparent 70%);
+  }
+
+  .invocation-footer,
+  .invocation-screen .invocation-footer,
+  .home-screen .invocation-footer {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .gacha-state-secondary {
+    gap: 9px;
+  }
+}
+
+@media (max-width: 559px) {
+  .player-priority,
+  .player-secondary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .player-secondary > .daily-card {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .target-picker .banner-content {
+    padding: 20px 14px 8px;
+  }
+
+  .target-choice-grid {
+    gap: 7px;
+    padding-inline: 9px;
+  }
+
+  .target-choice {
+    height: 158px;
+    padding-inline: 5px;
+  }
+
+  .target-choice-image {
+    height: 111px;
+  }
+
+  .target-choice strong {
+    font-size: 11px;
+  }
+
+  .gacha-state-secondary {
+    gap: 7px;
+  }
+
+  .gacha-state-secondary .pity-row,
+  .gacha-state-secondary .banner-status span {
+    font-size: 7px;
+  }
+}

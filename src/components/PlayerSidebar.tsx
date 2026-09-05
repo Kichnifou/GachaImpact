@@ -8,7 +8,7 @@ import { elementLabels, formatResourceAmount } from '../utils/formatters'
 import CharacterAssetImage from './CharacterAssetImage'
 import GameAssetIcon from './GameAssetIcon'
 import DailyRewardCard from './DailyRewardCard'
-import { elementColors } from '../utils/elementTheme'
+import { elementThemes } from '../utils/elementTheme'
 
 type PlayerSidebarProps = {
   isOpen: boolean
@@ -27,6 +27,13 @@ const particleElements = ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'd
 function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, progression, dailyRewardToday, onClaimDailyReward, gacha }: PlayerSidebarProps) {
   const featuredCharacter = gacha.banner.featuredFiveStars.find(({ id }) => id === gacha.playerState.selectedBannerCharacterId)
   const progressionPercent = getProgressionPercent(progression)
+  const elementTheme = playerData.elementKey ? elementThemes[playerData.elementKey] : null
+  const profileStyle = elementTheme ? {
+    '--profile-element': elementTheme.color,
+    '--profile-tint-strength': elementTheme.profileTintStrength,
+    '--profile-watermark-opacity': elementTheme.watermarkOpacity,
+    '--profile-watermark-brightness': elementTheme.watermarkBrightness,
+  } as CSSProperties : undefined
 
   return (
     <aside className={`player-sidebar${isOpen ? ' mobile-open' : ''}`} aria-label="Informations du joueur">
@@ -35,58 +42,57 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
         <button type="button" className="icon-button" onClick={onClose} aria-label="Fermer"><span className="icon-glyph">×</span></button>
       </div>
 
-      <section className="panel profile-card" style={playerData.elementKey ? { '--profile-element': elementColors[playerData.elementKey] } as CSSProperties : undefined}>
-        {playerData.elementKey && <GameAssetIcon className="profile-element-watermark" src={getElementAssetPath(playerData.elementKey)} fallback="" />}
-        <div className="avatar-placeholder" aria-label={`Avatar de ${playerData.displayName}`}>
-          <span>{playerData.displayName.slice(0, 1).toUpperCase()}</span>
-        </div>
-        <div className="profile-copy">
-          <h2>{playerData.displayName}</h2>
-          <div className="level-line">
-            <span>Niveau {progression.level}</span>
-            <small>{formatResourceAmount(progression.xpIntoCurrentStep)} / {formatResourceAmount(progression.xpPerStep)} XP</small>
+      <div className="player-priority">
+        <section className="panel profile-card" style={profileStyle}>
+          {playerData.elementKey && <GameAssetIcon className="profile-element-watermark" src={getElementAssetPath(playerData.elementKey)} fallback="" />}
+          <div className="avatar-placeholder" aria-label={`Avatar de ${playerData.displayName}`}>
+            <span>{playerData.displayName.slice(0, 1).toUpperCase()}</span>
           </div>
-          <div className="progress-track" aria-label={`Progression d’expérience : ${progressionPercent.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} %`}>
-            <span className="progress-fill" style={{ width: `${progressionPercent}%` }} />
-          </div>
-        </div>
-      </section>
-
-      <section className="panel resource-card">
-        <button type="button" className="section-heading section-link" onClick={() => onNavigate('inventory')}>
-          <span>Ressources principales</span><span className="card-chevron" aria-hidden="true">›</span>
-        </button>
-        <div className="resource-grid">
-          <div className="resource-item">
-            <GameAssetIcon className="resource-icon cyan" src={currencyAssetPaths.primogem} fallback="✦" />
-            <div><strong>{formatResourceAmount(resources.primogems)}</strong><small>Primogemmes</small></div>
-          </div>
-          <div className="resource-item">
-            <GameAssetIcon className="resource-icon gold" src={currencyAssetPaths.mora} fallback="●" />
-            <div><strong>{formatResourceAmount(resources.moras)}</strong><small>Moras</small></div>
-          </div>
-        </div>
-
-        <div className="particles-heading">Particules</div>
-        <div className="particles-grid">
-          {particleElements.map((elementKey) => (
-            <div
-              className={`particle-value ${elementKey}${playerData.elementKey === elementKey ? ' personal' : ''}`}
-              key={elementKey}
-              title={`${elementLabels[elementKey]}${playerData.elementKey === elementKey ? ' — élément personnel' : ''}`}
-            >
-              <GameAssetIcon
-                className="particle-element-icon"
-                src={getElementAssetPath(elementLabels[elementKey])}
-                fallback="✦"
-              />
-              <strong>{formatResourceAmount(resources.particles[elementKey])}</strong>
+          <div className="profile-copy">
+            <h2>{playerData.displayName}</h2>
+            <div className="level-line">
+              <span>Niveau {progression.level}</span>
+              <small>{formatResourceAmount(progression.xpIntoCurrentStep)} / {formatResourceAmount(progression.xpPerStep)} XP</small>
             </div>
-          ))}
-        </div>
-      </section>
+            <div className="progress-track" aria-label={`Progression d’expérience : ${progressionPercent.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} %`}>
+              <span className="progress-fill" style={{ width: `${progressionPercent}%` }} />
+            </div>
+          </div>
+        </section>
 
-      <section className="panel team-card">
+        <section className="panel resource-card currency-summary-card">
+          <button type="button" className="section-heading section-link" onClick={() => onNavigate('inventory')}>
+            <span>Ressources principales</span><span className="card-chevron" aria-hidden="true">›</span>
+          </button>
+          <div className="resource-grid">
+            <div className="resource-item">
+              <GameAssetIcon className="resource-icon cyan" src={currencyAssetPaths.primogem} fallback="✦" />
+              <div><strong>{formatResourceAmount(resources.primogems)}</strong><small>Primogemmes</small></div>
+            </div>
+            <div className="resource-item">
+              <GameAssetIcon className="resource-icon gold" src={currencyAssetPaths.mora} fallback="●" />
+              <div><strong>{formatResourceAmount(resources.moras)}</strong><small>Moras</small></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div className="player-secondary">
+        <section className="panel resource-card particles-card">
+          <button type="button" className="section-heading section-link" onClick={() => onNavigate('inventory')}>
+            <span>Particules</span><span className="card-chevron" aria-hidden="true">›</span>
+          </button>
+          <div className="particles-grid">
+            {particleElements.map((elementKey) => (
+              <div className={`particle-value ${elementKey}${playerData.elementKey === elementKey ? ' personal' : ''}`} key={elementKey} title={`${elementLabels[elementKey]}${playerData.elementKey === elementKey ? ' — élément personnel' : ''}`}>
+                <GameAssetIcon className="particle-element-icon" src={getElementAssetPath(elementLabels[elementKey])} fallback="✦" />
+                <strong>{formatResourceAmount(resources.particles[elementKey])}</strong>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="panel team-card">
         <button type="button" className="section-heading section-link" onClick={() => onNavigate('team')}>
           <span>Équipe active</span><span className="section-heading-trailing"><small>4 / 4</small><i className="card-chevron" aria-hidden="true">›</i></span>
         </button>
@@ -109,9 +115,9 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
             </div>
           ))}
         </div>
-      </section>
+        </section>
 
-      <section className="panel objective-card">
+        <section className="panel objective-card">
         <button type="button" className="section-heading section-link" onClick={() => onNavigate('invocation')}>
           <span>Objectif actuel</span><span className="card-chevron" aria-hidden="true">›</span>
         </button>
@@ -138,9 +144,10 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
             <div className="progress-track"><span className="progress-fill pity-four" style={{ width: `${gacha.playerState.pity4 / 10 * 100}%` }} /></div>
           </div>
         </div> : <button type="button" className="objective-empty" onClick={() => onNavigate('invocation')}><strong>Aucune cible sélectionnée</strong><span>Choisir parmi les quatre 5★ →</span></button>}
-      </section>
+        </section>
 
-      {playerData.elementKey && <DailyRewardCard today={dailyRewardToday} elementKey={playerData.elementKey} onClaim={onClaimDailyReward} />}
+        {playerData.elementKey && <DailyRewardCard today={dailyRewardToday} elementKey={playerData.elementKey} onClaim={onClaimDailyReward} />}
+      </div>
     </aside>
   )
 }

@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.50
+Version : 0.51
 Date : 2026-09-05
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3575,8 +3575,10 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - `GET /api/v1/me/progression` expose les compteurs `bigint` lossless et le niveau dérivé de l'XP cumulative selon `min(floor(xp / 30), 100)`, sans endpoint de gain ou de mutation d'XP ;
 - la sidebar charge désormais niveau, XP du palier et barre depuis l'état serveur au bootstrap authentifié ; les mocks Team, objectif Gacha, pity, garantie et Capture de brillance restent volontairement hors de ce lot ;
 - tests unitaires frontend/backend, builds, lint, tests DB réels et statut Prisma : **VALIDÉS TECHNIQUEMENT**.
-- Gacha — catalogue / bannière / cible / état joueur : **IMPLÉMENTATION CODEX TECHNIQUEMENT TERMINÉE — VALIDATION MANUELLE PROPRIÉTAIRE À FAIRE** ; migration additive `004_add_gacha_foundation` appliquée sur Supabase DEV, catalogue 118 personnages importé, première rotation hebdomadaire native créée, état joueur/backfill, scheduler serveur, API authentifiée et dé-mock Invocation / Objectif / Personnages intégrés ;
-- le moteur Pull x1/x10 reste volontairement absent et constitue le prochain lot seulement après validation publique de ces fondations.
+- Gacha — catalogue / bannière / cible / état joueur : **FONDATIONS VALIDÉES PUBLIQUEMENT PAR LE PROPRIÉTAIRE — DOMAINE ENCORE ACTIF POUR REVALIDATION UX/RESPONSIVE** ; chargement général, catalogue et bannière réels, absence de cible initiale automatique, rotation `4×5★ + 6×4★`, sélection/changement de cible et persistance après F5 puis logout/login validés ;
+- état Gacha public validé : Pity 5★ `0 / 90`, Pity 4★ `0 / 10`, Garantie `Non`, Capture `0 / 3` et boutons Pull inactifs ; aucune mutation des Primogemmes, Moras, particules, XP, de la Roue ou du Daily Reward constatée ;
+- corrections UX/responsive de ce checkpoint : **TECHNIQUEMENT TERMINÉES — VALIDATION PUBLIQUE FINALE PROPRIÉTAIRE À FAIRE** ;
+- le moteur Pull x1/x10 reste volontairement absent et constitue le prochain lot seulement après cette validation publique finale et la clôture du domaine.
 
 État du premier parcours frontend standalone :
 
@@ -3606,7 +3608,7 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-Review ChatGPT → commit/push par le propriétaire → attendre Railway/Cloudflare verts → tests publics du catalogue, de la bannière, de la cible, de la sidebar et du profil élémentaire. `PAID_INFRA_APPROVED = false` reste inchangé.
+Review ChatGPT → commit/push par le propriétaire → attendre Railway/Cloudflare verts → validation publique rapide des corrections UX/responsive → clôturer le domaine Gacha fondations → implémenter le moteur Pull. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

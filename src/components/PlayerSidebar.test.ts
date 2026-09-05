@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { ElementKey, PlayerProgressionDto } from '../api/types'
+import { elementThemes } from '../utils/elementTheme'
 import PlayerSidebar from './PlayerSidebar'
 
 const resources = {
@@ -63,7 +64,23 @@ describe('Player sidebar progression', () => {
   })
 
   it('uses the typed element theme and handles a missing element', () => {
-    expect(renderProgression(progression(0, '0'), 'pyro')).toContain('--profile-element:#ff795d')
+    const elements = Object.keys(elementThemes) as ElementKey[]
+    expect(elements).toHaveLength(7)
+    for (const element of elements) {
+      const html = renderProgression(progression(0, '0'), element)
+      expect(html).toContain(`--profile-element:${elementThemes[element].color}`)
+      expect(html).toContain(`--profile-watermark-brightness:${elementThemes[element].watermarkBrightness}`)
+      expect(html).toContain(`/assets/genshin/elements/${element}.png`)
+    }
     expect(renderProgression(progression(0, '0'), null)).not.toContain('profile-element-watermark')
+  })
+
+  it('composes one priority summary before one secondary panel group', () => {
+    const html = renderProgression(progression(0, '0'))
+    expect((html.match(/player-priority/g) ?? [])).toHaveLength(1)
+    expect((html.match(/player-secondary/g) ?? [])).toHaveLength(1)
+    expect(html.indexOf('player-priority')).toBeLessThan(html.indexOf('player-secondary'))
+    expect((html.match(/Ressources principales/g) ?? [])).toHaveLength(1)
+    expect((html.match(/>Particules</g) ?? [])).toHaveLength(1)
   })
 })
