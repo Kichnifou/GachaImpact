@@ -14,6 +14,7 @@ import type {
   CharacterCatalogDto,
   CurrentGachaDto,
   PlayerGachaStateDto,
+  GachaPullDto,
 } from './types'
 
 type ApiClientDependencies = Readonly<{
@@ -107,6 +108,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getCharacters: () => request<CharacterCatalogDto>('/api/v1/characters'),
     getCurrentGacha: () => request<CurrentGachaDto>('/api/v1/gacha/current'),
     setGachaTarget: (characterId: string) => request<{ playerState: PlayerGachaStateDto }>('/api/v1/gacha/target', { method: 'POST', body: JSON.stringify({ characterId }) }),
+    pullGacha: (count: 1 | 10, idempotencyKey: string) => request<GachaPullDto>('/api/v1/gacha/pull', { method: 'POST', body: JSON.stringify({ count, idempotencyKey }) }),
   }
 }
 

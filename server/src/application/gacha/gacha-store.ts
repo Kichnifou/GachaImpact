@@ -1,4 +1,7 @@
 import type { BannerVoteWeight, FeaturedSelection, GachaCharacter } from '../../domain/gacha/gacha.js';
+import type { PullCount } from '../../domain/gacha/pull.js';
+import type { ElementKey, ResourceKey } from '../../domain/economy/resources.js';
+import type { RandomSource } from '../../domain/wheel/wheel.js';
 
 export type PlayerGachaState = Readonly<{
   pity5: number; pity4: number; guaranteedFeatured5: boolean; captureProgress: number;
@@ -9,9 +12,39 @@ export type PlayerGachaState = Readonly<{
 export type CurrentBanner = Readonly<{
   id: string; startsAt: Date; endsAt: Date; featuredFiveStars: readonly GachaCharacter[]; featuredFourStars: readonly GachaCharacter[];
 }>;
+export type PullResultRecord = Readonly<{
+  index: number;
+  resultType: 'character' | 'resource';
+  character: GachaCharacter | null;
+  rarity: 4 | 5 | null;
+  resourceKey: ResourceKey | null;
+  resourceAmount: bigint | null;
+  wasNewCharacter: boolean | null;
+  constellationAfter: number | null;
+  copiesAfter: number | null;
+  wasFiftyFifty: boolean;
+  wonFiftyFifty: boolean | null;
+  guaranteeConsumed: boolean;
+  captureTriggered: boolean;
+  bonusRewards: readonly Readonly<{ resourceKey: ResourceKey; amount: bigint; causeKey: string }>[];
+}>;
+export type GachaPullResult = Readonly<{
+  operation: Readonly<{ id: string; pullCount: PullCount; primogemCost: bigint; createdAt: Date; alreadyProcessed: boolean }>;
+  results: readonly PullResultRecord[];
+  playerState: PlayerGachaState;
+}>;
+export type GachaPullInput = Readonly<{
+  playerId: string;
+  playerElementKey: ElementKey;
+  count: PullCount;
+  idempotencyKey: string;
+  now: Date;
+  random: RandomSource;
+}>;
 export interface GachaStore {
   listActiveCharacters(): Promise<readonly GachaCharacter[]>;
   getCurrent(playerId: string): Promise<{ banner: CurrentBanner; playerState: PlayerGachaState } | null>;
   setTarget(playerId: string, characterId: string): Promise<PlayerGachaState>;
+  pull(input: GachaPullInput): Promise<GachaPullResult>;
   ensureRotation(startsAt: Date, endsAt: Date, select: (catalog: readonly GachaCharacter[], previous: ReadonlySet<string>, votes: readonly BannerVoteWeight[]) => readonly FeaturedSelection[]): Promise<CurrentBanner>;
 }

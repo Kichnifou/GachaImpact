@@ -51,6 +51,11 @@ export function apiErrorMessage(error: unknown): string {
     ELEMENT_ALREADY_CHOSEN: 'Votre élément permanent a déjà été choisi.',
     ELEMENT_NOT_AVAILABLE: 'Cet élément n’est pas disponible.',
     PLAYER_ELEMENT_REQUIRED: 'Choisissez votre élément avant de continuer.',
+    INSUFFICIENT_PRIMOGEMS: 'Vous ne possédez pas assez de Primogemmes.',
+    GACHA_TARGET_REQUIRED: 'Choisissez une cible 5★ avant d’invoquer.',
+    GACHA_TARGET_INVALID: 'Votre cible ne fait plus partie de la bannière active.',
+    GACHA_BANNER_UNAVAILABLE: 'Aucune bannière Invocation n’est disponible actuellement.',
+    GACHA_BANNER_INVALID: 'La bannière active est momentanément invalide.',
   }
 
   return typeof code === 'string' && messages[code]

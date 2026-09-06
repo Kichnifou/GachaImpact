@@ -6,6 +6,13 @@ export type EconomyEarnedIncrement = Readonly<{
   totalMainElementParticlesEarned: bigint;
 }>;
 
+export function getEconomySpentIncrement(resourceKey: ResourceKey, amount: bigint) {
+  return {
+    totalPrimosSpent: resourceKey === 'primogems' ? amount : 0n,
+    totalMorasSpent: resourceKey === 'moras' ? amount : 0n,
+  } as const;
+}
+
 export function getEconomyEarnedIncrement(
   resourceKey: ResourceKey,
   amount: bigint,

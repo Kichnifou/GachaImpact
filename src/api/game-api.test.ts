@@ -140,4 +140,19 @@ describe('game API client', () => {
     expect(fetchImplementation.mock.calls[1]?.[0]).toContain('/api/v1/daily-reward/claim')
     expect(fetchImplementation.mock.calls[1]?.[1]?.method).toBe('POST')
   })
+
+  it('sends a pull intention key and preserves ordered lossless results', async () => {
+    const fetchImplementation = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({
+      operation: { id: 'op', pullCount: 10, primogemCost: '1600', createdAt: '2026-09-06T12:00:00Z', alreadyProcessed: false },
+      results: Array.from({ length: 10 }, (_, index) => ({ index: index + 1, resultType: 'resource', character: null, rarity: null, resourceKey: 'moras', resourceAmount: '5000', wasNewCharacter: null, constellationAfter: null, copiesAfter: null, wasFiftyFifty: false, wonFiftyFifty: null, guaranteeConsumed: false, captureTriggered: false, bonusRewards: [] })),
+      playerState: { pity5: 10, pity4: 0, guaranteedFeatured5: false, captureProgress: 0, fiftyFiftyLostStreak: 0, selectedBannerCharacterId: 'target', totalPulls: '10', totalFiveStars: '0', totalFourStars: '1', fiftyFiftyWon: '0', fiftyFiftyLost: '0', capturesTriggered: '0' },
+    })))
+    const client = createGameApiClient({ baseUrl: 'http://127.0.0.1:3001', getAccessToken: async () => 'token', fetchImplementation })
+    const key = crypto.randomUUID()
+    const result = await client.pullGacha(10, key)
+    expect(result.results.map(({ index }) => index)).toEqual([1,2,3,4,5,6,7,8,9,10])
+    expect(result.operation.primogemCost).toBe('1600')
+    expect(fetchImplementation.mock.calls[0]?.[0]).toContain('/api/v1/gacha/pull')
+    expect(JSON.parse(String(fetchImplementation.mock.calls[0]?.[1]?.body))).toEqual({ count: 10, idempotencyKey: key })
+  })
 })

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { ApiError, getGameApiClient } from './api/game-api'
-import type { CurrentGachaDto, DailyRewardTodayDto, ElementKey, GachaCharacterDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, WheelTodayDto } from './api/types'
+import type { CurrentGachaDto, DailyRewardTodayDto, ElementKey, GachaCharacterDto, GachaPullDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, WheelTodayDto } from './api/types'
 import { useAuth } from './auth/auth-context'
 import { resolveBootstrapStage } from './auth/bootstrap-state'
 import AuthScreen from './components/AuthScreen'
@@ -11,6 +11,7 @@ import OnboardingScreen from './components/OnboardingScreen'
 import { apiErrorMessage } from './utils/formatters'
 import { wheelTodayFromSpin } from './wheel/wheel-presentation'
 import { claimDailyRewardAndRefresh } from './daily-reward/claim-daily-reward'
+import { performGachaPullAndRefresh } from './gacha/perform-gacha-pull'
 
 function AppBootstrap() {
   const { status: authStatus, session, configurationMessage, signOut } = useAuth()
@@ -158,6 +159,13 @@ function AppBootstrap() {
       onSetGachaTarget={async (characterId) => {
         const { playerState } = await getGameApiClient().setGachaTarget(characterId)
         setGacha((current) => current ? { ...current, playerState } : current)
+      }}
+      onPullGacha={async (count, idempotencyKey): Promise<GachaPullDto> => {
+        const api = getGameApiClient()
+        const refreshed = await performGachaPullAndRefresh(api, count, idempotencyKey)
+        setResources(refreshed.resources)
+        setGacha(refreshed.gacha)
+        return refreshed.result
       }}
       onClaimDailyReward={async () => {
         const { result, resources: nextResources } = await claimDailyRewardAndRefresh(getGameApiClient())

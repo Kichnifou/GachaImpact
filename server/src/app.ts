@@ -19,7 +19,7 @@ import type { SpinDailyWheel } from './application/wheel/spin-daily-wheel.js';
 import type { GetTodayWheelState } from './application/wheel/get-today-wheel-state.js';
 import { registerDailyRewardRoutes } from './api/routes/daily-reward.js';
 import { registerGachaRoutes } from './api/routes/gacha.js';
-import type { GetCharacters, GetCurrentGacha, SetGachaTarget } from './application/gacha/gacha-services.js';
+import type { GetCharacters, GetCurrentGacha, PerformGachaPull, SetGachaTarget } from './application/gacha/gacha-services.js';
 import type { GetTodayDailyReward } from './application/daily-reward/get-today-daily-reward.js';
 import type { ClaimDailyReward } from './application/daily-reward/claim-daily-reward.js';
 import type { AppConfig } from './config/environment.js';
@@ -38,6 +38,7 @@ export type AppDependencies = Readonly<{
   getCharacters?: GetCharacters;
   getCurrentGacha?: GetCurrentGacha;
   setGachaTarget?: SetGachaTarget;
+  performGachaPull?: PerformGachaPull;
   close?: () => Promise<void>;
 }>;
 
@@ -102,7 +103,7 @@ export async function buildApp(
       await app.register(registerDailyRewardRoutes, { authenticate, getTodayDailyReward: dependencies.getTodayDailyReward, claimDailyReward: dependencies.claimDailyReward });
     }
     if (dependencies.getCharacters && dependencies.getCurrentGacha && dependencies.setGachaTarget) {
-      await app.register(registerGachaRoutes, { authenticate, getCharacters: dependencies.getCharacters, getCurrentGacha: dependencies.getCurrentGacha, setGachaTarget: dependencies.setGachaTarget });
+      await app.register(registerGachaRoutes, { authenticate, getCharacters: dependencies.getCharacters, getCurrentGacha: dependencies.getCurrentGacha, setGachaTarget: dependencies.setGachaTarget, performGachaPull: dependencies.performGachaPull });
     }
 
     if (dependencies.close) {

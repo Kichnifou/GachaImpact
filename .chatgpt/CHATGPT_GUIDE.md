@@ -332,9 +332,10 @@ Le repository de référence est :
 
 `Kichnifou/GachaImpact`
 
-Branche de travail de référence :
+Branches de référence :
 
-`main`
+- `main` = dernier état public et production ;
+- `review` = candidat permanent de pré-review Git, sans environnement staging.
 
 ChatGPT doit utiliser le connecteur GitHub disponible pour consulter directement le repository plutôt que demander à l'utilisateur de recopier les fichiers.
 
@@ -347,7 +348,7 @@ Une vérification GitHub est obligatoire :
 
 Procédure :
 
-1. récupérer le HEAD actuel de `main`, avec son SHA et son message de commit ;
+1. récupérer le HEAD actuel de `main` et, lorsqu’elle existe, celui de `review`, avec leurs SHA et messages de commit ;
 2. lire les fichiers nécessaires depuis ce HEAD précis ;
 3. utiliser autant que possible le même SHA pour tous les fichiers comparés pendant une même vérification ;
 4. si un ancien HEAD de référence est connu, comparer l'ancien et le nouveau HEAD ;
@@ -369,12 +370,12 @@ Si le HEAD actuel ne correspond pas au baseline attendu :
 - comparer les changements ;
 - réconcilier d'abord l'état réel du repo.
 
-Après un push utilisateur :
-- vérifier que le nouveau commit existe bien sur `main` ;
+Après un push utilisateur ou Codex :
+- vérifier que le nouveau commit existe bien sur la branche explicitement ciblée ;
 - vérifier le nombre de commits depuis le précédent HEAD connu ;
 - vérifier que seuls les fichiers attendus ont changé, ou inspecter explicitement tout fichier supplémentaire ;
 - vérifier que les fichiers importants ne sont ni tronqués ni partiellement remplacés ;
-- si le commit attendu n'est pas visible sur `main`, s'arrêter immédiatement et demander à l'utilisateur de pousser à nouveau avant toute autre action, décision ou modification documentaire ;
+- si le commit attendu n'est pas visible sur la branche ciblée, s'arrêter immédiatement et demander un nouveau push avant toute autre action, décision ou modification documentaire ;
 - ne reprendre les décisions suivantes qu'après cette validation.
 
 Si une incohérence est détectée :
@@ -447,7 +448,7 @@ Si un nouveau fichier de documentation doit être créé, générer un fichier t
 
 Avant de produire un prompt Codex, ChatGPT analyse le feedback du propriétaire, inspecte les captures et le vrai code concerné, pose les questions utiles puis consolide les décisions. Le prompt n’est généré que lorsque les choix sont suffisamment mûrs ou que le propriétaire le demande explicitement.
 
-Le cycle reste : Codex implémente et produit son rapport → ChatGPT review → le propriétaire committe et pousse → ChatGPT vérifie GitHub. Le détail, les responsabilités, la validation publique et le rollback sont définis dans [implementation-workflow.md](../docs/process/implementation-workflow.md).
+Le cycle reste : Codex implémente et teste localement → le candidat est poussé sur `review` → ChatGPT et le propriétaire inspectent le diff GitHub → les corrections restent sur `review` → `main` n'est mise à jour qu'après approbation → déploiements et test public. Le détail, les responsabilités, la validation publique et le rollback sont définis dans [implementation-workflow.md](../docs/process/implementation-workflow.md).
 
 ---
 
@@ -459,7 +460,7 @@ Lors d'un push/checkpoint, utiliser ce workflow :
 git status
 git add .
 git commit -m "message adapté"
-git push
+git push -u origin review
 git status
 ```
 
@@ -470,15 +471,15 @@ toujours utiliser `git add .`.
 
 Après chaque lot de code Codex :
 
-1. Codex termine le lot et exécute ses tests automatisés.
-2. Codex ne committe et ne pousse pas par défaut.
-3. Le propriétaire transmet le rapport final à ChatGPT.
-4. ChatGPT review le rapport et indique les éventuelles corrections.
-5. ChatGPT fournit systématiquement une checklist précise des tests manuels à valider ainsi que les résultats attendus.
-6. Si la review est bonne, ChatGPT fournit au propriétaire les commandes Git.
-7. Le propriétaire effectue lui-même le commit et le push.
-8. ChatGPT vérifie GitHub.
-9. Après Railway et Cloudflare verts, le propriétaire teste directement la version publique.
+1. Codex termine le lot et exécute ses tests automatisés localement.
+2. Codex ne committe et ne pousse pas pendant l’implémentation, sauf instruction explicite de publier le candidat.
+3. Le candidat validé localement est committé et poussé sur `review`.
+4. ChatGPT vérifie le commit et le diff `review` par rapport à `main` ; le propriétaire complète la review.
+5. Les corrections éventuelles sont testées et poussées sur `review`.
+6. `main` n’est mise à jour qu’après approbation explicite de la review.
+7. Le passage sur `main` déclenche Railway et Cloudflare Pages ; le propriétaire teste ensuite la version publique.
+8. Le Master ne marque la validation publique qu’après ce test réussi.
+9. Chaque nouveau lot documente correctement l’état réellement poussé du lot précédent avant de commencer.
 10. Si un lot public doit être annulé, privilégier un `git revert` propre du commit concerné plutôt qu'un force-push ou un reset destructif de `main`.
 
 ---
@@ -543,7 +544,7 @@ Avant d'écrire le prompt, ChatGPT détermine quels propriétaires documentaires
 - l'état attendu du Master et sa prochaine étape exacte ;
 - les décisions Rxxx à créer ou amender, ou explicitement qu'aucune nouvelle décision n'est requise.
 
-La sélection détaillée des propriétaires et les contrôles de fin de lot sont définis dans [implementation-workflow.md](../docs/process/implementation-workflow.md). Après le rapport Codex, ChatGPT review aussi la cohérence documentaire avant de proposer le commit/push, puis vérifie ces documents sur GitHub après le push.
+La sélection détaillée des propriétaires et les contrôles de fin de lot sont définis dans [implementation-workflow.md](../docs/process/implementation-workflow.md). Après le rapport Codex, ChatGPT vérifie la cohérence documentaire avant la publication du candidat sur `review`, puis review le commit et son diff sur GitHub après le push.
 
 Pour les tâches complexes :
 - architecture ;
@@ -686,7 +687,7 @@ Toujours préférer ces documents au contenu d'anciens chats.
 
 Lorsqu'une nouvelle conversation commence :
 
-1. récupérer le HEAD actuel de `main` sur GitHub, noter son SHA et ne pas supposer qu'un SHA ancien est encore le dernier ;
+1. récupérer les HEAD actuels de `main` et de `review` sur GitHub lorsqu’elle existe, noter leurs SHA et ne pas supposer qu’un SHA ancien est encore le dernier ;
 2. lire `AGENTS.md` ;
 3. lire `.chatgpt/CHATGPT_GUIDE.md` ;
 4. lire `docs/master/PROJECT_MASTER_PLAN.md` depuis ce HEAD ;

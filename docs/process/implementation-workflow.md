@@ -63,40 +63,51 @@ ChatGPT évalue au minimum les propriétaires suivants :
 
 Avant de terminer, Codex confronte les documents modifiés au code réellement produit. Son rapport précise les documents modifiés et pourquoi, ceux laissés inchangés, la version du Master avant/après, l'état du domaine, la validation acquise ou restante, la prochaine étape et toute différence entre cible et état physique.
 
-Après le rapport, ChatGPT review le code **et** cette cohérence documentaire avant de proposer le commit/push. Il vérifie notamment le Master, la prochaine étape, la distinction validation technique/publique, les Rxxx, l'absence de cible présentée comme déjà physique et l'absence d'ancienne prochaine étape encore active. Après le push, ChatGPT contrôle ces fichiers sur GitHub.
+Avant la publication du candidat sur `review`, ChatGPT peut effectuer un contrôle local du code et de la cohérence documentaire. La review de référence porte ensuite sur le commit et son diff réellement poussés sur GitHub. Elle vérifie notamment le Master, la prochaine étape, la distinction validation technique/publique, les Rxxx, l'absence de cible présentée comme déjà physique et l'absence d'ancienne prochaine étape encore active.
 
-## 3. Terminer le travail Codex
+## 3. Terminer et valider localement le travail Codex
 
-Codex termine l’implémentation, exécute les tests automatisés pertinents et réalise une inspection visuelle locale réelle lorsqu’elle est utile. Il fournit ensuite un rapport structuré. Il ne committe pas et ne pousse pas.
+Codex termine l’implémentation, exécute les tests automatisés pertinents et réalise une inspection visuelle locale réelle lorsqu’elle est utile. Il fournit ensuite un rapport structuré. Pendant l’implémentation, il ne committe et ne pousse pas par défaut ; la publication du candidat sur `review` fait l’objet d’une instruction explicite après la validation locale.
 
-## 4. Review par ChatGPT
+## 4. Publier le candidat sur `review`
 
-Le propriétaire transmet le rapport Codex à ChatGPT. ChatGPT :
+Le workflow Git permanent est le suivant :
 
-1. review le rapport et vérifie les points suspects si nécessaire ;
-2. demande une correction Codex si le lot n’est pas acceptable ;
-3. si le lot est acceptable, fournit les commandes Git au propriétaire ;
-4. place les commandes de push avant la checklist des tests manuels ;
-5. fournit une checklist concise couvrant toute l’implémentation, y compris les changements que le propriétaire n’a pas à manipuler directement ;
-6. distingue clairement les tests automatisés réalisés par Codex des validations visuelles ou fonctionnelles encore attendues du propriétaire.
+1. `main` représente le dernier état public et la production ;
+2. Codex travaille d’abord localement sur un lot borné ;
+3. les tests automatisés pertinents sont exécutés localement ;
+4. le candidat est committé puis poussé sur la branche permanente `review` ;
+5. ChatGPT et le propriétaire inspectent sur GitHub le commit et son diff par rapport à `main` ;
+6. les corrections éventuelles sont apportées, testées et poussées sur `review` ;
+7. une fois la review approuvée, `review` est mergée ou avancée proprement vers `main` selon l’historique réel ;
+8. l’arrivée du commit sur `main` déclenche les déploiements de production ;
+9. Railway et Cloudflare Pages sont vérifiés ;
+10. le propriétaire réalise le test public ;
+11. le checkpoint n’est marqué comme publiquement validé dans le Master qu’après la réussite de ce test.
 
-## 5. Commit et push par le propriétaire
+`review` est uniquement une branche de pré-review Git. Elle ne constitue pas un environnement staging, ne possède ni backend ni base séparés et ne permet de prétendre à aucun test public. Un push sur `main` ne doit jamais servir de moyen de review : `main` reste conceptuellement protégée comme branche de production.
 
-Le propriétaire exécute lui-même :
+Lorsqu’un candidat doit être publié par Codex ou par le propriétaire :
 
 ```powershell
 git status
 git add .
 git commit -m "message adapté"
-git push
+git push -u origin review
 git status
 ```
 
-Codex n’est pas rappelé uniquement pour commit ou push, afin de ne pas consommer inutilement des tokens.
+## 5. Review GitHub du candidat
 
-## 6. Contrôler après le push
+ChatGPT vérifie le HEAD de `review`, le compare au dernier état de `main`, contrôle la liste des fichiers, la documentation et les fichiers critiques. Il distingue les validations automatisées déjà acquises des validations publiques encore impossibles à ce stade.
 
-ChatGPT vérifie le nouveau HEAD GitHub, le compare au checkpoint précédent, contrôle les fichiers attendus et, si nécessaire, les fichiers critiques. L’équipe attend ensuite les déploiements utiles avant d’effectuer le test public sur [gachaimpact.pages.dev](https://gachaimpact.pages.dev).
+Si le lot n’est pas acceptable, les corrections restent sur `review`. S’il est acceptable, ChatGPT et le propriétaire autorisent explicitement seulement alors son passage vers `main`.
+
+## 6. Promouvoir vers `main`, déployer et valider publiquement
+
+Après approbation de la review, le passage contrôlé de `review` vers `main` constitue le checkpoint de production. L’équipe vérifie ensuite les déploiements Railway et Cloudflare Pages avant d’effectuer le test public sur [gachaimpact.pages.dev](https://gachaimpact.pages.dev).
+
+Le Master distingue toujours le commit candidat poussé sur `review`, le commit réellement présent sur `main`, le déploiement réussi et la validation publique du propriétaire. Aucun lot n’est déclaré publiquement validé avant la dernière étape.
 
 ## 7. Boucle de feedback suivante
 

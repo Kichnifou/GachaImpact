@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
 import { SetGachaTarget } from '../src/application/gacha/gacha-services.js';
@@ -13,7 +13,12 @@ import { PrismaGachaStore } from '../src/infrastructure/database/prisma-gacha-st
 const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Gacha database tests.');
 const database = createDatabase(config.databaseUrl);
-afterAll(async () => database.$disconnect());
+const pullFixturePlayerIds = new Set<string>();
+afterEach(async () => cleanupPullFixtures());
+afterAll(async () => {
+  await cleanupPullFixtures();
+  await database.$disconnect();
+});
 
 describe('Gacha foundation on the development database', () => {
   it('has the complete catalog, RLS, state backfill and one concurrency-safe current banner', async () => {
@@ -33,6 +38,158 @@ describe('Gacha foundation on the development database', () => {
     const rls = await database.$queryRaw<{ relname: string; relrowsecurity: boolean }[]>`SELECT relname, relrowsecurity FROM pg_class WHERE relname IN ('characters','banner_rotations','banner_featured_characters','banner_votes','player_gacha_states')`;
     expect(rls).toHaveLength(5);
     expect(rls.every(({ relrowsecurity }) => relrowsecurity)).toBe(true);
+  });
+
+  it('has private RLS-enabled pull, possession and C6 tables with database constraints', async () => {
+    const names = ['player_characters', 'c6_competition_progress', 'pull_operations', 'pull_results'];
+    const rls = await database.$queryRaw<{ relname: string; relrowsecurity: boolean }[]>`
+      SELECT relname, relrowsecurity FROM pg_class WHERE relname = ANY(${names}::text[])
+    `;
+    expect(rls).toHaveLength(4);
+    expect(rls.every(({ relrowsecurity }) => relrowsecurity)).toBe(true);
+    const grants = await database.$queryRaw<{ grantee: string }[]>`
+      SELECT grantee FROM information_schema.role_table_grants
+      WHERE table_schema = 'public' AND table_name = ANY(${names}::text[]) AND grantee IN ('anon', 'authenticated')
+    `;
+    expect(grants).toHaveLength(0);
+  });
+
+  it('persists one atomic, idempotent x1 with its debit, result, pity and possession-independent reward', async () => {
+    const fixture = await createPullPlayer(160n);
+    try {
+      const store = new PrismaGachaStore(database);
+      const input = { playerId: fixture.playerId, playerElementKey: 'hydro' as const, count: 1 as const, idempotencyKey: randomUUID(), now: fixture.now, random: maxRandom };
+      const first = await store.pull(input);
+      const retry = await store.pull({ ...input, random: { nextInt: () => { throw new Error('A committed retry must not reroll.'); } } });
+      expect(first.operation).toMatchObject({ pullCount: 1, primogemCost: 160n, alreadyProcessed: false });
+      expect(retry.operation).toMatchObject({ id: first.operation.id, alreadyProcessed: true });
+      expect(retry.results).toEqual(first.results);
+      expect(first.results).toHaveLength(1);
+      expect(await database.pullOperation.count({ where: { playerId: fixture.playerId } })).toBe(1);
+      expect(await database.pullResult.count({ where: { pullOperation: { playerId: fixture.playerId } } })).toBe(1);
+      expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: fixture.playerId, resourceKey: 'primogems' } } })).amount).toBe(0n);
+      const debit = await database.resourceMovement.findFirstOrThrow({ where: { playerId: fixture.playerId, causeKey: 'gacha.pull.cost' } });
+      expect(debit).toMatchObject({ delta: -160n, balanceBefore: 160n, balanceAfter: 0n, operationId: expect.any(String) });
+      expect((await database.playerEconomyStats.findUniqueOrThrow({ where: { playerId: fixture.playerId } })).totalPrimosSpent).toBe(160n);
+      expect((await database.businessOperation.findFirstOrThrow({ where: { playerId: fixture.playerId, operationType: 'gacha.pull' } })).status).toBe('COMPLETED');
+      expect((await database.playerGachaState.findUniqueOrThrow({ where: { playerId: fixture.playerId } })).totalPulls).toBe(1n);
+    } finally { await deletePullPlayer(fixture.playerId); }
+  });
+
+  it('persists ten ordered sequential results and prevents concurrent overspending', async () => {
+    const ten = await createPullPlayer(1_600n);
+    try {
+      const result = await new PrismaGachaStore(database).pull({ playerId: ten.playerId, playerElementKey: 'hydro', count: 10, idempotencyKey: randomUUID(), now: ten.now, random: maxRandom });
+      expect(result.results.map(({ index }) => index)).toEqual([1,2,3,4,5,6,7,8,9,10]);
+      expect(await database.pullResult.count({ where: { pullOperationId: result.operation.id } })).toBe(10);
+      expect(await database.playerGachaState.findUniqueOrThrow({ where: { playerId: ten.playerId } })).toMatchObject({ totalPulls: 10n, pity5: 10, pity4: 0 });
+      expect(await database.playerCharacter.count({ where: { playerId: ten.playerId } })).toBe(1);
+      expect(await database.resourceMovement.findFirstOrThrow({ where: { playerId: ten.playerId, causeKey: 'gacha.pull.cost' } })).toMatchObject({ delta: -1_600n, balanceBefore: 1_600n, balanceAfter: 0n });
+    } finally { await deletePullPlayer(ten.playerId); }
+
+    const concurrent = await createPullPlayer(160n);
+    try {
+      const store = new PrismaGachaStore(database);
+      const baseInput = { playerId: concurrent.playerId, playerElementKey: 'hydro' as const, count: 1 as const, now: concurrent.now, random: maxRandom };
+      const outcomes = await Promise.allSettled([
+        store.pull({ ...baseInput, idempotencyKey: randomUUID() }),
+        store.pull({ ...baseInput, idempotencyKey: randomUUID() }),
+      ]);
+      expect(outcomes.filter(({ status }) => status === 'fulfilled')).toHaveLength(1);
+      expect(outcomes.filter(({ status }) => status === 'rejected')).toHaveLength(1);
+      expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: concurrent.playerId, resourceKey: 'primogems' } } })).amount).toBe(0n);
+      expect(await database.pullOperation.count({ where: { playerId: concurrent.playerId } })).toBe(1);
+    } finally { await deletePullPlayer(concurrent.playerId); }
+  }, 15_000);
+
+  it('rolls the complete transaction back when resolution fails after the debit', async () => {
+    const fixture = await createPullPlayer(160n);
+    try {
+      await expect(new PrismaGachaStore(database).pull({ playerId: fixture.playerId, playerElementKey: 'hydro', count: 1, idempotencyKey: randomUUID(), now: fixture.now, random: { nextInt: () => { throw new Error('forced failure'); } } })).rejects.toThrow('forced failure');
+      expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: fixture.playerId, resourceKey: 'primogems' } } })).amount).toBe(160n);
+      expect(await database.pullOperation.count({ where: { playerId: fixture.playerId } })).toBe(0);
+      expect(await database.resourceMovement.count({ where: { playerId: fixture.playerId } })).toBe(0);
+      expect((await database.playerGachaState.findUniqueOrThrow({ where: { playerId: fixture.playerId } })).totalPulls).toBe(0n);
+    } finally { await deletePullPlayer(fixture.playerId); }
+  });
+
+  it('deduplicates concurrent retries and serializes two first acquisitions of the same character', async () => {
+    const retryFixture = await createPullPlayer(160n);
+    try {
+      const store = new PrismaGachaStore(database);
+      const key = randomUUID();
+      const input = { playerId: retryFixture.playerId, playerElementKey: 'hydro' as const, count: 1 as const, idempotencyKey: key, now: retryFixture.now, random: maxRandom };
+      const [first, retry] = await Promise.all([store.pull(input), store.pull(input)]);
+      expect(first.operation.id).toBe(retry.operation.id);
+      expect(await database.pullOperation.count({ where: { playerId: retryFixture.playerId } })).toBe(1);
+      expect(await database.resourceMovement.count({ where: { playerId: retryFixture.playerId, causeKey: 'gacha.pull.cost' } })).toBe(1);
+    } finally { await deletePullPlayer(retryFixture.playerId); }
+
+    const acquisitionFixture = await createPullPlayer(320n);
+    try {
+      const store = new PrismaGachaStore(database);
+      const alwaysZero = { nextInt: () => 0 };
+      const baseInput = { playerId: acquisitionFixture.playerId, playerElementKey: 'hydro' as const, count: 1 as const, now: acquisitionFixture.now, random: alwaysZero };
+      await Promise.all([
+        store.pull({ ...baseInput, idempotencyKey: randomUUID() }),
+        store.pull({ ...baseInput, idempotencyKey: randomUUID() }),
+      ]);
+      const possession = await database.playerCharacter.findUniqueOrThrow({ where: { playerId_characterId: { playerId: acquisitionFixture.playerId, characterId: acquisitionFixture.targetId } } });
+      expect(possession).toMatchObject({ copies: 2, constellation: 1 });
+      expect(await database.pullOperation.count({ where: { playerId: acquisitionFixture.playerId } })).toBe(2);
+    } finally { await deletePullPlayer(acquisitionFixture.playerId); }
+  }, 15_000);
+
+  it('prevents a concurrent x10 and x1 from overspending the same 1600 Primogemmes', async () => {
+    const fixture = await createPullPlayer(1_600n);
+    try {
+      const store = new PrismaGachaStore(database);
+      const baseInput = { playerId: fixture.playerId, playerElementKey: 'hydro' as const, now: fixture.now, random: maxRandom };
+      const outcomes = await Promise.allSettled([
+        store.pull({ ...baseInput, count: 10, idempotencyKey: randomUUID() }),
+        store.pull({ ...baseInput, count: 1, idempotencyKey: randomUUID() }),
+      ]);
+      expect(outcomes.filter(({ status }) => status === 'fulfilled')).toHaveLength(1);
+      const balance = (await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: fixture.playerId, resourceKey: 'primogems' } } })).amount;
+      expect(balance >= 0n).toBe(true);
+      expect([0n, 1_440n]).toContain(balance);
+      expect(await database.pullOperation.count({ where: { playerId: fixture.playerId } })).toBe(1);
+    } finally { await deletePullPlayer(fixture.playerId); }
+  }, 15_000);
+
+  it('persists C6+ possession, refund, maxed compensation and economy earned counters', async () => {
+    const fixture = await createPullPlayer(160n);
+    try {
+      await database.playerGachaState.update({ where: { playerId: fixture.playerId }, data: { pity5: 89, guaranteedFeatured5: true } });
+      await database.playerCharacter.create({ data: { playerId: fixture.playerId, characterId: fixture.targetId, copies: 7, constellation: 6, firstObtainedAt: fixture.now } });
+      await database.c6CompetitionProgress.create({ data: { playerId: fixture.playerId, characterId: fixture.targetId, unlockedAt: fixture.now, strength: 20, intelligence: 20, beauty: 20, charisma: 20, popularity: 20 } });
+      const store = new PrismaGachaStore(database);
+      const idempotencyKey = randomUUID();
+      const input = { playerId: fixture.playerId, playerElementKey: 'hydro' as const, count: 1 as const, idempotencyKey, now: fixture.now, random: maxRandom };
+      const result = await store.pull(input);
+      const retry = await store.pull({ ...input, random: { nextInt: () => { throw new Error('A committed retry must not reroll C6 rewards.'); } } });
+      expect(result.results[0]).toMatchObject({ character: { id: fixture.targetId }, copiesAfter: 8, constellationAfter: 6, bonusRewards: [{ resourceKey: 'primogems', amount: 160n }, { resourceKey: 'moras', amount: 100_000n }] });
+      expect(retry.operation).toMatchObject({ id: result.operation.id, alreadyProcessed: true });
+      expect(retry.results).toEqual(result.results);
+      expect((await database.playerCharacter.findUniqueOrThrow({ where: { playerId_characterId: { playerId: fixture.playerId, characterId: fixture.targetId } } })).copies).toBe(8);
+      const stats = await database.playerEconomyStats.findUniqueOrThrow({ where: { playerId: fixture.playerId } });
+      expect(stats).toMatchObject({ totalPrimosSpent: 160n, totalPrimosEarned: 160n, totalMorasEarned: 100_000n });
+      expect(await database.resourceMovement.count({ where: { playerId: fixture.playerId, causeKey: 'gacha.c6-duplicate-refund' } })).toBe(1);
+      expect(await database.resourceMovement.count({ where: { playerId: fixture.playerId, causeKey: 'gacha.c6-maxed-compensation' } })).toBe(1);
+    } finally { await deletePullPlayer(fixture.playerId); }
+  });
+
+  it('refunds exactly 80 Primogemmes for an already-C6 four-star while copies continue at C6', async () => {
+    const fixture = await createPullPlayer(160n);
+    try {
+      await database.playerGachaState.update({ where: { playerId: fixture.playerId }, data: { pity4: 9 } });
+      await database.playerCharacter.create({ data: { playerId: fixture.playerId, characterId: fixture.fourStarId, copies: 7, constellation: 6, firstObtainedAt: fixture.now } });
+      const result = await new PrismaGachaStore(database).pull({ playerId: fixture.playerId, playerElementKey: 'hydro', count: 1, idempotencyKey: randomUUID(), now: fixture.now, random: maxRandom });
+      expect(result.results[0]).toMatchObject({ character: { id: fixture.fourStarId }, rarity: 4, copiesAfter: 8, constellationAfter: 6, bonusRewards: [{ resourceKey: 'primogems', amount: 80n }] });
+      expect(await database.playerCharacter.findUniqueOrThrow({ where: { playerId_characterId: { playerId: fixture.playerId, characterId: fixture.fourStarId } } })).toMatchObject({ copies: 8, constellation: 6 });
+      expect(await database.c6CompetitionProgress.count({ where: { playerId: fixture.playerId, characterId: fixture.fourStarId } })).toBe(0);
+      expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: fixture.playerId, resourceKey: 'primogems' } } })).amount).toBe(80n);
+    } finally { await deletePullPlayer(fixture.playerId); }
   });
 
   it('persists a valid target without changing counters, resources or progression', async () => {
@@ -57,3 +214,35 @@ describe('Gacha foundation on the development database', () => {
     }
   });
 });
+
+const maxRandom = { nextInt: (maximum: number) => maximum - 1 };
+
+async function createPullPlayer(primogems: bigint) {
+  const identity = { subject: `test-pull-${randomUUID()}` };
+  const playerStore = new PrismaCurrentPlayerStore(database);
+  const player = (await new GetOrProvisionCurrentPlayer(playerStore).execute(identity, `Pull ${randomUUID().slice(0, 8)}`)).player;
+  pullFixturePlayerIds.add(player.id);
+  await database.player.update({ where: { id: player.id }, data: { elementKey: 'hydro' } });
+  await database.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId: player.id, resourceKey: 'primogems' } }, data: { amount: primogems } });
+  const current = await new PrismaGachaStore(database).getCurrent(player.id);
+  const target = current!.banner.featuredFiveStars[0]!;
+  const fourStar = current!.banner.featuredFourStars.at(-1)!;
+  await database.playerGachaState.update({ where: { playerId: player.id }, data: { selectedBannerCharacterId: target.id } });
+  return { playerId: player.id, targetId: target.id, fourStarId: fourStar.id, now: new Date((current!.banner.startsAt.getTime() + current!.banner.endsAt.getTime()) / 2) };
+}
+
+async function deletePullPlayer(playerId: string) {
+  await database.$transaction(async (transaction) => {
+    await transaction.pullResult.deleteMany({ where: { pullOperation: { playerId } } });
+    await transaction.pullOperation.deleteMany({ where: { playerId } });
+    await transaction.resourceMovement.deleteMany({ where: { playerId } });
+    await transaction.businessOperation.deleteMany({ where: { playerId } });
+    await transaction.webIdentity.deleteMany({ where: { playerId } });
+    await transaction.player.deleteMany({ where: { id: playerId } });
+  });
+  pullFixturePlayerIds.delete(playerId);
+}
+
+async function cleanupPullFixtures() {
+  for (const playerId of [...pullFixturePlayerIds]) await deletePullPlayer(playerId);
+}

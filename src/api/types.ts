@@ -101,6 +101,29 @@ export type CurrentGachaDto = Readonly<{
 
 export type CharacterCatalogDto = Readonly<{ characters: readonly GachaCharacterDto[] }>
 
+export type GachaPullResultItemDto = Readonly<{
+  index: number
+  resultType: 'character' | 'resource'
+  character: GachaCharacterDto | null
+  rarity: 4 | 5 | null
+  resourceKey: string | null
+  resourceAmount: string | null
+  wasNewCharacter: boolean | null
+  constellationAfter: number | null
+  copiesAfter: number | null
+  wasFiftyFifty: boolean
+  wonFiftyFifty: boolean | null
+  guaranteeConsumed: boolean
+  captureTriggered: boolean
+  bonusRewards: readonly Readonly<{ resourceKey: string; amount: string; causeKey: string }>[]
+}>
+
+export type GachaPullDto = Readonly<{
+  operation: Readonly<{ id: string; pullCount: 1 | 10; primogemCost: string; createdAt: string; alreadyProcessed: boolean }>
+  results: readonly GachaPullResultItemDto[]
+  playerState: PlayerGachaStateDto
+}>
+
 export type BackendErrorDto = Readonly<{
   error: Readonly<{
     code: string

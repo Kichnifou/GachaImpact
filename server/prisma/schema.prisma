@@ -75,6 +75,7 @@ model ResourceDefinition {
   playerBalances    PlayerResourceBalance[]
   resourceMovements ResourceMovement[]
   wheelDailyStates  PlayerWheelDailyState[]
+  pullResults       PullResult[]
 
   @@map("resource_definitions")
 }
@@ -100,6 +101,9 @@ model Player {
   progression        PlayerProgression?
   gachaState         PlayerGachaState?
   bannerVotes        BannerVote[]
+  characters         PlayerCharacter[]
+  c6Progress         C6CompetitionProgress[]
+  pullOperations     PullOperation[]
 
   @@index([status], map: "players_status_idx")
   @@index([elementKey], map: "players_element_key_idx")
@@ -129,6 +133,10 @@ model Character {
   bannerAppearances      BannerFeaturedCharacter[]
   bannerVotes            BannerVote[]
   selectedByGachaStates  PlayerGachaState[]
+  playerPossessions     PlayerCharacter[]
+  c6Progress            C6CompetitionProgress[]
+  pullTargets            PullOperation[]
+  pullResults            PullResult[]
 
   @@index([isActive, rarity], map: "characters_active_rarity_idx")
   @@index([elementKey, isActive], map: "characters_element_active_idx")
@@ -143,6 +151,7 @@ model BannerRotation {
   createdAt          DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
   featuredCharacters BannerFeaturedCharacter[]
   votes              BannerVote[]
+  pullOperations     PullOperation[]
 
   @@index([status], map: "banner_rotations_status_idx")
   @@map("banner_rotations")
@@ -245,6 +254,7 @@ model BusinessOperation {
   resourceMovements ResourceMovement[]
   wheelDailyState   PlayerWheelDailyState?
   dailyRewardState  PlayerDailyRewardState?
+  pullOperation     PullOperation?
 
   @@index([playerId, startedAt(sort: Desc)], map: "business_operations_player_started_at_idx")
   @@index([operationType, startedAt(sort: Desc)], map: "business_operations_type_started_at_idx")
@@ -341,4 +351,92 @@ model PlayerDailyRewardState {
   lastOperation   BusinessOperation? @relation(fields: [lastOperationId], references: [id], onDelete: SetNull)
 
   @@map("player_daily_reward_state")
+}
+
+model PlayerCharacter {
+  playerId       String    @map("player_id") @db.Uuid
+  characterId    String    @map("character_id") @db.Uuid
+  constellation  Int       @default(0) @db.SmallInt
+  copies         Int       @default(1)
+  firstObtainedAt DateTime @map("first_obtained_at") @db.Timestamptz(6)
+  favorite       Boolean   @default(false)
+  migrationRunId String?   @map("migration_run_id") @db.Uuid
+  provenance     Json?     @db.JsonB
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player         Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  character      Character @relation(fields: [characterId], references: [id], onDelete: Restrict)
+
+  @@id([playerId, characterId])
+  @@index([playerId, firstObtainedAt(sort: Desc)], map: "player_characters_player_obtained_idx")
+  @@index([characterId], map: "player_characters_character_idx")
+  @@map("player_characters")
+}
+
+model C6CompetitionProgress {
+  playerId      String    @map("player_id") @db.Uuid
+  characterId   String    @map("character_id") @db.Uuid
+  strength      Int       @default(1) @db.SmallInt
+  intelligence  Int       @default(1) @db.SmallInt
+  beauty        Int       @default(1) @db.SmallInt
+  charisma      Int       @default(1) @db.SmallInt
+  popularity    Int       @default(1) @db.SmallInt
+  unlockedAt    DateTime  @map("unlocked_at") @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player        Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  character     Character @relation(fields: [characterId], references: [id], onDelete: Restrict)
+
+  @@id([playerId, characterId])
+  @@index([characterId], map: "c6_competition_progress_character_idx")
+  @@map("c6_competition_progress")
+}
+
+model PullOperation {
+  id                  String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId            String           @map("player_id") @db.Uuid
+  bannerRotationId    String           @map("banner_rotation_id") @db.Uuid
+  targetCharacterId   String           @map("target_character_id") @db.Uuid
+  pullCount           Int              @map("pull_count") @db.SmallInt
+  primogemCost        BigInt           @map("primogem_cost")
+  sourceChannel       SourceChannel    @map("source_channel")
+  businessOperationId String           @unique(map: "pull_operations_business_operation_id_key") @map("business_operation_id") @db.Uuid
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  player              Player           @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  bannerRotation      BannerRotation   @relation(fields: [bannerRotationId], references: [id], onDelete: Restrict)
+  targetCharacter     Character        @relation(fields: [targetCharacterId], references: [id], onDelete: Restrict)
+  businessOperation   BusinessOperation @relation(fields: [businessOperationId], references: [id], onDelete: Restrict)
+  results             PullResult[]
+
+  @@index([playerId, createdAt(sort: Desc)], map: "pull_operations_player_created_at_idx")
+  @@index([bannerRotationId], map: "pull_operations_banner_idx")
+  @@map("pull_operations")
+}
+
+model PullResult {
+  id                 String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pullOperationId    String        @map("pull_operation_id") @db.Uuid
+  resultIndex        Int           @map("result_index") @db.SmallInt
+  resultType         String        @map("result_type") @db.Text
+  characterId        String?       @map("character_id") @db.Uuid
+  rarity             Int?          @db.SmallInt
+  resourceKey        String?       @map("resource_key") @db.Text
+  resourceAmount     BigInt?       @map("resource_amount")
+  wasNewCharacter    Boolean?      @map("was_new_character")
+  constellationAfter Int?          @map("constellation_after") @db.SmallInt
+  copiesAfter        Int?          @map("copies_after")
+  wasFiftyFifty      Boolean       @default(false) @map("was_fifty_fifty")
+  wonFiftyFifty      Boolean?      @map("won_fifty_fifty")
+  guaranteeConsumed  Boolean       @default(false) @map("guarantee_consumed")
+  captureTriggered   Boolean       @default(false) @map("capture_triggered")
+  snapshot           Json?         @db.JsonB
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  pullOperation      PullOperation @relation(fields: [pullOperationId], references: [id], onDelete: Cascade)
+  character          Character?    @relation(fields: [characterId], references: [id], onDelete: Restrict)
+  resource           ResourceDefinition? @relation(fields: [resourceKey], references: [key], onDelete: Restrict)
+
+  @@unique([pullOperationId, resultIndex], map: "pull_results_operation_index_key")
+  @@index([characterId], map: "pull_results_character_idx")
+  @@index([createdAt(sort: Desc)], map: "pull_results_created_at_idx")
+  @@map("pull_results")
 }

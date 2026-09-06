@@ -3,13 +3,11 @@ import { Prisma } from '../../../generated/prisma/client.js';
 export function isPrismaConcurrencyCollision(error: unknown): boolean {
   if (error instanceof Prisma.PrismaClientKnownRequestError && (error.code === 'P2002' || error.code === 'P2034')) return true;
   if (String(error).includes('TransactionWriteConflict')) return true;
-  if (hasPostgresConflictMarker(error)) return true;
-  return Boolean(error && typeof error === 'object' && 'cause' in error && hasPostgresConflictMarker(error.cause));
+  return hasPostgresConflictMarker(error);
 }
 
 function hasPostgresConflictMarker(value: unknown): boolean {
-  return Boolean(value && typeof value === 'object' && (
-    ('originalCode' in value && value.originalCode === '40001')
-    || ('kind' in value && value.kind === 'TransactionWriteConflict')
-  ));
+  if (!value || typeof value !== 'object') return false;
+  if (('originalCode' in value && value.originalCode === '40001') || ('kind' in value && value.kind === 'TransactionWriteConflict')) return true;
+  return ['cause', 'meta', 'driverAdapterError'].some((key) => key in value && hasPostgresConflictMarker((value as Record<string, unknown>)[key]));
 }

@@ -22,8 +22,10 @@ const expectedTables = [
   'banner_rotations',
   'banner_votes',
   'business_operations',
+  'c6_competition_progress',
   'characters',
   'elements',
+  'player_characters',
   'player_daily_reward_state',
   'player_economy_stats',
   'player_gacha_states',
@@ -32,6 +34,8 @@ const expectedTables = [
   'player_wheel_daily_states',
   'player_wheel_stats',
   'players',
+  'pull_operations',
+  'pull_results',
   'resource_definitions',
   'resource_movements',
   'web_identities',
@@ -41,9 +45,12 @@ const expectedCheckConstraints = [
   'banner_featured_rarity_check',
   'banner_featured_slot_check',
   'banner_rotations_dates_check',
+  'c6_competition_progress_stats_check',
   'characters_name_check',
   'characters_rarity_check',
   'elements_display_order_positive_check',
+  'player_characters_constellation_check',
+  'player_characters_copies_check',
   'player_daily_reward_state_claim_dates_check',
   'player_economy_stats_main_particles_earned_nonnegative_check',
   'player_economy_stats_moras_earned_nonnegative_check',
@@ -64,6 +71,11 @@ const expectedCheckConstraints = [
   'player_wheel_stats_total_jackpots_nonnegative_check',
   'player_wheel_stats_total_spins_nonnegative_check',
   'players_display_name_length_check',
+  'pull_operations_cost_check',
+  'pull_operations_count_check',
+  'pull_results_character_shape_check',
+  'pull_results_index_check',
+  'pull_results_rarity_check',
   'resource_movements_balance_after_nonnegative_check',
   'resource_movements_balance_before_nonnegative_check',
   'resource_movements_balance_consistency_check',
@@ -73,7 +85,10 @@ const expectedManualIndexes = [
   'banner_rotations_one_active_idx',
   'business_operations_source_idempotency_key',
   'characters_name_lower_idx',
+  'player_characters_player_obtained_idx',
   'players_display_name_lower_idx',
+  'pull_operations_player_created_at_idx',
+  'pull_results_operation_index_key',
 ] as const;
 
 afterAll(async () => {
@@ -157,7 +172,10 @@ describe('Supabase development database', () => {
           'banner_rotations_one_active_idx',
           'business_operations_source_idempotency_key',
           'characters_name_lower_idx',
-          'players_display_name_lower_idx'
+          'player_characters_player_obtained_idx',
+          'players_display_name_lower_idx',
+          'pull_operations_player_created_at_idx',
+          'pull_results_operation_index_key'
         )
       ORDER BY indexname
     `;

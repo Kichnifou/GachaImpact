@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.58
+Version : 0.59
 Date : 2026-09-06
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3535,7 +3535,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Moteur Invocation x1/x10 réel — conception et implémentation.**
+**Moteur Invocation x1/x10 réel — validation publique propriétaire à effectuer.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3552,8 +3552,8 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - squelette Fastify / TypeScript checkpointé ;
 - Prisma ORM 7.10.0 stable ;
 - Supabase DEV provisionné et connexion PostgreSQL fonctionnelle ;
-- quatre migrations versionnées appliquées, jusqu'à `004_add_gacha_foundation` ;
-- 17 tables présentes pour Identité / Ressources / Roue / Récompense quotidienne / Progression Player / fondations Gacha ;
+- cinq migrations versionnées appliquées sur Supabase DEV, jusqu'à `005_add_gacha_pull` ;
+- 21 tables présentes, dont les nouvelles tables privées `player_characters`, `c6_competition_progress`, `pull_operations` et `pull_results` ;
 - référentiels seedés avec 7 éléments et 9 ressources ;
 - RLS activée sur les tables de fondation, sans policy client permissive ;
 - Auth Supabase réel checkpointé au commit `027d230f7d047e0469076418d3d5122e831bdce6` ;
@@ -3575,30 +3575,36 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Progression Player réelle / dé-mock Niveau-XP : **VALIDÉE PUBLIQUEMENT PAR LE PROPRIÉTAIRE / CLÔTURÉE** sur [https://gachaimpact.pages.dev](https://gachaimpact.pages.dev) ; vrai Niveau 0, `0 / 30 XP`, barre réelle, F5, logout/login, second compte et non-régression Ressources / Daily Reward / Roue validés ;
 - `GET /api/v1/me/progression` expose les compteurs `bigint` lossless et le niveau dérivé de l'XP cumulative selon `min(floor(xp / 30), 100)`, sans endpoint de gain ou de mutation d'XP ;
 - la sidebar charge niveau, XP du palier et barre depuis l'état serveur au bootstrap authentifié ; l'objectif Gacha, Pity, Garantie et Capture ont depuis été reliés à l'état Gacha réel, tandis que la Team reste encore une présentation mock avant son lot métier ;
-- tests unitaires frontend/backend, builds, lint, tests DB réels et statut Prisma : **VALIDÉS TECHNIQUEMENT** ; baseline Vitest frontend du checkpoint courant : **15 fichiers / 54 tests réussis**.
+- tests unitaires frontend/backend, builds, lint, tests DB réels et statut Prisma : **VALIDÉS TECHNIQUEMENT** ; état automatisé du lot : frontend **17 fichiers / 63 tests**, backend **16 fichiers / 101 tests**, DB **4 fichiers / 17 tests**, tous réussis.
 - Gacha — catalogue / bannière / cible / état joueur et présentation UI associée : **FONDATIONS PUBLIQUEMENT VALIDÉES SANS RÉSERVE PAR LE PROPRIÉTAIRE — DOMAINE CLÔTURÉ** ; catalogue réel, rotation réelle, quatre 5★, six 4★, sélection/changement/persistance de cible, état joueur Gacha et présentation Pity/Garantie/Capture sont validés ;
 - UI Gacha : **PUBLIQUEMENT VALIDÉE ET CLÔTURÉE** pour Hero splash, picker 5★ 2×2, primitive responsive commune des portraits, variantes Team/Équipe active/Box/Personnages/4★ Invocation, desktop, mobile portrait et paysage, sidebar Objectif, aperçu Invocation de l'Accueil, navigation et Particules agrandies ;
-- Box, Personnages et Team sont validés ici pour leur **présentation actuelle**. Les possessions Box et les Teams autoritatives ne sont pas encore implémentées ; elles restent les lots métier suivant le Pull selon l'ordre d'implémentation ;
-- les boutons Invocation x1/x10 sont présents mais volontairement désactivés : **aucun moteur Pull ni endpoint Pull n'existe encore** ;
+- Box, Personnages et Team sont validés ici pour leur **présentation actuelle**. Les possessions serveur nécessaires au Pull existent désormais, mais l'écran Box reste mock/non autoritatif ; les Teams autoritatives ne sont pas encore implémentées ;
+- moteur Pull x1/x10 serveur implémenté et testé : coût complet de 160/1 600 Primogemmes, résolution séquentielle, Pity 5★/4★, 50/50, Garantie, Capture, récompenses secondaires, possessions/copies/constellations, remboursements C6+ et progression C6 minimale ;
+- le débit économique centralisé alimente `ResourceMovement` et `PlayerEconomyStats.totalPrimosSpent` ; les récompenses et remboursements réutilisent le crédit commun ;
+- chaque intention crée une `BusinessOperation` et une `PullOperation`, puis 1 ou 10 `PullResult` ordonnés dans une transaction `SERIALIZABLE` avec verrouillage des états joueur ; les retries d'une même clé sont idempotents et les dépenses concurrentes ne peuvent pas produire de solde négatif ;
+- route authentifiée `POST /api/v1/gacha/pull` ajoutée avec payload `{ count: 1 | 10, idempotencyKey: UUID }` et DTO lossless ;
+- les boutons x1/x10 sont actifs uniquement dans l'écran Invocation ; l'Accueil reste passif. Le frontend attend la réponse serveur persistée, révèle les résultats dans l'ordre et recharge Ressources + état Gacha ;
+- les passifs Pull de Team restent volontairement à zéro : aucune donnée de `mockData` n'est utilisée et le branchement attend une Team serveur autoritative ;
+- ce lot est **IMPLÉMENTÉ ET TESTÉ AUTOMATIQUEMENT**, mais **NON ENCORE VALIDÉ PUBLIQUEMENT PAR LE PROPRIÉTAIRE** ;
 - Ressources, XP, Daily Reward et Roue restent sans régression publique constatée.
 
-## Préparation du prochain lot — Invocation x1/x10
+## État du lot — Invocation x1/x10
 
-Le prochain lot n'est pas un nouveau lot UI. Il doit concevoir puis implémenter le moteur Pull réel en comparant systématiquement le **target design** (`docs/architecture/postgresql-schema-v1.md`, `docs/specifications/v1-data-model.md`) à l'**état physique courant** (`server/prisma/schema.prisma`, migrations versionnées et code Gacha). Une structure décrite dans la cible ne doit jamais être supposée déjà créée.
+Le vertical slice Pull réel est physiquement implémenté. Le **target design** (`docs/architecture/postgresql-schema-v1.md`, `docs/specifications/v1-data-model.md`) et les audits 06/07/15 restent les autorités de conception ; ce Master porte l'état vivant.
 
-État physique confirmé au checkpoint `297b5a9eb223c6e05393bafbff1421af47c70542` :
+État physique après implémentation locale du lot :
 
-- tables Gacha présentes : `characters`, `banner_rotations`, `banner_featured_characters`, `banner_votes`, `player_gacha_states` ;
-- structures génériques réutilisables présentes : `business_operations`, `player_resource_balances`, `resource_movements`, `player_economy_stats` ;
-- aucune table physique dédiée aux possessions joueur, opérations Pull, résultats individuels ou historique Pull (`player_characters`, `pull_operations`, `pull_results` absentes) ;
-- routes Gacha authentifiées actuelles : `GET /api/v1/characters`, `GET /api/v1/gacha/current`, `POST /api/v1/gacha/target` ; aucun endpoint Pull ;
-- le service économique courant crédite les ressources mais ne fournit pas encore le débit Primogemmes requis par le Pull.
+- migration additive `005_add_gacha_pull` versionnée et appliquée sur Supabase DEV ;
+- `player_characters` porte la possession unique `(player_id, character_id)`, copies, constellation et date de première obtention immuable ;
+- `c6_competition_progress` porte uniquement la progression minimale des cinq statistiques C6, sans dupliquer le catalogue `Character` ni implémenter le gameplay Concours ;
+- `pull_operations` et `pull_results` rendent l'historique complet et ordonné récupérable sans construire encore l'écran Historique ;
+- RLS active et droits `anon`/`authenticated` révoqués sur ces quatre tables privées ;
+- API, moteur de domaine déterministe, services Prisma et présentation frontend raccordés ;
+- tests unitaires, API, frontend et DB couvrent les règles critiques, l'idempotence, la concurrence et le rollback.
 
-Le lot devra arrêter le minimum persistant nécessaire pour possession/constellation, opération et idempotence, résultats x1/x10 ordonnés, coût Primogemmes, états Pity/Garantie/Capture avant-après, gains secondaires Mora/Particules, journal de ressources, historique récupérable et transaction atomique. Les résultats doivent être persistés avant toute animation frontend.
+La Box et la Team restent hors de ce checkpoint métier : la Box UI ne lit pas encore `player_characters`, et aucune Team autoritative ne fournit de passifs au moteur Pull.
 
-Les règles fonctionnelles fermées restent propriétaires de `docs/legacy/06-gacha-invocation-audit.md` pour Invocation/Pity/Garantie/Capture/coûts/récompenses et de `docs/legacy/07-box-possession-obtention-audit.md` pour possessions/doublons/constellations. Elles imposent notamment x1 = 160 Primogemmes, x10 = 1 600, résolution séquentielle, priorité 5★ sans reset de Pity 4★ lors d'une collision, 50/50, Garantie, Capture, fallback Mora/Particules, débit et journal serveur, idempotence et application stricte des remboursements C6+ prouvés, sans en inventer d'autres. Ne pas recopier ni réinterpréter leurs détails dans le code sans les relire.
-
-Ordre de reprise : Pull réel → Box/possessions réelles → Team réelle → suite de `docs/roadmap/implementation-order-v1.md`.
+Ordre de reprise après validation propriétaire : Pull réel validé → Box/possessions réelles → Team réelle → suite de `docs/roadmap/implementation-order-v1.md`.
 
 État du premier parcours frontend standalone :
 
@@ -3628,7 +3634,7 @@ Ordre de reprise : Pull réel → Box/possessions réelles → Team réelle → 
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-Préparer le lot borné puis **concevoir et implémenter le moteur Invocation x1/x10 réel**, après comparaison des audits 06/07, du target design, du schéma/migrations physiques, des patterns Ressources/Daily/Roue/idempotence et du frontend Gacha actuel. `PAID_INFRA_APPROVED = false` reste inchangé.
+**Faire reviewer sur GitHub le commit candidat du lot x1/x10 poussé sur `review` ; après approbation seulement, le promouvoir vers `main`, vérifier les déploiements puis faire valider publiquement les vrais x1/x10 par le propriétaire avant de faire avancer le domaine actif vers la Box réelle.** `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

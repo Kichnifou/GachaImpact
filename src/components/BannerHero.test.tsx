@@ -36,8 +36,8 @@ describe('BannerHero real Gacha state', () => {
     expect(html).not.toContain('Personnages 4★')
     expect(html).not.toContain('selected-mark')
   })
-  it('shows the selected hero hierarchy, real zero state and disabled pull controls', () => {
-    const html = renderToStaticMarkup(<BannerHero gacha={data(five[0]!.id)} onSetTarget={vi.fn()} showDetails />)
+  it('shows the selected hero hierarchy, real zero state and active pull controls on Invocation', () => {
+    const html = renderToStaticMarkup(<BannerHero gacha={data(five[0]!.id)} onSetTarget={vi.fn()} onPull={vi.fn()} showDetails />)
     expect(html).toContain('banner-element-watermark')
     expect(html).toContain('src="/splash/Five 1.png"')
     expect(html).not.toContain('src="/icon/Five 1.png"')
@@ -60,7 +60,10 @@ describe('BannerHero real Gacha state', () => {
     expect(html).not.toContain('Fontaine')
     for (const featured of four) expect(html).toContain(`>${featured.name}</strong>`)
     expect((html.match(/<span class="character-rarity">★★★★<\/span>/g) ?? [])).toHaveLength(6)
-    expect((html.match(/disabled=""/g) ?? [])).toHaveLength(2)
+    expect((html.match(/disabled=""/g) ?? [])).toHaveLength(0)
+    expect(html).toContain('Actions d’Invocation')
+    expect(html).toContain('Invocation x1')
+    expect(html).toContain('Invocation x10')
     expect(html).not.toContain('Disponible en permanence')
     expect(html).not.toContain('<span>hydro</span>')
   })
@@ -71,6 +74,7 @@ describe('BannerHero real Gacha state', () => {
     expect(html).toContain('Ouvrir l’écran Invocation')
     expect(html).not.toContain('banner-change-button')
     expect(html).not.toContain('>Changer<')
+    expect((html.match(/disabled=""/g) ?? [])).toHaveLength(2)
   })
 
   it('keeps the compact no-target preview passive and navigable', () => {
