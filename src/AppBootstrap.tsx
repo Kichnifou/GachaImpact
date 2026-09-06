@@ -167,6 +167,7 @@ function AppBootstrap() {
         setGacha((current) => refreshed.gacha ?? (current ? { ...current, playerState: refreshed.result.playerState } : current))
         return refreshed.result
       }}
+      onGetGachaHistory={(page) => getGameApiClient().getGachaHistory(page)}
       onClaimDailyReward={async () => {
         const { result, resources: nextResources } = await claimDailyRewardAndRefresh(getGameApiClient())
         setResources(nextResources)

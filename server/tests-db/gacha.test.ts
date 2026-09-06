@@ -102,6 +102,50 @@ describe('Gacha foundation on the development database', () => {
     } finally { await deletePullPlayer(concurrent.playerId); }
   }, 15_000);
 
+  it('paginates history by ten, keeps newest operations and x10 order, and isolates players', async () => {
+    const empty = await createPullPlayer(0n);
+    const small = await createPullPlayer(320n);
+    const exact = await createPullPlayer(1_600n);
+    const over = await createPullPlayer(1_920n);
+    try {
+      const store = new PrismaGachaStore(database);
+      const emptyHistory = await store.getHistory(empty.playerId, 1);
+      expect(emptyHistory).toMatchObject({ page: 1, pageSize: 10, totalResults: 0, totalPages: 0, hasPrevious: false, hasNext: false, results: [] });
+
+      await store.pull({ playerId: small.playerId, playerElementKey: 'hydro', count: 1, idempotencyKey: randomUUID(), now: new Date(small.now.getTime() - 2_000), random: maxRandom });
+      await store.pull({ playerId: small.playerId, playerElementKey: 'hydro', count: 1, idempotencyKey: randomUUID(), now: new Date(small.now.getTime() - 1_000), random: maxRandom });
+      const smallHistory = await store.getHistory(small.playerId, 1);
+      expect(smallHistory).toMatchObject({ totalResults: 2, totalPages: 1, hasPrevious: false, hasNext: false });
+
+      await store.pull({ playerId: exact.playerId, playerElementKey: 'hydro', count: 10, idempotencyKey: randomUUID(), now: exact.now, random: maxRandom });
+      const exactHistory = await store.getHistory(exact.playerId, 1);
+      expect(exactHistory).toMatchObject({ totalResults: 10, totalPages: 1, hasPrevious: false, hasNext: false });
+      expect(exactHistory.results.map(({ index }) => index)).toEqual([1,2,3,4,5,6,7,8,9,10]);
+
+      await store.pull({ playerId: over.playerId, playerElementKey: 'hydro', count: 1, idempotencyKey: randomUUID(), now: new Date(over.now.getTime() - 2_000), random: maxRandom });
+      await store.pull({ playerId: over.playerId, playerElementKey: 'hydro', count: 1, idempotencyKey: randomUUID(), now: new Date(over.now.getTime() - 1_000), random: maxRandom });
+      const newest = await store.pull({ playerId: over.playerId, playerElementKey: 'hydro', count: 10, idempotencyKey: randomUUID(), now: over.now, random: maxRandom });
+      const firstPage = await store.getHistory(over.playerId, 1);
+      const secondPage = await store.getHistory(over.playerId, 2);
+      expect(firstPage).toMatchObject({ totalResults: 12, totalPages: 2, hasPrevious: false, hasNext: true });
+      expect(firstPage.results.every(({ operationId }) => operationId === newest.operation.id)).toBe(true);
+      expect(firstPage.results.map(({ index }) => index)).toEqual([1,2,3,4,5,6,7,8,9,10]);
+      expect(firstPage.results.map(({ pity5AtPull }) => pity5AtPull)).toEqual([3,4,5,6,7,8,9,10,11,12]);
+      expect(firstPage.results.map(({ pity4AtPull }) => pity4AtPull)).toEqual([3,4,5,6,7,8,9,10,1,2]);
+      expect(secondPage).toMatchObject({ page: 2, totalResults: 12, totalPages: 2, hasPrevious: true, hasNext: false });
+      expect(secondPage.results).toHaveLength(2);
+      expect(secondPage.results[0]!.occurredAt.getTime()).toBeGreaterThan(secondPage.results[1]!.occurredAt.getTime());
+      const smallOperationIds = new Set(smallHistory.results.map(({ operationId }) => operationId));
+      expect(firstPage.results.some(({ operationId }) => smallOperationIds.has(operationId))).toBe(false);
+      expect((await store.getHistory(small.playerId, 1)).results).toHaveLength(2);
+    } finally {
+      await deletePullPlayer(empty.playerId);
+      await deletePullPlayer(small.playerId);
+      await deletePullPlayer(exact.playerId);
+      await deletePullPlayer(over.playerId);
+    }
+  }, 25_000);
+
   it('rolls the complete transaction back when resolution fails after the debit', async () => {
     const fixture = await createPullPlayer(160n);
     try {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import type { CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaPullDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, WheelSpinDto, WheelTodayDto } from '../api/types'
+import type { CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import type { ScreenId } from '../types'
 import BoxScreen from '../screens/BoxScreen'
 import CharactersScreen from '../screens/CharactersScreen'
@@ -35,9 +35,10 @@ type GameShellProps = {
   characters: readonly GachaCharacterDto[]
   onSetGachaTarget: (characterId: string) => Promise<void>
   onPullGacha: (count: 1 | 10, idempotencyKey: string) => Promise<GachaPullDto>
+  onGetGachaHistory: (page: number) => Promise<GachaHistoryDto>
 }
 
-function GameShell({ player, resources, progression, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, onSetGachaTarget, onPullGacha }: GameShellProps) {
+function GameShell({ player, resources, progression, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, onSetGachaTarget, onPullGacha, onGetGachaHistory }: GameShellProps) {
   const [activeScreen, setActiveScreen] = useState<ScreenId>(getScreenFromHash)
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -59,7 +60,7 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
   const renderScreen = () => {
     switch (activeScreen) {
       case 'invocation':
-        return <InvocationScreen gacha={gacha} onSetTarget={onSetGachaTarget} onPull={onPullGacha} />
+        return <InvocationScreen gacha={gacha} onSetTarget={onSetGachaTarget} onPull={onPullGacha} onGetHistory={onGetGachaHistory} />
       case 'box':
         return <BoxScreen />
       case 'characters':

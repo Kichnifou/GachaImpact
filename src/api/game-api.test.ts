@@ -155,4 +155,12 @@ describe('game API client', () => {
     expect(fetchImplementation.mock.calls[0]?.[0]).toContain('/api/v1/gacha/pull')
     expect(JSON.parse(String(fetchImplementation.mock.calls[0]?.[1]?.body))).toEqual({ count: 10, idempotencyKey: key })
   })
+
+  it('loads the requested server-paginated Gacha history page', async () => {
+    const fetchImplementation = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ page: 2, pageSize: 10, totalResults: 12, totalPages: 2, hasPrevious: true, hasNext: false, results: [] })))
+    const client = createGameApiClient({ baseUrl: 'http://127.0.0.1:3001', getAccessToken: async () => 'token', fetchImplementation })
+    await expect(client.getGachaHistory(2)).resolves.toMatchObject({ page: 2, pageSize: 10, totalResults: 12 })
+    expect(fetchImplementation.mock.calls[0]?.[0]).toBe('http://127.0.0.1:3001/api/v1/gacha/history?page=2')
+    expect(fetchImplementation.mock.calls[0]?.[1]?.method).toBeUndefined()
+  })
 })

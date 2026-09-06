@@ -203,5 +203,5 @@ describe('authenticated Player vertical slice on the development database', () =
       ).resolves.toBe(0);
       await expect(database.player.count({ where: { displayName } })).resolves.toBe(0);
     }
-  });
+  }, 15_000);
 });

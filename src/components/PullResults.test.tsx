@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type { GachaPullDto } from '../api/types'
 import PullResults from './PullResults'
 
@@ -15,7 +15,7 @@ describe('PullResults', () => {
         : { index: index + 1, resultType: 'resource' as const, character: null, rarity: null, resourceKey: 'moras', resourceAmount: '5000', wasNewCharacter: null, constellationAfter: null, copiesAfter: null, wasFiftyFifty: false, wonFiftyFifty: null, guaranteeConsumed: false, captureTriggered: false, bonusRewards: [], c6Progression: null }),
       playerState: state,
     }
-    const html = renderToStaticMarkup(<PullResults pull={pull} onClose={vi.fn()} />)
+    const html = renderToStaticMarkup(<PullResults pull={pull} />)
     expect((html.match(/pull-result-card/g) ?? [])).toHaveLength(10)
     expect(html.indexOf('#1')).toBeLessThan(html.indexOf('#4'))
     expect(html.indexOf('#4')).toBeLessThan(html.indexOf('#10'))
@@ -23,5 +23,7 @@ describe('PullResults', () => {
     expect(html).toContain('Furina')
     expect(html).toContain('Nouveau · C0')
     expect(html).toContain('Beauté +1')
+    expect(html).toContain('/assets/genshin/currencies/mora.png')
+    expect(html).toContain('★★★')
   })
 })

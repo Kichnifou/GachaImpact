@@ -43,10 +43,28 @@ export type GachaPullInput = Readonly<{
   now: Date;
   random: RandomSource;
 }>;
+export const GACHA_HISTORY_PAGE_SIZE = 10;
+export type GachaHistoryResult = PullResultRecord & Readonly<{
+  operationId: string;
+  operationPullCount: PullCount;
+  occurredAt: Date;
+  pity5AtPull: number | null;
+  pity4AtPull: number | null;
+}>;
+export type GachaHistoryPage = Readonly<{
+  page: number;
+  pageSize: typeof GACHA_HISTORY_PAGE_SIZE;
+  totalResults: number;
+  totalPages: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  results: readonly GachaHistoryResult[];
+}>;
 export interface GachaStore {
   listActiveCharacters(): Promise<readonly GachaCharacter[]>;
   getCurrent(playerId: string): Promise<{ banner: CurrentBanner; playerState: PlayerGachaState } | null>;
   setTarget(playerId: string, characterId: string): Promise<PlayerGachaState>;
   pull(input: GachaPullInput): Promise<GachaPullResult>;
+  getHistory(playerId: string, page: number): Promise<GachaHistoryPage>;
   ensureRotation(startsAt: Date, endsAt: Date, select: (catalog: readonly GachaCharacter[], previous: ReadonlySet<string>, votes: readonly BannerVoteWeight[]) => readonly FeaturedSelection[]): Promise<CurrentBanner>;
 }

@@ -1,14 +1,15 @@
 import type { FastifyInstance, preHandlerHookHandler } from 'fastify';
 import { z } from 'zod';
-import type { GetCharacters, GetCurrentGacha, PerformGachaPull, SetGachaTarget } from '../../application/gacha/gacha-services.js';
+import type { GetCharacters, GetCurrentGacha, GetGachaHistory, PerformGachaPull, SetGachaTarget } from '../../application/gacha/gacha-services.js';
 import type { PlayerGachaState } from '../../application/gacha/gacha-store.js';
 import type { GachaCharacter } from '../../domain/gacha/gacha.js';
 import { requireAuthenticatedIdentity } from '../auth/authentication.js';
 import { AppError } from '../errors.js';
 
-type Options = Readonly<{ authenticate: preHandlerHookHandler; getCharacters: GetCharacters; getCurrentGacha: GetCurrentGacha; setGachaTarget: SetGachaTarget; performGachaPull?: PerformGachaPull }>;
+type Options = Readonly<{ authenticate: preHandlerHookHandler; getCharacters: GetCharacters; getCurrentGacha: GetCurrentGacha; setGachaTarget: SetGachaTarget; performGachaPull?: PerformGachaPull; getGachaHistory?: GetGachaHistory }>;
 const targetSchema = z.object({ characterId: z.uuid() }).strict();
 const pullSchema = z.object({ count: z.union([z.literal(1), z.literal(10)]), idempotencyKey: z.uuid() }).strict();
+const historyQuerySchema = z.object({ page: z.coerce.number().int().min(1).default(1) }).strict();
 
 export async function registerGachaRoutes(app: FastifyInstance, options: Options): Promise<void> {
   app.get('/api/v1/characters', { preHandler: options.authenticate }, async () => ({ characters: (await options.getCharacters.execute()).map(characterDto) }));
@@ -25,6 +26,11 @@ export async function registerGachaRoutes(app: FastifyInstance, options: Options
     const parsed = pullSchema.safeParse(request.body);
     if (!parsed.success) throw new AppError('count must be 1 or 10 and idempotencyKey must be a UUID.', 400, 'VALIDATION_ERROR');
     return pullDto(await options.performGachaPull!.execute(requireAuthenticatedIdentity(request), parsed.data.count, parsed.data.idempotencyKey));
+  });
+  if (options.getGachaHistory) app.get('/api/v1/gacha/history', { preHandler: options.authenticate }, async (request) => {
+    const parsed = historyQuerySchema.safeParse(request.query);
+    if (!parsed.success) throw new AppError('page must be an integer greater than or equal to 1.', 400, 'VALIDATION_ERROR');
+    return historyDto(await options.getGachaHistory!.execute(requireAuthenticatedIdentity(request), parsed.data.page));
   });
 }
 
@@ -44,5 +50,17 @@ function pullDto(pull: Awaited<ReturnType<PerformGachaPull['execute']>>) {
       bonusRewards: result.bonusRewards.map((reward) => ({ ...reward, amount: reward.amount.toString() })),
     })),
     playerState: stateDto(pull.playerState),
+  };
+}
+
+function historyDto(history: Awaited<ReturnType<GetGachaHistory['execute']>>) {
+  return {
+    ...history,
+    results: history.results.map((result) => ({
+      ...result,
+      occurredAt: result.occurredAt.toISOString(),
+      resourceAmount: result.resourceAmount?.toString() ?? null,
+      bonusRewards: result.bonusRewards.map((reward) => ({ ...reward, amount: reward.amount.toString() })),
+    })),
   };
 }

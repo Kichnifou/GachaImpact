@@ -19,7 +19,7 @@ import { GetTodayDailyReward } from '../application/daily-reward/get-today-daily
 import { ClaimDailyReward } from '../application/daily-reward/claim-daily-reward.js';
 import { PrismaDailyRewardStore } from './database/prisma-daily-reward-store.js';
 import { PrismaGachaStore } from './database/prisma-gacha-store.js';
-import { GetCharacters, GetCurrentGacha, PerformGachaPull, SetGachaTarget } from '../application/gacha/gacha-services.js';
+import { GetCharacters, GetCurrentGacha, GetGachaHistory, PerformGachaPull, SetGachaTarget } from '../application/gacha/gacha-services.js';
 import { WeeklyBannerScheduler } from '../application/gacha/weekly-banner-scheduler.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
@@ -61,6 +61,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     getCurrentGacha: new GetCurrentGacha(getCurrentPlayer, gachaStore),
     setGachaTarget: new SetGachaTarget(getCurrentPlayer, gachaStore),
     performGachaPull: new PerformGachaPull(getCurrentPlayer, gachaStore, clock, random),
+    getGachaHistory: new GetGachaHistory(getCurrentPlayer, gachaStore),
     start: () => scheduler.start(),
     close: async () => { scheduler.stop(); await database.$disconnect(); },
   };

@@ -1,6 +1,6 @@
 import { OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
 import { BusinessError } from '../../application/errors.js';
-import type { CurrentBanner, GachaPullInput, GachaPullResult, GachaStore, PlayerGachaState, PullResultRecord } from '../../application/gacha/gacha-store.js';
+import { GACHA_HISTORY_PAGE_SIZE, type CurrentBanner, type GachaHistoryPage, type GachaPullInput, type GachaPullResult, type GachaStore, type PlayerGachaState, type PullResultRecord } from '../../application/gacha/gacha-store.js';
 import type { BannerVoteWeight, FeaturedSelection, GachaCharacter } from '../../domain/gacha/gacha.js';
 import { PULL_COST, resolvePulls, type PullState } from '../../domain/gacha/pull.js';
 import { isElementKey, isResourceKey, type ResourceKey } from '../../domain/economy/resources.js';
@@ -50,6 +50,55 @@ export class PrismaGachaStore implements GachaStore {
       if (!featured) throw new BusinessError('GACHA_TARGET_INVALID', 'The selected character is not a featured five-star character.');
       return tx.playerGachaState.update({ where: { playerId }, data: { selectedBannerCharacterId: characterId }, select: stateSelection });
     });
+  }
+
+  public async getHistory(playerId: string, page: number): Promise<GachaHistoryPage> {
+    const totalResults = await this.database.pullResult.count({ where: { pullOperation: { playerId } } });
+    const totalPages = Math.ceil(totalResults / GACHA_HISTORY_PAGE_SIZE);
+    const rows = await this.database.pullResult.findMany({
+      where: { pullOperation: { playerId } },
+      orderBy: [
+        { pullOperation: { createdAt: 'desc' } },
+        { pullOperationId: 'desc' },
+        { resultIndex: 'asc' },
+      ],
+      skip: (page - 1) * GACHA_HISTORY_PAGE_SIZE,
+      take: GACHA_HISTORY_PAGE_SIZE,
+      include: {
+        character: { select: characterSelection },
+        pullOperation: { select: { id: true, pullCount: true, createdAt: true } },
+      },
+    });
+    return {
+      page,
+      pageSize: GACHA_HISTORY_PAGE_SIZE,
+      totalResults,
+      totalPages,
+      hasPrevious: page > 1,
+      hasNext: page < totalPages,
+      results: rows.map((result) => ({
+        operationId: result.pullOperation.id,
+        operationPullCount: result.pullOperation.pullCount as 1 | 10,
+        occurredAt: result.pullOperation.createdAt,
+        index: result.resultIndex,
+        resultType: result.resultType as 'character' | 'resource',
+        character: result.character ? toCharacter(result.character) : null,
+        rarity: result.rarity as 4 | 5 | null,
+        resourceKey: result.resourceKey && isResourceKey(result.resourceKey) ? result.resourceKey : null,
+        resourceAmount: result.resourceAmount,
+        wasNewCharacter: result.wasNewCharacter,
+        constellationAfter: result.constellationAfter,
+        copiesAfter: result.copiesAfter,
+        wasFiftyFifty: result.wasFiftyFifty,
+        wonFiftyFifty: result.wonFiftyFifty,
+        guaranteeConsumed: result.guaranteeConsumed,
+        captureTriggered: result.captureTriggered,
+        bonusRewards: readBonusRewards(result.snapshot),
+        c6Progression: readC6Progression(result.snapshot),
+        pity5AtPull: readPityAtPull(result.snapshot, 'pity5'),
+        pity4AtPull: readPityAtPull(result.snapshot, 'pity4'),
+      })),
+    };
   }
 
   public async pull(input: GachaPullInput): Promise<GachaPullResult> {
@@ -196,7 +245,10 @@ export class PrismaGachaStore implements GachaStore {
         resultSummary: { pullOperationId: pullOperation.id, pullCount: input.count, primogemCost: cost.toString() },
       } });
       return { operation: { id: pullOperation.id, pullCount: input.count, primogemCost: cost, createdAt: input.now, alreadyProcessed: false }, results: records, playerState };
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      timeout: 20_000,
+    });
   }
 
   private async findPersistedPull(playerId: string, operationKey: string, count: GachaPullInput['count']) {
@@ -308,6 +360,14 @@ function readC6Progression(value: Prisma.JsonValue | null): PullResultRecord['c6
   if (progression.type !== 'stat' || typeof progression.stat !== 'string' || typeof progression.valueAfter !== 'number') return null;
   if (!c6StatKeys.includes(progression.stat as C6StatKey) || !Number.isInteger(progression.valueAfter)) return null;
   return { type: 'stat', stat: progression.stat as C6StatKey, valueAfter: progression.valueAfter };
+}
+
+function readPityAtPull(value: Prisma.JsonValue | null, key: 'pity5' | 'pity4'): number | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !('stateBefore' in value)) return null;
+  const stateBefore = value.stateBefore;
+  if (!stateBefore || typeof stateBefore !== 'object' || Array.isArray(stateBefore)) return null;
+  const pity = stateBefore[key];
+  return typeof pity === 'number' && Number.isInteger(pity) && pity >= 0 ? pity + 1 : null;
 }
 
 function waitForConcurrentTransaction(attempt: number): Promise<void> {

@@ -125,6 +125,24 @@ export type GachaPullDto = Readonly<{
   playerState: PlayerGachaStateDto
 }>
 
+export type GachaHistoryResultDto = GachaPullResultItemDto & Readonly<{
+  operationId: string
+  operationPullCount: 1 | 10
+  occurredAt: string
+  pity5AtPull: number | null
+  pity4AtPull: number | null
+}>
+
+export type GachaHistoryDto = Readonly<{
+  page: number
+  pageSize: 10
+  totalResults: number
+  totalPages: number
+  hasPrevious: boolean
+  hasNext: boolean
+  results: readonly GachaHistoryResultDto[]
+}>
+
 export type BackendErrorDto = Readonly<{
   error: Readonly<{
     code: string

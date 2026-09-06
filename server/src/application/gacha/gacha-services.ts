@@ -49,3 +49,15 @@ export class PerformGachaPull {
     return this.store.pull({ playerId: player.id, playerElementKey: player.elementKey, count: count as PullCount, idempotencyKey, now: this.clock.now(), random: this.random });
   }
 }
+
+export class GetGachaHistory {
+  public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: GachaStore) {}
+
+  public async execute(identity: AuthenticatedIdentity, page: number) {
+    if (!Number.isInteger(page) || page < 1) {
+      throw new BusinessError('GACHA_HISTORY_PAGE_INVALID', 'La page d’historique doit être un entier supérieur ou égal à 1.');
+    }
+    const player = await this.getPlayer.execute(identity);
+    return this.store.getHistory(player.id, page);
+  }
+}

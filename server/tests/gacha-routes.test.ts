@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../src/app.js';
-import { GetCharacters, GetCurrentGacha, PerformGachaPull, SetGachaTarget } from '../src/application/gacha/gacha-services.js';
+import { GetCharacters, GetCurrentGacha, GetGachaHistory, PerformGachaPull, SetGachaTarget } from '../src/application/gacha/gacha-services.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
 import type { GachaStore } from '../src/application/gacha/gacha-store.js';
@@ -22,13 +22,14 @@ describe('Gacha HTTP contracts', () => {
       results: Array.from({ length: input.count }, (_, index) => ({ index: index + 1, resultType: 'resource' as const, character: null, rarity: null, resourceKey: 'moras' as const, resourceAmount: 5_000n, wasNewCharacter: null, constellationAfter: null, copiesAfter: null, wasFiftyFifty: false, wonFiftyFifty: null, guaranteeConsumed: false, captureTriggered: false, bonusRewards: [], c6Progression: null })),
       playerState: { ...state, totalPulls: BigInt(input.count) },
     }));
-    const store = { listActiveCharacters: async () => [...five, ...four], getCurrent: async () => ({ banner: { id: 'b1', startsAt: new Date('2026-09-01T00:00:00Z'), endsAt: new Date('2026-09-08T00:00:00Z'), featuredFiveStars: five, featuredFourStars: four }, playerState: state }), setTarget, pull } as unknown as GachaStore;
+    const getHistory = vi.fn(async (_playerId: string, page: number) => ({ page, pageSize: 10 as const, totalResults: 1, totalPages: 1, hasPrevious: false, hasNext: false, results: [{ operationId: 'history-operation', operationPullCount: 1 as const, occurredAt: new Date('2026-09-06T20:58:52.283Z'), index: 1, resultType: 'character' as const, character: five[0]!, rarity: 5 as const, resourceKey: null, resourceAmount: null, wasNewCharacter: false, constellationAfter: 6, copiesAfter: 8, wasFiftyFifty: true, wonFiftyFifty: true, guaranteeConsumed: false, captureTriggered: false, pity5AtPull: 74, pity4AtPull: 2, bonusRewards: [{ resourceKey: 'primogems' as const, amount: 160n, causeKey: 'gacha.c6-duplicate-refund' }], c6Progression: { type: 'stat' as const, stat: 'beauty' as const, valueAfter: 8 } }] }));
+    const store = { listActiveCharacters: async () => [...five, ...four], getCurrent: async () => ({ banner: { id: 'b1', startsAt: new Date('2026-09-01T00:00:00Z'), endsAt: new Date('2026-09-08T00:00:00Z'), featuredFiveStars: five, featuredFourStars: four }, playerState: state }), setTarget, pull, getHistory } as unknown as GachaStore;
     const playerStore = { findByIdentity: async () => ({ id: playerId, displayName: 'Test', elementKey: 'hydro', status: 'ACTIVE' as const }), provision: vi.fn() };
     const currentPlayer = new GetCurrentPlayer(playerStore);
-    const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, { authIdentityVerifier: { verify: async () => ({ subject: 'subject' }) }, getOrProvisionCurrentPlayer: new GetOrProvisionCurrentPlayer(playerStore), getCharacters: new GetCharacters(store), getCurrentGacha: new GetCurrentGacha(currentPlayer, store), setGachaTarget: new SetGachaTarget(currentPlayer, store), performGachaPull: new PerformGachaPull(currentPlayer, store, { now: () => new Date('2026-09-06T12:00:00Z') }, { nextInt: () => 0 }) });
-    apps.push(app); return { app, setTarget, pull, playerId };
+    const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, { authIdentityVerifier: { verify: async () => ({ subject: 'subject' }) }, getOrProvisionCurrentPlayer: new GetOrProvisionCurrentPlayer(playerStore), getCharacters: new GetCharacters(store), getCurrentGacha: new GetCurrentGacha(currentPlayer, store), setGachaTarget: new SetGachaTarget(currentPlayer, store), performGachaPull: new PerformGachaPull(currentPlayer, store, { now: () => new Date('2026-09-06T12:00:00Z') }, { nextInt: () => 0 }), getGachaHistory: new GetGachaHistory(currentPlayer, store) });
+    apps.push(app); return { app, setTarget, pull, getHistory, playerId };
   }
-  it('protects all endpoints', async () => { const { app } = await setup(); for (const url of ['/api/v1/characters', '/api/v1/gacha/current']) expect((await app.inject({ url })).statusCode).toBe(401); expect((await app.inject({ method: 'POST', url: '/api/v1/gacha/target', payload: { characterId: crypto.randomUUID() } })).statusCode).toBe(401); expect((await app.inject({ method: 'POST', url: '/api/v1/gacha/pull', payload: { count: 1, idempotencyKey: crypto.randomUUID() } })).statusCode).toBe(401); });
+  it('protects all endpoints', async () => { const { app } = await setup(); for (const url of ['/api/v1/characters', '/api/v1/gacha/current', '/api/v1/gacha/history?page=1']) expect((await app.inject({ url })).statusCode).toBe(401); expect((await app.inject({ method: 'POST', url: '/api/v1/gacha/target', payload: { characterId: crypto.randomUUID() } })).statusCode).toBe(401); expect((await app.inject({ method: 'POST', url: '/api/v1/gacha/pull', payload: { count: 1, idempotencyKey: crypto.randomUUID() } })).statusCode).toBe(401); });
   it('serializes a valid banner, catalog and lossless state', async () => { const { app } = await setup(); const headers = { authorization: 'Bearer token' }; const current = await app.inject({ url: '/api/v1/gacha/current', headers }); expect(current.json().banner.featuredFiveStars).toHaveLength(4); expect(current.json().banner.featuredFourStars).toHaveLength(6); expect(current.json().playerState.totalPulls).toBe('0'); expect((await app.inject({ url: '/api/v1/characters', headers })).json().characters).toHaveLength(10); });
   it('updates only the requested target through the service', async () => { const { app, setTarget, playerId } = await setup(); const id = crypto.randomUUID(); const response = await app.inject({ method: 'POST', url: '/api/v1/gacha/target', headers: { authorization: 'Bearer token' }, payload: { characterId: id } }); expect(response.statusCode).toBe(200); expect(response.json().playerState.selectedBannerCharacterId).toBe(id); expect(setTarget).toHaveBeenCalledWith(playerId, id); });
   it('validates pull payloads and serializes ordered bigint-safe x1/x10 results', async () => {
@@ -48,5 +49,19 @@ describe('Gacha HTTP contracts', () => {
     const response = await app.inject({ method: 'POST', url: '/api/v1/gacha/pull', headers: { authorization: 'Bearer token' }, payload: { count: 1, idempotencyKey: crypto.randomUUID() } });
     expect(response.statusCode).toBe(409);
     expect(response.json()).toMatchObject({ error: { code: 'INSUFFICIENT_PRIMOGEMS', message: 'Not enough.' } });
+  });
+  it('validates history pages and serializes the current player history losslessly', async () => {
+    const { app, getHistory, playerId } = await setup();
+    const headers = { authorization: 'Bearer token' };
+    for (const page of ['0', '-1', '1.5', 'invalid']) {
+      expect((await app.inject({ url: `/api/v1/gacha/history?page=${page}`, headers })).statusCode).toBe(400);
+    }
+    const response = await app.inject({ url: '/api/v1/gacha/history?page=1', headers });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      page: 1, pageSize: 10, totalResults: 1, totalPages: 1, hasPrevious: false, hasNext: false,
+      results: [{ operationId: 'history-operation', occurredAt: '2026-09-06T20:58:52.283Z', pity5AtPull: 74, pity4AtPull: 2, bonusRewards: [{ amount: '160' }] }],
+    });
+    expect(getHistory).toHaveBeenCalledWith(playerId, 1);
   });
 });

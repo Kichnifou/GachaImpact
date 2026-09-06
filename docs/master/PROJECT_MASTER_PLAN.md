@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.60
+Version : 0.61
 Date : 2026-09-06
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3535,7 +3535,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Moteur Invocation x1/x10 réel — validation publique propriétaire à effectuer.**
+**Invocation réelle — revalidation publique de l’UX x1/x10 et de l’Historique à effectuer.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3575,7 +3575,7 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Progression Player réelle / dé-mock Niveau-XP : **VALIDÉE PUBLIQUEMENT PAR LE PROPRIÉTAIRE / CLÔTURÉE** sur [https://gachaimpact.pages.dev](https://gachaimpact.pages.dev) ; vrai Niveau 0, `0 / 30 XP`, barre réelle, F5, logout/login, second compte et non-régression Ressources / Daily Reward / Roue validés ;
 - `GET /api/v1/me/progression` expose les compteurs `bigint` lossless et le niveau dérivé de l'XP cumulative selon `min(floor(xp / 30), 100)`, sans endpoint de gain ou de mutation d'XP ;
 - la sidebar charge niveau, XP du palier et barre depuis l'état serveur au bootstrap authentifié ; l'objectif Gacha, Pity, Garantie et Capture ont depuis été reliés à l'état Gacha réel, tandis que la Team reste encore une présentation mock avant son lot métier ;
-- tests unitaires frontend/backend, builds, lint, tests DB réels et statut Prisma : **VALIDÉS TECHNIQUEMENT** ; état automatisé du lot : frontend **17 fichiers / 67 tests**, backend **16 fichiers / 101 tests**, DB **4 fichiers / 18 tests**, tous réussis.
+- tests unitaires frontend/backend, builds, lint, tests DB réels et statut Prisma : **VALIDÉS TECHNIQUEMENT** ; état automatisé du lot : frontend **22 fichiers / 79 tests**, backend **16 fichiers / 102 tests**, DB **4 fichiers / 19 tests**, tous réussis.
 - Gacha — catalogue / bannière / cible / état joueur et présentation UI associée : **FONDATIONS PUBLIQUEMENT VALIDÉES SANS RÉSERVE PAR LE PROPRIÉTAIRE — DOMAINE CLÔTURÉ** ; catalogue réel, rotation réelle, quatre 5★, six 4★, sélection/changement/persistance de cible, état joueur Gacha et présentation Pity/Garantie/Capture sont validés ;
 - UI Gacha : **PUBLIQUEMENT VALIDÉE ET CLÔTURÉE** pour Hero splash, picker 5★ 2×2, primitive responsive commune des portraits, variantes Team/Équipe active/Box/Personnages/4★ Invocation, desktop, mobile portrait et paysage, sidebar Objectif, aperçu Invocation de l'Accueil, navigation et Particules agrandies ;
 - Box, Personnages et Team sont validés ici pour leur **présentation actuelle**. Les possessions serveur nécessaires au Pull existent désormais, mais l'écran Box reste mock/non autoritatif ; les Teams autoritatives ne sont pas encore implémentées ;
@@ -3585,7 +3585,9 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - route authentifiée `POST /api/v1/gacha/pull` ajoutée avec payload `{ count: 1 | 10, idempotencyKey: UUID }` et DTO lossless ;
 - les boutons x1/x10 sont actifs uniquement dans l'écran Invocation ; l'Accueil reste passif. Dès que le POST autoritatif réussit, le frontend libère l'intention et révèle le résultat persistant ; les refreshs Ressources/Gacha deviennent secondaires, avec conservation du résultat et fallback sur son `playerState` si un GET échoue ;
 - les passifs Pull de Team restent volontairement à zéro : aucune donnée de `mockData` n'est utilisée et le branchement attend une Team serveur autoritative ;
-- ce lot est **IMPLÉMENTÉ ET TESTÉ AUTOMATIQUEMENT**, mais **NON ENCORE VALIDÉ PUBLIQUEMENT PAR LE PROPRIÉTAIRE** ;
+- le premier test public du Pull a validé le backend, le débit économique, la Pity et la persistance après F5 : Arlecchino 5★ a été obtenue sur un vrai 50/50 gagné, puis 6 614 Moras au Pull suivant ; ces deux résultats réels de `Kichnifou` sont conservés ;
+- ce même test public n’a **pas** validé l’UX initiale : résultat ajouté sous la bannière, scroll nécessaire, absence de vraie séquence et symbole générique pour les Moras ;
+- le lot correctif UX / animation / Historique est **IMPLÉMENTÉ SUR `review` ET TESTÉ AUTOMATIQUEMENT**, mais reste **À REVALIDER PUBLIQUEMENT PAR LE PROPRIÉTAIRE** ;
 - Ressources, XP, Daily Reward et Roue restent sans régression publique constatée.
 
 ## État du lot — Invocation x1/x10
@@ -3597,10 +3599,14 @@ Le vertical slice Pull réel est physiquement implémenté. Le **target design**
 - migration additive `005_add_gacha_pull` versionnée et appliquée sur Supabase DEV ;
 - `player_characters` porte la possession unique `(player_id, character_id)`, copies, constellation et date de première obtention immuable ;
 - `c6_competition_progress` porte uniquement la progression minimale des cinq statistiques C6, sans dupliquer le catalogue `Character` ni implémenter le gameplay Concours ;
-- `pull_operations` et `pull_results` rendent l'historique complet et ordonné récupérable sans construire encore l'écran Historique ;
+- `pull_operations` et `pull_results` alimentent désormais l’Historique authentifié, paginé côté serveur par 10 résultats, newest-first entre opérations et dans l’ordre naturel au sein d’un x10 ;
 - RLS active et droits `anon`/`authenticated` révoqués sur ces quatre tables privées ;
-- API, moteur de domaine déterministe, services Prisma et présentation frontend raccordés ;
-- tests unitaires, API, frontend et DB couvrent les règles critiques, l'idempotence, la concurrence et le rollback.
+- API, moteur de domaine déterministe, services Prisma et présentation frontend raccordés ; `GET /api/v1/gacha/history?page=1` ne lit que le Player authentifié courant et dérive la Pity affichée depuis `stateBefore + 1` ;
+- la bannière, l’attente réseau, l’intro colorée selon la meilleure rareté, les révélations manuelles et le récapitulatif x10 se remplacent dans le même cadre Invocation stable, sans résultat ajouté sous la bannière ;
+- `Détail` ouvre dans ce cadre une modale à onglets Historique / Probabilités / Passifs ; l’Historique reste textuel, tandis que révélations et récapitulatif utilisent les assets réels de personnages, Moras, Primogemmes et éléments ;
+- les passifs Team sont documentés dans la modale mais demeurent volontairement inactifs jusqu’au raccordement d’une Team serveur autoritative ;
+- un crédit de test idempotent de +1 000 000 Primogemmes a été appliqué au seul Player ACTIVE `Kichnifou` via le moteur économique central, sous la clé `manual-test-credit:kichnifou:2026-09-06:1000000` et la cause `admin.manual-test-credit`, sans endpoint ni script permanent ;
+- tests unitaires, API, frontend et DB couvrent les règles critiques, l’idempotence, la concurrence, le rollback, la state machine d’affichage, le mapping d’assets, l’Historique, sa pagination, son ordre et son isolation par Player.
 
 La Box et la Team restent hors de ce checkpoint métier : la Box UI ne lit pas encore `player_characters`, et aucune Team autoritative ne fournit de passifs au moteur Pull.
 
@@ -3634,7 +3640,7 @@ Ordre de reprise après validation propriétaire : Pull réel validé → Box/po
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Faire reviewer sur GitHub le commit candidat du lot x1/x10 poussé sur `review` ; après approbation seulement, le promouvoir vers `main`, vérifier les déploiements puis faire valider publiquement les vrais x1/x10 par le propriétaire avant de faire avancer le domaine actif vers la Box réelle.** `PAID_INFRA_APPROVED = false` reste inchangé.
+**Review GitHub ChatGPT du candidat `review` → promotion vers `main` seulement après approbation → test public x1/x10/animation/Historique → seulement ensuite clôture Invocation → Box réelle.** `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 
