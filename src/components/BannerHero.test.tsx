@@ -9,19 +9,19 @@ const four = Array.from({ length: 6 }, (_, index) => character(`Four ${index + 1
 function data(target: string | null): CurrentGachaDto { return { banner: { id: 'banner', startsAt: '2026-09-01T00:00:00Z', endsAt: '2026-09-08T00:00:00Z', featuredFiveStars: five, featuredFourStars: four }, playerState: { pity5: 0, pity4: 0, guaranteedFeatured5: false, captureProgress: 0, fiftyFiftyLostStreak: 0, selectedBannerCharacterId: target, totalPulls: '0', totalFiveStars: '0', totalFourStars: '0', fiftyFiftyWon: '0', fiftyFiftyLost: '0', capturesTriggered: '0' } } }
 
 describe('BannerHero real Gacha state', () => {
-  it('offers four portrait targets with names and stars plus all six four-star characters', () => {
+  it('offers exactly four showcase targets without featured four-star cards', () => {
     const html = renderToStaticMarkup(<BannerHero gacha={data(null)} onSetTarget={vi.fn()} />)
-    expect((html.match(/class="banner-character-card character-display-card target-choice hydro"/g) ?? [])).toHaveLength(4)
-    expect((html.match(/class="featured-four-image"/g) ?? [])).toHaveLength(6)
-    expect((html.match(/class="banner-card-element character-element-badge"/g) ?? [])).toHaveLength(10)
+    expect((html.match(/character-showcase-gacha/g) ?? [])).toHaveLength(4)
+    expect((html.match(/class="featured-four-image"/g) ?? [])).toHaveLength(0)
+    expect((html.match(/class="banner-card-element character-element-badge"/g) ?? [])).toHaveLength(4)
     expect((html.match(/class="target-choice-portrait character-display-portrait"/g) ?? [])).toHaveLength(4)
-    expect((html.match(/featured-four-card/g) ?? [])).toHaveLength(6)
+    expect(html).not.toContain('featured-four-stars')
     expect(html).toContain('Choisissez votre cible')
     expect(html).toContain('src="/icon/Five 1.png"')
     expect(html).not.toContain('src="/fullbody/Five 1.png"')
     expect((html.match(/★★★★★/g) ?? [])).toHaveLength(4)
-    for (const target of five) expect(html).toContain(`<strong>${target.name}</strong>`)
-    for (const featured of four) expect(html).toContain(`<strong>${featured.name}</strong><small class="character-rarity">★★★★</small>`)
+    for (const target of five) expect(html).toContain(`>${target.name}</strong>`)
+    for (const featured of four) expect(html).not.toContain(`>${featured.name}</strong>`)
     expect(html).not.toContain('Niveau')
     expect(html).not.toMatch(/>C\d+</)
     expect(html).not.toContain('Soutien')
@@ -46,9 +46,19 @@ describe('BannerHero real Gacha state', () => {
     expect(html).not.toContain('<span>hydro</span>')
   })
   it('keeps the compact Home hero read-only without a Change control', () => {
-    const html = renderToStaticMarkup(<BannerHero compact gacha={data(five[0]!.id)} onSetTarget={vi.fn()} />)
+    const html = renderToStaticMarkup(<BannerHero compact gacha={data(five[0]!.id)} onSetTarget={vi.fn()} onOpen={vi.fn()} />)
     expect(html).toContain('Five 1')
+    expect(html).toContain('home-banner-hit-area')
+    expect(html).toContain('Ouvrir l’écran Invocation')
     expect(html).not.toContain('banner-change-button')
     expect(html).not.toContain('>Changer<')
+  })
+
+  it('keeps the compact no-target preview passive and navigable', () => {
+    const html = renderToStaticMarkup(<BannerHero compact gacha={data(null)} onSetTarget={vi.fn()} onOpen={vi.fn()} />)
+    expect((html.match(/character-showcase-gacha/g) ?? [])).toHaveLength(4)
+    expect((html.match(/disabled=""/g) ?? [])).toHaveLength(4)
+    expect(html).toContain('home-banner-hit-area')
+    expect(html).not.toContain('featured-four-stars')
   })
 });

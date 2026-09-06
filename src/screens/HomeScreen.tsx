@@ -22,7 +22,7 @@ const shortcuts: Array<{ screen: ScreenId; label: string; description: string; i
 function HomeScreen({ onNavigate, wheelToday, onSpinWheel, gacha, onSetGachaTarget }: HomeScreenProps) {
   return (
     <div className="screen-content home-screen">
-      <BannerHero compact gacha={gacha} onSetTarget={onSetGachaTarget} />
+      <BannerHero compact gacha={gacha} onSetTarget={onSetGachaTarget} onOpen={() => onNavigate('invocation')} />
 
       <WheelCard today={wheelToday} onSpin={onSpinWheel} />
 

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import CharacterCard from '../components/CharacterCard'
-import CharacterAssetImage from '../components/CharacterAssetImage'
+import CharacterShowcaseCard from '../components/CharacterShowcaseCard'
 import GameAssetIcon from '../components/GameAssetIcon'
 import { activeTeam, characters } from '../data/mockData'
 import type { Character } from '../types'
@@ -33,31 +33,25 @@ function TeamScreen() {
             </div>
           </article>
         ) : (
-          <article className={`large-team-card character-display-card ${character.tone}`} key={character.id}>
-            <span className="team-slot-number">0{index + 1}</span>
-            <GameAssetIcon
-              className="large-element character-element-badge"
-              src={getElementAssetPath(character.element, 'badge')}
-              fallback={character.elementIcon}
-            />
-            <div className="large-character-portrait character-display-portrait" aria-hidden="true">
-              <CharacterAssetImage
-                characterName={character.name}
-                className="large-character-asset-image"
-                fallback={<><span>{character.name.slice(0, 1)}</span><i /></>}
-              />
-            </div>
-            <div className="large-team-copy character-display-copy">
-              <h2>{character.name}</h2>
-              <span className="character-rarity">{'★'.repeat(character.rarity)}</span>
-              <div className="character-display-meta"><span>Niveau {character.level}</span><span>C{character.constellation}</span></div>
-            </div>
+          <CharacterShowcaseCard
+            variant="team"
+            name={character.name}
+            rarity={character.rarity}
+            element={character.element}
+            tone={character.tone}
+            fallback={<><span>{character.name.slice(0, 1)}</span><i /></>}
+            slot={`0${index + 1}`}
+            level={character.level}
+            levelLabel="Niveau"
+            constellation={character.constellation}
+            key={character.id}
+          >
             <div className="team-card-actions">
               <button type="button">Fiche</button>
               <button type="button" onClick={() => setSelectedSlot(character)}>Changer</button>
               <button type="button" className="danger-action" onClick={() => setEmptySlotIds((slots) => [...slots, character.id])}>Retirer</button>
             </div>
-          </article>
+          </CharacterShowcaseCard>
         ))}
       </section>
 

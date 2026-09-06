@@ -6,6 +6,7 @@ import type { ScreenId } from '../types'
 import { currencyAssetPaths, getElementAssetPath } from '../utils/gameAssets'
 import { elementLabels, formatResourceAmount } from '../utils/formatters'
 import CharacterAssetImage from './CharacterAssetImage'
+import CharacterShowcaseCard from './CharacterShowcaseCard'
 import GameAssetIcon from './GameAssetIcon'
 import DailyRewardCard from './DailyRewardCard'
 import { elementThemes } from '../utils/elementTheme'
@@ -69,7 +70,7 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
 
         <section className="panel resource-card currency-summary-card">
           <button type="button" className="section-heading section-link" onClick={() => onNavigate('inventory')}>
-            <span className="section-heading-label"><span>Ressources principales</span><span className="card-chevron" aria-hidden="true">›</span></span>
+            <span>Ressources principales</span>
           </button>
           <div className="resource-grid">
             <div className="resource-item">
@@ -87,7 +88,7 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
       <div className="player-secondary">
         <section className="panel resource-card particles-card">
           <button type="button" className="section-heading section-link" onClick={() => onNavigate('inventory')}>
-            <span className="section-heading-label"><span>Particules</span><span className="card-chevron" aria-hidden="true">›</span></span>
+            <span>Particules</span>
           </button>
           <div className="particles-grid">
             {particleElements.map((elementKey) => (
@@ -101,29 +102,21 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
 
         <section className="panel team-card">
         <button type="button" className="section-heading section-link" onClick={() => onNavigate('team')}>
-          <span className="section-heading-label"><span>Équipe active</span><span className="card-chevron" aria-hidden="true">›</span></span><small>4 / 4</small>
+          <span>Équipe active</span><small>4 / 4</small>
         </button>
         <div className="team-grid">
           {activeTeam.map((member) => (
-            <div className={`team-member character-display-card ${member.tone}`} key={member.id}>
-              <GameAssetIcon
-                className="member-element character-element-badge"
-                src={getElementAssetPath(member.element, 'badge')}
-                fallback={member.elementIcon}
-              />
-              <div className="member-portrait character-display-portrait" aria-hidden="true">
-                <CharacterAssetImage
-                  characterName={member.name}
-                  className="member-asset-image"
-                  fallback={<span>{member.name.slice(0, 1)}</span>}
-                />
-              </div>
-              <div className="team-member-copy character-display-copy">
-                <strong>{member.name}</strong>
-                <span className="character-rarity">{'★'.repeat(member.rarity)}</span>
-                <div className="character-display-meta"><small>Niv. {member.level}</small><small>C{member.constellation}</small></div>
-              </div>
-            </div>
+            <CharacterShowcaseCard
+              variant="sidebar"
+              name={member.name}
+              rarity={member.rarity}
+              element={member.element}
+              tone={member.tone}
+              fallback={<span>{member.name.slice(0, 1)}</span>}
+              level={member.level}
+              constellation={member.constellation}
+              key={member.id}
+            />
           ))}
         </div>
         </section>
@@ -131,7 +124,7 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
         <section className="panel objective-card" style={objectiveStyle}>
         {featuredCharacter && <GameAssetIcon className="objective-element-watermark" src={getElementAssetPath(featuredCharacter.elementKey)} fallback="" />}
         <button type="button" className="section-heading section-link" onClick={() => onNavigate('invocation')}>
-          <span className="section-heading-label"><span>Objectif actuel</span><span className="card-chevron" aria-hidden="true">›</span></span>
+          <span>Objectif actuel</span>
         </button>
         {featuredCharacter ? <div className="objective-content">
           <div className="objective-art" aria-label={`Portrait de ${featuredCharacter.name}`}>

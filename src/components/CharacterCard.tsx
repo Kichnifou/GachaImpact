@@ -13,7 +13,13 @@ function CharacterCard({ character, compact = false, selected = false, onClick }
   const content = <>
     <div className="character-card-topline"><GameAssetIcon className="character-element" src={getElementAssetPath(elementKey, 'badge')} fallback="✦" title={elementKey} /></div>
     <div className="character-portrait" aria-hidden="true"><CharacterAssetImage characterName={character.name} className="character-asset-image" assetPaths={catalogCharacter ? [catalogCharacter.iconPath, catalogCharacter.fullbodyPath, catalogCharacter.splashPath, catalogCharacter.wishPath] : undefined} fallback={<><span>{character.name.slice(0, 1)}</span><i /></>} /></div>
-    <div className="character-card-copy"><h3>{character.name}</h3><div className="character-rarity">{'★'.repeat(character.rarity)}</div><p>{catalogCharacter ? ([catalogCharacter.weaponType, catalogCharacter.region].filter(Boolean).join(' · ') || elementKey) : `Niv. ${legacyCharacter!.level} · ${legacyCharacter!.role}`}</p></div>
+    <div className="character-card-copy">
+      <h3>{character.name}</h3>
+      <div className="character-rarity">{'★'.repeat(character.rarity)}</div>
+      {catalogCharacter
+        ? <p>{[catalogCharacter.weaponType, catalogCharacter.region].filter(Boolean).join(' · ') || elementKey}</p>
+        : <div className="character-card-meta"><span>Niv. {legacyCharacter!.level}</span><span>C{legacyCharacter!.constellation}</span></div>}
+    </div>
     {selected && <span className="selected-mark">✓</span>}
   </>
   const className = `character-card ${elementKey}${compact ? ' compact' : ''}${selected ? ' selected' : ''}`

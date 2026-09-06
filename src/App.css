@@ -2240,6 +2240,15 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   text-overflow: ellipsis;
 }
 
+.character-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 8px;
+}
+
 .character-card.locked {
   filter: grayscale(0.8);
   opacity: 0.54;
@@ -2255,8 +2264,8 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 .selected-mark {
   position: absolute;
   z-index: 4;
+  top: 8px;
   right: 8px;
-  bottom: 8px;
   width: 22px;
   height: 22px;
   display: grid;
@@ -2364,7 +2373,8 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   background: rgba(5, 11, 24, 0.74);
 }
 
-.large-team-copy h2 {
+.large-team-copy h2,
+.large-team-copy .character-showcase-name {
   margin: 0 0 2px;
   font-size: 19px;
 }
@@ -2379,7 +2389,8 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   font-size: 9px;
 }
 
-.large-team-copy > div {
+.large-team-copy > div,
+.large-team-copy .character-showcase-meta {
   display: flex;
   justify-content: space-between;
   margin-top: 10px;
@@ -3513,39 +3524,6 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   color: #9be4ff;
 }
 
-.section-heading-trailing {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  color: inherit;
-  font-size: inherit;
-  letter-spacing: normal;
-  text-transform: none;
-}
-
-.card-chevron,
-.section-heading-trailing .card-chevron {
-  display: inline-grid;
-  width: 20px;
-  height: 20px;
-  place-items: center;
-  color: #7f94b8;
-  font-size: 17px;
-  font-style: normal;
-  line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
-  border-radius: 6px;
-  transition: color 150ms ease, background 150ms ease, transform 150ms ease;
-}
-
-.section-link:hover .card-chevron,
-.section-link:focus-visible .card-chevron {
-  color: var(--cyan);
-  background: rgba(76, 174, 239, 0.1);
-  transform: translateX(2px);
-}
-
 .danger-action {
   color: #ffc4bd;
   border-color: rgba(255, 119, 100, 0.38) !important;
@@ -4437,6 +4415,14 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   justify-content: space-between;
 }
 
+.character-showcase-name {
+  display: block;
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .team-screen-heading {
   padding: 15px 18px;
   border: 1px solid var(--border);
@@ -4476,26 +4462,6 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   margin-top: 0;
 }
 
-.section-heading-label {
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.section-heading-label > span:first-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.section-heading-label .card-chevron {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 auto;
-  font-size: 15px;
-}
-
 .team-member.character-display-card {
   padding: 0;
   display: flex;
@@ -4513,10 +4479,17 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 
 .team-member .member-portrait {
   width: 100%;
-  height: 56px;
+  height: auto;
+  min-height: 58px;
+  aspect-ratio: 1 / 1;
   margin: 0;
   border-radius: 0;
   background: transparent;
+}
+
+.team-member .member-asset-image {
+  object-fit: contain;
+  object-position: center top;
 }
 
 .team-member-copy {
@@ -4527,7 +4500,8 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   text-align: left;
 }
 
-.team-member-copy strong {
+.team-member-copy strong,
+.team-member-copy .character-showcase-name {
   overflow: hidden;
   font-size: 8px;
   line-height: 1.15;
@@ -4545,10 +4519,32 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   margin-top: 2px;
 }
 
-.team-member-copy .character-display-meta small {
+.team-member-copy .character-display-meta span {
   color: #91a3c1;
   font-size: 6px;
   line-height: 1;
+}
+
+.home-banner-preview {
+  cursor: pointer;
+}
+
+.home-banner-hit-area {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+  width: 100%;
+  padding: 0;
+  cursor: pointer;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+}
+
+.home-banner-hit-area:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: -4px;
+  box-shadow: inset 0 0 0 5px rgba(70, 199, 255, .18);
 }
 
 /* Target selection and compact Gacha identity corrections */

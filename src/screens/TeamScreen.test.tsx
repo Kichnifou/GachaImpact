@@ -6,10 +6,10 @@ describe('TeamScreen character cards', () => {
   it('keeps four compact actionable cards with the shared character hierarchy', () => {
     const html = renderToStaticMarkup(<TeamScreen />)
 
-    expect((html.match(/class="large-team-card /g) ?? [])).toHaveLength(4)
+    expect((html.match(/character-showcase-team/g) ?? [])).toHaveLength(4)
     expect((html.match(/class="large-element character-element-badge"/g) ?? [])).toHaveLength(4)
     expect((html.match(/class="team-slot-number"/g) ?? [])).toHaveLength(4)
-    expect((html.match(/class="character-display-meta"/g) ?? [])).toHaveLength(4)
+    expect((html.match(/character-display-meta/g) ?? [])).toHaveLength(4)
     expect(html).toContain('Équipe 1')
     expect(html).toContain('Équipe principale')
     expect(html).toContain('Équipe active')
