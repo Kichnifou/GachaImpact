@@ -163,8 +163,8 @@ function AppBootstrap() {
       onPullGacha={async (count, idempotencyKey): Promise<GachaPullDto> => {
         const api = getGameApiClient()
         const refreshed = await performGachaPullAndRefresh(api, count, idempotencyKey)
-        setResources(refreshed.resources)
-        setGacha(refreshed.gacha)
+        if (refreshed.resources) setResources(refreshed.resources)
+        setGacha((current) => refreshed.gacha ?? (current ? { ...current, playerState: refreshed.result.playerState } : current))
         return refreshed.result
       }}
       onClaimDailyReward={async () => {

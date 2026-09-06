@@ -1,4 +1,5 @@
 import { ApiError, type GameApiClient } from '../api/game-api'
+import type { CurrentGachaDto, GachaPullDto, PlayerResourcesDto } from '../api/types'
 
 const definitivePullErrorCodes = new Set([
   'INSUFFICIENT_PRIMOGEMS',
@@ -15,8 +16,23 @@ export function shouldPreserveGachaPullIntent(error: unknown): boolean {
   return error.code === 'NETWORK_ERROR' || error.code === 'INTERNAL_ERROR' || (error.code.startsWith('HTTP_') && (error.status ?? 0) >= 500)
 }
 
-export async function performGachaPullAndRefresh(api: GameApiClient, count: 1 | 10, idempotencyKey: string) {
+export type GachaPullRefreshResult = Readonly<{
+  result: GachaPullDto
+  resources: PlayerResourcesDto | null
+  gacha: CurrentGachaDto | null
+  failedRefreshes: readonly ('resources' | 'gacha')[]
+}>
+
+export async function performGachaPullAndRefresh(api: GameApiClient, count: 1 | 10, idempotencyKey: string): Promise<GachaPullRefreshResult> {
   const result = await api.pullGacha(count, idempotencyKey)
-  const [resources, gacha] = await Promise.all([api.getResources(), api.getCurrentGacha()])
-  return { result, resources, gacha }
+  const [resourcesRefresh, gachaRefresh] = await Promise.allSettled([api.getResources(), api.getCurrentGacha()])
+  const failedRefreshes: ('resources' | 'gacha')[] = []
+  if (resourcesRefresh.status === 'rejected') failedRefreshes.push('resources')
+  if (gachaRefresh.status === 'rejected') failedRefreshes.push('gacha')
+  return {
+    result,
+    resources: resourcesRefresh.status === 'fulfilled' ? resourcesRefresh.value : null,
+    gacha: gachaRefresh.status === 'fulfilled' ? gachaRefresh.value : null,
+    failedRefreshes,
+  }
 }

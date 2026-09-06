@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.59
+Version : 0.60
 Date : 2026-09-06
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3575,15 +3575,15 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Progression Player réelle / dé-mock Niveau-XP : **VALIDÉE PUBLIQUEMENT PAR LE PROPRIÉTAIRE / CLÔTURÉE** sur [https://gachaimpact.pages.dev](https://gachaimpact.pages.dev) ; vrai Niveau 0, `0 / 30 XP`, barre réelle, F5, logout/login, second compte et non-régression Ressources / Daily Reward / Roue validés ;
 - `GET /api/v1/me/progression` expose les compteurs `bigint` lossless et le niveau dérivé de l'XP cumulative selon `min(floor(xp / 30), 100)`, sans endpoint de gain ou de mutation d'XP ;
 - la sidebar charge niveau, XP du palier et barre depuis l'état serveur au bootstrap authentifié ; l'objectif Gacha, Pity, Garantie et Capture ont depuis été reliés à l'état Gacha réel, tandis que la Team reste encore une présentation mock avant son lot métier ;
-- tests unitaires frontend/backend, builds, lint, tests DB réels et statut Prisma : **VALIDÉS TECHNIQUEMENT** ; état automatisé du lot : frontend **17 fichiers / 63 tests**, backend **16 fichiers / 101 tests**, DB **4 fichiers / 17 tests**, tous réussis.
+- tests unitaires frontend/backend, builds, lint, tests DB réels et statut Prisma : **VALIDÉS TECHNIQUEMENT** ; état automatisé du lot : frontend **17 fichiers / 67 tests**, backend **16 fichiers / 101 tests**, DB **4 fichiers / 18 tests**, tous réussis.
 - Gacha — catalogue / bannière / cible / état joueur et présentation UI associée : **FONDATIONS PUBLIQUEMENT VALIDÉES SANS RÉSERVE PAR LE PROPRIÉTAIRE — DOMAINE CLÔTURÉ** ; catalogue réel, rotation réelle, quatre 5★, six 4★, sélection/changement/persistance de cible, état joueur Gacha et présentation Pity/Garantie/Capture sont validés ;
 - UI Gacha : **PUBLIQUEMENT VALIDÉE ET CLÔTURÉE** pour Hero splash, picker 5★ 2×2, primitive responsive commune des portraits, variantes Team/Équipe active/Box/Personnages/4★ Invocation, desktop, mobile portrait et paysage, sidebar Objectif, aperçu Invocation de l'Accueil, navigation et Particules agrandies ;
 - Box, Personnages et Team sont validés ici pour leur **présentation actuelle**. Les possessions serveur nécessaires au Pull existent désormais, mais l'écran Box reste mock/non autoritatif ; les Teams autoritatives ne sont pas encore implémentées ;
-- moteur Pull x1/x10 serveur implémenté et testé : coût complet de 160/1 600 Primogemmes, résolution séquentielle, Pity 5★/4★, 50/50, Garantie, Capture, récompenses secondaires, possessions/copies/constellations, remboursements C6+ et progression C6 minimale ;
+- moteur Pull x1/x10 serveur implémenté et testé : coût complet de 160/1 600 Primogemmes, résolution séquentielle, Pity 5★/4★, 50/50, Garantie, Capture, récompenses secondaires, possessions/copies/constellations, remboursements C6+ et progression C6 minimale ; la statistique augmentée et sa valeur finale, ou l'état maxé, sont conservés dans le snapshot individuel du PullResult ;
 - le débit économique centralisé alimente `ResourceMovement` et `PlayerEconomyStats.totalPrimosSpent` ; les récompenses et remboursements réutilisent le crédit commun ;
-- chaque intention crée une `BusinessOperation` et une `PullOperation`, puis 1 ou 10 `PullResult` ordonnés dans une transaction `SERIALIZABLE` avec verrouillage des états joueur ; les retries d'une même clé sont idempotents et les dépenses concurrentes ne peuvent pas produire de solde négatif ;
+- chaque intention crée une `BusinessOperation` et une `PullOperation`, puis 1 ou 10 `PullResult` ordonnés dans une transaction `SERIALIZABLE` avec verrouillage des états joueur ; les retries d'une même clé sont idempotents, restituent notamment la progression C6 déjà snapshotée sans nouveau RNG ni second crédit, et les dépenses concurrentes ne peuvent pas produire de solde négatif ;
 - route authentifiée `POST /api/v1/gacha/pull` ajoutée avec payload `{ count: 1 | 10, idempotencyKey: UUID }` et DTO lossless ;
-- les boutons x1/x10 sont actifs uniquement dans l'écran Invocation ; l'Accueil reste passif. Le frontend attend la réponse serveur persistée, révèle les résultats dans l'ordre et recharge Ressources + état Gacha ;
+- les boutons x1/x10 sont actifs uniquement dans l'écran Invocation ; l'Accueil reste passif. Dès que le POST autoritatif réussit, le frontend libère l'intention et révèle le résultat persistant ; les refreshs Ressources/Gacha deviennent secondaires, avec conservation du résultat et fallback sur son `playerState` si un GET échoue ;
 - les passifs Pull de Team restent volontairement à zéro : aucune donnée de `mockData` n'est utilisée et le branchement attend une Team serveur autoritative ;
 - ce lot est **IMPLÉMENTÉ ET TESTÉ AUTOMATIQUEMENT**, mais **NON ENCORE VALIDÉ PUBLIQUEMENT PAR LE PROPRIÉTAIRE** ;
 - Ressources, XP, Daily Reward et Roue restent sans régression publique constatée.

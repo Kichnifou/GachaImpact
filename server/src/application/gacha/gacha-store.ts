@@ -2,6 +2,7 @@ import type { BannerVoteWeight, FeaturedSelection, GachaCharacter } from '../../
 import type { PullCount } from '../../domain/gacha/pull.js';
 import type { ElementKey, ResourceKey } from '../../domain/economy/resources.js';
 import type { RandomSource } from '../../domain/wheel/wheel.js';
+import type { C6StatKey } from '../../domain/contest/c6-progress.js';
 
 export type PlayerGachaState = Readonly<{
   pity5: number; pity4: number; guaranteedFeatured5: boolean; captureProgress: number;
@@ -27,6 +28,7 @@ export type PullResultRecord = Readonly<{
   guaranteeConsumed: boolean;
   captureTriggered: boolean;
   bonusRewards: readonly Readonly<{ resourceKey: ResourceKey; amount: bigint; causeKey: string }>[];
+  c6Progression: Readonly<{ type: 'stat'; stat: C6StatKey; valueAfter: number }> | Readonly<{ type: 'maxed' }> | null;
 }>;
 export type GachaPullResult = Readonly<{
   operation: Readonly<{ id: string; pullCount: PullCount; primogemCost: bigint; createdAt: Date; alreadyProcessed: boolean }>;

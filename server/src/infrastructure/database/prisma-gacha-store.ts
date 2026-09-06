@@ -8,6 +8,7 @@ import { isPrismaConcurrencyCollision } from './prisma-concurrency.js';
 import { PrismaEconomyService } from './prisma-economy-service.js';
 import { PrismaCharacterPossessionService } from './prisma-character-possession-service.js';
 import { PrismaC6ProgressionService } from './prisma-c6-progression-service.js';
+import { c6StatKeys, type C6StatKey } from '../../domain/contest/c6-progress.js';
 
 const characterSelection = {
   id: true, externalKey: true, name: true, rarity: true, elementKey: true, weaponType: true,
@@ -127,6 +128,7 @@ export class PrismaGachaStore implements GachaStore {
         const resolved = resolvePulls(state, { target, featuredFiveStars: banner.featuredFiveStars, featuredFourStars: banner.featuredFourStars }, 1, input.random).results[0]!;
         state = resolved.stateAfter;
         const bonusRewards: { resourceKey: ResourceKey; amount: bigint; causeKey: string }[] = [];
+        let c6Progression: PullResultRecord['c6Progression'] = null;
         let record: PullResultRecord;
 
         if (resolved.outcome.type === 'resource') {
@@ -139,7 +141,7 @@ export class PrismaGachaStore implements GachaStore {
             index, resultType: 'resource', character: null, rarity: null,
             resourceKey: resolved.outcome.resourceKey, resourceAmount: resolved.outcome.amount,
             wasNewCharacter: null, constellationAfter: null, copiesAfter: null,
-            wasFiftyFifty: false, wonFiftyFifty: null, guaranteeConsumed: false, captureTriggered: false, bonusRewards,
+            wasFiftyFifty: false, wonFiftyFifty: null, guaranteeConsumed: false, captureTriggered: false, bonusRewards, c6Progression,
           };
         } else {
           const acquisition = await this.possessions.acquire(transaction, input.playerId, resolved.outcome.character.id, input.now);
@@ -155,7 +157,10 @@ export class PrismaGachaStore implements GachaStore {
             });
             if (resolved.outcome.rarity === 5) {
               const progression = await this.c6.progress(transaction, input.playerId, resolved.outcome.character.id, input.now, input.random);
-              if (progression.type === 'moras') {
+              if (progression.type === 'stat') {
+                c6Progression = { type: 'stat', stat: progression.stat, valueAfter: progression.stats[progression.stat] };
+              } else {
+                c6Progression = { type: 'maxed' };
                 bonusRewards.push({ resourceKey: 'moras', amount: progression.amount, causeKey: 'gacha.c6-maxed-compensation' });
                 await this.economy.credit(transaction, {
                   playerId: input.playerId, playerElementKey: input.playerElementKey, resourceKey: 'moras', amount: progression.amount,
@@ -169,7 +174,7 @@ export class PrismaGachaStore implements GachaStore {
             resourceKey: null, resourceAmount: null, wasNewCharacter: acquisition.wasNewCharacter,
             constellationAfter: acquisition.constellation, copiesAfter: acquisition.copies,
             wasFiftyFifty: resolved.outcome.wasFiftyFifty, wonFiftyFifty: resolved.outcome.wonFiftyFifty,
-            guaranteeConsumed: resolved.outcome.guaranteeConsumed, captureTriggered: resolved.outcome.captureTriggered, bonusRewards,
+            guaranteeConsumed: resolved.outcome.guaranteeConsumed, captureTriggered: resolved.outcome.captureTriggered, bonusRewards, c6Progression,
           };
         }
 
@@ -180,7 +185,7 @@ export class PrismaGachaStore implements GachaStore {
           constellationAfter: record.constellationAfter, copiesAfter: record.copiesAfter,
           wasFiftyFifty: record.wasFiftyFifty, wonFiftyFifty: record.wonFiftyFifty,
           guaranteeConsumed: record.guaranteeConsumed, captureTriggered: record.captureTriggered,
-          snapshot: snapshot(resolved.stateBefore, resolved.stateAfter, bonusRewards), createdAt: input.now,
+          snapshot: snapshot(resolved.stateBefore, resolved.stateAfter, bonusRewards, c6Progression), createdAt: input.now,
         } });
         records.push(record);
       }
@@ -216,7 +221,7 @@ export class PrismaGachaStore implements GachaStore {
         constellationAfter: result.constellationAfter, copiesAfter: result.copiesAfter,
         wasFiftyFifty: result.wasFiftyFifty, wonFiftyFifty: result.wonFiftyFifty,
         guaranteeConsumed: result.guaranteeConsumed, captureTriggered: result.captureTriggered,
-        bonusRewards: readBonusRewards(result.snapshot),
+        bonusRewards: readBonusRewards(result.snapshot), c6Progression: readC6Progression(result.snapshot),
       })),
       playerState,
     };
@@ -262,10 +267,16 @@ export class PrismaGachaStore implements GachaStore {
   }
 }
 
-function snapshot(before: PullState, after: PullState, bonusRewards: readonly { resourceKey: ResourceKey; amount: bigint; causeKey: string }[]): Prisma.InputJsonObject {
+function snapshot(
+  before: PullState,
+  after: PullState,
+  bonusRewards: readonly { resourceKey: ResourceKey; amount: bigint; causeKey: string }[],
+  c6Progression: PullResultRecord['c6Progression'],
+): Prisma.InputJsonObject {
   return {
     stateBefore: snapshotState(before), stateAfter: snapshotState(after),
     bonusRewards: bonusRewards.map(({ resourceKey, amount, causeKey }) => ({ resourceKey, amount: amount.toString(), causeKey })),
+    ...(c6Progression ? { c6Progression } : {}),
   };
 }
 
@@ -287,6 +298,16 @@ function readBonusRewards(value: Prisma.JsonValue | null): PullResultRecord['bon
     return typeof resourceKey === 'string' && isResourceKey(resourceKey) && typeof amount === 'string' && typeof causeKey === 'string'
       ? [{ resourceKey, amount: BigInt(amount), causeKey }] : [];
   });
+}
+
+function readC6Progression(value: Prisma.JsonValue | null): PullResultRecord['c6Progression'] {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !('c6Progression' in value)) return null;
+  const progression = value.c6Progression;
+  if (!progression || typeof progression !== 'object' || Array.isArray(progression) || typeof progression.type !== 'string') return null;
+  if (progression.type === 'maxed') return { type: 'maxed' };
+  if (progression.type !== 'stat' || typeof progression.stat !== 'string' || typeof progression.valueAfter !== 'number') return null;
+  if (!c6StatKeys.includes(progression.stat as C6StatKey) || !Number.isInteger(progression.valueAfter)) return null;
+  return { type: 'stat', stat: progression.stat as C6StatKey, valueAfter: progression.valueAfter };
 }
 
 function waitForConcurrentTransaction(attempt: number): Promise<void> {

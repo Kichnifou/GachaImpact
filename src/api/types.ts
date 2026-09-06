@@ -116,6 +116,7 @@ export type GachaPullResultItemDto = Readonly<{
   guaranteeConsumed: boolean
   captureTriggered: boolean
   bonusRewards: readonly Readonly<{ resourceKey: string; amount: string; causeKey: string }>[]
+  c6Progression: Readonly<{ type: 'stat'; stat: 'strength' | 'intelligence' | 'beauty' | 'charisma' | 'popularity'; valueAfter: number }> | Readonly<{ type: 'maxed' }> | null
 }>
 
 export type GachaPullDto = Readonly<{

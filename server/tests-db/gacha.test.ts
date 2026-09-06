@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
-import { afterAll, afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
 import { SetGachaTarget } from '../src/application/gacha/gacha-services.js';
@@ -157,6 +157,30 @@ describe('Gacha foundation on the development database', () => {
     } finally { await deletePullPlayer(fixture.playerId); }
   }, 15_000);
 
+  it('persists and replays the exact C6+ stat progression without a second random choice', async () => {
+    const fixture = await createPullPlayer(160n);
+    try {
+      await database.playerGachaState.update({ where: { playerId: fixture.playerId }, data: { pity5: 89, guaranteedFeatured5: true } });
+      await database.playerCharacter.create({ data: { playerId: fixture.playerId, characterId: fixture.targetId, copies: 7, constellation: 6, firstObtainedAt: fixture.now } });
+      await database.c6CompetitionProgress.create({ data: { playerId: fixture.playerId, characterId: fixture.targetId, unlockedAt: fixture.now } });
+      const random = { nextInt: vi.fn((maximum: number) => maximum === 5 ? 2 : maximum - 1) };
+      const store = new PrismaGachaStore(database);
+      const idempotencyKey = randomUUID();
+      const input = { playerId: fixture.playerId, playerElementKey: 'hydro' as const, count: 1 as const, idempotencyKey, now: fixture.now, random };
+      const result = await store.pull(input);
+      const randomCallsAfterPull = random.nextInt.mock.calls.length;
+      const retry = await store.pull({ ...input, random: { nextInt: () => { throw new Error('A committed retry must not choose another C6 progression.'); } } });
+      const persisted = await database.pullResult.findFirstOrThrow({ where: { pullOperationId: result.operation.id } });
+      expect(result.results[0]).toMatchObject({ c6Progression: { type: 'stat', stat: 'beauty', valueAfter: 2 } });
+      expect(persisted.snapshot).toMatchObject({ c6Progression: { type: 'stat', stat: 'beauty', valueAfter: 2 } });
+      expect(retry.operation).toMatchObject({ id: result.operation.id, alreadyProcessed: true });
+      expect(retry.results).toEqual(result.results);
+      expect(random.nextInt).toHaveBeenCalledTimes(randomCallsAfterPull);
+      expect(await database.c6CompetitionProgress.findUniqueOrThrow({ where: { playerId_characterId: { playerId: fixture.playerId, characterId: fixture.targetId } } })).toMatchObject({ beauty: 2 });
+      expect(await database.resourceMovement.count({ where: { playerId: fixture.playerId, causeKey: 'gacha.c6-duplicate-refund' } })).toBe(1);
+    } finally { await deletePullPlayer(fixture.playerId); }
+  });
+
   it('persists C6+ possession, refund, maxed compensation and economy earned counters', async () => {
     const fixture = await createPullPlayer(160n);
     try {
@@ -168,7 +192,9 @@ describe('Gacha foundation on the development database', () => {
       const input = { playerId: fixture.playerId, playerElementKey: 'hydro' as const, count: 1 as const, idempotencyKey, now: fixture.now, random: maxRandom };
       const result = await store.pull(input);
       const retry = await store.pull({ ...input, random: { nextInt: () => { throw new Error('A committed retry must not reroll C6 rewards.'); } } });
-      expect(result.results[0]).toMatchObject({ character: { id: fixture.targetId }, copiesAfter: 8, constellationAfter: 6, bonusRewards: [{ resourceKey: 'primogems', amount: 160n }, { resourceKey: 'moras', amount: 100_000n }] });
+      const persisted = await database.pullResult.findFirstOrThrow({ where: { pullOperationId: result.operation.id } });
+      expect(result.results[0]).toMatchObject({ character: { id: fixture.targetId }, copiesAfter: 8, constellationAfter: 6, bonusRewards: [{ resourceKey: 'primogems', amount: 160n }, { resourceKey: 'moras', amount: 100_000n }], c6Progression: { type: 'maxed' } });
+      expect(persisted.snapshot).toMatchObject({ c6Progression: { type: 'maxed' } });
       expect(retry.operation).toMatchObject({ id: result.operation.id, alreadyProcessed: true });
       expect(retry.results).toEqual(result.results);
       expect((await database.playerCharacter.findUniqueOrThrow({ where: { playerId_characterId: { playerId: fixture.playerId, characterId: fixture.targetId } } })).copies).toBe(8);

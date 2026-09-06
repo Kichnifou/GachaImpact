@@ -25,6 +25,7 @@ function PullResults({ pull, onClose }: { pull: GachaPullDto; onClose: () => voi
               <span className="pull-resource-amount">+{formatResourceAmount(result.resourceAmount ?? '0')}</span>
             </>}
             {result.bonusRewards.map((reward) => <small className="pull-bonus" key={`${reward.resourceKey}-${reward.causeKey}`}>Bonus +{formatResourceAmount(reward.amount)} {resourceLabel(reward.resourceKey)}</small>)}
+            {result.c6Progression?.type === 'stat' && <small className="pull-bonus">{c6StatLabel(result.c6Progression.stat)} +1</small>}
           </article>
         ))}
       </div>
@@ -36,6 +37,10 @@ function resourceLabel(resourceKey: string | null): string {
   if (resourceKey === 'primogems') return 'Primogemmes'
   if (resourceKey === 'moras') return 'Moras'
   return `Particules ${resourceKey?.replace('particles_', '') ?? ''}`
+}
+
+function c6StatLabel(stat: 'strength' | 'intelligence' | 'beauty' | 'charisma' | 'popularity'): string {
+  return { strength: 'Force', intelligence: 'Intelligence', beauty: 'Beauté', charisma: 'Charisme', popularity: 'Popularité' }[stat]
 }
 
 export default PullResults

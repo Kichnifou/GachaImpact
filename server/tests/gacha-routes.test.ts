@@ -19,7 +19,7 @@ describe('Gacha HTTP contracts', () => {
     const setTarget = vi.fn(async (_player: string, id: string) => ({ ...state, selectedBannerCharacterId: id }));
     const pull = vi.fn(async (input: { count: 1 | 10 }) => ({
       operation: { id: 'operation', pullCount: input.count, primogemCost: input.count === 1 ? 160n : 1_600n, createdAt: new Date('2026-09-06T12:00:00Z'), alreadyProcessed: false },
-      results: Array.from({ length: input.count }, (_, index) => ({ index: index + 1, resultType: 'resource' as const, character: null, rarity: null, resourceKey: 'moras' as const, resourceAmount: 5_000n, wasNewCharacter: null, constellationAfter: null, copiesAfter: null, wasFiftyFifty: false, wonFiftyFifty: null, guaranteeConsumed: false, captureTriggered: false, bonusRewards: [] })),
+      results: Array.from({ length: input.count }, (_, index) => ({ index: index + 1, resultType: 'resource' as const, character: null, rarity: null, resourceKey: 'moras' as const, resourceAmount: 5_000n, wasNewCharacter: null, constellationAfter: null, copiesAfter: null, wasFiftyFifty: false, wonFiftyFifty: null, guaranteeConsumed: false, captureTriggered: false, bonusRewards: [], c6Progression: null })),
       playerState: { ...state, totalPulls: BigInt(input.count) },
     }));
     const store = { listActiveCharacters: async () => [...five, ...four], getCurrent: async () => ({ banner: { id: 'b1', startsAt: new Date('2026-09-01T00:00:00Z'), endsAt: new Date('2026-09-08T00:00:00Z'), featuredFiveStars: five, featuredFourStars: four }, playerState: state }), setTarget, pull } as unknown as GachaStore;
