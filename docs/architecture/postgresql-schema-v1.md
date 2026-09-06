@@ -11,6 +11,8 @@
 > Il complète `docs/architecture/backend-architecture-v1.md`.
 >
 > Il décrit les tables, clés, types, contraintes, index, politiques de suppression et principes RLS à implémenter avec Prisma + migrations SQL.
+>
+> **Portée :** ce schéma est la cible relationnelle de référence, pas l'inventaire de toutes les tables déjà créées. L'état physique courant se vérifie dans `server/prisma/schema.prisma` et les migrations versionnées ; `docs/master/PROJECT_MASTER_PLAN.md` porte l'avancement et la prochaine étape.
 
 ---
 

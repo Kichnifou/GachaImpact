@@ -40,7 +40,7 @@ Au démarrage du projet standalone, ChatGPT a notamment servi à :
 - guider la mise en place de Git, GitHub, VS Code et Codex ;
 - préparer la structure initiale du repository ;
 - faire construire par Codex une première coque frontend ;
-- réfléchir aux futures étapes de backend, base de données, authentification, migration et intégrations.
+- préparer les étapes de backend, base de données, authentification, migration et intégrations désormais engagées.
 
 Répartition générale des rôles :
 
@@ -60,20 +60,22 @@ Dans le vocabulaire actuel du projet :
 
 La V0 est une base d'interface et d'UX. Elle n'est pas une spécification métier et ses mocks peuvent volontairement être faux, incomplets ou obsolètes par rapport à la V1.
 
+La V1 est **en cours d'implémentation** : une alpha publique existe, avec frontend, backend, authentification, base PostgreSQL et plusieurs vertical slices réelles. Les audits legacy sont clôturés ; ils servent désormais de preuves et de spécifications fonctionnelles, pas de tracker d'avancement. Le Master indique toujours le domaine actif ; au checkpoint `297b5a9eb223c6e05393bafbff1421af47c70542`, les fondations/UI Gacha sont validées et le prochain domaine est le moteur Invocation x1/x10 réel.
+
 L'objectif n'est pas de recopier aveuglément le legacy.
 
-## Objectif principal de la phase documentaire
+## Rôle de la documentation pendant l'implémentation
 
-Le but principal de l'audit legacy et de toute la documentation produite dans `docs/` est de construire une **spécification d'implémentation fiable, cohérente et exploitable par Codex** lorsque le développement réel commencera.
+La documentation produite dans `docs/` forme une **spécification d'implémentation fiable, cohérente et exploitable par Codex** pendant le développement réel désormais en cours.
 
-Chaque audit, décision, dépendance, règle de migration et contrat de commande doit donc être rédigé de façon à permettre plus tard à Codex :
+Chaque audit, décision, dépendance, règle de migration et contrat de commande doit permettre à Codex :
 - de comprendre ce qui doit être implémenté sans réinterpréter le legacy ;
 - d'identifier clairement les sources de vérité et les dépendances ;
 - de travailler par lots bornés, étape par étape ;
 - de distinguer les règles validées, les comportements legacy conservés, les bugs à corriger et les sujets encore ouverts ;
 - de coder et tester sans dépendre de la mémoire d'une conversation.
 
-La documentation n'est donc pas seulement un historique de nos échanges ou une mémoire destinée à ChatGPT : **elle prépare directement l'implémentation future du jeu**.
+La documentation n'est donc pas seulement un historique de nos échanges ou une mémoire destinée à ChatGPT : **elle accompagne chaque lot d'implémentation du jeu**.
 
 La qualité, la non-contradiction, la précision et la lisibilité de la documentation pour Codex sont des objectifs prioritaires à chaque checkpoint.
 
@@ -82,7 +84,7 @@ Il faut :
 - distinguer comportement voulu, bug, incohérence et contrainte historique ;
 - décider avec l'utilisateur ce qui est gardé, corrigé, modernisé ou supprimé ;
 - documenter durablement les décisions ;
-- construire ensuite un standalone propre avec backend serveur, UI web, chat interne et intégration Twitch.
+- poursuivre la construction du standalone avec backend serveur, UI web, chat interne futur et intégration Twitch future.
 
 Le projet contient déjà un prototype frontend React / TypeScript / Vite.
 Ce prototype peut inspirer l'UI, mais il ne constitue pas une source de vérité métier.
@@ -146,7 +148,19 @@ Ne jamais réécrire une décision actuelle depuis un vieux résumé sans vérif
 
 # 3. Phase de travail
 
-Tant que le Master indique que l'audit legacy continue, rester dans la logique :
+Les audits legacy exhaustifs sont clôturés. Ils restent les autorités fonctionnelles des domaines concernés et ne doivent pas être rouverts simplement parce que l'implémentation avance.
+
+Pour le développement V1 en cours :
+
+1. identifier le domaine actif et le périmètre exact dans le Master ;
+2. lire les audits et décisions propriétaires du domaine ;
+3. distinguer le modèle cible de l'état physique réel ;
+4. inspecter le code, Prisma et les migrations réellement présents ;
+5. préparer un lot borné selon `docs/process/implementation-workflow.md` ;
+6. ne jamais inventer une structure, une route ou une règle absente ;
+7. mettre à jour le code et sa documentation propriétaire dans le même lot.
+
+Si une erreur factuelle de l'audit lui-même est démontrée, reprendre ponctuellement la méthode d'audit :
 
 1. lire le vrai script ;
 2. lire les données réellement utilisées ;
@@ -471,7 +485,7 @@ Après chaque lot de code Codex :
 
 # 9. Codex
 
-Codex sera utilisé après l'audit et progressivement.
+Codex est utilisé progressivement pour implémenter la V1 par lots bornés à partir des audits clôturés et de l'état physique du repository.
 
 Ne jamais demander :
 « implémente tout le jeu ».
@@ -516,6 +530,20 @@ Si une information nécessaire à l'implémentation manque :
 Un audit n'a pas besoin d'être réécrit dans un format uniforme pour être `Codex-ready`. Il doit surtout contenir suffisamment d'informations fiables et non contradictoires pour le lot demandé.
 
 Les prompts destinés à Codex doivent toujours être fournis dans un bloc de code prêt à copier.
+
+## Documentation obligatoire dans chaque lot Codex
+
+Chaque prompt d'implémentation envoyé à Codex doit contenir une section intitulée exactement **`DOCUMENTATION / ÉTAT DU PROJET À METTRE À JOUR`**. Le code et la documentation font partie du même lot ; la documentation ne doit pas être reportée à une passe indéterminée.
+
+Avant d'écrire le prompt, ChatGPT détermine quels propriétaires documentaires sont concernés. La section précise :
+
+- les documents à relire avant modification ;
+- les documents que Codex doit mettre à jour et ceux qu'il ne doit pas modifier ;
+- la distinction entre cible, état physique et validation publique ;
+- l'état attendu du Master et sa prochaine étape exacte ;
+- les décisions Rxxx à créer ou amender, ou explicitement qu'aucune nouvelle décision n'est requise.
+
+La sélection détaillée des propriétaires et les contrôles de fin de lot sont définis dans [implementation-workflow.md](../docs/process/implementation-workflow.md). Après le rapport Codex, ChatGPT review aussi la cohérence documentaire avant de proposer le commit/push, puis vérifie ces documents sur GitHub après le push.
 
 Pour les tâches complexes :
 - architecture ;
@@ -627,7 +655,7 @@ Principes :
 - transactions économiques sûres ;
 - historique / audit lorsque pertinent.
 
-Supabase + PostgreSQL a été évoqué comme candidat, mais ne pas considérer ce choix comme figé tant que le Master ne le confirme pas.
+Le socle réellement retenu et utilisé est PostgreSQL/Supabase avec Prisma côté backend Node.js/TypeScript/Fastify, frontend React/TypeScript/Vite, Railway pour le backend public et Cloudflare Pages pour le frontend public. Le Master porte l'état courant et `PAID_INFRA_APPROVED = false`.
 
 ---
 
@@ -654,24 +682,24 @@ Toujours préférer ces documents au contenu d'anciens chats.
 
 ---
 
-# 15. Comment reprendre après un changement de conversation
+# 15. Reprendre le projet dans une nouvelle conversation
 
 Lorsqu'une nouvelle conversation commence :
 
-1. lire ce fichier ;
-2. récupérer le HEAD actuel de `main` sur GitHub ;
-3. noter son SHA et ne pas supposer qu'un SHA cité dans un ancien prompt est encore le dernier ;
+1. récupérer le HEAD actuel de `main` sur GitHub, noter son SHA et ne pas supposer qu'un SHA ancien est encore le dernier ;
+2. lire `AGENTS.md` ;
+3. lire `.chatgpt/CHATGPT_GUIDE.md` ;
 4. lire `docs/master/PROJECT_MASTER_PLAN.md` depuis ce HEAD ;
-5. identifier le domaine actif et la prochaine étape exacte ;
-6. lire le document spécialisé du domaine actif depuis le même HEAD ;
+5. lire `docs/process/implementation-workflow.md` ;
+6. lire `docs/roadmap/implementation-order-v1.md` ;
 7. lire les passages pertinents de `docs/specifications/decisions-log.md` ;
-8. lire `docs/commands/command-reference.md` si le domaine touche des commandes ;
-9. lors de la première reprise, lire une fois les sources principales du prototype frontend déjà codé, notamment `src/App.tsx`, la navigation, la sidebar, le chat, les panneaux globaux, les types, les données de démonstration et les écrans existants, afin de garder l'interface réelle en mémoire ; le prototype inspire l'UX mais ne devient pas une source de vérité métier ;
-10. ne pas relire tout le prototype à chaque réponse si aucun changement frontend pertinent n'est intervenu ;
-11. si l'audit legacy du domaine continue, lire les vrais scripts et JSON concernés avant de proposer de nouvelles décisions ;
-12. vérifier le dernier Rxxx réellement documenté et reprendre au numéro suivant indiqué par le repo ;
-13. conserver exactement le style de décision Rxxx, expliquer suffisamment chaque choix, distinguer les canaux concernés et regrouper la liste sobre des réponses à la fin ;
-14. continuer à signaler spontanément les checkpoints utiles.
+8. identifier le domaine actif et la prochaine étape exacte dans le Master ;
+9. lire uniquement les audits métier pertinents à ce domaine ;
+10. lire l'architecture et le schéma cible pertinents ;
+11. inspecter le code, le schéma Prisma et les migrations physiques correspondants ;
+12. comparer explicitement cible et état physique avant de proposer l'implémentation.
+
+Ne jamais déduire qu'une table, une route ou une fonctionnalité existe physiquement uniquement parce qu'elle figure dans un document d'architecture cible. Lire aussi `docs/commands/command-reference.md` lorsque le domaine touche des commandes, puis vérifier le dernier Rxxx documenté avant toute nouvelle décision.
 
 Ne pas demander à l'utilisateur de réexpliquer le projet si les fichiers permettent de reprendre.
 

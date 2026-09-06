@@ -7,6 +7,8 @@
 > Baseline repository : `main` au commit `6ed204c63c557478889d348e03c9d1199f50ff8a`
 >
 > Ce document complète `docs/specifications/v1-data-model.md`. Il ne remplace aucune décision métier des audits.
+>
+> **Portée :** ce document décrit l'architecture V1 cible. L'état physique courant doit être vérifié dans `server/prisma/schema.prisma`, les migrations versionnées et le code réellement présent ; `docs/master/PROJECT_MASTER_PLAN.md` porte l'avancement vivant.
 
 ---
 

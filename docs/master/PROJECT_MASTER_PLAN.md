@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.57
+Version : 0.58
 Date : 2026-09-06
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -328,7 +328,7 @@ Décisions :
 - la Capture de brillance doit être représentée par un compteur `X / 3` ;
 - le compteur de brillance doit être placé avec les informations de garantie/pity ;
 - la sidebar ne doit pas afficher une scrollbar au chargement normal 1920×1080 ;
-- les chevrons permettent d'aller vers les écrans correspondants.
+- les headings navigables conservent leur surface de clic/touch mais n'affichent plus de chevron ;
 - le bloc du bas évolue vers un **suivi quotidien général** : la récompense quotidienne n'est qu'une activité parmi d'autres (combat, roue, etc.) ;
 - navigation de ce petit bloc par chevrons compacts `‹` / `›` plutôt que par boutons texte « Précédent / Suivant » ;
 - possibilité de masquer une proposition pour la journée ;
@@ -2260,7 +2260,9 @@ docs/
 
 ---
 
-# 23. FEUILLE DE ROUTE GLOBALE
+# 23. FEUILLE DE ROUTE HISTORIQUE — PLAN INITIAL
+
+Cette section conserve la trajectoire initiale et ses statuts d'époque. Elle n'est plus le tracker courant : l'état physique, le domaine actif et la prochaine étape se trouvent dans la section `# 38. PROCHAINE ÉTAPE EXACTE`, et l'ordre statique V1 dans `docs/roadmap/implementation-order-v1.md`.
 
 ## PHASE 0 — Prototype visuel
 Statut : TRÈS AVANCÉ / QUASI VALIDÉ
@@ -3339,10 +3341,10 @@ Obtenir un projet où :
 # 41. RÉSUMÉ ULTRA COURT POUR REPRISE RAPIDE
 
 Projet :
-GachaImpact = migration d'un jeu Twitch/Streamer.bot vers un jeu web standalone React + futur backend.
+GachaImpact = migration d'un jeu Twitch/Streamer.bot vers un jeu web standalone React avec backend autoritaire déjà déployé.
 
 Frontend :
-prototype très avancé, assets Genshin intégrés, UI quasi validée.
+alpha publique React/TypeScript/Vite ; coque UI et fondations Gacha visuelles validées, avec dé-mock progressif par domaines V1.
 
 Legacy :
 37 scripts + 17 JSON intégrés sous `legacy/streamerbot/`.
@@ -3529,11 +3531,11 @@ Documentations Twitch externes finalisées :
 - `docs/notion/guide-technique-twitch.md` — Documentation Technique Twitch — **TERMINÉ / NOTION READY**.
 
 Architecture backend consolidée :
-- `docs/architecture/backend-architecture-v1.md` — **socle V1 retenu : PostgreSQL/Supabase, Supabase Auth, Node.js/TypeScript/Fastify, Prisma ORM 7.10.0 stable, Railway, Cloudflare Pages et Realtime ; trajectoire Free-first puis montée en gamme sans refonte** ;
+- `docs/architecture/backend-architecture-v1.md` — **socle V1 retenu : PostgreSQL/Supabase, Supabase Auth, Node.js/TypeScript/Fastify, Prisma ORM 7.10.0 stable, Railway et Cloudflare Pages ; Realtime reste une capacité future à n'activer que sur besoin explicite ; trajectoire Free-first puis montée en gamme sans refonte** ;
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Phase C4 — Gacha : catalogue / bannière / cible / état joueur.**
+**Moteur Invocation x1/x10 réel — conception et implémentation.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3550,7 +3552,7 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - squelette Fastify / TypeScript checkpointé ;
 - Prisma ORM 7.10.0 stable ;
 - Supabase DEV provisionné et connexion PostgreSQL fonctionnelle ;
-- première migration versionnée appliquée ;
+- quatre migrations versionnées appliquées, jusqu'à `004_add_gacha_foundation` ;
 - 17 tables présentes pour Identité / Ressources / Roue / Récompense quotidienne / Progression Player / fondations Gacha ;
 - référentiels seedés avec 7 éléments et 9 ressources ;
 - RLS activée sur les tables de fondation, sans policy client permissive ;
@@ -3572,13 +3574,31 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - domaine Récompense quotidienne réelle : **CLÔTURÉ comme checkpoint fonctionnel**.
 - Progression Player réelle / dé-mock Niveau-XP : **VALIDÉE PUBLIQUEMENT PAR LE PROPRIÉTAIRE / CLÔTURÉE** sur [https://gachaimpact.pages.dev](https://gachaimpact.pages.dev) ; vrai Niveau 0, `0 / 30 XP`, barre réelle, F5, logout/login, second compte et non-régression Ressources / Daily Reward / Roue validés ;
 - `GET /api/v1/me/progression` expose les compteurs `bigint` lossless et le niveau dérivé de l'XP cumulative selon `min(floor(xp / 30), 100)`, sans endpoint de gain ou de mutation d'XP ;
-- la sidebar charge désormais niveau, XP du palier et barre depuis l'état serveur au bootstrap authentifié ; les mocks Team, objectif Gacha, pity, garantie et Capture de brillance restent volontairement hors de ce lot ;
-- tests unitaires frontend/backend, builds, lint, tests DB réels et statut Prisma : **VALIDÉS TECHNIQUEMENT**.
-- Gacha — catalogue / bannière / cible / état joueur : **FONDATIONS VALIDÉES PUBLIQUEMENT PAR LE PROPRIÉTAIRE — DOMAINE ENCORE ACTIF POUR LA DERNIÈRE VALIDATION PUBLIQUE** ; Team, picker 5★ en 2×2, sélection de cible, Box fonctionnelle, hero Invocation, présence des six 4★ sur une ligne et responsive général sont **VALIDÉS PUBLIQUEMENT** ; la suppression des 4★ du picker, l'aperçu Invocation de l'Accueil entièrement cliquable, la suppression des chevrons de sidebar et les autres systèmes existants restent validés ; Ressources, XP, Daily Reward et Roue restent sans régression publique constatée ;
-- moteur responsive commun des portraits personnage : **TECHNIQUEMENT TERMINÉ — VALIDATION PUBLIQUE PROPRIÉTAIRE À FAIRE** ; Team est désormais la référence technique et visuelle d'une primitive commune badge/frame/image utilisée par Team, Équipe active, picker 5★, 4★ Invocation, Box et Personnages, tandis que chaque contexte conserve son gabarit, sa densité et ses métadonnées ; le hero splash Invocation reste une exception avec son cadrage d'illustration dédié ;
-- corrections actives de cette passe : les six 4★ Invocation ont migré de la variante Box vers une variante compacte Showcase/Team, Box et Personnages conservent leur layout mais bénéficient du moteur portrait responsive commun, et le panneau Particules utilise des icônes et valeurs légèrement agrandies ;
-- le domaine Gacha reste volontairement **NON CLÔTURÉ** tant que cette dernière passe responsive et visuelle n'a pas été validée publiquement par le propriétaire ;
-- le moteur Pull x1/x10 reste volontairement absent et constitue le prochain lot seulement après cette validation publique finale et la clôture du domaine.
+- la sidebar charge niveau, XP du palier et barre depuis l'état serveur au bootstrap authentifié ; l'objectif Gacha, Pity, Garantie et Capture ont depuis été reliés à l'état Gacha réel, tandis que la Team reste encore une présentation mock avant son lot métier ;
+- tests unitaires frontend/backend, builds, lint, tests DB réels et statut Prisma : **VALIDÉS TECHNIQUEMENT** ; baseline Vitest frontend du checkpoint courant : **15 fichiers / 54 tests réussis**.
+- Gacha — catalogue / bannière / cible / état joueur et présentation UI associée : **FONDATIONS PUBLIQUEMENT VALIDÉES SANS RÉSERVE PAR LE PROPRIÉTAIRE — DOMAINE CLÔTURÉ** ; catalogue réel, rotation réelle, quatre 5★, six 4★, sélection/changement/persistance de cible, état joueur Gacha et présentation Pity/Garantie/Capture sont validés ;
+- UI Gacha : **PUBLIQUEMENT VALIDÉE ET CLÔTURÉE** pour Hero splash, picker 5★ 2×2, primitive responsive commune des portraits, variantes Team/Équipe active/Box/Personnages/4★ Invocation, desktop, mobile portrait et paysage, sidebar Objectif, aperçu Invocation de l'Accueil, navigation et Particules agrandies ;
+- Box, Personnages et Team sont validés ici pour leur **présentation actuelle**. Les possessions Box et les Teams autoritatives ne sont pas encore implémentées ; elles restent les lots métier suivant le Pull selon l'ordre d'implémentation ;
+- les boutons Invocation x1/x10 sont présents mais volontairement désactivés : **aucun moteur Pull ni endpoint Pull n'existe encore** ;
+- Ressources, XP, Daily Reward et Roue restent sans régression publique constatée.
+
+## Préparation du prochain lot — Invocation x1/x10
+
+Le prochain lot n'est pas un nouveau lot UI. Il doit concevoir puis implémenter le moteur Pull réel en comparant systématiquement le **target design** (`docs/architecture/postgresql-schema-v1.md`, `docs/specifications/v1-data-model.md`) à l'**état physique courant** (`server/prisma/schema.prisma`, migrations versionnées et code Gacha). Une structure décrite dans la cible ne doit jamais être supposée déjà créée.
+
+État physique confirmé au checkpoint `297b5a9eb223c6e05393bafbff1421af47c70542` :
+
+- tables Gacha présentes : `characters`, `banner_rotations`, `banner_featured_characters`, `banner_votes`, `player_gacha_states` ;
+- structures génériques réutilisables présentes : `business_operations`, `player_resource_balances`, `resource_movements`, `player_economy_stats` ;
+- aucune table physique dédiée aux possessions joueur, opérations Pull, résultats individuels ou historique Pull (`player_characters`, `pull_operations`, `pull_results` absentes) ;
+- routes Gacha authentifiées actuelles : `GET /api/v1/characters`, `GET /api/v1/gacha/current`, `POST /api/v1/gacha/target` ; aucun endpoint Pull ;
+- le service économique courant crédite les ressources mais ne fournit pas encore le débit Primogemmes requis par le Pull.
+
+Le lot devra arrêter le minimum persistant nécessaire pour possession/constellation, opération et idempotence, résultats x1/x10 ordonnés, coût Primogemmes, états Pity/Garantie/Capture avant-après, gains secondaires Mora/Particules, journal de ressources, historique récupérable et transaction atomique. Les résultats doivent être persistés avant toute animation frontend.
+
+Les règles fonctionnelles fermées restent propriétaires de `docs/legacy/06-gacha-invocation-audit.md` pour Invocation/Pity/Garantie/Capture/coûts/récompenses et de `docs/legacy/07-box-possession-obtention-audit.md` pour possessions/doublons/constellations. Elles imposent notamment x1 = 160 Primogemmes, x10 = 1 600, résolution séquentielle, priorité 5★ sans reset de Pity 4★ lors d'une collision, 50/50, Garantie, Capture, fallback Mora/Particules, débit et journal serveur, idempotence et application stricte des remboursements C6+ prouvés, sans en inventer d'autres. Ne pas recopier ni réinterpréter leurs détails dans le code sans les relire.
+
+Ordre de reprise : Pull réel → Box/possessions réelles → Team réelle → suite de `docs/roadmap/implementation-order-v1.md`.
 
 État du premier parcours frontend standalone :
 
@@ -3608,17 +3628,22 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-Review ChatGPT → commit/push par le propriétaire → attendre Railway/Cloudflare verts → validation publique du moteur portrait commun, des 4★ Invocation en paysage, de Box/Personnages et du panneau Particules → clôturer le domaine Gacha fondations → implémenter le **moteur Invocation x1/x10 réel**. `PAID_INFRA_APPROVED = false` reste inchangé.
+Préparer le lot borné puis **concevoir et implémenter le moteur Invocation x1/x10 réel**, après comparaison des audits 06/07, du target design, du schéma/migrations physiques, des patterns Ressources/Daily/Roue/idempotence et du frontend Gacha actuel. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 
 Codex doit lire :
 - `AGENTS.md` ;
 - `docs/master/PROJECT_MASTER_PLAN.md` ;
+- `docs/process/implementation-workflow.md` ;
+- `docs/roadmap/implementation-order-v1.md` ;
+- `docs/legacy/06-gacha-invocation-audit.md` ;
+- `docs/legacy/07-box-possession-obtention-audit.md` ;
 - `docs/architecture/backend-architecture-v1.md` ;
 - `docs/architecture/postgresql-schema-v1.md` ;
 - `docs/specifications/v1-data-model.md` ;
-- les audits spécialisés strictement nécessaires au premier vertical slice.
+- `server/prisma/schema.prisma`, les migrations, le code Gacha et les patterns Ressources/Daily/Roue réellement présents ;
+- `src/api/types.ts`, `src/api/game-api.ts`, `src/components/BannerHero.tsx` et `src/screens/InvocationScreen.tsx`.
 
 Aucune nouvelle règle produit ne doit être devinée pendant ce lot.
 

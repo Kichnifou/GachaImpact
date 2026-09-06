@@ -4,6 +4,8 @@
 > Baseline documentaire : `main` au commit `cb663d1c58a4d28aeee3e4c99a859c6704b5db58`  
 > Nature du document : modèle conceptuel/relational cible destiné à préparer le backend et la migration.  
 > Il ne fige pas encore le fournisseur de base de données ni le DDL SQL final.
+>
+> **Portée :** ce document reste le modèle V1 cible. Son état de readiness décrit sa baseline documentaire ; l'état physique courant se vérifie dans `server/prisma/schema.prisma`, les migrations et le code, tandis que `docs/master/PROJECT_MASTER_PLAN.md` porte l'avancement vivant.
 
 ---
 

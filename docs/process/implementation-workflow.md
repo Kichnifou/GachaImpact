@@ -39,6 +39,32 @@ Chaque gros prompt Codex doit demander de :
 - respecter un périmètre exact et borné ;
 - ne pas commit ni push par défaut.
 
+## 2A. Documentation / état du projet à mettre à jour
+
+Chaque prompt d'implémentation Codex doit contenir une section intitulée exactement **`DOCUMENTATION / ÉTAT DU PROJET À METTRE À JOUR`**. Le code et la documentation appartiennent au même lot : avant d'écrire le prompt, ChatGPT choisit les documents concernés et ne reporte pas leur maintenance à plus tard.
+
+La section du prompt doit préciser :
+
+- les fichiers documentaires à relire avant modification ;
+- les documents à mettre à jour dans le lot et ceux à laisser inchangés ;
+- la distinction entre modèle cible, état physique réel et validation publique ;
+- l'état attendu du Master à la fin du lot et sa prochaine étape exacte ;
+- les décisions Rxxx à créer ou amender, ou la mention explicite `aucune nouvelle décision`.
+
+ChatGPT évalue au minimum les propriétaires suivants :
+
+- le **Master** si l'état réel, le domaine actif, une validation, une dépendance importante, l'état physique significatif ou la prochaine étape change ;
+- le **decisions-log** uniquement pour une décision durable produit, gameplay, UX ou architecture, jamais pour un simple avancement, correctif technique ou refactor ;
+- les documents d'**architecture** si les responsabilités, transactions, sécurité, API structurelle ou persistance cible changent ;
+- le **modèle V1** ou le **schéma PostgreSQL cible** si le modèle cible change, sans les transformer en tracker de migrations ;
+- les **audits legacy** uniquement si une erreur de l'audit est démontrée et validée, jamais parce que l'implémentation avance ;
+- la **roadmap macro** ou l'**ordre d'implémentation** uniquement si leur trajectoire ou leur ordre de référence change réellement ;
+- le **workflow**, le **Guide ChatGPT** et les **README** uniquement si la méthode durable, la reprise ou la navigation générale devient obsolète.
+
+Avant de terminer, Codex confronte les documents modifiés au code réellement produit. Son rapport précise les documents modifiés et pourquoi, ceux laissés inchangés, la version du Master avant/après, l'état du domaine, la validation acquise ou restante, la prochaine étape et toute différence entre cible et état physique.
+
+Après le rapport, ChatGPT review le code **et** cette cohérence documentaire avant de proposer le commit/push. Il vérifie notamment le Master, la prochaine étape, la distinction validation technique/publique, les Rxxx, l'absence de cible présentée comme déjà physique et l'absence d'ancienne prochaine étape encore active. Après le push, ChatGPT contrôle ces fichiers sur GitHub.
+
 ## 3. Terminer le travail Codex
 
 Codex termine l’implémentation, exécute les tests automatisés pertinents et réalise une inspection visuelle locale réelle lorsqu’elle est utile. Il fournit ensuite un rapport structuré. Il ne committe pas et ne pousse pas.

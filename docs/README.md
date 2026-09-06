@@ -1,7 +1,7 @@
 # GachaImpact — Documentation de référence
 
 Version documentaire : 0.1  
-Statut : EN CONSTRUCTION
+Statut : ÉVOLUTIF — IMPLÉMENTATION V1 EN COURS
 
 ## But
 
@@ -14,7 +14,7 @@ Il doit permettre :
 - de documenter progressivement la migration depuis Streamer.bot ;
 - de constituer plus tard l'aide intégrée du jeu, notamment la liste des commandes.
 
-La finalité opérationnelle principale de cette documentation est de préparer une base suffisamment précise, cohérente et non contradictoire pour que Codex puisse ensuite implémenter GachaImpact progressivement, par lots bornés, sans devoir redécider ou deviner les règles métier à partir du legacy.
+La finalité opérationnelle principale de cette documentation est de maintenir une base suffisamment précise, cohérente et non contradictoire pour que Codex implémente GachaImpact progressivement, par lots bornés, sans devoir redécider ou deviner les règles métier à partir du legacy.
 
 ## Règle de travail
 
@@ -32,7 +32,7 @@ La finalité opérationnelle principale de cette documentation est de préparer 
 - `master/` : source centrale de navigation, état global, domaine actif et prochaine étape exacte.
 - `legacy/` : inventaire, compréhension de l'ancien jeu et audits spécialisés par domaine.
 - `specifications/` : décisions validées et durables pour le nouveau GachaImpact.
-- `architecture/` : choix du socle backend, schéma PostgreSQL physique, sécurité, infrastructure et préparation technique de l'implémentation.
+- `architecture/` : choix du socle backend, schéma PostgreSQL cible, sécurité, infrastructure et préparation technique de l'implémentation.
 - `commands/` : contrats des commandes et future aide intégrée.
 - `notion/` : documentations externes prêtes à être publiées dans Notion, notamment les guides Twitch joueur et technique.
 - `process/` : workflow de conception, implémentation, review, validation publique et checkpoint.
@@ -40,19 +40,21 @@ La finalité opérationnelle principale de cette documentation est de préparer 
 
 Les sources brutes de l'ancien jeu restent hors de `docs/`, principalement dans `legacy/streamerbot/`.
 
-Le code actuel de la V0 se trouve principalement dans `src/`.
+Le code courant comprend au minimum `src/` pour le frontend et `server/` pour le backend, Prisma et les migrations physiques.
 
 ## Parcours de lecture recommandé
 
-### Nouvelle conversation ChatGPT
+### Pour reprendre le projet / nouveau ChatGPT
 
-Commencer par :
+1. [Guide opératoire ChatGPT](../.chatgpt/CHATGPT_GUIDE.md)
+2. [Master — état vivant](master/PROJECT_MASTER_PLAN.md)
+3. [Workflow d'implémentation](process/implementation-workflow.md)
+4. [Ordre d'implémentation V1](roadmap/implementation-order-v1.md)
+5. [Journal des décisions](specifications/decisions-log.md)
+6. [Architecture backend cible](architecture/backend-architecture-v1.md) et [schéma PostgreSQL cible](architecture/postgresql-schema-v1.md)
+7. audit du domaine actif indiqué par le Master — actuellement [Gacha / Invocation](legacy/06-gacha-invocation-audit.md), complété par [Box / possessions](legacy/07-box-possession-obtention-audit.md) pour le prochain moteur Pull
 
-`.chatgpt/CHATGPT_GUIDE.md`
-
-Ce Guide indique ensuite la procédure de reprise complète et les documents à lire selon l'état courant.
-
-Il ne faut donc pas essayer de charger toute la documentation dans chaque nouvelle conversation.
+Le Guide décrit l'ordre complet, incluant la vérification du HEAD et la comparaison entre cible documentaire et état physique. Il ne faut pas charger tous les audits dans chaque nouvelle conversation.
 
 ### Audit d'un domaine
 
