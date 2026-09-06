@@ -4,6 +4,7 @@ import type { CurrentGachaDto, GachaCharacterDto } from '../api/types'
 import { currencyAssetPaths, getElementAssetPath } from '../utils/gameAssets'
 import { elementThemes } from '../utils/elementTheme'
 import CharacterAssetImage from './CharacterAssetImage'
+import CharacterCard from './CharacterCard'
 import CharacterShowcaseCard from './CharacterShowcaseCard'
 import GameAssetIcon from './GameAssetIcon'
 
@@ -23,7 +24,7 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, 
       <div className="banner-copy-column">
         <div className="banner-content"><h1 id="invocation-title">Choisissez votre cible</h1><p>Définissez le personnage 5★ que vous visez pour cette rotation hebdomadaire.</p><span className="banner-period">Jusqu’au {new Date(gacha.banner.endsAt).toLocaleDateString('fr-FR')}</span></div>
       </div>
-      <div className="target-choice-grid">{gacha.banner.featuredFiveStars.map((character) => <CharacterShowcaseCard variant="gacha" name={character.name} rarity={5} element={character.elementKey} tone={character.elementKey} assetPaths={[character.iconPath, character.fullbodyPath, character.wishPath, character.splashPath]} fallback={character.name.slice(0, 1)} style={{ '--character-element': elementThemes[character.elementKey].color } as CSSProperties} disabled={compact || pending !== null} onClick={() => void choose(character)} key={character.id} />)}</div>
+      <div className="target-choice-grid">{gacha.banner.featuredFiveStars.map((character) => <CharacterShowcaseCard variant="gacha" name={character.name} rarity={5} element={character.elementKey} tone={character.elementKey} assetPaths={[character.iconPath, character.fullbodyPath, character.wishPath, character.splashPath]} fallback={character.name.slice(0, 1)} style={{ '--character-element': elementThemes[character.elementKey].color, '--character-color': elementThemes[character.elementKey].color } as CSSProperties} disabled={compact || pending !== null} onClick={() => void choose(character)} key={character.id} />)}</div>
       {compact && onOpen && <button type="button" className="home-banner-hit-area" onClick={onOpen} aria-label="Ouvrir l’écran Invocation" />}
     </section>
   }
@@ -55,5 +56,5 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, 
 
 function Progress({ className = '', label, value, maximum }: { className?: string; label: string; value: number; maximum: number }) { return <div className={`banner-progress ${className}`}><div className="pity-row"><span>{label}</span><strong>{value} / {maximum}</strong></div><div className="progress-track"><span className="progress-fill pity" style={{ width: `${value / maximum * 100}%` }} /></div></div> }
 function WishButton({ count, cost }: { count: string; cost: string }) { return <button type="button" className="wish-button secondary" disabled><span>Invocation {count}</span><small><GameAssetIcon className="inline-currency-icon" src={currencyAssetPaths.primogem} fallback="✦" /> × {cost}</small></button> }
-function FeaturedFourStars({ characters }: { characters: readonly GachaCharacterDto[] }) { return <div className="featured-four-stars" aria-label="Personnages quatre étoiles de la semaine"><div>{characters.map((character) => <span className="banner-character-card character-display-card featured-four-card" style={{ '--character-element': elementThemes[character.elementKey].color } as CSSProperties} key={character.id}><GameAssetIcon className="banner-card-element character-element-badge" src={getElementAssetPath(character.elementKey, 'badge')} fallback="" /><span className="featured-four-portrait character-display-portrait"><CharacterAssetImage characterName={character.name} className="featured-four-image" assetPaths={[character.iconPath, character.fullbodyPath]} fallback={character.name.slice(0, 1)} alt={character.name} /></span><span className="featured-four-copy character-display-copy"><strong>{character.name}</strong><small className="character-rarity">★★★★</small></span></span>)}</div></div> }
+function FeaturedFourStars({ characters }: { characters: readonly GachaCharacterDto[] }) { return <div className="featured-four-stars" aria-label="Personnages quatre étoiles de la semaine"><div>{characters.map((character) => <CharacterCard character={character} variant="featured" key={character.id} />)}</div></div> }
 export default BannerHero

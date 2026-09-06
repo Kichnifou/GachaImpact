@@ -28,4 +28,23 @@ describe('CharacterCard contexts', () => {
     expect(html).not.toContain('Niv.')
     expect(html).not.toMatch(/>C\d+</)
   })
+
+  it('reuses the Box card family for a featured character without catalog metadata', () => {
+    const catalog: GachaCharacterDto = {
+      id: 'featured', externalKey: 'legacy:featured', name: 'Featured', rarity: 4,
+      elementKey: 'hydro', weaponType: 'Épée', region: 'Fontaine', classKey: null,
+      iconPath: '/icon/featured.png', splashPath: null, wishPath: null, fullbodyPath: '/fullbody/featured.png',
+    }
+    const html = renderToStaticMarkup(<CharacterCard character={catalog} variant="featured" />)
+
+    expect(html).toContain('character-card hydro featured-four-card featured-character-card')
+    expect(html).toContain('class="character-card-topline"')
+    expect(html).toContain('class="character-portrait"')
+    expect(html).toContain('src="/icon/featured.png"')
+    expect(html).toContain('<h3>Featured</h3>')
+    expect(html).toContain('★★★★')
+    expect(html).not.toContain('Épée')
+    expect(html).not.toContain('Fontaine')
+    expect(html).not.toContain('character-card-meta')
+  })
 })

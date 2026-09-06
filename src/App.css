@@ -432,31 +432,27 @@
 .objective-empty span { color: var(--cyan); font-size: 10px; }
 
 .target-choice-grid { position: relative; z-index: 4; grid-column: 2; grid-row: 1; align-self: center; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 24px; }
-.target-choice { position: relative; min-width: 0; height: 220px; overflow: hidden; color: white; border-radius: 13px; cursor: pointer; }
+.target-choice { position: relative; min-width: 0; overflow: hidden; color: white; cursor: pointer; }
 .target-choice:hover { border-color: var(--cyan); transform: translateY(-2px); }
-.target-choice-image { width: 100%; height: 170px; object-fit: contain; object-position: center bottom; }
-.target-choice strong, .target-choice > span { display: block; position: relative; z-index: 2; }
-.target-choice > span { color: var(--gold); font-size: 9px; }
+.target-choice strong { display: block; position: relative; z-index: 2; }
 .banner-copy-column { position: relative; z-index: 4; min-width: 0; grid-column: 1; grid-row: 1; display: flex; flex-direction: column; }
 .banner-copy-column .banner-content { width: 100%; flex: 0 0 auto; }
 .featured-four-stars { min-width: 0; margin: auto 16px 18px 30px; }
 .featured-four-stars > div { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
-.banner-character-card { --character-element: #67cfff; border: 1px solid color-mix(in srgb, var(--character-element) 52%, rgba(103, 174, 255, .3)); background: linear-gradient(165deg, color-mix(in srgb, var(--character-element) 15%, #111b36), rgba(7, 15, 31, .96) 72%); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--character-element) 15%, transparent); }
-.featured-four-card { position: relative; min-width: 0; height: 70px; display: grid; grid-template-rows: minmax(0, 1fr) auto; place-items: center; overflow: hidden; border-radius: 9px; }
-.banner-card-element { position: absolute; z-index: 3; top: 4px; left: 4px; width: 17px; height: 17px; display: grid; place-items: center; padding: 2px; border: 1px solid color-mix(in srgb, var(--character-element) 58%, transparent); border-radius: 6px; background: rgba(5, 11, 24, .78); }
-.banner-card-element > img { width: 100%; height: 100%; display: block; object-fit: contain; }
-.featured-four-image { width: 100%; height: 44px; min-height: 0; display: block; padding: 2px 3px 0; object-fit: contain; object-position: center top; }
-.featured-four-copy { width: 100%; min-width: 0; display: grid; place-items: center; gap: 0; padding: 2px 3px 4px; background: rgba(4, 10, 22, .74); }
-.featured-four-copy strong { max-width: 100%; overflow: hidden; color: #eaf2ff; font-size: 7px; line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }
-.featured-four-copy small { color: var(--gold); font-size: 6px; line-height: 1; letter-spacing: -.04em; }
+.featured-four-card { height: 70px; display: grid; grid-template-rows: minmax(0, 1fr) auto; border-radius: 9px; }
+.featured-four-card .character-card-topline { inset: 4px 4px auto; }
+.featured-four-card .character-element { width: 17px; min-width: 17px; height: 17px; padding: 2px; border-radius: 6px; }
+.featured-four-card .character-portrait { height: auto; min-height: 0; }
+.featured-four-card .character-portrait::before { width: 44px; height: 44px; }
+.featured-four-card .character-card-copy { min-width: 0; padding: 3px 3px 4px; }
+.featured-four-card .character-card-copy h3 { overflow: hidden; margin-bottom: 0; font-size: 7px; line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }
+.featured-four-card .character-card-copy .character-rarity { margin: 0; font-size: 6px; line-height: 1; letter-spacing: -.04em; }
 .banner-period { display: inline-block; margin-top: 14px; color: var(--cyan); font-size: 11px; }
 .wish-button:disabled { cursor: not-allowed; opacity: .58; filter: saturate(.5); }
 
 @media (max-width: 760px) {
   .target-picker { display: block; }
   .target-choice-grid { grid-template-columns: repeat(2, 1fr); padding: 12px; }
-  .target-choice { height: 180px; }
-  .target-choice-image { height: 135px; }
   .featured-four-stars { overflow-x: auto; padding-inline: 14px; }
 }
 
@@ -4150,14 +4146,7 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 }
 
 .target-choice {
-  height: 194px;
-  padding: 0 7px 8px;
-}
-
-.target-choice-image {
-  height: 145px;
-  object-fit: contain;
-  object-position: center top;
+  padding: 0;
 }
 
 .target-choice strong {
@@ -4169,11 +4158,6 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 }
 
 @media (max-width: 1500px) and (min-width: 761px) {
-  .target-choice-grid {
-    gap: 7px;
-    padding: 16px 12px;
-  }
-
   .target-choice strong {
     font-size: 9px;
   }
@@ -4257,20 +4241,12 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   }
 
   .target-choice-grid {
+    grid-template-rows: repeat(2, 172px);
     order: 2;
     align-self: stretch;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 9px;
     padding: 10px 12px 14px;
-  }
-
-  .target-choice {
-    width: 100%;
-    height: 172px;
-  }
-
-  .target-choice-image {
-    height: 124px;
   }
 
   .featured-four-stars {
@@ -4295,11 +4271,9 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
     aspect-ratio: .86;
   }
 
-  .featured-four-image { height: auto; min-height: 0; }
+  .featured-four-card .character-card-copy h3 { font-size: 9px; }
 
-  .featured-four-copy strong { font-size: 9px; }
-
-  .featured-four-copy small { font-size: 8px; }
+  .featured-four-card .character-card-copy .character-rarity { font-size: 8px; }
 
   .banner-element-watermark {
     left: -13px;
@@ -4357,15 +4331,6 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   .target-choice-grid {
     gap: 7px;
     padding-inline: 9px;
-  }
-
-  .target-choice {
-    height: 158px;
-    padding-inline: 5px;
-  }
-
-  .target-choice-image {
-    height: 111px;
   }
 
   .target-choice strong {
@@ -4551,15 +4516,19 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 .target-choice-grid {
   align-self: stretch;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, clamp(220px, 27vh, 290px)));
+  align-content: center;
+  gap: 14px;
+  padding: 28px;
 }
 
-.target-choice {
-  height: auto;
+.character-showcase-gacha.target-choice {
+  width: 100%;
+  height: 100%;
   min-height: 0;
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
+  display: flex;
   padding: 0;
+  font: inherit;
 }
 
 .target-choice:hover,
@@ -4568,30 +4537,13 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   box-shadow: 0 8px 22px color-mix(in srgb, var(--character-element) 14%, transparent), inset 0 1px 0 rgba(255, 255, 255, .08);
 }
 
-.target-choice-portrait {
-  display: block;
+.character-showcase-gacha .large-character-portrait {
+  flex: 1 1 auto;
   min-height: 0;
 }
 
-.target-choice-image {
-  box-sizing: border-box;
-  width: 100%;
-  height: 100%;
-  padding: 7px 8px 1px;
-  object-fit: contain;
-  object-position: center top;
-}
-
-.target-choice-copy {
-  display: grid;
-  place-items: center;
-  gap: 1px;
-  padding: 6px 7px 7px;
-}
-
-.target-choice-copy .character-rarity {
-  color: var(--gold);
-  font-size: 8px;
+.character-showcase-gacha .large-team-copy {
+  flex: 0 0 auto;
 }
 
 .featured-four-stars > div {
@@ -4610,20 +4562,8 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   aspect-ratio: auto;
 }
 
-.featured-four-portrait {
-  width: 100%;
+.featured-four-card .character-portrait {
   height: 49px;
-  display: block;
-}
-
-.featured-four-image {
-  width: 100%;
-  height: 100%;
-  padding: 2px 3px 0;
-}
-
-.featured-four-copy {
-  padding: 3px 3px 4px;
 }
 
 .objective-card {
@@ -4671,6 +4611,14 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   text-align: center;
 }
 
+@media (max-width: 1500px) and (min-width: 761px) {
+  .target-choice-grid {
+    grid-template-rows: repeat(2, minmax(0, 220px));
+    gap: 12px;
+    padding: 24px 18px;
+  }
+}
+
 @media (max-width: 760px) {
   .game-navigation {
     grid-template-columns: repeat(8, minmax(0, 1fr));
@@ -4684,13 +4632,15 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
     grid-column: 2 / span 2;
   }
 
+  .target-choice-grid {
+    grid-template-rows: repeat(2, 172px);
+    gap: 9px;
+    padding: 10px 12px 14px;
+  }
+
   .featured-four-card {
     height: 75px;
     aspect-ratio: auto;
-  }
-
-  .target-choice {
-    height: 172px;
   }
 
   .featured-four-stars > div {
@@ -4698,15 +4648,15 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
     gap: 4px;
   }
 
-  .featured-four-portrait {
+  .featured-four-card .character-portrait {
     height: 47px;
   }
 
-  .featured-four-copy strong {
+  .featured-four-card .character-card-copy h3 {
     font-size: 7px;
   }
 
-  .featured-four-copy small {
+  .featured-four-card .character-card-copy .character-rarity {
     font-size: 6px;
   }
 
@@ -4717,8 +4667,8 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 }
 
 @media (max-width: 480px) {
-  .target-choice {
-    height: 158px;
+  .target-choice-grid {
+    grid-template-rows: repeat(2, 158px);
   }
 
   .featured-four-stars {
@@ -4733,32 +4683,35 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
     height: 68px;
   }
 
-  .featured-four-portrait {
+  .featured-four-card .character-portrait {
     height: 42px;
   }
 
-  .featured-four-card .banner-card-element {
-    top: 3px;
-    left: 3px;
+  .featured-four-card .character-card-topline {
+    inset: 3px 3px auto;
+  }
+
+  .featured-four-card .character-element {
     width: 14px;
+    min-width: 14px;
     height: 14px;
   }
 
-  .featured-four-copy {
+  .featured-four-card .character-card-copy {
     padding-inline: 2px;
   }
 
-  .featured-four-copy strong {
+  .featured-four-card .character-card-copy h3 {
     font-size: 6px;
   }
 
-  .featured-four-copy small {
+  .featured-four-card .character-card-copy .character-rarity {
     font-size: 5px;
   }
 }
 
 @media (max-width: 560px) {
-  .large-team-card .large-character-portrait {
+  .large-team-card:not(.character-showcase-gacha) .large-character-portrait {
     min-height: 180px;
   }
 }
@@ -4802,19 +4755,6 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
     padding: 8px 12px 12px;
   }
 
-  .target-choice {
-    width: 100%;
-    height: 142px;
-  }
-
-  .target-choice-portrait {
-    min-height: 0;
-  }
-
-  .target-choice-image {
-    padding: 5px 6px 0;
-  }
-
   .target-choice strong {
     font-size: 10px;
   }
@@ -4839,7 +4779,7 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
     aspect-ratio: auto;
   }
 
-  .featured-four-portrait {
+  .featured-four-card .character-portrait {
     height: 44px;
   }
 }

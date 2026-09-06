@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.55
+Version : 0.56
 Date : 2026-09-05
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3574,8 +3574,8 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - `GET /api/v1/me/progression` expose les compteurs `bigint` lossless et le niveau dérivé de l'XP cumulative selon `min(floor(xp / 30), 100)`, sans endpoint de gain ou de mutation d'XP ;
 - la sidebar charge désormais niveau, XP du palier et barre depuis l'état serveur au bootstrap authentifié ; les mocks Team, objectif Gacha, pity, garantie et Capture de brillance restent volontairement hors de ce lot ;
 - tests unitaires frontend/backend, builds, lint, tests DB réels et statut Prisma : **VALIDÉS TECHNIQUEMENT**.
-- Gacha — catalogue / bannière / cible / état joueur : **FONDATIONS VALIDÉES PUBLIQUEMENT PAR LE PROPRIÉTAIRE — DOMAINE ENCORE ACTIF POUR VALIDATION PUBLIQUE FINALE DU CORRECTIF** ; catalogue et bannière réels, sélection/changement/persistance de cible, splash du hero, six 4★ intégrés, watermarks Profil/Objectif nets, footer Pity dynamique, header Équipe, navigation mobile 4+3 et panneaux joueur empilés en paysage validés ; Box / Personnages sont globalement réussis et Ressources, XP, Daily Reward et Roue sont sans régression publique constatée ;
-- dernière passe d'uniformisation visuelle Équipe / Équipe active / picker 5★ : **TECHNIQUEMENT TERMINÉE — VALIDATION PUBLIQUE PROPRIÉTAIRE À FAIRE** ; l'anatomie Team est réellement partagée par les trois variantes showcase, les cartes possédées Box affichent Niveau/Cx sans rôle, l'Équipe active conserve quatre cartes sur une ligne avec des portraits mobile proportionnés, le picker 5★ reste en 2×2 sans les 4★, les six 4★ restent uniquement dans le hero sélectionné, l'aperçu Invocation de l'Accueil est entièrement navigable et les chevrons de sidebar sont supprimés ;
+- Gacha — catalogue / bannière / cible / état joueur : **FONDATIONS VALIDÉES PUBLIQUEMENT PAR LE PROPRIÉTAIRE — DOMAINE ENCORE ACTIF POUR LA DERNIÈRE VALIDATION PUBLIQUE** ; catalogue et bannière réels, sélection/changement/persistance de cible, splash du hero, six 4★ intégrés, watermarks Profil/Objectif nets, footer Pity dynamique et header Équipe validés ; Box, Équipe et Équipe active sont **VALIDÉS PUBLIQUEMENT** ; la suppression des 4★ du picker, l'aperçu Invocation de l'Accueil entièrement cliquable, la suppression des chevrons de sidebar et le responsive mobile/paysage sont également **VALIDÉS PUBLIQUEMENT** ; Ressources, XP, Daily Reward et Roue restent sans régression publique constatée ;
+- dernière harmonisation picker 5★ / Team et 4★ Invocation / Box : **TECHNIQUEMENT TERMINÉE — VALIDATION PUBLIQUE PROPRIÉTAIRE À FAIRE** ; le picker 5★ dérive désormais exactement de la carte Team validée, avec seulement un gabarit légèrement réduit et sans slot/Niveau/constellation, tout en restant en 2×2 ; les six 4★ du hero sélectionné réutilisent directement la primitive `CharacterCard` de Box en variante compacte sans métadonnée de possession ni de catalogue et restent sur une seule ligne ;
 - le domaine Gacha reste volontairement **NON CLÔTURÉ** tant que cette dernière passe responsive et visuelle n'a pas été validée publiquement par le propriétaire ;
 - le moteur Pull x1/x10 reste volontairement absent et constitue le prochain lot seulement après cette validation publique finale et la clôture du domaine.
 
@@ -3607,7 +3607,7 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-Review ChatGPT → commit/push par le propriétaire → attendre Railway/Cloudflare verts → validation publique rapide de cette dernière uniformisation UI → clôturer le domaine Gacha fondations → implémenter le **moteur Invocation x1/x10 réel**. `PAID_INFRA_APPROVED = false` reste inchangé.
+Review ChatGPT → commit/push par le propriétaire → attendre Railway/Cloudflare verts → validation publique rapide des deux dernières harmonisations picker 5★ / Team et 4★ / Box → clôturer le domaine Gacha fondations → implémenter le **moteur Invocation x1/x10 réel**. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

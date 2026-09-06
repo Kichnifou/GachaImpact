@@ -4,9 +4,9 @@ import { getElementAssetPath } from '../utils/gameAssets'
 import CharacterAssetImage from './CharacterAssetImage'
 import GameAssetIcon from './GameAssetIcon'
 
-type CharacterCardProps = { character: GachaCharacterDto | Character; compact?: boolean; selected?: boolean; onClick?: () => void }
+type CharacterCardProps = { character: GachaCharacterDto | Character; compact?: boolean; selected?: boolean; variant?: 'default' | 'featured'; onClick?: () => void }
 
-function CharacterCard({ character, compact = false, selected = false, onClick }: CharacterCardProps) {
+function CharacterCard({ character, compact = false, selected = false, variant = 'default', onClick }: CharacterCardProps) {
   const catalogCharacter = 'externalKey' in character ? character : null
   const legacyCharacter = catalogCharacter ? null : character as Character
   const elementKey = catalogCharacter?.elementKey ?? legacyCharacter!.tone
@@ -16,13 +16,13 @@ function CharacterCard({ character, compact = false, selected = false, onClick }
     <div className="character-card-copy">
       <h3>{character.name}</h3>
       <div className="character-rarity">{'★'.repeat(character.rarity)}</div>
-      {catalogCharacter
+      {catalogCharacter && variant === 'default'
         ? <p>{[catalogCharacter.weaponType, catalogCharacter.region].filter(Boolean).join(' · ') || elementKey}</p>
-        : <div className="character-card-meta"><span>Niv. {legacyCharacter!.level}</span><span>C{legacyCharacter!.constellation}</span></div>}
+        : legacyCharacter && <div className="character-card-meta"><span>Niv. {legacyCharacter.level}</span><span>C{legacyCharacter.constellation}</span></div>}
     </div>
     {selected && <span className="selected-mark">✓</span>}
   </>
-  const className = `character-card ${elementKey}${compact ? ' compact' : ''}${selected ? ' selected' : ''}`
+  const className = `character-card ${elementKey}${compact ? ' compact' : ''}${selected ? ' selected' : ''}${variant === 'featured' ? ' featured-four-card featured-character-card' : ''}`
   return onClick ? <button type="button" className={className} onClick={onClick}>{content}</button> : <article className={className}>{content}</article>
 }
 export default CharacterCard

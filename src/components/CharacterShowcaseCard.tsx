@@ -39,11 +39,11 @@ const variantClasses = {
     copy: 'team-member-copy',
   },
   gacha: {
-    root: 'banner-character-card target-choice',
-    badge: 'banner-card-element',
-    portrait: 'target-choice-portrait',
-    image: 'target-choice-image',
-    copy: 'target-choice-copy',
+    root: 'large-team-card target-choice',
+    badge: 'large-element',
+    portrait: 'large-character-portrait',
+    image: 'large-character-asset-image',
+    copy: 'large-team-copy',
   },
 } satisfies Record<ShowcaseVariant, Record<string, string>>
 
