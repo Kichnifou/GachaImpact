@@ -1,9 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react'
-import { getElementAssetPath } from '../utils/gameAssets'
-import CharacterAssetImage from './CharacterAssetImage'
-import GameAssetIcon from './GameAssetIcon'
+import CharacterPortraitFrame from './CharacterPortraitFrame'
 
-type ShowcaseVariant = 'team' | 'sidebar' | 'gacha'
+type ShowcaseVariant = 'team' | 'sidebar' | 'gacha' | 'featured'
 
 type CharacterShowcaseCardProps = {
   variant: ShowcaseVariant
@@ -45,6 +43,13 @@ const variantClasses = {
     image: 'large-character-asset-image',
     copy: 'large-team-copy',
   },
+  featured: {
+    root: 'large-team-card featured-four-card',
+    badge: 'large-element featured-element',
+    portrait: 'large-character-portrait featured-character-portrait',
+    image: 'large-character-asset-image featured-character-asset-image',
+    copy: 'large-team-copy featured-four-copy',
+  },
 } satisfies Record<ShowcaseVariant, Record<string, string>>
 
 function CharacterShowcaseCard({
@@ -67,20 +72,15 @@ function CharacterShowcaseCard({
   const classes = variantClasses[variant]
   const content = <>
     {slot && <span className="team-slot-number">{slot}</span>}
-    <GameAssetIcon
-      className={`${classes.badge} character-element-badge`}
-      src={getElementAssetPath(element, 'badge')}
-      fallback=""
+    <CharacterPortraitFrame
+      characterName={name}
+      element={element}
+      assetPaths={assetPaths}
+      fallback={fallback}
+      frameClassName={`${classes.portrait} character-display-portrait`}
+      imageClassName={classes.image}
+      badgeClassName={`${classes.badge} character-element-badge`}
     />
-    <span className={`${classes.portrait} character-display-portrait`} aria-hidden="true">
-      <CharacterAssetImage
-        characterName={name}
-        className={classes.image}
-        assetPaths={assetPaths}
-        fallback={fallback}
-        alt=""
-      />
-    </span>
     <span className={`${classes.copy} character-display-copy`}>
       <strong className="character-showcase-name">{name}</strong>
       <span className="character-rarity">{'★'.repeat(rarity)}</span>

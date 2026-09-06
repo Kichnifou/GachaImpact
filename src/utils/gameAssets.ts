@@ -17,9 +17,9 @@ type CharacterAssetReport = {
 
 export const DEFAULT_CHARACTER_ASSET_ORDER: readonly CharacterAssetKind[] = [
   'iconPath',
-  'splashPath',
-  'wishPath',
   'fullbodyPath',
+  'wishPath',
+  'splashPath',
 ]
 
 export const BANNER_CHARACTER_ASSET_ORDER: readonly CharacterAssetKind[] = [

@@ -439,14 +439,13 @@
 .banner-copy-column .banner-content { width: 100%; flex: 0 0 auto; }
 .featured-four-stars { min-width: 0; margin: auto 16px 18px 30px; }
 .featured-four-stars > div { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
-.featured-four-card { height: 70px; display: grid; grid-template-rows: minmax(0, 1fr) auto; border-radius: 9px; }
-.featured-four-card .character-card-topline { inset: 4px 4px auto; }
-.featured-four-card .character-element { width: 17px; min-width: 17px; height: 17px; padding: 2px; border-radius: 6px; }
-.featured-four-card .character-portrait { height: auto; min-height: 0; }
-.featured-four-card .character-portrait::before { width: 44px; height: 44px; }
-.featured-four-card .character-card-copy { min-width: 0; padding: 3px 3px 4px; }
-.featured-four-card .character-card-copy h3 { overflow: hidden; margin-bottom: 0; font-size: 7px; line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }
-.featured-four-card .character-card-copy .character-rarity { margin: 0; font-size: 6px; line-height: 1; letter-spacing: -.04em; }
+.featured-four-card { height: 70px; min-height: 0; border-radius: 9px; }
+.featured-four-card .featured-element { top: 4px; left: 4px; width: 17px; height: 17px; padding: 2px; border-radius: 6px; }
+.featured-four-card .featured-character-portrait { min-height: 0; }
+.featured-four-card .featured-character-portrait::before { width: 44px; height: 44px; }
+.featured-four-card .featured-four-copy { min-width: 0; padding: 3px 3px 4px; text-align: center; }
+.featured-four-card .featured-four-copy .character-showcase-name { font-size: 7px; line-height: 1.1; }
+.featured-four-card .featured-four-copy .character-rarity { margin: 0; font-size: 6px; line-height: 1; letter-spacing: -.04em; }
 .banner-period { display: inline-block; margin-top: 14px; color: var(--cyan); font-size: 11px; }
 .wish-button:disabled { cursor: not-allowed; opacity: .58; filter: saturate(.5); }
 
@@ -2828,15 +2827,16 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 .particles-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 7px 5px;
+  gap: 8px 7px;
 }
 
 .particle-value {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   color: #c7d2e7;
-  font-size: 9px;
+  font-size: 10px;
+  line-height: 1.1;
 }
 
 .particle-value span { color: var(--particle-color, var(--cyan)); font-size: 12px; }
@@ -2878,8 +2878,8 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 }
 
 .particle-element-icon {
-  width: 14px;
-  height: 14px;
+  width: 17px;
+  height: 17px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2904,18 +2904,41 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   height: 14px;
 }
 
-.member-portrait,
+.character-portrait-frame {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.character-portrait-image {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+  object-fit: contain;
+  object-position: center top;
+}
+
+.character-portrait-badge > img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
 .objective-art,
-.character-portrait,
-.large-character-portrait,
 .celestial-placeholder {
   isolation: isolate;
 }
 
-.member-asset-image,
 .objective-asset-image,
-.character-asset-image,
-.large-character-asset-image,
 .banner-character-asset {
   position: relative;
   z-index: 2;
@@ -2924,20 +2947,11 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   max-height: 100%;
 }
 
-.member-asset-image,
-.objective-asset-image,
-.character-asset-image,
-.large-character-asset-image {
+.objective-asset-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center top;
-}
-
-.character-asset-image,
-.large-character-asset-image {
-  position: absolute;
-  inset: 0;
 }
 
 .objective-art {
@@ -4271,9 +4285,9 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
     aspect-ratio: .86;
   }
 
-  .featured-four-card .character-card-copy h3 { font-size: 9px; }
+  .featured-four-card .featured-four-copy .character-showcase-name { font-size: 9px; }
 
-  .featured-four-card .character-card-copy .character-rarity { font-size: 8px; }
+  .featured-four-card .featured-four-copy .character-rarity { font-size: 8px; }
 
   .banner-element-watermark {
     left: -13px;
@@ -4559,11 +4573,49 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 .featured-four-card {
   width: 100%;
   height: 78px;
+  min-height: 0;
   aspect-ratio: auto;
+  border-radius: 9px;
 }
 
-.featured-four-card .character-portrait {
-  height: 49px;
+.featured-four-card .featured-element {
+  top: 4px;
+  left: 4px;
+  width: clamp(14px, 26%, 23px);
+  height: auto;
+  aspect-ratio: 1;
+  box-sizing: border-box;
+  padding: 2px;
+  border-radius: 6px;
+}
+
+.featured-four-card .featured-character-portrait {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.featured-four-card .featured-character-portrait::before {
+  width: 44px;
+  height: 44px;
+}
+
+.featured-four-card .featured-four-copy {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 3px 3px 4px;
+  text-align: center;
+}
+
+.featured-four-card .featured-four-copy .character-showcase-name {
+  font-size: 7px;
+  line-height: 1.1;
+}
+
+.featured-four-card .featured-four-copy .character-rarity {
+  margin: 0;
+  font-size: 6px;
+  line-height: 1;
+  letter-spacing: -.04em;
 }
 
 .objective-card {
@@ -4648,15 +4700,11 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
     gap: 4px;
   }
 
-  .featured-four-card .character-portrait {
-    height: 47px;
-  }
-
-  .featured-four-card .character-card-copy h3 {
+  .featured-four-card .featured-four-copy .character-showcase-name {
     font-size: 7px;
   }
 
-  .featured-four-card .character-card-copy .character-rarity {
+  .featured-four-card .featured-four-copy .character-rarity {
     font-size: 6px;
   }
 
@@ -4683,35 +4731,28 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
     height: 68px;
   }
 
-  .featured-four-card .character-portrait {
-    height: 42px;
-  }
-
-  .featured-four-card .character-card-topline {
-    inset: 3px 3px auto;
-  }
-
-  .featured-four-card .character-element {
+  .featured-four-card .featured-element {
+    top: 3px;
+    left: 3px;
     width: 14px;
-    min-width: 14px;
     height: 14px;
   }
 
-  .featured-four-card .character-card-copy {
+  .featured-four-card .featured-four-copy {
     padding-inline: 2px;
   }
 
-  .featured-four-card .character-card-copy h3 {
+  .featured-four-card .featured-four-copy .character-showcase-name {
     font-size: 6px;
   }
 
-  .featured-four-card .character-card-copy .character-rarity {
+  .featured-four-card .featured-four-copy .character-rarity {
     font-size: 5px;
   }
 }
 
 @media (max-width: 560px) {
-  .large-team-card:not(.character-showcase-gacha) .large-character-portrait {
+  .large-team-card.character-showcase-team .large-character-portrait {
     min-height: 180px;
   }
 }
@@ -4779,7 +4820,4 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
     aspect-ratio: auto;
   }
 
-  .featured-four-card .character-portrait {
-    height: 44px;
-  }
 }

@@ -7,7 +7,8 @@ describe('TeamScreen character cards', () => {
     const html = renderToStaticMarkup(<TeamScreen />)
 
     expect((html.match(/character-showcase-team/g) ?? [])).toHaveLength(4)
-    expect((html.match(/class="large-element character-element-badge"/g) ?? [])).toHaveLength(4)
+    expect((html.match(/character-portrait-badge/g) ?? [])).toHaveLength(4)
+    expect((html.match(/character-portrait-frame/g) ?? [])).toHaveLength(4)
     expect((html.match(/class="team-slot-number"/g) ?? [])).toHaveLength(4)
     expect((html.match(/character-display-meta/g) ?? [])).toHaveLength(4)
     expect(html).toContain('Équipe 1')

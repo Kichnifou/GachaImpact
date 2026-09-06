@@ -9,6 +9,8 @@ describe('BoxScreen owned character cards', () => {
     const owned = characters.filter((character) => character.owned)
 
     expect((html.match(/character-card-meta/g) ?? [])).toHaveLength(owned.length)
+    expect((html.match(/character-portrait-frame/g) ?? [])).toHaveLength(owned.length)
+    expect((html.match(/character-portrait-badge/g) ?? [])).toHaveLength(owned.length)
     for (const character of owned) {
       expect(html).toContain(`Niv. ${character.level}`)
       expect(html).toContain(`C${character.constellation}`)

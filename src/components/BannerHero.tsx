@@ -4,7 +4,6 @@ import type { CurrentGachaDto, GachaCharacterDto } from '../api/types'
 import { currencyAssetPaths, getElementAssetPath } from '../utils/gameAssets'
 import { elementThemes } from '../utils/elementTheme'
 import CharacterAssetImage from './CharacterAssetImage'
-import CharacterCard from './CharacterCard'
 import CharacterShowcaseCard from './CharacterShowcaseCard'
 import GameAssetIcon from './GameAssetIcon'
 
@@ -56,5 +55,5 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, 
 
 function Progress({ className = '', label, value, maximum }: { className?: string; label: string; value: number; maximum: number }) { return <div className={`banner-progress ${className}`}><div className="pity-row"><span>{label}</span><strong>{value} / {maximum}</strong></div><div className="progress-track"><span className="progress-fill pity" style={{ width: `${value / maximum * 100}%` }} /></div></div> }
 function WishButton({ count, cost }: { count: string; cost: string }) { return <button type="button" className="wish-button secondary" disabled><span>Invocation {count}</span><small><GameAssetIcon className="inline-currency-icon" src={currencyAssetPaths.primogem} fallback="✦" /> × {cost}</small></button> }
-function FeaturedFourStars({ characters }: { characters: readonly GachaCharacterDto[] }) { return <div className="featured-four-stars" aria-label="Personnages quatre étoiles de la semaine"><div>{characters.map((character) => <CharacterCard character={character} variant="featured" key={character.id} />)}</div></div> }
+function FeaturedFourStars({ characters }: { characters: readonly GachaCharacterDto[] }) { return <div className="featured-four-stars" aria-label="Personnages quatre étoiles de la semaine"><div>{characters.map((character) => <CharacterShowcaseCard variant="featured" name={character.name} rarity={4} element={character.elementKey} tone={character.elementKey} assetPaths={[character.iconPath, character.fullbodyPath, character.wishPath, character.splashPath]} fallback={character.name.slice(0, 1)} style={{ '--character-element': elementThemes[character.elementKey].color, '--character-color': elementThemes[character.elementKey].color } as CSSProperties} key={character.id} />)}</div></div> }
 export default BannerHero
