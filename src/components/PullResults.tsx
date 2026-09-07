@@ -18,30 +18,33 @@ export function PullResultCard({ result, order = 0, compact = false }: { result:
   const rarity = pullDisplayRarity(result)
   const resource = pullResourcePresentation(result.resourceKey)
   const event = pullEventLabel(result)
+  const revealProgression = result.wasNewCharacter
+    ? 'Nouveau'
+    : `C${Math.min(result.constellationAfter ?? 0, 6)}`
   const characterAssetPaths = result.character
     ? compact
       ? [result.character.iconPath, result.character.fullbodyPath, result.character.wishPath, result.character.splashPath]
       : [result.character.splashPath, result.character.wishPath, result.character.fullbodyPath, result.character.iconPath]
     : []
-  const bonusContent = <>
+  const compactBonusContent = <>
     {result.bonusRewards.map((reward) => <small className="pull-bonus" key={`${reward.resourceKey}-${reward.causeKey}`}>+{formatResourceAmount(reward.amount)} {pullResourcePresentation(reward.resourceKey).label}</small>)}
     {result.c6Progression?.type === 'stat' && <small className="pull-bonus">{c6StatLabel(result.c6Progression.stat)} +1</small>}
     {result.c6Progression?.type === 'maxed' && <small className="pull-bonus">Progression C6 maxée</small>}
   </>
   return (
-    <article className={`pull-result-card ${result.character ? 'character-result' : 'resource-result'} rarity-${rarity}${!compact && result.character?.splashPath ? ' has-character-splash' : ''}${compact ? ' compact' : ' reveal'}`} style={{ '--pull-order': order } as CSSProperties}>
-      <span className="pull-result-index">#{result.index}</span>
+    <article className={`pull-result-card ${result.character ? 'character-result' : 'resource-result'} rarity-${rarity}${compact ? ' compact' : ' reveal'}`} style={{ '--pull-order': order } as CSSProperties}>
+      {(compact || !result.character) && <span className="pull-result-index">#{result.index}</span>}
       {result.character ? <>
-        {!compact && <CharacterAssetImage characterName={result.character.name} className="pull-result-backdrop-image" assetPaths={characterAssetPaths} fallback={null} alt="" />}
         <div className="pull-result-portrait" style={{ '--character-color': elementThemes[result.character.elementKey].color } as CSSProperties}>
           <CharacterAssetImage characterName={result.character.name} className="pull-result-image" assetPaths={characterAssetPaths} fallback={<span>{result.character.name.slice(0, 1)}</span>} alt={result.character.name} />
         </div>
         <div className="pull-result-copy">
+          {!compact && <small className="pull-result-progression">{revealProgression}</small>}
           <strong>{result.character.name}</strong>
           <span className="pull-result-rarity">{'★'.repeat(rarity)}</span>
-          <small>{result.wasNewCharacter ? 'Nouveau · C0' : `Copie ${result.copiesAfter} · C${result.constellationAfter}`}</small>
-          {event && <small className="pull-event">{event}</small>}
-          {bonusContent}
+          {compact && <small>{result.wasNewCharacter ? 'Nouveau · C0' : `Copie ${result.copiesAfter} · C${result.constellationAfter}`}</small>}
+          {compact && event && <small className="pull-event">{event}</small>}
+          {compact && compactBonusContent}
         </div>
       </> : <div className="pull-resource-content">
           <div className="pull-resource-symbol">
@@ -50,7 +53,7 @@ export function PullResultCard({ result, order = 0, compact = false }: { result:
           <strong>{resource.label}</strong>
           <span className="pull-result-rarity">★★★</span>
           <span className="pull-resource-amount">+{formatResourceAmount(result.resourceAmount ?? '0')}</span>
-          {bonusContent}
+          {compact && compactBonusContent}
         </div>}
     </article>
   )

@@ -60,7 +60,7 @@ export class PrismaGachaStore implements GachaStore {
       orderBy: [
         { pullOperation: { createdAt: 'desc' } },
         { pullOperationId: 'desc' },
-        { resultIndex: 'asc' },
+        { resultIndex: 'desc' },
       ],
       skip: (page - 1) * GACHA_HISTORY_PAGE_SIZE,
       take: GACHA_HISTORY_PAGE_SIZE,

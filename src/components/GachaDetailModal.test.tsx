@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import type { GachaHistoryDto, GachaHistoryResultDto } from '../api/types'
-import { historyDateLabel } from '../gacha/history-presentation'
+import { historyDateLabel, historyResultLabel } from '../gacha/history-presentation'
 import GachaDetailModal, { HistoryPanel, PassivesPanel } from './GachaDetailModal'
 
 const historyResult: GachaHistoryResultDto = {
@@ -37,6 +37,20 @@ describe('GachaDetailModal', () => {
     expect(html).not.toContain('4★ : 9')
     expect(dateLabel).toMatch(/06\/09\/2026[\s\S]*\d{2}:25/)
     expect(html).toContain(dateLabel)
+  })
+
+  it('renders an x10 history in the newest-first sequential order supplied by the API', () => {
+    const results = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((index) => ({
+      ...historyResult,
+      operationId: 'x10-operation',
+      operationPullCount: 10 as const,
+      index,
+      resourceAmount: String(6000 + index),
+    }))
+    const html = renderToStaticMarkup(<HistoryPanel history={{ ...history, totalResults: 10, results }} loading={false} error={null} onPage={vi.fn()} />)
+    expect(html.indexOf(historyResultLabel(results[0]!))).toBeLessThan(html.indexOf(historyResultLabel(results[1]!)))
+    expect(html.indexOf(historyResultLabel(results[1]!))).toBeLessThan(html.indexOf(historyResultLabel(results[9]!)))
+    expect((html.match(/<tr>/g) ?? [])).toHaveLength(11)
   })
 
   it('keeps useful passives without technical or discarded copy', () => {
