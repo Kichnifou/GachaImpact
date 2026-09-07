@@ -18,6 +18,8 @@ import type {
   GachaHistoryDto,
   PlayerBoxDto,
   BoxCharacterDto,
+  BoxSortPreferenceDto,
+  StellaUseDto,
 } from './types'
 
 type ApiClientDependencies = Readonly<{
@@ -118,6 +120,14 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
       request<{ character: BoxCharacterDto }>(`/api/v1/me/box/${characterId}/favorite`, {
         method: 'PATCH',
         body: JSON.stringify({ favorite }),
+      }),
+    setBoxSortPreference: (preference: BoxSortPreferenceDto) =>
+      request<{ preference: BoxSortPreferenceDto }>('/api/v1/me/box/preference', {
+        method: 'PATCH', body: JSON.stringify(preference),
+      }),
+    useStella: (characterId: string, idempotencyKey: string) =>
+      request<StellaUseDto>(`/api/v1/me/box/${characterId}/stella`, {
+        method: 'POST', body: JSON.stringify({ idempotencyKey }),
       }),
   }
 }

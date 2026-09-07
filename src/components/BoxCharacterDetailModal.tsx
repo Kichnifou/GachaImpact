@@ -1,13 +1,23 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { BoxCharacterDto } from '../api/types'
+import { getElementAssetPath } from '../utils/gameAssets'
 import CharacterPortraitFrame from './CharacterPortraitFrame'
+import GameAssetIcon from './GameAssetIcon'
 
-function BoxCharacterDetailModal({ character, favoritePending, onToggleFavorite, onClose }: {
+function BoxCharacterDetailModal({ character, stellaQuantity, favoritePending, stellaPending, stellaFeedback, onToggleFavorite, onUseStella, onClose }: {
   character: BoxCharacterDto
+  stellaQuantity: string
   favoritePending: boolean
+  stellaPending: boolean
+  stellaFeedback: string | null
   onToggleFavorite: () => void
+  onUseStella: () => void
   onClose: () => void
 }) {
+  const [confirmingStella, setConfirmingStella] = useState(false)
+  const stellaSubmitted = useRef(false)
+  const hasStella = /^\d+$/.test(stellaQuantity) && BigInt(stellaQuantity) > 0n
+
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
     document.addEventListener('keydown', closeOnEscape)
@@ -33,7 +43,10 @@ function BoxCharacterDetailModal({ character, favoritePending, onToggleFavorite,
         </div>
         <div className="box-detail-copy">
           <div className="box-detail-heading">
-            <h2 className="box-detail-character-name">{character.name}</h2>
+            <div className="box-detail-name-row">
+              <h2 className="box-detail-character-name">{character.name}</h2>
+              <GameAssetIcon className="box-detail-element-icon" src={getElementAssetPath(character.elementKey)} fallback="✦" />
+            </div>
             <div className="character-rarity">{'★'.repeat(character.rarity)}</div>
             <strong className="box-detail-constellation">C{character.constellation}</strong>
           </div>
@@ -42,13 +55,34 @@ function BoxCharacterDetailModal({ character, favoritePending, onToggleFavorite,
             <div><dt>Première obtention</dt><dd>{formatObtainedAt(character.firstObtainedAt)}</dd></div>
             <div><dt>Favori</dt><dd>{character.favorite ? 'Oui' : 'Non'}</dd></div>
           </dl>
+          {character.rarity === 5 && <section className="box-stella-zone" aria-label="Masterless Stella Fortuna">
+            <div><strong>Masterless Stella Fortuna × {stellaQuantity}</strong><small>Renforce ce personnage d’une copie.</small></div>
+            <button type="button" disabled={!hasStella || stellaPending} onClick={() => { stellaSubmitted.current = false; setConfirmingStella(true) }}>{stellaPending ? 'Utilisation…' : 'Utiliser une Stella'}</button>
+            {stellaFeedback && <p className="box-stella-feedback" role="status">{stellaFeedback}</p>}
+          </section>}
           <button type="button" className={`box-detail-favorite${character.favorite ? ' active' : ''}`} disabled={favoritePending} onClick={onToggleFavorite}>
             <span aria-hidden="true">★</span>{character.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
           </button>
         </div>
       </div>
+      {confirmingStella && <div className="box-stella-confirm-layer" role="presentation" onMouseDown={() => setConfirmingStella(false)}>
+        <section className="box-stella-confirm panel" role="alertdialog" aria-modal="true" aria-label="Confirmer l’utilisation d’une Stella" onMouseDown={(event) => event.stopPropagation()}>
+          <span className="eyebrow">Confirmation</span>
+          <h3>Utiliser 1 Masterless Stella Fortuna sur {character.name} ?</h3>
+          <p>{stellaTransition(character)}</p>
+          <div className="box-stella-confirm-actions">
+            <button type="button" onClick={() => setConfirmingStella(false)}>Annuler</button>
+            <button type="button" className="primary" disabled={stellaPending} onClick={() => { if (stellaSubmitted.current) return; stellaSubmitted.current = true; setConfirmingStella(false); onUseStella() }}>Confirmer</button>
+          </div>
+        </section>
+      </div>}
     </section>
   </div>
+}
+
+function stellaTransition(character: BoxCharacterDto) {
+  if (character.constellation === 6) return `C6 reste C6 · Copies : ${character.copies} → ${character.copies + 1} · Une statistique Concours éligible recevra +1.`
+  return `C${character.constellation} → C${character.constellation + 1} · Copies : ${character.copies} → ${character.copies + 1}`
 }
 
 function formatObtainedAt(value: string) {

@@ -104,10 +104,53 @@ model Player {
   characters         PlayerCharacter[]
   c6Progress         C6CompetitionProgress[]
   pullOperations     PullOperation[]
+  preferences        PlayerPreference[]
+  items              PlayerItem[]
 
   @@index([status], map: "players_status_idx")
   @@index([elementKey], map: "players_element_key_idx")
   @@map("players")
+}
+
+model PlayerPreference {
+  playerId      String   @map("player_id") @db.Uuid
+  preferenceKey String   @map("preference_key") @db.Text
+  value         Json     @db.JsonB
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player        Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@id([playerId, preferenceKey])
+  @@map("player_preferences")
+}
+
+model ItemDefinition {
+  id               String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  externalKey      String       @unique(map: "item_definitions_external_key_key") @map("external_key") @db.Text
+  displayName      String       @map("display_name") @db.Text
+  category         String       @db.Text
+  description      String?      @db.Text
+  isActive         Boolean      @default(true) @map("is_active")
+  metadata         Json?        @db.JsonB
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  playerBalances   PlayerItem[]
+
+  @@map("item_definitions")
+}
+
+model PlayerItem {
+  playerId         String         @map("player_id") @db.Uuid
+  itemId           String         @map("item_id") @db.Uuid
+  quantity         BigInt         @default(0)
+  firstObtainedAt  DateTime?      @map("first_obtained_at") @db.Timestamptz(6)
+  legacyProvenance Json?          @map("legacy_provenance") @db.JsonB
+  updatedAt        DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player           Player         @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  item             ItemDefinition @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@id([playerId, itemId])
+  @@index([itemId], map: "player_items_item_id_idx")
+  @@map("player_items")
 }
 
 model Character {

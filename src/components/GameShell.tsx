@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import type { BoxCharacterDto, CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, PlayerBoxDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, WheelSpinDto, WheelTodayDto } from '../api/types'
+import type { BoxCharacterDto, BoxSortPreferenceDto, CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, PlayerBoxDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import type { ScreenId } from '../types'
 import BoxScreen from '../screens/BoxScreen'
 import CharactersScreen from '../screens/CharactersScreen'
@@ -42,9 +42,11 @@ type GameShellProps = {
   onGetGachaHistory: (page: number) => Promise<GachaHistoryDto>
   onLoadBox: () => Promise<PlayerBoxDto>
   onSetBoxFavorite: (characterId: string, favorite: boolean) => Promise<BoxCharacterDto>
+  onSetBoxSortPreference: (preference: BoxSortPreferenceDto) => Promise<BoxSortPreferenceDto>
+  onUseStella: (characterId: string, idempotencyKey: string) => Promise<StellaUseDto>
 }
 
-function GameShell({ player, resources, progression, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite }: GameShellProps) {
+function GameShell({ player, resources, progression, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella }: GameShellProps) {
   const [activeScreen, setActiveScreen] = useState<ScreenId>(getScreenFromHash)
   const activeScreenRef = useRef(activeScreen)
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
@@ -61,6 +63,16 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
     boxCache.replaceCharacter(player.id, character)
     return character
   }, [boxCache, onSetBoxFavorite, player.id])
+  const setBoxSortPreference = useCallback(async (preference: BoxSortPreferenceDto) => {
+    const persisted = await onSetBoxSortPreference(preference)
+    boxCache.replacePreference(player.id, persisted)
+    return persisted
+  }, [boxCache, onSetBoxSortPreference, player.id])
+  const useStella = useCallback(async (characterId: string, idempotencyKey: string) => {
+    const result = await onUseStella(characterId, idempotencyKey)
+    boxCache.applyStella(player.id, result)
+    return result
+  }, [boxCache, onUseStella, player.id])
   const signOutAndClearBox = useCallback(async () => {
     boxCache.clear()
     await onSignOut()
@@ -90,7 +102,7 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
       case 'invocation':
         return <InvocationScreen gacha={gacha} onSetTarget={onSetGachaTarget} onPull={onPullGacha} pendingPullCount={pendingGachaPullCount} onPresentationDisclosed={onGachaPresentationDisclosed} onGetHistory={onGetGachaHistory} />
       case 'box':
-        return <BoxScreen initialBox={boxCache.read(player.id)} onLoadBox={loadBox} onSetFavorite={setBoxFavorite} />
+        return <BoxScreen initialBox={boxCache.read(player.id)} onLoadBox={loadBox} onSetFavorite={setBoxFavorite} onSetSortPreference={setBoxSortPreference} onUseStella={useStella} />
       case 'characters':
         return <CharactersScreen characters={characters} />
       case 'team':

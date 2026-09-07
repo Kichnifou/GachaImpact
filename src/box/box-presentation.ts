@@ -1,4 +1,4 @@
-import type { BoxCharacterDto, ElementKey } from '../api/types'
+import type { BoxCharacterDto, BoxSortPreferenceDto, ElementKey } from '../api/types'
 
 export type BoxRarityTab = 'all' | 5 | 4
 export type BoxElementFilter = 'all' | ElementKey
@@ -17,6 +17,10 @@ export type BoxFilters = Readonly<{
 
 export const initialBoxFilters: BoxFilters = {
   tab: 'all', search: '', element: 'all', constellation: 'all', sort: 'alphabetical', direction: 'asc',
+}
+
+export function initialBoxFiltersWithPreference(preference?: BoxSortPreferenceDto): BoxFilters {
+  return { ...initialBoxFilters, ...(preference ? { sort: preference.sortKey, direction: preference.direction } : {}) }
 }
 
 export const boxElements: readonly ElementKey[] = ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro']

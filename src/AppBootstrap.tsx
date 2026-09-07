@@ -38,6 +38,10 @@ function AppBootstrap() {
   const loadBox = useCallback(() => getGameApiClient().getBox(), [])
   const setBoxFavorite = useCallback(async (characterId: string, favorite: boolean) =>
     (await getGameApiClient().setBoxFavorite(characterId, favorite)).character, [])
+  const setBoxSortPreference = useCallback(async (preference: Parameters<ReturnType<typeof getGameApiClient>['setBoxSortPreference']>[0]) =>
+    (await getGameApiClient().setBoxSortPreference(preference)).preference, [])
+  const useStella = useCallback((characterId: string, idempotencyKey: string) =>
+    getGameApiClient().useStella(characterId, idempotencyKey), [])
 
   const loadGameState = useCallback(async () => {
     const api = getGameApiClient()
@@ -209,6 +213,8 @@ function AppBootstrap() {
       onGetGachaHistory={(page) => getGameApiClient().getGachaHistory(page)}
       onLoadBox={loadBox}
       onSetBoxFavorite={setBoxFavorite}
+      onSetBoxSortPreference={setBoxSortPreference}
+      onUseStella={useStella}
       onClaimDailyReward={async () => {
         const { result, resources: nextResources } = await claimDailyRewardAndRefresh(getGameApiClient())
         setResources(nextResources)

@@ -1,4 +1,4 @@
-import type { BoxCharacterDto, PlayerBoxDto } from '../api/types'
+import type { BoxCharacterDto, BoxSortPreferenceDto, PlayerBoxDto, StellaUseDto } from '../api/types'
 
 export class BoxMemoryCache {
   private entries = new Map<string, { box: PlayerBoxDto; revision: number }>()
@@ -34,6 +34,29 @@ export class BoxMemoryCache {
         characters: current.box.characters.map((item) => item.id === character.id ? character : item),
       },
     })
+  }
+
+  replacePreference(playerId: string, preference: BoxSortPreferenceDto): void {
+    this.mutate(playerId, (box) => ({ ...box, preference }))
+  }
+
+  applyStella(playerId: string, result: StellaUseDto): void {
+    this.mutate(playerId, (box) => ({
+      ...box,
+      characters: box.characters.map((item) => item.id === result.character.id ? result.character : item),
+      stella: result.stella,
+      summary: {
+        ...box.summary,
+        c6: box.summary.c6 + (result.character.constellation === 6
+          && box.characters.find((item) => item.id === result.character.id)?.constellation !== 6 ? 1 : 0),
+      },
+    }))
+  }
+
+  private mutate(playerId: string, update: (box: PlayerBoxDto) => PlayerBoxDto): void {
+    const current = this.entries.get(playerId)
+    if (!current) return
+    this.entries.set(playerId, { revision: current.revision + 1, box: update(current.box) })
   }
 
   clear(): void {

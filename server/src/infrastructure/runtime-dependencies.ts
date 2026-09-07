@@ -21,7 +21,7 @@ import { PrismaDailyRewardStore } from './database/prisma-daily-reward-store.js'
 import { PrismaGachaStore } from './database/prisma-gacha-store.js';
 import { GetCharacters, GetCurrentGacha, GetGachaHistory, PerformGachaPull, SetGachaTarget } from '../application/gacha/gacha-services.js';
 import { WeeklyBannerScheduler } from '../application/gacha/weekly-banner-scheduler.js';
-import { GetCurrentPlayerBox, SetBoxCharacterFavorite } from '../application/box/box-services.js';
+import { GetCurrentPlayerBox, SetBoxCharacterFavorite, SetBoxSortPreference, UseMasterlessStella } from '../application/box/box-services.js';
 import { PrismaBoxStore } from './database/prisma-box-store.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
@@ -67,6 +67,8 @@ export function createRuntimeDependencies(config: AppConfig) {
     getGachaHistory: new GetGachaHistory(getCurrentPlayer, gachaStore),
     getCurrentPlayerBox: new GetCurrentPlayerBox(getCurrentPlayer, boxStore),
     setBoxCharacterFavorite: new SetBoxCharacterFavorite(getCurrentPlayer, boxStore),
+    setBoxSortPreference: new SetBoxSortPreference(getCurrentPlayer, boxStore),
+    useMasterlessStella: new UseMasterlessStella(getCurrentPlayer, boxStore, clock, random),
     start: () => scheduler.start(),
     close: async () => { scheduler.stop(); await database.$disconnect(); },
   };

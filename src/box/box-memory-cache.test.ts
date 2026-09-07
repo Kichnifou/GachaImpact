@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { BoxCharacterDto, PlayerBoxDto } from '../api/types'
+import type { BoxCharacterDto, PlayerBoxDto, StellaUseDto } from '../api/types'
 import { BoxMemoryCache } from './box-memory-cache'
 
 const character = (favorite = false): BoxCharacterDto => ({
@@ -10,6 +10,8 @@ const character = (favorite = false): BoxCharacterDto => ({
 const box = (favorite = false): PlayerBoxDto => ({
   characters: [character(favorite)],
   summary: { totalOwned: 1, fiveStars: 1, fourStars: 0, c6: 0 },
+  preference: { sortKey: 'alphabetical', direction: 'asc' },
+  stella: { quantity: '0' },
 })
 
 function deferred<Value>() {
@@ -76,6 +78,24 @@ describe('BoxMemoryCache', () => {
     cache.replaceCharacter('player-a', character(true))
     await expect(cache.revalidate('player-a', async () => box(false))).resolves.toEqual(box(false))
     expect(cache.read('player-a')).toEqual(box(false))
+  })
+
+  it('keeps confirmed sort preferences and Stella results safe from an older refresh', async () => {
+    const cache = new BoxMemoryCache()
+    const refresh = deferred<PlayerBoxDto>()
+    cache.write('player-a', { ...box(), stella: { quantity: '2' } })
+    const result = cache.revalidate('player-a', () => refresh.promise)
+    cache.replacePreference('player-a', { sortKey: 'element', direction: 'desc' })
+    const stella: StellaUseDto = {
+      operation: { id: 'operation', alreadyProcessed: false },
+      character: { ...character(), copies: 4, constellation: 3 },
+      stella: { quantity: '1' },
+      c6Progression: null,
+    }
+    cache.applyStella('player-a', stella)
+    refresh.resolve({ ...box(), stella: { quantity: '2' } })
+    await expect(result).resolves.toMatchObject({ preference: { sortKey: 'element', direction: 'desc' }, stella: { quantity: '1' } })
+    expect(cache.read('player-a')).toMatchObject({ preference: { sortKey: 'element', direction: 'desc' }, stella: { quantity: '1' }, characters: [{ copies: 4, constellation: 3 }] })
   })
 
   it('keeps revisions isolated between players', async () => {

@@ -116,6 +116,22 @@ export type PlayerBoxDto = Readonly<{
     fourStars: number
     c6: number
   }>
+  preference: BoxSortPreferenceDto
+  stella: Readonly<{ quantity: string }>
+}>
+
+export type BoxSortPreferenceDto = Readonly<{
+  sortKey: 'alphabetical' | 'obtainedAt' | 'constellation' | 'element'
+  direction: 'asc' | 'desc'
+}>
+
+export type StellaUseDto = Readonly<{
+  operation: Readonly<{ id: string; alreadyProcessed: boolean }>
+  character: BoxCharacterDto
+  stella: Readonly<{ quantity: string }>
+  c6Progression: Readonly<{ type: 'unlocked'; stats: Readonly<Record<'strength' | 'intelligence' | 'beauty' | 'charisma' | 'popularity', number>> }>
+    | Readonly<{ type: 'stat'; stat: 'strength' | 'intelligence' | 'beauty' | 'charisma' | 'popularity'; valueAfter: number }>
+    | null
 }>
 
 export type GachaPullResultItemDto = Readonly<{

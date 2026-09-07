@@ -2989,7 +2989,7 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 .box-favorite-button:disabled, .box-detail-favorite:disabled { cursor: wait; opacity: .62; }
 .box-character-card .character-card-meta strong { color: #e8f3ff; }
 
-.box-detail-modal { --character-color: #76cfff; width: min(760px, 100%); max-height: min(680px, calc(100vh - 30px)); overflow-y: auto; }
+.box-detail-modal { --character-color: #76cfff; position: relative; width: min(760px, 100%); max-height: min(680px, calc(100vh - 30px)); overflow-y: auto; }
 .box-detail-modal.hydro { --character-color: #62caff; }
 .box-detail-modal.pyro { --character-color: #ff7d64; }
 .box-detail-modal.cryo { --character-color: #9edfff; }
@@ -2997,23 +2997,43 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 .box-detail-modal.electro { --character-color: #bb81ff; }
 .box-detail-modal.geo { --character-color: #f3c45d; }
 .box-detail-modal.dendro { --character-color: #9ed45f; }
-.box-detail-content { display: grid; grid-template-columns: minmax(240px, .9fr) minmax(280px, 1.1fr); min-height: 390px; }
-.box-detail-artwork { position: relative; min-height: 390px; overflow: hidden; border-right: 1px solid color-mix(in srgb, var(--character-color) 22%, transparent); background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--character-color) 26%, transparent), transparent 62%); }
+.box-detail-content { display: grid; grid-template-columns: minmax(240px, .9fr) minmax(280px, 1.1fr); min-height: 350px; }
+.box-detail-artwork { position: relative; min-height: 350px; overflow: hidden; border-right: 1px solid color-mix(in srgb, var(--character-color) 22%, transparent); background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--character-color) 26%, transparent), transparent 62%); }
 .box-detail-portrait { position: absolute; inset: 0; display: block; }
 .box-detail-image { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
 .box-detail-portrait > span { position: absolute; inset: 0; display: grid; place-items: center; color: color-mix(in srgb, var(--character-color) 75%, white); font-family: Georgia, serif; font-size: 82px; }
 .box-detail-portrait i { display: none; }
-.box-detail-copy { display: flex; flex-direction: column; gap: 18px; padding: 24px; }
+.box-detail-copy { display: flex; flex-direction: column; gap: 10px; padding: 16px 22px; }
 .box-detail-heading { display: grid; justify-items: start; gap: 5px; }
+.box-detail-name-row { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .box-detail-character-name { font-family: Georgia, 'Times New Roman', serif; font-size: 28px; font-weight: 500; line-height: 1.15; }
+.box-detail-element-icon { width: 30px; height: 30px; flex: 0 0 30px; filter: drop-shadow(0 0 9px color-mix(in srgb, var(--character-color) 70%, transparent)); }
+.box-detail-element-icon img { width: 100%; height: 100%; display: block; object-fit: contain; }
 .box-detail-heading .character-rarity { font-size: 16px; letter-spacing: .08em; }
 .box-detail-constellation { margin-top: 2px; color: #e8f3ff; font-size: 14px; }
-.box-detail-copy dl { display: grid; gap: 1px; }
-.box-detail-copy dl > div { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid rgba(109, 145, 204, .13); }
+.box-detail-copy dl { display: grid; gap: 1px; margin: 0; }
+.box-detail-copy dl > div { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 0; border-bottom: 1px solid rgba(109, 145, 204, .13); }
 .box-detail-copy dt { color: #b5c3d9; font-size: 12px; font-weight: 700; }
 .box-detail-copy dd { color: #e7f0ff; font-size: 11px; font-weight: 800; text-align: right; }
 .box-detail-favorite { min-height: 38px; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: auto; cursor: pointer; color: #cad7eb; border: 1px solid rgba(116, 151, 207, .28); border-radius: 9px; background: rgba(14, 30, 55, .8); }
 .box-detail-favorite.active { color: var(--gold); border-color: rgba(248, 204, 94, .42); background: rgba(76, 56, 18, .35); }
+.box-stella-zone { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 7px 12px; padding: 11px 12px; border: 1px solid rgba(127, 161, 219, .22); border-radius: 10px; background: rgba(13, 27, 50, .68); }
+.box-stella-zone > div { min-width: 0; display: grid; gap: 3px; }
+.box-stella-zone strong { color: #e8f3ff; font-size: 11px; }
+.box-stella-zone small { color: #93a4bf; font-size: 9px; }
+.box-stella-zone > button { min-height: 32px; padding: 0 12px; cursor: pointer; color: #e9f4ff; border: 1px solid rgba(91, 180, 255, .4); border-radius: 8px; background: rgba(31, 100, 165, .36); }
+.box-stella-zone > button:disabled { cursor: not-allowed; opacity: .48; }
+.box-stella-feedback { grid-column: 1 / -1; margin: 0; color: #75dcbb; font-size: 10px; }
+.box-stella-confirm-layer { position: absolute; z-index: 3; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(2, 7, 18, .76); backdrop-filter: blur(3px); }
+.box-stella-confirm { width: min(430px, 100%); display: grid; gap: 13px; padding: 22px; }
+.box-stella-confirm h3 { margin: 0; color: #f1f6ff; font-size: 18px; line-height: 1.35; }
+.box-stella-confirm p { margin: 0; color: #b8c7dc; font-size: 12px; line-height: 1.55; }
+.box-stella-confirm-actions { display: flex; justify-content: flex-end; gap: 9px; }
+.box-stella-confirm-actions button { min-height: 35px; padding: 0 16px; cursor: pointer; color: #dce8fa; border: 1px solid rgba(115, 149, 204, .32); border-radius: 8px; background: rgba(18, 34, 59, .9); }
+.box-stella-confirm-actions button.primary { color: #07101f; border-color: #8ed9ff; background: linear-gradient(135deg, #7bd8ff, #79a8ff); }
+.box-stella-confirm-actions button:disabled { cursor: wait; opacity: .55; }
+
+.pull-result-card.reveal.character-result .pull-result-rarity { margin-top: -3px; }
 
 .character-card-topline {
   position: absolute;
@@ -5705,6 +5725,8 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   .box-detail-content { grid-template-columns: 1fr; }
   .box-detail-artwork { min-height: 260px; border-right: 0; border-bottom: 1px solid color-mix(in srgb, var(--character-color) 22%, transparent); }
   .box-detail-copy { padding: 18px; }
+  .box-stella-zone { grid-template-columns: 1fr; }
+  .box-stella-zone > button { width: 100%; }
 }
 
 .box-detail-portrait.character-portrait-frame { position: absolute; inset: 0; display: block; }

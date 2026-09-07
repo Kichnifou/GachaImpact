@@ -23,7 +23,7 @@ import { registerBoxRoutes } from './api/routes/box.js';
 import type { GetCharacters, GetCurrentGacha, GetGachaHistory, PerformGachaPull, SetGachaTarget } from './application/gacha/gacha-services.js';
 import type { GetTodayDailyReward } from './application/daily-reward/get-today-daily-reward.js';
 import type { ClaimDailyReward } from './application/daily-reward/claim-daily-reward.js';
-import type { GetCurrentPlayerBox, SetBoxCharacterFavorite } from './application/box/box-services.js';
+import type { GetCurrentPlayerBox, SetBoxCharacterFavorite, SetBoxSortPreference, UseMasterlessStella } from './application/box/box-services.js';
 import type { AppConfig } from './config/environment.js';
 import { loadConfig } from './config/environment.js';
 
@@ -44,6 +44,8 @@ export type AppDependencies = Readonly<{
   getGachaHistory?: GetGachaHistory;
   getCurrentPlayerBox?: GetCurrentPlayerBox;
   setBoxCharacterFavorite?: SetBoxCharacterFavorite;
+  setBoxSortPreference?: SetBoxSortPreference;
+  useMasterlessStella?: UseMasterlessStella;
   close?: () => Promise<void>;
 }>;
 
@@ -110,8 +112,13 @@ export async function buildApp(
     if (dependencies.getCharacters && dependencies.getCurrentGacha && dependencies.setGachaTarget) {
       await app.register(registerGachaRoutes, { authenticate, getCharacters: dependencies.getCharacters, getCurrentGacha: dependencies.getCurrentGacha, setGachaTarget: dependencies.setGachaTarget, performGachaPull: dependencies.performGachaPull, getGachaHistory: dependencies.getGachaHistory });
     }
-    if (dependencies.getCurrentPlayerBox && dependencies.setBoxCharacterFavorite) {
-      await app.register(registerBoxRoutes, { authenticate, getCurrentPlayerBox: dependencies.getCurrentPlayerBox, setBoxCharacterFavorite: dependencies.setBoxCharacterFavorite });
+    if (dependencies.getCurrentPlayerBox && dependencies.setBoxCharacterFavorite && dependencies.setBoxSortPreference && dependencies.useMasterlessStella) {
+      await app.register(registerBoxRoutes, {
+        authenticate, getCurrentPlayerBox: dependencies.getCurrentPlayerBox,
+        setBoxCharacterFavorite: dependencies.setBoxCharacterFavorite,
+        setBoxSortPreference: dependencies.setBoxSortPreference,
+        useMasterlessStella: dependencies.useMasterlessStella,
+      });
     }
 
     if (dependencies.close) {
