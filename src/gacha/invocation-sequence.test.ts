@@ -3,11 +3,15 @@ import type { GachaPullDto, GachaPullResultItemDto } from '../api/types'
 import {
   acquirePullLock,
   acquireRevealLock,
+  canActivateInvocationSurface,
+  characterRevealFocusDurationMs,
   fiveStarSuspenseDurationMs,
   idleInvocationSequence,
   invocationSurfaceAction,
   invocationSequenceReducer,
   nextRevealRarity,
+  revealControlVisibility,
+  revealControlsAreReady,
   releaseRevealLock,
   revealResultKey,
   revealTransitionDurationMs,
@@ -137,5 +141,37 @@ describe('Invocation sequence state machine', () => {
     expect(nextRevealRarity(sequence)).toBe(5)
     expect(fiveStarSuspenseDurationMs).toBeGreaterThanOrEqual(1000)
     expect(fiveStarSuspenseDurationMs).toBeLessThanOrEqual(2000)
+  })
+
+  it('locks character reveal controls and surface actions during the two-second focus phase', () => {
+    const submitting = invocationSequenceReducer(idleInvocationSequence, { type: 'submit', count: 10, idempotencyKey: 'character-focus' })
+    const intro = invocationSequenceReducer(submitting, { type: 'resolved', pull: pull(10, [fiveStar(1), ...Array.from({ length: 9 }, (_, index) => resource(index + 2))]) })
+    const reveal = invocationSequenceReducer(intro, { type: 'advance' })
+
+    expect(characterRevealFocusDurationMs).toBe(2000)
+    expect(revealControlsAreReady(reveal, false)).toBe(false)
+    expect(canActivateInvocationSurface(reveal, false, false)).toBe(false)
+    expect(revealControlVisibility(reveal, false)).toEqual({ counter: false, hint: false, skip: false, close: false })
+    expect(revealControlsAreReady(reveal, true)).toBe(true)
+    expect(canActivateInvocationSurface(reveal, false, true)).toBe(true)
+    expect(revealControlVisibility(reveal, true)).toEqual({ counter: true, hint: true, skip: true, close: false })
+
+    const oneSubmitting = invocationSequenceReducer(idleInvocationSequence, { type: 'submit', count: 1, idempotencyKey: 'character-focus-x1' })
+    const oneIntro = invocationSequenceReducer(oneSubmitting, { type: 'resolved', pull: pull(1, [fiveStar(1)]) })
+    const oneReveal = invocationSequenceReducer(oneIntro, { type: 'advance' })
+    expect(revealControlVisibility(oneReveal, false)).toEqual({ counter: false, hint: false, skip: false, close: false })
+    expect(canActivateInvocationSurface(oneReveal, false, false)).toBe(false)
+    expect(revealControlVisibility(oneReveal, true)).toEqual({ counter: true, hint: true, skip: false, close: true })
+    expect(canActivateInvocationSurface(oneReveal, false, true)).toBe(true)
+  })
+
+  it('keeps resource reveals immediately interactive without the character focus delay', () => {
+    const submitting = invocationSequenceReducer(idleInvocationSequence, { type: 'submit', count: 1, idempotencyKey: 'resource-flow' })
+    const intro = invocationSequenceReducer(submitting, { type: 'resolved', pull: pull(1, [resource(1)]) })
+    const reveal = invocationSequenceReducer(intro, { type: 'advance' })
+
+    expect(revealControlsAreReady(reveal, false)).toBe(true)
+    expect(canActivateInvocationSurface(reveal, false, false)).toBe(true)
+    expect(revealControlVisibility(reveal, false)).toEqual({ counter: true, hint: false, skip: false, close: true })
   })
 })

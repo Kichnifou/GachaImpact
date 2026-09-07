@@ -1,7 +1,13 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
+import type { GachaPullDto, GachaPullResultItemDto } from '../api/types'
 import type { InvocationSequenceState } from '../gacha/invocation-sequence'
 import InvocationSequence from './InvocationSequence'
+
+const playerState = { pity5: 0, pity4: 0, guaranteedFeatured5: false, captureProgress: 0, fiftyFiftyLostStreak: 0, selectedBannerCharacterId: 'target', totalPulls: '1', totalFiveStars: '1', totalFourStars: '0', fiftyFiftyWon: '1', fiftyFiftyLost: '0', capturesTriggered: '0' }
+const characterResult: GachaPullResultItemDto = { index: 1, resultType: 'character', character: { id: 'furina', externalKey: 'furina', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: null, region: null, classKey: null, iconPath: '/icon.png', splashPath: '/splash.png', wishPath: null, fullbodyPath: null }, rarity: 5, resourceKey: null, resourceAmount: null, wasNewCharacter: true, constellationAfter: 0, copiesAfter: 1, wasFiftyFifty: true, wonFiftyFifty: true, guaranteeConsumed: false, captureTriggered: false, bonusRewards: [], c6Progression: null }
+const resourceResult: GachaPullResultItemDto = { ...characterResult, resultType: 'resource', character: null, rarity: null, resourceKey: 'moras', resourceAmount: '5000', wasNewCharacter: null, constellationAfter: null, copiesAfter: null, wasFiftyFifty: false, wonFiftyFifty: null }
+const pull = (count: 1 | 10, results: readonly GachaPullResultItemDto[]): GachaPullDto => ({ operation: { id: `operation-${count}`, pullCount: count, primogemCost: count === 1 ? '160' : '1600', createdAt: '2026-09-07T10:00:00Z', alreadyProcessed: false }, results, playerState })
 
 describe('InvocationSequence player-facing copy', () => {
   it('uses immersive waiting copy without exposing implementation details', () => {
@@ -15,5 +21,39 @@ describe('InvocationSequence player-facing copy', () => {
     expect(html).toContain('Les astres se rassemblent')
     expect(html).toContain('Le destin se met en mouvement')
     expect(html).not.toMatch(/serveur|backend|API|sauvegarde|idempotence/i)
+  })
+
+  it('starts an x10 character reveal in full-bleed Focus without sequence controls', () => {
+    const state: Exclude<InvocationSequenceState, { phase: 'idle' }> = { phase: 'reveal', count: 10, idempotencyKey: 'x10-focus', pull: pull(10, [characterResult]), bestRarity: 5, resultIndex: 0 }
+    const html = renderToStaticMarkup(<InvocationSequence state={state} onAdvance={vi.fn()} onSkip={vi.fn()} onClose={vi.fn()} />)
+
+    expect(html).toContain('character-reveal-focus')
+    expect(html).toContain('src="/splash.png"')
+    expect(html).toContain('Nouveau')
+    expect(html).not.toContain('Résultat 1 / 1')
+    expect(html).not.toContain('Cliquez pour continuer')
+    expect(html).not.toContain('>Passer<')
+    expect(html).not.toContain('Fermer les résultats')
+    expect(html).not.toContain('role="button"')
+  })
+
+  it('starts an x1 character reveal in Focus without its close control', () => {
+    const state: Exclude<InvocationSequenceState, { phase: 'idle' }> = { phase: 'reveal', count: 1, idempotencyKey: 'x1-focus', pull: pull(1, [characterResult]), bestRarity: 5, resultIndex: 0 }
+    const html = renderToStaticMarkup(<InvocationSequence state={state} onAdvance={vi.fn()} onSkip={vi.fn()} onClose={vi.fn()} />)
+
+    expect(html).toContain('character-reveal-focus')
+    expect(html).not.toContain('Fermer les résultats')
+    expect(html).not.toContain('Cliquez pour continuer')
+  })
+
+  it('keeps resource reveal controls immediately available', () => {
+    const state: Exclude<InvocationSequenceState, { phase: 'idle' }> = { phase: 'reveal', count: 10, idempotencyKey: 'resource', pull: pull(10, [resourceResult]), bestRarity: 3, resultIndex: 0 }
+    const html = renderToStaticMarkup(<InvocationSequence state={state} onAdvance={vi.fn()} onSkip={vi.fn()} onClose={vi.fn()} />)
+
+    expect(html).not.toContain('character-reveal-focus')
+    expect(html).toContain('Résultat 1 / 1')
+    expect(html).toContain('Cliquez pour continuer')
+    expect(html).toContain('>Passer<')
+    expect(html).toContain('role="button"')
   })
 })

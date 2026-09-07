@@ -24,6 +24,7 @@ export type InvocationSequenceEvent =
 export const idleInvocationSequence: InvocationSequenceState = { phase: 'idle' }
 export const revealTransitionDurationMs = 500
 export const fiveStarSuspenseDurationMs = 1400
+export const characterRevealFocusDurationMs = 2000
 
 export type InvocationSurfaceAction = 'advance' | 'close'
 
@@ -32,6 +33,39 @@ export function invocationSurfaceAction(state: InvocationSequenceState): Invocat
   if (state.phase === 'reveal') return state.count === 1 ? 'close' : 'advance'
   if (state.phase === 'summary') return 'close'
   return null
+}
+
+export function revealControlsAreReady(
+  state: InvocationSequenceState,
+  characterRevealReady: boolean,
+): boolean {
+  if (state.phase !== 'reveal') return true
+  return state.pull.results[state.resultIndex]?.resultType !== 'character' || characterRevealReady
+}
+
+export function revealControlVisibility(
+  state: InvocationSequenceState,
+  characterRevealReady: boolean,
+): Readonly<{ counter: boolean; hint: boolean; skip: boolean; close: boolean }> {
+  const ready = state.phase === 'reveal' && revealControlsAreReady(state, characterRevealReady)
+  if (!ready || state.phase !== 'reveal') return { counter: false, hint: false, skip: false, close: false }
+  const character = state.pull.results[state.resultIndex]?.resultType === 'character'
+  return {
+    counter: true,
+    hint: state.count === 10 || character,
+    skip: state.count === 10,
+    close: state.count === 1,
+  }
+}
+
+export function canActivateInvocationSurface(
+  state: InvocationSequenceState,
+  suspense: boolean,
+  characterRevealReady: boolean,
+): boolean {
+  return invocationSurfaceAction(state) !== null
+    && !suspense
+    && revealControlsAreReady(state, characterRevealReady)
 }
 
 export function nextRevealRarity(state: InvocationSequenceState): PullDisplayRarity | null {

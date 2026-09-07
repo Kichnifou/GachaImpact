@@ -261,6 +261,45 @@
   box-sizing: border-box;
 }
 
+.sequence-reveal-stage.character-reveal {
+  position: absolute;
+  inset: 0;
+  min-height: 0;
+  display: block;
+  padding: 0;
+}
+
+.character-reveal .sequence-counter,
+.character-reveal .sequence-hint {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  margin: 0;
+  color: #f4f8ff;
+  text-align: center;
+  text-shadow: 0 2px 8px #020713;
+  transform: translateX(-50%);
+}
+
+.character-reveal .sequence-counter {
+  top: 18px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(4, 10, 24, .46);
+  backdrop-filter: blur(5px);
+}
+.character-reveal .sequence-hint {
+  bottom: 12px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(4, 10, 24, .58);
+  backdrop-filter: blur(5px);
+}
+
+.character-reveal-ready .reveal-overlay-control {
+  animation: reveal-controls-in 220ms ease-out both;
+}
+
 .sequence-counter {
   color: #d8e5f7;
   font-size: 10px;
@@ -291,12 +330,20 @@
 }
 
 .pull-result-card.reveal.character-result {
-  width: min(1120px, 100%);
+  width: 100%;
   height: 100%;
   min-height: 0;
   display: block;
   align-self: stretch;
   padding: 0;
+}
+
+.character-reveal .pull-result-card.reveal.character-result {
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(145deg, #071126, #0c1632 48%, #10163a);
+  box-shadow: none;
+  animation-name: invocation-character-reveal;
 }
 
 .pull-result-card.reveal.rarity-4 { --result-accent: #b071ff; }
@@ -336,7 +383,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center;
+  object-position: center 42%;
   transform: none;
   transform-origin: center;
 }
@@ -349,7 +396,7 @@
   position: absolute;
   z-index: 4;
   right: 30px;
-  bottom: 26px;
+  bottom: 42px;
   width: min(42%, 360px);
   display: flex;
   align-items: flex-end;
@@ -575,6 +622,14 @@
 @keyframes sequence-orbit { to { transform: translate(-50%, -50%) rotate(344deg); } }
 @keyframes sequence-pulse { to { transform: translate(-50%, -50%) scale(1.18); } }
 @keyframes sequence-comet { 20% { opacity: 0; } 46% { opacity: 1; } 72%, 100% { opacity: 0; transform: rotate(-12deg) translateX(100%); } }
+@keyframes invocation-character-reveal {
+  from { opacity: 0; filter: brightness(1.45); }
+  to { opacity: 1; filter: none; }
+}
+@keyframes reveal-controls-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 @keyframes invocation-result-reveal {
   0% { opacity: 0; transform: translateY(14px) scale(.92); filter: brightness(1.65); }
   58% { opacity: 1; transform: translateY(-2px) scale(1.018); filter: brightness(1.12); }
@@ -623,13 +678,14 @@
   .sequence-summary .pull-result-card.compact .pull-result-copy > small,
   .sequence-summary .pull-result-card.compact .pull-resource-content > small { font-size: 6px; }
   .sequence-reveal-stage { min-height: 620px; padding: 50px 10px 18px; }
+  .sequence-reveal-stage.character-reveal { min-height: 0; padding: 0; }
   .pull-result-card.reveal { min-height: 345px; }
   .pull-result-card.reveal.character-result {
     width: 100%;
   }
   .pull-result-card.reveal.character-result .pull-result-copy {
     right: 14px;
-    bottom: 16px;
+    bottom: 44px;
     width: min(62%, 250px);
     padding: 0;
   }
@@ -648,7 +704,8 @@
   .invocation-sequence-panel { min-height: 430px; }
   .pull-result-card.reveal { min-height: 300px; width: 270px; }
   .sequence-reveal-stage { min-height: 430px; padding-block: 42px 12px; }
-  .pull-result-card.reveal.character-result { width: min(900px, 100%); }
+  .sequence-reveal-stage.character-reveal { min-height: 0; padding: 0; }
+  .pull-result-card.reveal.character-result { width: 100%; }
   .pull-result-card.reveal.resource-result .pull-resource-symbol { width: 160px; height: 160px; }
   .sequence-summary .pull-result-card.compact { min-height: 145px; }
   .sequence-summary .pull-result-card.compact .pull-result-portrait,
@@ -666,7 +723,8 @@
   .suspense-star,
   .sequence-suspense-stage strong,
   .pull-result-card,
-  .pull-result-card.reveal::before { animation: none !important; }
+  .pull-result-card.reveal::before,
+  .reveal-overlay-control { animation: none !important; }
 }
 
 .game-shell {
