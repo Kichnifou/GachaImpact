@@ -9,8 +9,7 @@ export function historyResultLabel(result: GachaHistoryResultDto): string {
 }
 
 export function historyPityLabel(result: GachaHistoryResultDto): string {
-  const five = result.pity5AtPull === null ? '—' : String(result.pity5AtPull)
-  return `5★ : ${five}`
+  return result.pity5AtPull === null ? '—' : String(result.pity5AtPull)
 }
 
 export function historyProgressionLabel(result: GachaHistoryResultDto): string {

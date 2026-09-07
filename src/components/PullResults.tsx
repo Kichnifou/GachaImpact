@@ -29,9 +29,10 @@ export function PullResultCard({ result, order = 0, compact = false }: { result:
     {result.c6Progression?.type === 'maxed' && <small className="pull-bonus">Progression C6 maxée</small>}
   </>
   return (
-    <article className={`pull-result-card ${result.character ? 'character-result' : 'resource-result'} rarity-${rarity}${compact ? ' compact' : ' reveal'}`} style={{ '--pull-order': order } as CSSProperties}>
+    <article className={`pull-result-card ${result.character ? 'character-result' : 'resource-result'} rarity-${rarity}${!compact && result.character?.splashPath ? ' has-character-splash' : ''}${compact ? ' compact' : ' reveal'}`} style={{ '--pull-order': order } as CSSProperties}>
       <span className="pull-result-index">#{result.index}</span>
       {result.character ? <>
+        {!compact && <CharacterAssetImage characterName={result.character.name} className="pull-result-backdrop-image" assetPaths={characterAssetPaths} fallback={null} alt="" />}
         <div className="pull-result-portrait" style={{ '--character-color': elementThemes[result.character.elementKey].color } as CSSProperties}>
           <CharacterAssetImage characterName={result.character.name} className="pull-result-image" assetPaths={characterAssetPaths} fallback={<span>{result.character.name.slice(0, 1)}</span>} alt={result.character.name} />
         </div>

@@ -96,13 +96,11 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, 
           <p>Pity, Garantie et Capture sont conservées entre les rotations.</p>
         </div>
         <div className="banner-meta-actions">
-          <div className="banner-meta-stack">
-            <span className="banner-end-date">Fin le {new Date(gacha.banner.endsAt).toLocaleDateString('fr-FR')}</span>
-            {showDetails && onGetHistory && <button type="button" className="banner-change-button detail" onClick={() => setDetailOpen(true)}>Détail</button>}
-          </div>
+          <span className="banner-end-date">Fin le {new Date(gacha.banner.endsAt).toLocaleDateString('fr-FR')}</span>
           {showDetails && <button type="button" className="banner-change-button" onClick={() => setChoosing(true)}>Changer</button>}
         </div>
       </div>
+      {!compact && showDetails && onGetHistory && <div className="banner-detail-row"><button type="button" className="banner-change-button detail" onClick={() => setDetailOpen(true)}>Détail</button></div>}
       {!compact && <FeaturedFourStars characters={gacha.banner.featuredFourStars} />}
     </div>
     <div className="celestial-placeholder" aria-label={`Illustration de ${selected.name}`}><CharacterAssetImage characterName={selected.name} className="banner-character-asset" assetPaths={[selected.splashPath, selected.fullbodyPath, selected.wishPath, selected.iconPath]} fallback={<span className="celestial-star">✦</span>} alt={selected.name} /><div className="banner-featured-character"><strong>{selected.name}</strong><span>★★★★★</span></div></div>

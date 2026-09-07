@@ -12,7 +12,7 @@ const arlecchino: GachaHistoryResultDto = {
 describe('Gacha history presentation', () => {
   it('formats result, pull-number pity, event and progression from the persisted row', () => {
     expect(historyResultLabel(arlecchino)).toBe('Arlecchino')
-    expect(historyPityLabel(arlecchino)).toBe('5★ : 1')
+    expect(historyPityLabel(arlecchino)).toBe('1')
     expect(historyEventLabel(arlecchino)).toBe('50/50 gagné')
     expect(historyProgressionLabel(arlecchino)).toBe('Nouveau · C0')
   })
@@ -20,8 +20,12 @@ describe('Gacha history presentation', () => {
   it('formats a secondary reward as text without progression', () => {
     const moras = { ...arlecchino, resultType: 'resource' as const, character: null, rarity: null, resourceKey: 'moras', resourceAmount: '6614', wasNewCharacter: null, constellationAfter: null, copiesAfter: null, wasFiftyFifty: false, wonFiftyFifty: null, pity5AtPull: 1, pity4AtPull: 2 }
     expect(historyResultLabel(moras)).toBe('6 614 Moras')
-    expect(historyPityLabel(moras)).toBe('5★ : 1')
+    expect(historyPityLabel(moras)).toBe('1')
     expect(historyEventLabel(moras)).toBe('—')
     expect(historyProgressionLabel(moras)).toBe('—')
+  })
+
+  it('uses an em dash when the five-star pity snapshot is unavailable', () => {
+    expect(historyPityLabel({ ...arlecchino, pity5AtPull: null })).toBe('—')
   })
 })

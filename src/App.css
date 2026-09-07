@@ -21,15 +21,23 @@
   box-shadow: none;
 }
 
-.banner-meta-stack {
-  display: grid;
-  justify-items: stretch;
-  gap: 8px;
-}
-
-.banner-meta-stack .banner-change-button.detail {
+.banner-detail-row .banner-change-button.detail {
   min-height: 36px;
   padding-inline: 18px;
+}
+
+@media (max-width: 760px) {
+  .banner-detail-row {
+    order: 3;
+    grid-column: 1;
+    grid-row: 4;
+    margin: 8px 12px 0;
+  }
+
+  .banner-detail-row + .featured-four-stars {
+    order: 4;
+    grid-row: 5;
+  }
 }
 
 .invocation-pull-error {
@@ -289,15 +297,12 @@
 }
 
 .pull-result-card.reveal.character-result {
-  width: min(1040px, 100%);
+  width: min(1120px, 100%);
   height: 100%;
   min-height: 0;
-  display: grid;
+  display: block;
   align-self: stretch;
-  align-items: end;
-  grid-template-columns: minmax(0, 1fr) minmax(190px, 28%);
-  gap: 18px;
-  padding: 16px 22px;
+  padding: 0;
 }
 
 .pull-result-card.reveal.rarity-4 { --result-accent: #b071ff; }
@@ -328,44 +333,67 @@
 }
 
 .pull-result-card.reveal.character-result .pull-result-portrait {
-  width: 100%;
-  height: 100%;
-  min-height: 0;
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: auto;
+  height: auto;
   border: 0;
-  border-radius: 16px;
-  background: radial-gradient(circle at 50% 46%, color-mix(in srgb, var(--result-accent) 23%, transparent), transparent 62%);
+  border-radius: inherit;
+  background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--result-accent) 30%, transparent), transparent 60%);
+}
+
+.pull-result-card.reveal.character-result .pull-result-backdrop-image {
+  position: absolute;
+  z-index: 0;
+  inset: -8%;
+  width: 116%;
+  height: 116%;
+  opacity: .34;
+  object-fit: cover;
+  object-position: center;
+  filter: blur(22px) brightness(.55) saturate(1.25);
+  transform: scale(1.08);
 }
 
 .pull-result-card.reveal.character-result .pull-result-image {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  object-position: center 42%;
-  transform: scale(1.16);
-  transform-origin: center 45%;
+  object-position: center;
+  transform: scale(1.08);
+  transform-origin: center;
 }
 
 .pull-result-card.reveal.character-result.rarity-5 .pull-result-image {
-  transform: scale(1.3);
+  transform: scale(1.14);
 }
 
 .pull-result-card.reveal.character-result .pull-result-copy {
-  position: relative;
-  z-index: 2;
-  width: 100%;
+  position: absolute;
+  z-index: 4;
+  right: 22px;
+  bottom: 22px;
+  width: min(300px, calc(100% - 44px));
   display: flex;
   align-items: center;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 18px;
-  padding: 20px 16px;
+  gap: 6px;
+  margin: 0;
+  padding: 16px 14px;
   border: 1px solid color-mix(in srgb, var(--result-accent) 38%, transparent);
   border-radius: 15px;
-  background: rgba(5, 12, 28, .78);
+  background: linear-gradient(150deg, rgba(13, 24, 50, .88), rgba(4, 10, 24, .9));
   box-shadow: 0 16px 35px rgba(0, 0, 0, .28);
-  backdrop-filter: blur(9px);
+  backdrop-filter: blur(12px);
 }
 
 .pull-result-card.reveal.character-result.rarity-5 .pull-result-copy {
-  background: linear-gradient(155deg, rgba(79, 49, 13, .76), rgba(7, 13, 29, .84));
+  border-color: rgba(255, 212, 102, .58);
+  background: linear-gradient(155deg, rgba(92, 59, 14, .86), rgba(9, 14, 30, .9));
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .32), 0 0 30px rgba(255, 199, 68, .2);
 }
 
 .pull-result-card.reveal.resource-result .pull-resource-symbol {
@@ -455,6 +483,7 @@
 
 .gacha-detail-modal {
   width: min(960px, 100%);
+  min-width: 0;
   max-height: calc(100% - 4px);
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
@@ -491,12 +520,14 @@
   min-height: 34px;
   cursor: pointer;
   color: #9eacc4;
-  font-size: 10px;
   font-weight: 800;
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
 }
+
+.gacha-detail-tabs button { font-size: 14px; }
+.history-pagination button { font-size: 12px; }
 
 .gacha-detail-tabs button.active {
   color: #e9f5ff;
@@ -504,18 +535,18 @@
   background: rgba(24, 88, 151, .46);
 }
 
-.gacha-detail-content { min-height: 0; padding: 14px; overflow: auto; }
+.gacha-detail-content { min-width: 0; min-height: 0; padding: 14px; overflow: auto; }
 .detail-status { display: grid; min-height: 220px; place-items: center; color: #9caec9; }
 .detail-status.error { color: #ffc3cb; }
 .history-panel { min-height: 0; display: grid; gap: 12px; }
-.history-table-wrap { max-width: 100%; overflow-x: auto; }
+.history-table-wrap { width: 100%; min-width: 0; max-width: 100%; overflow-x: auto; }
 
 .gacha-history-table,
 .probability-table {
   width: 100%;
   border-collapse: collapse;
   color: #dce7f8;
-  font-size: 10px;
+  font-size: 13px;
 }
 
 .gacha-history-table { min-width: 740px; }
@@ -524,13 +555,13 @@
 .probability-table th,
 .probability-table td { padding: 9px 8px; text-align: left; border-bottom: 1px solid rgba(105, 150, 218, .14); }
 .gacha-history-table th,
-.probability-table th { color: #75d6ff; font-size: 8px; letter-spacing: .06em; text-transform: uppercase; }
-.gacha-history-table th { font-size: 9px; }
+.probability-table th { color: #75d6ff; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.gacha-history-table th { font-size: 12px; }
 
 .history-pagination { display: flex; align-items: center; justify-content: center; gap: 14px; }
 .history-pagination button { padding-inline: 14px; color: #dceeff; border-color: rgba(93, 158, 231, .32); background: rgba(18, 55, 101, .46); }
 .history-pagination button:disabled { cursor: not-allowed; opacity: .38; }
-.history-pagination span { color: #91a4c2; font-size: 10px; }
+.history-pagination span { color: #91a4c2; font-size: 12px; }
 
 .probability-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .probability-panel section,
@@ -539,7 +570,7 @@
 .passives-grid h3 { margin: 0 0 6px; color: #eef6ff; font-size: 13px; }
 .probability-panel p,
 .probability-panel li,
-.passives-panel p { color: #aab9d1; font-size: 9px; line-height: 1.5; }
+.passives-panel p { color: #aab9d1; font-size: 11px; line-height: 1.5; }
 .probability-rules { grid-column: 1 / -1; }
 .probability-rules ul { margin: 8px 0 0; padding-left: 17px; }
 .probability-table { margin-top: 8px; }
@@ -605,19 +636,24 @@
   .sequence-reveal-stage { min-height: 620px; padding: 50px 10px 18px; }
   .pull-result-card.reveal { min-height: 345px; }
   .pull-result-card.reveal.character-result {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
-    gap: 6px;
-    padding: 8px;
+    width: 100%;
   }
   .pull-result-card.reveal.character-result .pull-result-copy {
-    width: min(360px, calc(100% - 14px));
-    justify-self: center;
-    margin: -24px 0 4px;
-    padding: 12px;
+    right: 9px;
+    bottom: 9px;
+    width: calc(100% - 18px);
+    padding: 12px 10px;
   }
-  .pull-result-card.reveal.character-result .pull-result-image { transform: scale(1.12); }
-  .pull-result-card.reveal.character-result.rarity-5 .pull-result-image { transform: scale(1.23); }
+  .pull-result-card.reveal.character-result .pull-result-image { transform: scale(1.04); }
+  .pull-result-card.reveal.character-result.rarity-5 .pull-result-image { transform: scale(1.09); }
+  .pull-result-card.reveal.character-result.has-character-splash .pull-result-image {
+    width: auto;
+    min-width: 100%;
+    height: 58%;
+    max-width: none;
+    transform: scale(1.08);
+  }
+  .pull-result-card.reveal.character-result.has-character-splash.rarity-5 .pull-result-image { transform: scale(1.14); }
   .pull-result-card.reveal.resource-result .pull-resource-symbol { width: 190px; height: 190px; }
   .gacha-detail-overlay { padding: 8px; }
   .gacha-detail-modal { max-height: calc(100% - 2px); }
@@ -633,7 +669,7 @@
   .invocation-sequence-panel { min-height: 430px; }
   .pull-result-card.reveal { min-height: 300px; width: 270px; }
   .sequence-reveal-stage { min-height: 430px; padding-block: 42px 12px; }
-  .pull-result-card.reveal.character-result { width: min(840px, 100%); grid-template-columns: minmax(0, 1fr) 210px; }
+  .pull-result-card.reveal.character-result { width: min(900px, 100%); }
   .pull-result-card.reveal.resource-result .pull-resource-symbol { width: 160px; height: 160px; }
   .sequence-summary .pull-result-card.compact { min-height: 145px; }
   .sequence-summary .pull-result-card.compact .pull-result-portrait,
@@ -5322,6 +5358,16 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   margin-left: 9px;
 }
 
+.banner-detail-row {
+  display: flex;
+  align-items: center;
+  margin: auto 7px 7px 9px;
+}
+
+.banner-copy-column .banner-detail-row + .featured-four-stars {
+  margin-top: 0;
+}
+
 .featured-four-card {
   width: 100%;
   height: 78px;
@@ -5558,6 +5604,15 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
     margin: 0;
     padding: 9px 12px 11px;
     overflow: visible;
+  }
+
+  .banner-detail-row {
+    order: 3;
+    margin: 8px 12px 0;
+  }
+
+  .banner-detail-row + .featured-four-stars {
+    order: 4;
   }
 
   .featured-four-stars > div {
