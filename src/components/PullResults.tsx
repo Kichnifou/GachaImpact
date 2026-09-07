@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react'
 import type { GachaPullDto, GachaPullResultItemDto } from '../api/types'
 import { elementThemes } from '../utils/elementTheme'
 import { formatResourceAmount } from '../utils/formatters'
-import { c6StatLabel, pullDisplayRarity, pullEventLabel, pullResourcePresentation } from '../gacha/pull-result-presentation'
+import { c6StatLabel, characterProgressionLabel, pullDisplayRarity, pullEventLabel, pullResourcePresentation } from '../gacha/pull-result-presentation'
 import CharacterAssetImage from './CharacterAssetImage'
 import GameAssetIcon from './GameAssetIcon'
 
@@ -18,9 +18,7 @@ export function PullResultCard({ result, order = 0, compact = false }: { result:
   const rarity = pullDisplayRarity(result)
   const resource = pullResourcePresentation(result.resourceKey)
   const event = pullEventLabel(result)
-  const revealProgression = result.wasNewCharacter
-    ? 'Nouveau'
-    : `C${Math.min(result.constellationAfter ?? 0, 6)}`
+  const revealProgression = characterProgressionLabel(result.wasNewCharacter, result.constellationAfter)
   const characterAssetPaths = result.character
     ? compact
       ? [result.character.iconPath, result.character.fullbodyPath, result.character.wishPath, result.character.splashPath]
@@ -42,7 +40,7 @@ export function PullResultCard({ result, order = 0, compact = false }: { result:
           {!compact && <small className="pull-result-progression">{revealProgression}</small>}
           <strong>{result.character.name}</strong>
           <span className="pull-result-rarity">{'★'.repeat(rarity)}</span>
-          {compact && <small>{result.wasNewCharacter ? 'Nouveau · C0' : `Copie ${result.copiesAfter} · C${result.constellationAfter}`}</small>}
+          {compact && <small>{revealProgression}</small>}
           {compact && event && <small className="pull-event">{event}</small>}
           {compact && compactBonusContent}
         </div>

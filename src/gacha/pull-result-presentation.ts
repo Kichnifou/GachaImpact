@@ -37,6 +37,11 @@ export function pullDisplayRarity(result: GachaPullResultItemDto): PullDisplayRa
   return result.resultType === 'resource' ? 3 : result.rarity ?? 3
 }
 
+export function characterProgressionLabel(wasNewCharacter: boolean | null, constellationAfter: number | null): string {
+  if (wasNewCharacter) return 'Nouveau'
+  return `C${Math.min(Math.max(constellationAfter ?? 0, 0), 6)}`
+}
+
 export function bestPullRarity(results: readonly GachaPullResultItemDto[]): PullDisplayRarity {
   return results.reduce<PullDisplayRarity>(
     (best, result) => Math.max(best, pullDisplayRarity(result)) as PullDisplayRarity,

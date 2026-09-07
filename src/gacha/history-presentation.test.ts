@@ -14,7 +14,7 @@ describe('Gacha history presentation', () => {
     expect(historyResultLabel(arlecchino)).toBe('Arlecchino')
     expect(historyPityLabel(arlecchino)).toBe('1')
     expect(historyEventLabel(arlecchino)).toBe('50/50 gagné')
-    expect(historyProgressionLabel(arlecchino)).toBe('Nouveau · C0')
+    expect(historyProgressionLabel(arlecchino)).toBe('Nouveau')
   })
 
   it('formats a secondary reward as text without progression', () => {
@@ -27,5 +27,15 @@ describe('Gacha history presentation', () => {
 
   it('uses an em dash when the five-star pity snapshot is unavailable', () => {
     expect(historyPityLabel({ ...arlecchino, pity5AtPull: null })).toBe('—')
+  })
+
+  it('shows only Cx for duplicates and caps player-facing progression at C6', () => {
+    const c1 = { ...arlecchino, wasNewCharacter: false, constellationAfter: 1, copiesAfter: 2 }
+    const c6Plus = { ...arlecchino, wasNewCharacter: false, constellationAfter: 6, copiesAfter: 14, bonusRewards: [{ resourceKey: 'primogems', amount: '80', causeKey: 'gacha.c6-duplicate-refund' }] }
+
+    expect(historyProgressionLabel(c1)).toBe('C1')
+    expect(historyProgressionLabel(c6Plus)).toBe('C6 · +80 Primogemmes')
+    expect(historyProgressionLabel(c1)).not.toContain('Copie')
+    expect(historyProgressionLabel(c6Plus)).not.toContain('Copie')
   })
 })

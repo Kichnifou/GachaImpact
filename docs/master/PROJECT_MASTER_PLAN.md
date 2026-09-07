@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.64
+Version : 0.65
 Date : 2026-09-07
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3535,7 +3535,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Invocation réelle — nouveau candidat de finition UX, Historique et révélation sur `review`, à faire reviewer puis revalider publiquement.**
+**Invocation réelle — candidat final de cohérence player-facing et d’anti-spoil sidebar sur `review`, à faire reviewer puis revalider publiquement avant clôture.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3575,7 +3575,7 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Progression Player réelle / dé-mock Niveau-XP : **VALIDÉE PUBLIQUEMENT PAR LE PROPRIÉTAIRE / CLÔTURÉE** sur [https://gachaimpact.pages.dev](https://gachaimpact.pages.dev) ; vrai Niveau 0, `0 / 30 XP`, barre réelle, F5, logout/login, second compte et non-régression Ressources / Daily Reward / Roue validés ;
 - `GET /api/v1/me/progression` expose les compteurs `bigint` lossless et le niveau dérivé de l'XP cumulative selon `min(floor(xp / 30), 100)`, sans endpoint de gain ou de mutation d'XP ;
 - la sidebar charge niveau, XP du palier et barre depuis l'état serveur au bootstrap authentifié ; l'objectif Gacha, Pity, Garantie et Capture ont depuis été reliés à l'état Gacha réel, tandis que la Team reste encore une présentation mock avant son lot métier ;
-- tests unitaires frontend/backend, builds, lint, tests DB réels et statut Prisma : **VALIDÉS TECHNIQUEMENT** ; état automatisé actuel : frontend **23 fichiers / 100 tests**, backend **16 fichiers / 102 tests**, DB **4 fichiers / 19 tests**, tous réussis.
+- tests unitaires frontend/backend, builds, lint, tests DB réels et statut Prisma : **VALIDÉS TECHNIQUEMENT** ; état automatisé actuel : frontend **24 fichiers / 112 tests**, backend **16 fichiers / 102 tests**, DB **4 fichiers / 19 tests**, tous réussis.
 - Gacha — catalogue / bannière / cible / état joueur et présentation UI associée : **FONDATIONS PUBLIQUEMENT VALIDÉES SANS RÉSERVE PAR LE PROPRIÉTAIRE — DOMAINE CLÔTURÉ** ; catalogue réel, rotation réelle, quatre 5★, six 4★, sélection/changement/persistance de cible, état joueur Gacha et présentation Pity/Garantie/Capture sont validés ;
 - UI Gacha : **PUBLIQUEMENT VALIDÉE ET CLÔTURÉE** pour Hero splash, picker 5★ 2×2, primitive responsive commune des portraits, variantes Team/Équipe active/Box/Personnages/4★ Invocation, desktop, mobile portrait et paysage, sidebar Objectif, aperçu Invocation de l'Accueil, navigation et Particules agrandies ;
 - Box, Personnages et Team sont validés ici pour leur **présentation actuelle**. Les possessions serveur nécessaires au Pull existent désormais, mais l'écran Box reste mock/non autoritatif ; les Teams autoritatives ne sont pas encore implémentées ;
@@ -3588,7 +3588,7 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - le premier test public du Pull a validé le backend, le débit économique, la Pity et la persistance après F5 : Arlecchino 5★ a été obtenue sur un vrai 50/50 gagné, puis 6 614 Moras au Pull suivant ; ces deux résultats réels de `Kichnifou` sont conservés ;
 - ce même test public n’a **pas** validé l’UX initiale : résultat ajouté sous la bannière, scroll nécessaire, absence de vraie séquence et symbole générique pour les Moras ;
 - le test public de la V2 Invocation, promu au commit `b06948827d89f8b2cd4f69c6365066d891ca48ce`, a validé l’animation, le flow x1/x10, les ressources, le clic de surface, l’Historique, le récapitulatif x10 et l’immersion générale ;
-- un nouveau candidat sur `review` affine la disposition Date/Changer/Détail, remet l’Historique dans un ordre newest-first cohérent jusque dans chaque x10, épure les révélations personnage et expose les bonus dans le récapitulatif x10 ; il reste **À REVALIDER PUBLIQUEMENT PAR LE PROPRIÉTAIRE** après review GitHub ChatGPT et promotion approuvée ;
+- l’expérience Invocation actuelle est **très largement validée publiquement** : animation, flux x1/x10, Historique, révélations, récapitulatif et immersion ont été exercés avec succès. Le candidat final affine encore le bouton `Détail`, unifie `Nouveau`/`Cx` et empêche la sidebar de dévoiler l’état post-Pull avant la fin volontaire de la présentation ; ce candidat reste **À REVALIDER PUBLIQUEMENT PAR LE PROPRIÉTAIRE** après review GitHub ChatGPT et promotion approuvée, et Invocation n’est donc pas encore déclarée définitivement close ;
 - Ressources, XP, Daily Reward et Roue restent sans régression publique constatée.
 
 ## État du lot — Invocation x1/x10
@@ -3604,8 +3604,11 @@ Le vertical slice Pull réel est physiquement implémenté. Le **target design**
 - RLS active et droits `anon`/`authenticated` révoqués sur ces quatre tables privées ;
 - API, moteur de domaine déterministe, services Prisma et présentation frontend raccordés ; `GET /api/v1/gacha/history?page=1` ne lit que le Player authentifié courant et dérive la Pity affichée depuis `stateBefore + 1` ;
 - la bannière, l’attente immersive, l’intro colorée selon la meilleure rareté, les révélations manuelles et le récapitulatif x10 se remplacent dans le même cadre Invocation stable, sans résultat ajouté sous la bannière ;
-- `Date` et `Changer` restent côte à côte dans les métadonnées du hero ; `Détail` est maintenant un bouton pill allongé, aligné à gauche sous ce bloc et suffisamment séparé de la bande des six 4★, et ouvre dans ce cadre une modale à onglets Historique / Probabilités / Passifs ; sa typographie reste lisible et l’Historique textuel affiche `Date` avec date et heure, `Événement`, et la Pity 5★ sous sa valeur numérique seule ;
-- les révélations individuelles de personnage utilisent une scène splash réellement full-bleed à opacité normale, sans doublon flouté ni panneau d’information ; seuls le badge doré `Nouveau` ou `C1`…`C6`, le nom et les étoiles restent en bas à droite pendant une phase Focus de 2 secondes. Compteur, hint et `Passer`/croix apparaissent ensuite en overlay sans réduire le splash, et les interactions de progression sont verrouillées pendant Focus. `Copie X` reste absent de la révélation ; le 5★ conserve sa présence dorée et son suspense séparé de 1,4 seconde avant l’apparition. Le récapitulatif x10 conserve les portraits/icônes et affiche aussi, lorsqu’ils existent, les bonus persistés comme `+80 Primogemmes` ;
+- `Date` et `Changer` restent côte à côte dans les métadonnées du hero ; `Détail` occupe exactement la largeur de la première colonne définie par `Date`, directement sous elle, sans dépasser sous `Changer`, et ouvre dans ce cadre une modale à onglets Historique / Probabilités / Passifs ; sa typographie reste lisible et l’Historique textuel affiche `Date` avec date et heure, `Événement`, et la Pity 5★ sous sa valeur numérique seule ;
+- toutes les surfaces Gacha player-facing normales utilisent une règle unique de progression : première obtention = `Nouveau`, sinon constellation résultante `C1`…`C6`, bornée à `C6`. Elles n’affichent ni `Nouveau · C0` ni `Copie X` ; `copies` demeure une donnée métier disponible pour la logique, les statistiques et les vues explicitement dédiées ;
+- les révélations individuelles de personnage utilisent une scène splash réellement full-bleed à opacité normale, sans doublon flouté ni panneau d’information ; seuls le badge doré `Nouveau` ou `C1`…`C6`, le nom et les étoiles restent en bas à droite pendant une phase Focus de 2 secondes. Compteur, hint et `Passer`/croix apparaissent ensuite en overlay sans réduire le splash, et les interactions de progression sont verrouillées pendant Focus. Le 5★ conserve sa présence dorée et son suspense séparé de 1,4 seconde avant l’apparition. Le récapitulatif x10 conserve les portraits/icônes et affiche aussi, lorsqu’ils existent, les bonus persistés comme `+80 Primogemmes` ;
+- le Pull reste persisté immédiatement et autoritairement côté serveur, mais son état Resources/Gacha post-Pull est conservé dans un buffer frontend temporaire tant que la présentation volontaire reste active : la sidebar demeure sur son snapshot pré-Pull pendant l’intro et les révélations, puis publie le nouvel état à la fermeture du x1 ou à l’ouverture du récapitulatif x10, y compris via `Passer` ;
+- quitter Invocation abandonne la présentation : si la réponse est prête, son état est publié immédiatement ; si elle est encore en cours, la requête et son intention idempotente restent protégées au-dessus de l’écran, puis l’état est publié à son arrivée sans replay ni navigation forcée. Un retour sur Invocation avant la réponse ne permet aucun second Pull ; un reload recharge simplement l’état serveur autoritatif sans rejouer la cinématique ;
 - toute la surface libre du cadre permet d’avancer pendant un x10 ou de fermer un résultat x1 et le récapitulatif, sans propagation depuis les vrais contrôles ; les textes player-facing restent immersifs et n’exposent aucun vocabulaire serveur, backend, API, sauvegarde ou idempotence ;
 - les passifs Team sont documentés de façon concise dans la modale mais demeurent volontairement inactifs jusqu’au raccordement d’une Team serveur autoritative ;
 - Backlog durable — **Asset cleanup personnages** : recenser les personnages sans portrait/icon canonique et retrouver/renseigner leurs vrais portraits afin d’éviter le fallback splash dans les composants compacts ;
@@ -3644,7 +3647,7 @@ Ordre de reprise après validation propriétaire : Pull réel validé → Box/po
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Review GitHub ChatGPT du nouveau candidat `review` → promotion vers `main` seulement après approbation → revalidation publique finale du bouton Détail, de l’ordre séquentiel de l’Historique, des révélations épurées x1/x10 et des bonus du récapitulatif x10 → seulement ensuite clôture Invocation → Box réelle.** `PAID_INFRA_APPROVED = false` reste inchangé.
+**Review GitHub ChatGPT du candidat final `review` → promotion vers `main` seulement après approbation → revalidation publique du bouton Détail, de la règle `Nouveau`/`Cx` et de l’anti-spoil sidebar sur x1, x10, `Passer` et abandon par navigation → seulement ensuite clôture Invocation → Box réelle.** `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

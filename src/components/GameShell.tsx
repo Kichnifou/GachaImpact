@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import type { ScreenId } from '../types'
@@ -34,24 +34,34 @@ type GameShellProps = {
   gacha: CurrentGachaDto
   characters: readonly GachaCharacterDto[]
   onSetGachaTarget: (characterId: string) => Promise<void>
-  onPullGacha: (count: 1 | 10, idempotencyKey: string) => Promise<GachaPullDto>
+  onPullGacha: (count: 1 | 10) => Promise<GachaPullDto>
+  pendingGachaPullCount: 1 | 10 | null
+  onGachaPresentationDisclosed: (operationId: string) => void
+  onGachaPresentationAbandoned: () => void
   onGetGachaHistory: (page: number) => Promise<GachaHistoryDto>
 }
 
-function GameShell({ player, resources, progression, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, onSetGachaTarget, onPullGacha, onGetGachaHistory }: GameShellProps) {
+function GameShell({ player, resources, progression, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory }: GameShellProps) {
   const [activeScreen, setActiveScreen] = useState<ScreenId>(getScreenFromHash)
+  const activeScreenRef = useRef(activeScreen)
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isPlayersOpen, setIsPlayersOpen] = useState(false)
 
+  const changeScreen = useCallback((screen: ScreenId) => {
+    if (activeScreenRef.current === 'invocation' && screen !== 'invocation') onGachaPresentationAbandoned()
+    activeScreenRef.current = screen
+    setActiveScreen(screen)
+  }, [onGachaPresentationAbandoned])
+
   useEffect(() => {
-    const syncScreenWithHash = () => setActiveScreen(getScreenFromHash())
+    const syncScreenWithHash = () => changeScreen(getScreenFromHash())
     window.addEventListener('hashchange', syncScreenWithHash)
     return () => window.removeEventListener('hashchange', syncScreenWithHash)
-  }, [])
+  }, [changeScreen])
 
   const navigate = (screen: ScreenId) => {
-    setActiveScreen(screen)
+    changeScreen(screen)
     window.location.hash = screen
     setIsSidebarOpen(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -60,7 +70,7 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
   const renderScreen = () => {
     switch (activeScreen) {
       case 'invocation':
-        return <InvocationScreen gacha={gacha} onSetTarget={onSetGachaTarget} onPull={onPullGacha} onGetHistory={onGetGachaHistory} />
+        return <InvocationScreen gacha={gacha} onSetTarget={onSetGachaTarget} onPull={onPullGacha} pendingPullCount={pendingGachaPullCount} onPresentationDisclosed={onGachaPresentationDisclosed} onGetHistory={onGetGachaHistory} />
       case 'box':
         return <BoxScreen />
       case 'characters':

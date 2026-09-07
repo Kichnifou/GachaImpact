@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { ApiError, getGameApiClient } from './api/game-api'
 import type { CurrentGachaDto, DailyRewardTodayDto, ElementKey, GachaCharacterDto, GachaPullDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, WheelTodayDto } from './api/types'
@@ -12,6 +12,7 @@ import { apiErrorMessage } from './utils/formatters'
 import { wheelTodayFromSpin } from './wheel/wheel-presentation'
 import { claimDailyRewardAndRefresh } from './daily-reward/claim-daily-reward'
 import { performGachaPullAndRefresh } from './gacha/perform-gacha-pull'
+import { createGachaPresentationCoordinator, type GachaPresentationCoordinator } from './gacha/gacha-presentation-coordinator'
 
 function AppBootstrap() {
   const { status: authStatus, session, configurationMessage, signOut } = useAuth()
@@ -23,6 +24,7 @@ function AppBootstrap() {
   const [dailyRewardToday, setDailyRewardToday] = useState<DailyRewardTodayDto | null>(null)
   const [gacha, setGacha] = useState<CurrentGachaDto | null>(null)
   const [characters, setCharacters] = useState<readonly GachaCharacterDto[] | null>(null)
+  const [pendingGachaPullCount, setPendingGachaPullCount] = useState<1 | 10 | null>(null)
   const [resolvedUserId, setResolvedUserId] = useState<string | null>(null)
   const [fatalError, setFatalError] = useState<{ userId: string; message: string } | null>(null)
 
@@ -49,6 +51,21 @@ function AppBootstrap() {
     setGacha(nextGacha)
     setCharacters(nextCatalog.characters)
   }, [])
+
+  const publishGachaUpdate = useCallback((refreshed: Awaited<ReturnType<typeof performGachaPullAndRefresh>>) => {
+    if (refreshed.resources) setResources(refreshed.resources)
+    setGacha((current) => refreshed.gacha ?? (current ? { ...current, playerState: refreshed.result.playerState } : current))
+  }, [])
+
+  const gachaPresentation = useRef<GachaPresentationCoordinator | null>(null)
+  if (gachaPresentation.current === null) {
+    gachaPresentation.current = createGachaPresentationCoordinator({
+      execute: (count, idempotencyKey) => performGachaPullAndRefresh(getGameApiClient(), count, idempotencyKey),
+      publish: publishGachaUpdate,
+      createIdempotencyKey: () => crypto.randomUUID(),
+      onPendingCountChange: setPendingGachaPullCount,
+    })
+  }
 
   useEffect(() => {
     if (authStatus !== 'signedIn' || !sessionUserId) return
@@ -160,13 +177,10 @@ function AppBootstrap() {
         const { playerState } = await getGameApiClient().setGachaTarget(characterId)
         setGacha((current) => current ? { ...current, playerState } : current)
       }}
-      onPullGacha={async (count, idempotencyKey): Promise<GachaPullDto> => {
-        const api = getGameApiClient()
-        const refreshed = await performGachaPullAndRefresh(api, count, idempotencyKey)
-        if (refreshed.resources) setResources(refreshed.resources)
-        setGacha((current) => refreshed.gacha ?? (current ? { ...current, playerState: refreshed.result.playerState } : current))
-        return refreshed.result
-      }}
+      onPullGacha={(count): Promise<GachaPullDto> => gachaPresentation.current!.requestPull(count)}
+      pendingGachaPullCount={pendingGachaPullCount}
+      onGachaPresentationDisclosed={(operationId) => { gachaPresentation.current?.disclose(operationId) }}
+      onGachaPresentationAbandoned={() => { gachaPresentation.current?.abandon() }}
       onGetGachaHistory={(page) => getGameApiClient().getGachaHistory(page)}
       onClaimDailyReward={async () => {
         const { result, resources: nextResources } = await claimDailyRewardAndRefresh(getGameApiClient())

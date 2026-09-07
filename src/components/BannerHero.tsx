@@ -1,4 +1,4 @@
-import { useReducer, useRef, useState } from 'react'
+import { useEffect, useReducer, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { CurrentGachaDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto } from '../api/types'
 import { currencyAssetPaths, getElementAssetPath } from '../utils/gameAssets'
@@ -9,7 +9,6 @@ import GameAssetIcon from './GameAssetIcon'
 import GachaDetailModal from './GachaDetailModal'
 import InvocationSequence from './InvocationSequence'
 import { apiErrorMessage } from '../utils/formatters'
-import { selectGachaPullIntent, settleGachaPullIntent, type GachaPullIntent } from '../gacha/perform-gacha-pull'
 import { acquirePullLock, idleInvocationSequence, invocationSequenceReducer } from '../gacha/invocation-sequence'
 
 type Props = {
@@ -18,20 +17,24 @@ type Props = {
   showDetails?: boolean
   onSetTarget: (id: string) => Promise<void>
   onOpen?: () => void
-  onPull?: (count: 1 | 10, idempotencyKey: string) => Promise<GachaPullDto>
+  onPull?: (count: 1 | 10) => Promise<GachaPullDto>
+  pendingPullCount?: 1 | 10 | null
+  onPresentationDisclosed?: (operationId: string) => void
   onGetHistory?: (page: number) => Promise<GachaHistoryDto>
 }
-
-function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, onOpen, onPull, onGetHistory }: Props) {
+function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, onOpen, onPull, pendingPullCount = null, onPresentationDisclosed, onGetHistory }: Props) {
   const [choosing, setChoosing] = useState(!gacha.playerState.selectedBannerCharacterId)
   const [pending, setPending] = useState<string | null>(null)
   const [sequence, dispatchSequence] = useReducer(invocationSequenceReducer, idleInvocationSequence)
   const [pullError, setPullError] = useState<string | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const pullLocked = useRef(false)
-  const retryIntent = useRef<GachaPullIntent | null>(null)
   const selected = gacha.banner.featuredFiveStars.find(({ id }) => id === gacha.playerState.selectedBannerCharacterId)
-  const pullPending = sequence.phase === 'submitting' ? sequence.count : null
+  const pullPending = sequence.phase === 'submitting' ? sequence.count : pendingPullCount
+
+  useEffect(() => {
+    if (sequence.phase === 'summary') onPresentationDisclosed?.(sequence.pull.operation.id)
+  }, [onPresentationDisclosed, sequence])
 
   const choose = async (character: GachaCharacterDto) => {
     setPending(character.id)
@@ -39,27 +42,25 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, 
   }
   const pull = async (count: 1 | 10) => {
     if (!onPull) return
-    const selection = selectGachaPullIntent(retryIntent.current, count, () => crypto.randomUUID())
-    if (selection.status === 'blocked') {
-      setPullError(`Une Invocation x${selection.intent.count} précédente doit d’abord être confirmée. Réessayez x${selection.intent.count}.`)
-      return
-    }
     if (!acquirePullLock(pullLocked)) return
-    const intent = selection.intent
-    retryIntent.current = intent
-    dispatchSequence({ type: 'submit', count, idempotencyKey: intent.key })
+    dispatchSequence({ type: 'submit', count, idempotencyKey: 'managed-by-bootstrap' })
     setPullError(null)
     try {
-      const result = await onPull(count, intent.key)
+      const result = await onPull(count)
       dispatchSequence({ type: 'resolved', pull: result })
-      retryIntent.current = settleGachaPullIntent(intent, { status: 'success' })
     } catch (error) {
-      retryIntent.current = settleGachaPullIntent(intent, { status: 'failure', error })
       setPullError(apiErrorMessage(error))
       dispatchSequence({ type: 'failed' })
     } finally {
       pullLocked.current = false
     }
+  }
+
+  const closeSequence = () => {
+    if (sequence.phase === 'reveal' || sequence.phase === 'summary') {
+      onPresentationDisclosed?.(sequence.pull.operation.id)
+    }
+    dispatchSequence({ type: 'close' })
   }
 
   if (choosing || !selected) {
@@ -78,7 +79,7 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, 
         state={sequence}
         onAdvance={() => dispatchSequence({ type: 'advance' })}
         onSkip={() => dispatchSequence({ type: 'skip' })}
-        onClose={() => dispatchSequence({ type: 'close' })}
+        onClose={closeSequence}
       />
     </section>
   }
@@ -98,8 +99,8 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, 
         <div className="banner-meta-actions">
           <span className="banner-end-date">Fin le {new Date(gacha.banner.endsAt).toLocaleDateString('fr-FR')}</span>
           {showDetails && <button type="button" className="banner-change-button" onClick={() => setChoosing(true)}>Changer</button>}
+          {!compact && showDetails && onGetHistory && <button type="button" className="banner-change-button detail" onClick={() => setDetailOpen(true)}>Détail</button>}
         </div>
-        {!compact && showDetails && onGetHistory && <div className="banner-detail-row"><button type="button" className="banner-change-button detail" onClick={() => setDetailOpen(true)}>Détail</button></div>}
       </div>
       {!compact && <FeaturedFourStars characters={gacha.banner.featuredFourStars} />}
     </div>

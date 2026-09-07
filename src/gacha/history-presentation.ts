@@ -1,6 +1,6 @@
 import type { GachaHistoryResultDto } from '../api/types'
 import { formatResourceAmount } from '../utils/formatters'
-import { c6StatLabel, pullEventLabel, pullResourcePresentation } from './pull-result-presentation'
+import { c6StatLabel, characterProgressionLabel, pullEventLabel, pullResourcePresentation } from './pull-result-presentation'
 
 export function historyResultLabel(result: GachaHistoryResultDto): string {
   if (result.character) return result.character.name
@@ -14,9 +14,7 @@ export function historyPityLabel(result: GachaHistoryResultDto): string {
 
 export function historyProgressionLabel(result: GachaHistoryResultDto): string {
   if (!result.character) return '—'
-  const parts = [result.wasNewCharacter
-    ? `Nouveau · C${result.constellationAfter ?? 0}`
-    : `Copie ${result.copiesAfter ?? '—'} · C${result.constellationAfter ?? '—'}`]
+  const parts = [characterProgressionLabel(result.wasNewCharacter, result.constellationAfter)]
   for (const reward of result.bonusRewards) {
     parts.push(`+${formatResourceAmount(reward.amount)} ${pullResourcePresentation(reward.resourceKey).label}`)
   }

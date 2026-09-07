@@ -22,7 +22,9 @@ describe('PullResults', () => {
     expect(html.indexOf('#4')).toBeLessThan(html.indexOf('#10'))
     expect(html).toContain('rarity-5')
     expect(html).toContain('Furina')
-    expect(html).toContain('Copie 8 · C6')
+    expect(html).toContain('>C6</small>')
+    expect(html).not.toContain('Copie')
+    expect(html).not.toContain('Nouveau · C0')
     expect(html).toContain('+80 Primogemmes')
     expect(html).toContain('Beauté +1')
     expect(html).toContain('/assets/genshin/currencies/mora.png')
@@ -54,5 +56,22 @@ describe('PullResults', () => {
     expect(resource).toContain('pull-resource-content')
     expect(resource).toContain('/assets/genshin/currencies/mora.png')
     expect(resource).not.toContain('+80 Primogemmes')
+  })
+
+  it('uses the same Nouveau or capped Cx rule in the x10 summary', () => {
+    const newCharacter = { ...characterResult, wasNewCharacter: true, constellationAfter: 0, copiesAfter: 1, bonusRewards: [], c6Progression: null }
+    const c1Character = { ...characterResult, constellationAfter: 1, copiesAfter: 2, bonusRewards: [], c6Progression: null }
+    const c6PlusCharacter = { ...characterResult, constellationAfter: 6, copiesAfter: 19 }
+
+    const newHtml = renderToStaticMarkup(<PullResultCard result={newCharacter} compact />)
+    const c1Html = renderToStaticMarkup(<PullResultCard result={c1Character} compact />)
+    const c6Html = renderToStaticMarkup(<PullResultCard result={c6PlusCharacter} compact />)
+
+    expect(newHtml).toContain('>Nouveau</small>')
+    expect(newHtml).not.toContain('C0')
+    expect(c1Html).toContain('>C1</small>')
+    expect(c6Html).toContain('>C6</small>')
+    expect(c6Html).toContain('+80 Primogemmes')
+    for (const html of [newHtml, c1Html, c6Html]) expect(html).not.toContain('Copie')
   })
 })

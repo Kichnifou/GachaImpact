@@ -56,6 +56,8 @@ export function apiErrorMessage(error: unknown): string {
     GACHA_TARGET_INVALID: 'Votre cible ne fait plus partie de la bannière active.',
     GACHA_BANNER_UNAVAILABLE: 'Aucune bannière Invocation n’est disponible actuellement.',
     GACHA_BANNER_INVALID: 'La bannière active est momentanément invalide.',
+    GACHA_PULL_IN_PROGRESS: 'Une Invocation est déjà en cours.',
+    GACHA_PULL_INTENT_CONFLICT: 'Une Invocation précédente doit d’abord être confirmée avec le même nombre de vœux.',
   }
 
   return typeof code === 'string' && messages[code]

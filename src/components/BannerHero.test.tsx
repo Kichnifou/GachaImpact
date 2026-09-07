@@ -45,8 +45,11 @@ describe('BannerHero real Gacha state', () => {
     expect(html).toContain('banner-change-button')
     expect(html).toContain('>Détail<')
     expect(html).not.toContain('banner-meta-stack')
-    expect(html).toMatch(/banner-meta-actions[\s\S]*banner-end-date[\s\S]*>Changer</)
-    expect(html).toMatch(/banner-detail-row[\s\S]*>Détail<[\s\S]*featured-four-stars/)
+    expect(html).toMatch(/banner-meta-actions[\s\S]*banner-end-date[\s\S]*>Changer<[\s\S]*>Détail<\/button><\/div>/)
+    expect(html).not.toContain('banner-detail-row')
+    expect(html.indexOf('banner-end-date')).toBeLessThan(html.indexOf('>Changer<'))
+    expect(html.indexOf('>Changer<')).toBeLessThan(html.indexOf('>Détail<'))
+    expect(html.indexOf('>Détail<')).toBeLessThan(html.indexOf('featured-four-stars'))
     expect(html).toContain('primary-pity')
     expect(html).toContain('gacha-state-secondary')
     expect(html).toContain('Pity 4★')
@@ -79,6 +82,14 @@ describe('BannerHero real Gacha state', () => {
     expect(html).not.toContain('banner-change-button')
     expect(html).not.toContain('>Changer<')
     expect((html.match(/disabled=""/g) ?? [])).toHaveLength(2)
+  })
+
+  it('keeps both pull actions disabled when a request survives an Invocation remount', () => {
+    const html = renderToStaticMarkup(<BannerHero gacha={data(five[0]!.id)} onSetTarget={vi.fn()} onPull={vi.fn()} pendingPullCount={10} showDetails />)
+
+    expect((html.match(/disabled=""/g) ?? [])).toHaveLength(2)
+    expect(html).toContain('Invocation x1')
+    expect(html).toContain('Invocation…')
   })
 
   it('keeps the compact no-target preview passive and navigable', () => {

@@ -59,6 +59,15 @@ describe('Invocation sequence state machine', () => {
     expect(invocationSequenceReducer(reveal, { type: 'skip' })).toMatchObject({ phase: 'summary', idempotencyKey: 'same-key', pull: { operation: { id: 'op' } } })
   })
 
+  it('uses Passer on x1 only to reveal the result, not to finish its presentation', () => {
+    const submitting = invocationSequenceReducer(idleInvocationSequence, { type: 'submit', count: 1, idempotencyKey: 'same-x1-key' })
+    const intro = invocationSequenceReducer(submitting, { type: 'resolved', pull: pull(1, [fiveStar(1)]) })
+    const reveal = invocationSequenceReducer(intro, { type: 'skip' })
+
+    expect(reveal).toMatchObject({ phase: 'reveal', count: 1, idempotencyKey: 'same-x1-key', resultIndex: 0 })
+    expect(invocationSequenceReducer(reveal, { type: 'skip' })).toEqual(reveal)
+  })
+
   it('announces the best persisted rarity and rejects a second synchronous pull lock', () => {
     const submitting = invocationSequenceReducer(idleInvocationSequence, { type: 'submit', count: 10, idempotencyKey: 'gold' })
     expect(invocationSequenceReducer(submitting, { type: 'resolved', pull: pull(10, [...Array.from({ length: 7 }, (_, index) => resource(index + 1)), fiveStar(8), resource(9), resource(10)]) })).toMatchObject({ phase: 'intro', bestRarity: 5 })

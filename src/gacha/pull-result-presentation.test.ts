@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { GachaPullResultItemDto } from '../api/types'
-import { bestPullRarity, pullDisplayRarity, pullResourcePresentation } from './pull-result-presentation'
+import { bestPullRarity, characterProgressionLabel, pullDisplayRarity, pullResourcePresentation } from './pull-result-presentation'
 
 const resource = (resourceKey: string): GachaPullResultItemDto => ({ index: 1, resultType: 'resource', character: null, rarity: null, resourceKey, resourceAmount: '42', wasNewCharacter: null, constellationAfter: null, copiesAfter: null, wasFiftyFifty: false, wonFiftyFifty: null, guaranteeConsumed: false, captureTriggered: false, bonusRewards: [], c6Progression: null })
 
@@ -23,5 +23,12 @@ describe('Pull result presentation', () => {
     const five = { ...four, rarity: 5 as const }
     expect(bestPullRarity([resource('moras'), four])).toBe(4)
     expect(bestPullRarity([resource('moras'), four, five])).toBe(5)
+  })
+
+  it('uses the single player-facing Nouveau or capped Cx progression rule', () => {
+    expect(characterProgressionLabel(true, 0)).toBe('Nouveau')
+    expect(characterProgressionLabel(false, 1)).toBe('C1')
+    expect(characterProgressionLabel(false, 6)).toBe('C6')
+    expect(characterProgressionLabel(false, 9)).toBe('C6')
   })
 })
