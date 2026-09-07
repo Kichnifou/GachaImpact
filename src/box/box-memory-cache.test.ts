@@ -12,6 +12,12 @@ const box = (favorite = false): PlayerBoxDto => ({
   summary: { totalOwned: 1, fiveStars: 1, fourStars: 0, c6: 0 },
 })
 
+function deferred<Value>() {
+  let resolve!: (value: Value) => void
+  const promise = new Promise<Value>((nextResolve) => { resolve = nextResolve })
+  return { promise, resolve }
+}
+
 describe('BoxMemoryCache', () => {
   it('starts empty, revalidates through the server loader and caches its response', async () => {
     const cache = new BoxMemoryCache()
@@ -44,6 +50,45 @@ describe('BoxMemoryCache', () => {
     cache.replaceCharacter('player-a', character(true))
     expect(cache.read('player-a')?.characters[0]?.favorite).toBe(true)
     expect(cache.read('player-a')?.summary).toBe(previous.summary)
+  })
+
+  it('keeps a confirmed favorite in both cache and UI result when an older refresh resolves later', async () => {
+    const cache = new BoxMemoryCache()
+    const refresh = deferred<PlayerBoxDto>()
+    cache.write('player-a', box(false))
+    const result = cache.revalidate('player-a', () => refresh.promise)
+    cache.replaceCharacter('player-a', character(true))
+    refresh.resolve(box(false))
+    await expect(result).resolves.toEqual(box(true))
+    expect(cache.read('player-a')).toEqual(box(true))
+  })
+
+  it('accepts a normal refresh when no confirmed mutation happened concurrently', async () => {
+    const cache = new BoxMemoryCache()
+    cache.write('player-a', box(false))
+    await expect(cache.revalidate('player-a', async () => box(true))).resolves.toEqual(box(true))
+    expect(cache.read('player-a')).toEqual(box(true))
+  })
+
+  it('accepts a new refresh started after a confirmed mutation', async () => {
+    const cache = new BoxMemoryCache()
+    cache.write('player-a', box(false))
+    cache.replaceCharacter('player-a', character(true))
+    await expect(cache.revalidate('player-a', async () => box(false))).resolves.toEqual(box(false))
+    expect(cache.read('player-a')).toEqual(box(false))
+  })
+
+  it('keeps revisions isolated between players', async () => {
+    const cache = new BoxMemoryCache()
+    const playerARefresh = deferred<PlayerBoxDto>()
+    cache.write('player-a', box(false))
+    cache.write('player-b', box(false))
+    const playerAResult = cache.revalidate('player-a', () => playerARefresh.promise)
+    cache.replaceCharacter('player-b', character(true))
+    playerARefresh.resolve(box(true))
+    await expect(playerAResult).resolves.toEqual(box(true))
+    expect(cache.read('player-a')).toEqual(box(true))
+    expect(cache.read('player-b')).toEqual(box(true))
   })
 
   it('clears all cached possession data on sign-out', () => {
