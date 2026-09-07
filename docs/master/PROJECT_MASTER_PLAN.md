@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.65
+Version : 0.66
 Date : 2026-09-07
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3535,7 +3535,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Invocation réelle — candidat final de cohérence player-facing et d’anti-spoil sidebar sur `review`, à faire reviewer puis revalider publiquement avant clôture.**
+**Box / Possessions / Obtention — premier lot réel de consultation personnelle et favoris serveur implémenté sur `review`, à faire reviewer avant toute promotion.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3575,10 +3575,10 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Progression Player réelle / dé-mock Niveau-XP : **VALIDÉE PUBLIQUEMENT PAR LE PROPRIÉTAIRE / CLÔTURÉE** sur [https://gachaimpact.pages.dev](https://gachaimpact.pages.dev) ; vrai Niveau 0, `0 / 30 XP`, barre réelle, F5, logout/login, second compte et non-régression Ressources / Daily Reward / Roue validés ;
 - `GET /api/v1/me/progression` expose les compteurs `bigint` lossless et le niveau dérivé de l'XP cumulative selon `min(floor(xp / 30), 100)`, sans endpoint de gain ou de mutation d'XP ;
 - la sidebar charge niveau, XP du palier et barre depuis l'état serveur au bootstrap authentifié ; l'objectif Gacha, Pity, Garantie et Capture ont depuis été reliés à l'état Gacha réel, tandis que la Team reste encore une présentation mock avant son lot métier ;
-- tests unitaires frontend/backend, builds, lint, tests DB réels et statut Prisma : **VALIDÉS TECHNIQUEMENT** ; état automatisé actuel : frontend **24 fichiers / 112 tests**, backend **16 fichiers / 102 tests**, DB **4 fichiers / 19 tests**, tous réussis.
+- tests unitaires frontend/backend, builds, lint, tests DB réels et statut Prisma : **VALIDÉS TECHNIQUEMENT** ; état automatisé actuel après le premier lot Box : frontend **24 fichiers / 128 tests**, backend **17 fichiers / 107 tests**, DB **5 fichiers / 20 tests**, tous réussis.
 - Gacha — catalogue / bannière / cible / état joueur et présentation UI associée : **FONDATIONS PUBLIQUEMENT VALIDÉES SANS RÉSERVE PAR LE PROPRIÉTAIRE — DOMAINE CLÔTURÉ** ; catalogue réel, rotation réelle, quatre 5★, six 4★, sélection/changement/persistance de cible, état joueur Gacha et présentation Pity/Garantie/Capture sont validés ;
 - UI Gacha : **PUBLIQUEMENT VALIDÉE ET CLÔTURÉE** pour Hero splash, picker 5★ 2×2, primitive responsive commune des portraits, variantes Team/Équipe active/Box/Personnages/4★ Invocation, desktop, mobile portrait et paysage, sidebar Objectif, aperçu Invocation de l'Accueil, navigation et Particules agrandies ;
-- Box, Personnages et Team sont validés ici pour leur **présentation actuelle**. Les possessions serveur nécessaires au Pull existent désormais, mais l'écran Box reste mock/non autoritatif ; les Teams autoritatives ne sont pas encore implémentées ;
+- Personnages et Team restent validés ici pour leur **présentation actuelle**. La Box personnelle consomme désormais les possessions serveur réelles ; les Teams autoritatives ne sont pas encore implémentées ;
 - moteur Pull x1/x10 serveur implémenté et testé : coût complet de 160/1 600 Primogemmes, résolution séquentielle, Pity 5★/4★, 50/50, Garantie, Capture, récompenses secondaires, possessions/copies/constellations, remboursements C6+ et progression C6 minimale ; la statistique augmentée et sa valeur finale, ou l'état maxé, sont conservés dans le snapshot individuel du PullResult ;
 - le débit économique centralisé alimente `ResourceMovement` et `PlayerEconomyStats.totalPrimosSpent` ; les récompenses et remboursements réutilisent le crédit commun ;
 - chaque intention crée une `BusinessOperation` et une `PullOperation`, puis 1 ou 10 `PullResult` ordonnés dans une transaction `SERIALIZABLE` avec verrouillage des états joueur ; les retries d'une même clé sont idempotents, restituent notamment la progression C6 déjà snapshotée sans nouveau RNG ni second crédit, et les dépenses concurrentes ne peuvent pas produire de solde négatif ;
@@ -3588,7 +3588,8 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - le premier test public du Pull a validé le backend, le débit économique, la Pity et la persistance après F5 : Arlecchino 5★ a été obtenue sur un vrai 50/50 gagné, puis 6 614 Moras au Pull suivant ; ces deux résultats réels de `Kichnifou` sont conservés ;
 - ce même test public n’a **pas** validé l’UX initiale : résultat ajouté sous la bannière, scroll nécessaire, absence de vraie séquence et symbole générique pour les Moras ;
 - le test public de la V2 Invocation, promu au commit `b06948827d89f8b2cd4f69c6365066d891ca48ce`, a validé l’animation, le flow x1/x10, les ressources, le clic de surface, l’Historique, le récapitulatif x10 et l’immersion générale ;
-- l’expérience Invocation actuelle est **très largement validée publiquement** : animation, flux x1/x10, Historique, révélations, récapitulatif et immersion ont été exercés avec succès. Le candidat final affine encore le bouton `Détail`, unifie `Nouveau`/`Cx`, limite l’aperçu immédiat au seul coût autoritatif en Primogemmes et durcit le verrou mémoire d’un Pull réseau en vol ; ce candidat reste **À REVALIDER PUBLIQUEMENT PAR LE PROPRIÉTAIRE** après review GitHub ChatGPT et promotion approuvée, et Invocation n’est donc pas encore déclarée définitivement close ;
+- l’expérience Invocation actuelle est **DÉPLOYÉE, VALIDÉE PUBLIQUEMENT PAR LE PROPRIÉTAIRE ET CLÔTURÉE** au checkpoint `2d2e1e73867e2e6324fdd00b8b3457a932c9495e` : Hero/Détail, `Nouveau`/`Cx`, révélations 4★/5★, Focus 2 s, suspense 5★, Historique, récapitulatif x10, anti-spoil, navigation hors Invocation, logout/login même compte pendant Pull, persistance et masquage du remboursement jusqu’au disclosure ont été validés ;
+- backlog UX Invocation non bloquant : rendre plus tard le débit `-160` / `-1 600` Primogemmes visuellement optimiste exactement au clic, avec rollback si le POST échoue. Ce micro-polish ne maintient pas Invocation comme domaine actif ;
 - Ressources, XP, Daily Reward et Roue restent sans régression publique constatée.
 
 ## État du lot — Invocation x1/x10
@@ -3615,9 +3616,25 @@ Le vertical slice Pull réel est physiquement implémenté. Le **target design**
 - un crédit de test idempotent de +1 000 000 Primogemmes a été appliqué au seul Player ACTIVE `Kichnifou` via le moteur économique central, sous la clé `manual-test-credit:kichnifou:2026-09-06:1000000` et la cause `admin.manual-test-credit`, sans endpoint ni script permanent ;
 - tests unitaires, API, frontend et DB couvrent les règles critiques, l’idempotence, la concurrence, le rollback, la state machine d’affichage, le mapping d’assets, l’Historique, sa pagination, son ordre et son isolation par Player.
 
-La Box et la Team restent hors de ce checkpoint métier : la Box UI ne lit pas encore `player_characters`, et aucune Team autoritative ne fournit de passifs au moteur Pull.
+La Team reste hors de ce checkpoint métier : aucune Team autoritative ne fournit encore de passifs au moteur Pull.
 
 Ordre de reprise après validation propriétaire : Pull réel validé → Box/possessions réelles → Team réelle → suite de `docs/roadmap/implementation-order-v1.md`.
+
+## État du lot — Box / Possessions / Obtention
+
+Premier lot Box réel implémenté sur `review` :
+
+- source autoritative unique : `player_characters`, jointe au catalogue `characters` sans duplication de données ; aucune migration ajoutée ;
+- `GET /api/v1/me/box` authentifié retourne uniquement les possessions du Player courant dont le personnage catalogue est actif, avec constellation bornée C0..C6, copies, première obtention immuable, favori et assets catalogue ; les possessions orphelines ou invisibles restent conservées en base mais ne sont pas exposées ;
+- résumé dérivé sur les seules possessions visibles : total obtenu, 5★, 4★ et C6, sans compteur stocké ni total de copies affiché ;
+- `PATCH /api/v1/me/box/:characterId/favorite` n’accepte que `{ favorite: boolean }`, refuse une possession absente ou inactive et ne permet aucune mutation de constellation, copies ou première obtention ;
+- écran Box alimenté par l’API réelle à chaque ouverture, afin qu’un nouveau personnage ou doublon issu d’un Pull soit reflété sans seconde source globale ; aucun fallback vers `mockData` si la Box est vide ou indisponible ;
+- cartes personnelles avec portrait/fallback canonique, nom, rareté, élément, C0..C6 et favori direct ; `copies` reste absent des cartes et apparaît uniquement dans la fiche détaillée avec la première obtention et l’état favori ;
+- onglets temporaires `Tous` / `5★` / `4★`, recherche normalisée, sept filtres élémentaires incluant Dendro, filtres C0..C6 et tris alphabétique/date d’obtention/constellation/élément ascendant ou descendant ;
+- favoris réordonnés immédiatement et de façon optimiste, avec rollback sur erreur : dans `Tous`, favoris 5★ puis favoris 4★ puis non-favoris 5★ puis non-favoris 4★ ; le tri actif s’applique à l’intérieur de chaque groupe ;
+- loading, erreur avec retry, Box vide et aucun résultat de filtres possèdent des états dédiés ;
+- la préférence de tri reste limitée à la vie du composant pour ce premier lot : aucun `PlayerPreference` physique compatible n’existe encore et aucun `localStorage` ni migration disproportionnée n’a été introduit. Le raccordement compte de R123 reste un sous-lot Box futur ;
+- Stella, Box publique/confidentialité, Expedition et statistiques de combat restent explicitement hors périmètre.
 
 État du premier parcours frontend standalone :
 
@@ -3647,7 +3664,7 @@ Ordre de reprise après validation propriétaire : Pull réel validé → Box/po
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Review GitHub ChatGPT du candidat final `review` → promotion vers `main` seulement après approbation → revalidation publique du coût Primogemmes immédiat sans fuite des remboursements, de l’anti-spoil x1/x10 et du verrou same-player à travers logout/login → seulement ensuite clôture Invocation → Box réelle.** `PAID_INFRA_APPROVED = false` reste inchangé.
+**Review GitHub ChatGPT du candidat Box / Possessions / Obtention présent sur `review` → corrections éventuelles du candidat → promotion vers `main` seulement après approbation → validation publique propriétaire de la Box réelle.** `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

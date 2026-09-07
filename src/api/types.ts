@@ -101,6 +101,23 @@ export type CurrentGachaDto = Readonly<{
 
 export type CharacterCatalogDto = Readonly<{ characters: readonly GachaCharacterDto[] }>
 
+export type BoxCharacterDto = Omit<GachaCharacterDto, 'classKey'> & Readonly<{
+  constellation: number
+  copies: number
+  firstObtainedAt: string
+  favorite: boolean
+}>
+
+export type PlayerBoxDto = Readonly<{
+  characters: readonly BoxCharacterDto[]
+  summary: Readonly<{
+    totalOwned: number
+    fiveStars: number
+    fourStars: number
+    c6: number
+  }>
+}>
+
 export type GachaPullResultItemDto = Readonly<{
   index: number
   resultType: 'character' | 'resource'

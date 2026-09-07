@@ -21,6 +21,8 @@ import { PrismaDailyRewardStore } from './database/prisma-daily-reward-store.js'
 import { PrismaGachaStore } from './database/prisma-gacha-store.js';
 import { GetCharacters, GetCurrentGacha, GetGachaHistory, PerformGachaPull, SetGachaTarget } from '../application/gacha/gacha-services.js';
 import { WeeklyBannerScheduler } from '../application/gacha/weekly-banner-scheduler.js';
+import { GetCurrentPlayerBox, SetBoxCharacterFavorite } from '../application/box/box-services.js';
+import { PrismaBoxStore } from './database/prisma-box-store.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
   if (!config.databaseUrl) {
@@ -37,6 +39,7 @@ export function createRuntimeDependencies(config: AppConfig) {
   const gachaStore = new PrismaGachaStore(database);
   const random = new NodeRandomSource();
   const scheduler = new WeeklyBannerScheduler(gachaStore, clock, random);
+  const boxStore = new PrismaBoxStore(database);
 
   return {
     authIdentityVerifier: createSupabaseAuthAdapter(issuer),
@@ -62,6 +65,8 @@ export function createRuntimeDependencies(config: AppConfig) {
     setGachaTarget: new SetGachaTarget(getCurrentPlayer, gachaStore),
     performGachaPull: new PerformGachaPull(getCurrentPlayer, gachaStore, clock, random),
     getGachaHistory: new GetGachaHistory(getCurrentPlayer, gachaStore),
+    getCurrentPlayerBox: new GetCurrentPlayerBox(getCurrentPlayer, boxStore),
+    setBoxCharacterFavorite: new SetBoxCharacterFavorite(getCurrentPlayer, boxStore),
     start: () => scheduler.start(),
     close: async () => { scheduler.stop(); await database.$disconnect(); },
   };

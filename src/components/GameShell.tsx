@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import type { CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, WheelSpinDto, WheelTodayDto } from '../api/types'
+import type { BoxCharacterDto, CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, PlayerBoxDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import type { ScreenId } from '../types'
 import BoxScreen from '../screens/BoxScreen'
 import CharactersScreen from '../screens/CharactersScreen'
@@ -39,9 +39,11 @@ type GameShellProps = {
   onGachaPresentationDisclosed: (operationId: string) => void
   onGachaPresentationAbandoned: () => void
   onGetGachaHistory: (page: number) => Promise<GachaHistoryDto>
+  onLoadBox: () => Promise<PlayerBoxDto>
+  onSetBoxFavorite: (characterId: string, favorite: boolean) => Promise<BoxCharacterDto>
 }
 
-function GameShell({ player, resources, progression, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory }: GameShellProps) {
+function GameShell({ player, resources, progression, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite }: GameShellProps) {
   const [activeScreen, setActiveScreen] = useState<ScreenId>(getScreenFromHash)
   const activeScreenRef = useRef(activeScreen)
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
@@ -72,7 +74,7 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
       case 'invocation':
         return <InvocationScreen gacha={gacha} onSetTarget={onSetGachaTarget} onPull={onPullGacha} pendingPullCount={pendingGachaPullCount} onPresentationDisclosed={onGachaPresentationDisclosed} onGetHistory={onGetGachaHistory} />
       case 'box':
-        return <BoxScreen />
+        return <BoxScreen onLoadBox={onLoadBox} onSetFavorite={onSetBoxFavorite} />
       case 'characters':
         return <CharactersScreen characters={characters} />
       case 'team':

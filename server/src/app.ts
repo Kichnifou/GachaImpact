@@ -19,9 +19,11 @@ import type { SpinDailyWheel } from './application/wheel/spin-daily-wheel.js';
 import type { GetTodayWheelState } from './application/wheel/get-today-wheel-state.js';
 import { registerDailyRewardRoutes } from './api/routes/daily-reward.js';
 import { registerGachaRoutes } from './api/routes/gacha.js';
+import { registerBoxRoutes } from './api/routes/box.js';
 import type { GetCharacters, GetCurrentGacha, GetGachaHistory, PerformGachaPull, SetGachaTarget } from './application/gacha/gacha-services.js';
 import type { GetTodayDailyReward } from './application/daily-reward/get-today-daily-reward.js';
 import type { ClaimDailyReward } from './application/daily-reward/claim-daily-reward.js';
+import type { GetCurrentPlayerBox, SetBoxCharacterFavorite } from './application/box/box-services.js';
 import type { AppConfig } from './config/environment.js';
 import { loadConfig } from './config/environment.js';
 
@@ -40,6 +42,8 @@ export type AppDependencies = Readonly<{
   setGachaTarget?: SetGachaTarget;
   performGachaPull?: PerformGachaPull;
   getGachaHistory?: GetGachaHistory;
+  getCurrentPlayerBox?: GetCurrentPlayerBox;
+  setBoxCharacterFavorite?: SetBoxCharacterFavorite;
   close?: () => Promise<void>;
 }>;
 
@@ -60,7 +64,7 @@ export async function buildApp(
     origin: (requestOrigin, callback) => {
       callback(null, requestOrigin === frontendOrigin);
     },
-    methods: ['GET', 'POST', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['authorization', 'content-type', 'x-request-id'],
     exposedHeaders: ['x-request-id'],
   });
@@ -105,6 +109,9 @@ export async function buildApp(
     }
     if (dependencies.getCharacters && dependencies.getCurrentGacha && dependencies.setGachaTarget) {
       await app.register(registerGachaRoutes, { authenticate, getCharacters: dependencies.getCharacters, getCurrentGacha: dependencies.getCurrentGacha, setGachaTarget: dependencies.setGachaTarget, performGachaPull: dependencies.performGachaPull, getGachaHistory: dependencies.getGachaHistory });
+    }
+    if (dependencies.getCurrentPlayerBox && dependencies.setBoxCharacterFavorite) {
+      await app.register(registerBoxRoutes, { authenticate, getCurrentPlayerBox: dependencies.getCurrentPlayerBox, setBoxCharacterFavorite: dependencies.setBoxCharacterFavorite });
     }
 
     if (dependencies.close) {

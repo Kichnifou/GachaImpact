@@ -203,6 +203,8 @@ function AppBootstrap() {
       onGachaPresentationDisclosed={(operationId) => { gachaPresentation.current?.disclose(operationId) }}
       onGachaPresentationAbandoned={() => { gachaPresentation.current?.abandon() }}
       onGetGachaHistory={(page) => getGameApiClient().getGachaHistory(page)}
+      onLoadBox={() => getGameApiClient().getBox()}
+      onSetBoxFavorite={async (characterId, favorite) => (await getGameApiClient().setBoxFavorite(characterId, favorite)).character}
       onClaimDailyReward={async () => {
         const { result, resources: nextResources } = await claimDailyRewardAndRefresh(getGameApiClient())
         setResources(nextResources)

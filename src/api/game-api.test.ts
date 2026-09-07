@@ -163,4 +163,16 @@ describe('game API client', () => {
     expect(fetchImplementation.mock.calls[0]?.[0]).toBe('http://127.0.0.1:3001/api/v1/gacha/history?page=2')
     expect(fetchImplementation.mock.calls[0]?.[1]?.method).toBeUndefined()
   })
+
+  it('loads the personal Box and changes only its favorite flag', async () => {
+    const fetchImplementation = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ characters: [], summary: { totalOwned: 0, fiveStars: 0, fourStars: 0, c6: 0 } })))
+    const client = createGameApiClient({ baseUrl: 'http://127.0.0.1:3001', getAccessToken: async () => 'token', fetchImplementation })
+    await client.getBox()
+    const id = crypto.randomUUID()
+    await client.setBoxFavorite(id, true)
+    expect(fetchImplementation.mock.calls[0]?.[0]).toBe('http://127.0.0.1:3001/api/v1/me/box')
+    expect(fetchImplementation.mock.calls[1]?.[0]).toBe(`http://127.0.0.1:3001/api/v1/me/box/${id}/favorite`)
+    expect(fetchImplementation.mock.calls[1]?.[1]?.method).toBe('PATCH')
+    expect(JSON.parse(String(fetchImplementation.mock.calls[1]?.[1]?.body))).toEqual({ favorite: true })
+  })
 })

@@ -16,6 +16,8 @@ import type {
   PlayerGachaStateDto,
   GachaPullDto,
   GachaHistoryDto,
+  PlayerBoxDto,
+  BoxCharacterDto,
 } from './types'
 
 type ApiClientDependencies = Readonly<{
@@ -111,6 +113,12 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     setGachaTarget: (characterId: string) => request<{ playerState: PlayerGachaStateDto }>('/api/v1/gacha/target', { method: 'POST', body: JSON.stringify({ characterId }) }),
     pullGacha: (count: 1 | 10, idempotencyKey: string) => request<GachaPullDto>('/api/v1/gacha/pull', { method: 'POST', body: JSON.stringify({ count, idempotencyKey }) }),
     getGachaHistory: (page = 1) => request<GachaHistoryDto>(`/api/v1/gacha/history?page=${page}`),
+    getBox: () => request<PlayerBoxDto>('/api/v1/me/box'),
+    setBoxFavorite: (characterId: string, favorite: boolean) =>
+      request<{ character: BoxCharacterDto }>(`/api/v1/me/box/${characterId}/favorite`, {
+        method: 'PATCH',
+        body: JSON.stringify({ favorite }),
+      }),
   }
 }
 
