@@ -1,5 +1,13 @@
+import { useEffect, useRef } from 'react'
 import type { KeyboardEvent, MouseEvent } from 'react'
-import type { InvocationSequenceState } from '../gacha/invocation-sequence'
+import {
+  acquireRevealLock,
+  releaseRevealLock,
+  revealResultKey,
+  revealTransitionDurationMs,
+  shouldAdvanceSequenceWithKeyboard,
+  type InvocationSequenceState,
+} from '../gacha/invocation-sequence'
 import PullResults, { PullResultCard } from './PullResults'
 
 type Props = Readonly<{
@@ -11,13 +19,26 @@ type Props = Readonly<{
 
 function InvocationSequence({ state, onAdvance, onSkip, onClose }: Props) {
   const canAdvance = state.phase === 'intro' || state.phase === 'reveal'
+  const advanceLocked = useRef(false)
+  const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => () => {
+    if (advanceTimer.current !== null) clearTimeout(advanceTimer.current)
+  }, [])
+  const requestAdvance = () => {
+    if (!canAdvance || !acquireRevealLock(advanceLocked)) return
+    onAdvance()
+    advanceTimer.current = setTimeout(() => {
+      releaseRevealLock(advanceLocked)
+      advanceTimer.current = null
+    }, revealTransitionDurationMs)
+  }
   const advance = (event: MouseEvent<HTMLElement>) => {
-    if (canAdvance && !isControl(event.target)) onAdvance()
+    if (canAdvance && !isControl(event.target)) requestAdvance()
   }
   const advanceWithKeyboard = (event: KeyboardEvent<HTMLElement>) => {
-    if (!canAdvance || (event.key !== 'Enter' && event.key !== ' ')) return
+    if (!canAdvance || !shouldAdvanceSequenceWithKeyboard(event.key, isControl(event.target))) return
     event.preventDefault()
-    onAdvance()
+    requestAdvance()
   }
   const stop = (event: MouseEvent<HTMLButtonElement>) => event.stopPropagation()
   const rarity = state.phase === 'submitting' ? 'pending' : state.bestRarity
@@ -53,7 +74,7 @@ function InvocationSequence({ state, onAdvance, onSkip, onClose }: Props) {
 
       {state.phase === 'reveal' && <div className="sequence-reveal-stage">
         <div className="sequence-counter">Résultat {state.resultIndex + 1} / {state.pull.results.length}</div>
-        <PullResultCard result={state.pull.results[state.resultIndex]!} />
+        <PullResultCard key={revealResultKey(state.pull.operation.id, state.pull.results[state.resultIndex]!.index)} result={state.pull.results[state.resultIndex]!} />
         {state.count === 10 && <p className="sequence-hint">Cliquez pour continuer</p>}
       </div>}
 

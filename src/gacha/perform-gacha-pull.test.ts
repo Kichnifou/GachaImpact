@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ApiError, type GameApiClient } from '../api/game-api'
-import { performGachaPullAndRefresh, shouldPreserveGachaPullIntent } from './perform-gacha-pull'
+import {
+  performGachaPullAndRefresh,
+  selectGachaPullIntent,
+  settleGachaPullIntent,
+  shouldPreserveGachaPullIntent,
+  type GachaPullIntent,
+} from './perform-gacha-pull'
 
 describe('performGachaPullAndRefresh', () => {
   it('returns the authoritative pull after successful Resources and Gacha refreshes', async () => {
@@ -77,5 +83,70 @@ describe('performGachaPullAndRefresh', () => {
     expect(pullGacha).toHaveBeenCalledOnce()
     expect(getResources).not.toHaveBeenCalled()
     expect(getCurrentGacha).not.toHaveBeenCalled()
+  })
+})
+
+describe('Gacha Pull retry intention', () => {
+  const readyIntent = (selection: ReturnType<typeof selectGachaPullIntent>): GachaPullIntent => {
+    expect(selection.status).toBe('ready')
+    return selection.intent
+  }
+
+  it('retries an ambiguous x1 with the same key and blocks x10 without a POST or a new key', () => {
+    const createKey = vi.fn(() => 'key-x1')
+    const post = vi.fn()
+    const firstIntent = readyIntent(selectGachaPullIntent(null, 1, createKey))
+    post(firstIntent.count, firstIntent.key)
+    const activeIntent = settleGachaPullIntent(firstIntent, { status: 'failure', error: new ApiError('NETWORK_ERROR', 'offline', null) })
+    const retryIntent = readyIntent(selectGachaPullIntent(activeIntent, 1, createKey))
+    post(retryIntent.count, retryIntent.key)
+    const blocked = selectGachaPullIntent(activeIntent, 10, createKey)
+    if (blocked.status === 'ready') post(blocked.intent.count, blocked.intent.key)
+
+    expect(retryIntent).toBe(firstIntent)
+    expect(blocked).toEqual({ status: 'blocked', intent: firstIntent })
+    expect(createKey).toHaveBeenCalledOnce()
+    expect(post).toHaveBeenCalledTimes(2)
+    expect(post).not.toHaveBeenCalledWith(10, expect.any(String))
+  })
+
+  it('blocks x1 while an ambiguous x10 remains active', () => {
+    const createKey = vi.fn(() => 'key-x10')
+    const post = vi.fn()
+    const firstIntent = readyIntent(selectGachaPullIntent(null, 10, createKey))
+    post(firstIntent.count, firstIntent.key)
+    const activeIntent = settleGachaPullIntent(firstIntent, { status: 'failure', error: new ApiError('HTTP_503', 'unavailable', 503) })
+    const blocked = selectGachaPullIntent(activeIntent, 1, createKey)
+    if (blocked.status === 'ready') post(blocked.intent.count, blocked.intent.key)
+
+    expect(blocked).toEqual({ status: 'blocked', intent: firstIntent })
+    expect(createKey).toHaveBeenCalledOnce()
+    expect(post).toHaveBeenCalledOnce()
+  })
+
+  it('releases an x1 intention after a definitive business error and allows a new x10 key', () => {
+    const createKey = vi.fn()
+      .mockReturnValueOnce('key-x1')
+      .mockReturnValueOnce('key-x10')
+    const firstIntent = readyIntent(selectGachaPullIntent(null, 1, createKey))
+    const activeIntent = settleGachaPullIntent(firstIntent, { status: 'failure', error: new ApiError('INSUFFICIENT_PRIMOGEMS', 'not enough', 409) })
+    const nextIntent = readyIntent(selectGachaPullIntent(activeIntent, 10, createKey))
+
+    expect(activeIntent).toBeNull()
+    expect(nextIntent).toEqual({ count: 10, key: 'key-x10' })
+    expect(createKey).toHaveBeenCalledTimes(2)
+  })
+
+  it('releases a successful x1 intention and allows a new x10 key', () => {
+    const createKey = vi.fn()
+      .mockReturnValueOnce('key-x1')
+      .mockReturnValueOnce('key-x10')
+    const completedIntent = readyIntent(selectGachaPullIntent(null, 1, createKey))
+    const activeIntent = settleGachaPullIntent(completedIntent, { status: 'success' })
+    const nextIntent = readyIntent(selectGachaPullIntent(activeIntent, 10, createKey))
+
+    expect(completedIntent).toEqual({ count: 1, key: 'key-x1' })
+    expect(nextIntent).toEqual({ count: 10, key: 'key-x10' })
+    expect(createKey).toHaveBeenCalledTimes(2)
   })
 })

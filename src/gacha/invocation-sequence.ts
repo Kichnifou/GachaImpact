@@ -22,6 +22,15 @@ export type InvocationSequenceEvent =
   | Readonly<{ type: 'close' }>
 
 export const idleInvocationSequence: InvocationSequenceState = { phase: 'idle' }
+export const revealTransitionDurationMs = 500
+
+export function revealResultKey(operationId: string, resultIndex: number): string {
+  return `${operationId}-${resultIndex}`
+}
+
+export function shouldAdvanceSequenceWithKeyboard(key: string, fromControl: boolean): boolean {
+  return !fromControl && (key === 'Enter' || key === ' ')
+}
 
 export function invocationSequenceReducer(
   state: InvocationSequenceState,
@@ -67,4 +76,14 @@ export function acquirePullLock(lock: { current: boolean }): boolean {
   if (lock.current) return false
   lock.current = true
   return true
+}
+
+export function acquireRevealLock(lock: { current: boolean }): boolean {
+  if (lock.current) return false
+  lock.current = true
+  return true
+}
+
+export function releaseRevealLock(lock: { current: boolean }): void {
+  lock.current = false
 }

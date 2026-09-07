@@ -11,9 +11,40 @@ const definitivePullErrorCodes = new Set([
   'GACHA_IDEMPOTENCY_CONFLICT',
 ])
 
+export type GachaPullIntent = Readonly<{
+  count: 1 | 10
+  key: string
+}>
+
+export type GachaPullIntentSelection =
+  | Readonly<{ status: 'ready'; intent: GachaPullIntent }>
+  | Readonly<{ status: 'blocked'; intent: GachaPullIntent }>
+
+export function selectGachaPullIntent(
+  activeIntent: GachaPullIntent | null,
+  requestedCount: 1 | 10,
+  createKey: () => string,
+): GachaPullIntentSelection {
+  if (activeIntent && activeIntent.count !== requestedCount) {
+    return { status: 'blocked', intent: activeIntent }
+  }
+  return {
+    status: 'ready',
+    intent: activeIntent ?? { count: requestedCount, key: createKey() },
+  }
+}
+
 export function shouldPreserveGachaPullIntent(error: unknown): boolean {
   if (!(error instanceof ApiError) || definitivePullErrorCodes.has(error.code)) return false
   return error.code === 'NETWORK_ERROR' || error.code === 'INTERNAL_ERROR' || (error.code.startsWith('HTTP_') && (error.status ?? 0) >= 500)
+}
+
+export function settleGachaPullIntent(
+  intent: GachaPullIntent,
+  outcome: Readonly<{ status: 'success' }> | Readonly<{ status: 'failure'; error: unknown }>,
+): GachaPullIntent | null {
+  if (outcome.status === 'success') return null
+  return shouldPreserveGachaPullIntent(outcome.error) ? intent : null
 }
 
 export type GachaPullRefreshResult = Readonly<{

@@ -9,7 +9,7 @@ import GameAssetIcon from './GameAssetIcon'
 import GachaDetailModal from './GachaDetailModal'
 import InvocationSequence from './InvocationSequence'
 import { apiErrorMessage } from '../utils/formatters'
-import { shouldPreserveGachaPullIntent } from '../gacha/perform-gacha-pull'
+import { selectGachaPullIntent, settleGachaPullIntent, type GachaPullIntent } from '../gacha/perform-gacha-pull'
 import { acquirePullLock, idleInvocationSequence, invocationSequenceReducer } from '../gacha/invocation-sequence'
 
 type Props = {
@@ -29,7 +29,7 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, 
   const [pullError, setPullError] = useState<string | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const pullLocked = useRef(false)
-  const retryIntent = useRef<{ count: 1 | 10; key: string } | null>(null)
+  const retryIntent = useRef<GachaPullIntent | null>(null)
   const selected = gacha.banner.featuredFiveStars.find(({ id }) => id === gacha.playerState.selectedBannerCharacterId)
   const pullPending = sequence.phase === 'submitting' ? sequence.count : null
 
@@ -38,17 +38,23 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, 
     try { await onSetTarget(character.id); setChoosing(false) } finally { setPending(null) }
   }
   const pull = async (count: 1 | 10) => {
-    if (!onPull || !acquirePullLock(pullLocked)) return
-    const intent = retryIntent.current?.count === count ? retryIntent.current : { count, key: crypto.randomUUID() }
+    if (!onPull) return
+    const selection = selectGachaPullIntent(retryIntent.current, count, () => crypto.randomUUID())
+    if (selection.status === 'blocked') {
+      setPullError(`Une Invocation x${selection.intent.count} précédente doit d’abord être confirmée. Réessayez x${selection.intent.count}.`)
+      return
+    }
+    if (!acquirePullLock(pullLocked)) return
+    const intent = selection.intent
     retryIntent.current = intent
     dispatchSequence({ type: 'submit', count, idempotencyKey: intent.key })
     setPullError(null)
     try {
       const result = await onPull(count, intent.key)
       dispatchSequence({ type: 'resolved', pull: result })
-      retryIntent.current = null
+      retryIntent.current = settleGachaPullIntent(intent, { status: 'success' })
     } catch (error) {
-      if (!shouldPreserveGachaPullIntent(error)) retryIntent.current = null
+      retryIntent.current = settleGachaPullIntent(intent, { status: 'failure', error })
       setPullError(apiErrorMessage(error))
       dispatchSequence({ type: 'failed' })
     } finally {

@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import type { GachaPullDto, GachaPullResultItemDto } from '../api/types'
-import { acquirePullLock, idleInvocationSequence, invocationSequenceReducer } from './invocation-sequence'
+import {
+  acquirePullLock,
+  acquireRevealLock,
+  idleInvocationSequence,
+  invocationSequenceReducer,
+  releaseRevealLock,
+  revealResultKey,
+  revealTransitionDurationMs,
+  shouldAdvanceSequenceWithKeyboard,
+} from './invocation-sequence'
 
 const state = { pity5: 0, pity4: 0, guaranteedFeatured5: false, captureProgress: 0, fiftyFiftyLostStreak: 0, selectedBannerCharacterId: 'target', totalPulls: '10', totalFiveStars: '1', totalFourStars: '1', fiftyFiftyWon: '1', fiftyFiftyLost: '0', capturesTriggered: '0' }
 const resource = (index: number, resourceKey = 'moras'): GachaPullResultItemDto => ({ index, resultType: 'resource', character: null, rarity: null, resourceKey, resourceAmount: '5000', wasNewCharacter: null, constellationAfter: null, copiesAfter: null, wasFiftyFifty: false, wonFiftyFifty: null, guaranteeConsumed: false, captureTriggered: false, bonusRewards: [], c6Progression: null })
@@ -49,5 +58,54 @@ describe('Invocation sequence state machine', () => {
     const lock = { current: false }
     expect(acquirePullLock(lock)).toBe(true)
     expect(acquirePullLock(lock)).toBe(false)
+  })
+
+  it('remounts each reveal from its operation and server result index', () => {
+    expect(revealResultKey('operation-42', 1)).toBe('operation-42-1')
+    expect(revealResultKey('operation-42', 2)).toBe('operation-42-2')
+    expect(revealResultKey('operation-43', 1)).toBe('operation-43-1')
+    expect(revealTransitionDurationMs).toBeGreaterThanOrEqual(400)
+    expect(revealTransitionDurationMs).toBeLessThanOrEqual(600)
+  })
+
+  it('ignores a double-click on intro and result one until the reveal lock is released', () => {
+    const results = Array.from({ length: 10 }, (_, index) => resource(index + 1))
+    let sequence = invocationSequenceReducer(idleInvocationSequence, { type: 'submit', count: 10, idempotencyKey: 'paced' })
+    sequence = invocationSequenceReducer(sequence, { type: 'resolved', pull: pull(10, results) })
+    const lock = { current: false }
+    const advance = () => {
+      if (acquireRevealLock(lock)) sequence = invocationSequenceReducer(sequence, { type: 'advance' })
+    }
+
+    advance()
+    advance()
+    expect(sequence).toMatchObject({ phase: 'reveal', resultIndex: 0 })
+
+    releaseRevealLock(lock)
+    advance()
+    advance()
+    expect(sequence).toMatchObject({ phase: 'reveal', resultIndex: 1 })
+
+    releaseRevealLock(lock)
+    advance()
+    expect(sequence).toMatchObject({ phase: 'reveal', resultIndex: 2 })
+  })
+
+  it('allows Passer to bypass an active reveal presentation lock', () => {
+    const results = Array.from({ length: 10 }, (_, index) => resource(index + 1))
+    let sequence = invocationSequenceReducer(idleInvocationSequence, { type: 'submit', count: 10, idempotencyKey: 'skip-locked' })
+    sequence = invocationSequenceReducer(sequence, { type: 'resolved', pull: pull(10, results) })
+    const lock = { current: false }
+    expect(acquireRevealLock(lock)).toBe(true)
+    sequence = invocationSequenceReducer(sequence, { type: 'skip' })
+    expect(sequence).toMatchObject({ phase: 'summary', idempotencyKey: 'skip-locked' })
+  })
+
+  it('does not advance from keyboard events bubbling from controls', () => {
+    expect(shouldAdvanceSequenceWithKeyboard('Enter', false)).toBe(true)
+    expect(shouldAdvanceSequenceWithKeyboard(' ', false)).toBe(true)
+    expect(shouldAdvanceSequenceWithKeyboard('Enter', true)).toBe(false)
+    expect(shouldAdvanceSequenceWithKeyboard(' ', true)).toBe(false)
+    expect(shouldAdvanceSequenceWithKeyboard('Escape', false)).toBe(false)
   })
 })
