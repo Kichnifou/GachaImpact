@@ -58,6 +58,15 @@ describe('PullResults', () => {
     expect(resource).not.toContain('+80 Primogemmes')
   })
 
+  it('reserves vertical room for descenders in individual character reveal names', () => {
+    const ningguang = { ...characterResult, character: { ...character, name: 'Ningguang' } }
+    const reveal = renderToStaticMarkup(<PullResultCard result={ningguang} />)
+    const compact = renderToStaticMarkup(<PullResultCard result={ningguang} compact />)
+    expect(reveal).toContain('line-height:1.12')
+    expect(reveal).toContain('padding-bottom:0.12em')
+    expect(compact).not.toContain('padding-bottom:0.12em')
+  })
+
   it('uses the same Nouveau or capped Cx rule in the x10 summary', () => {
     const newCharacter = { ...characterResult, wasNewCharacter: true, constellationAfter: 0, copiesAfter: 1, bonusRewards: [], c6Progression: null }
     const c1Character = { ...characterResult, constellationAfter: 1, copiesAfter: 2, bonusRewards: [], c6Progression: null }

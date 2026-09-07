@@ -35,6 +35,10 @@ function AppBootstrap() {
     return nextResources
   }, [])
 
+  const loadBox = useCallback(() => getGameApiClient().getBox(), [])
+  const setBoxFavorite = useCallback(async (characterId: string, favorite: boolean) =>
+    (await getGameApiClient().setBoxFavorite(characterId, favorite)).character, [])
+
   const loadGameState = useCallback(async () => {
     const api = getGameApiClient()
     const [nextResources, nextProgression, nextWheelToday, nextDailyRewardToday, nextGacha, nextCatalog] = await Promise.all([
@@ -203,8 +207,8 @@ function AppBootstrap() {
       onGachaPresentationDisclosed={(operationId) => { gachaPresentation.current?.disclose(operationId) }}
       onGachaPresentationAbandoned={() => { gachaPresentation.current?.abandon() }}
       onGetGachaHistory={(page) => getGameApiClient().getGachaHistory(page)}
-      onLoadBox={() => getGameApiClient().getBox()}
-      onSetBoxFavorite={async (characterId, favorite) => (await getGameApiClient().setBoxFavorite(characterId, favorite)).character}
+      onLoadBox={loadBox}
+      onSetBoxFavorite={setBoxFavorite}
       onClaimDailyReward={async () => {
         const { result, resources: nextResources } = await claimDailyRewardAndRefresh(getGameApiClient())
         setResources(nextResources)

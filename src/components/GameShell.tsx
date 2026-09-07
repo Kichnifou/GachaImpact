@@ -14,6 +14,7 @@ import GameHeader from './GameHeader'
 import Navigation from './Navigation'
 import OnlinePlayersPanel from './OnlinePlayersPanel'
 import PlayerSidebar from './PlayerSidebar'
+import { BoxMemoryCache } from '../box/box-memory-cache'
 
 const screenIds: ScreenId[] = ['home', 'invocation', 'box', 'characters', 'team', 'inventory', 'shop']
 
@@ -49,6 +50,21 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isPlayersOpen, setIsPlayersOpen] = useState(false)
+  const [boxCache] = useState(() => new BoxMemoryCache())
+
+  const loadBox = useCallback(
+    () => boxCache.revalidate(player.id, onLoadBox),
+    [boxCache, onLoadBox, player.id],
+  )
+  const setBoxFavorite = useCallback(async (characterId: string, favorite: boolean) => {
+    const character = await onSetBoxFavorite(characterId, favorite)
+    boxCache.replaceCharacter(player.id, character)
+    return character
+  }, [boxCache, onSetBoxFavorite, player.id])
+  const signOutAndClearBox = useCallback(async () => {
+    boxCache.clear()
+    await onSignOut()
+  }, [boxCache, onSignOut])
 
   const changeScreen = useCallback((screen: ScreenId) => {
     if (activeScreenRef.current === 'invocation' && screen !== 'invocation') onGachaPresentationAbandoned()
@@ -74,7 +90,7 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
       case 'invocation':
         return <InvocationScreen gacha={gacha} onSetTarget={onSetGachaTarget} onPull={onPullGacha} pendingPullCount={pendingGachaPullCount} onPresentationDisclosed={onGachaPresentationDisclosed} onGetHistory={onGetGachaHistory} />
       case 'box':
-        return <BoxScreen onLoadBox={onLoadBox} onSetFavorite={onSetBoxFavorite} />
+        return <BoxScreen initialBox={boxCache.read(player.id)} onLoadBox={loadBox} onSetFavorite={setBoxFavorite} />
       case 'characters':
         return <CharactersScreen characters={characters} />
       case 'team':
@@ -94,7 +110,7 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
         displayName={player.displayName}
         onNavigateHome={() => navigate('home')}
         onOpenSidebar={() => setIsSidebarOpen(true)}
-        onSignOut={onSignOut}
+        onSignOut={signOutAndClearBox}
       />
 
       <div className="game-layout">

@@ -3535,7 +3535,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Box / Possessions / Obtention — premier lot réel de consultation personnelle et favoris serveur implémenté sur `review`, à faire reviewer avant toute promotion.**
+**Box / Possessions / Obtention — premier lot réel publiquement testé ; candidat de polish fiche, cache mémoire et non-régression typographique Invocation en cours sur `review`.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3575,7 +3575,7 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Progression Player réelle / dé-mock Niveau-XP : **VALIDÉE PUBLIQUEMENT PAR LE PROPRIÉTAIRE / CLÔTURÉE** sur [https://gachaimpact.pages.dev](https://gachaimpact.pages.dev) ; vrai Niveau 0, `0 / 30 XP`, barre réelle, F5, logout/login, second compte et non-régression Ressources / Daily Reward / Roue validés ;
 - `GET /api/v1/me/progression` expose les compteurs `bigint` lossless et le niveau dérivé de l'XP cumulative selon `min(floor(xp / 30), 100)`, sans endpoint de gain ou de mutation d'XP ;
 - la sidebar charge niveau, XP du palier et barre depuis l'état serveur au bootstrap authentifié ; l'objectif Gacha, Pity, Garantie et Capture ont depuis été reliés à l'état Gacha réel, tandis que la Team reste encore une présentation mock avant son lot métier ;
-- tests unitaires frontend/backend, builds, lint, tests DB réels et statut Prisma : **VALIDÉS TECHNIQUEMENT** ; état automatisé actuel après le premier lot Box : frontend **24 fichiers / 128 tests**, backend **17 fichiers / 107 tests**, DB **5 fichiers / 20 tests**, tous réussis.
+- tests unitaires frontend/backend, builds, lint, tests DB réels et statut Prisma : **VALIDÉS TECHNIQUEMENT** ; état automatisé actuel après le polish du premier lot Box : frontend **25 fichiers / 135 tests**, backend **17 fichiers / 107 tests**, DB **5 fichiers / 20 tests**, tous réussis lors de leurs derniers passages pertinents.
 - Gacha — catalogue / bannière / cible / état joueur et présentation UI associée : **FONDATIONS PUBLIQUEMENT VALIDÉES SANS RÉSERVE PAR LE PROPRIÉTAIRE — DOMAINE CLÔTURÉ** ; catalogue réel, rotation réelle, quatre 5★, six 4★, sélection/changement/persistance de cible, état joueur Gacha et présentation Pity/Garantie/Capture sont validés ;
 - UI Gacha : **PUBLIQUEMENT VALIDÉE ET CLÔTURÉE** pour Hero splash, picker 5★ 2×2, primitive responsive commune des portraits, variantes Team/Équipe active/Box/Personnages/4★ Invocation, desktop, mobile portrait et paysage, sidebar Objectif, aperçu Invocation de l'Accueil, navigation et Particules agrandies ;
 - Personnages et Team restent validés ici pour leur **présentation actuelle**. La Box personnelle consomme désormais les possessions serveur réelles ; les Teams autoritatives ne sont pas encore implémentées ;
@@ -3622,7 +3622,7 @@ Ordre de reprise après validation propriétaire : Pull réel validé → Box/po
 
 ## État du lot — Box / Possessions / Obtention
 
-Premier lot Box réel implémenté sur `review` :
+Premier lot Box réel déployé et publiquement testé ; polish ciblé en cours sur `review` :
 
 - source autoritative unique : `player_characters`, jointe au catalogue `characters` sans duplication de données ; aucune migration ajoutée ;
 - `GET /api/v1/me/box` authentifié retourne uniquement les possessions du Player courant dont le personnage catalogue est actif, avec constellation bornée C0..C6, copies, première obtention immuable, favori et assets catalogue ; les possessions orphelines ou invisibles restent conservées en base mais ne sont pas exposées ;
@@ -3633,8 +3633,12 @@ Premier lot Box réel implémenté sur `review` :
 - onglets temporaires `Tous` / `5★` / `4★`, recherche normalisée, sept filtres élémentaires incluant Dendro, filtres C0..C6 et tris alphabétique/date d’obtention/constellation/élément ascendant ou descendant ;
 - favoris réordonnés immédiatement et de façon optimiste, avec rollback sur erreur : dans `Tous`, favoris 5★ puis favoris 4★ puis non-favoris 5★ puis non-favoris 4★ ; le tri actif s’applique à l’intérieur de chaque groupe ;
 - loading, erreur avec retry, Box vide et aucun résultat de filtres possèdent des états dédiés ;
+- validation publique propriétaire réussie pour le chargement des possessions réelles, le résumé, les cartes, les favoris et leur ordre, la recherche, les onglets, les filtres, les tris, le lien Invocation → Box et les non-régressions ; la fiche détaillée est fonctionnelle mais son polish visuel reste à revalider ;
+- la fiche candidate conserve son dialog et place désormais seulement `Personnage possédé` dans le cadre supérieur. Le portrait priorise `iconPath`, remplit son cadre avec fallback vers les assets existants et n’affiche aucun badge élémentaire ; le panneau droit porte le nom, les étoiles puis `Cx`, sans doublon Constellation, puis Copies, première obtention et Favori avec une typographie renforcée ;
+- un cache mémoire Box strictement associé au Player courant applique R771 : retour immédiat depuis le snapshot connu, GET autoritatif systématique à chaque ouverture, remplacement silencieux après succès, erreur inline sans masquer le cache, synchronisation après favori confirmé et vidage avant sign-out ; aucun `localStorage` ni cache durable ;
+- la typographie des noms de révélations individuelles Invocation réserve désormais la hauteur des descendantes (`g`, `p`, `q`, `y`, `j`) sans retirer l’ellipsis horizontal des cartes compactes ; cette correction reste une non-régression ciblée et ne rouvre pas le domaine Invocation ;
 - la préférence de tri reste limitée à la vie du composant pour ce premier lot : aucun `PlayerPreference` physique compatible n’existe encore et aucun `localStorage` ni migration disproportionnée n’a été introduit. Le raccordement compte de R123 reste un sous-lot Box futur ;
-- Stella, Box publique/confidentialité, Expedition et statistiques de combat restent explicitement hors périmètre.
+- Stella n’a pas commencé ; Box publique/confidentialité, Expedition et statistiques de combat restent également hors périmètre.
 
 État du premier parcours frontend standalone :
 
@@ -3664,7 +3668,7 @@ Premier lot Box réel implémenté sur `review` :
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Review GitHub ChatGPT du candidat Box / Possessions / Obtention présent sur `review` → corrections éventuelles du candidat → promotion vers `main` seulement après approbation → validation publique propriétaire de la Box réelle.** `PAID_INFRA_APPROVED = false` reste inchangé.
+**Review GitHub ChatGPT du candidat de polish Box présent sur `review` → corrections éventuelles → promotion vers `main` seulement après approbation → revalidation publique propriétaire de la fiche, du retour instantané en Box et du nom Ningguang en révélation.** `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

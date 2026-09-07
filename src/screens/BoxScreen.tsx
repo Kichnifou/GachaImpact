@@ -9,12 +9,13 @@ import { apiErrorMessage } from '../utils/formatters'
 import { getElementAssetPath } from '../utils/gameAssets'
 
 type BoxScreenProps = {
+  initialBox: PlayerBoxDto | null
   onLoadBox: () => Promise<PlayerBoxDto>
   onSetFavorite: (characterId: string, favorite: boolean) => Promise<BoxCharacterDto>
 }
 
-function BoxScreen({ onLoadBox, onSetFavorite }: BoxScreenProps) {
-  const [box, setBox] = useState<PlayerBoxDto | null>(null)
+function BoxScreen({ initialBox, onLoadBox, onSetFavorite }: BoxScreenProps) {
+  const [box, setBox] = useState<PlayerBoxDto | null>(initialBox)
   const [error, setError] = useState<string | null>(null)
   const [filters, setFilters] = useState<BoxFilters>(initialBoxFilters)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -42,14 +43,14 @@ function BoxScreen({ onLoadBox, onSetFavorite }: BoxScreenProps) {
   const toggleFavorite = async (character: BoxCharacterDto) => {
     if (favoritePendingId) return
     const favorite = !character.favorite
-    const previous = box
+    const previousFavorite = character.favorite
     setFavoritePendingId(character.id)
     setBox((current) => current ? { ...current, characters: replaceFavorite(current.characters, character.id, favorite) } : current)
     try {
       const persisted = await onSetFavorite(character.id, favorite)
       setBox((current) => current ? { ...current, characters: current.characters.map((item) => item.id === persisted.id ? persisted : item) } : current)
     } catch (reason) {
-      setBox(previous)
+      setBox((current) => current ? { ...current, characters: replaceFavorite(current.characters, character.id, previousFavorite) } : current)
       setError(apiErrorMessage(reason))
     } finally { setFavoritePendingId(null) }
   }

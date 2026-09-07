@@ -25,7 +25,10 @@ describe('real personal Box', () => {
   it('does not import mockData and refreshes authoritative possessions on each mount', () => {
     expect(boxScreenSource).not.toContain("from '../data/mockData'")
     expect(boxScreenSource).toContain('await onLoadBox()')
-    expect(renderToStaticMarkup(<BoxScreen onLoadBox={vi.fn()} onSetFavorite={vi.fn()} />)).toContain('Ouverture de votre Box')
+    expect(renderToStaticMarkup(<BoxScreen initialBox={null} onLoadBox={vi.fn()} onSetFavorite={vi.fn()} />)).toContain('Ouverture de votre Box')
+    const cached = renderToStaticMarkup(<BoxScreen initialBox={box} onLoadBox={vi.fn()} onSetFavorite={vi.fn()} />)
+    expect(cached).toContain('Furina')
+    expect(cached).not.toContain('Ouverture de votre Box')
   })
   it('renders API values, summary, tabs, seven elements including Dendro, and C0 through C6', () => {
     const html = renderView()
@@ -57,12 +60,29 @@ describe('real personal Box', () => {
     expect(html).not.toContain('20')
     expect(html).toContain('aria-pressed="false"')
   })
-  it('shows copies, first-obtained date and favorite state in the detail sheet', () => {
+  it('uses the requested detail hierarchy without duplicated element or constellation information', () => {
     const html = renderToStaticMarkup(<BoxCharacterDetailModal character={records[0]!} favoritePending={false} onToggleFavorite={vi.fn()} onClose={vi.fn()} />)
+    const header = html.match(/<header class="floating-panel-heading">.*?<\/header>/)?.[0] ?? ''
+    expect(header).toContain('Personnage possédé')
+    expect(header).not.toContain('Émilie')
+    expect(html).toContain('<h2 class="box-detail-character-name">Émilie</h2>')
+    expect(html).toContain('<strong class="box-detail-constellation">C6</strong>')
+    expect(html).toContain('★★★★★')
+    expect(html).not.toContain('box-detail-element')
+    expect(html).not.toContain('<dt>Constellation</dt>')
     expect(html).toContain('Copies obtenues')
     expect(html).toContain('<dd>20</dd>')
     expect(html).toContain('3 août 2026')
     expect(html).toContain('<dt>Favori</dt><dd>Non</dd>')
+    expect(html).toContain('Ajouter aux favoris')
+  })
+  it('prioritizes the icon in detail, falls back to an existing asset and renders no element badge', () => {
+    const withIcon = renderToStaticMarkup(<BoxCharacterDetailModal character={records[0]!} favoritePending={false} onToggleFavorite={vi.fn()} onClose={vi.fn()} />)
+    expect(withIcon).toContain('src="/furina-icon.png"')
+    expect(withIcon).not.toContain('character-portrait-badge')
+    const withoutIcon = renderToStaticMarkup(<BoxCharacterDetailModal character={{ ...records[0]!, iconPath: null }} favoritePending={false} onToggleFavorite={vi.fn()} onClose={vi.fn()} />)
+    expect(withoutIcon).toContain('src="/furina-fullbody.png"')
+    expect(withoutIcon).not.toContain('character-portrait-badge')
   })
   it('applies an immediate immutable favorite update and reorders the Box', () => {
     const updated = replaceFavorite(records, 'four-normal', true)
@@ -77,6 +97,7 @@ describe('real personal Box', () => {
     const error = renderToStaticMarkup(<BoxStatus kind="error" title="Erreur" detail="Serveur indisponible" onRetry={vi.fn()} />)
     expect(error).toContain('role="alert"')
     expect(error).toContain('Réessayer')
+    expect(renderView(initialBoxFilters, { error: 'Actualisation impossible' })).toContain('box-inline-error')
   })
   it('starts every fresh Box on Tous with alphabetical ascending sort', () => {
     expect(initialBoxFilters).toEqual({ tab: 'all', search: '', element: 'all', constellation: 'all', sort: 'alphabetical', direction: 'asc' })

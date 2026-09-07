@@ -12,7 +12,7 @@ type CharacterPortraitFrameProps = {
   fallback: ReactNode
   frameClassName: string
   imageClassName: string
-  badgeClassName: string
+  badgeClassName?: string
   badgeContainerClassName?: string
   alt?: string
 }
@@ -29,11 +29,11 @@ function CharacterPortraitFrame({
   badgeContainerClassName,
   alt = '',
 }: CharacterPortraitFrameProps) {
-  const badge = <GameAssetIcon
+  const badge = badgeClassName ? <GameAssetIcon
       className={`${badgeClassName} character-portrait-badge`}
       src={getElementAssetPath(element, 'badge')}
       fallback=""
-    />
+    /> : null
 
   return <>
     {badgeContainerClassName ? <span className={badgeContainerClassName}>{badge}</span> : badge}

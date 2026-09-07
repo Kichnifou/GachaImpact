@@ -6,6 +6,8 @@ import { c6StatLabel, characterProgressionLabel, pullDisplayRarity, pullEventLab
 import CharacterAssetImage from './CharacterAssetImage'
 import GameAssetIcon from './GameAssetIcon'
 
+const individualRevealNameStyle = { lineHeight: 1.12, paddingBottom: '0.12em' } satisfies CSSProperties
+
 function PullResults({ pull }: { pull: GachaPullDto }) {
   return (
     <div className="pull-results-grid pull-results-10" aria-label={`Récapitulatif de l’Invocation x${pull.operation.pullCount}`}>
@@ -38,7 +40,7 @@ export function PullResultCard({ result, order = 0, compact = false }: { result:
         </div>
         <div className="pull-result-copy">
           {!compact && <small className="pull-result-progression">{revealProgression}</small>}
-          <strong>{result.character.name}</strong>
+          <strong style={compact ? undefined : individualRevealNameStyle}>{result.character.name}</strong>
           <span className="pull-result-rarity">{'★'.repeat(rarity)}</span>
           {compact && <small>{revealProgression}</small>}
           {compact && event && <small className="pull-event">{event}</small>}
