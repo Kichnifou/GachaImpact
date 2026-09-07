@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api/game-api'
 import type { GachaPullRefreshResult } from './perform-gacha-pull'
-import { createGachaPresentationCoordinator } from './gacha-presentation-coordinator'
+import { abandonGachaPresentationBeforeSignOut, createGachaPresentationCoordinator } from './gacha-presentation-coordinator'
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -46,8 +46,8 @@ describe('Gacha presentation coordinator', () => {
     expect(coordinator.disclose('x10-operation')).toBe(true)
     expect(coordinator.disclose('x10-operation')).toBe(false)
     expect(publish).toHaveBeenCalledOnce()
-    expect(onPendingCountChange).toHaveBeenNthCalledWith(1, 10)
-    expect(onPendingCountChange).toHaveBeenLastCalledWith(null)
+    expect(onPendingCountChange).toHaveBeenNthCalledWith(1, 10, null)
+    expect(onPendingCountChange).toHaveBeenLastCalledWith(null, null)
   })
 
   it('keeps an x1 result buffered until its revealed result is closed', async () => {
@@ -134,5 +134,83 @@ describe('Gacha presentation coordinator', () => {
       gacha: null,
       failedRefreshes: ['resources', 'gacha'],
     }))
+  })
+
+  it('abandons and invalidates a pending presentation before sign-out, then ignores its late response', async () => {
+    const pending = deferred<GachaPullRefreshResult>()
+    const publish = vi.fn()
+    const execute = vi.fn()
+      .mockImplementationOnce(() => pending.promise)
+      .mockResolvedValueOnce(update('next-operation', 1))
+    const createIdempotencyKey = vi.fn()
+      .mockReturnValueOnce('sign-out-pending-key')
+      .mockReturnValueOnce('next-key')
+    const coordinator = createGachaPresentationCoordinator({ execute, publish, createIdempotencyKey })
+    const signOut = vi.fn(async () => {
+      expect(coordinator.getSnapshot()).toEqual({ phase: 'idle' })
+    })
+
+    const pullPromise = coordinator.requestPull(10)
+    await abandonGachaPresentationBeforeSignOut(coordinator, signOut)
+    pending.resolve(update('late-sign-out-operation', 10))
+
+    await pullPromise
+    expect(signOut).toHaveBeenCalledOnce()
+    expect(publish).not.toHaveBeenCalled()
+    expect(coordinator.getSnapshot()).toEqual({ phase: 'idle' })
+
+    await expect(coordinator.requestPull(1)).resolves.toMatchObject({ operation: { id: 'next-operation' } })
+    expect(execute).toHaveBeenNthCalledWith(2, 1, 'next-key')
+  })
+
+  it('publishes a ready presentation on abandon and frees it before sign-out', async () => {
+    const publish = vi.fn()
+    const coordinator = createGachaPresentationCoordinator({ execute: async () => update('ready-sign-out-operation', 1), publish, createIdempotencyKey: () => 'sign-out-ready-key' })
+    const signOut = vi.fn(async () => {
+      expect(coordinator.getSnapshot()).toEqual({ phase: 'idle' })
+    })
+
+    await coordinator.requestPull(1)
+    await abandonGachaPresentationBeforeSignOut(coordinator, signOut)
+
+    expect(publish).toHaveBeenCalledOnce()
+    expect(signOut).toHaveBeenCalledOnce()
+    expect(coordinator.getSnapshot()).toEqual({ phase: 'idle' })
+  })
+
+  it('isolates pending state, retry intent and late responses when the authenticated session changes', async () => {
+    const firstPending = deferred<GachaPullRefreshResult>()
+    const publish = vi.fn()
+    const execute = vi.fn()
+      .mockImplementationOnce(() => firstPending.promise)
+      .mockResolvedValueOnce(update('player-b-operation', 1))
+    const createIdempotencyKey = vi.fn()
+      .mockReturnValueOnce('player-a-key')
+      .mockReturnValueOnce('player-b-key')
+    const onPendingCountChange = vi.fn()
+    const coordinator = createGachaPresentationCoordinator({ execute, publish, createIdempotencyKey, onPendingCountChange })
+
+    coordinator.setSession('player-a')
+    const playerAPull = coordinator.requestPull(10)
+    expect(coordinator.setSession('player-b')).toBe(true)
+
+    const playerBResult = await coordinator.requestPull(1)
+    expect(playerBResult.operation.id).toBe('player-b-operation')
+    expect(execute).toHaveBeenNthCalledWith(2, 1, 'player-b-key')
+    expect(coordinator.disclose('player-b-operation')).toBe(true)
+
+    firstPending.resolve(update('late-player-a-operation', 10))
+    await playerAPull
+
+    expect(publish).toHaveBeenCalledOnce()
+    expect(publish).toHaveBeenCalledWith(expect.objectContaining({
+      result: expect.objectContaining({ operation: expect.objectContaining({ id: 'player-b-operation' }) }),
+    }))
+    expect(onPendingCountChange.mock.calls).toEqual([
+      [10, 'player-a'],
+      [1, 'player-b'],
+      [null, 'player-b'],
+    ])
+    expect(coordinator.getSnapshot()).toEqual({ phase: 'idle' })
   })
 })

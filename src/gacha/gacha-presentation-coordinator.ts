@@ -28,13 +28,15 @@ type Dependencies = Readonly<{
   execute: (count: 1 | 10, idempotencyKey: string) => Promise<GachaPullRefreshResult>
   publish: (update: GachaPullRefreshResult) => void
   createIdempotencyKey: () => string
-  onPendingCountChange?: (count: 1 | 10 | null) => void
+  onPendingCountChange?: (count: 1 | 10 | null, sessionId: string | null) => void
 }>
 
 export type GachaPresentationCoordinator = Readonly<{
   requestPull: (count: 1 | 10) => Promise<GachaPullDto>
   disclose: (operationId: string) => boolean
   abandon: () => boolean
+  invalidate: () => boolean
+  setSession: (sessionId: string | null) => boolean
   getSnapshot: () => GachaPresentationSnapshot
 }>
 
@@ -42,6 +44,17 @@ export function createGachaPresentationCoordinator(dependencies: Dependencies): 
   let presentation: GachaPresentationSnapshot = { phase: 'idle' }
   let retryIntent: GachaPullIntent | null = null
   let activeRequest: Promise<GachaPullDto> | null = null
+  let generation = 0
+  let sessionId: string | null = null
+
+  const invalidate = () => {
+    const hadState = presentation.phase !== 'idle' || retryIntent !== null || activeRequest !== null
+    generation += 1
+    presentation = { phase: 'idle' }
+    retryIntent = null
+    activeRequest = null
+    return hadState
+  }
 
   const publishReadyUpdate = (ready: ReadyPresentation) => {
     presentation = { phase: 'idle' }
@@ -63,12 +76,16 @@ export function createGachaPresentationCoordinator(dependencies: Dependencies): 
     }
 
     const intent = selection.intent
+    const requestGeneration = generation
+    const requestSessionId = sessionId
     retryIntent = intent
     presentation = { phase: 'pending', intent, abandoned: false }
-    dependencies.onPendingCountChange?.(count)
+    dependencies.onPendingCountChange?.(count, requestSessionId)
 
     const request = dependencies.execute(count, intent.key)
       .then((update) => {
+        if (requestGeneration !== generation) return update.result
+
         retryIntent = settleGachaPullIntent(intent, { status: 'success' })
         const current = presentation
         if (current.phase !== 'pending' || current.intent.key !== intent.key) return update.result
@@ -82,6 +99,8 @@ export function createGachaPresentationCoordinator(dependencies: Dependencies): 
         return update.result
       })
       .catch((error: unknown) => {
+        if (requestGeneration !== generation) throw error
+
         retryIntent = settleGachaPullIntent(intent, { status: 'failure', error })
         if (presentation.phase === 'pending' && presentation.intent.key === intent.key) {
           presentation = { phase: 'idle' }
@@ -89,8 +108,10 @@ export function createGachaPresentationCoordinator(dependencies: Dependencies): 
         throw error
       })
       .finally(() => {
+        if (requestGeneration !== generation) return
+
         if (activeRequest === request) activeRequest = null
-        dependencies.onPendingCountChange?.(null)
+        dependencies.onPendingCountChange?.(null, requestSessionId)
       })
 
     activeRequest = request
@@ -115,6 +136,22 @@ export function createGachaPresentationCoordinator(dependencies: Dependencies): 
       }
       return false
     },
+    invalidate,
+    setSession(nextSessionId) {
+      if (sessionId === nextSessionId) return false
+      sessionId = nextSessionId
+      invalidate()
+      return true
+    },
     getSnapshot: () => presentation,
   }
+}
+
+export async function abandonGachaPresentationBeforeSignOut(
+  coordinator: GachaPresentationCoordinator,
+  signOut: () => Promise<void>,
+) {
+  coordinator.abandon()
+  coordinator.invalidate()
+  await signOut()
 }

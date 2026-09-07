@@ -84,12 +84,26 @@ describe('BannerHero real Gacha state', () => {
     expect((html.match(/disabled=""/g) ?? [])).toHaveLength(2)
   })
 
-  it('keeps both pull actions disabled when a request survives an Invocation remount', () => {
+  it('freezes pull and target controls while a request survives an Invocation remount', () => {
     const html = renderToStaticMarkup(<BannerHero gacha={data(five[0]!.id)} onSetTarget={vi.fn()} onPull={vi.fn()} pendingPullCount={10} showDetails />)
 
-    expect((html.match(/disabled=""/g) ?? [])).toHaveLength(2)
+    expect((html.match(/disabled=""/g) ?? [])).toHaveLength(3)
+    expect(html).toMatch(/class="banner-change-button" disabled="">Changer<\/button>/)
     expect(html).toContain('Invocation x1')
     expect(html).toContain('Invocation…')
+
+    const availableHtml = renderToStaticMarkup(<BannerHero gacha={data(five[0]!.id)} onSetTarget={vi.fn()} onPull={vi.fn()} pendingPullCount={null} showDetails />)
+    expect((availableHtml.match(/disabled=""/g) ?? [])).toHaveLength(0)
+    expect(availableHtml).toMatch(/class="banner-change-button">Changer<\/button>/)
+  })
+
+  it('prevents every target choice while a Pull request is pending', () => {
+    const onSetTarget = vi.fn()
+    const html = renderToStaticMarkup(<BannerHero gacha={data(null)} onSetTarget={onSetTarget} pendingPullCount={10} />)
+
+    expect((html.match(/character-showcase-gacha/g) ?? [])).toHaveLength(4)
+    expect((html.match(/disabled=""/g) ?? [])).toHaveLength(4)
+    expect(onSetTarget).not.toHaveBeenCalled()
   })
 
   it('keeps the compact no-target preview passive and navigable', () => {

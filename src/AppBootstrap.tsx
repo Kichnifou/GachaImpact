@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import { ApiError, getGameApiClient } from './api/game-api'
 import type { CurrentGachaDto, DailyRewardTodayDto, ElementKey, GachaCharacterDto, GachaPullDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, WheelTodayDto } from './api/types'
@@ -12,7 +12,7 @@ import { apiErrorMessage } from './utils/formatters'
 import { wheelTodayFromSpin } from './wheel/wheel-presentation'
 import { claimDailyRewardAndRefresh } from './daily-reward/claim-daily-reward'
 import { performGachaPullAndRefresh } from './gacha/perform-gacha-pull'
-import { createGachaPresentationCoordinator, type GachaPresentationCoordinator } from './gacha/gacha-presentation-coordinator'
+import { abandonGachaPresentationBeforeSignOut, createGachaPresentationCoordinator, type GachaPresentationCoordinator } from './gacha/gacha-presentation-coordinator'
 
 function AppBootstrap() {
   const { status: authStatus, session, configurationMessage, signOut } = useAuth()
@@ -24,7 +24,7 @@ function AppBootstrap() {
   const [dailyRewardToday, setDailyRewardToday] = useState<DailyRewardTodayDto | null>(null)
   const [gacha, setGacha] = useState<CurrentGachaDto | null>(null)
   const [characters, setCharacters] = useState<readonly GachaCharacterDto[] | null>(null)
-  const [pendingGachaPullCount, setPendingGachaPullCount] = useState<1 | 10 | null>(null)
+  const [pendingGachaPull, setPendingGachaPull] = useState<{ sessionId: string | null; count: 1 | 10 } | null>(null)
   const [resolvedUserId, setResolvedUserId] = useState<string | null>(null)
   const [fatalError, setFatalError] = useState<{ userId: string; message: string } | null>(null)
 
@@ -63,9 +63,22 @@ function AppBootstrap() {
       execute: (count, idempotencyKey) => performGachaPullAndRefresh(getGameApiClient(), count, idempotencyKey),
       publish: publishGachaUpdate,
       createIdempotencyKey: () => crypto.randomUUID(),
-      onPendingCountChange: setPendingGachaPullCount,
+      onPendingCountChange: (count, pendingSessionId) => {
+        setPendingGachaPull((current) => {
+          if (count !== null) return { sessionId: pendingSessionId, count }
+          return current?.sessionId === pendingSessionId ? null : current
+        })
+      },
     })
   }
+
+  useLayoutEffect(() => {
+    gachaPresentation.current?.setSession(sessionUserId ?? null)
+  }, [sessionUserId])
+
+  const pendingGachaPullCount = pendingGachaPull && pendingGachaPull.sessionId === sessionUserId
+    ? pendingGachaPull.count
+    : null
 
   useEffect(() => {
     if (authStatus !== 'signedIn' || !sessionUserId) return
@@ -194,7 +207,10 @@ function AppBootstrap() {
         await loadResources()
         return result
       }}
-      onSignOut={signOut}
+      onSignOut={async () => {
+        setPendingGachaPull(null)
+        await abandonGachaPresentationBeforeSignOut(gachaPresentation.current!, signOut)
+      }}
     />
   )
 }
