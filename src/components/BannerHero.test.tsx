@@ -44,6 +44,7 @@ describe('BannerHero real Gacha state', () => {
     expect(html).toContain('Cible 5★ de la rotation hebdomadaire.</p><p>Pity, Garantie et Capture sont conservées entre les rotations.')
     expect(html).toContain('banner-change-button')
     expect(html).toContain('>Détail<')
+    expect(html).toMatch(/banner-meta-stack[\s\S]*banner-end-date[\s\S]*>Détail<[\s\S]*>Changer</)
     expect(html).toContain('primary-pity')
     expect(html).toContain('gacha-state-secondary')
     expect(html).toContain('Pity 4★')

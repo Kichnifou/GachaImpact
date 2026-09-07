@@ -1,6 +1,16 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
-import GachaDetailModal from './GachaDetailModal'
+import type { GachaHistoryDto, GachaHistoryResultDto } from '../api/types'
+import { historyDateLabel } from '../gacha/history-presentation'
+import GachaDetailModal, { HistoryPanel, PassivesPanel } from './GachaDetailModal'
+
+const historyResult: GachaHistoryResultDto = {
+  operationId: 'op', operationPullCount: 1, occurredAt: '2026-09-06T20:25:20.778Z', index: 1,
+  resultType: 'resource', character: null, rarity: null, resourceKey: 'moras', resourceAmount: '6614',
+  wasNewCharacter: null, constellationAfter: null, copiesAfter: null, wasFiftyFifty: false, wonFiftyFifty: null,
+  guaranteeConsumed: false, captureTriggered: false, bonusRewards: [], c6Progression: null, pity5AtPull: 74, pity4AtPull: 9,
+}
+const history: GachaHistoryDto = { page: 1, pageSize: 10, totalResults: 1, totalPages: 1, hasPrevious: false, hasNext: false, results: [historyResult] }
 
 describe('GachaDetailModal', () => {
   it('renders as an internal overlay with accessible tabs and close control', () => {
@@ -13,5 +23,26 @@ describe('GachaDetailModal', () => {
     expect(html).toContain('>Passifs<')
     expect(html).toContain('aria-label="Fermer le détail"')
     expect(html).toContain('Chargement de l’historique')
+  })
+
+  it('keeps date and time while shortening columns and showing only five-star pity', () => {
+    const html = renderToStaticMarkup(<HistoryPanel history={history} loading={false} error={null} onPage={vi.fn()} />)
+    const dateLabel = historyDateLabel(historyResult.occurredAt)
+    expect(html).toContain('<th>Date</th>')
+    expect(html).toContain('<th>Événement</th>')
+    expect(html).not.toContain('Date/heure')
+    expect(html).not.toContain('Événement Gacha')
+    expect(html).toContain('5★ : 74')
+    expect(html).not.toContain('4★ : 9')
+    expect(dateLabel).toMatch(/06\/09\/2026[\s\S]*\d{2}:25/)
+    expect(html).toContain(dateLabel)
+  })
+
+  it('keeps useful passives without technical or discarded copy', () => {
+    const html = renderToStaticMarkup(<PassivesPanel />)
+    expect(html).toContain('passifs de votre Équipe active')
+    expect(html).not.toContain('Équipe serveur')
+    expect(html).not.toContain('Maximum 2 stacks')
+    expect(html).not.toContain('après la résolution du Pull')
   })
 })

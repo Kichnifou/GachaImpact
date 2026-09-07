@@ -96,9 +96,11 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, 
           <p>Pity, Garantie et Capture sont conservées entre les rotations.</p>
         </div>
         <div className="banner-meta-actions">
-          <span className="banner-end-date">Fin le {new Date(gacha.banner.endsAt).toLocaleDateString('fr-FR')}</span>
+          <div className="banner-meta-stack">
+            <span className="banner-end-date">Fin le {new Date(gacha.banner.endsAt).toLocaleDateString('fr-FR')}</span>
+            {showDetails && onGetHistory && <button type="button" className="banner-change-button detail" onClick={() => setDetailOpen(true)}>Détail</button>}
+          </div>
           {showDetails && <button type="button" className="banner-change-button" onClick={() => setChoosing(true)}>Changer</button>}
-          {showDetails && onGetHistory && <button type="button" className="banner-change-button detail" onClick={() => setDetailOpen(true)}>Détail</button>}
         </div>
       </div>
       {!compact && <FeaturedFourStars characters={gacha.banner.featuredFourStars} />}

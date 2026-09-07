@@ -1,7 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent, MouseEvent } from 'react'
 import {
   acquireRevealLock,
+  fiveStarSuspenseDurationMs,
+  invocationSurfaceAction,
+  nextRevealRarity,
   releaseRevealLock,
   revealResultKey,
   revealTransitionDurationMs,
@@ -18,39 +21,69 @@ type Props = Readonly<{
 }>
 
 function InvocationSequence({ state, onAdvance, onSkip, onClose }: Props) {
-  const canAdvance = state.phase === 'intro' || state.phase === 'reveal'
+  const [suspense, setSuspense] = useState(false)
   const advanceLocked = useRef(false)
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const surfaceAction = invocationSurfaceAction(state)
+  const canUseSurface = surfaceAction !== null && !suspense
+
   useEffect(() => () => {
     if (advanceTimer.current !== null) clearTimeout(advanceTimer.current)
   }, [])
-  const requestAdvance = () => {
-    if (!canAdvance || !acquireRevealLock(advanceLocked)) return
-    onAdvance()
+
+  const unlockAfterReveal = () => {
     advanceTimer.current = setTimeout(() => {
       releaseRevealLock(advanceLocked)
       advanceTimer.current = null
     }, revealTransitionDurationMs)
   }
-  const advance = (event: MouseEvent<HTMLElement>) => {
-    if (canAdvance && !isControl(event.target)) requestAdvance()
+
+  const clearPresentation = () => {
+    if (advanceTimer.current !== null) clearTimeout(advanceTimer.current)
+    advanceTimer.current = null
+    releaseRevealLock(advanceLocked)
+    setSuspense(false)
   }
-  const advanceWithKeyboard = (event: KeyboardEvent<HTMLElement>) => {
-    if (!canAdvance || !shouldAdvanceSequenceWithKeyboard(event.key, isControl(event.target))) return
+
+  const requestSurfaceAction = () => {
+    if (!surfaceAction || !acquireRevealLock(advanceLocked)) return
+    if (surfaceAction === 'close') {
+      onClose()
+      return
+    }
+    if (nextRevealRarity(state) === 5) {
+      setSuspense(true)
+      advanceTimer.current = setTimeout(() => {
+        onAdvance()
+        setSuspense(false)
+        unlockAfterReveal()
+      }, fiveStarSuspenseDurationMs)
+      return
+    }
+    onAdvance()
+    unlockAfterReveal()
+  }
+
+  const activateSurface = (event: MouseEvent<HTMLElement>) => {
+    if (canUseSurface && !isControl(event.target)) requestSurfaceAction()
+  }
+  const activateSurfaceWithKeyboard = (event: KeyboardEvent<HTMLElement>) => {
+    if (!canUseSurface || !shouldAdvanceSequenceWithKeyboard(event.key, isControl(event.target))) return
     event.preventDefault()
-    requestAdvance()
+    requestSurfaceAction()
   }
   const stop = (event: MouseEvent<HTMLButtonElement>) => event.stopPropagation()
   const rarity = state.phase === 'submitting' ? 'pending' : state.bestRarity
+  const surfaceLabel = surfaceAction === 'close' ? 'Fermer les résultats' : 'Révéler le résultat suivant'
 
   return (
     <div
-      className={`invocation-sequence sequence-${state.phase} sequence-rarity-${rarity}`}
-      onClick={advance}
-      onKeyDown={advanceWithKeyboard}
-      role={canAdvance ? 'button' : undefined}
-      tabIndex={canAdvance ? 0 : undefined}
-      aria-label={canAdvance ? 'Révéler le résultat suivant' : undefined}
+      className={`invocation-sequence sequence-${state.phase} sequence-rarity-${rarity}${suspense ? ' sequence-suspense-active' : ''}`}
+      onClick={activateSurface}
+      onKeyDown={activateSurfaceWithKeyboard}
+      role={canUseSurface ? 'button' : undefined}
+      tabIndex={canUseSurface ? 0 : undefined}
+      aria-label={canUseSurface ? surfaceLabel : undefined}
       aria-live="polite"
     >
       <div className="sequence-sky" aria-hidden="true">
@@ -63,28 +96,33 @@ function InvocationSequence({ state, onAdvance, onSkip, onClose }: Props) {
       {state.phase === 'submitting' && <div className="sequence-message">
         <span>Connexion au portail</span>
         <h2>Les astres se rassemblent…</h2>
-        <p>Le résultat est calculé et enregistré par le serveur.</p>
+        <p>Le destin se met en mouvement…</p>
       </div>}
 
-      {state.phase === 'intro' && <div className="sequence-message intro-message">
+      {suspense && <div className="sequence-suspense-stage" role="status">
+        <span className="suspense-star" aria-hidden="true">✦</span>
+        <strong>Une présence exceptionnelle approche…</strong>
+      </div>}
+
+      {!suspense && state.phase === 'intro' && <div className="sequence-message intro-message">
         <span>Invocation x{state.count}</span>
         <h2>{state.bestRarity === 5 ? 'Une lumière légendaire répond' : state.bestRarity === 4 ? 'Une lueur rare traverse le ciel' : 'Le portail s’ouvre'}</h2>
         <p>Cliquez dans le cadre pour révéler.</p>
       </div>}
 
-      {state.phase === 'reveal' && <div className="sequence-reveal-stage">
+      {!suspense && state.phase === 'reveal' && <div className="sequence-reveal-stage">
         <div className="sequence-counter">Résultat {state.resultIndex + 1} / {state.pull.results.length}</div>
         <PullResultCard key={revealResultKey(state.pull.operation.id, state.pull.results[state.resultIndex]!.index)} result={state.pull.results[state.resultIndex]!} />
         {state.count === 10 && <p className="sequence-hint">Cliquez pour continuer</p>}
       </div>}
 
-      {state.phase === 'summary' && <div className="sequence-summary">
+      {!suspense && state.phase === 'summary' && <div className="sequence-summary">
         <header><span>Invocation validée</span><h2>Récapitulatif x10</h2></header>
         <PullResults pull={state.pull} />
       </div>}
 
-      {(state.phase === 'intro' || (state.phase === 'reveal' && state.count === 10)) && <button type="button" className="sequence-control sequence-skip" onClick={(event) => { stop(event); onSkip() }}>Passer</button>}
-      {((state.phase === 'reveal' && state.count === 1) || state.phase === 'summary') && <button type="button" className="icon-button sequence-control sequence-close" onClick={(event) => { stop(event); onClose() }} aria-label="Fermer les résultats"><span className="icon-glyph">×</span></button>}
+      {(state.phase === 'intro' || (state.phase === 'reveal' && state.count === 10)) && <button type="button" className="sequence-control sequence-skip" onClick={(event) => { stop(event); clearPresentation(); onSkip() }}>Passer</button>}
+      {((state.phase === 'reveal' && state.count === 1) || state.phase === 'summary') && <button type="button" className="icon-button sequence-control sequence-close" onClick={(event) => { stop(event); clearPresentation(); onClose() }} aria-label="Fermer les résultats"><span className="icon-glyph">×</span></button>}
     </div>
   )
 }

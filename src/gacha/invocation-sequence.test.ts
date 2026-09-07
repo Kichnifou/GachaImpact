@@ -3,8 +3,11 @@ import type { GachaPullDto, GachaPullResultItemDto } from '../api/types'
 import {
   acquirePullLock,
   acquireRevealLock,
+  fiveStarSuspenseDurationMs,
   idleInvocationSequence,
+  invocationSurfaceAction,
   invocationSequenceReducer,
+  nextRevealRarity,
   releaseRevealLock,
   revealResultKey,
   revealTransitionDurationMs,
@@ -13,6 +16,7 @@ import {
 
 const state = { pity5: 0, pity4: 0, guaranteedFeatured5: false, captureProgress: 0, fiftyFiftyLostStreak: 0, selectedBannerCharacterId: 'target', totalPulls: '10', totalFiveStars: '1', totalFourStars: '1', fiftyFiftyWon: '1', fiftyFiftyLost: '0', capturesTriggered: '0' }
 const resource = (index: number, resourceKey = 'moras'): GachaPullResultItemDto => ({ index, resultType: 'resource', character: null, rarity: null, resourceKey, resourceAmount: '5000', wasNewCharacter: null, constellationAfter: null, copiesAfter: null, wasFiftyFifty: false, wonFiftyFifty: null, guaranteeConsumed: false, captureTriggered: false, bonusRewards: [], c6Progression: null })
+const fiveStar = (index: number): GachaPullResultItemDto => ({ ...resource(index), resultType: 'character', character: { id: 'c', externalKey: 'c', name: 'Arlecchino', rarity: 5, elementKey: 'pyro', weaponType: null, region: null, classKey: null, iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null }, rarity: 5, resourceKey: null, resourceAmount: null, wasNewCharacter: true, constellationAfter: 0, copiesAfter: 1 })
 const pull = (count: 1 | 10, results: readonly GachaPullResultItemDto[]): GachaPullDto => ({ operation: { id: 'op', pullCount: count, primogemCost: count === 1 ? '160' : '1600', createdAt: '2026-09-06T12:00:00Z', alreadyProcessed: false }, results, playerState: state })
 
 describe('Invocation sequence state machine', () => {
@@ -52,9 +56,8 @@ describe('Invocation sequence state machine', () => {
   })
 
   it('announces the best persisted rarity and rejects a second synchronous pull lock', () => {
-    const fiveStar = { ...resource(8), resultType: 'character' as const, character: { id: 'c', externalKey: 'c', name: 'Arlecchino', rarity: 5 as const, elementKey: 'pyro' as const, weaponType: null, region: null, classKey: null, iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null }, rarity: 5 as const, resourceKey: null, resourceAmount: null, wasNewCharacter: true, constellationAfter: 0, copiesAfter: 1 }
     const submitting = invocationSequenceReducer(idleInvocationSequence, { type: 'submit', count: 10, idempotencyKey: 'gold' })
-    expect(invocationSequenceReducer(submitting, { type: 'resolved', pull: pull(10, [...Array.from({ length: 7 }, (_, index) => resource(index + 1)), fiveStar, resource(9), resource(10)]) })).toMatchObject({ phase: 'intro', bestRarity: 5 })
+    expect(invocationSequenceReducer(submitting, { type: 'resolved', pull: pull(10, [...Array.from({ length: 7 }, (_, index) => resource(index + 1)), fiveStar(8), resource(9), resource(10)]) })).toMatchObject({ phase: 'intro', bestRarity: 5 })
     const lock = { current: false }
     expect(acquirePullLock(lock)).toBe(true)
     expect(acquirePullLock(lock)).toBe(false)
@@ -107,5 +110,32 @@ describe('Invocation sequence state machine', () => {
     expect(shouldAdvanceSequenceWithKeyboard('Enter', true)).toBe(false)
     expect(shouldAdvanceSequenceWithKeyboard(' ', true)).toBe(false)
     expect(shouldAdvanceSequenceWithKeyboard('Escape', false)).toBe(false)
+  })
+
+  it('maps clicks on the Invocation surface to advance or close according to the phase', () => {
+    const submitting = invocationSequenceReducer(idleInvocationSequence, { type: 'submit', count: 1, idempotencyKey: 'surface-x1' })
+    const intro = invocationSequenceReducer(submitting, { type: 'resolved', pull: pull(1, [resource(1)]) })
+    const reveal = invocationSequenceReducer(intro, { type: 'advance' })
+    expect(invocationSurfaceAction(submitting)).toBeNull()
+    expect(invocationSurfaceAction(intro)).toBe('advance')
+    expect(invocationSurfaceAction(reveal)).toBe('close')
+
+    const tenSubmitting = invocationSequenceReducer(idleInvocationSequence, { type: 'submit', count: 10, idempotencyKey: 'surface-x10' })
+    const tenIntro = invocationSequenceReducer(tenSubmitting, { type: 'resolved', pull: pull(10, Array.from({ length: 10 }, (_, index) => resource(index + 1))) })
+    const tenReveal = invocationSequenceReducer(tenIntro, { type: 'advance' })
+    const summary = invocationSequenceReducer(tenReveal, { type: 'skip' })
+    expect(invocationSurfaceAction(tenReveal)).toBe('advance')
+    expect(invocationSurfaceAction(summary)).toBe('close')
+  })
+
+  it('announces a bounded suspense before the next five-star reveal', () => {
+    const results = [resource(1), fiveStar(2), resource(3)]
+    let sequence = invocationSequenceReducer(idleInvocationSequence, { type: 'submit', count: 10, idempotencyKey: 'suspense' })
+    sequence = invocationSequenceReducer(sequence, { type: 'resolved', pull: pull(10, results) })
+    expect(nextRevealRarity(sequence)).toBe(3)
+    sequence = invocationSequenceReducer(sequence, { type: 'advance' })
+    expect(nextRevealRarity(sequence)).toBe(5)
+    expect(fiveStarSuspenseDurationMs).toBeGreaterThanOrEqual(1000)
+    expect(fiveStarSuspenseDurationMs).toBeLessThanOrEqual(2000)
   })
 })

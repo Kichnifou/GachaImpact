@@ -1,5 +1,5 @@
 import type { GachaPullDto } from '../api/types'
-import { bestPullRarity, type PullDisplayRarity } from './pull-result-presentation'
+import { bestPullRarity, pullDisplayRarity, type PullDisplayRarity } from './pull-result-presentation'
 
 type SequenceData = Readonly<{
   count: 1 | 10
@@ -23,6 +23,28 @@ export type InvocationSequenceEvent =
 
 export const idleInvocationSequence: InvocationSequenceState = { phase: 'idle' }
 export const revealTransitionDurationMs = 500
+export const fiveStarSuspenseDurationMs = 1400
+
+export type InvocationSurfaceAction = 'advance' | 'close'
+
+export function invocationSurfaceAction(state: InvocationSequenceState): InvocationSurfaceAction | null {
+  if (state.phase === 'intro') return 'advance'
+  if (state.phase === 'reveal') return state.count === 1 ? 'close' : 'advance'
+  if (state.phase === 'summary') return 'close'
+  return null
+}
+
+export function nextRevealRarity(state: InvocationSequenceState): PullDisplayRarity | null {
+  if (state.phase === 'intro') {
+    const nextResult = state.pull.results[0]
+    return nextResult ? pullDisplayRarity(nextResult) : null
+  }
+  if (state.phase === 'reveal' && state.count === 10) {
+    const nextResult = state.pull.results[state.resultIndex + 1]
+    return nextResult ? pullDisplayRarity(nextResult) : null
+  }
+  return null
+}
 
 export function revealResultKey(operationId: string, resultIndex: number): string {
   return `${operationId}-${resultIndex}`

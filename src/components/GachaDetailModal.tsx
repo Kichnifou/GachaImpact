@@ -66,7 +66,7 @@ function Tab({ id, active, onSelect, children }: { id: DetailTab; active: Detail
   return <button type="button" role="tab" aria-selected={active === id} className={active === id ? 'active' : ''} onClick={() => onSelect(id)}>{children}</button>
 }
 
-function HistoryPanel({ history, loading, error, onPage }: { history: GachaHistoryDto | null; loading: boolean; error: string | null; onPage: (page: number) => void }) {
+export function HistoryPanel({ history, loading, error, onPage }: { history: GachaHistoryDto | null; loading: boolean; error: string | null; onPage: (page: number) => void }) {
   if (loading && !history) return <p className="detail-status">Chargement de l’historique…</p>
   if (error) return <p className="detail-status error" role="alert">{error}</p>
   if (!history) return <p className="detail-status">Chargement de l’historique…</p>
@@ -74,7 +74,7 @@ function HistoryPanel({ history, loading, error, onPage }: { history: GachaHisto
   return <div className="history-panel">
     <div className="history-table-wrap">
       <table className="gacha-history-table">
-        <thead><tr><th>Date/heure</th><th>Résultat</th><th>Rareté</th><th>Pity</th><th>Événement Gacha</th><th>Progression</th></tr></thead>
+        <thead><tr><th>Date</th><th>Résultat</th><th>Rareté</th><th>Pity</th><th>Événement</th><th>Progression</th></tr></thead>
         <tbody>{history.results.map((result) => <tr key={`${result.operationId}-${result.index}`}>
           <td>{historyDateLabel(result.occurredAt)}</td>
           <td>{historyResultLabel(result)}</td>
@@ -121,11 +121,10 @@ const passives = [
   ['Dendro', '1/25 : +40 Primogemmes, +1 000 Moras et +5 particules de chaque élément', '1/15 : mêmes gains'],
 ] as const
 
-function PassivesPanel() {
+export function PassivesPanel() {
   return <div className="passives-panel">
-    <p className="passives-notice">Les effets ci-dessous seront actifs lorsque l’Équipe serveur réelle sera raccordée. Ils ne modifient pas encore les Pulls publics.</p>
+    <p className="passives-notice">Ces effets s’éveilleront lorsque les passifs de votre Équipe active seront disponibles.</p>
     <div className="passives-grid">{passives.map(([element, one, two]) => <article key={element}><h3>{element}</h3><p><strong>1 stack</strong>{one}</p><p><strong>2 stacks</strong>{two}</p></article>)}</div>
-    <p>Maximum 2 stacks par élément. Le proc Electro intervient après la résolution du Pull.</p>
   </div>
 }
 
