@@ -12,7 +12,7 @@ import { apiErrorMessage } from './utils/formatters'
 import { wheelTodayFromSpin } from './wheel/wheel-presentation'
 import { claimDailyRewardAndRefresh } from './daily-reward/claim-daily-reward'
 import { performGachaPullAndRefresh } from './gacha/perform-gacha-pull'
-import { abandonGachaPresentationBeforeSignOut, createGachaPresentationCoordinator, type GachaPresentationCoordinator } from './gacha/gacha-presentation-coordinator'
+import { abandonGachaPresentationBeforeSignOut, applyGachaPrimogemCostPreview, createGachaPresentationCoordinator, type GachaPresentationCoordinator, type GachaPrimogemCostPreview } from './gacha/gacha-presentation-coordinator'
 
 function AppBootstrap() {
   const { status: authStatus, session, configurationMessage, signOut } = useAuth()
@@ -25,6 +25,7 @@ function AppBootstrap() {
   const [gacha, setGacha] = useState<CurrentGachaDto | null>(null)
   const [characters, setCharacters] = useState<readonly GachaCharacterDto[] | null>(null)
   const [pendingGachaPull, setPendingGachaPull] = useState<{ sessionId: string | null; count: 1 | 10 } | null>(null)
+  const [gachaPrimogemPreview, setGachaPrimogemPreview] = useState<GachaPrimogemCostPreview | null>(null)
   const [resolvedUserId, setResolvedUserId] = useState<string | null>(null)
   const [fatalError, setFatalError] = useState<{ userId: string; message: string } | null>(null)
 
@@ -60,7 +61,7 @@ function AppBootstrap() {
   const gachaPresentation = useRef<GachaPresentationCoordinator | null>(null)
   if (gachaPresentation.current === null) {
     gachaPresentation.current = createGachaPresentationCoordinator({
-      execute: (count, idempotencyKey) => performGachaPullAndRefresh(getGameApiClient(), count, idempotencyKey),
+      execute: (count, idempotencyKey, onPullSucceeded) => performGachaPullAndRefresh(getGameApiClient(), count, idempotencyKey, onPullSucceeded),
       publish: publishGachaUpdate,
       createIdempotencyKey: () => crypto.randomUUID(),
       onPendingCountChange: (count, pendingSessionId) => {
@@ -68,6 +69,10 @@ function AppBootstrap() {
           if (count !== null) return { sessionId: pendingSessionId, count }
           return current?.sessionId === pendingSessionId ? null : current
         })
+      },
+      onPrimogemCostPreview: setGachaPrimogemPreview,
+      onPrimogemCostPreviewCleared: (previewSessionId) => {
+        setGachaPrimogemPreview((current) => current?.sessionId === previewSessionId ? null : current)
       },
     })
   }
@@ -78,6 +83,9 @@ function AppBootstrap() {
 
   const pendingGachaPullCount = pendingGachaPull && pendingGachaPull.sessionId === sessionUserId
     ? pendingGachaPull.count
+    : null
+  const visibleResources = resources
+    ? applyGachaPrimogemCostPreview(resources, gachaPrimogemPreview, sessionUserId)
     : null
 
   useEffect(() => {
@@ -173,14 +181,14 @@ function AppBootstrap() {
     )
   }
 
-  if (!player || !resources || !progression || !wheelToday || !dailyRewardToday || !gacha || !characters) {
+  if (!player || !resources || !visibleResources || !progression || !wheelToday || !dailyRewardToday || !gacha || !characters) {
     return <StatusScreen title="Chargement du profil…" message="Synchronisation de vos ressources." loading />
   }
 
   return (
     <GameShell
       player={player}
-      resources={resources}
+      resources={visibleResources}
       progression={progression}
       wheelToday={wheelToday}
       dailyRewardToday={dailyRewardToday}
@@ -190,7 +198,7 @@ function AppBootstrap() {
         const { playerState } = await getGameApiClient().setGachaTarget(characterId)
         setGacha((current) => current ? { ...current, playerState } : current)
       }}
-      onPullGacha={(count): Promise<GachaPullDto> => gachaPresentation.current!.requestPull(count)}
+      onPullGacha={(count): Promise<GachaPullDto> => gachaPresentation.current!.requestPull(count, resources.primogems)}
       pendingGachaPullCount={pendingGachaPullCount}
       onGachaPresentationDisclosed={(operationId) => { gachaPresentation.current?.disclose(operationId) }}
       onGachaPresentationAbandoned={() => { gachaPresentation.current?.abandon() }}
@@ -209,6 +217,7 @@ function AppBootstrap() {
       }}
       onSignOut={async () => {
         setPendingGachaPull(null)
+        setGachaPrimogemPreview(null)
         await abandonGachaPresentationBeforeSignOut(gachaPresentation.current!, signOut)
       }}
     />

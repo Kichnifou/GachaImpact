@@ -17,11 +17,14 @@ describe('performGachaPullAndRefresh', () => {
       getResources: vi.fn(async () => { order.push('resources'); return { primogems: '0' } }),
       getCurrentGacha: vi.fn(async () => { order.push('gacha'); return { playerState: { pity5: 1 } } }),
     } as unknown as GameApiClient
-    const result = await performGachaPullAndRefresh(api, 1, 'intent')
+    const onPullSucceeded = vi.fn(() => { order.push('confirmed') })
+    const result = await performGachaPullAndRefresh(api, 1, 'intent', onPullSucceeded)
     expect(order[0]).toBe('pull')
-    expect(new Set(order.slice(1))).toEqual(new Set(['resources', 'gacha']))
+    expect(order[1]).toBe('confirmed')
+    expect(new Set(order.slice(2))).toEqual(new Set(['resources', 'gacha']))
     expect(pullGacha).toHaveBeenCalledOnce()
     expect(pullGacha).toHaveBeenCalledWith(1, 'intent')
+    expect(onPullSucceeded).toHaveBeenCalledOnce()
     expect(result).toMatchObject({ result: { operation: { id: 'op' } }, resources: { primogems: '0' }, gacha: { playerState: { pity5: 1 } }, failedRefreshes: [] })
   })
 
@@ -58,12 +61,14 @@ describe('performGachaPullAndRefresh', () => {
     const pullGacha = vi.fn(async () => { throw error })
     const getResources = vi.fn()
     const getCurrentGacha = vi.fn()
+    const onPullSucceeded = vi.fn()
     const api = { pullGacha, getResources, getCurrentGacha } as unknown as GameApiClient
-    await expect(performGachaPullAndRefresh(api, 1, 'intent')).rejects.toBe(error)
+    await expect(performGachaPullAndRefresh(api, 1, 'intent', onPullSucceeded)).rejects.toBe(error)
     expect(shouldPreserveGachaPullIntent(error)).toBe(true)
     expect(pullGacha).toHaveBeenCalledOnce()
     expect(getResources).not.toHaveBeenCalled()
     expect(getCurrentGacha).not.toHaveBeenCalled()
+    expect(onPullSucceeded).not.toHaveBeenCalled()
   })
 
   it.each([

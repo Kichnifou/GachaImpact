@@ -54,8 +54,14 @@ export type GachaPullRefreshResult = Readonly<{
   failedRefreshes: readonly ('resources' | 'gacha')[]
 }>
 
-export async function performGachaPullAndRefresh(api: GameApiClient, count: 1 | 10, idempotencyKey: string): Promise<GachaPullRefreshResult> {
+export async function performGachaPullAndRefresh(
+  api: GameApiClient,
+  count: 1 | 10,
+  idempotencyKey: string,
+  onPullSucceeded?: (result: GachaPullDto) => void,
+): Promise<GachaPullRefreshResult> {
   const result = await api.pullGacha(count, idempotencyKey)
+  onPullSucceeded?.(result)
   const [resourcesRefresh, gachaRefresh] = await Promise.allSettled([api.getResources(), api.getCurrentGacha()])
   const failedRefreshes: ('resources' | 'gacha')[] = []
   if (resourcesRefresh.status === 'rejected') failedRefreshes.push('resources')
