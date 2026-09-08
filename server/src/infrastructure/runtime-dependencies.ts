@@ -23,6 +23,8 @@ import { GetCharacters, GetCurrentGacha, GetGachaHistory, PerformGachaPull, SetG
 import { WeeklyBannerScheduler } from '../application/gacha/weekly-banner-scheduler.js';
 import { GetCurrentPlayerBox, SetBoxCharacterFavorite, SetBoxSortPreference, UseMasterlessStella } from '../application/box/box-services.js';
 import { PrismaBoxStore } from './database/prisma-box-store.js';
+import { ActivatePlayerTeam, ClearPlayerTeam, GetCurrentPlayerTeams, RemovePlayerTeamSlot, SetPlayerTeamSlot } from '../application/team/team-services.js';
+import { PrismaTeamStore } from './database/prisma-team-store.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
   if (!config.databaseUrl) {
@@ -40,6 +42,7 @@ export function createRuntimeDependencies(config: AppConfig) {
   const random = new NodeRandomSource();
   const scheduler = new WeeklyBannerScheduler(gachaStore, clock, random);
   const boxStore = new PrismaBoxStore(database);
+  const teamStore = new PrismaTeamStore(database);
 
   return {
     authIdentityVerifier: createSupabaseAuthAdapter(issuer),
@@ -69,6 +72,11 @@ export function createRuntimeDependencies(config: AppConfig) {
     setBoxCharacterFavorite: new SetBoxCharacterFavorite(getCurrentPlayer, boxStore),
     setBoxSortPreference: new SetBoxSortPreference(getCurrentPlayer, boxStore),
     useMasterlessStella: new UseMasterlessStella(getCurrentPlayer, boxStore, clock, random),
+    getCurrentPlayerTeams: new GetCurrentPlayerTeams(getCurrentPlayer, teamStore),
+    activatePlayerTeam: new ActivatePlayerTeam(getCurrentPlayer, teamStore),
+    setPlayerTeamSlot: new SetPlayerTeamSlot(getCurrentPlayer, teamStore),
+    removePlayerTeamSlot: new RemovePlayerTeamSlot(getCurrentPlayer, teamStore),
+    clearPlayerTeam: new ClearPlayerTeam(getCurrentPlayer, teamStore),
     start: () => scheduler.start(),
     close: async () => { scheduler.stop(); await database.$disconnect(); },
   };

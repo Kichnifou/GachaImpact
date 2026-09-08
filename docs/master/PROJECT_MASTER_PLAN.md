@@ -1,7 +1,7 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.67
-Date : 2026-09-07
+Version : 0.68
+Date : 2026-09-08
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
@@ -3535,7 +3535,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Box / Possessions / Obtention — premier lot réel publiquement validé ; sous-lot tri persistant et Masterless Stella Fortuna implémenté localement sur `review`, en attente de review GitHub puis de validation publique.**
+**Team / Équipe / Passifs — premier lot réel implémenté sur `review` : modèle serveur autoritatif, 10 Teams de base, Team active persistante, édition 0..4, sidebar réelle et passifs dérivés ; en attente de review GitHub puis de validation publique.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3552,8 +3552,8 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - squelette Fastify / TypeScript checkpointé ;
 - Prisma ORM 7.10.0 stable ;
 - Supabase DEV provisionné et connexion PostgreSQL fonctionnelle ;
-- cinq migrations versionnées appliquées sur Supabase DEV, jusqu'à `005_add_gacha_pull` ;
-- 21 tables présentes, dont les nouvelles tables privées `player_characters`, `c6_competition_progress`, `pull_operations` et `pull_results` ;
+- sept migrations versionnées appliquées sur Supabase DEV, jusqu'à `007_add_teams` ;
+- 26 tables présentes, dont les tables privées `player_characters`, `c6_competition_progress`, `pull_operations`, `pull_results`, `player_preferences`, `item_definitions`, `player_items`, `teams` et `team_members` ;
 - référentiels seedés avec 7 éléments et 9 ressources ;
 - RLS activée sur les tables de fondation, sans policy client permissive ;
 - Auth Supabase réel checkpointé au commit `027d230f7d047e0469076418d3d5122e831bdce6` ;
@@ -3574,17 +3574,17 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - domaine Récompense quotidienne réelle : **CLÔTURÉ comme checkpoint fonctionnel**.
 - Progression Player réelle / dé-mock Niveau-XP : **VALIDÉE PUBLIQUEMENT PAR LE PROPRIÉTAIRE / CLÔTURÉE** sur [https://gachaimpact.pages.dev](https://gachaimpact.pages.dev) ; vrai Niveau 0, `0 / 30 XP`, barre réelle, F5, logout/login, second compte et non-régression Ressources / Daily Reward / Roue validés ;
 - `GET /api/v1/me/progression` expose les compteurs `bigint` lossless et le niveau dérivé de l'XP cumulative selon `min(floor(xp / 30), 100)`, sans endpoint de gain ou de mutation d'XP ;
-- la sidebar charge niveau, XP du palier et barre depuis l'état serveur au bootstrap authentifié ; l'objectif Gacha, Pity, Garantie et Capture ont depuis été reliés à l'état Gacha réel, tandis que la Team reste encore une présentation mock avant son lot métier ;
-- tests unitaires frontend/backend, builds, lint, tests DB réels et statut Prisma : **VALIDÉS TECHNIQUEMENT** ; les nombres exacts du sous-lot Box 0.67 sont consignés dans son rapport de checkpoint.
+- la sidebar charge niveau, XP du palier et barre depuis l'état serveur au bootstrap authentifié ; l'objectif Gacha, Pity, Garantie et Capture sont reliés à l'état Gacha réel, et le panneau Équipe active lit désormais la Team serveur autoritative ;
+- tests unitaires frontend/backend, builds, lint, tests DB réels et statut Prisma : **VALIDÉS TECHNIQUEMENT** ; les nombres exacts du lot Team 0.68 sont consignés dans son rapport de checkpoint.
 - Gacha — catalogue / bannière / cible / état joueur et présentation UI associée : **FONDATIONS PUBLIQUEMENT VALIDÉES SANS RÉSERVE PAR LE PROPRIÉTAIRE — DOMAINE CLÔTURÉ** ; catalogue réel, rotation réelle, quatre 5★, six 4★, sélection/changement/persistance de cible, état joueur Gacha et présentation Pity/Garantie/Capture sont validés ;
 - UI Gacha : **PUBLIQUEMENT VALIDÉE ET CLÔTURÉE** pour Hero splash, picker 5★ 2×2, primitive responsive commune des portraits, variantes Team/Équipe active/Box/Personnages/4★ Invocation, desktop, mobile portrait et paysage, sidebar Objectif, aperçu Invocation de l'Accueil, navigation et Particules agrandies ;
-- Personnages et Team restent validés ici pour leur **présentation actuelle**. La Box personnelle consomme désormais les possessions serveur réelles ; les Teams autoritatives ne sont pas encore implémentées ;
+- Personnages reste validé ici pour sa présentation actuelle. La Box personnelle et l'écran Team consomment désormais leurs données serveur réelles ;
 - moteur Pull x1/x10 serveur implémenté et testé : coût complet de 160/1 600 Primogemmes, résolution séquentielle, Pity 5★/4★, 50/50, Garantie, Capture, récompenses secondaires, possessions/copies/constellations, remboursements C6+ et progression C6 minimale ; la statistique augmentée et sa valeur finale, ou l'état maxé, sont conservés dans le snapshot individuel du PullResult ;
 - le débit économique centralisé alimente `ResourceMovement` et `PlayerEconomyStats.totalPrimosSpent` ; les récompenses et remboursements réutilisent le crédit commun ;
 - chaque intention crée une `BusinessOperation` et une `PullOperation`, puis 1 ou 10 `PullResult` ordonnés dans une transaction `SERIALIZABLE` avec verrouillage des états joueur ; les retries d'une même clé sont idempotents, restituent notamment la progression C6 déjà snapshotée sans nouveau RNG ni second crédit, et les dépenses concurrentes ne peuvent pas produire de solde négatif ;
 - route authentifiée `POST /api/v1/gacha/pull` ajoutée avec payload `{ count: 1 | 10, idempotencyKey: UUID }` et DTO lossless ;
 - les boutons x1/x10 sont actifs uniquement dans l'écran Invocation ; l'Accueil reste passif. Dès que le POST autoritatif réussit, le frontend libère l'intention et révèle le résultat persistant ; les refreshs Ressources/Gacha deviennent secondaires, avec conservation du résultat et fallback sur son `playerState` si un GET échoue ;
-- les passifs Pull de Team restent volontairement à zéro : aucune donnée de `mockData` n'est utilisée et le branchement attend une Team serveur autoritative ;
+- les passifs Team sont dérivés côté serveur depuis les éléments de chaque composition et exposés à l'écran Team ; leur application au moteur Pull reste volontairement reportée à la passe Team immédiate suivante, car l'effet Cryo exige d'abord une primitive centrale de gain d'XP et les sept effets doivent être raccordés ensemble sans implémentation partielle ;
 - le premier test public du Pull a validé le backend, le débit économique, la Pity et la persistance après F5 : Arlecchino 5★ a été obtenue sur un vrai 50/50 gagné, puis 6 614 Moras au Pull suivant ; ces deux résultats réels de `Kichnifou` sont conservés ;
 - ce même test public n’a **pas** validé l’UX initiale : résultat ajouté sous la bannière, scroll nécessaire, absence de vraie séquence et symbole générique pour les Moras ;
 - le test public de la V2 Invocation, promu au commit `b06948827d89f8b2cd4f69c6365066d891ca48ce`, a validé l’animation, le flow x1/x10, les ressources, le clic de surface, l’Historique, le récapitulatif x10 et l’immersion générale ;
@@ -3611,18 +3611,18 @@ Le vertical slice Pull réel est physiquement implémenté. Le **target design**
 - le Pull reste persisté immédiatement et autoritairement côté serveur, mais son état Resources/Gacha post-Pull est conservé dans un buffer frontend temporaire tant que la présentation volontaire reste active. Après confirmation réussie du POST, la sidebar affiche uniquement `primogemsAvant - primogemCost` depuis le snapshot pré-Pull et le coût autoritatif : Pity, Garantie, Capture, Moras, Particules, remboursements et autres gains restent figés. La fermeture du x1 ou l’ouverture du récapitulatif x10, y compris via `Passer`, publie ensuite l’état final complet ;
 - quitter Invocation abandonne la présentation : si la réponse est prête, son état est publié immédiatement ; si elle est encore en cours, la requête et son intention idempotente restent protégées au-dessus de l’écran, puis l’état est publié à son arrivée sans replay ni navigation forcée. Un retour sur Invocation avant la réponse ne permet ni second Pull ni changement de cible. Lors d’un logout, la présentation visible est détachée mais un registre frontend éphémère conserve par `userId` la seule connaissance d’une requête réellement en vol : le même joueur reconnecté dans la même vie de page retrouve le verrou jusqu’à résolution, tandis qu’un autre joueur n’est jamais bloqué et ne reçoit aucune publication tardive. Si la requête s’est terminée pendant l’absence, le bootstrap recharge l’état serveur sans replay. Ce verrou mémoire ne survit volontairement ni au F5, ni à la fermeture du navigateur, ni au changement d’appareil ;
 - toute la surface libre du cadre permet d’avancer pendant un x10 ou de fermer un résultat x1 et le récapitulatif, sans propagation depuis les vrais contrôles ; les textes player-facing restent immersifs et n’exposent aucun vocabulaire serveur, backend, API, sauvegarde ou idempotence ;
-- les passifs Team sont documentés de façon concise dans la modale mais demeurent volontairement inactifs jusqu’au raccordement d’une Team serveur autoritative ;
+- les passifs Team sont documentés dans la modale et dérivés par une primitive serveur centrale ; leur raccordement gameplay au Pull reste la prochaine passe Team immédiate, après mise en place de la primitive XP requise par Cryo ;
 - Backlog durable — **Asset cleanup personnages** : recenser les personnages sans portrait/icon canonique et retrouver/renseigner leurs vrais portraits afin d’éviter le fallback splash dans les composants compacts ;
 - un crédit de test idempotent de +1 000 000 Primogemmes a été appliqué au seul Player ACTIVE `Kichnifou` via le moteur économique central, sous la clé `manual-test-credit:kichnifou:2026-09-06:1000000` et la cause `admin.manual-test-credit`, sans endpoint ni script permanent ;
 - tests unitaires, API, frontend et DB couvrent les règles critiques, l’idempotence, la concurrence, le rollback, la state machine d’affichage, le mapping d’assets, l’Historique, sa pagination, son ordre et son isolation par Player.
 
-La Team reste hors de ce checkpoint métier : aucune Team autoritative ne fournit encore de passifs au moteur Pull.
+La Team autoritative existe désormais, mais aucun passif ne modifie encore le moteur Pull : ce raccord doit intégrer les sept effets en une seule passe cohérente et auditable.
 
 Ordre de reprise après validation propriétaire : Pull réel validé → Box/possessions réelles → Team réelle → suite de `docs/roadmap/implementation-order-v1.md`.
 
 ## État du lot — Box / Possessions / Obtention
 
-Premier lot Box réel déployé et publiquement testé ; sous-lot tri persistant, Stella et micro-polish implémenté sur `review` :
+Box personnelle et sous-lot tri persistant/Stella déployés et publiquement testés ; micro-polish final intégré au candidat Team :
 
 - source autoritative unique : `player_characters`, jointe au catalogue `characters` sans duplication de données ; aucune migration ajoutée ;
 - `GET /api/v1/me/box` authentifié retourne uniquement les possessions du Player courant dont le personnage catalogue est actif, avec constellation bornée C0..C6, copies, première obtention immuable, favori et assets catalogue ; les possessions orphelines ou invisibles restent conservées en base mais ne sont pas exposées ;
@@ -3633,16 +3633,31 @@ Premier lot Box réel déployé et publiquement testé ; sous-lot tri persistant
 - onglets temporaires `Tous` / `5★` / `4★`, recherche normalisée, sept filtres élémentaires incluant Dendro, filtres C0..C6 et tris alphabétique/date d’obtention/constellation/élément ascendant ou descendant ;
 - favoris réordonnés immédiatement et de façon optimiste, avec rollback sur erreur : dans `Tous`, favoris 5★ puis favoris 4★ puis non-favoris 5★ puis non-favoris 4★ ; le tri actif s’applique à l’intérieur de chaque groupe ;
 - loading, erreur avec retry, Box vide et aucun résultat de filtres possèdent des états dédiés ;
-- validation publique propriétaire réussie pour le chargement des possessions réelles, le résumé, les cartes, les favoris et leur ordre, la recherche, les onglets, les filtres, les tris, le lien Invocation → Box et les non-régressions ; la fiche détaillée est fonctionnelle mais son polish visuel reste à revalider ;
-- la fiche conserve son dialog, son crop validé et la priorité `iconPath`, avec une hauteur utile resserrée ; le symbole asset de l’élément est aligné à droite du nom dans le panneau d’information, sans ligne texte ni badge sur le portrait ;
+- validation publique propriétaire réussie pour le chargement des possessions réelles, le résumé, les cartes, les favoris et leur ordre, la recherche, les onglets, les filtres, les tris, le lien Invocation → Box, la fiche resserrée, l'identité élémentaire, le cache et les non-régressions ;
+- la fiche conserve son dialog, son crop sûr et la priorité `iconPath`, avec une hauteur utile encore légèrement resserrée sans étirement ; le symbole asset de l'élément reste aligné à droite du nom, sans ligne texte ni badge sur le portrait ;
 - un cache mémoire Box strictement associé au Player courant applique R771 : retour immédiat depuis le snapshot connu, GET autoritatif systématique à chaque ouverture, remplacement silencieux après succès, erreur inline sans masquer le cache, synchronisation après favori confirmé et protection du cache comme de l’UI contre une réponse de revalidation devenue stale après cette mutation, puis vidage avant sign-out ; aucun `localStorage` ni cache durable ;
 - la typographie des noms de révélations individuelles Invocation conserve sa protection des descendantes (`g`, `p`, `q`, `y`, `j`) et rapproche uniquement les étoiles du nom ; cette correction reste une non-régression ciblée et ne rouvre pas le domaine Invocation ;
 - la migration additive `006_add_box_preferences_and_items` est versionnée et appliquée uniquement sur Supabase DEV : `player_preferences`, `item_definitions` et `player_items` sont privées, RLS activée, sans policy client ; la définition canonique active `masterless-stella-fortuna` est seedée une seule fois et aucun solde joueur n’est créé automatiquement ;
 - le tri Box persiste côté serveur uniquement `{ sortKey, direction }` sous la préférence `box.sort`, avec fallback alphabétique ascendant ; onglet, recherche, élément et constellation restent temporaires et reviennent à leur état neutre à chaque ouverture ;
 - `GET /api/v1/me/box` expose la préférence de tri et le solde Stella autoritatifs ; `PATCH /api/v1/me/box/preference` valide strictement les quatre tris et les deux directions ; aucun `localStorage` n’est source durable ;
 - `POST /api/v1/me/box/:characterId/stella` consomme une Stella dans une transaction `SERIALIZABLE` idempotente : cible possédée, active et 5★ seulement, acquisition via le service central de possession, transition C6 et progression via le service partagé du Gacha, refus avant consommation si C6 totalement maxé, sans remboursement Primogemmes ni compensation Moras ;
-- la fiche 5★ montre le solde, désactive l’action à zéro et exige une confirmation unique détaillant constellation/copies ; le succès met immédiatement à jour fiche, grille et cache, puis déclenche une revalidation autoritative protégée contre les réponses obsolètes ; les 4★ ne proposent aucune action Stella ; l’intention frontend est éphémère, isolée par Player et conserve sa même clé d’idempotence après une erreur réseau/serveur ambiguë, y compris après un aller-retour hors de la Box dans la même vie d’application, tandis qu’un succès ou une erreur définitive la libère ;
-- Box publique/confidentialité, intégration Expedition, assets manquants et polish final restent des sous-domaines Box ultérieurs ; l’extraction générique du pattern cache/SWR ne sera envisagée qu’au deuxième consommateur réel.
+- la fiche 5★ montre le solde, désactive l'action à zéro et exige une confirmation unique détaillant constellation/copies ; le succès met immédiatement à jour fiche, grille et cache, puis déclenche une revalidation autoritative protégée contre les réponses obsolètes ; les 4★ ne proposent aucune action Stella ; l'intention frontend est éphémère, isolée par Player et conserve sa même clé d'idempotence après une erreur réseau/serveur ambiguë, y compris après un aller-retour hors de la Box dans la même vie d'application, tandis qu'un succès ou une erreur définitive la libère ; l'affichage Stella à zéro est publiquement validé, tandis que la consommation runtime et les cas C5→C6/C6+ seront revalidés avec le domaine Concours/C6, sans crédit de test dans ce lot ;
+- Box publique/confidentialité dépend de Profil/Social, Box + Expedition dépend du domaine Expedition et les assets manquants restent au backlog transverse. Ces dépendances ne rouvrent pas la Box personnelle, désormais clôturée comme checkpoint fonctionnel.
+
+## État du lot — Team / Équipe / Passifs
+
+Premier lot Team réel implémenté sur `review` et appliqué uniquement à Supabase DEV :
+
+- migration additive `007_add_teams` : tables privées `teams` et `team_members`, identifiants techniques UUID, position Team unique par Player, index unique partiel garantissant au plus une Team active, quatre positions de membre contraintes, personnage unique par Team, RLS activée et droits `anon`/`authenticated` révoqués ;
+- backfill idempotent des 10 Teams de base pour les Players DEV existants et provisioning transactionnel paresseux au premier `GET /api/v1/me/teams` pour tout Player nouveau ou incomplet ; Team 1 devient active uniquement lorsqu'aucune Team active n'existe ;
+- une Team vide, partielle ou complète peut être activée explicitement ; l'activation désactive l'ancienne sans toucher aux compositions ; créer ou éditer une composition ne déclenche aucune activation implicite ;
+- API authentifiée : lecture des Teams, activation, ajout/remplacement direct d'un slot, retrait et vidage ; chaque mutation relit l'état autoritatif et valide côté serveur la propriété, l'activité catalogue, la position 1..4 et l'absence de doublon ;
+- l'écran Team ne lit plus `mockData` : sélecteur alimenté par les possessions actives réelles, recherche contiguë normalisée accents/casse, filtre élémentaire, personnages déjà présents visibles mais désactivés, quatre slots ordonnés et actions persistantes ;
+- la sidebar lit exactement la même Team active et affiche son numéro, son nom éventuel, 0..4 personnages, constellations réelles et emplacements vides ; elle reste en lecture seule ;
+- les passifs sont calculés par la primitive serveur partagée `deriveTeamPassives`, de 0 à 2 stacks par élément, y compris pour une Team partielle et plusieurs éléments simultanés ; aucune valeur de passif n'est persistée par Player ;
+- un personnage catalogue désactivé n'est ni sélectionnable ni exposé et ne contribue à aucun passif ; chaque lecture/mutation Team purge transactionnellement ses memberships devenus inactifs pour le Player courant, de sorte qu'une réactivation ultérieure ne le restaure jamais automatiquement ;
+- aucun cache Team supplémentaire n'est introduit : le bootstrap garde le snapshot courant en mémoire et chaque lecture/mutation retourne immédiatement l'état autoritatif, sans bénéfice actuel justifiant une abstraction SWR concurrente à celle de la Box ;
+- raccord Gacha différé : le moteur Pull ne consomme encore aucun stack Team. La prochaine passe Team doit d'abord fournir le gain d'XP serveur central requis par Cryo, puis raccorder et snapshotter ensemble les sept effets R75–R84, sans modifier les probabilités validées ni introduire de calcul frontend.
 
 État du premier parcours frontend standalone :
 
@@ -3672,7 +3687,7 @@ Premier lot Box réel déployé et publiquement testé ; sous-lot tri persistant
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Finaliser les validations automatisées et visuelles du sous-lot Box 0.67 → créer/pousser le nouveau commit uniquement sur `review` → review GitHub ChatGPT → corrections éventuelles → promotion vers `main` seulement après approbation → validation publique propriétaire du tri persistant, de la fiche et de l’état Stella à zéro.** `PAID_INFRA_APPROVED = false` reste inchangé.
+**Finaliser les validations automatisées et visuelles du premier lot Team 0.68 → créer/pousser le nouveau commit uniquement sur `review` → review GitHub ChatGPT → corrections éventuelles → promotion vers `main` seulement après approbation → validation publique propriétaire des 10 Teams, de l’activation, de l’édition, de la sidebar et des passifs affichés → passe Team immédiate de raccord des sept passifs au Pull après ajout de la primitive XP serveur requise par Cryo.** `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

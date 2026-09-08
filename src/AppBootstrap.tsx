@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import { ApiError, getGameApiClient } from './api/game-api'
-import type { CurrentGachaDto, DailyRewardTodayDto, ElementKey, GachaCharacterDto, GachaPullDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, WheelTodayDto } from './api/types'
+import type { CurrentGachaDto, DailyRewardTodayDto, ElementKey, GachaCharacterDto, GachaPullDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, WheelTodayDto } from './api/types'
 import { useAuth } from './auth/auth-context'
 import { resolveBootstrapStage } from './auth/bootstrap-state'
 import AuthScreen from './components/AuthScreen'
@@ -24,6 +24,7 @@ function AppBootstrap() {
   const [dailyRewardToday, setDailyRewardToday] = useState<DailyRewardTodayDto | null>(null)
   const [gacha, setGacha] = useState<CurrentGachaDto | null>(null)
   const [characters, setCharacters] = useState<readonly GachaCharacterDto[] | null>(null)
+  const [teams, setTeams] = useState<PlayerTeamsDto | null>(null)
   const [pendingGachaPull, setPendingGachaPull] = useState<{ sessionId: string | null; count: 1 | 10 } | null>(null)
   const [gachaPrimogemPreview, setGachaPrimogemPreview] = useState<GachaPrimogemCostPreview | null>(null)
   const [resolvedUserId, setResolvedUserId] = useState<string | null>(null)
@@ -42,16 +43,22 @@ function AppBootstrap() {
     (await getGameApiClient().setBoxSortPreference(preference)).preference, [])
   const useStella = useCallback((characterId: string, idempotencyKey: string) =>
     getGameApiClient().useStella(characterId, idempotencyKey), [])
+  const loadTeams = useCallback(async () => {
+    const nextTeams = await getGameApiClient().getTeams()
+    setTeams(nextTeams)
+    return nextTeams
+  }, [])
 
   const loadGameState = useCallback(async () => {
     const api = getGameApiClient()
-    const [nextResources, nextProgression, nextWheelToday, nextDailyRewardToday, nextGacha, nextCatalog] = await Promise.all([
+    const [nextResources, nextProgression, nextWheelToday, nextDailyRewardToday, nextGacha, nextCatalog, nextTeams] = await Promise.all([
       api.getResources(),
       api.getProgression(),
       api.getWheelToday(),
       api.getDailyRewardToday(),
       api.getCurrentGacha(),
       api.getCharacters(),
+      api.getTeams(),
     ])
     setResources(nextResources)
     setProgression(nextProgression)
@@ -59,6 +66,7 @@ function AppBootstrap() {
     setDailyRewardToday(nextDailyRewardToday)
     setGacha(nextGacha)
     setCharacters(nextCatalog.characters)
+    setTeams(nextTeams)
   }, [])
 
   const publishGachaUpdate = useCallback((refreshed: Awaited<ReturnType<typeof performGachaPullAndRefresh>>) => {
@@ -122,6 +130,7 @@ function AppBootstrap() {
           setDailyRewardToday(null)
           setGacha(null)
           setCharacters(null)
+          setTeams(null)
           setFatalError(null)
           setResolvedUserId(sessionUserId)
           return
@@ -144,7 +153,7 @@ function AppBootstrap() {
     authStatus,
     player,
     playerResolved,
-    resources !== null && progression !== null && wheelToday !== null && dailyRewardToday !== null && gacha !== null && characters !== null,
+    resources !== null && progression !== null && wheelToday !== null && dailyRewardToday !== null && gacha !== null && characters !== null && teams !== null,
   )
   const currentFatalError =
     fatalError && fatalError.userId === sessionUserId ? fatalError.message : null
@@ -189,7 +198,7 @@ function AppBootstrap() {
     )
   }
 
-  if (!player || !resources || !visibleResources || !progression || !wheelToday || !dailyRewardToday || !gacha || !characters) {
+  if (!player || !resources || !visibleResources || !progression || !wheelToday || !dailyRewardToday || !gacha || !characters || !teams) {
     return <StatusScreen title="Chargement du profil…" message="Synchronisation de vos ressources." loading />
   }
 
@@ -202,6 +211,12 @@ function AppBootstrap() {
       dailyRewardToday={dailyRewardToday}
       gacha={gacha}
       characters={characters}
+      teams={teams}
+      onLoadTeams={loadTeams}
+      onActivateTeam={async (teamId) => { const next = await getGameApiClient().activateTeam(teamId); setTeams(next); return next }}
+      onSetTeamSlot={async (teamId, position, characterId) => { const next = await getGameApiClient().setTeamSlot(teamId, position, characterId); setTeams(next); return next }}
+      onRemoveTeamSlot={async (teamId, position) => { const next = await getGameApiClient().removeTeamSlot(teamId, position); setTeams(next); return next }}
+      onClearTeam={async (teamId) => { const next = await getGameApiClient().clearTeam(teamId); setTeams(next); return next }}
       onSetGachaTarget={async (characterId) => {
         const { playerState } = await getGameApiClient().setGachaTarget(characterId)
         setGacha((current) => current ? { ...current, playerState } : current)
@@ -230,6 +245,7 @@ function AppBootstrap() {
       onSignOut={async () => {
         setPendingGachaPull(null)
         setGachaPrimogemPreview(null)
+        setTeams(null)
         await abandonGachaPresentationBeforeSignOut(gachaPresentation.current!, signOut)
       }}
     />

@@ -134,6 +134,37 @@ export type StellaUseDto = Readonly<{
     | null
 }>
 
+export type TeamCharacterDto = GachaCharacterDto & Readonly<{
+  constellation: number
+}>
+
+export type TeamPassiveDefinitionDto = Readonly<{
+  elementKey: ElementKey
+  displayName: string
+  levelOne: string
+  levelTwo: string
+}>
+
+export type TeamPassiveDto = TeamPassiveDefinitionDto & Readonly<{
+  stacks: 1 | 2
+  description: string
+}>
+
+export type PlayerTeamDto = Readonly<{
+  id: string
+  position: number
+  name: string | null
+  active: boolean
+  slots: readonly Readonly<{ position: 1 | 2 | 3 | 4; character: TeamCharacterDto | null }>[]
+  passives: readonly TeamPassiveDto[]
+}>
+
+export type PlayerTeamsDto = Readonly<{
+  teams: readonly PlayerTeamDto[]
+  availableCharacters: readonly TeamCharacterDto[]
+  passiveReference: readonly TeamPassiveDefinitionDto[]
+}>
+
 export type GachaPullResultItemDto = Readonly<{
   index: number
   resultType: 'character' | 'resource'

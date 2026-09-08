@@ -57,7 +57,7 @@ function BoxCharacterDetailModal({ character, stellaQuantity, stellaRetryAvailab
             <div><dt>Favori</dt><dd>{character.favorite ? 'Oui' : 'Non'}</dd></div>
           </dl>
           {character.rarity === 5 && <section className="box-stella-zone" aria-label="Masterless Stella Fortuna">
-            <div><strong>Masterless Stella Fortuna × {stellaQuantity}</strong><small>Renforce ce personnage d’une copie.</small></div>
+            <div><strong>Masterless Stella Fortuna × {stellaQuantity}</strong><small>Renforce ce personnage</small></div>
             <button type="button" disabled={(!hasStella && !stellaRetryAvailable) || stellaPending} onClick={() => { stellaSubmitted.current = false; setConfirmingStella(true) }}>{stellaPending ? 'Utilisation…' : stellaRetryAvailable ? 'Reprendre l’utilisation' : 'Utiliser une Stella'}</button>
             {(stellaFeedback || stellaRetryAvailable) && <p className="box-stella-feedback" role="status">{stellaFeedback ?? 'Résultat à vérifier · la nouvelle tentative reprendra la même opération.'}</p>}
           </section>}

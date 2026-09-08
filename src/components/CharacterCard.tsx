@@ -2,9 +2,9 @@ import type { GachaCharacterDto } from '../api/types'
 import type { Character } from '../types'
 import CharacterPortraitFrame from './CharacterPortraitFrame'
 
-type CharacterCardProps = { character: GachaCharacterDto | Character; compact?: boolean; selected?: boolean; onClick?: () => void }
+type CharacterCardProps = { character: GachaCharacterDto | Character; compact?: boolean; selected?: boolean; disabled?: boolean; onClick?: () => void }
 
-function CharacterCard({ character, compact = false, selected = false, onClick }: CharacterCardProps) {
+function CharacterCard({ character, compact = false, selected = false, disabled = false, onClick }: CharacterCardProps) {
   const catalogCharacter = 'externalKey' in character ? character : null
   const legacyCharacter = catalogCharacter ? null : character as Character
   const elementKey = catalogCharacter?.elementKey ?? legacyCharacter!.tone
@@ -28,7 +28,7 @@ function CharacterCard({ character, compact = false, selected = false, onClick }
     </div>
     {selected && <span className="selected-mark">✓</span>}
   </>
-  const className = `character-card ${elementKey}${compact ? ' compact' : ''}${selected ? ' selected' : ''}`
-  return onClick ? <button type="button" className={className} onClick={onClick}>{content}</button> : <article className={className}>{content}</article>
+  const className = `character-card ${elementKey}${compact ? ' compact' : ''}${selected ? ' selected' : ''}${disabled ? ' disabled' : ''}`
+  return onClick ? <button type="button" className={className} disabled={disabled} onClick={onClick}>{content}</button> : <article className={className}>{content}</article>
 }
 export default CharacterCard

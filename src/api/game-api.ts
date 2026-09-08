@@ -20,6 +20,7 @@ import type {
   BoxCharacterDto,
   BoxSortPreferenceDto,
   StellaUseDto,
+  PlayerTeamsDto,
 } from './types'
 
 type ApiClientDependencies = Readonly<{
@@ -129,6 +130,15 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
       request<StellaUseDto>(`/api/v1/me/box/${characterId}/stella`, {
         method: 'POST', body: JSON.stringify({ idempotencyKey }),
       }),
+    getTeams: () => request<PlayerTeamsDto>('/api/v1/me/teams'),
+    activateTeam: (teamId: string) => request<PlayerTeamsDto>(`/api/v1/me/teams/${teamId}/active`, { method: 'PATCH' }),
+    setTeamSlot: (teamId: string, position: number, characterId: string) =>
+      request<PlayerTeamsDto>(`/api/v1/me/teams/${teamId}/slots/${position}`, {
+        method: 'PUT', body: JSON.stringify({ characterId }),
+      }),
+    removeTeamSlot: (teamId: string, position: number) =>
+      request<PlayerTeamsDto>(`/api/v1/me/teams/${teamId}/slots/${position}`, { method: 'DELETE' }),
+    clearTeam: (teamId: string) => request<PlayerTeamsDto>(`/api/v1/me/teams/${teamId}/slots`, { method: 'DELETE' }),
   }
 }
 

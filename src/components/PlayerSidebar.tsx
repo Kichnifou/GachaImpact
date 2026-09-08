@@ -1,6 +1,5 @@
 import type { CSSProperties } from 'react'
-import type { CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto } from '../api/types'
-import { activeTeam } from '../data/mockData'
+import type { CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto } from '../api/types'
 import { getProgressionPercent } from '../progression/presentation'
 import type { ScreenId } from '../types'
 import { currencyAssetPaths, getElementAssetPath } from '../utils/gameAssets'
@@ -21,11 +20,12 @@ type PlayerSidebarProps = {
   dailyRewardToday: DailyRewardTodayDto
   onClaimDailyReward: () => Promise<DailyRewardClaimDto>
   gacha: CurrentGachaDto
+  teams: PlayerTeamsDto
 }
 
 const particleElements = ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro'] as const
 
-function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, progression, dailyRewardToday, onClaimDailyReward, gacha }: PlayerSidebarProps) {
+function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, progression, dailyRewardToday, onClaimDailyReward, gacha, teams }: PlayerSidebarProps) {
   const featuredCharacter = gacha.banner.featuredFiveStars.find(({ id }) => id === gacha.playerState.selectedBannerCharacterId)
   const progressionPercent = getProgressionPercent(progression)
   const elementTheme = playerData.elementKey ? elementThemes[playerData.elementKey] : null
@@ -42,6 +42,8 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
     '--objective-watermark-opacity': objectiveTheme.watermarkOpacity,
     '--objective-watermark-brightness': objectiveTheme.watermarkBrightness,
   } as CSSProperties : undefined
+  const activeTeam = teams.teams.find(({ active }) => active) ?? teams.teams[0]
+  const activeMembers = activeTeam?.slots.filter(({ character }) => character !== null).length ?? 0
 
   return (
     <aside className={`player-sidebar${isOpen ? ' mobile-open' : ''}`} aria-label="Informations du joueur">
@@ -102,22 +104,22 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
 
         <section className="panel team-card">
         <button type="button" className="section-heading section-link" onClick={() => onNavigate('team')}>
-          <span>Équipe active</span><small>4 / 4</small>
+          <span>Équipe active</span><small>{activeTeam ? `Team ${activeTeam.position}${activeTeam.name ? ` · ${activeTeam.name}` : ''} · ` : ''}{activeMembers} / 4</small>
         </button>
         <div className="team-grid">
-          {activeTeam.map((member) => (
-            <CharacterShowcaseCard
-              variant="sidebar"
-              name={member.name}
-              rarity={member.rarity}
-              element={member.element}
-              tone={member.tone}
-              fallback={<span>{member.name.slice(0, 1)}</span>}
-              level={member.level}
-              constellation={member.constellation}
-              key={member.id}
-            />
-          ))}
+          {(activeTeam?.slots ?? []).map(({ position, character }) => character ? (
+              <CharacterShowcaseCard
+                variant="sidebar"
+                name={character.name}
+                rarity={character.rarity}
+                element={character.elementKey}
+                tone={character.elementKey}
+                assetPaths={[character.iconPath, character.fullbodyPath, character.wishPath, character.splashPath]}
+                fallback={<span>{character.name.slice(0, 1)}</span>}
+                constellation={character.constellation}
+                key={position}
+              />
+            ) : <article className="team-member empty-sidebar-team-slot" aria-label={`Emplacement ${position} vide`} key={position}><span aria-hidden="true">＋</span><small>Vide</small></article>)}
         </div>
         </section>
 

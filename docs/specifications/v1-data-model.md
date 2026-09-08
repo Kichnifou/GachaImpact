@@ -801,7 +801,9 @@ L'ancien historique non migré n'est pas recréé.
 - `savedAt` legacy éventuel
 - état
 
-Le Player porte une référence vers sa Team active.
+L'identité active est portée par `Team.isActive`, avec une contrainte garantissant au plus une Team active par Player. Il n'existe pas de composition active séparée.
+
+État physique 0.68 : `teams` est créé avec un UUID technique, la position d'affichage, le nom facultatif, `isActive`, l'indicateur de slot de base, la provenance temporelle legacy facultative et les timestamps. La migration `007_add_teams` backfill les dix positions des Players existants ; le service Team complète transactionnellement et idempotemment les positions manquantes au premier GET.
 
 ## 13.2 `TeamMember`
 
@@ -828,6 +830,8 @@ Ils ne sont pas persistés par joueur comme vérité indépendante.
 Catalogue/configuration serveur des passifs.
 
 Une seule définition partagée entre Team, affichage et moteur Gacha.
+
+État physique 0.68 : le référentiel des sept passifs est pour l'instant une configuration serveur fortement typée utilisée par `deriveTeamPassives`. La table catalogue cible reste différée jusqu'à ce qu'un besoin d'administration ou de configuration dynamique la justifie ; aucune valeur dérivée n'est persistée par Player.
 
 ---
 

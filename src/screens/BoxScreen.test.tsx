@@ -114,6 +114,8 @@ describe('real personal Box', () => {
   it('shows Stella only for five-stars, keeps zero visible and requires confirmation', () => {
     const five = renderToStaticMarkup(<BoxCharacterDetailModal character={records[0]!} {...modalProps} />)
     expect(five).toContain('Masterless Stella Fortuna × 0')
+    expect(five).toContain('Renforce ce personnage')
+    expect(five).not.toContain('Renforce ce personnage d’une copie.')
     expect(five).toContain('Utiliser une Stella')
     expect(five).toContain('disabled=""')
     const four = renderToStaticMarkup(<BoxCharacterDetailModal character={records[1]!} {...modalProps} stellaQuantity="2" />)

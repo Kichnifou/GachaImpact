@@ -84,10 +84,10 @@ function CharacterShowcaseCard({
     <span className={`${classes.copy} character-display-copy`}>
       <strong className="character-showcase-name">{name}</strong>
       <span className="character-rarity">{'★'.repeat(rarity)}</span>
-      {level !== undefined && constellation !== undefined && (
+      {(level !== undefined || constellation !== undefined) && (
         <span className="character-display-meta character-showcase-meta">
-          <span>{levelLabel} {level}</span>
-          <span>C{constellation}</span>
+          {level !== undefined && <span>{levelLabel} {level}</span>}
+          {constellation !== undefined && <span>C{constellation}</span>}
         </span>
       )}
     </span>

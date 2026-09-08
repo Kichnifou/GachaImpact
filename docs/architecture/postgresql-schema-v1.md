@@ -1071,6 +1071,10 @@ Colonnes :
 
 Les passifs actifs d'un joueur sont dérivés de sa Team active.
 
+État physique 0.68 : la migration additive `007_add_teams` crée `teams` et `team_members`, backfill les dix Teams de base des Players DEV existants, active Team 1 lorsqu'elle est créée par ce backfill, active la RLS et révoque les droits directs `anon`/`authenticated`. Les nouveaux Players sont complétés par un provisioning paresseux transactionnel et idempotent au premier GET Team ; aucune composition existante n'est écrasée.
+
+`element_passive_definitions` reste une cible d'administration future. Le premier lot réel conserve les sept définitions dans une configuration serveur fortement typée et ne persiste que les Teams/memberships, jamais les stacks dérivées.
+
 ---
 
 # 15. Inventaire / objets
@@ -2762,7 +2766,7 @@ Le service unique de création doit créer atomiquement :
 8. `player_gacha_states`
 9. `player_wheel_stats`
 10. les valeurs de confidentialité par défaut
-11. Team 1 et positions de base lorsque le domaine Team est installé
+11. Team 1 et positions de base lorsque le domaine Team est installé, actuellement complétées de façon transactionnelle au premier GET Team
 12. autres sous-états seulement lorsque leurs migrations existent
 
 Le provisionnement doit être rejouable sans créer de doublons.

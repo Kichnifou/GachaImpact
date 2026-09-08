@@ -41,6 +41,8 @@ const expectedTables = [
   'pull_results',
   'resource_definitions',
   'resource_movements',
+  'team_members',
+  'teams',
   'web_identities',
 ] as const;
 
@@ -83,6 +85,9 @@ const expectedCheckConstraints = [
   'resource_movements_balance_after_nonnegative_check',
   'resource_movements_balance_before_nonnegative_check',
   'resource_movements_balance_consistency_check',
+  'team_members_position_check',
+  'teams_display_position_positive_check',
+  'teams_name_length_check',
 ] as const;
 
 const expectedManualIndexes = [
@@ -94,6 +99,10 @@ const expectedManualIndexes = [
   'players_display_name_lower_idx',
   'pull_operations_player_created_at_idx',
   'pull_results_operation_index_key',
+  'team_members_character_id_idx',
+  'teams_one_active_per_player_idx',
+  'teams_player_active_idx',
+  'teams_player_display_position_key',
 ] as const;
 
 afterAll(async () => {
@@ -181,7 +190,11 @@ describe('Supabase development database', () => {
           'player_items_item_id_idx',
           'players_display_name_lower_idx',
           'pull_operations_player_created_at_idx',
-          'pull_results_operation_index_key'
+          'pull_results_operation_index_key',
+          'team_members_character_id_idx',
+          'teams_one_active_per_player_idx',
+          'teams_player_active_idx',
+          'teams_player_display_position_key'
         )
       ORDER BY indexname
     `;

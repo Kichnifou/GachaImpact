@@ -20,10 +20,12 @@ import type { GetTodayWheelState } from './application/wheel/get-today-wheel-sta
 import { registerDailyRewardRoutes } from './api/routes/daily-reward.js';
 import { registerGachaRoutes } from './api/routes/gacha.js';
 import { registerBoxRoutes } from './api/routes/box.js';
+import { registerTeamRoutes } from './api/routes/team.js';
 import type { GetCharacters, GetCurrentGacha, GetGachaHistory, PerformGachaPull, SetGachaTarget } from './application/gacha/gacha-services.js';
 import type { GetTodayDailyReward } from './application/daily-reward/get-today-daily-reward.js';
 import type { ClaimDailyReward } from './application/daily-reward/claim-daily-reward.js';
 import type { GetCurrentPlayerBox, SetBoxCharacterFavorite, SetBoxSortPreference, UseMasterlessStella } from './application/box/box-services.js';
+import type { ActivatePlayerTeam, ClearPlayerTeam, GetCurrentPlayerTeams, RemovePlayerTeamSlot, SetPlayerTeamSlot } from './application/team/team-services.js';
 import type { AppConfig } from './config/environment.js';
 import { loadConfig } from './config/environment.js';
 
@@ -46,6 +48,11 @@ export type AppDependencies = Readonly<{
   setBoxCharacterFavorite?: SetBoxCharacterFavorite;
   setBoxSortPreference?: SetBoxSortPreference;
   useMasterlessStella?: UseMasterlessStella;
+  getCurrentPlayerTeams?: GetCurrentPlayerTeams;
+  activatePlayerTeam?: ActivatePlayerTeam;
+  setPlayerTeamSlot?: SetPlayerTeamSlot;
+  removePlayerTeamSlot?: RemovePlayerTeamSlot;
+  clearPlayerTeam?: ClearPlayerTeam;
   close?: () => Promise<void>;
 }>;
 
@@ -66,7 +73,7 @@ export async function buildApp(
     origin: (requestOrigin, callback) => {
       callback(null, requestOrigin === frontendOrigin);
     },
-    methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['authorization', 'content-type', 'x-request-id'],
     exposedHeaders: ['x-request-id'],
   });
@@ -118,6 +125,16 @@ export async function buildApp(
         setBoxCharacterFavorite: dependencies.setBoxCharacterFavorite,
         setBoxSortPreference: dependencies.setBoxSortPreference,
         useMasterlessStella: dependencies.useMasterlessStella,
+      });
+    }
+    if (dependencies.getCurrentPlayerTeams && dependencies.activatePlayerTeam && dependencies.setPlayerTeamSlot && dependencies.removePlayerTeamSlot && dependencies.clearPlayerTeam) {
+      await app.register(registerTeamRoutes, {
+        authenticate,
+        getCurrentPlayerTeams: dependencies.getCurrentPlayerTeams,
+        activatePlayerTeam: dependencies.activatePlayerTeam,
+        setPlayerTeamSlot: dependencies.setPlayerTeamSlot,
+        removePlayerTeamSlot: dependencies.removePlayerTeamSlot,
+        clearPlayerTeam: dependencies.clearPlayerTeam,
       });
     }
 

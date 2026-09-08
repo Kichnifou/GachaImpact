@@ -2,7 +2,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
-import type { ElementKey, PlayerProgressionDto } from '../api/types'
+import type { ElementKey, PlayerProgressionDto, PlayerTeamsDto } from '../api/types'
 import { elementThemes } from '../utils/elementTheme'
 import PlayerSidebar from './PlayerSidebar'
 
@@ -17,6 +17,18 @@ const gacha = {
   banner: { id: 'banner', startsAt: '2026-09-01T00:00:00.000Z', endsAt: '2026-09-08T00:00:00.000Z', featuredFiveStars: [target], featuredFourStars: [] },
   playerState: { pity5: 12, pity4: 3, guaranteedFeatured5: true, captureProgress: 2, fiftyFiftyLostStreak: 0, selectedBannerCharacterId: target.id, totalPulls: '0', totalFiveStars: '0', totalFourStars: '0', fiftyFiftyWon: '0', fiftyFiftyLost: '0', capturesTriggered: '0' },
 } as const
+const teams: PlayerTeamsDto = {
+  teams: [{
+    id: '00000000-0000-4000-8000-000000000001', position: 1, name: 'Équipe principale', active: true,
+    slots: [1, 2, 3, 4].map((position) => ({
+      position: position as 1 | 2 | 3 | 4,
+      character: { ...target, id: `member-${position}`, externalKey: `legacy:${position}`, constellation: position - 1 },
+    })),
+    passives: [{ elementKey: 'pyro', displayName: 'Pyro', levelOne: 'Bonus I', levelTwo: 'Bonus II', stacks: 2, description: 'Bonus II' }],
+  }],
+  availableCharacters: [],
+  passiveReference: [],
+}
 
 function progression(level: number, xpIntoCurrentStep: string): PlayerProgressionDto {
   return {
@@ -25,7 +37,7 @@ function progression(level: number, xpIntoCurrentStep: string): PlayerProgressio
   }
 }
 
-function renderProgression(value: PlayerProgressionDto, elementKey: ElementKey | null = 'hydro') {
+function renderProgression(value: PlayerProgressionDto, elementKey: ElementKey | null = 'hydro', teamState: PlayerTeamsDto = teams) {
   return renderToStaticMarkup(createElement(PlayerSidebar, {
     isOpen: false,
     onClose: vi.fn(),
@@ -36,6 +48,7 @@ function renderProgression(value: PlayerProgressionDto, elementKey: ElementKey |
     dailyRewardToday: { claimed: false, businessDate: '2026-09-05', rewards: { primogems: '160', mainElementParticles: '160', moras: '10000' } },
     onClaimDailyReward: vi.fn(),
     gacha,
+    teams: teamState,
   }))
 }
 
@@ -59,7 +72,7 @@ describe('Player sidebar progression', () => {
     expect((html.match(/character-portrait-frame/g) ?? [])).toHaveLength(4)
     expect((html.match(/class="team-member-copy character-display-copy"/g) ?? [])).toHaveLength(4)
     expect((html.match(/★★★★★/g) ?? [])).toHaveLength(5)
-    expect(html).toContain('Niv. 90')
+    expect(html).not.toContain('Niv. 90')
     expect(html).toContain('C1')
   })
 
@@ -99,6 +112,17 @@ describe('Player sidebar progression', () => {
     expect(html).not.toContain('section-heading-label')
     expect(html).not.toContain('card-chevron')
     expect(html).not.toContain('›')
-    expect(html).toContain('<small>4 / 4</small>')
+    expect(html).toContain('<small>Team 1 · Équipe principale · 4 / 4</small>')
+  })
+
+  it('renders the authoritative active Team with visible empty slots', () => {
+    const second = {
+      ...teams.teams[0]!, id: '00000000-0000-4000-8000-000000000002', position: 2,
+      name: null, active: true, slots: [{ position: 1 as const, character: teams.teams[0]!.slots[0]!.character }, { position: 2 as const, character: null }, { position: 3 as const, character: null }, { position: 4 as const, character: null }],
+    }
+    const html = renderProgression(progression(0, '0'), 'hydro', { ...teams, teams: [{ ...teams.teams[0]!, active: false }, second] })
+    expect(html).toContain('<small>Team 2 · 1 / 4</small>')
+    expect((html.match(/empty-sidebar-team-slot/g) ?? [])).toHaveLength(3)
+    expect(html).not.toContain('Furina</strong><span class="character-rarity">★★★★★</span><div class="team-member-copy')
   })
 })

@@ -106,6 +106,7 @@ model Player {
   pullOperations     PullOperation[]
   preferences        PlayerPreference[]
   items              PlayerItem[]
+  teams              Team[]
 
   @@index([status], map: "players_status_idx")
   @@index([elementKey], map: "players_element_key_idx")
@@ -180,6 +181,7 @@ model Character {
   c6Progress            C6CompetitionProgress[]
   pullTargets            PullOperation[]
   pullResults            PullResult[]
+  teamMemberships        TeamMember[]
 
   @@index([isActive, rarity], map: "characters_active_rarity_idx")
   @@index([elementKey, isActive], map: "characters_element_active_idx")
@@ -482,4 +484,35 @@ model PullResult {
   @@index([characterId], map: "pull_results_character_idx")
   @@index([createdAt(sort: Desc)], map: "pull_results_created_at_idx")
   @@map("pull_results")
+}
+
+model Team {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId        String       @map("player_id") @db.Uuid
+  displayPosition Int          @map("display_position")
+  name            String?      @db.Text
+  isActive        Boolean      @default(false) @map("is_active")
+  isBaseSlot      Boolean      @default(false) @map("is_base_slot")
+  legacySavedAt   DateTime?    @map("legacy_saved_at") @db.Timestamptz(6)
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player          Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  members         TeamMember[]
+
+  @@unique([playerId, displayPosition], map: "teams_player_display_position_key")
+  @@index([playerId, isActive], map: "teams_player_active_idx")
+  @@map("teams")
+}
+
+model TeamMember {
+  teamId      String    @map("team_id") @db.Uuid
+  position    Int       @db.SmallInt
+  characterId String    @map("character_id") @db.Uuid
+  team        Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Restrict)
+
+  @@id([teamId, position])
+  @@unique([teamId, characterId], map: "team_members_team_character_key")
+  @@index([characterId], map: "team_members_character_id_idx")
+  @@map("team_members")
 }

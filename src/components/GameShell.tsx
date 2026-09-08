@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import type { BoxCharacterDto, BoxSortPreferenceDto, CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, PlayerBoxDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
+import type { BoxCharacterDto, BoxSortPreferenceDto, CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, PlayerBoxDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import type { ScreenId } from '../types'
 import BoxScreen from '../screens/BoxScreen'
 import CharactersScreen from '../screens/CharactersScreen'
@@ -35,6 +35,12 @@ type GameShellProps = {
   onSignOut: () => Promise<void>
   gacha: CurrentGachaDto
   characters: readonly GachaCharacterDto[]
+  teams: PlayerTeamsDto
+  onLoadTeams: () => Promise<PlayerTeamsDto>
+  onActivateTeam: (teamId: string) => Promise<PlayerTeamsDto>
+  onSetTeamSlot: (teamId: string, position: number, characterId: string) => Promise<PlayerTeamsDto>
+  onRemoveTeamSlot: (teamId: string, position: number) => Promise<PlayerTeamsDto>
+  onClearTeam: (teamId: string) => Promise<PlayerTeamsDto>
   onSetGachaTarget: (characterId: string) => Promise<void>
   onPullGacha: (count: 1 | 10) => Promise<GachaPullDto>
   pendingGachaPullCount: 1 | 10 | null
@@ -47,7 +53,7 @@ type GameShellProps = {
   onUseStella: (characterId: string, idempotencyKey: string) => Promise<StellaUseDto>
 }
 
-function GameShell({ player, resources, progression, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella }: GameShellProps) {
+function GameShell({ player, resources, progression, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, teams, onLoadTeams, onActivateTeam, onSetTeamSlot, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella }: GameShellProps) {
   const [activeScreen, setActiveScreen] = useState<ScreenId>(getScreenFromHash)
   const activeScreenRef = useRef(activeScreen)
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
@@ -112,7 +118,7 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
       case 'characters':
         return <CharactersScreen characters={characters} />
       case 'team':
-        return <TeamScreen />
+        return <TeamScreen teams={teams} onLoad={onLoadTeams} onActivate={onActivateTeam} onSetSlot={onSetTeamSlot} onRemoveSlot={onRemoveTeamSlot} onClear={onClearTeam} />
       case 'inventory':
         return <InventoryScreen />
       case 'shop':
@@ -137,6 +143,7 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
           resources={resources}
           progression={progression}
           gacha={gacha}
+          teams={teams}
           dailyRewardToday={dailyRewardToday}
           onClaimDailyReward={onClaimDailyReward}
           isOpen={isSidebarOpen}
