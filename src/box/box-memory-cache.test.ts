@@ -98,6 +98,21 @@ describe('BoxMemoryCache', () => {
     expect(cache.read('player-a')).toMatchObject({ preference: { sortKey: 'element', direction: 'desc' }, stella: { quantity: '1' }, characters: [{ copies: 4, constellation: 3 }] })
   })
 
+  it('applies an authoritative already-processed Stella retry result without duplicating progression', () => {
+    const cache = new BoxMemoryCache()
+    cache.write('player-a', { ...box(), stella: { quantity: '1' } })
+    const retry: StellaUseDto = {
+      operation: { id: 'persisted-operation', alreadyProcessed: true },
+      character: { ...character(), copies: 7, constellation: 6 },
+      stella: { quantity: '0' },
+      c6Progression: { type: 'unlocked', stats: { strength: 1, intelligence: 1, beauty: 1, charisma: 1, popularity: 1 } },
+    }
+
+    cache.applyStella('player-a', retry)
+    cache.applyStella('player-a', retry)
+    expect(cache.read('player-a')).toMatchObject({ stella: { quantity: '0' }, summary: { c6: 1 }, characters: [{ copies: 7, constellation: 6 }] })
+  })
+
   it('keeps revisions isolated between players', async () => {
     const cache = new BoxMemoryCache()
     const playerARefresh = deferred<PlayerBoxDto>()

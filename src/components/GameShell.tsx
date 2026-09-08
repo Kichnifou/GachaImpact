@@ -15,6 +15,7 @@ import Navigation from './Navigation'
 import OnlinePlayersPanel from './OnlinePlayersPanel'
 import PlayerSidebar from './PlayerSidebar'
 import { BoxMemoryCache } from '../box/box-memory-cache'
+import { StellaIntentCoordinator } from '../box/stella-intent-coordinator'
 
 const screenIds: ScreenId[] = ['home', 'invocation', 'box', 'characters', 'team', 'inventory', 'shop']
 
@@ -53,6 +54,7 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isPlayersOpen, setIsPlayersOpen] = useState(false)
   const [boxCache] = useState(() => new BoxMemoryCache())
+  const [stellaIntents] = useState(() => new StellaIntentCoordinator())
 
   const loadBox = useCallback(
     () => boxCache.revalidate(player.id, onLoadBox),
@@ -68,11 +70,15 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
     boxCache.replacePreference(player.id, persisted)
     return persisted
   }, [boxCache, onSetBoxSortPreference, player.id])
-  const useStella = useCallback(async (characterId: string, idempotencyKey: string) => {
-    const result = await onUseStella(characterId, idempotencyKey)
-    boxCache.applyStella(player.id, result)
-    return result
-  }, [boxCache, onUseStella, player.id])
+  const useStella = useCallback((characterId: string) => stellaIntents.execute(
+    player.id,
+    characterId,
+    async (idempotencyKey) => {
+      const result = await onUseStella(characterId, idempotencyKey)
+      boxCache.applyStella(player.id, result)
+      return result
+    },
+  ), [boxCache, onUseStella, player.id, stellaIntents])
   const signOutAndClearBox = useCallback(async () => {
     boxCache.clear()
     await onSignOut()
@@ -102,7 +108,7 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
       case 'invocation':
         return <InvocationScreen gacha={gacha} onSetTarget={onSetGachaTarget} onPull={onPullGacha} pendingPullCount={pendingGachaPullCount} onPresentationDisclosed={onGachaPresentationDisclosed} onGetHistory={onGetGachaHistory} />
       case 'box':
-        return <BoxScreen initialBox={boxCache.read(player.id)} onLoadBox={loadBox} onSetFavorite={setBoxFavorite} onSetSortPreference={setBoxSortPreference} onUseStella={useStella} />
+        return <BoxScreen key={player.id} initialBox={boxCache.read(player.id)} onLoadBox={loadBox} onSetFavorite={setBoxFavorite} onSetSortPreference={setBoxSortPreference} onUseStella={useStella} stellaRetryCharacterId={stellaIntents.getIntent(player.id)?.characterId ?? null} />
       case 'characters':
         return <CharactersScreen characters={characters} />
       case 'team':

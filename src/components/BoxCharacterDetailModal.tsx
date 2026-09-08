@@ -4,9 +4,10 @@ import { getElementAssetPath } from '../utils/gameAssets'
 import CharacterPortraitFrame from './CharacterPortraitFrame'
 import GameAssetIcon from './GameAssetIcon'
 
-function BoxCharacterDetailModal({ character, stellaQuantity, favoritePending, stellaPending, stellaFeedback, onToggleFavorite, onUseStella, onClose }: {
+function BoxCharacterDetailModal({ character, stellaQuantity, stellaRetryAvailable, favoritePending, stellaPending, stellaFeedback, onToggleFavorite, onUseStella, onClose }: {
   character: BoxCharacterDto
   stellaQuantity: string
+  stellaRetryAvailable: boolean
   favoritePending: boolean
   stellaPending: boolean
   stellaFeedback: string | null
@@ -57,8 +58,8 @@ function BoxCharacterDetailModal({ character, stellaQuantity, favoritePending, s
           </dl>
           {character.rarity === 5 && <section className="box-stella-zone" aria-label="Masterless Stella Fortuna">
             <div><strong>Masterless Stella Fortuna × {stellaQuantity}</strong><small>Renforce ce personnage d’une copie.</small></div>
-            <button type="button" disabled={!hasStella || stellaPending} onClick={() => { stellaSubmitted.current = false; setConfirmingStella(true) }}>{stellaPending ? 'Utilisation…' : 'Utiliser une Stella'}</button>
-            {stellaFeedback && <p className="box-stella-feedback" role="status">{stellaFeedback}</p>}
+            <button type="button" disabled={(!hasStella && !stellaRetryAvailable) || stellaPending} onClick={() => { stellaSubmitted.current = false; setConfirmingStella(true) }}>{stellaPending ? 'Utilisation…' : stellaRetryAvailable ? 'Reprendre l’utilisation' : 'Utiliser une Stella'}</button>
+            {(stellaFeedback || stellaRetryAvailable) && <p className="box-stella-feedback" role="status">{stellaFeedback ?? 'Résultat à vérifier · la nouvelle tentative reprendra la même opération.'}</p>}
           </section>}
           <button type="button" className={`box-detail-favorite${character.favorite ? ' active' : ''}`} disabled={favoritePending} onClick={onToggleFavorite}>
             <span aria-hidden="true">★</span>{character.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
@@ -68,11 +69,11 @@ function BoxCharacterDetailModal({ character, stellaQuantity, favoritePending, s
       {confirmingStella && <div className="box-stella-confirm-layer" role="presentation" onMouseDown={() => setConfirmingStella(false)}>
         <section className="box-stella-confirm panel" role="alertdialog" aria-modal="true" aria-label="Confirmer l’utilisation d’une Stella" onMouseDown={(event) => event.stopPropagation()}>
           <span className="eyebrow">Confirmation</span>
-          <h3>Utiliser 1 Masterless Stella Fortuna sur {character.name} ?</h3>
-          <p>{stellaTransition(character)}</p>
+          <h3>{stellaRetryAvailable ? `Vérifier l’utilisation de Stella sur ${character.name} ?` : `Utiliser 1 Masterless Stella Fortuna sur ${character.name} ?`}</h3>
+          <p>{stellaRetryAvailable ? 'Cette nouvelle tentative reprend exactement la même opération et vérifie son résultat.' : stellaTransition(character)}</p>
           <div className="box-stella-confirm-actions">
             <button type="button" onClick={() => setConfirmingStella(false)}>Annuler</button>
-            <button type="button" className="primary" disabled={stellaPending} onClick={() => { if (stellaSubmitted.current) return; stellaSubmitted.current = true; setConfirmingStella(false); onUseStella() }}>Confirmer</button>
+            <button type="button" className="primary" disabled={stellaPending} onClick={() => { if (stellaSubmitted.current) return; stellaSubmitted.current = true; setConfirmingStella(false); onUseStella() }}>{stellaRetryAvailable ? 'Réessayer' : 'Confirmer'}</button>
           </div>
         </section>
       </div>}

@@ -19,15 +19,15 @@ const records = [
   character({ id: 'four-normal', name: 'Bennett', rarity: 4, elementKey: 'pyro', constellation: 4, copies: 5, favorite: false, firstObtainedAt: '2026-08-04T00:00:00Z' }),
 ]
 const box: PlayerBoxDto = { characters: records, summary: { totalOwned: 4, fiveStars: 2, fourStars: 2, c6: 1 }, preference: { sortKey: 'alphabetical', direction: 'asc' }, stella: { quantity: '0' } }
-const modalProps = { stellaQuantity: '0', favoritePending: false, stellaPending: false, stellaFeedback: null, onToggleFavorite: vi.fn(), onUseStella: vi.fn(), onClose: vi.fn() }
-const renderView = (filters: BoxFilters = initialBoxFilters, overrides: Partial<Parameters<typeof BoxView>[0]> = {}) => renderToStaticMarkup(<BoxView box={box} filters={filters} error={null} favoritePendingId={null} stellaPendingId={null} stellaFeedback={null} selected={null} onFilters={vi.fn()} onSelect={vi.fn()} onToggleFavorite={vi.fn()} onUseStella={vi.fn()} onCloseDetail={vi.fn()} {...overrides} />)
+const modalProps = { stellaQuantity: '0', stellaRetryAvailable: false, favoritePending: false, stellaPending: false, stellaFeedback: null, onToggleFavorite: vi.fn(), onUseStella: vi.fn(), onClose: vi.fn() }
+const renderView = (filters: BoxFilters = initialBoxFilters, overrides: Partial<Parameters<typeof BoxView>[0]> = {}) => renderToStaticMarkup(<BoxView box={box} filters={filters} error={null} favoritePendingId={null} stellaPendingId={null} stellaRetryId={null} stellaFeedback={null} selected={null} onFilters={vi.fn()} onSelect={vi.fn()} onToggleFavorite={vi.fn()} onUseStella={vi.fn()} onCloseDetail={vi.fn()} {...overrides} />)
 
 describe('real personal Box', () => {
   it('does not import mockData and refreshes authoritative possessions on each mount', () => {
     expect(boxScreenSource).not.toContain("from '../data/mockData'")
     expect(boxScreenSource).toContain('await onLoadBox()')
-    expect(renderToStaticMarkup(<BoxScreen initialBox={null} onLoadBox={vi.fn()} onSetFavorite={vi.fn()} onSetSortPreference={vi.fn()} onUseStella={vi.fn()} />)).toContain('Ouverture de votre Box')
-    const cached = renderToStaticMarkup(<BoxScreen initialBox={box} onLoadBox={vi.fn()} onSetFavorite={vi.fn()} onSetSortPreference={vi.fn()} onUseStella={vi.fn()} />)
+    expect(renderToStaticMarkup(<BoxScreen initialBox={null} onLoadBox={vi.fn()} onSetFavorite={vi.fn()} onSetSortPreference={vi.fn()} onUseStella={vi.fn()} stellaRetryCharacterId={null} />)).toContain('Ouverture de votre Box')
+    const cached = renderToStaticMarkup(<BoxScreen initialBox={box} onLoadBox={vi.fn()} onSetFavorite={vi.fn()} onSetSortPreference={vi.fn()} onUseStella={vi.fn()} stellaRetryCharacterId={null} />)
     expect(cached).toContain('Furina')
     expect(cached).not.toContain('Ouverture de votre Box')
   })
@@ -118,6 +118,13 @@ describe('real personal Box', () => {
     expect(five).toContain('disabled=""')
     const four = renderToStaticMarkup(<BoxCharacterDetailModal character={records[1]!} {...modalProps} stellaQuantity="2" />)
     expect(four).not.toContain('Masterless Stella Fortuna')
-    expect(boxScreenSource).toContain('crypto.randomUUID()')
+    expect(boxScreenSource).not.toContain('crypto.randomUUID()')
+  })
+  it('keeps an ambiguous Stella retry actionable even after the authoritative balance reaches zero', () => {
+    const html = renderToStaticMarkup(<BoxCharacterDetailModal character={records[0]!} {...modalProps} stellaRetryAvailable />)
+    expect(html).toContain('Masterless Stella Fortuna × 0')
+    expect(html).toContain('Reprendre l’utilisation')
+    expect(html).toContain('la nouvelle tentative reprendra la même opération')
+    expect(html).not.toContain('disabled=""')
   })
 })

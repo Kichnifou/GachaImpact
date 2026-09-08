@@ -1,4 +1,5 @@
 import { ApiError, type GameApiClient } from '../api/game-api'
+import { isAmbiguousMutationError } from '../api/mutation-errors'
 import type { CurrentGachaDto, GachaPullDto, PlayerResourcesDto } from '../api/types'
 
 const definitivePullErrorCodes = new Set([
@@ -36,7 +37,7 @@ export function selectGachaPullIntent(
 
 export function shouldPreserveGachaPullIntent(error: unknown): boolean {
   if (!(error instanceof ApiError) || definitivePullErrorCodes.has(error.code)) return false
-  return error.code === 'NETWORK_ERROR' || error.code === 'INTERNAL_ERROR' || (error.code.startsWith('HTTP_') && (error.status ?? 0) >= 500)
+  return isAmbiguousMutationError(error)
 }
 
 export function settleGachaPullIntent(

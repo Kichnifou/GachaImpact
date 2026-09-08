@@ -7,16 +7,19 @@ import BoxCharacterDetailModal from '../components/BoxCharacterDetailModal'
 import GameAssetIcon from '../components/GameAssetIcon'
 import { apiErrorMessage } from '../utils/formatters'
 import { getElementAssetPath } from '../utils/gameAssets'
+import { isAmbiguousMutationError } from '../api/mutation-errors'
+import { ApiError } from '../api/game-api'
 
 type BoxScreenProps = {
   initialBox: PlayerBoxDto | null
   onLoadBox: () => Promise<PlayerBoxDto>
   onSetFavorite: (characterId: string, favorite: boolean) => Promise<BoxCharacterDto>
   onSetSortPreference: (preference: BoxSortPreferenceDto) => Promise<BoxSortPreferenceDto>
-  onUseStella: (characterId: string, idempotencyKey: string) => Promise<StellaUseDto>
+  onUseStella: (characterId: string) => Promise<StellaUseDto>
+  stellaRetryCharacterId: string | null
 }
 
-function BoxScreen({ initialBox, onLoadBox, onSetFavorite, onSetSortPreference, onUseStella }: BoxScreenProps) {
+function BoxScreen({ initialBox, onLoadBox, onSetFavorite, onSetSortPreference, onUseStella, stellaRetryCharacterId }: BoxScreenProps) {
   const [box, setBox] = useState<PlayerBoxDto | null>(initialBox)
   const [error, setError] = useState<string | null>(null)
   const [filters, setFilters] = useState<BoxFilters>(() => initialBoxFiltersWithPreference(initialBox?.preference))
@@ -24,6 +27,7 @@ function BoxScreen({ initialBox, onLoadBox, onSetFavorite, onSetSortPreference, 
   const [favoritePendingId, setFavoritePendingId] = useState<string | null>(null)
   const [stellaPendingId, setStellaPendingId] = useState<string | null>(null)
   const [stellaFeedback, setStellaFeedback] = useState<string | null>(null)
+  const [stellaRetryId, setStellaRetryId] = useState<string | null>(stellaRetryCharacterId)
   const preferenceInteractionRevision = useRef(0)
   const preferenceSaveQueue = useRef(Promise.resolve())
 
@@ -95,12 +99,21 @@ function BoxScreen({ initialBox, onLoadBox, onSetFavorite, onSetSortPreference, 
     setStellaPendingId(character.id)
     setStellaFeedback(null)
     try {
-      const result = await onUseStella(character.id, crypto.randomUUID())
+      const result = await onUseStella(character.id)
       setBox((current) => current ? applyStellaResult(current, result) : current)
+      setStellaRetryId(null)
       setStellaFeedback(stellaFeedbackMessage(result))
       void onLoadBox().then((authoritative) => setBox(authoritative)).catch(() => undefined)
     } catch (reason) {
-      setError(apiErrorMessage(reason))
+      if (isAmbiguousMutationError(reason)) {
+        setStellaRetryId(character.id)
+        setError('Résultat incertain : vérifiez votre Box, puis réessayez. La même opération sera reprise sans double utilisation.')
+      } else if (reason instanceof ApiError && (reason.code === 'STELLA_IN_PROGRESS' || reason.code === 'STELLA_INTENT_CONFLICT')) {
+        setError(apiErrorMessage(reason))
+      } else {
+        setStellaRetryId(null)
+        setError(apiErrorMessage(reason))
+      }
     } finally {
       setStellaPendingId(null)
     }
@@ -111,15 +124,16 @@ function BoxScreen({ initialBox, onLoadBox, onSetFavorite, onSetSortPreference, 
   if (!box) return null
 
   const selected = box.characters.find(({ id }) => id === selectedId) ?? null
-  return <BoxView box={box} filters={filters} error={error} favoritePendingId={favoritePendingId} stellaPendingId={stellaPendingId} stellaFeedback={stellaFeedback} selected={selected} onFilters={changeFilters} onSelect={setSelectedId} onToggleFavorite={toggleFavorite} onUseStella={useStella} onCloseDetail={() => { setSelectedId(null); setStellaFeedback(null) }} />
+  return <BoxView box={box} filters={filters} error={error} favoritePendingId={favoritePendingId} stellaPendingId={stellaPendingId} stellaRetryId={stellaRetryId} stellaFeedback={stellaFeedback} selected={selected} onFilters={changeFilters} onSelect={setSelectedId} onToggleFavorite={toggleFavorite} onUseStella={useStella} onCloseDetail={() => { setSelectedId(null); setStellaFeedback(null) }} />
 }
 
-export function BoxView({ box, filters, error, favoritePendingId, stellaPendingId, stellaFeedback, selected, onFilters, onSelect, onToggleFavorite, onUseStella, onCloseDetail }: {
+export function BoxView({ box, filters, error, favoritePendingId, stellaPendingId, stellaRetryId, stellaFeedback, selected, onFilters, onSelect, onToggleFavorite, onUseStella, onCloseDetail }: {
   box: PlayerBoxDto
   filters: BoxFilters
   error: string | null
   favoritePendingId: string | null
   stellaPendingId: string | null
+  stellaRetryId: string | null
   stellaFeedback: string | null
   selected: BoxCharacterDto | null
   onFilters: (filters: BoxFilters) => void
@@ -138,7 +152,7 @@ export function BoxView({ box, filters, error, favoritePendingId, stellaPendingI
       : <section className="character-grid" aria-label="Personnages possédés">
         {visibleCharacters.map((character) => <BoxCharacterCard character={character} favoritePending={favoritePendingId === character.id} onOpen={() => onSelect(character.id)} onToggleFavorite={() => onToggleFavorite(character)} key={character.id} />)}
       </section>}
-    {selected && <BoxCharacterDetailModal character={selected} stellaQuantity={box.stella.quantity} favoritePending={favoritePendingId === selected.id} stellaPending={stellaPendingId === selected.id} stellaFeedback={stellaFeedback} onToggleFavorite={() => onToggleFavorite(selected)} onUseStella={() => onUseStella(selected)} onClose={onCloseDetail} />}
+    {selected && <BoxCharacterDetailModal character={selected} stellaQuantity={box.stella.quantity} stellaRetryAvailable={stellaRetryId === selected.id} favoritePending={favoritePendingId === selected.id} stellaPending={stellaPendingId === selected.id} stellaFeedback={stellaFeedback} onToggleFavorite={() => onToggleFavorite(selected)} onUseStella={() => onUseStella(selected)} onClose={onCloseDetail} />}
   </div>
 }
 
