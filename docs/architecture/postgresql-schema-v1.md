@@ -1075,6 +1075,8 @@ Les passifs actifs d'un joueur sont dérivés de sa Team active.
 
 État physique 0.69 : la migration additive `007_add_teams` crée `teams` et `team_members`, backfill les dix Teams de base des Players DEV existants, active Team 1 lorsqu'elle est créée par ce backfill, active la RLS et révoque les droits directs `anon`/`authenticated`. Les nouveaux Players sont complétés par un provisioning paresseux transactionnel et idempotent au premier GET Team ; aucune composition existante n'est écrasée. Sans migration supplémentaire, les mêmes tables portent désormais renommage, Teams 11+ séquentielles, suppression/compaction et réordres complets. Les écritures d'ordre utilisent une transaction et des positions temporaires afin de respecter `UNIQUE(player_id, display_position)` ; l'identité active reste attachée à l'UUID.
 
+Le cleanup transactionnel R185 distingue l'état et la position courante : une Team active perd seulement les memberships devenus inactifs ; une Team non active 1..10 perd tous ses memberships ; une Team non active 11+ est supprimée par cascade, puis l'ordre survivant est compacté une seule fois. `is_base_slot` n'intervient pas dans cette décision et aucune réactivation catalogue ne recrée les relations supprimées.
+
 `element_passive_definitions` reste une cible d'administration future. Le premier lot réel conserve les sept définitions dans une configuration serveur fortement typée et ne persiste que les Teams/memberships, jamais les stacks dérivées.
 
 ---

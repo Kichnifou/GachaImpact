@@ -29,7 +29,11 @@ beforeAll(async () => {
   records.forEach(({ id }) => characterIds.add(id));
 });
 
-afterEach(cleanupPlayers);
+afterEach(async () => {
+  await database.character.updateMany({ where: { id: { in: activeCharacterIds } }, data: { isActive: true } });
+  await database.character.update({ where: { id: inactiveCharacterId }, data: { isActive: false } });
+  await cleanupPlayers();
+});
 afterAll(async () => {
   await cleanupPlayers();
   await database.character.deleteMany({ where: { id: { in: [...characterIds] } } });
@@ -188,6 +192,128 @@ describe('authoritative Team persistence', () => {
     await database.character.update({ where: { id: inactiveCharacterId }, data: { isActive: false } });
   });
 
+  it('removes only disabled-character slots from the active Team', async () => {
+    const player = await createPlayer('Disabled active');
+    await possess(player.id, activeCharacterIds.slice(0, 4));
+    const store = new PrismaTeamStore(database);
+    const team = (await store.getOrProvision(player.id)).teams[0]!;
+    await fillTeam(store, player.id, team.id, activeCharacterIds.slice(0, 4));
+
+    await setCharacterActive(activeCharacterIds[1]!, false);
+    const cleaned = await store.getOrProvision(player.id);
+    const active = cleaned.teams.find(({ id }) => id === team.id)!;
+
+    expect(active.active).toBe(true);
+    expect(active.slots.map(({ character }) => character?.id ?? null)).toEqual([
+      activeCharacterIds[0], null, activeCharacterIds[2], activeCharacterIds[3],
+    ]);
+  }, 20_000);
+
+  it('clears the whole composition of a non-active Team in current positions 1..10', async () => {
+    const player = await createPlayer('Disabled base');
+    await possess(player.id, activeCharacterIds.slice(0, 4));
+    const store = new PrismaTeamStore(database);
+    const team = (await store.getOrProvision(player.id)).teams[4]!;
+    await store.rename(player.id, team.id, 'Équipe préservée');
+    await fillTeam(store, player.id, team.id, activeCharacterIds.slice(0, 4));
+
+    await setCharacterActive(activeCharacterIds[1]!, false);
+    const cleaned = await store.getOrProvision(player.id);
+    const base = cleaned.teams.find(({ id }) => id === team.id)!;
+
+    expect(base).toMatchObject({ position: 5, name: 'Équipe préservée', active: false });
+    expect(base.slots.every(({ character }) => character === null)).toBe(true);
+  }, 20_000);
+
+  it('deletes an affected non-active extra Team and compacts surviving UUIDs', async () => {
+    const player = await createPlayer('Disabled extra');
+    await possess(player.id, activeCharacterIds.slice(0, 2));
+    const store = new PrismaTeamStore(database);
+    let state = await store.getOrProvision(player.id);
+    state = await store.createNext(player.id, 11);
+    state = await store.createNext(player.id, 12);
+    state = await store.createNext(player.id, 13);
+    const removed = state.teams[11]!;
+    const survivor = state.teams[12]!;
+    await fillTeam(store, player.id, removed.id, activeCharacterIds.slice(0, 2));
+
+    await setCharacterActive(activeCharacterIds[1]!, false);
+    const cleaned = await store.getOrProvision(player.id);
+
+    expect(cleaned.teams.some(({ id }) => id === removed.id)).toBe(false);
+    expect(cleaned.teams.find(({ id }) => id === survivor.id)).toMatchObject({ position: 12, active: false });
+    expect(await database.team.findUnique({ where: { id: removed.id } })).toBeNull();
+  }, 20_000);
+
+  it('keeps an affected active extra Team and removes only its disabled-character slot', async () => {
+    const player = await createPlayer('Disabled active extra');
+    await possess(player.id, activeCharacterIds.slice(0, 2));
+    const store = new PrismaTeamStore(database);
+    let state = await store.getOrProvision(player.id);
+    state = await store.createNext(player.id, 11);
+    state = await store.createNext(player.id, 12);
+    const team = state.teams[11]!;
+    await fillTeam(store, player.id, team.id, activeCharacterIds.slice(0, 2));
+    await store.activate(player.id, team.id);
+
+    await setCharacterActive(activeCharacterIds[1]!, false);
+    const cleaned = await store.getOrProvision(player.id);
+    const active = cleaned.teams.find(({ id }) => id === team.id)!;
+
+    expect(active).toMatchObject({ position: 12, active: true });
+    expect(active.slots.map(({ character }) => character?.id ?? null)).toEqual([activeCharacterIds[0], null, null, null]);
+  }, 20_000);
+
+  it('applies all three disabled-character cleanup branches across multiple Teams at once', async () => {
+    const player = await createPlayer('Disabled multi');
+    await possess(player.id, activeCharacterIds.slice(0, 2));
+    const store = new PrismaTeamStore(database);
+    let state = await store.getOrProvision(player.id);
+    state = await store.createNext(player.id, 11);
+    state = await store.createNext(player.id, 12);
+    state = await store.createNext(player.id, 13);
+    const active = state.teams[0]!;
+    const base = state.teams[4]!;
+    const extra = state.teams[11]!;
+    const survivor = state.teams[12]!;
+    await fillTeam(store, player.id, active.id, activeCharacterIds.slice(0, 2));
+    await fillTeam(store, player.id, base.id, activeCharacterIds.slice(0, 2));
+    await fillTeam(store, player.id, extra.id, activeCharacterIds.slice(0, 2));
+
+    await setCharacterActive(activeCharacterIds[1]!, false);
+    const cleaned = await store.getOrProvision(player.id);
+
+    expect(cleaned.teams.find(({ id }) => id === active.id)!.slots.map(({ character }) => character?.id ?? null))
+      .toEqual([activeCharacterIds[0], null, null, null]);
+    expect(cleaned.teams.find(({ id }) => id === base.id)!.slots.every(({ character }) => character === null)).toBe(true);
+    expect(cleaned.teams.some(({ id }) => id === extra.id)).toBe(false);
+    expect(cleaned.teams.find(({ id }) => id === survivor.id)).toMatchObject({ position: 12 });
+  }, 20_000);
+
+  it('never restores cleaned slots, cleared base Teams or deleted extra Teams after reactivation', async () => {
+    const player = await createPlayer('Disabled reactivation');
+    await possess(player.id, activeCharacterIds.slice(0, 2));
+    const store = new PrismaTeamStore(database);
+    let state = await store.getOrProvision(player.id);
+    state = await store.createNext(player.id, 11);
+    const active = state.teams[0]!;
+    const base = state.teams[4]!;
+    const extra = state.teams[10]!;
+    await fillTeam(store, player.id, active.id, activeCharacterIds.slice(0, 2));
+    await fillTeam(store, player.id, base.id, activeCharacterIds.slice(0, 2));
+    await fillTeam(store, player.id, extra.id, activeCharacterIds.slice(0, 2));
+
+    await setCharacterActive(activeCharacterIds[1]!, false);
+    await store.getOrProvision(player.id);
+    await setCharacterActive(activeCharacterIds[1]!, true);
+    const reactivated = await store.getOrProvision(player.id);
+
+    expect(reactivated.teams.find(({ id }) => id === active.id)!.slots.map(({ character }) => character?.id ?? null))
+      .toEqual([activeCharacterIds[0], null, null, null]);
+    expect(reactivated.teams.find(({ id }) => id === base.id)!.slots.every(({ character }) => character === null)).toBe(true);
+    expect(reactivated.teams.some(({ id }) => id === extra.id)).toBe(false);
+  }, 20_000);
+
   it('serializes concurrent activation and composition changes without multiple active Teams', async () => {
     const player = await createPlayer('Concurrency');
     await possess(player.id, activeCharacterIds.slice(0, 2));
@@ -223,6 +349,16 @@ async function createPlayer(label: string) {
 
 async function possess(playerId: string, ids: readonly string[]) {
   await database.playerCharacter.createMany({ data: ids.map((characterId, index) => ({ playerId, characterId, constellation: index % 7, copies: index + 1, firstObtainedAt: new Date('2026-09-08T12:00:00.000Z') })) });
+}
+
+async function fillTeam(store: PrismaTeamStore, playerId: string, teamId: string, characterIds: readonly string[]) {
+  for (const [index, characterId] of characterIds.entries()) {
+    await store.setSlot(playerId, teamId, index + 1, characterId);
+  }
+}
+
+async function setCharacterActive(characterId: string, isActive: boolean) {
+  await database.character.update({ where: { id: characterId }, data: { isActive } });
 }
 
 async function cleanupPlayers() {

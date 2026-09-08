@@ -805,6 +805,8 @@ L'identité active est portée par `Team.isActive`, avec une contrainte garantis
 
 État physique 0.69 : `teams` est créé avec un UUID technique, la position d'affichage, le nom facultatif, `isActive`, l'indicateur de slot de base, la provenance temporelle legacy facultative et les timestamps. La migration `007_add_teams` backfill les dix positions des Players existants ; le service Team complète transactionnellement et idempotemment les positions manquantes au premier GET. Le même schéma supporte sans nouvelle migration les Teams supplémentaires : création strictement séquentielle et retry-safe, suppression/compaction des positions courantes 11+, renommage et réordre complet transactionnel. `isBaseSlot` reste une provenance uniquement ; la protection de suppression est recalculée depuis la position courante 1..10.
 
+Le nettoyage opportuniste des personnages catalogue désactivés applique R185 dans la même transaction que la lecture finale : la Team active conserve son identité et ses autres membres en perdant uniquement les slots concernés ; une Team non active en position courante 1..10 conserve son identité mais perd toute sa composition ; une Team non active en position courante 11+ est supprimée et les survivantes sont compactées sans changer d'UUID. La réactivation du personnage ne reconstruit aucune relation supprimée.
+
 ## 13.2 `TeamMember`
 
 - team

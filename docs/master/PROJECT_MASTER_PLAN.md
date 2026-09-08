@@ -1836,8 +1836,11 @@ Un personnage désactivé est entièrement invisible et inutilisable côté joue
 
 Ses données et anciennes relations restent conservées côté serveur/Admin.
 
-Conséquences :
-- retirer le personnage des Teams active et sauvegardées ;
+Conséquences Team conformément à R185 :
+- dans la Team active, quelle que soit sa position, retirer uniquement les slots du personnage désactivé et conserver Team, nom, état actif et autres membres ;
+- dans une Team non active en position courante 1..10, vider toute la composition et conserver Team, UUID, nom et position ;
+- dans une Team non active en position courante 11+, supprimer la Team et compacter une seule fois les positions suivantes sans modifier les UUID survivants ;
+- une réactivation ultérieure ne restaure aucun slot ni aucune Team supprimée ;
 - annuler une Expedition active sans consommer la tentative quotidienne ;
 - historiques player-facing : afficher un placeholder `Personnage indisponible` ;
 - statistiques visibles de collection excluent le personnage tant qu'il est désactivé.
@@ -3662,7 +3665,7 @@ Premier lot Team réel déployé et validé publiquement ; lot Team Management +
 - les Teams sont paginées horizontalement par tranches de dix. La création est strictement séquentielle, retry-safe à partir de la position attendue et sans activation implicite ; le chevron vers la tranche suivante n'existe que lorsque la tranche courante est complète, sauf pour la tranche initiale 1..10 ;
 - seules les positions courantes 11+ peuvent être supprimées, jamais la Team active ; les Teams suivantes sont compactées en conservant leurs UUID. `isBaseSlot` reste une provenance historique et n'est jamais l'autorité de suppression ;
 - les quatre personnages peuvent être permutés horizontalement, y compris vers un emplacement vide. Les Teams peuvent être réordonnées horizontalement : drop sur une carte = swap, drop entre deux cartes = insertion, maintien sur un chevron pendant environ 550 ms = navigation inter-tranches ; l'identité active reste attachée à l'UUID de la Team ;
-- un personnage catalogue désactivé n'est ni sélectionnable ni exposé et ne contribue à aucun passif ; chaque lecture/mutation Team purge transactionnellement ses memberships devenus inactifs pour le Player courant, de sorte qu'une réactivation ultérieure ne le restaure jamais automatiquement ;
+- un personnage catalogue désactivé n'est ni sélectionnable ni exposé et ne contribue à aucun passif ; chaque lecture/mutation Team applique transactionnellement R185 pour le Player courant : la Team active perd uniquement ses slots concernés, une Team non active en position 1..10 est entièrement vidée, et une Team non active en position 11+ est supprimée avec compaction unique de l'ordre ; aucune réactivation ultérieure ne restaure un slot ou une Team ;
 - aucun cache Team supplémentaire n'est introduit : le bootstrap garde le snapshot courant en mémoire et chaque lecture/mutation retourne immédiatement l'état autoritatif, sans bénéfice actuel justifiant une abstraction SWR concurrente à celle de la Box ;
 - sur desktop standard, Team tient sans scroll vertical normal et les trois colonnes utilisent la hauteur disponible ; la sidebar conserve ses panneaux naturels et son dernier panneau Récompense quotidienne absorbe seul l'espace restant sans étirer son contenu. Mobile et petits viewports conservent leur scroll naturel et leurs contrôles de réorganisation de secours ;
 - raccord Gacha différé : le moteur Pull ne consomme encore aucun stack Team. La prochaine passe Team doit d'abord fournir le gain d'XP serveur central requis par Cryo, puis raccorder et snapshotter ensemble les sept effets R75–R84, sans modifier les probabilités validées ni introduire de calcul frontend.

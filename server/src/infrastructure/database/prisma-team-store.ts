@@ -28,8 +28,6 @@ const teamSelection = {
   members: { select: { position: true, characterId: true }, orderBy: { position: 'asc' as const } },
 } satisfies Prisma.TeamSelect;
 
-type DatabaseClient = PrismaClient | Prisma.TransactionClient;
-
 export class PrismaTeamStore implements TeamStore {
   public constructor(private readonly database: PrismaClient) {}
 
@@ -209,10 +207,8 @@ async function provisionBaseTeams(transaction: Prisma.TransactionClient, playerI
   }
 }
 
-async function readPlayerTeams(client: DatabaseClient, playerId: string): Promise<PlayerTeams> {
-  await client.teamMember.deleteMany({
-    where: { team: { playerId }, character: { isActive: false } },
-  });
+async function readPlayerTeams(client: Prisma.TransactionClient, playerId: string): Promise<PlayerTeams> {
+  await cleanupInactiveTeamMembers(client, playerId);
   const [teamRows, possessionRows] = await Promise.all([
     client.team.findMany({ where: { playerId }, select: teamSelection, orderBy: { displayPosition: 'asc' } }),
     client.playerCharacter.findMany({
@@ -239,6 +235,39 @@ async function readPlayerTeams(client: DatabaseClient, playerId: string): Promis
     availableCharacters,
     passiveReference: listTeamPassiveDefinitions(),
   };
+}
+
+async function cleanupInactiveTeamMembers(transaction: Prisma.TransactionClient, playerId: string): Promise<void> {
+  const affectedTeams = await transaction.team.findMany({
+    where: { playerId, members: { some: { character: { isActive: false } } } },
+    select: { id: true, displayPosition: true, isActive: true },
+    orderBy: { displayPosition: 'asc' },
+  });
+  if (affectedTeams.length === 0) return;
+
+  const activeTeamIds = affectedTeams.filter(({ isActive }) => isActive).map(({ id }) => id);
+  const baseInactiveTeamIds = affectedTeams
+    .filter(({ isActive, displayPosition }) => !isActive && displayPosition <= BASE_TEAM_COUNT)
+    .map(({ id }) => id);
+  const extraInactiveTeamIds = affectedTeams
+    .filter(({ isActive, displayPosition }) => !isActive && displayPosition > BASE_TEAM_COUNT)
+    .map(({ id }) => id);
+
+  if (activeTeamIds.length > 0) {
+    await transaction.teamMember.deleteMany({
+      where: { teamId: { in: activeTeamIds }, character: { isActive: false } },
+    });
+  }
+  if (baseInactiveTeamIds.length > 0) {
+    await transaction.teamMember.deleteMany({ where: { teamId: { in: baseInactiveTeamIds } } });
+  }
+  if (extraInactiveTeamIds.length > 0) {
+    await transaction.team.deleteMany({ where: { id: { in: extraInactiveTeamIds }, playerId } });
+    const survivingTeams = await transaction.team.findMany({
+      where: { playerId }, select: { id: true }, orderBy: { displayPosition: 'asc' },
+    });
+    await rewriteTeamPositions(transaction, playerId, survivingTeams.map(({ id }) => id));
+  }
 }
 
 function toTeamCharacter(row: Prisma.PlayerCharacterGetPayload<{ select: typeof possessionSelection }>): TeamCharacter {
