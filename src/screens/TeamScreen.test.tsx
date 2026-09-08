@@ -6,6 +6,7 @@ import { canOpenNextTeamPage, filterTeamCharacters, insertTeamOrder, swapTeamOrd
 import TeamScreen, { CharacterSelector, TeamPassiveReferenceModal } from './TeamScreen'
 import teamScreenSource from './TeamScreen.tsx?raw'
 
+
 const character = (overrides: Partial<TeamCharacterDto> = {}): TeamCharacterDto => ({
   id: 'furina', externalKey: 'legacy:20', name: 'Furina', rarity: 5, elementKey: 'hydro',
   classKey: 'support', weaponType: 'sword', region: 'fontaine', iconPath: '/furina.png',
@@ -96,6 +97,20 @@ describe('real Team screen', () => {
     expect(empty).toContain('Aucun passif actif')
   })
 
+  it('keeps occupied Team cards compact and groups their hover actions into primary then movement rows', () => {
+    const html = renderToStaticMarkup(<TeamScreen teams={teams(4)} {...callbacks} />)
+    expect((html.match(/team-card-primary-actions/g) ?? [])).toHaveLength(4)
+    expect((html.match(/team-card-move-actions/g) ?? [])).toHaveLength(4)
+    expect(html).toMatch(/team-card-primary-actions"><button[^>]*>Fiche<\/button><button[^>]*>Changer<\/button><button[^>]*>Retirer<\/button>/)
+    expect(html).toMatch(/team-card-move-actions"><button[^>]*disabled=""[^>]*>←<\/button><button[^>]*>→<\/button>/)
+  })
+
+  it('uses native disabled movement controls and never exposes the former loading cursor', () => {
+    const html = renderToStaticMarkup(<TeamScreen teams={teams(4)} {...callbacks} />)
+    expect(html).toContain('aria-label="Déplacer Furina vers la gauche" disabled=""')
+    expect(html).not.toMatch(/aria-label="Déplacer Furina vers la gauche"[^>]*cursor:wait/)
+  })
+
   it('labels derived passives as the active Team or a preview without claiming gameplay activation', () => {
     const html = renderToStaticMarkup(<TeamScreen teams={teams(4)} {...callbacks} />)
     expect(html).toContain('>Team active<')
@@ -147,6 +162,13 @@ describe('real Team screen', () => {
     expect(html).toContain('aria-label="Fermer les passifs"')
   })
 
+  it('uses the shorter passive-reference wording while preserving the modal title', () => {
+    const html = renderToStaticMarkup(<TeamScreen teams={teams(0)} {...callbacks} />)
+    expect(html).toContain('>Voir les passifs<')
+    expect(html).not.toContain('>Voir les sept passifs<')
+    expect(renderToStaticMarkup(<TeamPassiveReferenceModal passives={teams(0).passiveReference} onClose={vi.fn()} />)).toContain('Les sept passifs')
+  })
+
   it('reuses the exact Box detail component and shared Box collection coordinator', () => {
     expect(teamScreenSource).toContain('<BoxCharacterDetailModal')
     expect(teamScreenSource).toContain('useBoxCollection')
@@ -183,6 +205,21 @@ describe('real Team screen', () => {
     expect(insertTeamOrder(['a', 'b', 'c', 'd'], 'a', 3)).toEqual(['b', 'c', 'a', 'd'])
     expect(insertTeamOrder(['a', 'b', 'c', 'd'], 'd', 1)).toEqual(['a', 'd', 'b', 'c'])
     expect(swapTeamSlots(['a', null, 'c', 'd'], 0, 1)).toEqual([null, 'a', 'c', 'd'])
+  })
+
+  it('exposes distinct Team swap, Team insertion and character drop feedback states', () => {
+    expect(teamScreenSource).toContain("' drag-swap-target'")
+    expect(teamScreenSource).toContain("' drag-insert-target'")
+    expect(teamScreenSource).toContain("' drag-slot-target'")
+  })
+
+  it('uses a temporary visual order preview for reorders and clears it after settlement', () => {
+    expect(teamScreenSource).toContain('const [teamOrderPreview, setTeamOrderPreview]')
+    expect(teamScreenSource).toContain('const [slotOrderPreview, setSlotOrderPreview]')
+    expect(teamScreenSource).toContain('setTeamOrderPreview(nextIds)')
+    expect(teamScreenSource).toContain('setSlotOrderPreview(nextIds)')
+    expect(teamScreenSource).toContain('() => setTeamOrderPreview(null)')
+    expect(teamScreenSource).toContain('() => setSlotOrderPreview(null)')
   })
 
   it('offers compact inline rename and touch-safe reorder controls', () => {

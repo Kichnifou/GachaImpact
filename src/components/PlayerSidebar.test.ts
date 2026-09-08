@@ -125,4 +125,12 @@ describe('Player sidebar progression', () => {
     expect((html.match(/empty-sidebar-team-slot/g) ?? [])).toHaveLength(3)
     expect(html).not.toContain('Furina</strong><span class="character-rarity">★★★★★</span><div class="team-member-copy')
   })
+
+  it('makes the whole active-Team panel an accessible navigation surface', () => {
+    const html = renderProgression(progression(0, '0'))
+    expect(html).toContain('class="panel team-card team-card-navigable"')
+    expect(html).toContain('class="team-card-navigation"')
+    expect(html).toContain('aria-label="Ouvrir l’Équipe active, Team 1"')
+    expect(html).toContain('class="section-heading"><span>Équipe active</span>')
+  })
 })

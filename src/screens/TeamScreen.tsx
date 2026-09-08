@@ -43,13 +43,31 @@ function TeamScreen(props: TeamScreenProps) {
   const [renameDraft, setRenameDraft] = useState('')
   const [draggedSlot, setDraggedSlot] = useState<number | null>(null)
   const [draggedTeamId, setDraggedTeamId] = useState<string | null>(null)
+  const [teamSwapTargetId, setTeamSwapTargetId] = useState<string | null>(null)
+  const [teamInsertionIndex, setTeamInsertionIndex] = useState<number | null>(null)
+  const [slotDropTarget, setSlotDropTarget] = useState<number | null>(null)
+  const [teamOrderPreview, setTeamOrderPreview] = useState<readonly string[] | null>(null)
+  const [slotOrderPreview, setSlotOrderPreview] = useState<readonly (string | null)[] | null>(null)
   const [autoPageDirection, setAutoPageDirection] = useState<-1 | 1 | null>(null)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const autoPageTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const selectedTeamIdRef = useRef(selectedTeamId)
 
-  const selectedTeam = teams.teams.find(({ id }) => id === selectedTeamId) ?? activeTeam
+  const displayedTeams = useMemo(() => teamOrderPreview
+    ? teamOrderPreview.flatMap((id, index) => {
+      const team = teams.teams.find((candidate) => candidate.id === id)
+      return team ? [{ ...team, position: index + 1 }] : []
+    })
+    : teams.teams, [teamOrderPreview, teams.teams])
+  const selectedTeam = displayedTeams.find(({ id }) => id === selectedTeamId) ?? activeTeam
+  const displayedSlots = useMemo(() => {
+    if (!selectedTeam || !slotOrderPreview) return selectedTeam?.slots ?? []
+    return slotOrderPreview.map((characterId, index) => ({
+      position: (index + 1) as 1 | 2 | 3 | 4,
+      character: selectedTeam.slots.find(({ character }) => character?.id === characterId)?.character ?? null,
+    }))
+  }, [selectedTeam, slotOrderPreview])
   const presentCharacterIds = new Set(selectedTeam?.slots.flatMap(({ character }) => character ? [character.id] : []) ?? [])
   const filteredCharacters = useMemo(() => filterTeamCharacters(teams.availableCharacters, search, elementFilter), [elementFilter, search, teams.availableCharacters])
 
@@ -71,13 +89,13 @@ function TeamScreen(props: TeamScreenProps) {
     if (autoPageTimer.current) clearTimeout(autoPageTimer.current)
   }, [])
 
-  const mutate = async (action: () => Promise<PlayerTeamsDto>, after?: (next: PlayerTeamsDto) => void) => {
+  const mutate = async (action: () => Promise<PlayerTeamsDto>, after?: (next: PlayerTeamsDto) => void, afterSettled?: () => void) => {
     if (pending) return
     setPending(true)
     setError(null)
     try { const next = await action(); after?.(next) }
     catch (reason) { setError(apiErrorMessage(reason)) }
-    finally { setPending(false) }
+    finally { setPending(false); afterSettled?.() }
   }
 
   const openSelector = (position: number) => { setSelectorSlot(position); setSelectorChoice(null); setSearch(''); setElementFilter('all') }
@@ -88,20 +106,34 @@ function TeamScreen(props: TeamScreenProps) {
     if (selectedTeam.slots.some(({ character }) => character) && !window.confirm(`Supprimer la Team ${selectedTeam.position} et sa composition ?`)) return
     void mutate(() => props.onDelete(selectedTeam.id), (next) => { const fallback = next.teams[Math.min(selectedTeam.position - 1, next.teams.length - 1)] ?? next.teams.at(-1); setSelectedTeamId(fallback?.id ?? null); setPage(teamPageForPosition(fallback?.position ?? 1)) })
   }
-  const reorderSlots = (from: number, to: number) => { if (!selectedTeam || from === to) return; const ids = selectedTeam.slots.map(({ character }) => character?.id ?? null); void mutate(() => props.onReorderSlots(selectedTeam.id, swapTeamSlots(ids, from - 1, to - 1))) }
+  const clearDragFeedback = () => {
+    setDraggedSlot(null)
+    setDraggedTeamId(null)
+    setTeamSwapTargetId(null)
+    setTeamInsertionIndex(null)
+    setSlotDropTarget(null)
+    clearAutoPageTimer()
+  }
+  const reorderSlots = (from: number, to: number) => {
+    if (!selectedTeam || from === to) return
+    const ids = selectedTeam.slots.map(({ character }) => character?.id ?? null)
+    const nextIds = swapTeamSlots(ids, from - 1, to - 1)
+    setSlotOrderPreview(nextIds)
+    void mutate(() => props.onReorderSlots(selectedTeam.id, nextIds), undefined, () => setSlotOrderPreview(null))
+  }
   const reorderTeams = (nextIds: readonly string[]) => {
     if (!draggedTeamId) return
     const movingTeamId = draggedTeamId
     const unchanged = nextIds.every((id, index) => id === teams.teams[index]?.id)
     const followDraggedTeam = movingTeamId === selectedTeamId
-    setDraggedTeamId(null)
-    clearAutoPageTimer()
-    if (unchanged) return
+    if (unchanged) { clearDragFeedback(); return }
+    setTeamOrderPreview(nextIds)
+    clearDragFeedback()
     void mutate(() => props.onReorderTeams(nextIds), (next) => {
       if (!followDraggedTeam) return
       const selected = next.teams.find(({ id }) => id === selectedTeamId)
       if (selected) setPage(teamPageForPosition(selected.position))
-    })
+    }, () => setTeamOrderPreview(null))
   }
   const scheduleAutoPage = (direction: -1 | 1) => {
     if (!draggedTeamId || autoPageTimer.current || (direction < 0 && page === 0) || (direction > 0 && !canOpenNextTeamPage(teams.teams.length, page))) return
@@ -113,7 +145,7 @@ function TeamScreen(props: TeamScreenProps) {
   if (!selectedTeam) return <TeamStatus title="Aucune équipe disponible" detail="Vos emplacements d’équipe n’ont pas pu être chargés." />
   const pageStart = page * teamsPerPage + 1
   const pagePositions = Array.from({ length: teamsPerPage }, (_, index) => pageStart + index)
-  const nextPosition = teams.teams.length + 1
+  const nextPosition = displayedTeams.length + 1
 
   return <div className="screen-content team-screen">
     <header className={`team-screen-heading${selectedTeam.active ? ' active' : ''}`}>
@@ -123,14 +155,14 @@ function TeamScreen(props: TeamScreenProps) {
 
     <nav className="team-switcher panel" aria-label={`Teams ${pageStart} à ${pageStart + 9}`}>
       {page > 0 ? <button type="button" className={`team-page-chevron${autoPageDirection === -1 ? ' drag-awaiting' : ''}`} aria-label="Teams précédentes" onClick={() => setPage((current) => current - 1)} onDragOver={(event) => event.preventDefault()} onDragEnter={() => scheduleAutoPage(-1)} onDragLeave={clearAutoPageTimer}>‹</button> : <span className="team-page-chevron-spacer" aria-hidden="true" />}
-      <div className="team-page-track">{pagePositions.map((position, index) => { const team = teams.teams.find((candidate) => candidate.position === position); const insertionIndex = page * teamsPerPage + index; return <div className="team-switch-item" key={position}><span className="team-between-drop" aria-hidden="true" onDragOver={(event) => event.preventDefault()} onDrop={() => reorderTeams(insertTeamOrder(teams.teams.map(({ id }) => id), draggedTeamId ?? '', insertionIndex))} />{team ? <button type="button" draggable className={`${team.id === selectedTeam.id ? ' selected' : ''}${team.active ? ' active' : ''}`} onClick={() => selectTeam(team)} onDragStart={(event) => { event.dataTransfer.effectAllowed = 'move'; setDraggedTeamId(team.id) }} onDragEnd={() => { setDraggedTeamId(null); clearAutoPageTimer() }} onDragOver={(event) => event.preventDefault()} onDrop={() => reorderTeams(swapTeamOrder(teams.teams.map(({ id }) => id), draggedTeamId ?? '', team.id))} aria-current={team.active ? 'true' : undefined}><span>Team {team.position}</span><small>{team.slots.filter(({ character }) => character).length}/4{team.active ? ' · Active' : ''}</small></button> : position === nextPosition ? <button type="button" className="team-create-slot" disabled={pending} onClick={() => createNext(position)}><span>Team {position}</span><small>＋ Créer</small></button> : <span className="team-locked-slot" aria-label={`Team ${position} verrouillée`}><span>Team {position}</span><small>Verrouillée</small></span>}{index === pagePositions.length - 1 && <span className="team-between-drop after" aria-hidden="true" onDragOver={(event) => event.preventDefault()} onDrop={() => reorderTeams(insertTeamOrder(teams.teams.map(({ id }) => id), draggedTeamId ?? '', insertionIndex + 1))} />}</div> })}</div>
+      <div className="team-page-track">{pagePositions.map((position, index) => { const team = displayedTeams.find((candidate) => candidate.position === position); const insertionIndex = page * teamsPerPage + index; const teamIds = displayedTeams.map(({ id }) => id); return <div className="team-switch-item" key={position}><span className={`team-between-drop${teamInsertionIndex === insertionIndex ? ' drag-insert-target' : ''}`} aria-hidden="true" onDragOver={(event) => event.preventDefault()} onDragEnter={() => setTeamInsertionIndex(insertionIndex)} onDragLeave={() => setTeamInsertionIndex(null)} onDrop={() => reorderTeams(insertTeamOrder(teamIds, draggedTeamId ?? '', insertionIndex))} />{team ? <button type="button" draggable className={`${team.id === selectedTeam.id ? ' selected' : ''}${team.active ? ' active' : ''}${teamSwapTargetId === team.id ? ' drag-swap-target' : ''}`} onClick={() => selectTeam(team)} onDragStart={(event) => { event.dataTransfer.effectAllowed = 'move'; setDraggedTeamId(team.id) }} onDragEnd={clearDragFeedback} onDragOver={(event) => event.preventDefault()} onDragEnter={() => { if (draggedTeamId && draggedTeamId !== team.id) setTeamSwapTargetId(team.id) }} onDragLeave={() => setTeamSwapTargetId(null)} onDrop={() => reorderTeams(swapTeamOrder(teamIds, draggedTeamId ?? '', team.id))} aria-current={team.active ? 'true' : undefined}><span>Team {team.position}</span><small>{team.slots.filter(({ character }) => character).length}/4{team.active ? ' · Active' : ''}</small>{teamSwapTargetId === team.id && <em>Échanger</em>}</button> : position === nextPosition ? <button type="button" className="team-create-slot" disabled={pending} onClick={() => createNext(position)}><span>Team {position}</span><small>＋ Créer</small></button> : <span className="team-locked-slot" aria-label={`Team ${position} verrouillée`}><span>Team {position}</span><small>Verrouillée</small></span>}{index === pagePositions.length - 1 && <span className={`team-between-drop after${teamInsertionIndex === insertionIndex + 1 ? ' drag-insert-target' : ''}`} aria-hidden="true" onDragOver={(event) => event.preventDefault()} onDragEnter={() => setTeamInsertionIndex(insertionIndex + 1)} onDragLeave={() => setTeamInsertionIndex(null)} onDrop={() => reorderTeams(insertTeamOrder(teamIds, draggedTeamId ?? '', insertionIndex + 1))} />}</div> })}</div>
       {canOpenNextTeamPage(teams.teams.length, page) ? <button type="button" className={`team-page-chevron${autoPageDirection === 1 ? ' drag-awaiting' : ''}`} aria-label="Teams suivantes" onClick={() => setPage((current) => current + 1)} onDragOver={(event) => event.preventDefault()} onDragEnter={() => scheduleAutoPage(1)} onDragLeave={clearAutoPageTimer}>›</button> : <span className="team-page-chevron-spacer" aria-hidden="true" />}
     </nav>
 
     {error && <p className="team-inline-error" role="alert">{error}</p>}
-    <section className="large-team-grid" aria-label={`Composition de la Team ${selectedTeam.position}`}>{selectedTeam.slots.map(({ position, character }) => character ? <div className="team-slot-drag-wrapper" draggable onDragStart={(event) => { event.stopPropagation(); event.dataTransfer.effectAllowed = 'move'; setDraggedSlot(position) }} onDragEnd={() => setDraggedSlot(null)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); event.stopPropagation(); if (draggedSlot) reorderSlots(draggedSlot, position) }} key={position}><CharacterShowcaseCard variant="team" name={character.name} rarity={character.rarity} element={character.elementKey} tone={character.elementKey} assetPaths={[character.iconPath, character.fullbodyPath, character.wishPath, character.splashPath]} fallback={<><span>{character.name.slice(0, 1)}</span><i /></>} slot={`0${position}`} constellation={character.constellation}><div className="team-card-actions"><button type="button" aria-label={`Déplacer ${character.name} vers la gauche`} disabled={pending || position === 1} onClick={() => reorderSlots(position, position - 1)}>←</button><button type="button" onClick={() => setDetailCharacterId(character.id)}>Fiche</button><button type="button" onClick={() => openSelector(position)}>Changer</button><button type="button" className="danger-action" disabled={pending} onClick={() => void mutate(() => props.onRemoveSlot(selectedTeam.id, position))}>Retirer</button><button type="button" aria-label={`Déplacer ${character.name} vers la droite`} disabled={pending || position === 4} onClick={() => reorderSlots(position, position + 1)}>→</button></div></CharacterShowcaseCard></div> : <button type="button" className="large-team-card empty-team-card" disabled={pending} aria-label={`Ajouter un personnage à l’emplacement ${position}`} onClick={() => openSelector(position)} onDragOver={(event) => event.preventDefault()} onDrop={(event: DragEvent<HTMLButtonElement>) => { event.preventDefault(); if (draggedSlot) reorderSlots(draggedSlot, position) }} key={position}><span className="team-slot-number">0{position}</span><span className="empty-team-portrait" aria-hidden="true">＋</span><span className="empty-team-hover-action">Ajouter</span></button>)}</section>
+    <section className="large-team-grid" aria-label={`Composition de la Team ${selectedTeam.position}`}>{displayedSlots.map(({ position, character }) => character ? <div className={`team-slot-drag-wrapper${slotDropTarget === position ? ' drag-slot-target' : ''}`} draggable onDragStart={(event) => { event.stopPropagation(); event.dataTransfer.effectAllowed = 'move'; setDraggedSlot(position) }} onDragEnd={clearDragFeedback} onDragOver={(event) => event.preventDefault()} onDragEnter={() => { if (draggedSlot && draggedSlot !== position) setSlotDropTarget(position) }} onDragLeave={() => setSlotDropTarget(null)} onDrop={(event) => { event.preventDefault(); event.stopPropagation(); if (draggedSlot) reorderSlots(draggedSlot, position); clearDragFeedback() }} key={position}><CharacterShowcaseCard variant="team" name={character.name} rarity={character.rarity} element={character.elementKey} tone={character.elementKey} assetPaths={[character.iconPath, character.fullbodyPath, character.wishPath, character.splashPath]} fallback={<><span>{character.name.slice(0, 1)}</span><i /></>} slot={`0${position}`} constellation={character.constellation}><div className="team-card-actions"><div className="team-card-primary-actions"><button type="button" onClick={() => setDetailCharacterId(character.id)}>Fiche</button><button type="button" onClick={() => openSelector(position)}>Changer</button><button type="button" className="danger-action" disabled={pending} onClick={() => void mutate(() => props.onRemoveSlot(selectedTeam.id, position))}>Retirer</button></div><div className="team-card-move-actions"><button type="button" aria-label={`Déplacer ${character.name} vers la gauche`} disabled={pending || position === 1} onClick={() => reorderSlots(position, position - 1)}>←</button><button type="button" aria-label={`Déplacer ${character.name} vers la droite`} disabled={pending || position === 4} onClick={() => reorderSlots(position, position + 1)}>→</button></div></div></CharacterShowcaseCard></div> : <button type="button" className={`large-team-card empty-team-card${slotDropTarget === position ? ' drag-slot-target' : ''}`} disabled={pending} aria-label={`Ajouter un personnage à l’emplacement ${position}`} onClick={() => openSelector(position)} onDragOver={(event) => event.preventDefault()} onDragEnter={() => { if (draggedSlot) setSlotDropTarget(position) }} onDragLeave={() => setSlotDropTarget(null)} onDrop={(event: DragEvent<HTMLButtonElement>) => { event.preventDefault(); if (draggedSlot) reorderSlots(draggedSlot, position); clearDragFeedback() }} key={position}><span className="team-slot-number">0{position}</span><span className="empty-team-portrait" aria-hidden="true">＋</span><span className="empty-team-hover-action">Ajouter</span></button>)}</section>
 
-    <section className="panel team-bonuses"><div className="section-heading"><span>Passifs de cette Team</span><small>{teamPassiveStatusLabel(selectedTeam.active)}</small></div>{selectedTeam.passives.length > 0 ? <div className="bonus-grid">{selectedTeam.passives.map((passive) => <article key={passive.elementKey}><GameAssetIcon className={`${passive.elementKey} bonus-element-icon`} src={getElementAssetPath(passive.elementKey)} fallback="✦" /><div><strong>{passive.displayName} {roman(passive.stacks)}</strong><p>{passive.description}</p></div></article>)}</div> : <p className="team-no-passive">Aucun passif actif</p>}<button type="button" className="team-reference-toggle" onClick={() => setShowReference(true)}>Voir les sept passifs</button></section>
+    <section className="panel team-bonuses"><div className="section-heading"><span>Passifs de cette Team</span><small>{teamPassiveStatusLabel(selectedTeam.active)}</small></div>{selectedTeam.passives.length > 0 ? <div className="bonus-grid">{selectedTeam.passives.map((passive) => <article key={passive.elementKey}><GameAssetIcon className={`${passive.elementKey} bonus-element-icon`} src={getElementAssetPath(passive.elementKey)} fallback="✦" /><div><strong>{passive.displayName} {roman(passive.stacks)}</strong><p>{passive.description}</p></div></article>)}</div> : <p className="team-no-passive">Aucun passif actif</p>}<button type="button" className="team-reference-toggle" onClick={() => setShowReference(true)}>Voir les passifs</button></section>
     {showReference && <TeamPassiveReferenceModal passives={teams.passiveReference} onClose={() => setShowReference(false)} />}
     {selectorSlot !== null && <CharacterSelector team={selectedTeam} characters={filteredCharacters} presentIds={presentCharacterIds} search={search} elementFilter={elementFilter} selectedId={selectorChoice} pending={pending} onSearch={setSearch} onElement={setElementFilter} onSelect={setSelectorChoice} onClose={() => setSelectorSlot(null)} onConfirm={() => { const characterId = selectorChoice; if (characterId) void mutate(() => props.onSetSlot(selectedTeam.id, selectorSlot, characterId), () => { setSelectorSlot(null); setSelectorChoice(null) }) }} />}
     {detailCharacterId && <TeamBoxCharacterDetail characterId={detailCharacterId} {...props} onClose={() => setDetailCharacterId(null)} />}

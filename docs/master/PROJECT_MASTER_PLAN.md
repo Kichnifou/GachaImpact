@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.69
+Version : 0.70
 Date : 2026-09-08
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3538,7 +3538,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Team / Équipe / Passifs — premier lot réel déployé et validé publiquement ; lot Team Management + polish desktop implémenté sur `review` : renommage, Teams supplémentaires, pagination, suppression/compaction, réorganisation des personnages et des Teams, fiche Box partagée, modale Passifs et shell desktop harmonisé ; en attente de review GitHub puis de validation publique.**
+**Team / Équipe / Passifs — premier lot réel déployé et validé publiquement ; Team Management est en polish public sur `review` : cartes compactes, feedback drag/drop distinct, aperçu local pendant réordre, sidebar Équipe active navigable, modale Passifs plus lisible et shell desktop harmonisé ; en attente de review GitHub puis de validation publique.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3579,7 +3579,7 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - `GET /api/v1/me/progression` expose les compteurs `bigint` lossless et le niveau dérivé de l'XP cumulative selon `min(floor(xp / 30), 100)`, sans endpoint de gain ou de mutation d'XP ;
 - la sidebar charge niveau, XP du palier et barre depuis l'état serveur au bootstrap authentifié ; l'objectif Gacha, Pity, Garantie et Capture sont reliés à l'état Gacha réel, et le panneau Équipe active lit désormais la Team serveur autoritative ;
 - premier lot Team réel : **DÉPLOYÉ ET VALIDÉ PUBLIQUEMENT PAR LE PROPRIÉTAIRE** ; Teams 1 à 10, activation, compositions 0..4, sidebar, passifs dérivés et persistance après refresh/reconnexion validés ;
-- lot Team Management 0.69 : **IMPLÉMENTÉ SUR `review` ET VALIDÉ TECHNIQUEMENT** ; aucune nouvelle migration et aucun raccord des passifs au moteur Pull dans ce lot.
+- lot Team Management 0.70 : **IMPLÉMENTÉ SUR `review` ET VALIDÉ TECHNIQUEMENT** ; aucune nouvelle migration et aucun raccord des passifs au moteur Pull dans ce lot.
 - Gacha — catalogue / bannière / cible / état joueur et présentation UI associée : **FONDATIONS PUBLIQUEMENT VALIDÉES SANS RÉSERVE PAR LE PROPRIÉTAIRE — DOMAINE CLÔTURÉ** ; catalogue réel, rotation réelle, quatre 5★, six 4★, sélection/changement/persistance de cible, état joueur Gacha et présentation Pity/Garantie/Capture sont validés ;
 - UI Gacha : **PUBLIQUEMENT VALIDÉE ET CLÔTURÉE** pour Hero splash, picker 5★ 2×2, primitive responsive commune des portraits, variantes Team/Équipe active/Box/Personnages/4★ Invocation, desktop, mobile portrait et paysage, sidebar Objectif, aperçu Invocation de l'Accueil, navigation et Particules agrandies ;
 - Personnages reste validé ici pour sa présentation actuelle. La Box personnelle et l'écran Team consomment désormais leurs données serveur réelles ;
@@ -3650,21 +3650,21 @@ Box personnelle et sous-lot tri persistant/Stella déployés et publiquement tes
 
 ## État du lot — Team / Équipe / Passifs
 
-Premier lot Team réel déployé et validé publiquement ; lot Team Management + polish desktop implémenté sur `review` :
+Premier lot Team réel déployé et validé publiquement ; Team Management est déployé et son polish UX/visuel 0.70 est implémenté sur `review` :
 
 - migration additive `007_add_teams` : tables privées `teams` et `team_members`, identifiants techniques UUID, position Team unique par Player, index unique partiel garantissant au plus une Team active, quatre positions de membre contraintes, personnage unique par Team, RLS activée et droits `anon`/`authenticated` révoqués ;
 - backfill idempotent des 10 Teams de base pour les Players DEV existants et provisioning transactionnel paresseux au premier `GET /api/v1/me/teams` pour tout Player nouveau ou incomplet ; Team 1 devient active uniquement lorsqu'aucune Team active n'existe ;
 - une Team vide, partielle ou complète peut être activée explicitement ; l'activation désactive l'ancienne sans toucher aux compositions ; créer ou éditer une composition ne déclenche aucune activation implicite ;
 - API authentifiée : lecture des Teams, activation, ajout/remplacement direct d'un slot, retrait, vidage, renommage, création de la prochaine Team, suppression d'une Team supplémentaire et réordres complets des Teams ou des quatre slots ; chaque mutation relit l'état autoritatif et valide côté serveur la propriété, l'activité catalogue, les ensembles complets d'IDs, la position 1..4 et l'absence de doublon ;
-- l'écran Team ne lit plus `mockData` : sélecteur alimenté par les possessions actives réelles, recherche contiguë normalisée accents/casse, filtre élémentaire, personnages déjà présents visibles mais désactivés, quatre slots ordonnés et actions persistantes ; les emplacements vides conservent exactement le gabarit des cartes occupées, leur surface entière ouvre le sélecteur et l'action `Ajouter` n'apparaît qu'au survol/focus ;
-- la sidebar lit exactement la même Team active et affiche son numéro, son nom éventuel, 0..4 personnages, constellations réelles et emplacements vides ; elle reste en lecture seule ;
+- l'écran Team ne lit plus `mockData` : sélecteur alimenté par les possessions actives réelles, recherche contiguë normalisée accents/casse, filtre élémentaire, personnages déjà présents visibles mais désactivés, quatre slots ordonnés et actions persistantes ; les cartes occupées conservent portrait puis identité sans bande vide structurelle, les emplacements vides conservent leur gabarit, leur surface entière ouvre le sélecteur et le bouton visuel `Ajouter` n'apparaît qu'au survol/focus ;
+- la sidebar lit exactement la même Team active et affiche son numéro, son nom éventuel, 0..4 personnages, constellations réelles et emplacements vides ; son panneau entier est une surface accessible qui navigue vers l'écran Team, sans rendre les mini-cartes concurrentiellement interactives ;
 - les passifs sont calculés par la primitive serveur partagée `deriveTeamPassives`, de 0 à 2 stacks par élément, y compris pour une Team partielle et plusieurs éléments simultanés ; aucune valeur de passif n'est persistée par Player ;
-- le référentiel des sept passifs s'ouvre dans une modale fermable par croix, backdrop ou Escape, sans allonger l'écran Team ; le panneau contextuel reste compact, y compris lorsqu'il affiche `Aucun passif actif` ;
+- le bouton `Voir les passifs` ouvre le référentiel des sept passifs dans une modale fermable par croix, backdrop ou Escape, sans allonger l'écran Team ; le panneau contextuel reste compact, lisible et conserve `Aucun passif actif` lorsqu'aucun effet n'est dérivé ;
 - l'action `Fiche` réutilise le composant détaillé Box et la même couche d'état : favori, Stella, confirmation, retry et protections du cache restent uniques ; une Stella confirmée revalide la Box puis recharge l'état Team autoritatif afin de synchroniser fiche, composition et sidebar ;
 - le nom facultatif d'une Team se modifie inline, accepte espaces et accents jusqu'à 20 caractères et revient au fallback `Équipe N` lorsqu'il est vide ;
 - les Teams sont paginées horizontalement par tranches de dix. La création est strictement séquentielle, retry-safe à partir de la position attendue et sans activation implicite ; le chevron vers la tranche suivante n'existe que lorsque la tranche courante est complète, sauf pour la tranche initiale 1..10 ;
 - seules les positions courantes 11+ peuvent être supprimées, jamais la Team active ; les Teams suivantes sont compactées en conservant leurs UUID. `isBaseSlot` reste une provenance historique et n'est jamais l'autorité de suppression ;
-- les quatre personnages peuvent être permutés horizontalement, y compris vers un emplacement vide. Les Teams peuvent être réordonnées horizontalement : drop sur une carte = swap, drop entre deux cartes = insertion, maintien sur un chevron pendant environ 550 ms = navigation inter-tranches ; l'identité active reste attachée à l'UUID de la Team ;
+- les quatre personnages peuvent être permutés horizontalement, y compris vers un emplacement vide. Les Teams peuvent être réordonnées horizontalement : drop sur une carte = swap, drop entre deux cartes = insertion, maintien sur un chevron pendant environ 550 ms = navigation inter-tranches ; les cibles swap, insertion et slot sont visuellement distinctes. Un réordre affiche immédiatement un aperçu local éphémère, puis adopte le snapshot serveur ou revient à l'ordre précédent avec une erreur ; l'identité active reste attachée à l'UUID de la Team ;
 - un personnage catalogue désactivé n'est ni sélectionnable ni exposé et ne contribue à aucun passif ; chaque lecture/mutation Team applique transactionnellement R185 pour le Player courant : la Team active perd uniquement ses slots concernés, une Team non active en position 1..10 est entièrement vidée, et une Team non active en position 11+ est supprimée avec compaction unique de l'ordre ; aucune réactivation ultérieure ne restaure un slot ou une Team ;
 - aucun cache Team supplémentaire n'est introduit : le bootstrap garde le snapshot courant en mémoire et chaque lecture/mutation retourne immédiatement l'état autoritatif, sans bénéfice actuel justifiant une abstraction SWR concurrente à celle de la Box ;
 - sur desktop standard, Team tient sans scroll vertical normal et les trois colonnes utilisent la hauteur disponible ; la sidebar conserve ses panneaux naturels et son dernier panneau Récompense quotidienne absorbe seul l'espace restant sans étirer son contenu. Mobile et petits viewports conservent leur scroll naturel et leurs contrôles de réorganisation de secours ;
@@ -3698,7 +3698,7 @@ Premier lot Team réel déployé et validé publiquement ; lot Team Management +
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Créer/pousser le checkpoint Team Management 0.69 uniquement sur `review` → review GitHub ChatGPT → corrections éventuelles → promotion vers `main` seulement après approbation → validation publique propriétaire du renommage, des Teams 11+, de la pagination, de la suppression/compaction, des réordres, de la fiche Box partagée, de la modale Passifs et du layout desktop → passe Team de raccord des sept passifs au Pull après ajout de la primitive XP serveur requise par Cryo.** `PAID_INFRA_APPROVED = false` reste inchangé.
+**Créer/pousser le candidat Team Management polish 0.70 uniquement sur `review` → review GitHub ChatGPT → corrections éventuelles → promotion vers `main` seulement après approbation → validation publique propriétaire des cartes compactes, du drag/drop, de l'aperçu de réordre, de la sidebar navigable, de la modale Passifs et du layout desktop → passe Team de raccord des sept passifs au Pull après ajout de la primitive XP serveur requise par Cryo.** `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

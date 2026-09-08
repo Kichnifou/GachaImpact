@@ -102,10 +102,11 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
           </div>
         </section>
 
-        <section className="panel team-card">
-        <button type="button" className="section-heading section-link" onClick={() => onNavigate('team')}>
+        <section className="panel team-card team-card-navigable">
+        <button type="button" className="team-card-navigation" onClick={() => onNavigate('team')} aria-label={`Ouvrir l’Équipe active${activeTeam ? `, Team ${activeTeam.position}` : ''}`} />
+        <div className="section-heading">
           <span>Équipe active</span><small>{activeTeam ? `Team ${activeTeam.position}${activeTeam.name ? ` · ${activeTeam.name}` : ''} · ` : ''}{activeMembers} / 4</small>
-        </button>
+        </div>
         <div className="team-grid">
           {(activeTeam?.slots ?? []).map(({ position, character }) => character ? (
               <CharacterShowcaseCard
