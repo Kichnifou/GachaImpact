@@ -1031,6 +1031,8 @@ Contraintes :
 - `UNIQUE(player_id, display_position)`
 - nom <= 20 caractères lorsqu'il existe
 
+`is_base_slot` décrit uniquement la provenance des dix Teams provisionnées. Il ne doit jamais servir d'autorité de suppression : conformément à R233, cette protection est recalculée depuis la `display_position` courante (1 à 10), jamais depuis l'identité ou l'historique d'une Team.
+
 Index unique partiel :
 
 `UNIQUE(player_id) WHERE is_active = true`

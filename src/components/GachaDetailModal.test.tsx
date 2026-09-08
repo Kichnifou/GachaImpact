@@ -53,9 +53,10 @@ describe('GachaDetailModal', () => {
     expect((html.match(/<tr>/g) ?? [])).toHaveLength(11)
   })
 
-  it('keeps useful passives without technical or discarded copy', () => {
+  it('keeps useful passives without implying that their Invocation effects are already active', () => {
     const html = renderToStaticMarkup(<PassivesPanel />)
-    expect(html).toContain('passifs de votre Équipe active')
+    expect(html).toContain('Les effets de votre Team active sur les Invocations seront activés prochainement.')
+    expect(html).not.toContain('passifs de votre Équipe active')
     expect(html).not.toContain('Équipe serveur')
     expect(html).not.toContain('Maximum 2 stacks')
     expect(html).not.toContain('après la résolution du Pull')

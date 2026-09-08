@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { PlayerTeamDto, PlayerTeamsDto, TeamCharacterDto } from '../api/types'
-import { filterTeamCharacters } from '../team/team-presentation'
+import { filterTeamCharacters, teamPassiveStatusLabel } from '../team/team-presentation'
 import TeamScreen, { CharacterSelector } from './TeamScreen'
 import teamScreenSource from './TeamScreen.tsx?raw'
 
@@ -84,6 +84,14 @@ describe('real Team screen', () => {
     const empty = renderToStaticMarkup(<TeamScreen teams={teams(0)} {...callbacks} />)
     expect((empty.match(/>Ajouter</g) ?? [])).toHaveLength(4)
     expect(empty).toContain('Aucun passif actif')
+  })
+
+  it('labels derived passives as the active Team or a preview without claiming gameplay activation', () => {
+    const html = renderToStaticMarkup(<TeamScreen teams={teams(4)} {...callbacks} />)
+    expect(html).toContain('>Team active<')
+    expect(html).toContain('Hydro II')
+    expect(html).not.toContain('Actifs pour le gameplay')
+    expect(teamPassiveStatusLabel(false)).toBe('Aperçu')
   })
 
   it('filters real possessions by accent-insensitive contiguous substring and element', () => {

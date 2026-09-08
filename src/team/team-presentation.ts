@@ -9,6 +9,10 @@ export function filterTeamCharacters(characters: readonly TeamCharacterDto[], se
     && (elementFilter === 'all' || character.elementKey === elementFilter))
 }
 
+export function teamPassiveStatusLabel(active: boolean) {
+  return active ? 'Team active' : 'Aperçu'
+}
+
 function normalize(value: string) {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr-FR')
 }

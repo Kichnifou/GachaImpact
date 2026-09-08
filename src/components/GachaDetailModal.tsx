@@ -123,7 +123,7 @@ const passives = [
 
 export function PassivesPanel() {
   return <div className="passives-panel">
-    <p className="passives-notice">Ces effets s’éveilleront lorsque les passifs de votre Équipe active seront disponibles.</p>
+    <p className="passives-notice">Les effets de votre Team active sur les Invocations seront activés prochainement.</p>
     <div className="passives-grid">{passives.map(([element, one, two]) => <article key={element}><h3>{element}</h3><p><strong>1 stack</strong>{one}</p><p><strong>2 stacks</strong>{two}</p></article>)}</div>
   </div>
 }

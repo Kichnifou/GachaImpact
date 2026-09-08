@@ -4,7 +4,7 @@ import CharacterCard from '../components/CharacterCard'
 import CharacterPortraitFrame from '../components/CharacterPortraitFrame'
 import CharacterShowcaseCard from '../components/CharacterShowcaseCard'
 import GameAssetIcon from '../components/GameAssetIcon'
-import { filterTeamCharacters, teamElementFilters, type TeamElementFilter } from '../team/team-presentation'
+import { filterTeamCharacters, teamElementFilters, teamPassiveStatusLabel, type TeamElementFilter } from '../team/team-presentation'
 import { apiErrorMessage } from '../utils/formatters'
 import { getElementAssetPath } from '../utils/gameAssets'
 
@@ -116,7 +116,7 @@ function TeamScreen({ teams, onLoad, onActivate, onSetSlot, onRemoveSlot, onClea
       </section>
 
       <section className="panel team-bonuses">
-        <div className="section-heading"><span>Passifs de cette Team</span><small>{selectedTeam.active ? 'Actifs pour le gameplay' : 'Aperçu'}</small></div>
+        <div className="section-heading"><span>Passifs de cette Team</span><small>{teamPassiveStatusLabel(selectedTeam.active)}</small></div>
         {selectedTeam.passives.length > 0 ? <div className="bonus-grid">
           {selectedTeam.passives.map((passive) => <article key={passive.elementKey}><GameAssetIcon className={`${passive.elementKey} bonus-element-icon`} src={getElementAssetPath(passive.elementKey)} fallback="✦" /><div><strong>{passive.displayName} {roman(passive.stacks)}</strong><p>{passive.description}</p></div></article>)}
         </div> : <p className="team-no-passive">Aucun passif actif</p>}
