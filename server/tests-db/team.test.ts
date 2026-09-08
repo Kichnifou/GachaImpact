@@ -87,6 +87,73 @@ describe('authoritative Team persistence', () => {
     expect(cleared.teams[0]!.slots.every(({ character }) => character === null)).toBe(true);
   });
 
+  it('renames, creates sequentially with retry safety, and keeps new Teams inactive', async () => {
+    const player = await createPlayer('Management');
+    const store = new PrismaTeamStore(database);
+    const initial = await store.getOrProvision(player.id);
+    const team1 = initial.teams[0]!;
+
+    const renamed = await store.rename(player.id, team1.id, 'Équipe des étoiles');
+    expect(renamed.teams[0]!.name).toBe('Équipe des étoiles');
+    expect((await store.rename(player.id, team1.id, null)).teams[0]!.name).toBeNull();
+
+    const eleven = await store.createNext(player.id, 11);
+    const retry = await store.createNext(player.id, 11);
+    expect(eleven.teams).toHaveLength(11);
+    expect(retry.teams).toHaveLength(11);
+    expect(retry.teams[10]).toMatchObject({ id: eleven.teams[10]!.id, position: 11, active: false });
+    await expect(store.createNext(player.id, 13)).rejects.toMatchObject({ code: 'TEAM_CREATE_POSITION_INVALID' });
+    const twelve = await store.createNext(player.id, 12);
+    expect(twelve.teams).toHaveLength(12);
+    expect(twelve.teams.filter(({ active }) => active)).toHaveLength(1);
+    expect(twelve.teams.find(({ active }) => active)?.id).toBe(team1.id);
+  });
+
+  it('deletes only inactive positions above ten and compacts positions without changing identities', async () => {
+    const player = await createPlayer('Delete');
+    const store = new PrismaTeamStore(database);
+    let state = await store.getOrProvision(player.id);
+    state = await store.createNext(player.id, 11);
+    state = await store.createNext(player.id, 12);
+    state = await store.createNext(player.id, 13);
+    const [base, extra11, extra12, extra13] = [state.teams[0]!, state.teams[10]!, state.teams[11]!, state.teams[12]!];
+
+    await expect(store.deleteExtra(player.id, base.id)).rejects.toMatchObject({ code: 'TEAM_DELETE_PROTECTED' });
+    await store.activate(player.id, extra13.id);
+    await expect(store.deleteExtra(player.id, extra13.id)).rejects.toMatchObject({ code: 'TEAM_DELETE_ACTIVE' });
+    const compacted = await store.deleteExtra(player.id, extra12.id);
+    expect(compacted.teams).toHaveLength(12);
+    expect(compacted.teams[10]).toMatchObject({ id: extra11.id, position: 11 });
+    expect(compacted.teams[11]).toMatchObject({ id: extra13.id, position: 12, active: true });
+  });
+
+  it('persists complete Team and slot orders while preserving the active Team identity', async () => {
+    const player = await createPlayer('Reorder');
+    await possess(player.id, activeCharacterIds.slice(0, 3));
+    const store = new PrismaTeamStore(database);
+    let state = await store.getOrProvision(player.id);
+    state = await store.createNext(player.id, 11);
+    const active = state.teams[0]!;
+    const moved = state.teams[10]!;
+    await store.setSlot(player.id, active.id, 1, activeCharacterIds[0]!);
+    await store.setSlot(player.id, active.id, 2, activeCharacterIds[1]!);
+    const slots = await store.reorderSlots(player.id, active.id, [activeCharacterIds[1]!, null, activeCharacterIds[0]!, null]);
+    expect(slots.teams.find(({ id }) => id === active.id)!.slots.map(({ character }) => character?.id ?? null))
+      .toEqual([activeCharacterIds[1], null, activeCharacterIds[0], null]);
+    await expect(store.reorderSlots(player.id, active.id, [activeCharacterIds[1]!, null, null, null]))
+      .rejects.toMatchObject({ code: 'TEAM_SLOT_ORDER_INVALID' });
+
+    const insertionOrder = [moved.id, ...state.teams.slice(0, 10).map(({ id }) => id)];
+    const reordered = await store.reorderTeams(player.id, insertionOrder);
+    expect(reordered.teams[0]).toMatchObject({ id: moved.id, position: 1, active: false });
+    expect(reordered.teams[1]).toMatchObject({ id: active.id, position: 2, active: true });
+    await expect(store.deleteExtra(player.id, moved.id)).rejects.toMatchObject({ code: 'TEAM_DELETE_PROTECTED' });
+    expect((await database.team.findUnique({ where: { id: active.id } }))?.isActive).toBe(true);
+    await expect(store.reorderTeams(player.id, insertionOrder.slice(1))).rejects.toMatchObject({ code: 'TEAM_ORDER_INVALID' });
+    await expect(store.reorderTeams(player.id, [...insertionOrder.slice(0, -1), insertionOrder[0]!])).rejects.toMatchObject({ code: 'TEAM_ORDER_INVALID' });
+    await expect(store.reorderTeams(player.id, [...insertionOrder.slice(0, -1), randomUUID()])).rejects.toMatchObject({ code: 'TEAM_ORDER_INVALID' });
+  });
+
   it('isolates players, hides inactive memberships and derives exact capped multi-element passives', async () => {
     const [player, other] = await Promise.all([createPlayer('Isolation A'), createPlayer('Isolation B')]);
     await possess(player.id, [...activeCharacterIds, inactiveCharacterId]);

@@ -4,13 +4,14 @@ import { getElementAssetPath } from '../utils/gameAssets'
 import CharacterPortraitFrame from './CharacterPortraitFrame'
 import GameAssetIcon from './GameAssetIcon'
 
-function BoxCharacterDetailModal({ character, stellaQuantity, stellaRetryAvailable, favoritePending, stellaPending, stellaFeedback, onToggleFavorite, onUseStella, onClose }: {
+function BoxCharacterDetailModal({ character, stellaQuantity, stellaRetryAvailable, favoritePending, stellaPending, stellaFeedback, actionError, onToggleFavorite, onUseStella, onClose }: {
   character: BoxCharacterDto
   stellaQuantity: string
   stellaRetryAvailable: boolean
   favoritePending: boolean
   stellaPending: boolean
   stellaFeedback: string | null
+  actionError?: string | null
   onToggleFavorite: () => void
   onUseStella: () => void
   onClose: () => void
@@ -61,6 +62,7 @@ function BoxCharacterDetailModal({ character, stellaQuantity, stellaRetryAvailab
             <button type="button" disabled={(!hasStella && !stellaRetryAvailable) || stellaPending} onClick={() => { stellaSubmitted.current = false; setConfirmingStella(true) }}>{stellaPending ? 'Utilisation…' : stellaRetryAvailable ? 'Reprendre l’utilisation' : 'Utiliser une Stella'}</button>
             {(stellaFeedback || stellaRetryAvailable) && <p className="box-stella-feedback" role="status">{stellaFeedback ?? 'Résultat à vérifier · la nouvelle tentative reprendra la même opération.'}</p>}
           </section>}
+          {actionError && <p className="box-detail-action-error" role="alert">{actionError}</p>}
           <button type="button" className={`box-detail-favorite${character.favorite ? ' active' : ''}`} disabled={favoritePending} onClick={onToggleFavorite}>
             <span aria-hidden="true">★</span>{character.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
           </button>

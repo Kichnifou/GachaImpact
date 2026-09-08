@@ -2,8 +2,8 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { PlayerTeamDto, PlayerTeamsDto, TeamCharacterDto } from '../api/types'
-import { filterTeamCharacters, teamPassiveStatusLabel } from '../team/team-presentation'
-import TeamScreen, { CharacterSelector } from './TeamScreen'
+import { canOpenNextTeamPage, filterTeamCharacters, insertTeamOrder, swapTeamOrder, swapTeamSlots, teamPageForPosition, teamPassiveStatusLabel } from '../team/team-presentation'
+import TeamScreen, { CharacterSelector, TeamPassiveReferenceModal } from './TeamScreen'
 import teamScreenSource from './TeamScreen.tsx?raw'
 
 const character = (overrides: Partial<TeamCharacterDto> = {}): TeamCharacterDto => ({
@@ -34,8 +34,8 @@ const team = (position: number, count = 0, active = position === 1): PlayerTeamD
   passives: count > 0 ? [{ elementKey: 'hydro', displayName: 'Hydro', levelOne: 'Bonus I', levelTwo: 'Bonus II', stacks: Math.min(2, count) as 1 | 2, description: count > 1 ? 'Bonus II' : 'Bonus I' }] : [],
 })
 
-const teams = (count: number): PlayerTeamsDto => ({
-  teams: Array.from({ length: 10 }, (_, index) => team(index + 1, index === 0 ? count : 0)),
+const teams = (count: number, total = 10, activePosition = 1): PlayerTeamsDto => ({
+  teams: Array.from({ length: total }, (_, index) => team(index + 1, index + 1 === activePosition ? count : 0, index + 1 === activePosition)),
   availableCharacters: catalog,
   passiveReference: [
     { elementKey: 'pyro', displayName: 'Pyro', levelOne: 'Pyro I', levelTwo: 'Pyro II' },
@@ -49,11 +49,21 @@ const teams = (count: number): PlayerTeamsDto => ({
 })
 
 const callbacks = {
+  initialBox: null,
+  stellaRetryCharacterId: null,
   onLoad: vi.fn(async () => teams(4)),
   onActivate: vi.fn(async () => teams(4)),
+  onRename: vi.fn(async () => teams(4)),
+  onCreateNext: vi.fn(async () => teams(4)),
+  onDelete: vi.fn(async () => teams(4)),
+  onReorderTeams: vi.fn(async () => teams(4)),
   onSetSlot: vi.fn(async () => teams(4)),
+  onReorderSlots: vi.fn(async () => teams(4)),
   onRemoveSlot: vi.fn(async () => teams(3)),
   onClear: vi.fn(async () => teams(0)),
+  onLoadBox: vi.fn(),
+  onSetBoxFavorite: vi.fn(),
+  onUseStella: vi.fn(),
 }
 
 describe('real Team screen', () => {
@@ -118,5 +128,69 @@ describe('real Team screen', () => {
     expect(renderToStaticMarkup(<TeamScreen teams={{ teams: [], availableCharacters: [], passiveReference: [] }} {...callbacks} />)).toContain('Aucune équipe disponible')
     expect(teamScreenSource).toContain('setError(apiErrorMessage(reason))')
     expect(teamScreenSource).toContain('role="alert"')
+  })
+
+  it('keeps empty slots full-card actionable without the old permanent empty copy', () => {
+    const html = renderToStaticMarkup(<TeamScreen teams={teams(0)} {...callbacks} />)
+    expect((html.match(/<button[^>]*class="large-team-card empty-team-card"/g) ?? [])).toHaveLength(4)
+    expect((html.match(/class="empty-team-hover-action">Ajouter/g) ?? [])).toHaveLength(4)
+    expect(html).not.toContain('Emplacement libre')
+    expect(html).not.toContain('Ajouter un personnage</button>')
+  })
+
+  it('opens the seven-passive reference as a dismissible modal instead of inline content', () => {
+    const html = renderToStaticMarkup(<TeamPassiveReferenceModal passives={teams(0).passiveReference} onClose={vi.fn()} />)
+    expect(html).toContain('role="dialog"')
+    expect(html).toContain('aria-modal="true"')
+    expect(html).toContain('Les sept passifs')
+    expect((html.match(/class="bonus-element-icon"/g) ?? [])).toHaveLength(7)
+    expect(html).toContain('aria-label="Fermer les passifs"')
+  })
+
+  it('reuses the exact Box detail component and shared Box collection coordinator', () => {
+    expect(teamScreenSource).toContain('<BoxCharacterDetailModal')
+    expect(teamScreenSource).toContain('useBoxCollection')
+    expect(teamScreenSource).not.toContain('function TeamCharacterDetail')
+  })
+
+  it('groups Teams by ten and gates only the next sequential page', () => {
+    expect(teamPageForPosition(1)).toBe(0)
+    expect(teamPageForPosition(10)).toBe(0)
+    expect(teamPageForPosition(11)).toBe(1)
+    expect(teamPageForPosition(21)).toBe(2)
+    expect(canOpenNextTeamPage(10, 0)).toBe(true)
+    expect(canOpenNextTeamPage(10, 1)).toBe(false)
+    expect(canOpenNextTeamPage(20, 1)).toBe(true)
+    expect(canOpenNextTeamPage(20, 2)).toBe(false)
+
+    const firstPage = renderToStaticMarkup(<TeamScreen teams={teams(0)} {...callbacks} />)
+    expect(firstPage).toContain('aria-label="Teams suivantes"')
+    expect(firstPage).not.toContain('aria-label="Teams précédentes"')
+
+    const incompleteSecondPage = renderToStaticMarkup(<TeamScreen teams={teams(3, 11, 11)} {...callbacks} />)
+    expect(incompleteSecondPage).toContain('aria-label="Teams précédentes"')
+    expect(incompleteSecondPage).not.toContain('aria-label="Teams suivantes"')
+    expect(incompleteSecondPage).toContain('Team 12')
+    expect(incompleteSecondPage).toContain('＋ Créer')
+    expect(incompleteSecondPage).toContain('Team 13 verrouillée')
+
+    const completeSecondPage = renderToStaticMarkup(<TeamScreen teams={teams(4, 20, 11)} {...callbacks} />)
+    expect(completeSecondPage).toContain('aria-label="Teams suivantes"')
+  })
+
+  it('defines stable swap, insertion and character-slot reorder semantics', () => {
+    expect(swapTeamOrder(['a', 'b', 'c'], 'a', 'c')).toEqual(['c', 'b', 'a'])
+    expect(insertTeamOrder(['a', 'b', 'c', 'd'], 'a', 3)).toEqual(['b', 'c', 'a', 'd'])
+    expect(insertTeamOrder(['a', 'b', 'c', 'd'], 'd', 1)).toEqual(['a', 'd', 'b', 'c'])
+    expect(swapTeamSlots(['a', null, 'c', 'd'], 0, 1)).toEqual([null, 'a', 'c', 'd'])
+  })
+
+  it('offers compact inline rename and touch-safe reorder controls', () => {
+    const html = renderToStaticMarkup(<TeamScreen teams={teams(4)} {...callbacks} />)
+    expect(html).toContain('aria-label="Renommer cette Team"')
+    expect(html).toContain('aria-label="Déplacer cette Team vers la droite"')
+    expect(teamScreenSource).toContain("event.key === 'Enter'")
+    expect(teamScreenSource).toContain("event.key === 'Escape'")
+    expect(teamScreenSource).toContain('maxLength={20}')
   })
 })

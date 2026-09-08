@@ -1073,7 +1073,7 @@ Colonnes :
 
 Les passifs actifs d'un joueur sont dérivés de sa Team active.
 
-État physique 0.68 : la migration additive `007_add_teams` crée `teams` et `team_members`, backfill les dix Teams de base des Players DEV existants, active Team 1 lorsqu'elle est créée par ce backfill, active la RLS et révoque les droits directs `anon`/`authenticated`. Les nouveaux Players sont complétés par un provisioning paresseux transactionnel et idempotent au premier GET Team ; aucune composition existante n'est écrasée.
+État physique 0.69 : la migration additive `007_add_teams` crée `teams` et `team_members`, backfill les dix Teams de base des Players DEV existants, active Team 1 lorsqu'elle est créée par ce backfill, active la RLS et révoque les droits directs `anon`/`authenticated`. Les nouveaux Players sont complétés par un provisioning paresseux transactionnel et idempotent au premier GET Team ; aucune composition existante n'est écrasée. Sans migration supplémentaire, les mêmes tables portent désormais renommage, Teams 11+ séquentielles, suppression/compaction et réordres complets. Les écritures d'ordre utilisent une transaction et des positions temporaires afin de respecter `UNIQUE(player_id, display_position)` ; l'identité active reste attachée à l'UUID.
 
 `element_passive_definitions` reste une cible d'administration future. Le premier lot réel conserve les sept définitions dans une configuration serveur fortement typée et ne persiste que les Teams/memberships, jamais les stacks dérivées.
 

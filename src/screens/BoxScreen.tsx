@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BoxCharacterDto, BoxSortPreferenceDto, ElementKey, PlayerBoxDto, StellaUseDto } from '../api/types'
 import type { BoxConstellationFilter, BoxElementFilter, BoxFilters, BoxRarityTab, BoxSortKey } from '../box/box-presentation'
-import { boxElements, initialBoxFiltersWithPreference, presentBoxCharacters, replaceFavorite } from '../box/box-presentation'
+import { boxElements, initialBoxFiltersWithPreference, presentBoxCharacters } from '../box/box-presentation'
+import { useBoxCollection } from '../box/use-box-collection'
 import BoxCharacterCard from '../components/BoxCharacterCard'
 import BoxCharacterDetailModal from '../components/BoxCharacterDetailModal'
 import GameAssetIcon from '../components/GameAssetIcon'
 import { apiErrorMessage } from '../utils/formatters'
 import { getElementAssetPath } from '../utils/gameAssets'
-import { isAmbiguousMutationError } from '../api/mutation-errors'
-import { ApiError } from '../api/game-api'
 
 type BoxScreenProps = {
   initialBox: PlayerBoxDto | null
@@ -20,61 +19,16 @@ type BoxScreenProps = {
 }
 
 function BoxScreen({ initialBox, onLoadBox, onSetFavorite, onSetSortPreference, onUseStella, stellaRetryCharacterId }: BoxScreenProps) {
-  const [box, setBox] = useState<PlayerBoxDto | null>(initialBox)
-  const [error, setError] = useState<string | null>(null)
   const [filters, setFilters] = useState<BoxFilters>(() => initialBoxFiltersWithPreference(initialBox?.preference))
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [favoritePendingId, setFavoritePendingId] = useState<string | null>(null)
-  const [stellaPendingId, setStellaPendingId] = useState<string | null>(null)
-  const [stellaFeedback, setStellaFeedback] = useState<string | null>(null)
-  const [stellaRetryId, setStellaRetryId] = useState<string | null>(stellaRetryCharacterId)
+  const { box, error, setError, load, favoritePendingId, stellaPendingId, stellaFeedback, setStellaFeedback, stellaRetryId, toggleFavorite, useStella } = useBoxCollection({ initialBox, onLoadBox, onSetFavorite, onUseStella, stellaRetryCharacterId })
   const preferenceInteractionRevision = useRef(0)
   const preferenceSaveQueue = useRef(Promise.resolve())
 
-  const load = async () => {
-    setError(null)
-    try {
-      const next = await onLoadBox()
-      setBox(next)
-      setFilters((current) => ({ ...current, sort: next.preference.sortKey, direction: next.preference.direction }))
-    }
-    catch (reason) { setError(apiErrorMessage(reason)) }
-  }
-
   useEffect(() => {
-    let active = true
-    const startedAtPreferenceRevision = preferenceInteractionRevision.current
-    void Promise.resolve().then(async () => {
-      try {
-        const nextBox = await onLoadBox()
-        if (active) {
-          setBox(nextBox)
-          if (preferenceInteractionRevision.current === startedAtPreferenceRevision) {
-            setFilters((current) => ({ ...current, sort: nextBox.preference.sortKey, direction: nextBox.preference.direction }))
-          }
-          setError(null)
-        }
-      } catch (reason) {
-        if (active) setError(apiErrorMessage(reason))
-      }
-    })
-    return () => { active = false }
-  }, [onLoadBox]) // Every Box mount refreshes authoritative possessions.
-
-  const toggleFavorite = async (character: BoxCharacterDto) => {
-    if (favoritePendingId) return
-    const favorite = !character.favorite
-    const previousFavorite = character.favorite
-    setFavoritePendingId(character.id)
-    setBox((current) => current ? { ...current, characters: replaceFavorite(current.characters, character.id, favorite) } : current)
-    try {
-      const persisted = await onSetFavorite(character.id, favorite)
-      setBox((current) => current ? { ...current, characters: current.characters.map((item) => item.id === persisted.id ? persisted : item) } : current)
-    } catch (reason) {
-      setBox((current) => current ? { ...current, characters: replaceFavorite(current.characters, character.id, previousFavorite) } : current)
-      setError(apiErrorMessage(reason))
-    } finally { setFavoritePendingId(null) }
-  }
+    if (!box || preferenceInteractionRevision.current > 0) return
+    setFilters((current) => ({ ...current, sort: box.preference.sortKey, direction: box.preference.direction }))
+  }, [box])
 
   const changeFilters = (next: BoxFilters) => {
     const sortChanged = next.sort !== filters.sort || next.direction !== filters.direction
@@ -92,31 +46,6 @@ function BoxScreen({ initialBox, onLoadBox, onSetFavorite, onSetSortPreference, 
           setError(`Tri appliqué, mais non sauvegardé : ${apiErrorMessage(reason)}`)
         }
       })
-  }
-
-  const useStella = async (character: BoxCharacterDto) => {
-    if (stellaPendingId) return
-    setStellaPendingId(character.id)
-    setStellaFeedback(null)
-    try {
-      const result = await onUseStella(character.id)
-      setBox((current) => current ? applyStellaResult(current, result) : current)
-      setStellaRetryId(null)
-      setStellaFeedback(stellaFeedbackMessage(result))
-      void onLoadBox().then((authoritative) => setBox(authoritative)).catch(() => undefined)
-    } catch (reason) {
-      if (isAmbiguousMutationError(reason)) {
-        setStellaRetryId(character.id)
-        setError('Résultat incertain : vérifiez votre Box, puis réessayez. La même opération sera reprise sans double utilisation.')
-      } else if (reason instanceof ApiError && (reason.code === 'STELLA_IN_PROGRESS' || reason.code === 'STELLA_INTENT_CONFLICT')) {
-        setError(apiErrorMessage(reason))
-      } else {
-        setStellaRetryId(null)
-        setError(apiErrorMessage(reason))
-      }
-    } finally {
-      setStellaPendingId(null)
-    }
   }
 
   if (!box && !error) return <BoxStatus kind="loading" title="Ouverture de votre Box…" detail="Synchronisation de vos personnages possédés." />
@@ -152,7 +81,7 @@ export function BoxView({ box, filters, error, favoritePendingId, stellaPendingI
       : <section className="character-grid" aria-label="Personnages possédés">
         {visibleCharacters.map((character) => <BoxCharacterCard character={character} favoritePending={favoritePendingId === character.id} onOpen={() => onSelect(character.id)} onToggleFavorite={() => onToggleFavorite(character)} key={character.id} />)}
       </section>}
-    {selected && <BoxCharacterDetailModal character={selected} stellaQuantity={box.stella.quantity} stellaRetryAvailable={stellaRetryId === selected.id} favoritePending={favoritePendingId === selected.id} stellaPending={stellaPendingId === selected.id} stellaFeedback={stellaFeedback} onToggleFavorite={() => onToggleFavorite(selected)} onUseStella={() => onUseStella(selected)} onClose={onCloseDetail} />}
+    {selected && <BoxCharacterDetailModal character={selected} stellaQuantity={box.stella.quantity} stellaRetryAvailable={stellaRetryId === selected.id} favoritePending={favoritePendingId === selected.id} stellaPending={stellaPendingId === selected.id} stellaFeedback={stellaFeedback} actionError={error} onToggleFavorite={() => onToggleFavorite(selected)} onUseStella={() => onUseStella(selected)} onClose={onCloseDetail} />}
   </div>
 }
 
@@ -181,21 +110,5 @@ export function BoxStatus({ kind, title, detail, onRetry }: { kind: 'loading' | 
 }
 
 function elementLabel(element: ElementKey) { return ({ pyro: 'Pyro', hydro: 'Hydro', cryo: 'Cryo', electro: 'Électro', anemo: 'Anémo', geo: 'Géo', dendro: 'Dendro' } as const)[element] }
-
-function applyStellaResult(box: PlayerBoxDto, result: StellaUseDto): PlayerBoxDto {
-  const previous = box.characters.find(({ id }) => id === result.character.id)
-  return {
-    ...box,
-    characters: box.characters.map((character) => character.id === result.character.id ? result.character : character),
-    stella: result.stella,
-    summary: { ...box.summary, c6: box.summary.c6 + (previous?.constellation !== 6 && result.character.constellation === 6 ? 1 : 0) },
-  }
-}
-
-function stellaFeedbackMessage(result: StellaUseDto) {
-  if (result.c6Progression?.type === 'stat') return `Stella utilisée · ${result.c6Progression.stat} passe à ${result.c6Progression.valueAfter}.`
-  if (result.c6Progression?.type === 'unlocked') return 'Stella utilisée · Concours C6 débloqué.'
-  return 'Stella utilisée avec succès.'
-}
 
 export default BoxScreen

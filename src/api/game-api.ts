@@ -132,10 +132,16 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
       }),
     getTeams: () => request<PlayerTeamsDto>('/api/v1/me/teams'),
     activateTeam: (teamId: string) => request<PlayerTeamsDto>(`/api/v1/me/teams/${teamId}/active`, { method: 'PATCH' }),
+    renameTeam: (teamId: string, name: string | null) => request<PlayerTeamsDto>(`/api/v1/me/teams/${teamId}/name`, { method: 'PATCH', body: JSON.stringify({ name }) }),
+    createNextTeam: (expectedPosition: number) => request<PlayerTeamsDto>('/api/v1/me/teams', { method: 'POST', body: JSON.stringify({ expectedPosition }) }),
+    deleteTeam: (teamId: string) => request<PlayerTeamsDto>(`/api/v1/me/teams/${teamId}`, { method: 'DELETE' }),
+    reorderTeams: (teamIds: readonly string[]) => request<PlayerTeamsDto>('/api/v1/me/teams/order', { method: 'PUT', body: JSON.stringify({ teamIds }) }),
     setTeamSlot: (teamId: string, position: number, characterId: string) =>
       request<PlayerTeamsDto>(`/api/v1/me/teams/${teamId}/slots/${position}`, {
         method: 'PUT', body: JSON.stringify({ characterId }),
       }),
+    reorderTeamSlots: (teamId: string, characterIds: readonly (string | null)[]) =>
+      request<PlayerTeamsDto>(`/api/v1/me/teams/${teamId}/slots/order`, { method: 'PUT', body: JSON.stringify({ characterIds }) }),
     removeTeamSlot: (teamId: string, position: number) =>
       request<PlayerTeamsDto>(`/api/v1/me/teams/${teamId}/slots/${position}`, { method: 'DELETE' }),
     clearTeam: (teamId: string) => request<PlayerTeamsDto>(`/api/v1/me/teams/${teamId}/slots`, { method: 'DELETE' }),

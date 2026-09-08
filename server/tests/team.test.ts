@@ -7,8 +7,13 @@ import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-pr
 import {
   ActivatePlayerTeam,
   ClearPlayerTeam,
+  CreateNextPlayerTeam,
+  DeleteExtraPlayerTeam,
   GetCurrentPlayerTeams,
   RemovePlayerTeamSlot,
+  RenamePlayerTeam,
+  ReorderPlayerTeams,
+  ReorderPlayerTeamSlots,
   SetPlayerTeamSlot,
 } from '../src/application/team/team-services.js';
 import type { PlayerTeams, TeamStore } from '../src/application/team/team-store.js';
@@ -39,7 +44,12 @@ class FakeTeamStore implements TeamStore {
   public readonly calls: string[] = [];
   public getOrProvision = vi.fn(async () => snapshot());
   public activate = vi.fn(async (_playerId: string, requestedTeamId: string) => { this.calls.push('activate'); return snapshot(requestedTeamId); });
+  public rename = vi.fn(async () => { this.calls.push('rename'); return snapshot(); });
+  public createNext = vi.fn(async () => { this.calls.push('create'); return snapshot(); });
+  public deleteExtra = vi.fn(async () => { this.calls.push('delete'); return snapshot(); });
+  public reorderTeams = vi.fn(async () => { this.calls.push('reorder-teams'); return snapshot(); });
   public setSlot = vi.fn(async () => { this.calls.push('set'); return snapshot(); });
+  public reorderSlots = vi.fn(async () => { this.calls.push('reorder-slots'); return snapshot(); });
   public removeSlot = vi.fn(async () => { this.calls.push('remove'); return snapshot(); });
   public clear = vi.fn(async () => { this.calls.push('clear'); return snapshot(); });
 }
@@ -75,7 +85,12 @@ describe('Team HTTP contracts', () => {
       getOrProvisionCurrentPlayer: new GetOrProvisionCurrentPlayer(playerStore),
       getCurrentPlayerTeams: new GetCurrentPlayerTeams(currentPlayer, store),
       activatePlayerTeam: new ActivatePlayerTeam(currentPlayer, store),
+      renamePlayerTeam: new RenamePlayerTeam(currentPlayer, store),
+      createNextPlayerTeam: new CreateNextPlayerTeam(currentPlayer, store),
+      deleteExtraPlayerTeam: new DeleteExtraPlayerTeam(currentPlayer, store),
+      reorderPlayerTeams: new ReorderPlayerTeams(currentPlayer, store),
       setPlayerTeamSlot: new SetPlayerTeamSlot(currentPlayer, store),
+      reorderPlayerTeamSlots: new ReorderPlayerTeamSlots(currentPlayer, store),
       removePlayerTeamSlot: new RemovePlayerTeamSlot(currentPlayer, store),
       clearPlayerTeam: new ClearPlayerTeam(currentPlayer, store),
     });
@@ -88,7 +103,12 @@ describe('Team HTTP contracts', () => {
     const urls = [
       ['GET', '/api/v1/me/teams'],
       ['PATCH', `/api/v1/me/teams/${teamId}/active`],
+      ['PATCH', `/api/v1/me/teams/${teamId}/name`],
+      ['POST', '/api/v1/me/teams'],
+      ['PUT', '/api/v1/me/teams/order'],
+      ['DELETE', `/api/v1/me/teams/${otherTeamId}`],
       ['PUT', `/api/v1/me/teams/${teamId}/slots/1`],
+      ['PUT', `/api/v1/me/teams/${teamId}/slots/order`],
       ['DELETE', `/api/v1/me/teams/${teamId}/slots/1`],
       ['DELETE', `/api/v1/me/teams/${teamId}/slots`],
     ] as const;
@@ -105,11 +125,26 @@ describe('Team HTTP contracts', () => {
     expect(read.json().teams[0].slots[0]).toMatchObject({ position: 1, character: { name: 'Furina', constellation: 1 } });
     expect(read.json().passiveReference).toHaveLength(7);
     expect((await app.inject({ method: 'PATCH', url: `/api/v1/me/teams/${otherTeamId}/active`, headers })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'PATCH', url: `/api/v1/me/teams/${teamId}/name`, headers, payload: { name: 'Équipe étoilée' } })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'POST', url: '/api/v1/me/teams', headers, payload: { expectedPosition: 11 } })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'PUT', url: '/api/v1/me/teams/order', headers, payload: { teamIds: [teamId, otherTeamId, ...Array.from({ length: 8 }, () => crypto.randomUUID())] } })).statusCode).toBe(200);
     expect((await app.inject({ method: 'PUT', url: `/api/v1/me/teams/${teamId}/slots/2`, headers, payload: { characterId } })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'PUT', url: `/api/v1/me/teams/${teamId}/slots/order`, headers, payload: { characterIds: [characterId, null, null, null] } })).statusCode).toBe(200);
     expect((await app.inject({ method: 'DELETE', url: `/api/v1/me/teams/${teamId}/slots/2`, headers })).statusCode).toBe(200);
     expect((await app.inject({ method: 'DELETE', url: `/api/v1/me/teams/${teamId}/slots`, headers })).statusCode).toBe(200);
-    expect(store.calls).toEqual(['activate', 'set', 'remove', 'clear']);
+    expect((await app.inject({ method: 'DELETE', url: `/api/v1/me/teams/${otherTeamId}`, headers })).statusCode).toBe(200);
+    expect(store.calls).toEqual(['activate', 'rename', 'create', 'reorder-teams', 'set', 'reorder-slots', 'remove', 'clear', 'delete']);
     expect(store.setSlot).toHaveBeenCalledWith(playerId, teamId, 2, characterId);
+  });
+
+  it('normalizes optional Team names and rejects names longer than twenty characters', async () => {
+    const { app, store } = await setup();
+    const headers = { authorization: 'Bearer token' };
+    expect((await app.inject({ method: 'PATCH', url: `/api/v1/me/teams/${teamId}/name`, headers, payload: { name: '  Équipe des étoiles  ' } })).statusCode).toBe(200);
+    expect(store.rename).toHaveBeenLastCalledWith(playerId, teamId, 'Équipe des étoiles');
+    expect((await app.inject({ method: 'PATCH', url: `/api/v1/me/teams/${teamId}/name`, headers, payload: { name: '   ' } })).statusCode).toBe(200);
+    expect(store.rename).toHaveBeenLastCalledWith(playerId, teamId, null);
+    expect((await app.inject({ method: 'PATCH', url: `/api/v1/me/teams/${teamId}/name`, headers, payload: { name: '123456789012345678901' } })).statusCode).toBe(422);
   });
 
   it('rejects invalid identifiers, slots and duplicate business failures explicitly', async () => {

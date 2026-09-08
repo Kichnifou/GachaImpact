@@ -40,7 +40,12 @@ export type PlayerTeams = Readonly<{
 export interface TeamStore {
   getOrProvision(playerId: string): Promise<PlayerTeams>;
   activate(playerId: string, teamId: string): Promise<PlayerTeams>;
+  rename(playerId: string, teamId: string, name: string | null): Promise<PlayerTeams>;
+  createNext(playerId: string, expectedPosition: number): Promise<PlayerTeams>;
+  deleteExtra(playerId: string, teamId: string): Promise<PlayerTeams>;
+  reorderTeams(playerId: string, teamIds: readonly string[]): Promise<PlayerTeams>;
   setSlot(playerId: string, teamId: string, position: number, characterId: string): Promise<PlayerTeams>;
+  reorderSlots(playerId: string, teamId: string, characterIds: readonly (string | null)[]): Promise<PlayerTeams>;
   removeSlot(playerId: string, teamId: string, position: number): Promise<PlayerTeams>;
   clear(playerId: string, teamId: string): Promise<PlayerTeams>;
 }

@@ -53,6 +53,60 @@ export class PrismaTeamStore implements TeamStore {
     });
   }
 
+  public rename(playerId: string, teamId: string, name: string | null): Promise<PlayerTeams> {
+    return runTeamTransaction(this.database, async (transaction) => {
+      await lockPlayer(transaction, playerId);
+      await lockOwnedTeam(transaction, playerId, teamId);
+      await transaction.team.update({ where: { id: teamId }, data: { name } });
+      return readPlayerTeams(transaction, playerId);
+    });
+  }
+
+  public createNext(playerId: string, expectedPosition: number): Promise<PlayerTeams> {
+    return runTeamTransaction(this.database, async (transaction) => {
+      await lockPlayer(transaction, playerId);
+      await provisionBaseTeams(transaction, playerId);
+      const teams = await lockPlayerTeams(transaction, playerId);
+      if (teams.some(({ displayPosition }) => displayPosition === expectedPosition)) {
+        return readPlayerTeams(transaction, playerId);
+      }
+      const nextPosition = (teams.at(-1)?.displayPosition ?? 0) + 1;
+      if (expectedPosition !== nextPosition) {
+        throw new BusinessError('TEAM_CREATE_POSITION_INVALID', `La prochaine Team disponible est la Team ${nextPosition}.`);
+      }
+      await transaction.team.create({ data: { playerId, displayPosition: expectedPosition, isBaseSlot: false } });
+      return readPlayerTeams(transaction, playerId);
+    });
+  }
+
+  public deleteExtra(playerId: string, teamId: string): Promise<PlayerTeams> {
+    return runTeamTransaction(this.database, async (transaction) => {
+      await lockPlayer(transaction, playerId);
+      const teams = await lockPlayerTeams(transaction, playerId);
+      const team = teams.find(({ id }) => id === teamId);
+      if (!team) throw new BusinessError('TEAM_NOT_FOUND', 'Cette équipe est introuvable.');
+      if (team.displayPosition <= BASE_TEAM_COUNT) {
+        throw new BusinessError('TEAM_DELETE_PROTECTED', 'Les Teams 1 à 10 ne peuvent pas être supprimées.');
+      }
+      if (team.isActive) throw new BusinessError('TEAM_DELETE_ACTIVE', 'Activez une autre Team avant de supprimer celle-ci.');
+      await transaction.team.delete({ where: { id: teamId } });
+      await rewriteTeamPositions(transaction, playerId, teams.filter(({ id }) => id !== teamId).map(({ id }) => id));
+      return readPlayerTeams(transaction, playerId);
+    });
+  }
+
+  public reorderTeams(playerId: string, teamIds: readonly string[]): Promise<PlayerTeams> {
+    return runTeamTransaction(this.database, async (transaction) => {
+      await lockPlayer(transaction, playerId);
+      const teams = await lockPlayerTeams(transaction, playerId);
+      if (!isExactIdOrder(teamIds, teams.map(({ id }) => id))) {
+        throw new BusinessError('TEAM_ORDER_INVALID', 'L’ordre transmis doit contenir exactement toutes vos Teams une seule fois.');
+      }
+      await rewriteTeamPositions(transaction, playerId, teamIds);
+      return readPlayerTeams(transaction, playerId);
+    });
+  }
+
   public setSlot(playerId: string, teamId: string, position: number, characterId: string): Promise<PlayerTeams> {
     return runTeamTransaction(this.database, async (transaction) => {
       await lockPlayer(transaction, playerId);
@@ -81,6 +135,26 @@ export class PrismaTeamStore implements TeamStore {
         update: { characterId },
       });
       await assertUniqueCompleteComposition(transaction, playerId, teamId);
+      return readPlayerTeams(transaction, playerId);
+    });
+  }
+
+  public reorderSlots(playerId: string, teamId: string, characterIds: readonly (string | null)[]): Promise<PlayerTeams> {
+    return runTeamTransaction(this.database, async (transaction) => {
+      await lockPlayer(transaction, playerId);
+      await lockOwnedTeam(transaction, playerId, teamId);
+      await lockPlayerTeams(transaction, playerId);
+      const compactIds = characterIds.filter((id): id is string => id !== null);
+      const existing = await transaction.teamMember.findMany({ where: { teamId }, select: { characterId: true } });
+      if (!isExactIdOrder(compactIds, existing.map(({ characterId }) => characterId))) {
+        throw new BusinessError('TEAM_SLOT_ORDER_INVALID', 'La réorganisation doit conserver exactement les personnages de cette Team.');
+      }
+      await transaction.teamMember.deleteMany({ where: { teamId } });
+      if (compactIds.length > 0) {
+        await transaction.teamMember.createMany({
+          data: characterIds.flatMap((characterId, index) => characterId ? [{ teamId, position: index + 1, characterId }] : []),
+        });
+      }
       return readPlayerTeams(transaction, playerId);
     });
   }
@@ -187,8 +261,24 @@ async function lockOwnedTeam(transaction: Prisma.TransactionClient, playerId: st
   return rows[0];
 }
 
-async function lockPlayerTeams(transaction: Prisma.TransactionClient, playerId: string): Promise<void> {
-  await transaction.$queryRaw`SELECT id FROM teams WHERE player_id = ${playerId}::uuid ORDER BY display_position FOR UPDATE`;
+async function lockPlayerTeams(transaction: Prisma.TransactionClient, playerId: string): Promise<{ id: string; displayPosition: number; isActive: boolean }[]> {
+  return transaction.$queryRaw`
+    SELECT id, display_position AS "displayPosition", is_active AS "isActive"
+    FROM teams WHERE player_id = ${playerId}::uuid ORDER BY display_position FOR UPDATE
+  `;
+}
+
+async function rewriteTeamPositions(transaction: Prisma.TransactionClient, playerId: string, orderedIds: readonly string[]): Promise<void> {
+  await transaction.team.updateMany({ where: { playerId }, data: { displayPosition: { increment: 1_000_000 } } });
+  for (const [index, id] of orderedIds.entries()) {
+    await transaction.team.update({ where: { id }, data: { displayPosition: index + 1 } });
+  }
+}
+
+function isExactIdOrder(candidate: readonly string[], expected: readonly string[]): boolean {
+  return candidate.length === expected.length
+    && new Set(candidate).size === candidate.length
+    && candidate.every((id) => expected.includes(id));
 }
 
 async function assertUniqueCompleteComposition(transaction: Prisma.TransactionClient, playerId: string, teamId: string): Promise<void> {

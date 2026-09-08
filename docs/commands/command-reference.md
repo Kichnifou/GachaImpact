@@ -593,7 +593,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **`save` / `save N` :** aucune mutation cible ; helper vers les commandes actuelles
 - **Saved Teams de base :** positions actuelles 1 à 10 non supprimables
 - **Positions 11+ :** supprimables depuis l'UI si non actives
-- **Réorganisation UI :** drag vertical des Teams → renumérotation immédiate
+- **Réorganisation UI :** drag horizontal dans le bandeau ; drop sur une Team = swap, drop entre deux Teams = insertion, avec renumérotation immédiate
 - **Réorganisation personnage :** drag horizontal uniquement à l'intérieur d'une Team
 - **Composition dupliquée :** interdite pour les Teams complètes, ordre personnage ignoré
 - **Passifs :** dérivés de la Team ; actifs même si composition partielle ; maximum deux stacks par élément

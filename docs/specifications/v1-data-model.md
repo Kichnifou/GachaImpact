@@ -803,7 +803,7 @@ L'ancien historique non migré n'est pas recréé.
 
 L'identité active est portée par `Team.isActive`, avec une contrainte garantissant au plus une Team active par Player. Il n'existe pas de composition active séparée.
 
-État physique 0.68 : `teams` est créé avec un UUID technique, la position d'affichage, le nom facultatif, `isActive`, l'indicateur de slot de base, la provenance temporelle legacy facultative et les timestamps. La migration `007_add_teams` backfill les dix positions des Players existants ; le service Team complète transactionnellement et idempotemment les positions manquantes au premier GET.
+État physique 0.69 : `teams` est créé avec un UUID technique, la position d'affichage, le nom facultatif, `isActive`, l'indicateur de slot de base, la provenance temporelle legacy facultative et les timestamps. La migration `007_add_teams` backfill les dix positions des Players existants ; le service Team complète transactionnellement et idempotemment les positions manquantes au premier GET. Le même schéma supporte sans nouvelle migration les Teams supplémentaires : création strictement séquentielle et retry-safe, suppression/compaction des positions courantes 11+, renommage et réordre complet transactionnel. `isBaseSlot` reste une provenance uniquement ; la protection de suppression est recalculée depuis la position courante 1..10.
 
 ## 13.2 `TeamMember`
 
@@ -831,7 +831,7 @@ Catalogue/configuration serveur des passifs.
 
 Une seule définition partagée entre Team, affichage et moteur Gacha.
 
-État physique 0.68 : le référentiel des sept passifs est pour l'instant une configuration serveur fortement typée utilisée par `deriveTeamPassives`. La table catalogue cible reste différée jusqu'à ce qu'un besoin d'administration ou de configuration dynamique la justifie ; aucune valeur dérivée n'est persistée par Player.
+État physique 0.69 : le référentiel des sept passifs est pour l'instant une configuration serveur fortement typée utilisée par `deriveTeamPassives`. La table catalogue cible reste différée jusqu'à ce qu'un besoin d'administration ou de configuration dynamique la justifie ; aucune valeur dérivée n'est persistée par Player et aucun passif n'est encore raccordé au moteur Pull.
 
 ---
 

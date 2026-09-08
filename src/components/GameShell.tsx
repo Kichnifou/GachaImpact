@@ -38,7 +38,12 @@ type GameShellProps = {
   teams: PlayerTeamsDto
   onLoadTeams: () => Promise<PlayerTeamsDto>
   onActivateTeam: (teamId: string) => Promise<PlayerTeamsDto>
+  onRenameTeam: (teamId: string, name: string | null) => Promise<PlayerTeamsDto>
+  onCreateNextTeam: (expectedPosition: number) => Promise<PlayerTeamsDto>
+  onDeleteTeam: (teamId: string) => Promise<PlayerTeamsDto>
+  onReorderTeams: (teamIds: readonly string[]) => Promise<PlayerTeamsDto>
   onSetTeamSlot: (teamId: string, position: number, characterId: string) => Promise<PlayerTeamsDto>
+  onReorderTeamSlots: (teamId: string, characterIds: readonly (string | null)[]) => Promise<PlayerTeamsDto>
   onRemoveTeamSlot: (teamId: string, position: number) => Promise<PlayerTeamsDto>
   onClearTeam: (teamId: string) => Promise<PlayerTeamsDto>
   onSetGachaTarget: (characterId: string) => Promise<void>
@@ -53,7 +58,7 @@ type GameShellProps = {
   onUseStella: (characterId: string, idempotencyKey: string) => Promise<StellaUseDto>
 }
 
-function GameShell({ player, resources, progression, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, teams, onLoadTeams, onActivateTeam, onSetTeamSlot, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella }: GameShellProps) {
+function GameShell({ player, resources, progression, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella }: GameShellProps) {
   const [activeScreen, setActiveScreen] = useState<ScreenId>(getScreenFromHash)
   const activeScreenRef = useRef(activeScreen)
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
@@ -118,7 +123,7 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
       case 'characters':
         return <CharactersScreen characters={characters} />
       case 'team':
-        return <TeamScreen teams={teams} onLoad={onLoadTeams} onActivate={onActivateTeam} onSetSlot={onSetTeamSlot} onRemoveSlot={onRemoveTeamSlot} onClear={onClearTeam} />
+        return <TeamScreen teams={teams} initialBox={boxCache.read(player.id)} stellaRetryCharacterId={stellaIntents.getIntent(player.id)?.characterId ?? null} onLoad={onLoadTeams} onActivate={onActivateTeam} onRename={onRenameTeam} onCreateNext={onCreateNextTeam} onDelete={onDeleteTeam} onReorderTeams={onReorderTeams} onSetSlot={onSetTeamSlot} onReorderSlots={onReorderTeamSlots} onRemoveSlot={onRemoveTeamSlot} onClear={onClearTeam} onLoadBox={loadBox} onSetBoxFavorite={setBoxFavorite} onUseStella={useStella} />
       case 'inventory':
         return <InventoryScreen />
       case 'shop':

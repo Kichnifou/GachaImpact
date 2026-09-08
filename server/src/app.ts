@@ -25,7 +25,7 @@ import type { GetCharacters, GetCurrentGacha, GetGachaHistory, PerformGachaPull,
 import type { GetTodayDailyReward } from './application/daily-reward/get-today-daily-reward.js';
 import type { ClaimDailyReward } from './application/daily-reward/claim-daily-reward.js';
 import type { GetCurrentPlayerBox, SetBoxCharacterFavorite, SetBoxSortPreference, UseMasterlessStella } from './application/box/box-services.js';
-import type { ActivatePlayerTeam, ClearPlayerTeam, GetCurrentPlayerTeams, RemovePlayerTeamSlot, SetPlayerTeamSlot } from './application/team/team-services.js';
+import type { ActivatePlayerTeam, ClearPlayerTeam, CreateNextPlayerTeam, DeleteExtraPlayerTeam, GetCurrentPlayerTeams, RemovePlayerTeamSlot, RenamePlayerTeam, ReorderPlayerTeams, ReorderPlayerTeamSlots, SetPlayerTeamSlot } from './application/team/team-services.js';
 import type { AppConfig } from './config/environment.js';
 import { loadConfig } from './config/environment.js';
 
@@ -50,7 +50,12 @@ export type AppDependencies = Readonly<{
   useMasterlessStella?: UseMasterlessStella;
   getCurrentPlayerTeams?: GetCurrentPlayerTeams;
   activatePlayerTeam?: ActivatePlayerTeam;
+  renamePlayerTeam?: RenamePlayerTeam;
+  createNextPlayerTeam?: CreateNextPlayerTeam;
+  deleteExtraPlayerTeam?: DeleteExtraPlayerTeam;
+  reorderPlayerTeams?: ReorderPlayerTeams;
   setPlayerTeamSlot?: SetPlayerTeamSlot;
+  reorderPlayerTeamSlots?: ReorderPlayerTeamSlots;
   removePlayerTeamSlot?: RemovePlayerTeamSlot;
   clearPlayerTeam?: ClearPlayerTeam;
   close?: () => Promise<void>;
@@ -127,12 +132,17 @@ export async function buildApp(
         useMasterlessStella: dependencies.useMasterlessStella,
       });
     }
-    if (dependencies.getCurrentPlayerTeams && dependencies.activatePlayerTeam && dependencies.setPlayerTeamSlot && dependencies.removePlayerTeamSlot && dependencies.clearPlayerTeam) {
+    if (dependencies.getCurrentPlayerTeams && dependencies.activatePlayerTeam && dependencies.renamePlayerTeam && dependencies.createNextPlayerTeam && dependencies.deleteExtraPlayerTeam && dependencies.reorderPlayerTeams && dependencies.setPlayerTeamSlot && dependencies.reorderPlayerTeamSlots && dependencies.removePlayerTeamSlot && dependencies.clearPlayerTeam) {
       await app.register(registerTeamRoutes, {
         authenticate,
         getCurrentPlayerTeams: dependencies.getCurrentPlayerTeams,
         activatePlayerTeam: dependencies.activatePlayerTeam,
+        renamePlayerTeam: dependencies.renamePlayerTeam,
+        createNextPlayerTeam: dependencies.createNextPlayerTeam,
+        deleteExtraPlayerTeam: dependencies.deleteExtraPlayerTeam,
+        reorderPlayerTeams: dependencies.reorderPlayerTeams,
         setPlayerTeamSlot: dependencies.setPlayerTeamSlot,
+        reorderPlayerTeamSlots: dependencies.reorderPlayerTeamSlots,
         removePlayerTeamSlot: dependencies.removePlayerTeamSlot,
         clearPlayerTeam: dependencies.clearPlayerTeam,
       });

@@ -185,22 +185,32 @@ describe('game API client', () => {
     expect(JSON.parse(String(fetchImplementation.mock.calls[3]?.[1]?.body))).toEqual({ idempotencyKey: key })
   })
 
-  it('uses the authoritative Team read, activation and slot mutation endpoints', async () => {
+  it('uses the authoritative Team management and slot mutation endpoints', async () => {
     const fetchImplementation = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ teams: [], availableCharacters: [], passiveReference: [] })))
     const client = createGameApiClient({ baseUrl: 'http://127.0.0.1:3001', getAccessToken: async () => 'token', fetchImplementation })
     const teamId = crypto.randomUUID()
     const characterId = crypto.randomUUID()
     await client.getTeams()
     await client.activateTeam(teamId)
+    await client.renameTeam(teamId, 'Exploration')
+    await client.createNextTeam(11)
+    await client.reorderTeams([teamId])
     await client.setTeamSlot(teamId, 3, characterId)
+    await client.reorderTeamSlots(teamId, [characterId, null, null, null])
     await client.removeTeamSlot(teamId, 3)
     await client.clearTeam(teamId)
+    await client.deleteTeam(teamId)
     expect(fetchImplementation.mock.calls.map(([url, init]) => [url, init?.method, init?.body ? JSON.parse(String(init.body)) : null])).toEqual([
       ['http://127.0.0.1:3001/api/v1/me/teams', undefined, null],
       [`http://127.0.0.1:3001/api/v1/me/teams/${teamId}/active`, 'PATCH', null],
+      [`http://127.0.0.1:3001/api/v1/me/teams/${teamId}/name`, 'PATCH', { name: 'Exploration' }],
+      ['http://127.0.0.1:3001/api/v1/me/teams', 'POST', { expectedPosition: 11 }],
+      ['http://127.0.0.1:3001/api/v1/me/teams/order', 'PUT', { teamIds: [teamId] }],
       [`http://127.0.0.1:3001/api/v1/me/teams/${teamId}/slots/3`, 'PUT', { characterId }],
+      [`http://127.0.0.1:3001/api/v1/me/teams/${teamId}/slots/order`, 'PUT', { characterIds: [characterId, null, null, null] }],
       [`http://127.0.0.1:3001/api/v1/me/teams/${teamId}/slots/3`, 'DELETE', null],
       [`http://127.0.0.1:3001/api/v1/me/teams/${teamId}/slots`, 'DELETE', null],
+      [`http://127.0.0.1:3001/api/v1/me/teams/${teamId}`, 'DELETE', null],
     ])
   })
 })

@@ -5,6 +5,7 @@ import { initialBoxFilters, initialBoxFiltersWithPreference, presentBoxCharacter
 import BoxCharacterCard from '../components/BoxCharacterCard'
 import BoxCharacterDetailModal from '../components/BoxCharacterDetailModal'
 import BoxScreen, { BoxStatus, BoxView } from './BoxScreen'
+import boxCollectionSource from '../box/use-box-collection.ts?raw'
 import boxScreenSource from './BoxScreen.tsx?raw'
 
 const character = (overrides: Partial<BoxCharacterDto>): BoxCharacterDto => ({
@@ -25,7 +26,8 @@ const renderView = (filters: BoxFilters = initialBoxFilters, overrides: Partial<
 describe('real personal Box', () => {
   it('does not import mockData and refreshes authoritative possessions on each mount', () => {
     expect(boxScreenSource).not.toContain("from '../data/mockData'")
-    expect(boxScreenSource).toContain('await onLoadBox()')
+    expect(boxScreenSource).toContain('useBoxCollection')
+    expect(boxCollectionSource).toContain('void onLoadBox()')
     expect(renderToStaticMarkup(<BoxScreen initialBox={null} onLoadBox={vi.fn()} onSetFavorite={vi.fn()} onSetSortPreference={vi.fn()} onUseStella={vi.fn()} stellaRetryCharacterId={null} />)).toContain('Ouverture de votre Box')
     const cached = renderToStaticMarkup(<BoxScreen initialBox={box} onLoadBox={vi.fn()} onSetFavorite={vi.fn()} onSetSortPreference={vi.fn()} onUseStella={vi.fn()} stellaRetryCharacterId={null} />)
     expect(cached).toContain('Furina')
