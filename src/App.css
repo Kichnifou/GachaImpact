@@ -6028,9 +6028,15 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 }
 
 .team-page-track {
+  --team-switch-gap: 6px;
+
   min-width: 0;
   display: flex;
   align-items: stretch;
+}
+
+.team-page-track-spaced {
+  gap: var(--team-switch-gap);
 }
 
 .team-switch-item {
@@ -6084,16 +6090,15 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 .team-between-drop {
   position: absolute;
   z-index: 5;
-  inset: 3px auto 3px -3px;
-  width: 7px;
+  inset: 3px auto 3px calc(-1 * var(--team-switch-gap) - 2px);
+  width: calc(var(--team-switch-gap) + 4px);
   border-radius: 99px;
 }
 
-.team-between-drop.after { right: -3px; left: auto; }
+.team-between-drop.after { right: calc(-1 * var(--team-switch-gap) - 2px); left: auto; }
 .team-between-drop:hover { background: var(--cyan); box-shadow: 0 0 10px rgba(73, 191, 255, .55); }
 
 .team-between-drop.drag-insert-target {
-  width: 9px;
   background: var(--cyan);
   box-shadow: 0 0 14px rgba(73, 191, 255, .8), 0 0 0 2px rgba(73, 191, 255, .2);
 }

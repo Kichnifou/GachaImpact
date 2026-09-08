@@ -355,6 +355,13 @@ describe('real Team screen', () => {
     expect(completeSecondPage).toContain('aria-label="Teams suivantes"')
   })
 
+  it('keeps ten separated Team cards and eleven insertion targets on each page', () => {
+    const html = renderToStaticMarkup(<TeamScreen teams={teams(0)} {...callbacks} />)
+    expect(html).toContain('class="team-page-track team-page-track-spaced"')
+    expect((html.match(/class="team-switch-item"/g) ?? [])).toHaveLength(10)
+    expect((html.match(/class="team-between-drop/g) ?? [])).toHaveLength(11)
+  })
+
   it('defines stable swap, insertion and character-slot reorder semantics', () => {
     expect(swapTeamOrder(['a', 'b', 'c'], 'a', 'c')).toEqual(['c', 'b', 'a'])
     expect(insertTeamOrder(['a', 'b', 'c', 'd'], 'a', 3)).toEqual(['b', 'c', 'a', 'd'])

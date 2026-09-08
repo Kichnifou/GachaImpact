@@ -170,7 +170,7 @@ function TeamScreen(props: TeamScreenProps) {
 
     <nav className="team-switcher panel" aria-label={`Teams ${pageStart} à ${pageStart + 9}`}>
       {page > 0 ? <button type="button" className={`team-page-chevron${autoPageDirection === -1 ? ' drag-awaiting' : ''}`} aria-label="Teams précédentes" onClick={() => setPage((current) => current - 1)} onDragOver={(event) => { if (!mutationPending.current) event.preventDefault() }} onDragEnter={() => scheduleAutoPage(-1)} onDragLeave={() => { if (!mutationPending.current) clearAutoPageTimer() }}>‹</button> : <span className="team-page-chevron-spacer" aria-hidden="true" />}
-      <div className="team-page-track">{pagePositions.map((position, index) => {
+      <div className="team-page-track team-page-track-spaced">{pagePositions.map((position, index) => {
         const team = displayedTeams.find((candidate) => candidate.position === position)
         const insertionIndex = page * teamsPerPage + index
         const teamIds = displayedTeams.map(({ id }) => id)
