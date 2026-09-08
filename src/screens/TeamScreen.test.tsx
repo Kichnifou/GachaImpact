@@ -1,11 +1,16 @@
+// @vitest-environment happy-dom
+
+import { act, useState, type ComponentProps } from 'react'
+import { createRoot, type Root } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { PlayerTeamDto, PlayerTeamsDto, TeamCharacterDto } from '../api/types'
 import { canOpenNextTeamPage, filterTeamCharacters, insertTeamOrder, swapTeamOrder, swapTeamSlots, teamPageForPosition, teamPassiveStatusLabel } from '../team/team-presentation'
 import TeamScreen, { CharacterSelector, TeamPassiveReferenceModal } from './TeamScreen'
 import teamScreenSource from './TeamScreen.tsx?raw'
 
+(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const character = (overrides: Partial<TeamCharacterDto> = {}): TeamCharacterDto => ({
   id: 'furina', externalKey: 'legacy:20', name: 'Furina', rarity: 5, elementKey: 'hydro',
@@ -65,6 +70,100 @@ const callbacks = {
   onLoadBox: vi.fn(),
   onSetBoxFavorite: vi.fn(),
   onUseStella: vi.fn(),
+}
+
+type TeamScreenProps = ComponentProps<typeof TeamScreen>
+
+const mountedRoots: Root[] = []
+
+afterEach(() => {
+  act(() => mountedRoots.splice(0).forEach((root) => root.unmount()))
+  document.body.replaceChildren()
+  vi.unstubAllGlobals()
+})
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve
+    reject = promiseReject
+  })
+  return { promise, resolve, reject }
+}
+
+function withTeamCharacters(source: PlayerTeamsDto, byPosition: Readonly<Record<number, readonly TeamCharacterDto[]>>) {
+  return {
+    ...source,
+    teams: source.teams.map((entry) => {
+      const characters = byPosition[entry.position]
+      if (!characters) return entry
+      return {
+        ...entry,
+        slots: Array.from({ length: 4 }, (_, index) => ({
+          position: (index + 1) as 1 | 2 | 3 | 4,
+          character: characters[index] ?? null,
+        })),
+      }
+    }),
+  }
+}
+
+function mountTeamScreen(initialTeams: PlayerTeamsDto, overrides: Partial<TeamScreenProps> = {}) {
+  vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(() => undefined)))
+  const container = document.createElement('div')
+  document.body.append(container)
+  const root = createRoot(container)
+  mountedRoots.push(root)
+  const loadForever = vi.fn(() => new Promise<PlayerTeamsDto>(() => undefined))
+  const reorderTeams = overrides.onReorderTeams ?? callbacks.onReorderTeams
+  const reorderSlots = overrides.onReorderSlots ?? callbacks.onReorderSlots
+
+  function Harness() {
+    const [snapshot, setSnapshot] = useState(initialTeams)
+    const applyTeamReorder = async (teamIds: readonly string[]) => {
+      const next = await reorderTeams(teamIds)
+      setSnapshot(next)
+      return next
+    }
+    const applySlotReorder = async (teamId: string, characterIds: readonly (string | null)[]) => {
+      const next = await reorderSlots(teamId, characterIds)
+      setSnapshot(next)
+      return next
+    }
+    return <TeamScreen {...callbacks} {...overrides} teams={snapshot} onLoad={loadForever} onReorderTeams={applyTeamReorder} onReorderSlots={applySlotReorder} />
+  }
+
+  act(() => root.render(<Harness />))
+  return container
+}
+
+function buttonByLabel(container: HTMLElement, label: string) {
+  const button = Array.from(container.querySelectorAll('button')).find((candidate) => candidate.getAttribute('aria-label') === label)
+  if (!button) throw new Error(`Button not found: ${label}`)
+  return button
+}
+
+function teamButton(container: HTMLElement, position: number) {
+  const button = Array.from(container.querySelectorAll<HTMLButtonElement>('.team-page-track button')).find((candidate) => candidate.querySelector('span')?.textContent === `Team ${position}`)
+  if (!button) throw new Error(`Team button not found: ${position}`)
+  return button
+}
+
+function displayedCharacterNames(container: HTMLElement) {
+  const grid = container.querySelector('.large-team-grid')
+  if (!grid) throw new Error('Team grid not found')
+  return Array.from(grid.children).map((slot) => catalog.find(({ name }) => slot.textContent?.includes(name))?.name ?? null)
+}
+
+function startDrag(element: HTMLElement) {
+  const event = new DragEvent('dragstart', { bubbles: true, cancelable: true })
+  Object.defineProperty(event, 'dataTransfer', { value: { effectAllowed: 'none' } })
+  element.dispatchEvent(event)
+}
+
+function dropOn(element: HTMLElement) {
+  element.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true }))
 }
 
 describe('real Team screen', () => {
@@ -213,13 +312,93 @@ describe('real Team screen', () => {
     expect(teamScreenSource).toContain("' drag-slot-target'")
   })
 
-  it('uses a temporary visual order preview for reorders and clears it after settlement', () => {
-    expect(teamScreenSource).toContain('const [teamOrderPreview, setTeamOrderPreview]')
-    expect(teamScreenSource).toContain('const [slotOrderPreview, setSlotOrderPreview]')
-    expect(teamScreenSource).toContain('setTeamOrderPreview(nextIds)')
-    expect(teamScreenSource).toContain('setSlotOrderPreview(nextIds)')
-    expect(teamScreenSource).toContain('() => setTeamOrderPreview(null)')
-    expect(teamScreenSource).toContain('() => setSlotOrderPreview(null)')
+  it('blocks a second Team reorder and disables every drag surface while the first one is pending', async () => {
+    const pending = deferred<PlayerTeamsDto>()
+    const onReorderTeams = vi.fn(() => pending.promise)
+    const container = mountTeamScreen(teams(4), { onReorderTeams })
+
+    act(() => startDrag(teamButton(container, 1)))
+    act(() => dropOn(teamButton(container, 2)))
+
+    expect(onReorderTeams).toHaveBeenCalledTimes(1)
+    expect(teamButton(container, 1).textContent).toContain('0/4')
+    expect(teamButton(container, 2).textContent).toContain('4/4')
+    expect(Array.from(container.querySelectorAll<HTMLElement>('.team-page-track button, .team-slot-drag-wrapper')).every((element) => element.getAttribute('draggable') === 'false')).toBe(true)
+
+    act(() => startDrag(teamButton(container, 3)))
+    act(() => dropOn(teamButton(container, 4)))
+
+    expect(onReorderTeams).toHaveBeenCalledTimes(1)
+    expect(teamButton(container, 1).textContent).toContain('0/4')
+    expect(teamButton(container, 2).textContent).toContain('4/4')
+
+    await act(async () => { pending.reject({ code: 'NETWORK_ERROR' }); await Promise.resolve() })
+
+    expect(teamButton(container, 1).textContent).toContain('4/4')
+    expect(teamButton(container, 2).textContent).toContain('0/4')
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('momentanément inaccessible')
+  })
+
+  it('shows the slot preview immediately, then adopts the authoritative server snapshot on success', async () => {
+    const initial = withTeamCharacters(teams(0), { 1: catalog })
+    const authoritative = withTeamCharacters(initial, { 1: [catalog[2]!, catalog[0]!, catalog[1]!, catalog[3]!] })
+    const pending = deferred<PlayerTeamsDto>()
+    const onReorderSlots = vi.fn(() => pending.promise)
+    const container = mountTeamScreen(initial, { onReorderSlots })
+
+    act(() => buttonByLabel(container, 'Déplacer Furina vers la droite').click())
+
+    expect(onReorderSlots).toHaveBeenCalledTimes(1)
+    expect(displayedCharacterNames(container)).toEqual(['Émilie', 'Furina', 'Keqing', 'Hu Tao'])
+    expect(Array.from(container.querySelectorAll<HTMLElement>('.team-slot-drag-wrapper')).every((element) => element.getAttribute('draggable') === 'false')).toBe(true)
+
+    act(() => startDrag(container.querySelector<HTMLElement>('.team-slot-drag-wrapper')!))
+    act(() => dropOn(container.querySelectorAll<HTMLElement>('.team-slot-drag-wrapper')[2]!))
+    expect(onReorderSlots).toHaveBeenCalledTimes(1)
+    expect(displayedCharacterNames(container)).toEqual(['Émilie', 'Furina', 'Keqing', 'Hu Tao'])
+
+    await act(async () => { pending.resolve(authoritative); await pending.promise })
+
+    expect(displayedCharacterNames(container)).toEqual(['Keqing', 'Furina', 'Émilie', 'Hu Tao'])
+    expect(Array.from(container.querySelectorAll<HTMLElement>('.team-slot-drag-wrapper')).every((element) => element.getAttribute('draggable') === 'true')).toBe(true)
+  })
+
+  it('rolls a slot preview back and exposes the server error', async () => {
+    const initial = withTeamCharacters(teams(0), { 1: catalog })
+    const pending = deferred<PlayerTeamsDto>()
+    const container = mountTeamScreen(initial, { onReorderSlots: vi.fn(() => pending.promise) })
+
+    act(() => buttonByLabel(container, 'Déplacer Furina vers la droite').click())
+    expect(displayedCharacterNames(container)).toEqual(['Émilie', 'Furina', 'Keqing', 'Hu Tao'])
+
+    await act(async () => { pending.reject({ code: 'NETWORK_ERROR' }); await Promise.resolve() })
+
+    expect(displayedCharacterNames(container)).toEqual(['Furina', 'Émilie', 'Keqing', 'Hu Tao'])
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('momentanément inaccessible')
+  })
+
+  it('never leaks Team A slot preview into Team B while the request resolves', async () => {
+    const initial = withTeamCharacters(teams(0), {
+      1: [catalog[0]!, catalog[1]!],
+      2: [catalog[2]!, catalog[3]!],
+    })
+    const authoritative = withTeamCharacters(initial, {
+      1: [catalog[1]!, catalog[0]!],
+      2: [catalog[2]!, catalog[3]!],
+    })
+    const pending = deferred<PlayerTeamsDto>()
+    const container = mountTeamScreen(initial, { onReorderSlots: vi.fn(() => pending.promise) })
+
+    act(() => buttonByLabel(container, 'Déplacer Furina vers la droite').click())
+    expect(displayedCharacterNames(container)).toEqual(['Émilie', 'Furina', null, null])
+
+    act(() => teamButton(container, 2).click())
+    expect(displayedCharacterNames(container)).toEqual(['Keqing', 'Hu Tao', null, null])
+
+    await act(async () => { pending.resolve(authoritative); await pending.promise })
+
+    expect(displayedCharacterNames(container)).toEqual(['Keqing', 'Hu Tao', null, null])
+    expect(container.querySelector('.team-screen-heading')?.textContent).toContain('Team 2')
   })
 
   it('offers compact inline rename and touch-safe reorder controls', () => {
