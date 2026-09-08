@@ -833,7 +833,7 @@ Catalogue/configuration serveur des passifs.
 
 Une seule définition partagée entre Team, affichage et moteur Gacha.
 
-État physique 0.69 : le référentiel des sept passifs est pour l'instant une configuration serveur fortement typée utilisée par `deriveTeamPassives`. La table catalogue cible reste différée jusqu'à ce qu'un besoin d'administration ou de configuration dynamique la justifie ; aucune valeur dérivée n'est persistée par Player et aucun passif n'est encore raccordé au moteur Pull.
+État physique 0.70 : le référentiel des sept passifs reste une configuration serveur fortement typée utilisée par `deriveTeamPassives`. Le même module expose désormais les paramètres exacts futurs et `deriveActiveTeamGachaEffects`, contrat machine-readable pur qui transforme les stacks I/II en multiplicateurs, bonus et chances sans parser les descriptions, exécuter de RNG ou muter l'état joueur. La table catalogue cible reste différée jusqu'à ce qu'un besoin d'administration ou de configuration dynamique la justifie ; aucune valeur dérivée n'est persistée par Player et aucun passif n'est encore raccordé au moteur Pull.
 
 ---
 

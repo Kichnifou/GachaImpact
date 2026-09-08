@@ -166,6 +166,10 @@ function dropOn(element: HTMLElement) {
   element.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true }))
 }
 
+function enterDrag(element: HTMLElement) {
+  element.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true }))
+}
+
 describe('real Team screen', () => {
   it('has no Team mock source and renders the ten authoritative base Teams', () => {
     expect(teamScreenSource).not.toContain("from '../data/mockData'")
@@ -250,6 +254,58 @@ describe('real Team screen', () => {
     expect((html.match(/class="empty-team-hover-action">Ajouter/g) ?? [])).toHaveLength(4)
     expect(html).not.toContain('Emplacement libre')
     expect(html).not.toContain('Ajouter un personnage</button>')
+  })
+
+  it.each([1, 3, 4])('keeps the same four external slot wrappers for a genuine %i/4 Team', (count) => {
+    const html = renderToStaticMarkup(<TeamScreen teams={teams(count)} {...callbacks} />)
+    expect(html).toContain(`large-team-grid team-count-${count}`)
+    expect((html.match(/team-slot-drag-wrapper/g) ?? [])).toHaveLength(4)
+    expect((html.match(/empty-team-slot/g) ?? [])).toHaveLength(4 - count)
+  })
+
+  it('keeps the passive reference action compact and the rename pencil centered and accessible', () => {
+    const html = renderToStaticMarkup(<TeamScreen teams={teams(4)} {...callbacks} />)
+    expect(html).toContain('class="team-reference-toggle"')
+    expect(html).toContain('aria-label="Renommer cette Team"')
+  })
+
+  it.each([1, 2, 3, 4])('marks a %i-passive layout without changing the other passive cases', (count) => {
+    const snapshot = teams(4)
+    const passiveTeam = {
+      ...snapshot.teams[0]!,
+      passives: snapshot.passiveReference.slice(0, count).map((passive) => ({
+        ...passive,
+        stacks: 1 as const,
+        description: passive.levelOne,
+      })),
+    }
+    const html = renderToStaticMarkup(<TeamScreen teams={{ ...snapshot, teams: [passiveTeam, ...snapshot.teams.slice(1)] }} {...callbacks} />)
+    expect(html).toContain(`bonus-grid passive-count-${count}`)
+  })
+
+  it('lays out exactly four passives as a desktop 2x2 grid while retaining the mobile column', () => {
+    const snapshot = teams(4)
+    const passiveTeam = {
+      ...snapshot.teams[0]!,
+      passives: snapshot.passiveReference.slice(0, 4).map((passive) => ({ ...passive, stacks: 1 as const, description: passive.levelOne })),
+    }
+    const html = renderToStaticMarkup(<TeamScreen teams={{ ...snapshot, teams: [passiveTeam, ...snapshot.teams.slice(1)] }} {...callbacks} />)
+    expect(html).toContain('bonus-grid passive-count-4')
+  })
+
+  it('shows an explicit swap destination on occupied and empty character slots without insertion feedback', () => {
+    const container = mountTeamScreen(teams(3))
+    const slotWrappers = container.querySelectorAll<HTMLElement>('.team-slot-drag-wrapper')
+
+    act(() => startDrag(slotWrappers[0]!))
+    act(() => enterDrag(slotWrappers[1]!))
+    expect(slotWrappers[1]!.classList.contains('drag-slot-target')).toBe(true)
+    expect(slotWrappers[1]!.querySelector('.slot-swap-indicator')?.textContent).toBe('Échanger')
+
+    act(() => enterDrag(slotWrappers[3]!))
+    expect(slotWrappers[3]!.classList.contains('drag-slot-target')).toBe(true)
+    expect(slotWrappers[3]!.querySelector('.slot-swap-indicator')?.textContent).toBe('Échanger')
+    expect(container.querySelector('.team-between-drop.drag-insert-target')).toBeNull()
   })
 
   it('opens the seven-passive reference as a dismissible modal instead of inline content', () => {

@@ -17,7 +17,12 @@ import {
   SetPlayerTeamSlot,
 } from '../src/application/team/team-services.js';
 import type { PlayerTeams, TeamStore } from '../src/application/team/team-store.js';
-import { deriveTeamPassives, listTeamPassiveDefinitions } from '../src/domain/team/team-passives.js';
+import {
+  deriveActiveTeamGachaEffects,
+  deriveTeamPassives,
+  listTeamPassiveDefinitions,
+  TEAM_GACHA_PASSIVE_PARAMETERS,
+} from '../src/domain/team/team-passives.js';
 
 const playerId = crypto.randomUUID();
 const teamId = crypto.randomUUID();
@@ -69,6 +74,69 @@ describe('Team passives', () => {
     expect(deriveTeamPassives(['cryo'])).toEqual([expect.objectContaining({ elementKey: 'cryo', stacks: 1 })]);
     expect(deriveTeamPassives(['electro', 'electro', 'geo', 'anemo']).map(({ elementKey, stacks }) => [elementKey, stacks]))
       .toEqual([['electro', 2], ['anemo', 1], ['geo', 1]]);
+  });
+
+  it('exposes neutral machine-readable Gacha effects without executing RNG', () => {
+    const random = vi.spyOn(Math, 'random');
+
+    expect(deriveActiveTeamGachaEffects([])).toEqual({
+      secondaryParticleMultiplier: 1,
+      fiveStarChanceBonusBasisPoints: 0,
+      xpReward: null,
+      pity5Reward: null,
+      primogemRecovery: null,
+      secondaryMoraMultiplier: 1,
+      dendroBundle: null,
+    });
+    expect(random).not.toHaveBeenCalled();
+  });
+
+  it('maps one stack of every element to the exact future Gacha parameters', () => {
+    expect(deriveActiveTeamGachaEffects(['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro'])).toEqual({
+      secondaryParticleMultiplier: 1.25,
+      fiveStarChanceBonusBasisPoints: 30,
+      xpReward: { oneIn: 20, amount: 1 },
+      pity5Reward: { oneIn: 30, amount: 2 },
+      primogemRecovery: { oneIn: 12, amount: 80 },
+      secondaryMoraMultiplier: 1.25,
+      dendroBundle: { oneIn: 25, primogems: 40, moras: 1_000, particlesPerElement: 5 },
+    });
+  });
+
+  it('maps two stacks of every element to the exact future Gacha parameters', () => {
+    const elements = ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro'] as const;
+
+    expect(deriveActiveTeamGachaEffects([...elements, ...elements])).toEqual({
+      secondaryParticleMultiplier: 1.5,
+      fiveStarChanceBonusBasisPoints: 60,
+      xpReward: { oneIn: 10, amount: 1 },
+      pity5Reward: { oneIn: 20, amount: 2 },
+      primogemRecovery: { oneIn: 8, amount: 80 },
+      secondaryMoraMultiplier: 1.5,
+      dendroBundle: { oneIn: 15, primogems: 40, moras: 1_000, particlesPerElement: 5 },
+    });
+  });
+
+  it('combines elements independently, caps stacks at two and leaves the input untouched', () => {
+    const elements = Object.freeze(['pyro', 'pyro', 'pyro', 'hydro', 'geo'] as const);
+    const before = [...elements];
+
+    expect(deriveActiveTeamGachaEffects(elements)).toEqual({
+      secondaryParticleMultiplier: 1.5,
+      fiveStarChanceBonusBasisPoints: 30,
+      xpReward: null,
+      pity5Reward: null,
+      primogemRecovery: null,
+      secondaryMoraMultiplier: 1.25,
+      dendroBundle: null,
+    });
+    expect(elements).toEqual(before);
+    expect(TEAM_GACHA_PASSIVE_PARAMETERS.dendro).toEqual({
+      bundleOneIn: [25, 15],
+      primogems: 40,
+      moras: 1_000,
+      particlesPerElement: 5,
+    });
   });
 });
 

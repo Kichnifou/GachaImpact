@@ -5387,7 +5387,11 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   border-radius: 10px;
 }
 
-.team-reference-toggle { margin-top: 11px; }
+.team-reference-toggle {
+  width: fit-content;
+  align-self: flex-start;
+  margin-top: 11px;
+}
 
 .team-passive-reference {
   display: grid;
@@ -5984,11 +5988,13 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 
 .team-edit-name.icon-button,
 .team-rename-row .icon-button {
-  width: 27px;
-  height: 27px;
-  min-width: 27px;
+  width: 29px;
+  height: 29px;
+  min-width: 29px;
   padding: 0;
-  font-size: 11px;
+  align-self: center;
+  font-size: 13px;
+  line-height: 1;
 }
 
 .team-rename-row input {
@@ -6113,6 +6119,7 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 }
 
 .team-slot-drag-wrapper {
+  position: relative;
   min-width: 0;
   min-height: 0;
   height: 100%;
@@ -6124,6 +6131,7 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 
 .empty-team-card {
   width: 100%;
+  min-height: 0;
   padding: 0;
   cursor: pointer;
   color: inherit;
@@ -6190,10 +6198,33 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   padding-inline: 0;
 }
 
-.team-slot-drag-wrapper.drag-slot-target > .large-team-card,
-.empty-team-card.drag-slot-target {
+.team-slot-drag-wrapper.drag-slot-target > .large-team-card {
   border-color: var(--cyan);
-  box-shadow: inset 0 0 0 1px rgba(222, 249, 255, .34), 0 0 19px rgba(73, 191, 255, .3);
+  background-color: rgba(36, 111, 171, .16);
+  box-shadow: inset 0 0 0 2px rgba(222, 249, 255, .42), 0 0 25px rgba(73, 191, 255, .48);
+  transform: translateY(-2px);
+}
+
+.slot-swap-indicator {
+  position: absolute;
+  z-index: 7;
+  top: 50%;
+  left: 50%;
+  min-width: 88px;
+  display: grid;
+  place-items: center;
+  padding: 8px 12px;
+  color: #effbff;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  border: 1px solid rgba(211, 246, 255, .68);
+  border-radius: 999px;
+  background: rgba(16, 76, 126, .9);
+  box-shadow: 0 0 22px rgba(73, 191, 255, .48);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
 }
 
 .team-passive-modal {
@@ -6263,22 +6294,28 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 
   .team-screen > .large-team-grid {
     min-height: 0;
-    align-items: start;
+    align-items: stretch;
+  }
+
+  .team-screen > .large-team-grid.team-count-0 {
+    aspect-ratio: 16 / 5;
   }
 
   .team-screen .large-team-card {
-    height: auto;
+    height: 100%;
     min-height: 0;
   }
 
-  .team-screen .large-character-portrait {
-    min-height: 220px;
-    flex: 0 0 220px;
+  .team-screen .character-showcase-team .large-character-portrait {
+    min-height: 0;
+    aspect-ratio: 1 / 1;
+    flex: 0 0 auto;
   }
 
   .team-bonuses { min-height: 0; height: 100%; display: flex; flex-direction: column; padding: 11px 14px; }
   .team-bonuses .section-heading { margin-bottom: 7px; }
   .team-bonuses .bonus-grid { gap: 6px; }
+  .team-bonuses .bonus-grid.passive-count-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .team-bonuses .bonus-grid article { padding: 7px 9px; }
   .team-bonuses .team-no-passive { margin-top: 5px; padding: 8px; }
   .team-reference-toggle { margin-top: 7px; min-height: 29px; padding-block: 5px; }
@@ -6290,6 +6327,6 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   .team-heading-actions { flex-wrap: wrap; }
   .team-order-fallback { display: inline-grid; place-items: center; flex: 0 0 40px !important; }
   .team-slot-drag-wrapper { height: auto; }
-  .empty-team-card { min-height: 300px; }
+  .team-slot-drag-wrapper.empty-team-slot { min-height: 300px; }
   .team-passive-modal .team-passive-reference { grid-template-columns: 1fr; }
 }

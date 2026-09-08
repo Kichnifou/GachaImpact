@@ -1077,7 +1077,7 @@ Les passifs actifs d'un joueur sont dérivés de sa Team active.
 
 Le cleanup transactionnel R185 distingue l'état et la position courante : une Team active perd seulement les memberships devenus inactifs ; une Team non active 1..10 perd tous ses memberships ; une Team non active 11+ est supprimée par cascade, puis l'ordre survivant est compacté une seule fois. `is_base_slot` n'intervient pas dans cette décision et aucune réactivation catalogue ne recrée les relations supprimées.
 
-`element_passive_definitions` reste une cible d'administration future. Le premier lot réel conserve les sept définitions dans une configuration serveur fortement typée et ne persiste que les Teams/memberships, jamais les stacks dérivées.
+`element_passive_definitions` reste une cible d'administration future. L'état physique 0.70 conserve les sept définitions et leurs paramètres Gacha futurs exacts dans une configuration serveur fortement typée ; `deriveActiveTeamGachaEffects` produit un contrat machine-readable pur depuis les éléments de la Team, sans nouvelle table ni valeur dérivée persistée. Ce contrat n'est pas encore raccordé au moteur Pull.
 
 ---
 

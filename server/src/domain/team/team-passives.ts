@@ -12,6 +12,41 @@ export type DerivedTeamPassive = TeamPassiveDefinition & Readonly<{
   description: string;
 }>;
 
+type ChanceReward<TAmount extends number> = Readonly<{
+  oneIn: number;
+  amount: TAmount;
+}>;
+
+export type ActiveTeamGachaEffects = Readonly<{
+  secondaryParticleMultiplier: number;
+  fiveStarChanceBonusBasisPoints: number;
+  xpReward: ChanceReward<1> | null;
+  pity5Reward: ChanceReward<2> | null;
+  primogemRecovery: ChanceReward<80> | null;
+  secondaryMoraMultiplier: number;
+  dendroBundle: Readonly<{
+    oneIn: number;
+    primogems: 40;
+    moras: 1_000;
+    particlesPerElement: 5;
+  }> | null;
+}>;
+
+export const TEAM_GACHA_PASSIVE_PARAMETERS = {
+  pyro: { secondaryParticleMultipliers: [1.25, 1.5] },
+  hydro: { fiveStarChanceBonusBasisPoints: [30, 60] },
+  cryo: { xpRewardOneIn: [20, 10], xpAmount: 1 },
+  electro: { pity5RewardOneIn: [30, 20], pity5Amount: 2 },
+  anemo: { primogemRecoveryOneIn: [12, 8], primogemAmount: 80 },
+  geo: { secondaryMoraMultipliers: [1.25, 1.5] },
+  dendro: {
+    bundleOneIn: [25, 15],
+    primogems: 40,
+    moras: 1_000,
+    particlesPerElement: 5,
+  },
+} as const;
+
 const definitions: Readonly<Record<ElementKey, TeamPassiveDefinition>> = {
   pyro: {
     elementKey: 'pyro', displayName: 'Pyro',
@@ -55,8 +90,7 @@ export function listTeamPassiveDefinitions(): readonly TeamPassiveDefinition[] {
 }
 
 export function deriveTeamPassives(elements: readonly ElementKey[]): readonly DerivedTeamPassive[] {
-  const counts = new Map<ElementKey, number>();
-  for (const element of elements) counts.set(element, Math.min(2, (counts.get(element) ?? 0) + 1));
+  const counts = countElementStacks(elements);
 
   return elementKeys.flatMap((elementKey) => {
     const count = counts.get(elementKey) ?? 0;
@@ -65,4 +99,50 @@ export function deriveTeamPassives(elements: readonly ElementKey[]): readonly De
     const definition = definitions[elementKey];
     return [{ ...definition, stacks, description: stacks === 1 ? definition.levelOne : definition.levelTwo }];
   });
+}
+
+export function deriveActiveTeamGachaEffects(elements: readonly ElementKey[]): ActiveTeamGachaEffects {
+  const stacks = countElementStacks(elements);
+  const pyro = levelIndex(stacks.get('pyro'));
+  const hydro = levelIndex(stacks.get('hydro'));
+  const cryo = levelIndex(stacks.get('cryo'));
+  const electro = levelIndex(stacks.get('electro'));
+  const anemo = levelIndex(stacks.get('anemo'));
+  const geo = levelIndex(stacks.get('geo'));
+  const dendro = levelIndex(stacks.get('dendro'));
+
+  return {
+    secondaryParticleMultiplier: pyro === null ? 1 : TEAM_GACHA_PASSIVE_PARAMETERS.pyro.secondaryParticleMultipliers[pyro],
+    fiveStarChanceBonusBasisPoints: hydro === null ? 0 : TEAM_GACHA_PASSIVE_PARAMETERS.hydro.fiveStarChanceBonusBasisPoints[hydro],
+    xpReward: cryo === null ? null : {
+      oneIn: TEAM_GACHA_PASSIVE_PARAMETERS.cryo.xpRewardOneIn[cryo],
+      amount: TEAM_GACHA_PASSIVE_PARAMETERS.cryo.xpAmount,
+    },
+    pity5Reward: electro === null ? null : {
+      oneIn: TEAM_GACHA_PASSIVE_PARAMETERS.electro.pity5RewardOneIn[electro],
+      amount: TEAM_GACHA_PASSIVE_PARAMETERS.electro.pity5Amount,
+    },
+    primogemRecovery: anemo === null ? null : {
+      oneIn: TEAM_GACHA_PASSIVE_PARAMETERS.anemo.primogemRecoveryOneIn[anemo],
+      amount: TEAM_GACHA_PASSIVE_PARAMETERS.anemo.primogemAmount,
+    },
+    secondaryMoraMultiplier: geo === null ? 1 : TEAM_GACHA_PASSIVE_PARAMETERS.geo.secondaryMoraMultipliers[geo],
+    dendroBundle: dendro === null ? null : {
+      oneIn: TEAM_GACHA_PASSIVE_PARAMETERS.dendro.bundleOneIn[dendro],
+      primogems: TEAM_GACHA_PASSIVE_PARAMETERS.dendro.primogems,
+      moras: TEAM_GACHA_PASSIVE_PARAMETERS.dendro.moras,
+      particlesPerElement: TEAM_GACHA_PASSIVE_PARAMETERS.dendro.particlesPerElement,
+    },
+  };
+}
+
+function countElementStacks(elements: readonly ElementKey[]): ReadonlyMap<ElementKey, number> {
+  const counts = new Map<ElementKey, number>();
+  for (const element of elements) counts.set(element, Math.min(2, (counts.get(element) ?? 0) + 1));
+  return counts;
+}
+
+function levelIndex(stacks: number | undefined): 0 | 1 | null {
+  if (!stacks) return null;
+  return stacks === 1 ? 0 : 1;
 }
