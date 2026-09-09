@@ -22,12 +22,14 @@ import { registerGachaRoutes } from './api/routes/gacha.js';
 import { registerBoxRoutes } from './api/routes/box.js';
 import { registerTeamRoutes } from './api/routes/team.js';
 import { registerBankRoutes } from './api/routes/bank.js';
+import { registerInventoryRoutes } from './api/routes/inventory.js';
 import type { GetCharacters, GetCurrentGacha, GetGachaHistory, PerformGachaPull, SetGachaTarget } from './application/gacha/gacha-services.js';
 import type { GetTodayDailyReward } from './application/daily-reward/get-today-daily-reward.js';
 import type { ClaimDailyReward } from './application/daily-reward/claim-daily-reward.js';
 import type { GetCurrentPlayerBox, SetBoxCharacterFavorite, SetBoxSortPreference, UseMasterlessStella } from './application/box/box-services.js';
 import type { ActivatePlayerTeam, ClearPlayerTeam, CreateNextPlayerTeam, DeleteExtraPlayerTeam, GetCurrentPlayerTeams, RemovePlayerTeamSlot, RenamePlayerTeam, ReorderPlayerTeams, ReorderPlayerTeamSlots, SetPlayerTeamSlot } from './application/team/team-services.js';
 import type { GetCurrentPlayerBank, GetPlayerBankHistory, TransferPlayerBank } from './application/banking/banking-services.js';
+import type { GetCurrentPlayerInventory } from './application/inventory/inventory-services.js';
 import type { AppConfig } from './config/environment.js';
 import { loadConfig } from './config/environment.js';
 
@@ -64,6 +66,7 @@ export type AppDependencies = Readonly<{
   getPlayerBankHistory?: GetPlayerBankHistory;
   depositPlayerBank?: TransferPlayerBank;
   withdrawPlayerBank?: TransferPlayerBank;
+  getCurrentPlayerInventory?: GetCurrentPlayerInventory;
   close?: () => Promise<void>;
 }>;
 
@@ -161,6 +164,9 @@ export async function buildApp(
         depositPlayerBank: dependencies.depositPlayerBank,
         withdrawPlayerBank: dependencies.withdrawPlayerBank,
       });
+    }
+    if (dependencies.getCurrentPlayerInventory) {
+      await app.register(registerInventoryRoutes, { authenticate, getCurrentPlayerInventory: dependencies.getCurrentPlayerInventory });
     }
 
     if (dependencies.close) {

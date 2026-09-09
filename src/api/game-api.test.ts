@@ -68,6 +68,15 @@ describe('game API client', () => {
     expect(typeof resources.primogems).toBe('string')
   })
 
+  it('loads the aggregate personal inventory through its read-only endpoint', async () => {
+    const payload = { resources: [{ key: 'primogems', displayName: 'Primogemmes', category: 'currency', elementKey: null, amount: '9007199254740993' }], items: [] }
+    const fetchImplementation = vi.fn<typeof fetch>(async () => new Response(JSON.stringify(payload)))
+    const client = createGameApiClient({ baseUrl: 'http://127.0.0.1:3001', getAccessToken: async () => 'token', fetchImplementation })
+    await expect(client.getInventory()).resolves.toEqual(payload)
+    expect(fetchImplementation.mock.calls[0]?.[0]).toBe('http://127.0.0.1:3001/api/v1/me/inventory')
+    expect(fetchImplementation.mock.calls[0]?.[1]?.method).toBeUndefined()
+  })
+
   it('loads the persisted Wheel state through the read-only endpoint', async () => {
     const fetchImplementation = vi.fn<typeof fetch>(async () =>
       new Response(JSON.stringify({

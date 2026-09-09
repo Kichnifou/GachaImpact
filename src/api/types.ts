@@ -15,6 +15,31 @@ export type PlayerResourcesDto = Readonly<{
   particles: Readonly<Record<ElementKey, string>>
 }>
 
+export type InventoryResourceDto = Readonly<{
+  key: 'primogems' | 'moras' | `particles_${ElementKey}`
+  displayName: string
+  category: string
+  elementKey: ElementKey | null
+  amount: string
+}>
+
+export type InventoryItemDto = Readonly<{
+  id: string
+  externalKey: string
+  displayName: string
+  category: string
+  section: 'objects' | 'collection'
+  description: string | null
+  quantity: string
+  firstObtainedAt: string | null
+  acquisitionHint: string | null
+}>
+
+export type PlayerInventoryDto = Readonly<{
+  resources: readonly InventoryResourceDto[]
+  items: readonly InventoryItemDto[]
+}>
+
 export type BankOperationDto = Readonly<{
   id: string
   type: 'DEPOSIT' | 'WITHDRAWAL' | 'INTEREST'

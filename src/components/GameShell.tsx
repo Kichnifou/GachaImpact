@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import type { BankHistoryDto, BankTransferDto, BoxCharacterDto, BoxSortPreferenceDto, CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, PlayerBankDto, PlayerBoxDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
+import type { BankHistoryDto, BankTransferDto, BoxCharacterDto, BoxSortPreferenceDto, CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, PlayerBankDto, PlayerBoxDto, PlayerDto, PlayerInventoryDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import type { ScreenId } from '../types'
 import BoxScreen from '../screens/BoxScreen'
 import CharactersScreen from '../screens/CharactersScreen'
@@ -22,6 +22,7 @@ import { BankMemoryCache } from '../bank/bank-memory-cache'
 import type { LevelUpFeedbackEvent } from '../progression/level-up-feedback'
 import { useProfileLevelUpFeedback } from '../progression/use-profile-level-up-feedback'
 import LevelUpFeedback from './LevelUpFeedback'
+import { InventoryMemoryCache } from '../inventory/inventory-memory-cache'
 
 const screenIds: ScreenId[] = ['home', 'invocation', 'box', 'characters', 'team', 'bank', 'inventory', 'shop']
 
@@ -68,9 +69,10 @@ type GameShellProps = {
   onLoadBankHistory: (page: number) => Promise<BankHistoryDto>
   onDepositBank: (amount: string, idempotencyKey: string) => Promise<BankTransferDto>
   onWithdrawBank: (amount: string, idempotencyKey: string) => Promise<BankTransferDto>
+  onLoadInventory: () => Promise<PlayerInventoryDto>
 }
 
-function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank }: GameShellProps) {
+function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank, onLoadInventory }: GameShellProps) {
   const [activeScreen, setActiveScreen] = useState<ScreenId>(getScreenFromHash)
   const activeScreenRef = useRef(activeScreen)
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
@@ -80,6 +82,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
   const [stellaIntents] = useState(() => new StellaIntentCoordinator())
   const [bankTransferIntents] = useState(() => new BankTransferIntentCoordinator())
   const [bankCache] = useState(() => new BankMemoryCache())
+  const [inventoryCache] = useState(() => new InventoryMemoryCache())
   const activeLevelUpFeedback = levelUpFeedbacks[0] ?? null
   const [profileLevelUpEvent, setProfileLevelUpEvent] = useState<LevelUpFeedbackEvent | null>(null)
   const [closedLevelUpModalId, setClosedLevelUpModalId] = useState<string | null>(null)
@@ -115,9 +118,14 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
     async (idempotencyKey) => {
       const result = await onUseStella(characterId, idempotencyKey)
       boxCache.applyStella(player.id, result)
+      inventoryCache.applyStella(player.id, result)
       return result
     },
-  ), [boxCache, onUseStella, player.id, stellaIntents])
+  ), [boxCache, inventoryCache, onUseStella, player.id, stellaIntents])
+  const loadInventory = useCallback(
+    () => inventoryCache.revalidate(player.id, onLoadInventory),
+    [inventoryCache, onLoadInventory, player.id],
+  )
   const loadBank = useCallback(
     () => bankCache.revalidate(player.id, onLoadBank),
     [bankCache, onLoadBank, player.id],
@@ -133,8 +141,9 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
   const signOutAndClearCaches = useCallback(async () => {
     boxCache.clear()
     bankCache.clear()
+    inventoryCache.clear()
     await onSignOut()
-  }, [bankCache, boxCache, onSignOut])
+  }, [bankCache, boxCache, inventoryCache, onSignOut])
 
   const changeScreen = useCallback((screen: ScreenId) => {
     if (activeScreenRef.current === 'invocation' && screen !== 'invocation') onGachaPresentationAbandoned()
@@ -166,7 +175,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
       case 'team':
         return <TeamScreen teams={teams} initialBox={boxCache.read(player.id)} stellaRetryCharacterId={stellaIntents.getIntent(player.id)?.characterId ?? null} onLoad={onLoadTeams} onActivate={onActivateTeam} onRename={onRenameTeam} onCreateNext={onCreateNextTeam} onDelete={onDeleteTeam} onReorderTeams={onReorderTeams} onSetSlot={onSetTeamSlot} onReorderSlots={onReorderTeamSlots} onRemoveSlot={onRemoveTeamSlot} onClear={onClearTeam} onLoadBox={loadBox} onSetBoxFavorite={setBoxFavorite} onUseStella={useStella} />
       case 'inventory':
-        return <InventoryScreen />
+        return <InventoryScreen key={player.id} initialInventory={inventoryCache.read(player.id)} resources={resources} onLoad={loadInventory} onNavigateBank={() => navigate('bank')} onLoadBox={loadBox} onSetBoxFavorite={setBoxFavorite} onUseStella={useStella} stellaRetryCharacterId={stellaIntents.getIntent(player.id)?.characterId ?? null} onLoadTeams={onLoadTeams} />
       case 'bank':
         return <BankScreen initialBank={bankCache.read(player.id)} onLoad={loadBank} onLoadHistory={onLoadBankHistory} onTransfer={transferBank} />
       case 'shop':

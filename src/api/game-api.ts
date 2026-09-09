@@ -24,6 +24,7 @@ import type {
   PlayerBankDto,
   BankTransferDto,
   BankHistoryDto,
+  PlayerInventoryDto,
 } from './types'
 
 type ApiClientDependencies = Readonly<{
@@ -109,6 +110,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
         body: JSON.stringify({ elementKey }),
       }),
     getResources: () => request<PlayerResourcesDto>('/api/v1/me/resources'),
+    getInventory: () => request<PlayerInventoryDto>('/api/v1/me/inventory'),
     getBank: () => request<PlayerBankDto>('/api/v1/me/bank'),
     getBankHistory: (page: number) => request<BankHistoryDto>(`/api/v1/me/bank/history?page=${page}`),
     depositBank: (amount: string, idempotencyKey: string) => request<BankTransferDto>('/api/v1/me/bank/deposit', {

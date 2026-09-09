@@ -39,16 +39,3 @@ export type NotificationItem = {
   unread: boolean
   icon: string
 }
-
-export type InventoryCategory = {
-  id: string
-  label: string
-  icon: string
-  items: Array<{
-    name: string
-    amount: string
-    description: string
-    icon: string
-    tone: string
-  }>
-}

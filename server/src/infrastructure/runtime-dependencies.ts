@@ -28,6 +28,8 @@ import { PrismaTeamStore } from './database/prisma-team-store.js';
 import { BankInterestScheduler } from '../application/banking/bank-interest-scheduler.js';
 import { BankInterestProcessor, GetCurrentPlayerBank, GetPlayerBankHistory, TransferPlayerBank } from '../application/banking/banking-services.js';
 import { PrismaBankingStore } from './database/prisma-banking-store.js';
+import { GetCurrentPlayerInventory } from '../application/inventory/inventory-services.js';
+import { PrismaInventoryStore } from './database/prisma-inventory-store.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
   if (!config.databaseUrl) {
@@ -47,6 +49,7 @@ export function createRuntimeDependencies(config: AppConfig) {
   const boxStore = new PrismaBoxStore(database);
   const teamStore = new PrismaTeamStore(database);
   const bankingStore = new PrismaBankingStore(database);
+  const inventoryStore = new PrismaInventoryStore(database);
   const bankInterestScheduler = new BankInterestScheduler(new BankInterestProcessor(bankingStore, clock), clock);
 
   return {
@@ -91,6 +94,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     getPlayerBankHistory: new GetPlayerBankHistory(getCurrentPlayer, bankingStore),
     depositPlayerBank: new TransferPlayerBank('deposit', getCurrentPlayer, bankingStore, clock),
     withdrawPlayerBank: new TransferPlayerBank('withdraw', getCurrentPlayer, bankingStore, clock),
+    getCurrentPlayerInventory: new GetCurrentPlayerInventory(getCurrentPlayer, inventoryStore),
     start: async () => { await scheduler.start(); await bankInterestScheduler.start(); },
     close: async () => { scheduler.stop(); bankInterestScheduler.stop(); await database.$disconnect(); },
   };

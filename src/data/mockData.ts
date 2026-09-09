@@ -14,7 +14,7 @@
  * de référence puis remplacer progressivement ces mocks par les vraies données.
  */
 
-import type { Character, InventoryCategory, NotificationItem, OnlinePlayer } from '../types'
+import type { Character, NotificationItem, OnlinePlayer } from '../types'
 
 export const player = {
   name: 'Kichnifou',
@@ -61,42 +61,6 @@ export const notifications: NotificationItem[] = [
   { id: 1, title: 'Récompense quotidienne', detail: 'Votre récompense du jour est disponible.', time: 'Maintenant', unread: true, icon: '♢' },
   { id: 2, title: 'Bannière permanente', detail: 'Votre progression est de 42 vœux sur 90.', time: 'Il y a 12 min', unread: true, icon: '✦' },
   { id: 3, title: 'Voyageur connecté', detail: 'Lumina vient de rejoindre GachaImpact.', time: 'Il y a 25 min', unread: true, icon: '●' },
-]
-
-export const inventoryCategories: InventoryCategory[] = [
-  {
-    id: 'currencies', label: 'Monnaies', icon: '◈', items: [
-      { name: 'Primos', amount: '2 480', description: 'Monnaie d’invocation', icon: '✦', tone: 'cyan' },
-      { name: 'Moras', amount: '560 250', description: 'Monnaie commune', icon: '●', tone: 'gold' },
-      { name: 'Astéries', amount: '42', description: 'Échange rare', icon: '✧', tone: 'violet' },
-    ],
-  },
-  {
-    id: 'particles', label: 'Particules', icon: '⌁', items: [
-      { name: 'Particule Cryo', amount: '751', description: 'Affinité élémentaire', icon: '❄', tone: 'cryo' },
-      { name: 'Particule Pyro', amount: '120', description: 'Affinité élémentaire', icon: '♨', tone: 'pyro' },
-      { name: 'Particule Hydro', amount: '80', description: 'Affinité élémentaire', icon: '●', tone: 'hydro' },
-      { name: 'Particule Électro', amount: '99', description: 'Affinité élémentaire', icon: 'ϟ', tone: 'electro' },
-    ],
-  },
-  {
-    id: 'items', label: 'Objets', icon: '◇', items: [
-      { name: 'Essence astrale', amount: '18', description: 'Matériau d’évolution', icon: '◆', tone: 'blue' },
-      { name: 'Fragment d’étoile', amount: '7', description: 'Objet précieux', icon: '✦', tone: 'violet' },
-      { name: 'Ration d’aventure', amount: '26', description: 'Provision de voyage', icon: '□', tone: 'green' },
-    ],
-  },
-  {
-    id: 'special', label: 'Ressources spéciales', icon: '✧', items: [
-      { name: 'Clé du firmament', amount: '2', description: 'Ouvre un domaine futur', icon: '⚿', tone: 'gold' },
-      { name: 'Sceau ancien', amount: '5', description: 'Origine inconnue', icon: '◉', tone: 'violet' },
-    ],
-  },
-  {
-    id: 'events', label: 'Événement', icon: '♢', items: [
-      { name: 'Éclat commémoratif', amount: '12', description: 'Objet d’événement fictif', icon: '❖', tone: 'cyan' },
-    ],
-  },
 ]
 
 export const shopCategories = [

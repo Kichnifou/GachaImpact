@@ -266,6 +266,7 @@ function AppBootstrap() {
       onSetBoxSortPreference={setBoxSortPreference}
       onUseStella={useStella}
       onLoadBank={loadBank}
+      onLoadInventory={() => getGameApiClient().getInventory()}
       onLoadBankHistory={(page) => getGameApiClient().getBankHistory(page)}
       onDepositBank={depositBank}
       onWithdrawBank={withdrawBank}
