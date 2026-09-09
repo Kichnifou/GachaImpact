@@ -139,7 +139,7 @@ describe('PullResults', () => {
     expect(renderElectro(0)).not.toContain('Electro ·')
   })
 
-  it('keeps each passive icon and label together in the centered feedback structure', () => {
+  it('keeps each passive icon and label together in context-specific feedback structures', () => {
     const result = {
       ...characterResult,
       bonusRewards: [],
@@ -150,8 +150,20 @@ describe('PullResults', () => {
         { elementKey: 'electro' as const, type: 'pity5' as const, amount: 2, requestedAmount: 2 as const },
       ],
     }
-    for (const compact of [false, true]) {
-      const html = renderToStaticMarkup(<PullResultCard result={result} compact={compact} />)
+    const characterReveal = renderToStaticMarkup(<PullResultCard result={result} />)
+    const compactCharacter = renderToStaticMarkup(<PullResultCard result={result} compact />)
+    const resourceResult = { ...result, resultType: 'resource' as const, character: null, rarity: null, resourceKey: 'moras', resourceAmount: '6250', wasNewCharacter: null, constellationAfter: null, copiesAfter: null }
+    const resourceReveal = renderToStaticMarkup(<PullResultCard result={resourceResult} />)
+    const compactResource = renderToStaticMarkup(<PullResultCard result={resourceResult} compact />)
+
+    expect(characterReveal).toContain('pull-passive-effects passive-feedback-character')
+    expect(characterReveal).not.toContain('passive-feedback-centered')
+    for (const html of [resourceReveal, compactCharacter, compactResource]) {
+      expect(html).toContain('pull-passive-effects passive-feedback-centered')
+      expect(html).not.toContain('passive-feedback-character')
+    }
+    for (const html of [characterReveal, compactCharacter, resourceReveal, compactResource]) {
+      expect((html.match(/class="pull-passive-effect-line"/g) ?? [])).toHaveLength(3)
       expect((html.match(/class="pull-passive-effect"/g) ?? [])).toHaveLength(3)
       expect((html.match(/class="pull-passive-icon"/g) ?? [])).toHaveLength(3)
       expect(html).toMatch(/pull-passive-effect[\s\S]*pull-passive-icon[\s\S]*Geo · Moras ×1,25/)

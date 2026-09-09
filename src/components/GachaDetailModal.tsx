@@ -3,8 +3,6 @@ import type { GachaHistoryDto, PlayerTeamsDto } from '../api/types'
 import { historyDateLabel, historyEventLabel, historyPityLabel, historyProgressionLabel, historyResultLabel } from '../gacha/history-presentation'
 import { fiveStarProbabilityRows, fourStarProbabilityRows, probabilityPercent } from '../gacha/probabilities'
 import { apiErrorMessage } from '../utils/formatters'
-import GameAssetIcon from './GameAssetIcon'
-import { getElementAssetPath } from '../utils/gameAssets'
 
 type DetailTab = 'history' | 'probabilities' | 'passives'
 
@@ -119,7 +117,7 @@ export function PassivesPanel({ teams }: { teams: PlayerTeamsDto }) {
     <div className="passives-grid">{teams.passiveReference.map((passive) => {
       const activeStacks = activePassives.get(passive.elementKey)
       return <article className={activeStacks ? 'has-active-passive' : ''} data-element={passive.elementKey} key={passive.elementKey}>
-        <h3><GameAssetIcon className="gacha-passive-element-icon" src={getElementAssetPath(passive.elementKey)} fallback="✦" />{passive.displayName}</h3>
+        <h3>{passive.displayName}</h3>
         <p className={`passive-level${activeStacks === 1 ? ' active' : ''}`}><strong>Niveau I</strong><span>{passive.levelOne}</span>{activeStacks === 1 && <em>Actif</em>}</p>
         <p className={`passive-level${activeStacks === 2 ? ' active' : ''}`}><strong>Niveau II</strong><span>{passive.levelTwo}</span>{activeStacks === 2 && <em>Actif</em>}</p>
       </article>

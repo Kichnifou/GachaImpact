@@ -79,8 +79,8 @@ const definitions: Readonly<Record<ElementKey, TeamPassiveDefinition>> = {
   },
   anemo: {
     elementKey: 'anemo', displayName: 'Anémo',
-    levelOne: '1 chance sur 12 de récupérer 80 Primogemmes',
-    levelTwo: '1 chance sur 8 de récupérer 80 Primogemmes',
+    levelOne: '1 chance sur 12 de récupérer 80 Primos',
+    levelTwo: '1 chance sur 8 de récupérer 80 Primos',
   },
   geo: {
     elementKey: 'geo', displayName: 'Géo',
@@ -89,8 +89,8 @@ const definitions: Readonly<Record<ElementKey, TeamPassiveDefinition>> = {
   },
   dendro: {
     elementKey: 'dendro', displayName: 'Dendro',
-    levelOne: '1 chance sur 25 : 40 Primogemmes, 1 000 Moras et 5 particules de chaque élément',
-    levelTwo: '1 chance sur 15 : 40 Primogemmes, 1 000 Moras et 5 particules de chaque élément',
+    levelOne: '1 chance sur 25 : 40 Primos, 1 000 Moras et 5 particules de chaque élément',
+    levelTwo: '1 chance sur 15 : 40 Primos, 1 000 Moras et 5 particules de chaque élément',
   },
 };
 

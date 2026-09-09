@@ -36,7 +36,7 @@ export function PullResultCard({ result, order = 0, compact = false }: { result:
     {visibleBonusRewards.map((reward) => <small className="pull-bonus" key={`${reward.resourceKey}-${reward.causeKey}`}>+{formatResourceAmount(reward.amount)} {pullResourcePresentation(reward.resourceKey).label}</small>)}
     {result.c6Progression?.type === 'stat' && <small className="pull-bonus">{c6StatLabel(result.c6Progression.stat)} +1</small>}
     {result.c6Progression?.type === 'maxed' && <small className="pull-bonus">Progression C6 maxée</small>}
-    {passiveEffects.map(({ effect, label }, index) => <small className="pull-passive-effect" key={`${effect.elementKey}-${effect.type}-${index}`}><GameAssetIcon className="pull-passive-icon" src={getElementAssetPath(effect.elementKey)} fallback="✦" />{label}</small>)}
+    {passiveEffects.length > 0 && <PassiveEffects effects={passiveEffects} alignment="centered" />}
   </>
   return (
     <article className={`pull-result-card ${result.character ? 'character-result' : 'resource-result'} rarity-${rarity}${compact ? ' compact' : ' reveal'}`} style={{ '--pull-order': order } as CSSProperties}>
@@ -49,7 +49,7 @@ export function PullResultCard({ result, order = 0, compact = false }: { result:
           {!compact && <small className="pull-result-progression">{revealProgression}</small>}
           <strong style={compact ? undefined : individualRevealNameStyle}>{result.character.name}</strong>
           <span className="pull-result-rarity">{'★'.repeat(rarity)}</span>
-          {!compact && passiveEffects.length > 0 && <PassiveEffects effects={passiveEffects} />}
+          {!compact && passiveEffects.length > 0 && <PassiveEffects effects={passiveEffects} alignment="character" />}
           {compact && <small>{revealProgression}</small>}
           {compact && event && <small className="pull-event">{event}</small>}
           {compact && compactBonusContent}
@@ -61,15 +61,15 @@ export function PullResultCard({ result, order = 0, compact = false }: { result:
           <strong>{resource.label}</strong>
           <span className="pull-result-rarity">★★★</span>
           <span className="pull-resource-amount">+{formatResourceAmount(result.resourceAmount ?? '0')}</span>
-          {!compact && passiveEffects.length > 0 && <PassiveEffects effects={passiveEffects} />}
+          {!compact && passiveEffects.length > 0 && <PassiveEffects effects={passiveEffects} alignment="centered" />}
           {compact && compactBonusContent}
         </div>}
     </article>
   )
 }
 
-function PassiveEffects({ effects }: { effects: readonly { effect: NonNullable<GachaPullResultItemDto['passiveEffects']>[number]; label: string }[] }) {
-  return <span className="pull-passive-effects">{effects.map(({ effect, label }, index) => <small className="pull-passive-effect" key={`${effect.elementKey}-${effect.type}-${index}`}><GameAssetIcon className="pull-passive-icon" src={getElementAssetPath(effect.elementKey)} fallback="✦" />{label}</small>)}</span>
+function PassiveEffects({ effects, alignment }: { effects: readonly { effect: NonNullable<GachaPullResultItemDto['passiveEffects']>[number]; label: string }[]; alignment: 'centered' | 'character' }) {
+  return <span className={`pull-passive-effects passive-feedback-${alignment}`}>{effects.map(({ effect, label }, index) => <span className="pull-passive-effect-line" key={`${effect.elementKey}-${effect.type}-${index}`}><small className="pull-passive-effect"><GameAssetIcon className="pull-passive-icon" src={getElementAssetPath(effect.elementKey)} fallback="✦" />{label}</small></span>)}</span>
 }
 
 export default PullResults

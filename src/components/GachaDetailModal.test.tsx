@@ -12,7 +12,13 @@ const historyResult: GachaHistoryResultDto = {
 }
 const history: GachaHistoryDto = { page: 1, pageSize: 10, totalResults: 1, totalPages: 1, hasPrevious: false, hasNext: false, results: [historyResult] }
 const elements: readonly ElementKey[] = ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro']
-const passiveReference = elements.map((elementKey) => ({ elementKey, displayName: elementKey, levelOne: `${elementKey} I`, levelTwo: `${elementKey} II` }))
+const displayNames: Readonly<Record<ElementKey, string>> = { pyro: 'Pyro', hydro: 'Hydro', cryo: 'Cryo', electro: 'Électro', anemo: 'Anémo', geo: 'Géo', dendro: 'Dendro' }
+const passiveReference = elements.map((elementKey) => ({
+  elementKey,
+  displayName: displayNames[elementKey],
+  levelOne: elementKey === 'anemo' ? '1 chance sur 12 de récupérer 80 Primos' : elementKey === 'dendro' ? '1 chance sur 25 : 40 Primos, 1 000 Moras et 5 particules de chaque élément' : `${elementKey} I`,
+  levelTwo: elementKey === 'anemo' ? '1 chance sur 8 de récupérer 80 Primos' : elementKey === 'dendro' ? '1 chance sur 15 : 40 Primos, 1 000 Moras et 5 particules de chaque élément' : `${elementKey} II`,
+}))
 const passive = (elementKey: ElementKey, stacks: 1 | 2): TeamPassiveDto => ({ ...passiveReference.find((entry) => entry.elementKey === elementKey)!, stacks, description: `${elementKey} ${stacks === 1 ? 'I' : 'II'}` })
 const teams = (activePassives: readonly TeamPassiveDto[] = [], inactivePassives: readonly TeamPassiveDto[] = []): PlayerTeamsDto => ({
   teams: [
@@ -69,6 +75,19 @@ describe('GachaDetailModal', () => {
     expect(html).not.toContain('Les passifs de votre Team active sont appliqués à vos Invocations.')
     expect(html).not.toContain('passive-level active')
     expect(html).not.toContain('>Actif<')
+  })
+
+  it('renders the seven textual passive headings without decorative assets and uses Primos copy', () => {
+    const html = renderToStaticMarkup(<PassivesPanel teams={teams([passive('anemo', 1), passive('dendro', 2)])} />)
+    for (const displayName of Object.values(displayNames)) expect(html).toContain(`<h3>${displayName}</h3>`)
+    expect((html.match(/<h3>/g) ?? [])).toHaveLength(7)
+    expect(html).not.toContain('gacha-passive-element-icon')
+    expect(html).not.toMatch(/assets\/genshin\/elements/)
+    expect(html).not.toContain('Primogemmes')
+    expect((html.match(/Primos/g) ?? [])).toHaveLength(4)
+    expect((html.match(/>Niveau I<\/strong>/g) ?? [])).toHaveLength(7)
+    expect((html.match(/>Niveau II<\/strong>/g) ?? [])).toHaveLength(7)
+    expect((html.match(/>Actif</g) ?? [])).toHaveLength(2)
   })
 
   it('highlights only Geo level I for one active stack', () => {

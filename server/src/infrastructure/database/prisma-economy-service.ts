@@ -21,7 +21,7 @@ export class PrismaEconomyService {
     if (input.amount <= 0n) throw new RangeError('An economic debit amount must be positive.');
     const balance = await this.lockBalance(transaction, input.playerId, input.resourceKey);
     if (balance < input.amount) {
-      if (input.resourceKey === 'primogems') throw new BusinessError('INSUFFICIENT_PRIMOGEMS', 'Vous ne possédez pas assez de Primogemmes.');
+      if (input.resourceKey === 'primogems') throw new BusinessError('INSUFFICIENT_PRIMOGEMS', 'Vous ne possédez pas assez de Primos.');
       throw new RangeError(`Insufficient ${input.resourceKey} balance.`);
     }
     const balanceAfter = balance - input.amount;

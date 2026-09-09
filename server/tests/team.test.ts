@@ -75,6 +75,16 @@ describe('Team passives', () => {
     expect(listTeamPassiveDefinitions()).toHaveLength(7);
   });
 
+  it('uses the short player-facing Primos label in passive descriptions', () => {
+    const references = listTeamPassiveDefinitions();
+    const anemo = references.find(({ elementKey }) => elementKey === 'anemo');
+    const dendro = references.find(({ elementKey }) => elementKey === 'dendro');
+
+    expect(anemo).toMatchObject({ levelOne: expect.stringContaining('80 Primos'), levelTwo: expect.stringContaining('80 Primos') });
+    expect(dendro).toMatchObject({ levelOne: expect.stringContaining('40 Primos'), levelTwo: expect.stringContaining('40 Primos') });
+    expect(references.flatMap(({ levelOne, levelTwo }) => [levelOne, levelTwo]).join(' ')).not.toContain('Primogemmes');
+  });
+
   it('supports partial and multi-element Teams without inventing extra stacks', () => {
     expect(deriveTeamPassives(['cryo'])).toEqual([expect.objectContaining({ elementKey: 'cryo', stacks: 1 })]);
     expect(deriveTeamPassives(['electro', 'electro', 'geo', 'anemo']).map(({ elementKey, stacks }) => [elementKey, stacks]))
