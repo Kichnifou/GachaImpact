@@ -1133,6 +1133,10 @@ Contrainte :
 
 `quantity >= 0`
 
+État physique/API 0.74, sans migration : les tables existantes `resource_definitions`, `player_resource_balances`, `item_definitions` et `player_items` suffisent au premier vertical Sac. `GET /api/v1/me/inventory` joint uniquement le Player authentifié, restitue les neuf ressources structurelles dans un ordre stable même lorsque leur solde vaut zéro, puis les définitions d'objets actives avec la quantité et la première obtention éventuelles du joueur. Les définitions de Collection restent visibles sans possession afin de permettre la complétion et l'ordre possédés/non possédés ; aucune définition Collection ni possession factice n'est ajoutée. Tous les `bigint` sont transmis en chaînes décimales lossless.
+
+Le Sac n'introduit aucune table, aucun solde et aucune mutation générique supplémentaires. La consommation de Stella reste portée par le service transactionnel Box/possessions existant ; l'API Inventory est une projection de lecture.
+
 ---
 
 # 16. Boutique

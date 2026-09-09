@@ -655,7 +655,8 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
 - **UI équivalente :** écran Sac
-- **UI future :** catégorie `Ressources`; la carte Moras entière navigue vers Banque et peut indiquer discrètement `Accéder à la Banque`
+- **Statut implémentation UI 0.74 :** écran Sac personnel réel branché sur l'agrégat serveur ; la future commande chat/Twitch reste non implémentée et devra appeler les mêmes sources/services.
+- **UI actuelle :** catégories `Tout` / `Ressources` / `Objets` / `Collection`; la carte Moras entière navigue vers Banque et indique discrètement `Accéder à la Banque`; Stella réutilise le flux Box/Team commun.
 - **Profil ciblé :** propriétaire uniquement ; pas de `!sac <pseudo>`
 - **Contenu :** Primogemmes, invocations possibles dérivées, Moras, sept particules, objets spéciaux persistants possédés
 - **Particules :** élément principal affiché en premier
