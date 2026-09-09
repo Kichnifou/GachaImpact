@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.72
+Version : 0.73
 Date : 2026-09-09
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -904,6 +904,8 @@ Inclure notamment :
 - Primogemmes ;
 - Moras ;
 - particules des sept éléments.
+
+Lors de l'implémentation réelle du Sac, la catégorie historiquement nommée `Monnaies` utilise donc le libellé `Ressources`. Sa carte Moras est une surface accessible menant à l'écran Banque et peut porter le texte discret `Accéder à la Banque`. Cette décision est documentée ici sans modifier le mock Sac actuel.
 
 Les ressources à quantité `0` restent visibles, y compris dans `Tout`.
 
@@ -3541,7 +3543,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Banque — premier vertical réel implémenté techniquement : persistance, dépôts/retraits atomiques et idempotents, intérêt quotidien composé, scheduler avec catch-up, API personnelle et écran responsive. La migration est appliquée uniquement sur Supabase DEV et le domaine reste à reviewer puis à valider publiquement par le propriétaire. Team / Passifs demeure fonctionnellement validé ; seuls le centrage géométrique du texte passif et le micro-polish de position/glow C6 inclus dans ce candidat nécessitent une dernière revalidation publique.**
+**Banque — premier vertical réel déployé et validé publiquement pour son état initial, ses transferts normaux, ses validations, son pending anti-double clic, son intérêt estimé, son patrimoine, sa sortie/réentrée et son fonctionnement général. Le candidat 0.73 finalise MAX, cache, accès sidebar, activité/historique et plein-height ; il reste à reviewer puis à revalider publiquement. Le prochain domaine prévu reste Sac.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3583,7 +3585,7 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - la sidebar charge niveau, XP du palier et barre depuis l'état serveur au bootstrap authentifié ; l'objectif Gacha, Pity, Garantie et Capture sont reliés à l'état Gacha réel, et le panneau Équipe active lit désormais la Team serveur autoritative ;
 - premier lot Team réel : **DÉPLOYÉ ET VALIDÉ PUBLIQUEMENT PAR LE PROPRIÉTAIRE** ; Teams 1 à 10, activation, compositions 0..4, sidebar, passifs dérivés et persistance après refresh/reconnexion validés ;
 - lot Team Management 0.70 : **DÉPLOYÉ** ; le panneau à quatre passifs et son bouton `Voir les passifs` sur desktop 1920×1080 sont désormais **VALIDÉS PUBLIQUEMENT PAR LE PROPRIÉTAIRE**, sans régression constatée en 2560×1440 ni sur mobile ;
-- lot Team / Gacha 0.71 : **DÉPLOYÉ ET VALIDÉ PUBLIQUEMENT POUR SES COMPORTEMENTS MÉTIER CRITIQUES** ; Focus sans passif, anti-spoil, Pyro, Géo, Cryo, Électro, Anémo, Dendro, Hydro silencieux/non causal, récompenses C6/XP, coexistence multi-passifs x10, changement de Team et non-régressions générales ont été validés par le propriétaire. L’Historique sans feedback passif et sa pagination, le feedback C6 individuel post-Focus, la lecture fonctionnelle du Niveau I/II actif, le layout sans asset parasite ni scroll desktop de Détail et le wording `Primos` sont aussi validés publiquement. Restent à reviewer puis à revalider uniquement le centrage géométrique du texte passif et le micro-polish de position/glow C6.
+- lot Team / Gacha 0.71 : **DÉPLOYÉ ET VALIDÉ PUBLIQUEMENT** pour son fonctionnement métier, son anti-spoil et ses présentations déjà livrées. Le candidat 0.73 ne change aucune règle métier : seuls les libellés passifs compacts x10, la réserve verticale des cartes, l'identité 4★/5★ rendue invariante et la nouvelle position/brillance fixe du badge C6 restent à reviewer puis à revalider ;
 - Gacha — catalogue / bannière / cible / état joueur et présentation UI associée : **FONDATIONS PUBLIQUEMENT VALIDÉES SANS RÉSERVE PAR LE PROPRIÉTAIRE — DOMAINE CLÔTURÉ** ; catalogue réel, rotation réelle, quatre 5★, six 4★, sélection/changement/persistance de cible, état joueur Gacha et présentation Pity/Garantie/Capture sont validés ;
 - UI Gacha : **PUBLIQUEMENT VALIDÉE ET CLÔTURÉE** pour Hero splash, picker 5★ 2×2, primitive responsive commune des portraits, variantes Team/Équipe active/Box/Personnages/4★ Invocation, desktop, mobile portrait et paysage, sidebar Objectif, aperçu Invocation de l'Accueil, navigation et Particules agrandies ;
 - Personnages reste validé ici pour sa présentation actuelle. La Box personnelle et l'écran Team consomment désormais leurs données serveur réelles ;
@@ -3622,11 +3624,12 @@ Le vertical slice Pull réel est physiquement implémenté. Le **target design**
 - les passifs Team sont documentés dans la modale et réellement appliqués par le serveur. Chaque `PullResult.snapshot` conserve le snapshot de Team et ses `passiveEffects` machine-readable ; l'API et le retry relisent ces effets, tandis que l'UI les présente uniquement en phase Ready et dans le récapitulatif x10, jamais dans l'Historique et jamais en les attribuant causalement à Hydro. L'onglet Passifs réutilise le snapshot `PlayerTeamsDto` déjà chargé pour mettre en évidence le seul niveau I ou II réellement actif de chaque élément ;
 - la primitive centrale XP met à jour XP, `lastXpAt`, tous les niveaux traversés, les récompenses et l'overflow niveau 100 dans la transaction appelante. La source Cryo ne modifie jamais `totalMessages`, `countedMessages` ni `lastXpMessageAt` ;
 - le refresh Progression rejoint Resources/Gacha après un Pull, mais son snapshot final reste bufferisé pendant Focus/reveal et n'est publié qu'au disclosure existant, comme les ressources, la Pity et les autres bonus ;
+- le candidat 0.73 ajoute un feedback global générique de montée de niveau, alimenté uniquement par la transition de Progression et les récompenses machine-readable publiées par la mutation : une mutation produit un seul événement agrégé, mis en file avec les suivants. Aucun feedback n'apparaît au bootstrap ; pour Cryo/Gacha, bannière, récompenses, `+N` sidebar et glow Profil attendent le disclosure existant. Cette présentation est **IMPLÉMENTÉE TECHNIQUEMENT, À VALIDATION PUBLIQUE** ;
 - Backlog durable — **Asset cleanup personnages** : recenser les personnages sans portrait/icon canonique et retrouver/renseigner leurs vrais portraits afin d’éviter le fallback splash dans les composants compacts ;
 - un crédit de test idempotent de +1 000 000 Primogemmes a été appliqué au seul Player ACTIVE `Kichnifou` via le moteur économique central, sous la clé `manual-test-credit:kichnifou:2026-09-06:1000000` et la cause `admin.manual-test-credit`, sans endpoint ni script permanent ;
 - tests unitaires, API, frontend et DB couvrent les règles critiques, l’idempotence, la concurrence, le rollback, la state machine d’affichage, le mapping d’assets, l’Historique, sa pagination, son ordre et son isolation par Player.
 
-La Team autoritative et ses sept passifs modifient désormais le moteur Pull dans une seule passe cohérente, transactionnelle, snapshotée et auditable. Les comportements métier critiques ainsi que le panneau Team, l’Historique, sa pagination, le feedback C6 individuel, la lecture des niveaux actifs et le layout Détail > Passifs sont validés publiquement ; seuls le centrage du texte passif indépendamment de son icône et le micro-polish du badge C6 du candidat 0.72 restent à reviewer puis à revalider publiquement.
+La Team autoritative et ses sept passifs modifient désormais le moteur Pull dans une seule passe cohérente, transactionnelle, snapshotée et auditable. Ce fonctionnement est validé publiquement. Le candidat 0.73 compacte uniquement les labels du récapitulatif x10, augmente sa réserve verticale, garantit structurellement la position de l'identité personnage quel que soit le nombre de passifs et remonte/renforce le glow fixe C6 ; ces seuls changements visuels restent à revalider.
 
 Ordre de reprise après validation propriétaire : Pull réel validé → Box/possessions réelles → Team réelle → suite de `docs/roadmap/implementation-order-v1.md`.
 
@@ -3681,18 +3684,20 @@ Premier lot Team réel déployé et validé publiquement ; Team Management et so
 
 ## État du lot — Banque
 
-Premier vertical Banque réel **IMPLÉMENTÉ ET VALIDÉ TECHNIQUEMENT, EN ATTENTE DE REVIEW ET DE VALIDATION PUBLIQUE PROPRIÉTAIRE** :
+Premier vertical Banque réel **DÉPLOYÉ ET VALIDÉ PUBLIQUEMENT POUR LE PARCOURS INITIAL ; POLISH 0.73 IMPLÉMENTÉ TECHNIQUEMENT ET EN ATTENTE DE REVIEW/REVALIDATION** :
 
 - migration additive `008_add_banking` versionnée et appliquée uniquement sur Supabase DEV : `player_bank_accounts` porte le solde bancaire et la dernière date d'intérêt ; `bank_transactions` journalise dépôt, retrait et intérêt avec soldes résultants, opération métier et date métier ; les comptes DEV existants sont initialisés à zéro, la RLS est active et aucun accès direct `anon`/`authenticated` n'est accordé ;
 - portefeuille Moras et Banque restent deux soldes autoritatifs distincts ; le patrimoine est dérivé par addition et aucune troisième ressource n'est créée ;
 - dépôts et retraits, y compris `MAX` résolu dans la transaction serveur, sont atomiques, idempotents et sérialisés avec les autres mutations du Player ; une erreur réseau ambiguë conserve l'intention frontend et sa clé pour le même joueur/direction/montant, tandis que le backend lie cette clé au montant demandé et refuse tout payload différent. Les transferts produisent un mouvement de ressource auditable mais ne modifient jamais `totalMorasEarned` ni `totalMorasSpent` ;
 - l'intérêt journalier vaut `floor(solde Banque × 3 / 100)`, est crédité directement en Banque, compose jour après jour et incrémente uniquement `totalMorasEarned`. Une journée à intérêt positif est protégée par l'unicité persistante Player/date ; une journée à intérêt nul avance seulement `lastInterestDate`, sans opération, transaction ni ligne d'historique `+0` ;
 - le processus backend exécute un catch-up séquentiel au démarrage puis planifie le prochain minuit Paris sans supposer des journées de 24 heures. Les redémarrages et traitements concurrents restent protégés par transaction, verrou Player, idempotence et contraintes DB ;
-- API authentifiée personnelle : `GET /api/v1/me/bank`, `POST /api/v1/me/bank/deposit` et `POST /api/v1/me/bank/withdraw`. Les montants `bigint` transitent en chaînes décimales ; aucune route ne permet de consulter la Banque d'un tiers ;
-- l'écran Banque affiche portefeuille, Banque, patrimoine, taux et intérêt estimé, compte à rebours, dépôts/retraits, `MAX` et les dix opérations récentes. Le résultat d'une mutation met immédiatement à jour l'écran et le portefeuille Moras de la sidebar ; à zéro, le compte à rebours relit l'état serveur sans popup ;
-- la sidebar continue d'afficher uniquement le portefeuille et propose un raccourci discret depuis la ligne Moras. Banque n'est pas ajoutée à la navigation principale ;
-- aucun bouton `Voir tout` mort n'est exposé : le branchement vers l'Historique transversal filtré Banque reste une dépendance future ; les commandes chat/Twitch réutiliseront les mêmes services mais ne sont pas implémentées dans ce lot ;
-- tests frontend, backend et DB réels couvrent les contrats, états, erreurs, `MAX`, gros `bigint`, neutralité statistique, intérêt composé, catch-up, idempotence, concurrence et historique. Les contrôles Chromium couvrent desktop large et layout mobile responsive.
+- API authentifiée personnelle : `GET /api/v1/me/bank`, `GET /api/v1/me/bank/history?page=N`, `POST /api/v1/me/bank/deposit` et `POST /api/v1/me/bank/withdraw`. L'historique personnel est newest-first, paginé côté serveur par dix opérations et sérialise tous les `bigint` en chaînes décimales ; aucune route ne permet de consulter la Banque d'un tiers ;
+- le parcours initial — état zéro, dépôt/retrait normal, validations montant/solde, pending/double clic, intérêt estimé, patrimoine, sortie/réentrée et fonctionnement général — est **VALIDÉ PUBLIQUEMENT PAR LE PROPRIÉTAIRE** ;
+- l'écran 0.73 affiche au plus cinq opérations récentes sans scrollbar, puis une modale d'historique complet avec pagination fixe. Sur desktop, Transferts et Activité s'étirent ensemble jusqu'au bas disponible. Le résultat confirmé met immédiatement à jour écran, cache mémoire par Player et wallet sidebar, sans faux solde optimiste ni second GET ; une revalidation antérieure devenue stale ne peut écraser ce résultat ;
+- `MAX` remplit désormais seulement l'input avec le solde affiché et ne crée aucune intention ni requête ; la confirmation web envoie ensuite la valeur numérique. Le support serveur `amount: "max"` demeure inchangé pour les futurs canaux chat/Twitch ;
+- la sidebar continue d'afficher uniquement le portefeuille : toute la zone Moras est maintenant une surface bouton accessible menant à Banque, sans petit bouton débordant. Banque n'est pas ajoutée à la navigation principale ;
+- le polish MAX/cache/accès Moras/activité cinq lignes + modale/pagination/layout plein-height et perception de latence est **À REVALIDATION PUBLIQUE** ;
+- tests frontend, backend et DB réels couvrent les contrats, états, erreurs, cache/stale response, `MAX`, gros `bigint`, neutralité statistique, intérêt composé, catch-up, idempotence, concurrence et pagination.
 
 État du premier parcours frontend standalone :
 
@@ -3722,7 +3727,7 @@ Premier vertical Banque réel **IMPLÉMENTÉ ET VALIDÉ TECHNIQUEMENT, EN ATTENT
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Faire reviewer le candidat 0.72 uniquement sur `review` → corriger les éventuels retours → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → faire valider publiquement par le propriétaire le vertical Banque et les deux micro-polish Team/Gacha (centrage du texte passif, position/glow C6).** Banque ne sera marquée publiquement validée qu'après ce test réel ; Sac et Boutique ne commencent pas avant cette validation ou une instruction explicite du propriétaire. `PAID_INFRA_APPROVED = false` reste inchangé.
+**Faire reviewer le candidat 0.73 uniquement sur `review` → corriger les éventuels retours → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → faire revalider publiquement le polish Banque, le micro-polish Gacha x10/C6 et le nouveau feedback Level-up.** Le domaine actif reste Banque jusqu'à cette revalidation finale. Le prochain domaine prévu est Sac, sans commencer son implémentation avant instruction explicite. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

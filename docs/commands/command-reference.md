@@ -621,7 +621,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 
 ## `!banque`
 - **Statut audit :** Audité — Domaine Banque clôturé après R255
-- **Statut implémentation 0.72 :** écran et API personnelles réels ; commandes chat GachaImpact/Twitch non encore branchées. Le futur parseur devra appeler les mêmes services de consultation/dépôt/retrait, avec son canal d'origine.
+- **Statut implémentation 0.73 :** écran, cache de session et API personnelles, dont historique paginé, réels ; commandes chat GachaImpact/Twitch non encore branchées. Le futur parseur devra appeler les mêmes services de consultation/dépôt/retrait, avec son canal d'origine.
 - **But :** Consulter et transférer les Moras entre portefeuille et Banque.
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
@@ -643,8 +643,8 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Intérêt hors ligne :** oui
 - **Message consultation :** une seule ligne, conserve emojis legacy, soldes, intérêt estimé et aide dépôt/retrait
 - **Format cible :** `🏦 Banque <joueur> : X moras | 💰 Portefeuille : Y | Intérêt estimé (3%) : +Z | 📥 !banque deposer X | 📤 !banque retirer X`
-- **UI :** MAX, intérêt estimé, compte à rebours, patrimoine total dérivé, historique récent, animation légère
-- **Historique :** complet via écran Historique ; détaillé privé
+- **UI :** MAX remplit l'input sans muter, intérêt estimé, compte à rebours, patrimoine total dérivé, cinq opérations récentes et animation légère
+- **Historique :** complet et privé dans une modale Banque, paginée côté serveur par dix opérations newest-first
 - **Profil :** solde Banque exposable selon Public / Amis / Privé
 - **Migration :** wallet/banque/stats exacts ; aucun historique ou intérêt rétroactif inventé
 - **Interactions reportées :** `!top moras` / Classements à auditer séparément pour respecter la confidentialité Banque
@@ -655,6 +655,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
 - **UI équivalente :** écran Sac
+- **UI future :** catégorie `Ressources`; la carte Moras entière navigue vers Banque et peut indiquer discrètement `Accéder à la Banque`
 - **Profil ciblé :** propriétaire uniquement ; pas de `!sac <pseudo>`
 - **Contenu :** Primogemmes, invocations possibles dérivées, Moras, sept particules, objets spéciaux persistants possédés
 - **Particules :** élément principal affiché en premier
