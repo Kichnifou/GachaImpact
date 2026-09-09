@@ -69,6 +69,8 @@ Avant la publication du candidat sur `review`, ChatGPT peut effectuer un contrô
 
 Codex termine l’implémentation, exécute les tests automatisés pertinents et réalise une inspection visuelle locale réelle lorsqu’elle est utile. Il fournit ensuite un rapport structuré. Pendant l’implémentation, il ne committe et ne pousse pas par défaut ; la publication du candidat sur `review` fait l’objet d’une instruction explicite après la validation locale.
 
+Les tests PostgreSQL qui utilisent la base Supabase DEV partagée s’exécutent fichier par fichier (`fileParallelism: false` dans la configuration Vitest DB) afin qu’une fixture temporaire d’un domaine ne puisse pas être observée par les invariants d’un autre fichier. Chaque fichier reste responsable du suivi et du nettoyage transactionnel de ses propres fixtures, y compris après un échec ; les scénarios de concurrence métier explicites au sein d’un même fichier restent autorisés.
+
 ## 4. Publier le candidat sur `review`
 
 Le workflow Git permanent est le suivant :

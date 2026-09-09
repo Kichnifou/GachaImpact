@@ -1,7 +1,8 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, describe, expect, it } from 'vitest';
 
+import { Prisma } from '../generated/prisma/client.js';
 import { loadConfig } from '../src/config/environment.js';
 import { PrismaBankingStore } from '../src/infrastructure/database/prisma-banking-store.js';
 import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
@@ -9,26 +10,41 @@ import { createDatabase } from '../src/infrastructure/database/prisma-database.j
 const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Banking database tests.');
 const database = createDatabase(config.databaseUrl);
-const playerIds: string[] = [];
+const playerIds = new Set<string>();
 
+afterEach(async () => cleanupBankTestPlayers());
 afterAll(async () => {
-  if (playerIds.length) {
-    await database.bankTransaction.deleteMany({ where: { playerId: { in: playerIds } } });
-    await database.resourceMovement.deleteMany({ where: { playerId: { in: playerIds } } });
-    await database.businessOperation.deleteMany({ where: { playerId: { in: playerIds } } });
-    await database.player.deleteMany({ where: { id: { in: playerIds } } });
-  }
-  await database.$disconnect();
+  try { await cleanupBankTestPlayers(); }
+  finally { await database.$disconnect(); }
 });
 
 async function createPlayer(walletMoras: bigint, earned = 0n, spent = 0n) {
-  const player = await database.player.create({ data: { displayName: `Bank ${randomUUID().slice(0, 8)}` } });
-  playerIds.push(player.id);
-  await Promise.all([
-    database.playerResourceBalance.create({ data: { playerId: player.id, resourceKey: 'moras', amount: walletMoras } }),
-    database.playerEconomyStats.create({ data: { playerId: player.id, totalMorasEarned: earned, totalMorasSpent: spent } }),
-  ]);
-  return player.id;
+  const playerId = randomUUID();
+  playerIds.add(playerId);
+  await database.$transaction(async (transaction) => {
+    await transaction.player.create({ data: { id: playerId, displayName: `Bank ${randomUUID().slice(0, 8)}` } });
+    await Promise.all([
+      transaction.playerResourceBalance.create({ data: { playerId, resourceKey: 'moras', amount: walletMoras } }),
+      transaction.playerEconomyStats.create({ data: { playerId, totalMorasEarned: earned, totalMorasSpent: spent } }),
+    ]);
+  });
+  return playerId;
+}
+
+async function cleanupBankTestPlayers(): Promise<void> {
+  const ids = [...playerIds];
+  if (ids.length === 0) return;
+  await database.$transaction(async (transaction) => {
+    await transaction.$queryRaw(Prisma.sql`SELECT id FROM players WHERE id IN (${Prisma.join(ids)}) FOR UPDATE`);
+    await transaction.bankTransaction.deleteMany({ where: { playerId: { in: ids } } });
+    await transaction.resourceMovement.deleteMany({ where: { playerId: { in: ids } } });
+    await transaction.businessOperation.deleteMany({ where: { playerId: { in: ids } } });
+    await transaction.playerBankAccount.deleteMany({ where: { playerId: { in: ids } } });
+    await transaction.playerResourceBalance.deleteMany({ where: { playerId: { in: ids } } });
+    await transaction.playerEconomyStats.deleteMany({ where: { playerId: { in: ids } } });
+    await transaction.player.deleteMany({ where: { id: { in: ids } } });
+  }, { timeout: 30_000 });
+  ids.forEach((id) => playerIds.delete(id));
 }
 
 const date = '2026-09-09';
