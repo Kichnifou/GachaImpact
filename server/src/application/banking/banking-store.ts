@@ -24,6 +24,13 @@ export type BankTransferResult = BankState & Readonly<{
   operation: Readonly<{ id: string; alreadyProcessed: boolean }>;
 }>;
 
+export type BankHistoryPage = Readonly<{
+  page: number;
+  totalCount: number;
+  totalPages: number;
+  operations: readonly BankOperation[];
+}>;
+
 export type BankTransferInput = Readonly<{
   playerId: string;
   direction: BankTransferDirection;
@@ -36,6 +43,7 @@ export type BankTransferInput = Readonly<{
 
 export interface BankingStore {
   getState(playerId: string, businessDate: string, now: Date): Promise<BankState>;
+  getHistory(playerId: string, page: number): Promise<BankHistoryPage>;
   transfer(input: BankTransferInput): Promise<BankTransferResult>;
   accrueAllInterestThrough(businessDate: string, now: Date): Promise<{ playersProcessed: number; daysProcessed: number }>;
 }

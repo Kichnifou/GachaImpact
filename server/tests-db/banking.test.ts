@@ -169,4 +169,23 @@ describe('Banking persistence', () => {
     expect(await store.getState(playerId, date, occurredAt)).toMatchObject({ walletMoras: 900n, bankMoras: 1_130n });
     expect(await database.bankTransaction.count({ where: { playerId, transactionType: 'INTEREST' } })).toBe(1);
   });
+
+  it('paginates only the requested player history in deterministic newest-first order', async () => {
+    const playerId = await createPlayer(5_000n);
+    const otherPlayerId = await createPlayer(5_000n);
+    const store = new PrismaBankingStore(database);
+    for (let index = 0; index < 12; index += 1) {
+      await store.transfer(transfer(playerId, 'deposit', 1n, randomUUID(), new Date(occurredAt.getTime() + index)));
+    }
+    await store.transfer(transfer(otherPlayerId, 'deposit', 10n, randomUUID(), new Date(occurredAt.getTime() + 100)));
+
+    const first = await store.getHistory(playerId, 1);
+    const second = await store.getHistory(playerId, 2);
+    expect(first).toMatchObject({ page: 1, totalCount: 12, totalPages: 2 });
+    expect(first.operations).toHaveLength(10);
+    expect(second.operations).toHaveLength(2);
+    expect(first.operations.map(({ createdAt }) => createdAt.getTime())).toEqual([...first.operations].map(({ createdAt }) => createdAt.getTime()).sort((a, b) => b - a));
+    expect([...first.operations, ...second.operations].every((operation) => operation.amount === 1n)).toBe(true);
+    expect((await store.getState(playerId, date, occurredAt)).recentOperations).toHaveLength(5);
+  }, 30_000);
 });

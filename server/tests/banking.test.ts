@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { buildApp } from '../src/app.js';
-import { GetCurrentPlayerBank, TransferPlayerBank } from '../src/application/banking/banking-services.js';
+import { GetCurrentPlayerBank, GetPlayerBankHistory, TransferPlayerBank } from '../src/application/banking/banking-services.js';
 import type { BankingStore, BankState, BankTransferInput } from '../src/application/banking/banking-store.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
@@ -18,8 +18,12 @@ class FakeBankingStore implements BankingStore {
     bankMoras: 100_001n,
     recentOperations: [{ id: 'interest', type: 'INTEREST', amount: 3_000n, bankBalanceAfter: 100_001n, walletBalanceAfter: null, businessDate: '2026-09-09', createdAt: now }],
   };
+  public history = [...this.state.recentOperations];
   public readonly transfers: BankTransferInput[] = [];
   public async getState() { return this.state; }
+  public async getHistory(_playerId: string, page: number) {
+    return { page, totalCount: this.history.length, totalPages: Math.ceil(this.history.length / 10), operations: this.history.slice((page - 1) * 10, page * 10) };
+  }
   public async transfer(input: BankTransferInput) {
     this.transfers.push(input);
     const amount = input.amount === 'max' ? (input.direction === 'deposit' ? this.state.walletMoras : this.state.bankMoras) : input.amount;
@@ -66,6 +70,7 @@ describe('banking domain and HTTP contract', () => {
       authIdentityVerifier: { verify: async () => ({ subject: 'subject' }) },
       getOrProvisionCurrentPlayer: new GetOrProvisionCurrentPlayer(playerStore),
       getCurrentPlayerBank: new GetCurrentPlayerBank(currentPlayer, store, clock),
+      getPlayerBankHistory: new GetPlayerBankHistory(currentPlayer, store),
       depositPlayerBank: new TransferPlayerBank('deposit', currentPlayer, store, clock),
       withdrawPlayerBank: new TransferPlayerBank('withdraw', currentPlayer, store, clock),
     });
@@ -97,6 +102,30 @@ describe('banking domain and HTTP contract', () => {
     expect(store.transfers.map(({ amount }) => amount)).toEqual([250n, 'max']);
     for (const amount of ['0', '-1', '1.5', '9007199254740991e2']) {
       expect((await app.inject({ method: 'POST', url: '/api/v1/me/bank/deposit', headers, payload: { amount, idempotencyKey: crypto.randomUUID() } })).statusCode).toBe(400);
+    }
+  });
+
+  it('protects and paginates the personal bank history newest first without bigint loss', async () => {
+    const { app, store } = await setup();
+    store.history = Array.from({ length: 12 }, (_, index) => ({
+      id: `operation-${index + 1}`,
+      type: index === 0 ? 'INTEREST' as const : 'DEPOSIT' as const,
+      amount: 9_007_199_254_740_993n + BigInt(index),
+      bankBalanceAfter: 10_000_000_000_000_000n + BigInt(index),
+      walletBalanceAfter: index === 0 ? null : 500n - BigInt(index),
+      businessDate: index === 0 ? '2026-09-09' : null,
+      createdAt: new Date(now.getTime() - index),
+    }));
+    expect((await app.inject({ url: '/api/v1/me/bank/history?page=1' })).statusCode).toBe(401);
+    const first = await app.inject({ url: '/api/v1/me/bank/history?page=1', headers: { authorization: 'Bearer token' } });
+    expect(first.statusCode).toBe(200);
+    expect(first.json()).toMatchObject({ page: 1, totalPages: 2, totalCount: 12 });
+    expect(first.json().operations).toHaveLength(10);
+    expect(first.json().operations[0]).toMatchObject({ id: 'operation-1', amount: '9007199254740993', walletBalanceAfter: null });
+    const second = await app.inject({ url: '/api/v1/me/bank/history?page=2', headers: { authorization: 'Bearer token' } });
+    expect(second.json().operations).toHaveLength(2);
+    for (const page of ['0', '-1', 'abc', '1.5']) {
+      expect((await app.inject({ url: `/api/v1/me/bank/history?page=${page}`, headers: { authorization: 'Bearer token' } })).statusCode).toBe(400);
     }
   });
 });

@@ -26,7 +26,7 @@ import { PrismaBoxStore } from './database/prisma-box-store.js';
 import { ActivatePlayerTeam, ClearPlayerTeam, CreateNextPlayerTeam, DeleteExtraPlayerTeam, GetCurrentPlayerTeams, RemovePlayerTeamSlot, RenamePlayerTeam, ReorderPlayerTeams, ReorderPlayerTeamSlots, SetPlayerTeamSlot } from '../application/team/team-services.js';
 import { PrismaTeamStore } from './database/prisma-team-store.js';
 import { BankInterestScheduler } from '../application/banking/bank-interest-scheduler.js';
-import { BankInterestProcessor, GetCurrentPlayerBank, TransferPlayerBank } from '../application/banking/banking-services.js';
+import { BankInterestProcessor, GetCurrentPlayerBank, GetPlayerBankHistory, TransferPlayerBank } from '../application/banking/banking-services.js';
 import { PrismaBankingStore } from './database/prisma-banking-store.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
@@ -88,6 +88,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     removePlayerTeamSlot: new RemovePlayerTeamSlot(getCurrentPlayer, teamStore),
     clearPlayerTeam: new ClearPlayerTeam(getCurrentPlayer, teamStore),
     getCurrentPlayerBank: new GetCurrentPlayerBank(getCurrentPlayer, bankingStore, clock),
+    getPlayerBankHistory: new GetPlayerBankHistory(getCurrentPlayer, bankingStore),
     depositPlayerBank: new TransferPlayerBank('deposit', getCurrentPlayer, bankingStore, clock),
     withdrawPlayerBank: new TransferPlayerBank('withdraw', getCurrentPlayer, bankingStore, clock),
     start: async () => { await scheduler.start(); await bankInterestScheduler.start(); },

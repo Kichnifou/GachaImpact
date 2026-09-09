@@ -4,7 +4,7 @@ import { calculateDailyBankInterest } from '../../domain/banking/bank-interest.j
 import { getBusinessDate, getNextBusinessResetAt } from '../../domain/time/business-date.js';
 import { BusinessError } from '../errors.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
-import type { BankingStore, BankSourceChannel, BankState, BankTransferAmount, BankTransferDirection, BankTransferResult } from './banking-store.js';
+import type { BankingStore, BankHistoryPage, BankSourceChannel, BankState, BankTransferAmount, BankTransferDirection, BankTransferResult } from './banking-store.js';
 
 export type BankingView = BankState & Readonly<{
   totalWealth: bigint;
@@ -20,6 +20,15 @@ export class GetCurrentPlayerBank {
     const player = await this.getPlayer.execute(identity);
     const now = this.clock.now();
     return decorate(await this.store.getState(player.id, getBusinessDate(now), now), now);
+  }
+}
+
+export class GetPlayerBankHistory {
+  public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: BankingStore) {}
+  public async execute(identity: AuthenticatedIdentity, page: number): Promise<BankHistoryPage> {
+    if (!Number.isInteger(page) || page < 1) throw new BusinessError('BANK_HISTORY_PAGE_INVALID', 'La page d’historique Banque doit être un entier positif.');
+    const player = await this.getPlayer.execute(identity);
+    return this.store.getHistory(player.id, page);
   }
 }
 

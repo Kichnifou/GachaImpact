@@ -27,7 +27,7 @@ import type { GetTodayDailyReward } from './application/daily-reward/get-today-d
 import type { ClaimDailyReward } from './application/daily-reward/claim-daily-reward.js';
 import type { GetCurrentPlayerBox, SetBoxCharacterFavorite, SetBoxSortPreference, UseMasterlessStella } from './application/box/box-services.js';
 import type { ActivatePlayerTeam, ClearPlayerTeam, CreateNextPlayerTeam, DeleteExtraPlayerTeam, GetCurrentPlayerTeams, RemovePlayerTeamSlot, RenamePlayerTeam, ReorderPlayerTeams, ReorderPlayerTeamSlots, SetPlayerTeamSlot } from './application/team/team-services.js';
-import type { GetCurrentPlayerBank, TransferPlayerBank } from './application/banking/banking-services.js';
+import type { GetCurrentPlayerBank, GetPlayerBankHistory, TransferPlayerBank } from './application/banking/banking-services.js';
 import type { AppConfig } from './config/environment.js';
 import { loadConfig } from './config/environment.js';
 
@@ -61,6 +61,7 @@ export type AppDependencies = Readonly<{
   removePlayerTeamSlot?: RemovePlayerTeamSlot;
   clearPlayerTeam?: ClearPlayerTeam;
   getCurrentPlayerBank?: GetCurrentPlayerBank;
+  getPlayerBankHistory?: GetPlayerBankHistory;
   depositPlayerBank?: TransferPlayerBank;
   withdrawPlayerBank?: TransferPlayerBank;
   close?: () => Promise<void>;
@@ -152,10 +153,11 @@ export async function buildApp(
         clearPlayerTeam: dependencies.clearPlayerTeam,
       });
     }
-    if (dependencies.getCurrentPlayerBank && dependencies.depositPlayerBank && dependencies.withdrawPlayerBank) {
+    if (dependencies.getCurrentPlayerBank && dependencies.getPlayerBankHistory && dependencies.depositPlayerBank && dependencies.withdrawPlayerBank) {
       await app.register(registerBankRoutes, {
         authenticate,
         getCurrentPlayerBank: dependencies.getCurrentPlayerBank,
+        getPlayerBankHistory: dependencies.getPlayerBankHistory,
         depositPlayerBank: dependencies.depositPlayerBank,
         withdrawPlayerBank: dependencies.withdrawPlayerBank,
       });

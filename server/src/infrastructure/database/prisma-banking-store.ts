@@ -1,5 +1,5 @@
 import { OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
-import type { BankingStore, BankOperation, BankState, BankTransferInput, BankTransferResult, BankTransactionType } from '../../application/banking/banking-store.js';
+import type { BankingStore, BankHistoryPage, BankOperation, BankState, BankTransferInput, BankTransferResult, BankTransactionType } from '../../application/banking/banking-store.js';
 import { BusinessError } from '../../application/errors.js';
 import { addBusinessDays, businessDateToDatabaseDate, databaseDateToBusinessDate, getBusinessDayStartAt } from '../../domain/time/business-date.js';
 import { calculateDailyBankInterest } from '../../domain/banking/bank-interest.js';
@@ -7,7 +7,8 @@ import { isPrismaConcurrencyCollision } from './prisma-concurrency.js';
 import { PrismaEconomyService } from './prisma-economy-service.js';
 
 const MAX_ATTEMPTS = 4;
-const RECENT_OPERATION_LIMIT = 10;
+const RECENT_OPERATION_LIMIT = 5;
+const BANK_HISTORY_PAGE_SIZE = 10;
 type BankAccountCursor = Readonly<{ balance: bigint; lastInterestDate: Date }>;
 
 export class PrismaBankingStore implements BankingStore {
@@ -20,6 +21,24 @@ export class PrismaBankingStore implements BankingStore {
       account = await accruePlayerThrough(transaction, playerId, account, businessDate, now);
       return readState(transaction, playerId, account.balance);
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 20_000 }));
+  }
+
+  public async getHistory(playerId: string, page: number): Promise<BankHistoryPage> {
+    const [totalCount, operations] = await Promise.all([
+      this.database.bankTransaction.count({ where: { playerId } }),
+      this.database.bankTransaction.findMany({
+        where: { playerId },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: (page - 1) * BANK_HISTORY_PAGE_SIZE,
+        take: BANK_HISTORY_PAGE_SIZE,
+      }),
+    ]);
+    return {
+      page,
+      totalCount,
+      totalPages: Math.ceil(totalCount / BANK_HISTORY_PAGE_SIZE),
+      operations: operations.map(toOperation),
+    };
   }
 
   public async transfer(input: BankTransferInput): Promise<BankTransferResult> {
