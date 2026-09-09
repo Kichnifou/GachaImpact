@@ -741,11 +741,14 @@ Vider ≠ supprimer :
 
 ### Réorganisation des Teams
 
-Drag & drop vertical :
+Drag & drop horizontal dans le bandeau :
 - effectué depuis la carte hors de la zone personnages ;
-- permet de déplacer librement une Team à n'importe quelle position ;
+- drop sur une Team = swap ;
+- drop entre deux Teams = insertion ;
+- les chevrons permettent le déplacement cross-page ;
 - renumérotation automatique ;
 - sauvegarde immédiate ;
+- l'identité UUID reste stable ;
 - une Team active déplacée reste active.
 
 La suppression dépend de la position actuelle :
@@ -2483,7 +2486,7 @@ Décisions principales :
 - 10 positions protégées selon l'ordre courant ;
 - extensions illimitées ;
 - Teams >10 supprimables depuis l'UI si non actives ;
-- drag vertical des Teams avec renumérotation ;
+- drag horizontal des Teams dans le bandeau avec swap/insertion et renumérotation ;
 - drag horizontal des personnages au sein d'une Team ;
 - autosave ;
 - ajout / retrait / remplacement direct ;
@@ -3682,8 +3685,8 @@ Premier vertical Banque réel **IMPLÉMENTÉ ET VALIDÉ TECHNIQUEMENT, EN ATTENT
 
 - migration additive `008_add_banking` versionnée et appliquée uniquement sur Supabase DEV : `player_bank_accounts` porte le solde bancaire et la dernière date d'intérêt ; `bank_transactions` journalise dépôt, retrait et intérêt avec soldes résultants, opération métier et date métier ; les comptes DEV existants sont initialisés à zéro, la RLS est active et aucun accès direct `anon`/`authenticated` n'est accordé ;
 - portefeuille Moras et Banque restent deux soldes autoritatifs distincts ; le patrimoine est dérivé par addition et aucune troisième ressource n'est créée ;
-- dépôts et retraits, y compris `MAX` résolu dans la transaction serveur, sont atomiques, idempotents et sérialisés avec les autres mutations du Player ; ils produisent un mouvement de ressource auditable mais ne modifient jamais `totalMorasEarned` ni `totalMorasSpent` ;
-- l'intérêt journalier vaut `floor(solde Banque × 3 / 100)`, est crédité directement en Banque, compose jour après jour et incrémente uniquement `totalMorasEarned`. Chaque journée `Europe/Paris` est matérialisée une seule fois par Player par une contrainte unique persistante ;
+- dépôts et retraits, y compris `MAX` résolu dans la transaction serveur, sont atomiques, idempotents et sérialisés avec les autres mutations du Player ; une erreur réseau ambiguë conserve l'intention frontend et sa clé pour le même joueur/direction/montant, tandis que le backend lie cette clé au montant demandé et refuse tout payload différent. Les transferts produisent un mouvement de ressource auditable mais ne modifient jamais `totalMorasEarned` ni `totalMorasSpent` ;
+- l'intérêt journalier vaut `floor(solde Banque × 3 / 100)`, est crédité directement en Banque, compose jour après jour et incrémente uniquement `totalMorasEarned`. Une journée à intérêt positif est protégée par l'unicité persistante Player/date ; une journée à intérêt nul avance seulement `lastInterestDate`, sans opération, transaction ni ligne d'historique `+0` ;
 - le processus backend exécute un catch-up séquentiel au démarrage puis planifie le prochain minuit Paris sans supposer des journées de 24 heures. Les redémarrages et traitements concurrents restent protégés par transaction, verrou Player, idempotence et contraintes DB ;
 - API authentifiée personnelle : `GET /api/v1/me/bank`, `POST /api/v1/me/bank/deposit` et `POST /api/v1/me/bank/withdraw`. Les montants `bigint` transitent en chaînes décimales ; aucune route ne permet de consulter la Banque d'un tiers ;
 - l'écran Banque affiche portefeuille, Banque, patrimoine, taux et intérêt estimé, compte à rebours, dépôts/retraits, `MAX` et les dix opérations récentes. Le résultat d'une mutation met immédiatement à jour l'écran et le portefeuille Moras de la sidebar ; à zéro, le compte à rebours relit l'état serveur sans popup ;

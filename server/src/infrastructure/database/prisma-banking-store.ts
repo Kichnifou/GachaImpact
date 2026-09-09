@@ -24,6 +24,7 @@ export class PrismaBankingStore implements BankingStore {
 
   public async transfer(input: BankTransferInput): Promise<BankTransferResult> {
     const operationType = `bank.${input.direction}`;
+    const requestedAmount = serializeRequestedAmount(input.amount);
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
       try {
         return await this.database.$transaction(async (transaction) => {
@@ -34,7 +35,7 @@ export class PrismaBankingStore implements BankingStore {
           const sourceChannel = toSourceChannel(input.sourceChannel);
           const existing = await transaction.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey: input.idempotencyKey } });
           if (existing) {
-            assertMatchingOperation(existing.playerId, existing.operationType, input.playerId, operationType);
+            assertMatchingOperation(existing.playerId, existing.operationType, existing.resultSummary, input.playerId, operationType, requestedAmount);
             if (existing.status !== OperationStatus.COMPLETED) throw new BusinessError('BANK_IDEMPOTENCY_CONFLICT', 'Cette opération Banque est encore en cours.');
             return this.completedResult(transaction, input.playerId, account.balance, existing.id, true);
           }
@@ -48,6 +49,7 @@ export class PrismaBankingStore implements BankingStore {
 
           const operation = await transaction.businessOperation.create({ data: {
             playerId: input.playerId, operationType, sourceChannel, idempotencyKey: input.idempotencyKey,
+            resultSummary: { requestedAmount },
           }, select: { id: true } });
           const bankBalanceBefore = account.balance;
           const bankBalanceAfter = input.direction === 'deposit' ? bankBalanceBefore + amount : bankBalanceBefore - amount;
@@ -74,13 +76,13 @@ export class PrismaBankingStore implements BankingStore {
           await transaction.businessOperation.update({ where: { id: operation.id }, data: {
             status: OperationStatus.COMPLETED,
             completedAt: input.occurredAt,
-            resultSummary: { amount: amount.toString(), walletMoras: walletChange.balanceAfter.toString(), bankMoras: bankBalanceAfter.toString() },
+            resultSummary: { requestedAmount, resolvedAmount: amount.toString(), walletMoras: walletChange.balanceAfter.toString(), bankMoras: bankBalanceAfter.toString() },
           } });
           return this.completedResult(transaction, input.playerId, bankBalanceAfter, operation.id, false);
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 20_000 });
       } catch (error) {
         if (!isPrismaConcurrencyCollision(error) || attempt === MAX_ATTEMPTS) throw error;
-        const existing = await this.readCompletedRetry(input.playerId, operationType, input.idempotencyKey, input.businessDate, input.occurredAt, toSourceChannel(input.sourceChannel));
+        const existing = await this.readCompletedRetry(input.playerId, operationType, requestedAmount, input.idempotencyKey, input.businessDate, input.occurredAt, toSourceChannel(input.sourceChannel));
         if (existing) return existing;
       }
     }
@@ -114,10 +116,10 @@ export class PrismaBankingStore implements BankingStore {
     return { ...(await readState(transaction, playerId, bankMoras)), operation: { id: operationId, alreadyProcessed } };
   }
 
-  private async readCompletedRetry(playerId: string, operationType: string, idempotencyKey: string, businessDate: string, now: Date, sourceChannel: SourceChannel): Promise<BankTransferResult | null> {
+  private async readCompletedRetry(playerId: string, operationType: string, requestedAmount: string, idempotencyKey: string, businessDate: string, now: Date, sourceChannel: SourceChannel): Promise<BankTransferResult | null> {
     const existing = await this.database.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
     if (!existing) return null;
-    assertMatchingOperation(existing.playerId, existing.operationType, playerId, operationType);
+    assertMatchingOperation(existing.playerId, existing.operationType, existing.resultSummary, playerId, operationType, requestedAmount);
     if (existing.status !== OperationStatus.COMPLETED) return null;
     const state = await this.getState(playerId, businessDate, now);
     return { ...state, operation: { id: existing.id, alreadyProcessed: true } };
@@ -154,6 +156,11 @@ async function accruePlayerThrough(transaction: Prisma.TransactionClient, player
   while (lastDate < targetDate) {
     const businessDate = addBusinessDays(lastDate, 1);
     const interest = calculateDailyBankInterest(balance);
+    if (interest === 0n) {
+      await transaction.playerBankAccount.update({ where: { playerId }, data: { lastInterestDate: businessDateToDatabaseDate(businessDate) } });
+      lastDate = businessDate;
+      continue;
+    }
     const operation = await transaction.businessOperation.create({ data: {
       playerId,
       operationType: 'bank.interest',
@@ -204,8 +211,15 @@ function toOperation(row: { id: string; transactionType: string; amount: bigint;
   };
 }
 
-function assertMatchingOperation(existingPlayerId: string | null, existingType: string, playerId: string, operationType: string): void {
-  if (existingPlayerId !== playerId || existingType !== operationType) throw new BusinessError('BANK_IDEMPOTENCY_CONFLICT', 'Cette clé a déjà été utilisée pour une autre opération.');
+function serializeRequestedAmount(amount: BankTransferInput['amount']): string {
+  return amount === 'max' ? amount : amount.toString();
+}
+
+function assertMatchingOperation(existingPlayerId: string | null, existingType: string, resultSummary: Prisma.JsonValue, playerId: string, operationType: string, requestedAmount: string): void {
+  const summary = resultSummary && typeof resultSummary === 'object' && !Array.isArray(resultSummary) ? resultSummary : null;
+  if (existingPlayerId !== playerId || existingType !== operationType || summary?.requestedAmount !== requestedAmount) {
+    throw new BusinessError('BANK_IDEMPOTENCY_CONFLICT', 'Cette opération Banque ne correspond pas à la demande précédente.');
+  }
 }
 
 function daysBetween(from: string, through: string): number {

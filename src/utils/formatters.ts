@@ -62,6 +62,8 @@ export function apiErrorMessage(error: unknown): string {
     BANK_WALLET_INSUFFICIENT: 'Votre portefeuille ne contient pas assez de Moras.',
     BANK_BALANCE_INSUFFICIENT: 'Votre Banque ne contient pas assez de Moras.',
     BANK_IDEMPOTENCY_CONFLICT: 'Cette opération Banque ne peut pas être rejouée.',
+    BANK_TRANSFER_IN_PROGRESS: 'Une opération Banque est déjà en cours.',
+    BANK_TRANSFER_INTENT_CONFLICT: 'Une opération Banque précédente doit d’abord être vérifiée ou réessayée avec le même montant.',
   }
 
   return typeof code === 'string' && messages[code]

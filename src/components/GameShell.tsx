@@ -17,6 +17,7 @@ import OnlinePlayersPanel from './OnlinePlayersPanel'
 import PlayerSidebar from './PlayerSidebar'
 import { BoxMemoryCache } from '../box/box-memory-cache'
 import { StellaIntentCoordinator } from '../box/stella-intent-coordinator'
+import { BankTransferIntentCoordinator, type BankTransferDirection } from '../bank/bank-transfer-intent-coordinator'
 
 const screenIds: ScreenId[] = ['home', 'invocation', 'box', 'characters', 'team', 'bank', 'inventory', 'shop']
 
@@ -70,6 +71,7 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
   const [isPlayersOpen, setIsPlayersOpen] = useState(false)
   const [boxCache] = useState(() => new BoxMemoryCache())
   const [stellaIntents] = useState(() => new StellaIntentCoordinator())
+  const [bankTransferIntents] = useState(() => new BankTransferIntentCoordinator())
 
   const loadBox = useCallback(
     () => boxCache.revalidate(player.id, onLoadBox),
@@ -94,6 +96,14 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
       return result
     },
   ), [boxCache, onUseStella, player.id, stellaIntents])
+  const transferBank = useCallback((direction: BankTransferDirection, amount: string) => bankTransferIntents.execute(
+    player.id,
+    direction,
+    amount,
+    (idempotencyKey) => direction === 'deposit'
+      ? onDepositBank(amount, idempotencyKey)
+      : onWithdrawBank(amount, idempotencyKey),
+  ), [bankTransferIntents, onDepositBank, onWithdrawBank, player.id])
   const signOutAndClearBox = useCallback(async () => {
     boxCache.clear()
     await onSignOut()
@@ -131,7 +141,7 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
       case 'inventory':
         return <InventoryScreen />
       case 'bank':
-        return <BankScreen onLoad={onLoadBank} onDeposit={onDepositBank} onWithdraw={onWithdrawBank} />
+        return <BankScreen onLoad={onLoadBank} onTransfer={transferBank} />
       case 'shop':
         return <ShopScreen />
       default:

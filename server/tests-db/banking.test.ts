@@ -70,6 +70,28 @@ describe('Banking persistence', () => {
     expect([first.operation.alreadyProcessed, repeated.operation.alreadyProcessed].sort()).toEqual([false, true]);
     expect(await store.getState(playerId, date, occurredAt)).toMatchObject({ walletMoras: 900n, bankMoras: 100n });
     expect(await database.bankTransaction.count({ where: { playerId } })).toBe(1);
+
+    await expect(store.transfer(transfer(playerId, 'deposit', 200n, key))).rejects.toMatchObject({ code: 'BANK_IDEMPOTENCY_CONFLICT' });
+    const withdrawalKey = randomUUID();
+    expect((await store.transfer(transfer(playerId, 'withdraw', 50n, withdrawalKey))).operation.alreadyProcessed).toBe(false);
+    expect((await store.transfer(transfer(playerId, 'withdraw', 50n, withdrawalKey))).operation.alreadyProcessed).toBe(true);
+    await expect(store.transfer(transfer(playerId, 'withdraw', 60n, withdrawalKey))).rejects.toMatchObject({ code: 'BANK_IDEMPOTENCY_CONFLICT' });
+    expect(await database.bankTransaction.count({ where: { playerId } })).toBe(2);
+  });
+
+  it('binds MAX retries to the original amount intent for deposits and withdrawals', async () => {
+    const playerId = await createPlayer(1_000n);
+    const store = new PrismaBankingStore(database);
+    const depositKey = randomUUID();
+    expect((await store.transfer(transfer(playerId, 'deposit', 'max', depositKey))).operation.alreadyProcessed).toBe(false);
+    expect((await store.transfer(transfer(playerId, 'deposit', 'max', depositKey))).operation.alreadyProcessed).toBe(true);
+    await expect(store.transfer(transfer(playerId, 'deposit', 1_000n, depositKey))).rejects.toMatchObject({ code: 'BANK_IDEMPOTENCY_CONFLICT' });
+
+    const withdrawKey = randomUUID();
+    expect((await store.transfer(transfer(playerId, 'withdraw', 'max', withdrawKey))).operation.alreadyProcessed).toBe(false);
+    expect((await store.transfer(transfer(playerId, 'withdraw', 'max', withdrawKey))).operation.alreadyProcessed).toBe(true);
+    await expect(store.transfer(transfer(playerId, 'withdraw', 1_000n, withdrawKey))).rejects.toMatchObject({ code: 'BANK_IDEMPOTENCY_CONFLICT' });
+    expect(await database.bankTransaction.count({ where: { playerId } })).toBe(2);
   });
 
   it('serializes concurrent transfers without negative balances', async () => {
@@ -105,6 +127,35 @@ describe('Banking persistence', () => {
     const repeated = await store.getState(playerId, date, new Date('2026-09-09T20:00:00Z'));
     expect(repeated.bankMoras).toBe(expected);
     expect(await database.bankTransaction.count({ where: { playerId, transactionType: 'INTEREST' } })).toBe(2);
+  });
+
+  it('advances zero-interest days without creating operations or history entries', async () => {
+    const store = new PrismaBankingStore(database);
+    const zeroPlayer = await createPlayer(500n, 7n, 2n);
+    const tinyPlayer = await createPlayer(500n, 7n, 2n);
+    const positivePlayer = await createPlayer(500n, 7n, 2n);
+    await Promise.all([
+      database.playerBankAccount.create({ data: { playerId: zeroPlayer, balance: 0n, lastInterestDate: new Date('2026-09-06T00:00:00Z') } }),
+      database.playerBankAccount.create({ data: { playerId: tinyPlayer, balance: 33n, lastInterestDate: new Date('2026-09-06T00:00:00Z') } }),
+      database.playerBankAccount.create({ data: { playerId: positivePlayer, balance: 34n, lastInterestDate: new Date('2026-09-08T00:00:00Z') } }),
+    ]);
+
+    expect(await store.getState(zeroPlayer, date, occurredAt)).toMatchObject({ bankMoras: 0n, recentOperations: [] });
+    expect(await store.getState(tinyPlayer, date, occurredAt)).toMatchObject({ bankMoras: 33n, recentOperations: [] });
+    expect(await store.getState(positivePlayer, date, occurredAt)).toMatchObject({ bankMoras: 35n, recentOperations: [{ type: 'INTEREST', amount: 1n }] });
+
+    for (const playerId of [zeroPlayer, tinyPlayer]) {
+      expect((await database.playerBankAccount.findUniqueOrThrow({ where: { playerId } })).lastInterestDate).toEqual(new Date('2026-09-09T00:00:00Z'));
+      expect(await database.bankTransaction.count({ where: { playerId, transactionType: 'INTEREST' } })).toBe(0);
+      expect(await database.businessOperation.count({ where: { playerId, operationType: 'bank.interest' } })).toBe(0);
+      expect(await database.playerEconomyStats.findUniqueOrThrow({ where: { playerId } })).toMatchObject({ totalMorasEarned: 7n, totalMorasSpent: 2n });
+    }
+
+    await store.getState(positivePlayer, date, new Date('2026-09-09T20:00:00Z'));
+    expect(await database.bankTransaction.count({ where: { playerId: positivePlayer, transactionType: 'INTEREST' } })).toBe(1);
+
+    await store.transfer(transfer(zeroPlayer, 'deposit', 100n));
+    expect((await store.getState(zeroPlayer, date, occurredAt)).recentOperations.map(({ type }) => type)).toEqual(['DEPOSIT']);
   });
 
   it('serializes interest catch-up with a concurrent transfer against the same Player lock', async () => {

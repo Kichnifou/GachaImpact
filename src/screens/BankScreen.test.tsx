@@ -8,6 +8,7 @@ import type { BankTransferDto, PlayerBankDto, PlayerResourcesDto } from '../api/
 import { applyBankWalletToResources, formatBankCountdown } from '../bank/bank-presentation'
 import BankScreen from './BankScreen'
 import { ApiError } from '../api/game-api'
+import { BankTransferIntentCoordinator } from '../bank/bank-transfer-intent-coordinator'
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -29,14 +30,16 @@ afterEach(() => {
 
 async function mount(overrides: Partial<React.ComponentProps<typeof BankScreen>> = {}) {
   const onLoad = overrides.onLoad ?? vi.fn(async () => bank())
-  const onDeposit = overrides.onDeposit ?? vi.fn(async (): Promise<BankTransferDto> => ({ ...bank({ walletMoras: '750', bankMoras: '750' }), operation: { id: 'deposit', alreadyProcessed: false } }))
-  const onWithdraw = overrides.onWithdraw ?? vi.fn(async (): Promise<BankTransferDto> => ({ ...bank(), operation: { id: 'withdraw', alreadyProcessed: false } }))
+  const onTransfer = overrides.onTransfer ?? vi.fn(async (direction: 'deposit' | 'withdraw'): Promise<BankTransferDto> => ({
+    ...bank(direction === 'deposit' ? { walletMoras: '750', bankMoras: '750' } : {}),
+    operation: { id: direction, alreadyProcessed: false },
+  }))
   const container = document.createElement('div')
   document.body.append(container)
   const root = createRoot(container)
   roots.push(root)
-  await act(async () => { root.render(<BankScreen onLoad={onLoad} onDeposit={onDeposit} onWithdraw={onWithdraw} />); await Promise.resolve(); await Promise.resolve() })
-  return { container, onLoad, onDeposit, onWithdraw }
+  await act(async () => { root.render(<BankScreen onLoad={onLoad} onTransfer={onTransfer} />); await Promise.resolve(); await Promise.resolve() })
+  return { container, onLoad, onTransfer }
 }
 
 function changeInput(input: HTMLInputElement, value: string) {
@@ -65,40 +68,40 @@ describe('Bank screen', () => {
 
   it('submits a deposit, applies the response immediately and supports server-side MAX', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(now)
-    const onDeposit = vi.fn(async (amount: string): Promise<BankTransferDto> => ({ ...bank({ walletMoras: amount === 'max' ? '0' : '750', bankMoras: amount === 'max' ? '1500' : '750', totalWealth: '1500', estimatedInterest: amount === 'max' ? '45' : '22' }), operation: { id: amount, alreadyProcessed: false } }))
-    const { container } = await mount({ onDeposit })
+    const onTransfer = vi.fn(async (_direction: 'deposit' | 'withdraw', amount: string): Promise<BankTransferDto> => ({ ...bank({ walletMoras: amount === 'max' ? '0' : '750', bankMoras: amount === 'max' ? '1500' : '750', totalWealth: '1500', estimatedInterest: amount === 'max' ? '45' : '22' }), operation: { id: amount, alreadyProcessed: false } }))
+    const { container } = await mount({ onTransfer })
     const form = container.querySelector<HTMLFormElement>('.bank-transfer-form.deposit')!
     const input = form.querySelector<HTMLInputElement>('input')!
     act(() => changeInput(input, '250'))
     await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
-    expect(onDeposit.mock.calls[0]?.[0]).toBe('250')
+    expect(onTransfer.mock.calls[0]).toEqual(['deposit', '250'])
     expect(container.textContent).toContain('750')
     const max = form.querySelector<HTMLButtonElement>('.bank-max-button')!
     await act(async () => { max.click(); await Promise.resolve(); await Promise.resolve() })
-    expect(onDeposit.mock.calls[1]?.[0]).toBe('max')
+    expect(onTransfer.mock.calls[1]).toEqual(['deposit', 'max'])
     expect(container.textContent).toContain('1 500')
   })
 
   it('submits withdrawals, keeps controls pending and sends MAX as an authoritative intent', async () => {
     let resolveWithdrawal!: (value: BankTransferDto) => void
-    const onWithdraw = vi.fn((_amount: string, _idempotencyKey: string) => new Promise<BankTransferDto>((resolve) => { resolveWithdrawal = resolve }))
-    const { container } = await mount({ onWithdraw })
+    const onTransfer = vi.fn((_direction: 'deposit' | 'withdraw', _amount: string) => new Promise<BankTransferDto>((resolve) => { resolveWithdrawal = resolve }))
+    const { container } = await mount({ onTransfer })
     const form = container.querySelector<HTMLFormElement>('.bank-transfer-form.withdraw')!
     const input = form.querySelector<HTMLInputElement>('input')!
     act(() => changeInput(input, '125'))
     await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve() })
-    expect(onWithdraw.mock.calls[0]?.[0]).toBe('125')
+    expect(onTransfer.mock.calls[0]).toEqual(['withdraw', '125'])
     expect(form.querySelector<HTMLButtonElement>('.bank-submit-button')?.textContent).toBe('Traitement…')
     expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.bank-transfer-form button')).every(({ disabled }) => disabled)).toBe(true)
     await act(async () => { resolveWithdrawal({ ...bank({ walletMoras: '1125', bankMoras: '375', estimatedInterest: '11' }), operation: { id: 'withdraw', alreadyProcessed: false } }); await Promise.resolve(); await Promise.resolve() })
     expect(container.textContent).toContain('1 125')
     await act(async () => { form.querySelector<HTMLButtonElement>('.bank-max-button')!.click(); await Promise.resolve() })
-    expect(onWithdraw.mock.calls[1]?.[0]).toBe('max')
+    expect(onTransfer.mock.calls[1]).toEqual(['withdraw', 'max'])
   })
 
   it('keeps invalid input local while server errors remain visible', async () => {
-    const onDeposit = vi.fn(async () => { throw new ApiError('BANK_WALLET_INSUFFICIENT', 'Refus autoritaire', 409) })
-    const { container } = await mount({ onDeposit })
+    const onTransfer = vi.fn(async () => { throw new ApiError('BANK_WALLET_INSUFFICIENT', 'Refus autoritaire', 409) })
+    const { container } = await mount({ onTransfer })
     const form = container.querySelector<HTMLFormElement>('.bank-transfer-form.deposit')!
     act(() => form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
     expect(container.textContent).toContain('Saisissez un montant entier strictement positif.')
@@ -106,6 +109,36 @@ describe('Bank screen', () => {
     act(() => changeInput(input, '10'))
     await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
     expect(container.textContent).toContain('Votre portefeuille ne contient pas assez de Moras.')
+  })
+
+  it('retries an ambiguous transfer with the same key and blocks a different intent', async () => {
+    const coordinator = new BankTransferIntentCoordinator(() => 'stable-key')
+    let attempt = 0
+    const request = vi.fn(async (_direction: 'deposit' | 'withdraw', _amount: string, _idempotencyKey: string): Promise<BankTransferDto> => {
+      attempt += 1
+      if (attempt === 1) throw new ApiError('NETWORK_ERROR', 'Réponse perdue', null)
+      return { ...bank({ walletMoras: '900', bankMoras: '600', totalWealth: '1500', estimatedInterest: '18' }), operation: { id: 'deposit', alreadyProcessed: true } }
+    })
+    const onTransfer = (direction: 'deposit' | 'withdraw', amount: string) => coordinator.execute('player', direction, amount, (idempotencyKey) => request(direction, amount, idempotencyKey))
+    const { container } = await mount({ onTransfer })
+    const form = container.querySelector<HTMLFormElement>('.bank-transfer-form.deposit')!
+    const input = form.querySelector<HTMLInputElement>('input')!
+
+    act(() => changeInput(input, '100'))
+    await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+    expect(request.mock.calls[0]).toEqual(['deposit', '100', 'stable-key'])
+
+    act(() => changeInput(input, '200'))
+    await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+    expect(request).toHaveBeenCalledTimes(1)
+    expect(container.textContent).toContain('Une opération Banque précédente doit d’abord être vérifiée ou réessayée avec le même montant.')
+
+    act(() => changeInput(input, '100'))
+    await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+    expect(request.mock.calls[1]).toEqual(['deposit', '100', 'stable-key'])
+    expect(container.textContent).toContain('900')
+    expect(container.textContent).toContain('600')
+    expect(coordinator.getIntent('player')).toBeNull()
   })
 
   it('refetches when the authoritative countdown reaches zero', async () => {

@@ -600,7 +600,7 @@ Types physiques initiaux :
 
 Contraintes :
 
-- `amount > 0` pour dépôt/retrait et `amount >= 0` pour intérêt afin de journaliser idempotemment les journées sur un petit solde ;
+- `amount > 0` pour dépôt/retrait et `amount >= 0` pour intérêt au niveau de la contrainte physique 008 ; le service n'insère cependant jamais d'intérêt nul ;
 - soldes `>= 0`
 - dépôt/retrait : soldes wallet renseignés, `business_date NULL` ;
 - intérêt : soldes wallet `NULL`, `business_date NOT NULL` ;
@@ -612,7 +612,7 @@ Index :
 - `(player_id, created_at DESC)` ;
 - `(business_date)`.
 
-État physique 0.72 : la migration additive `008_add_banking` crée ces deux tables, backfill chaque Player DEV existant à zéro sur la journée `Europe/Paris` courante, active la RLS et révoque les accès directs `anon`/`authenticated`. Le service provisionne paresseusement les futurs comptes, verrouille le Player et les soldes dans des transactions `SERIALIZABLE`, résout `MAX` côté serveur et journalise chaque mutation via `business_operations`. Le scheduler effectue le catch-up au démarrage puis le prochain reset Paris sans durée fixe de 24 h ; les jours manqués sont composés séquentiellement. Les transferts modifient le mouvement wallet sans toucher aux statistiques Earned/Spent, tandis que chaque intérêt augmente uniquement le solde Banque et `total_moras_earned`.
+État physique 0.72 : la migration additive `008_add_banking` crée ces deux tables, backfill chaque Player DEV existant à zéro sur la journée `Europe/Paris` courante, active la RLS et révoque les accès directs `anon`/`authenticated`. Le service provisionne paresseusement les futurs comptes, verrouille le Player et les soldes dans des transactions `SERIALIZABLE`, résout `MAX` côté serveur et journalise chaque mutation via `business_operations`. L'intention demandée (`requestedAmount`, entier décimal ou `max`) est conservée dans le `result_summary` de l'opération pour refuser toute réutilisation de clé avec un payload différent. Le scheduler effectue le catch-up au démarrage puis le prochain reset Paris sans durée fixe de 24 h ; les jours manqués sont composés séquentiellement. Les transferts modifient le mouvement wallet sans toucher aux statistiques Earned/Spent. Un intérêt positif augmente uniquement le solde Banque et `total_moras_earned` ; un intérêt nul avance seulement `last_interest_date` sans opération ni transaction `+0`.
 
 ---
 

@@ -5,16 +5,16 @@ import { currencyAssetPaths } from '../utils/gameAssets'
 import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
 import GameAssetIcon from '../components/GameAssetIcon'
 import { formatBankCountdown } from '../bank/bank-presentation'
+import type { BankTransferDirection } from '../bank/bank-transfer-intent-coordinator'
 
 type BankScreenProps = {
   onLoad: () => Promise<PlayerBankDto>
-  onDeposit: (amount: string, idempotencyKey: string) => Promise<BankTransferDto>
-  onWithdraw: (amount: string, idempotencyKey: string) => Promise<BankTransferDto>
+  onTransfer: (direction: BankTransferDirection, amount: string) => Promise<BankTransferDto>
 }
 
-type Direction = 'deposit' | 'withdraw'
+type Direction = BankTransferDirection
 
-function BankScreen({ onLoad, onDeposit, onWithdraw }: BankScreenProps) {
+function BankScreen({ onLoad, onTransfer }: BankScreenProps) {
   const [bank, setBank] = useState<PlayerBankDto | null>(null)
   const [amounts, setAmounts] = useState<Record<Direction, string>>({ deposit: '', withdraw: '' })
   const [pending, setPending] = useState<Direction | null>(null)
@@ -59,17 +59,13 @@ function BankScreen({ onLoad, onDeposit, onWithdraw }: BankScreenProps) {
   const submit = async (direction: Direction, requestedAmount?: 'max') => {
     if (!bank || pending) return
     const amount = requestedAmount ?? amounts[direction].trim()
-    const available = direction === 'deposit' ? BigInt(bank.walletMoras) : BigInt(bank.bankMoras)
     if (amount !== 'max') {
       if (!/^[1-9]\d*$/.test(amount)) { setError('Saisissez un montant entier strictement positif.'); return }
-      if (BigInt(amount) > available) { setError(direction === 'deposit' ? 'Votre portefeuille ne contient pas assez de Moras.' : 'Votre Banque ne contient pas assez de Moras.'); return }
-    } else if (available === 0n) {
-      setError(direction === 'deposit' ? 'Votre portefeuille est vide.' : 'Votre Banque est vide.'); return
     }
     setPending(direction)
     setError(null)
     try {
-      const result = await (direction === 'deposit' ? onDeposit : onWithdraw)(amount, crypto.randomUUID())
+      const result = await onTransfer(direction, amount)
       latestLoad.current += 1
       setBank(result)
       setAmounts((current) => ({ ...current, [direction]: '' }))
