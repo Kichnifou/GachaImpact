@@ -48,6 +48,7 @@ function pullDto(pull: Awaited<ReturnType<PerformGachaPull['execute']>>) {
       ...result,
       resourceAmount: result.resourceAmount?.toString() ?? null,
       bonusRewards: result.bonusRewards.map((reward) => ({ ...reward, amount: reward.amount.toString() })),
+      passiveEffects: passiveEffectsDto(result.passiveEffects ?? []),
     })),
     playerState: stateDto(pull.playerState),
   };
@@ -61,6 +62,17 @@ function historyDto(history: Awaited<ReturnType<GetGachaHistory['execute']>>) {
       occurredAt: result.occurredAt.toISOString(),
       resourceAmount: result.resourceAmount?.toString() ?? null,
       bonusRewards: result.bonusRewards.map((reward) => ({ ...reward, amount: reward.amount.toString() })),
+      passiveEffects: passiveEffectsDto(result.passiveEffects ?? []),
     })),
   };
+}
+
+function passiveEffectsDto(effects: Awaited<ReturnType<PerformGachaPull['execute']>>['results'][number]['passiveEffects']) {
+  return effects.map((effect) => {
+    if (effect.type === 'secondary_reward_multiplier') return { ...effect, amountBefore: effect.amountBefore.toString(), amountAfter: effect.amountAfter.toString() };
+    if (effect.type === 'xp') return { ...effect, amount: effect.amount.toString(), xpAfter: effect.xpAfter.toString() };
+    if (effect.type === 'primogem_recovery') return { ...effect, amount: effect.amount.toString() };
+    if (effect.type === 'resource_bundle') return { ...effect, rewards: effect.rewards.map((reward) => ({ ...reward, amount: reward.amount.toString() })) };
+    return effect;
+  });
 }

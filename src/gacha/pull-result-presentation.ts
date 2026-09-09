@@ -1,4 +1,4 @@
-import type { GachaPullResultItemDto } from '../api/types'
+import type { GachaPassiveEffectDto, GachaPullResultItemDto } from '../api/types'
 import { currencyAssetPaths, getElementAssetPath } from '../utils/gameAssets'
 
 export type PullDisplayRarity = 3 | 4 | 5
@@ -55,6 +55,18 @@ export function pullEventLabel(result: GachaPullResultItemDto): string | null {
   if (result.wasFiftyFifty && result.wonFiftyFifty === true) return '50/50 gagné'
   if (result.wasFiftyFifty && result.wonFiftyFifty === false) return '50/50 perdu'
   return null
+}
+
+export function passiveEffectLabel(effect: GachaPassiveEffectDto): string | null {
+  if (effect.type === 'five_star_chance_bonus') return null
+  if (effect.type === 'secondary_reward_multiplier') {
+    const multiplier = effect.numerator === 5 ? '1,25' : '1,5'
+    return `${elementLabels[effect.elementKey]} · ${effect.elementKey === 'pyro' ? 'Particules' : 'Moras'} ×${multiplier}`
+  }
+  if (effect.type === 'xp') return `Cryo · +${effect.amount} XP`
+  if (effect.type === 'pity5') return `Electro · +${effect.amount} Pity 5★`
+  if (effect.type === 'primogem_recovery') return `Anemo · +${effect.amount} Primogemmes`
+  return 'Dendro · Bundle élémentaire'
 }
 
 export function c6StatLabel(stat: 'strength' | 'intelligence' | 'beauty' | 'charisma' | 'popularity'): string {

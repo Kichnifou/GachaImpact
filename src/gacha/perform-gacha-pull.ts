@@ -1,6 +1,6 @@
 import { ApiError, type GameApiClient } from '../api/game-api'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
-import type { CurrentGachaDto, GachaPullDto, PlayerResourcesDto } from '../api/types'
+import type { CurrentGachaDto, GachaPullDto, PlayerProgressionDto, PlayerResourcesDto } from '../api/types'
 
 const definitivePullErrorCodes = new Set([
   'INSUFFICIENT_PRIMOGEMS',
@@ -52,7 +52,8 @@ export type GachaPullRefreshResult = Readonly<{
   result: GachaPullDto
   resources: PlayerResourcesDto | null
   gacha: CurrentGachaDto | null
-  failedRefreshes: readonly ('resources' | 'gacha')[]
+  progression: PlayerProgressionDto | null
+  failedRefreshes: readonly ('resources' | 'gacha' | 'progression')[]
 }>
 
 export async function performGachaPullAndRefresh(
@@ -63,14 +64,16 @@ export async function performGachaPullAndRefresh(
 ): Promise<GachaPullRefreshResult> {
   const result = await api.pullGacha(count, idempotencyKey)
   onPullSucceeded?.(result)
-  const [resourcesRefresh, gachaRefresh] = await Promise.allSettled([api.getResources(), api.getCurrentGacha()])
-  const failedRefreshes: ('resources' | 'gacha')[] = []
+  const [resourcesRefresh, gachaRefresh, progressionRefresh] = await Promise.allSettled([api.getResources(), api.getCurrentGacha(), api.getProgression()])
+  const failedRefreshes: ('resources' | 'gacha' | 'progression')[] = []
   if (resourcesRefresh.status === 'rejected') failedRefreshes.push('resources')
   if (gachaRefresh.status === 'rejected') failedRefreshes.push('gacha')
+  if (progressionRefresh.status === 'rejected') failedRefreshes.push('progression')
   return {
     result,
     resources: resourcesRefresh.status === 'fulfilled' ? resourcesRefresh.value : null,
     gacha: gachaRefresh.status === 'fulfilled' ? gachaRefresh.value : null,
+    progression: progressionRefresh.status === 'fulfilled' ? progressionRefresh.value : null,
     failedRefreshes,
   }
 }

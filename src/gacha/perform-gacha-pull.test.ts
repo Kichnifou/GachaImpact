@@ -16,12 +16,13 @@ describe('performGachaPullAndRefresh', () => {
       pullGacha,
       getResources: vi.fn(async () => { order.push('resources'); return { primogems: '0' } }),
       getCurrentGacha: vi.fn(async () => { order.push('gacha'); return { playerState: { pity5: 1 } } }),
+      getProgression: vi.fn(async () => { order.push('progression'); return { totalXp: '1' } }),
     } as unknown as GameApiClient
     const onPullSucceeded = vi.fn(() => { order.push('confirmed') })
     const result = await performGachaPullAndRefresh(api, 1, 'intent', onPullSucceeded)
     expect(order[0]).toBe('pull')
     expect(order[1]).toBe('confirmed')
-    expect(new Set(order.slice(2))).toEqual(new Set(['resources', 'gacha']))
+    expect(new Set(order.slice(2))).toEqual(new Set(['resources', 'gacha', 'progression']))
     expect(pullGacha).toHaveBeenCalledOnce()
     expect(pullGacha).toHaveBeenCalledWith(1, 'intent')
     expect(onPullSucceeded).toHaveBeenCalledOnce()
@@ -34,6 +35,7 @@ describe('performGachaPullAndRefresh', () => {
       pullGacha,
       getResources: vi.fn(async () => { throw new Error('resources unavailable') }),
       getCurrentGacha: vi.fn(async () => ({ playerState: { pity5: 1 } })),
+      getProgression: vi.fn(async () => ({ totalXp: '1' })),
     } as unknown as GameApiClient
     const result = await performGachaPullAndRefresh(api, 1, 'intent')
     expect(result).toMatchObject({ result: { operation: { id: 'op' }, results: [{ index: 1 }] }, resources: null, gacha: { playerState: { pity5: 1 } }, failedRefreshes: ['resources'] })
@@ -46,9 +48,29 @@ describe('performGachaPullAndRefresh', () => {
       pullGacha,
       getResources: vi.fn(async () => ({ primogems: '840' })),
       getCurrentGacha: vi.fn(async () => { throw new Error('gacha unavailable') }),
+      getProgression: vi.fn(async () => ({ totalXp: '1' })),
     } as unknown as GameApiClient
     const result = await performGachaPullAndRefresh(api, 1, 'intent')
     expect(result).toMatchObject({ result: { operation: { id: 'op' }, playerState: { pity5: 12 } }, resources: { primogems: '840' }, gacha: null, failedRefreshes: ['gacha'] })
+    expect(pullGacha).toHaveBeenCalledOnce()
+  })
+
+  it('keeps the successful Pull when the progression refresh fails', async () => {
+    const pullGacha = vi.fn(async () => ({ operation: { id: 'op' }, results: [{ index: 1 }], playerState: { pity5: 12 } }))
+    const api = {
+      pullGacha,
+      getResources: vi.fn(async () => ({ primogems: '840' })),
+      getCurrentGacha: vi.fn(async () => ({ playerState: { pity5: 13 } })),
+      getProgression: vi.fn(async () => { throw new Error('progression unavailable') }),
+    } as unknown as GameApiClient
+    const result = await performGachaPullAndRefresh(api, 1, 'intent')
+    expect(result).toMatchObject({
+      result: { operation: { id: 'op' }, playerState: { pity5: 12 } },
+      resources: { primogems: '840' },
+      gacha: { playerState: { pity5: 13 } },
+      progression: null,
+      failedRefreshes: ['progression'],
+    })
     expect(pullGacha).toHaveBeenCalledOnce()
   })
 

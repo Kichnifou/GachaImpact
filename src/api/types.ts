@@ -181,7 +181,16 @@ export type GachaPullResultItemDto = Readonly<{
   captureTriggered: boolean
   bonusRewards: readonly Readonly<{ resourceKey: string; amount: string; causeKey: string }>[]
   c6Progression: Readonly<{ type: 'stat'; stat: 'strength' | 'intelligence' | 'beauty' | 'charisma' | 'popularity'; valueAfter: number }> | Readonly<{ type: 'maxed' }> | null
+  passiveEffects?: readonly GachaPassiveEffectDto[]
 }>
+
+export type GachaPassiveEffectDto =
+  | Readonly<{ elementKey: 'hydro'; type: 'five_star_chance_bonus'; basisPoints: number }>
+  | Readonly<{ elementKey: 'pyro' | 'geo'; type: 'secondary_reward_multiplier'; numerator: number; denominator: number; amountBefore: string; amountAfter: string }>
+  | Readonly<{ elementKey: 'cryo'; type: 'xp'; amount: string; xpAfter: string; levelsReached: readonly number[]; overflowRewardsGranted: number }>
+  | Readonly<{ elementKey: 'electro'; type: 'pity5'; amount: number; requestedAmount: 2 }>
+  | Readonly<{ elementKey: 'anemo'; type: 'primogem_recovery'; amount: string }>
+  | Readonly<{ elementKey: 'dendro'; type: 'resource_bundle'; rewards: readonly Readonly<{ resourceKey: string; amount: string }>[] }>
 
 export type GachaPullDto = Readonly<{
   operation: Readonly<{ id: string; pullCount: 1 | 10; primogemCost: string; createdAt: string; alreadyProcessed: boolean }>

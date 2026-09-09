@@ -3,6 +3,7 @@ import type { GachaHistoryDto } from '../api/types'
 import { historyDateLabel, historyEventLabel, historyPityLabel, historyProgressionLabel, historyResultLabel } from '../gacha/history-presentation'
 import { fiveStarProbabilityRows, fourStarProbabilityRows, probabilityPercent } from '../gacha/probabilities'
 import { apiErrorMessage } from '../utils/formatters'
+import { passiveEffectLabel } from '../gacha/pull-result-presentation'
 
 type DetailTab = 'history' | 'probabilities' | 'passives'
 
@@ -81,7 +82,7 @@ export function HistoryPanel({ history, loading, error, onPage }: { history: Gac
           <td>{result.resultType === 'resource' ? '3★' : `${result.rarity}★`}</td>
           <td>{historyPityLabel(result)}</td>
           <td>{historyEventLabel(result)}</td>
-          <td>{historyProgressionLabel(result)}</td>
+          <td><span>{historyProgressionLabel(result)}</span>{(result.passiveEffects ?? []).flatMap((effect) => { const label = passiveEffectLabel(effect); return label ? [<small className="history-passive-effect" key={`${effect.elementKey}-${effect.type}`}>{label}</small>] : [] })}</td>
         </tr>)}</tbody>
       </table>
     </div>
@@ -123,7 +124,7 @@ const passives = [
 
 export function PassivesPanel() {
   return <div className="passives-panel">
-    <p className="passives-notice">Les effets de votre Team active sur les Invocations seront activés prochainement.</p>
+    <p className="passives-notice">Les passifs de votre Team active sont appliqués à vos Invocations.</p>
     <div className="passives-grid">{passives.map(([element, one, two]) => <article key={element}><h3>{element}</h3><p><strong>1 stack</strong>{one}</p><p><strong>2 stacks</strong>{two}</p></article>)}</div>
   </div>
 }

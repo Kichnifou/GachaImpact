@@ -71,6 +71,7 @@ function AppBootstrap() {
 
   const publishGachaUpdate = useCallback((refreshed: Awaited<ReturnType<typeof performGachaPullAndRefresh>>) => {
     if (refreshed.resources) setResources(refreshed.resources)
+    if (refreshed.progression) setProgression(refreshed.progression)
     setGacha((current) => refreshed.gacha ?? (current ? { ...current, playerState: refreshed.result.playerState } : current))
   }, [])
 

@@ -5,7 +5,7 @@ import type { InvocationSequenceState } from '../gacha/invocation-sequence'
 import InvocationSequence from './InvocationSequence'
 
 const playerState = { pity5: 0, pity4: 0, guaranteedFeatured5: false, captureProgress: 0, fiftyFiftyLostStreak: 0, selectedBannerCharacterId: 'target', totalPulls: '1', totalFiveStars: '1', totalFourStars: '0', fiftyFiftyWon: '1', fiftyFiftyLost: '0', capturesTriggered: '0' }
-const characterResult: GachaPullResultItemDto = { index: 1, resultType: 'character', character: { id: 'furina', externalKey: 'furina', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: null, region: null, classKey: null, iconPath: '/icon.png', splashPath: '/splash.png', wishPath: null, fullbodyPath: null }, rarity: 5, resourceKey: null, resourceAmount: null, wasNewCharacter: true, constellationAfter: 0, copiesAfter: 1, wasFiftyFifty: true, wonFiftyFifty: true, guaranteeConsumed: false, captureTriggered: false, bonusRewards: [], c6Progression: null }
+const characterResult: GachaPullResultItemDto = { index: 1, resultType: 'character', character: { id: 'furina', externalKey: 'furina', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: null, region: null, classKey: null, iconPath: '/icon.png', splashPath: '/splash.png', wishPath: null, fullbodyPath: null }, rarity: 5, resourceKey: null, resourceAmount: null, wasNewCharacter: true, constellationAfter: 0, copiesAfter: 1, wasFiftyFifty: true, wonFiftyFifty: true, guaranteeConsumed: false, captureTriggered: false, bonusRewards: [], c6Progression: null, passiveEffects: [{ elementKey: 'cryo', type: 'xp', amount: '1', xpAfter: '30', levelsReached: [1], overflowRewardsGranted: 0 }] }
 const resourceResult: GachaPullResultItemDto = { ...characterResult, resultType: 'resource', character: null, rarity: null, resourceKey: 'moras', resourceAmount: '5000', wasNewCharacter: null, constellationAfter: null, copiesAfter: null, wasFiftyFifty: false, wonFiftyFifty: null }
 const pull = (count: 1 | 10, results: readonly GachaPullResultItemDto[]): GachaPullDto => ({ operation: { id: `operation-${count}`, pullCount: count, primogemCost: count === 1 ? '160' : '1600', createdAt: '2026-09-07T10:00:00Z', alreadyProcessed: false }, results, playerState })
 
@@ -35,6 +35,8 @@ describe('InvocationSequence player-facing copy', () => {
     expect(html).not.toContain('>Passer<')
     expect(html).not.toContain('Fermer les résultats')
     expect(html).not.toContain('role="button"')
+    expect(html).toContain('character-reveal-focus')
+    expect(html).toContain('pull-passive-effects')
   })
 
   it('starts an x1 character reveal in Focus without its close control', () => {

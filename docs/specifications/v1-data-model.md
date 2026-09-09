@@ -397,6 +397,8 @@ Si le niveau est matérialisé techniquement pour lecture rapide, il reste une p
 
 Les notions legacy `lastXpDate` et `lastMessageTime` sont migrées selon leur vraie sémantique documentée, sans conserver leurs noms trompeurs comme contrat V1.
 
+État physique 0.71 : une primitive serveur centrale accorde l'XP dans la transaction du domaine appelant, calcule tous les paliers traversés et les nouveaux blocs d'overflow niveau 100, crédite leurs récompenses par le moteur économique et met à jour `lastXpAt`. La source Team/Cryo n'est pas une source message et laisse donc `totalMessages`, `countedMessages` et `lastXpMessageAt` inchangés.
+
 ## 5.2 Statistiques de progression
 
 Les compteurs historiques certains du legacy sont importés tels quels lorsque les audits l'exigent.
@@ -700,6 +702,8 @@ Résultats ordonnés d'une opération :
 
 Les x10 restent groupés par opération.
 
+État physique 0.71 : le snapshot JSON interne de chaque résultat conserve `stateBefore`, l'état final post-passifs, les bonus, la progression C6 éventuelle, le snapshot de la Team active et les `passiveEffects` machine-readable. Un retry idempotent relit ces valeurs persistées sans nouveau RNG ni nouveau crédit, y compris si l'état Gacha courant a ensuite changé.
+
 ---
 
 # 11. Collection / Possessions
@@ -833,7 +837,7 @@ Catalogue/configuration serveur des passifs.
 
 Une seule définition partagée entre Team, affichage et moteur Gacha.
 
-État physique 0.70 : le référentiel des sept passifs reste une configuration serveur fortement typée utilisée par `deriveTeamPassives`. Le même module expose désormais les paramètres exacts futurs et `deriveActiveTeamGachaEffects`, contrat machine-readable pur qui transforme les stacks I/II en multiplicateurs, bonus et chances sans parser les descriptions, exécuter de RNG ou muter l'état joueur. La table catalogue cible reste différée jusqu'à ce qu'un besoin d'administration ou de configuration dynamique la justifie ; aucune valeur dérivée n'est persistée par Player et aucun passif n'est encore raccordé au moteur Pull.
+État physique 0.71 : le référentiel des sept passifs reste une configuration serveur fortement typée utilisée par `deriveTeamPassives`. `deriveActiveTeamGachaEffects` transforme les stacks I/II en ratios exacts, bonus et chances sans parser les descriptions ni muter l'état joueur. Le moteur Pull fige la Team active et ses membres actifs au début de l'opération, puis applique les sept effets ensemble ; chaque vœu d'un x10 exécute ses tests sur ce snapshot commun. Les valeurs dérivées ne deviennent pas une vérité persistée par Player : seul le contexte et les effets réels de chaque résultat sont conservés dans `PullResult.snapshot`. La table catalogue cible reste différée jusqu'à ce qu'un besoin d'administration ou de configuration dynamique la justifie.
 
 ---
 

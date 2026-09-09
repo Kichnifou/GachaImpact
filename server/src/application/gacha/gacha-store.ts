@@ -29,7 +29,15 @@ export type PullResultRecord = Readonly<{
   captureTriggered: boolean;
   bonusRewards: readonly Readonly<{ resourceKey: ResourceKey; amount: bigint; causeKey: string }>[];
   c6Progression: Readonly<{ type: 'stat'; stat: C6StatKey; valueAfter: number }> | Readonly<{ type: 'maxed' }> | null;
+  passiveEffects: readonly GachaPassiveEffect[];
 }>;
+export type GachaPassiveEffect =
+  | Readonly<{ elementKey: 'hydro'; type: 'five_star_chance_bonus'; basisPoints: number }>
+  | Readonly<{ elementKey: 'pyro' | 'geo'; type: 'secondary_reward_multiplier'; numerator: number; denominator: number; amountBefore: bigint; amountAfter: bigint }>
+  | Readonly<{ elementKey: 'cryo'; type: 'xp'; amount: bigint; xpAfter: bigint; levelsReached: readonly number[]; overflowRewardsGranted: number }>
+  | Readonly<{ elementKey: 'electro'; type: 'pity5'; amount: number; requestedAmount: 2 }>
+  | Readonly<{ elementKey: 'anemo'; type: 'primogem_recovery'; amount: bigint }>
+  | Readonly<{ elementKey: 'dendro'; type: 'resource_bundle'; rewards: readonly Readonly<{ resourceKey: ResourceKey; amount: bigint }>[] }>;
 export type GachaPullResult = Readonly<{
   operation: Readonly<{ id: string; pullCount: PullCount; primogemCost: bigint; createdAt: Date; alreadyProcessed: boolean }>;
   results: readonly PullResultRecord[];

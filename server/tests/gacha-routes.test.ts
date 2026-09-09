@@ -19,10 +19,10 @@ describe('Gacha HTTP contracts', () => {
     const setTarget = vi.fn(async (_player: string, id: string) => ({ ...state, selectedBannerCharacterId: id }));
     const pull = vi.fn(async (input: { count: 1 | 10 }) => ({
       operation: { id: 'operation', pullCount: input.count, primogemCost: input.count === 1 ? 160n : 1_600n, createdAt: new Date('2026-09-06T12:00:00Z'), alreadyProcessed: false },
-      results: Array.from({ length: input.count }, (_, index) => ({ index: index + 1, resultType: 'resource' as const, character: null, rarity: null, resourceKey: 'moras' as const, resourceAmount: 5_000n, wasNewCharacter: null, constellationAfter: null, copiesAfter: null, wasFiftyFifty: false, wonFiftyFifty: null, guaranteeConsumed: false, captureTriggered: false, bonusRewards: [], c6Progression: null })),
+      results: Array.from({ length: input.count }, (_, index) => ({ index: index + 1, resultType: 'resource' as const, character: null, rarity: null, resourceKey: 'moras' as const, resourceAmount: 5_000n, wasNewCharacter: null, constellationAfter: null, copiesAfter: null, wasFiftyFifty: false, wonFiftyFifty: null, guaranteeConsumed: false, captureTriggered: false, bonusRewards: [], c6Progression: null, passiveEffects: [{ elementKey: 'anemo' as const, type: 'primogem_recovery' as const, amount: 80n }] })),
       playerState: { ...state, totalPulls: BigInt(input.count) },
     }));
-    const getHistory = vi.fn(async (_playerId: string, page: number) => ({ page, pageSize: 10 as const, totalResults: 1, totalPages: 1, hasPrevious: false, hasNext: false, results: [{ operationId: 'history-operation', operationPullCount: 1 as const, occurredAt: new Date('2026-09-06T20:58:52.283Z'), index: 1, resultType: 'character' as const, character: five[0]!, rarity: 5 as const, resourceKey: null, resourceAmount: null, wasNewCharacter: false, constellationAfter: 6, copiesAfter: 8, wasFiftyFifty: true, wonFiftyFifty: true, guaranteeConsumed: false, captureTriggered: false, pity5AtPull: 74, pity4AtPull: 2, bonusRewards: [{ resourceKey: 'primogems' as const, amount: 160n, causeKey: 'gacha.c6-duplicate-refund' }], c6Progression: { type: 'stat' as const, stat: 'beauty' as const, valueAfter: 8 } }] }));
+    const getHistory = vi.fn(async (_playerId: string, page: number) => ({ page, pageSize: 10 as const, totalResults: 1, totalPages: 1, hasPrevious: false, hasNext: false, results: [{ operationId: 'history-operation', operationPullCount: 1 as const, occurredAt: new Date('2026-09-06T20:58:52.283Z'), index: 1, resultType: 'character' as const, character: five[0]!, rarity: 5 as const, resourceKey: null, resourceAmount: null, wasNewCharacter: false, constellationAfter: 6, copiesAfter: 8, wasFiftyFifty: true, wonFiftyFifty: true, guaranteeConsumed: false, captureTriggered: false, pity5AtPull: 74, pity4AtPull: 2, bonusRewards: [{ resourceKey: 'primogems' as const, amount: 160n, causeKey: 'gacha.c6-duplicate-refund' }], c6Progression: { type: 'stat' as const, stat: 'beauty' as const, valueAfter: 8 }, passiveEffects: [{ elementKey: 'cryo' as const, type: 'xp' as const, amount: 1n, xpAfter: 31n, levelsReached: [1], overflowRewardsGranted: 0 }] }] }));
     const store = { listActiveCharacters: async () => [...five, ...four], getCurrent: async () => ({ banner: { id: 'b1', startsAt: new Date('2026-09-01T00:00:00Z'), endsAt: new Date('2026-09-08T00:00:00Z'), featuredFiveStars: five, featuredFourStars: four }, playerState: state }), setTarget, pull, getHistory } as unknown as GachaStore;
     const playerStore = { findByIdentity: async () => ({ id: playerId, displayName: 'Test', elementKey: 'hydro', status: 'ACTIVE' as const }), provision: vi.fn() };
     const currentPlayer = new GetCurrentPlayer(playerStore);
@@ -38,7 +38,7 @@ describe('Gacha HTTP contracts', () => {
     expect((await app.inject({ method: 'POST', url: '/api/v1/gacha/pull', headers, payload: { count: 1, idempotencyKey: 'bad' } })).statusCode).toBe(400);
     const key = crypto.randomUUID();
     const one = await app.inject({ method: 'POST', url: '/api/v1/gacha/pull', headers, payload: { count: 1, idempotencyKey: key } });
-    expect(one.statusCode).toBe(200); expect(one.json()).toMatchObject({ operation: { pullCount: 1, primogemCost: '160' }, results: [{ index: 1, resourceAmount: '5000' }], playerState: { totalPulls: '1' } });
+    expect(one.statusCode).toBe(200); expect(one.json()).toMatchObject({ operation: { pullCount: 1, primogemCost: '160' }, results: [{ index: 1, resourceAmount: '5000', passiveEffects: [{ elementKey: 'anemo', type: 'primogem_recovery', amount: '80' }] }], playerState: { totalPulls: '1' } });
     const ten = await app.inject({ method: 'POST', url: '/api/v1/gacha/pull', headers, payload: { count: 10, idempotencyKey: crypto.randomUUID() } });
     expect(ten.statusCode).toBe(200); expect(ten.json().results).toHaveLength(10); expect(ten.json().results.map((result: { index: number }) => result.index)).toEqual([1,2,3,4,5,6,7,8,9,10]);
     expect(pull).toHaveBeenCalledTimes(2);
@@ -60,7 +60,7 @@ describe('Gacha HTTP contracts', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
       page: 1, pageSize: 10, totalResults: 1, totalPages: 1, hasPrevious: false, hasNext: false,
-      results: [{ operationId: 'history-operation', occurredAt: '2026-09-06T20:58:52.283Z', pity5AtPull: 74, pity4AtPull: 2, bonusRewards: [{ amount: '160' }] }],
+      results: [{ operationId: 'history-operation', occurredAt: '2026-09-06T20:58:52.283Z', pity5AtPull: 74, pity4AtPull: 2, bonusRewards: [{ amount: '160' }], passiveEffects: [{ elementKey: 'cryo', type: 'xp', amount: '1', xpAfter: '31' }] }],
     });
     expect(getHistory).toHaveBeenCalledWith(playerId, 1);
   });

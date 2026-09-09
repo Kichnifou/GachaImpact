@@ -9,6 +9,7 @@ import { loadConfig } from '../src/config/environment.js';
 import { PrismaCurrentPlayerStore } from '../src/infrastructure/database/prisma-current-player-store.js';
 import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 import { PrismaGachaStore } from '../src/infrastructure/database/prisma-gacha-store.js';
+import { PrismaTeamStore } from '../src/infrastructure/database/prisma-team-store.js';
 
 const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Gacha database tests.');
@@ -285,9 +286,175 @@ describe('Gacha foundation on the development database', () => {
       await database.player.delete({ where: { id: player.id } });
     }
   });
+
+  it('replays the persisted post-Pull state even after a later Pull changes the current state', async () => {
+    const fixture = await createPullPlayer(320n);
+    try {
+      const store = new PrismaGachaStore(database);
+      const firstInput = {
+        playerId: fixture.playerId,
+        playerElementKey: 'hydro' as const,
+        count: 1 as const,
+        idempotencyKey: randomUUID(),
+        now: fixture.now,
+        random: maxRandom,
+      };
+      const first = await store.pull(firstInput);
+      const second = await store.pull({ ...firstInput, idempotencyKey: randomUUID() });
+      const retry = await store.pull({
+        ...firstInput,
+        random: { nextInt: () => { throw new Error('A committed retry must not reroll.'); } },
+      });
+
+      expect(second.playerState.totalPulls).toBe(2n);
+      expect(retry.operation).toMatchObject({ id: first.operation.id, alreadyProcessed: true });
+      expect(retry.results).toEqual(first.results);
+      expect(retry.playerState).toEqual(first.playerState);
+      expect(retry.playerState).not.toEqual(second.playerState);
+    } finally { await deletePullPlayer(fixture.playerId); }
+  });
+
+  it('applies compatible active-Team passives together and ignores an inactive Team', async () => {
+    const fixture = await createPullPlayer(1_600n);
+    try {
+      await configureTeams(fixture.playerId, ['pyro', 'hydro', 'electro', 'dendro'], ['hydro', 'hydro']);
+      const result = await new PrismaGachaStore(database).pull({
+        playerId: fixture.playerId, playerElementKey: 'hydro', count: 1,
+        idempotencyKey: randomUUID(), now: fixture.now, random: procResourceRandom,
+      });
+      expect(result.results[0]).toMatchObject({ resultType: 'resource', resourceKey: 'particles_pyro', resourceAmount: 25n });
+      expect(result.results[0]!.passiveEffects.map(({ elementKey, type }) => [elementKey, type])).toEqual([
+        ['hydro', 'five_star_chance_bonus'],
+        ['pyro', 'secondary_reward_multiplier'],
+        ['electro', 'pity5'],
+        ['dendro', 'resource_bundle'],
+      ]);
+      expect(result.playerState.pity5).toBe(3);
+      expect(result.results[0]!.bonusRewards).toHaveLength(9);
+      const persisted = await database.pullResult.findFirstOrThrow({ where: { pullOperationId: result.operation.id } });
+      expect(persisted.snapshot).toMatchObject({ activeTeam: { elements: ['pyro', 'hydro', 'electro', 'dendro'] } });
+    } finally { await deletePullPlayer(fixture.playerId); }
+  }, 15_000);
+
+  it('applies Geo, Cryo and Anemo transactionally without touching message counters', async () => {
+    const fixture = await createPullPlayer(1_600n);
+    try {
+      await configureTeams(fixture.playerId, ['geo', 'cryo', 'anemo']);
+      await database.playerProgression.update({
+        where: { playerId: fixture.playerId },
+        data: { xp: 29n, totalMessages: 9n, countedMessages: 4n, lastXpMessageAt: new Date('2026-09-08T10:00:00Z') },
+      });
+      const beforeMessageAt = (await database.playerProgression.findUniqueOrThrow({ where: { playerId: fixture.playerId } })).lastXpMessageAt;
+      const result = await new PrismaGachaStore(database).pull({
+        playerId: fixture.playerId, playerElementKey: 'hydro', count: 1,
+        idempotencyKey: randomUUID(), now: fixture.now, random: procMoraRandom,
+      });
+      expect(result.results[0]).toMatchObject({ resultType: 'resource', resourceKey: 'moras', resourceAmount: 6_250n });
+      expect(result.results[0]!.passiveEffects.map(({ elementKey }) => elementKey)).toEqual(['geo', 'cryo', 'anemo']);
+      const progression = await database.playerProgression.findUniqueOrThrow({ where: { playerId: fixture.playerId } });
+      expect(progression).toMatchObject({ xp: 30n, totalMessages: 9n, countedMessages: 4n, lastXpAt: fixture.now, lastXpMessageAt: beforeMessageAt });
+      expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: fixture.playerId, resourceKey: 'primogems' } } })).amount).toBe(2_320n);
+      expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: fixture.playerId, resourceKey: 'moras' } } })).amount).toBe(16_250n);
+    } finally { await deletePullPlayer(fixture.playerId); }
+  }, 15_000);
+
+  it('replays x10 passive effects exactly without rerolls or duplicate XP and resource credits', async () => {
+    const fixture = await createPullPlayer(1_600n);
+    try {
+      await configureTeams(fixture.playerId, ['cryo', 'anemo', 'dendro']);
+      await database.playerProgression.update({ where: { playerId: fixture.playerId }, data: { xp: 20n } });
+      const store = new PrismaGachaStore(database);
+      const input = {
+        playerId: fixture.playerId, playerElementKey: 'hydro' as const, count: 10 as const,
+        idempotencyKey: randomUUID(), now: fixture.now, random: procMoraRandom,
+      };
+      const first = await store.pull(input);
+      const retry = await store.pull({ ...input, random: { nextInt: () => { throw new Error('A committed passive retry must not reroll.'); } } });
+      expect(retry.operation).toMatchObject({ id: first.operation.id, alreadyProcessed: true });
+      expect(retry.results).toEqual(first.results);
+      expect(first.results).toHaveLength(10);
+      expect(first.results.every(({ passiveEffects }) => ['cryo', 'anemo', 'dendro'].every((element) => passiveEffects.some(({ elementKey }) => elementKey === element)))).toBe(true);
+      expect((await database.playerProgression.findUniqueOrThrow({ where: { playerId: fixture.playerId } })).xp).toBe(30n);
+      expect(await database.resourceMovement.count({ where: { playerId: fixture.playerId, causeKey: 'team.passive.anemo.primogem-recovery' } })).toBe(10);
+      expect(await database.resourceMovement.count({ where: { playerId: fixture.playerId, causeKey: 'team.passive.dendro.bundle' } })).toBe(90);
+      expect(await database.pullOperation.count({ where: { playerId: fixture.playerId } })).toBe(1);
+      const snapshots = await database.pullResult.findMany({ where: { pullOperationId: first.operation.id }, select: { snapshot: true }, orderBy: { resultIndex: 'asc' } });
+      expect(snapshots).toHaveLength(10);
+      expect(snapshots.every(({ snapshot }) => JSON.stringify(snapshot).includes('activeTeam'))).toBe(true);
+    } finally { await deletePullPlayer(fixture.playerId); }
+  }, 30_000);
+
+  it('excludes disabled characters from the active Team snapshot', async () => {
+    const fixture = await createPullPlayer(160n);
+    let disabledCharacterId: string | null = null;
+    try {
+      const ids = await configureTeams(fixture.playerId, ['hydro']);
+      disabledCharacterId = ids[0]!;
+      await database.character.update({ where: { id: disabledCharacterId }, data: { isActive: false } });
+      const result = await new PrismaGachaStore(database).pull({
+        playerId: fixture.playerId, playerElementKey: 'hydro', count: 1,
+        idempotencyKey: randomUUID(), now: fixture.now, random: maxRandom,
+      });
+      expect(result.results[0]!.passiveEffects).toEqual([]);
+    } finally {
+      if (disabledCharacterId) await database.character.update({ where: { id: disabledCharacterId }, data: { isActive: true } });
+      await deletePullPlayer(fixture.playerId);
+    }
+  }, 15_000);
+
+  it('uses every level-II passive contract from two active element stacks', async () => {
+    const fixture = await createPullPlayer(2_000n);
+    try {
+      const store = new PrismaGachaStore(database);
+      const pullWith = async (element: string, random: { nextInt(maximum: number): number }) => {
+        await configureTeams(fixture.playerId, [element, element]);
+        return store.pull({
+          playerId: fixture.playerId,
+          playerElementKey: 'hydro',
+          count: 1,
+          idempotencyKey: randomUUID(),
+          now: fixture.now,
+          random,
+        });
+      };
+
+      const pyro = await pullWith('pyro', procResourceRandom);
+      expect(pyro.results[0]).toMatchObject({ resourceKey: 'particles_pyro', resourceAmount: 30n });
+      expect(pyro.results[0]!.passiveEffects).toContainEqual(expect.objectContaining({ elementKey: 'pyro', numerator: 3, denominator: 2 }));
+
+      const geo = await pullWith('geo', procMoraRandom);
+      expect(geo.results[0]).toMatchObject({ resourceKey: 'moras', resourceAmount: 7_500n });
+      expect(geo.results[0]!.passiveEffects).toContainEqual(expect.objectContaining({ elementKey: 'geo', numerator: 3, denominator: 2 }));
+
+      const hydro = await pullWith('hydro', maxRandom);
+      expect(hydro.results[0]!.passiveEffects).toContainEqual({ elementKey: 'hydro', type: 'five_star_chance_bonus', basisPoints: 60 });
+
+      const cryoRandom = { nextInt: vi.fn(procMoraRandom.nextInt) };
+      const cryo = await pullWith('cryo', cryoRandom);
+      expect(cryoRandom.nextInt).toHaveBeenCalledWith(10);
+      expect(cryo.results[0]!.passiveEffects).toContainEqual(expect.objectContaining({ elementKey: 'cryo', type: 'xp', amount: 1n }));
+
+      const electroRandom = { nextInt: vi.fn(procMoraRandom.nextInt) };
+      const electro = await pullWith('electro', electroRandom);
+      expect(electroRandom.nextInt).toHaveBeenCalledWith(20);
+      expect(electro.results[0]!.passiveEffects).toContainEqual(expect.objectContaining({ elementKey: 'electro', type: 'pity5', requestedAmount: 2 }));
+
+      const anemoRandom = { nextInt: vi.fn(procMoraRandom.nextInt) };
+      const anemo = await pullWith('anemo', anemoRandom);
+      expect(anemoRandom.nextInt).toHaveBeenCalledWith(8);
+      expect(anemo.results[0]!.passiveEffects).toContainEqual({ elementKey: 'anemo', type: 'primogem_recovery', amount: 80n });
+
+      const dendroRandom = { nextInt: vi.fn(procMoraRandom.nextInt) };
+      const dendro = await pullWith('dendro', dendroRandom);
+      expect(dendroRandom.nextInt).toHaveBeenCalledWith(15);
+      expect(dendro.results[0]!.passiveEffects).toContainEqual(expect.objectContaining({ elementKey: 'dendro', type: 'resource_bundle' }));
+    } finally { await deletePullPlayer(fixture.playerId); }
+  }, 35_000);
 });
 
 const maxRandom = { nextInt: (maximum: number) => maximum - 1 };
+const procResourceRandom = { nextInt: (maximum: number) => maximum === 10_000 ? 9_999 : maximum === 2 ? 1 : 0 };
+const procMoraRandom = { nextInt: (maximum: number) => maximum === 10_000 ? 9_999 : 0 };
 
 async function createPullPlayer(primogems: bigint) {
   const identity = { subject: `test-pull-${randomUUID()}` };
@@ -313,6 +480,36 @@ async function deletePullPlayer(playerId: string) {
     await transaction.player.deleteMany({ where: { id: playerId } });
   });
   pullFixturePlayerIds.delete(playerId);
+}
+
+async function configureTeams(playerId: string, activeElements: readonly string[], inactiveElements: readonly string[] = []): Promise<readonly string[]> {
+  await new PrismaTeamStore(database).getOrProvision(playerId);
+  const teams = await database.team.findMany({ where: { playerId }, orderBy: { displayPosition: 'asc' }, take: 2 });
+  if (teams.length < 2) throw new Error('Pull fixture must have at least two provisioned Teams.');
+  await database.team.updateMany({ where: { playerId }, data: { isActive: false } });
+  await database.team.update({ where: { id: teams[0]!.id }, data: { isActive: true } });
+  await database.teamMember.deleteMany({ where: { teamId: { in: teams.map(({ id }) => id) } } });
+  const used = new Set<string>();
+
+  const fill = async (teamId: string, elements: readonly string[]) => {
+    const ids: string[] = [];
+    for (const [index, elementKey] of elements.entries()) {
+      const character = await database.character.findFirstOrThrow({ where: { elementKey, isActive: true, id: { notIn: [...used] } }, select: { id: true } });
+      used.add(character.id);
+      ids.push(character.id);
+      await database.playerCharacter.upsert({
+        where: { playerId_characterId: { playerId, characterId: character.id } },
+        create: { playerId, characterId: character.id, copies: 1, constellation: 0, firstObtainedAt: new Date('2026-09-09T00:00:00Z') },
+        update: {},
+      });
+      await database.teamMember.create({ data: { teamId, position: index + 1, characterId: character.id } });
+    }
+    return ids;
+  };
+
+  const activeIds = await fill(teams[0]!.id, activeElements);
+  await fill(teams[1]!.id, inactiveElements);
+  return activeIds;
 }
 
 async function cleanupPullFixtures() {

@@ -1,14 +1,16 @@
 import { OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
 import { BusinessError } from '../../application/errors.js';
-import { GACHA_HISTORY_PAGE_SIZE, type CurrentBanner, type GachaHistoryPage, type GachaPullInput, type GachaPullResult, type GachaStore, type PlayerGachaState, type PullResultRecord } from '../../application/gacha/gacha-store.js';
+import { GACHA_HISTORY_PAGE_SIZE, type CurrentBanner, type GachaHistoryPage, type GachaPassiveEffect, type GachaPullInput, type GachaPullResult, type GachaStore, type PlayerGachaState, type PullResultRecord } from '../../application/gacha/gacha-store.js';
 import type { BannerVoteWeight, FeaturedSelection, GachaCharacter } from '../../domain/gacha/gacha.js';
 import { PULL_COST, resolvePulls, type PullState } from '../../domain/gacha/pull.js';
-import { isElementKey, isResourceKey, type ResourceKey } from '../../domain/economy/resources.js';
+import { elementKeys, isElementKey, isResourceKey, particleResourceKey, type ElementKey, type ResourceKey } from '../../domain/economy/resources.js';
 import { isPrismaConcurrencyCollision } from './prisma-concurrency.js';
 import { PrismaEconomyService } from './prisma-economy-service.js';
 import { PrismaCharacterPossessionService } from './prisma-character-possession-service.js';
 import { PrismaC6ProgressionService } from './prisma-c6-progression-service.js';
 import { c6StatKeys, type C6StatKey } from '../../domain/contest/c6-progress.js';
+import { applyExactMultiplier, deriveActiveTeamGachaEffects, type ActiveTeamGachaEffects, type ExactMultiplier } from '../../domain/team/team-passives.js';
+import { PrismaPlayerXpService } from './prisma-player-xp-service.js';
 
 const characterSelection = {
   id: true, externalKey: true, name: true, rarity: true, elementKey: true, weaponType: true,
@@ -28,6 +30,7 @@ export class PrismaGachaStore implements GachaStore {
     private readonly economy = new PrismaEconomyService(),
     private readonly possessions = new PrismaCharacterPossessionService(),
     private readonly c6 = new PrismaC6ProgressionService(),
+    private readonly xp = new PrismaPlayerXpService(),
   ) {}
 
   public async listActiveCharacters(): Promise<readonly GachaCharacter[]> {
@@ -95,6 +98,7 @@ export class PrismaGachaStore implements GachaStore {
         captureTriggered: result.captureTriggered,
         bonusRewards: readBonusRewards(result.snapshot),
         c6Progression: readC6Progression(result.snapshot),
+        passiveEffects: readPassiveEffects(result.snapshot),
         pity5AtPull: readPityAtPull(result.snapshot, 'pity5'),
         pity4AtPull: readPityAtPull(result.snapshot, 'pity4'),
       })),
@@ -156,6 +160,8 @@ export class PrismaGachaStore implements GachaStore {
       const target = banner.featuredFiveStars.find(({ id }) => id === storedState.selectedBannerCharacterId);
       if (!target) throw new BusinessError('GACHA_TARGET_INVALID', 'La cible choisie ne fait pas partie de la bannière active.');
 
+      const activeTeam = await readActiveTeamSnapshot(transaction, input.playerId);
+
       const businessOperation = await transaction.businessOperation.create({ data: {
         playerId: input.playerId, operationType: 'gacha.pull', sourceChannel: SourceChannel.UI, idempotencyKey: operationKey,
       }, select: { id: true } });
@@ -174,23 +180,45 @@ export class PrismaGachaStore implements GachaStore {
       let state: PullState = storedState;
       const records: PullResultRecord[] = [];
       for (let index = 1; index <= input.count; index += 1) {
-        const resolved = resolvePulls(state, { target, featuredFiveStars: banner.featuredFiveStars, featuredFourStars: banner.featuredFourStars }, 1, input.random).results[0]!;
+        const resolved = resolvePulls(
+          state,
+          { target, featuredFiveStars: banner.featuredFiveStars, featuredFourStars: banner.featuredFourStars },
+          1,
+          input.random,
+          activeTeam.effects.fiveStarChanceBonusBasisPoints,
+        ).results[0]!;
         state = resolved.stateAfter;
         const bonusRewards: { resourceKey: ResourceKey; amount: bigint; causeKey: string }[] = [];
+        const passiveEffects: GachaPassiveEffect[] = activeTeam.effects.fiveStarChanceBonusBasisPoints > 0
+          ? [{ elementKey: 'hydro', type: 'five_star_chance_bonus', basisPoints: activeTeam.effects.fiveStarChanceBonusBasisPoints }]
+          : [];
         let c6Progression: PullResultRecord['c6Progression'] = null;
         let record: PullResultRecord;
 
         if (resolved.outcome.type === 'resource') {
+          const amountBefore = resolved.outcome.amount;
+          const multiplier = resourcePassiveMultiplier(resolved.outcome.resourceKey, activeTeam.effects);
+          const resourceAmount = applyExactMultiplier(amountBefore, multiplier);
+          if (multiplier.numerator !== multiplier.denominator) {
+            passiveEffects.push({
+              elementKey: resolved.outcome.resourceKey === 'moras' ? 'geo' : 'pyro',
+              type: 'secondary_reward_multiplier',
+              numerator: multiplier.numerator,
+              denominator: multiplier.denominator,
+              amountBefore,
+              amountAfter: resourceAmount,
+            });
+          }
           await this.economy.credit(transaction, {
             playerId: input.playerId, playerElementKey: input.playerElementKey,
-            resourceKey: resolved.outcome.resourceKey, amount: resolved.outcome.amount,
+            resourceKey: resolved.outcome.resourceKey, amount: resourceAmount,
             causeKey: 'gacha.pull.secondary-reward', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel: SourceChannel.UI,
           });
           record = {
             index, resultType: 'resource', character: null, rarity: null,
-            resourceKey: resolved.outcome.resourceKey, resourceAmount: resolved.outcome.amount,
+            resourceKey: resolved.outcome.resourceKey, resourceAmount,
             wasNewCharacter: null, constellationAfter: null, copiesAfter: null,
-            wasFiftyFifty: false, wonFiftyFifty: null, guaranteeConsumed: false, captureTriggered: false, bonusRewards, c6Progression,
+            wasFiftyFifty: false, wonFiftyFifty: null, guaranteeConsumed: false, captureTriggered: false, bonusRewards, c6Progression, passiveEffects,
           };
         } else {
           const acquisition = await this.possessions.acquire(transaction, input.playerId, resolved.outcome.character.id, input.now);
@@ -223,8 +251,50 @@ export class PrismaGachaStore implements GachaStore {
             resourceKey: null, resourceAmount: null, wasNewCharacter: acquisition.wasNewCharacter,
             constellationAfter: acquisition.constellation, copiesAfter: acquisition.copies,
             wasFiftyFifty: resolved.outcome.wasFiftyFifty, wonFiftyFifty: resolved.outcome.wonFiftyFifty,
-            guaranteeConsumed: resolved.outcome.guaranteeConsumed, captureTriggered: resolved.outcome.captureTriggered, bonusRewards, c6Progression,
+            guaranteeConsumed: resolved.outcome.guaranteeConsumed, captureTriggered: resolved.outcome.captureTriggered, bonusRewards, c6Progression, passiveEffects,
           };
+        }
+
+        if (activeTeam.effects.xpReward && succeedsOneIn(activeTeam.effects.xpReward.oneIn, input.random)) {
+          const xpGrant = await this.xp.grant(transaction, {
+            playerId: input.playerId, playerElementKey: input.playerElementKey,
+            amount: BigInt(activeTeam.effects.xpReward.amount), source: 'team.passive.cryo', now: input.now,
+            operationId: businessOperation.id, sourceChannel: SourceChannel.UI, random: input.random,
+          });
+          passiveEffects.push({
+            elementKey: 'cryo', type: 'xp', amount: xpGrant.amount, xpAfter: xpGrant.stateAfter.xp,
+            levelsReached: xpGrant.levelsReached, overflowRewardsGranted: xpGrant.overflowRewardsGranted,
+          });
+          bonusRewards.push(...xpGrant.rewards.map((reward) => ({ ...reward, causeKey: 'player.xp.level-reward' })));
+        }
+
+        if (activeTeam.effects.pity5Reward && succeedsOneIn(activeTeam.effects.pity5Reward.oneIn, input.random)) {
+          const pityBefore = state.pity5;
+          state = { ...state, pity5: Math.min(89, state.pity5 + activeTeam.effects.pity5Reward.amount) };
+          passiveEffects.push({ elementKey: 'electro', type: 'pity5', amount: state.pity5 - pityBefore, requestedAmount: 2 });
+        }
+
+        if (activeTeam.effects.primogemRecovery && succeedsOneIn(activeTeam.effects.primogemRecovery.oneIn, input.random)) {
+          const amount = BigInt(activeTeam.effects.primogemRecovery.amount);
+          await this.economy.credit(transaction, {
+            playerId: input.playerId, playerElementKey: input.playerElementKey, resourceKey: 'primogems', amount,
+            causeKey: 'team.passive.anemo.primogem-recovery', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel: SourceChannel.UI,
+          });
+          bonusRewards.push({ resourceKey: 'primogems', amount, causeKey: 'team.passive.anemo.primogem-recovery' });
+          passiveEffects.push({ elementKey: 'anemo', type: 'primogem_recovery', amount });
+        }
+
+        if (activeTeam.effects.dendroBundle && succeedsOneIn(activeTeam.effects.dendroBundle.oneIn, input.random)) {
+          const bundleRewards = dendroRewards(activeTeam.effects.dendroBundle);
+          for (const reward of bundleRewards) {
+            await this.economy.credit(transaction, {
+              playerId: input.playerId, playerElementKey: input.playerElementKey,
+              resourceKey: reward.resourceKey, amount: reward.amount,
+              causeKey: 'team.passive.dendro.bundle', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel: SourceChannel.UI,
+            });
+            bonusRewards.push({ ...reward, causeKey: 'team.passive.dendro.bundle' });
+          }
+          passiveEffects.push({ elementKey: 'dendro', type: 'resource_bundle', rewards: bundleRewards });
         }
 
         await transaction.pullResult.create({ data: {
@@ -234,7 +304,7 @@ export class PrismaGachaStore implements GachaStore {
           constellationAfter: record.constellationAfter, copiesAfter: record.copiesAfter,
           wasFiftyFifty: record.wasFiftyFifty, wonFiftyFifty: record.wonFiftyFifty,
           guaranteeConsumed: record.guaranteeConsumed, captureTriggered: record.captureTriggered,
-          snapshot: snapshot(resolved.stateBefore, resolved.stateAfter, bonusRewards, c6Progression), createdAt: input.now,
+          snapshot: snapshot(resolved.stateBefore, state, bonusRewards, c6Progression, activeTeam, passiveEffects), createdAt: input.now,
         } });
         records.push(record);
       }
@@ -262,7 +332,8 @@ export class PrismaGachaStore implements GachaStore {
     } });
     if (!row) return null;
     if (row.pullCount !== expectedCount) throw new BusinessError('GACHA_IDEMPOTENCY_CONFLICT', 'Cette clé d’idempotence correspond à une autre quantité.');
-    const playerState = await client.playerGachaState.findUniqueOrThrow({ where: { playerId: row.playerId }, select: stateSelection });
+    const currentPlayerState = await client.playerGachaState.findUniqueOrThrow({ where: { playerId: row.playerId }, select: stateSelection });
+    const playerState = readPersistedPlayerState(row.results.at(-1)?.snapshot ?? null, row.targetCharacterId) ?? currentPlayerState;
     return {
       operation: { id: row.id, pullCount: expectedCount, primogemCost: row.primogemCost, createdAt: row.createdAt, alreadyProcessed },
       results: row.results.map((result) => ({
@@ -274,6 +345,7 @@ export class PrismaGachaStore implements GachaStore {
         wasFiftyFifty: result.wasFiftyFifty, wonFiftyFifty: result.wonFiftyFifty,
         guaranteeConsumed: result.guaranteeConsumed, captureTriggered: result.captureTriggered,
         bonusRewards: readBonusRewards(result.snapshot), c6Progression: readC6Progression(result.snapshot),
+        passiveEffects: readPassiveEffects(result.snapshot),
       })),
       playerState,
     };
@@ -324,12 +396,77 @@ function snapshot(
   after: PullState,
   bonusRewards: readonly { resourceKey: ResourceKey; amount: bigint; causeKey: string }[],
   c6Progression: PullResultRecord['c6Progression'],
+  activeTeam: ActiveTeamSnapshot,
+  passiveEffects: readonly GachaPassiveEffect[],
 ): Prisma.InputJsonObject {
   return {
     stateBefore: snapshotState(before), stateAfter: snapshotState(after),
     bonusRewards: bonusRewards.map(({ resourceKey, amount, causeKey }) => ({ resourceKey, amount: amount.toString(), causeKey })),
+    activeTeam: activeTeamSnapshotJson(activeTeam),
+    passiveEffects: passiveEffects.map(passiveEffectJson),
     ...(c6Progression ? { c6Progression } : {}),
   };
+}
+
+type ActiveTeamSnapshot = Readonly<{
+  teamId: string | null;
+  elements: readonly ElementKey[];
+  effects: ActiveTeamGachaEffects;
+}>;
+
+async function readActiveTeamSnapshot(transaction: Prisma.TransactionClient, playerId: string): Promise<ActiveTeamSnapshot> {
+  const team = await transaction.team.findFirst({
+    where: { playerId, isActive: true },
+    select: {
+      id: true,
+      members: {
+        where: { character: { isActive: true } },
+        orderBy: { position: 'asc' },
+        select: { character: { select: { elementKey: true } } },
+      },
+    },
+  });
+  const elements = (team?.members ?? []).flatMap(({ character }) => isElementKey(character.elementKey) ? [character.elementKey] : []);
+  return { teamId: team?.id ?? null, elements, effects: deriveActiveTeamGachaEffects(elements) };
+}
+
+function resourcePassiveMultiplier(resourceKey: ResourceKey, effects: ActiveTeamGachaEffects): ExactMultiplier {
+  if (resourceKey === 'moras') return effects.secondaryMoraMultiplier;
+  if (resourceKey.startsWith('particles_')) return effects.secondaryParticleMultiplier;
+  return { numerator: 1, denominator: 1 };
+}
+
+function succeedsOneIn(oneIn: number, random: GachaPullInput['random']): boolean {
+  return random.nextInt(oneIn) === 0;
+}
+
+function dendroRewards(bundle: NonNullable<ActiveTeamGachaEffects['dendroBundle']>): readonly { resourceKey: ResourceKey; amount: bigint }[] {
+  return [
+    { resourceKey: 'primogems', amount: BigInt(bundle.primogems) },
+    { resourceKey: 'moras', amount: BigInt(bundle.moras) },
+    ...elementKeys.map((element) => ({ resourceKey: particleResourceKey(element), amount: BigInt(bundle.particlesPerElement) })),
+  ];
+}
+
+function activeTeamSnapshotJson(activeTeam: ActiveTeamSnapshot): Prisma.InputJsonObject {
+  return {
+    teamId: activeTeam.teamId,
+    elements: [...activeTeam.elements],
+    effects: activeTeam.effects as unknown as Prisma.InputJsonObject,
+  };
+}
+
+function passiveEffectJson(effect: GachaPassiveEffect): Prisma.InputJsonObject {
+  if (effect.type === 'five_star_chance_bonus') return { ...effect };
+  if (effect.type === 'secondary_reward_multiplier') {
+    return { ...effect, amountBefore: effect.amountBefore.toString(), amountAfter: effect.amountAfter.toString() };
+  }
+  if (effect.type === 'xp') {
+    return { ...effect, amount: effect.amount.toString(), xpAfter: effect.xpAfter.toString(), levelsReached: [...effect.levelsReached] };
+  }
+  if (effect.type === 'pity5') return { ...effect };
+  if (effect.type === 'primogem_recovery') return { ...effect, amount: effect.amount.toString() };
+  return { ...effect, rewards: effect.rewards.map(({ resourceKey, amount }) => ({ resourceKey, amount: amount.toString() })) };
 }
 
 function snapshotState(state: PullState): Prisma.InputJsonObject {
@@ -362,12 +499,88 @@ function readC6Progression(value: Prisma.JsonValue | null): PullResultRecord['c6
   return { type: 'stat', stat: progression.stat as C6StatKey, valueAfter: progression.valueAfter };
 }
 
+function readPassiveEffects(value: Prisma.JsonValue | null): PullResultRecord['passiveEffects'] {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !('passiveEffects' in value) || !Array.isArray(value.passiveEffects)) return [];
+  return value.passiveEffects.flatMap((effect): GachaPassiveEffect[] => {
+    if (!effect || typeof effect !== 'object' || Array.isArray(effect)) return [];
+    const { elementKey, type } = effect;
+    if (!isElementKeyValue(elementKey) || typeof type !== 'string') return [];
+    if (elementKey === 'hydro' && type === 'five_star_chance_bonus' && isNonNegativeInteger(effect.basisPoints)) {
+      return [{ elementKey, type, basisPoints: effect.basisPoints }];
+    }
+    if ((elementKey === 'pyro' || elementKey === 'geo') && type === 'secondary_reward_multiplier'
+      && isPositiveInteger(effect.numerator) && isPositiveInteger(effect.denominator)
+      && typeof effect.amountBefore === 'string' && typeof effect.amountAfter === 'string') {
+      return [{ elementKey, type, numerator: effect.numerator, denominator: effect.denominator, amountBefore: BigInt(effect.amountBefore), amountAfter: BigInt(effect.amountAfter) }];
+    }
+    if (elementKey === 'cryo' && type === 'xp' && typeof effect.amount === 'string' && typeof effect.xpAfter === 'string'
+      && Array.isArray(effect.levelsReached) && effect.levelsReached.every(isNonNegativeInteger) && isNonNegativeInteger(effect.overflowRewardsGranted)) {
+      return [{ elementKey, type, amount: BigInt(effect.amount), xpAfter: BigInt(effect.xpAfter), levelsReached: effect.levelsReached, overflowRewardsGranted: effect.overflowRewardsGranted }];
+    }
+    if (elementKey === 'electro' && type === 'pity5' && isNonNegativeInteger(effect.amount) && effect.requestedAmount === 2) {
+      return [{ elementKey, type, amount: effect.amount, requestedAmount: 2 }];
+    }
+    if (elementKey === 'anemo' && type === 'primogem_recovery' && typeof effect.amount === 'string') {
+      return [{ elementKey, type, amount: BigInt(effect.amount) }];
+    }
+    if (elementKey === 'dendro' && type === 'resource_bundle' && Array.isArray(effect.rewards)) {
+      const rewards = effect.rewards.flatMap((reward) => {
+        if (!reward || typeof reward !== 'object' || Array.isArray(reward) || !isResourceKeyValue(reward.resourceKey) || typeof reward.amount !== 'string') return [];
+        return [{ resourceKey: reward.resourceKey, amount: BigInt(reward.amount) }];
+      });
+      return rewards.length === effect.rewards.length ? [{ elementKey, type, rewards }] : [];
+    }
+    return [];
+  });
+}
+
+function isElementKeyValue(value: unknown): value is ElementKey {
+  return typeof value === 'string' && isElementKey(value);
+}
+
+function isResourceKeyValue(value: unknown): value is ResourceKey {
+  return typeof value === 'string' && isResourceKey(value);
+}
+
+function isNonNegativeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
+}
+
+function isPositiveInteger(value: unknown): value is number {
+  return isNonNegativeInteger(value) && value > 0;
+}
+
 function readPityAtPull(value: Prisma.JsonValue | null, key: 'pity5' | 'pity4'): number | null {
   if (!value || typeof value !== 'object' || Array.isArray(value) || !('stateBefore' in value)) return null;
   const stateBefore = value.stateBefore;
   if (!stateBefore || typeof stateBefore !== 'object' || Array.isArray(stateBefore)) return null;
   const pity = stateBefore[key];
   return typeof pity === 'number' && Number.isInteger(pity) && pity >= 0 ? pity + 1 : null;
+}
+
+function readPersistedPlayerState(value: Prisma.JsonValue | null, selectedBannerCharacterId: string): PlayerGachaState | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !('stateAfter' in value)) return null;
+  const state = value.stateAfter;
+  if (!state || typeof state !== 'object' || Array.isArray(state)) return null;
+  const integerKeys = ['pity5', 'pity4', 'captureProgress', 'fiftyFiftyLostStreak'] as const;
+  const bigintKeys = ['totalPulls', 'totalFiveStars', 'totalFourStars', 'fiftyFiftyWon', 'fiftyFiftyLost', 'capturesTriggered'] as const;
+  if (!integerKeys.every((key) => isNonNegativeInteger(state[key]))) return null;
+  if (!bigintKeys.every((key) => typeof state[key] === 'string')) return null;
+  if (typeof state.guaranteedFeatured5 !== 'boolean') return null;
+  return {
+    pity5: state.pity5 as number,
+    pity4: state.pity4 as number,
+    guaranteedFeatured5: state.guaranteedFeatured5,
+    captureProgress: state.captureProgress as number,
+    fiftyFiftyLostStreak: state.fiftyFiftyLostStreak as number,
+    selectedBannerCharacterId,
+    totalPulls: BigInt(state.totalPulls as string),
+    totalFiveStars: BigInt(state.totalFiveStars as string),
+    totalFourStars: BigInt(state.totalFourStars as string),
+    fiftyFiftyWon: BigInt(state.fiftyFiftyWon as string),
+    fiftyFiftyLost: BigInt(state.fiftyFiftyLost as string),
+    capturesTriggered: BigInt(state.capturesTriggered as string),
+  };
 }
 
 function waitForConcurrentTransaction(attempt: number): Promise<void> {

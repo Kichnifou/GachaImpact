@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { acquireCharacter } from '../src/domain/collection/possession.js';
 import { initialC6Stats, progressC6 } from '../src/domain/contest/c6-progress.js';
-import { fiveStarChanceBasisPoints, fourStarChanceBasisPoints, resolvePulls, type PullState } from '../src/domain/gacha/pull.js';
+import { effectiveFiveStarChanceBasisPoints, fiveStarChanceBasisPoints, fourStarChanceBasisPoints, resolvePulls, type PullState } from '../src/domain/gacha/pull.js';
 import type { GachaCharacter } from '../src/domain/gacha/gacha.js';
 
 const character = (id: string, rarity: 4 | 5): GachaCharacter => ({ id, externalKey: id, name: id, rarity, elementKey: 'hydro', weaponType: null, region: null, classKey: null, iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null });
@@ -29,6 +29,21 @@ describe('Gacha pull probabilities', () => {
     expect(fourStarChanceBasisPoints(8)).toBe(150);
     expect(fourStarChanceBasisPoints(9)).toBe(1_950);
     expect(fourStarChanceBasisPoints(10)).toBe(10_000);
+  });
+  it('adds Hydro basis points at base and soft pity while clamping hard pity', () => {
+    expect(effectiveFiveStarChanceBasisPoints(1, 0)).toBe(60);
+    expect(effectiveFiveStarChanceBasisPoints(1, 30)).toBe(90);
+    expect(effectiveFiveStarChanceBasisPoints(1, 60)).toBe(120);
+    expect(effectiveFiveStarChanceBasisPoints(74, 30)).toBe(690);
+    expect(effectiveFiveStarChanceBasisPoints(90, 60)).toBe(10_000);
+    expect(effectiveFiveStarChanceBasisPoints(89, 60)).toBe(9_720);
+  });
+  it('lets Hydro change only the five-star roll, not guarantee or Capture resolution', () => {
+    const withoutHydro = resolvePulls(base, banner, 1, sequence(89, 9_999, 0, 0));
+    const withHydro = resolvePulls(base, banner, 1, sequence(89, 9_999, 0), 30);
+    expect(withoutHydro.results[0]?.outcome.type).toBe('resource');
+    expect(withHydro.results[0]?.outcome).toMatchObject({ type: 'character', rarity: 5, wonFiftyFifty: true });
+    expect(withHydro.state).toMatchObject({ pity5: 0, guaranteedFeatured5: false, captureProgress: 0 });
   });
   it('resets five-star pity but preserves four-star pity when both rolls succeed', () => {
     const result = resolvePulls({ ...base, pity5: 73, pity4: 8 }, banner, 1, sequence(0, 0, 0));

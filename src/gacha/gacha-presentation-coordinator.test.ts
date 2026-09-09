@@ -33,6 +33,10 @@ function update(
     },
     resources: failedRefreshes.includes('resources') ? null : { primogems: finalPrimogems, moras: '10000', particles: { pyro: '0', hydro: '0', cryo: '0', electro: '0', anemo: '0', geo: '0', dendro: '0' } },
     gacha: null,
+    progression: failedRefreshes.includes('progression') ? null : {
+      totalXp: '30', level: 1, xpIntoCurrentStep: '0', xpPerStep: '30', isMaxLevel: false,
+      level100OverflowRewardsClaimed: 0, totalMessages: '0', countedMessages: '0',
+    },
     failedRefreshes,
   }
 }
@@ -70,6 +74,7 @@ describe('Gacha presentation coordinator', () => {
     expect(coordinator.disclose('x1-operation')).toBe(true)
     expect(clearPreview).toHaveBeenLastCalledWith('player-a')
     expect(publish).toHaveBeenCalledWith(refreshed)
+    expect(publish).toHaveBeenCalledWith(expect.objectContaining({ progression: expect.objectContaining({ totalXp: '30', level: 1 }) }))
   })
 
   it('shows only the x10 cost through intro and reveal, then publishes at summary', async () => {

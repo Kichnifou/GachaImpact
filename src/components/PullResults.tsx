@@ -2,9 +2,10 @@ import type { CSSProperties } from 'react'
 import type { GachaPullDto, GachaPullResultItemDto } from '../api/types'
 import { elementThemes } from '../utils/elementTheme'
 import { formatResourceAmount } from '../utils/formatters'
-import { c6StatLabel, characterProgressionLabel, pullDisplayRarity, pullEventLabel, pullResourcePresentation } from '../gacha/pull-result-presentation'
+import { c6StatLabel, characterProgressionLabel, passiveEffectLabel, pullDisplayRarity, pullEventLabel, pullResourcePresentation } from '../gacha/pull-result-presentation'
 import CharacterAssetImage from './CharacterAssetImage'
 import GameAssetIcon from './GameAssetIcon'
+import { getElementAssetPath } from '../utils/gameAssets'
 
 const individualRevealNameStyle = { lineHeight: 1.12, paddingBottom: '0.12em' } satisfies CSSProperties
 
@@ -21,6 +22,10 @@ export function PullResultCard({ result, order = 0, compact = false }: { result:
   const resource = pullResourcePresentation(result.resourceKey)
   const event = pullEventLabel(result)
   const revealProgression = characterProgressionLabel(result.wasNewCharacter, result.constellationAfter)
+  const passiveEffects = (result.passiveEffects ?? []).flatMap((effect) => {
+    const label = passiveEffectLabel(effect)
+    return label ? [{ effect, label }] : []
+  })
   const characterAssetPaths = result.character
     ? compact
       ? [result.character.iconPath, result.character.fullbodyPath, result.character.wishPath, result.character.splashPath]
@@ -30,6 +35,7 @@ export function PullResultCard({ result, order = 0, compact = false }: { result:
     {result.bonusRewards.map((reward) => <small className="pull-bonus" key={`${reward.resourceKey}-${reward.causeKey}`}>+{formatResourceAmount(reward.amount)} {pullResourcePresentation(reward.resourceKey).label}</small>)}
     {result.c6Progression?.type === 'stat' && <small className="pull-bonus">{c6StatLabel(result.c6Progression.stat)} +1</small>}
     {result.c6Progression?.type === 'maxed' && <small className="pull-bonus">Progression C6 maxée</small>}
+    {passiveEffects.map(({ effect, label }, index) => <small className="pull-passive-effect" key={`${effect.elementKey}-${effect.type}-${index}`}><GameAssetIcon className="pull-passive-icon" src={getElementAssetPath(effect.elementKey)} fallback="✦" />{label}</small>)}
   </>
   return (
     <article className={`pull-result-card ${result.character ? 'character-result' : 'resource-result'} rarity-${rarity}${compact ? ' compact' : ' reveal'}`} style={{ '--pull-order': order } as CSSProperties}>
@@ -42,6 +48,7 @@ export function PullResultCard({ result, order = 0, compact = false }: { result:
           {!compact && <small className="pull-result-progression">{revealProgression}</small>}
           <strong style={compact ? undefined : individualRevealNameStyle}>{result.character.name}</strong>
           <span className="pull-result-rarity">{'★'.repeat(rarity)}</span>
+          {!compact && passiveEffects.length > 0 && <PassiveEffects effects={passiveEffects} />}
           {compact && <small>{revealProgression}</small>}
           {compact && event && <small className="pull-event">{event}</small>}
           {compact && compactBonusContent}
@@ -53,10 +60,15 @@ export function PullResultCard({ result, order = 0, compact = false }: { result:
           <strong>{resource.label}</strong>
           <span className="pull-result-rarity">★★★</span>
           <span className="pull-resource-amount">+{formatResourceAmount(result.resourceAmount ?? '0')}</span>
+          {!compact && passiveEffects.length > 0 && <PassiveEffects effects={passiveEffects} />}
           {compact && compactBonusContent}
         </div>}
     </article>
   )
+}
+
+function PassiveEffects({ effects }: { effects: readonly { effect: NonNullable<GachaPullResultItemDto['passiveEffects']>[number]; label: string }[] }) {
+  return <span className="pull-passive-effects">{effects.map(({ effect, label }, index) => <small className="pull-passive-effect" key={`${effect.elementKey}-${effect.type}-${index}`}><GameAssetIcon className="pull-passive-icon" src={getElementAssetPath(effect.elementKey)} fallback="✦" />{label}</small>)}</span>
 }
 
 export default PullResults

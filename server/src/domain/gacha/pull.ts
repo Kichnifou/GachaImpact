@@ -57,6 +57,11 @@ export function fiveStarChanceBasisPoints(attempt: number): number {
   return 60 + (attempt - 73) * 600;
 }
 
+export function effectiveFiveStarChanceBasisPoints(attempt: number, bonusBasisPoints: number): number {
+  if (!Number.isInteger(bonusBasisPoints) || bonusBasisPoints < 0) throw new RangeError('A five-star chance bonus must be non-negative basis points.');
+  return Math.min(10_000, fiveStarChanceBasisPoints(attempt) + bonusBasisPoints);
+}
+
 export function fourStarChanceBasisPoints(attempt: number): number {
   if (attempt >= 10) return 10_000;
   return attempt === 9 ? 1_950 : 150;
@@ -67,6 +72,7 @@ export function resolvePulls(
   banner: PullBanner,
   count: PullCount,
   random: RandomSource,
+  fiveStarChanceBonusBasisPoints = 0,
 ): Readonly<{ results: readonly ResolvedPull[]; state: PullState }> {
   validateBanner(banner);
   const results: ResolvedPull[] = [];
@@ -76,7 +82,8 @@ export function resolvePulls(
     const stateBefore = state;
     const pity5 = Math.min(90, state.pity5 + 1);
     const pity4 = Math.min(10, state.pity4 + 1);
-    const fiveStar = succeeds(fiveStarChanceBasisPoints(pity5), random);
+    const fiveStarChance = effectiveFiveStarChanceBasisPoints(pity5, fiveStarChanceBonusBasisPoints);
+    const fiveStar = succeeds(fiveStarChance, random);
     const fourStar = succeeds(fourStarChanceBasisPoints(pity4), random);
     let outcome: PullOutcome;
 

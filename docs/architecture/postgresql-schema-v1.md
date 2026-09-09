@@ -457,6 +457,8 @@ Contraintes :
 
 Le niveau n'est pas stocké comme vérité.
 
+État physique 0.71 : le service central de gain d'XP verrouille cette ligne dans la transaction métier appelante, met à jour `xp`, `level_100_overflow_rewards_claimed` et `last_xp_at`, puis crédite les récompenses de chaque palier/overflow par le moteur économique. Une source non-message comme le passif Cryo ne modifie ni les deux compteurs message ni `last_xp_message_at`.
+
 ---
 
 ## 6.2 `player_daily_reward_state`
@@ -863,6 +865,8 @@ Index :
 - `(character_id, created_at)`
 - `(pull_operation_id, result_index)`
 
+État physique 0.71 : aucune colonne ni migration supplémentaire n'est requise. `snapshot` conserve désormais, en plus des états Gacha et bonus existants, le snapshot de la Team active et les `passiveEffects` machine-readable de chaque vœu. L'état final après les passifs est relu par les retries afin de restituer exactement l'opération d'origine sans reroll ni double crédit.
+
 ---
 
 # 12. Possessions / Collection personnages
@@ -1077,7 +1081,7 @@ Les passifs actifs d'un joueur sont dérivés de sa Team active.
 
 Le cleanup transactionnel R185 distingue l'état et la position courante : une Team active perd seulement les memberships devenus inactifs ; une Team non active 1..10 perd tous ses memberships ; une Team non active 11+ est supprimée par cascade, puis l'ordre survivant est compacté une seule fois. `is_base_slot` n'intervient pas dans cette décision et aucune réactivation catalogue ne recrée les relations supprimées.
 
-`element_passive_definitions` reste une cible d'administration future. L'état physique 0.70 conserve les sept définitions et leurs paramètres Gacha futurs exacts dans une configuration serveur fortement typée ; `deriveActiveTeamGachaEffects` produit un contrat machine-readable pur depuis les éléments de la Team, sans nouvelle table ni valeur dérivée persistée. Ce contrat n'est pas encore raccordé au moteur Pull.
+`element_passive_definitions` reste une cible d'administration future. L'état physique 0.71 conserve les sept définitions et leurs paramètres Gacha exacts dans une configuration serveur fortement typée ; `deriveActiveTeamGachaEffects` produit un contrat machine-readable pur depuis les éléments de la Team. Le moteur Pull verrouille le Player, lit la seule Team active et exclut les personnages catalogue désactivés, puis fige ce contexte pour toute l'opération. Un x10 partage le snapshot mais teste les effets par vœu. Les ratios Pyro/Géo sont appliqués en arithmétique entière exacte avec floor ; les effets post-vœu suivent l'ordre Cryo, Électro, Anémo, Dendro. Aucune nouvelle table ni valeur dérivée persistée par Player n'est introduite.
 
 ---
 

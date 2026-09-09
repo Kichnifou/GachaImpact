@@ -17,13 +17,22 @@ type ChanceReward<TAmount extends number> = Readonly<{
   amount: TAmount;
 }>;
 
+export type ExactMultiplier = Readonly<{
+  numerator: 1 | 3 | 5;
+  denominator: 1 | 2 | 4;
+}>;
+
+export function applyExactMultiplier(amount: bigint, multiplier: ExactMultiplier): bigint {
+  return amount * BigInt(multiplier.numerator) / BigInt(multiplier.denominator);
+}
+
 export type ActiveTeamGachaEffects = Readonly<{
-  secondaryParticleMultiplier: number;
+  secondaryParticleMultiplier: ExactMultiplier;
   fiveStarChanceBonusBasisPoints: number;
   xpReward: ChanceReward<1> | null;
   pity5Reward: ChanceReward<2> | null;
   primogemRecovery: ChanceReward<80> | null;
-  secondaryMoraMultiplier: number;
+  secondaryMoraMultiplier: ExactMultiplier;
   dendroBundle: Readonly<{
     oneIn: number;
     primogems: 40;
@@ -33,12 +42,12 @@ export type ActiveTeamGachaEffects = Readonly<{
 }>;
 
 export const TEAM_GACHA_PASSIVE_PARAMETERS = {
-  pyro: { secondaryParticleMultipliers: [1.25, 1.5] },
+  pyro: { secondaryParticleMultipliers: [{ numerator: 5, denominator: 4 }, { numerator: 3, denominator: 2 }] },
   hydro: { fiveStarChanceBonusBasisPoints: [30, 60] },
   cryo: { xpRewardOneIn: [20, 10], xpAmount: 1 },
   electro: { pity5RewardOneIn: [30, 20], pity5Amount: 2 },
   anemo: { primogemRecoveryOneIn: [12, 8], primogemAmount: 80 },
-  geo: { secondaryMoraMultipliers: [1.25, 1.5] },
+  geo: { secondaryMoraMultipliers: [{ numerator: 5, denominator: 4 }, { numerator: 3, denominator: 2 }] },
   dendro: {
     bundleOneIn: [25, 15],
     primogems: 40,
@@ -112,7 +121,7 @@ export function deriveActiveTeamGachaEffects(elements: readonly ElementKey[]): A
   const dendro = levelIndex(stacks.get('dendro'));
 
   return {
-    secondaryParticleMultiplier: pyro === null ? 1 : TEAM_GACHA_PASSIVE_PARAMETERS.pyro.secondaryParticleMultipliers[pyro],
+    secondaryParticleMultiplier: pyro === null ? { numerator: 1, denominator: 1 } : TEAM_GACHA_PASSIVE_PARAMETERS.pyro.secondaryParticleMultipliers[pyro],
     fiveStarChanceBonusBasisPoints: hydro === null ? 0 : TEAM_GACHA_PASSIVE_PARAMETERS.hydro.fiveStarChanceBonusBasisPoints[hydro],
     xpReward: cryo === null ? null : {
       oneIn: TEAM_GACHA_PASSIVE_PARAMETERS.cryo.xpRewardOneIn[cryo],
@@ -126,7 +135,7 @@ export function deriveActiveTeamGachaEffects(elements: readonly ElementKey[]): A
       oneIn: TEAM_GACHA_PASSIVE_PARAMETERS.anemo.primogemRecoveryOneIn[anemo],
       amount: TEAM_GACHA_PASSIVE_PARAMETERS.anemo.primogemAmount,
     },
-    secondaryMoraMultiplier: geo === null ? 1 : TEAM_GACHA_PASSIVE_PARAMETERS.geo.secondaryMoraMultipliers[geo],
+    secondaryMoraMultiplier: geo === null ? { numerator: 1, denominator: 1 } : TEAM_GACHA_PASSIVE_PARAMETERS.geo.secondaryMoraMultipliers[geo],
     dendroBundle: dendro === null ? null : {
       oneIn: TEAM_GACHA_PASSIVE_PARAMETERS.dendro.bundleOneIn[dendro],
       primogems: TEAM_GACHA_PASSIVE_PARAMETERS.dendro.primogems,

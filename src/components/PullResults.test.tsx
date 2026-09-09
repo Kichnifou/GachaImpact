@@ -67,6 +67,21 @@ describe('PullResults', () => {
     expect(compact).not.toContain('padding-bottom:0.12em')
   })
 
+  it('renders triggered passive feedback but never attributes a five-star causally to Hydro', () => {
+    const result = {
+      ...characterResult,
+      passiveEffects: [
+        { elementKey: 'hydro' as const, type: 'five_star_chance_bonus' as const, basisPoints: 30 },
+        { elementKey: 'cryo' as const, type: 'xp' as const, amount: '1', xpAfter: '30', levelsReached: [1], overflowRewardsGranted: 0 },
+        { elementKey: 'electro' as const, type: 'pity5' as const, amount: 2, requestedAmount: 2 as const },
+      ],
+    }
+    const html = renderToStaticMarkup(<PullResultCard result={result} />)
+    expect(html).toContain('Cryo · +1 XP')
+    expect(html).toContain('Electro · +2 Pity 5★')
+    expect(html).not.toContain('Hydro ·')
+  })
+
   it('uses the same Nouveau or capped Cx rule in the x10 summary', () => {
     const newCharacter = { ...characterResult, wasNewCharacter: true, constellationAfter: 0, copiesAfter: 1, bonusRewards: [], c6Progression: null }
     const c1Character = { ...characterResult, constellationAfter: 1, copiesAfter: 2, bonusRewards: [], c6Progression: null }

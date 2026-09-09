@@ -18,6 +18,7 @@ import {
 } from '../src/application/team/team-services.js';
 import type { PlayerTeams, TeamStore } from '../src/application/team/team-store.js';
 import {
+  applyExactMultiplier,
   deriveActiveTeamGachaEffects,
   deriveTeamPassives,
   listTeamPassiveDefinitions,
@@ -60,6 +61,10 @@ class FakeTeamStore implements TeamStore {
 }
 
 describe('Team passives', () => {
+  it('applies exact integer multipliers with deterministic floor rounding', () => {
+    expect(applyExactMultiplier(21n, { numerator: 5, denominator: 4 })).toBe(26n);
+    expect(applyExactMultiplier(21n, { numerator: 3, denominator: 2 })).toBe(31n);
+  });
   it('derives every element in canonical order and caps each stack at two', () => {
     const passives = deriveTeamPassives(['hydro', 'pyro', 'hydro', 'hydro', 'dendro']);
     expect(passives.map(({ elementKey, stacks }) => [elementKey, stacks])).toEqual([
@@ -80,12 +85,12 @@ describe('Team passives', () => {
     const random = vi.spyOn(Math, 'random');
 
     expect(deriveActiveTeamGachaEffects([])).toEqual({
-      secondaryParticleMultiplier: 1,
+      secondaryParticleMultiplier: { numerator: 1, denominator: 1 },
       fiveStarChanceBonusBasisPoints: 0,
       xpReward: null,
       pity5Reward: null,
       primogemRecovery: null,
-      secondaryMoraMultiplier: 1,
+      secondaryMoraMultiplier: { numerator: 1, denominator: 1 },
       dendroBundle: null,
     });
     expect(random).not.toHaveBeenCalled();
@@ -93,12 +98,12 @@ describe('Team passives', () => {
 
   it('maps one stack of every element to the exact future Gacha parameters', () => {
     expect(deriveActiveTeamGachaEffects(['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro'])).toEqual({
-      secondaryParticleMultiplier: 1.25,
+      secondaryParticleMultiplier: { numerator: 5, denominator: 4 },
       fiveStarChanceBonusBasisPoints: 30,
       xpReward: { oneIn: 20, amount: 1 },
       pity5Reward: { oneIn: 30, amount: 2 },
       primogemRecovery: { oneIn: 12, amount: 80 },
-      secondaryMoraMultiplier: 1.25,
+      secondaryMoraMultiplier: { numerator: 5, denominator: 4 },
       dendroBundle: { oneIn: 25, primogems: 40, moras: 1_000, particlesPerElement: 5 },
     });
   });
@@ -107,12 +112,12 @@ describe('Team passives', () => {
     const elements = ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro'] as const;
 
     expect(deriveActiveTeamGachaEffects([...elements, ...elements])).toEqual({
-      secondaryParticleMultiplier: 1.5,
+      secondaryParticleMultiplier: { numerator: 3, denominator: 2 },
       fiveStarChanceBonusBasisPoints: 60,
       xpReward: { oneIn: 10, amount: 1 },
       pity5Reward: { oneIn: 20, amount: 2 },
       primogemRecovery: { oneIn: 8, amount: 80 },
-      secondaryMoraMultiplier: 1.5,
+      secondaryMoraMultiplier: { numerator: 3, denominator: 2 },
       dendroBundle: { oneIn: 15, primogems: 40, moras: 1_000, particlesPerElement: 5 },
     });
   });
@@ -122,12 +127,12 @@ describe('Team passives', () => {
     const before = [...elements];
 
     expect(deriveActiveTeamGachaEffects(elements)).toEqual({
-      secondaryParticleMultiplier: 1.5,
+      secondaryParticleMultiplier: { numerator: 3, denominator: 2 },
       fiveStarChanceBonusBasisPoints: 30,
       xpReward: null,
       pity5Reward: null,
       primogemRecovery: null,
-      secondaryMoraMultiplier: 1.25,
+      secondaryMoraMultiplier: { numerator: 5, denominator: 4 },
       dendroBundle: null,
     });
     expect(elements).toEqual(before);
