@@ -15,6 +15,30 @@ export type PlayerResourcesDto = Readonly<{
   particles: Readonly<Record<ElementKey, string>>
 }>
 
+export type BankOperationDto = Readonly<{
+  id: string
+  type: 'DEPOSIT' | 'WITHDRAWAL' | 'INTEREST'
+  amount: string
+  bankBalanceAfter: string
+  walletBalanceAfter: string | null
+  businessDate: string | null
+  createdAt: string
+}>
+
+export type PlayerBankDto = Readonly<{
+  walletMoras: string
+  bankMoras: string
+  totalWealth: string
+  estimatedInterest: string
+  interestRatePercent: 3
+  nextInterestAt: string
+  recentOperations: readonly BankOperationDto[]
+}>
+
+export type BankTransferDto = PlayerBankDto & Readonly<{
+  operation: Readonly<{ id: string; alreadyProcessed: boolean }>
+}>
+
 export type PlayerProgressionDto = Readonly<{
   totalXp: string
   level: number

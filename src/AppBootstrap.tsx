@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import { ApiError, getGameApiClient } from './api/game-api'
-import type { CurrentGachaDto, DailyRewardTodayDto, ElementKey, GachaCharacterDto, GachaPullDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, WheelTodayDto } from './api/types'
+import type { BankTransferDto, CurrentGachaDto, DailyRewardTodayDto, ElementKey, GachaCharacterDto, GachaPullDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, WheelTodayDto } from './api/types'
 import { useAuth } from './auth/auth-context'
 import { resolveBootstrapStage } from './auth/bootstrap-state'
 import AuthScreen from './components/AuthScreen'
@@ -13,6 +13,7 @@ import { wheelTodayFromSpin } from './wheel/wheel-presentation'
 import { claimDailyRewardAndRefresh } from './daily-reward/claim-daily-reward'
 import { performGachaPullAndRefresh } from './gacha/perform-gacha-pull'
 import { abandonGachaPresentationBeforeSignOut, applyGachaPrimogemCostPreview, createGachaPresentationCoordinator, type GachaPresentationCoordinator, type GachaPrimogemCostPreview } from './gacha/gacha-presentation-coordinator'
+import { applyBankWalletToResources } from './bank/bank-presentation'
 
 function AppBootstrap() {
   const { status: authStatus, session, configurationMessage, signOut } = useAuth()
@@ -48,6 +49,15 @@ function AppBootstrap() {
     setTeams(nextTeams)
     return nextTeams
   }, [])
+  const publishBankTransfer = useCallback((result: BankTransferDto) => {
+    setResources((current) => current ? applyBankWalletToResources(current, result) : current)
+    return result
+  }, [])
+  const loadBank = useCallback(() => getGameApiClient().getBank(), [])
+  const depositBank = useCallback(async (amount: string, idempotencyKey: string) =>
+    publishBankTransfer(await getGameApiClient().depositBank(amount, idempotencyKey)), [publishBankTransfer])
+  const withdrawBank = useCallback(async (amount: string, idempotencyKey: string) =>
+    publishBankTransfer(await getGameApiClient().withdrawBank(amount, idempotencyKey)), [publishBankTransfer])
 
   const loadGameState = useCallback(async () => {
     const api = getGameApiClient()
@@ -236,6 +246,9 @@ function AppBootstrap() {
       onSetBoxFavorite={setBoxFavorite}
       onSetBoxSortPreference={setBoxSortPreference}
       onUseStella={useStella}
+      onLoadBank={loadBank}
+      onDepositBank={depositBank}
+      onWithdrawBank={withdrawBank}
       onClaimDailyReward={async () => {
         const { result, resources: nextResources } = await claimDailyRewardAndRefresh(getGameApiClient())
         setResources(nextResources)

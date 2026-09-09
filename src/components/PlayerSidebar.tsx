@@ -82,6 +82,7 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
             <div className="resource-item">
               <GameAssetIcon className="resource-icon gold" src={currencyAssetPaths.mora} fallback="●" />
               <div><strong>{formatResourceAmount(resources.moras)}</strong><small>Moras</small></div>
+              <button type="button" className="bank-shortcut" onClick={() => onNavigate('bank')} aria-label="Ouvrir la Banque">Banque</button>
             </div>
           </div>
         </section>

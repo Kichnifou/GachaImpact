@@ -58,6 +58,10 @@ export function apiErrorMessage(error: unknown): string {
     GACHA_BANNER_INVALID: 'La bannière active est momentanément invalide.',
     GACHA_PULL_IN_PROGRESS: 'Une Invocation est déjà en cours.',
     GACHA_PULL_INTENT_CONFLICT: 'Une Invocation précédente doit d’abord être confirmée avec le même nombre de vœux.',
+    BANK_AMOUNT_INVALID: 'Saisissez un montant entier strictement positif.',
+    BANK_WALLET_INSUFFICIENT: 'Votre portefeuille ne contient pas assez de Moras.',
+    BANK_BALANCE_INSUFFICIENT: 'Votre Banque ne contient pas assez de Moras.',
+    BANK_IDEMPOTENCY_CONFLICT: 'Cette opération Banque ne peut pas être rejouée.',
   }
 
   return typeof code === 'string' && messages[code]

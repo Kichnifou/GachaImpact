@@ -4,6 +4,7 @@ export type ScreenId =
   | 'box'
   | 'characters'
   | 'team'
+  | 'bank'
   | 'inventory'
   | 'shop'
 

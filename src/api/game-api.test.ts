@@ -213,4 +213,20 @@ describe('game API client', () => {
       [`http://127.0.0.1:3001/api/v1/me/teams/${teamId}`, 'DELETE', null],
     ])
   })
+
+  it('uses the personal Bank endpoints and sends MAX as a server-resolved intent', async () => {
+    const payload = { walletMoras: '9007199254740993', bankMoras: '100', totalWealth: '9007199254741093', estimatedInterest: '3', interestRatePercent: 3, nextInterestAt: '2026-09-09T22:00:00.000Z', recentOperations: [] }
+    const fetchImplementation = vi.fn<typeof fetch>(async () => new Response(JSON.stringify(payload)))
+    const client = createGameApiClient({ baseUrl: 'http://127.0.0.1:3001', getAccessToken: async () => 'token', fetchImplementation })
+    const depositKey = crypto.randomUUID()
+    const withdrawKey = crypto.randomUUID()
+    await expect(client.getBank()).resolves.toMatchObject({ walletMoras: '9007199254740993', totalWealth: '9007199254741093' })
+    await client.depositBank('max', depositKey)
+    await client.withdrawBank('25', withdrawKey)
+    expect(fetchImplementation.mock.calls.map(([url, init]) => [url, init?.method, init?.body ? JSON.parse(String(init.body)) : null])).toEqual([
+      ['http://127.0.0.1:3001/api/v1/me/bank', undefined, null],
+      ['http://127.0.0.1:3001/api/v1/me/bank/deposit', 'POST', { amount: 'max', idempotencyKey: depositKey }],
+      ['http://127.0.0.1:3001/api/v1/me/bank/withdraw', 'POST', { amount: '25', idempotencyKey: withdrawKey }],
+    ])
+  })
 })

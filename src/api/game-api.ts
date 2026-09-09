@@ -21,6 +21,8 @@ import type {
   BoxSortPreferenceDto,
   StellaUseDto,
   PlayerTeamsDto,
+  PlayerBankDto,
+  BankTransferDto,
 } from './types'
 
 type ApiClientDependencies = Readonly<{
@@ -106,6 +108,13 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
         body: JSON.stringify({ elementKey }),
       }),
     getResources: () => request<PlayerResourcesDto>('/api/v1/me/resources'),
+    getBank: () => request<PlayerBankDto>('/api/v1/me/bank'),
+    depositBank: (amount: string, idempotencyKey: string) => request<BankTransferDto>('/api/v1/me/bank/deposit', {
+      method: 'POST', body: JSON.stringify({ amount, idempotencyKey }),
+    }),
+    withdrawBank: (amount: string, idempotencyKey: string) => request<BankTransferDto>('/api/v1/me/bank/withdraw', {
+      method: 'POST', body: JSON.stringify({ amount, idempotencyKey }),
+    }),
     getProgression: () => request<PlayerProgressionDto>('/api/v1/me/progression'),
     getWheelToday: () => request<WheelTodayDto>('/api/v1/wheel/today'),
     spinWheel: () => request<WheelSpinDto>('/api/v1/wheel/spin', { method: 'POST' }),

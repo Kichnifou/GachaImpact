@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import type { BoxCharacterDto, BoxSortPreferenceDto, CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, PlayerBoxDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
+import type { BankTransferDto, BoxCharacterDto, BoxSortPreferenceDto, CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, PlayerBankDto, PlayerBoxDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import type { ScreenId } from '../types'
 import BoxScreen from '../screens/BoxScreen'
 import CharactersScreen from '../screens/CharactersScreen'
@@ -9,6 +9,7 @@ import InventoryScreen from '../screens/InventoryScreen'
 import InvocationScreen from '../screens/InvocationScreen'
 import ShopScreen from '../screens/ShopScreen'
 import TeamScreen from '../screens/TeamScreen'
+import BankScreen from '../screens/BankScreen'
 import ChatPanel from './ChatPanel'
 import GameHeader from './GameHeader'
 import Navigation from './Navigation'
@@ -17,7 +18,7 @@ import PlayerSidebar from './PlayerSidebar'
 import { BoxMemoryCache } from '../box/box-memory-cache'
 import { StellaIntentCoordinator } from '../box/stella-intent-coordinator'
 
-const screenIds: ScreenId[] = ['home', 'invocation', 'box', 'characters', 'team', 'inventory', 'shop']
+const screenIds: ScreenId[] = ['home', 'invocation', 'box', 'characters', 'team', 'bank', 'inventory', 'shop']
 
 const getScreenFromHash = (): ScreenId => {
   const screen = window.location.hash.slice(1)
@@ -56,9 +57,12 @@ type GameShellProps = {
   onSetBoxFavorite: (characterId: string, favorite: boolean) => Promise<BoxCharacterDto>
   onSetBoxSortPreference: (preference: BoxSortPreferenceDto) => Promise<BoxSortPreferenceDto>
   onUseStella: (characterId: string, idempotencyKey: string) => Promise<StellaUseDto>
+  onLoadBank: () => Promise<PlayerBankDto>
+  onDepositBank: (amount: string, idempotencyKey: string) => Promise<BankTransferDto>
+  onWithdrawBank: (amount: string, idempotencyKey: string) => Promise<BankTransferDto>
 }
 
-function GameShell({ player, resources, progression, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella }: GameShellProps) {
+function GameShell({ player, resources, progression, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onDepositBank, onWithdrawBank }: GameShellProps) {
   const [activeScreen, setActiveScreen] = useState<ScreenId>(getScreenFromHash)
   const activeScreenRef = useRef(activeScreen)
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
@@ -126,6 +130,8 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
         return <TeamScreen teams={teams} initialBox={boxCache.read(player.id)} stellaRetryCharacterId={stellaIntents.getIntent(player.id)?.characterId ?? null} onLoad={onLoadTeams} onActivate={onActivateTeam} onRename={onRenameTeam} onCreateNext={onCreateNextTeam} onDelete={onDeleteTeam} onReorderTeams={onReorderTeams} onSetSlot={onSetTeamSlot} onReorderSlots={onReorderTeamSlots} onRemoveSlot={onRemoveTeamSlot} onClear={onClearTeam} onLoadBox={loadBox} onSetBoxFavorite={setBoxFavorite} onUseStella={useStella} />
       case 'inventory':
         return <InventoryScreen />
+      case 'bank':
+        return <BankScreen onLoad={onLoadBank} onDeposit={onDepositBank} onWithdraw={onWithdrawBank} />
       case 'shop':
         return <ShopScreen />
       default:
