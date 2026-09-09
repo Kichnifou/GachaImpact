@@ -25,7 +25,7 @@ describe('PullResults', () => {
     expect(html).toContain('>C6</small>')
     expect(html).not.toContain('Copie')
     expect(html).not.toContain('Nouveau · C0')
-    expect(html).toContain('+80 Primogemmes')
+    expect(html).toContain('+80 Primos')
     expect(html).toContain('Beauté +1')
     expect(html).toContain('/assets/genshin/currencies/mora.png')
     expect(html).toContain('src="/icon/furina.png"')
@@ -48,14 +48,14 @@ describe('PullResults', () => {
     const c6Reveal = renderToStaticMarkup(<PullResultCard result={characterResult} />)
     expect(c6Reveal).toContain('pull-result-progression">C6')
     expect(c6Reveal).not.toContain('Copie 8')
-    expect(c6Reveal).not.toContain('+80 Primogemmes')
+    expect(c6Reveal).not.toContain('+80 Primos')
     expect(c6Reveal).not.toContain('Beauté +1')
 
     const resource = renderToStaticMarkup(<PullResultCard result={{ ...characterResult, resultType: 'resource', character: null, rarity: null, resourceKey: 'moras', resourceAmount: '6614', wasNewCharacter: null, constellationAfter: null, copiesAfter: null, wasFiftyFifty: false, wonFiftyFifty: null, c6Progression: null }} />)
     expect(resource).toContain('resource-result')
     expect(resource).toContain('pull-resource-content')
     expect(resource).toContain('/assets/genshin/currencies/mora.png')
-    expect(resource).not.toContain('+80 Primogemmes')
+    expect(resource).not.toContain('+80 Primos')
   })
 
   it('reserves vertical room for descenders in individual character reveal names', () => {
@@ -90,8 +90,8 @@ describe('PullResults', () => {
       passiveEffects: [{ elementKey: 'anemo' as const, type: 'primogem_recovery' as const, amount: '80' }],
     }
     const html = renderToStaticMarkup(<PullResultCard result={result} compact />)
-    expect((html.match(/Anemo · \+80 Primogemmes/g) ?? [])).toHaveLength(1)
-    expect(html).not.toContain('class="pull-bonus">+80 Primogemmes')
+    expect((html.match(/Anemo · \+80 Primos/g) ?? [])).toHaveLength(1)
+    expect(html).not.toContain('class="pull-bonus">+80 Primos')
   })
 
   it('shows one compact Dendro feedback instead of its nine generic economy rewards', () => {
@@ -122,7 +122,7 @@ describe('PullResults', () => {
       passiveEffects: [{ elementKey: 'cryo' as const, type: 'xp' as const, amount: '1', xpAfter: '30', levelsReached: [1], overflowRewardsGranted: 0 }],
     }
     const html = renderToStaticMarkup(<PullResultCard result={result} compact />)
-    expect(html).toContain('class="pull-bonus">+80 Primogemmes')
+    expect(html).toContain('class="pull-bonus">+80 Primos')
     expect(html).toContain('class="pull-bonus">+10 000 Moras')
     expect(html).toContain('Cryo · +1 XP')
   })
@@ -139,6 +139,27 @@ describe('PullResults', () => {
     expect(renderElectro(0)).not.toContain('Electro ·')
   })
 
+  it('keeps each passive icon and label together in the centered feedback structure', () => {
+    const result = {
+      ...characterResult,
+      bonusRewards: [],
+      c6Progression: null,
+      passiveEffects: [
+        { elementKey: 'geo' as const, type: 'secondary_reward_multiplier' as const, numerator: 5, denominator: 4, amountBefore: '5000', amountAfter: '6250' },
+        { elementKey: 'pyro' as const, type: 'secondary_reward_multiplier' as const, numerator: 5, denominator: 4, amountBefore: '20', amountAfter: '25' },
+        { elementKey: 'electro' as const, type: 'pity5' as const, amount: 2, requestedAmount: 2 as const },
+      ],
+    }
+    for (const compact of [false, true]) {
+      const html = renderToStaticMarkup(<PullResultCard result={result} compact={compact} />)
+      expect((html.match(/class="pull-passive-effect"/g) ?? [])).toHaveLength(3)
+      expect((html.match(/class="pull-passive-icon"/g) ?? [])).toHaveLength(3)
+      expect(html).toMatch(/pull-passive-effect[\s\S]*pull-passive-icon[\s\S]*Geo · Moras ×1,25/)
+      expect(html).toMatch(/pull-passive-effect[\s\S]*pull-passive-icon[\s\S]*Pyro · Particules ×1,25/)
+      expect(html).toMatch(/pull-passive-effect[\s\S]*pull-passive-icon[\s\S]*Electro · \+2 Pity 5★/)
+    }
+  })
+
   it('uses the same Nouveau or capped Cx rule in the x10 summary', () => {
     const newCharacter = { ...characterResult, wasNewCharacter: true, constellationAfter: 0, copiesAfter: 1, bonusRewards: [], c6Progression: null }
     const c1Character = { ...characterResult, constellationAfter: 1, copiesAfter: 2, bonusRewards: [], c6Progression: null }
@@ -152,7 +173,7 @@ describe('PullResults', () => {
     expect(newHtml).not.toContain('C0')
     expect(c1Html).toContain('>C1</small>')
     expect(c6Html).toContain('>C6</small>')
-    expect(c6Html).toContain('+80 Primogemmes')
+    expect(c6Html).toContain('+80 Primos')
     for (const html of [newHtml, c1Html, c6Html]) expect(html).not.toContain('Copie')
   })
 })

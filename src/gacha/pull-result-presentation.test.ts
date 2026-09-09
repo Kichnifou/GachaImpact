@@ -7,7 +7,7 @@ const resource = (resourceKey: string): GachaPullResultItemDto => ({ index: 1, r
 describe('Pull result presentation', () => {
   it('uses canonical currency assets and elemental particle assets', () => {
     expect(pullResourcePresentation('moras')).toMatchObject({ label: 'Moras', assetPath: '/assets/genshin/currencies/mora.png' })
-    expect(pullResourcePresentation('primogems')).toMatchObject({ label: 'Primogemmes', assetPath: '/assets/genshin/currencies/primogem.png' })
+    expect(pullResourcePresentation('primogems')).toMatchObject({ label: 'Primos', assetPath: '/assets/genshin/currencies/primogem.png' })
     const particlePaths = ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro'].map((element) => pullResourcePresentation(`particles_${element}`).assetPath)
     expect(new Set(particlePaths).size).toBe(7)
     expect(particlePaths).toContain('/assets/genshin/elements/cryo.png')

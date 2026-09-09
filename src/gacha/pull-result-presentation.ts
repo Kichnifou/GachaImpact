@@ -16,7 +16,7 @@ export type PullResourcePresentation = Readonly<{
 
 export function pullResourcePresentation(resourceKey: string | null): PullResourcePresentation {
   if (resourceKey === 'primogems') {
-    return { label: 'Primogemmes', assetPath: currencyAssetPaths.primogem, fallback: '✦' }
+    return { label: 'Primos', assetPath: currencyAssetPaths.primogem, fallback: '✦' }
   }
   if (resourceKey === 'moras') {
     return { label: 'Moras', assetPath: currencyAssetPaths.mora, fallback: 'M' }
@@ -65,7 +65,7 @@ export function passiveEffectLabel(effect: GachaPassiveEffectDto): string | null
   }
   if (effect.type === 'xp') return `Cryo · +${effect.amount} XP`
   if (effect.type === 'pity5') return effect.amount > 0 ? `Electro · +${effect.amount} Pity 5★` : null
-  if (effect.type === 'primogem_recovery') return `Anemo · +${effect.amount} Primogemmes`
+  if (effect.type === 'primogem_recovery') return `Anemo · +${effect.amount} Primos`
   return 'Dendro · Bundle élémentaire'
 }
 

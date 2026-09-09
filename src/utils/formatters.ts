@@ -22,7 +22,7 @@ export function formatWheelResult(result: WheelRewardDto): string {
   if (result.resultType === 'nothing') return 'La Roue ne vous accorde rien aujourd’hui.'
   if (result.resultType === 'moras') return `+${formatResourceAmount(result.amount ?? '0')} Moras`
   if (result.resultType === 'primogems') {
-    return `+${formatResourceAmount(result.amount ?? '0')} Primogemmes`
+    return `+${formatResourceAmount(result.amount ?? '0')} Primos`
   }
 
   const element = result.resourceKey?.replace('particles_', '') as ElementKey | undefined
@@ -51,7 +51,7 @@ export function apiErrorMessage(error: unknown): string {
     ELEMENT_ALREADY_CHOSEN: 'Votre élément permanent a déjà été choisi.',
     ELEMENT_NOT_AVAILABLE: 'Cet élément n’est pas disponible.',
     PLAYER_ELEMENT_REQUIRED: 'Choisissez votre élément avant de continuer.',
-    INSUFFICIENT_PRIMOGEMS: 'Vous ne possédez pas assez de Primogemmes.',
+    INSUFFICIENT_PRIMOGEMS: 'Vous ne possédez pas assez de Primos.',
     GACHA_TARGET_REQUIRED: 'Choisissez une cible 5★ avant d’invoquer.',
     GACHA_TARGET_INVALID: 'Votre cible ne fait plus partie de la bannière active.',
     GACHA_BANNER_UNAVAILABLE: 'Aucune bannière Invocation n’est disponible actuellement.',

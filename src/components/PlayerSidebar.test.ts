@@ -108,6 +108,8 @@ describe('Player sidebar progression', () => {
     expect((html.match(/player-secondary/g) ?? [])).toHaveLength(1)
     expect(html.indexOf('player-priority')).toBeLessThan(html.indexOf('player-secondary'))
     expect((html.match(/Ressources principales/g) ?? [])).toHaveLength(1)
+    expect(html).toContain('Primos')
+    expect(html).not.toContain('Primogemmes')
     expect((html.match(/>Particules</g) ?? [])).toHaveLength(1)
     expect(html).not.toContain('section-heading-label')
     expect(html).not.toContain('card-chevron')

@@ -77,7 +77,7 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
           <div className="resource-grid">
             <div className="resource-item">
               <GameAssetIcon className="resource-icon cyan" src={currencyAssetPaths.primogem} fallback="✦" />
-              <div><strong>{formatResourceAmount(resources.primogems)}</strong><small>Primogemmes</small></div>
+              <div><strong>{formatResourceAmount(resources.primogems)}</strong><small>Primos</small></div>
             </div>
             <div className="resource-item">
               <GameAssetIcon className="resource-icon gold" src={currencyAssetPaths.mora} fallback="●" />

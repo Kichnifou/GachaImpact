@@ -7,7 +7,7 @@ describe('gameplay presentation mapping', () => {
     [{ resultType: 'nothing', resourceKey: null, amount: null }, 'Pas de gain'],
     [{ resultType: 'particles', resourceKey: 'particles_cryo', amount: '500' }, '✨ Félicitations ! Tu obtiens +500 particules Cryo !'],
     [{ resultType: 'moras', resourceKey: 'moras', amount: '50000' }, '🎉 Félicitations ! Tu obtiens +50 000 Moras !'],
-    [{ resultType: 'primogems', resourceKey: 'primogems', amount: '1600' }, '🌟 JACKPOT ! +1 600 Primogemmes !'],
+    [{ resultType: 'primogems', resourceKey: 'primogems', amount: '1600' }, '🌟 JACKPOT ! +1 600 Primos !'],
   ] as const)('celebrates only actual fresh rewards', (result, expected) => {
     expect(formatFreshWheelResult(result)).toContain(expected)
     expect(formatFreshWheelResult(result)).not.toContain('Déjà utilisée')
@@ -22,7 +22,7 @@ describe('gameplay presentation mapping', () => {
     [{ resultType: 'nothing', resourceKey: null, amount: null }, 'rien aujourd’hui'],
     [{ resultType: 'particles', resourceKey: 'particles_hydro', amount: '500' }, '500 particules Hydro'],
     [{ resultType: 'moras', resourceKey: 'moras', amount: '50000' }, '50 000 Moras'],
-    [{ resultType: 'primogems', resourceKey: 'primogems', amount: '1600' }, '1 600 Primogemmes'],
+    [{ resultType: 'primogems', resourceKey: 'primogems', amount: '1600' }, '1 600 Primos'],
   ] as const)('maps a Wheel result to readable French', (result, expectedText) => {
     expect(
       formatWheelResult(result),

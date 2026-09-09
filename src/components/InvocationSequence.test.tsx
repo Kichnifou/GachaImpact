@@ -1,5 +1,9 @@
+// @vitest-environment happy-dom
+
+import { act } from 'react'
+import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { GachaPullDto, GachaPullResultItemDto } from '../api/types'
 import type { InvocationSequenceState } from '../gacha/invocation-sequence'
 import InvocationSequence from './InvocationSequence'
@@ -8,6 +12,9 @@ const playerState = { pity5: 0, pity4: 0, guaranteedFeatured5: false, capturePro
 const characterResult: GachaPullResultItemDto = { index: 1, resultType: 'character', character: { id: 'furina', externalKey: 'furina', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: null, region: null, classKey: null, iconPath: '/icon.png', splashPath: '/splash.png', wishPath: null, fullbodyPath: null }, rarity: 5, resourceKey: null, resourceAmount: null, wasNewCharacter: true, constellationAfter: 0, copiesAfter: 1, wasFiftyFifty: true, wonFiftyFifty: true, guaranteeConsumed: false, captureTriggered: false, bonusRewards: [], c6Progression: null, passiveEffects: [{ elementKey: 'cryo', type: 'xp', amount: '1', xpAfter: '30', levelsReached: [1], overflowRewardsGranted: 0 }] }
 const resourceResult: GachaPullResultItemDto = { ...characterResult, resultType: 'resource', character: null, rarity: null, resourceKey: 'moras', resourceAmount: '5000', wasNewCharacter: null, constellationAfter: null, copiesAfter: null, wasFiftyFifty: false, wonFiftyFifty: null }
 const pull = (count: 1 | 10, results: readonly GachaPullResultItemDto[]): GachaPullDto => ({ operation: { id: `operation-${count}`, pullCount: count, primogemCost: count === 1 ? '160' : '1600', createdAt: '2026-09-07T10:00:00Z', alreadyProcessed: false }, results, playerState })
+
+;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+afterEach(() => vi.useRealTimers())
 
 describe('InvocationSequence player-facing copy', () => {
   it('uses immersive waiting copy without exposing implementation details', () => {
@@ -57,5 +64,29 @@ describe('InvocationSequence player-facing copy', () => {
     expect(html).toContain('Cliquez pour continuer')
     expect(html).toContain('>Passer<')
     expect(html).toContain('role="button"')
+  })
+
+  it('reveals a C6 stat feedback only after the character Focus phase', () => {
+    vi.useFakeTimers()
+    const c6Result: GachaPullResultItemDto = { ...characterResult, c6Progression: { type: 'stat', stat: 'charisma', valueAfter: 4 } }
+    const state: Exclude<InvocationSequenceState, { phase: 'idle' }> = { phase: 'reveal', count: 1, idempotencyKey: 'c6-stat', pull: pull(1, [c6Result]), bestRarity: 5, resultIndex: 0 }
+    const container = document.createElement('div')
+    const root = createRoot(container)
+
+    act(() => root.render(<InvocationSequence state={state} onAdvance={vi.fn()} onSkip={vi.fn()} onClose={vi.fn()} />))
+    expect(container.textContent).not.toContain('Charisme +1')
+
+    act(() => vi.runAllTimers())
+    const feedback = container.querySelector('.reveal-c6-stat-feedback')
+    expect(feedback?.textContent).toBe('Charisme +1')
+    expect(feedback?.classList.contains('reveal-overlay-control')).toBe(true)
+
+    act(() => root.unmount())
+  })
+
+  it('does not render a C6 stat overlay when the result has no stat progression', () => {
+    const state: Exclude<InvocationSequenceState, { phase: 'idle' }> = { phase: 'reveal', count: 1, idempotencyKey: 'no-c6-stat', pull: pull(1, [characterResult]), bestRarity: 5, resultIndex: 0 }
+    const html = renderToStaticMarkup(<InvocationSequence state={state} onAdvance={vi.fn()} onSkip={vi.fn()} onClose={vi.fn()} />)
+    expect(html).not.toContain('reveal-c6-stat-feedback')
   })
 })

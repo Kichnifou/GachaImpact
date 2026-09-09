@@ -66,7 +66,7 @@ export const notifications: NotificationItem[] = [
 export const inventoryCategories: InventoryCategory[] = [
   {
     id: 'currencies', label: 'Monnaies', icon: '◈', items: [
-      { name: 'Primogemmes', amount: '2 480', description: 'Monnaie d’invocation', icon: '✦', tone: 'cyan' },
+      { name: 'Primos', amount: '2 480', description: 'Monnaie d’invocation', icon: '✦', tone: 'cyan' },
       { name: 'Moras', amount: '560 250', description: 'Monnaie commune', icon: '●', tone: 'gold' },
       { name: 'Astéries', amount: '42', description: 'Échange rare', icon: '✧', tone: 'violet' },
     ],

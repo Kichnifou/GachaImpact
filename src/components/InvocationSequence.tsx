@@ -15,6 +15,7 @@ import {
   type InvocationSequenceState,
 } from '../gacha/invocation-sequence'
 import PullResults, { PullResultCard } from './PullResults'
+import { c6StatLabel } from '../gacha/pull-result-presentation'
 
 type Props = Readonly<{
   state: Exclude<InvocationSequenceState, { phase: 'idle' }>
@@ -34,6 +35,9 @@ function InvocationSequence({ state, onAdvance, onSkip, onClose }: Props) {
     ? revealResultKey(state.pull.operation.id, currentResult.index)
     : null
   const characterRevealReady = currentRevealKey === null || readyCharacterRevealKey === currentRevealKey
+  const c6StatFeedback = currentResult?.c6Progression?.type === 'stat'
+    ? `${c6StatLabel(currentResult.c6Progression.stat)} +1`
+    : null
   const revealControls = revealControlVisibility(state, characterRevealReady)
   const canUseSurface = canActivateInvocationSurface(state, suspense, characterRevealReady)
 
@@ -129,6 +133,7 @@ function InvocationSequence({ state, onAdvance, onSkip, onClose }: Props) {
       {!suspense && state.phase === 'reveal' && <div className={`sequence-reveal-stage${currentRevealKey ? ` character-reveal character-reveal-${characterRevealReady ? 'ready' : 'focus'}` : ''}`}>
         {revealControls.counter && <div className="sequence-counter reveal-overlay-control">Résultat {state.resultIndex + 1} / {state.pull.results.length}</div>}
         <PullResultCard key={revealResultKey(state.pull.operation.id, state.pull.results[state.resultIndex]!.index)} result={state.pull.results[state.resultIndex]!} />
+        {characterRevealReady && c6StatFeedback && <p className="reveal-c6-stat-feedback reveal-overlay-control">{c6StatFeedback}</p>}
         {revealControls.hint && <p className="sequence-hint reveal-overlay-control">Cliquez pour continuer</p>}
         {revealControls.skip && <button type="button" className="sequence-control sequence-skip reveal-overlay-control" onClick={(event) => { stop(event); clearPresentation(); onSkip() }}>Passer</button>}
         {revealControls.close && <button type="button" className="icon-button sequence-control sequence-close reveal-overlay-control" onClick={(event) => { stop(event); clearPresentation(); onClose() }} aria-label="Fermer les résultats"><span className="icon-glyph">×</span></button>}

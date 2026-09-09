@@ -20,6 +20,6 @@ describe('daily reward card', () => {
   })
 
   it('formats all three fresh rewards with the main element', () => {
-    expect(formatDailyRewardDetails({ claimed: true, businessDate: '2026-09-05', rewards }, 'cryo')).toBe('+160 Primogemmes · +160 particules Cryo · +10 000 Moras')
+    expect(formatDailyRewardDetails({ claimed: true, businessDate: '2026-09-05', rewards }, 'cryo')).toBe('+160 Primos · +160 particules Cryo · +10 000 Moras')
   })
 })

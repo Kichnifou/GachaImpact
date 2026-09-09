@@ -117,7 +117,7 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
   const renderScreen = () => {
     switch (activeScreen) {
       case 'invocation':
-        return <InvocationScreen gacha={gacha} onSetTarget={onSetGachaTarget} onPull={onPullGacha} pendingPullCount={pendingGachaPullCount} onPresentationDisclosed={onGachaPresentationDisclosed} onGetHistory={onGetGachaHistory} />
+        return <InvocationScreen gacha={gacha} teams={teams} onSetTarget={onSetGachaTarget} onPull={onPullGacha} pendingPullCount={pendingGachaPullCount} onPresentationDisclosed={onGachaPresentationDisclosed} onGetHistory={onGetGachaHistory} />
       case 'box':
         return <BoxScreen key={player.id} initialBox={boxCache.read(player.id)} onLoadBox={loadBox} onSetFavorite={setBoxFavorite} onSetSortPreference={setBoxSortPreference} onUseStella={useStella} stellaRetryCharacterId={stellaIntents.getIntent(player.id)?.characterId ?? null} />
       case 'characters':

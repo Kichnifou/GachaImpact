@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import type { CurrentGachaDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto } from '../api/types'
+import type { CurrentGachaDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, PlayerTeamsDto } from '../api/types'
 import { currencyAssetPaths, getElementAssetPath } from '../utils/gameAssets'
 import { elementThemes } from '../utils/elementTheme'
 import CharacterAssetImage from './CharacterAssetImage'
@@ -21,8 +21,9 @@ type Props = {
   pendingPullCount?: 1 | 10 | null
   onPresentationDisclosed?: (operationId: string) => void
   onGetHistory?: (page: number) => Promise<GachaHistoryDto>
+  teams?: PlayerTeamsDto
 }
-function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, onOpen, onPull, pendingPullCount = null, onPresentationDisclosed, onGetHistory }: Props) {
+function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, onOpen, onPull, pendingPullCount = null, onPresentationDisclosed, onGetHistory, teams }: Props) {
   const [choosing, setChoosing] = useState(!gacha.playerState.selectedBannerCharacterId)
   const [pending, setPending] = useState<string | null>(null)
   const [sequence, dispatchSequence] = useReducer(invocationSequenceReducer, idleInvocationSequence)
@@ -110,7 +111,7 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, 
     <div className="invocation-footer"><div className="gacha-state-summary"><Progress className="primary-pity" label="Pity 5★" value={gacha.playerState.pity5} maximum={90} /><div className="gacha-state-secondary"><Progress className="secondary-pity" label="Pity 4★" value={gacha.playerState.pity4} maximum={10} /><div className="banner-status"><span>Garantie 5★</span><strong>{gacha.playerState.guaranteedFeatured5 ? 'Oui' : 'Non'}</strong></div><div className="banner-status"><span>Capture</span><strong>{gacha.playerState.captureProgress} / 3</strong></div></div></div><div className="wish-actions" aria-label={onPull ? 'Actions d’Invocation' : 'Aperçu des Invocations'}><WishButton count={1} cost="160" disabled={!onPull || pullPending !== null} pending={pullPending === 1} onClick={() => void pull(1)} /><WishButton count={10} cost="1 600" disabled={!onPull || pullPending !== null} pending={pullPending === 10} onClick={() => void pull(10)} /></div></div>
     {pullError && <p className="pull-error invocation-pull-error" role="alert">{pullError}</p>}
     {compact && onOpen && <button type="button" className="home-banner-hit-area" onClick={onOpen} aria-label="Ouvrir l’écran Invocation" />}
-    {detailOpen && onGetHistory && <GachaDetailModal onClose={() => setDetailOpen(false)} onGetHistory={onGetHistory} />}
+    {detailOpen && onGetHistory && teams && <GachaDetailModal teams={teams} onClose={() => setDetailOpen(false)} onGetHistory={onGetHistory} />}
   </section>
 }
 

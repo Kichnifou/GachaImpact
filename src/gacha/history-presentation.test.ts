@@ -34,7 +34,7 @@ describe('Gacha history presentation', () => {
     const c6Plus = { ...arlecchino, wasNewCharacter: false, constellationAfter: 6, copiesAfter: 14, bonusRewards: [{ resourceKey: 'primogems', amount: '80', causeKey: 'gacha.c6-duplicate-refund' }] }
 
     expect(historyProgressionLabel(c1)).toBe('C1')
-    expect(historyProgressionLabel(c6Plus)).toBe('C6 · +80 Primogemmes')
+    expect(historyProgressionLabel(c6Plus)).toBe('C6 · +80 Primos')
     expect(historyProgressionLabel(c1)).not.toContain('Copie')
     expect(historyProgressionLabel(c6Plus)).not.toContain('Copie')
   })
