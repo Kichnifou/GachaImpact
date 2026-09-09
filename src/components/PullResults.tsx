@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react'
 import type { GachaPullDto, GachaPullResultItemDto } from '../api/types'
 import { elementThemes } from '../utils/elementTheme'
 import { formatResourceAmount } from '../utils/formatters'
-import { c6StatLabel, characterProgressionLabel, passiveEffectLabel, pullDisplayRarity, pullEventLabel, pullResourcePresentation } from '../gacha/pull-result-presentation'
+import { c6StatLabel, characterProgressionLabel, passiveEffectLabel, pullDisplayRarity, pullEventLabel, pullResourcePresentation, visiblePullBonusRewards } from '../gacha/pull-result-presentation'
 import CharacterAssetImage from './CharacterAssetImage'
 import GameAssetIcon from './GameAssetIcon'
 import { getElementAssetPath } from '../utils/gameAssets'
@@ -26,13 +26,14 @@ export function PullResultCard({ result, order = 0, compact = false }: { result:
     const label = passiveEffectLabel(effect)
     return label ? [{ effect, label }] : []
   })
+  const visibleBonusRewards = visiblePullBonusRewards(result)
   const characterAssetPaths = result.character
     ? compact
       ? [result.character.iconPath, result.character.fullbodyPath, result.character.wishPath, result.character.splashPath]
       : [result.character.splashPath, result.character.wishPath, result.character.fullbodyPath, result.character.iconPath]
     : []
   const compactBonusContent = <>
-    {result.bonusRewards.map((reward) => <small className="pull-bonus" key={`${reward.resourceKey}-${reward.causeKey}`}>+{formatResourceAmount(reward.amount)} {pullResourcePresentation(reward.resourceKey).label}</small>)}
+    {visibleBonusRewards.map((reward) => <small className="pull-bonus" key={`${reward.resourceKey}-${reward.causeKey}`}>+{formatResourceAmount(reward.amount)} {pullResourcePresentation(reward.resourceKey).label}</small>)}
     {result.c6Progression?.type === 'stat' && <small className="pull-bonus">{c6StatLabel(result.c6Progression.stat)} +1</small>}
     {result.c6Progression?.type === 'maxed' && <small className="pull-bonus">Progression C6 maxée</small>}
     {passiveEffects.map(({ effect, label }, index) => <small className="pull-passive-effect" key={`${effect.elementKey}-${effect.type}-${index}`}><GameAssetIcon className="pull-passive-icon" src={getElementAssetPath(effect.elementKey)} fallback="✦" />{label}</small>)}

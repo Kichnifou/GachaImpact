@@ -64,9 +64,21 @@ export function passiveEffectLabel(effect: GachaPassiveEffectDto): string | null
     return `${elementLabels[effect.elementKey]} · ${effect.elementKey === 'pyro' ? 'Particules' : 'Moras'} ×${multiplier}`
   }
   if (effect.type === 'xp') return `Cryo · +${effect.amount} XP`
-  if (effect.type === 'pity5') return `Electro · +${effect.amount} Pity 5★`
+  if (effect.type === 'pity5') return effect.amount > 0 ? `Electro · +${effect.amount} Pity 5★` : null
   if (effect.type === 'primogem_recovery') return `Anemo · +${effect.amount} Primogemmes`
   return 'Dendro · Bundle élémentaire'
+}
+
+export function visiblePullBonusRewards(result: GachaPullResultItemDto): GachaPullResultItemDto['bonusRewards'] {
+  const passiveEffects = result.passiveEffects ?? []
+  const anemoRepresented = passiveEffects.some((effect) => effect.type === 'primogem_recovery')
+  const dendroRepresented = passiveEffects.some((effect) => effect.type === 'resource_bundle')
+
+  return result.bonusRewards.filter((reward) => {
+    if (reward.causeKey === 'team.passive.anemo.primogem-recovery') return !anemoRepresented
+    if (reward.causeKey === 'team.passive.dendro.bundle') return !dendroRepresented
+    return true
+  })
 }
 
 export function c6StatLabel(stat: 'strength' | 'intelligence' | 'beauty' | 'charisma' | 'popularity'): string {

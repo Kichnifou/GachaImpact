@@ -82,6 +82,63 @@ describe('PullResults', () => {
     expect(html).not.toContain('Hydro ·')
   })
 
+  it('shows an Anemo recovery once instead of duplicating its economy bonus', () => {
+    const result = {
+      ...characterResult,
+      bonusRewards: [{ resourceKey: 'primogems', amount: '80', causeKey: 'team.passive.anemo.primogem-recovery' }],
+      c6Progression: null,
+      passiveEffects: [{ elementKey: 'anemo' as const, type: 'primogem_recovery' as const, amount: '80' }],
+    }
+    const html = renderToStaticMarkup(<PullResultCard result={result} compact />)
+    expect((html.match(/Anemo · \+80 Primogemmes/g) ?? [])).toHaveLength(1)
+    expect(html).not.toContain('class="pull-bonus">+80 Primogemmes')
+  })
+
+  it('shows one compact Dendro feedback instead of its nine generic economy rewards', () => {
+    const rewards = [
+      { resourceKey: 'primogems', amount: '40' },
+      { resourceKey: 'moras', amount: '1000' },
+      ...['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro'].map((element) => ({ resourceKey: `particles_${element}`, amount: '5' })),
+    ]
+    const result = {
+      ...characterResult,
+      bonusRewards: rewards.map((reward) => ({ ...reward, causeKey: 'team.passive.dendro.bundle' })),
+      c6Progression: null,
+      passiveEffects: [{ elementKey: 'dendro' as const, type: 'resource_bundle' as const, rewards }],
+    }
+    const html = renderToStaticMarkup(<PullResultCard result={result} compact />)
+    expect(html).toContain('Dendro · Bundle élémentaire')
+    expect(html).not.toContain('class="pull-bonus"')
+  })
+
+  it('keeps C6 and XP level rewards visible when passive rewards are deduplicated', () => {
+    const result = {
+      ...characterResult,
+      bonusRewards: [
+        { resourceKey: 'primogems', amount: '80', causeKey: 'gacha.c6-duplicate-refund' },
+        { resourceKey: 'moras', amount: '10000', causeKey: 'player.xp.level-reward' },
+      ],
+      c6Progression: null,
+      passiveEffects: [{ elementKey: 'cryo' as const, type: 'xp' as const, amount: '1', xpAfter: '30', levelsReached: [1], overflowRewardsGranted: 0 }],
+    }
+    const html = renderToStaticMarkup(<PullResultCard result={result} compact />)
+    expect(html).toContain('class="pull-bonus">+80 Primogemmes')
+    expect(html).toContain('class="pull-bonus">+10 000 Moras')
+    expect(html).toContain('Cryo · +1 XP')
+  })
+
+  it('hides a clamped Electro proc with no actual pity gain', () => {
+    const renderElectro = (amount: number) => renderToStaticMarkup(<PullResultCard result={{
+      ...characterResult,
+      bonusRewards: [],
+      c6Progression: null,
+      passiveEffects: [{ elementKey: 'electro' as const, type: 'pity5' as const, amount, requestedAmount: 2 as const }],
+    }} compact />)
+    expect(renderElectro(2)).toContain('Electro · +2 Pity 5★')
+    expect(renderElectro(1)).toContain('Electro · +1 Pity 5★')
+    expect(renderElectro(0)).not.toContain('Electro ·')
+  })
+
   it('uses the same Nouveau or capped Cx rule in the x10 summary', () => {
     const newCharacter = { ...characterResult, wasNewCharacter: true, constellationAfter: 0, copiesAfter: 1, bonusRewards: [], c6Progression: null }
     const c1Character = { ...characterResult, constellationAfter: 1, copiesAfter: 2, bonusRewards: [], c6Progression: null }
