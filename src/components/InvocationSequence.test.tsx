@@ -1,12 +1,17 @@
 // @vitest-environment happy-dom
+/// <reference types="node" />
 
 import { act } from 'react'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { GachaPullDto, GachaPullResultItemDto } from '../api/types'
 import type { InvocationSequenceState } from '../gacha/invocation-sequence'
 import InvocationSequence from './InvocationSequence'
+
+const appCss = readFileSync(resolve(process.cwd(), 'src/App.css'), 'utf8')
 
 const playerState = { pity5: 0, pity4: 0, guaranteedFeatured5: false, captureProgress: 0, fiftyFiftyLostStreak: 0, selectedBannerCharacterId: 'target', totalPulls: '1', totalFiveStars: '1', totalFourStars: '0', fiftyFiftyWon: '1', fiftyFiftyLost: '0', capturesTriggered: '0' }
 const characterResult: GachaPullResultItemDto = { index: 1, resultType: 'character', character: { id: 'furina', externalKey: 'furina', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: null, region: null, classKey: null, iconPath: '/icon.png', splashPath: '/splash.png', wishPath: null, fullbodyPath: null }, rarity: 5, resourceKey: null, resourceAmount: null, wasNewCharacter: true, constellationAfter: 0, copiesAfter: 1, wasFiftyFifty: true, wonFiftyFifty: true, guaranteeConsumed: false, captureTriggered: false, bonusRewards: [], c6Progression: null, passiveEffects: [{ elementKey: 'cryo', type: 'xp', amount: '1', xpAfter: '30', levelsReached: [1], overflowRewardsGranted: 0 }] }
@@ -89,4 +94,13 @@ describe('InvocationSequence player-facing copy', () => {
     const html = renderToStaticMarkup(<InvocationSequence state={state} onAdvance={vi.fn()} onSkip={vi.fn()} onClose={vi.fn()} />)
     expect(html).not.toContain('reveal-c6-stat-feedback')
   })
+
+  it('keeps the C6 glow stationary and disables it for reduced motion', () => {
+    const glow = appCss.match(/@keyframes c6-stat-glow\s*\{([\s\S]*?)\n\}/)?.[1] ?? ''
+    expect(glow).toContain('box-shadow')
+    expect(glow).not.toMatch(/transform|translate|scale/)
+    expect(appCss).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.reveal-overlay-control \{ animation: none !important; \}/)
+    expect(appCss).toMatch(/\.character-reveal \.reveal-c6-stat-feedback\s*\{[\s\S]*?bottom: 68px;/)
+  })
+
 })

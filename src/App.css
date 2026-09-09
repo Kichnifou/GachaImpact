@@ -294,7 +294,7 @@
 }
 
 .character-reveal .reveal-c6-stat-feedback {
-  bottom: 50px;
+  bottom: 68px;
   width: fit-content;
   max-width: calc(100% - 40px);
   padding: 7px 16px;
@@ -313,6 +313,10 @@
 
 .character-reveal-ready .reveal-overlay-control {
   animation: reveal-controls-in 220ms ease-out both;
+}
+
+.character-reveal-ready .reveal-c6-stat-feedback {
+  animation: reveal-controls-in 220ms ease-out both, c6-stat-glow 2s ease-in-out 220ms infinite;
 }
 
 .sequence-counter {
@@ -650,6 +654,18 @@
 @keyframes reveal-controls-in {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+@keyframes c6-stat-glow {
+  0%, 100% {
+    border-color: rgba(255, 210, 99, .38);
+    box-shadow: 0 0 24px rgba(255, 190, 66, .15);
+    text-shadow: 0 2px 8px #020713, 0 0 5px rgba(255, 222, 137, .18);
+  }
+  50% {
+    border-color: rgba(255, 222, 137, .66);
+    box-shadow: 0 0 30px rgba(255, 190, 66, .3);
+    text-shadow: 0 2px 8px #020713, 0 0 10px rgba(255, 226, 146, .52);
+  }
 }
 @keyframes invocation-result-reveal {
   0% { opacity: 0; transform: translateY(14px) scale(.92); filter: brightness(1.65); }
@@ -2180,21 +2196,47 @@
 }
 
 .pull-passive-effect {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
+  display: block;
   color: #bfeaff;
   font-size: 8px;
   font-weight: 800;
   line-height: 1.2;
-  width: fit-content;
+  width: 100%;
   max-width: 100%;
   text-align: center;
   white-space: normal;
 }
 
-.pull-passive-effect > span { width: 13px; height: 13px; flex: 0 0 13px; }
+.pull-passive-label {
+  position: relative;
+  display: inline-block;
+  max-width: calc(100% - 17px);
+}
+
+.pull-passive-text {
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+
+.passive-feedback-centered .pull-passive-icon {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 4px);
+  width: 13px;
+  height: 13px;
+  transform: translateY(-50%);
+}
+
+.passive-feedback-character .pull-passive-effect { width: fit-content; }
+.passive-feedback-character .pull-passive-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+}
+.passive-feedback-character .pull-passive-icon { width: 13px; height: 13px; flex: 0 0 13px; }
+.passive-feedback-character .pull-passive-text { width: auto; text-align: right; }
 .character-reveal-focus .pull-passive-effects { visibility: hidden; }
 
 @keyframes pull-reveal {

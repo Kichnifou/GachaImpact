@@ -69,7 +69,7 @@ export function PullResultCard({ result, order = 0, compact = false }: { result:
 }
 
 function PassiveEffects({ effects, alignment }: { effects: readonly { effect: NonNullable<GachaPullResultItemDto['passiveEffects']>[number]; label: string }[]; alignment: 'centered' | 'character' }) {
-  return <span className={`pull-passive-effects passive-feedback-${alignment}`}>{effects.map(({ effect, label }, index) => <span className="pull-passive-effect-line" key={`${effect.elementKey}-${effect.type}-${index}`}><small className="pull-passive-effect"><GameAssetIcon className="pull-passive-icon" src={getElementAssetPath(effect.elementKey)} fallback="✦" />{label}</small></span>)}</span>
+  return <span className={`pull-passive-effects passive-feedback-${alignment}`}>{effects.map(({ effect, label }, index) => <span className="pull-passive-effect-line" key={`${effect.elementKey}-${effect.type}-${index}`}><small className="pull-passive-effect"><span className="pull-passive-label"><GameAssetIcon className="pull-passive-icon" src={getElementAssetPath(effect.elementKey)} fallback="✦" /><span className="pull-passive-text">{label}</span></span></small></span>)}</span>
 }
 
 export default PullResults

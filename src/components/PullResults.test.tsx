@@ -139,7 +139,7 @@ describe('PullResults', () => {
     expect(renderElectro(0)).not.toContain('Electro ·')
   })
 
-  it('keeps each passive icon and label together in context-specific feedback structures', () => {
+  it('centers a dedicated passive text wrapper independently from its icon while preserving character alignment', () => {
     const result = {
       ...characterResult,
       bonusRewards: [],
@@ -165,10 +165,12 @@ describe('PullResults', () => {
     for (const html of [characterReveal, compactCharacter, resourceReveal, compactResource]) {
       expect((html.match(/class="pull-passive-effect-line"/g) ?? [])).toHaveLength(3)
       expect((html.match(/class="pull-passive-effect"/g) ?? [])).toHaveLength(3)
+      expect((html.match(/class="pull-passive-label"/g) ?? [])).toHaveLength(3)
       expect((html.match(/class="pull-passive-icon"/g) ?? [])).toHaveLength(3)
-      expect(html).toMatch(/pull-passive-effect[\s\S]*pull-passive-icon[\s\S]*Geo · Moras ×1,25/)
-      expect(html).toMatch(/pull-passive-effect[\s\S]*pull-passive-icon[\s\S]*Pyro · Particules ×1,25/)
-      expect(html).toMatch(/pull-passive-effect[\s\S]*pull-passive-icon[\s\S]*Electro · \+2 Pity 5★/)
+      expect((html.match(/class="pull-passive-text"/g) ?? [])).toHaveLength(3)
+      expect(html).toMatch(/pull-passive-label[\s\S]*pull-passive-icon[\s\S]*pull-passive-text">Geo · Moras ×1,25/)
+      expect(html).toMatch(/pull-passive-label[\s\S]*pull-passive-icon[\s\S]*pull-passive-text">Pyro · Particules ×1,25/)
+      expect(html).toMatch(/pull-passive-label[\s\S]*pull-passive-icon[\s\S]*pull-passive-text">Electro · \+2 Pity 5★/)
     }
   })
 
