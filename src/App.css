@@ -6323,7 +6323,14 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
   .team-bonuses .bonus-grid.passive-count-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .team-bonuses .bonus-grid article { padding: 7px 9px; }
   .team-bonuses .team-no-passive { margin-top: 5px; padding: 8px; }
-  .team-reference-toggle { margin-top: 7px; min-height: 29px; padding-block: 5px; }
+  .team-reference-toggle { flex: 0 0 auto; margin-top: 7px; min-height: 29px; padding-block: 5px; }
+}
+
+@media (min-width: 1121px) and (max-height: 1100px) {
+  .team-bonuses .bonus-grid.passive-count-4 { gap: 4px 6px; }
+  .team-bonuses .bonus-grid.passive-count-4 article { padding: 5px 8px; }
+  .team-bonuses .bonus-grid.passive-count-4 p { margin-top: 2px; line-height: 1.25; }
+  .team-bonuses .bonus-grid.passive-count-4 + .team-reference-toggle { margin-top: 5px; }
 }
 
 @media (max-width: 760px) {
