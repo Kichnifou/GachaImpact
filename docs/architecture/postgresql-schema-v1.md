@@ -566,7 +566,7 @@ Colonnes :
 
 - `player_id uuid PRIMARY KEY REFERENCES players(id) ON DELETE CASCADE`
 - `balance bigint NOT NULL DEFAULT 0`
-- `last_interest_date date NULL`
+- `last_interest_date date NOT NULL`
 - `created_at timestamptz NOT NULL DEFAULT now()`
 - `updated_at timestamptz NOT NULL DEFAULT now()`
 
@@ -586,24 +586,33 @@ Colonnes :
 - `amount bigint NOT NULL`
 - `bank_balance_before bigint NOT NULL`
 - `bank_balance_after bigint NOT NULL`
-- `operation_id uuid NULL REFERENCES business_operations(id) ON DELETE SET NULL`
+- `wallet_balance_before bigint NULL`
+- `wallet_balance_after bigint NULL`
+- `business_date date NULL`
+- `operation_id uuid NOT NULL REFERENCES business_operations(id) ON DELETE RESTRICT`
 - `created_at timestamptz NOT NULL DEFAULT now()`
 
-Types initiaux :
+Types physiques initiaux :
 
 - `DEPOSIT`
 - `WITHDRAWAL`
 - `INTEREST`
-- `ADMIN_ADJUSTMENT`
 
 Contraintes :
 
-- `amount > 0`
+- `amount > 0` pour dépôt/retrait et `amount >= 0` pour intérêt afin de journaliser idempotemment les journées sur un petit solde ;
 - soldes `>= 0`
+- dépôt/retrait : soldes wallet renseignés, `business_date NULL` ;
+- intérêt : soldes wallet `NULL`, `business_date NOT NULL` ;
+- `operation_id` unique ;
+- unicité partielle `(player_id, business_date) WHERE transaction_type = 'INTEREST'`.
 
 Index :
 
-`(player_id, created_at DESC)`
+- `(player_id, created_at DESC)` ;
+- `(business_date)`.
+
+État physique 0.72 : la migration additive `008_add_banking` crée ces deux tables, backfill chaque Player DEV existant à zéro sur la journée `Europe/Paris` courante, active la RLS et révoque les accès directs `anon`/`authenticated`. Le service provisionne paresseusement les futurs comptes, verrouille le Player et les soldes dans des transactions `SERIALIZABLE`, résout `MAX` côté serveur et journalise chaque mutation via `business_operations`. Le scheduler effectue le catch-up au démarrage puis le prochain reset Paris sans durée fixe de 24 h ; les jours manqués sont composés séquentiellement. Les transferts modifient le mouvement wallet sans toucher aux statistiques Earned/Spent, tandis que chaque intérêt augmente uniquement le solde Banque et `total_moras_earned`.
 
 ---
 
@@ -2631,6 +2640,8 @@ Expose les stacks de passifs dérivées.
 # 39. Séquence de migrations SQL
 
 Le schéma ne sera pas créé en une migration géante.
+
+Cette numérotation décrit le découpage thématique cible historique, pas les noms physiques déjà versionnés. La séquence réelle est autoritative dans `server/prisma/migrations/` et atteint actuellement `20260909150000_008_add_banking` sur Supabase DEV ; la Banque a donc été ajoutée par cette migration physique 008 et non rétroactivement dans la migration physique 002.
 
 ## Migration 001 — fondations
 

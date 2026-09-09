@@ -547,7 +547,11 @@ Les dépôts/retraits sont des transferts internes atomiques.
 
 Le scheduler serveur calcule l'intérêt selon la règle Banque validée.
 
-`lastInterestDate` legacy peut être conservé comme provenance de migration, pas comme architecture future principale.
+État physique 0.72 : `PlayerBankAccount` porte un `balance bigint` non négatif et une `lastInterestDate` obligatoire. La migration `008_add_banking` crée un compte à zéro pour chaque Player DEV existant à la journée Paris courante ; les nouveaux Players sont complétés de façon paresseuse et idempotente au premier accès Banque. Le portefeuille reste le solde `moras` normal et le patrimoine n'est jamais persisté.
+
+`BankTransaction` conserve le type, le montant, les soldes Banque avant/après, les soldes wallet avant/après pour un transfert, la date métier pour un intérêt et l'unique `BusinessOperation` source. Le ledger accepte actuellement `DEPOSIT`, `WITHDRAWAL` et `INTEREST`; son ordre récent est `createdAt DESC`, puis identifiant stable.
+
+Le scheduler serveur exécute un catch-up au démarrage puis planifie le prochain minuit `Europe/Paris` avec un calcul tenant compte du DST. Chaque journée manquée est appliquée dans l'ordre avec `floor(balance × 3 / 100)`. L'unicité persistante `(playerId, businessDate)` limitée aux intérêts et l'idempotency key système empêchent tout double crédit. Un transfert est statistiquement neutre ; un intérêt crédite uniquement la Banque et `totalMorasEarned`.
 
 ---
 

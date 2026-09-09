@@ -12,6 +12,7 @@
 - Le `server/Dockerfile` a construit et démarré le backend avec succès sous Linux/Railway.
 - Variables runtime configurées, sans valeur secrète dans Git : `HOST`, `FRONTEND_ORIGIN`, `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_JWT_ISSUER`. Le port est fourni par Railway.
 - Healthcheck : `/health` ; domaine public : [https://gachaimpact-production.up.railway.app](https://gachaimpact-production.up.railway.app). `GET /health` retourne `{"status":"ok"}`.
+- Le vertical Banque 0.72 ajoute un scheduler interne au processus backend : catch-up idempotent au démarrage, puis planification du prochain minuit `Europe/Paris`. Aucune infrastructure cron payante n'est requise ; l'unicité DB par Player/journée empêche un double intérêt lors d'un restart ou d'une exécution concurrente. Ce candidat reste sur `review` tant qu'il n'est pas promu.
 
 Railway est actuellement en **Trial Free** (30 jours ou 5 USD de crédits). Railway Hobby n’est pas activé. Observer la consommation réelle avant toute décision ; aucune disponibilité 24/7 ne doit être promise après l’expiration du Trial.
 
@@ -39,6 +40,7 @@ Depuis [https://gachaimpact.pages.dev](https://gachaimpact.pages.dev), sans back
 
 - Consommation Railway et fin du Trial Free ; ne pas activer Hobby ou un autre service payant sans accord explicite du propriétaire.
 - Healthcheck public et parcours authentifié après les futurs déploiements.
+- Après promotion de la Banque, vérifier dans les logs que le démarrage/catch-up ne produit aucune erreur et valider un passage de reset réel ; l'exactitude ne dépend pas d'un processus resté actif sans interruption, car le prochain démarrage reprend les journées manquées.
 - Limites Free effectives (Railway, Cloudflare Pages, Supabase et e-mails Auth) avant d’élargir les tests externes.
 
 ## Workflow de validation alpha

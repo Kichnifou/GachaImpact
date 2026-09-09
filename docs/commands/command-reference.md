@@ -621,6 +621,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 
 ## `!banque`
 - **Statut audit :** Audité — Domaine Banque clôturé après R255
+- **Statut implémentation 0.72 :** écran et API personnelles réels ; commandes chat GachaImpact/Twitch non encore branchées. Le futur parseur devra appeler les mêmes services de consultation/dépôt/retrait, avec son canal d'origine.
 - **But :** Consulter et transférer les Moras entre portefeuille et Banque.
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
