@@ -21,11 +21,13 @@ import { registerDailyRewardRoutes } from './api/routes/daily-reward.js';
 import { registerGachaRoutes } from './api/routes/gacha.js';
 import { registerBoxRoutes } from './api/routes/box.js';
 import { registerTeamRoutes } from './api/routes/team.js';
+import { registerBankRoutes } from './api/routes/bank.js';
 import type { GetCharacters, GetCurrentGacha, GetGachaHistory, PerformGachaPull, SetGachaTarget } from './application/gacha/gacha-services.js';
 import type { GetTodayDailyReward } from './application/daily-reward/get-today-daily-reward.js';
 import type { ClaimDailyReward } from './application/daily-reward/claim-daily-reward.js';
 import type { GetCurrentPlayerBox, SetBoxCharacterFavorite, SetBoxSortPreference, UseMasterlessStella } from './application/box/box-services.js';
 import type { ActivatePlayerTeam, ClearPlayerTeam, CreateNextPlayerTeam, DeleteExtraPlayerTeam, GetCurrentPlayerTeams, RemovePlayerTeamSlot, RenamePlayerTeam, ReorderPlayerTeams, ReorderPlayerTeamSlots, SetPlayerTeamSlot } from './application/team/team-services.js';
+import type { GetCurrentPlayerBank, TransferPlayerBank } from './application/banking/banking-services.js';
 import type { AppConfig } from './config/environment.js';
 import { loadConfig } from './config/environment.js';
 
@@ -58,6 +60,9 @@ export type AppDependencies = Readonly<{
   reorderPlayerTeamSlots?: ReorderPlayerTeamSlots;
   removePlayerTeamSlot?: RemovePlayerTeamSlot;
   clearPlayerTeam?: ClearPlayerTeam;
+  getCurrentPlayerBank?: GetCurrentPlayerBank;
+  depositPlayerBank?: TransferPlayerBank;
+  withdrawPlayerBank?: TransferPlayerBank;
   close?: () => Promise<void>;
 }>;
 
@@ -145,6 +150,14 @@ export async function buildApp(
         reorderPlayerTeamSlots: dependencies.reorderPlayerTeamSlots,
         removePlayerTeamSlot: dependencies.removePlayerTeamSlot,
         clearPlayerTeam: dependencies.clearPlayerTeam,
+      });
+    }
+    if (dependencies.getCurrentPlayerBank && dependencies.depositPlayerBank && dependencies.withdrawPlayerBank) {
+      await app.register(registerBankRoutes, {
+        authenticate,
+        getCurrentPlayerBank: dependencies.getCurrentPlayerBank,
+        depositPlayerBank: dependencies.depositPlayerBank,
+        withdrawPlayerBank: dependencies.withdrawPlayerBank,
       });
     }
 

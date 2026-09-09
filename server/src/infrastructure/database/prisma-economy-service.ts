@@ -15,8 +15,23 @@ export type CreditResourceInput = Readonly<{
 }>;
 
 export type DebitResourceInput = CreditResourceInput;
+export type InternalMorasWalletTransferInput = Omit<CreditResourceInput, 'playerElementKey' | 'resourceKey' | 'amount'> & Readonly<{ delta: bigint }>;
 
 export class PrismaEconomyService {
+  public async transferMorasWithoutStats(transaction: Prisma.TransactionClient, input: InternalMorasWalletTransferInput): Promise<{ balanceBefore: bigint; balanceAfter: bigint }> {
+    if (input.delta === 0n) throw new RangeError('An internal Mora transfer delta cannot be zero.');
+    const balanceBefore = await this.lockBalance(transaction, input.playerId, 'moras');
+    const balanceAfter = balanceBefore + input.delta;
+    if (balanceAfter < 0n) throw new BusinessError('BANK_WALLET_INSUFFICIENT', 'Vous ne possédez pas assez de Moras dans votre portefeuille.');
+    await transaction.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId: input.playerId, resourceKey: 'moras' } }, data: { amount: balanceAfter } });
+    await transaction.resourceMovement.create({ data: {
+      playerId: input.playerId, resourceKey: 'moras', delta: input.delta,
+      balanceBefore, balanceAfter, causeKey: input.causeKey, domainKey: input.domainKey,
+      operationId: input.operationId, sourceChannel: input.sourceChannel,
+    } });
+    return { balanceBefore, balanceAfter };
+  }
+
   public async debit(transaction: Prisma.TransactionClient, input: DebitResourceInput): Promise<void> {
     if (input.amount <= 0n) throw new RangeError('An economic debit amount must be positive.');
     const balance = await this.lockBalance(transaction, input.playerId, input.resourceKey);

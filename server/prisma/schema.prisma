@@ -107,6 +107,8 @@ model Player {
   preferences        PlayerPreference[]
   items              PlayerItem[]
   teams              Team[]
+  bankAccount        PlayerBankAccount?
+  bankTransactions   BankTransaction[]
 
   @@index([status], map: "players_status_idx")
   @@index([elementKey], map: "players_element_key_idx")
@@ -300,6 +302,7 @@ model BusinessOperation {
   wheelDailyState   PlayerWheelDailyState?
   dailyRewardState  PlayerDailyRewardState?
   pullOperation     PullOperation?
+  bankTransaction   BankTransaction?
 
   @@index([playerId, startedAt(sort: Desc)], map: "business_operations_player_started_at_idx")
   @@index([operationType, startedAt(sort: Desc)], map: "business_operations_type_started_at_idx")
@@ -353,6 +356,39 @@ model PlayerEconomyStats {
   player                          Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@map("player_economy_stats")
+}
+
+model PlayerBankAccount {
+  playerId         String            @id @map("player_id") @db.Uuid
+  balance          BigInt            @default(0)
+  lastInterestDate DateTime          @map("last_interest_date") @db.Date
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player           Player            @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  transactions     BankTransaction[]
+
+  @@map("player_bank_accounts")
+}
+
+model BankTransaction {
+  id                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId            String             @map("player_id") @db.Uuid
+  transactionType     String             @map("transaction_type") @db.Text
+  amount              BigInt
+  bankBalanceBefore   BigInt             @map("bank_balance_before")
+  bankBalanceAfter    BigInt             @map("bank_balance_after")
+  walletBalanceBefore BigInt?            @map("wallet_balance_before")
+  walletBalanceAfter  BigInt?            @map("wallet_balance_after")
+  businessDate        DateTime?          @map("business_date") @db.Date
+  operationId         String             @unique(map: "bank_transactions_operation_id_key") @map("operation_id") @db.Uuid
+  createdAt           DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  player              Player             @relation(fields: [playerId], references: [id], onDelete: Restrict, map: "bank_transactions_player_id_fkey")
+  bankAccount         PlayerBankAccount  @relation(fields: [playerId], references: [playerId], onDelete: Cascade, map: "bank_transactions_bank_account_fkey")
+  operation           BusinessOperation  @relation(fields: [operationId], references: [id], onDelete: Restrict, map: "bank_transactions_operation_id_fkey")
+
+  @@index([playerId, createdAt(sort: Desc)], map: "bank_transactions_player_created_at_idx")
+  @@index([businessDate], map: "bank_transactions_business_date_idx")
+  @@map("bank_transactions")
 }
 
 model PlayerWheelStats {

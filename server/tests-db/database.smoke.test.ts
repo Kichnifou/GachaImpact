@@ -18,6 +18,7 @@ if (!config.databaseUrl) {
 const database = createDatabase(config.databaseUrl);
 
 const expectedTables = [
+  'bank_transactions',
   'banner_featured_characters',
   'banner_rotations',
   'banner_votes',
@@ -26,6 +27,7 @@ const expectedTables = [
   'characters',
   'elements',
   'item_definitions',
+  'player_bank_accounts',
   'player_characters',
   'player_daily_reward_state',
   'player_economy_stats',
@@ -47,6 +49,10 @@ const expectedTables = [
 ] as const;
 
 const expectedCheckConstraints = [
+  'bank_transactions_amount_check',
+  'bank_transactions_balances_nonnegative_check',
+  'bank_transactions_interest_shape_check',
+  'bank_transactions_type_check',
   'banner_featured_rarity_check',
   'banner_featured_slot_check',
   'banner_rotations_dates_check',
@@ -54,6 +60,7 @@ const expectedCheckConstraints = [
   'characters_name_check',
   'characters_rarity_check',
   'elements_display_order_positive_check',
+  'player_bank_accounts_balance_nonnegative_check',
   'player_characters_constellation_check',
   'player_characters_copies_check',
   'player_daily_reward_state_claim_dates_check',
@@ -91,6 +98,7 @@ const expectedCheckConstraints = [
 ] as const;
 
 const expectedManualIndexes = [
+  'bank_transactions_player_interest_date_key',
   'banner_rotations_one_active_idx',
   'business_operations_source_idempotency_key',
   'characters_name_lower_idx',
@@ -184,6 +192,7 @@ describe('Supabase development database', () => {
       WHERE schemaname = 'public'
         AND indexname IN (
           'banner_rotations_one_active_idx',
+          'bank_transactions_player_interest_date_key',
           'business_operations_source_idempotency_key',
           'characters_name_lower_idx',
           'player_characters_player_obtained_idx',
