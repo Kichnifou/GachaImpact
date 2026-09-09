@@ -81,7 +81,19 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
   const [bankTransferIntents] = useState(() => new BankTransferIntentCoordinator())
   const [bankCache] = useState(() => new BankMemoryCache())
   const activeLevelUpFeedback = levelUpFeedbacks[0] ?? null
-  const profileLevelUp = useProfileLevelUpFeedback(activeLevelUpFeedback)
+  const [profileLevelUpEvent, setProfileLevelUpEvent] = useState<LevelUpFeedbackEvent | null>(null)
+  const [closedLevelUpModalId, setClosedLevelUpModalId] = useState<string | null>(null)
+  const finishProfileLevelUp = useCallback((id: string) => {
+    setProfileLevelUpEvent(null)
+    onLevelUpFeedbackFinished(id)
+  }, [onLevelUpFeedbackFinished])
+  const profileLevelUp = useProfileLevelUpFeedback(profileLevelUpEvent, finishProfileLevelUp)
+  const finishLevelUpModal = useCallback((id: string) => {
+    const event = levelUpFeedbacks.find((candidate) => candidate.id === id)
+    if (!event || profileLevelUpEvent) return
+    setClosedLevelUpModalId(id)
+    setProfileLevelUpEvent(event)
+  }, [levelUpFeedbacks, profileLevelUpEvent])
 
   const loadBox = useCallback(
     () => boxCache.revalidate(player.id, onLoadBox),
@@ -211,7 +223,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
       )}
 
       {isPlayersOpen && <OnlinePlayersPanel onClose={() => setIsPlayersOpen(false)} />}
-      {activeLevelUpFeedback && <LevelUpFeedback event={activeLevelUpFeedback} onFinished={onLevelUpFeedbackFinished} />}
+      {activeLevelUpFeedback && activeLevelUpFeedback.id !== closedLevelUpModalId && <LevelUpFeedback key={activeLevelUpFeedback.id} event={activeLevelUpFeedback} onFinished={finishLevelUpModal} />}
     </div>
   )
 }

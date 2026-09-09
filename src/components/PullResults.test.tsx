@@ -124,7 +124,7 @@ describe('PullResults', () => {
       passiveEffects: [{ elementKey: 'cryo' as const, type: 'xp' as const, amount: '1', xpAfter: '30', levelsReached: [1], overflowRewardsGranted: 0 }],
     }
     const html = renderToStaticMarkup(<PullResultCard result={result} compact />)
-    expect(html).toContain('class="pull-bonus">+80 Primos')
+    expect(html).toContain('class="pull-bonus pull-c6-refund">+80 Primos')
     expect(html).toContain('class="pull-bonus">+10 000 Moras')
     expect(html).toContain('+1 XP')
     expect(html).not.toContain('Cryo ·')
@@ -243,5 +243,18 @@ describe('PullResults', () => {
     expect(c6Html).toContain('>C6</small>')
     expect(c6Html).toContain('+80 Primos')
     for (const html of [newHtml, c1Html, c6Html]) expect(html).not.toContain('Copie')
+  })
+
+  it('shrinks only the compact C6 refund identified by its server cause', () => {
+    const compact = renderToStaticMarkup(<PullResultCard result={characterResult} compact />)
+    const reveal = renderToStaticMarkup(<PullResultCard result={characterResult} />)
+    const sameAmountDifferentCause = renderToStaticMarkup(<PullResultCard result={{
+      ...characterResult,
+      bonusRewards: [{ resourceKey: 'primogems', amount: '80', causeKey: 'player.xp.level-reward' }],
+    }} compact />)
+    expect(compact).toContain('pull-bonus pull-c6-refund')
+    expect(reveal).not.toContain('pull-c6-refund')
+    expect(sameAmountDifferentCause).toContain('class="pull-bonus">+80 Primos')
+    expect(sameAmountDifferentCause).not.toContain('pull-c6-refund')
   })
 })

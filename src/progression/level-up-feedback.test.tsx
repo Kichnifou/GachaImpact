@@ -6,7 +6,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { PlayerProgressionDto } from '../api/types'
-import LevelUpFeedback, { LEVEL_UP_FEEDBACK_DURATION_MS } from '../components/LevelUpFeedback'
+import LevelUpFeedback, { LEVEL_UP_FEEDBACK_DISMISS_LOCK_MS, LEVEL_UP_FEEDBACK_DURATION_MS } from '../components/LevelUpFeedback'
 import { buildLevelUpFeedback } from './level-up-feedback'
 import { PROFILE_LEVEL_UP_DURATION_MS, useProfileLevelUpFeedback } from './use-profile-level-up-feedback'
 
@@ -41,7 +41,32 @@ describe('level-up feedback', () => {
     expect(html).toContain('3 niveaux gagnés !')
     expect(html).toContain('+800 Primos · +10 000 Moras · +80 Cryo · +40 Hydro')
     expect(html).toContain('aria-live="polite"')
+    expect(html).toContain('role="dialog"')
+    expect(html).toContain('aria-modal="true"')
     expect((html.match(/<small>/g) ?? [])).toHaveLength(1)
+  })
+
+  it('captures clicks immediately but only dismisses by click or Escape after one second', () => {
+    vi.useFakeTimers()
+    const event = buildLevelUpFeedback(progression(11), progression(12), [], 'dismiss')!
+    const onFinished = vi.fn()
+    const behind = document.createElement('button')
+    behind.addEventListener('click', vi.fn())
+    document.body.append(behind)
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    roots.push(root)
+    act(() => root.render(<LevelUpFeedback event={event} onFinished={onFinished} />))
+    const overlay = container.querySelector<HTMLElement>('.level-up-feedback-overlay')!
+    act(() => overlay.click())
+    act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })))
+    expect(onFinished).not.toHaveBeenCalled()
+    act(() => vi.advanceTimersByTime(LEVEL_UP_FEEDBACK_DISMISS_LOCK_MS))
+    expect(overlay.classList.contains('dismissible')).toBe(true)
+    act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })))
+    expect(onFinished).toHaveBeenCalledTimes(1)
+    expect(onFinished).toHaveBeenCalledWith('dismiss')
   })
 
   it('expires once after the complete presentation duration', () => {
@@ -78,5 +103,22 @@ describe('level-up feedback', () => {
     act(() => vi.advanceTimersByTime(1))
     expect(container.querySelector('output')?.dataset.visible).toBe('false')
     expect(container.textContent).toBe('hidden')
+  })
+
+  it('reports the end of the sidebar phase so the next queued modal can start afterward', () => {
+    vi.useFakeTimers()
+    const event = buildLevelUpFeedback(progression(11), progression(12), [], 'profile-sequence')!
+    const onFinished = vi.fn()
+    function Probe() {
+      const feedback = useProfileLevelUpFeedback(event, onFinished)
+      return <output>{feedback.visible ? 'visible' : 'hidden'}</output>
+    }
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    roots.push(root)
+    act(() => root.render(<Probe />))
+    act(() => vi.advanceTimersByTime(PROFILE_LEVEL_UP_DURATION_MS))
+    expect(onFinished).toHaveBeenCalledWith('profile-sequence')
   })
 })

@@ -543,6 +543,7 @@
   display: block;
   line-height: 1.2;
 }
+.sequence-summary .pull-result-card.compact .pull-c6-refund { font-size: 6px; }
 
 .gacha-detail-overlay {
   position: absolute;
@@ -1994,7 +1995,7 @@
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
-  .level-up-feedback { animation-name: level-up-feedback-fade; }
+  .level-up-feedback-overlay { animation-name: level-up-feedback-fade; }
 }
 
 @keyframes level-up-feedback-fade {
@@ -2206,16 +2207,17 @@
 
 .level-up-delta { margin-left: 6px; color: #8fe5ff; font-size: 10px; font-style: normal; font-weight: 900; text-shadow: 0 0 10px rgba(89, 213, 255, .72); }
 
-.level-up-feedback-anchor { position: fixed; z-index: 90; top: 76px; left: 50%; width: min(520px, calc(100vw - 24px)); pointer-events: none; transform: translateX(-50%); }
-.level-up-feedback { display: grid; justify-items: center; gap: 3px; padding: 10px 18px 11px; overflow: hidden; color: #eef8ff; text-align: center; border: 1px solid rgba(107, 205, 255, .52); border-radius: 14px; background: linear-gradient(135deg, rgba(13, 37, 73, .96), rgba(31, 24, 74, .96)); box-shadow: 0 12px 34px rgba(0, 0, 0, .42), 0 0 28px rgba(74, 190, 255, .2); animation: level-up-feedback-lifecycle 5.4s ease both; }
-.level-up-feedback-kicker { color: #6bdcff; font-size: 7px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
-.level-up-feedback strong { font-family: Georgia, serif; font-size: 18px; }
-.level-up-feedback small { width: 100%; overflow: hidden; color: #d7e9ff; font-size: clamp(7px, .7vw, 9px); font-weight: 700; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.level-up-feedback-overlay { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; cursor: default; background: rgba(2, 7, 18, .7); backdrop-filter: blur(7px); animation: level-up-feedback-lifecycle 5.4s ease both; }
+.level-up-feedback-overlay.dismissible { cursor: pointer; }
+.level-up-feedback { width: min(620px, calc(100vw - 32px)); display: grid; justify-items: center; gap: 8px; padding: clamp(28px, 5vw, 48px); overflow: hidden; color: #eef8ff; text-align: center; border: 1px solid rgba(107, 205, 255, .52); border-radius: 22px; background: radial-gradient(circle at 50% 0%, rgba(75, 180, 255, .16), transparent 50%), linear-gradient(135deg, rgba(13, 37, 73, .98), rgba(31, 24, 74, .98)); box-shadow: 0 28px 80px rgba(0, 0, 0, .58), 0 0 38px rgba(74, 190, 255, .24); }
+.level-up-feedback-kicker { color: #6bdcff; font-size: 9px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
+.level-up-feedback strong { font-family: Georgia, serif; font-size: clamp(29px, 4vw, 44px); }
+.level-up-feedback small { width: 100%; overflow: hidden; color: #d7e9ff; font-size: clamp(10px, 1.2vw, 14px); font-weight: 700; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
 
 @keyframes level-up-feedback-lifecycle {
-  0% { opacity: 0; transform: translateY(8px); }
-  8%, 88% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(5px); }
+  0% { opacity: 0; }
+  8%, 88% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 .resource-item-action {
@@ -2366,10 +2368,10 @@
 .bank-history-pagination button:disabled { cursor: default; opacity: .42; }
 
 .bank-history-overlay { position: fixed; z-index: 80; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(2, 7, 18, .78); backdrop-filter: blur(8px); }
-.bank-history-modal { width: min(980px, 100%); height: min(680px, calc(100dvh - 40px)); min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; }
+.bank-history-modal { width: min(980px, 100%); max-height: calc(100dvh - 40px); min-height: 0; display: grid; grid-template-rows: auto minmax(0, auto) auto; overflow: hidden; }
 .bank-history-modal > header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 20px; border-bottom: 1px solid rgba(108, 145, 205, .16); }
 .bank-history-modal h2 { margin-top: 4px; font-size: 19px; }
-.bank-history-table-wrap { min-height: 0; overflow: auto; padding: 0 20px; }
+.bank-history-table-wrap { min-height: 0; max-height: calc(100dvh - 174px); overflow: auto; padding: 0 20px; }
 .bank-history-table { width: 100%; border-collapse: collapse; }
 .bank-history-table th,
 .bank-history-table td { padding: 13px 10px; text-align: left; border-bottom: 1px solid rgba(108, 145, 205, .12); white-space: nowrap; }
@@ -2404,7 +2406,7 @@
   .bank-main-grid { grid-template-columns: minmax(0, 1fr); }
   .bank-transfer-panel,
   .bank-history-panel { padding: 14px; }
-  .bank-history-modal { height: min(650px, calc(100dvh - 16px)); }
+  .bank-history-modal { max-height: calc(100dvh - 16px); }
   .bank-history-overlay { padding: 8px; }
   .bank-history-modal > header { padding: 14px; }
   .bank-history-table-wrap { padding-inline: 8px; }
