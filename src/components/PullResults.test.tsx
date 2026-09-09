@@ -90,7 +90,8 @@ describe('PullResults', () => {
       passiveEffects: [{ elementKey: 'anemo' as const, type: 'primogem_recovery' as const, amount: '80' }],
     }
     const html = renderToStaticMarkup(<PullResultCard result={result} compact />)
-    expect((html.match(/Anemo · \+80 Primos/g) ?? [])).toHaveLength(1)
+    expect((html.match(/\+80 Primos/g) ?? [])).toHaveLength(1)
+    expect(html).not.toContain('Anemo ·')
     expect(html).not.toContain('class="pull-bonus">+80 Primos')
   })
 
@@ -107,7 +108,8 @@ describe('PullResults', () => {
       passiveEffects: [{ elementKey: 'dendro' as const, type: 'resource_bundle' as const, rewards }],
     }
     const html = renderToStaticMarkup(<PullResultCard result={result} compact />)
-    expect(html).toContain('Dendro · Bundle élémentaire')
+    expect(html).toContain('Bundle élémentaire')
+    expect(html).not.toContain('Dendro ·')
     expect(html).not.toContain('class="pull-bonus"')
   })
 
@@ -124,7 +126,8 @@ describe('PullResults', () => {
     const html = renderToStaticMarkup(<PullResultCard result={result} compact />)
     expect(html).toContain('class="pull-bonus">+80 Primos')
     expect(html).toContain('class="pull-bonus">+10 000 Moras')
-    expect(html).toContain('Cryo · +1 XP')
+    expect(html).toContain('+1 XP')
+    expect(html).not.toContain('Cryo ·')
   })
 
   it('hides a clamped Electro proc with no actual pity gain', () => {
@@ -134,9 +137,9 @@ describe('PullResults', () => {
       c6Progression: null,
       passiveEffects: [{ elementKey: 'electro' as const, type: 'pity5' as const, amount, requestedAmount: 2 as const }],
     }} compact />)
-    expect(renderElectro(2)).toContain('Electro · +2 Pity 5★')
-    expect(renderElectro(1)).toContain('Electro · +1 Pity 5★')
-    expect(renderElectro(0)).not.toContain('Electro ·')
+    expect(renderElectro(2)).toContain('+2 Pity 5★')
+    expect(renderElectro(1)).toContain('+1 Pity 5★')
+    expect(renderElectro(0)).not.toContain('Pity 5★')
   })
 
   it('centers a dedicated passive text wrapper independently from its icon while preserving character alignment', () => {
@@ -162,7 +165,7 @@ describe('PullResults', () => {
       expect(html).toContain('pull-passive-effects passive-feedback-centered')
       expect(html).not.toContain('passive-feedback-character')
     }
-    for (const html of [characterReveal, compactCharacter, resourceReveal, compactResource]) {
+    for (const html of [characterReveal, resourceReveal]) {
       expect((html.match(/class="pull-passive-effect-line"/g) ?? [])).toHaveLength(3)
       expect((html.match(/class="pull-passive-effect"/g) ?? [])).toHaveLength(3)
       expect((html.match(/class="pull-passive-label"/g) ?? [])).toHaveLength(3)
@@ -172,6 +175,57 @@ describe('PullResults', () => {
       expect(html).toMatch(/pull-passive-label[\s\S]*pull-passive-icon[\s\S]*pull-passive-text">Pyro · Particules ×1,25/)
       expect(html).toMatch(/pull-passive-label[\s\S]*pull-passive-icon[\s\S]*pull-passive-text">Electro · \+2 Pity 5★/)
     }
+    for (const html of [compactCharacter, compactResource]) {
+      expect((html.match(/class="pull-passive-effect-line"/g) ?? [])).toHaveLength(3)
+      expect(html).toContain('Moras ×1,25')
+      expect(html).toContain('Particules ×1,25')
+      expect(html).toContain('+2 Pity 5★')
+      expect(html).not.toMatch(/Geo ·|Pyro ·|Electro ·/)
+    }
+  })
+
+  it('keeps 4★ and 5★ identity in a dedicated structure regardless of passive count', () => {
+    const passiveSets = [
+      [],
+      [{ elementKey: 'cryo' as const, type: 'xp' as const, amount: '1', xpAfter: '1', levelsReached: [], overflowRewardsGranted: 0 }],
+      [
+        { elementKey: 'cryo' as const, type: 'xp' as const, amount: '1', xpAfter: '1', levelsReached: [], overflowRewardsGranted: 0 },
+        { elementKey: 'electro' as const, type: 'pity5' as const, amount: 2, requestedAmount: 2 as const },
+        { elementKey: 'anemo' as const, type: 'primogem_recovery' as const, amount: '80' },
+      ],
+      [
+        { elementKey: 'pyro' as const, type: 'secondary_reward_multiplier' as const, numerator: 5, denominator: 4, amountBefore: '20', amountAfter: '25' },
+        { elementKey: 'geo' as const, type: 'secondary_reward_multiplier' as const, numerator: 5, denominator: 4, amountBefore: '100', amountAfter: '125' },
+        { elementKey: 'cryo' as const, type: 'xp' as const, amount: '1', xpAfter: '1', levelsReached: [], overflowRewardsGranted: 0 },
+        { elementKey: 'electro' as const, type: 'pity5' as const, amount: 2, requestedAmount: 2 as const },
+        { elementKey: 'anemo' as const, type: 'primogem_recovery' as const, amount: '80' },
+      ],
+    ]
+    for (const rarity of [4, 5] as const) for (const passiveEffects of passiveSets) {
+      const html = renderToStaticMarkup(<PullResultCard result={{ ...characterResult, rarity, character: { ...character, rarity }, passiveEffects }} />)
+      expect(html).toMatch(/pull-character-identity[\s\S]*pull-result-progression">C6[\s\S]*Furina[\s\S]*pull-result-rarity/)
+      expect((html.match(/pull-character-identity/g) ?? [])).toHaveLength(1)
+      expect(html.indexOf('pull-character-identity')).toBeLessThan(html.indexOf('pull-passive-effects') === -1 ? Number.POSITIVE_INFINITY : html.indexOf('pull-passive-effects'))
+    }
+  })
+
+  it('uses all compact passive labels without repeating element names', () => {
+    const result = {
+      ...characterResult,
+      bonusRewards: [],
+      c6Progression: null,
+      passiveEffects: [
+        { elementKey: 'pyro' as const, type: 'secondary_reward_multiplier' as const, numerator: 5, denominator: 4, amountBefore: '20', amountAfter: '25' },
+        { elementKey: 'geo' as const, type: 'secondary_reward_multiplier' as const, numerator: 5, denominator: 4, amountBefore: '100', amountAfter: '125' },
+        { elementKey: 'cryo' as const, type: 'xp' as const, amount: '1', xpAfter: '1', levelsReached: [], overflowRewardsGranted: 0 },
+        { elementKey: 'electro' as const, type: 'pity5' as const, amount: 2, requestedAmount: 2 as const },
+        { elementKey: 'anemo' as const, type: 'primogem_recovery' as const, amount: '80' },
+        { elementKey: 'dendro' as const, type: 'resource_bundle' as const, rewards: [] },
+      ],
+    }
+    const html = renderToStaticMarkup(<PullResultCard result={result} compact />)
+    for (const label of ['Particules ×1,25', 'Moras ×1,25', '+1 XP', '+2 Pity 5★', '+80 Primos', 'Bundle élémentaire']) expect(html).toContain(label)
+    expect(html).not.toMatch(/Pyro ·|Geo ·|Cryo ·|Electro ·|Anemo ·|Dendro ·/)
   })
 
   it('uses the same Nouveau or capped Cx rule in the x10 summary', () => {

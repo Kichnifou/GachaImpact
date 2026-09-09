@@ -14,6 +14,7 @@ import { claimDailyRewardAndRefresh } from './daily-reward/claim-daily-reward'
 import { performGachaPullAndRefresh } from './gacha/perform-gacha-pull'
 import { abandonGachaPresentationBeforeSignOut, applyGachaPrimogemCostPreview, createGachaPresentationCoordinator, type GachaPresentationCoordinator, type GachaPrimogemCostPreview } from './gacha/gacha-presentation-coordinator'
 import { applyBankWalletToResources } from './bank/bank-presentation'
+import { buildLevelUpFeedback, gachaLevelRewards, type LevelUpFeedbackEvent } from './progression/level-up-feedback'
 
 function AppBootstrap() {
   const { status: authStatus, session, configurationMessage, signOut } = useAuth()
@@ -30,6 +31,11 @@ function AppBootstrap() {
   const [gachaPrimogemPreview, setGachaPrimogemPreview] = useState<GachaPrimogemCostPreview | null>(null)
   const [resolvedUserId, setResolvedUserId] = useState<string | null>(null)
   const [fatalError, setFatalError] = useState<{ userId: string; message: string } | null>(null)
+  const [levelUpFeedbacks, setLevelUpFeedbacks] = useState<readonly LevelUpFeedbackEvent[]>([])
+  const progressionRef = useRef<PlayerProgressionDto | null>(null)
+  const dismissLevelUpFeedback = useCallback((id: string) => {
+    setLevelUpFeedbacks((current) => current.filter((event) => event.id !== id))
+  }, [])
 
   const loadResources = useCallback(async () => {
     const nextResources = await getGameApiClient().getResources()
@@ -71,6 +77,7 @@ function AppBootstrap() {
       api.getTeams(),
     ])
     setResources(nextResources)
+    progressionRef.current = nextProgression
     setProgression(nextProgression)
     setWheelToday(nextWheelToday)
     setDailyRewardToday(nextDailyRewardToday)
@@ -81,13 +88,24 @@ function AppBootstrap() {
 
   const publishGachaUpdate = useCallback((refreshed: Awaited<ReturnType<typeof performGachaPullAndRefresh>>) => {
     if (refreshed.resources) setResources(refreshed.resources)
-    if (refreshed.progression) setProgression(refreshed.progression)
+    if (refreshed.progression) {
+      const feedback = buildLevelUpFeedback(
+        progressionRef.current,
+        refreshed.progression,
+        gachaLevelRewards(refreshed.result),
+        `${refreshed.result.operation.id}:${refreshed.progression.level}`,
+      )
+      progressionRef.current = refreshed.progression
+      setProgression(refreshed.progression)
+      if (feedback) setLevelUpFeedbacks((current) => [...current, feedback])
+    }
     setGacha((current) => refreshed.gacha ?? (current ? { ...current, playerState: refreshed.result.playerState } : current))
   }, [])
 
   const gachaPresentation = useRef<GachaPresentationCoordinator | null>(null)
-  if (gachaPresentation.current === null) {
-    gachaPresentation.current = createGachaPresentationCoordinator({
+
+  useLayoutEffect(() => {
+    if (gachaPresentation.current === null) gachaPresentation.current = createGachaPresentationCoordinator({
       execute: (count, idempotencyKey, onPullSucceeded) => performGachaPullAndRefresh(getGameApiClient(), count, idempotencyKey, onPullSucceeded),
       publish: publishGachaUpdate,
       createIdempotencyKey: () => crypto.randomUUID(),
@@ -102,11 +120,8 @@ function AppBootstrap() {
         setGachaPrimogemPreview((current) => current?.sessionId === previewSessionId ? null : current)
       },
     })
-  }
-
-  useLayoutEffect(() => {
-    gachaPresentation.current?.setSession(sessionUserId ?? null)
-  }, [sessionUserId])
+    gachaPresentation.current.setSession(sessionUserId ?? null)
+  }, [publishGachaUpdate, sessionUserId])
 
   const pendingGachaPullCount = pendingGachaPull && pendingGachaPull.sessionId === sessionUserId
     ? pendingGachaPull.count
@@ -137,6 +152,8 @@ function AppBootstrap() {
           setPlayer(null)
           setResources(null)
           setProgression(null)
+          progressionRef.current = null
+          setLevelUpFeedbacks([])
           setWheelToday(null)
           setDailyRewardToday(null)
           setGacha(null)
@@ -223,6 +240,8 @@ function AppBootstrap() {
       gacha={gacha}
       characters={characters}
       teams={teams}
+      levelUpFeedbacks={levelUpFeedbacks}
+      onLevelUpFeedbackFinished={dismissLevelUpFeedback}
       onLoadTeams={loadTeams}
       onActivateTeam={async (teamId) => { const next = await getGameApiClient().activateTeam(teamId); setTeams(next); return next }}
       onRenameTeam={async (teamId, name) => { const next = await getGameApiClient().renameTeam(teamId, name); setTeams(next); return next }}
@@ -247,6 +266,7 @@ function AppBootstrap() {
       onSetBoxSortPreference={setBoxSortPreference}
       onUseStella={useStella}
       onLoadBank={loadBank}
+      onLoadBankHistory={(page) => getGameApiClient().getBankHistory(page)}
       onDepositBank={depositBank}
       onWithdrawBank={withdrawBank}
       onClaimDailyReward={async () => {
@@ -265,6 +285,8 @@ function AppBootstrap() {
         setPendingGachaPull(null)
         setGachaPrimogemPreview(null)
         setTeams(null)
+        progressionRef.current = null
+        setLevelUpFeedbacks([])
         await abandonGachaPresentationBeforeSignOut(gachaPresentation.current!, signOut)
       }}
     />

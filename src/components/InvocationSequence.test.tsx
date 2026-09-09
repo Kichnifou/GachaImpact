@@ -99,8 +99,8 @@ describe('InvocationSequence player-facing copy', () => {
     const glow = appCss.match(/@keyframes c6-stat-glow\s*\{([\s\S]*?)\n\}/)?.[1] ?? ''
     expect(glow).toContain('box-shadow')
     expect(glow).not.toMatch(/transform|translate|scale/)
-    expect(appCss).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.reveal-overlay-control \{ animation: none !important; \}/)
-    expect(appCss).toMatch(/\.character-reveal \.reveal-c6-stat-feedback\s*\{[\s\S]*?bottom: 68px;/)
+    expect(appCss).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.reveal-c6-stat-feedback \{ animation: none !important; \}/)
+    expect(appCss).toMatch(/\.character-reveal \.reveal-c6-stat-feedback\s*\{[\s\S]*?bottom: 80px;/)
   })
 
 })

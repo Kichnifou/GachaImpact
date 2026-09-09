@@ -23,7 +23,7 @@ export function PullResultCard({ result, order = 0, compact = false }: { result:
   const event = pullEventLabel(result)
   const revealProgression = characterProgressionLabel(result.wasNewCharacter, result.constellationAfter)
   const passiveEffects = (result.passiveEffects ?? []).flatMap((effect) => {
-    const label = passiveEffectLabel(effect)
+    const label = passiveEffectLabel(effect, compact ? 'compact' : 'reveal')
     return label ? [{ effect, label }] : []
   })
   const visibleBonusRewards = visiblePullBonusRewards(result)
@@ -46,12 +46,14 @@ export function PullResultCard({ result, order = 0, compact = false }: { result:
           <CharacterAssetImage characterName={result.character.name} className="pull-result-image" assetPaths={characterAssetPaths} fallback={<span>{result.character.name.slice(0, 1)}</span>} alt={result.character.name} />
         </div>
         <div className="pull-result-copy">
-          {!compact && <small className="pull-result-progression">{revealProgression}</small>}
-          <strong style={compact ? undefined : individualRevealNameStyle}>{result.character.name}</strong>
-          <span className="pull-result-rarity">{'★'.repeat(rarity)}</span>
+          <span className="pull-character-identity">
+            {!compact && <small className="pull-result-progression">{revealProgression}</small>}
+            <strong style={compact ? undefined : individualRevealNameStyle}>{result.character.name}</strong>
+            <span className="pull-result-rarity">{'★'.repeat(rarity)}</span>
+            {compact && <small>{revealProgression}</small>}
+            {compact && event && <small className="pull-event">{event}</small>}
+          </span>
           {!compact && passiveEffects.length > 0 && <PassiveEffects effects={passiveEffects} alignment="character" />}
-          {compact && <small>{revealProgression}</small>}
-          {compact && event && <small className="pull-event">{event}</small>}
           {compact && compactBonusContent}
         </div>
       </> : <div className="pull-resource-content">

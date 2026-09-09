@@ -57,16 +57,19 @@ export function pullEventLabel(result: GachaPullResultItemDto): string | null {
   return null
 }
 
-export function passiveEffectLabel(effect: GachaPassiveEffectDto): string | null {
+export type PassiveEffectLabelContext = 'reveal' | 'compact'
+
+export function passiveEffectLabel(effect: GachaPassiveEffectDto, context: PassiveEffectLabelContext = 'reveal'): string | null {
   if (effect.type === 'five_star_chance_bonus') return null
+  const prefix = context === 'compact' ? '' : `${elementLabels[effect.elementKey]} · `
   if (effect.type === 'secondary_reward_multiplier') {
     const multiplier = effect.numerator === 5 ? '1,25' : '1,5'
-    return `${elementLabels[effect.elementKey]} · ${effect.elementKey === 'pyro' ? 'Particules' : 'Moras'} ×${multiplier}`
+    return `${prefix}${effect.elementKey === 'pyro' ? 'Particules' : 'Moras'} ×${multiplier}`
   }
-  if (effect.type === 'xp') return `Cryo · +${effect.amount} XP`
-  if (effect.type === 'pity5') return effect.amount > 0 ? `Electro · +${effect.amount} Pity 5★` : null
-  if (effect.type === 'primogem_recovery') return `Anemo · +${effect.amount} Primos`
-  return 'Dendro · Bundle élémentaire'
+  if (effect.type === 'xp') return `${prefix}+${effect.amount} XP`
+  if (effect.type === 'pity5') return effect.amount > 0 ? `${prefix}+${effect.amount} Pity 5★` : null
+  if (effect.type === 'primogem_recovery') return `${prefix}+${effect.amount} Primos`
+  return `${prefix}Bundle élémentaire`
 }
 
 export function visiblePullBonusRewards(result: GachaPullResultItemDto): GachaPullResultItemDto['bonusRewards'] {

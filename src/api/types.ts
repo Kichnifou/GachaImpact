@@ -39,6 +39,13 @@ export type BankTransferDto = PlayerBankDto & Readonly<{
   operation: Readonly<{ id: string; alreadyProcessed: boolean }>
 }>
 
+export type BankHistoryDto = Readonly<{
+  page: number
+  totalPages: number
+  totalCount: number
+  operations: readonly BankOperationDto[]
+}>
+
 export type PlayerProgressionDto = Readonly<{
   totalXp: string
   level: number

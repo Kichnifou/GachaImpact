@@ -4,7 +4,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { BankTransferDto, PlayerBankDto, PlayerResourcesDto } from '../api/types'
+import type { BankHistoryDto, BankTransferDto, PlayerBankDto, PlayerResourcesDto } from '../api/types'
 import { applyBankWalletToResources, formatBankCountdown } from '../bank/bank-presentation'
 import BankScreen from './BankScreen'
 import { ApiError } from '../api/game-api'
@@ -34,12 +34,13 @@ async function mount(overrides: Partial<React.ComponentProps<typeof BankScreen>>
     ...bank(direction === 'deposit' ? { walletMoras: '750', bankMoras: '750' } : {}),
     operation: { id: direction, alreadyProcessed: false },
   }))
+  const onLoadHistory = overrides.onLoadHistory ?? vi.fn(async (page: number): Promise<BankHistoryDto> => ({ page, totalPages: 1, totalCount: 1, operations: bank().recentOperations }))
   const container = document.createElement('div')
   document.body.append(container)
   const root = createRoot(container)
   roots.push(root)
-  await act(async () => { root.render(<BankScreen onLoad={onLoad} onTransfer={onTransfer} />); await Promise.resolve(); await Promise.resolve() })
-  return { container, onLoad, onTransfer }
+  await act(async () => { root.render(<BankScreen initialBank={overrides.initialBank ?? null} onLoad={onLoad} onLoadHistory={onLoadHistory} onTransfer={onTransfer} />); await Promise.resolve(); await Promise.resolve() })
+  return { container, onLoad, onLoadHistory, onTransfer }
 }
 
 function changeInput(input: HTMLInputElement, value: string) {
@@ -66,7 +67,17 @@ describe('Bank screen', () => {
     expect(container.textContent).toContain('Intérêt quotidien')
   })
 
-  it('submits a deposit, applies the response immediately and supports server-side MAX', async () => {
+  it('limits the main activity panel to the five newest operations', async () => {
+    const operations = Array.from({ length: 7 }, (_, index) => ({
+      ...bank().recentOperations[0]!,
+      id: `operation-${index}`,
+      amount: String(index + 1),
+    }))
+    const { container } = await mount({ onLoad: vi.fn(async () => bank({ recentOperations: operations })) })
+    expect(container.querySelectorAll('.bank-history-list li')).toHaveLength(5)
+  })
+
+  it('fills the deposit with the displayed wallet on MAX, then submits the numeric amount', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(now)
     const onTransfer = vi.fn(async (_direction: 'deposit' | 'withdraw', amount: string): Promise<BankTransferDto> => ({ ...bank({ walletMoras: amount === 'max' ? '0' : '750', bankMoras: amount === 'max' ? '1500' : '750', totalWealth: '1500', estimatedInterest: amount === 'max' ? '45' : '22' }), operation: { id: amount, alreadyProcessed: false } }))
     const { container } = await mount({ onTransfer })
@@ -78,11 +89,13 @@ describe('Bank screen', () => {
     expect(container.textContent).toContain('750')
     const max = form.querySelector<HTMLButtonElement>('.bank-max-button')!
     await act(async () => { max.click(); await Promise.resolve(); await Promise.resolve() })
-    expect(onTransfer.mock.calls[1]).toEqual(['deposit', 'max'])
-    expect(container.textContent).toContain('1 500')
+    expect(input.value).toBe('750')
+    expect(onTransfer).toHaveBeenCalledTimes(1)
+    await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+    expect(onTransfer.mock.calls[1]).toEqual(['deposit', '750'])
   })
 
-  it('submits withdrawals, keeps controls pending and sends MAX as an authoritative intent', async () => {
+  it('submits withdrawals, keeps controls pending and lets MAX fill without starting an intent', async () => {
     let resolveWithdrawal!: (value: BankTransferDto) => void
     const onTransfer = vi.fn((_direction: 'deposit' | 'withdraw', _amount: string) => new Promise<BankTransferDto>((resolve) => { resolveWithdrawal = resolve }))
     const { container } = await mount({ onTransfer })
@@ -96,7 +109,8 @@ describe('Bank screen', () => {
     await act(async () => { resolveWithdrawal({ ...bank({ walletMoras: '1125', bankMoras: '375', estimatedInterest: '11' }), operation: { id: 'withdraw', alreadyProcessed: false } }); await Promise.resolve(); await Promise.resolve() })
     expect(container.textContent).toContain('1 125')
     await act(async () => { form.querySelector<HTMLButtonElement>('.bank-max-button')!.click(); await Promise.resolve() })
-    expect(onTransfer.mock.calls[1]).toEqual(['withdraw', 'max'])
+    expect(input.value).toBe('375')
+    expect(onTransfer).toHaveBeenCalledTimes(1)
   })
 
   it('keeps invalid input local while server errors remain visible', async () => {
@@ -150,6 +164,36 @@ describe('Bank screen', () => {
     await mount({ onLoad })
     await act(async () => { await vi.advanceTimersByTimeAsync(1_100); await Promise.resolve() })
     expect(onLoad).toHaveBeenCalledTimes(2)
+  })
+
+  it('renders a cached snapshot immediately while revalidating in the background', async () => {
+    let resolveLoad!: (value: PlayerBankDto) => void
+    const onLoad = vi.fn(() => new Promise<PlayerBankDto>((resolve) => { resolveLoad = resolve }))
+    const { container } = await mount({ initialBank: bank({ walletMoras: '777' }), onLoad })
+    expect(container.textContent).toContain('777')
+    expect(container.textContent).not.toContain('Ouverture de votre Banque')
+    await act(async () => { resolveLoad(bank({ walletMoras: '888' })); await Promise.resolve(); await Promise.resolve() })
+    expect(container.textContent).toContain('888')
+  })
+
+  it('opens a paginated personal history modal with a fixed footer and interest wallet placeholder', async () => {
+    const onLoadHistory = vi.fn(async (page: number): Promise<BankHistoryDto> => ({
+      page, totalPages: 2, totalCount: 11,
+      operations: [{ ...bank().recentOperations[0]!, id: `interest-${page}` }],
+    }))
+    const { container } = await mount({ onLoadHistory })
+    await act(async () => { container.querySelector<HTMLButtonElement>('.bank-history-footer button')!.click(); await Promise.resolve(); await Promise.resolve() })
+    expect(onLoadHistory).toHaveBeenCalledWith(1)
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull()
+    expect(container.textContent).toContain('Historique de la Banque')
+    expect(container.textContent).toContain('Portefeuille après')
+    expect(container.querySelector('.bank-history-table')?.textContent).toContain('—')
+    const next = Array.from(container.querySelectorAll<HTMLButtonElement>('.bank-history-pagination button')).at(-1)!
+    await act(async () => { next.click(); await Promise.resolve(); await Promise.resolve() })
+    expect(onLoadHistory).toHaveBeenCalledWith(2)
+    expect(container.textContent).toContain('Page 2 / 2')
+    await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="Fermer l’historique"]')!.click(); await Promise.resolve() })
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
   })
 
   it('updates the sidebar wallet snapshot losslessly and formats countdowns', () => {

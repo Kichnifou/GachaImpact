@@ -17,6 +17,8 @@ type PlayerSidebarProps = {
   playerData: PlayerDto
   resources: PlayerResourcesDto
   progression: PlayerProgressionDto
+  levelUpDelta?: number | null
+  profileLevelUpActive?: boolean
   dailyRewardToday: DailyRewardTodayDto
   onClaimDailyReward: () => Promise<DailyRewardClaimDto>
   gacha: CurrentGachaDto
@@ -25,7 +27,7 @@ type PlayerSidebarProps = {
 
 const particleElements = ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro'] as const
 
-function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, progression, dailyRewardToday, onClaimDailyReward, gacha, teams }: PlayerSidebarProps) {
+function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, progression, levelUpDelta = null, profileLevelUpActive = false, dailyRewardToday, onClaimDailyReward, gacha, teams }: PlayerSidebarProps) {
   const featuredCharacter = gacha.banner.featuredFiveStars.find(({ id }) => id === gacha.playerState.selectedBannerCharacterId)
   const progressionPercent = getProgressionPercent(progression)
   const elementTheme = playerData.elementKey ? elementThemes[playerData.elementKey] : null
@@ -53,7 +55,7 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
       </div>
 
       <div className="player-priority">
-        <section className="panel profile-card" style={profileStyle}>
+        <section className={`panel profile-card${profileLevelUpActive ? ' level-up-active' : ''}`} style={profileStyle}>
           {playerData.elementKey && <GameAssetIcon className="profile-element-watermark" src={getElementAssetPath(playerData.elementKey)} fallback="" />}
           <div className="avatar-placeholder" aria-label={`Avatar de ${playerData.displayName}`}>
             <span>{playerData.displayName.slice(0, 1).toUpperCase()}</span>
@@ -61,7 +63,7 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
           <div className="profile-copy">
             <h2>{playerData.displayName}</h2>
             <div className="level-line">
-              <span>Niveau {progression.level}</span>
+              <span>Niveau {progression.level}{levelUpDelta ? <em className="level-up-delta">+{levelUpDelta}</em> : null}</span>
               <small>{formatResourceAmount(progression.xpIntoCurrentStep)} / {formatResourceAmount(progression.xpPerStep)} XP</small>
             </div>
             <div className="progress-track" aria-label={`Progression d’expérience : ${progressionPercent.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} %`}>
@@ -79,11 +81,10 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
               <GameAssetIcon className="resource-icon cyan" src={currencyAssetPaths.primogem} fallback="✦" />
               <div><strong>{formatResourceAmount(resources.primogems)}</strong><small>Primos</small></div>
             </div>
-            <div className="resource-item">
+            <button type="button" className="resource-item resource-item-action" onClick={() => onNavigate('bank')} aria-label={`Ouvrir la Banque, ${formatResourceAmount(resources.moras)} Moras`}>
               <GameAssetIcon className="resource-icon gold" src={currencyAssetPaths.mora} fallback="●" />
               <div><strong>{formatResourceAmount(resources.moras)}</strong><small>Moras</small></div>
-              <button type="button" className="bank-shortcut" onClick={() => onNavigate('bank')} aria-label="Ouvrir la Banque">Banque</button>
-            </div>
+            </button>
           </div>
         </section>
       </div>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import type { BankTransferDto, BoxCharacterDto, BoxSortPreferenceDto, CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, PlayerBankDto, PlayerBoxDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
+import type { BankHistoryDto, BankTransferDto, BoxCharacterDto, BoxSortPreferenceDto, CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, PlayerBankDto, PlayerBoxDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import type { ScreenId } from '../types'
 import BoxScreen from '../screens/BoxScreen'
 import CharactersScreen from '../screens/CharactersScreen'
@@ -18,6 +18,10 @@ import PlayerSidebar from './PlayerSidebar'
 import { BoxMemoryCache } from '../box/box-memory-cache'
 import { StellaIntentCoordinator } from '../box/stella-intent-coordinator'
 import { BankTransferIntentCoordinator, type BankTransferDirection } from '../bank/bank-transfer-intent-coordinator'
+import { BankMemoryCache } from '../bank/bank-memory-cache'
+import type { LevelUpFeedbackEvent } from '../progression/level-up-feedback'
+import { useProfileLevelUpFeedback } from '../progression/use-profile-level-up-feedback'
+import LevelUpFeedback from './LevelUpFeedback'
 
 const screenIds: ScreenId[] = ['home', 'invocation', 'box', 'characters', 'team', 'bank', 'inventory', 'shop']
 
@@ -30,6 +34,8 @@ type GameShellProps = {
   player: PlayerDto
   resources: PlayerResourcesDto
   progression: PlayerProgressionDto
+  levelUpFeedbacks: readonly LevelUpFeedbackEvent[]
+  onLevelUpFeedbackFinished: (id: string) => void
   wheelToday: WheelTodayDto
   onSpinWheel: () => Promise<WheelSpinDto>
   dailyRewardToday: DailyRewardTodayDto
@@ -59,11 +65,12 @@ type GameShellProps = {
   onSetBoxSortPreference: (preference: BoxSortPreferenceDto) => Promise<BoxSortPreferenceDto>
   onUseStella: (characterId: string, idempotencyKey: string) => Promise<StellaUseDto>
   onLoadBank: () => Promise<PlayerBankDto>
+  onLoadBankHistory: (page: number) => Promise<BankHistoryDto>
   onDepositBank: (amount: string, idempotencyKey: string) => Promise<BankTransferDto>
   onWithdrawBank: (amount: string, idempotencyKey: string) => Promise<BankTransferDto>
 }
 
-function GameShell({ player, resources, progression, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onDepositBank, onWithdrawBank }: GameShellProps) {
+function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank }: GameShellProps) {
   const [activeScreen, setActiveScreen] = useState<ScreenId>(getScreenFromHash)
   const activeScreenRef = useRef(activeScreen)
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
@@ -72,6 +79,9 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
   const [boxCache] = useState(() => new BoxMemoryCache())
   const [stellaIntents] = useState(() => new StellaIntentCoordinator())
   const [bankTransferIntents] = useState(() => new BankTransferIntentCoordinator())
+  const [bankCache] = useState(() => new BankMemoryCache())
+  const activeLevelUpFeedback = levelUpFeedbacks[0] ?? null
+  const profileLevelUp = useProfileLevelUpFeedback(activeLevelUpFeedback)
 
   const loadBox = useCallback(
     () => boxCache.revalidate(player.id, onLoadBox),
@@ -96,18 +106,23 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
       return result
     },
   ), [boxCache, onUseStella, player.id, stellaIntents])
+  const loadBank = useCallback(
+    () => bankCache.revalidate(player.id, onLoadBank),
+    [bankCache, onLoadBank, player.id],
+  )
   const transferBank = useCallback((direction: BankTransferDirection, amount: string) => bankTransferIntents.execute(
     player.id,
     direction,
     amount,
-    (idempotencyKey) => direction === 'deposit'
+    async (idempotencyKey) => bankCache.writeConfirmed(player.id, await (direction === 'deposit'
       ? onDepositBank(amount, idempotencyKey)
-      : onWithdrawBank(amount, idempotencyKey),
-  ), [bankTransferIntents, onDepositBank, onWithdrawBank, player.id])
-  const signOutAndClearBox = useCallback(async () => {
+      : onWithdrawBank(amount, idempotencyKey))),
+  ), [bankCache, bankTransferIntents, onDepositBank, onWithdrawBank, player.id])
+  const signOutAndClearCaches = useCallback(async () => {
     boxCache.clear()
+    bankCache.clear()
     await onSignOut()
-  }, [boxCache, onSignOut])
+  }, [bankCache, boxCache, onSignOut])
 
   const changeScreen = useCallback((screen: ScreenId) => {
     if (activeScreenRef.current === 'invocation' && screen !== 'invocation') onGachaPresentationAbandoned()
@@ -141,7 +156,7 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
       case 'inventory':
         return <InventoryScreen />
       case 'bank':
-        return <BankScreen onLoad={onLoadBank} onTransfer={transferBank} />
+        return <BankScreen initialBank={bankCache.read(player.id)} onLoad={loadBank} onLoadHistory={onLoadBankHistory} onTransfer={transferBank} />
       case 'shop':
         return <ShopScreen />
       default:
@@ -155,7 +170,7 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
         displayName={player.displayName}
         onNavigateHome={() => navigate('home')}
         onOpenSidebar={() => setIsSidebarOpen(true)}
-        onSignOut={signOutAndClearBox}
+        onSignOut={signOutAndClearCaches}
       />
 
       <div className="game-layout">
@@ -163,6 +178,8 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
           playerData={player}
           resources={resources}
           progression={progression}
+          levelUpDelta={profileLevelUp.levelsGained}
+          profileLevelUpActive={profileLevelUp.visible}
           gacha={gacha}
           teams={teams}
           dailyRewardToday={dailyRewardToday}
@@ -194,6 +211,7 @@ function GameShell({ player, resources, progression, wheelToday, onSpinWheel, da
       )}
 
       {isPlayersOpen && <OnlinePlayersPanel onClose={() => setIsPlayersOpen(false)} />}
+      {activeLevelUpFeedback && <LevelUpFeedback event={activeLevelUpFeedback} onFinished={onLevelUpFeedbackFinished} />}
     </div>
   )
 }

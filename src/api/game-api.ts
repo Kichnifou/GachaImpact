@@ -23,6 +23,7 @@ import type {
   PlayerTeamsDto,
   PlayerBankDto,
   BankTransferDto,
+  BankHistoryDto,
 } from './types'
 
 type ApiClientDependencies = Readonly<{
@@ -109,6 +110,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
       }),
     getResources: () => request<PlayerResourcesDto>('/api/v1/me/resources'),
     getBank: () => request<PlayerBankDto>('/api/v1/me/bank'),
+    getBankHistory: (page: number) => request<BankHistoryDto>(`/api/v1/me/bank/history?page=${page}`),
     depositBank: (amount: string, idempotencyKey: string) => request<BankTransferDto>('/api/v1/me/bank/deposit', {
       method: 'POST', body: JSON.stringify({ amount, idempotencyKey }),
     }),
