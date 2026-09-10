@@ -400,7 +400,7 @@ Statut : évolutif.
 
 ## Sac / Collection / Shop
 - `VALIDÉ` — Le Coffre legacy devient la catégorie Collection du Sac dans l'UI standalone.
-- `VALIDÉ` — Le Sac contient initialement Tout / Ressources / Collection et reste extensible.
+- `VALIDÉ` — Le Sac standalone utilise Tout / Ressources / Objets / Collection ; la catégorie `Objets` ajoutée par R281 remplace la première direction à trois catégories.
 - `VALIDÉ` — Les ressources à quantité zéro restent visibles dans Tout.
 - `VALIDÉ` — Collection : objets possédés en premier, puis non possédés ; tri alphabétique dans chaque groupe.
 - `VALIDÉ` — Les quantités Collection sont visibles, y compris x1.
