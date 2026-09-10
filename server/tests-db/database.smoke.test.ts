@@ -18,6 +18,7 @@ if (!config.databaseUrl) {
 const database = createDatabase(config.databaseUrl);
 
 const expectedTables = [
+  'admin_audit_entries',
   'bank_transactions',
   'banner_featured_characters',
   'banner_rotations',
@@ -36,6 +37,7 @@ const expectedTables = [
   'player_preferences',
   'player_progression',
   'player_resource_balances',
+  'player_role_assignments',
   'player_wheel_daily_states',
   'player_wheel_stats',
   'players',
@@ -80,6 +82,7 @@ const expectedCheckConstraints = [
   'player_progression_total_messages_nonnegative_check',
   'player_progression_xp_nonnegative_check',
   'player_resource_balances_amount_nonnegative_check',
+  'player_role_assignments_role_check',
   'player_wheel_stats_jackpots_not_above_spins_check',
   'player_wheel_stats_total_jackpots_nonnegative_check',
   'player_wheel_stats_total_spins_nonnegative_check',
@@ -98,12 +101,16 @@ const expectedCheckConstraints = [
 ] as const;
 
 const expectedManualIndexes = [
+  'admin_audit_entries_actor_created_idx',
+  'admin_audit_entries_target_created_idx',
   'bank_transactions_player_interest_date_key',
   'banner_rotations_one_active_idx',
   'business_operations_source_idempotency_key',
   'characters_name_lower_idx',
   'player_characters_player_obtained_idx',
   'player_items_item_id_idx',
+  'player_role_assignments_active_role_key',
+  'player_role_assignments_player_revoked_idx',
   'players_display_name_lower_idx',
   'pull_operations_player_created_at_idx',
   'pull_results_operation_index_key',
@@ -191,12 +198,16 @@ describe('Supabase development database', () => {
       FROM pg_indexes
       WHERE schemaname = 'public'
         AND indexname IN (
+          'admin_audit_entries_actor_created_idx',
+          'admin_audit_entries_target_created_idx',
           'banner_rotations_one_active_idx',
           'bank_transactions_player_interest_date_key',
           'business_operations_source_idempotency_key',
           'characters_name_lower_idx',
           'player_characters_player_obtained_idx',
           'player_items_item_id_idx',
+          'player_role_assignments_active_role_key',
+          'player_role_assignments_player_revoked_idx',
           'players_display_name_lower_idx',
           'pull_operations_player_created_at_idx',
           'pull_results_operation_index_key',

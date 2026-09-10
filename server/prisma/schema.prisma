@@ -109,6 +109,10 @@ model Player {
   teams              Team[]
   bankAccount        PlayerBankAccount?
   bankTransactions   BankTransaction[]
+  rolesGranted       PlayerRoleAssignment[] @relation("RoleSubject")
+  rolesGrantedBy     PlayerRoleAssignment[] @relation("RoleGrantor")
+  auditEntriesAsActor AdminAuditEntry[] @relation("AuditActor")
+  auditEntriesAsTarget AdminAuditEntry[] @relation("AuditTarget")
 
   @@index([status], map: "players_status_idx")
   @@index([elementKey], map: "players_element_key_idx")
@@ -303,10 +307,45 @@ model BusinessOperation {
   dailyRewardState  PlayerDailyRewardState?
   pullOperation     PullOperation?
   bankTransaction   BankTransaction?
+  adminAuditEntry   AdminAuditEntry?
 
   @@index([playerId, startedAt(sort: Desc)], map: "business_operations_player_started_at_idx")
   @@index([operationType, startedAt(sort: Desc)], map: "business_operations_type_started_at_idx")
   @@map("business_operations")
+}
+
+model PlayerRoleAssignment {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId          String    @map("player_id") @db.Uuid
+  role              String    @db.Text
+  grantedAt         DateTime  @default(now()) @map("granted_at") @db.Timestamptz(6)
+  grantedByPlayerId String?   @map("granted_by_player_id") @db.Uuid
+  revokedAt         DateTime? @map("revoked_at") @db.Timestamptz(6)
+  source            String?   @db.Text
+  player            Player    @relation("RoleSubject", fields: [playerId], references: [id], onDelete: Cascade)
+  grantedBy         Player?   @relation("RoleGrantor", fields: [grantedByPlayerId], references: [id], onDelete: SetNull)
+
+  @@index([playerId, revokedAt], map: "player_role_assignments_player_revoked_idx")
+  @@map("player_role_assignments")
+}
+
+model AdminAuditEntry {
+  id             String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorPlayerId  String            @map("actor_player_id") @db.Uuid
+  targetPlayerId String            @map("target_player_id") @db.Uuid
+  action         String            @db.Text
+  domain         String            @db.Text
+  before         Json              @db.JsonB
+  after          Json              @db.JsonB
+  operationId    String            @unique(map: "admin_audit_entries_operation_id_key") @map("operation_id") @db.Uuid
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  actor          Player            @relation("AuditActor", fields: [actorPlayerId], references: [id], onDelete: Restrict)
+  target         Player            @relation("AuditTarget", fields: [targetPlayerId], references: [id], onDelete: Restrict)
+  operation      BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+
+  @@index([actorPlayerId, createdAt(sort: Desc)], map: "admin_audit_entries_actor_created_idx")
+  @@index([targetPlayerId, createdAt(sort: Desc)], map: "admin_audit_entries_target_created_idx")
+  @@map("admin_audit_entries")
 }
 
 model PlayerResourceBalance {

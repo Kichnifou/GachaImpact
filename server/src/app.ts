@@ -23,6 +23,8 @@ import { registerBoxRoutes } from './api/routes/box.js';
 import { registerTeamRoutes } from './api/routes/team.js';
 import { registerBankRoutes } from './api/routes/bank.js';
 import { registerInventoryRoutes } from './api/routes/inventory.js';
+import { registerModerationRoutes } from './api/routes/moderation.js';
+import type { ModerationTools } from './application/moderation/moderation-tools.js';
 import type { GetCharacters, GetCurrentGacha, GetGachaHistory, PerformGachaPull, SetGachaTarget } from './application/gacha/gacha-services.js';
 import type { GetTodayDailyReward } from './application/daily-reward/get-today-daily-reward.js';
 import type { ClaimDailyReward } from './application/daily-reward/claim-daily-reward.js';
@@ -67,6 +69,7 @@ export type AppDependencies = Readonly<{
   depositPlayerBank?: TransferPlayerBank;
   withdrawPlayerBank?: TransferPlayerBank;
   getCurrentPlayerInventory?: GetCurrentPlayerInventory;
+  moderationTools?: ModerationTools;
   close?: () => Promise<void>;
 }>;
 
@@ -167,6 +170,9 @@ export async function buildApp(
     }
     if (dependencies.getCurrentPlayerInventory) {
       await app.register(registerInventoryRoutes, { authenticate, getCurrentPlayerInventory: dependencies.getCurrentPlayerInventory });
+    }
+    if (dependencies.moderationTools) {
+      await app.register(registerModerationRoutes, { authenticate, moderationTools: dependencies.moderationTools });
     }
 
     if (dependencies.close) {

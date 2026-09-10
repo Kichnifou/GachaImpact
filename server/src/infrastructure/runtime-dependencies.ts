@@ -30,6 +30,7 @@ import { BankInterestProcessor, GetCurrentPlayerBank, GetPlayerBankHistory, Tran
 import { PrismaBankingStore } from './database/prisma-banking-store.js';
 import { GetCurrentPlayerInventory } from '../application/inventory/inventory-services.js';
 import { PrismaInventoryStore } from './database/prisma-inventory-store.js';
+import { PrismaModerationTools } from './database/prisma-moderation-tools.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
   if (!config.databaseUrl) {
@@ -95,6 +96,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     depositPlayerBank: new TransferPlayerBank('deposit', getCurrentPlayer, bankingStore, clock),
     withdrawPlayerBank: new TransferPlayerBank('withdraw', getCurrentPlayer, bankingStore, clock),
     getCurrentPlayerInventory: new GetCurrentPlayerInventory(getCurrentPlayer, inventoryStore),
+    moderationTools: new PrismaModerationTools(database, getCurrentPlayer),
     start: async () => { await scheduler.start(); await bankInterestScheduler.start(); },
     close: async () => { scheduler.stop(); bankInterestScheduler.stop(); await database.$disconnect(); },
   };
