@@ -3,6 +3,7 @@ import type { BoxCharacterDto, BoxSortPreferenceDto, ElementKey, PlayerBoxDto, S
 import type { BoxConstellationFilter, BoxElementFilter, BoxFilters, BoxRarityTab, BoxSortKey } from '../box/box-presentation'
 import { boxElements, initialBoxFiltersWithPreference, presentBoxCharacters } from '../box/box-presentation'
 import { useBoxCollection } from '../box/use-box-collection'
+import type { StellaResultPresentation } from '../box/stella-result-presentation'
 import BoxCharacterCard from '../components/BoxCharacterCard'
 import BoxCharacterDetailModal from '../components/BoxCharacterDetailModal'
 import GameAssetIcon from '../components/GameAssetIcon'
@@ -63,7 +64,7 @@ export function BoxView({ box, filters, error, favoritePendingId, stellaPendingI
   favoritePendingId: string | null
   stellaPendingId: string | null
   stellaRetryId: string | null
-  stellaFeedback: string | null
+  stellaFeedback: StellaResultPresentation | null
   selected: BoxCharacterDto | null
   onFilters: (filters: BoxFilters) => void
   onSelect: (characterId: string) => void

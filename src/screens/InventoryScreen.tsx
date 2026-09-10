@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { BoxCharacterDto, InventoryItemDto, InventoryResourceDto, PlayerBoxDto, PlayerInventoryDto, PlayerResourcesDto, PlayerTeamsDto, StellaUseDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
+import { presentStellaResult, type StellaResultPresentation } from '../box/stella-result-presentation'
 import { MASTERLESS_STELLA_FORTUNA_KEY } from '../inventory/inventory-memory-cache'
 import { collectionCompletion, inventoryCategoryCount, presentInventory, type InventoryCategory, type InventoryEntry } from '../inventory/inventory-presentation'
 import BoxCharacterCard from '../components/BoxCharacterCard'
@@ -40,7 +41,7 @@ function InventoryScreen({ initialInventory, resources, onLoad, onNavigateBank, 
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null)
   const [favoritePendingId, setFavoritePendingId] = useState<string | null>(null)
   const [stellaPendingId, setStellaPendingId] = useState<string | null>(null)
-  const [stellaFeedback, setStellaFeedback] = useState<string | null>(null)
+  const [stellaFeedback, setStellaFeedback] = useState<StellaResultPresentation | null>(null)
   const [stellaRetryId, setStellaRetryId] = useState(stellaRetryCharacterId)
 
   const load = useCallback(async () => {
@@ -61,6 +62,12 @@ function InventoryScreen({ initialInventory, resources, onLoad, onNavigateBank, 
       .catch((reason) => { if (active) setError(apiErrorMessage(reason)) })
     return () => { active = false }
   }, [onLoad])
+
+  useEffect(() => {
+    if (!stellaFeedback) return
+    const timer = window.setTimeout(() => setStellaFeedback(null), 3_600)
+    return () => window.clearTimeout(timer)
+  }, [stellaFeedback])
 
   const entries = useMemo(() => inventory ? presentInventory(inventory.resources, inventory.items, resources, activeCategory, query) : [], [activeCategory, inventory, query, resources])
   const groups = useMemo(() => groupInventoryEntries(entries, activeCategory), [activeCategory, entries])
@@ -94,7 +101,7 @@ function InventoryScreen({ initialInventory, resources, onLoad, onNavigateBank, 
       const result = await onUseStella(character.id)
       setInventory((current) => current ? applyStellaToInventory(current, result) : current)
       setBox((current) => current ? applyStellaToBox(current, result) : current)
-      setStellaFeedback(stellaResultMessage(result))
+      setStellaFeedback(presentStellaResult(character, result))
       setStellaRetryId(null)
       setError(null)
       try { await onLoadTeams() }
@@ -128,8 +135,8 @@ function InventoryScreen({ initialInventory, resources, onLoad, onNavigateBank, 
         </div>
         {activeCategory === 'collection' && <div className="inventory-collection-summary"><span>Collection connue</span><strong>{completion.owned} / {completion.total}</strong></div>}
         {error && <p className="inventory-inline-error" role="alert">{error}</p>}
-        {entries.length ? <div className="inventory-groups">{groups.map((group, index) => <section className="inventory-group" aria-labelledby={`inventory-group-${group.id}`} key={group.id}>
-          {(activeCategory === 'all' || activeCategory === 'resources' || index > 0) && <header className="inventory-group-heading"><span id={`inventory-group-${group.id}`}>{group.label}</span></header>}
+        {entries.length ? <div className="inventory-groups">{groups.map((group) => <section className="inventory-group" aria-labelledby={`inventory-group-${group.id}`} key={group.id}>
+          <header className="inventory-group-heading"><span id={`inventory-group-${group.id}`}>{group.label}</span></header>
           <div className="inventory-grid">{group.entries.map((entry) => <InventoryCard entry={entry} onNavigateBank={onNavigateBank} onSelectItem={setSelectedItem} onUseStella={() => void openStellaPicker()} key={entry.type === 'resource' ? entry.resource.key : entry.item.id} />)}</div>
         </section>)}</div>
           : <div className="inventory-empty" role="status"><span aria-hidden="true">◇</span><strong>{query ? 'Aucun résultat' : emptyTitle(activeCategory)}</strong><p>{query ? 'Modifiez votre recherche pour retrouver une entrée.' : emptyDetail(activeCategory)}</p></div>}
@@ -174,10 +181,10 @@ function groupInventoryEntries(entries: readonly InventoryEntry[], category: Inv
   ].filter(({ entries: groupEntries }) => groupEntries.length > 0)
   if (category === 'all') return [
     { id: 'resources', label: 'Ressources', entries: resources },
-    { id: 'objects', label: 'Objets', entries: objects },
-    { id: 'collection', label: 'Collection', entries: collection },
+    { id: 'objects', label: 'Progression', entries: objects },
+    { id: 'collection', label: 'Objets rares', entries: collection },
   ].filter(({ entries: groupEntries }) => groupEntries.length > 0)
-  return [{ id: category, label: category === 'objects' ? 'Objets' : 'Collection', entries }]
+  return [{ id: category, label: category === 'objects' ? 'Progression' : 'Objets rares', entries }]
 }
 
 function StellaPicker({ box, error, stellaQuantity, favoritePendingId, onClose, onSelect, onRetry, onToggleFavorite }: { box: PlayerBoxDto | null; error: string | null; stellaQuantity: string; favoritePendingId: string | null; onClose: () => void; onSelect: (id: string) => void; onRetry: () => void; onToggleFavorite: (character: BoxCharacterDto) => void }) {
@@ -212,12 +219,6 @@ function applyStellaToInventory(inventory: PlayerInventoryDto, result: StellaUse
 function applyStellaToBox(box: PlayerBoxDto, result: StellaUseDto): PlayerBoxDto {
   const previous = box.characters.find(({ id }) => id === result.character.id)
   return { ...box, characters: box.characters.map((character) => character.id === result.character.id ? result.character : character), stella: result.stella, summary: { ...box.summary, c6: box.summary.c6 + (previous?.constellation !== 6 && result.character.constellation === 6 ? 1 : 0) } }
-}
-
-function stellaResultMessage(result: StellaUseDto) {
-  if (result.c6Progression?.type === 'stat') return `Stella utilisée · ${result.c6Progression.stat} passe à ${result.c6Progression.valueAfter}.`
-  if (result.c6Progression?.type === 'unlocked') return 'Stella utilisée · Concours C6 débloqué.'
-  return 'Stella utilisée avec succès.'
 }
 
 function resourceDetail(resource: InventoryResourceDto, amount: string) {

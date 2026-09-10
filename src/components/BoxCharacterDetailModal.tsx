@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import type { BoxCharacterDto } from '../api/types'
+import type { StellaResultPresentation } from '../box/stella-result-presentation'
+import { c6StatLabel } from '../gacha/pull-result-presentation'
 import { getElementAssetPath } from '../utils/gameAssets'
 import CharacterPortraitFrame from './CharacterPortraitFrame'
 import GameAssetIcon from './GameAssetIcon'
+
+const c6Stats = ['strength', 'intelligence', 'beauty', 'charisma', 'popularity'] as const
 
 function BoxCharacterDetailModal({ character, stellaQuantity, stellaRetryAvailable, favoritePending, stellaPending, stellaFeedback, actionError, onToggleFavorite, onUseStella, onClose }: {
   character: BoxCharacterDto
@@ -10,7 +14,7 @@ function BoxCharacterDetailModal({ character, stellaQuantity, stellaRetryAvailab
   stellaRetryAvailable: boolean
   favoritePending: boolean
   stellaPending: boolean
-  stellaFeedback: string | null
+  stellaFeedback: StellaResultPresentation | null
   actionError?: string | null
   onToggleFavorite: () => void
   onUseStella: () => void
@@ -47,33 +51,40 @@ function BoxCharacterDetailModal({ character, stellaQuantity, stellaRetryAvailab
         <div className="box-detail-copy">
           <div className="box-detail-heading">
             <div className="box-detail-name-row">
-              <h2 className="box-detail-character-name">{character.name}</h2>
+              <div className="box-detail-name-and-favorite">
+                <h2 className="box-detail-character-name">{character.name}</h2>
+                <button type="button" className={`box-detail-favorite-star${character.favorite ? ' active' : ''}`} aria-label={character.favorite ? `Retirer ${character.name} des favoris` : `Ajouter ${character.name} aux favoris`} aria-pressed={character.favorite} disabled={favoritePending} onClick={onToggleFavorite}>
+                  <span aria-hidden="true">{character.favorite ? '★' : '☆'}</span>
+                </button>
+              </div>
               <GameAssetIcon className="box-detail-element-icon" src={getElementAssetPath(character.elementKey)} fallback="✦" />
             </div>
             <div className="character-rarity">{'★'.repeat(character.rarity)}</div>
-            <strong className="box-detail-constellation">C{character.constellation}</strong>
+            <div className="box-detail-constellation-row">
+              <strong className="box-detail-constellation">C{character.constellation}</strong>
+              {stellaFeedback?.visual?.type === 'constellation' && stellaFeedback.visual.characterId === character.id && <span className="box-stella-plus-one" key={stellaFeedback.visual.operationId} aria-label="Constellation augmentée de 1">+1</span>}
+            </div>
           </div>
           <dl>
             <div><dt>Copies obtenues</dt><dd>{character.copies}</dd></div>
             <div><dt>Première obtention</dt><dd>{formatObtainedAt(character.firstObtainedAt)}</dd></div>
-            <div><dt>Favori</dt><dd>{character.favorite ? 'Oui' : 'Non'}</dd></div>
           </dl>
           {character.rarity === 5 && <section className="box-stella-zone" aria-label="Masterless Stella Fortuna">
             <div><strong>Masterless Stella Fortuna × {stellaQuantity}</strong><small>Renforce ce personnage</small></div>
             <button type="button" disabled={(!hasStella && !stellaRetryAvailable) || stellaPending} onClick={() => { stellaSubmitted.current = false; setConfirmingStella(true) }}>{stellaPending ? 'Utilisation…' : stellaRetryAvailable ? 'Reprendre l’utilisation' : 'Utiliser une Stella'}</button>
-            <p className={`box-stella-feedback${(stellaFeedback || stellaRetryAvailable) ? '' : ' reserved'}`} role={stellaFeedback || stellaRetryAvailable ? 'status' : undefined} aria-hidden={!stellaFeedback && !stellaRetryAvailable}>{stellaFeedback ?? (stellaRetryAvailable ? 'Résultat à vérifier · la nouvelle tentative reprendra la même opération.' : ' ')}</p>
+            {(stellaFeedback || stellaRetryAvailable) && <p className="box-stella-feedback" role="status">{stellaFeedback?.message ?? 'Résultat à vérifier · la nouvelle tentative reprendra la même opération.'}</p>}
           </section>}
           {actionError && <p className="box-detail-action-error" role="alert">{actionError}</p>}
-          <button type="button" className={`box-detail-favorite${character.favorite ? ' active' : ''}`} disabled={favoritePending} onClick={onToggleFavorite}>
-            <span aria-hidden="true">★</span>{character.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-          </button>
         </div>
       </div>
-      {character.constellation === 6 && c6CompetitionStats && <section className="box-c6-competition-stats" aria-label="Statistiques concours">
+      {character.rarity === 5 && character.constellation === 6 && c6CompetitionStats && <section className="box-c6-competition-stats" aria-label="Statistiques concours">
         <span className="eyebrow">Statistiques concours</span>
-        <dl>{([
-          ['Force', c6CompetitionStats.strength], ['Intelligence', c6CompetitionStats.intelligence], ['Beauté', c6CompetitionStats.beauty], ['Charisme', c6CompetitionStats.charisma], ['Popularité', c6CompetitionStats.popularity],
-        ] as const).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value} / {c6CompetitionStats.max}</dd></div>)}</dl>
+        <dl>{c6Stats.map((stat) => {
+          const label = c6StatLabel(stat)
+          const value = c6CompetitionStats[stat]
+          const showIncrease = stellaFeedback?.visual?.type === 'stat' && stellaFeedback.visual.characterId === character.id && stellaFeedback.visual.stat === stat
+          return <div key={label}><dt>{label}</dt><dd>{value} / {c6CompetitionStats.max}</dd>{showIncrease && <span className="box-stella-plus-one stat" key={stellaFeedback.visual.operationId} aria-label={`${label} augmentée de 1`}>+1</span>}</div>
+        })}</dl>
       </section>}
       {confirmingStella && <div className="box-stella-confirm-layer" role="presentation" onMouseDown={() => setConfirmingStella(false)}>
         <section className="box-stella-confirm panel" role="alertdialog" aria-modal="true" aria-label="Confirmer l’utilisation d’une Stella" onMouseDown={(event) => event.stopPropagation()}>

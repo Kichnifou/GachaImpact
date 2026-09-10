@@ -27,6 +27,7 @@ const roots: Root[] = []
 afterEach(() => {
   act(() => roots.splice(0).forEach((root) => root.unmount()))
   document.body.replaceChildren()
+  vi.useRealTimers()
 })
 
 async function mount(overrides: Partial<React.ComponentProps<typeof InventoryScreen>> = {}) {
@@ -60,7 +61,19 @@ describe('real inventory screen', () => {
     expect(container.textContent).toContain('Renforce la constellation d’un personnage 5★')
     expect(container.querySelectorAll('.inventory-group')).toHaveLength(3)
     expect(container.querySelectorAll('.inventory-group-heading')).toHaveLength(3)
+    expect(Array.from(container.querySelectorAll('.inventory-group-heading')).map((heading) => heading.textContent)).toEqual(['Ressources', 'Progression', 'Objets rares'])
     expect(container.querySelector('.inventory-resource-icon img')).not.toBeNull()
+  })
+
+  it('keeps navigation labels stable while every filtered category shows its final group label', async () => {
+    const { container } = await mount()
+    const tabs = () => Array.from(container.querySelectorAll<HTMLButtonElement>('.inventory-categories button'))
+    expect(tabs().map((button) => button.querySelector('strong')?.textContent)).toEqual(['Tout', 'Ressources', 'Objets', 'Collection'])
+
+    for (const [tabLabel, groupLabels] of [['Ressources', ['Monnaie', 'Particules']], ['Objets', ['Progression']], ['Collection', ['Objets rares']]] as const) {
+      act(() => tabs().find((button) => button.querySelector('strong')?.textContent === tabLabel)!.click())
+      expect(Array.from(container.querySelectorAll('.inventory-group-heading')).map((heading) => heading.textContent)).toEqual(groupLabels)
+    }
   })
 
   it('separates currencies from all seven particles in the Resources category', async () => {
@@ -107,6 +120,7 @@ describe('real inventory screen', () => {
   })
 
   it('opens a 5★-only Stella picker and keeps the final confirmation in the reused Box detail', async () => {
+    vi.useFakeTimers()
     const { container, props } = await mount()
     const useButton = Array.from(container.querySelectorAll<HTMLButtonElement>('.inventory-use-button')).find((button) => button.textContent === 'Utiliser')!
     await act(async () => { useButton.click(); await Promise.resolve(); await Promise.resolve() })
@@ -114,11 +128,16 @@ describe('real inventory screen', () => {
     expect(container.querySelector('.inventory-stella-picker')?.textContent).not.toContain('Collei')
     act(() => container.querySelector<HTMLButtonElement>('[aria-label="Ouvrir la fiche de Furina"]')!.click())
     expect(container.querySelector('.box-detail-modal')?.textContent).toContain('Utiliser une Stella')
+    await act(async () => { container.querySelector<HTMLButtonElement>('.box-detail-favorite-star')!.click(); await Promise.resolve(); await Promise.resolve() })
+    expect(props.onSetBoxFavorite).toHaveBeenCalledWith('furina', true)
     act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('.box-detail-modal button')).find((button) => button.textContent === 'Utiliser une Stella')!.click())
     expect(container.querySelector('.box-stella-confirm')?.textContent).toContain('Utiliser 1 Masterless Stella Fortuna sur Furina ?')
     await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('.box-stella-confirm button')).find((button) => button.textContent === 'Confirmer')!.click(); await Promise.resolve(); await Promise.resolve() })
     expect(props.onUseStella).toHaveBeenCalledWith('furina')
     expect(props.onLoadTeams).toHaveBeenCalledOnce()
     expect(container.querySelector('.box-detail-modal')?.textContent).toContain('Masterless Stella Fortuna × 1')
+    expect(container.querySelector('[aria-label="Constellation augmentée de 1"]')?.textContent).toBe('+1')
+    act(() => { vi.advanceTimersByTime(3_600) })
+    expect(container.querySelector('[aria-label="Constellation augmentée de 1"]')).toBeNull()
   })
 })

@@ -4,6 +4,7 @@ import { ApiError } from '../api/game-api'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
 import { apiErrorMessage } from '../utils/formatters'
 import { replaceFavorite } from './box-presentation'
+import { presentStellaResult, type StellaResultPresentation } from './stella-result-presentation'
 
 type Options = {
   initialBox: PlayerBoxDto | null
@@ -19,7 +20,7 @@ export function useBoxCollection({ initialBox, onLoadBox, onSetFavorite, onUseSt
   const [error, setError] = useState<string | null>(null)
   const [favoritePendingId, setFavoritePendingId] = useState<string | null>(null)
   const [stellaPendingId, setStellaPendingId] = useState<string | null>(null)
-  const [stellaFeedback, setStellaFeedback] = useState<string | null>(null)
+  const [stellaFeedback, setStellaFeedback] = useState<StellaResultPresentation | null>(null)
   const [stellaRetryId, setStellaRetryId] = useState<string | null>(stellaRetryCharacterId)
 
   const load = async () => {
@@ -41,6 +42,12 @@ export function useBoxCollection({ initialBox, onLoadBox, onSetFavorite, onUseSt
     }).catch((reason) => { if (active) setError(apiErrorMessage(reason)) })
     return () => { active = false }
   }, [onLoadBox])
+
+  useEffect(() => {
+    if (!stellaFeedback) return
+    const timer = window.setTimeout(() => setStellaFeedback(null), 3_600)
+    return () => window.clearTimeout(timer)
+  }, [stellaFeedback])
 
   const toggleFavorite = async (character: BoxCharacterDto) => {
     if (favoritePendingId) return
@@ -65,7 +72,7 @@ export function useBoxCollection({ initialBox, onLoadBox, onSetFavorite, onUseSt
       const result = await onUseStella(character.id)
       setBox((current) => current ? applyStellaResult(current, result) : current)
       setStellaRetryId(null)
-      setStellaFeedback(stellaFeedbackMessage(result))
+      setStellaFeedback(presentStellaResult(character, result))
       setError(null)
       try {
         await onCharacterProgressed?.()
@@ -97,10 +104,4 @@ function applyStellaResult(box: PlayerBoxDto, result: StellaUseDto): PlayerBoxDt
     stella: result.stella,
     summary: { ...box.summary, c6: box.summary.c6 + (previous?.constellation !== 6 && result.character.constellation === 6 ? 1 : 0) },
   }
-}
-
-function stellaFeedbackMessage(result: StellaUseDto) {
-  if (result.c6Progression?.type === 'stat') return `Stella utilisée · ${result.c6Progression.stat} passe à ${result.c6Progression.valueAfter}.`
-  if (result.c6Progression?.type === 'unlocked') return 'Stella utilisée · Concours C6 débloqué.'
-  return 'Stella utilisée avec succès.'
 }

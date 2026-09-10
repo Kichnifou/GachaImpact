@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.76
+Version : 0.77
 Date : 2026-09-10
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3543,7 +3543,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Sac — premier vertical réel techniquement implémenté et fonctionnellement validé pour son chargement, ses quatre catégories, ses ressources, ses vœux, son accès Banque, ses objets/Collection, sa recherche, son cache et son desktop. Le candidat 0.76 conserve ce domaine actif jusqu'à revalidation publique de ses trois micro-polish : respiration du premier groupe, alignement Primos/Moras et libellé Monnaie.**
+**Sac — premier vertical réel techniquement implémenté et fonctionnellement validé pour son chargement, ses quatre catégories, ses ressources, ses vœux, son accès Banque, ses objets/Collection, sa recherche, son cache et son desktop. Le candidat 0.77 conserve ce domaine actif jusqu'à sa revalidation publique ; Boutique ne devient pas le domaine actif avant une décision explicite du propriétaire.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3610,6 +3610,16 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Modération devient un outil transverse à deux rangs player-facing : `ADMIN` est affiché Super et peut cibler un Player ACTIVE, tandis que `TESTER` est affiché Testeur et ne peut ajuster que ses propres ressources. `MODERATOR` communautaire reste sans accès. Les mutations distinguent acteur/cible, sont auditées et idempotentes ; une intention frontend inclut aussi la cible, l'action et son payload, y compris l'attribution ou le retrait Testeur, et bloque toute autre cible ou action tant qu'elle reste ambiguë. La recherche Super filtre côté DB avant sa limite de 20 résultats, de manière insensible à la casse ; l'insensibilité aux accents reste une extension future car `unaccent` n'est pas installée.
 - Après safety gate DEV, Kichnifou cumule `ADMIN`, `MODERATOR` et `TESTER`, l'attribution ADMIN portant la provenance `owner-authorized-dev-super`; son XP est préparée à `29 / 30` dans son palier courant, soit 209 XP au moment du contrôle, sans récompense ni montée de niveau.
 - Sac conserve les seuls micro-polish candidats à revalidation publique : respiration du premier groupe dans Tout, alignement centre Y Primos/Moras et titre Monnaie dans Ressources. Modération reste transverse et Personnages ne devient pas un nouveau domaine de roadmap.
+
+## État du candidat 0.77 — corrections de validation Modération, Sac et Stella
+
+- La régression de ciblage Modération provenait du chargement initial `onLoad()` relancé par des identités de callbacks recréées entre `AppBootstrap`, `GameShell` et `ModerationScreen`. Cette réhydratation revenait sur l'acteur connecté et écrasait dans le même mouvement les brouillons locaux, dont Masterless Stella Fortuna. Les handlers sont désormais stables, la cible sélectionnée est distincte du snapshot serveur, et les réponses async obsolètes sont ignorées. Une hydratation ne survient plus qu'au chargement initial, après un changement explicite de cible ou après une mutation confirmée.
+- Le picker Super est un panneau sombre accessible : cible courante explicite, action `Moi`, recherche à résultats verticaux, niveau et badge Testeur. Après sélection ou attribution/retrait du rôle Testeur, la cible externe reste sélectionnée. Les résultats visant un tiers restent confinés à Modération ; seuls les résultats visant l'acteur synchronisent sa sidebar et ses caches.
+- Le propriétaire a confirmé que `Kichnifou`, `Mynonyme`, `MynonymeTest1`, `MynonymeTest2`, `MynonymeTest3`, `Céo`, `Mika` et `Jean Julien` sont des comptes DEV légitimes à conserver. Aucun audit de provenance, nettoyage, changement d'identité, désactivation ou suppression n'a été effectué. Le dernier XP communiqué pour Kichnifou est 211 ; ce lot ne le modifie pas.
+- Tous les premiers groupes du Sac reçoivent la même respiration sous le header. La navigation conserve `Tout`, `Ressources`, `Objets`, `Collection`, tandis que les groupes d'objets affichent `Progression` et `Objets rares` sans changement des identifiants persistés `objects` et `collection`. L'alignement validé de Mora/Primogemmes est conservé.
+- La fiche personnage personnelle partagée Box/Team/Sac remplace la ligne Favori et le grand bouton par une étoile accessible près du nom. Sa zone Stella ne réserve plus de ligne vide au repos et le layout principal épouse la hauteur utile de ses colonnes. Après une Stella confirmée, un `+1` temporaire cible la constellation réellement augmentée ou la seule statistique C6 retournée par le DTO structuré ; C5 → C6 affiche le `+1` de constellation et initialise la section Concours sans faux gain de statistique.
+- Les cinq statistiques Concours emploient partout leurs libellés français centralisés. La garde explicite 5★ C6 est conservée. Les régressions sont couvertes par les tests frontend ciblés de sélection/rerender, drafts, rôles, isolation acteur, catégories Sac, favori partagé et feedback Stella. Aucun changement backend ni aucune migration ne sont requis par ce candidat. Les validations PostgreSQL DEV ont uniquement créé, muté puis nettoyé leurs fixtures éphémères identifiées par UUID ; aucun compte DEV confirmé n'a été ciblé.
+- Cet état est **IMPLÉMENTÉ DANS LE CANDIDAT 0.77 SUR `review`, À REVIEW ET REVALIDATION PUBLIQUE**. Il ne constitue ni une validation propriétaire, ni une clôture publique de Sac.
 
 ## État du lot — Invocation x1/x10
 
@@ -3751,7 +3761,7 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Faire reviewer le candidat 0.76 uniquement sur `review` → corriger les éventuels retours → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → revalider publiquement les trois micro-polish Sac, le rendu C6/Stella, la progression globale et la hiérarchie Super/Testeur avec ciblage.** Après cette validation, continuer vers le domaine suivant selon [implementation-order-v1.md](../roadmap/implementation-order-v1.md), uniquement sur décision explicite du propriétaire. Le domaine actif reste Sac jusque-là. `PAID_INFRA_APPROVED = false` reste inchangé.
+**Faire reviewer le candidat 0.77 uniquement sur `review` → corriger les éventuels retours → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → revalider publiquement la sélection et les rôles Modération, les groupes du Sac et la fiche/animation Stella partagée.** Après cette validation, continuer vers le domaine suivant selon [implementation-order-v1.md](../roadmap/implementation-order-v1.md), uniquement sur décision explicite du propriétaire. Le domaine actif reste Sac jusque-là ; Boutique n'est pas commencée. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

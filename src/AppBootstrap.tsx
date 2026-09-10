@@ -103,6 +103,20 @@ function AppBootstrap() {
     publishProgression(next.progression, { id: `moderation:${next.player.id}:${next.progression.totalXp}`, emitLevelUpFeedback: false })
     setGacha((current) => current ? { ...current, playerState: next.gachaState } : current)
   }, [publishProgression])
+  const loadModeration = useCallback((targetPlayerId?: string) => targetPlayerId
+    ? getGameApiClient().getModerationPlayerState(targetPlayerId)
+    : getGameApiClient().getModerationState(), [])
+  const searchModerationPlayers = useCallback((query: string) => getGameApiClient().searchModerationPlayers(query), [])
+  const moderateResource = useCallback((targetPlayerId: string, input: Parameters<ReturnType<typeof getGameApiClient>['adjustModerationResource']>[0]) => targetPlayerId === player?.id
+    ? getGameApiClient().adjustModerationResource(input)
+    : getGameApiClient().adjustModerationPlayerResource(targetPlayerId, input), [player?.id])
+  const moderateXp = useCallback((targetPlayerId: string, input: Parameters<ReturnType<typeof getGameApiClient>['setModerationPlayerXp']>[1]) => getGameApiClient().setModerationPlayerXp(targetPlayerId, input), [])
+  const moderateGacha = useCallback((targetPlayerId: string, input: Parameters<ReturnType<typeof getGameApiClient>['setModerationPlayerGacha']>[1]) => getGameApiClient().setModerationPlayerGacha(targetPlayerId, input), [])
+  const moderateStella = useCallback((targetPlayerId: string, quantity: string, idempotencyKey: string) => getGameApiClient().setModerationPlayerStella(targetPlayerId, quantity, idempotencyKey), [])
+  const moderateTester = useCallback((targetPlayerId: string, enabled: boolean, idempotencyKey: string) => getGameApiClient().setModerationPlayerTester(targetPlayerId, enabled, idempotencyKey), [])
+  const handleModerationApplied = useCallback((state: ModerationStateDto, targetIsSelf: boolean) => {
+    if (targetIsSelf) applyModerationState(state)
+  }, [applyModerationState])
 
   const publishGachaUpdate = useCallback((refreshed: Awaited<ReturnType<typeof performGachaPullAndRefresh>>) => {
     if (refreshed.resources) setResources(refreshed.resources)
@@ -252,14 +266,14 @@ function AppBootstrap() {
       characters={characters}
       teams={teams}
       permissions={permissions}
-      onLoadModeration={(targetPlayerId) => targetPlayerId ? getGameApiClient().getModerationPlayerState(targetPlayerId) : getGameApiClient().getModerationState()}
-      onSearchModerationPlayers={(query) => getGameApiClient().searchModerationPlayers(query)}
-      onModerationResource={(targetPlayerId, input) => targetPlayerId === player.id ? getGameApiClient().adjustModerationResource(input) : getGameApiClient().adjustModerationPlayerResource(targetPlayerId, input)}
-      onModerationXp={(targetPlayerId, input) => getGameApiClient().setModerationPlayerXp(targetPlayerId, input)}
-      onModerationGacha={(targetPlayerId, input) => getGameApiClient().setModerationPlayerGacha(targetPlayerId, input)}
-      onModerationStella={(targetPlayerId, quantity, idempotencyKey) => getGameApiClient().setModerationPlayerStella(targetPlayerId, quantity, idempotencyKey)}
-      onModerationTester={(targetPlayerId, enabled, idempotencyKey) => getGameApiClient().setModerationPlayerTester(targetPlayerId, enabled, idempotencyKey)}
-      onModerationApplied={(state, targetIsSelf) => { if (targetIsSelf) applyModerationState(state) }}
+      onLoadModeration={loadModeration}
+      onSearchModerationPlayers={searchModerationPlayers}
+      onModerationResource={moderateResource}
+      onModerationXp={moderateXp}
+      onModerationGacha={moderateGacha}
+      onModerationStella={moderateStella}
+      onModerationTester={moderateTester}
+      onModerationApplied={handleModerationApplied}
       levelUpFeedbacks={levelUpFeedbacks}
       onLevelUpFeedbackFinished={dismissLevelUpFeedback}
       onLoadTeams={loadTeams}

@@ -78,10 +78,15 @@ describe('real personal Box', () => {
     expect(html).toContain('Copies obtenues')
     expect(html).toContain('<dd>20</dd>')
     expect(html).toContain('3 août 2026')
-    expect(html).toContain('<dt>Favori</dt><dd>Non</dd>')
-    expect(html).toContain('Ajouter aux favoris')
+    expect(html).not.toContain('<dt>Favori</dt>')
+    expect(html).toContain('class="box-detail-favorite-star"')
+    expect(html).toContain('aria-label="Ajouter Émilie aux favoris"')
+    expect(html).toContain('<span aria-hidden="true">☆</span>')
+    expect(html).not.toContain('class="box-detail-favorite"')
     expect(html).toContain('Statistiques concours')
     expect(html).toContain('Intelligence</dt><dd>5 / 20</dd>')
+    expect(html).toContain('Charisme</dt><dd>4 / 20</dd>')
+    expect(html).not.toContain('Charisma')
   })
   it('prioritizes the icon in detail, falls back to an existing asset and renders no element badge', () => {
     const withIcon = renderToStaticMarkup(<BoxCharacterDetailModal character={records[0]!} {...modalProps} />)
@@ -125,7 +130,40 @@ describe('real personal Box', () => {
     expect(five).toContain('disabled=""')
     const four = renderToStaticMarkup(<BoxCharacterDetailModal character={records[1]!} {...modalProps} stellaQuantity="2" />)
     expect(four).not.toContain('Masterless Stella Fortuna')
+    expect(four).not.toContain('Statistiques concours')
     expect(boxScreenSource).not.toContain('crypto.randomUUID()')
+  })
+
+  it('does not reserve an empty Stella feedback line', () => {
+    const html = renderToStaticMarkup(<BoxCharacterDetailModal character={records[0]!} {...modalProps} stellaQuantity="2" />)
+    expect(html).not.toContain('box-stella-feedback')
+    expect(detailSource).not.toContain('reserved')
+  })
+
+  it('shows a temporary +1 beside the constellation for a normal Stella and the C5 → C6 unlock', () => {
+    const normal = renderToStaticMarkup(<BoxCharacterDetailModal character={character({ id: 'normal-result', constellation: 3, copies: 4 })} {...modalProps} stellaFeedback={{ message: 'Stella utilisée avec succès.', visual: { operationId: 'normal-op', characterId: 'normal-result', type: 'constellation' } }} />)
+    expect(normal).toContain('aria-label="Constellation augmentée de 1"')
+    expect(normal).toContain('>+1</span>')
+
+    const unlockedCharacter = character({ id: 'unlock-result', constellation: 6, copies: 7, c6CompetitionStats: { strength: 1, intelligence: 1, beauty: 1, charisma: 1, popularity: 1, max: 20 } })
+    const unlocked = renderToStaticMarkup(<BoxCharacterDetailModal character={unlockedCharacter} {...modalProps} stellaFeedback={{ message: 'Stella utilisée · Statistiques concours débloquées.', visual: { operationId: 'unlock-op', characterId: 'unlock-result', type: 'constellation' } }} />)
+    expect(unlocked).toContain('aria-label="Constellation augmentée de 1"')
+    expect(unlocked).toContain('Force</dt><dd>1 / 20</dd>')
+    expect(unlocked).not.toContain('Force augmentée de 1')
+  })
+
+  it('shows the C6 +1 only beside the increased French-labeled statistic', () => {
+    const html = renderToStaticMarkup(<BoxCharacterDetailModal character={records[0]!} {...modalProps} stellaFeedback={{ message: 'Stella utilisée · Charisme passe à 5.', visual: { operationId: 'stat-op', characterId: 'five-normal', type: 'stat', stat: 'charisma' } }} />)
+    expect(html).toContain('aria-label="Charisme augmentée de 1"')
+    expect(html).not.toContain('aria-label="Constellation augmentée de 1"')
+    expect((html.match(/class="box-stella-plus-one stat"/g) ?? [])).toHaveLength(1)
+    expect(html).not.toContain('Charisma')
+  })
+
+  it('never renders C6 competition statistics for a four-star character', () => {
+    const fourC6 = character({ id: 'four-c6', rarity: 4, constellation: 6, c6CompetitionStats: { strength: 9, intelligence: 9, beauty: 9, charisma: 9, popularity: 9, max: 20 } })
+    const html = renderToStaticMarkup(<BoxCharacterDetailModal character={fourC6} {...modalProps} />)
+    expect(html).not.toContain('Statistiques concours')
   })
   it('keeps an ambiguous Stella retry actionable even after the authoritative balance reaches zero', () => {
     const html = renderToStaticMarkup(<BoxCharacterDetailModal character={records[0]!} {...modalProps} stellaRetryAvailable />)
