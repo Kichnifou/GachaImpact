@@ -36,6 +36,12 @@ export class InventoryMemoryCache {
     })
   }
 
+  setStellaQuantity(playerId: string, quantity: string): void {
+    const current = this.entries.get(playerId)
+    if (!current) return
+    this.entries.set(playerId, { revision: current.revision + 1, inventory: { ...current.inventory, items: current.inventory.items.map((item) => item.externalKey === MASTERLESS_STELLA_FORTUNA_KEY ? { ...item, quantity } : item) } })
+  }
+
   clear(): void {
     this.entries.clear()
     this.lifecycleRevision += 1

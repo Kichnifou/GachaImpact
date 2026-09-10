@@ -21,6 +21,12 @@ function deferred<Value>() {
 }
 
 describe('BoxMemoryCache', () => {
+  it('updates a cached Stella quantity for moderation without reloading the Box', () => {
+    const cache = new BoxMemoryCache()
+    cache.write('player', box())
+    cache.setStellaQuantity('player', '42')
+    expect(cache.read('player')?.stella.quantity).toBe('42')
+  })
   it('starts empty, revalidates through the server loader and caches its response', async () => {
     const cache = new BoxMemoryCache()
     const response = box()

@@ -27,6 +27,7 @@ type Props = Readonly<{
 function InvocationSequence({ state, onAdvance, onSkip, onClose }: Props) {
   const [suspense, setSuspense] = useState(false)
   const [readyCharacterRevealKey, setReadyCharacterRevealKey] = useState<string | null>(null)
+  const [unlockedSummaryOperationId, setUnlockedSummaryOperationId] = useState<string | null>(null)
   const advanceLocked = useRef(false)
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const surfaceAction = invocationSurfaceAction(state)
@@ -39,7 +40,28 @@ function InvocationSequence({ state, onAdvance, onSkip, onClose }: Props) {
     ? `${c6StatLabel(currentResult.c6Progression.stat)} +1`
     : null
   const revealControls = revealControlVisibility(state, characterRevealReady)
-  const canUseSurface = canActivateInvocationSurface(state, suspense, characterRevealReady)
+  const summaryOperationId = state.phase === 'summary' ? state.pull.operation.id : null
+  const summaryExitUnlocked = summaryOperationId !== null && unlockedSummaryOperationId === summaryOperationId
+  const summaryLocked = state.phase === 'summary' && !summaryExitUnlocked
+  const canUseSurface = canActivateInvocationSurface(state, suspense, characterRevealReady) && !summaryLocked
+
+  useEffect(() => {
+    if (summaryOperationId === null) return
+    const timer = setTimeout(() => setUnlockedSummaryOperationId(summaryOperationId), 1000)
+    return () => clearTimeout(timer)
+  }, [summaryOperationId])
+
+  useEffect(() => {
+    if (state.phase !== 'summary') return
+    const handleEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      event.stopPropagation()
+      if (summaryExitUnlocked) onClose()
+    }
+    document.addEventListener('keydown', handleEscape, true)
+    return () => document.removeEventListener('keydown', handleEscape, true)
+  }, [onClose, state.phase, summaryExitUnlocked])
 
   useEffect(() => {
     if (currentRevealKey === null) return
@@ -105,6 +127,11 @@ function InvocationSequence({ state, onAdvance, onSkip, onClose }: Props) {
       tabIndex={canUseSurface ? 0 : undefined}
       aria-label={canUseSurface ? surfaceLabel : undefined}
       aria-live="polite"
+      onClickCapture={(event) => {
+        if (!summaryLocked) return
+        event.preventDefault()
+        event.stopPropagation()
+      }}
     >
       <div className="sequence-sky" aria-hidden="true">
         <span className="sequence-orbit orbit-a" />
@@ -145,7 +172,7 @@ function InvocationSequence({ state, onAdvance, onSkip, onClose }: Props) {
       </div>}
 
       {state.phase === 'intro' && <button type="button" className="sequence-control sequence-skip" onClick={(event) => { stop(event); clearPresentation(); onSkip() }}>Passer</button>}
-      {state.phase === 'summary' && <button type="button" className="icon-button sequence-control sequence-close" onClick={(event) => { stop(event); clearPresentation(); onClose() }} aria-label="Fermer les résultats"><span className="icon-glyph">×</span></button>}
+      {state.phase === 'summary' && <button type="button" className="icon-button sequence-control sequence-close" disabled={summaryLocked} onClick={(event) => { stop(event); if (summaryLocked) return; clearPresentation(); onClose() }} aria-label="Fermer les résultats"><span className="icon-glyph">×</span></button>}
     </div>
   )
 }

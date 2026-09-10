@@ -25,6 +25,8 @@ import type {
   BankTransferDto,
   BankHistoryDto,
   PlayerInventoryDto,
+  ModerationPermissionsDto,
+  ModerationStateDto,
 } from './types'
 
 type ApiClientDependencies = Readonly<{
@@ -99,6 +101,12 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
 
   return {
     getCurrentPlayer: () => request<PlayerDto>('/api/v1/me'),
+    getPermissions: () => request<ModerationPermissionsDto>('/api/v1/me/permissions'),
+    getModerationState: () => request<ModerationStateDto>('/api/v1/moderation/me'),
+    adjustModerationResource: (input: { resourceKey: string; amount: string; direction: 'add' | 'remove'; idempotencyKey: string }) => request<ModerationStateDto>('/api/v1/moderation/me/resources', { method: 'POST', body: JSON.stringify(input) }),
+    setModerationXp: (input: { totalXp?: string; prepareNextLevel?: true; idempotencyKey: string }) => request<ModerationStateDto>('/api/v1/moderation/me/xp', { method: 'POST', body: JSON.stringify(input) }),
+    setModerationGacha: (input: { pity5?: number; pity4?: number; guaranteedFeatured5?: boolean; captureProgress?: number; idempotencyKey: string }) => request<ModerationStateDto>('/api/v1/moderation/me/gacha', { method: 'POST', body: JSON.stringify(input) }),
+    setModerationStella: (quantity: string, idempotencyKey: string) => request<ModerationStateDto>('/api/v1/moderation/me/stella', { method: 'POST', body: JSON.stringify({ quantity, idempotencyKey }) }),
     onboardPlayer: (displayName: string) =>
       request<PlayerDto>('/api/v1/onboarding/player', {
         method: 'POST',

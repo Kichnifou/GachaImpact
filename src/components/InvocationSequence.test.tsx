@@ -22,6 +22,29 @@ const pull = (count: 1 | 10, results: readonly GachaPullResultItemDto[]): GachaP
 afterEach(() => vi.useRealTimers())
 
 describe('InvocationSequence player-facing copy', () => {
+  it('locks x10 summary close controls through 999 ms and unlocks X and Escape at 1000 ms', () => {
+    vi.useFakeTimers()
+    const state: Exclude<InvocationSequenceState, { phase: 'idle' }> = { phase: 'summary', count: 10, idempotencyKey: 'summary-lock', pull: pull(10, [characterResult]), bestRarity: 5 }
+    const onClose = vi.fn()
+    const container = document.createElement('div')
+    const root = createRoot(container)
+    act(() => root.render(<InvocationSequence state={state} onAdvance={vi.fn()} onSkip={vi.fn()} onClose={onClose} />))
+    const close = container.querySelector<HTMLButtonElement>('[aria-label="Fermer les résultats"]')!
+    act(() => close.click())
+    act(() => document.dispatchEvent(new globalThis.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })))
+    expect(onClose).not.toHaveBeenCalled()
+    act(() => vi.advanceTimersByTime(999))
+    act(() => close.click())
+    act(() => document.dispatchEvent(new globalThis.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })))
+    expect(onClose).not.toHaveBeenCalled()
+    act(() => vi.advanceTimersByTime(1))
+    act(() => close.click())
+    expect(onClose).toHaveBeenCalledTimes(1)
+    act(() => document.dispatchEvent(new globalThis.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })))
+    expect(onClose).toHaveBeenCalledTimes(2)
+    act(() => root.unmount())
+  })
+
   it('uses immersive waiting copy without exposing implementation details', () => {
     const state: Exclude<InvocationSequenceState, { phase: 'idle' }> = {
       phase: 'submitting',

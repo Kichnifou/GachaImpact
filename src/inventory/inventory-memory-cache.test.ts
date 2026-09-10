@@ -20,6 +20,12 @@ function deferred<Value>() {
 }
 
 describe('InventoryMemoryCache', () => {
+  it('updates cached Stella quantity immediately for moderation', async () => {
+    const cache = new InventoryMemoryCache()
+    await cache.revalidate('player', async () => inventory())
+    cache.setStellaQuantity('player', '42')
+    expect(cache.read('player')?.items.find(({ externalKey }) => externalKey === 'masterless-stella-fortuna')?.quantity).toBe('42')
+  })
   it('caches per player and clears every personal snapshot on sign-out', async () => {
     const cache = new InventoryMemoryCache()
     await cache.revalidate('player-a', async () => inventory())

@@ -34,7 +34,7 @@ export function PullResultCard({ result, order = 0, compact = false }: { result:
     : []
   const compactBonusContent = <>
     {visibleBonusRewards.map((reward) => <small className={`pull-bonus${compact && reward.causeKey === 'gacha.c6-duplicate-refund' ? ' pull-c6-refund' : ''}`} key={`${reward.resourceKey}-${reward.causeKey}`}>+{formatResourceAmount(reward.amount)} {pullResourcePresentation(reward.resourceKey).label}</small>)}
-    {result.c6Progression?.type === 'stat' && <small className="pull-bonus">{c6StatLabel(result.c6Progression.stat)} +1</small>}
+    {result.c6Progression?.type === 'stat' && <small className="pull-c6-stat">{c6StatLabel(result.c6Progression.stat)} +1</small>}
     {result.c6Progression?.type === 'maxed' && <small className="pull-bonus">Progression C6 maxée</small>}
     {passiveEffects.length > 0 && <PassiveEffects effects={passiveEffects} alignment="centered" />}
   </>

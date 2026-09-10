@@ -15,7 +15,7 @@ const resources: PlayerResourcesDto = { primogems: '2480', moras: '9007199254740
 const inventory: PlayerInventoryDto = {
   resources: resourceKeys.map((key) => ({ key, displayName: key === 'primogems' ? 'Primogemmes' : key === 'moras' ? 'Moras' : `Particules ${key.slice(10)}`, category: 'resource', elementKey: key.startsWith('particles_') ? key.slice(10) as never : null, amount: '999' })),
   items: [
-    { id: 'stella', externalKey: 'masterless-stella-fortuna', displayName: 'Masterless Stella Fortuna', category: 'SPECIAL', section: 'objects', description: 'Renforce un personnage 5★.', quantity: '2', firstObtainedAt: '2026-09-09T00:00:00Z', acquisitionHint: null },
+    { id: 'stella', externalKey: 'masterless-stella-fortuna', displayName: 'Masterless Stella Fortuna', category: 'SPECIAL', section: 'objects', description: 'Renforce la constellation d’un personnage 5★', quantity: '2', firstObtainedAt: '2026-09-09T00:00:00Z', acquisitionHint: null },
     { id: 'owned', externalKey: 'souvenir-fontaine', displayName: 'Éclat de Fontaine', category: 'COLLECTION', section: 'collection', description: 'Souvenir.', quantity: '1', firstObtainedAt: '2026-09-09T00:00:00Z', acquisitionHint: 'Événement Fontaine.' },
     { id: 'unknown', externalKey: 'souvenir-sumeru', displayName: 'Branche de Sumeru', category: 'COLLECTION', section: 'collection', description: null, quantity: '0', firstObtainedAt: null, acquisitionHint: 'Exploration.' },
   ],
@@ -57,6 +57,20 @@ describe('real inventory screen', () => {
     for (const label of ['Tout', 'Ressources', 'Objets', 'Collection']) expect(container.textContent).toContain(label)
     expect(container.querySelectorAll('.inventory-resource-card')).toHaveLength(9)
     expect(container.textContent).toContain('Masterless Stella Fortuna')
+    expect(container.textContent).toContain('Renforce la constellation d’un personnage 5★')
+    expect(container.querySelectorAll('.inventory-group')).toHaveLength(3)
+    expect(container.querySelectorAll('.inventory-group-heading')).toHaveLength(3)
+    expect(container.querySelector('.inventory-resource-icon img')).not.toBeNull()
+  })
+
+  it('separates currencies from all seven particles in the Resources category', async () => {
+    const { container } = await mount()
+    const tab = Array.from(container.querySelectorAll<HTMLButtonElement>('.inventory-categories button')).find((button) => button.textContent?.includes('Ressources'))!
+    act(() => tab.click())
+    expect(container.querySelectorAll('.inventory-group')).toHaveLength(2)
+    expect(container.querySelector('.inventory-group:nth-child(1) .inventory-grid')?.children).toHaveLength(2)
+    expect(container.querySelector('.inventory-group:nth-child(2) .inventory-grid')?.children).toHaveLength(7)
+    expect(container.textContent).toContain('Particules')
   })
 
   it('uses the global wallet as the only displayed economy snapshot and derives wishes', async () => {

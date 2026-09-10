@@ -63,6 +63,7 @@ function InventoryScreen({ initialInventory, resources, onLoad, onNavigateBank, 
   }, [onLoad])
 
   const entries = useMemo(() => inventory ? presentInventory(inventory.resources, inventory.items, resources, activeCategory, query) : [], [activeCategory, inventory, query, resources])
+  const groups = useMemo(() => groupInventoryEntries(entries, activeCategory), [activeCategory, entries])
   const completion = inventory ? collectionCompletion(inventory.items) : { owned: 0, total: 0 }
   const stella = inventory?.items.find(({ externalKey }) => externalKey === MASTERLESS_STELLA_FORTUNA_KEY) ?? null
   const selectedCharacter = box?.characters.find(({ id }) => id === selectedCharacterId) ?? null
@@ -127,7 +128,10 @@ function InventoryScreen({ initialInventory, resources, onLoad, onNavigateBank, 
         </div>
         {activeCategory === 'collection' && <div className="inventory-collection-summary"><span>Collection connue</span><strong>{completion.owned} / {completion.total}</strong></div>}
         {error && <p className="inventory-inline-error" role="alert">{error}</p>}
-        {entries.length ? <div className="inventory-grid">{entries.map((entry) => <InventoryCard entry={entry} onNavigateBank={onNavigateBank} onSelectItem={setSelectedItem} onUseStella={() => void openStellaPicker()} key={entry.type === 'resource' ? entry.resource.key : entry.item.id} />)}</div>
+        {entries.length ? <div className="inventory-groups">{groups.map((group, index) => <section className="inventory-group" aria-labelledby={`inventory-group-${group.id}`} key={group.id}>
+          {(activeCategory === 'all' || index > 0) && <header className="inventory-group-heading"><span id={`inventory-group-${group.id}`}>{group.label}</span></header>}
+          <div className="inventory-grid">{group.entries.map((entry) => <InventoryCard entry={entry} onNavigateBank={onNavigateBank} onSelectItem={setSelectedItem} onUseStella={() => void openStellaPicker()} key={entry.type === 'resource' ? entry.resource.key : entry.item.id} />)}</div>
+        </section>)}</div>
           : <div className="inventory-empty" role="status"><span aria-hidden="true">◇</span><strong>{query ? 'Aucun résultat' : emptyTitle(activeCategory)}</strong><p>{query ? 'Modifiez votre recherche pour retrouver une entrée.' : emptyDetail(activeCategory)}</p></div>}
       </section>
     </div>
@@ -147,7 +151,7 @@ function InventoryCard({ entry, onNavigateBank, onSelectItem, onUseStella }: { e
   const owned = BigInt(entry.item.quantity) > 0n
   return <article className={`inventory-item inventory-object-card${owned ? '' : ' unowned'}`} title={entry.item.acquisitionHint ?? undefined}>
     <button type="button" className="inventory-item-main" onClick={() => onSelectItem(entry.item)}>
-      <span className="item-icon violet" aria-hidden="true">{owned ? '✦' : '?'}</span><div><strong>{entry.item.displayName}</strong><p>{entry.item.description ?? 'Aucune description disponible.'}</p></div><span className="item-amount">× {formatResourceAmount(entry.item.quantity)}</span>
+      <span className="item-icon violet" aria-hidden="true"><span className="item-icon-glyph">{owned ? '✦' : '?'}</span></span><div><strong>{entry.item.displayName}</strong><p>{entry.item.description ?? 'Aucune description disponible.'}</p></div><span className="item-amount">× {formatResourceAmount(entry.item.quantity)}</span>
     </button>
     {entry.item.externalKey === MASTERLESS_STELLA_FORTUNA_KEY && <button type="button" className="inventory-use-button" disabled={!owned} onClick={onUseStella}>Utiliser</button>}
   </article>
@@ -156,6 +160,24 @@ function InventoryCard({ entry, onNavigateBank, onSelectItem, onUseStella }: { e
 function ResourceIcon({ resource }: { resource: InventoryResourceDto }) {
   const src = resource.key === 'primogems' ? currencyAssetPaths.primogem : resource.key === 'moras' ? currencyAssetPaths.mora : getElementAssetPath(resource.elementKey ?? resource.key.slice(10))
   return <span className={`item-icon${resource.elementKey ? ` ${resource.elementKey}` : resource.key === 'moras' ? ' gold' : ' blue'}`}><GameAssetIcon className="inventory-resource-icon" src={src} fallback="✦" /></span>
+}
+
+function groupInventoryEntries(entries: readonly InventoryEntry[], category: InventoryCategory) {
+  const resources = entries.filter((entry) => entry.type === 'resource')
+  const primaryResources = resources.filter((entry) => entry.type === 'resource' && (entry.resource.key === 'primogems' || entry.resource.key === 'moras'))
+  const particles = resources.filter((entry) => entry.type === 'resource' && entry.resource.key.startsWith('particles_'))
+  const objects = entries.filter((entry) => entry.type === 'item' && entry.item.section === 'objects')
+  const collection = entries.filter((entry) => entry.type === 'item' && entry.item.section === 'collection')
+  if (category === 'resources') return [
+    { id: 'currencies', label: 'Ressources', entries: primaryResources },
+    { id: 'particles', label: 'Particules', entries: particles },
+  ].filter(({ entries: groupEntries }) => groupEntries.length > 0)
+  if (category === 'all') return [
+    { id: 'resources', label: 'Ressources', entries: resources },
+    { id: 'objects', label: 'Objets', entries: objects },
+    { id: 'collection', label: 'Collection', entries: collection },
+  ].filter(({ entries: groupEntries }) => groupEntries.length > 0)
+  return [{ id: category, label: category === 'objects' ? 'Objets' : 'Collection', entries }]
 }
 
 function StellaPicker({ box, error, stellaQuantity, favoritePendingId, onClose, onSelect, onRetry, onToggleFavorite }: { box: PlayerBoxDto | null; error: string | null; stellaQuantity: string; favoritePendingId: string | null; onClose: () => void; onSelect: (id: string) => void; onRetry: () => void; onToggleFavorite: (character: BoxCharacterDto) => void }) {

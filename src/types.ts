@@ -7,6 +7,7 @@ export type ScreenId =
   | 'bank'
   | 'inventory'
   | 'shop'
+  | 'moderation'
 
 export type ElementTone = 'hydro' | 'pyro' | 'cryo' | 'anemo' | 'electro' | 'geo'
 

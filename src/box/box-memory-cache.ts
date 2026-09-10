@@ -53,6 +53,10 @@ export class BoxMemoryCache {
     }))
   }
 
+  setStellaQuantity(playerId: string, quantity: string): void {
+    this.mutate(playerId, (box) => ({ ...box, stella: { quantity } }))
+  }
+
   private mutate(playerId: string, update: (box: PlayerBoxDto) => PlayerBoxDto): void {
     const current = this.entries.get(playerId)
     if (!current) return

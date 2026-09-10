@@ -257,4 +257,10 @@ describe('PullResults', () => {
     expect(sameAmountDifferentCause).toContain('class="pull-bonus">+80 Primos')
     expect(sameAmountDifferentCause).not.toContain('pull-c6-refund')
   })
+
+  it('uses a dedicated compact class for C6 stats without changing refund styling', () => {
+    const html = renderToStaticMarkup(<PullResultCard result={{ ...characterResult, c6Progression: { type: 'stat', stat: 'charisma', valueAfter: 2 } }} compact />)
+    expect(html).toContain('class="pull-c6-stat">Charisme +1')
+    expect(html).toContain('pull-bonus pull-c6-refund')
+  })
 })

@@ -9,6 +9,19 @@ export type PlayerDto = Readonly<{
   status: 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED'
 }>
 
+export type ModerationPermissionsDto = Readonly<{
+  roles: readonly ('MODERATOR' | 'TESTER' | 'ADMIN')[]
+  capabilities: Readonly<{ moderationAccess: boolean; selfTestTools: boolean }>
+}>
+
+export type ModerationStateDto = Readonly<{
+  permissions: ModerationPermissionsDto
+  resources: PlayerResourcesDto
+  progression: PlayerProgressionDto
+  gachaState: PlayerGachaStateDto
+  stella: Readonly<{ quantity: string }>
+}>
+
 export type PlayerResourcesDto = Readonly<{
   primogems: string
   moras: string
