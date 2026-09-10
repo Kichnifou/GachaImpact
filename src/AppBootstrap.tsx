@@ -14,7 +14,8 @@ import { claimDailyRewardAndRefresh } from './daily-reward/claim-daily-reward'
 import { performGachaPullAndRefresh } from './gacha/perform-gacha-pull'
 import { abandonGachaPresentationBeforeSignOut, applyGachaPrimogemCostPreview, createGachaPresentationCoordinator, type GachaPresentationCoordinator, type GachaPrimogemCostPreview } from './gacha/gacha-presentation-coordinator'
 import { applyBankWalletToResources } from './bank/bank-presentation'
-import { buildLevelUpFeedback, gachaLevelRewards, type LevelUpFeedbackEvent } from './progression/level-up-feedback'
+import { gachaLevelRewards, type LevelUpFeedbackEvent } from './progression/level-up-feedback'
+import { publishProgressionUpdate } from './progression/publish-progression-update'
 
 function AppBootstrap() {
   const { status: authStatus, session, configurationMessage, signOut } = useAuth()
@@ -89,29 +90,27 @@ function AppBootstrap() {
     setPermissions(nextPermissions)
   }, [])
 
+  const publishProgression = useCallback((next: PlayerProgressionDto, options: { id: string; rewards?: readonly { resourceKey: string; amount: string }[]; emitLevelUpFeedback?: boolean }) => {
+    const published = publishProgressionUpdate(progressionRef.current, next, options)
+    progressionRef.current = published.progression
+    setProgression(published.progression)
+    if (published.feedback) setLevelUpFeedbacks((current) => [...current, published.feedback!])
+  }, [])
+
   const applyModerationState = useCallback((next: ModerationStateDto) => {
     setPermissions(next.permissions)
     setResources(next.resources)
-    progressionRef.current = next.progression
-    setProgression(next.progression)
+    publishProgression(next.progression, { id: `moderation:${next.player.id}:${next.progression.totalXp}`, emitLevelUpFeedback: false })
     setGacha((current) => current ? { ...current, playerState: next.gachaState } : current)
-  }, [])
+  }, [publishProgression])
 
   const publishGachaUpdate = useCallback((refreshed: Awaited<ReturnType<typeof performGachaPullAndRefresh>>) => {
     if (refreshed.resources) setResources(refreshed.resources)
     if (refreshed.progression) {
-      const feedback = buildLevelUpFeedback(
-        progressionRef.current,
-        refreshed.progression,
-        gachaLevelRewards(refreshed.result),
-        `${refreshed.result.operation.id}:${refreshed.progression.level}`,
-      )
-      progressionRef.current = refreshed.progression
-      setProgression(refreshed.progression)
-      if (feedback) setLevelUpFeedbacks((current) => [...current, feedback])
+      publishProgression(refreshed.progression, { id: `${refreshed.result.operation.id}:${refreshed.progression.level}`, rewards: gachaLevelRewards(refreshed.result) })
     }
     setGacha((current) => refreshed.gacha ?? (current ? { ...current, playerState: refreshed.result.playerState } : current))
-  }, [])
+  }, [publishProgression])
 
   const gachaPresentation = useRef<GachaPresentationCoordinator | null>(null)
 
@@ -253,12 +252,14 @@ function AppBootstrap() {
       characters={characters}
       teams={teams}
       permissions={permissions}
-      onLoadModeration={() => getGameApiClient().getModerationState()}
-      onModerationResource={(input) => getGameApiClient().adjustModerationResource(input)}
-      onModerationXp={(input) => getGameApiClient().setModerationXp(input)}
-      onModerationGacha={(input) => getGameApiClient().setModerationGacha(input)}
-      onModerationStella={(quantity, idempotencyKey) => getGameApiClient().setModerationStella(quantity, idempotencyKey)}
-      onModerationApplied={applyModerationState}
+      onLoadModeration={(targetPlayerId) => targetPlayerId ? getGameApiClient().getModerationPlayerState(targetPlayerId) : getGameApiClient().getModerationState()}
+      onSearchModerationPlayers={(query) => getGameApiClient().searchModerationPlayers(query)}
+      onModerationResource={(targetPlayerId, input) => targetPlayerId === player.id ? getGameApiClient().adjustModerationResource(input) : getGameApiClient().adjustModerationPlayerResource(targetPlayerId, input)}
+      onModerationXp={(targetPlayerId, input) => getGameApiClient().setModerationPlayerXp(targetPlayerId, input)}
+      onModerationGacha={(targetPlayerId, input) => getGameApiClient().setModerationPlayerGacha(targetPlayerId, input)}
+      onModerationStella={(targetPlayerId, quantity, idempotencyKey) => getGameApiClient().setModerationPlayerStella(targetPlayerId, quantity, idempotencyKey)}
+      onModerationTester={(targetPlayerId, enabled, idempotencyKey) => getGameApiClient().setModerationPlayerTester(targetPlayerId, enabled, idempotencyKey)}
+      onModerationApplied={(state, targetIsSelf) => { if (targetIsSelf) applyModerationState(state) }}
       levelUpFeedbacks={levelUpFeedbacks}
       onLevelUpFeedbackFinished={dismissLevelUpFeedback}
       onLoadTeams={loadTeams}

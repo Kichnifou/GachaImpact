@@ -8,8 +8,8 @@ import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-pr
 const playerId = crypto.randomUUID();
 const firstObtainedAt = new Date('2026-08-15T10:30:00.000Z');
 const characters: BoxCharacter[] = [
-  { id: crypto.randomUUID(), externalKey: 'box:five', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: 'sword', region: 'fontaine', iconPath: '/icon.png', splashPath: '/splash.png', wishPath: '/wish.png', fullbodyPath: '/fullbody.png', constellation: 6, copies: 9, firstObtainedAt, favorite: true },
-  { id: crypto.randomUUID(), externalKey: 'box:four', name: 'Collei', rarity: 4, elementKey: 'dendro', weaponType: 'bow', region: 'sumeru', iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null, constellation: 0, copies: 1, firstObtainedAt, favorite: false },
+  { id: crypto.randomUUID(), externalKey: 'box:five', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: 'sword', region: 'fontaine', iconPath: '/icon.png', splashPath: '/splash.png', wishPath: '/wish.png', fullbodyPath: '/fullbody.png', constellation: 6, copies: 9, firstObtainedAt, favorite: true, c6CompetitionStats: { strength: 1, intelligence: 1, beauty: 1, charisma: 1, popularity: 1, max: 20 } },
+  { id: crypto.randomUUID(), externalKey: 'box:four', name: 'Collei', rarity: 4, elementKey: 'dendro', weaponType: 'bow', region: 'sumeru', iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null, constellation: 0, copies: 1, firstObtainedAt, favorite: false, c6CompetitionStats: null },
 ];
 
 class FakeBoxStore implements BoxStore {

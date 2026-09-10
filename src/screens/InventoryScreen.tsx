@@ -121,7 +121,7 @@ function InventoryScreen({ initialInventory, resources, onLoad, onNavigateBank, 
         </button>)}
       </nav>
 
-      <section className="inventory-content panel">
+      <section className={`inventory-content inventory-${activeCategory} panel`}>
         <div className="inventory-heading">
           <div><span className="eyebrow">Sac personnel</span><h2>{categories.find(({ id }) => id === activeCategory)?.label}</h2></div>
           <label className="search-field compact-search"><span aria-hidden="true">⌕</span><span className="sr-only">Rechercher dans le Sac</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher…" /></label>
@@ -129,7 +129,7 @@ function InventoryScreen({ initialInventory, resources, onLoad, onNavigateBank, 
         {activeCategory === 'collection' && <div className="inventory-collection-summary"><span>Collection connue</span><strong>{completion.owned} / {completion.total}</strong></div>}
         {error && <p className="inventory-inline-error" role="alert">{error}</p>}
         {entries.length ? <div className="inventory-groups">{groups.map((group, index) => <section className="inventory-group" aria-labelledby={`inventory-group-${group.id}`} key={group.id}>
-          {(activeCategory === 'all' || index > 0) && <header className="inventory-group-heading"><span id={`inventory-group-${group.id}`}>{group.label}</span></header>}
+          {(activeCategory === 'all' || activeCategory === 'resources' || index > 0) && <header className="inventory-group-heading"><span id={`inventory-group-${group.id}`}>{group.label}</span></header>}
           <div className="inventory-grid">{group.entries.map((entry) => <InventoryCard entry={entry} onNavigateBank={onNavigateBank} onSelectItem={setSelectedItem} onUseStella={() => void openStellaPicker()} key={entry.type === 'resource' ? entry.resource.key : entry.item.id} />)}</div>
         </section>)}</div>
           : <div className="inventory-empty" role="status"><span aria-hidden="true">◇</span><strong>{query ? 'Aucun résultat' : emptyTitle(activeCategory)}</strong><p>{query ? 'Modifiez votre recherche pour retrouver une entrée.' : emptyDetail(activeCategory)}</p></div>}
@@ -169,7 +169,7 @@ function groupInventoryEntries(entries: readonly InventoryEntry[], category: Inv
   const objects = entries.filter((entry) => entry.type === 'item' && entry.item.section === 'objects')
   const collection = entries.filter((entry) => entry.type === 'item' && entry.item.section === 'collection')
   if (category === 'resources') return [
-    { id: 'currencies', label: 'Ressources', entries: primaryResources },
+    { id: 'currencies', label: 'Monnaie', entries: primaryResources },
     { id: 'particles', label: 'Particules', entries: particles },
   ].filter(({ entries: groupEntries }) => groupEntries.length > 0)
   if (category === 'all') return [

@@ -25,6 +25,7 @@ import type {
   BankTransferDto,
   BankHistoryDto,
   PlayerInventoryDto,
+  ModerationPlayerDto,
   ModerationPermissionsDto,
   ModerationStateDto,
 } from './types'
@@ -103,10 +104,17 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getCurrentPlayer: () => request<PlayerDto>('/api/v1/me'),
     getPermissions: () => request<ModerationPermissionsDto>('/api/v1/me/permissions'),
     getModerationState: () => request<ModerationStateDto>('/api/v1/moderation/me'),
+    getModerationPlayerState: (playerId: string) => request<ModerationStateDto>(`/api/v1/moderation/players/${playerId}/state`),
+    searchModerationPlayers: (query: string) => request<readonly ModerationPlayerDto[]>(`/api/v1/moderation/players?query=${encodeURIComponent(query)}`),
     adjustModerationResource: (input: { resourceKey: string; amount: string; direction: 'add' | 'remove'; idempotencyKey: string }) => request<ModerationStateDto>('/api/v1/moderation/me/resources', { method: 'POST', body: JSON.stringify(input) }),
     setModerationXp: (input: { totalXp?: string; prepareNextLevel?: true; idempotencyKey: string }) => request<ModerationStateDto>('/api/v1/moderation/me/xp', { method: 'POST', body: JSON.stringify(input) }),
     setModerationGacha: (input: { pity5?: number; pity4?: number; guaranteedFeatured5?: boolean; captureProgress?: number; idempotencyKey: string }) => request<ModerationStateDto>('/api/v1/moderation/me/gacha', { method: 'POST', body: JSON.stringify(input) }),
     setModerationStella: (quantity: string, idempotencyKey: string) => request<ModerationStateDto>('/api/v1/moderation/me/stella', { method: 'POST', body: JSON.stringify({ quantity, idempotencyKey }) }),
+    adjustModerationPlayerResource: (playerId: string, input: { resourceKey: string; amount: string; direction: 'add' | 'remove'; idempotencyKey: string }) => request<ModerationStateDto>(`/api/v1/moderation/players/${playerId}/resources`, { method: 'POST', body: JSON.stringify(input) }),
+    setModerationPlayerXp: (playerId: string, input: { totalXp?: string; prepareNextLevel?: true; idempotencyKey: string }) => request<ModerationStateDto>(`/api/v1/moderation/players/${playerId}/xp`, { method: 'POST', body: JSON.stringify(input) }),
+    setModerationPlayerGacha: (playerId: string, input: { pity5?: number; pity4?: number; guaranteedFeatured5?: boolean; captureProgress?: number; idempotencyKey: string }) => request<ModerationStateDto>(`/api/v1/moderation/players/${playerId}/gacha`, { method: 'POST', body: JSON.stringify(input) }),
+    setModerationPlayerStella: (playerId: string, quantity: string, idempotencyKey: string) => request<ModerationStateDto>(`/api/v1/moderation/players/${playerId}/stella`, { method: 'POST', body: JSON.stringify({ quantity, idempotencyKey }) }),
+    setModerationPlayerTester: (playerId: string, enabled: boolean, idempotencyKey: string) => request<ModerationStateDto>(`/api/v1/moderation/players/${playerId}/tester`, { method: 'POST', body: JSON.stringify({ enabled, idempotencyKey }) }),
     onboardPlayer: (displayName: string) =>
       request<PlayerDto>('/api/v1/onboarding/player', {
         method: 'POST',

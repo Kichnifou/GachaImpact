@@ -40,24 +40,24 @@ function optionalBoolean(value: boolean | undefined): string {
   return value === undefined ? 'absent' : `boolean:${value}`
 }
 
-export function moderationActionFingerprint(action: ModerationAction): string {
+export function moderationActionFingerprint(targetPlayerId: string, action: ModerationAction): string {
   switch (action.type) {
     case 'resource':
-      return ['resource', action.payload.resourceKey, action.payload.direction, action.payload.amount].join('\u001f')
+      return [targetPlayerId, 'resource', action.payload.resourceKey, action.payload.direction, action.payload.amount].join('\u001f')
     case 'xp':
       return action.payload.prepareNextLevel
-        ? 'xp\u001fprepare-next-level'
-        : `xp\u001ftotal:${action.payload.totalXp ?? 'absent'}`
+        ? `${targetPlayerId}\u001fxp\u001fprepare-next-level`
+        : `${targetPlayerId}\u001fxp\u001ftotal:${action.payload.totalXp ?? 'absent'}`
     case 'gacha':
       return [
-        'gacha',
+        targetPlayerId, 'gacha',
         optionalNumber(action.payload.pity5),
         optionalNumber(action.payload.pity4),
         optionalBoolean(action.payload.guaranteedFeatured5),
         optionalNumber(action.payload.captureProgress),
       ].join('\u001f')
     case 'stella':
-      return `stella\u001fquantity:${action.payload.quantity}`
+      return `${targetPlayerId}\u001fstella\u001fquantity:${action.payload.quantity}`
   }
 }
 
@@ -88,13 +88,15 @@ export class ModerationIntentCoordinator {
       throw new ApiError('MODERATION_IN_PROGRESS', 'Une opération de test est déjà en cours.', null)
     }
 
-    const actionFingerprint = moderationActionFingerprint(action)
-    const previous = this.intents.get(playerId)
-    if (previous && previous.actionFingerprint !== actionFingerprint) {
+    const actionFingerprint = moderationActionFingerprint(playerId, action)
+    const pending = this.intents.entries().next().value as [string, ModerationIntent] | undefined
+    const pendingTarget = pending?.[0]
+    const pendingIntent = pending?.[1]
+    if (pendingIntent && (pendingTarget !== playerId || pendingIntent.actionFingerprint !== actionFingerprint)) {
       throw new ApiError('MODERATION_INTENT_CONFLICT', intentConflictMessage, null)
     }
 
-    const intent = previous ?? { actionFingerprint, idempotencyKey: this.createKey() }
+    const intent = pendingIntent ?? { actionFingerprint, idempotencyKey: this.createKey() }
     this.intents.set(playerId, intent)
     this.activeRequests.set(playerId, intent)
 

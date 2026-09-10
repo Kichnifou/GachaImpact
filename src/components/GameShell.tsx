@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import type { BankHistoryDto, BankTransferDto, BoxCharacterDto, BoxSortPreferenceDto, CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, ModerationPermissionsDto, ModerationStateDto, PlayerBankDto, PlayerBoxDto, PlayerDto, PlayerInventoryDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
+import type { BankHistoryDto, BankTransferDto, BoxCharacterDto, BoxSortPreferenceDto, CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, ModerationPermissionsDto, ModerationPlayerDto, ModerationStateDto, PlayerBankDto, PlayerBoxDto, PlayerDto, PlayerInventoryDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import type { ScreenId } from '../types'
 import BoxScreen from '../screens/BoxScreen'
 import CharactersScreen from '../screens/CharactersScreen'
@@ -73,15 +73,17 @@ type GameShellProps = {
   onWithdrawBank: (amount: string, idempotencyKey: string) => Promise<BankTransferDto>
   onLoadInventory: () => Promise<PlayerInventoryDto>
   permissions: ModerationPermissionsDto
-  onLoadModeration: () => Promise<ModerationStateDto>
-  onModerationResource: (input: { resourceKey: string; amount: string; direction: 'add' | 'remove'; idempotencyKey: string }) => Promise<ModerationStateDto>
-  onModerationXp: (input: { totalXp?: string; prepareNextLevel?: true; idempotencyKey: string }) => Promise<ModerationStateDto>
-  onModerationGacha: (input: { pity5?: number; pity4?: number; guaranteedFeatured5?: boolean; captureProgress?: number; idempotencyKey: string }) => Promise<ModerationStateDto>
-  onModerationStella: (quantity: string, idempotencyKey: string) => Promise<ModerationStateDto>
-  onModerationApplied: (state: ModerationStateDto) => void
+  onLoadModeration: (targetPlayerId?: string) => Promise<ModerationStateDto>
+  onSearchModerationPlayers: (query: string) => Promise<readonly ModerationPlayerDto[]>
+  onModerationResource: (targetPlayerId: string, input: { resourceKey: string; amount: string; direction: 'add' | 'remove'; idempotencyKey: string }) => Promise<ModerationStateDto>
+  onModerationXp: (targetPlayerId: string, input: { totalXp?: string; prepareNextLevel?: true; idempotencyKey: string }) => Promise<ModerationStateDto>
+  onModerationGacha: (targetPlayerId: string, input: { pity5?: number; pity4?: number; guaranteedFeatured5?: boolean; captureProgress?: number; idempotencyKey: string }) => Promise<ModerationStateDto>
+  onModerationStella: (targetPlayerId: string, quantity: string, idempotencyKey: string) => Promise<ModerationStateDto>
+  onModerationTester: (targetPlayerId: string, enabled: boolean, idempotencyKey: string) => Promise<ModerationStateDto>
+  onModerationApplied: (state: ModerationStateDto, targetIsSelf: boolean) => void
 }
 
-function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank, onLoadInventory, permissions, onLoadModeration, onModerationResource, onModerationXp, onModerationGacha, onModerationStella, onModerationApplied }: GameShellProps) {
+function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank, onLoadInventory, permissions, onLoadModeration, onSearchModerationPlayers, onModerationResource, onModerationXp, onModerationGacha, onModerationStella, onModerationTester, onModerationApplied }: GameShellProps) {
   const [activeScreen, setActiveScreen] = useState<ScreenId>(getScreenFromHash)
   const activeScreenRef = useRef(activeScreen)
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
@@ -148,26 +150,26 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
       ? onDepositBank(amount, idempotencyKey)
       : onWithdrawBank(amount, idempotencyKey))),
   ), [bankCache, bankTransferIntents, onDepositBank, onWithdrawBank, player.id])
-  const moderateResource = useCallback((input: ModerationResourceInput) => moderationIntents.execute(
-    player.id,
+  const moderateResource = useCallback((targetPlayerId: string, input: ModerationResourceInput) => moderationIntents.execute(
+    targetPlayerId,
     { type: 'resource', payload: input },
-    (idempotencyKey) => onModerationResource({ ...input, idempotencyKey }),
-  ), [moderationIntents, onModerationResource, player.id])
-  const moderateXp = useCallback((input: ModerationXpInput) => moderationIntents.execute(
-    player.id,
+    (idempotencyKey) => onModerationResource(targetPlayerId, { ...input, idempotencyKey }),
+  ), [moderationIntents, onModerationResource])
+  const moderateXp = useCallback((targetPlayerId: string, input: ModerationXpInput) => moderationIntents.execute(
+    targetPlayerId,
     { type: 'xp', payload: input },
-    (idempotencyKey) => onModerationXp({ ...input, idempotencyKey }),
-  ), [moderationIntents, onModerationXp, player.id])
-  const moderateGacha = useCallback((input: ModerationGachaInput) => moderationIntents.execute(
-    player.id,
+    (idempotencyKey) => onModerationXp(targetPlayerId, { ...input, idempotencyKey }),
+  ), [moderationIntents, onModerationXp])
+  const moderateGacha = useCallback((targetPlayerId: string, input: ModerationGachaInput) => moderationIntents.execute(
+    targetPlayerId,
     { type: 'gacha', payload: input },
-    (idempotencyKey) => onModerationGacha({ ...input, idempotencyKey }),
-  ), [moderationIntents, onModerationGacha, player.id])
-  const moderateStella = useCallback((quantity: string) => moderationIntents.execute(
-    player.id,
+    (idempotencyKey) => onModerationGacha(targetPlayerId, { ...input, idempotencyKey }),
+  ), [moderationIntents, onModerationGacha])
+  const moderateStella = useCallback((targetPlayerId: string, quantity: string) => moderationIntents.execute(
+    targetPlayerId,
     { type: 'stella', payload: { quantity } },
-    (idempotencyKey) => onModerationStella(quantity, idempotencyKey),
-  ), [moderationIntents, onModerationStella, player.id])
+    (idempotencyKey) => onModerationStella(targetPlayerId, quantity, idempotencyKey),
+  ), [moderationIntents, onModerationStella])
   const signOutAndClearCaches = useCallback(async () => {
     boxCache.clear()
     bankCache.clear()
@@ -189,7 +191,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
   }, [changeScreen])
 
   const navigate = (screen: ScreenId) => {
-    if (screen === 'moderation' && !permissions.capabilities.selfTestTools) return
+    if (screen === 'moderation' && !permissions.capabilities.moderationAccess) return
     changeScreen(screen)
     window.location.hash = screen
     setIsSidebarOpen(false)
@@ -211,7 +213,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
       case 'bank':
         return <BankScreen initialBank={bankCache.read(player.id)} onLoad={loadBank} onLoadHistory={onLoadBankHistory} onTransfer={transferBank} />
       case 'moderation':
-        return permissions.capabilities.selfTestTools ? <ModerationScreen onLoad={onLoadModeration} onResource={moderateResource} onXp={moderateXp} onGacha={moderateGacha} onStella={moderateStella} onApplied={(next) => { boxCache.setStellaQuantity(player.id, next.stella.quantity); inventoryCache.setStellaQuantity(player.id, next.stella.quantity); onModerationApplied(next) }} /> : <HomeScreen onNavigate={navigate} wheelToday={wheelToday} onSpinWheel={onSpinWheel} gacha={gacha} onSetGachaTarget={onSetGachaTarget} />
+        return permissions.capabilities.moderationAccess ? <ModerationScreen actorPlayerId={player.id} capabilities={permissions.capabilities} onLoad={onLoadModeration} onSearchPlayers={onSearchModerationPlayers} onResource={moderateResource} onXp={moderateXp} onGacha={moderateGacha} onStella={moderateStella} onTester={onModerationTester} onApplied={(next) => { const self = next.player.id === player.id; if (self) { boxCache.setStellaQuantity(player.id, next.stella.quantity); inventoryCache.setStellaQuantity(player.id, next.stella.quantity) }; onModerationApplied(next, self) }} /> : <HomeScreen onNavigate={navigate} wheelToday={wheelToday} onSpinWheel={onSpinWheel} gacha={gacha} onSetGachaTarget={onSetGachaTarget} />
       case 'shop':
         return <ShopScreen />
       default:
@@ -225,7 +227,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
         displayName={player.displayName}
         onNavigateHome={() => navigate('home')}
         onOpenSidebar={() => setIsSidebarOpen(true)}
-        showModeration={permissions.capabilities.selfTestTools}
+        showModeration={permissions.capabilities.moderationAccess}
         onOpenModeration={() => navigate('moderation')}
         onSignOut={signOutAndClearCaches}
       />

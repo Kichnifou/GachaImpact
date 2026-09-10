@@ -299,7 +299,7 @@ Rôles initiaux utiles :
 - Testeur technique ;
 - Administrateur.
 
-`MODERATOR` reste un rôle communautaire sans droit de mutation économique. La capacité `SELF_TEST_TOOLS` est portée initialement par `TESTER` et implicitement par `ADMIN`; les rôles et capacités ne dépendent jamais d'un pseudo.
+`MODERATOR` reste un rôle communautaire sans droit d'outil. `TESTER` porte uniquement l'ajustement de ses propres ressources; `ADMIN` porte les outils Super, y compris le ciblage d'un Player ACTIVE et la seule gestion du rôle TESTER. Les rôles et capacités ne dépendent jamais d'un pseudo.
 
 Le rôle joueur normal n'a pas besoin d'une ligne explicite.
 
@@ -328,7 +328,7 @@ Contient conceptuellement :
 
 Une correction Admin de ressources, personnages, configuration ou données joueur doit rester traçable.
 
-Le premier sous-ensemble physique relie chaque entrée à un `actorPlayerId`, un `targetPlayerId` self-only, une action, un domaine, les snapshots JSON avant/après et une `BusinessOperation` unique. Les outils de test Ressources, XP, Gacha et Stella n'altèrent pas les statistiques gameplay ordinaires.
+Le premier sous-ensemble physique relie chaque entrée à un `actorPlayerId`, un `targetPlayerId`, une action, un domaine, les snapshots JSON avant/après et une `BusinessOperation` unique. L'empreinte idempotente inclut acteur, cible, action et payload. Les outils de test Ressources, XP, Gacha et Stella n'altèrent pas les statistiques gameplay ordinaires.
 
 ## 4.8 `TwitchEventReceipt`
 
@@ -766,7 +766,7 @@ Extension spécialisée de :
 
 `playerId + characterId`
 
-Uniquement pour un vrai 5★ C6.
+Uniquement pour un vrai 5★ C6. Les cinq statistiques commencent à 1 lors du déblocage et sont plafonnées par la constante métier actuelle à 20; une lecture de fiche ne crée jamais silencieusement une ligne manquante.
 
 Contient :
 

@@ -5,7 +5,7 @@ import { BoxMemoryCache } from './box-memory-cache'
 const character = (favorite = false): BoxCharacterDto => ({
   id: 'furina', externalKey: 'legacy:20', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: 'sword', region: 'fontaine',
   iconPath: '/furina.png', splashPath: null, wishPath: null, fullbodyPath: null,
-  constellation: 2, copies: 3, firstObtainedAt: '2026-08-15T10:30:00.000Z', favorite,
+  constellation: 2, copies: 3, firstObtainedAt: '2026-08-15T10:30:00.000Z', favorite, c6CompetitionStats: null,
 })
 const box = (favorite = false): PlayerBoxDto => ({
   characters: [character(favorite)],

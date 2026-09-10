@@ -93,14 +93,14 @@ describe('ModerationIntentCoordinator', () => {
     await expect(coordinator.execute(playerId, reordered, remountedConsumer)).resolves.toBe('remount-key')
   })
 
-  it('isolates intents by Player and clears every intent on sign-out', async () => {
+  it('blocks a second target while an ambiguous target intent remains unresolved and clears on sign-out', async () => {
     const keys = ['player-a-key', 'player-b-key']
     const coordinator = new ModerationIntentCoordinator(() => keys.shift()!)
     await expect(coordinator.execute('player-a', addPrimos(), async () => {
       throw new ApiError('NETWORK_ERROR', 'Hors ligne', null)
     })).rejects.toMatchObject({ code: 'NETWORK_ERROR' })
 
-    await expect(coordinator.execute('player-b', addPrimos(), async (key) => key)).resolves.toBe('player-b-key')
+    await expect(coordinator.execute('player-b', addPrimos(), async (key) => key)).rejects.toMatchObject({ code: 'MODERATION_INTENT_CONFLICT' })
     expect(coordinator.getIntent('player-a')?.idempotencyKey).toBe('player-a-key')
     expect(coordinator.getIntent('player-b')).toBeNull()
 

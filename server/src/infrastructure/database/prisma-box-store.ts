@@ -2,10 +2,10 @@ import { OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../..
 import { BusinessError } from '../../application/errors.js';
 import {
   MASTERLESS_STELLA_FORTUNA_KEY, boxSortDirections, boxSortKeys, defaultBoxSortPreference,
-  type BoxCharacter, type BoxSortPreference, type BoxStore, type StellaProgression,
+  type BoxCharacter, type BoxSortPreference, type BoxStore, type StellaProgression, type C6CompetitionStats,
   type StellaUseResult, type UseStellaInput,
 } from '../../application/box/box-store.js';
-import { c6StatKeys, type C6StatKey, type C6Stats } from '../../domain/contest/c6-progress.js';
+import { C6_COMPETITION_STAT_MAX, c6StatKeys, type C6StatKey, type C6Stats } from '../../domain/contest/c6-progress.js';
 import { isElementKey } from '../../domain/economy/resources.js';
 import { isPrismaConcurrencyCollision } from './prisma-concurrency.js';
 import { PrismaC6ProgressionService } from './prisma-c6-progression-service.js';
@@ -14,7 +14,7 @@ import { PrismaCharacterPossessionService } from './prisma-character-possession-
 const BOX_SORT_PREFERENCE_KEY = 'box.sort';
 const MAX_ATTEMPTS = 5;
 const boxSelection = {
-  constellation: true, copies: true, firstObtainedAt: true, favorite: true,
+  characterId: true, constellation: true, copies: true, firstObtainedAt: true, favorite: true,
   character: { select: {
     id: true, externalKey: true, name: true, rarity: true, elementKey: true,
     weaponType: true, region: true, iconPath: true, splashPath: true, wishPath: true, fullbodyPath: true,
@@ -31,7 +31,13 @@ export class PrismaBoxStore implements BoxStore {
 
   public async listVisiblePossessions(playerId: string): Promise<readonly BoxCharacter[]> {
     const rows = await this.database.playerCharacter.findMany({ where: { playerId, character: { isActive: true } }, select: boxSelection });
-    return rows.map(toBoxCharacter);
+    const progress = await this.database.c6CompetitionProgress.findMany({ where: { playerId, characterId: { in: rows.filter((row) => row.constellation === 6).map((row) => row.characterId) } }, select: { characterId: true, strength: true, intelligence: true, beauty: true, charisma: true, popularity: true } });
+    const byCharacter = new Map(progress.map((value) => [value.characterId, c6Stats(value)]));
+    return rows.map((row) => {
+      const stats = byCharacter.get(row.characterId) ?? null;
+      if (row.constellation === 6 && !stats) throw new Error(`C6 competition progression missing for possession ${playerId}/${row.characterId}.`);
+      return toBoxCharacter(row, stats);
+    });
   }
 
   public async setFavorite(playerId: string, characterId: string, favorite: boolean): Promise<BoxCharacter | null> {
@@ -173,7 +179,10 @@ export class PrismaBoxStore implements BoxStore {
 
   private async readCharacter(client: PrismaClient | Prisma.TransactionClient, playerId: string, characterId: string) {
     const row = await client.playerCharacter.findUnique({ where: { playerId_characterId: { playerId, characterId } }, select: boxSelection });
-    return row ? toBoxCharacter(row) : null;
+    if (!row) return null;
+    const progress = row.constellation === 6 ? await client.c6CompetitionProgress.findUnique({ where: { playerId_characterId: { playerId, characterId } }, select: { strength: true, intelligence: true, beauty: true, charisma: true, popularity: true } }) : null;
+    if (row.constellation === 6 && !progress) throw new Error(`C6 competition progression missing for possession ${playerId}/${characterId}.`);
+    return toBoxCharacter(row, progress ? c6Stats(progress) : null);
   }
 }
 
@@ -201,12 +210,16 @@ function isC6Stats(value: Prisma.JsonValue | undefined): value is C6Stats {
     && c6StatKeys.every((key) => typeof value[key] === 'number' && Number.isInteger(value[key])));
 }
 
-function toBoxCharacter(row: BoxRow): BoxCharacter {
+function c6Stats(value: { strength: number; intelligence: number; beauty: number; charisma: number; popularity: number }): C6CompetitionStats {
+  return { strength: value.strength, intelligence: value.intelligence, beauty: value.beauty, charisma: value.charisma, popularity: value.popularity, max: C6_COMPETITION_STAT_MAX }
+}
+function toBoxCharacter(row: BoxRow, c6CompetitionStats: C6CompetitionStats | null): BoxCharacter {
   if (row.character.rarity !== 4 && row.character.rarity !== 5) throw new Error(`Invalid stored rarity for ${row.character.id}.`);
   if (!isElementKey(row.character.elementKey)) throw new Error(`Invalid stored element for ${row.character.id}.`);
   return {
     ...row.character, rarity: row.character.rarity, elementKey: row.character.elementKey,
     constellation: Math.min(6, Math.max(0, row.constellation)), copies: row.copies,
     firstObtainedAt: row.firstObtainedAt, favorite: row.favorite,
+    c6CompetitionStats,
   };
 }

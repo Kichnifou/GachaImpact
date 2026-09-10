@@ -19,6 +19,7 @@ function BoxCharacterDetailModal({ character, stellaQuantity, stellaRetryAvailab
   const [confirmingStella, setConfirmingStella] = useState(false)
   const stellaSubmitted = useRef(false)
   const hasStella = /^\d+$/.test(stellaQuantity) && BigInt(stellaQuantity) > 0n
+  const c6CompetitionStats = character.c6CompetitionStats
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
@@ -60,7 +61,7 @@ function BoxCharacterDetailModal({ character, stellaQuantity, stellaRetryAvailab
           {character.rarity === 5 && <section className="box-stella-zone" aria-label="Masterless Stella Fortuna">
             <div><strong>Masterless Stella Fortuna × {stellaQuantity}</strong><small>Renforce ce personnage</small></div>
             <button type="button" disabled={(!hasStella && !stellaRetryAvailable) || stellaPending} onClick={() => { stellaSubmitted.current = false; setConfirmingStella(true) }}>{stellaPending ? 'Utilisation…' : stellaRetryAvailable ? 'Reprendre l’utilisation' : 'Utiliser une Stella'}</button>
-            {(stellaFeedback || stellaRetryAvailable) && <p className="box-stella-feedback" role="status">{stellaFeedback ?? 'Résultat à vérifier · la nouvelle tentative reprendra la même opération.'}</p>}
+            <p className={`box-stella-feedback${(stellaFeedback || stellaRetryAvailable) ? '' : ' reserved'}`} role={stellaFeedback || stellaRetryAvailable ? 'status' : undefined} aria-hidden={!stellaFeedback && !stellaRetryAvailable}>{stellaFeedback ?? (stellaRetryAvailable ? 'Résultat à vérifier · la nouvelle tentative reprendra la même opération.' : ' ')}</p>
           </section>}
           {actionError && <p className="box-detail-action-error" role="alert">{actionError}</p>}
           <button type="button" className={`box-detail-favorite${character.favorite ? ' active' : ''}`} disabled={favoritePending} onClick={onToggleFavorite}>
@@ -68,6 +69,12 @@ function BoxCharacterDetailModal({ character, stellaQuantity, stellaRetryAvailab
           </button>
         </div>
       </div>
+      {character.constellation === 6 && c6CompetitionStats && <section className="box-c6-competition-stats" aria-label="Statistiques concours">
+        <span className="eyebrow">Statistiques concours</span>
+        <dl>{([
+          ['Force', c6CompetitionStats.strength], ['Intelligence', c6CompetitionStats.intelligence], ['Beauté', c6CompetitionStats.beauty], ['Charisme', c6CompetitionStats.charisma], ['Popularité', c6CompetitionStats.popularity],
+        ] as const).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value} / {c6CompetitionStats.max}</dd></div>)}</dl>
+      </section>}
       {confirmingStella && <div className="box-stella-confirm-layer" role="presentation" onMouseDown={() => setConfirmingStella(false)}>
         <section className="box-stella-confirm panel" role="alertdialog" aria-modal="true" aria-label="Confirmer l’utilisation d’une Stella" onMouseDown={(event) => event.stopPropagation()}>
           <span className="eyebrow">Confirmation</span>
@@ -84,8 +91,8 @@ function BoxCharacterDetailModal({ character, stellaQuantity, stellaRetryAvailab
 }
 
 function stellaTransition(character: BoxCharacterDto) {
-  if (character.constellation === 6) return `C6 reste C6 · Copies : ${character.copies} → ${character.copies + 1} · Une statistique Concours éligible recevra +1.`
-  return `C${character.constellation} → C${character.constellation + 1} · Copies : ${character.copies} → ${character.copies + 1}`
+  if (character.constellation === 6) return 'Déjà C6 · Une statistique pour les concours sera augmentée'
+  return `C${character.constellation} → C${character.constellation + 1}`
 }
 
 function formatObtainedAt(value: string) {

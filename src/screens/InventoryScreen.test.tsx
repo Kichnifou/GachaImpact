@@ -20,7 +20,7 @@ const inventory: PlayerInventoryDto = {
     { id: 'unknown', externalKey: 'souvenir-sumeru', displayName: 'Branche de Sumeru', category: 'COLLECTION', section: 'collection', description: null, quantity: '0', firstObtainedAt: null, acquisitionHint: 'Exploration.' },
   ],
 }
-const furina: BoxCharacterDto = { id: 'furina', externalKey: 'furina', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: null, region: null, iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null, constellation: 1, copies: 2, firstObtainedAt: '2026-09-09T00:00:00Z', favorite: false }
+const furina: BoxCharacterDto = { id: 'furina', externalKey: 'furina', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: null, region: null, iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null, constellation: 1, copies: 2, firstObtainedAt: '2026-09-09T00:00:00Z', favorite: false, c6CompetitionStats: null }
 const box: PlayerBoxDto = { characters: [furina, { ...furina, id: 'four', name: 'Collei', rarity: 4 }], summary: { totalOwned: 2, fiveStars: 1, fourStars: 1, c6: 0 }, preference: { sortKey: 'alphabetical', direction: 'asc' }, stella: { quantity: '2' } }
 const roots: Root[] = []
 

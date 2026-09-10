@@ -1,5 +1,6 @@
 import type { ElementKey } from '../../domain/economy/resources.js';
 import type { C6StatKey, C6Stats } from '../../domain/contest/c6-progress.js';
+export type C6CompetitionStats = C6Stats & Readonly<{ max: number }>;
 import type { RandomSource } from '../../domain/wheel/wheel.js';
 
 export const boxSortKeys = ['alphabetical', 'obtainedAt', 'constellation', 'element'] as const;
@@ -26,6 +27,7 @@ export type BoxCharacter = Readonly<{
   copies: number;
   firstObtainedAt: Date;
   favorite: boolean;
+  c6CompetitionStats: C6CompetitionStats | null;
 }>;
 
 export interface BoxStore {

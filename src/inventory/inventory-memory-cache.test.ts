@@ -8,7 +8,7 @@ const inventory = (quantity = '2'): PlayerInventoryDto => ({
 })
 const stellaResult: StellaUseDto = {
   operation: { id: 'operation', alreadyProcessed: false },
-  character: { id: 'furina', externalKey: 'furina', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: null, region: null, iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null, constellation: 2, copies: 3, firstObtainedAt: '2026-09-09T00:00:00Z', favorite: false },
+  character: { id: 'furina', externalKey: 'furina', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: null, region: null, iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null, constellation: 2, copies: 3, firstObtainedAt: '2026-09-09T00:00:00Z', favorite: false, c6CompetitionStats: null },
   stella: { quantity: '1' },
   c6Progression: null,
 }

@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.75
+Version : 0.76
 Date : 2026-09-10
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3543,7 +3543,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Sac — premier vertical réel techniquement implémenté et fonctionnellement validé pour son chargement, ses quatre catégories, ses ressources, ses vœux, son accès Banque, ses objets/Collection, sa recherche, son cache et son desktop. Le candidat 0.75 finalise le centrage générique des icônes, les séparateurs de groupes et la description canonique Stella ; ces seuls polish Sac restent à valider publiquement.**
+**Sac — premier vertical réel techniquement implémenté et fonctionnellement validé pour son chargement, ses quatre catégories, ses ressources, ses vœux, son accès Banque, ses objets/Collection, sa recherche, son cache et son desktop. Le candidat 0.76 conserve ce domaine actif jusqu'à revalidation publique de ses trois micro-polish : respiration du premier groupe, alignement Primos/Moras et libellé Monnaie.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3602,14 +3602,14 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - backlog UX Invocation non bloquant : rendre plus tard le débit `-160` / `-1 600` Primogemmes visuellement optimiste exactement au clic, avec rollback si le POST échoue. Ce micro-polish ne maintient pas Invocation comme domaine actif ;
 - Ressources, XP, Daily Reward et Roue restent sans régression publique constatée.
 
-## État du lot 0.75 — polish Sac/Gacha, outils de test et catalogue Personnages
+## État du lot 0.76 — finalisation Sac, progression globale, C6 et outils Super/Testeur
 
-- le récapitulatif x10 bloque désormais toute sortie pendant ses 1 000 premières millisecondes visibles, y compris croix, Escape et clic de surface ; la statistique C6 compacte utilise un style dédié sans modifier le remboursement C6 validé ;
-- le Sac groupe `Tout` en Ressources / Objets / Collection, sépare Primos-Moras des sept particules dans `Ressources`, centre génériquement le visuel de chaque icône et lit la description Stella canonique corrigée depuis `item_definitions` ;
-- le premier vertical transverse Modération est implémenté : permissions serveur persistées, `MODERATOR` communautaire distinct du rôle technique `TESTER`, capacité `SELF_TEST_TOOLS` implicite pour `TESTER`/`ADMIN`, outils exclusivement self-only, audités et idempotents de bout en bout pour ressources, XP, état Gacha et Stella ; après une erreur ambiguë, une intention frontend isolée par Player survit aux remounts, conserve sa clé pour le même payload et bloque toute mutation différente jusqu'à résolution ;
-- `Kichnifou` possède en DEV les rôles `MODERATOR` et `TESTER` après safety gate unique, et sa progression a été préparée à `28 / 30 XP` dans son palier courant sans récompense ni montée de niveau ;
-- l'écran Personnages conserve le vrai catalogue et rend ses contrôles effectifs : recherche normalisée, filtres rareté/les sept éléments combinables, tris Nom/Rareté/Élément et directions réelles, compteur et état vide réinitialisable ;
-- ces ajouts sont techniquement validés localement et sur Supabase DEV. Leur validation publique propriétaire reste requise ; Modération demeure un outil transverse et Personnages ne devient pas un nouveau domaine de roadmap.
+- Gacha x1/x10, y compris verrou de récapitulatif et feedback C6 compact, est publiquement validé ; les filtres, tris et états vides de Personnages le sont également. Ces domaines ne sont pas reconstruits par ce lot.
+- Toute vraie progression autoritaire est désormais publiée par une primitive frontend globale, indépendante de l'écran actif ; les mutations administratives peuvent explicitement rester silencieuses. La modale Level-up, la sidebar et l'anti-spoil Gacha sont publiquement validés.
+- La fiche commune Box/Team/Sac expose les cinq statistiques Concours réelles d'un personnage C6, initialisées à 1 et plafonnées par la constante métier à 20 ; elle ne crée jamais silencieusement une progression C6 manquante. La mécanique Stella est validée, tandis que ce nouveau wording et cette section restent à revalider publiquement.
+- Modération devient un outil transverse à deux rangs player-facing : `ADMIN` est affiché Super et peut cibler un Player ACTIVE, tandis que `TESTER` est affiché Testeur et ne peut ajuster que ses propres ressources. `MODERATOR` communautaire reste sans accès. Les mutations distinguent acteur/cible, sont auditées et idempotentes ; une intention frontend inclut aussi la cible et bloque toute autre cible tant qu'elle reste ambiguë.
+- Après safety gate DEV, Kichnifou cumule `ADMIN`, `MODERATOR` et `TESTER`, l'attribution ADMIN portant la provenance `owner-authorized-dev-super`; son XP est préparée à `29 / 30` dans son palier courant, soit 209 XP au moment du contrôle, sans récompense ni montée de niveau.
+- Sac conserve les seuls micro-polish candidats à revalidation publique : respiration du premier groupe dans Tout, alignement centre Y Primos/Moras et titre Monnaie dans Ressources. Modération reste transverse et Personnages ne devient pas un nouveau domaine de roadmap.
 
 ## État du lot — Invocation x1/x10
 
@@ -3751,7 +3751,7 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Faire reviewer le candidat 0.75 uniquement sur `review` → corriger les éventuels retours → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → revalider publiquement le centrage/séparateurs/texte Stella du Sac, le verrou/C6 compact Gacha, le rendu Level-up préparé à 28/30, l'accès Modération autorisé/non autorisé et les contrôles Personnages.** Après cette validation, continuer vers le domaine suivant selon [implementation-order-v1.md](../roadmap/implementation-order-v1.md), uniquement sur décision explicite du propriétaire. Le domaine actif reste Sac jusque-là. `PAID_INFRA_APPROVED = false` reste inchangé.
+**Faire reviewer le candidat 0.76 uniquement sur `review` → corriger les éventuels retours → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → revalider publiquement les trois micro-polish Sac, le rendu C6/Stella, la progression globale et la hiérarchie Super/Testeur avec ciblage.** Après cette validation, continuer vers le domaine suivant selon [implementation-order-v1.md](../roadmap/implementation-order-v1.md), uniquement sur décision explicite du propriétaire. Le domaine actif reste Sac jusque-là. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

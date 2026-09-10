@@ -11,10 +11,12 @@ export type PlayerDto = Readonly<{
 
 export type ModerationPermissionsDto = Readonly<{
   roles: readonly ('MODERATOR' | 'TESTER' | 'ADMIN')[]
-  capabilities: Readonly<{ moderationAccess: boolean; selfTestTools: boolean }>
+  capabilities: Readonly<{ moderationAccess: boolean; selfResourceTools: boolean; superTools: boolean; canSelectPlayers: boolean; canManageTesters: boolean }>
 }>
+export type ModerationPlayerDto = Readonly<{ id: string; displayName: string; elementKey: ElementKey | null; level: number; tester: boolean }>
 
 export type ModerationStateDto = Readonly<{
+  player: ModerationPlayerDto
   permissions: ModerationPermissionsDto
   resources: PlayerResourcesDto
   progression: PlayerProgressionDto
@@ -175,6 +177,7 @@ export type BoxCharacterDto = Omit<GachaCharacterDto, 'classKey'> & Readonly<{
   copies: number
   firstObtainedAt: string
   favorite: boolean
+  c6CompetitionStats: Readonly<Record<'strength' | 'intelligence' | 'beauty' | 'charisma' | 'popularity', number> & { max: number }> | null
 }>
 
 export type PlayerBoxDto = Readonly<{

@@ -7,14 +7,15 @@ import BoxCharacterDetailModal from '../components/BoxCharacterDetailModal'
 import BoxScreen, { BoxStatus, BoxView } from './BoxScreen'
 import boxCollectionSource from '../box/use-box-collection.ts?raw'
 import boxScreenSource from './BoxScreen.tsx?raw'
+import detailSource from '../components/BoxCharacterDetailModal.tsx?raw'
 
 const character = (overrides: Partial<BoxCharacterDto>): BoxCharacterDto => ({
   id: 'furina', externalKey: 'legacy:20', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: 'sword', region: 'fontaine',
   iconPath: '/furina-icon.png', splashPath: '/furina-splash.png', wishPath: '/furina-wish.png', fullbodyPath: '/furina-fullbody.png',
-  constellation: 1, copies: 2, firstObtainedAt: '2026-08-15T10:30:00.000Z', favorite: false, ...overrides,
+  constellation: 1, copies: 2, firstObtainedAt: '2026-08-15T10:30:00.000Z', favorite: false, c6CompetitionStats: null, ...overrides,
 })
 const records = [
-  character({ id: 'five-normal', name: 'Émilie', rarity: 5, elementKey: 'dendro', constellation: 6, copies: 20, favorite: false, firstObtainedAt: '2026-08-03T00:00:00Z' }),
+  character({ id: 'five-normal', name: 'Émilie', rarity: 5, elementKey: 'dendro', constellation: 6, copies: 20, favorite: false, firstObtainedAt: '2026-08-03T00:00:00Z', c6CompetitionStats: { strength: 1, intelligence: 5, beauty: 1, charisma: 4, popularity: 1, max: 20 } }),
   character({ id: 'four-favorite', name: 'Collei', rarity: 4, elementKey: 'dendro', constellation: 0, copies: 1, favorite: true, firstObtainedAt: '2026-08-02T00:00:00Z' }),
   character({ id: 'five-favorite', name: 'Furina', rarity: 5, elementKey: 'hydro', constellation: 2, copies: 3, favorite: true, firstObtainedAt: '2026-08-01T00:00:00Z' }),
   character({ id: 'four-normal', name: 'Bennett', rarity: 4, elementKey: 'pyro', constellation: 4, copies: 5, favorite: false, firstObtainedAt: '2026-08-04T00:00:00Z' }),
@@ -79,6 +80,8 @@ describe('real personal Box', () => {
     expect(html).toContain('3 août 2026')
     expect(html).toContain('<dt>Favori</dt><dd>Non</dd>')
     expect(html).toContain('Ajouter aux favoris')
+    expect(html).toContain('Statistiques concours')
+    expect(html).toContain('Intelligence</dt><dd>5 / 20</dd>')
   })
   it('prioritizes the icon in detail, falls back to an existing asset and renders no element badge', () => {
     const withIcon = renderToStaticMarkup(<BoxCharacterDetailModal character={records[0]!} {...modalProps} />)
@@ -130,5 +133,10 @@ describe('real personal Box', () => {
     expect(html).toContain('Reprendre l’utilisation')
     expect(html).toContain('la nouvelle tentative reprendra la même opération')
     expect(html).not.toContain('disabled=""')
+  })
+
+  it('uses the concise C6 Stella confirmation wording without exposing copies', () => {
+    expect(detailSource).toContain('Déjà C6 · Une statistique pour les concours sera augmentée')
+    expect(detailSource).not.toContain('C6 reste C6')
   })
 })

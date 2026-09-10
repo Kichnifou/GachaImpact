@@ -37,10 +37,11 @@ describe('personal Box persistence', () => {
       { playerId: player.id, characterId: inactive.id, constellation: 1, copies: 2, firstObtainedAt: obtainedAt, favorite: true },
       { playerId: otherPlayer.id, characterId: activeFour.id, constellation: 2, copies: 3, firstObtainedAt: obtainedAt, favorite: false },
     ] });
+    await database.c6CompetitionProgress.create({ data: { playerId: player.id, characterId: activeFive.id, unlockedAt: obtainedAt } });
 
     const store = new PrismaBoxStore(database);
     const box = await store.listVisiblePossessions(player.id);
-    expect(box).toEqual([expect.objectContaining({ id: activeFive.id, name: 'Box Five', rarity: 5, elementKey: 'hydro', iconPath: '/five.png', constellation: 6, copies: 20, firstObtainedAt: obtainedAt, favorite: true })]);
+    expect(box).toEqual([expect.objectContaining({ id: activeFive.id, name: 'Box Five', rarity: 5, elementKey: 'hydro', iconPath: '/five.png', constellation: 6, copies: 20, firstObtainedAt: obtainedAt, favorite: true, c6CompetitionStats: { strength: 1, intelligence: 1, beauty: 1, charisma: 1, popularity: 1, max: 20 } })]);
     expect(box.some(({ id }) => id === inactive.id || id === activeFour.id)).toBe(false);
     expect(await store.listVisiblePossessions(otherPlayer.id)).toEqual([expect.objectContaining({ id: activeFour.id })]);
 
