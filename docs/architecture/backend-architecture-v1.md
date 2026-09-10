@@ -975,7 +975,7 @@ Pas de service payant d'observabilité au départ.
 
 ## Outils de test privilégiés
 
-Le premier écran `Modération` consomme un DTO de permissions serveur. `MODERATOR` reste communautaire; seuls `TESTER` et `ADMIN` portent `SELF_TEST_TOOLS`. Les endpoints `/api/v1/moderation/me/*` sont authentifiés, self-only, validés par Zod, transactionnels et idempotents. Toute mutation écrit une `AdminAuditEntry`; les deltas de ressources écrivent aussi un `ResourceMovement` de source `ADMIN` sans alimenter les statistiques économiques de gameplay. Les tables de rôles/audit restent exclusivement accessibles par le backend avec RLS active et aucun accès direct navigateur.
+Le premier écran `Modération` consomme un DTO de permissions serveur. `MODERATOR` reste communautaire; seuls `TESTER` et `ADMIN` portent `SELF_TEST_TOOLS`. Les endpoints `/api/v1/moderation/me/*` sont authentifiés, self-only, validés par Zod, transactionnels et idempotents. Un coordinateur frontend conservé au niveau de la session `GameShell` maintient une seule intention ambiguë par Player : un retry strictement identique réutilise la même clé, tandis qu'une autre action ou un autre payload reste bloqué jusqu'à résolution; succès, erreur déterministe et sign-out libèrent l'intention. Toute mutation écrit une `AdminAuditEntry`; les deltas de ressources écrivent aussi un `ResourceMovement` de source `ADMIN` sans alimenter les statistiques économiques de gameplay. Les tables de rôles/audit restent exclusivement accessibles par le backend avec RLS active et aucun accès direct navigateur.
 
 ---
 

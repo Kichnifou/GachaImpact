@@ -64,6 +64,8 @@ export function apiErrorMessage(error: unknown): string {
     BANK_IDEMPOTENCY_CONFLICT: 'Cette opération Banque ne peut pas être rejouée.',
     BANK_TRANSFER_IN_PROGRESS: 'Une opération Banque est déjà en cours.',
     BANK_TRANSFER_INTENT_CONFLICT: 'Une opération Banque précédente doit d’abord être vérifiée ou réessayée avec le même montant.',
+    MODERATION_IN_PROGRESS: 'Une opération de test est déjà en cours.',
+    MODERATION_INTENT_CONFLICT: 'Une opération de test précédente a un résultat incertain. Réessayez la même action pour vérifier son résultat avant d’en lancer une autre.',
   }
 
   return typeof code === 'string' && messages[code]

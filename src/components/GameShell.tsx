@@ -24,6 +24,7 @@ import type { LevelUpFeedbackEvent } from '../progression/level-up-feedback'
 import { useProfileLevelUpFeedback } from '../progression/use-profile-level-up-feedback'
 import LevelUpFeedback from './LevelUpFeedback'
 import { InventoryMemoryCache } from '../inventory/inventory-memory-cache'
+import { ModerationIntentCoordinator, type ModerationGachaInput, type ModerationResourceInput, type ModerationXpInput } from '../moderation/moderation-intent-coordinator'
 
 const screenIds: ScreenId[] = ['home', 'invocation', 'box', 'characters', 'team', 'bank', 'inventory', 'shop', 'moderation']
 
@@ -91,6 +92,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
   const [bankTransferIntents] = useState(() => new BankTransferIntentCoordinator())
   const [bankCache] = useState(() => new BankMemoryCache())
   const [inventoryCache] = useState(() => new InventoryMemoryCache())
+  const [moderationIntents] = useState(() => new ModerationIntentCoordinator())
   const activeLevelUpFeedback = levelUpFeedbacks[0] ?? null
   const [profileLevelUpEvent, setProfileLevelUpEvent] = useState<LevelUpFeedbackEvent | null>(null)
   const [closedLevelUpModalId, setClosedLevelUpModalId] = useState<string | null>(null)
@@ -146,12 +148,33 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
       ? onDepositBank(amount, idempotencyKey)
       : onWithdrawBank(amount, idempotencyKey))),
   ), [bankCache, bankTransferIntents, onDepositBank, onWithdrawBank, player.id])
+  const moderateResource = useCallback((input: ModerationResourceInput) => moderationIntents.execute(
+    player.id,
+    { type: 'resource', payload: input },
+    (idempotencyKey) => onModerationResource({ ...input, idempotencyKey }),
+  ), [moderationIntents, onModerationResource, player.id])
+  const moderateXp = useCallback((input: ModerationXpInput) => moderationIntents.execute(
+    player.id,
+    { type: 'xp', payload: input },
+    (idempotencyKey) => onModerationXp({ ...input, idempotencyKey }),
+  ), [moderationIntents, onModerationXp, player.id])
+  const moderateGacha = useCallback((input: ModerationGachaInput) => moderationIntents.execute(
+    player.id,
+    { type: 'gacha', payload: input },
+    (idempotencyKey) => onModerationGacha({ ...input, idempotencyKey }),
+  ), [moderationIntents, onModerationGacha, player.id])
+  const moderateStella = useCallback((quantity: string) => moderationIntents.execute(
+    player.id,
+    { type: 'stella', payload: { quantity } },
+    (idempotencyKey) => onModerationStella(quantity, idempotencyKey),
+  ), [moderationIntents, onModerationStella, player.id])
   const signOutAndClearCaches = useCallback(async () => {
     boxCache.clear()
     bankCache.clear()
     inventoryCache.clear()
+    moderationIntents.clear()
     await onSignOut()
-  }, [bankCache, boxCache, inventoryCache, onSignOut])
+  }, [bankCache, boxCache, inventoryCache, moderationIntents, onSignOut])
 
   const changeScreen = useCallback((screen: ScreenId) => {
     if (activeScreenRef.current === 'invocation' && screen !== 'invocation') onGachaPresentationAbandoned()
@@ -188,7 +211,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
       case 'bank':
         return <BankScreen initialBank={bankCache.read(player.id)} onLoad={loadBank} onLoadHistory={onLoadBankHistory} onTransfer={transferBank} />
       case 'moderation':
-        return permissions.capabilities.selfTestTools ? <ModerationScreen onLoad={onLoadModeration} onResource={onModerationResource} onXp={onModerationXp} onGacha={onModerationGacha} onStella={onModerationStella} onApplied={(next) => { boxCache.setStellaQuantity(player.id, next.stella.quantity); inventoryCache.setStellaQuantity(player.id, next.stella.quantity); onModerationApplied(next) }} /> : <HomeScreen onNavigate={navigate} wheelToday={wheelToday} onSpinWheel={onSpinWheel} gacha={gacha} onSetGachaTarget={onSetGachaTarget} />
+        return permissions.capabilities.selfTestTools ? <ModerationScreen onLoad={onLoadModeration} onResource={moderateResource} onXp={moderateXp} onGacha={moderateGacha} onStella={moderateStella} onApplied={(next) => { boxCache.setStellaQuantity(player.id, next.stella.quantity); inventoryCache.setStellaQuantity(player.id, next.stella.quantity); onModerationApplied(next) }} /> : <HomeScreen onNavigate={navigate} wheelToday={wheelToday} onSpinWheel={onSpinWheel} gacha={gacha} onSetGachaTarget={onSetGachaTarget} />
       case 'shop':
         return <ShopScreen />
       default:
