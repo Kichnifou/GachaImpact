@@ -1,7 +1,7 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.74
-Date : 2026-09-09
+Version : 0.75
+Date : 2026-09-10
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
@@ -3543,7 +3543,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Sac — premier vertical réel techniquement implémenté dans le candidat 0.74 et en attente de review puis de validation publique propriétaire. Il agrège les ressources économiques et les objets persistants existants sans créer de second stock, remplace les mocks du Sac et réutilise le flux Stella commun. Banque et Team/Passifs/Gacha restent fonctionnellement validés publiquement ; leurs seuls micro-polish inclus dans ce candidat restent à revalider.**
+**Sac — premier vertical réel techniquement implémenté et fonctionnellement validé pour son chargement, ses quatre catégories, ses ressources, ses vœux, son accès Banque, ses objets/Collection, sa recherche, son cache et son desktop. Le candidat 0.75 finalise le centrage générique des icônes, les séparateurs de groupes et la description canonique Stella ; ces seuls polish Sac restent à valider publiquement.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3560,8 +3560,8 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - squelette Fastify / TypeScript checkpointé ;
 - Prisma ORM 7.10.0 stable ;
 - Supabase DEV provisionné et connexion PostgreSQL fonctionnelle ;
-- huit migrations versionnées appliquées sur Supabase DEV, jusqu'à `008_add_banking` ;
-- 28 tables présentes, dont les tables privées `player_characters`, `c6_competition_progress`, `pull_operations`, `pull_results`, `player_preferences`, `item_definitions`, `player_items`, `teams`, `team_members`, `player_bank_accounts` et `bank_transactions` ;
+- neuf migrations versionnées appliquées sur Supabase DEV, jusqu'à `009_add_moderation_tools` ;
+- 30 tables présentes, dont les tables privées `player_characters`, `c6_competition_progress`, `pull_operations`, `pull_results`, `player_preferences`, `item_definitions`, `player_items`, `teams`, `team_members`, `player_bank_accounts`, `bank_transactions`, `player_role_assignments` et `admin_audit_entries` ;
 - référentiels seedés avec 7 éléments et 9 ressources ;
 - RLS activée sur les tables de fondation, sans policy client permissive ;
 - Auth Supabase réel checkpointé au commit `027d230f7d047e0469076418d3d5122e831bdce6` ;
@@ -3601,6 +3601,15 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - l’expérience Invocation actuelle est **DÉPLOYÉE, VALIDÉE PUBLIQUEMENT PAR LE PROPRIÉTAIRE ET CLÔTURÉE** au checkpoint `2d2e1e73867e2e6324fdd00b8b3457a932c9495e` : Hero/Détail, `Nouveau`/`Cx`, révélations 4★/5★, Focus 2 s, suspense 5★, Historique, récapitulatif x10, anti-spoil, navigation hors Invocation, logout/login même compte pendant Pull, persistance et masquage du remboursement jusqu’au disclosure ont été validés ;
 - backlog UX Invocation non bloquant : rendre plus tard le débit `-160` / `-1 600` Primogemmes visuellement optimiste exactement au clic, avec rollback si le POST échoue. Ce micro-polish ne maintient pas Invocation comme domaine actif ;
 - Ressources, XP, Daily Reward et Roue restent sans régression publique constatée.
+
+## État du lot 0.75 — polish Sac/Gacha, outils de test et catalogue Personnages
+
+- le récapitulatif x10 bloque désormais toute sortie pendant ses 1 000 premières millisecondes visibles, y compris croix, Escape et clic de surface ; la statistique C6 compacte utilise un style dédié sans modifier le remboursement C6 validé ;
+- le Sac groupe `Tout` en Ressources / Objets / Collection, sépare Primos-Moras des sept particules dans `Ressources`, centre génériquement le visuel de chaque icône et lit la description Stella canonique corrigée depuis `item_definitions` ;
+- le premier vertical transverse Modération est implémenté : permissions serveur persistées, `MODERATOR` communautaire distinct du rôle technique `TESTER`, capacité `SELF_TEST_TOOLS` implicite pour `TESTER`/`ADMIN`, outils exclusivement self-only, idempotents et audités pour ressources, XP, état Gacha et Stella ;
+- `Kichnifou` possède en DEV les rôles `MODERATOR` et `TESTER` après safety gate unique, et sa progression a été préparée à `28 / 30 XP` dans son palier courant sans récompense ni montée de niveau ;
+- l'écran Personnages conserve le vrai catalogue et rend ses contrôles effectifs : recherche normalisée, filtres rareté/les sept éléments combinables, tris Nom/Rareté/Élément et directions réelles, compteur et état vide réinitialisable ;
+- ces ajouts sont techniquement validés localement et sur Supabase DEV. Leur validation publique propriétaire reste requise ; Modération demeure un outil transverse et Personnages ne devient pas un nouveau domaine de roadmap.
 
 ## État du lot — Invocation x1/x10
 
@@ -3742,7 +3751,7 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Faire reviewer le candidat 0.74 uniquement sur `review` → corriger les éventuels retours → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → faire valider publiquement le premier vertical Sac et revalider les trois micro-polish C6 compact, historique Banque et feedback Level-up.** Après cette validation, continuer vers le domaine suivant selon [implementation-order-v1.md](../roadmap/implementation-order-v1.md), uniquement sur décision explicite du propriétaire. Le domaine actif reste Sac jusque-là. `PAID_INFRA_APPROVED = false` reste inchangé.
+**Faire reviewer le candidat 0.75 uniquement sur `review` → corriger les éventuels retours → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → revalider publiquement le centrage/séparateurs/texte Stella du Sac, le verrou/C6 compact Gacha, le rendu Level-up préparé à 28/30, l'accès Modération autorisé/non autorisé et les contrôles Personnages.** Après cette validation, continuer vers le domaine suivant selon [implementation-order-v1.md](../roadmap/implementation-order-v1.md), uniquement sur décision explicite du propriétaire. Le domaine actif reste Sac jusque-là. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

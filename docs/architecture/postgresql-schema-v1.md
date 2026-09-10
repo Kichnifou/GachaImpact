@@ -354,21 +354,24 @@ Usage initial :
 Colonnes :
 
 - `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
-- `player_id uuid NOT NULL REFERENCES players(id) ON DELETE RESTRICT`
-- `role_key text NOT NULL`
+- `player_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE`
+- `role text NOT NULL`
 - `granted_at timestamptz NOT NULL DEFAULT now()`
 - `granted_by_player_id uuid NULL REFERENCES players(id) ON DELETE SET NULL`
 - `revoked_at timestamptz NULL`
-- `created_at timestamptz NOT NULL DEFAULT now()`
+- `source text NULL`
 
 Index partiel unique :
 
-`UNIQUE(player_id, role_key) WHERE revoked_at IS NULL`
+`UNIQUE(player_id, role) WHERE revoked_at IS NULL`
 
 Rôles initiaux :
 
 - `ADMIN`
 - `MODERATOR`
+- `TESTER`
+
+`TESTER` porte la capacité technique `SELF_TEST_TOOLS`; `MODERATOR` seul ne l'obtient pas.
 
 ---
 
@@ -377,22 +380,21 @@ Rôles initiaux :
 Colonnes :
 
 - `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
-- `actor_player_id uuid NULL REFERENCES players(id) ON DELETE SET NULL`
-- `action_key text NOT NULL`
-- `domain_key text NOT NULL`
-- `target_type text NULL`
-- `target_id text NULL`
-- `before_data jsonb NULL`
-- `after_data jsonb NULL`
-- `reason text NULL`
-- `operation_id uuid NULL`
+- `actor_player_id uuid NOT NULL REFERENCES players(id) ON DELETE RESTRICT`
+- `target_player_id uuid NOT NULL REFERENCES players(id) ON DELETE RESTRICT`
+- `action text NOT NULL`
+- `domain text NOT NULL`
+- `before jsonb NOT NULL`
+- `after jsonb NOT NULL`
+- `operation_id uuid NOT NULL UNIQUE REFERENCES business_operations(id) ON DELETE RESTRICT`
 - `created_at timestamptz NOT NULL DEFAULT now()`
 
 Index :
 
 - `(actor_player_id, created_at DESC)`
-- `(domain_key, created_at DESC)`
-- `(target_type, target_id)`
+- `(target_player_id, created_at DESC)`
+
+Le premier vertical physique est self-only. Les deux tables sont privées, RLS activée, sans policy de navigateur, et les droits `anon`/`authenticated` sont révoqués.
 
 ---
 

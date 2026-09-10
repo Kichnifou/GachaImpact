@@ -296,7 +296,10 @@ Conceptuellement :
 Rôles initiaux utiles :
 
 - Modérateur ;
+- Testeur technique ;
 - Administrateur.
+
+`MODERATOR` reste un rôle communautaire sans droit de mutation économique. La capacité `SELF_TEST_TOOLS` est portée initialement par `TESTER` et implicitement par `ADMIN`; les rôles et capacités ne dépendent jamais d'un pseudo.
 
 Le rôle joueur normal n'a pas besoin d'une ligne explicite.
 
@@ -324,6 +327,8 @@ Contient conceptuellement :
 - opération/correlation ID.
 
 Une correction Admin de ressources, personnages, configuration ou données joueur doit rester traçable.
+
+Le premier sous-ensemble physique relie chaque entrée à un `actorPlayerId`, un `targetPlayerId` self-only, une action, un domaine, les snapshots JSON avant/après et une `BusinessOperation` unique. Les outils de test Ressources, XP, Gacha et Stella n'altèrent pas les statistiques gameplay ordinaires.
 
 ## 4.8 `TwitchEventReceipt`
 

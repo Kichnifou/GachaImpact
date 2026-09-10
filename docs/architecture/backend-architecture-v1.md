@@ -973,6 +973,10 @@ Un service externe comme Sentry peut être ajouté plus tard sur son free tier.
 
 Pas de service payant d'observabilité au départ.
 
+## Outils de test privilégiés
+
+Le premier écran `Modération` consomme un DTO de permissions serveur. `MODERATOR` reste communautaire; seuls `TESTER` et `ADMIN` portent `SELF_TEST_TOOLS`. Les endpoints `/api/v1/moderation/me/*` sont authentifiés, self-only, validés par Zod, transactionnels et idempotents. Toute mutation écrit une `AdminAuditEntry`; les deltas de ressources écrivent aussi un `ResourceMovement` de source `ADMIN` sans alimenter les statistiques économiques de gameplay. Les tables de rôles/audit restent exclusivement accessibles par le backend avec RLS active et aucun accès direct navigateur.
+
 ---
 
 # 21. Premier vertical slice recommandé
