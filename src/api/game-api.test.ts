@@ -77,6 +77,15 @@ describe('game API client', () => {
     expect(fetchImplementation.mock.calls[0]?.[1]?.method).toBeUndefined()
   })
 
+  it('serializes every moderation player-browser filter without a client-side page size', async () => {
+    const payload = { players: [], page: 2, pageSize: 10, total: 14, totalPages: 2 }
+    const fetchImplementation = vi.fn<typeof fetch>(async () => new Response(JSON.stringify(payload)))
+    const client = createGameApiClient({ baseUrl: 'http://127.0.0.1:3001', getAccessToken: async () => 'token', fetchImplementation })
+    await expect(client.listModerationPlayers({ query: 'Céo', elementKey: 'geo', tester: 'tester', sort: 'level', direction: 'desc', page: 2 })).resolves.toEqual(payload)
+    expect(fetchImplementation.mock.calls[0]?.[0]).toBe('http://127.0.0.1:3001/api/v1/moderation/players?query=C%C3%A9o&elementKey=geo&tester=tester&sort=level&direction=desc&page=2')
+    expect(fetchImplementation.mock.calls[0]?.[1]?.method).toBeUndefined()
+  })
+
   it('loads the persisted Wheel state through the read-only endpoint', async () => {
     const fetchImplementation = vi.fn<typeof fetch>(async () =>
       new Response(JSON.stringify({

@@ -134,10 +134,12 @@ describe('real personal Box', () => {
     expect(boxScreenSource).not.toContain('crypto.randomUUID()')
   })
 
-  it('does not reserve an empty Stella feedback line', () => {
+  it('reserves a stable one-line Stella feedback area', () => {
     const html = renderToStaticMarkup(<BoxCharacterDetailModal character={records[0]!} {...modalProps} stellaQuantity="2" />)
-    expect(html).not.toContain('box-stella-feedback')
-    expect(detailSource).not.toContain('reserved')
+    expect(html).toContain('box-stella-feedback')
+    expect(html).toContain('aria-live="polite"')
+    expect(boxCollectionSource).toContain('visual: null')
+    expect(boxCollectionSource).not.toContain('3_600')
   })
 
   it('shows a temporary +1 beside the constellation for a normal Stella and the C5 → C6 unlock', () => {
@@ -146,7 +148,7 @@ describe('real personal Box', () => {
     expect(normal).toContain('>+1</span>')
 
     const unlockedCharacter = character({ id: 'unlock-result', constellation: 6, copies: 7, c6CompetitionStats: { strength: 1, intelligence: 1, beauty: 1, charisma: 1, popularity: 1, max: 20 } })
-    const unlocked = renderToStaticMarkup(<BoxCharacterDetailModal character={unlockedCharacter} {...modalProps} stellaFeedback={{ message: 'Stella utilisée · Statistiques concours débloquées.', visual: { operationId: 'unlock-op', characterId: 'unlock-result', type: 'constellation' } }} />)
+    const unlocked = renderToStaticMarkup(<BoxCharacterDetailModal character={unlockedCharacter} {...modalProps} stellaFeedback={{ message: 'Stella utilisée avec succès.', visual: { operationId: 'unlock-op', characterId: 'unlock-result', type: 'constellation' } }} />)
     expect(unlocked).toContain('aria-label="Constellation augmentée de 1"')
     expect(unlocked).toContain('Force</dt><dd>1 / 20</dd>')
     expect(unlocked).not.toContain('Force augmentée de 1')

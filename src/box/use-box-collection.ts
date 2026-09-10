@@ -44,8 +44,9 @@ export function useBoxCollection({ initialBox, onLoadBox, onSetFavorite, onUseSt
   }, [onLoadBox])
 
   useEffect(() => {
-    if (!stellaFeedback) return
-    const timer = window.setTimeout(() => setStellaFeedback(null), 3_600)
+    if (!stellaFeedback?.visual) return
+    const operationId = stellaFeedback.visual.operationId
+    const timer = window.setTimeout(() => setStellaFeedback((current) => current?.visual?.operationId === operationId ? { ...current, visual: null } : current), 1_800)
     return () => window.clearTimeout(timer)
   }, [stellaFeedback])
 

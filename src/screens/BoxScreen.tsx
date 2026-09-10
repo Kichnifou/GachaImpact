@@ -7,6 +7,7 @@ import type { StellaResultPresentation } from '../box/stella-result-presentation
 import BoxCharacterCard from '../components/BoxCharacterCard'
 import BoxCharacterDetailModal from '../components/BoxCharacterDetailModal'
 import GameAssetIcon from '../components/GameAssetIcon'
+import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import { apiErrorMessage } from '../utils/formatters'
 import { getElementAssetPath } from '../utils/gameAssets'
 
@@ -73,7 +74,8 @@ export function BoxView({ box, filters, error, favoritePendingId, stellaPendingI
   onCloseDetail: () => void
 }) {
   const visibleCharacters = useMemo(() => presentBoxCharacters(box.characters, filters), [box.characters, filters])
-  return <div className="screen-content collection-screen box-screen">
+  return <div className="screen-content collection-screen box-screen long-screen-layout">
+    <ScrollableScreenPanel className="collection-screen-panel">
     <BoxSummary summary={box.summary} />
     <BoxFiltersBar filters={filters} onChange={onFilters} />
     {error && <p className="box-inline-error" role="alert">{error}</p>}
@@ -82,6 +84,7 @@ export function BoxView({ box, filters, error, favoritePendingId, stellaPendingI
       : <section className="character-grid" aria-label="Personnages possédés">
         {visibleCharacters.map((character) => <BoxCharacterCard character={character} favoritePending={favoritePendingId === character.id} onOpen={() => onSelect(character.id)} onToggleFavorite={() => onToggleFavorite(character)} key={character.id} />)}
       </section>}
+    </ScrollableScreenPanel>
     {selected && <BoxCharacterDetailModal character={selected} stellaQuantity={box.stella.quantity} stellaRetryAvailable={stellaRetryId === selected.id} favoritePending={favoritePendingId === selected.id} stellaPending={stellaPendingId === selected.id} stellaFeedback={stellaFeedback} actionError={error} onToggleFavorite={() => onToggleFavorite(selected)} onUseStella={() => onUseStella(selected)} onClose={onCloseDetail} />}
   </div>
 }

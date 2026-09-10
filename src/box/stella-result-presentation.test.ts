@@ -23,7 +23,7 @@ describe('Stella result presentation', () => {
   it('targets the constellation when C5 → C6 unlocks competition statistics', () => {
     const stats = { strength: 1, intelligence: 1, beauty: 1, charisma: 1, popularity: 1 }
     expect(presentStellaResult(character(5), result(character(6, { c6CompetitionStats: { ...stats, max: 20 } }), { type: 'unlocked', stats }))).toEqual({
-      message: 'Stella utilisée · Statistiques concours débloquées.',
+      message: 'Stella utilisée avec succès.',
       visual: { operationId: 'operation-id', characterId: 'furina', type: 'constellation' },
     })
   })

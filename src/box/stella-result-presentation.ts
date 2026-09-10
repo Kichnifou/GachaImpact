@@ -22,7 +22,7 @@ export function presentStellaResult(previous: BoxCharacterDto, result: StellaUse
 
   if (result.c6Progression?.type === 'unlocked') {
     return {
-      message: 'Stella utilisée · Statistiques concours débloquées.',
+      message: 'Stella utilisée avec succès.',
       visual: { operationId: result.operation.id, characterId: result.character.id, type: 'constellation' },
     }
   }

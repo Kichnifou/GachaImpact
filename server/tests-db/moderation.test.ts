@@ -64,10 +64,11 @@ async function cleanupResidualTestFixtures() {
 describe('privileged self-test persistence', () => {
   it('keeps MODERATOR powerless while TESTER and ADMIN receive the capability', async () => {
     const moderator = await createPlayer(['MODERATOR'])
-    expect(await tools.getPermissions(moderator.identity)).toEqual({ roles: ['MODERATOR'], capabilities: { moderationAccess: false, selfResourceTools: false, superTools: false, canSelectPlayers: false, canManageTesters: false } })
+    expect(await tools.getPermissions(moderator.identity)).toEqual({ roles: ['MODERATOR'], capabilities: { moderationAccess: false, selfResourceTools: false, selfGameplayTools: false, superTools: false, canSelectPlayers: false, canManageTesters: false } })
     await expect(tools.getState(moderator.identity)).rejects.toMatchObject({ code: 'MODERATION_FORBIDDEN' })
     const tester = await createPlayer(['TESTER'])
     expect((await tools.getState(tester.identity)).permissions.capabilities.selfResourceTools).toBe(true)
+    expect((await tools.getState(tester.identity)).permissions.capabilities.selfGameplayTools).toBe(true)
     const admin = await createPlayer(['ADMIN'])
     expect((await tools.getState(admin.identity)).permissions.capabilities.superTools).toBe(true)
   })
@@ -79,7 +80,35 @@ describe('privileged self-test persistence', () => {
     const match = await database.player.create({ data: { displayName: `${prefix} zzz-match`, elementKey: 'pyro' } })
     fillers.forEach((player) => playerIds.add(player.id)); playerIds.add(match.id)
 
-    await expect(tools.listPlayers(admin.identity, 'ZZZ-MATCH')).resolves.toEqual([expect.objectContaining({ id: match.id, displayName: `${prefix} zzz-match`, elementKey: 'pyro', level: 0, tester: false })])
+    const result = await tools.listPlayers(admin.identity, { query: 'ZZZ-MATCH', elementKey: null, tester: 'all', sort: 'name', direction: 'asc', page: 1 })
+    expect(result).toEqual({ players: [expect.objectContaining({ id: match.id, displayName: `${prefix} zzz-match`, elementKey: 'pyro', level: 0, tester: false })], page: 1, pageSize: 10, total: 1, totalPages: 1 })
+  })
+
+  it('normalizes accents and applies combined filters, stable sorts and ten-player pagination on the server', async () => {
+    const admin = await createPlayer(['ADMIN'])
+    const prefix = `Browser ${process.pid}-${Date.now()}`
+    const created = await Promise.all(Array.from({ length: 23 }, (_, index) => database.player.create({ data: {
+      displayName: `${prefix} ${index === 22 ? 'Céo' : String(index).padStart(2, '0')}`,
+      elementKey: index < 12 ? 'hydro' : 'geo',
+      progression: { create: { xp: BigInt(index * 30) } },
+      rolesGranted: index < 12 ? { create: { role: 'TESTER', source: 'test' } } : undefined,
+    } })))
+    created.forEach(({ id }) => playerIds.add(id))
+
+    const base = { query: prefix, elementKey: null, tester: 'all' as const, sort: 'name' as const, direction: 'asc' as const }
+    const lastPage = await tools.listPlayers(admin.identity, { ...base, page: 999 })
+    expect(lastPage).toMatchObject({ page: 3, pageSize: 10, total: 23, totalPages: 3 })
+    expect(lastPage.players).toHaveLength(3)
+
+    const filtered = await tools.listPlayers(admin.identity, { ...base, elementKey: 'hydro', tester: 'tester', sort: 'level', direction: 'desc', page: 1 })
+    expect(filtered).toMatchObject({ page: 1, pageSize: 10, total: 12, totalPages: 2 })
+    expect(filtered.players.every(({ elementKey, tester }) => elementKey === 'hydro' && tester)).toBe(true)
+    expect(filtered.players.map(({ level }) => level)).toEqual([11, 10, 9, 8, 7, 6, 5, 4, 3, 2])
+
+    for (const query of ['ce', 'ceo', 'CEO']) {
+      const normalized = await tools.listPlayers(admin.identity, { ...base, query, page: 1 })
+      expect(normalized.players.map(({ displayName }) => displayName)).toContain(`${prefix} Céo`)
+    }
   })
 
   it('adjusts all resources losslessly without gameplay stats and makes retries one movement/audit', async () => {
@@ -133,16 +162,19 @@ describe('privileged self-test persistence', () => {
     expect(await database.adminAuditEntry.findFirstOrThrow({ where: { operation: { idempotencyKey: key } } })).toMatchObject({ actorPlayerId: superPlayer.id, targetPlayerId: target.id })
   })
 
-  it('keeps Testeur self-resource-only and lets Super grant then revoke TESTER idempotently', async () => {
+  it('gives Testeur every self gameplay tool, refuses external targets, and lets Super manage TESTER idempotently', async () => {
     const superPlayer = await createPlayer(['ADMIN'])
     const tester = await createPlayer(['TESTER'])
     const target = await createPlayer([])
-    await expect(tools.listPlayers(tester.identity, '')).rejects.toMatchObject({ code: 'MODERATION_FORBIDDEN' })
+    await expect(tools.listPlayers(tester.identity, { query: '', elementKey: null, tester: 'all', sort: 'name', direction: 'asc', page: 1 })).rejects.toMatchObject({ code: 'MODERATION_FORBIDDEN' })
     await expect(tools.getState(tester.identity, target.id)).rejects.toMatchObject({ code: 'MODERATION_FORBIDDEN' })
     await expect(tools.adjustResource(tester.identity, target.id, { resourceKey: 'primogems', amount: 1n, direction: 'add', idempotencyKey: randomUUID() })).rejects.toMatchObject({ code: 'MODERATION_FORBIDDEN' })
-    await expect(tools.setXp(tester.identity, tester.id, { totalXp: 90n, idempotencyKey: randomUUID() })).rejects.toMatchObject({ code: 'MODERATION_FORBIDDEN' })
-    await expect(tools.setGacha(tester.identity, tester.id, { pity5: 1, idempotencyKey: randomUUID() })).rejects.toMatchObject({ code: 'MODERATION_FORBIDDEN' })
-    await expect(tools.setStella(tester.identity, tester.id, { quantity: 1n, idempotencyKey: randomUUID() })).rejects.toMatchObject({ code: 'MODERATION_FORBIDDEN' })
+    await expect(tools.setXp(tester.identity, tester.id, { totalXp: 90n, idempotencyKey: randomUUID() })).resolves.toMatchObject({ progression: { totalXp: '90' } })
+    await expect(tools.setGacha(tester.identity, tester.id, { pity5: 1, idempotencyKey: randomUUID() })).resolves.toMatchObject({ gachaState: { pity5: 1 } })
+    await expect(tools.setStella(tester.identity, tester.id, { quantity: 1n, idempotencyKey: randomUUID() })).resolves.toMatchObject({ stella: { quantity: '1' } })
+    await expect(tools.setXp(tester.identity, target.id, { totalXp: 90n, idempotencyKey: randomUUID() })).rejects.toMatchObject({ code: 'MODERATION_FORBIDDEN' })
+    await expect(tools.setGacha(tester.identity, target.id, { pity5: 1, idempotencyKey: randomUUID() })).rejects.toMatchObject({ code: 'MODERATION_FORBIDDEN' })
+    await expect(tools.setStella(tester.identity, target.id, { quantity: 1n, idempotencyKey: randomUUID() })).rejects.toMatchObject({ code: 'MODERATION_FORBIDDEN' })
     const grantKey = randomUUID()
     await tools.setTester(superPlayer.identity, target.id, true, grantKey)
     await tools.setTester(superPlayer.identity, target.id, true, grantKey)

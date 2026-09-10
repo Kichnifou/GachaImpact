@@ -299,7 +299,7 @@ Rôles initiaux utiles :
 - Testeur technique ;
 - Administrateur.
 
-`MODERATOR` reste un rôle communautaire sans droit d'outil. `TESTER` porte uniquement l'ajustement de ses propres ressources; `ADMIN` porte les outils Super, y compris le ciblage d'un Player ACTIVE et la seule gestion du rôle TESTER. Les rôles et capacités ne dépendent jamais d'un pseudo.
+`MODERATOR` reste un rôle communautaire sans droit d'outil. `TESTER` porte les outils de préparation Ressources, XP, Gacha et Stella exclusivement sur son propre Player ; `ADMIN` porte les outils Super, y compris le ciblage d'un Player ACTIVE et la seule gestion du rôle TESTER. Les rôles et capacités ne dépendent jamais d'un pseudo et chaque route revalide l'acteur et la cible côté serveur.
 
 Le rôle joueur normal n'a pas besoin d'une ligne explicite.
 

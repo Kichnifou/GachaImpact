@@ -25,7 +25,8 @@ import type {
   BankTransferDto,
   BankHistoryDto,
   PlayerInventoryDto,
-  ModerationPlayerDto,
+  ModerationPlayerListQuery,
+  ModerationPlayerPageDto,
   ModerationPermissionsDto,
   ModerationStateDto,
 } from './types'
@@ -105,7 +106,17 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getPermissions: () => request<ModerationPermissionsDto>('/api/v1/me/permissions'),
     getModerationState: () => request<ModerationStateDto>('/api/v1/moderation/me'),
     getModerationPlayerState: (playerId: string) => request<ModerationStateDto>(`/api/v1/moderation/players/${playerId}/state`),
-    searchModerationPlayers: (query: string) => request<readonly ModerationPlayerDto[]>(`/api/v1/moderation/players?query=${encodeURIComponent(query)}`),
+    listModerationPlayers: (input: ModerationPlayerListQuery = {}) => {
+      const query = new URLSearchParams()
+      if (input.query) query.set('query', input.query)
+      if (input.elementKey) query.set('elementKey', input.elementKey)
+      if (input.tester) query.set('tester', input.tester)
+      if (input.sort) query.set('sort', input.sort)
+      if (input.direction) query.set('direction', input.direction)
+      if (input.page) query.set('page', String(input.page))
+      const suffix = query.size > 0 ? `?${query.toString()}` : ''
+      return request<ModerationPlayerPageDto>(`/api/v1/moderation/players${suffix}`)
+    },
     adjustModerationResource: (input: { resourceKey: string; amount: string; direction: 'add' | 'remove'; idempotencyKey: string }) => request<ModerationStateDto>('/api/v1/moderation/me/resources', { method: 'POST', body: JSON.stringify(input) }),
     setModerationXp: (input: { totalXp?: string; prepareNextLevel?: true; idempotencyKey: string }) => request<ModerationStateDto>('/api/v1/moderation/me/xp', { method: 'POST', body: JSON.stringify(input) }),
     setModerationGacha: (input: { pity5?: number; pity4?: number; guaranteedFeatured5?: boolean; captureProgress?: number; idempotencyKey: string }) => request<ModerationStateDto>('/api/v1/moderation/me/gacha', { method: 'POST', body: JSON.stringify(input) }),

@@ -11,9 +11,24 @@ export type PlayerDto = Readonly<{
 
 export type ModerationPermissionsDto = Readonly<{
   roles: readonly ('MODERATOR' | 'TESTER' | 'ADMIN')[]
-  capabilities: Readonly<{ moderationAccess: boolean; selfResourceTools: boolean; superTools: boolean; canSelectPlayers: boolean; canManageTesters: boolean }>
+  capabilities: Readonly<{ moderationAccess: boolean; selfResourceTools: boolean; selfGameplayTools: boolean; superTools: boolean; canSelectPlayers: boolean; canManageTesters: boolean }>
 }>
 export type ModerationPlayerDto = Readonly<{ id: string; displayName: string; elementKey: ElementKey | null; level: number; tester: boolean }>
+export type ModerationPlayerListQuery = Readonly<{
+  query?: string
+  elementKey?: ElementKey | null
+  tester?: 'all' | 'tester' | 'non-tester'
+  sort?: 'name' | 'level'
+  direction?: 'asc' | 'desc'
+  page?: number
+}>
+export type ModerationPlayerPageDto = Readonly<{
+  players: readonly ModerationPlayerDto[]
+  page: number
+  pageSize: 10
+  total: number
+  totalPages: number
+}>
 
 export type ModerationStateDto = Readonly<{
   player: ModerationPlayerDto

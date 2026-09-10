@@ -21,7 +21,7 @@ function state(target = actors.self, superTools = true, stella = target.id === '
     player: target,
     permissions: {
       roles: superTools ? ['ADMIN', 'TESTER'] : ['TESTER'],
-      capabilities: { moderationAccess: true, selfResourceTools: true, superTools, canSelectPlayers: superTools, canManageTesters: superTools },
+      capabilities: { moderationAccess: true, selfResourceTools: true, selfGameplayTools: true, superTools, canSelectPlayers: superTools, canManageTesters: superTools },
     },
     resources: { primogems: '1000', moras: '1000', particles: { pyro: '0', hydro: '0', cryo: '0', electro: '0', anemo: '0', geo: '0', dendro: '0' } },
     progression: { totalXp: target.id === 'player-b' ? '181' : '89', level: target.level, xpIntoCurrentStep: '29', xpPerStep: '30', isMaxLevel: false, level100OverflowRewardsClaimed: 0, totalMessages: '0', countedMessages: '0' },
@@ -59,7 +59,10 @@ async function mount(superTools = true) {
     ['player-b', state(actors.b, superTools)],
   ])
   const onLoad = vi.fn(async (targetPlayerId?: string) => states.get(targetPlayerId ?? 'self')!)
-  const onSearchPlayers = vi.fn(async (query: string) => Object.values(actors).filter(({ displayName }) => displayName.toLocaleLowerCase('fr').includes(query.toLocaleLowerCase('fr'))))
+  const onListPlayers = vi.fn(async ({ query = '' }: { query?: string }) => {
+    const players = Object.values(actors).filter(({ displayName }) => displayName.toLocaleLowerCase('fr').includes(query.toLocaleLowerCase('fr')))
+    return { players, page: 1, pageSize: 10 as const, total: players.length, totalPages: 1 }
+  })
   const onTester = vi.fn(async (targetPlayerId: string, enabled: boolean) => {
     const current = states.get(targetPlayerId)!
     const updated = { ...current, player: { ...current.player, tester: enabled } }
@@ -68,7 +71,7 @@ async function mount(superTools = true) {
   })
   const props: React.ComponentProps<typeof ModerationScreen> = {
     actorPlayerId: 'self', capabilities: state(actors.self, superTools).permissions.capabilities,
-    onLoad, onSearchPlayers, onResource: vi.fn(async (target) => states.get(target)!),
+    onLoad, onListPlayers, onResource: vi.fn(async (target) => states.get(target)!),
     onXp: vi.fn(async (target) => states.get(target)!), onGacha: vi.fn(async (target) => states.get(target)!),
     onStella: vi.fn(async (target, quantity) => {
       const updated = state(states.get(target)!.player, superTools, quantity)
@@ -81,27 +84,29 @@ async function mount(superTools = true) {
   const root = createRoot(container)
   roots.push(root)
   await act(async () => { root.render(<ModerationScreen {...props} />); await Promise.resolve(); await Promise.resolve() })
-  return { container, onLoad, onSearchPlayers, onTester, props, root }
+  return { container, onLoad, onListPlayers, onTester, props, root }
 }
 
 describe('ModerationScreen', () => {
-  it('limits a Testeur to Resources without targeting or super tools', async () => {
+  it('gives a Testeur all self preparation tools without player selection or role management', async () => {
     const { container } = await mount(false)
     expect(container.textContent).toContain('Rang : Testeur')
-    expect(container.textContent).toContain('Ressources')
-    for (const label of ['Progression', 'Gacha', 'Objets', 'Joueur ciblé']) expect(container.textContent).not.toContain(label)
+    for (const label of ['Joueur ciblé', 'Ressources', 'Progression', 'Gacha', 'Objets']) expect(container.textContent).toContain(label)
+    expect(container.querySelector('.moderation-target-search')).toBeNull()
+    expect(container.textContent).not.toContain('Choisir')
+    expect(container.textContent).not.toContain('Moi')
     expect(container.querySelector('.moderation-role')).toBeNull()
     expect(container.querySelectorAll('input[type="number"]')).toHaveLength(0)
   })
 
-  it('uses the Team heading hierarchy and renders a readable Super player picker', async () => {
-    const { container, onSearchPlayers } = await mount()
-    expect(container.querySelector('header.team-screen-heading.moderation-screen-heading')).not.toBeNull()
-    expect(container.textContent).toContain('MODÉRATION')
+  it('starts with the targeted-player panel and renders a readable Super quick search', async () => {
+    const { container, onListPlayers } = await mount()
+    expect(container.querySelector('.moderation-screen-heading')).toBeNull()
+    expect(container.querySelector('.scrollable-screen-panel-content')?.firstElementChild?.classList.contains('moderation-target')).toBe(true)
     expect(container.textContent).toContain('Rang : Super')
     expect(container.querySelector('.moderation-target-heading strong')?.textContent).toBe('Kichnifou')
     await search(container, 'myno')
-    expect(onSearchPlayers).toHaveBeenCalledWith('myno')
+    expect(onListPlayers).toHaveBeenCalledWith({ query: 'myno', page: 1, sort: 'name', direction: 'asc' })
     const listbox = container.querySelector('[role="listbox"]')!
     expect(listbox.textContent).toContain('Mynonyme')
     expect(listbox.textContent).toContain('Niveau 6')
@@ -151,6 +156,24 @@ describe('ModerationScreen', () => {
     expect(container.querySelector('.moderation-target-heading strong')?.textContent).toBe('Kichnifou')
     expect(stellaInput(container).value).toBe('0')
     expect(onLoad.mock.calls.map(([id]) => id)).toEqual([undefined, 'player-a', 'player-b', 'self'])
+  })
+
+  it('keeps browser selection temporary until confirmation and cancels without changing the target', async () => {
+    const { container, onLoad, onListPlayers } = await mount()
+    const choose = () => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Choisir')!
+    await act(async () => { choose().click(); await Promise.resolve(); await Promise.resolve() })
+    expect(onListPlayers).toHaveBeenCalledWith({ query: '', elementKey: null, tester: 'all', sort: 'name', direction: 'asc', page: 1 })
+    const browserRows = Array.from(container.querySelectorAll<HTMLButtonElement>('.moderation-browser-results > button'))
+    act(() => browserRows.find((button) => button.textContent?.includes('MynonymeTest1'))!.click())
+    expect(container.querySelector('.moderation-target-heading strong')?.textContent).toBe('Kichnifou')
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('.moderation-browser-actions button')).find((button) => button.textContent === 'Annuler')!.click())
+    expect(onLoad).toHaveBeenCalledTimes(1)
+
+    await act(async () => { choose().click(); await Promise.resolve(); await Promise.resolve() })
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('.moderation-browser-results > button')).find((button) => button.textContent?.includes('Mynonyme'))!.click())
+    await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('.moderation-browser-actions button')).find((button) => button.textContent === 'Choisir ce joueur')!.click(); await Promise.resolve(); await Promise.resolve() })
+    expect(onLoad.mock.calls.map(([id]) => id)).toEqual([undefined, 'player-a'])
+    expect(container.querySelector('.moderation-target-heading strong')?.textContent).toBe('Mynonyme')
   })
 
   it('persists the intended Stella quantity and accepts the returned snapshot', async () => {

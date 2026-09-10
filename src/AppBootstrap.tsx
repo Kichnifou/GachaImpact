@@ -106,7 +106,7 @@ function AppBootstrap() {
   const loadModeration = useCallback((targetPlayerId?: string) => targetPlayerId
     ? getGameApiClient().getModerationPlayerState(targetPlayerId)
     : getGameApiClient().getModerationState(), [])
-  const searchModerationPlayers = useCallback((query: string) => getGameApiClient().searchModerationPlayers(query), [])
+  const listModerationPlayers = useCallback((query: Parameters<ReturnType<typeof getGameApiClient>['listModerationPlayers']>[0]) => getGameApiClient().listModerationPlayers(query), [])
   const moderateResource = useCallback((targetPlayerId: string, input: Parameters<ReturnType<typeof getGameApiClient>['adjustModerationResource']>[0]) => targetPlayerId === player?.id
     ? getGameApiClient().adjustModerationResource(input)
     : getGameApiClient().adjustModerationPlayerResource(targetPlayerId, input), [player?.id])
@@ -267,7 +267,7 @@ function AppBootstrap() {
       teams={teams}
       permissions={permissions}
       onLoadModeration={loadModeration}
-      onSearchModerationPlayers={searchModerationPlayers}
+      onListModerationPlayers={listModerationPlayers}
       onModerationResource={moderateResource}
       onModerationXp={moderateXp}
       onModerationGacha={moderateGacha}
