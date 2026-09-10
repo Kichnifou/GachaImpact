@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.78
+Version : 0.79
 Date : 2026-09-10
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3543,7 +3543,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Sac — premier vertical réel techniquement implémenté et fonctionnellement validé pour son chargement, ses quatre catégories, ses ressources, ses vœux, son accès Banque, ses objets/Collection, sa recherche, son cache et son desktop. Le candidat 0.78 conserve ce domaine actif jusqu'à sa review puis sa revalidation publique ; Boutique ne devient pas le domaine actif avant une décision explicite du propriétaire.**
+**Boutique — premier vertical réel techniquement implémenté dans le candidat 0.79 : catalogue serveur, achats Primos/Ticket, historique natif et UI personnelle. Sac et les éléments publics 0.78 ont été validés ; Boutique reste ouverte jusqu'à sa propre review, sa validation publique et ses compléments futurs.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3560,8 +3560,8 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - squelette Fastify / TypeScript checkpointé ;
 - Prisma ORM 7.10.0 stable ;
 - Supabase DEV provisionné et connexion PostgreSQL fonctionnelle ;
-- neuf migrations versionnées appliquées sur Supabase DEV, jusqu'à `009_add_moderation_tools` ;
-- 30 tables présentes, dont les tables privées `player_characters`, `c6_competition_progress`, `pull_operations`, `pull_results`, `player_preferences`, `item_definitions`, `player_items`, `teams`, `team_members`, `player_bank_accounts`, `bank_transactions`, `player_role_assignments` et `admin_audit_entries` ;
+- dix migrations versionnées appliquées sur Supabase DEV, jusqu'à `010_add_shop` ;
+- 32 tables présentes, dont les tables privées `player_characters`, `c6_competition_progress`, `pull_operations`, `pull_results`, `player_preferences`, `item_definitions`, `player_items`, `teams`, `team_members`, `player_bank_accounts`, `bank_transactions`, `player_role_assignments`, `admin_audit_entries`, `shop_item_definitions` et `shop_purchases` ;
 - référentiels seedés avec 7 éléments et 9 ressources ;
 - RLS activée sur les tables de fondation, sans policy client permissive ;
 - Auth Supabase réel checkpointé au commit `027d230f7d047e0469076418d3d5122e831bdce6` ;
@@ -3630,7 +3630,22 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Les cadres d'icônes de ressources élémentaires utilisent une palette explicite et cohérente pour les sept éléments, y compris Géo et Dendro. La fiche personnage partagée conserve une base de hauteur harmonisée entre 4★ et 5★ et un portrait couvrant mieux sa zone sans déformation ; les 4★ restent sans Stella ni statistiques Concours.
 - La zone Stella réserve une seule ligne stable au feedback et centre verticalement son bouton sur l'ensemble du bloc. Le texte de résultat persiste tant que la fiche reste ouverte ; seul le `+1` visuel disparaît après son animation. C5 → C6 affiche le message générique `Stella utilisée avec succès.` et le `+1` de constellation, tandis qu'un 5★ déjà C6 affiche durablement le libellé français et la nouvelle valeur de l'unique statistique augmentée.
 - Le propriétaire confirme à nouveau que `Kichnifou`, `Mynonyme`, `MynonymeTest1`, `MynonymeTest2`, `MynonymeTest3`, `Céo`, `Mika` et `Jean Julien` sont des comptes DEV légitimes. Aucun nettoyage, changement d'identité, désactivation, suppression, migration ou mutation de leurs données n'a été effectué par ce lot.
-- Cet état est **IMPLÉMENTÉ DANS LE CANDIDAT 0.78 SUR `review`, EN ATTENTE DE REVIEW ET DE VALIDATION PUBLIQUE PROPRIÉTAIRE**. Le domaine actif reste Sac et Boutique n'est pas commencée.
+- Le candidat 0.78 a été reviewé, promu sur `main`, déployé automatiquement et testé publiquement par le propriétaire. Le navigateur et son ciblage, le rôle et les outils Testeur, la recherche insensible aux accents, les couleurs Géo/Dendro et le feedback Stella sont validés. La fiche 4★ et le nouveau grand panneau scrollable sont validés dans leur principe ; trois dernières réserves visuelles — contrôles fixes, hauteur stable du navigateur et contact exact du portrait avec son bord bas — sont intégrées au candidat 0.79.
+
+## État du candidat 0.79 — contrôles stables et premier vertical Boutique réel
+
+- Box et Personnages séparent désormais structurellement leurs résumé/recherche/filtres/tris fixes du body scrollable contenant les cartes ou l'état vide. Modération conserve de la même manière le panneau `Joueur ciblé` et sa recherche rapide hors du body des outils ; les résultats rapides sont un overlay ancré qui ne pousse plus la grille.
+- Le navigateur de Players desktop possède une hauteur bornée stable correspondant à sa capacité d'une page de dix lignes : header, filtres et footer gardent leur position pour 0, 1, 8 ou 10 résultats, tandis que seule la zone centrale peut défiler. Mobile reste borné au viewport.
+- La primitive partagée de portrait supprime le reliquat subpixel sous l'image avec un wrapper sans hauteur de ligne et un débordement inférieur contrôlé d'un pixel, sans zoom spécifique à Kaeya ni distinction 4★/5★.
+- La migration additive `010_add_shop` crée `shop_item_definitions` et `shop_purchases`, active leur RLS, retire les droits directs `anon`/`authenticated` et sème le catalogue canonique Mission → Primos → Ticket. Elle a été appliquée uniquement au projet Supabase DEV `rmkpjudimoibyjsjtubh` et ne modifie aucun Player ni aucun solde.
+- `GET /api/v1/me/shop` sert le catalogue visible ordonné, les règles de quantité, les probabilités Ticket dérivées des poids, l'état personnel et les cinq achats récents. `POST /api/v1/me/shop/:itemId/purchase` recalcule prix, disponibilité, quantité et effet côté serveur ; les `bigint` traversent l'API sous forme de chaînes décimales.
+- Un achat verrouille le Player dans une transaction `SERIALIZABLE`, débite uniquement le portefeuille Moras via l'économie centrale, persiste exactement un `ShopPurchase` et son `effectSnapshot`, puis complète la `BusinessOperation`. Une même intention restitue le même résultat sans second débit ni RNG ; un payload différent est refusé et les achats concurrents ne peuvent pas rendre le wallet négatif.
+- `primogem-bundle` accepte tout entier positif : 50 000 Moras et +160 Primogemmes par lot. Le bouton `MAX` remplit uniquement la quantité affichée ; la mutation retourne un snapshot autoritatif qui synchronise la Boutique et la sidebar sans bootstrap complet.
+- `reward-ticket` est strictement unitaire et immédiatement consommé, sans objet Sac ni confirmation préalable. Ses cinq branches de poids 1 sont affichées à 20 % calculés : +1 600 Primogemmes, +1 000 particules principales, +800 particules d'un autre élément persisté, +10 Pity 5★ plafonnée à 90 par une primitive Gacha centrale, ou +50 000 Moras. Le résultat structuré est persisté avant sa révélation en overlay.
+- `daily-mission` est réellement servi en premier, visible à 10 000 Moras et temporairement indisponible avec la raison `Missions quotidiennes bientôt disponibles`. Aucun `MissionService` complet ni les producteurs messages/Pulls/conversion n'existent physiquement ; aucune mission factice ou logique Shop partielle n'est ajoutée.
+- L'écran Boutique ne dépend plus de `mockData`, réserve ses zones de feedback et d'action pour éviter les déplacements, affiche le wallet autoritatif et au plus cinq achats récents. Le stockage est exhaustif ; le futur `Voir tout` reste propriétaire de l'écran Historique transversal, qui n'est pas créé dans ce lot.
+- Cache et intentions Boutique sont éphémères, isolés par Player, protégés contre les réponses obsolètes, réutilisent la même clé après erreur ambiguë et sont vidés au logout. Les snapshots de mutation synchronisent Moras, Primogemmes, particules et état Gacha global.
+- Boutique est **COMMENCÉE MAIS NON PUBLIQUEMENT CLÔTURÉE**. `PAID_INFRA_APPROVED = false` reste inchangé ; aucun service payant, aucune configuration Railway et aucun déploiement manuel ne font partie de ce candidat.
 
 ## État du lot — Invocation x1/x10
 
@@ -3772,7 +3787,7 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Faire reviewer le candidat 0.78 uniquement sur `review` → corriger les éventuels retours → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → revalider publiquement le navigateur et le ciblage Modération, les quatre outils personnels Testeur, les panneaux longs de Modération/Box/Personnages, les couleurs Géo/Dendro, la fiche 4★/5★ et la persistance du feedback Stella.** Après cette validation, continuer vers le domaine suivant selon [implementation-order-v1.md](../roadmap/implementation-order-v1.md), uniquement sur décision explicite du propriétaire. Le domaine actif reste Sac jusque-là ; Boutique n'est pas commencée. `PAID_INFRA_APPROVED = false` reste inchangé.
+**Faire reviewer le candidat 0.79 uniquement sur `review` → corriger les éventuels retours → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → valider publiquement les trois micro-polish et le premier vertical Boutique.** Après cette validation, rester dans Boutique pour les retours, l'activation de Mission lorsque le vrai `MissionService` et tous ses producteurs pourront exister, puis le raccord à l'Historique transversal selon l'ordre retenu. Ne pas commencer Quotidiennes avant clôture explicite de Boutique. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

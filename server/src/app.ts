@@ -24,6 +24,7 @@ import { registerTeamRoutes } from './api/routes/team.js';
 import { registerBankRoutes } from './api/routes/bank.js';
 import { registerInventoryRoutes } from './api/routes/inventory.js';
 import { registerModerationRoutes } from './api/routes/moderation.js';
+import { registerShopRoutes } from './api/routes/shop.js';
 import type { ModerationTools } from './application/moderation/moderation-tools.js';
 import type { GetCharacters, GetCurrentGacha, GetGachaHistory, PerformGachaPull, SetGachaTarget } from './application/gacha/gacha-services.js';
 import type { GetTodayDailyReward } from './application/daily-reward/get-today-daily-reward.js';
@@ -33,6 +34,7 @@ import type { ActivatePlayerTeam, ClearPlayerTeam, CreateNextPlayerTeam, DeleteE
 import type { GetCurrentPlayerBank, GetPlayerBankHistory, TransferPlayerBank } from './application/banking/banking-services.js';
 import type { GetCurrentPlayerInventory } from './application/inventory/inventory-services.js';
 import type { AppConfig } from './config/environment.js';
+import type { GetCurrentPlayerShop, PurchaseShopItem } from './application/shop/shop-services.js';
 import { loadConfig } from './config/environment.js';
 
 export type AppDependencies = Readonly<{
@@ -70,6 +72,8 @@ export type AppDependencies = Readonly<{
   withdrawPlayerBank?: TransferPlayerBank;
   getCurrentPlayerInventory?: GetCurrentPlayerInventory;
   moderationTools?: ModerationTools;
+  getCurrentPlayerShop?: GetCurrentPlayerShop;
+  purchaseShopItem?: PurchaseShopItem;
   close?: () => Promise<void>;
 }>;
 
@@ -173,6 +177,9 @@ export async function buildApp(
     }
     if (dependencies.moderationTools) {
       await app.register(registerModerationRoutes, { authenticate, moderationTools: dependencies.moderationTools });
+    }
+    if (dependencies.getCurrentPlayerShop && dependencies.purchaseShopItem) {
+      await app.register(registerShopRoutes, { authenticate, getCurrentPlayerShop: dependencies.getCurrentPlayerShop, purchaseShopItem: dependencies.purchaseShopItem });
     }
 
     if (dependencies.close) {

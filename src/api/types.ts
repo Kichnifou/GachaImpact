@@ -101,6 +101,64 @@ export type BankHistoryDto = Readonly<{
   operations: readonly BankOperationDto[]
 }>
 
+export type ShopTicketRewardDto = Readonly<{
+  id: string
+  type: 'resource' | 'main_element_particles' | 'other_element_particles' | 'pity5'
+  label: string
+  amount: string
+  weight: number
+  probabilityBasisPoints: number
+  resourceKey?: string
+}>
+
+export type ShopItemDto = Readonly<{
+  id: string
+  externalKey: string
+  displayName: string
+  description: string
+  visualKey: string
+  priceResourceKey: string
+  priceAmount: string
+  effectType: 'daily_mission' | 'resource_bundle' | 'random_ticket'
+  displayOrder: number
+  available: boolean
+  unavailableReason: string | null
+  quantityMode: 'unit' | 'multiple'
+  rewardPerUnit: Readonly<{ resourceKey: string; amount: string }> | null
+  ticketRewards: readonly ShopTicketRewardDto[]
+}>
+
+export type ShopEffectDto =
+  | Readonly<{ type: 'resource_bundle'; resourceKey: string; amount: string }>
+  | Readonly<{ type: 'ticket_resource'; rewardId: string; label: string; resourceKey: string; amount: string }>
+  | Readonly<{ type: 'ticket_main_element_particles' | 'ticket_other_element_particles'; rewardId: string; label: string; elementKey: ElementKey; resourceKey: string; amount: string }>
+  | Readonly<{ type: 'ticket_pity5'; rewardId: string; label: string; requestedAmount: number; grantedAmount: number; pity5Before: number; pity5After: number }>
+
+export type ShopPurchaseRecordDto = Readonly<{
+  id: string
+  itemId: string
+  externalKey: string
+  displayName: string
+  quantity: string
+  unitPrice: string
+  totalPrice: string
+  effect: ShopEffectDto
+  operationId: string
+  purchasedAt: string
+}>
+
+export type PlayerShopDto = Readonly<{
+  resources: PlayerResourcesDto
+  gachaState: PlayerGachaStateDto
+  items: readonly ShopItemDto[]
+  recentPurchases: readonly ShopPurchaseRecordDto[]
+}>
+
+export type ShopPurchaseDto = PlayerShopDto & Readonly<{
+  purchase: ShopPurchaseRecordDto
+  operation: Readonly<{ id: string; alreadyProcessed: boolean }>
+}>
+
 export type PlayerProgressionDto = Readonly<{
   totalXp: string
   level: number

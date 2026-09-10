@@ -19,6 +19,12 @@ describe('long screen and elemental visual patterns', () => {
     expect(cssSource).toContain('.scrollable-screen-panel-content')
     expect(cssSource).toContain('overflow-y: auto')
     expect(cssSource).toContain('@media (max-width: 1120px)')
+    expect(boxSource).toContain('fixed={<')
+    expect(charactersSource).toContain('fixed={<')
+    expect(moderationSource).toContain('fixed={<')
+    expect(cssSource).toContain('.scrollable-screen-panel-body')
+    expect(cssSource).toContain('grid-template-rows: auto minmax(0, 1fr)')
+    expect(cssSource).toMatch(/\.moderation-target-results \{ position: absolute;/)
   })
 
   it('defines a coherent inventory border color for all seven canonical elements', () => {
@@ -30,5 +36,8 @@ describe('long screen and elemental visual patterns', () => {
     expect(cssSource).toMatch(/\.box-detail-content \{ min-height: 370px;/)
     expect(cssSource).toContain('object-fit: cover')
     expect(cssSource).toContain('transform: scale(1.035)')
+    expect(cssSource).toContain('inset: 0 0 auto')
+    expect(cssSource).toContain('height: calc(100% + 1px)')
+    expect(cssSource).toContain('max-height: none')
   })
 })

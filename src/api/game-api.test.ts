@@ -249,4 +249,20 @@ describe('game API client', () => {
       ['http://127.0.0.1:3001/api/v1/me/bank/withdraw', 'POST', { amount: '25', idempotencyKey: withdrawKey }],
     ])
   })
+
+  it('loads the authoritative Shop and sends only quantity plus the idempotency key when purchasing', async () => {
+    const payload = { resources: { moras: '9007199254740993' }, gachaState: { pity5: 0 }, items: [], recentPurchases: [] }
+    const fetchImplementation = vi.fn<typeof fetch>(async () => new Response(JSON.stringify(payload)))
+    const client = createGameApiClient({ baseUrl: 'http://127.0.0.1:3001', getAccessToken: async () => 'token', fetchImplementation })
+    const itemId = crypto.randomUUID()
+    const idempotencyKey = crypto.randomUUID()
+
+    await expect(client.getShop()).resolves.toMatchObject({ resources: { moras: '9007199254740993' } })
+    await client.purchaseShopItem(itemId, '10', idempotencyKey)
+
+    expect(fetchImplementation.mock.calls.map(([url, init]) => [url, init?.method, init?.body ? JSON.parse(String(init.body)) : null])).toEqual([
+      ['http://127.0.0.1:3001/api/v1/me/shop', undefined, null],
+      [`http://127.0.0.1:3001/api/v1/me/shop/${itemId}/purchase`, 'POST', { quantity: '10', idempotencyKey }],
+    ])
+  })
 })

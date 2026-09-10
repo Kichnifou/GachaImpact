@@ -1,11 +1,13 @@
 // @vitest-environment happy-dom
 
 import { act } from 'react'
+import { readFileSync } from 'node:fs'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { ModerationPlayerListQuery, ModerationPlayerPageDto } from '../api/types'
 import ModerationPlayerBrowser from './ModerationPlayerBrowser'
+const cssSource = readFileSync('src/App.css', 'utf8')
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 const roots: Root[] = []
@@ -21,6 +23,11 @@ function response(input: ModerationPlayerListQuery): ModerationPlayerPageDto {
 }
 
 describe('ModerationPlayerBrowser', () => {
+  it('keeps a fixed viewport-bounded desktop height with fixed controls and a flexible results body', () => {
+    expect(cssSource).toMatch(/\.moderation-player-browser \{[^}]*height: min\(760px, calc\(100dvh - 32px\)\)/)
+    expect(cssSource).toContain('grid-template-rows: auto auto minmax(180px, 1fr) auto')
+    expect(cssSource).toMatch(/\.moderation-browser-results \{[^}]*min-height: 0;[^}]*overflow-x: hidden; overflow-y: auto;/)
+  })
   it('loads A-Z first, forwards combined filters and pages by ten', async () => {
     const onListPlayers = vi.fn(async (input: ModerationPlayerListQuery) => response(input))
     const container = document.createElement('div')

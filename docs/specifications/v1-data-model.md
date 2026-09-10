@@ -919,6 +919,12 @@ Historique natif des achats :
 
 Le catalogue ne contient pas l'historique d'achat.
 
+État physique 0.79 : la migration additive `010_add_shop` matérialise `shop_item_definitions` et `shop_purchases` sur Supabase DEV. La définition porte aussi les champs de présentation `description`, `visualKey` et `unavailableReason` nécessaires à une projection player-facing sans autorité frontend. Les types d'effet physiques sont limités par whitelist à `daily_mission`, `resource_bundle` et `random_ticket` ; `effectConfig` reste une configuration de données validée par le serveur, jamais du code exécutable.
+
+Le catalogue initial est seedé dans l'ordre explicite Mission quotidienne (10 000 Moras, visible mais temporairement indisponible faute de `MissionService` complet), Lot de Primogemmes (50 000 Moras → 160 Primogemmes par unité, quantité multiple) et Ticket (150 000 Moras, unitaire, immédiatement consommé). Les cinq poids Ticket sont stockés dans la configuration et leurs probabilités sont dérivées à la lecture. Aucune notion de stock mondial n'est persistée.
+
+Chaque achat standalone produit une seule `BusinessOperation` et une seule ligne `ShopPurchase` contenant quantité, prix unitaires/totaux et `effectSnapshot` exact. Le service verrouille le Player dans une transaction `SERIALIZABLE`, délègue débit/crédits au moteur économique et la récompense Pity à la primitive Gacha centrale. Les retries relisent le snapshot sans redébit ni nouveau RNG. `GET /api/v1/me/shop` expose au Player authentifié le catalogue visible, son snapshot Ressources/Gacha et ses cinq achats récents ; le ledger complet attend son agrégation dans l'Historique transversal.
+
 ---
 
 # 16. Missions

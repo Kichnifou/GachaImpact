@@ -102,7 +102,8 @@ describe('ModerationScreen', () => {
   it('starts with the targeted-player panel and renders a readable Super quick search', async () => {
     const { container, onListPlayers } = await mount()
     expect(container.querySelector('.moderation-screen-heading')).toBeNull()
-    expect(container.querySelector('.scrollable-screen-panel-content')?.firstElementChild?.classList.contains('moderation-target')).toBe(true)
+    expect(container.querySelector('.scrollable-screen-panel-controls')?.firstElementChild?.classList.contains('moderation-target')).toBe(true)
+    expect(container.querySelector('.scrollable-screen-panel-body .moderation-grid')).not.toBeNull()
     expect(container.textContent).toContain('Rang : Super')
     expect(container.querySelector('.moderation-target-heading strong')?.textContent).toBe('Kichnifou')
     await search(container, 'myno')

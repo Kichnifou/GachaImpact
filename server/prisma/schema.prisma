@@ -76,43 +76,45 @@ model ResourceDefinition {
   resourceMovements ResourceMovement[]
   wheelDailyStates  PlayerWheelDailyState[]
   pullResults       PullResult[]
+  shopItemsPriced   ShopItemDefinition[]
 
   @@map("resource_definitions")
 }
 
 model Player {
-  id                 String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  displayName        String                  @map("display_name") @db.Text
-  elementKey         String?                 @map("element_key") @db.Text
-  status             PlayerStatus            @default(ACTIVE)
-  createdAt          DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  migrationRunId     String?                 @map("migration_run_id") @db.Uuid
-  legacyUsername     String?                 @map("legacy_username") @db.Text
-  element            Element?                @relation(fields: [elementKey], references: [key], onDelete: Restrict)
-  webIdentity        WebIdentity?
-  businessOperations BusinessOperation[]
-  resourceBalances   PlayerResourceBalance[]
-  resourceMovements  ResourceMovement[]
-  economyStats       PlayerEconomyStats?
-  wheelStats         PlayerWheelStats?
-  wheelDailyStates   PlayerWheelDailyState[]
-  dailyRewardState   PlayerDailyRewardState?
-  progression        PlayerProgression?
-  gachaState         PlayerGachaState?
-  bannerVotes        BannerVote[]
-  characters         PlayerCharacter[]
-  c6Progress         C6CompetitionProgress[]
-  pullOperations     PullOperation[]
-  preferences        PlayerPreference[]
-  items              PlayerItem[]
-  teams              Team[]
-  bankAccount        PlayerBankAccount?
-  bankTransactions   BankTransaction[]
-  rolesGranted       PlayerRoleAssignment[] @relation("RoleSubject")
-  rolesGrantedBy     PlayerRoleAssignment[] @relation("RoleGrantor")
-  auditEntriesAsActor AdminAuditEntry[] @relation("AuditActor")
-  auditEntriesAsTarget AdminAuditEntry[] @relation("AuditTarget")
+  id                   String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  displayName          String                  @map("display_name") @db.Text
+  elementKey           String?                 @map("element_key") @db.Text
+  status               PlayerStatus            @default(ACTIVE)
+  createdAt            DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  migrationRunId       String?                 @map("migration_run_id") @db.Uuid
+  legacyUsername       String?                 @map("legacy_username") @db.Text
+  element              Element?                @relation(fields: [elementKey], references: [key], onDelete: Restrict)
+  webIdentity          WebIdentity?
+  businessOperations   BusinessOperation[]
+  resourceBalances     PlayerResourceBalance[]
+  resourceMovements    ResourceMovement[]
+  economyStats         PlayerEconomyStats?
+  wheelStats           PlayerWheelStats?
+  wheelDailyStates     PlayerWheelDailyState[]
+  dailyRewardState     PlayerDailyRewardState?
+  progression          PlayerProgression?
+  gachaState           PlayerGachaState?
+  bannerVotes          BannerVote[]
+  characters           PlayerCharacter[]
+  c6Progress           C6CompetitionProgress[]
+  pullOperations       PullOperation[]
+  preferences          PlayerPreference[]
+  items                PlayerItem[]
+  teams                Team[]
+  bankAccount          PlayerBankAccount?
+  bankTransactions     BankTransaction[]
+  shopPurchases        ShopPurchase[]
+  rolesGranted         PlayerRoleAssignment[]  @relation("RoleSubject")
+  rolesGrantedBy       PlayerRoleAssignment[]  @relation("RoleGrantor")
+  auditEntriesAsActor  AdminAuditEntry[]       @relation("AuditActor")
+  auditEntriesAsTarget AdminAuditEntry[]       @relation("AuditTarget")
 
   @@index([status], map: "players_status_idx")
   @@index([elementKey], map: "players_element_key_idx")
@@ -131,16 +133,16 @@ model PlayerPreference {
 }
 
 model ItemDefinition {
-  id               String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  externalKey      String       @unique(map: "item_definitions_external_key_key") @map("external_key") @db.Text
-  displayName      String       @map("display_name") @db.Text
-  category         String       @db.Text
-  description      String?      @db.Text
-  isActive         Boolean      @default(true) @map("is_active")
-  metadata         Json?        @db.JsonB
-  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  playerBalances   PlayerItem[]
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  externalKey    String       @unique(map: "item_definitions_external_key_key") @map("external_key") @db.Text
+  displayName    String       @map("display_name") @db.Text
+  category       String       @db.Text
+  description    String?      @db.Text
+  isActive       Boolean      @default(true) @map("is_active")
+  metadata       Json?        @db.JsonB
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  playerBalances PlayerItem[]
 
   @@map("item_definitions")
 }
@@ -161,33 +163,33 @@ model PlayerItem {
 }
 
 model Character {
-  id                     String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  externalKey            String                    @unique(map: "characters_external_key_key") @map("external_key") @db.Text
-  name                   String                    @db.Text
-  rarity                 Int                       @db.SmallInt
-  elementKey             String                    @map("element_key") @db.Text
-  weaponType             String?                   @map("weapon_type") @db.Text
-  region                 String?                   @db.Text
-  classKey               String?                   @map("class_key") @db.Text
-  iconPath               String?                   @map("icon_path") @db.Text
-  splashPath             String?                   @map("splash_path") @db.Text
-  wishPath               String?                   @map("wish_path") @db.Text
-  fullbodyPath           String?                   @map("fullbody_path") @db.Text
-  displayOrder           Int?                      @map("display_order")
-  isActive               Boolean                   @default(true) @map("is_active")
-  releaseDate            DateTime?                 @map("release_date") @db.Date
-  sourceMetadata         Json?                     @map("source_metadata") @db.JsonB
-  createdAt              DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt              DateTime                  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  element                Element                   @relation(fields: [elementKey], references: [key], onDelete: Restrict)
-  bannerAppearances      BannerFeaturedCharacter[]
-  bannerVotes            BannerVote[]
-  selectedByGachaStates  PlayerGachaState[]
+  id                    String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  externalKey           String                    @unique(map: "characters_external_key_key") @map("external_key") @db.Text
+  name                  String                    @db.Text
+  rarity                Int                       @db.SmallInt
+  elementKey            String                    @map("element_key") @db.Text
+  weaponType            String?                   @map("weapon_type") @db.Text
+  region                String?                   @db.Text
+  classKey              String?                   @map("class_key") @db.Text
+  iconPath              String?                   @map("icon_path") @db.Text
+  splashPath            String?                   @map("splash_path") @db.Text
+  wishPath              String?                   @map("wish_path") @db.Text
+  fullbodyPath          String?                   @map("fullbody_path") @db.Text
+  displayOrder          Int?                      @map("display_order")
+  isActive              Boolean                   @default(true) @map("is_active")
+  releaseDate           DateTime?                 @map("release_date") @db.Date
+  sourceMetadata        Json?                     @map("source_metadata") @db.JsonB
+  createdAt             DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime                  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  element               Element                   @relation(fields: [elementKey], references: [key], onDelete: Restrict)
+  bannerAppearances     BannerFeaturedCharacter[]
+  bannerVotes           BannerVote[]
+  selectedByGachaStates PlayerGachaState[]
   playerPossessions     PlayerCharacter[]
   c6Progress            C6CompetitionProgress[]
-  pullTargets            PullOperation[]
-  pullResults            PullResult[]
-  teamMemberships        TeamMember[]
+  pullTargets           PullOperation[]
+  pullResults           PullResult[]
+  teamMemberships       TeamMember[]
 
   @@index([isActive, rarity], map: "characters_active_rarity_idx")
   @@index([elementKey, isActive], map: "characters_element_active_idx")
@@ -209,14 +211,14 @@ model BannerRotation {
 }
 
 model BannerFeaturedCharacter {
-  bannerRotationId String                    @map("banner_rotation_id") @db.Uuid
-  characterId      String                    @map("character_id") @db.Uuid
-  rarity           Int                       @db.SmallInt
-  slot             Int                       @db.SmallInt
-  selectionSource  BannerSelectionSource     @map("selection_source")
-  createdAt        DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
-  bannerRotation   BannerRotation            @relation(fields: [bannerRotationId], references: [id], onDelete: Cascade)
-  character        Character                 @relation(fields: [characterId], references: [id], onDelete: Restrict)
+  bannerRotationId String                @map("banner_rotation_id") @db.Uuid
+  characterId      String                @map("character_id") @db.Uuid
+  rarity           Int                   @db.SmallInt
+  slot             Int                   @db.SmallInt
+  selectionSource  BannerSelectionSource @map("selection_source")
+  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  bannerRotation   BannerRotation        @relation(fields: [bannerRotationId], references: [id], onDelete: Cascade)
+  character        Character             @relation(fields: [characterId], references: [id], onDelete: Restrict)
 
   @@id([bannerRotationId, characterId])
   @@unique([bannerRotationId, rarity, slot], map: "banner_featured_characters_banner_rarity_slot_key")
@@ -243,7 +245,7 @@ model PlayerGachaState {
   playerId                  String     @id @map("player_id") @db.Uuid
   pity5                     Int        @default(0) @map("pity_5") @db.SmallInt
   pity4                     Int        @default(0) @map("pity_4") @db.SmallInt
-  guaranteedFeatured5      Boolean    @default(false) @map("guaranteed_featured_5")
+  guaranteedFeatured5       Boolean    @default(false) @map("guaranteed_featured_5")
   captureProgress           Int        @default(0) @map("capture_progress") @db.SmallInt
   fiftyFiftyLostStreak      Int        @default(0) @map("fifty_fifty_lost_streak")
   selectedBannerCharacterId String?    @map("selected_banner_character_id") @db.Uuid
@@ -256,23 +258,23 @@ model PlayerGachaState {
   createdAt                 DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt                 DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   player                    Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  selectedBannerCharacter  Character? @relation(fields: [selectedBannerCharacterId], references: [id], onDelete: SetNull)
+  selectedBannerCharacter   Character? @relation(fields: [selectedBannerCharacterId], references: [id], onDelete: SetNull)
 
   @@index([selectedBannerCharacterId], map: "player_gacha_states_selected_character_idx")
   @@map("player_gacha_states")
 }
 
 model PlayerProgression {
-  playerId                       String   @id @map("player_id") @db.Uuid
-  xp                             BigInt   @default(0)
-  level100OverflowRewardsClaimed Int      @default(0) @map("level_100_overflow_rewards_claimed")
-  totalMessages                  BigInt   @default(0) @map("total_messages")
-  countedMessages                BigInt   @default(0) @map("counted_messages")
+  playerId                       String    @id @map("player_id") @db.Uuid
+  xp                             BigInt    @default(0)
+  level100OverflowRewardsClaimed Int       @default(0) @map("level_100_overflow_rewards_claimed")
+  totalMessages                  BigInt    @default(0) @map("total_messages")
+  countedMessages                BigInt    @default(0) @map("counted_messages")
   lastXpAt                       DateTime? @map("last_xp_at") @db.Timestamptz(6)
   lastXpMessageAt                DateTime? @map("last_xp_message_at") @db.Timestamptz(6)
-  createdAt                      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt                      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  player                         Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  createdAt                      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player                         Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@map("player_progression")
 }
@@ -292,22 +294,23 @@ model WebIdentity {
 }
 
 model BusinessOperation {
-  id                String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  playerId          String?                @map("player_id") @db.Uuid
-  operationType     String                 @map("operation_type") @db.Text
-  sourceChannel     SourceChannel          @map("source_channel")
-  idempotencyKey    String?                @map("idempotency_key") @db.Text
-  status            OperationStatus        @default(PENDING)
-  resultSummary     Json?                  @map("result_summary") @db.JsonB
-  startedAt         DateTime               @default(now()) @map("started_at") @db.Timestamptz(6)
-  completedAt       DateTime?              @map("completed_at") @db.Timestamptz(6)
-  player            Player?                @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  id                String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId          String?                 @map("player_id") @db.Uuid
+  operationType     String                  @map("operation_type") @db.Text
+  sourceChannel     SourceChannel           @map("source_channel")
+  idempotencyKey    String?                 @map("idempotency_key") @db.Text
+  status            OperationStatus         @default(PENDING)
+  resultSummary     Json?                   @map("result_summary") @db.JsonB
+  startedAt         DateTime                @default(now()) @map("started_at") @db.Timestamptz(6)
+  completedAt       DateTime?               @map("completed_at") @db.Timestamptz(6)
+  player            Player?                 @relation(fields: [playerId], references: [id], onDelete: Restrict)
   resourceMovements ResourceMovement[]
   wheelDailyState   PlayerWheelDailyState?
   dailyRewardState  PlayerDailyRewardState?
   pullOperation     PullOperation?
   bankTransaction   BankTransaction?
   adminAuditEntry   AdminAuditEntry?
+  shopPurchase      ShopPurchase?
 
   @@index([playerId, startedAt(sort: Desc)], map: "business_operations_player_started_at_idx")
   @@index([operationType, startedAt(sort: Desc)], map: "business_operations_type_started_at_idx")
@@ -410,24 +413,67 @@ model PlayerBankAccount {
 }
 
 model BankTransaction {
-  id                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  playerId            String             @map("player_id") @db.Uuid
-  transactionType     String             @map("transaction_type") @db.Text
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId            String            @map("player_id") @db.Uuid
+  transactionType     String            @map("transaction_type") @db.Text
   amount              BigInt
-  bankBalanceBefore   BigInt             @map("bank_balance_before")
-  bankBalanceAfter    BigInt             @map("bank_balance_after")
-  walletBalanceBefore BigInt?            @map("wallet_balance_before")
-  walletBalanceAfter  BigInt?            @map("wallet_balance_after")
-  businessDate        DateTime?          @map("business_date") @db.Date
-  operationId         String             @unique(map: "bank_transactions_operation_id_key") @map("operation_id") @db.Uuid
-  createdAt           DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
-  player              Player             @relation(fields: [playerId], references: [id], onDelete: Restrict, map: "bank_transactions_player_id_fkey")
-  bankAccount         PlayerBankAccount  @relation(fields: [playerId], references: [playerId], onDelete: Cascade, map: "bank_transactions_bank_account_fkey")
-  operation           BusinessOperation  @relation(fields: [operationId], references: [id], onDelete: Restrict, map: "bank_transactions_operation_id_fkey")
+  bankBalanceBefore   BigInt            @map("bank_balance_before")
+  bankBalanceAfter    BigInt            @map("bank_balance_after")
+  walletBalanceBefore BigInt?           @map("wallet_balance_before")
+  walletBalanceAfter  BigInt?           @map("wallet_balance_after")
+  businessDate        DateTime?         @map("business_date") @db.Date
+  operationId         String            @unique(map: "bank_transactions_operation_id_key") @map("operation_id") @db.Uuid
+  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  player              Player            @relation(fields: [playerId], references: [id], onDelete: Restrict, map: "bank_transactions_player_id_fkey")
+  bankAccount         PlayerBankAccount @relation(fields: [playerId], references: [playerId], onDelete: Cascade, map: "bank_transactions_bank_account_fkey")
+  operation           BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict, map: "bank_transactions_operation_id_fkey")
 
   @@index([playerId, createdAt(sort: Desc)], map: "bank_transactions_player_created_at_idx")
   @@index([businessDate], map: "bank_transactions_business_date_idx")
   @@map("bank_transactions")
+}
+
+model ShopItemDefinition {
+  id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  externalKey       String             @unique(map: "shop_item_definitions_external_key_key") @map("external_key") @db.Text
+  displayName       String             @map("display_name") @db.Text
+  description       String             @db.Text
+  visualKey         String             @map("visual_key") @db.Text
+  priceResourceKey  String             @map("price_resource_key") @db.Text
+  priceAmount       BigInt             @map("price_amount")
+  effectType        String             @map("effect_type") @db.Text
+  effectConfig      Json               @map("effect_config") @db.JsonB
+  displayOrder      Int                @map("display_order") @db.SmallInt
+  isVisible         Boolean            @default(true) @map("is_visible")
+  isEnabled         Boolean            @default(true) @map("is_enabled")
+  unavailableReason String?            @map("unavailable_reason") @db.Text
+  limitConfig       Json?              @map("limit_config") @db.JsonB
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  priceResource     ResourceDefinition @relation(fields: [priceResourceKey], references: [key], onDelete: Restrict)
+  purchases         ShopPurchase[]
+
+  @@index([isVisible, displayOrder], map: "shop_item_definitions_visible_order_idx")
+  @@map("shop_item_definitions")
+}
+
+model ShopPurchase {
+  id             String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId       String             @map("player_id") @db.Uuid
+  shopItemId     String             @map("shop_item_id") @db.Uuid
+  quantity       BigInt
+  unitPrice      BigInt             @map("unit_price")
+  totalPrice     BigInt             @map("total_price")
+  effectSnapshot Json               @map("effect_snapshot") @db.JsonB
+  operationId    String             @unique(map: "shop_purchases_operation_id_key") @map("operation_id") @db.Uuid
+  purchasedAt    DateTime           @default(now()) @map("purchased_at") @db.Timestamptz(6)
+  player         Player             @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  shopItem       ShopItemDefinition @relation(fields: [shopItemId], references: [id], onDelete: Restrict)
+  operation      BusinessOperation  @relation(fields: [operationId], references: [id], onDelete: Restrict)
+
+  @@index([playerId, purchasedAt(sort: Desc)], map: "shop_purchases_player_purchased_idx")
+  @@index([shopItemId, purchasedAt(sort: Desc)], map: "shop_purchases_item_purchased_idx")
+  @@map("shop_purchases")
 }
 
 model PlayerWheelStats {
@@ -474,18 +520,18 @@ model PlayerDailyRewardState {
 }
 
 model PlayerCharacter {
-  playerId       String    @map("player_id") @db.Uuid
-  characterId    String    @map("character_id") @db.Uuid
-  constellation  Int       @default(0) @db.SmallInt
-  copies         Int       @default(1)
-  firstObtainedAt DateTime @map("first_obtained_at") @db.Timestamptz(6)
-  favorite       Boolean   @default(false)
-  migrationRunId String?   @map("migration_run_id") @db.Uuid
-  provenance     Json?     @db.JsonB
-  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  player         Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  character      Character @relation(fields: [characterId], references: [id], onDelete: Restrict)
+  playerId        String    @map("player_id") @db.Uuid
+  characterId     String    @map("character_id") @db.Uuid
+  constellation   Int       @default(0) @db.SmallInt
+  copies          Int       @default(1)
+  firstObtainedAt DateTime  @map("first_obtained_at") @db.Timestamptz(6)
+  favorite        Boolean   @default(false)
+  migrationRunId  String?   @map("migration_run_id") @db.Uuid
+  provenance      Json?     @db.JsonB
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player          Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  character       Character @relation(fields: [characterId], references: [id], onDelete: Restrict)
 
   @@id([playerId, characterId])
   @@index([playerId, firstObtainedAt(sort: Desc)], map: "player_characters_player_obtained_idx")
@@ -494,18 +540,18 @@ model PlayerCharacter {
 }
 
 model C6CompetitionProgress {
-  playerId      String    @map("player_id") @db.Uuid
-  characterId   String    @map("character_id") @db.Uuid
-  strength      Int       @default(1) @db.SmallInt
-  intelligence  Int       @default(1) @db.SmallInt
-  beauty        Int       @default(1) @db.SmallInt
-  charisma      Int       @default(1) @db.SmallInt
-  popularity    Int       @default(1) @db.SmallInt
-  unlockedAt    DateTime  @map("unlocked_at") @db.Timestamptz(6)
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  player        Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  character     Character @relation(fields: [characterId], references: [id], onDelete: Restrict)
+  playerId     String    @map("player_id") @db.Uuid
+  characterId  String    @map("character_id") @db.Uuid
+  strength     Int       @default(1) @db.SmallInt
+  intelligence Int       @default(1) @db.SmallInt
+  beauty       Int       @default(1) @db.SmallInt
+  charisma     Int       @default(1) @db.SmallInt
+  popularity   Int       @default(1) @db.SmallInt
+  unlockedAt   DateTime  @map("unlocked_at") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player       Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  character    Character @relation(fields: [characterId], references: [id], onDelete: Restrict)
 
   @@id([playerId, characterId])
   @@index([characterId], map: "c6_competition_progress_character_idx")
@@ -513,18 +559,18 @@ model C6CompetitionProgress {
 }
 
 model PullOperation {
-  id                  String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  playerId            String           @map("player_id") @db.Uuid
-  bannerRotationId    String           @map("banner_rotation_id") @db.Uuid
-  targetCharacterId   String           @map("target_character_id") @db.Uuid
-  pullCount           Int              @map("pull_count") @db.SmallInt
-  primogemCost        BigInt           @map("primogem_cost")
-  sourceChannel       SourceChannel    @map("source_channel")
-  businessOperationId String           @unique(map: "pull_operations_business_operation_id_key") @map("business_operation_id") @db.Uuid
-  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  player              Player           @relation(fields: [playerId], references: [id], onDelete: Restrict)
-  bannerRotation      BannerRotation   @relation(fields: [bannerRotationId], references: [id], onDelete: Restrict)
-  targetCharacter     Character        @relation(fields: [targetCharacterId], references: [id], onDelete: Restrict)
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId            String            @map("player_id") @db.Uuid
+  bannerRotationId    String            @map("banner_rotation_id") @db.Uuid
+  targetCharacterId   String            @map("target_character_id") @db.Uuid
+  pullCount           Int               @map("pull_count") @db.SmallInt
+  primogemCost        BigInt            @map("primogem_cost")
+  sourceChannel       SourceChannel     @map("source_channel")
+  businessOperationId String            @unique(map: "pull_operations_business_operation_id_key") @map("business_operation_id") @db.Uuid
+  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  player              Player            @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  bannerRotation      BannerRotation    @relation(fields: [bannerRotationId], references: [id], onDelete: Restrict)
+  targetCharacter     Character         @relation(fields: [targetCharacterId], references: [id], onDelete: Restrict)
   businessOperation   BusinessOperation @relation(fields: [businessOperationId], references: [id], onDelete: Restrict)
   results             PullResult[]
 
@@ -534,25 +580,25 @@ model PullOperation {
 }
 
 model PullResult {
-  id                 String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  pullOperationId    String        @map("pull_operation_id") @db.Uuid
-  resultIndex        Int           @map("result_index") @db.SmallInt
-  resultType         String        @map("result_type") @db.Text
-  characterId        String?       @map("character_id") @db.Uuid
-  rarity             Int?          @db.SmallInt
-  resourceKey        String?       @map("resource_key") @db.Text
-  resourceAmount     BigInt?       @map("resource_amount")
-  wasNewCharacter    Boolean?      @map("was_new_character")
-  constellationAfter Int?          @map("constellation_after") @db.SmallInt
-  copiesAfter        Int?          @map("copies_after")
-  wasFiftyFifty      Boolean       @default(false) @map("was_fifty_fifty")
-  wonFiftyFifty      Boolean?      @map("won_fifty_fifty")
-  guaranteeConsumed  Boolean       @default(false) @map("guarantee_consumed")
-  captureTriggered   Boolean       @default(false) @map("capture_triggered")
-  snapshot           Json?         @db.JsonB
-  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  pullOperation      PullOperation @relation(fields: [pullOperationId], references: [id], onDelete: Cascade)
-  character          Character?    @relation(fields: [characterId], references: [id], onDelete: Restrict)
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pullOperationId    String              @map("pull_operation_id") @db.Uuid
+  resultIndex        Int                 @map("result_index") @db.SmallInt
+  resultType         String              @map("result_type") @db.Text
+  characterId        String?             @map("character_id") @db.Uuid
+  rarity             Int?                @db.SmallInt
+  resourceKey        String?             @map("resource_key") @db.Text
+  resourceAmount     BigInt?             @map("resource_amount")
+  wasNewCharacter    Boolean?            @map("was_new_character")
+  constellationAfter Int?                @map("constellation_after") @db.SmallInt
+  copiesAfter        Int?                @map("copies_after")
+  wasFiftyFifty      Boolean             @default(false) @map("was_fifty_fifty")
+  wonFiftyFifty      Boolean?            @map("won_fifty_fifty")
+  guaranteeConsumed  Boolean             @default(false) @map("guarantee_consumed")
+  captureTriggered   Boolean             @default(false) @map("capture_triggered")
+  snapshot           Json?               @db.JsonB
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  pullOperation      PullOperation       @relation(fields: [pullOperationId], references: [id], onDelete: Cascade)
+  character          Character?          @relation(fields: [characterId], references: [id], onDelete: Restrict)
   resource           ResourceDefinition? @relation(fields: [resourceKey], references: [key], onDelete: Restrict)
 
   @@unique([pullOperationId, resultIndex], map: "pull_results_operation_index_key")

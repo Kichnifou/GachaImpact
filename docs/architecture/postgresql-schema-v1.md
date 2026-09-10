@@ -1150,6 +1150,8 @@ Colonnes :
 - `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
 - `external_key text NOT NULL UNIQUE`
 - `display_name text NOT NULL`
+- `description text NOT NULL`
+- `visual_key text NOT NULL`
 - `price_resource_key text NOT NULL REFERENCES resource_definitions(key)`
 - `price_amount bigint NOT NULL`
 - `effect_type text NOT NULL`
@@ -1157,6 +1159,7 @@ Colonnes :
 - `display_order integer NOT NULL`
 - `is_visible boolean NOT NULL DEFAULT true`
 - `is_enabled boolean NOT NULL DEFAULT true`
+- `unavailable_reason text NULL`
 - `limit_config jsonb NULL`
 - `created_at timestamptz NOT NULL DEFAULT now()`
 - `updated_at timestamptz NOT NULL DEFAULT now()`
@@ -1191,6 +1194,12 @@ Contraintes :
 Index :
 
 `(player_id, purchased_at DESC)`
+
+État physique 0.79 : la migration additive `010_add_shop` crée ces deux tables. Le modèle physique utilise `smallint` pour `display_order` et `bigint` pour `quantity`, ajoute l'index `(shop_item_id, purchased_at DESC)` et impose aux articles payants initiaux des prix strictement positifs ainsi que `total_price = unit_price × quantity`. Les relations vers Player, ressource, article et `BusinessOperation` sont en `ON DELETE RESTRICT`. La RLS est active et les droits directs `anon`/`authenticated` sont révoqués : seul le backend authentifié sert les projections personnelles.
+
+Le seed canonique contient, dans cet ordre, `daily-mission`, `primogem-bundle` et `reward-ticket`. Mission est visible mais désactivée avec une raison player-facing tant que son service complet n'existe pas. Primos et Ticket sont actifs ; le Ticket conserve ses cinq issues de poids 1 dans `effect_config`. Aucun stock global ni achat rétroactif n'est créé.
+
+L'API physique 0.79 expose `GET /api/v1/me/shop` et `POST /api/v1/me/shop/:itemId/purchase`. L'achat est une transaction `SERIALIZABLE` verrouillée par Player, avec débit/crédits via le service économique central, récompense Pity via le service Gacha central, snapshot avant réponse et idempotence portée par `business_operations`. Le frontend ne fournit jamais le prix ni le résultat Ticket.
 
 ---
 

@@ -22,9 +22,10 @@ function CharactersScreen({ characters }: { characters: readonly GachaCharacterD
   const reset = () => { setQuery(''); setRarity('all'); setElement(null); setSortKey('name'); setDirection('asc') }
 
   return <div className="screen-content collection-screen catalog-screen long-screen-layout">
-    <ScrollableScreenPanel className="collection-screen-panel">
-    <div className="collection-summary"><span>{filtering ? `${filtered.length} / ${characters.length} personnages` : `${characters.length} personnages actifs`}</span></div>
-    <CollectionFilters placeholder="Rechercher un personnage…" query={query} rarity={rarity} element={element} sortKey={sortKey} direction={direction} onQueryChange={setQuery} onRarityChange={setRarity} onElementChange={setElement} onSortKeyChange={setSortKey} onDirectionChange={() => setDirection((value) => value === 'asc' ? 'desc' : 'asc')} />
+    <ScrollableScreenPanel className="collection-screen-panel" bodyClassName="collection-results-body" fixed={<>
+      <div className="collection-summary"><span>{filtering ? `${filtered.length} / ${characters.length} personnages` : `${characters.length} personnages actifs`}</span></div>
+      <CollectionFilters placeholder="Rechercher un personnage…" query={query} rarity={rarity} element={element} sortKey={sortKey} direction={direction} onQueryChange={setQuery} onRarityChange={setRarity} onElementChange={setElement} onSortKeyChange={setSortKey} onDirectionChange={() => setDirection((value) => value === 'asc' ? 'desc' : 'asc')} />
+    </>}>
     {filtered.length ? <section className="character-grid" aria-label="Catalogue des personnages">{filtered.map((character) => <CharacterCard character={character} key={character.id} />)}</section>
       : <section className="catalog-empty" role="status"><p>Aucun personnage ne correspond à ces filtres.</p><button type="button" onClick={reset}>Réinitialiser</button></section>}
     </ScrollableScreenPanel>

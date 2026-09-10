@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import { ApiError, getGameApiClient } from './api/game-api'
-import type { BankTransferDto, CurrentGachaDto, DailyRewardTodayDto, ElementKey, GachaCharacterDto, GachaPullDto, ModerationPermissionsDto, ModerationStateDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, WheelTodayDto } from './api/types'
+import type { BankTransferDto, CurrentGachaDto, DailyRewardTodayDto, ElementKey, GachaCharacterDto, GachaPullDto, ModerationPermissionsDto, ModerationStateDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, ShopPurchaseDto, WheelTodayDto } from './api/types'
 import { useAuth } from './auth/auth-context'
 import { resolveBootstrapStage } from './auth/bootstrap-state'
 import AuthScreen from './components/AuthScreen'
@@ -66,6 +66,13 @@ function AppBootstrap() {
     publishBankTransfer(await getGameApiClient().depositBank(amount, idempotencyKey)), [publishBankTransfer])
   const withdrawBank = useCallback(async (amount: string, idempotencyKey: string) =>
     publishBankTransfer(await getGameApiClient().withdrawBank(amount, idempotencyKey)), [publishBankTransfer])
+  const loadShop = useCallback(() => getGameApiClient().getShop(), [])
+  const purchaseShop = useCallback(async (itemId: string, quantity: string, idempotencyKey: string) => {
+    const result: ShopPurchaseDto = await getGameApiClient().purchaseShopItem(itemId, quantity, idempotencyKey)
+    setResources(result.resources)
+    setGacha((current) => current ? { ...current, playerState: result.gachaState } : current)
+    return result
+  }, [])
 
   const loadGameState = useCallback(async () => {
     const api = getGameApiClient()
@@ -304,6 +311,8 @@ function AppBootstrap() {
       onLoadBankHistory={(page) => getGameApiClient().getBankHistory(page)}
       onDepositBank={depositBank}
       onWithdrawBank={withdrawBank}
+      onLoadShop={loadShop}
+      onPurchaseShop={purchaseShop}
       onClaimDailyReward={async () => {
         const { result, resources: nextResources } = await claimDailyRewardAndRefresh(getGameApiClient())
         setResources(nextResources)

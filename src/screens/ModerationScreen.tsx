@@ -112,7 +112,7 @@ function ModerationScreen({ actorPlayerId, capabilities, onLoad, onListPlayers, 
   }
 
   return <div className="screen-content moderation-screen long-screen-layout">
-    <ScrollableScreenPanel className="moderation-screen-panel">
+    <ScrollableScreenPanel className="moderation-screen-panel" bodyClassName="moderation-tools-body" fixed={<>
       <section className="panel moderation-target" aria-busy={pending}>
         <div className="moderation-target-heading">
           <div><span className="eyebrow">Joueur ciblé</span><strong title={state?.player.displayName}>{state?.player.displayName ?? 'Chargement…'}</strong><small>Rang : {isSuper ? 'Super' : 'Testeur'}</small></div>
@@ -126,7 +126,8 @@ function ModerationScreen({ actorPlayerId, capabilities, onLoad, onListPlayers, 
           </button>) : <p className="moderation-target-empty">Aucun joueur trouvé.</p>}
         </div>}
       </section>
-      {message && <p className="moderation-feedback error" role="alert">{message}</p>}
+      <p className={`moderation-feedback${message ? ' error' : ' empty'}`} role={message ? 'alert' : undefined}>{message ?? '\u00a0'}</p>
+    </>}>
       <div className="moderation-grid">
         <form className="panel moderation-tool" onSubmit={(event) => submit(event, () => onResource(selectedTargetId, { resourceKey, amount, direction: 'add' }))}><h2>Ressources</h2><label>Ressource<select value={resourceKey} onChange={(event) => setResourceKey(event.target.value)}>{resources.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label><label>Montant<input inputMode="numeric" pattern="[0-9]*" required value={amount} onChange={(event) => setAmount(integerText(event.target.value))} /></label><div className="moderation-actions"><button disabled={pending}>Ajouter</button><button type="button" disabled={pending} onClick={() => void execute(() => onResource(selectedTargetId, { resourceKey, amount, direction: 'remove' }))}>Retirer</button></div></form>
         {canUseGameplayTools && <>

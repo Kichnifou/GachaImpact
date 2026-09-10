@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import type { BankHistoryDto, BankTransferDto, BoxCharacterDto, BoxSortPreferenceDto, CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, ModerationPermissionsDto, ModerationPlayerListQuery, ModerationPlayerPageDto, ModerationStateDto, PlayerBankDto, PlayerBoxDto, PlayerDto, PlayerInventoryDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
+import type { BankHistoryDto, BankTransferDto, BoxCharacterDto, BoxSortPreferenceDto, CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, ModerationPermissionsDto, ModerationPlayerListQuery, ModerationPlayerPageDto, ModerationStateDto, PlayerBankDto, PlayerBoxDto, PlayerDto, PlayerInventoryDto, PlayerProgressionDto, PlayerResourcesDto, PlayerShopDto, PlayerTeamsDto, ShopPurchaseDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import type { ScreenId } from '../types'
 import BoxScreen from '../screens/BoxScreen'
 import CharactersScreen from '../screens/CharactersScreen'
@@ -25,6 +25,8 @@ import { useProfileLevelUpFeedback } from '../progression/use-profile-level-up-f
 import LevelUpFeedback from './LevelUpFeedback'
 import { InventoryMemoryCache } from '../inventory/inventory-memory-cache'
 import { ModerationIntentCoordinator, type ModerationGachaInput, type ModerationResourceInput, type ModerationXpInput } from '../moderation/moderation-intent-coordinator'
+import { ShopMemoryCache } from '../shop/shop-memory-cache'
+import { ShopPurchaseIntentCoordinator } from '../shop/shop-purchase-intent-coordinator'
 import { applyModerationResultToActor } from '../moderation/apply-moderation-result'
 
 const screenIds: ScreenId[] = ['home', 'invocation', 'box', 'characters', 'team', 'bank', 'inventory', 'shop', 'moderation']
@@ -72,6 +74,8 @@ type GameShellProps = {
   onLoadBankHistory: (page: number) => Promise<BankHistoryDto>
   onDepositBank: (amount: string, idempotencyKey: string) => Promise<BankTransferDto>
   onWithdrawBank: (amount: string, idempotencyKey: string) => Promise<BankTransferDto>
+  onLoadShop: () => Promise<PlayerShopDto>
+  onPurchaseShop: (itemId: string, quantity: string, idempotencyKey: string) => Promise<ShopPurchaseDto>
   onLoadInventory: () => Promise<PlayerInventoryDto>
   permissions: ModerationPermissionsDto
   onLoadModeration: (targetPlayerId?: string) => Promise<ModerationStateDto>
@@ -84,7 +88,7 @@ type GameShellProps = {
   onModerationApplied: (state: ModerationStateDto, targetIsSelf: boolean) => void
 }
 
-function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank, onLoadInventory, permissions, onLoadModeration, onListModerationPlayers, onModerationResource, onModerationXp, onModerationGacha, onModerationStella, onModerationTester, onModerationApplied }: GameShellProps) {
+function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank, onLoadShop, onPurchaseShop, onLoadInventory, permissions, onLoadModeration, onListModerationPlayers, onModerationResource, onModerationXp, onModerationGacha, onModerationStella, onModerationTester, onModerationApplied }: GameShellProps) {
   const [activeScreen, setActiveScreen] = useState<ScreenId>(getScreenFromHash)
   const activeScreenRef = useRef(activeScreen)
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
@@ -96,6 +100,8 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
   const [bankCache] = useState(() => new BankMemoryCache())
   const [inventoryCache] = useState(() => new InventoryMemoryCache())
   const [moderationIntents] = useState(() => new ModerationIntentCoordinator())
+  const [shopCache] = useState(() => new ShopMemoryCache())
+  const [shopIntents] = useState(() => new ShopPurchaseIntentCoordinator())
   const activeLevelUpFeedback = levelUpFeedbacks[0] ?? null
   const [profileLevelUpEvent, setProfileLevelUpEvent] = useState<LevelUpFeedbackEvent | null>(null)
   const [closedLevelUpModalId, setClosedLevelUpModalId] = useState<string | null>(null)
@@ -151,6 +157,8 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
       ? onDepositBank(amount, idempotencyKey)
       : onWithdrawBank(amount, idempotencyKey))),
   ), [bankCache, bankTransferIntents, onDepositBank, onWithdrawBank, player.id])
+  const loadShop = useCallback(() => shopCache.revalidate(player.id, onLoadShop), [onLoadShop, player.id, shopCache])
+  const purchaseShop = useCallback((itemId: string, quantity: string) => shopIntents.execute(player.id, itemId, quantity, async (idempotencyKey) => shopCache.writeConfirmed(player.id, await onPurchaseShop(itemId, quantity, idempotencyKey))), [onPurchaseShop, player.id, shopCache, shopIntents])
   const moderateResource = useCallback((targetPlayerId: string, input: ModerationResourceInput) => moderationIntents.execute(
     targetPlayerId,
     { type: 'resource', payload: input },
@@ -192,8 +200,10 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
     bankCache.clear()
     inventoryCache.clear()
     moderationIntents.clear()
+    shopCache.clear()
+    shopIntents.clear()
     await onSignOut()
-  }, [bankCache, boxCache, inventoryCache, moderationIntents, onSignOut])
+  }, [bankCache, boxCache, inventoryCache, moderationIntents, onSignOut, shopCache, shopIntents])
 
   const changeScreen = useCallback((screen: ScreenId) => {
     if (activeScreenRef.current === 'invocation' && screen !== 'invocation') onGachaPresentationAbandoned()
@@ -232,7 +242,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
       case 'moderation':
         return permissions.capabilities.moderationAccess ? <ModerationScreen actorPlayerId={player.id} capabilities={permissions.capabilities} onLoad={onLoadModeration} onListPlayers={onListModerationPlayers} onResource={moderateResource} onXp={moderateXp} onGacha={moderateGacha} onStella={moderateStella} onTester={moderateTester} onApplied={applyModerationResult} /> : <HomeScreen onNavigate={navigate} wheelToday={wheelToday} onSpinWheel={onSpinWheel} gacha={gacha} onSetGachaTarget={onSetGachaTarget} />
       case 'shop':
-        return <ShopScreen />
+        return <ShopScreen initialShop={shopCache.read(player.id)} onLoad={loadShop} onPurchase={purchaseShop} />
       default:
         return <HomeScreen onNavigate={navigate} wheelToday={wheelToday} onSpinWheel={onSpinWheel} gacha={gacha} onSetGachaTarget={onSetGachaTarget} />
     }

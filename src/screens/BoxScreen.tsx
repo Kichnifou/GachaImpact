@@ -75,10 +75,11 @@ export function BoxView({ box, filters, error, favoritePendingId, stellaPendingI
 }) {
   const visibleCharacters = useMemo(() => presentBoxCharacters(box.characters, filters), [box.characters, filters])
   return <div className="screen-content collection-screen box-screen long-screen-layout">
-    <ScrollableScreenPanel className="collection-screen-panel">
-    <BoxSummary summary={box.summary} />
-    <BoxFiltersBar filters={filters} onChange={onFilters} />
-    {error && <p className="box-inline-error" role="alert">{error}</p>}
+    <ScrollableScreenPanel className="collection-screen-panel" bodyClassName="collection-results-body" fixed={<>
+      <BoxSummary summary={box.summary} />
+      <BoxFiltersBar filters={filters} onChange={onFilters} />
+      <p className={`box-inline-error${error ? '' : ' empty'}`} role={error ? 'alert' : undefined}>{error ?? '\u00a0'}</p>
+    </>}>
     {box.characters.length === 0 ? <BoxStatus kind="empty" title="Votre Box est encore vide" detail="Vos prochains personnages obtenus apparaîtront ici." />
       : visibleCharacters.length === 0 ? <BoxStatus kind="empty" title="Aucun personnage trouvé" detail="Modifiez votre recherche ou vos filtres pour retrouver vos personnages." />
       : <section className="character-grid" aria-label="Personnages possédés">
