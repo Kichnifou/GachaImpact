@@ -170,6 +170,11 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
     { type: 'stella', payload: { quantity } },
     (idempotencyKey) => onModerationStella(targetPlayerId, quantity, idempotencyKey),
   ), [moderationIntents, onModerationStella])
+  const moderateTester = useCallback((targetPlayerId: string, enabled: boolean) => moderationIntents.execute(
+    targetPlayerId,
+    { type: 'tester-role', payload: { enabled } },
+    (idempotencyKey) => onModerationTester(targetPlayerId, enabled, idempotencyKey),
+  ), [moderationIntents, onModerationTester])
   const signOutAndClearCaches = useCallback(async () => {
     boxCache.clear()
     bankCache.clear()
@@ -213,7 +218,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
       case 'bank':
         return <BankScreen initialBank={bankCache.read(player.id)} onLoad={loadBank} onLoadHistory={onLoadBankHistory} onTransfer={transferBank} />
       case 'moderation':
-        return permissions.capabilities.moderationAccess ? <ModerationScreen actorPlayerId={player.id} capabilities={permissions.capabilities} onLoad={onLoadModeration} onSearchPlayers={onSearchModerationPlayers} onResource={moderateResource} onXp={moderateXp} onGacha={moderateGacha} onStella={moderateStella} onTester={onModerationTester} onApplied={(next) => { const self = next.player.id === player.id; if (self) { boxCache.setStellaQuantity(player.id, next.stella.quantity); inventoryCache.setStellaQuantity(player.id, next.stella.quantity) }; onModerationApplied(next, self) }} /> : <HomeScreen onNavigate={navigate} wheelToday={wheelToday} onSpinWheel={onSpinWheel} gacha={gacha} onSetGachaTarget={onSetGachaTarget} />
+        return permissions.capabilities.moderationAccess ? <ModerationScreen actorPlayerId={player.id} capabilities={permissions.capabilities} onLoad={onLoadModeration} onSearchPlayers={onSearchModerationPlayers} onResource={moderateResource} onXp={moderateXp} onGacha={moderateGacha} onStella={moderateStella} onTester={moderateTester} onApplied={(next) => { const self = next.player.id === player.id; if (self) { boxCache.setStellaQuantity(player.id, next.stella.quantity); inventoryCache.setStellaQuantity(player.id, next.stella.quantity) }; onModerationApplied(next, self) }} /> : <HomeScreen onNavigate={navigate} wheelToday={wheelToday} onSpinWheel={onSpinWheel} gacha={gacha} onSetGachaTarget={onSetGachaTarget} />
       case 'shop':
         return <ShopScreen />
       default:

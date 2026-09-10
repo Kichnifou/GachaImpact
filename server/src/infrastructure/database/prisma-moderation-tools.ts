@@ -18,9 +18,9 @@ export class PrismaModerationTools implements ModerationTools {
   public async listPlayers(identity: AuthenticatedIdentity, query: string) {
     const actor = await this.getCurrentPlayer.execute(identity)
     if (!(await this.permissionsFor(actor.id)).capabilities.canSelectPlayers) throw forbidden()
-    const needle = normalize(query)
-    const rows = await this.database.player.findMany({ where: { status: activeStatus }, select: { id: true, displayName: true, elementKey: true, progression: { select: { xp: true } }, rolesGranted: { where: { role: 'TESTER', revokedAt: null }, select: { id: true } } }, orderBy: { displayName: 'asc' }, take: 100 })
-    return rows.filter((row) => !needle || normalize(row.displayName).includes(needle)).slice(0, 20).map((row) => ({ id: row.id, displayName: row.displayName, elementKey: row.elementKey, level: Number((row.progression?.xp ?? 0n) / XP_PER_LEVEL), tester: row.rolesGranted.length > 0 }))
+    const queryText = query.trim()
+    const rows = await this.database.player.findMany({ where: { status: activeStatus, ...(queryText ? { displayName: { contains: queryText, mode: 'insensitive' } } : {}) }, select: { id: true, displayName: true, elementKey: true, progression: { select: { xp: true } }, rolesGranted: { where: { role: 'TESTER', revokedAt: null }, select: { id: true } } }, orderBy: [{ displayName: 'asc' }, { id: 'asc' }], take: 20 })
+    return rows.map((row) => ({ id: row.id, displayName: row.displayName, elementKey: row.elementKey, level: Number((row.progression?.xp ?? 0n) / XP_PER_LEVEL), tester: row.rolesGranted.length > 0 }))
   }
   public async adjustResource(identity: AuthenticatedIdentity, targetPlayerId: string, input: Parameters<ModerationTools['adjustResource']>[2]) {
     const actor = await this.getCurrentPlayer.execute(identity); const target = await this.authorizeTarget(actor.id, targetPlayerId, 'resource')
@@ -76,7 +76,6 @@ export class PrismaModerationTools implements ModerationTools {
   }
 }
 function forbidden() { return new BusinessError('MODERATION_FORBIDDEN', 'Vous n’avez pas accès à ces outils de test.') }
-function normalize(value: string) { return value.normalize('NFD').replace(/\p{Diacritic}/gu, '').trim().toLowerCase() }
 function gachaAudit(value: { pity5: number; pity4: number; guaranteedFeatured5: boolean; captureProgress: number }) { return { pity5: value.pity5, pity4: value.pity4, guaranteedFeatured5: value.guaranteedFeatured5, captureProgress: value.captureProgress } }
 function serializeModerationRequest(value: unknown): Prisma.InputJsonValue { return JSON.parse(JSON.stringify(value, (_key, entry) => typeof entry === 'bigint' ? entry.toString() : entry)) as Prisma.InputJsonValue }
 function jsonFingerprint(value: unknown): string { if (Array.isArray(value)) return `[${value.map(jsonFingerprint).join(',')}]`; if (value && typeof value === 'object') return `{${Object.entries(value).sort(([left], [right]) => left.localeCompare(right)).map(([key, entry]) => `${JSON.stringify(key)}:${jsonFingerprint(entry)}`).join(',')}}`; return JSON.stringify(value) }

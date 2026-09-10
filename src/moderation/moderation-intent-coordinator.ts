@@ -24,6 +24,7 @@ export type ModerationAction =
   | Readonly<{ type: 'xp'; payload: ModerationXpInput }>
   | Readonly<{ type: 'gacha'; payload: ModerationGachaInput }>
   | Readonly<{ type: 'stella'; payload: Readonly<{ quantity: string }> }>
+  | Readonly<{ type: 'tester-role'; payload: Readonly<{ enabled: boolean }> }>
 
 export type ModerationIntent = Readonly<{
   actionFingerprint: string
@@ -58,6 +59,8 @@ export function moderationActionFingerprint(targetPlayerId: string, action: Mode
       ].join('\u001f')
     case 'stella':
       return `${targetPlayerId}\u001fstella\u001fquantity:${action.payload.quantity}`
+    case 'tester-role':
+      return `${targetPlayerId}\u001ftester-role\u001fenabled:${action.payload.enabled}`
   }
 }
 

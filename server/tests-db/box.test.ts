@@ -53,4 +53,30 @@ describe('personal Box persistence', () => {
     expect(await store.setFavorite(player.id, inactive.id, false)).toBeNull();
     expect((await database.playerCharacter.findUniqueOrThrow({ where: { playerId_characterId: { playerId: otherPlayer.id, characterId: activeFour.id } } })).favorite).toBe(false);
   });
+
+  it('accepts a 4-star C6 without Concours progress, keeps 5-star C5 empty, and rejects a missing 5-star C6 progression', async () => {
+    const [fourPlayer, fiveC5Player, fiveC6Player] = await Promise.all([
+      database.player.create({ data: { displayName: `Box Four C6 ${randomUUID().slice(0, 8)}` } }),
+      database.player.create({ data: { displayName: `Box Five C5 ${randomUUID().slice(0, 8)}` } }),
+      database.player.create({ data: { displayName: `Box Five C6 ${randomUUID().slice(0, 8)}` } }),
+    ]);
+    playerIds.push(fourPlayer.id, fiveC5Player.id, fiveC6Player.id);
+    const suffix = randomUUID();
+    const [four, five] = await Promise.all([
+      database.character.create({ data: { externalKey: `test:box:four-c6:${suffix}`, name: 'Four C6', rarity: 4, elementKey: 'pyro', isActive: true } }),
+      database.character.create({ data: { externalKey: `test:box:five-c6:${suffix}`, name: 'Five C6', rarity: 5, elementKey: 'hydro', isActive: true } }),
+    ]);
+    characterIds.push(four.id, five.id);
+    const obtainedAt = new Date('2026-09-10T12:00:00.000Z');
+    await database.playerCharacter.createMany({ data: [
+      { playerId: fourPlayer.id, characterId: four.id, constellation: 6, copies: 7, firstObtainedAt: obtainedAt },
+      { playerId: fiveC5Player.id, characterId: five.id, constellation: 5, copies: 6, firstObtainedAt: obtainedAt },
+      { playerId: fiveC6Player.id, characterId: five.id, constellation: 6, copies: 7, firstObtainedAt: obtainedAt },
+    ] });
+
+    const store = new PrismaBoxStore(database);
+    await expect(store.listVisiblePossessions(fourPlayer.id)).resolves.toEqual([expect.objectContaining({ id: four.id, rarity: 4, constellation: 6, c6CompetitionStats: null })]);
+    await expect(store.listVisiblePossessions(fiveC5Player.id)).resolves.toEqual([expect.objectContaining({ id: five.id, rarity: 5, constellation: 5, c6CompetitionStats: null })]);
+    await expect(store.listVisiblePossessions(fiveC6Player.id)).rejects.toThrow(`C6 competition progression missing for possession ${fiveC6Player.id}/${five.id}.`);
+  });
 });

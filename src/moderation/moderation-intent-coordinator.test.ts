@@ -108,6 +108,36 @@ describe('ModerationIntentCoordinator', () => {
     expect(coordinator.getIntent('player-a')).toBeNull()
   })
 
+  it('keeps a tester-role key for the same retry and blocks a revoke or another target while it is ambiguous', async () => {
+    const createKey = vi.fn(() => 'tester-role-key')
+    const coordinator = new ModerationIntentCoordinator(createKey)
+    const grant: ModerationAction = { type: 'tester-role', payload: { enabled: true } }
+    const revoke: ModerationAction = { type: 'tester-role', payload: { enabled: false } }
+
+    await expect(coordinator.execute('alice', grant, async () => {
+      throw new ApiError('NETWORK_ERROR', 'Réponse perdue', null)
+    })).rejects.toMatchObject({ code: 'NETWORK_ERROR' })
+
+    const retry = vi.fn(async (key: string) => key)
+    await expect(coordinator.execute('alice', revoke, retry)).rejects.toMatchObject({ code: 'MODERATION_INTENT_CONFLICT' })
+    await expect(coordinator.execute('bob', grant, retry)).rejects.toMatchObject({ code: 'MODERATION_INTENT_CONFLICT' })
+
+    await expect(coordinator.execute('alice', grant, retry)).resolves.toBe('tester-role-key')
+    expect(coordinator.getIntent('alice')).toBeNull()
+    expect(createKey).toHaveBeenCalledOnce()
+  })
+
+  it('releases a tester-role intent after a deterministic error', async () => {
+    const keys = ['first-tester-key', 'second-tester-key']
+    const coordinator = new ModerationIntentCoordinator(() => keys.shift()!)
+    const grant: ModerationAction = { type: 'tester-role', payload: { enabled: true } }
+
+    await expect(coordinator.execute('alice', grant, async () => {
+      throw new ApiError('MODERATION_TARGET_NOT_FOUND', 'Introuvable', 404)
+    })).rejects.toMatchObject({ code: 'MODERATION_TARGET_NOT_FOUND' })
+    await expect(coordinator.execute('alice', grant, async (key) => key)).resolves.toBe('second-tester-key')
+  })
+
   it('allows only one active request per Player', async () => {
     const coordinator = new ModerationIntentCoordinator(() => 'active-key')
     const pending = deferred<string>()

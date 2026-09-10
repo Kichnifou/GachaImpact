@@ -1,6 +1,6 @@
 import 'dotenv/config'
 import { randomUUID } from 'node:crypto'
-import { afterAll, afterEach, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { loadConfig } from '../src/config/environment.js'
 import { resourceKeys } from '../src/domain/economy/resources.js'
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js'
@@ -14,6 +14,7 @@ const database = createDatabase(config.databaseUrl)
 const playerIds = new Set<string>()
 const tools = new PrismaModerationTools(database, new GetCurrentPlayer(new PrismaCurrentPlayerStore(database)))
 
+beforeAll(cleanupResidualTestFixtures)
 afterEach(cleanup)
 afterAll(async () => { await cleanup(); await database.$disconnect() })
 
@@ -33,13 +34,31 @@ async function createPlayer(roles: readonly ('MODERATOR'|'TESTER'|'ADMIN')[]) {
 }
 
 async function cleanup() {
-  const ids = [...playerIds]; if (!ids.length) return
-  await database.adminAuditEntry.deleteMany({ where: { targetPlayerId: { in: ids } } })
+  const ids = [...playerIds]
+  await deletePlayers(ids)
+  playerIds.clear()
+}
+
+async function deletePlayers(ids: string[]) {
+  if (!ids.length) return
+  await database.adminAuditEntry.deleteMany({ where: { OR: [{ actorPlayerId: { in: ids } }, { targetPlayerId: { in: ids } }] } })
   await database.resourceMovement.deleteMany({ where: { playerId: { in: ids } } })
   await database.businessOperation.deleteMany({ where: { playerId: { in: ids } } })
   await database.webIdentity.deleteMany({ where: { playerId: { in: ids } } })
   await database.player.deleteMany({ where: { id: { in: ids } } })
-  playerIds.clear()
+}
+
+async function cleanupResidualTestFixtures() {
+  const candidates = await database.player.findMany({
+    where: {
+      displayName: { startsWith: 'Moderation ' },
+      webIdentity: { is: { provider: 'supabase', providerSubject: { startsWith: 'moderation-test-' }, state: 'ACTIVE' } },
+      rolesGranted: { some: { source: 'test' } },
+    },
+    select: { id: true, displayName: true },
+  })
+  const ids = candidates.filter((candidate) => /^Moderation [0-9a-f]{8}$/.test(candidate.displayName)).map((candidate) => candidate.id)
+  await deletePlayers(ids)
 }
 
 describe('privileged self-test persistence', () => {
@@ -51,6 +70,16 @@ describe('privileged self-test persistence', () => {
     expect((await tools.getState(tester.identity)).permissions.capabilities.selfResourceTools).toBe(true)
     const admin = await createPlayer(['ADMIN'])
     expect((await tools.getState(admin.identity)).permissions.capabilities.superTools).toBe(true)
+  })
+
+  it('filters the database before its twenty-player search limit', async () => {
+    const admin = await createPlayer(['ADMIN'])
+    const prefix = `Scale ${randomUUID().slice(0, 8)}`
+    const fillers = await Promise.all(Array.from({ length: 101 }, (_, index) => database.player.create({ data: { displayName: `${prefix} ${String(index).padStart(3, '0')}` } })))
+    const match = await database.player.create({ data: { displayName: `${prefix} zzz-match`, elementKey: 'pyro' } })
+    fillers.forEach((player) => playerIds.add(player.id)); playerIds.add(match.id)
+
+    await expect(tools.listPlayers(admin.identity, 'ZZZ-MATCH')).resolves.toEqual([expect.objectContaining({ id: match.id, displayName: `${prefix} zzz-match`, elementKey: 'pyro', level: 0, tester: false })])
   })
 
   it('adjusts all resources losslessly without gameplay stats and makes retries one movement/audit', async () => {
