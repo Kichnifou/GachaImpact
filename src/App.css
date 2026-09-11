@@ -3946,7 +3946,7 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 
 .inventory-item.empty-slot > span { font-size: 22px; text-align: center; }
 
-.inventory-resource-card { color: inherit; text-align: left; }
+.inventory-resource-card { box-sizing: border-box; height: 82px; min-height: 82px; color: inherit; text-align: left; }
 button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .inventory-resource-card .item-icon img { width: 78%; height: 78%; object-fit: contain; }
 .inventory-resource-card.mora { grid-template-columns: 47px minmax(0, 1fr) auto; grid-template-rows: auto auto; }

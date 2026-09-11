@@ -135,6 +135,8 @@ describe('real inventory screen', () => {
     expect(container.querySelectorAll('.inventory-resource-card .inventory-card-action')).toHaveLength(3)
     expect(container.querySelectorAll('.inventory-resource-card:not(.has-action) .inventory-card-action')).toHaveLength(0)
     expect(appCssSource).not.toMatch(/\.inventory-resource-card\s*\{[^}]*min-height:\s*112px/s)
+    expect(appCssSource).toMatch(/\.inventory-resource-card\s*\{[^}]*height:\s*82px;[^}]*min-height:\s*82px;/s)
+    expect(appCssSource).not.toMatch(/\.inventory-resource-card\.has-action\s*\{[^}]*(?:height|min-height):/s)
   })
 
   it('orders Collection owned then unknown and opens real details', async () => {
