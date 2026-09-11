@@ -293,6 +293,8 @@ describe('real Team screen', () => {
     expect(html.indexOf('class="bonus-grid')).toBeLessThan(contentEnd)
     expect(contentEnd).toBeGreaterThanOrEqual(0)
     expect(appCssSource).toContain('grid-template-columns: minmax(0, 1fr) max-content')
+    expect(appCssSource).toContain('.team-reference-toggle { align-self: center; margin-top: 0; white-space: nowrap; }')
+    expect(appCssSource).not.toContain('.team-reference-toggle { align-self: center; margin-top: 23px;')
     expect(appCssSource).toContain('.team-bonuses .bonus-grid.passive-count-3 article:nth-child(3)')
     expect(appCssSource).toContain('justify-self: center')
   })
