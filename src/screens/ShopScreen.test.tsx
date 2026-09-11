@@ -40,7 +40,8 @@ describe('ShopScreen', () => {
     expect(container.querySelectorAll('.shop-history-table tbody tr')).toHaveLength(10)
     await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Suivant')!.click(); await Promise.resolve(); await Promise.resolve() })
     expect(onLoad).toHaveBeenLastCalledWith(2)
-    expect(container.querySelectorAll('.shop-history-table tbody tr')).toHaveLength(1)
+    expect(container.querySelectorAll('.shop-history-table tbody tr')).toHaveLength(10)
+    expect(container.querySelectorAll('.shop-history-table tbody .history-empty-row')).toHaveLength(9)
     expect(container.textContent).toContain('Page 2 / 2')
   })
 

@@ -34,9 +34,9 @@ function DailyRewardCard({ today, elementKey, onClaim }: DailyRewardCardProps) {
       <div>
         <span className="eyebrow">Récompense quotidienne</span>
         {freshClaim ? (
-          <p role="status"><strong>Récompense récupérée !</strong><br />{formatDailyRewardDetails(freshClaim, elementKey)}</p>
+          <p role="status"><strong className="daily-overview-complete">✅ Terminé</strong><br />Récompense récupérée aujourd’hui.<br />{formatDailyRewardDetails(freshClaim, elementKey)}</p>
         ) : today.claimed ? (
-          <p role="status">Déjà récupérée aujourd’hui.</p>
+          <p role="status"><strong className="daily-overview-complete">✅ Terminé</strong><br />Récompense récupérée aujourd’hui.</p>
         ) : (
           <p>Votre cadeau du jour est prêt.</p>
         )}

@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.82
+Version : 0.83
 Date : 2026-09-11
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3677,7 +3677,18 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Pull x1/x10 et conversion personnelle progressent dans la transaction de leur action réelle. La conversion Sac consomme uniquement les particules de l’élément principal et crédite les Primos 1:1. Achat, changement et conversion sont idempotents ; le premier changement coûte 20 000 Moras puis double et remet la progression à zéro.
 - La migration additive 012 crée les deux tables privées avec contraintes, index, RLS et révocation `anon`/`authenticated`. Les migrations 010/011 restent inchangées. Les tests DB utilisent exclusivement des Players fixtures UUID et les nettoient précisément.
 - Le contrat `ui-layout-contract-v1.md` devient la référence transverse. Team compacte ses passifs sur une ligne, les headers Activités sont modérément resserrés, le drag-and-drop Configuration distingue insertion et échange, Boutique remplit la hauteur utile, et les historiques Banque/Boutique gardent dix emplacements et un footer stable.
-- Ce candidat n’est pas encore validé publiquement. Les huit comptes DEV légitimes confirmés et tous leurs achats/soldes restent protégés ; seul le schéma/catalogue 012 est ajouté. Aucun déploiement Railway manuel ni service payant n’est déclenché.
+- Le gameplay 0.82 a été promu et fonctionne publiquement. Sa validation visuelle a toutefois été refusée : les invariants de dimensions, de scroll et d’actions contextuelles sont repris par le candidat correctif 0.83. Les huit comptes DEV légitimes confirmés et tous leurs achats/soldes restent protégés.
+
+## État du candidat 0.83 — stabilisation Quotidiennes, Ressources et layouts transverses
+
+- Team réserve un panneau de passifs aux dimensions extérieures invariantes pour un à quatre passifs : plein format, deux lignes, deux cartes puis une demi-carte centrée, ou grille 2 × 2. L’action de référence occupe une colonne `max-content` distincte et la modale détaillée reste inchangée.
+- Les headers Activités sont ramenés à une hauteur desktop bornée de 92 à 104 px avec titre 29 px. Le Défi utilise une carte pleine largeur et de hauteur stable, des zones internes réservées, une confirmation compacte et un état terminé standardisé avec progression contextualisée.
+- Configuration remplace les seuils de pointeur par de vraies zones d’insertion entre les lignes ; déposer sur le corps d’une ligne conserve l’échange. Tous les targets annoncent `move`, les previews restent distinctes et un drop produit une seule sauvegarde.
+- Boutique ancre la dernière transaction au bas de son body, étire uniformément les cartes disponibles et conserve ses contrôles en pied. Les historiques Banque/Boutique matérialisent toujours dix lignes sur desktop, sans scroll vertical à 1920 × 1080 ou 1366 × 768 ; mobile garde son scroll interne.
+- Sac homogénéise les cartes Ressources avec un emplacement d’action réservé : Primos ouvre Boutique, Moras ouvre Banque et seules les particules personnelles ouvrent la conversion partagée. La sidebar expose les mêmes entrées contextuelles et réutilise exactement la même modale/idempotence sans navigation forcée.
+- Une transition réelle `ACTIVE → COMPLETED` survenue pendant la session produit un feedback global séquencé dans la famille Level-up, jamais au chargement initial : verrou d’une seconde, fermeture backdrop/`Escape` puis disparition automatique vers 5,4 s. Aperçu standardise les états terminés Récompense, Roue et Défi sans inventer ceux des domaines futurs.
+- La migration additive Prisma 013, ASCII-only via littéraux PostgreSQL `U&`, répare uniquement les trois colonnes textuelles des définitions de Défi et de leurs snapshots existants. Elle est appliquée et suivie sur Supabase DEV ; 012 reste immuable. Les huit comptes DEV confirmés, leurs identités, soldes, achats et états métier n’ont subi aucun nettoyage ni mutation.
+- Ce candidat 0.83 reste à reviewer sur `review`, puis à promouvoir et à revalider publiquement. Quotidiennes / Défi demeure le domaine actif ; Boutique n’est pas recommencée et aucun déploiement manuel ni service payant n’appartient au lot.
 
 ## État du lot — Invocation x1/x10
 
@@ -3819,7 +3830,7 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Faire reviewer indépendamment le candidat 0.82 uniquement sur `review` → corriger les éventuels retours sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → valider publiquement Défi, conversion et les corrections UI transverses.** Quotidiennes / Défi reste le domaine actif jusqu’à cette validation. Combat ou Expédition sont seulement des directions futures possibles ; le propriétaire choisira la suite après le checkpoint public. `PAID_INFRA_APPROVED = false` reste inchangé.
+**Faire reviewer indépendamment le candidat correctif 0.83 uniquement sur `review` → corriger les éventuels retours sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → revalider publiquement Défi, conversion, Ressources et les corrections UI transverses.** Quotidiennes / Défi reste le domaine actif jusqu’à cette validation. Combat ou Expédition sont seulement des directions futures possibles ; le propriétaire choisira la suite après le checkpoint public. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

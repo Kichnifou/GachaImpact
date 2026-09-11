@@ -47,6 +47,8 @@ La préférence personnelle utilise la clé stable `navigation_menu_v1` dans `pl
 
 Banque conserve ses accès contextuels et Menu. Le futur Historique restera aussi accessible par les actions contextuelles `Voir tout` de Banque, Boutique, Invocation et des domaines concernés. Statistiques et Social n’obtiennent pas de nouvelle tuile principale ; la zone Communauté/Chat demeure le point d’entrée naturel futur vers Chat, Amis, messages privés, joueurs et profils.
 
+Les ressources possèdent aussi des raccourcis contextuels cohérents sans dupliquer leur logique : Primos ouvre Boutique, Moras ouvre Banque et les particules de l’élément personnel ouvrent la modale de conversion partagée. Ces entrées existent dans Sac (`Tout` et `Ressources`) et dans la sidebar. Ouvrir la conversion depuis la sidebar superpose la modale à l’écran courant sans changer de route ; toutes les entrées utilisent le même composant et la même intention idempotente.
+
 ## Header et Tutoriel futur
 
 La cible du header droit est `Menu | Tutoriel* | Modération* | Déconnexion | Notifications`, où les astérisques indiquent un affichage conditionnel. En 0.80, Menu est toujours visible, Modération dépend des permissions serveur et Tutoriel est absent car aucun moteur réel n’existe.

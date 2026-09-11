@@ -6881,6 +6881,179 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
   .collection-filters .sort-direction-button { width: 100%; }
 }
 
+/* Corrective layout invariants — 0.83 */
+@media (min-width: 1121px) {
+  .team-screen { grid-template-rows: auto auto minmax(0, 1fr) 126px; }
+  .team-bonuses {
+    box-sizing: border-box;
+    height: 126px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .team-bonus-content { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+  .team-bonuses .bonus-grid { height: 72px; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); }
+  .team-bonuses .bonus-grid.passive-count-1 article { grid-column: 1 / -1; grid-row: 1 / -1; }
+  .team-bonuses .bonus-grid.passive-count-2 { grid-template-columns: minmax(0, 1fr); }
+  .team-bonuses .bonus-grid.passive-count-2 article:first-child { grid-row: 1; }
+  .team-bonuses .bonus-grid.passive-count-2 article:last-child { grid-row: 2; }
+  .team-bonuses .bonus-grid.passive-count-3 article:nth-child(3) { width: calc((100% - 6px) / 2); grid-column: 1 / -1; justify-self: center; }
+  .team-bonuses .bonus-grid article { box-sizing: border-box; min-width: 0; }
+  .team-reference-toggle { align-self: center; margin-top: 23px; white-space: nowrap; }
+
+  .activity-shell > .screen-header {
+    box-sizing: border-box;
+    height: clamp(92px, 5.42vw, 104px);
+    min-height: 0;
+    align-items: center;
+    padding: 12px 20px;
+  }
+  .activity-shell > .screen-header h1 { font-size: 29px; }
+  .activity-shell > .screen-header p { margin-top: 5px; }
+
+  .shop-scroll-body {
+    grid-template-rows: minmax(0, 1fr) auto;
+    align-content: stretch;
+    overflow-y: hidden;
+  }
+  .shop-scroll-body .shop-grid { height: 100%; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); grid-auto-rows: minmax(0, 1fr); align-content: stretch; align-items: stretch; }
+  .shop-scroll-body .shop-item { height: 100%; min-height: 0; }
+
+  .history-table-wrap { box-sizing: border-box; overflow-x: auto; overflow-y: hidden; }
+  .history-table, .history-modal .bank-history-table { height: 100%; table-layout: fixed; }
+  .history-table thead tr, .history-table tbody tr,
+  .history-modal .bank-history-table thead tr, .history-modal .bank-history-table tbody tr { height: calc(100% / 11); }
+  .history-table th, .history-table td,
+  .history-modal .bank-history-table th, .history-modal .bank-history-table td { height: auto; padding-block: 6px; }
+}
+
+.team-bonuses .bonus-grid article > div { display: block; font-size: 10px; }
+.team-bonuses .bonus-grid article > div > strong,
+.team-bonuses .bonus-grid article > div > span { display: inline; }
+.team-bonuses .bonus-grid article > div > strong { font-size: 10px; }
+
+.menu-configuration-list { gap: 0; }
+.menu-configuration-list > li.menu-drop-zone {
+  box-sizing: border-box;
+  height: 14px;
+  min-height: 14px;
+  display: grid;
+  grid-template-columns: 1fr;
+  place-items: center;
+  padding: 0;
+  overflow: hidden;
+  color: transparent;
+  font-size: 7px;
+  line-height: 12px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+}
+.menu-configuration-list > li.menu-drop-zone.active {
+  color: #bfeeff;
+  border-color: rgba(88, 205, 255, .72);
+  background: rgba(39, 133, 187, .28);
+  box-shadow: 0 0 12px rgba(75, 198, 255, .2);
+}
+.menu-configuration-list > li:not(.menu-drop-zone).drop-swap { outline: 2px solid #b68aff; box-shadow: inset 0 0 0 2px rgba(182, 138, 255, .18); }
+.menu-configuration-list > li:not(.menu-drop-zone) { cursor: grab; }
+.menu-configuration-list > li:not(.menu-drop-zone).dragging { cursor: grabbing; }
+
+.inventory-resource-card {
+  box-sizing: border-box;
+  min-height: 112px;
+  grid-template-columns: 47px minmax(0, 1fr) auto;
+  grid-template-rows: minmax(47px, 1fr) 22px;
+}
+.inventory-resource-card.mora { grid-template-rows: minmax(47px, 1fr) 22px; }
+.inventory-resource-card.mora > .item-icon { grid-row: 1; }
+.inventory-card-action {
+  min-height: 22px;
+  display: flex;
+  align-items: flex-end;
+  grid-column: 1 / -1;
+  padding-left: 58px;
+}
+.inventory-card-action > button {
+  min-height: 20px;
+  padding: 0;
+  cursor: pointer;
+  color: #f2ce70;
+  font: inherit;
+  font-size: 8px;
+  font-weight: 800;
+  text-align: left;
+  border: 0;
+  background: transparent;
+}
+.inventory-card-action > button:disabled { cursor: default; opacity: .42; }
+
+.primogem-resource-action:hover,
+.primogem-resource-action:focus-visible { border-color: rgba(97, 216, 230, .42); background: rgba(31, 109, 132, .18); }
+.particles-card { position: relative; padding-bottom: 28px; }
+.sidebar-particle-convert {
+  position: absolute;
+  left: 12px;
+  bottom: 8px;
+  padding: 0;
+  cursor: pointer;
+  color: #83d9ff;
+  font-size: 8px;
+  font-weight: 800;
+  border: 0;
+  background: transparent;
+}
+
+.shop-quantity button { font-size: 12px; }
+.shop-buy-button { font-size: 14px; }
+.shop-history, .shop-history button, .shop-last-purchase dd { font-size: 12px; }
+
+.history-empty-row td { color: transparent !important; }
+
+.daily-overview-complete { color: #8fe6bc !important; font-weight: 900; }
+.daily-overview-card .daily-overview-detail { margin-top: 3px; color: #c6d3e5; }
+.daily-challenge-card {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  height: 350px;
+  grid-template-rows: minmax(0, 1fr) 76px 42px 72px;
+  align-content: stretch;
+}
+.daily-challenge-main { min-height: 0; display: grid; align-content: start; gap: 12px; }
+.daily-challenge-main > p { color: var(--muted); line-height: 1.5; }
+.daily-challenge-state-slot { min-height: 0; display: grid; align-content: center; gap: 3px; }
+.daily-challenge-state-slot p { margin: 0; color: var(--muted); font-size: 10px; }
+.daily-challenge-action-slot { min-height: 42px; display: flex; align-items: center; }
+.daily-challenge-action-slot > button { width: 100%; }
+.daily-challenge-confirm-slot { min-height: 72px; display: grid; align-items: end; }
+.daily-challenge-confirm { min-height: 58px; grid-template-columns: minmax(0, 1fr) max-content max-content; padding: 8px 10px; }
+.daily-challenge-confirm p { font-size: 9px; }
+.daily-challenge-confirm button { min-height: 32px; padding: 0 12px; }
+.daily-challenge-cancel { color: #cad5e7; border: 1px solid rgba(126, 148, 181, .3); border-radius: 8px; background: rgba(8, 17, 32, .82); }
+.challenge-completion-overlay { z-index: 101; }
+.challenge-completion-feedback { border-color: rgba(113, 224, 169, .5); background: radial-gradient(circle at 50% 0%, rgba(72, 199, 139, .17), transparent 50%), linear-gradient(135deg, rgba(12, 46, 55, .98), rgba(27, 27, 72, .98)); }
+.challenge-completion-feedback .level-up-feedback-kicker { color: #8fe6bc; }
+
+@media (max-width: 1120px) {
+  .team-bonuses { display: grid; grid-template-columns: minmax(0, 1fr) max-content; gap: 10px; }
+  .team-bonus-content { min-width: 0; }
+  .team-reference-toggle { align-self: center; }
+  .daily-challenge-card { height: auto; min-height: 350px; }
+}
+
+@media (max-width: 760px) {
+  .team-bonuses { grid-template-columns: 1fr; }
+  .team-reference-toggle { justify-self: start; }
+  .history-table-wrap { overflow: auto; }
+  .history-table, .history-modal .bank-history-table { min-width: 720px; height: auto; }
+  .history-table th, .history-table td,
+  .history-modal .bank-history-table th, .history-modal .bank-history-table td { height: 45px; }
+  .daily-challenge-confirm { grid-template-columns: 1fr 1fr; }
+  .daily-challenge-confirm p { grid-column: 1 / -1; }
+}
+
 @media (max-width: 1120px) {
   .scrollable-screen-panel,
   .scrollable-screen-panel-content,
@@ -6929,7 +7102,7 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .shop-feedback-slot .error { color: #ffc2ba; }
 .shop-scroll-body { display: grid; align-content: start; gap: 12px; padding-right: 4px; }
 .shop-scroll-body .shop-grid { min-height: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: visible; }
-.shop-item { min-width: 0; min-height: 360px; display: flex; flex-direction: column; padding: 15px; overflow: hidden; }
+.shop-item { box-sizing: border-box; min-width: 0; min-height: 360px; display: flex; flex-direction: column; padding: 15px; overflow: hidden; }
 .shop-item.mission { --shop-color: #78c6ff; }
 .shop-item.primogems { --shop-color: #b68aff; }
 .shop-item.ticket { --shop-color: #f0c35c; }
@@ -7184,6 +7357,51 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
   .history-table th, .history-table td,
   .history-modal .bank-history-table th, .history-modal .bank-history-table td { padding: 10px 8px; }
   .history-modal-pagination { padding-inline: 10px; }
+  .daily-challenge-confirm { grid-template-columns: 1fr 1fr; }
+  .daily-challenge-confirm p { grid-column: 1 / -1; }
+}
+
+/* 0.83 final cascade: these rules intentionally follow the 0.80/0.81 compatibility layer. */
+.menu-configuration-list { gap: 0; }
+.menu-configuration-list > li.menu-drop-zone { box-sizing: border-box; height: 14px; min-height: 14px; display: grid; grid-template-columns: 1fr; place-items: center; padding: 0; overflow: hidden; color: transparent; font-size: 7px; line-height: 12px; border: 1px solid transparent; border-radius: 5px; background: transparent; }
+.menu-configuration-list > li.menu-drop-zone.active { color: #bfeeff; border-color: rgba(88, 205, 255, .72); background: rgba(39, 133, 187, .28); box-shadow: 0 0 12px rgba(75, 198, 255, .2); }
+
+.daily-challenge-card { box-sizing: border-box; width: 100%; max-width: none; height: 350px; grid-template-rows: minmax(0, 1fr) 76px 42px 72px; align-content: stretch; }
+.daily-challenge-main { min-height: 0; display: grid; align-content: start; gap: 12px; }
+.daily-challenge-main > p { color: var(--muted); line-height: 1.5; }
+.daily-challenge-state-slot { min-height: 0; display: grid; align-content: center; gap: 3px; }
+.daily-challenge-state-slot p { margin: 0; color: var(--muted); font-size: 10px; }
+.daily-challenge-action-slot { min-height: 42px; display: flex; align-items: center; }
+.daily-challenge-action-slot > button { width: 100%; }
+.daily-challenge-confirm-slot { min-height: 72px; display: grid; align-items: end; }
+.daily-challenge-confirm { min-height: 58px; grid-template-columns: minmax(0, 1fr) max-content max-content; padding: 8px 10px; }
+.daily-challenge-confirm p { font-size: 9px; }
+.daily-challenge-confirm button { min-height: 32px; padding: 0 12px; }
+
+@media (min-width: 1121px) {
+  .activity-shell > .screen-header { box-sizing: border-box; height: clamp(92px, 5.42vw, 104px); min-height: 0; align-items: center; padding: 12px 20px; }
+  .activity-shell > .screen-header h1 { font-size: 29px; }
+  .activity-shell > .screen-header p { margin-top: 5px; }
+  .shop-scroll-body { grid-template-rows: minmax(0, 1fr) auto; align-content: stretch; overflow-y: hidden; }
+  .shop-scroll-body .shop-grid { height: 100%; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); align-items: stretch; }
+  .shop-scroll-body .shop-item { height: 100%; min-height: 0; }
+  .history-table-wrap { box-sizing: border-box; overflow-x: auto; overflow-y: hidden; }
+  .history-table, .history-modal .bank-history-table { height: 100%; table-layout: fixed; }
+  .history-table thead tr, .history-table tbody tr,
+  .history-modal .bank-history-table thead tr, .history-modal .bank-history-table tbody tr { height: calc(100% / 11); }
+  .history-table th, .history-table td,
+  .history-modal .bank-history-table th, .history-modal .bank-history-table td { height: auto; padding-block: 6px; }
+}
+
+@media (max-width: 1120px) {
+  .daily-challenge-card { height: auto; min-height: 350px; }
+}
+
+@media (max-width: 760px) {
+  .history-table-wrap { overflow: auto; }
+  .history-table, .history-modal .bank-history-table { min-width: 720px; height: auto; }
+  .history-table th, .history-table td,
+  .history-modal .bank-history-table th, .history-modal .bank-history-table td { height: 45px; }
   .daily-challenge-confirm { grid-template-columns: 1fr 1fr; }
   .daily-challenge-confirm p { grid-column: 1 / -1; }
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PlayerShopDto, ShopEffectDto, ShopHistoryDto, ShopItemDto, ShopPurchaseDto, ShopPurchaseRecordDto } from '../api/types'
 import GameAssetIcon from '../components/GameAssetIcon'
-import HistoryModalShell from '../components/HistoryModalShell'
+import HistoryModalShell, { HistoryTablePlaceholders } from '../components/HistoryModalShell'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
 import { currencyAssetPaths } from '../utils/gameAssets'
@@ -80,7 +80,7 @@ export function ShopHistoryModal({ onClose, onLoad }: { onClose: () => void; onL
   }, [onLoad, page])
   const visiblePage = history?.page ?? page
   return <HistoryModalShell title="Historique" category="Boutique / Achats" labelledBy="shop-history-title" page={visiblePage} totalPages={history?.totalPages ?? 0} loading={loading} onPageChange={setPage} onClose={onClose}>
-    <div className="history-table-wrap">{error ? <p className="detail-status error" role="alert">{error}</p> : !history && loading ? <p className="detail-status">Chargement de l’historique…</p> : history?.totalCount === 0 ? <p className="detail-status">Aucun achat enregistré.</p> : <table className="history-table shop-history-table"><thead><tr><th>Date</th><th>Article</th><th>Quantité</th><th>Coût</th><th>Résultat</th></tr></thead><tbody>{history?.purchases.map((purchase) => <tr key={purchase.id}><td>{formatPurchaseDate(purchase.purchasedAt)}</td><td>{purchase.displayName}</td><td>{purchase.quantity}</td><td>−{formatResourceAmount(purchase.totalPrice)} Moras</td><td>{effectLabel(purchase.effect)}</td></tr>)}</tbody></table>}</div>
+    <div className="history-table-wrap">{error ? <p className="detail-status error" role="alert">{error}</p> : !history && loading ? <p className="detail-status">Chargement de l’historique…</p> : history?.totalCount === 0 ? <p className="detail-status">Aucun achat enregistré.</p> : <table className="history-table shop-history-table"><thead><tr><th>Date</th><th>Article</th><th>Quantité</th><th>Coût</th><th>Résultat</th></tr></thead><tbody>{history?.purchases.map((purchase) => <tr key={purchase.id}><td>{formatPurchaseDate(purchase.purchasedAt)}</td><td>{purchase.displayName}</td><td>{purchase.quantity}</td><td>−{formatResourceAmount(purchase.totalPrice)} Moras</td><td>{effectLabel(purchase.effect)}</td></tr>)}<HistoryTablePlaceholders count={10 - (history?.purchases.length ?? 0)} colSpan={5} /></tbody></table>}</div>
   </HistoryModalShell>
 }
 

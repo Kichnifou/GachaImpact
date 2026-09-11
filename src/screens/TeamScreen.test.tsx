@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 
 import { act, useState, type ComponentProps } from 'react'
+import { readFileSync } from 'node:fs'
 import { createRoot, type Root } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -9,6 +10,8 @@ import type { PlayerTeamDto, PlayerTeamsDto, TeamCharacterDto } from '../api/typ
 import { canOpenNextTeamPage, filterTeamCharacters, insertTeamOrder, swapTeamOrder, swapTeamSlots, teamPageForPosition, teamPassiveStatusLabel } from '../team/team-presentation'
 import TeamScreen, { CharacterSelector, TeamPassiveReferenceModal } from './TeamScreen'
 import teamScreenSource from './TeamScreen.tsx?raw'
+
+const appCssSource = readFileSync('src/App.css', 'utf8');
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -281,6 +284,17 @@ describe('real Team screen', () => {
     }
     const html = renderToStaticMarkup(<TeamScreen teams={{ ...snapshot, teams: [passiveTeam, ...snapshot.teams.slice(1)] }} {...callbacks} />)
     expect(html).toContain(`bonus-grid passive-count-${count}`)
+  })
+
+  it('keeps the passive action outside the adaptive grid and reserves only its natural width', () => {
+    const html = renderToStaticMarkup(<TeamScreen teams={teams(4)} {...callbacks} />)
+    const contentEnd = html.indexOf('</div><button type="button" class="team-reference-toggle"')
+    expect(html.indexOf('class="team-bonus-content"')).toBeGreaterThanOrEqual(0)
+    expect(html.indexOf('class="bonus-grid')).toBeLessThan(contentEnd)
+    expect(contentEnd).toBeGreaterThanOrEqual(0)
+    expect(appCssSource).toContain('grid-template-columns: minmax(0, 1fr) max-content')
+    expect(appCssSource).toContain('.team-bonuses .bonus-grid.passive-count-3 article:nth-child(3)')
+    expect(appCssSource).toContain('justify-self: center')
   })
 
   it('lays out exactly four passives as a desktop 2x2 grid while retaining the mobile column', () => {

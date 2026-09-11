@@ -4,7 +4,7 @@ import type { BankHistoryDto, BankOperationDto, BankTransferDto, PlayerBankDto }
 import type { BankTransferDirection } from '../bank/bank-transfer-intent-coordinator'
 import { formatBankCountdown } from '../bank/bank-presentation'
 import GameAssetIcon from '../components/GameAssetIcon'
-import HistoryModalShell from '../components/HistoryModalShell'
+import HistoryModalShell, { HistoryTablePlaceholders } from '../components/HistoryModalShell'
 import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
 import { currencyAssetPaths } from '../utils/gameAssets'
 
@@ -164,7 +164,7 @@ export function BankHistoryModal({ onClose, onLoad }: { onClose: () => void; onL
   const totalPages = Math.max(history?.totalPages ?? 0, 1)
   return <HistoryModalShell title="Historique de la Banque" category="Archives personnelles" labelledBy="bank-history-title" page={visiblePage} totalPages={totalPages} loading={loading} onPageChange={setPage} onClose={onClose}>
       <div className="history-table-wrap">
-        {error ? <p className="detail-status error" role="alert">{error}</p> : !history && loading ? <p className="detail-status">Chargement de l’historique…</p> : history?.totalCount === 0 ? <p className="detail-status">Aucune opération enregistrée.</p> : <table className="bank-history-table"><thead><tr><th>Date</th><th>Opération</th><th>Montant</th><th>Banque après</th><th>Portefeuille après</th></tr></thead><tbody>{history?.operations.map((operation) => <tr key={operation.id}><td>{formatOperationDate(operation.createdAt)}</td><td>{operationLabel(operation.type)}</td><td>{operation.type === 'WITHDRAWAL' ? '−' : '+'}{formatResourceAmount(operation.amount)}</td><td>{formatResourceAmount(operation.bankBalanceAfter)}</td><td>{operation.walletBalanceAfter === null ? '—' : formatResourceAmount(operation.walletBalanceAfter)}</td></tr>)}</tbody></table>}
+        {error ? <p className="detail-status error" role="alert">{error}</p> : !history && loading ? <p className="detail-status">Chargement de l’historique…</p> : history?.totalCount === 0 ? <p className="detail-status">Aucune opération enregistrée.</p> : <table className="bank-history-table"><thead><tr><th>Date</th><th>Opération</th><th>Montant</th><th>Banque après</th><th>Portefeuille après</th></tr></thead><tbody>{history?.operations.map((operation) => <tr key={operation.id}><td>{formatOperationDate(operation.createdAt)}</td><td>{operationLabel(operation.type)}</td><td>{operation.type === 'WITHDRAWAL' ? '−' : '+'}{formatResourceAmount(operation.amount)}</td><td>{formatResourceAmount(operation.bankBalanceAfter)}</td><td>{operation.walletBalanceAfter === null ? '—' : formatResourceAmount(operation.walletBalanceAfter)}</td></tr>)}<HistoryTablePlaceholders count={10 - (history?.operations.length ?? 0)} colSpan={5} /></tbody></table>}
       </div>
     </HistoryModalShell>
 }

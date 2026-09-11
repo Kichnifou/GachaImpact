@@ -14,6 +14,7 @@ type PlayerSidebarProps = {
   isOpen: boolean
   onClose: () => void
   onNavigate: (screen: ScreenId) => void
+  onOpenParticleConversion: () => void
   playerData: PlayerDto
   resources: PlayerResourcesDto
   progression: PlayerProgressionDto
@@ -27,7 +28,7 @@ type PlayerSidebarProps = {
 
 const particleElements = ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro'] as const
 
-function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, progression, levelUpDelta = null, profileLevelUpActive = false, dailyRewardToday, onClaimDailyReward, gacha, teams }: PlayerSidebarProps) {
+function PlayerSidebar({ isOpen, onClose, onNavigate, onOpenParticleConversion, playerData, resources, progression, levelUpDelta = null, profileLevelUpActive = false, dailyRewardToday, onClaimDailyReward, gacha, teams }: PlayerSidebarProps) {
   const featuredCharacter = gacha.banner.featuredFiveStars.find(({ id }) => id === gacha.playerState.selectedBannerCharacterId)
   const progressionPercent = getProgressionPercent(progression)
   const elementTheme = playerData.elementKey ? elementThemes[playerData.elementKey] : null
@@ -77,10 +78,10 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
             <span>Ressources principales</span>
           </button>
           <div className="resource-grid">
-            <div className="resource-item">
+            <button type="button" className="resource-item resource-item-action primogem-resource-action" onClick={() => onNavigate('shop')} aria-label={`Ouvrir la Boutique, ${formatResourceAmount(resources.primogems)} Primos`}>
               <GameAssetIcon className="resource-icon cyan" src={currencyAssetPaths.primogem} fallback="✦" />
               <div><strong>{formatResourceAmount(resources.primogems)}</strong><small>Primos</small></div>
-            </div>
+            </button>
             <button type="button" className="resource-item resource-item-action" onClick={() => onNavigate('bank')} aria-label={`Ouvrir la Banque, ${formatResourceAmount(resources.moras)} Moras`}>
               <GameAssetIcon className="resource-icon gold" src={currencyAssetPaths.mora} fallback="●" />
               <div><strong>{formatResourceAmount(resources.moras)}</strong><small>Moras</small></div>
@@ -102,6 +103,7 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, playerData, resources, pro
               </div>
             ))}
           </div>
+          {playerData.elementKey && <button type="button" className="sidebar-particle-convert" onClick={onOpenParticleConversion}>Convertir →</button>}
         </section>
 
         <section className="panel team-card team-card-navigable">

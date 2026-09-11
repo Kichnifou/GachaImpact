@@ -1298,3 +1298,7 @@ Les détails SQL exacts restent réservés à la Phase 2.
 Le sélecteur paginé des Teams précède désormais le header compact de la Team sélectionnée. Cette hiérarchie ne change ni la sélection, ni l’activation, ni le renommage, ni le vidage, ni les réorganisations Teams/slots, ni les fiches personnage.
 
 Pour exactement quatre passifs, la grille 2 × 2 réduit uniquement les icônes élémentaires via `.bonus-grid.passive-count-4 .bonus-element-icon`. Les cas de un à trois passifs gardent leur densité existante.
+
+### Stabilisation physique 0.83
+
+Le panneau compact conserve exactement la même largeur, hauteur et position pour un à quatre passifs. Son contenu extensible est séparé du bouton `Voir les passifs` par une colonne d’action `max-content`. La grille interne est déterministe : une carte pleine largeur ; une colonne de deux lignes ; deux cartes en haut et une demi-largeur centrée en bas ; puis 2 × 2. Chaque carte compacte conserve l’icône puis le préfixe gras et la description sur une seule ligne desktop. La modale détaillée n’est pas modifiée.

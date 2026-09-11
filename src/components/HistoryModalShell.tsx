@@ -29,4 +29,8 @@ function HistoryModalShell({ title, category, labelledBy, page, totalPages, load
   </div>
 }
 
+export function HistoryTablePlaceholders({ count, colSpan }: { count: number; colSpan: number }) {
+  return Array.from({ length: Math.max(0, count) }, (_, index) => <tr className="history-empty-row" aria-hidden="true" key={`empty-${index}`}><td colSpan={colSpan}>&nbsp;</td></tr>)
+}
+
 export default HistoryModalShell

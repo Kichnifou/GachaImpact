@@ -42,6 +42,7 @@ function renderProgression(value: PlayerProgressionDto, elementKey: ElementKey |
     isOpen: false,
     onClose: vi.fn(),
     onNavigate: vi.fn(),
+    onOpenParticleConversion: vi.fn(),
     playerData: { id: 'p1', displayName: 'Kichnifou', elementKey, status: 'ACTIVE' },
     resources,
     progression: value,
@@ -122,7 +123,7 @@ describe('Player sidebar progression', () => {
 
   it('shows a temporary level delta and profile glow without changing progression data', () => {
     const html = renderToStaticMarkup(createElement(PlayerSidebar, {
-      isOpen: false, onClose: vi.fn(), onNavigate: vi.fn(),
+      isOpen: false, onClose: vi.fn(), onNavigate: vi.fn(), onOpenParticleConversion: vi.fn(),
       playerData: { id: 'p1', displayName: 'Kichnifou', elementKey: 'hydro', status: 'ACTIVE' },
       resources, progression: progression(12, '4'), levelUpDelta: 3, profileLevelUpActive: true,
       dailyRewardToday: { claimed: false, businessDate: '2026-09-05', rewards: { primogems: '160', mainElementParticles: '160', moras: '10000' } },

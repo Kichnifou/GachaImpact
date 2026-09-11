@@ -30,6 +30,9 @@ import { ShopPurchaseIntentCoordinator } from '../shop/shop-purchase-intent-coor
 import { applyModerationResultToActor } from '../moderation/apply-moderation-result'
 import ActivitiesScreen from '../screens/ActivitiesScreen'
 import ConfigurationScreen from '../screens/ConfigurationScreen'
+import ParticleConversionModal from './ParticleConversionModal'
+import DailyChallengeCompletionFeedback from './DailyChallengeCompletionFeedback'
+import { isDailyChallengeCompletionTransition } from '../daily-challenge/presentation'
 import SecondaryNavigation from './SecondaryNavigation'
 import GlobalMenu from './GlobalMenu'
 import { activityTabs, characterTabs, defaultNavigationPreference, hashForScreen, parseNavigationHash, type MainNavigationId } from '../navigation/navigation'
@@ -102,6 +105,9 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isPlayersOpen, setIsPlayersOpen] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isParticleConversionOpen, setIsParticleConversionOpen] = useState(false)
+  const previousDailyChallengeStatus = useRef(dailyChallenge.status)
+  const [completedChallengeFeedback, setCompletedChallengeFeedback] = useState<NonNullable<DailyChallengeDto['challenge']> | null>(null)
   const [menuPage, setMenuPage] = useState(1)
   const [menuPreference, setMenuPreference] = useState<NavigationMenuPreferenceDto>(defaultNavigationPreference)
   const [lastCharacterScreen, setLastCharacterScreen] = useState<ScreenId>(() => activeScreen.startsWith('characters-') ? activeScreen : 'characters-box')
@@ -122,6 +128,11 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
     onLevelUpFeedbackFinished(id)
   }, [onLevelUpFeedbackFinished])
   const profileLevelUp = useProfileLevelUpFeedback(profileLevelUpEvent, finishProfileLevelUp)
+  useEffect(() => {
+    const previous = previousDailyChallengeStatus.current
+    previousDailyChallengeStatus.current = dailyChallenge.status
+    if (isDailyChallengeCompletionTransition(previous, dailyChallenge)) setCompletedChallengeFeedback(dailyChallenge.challenge)
+  }, [dailyChallenge])
   useEffect(() => { let active = true; void onLoadNavigationPreferences().then((value) => { if (active) setMenuPreference(value) }).catch(() => undefined); return () => { active = false } }, [onLoadNavigationPreferences, player.id])
   const finishLevelUpModal = useCallback((id: string) => {
     const event = levelUpFeedbacks.find((candidate) => candidate.id === id)
@@ -259,7 +270,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
       case 'characters-team':
         return <TeamScreen teams={teams} initialBox={boxCache.read(player.id)} stellaRetryCharacterId={stellaIntents.getIntent(player.id)?.characterId ?? null} onLoad={onLoadTeams} onActivate={onActivateTeam} onRename={onRenameTeam} onCreateNext={onCreateNextTeam} onDelete={onDeleteTeam} onReorderTeams={onReorderTeams} onSetSlot={onSetTeamSlot} onReorderSlots={onReorderTeamSlots} onRemoveSlot={onRemoveTeamSlot} onClear={onClearTeam} onLoadBox={loadBox} onSetBoxFavorite={setBoxFavorite} onUseStella={useStella} />
       case 'inventory':
-        return <InventoryScreen key={player.id} initialInventory={inventoryCache.read(player.id)} resources={resources} elementKey={player.elementKey!} onLoad={loadInventory} onConvertParticles={convertParticles} onNavigateBank={() => navigate('bank')} onLoadBox={loadBox} onSetBoxFavorite={setBoxFavorite} onUseStella={useStella} stellaRetryCharacterId={stellaIntents.getIntent(player.id)?.characterId ?? null} onLoadTeams={onLoadTeams} />
+        return <InventoryScreen key={player.id} initialInventory={inventoryCache.read(player.id)} resources={resources} elementKey={player.elementKey!} onLoad={loadInventory} onConvertParticles={convertParticles} onNavigateShop={() => navigate('shop')} onNavigateBank={() => navigate('bank')} onLoadBox={loadBox} onSetBoxFavorite={setBoxFavorite} onUseStella={useStella} stellaRetryCharacterId={stellaIntents.getIntent(player.id)?.characterId ?? null} onLoadTeams={onLoadTeams} />
       case 'bank':
         return <BankScreen initialBank={bankCache.read(player.id)} onLoad={loadBank} onLoadHistory={onLoadBankHistory} onTransfer={transferBank} />
       case 'moderation':
@@ -305,6 +316,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
           onNavigate={navigate}
+          onOpenParticleConversion={() => { setIsSidebarOpen(false); setIsParticleConversionOpen(true) }}
         />
 
         <main className="main-panel" id="main-content">
@@ -332,7 +344,9 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
 
       {isPlayersOpen && <OnlinePlayersPanel onClose={() => setIsPlayersOpen(false)} />}
       {isMenuOpen && <GlobalMenu preference={menuPreference} page={menuPage} onPageChange={setMenuPage} onNavigate={navigate} onClose={() => setIsMenuOpen(false)} />}
+      {isParticleConversionOpen && player.elementKey && <ParticleConversionModal elementKey={player.elementKey} stock={resources.particles[player.elementKey]} onClose={() => setIsParticleConversionOpen(false)} onConvert={convertParticles} />}
       {activeLevelUpFeedback && activeLevelUpFeedback.id !== closedLevelUpModalId && <LevelUpFeedback key={activeLevelUpFeedback.id} event={activeLevelUpFeedback} onFinished={finishLevelUpModal} />}
+      {completedChallengeFeedback && !activeLevelUpFeedback && pendingGachaPullCount === null && !isParticleConversionOpen && <DailyChallengeCompletionFeedback challenge={completedChallengeFeedback} onFinished={() => setCompletedChallengeFeedback(null)} />}
     </div>
   )
 }

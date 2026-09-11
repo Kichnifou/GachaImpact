@@ -37,6 +37,7 @@ async function mount(overrides: Partial<React.ComponentProps<typeof InventoryScr
     elementKey: 'hydro' as const,
     onLoad: vi.fn(async () => inventory),
     onConvertParticles: vi.fn(),
+    onNavigateShop: vi.fn(),
     onNavigateBank: vi.fn(),
     onLoadBox: vi.fn(async () => box),
     onSetBoxFavorite: vi.fn(async () => furina),
@@ -93,7 +94,7 @@ describe('real inventory screen', () => {
     const { container } = await mount({ onConvertParticles })
     const resourcesTab = Array.from(container.querySelectorAll<HTMLButtonElement>('.inventory-categories button')).find((button) => button.textContent?.includes('Ressources'))!
     act(() => resourcesTab.click())
-    const convertButtons = Array.from(container.querySelectorAll<HTMLButtonElement>('.inventory-use-button')).filter((button) => button.textContent === 'Convertir')
+    const convertButtons = Array.from(container.querySelectorAll<HTMLButtonElement>('.inventory-card-action button')).filter((button) => button.textContent?.startsWith('Convertir'))
     expect(convertButtons).toHaveLength(1)
     expect(convertButtons[0]!.closest('.inventory-resource-card')?.textContent).toContain('hydro')
     act(() => convertButtons[0]!.click())
@@ -118,13 +119,17 @@ describe('real inventory screen', () => {
     expect(presentInventory(inventory.resources, inventory.items, resources, 'all', 'font aine')).toEqual([])
   })
 
-  it('makes the whole Moras card navigate to the Bank', async () => {
+  it('keeps contextual resource actions in both Tout and Ressources', async () => {
     const onNavigateBank = vi.fn()
-    const { container } = await mount({ onNavigateBank })
-    const card = container.querySelector<HTMLButtonElement>('.inventory-resource-card.mora')!
+    const onNavigateShop = vi.fn()
+    const { container } = await mount({ onNavigateBank, onNavigateShop })
+    const card = container.querySelector<HTMLElement>('.inventory-resource-card.mora')!
     expect(card.textContent).toContain('Accéder à la Banque')
-    act(() => card.click())
+    act(() => card.querySelector<HTMLButtonElement>('.inventory-card-action button')!.click())
     expect(onNavigateBank).toHaveBeenCalledOnce()
+    act(() => container.querySelector<HTMLElement>('.inventory-resource-card:not(.mora) .inventory-card-action button')!.click())
+    expect(onNavigateShop).toHaveBeenCalledOnce()
+    expect(container.querySelectorAll('.inventory-resource-card .inventory-card-action')).toHaveLength(9)
   })
 
   it('orders Collection owned then unknown and opens real details', async () => {

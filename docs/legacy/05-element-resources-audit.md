@@ -1526,3 +1526,5 @@ Idée future documentée :
 `Sac > Ressources` expose `Convertir` uniquement sur la carte des particules correspondant à l’élément permanent du Player. La modale accepte un entier >= 1 dans la limite du stock et présente le taux 1:1 vers les Primos. `MAX` remplit seulement le champ.
 
 `POST /api/v1/me/inventory/particles/convert` résout le Player authentifié et n’accepte du client que quantité et clé d’idempotence. Débit des particules, crédit des Primos, mouvements/statistiques économiques, progression Défi éventuelle et récompense de complétion appartiennent à une transaction `SERIALIZABLE`. Un refus ou rollback ne progresse pas ; un retry de la même intention ne débite, ne crédite et ne progresse pas deux fois.
+
+En 0.83, cette modale et son intention sont extraites en composant partagé. Les particules personnelles ouvrent la conversion depuis Sac (`Tout` ou `Ressources`) et depuis un lien discret de la sidebar, superposé à l’écran courant ; les six autres éléments n’exposent aucune action. Primos ouvre Boutique et Moras ouvre Banque. Toutes les cartes Ressources conservent les mêmes dimensions grâce à un emplacement de pied réservé, même vide.

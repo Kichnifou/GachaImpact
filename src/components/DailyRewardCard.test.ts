@@ -15,7 +15,8 @@ describe('daily reward card', () => {
 
   it('shows the persisted done state after reload without a CTA', () => {
     const html = renderToStaticMarkup(createElement(DailyRewardCard, { today: { claimed: true, businessDate: '2026-09-05', rewards }, elementKey: 'hydro', onClaim: vi.fn() }))
-    expect(html).toContain('Déjà récupérée aujourd’hui')
+    expect(html).toContain('✅ Terminé')
+    expect(html).toContain('Récompense récupérée aujourd’hui.')
     expect(html).not.toContain('<button')
   })
 

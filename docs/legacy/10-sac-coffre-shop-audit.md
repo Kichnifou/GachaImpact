@@ -1199,3 +1199,7 @@ L’aperçu principal affiche au plus `recentPurchases[0]` avec article, quantit
 ### Ajustements physiques 0.82
 
 Le grand panneau Boutique occupe toute la hauteur utile du `screen-stage` et conserve son bord inférieur aligné avec le chat, même lorsque son body contient de l’espace libre. Le libellé player-facing est `Dernière transaction`. La modale d’historique commune réserve exactement dix emplacements de ligne et garde son footer invariant pour une page pleine, partielle ou vide, conformément au contrat de layout UI V1.
+
+### Stabilisation physique 0.83
+
+Le body Boutique utilise sa hauteur disponible en deux zones : catalogue extensible puis dernière transaction ancrée au bas. Les cartes d’article ont une hauteur identique, leurs contrôles restent en pied et la typographie des actions demeure bornée. Sur desktop, les historiques Boutique et Banque matérialisent dix slots sans scroll vertical ; une page partielle ajoute des lignes visuellement vides sans déplacer le footer. Mobile conserve son conteneur de scroll interne.

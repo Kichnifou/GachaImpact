@@ -1211,3 +1211,11 @@ Le sous-onglet `Quotidiennes > Défi` implémente la quotidienne payante sans ou
 La migration additive 012 installe les trois définitions finales : messages 10, Pulls 5 et conversion 320. Elles gardent le même poids produit. `daily_messages_10` reste désactivé uniquement dans l’éligibilité physique tant qu’aucun vrai producteur de chat n’existe ; les deux autres forment donc temporairement le tirage exécutable sans constituer une nouvelle règle d’équilibrage.
 
 Les Pulls progressent de 1 ou 10 seulement dans leur transaction persistée. La conversion progresse de la quantité réellement convertie. À la cible, la ligne passe une fois à `COMPLETED` et crédite 800 Primos via le moteur économique dans la même transaction. Le switch actif coûte 20 000 Moras puis double, exclut la définition courante et remet la progression à zéro. Une journée suivante n’attribue rien automatiquement ; un actif ancien devient `EXPIRED`, tandis qu’un terminé historique reste terminé.
+
+### Stabilisation physique et texte 0.83
+
+Les états `AVAILABLE`, `ACTIVE` sans progression, `ACTIVE` avec progression/confirmation et `COMPLETED` partagent une carte pleine largeur de même hauteur externe et des zones internes réservées. La confirmation reste inline, avec annulation sombre secondaire et confirmation bleue primaire. Un état terminé affiche `✅ Terminé`, la progression contextualisée (`5 / 5 Invocations effectuées.`, `320 / 320 particules converties.` ou le futur équivalent Messages), puis `800 Primos reçus.`
+
+Une transition réelle `ACTIVE → COMPLETED` observée pendant la session déclenche un overlay global de la famille Level-up, avec fermeture verrouillée environ une seconde puis backdrop/`Escape`, et disparition automatique vers 5,4 secondes. Le chargement initial d’un état déjà terminé n’en déclenche jamais ; le feedback attend les présentations plein écran Gacha/Level-up et la fermeture de la conversion afin de ne pas se superposer.
+
+La migration additive Prisma 013 répare uniquement `display_name`, `description` et `progress_label` des trois définitions et leurs colonnes snapshot correspondantes, en les sélectionnant par clé externe. Son fichier SQL est ASCII-only et encode les caractères Unicode attendus avec les littéraux PostgreSQL `U&`. La migration 012 reste immuable ; aucun solde, progression, statut, date, achat ou Player n’est modifié.
