@@ -313,6 +313,8 @@ function AppBootstrap() {
       onWithdrawBank={withdrawBank}
       onLoadShop={loadShop}
       onPurchaseShop={purchaseShop}
+      onLoadNavigationPreferences={() => getGameApiClient().getNavigationPreferences()}
+      onSaveNavigationPreferences={(value) => getGameApiClient().putNavigationPreferences(value)}
       onClaimDailyReward={async () => {
         const { result, resources: nextResources } = await claimDailyRewardAndRefresh(getGameApiClient())
         setResources(nextResources)

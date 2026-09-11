@@ -60,7 +60,7 @@ Dans le vocabulaire actuel du projet :
 
 La V0 est une base d'interface et d'UX. Elle n'est pas une spécification métier et ses mocks peuvent volontairement être faux, incomplets ou obsolètes par rapport à la V1.
 
-La V1 est **en cours d'implémentation** : une alpha publique existe, avec frontend, backend, authentification, base PostgreSQL et plusieurs vertical slices réelles. Les audits legacy sont clôturés ; ils servent désormais de preuves et de spécifications fonctionnelles, pas de tracker d'avancement. Le Master indique toujours le domaine actif ; au checkpoint `297b5a9eb223c6e05393bafbff1421af47c70542`, les fondations/UI Gacha sont validées et le prochain domaine est le moteur Invocation x1/x10 réel.
+La V1 est **en cours d'implémentation** : une alpha publique existe, avec frontend, backend, authentification, base PostgreSQL et plusieurs vertical slices réelles. Les audits legacy sont clôturés ; ils servent désormais de preuves et de spécifications fonctionnelles, pas de tracker d'avancement. Le Master indique toujours le checkpoint, le domaine actif et la prochaine étape ; ces informations vivantes ne doivent pas être recopiées ici.
 
 L'objectif n'est pas de recopier aveuglément le legacy.
 
@@ -113,8 +113,9 @@ lire en priorité :
 4. le document spécialisé du domaine actif dans `docs/legacy/`
 5. `docs/specifications/decisions-log.md` si une décision transverse doit être vérifiée
 6. `docs/commands/command-reference.md` pour les commandes
-7. `docs/legacy/02-current-player-model.md` pour la vision conceptuelle du joueur
-8. `docs/legacy/03-command-data-matrix.md` pour les relations scripts/données
+7. `docs/specifications/navigation-shell-v1.md` pour la navigation, le Menu, Configuration et le Tutoriel
+8. `docs/legacy/02-current-player-model.md` pour la vision conceptuelle du joueur
+9. `docs/legacy/03-command-data-matrix.md` pour les relations scripts/données
 
 Le Master doit indiquer la prochaine étape exacte.
 

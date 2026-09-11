@@ -9,7 +9,7 @@ import ModerationScreen from './ModerationScreen'
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const roots: Root[] = []
-const player = (id: string, displayName: string, tester = false, level = 2): ModerationPlayerDto => ({ id, displayName, elementKey: 'hydro', level, tester })
+const player = (id: string, displayName: string, tester = false, level = 2): ModerationPlayerDto => ({ id, displayName, elementKey: 'hydro', level, tester, rank: id === 'self' ? 'SUPER' : tester ? 'TESTER' : 'PLAYER' })
 const actors = {
   self: player('self', 'Kichnifou', true, 8),
   a: player('player-a', 'Mynonyme', false, 4),
@@ -18,7 +18,7 @@ const actors = {
 
 function state(target = actors.self, superTools = true, stella = target.id === 'self' ? '0' : target.id === 'player-a' ? '17' : '29'): ModerationStateDto {
   return {
-    player: target,
+    player: target.id === 'self' && !superTools ? { ...target, rank: 'TESTER' } : target,
     permissions: {
       roles: superTools ? ['ADMIN', 'TESTER'] : ['TESTER'],
       capabilities: { moderationAccess: true, selfResourceTools: true, selfGameplayTools: true, superTools, canSelectPlayers: superTools, canManageTesters: superTools },

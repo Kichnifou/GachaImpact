@@ -51,8 +51,8 @@ Le code courant comprend au minimum `src/` pour le frontend et `server/` pour le
 3. [Workflow d'implémentation](process/implementation-workflow.md)
 4. [Ordre d'implémentation V1](roadmap/implementation-order-v1.md)
 5. [Journal des décisions](specifications/decisions-log.md)
-6. [Architecture backend cible](architecture/backend-architecture-v1.md) et [schéma PostgreSQL cible](architecture/postgresql-schema-v1.md)
-7. audit du domaine actif indiqué par le Master — actuellement [Gacha / Invocation](legacy/06-gacha-invocation-audit.md), complété par [Box / possessions](legacy/07-box-possession-obtention-audit.md) pour le prochain moteur Pull
+6. [Architecture backend cible](architecture/backend-architecture-v1.md), [schéma PostgreSQL cible](architecture/postgresql-schema-v1.md) et [shell de navigation V1](specifications/navigation-shell-v1.md)
+7. audit du domaine actif indiqué par le Master — actuellement [Boutique](legacy/17-shop-currencies-sinks-audit.md), le candidat restant à revalider publiquement
 
 Le Guide décrit l'ordre complet, incluant la vérification du HEAD et la comparaison entre cible documentaire et état physique. Il ne faut pas charger tous les audits dans chaque nouvelle conversation.
 

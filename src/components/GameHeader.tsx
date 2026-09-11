@@ -8,9 +8,10 @@ type GameHeaderProps = {
   onSignOut: () => Promise<void>
   showModeration: boolean
   onOpenModeration: () => void
+  onOpenMenu: () => void
 }
 
-function GameHeader({ displayName, onNavigateHome, onOpenSidebar, onSignOut, showModeration, onOpenModeration }: GameHeaderProps) {
+function GameHeader({ displayName, onNavigateHome, onOpenSidebar, onSignOut, showModeration, onOpenModeration, onOpenMenu }: GameHeaderProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const notificationAnchorRef = useRef<HTMLDivElement>(null)
 
@@ -44,6 +45,7 @@ function GameHeader({ displayName, onNavigateHome, onOpenSidebar, onSignOut, sho
           <strong>{displayName}</strong>
         </button>
 
+        <button type="button" className="menu-header-button" onClick={onOpenMenu}>Menu</button>
         {showModeration && <button type="button" className="moderation-header-button" onClick={onOpenModeration}>Modération</button>}
         <button type="button" className="sign-out-button" onClick={() => void onSignOut()}>
           Déconnexion

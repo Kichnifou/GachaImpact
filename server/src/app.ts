@@ -36,6 +36,8 @@ import type { GetCurrentPlayerInventory } from './application/inventory/inventor
 import type { AppConfig } from './config/environment.js';
 import type { GetCurrentPlayerShop, PurchaseShopItem } from './application/shop/shop-services.js';
 import { loadConfig } from './config/environment.js';
+import type { NavigationPreferencesService } from './application/navigation/navigation-preferences.js';
+import { registerNavigationPreferenceRoutes } from './api/routes/navigation-preferences.js';
 
 export type AppDependencies = Readonly<{
   authIdentityVerifier: AuthIdentityVerifier;
@@ -74,6 +76,7 @@ export type AppDependencies = Readonly<{
   moderationTools?: ModerationTools;
   getCurrentPlayerShop?: GetCurrentPlayerShop;
   purchaseShopItem?: PurchaseShopItem;
+  navigationPreferences?: NavigationPreferencesService;
   close?: () => Promise<void>;
 }>;
 
@@ -180,6 +183,9 @@ export async function buildApp(
     }
     if (dependencies.getCurrentPlayerShop && dependencies.purchaseShopItem) {
       await app.register(registerShopRoutes, { authenticate, getCurrentPlayerShop: dependencies.getCurrentPlayerShop, purchaseShopItem: dependencies.purchaseShopItem });
+    }
+    if (dependencies.navigationPreferences) {
+      await app.register(registerNavigationPreferenceRoutes, { authenticate, service: dependencies.navigationPreferences });
     }
 
     if (dependencies.close) {

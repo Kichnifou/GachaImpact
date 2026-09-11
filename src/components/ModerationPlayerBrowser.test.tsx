@@ -19,7 +19,7 @@ afterEach(() => {
 
 function response(input: ModerationPlayerListQuery): ModerationPlayerPageDto {
   const page = input.page ?? 1
-  return { players: [{ id: `player-${page}`, displayName: page === 1 ? 'Alpha' : 'Zeta', elementKey: 'geo', level: page, tester: page === 1 }], page, pageSize: 10, total: 12, totalPages: 2 }
+  return { players: [{ id: `player-${page}`, displayName: page === 1 ? 'Alpha' : 'Zeta', elementKey: 'geo', level: page, tester: page === 1, rank: page === 1 ? 'TESTER' : 'PLAYER' }], page, pageSize: 10, total: 12, totalPages: 2 }
 }
 
 describe('ModerationPlayerBrowser', () => {
@@ -64,7 +64,7 @@ describe('ModerationPlayerBrowser', () => {
     const onConfirm = vi.fn()
     const onListPlayers = vi.fn(async (input: ModerationPlayerListQuery): Promise<ModerationPlayerPageDto> => input.query === 'absent'
       ? { players: [], page: 1, pageSize: 10, total: 0, totalPages: 1 }
-      : { players: [{ id: 'long-player', displayName: 'Un pseudo volontairement très long pour le navigateur', elementKey: 'dendro', level: 99, tester: false }], page: 1, pageSize: 10, total: 1, totalPages: 1 })
+      : { players: [{ id: 'long-player', displayName: 'Un pseudo volontairement très long pour le navigateur', elementKey: 'dendro', level: 99, tester: false, rank: 'PLAYER' }], page: 1, pageSize: 10, total: 1, totalPages: 1 })
     const container = document.createElement('div'); document.body.append(container)
     const root = createRoot(container); roots.push(root)
     await act(async () => { root.render(<ModerationPlayerBrowser selectedPlayerId="actor" onListPlayers={onListPlayers} onConfirm={onConfirm} onClose={vi.fn()} />); await Promise.resolve(); await Promise.resolve() })

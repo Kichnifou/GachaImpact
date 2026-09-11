@@ -49,13 +49,12 @@ async function cleanup() {
 const input = (playerId: string, itemId: string, quantity: bigint, idempotencyKey = randomUUID()) => ({ playerId, playerElementKey: 'hydro' as const, itemId, quantity, idempotencyKey, occurredAt: now });
 
 describe('Shop persistence', () => {
-  it('reads only the visible catalog in explicit Mission, Primos, Ticket order with derived odds and no stock', async () => {
+  it('reads only the visible Primos and Ticket catalog with derived odds and no stock', async () => {
     const playerId = await createPlayer(1n); const view = await new PrismaShopStore(database, { nextInt: () => 0 }).getView(playerId);
-    expect(view.items.map(({ externalKey }) => externalKey)).toEqual(['daily-mission', 'primogem-bundle', 'reward-ticket']);
-    expect(view.items[0]).toMatchObject({ displayOrder: 1, priceAmount: 10_000n, available: false, unavailableReason: 'Missions quotidiennes bientôt disponibles', quantityMode: 'unit' });
-    expect(view.items[1]).toMatchObject({ displayOrder: 2, priceAmount: 50_000n, rewardPerUnit: { resourceKey: 'primogems', amount: 160n }, quantityMode: 'multiple' });
-    expect(view.items[2]?.ticketRewards.map(({ probabilityBasisPoints }) => probabilityBasisPoints)).toEqual([2000, 2000, 2000, 2000, 2000]);
-    expect(Object.keys(view.items[2] ?? {}).some((key) => key.toLowerCase().includes('stock'))).toBe(false);
+    expect(view.items.map(({ externalKey }) => externalKey)).toEqual(['primogem-bundle', 'reward-ticket']);
+    expect(view.items[0]).toMatchObject({ displayOrder: 2, priceAmount: 50_000n, rewardPerUnit: { resourceKey: 'primogems', amount: 160n }, quantityMode: 'multiple' });
+    expect(view.items[1]?.ticketRewards.map(({ probabilityBasisPoints }) => probabilityBasisPoints)).toEqual([2000, 2000, 2000, 2000, 2000]);
+    expect(Object.keys(view.items[1] ?? {}).some((key) => key.toLowerCase().includes('stock'))).toBe(false);
   });
 
   it('buys multiple Primogem bundles exactly once, updates economy stats, and persists an ordered history snapshot', async () => {
@@ -73,7 +72,7 @@ describe('Shop persistence', () => {
     const playerId = await createPlayer(149_999n); const store = new PrismaShopStore(database, { nextInt: () => 0 });
     await expect(store.purchase(input(playerId, primosId, 0n))).rejects.toMatchObject({ code: 'SHOP_QUANTITY_INVALID' });
     await expect(store.purchase(input(playerId, ticketId, 2n))).rejects.toMatchObject({ code: 'SHOP_QUANTITY_INVALID' });
-    await expect(store.purchase(input(playerId, missionId, 1n))).rejects.toMatchObject({ code: 'SHOP_ITEM_UNAVAILABLE' });
+    await expect(store.purchase(input(playerId, missionId, 1n))).rejects.toMatchObject({ code: 'SHOP_ITEM_NOT_FOUND' });
     await expect(store.purchase(input(playerId, ticketId, 1n))).rejects.toMatchObject({ code: 'SHOP_WALLET_INSUFFICIENT' });
     expect(await database.shopPurchase.count({ where: { playerId } })).toBe(0); expect(await database.businessOperation.count({ where: { playerId } })).toBe(0); expect(await database.resourceMovement.count({ where: { playerId } })).toBe(0);
     expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId, resourceKey: 'moras' } } })).amount).toBe(149_999n);

@@ -523,7 +523,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **But :** consulter et participer au Festival mensuel courant
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui lorsque l'intégration Twitch sera disponible
-- **UI équivalente :** écran Event avec onglets Activités / Boutique / Classement
+- **UI équivalente :** `Activités > Événement` avec onglets Jeux / Shop / Classement
 - **Résumé :** `!event`
 - **Inscription :** `!event go`
 - **État personnel :** `!event sac`
@@ -723,7 +723,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
   - `!mission S`
   - `!mission Z`
 - **Alias de compatibilité accepté :** `!mission resume` peut agir comme `!mission`, mais n'est pas mis en avant dans les helpers
-- **Bouton UI équivalent :** écran Missions avec Quotidienne / Permanentes puis sous-onglets B / A / S / Z
+- **Bouton UI équivalent :** `Activités > Missions` avec rangs B / A / S / Z ; l’ancienne quotidienne payante est le `Défi` de Quotidiennes
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
 - **Consultation d'un autre joueur :** non via commande ; la visibilité publique passe par le profil standalone
@@ -769,7 +769,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Statut audit :** CLÔTURÉ — Domaine Roue / quotidien après R656
 - **But :** Effectuer la Roue quotidienne et recevoir immédiatement son résultat.
 - **Syntaxe :** `!roue`
-- **Bouton UI équivalent :** écran Roue dédié avec roue graphique et bouton `Tourner`
+- **Bouton UI équivalent :** `Activités > Quotidiennes > Roue` avec roue graphique et bouton `Tourner`
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui lorsque l'intégration Twitch sera disponible
 - **Préconditions :** profil joueur valide ; spin du jour encore disponible
@@ -792,7 +792,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Statut audit :** Principe transverse validé R355 ; contenu enrichi progressivement avec les domaines quotidiens
 - **But :** Afficher un résumé compact et dynamique des activités quotidiennes du joueur.
 - **Syntaxe :** `!quotis`
-- **Bouton UI équivalent :** écran transversal `Quotidiennes`
+- **Bouton UI équivalent :** `Activités > Quotidiennes`
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
 - **Coût :** aucun
@@ -812,7 +812,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
   - `!expedition <personnage>`
   - `!expedition retour`
   - `!expedition <personnage envoyé>` peut également récupérer l'Expedition lorsqu'elle est prête
-- **Bouton UI équivalent :** Box > fiche d'un personnage possédé ; accès également depuis le hub `Quotidiennes`
+- **Bouton UI équivalent :** `Personnages > Box` > fiche d'un personnage possédé ; accès également depuis `Activités > Quotidiennes`
 - **Hub Quotidiennes :** états `À faire` / `En cours` / `À récupérer` / `Fait aujourd'hui` ; un départ précédent peut bloquer l'action tout en laissant la quotidienne actuelle encore à faire ; bouton `Accéder` toujours disponible
 - **Écran dédié :** aucun
 - **Disponible chat GachaImpact :** oui
@@ -840,8 +840,8 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **But :** Consulter puis effectuer le Combat quotidien ; consulter et attaquer le Boss mensuel.
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
-- **Bouton UI équivalent :** écran Combat ; accès également depuis le hub `Quotidiennes`
-- **Navigation UI :** `Combat quotidien` ouvert par défaut / `Boss mensuel`
+- **Bouton UI équivalent :** `Activités > Combat` ; accès également depuis `Activités > Quotidiennes`
+- **Navigation UI :** `Entraînement` ouvert par défaut / `Boss`
 - **Mémoires :** chaque mode possède quatre slots persistants indépendants des Teams et indépendants l'un de l'autre
 
 ### Syntaxes quotidiennes

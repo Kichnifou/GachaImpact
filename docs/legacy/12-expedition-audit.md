@@ -295,9 +295,7 @@ Le hub affiche l'état réel du jour mais ne duplique jamais la logique métier 
 
 Cette décision remplace la partie de R299 qui plaçait le suivi quotidien général dans l'onglet Quotidienne de Missions.
 
-L'écran Missions conserve :
-- onglet `Quotidienne` = mission quotidienne payante ;
-- onglet `Permanentes` = B/A/S/Z.
+Disposition historique désormais révisée par R817/R820/R821 : l’écran Missions expose directement `B / A / S / Z`, tandis que l’ancienne mission quotidienne payante devient `Activités > Quotidiennes > Défi`.
 
 `!quotis` devient l'équivalent texte compact du hub `Quotidiennes`.
 
@@ -393,7 +391,9 @@ Cas :
 
 Les réponses Twitch/chat restent courtes et sur une seule ligne.
 
-## R355 — Écran Quotidiennes transversal
+## R355 — Écran Quotidiennes transversal — ✅ RÉVISÉ PAR R817/R820
+
+Révision R817/R820 : l’accès propriétaire de l’Expédition se situe dans `Personnages > Box`; `Activités > Quotidiennes` reste son hub transversal et redirige vers cette vraie fiche Box sans créer d’écran Expedition séparé.
 
 Validation explicite de la nouvelle architecture :
 

@@ -7,7 +7,7 @@ import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-pr
 const identity = { subject: 'subject' }
 const player = { id: crypto.randomUUID(), displayName: 'Test', elementKey: 'hydro' as const, status: 'ACTIVE' as const }
 const state: ModerationStateDto = {
-  player: { id: player.id, displayName: player.displayName, elementKey: player.elementKey, level: 0, tester: true },
+  player: { id: player.id, displayName: player.displayName, elementKey: player.elementKey, level: 0, tester: true, rank: 'TESTER' },
   permissions: { roles: ['TESTER'], capabilities: { moderationAccess: true, selfResourceTools: true, selfGameplayTools: true, superTools: false, canSelectPlayers: false, canManageTesters: false } },
   resources: { primogems: '10', moras: '20', particles: { pyro: '0', hydro: '0', cryo: '0', electro: '0', anemo: '0', geo: '0', dendro: '0' } },
   progression: { totalXp: '28', level: 0, xpIntoCurrentStep: '28', xpPerStep: '30', isMaxLevel: false, level100OverflowRewardsClaimed: 0, totalMessages: '0', countedMessages: '0' },

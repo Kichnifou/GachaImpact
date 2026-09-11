@@ -388,7 +388,9 @@ L'écart historique de 612 cœurs n'est pas reconstruit ni attribué artificiell
 
 # 6. Décisions R460 à R467 — espace Social et présence
 
-## R460 — Écran Social unique
+## R460 — Écran Social unique — ✅ RÉVISÉ PAR R817
+
+Révision R817 : Social reste un futur espace unique, accessible plus tard depuis Menu/Communauté ; il ne devient pas une tuile de la navigation principale à sept entrées.
 
 L'UI standalone utilise un écran Social unique avec :
 

@@ -1285,9 +1285,11 @@ reste une lecture ponctuelle de l'état autoritatif au moment où la commande es
 
 ---
 
-## R636 — Organisation générale de l'écran Event — ✅ VALIDÉ A ENRICHI
+## R636 — Organisation générale de l'écran Event — ✅ RÉVISÉ PAR R817/R821
 
 L'écran Event possède une zone d'en-tête toujours visible contenant au minimum :
+
+Révision R817/R821 : le point d’entrée devient `Activités > Événement` et ses trois libellés internes player-facing sont `Jeux / Shop / Classement`.
 
 - identité visuelle et nom du Festival courant ;
 - temps restant avant la fin de l'édition ;
@@ -1308,7 +1310,7 @@ Le bouton `Collection` ouvre directement :
 
 Sous cet en-tête, l'écran est organisé en trois onglets internes.
 
-### Activités
+### Jeux
 
 Contient notamment :
 
@@ -1319,7 +1321,7 @@ Contient notamment :
 - messages Event personnels reçus aujourd'hui ;
 - calendrier de Noël en décembre.
 
-### Boutique
+### Shop
 
 Contient :
 

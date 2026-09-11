@@ -269,6 +269,8 @@ Peut notamment accueillir les préférences V1 réellement conservées comme :
 - tri de Box ;
 - ordre de tri ;
 - autres préférences d'affichage explicitement utiles.
+- configuration du Menu global sous la clé stable `navigation_menu_v1`, avec uniquement `{ version, order, hidden }` et des identifiants de destinations ; aucune route, icône, étiquette ou donnée d’autorisation n’est persistée.
+- futur état Tutoriel sous une préférence distincte, avec statut `NOT_STARTED` / `IN_PROGRESS` / `COMPLETED` et `stepId` stable seulement lorsqu’un vrai moteur existera.
 
 Une préférence ne peut jamais devenir une source de vérité pour :
 
@@ -921,7 +923,7 @@ Le catalogue ne contient pas l'historique d'achat.
 
 État physique 0.79 : la migration additive `010_add_shop` matérialise `shop_item_definitions` et `shop_purchases` sur Supabase DEV. La définition porte aussi les champs de présentation `description`, `visualKey` et `unavailableReason` nécessaires à une projection player-facing sans autorité frontend. Les types d'effet physiques sont limités par whitelist à `daily_mission`, `resource_bundle` et `random_ticket` ; `effectConfig` reste une configuration de données validée par le serveur, jamais du code exécutable.
 
-Le catalogue initial est seedé dans l'ordre explicite Mission quotidienne (10 000 Moras, visible mais temporairement indisponible faute de `MissionService` complet), Lot de Primogemmes (50 000 Moras → 160 Primogemmes par unité, quantité multiple) et Ticket (150 000 Moras, unitaire, immédiatement consommé). Les cinq poids Ticket sont stockés dans la configuration et leurs probabilités sont dérivées à la lecture. Aucune notion de stock mondial n'est persistée.
+Le seed physique 010 a créé, dans cet ordre, `daily-mission`, Lot de Primogemmes et Ticket. La migration additive 011 conserve la clé technique `daily-mission`, la renomme player-facing `Défi`, puis la masque et la désactive jusqu’au service métier complet. La projection Boutique visible contient donc uniquement Lot de Primogemmes (50 000 Moras → 160 Primogemmes par unité, quantité multiple) et Ticket (150 000 Moras, unitaire, immédiatement consommé). Les cinq poids Ticket sont stockés dans la configuration et leurs probabilités sont dérivées à la lecture. Aucune notion de stock mondial n'est persistée.
 
 Chaque achat standalone produit une seule `BusinessOperation` et une seule ligne `ShopPurchase` contenant quantité, prix unitaires/totaux et `effectSnapshot` exact. Le service verrouille le Player dans une transaction `SERIALIZABLE`, délègue débit/crédits au moteur économique et la récompense Pity à la primitive Gacha centrale. Les retries relisent le snapshot sans redébit ni nouveau RNG. `GET /api/v1/me/shop` expose au Player authentifié le catalogue visible, son snapshot Ressources/Gacha et ses cinq achats récents ; le ledger complet attend son agrégation dans l'Historique transversal.
 
@@ -955,7 +957,7 @@ Progression personnelle :
 
 Les missions permanentes validées sont automatiques et auto-récompensées selon leur domaine.
 
-## 16.3 Mission quotidienne payante
+## 16.3 Défi quotidien payant (`daily-mission` technique)
 
 Prévoir un état journalier spécifique au joueur :
 

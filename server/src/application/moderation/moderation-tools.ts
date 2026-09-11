@@ -2,6 +2,7 @@ import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-
 import type { ResourceKey } from '../../domain/economy/resources.js'
 
 export type ModerationRole = 'MODERATOR' | 'TESTER' | 'ADMIN'
+export type ModerationRank = 'SUPER' | 'MODERATOR' | 'TESTER' | 'PLAYER'
 export type ModerationPlayerSort = 'name' | 'level'
 export type ModerationPlayerDirection = 'asc' | 'desc'
 export type ModerationTesterFilter = 'all' | 'tester' | 'non-tester'
@@ -9,7 +10,7 @@ export type ModerationPermissionsDto = Readonly<{
   roles: readonly ModerationRole[]
   capabilities: Readonly<{ moderationAccess: boolean; selfResourceTools: boolean; selfGameplayTools: boolean; superTools: boolean; canSelectPlayers: boolean; canManageTesters: boolean }>
 }>
-export type ModerationPlayerDto = Readonly<{ id: string; displayName: string; elementKey: string | null; level: number; tester: boolean }>
+export type ModerationPlayerDto = Readonly<{ id: string; displayName: string; elementKey: string | null; level: number; tester: boolean; rank: ModerationRank }>
 export type ModerationPlayerListQuery = Readonly<{
   query: string
   elementKey: string | null

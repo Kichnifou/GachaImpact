@@ -104,7 +104,9 @@ L'absence de 5★ C6 ne doit donc pas masquer entièrement le système.
 
 ---
 
-## R527 — Un seul concours global et visionnage UI — ✅ VALIDÉ A
+## R527 — Un seul concours global et visionnage UI — ✅ RÉVISÉ PAR R817/R821
+
+Révision R817/R821 : le point d’entrée standalone est `Activités > Concours`. Le lot 0.80 crée uniquement une coque indisponible honnête et n’implémente aucun gameplay Concours.
 
 Il n'existe qu'un seul concours global actif à la fois.
 

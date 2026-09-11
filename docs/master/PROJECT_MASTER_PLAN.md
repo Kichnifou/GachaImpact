@@ -1,7 +1,7 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.79
-Date : 2026-09-10
+Version : 0.80
+Date : 2026-09-11
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
@@ -2232,6 +2232,7 @@ Sous `docs/` :
 - `legacy/07-box-possession-obtention-audit.md`
 - `legacy/08-team-audit.md`
 - `specifications/decisions-log.md`
+- `specifications/navigation-shell-v1.md`
 - `commands/command-reference.md`
 - `roadmap/development-roadmap.md`
 
@@ -3642,10 +3643,21 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Un achat verrouille le Player dans une transaction `SERIALIZABLE`, débite uniquement le portefeuille Moras via l'économie centrale, persiste exactement un `ShopPurchase` et son `effectSnapshot`, puis complète la `BusinessOperation`. Une même intention restitue le même résultat sans second débit ni RNG ; un payload différent est refusé et les achats concurrents ne peuvent pas rendre le wallet négatif.
 - `primogem-bundle` accepte tout entier positif : 50 000 Moras et +160 Primogemmes par lot. Le bouton `MAX` remplit uniquement la quantité affichée ; la mutation retourne un snapshot autoritatif qui synchronise la Boutique et la sidebar sans bootstrap complet.
 - `reward-ticket` est strictement unitaire et immédiatement consommé, sans objet Sac ni confirmation préalable. Ses cinq branches de poids 1 sont affichées à 20 % calculés : +1 600 Primogemmes, +1 000 particules principales, +800 particules d'un autre élément persisté, +10 Pity 5★ plafonnée à 90 par une primitive Gacha centrale, ou +50 000 Moras. Le résultat structuré est persisté avant sa révélation en overlay.
-- `daily-mission` est réellement servi en premier, visible à 10 000 Moras et temporairement indisponible avec la raison `Missions quotidiennes bientôt disponibles`. Aucun `MissionService` complet ni les producteurs messages/Pulls/conversion n'existent physiquement ; aucune mission factice ou logique Shop partielle n'est ajoutée.
+- Au seul état candidat 0.79, `daily-mission` était servi en premier, visible à 10 000 Moras et temporairement indisponible. Cette présentation n’a pas été promue seule et est révisée par le candidat 0.80 : la clé technique demeure, sous le nom player-facing `Défi`, mais sort de la projection Boutique tant que son service complet n’existe pas.
 - L'écran Boutique ne dépend plus de `mockData`, réserve ses zones de feedback et d'action pour éviter les déplacements, affiche le wallet autoritatif et au plus cinq achats récents. Le stockage est exhaustif ; le futur `Voir tout` reste propriétaire de l'écran Historique transversal, qui n'est pas créé dans ce lot.
 - Cache et intentions Boutique sont éphémères, isolés par Player, protégés contre les réponses obsolètes, réutilisent la même clé après erreur ambiguë et sont vidés au logout. Les snapshots de mutation synchronisent Moras, Primogemmes, particules et état Gacha global.
 - Boutique est **COMMENCÉE MAIS NON PUBLIQUEMENT CLÔTURÉE**. `PAID_INFRA_APPROVED = false` reste inchangé ; aucun service payant, aucune configuration Railway et aucun déploiement manuel ne font partie de ce candidat.
+
+## État du candidat 0.80 — navigation V1, Menu, Configuration et Quotidiennes
+
+- Le candidat 0.80 contient le commit 0.79 comme ancêtre technique ; 0.79 n’est pas promu seul. Les micro-polish des panneaux longs et le premier vertical Boutique réel Primos/Ticket sont conservés sans régression.
+- La navigation principale contient exactement sept tuiles : Accueil, Invocation, Personnages, Activités, Sac, Boutique, Configuration. Personnages réutilise Box/Équipe/Catalogue ; Activités expose Quotidiennes/Missions/Combat/Événement/Concours avec des coques honnêtes pour les domaines non implémentés. Les anciens hashes restent compatibles et les deep links groupés sont canoniques.
+- Quotidiennes possède Aperçu/Roue/Défi. Aperçu réutilise seulement la Récompense quotidienne et l’état Roue réels ; la Roue jouable a quitté Accueil. Défi reste explicitement indisponible, sans progression fictive.
+- Menu est toujours accessible au clic depuis le header, pagine au plus neuf destinations dans une grille stable et désactive les destinations futures. `Configuration > Menu` réordonne, masque/réaffiche et réinitialise avec des boutons accessibles. La préférence personnelle `navigation_menu_v1` est servie par une API authentifiée et persiste dans `player_preferences`, sans nouvelle table.
+- Le rang affiché par Modération appartient désormais à la cible et suit ses rôles actifs : Super, Modérateur, Testeur ou Joueur. Les permissions restent celles de l’acteur et aucun DTO Player public n’expose les rôles.
+- La migration additive 011 conserve `daily-mission`, la renomme `Défi`, la masque et la désactive. Elle est appliquée uniquement sur Supabase DEV `rmkpjudimoibyjsjtubh`; la migration 010 est inchangée et aucun Player, solde ou achat n’est modifié par cette migration.
+- Le futur Tutoriel est entièrement documenté mais non implémenté. Le hero Accueil et la carte Récompense quotidienne de sidebar restent en place ; les évolutions dashboard/sidebar attendent des activités réelles.
+- Boutique reste le domaine actif et n’est pas encore publiquement clôturée. Le candidat 0.80 doit être reviewé puis testé publiquement ; Quotidiennes n’est pas déclarée domaine métier commencé au-delà de son shell et de la Roue déjà réelle. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 ## État du lot — Invocation x1/x10
 
@@ -3787,7 +3799,7 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Faire reviewer le candidat 0.79 uniquement sur `review` → corriger les éventuels retours → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → valider publiquement les trois micro-polish et le premier vertical Boutique.** Après cette validation, rester dans Boutique pour les retours, l'activation de Mission lorsque le vrai `MissionService` et tous ses producteurs pourront exister, puis le raccord à l'Historique transversal selon l'ordre retenu. Ne pas commencer Quotidiennes avant clôture explicite de Boutique. `PAID_INFRA_APPROVED = false` reste inchangé.
+**Faire reviewer le candidat 0.80 uniquement sur `review` → corriger les éventuels retours sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → valider publiquement la navigation à sept entrées, le Menu/Configuration, les coques Activités, Quotidiennes/Roue, le rang cible Modération et les régressions Boutique.** Après cette validation, rester dans Boutique pour ses retours et sa clôture explicite ; ne pas commencer un nouveau domaine métier. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

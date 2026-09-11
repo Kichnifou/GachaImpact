@@ -940,7 +940,9 @@ Les autres intitulés legacy restent conservés tant qu'ils fonctionnent naturel
 
 Les fichiers legacy sources ne sont pas modifiés ; ces nouveaux intitulés appartiennent au catalogue standalone.
 
-## R330 — Présentation UI des missions permanentes
+## R330 — Présentation UI des missions permanentes — ✅ RÉVISÉ PAR R817/R820/R821
+
+Révision R817/R820/R821 : l’entrée `Activités > Missions` présente directement les quatre rangs `B / A / S / Z`. L’ancienne mission quotidienne payante est désormais le `Défi` de `Activités > Quotidiennes` et n’est plus un onglet Missions.
 
 L'onglet `Permanentes` contient quatre sous-onglets :
 - `B` ;

@@ -1,30 +1,25 @@
 import BannerHero from '../components/BannerHero'
-import WheelCard from '../components/WheelCard'
-import type { CurrentGachaDto, WheelSpinDto, WheelTodayDto } from '../api/types'
+import type { CurrentGachaDto } from '../api/types'
 import type { ScreenId } from '../types'
 
 type HomeScreenProps = {
   onNavigate: (screen: ScreenId) => void
-  wheelToday: WheelTodayDto
-  onSpinWheel: () => Promise<WheelSpinDto>
   gacha: CurrentGachaDto
   onSetGachaTarget: (id: string) => Promise<void>
 }
 
 const shortcuts: Array<{ screen: ScreenId; label: string; description: string; icon: string; tone: string }> = [
-  { screen: 'box', label: 'Box', description: 'Voir vos personnages', icon: '▦', tone: 'violet' },
-  { screen: 'characters', label: 'Personnages', description: 'Découvrir le catalogue', icon: '♙', tone: 'cyan' },
-  { screen: 'team', label: 'Équipe', description: 'Préparer votre groupe', icon: '♟', tone: 'gold' },
+  { screen: 'characters-box', label: 'Box', description: 'Voir vos personnages', icon: '▦', tone: 'violet' },
+  { screen: 'characters-catalog', label: 'Personnages', description: 'Découvrir le catalogue', icon: '♙', tone: 'cyan' },
+  { screen: 'characters-team', label: 'Équipe', description: 'Préparer votre groupe', icon: '♟', tone: 'gold' },
   { screen: 'inventory', label: 'Sac', description: 'Consulter vos ressources', icon: '◇', tone: 'blue' },
   { screen: 'shop', label: 'Boutique', description: 'Parcourir les échanges', icon: '♢', tone: 'pink' },
 ]
 
-function HomeScreen({ onNavigate, wheelToday, onSpinWheel, gacha, onSetGachaTarget }: HomeScreenProps) {
+function HomeScreen({ onNavigate, gacha, onSetGachaTarget }: HomeScreenProps) {
   return (
     <div className="screen-content home-screen">
       <BannerHero compact gacha={gacha} onSetTarget={onSetGachaTarget} onOpen={() => onNavigate('invocation')} />
-
-      <WheelCard today={wheelToday} onSpin={onSpinWheel} />
 
       <section className="home-shortcuts" aria-label="Raccourcis principaux">
         {shortcuts.map((shortcut) => (

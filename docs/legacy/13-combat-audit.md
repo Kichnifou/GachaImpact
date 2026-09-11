@@ -1011,12 +1011,12 @@ Réduction absolue, pas proportionnelle.
 Plancher :
 `500 000`
 
-## R421 / R428 — Écran Combat à deux onglets
+## R421 / R428 — Écran Combat à deux onglets — ✅ RÉVISÉ PAR R817/R821
 
-L'écran `Combat` possède deux onglets distincts :
+L'écran `Activités > Combat` possède deux onglets distincts, affichés `Entraînement` et `Boss` :
 
-1. `Combat quotidien` — ouvert par défaut ;
-2. `Boss mensuel`.
+1. `Entraînement` — ouvert par défaut, propriétaire du combat quotidien ;
+2. `Boss` — propriétaire du Boss mensuel.
 
 Ce sont deux vues différentes.
 

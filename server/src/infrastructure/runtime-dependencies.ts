@@ -33,6 +33,8 @@ import { PrismaInventoryStore } from './database/prisma-inventory-store.js';
 import { PrismaModerationTools } from './database/prisma-moderation-tools.js';
 import { PrismaShopStore } from './database/prisma-shop-store.js';
 import { GetCurrentPlayerShop, PurchaseShopItem } from '../application/shop/shop-services.js';
+import { NavigationPreferencesService } from '../application/navigation/navigation-preferences.js';
+import { PrismaNavigationPreferenceStore } from './database/prisma-navigation-preference-store.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
   if (!config.databaseUrl) {
@@ -102,6 +104,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     moderationTools: new PrismaModerationTools(database, getCurrentPlayer),
     getCurrentPlayerShop: new GetCurrentPlayerShop(getCurrentPlayer, shopStore),
     purchaseShopItem: new PurchaseShopItem(getCurrentPlayer, shopStore, clock),
+    navigationPreferences: new NavigationPreferencesService(getCurrentPlayer, new PrismaNavigationPreferenceStore(database)),
     start: async () => { await scheduler.start(); await bankInterestScheduler.start(); },
     close: async () => { scheduler.stop(); bankInterestScheduler.stop(); await database.$disconnect(); },
   };

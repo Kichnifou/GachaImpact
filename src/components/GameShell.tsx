@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import type { BankHistoryDto, BankTransferDto, BoxCharacterDto, BoxSortPreferenceDto, CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, ModerationPermissionsDto, ModerationPlayerListQuery, ModerationPlayerPageDto, ModerationStateDto, PlayerBankDto, PlayerBoxDto, PlayerDto, PlayerInventoryDto, PlayerProgressionDto, PlayerResourcesDto, PlayerShopDto, PlayerTeamsDto, ShopPurchaseDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
+import type { BankHistoryDto, BankTransferDto, BoxCharacterDto, BoxSortPreferenceDto, CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, ModerationPermissionsDto, ModerationPlayerListQuery, ModerationPlayerPageDto, ModerationStateDto, NavigationMenuPreferenceDto, PlayerBankDto, PlayerBoxDto, PlayerDto, PlayerInventoryDto, PlayerProgressionDto, PlayerResourcesDto, PlayerShopDto, PlayerTeamsDto, ShopPurchaseDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import type { ScreenId } from '../types'
 import BoxScreen from '../screens/BoxScreen'
 import CharactersScreen from '../screens/CharactersScreen'
@@ -28,13 +28,13 @@ import { ModerationIntentCoordinator, type ModerationGachaInput, type Moderation
 import { ShopMemoryCache } from '../shop/shop-memory-cache'
 import { ShopPurchaseIntentCoordinator } from '../shop/shop-purchase-intent-coordinator'
 import { applyModerationResultToActor } from '../moderation/apply-moderation-result'
+import ActivitiesScreen from '../screens/ActivitiesScreen'
+import ConfigurationScreen from '../screens/ConfigurationScreen'
+import SecondaryNavigation from './SecondaryNavigation'
+import GlobalMenu from './GlobalMenu'
+import { activityTabs, characterTabs, defaultNavigationPreference, hashForScreen, parseNavigationHash, type MainNavigationId } from '../navigation/navigation'
 
-const screenIds: ScreenId[] = ['home', 'invocation', 'box', 'characters', 'team', 'bank', 'inventory', 'shop', 'moderation']
-
-const getScreenFromHash = (): ScreenId => {
-  const screen = window.location.hash.slice(1)
-  return screenIds.includes(screen as ScreenId) ? (screen as ScreenId) : 'home'
-}
+const getScreenFromHash = (): ScreenId => parseNavigationHash(window.location.hash)
 
 type GameShellProps = {
   player: PlayerDto
@@ -86,14 +86,20 @@ type GameShellProps = {
   onModerationStella: (targetPlayerId: string, quantity: string, idempotencyKey: string) => Promise<ModerationStateDto>
   onModerationTester: (targetPlayerId: string, enabled: boolean, idempotencyKey: string) => Promise<ModerationStateDto>
   onModerationApplied: (state: ModerationStateDto, targetIsSelf: boolean) => void
+  onLoadNavigationPreferences: () => Promise<NavigationMenuPreferenceDto>
+  onSaveNavigationPreferences: (value: NavigationMenuPreferenceDto) => Promise<NavigationMenuPreferenceDto>
 }
 
-function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank, onLoadShop, onPurchaseShop, onLoadInventory, permissions, onLoadModeration, onListModerationPlayers, onModerationResource, onModerationXp, onModerationGacha, onModerationStella, onModerationTester, onModerationApplied }: GameShellProps) {
+function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank, onLoadShop, onPurchaseShop, onLoadInventory, permissions, onLoadModeration, onListModerationPlayers, onModerationResource, onModerationXp, onModerationGacha, onModerationStella, onModerationTester, onModerationApplied, onLoadNavigationPreferences, onSaveNavigationPreferences }: GameShellProps) {
   const [activeScreen, setActiveScreen] = useState<ScreenId>(getScreenFromHash)
   const activeScreenRef = useRef(activeScreen)
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isPlayersOpen, setIsPlayersOpen] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [menuPreference, setMenuPreference] = useState<NavigationMenuPreferenceDto>(defaultNavigationPreference)
+  const [lastCharacterScreen, setLastCharacterScreen] = useState<ScreenId>(() => activeScreen.startsWith('characters-') ? activeScreen : 'characters-box')
+  const [lastActivityScreen, setLastActivityScreen] = useState<ScreenId>(() => activeScreen.startsWith('activities-') ? activeScreen : 'activities-dailies')
   const [boxCache] = useState(() => new BoxMemoryCache())
   const [stellaIntents] = useState(() => new StellaIntentCoordinator())
   const [bankTransferIntents] = useState(() => new BankTransferIntentCoordinator())
@@ -110,6 +116,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
     onLevelUpFeedbackFinished(id)
   }, [onLevelUpFeedbackFinished])
   const profileLevelUp = useProfileLevelUpFeedback(profileLevelUpEvent, finishProfileLevelUp)
+  useEffect(() => { let active = true; void onLoadNavigationPreferences().then((value) => { if (active) setMenuPreference(value) }).catch(() => undefined); return () => { active = false } }, [onLoadNavigationPreferences, player.id])
   const finishLevelUpModal = useCallback((id: string) => {
     const event = levelUpFeedbacks.find((candidate) => candidate.id === id)
     if (!event || profileLevelUpEvent) return
@@ -209,6 +216,8 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
     if (activeScreenRef.current === 'invocation' && screen !== 'invocation') onGachaPresentationAbandoned()
     activeScreenRef.current = screen
     setActiveScreen(screen)
+    if (screen.startsWith('characters-')) setLastCharacterScreen(screen)
+    if (screen.startsWith('activities-')) setLastActivityScreen(screen)
   }, [onGachaPresentationAbandoned])
 
   useEffect(() => {
@@ -220,31 +229,42 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
   const navigate = (screen: ScreenId) => {
     if (screen === 'moderation' && !permissions.capabilities.moderationAccess) return
     changeScreen(screen)
-    window.location.hash = screen
+    window.location.hash = hashForScreen(screen)
     setIsSidebarOpen(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+
+  const navigateMain = (id: MainNavigationId) => navigate(id === 'characters' ? lastCharacterScreen : id === 'activities' ? lastActivityScreen : id)
+  const saveMenuPreference = async (value: NavigationMenuPreferenceDto) => { const saved = await onSaveNavigationPreferences(value); setMenuPreference(saved) }
 
   const renderScreen = () => {
     switch (activeScreen) {
       case 'invocation':
         return <InvocationScreen gacha={gacha} teams={teams} onSetTarget={onSetGachaTarget} onPull={onPullGacha} pendingPullCount={pendingGachaPullCount} onPresentationDisclosed={onGachaPresentationDisclosed} onGetHistory={onGetGachaHistory} />
-      case 'box':
+      case 'characters-box':
         return <BoxScreen key={player.id} initialBox={boxCache.read(player.id)} onLoadBox={loadBox} onSetFavorite={setBoxFavorite} onSetSortPreference={setBoxSortPreference} onUseStella={useStella} stellaRetryCharacterId={stellaIntents.getIntent(player.id)?.characterId ?? null} />
-      case 'characters':
+      case 'characters-catalog':
         return <CharactersScreen characters={characters} />
-      case 'team':
+      case 'characters-team':
         return <TeamScreen teams={teams} initialBox={boxCache.read(player.id)} stellaRetryCharacterId={stellaIntents.getIntent(player.id)?.characterId ?? null} onLoad={onLoadTeams} onActivate={onActivateTeam} onRename={onRenameTeam} onCreateNext={onCreateNextTeam} onDelete={onDeleteTeam} onReorderTeams={onReorderTeams} onSetSlot={onSetTeamSlot} onReorderSlots={onReorderTeamSlots} onRemoveSlot={onRemoveTeamSlot} onClear={onClearTeam} onLoadBox={loadBox} onSetBoxFavorite={setBoxFavorite} onUseStella={useStella} />
       case 'inventory':
         return <InventoryScreen key={player.id} initialInventory={inventoryCache.read(player.id)} resources={resources} onLoad={loadInventory} onNavigateBank={() => navigate('bank')} onLoadBox={loadBox} onSetBoxFavorite={setBoxFavorite} onUseStella={useStella} stellaRetryCharacterId={stellaIntents.getIntent(player.id)?.characterId ?? null} onLoadTeams={onLoadTeams} />
       case 'bank':
         return <BankScreen initialBank={bankCache.read(player.id)} onLoad={loadBank} onLoadHistory={onLoadBankHistory} onTransfer={transferBank} />
       case 'moderation':
-        return permissions.capabilities.moderationAccess ? <ModerationScreen actorPlayerId={player.id} capabilities={permissions.capabilities} onLoad={onLoadModeration} onListPlayers={onListModerationPlayers} onResource={moderateResource} onXp={moderateXp} onGacha={moderateGacha} onStella={moderateStella} onTester={moderateTester} onApplied={applyModerationResult} /> : <HomeScreen onNavigate={navigate} wheelToday={wheelToday} onSpinWheel={onSpinWheel} gacha={gacha} onSetGachaTarget={onSetGachaTarget} />
+        return permissions.capabilities.moderationAccess ? <ModerationScreen actorPlayerId={player.id} capabilities={permissions.capabilities} onLoad={onLoadModeration} onListPlayers={onListModerationPlayers} onResource={moderateResource} onXp={moderateXp} onGacha={moderateGacha} onStella={moderateStella} onTester={moderateTester} onApplied={applyModerationResult} /> : <HomeScreen onNavigate={navigate} gacha={gacha} onSetGachaTarget={onSetGachaTarget} />
       case 'shop':
         return <ShopScreen initialShop={shopCache.read(player.id)} onLoad={loadShop} onPurchase={purchaseShop} />
+      case 'activities-dailies':
+      case 'activities-missions':
+      case 'activities-combat':
+      case 'activities-event':
+      case 'activities-contest':
+        return <ActivitiesScreen screen={activeScreen} wheelToday={wheelToday} onSpinWheel={onSpinWheel} dailyRewardToday={dailyRewardToday} elementKey={player.elementKey!} onClaimDailyReward={onClaimDailyReward} />
+      case 'configuration':
+        return <ConfigurationScreen preference={menuPreference} onSave={saveMenuPreference} onReset={() => saveMenuPreference(defaultNavigationPreference)} />
       default:
-        return <HomeScreen onNavigate={navigate} wheelToday={wheelToday} onSpinWheel={onSpinWheel} gacha={gacha} onSetGachaTarget={onSetGachaTarget} />
+        return <HomeScreen onNavigate={navigate} gacha={gacha} onSetGachaTarget={onSetGachaTarget} />
     }
   }
 
@@ -256,6 +276,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
         onOpenSidebar={() => setIsSidebarOpen(true)}
         showModeration={permissions.capabilities.moderationAccess}
         onOpenModeration={() => navigate('moderation')}
+        onOpenMenu={() => setIsMenuOpen(true)}
         onSignOut={signOutAndClearCaches}
       />
 
@@ -276,7 +297,9 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
         />
 
         <main className="main-panel" id="main-content">
-          <Navigation activeScreen={activeScreen} onNavigate={navigate} />
+          <Navigation activeScreen={activeScreen} onNavigateMain={navigateMain} />
+          {activeScreen.startsWith('characters-') && <SecondaryNavigation label="Sections Personnages" tabs={characterTabs} activeScreen={activeScreen} onNavigate={navigate} />}
+          {activeScreen.startsWith('activities-') && <SecondaryNavigation label="Sections Activités" tabs={activityTabs} activeScreen={activeScreen} onNavigate={navigate} />}
           <div className="screen-stage" key={activeScreen}>{renderScreen()}</div>
         </main>
 
@@ -297,6 +320,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
       )}
 
       {isPlayersOpen && <OnlinePlayersPanel onClose={() => setIsPlayersOpen(false)} />}
+      {isMenuOpen && <GlobalMenu preference={menuPreference} onNavigate={navigate} onClose={() => setIsMenuOpen(false)} />}
       {activeLevelUpFeedback && activeLevelUpFeedback.id !== closedLevelUpModalId && <LevelUpFeedback key={activeLevelUpFeedback.id} event={activeLevelUpFeedback} onFinished={finishLevelUpModal} />}
     </div>
   )

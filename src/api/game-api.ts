@@ -31,6 +31,7 @@ import type {
   ModerationPlayerPageDto,
   ModerationPermissionsDto,
   ModerationStateDto,
+  NavigationMenuPreferenceDto,
 } from './types'
 
 type ApiClientDependencies = Readonly<{
@@ -106,6 +107,8 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
   return {
     getCurrentPlayer: () => request<PlayerDto>('/api/v1/me'),
     getPermissions: () => request<ModerationPermissionsDto>('/api/v1/me/permissions'),
+    getNavigationPreferences: () => request<NavigationMenuPreferenceDto>('/api/v1/me/navigation-preferences'),
+    putNavigationPreferences: (value: NavigationMenuPreferenceDto) => request<NavigationMenuPreferenceDto>('/api/v1/me/navigation-preferences', { method: 'PUT', body: JSON.stringify(value) }),
     getModerationState: () => request<ModerationStateDto>('/api/v1/moderation/me'),
     getModerationPlayerState: (playerId: string) => request<ModerationStateDto>(`/api/v1/moderation/players/${playerId}/state`),
     listModerationPlayers: (input: ModerationPlayerListQuery = {}) => {

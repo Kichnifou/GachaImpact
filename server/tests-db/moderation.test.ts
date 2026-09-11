@@ -84,6 +84,17 @@ describe('privileged self-test persistence', () => {
     expect(result).toEqual({ players: [expect.objectContaining({ id: match.id, displayName: `${prefix} zzz-match`, elementKey: 'pyro', level: 0, tester: false })], page: 1, pageSize: 10, total: 1, totalPages: 1 })
   })
 
+  it('derives the targeted player rank from the target active roles with strict hierarchy', async () => {
+    const admin = await createPlayer(['ADMIN'])
+    const cases = [
+      { roles: ['ADMIN', 'MODERATOR', 'TESTER'] as const, rank: 'SUPER' },
+      { roles: ['MODERATOR', 'TESTER'] as const, rank: 'MODERATOR' },
+      { roles: ['TESTER'] as const, rank: 'TESTER' },
+      { roles: [] as const, rank: 'PLAYER' },
+    ]
+    for (const candidate of cases) { const target = await createPlayer(candidate.roles); expect((await tools.getState(admin.identity, target.id)).player.rank).toBe(candidate.rank) }
+  })
+
   it('normalizes accents and applies combined filters, stable sorts and ten-player pagination on the server', async () => {
     const admin = await createPlayer(['ADMIN'])
     const prefix = `Browser ${process.pid}-${Date.now()}`

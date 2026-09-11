@@ -13,7 +13,11 @@ export type ModerationPermissionsDto = Readonly<{
   roles: readonly ('MODERATOR' | 'TESTER' | 'ADMIN')[]
   capabilities: Readonly<{ moderationAccess: boolean; selfResourceTools: boolean; selfGameplayTools: boolean; superTools: boolean; canSelectPlayers: boolean; canManageTesters: boolean }>
 }>
-export type ModerationPlayerDto = Readonly<{ id: string; displayName: string; elementKey: ElementKey | null; level: number; tester: boolean }>
+export type ModerationPlayerDto = Readonly<{ id: string; displayName: string; elementKey: ElementKey | null; level: number; tester: boolean; rank: 'SUPER' | 'MODERATOR' | 'TESTER' | 'PLAYER' }>
+
+export const navigationMenuDestinationIds = ['home', 'invocation', 'box', 'team', 'catalog', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'history', 'tutorial', 'configuration'] as const
+export type NavigationMenuDestinationId = (typeof navigationMenuDestinationIds)[number]
+export type NavigationMenuPreferenceDto = Readonly<{ version: 1; order: readonly NavigationMenuDestinationId[]; hidden: readonly NavigationMenuDestinationId[] }>
 export type ModerationPlayerListQuery = Readonly<{
   query?: string
   elementKey?: ElementKey | null

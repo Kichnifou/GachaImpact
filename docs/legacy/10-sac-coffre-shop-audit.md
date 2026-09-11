@@ -917,7 +917,7 @@ Chaque réponse Twitch reste sur une seule ligne.
 
 ---
 
-### R292 — Articles indisponibles visibles dans `!shop` — ✅ VALIDÉ
+### R292 — Articles indisponibles visibles dans `!shop` — ✅ RÉVISÉ PAR R820 POUR L’UI BOUTIQUE
 
 Un article :
 - visible + achetable → affiché normalement ;
@@ -925,6 +925,8 @@ Un article :
 - masqué → absent.
 
 UI et Twitch doivent refléter le même catalogue visible.
+
+Révision R820 : `daily-mission` reste une clé technique conservée, renommée `Défi`, mais devient masquée et désactivée tant que son service métier complet n’existe pas. Elle n’apparaît donc plus dans la Boutique UI ni dans sa projection API. Primos et Ticket restent les seuls articles visibles de ce premier vertical.
 
 ---
 

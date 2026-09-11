@@ -346,6 +346,9 @@ Usage initial :
 - tri Box
 - ordre de tri
 - préférences d'affichage futures explicitement validées
+- préférence physique 0.80 `navigation_menu_v1` dans le JSONB existant : `{ version: 1, order: string[], hidden: string[] }`, isolée par la PK `(player_id, preference_key)` ; aucune nouvelle table ni colonne
+
+État physique 0.80 : la migration additive `011_reposition_daily_challenge` conserve la ligne `shop_item_definitions.external_key = 'daily-mission'`, la renomme player-facing `Défi` et impose `is_visible = false`, `is_enabled = false` tant que le service métier complet n’existe pas. La migration 010 reste immuable et aucun `ShopPurchase` ni aucune donnée Player ne sont créés.
 
 ---
 
@@ -1197,7 +1200,7 @@ Index :
 
 État physique 0.79 : la migration additive `010_add_shop` crée ces deux tables. Le modèle physique utilise `smallint` pour `display_order` et `bigint` pour `quantity`, ajoute l'index `(shop_item_id, purchased_at DESC)` et impose aux articles payants initiaux des prix strictement positifs ainsi que `total_price = unit_price × quantity`. Les relations vers Player, ressource, article et `BusinessOperation` sont en `ON DELETE RESTRICT`. La RLS est active et les droits directs `anon`/`authenticated` sont révoqués : seul le backend authentifié sert les projections personnelles.
 
-Le seed canonique contient, dans cet ordre, `daily-mission`, `primogem-bundle` et `reward-ticket`. Mission est visible mais désactivée avec une raison player-facing tant que son service complet n'existe pas. Primos et Ticket sont actifs ; le Ticket conserve ses cinq issues de poids 1 dans `effect_config`. Aucun stock global ni achat rétroactif n'est créé.
+Le seed canonique 010 contient, dans cet ordre, `daily-mission`, `primogem-bundle` et `reward-ticket`. L’additif 011 conserve `daily-mission`, le renomme player-facing `Défi`, puis le masque et le désactive tant que son service complet n’existe pas. Primos et Ticket restent visibles et actifs ; le Ticket conserve ses cinq issues de poids 1 dans `effect_config`. Aucun stock global ni achat rétroactif n'est créé.
 
 L'API physique 0.79 expose `GET /api/v1/me/shop` et `POST /api/v1/me/shop/:itemId/purchase`. L'achat est une transaction `SERIALIZABLE` verrouillée par Player, avec débit/crédits via le service économique central, récompense Pity via le service Gacha central, snapshot avant réponse et idempotence portée par `business_operations`. Le frontend ne fournit jamais le prix ni le résultat Ticket.
 

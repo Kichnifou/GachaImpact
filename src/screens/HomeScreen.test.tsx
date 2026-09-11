@@ -15,8 +15,6 @@ describe('HomeScreen Invocation preview', () => {
     const onSetGachaTarget = vi.fn()
     const tree = HomeScreen({
       onNavigate,
-      wheelToday: { spun: false, businessDate: '2026-09-06', result: null },
-      onSpinWheel: vi.fn(),
       gacha,
       onSetGachaTarget,
     })

@@ -702,7 +702,9 @@ Le terme `jackpot` désigne donc ce résultat Primogemmes.
 
 ---
 
-## R650 — Vraie roue graphique animée — ✅ VALIDÉ A
+## R650 — Vraie roue graphique animée — ✅ RÉVISÉ PAR R820
+
+Révision R820 : la Roue réelle est désormais jouable dans `Activités > Quotidiennes > Roue` et accessible depuis l’Aperçu Quotidiennes. Sa carte jouable quitte l’Accueil ; son service, son verrou quotidien et son résultat autoritatif restent uniques.
 
 L'écran Roue standalone présente une vraie roue circulaire animée.
 
@@ -795,7 +797,7 @@ La réponse peut également indiquer que la prochaine Roue sera disponible le le
 
 ---
 
-## R655 — Gain du jour dans le hub Quotidiennes — ✅ VALIDÉ A
+## R655 — Gain du jour dans le hub Quotidiennes — ✅ RÉVISÉ PAR R820
 
 La carte Roue du hub transversal `Quotidiennes` conserve ses deux états principaux :
 

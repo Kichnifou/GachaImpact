@@ -20,6 +20,7 @@ type Props = {
 }
 
 const resources = [['primogems', 'Primos'], ['moras', 'Moras'], ['particles_pyro', 'Pyro'], ['particles_hydro', 'Hydro'], ['particles_cryo', 'Cryo'], ['particles_electro', 'Electro'], ['particles_anemo', 'Anémo'], ['particles_geo', 'Géo'], ['particles_dendro', 'Dendro']] as const
+const moderationRankLabels = { SUPER: 'Super', MODERATOR: 'Modérateur', TESTER: 'Testeur', PLAYER: 'Joueur' } as const
 const integerText = (value: string) => value.replace(/[^0-9]/g, '')
 
 function ModerationScreen({ actorPlayerId, capabilities, onLoad, onListPlayers, onResource, onXp, onGacha, onStella, onTester, onApplied }: Props) {
@@ -115,7 +116,7 @@ function ModerationScreen({ actorPlayerId, capabilities, onLoad, onListPlayers, 
     <ScrollableScreenPanel className="moderation-screen-panel" bodyClassName="moderation-tools-body" fixed={<>
       <section className="panel moderation-target" aria-busy={pending}>
         <div className="moderation-target-heading">
-          <div><span className="eyebrow">Joueur ciblé</span><strong title={state?.player.displayName}>{state?.player.displayName ?? 'Chargement…'}</strong><small>Rang : {isSuper ? 'Super' : 'Testeur'}</small></div>
+          <div><span className="eyebrow">Joueur ciblé</span><strong title={state?.player.displayName}>{state?.player.displayName ?? 'Chargement…'}</strong><small>Rang : {state ? moderationRankLabels[state.player.rank] : 'Chargement…'}</small></div>
           {isSuper && <div className="moderation-target-actions"><button type="button" className="moderation-self-button" disabled={pending || isSelf} onClick={() => selectTarget(actorPlayerId)}>Moi</button><button type="button" className="moderation-self-button primary" disabled={pending} onClick={() => setBrowserOpen(true)}>Choisir</button></div>}
         </div>
         {isSuper && <label className="moderation-target-search"><span>Recherche rapide d’un joueur actif</span><input type="search" value={query} onChange={(event) => { setQuery(event.target.value); setPlayers([]) }} placeholder="Saisir un pseudo…" autoComplete="off" /></label>}

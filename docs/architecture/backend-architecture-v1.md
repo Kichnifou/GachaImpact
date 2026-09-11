@@ -1018,6 +1018,14 @@ Elle permet de valider le socle avant d'attaquer le Gacha, beaucoup plus complex
 
 ---
 
+## 21.1 Navigation personnelle physique 0.80
+
+Le shell frontend utilise un registre typé unique pour la navigation principale, le Menu et Configuration. Il conserve uniquement en mémoire le dernier sous-onglet Personnages/Activités de la session et encode les destinations partageables dans des hashes canoniques compatibles avec les anciens liens.
+
+La préférence durable du Menu suit `UI → API authentifiée → NavigationPreferencesService → PlayerPreference`. `GET/PUT /api/v1/me/navigation-preferences` résout toujours le Player depuis l’identité authentifiée ; aucun `playerId` client n’est accepté. Le store Prisma lit et upsert exclusivement la clé `navigation_menu_v1`. Le serveur valide la structure, ignore les identifiants inconnus, déduplique, ajoute les nouvelles destinations, interdit le masquage de Configuration et renvoie une valeur sûre après JSON absent ou invalide. Cette préférence n’accorde jamais une permission et ne rend jamais disponible une destination future.
+
+Le snapshot Modération porte désormais le rang de la cible, dérivé de ses attributions actives avec la hiérarchie ADMIN, MODERATOR, TESTER, joueur. Les permissions jointes restent celles de l’acteur ; le DTO public Player n’est pas enrichi de rôles.
+
 # 22. Ordre de travail Phase C
 
 ## C1 — Architecture
