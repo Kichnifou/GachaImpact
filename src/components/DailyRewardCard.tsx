@@ -7,9 +7,10 @@ type DailyRewardCardProps = {
   today: DailyRewardTodayDto
   elementKey: ElementKey
   onClaim: () => Promise<DailyRewardClaimDto>
+  variant?: 'sidebar' | 'overview'
 }
 
-function DailyRewardCard({ today, elementKey, onClaim }: DailyRewardCardProps) {
+function DailyRewardCard({ today, elementKey, onClaim, variant = 'sidebar' }: DailyRewardCardProps) {
   const [isClaiming, setIsClaiming] = useState(false)
   const [freshClaim, setFreshClaim] = useState<DailyRewardClaimDto | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -27,6 +28,21 @@ function DailyRewardCard({ today, elementKey, onClaim }: DailyRewardCardProps) {
       setIsClaiming(false)
     }
   }
+
+  const claimed = today.claimed || freshClaim !== null
+  if (variant === 'overview') return (
+    <section className="panel daily-overview-card daily-reward-overview-card">
+      <div>
+        <h2>Récompense quotidienne</h2>
+        <p className={claimed ? 'daily-overview-complete' : undefined}>{claimed ? '✅ Terminé' : 'Disponible aujourd’hui.'}</p>
+        {claimed && <p className="daily-overview-detail">Récompense récupérée aujourd’hui.</p>}
+        <p className={`daily-overview-feedback${errorMessage ? ' error' : ''}`} role={errorMessage ? 'alert' : undefined}>{errorMessage ?? ''}</p>
+      </div>
+      <div className="daily-overview-action-slot">
+        {!claimed && <button type="button" className="small-primary-button" onClick={claim} disabled={isClaiming}>{isClaiming ? 'Récupération…' : 'Récupérer'}</button>}
+      </div>
+    </section>
+  )
 
   return (
     <section className="panel daily-card">

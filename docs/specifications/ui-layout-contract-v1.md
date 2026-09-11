@@ -1,6 +1,6 @@
 # Contrat de layout UI V1
 
-Statut : contrat transverse validé — candidat correctif physique 0.83.
+Statut : contrat transverse validé — correctif physique candidat 0.84.
 
 Ce document est la source de vérité des règles de composition et de stabilité visuelle communes. Les documents métier restent propriétaires du contenu et des actions de chaque écran ; le shell de navigation reste propriétaire des destinations.
 
@@ -23,11 +23,11 @@ Recherche, filtre, tri, pagination, mutation, chargement, état vide et feedback
 
 Les modales d’historique Banque et Boutique ont une capacité visuelle exacte de dix lignes : dix lignes remplissent le body jusqu’au footer, quatre lignes matérialisent six emplacements vides, et zéro ligne conserve le footer à la même position. Sur desktop, la hauteur des onze rangées (header de table + dix slots) est calculée depuis le body disponible et ce body n’a aucun scroll vertical ; `scrollHeight` reste au plus égal à `clientHeight + 1 px` à 1920 × 1080 comme à 1366 × 768. Mobile peut conserver un scroll interne, notamment horizontal.
 
-Une carte à états conserve ses dimensions extérieures et réserve ses zones internes avant l’interaction : contenu principal, état/feedback, action et confirmation ne se repoussent pas mutuellement. Une action contextuelle répétée dans une grille de cartes occupe un emplacement de pied réservé, y compris lorsque certaines cartes n’ont aucune action.
+Une carte à états conserve ses dimensions extérieures et réserve ses zones internes avant l’interaction : contenu principal, état/feedback, action et confirmation ne se repoussent pas mutuellement. Ajouter une action à une carte existante ne conduit jamais à agrandir artificiellement toutes les cartes de sa grille. Lorsque le langage visuel existant offre déjà l’espace nécessaire, l’action s’intègre dans cette géométrie ; une carte sans action ne réserve aucun footer vide universel.
 
 ## Drag-and-drop
 
-Une liste réordonnable distingue deux intentions par des surfaces explicites : des zones de drop autonomes entre les lignes insèrent l’élément à cet emplacement ; le corps complet d’une ligne échange les deux éléments. Aucun seuil ou ratio calculé depuis la position du pointeur dans une ligne ne décide de l’intention. Chaque target accepte `dragover`, annonce `dropEffect = move`, et l’aperçu local rend insertion et échange nettement différents sans découper ni masquer les lignes.
+Le drag-and-drop n’est utilisé que lorsqu’une spécification métier le demande explicitement. Une liste réellement prévue pour ce mode distingue deux intentions par des surfaces explicites : des zones de drop autonomes entre les lignes insèrent l’élément à cet emplacement ; le corps complet d’une ligne échange les deux éléments. Aucun seuil ou ratio calculé depuis la position du pointeur dans une ligne ne décide de l’intention. Chaque target accepte `dragover`, annonce `dropEffect = move`, et l’aperçu local rend insertion et échange nettement différents sans découper ni masquer les lignes. `Configuration > Menu` est explicitement arrow-only et n’applique pas ce contrat DnD ; Team continue de l’utiliser selon sa propre spécification.
 
 Lorsqu’un panneau associe un contenu extensible et une action latérale stable, sa grille utilise `minmax(0, 1fr) max-content` : le contenu absorbe la largeur variable et l’action ne modifie ni sa position ni sa largeur selon l’état affiché.
 

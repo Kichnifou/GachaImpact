@@ -1219,3 +1219,9 @@ Les états `AVAILABLE`, `ACTIVE` sans progression, `ACTIVE` avec progression/con
 Une transition réelle `ACTIVE → COMPLETED` observée pendant la session déclenche un overlay global de la famille Level-up, avec fermeture verrouillée environ une seconde puis backdrop/`Escape`, et disparition automatique vers 5,4 secondes. Le chargement initial d’un état déjà terminé n’en déclenche jamais ; le feedback attend les présentations plein écran Gacha/Level-up et la fermeture de la conversion afin de ne pas se superposer.
 
 La migration additive Prisma 013 répare uniquement `display_name`, `description` et `progress_label` des trois définitions et leurs colonnes snapshot correspondantes, en les sélectionnant par clé externe. Son fichier SQL est ASCII-only et encode les caractères Unicode attendus avec les littéraux PostgreSQL `U&`. La migration 012 reste immuable ; aucun solde, progression, statut, date, achat ou Player n’est modifié.
+
+### Recomposition physique 0.84
+
+La présentation 0.83 à 350 px est remplacée sans changement métier. La carte utilise quatre zones stables — header/statut, contenu, progression avec phrase sous la barre, puis actions — et conserve la même hauteur externe pour `AVAILABLE`, `ACTIVE`, confirmation et `COMPLETED` à viewport identique. La confirmation remplace le pied d’action sans créer de bloc supplémentaire.
+
+Un Défi Conversion actif ouvre la `ParticleConversionModal` transverse sans navigation ; un Défi Pulls conduit à Invocation sans lancer de Pull. Le type Messages, toujours physiquement inéligible, n’expose aucune fausse action Chat. `Changer de Défi` reste secondaire, ses règles de progression et de coût ne changent pas, et le feedback global `ACTIVE → COMPLETED` conserve son déclenchement, son verrou et ses modes de fermeture 0.83.

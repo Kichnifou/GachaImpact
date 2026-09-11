@@ -1,6 +1,6 @@
 # Navigation et shell V1
 
-Statut : cible validée, lot physique public 0.80 et consolidation candidate 0.81.
+Statut : cible validée, lot physique public 0.83 et correctif candidat 0.84.
 
 Ce document est la source de vérité de la navigation principale, du Menu global, de la Configuration du Menu et de l’architecture future du Tutoriel. Les audits métier restent propriétaires de leurs règles ; ce document fixe uniquement leurs points d’entrée dans le shell.
 
@@ -31,7 +31,7 @@ Les sous-onglets Activités sont exactement `Quotidiennes | Missions | Combat | 
 
 Quotidiennes possède `Aperçu | Roue | Défi`. Aperçu liste toujours, dans cet ordre, le catalogue quotidien décidé : `Récompense quotidienne | Roue | Défi | Combat | Expédition | Amitié | Événement`. Récompense quotidienne et Roue utilisent leurs états serveur réels ; les domaines non implémentés restent visibles avec un état neutre et honnête, sans progression, compteur ni donnée fictive. Le hub ne réimplémente jamais leur logique métier.
 
-Les boutons `Accéder` conduisent vers leurs propriétaires : Roue → sous-onglet Roue ; Défi → sous-onglet Défi ; Combat → `Activités > Combat` ; Expédition → `Personnages > Box` ; Amitié → futur Social/Amis, avec contrôle désactivé tant que cette destination n’existe pas ; Événement → `Activités > Événement`. Roue réutilise le composant et le service existants et n’est plus jouable depuis Accueil. Défi remplace l’ancienne mission quotidienne player-facing et utilise exclusivement son état serveur réel ; Missions B/A/S/Z reste un domaine séparé et indisponible.
+Les boutons `Accéder` conduisent vers leurs propriétaires : Roue → sous-onglet Roue ; Défi → sous-onglet Défi ; Combat → `Activités > Combat` ; Expédition → `Personnages > Box` ; Amitié → futur Social/Amis, avec contrôle désactivé tant que cette destination n’existe pas ; Événement → `Activités > Événement`. Roue réutilise le composant et le service existants et n’est plus jouable depuis Accueil. Défi remplace l’ancienne mission quotidienne player-facing et utilise exclusivement son état serveur réel ; Missions B/A/S/Z reste un domaine séparé et indisponible. Dans la carte Défi active, Conversion ouvre la modale transverse sans navigation et Pulls conduit à Invocation sans lancer de Pull ; aucun raccourci Chat factice n’est exposé pour Messages.
 
 Le hero Accueil est conservé. Le futur tableau de bord inférieur attend que davantage d’activités soient réelles. La carte Récompense quotidienne peut rester dans la sidebar au lot 0.80 ; une future synthèse compacte Quotidiennes ne devra jamais inventer de compteur `X/Y`.
 
@@ -41,7 +41,7 @@ Le bouton `Menu` est toujours affiché dans le header, dans la même famille vis
 
 Le registre commun du shell porte les identifiants, libellés, icônes, routes et disponibilités. Le catalogue initial est : Accueil, Invocation, Box, Équipe, Catalogue, Quotidiennes, Missions, Combat, Événement, Concours, Sac, Boutique, Banque, Historique, Tutoriel et Configuration. Les destinations réelles ou les coques honnêtes sont accessibles ; Historique et Tutoriel restent indisponibles tant que leurs systèmes n’existent pas. Statistiques et Social sont de futures destinations Menu/Communauté, pas des tuiles principales.
 
-`Configuration > Menu` est le seul réglage actif. Les onglets Confidentialité et Apparence sont visibles mais désactivés. Menu permet de monter/descendre une destination, la masquer/réafficher, réinitialiser l’ordre et réordonner par glisser-déposer. Le drag affiche un aperçu local, n’appelle la sauvegarde qu’une fois au drop et revient à la valeur précédente en cas d’échec, sans perdre les destinations masquées. Les flèches restent l’alternative accessible. Configuration ne peut jamais être masquée. Les futures préférences d’apparence/interface et de confidentialité appartiendront aussi à Configuration, sans commande factice active avant leurs services réels.
+`Configuration > Menu` est le seul réglage actif. Les onglets Confidentialité et Apparence sont visibles mais désactivés. Menu permet uniquement de monter/descendre une destination avec les flèches `↑`/`↓`, de la masquer/réafficher et de réinitialiser l’ordre. Chaque action sauvegarde immédiatement et revient à la valeur précédente en cas d’échec, sans perdre les destinations masquées. Le glisser-déposer Configuration est abandonné et ne constitue plus une direction future. Configuration ne peut jamais être masquée. Les futures préférences d’apparence/interface et de confidentialité appartiendront aussi à Configuration, sans commande factice active avant leurs services réels.
 
 La préférence personnelle utilise la clé stable `navigation_menu_v1` dans `player_preferences` et la forme `{ version: 1, order: string[], hidden: string[] }`. Seuls des identifiants y sont stockés. Le serveur conserve l’ordre connu, ajoute les nouvelles destinations déterministement, ignore les identifiants inconnus, déduplique, restaure Configuration et revient au défaut en cas de valeur illisible. L’API authentifiée `GET/PUT /api/v1/me/navigation-preferences` isole strictement chaque Player. Le navigateur n’accède jamais directement à Supabase.
 

@@ -282,7 +282,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
       case 'activities-combat':
       case 'activities-event':
       case 'activities-contest':
-        return <ActivitiesScreen screen={activeScreen} wheelToday={wheelToday} onSpinWheel={onSpinWheel} dailyRewardToday={dailyRewardToday} dailyChallenge={dailyChallenge} elementKey={player.elementKey!} onClaimDailyReward={onClaimDailyReward} onPurchaseDailyChallenge={onPurchaseDailyChallenge} onSwitchDailyChallenge={onSwitchDailyChallenge} onNavigate={navigate} />
+        return <ActivitiesScreen screen={activeScreen} wheelToday={wheelToday} onSpinWheel={onSpinWheel} dailyRewardToday={dailyRewardToday} dailyChallenge={dailyChallenge} elementKey={player.elementKey!} onClaimDailyReward={onClaimDailyReward} onPurchaseDailyChallenge={onPurchaseDailyChallenge} onSwitchDailyChallenge={onSwitchDailyChallenge} onOpenParticleConversion={() => setIsParticleConversionOpen(true)} onNavigate={navigate} />
       case 'configuration':
         return <ConfigurationScreen preference={menuPreference} onSave={saveMenuPreference} onReset={() => saveMenuPreference(defaultNavigationPreference)} />
       default:

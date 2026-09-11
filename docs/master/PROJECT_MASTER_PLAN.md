@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.83
+Version : 0.84
 Date : 2026-09-11
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3679,7 +3679,7 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Le contrat `ui-layout-contract-v1.md` devient la référence transverse. Team compacte ses passifs sur une ligne, les headers Activités sont modérément resserrés, le drag-and-drop Configuration distingue insertion et échange, Boutique remplit la hauteur utile, et les historiques Banque/Boutique gardent dix emplacements et un footer stable.
 - Le gameplay 0.82 a été promu et fonctionne publiquement. Sa validation visuelle a toutefois été refusée : les invariants de dimensions, de scroll et d’actions contextuelles sont repris par le candidat correctif 0.83. Les huit comptes DEV légitimes confirmés et tous leurs achats/soldes restent protégés.
 
-## État du candidat 0.83 — stabilisation Quotidiennes, Ressources et layouts transverses
+## État public 0.83 — stabilisation partiellement validée et retours publics
 
 - Team réserve un panneau de passifs aux dimensions extérieures invariantes pour un à quatre passifs : plein format, deux lignes, deux cartes puis une demi-carte centrée, ou grille 2 × 2. L’action de référence occupe une colonne `max-content` distincte et la modale détaillée reste inchangée.
 - Les headers Activités sont ramenés à une hauteur desktop bornée de 92 à 104 px avec titre 29 px. Le Défi utilise une carte pleine largeur et de hauteur stable, des zones internes réservées, une confirmation compacte et un état terminé standardisé avec progression contextualisée.
@@ -3688,7 +3688,18 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Sac homogénéise les cartes Ressources avec un emplacement d’action réservé : Primos ouvre Boutique, Moras ouvre Banque et seules les particules personnelles ouvrent la conversion partagée. La sidebar expose les mêmes entrées contextuelles et réutilise exactement la même modale/idempotence sans navigation forcée.
 - Une transition réelle `ACTIVE → COMPLETED` survenue pendant la session produit un feedback global séquencé dans la famille Level-up, jamais au chargement initial : verrou d’une seconde, fermeture backdrop/`Escape` puis disparition automatique vers 5,4 s. Aperçu standardise les états terminés Récompense, Roue et Défi sans inventer ceux des domaines futurs.
 - La migration additive Prisma 013, ASCII-only via littéraux PostgreSQL `U&`, répare uniquement les trois colonnes textuelles des définitions de Défi et de leurs snapshots existants. Elle est appliquée et suivie sur Supabase DEV ; 012 reste immuable. Les huit comptes DEV confirmés, leurs identités, soldes, achats et états métier n’ont subi aucun nettoyage ni mutation.
-- Ce candidat 0.83 reste à reviewer sur `review`, puis à promouvoir et à revalider publiquement. Quotidiennes / Défi demeure le domaine actif ; Boutique n’est pas recommencée et aucun déploiement manuel ni service payant n’appartient au lot.
+- Le candidat 0.83 a été reviewé, promu et testé publiquement. Le propriétaire valide la géométrie générale Team et son bouton, les headers Activités, Boutique, History, l’UTF-8 Défi, le lien Primogemmes, ainsi que le standard général `✅ Terminé`.
+- Le même test public refuse encore le statut secondaire du panneau Passifs, la présentation Daily Reward d’Aperçu, le DnD Configuration, la carte Défi 350 px, l’allongement universel des cartes Ressources et la position bas gauche de Conversion dans la sidebar. Ces points deviennent le correctif candidat 0.84 ; le métier Défi, la conversion 1:1 et le feedback de complétion restent inchangés.
+
+## État du candidat 0.84 — simplification Défi et restauration des layouts Ressources
+
+- Team conserve intégralement le panneau 126 px, la grille 1/2/3/4, la colonne d’action et la modale détaillée validés ; seul le statut secondaire `Aperçu`/`Team active` est retiré.
+- `Quotidiennes > Aperçu` présente la Récompense quotidienne avec la même carte, le même pied d’action et le même bouton que Roue/Défi, sans losange. Les états sont `Disponible aujourd’hui.` avec `Récupérer`, ou `✅ Terminé` avec `Récompense récupérée aujourd’hui.`, sans layout shift de mutation. La carte Daily Reward de sidebar n’est pas reconstruite.
+- `Configuration > Menu` abandonne définitivement le drag-and-drop et retrouve la densité compacte pré-0.83 : seules les flèches `↑`/`↓`, Masquer/Afficher, Réinitialiser, la persistance et le rollback restent. Le DnD Team ne change pas.
+- La carte Défi est entièrement recomposée en quatre zones stables — header, contenu, progression et actions — sur toute la largeur et sous 280 px desktop. Disponible, Actif, confirmation et Terminé partagent le même cadre ; progression et phrase sont séparées. Conversion ouvre la modale transverse sans navigation, Pulls va vers Invocation sans tirer, Messages n’expose aucune action factice. Changer reste secondaire et sa confirmation remplace le pied sans agrandir la carte.
+- Le feedback `Défi terminé !` reste déclenché uniquement sur `ACTIVE → COMPLETED`, jamais au chargement, avec verrou, backdrop/`Escape` et auto-dismiss inchangés. Il reste à revalider publiquement sur une transition réelle.
+- Le Sac reprend la géométrie compacte de la carte Moras au checkpoint `fc3ee53d7507e878e793bc75ef136a4f7fb3f59f`. Primos, Moras et les particules personnelles intègrent leur lien sans `min-height: 112px` ni footer universel ; les autres particules ne réservent rien. Dans la sidebar, `Convertir →` occupe l’espace interne bas droite sans modifier le cadre Particules.
+- Boutique, History, migration 013, schéma Prisma et Supabase restent inchangés. Les huit comptes DEV légitimes confirmés et toutes leurs données restent intacts. Quotidiennes / Défi demeure le domaine actif ; le candidat 0.84 doit être reviewé indépendamment avant toute promotion.
 
 ## État du lot — Invocation x1/x10
 
@@ -3830,7 +3841,7 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Faire reviewer indépendamment le candidat correctif 0.83 uniquement sur `review` → corriger les éventuels retours sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → revalider publiquement Défi, conversion, Ressources et les corrections UI transverses.** Quotidiennes / Défi reste le domaine actif jusqu’à cette validation. Combat ou Expédition sont seulement des directions futures possibles ; le propriétaire choisira la suite après le checkpoint public. `PAID_INFRA_APPROVED = false` reste inchangé.
+**Faire reviewer indépendamment le candidat correctif 0.84 uniquement sur `review` → corriger les éventuels retours sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → revalider publiquement Daily Reward Aperçu, Configuration, Défi, Sac, sidebar Conversion et le feedback de complétion sur une transition réelle.** Quotidiennes / Défi reste le domaine actif jusqu’à cette validation. Combat ou Expédition ne commencent pas avant ce checkpoint public. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

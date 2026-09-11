@@ -1,5 +1,6 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { readFileSync } from 'node:fs'
 import { describe, expect, it, vi } from 'vitest'
 import DailyRewardCard from './DailyRewardCard'
 import { formatDailyRewardDetails } from '../daily-reward/presentation'
@@ -22,5 +23,19 @@ describe('daily reward card', () => {
 
   it('formats all three fresh rewards with the main element', () => {
     expect(formatDailyRewardDetails({ claimed: true, businessDate: '2026-09-05', rewards }, 'cryo')).toBe('+160 Primos · +160 particules Cryo · +10 000 Moras')
+  })
+
+  it('renders the overview variant without the sidebar diamond', () => {
+    const html = renderToStaticMarkup(createElement(DailyRewardCard, { variant: 'overview', today: { claimed: false, businessDate: '2026-09-05', rewards }, elementKey: 'hydro', onClaim: vi.fn() }))
+    expect(html).toContain('daily-reward-overview-card')
+    expect(html).toContain('Disponible aujourd’hui.')
+    expect(html).toContain('Récupérer')
+    expect(html).not.toContain('daily-icon')
+    expect(html).not.toContain('♢')
+  })
+
+  it('reserves the same overview height before and after the claim mutation', () => {
+    const css = readFileSync('src/App.css', 'utf8')
+    expect(css).toMatch(/\.daily-overview-card\s*\{[^}]*height:\s*167px;[^}]*min-height:\s*167px;/s)
   })
 })

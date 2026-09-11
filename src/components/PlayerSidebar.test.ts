@@ -1,10 +1,13 @@
 import { createElement } from 'react'
+import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { ElementKey, PlayerProgressionDto, PlayerTeamsDto } from '../api/types'
 import { elementThemes } from '../utils/elementTheme'
 import PlayerSidebar from './PlayerSidebar'
+
+const appCssSource = readFileSync('src/App.css', 'utf8')
 
 const resources = {
   primogems: '0',
@@ -119,6 +122,9 @@ describe('Player sidebar progression', () => {
     expect(html).toContain('class="resource-item resource-item-action"')
     expect(html).toContain('aria-label="Ouvrir la Banque, 0 Moras"')
     expect(html).not.toContain('bank-shortcut')
+    expect(html).toMatch(/particles-card[\s\S]*particles-grid[\s\S]*sidebar-particle-convert[\s\S]*<\/section>/)
+    expect(appCssSource).toMatch(/\.sidebar-particle-convert\s*\{[^}]*right:\s*12px;[^}]*bottom:\s*10px;/s)
+    expect(appCssSource).not.toMatch(/\.particles-card\s*\{[^}]*padding-bottom:/s)
   })
 
   it('shows a temporary level delta and profile glow without changing progression data', () => {

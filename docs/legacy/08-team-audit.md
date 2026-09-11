@@ -1302,3 +1302,7 @@ Pour exactement quatre passifs, la grille 2 × 2 réduit uniquement les icônes 
 ### Stabilisation physique 0.83
 
 Le panneau compact conserve exactement la même largeur, hauteur et position pour un à quatre passifs. Son contenu extensible est séparé du bouton `Voir les passifs` par une colonne d’action `max-content`. La grille interne est déterministe : une carte pleine largeur ; une colonne de deux lignes ; deux cartes en haut et une demi-largeur centrée en bas ; puis 2 × 2. Chaque carte compacte conserve l’icône puis le préfixe gras et la description sur une seule ligne desktop. La modale détaillée n’est pas modifiée.
+
+### Ajustement physique 0.84
+
+Le statut secondaire `Aperçu`/`Team active` est retiré du panneau compact. Sa géométrie, la grille adaptative, le bouton `Voir les passifs`, son centrage et la modale détaillée restent inchangés ; aucune mécanique Team n’est modifiée.

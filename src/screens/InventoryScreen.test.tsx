@@ -1,12 +1,15 @@
 // @vitest-environment happy-dom
 
 import { act } from 'react'
+import { readFileSync } from 'node:fs'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { BoxCharacterDto, PlayerBoxDto, PlayerInventoryDto, PlayerResourcesDto, StellaUseDto } from '../api/types'
 import { presentInventory } from '../inventory/inventory-presentation'
 import InventoryScreen from './InventoryScreen'
 import inventorySource from './InventoryScreen.tsx?raw'
+
+const appCssSource = readFileSync('src/App.css', 'utf8')
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -129,7 +132,9 @@ describe('real inventory screen', () => {
     expect(onNavigateBank).toHaveBeenCalledOnce()
     act(() => container.querySelector<HTMLElement>('.inventory-resource-card:not(.mora) .inventory-card-action button')!.click())
     expect(onNavigateShop).toHaveBeenCalledOnce()
-    expect(container.querySelectorAll('.inventory-resource-card .inventory-card-action')).toHaveLength(9)
+    expect(container.querySelectorAll('.inventory-resource-card .inventory-card-action')).toHaveLength(3)
+    expect(container.querySelectorAll('.inventory-resource-card:not(.has-action) .inventory-card-action')).toHaveLength(0)
+    expect(appCssSource).not.toMatch(/\.inventory-resource-card\s*\{[^}]*min-height:\s*112px/s)
   })
 
   it('orders Collection owned then unknown and opens real details', async () => {

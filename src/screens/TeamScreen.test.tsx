@@ -7,7 +7,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { PlayerTeamDto, PlayerTeamsDto, TeamCharacterDto } from '../api/types'
-import { canOpenNextTeamPage, filterTeamCharacters, insertTeamOrder, swapTeamOrder, swapTeamSlots, teamPageForPosition, teamPassiveStatusLabel } from '../team/team-presentation'
+import { canOpenNextTeamPage, filterTeamCharacters, insertTeamOrder, swapTeamOrder, swapTeamSlots, teamPageForPosition } from '../team/team-presentation'
 import TeamScreen, { CharacterSelector, TeamPassiveReferenceModal } from './TeamScreen'
 import teamScreenSource from './TeamScreen.tsx?raw'
 
@@ -217,12 +217,12 @@ describe('real Team screen', () => {
     expect(html).not.toMatch(/aria-label="Déplacer Furina vers la gauche"[^>]*cursor:wait/)
   })
 
-  it('labels derived passives as the active Team or a preview without claiming gameplay activation', () => {
+  it('shows derived passives without a secondary status label', () => {
     const html = renderToStaticMarkup(<TeamScreen teams={teams(4)} {...callbacks} />)
-    expect(html).toContain('>Team active<')
     expect(html).toContain('Hydro II')
+    expect(html).not.toContain('>Team active<')
+    expect(html).not.toContain('>Aperçu<')
     expect(html).not.toContain('Actifs pour le gameplay')
-    expect(teamPassiveStatusLabel(false)).toBe('Aperçu')
   })
 
   it('filters real possessions by accent-insensitive contiguous substring and element', () => {

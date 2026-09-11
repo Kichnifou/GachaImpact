@@ -169,7 +169,7 @@ function InventoryCard({ entry, mainElementKey, onConvert, onNavigateShop, onNav
         : entry.resource.key === `particles_${mainElementKey}`
           ? <button type="button" disabled={BigInt(entry.amount) === 0n} onClick={onConvert}>Convertir →</button>
           : null
-    return <article className={`inventory-item inventory-resource-card${entry.resource.key === 'moras' ? ' mora' : ''}`}>{content}<div className="inventory-card-action">{action}</div></article>
+    return <article className={`inventory-item inventory-resource-card${action ? ' has-action' : ''}${entry.resource.key === 'moras' ? ' mora' : ''}`}>{content}{action && <div className="inventory-card-action">{action}</div>}</article>
   }
   const owned = BigInt(entry.item.quantity) > 0n
   return <article className={`inventory-item inventory-object-card${owned ? '' : ' unowned'}`} title={entry.item.acquisitionHint ?? undefined}>

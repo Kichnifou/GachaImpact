@@ -10,10 +10,6 @@ export function filterTeamCharacters(characters: readonly TeamCharacterDto[], se
     && (elementFilter === 'all' || character.elementKey === elementFilter))
 }
 
-export function teamPassiveStatusLabel(active: boolean) {
-  return active ? 'Team active' : 'Aperçu'
-}
-
 export function teamPageForPosition(position: number) {
   return Math.max(0, Math.floor((position - 1) / teamsPerPage))
 }

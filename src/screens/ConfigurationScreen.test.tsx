@@ -1,9 +1,13 @@
 // @vitest-environment happy-dom
 import { act } from 'react'
+import { readFileSync } from 'node:fs'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { defaultNavigationPreference } from '../navigation/navigation'
 import ConfigurationScreen from './ConfigurationScreen'
+import configurationSource from './ConfigurationScreen.tsx?raw'
+
+const appCssSource = readFileSync('src/App.css', 'utf8')
 
 const roots: ReturnType<typeof createRoot>[] = []
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -21,6 +25,7 @@ describe('ConfigurationScreen', () => {
     expect(container.querySelector('.configuration-frame .scrollable-screen-panel-body .screen-header')).toBeNull()
     expect(container.querySelector('.configuration-frame .scrollable-screen-panel-body .configuration-tabs')).toBeNull()
     expect(container.querySelector('.menu-visibility-button')).not.toBeNull()
+    expect(Array.from(container.querySelectorAll('li')).every((row) => row.getAttribute('draggable') === null)).toBe(true)
 
     await act(async () => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.getAttribute('aria-label') === 'Descendre Accueil')!.click())
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ order: ['invocation', 'home', ...defaultNavigationPreference.order.slice(2)] }))
@@ -28,46 +33,24 @@ describe('ConfigurationScreen', () => {
     const configurationRow = Array.from(container.querySelectorAll('li')).find((row) => row.textContent?.includes('Configuration'))!
     expect(Array.from(configurationRow.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Masquer')?.disabled).toBe(true)
 
+    const bankVisibility = Array.from(container.querySelectorAll<HTMLButtonElement>('.menu-visibility-button')).find((button) => button.closest('li')?.textContent?.includes('Banque'))!
+    await act(async () => { bankVisibility.click(); await Promise.resolve() })
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ hidden: expect.arrayContaining(['bank']) }))
+    await act(async () => root.render(<ConfigurationScreen preference={{ ...defaultNavigationPreference, hidden: ['bank'] }} onSave={onSave} onReset={onReset} />))
+    const showBank = Array.from(container.querySelectorAll<HTMLButtonElement>('.menu-visibility-button')).find((button) => button.closest('li')?.textContent?.includes('Banque'))!
+    expect(showBank.textContent).toBe('Afficher')
+    await act(async () => { showBank.click(); await Promise.resolve() })
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ hidden: expect.not.arrayContaining(['bank']) }))
+
     await act(async () => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Réinitialiser')!.click())
     expect(onReset).toHaveBeenCalledOnce()
   })
-  it('previews drag ordering, saves exactly once on drop, and preserves hidden ids', async () => {
-    const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root)
-    const preference = { ...defaultNavigationPreference, hidden: ['bank' as const] }
-    const onSave = vi.fn().mockResolvedValue(undefined)
-    await act(async () => root.render(<ConfigurationScreen preference={preference} onSave={onSave} onReset={vi.fn()} />))
-    const rows = container.querySelectorAll('.menu-configuration-list > li:not(.menu-drop-zone)')
-    const zones = container.querySelectorAll<HTMLElement>('.menu-drop-zone')
-    const event = (type: string) => { const value = new Event(type, { bubbles: true, cancelable: true }); Object.defineProperty(value, 'dataTransfer', { value: { effectAllowed: '', dropEffect: '' } }); return value }
-    act(() => rows[0]!.dispatchEvent(event('dragstart')))
-    act(() => zones[3]!.dispatchEvent(event('dragover')))
-    expect(onSave).not.toHaveBeenCalled()
-    expect(zones[3]!.classList.contains('active')).toBe(true)
-    await act(async () => { zones[3]!.dispatchEvent(event('drop')); await Promise.resolve(); await Promise.resolve() })
-    expect(onSave).toHaveBeenCalledTimes(1)
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ order: ['invocation', 'box', 'home', ...defaultNavigationPreference.order.slice(3)], hidden: ['bank'] }))
-  })
-
-  it('distinguishes a centered swap and restores the confirmed order when dragging is abandoned', async () => {
-    const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root)
-    const onSave = vi.fn().mockResolvedValue(undefined)
-    await act(async () => root.render(<ConfigurationScreen preference={defaultNavigationPreference} onSave={onSave} onReset={vi.fn()} />))
-    const event = (type: string) => { const value = new Event(type, { bubbles: true, cancelable: true }); Object.defineProperty(value, 'dataTransfer', { value: { effectAllowed: '', dropEffect: '' } }); return value }
-    let rows = container.querySelectorAll('.menu-configuration-list > li:not(.menu-drop-zone)')
-    act(() => rows[0]!.dispatchEvent(event('dragstart')))
-    act(() => rows[2]!.dispatchEvent(event('dragover')))
-    expect(rows[2]!.classList.contains('drop-swap')).toBe(true)
-    expect(Array.from(container.querySelectorAll('.menu-configuration-list > li:not(.menu-drop-zone) strong'), (node) => node.textContent).slice(0, 3)).toEqual(['Box', 'Invocation', 'Accueil'])
-    await act(async () => { rows[0]!.dispatchEvent(event('dragend')); await Promise.resolve() })
-    expect(onSave).not.toHaveBeenCalled()
-    expect(Array.from(container.querySelectorAll('.menu-configuration-list > li:not(.menu-drop-zone) strong'), (node) => node.textContent).slice(0, 3)).toEqual(['Accueil', 'Invocation', 'Box'])
-
-    rows = container.querySelectorAll('.menu-configuration-list > li:not(.menu-drop-zone)')
-    act(() => rows[0]!.dispatchEvent(event('dragstart')))
-    act(() => rows[2]!.dispatchEvent(event('dragover')))
-    await act(async () => { rows[2]!.dispatchEvent(event('drop')); await Promise.resolve(); await Promise.resolve() })
-    expect(onSave).toHaveBeenCalledOnce()
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ order: ['box', 'invocation', 'home', ...defaultNavigationPreference.order.slice(3)] }))
+  it('contains no Configuration drag-and-drop implementation or styling', () => {
+    for (const fragment of ['draggable', 'DragEvent', 'dropIntent', 'onDragStart', 'onDragOver', 'onDrop', 'onDragEnd', 'dropEffect']) expect(configurationSource).not.toContain(fragment)
+    expect(appCssSource).not.toContain('menu-drop-zone')
+    expect(appCssSource).not.toContain('drop-swap')
+    expect(appCssSource).not.toContain('cursor: grab')
+    expect(appCssSource).not.toContain('cursor: grabbing')
   })
 
   it('rolls an optimistic arrow change back when persistence fails', async () => {
