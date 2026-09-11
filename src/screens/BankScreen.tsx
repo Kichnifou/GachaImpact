@@ -4,6 +4,7 @@ import type { BankHistoryDto, BankOperationDto, BankTransferDto, PlayerBankDto }
 import type { BankTransferDirection } from '../bank/bank-transfer-intent-coordinator'
 import { formatBankCountdown } from '../bank/bank-presentation'
 import GameAssetIcon from '../components/GameAssetIcon'
+import HistoryModalShell from '../components/HistoryModalShell'
 import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
 import { currencyAssetPaths } from '../utils/gameAssets'
 
@@ -135,17 +136,11 @@ function OperationList({ operations }: { operations: readonly BankOperationDto[]
   </li>)}</ol>
 }
 
-function BankHistoryModal({ onClose, onLoad }: { onClose: () => void; onLoad: (page: number) => Promise<BankHistoryDto> }) {
+export function BankHistoryModal({ onClose, onLoad }: { onClose: () => void; onLoad: (page: number) => Promise<BankHistoryDto> }) {
   const [page, setPage] = useState(1)
   const [history, setHistory] = useState<BankHistoryDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const onKeyDown = (event: globalThis.KeyboardEvent) => { if (event.key === 'Escape') onClose() }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [onClose])
 
   useEffect(() => {
     let active = true
@@ -167,15 +162,11 @@ function BankHistoryModal({ onClose, onLoad }: { onClose: () => void; onLoad: (p
 
   const visiblePage = history?.page ?? page
   const totalPages = Math.max(history?.totalPages ?? 0, 1)
-  return <div className="bank-history-overlay" onClick={onClose}>
-    <section className="bank-history-modal panel" role="dialog" aria-modal="true" aria-labelledby="bank-history-title" onClick={(event) => event.stopPropagation()}>
-      <header><div><span className="eyebrow">Archives personnelles</span><h2 id="bank-history-title">Historique de la Banque</h2></div><button type="button" className="icon-button" onClick={onClose} aria-label="Fermer l’historique"><span className="icon-glyph">×</span></button></header>
-      <div className="bank-history-table-wrap">
+  return <HistoryModalShell title="Historique de la Banque" category="Archives personnelles" labelledBy="bank-history-title" page={visiblePage} totalPages={totalPages} loading={loading} onPageChange={setPage} onClose={onClose}>
+      <div className="history-table-wrap">
         {error ? <p className="detail-status error" role="alert">{error}</p> : !history && loading ? <p className="detail-status">Chargement de l’historique…</p> : history?.totalCount === 0 ? <p className="detail-status">Aucune opération enregistrée.</p> : <table className="bank-history-table"><thead><tr><th>Date</th><th>Opération</th><th>Montant</th><th>Banque après</th><th>Portefeuille après</th></tr></thead><tbody>{history?.operations.map((operation) => <tr key={operation.id}><td>{formatOperationDate(operation.createdAt)}</td><td>{operationLabel(operation.type)}</td><td>{operation.type === 'WITHDRAWAL' ? '−' : '+'}{formatResourceAmount(operation.amount)}</td><td>{formatResourceAmount(operation.bankBalanceAfter)}</td><td>{operation.walletBalanceAfter === null ? '—' : formatResourceAmount(operation.walletBalanceAfter)}</td></tr>)}</tbody></table>}
       </div>
-      <footer className="bank-history-pagination"><button type="button" disabled={visiblePage <= 1 || loading} onClick={() => setPage(visiblePage - 1)}>Précédent</button><span>Page {visiblePage} / {totalPages}</span><button type="button" disabled={visiblePage >= totalPages || loading} onClick={() => setPage(visiblePage + 1)}>Suivant</button></footer>
-    </section>
-  </div>
+    </HistoryModalShell>
 }
 
 function operationLabel(type: BankOperationDto['type']): string {

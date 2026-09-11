@@ -26,6 +26,7 @@ import type {
   BankHistoryDto,
   PlayerShopDto,
   ShopPurchaseDto,
+  ShopHistoryDto,
   PlayerInventoryDto,
   ModerationPlayerListQuery,
   ModerationPlayerPageDto,
@@ -152,6 +153,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
       method: 'POST', body: JSON.stringify({ amount, idempotencyKey }),
     }),
     getShop: () => request<PlayerShopDto>('/api/v1/me/shop'),
+    getShopHistory: (page: number) => request<ShopHistoryDto>(`/api/v1/me/shop/history?page=${page}`),
     purchaseShopItem: (itemId: string, quantity: string, idempotencyKey: string) => request<ShopPurchaseDto>(`/api/v1/me/shop/${encodeURIComponent(itemId)}/purchase`, {
       method: 'POST', body: JSON.stringify({ quantity, idempotencyKey }),
     }),

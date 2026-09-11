@@ -69,6 +69,14 @@ export type ShopPurchaseResult = ShopView & Readonly<{
   operation: Readonly<{ id: string; alreadyProcessed: boolean }>;
 }>;
 
+export type ShopHistoryPage = Readonly<{
+  purchases: readonly ShopPurchase[];
+  page: number;
+  pageSize: 10;
+  totalCount: number;
+  totalPages: number;
+}>;
+
 export type ShopPurchaseInput = Readonly<{
   playerId: string;
   playerElementKey: ElementKey;
@@ -80,5 +88,6 @@ export type ShopPurchaseInput = Readonly<{
 
 export interface ShopStore {
   getView(playerId: string): Promise<ShopView>;
+  getHistory(playerId: string, page: number): Promise<ShopHistoryPage>;
   purchase(input: ShopPurchaseInput): Promise<ShopPurchaseResult>;
 }

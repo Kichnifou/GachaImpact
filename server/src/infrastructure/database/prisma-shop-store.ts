@@ -1,6 +1,6 @@
 import { OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
 import { BusinessError } from '../../application/errors.js';
-import type { ShopCatalogItem, ShopEffectSnapshot, ShopPlayerSnapshot, ShopPurchase, ShopPurchaseInput, ShopPurchaseResult, ShopStore, ShopTicketReward, ShopView } from '../../application/shop/shop-store.js';
+import type { ShopCatalogItem, ShopEffectSnapshot, ShopHistoryPage, ShopPlayerSnapshot, ShopPurchase, ShopPurchaseInput, ShopPurchaseResult, ShopStore, ShopTicketReward, ShopView } from '../../application/shop/shop-store.js';
 import { elementKeys, isElementKey, isResourceKey, particleResourceKey, resourceKeys, type ElementKey, type ResourceKey } from '../../domain/economy/resources.js';
 import type { RandomSource } from '../../domain/wheel/wheel.js';
 import { isPrismaConcurrencyCollision } from './prisma-concurrency.js';
@@ -8,6 +8,7 @@ import { PrismaEconomyService } from './prisma-economy-service.js';
 import { PrismaGachaRewardService } from './prisma-gacha-reward-service.js';
 
 const RECENT_PURCHASE_LIMIT = 5;
+const SHOP_HISTORY_PAGE_SIZE = 10;
 const MAX_ATTEMPTS = 4;
 const itemInclude = { priceResource: { select: { key: true } } } satisfies Prisma.ShopItemDefinitionInclude;
 const purchaseInclude = { shopItem: { select: { externalKey: true, displayName: true } } } satisfies Prisma.ShopPurchaseInclude;
@@ -22,6 +23,20 @@ export class PrismaShopStore implements ShopStore {
 
   public async getView(playerId: string): Promise<ShopView> {
     return readView(this.database, playerId);
+  }
+
+  public async getHistory(playerId: string, page: number): Promise<ShopHistoryPage> {
+    const [totalCount, purchases] = await Promise.all([
+      this.database.shopPurchase.count({ where: { playerId } }),
+      this.database.shopPurchase.findMany({
+        where: { playerId },
+        orderBy: [{ purchasedAt: 'desc' }, { id: 'desc' }],
+        skip: (page - 1) * SHOP_HISTORY_PAGE_SIZE,
+        take: SHOP_HISTORY_PAGE_SIZE,
+        include: purchaseInclude,
+      }),
+    ]);
+    return { purchases: purchases.map(toPurchase), page, pageSize: SHOP_HISTORY_PAGE_SIZE, totalCount, totalPages: Math.ceil(totalCount / SHOP_HISTORY_PAGE_SIZE) };
   }
 
   public async purchase(input: ShopPurchaseInput): Promise<ShopPurchaseResult> {

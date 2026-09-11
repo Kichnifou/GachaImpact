@@ -163,6 +163,14 @@ export type ShopPurchaseDto = PlayerShopDto & Readonly<{
   operation: Readonly<{ id: string; alreadyProcessed: boolean }>
 }>
 
+export type ShopHistoryDto = Readonly<{
+  purchases: readonly ShopPurchaseRecordDto[]
+  page: number
+  pageSize: 10
+  totalCount: number
+  totalPages: number
+}>
+
 export type PlayerProgressionDto = Readonly<{
   totalXp: string
   level: number

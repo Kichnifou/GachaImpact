@@ -1026,6 +1026,12 @@ La préférence durable du Menu suit `UI → API authentifiée → NavigationPre
 
 Le snapshot Modération porte désormais le rang de la cible, dérivé de ses attributions actives avec la hiérarchie ADMIN, MODERATOR, TESTER, joueur. Les permissions jointes restent celles de l’acteur ; le DTO public Player n’est pas enrichi de rôles.
 
+## 21.2 Historique Boutique physique 0.81
+
+Le vertical Boutique ajoute une projection de lecture dédiée `GET /api/v1/me/shop/history?page=N` selon la chaîne `route authentifiée → GetPlayerShopHistory → ShopStore.getHistory`. Le service résout toujours le Player depuis l’identité authentifiée et valide la page ; Prisma applique le filtre Player, l’ordre déterministe `purchasedAt DESC, id DESC`, puis `skip/take` par dix. La route réutilise le sérialiseur d’achat de la Boutique.
+
+Le frontend charge cet historique uniquement à l’ouverture de la modale et à ses changements de page. Il ne l’insère pas dans `ShopMemoryCache`. Une coque de modale commune porte fermeture, body défilant et pagination fixe pour Banque et Boutique, tandis que chaque écran conserve son état local, son appel API et ses colonnes métier.
+
 # 22. Ordre de travail Phase C
 
 ## C1 — Architecture

@@ -1204,6 +1204,8 @@ Le seed canonique 010 contient, dans cet ordre, `daily-mission`, `primogem-bundl
 
 L'API physique 0.79 expose `GET /api/v1/me/shop` et `POST /api/v1/me/shop/:itemId/purchase`. L'achat est une transaction `SERIALIZABLE` verrouillée par Player, avec débit/crédits via le service économique central, récompense Pity via le service Gacha central, snapshot avant réponse et idempotence portée par `business_operations`. Le frontend ne fournit jamais le prix ni le résultat Ticket.
 
+État API 0.81, sans migration : `GET /api/v1/me/shop/history?page=N` projette exclusivement les achats du Player authentifié depuis `shop_purchases`, triés `purchased_at DESC, id DESC`, par pages de dix. Le DTO renvoie `purchases`, `page`, `pageSize`, `totalCount`, `totalPages` et sérialise chaque achat par le même contrat que la projection récente. Une page non entière ou inférieure à 1 produit HTTP 400 / `SHOP_HISTORY_PAGE_INVALID`. Les migrations 010 et 011 restent immuables.
+
 ---
 
 # 17. Missions

@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.80
+Version : 0.81
 Date : 2026-09-11
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3648,7 +3648,7 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Cache et intentions Boutique sont éphémères, isolés par Player, protégés contre les réponses obsolètes, réutilisent la même clé après erreur ambiguë et sont vidés au logout. Les snapshots de mutation synchronisent Moras, Primogemmes, particules et état Gacha global.
 - Boutique est **COMMENCÉE MAIS NON PUBLIQUEMENT CLÔTURÉE**. `PAID_INFRA_APPROVED = false` reste inchangé ; aucun service payant, aucune configuration Railway et aucun déploiement manuel ne font partie de ce candidat.
 
-## État du candidat 0.80 — navigation V1, Menu, Configuration et Quotidiennes
+## État public 0.80 — navigation V1, Menu, Configuration et Quotidiennes
 
 - Le candidat 0.80 contient le commit 0.79 comme ancêtre technique ; 0.79 n’est pas promu seul. Les micro-polish des panneaux longs et le premier vertical Boutique réel Primos/Ticket sont conservés sans régression.
 - La navigation principale contient exactement sept tuiles : Accueil, Invocation, Personnages, Activités, Sac, Boutique, Configuration. Personnages réutilise Box/Équipe/Catalogue ; Activités expose Quotidiennes/Missions/Combat/Événement/Concours avec des coques honnêtes pour les domaines non implémentés. Les anciens hashes restent compatibles et les deep links groupés sont canoniques.
@@ -3658,7 +3658,17 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - La migration additive 011 conserve `daily-mission`, la renomme `Défi`, la masque et la désactive. Elle est appliquée uniquement sur Supabase DEV `rmkpjudimoibyjsjtubh`; la migration 010 est inchangée et aucun Player, solde ou achat n’est modifié par cette migration.
 - Le futur Tutoriel est entièrement documenté mais non implémenté. Le hero Accueil et la carte Récompense quotidienne de sidebar restent en place ; les évolutions dashboard/sidebar attendent des activités réelles.
 - L’index documentaire renvoie correctement vers l’audit Boutique/Sac/Coffre existant `10-sac-coffre-shop-audit.md` ; aucun audit n’est renommé.
-- Boutique reste le domaine actif et n’est pas encore publiquement clôturée. Le candidat 0.80 doit être reviewé puis testé publiquement ; Quotidiennes n’est pas déclarée domaine métier commencé au-delà de son shell et de la Roue déjà réelle. `PAID_INFRA_APPROVED = false` reste inchangé.
+- Le propriétaire a validé publiquement 0.80. Navigation, Menu/Configuration, coques Activités, Quotidiennes/Roue, rang cible Modération et régressions Boutique constituent le dernier checkpoint public. Boutique reste le domaine actif et n’est pas encore publiquement clôturée ; Quotidiennes n’est pas déclarée domaine métier commencé au-delà de son shell et de la Roue déjà réelle. `PAID_INFRA_APPROVED = false` reste inchangé.
+
+## État du candidat 0.81 — consolidation shell et historique Boutique
+
+- Team place le sélecteur avant un header sélectionné plus compact. Seules les icônes sont réduites dans le cas exact de quatre passifs ; tous les comportements existants de composition restent inchangés.
+- Les sous-navigations desktop sont fixes, entièrement visibles et sans scrollbar ; mobile conserve le défilement horizontal tactile sans barre native. Quotidiennes et Configuration utilisent un cadre fermé pleine hauteur avec contrôles fixes et body interne défilant.
+- La page du Menu global vit dans `GameShell`, survit aux fermetures et navigations de la session, revient à 1 au nouveau montage/logout et se rabat si le masquage réduit le nombre de pages. Le registre reste exactement celui des seize destinations 0.80.
+- Configuration expose Menu actif, Confidentialité/Apparence désactivés, les flèches accessibles et un drag-and-drop à aperçu local, sauvegarde unique au drop et rollback sur erreur.
+- Boutique ouvre Banque depuis son portefeuille, affiche seulement le dernier achat dans son aperçu et charge un historique personnel paginé à la demande. Banque et Boutique partagent la coque de modale, pas leurs données ni leurs services.
+- Le backend ajoute `GET /api/v1/me/shop/history?page=N`, dix lignes par page, tri stable date puis id décroissants et code 400 `SHOP_HISTORY_PAGE_INVALID`. Aucune migration n’est créée ; 010/011 restent immuables et `ShopMemoryCache` reste inchangé.
+- Le candidat 0.81 n’est pas validé publiquement. Les comptes DEV légitimes confirmés par le propriétaire restent intacts et disponibles selon leur statut ; aucun nettoyage de Player n’appartient à ce lot.
 
 ## État du lot — Invocation x1/x10
 
@@ -3800,7 +3810,7 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Faire reviewer le candidat 0.80 uniquement sur `review` → corriger les éventuels retours sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → valider publiquement la navigation à sept entrées, le Menu/Configuration, les coques Activités, Quotidiennes/Roue, le rang cible Modération et les régressions Boutique.** Après cette validation, rester dans Boutique pour ses retours et sa clôture explicite ; ne pas commencer un nouveau domaine métier. `PAID_INFRA_APPROVED = false` reste inchangé.
+**Faire reviewer indépendamment le candidat 0.81 uniquement sur `review` → corriger les éventuels retours sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → valider publiquement les consolidations de shell, Team, Quotidiennes, Menu/Configuration et l’historique Boutique.** Boutique reste le domaine actif ; ne pas commencer un nouveau domaine métier. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

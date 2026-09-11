@@ -13,6 +13,15 @@ export class GetCurrentPlayerShop {
   }
 }
 
+export class GetPlayerShopHistory {
+  public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: ShopStore) {}
+  public async execute(identity: AuthenticatedIdentity, page: number) {
+    if (!Number.isInteger(page) || page < 1) throw new BusinessError('SHOP_HISTORY_PAGE_INVALID', 'La page d’historique Boutique doit être un entier positif.');
+    const player = await this.getPlayer.execute(identity);
+    return this.store.getHistory(player.id, page);
+  }
+}
+
 export class PurchaseShopItem {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: ShopStore, private readonly clock: Clock) {}
   public async execute(identity: AuthenticatedIdentity, itemId: string, quantity: bigint, idempotencyKey: string) {

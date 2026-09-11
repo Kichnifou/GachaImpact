@@ -1189,3 +1189,9 @@ Shop :
 Frontières Missions et Event explicitement reportées.
 
 **Domaine Sac / Coffre / Shop : CLÔTURÉ.**
+
+### Présentation et historique physique Boutique 0.81
+
+Le hero Boutique rend le portefeuille accessible comme raccourci vers Banque. Le catalogue et l’activité restent dans le flux normal du body défilant du grand cadre ; aucune zone ne se superpose.
+
+L’aperçu principal affiche au plus `recentPurchases[0]` avec article, quantité, date, résultat et coût. `Voir l’historique` ouvre une modale personnelle paginée par dix, sans JSON brut, alimentée à la demande par `GET /api/v1/me/shop/history?page=N`. L’ordre autoritatif est `purchased_at DESC, id DESC`; le stockage existant reste exhaustif et `ShopMemoryCache` n’est pas étendu avec l’historique complet.

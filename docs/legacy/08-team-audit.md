@@ -1292,3 +1292,9 @@ Migration `team` + `savedTeams` cadrée.
 Les détails SQL exacts restent réservés à la Phase 2.
 
 **Domaine Team : CLÔTURÉ.**
+
+### Présentation physique 0.81
+
+Le sélecteur paginé des Teams précède désormais le header compact de la Team sélectionnée. Cette hiérarchie ne change ni la sélection, ni l’activation, ni le renommage, ni le vidage, ni les réorganisations Teams/slots, ni les fiches personnage.
+
+Pour exactement quatre passifs, la grille 2 × 2 réduit uniquement les icônes élémentaires via `.bonus-grid.passive-count-4 .bonus-element-icon`. Les cas de un à trois passifs gardent leur densité existante.

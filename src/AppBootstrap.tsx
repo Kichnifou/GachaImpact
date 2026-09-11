@@ -67,6 +67,7 @@ function AppBootstrap() {
   const withdrawBank = useCallback(async (amount: string, idempotencyKey: string) =>
     publishBankTransfer(await getGameApiClient().withdrawBank(amount, idempotencyKey)), [publishBankTransfer])
   const loadShop = useCallback(() => getGameApiClient().getShop(), [])
+  const loadShopHistory = useCallback((page: number) => getGameApiClient().getShopHistory(page), [])
   const purchaseShop = useCallback(async (itemId: string, quantity: string, idempotencyKey: string) => {
     const result: ShopPurchaseDto = await getGameApiClient().purchaseShopItem(itemId, quantity, idempotencyKey)
     setResources(result.resources)
@@ -312,6 +313,7 @@ function AppBootstrap() {
       onDepositBank={depositBank}
       onWithdrawBank={withdrawBank}
       onLoadShop={loadShop}
+      onLoadShopHistory={loadShopHistory}
       onPurchaseShop={purchaseShop}
       onLoadNavigationPreferences={() => getGameApiClient().getNavigationPreferences()}
       onSaveNavigationPreferences={(value) => getGameApiClient().putNavigationPreferences(value)}

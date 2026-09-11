@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
-import { Prisma } from '../generated/prisma/client.js';
+import { OperationStatus, Prisma, SourceChannel } from '../generated/prisma/client.js';
 import { loadConfig } from '../src/config/environment.js';
 import { resourceKeys } from '../src/domain/economy/resources.js';
 import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
@@ -66,6 +66,57 @@ describe('Shop persistence', () => {
     expect(await database.playerEconomyStats.findUniqueOrThrow({ where: { playerId } })).toMatchObject({ totalMorasSpent: 100_000n, totalPrimosEarned: 320n });
     await expect(store.purchase(input(playerId, primosId, 1n, key))).rejects.toMatchObject({ code: 'SHOP_IDEMPOTENCY_CONFLICT' });
     await store.purchase({ ...input(playerId, primosId, 10n), occurredAt: new Date(now.getTime() + 1) }); expect((await store.getView(playerId)).recentPurchases.map(({ quantity }) => quantity)).toEqual([10n, 2n]);
+    const history = await store.getHistory(playerId, 1); expect(history).toMatchObject({ page: 1, pageSize: 10, totalCount: 2, totalPages: 1 }); expect(history.purchases.map(({ quantity }) => quantity)).toEqual([10n, 2n]);
+  });
+
+  it('paginates 21 history rows as 10/10/1 with stable order, lossless bigint snapshots and Player isolation', async () => {
+    const preexistingIds = (await database.shopPurchase.findMany({ select: { id: true } })).map(({ id }) => id).sort();
+    const playerId = await createPlayer(1n);
+    const otherPlayerId = await createPlayer(1n);
+    const largeQuantity = 9_007_199_254_740_993n;
+    const fixtures = Array.from({ length: 21 }, (_, index) => {
+      const purchasedAt = new Date(now.getTime() + Math.floor(index / 2));
+      const quantity = index === 0 ? largeQuantity : BigInt(index + 1);
+      return { id: randomUUID(), operationId: randomUUID(), purchasedAt, quantity };
+    });
+    const other = { id: randomUUID(), operationId: randomUUID(), purchasedAt: new Date(now.getTime() + 60_000) };
+
+    await database.$transaction([
+      database.businessOperation.createMany({ data: [...fixtures.map(({ operationId, purchasedAt }) => ({
+        id: operationId, playerId, operationType: 'shop.purchase', sourceChannel: SourceChannel.UI,
+        idempotencyKey: `history-${operationId}`, status: OperationStatus.COMPLETED, startedAt: purchasedAt, completedAt: purchasedAt,
+      })), {
+        id: other.operationId, playerId: otherPlayerId, operationType: 'shop.purchase', sourceChannel: SourceChannel.UI,
+        idempotencyKey: `history-${other.operationId}`, status: OperationStatus.COMPLETED, startedAt: other.purchasedAt, completedAt: other.purchasedAt,
+      }] }),
+      database.shopPurchase.createMany({ data: [...fixtures.map(({ id, operationId, purchasedAt, quantity }) => ({
+        id, playerId, shopItemId: primosId, quantity, unitPrice: 1n, totalPrice: quantity,
+        effectSnapshot: { type: 'resource_bundle', resourceKey: 'primogems', amount: quantity.toString() }, operationId, purchasedAt,
+      })), {
+        id: other.id, playerId: otherPlayerId, shopItemId: primosId, quantity: 1n, unitPrice: 1n, totalPrice: 1n,
+        effectSnapshot: { type: 'resource_bundle', resourceKey: 'primogems', amount: '1' }, operationId: other.operationId, purchasedAt: other.purchasedAt,
+      }] }),
+    ]);
+
+    const store = new PrismaShopStore(database, { nextInt: () => 0 });
+    const [page1, page2, page3] = await Promise.all([store.getHistory(playerId, 1), store.getHistory(playerId, 2), store.getHistory(playerId, 3)]);
+    expect([page1.purchases.length, page2.purchases.length, page3.purchases.length]).toEqual([10, 10, 1]);
+    expect(page1).toMatchObject({ page: 1, pageSize: 10, totalCount: 21, totalPages: 3 });
+    expect(page2).toMatchObject({ page: 2, pageSize: 10, totalCount: 21, totalPages: 3 });
+    expect(page3).toMatchObject({ page: 3, pageSize: 10, totalCount: 21, totalPages: 3 });
+    const expectedIds = (await database.shopPurchase.findMany({
+      where: { playerId }, orderBy: [{ purchasedAt: 'desc' }, { id: 'desc' }], select: { id: true },
+    })).map(({ id }) => id);
+    const purchases = [...page1.purchases, ...page2.purchases, ...page3.purchases];
+    expect(purchases.map(({ id }) => id)).toEqual(expectedIds);
+    expect(purchases.some(({ id }) => id === other.id)).toBe(false);
+    expect(purchases.find(({ quantity }) => quantity === largeQuantity)).toMatchObject({
+      quantity: largeQuantity, unitPrice: 1n, totalPrice: largeQuantity,
+      effect: { type: 'resource_bundle', resourceKey: 'primogems', amount: largeQuantity },
+    });
+
+    await cleanup();
+    expect((await database.shopPurchase.findMany({ where: { id: { in: preexistingIds } }, select: { id: true } })).map(({ id }) => id).sort()).toEqual(preexistingIds);
   });
 
   it('rejects invalid/unit/disabled/insufficient requests atomically', async () => {

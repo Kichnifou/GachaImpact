@@ -293,6 +293,11 @@ describe('real Team screen', () => {
     expect(html).toContain('bonus-grid passive-count-4')
   })
 
+  it('places the team switcher before the compact selected-team heading', () => {
+    const html = renderToStaticMarkup(<TeamScreen teams={teams(2)} {...callbacks} />)
+    expect(html.indexOf('team-switcher panel')).toBeLessThan(html.indexOf('team-screen-heading'))
+  })
+
   it('shows an explicit swap destination on occupied and empty character slots without insertion feedback', () => {
     const container = mountTeamScreen(teams(3))
     const slotWrappers = container.querySelectorAll<HTMLElement>('.team-slot-drag-wrapper')

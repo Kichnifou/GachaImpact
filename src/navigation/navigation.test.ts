@@ -16,4 +16,8 @@ describe('navigation shell registry', () => {
     expect(hashForScreen('activities-event')).toBe('activities/event')
     expect(navigationDestinations.filter(({ available }) => !available).map(({ id }) => id)).toEqual(['history', 'tutorial'])
   })
+  it('keeps the exhaustive sixteen-entry global registry without Social or Stats', () => {
+    expect(navigationDestinations.map(({ id }) => id)).toEqual(['home', 'invocation', 'box', 'team', 'catalog', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'history', 'tutorial', 'configuration'])
+    expect(new Set(navigationDestinations.map(({ id }) => id)).size).toBe(16)
+  })
 })

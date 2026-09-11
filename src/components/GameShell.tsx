@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import type { BankHistoryDto, BankTransferDto, BoxCharacterDto, BoxSortPreferenceDto, CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, ModerationPermissionsDto, ModerationPlayerListQuery, ModerationPlayerPageDto, ModerationStateDto, NavigationMenuPreferenceDto, PlayerBankDto, PlayerBoxDto, PlayerDto, PlayerInventoryDto, PlayerProgressionDto, PlayerResourcesDto, PlayerShopDto, PlayerTeamsDto, ShopPurchaseDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
+import type { BankHistoryDto, BankTransferDto, BoxCharacterDto, BoxSortPreferenceDto, CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, ModerationPermissionsDto, ModerationPlayerListQuery, ModerationPlayerPageDto, ModerationStateDto, NavigationMenuPreferenceDto, PlayerBankDto, PlayerBoxDto, PlayerDto, PlayerInventoryDto, PlayerProgressionDto, PlayerResourcesDto, PlayerShopDto, PlayerTeamsDto, ShopHistoryDto, ShopPurchaseDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import type { ScreenId } from '../types'
 import BoxScreen from '../screens/BoxScreen'
 import CharactersScreen from '../screens/CharactersScreen'
@@ -75,6 +75,7 @@ type GameShellProps = {
   onDepositBank: (amount: string, idempotencyKey: string) => Promise<BankTransferDto>
   onWithdrawBank: (amount: string, idempotencyKey: string) => Promise<BankTransferDto>
   onLoadShop: () => Promise<PlayerShopDto>
+  onLoadShopHistory: (page: number) => Promise<ShopHistoryDto>
   onPurchaseShop: (itemId: string, quantity: string, idempotencyKey: string) => Promise<ShopPurchaseDto>
   onLoadInventory: () => Promise<PlayerInventoryDto>
   permissions: ModerationPermissionsDto
@@ -90,13 +91,14 @@ type GameShellProps = {
   onSaveNavigationPreferences: (value: NavigationMenuPreferenceDto) => Promise<NavigationMenuPreferenceDto>
 }
 
-function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank, onLoadShop, onPurchaseShop, onLoadInventory, permissions, onLoadModeration, onListModerationPlayers, onModerationResource, onModerationXp, onModerationGacha, onModerationStella, onModerationTester, onModerationApplied, onLoadNavigationPreferences, onSaveNavigationPreferences }: GameShellProps) {
+function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, onSignOut, gacha, characters, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank, onLoadShop, onLoadShopHistory, onPurchaseShop, onLoadInventory, permissions, onLoadModeration, onListModerationPlayers, onModerationResource, onModerationXp, onModerationGacha, onModerationStella, onModerationTester, onModerationApplied, onLoadNavigationPreferences, onSaveNavigationPreferences }: GameShellProps) {
   const [activeScreen, setActiveScreen] = useState<ScreenId>(getScreenFromHash)
   const activeScreenRef = useRef(activeScreen)
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isPlayersOpen, setIsPlayersOpen] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [menuPage, setMenuPage] = useState(1)
   const [menuPreference, setMenuPreference] = useState<NavigationMenuPreferenceDto>(defaultNavigationPreference)
   const [lastCharacterScreen, setLastCharacterScreen] = useState<ScreenId>(() => activeScreen.startsWith('characters-') ? activeScreen : 'characters-box')
   const [lastActivityScreen, setLastActivityScreen] = useState<ScreenId>(() => activeScreen.startsWith('activities-') ? activeScreen : 'activities-dailies')
@@ -254,7 +256,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
       case 'moderation':
         return permissions.capabilities.moderationAccess ? <ModerationScreen actorPlayerId={player.id} capabilities={permissions.capabilities} onLoad={onLoadModeration} onListPlayers={onListModerationPlayers} onResource={moderateResource} onXp={moderateXp} onGacha={moderateGacha} onStella={moderateStella} onTester={moderateTester} onApplied={applyModerationResult} /> : <HomeScreen onNavigate={navigate} gacha={gacha} onSetGachaTarget={onSetGachaTarget} />
       case 'shop':
-        return <ShopScreen initialShop={shopCache.read(player.id)} onLoad={loadShop} onPurchase={purchaseShop} />
+        return <ShopScreen initialShop={shopCache.read(player.id)} onLoad={loadShop} onLoadHistory={onLoadShopHistory} onPurchase={purchaseShop} onNavigateBank={() => navigate('bank')} />
       case 'activities-dailies':
       case 'activities-missions':
       case 'activities-combat':
@@ -320,7 +322,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
       )}
 
       {isPlayersOpen && <OnlinePlayersPanel onClose={() => setIsPlayersOpen(false)} />}
-      {isMenuOpen && <GlobalMenu preference={menuPreference} onNavigate={navigate} onClose={() => setIsMenuOpen(false)} />}
+      {isMenuOpen && <GlobalMenu preference={menuPreference} page={menuPage} onPageChange={setMenuPage} onNavigate={navigate} onClose={() => setIsMenuOpen(false)} />}
       {activeLevelUpFeedback && activeLevelUpFeedback.id !== closedLevelUpModalId && <LevelUpFeedback key={activeLevelUpFeedback.id} event={activeLevelUpFeedback} onFinished={finishLevelUpModal} />}
     </div>
   )

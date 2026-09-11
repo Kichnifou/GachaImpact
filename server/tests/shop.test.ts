@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
-import { GetCurrentPlayerShop, PurchaseShopItem } from '../src/application/shop/shop-services.js';
+import { GetCurrentPlayerShop, GetPlayerShopHistory, PurchaseShopItem } from '../src/application/shop/shop-services.js';
 import type { ShopStore, ShopView } from '../src/application/shop/shop-store.js';
 import { applyFiveStarPityBonus } from '../src/domain/gacha/pity.js';
 import { resourceKeys } from '../src/domain/economy/resources.js';
@@ -20,6 +20,7 @@ const view: ShopView = { resources, gachaState, items, recentPurchases: [] };
 class FakeShopStore implements ShopStore {
   public readonly purchase = vi.fn(async (input: Parameters<ShopStore['purchase']>[0]) => ({ ...view, purchase: { id: crypto.randomUUID(), itemId: input.itemId, externalKey: 'primogem-bundle', displayName: 'Lot de Primogemmes', quantity: input.quantity, unitPrice: 50_000n, totalPrice: 50_000n * input.quantity, effect: { type: 'resource_bundle' as const, resourceKey: 'primogems' as const, amount: 160n * input.quantity }, operationId: crypto.randomUUID(), purchasedAt: new Date('2026-09-10T12:00:00Z') }, operation: { id: crypto.randomUUID(), alreadyProcessed: false } }));
   public async getView() { return view; }
+  public async getHistory(_playerId: string, page: number) { return { purchases: [], page, pageSize: 10 as const, totalCount: 0, totalPages: 0 }; }
 }
 
 describe('Shop domain and HTTP contract', () => {
@@ -29,7 +30,7 @@ describe('Shop domain and HTTP contract', () => {
     const store = new FakeShopStore();
     const playerStore = { findByIdentity: async () => ({ id: playerId, displayName: 'Shop Test', elementKey: 'hydro', status: 'ACTIVE' as const }), provision: vi.fn() };
     const current = new GetCurrentPlayer(playerStore);
-    const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, { authIdentityVerifier: { verify: async () => ({ subject: 'subject' }) }, getOrProvisionCurrentPlayer: new GetOrProvisionCurrentPlayer(playerStore), getCurrentPlayerShop: new GetCurrentPlayerShop(current, store), purchaseShopItem: new PurchaseShopItem(current, store, { now: () => new Date('2026-09-10T12:00:00Z') }) });
+    const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, { authIdentityVerifier: { verify: async () => ({ subject: 'subject' }) }, getOrProvisionCurrentPlayer: new GetOrProvisionCurrentPlayer(playerStore), getCurrentPlayerShop: new GetCurrentPlayerShop(current, store), getPlayerShopHistory: new GetPlayerShopHistory(current, store), purchaseShopItem: new PurchaseShopItem(current, store, { now: () => new Date('2026-09-10T12:00:00Z') }) });
     apps.push(app); return { app, store };
   }
 
@@ -47,5 +48,14 @@ describe('Shop domain and HTTP contract', () => {
     expect(store.purchase.mock.calls[0]![0]).toMatchObject({ playerId, itemId: itemIds[1], quantity: 2n, idempotencyKey });
     for (const quantity of ['0', '-1', '1.5', 'abc']) expect((await app.inject({ method: 'POST', url: `/api/v1/me/shop/${itemIds[1]}/purchase`, headers, payload: { quantity, idempotencyKey: crypto.randomUUID() } })).statusCode).toBe(400);
     expect((await app.inject({ method: 'POST', url: `/api/v1/me/shop/${itemIds[1]}/purchase`, headers, payload: { quantity: '1', idempotencyKey: crypto.randomUUID(), price: '1' } })).statusCode).toBe(400);
+  });
+  it('exposes authenticated paginated Shop history and rejects invalid pages with its stable code', async () => {
+    const { app } = await setup(); const headers = { authorization: 'Bearer token' };
+    expect((await app.inject({ url: '/api/v1/me/shop/history' })).statusCode).toBe(401);
+    expect((await app.inject({ url: '/api/v1/me/shop/history?page=1', headers })).json()).toEqual({ purchases: [], page: 1, pageSize: 10, totalCount: 0, totalPages: 0 });
+    for (const page of ['0', '-1', '1.5', 'text']) {
+      const response = await app.inject({ url: `/api/v1/me/shop/history?page=${page}`, headers });
+      expect(response.statusCode).toBe(400); expect(response.json().error.code).toBe('SHOP_HISTORY_PAGE_INVALID');
+    }
   });
 });

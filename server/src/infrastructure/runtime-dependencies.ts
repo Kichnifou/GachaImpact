@@ -32,7 +32,7 @@ import { GetCurrentPlayerInventory } from '../application/inventory/inventory-se
 import { PrismaInventoryStore } from './database/prisma-inventory-store.js';
 import { PrismaModerationTools } from './database/prisma-moderation-tools.js';
 import { PrismaShopStore } from './database/prisma-shop-store.js';
-import { GetCurrentPlayerShop, PurchaseShopItem } from '../application/shop/shop-services.js';
+import { GetCurrentPlayerShop, GetPlayerShopHistory, PurchaseShopItem } from '../application/shop/shop-services.js';
 import { NavigationPreferencesService } from '../application/navigation/navigation-preferences.js';
 import { PrismaNavigationPreferenceStore } from './database/prisma-navigation-preference-store.js';
 
@@ -103,6 +103,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     getCurrentPlayerInventory: new GetCurrentPlayerInventory(getCurrentPlayer, inventoryStore),
     moderationTools: new PrismaModerationTools(database, getCurrentPlayer),
     getCurrentPlayerShop: new GetCurrentPlayerShop(getCurrentPlayer, shopStore),
+    getPlayerShopHistory: new GetPlayerShopHistory(getCurrentPlayer, shopStore),
     purchaseShopItem: new PurchaseShopItem(getCurrentPlayer, shopStore, clock),
     navigationPreferences: new NavigationPreferencesService(getCurrentPlayer, new PrismaNavigationPreferenceStore(database)),
     start: async () => { await scheduler.start(); await bankInterestScheduler.start(); },

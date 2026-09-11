@@ -258,10 +258,12 @@ describe('game API client', () => {
     const idempotencyKey = crypto.randomUUID()
 
     await expect(client.getShop()).resolves.toMatchObject({ resources: { moras: '9007199254740993' } })
+    await client.getShopHistory(3)
     await client.purchaseShopItem(itemId, '10', idempotencyKey)
 
     expect(fetchImplementation.mock.calls.map(([url, init]) => [url, init?.method, init?.body ? JSON.parse(String(init.body)) : null])).toEqual([
       ['http://127.0.0.1:3001/api/v1/me/shop', undefined, null],
+      ['http://127.0.0.1:3001/api/v1/me/shop/history?page=3', undefined, null],
       [`http://127.0.0.1:3001/api/v1/me/shop/${itemId}/purchase`, 'POST', { quantity: '10', idempotencyKey }],
     ])
   })

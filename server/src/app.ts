@@ -34,7 +34,7 @@ import type { ActivatePlayerTeam, ClearPlayerTeam, CreateNextPlayerTeam, DeleteE
 import type { GetCurrentPlayerBank, GetPlayerBankHistory, TransferPlayerBank } from './application/banking/banking-services.js';
 import type { GetCurrentPlayerInventory } from './application/inventory/inventory-services.js';
 import type { AppConfig } from './config/environment.js';
-import type { GetCurrentPlayerShop, PurchaseShopItem } from './application/shop/shop-services.js';
+import type { GetCurrentPlayerShop, GetPlayerShopHistory, PurchaseShopItem } from './application/shop/shop-services.js';
 import { loadConfig } from './config/environment.js';
 import type { NavigationPreferencesService } from './application/navigation/navigation-preferences.js';
 import { registerNavigationPreferenceRoutes } from './api/routes/navigation-preferences.js';
@@ -75,6 +75,7 @@ export type AppDependencies = Readonly<{
   getCurrentPlayerInventory?: GetCurrentPlayerInventory;
   moderationTools?: ModerationTools;
   getCurrentPlayerShop?: GetCurrentPlayerShop;
+  getPlayerShopHistory?: GetPlayerShopHistory;
   purchaseShopItem?: PurchaseShopItem;
   navigationPreferences?: NavigationPreferencesService;
   close?: () => Promise<void>;
@@ -181,8 +182,8 @@ export async function buildApp(
     if (dependencies.moderationTools) {
       await app.register(registerModerationRoutes, { authenticate, moderationTools: dependencies.moderationTools });
     }
-    if (dependencies.getCurrentPlayerShop && dependencies.purchaseShopItem) {
-      await app.register(registerShopRoutes, { authenticate, getCurrentPlayerShop: dependencies.getCurrentPlayerShop, purchaseShopItem: dependencies.purchaseShopItem });
+    if (dependencies.getCurrentPlayerShop && dependencies.getPlayerShopHistory && dependencies.purchaseShopItem) {
+      await app.register(registerShopRoutes, { authenticate, getCurrentPlayerShop: dependencies.getCurrentPlayerShop, getPlayerShopHistory: dependencies.getPlayerShopHistory, purchaseShopItem: dependencies.purchaseShopItem });
     }
     if (dependencies.navigationPreferences) {
       await app.register(registerNavigationPreferenceRoutes, { authenticate, service: dependencies.navigationPreferences });
