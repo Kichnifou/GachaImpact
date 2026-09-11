@@ -59,7 +59,7 @@ function ShopItemCard({ item, walletMoras, quantity, pending, anyPending, onQuan
 }
 
 function RecentPurchase({ purchase, onOpenHistory }: { purchase: ShopPurchaseRecordDto | null; onOpenHistory: () => void }) {
-  return <section className="panel shop-history"><header><div><span className="eyebrow">Activité</span><h2>Dernier achat</h2></div><button type="button" onClick={onOpenHistory}>Voir l’historique</button></header>{!purchase ? <p className="shop-history-empty">Votre premier achat apparaîtra ici.</p> : <dl className="shop-last-purchase"><div><dt>Article</dt><dd>{purchase.displayName}</dd></div><div><dt>Quantité</dt><dd>{purchase.quantity}</dd></div><div><dt>Date</dt><dd>{formatPurchaseDate(purchase.purchasedAt)}</dd></div><div><dt>Résultat</dt><dd>{effectLabel(purchase.effect)}</dd></div><div><dt>Coût</dt><dd>−{formatResourceAmount(purchase.totalPrice)} Moras</dd></div></dl>}</section>
+  return <section className="panel shop-history"><header><div><span className="eyebrow">Activité</span><h2>Dernière transaction</h2></div><button type="button" onClick={onOpenHistory}>Voir l’historique</button></header>{!purchase ? <p className="shop-history-empty">Votre première transaction apparaîtra ici.</p> : <dl className="shop-last-purchase"><div><dt>Article</dt><dd>{purchase.displayName}</dd></div><div><dt>Quantité</dt><dd>{purchase.quantity}</dd></div><div><dt>Date</dt><dd>{formatPurchaseDate(purchase.purchasedAt)}</dd></div><div><dt>Résultat</dt><dd>{effectLabel(purchase.effect)}</dd></div><div><dt>Coût</dt><dd>−{formatResourceAmount(purchase.totalPrice)} Moras</dd></div></dl>}</section>
 }
 
 export function ShopHistoryModal({ onClose, onLoad }: { onClose: () => void; onLoad: (page: number) => Promise<ShopHistoryDto> }) {

@@ -1203,3 +1203,11 @@ Dépendances restant explicitement reportées :
 - Roue / Event pour leur contribution au suivi `!quotis`.
 
 Le Domaine Missions reste clôturé.
+
+## Vertical physique Défi — candidat 0.82
+
+Le sous-onglet `Quotidiennes > Défi` implémente la quotidienne payante sans ouvrir les Missions permanentes B/A/S/Z. L’objectif reste caché avant le débit autoritatif de 10 000 Moras. L’attribution choisit côté serveur une définition éligible pondérée, en snapshotte les termes, puis conserve une seule ligne Player/journée `Europe/Paris`. Le résultat expose le Défi attribué mais jamais le pool, ses poids ou ses probabilités.
+
+La migration additive 012 installe les trois définitions finales : messages 10, Pulls 5 et conversion 320. Elles gardent le même poids produit. `daily_messages_10` reste désactivé uniquement dans l’éligibilité physique tant qu’aucun vrai producteur de chat n’existe ; les deux autres forment donc temporairement le tirage exécutable sans constituer une nouvelle règle d’équilibrage.
+
+Les Pulls progressent de 1 ou 10 seulement dans leur transaction persistée. La conversion progresse de la quantité réellement convertie. À la cible, la ligne passe une fois à `COMPLETED` et crédite 800 Primos via le moteur économique dans la même transaction. Le switch actif coûte 20 000 Moras puis double, exclut la définition courante et remet la progression à zéro. Une journée suivante n’attribue rien automatiquement ; un actif ancien devient `EXPIRED`, tandis qu’un terminé historique reste terminé.

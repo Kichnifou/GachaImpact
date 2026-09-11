@@ -1195,3 +1195,7 @@ Frontières Missions et Event explicitement reportées.
 Le hero Boutique rend le portefeuille accessible comme raccourci vers Banque. Le catalogue et l’activité restent dans le flux normal du body défilant du grand cadre ; aucune zone ne se superpose.
 
 L’aperçu principal affiche au plus `recentPurchases[0]` avec article, quantité, date, résultat et coût. `Voir l’historique` ouvre une modale personnelle paginée par dix, sans JSON brut, alimentée à la demande par `GET /api/v1/me/shop/history?page=N`. L’ordre autoritatif est `purchased_at DESC, id DESC`; le stockage existant reste exhaustif et `ShopMemoryCache` n’est pas étendu avec l’historique complet.
+
+### Ajustements physiques 0.82
+
+Le grand panneau Boutique occupe toute la hauteur utile du `screen-stage` et conserve son bord inférieur aligné avec le chat, même lorsque son body contient de l’espace libre. Le libellé player-facing est `Dernière transaction`. La modale d’historique commune réserve exactement dix emplacements de ligne et garde son footer invariant pour une page pleine, partielle ou vide, conformément au contrat de layout UI V1.

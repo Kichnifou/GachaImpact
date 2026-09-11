@@ -2008,3 +2008,9 @@ Avant de considérer la Phase B clôturée, il reste à :
 4. identifier les rares décisions produit réellement bloquantes, s'il en reste ;
 5. checkpoint documentaire ;
 6. effectuer une revue de readiness avant Phase C.
+
+## Extension physique 0.82 — Défi quotidien
+
+`DailyChallengeDefinition` est le catalogue extensible (`externalKey`, type, cible, libellés, récompense, poids, enabled/eligible/order). `PlayerDailyChallenge` porte une attribution unique par `(playerId, businessDate)`, sa définition, les snapshots player-facing et économiques, la progression bornée, `ACTIVE | COMPLETED | EXPIRED`, les dates et le nombre de changements.
+
+Les snapshots empêchent une modification ultérieure du catalogue de transformer une attribution existante. Aucun état n’est créé pour un Player tant qu’il n’achète pas son Défi. Pull et Conversion restent propriétaires de leur action ; ils publient une progression au service Défi dans la même transaction, sans seconde implémentation métier.

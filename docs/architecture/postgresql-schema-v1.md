@@ -2877,3 +2877,9 @@ La prochaine étape n'est plus un audit documentaire.
 Premier lot recommandé :
 
 **squelette backend + Prisma + connexion Supabase + migrations 001/002 réduites au vertical slice Roue + Auth adapter + healthcheck + tests de base.**
+
+## Migration physique 012 — Défi quotidien
+
+La migration additive `20260911180000_012_add_daily_challenge` crée l’enum `daily_challenge_status`, `daily_challenge_definitions` et `player_daily_challenges`. Le catalogue impose clés externes uniques, valeurs positives et index de pool. L’état Player impose l’unicité `(player_id, business_date)`, une progression entre zéro et la cible snapshot, la cohérence de `completed_at`, et indexe les lectures Player/statut/date.
+
+Les trois définitions finales sont seedées avec UUID stables ; messages est conservé mais `is_eligible=false` jusqu’au vrai producteur. Les deux tables ont RLS activée et tous les droits sont retirés à `anon` et `authenticated` : seul le backend Prisma direct les utilise. Les migrations 010 et 011 ne sont pas modifiées.

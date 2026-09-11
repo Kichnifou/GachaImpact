@@ -1520,3 +1520,9 @@ Idée future documentée :
 - écran de statistiques joueur / statistiques globales du jeu ;
 - l'historique serveur des échanges pourra alimenter certaines de ces statistiques ;
 - l'écran Échanges possède un historique récent limité ; l'écran de statistiques futur pourra exploiter l'historique serveur plus largement.
+
+## Conversion physique personnelle — candidat 0.82
+
+`Sac > Ressources` expose `Convertir` uniquement sur la carte des particules correspondant à l’élément permanent du Player. La modale accepte un entier >= 1 dans la limite du stock et présente le taux 1:1 vers les Primos. `MAX` remplit seulement le champ.
+
+`POST /api/v1/me/inventory/particles/convert` résout le Player authentifié et n’accepte du client que quantité et clé d’idempotence. Débit des particules, crédit des Primos, mouvements/statistiques économiques, progression Défi éventuelle et récompense de complétion appartiennent à une transaction `SERIALIZABLE`. Un refus ou rollback ne progresse pas ; un retry de la même intention ne débite, ne crédite et ne progresse pas deux fois.

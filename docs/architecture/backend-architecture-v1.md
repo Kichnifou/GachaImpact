@@ -1111,3 +1111,9 @@ Neon :
 - https://neon.com/pricing
 
 Les prix sont informatifs et ne constituent jamais une constante métier du repository.
+
+## Vertical backend physique 0.82 — Défi et conversion
+
+Les routes authentifiées `GET /api/v1/me/daily-challenge`, `POST .../purchase`, `POST .../switch` et `POST /api/v1/me/inventory/particles/convert` suivent `route → service d’application → store Prisma`. Elles ne reçoivent jamais Player, prix, récompense, cible, type, pool ou RNG du client. Tous les montants `bigint` traversent l’API en chaînes décimales.
+
+Achat, switch et conversion utilisent `BusinessOperation`, une clé d’intention stable et une transaction `SERIALIZABLE` verrouillée par Player. `PrismaDailyChallengeStore.progress` est appelé par les producteurs dans leur propre transaction : Gacha après persistance effective des résultats, Conversion après ses mouvements économiques. La complétion et le crédit de 800 Primos sont atomiques. Le frontend recharge le snapshot Défi après chaque producteur sans refaire le bootstrap complet.

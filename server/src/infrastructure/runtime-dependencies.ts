@@ -35,6 +35,8 @@ import { PrismaShopStore } from './database/prisma-shop-store.js';
 import { GetCurrentPlayerShop, GetPlayerShopHistory, PurchaseShopItem } from '../application/shop/shop-services.js';
 import { NavigationPreferencesService } from '../application/navigation/navigation-preferences.js';
 import { PrismaNavigationPreferenceStore } from './database/prisma-navigation-preference-store.js';
+import { PrismaDailyChallengeStore } from './database/prisma-daily-challenge-store.js';
+import { ConvertPersonalParticles, GetDailyChallenge, PurchaseDailyChallenge, SwitchDailyChallenge } from '../application/daily-challenge/daily-challenge-services.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
   if (!config.databaseUrl) {
@@ -47,9 +49,10 @@ export function createRuntimeDependencies(config: AppConfig) {
   const getCurrentPlayer = new GetCurrentPlayer(store);
   const wheelStore = new PrismaWheelStore(database);
   const clock = new SystemClock();
-  const dailyRewardStore = new PrismaDailyRewardStore(database);
-  const gachaStore = new PrismaGachaStore(database);
   const random = new NodeRandomSource();
+  const dailyRewardStore = new PrismaDailyRewardStore(database);
+  const dailyChallengeStore = new PrismaDailyChallengeStore(database);
+  const gachaStore = new PrismaGachaStore(database, undefined, undefined, undefined, undefined, dailyChallengeStore);
   const scheduler = new WeeklyBannerScheduler(gachaStore, clock, random);
   const boxStore = new PrismaBoxStore(database);
   const teamStore = new PrismaTeamStore(database);
@@ -101,6 +104,10 @@ export function createRuntimeDependencies(config: AppConfig) {
     depositPlayerBank: new TransferPlayerBank('deposit', getCurrentPlayer, bankingStore, clock),
     withdrawPlayerBank: new TransferPlayerBank('withdraw', getCurrentPlayer, bankingStore, clock),
     getCurrentPlayerInventory: new GetCurrentPlayerInventory(getCurrentPlayer, inventoryStore),
+    convertPersonalParticles: new ConvertPersonalParticles(getCurrentPlayer, dailyChallengeStore, clock),
+    getDailyChallenge: new GetDailyChallenge(getCurrentPlayer, dailyChallengeStore, clock),
+    purchaseDailyChallenge: new PurchaseDailyChallenge(getCurrentPlayer, dailyChallengeStore, clock, random),
+    switchDailyChallenge: new SwitchDailyChallenge(getCurrentPlayer, dailyChallengeStore, clock, random),
     moderationTools: new PrismaModerationTools(database, getCurrentPlayer),
     getCurrentPlayerShop: new GetCurrentPlayerShop(getCurrentPlayer, shopStore),
     getPlayerShopHistory: new GetPlayerShopHistory(getCurrentPlayer, shopStore),

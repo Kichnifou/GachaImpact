@@ -55,6 +55,8 @@ La navigation doit permettre d'accéder clairement aux différentes parties du j
 
 La maquette `Concept1.png` fournie par le propriétaire constitue la référence visuelle principale pour la direction future : interface sombre et moderne inspirée des jeux/gachas, cartes et panneaux arrondis, contrastes lisibles, informations importantes visibles rapidement et hiérarchie nette entre contenus principaux et secondaires. Elle n'est pas une spécification pixel-perfect. Ses personnages, illustrations, icônes, couleurs, textes, valeurs, dimensions et menus sont indicatifs et peuvent évoluer.
 
+Les règles transverses de hauteur, scroll, stabilité, pagination, drag-and-drop et responsive sont définies dans `docs/specifications/ui-layout-contract-v1.md`. Toute évolution d’un écran long ou d’une modale de données doit respecter ce contrat et identifier explicitement le conteneur propriétaire du défilement.
+
 Toute décision d'interface doit préserver la compatibilité PC/mobile. Ne pas commencer ou étendre l'interface sans demande explicite.
 
 Le terme interne `legacy` ne doit jamais être affiché aux joueurs dans l'interface, les aides, les notifications, les commandes ou les messages du jeu. Il peut être utilisé librement dans le code, les logs techniques et la documentation interne du repository, mais toute formulation player-facing doit employer un vocabulaire naturel compréhensible sans connaissance de l'ancien projet Streamer.bot.

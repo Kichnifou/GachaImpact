@@ -110,7 +110,7 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 - **Statut audit :** Audité — conversion R1 à R4 validée
 - **But :** Convertir les particules de l'élément personnel en Primogemmes.
 - **Syntaxes :** `!convertir <montant>`
-- **Bouton UI équivalent :** oui, future interface de conversion avec quantité et raccourcis pratiques
+- **Bouton UI équivalent :** oui, interface réelle `Sac > Ressources` sur les particules personnelles, avec quantité et `MAX` purement local
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
 - **Préconditions :** profil existant ; élément choisi ; montant entier >= 1 ; stock personnel suffisant

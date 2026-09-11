@@ -33,6 +33,8 @@ import type {
   ModerationPermissionsDto,
   ModerationStateDto,
   NavigationMenuPreferenceDto,
+  DailyChallengeDto,
+  DailyChallengeMutationDto,
 } from './types'
 
 type ApiClientDependencies = Readonly<{
@@ -144,6 +146,10 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
       }),
     getResources: () => request<PlayerResourcesDto>('/api/v1/me/resources'),
     getInventory: () => request<PlayerInventoryDto>('/api/v1/me/inventory'),
+    convertPersonalParticles: (amount: string, idempotencyKey: string) => request<DailyChallengeMutationDto>('/api/v1/me/inventory/particles/convert', { method: 'POST', body: JSON.stringify({ amount, idempotencyKey }) }),
+    getDailyChallenge: () => request<DailyChallengeDto>('/api/v1/me/daily-challenge'),
+    purchaseDailyChallenge: (idempotencyKey: string) => request<DailyChallengeMutationDto>('/api/v1/me/daily-challenge/purchase', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+    switchDailyChallenge: (idempotencyKey: string) => request<DailyChallengeMutationDto>('/api/v1/me/daily-challenge/switch', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     getBank: () => request<PlayerBankDto>('/api/v1/me/bank'),
     getBankHistory: (page: number) => request<BankHistoryDto>(`/api/v1/me/bank/history?page=${page}`),
     depositBank: (amount: string, idempotencyKey: string) => request<BankTransferDto>('/api/v1/me/bank/deposit', {

@@ -4,6 +4,8 @@ Statut : cible validée, lot physique public 0.80 et consolidation candidate 0.8
 
 Ce document est la source de vérité de la navigation principale, du Menu global, de la Configuration du Menu et de l’architecture future du Tutoriel. Les audits métier restent propriétaires de leurs règles ; ce document fixe uniquement leurs points d’entrée dans le shell.
 
+Les règles transverses de hauteur, scroll, stabilité, pagination, drag-and-drop et responsive appartiennent au [contrat de layout UI V1](ui-layout-contract-v1.md).
+
 ## Navigation principale
 
 La barre principale contient exactement sept tuiles, dans cet ordre :
@@ -16,7 +18,7 @@ Les anciennes routes restent compatibles : `#box`, `#team`, `#characters`, `#inv
 
 Les contrôles secondaires restent fixes au-dessus du contenu concerné. Sur desktop, tous leurs onglets sont visibles dans une barre stable sans défilement vertical ni superposition avec le contenu. Sur mobile, la barre accepte le défilement horizontal tactile mais masque sa barre native et n’accepte aucun défilement vertical. Box, Équipe et Catalogue réutilisent leurs véritables écrans ; aucune logique métier n’est dupliquée dans le shell.
 
-Le standard des écrans longs est un grand cadre fermé jusqu’au bord inférieur utile du shell : en-tête fonctionnel, contrôles et onglets restent fixes ; seul le body interne défile. Le bord inférieur demeure visible sur desktop et le document revient à un flux responsive naturel sur mobile. Ce standard s’applique notamment à Quotidiennes et Configuration en 0.81.
+Le standard des écrans longs est un grand cadre fermé jusqu’au bord inférieur utile du shell : en-tête fonctionnel, contrôles et onglets restent fixes ; seul le body interne défile. Le bord inférieur demeure visible sur desktop et le document revient à un flux responsive naturel sur mobile. Ce standard s’applique notamment à Quotidiennes, Configuration et Boutique ; ses critères détaillés sont centralisés dans le contrat de layout UI V1.
 
 ## Activités et Quotidiennes
 
@@ -29,7 +31,7 @@ Les sous-onglets Activités sont exactement `Quotidiennes | Missions | Combat | 
 
 Quotidiennes possède `Aperçu | Roue | Défi`. Aperçu liste toujours, dans cet ordre, le catalogue quotidien décidé : `Récompense quotidienne | Roue | Défi | Combat | Expédition | Amitié | Événement`. Récompense quotidienne et Roue utilisent leurs états serveur réels ; les domaines non implémentés restent visibles avec un état neutre et honnête, sans progression, compteur ni donnée fictive. Le hub ne réimplémente jamais leur logique métier.
 
-Les boutons `Accéder` conduisent vers leurs propriétaires : Roue → sous-onglet Roue ; Défi → sous-onglet Défi ; Combat → `Activités > Combat` ; Expédition → `Personnages > Box` ; Amitié → futur Social/Amis, avec contrôle désactivé tant que cette destination n’existe pas ; Événement → `Activités > Événement`. Roue réutilise le composant et le service existants et n’est plus jouable depuis Accueil. Défi remplace l’ancienne mission quotidienne player-facing, demeure indisponible sans service complet et n’affiche aucune fausse progression.
+Les boutons `Accéder` conduisent vers leurs propriétaires : Roue → sous-onglet Roue ; Défi → sous-onglet Défi ; Combat → `Activités > Combat` ; Expédition → `Personnages > Box` ; Amitié → futur Social/Amis, avec contrôle désactivé tant que cette destination n’existe pas ; Événement → `Activités > Événement`. Roue réutilise le composant et le service existants et n’est plus jouable depuis Accueil. Défi remplace l’ancienne mission quotidienne player-facing et utilise exclusivement son état serveur réel ; Missions B/A/S/Z reste un domaine séparé et indisponible.
 
 Le hero Accueil est conservé. Le futur tableau de bord inférieur attend que davantage d’activités soient réelles. La carte Récompense quotidienne peut rester dans la sidebar au lot 0.80 ; une future synthèse compacte Quotidiennes ne devra jamais inventer de compteur `X/Y`.
 

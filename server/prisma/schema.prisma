@@ -36,6 +36,14 @@ enum OperationStatus {
   @@map("operation_status")
 }
 
+enum DailyChallengeStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+
+  @@map("daily_challenge_status")
+}
+
 enum BannerStatus {
   ACTIVE
   ENDED
@@ -111,6 +119,7 @@ model Player {
   bankAccount          PlayerBankAccount?
   bankTransactions     BankTransaction[]
   shopPurchases        ShopPurchase[]
+  dailyChallenges      PlayerDailyChallenge[]
   rolesGranted         PlayerRoleAssignment[]  @relation("RoleSubject")
   rolesGrantedBy       PlayerRoleAssignment[]  @relation("RoleGrantor")
   auditEntriesAsActor  AdminAuditEntry[]       @relation("AuditActor")
@@ -119,6 +128,55 @@ model Player {
   @@index([status], map: "players_status_idx")
   @@index([elementKey], map: "players_element_key_idx")
   @@map("players")
+}
+
+model DailyChallengeDefinition {
+  id                String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  externalKey       String                 @unique(map: "daily_challenge_definitions_external_key_key") @map("external_key") @db.Text
+  type              String                 @db.Text
+  target            BigInt
+  displayName       String                 @map("display_name") @db.Text
+  description       String                 @db.Text
+  progressLabel     String                 @map("progress_label") @db.Text
+  rewardPrimogems   BigInt                 @map("reward_primogems")
+  weight            Int                    @default(1)
+  isEnabled         Boolean                @default(true) @map("is_enabled")
+  isEligible        Boolean                @default(true) @map("is_eligible")
+  displayOrder      Int                    @map("display_order") @db.SmallInt
+  createdAt         DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  playerChallenges  PlayerDailyChallenge[]
+
+  @@index([isEnabled, isEligible, displayOrder], map: "daily_challenge_definitions_pool_idx")
+  @@map("daily_challenge_definitions")
+}
+
+model PlayerDailyChallenge {
+  id                            String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId                      String                   @map("player_id") @db.Uuid
+  businessDate                  DateTime                 @map("business_date") @db.Date
+  definitionId                 String                   @map("definition_id") @db.Uuid
+  definitionExternalKeySnapshot String                  @map("definition_external_key_snapshot") @db.Text
+  typeSnapshot                  String                   @map("type_snapshot") @db.Text
+  displayNameSnapshot           String                   @map("display_name_snapshot") @db.Text
+  descriptionSnapshot           String                   @map("description_snapshot") @db.Text
+  progressLabelSnapshot         String                   @map("progress_label_snapshot") @db.Text
+  targetSnapshot                BigInt                   @map("target_snapshot")
+  rewardPrimogemsSnapshot       BigInt                   @map("reward_primogems_snapshot")
+  progress                      BigInt                   @default(0)
+  status                        DailyChallengeStatus     @default(ACTIVE)
+  assignedAt                    DateTime                 @map("assigned_at") @db.Timestamptz(6)
+  completedAt                   DateTime?                @map("completed_at") @db.Timestamptz(6)
+  switchCount                   Int                      @default(0) @map("switch_count")
+  createdAt                     DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                     DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player                        Player                   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  definition                    DailyChallengeDefinition @relation(fields: [definitionId], references: [id], onDelete: Restrict)
+
+  @@unique([playerId, businessDate], map: "player_daily_challenges_player_business_date_key")
+  @@index([playerId, status, businessDate], map: "player_daily_challenges_player_status_date_idx")
+  @@index([definitionId], map: "player_daily_challenges_definition_id_idx")
+  @@map("player_daily_challenges")
 }
 
 model PlayerPreference {

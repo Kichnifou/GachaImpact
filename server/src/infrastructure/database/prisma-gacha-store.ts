@@ -11,6 +11,8 @@ import { PrismaC6ProgressionService } from './prisma-c6-progression-service.js';
 import { c6StatKeys, type C6StatKey } from '../../domain/contest/c6-progress.js';
 import { applyExactMultiplier, deriveActiveTeamGachaEffects, type ActiveTeamGachaEffects, type ExactMultiplier } from '../../domain/team/team-passives.js';
 import { PrismaPlayerXpService } from './prisma-player-xp-service.js';
+import type { DailyChallengeProgressor } from '../../application/daily-challenge/daily-challenge-store.js';
+import { getBusinessDate } from '../../domain/time/business-date.js';
 
 const characterSelection = {
   id: true, externalKey: true, name: true, rarity: true, elementKey: true, weaponType: true,
@@ -31,6 +33,7 @@ export class PrismaGachaStore implements GachaStore {
     private readonly possessions = new PrismaCharacterPossessionService(),
     private readonly c6 = new PrismaC6ProgressionService(),
     private readonly xp = new PrismaPlayerXpService(),
+    private readonly dailyChallenges?: DailyChallengeProgressor,
   ) {}
 
   public async listActiveCharacters(): Promise<readonly GachaCharacter[]> {
@@ -310,6 +313,16 @@ export class PrismaGachaStore implements GachaStore {
       }
 
       const playerState = await transaction.playerGachaState.update({ where: { playerId: input.playerId }, data: state, select: stateSelection });
+      await this.dailyChallenges?.progress(transaction, {
+        playerId: input.playerId,
+        playerElementKey: input.playerElementKey,
+        businessDate: getBusinessDate(input.now),
+        type: 'pulls',
+        amount: BigInt(input.count),
+        now: input.now,
+        operationId: businessOperation.id,
+        sourceChannel: SourceChannel.UI,
+      });
       await transaction.businessOperation.update({ where: { id: businessOperation.id }, data: {
         status: OperationStatus.COMPLETED, completedAt: input.now,
         resultSummary: { pullOperationId: pullOperation.id, pullCount: input.count, primogemCost: cost.toString() },

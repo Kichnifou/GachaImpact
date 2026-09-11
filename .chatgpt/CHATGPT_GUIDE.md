@@ -113,7 +113,7 @@ lire en priorité :
 4. le document spécialisé du domaine actif dans `docs/legacy/`
 5. `docs/specifications/decisions-log.md` si une décision transverse doit être vérifiée
 6. `docs/commands/command-reference.md` pour les commandes
-7. `docs/specifications/navigation-shell-v1.md` pour la navigation, le Menu, Configuration et le Tutoriel
+7. `docs/specifications/navigation-shell-v1.md` pour la navigation, le Menu, Configuration et le Tutoriel, puis `docs/specifications/ui-layout-contract-v1.md` lorsqu’un écran long, un scroll, une pagination, une modale ou un drag-and-drop est concerné
 8. `docs/legacy/02-current-player-model.md` pour la vision conceptuelle du joueur
 9. `docs/legacy/03-command-data-matrix.md` pour les relations scripts/données
 

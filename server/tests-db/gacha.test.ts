@@ -10,6 +10,8 @@ import { PrismaCurrentPlayerStore } from '../src/infrastructure/database/prisma-
 import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 import { PrismaGachaStore } from '../src/infrastructure/database/prisma-gacha-store.js';
 import { PrismaTeamStore } from '../src/infrastructure/database/prisma-team-store.js';
+import { PrismaDailyChallengeStore } from '../src/infrastructure/database/prisma-daily-challenge-store.js';
+import { getBusinessDate } from '../src/domain/time/business-date.js';
 
 const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Gacha database tests.');
@@ -102,6 +104,51 @@ describe('Gacha foundation on the development database', () => {
       expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: concurrent.playerId, resourceKey: 'primogems' } } })).amount).toBe(0n);
       expect(await database.pullOperation.count({ where: { playerId: concurrent.playerId } })).toBe(1);
     } finally { await deletePullPlayer(concurrent.playerId); }
+  }, 15_000);
+
+  it('advances and completes a pull Daily Challenge inside the pull transaction exactly once', async () => {
+    const fixture = await createPullPlayer(160n);
+    try {
+      await database.playerResourceBalance.update({
+        where: { playerId_resourceKey: { playerId: fixture.playerId, resourceKey: 'moras' } },
+        data: { amount: 10_000n },
+      });
+      const challenges = new PrismaDailyChallengeStore(database);
+      const businessDate = getBusinessDate(fixture.now);
+      await challenges.purchase({
+        playerId: fixture.playerId,
+        playerElementKey: 'hydro',
+        businessDate,
+        now: fixture.now,
+        idempotencyKey: randomUUID(),
+        random: { nextInt: () => 0 },
+      });
+      const store = new PrismaGachaStore(database, undefined, undefined, undefined, undefined, challenges);
+      await expect(store.pull({ playerId: fixture.playerId, playerElementKey: 'hydro', count: 10, idempotencyKey: randomUUID(), now: fixture.now, random: maxRandom })).rejects.toMatchObject({ code: 'INSUFFICIENT_PRIMOGEMS' });
+      expect((await challenges.getView(fixture.playerId, businessDate)).challenge).toMatchObject({ progress: 0n });
+      await store.pull({ playerId: fixture.playerId, playerElementKey: 'hydro', count: 1, idempotencyKey: randomUUID(), now: fixture.now, random: maxRandom });
+      expect((await challenges.getView(fixture.playerId, businessDate)).challenge).toMatchObject({ progress: 1n });
+      await database.playerResourceBalance.update({
+        where: { playerId_resourceKey: { playerId: fixture.playerId, resourceKey: 'primogems' } },
+        data: { amount: 1_600n },
+      });
+      const idempotencyKey = randomUUID();
+      const input = { playerId: fixture.playerId, playerElementKey: 'hydro' as const, count: 10 as const, idempotencyKey, now: fixture.now, random: maxRandom };
+      const first = await store.pull(input);
+      const retry = await store.pull({ ...input, random: { nextInt: () => { throw new Error('A committed retry must not progress the challenge twice.'); } } });
+      expect(first.operation.alreadyProcessed).toBe(false);
+      expect(retry.operation).toMatchObject({ id: first.operation.id, alreadyProcessed: true });
+      expect(await challenges.getView(fixture.playerId, businessDate)).toMatchObject({
+        status: 'COMPLETED',
+        challenge: { externalKey: 'daily_pulls_5', progress: 5n, target: 5n },
+      });
+      expect((await database.playerResourceBalance.findUniqueOrThrow({
+        where: { playerId_resourceKey: { playerId: fixture.playerId, resourceKey: 'primogems' } },
+      })).amount).toBe(800n);
+      expect(await database.resourceMovement.count({
+        where: { playerId: fixture.playerId, causeKey: 'daily-challenge.completion' },
+      })).toBe(1);
+    } finally { await deletePullPlayer(fixture.playerId); }
   }, 15_000);
 
   it('paginates history by ten, keeps newest operations and x10 order, and isolates players', async () => {

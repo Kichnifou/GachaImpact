@@ -74,6 +74,32 @@ export type PlayerInventoryDto = Readonly<{
   items: readonly InventoryItemDto[]
 }>
 
+export type DailyChallengeDto = Readonly<{
+  businessDate: string
+  status: 'AVAILABLE' | 'ACTIVE' | 'COMPLETED'
+  assigned: boolean
+  purchaseCost: string
+  challenge: Readonly<{
+    externalKey: string
+    type: 'messages' | 'pulls' | 'conversion'
+    displayName: string
+    description: string
+    progressLabel: string
+    progress: string
+    target: string
+    rewardPrimogems: string
+  }> | null
+  switchCount: number
+  nextSwitchCost: string | null
+  canSwitch: boolean
+  completedAt: string | null
+}>
+
+export type DailyChallengeMutationDto = DailyChallengeDto & Readonly<{
+  operation: Readonly<{ id: string; alreadyProcessed: boolean }>
+  resources: PlayerResourcesDto
+}>
+
 export type BankOperationDto = Readonly<{
   id: string
   type: 'DEPOSIT' | 'WITHDRAWAL' | 'INTEREST'

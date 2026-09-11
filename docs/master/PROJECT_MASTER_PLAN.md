@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.81
+Version : 0.82
 Date : 2026-09-11
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3544,7 +3544,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Boutique — premier vertical réel techniquement implémenté dans le candidat 0.79 : catalogue serveur, achats Primos/Ticket, historique natif et UI personnelle. Sac et les éléments publics 0.78 ont été validés ; Boutique reste ouverte jusqu'à sa propre review, sa validation publique et ses compléments futurs.**
+**Quotidiennes / Défi — premier vertical réel candidat 0.82 : achat, attribution, progression Pull/Conversion, changement, complétion et récompense. Boutique est fonctionnellement implémentée et quitte le rôle de domaine actif après la validation publique de 0.81.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3561,8 +3561,8 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - squelette Fastify / TypeScript checkpointé ;
 - Prisma ORM 7.10.0 stable ;
 - Supabase DEV provisionné et connexion PostgreSQL fonctionnelle ;
-- dix migrations versionnées appliquées sur Supabase DEV, jusqu'à `010_add_shop` ;
-- 32 tables présentes, dont les tables privées `player_characters`, `c6_competition_progress`, `pull_operations`, `pull_results`, `player_preferences`, `item_definitions`, `player_items`, `teams`, `team_members`, `player_bank_accounts`, `bank_transactions`, `player_role_assignments`, `admin_audit_entries`, `shop_item_definitions` et `shop_purchases` ;
+- douze migrations applicatives versionnées, avec la migration additive 012 Défi appliquée sur Supabase DEV ;
+- 34 tables présentes, dont les tables privées `player_characters`, `c6_competition_progress`, `pull_operations`, `pull_results`, `player_preferences`, `item_definitions`, `player_items`, `teams`, `team_members`, `player_bank_accounts`, `bank_transactions`, `player_role_assignments`, `admin_audit_entries`, `shop_item_definitions`, `shop_purchases`, `daily_challenge_definitions` et `player_daily_challenges` ;
 - référentiels seedés avec 7 éléments et 9 ressources ;
 - RLS activée sur les tables de fondation, sans policy client permissive ;
 - Auth Supabase réel checkpointé au commit `027d230f7d047e0469076418d3d5122e831bdce6` ;
@@ -3668,7 +3668,16 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Configuration expose Menu actif, Confidentialité/Apparence désactivés, les flèches accessibles et un drag-and-drop à aperçu local, sauvegarde unique au drop et rollback sur erreur.
 - Boutique ouvre Banque depuis son portefeuille, affiche seulement le dernier achat dans son aperçu et charge un historique personnel paginé à la demande. Banque et Boutique partagent la coque de modale, pas leurs données ni leurs services.
 - Le backend ajoute `GET /api/v1/me/shop/history?page=N`, dix lignes par page, tri stable date puis id décroissants et code 400 `SHOP_HISTORY_PAGE_INVALID`. Aucune migration n’est créée ; 010/011 restent immuables et `ShopMemoryCache` reste inchangé.
-- Le candidat 0.81 n’est pas validé publiquement. Les comptes DEV légitimes confirmés par le propriétaire restent intacts et disponibles selon leur statut ; aucun nettoyage de Player n’appartient à ce lot.
+- Le candidat 0.81 a été promu puis validé publiquement par le propriétaire. Ses consolidations shell, Team, Quotidiennes, Menu/Configuration et historique Boutique constituent le checkpoint public courant. Les comptes DEV légitimes confirmés restent intacts ; aucun nettoyage de Player n’appartient à ce lot.
+
+## État du candidat 0.82 — Défi quotidien réel, conversion et contrat UI
+
+- `Quotidiennes > Défi` repose sur un état serveur réel. Avant achat, l’objectif reste caché ; l’achat coûte 10 000 Moras. Le catalogue contient messages 10, Pulls 5 et conversion 320 à poids égaux, mais messages reste physiquement inéligible jusqu’au vrai producteur chat. Aucune probabilité ni composition du pool n’est exposée.
+- Une attribution unique par Player/journée `Europe/Paris` est snapshotée dans `player_daily_challenges`. Un Défi actif ancien expire au reset sans attribution automatique. Un Défi terminé crédite automatiquement 800 Primos une seule fois et reste visible terminé pour sa journée.
+- Pull x1/x10 et conversion personnelle progressent dans la transaction de leur action réelle. La conversion Sac consomme uniquement les particules de l’élément principal et crédite les Primos 1:1. Achat, changement et conversion sont idempotents ; le premier changement coûte 20 000 Moras puis double et remet la progression à zéro.
+- La migration additive 012 crée les deux tables privées avec contraintes, index, RLS et révocation `anon`/`authenticated`. Les migrations 010/011 restent inchangées. Les tests DB utilisent exclusivement des Players fixtures UUID et les nettoient précisément.
+- Le contrat `ui-layout-contract-v1.md` devient la référence transverse. Team compacte ses passifs sur une ligne, les headers Activités sont modérément resserrés, le drag-and-drop Configuration distingue insertion et échange, Boutique remplit la hauteur utile, et les historiques Banque/Boutique gardent dix emplacements et un footer stable.
+- Ce candidat n’est pas encore validé publiquement. Les huit comptes DEV légitimes confirmés et tous leurs achats/soldes restent protégés ; seul le schéma/catalogue 012 est ajouté. Aucun déploiement Railway manuel ni service payant n’est déclenché.
 
 ## État du lot — Invocation x1/x10
 
@@ -3810,7 +3819,7 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Faire reviewer indépendamment le candidat 0.81 uniquement sur `review` → corriger les éventuels retours sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → valider publiquement les consolidations de shell, Team, Quotidiennes, Menu/Configuration et l’historique Boutique.** Boutique reste le domaine actif ; ne pas commencer un nouveau domaine métier. `PAID_INFRA_APPROVED = false` reste inchangé.
+**Faire reviewer indépendamment le candidat 0.82 uniquement sur `review` → corriger les éventuels retours sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → valider publiquement Défi, conversion et les corrections UI transverses.** Quotidiennes / Défi reste le domaine actif jusqu’à cette validation. Combat ou Expédition sont seulement des directions futures possibles ; le propriétaire choisira la suite après le checkpoint public. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

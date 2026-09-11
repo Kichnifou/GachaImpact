@@ -34,7 +34,9 @@ async function mount(overrides: Partial<React.ComponentProps<typeof InventoryScr
   const props = {
     initialInventory: inventory,
     resources,
+    elementKey: 'hydro' as const,
     onLoad: vi.fn(async () => inventory),
+    onConvertParticles: vi.fn(),
     onNavigateBank: vi.fn(),
     onLoadBox: vi.fn(async () => box),
     onSetBoxFavorite: vi.fn(async () => furina),
@@ -84,6 +86,22 @@ describe('real inventory screen', () => {
     expect(container.querySelector('.inventory-group:nth-child(1) .inventory-grid')?.children).toHaveLength(2)
     expect(container.querySelector('.inventory-group:nth-child(2) .inventory-grid')?.children).toHaveLength(7)
     expect(container.textContent).toContain('Particules')
+  })
+
+  it('offers conversion only for the personal element and keeps MAX purely local', async () => {
+    const onConvertParticles = vi.fn()
+    const { container } = await mount({ onConvertParticles })
+    const resourcesTab = Array.from(container.querySelectorAll<HTMLButtonElement>('.inventory-categories button')).find((button) => button.textContent?.includes('Ressources'))!
+    act(() => resourcesTab.click())
+    const convertButtons = Array.from(container.querySelectorAll<HTMLButtonElement>('.inventory-use-button')).filter((button) => button.textContent === 'Convertir')
+    expect(convertButtons).toHaveLength(1)
+    expect(convertButtons[0]!.closest('.inventory-resource-card')?.textContent).toContain('hydro')
+    act(() => convertButtons[0]!.click())
+    const modal = container.querySelector<HTMLElement>('.particle-conversion-modal')!
+    expect(modal.textContent).toContain('Conversion 1:1')
+    act(() => Array.from(modal.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'MAX')!.click())
+    expect(modal.querySelector<HTMLInputElement>('input')?.value).toBe('999')
+    expect(onConvertParticles).not.toHaveBeenCalled()
   })
 
   it('uses the global wallet as the only displayed economy snapshot and derives wishes', async () => {
