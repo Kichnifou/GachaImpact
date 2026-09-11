@@ -6995,8 +6995,12 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .activity-inner-tabs { display: flex; gap: 6px; padding: 4px 6px; overflow-x: auto; border-bottom: 1px solid rgba(121, 153, 198, .16); }
 .activity-inner-tabs button:disabled { cursor: default; opacity: .72; }
 .dailies-overview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.daily-summary-link { min-height: 112px; display: grid; align-content: center; gap: 8px; cursor: pointer; color: white; text-align: left; }
-.daily-summary-link span, .unavailable-shell p { color: var(--muted); }
+.daily-overview-item > .daily-card { box-sizing: border-box; height: 100%; }
+.daily-overview-card { min-height: 140px; display: flex; flex-direction: column; justify-content: space-between; gap: 14px; padding: 16px; }
+.daily-overview-card h2 { margin: 0; font-size: 15px; }
+.daily-overview-card p, .unavailable-shell p { margin: 7px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+.daily-overview-card .small-primary-button { margin-top: auto; }
+.daily-overview-card .small-primary-button:disabled { cursor: not-allowed; opacity: .45; filter: saturate(.35); }
 .unavailable-shell { min-height: 112px; display: grid; place-content: center; gap: 7px; padding: 20px; text-align: center; }
 .global-menu-layer { z-index: 120; }
 .global-menu { box-sizing: border-box; width: min(720px, 100%); min-height: 510px; max-height: calc(100dvh - 28px); display: grid; grid-template-rows: auto 1fr auto; gap: 16px; padding: 22px; overflow-y: auto; }

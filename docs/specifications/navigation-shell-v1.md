@@ -25,7 +25,9 @@ Les sous-onglets Activités sont exactement `Quotidiennes | Missions | Combat | 
 - Événement réserve `Jeux | Shop | Classement`.
 - Concours reste une coque indisponible tant que le domaine n’est pas implémenté.
 
-Quotidiennes possède `Aperçu | Roue | Défi`. Aperçu peut afficher uniquement des états réels déjà servis : Récompense quotidienne et Roue. Roue réutilise le composant et le service existants ; elle n’est plus jouable depuis Accueil. Défi indique clairement son indisponibilité et n’affiche aucune fausse progression.
+Quotidiennes possède `Aperçu | Roue | Défi`. Aperçu liste toujours, dans cet ordre, le catalogue quotidien décidé : `Récompense quotidienne | Roue | Défi | Combat | Expédition | Amitié | Événement`. Récompense quotidienne et Roue utilisent leurs états serveur réels ; les domaines non implémentés restent visibles avec un état neutre et honnête, sans progression, compteur ni donnée fictive. Le hub ne réimplémente jamais leur logique métier.
+
+Les boutons `Accéder` conduisent vers leurs propriétaires : Roue → sous-onglet Roue ; Défi → sous-onglet Défi ; Combat → `Activités > Combat` ; Expédition → `Personnages > Box` ; Amitié → futur Social/Amis, avec contrôle désactivé tant que cette destination n’existe pas ; Événement → `Activités > Événement`. Roue réutilise le composant et le service existants et n’est plus jouable depuis Accueil. Défi remplace l’ancienne mission quotidienne player-facing, demeure indisponible sans service complet et n’affiche aucune fausse progression.
 
 Le hero Accueil est conservé. Le futur tableau de bord inférieur attend que davantage d’activités soient réelles. La carte Récompense quotidienne peut rester dans la sidebar au lot 0.80 ; une future synthèse compacte Quotidiennes ne devra jamais inventer de compteur `X/Y`.
 

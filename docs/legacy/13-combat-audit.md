@@ -412,6 +412,8 @@ Si la composition Combat quotidienne contient un KO :
 
 ## R384 — États Combat dans Quotidiennes
 
+Révision R820 : Combat reste toujours visible dans Aperçu avec `Accéder` vers `Activités > Combat`. Tant que le service Combat n’est pas implémenté, la carte affiche seulement son indisponibilité et aucun état journalier fictif ; les états détaillés ci-dessous s’appliqueront lorsque le domaine pourra les produire réellement.
+
 La carte Combat du hub `Quotidiennes` utilise des états détaillés :
 
 ### À faire

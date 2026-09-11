@@ -696,7 +696,7 @@ Les principaux contributeurs historiques de `!quotis` sont désormais audités :
 - Event ;
 - mission quotidienne portée par Shop / Missions.
 
-Chaque carte du hub `Quotidiennes` lit l'état autoritatif de son domaine propriétaire et renvoie vers son véritable écran métier.
+Révision R820 : Aperçu conserve toujours le catalogue quotidien décidé. Une entrée lit l’état autoritatif de son domaine propriétaire lorsque celui-ci est implémenté ; sinon elle affiche honnêtement son indisponibilité, sans inventer de progression. Son accès renvoie vers l’écran propriétaire existant ou futur et le hub ne duplique aucune logique métier.
 
 Un audit restant pourra encore ajouter une activité uniquement s'il apporte une dépendance quotidienne réelle ; ne pas enrichir arbitrairement la liste.
 

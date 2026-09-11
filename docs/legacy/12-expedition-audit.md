@@ -283,15 +283,15 @@ Créer un véritable écran `Quotidiennes` distinct de Missions.
 Ce hub regroupe les activités quotidiennes et offre pour chacune un bouton `Accéder` vers son véritable écran propriétaire.
 
 Direction actuelle :
-- Roue → écran Roue ;
+- Récompense quotidienne → action réelle dans Aperçu ;
+- Roue → sous-onglet Roue ;
+- Défi → sous-onglet Défi ;
 - Combat → écran Combat ;
 - Expedition → Box ;
-- Ami cœur → liste d'amis ;
-- Event → écran Event ;
-- Shop → Boutique ;
-- autres activités quotidiennes futures pertinentes → écran propriétaire correspondant.
+- Amitié → futur Social/Amis ;
+- Événement → écran Événement.
 
-Le hub affiche l'état réel du jour mais ne duplique jamais la logique métier des domaines.
+Révision R820 : ces sept entrées restent visibles dans Aperçu. Le hub affiche l’état réel d’un domaine implémenté et un état neutre explicitement indisponible dans les autres cas ; il ne duplique jamais la logique métier des domaines. Tant qu’Expedition n’est pas implémentée, sa carte n’affiche ni timer ni progression fictive et `Accéder` renvoie vers la Box.
 
 Cette décision remplace la partie de R299 qui plaçait le suivi quotidien général dans l'onglet Quotidienne de Missions.
 

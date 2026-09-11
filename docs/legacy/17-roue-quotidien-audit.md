@@ -929,7 +929,7 @@ Consomme :
 - Roue disponible ou effectuée ;
 - gain du jour lorsqu'il existe.
 
-Le hub ne produit jamais le spin.
+Révision R820 : Aperçu formule ces états naturellement — `Une tentative disponible aujourd’hui` avant utilisation et `Déjà utilisée aujourd’hui` après utilisation — et propose `Accéder` vers le sous-onglet Roue. Le hub ne produit jamais le spin.
 
 ## UI / chat interne / Twitch
 
@@ -1002,7 +1002,7 @@ Le Domaine Roue / quotidien est considéré prêt pour une future implémentatio
 14. passer l'animation ne produit aucun nouvel effet métier ;
 15. le résultat du jour est retrouvable après reconnexion ;
 16. `!roue` après utilisation rappelle le résultat sans payer à nouveau ;
-17. la carte Quotidiennes affiche correctement `À faire` ou `Fait aujourd'hui` ;
+17. la carte Quotidiennes affiche correctement `Une tentative disponible aujourd’hui` ou `Déjà utilisée aujourd’hui` ;
 18. le gain du jour est affiché dans cette carte lorsqu'il est connu ;
 19. `totalWheelSpins` augmente exactement une fois par spin valide ;
 20. `totalWheelJackpots` augmente uniquement sur +1 600 Primogemmes ;

@@ -392,6 +392,8 @@ L'écart historique de 612 cœurs n'est pas reconstruit ni attribué artificiell
 
 Révision R817 : Social reste un futur espace unique, accessible plus tard depuis Menu/Communauté ; il ne devient pas une tuile de la navigation principale à sept entrées.
 
+Révision R820 : Amitié reste néanmoins visible dans `Activités > Quotidiennes > Aperçu`. Tant que Social/Amis n’est pas implémenté, cette entrée affiche seulement `Bientôt disponible`, sans compteur de cœurs fictif, et son contrôle d’accès reste désactivé avec un libellé explicite.
+
 L'UI standalone utilise un écran Social unique avec :
 
 - `Amis` ouvert par défaut ;

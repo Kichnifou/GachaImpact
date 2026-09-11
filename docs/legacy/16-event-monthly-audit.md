@@ -1794,7 +1794,7 @@ Event peut seulement signaler qu'un code lié au Festival est disponible.
 
 ### Quotidiennes
 
-Consomme l'état Event nécessaire pour représenter l'activité quotidienne dans le hub transversal.
+Révision R820 : Événement reste visible dans Aperçu avec `Accéder` vers `Activités > Événement`. Tant que le domaine n’est pas implémenté, la carte affiche seulement son indisponibilité, sans Festival ni bonus fictif ; lorsqu’il le sera, Quotidiennes consommera son état réel sans posséder sa logique métier.
 
 ### UI / chat interne / Twitch
 
