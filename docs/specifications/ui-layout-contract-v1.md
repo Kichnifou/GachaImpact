@@ -1,6 +1,6 @@
 # Contrat de layout UI V1
 
-Statut : contrat transverse validé — extension physique candidate 0.86.
+Statut : contrat transverse validé — extension physique candidate 0.87.
 
 Ce document est la source de vérité des règles de composition et de stabilité visuelle communes. Les documents métier restent propriétaires du contenu et des actions de chaque écran ; le shell de navigation reste propriétaire des destinations.
 
@@ -30,6 +30,8 @@ Une carte à états conserve ses dimensions extérieures et réserve ses zones i
 ## Grilles de cartes homogènes
 
 Les cartes d'une même grille partagent leur géométrie extérieure, leurs axes visuels et les lignes de titre, description, quantité et action. L'ajout d'une action contextuelle ne déplace pas l'icône ni les lignes communes. À géométrie égale, les centres verticaux des icônes restent cohérents ; les contrôles desktop vérifient un écart maximal de 1 px entre le centre de la carte et celui de l'icône.
+
+Lorsque deux groupes opposés représentent des objets directement comparables — par exemple adversaires et formation — leurs cartes pleines, vides ou enrichies d'informations contextuelles conservent la même géométrie extérieure au même viewport. Les informations ou actions propres à un groupe s'intègrent dans cette enveloppe sans l'agrandir.
 
 Lorsqu'une carte représente une seule action, toute sa surface est un unique hit target accessible au clavier. Le libellé d'affordance reste visible mais n'est pas un contrôle imbriqué ni la seule zone cliquable. Hover et `focus-visible` réagissent sur le cadre entier avec l'accent contextuel de la ressource. Une carte sans action ne simule ni curseur, ni hover interactif. Une variante visuelle arbitraire n'est admise que pour une raison métier explicite.
 

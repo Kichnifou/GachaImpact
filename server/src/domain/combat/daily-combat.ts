@@ -1,4 +1,4 @@
-import type { ElementKey } from '../economy/resources.js';
+import { elementKeys, type ElementKey } from '../economy/resources.js';
 
 export const DAILY_COMBAT_REWARD = { primogems: 800n, moras: 20_000n } as const;
 
@@ -61,3 +61,13 @@ export function calculateDailyCombatPreview(
 }
 
 export function combatPercent(halfPoints: number): number { return halfPoints / 2; }
+
+export function projectElementMatchups(
+  defenderElement: ElementKey,
+  relations: ReadonlyMap<string, number>,
+): Readonly<{ weakAgainstElements: readonly ElementKey[]; resistantAgainstElements: readonly ElementKey[] }> {
+  return {
+    weakAgainstElements: elementKeys.filter((attacker) => relations.get(`${attacker}:${defenderElement}`) === 1),
+    resistantAgainstElements: elementKeys.filter((attacker) => relations.get(`${attacker}:${defenderElement}`) === -1),
+  };
+}

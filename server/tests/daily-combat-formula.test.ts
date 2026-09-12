@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateDailyCombatPreview } from '../src/domain/combat/daily-combat.js';
+import { calculateDailyCombatPreview, projectElementMatchups } from '../src/domain/combat/daily-combat.js';
 import type { ElementKey } from '../src/domain/economy/resources.js';
 
 const enemies = ['geo', 'geo', 'geo', 'geo'] as const;
@@ -20,4 +20,19 @@ describe('Daily Combat authoritative formula', () => {
   });
   it('calculates four neutral 4-star C0 members at 62%', () => expect(calculateDailyCombatPreview(members(4, 0), enemies, relations).finalHalfPoints).toBe(124));
   it('calculates four neutral 4-star C6 members at 74%', () => expect(calculateDailyCombatPreview(members(4, 6), enemies, relations).finalHalfPoints).toBe(148));
+});
+
+describe('Daily Combat enemy matchup projection', () => {
+  it('derives Cryo weaknesses and resistances in canonical attacker order', () => {
+    const matrix = new Map<string, number>([
+      ['electro:cryo', 1],
+      ['anemo:cryo', -1],
+      ['pyro:cryo', 1],
+      ['geo:cryo', 0],
+    ]);
+    expect(projectElementMatchups('cryo', matrix)).toEqual({
+      weakAgainstElements: ['pyro', 'electro'],
+      resistantAgainstElements: ['anemo'],
+    });
+  });
 });

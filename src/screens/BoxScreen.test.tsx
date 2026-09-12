@@ -161,6 +161,13 @@ describe('real personal Box', () => {
     expect((html.match(/class="box-stella-plus-one stat"/g) ?? [])).toHaveLength(1)
     expect(html).not.toContain('Charisma')
   })
+  it('keeps Combat information secondary without expanding the main Box detail content', () => {
+    const html = renderToStaticMarkup(<BoxCharacterDetailModal character={records[0]!} combatState={{ ko: false, stats: { fights: '12', wins: '8', losses: '4', winRatePercent: 66.67 } }} {...modalProps} />)
+    expect(html).toContain('class="box-combat-link"')
+    expect(html).toContain('Combat : OK →')
+    expect(html).not.toContain('box-combat-state')
+    expect(html).not.toContain('<dt>Combats</dt>')
+  })
 
   it('never renders C6 competition statistics for a four-star character', () => {
     const fourC6 = character({ id: 'four-c6', rarity: 4, constellation: 6, c6CompetitionStats: { strength: 9, intelligence: 9, beauty: 9, charisma: 9, popularity: 9, max: 20 } })

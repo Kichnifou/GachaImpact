@@ -27,7 +27,12 @@ export type DailyCombatCharacter = Readonly<{
 export type DailyCombatView = Readonly<{
   businessDate: string;
   status: 'TODO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
-  encounter: Readonly<{ id: string; enemies: readonly Readonly<{ position: 1 | 2 | 3 | 4; character: Omit<DailyCombatCharacter, 'constellation' | 'copies' | 'firstObtainedAt' | 'favorite' | 'combatStats'> }>[] }>;
+  encounter: Readonly<{ id: string; enemies: readonly Readonly<{
+    position: 1 | 2 | 3 | 4;
+    character: Omit<DailyCombatCharacter, 'constellation' | 'copies' | 'firstObtainedAt' | 'favorite' | 'combatStats'>;
+    weakAgainstElements: readonly ElementKey[];
+    resistantAgainstElements: readonly ElementKey[];
+  }>[] }>;
   loadout: Readonly<{ nextAttemptMode: CombatAttemptMode; slots: readonly Readonly<{ position: 1 | 2 | 3 | 4; character: DailyCombatCharacter | null; ko: boolean }>[] }>;
   availableCharacters: readonly DailyCombatCharacter[];
   koCharacterIds: readonly string[];

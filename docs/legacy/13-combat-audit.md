@@ -1619,3 +1619,11 @@ Le candidat 0.86 matérialise uniquement le Combat quotidien. La migration Prism
 L'API privée expose la consultation, l'édition/retrait/clear des slots, la copie volontaire de Team active, l'Auto et le fight. `CombatService` et le store Prisma possèdent la date Europe/Paris, la génération globale race-safe, la formule unique en demi-points, le mode pending, le RNG serveur, l'idempotence, les KO, les statistiques et l'intégration Economy. Box et Team ne sont que des sources de lecture.
 
 Le frontend `Activités > Combat > Entraînement` est réel : quatre ennemis, composition 0..4, picker Box, copie Team, Auto, preview détaillé, tentative, résultat, KO et fiche personnage partagée. La carte Combat de Quotidiennes projette ses quatre états et n'affiche plus `Accéder` après complétion. L'onglet Boss reste une coque honnête `Bientôt disponible` ; aucune table, attaque, récompense ou statistique Boss n'est livrée en 0.86.
+
+# Appendice présentation physique 0.87 — Combat quotidien compact
+
+Le candidat 0.87 conserve strictement le métier 0.86 et remplace uniquement sa présentation. Une barre supérieure stable réunit la rencontre, la chance finale, une modale compacte de détails et l'action Combattre toujours visible. Les quatre ennemis, quatre personnages et quatre slots vides utilisent une géométrie horizontale commune ; les actions d'un personnage apparaissent en overlay sans redimensionnement et le feedback occupe une ligne réservée.
+
+Chaque ennemi expose `weakAgainstElements` et `resistantAgainstElements`, projections calculées côté serveur depuis `element_combat_matchups` pour son élément snapshoté et ordonnées selon l'ordre canonique des sept éléments. React n'embarque aucune copie de la matrice. La formule, le RNG, l'Auto, les KO, le loadout, l'économie, les statistiques et l'idempotence ne changent pas.
+
+Le bouton Fiche du Combat charge le vrai `BoxCharacterDto` via le cache Box partagé et ouvre le même `BoxCharacterDetailModal` complet que Box, avec favori, Stella et statistiques C6. L'état Combat n'agrandit plus cette fiche : un lien discret `Combat : OK/KO →` ouvre une petite modale séparée avec statut, combats, victoires, défaites et taux. Boss reste inchangé et indisponible.

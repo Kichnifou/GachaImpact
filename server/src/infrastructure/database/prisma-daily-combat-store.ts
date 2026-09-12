@@ -1,7 +1,7 @@
 import { CombatAttemptMode, OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
 import { BusinessError } from '../../application/errors.js';
 import type { DailyCombatCharacter, DailyCombatContext, DailyCombatRandoms, DailyCombatStore, DailyCombatView } from '../../application/combat/daily-combat-store.js';
-import { calculateDailyCombatPreview, DAILY_COMBAT_REWARD } from '../../domain/combat/daily-combat.js';
+import { calculateDailyCombatPreview, DAILY_COMBAT_REWARD, projectElementMatchups } from '../../domain/combat/daily-combat.js';
 import { isElementKey, resourceKeys, type ElementKey } from '../../domain/economy/resources.js';
 import { businessDateToDatabaseDate, databaseDateToBusinessDate } from '../../domain/time/business-date.js';
 import type { PlayerResourceBalances } from '../../application/player/player-resource-store.js';
@@ -256,15 +256,16 @@ async function readView(client: Client, playerId: string, _businessDate: string,
   const selected = slots.map(({ character }) => character).filter((character): character is DailyCombatCharacter => Boolean(character));
   const complete = selected.length === 4 && new Set(selected.map(({ id }) => id)).size === 4;
   const hasKo = slots.some(({ ko }) => ko);
-  const preview = complete && !hasKo ? calculateDailyCombatPreview(selected.map((character) => ({ id: character.id, rarity: character.rarity, constellation: character.constellation, elementKey: character.elementKey })), encounter.enemies.map(({ elementKeySnapshot }) => elementKey(elementKeySnapshot)), relationMap(matchups)) : null;
+  const relations = relationMap(matchups);
+  const preview = complete && !hasKo ? calculateDailyCombatPreview(selected.map((character) => ({ id: character.id, rarity: character.rarity, constellation: character.constellation, elementKey: character.elementKey })), encounter.enemies.map(({ elementKeySnapshot }) => elementKey(elementKeySnapshot)), relations) : null;
   const availableCharacterCount = characters.filter(({ id }) => !koIds.has(id)).length;
   const status = state?.wonAt ? 'COMPLETED' : availableCharacterCount < 4 ? 'BLOCKED' : lastAttempt ? 'IN_PROGRESS' : 'TODO';
   return {
     businessDate: databaseDateToBusinessDate(encounter.businessDate), status,
-    encounter: { id: encounter.id, enemies: encounter.enemies.map(({ position, character, elementKeySnapshot }) => ({ position: position as 1 | 2 | 3 | 4, character: {
-      id: character.id, externalKey: character.externalKey, name: character.name, rarity: rarity(character.rarity), elementKey: elementKey(elementKeySnapshot), weaponType: character.weaponType,
+    encounter: { id: encounter.id, enemies: encounter.enemies.map(({ position, character, elementKeySnapshot }) => { const defenderElement = elementKey(elementKeySnapshot); return ({ position: position as 1 | 2 | 3 | 4, character: {
+      id: character.id, externalKey: character.externalKey, name: character.name, rarity: rarity(character.rarity), elementKey: defenderElement, weaponType: character.weaponType,
       region: character.region, iconPath: character.iconPath, splashPath: character.splashPath, wishPath: character.wishPath, fullbodyPath: character.fullbodyPath, displayOrder: character.displayOrder,
-    } })) },
+    }, ...projectElementMatchups(defenderElement, relations) }) }) },
     loadout: { nextAttemptMode: loadout?.nextAttemptMode ?? CombatAttemptMode.MANUAL, slots },
     availableCharacters: characters,
     koCharacterIds: [...koIds], availableCharacterCount, preview,

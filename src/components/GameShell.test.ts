@@ -14,4 +14,13 @@ describe('GameShell shared particle conversion overlay', () => {
     expect(gameShellSource).toContain('setDailiesOverviewRequestToken((value) => value + 1); navigate(\'activities-dailies\')')
     expect(gameShellSource).toContain('dailiesOverviewRequestToken={dailiesOverviewRequestToken}')
   })
+
+  it('reuses the shared Box cache and mutations for Combat character details', () => {
+    expect(gameShellSource).toContain('dailyCombatBox={{')
+    expect(gameShellSource).toContain('initialBox: boxCache.read(player.id)')
+    expect(gameShellSource).toContain('onLoadBox: loadBox')
+    expect(gameShellSource).toContain('onSetFavorite: setBoxFavorite')
+    expect(gameShellSource).toContain('onUseStella: useStella')
+    expect(gameShellSource).toContain('onCharacterProgressed: onLoadTeams')
+  })
 })

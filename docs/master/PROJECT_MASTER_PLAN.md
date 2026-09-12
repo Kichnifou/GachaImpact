@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.86
+Version : 0.87
 Date : 2026-09-12
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3711,7 +3711,7 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Dans Sac desktop, le header fonctionnel reste fixe et tout ce qui le suit appartient à un body `minmax(0, 1fr)` en `overflow-y: auto`. Les catégories gauches restent immobiles ; mobile conserve son flux naturel sans second scroll interne.
 - Aucun backend, schéma, migration, service Supabase, donnée DEV ou déploiement manuel n’appartient à ce lot. Le candidat 0.85 a été reviewé, promu puis validé publiquement par le propriétaire.
 
-## État du candidat 0.86 — Combat quotidien / Entraînement
+## État public 0.86 — Combat quotidien / Entraînement
 
 - Le cadre bas de la sidebar devient un raccourci plein-clic `Quotidiennes > Aperçu`, sans claim ni faux compteur. Une intention éphémère force Aperçu depuis n'importe quel écran, y compris Roue ou Défi déjà monté.
 - Les cartes Sac de 73 px conservent leurs axes communs. Primos, Moras, particules personnelles et Masterless Stella Fortuna utilisent toute leur surface comme action accessible, avec affordance et accent hover/focus contextuels ; les autres entrées restent non interactives et Stella ouvre directement son picker existant.
@@ -3720,7 +3720,16 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Une défaite incrémente les statistiques, rend les quatre membres KO pour la rencontre et permet une nouvelle tentative avec d'autres personnages. Une première victoire crédite exactement +800 Primogemmes et +20 000 Moras via l'économie centrale, une seule fois, puis clôt le quotidien. Box et Team ne sont que lues ; aucune composition active n'est modifiée.
 - `Activités > Combat > Entraînement` affiche la rencontre, les slots, le picker Box, le preview détaillé, les modes, KO, résultats et statistiques partagées dans la fiche personnage. `Quotidiennes > Aperçu` projette À faire / En cours / Bloqué / Terminé et retire `Accéder` après victoire.
 - `Boss` reste une coque honnête `Bientôt disponible` sans gameplay, schéma, statistique ou donnée fictive. Expedition, Missions permanentes et commandes chat/Twitch ne commencent pas dans ce lot.
-- Le domaine fonctionnel actif est désormais Combat quotidien / Entraînement. Le candidat 0.86 doit être reviewé indépendamment sur `review`, puis validé publiquement après promotion avant d'ouvrir Expedition.
+- Le domaine fonctionnel actif est désormais Combat quotidien / Entraînement. Le moteur, la persistance, l'Auto, les KO, la récompense, la fiche et les erreurs explicites du lot 0.86 ont été déployés puis validés publiquement par le propriétaire.
+
+## État du candidat 0.87 — présentation compacte du Combat quotidien
+
+- `Activités > Combat > Entraînement` remplace ses grands panneaux verticaux par une barre compacte stable : titre de rencontre à gauche, chance serveur et accès à une modale de calcul au centre, bouton Combattre toujours présent à droite et désactivé lorsque l'action n'est pas disponible.
+- Les ennemis, personnages sélectionnés et slots vides partagent une carte horizontale de géométrie identique. Chaque ennemi reçoit du backend les éléments attaquants faibles/résistants dérivés de la matrice 014, dans l'ordre canonique ; aucune matrice n'est dupliquée dans React.
+- Les actions Fiche/Changer/Retirer occupent un overlay sans effet sur les dimensions. Le bouton Fiche réutilise le cache et le vrai DTO Box ainsi que le modal complet avec favori, Stella et statistiques C6.
+- L'état Combat quitte le contenu principal de la fiche Box : un libellé discret ouvre une petite modale dédiée aux statistiques. La géométrie principale historique reste inchangée et l'information disparaît lorsque la projection Combat n'est pas chargée.
+- Les détails de chance n'affichent plus les notions techniques Brut/Final. Le feedback victoire, défaite, blocage ou erreur occupe une zone compacte réservée et ne déplace ni les équipes ni l'action Combattre.
+- Aucun gameplay, formule, RNG, Auto, KO, économie, récompense, idempotence, schéma ou migration n'est modifié. Boss reste la coque indisponible validée. Le candidat 0.87 doit être reviewé indépendamment sur `review`, puis testé publiquement après promotion.
 
 ## État du lot — Invocation x1/x10
 
@@ -3862,7 +3871,7 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Faire reviewer indépendamment le candidat 0.86 uniquement sur `review` → corriger les éventuels retours sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → valider publiquement la sidebar Quotidiennes, les cartes Sac plein-clic et le Combat quotidien / Entraînement.** Boss et Expedition restent non commencés. `PAID_INFRA_APPROVED = false` reste inchangé.
+**Faire reviewer indépendamment le candidat 0.87 uniquement sur `review` → corriger les éventuels retours sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → valider publiquement la présentation compacte de `Combat > Entraînement`, ses cartes symétriques, ses modales et sa fiche Box partagée.** Le métier Combat 0.86 reste validé ; Boss et Expedition restent non commencés. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

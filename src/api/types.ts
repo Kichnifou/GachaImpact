@@ -370,7 +370,12 @@ export type DailyCombatPreviewDto = Readonly<{
 export type DailyCombatDto = Readonly<{
   businessDate: string
   status: 'TODO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED'
-  encounter: Readonly<{ id: string; enemies: readonly Readonly<{ position: 1 | 2 | 3 | 4; character: Omit<GachaCharacterDto, 'classKey'> & Readonly<{ displayOrder: number | null }> }>[] }>
+  encounter: Readonly<{ id: string; enemies: readonly Readonly<{
+    position: 1 | 2 | 3 | 4
+    character: Omit<GachaCharacterDto, 'classKey'> & Readonly<{ displayOrder: number | null }>
+    weakAgainstElements: readonly ElementKey[]
+    resistantAgainstElements: readonly ElementKey[]
+  }>[] }>
   loadout: Readonly<{ nextAttemptMode: 'MANUAL' | 'AUTO'; slots: readonly Readonly<{ position: 1 | 2 | 3 | 4; character: DailyCombatCharacterDto | null; ko: boolean }>[] }>
   availableCharacters: readonly DailyCombatCharacterDto[]
   koCharacterIds: readonly string[]

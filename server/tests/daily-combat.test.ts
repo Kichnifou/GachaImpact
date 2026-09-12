@@ -7,7 +7,12 @@ import { buildApp } from '../src/app.js';
 
 const playerId = randomUUID();
 const view: DailyCombatView = {
-  businessDate: '2026-09-12', status: 'TODO', encounter: { id: randomUUID(), enemies: [] },
+  businessDate: '2026-09-12', status: 'TODO', encounter: { id: randomUUID(), enemies: [{
+    position: 1,
+    character: { id: randomUUID(), externalKey: 'fixture:cryo', name: 'Cryo Fixture', rarity: 5, elementKey: 'cryo', weaponType: null, region: null, iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null, displayOrder: 1 },
+    weakAgainstElements: ['pyro', 'electro'],
+    resistantAgainstElements: ['anemo'],
+  }] },
   loadout: { nextAttemptMode: 'MANUAL', slots: [1, 2, 3, 4].map((position) => ({ position: position as 1 | 2 | 3 | 4, character: null, ko: false })) },
   availableCharacters: [], koCharacterIds: [], availableCharacterCount: 0, preview: null, canFight: false,
   reward: { primogems: 800n, moras: 20_000n }, lastAttempt: null,
@@ -36,7 +41,7 @@ describe('Daily Combat HTTP contract', () => {
     const { app } = await setup();
     expect((await app.inject({ url: '/api/v1/me/combat/daily' })).statusCode).toBe(401);
     const response = await app.inject({ url: '/api/v1/me/combat/daily', headers: { authorization: 'Bearer token' } });
-    expect(response.statusCode).toBe(200); expect(response.json()).toMatchObject({ businessDate: '2026-09-12', reward: { primogems: '800', moras: '20000' } });
+    expect(response.statusCode).toBe(200); expect(response.json()).toMatchObject({ businessDate: '2026-09-12', reward: { primogems: '800', moras: '20000' }, encounter: { enemies: [{ weakAgainstElements: ['pyro', 'electro'], resistantAgainstElements: ['anemo'] }] } });
     expect(JSON.stringify(response.json())).not.toContain('rngRoll');
   });
 
