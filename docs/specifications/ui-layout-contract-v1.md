@@ -1,6 +1,6 @@
 # Contrat de layout UI V1
 
-Statut : contrat transverse validé — extension physique candidate 0.87.
+Statut : contrat transverse validé — extension physique candidate 0.88.
 
 Ce document est la source de vérité des règles de composition et de stabilité visuelle communes. Les documents métier restent propriétaires du contenu et des actions de chaque écran ; le shell de navigation reste propriétaire des destinations.
 
@@ -26,6 +26,12 @@ Recherche, filtre, tri, pagination, mutation, chargement, état vide et feedback
 Les modales d’historique Banque et Boutique ont une capacité visuelle exacte de dix lignes : dix lignes remplissent le body jusqu’au footer, quatre lignes matérialisent six emplacements vides, et zéro ligne conserve le footer à la même position. Sur desktop, la hauteur des onze rangées (header de table + dix slots) est calculée depuis le body disponible et ce body n’a aucun scroll vertical ; `scrollHeight` reste au plus égal à `clientHeight + 1 px` à 1920 × 1080 comme à 1366 × 768. Mobile peut conserver un scroll interne, notamment horizontal.
 
 Une carte à états conserve ses dimensions extérieures et réserve ses zones internes avant l'interaction : contenu principal, état/feedback, action et confirmation ne se repoussent pas mutuellement. Ajouter une action à une carte existante ne conduit jamais à agrandir artificiellement toutes les cartes de sa grille. Lorsque le langage visuel existant offre déjà l'espace nécessaire, l'action s'intègre dans cette géométrie ; une carte sans action ne réserve aucun footer vide universel.
+
+Une information secondaire ajoutée à un panneau compact — valeur actuelle, résumé ou statut — s'intègre dans une zone déjà dimensionnée. Elle peut se répartir sur deux lignes internes à largeur contrainte, mais ne modifie pas la bounding box externe du panneau ni la position de ses contrôles.
+
+Une zone d'artwork conçue comme colonne plein-hauteur dans une fiche étire son enveloppe et son média jusqu'à la borne basse de la région qu'elle représente. Elle ne laisse aucune bande morte sous l'image ; le crop est assuré par le média dans cette enveloppe, sans scale arbitraire destiné à masquer un défaut de grille.
+
+La sidebar desktop occupe exactement la hauteur utile que lui attribue le shell et ne devient pas un propriétaire de scroll. Sa densité interne peut varier selon la hauteur du viewport, sans masquer d'information essentielle ; les régions flexibles absorbent le surplus et distribuent leur contenu de façon volontaire, tandis que son bord inférieur reste aligné avec ceux du contenu principal et du chat.
 
 ## Grilles de cartes homogènes
 

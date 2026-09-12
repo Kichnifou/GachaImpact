@@ -64,15 +64,14 @@ export default function DailyCombatScreen({ value, box, onSetSlot, onRemoveSlot,
     <ScreenHeader eyebrow="Activités" title="Combat" description="Affrontez l’équipe ennemie du jour avec quatre personnages disponibles." />
     <ScrollableScreenPanel className="combat-frame" bodyClassName="combat-scroll-body" fixed={tabs}>
       {tab === 'boss' ? <section className="panel combat-boss-unavailable"><strong>Bientôt disponible</strong><p>Le Boss n’est pas encore implémenté.</p></section> : <>
-        <section className="panel combat-command-bar" aria-labelledby="combat-enemies-title">
-          <div className="combat-command-title"><span className="eyebrow">Rencontre du jour</span><h2 id="combat-enemies-title">Ennemis</h2><small>{value.businessDate}</small></div>
-          <div className="combat-command-chance"><span className="sr-only">Chance de victoire</span><strong aria-label={value.preview ? `Chance de victoire : ${halfPoint(value.preview.finalHalfPoints)} pour cent` : 'Chance de victoire indisponible'}>{value.preview ? `${halfPoint(value.preview.finalHalfPoints)} %` : '— %'}</strong><button type="button" disabled={!value.preview} onClick={() => setCalculationOpen(true)}>Détails du calcul →</button><small>{value.loadout.nextAttemptMode === 'AUTO' ? 'Prochaine tentative : Auto' : 'Prochaine tentative : Manuelle'}</small></div>
+        <section className="combat-enemies" aria-labelledby="combat-enemies-title"><header className="combat-section-heading combat-enemy-heading"><h2 id="combat-enemies-title">Ennemis</h2></header><div className="combat-card-grid">{value.encounter.enemies.map((enemy) => <EnemyCombatCard enemy={enemy} key={enemy.position} />)}</div></section>
+
+        <section className="panel combat-command-bar" aria-labelledby="combat-command-title">
+          <div className="combat-command-title"><strong id="combat-command-title">Rencontre du jour</strong></div>
           <button type="button" className="small-primary-button combat-fight-button" disabled={!value.canFight || Boolean(pending)} onClick={() => void fight()}>{pending === 'fight' ? 'Combat…' : fightIntent ? 'Réessayer' : 'Combattre'}</button>
+          <div className="combat-command-chance"><span className="sr-only">Chance de victoire</span><strong aria-label={value.preview ? `Chance de victoire : ${halfPoint(value.preview.finalHalfPoints)} pour cent` : 'Chance de victoire indisponible'}>{value.preview ? `${halfPoint(value.preview.finalHalfPoints)} %` : '— %'}</strong><button type="button" disabled={!value.preview} onClick={() => setCalculationOpen(true)}>Détails du calcul →</button><small>{value.loadout.nextAttemptMode === 'AUTO' ? 'Mode : Auto' : 'Mode : Manuel'}</small></div>
+          <div className={`combat-feedback-slot${error ? ' error' : lastResult?.won || value.status === 'COMPLETED' ? ' victory' : ''}`} role={error ? 'alert' : 'status'} aria-live="polite"><span>{feedback ?? '\u00a0'}</span></div>
         </section>
-
-        <div className={`combat-feedback-slot${error ? ' error' : lastResult?.won || value.status === 'COMPLETED' ? ' victory' : ''}`} role={error ? 'alert' : 'status'} aria-live="polite"><span>{feedback ?? '\u00a0'}</span></div>
-
-        <section className="combat-enemies" aria-label="Équipe ennemie du jour"><div className="combat-card-grid">{value.encounter.enemies.map((enemy) => <EnemyCombatCard enemy={enemy} key={enemy.position} />)}</div></section>
 
         <section className="combat-loadout-section"><header className="combat-section-heading"><h2>Votre formation</h2><div className="combat-loadout-actions"><button type="button" disabled={Boolean(pending)} onClick={() => void mutate('copy', onCopyActive)}>Sélectionner l’équipe active</button><button type="button" disabled={Boolean(pending) || value.availableCharacterCount < 4} onClick={() => void mutate('auto', onAuto)}>Équipe automatique</button><button type="button" disabled={Boolean(pending) || selectedIds.size === 0} onClick={() => void mutate('clear', onClear)}>Vider</button></div></header>
           <div className="combat-card-grid combat-loadout-grid">{value.loadout.slots.map(({ position, character, ko }) => character
@@ -119,7 +118,13 @@ function MatchupIcons({ label, elements }: { label: string; elements: readonly E
 
 function CombatCalculationModal({ preview, onClose }: { preview: NonNullable<DailyCombatDto['preview']>; onClose: () => void }) {
   useEffect(() => { const close = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }; document.addEventListener('keydown', close); return () => document.removeEventListener('keydown', close) }, [onClose])
-  return <div className="modal-layer" role="presentation" onMouseDown={onClose}><section className="floating-panel combat-calculation-modal" role="dialog" aria-modal="true" aria-labelledby="combat-calculation-title" onMouseDown={(event) => event.stopPropagation()}><header className="floating-panel-heading"><div><span className="eyebrow">Chance de victoire</span><h2 id="combat-calculation-title">Détails du calcul</h2></div><button type="button" className="icon-button" onClick={onClose} aria-label="Fermer les détails"><span className="icon-glyph">×</span></button></header><dl><CalculationStat label="Base" value={`${halfPoint(preview.baseHalfPoints)} %`} /><CalculationStat label="Rareté" value={`+${halfPoint(preview.rarityBonusHalfPoints)} %`} /><CalculationStat label="Constellations" value={`+${halfPoint(preview.constellationBonusHalfPoints)} %`} /><CalculationStat label={`Avantages (${preview.favorableMatchups})`} value={`+${halfPoint(preview.favorableBonusHalfPoints)} %`} /><CalculationStat label={`Désavantages (${preview.unfavorableMatchups})`} value={`−${halfPoint(preview.unfavorableMalusHalfPoints)} %`} />{preview.clamp && <CalculationStat label="Limite appliquée" value={`${halfPoint(preview.finalHalfPoints)} %`} />}</dl></section></div>
+  return <div className="modal-layer" role="presentation" onMouseDown={onClose}><section className="floating-panel combat-calculation-modal" role="dialog" aria-modal="true" aria-labelledby="combat-calculation-title" onMouseDown={(event) => event.stopPropagation()}><header className="floating-panel-heading"><div><span className="eyebrow">Chance de victoire</span><h2 id="combat-calculation-title">Détails du calcul</h2></div><button type="button" className="icon-button" onClick={onClose} aria-label="Fermer les détails"><span className="icon-glyph">×</span></button></header><div className="combat-calculation-body">
+    <section className="combat-calculation-base" aria-label="Chance de base"><span>Base</span><strong>{halfPoint(preview.baseHalfPoints)} %</strong></section>
+    <section className="combat-calculation-group bonus" aria-label="Bonus"><h3>Bonus</h3><dl><CalculationStat label="Rareté" value={`+${halfPoint(preview.rarityBonusHalfPoints)} %`} /><CalculationStat label="Constellations" value={`+${halfPoint(preview.constellationBonusHalfPoints)} %`} /><CalculationStat label={`Avantages (${preview.favorableMatchups})`} value={`+${halfPoint(preview.favorableBonusHalfPoints)} %`} /></dl></section>
+    <section className="combat-calculation-group malus" aria-label="Malus"><h3>Malus</h3><dl><CalculationStat label={`Désavantages (${preview.unfavorableMatchups})`} value={`−${halfPoint(preview.unfavorableMalusHalfPoints)} %`} /></dl></section>
+    <section className="combat-calculation-result" aria-label={`Chance finale : ${halfPoint(preview.finalHalfPoints)} pour cent`}><span>Résultat</span><strong>{halfPoint(preview.finalHalfPoints)} %</strong><small>Chance finale</small></section>
+    {preview.clamp && <p className="combat-calculation-clamp">Limite appliquée : {halfPoint(preview.finalHalfPoints)} %</p>}
+  </div></section></div>
 }
 
 function CalculationStat({ label, value }: { label: string; value: string }) { return <div><dt>{label}</dt><dd>{value}</dd></div> }
@@ -149,7 +154,7 @@ function combatFeedback(value: DailyCombatDto, result: DailyCombatFightDto['resu
   if (error) return error
   if (result?.won || value.status === 'COMPLETED') return <>✅ Victoire · Obtenu : +{formatResourceAmount(value.reward.primogems)} Primogemmes · +{formatResourceAmount(value.reward.moras)} Moras</>
   if (result && !result.won || value.lastAttempt && !value.lastAttempt.won) return 'Défaite · 4 personnages KO jusqu’à demain.'
-  if (value.status === 'BLOCKED') return 'Bloqué aujourd’hui · Moins de 4 personnages disponibles.'
-  if (!value.preview) return 'Sélectionnez 4 personnages actifs et non-KO.'
-  return value.loadout.nextAttemptMode === 'AUTO' ? 'Formation prête · prochaine tentative Auto.' : 'Formation prête.'
+  if (value.status === 'BLOCKED') return 'Bloqué · Moins de 4 personnages disponibles.'
+  if (!value.canFight) return 'Sélectionnez 4 personnages disponibles.'
+  return 'Formation prête.'
 }

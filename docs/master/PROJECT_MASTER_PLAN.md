@@ -1,8 +1,8 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.87
+Version : 0.88
 Date : 2026-09-12
-Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
+Statut : CANDIDAT 0.88 — REVIEW INDÉPENDANTE REQUISE
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
@@ -3722,14 +3722,23 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - `Boss` reste une coque honnête `Bientôt disponible` sans gameplay, schéma, statistique ou donnée fictive. Expedition, Missions permanentes et commandes chat/Twitch ne commencent pas dans ce lot.
 - Le domaine fonctionnel actif est désormais Combat quotidien / Entraînement. Le moteur, la persistance, l'Auto, la récompense, la fiche et les erreurs explicites du lot 0.86 sont techniquement validés. Les parcours publics effectivement vérifiés couvrent la préparation, la composition, l'Auto, le lancement et une victoire ; les parcours de défaite, de KO et d'après-défaite restent à revalider publiquement avec le candidat 0.87.
 
-## État du candidat 0.87 — présentation compacte du Combat quotidien
+## État public 0.87 — présentation compacte du Combat quotidien
 
 - `Activités > Combat > Entraînement` remplace ses grands panneaux verticaux par une barre compacte stable : titre de rencontre à gauche, chance serveur et accès à une modale de calcul au centre, bouton Combattre toujours présent à droite et désactivé lorsque l'action n'est pas disponible.
 - Les ennemis, personnages sélectionnés et slots vides partagent une carte horizontale de géométrie identique. Chaque ennemi reçoit du backend les éléments attaquants faibles/résistants dérivés de la matrice 014, dans l'ordre canonique ; aucune matrice n'est dupliquée dans React.
 - Les actions Fiche/Changer/Retirer occupent un overlay sans effet sur les dimensions. Le bouton Fiche réutilise le cache et le vrai DTO Box ainsi que le modal complet avec favori, Stella et statistiques C6.
 - L'état Combat quitte le contenu principal de la fiche Box : un libellé discret ouvre une petite modale dédiée aux statistiques. La géométrie principale historique reste inchangée et l'information disparaît lorsque la projection Combat n'est pas chargée.
 - Les détails de chance n'affichent plus les notions techniques Brut/Final. Le feedback victoire, défaite, blocage ou erreur occupe une zone compacte réservée et ne déplace ni les équipes ni l'action Combattre.
-- Aucun gameplay, formule, RNG, Auto, KO, économie, récompense, idempotence, schéma ou migration n'est modifié. Boss reste la coque indisponible validée. Le candidat 0.87 doit être reviewé indépendamment sur `review`, puis testé publiquement après promotion.
+- Aucun gameplay, formule, RNG, Auto, KO, économie, récompense, idempotence, schéma ou migration n'est modifié. Boss reste la coque indisponible validée. Le lot 0.87 est déployé ; son moteur et la majorité de sa présentation ont été validés publiquement, les derniers ajustements UX étant repris dans le candidat 0.88.
+
+## État du candidat 0.88 — finalisation UX Combat et sidebar
+
+- La hiérarchie physique de `Combat > Entraînement` devient `Ennemis` puis quatre cartes ennemies, command bar intermédiaire, `Votre formation` et quatre cartes joueur. La command bar réserve une ligne de feedback et répartit `Rencontre du jour`, le bouton Combattre stable au centre, puis chance, détails et `Mode : Manuel/Auto` à droite ; la date métier n'est plus présentée.
+- Le bouton Combattre indisponible reste présent mais devient explicitement gris, neutre, sans glow et avec curseur interdit. Les textes ready/incomplet/bloqué/défaite sont simplifiés et l'aperçu TODO devient `Prêt à combattre` sans seconde ligne.
+- La modale de calcul groupe Base, Bonus, Malus et Résultat final, signale discrètement une éventuelle limite et n'expose pas la valeur brute. La fiche Box emploie toujours `Statistiques →`, garde OK/💀 KO dans la seule modale statistique et étire structurellement l'artwork jusqu'au bas utile sans bande morte.
+- La sidebar desktop reste strictement bornée à la hauteur disponible du shell, sans scroll ; sa densité s'adapte à la hauteur, Pity 4★ reste entièrement visible à 1920 × 1080 et Quotidiennes centre volontairement son contenu dans le surplus des écrans hauts.
+- Les outils Ressources, Progression, Gacha et Objets de Modération affichent le snapshot autoritatif courant de la cible dans leur en-tête sans modifier leur hauteur externe ; sélection de ressource, changement de cible et mutations adoptent immédiatement le `ModerationStateDto` retourné.
+- Aucun moteur, formule, backend, schéma, migration, donnée DEV ou service externe n'est modifié. Boss et Expedition restent non commencés. Le candidat 0.88 doit être reviewé indépendamment sur `review` avant toute promotion.
 
 ## État du lot — Invocation x1/x10
 
@@ -3871,7 +3880,7 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Faire reviewer indépendamment le candidat 0.87 uniquement sur `review` → corriger les éventuels retours sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → valider publiquement la présentation compacte de `Combat > Entraînement`, ses cartes symétriques, ses modales et sa fiche Box partagée.** Le métier Combat 0.86 reste validé ; Boss et Expedition restent non commencés. `PAID_INFRA_APPROVED = false` reste inchangé.
+**Faire reviewer indépendamment le candidat 0.88 uniquement sur `review` → corriger les éventuels retours sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → valider publiquement la hiérarchie finale de `Combat > Entraînement`, la command bar, les modales, la fiche Box, la sidebar verticale et les valeurs actuelles de Modération.** Le métier Combat reste validé ; Boss et Expedition restent non commencés. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

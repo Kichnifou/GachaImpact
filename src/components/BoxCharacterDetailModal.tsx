@@ -67,7 +67,7 @@ function BoxCharacterDetailModal({ character, combatState, showStella = true, st
               <strong className="box-detail-constellation">C{character.constellation}</strong>
               {stellaFeedback?.visual?.type === 'constellation' && stellaFeedback.visual.characterId === character.id && <span className="box-stella-plus-one" key={stellaFeedback.visual.operationId} aria-label="Constellation augmentée de 1">+1</span>}
             </div>
-            {combatState && <button type="button" className={`box-combat-link${combatState.ko ? ' ko' : ''}`} onClick={() => setShowCombatDetails(true)}>Combat : {combatState.ko ? '💀 KO' : 'OK'} →</button>}
+            {combatState && <button type="button" className="box-combat-link" onClick={() => setShowCombatDetails(true)}>Statistiques →</button>}
           </div>
           <dl>
             <div><dt>Copies obtenues</dt><dd>{character.copies}</dd></div>
@@ -101,7 +101,7 @@ function BoxCharacterDetailModal({ character, combatState, showStella = true, st
         </section>
       </div>}
     </section>
-  </div>{showCombatDetails && combatState && <div className="modal-layer box-combat-modal-layer" role="presentation" onMouseDown={() => setShowCombatDetails(false)}><section className="floating-panel box-combat-modal" role="dialog" aria-modal="true" aria-labelledby="box-combat-modal-title" onMouseDown={(event) => event.stopPropagation()}><header className="floating-panel-heading"><div><span className="eyebrow">Combat quotidien</span><h2 id="box-combat-modal-title">Statistiques de {character.name}</h2></div><button type="button" className="icon-button" onClick={() => setShowCombatDetails(false)} aria-label="Fermer les statistiques Combat"><span className="icon-glyph">×</span></button></header><p className={`box-combat-status${combatState.ko ? ' ko' : ''}`}>Statut : {combatState.ko ? '💀 KO — Disponible demain' : 'OK'}</p><dl><div><dt>Combats</dt><dd>{combatState.stats.fights}</dd></div><div><dt>Victoires</dt><dd>{combatState.stats.wins}</dd></div><div><dt>Défaites</dt><dd>{combatState.stats.losses}</dd></div><div><dt>Taux de victoire</dt><dd>{combatState.stats.winRatePercent.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} %</dd></div></dl></section></div>}</>
+  </div>{showCombatDetails && combatState && <div className="modal-layer box-combat-modal-layer" role="presentation" onMouseDown={() => setShowCombatDetails(false)}><section className="floating-panel box-combat-modal" role="dialog" aria-modal="true" aria-labelledby="box-combat-modal-title" onMouseDown={(event) => event.stopPropagation()}><header className="floating-panel-heading"><div><span className="eyebrow">Combat quotidien</span><h2 id="box-combat-modal-title">Statistiques de {character.name}</h2></div><button type="button" className="icon-button" onClick={() => setShowCombatDetails(false)} aria-label="Fermer les statistiques Combat"><span className="icon-glyph">×</span></button></header><p className={`box-combat-status${combatState.ko ? ' ko' : ''}`}>Statut : {combatState.ko ? '💀 KO' : 'OK'}</p><dl><div><dt>Combats</dt><dd>{combatState.stats.fights}</dd></div><div><dt>Victoires</dt><dd>{combatState.stats.wins}</dd></div><div><dt>Défaites</dt><dd>{combatState.stats.losses}</dd></div><div><dt>Taux de victoire</dt><dd>{combatState.stats.winRatePercent.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} %</dd></div></dl></section></div>}</>
 }
 
 function stellaTransition(character: BoxCharacterDto) {

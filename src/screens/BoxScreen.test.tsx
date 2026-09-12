@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server'
+import { readFileSync } from 'node:fs'
 import { describe, expect, it, vi } from 'vitest'
 import type { BoxCharacterDto, PlayerBoxDto } from '../api/types'
 import { initialBoxFilters, initialBoxFiltersWithPreference, presentBoxCharacters, replaceFavorite, type BoxFilters } from '../box/box-presentation'
@@ -8,6 +9,8 @@ import BoxScreen, { BoxStatus, BoxView } from './BoxScreen'
 import boxCollectionSource from '../box/use-box-collection.ts?raw'
 import boxScreenSource from './BoxScreen.tsx?raw'
 import detailSource from '../components/BoxCharacterDetailModal.tsx?raw'
+
+const appCssSource = readFileSync('src/App.css', 'utf8')
 
 const character = (overrides: Partial<BoxCharacterDto>): BoxCharacterDto => ({
   id: 'furina', externalKey: 'legacy:20', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: 'sword', region: 'fontaine',
@@ -164,9 +167,15 @@ describe('real personal Box', () => {
   it('keeps Combat information secondary without expanding the main Box detail content', () => {
     const html = renderToStaticMarkup(<BoxCharacterDetailModal character={records[0]!} combatState={{ ko: false, stats: { fights: '12', wins: '8', losses: '4', winRatePercent: 66.67 } }} {...modalProps} />)
     expect(html).toContain('class="box-combat-link"')
-    expect(html).toContain('Combat : OK →')
+    expect(html).toContain('Statistiques →')
+    expect(html).not.toContain('Combat : OK')
     expect(html).not.toContain('box-combat-state')
     expect(html).not.toContain('<dt>Combats</dt>')
+  })
+
+  it('keeps the shared detail artwork structurally full-height without an arbitrary scale', () => {
+    expect(appCssSource).toMatch(/\.box-detail-image\.character-portrait-image\s*\{[^}]*inset:\s*0;[^}]*height:\s*100%;[^}]*object-fit:\s*cover;/s)
+    expect(appCssSource).toMatch(/\.box-detail-image\.character-portrait-image\s*\{[^}]*transform:\s*none;/s)
   })
 
   it('never renders C6 competition statistics for a four-star character', () => {

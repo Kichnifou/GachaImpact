@@ -56,13 +56,22 @@ describe('Daily Combat screen', () => {
     expect(container.querySelectorAll('.combat-enemy-card .combat-matchups')).toHaveLength(4)
     expect(container.querySelectorAll('.combat-enemy-card:first-child .combat-matchups [role="img"]')).toHaveLength(4)
     expect(container.querySelector<HTMLButtonElement>('.combat-fight-button')?.disabled).toBe(true)
+    const sections = Array.from(container.querySelector('.combat-scroll-body')!.children)
+    const enemyIndex = sections.findIndex((section) => section.classList.contains('combat-enemies'))
+    const commandIndex = sections.findIndex((section) => section.classList.contains('combat-command-bar'))
+    const loadoutIndex = sections.findIndex((section) => section.classList.contains('combat-loadout-section'))
+    expect(enemyIndex).toBeLessThan(commandIndex)
+    expect(commandIndex).toBeLessThan(loadoutIndex)
+    expect(container.querySelector('.combat-enemies .combat-section-heading')?.textContent).toBe('Ennemis')
+    expect(container.querySelector('.combat-command-title')?.textContent).toBe('Rencontre du jour')
+    expect(container.querySelector('.combat-command-bar')?.textContent).not.toContain('2026-09-12')
     act(() => container.querySelector<HTMLButtonElement>('.combat-empty-slot')!.click())
     expect(container.querySelectorAll('.combat-picker .box-character-card')).toHaveLength(8)
     await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="Ouvrir la fiche de Personnage 1"]')!.click(); await Promise.resolve() })
     expect(props.onSetSlot).toHaveBeenCalledWith(1, 'character-1')
   })
 
-  it('shows chance in the command bar and opens compact calculation details without technical totals', () => {
+  it('shows chance and Mode in the command bar and explains Base, Bonus, Malus and final result', () => {
     const value = combat({
       status: 'IN_PROGRESS', koCharacterIds: ['character-1'],
       loadout: { nextAttemptMode: 'AUTO', slots: characters.slice(0, 4).map((character, index) => ({ position: (index + 1) as 1 | 2 | 3 | 4, character, ko: index === 0 })) },
@@ -71,14 +80,26 @@ describe('Daily Combat screen', () => {
     })
     const { container } = mount(value)
     expect(container.querySelector('.combat-command-chance')?.textContent).toContain('80 %')
-    expect(container.textContent).toContain('Prochaine tentative : Auto')
+    expect(container.textContent).toContain('Mode : Auto')
+    expect(container.textContent).not.toContain('Prochaine tentative')
     act(() => container.querySelector<HTMLButtonElement>('.combat-command-chance button')!.click())
-    const details = container.querySelector('.combat-calculation-modal dl')
+    const details = container.querySelector('.combat-calculation-body')
     expect(details?.textContent).toContain('Base50 %')
+    expect(details?.textContent).toContain('Bonus')
     expect(details?.textContent).toContain('Rareté+24 %')
-    expect(details?.textContent).not.toMatch(/Brut|Final/)
-    expect(details?.textContent).not.toContain('Limite appliquÃ©e')
+    expect(details?.textContent).toContain('Malus')
+    expect(details?.textContent).toContain('Résultat80 %Chance finale')
+    expect(details?.textContent).not.toContain('Brut')
+    expect(details?.textContent).not.toContain('Limite appliquée')
     expect(container.querySelector('details')).toBeNull()
+  })
+
+  it('shows the applied clamp discreetly while keeping the clamped result authoritative', () => {
+    const value = combat({ preview: { baseHalfPoints: 100, rarityBonusHalfPoints: 60, constellationBonusHalfPoints: 40, favorableMatchups: 4, favorableBonusHalfPoints: 32, unfavorableMatchups: 0, unfavorableMalusHalfPoints: 0, rawHalfPoints: 232, clamp: 'MAXIMUM', finalHalfPoints: 190, memberContributions: [] }, canFight: true })
+    const { container } = mount(value)
+    act(() => container.querySelector<HTMLButtonElement>('.combat-command-chance button')!.click())
+    expect(container.querySelector('.combat-calculation-result')?.textContent).toContain('95 %')
+    expect(container.querySelector('.combat-calculation-clamp')?.textContent).toBe('Limite appliquée : 95 %')
   })
 
   it('opens the real cached Box detail with favorite, Stella and secondary Combat statistics', async () => {
@@ -95,9 +116,11 @@ describe('Daily Combat screen', () => {
     expect(detail?.querySelector('.box-detail-favorite-star')).not.toBeNull()
     expect(detail?.querySelector('.box-combat-state')).toBeNull()
     const combatLink = detail?.querySelector<HTMLButtonElement>('.box-combat-link')
-    expect(combatLink?.textContent).toContain('Combat : 💀 KO →')
+    expect(combatLink?.textContent).toBe('Statistiques →')
+    expect(combatLink?.textContent).not.toContain('KO')
     act(() => combatLink!.click())
-    expect(container.querySelector('.box-combat-modal')?.textContent).toContain('Statut : 💀 KO — Disponible demain')
+    expect(container.querySelector('.box-combat-modal')?.textContent).toContain('Statut : 💀 KO')
+    expect(container.querySelector('.box-combat-modal')?.textContent).not.toContain('Disponible demain')
     expect(container.querySelector('.box-combat-modal')?.textContent).toContain('Combats2')
   })
 
@@ -207,6 +230,16 @@ describe('Daily Combat screen', () => {
     const button = container.querySelector<HTMLButtonElement>('.combat-fight-button')
     expect(button).not.toBeNull()
     expect(button?.disabled).toBe(true)
+  })
+
+  it.each([
+    [combat(), 'Sélectionnez 4 personnages disponibles.'],
+    [combat({ status: 'BLOCKED', availableCharacterCount: 3 }), 'Bloqué · Moins de 4 personnages disponibles.'],
+    [combat({ preview: { baseHalfPoints: 100, rarityBonusHalfPoints: 48, constellationBonusHalfPoints: 12, favorableMatchups: 0, favorableBonusHalfPoints: 0, unfavorableMatchups: 0, unfavorableMalusHalfPoints: 0, rawHalfPoints: 160, clamp: null, finalHalfPoints: 160, memberContributions: [] }, canFight: true }), 'Formation prête.'],
+    [combat({ status: 'IN_PROGRESS', lastAttempt: { id: 'loss', mode: 'MANUAL', won: false, chanceHalfPoints: 160, createdAt: '2026-09-12T10:00:00.000Z' } }), 'Défaite · 4 personnages KO jusqu’à demain.'],
+  ] as const)('renders the exact reserved feedback for its state', (value, expected) => {
+    const { container } = mount(value)
+    expect(container.querySelector('.combat-feedback-slot')?.textContent).toBe(expected)
   })
 
   it('surfaces a controlled Combat message when a fight rejects a KO character', async () => {

@@ -85,9 +85,9 @@ function DailiesScreen({ wheelToday, onSpinWheel, dailyRewardToday, dailyChallen
 
 function dailyCombatOverview(value: DailyCombatDto) {
   if (value.status === 'COMPLETED') return { status: '✅ Terminé', detail: 'Victoire obtenue aujourd’hui.' }
-  if (value.status === 'BLOCKED') return { status: 'Bloqué aujourd’hui', detail: 'Moins de 4 personnages non-KO sont disponibles.' }
+  if (value.status === 'BLOCKED') return { status: 'Bloqué', detail: 'Moins de 4 personnages disponibles.' }
   if (value.status === 'IN_PROGRESS') return { status: 'En cours', detail: `${value.koCharacterIds.length} personnages KO.` }
-  return { status: 'À faire', detail: 'Aucune tentative aujourd’hui.' }
+  return { status: 'Prêt à combattre' }
 }
 
 export function DailyChallengeCard({ value, onPurchase, onSwitch, onOpenParticleConversion, onNavigate }: { value: DailyChallengeDto; onPurchase: (key: string) => Promise<DailyChallengeMutationDto>; onSwitch: (key: string) => Promise<DailyChallengeMutationDto>; onOpenParticleConversion: () => void; onNavigate: (screen: ScreenId) => void }) {

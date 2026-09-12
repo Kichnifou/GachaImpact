@@ -17,15 +17,16 @@ const actors = {
 }
 
 function state(target = actors.self, superTools = true, stella = target.id === 'self' ? '0' : target.id === 'player-a' ? '17' : '29'): ModerationStateDto {
+  const seed = target.id === 'self' ? 1 : target.id === 'player-a' ? 2 : 3
   return {
     player: target.id === 'self' && !superTools ? { ...target, rank: 'TESTER' } : target,
     permissions: {
       roles: superTools ? ['ADMIN', 'TESTER'] : ['TESTER'],
       capabilities: { moderationAccess: true, selfResourceTools: true, selfGameplayTools: true, superTools, canSelectPlayers: superTools, canManageTesters: superTools },
     },
-    resources: { primogems: '1000', moras: '1000', particles: { pyro: '0', hydro: '0', cryo: '0', electro: '0', anemo: '0', geo: '0', dendro: '0' } },
+    resources: { primogems: seed === 1 ? '783880' : String(seed * 1000), moras: seed === 1 ? '5625992' : String(seed * 2000), particles: { pyro: String(seed), hydro: String(seed * 2), cryo: seed === 1 ? '12422' : String(seed * 3), electro: String(seed * 4), anemo: String(seed * 5), geo: String(seed * 6), dendro: String(seed * 7) } },
     progression: { totalXp: target.id === 'player-b' ? '181' : '89', level: target.level, xpIntoCurrentStep: '29', xpPerStep: '30', isMaxLevel: false, level100OverflowRewardsClaimed: 0, totalMessages: '0', countedMessages: '0' },
-    gachaState: { pity5: 0, pity4: 0, guaranteedFeatured5: false, captureProgress: 0, fiftyFiftyLostStreak: 0, selectedBannerCharacterId: null, totalPulls: '0', totalFiveStars: '0', totalFourStars: '0', fiftyFiftyWon: '0', fiftyFiftyLost: '0', capturesTriggered: '0' },
+    gachaState: { pity5: seed * 10, pity4: seed, guaranteedFeatured5: seed === 1, captureProgress: seed - 1, fiftyFiftyLostStreak: 0, selectedBannerCharacterId: null, totalPulls: '0', totalFiveStars: '0', totalFourStars: '0', fiftyFiftyWon: '0', fiftyFiftyLost: '0', capturesTriggered: '0' },
     stella: { quantity: stella },
   }
 }
@@ -41,6 +42,17 @@ function change(input: HTMLInputElement, value: string) {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value)
     input.dispatchEvent(new Event('input', { bubbles: true }))
   })
+}
+
+function changeSelect(select: HTMLSelectElement, value: string) {
+  act(() => {
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, value)
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+}
+
+function tool(container: HTMLElement, title: string) {
+  return Array.from(container.querySelectorAll<HTMLElement>('.moderation-tool')).find((entry) => entry.querySelector('h2')?.textContent === title)!
 }
 
 async function search(container: HTMLElement, query: string) {
@@ -69,10 +81,31 @@ async function mount(superTools = true) {
     states.set(targetPlayerId, updated)
     return updated
   })
+  const onResource = vi.fn(async (target: string, input: { resourceKey: string; amount: string; direction: 'add' | 'remove' }) => {
+    const current = states.get(target)!
+    const delta = BigInt(input.amount) * (input.direction === 'add' ? 1n : -1n)
+    const resources = input.resourceKey === 'primogems' || input.resourceKey === 'moras'
+      ? { ...current.resources, [input.resourceKey]: String(BigInt(current.resources[input.resourceKey]) + delta) }
+      : { ...current.resources, particles: { ...current.resources.particles, [input.resourceKey.replace('particles_', '')]: String(BigInt(current.resources.particles[input.resourceKey.replace('particles_', '') as keyof typeof current.resources.particles]) + delta) } }
+    const updated = { ...current, resources }
+    states.set(target, updated)
+    return updated
+  })
+  const onXp = vi.fn(async (target: string, input: { totalXp?: string; prepareNextLevel?: true }) => {
+    const current = states.get(target)!
+    const updated = { ...current, progression: { ...current.progression, totalXp: input.totalXp ?? current.progression.totalXp } }
+    states.set(target, updated)
+    return updated
+  })
+  const onGacha = vi.fn(async (target: string, input: { pity5?: number; pity4?: number; guaranteedFeatured5?: boolean; captureProgress?: number }) => {
+    const current = states.get(target)!
+    const updated = { ...current, gachaState: { ...current.gachaState, ...input } }
+    states.set(target, updated)
+    return updated
+  })
   const props: React.ComponentProps<typeof ModerationScreen> = {
     actorPlayerId: 'self', capabilities: state(actors.self, superTools).permissions.capabilities,
-    onLoad, onListPlayers, onResource: vi.fn(async (target) => states.get(target)!),
-    onXp: vi.fn(async (target) => states.get(target)!), onGacha: vi.fn(async (target) => states.get(target)!),
+    onLoad, onListPlayers, onResource, onXp, onGacha,
     onStella: vi.fn(async (target, quantity) => {
       const updated = state(states.get(target)!.player, superTools, quantity)
       states.set(target, updated)
@@ -114,6 +147,16 @@ describe('ModerationScreen', () => {
     expect(listbox.textContent).toContain('Testeur')
   })
 
+  it('shows authoritative current values and changes the resource summary with its selector', async () => {
+    const { container } = await mount()
+    expect(tool(container, 'Ressources').querySelector('.moderation-current')?.textContent).toBe('Actuel : 783 880 Primos')
+    expect(tool(container, 'Progression').querySelector('.moderation-current')?.textContent).toBe('Actuel : 89 XP · Niveau 8')
+    expect(tool(container, 'Gacha').querySelector('.moderation-current')?.textContent).toBe('Actuel : Pity 5★ 10 · Pity 4★ 1 · Capture 0/3 · Garantie Oui')
+    expect(tool(container, 'Objets').querySelector('.moderation-current')?.textContent).toBe('Actuel : 0 Stella')
+    changeSelect(tool(container, 'Ressources').querySelector('select')!, 'particles_cryo')
+    expect(tool(container, 'Ressources').querySelector('.moderation-current')?.textContent).toBe('Actuel : 12 422 particules Cryo')
+  })
+
   it('keeps player A selected and preserves a multi-digit Stella draft across parent rerenders', async () => {
     const { container, onLoad, props, root } = await mount()
     expect(stellaInput(container).value).toBe('0')
@@ -146,12 +189,18 @@ describe('ModerationScreen', () => {
     let options = Array.from(container.querySelectorAll<HTMLButtonElement>('[role="option"]'))
     await act(async () => { options.find((button) => button.textContent?.includes('Mynonyme') && !button.textContent.includes('Test1'))!.click(); await Promise.resolve(); await Promise.resolve() })
     expect(stellaInput(container).value).toBe('17')
+    expect(tool(container, 'Ressources').querySelector('.moderation-current')?.textContent).toBe('Actuel : 2 000 Primos')
+    expect(tool(container, 'Progression').querySelector('.moderation-current')?.textContent).toBe('Actuel : 89 XP · Niveau 4')
+    expect(tool(container, 'Gacha').querySelector('.moderation-current')?.textContent).toContain('Pity 5★ 20')
 
     await search(container, 'Test1')
     options = Array.from(container.querySelectorAll<HTMLButtonElement>('[role="option"]'))
     await act(async () => { options[0]!.click(); await Promise.resolve(); await Promise.resolve() })
     expect(container.querySelector('.moderation-target-heading strong')?.textContent).toBe('MynonymeTest1')
     expect(stellaInput(container).value).toBe('29')
+    expect(tool(container, 'Ressources').querySelector('.moderation-current')?.textContent).toBe('Actuel : 3 000 Primos')
+    expect(tool(container, 'Progression').querySelector('.moderation-current')?.textContent).toBe('Actuel : 181 XP · Niveau 6')
+    expect(tool(container, 'Gacha').querySelector('.moderation-current')?.textContent).toContain('Pity 5★ 30')
 
     await act(async () => { container.querySelector<HTMLButtonElement>('.moderation-self-button')!.click(); await Promise.resolve(); await Promise.resolve() })
     expect(container.querySelector('.moderation-target-heading strong')?.textContent).toBe('Kichnifou')
@@ -184,6 +233,25 @@ describe('ModerationScreen', () => {
     await act(async () => { objectForm.requestSubmit(); await Promise.resolve(); await Promise.resolve() })
     expect(props.onStella).toHaveBeenCalledWith('self', '7')
     expect(stellaInput(container).value).toBe('7')
+    expect(tool(container, 'Objets').querySelector('.moderation-current')?.textContent).toBe('Actuel : 7 Stella')
+  })
+
+  it('updates resource, XP and Gacha current values from each returned mutation snapshot', async () => {
+    const { container } = await mount()
+    const resourceForm = tool(container, 'Ressources') as HTMLFormElement
+    await act(async () => { resourceForm.requestSubmit(); await Promise.resolve(); await Promise.resolve() })
+    expect(resourceForm.querySelector('.moderation-current')?.textContent).toBe('Actuel : 784 040 Primos')
+
+    const progressionForm = tool(container, 'Progression') as HTMLFormElement
+    change(progressionForm.querySelector('input')!, '240')
+    await act(async () => { progressionForm.requestSubmit(); await Promise.resolve(); await Promise.resolve() })
+    expect(progressionForm.querySelector('.moderation-current')?.textContent).toBe('Actuel : 240 XP · Niveau 8')
+
+    const gachaForm = tool(container, 'Gacha') as HTMLFormElement
+    const inputs = gachaForm.querySelectorAll<HTMLInputElement>('input')
+    change(inputs[0]!, '42'); change(inputs[1]!, '6'); change(inputs[2]!, '2')
+    await act(async () => { gachaForm.requestSubmit(); await Promise.resolve(); await Promise.resolve() })
+    expect(gachaForm.querySelector('.moderation-current')?.textContent).toBe('Actuel : Pity 5★ 42 · Pity 4★ 6 · Capture 2/3 · Garantie Oui')
   })
 
   it('grants and revokes Testeur on the selected external player while keeping that target', async () => {

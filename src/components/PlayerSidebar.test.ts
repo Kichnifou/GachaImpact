@@ -128,6 +128,13 @@ describe('Player sidebar progression', () => {
     expect(appCssSource).not.toMatch(/\.particles-card\s*\{[^}]*padding-bottom:/s)
   })
 
+  it('keeps the desktop envelope bounded and redistributes tall-screen space inside Quotidiennes', () => {
+    expect(appCssSource).toMatch(/@media \(min-width: 1121px\)[\s\S]*?\.player-sidebar\s*\{[^}]*height:\s*100%;[^}]*overflow:\s*hidden;/s)
+    expect(appCssSource).toMatch(/\.player-secondary > \.daily-card \.daily-navigation-copy\s*\{[^}]*height:\s*100%;[^}]*justify-content:\s*center;/s)
+    expect(appCssSource).toContain('@media (min-width: 1121px) and (max-height: 1100px)')
+    expect(appCssSource).toContain('@media (min-width: 1121px) and (max-height: 850px)')
+  })
+
   it('shows a temporary level delta and profile glow without changing progression data', () => {
     const html = renderToStaticMarkup(createElement(PlayerSidebar, {
       isOpen: false, onClose: vi.fn(), onNavigate: vi.fn(), onOpenParticleConversion: vi.fn(),
