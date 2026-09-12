@@ -78,7 +78,7 @@ export function useBoxCollection({ initialBox, onLoadBox, onSetFavorite, onUseSt
       try {
         await onCharacterProgressed?.()
       } catch {
-        setError('Stella utilisée, mais l’équipe n’a pas pu être actualisée. Rouvrez cet écran pour la synchroniser.')
+        setError('Stella utilisée, mais certaines informations n’ont pas pu être actualisées. Rouvrez cet écran pour les synchroniser.')
       }
       void onLoadBox().then(setBox).catch(() => undefined)
     } catch (reason) {

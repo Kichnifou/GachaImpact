@@ -3720,7 +3720,7 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Une défaite incrémente les statistiques, rend les quatre membres KO pour la rencontre et permet une nouvelle tentative avec d'autres personnages. Une première victoire crédite exactement +800 Primogemmes et +20 000 Moras via l'économie centrale, une seule fois, puis clôt le quotidien. Box et Team ne sont que lues ; aucune composition active n'est modifiée.
 - `Activités > Combat > Entraînement` affiche la rencontre, les slots, le picker Box, le preview détaillé, les modes, KO, résultats et statistiques partagées dans la fiche personnage. `Quotidiennes > Aperçu` projette À faire / En cours / Bloqué / Terminé et retire `Accéder` après victoire.
 - `Boss` reste une coque honnête `Bientôt disponible` sans gameplay, schéma, statistique ou donnée fictive. Expedition, Missions permanentes et commandes chat/Twitch ne commencent pas dans ce lot.
-- Le domaine fonctionnel actif est désormais Combat quotidien / Entraînement. Le moteur, la persistance, l'Auto, les KO, la récompense, la fiche et les erreurs explicites du lot 0.86 ont été déployés puis validés publiquement par le propriétaire.
+- Le domaine fonctionnel actif est désormais Combat quotidien / Entraînement. Le moteur, la persistance, l'Auto, la récompense, la fiche et les erreurs explicites du lot 0.86 sont techniquement validés. Les parcours publics effectivement vérifiés couvrent la préparation, la composition, l'Auto, le lancement et une victoire ; les parcours de défaite, de KO et d'après-défaite restent à revalider publiquement avec le candidat 0.87.
 
 ## État du candidat 0.87 — présentation compacte du Combat quotidien
 

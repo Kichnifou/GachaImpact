@@ -59,6 +59,11 @@ function AppBootstrap() {
     setTeams(nextTeams)
     return nextTeams
   }, [])
+  const loadDailyCombat = useCallback(async () => {
+    const nextDailyCombat = await getGameApiClient().getDailyCombat()
+    setDailyCombat(nextDailyCombat)
+    return nextDailyCombat
+  }, [])
   const publishBankTransfer = useCallback((result: BankTransferDto) => {
     setResources((current) => current ? applyBankWalletToResources(current, result) : current)
     return result
@@ -284,6 +289,7 @@ function AppBootstrap() {
       dailyRewardToday={dailyRewardToday}
       dailyChallenge={dailyChallenge}
       dailyCombat={dailyCombat}
+      onLoadDailyCombat={loadDailyCombat}
       onSetDailyCombatSlot={async (position, characterId) => { const next = await getGameApiClient().setDailyCombatSlot(position, characterId); setDailyCombat(next); return next }}
       onRemoveDailyCombatSlot={async (position) => { const next = await getGameApiClient().removeDailyCombatSlot(position); setDailyCombat(next); return next }}
       onCopyActiveTeamToDailyCombat={async () => { const next = await getGameApiClient().copyActiveTeamToDailyCombat(); setDailyCombat(next); return next }}

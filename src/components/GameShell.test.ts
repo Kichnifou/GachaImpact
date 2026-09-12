@@ -21,6 +21,6 @@ describe('GameShell shared particle conversion overlay', () => {
     expect(gameShellSource).toContain('onLoadBox: loadBox')
     expect(gameShellSource).toContain('onSetFavorite: setBoxFavorite')
     expect(gameShellSource).toContain('onUseStella: useStella')
-    expect(gameShellSource).toContain('onCharacterProgressed: onLoadTeams')
+    expect(gameShellSource).toContain('onCharacterProgressed: () => Promise.all([onLoadTeams(), onLoadDailyCombat()])')
   })
 })

@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { act } from 'react'
+import { act, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { BoxCharacterDto, DailyCombatCharacterDto, DailyCombatDto, DailyCombatFightDto, PlayerBoxDto, StellaUseDto } from '../api/types'
@@ -99,6 +99,94 @@ describe('Daily Combat screen', () => {
     act(() => combatLink!.click())
     expect(container.querySelector('.box-combat-modal')?.textContent).toContain('Statut : 💀 KO — Disponible demain')
     expect(container.querySelector('.box-combat-modal')?.textContent).toContain('Combats2')
+  })
+
+  it('refreshes Team and Combat after Stella and updates the card and chance without remounting', async () => {
+    const initialCharacter = { ...characters[0]!, constellation: 5, copies: 6 }
+    const progressedCharacter = { ...initialCharacter, constellation: 6, copies: 7 }
+    const initialPreview: NonNullable<DailyCombatDto['preview']> = { baseHalfPoints: 100, rarityBonusHalfPoints: 48, constellationBonusHalfPoints: 10, favorableMatchups: 0, favorableBonusHalfPoints: 0, unfavorableMatchups: 0, unfavorableMalusHalfPoints: 0, rawHalfPoints: 158, clamp: null, finalHalfPoints: 158, memberContributions: [] }
+    const refreshedPreview: NonNullable<DailyCombatDto['preview']> = { ...initialPreview, constellationBonusHalfPoints: 12, rawHalfPoints: 160, finalHalfPoints: 160 }
+    const initialValue = combat({
+      availableCharacters: [initialCharacter, ...characters.slice(1)],
+      loadout: { nextAttemptMode: 'MANUAL', slots: [initialCharacter, ...characters.slice(1, 4)].map((character, index) => ({ position: (index + 1) as 1 | 2 | 3 | 4, character, ko: false })) },
+      preview: initialPreview,
+      canFight: true,
+    })
+    const refreshedValue: DailyCombatDto = {
+      ...initialValue,
+      availableCharacters: [progressedCharacter, ...characters.slice(1)],
+      loadout: { ...initialValue.loadout, slots: initialValue.loadout.slots.map((slot) => slot.position === 1 ? { ...slot, character: progressedCharacter } : slot) },
+      preview: refreshedPreview,
+    }
+    const initialBox = { ...playerBox, characters: [{ ...boxCharacters[0]!, constellation: 5, copies: 6, c6CompetitionStats: null }, ...boxCharacters.slice(1)], summary: { ...playerBox.summary, c6: 0 } }
+    const progressedBox = { ...initialBox, characters: [{ ...initialBox.characters[0]!, constellation: 6, copies: 7 }, ...initialBox.characters.slice(1)], summary: { ...initialBox.summary, c6: 1 }, stella: { quantity: '0' } }
+    let authoritativeBox = initialBox
+    const refreshTeams = vi.fn(async () => undefined)
+    const refreshCombat = vi.fn(async () => refreshedValue)
+    const onLoadBox = vi.fn(async () => authoritativeBox)
+    const onUseStella = vi.fn(async (): Promise<StellaUseDto> => {
+      authoritativeBox = progressedBox
+      return { operation: { id: 'stella-operation', alreadyProcessed: false }, character: progressedBox.characters[0]!, stella: progressedBox.stella, c6Progression: null }
+    })
+
+    function StatefulCombat() {
+      const [value, setValue] = useState(initialValue)
+      return <DailyCombatScreen value={value} box={{ initialBox, onLoadBox, onSetFavorite: vi.fn(), onUseStella, stellaRetryCharacterId: null, onCharacterProgressed: async () => {
+        const [, nextCombat] = await Promise.all([refreshTeams(), refreshCombat()])
+        setValue(nextCombat)
+      } }} onSetSlot={vi.fn()} onRemoveSlot={vi.fn()} onCopyActive={vi.fn()} onAuto={vi.fn()} onClear={vi.fn()} onFight={vi.fn()} />
+    }
+
+    const container = document.createElement('div'); document.body.append(container)
+    const root = createRoot(container); roots.push(root)
+    act(() => root.render(<StatefulCombat />))
+    expect(container.querySelector('.combat-command-chance')?.textContent).toContain('79 %')
+    expect(container.querySelector('.combat-player-card .combat-card-constellation')?.textContent).toBe('C5')
+
+    await act(async () => { container.querySelector<HTMLButtonElement>('.combat-slot-actions button')!.click(); await Promise.resolve() })
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('.box-detail-modal button')).find((button) => button.textContent === 'Utiliser une Stella')!.click())
+    await act(async () => {
+      Array.from(container.querySelectorAll<HTMLButtonElement>('.box-stella-confirm button')).find((button) => button.textContent === 'Confirmer')!.click()
+      await Promise.resolve(); await Promise.resolve(); await Promise.resolve()
+    })
+
+    expect(onUseStella).toHaveBeenCalledWith('character-1')
+    expect(refreshTeams).toHaveBeenCalledOnce()
+    expect(refreshCombat).toHaveBeenCalledOnce()
+    expect(container.querySelector('.combat-player-card .combat-card-constellation')?.textContent).toBe('C6')
+    expect(container.querySelector('.combat-command-chance')?.textContent).toContain('80 %')
+    expect(container.querySelector('.box-stella-feedback')?.textContent).toBe('Stella utilisée avec succès.')
+  })
+
+  it('keeps Stella successful when a following refresh fails and shows a general synchronization warning', async () => {
+    const c5Character = { ...boxCharacters[0]!, constellation: 5, copies: 6, c6CompetitionStats: null }
+    const c5Box = { ...playerBox, characters: [c5Character, ...boxCharacters.slice(1)], summary: { ...playerBox.summary, c6: 0 } }
+    const progressedCharacter = { ...c5Character, constellation: 6, copies: 7 }
+    const progressedBox = { ...c5Box, characters: [progressedCharacter, ...c5Box.characters.slice(1)], summary: { ...c5Box.summary, c6: 1 }, stella: { quantity: '0' } }
+    let authoritativeBox = c5Box
+    const value = combat({ loadout: { nextAttemptMode: 'MANUAL', slots: characters.slice(0, 4).map((character, index) => ({ position: (index + 1) as 1 | 2 | 3 | 4, character, ko: false })) } })
+    const { container } = mount(value, { box: {
+      initialBox: c5Box,
+      onLoadBox: vi.fn(async () => authoritativeBox),
+      onSetFavorite: vi.fn(),
+      onUseStella: vi.fn(async (): Promise<StellaUseDto> => {
+        authoritativeBox = progressedBox
+        return { operation: { id: 'stella-operation', alreadyProcessed: false }, character: progressedCharacter, stella: { quantity: '0' }, c6Progression: null }
+      }),
+      stellaRetryCharacterId: null,
+      onCharacterProgressed: vi.fn().mockRejectedValue(new Error('Refresh unavailable')),
+    } })
+
+    await act(async () => { container.querySelector<HTMLButtonElement>('.combat-slot-actions button')!.click(); await Promise.resolve() })
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('.box-detail-modal button')).find((button) => button.textContent === 'Utiliser une Stella')!.click())
+    await act(async () => {
+      Array.from(container.querySelectorAll<HTMLButtonElement>('.box-stella-confirm button')).find((button) => button.textContent === 'Confirmer')!.click()
+      await Promise.resolve(); await Promise.resolve()
+    })
+
+    expect(container.querySelector('.box-detail-constellation')?.textContent).toBe('C6')
+    expect(container.querySelector('.box-stella-feedback')?.textContent).toBe('Stella utilisée avec succès.')
+    expect(container.querySelector('.box-detail-action-error')?.textContent).toBe('Stella utilisée, mais certaines informations n’ont pas pu être actualisées. Rouvrez cet écran pour les synchroniser.')
   })
 
   it('discloses the authoritative victory and reward after one fight intent', async () => {
