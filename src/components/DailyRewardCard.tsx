@@ -4,13 +4,24 @@ import { apiErrorMessage } from '../utils/formatters'
 import { formatDailyRewardDetails } from '../daily-reward/presentation'
 
 type DailyRewardCardProps = {
+  variant: 'overview'
   today: DailyRewardTodayDto
   elementKey: ElementKey
   onClaim: () => Promise<DailyRewardClaimDto>
-  variant?: 'sidebar' | 'overview'
+} | {
+  variant?: 'sidebar'
+  onOpenOverview?: () => void
 }
 
-function DailyRewardCard({ today, elementKey, onClaim, variant = 'sidebar' }: DailyRewardCardProps) {
+function DailyRewardCard(props: DailyRewardCardProps) {
+  if (props.variant !== 'overview') return <button type="button" className="panel daily-card daily-card-navigation" onClick={props.onOpenOverview} aria-label="Ouvrir Quotidiennes, aperçu du jour">
+    <span className="daily-navigation-copy"><strong>Quotidiennes</strong><span>Aperçu du jour</span><small>Consultez vos activités quotidiennes.</small><em>Ouvrir l’aperçu →</em></span>
+  </button>
+
+  return <DailyRewardOverviewCard variant="overview" today={props.today} elementKey={props.elementKey} onClaim={props.onClaim} />
+}
+
+function DailyRewardOverviewCard({ today, elementKey, onClaim }: Extract<DailyRewardCardProps, { variant: 'overview' }>) {
   const [isClaiming, setIsClaiming] = useState(false)
   const [freshClaim, setFreshClaim] = useState<DailyRewardClaimDto | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -30,7 +41,7 @@ function DailyRewardCard({ today, elementKey, onClaim, variant = 'sidebar' }: Da
   }
 
   const claimed = today.claimed || freshClaim !== null
-  if (variant === 'overview') return (
+  return (
     <section className="panel daily-overview-card daily-reward-overview-card">
       <div>
         <h2>Récompense quotidienne</h2>
@@ -40,24 +51,6 @@ function DailyRewardCard({ today, elementKey, onClaim, variant = 'sidebar' }: Da
         {!claimed && <p className={`daily-overview-feedback${errorMessage ? ' error' : ''}`} role={errorMessage ? 'alert' : undefined}>{errorMessage ?? ''}</p>}
       </div>
       {!claimed && <div className="daily-overview-action-slot"><button type="button" className="small-primary-button" onClick={claim} disabled={isClaiming}>{isClaiming ? 'Récupération…' : 'Récupérer'}</button></div>}
-    </section>
-  )
-
-  return (
-    <section className="panel daily-card">
-      <div className="daily-icon" aria-hidden="true">♢</div>
-      <div>
-        <span className="eyebrow">Récompense quotidienne</span>
-        {freshClaim ? (
-          <p role="status"><strong className="daily-overview-complete">✅ Terminé</strong><br />Récompense récupérée aujourd’hui.<br />{formatDailyRewardDetails(freshClaim, elementKey)}</p>
-        ) : today.claimed ? (
-          <p role="status"><strong className="daily-overview-complete">✅ Terminé</strong><br />Récompense récupérée aujourd’hui.</p>
-        ) : (
-          <p>Votre cadeau du jour est prêt.</p>
-        )}
-        {errorMessage && <p className="form-feedback error" role="alert">{errorMessage}</p>}
-        {!today.claimed && <button type="button" className="small-primary-button" onClick={claim} disabled={isClaiming}>{isClaiming ? 'Récupération…' : 'Récupérer'}</button>}
-      </div>
     </section>
   )
 }

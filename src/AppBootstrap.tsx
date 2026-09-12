@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import { ApiError, getGameApiClient } from './api/game-api'
-import type { BankTransferDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyRewardTodayDto, ElementKey, GachaCharacterDto, GachaPullDto, ModerationPermissionsDto, ModerationStateDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, ShopPurchaseDto, WheelTodayDto } from './api/types'
+import type { BankTransferDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyRewardTodayDto, ElementKey, GachaCharacterDto, GachaPullDto, ModerationPermissionsDto, ModerationStateDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, ShopPurchaseDto, WheelTodayDto } from './api/types'
 import { useAuth } from './auth/auth-context'
 import { resolveBootstrapStage } from './auth/bootstrap-state'
 import AuthScreen from './components/AuthScreen'
@@ -26,6 +26,7 @@ function AppBootstrap() {
   const [wheelToday, setWheelToday] = useState<WheelTodayDto | null>(null)
   const [dailyRewardToday, setDailyRewardToday] = useState<DailyRewardTodayDto | null>(null)
   const [dailyChallenge, setDailyChallenge] = useState<DailyChallengeDto | null>(null)
+  const [dailyCombat, setDailyCombat] = useState<DailyCombatDto | null>(null)
   const [gacha, setGacha] = useState<CurrentGachaDto | null>(null)
   const [characters, setCharacters] = useState<readonly GachaCharacterDto[] | null>(null)
   const [teams, setTeams] = useState<PlayerTeamsDto | null>(null)
@@ -78,12 +79,13 @@ function AppBootstrap() {
 
   const loadGameState = useCallback(async () => {
     const api = getGameApiClient()
-    const [nextResources, nextProgression, nextWheelToday, nextDailyRewardToday, nextDailyChallenge, nextGacha, nextCatalog, nextTeams, nextPermissions] = await Promise.all([
+    const [nextResources, nextProgression, nextWheelToday, nextDailyRewardToday, nextDailyChallenge, nextDailyCombat, nextGacha, nextCatalog, nextTeams, nextPermissions] = await Promise.all([
       api.getResources(),
       api.getProgression(),
       api.getWheelToday(),
       api.getDailyRewardToday(),
       api.getDailyChallenge(),
+      api.getDailyCombat(),
       api.getCurrentGacha(),
       api.getCharacters(),
       api.getTeams(),
@@ -95,6 +97,7 @@ function AppBootstrap() {
     setWheelToday(nextWheelToday)
     setDailyRewardToday(nextDailyRewardToday)
     setDailyChallenge(nextDailyChallenge)
+    setDailyCombat(nextDailyCombat)
     setGacha(nextGacha)
     setCharacters(nextCatalog.characters)
     setTeams(nextTeams)
@@ -196,6 +199,7 @@ function AppBootstrap() {
           setWheelToday(null)
           setDailyRewardToday(null)
           setDailyChallenge(null)
+          setDailyCombat(null)
           setGacha(null)
           setCharacters(null)
           setTeams(null)
@@ -222,7 +226,7 @@ function AppBootstrap() {
     authStatus,
     player,
     playerResolved,
-    resources !== null && progression !== null && wheelToday !== null && dailyRewardToday !== null && dailyChallenge !== null && gacha !== null && characters !== null && teams !== null && permissions !== null,
+    resources !== null && progression !== null && wheelToday !== null && dailyRewardToday !== null && dailyChallenge !== null && dailyCombat !== null && gacha !== null && characters !== null && teams !== null && permissions !== null,
   )
   const currentFatalError =
     fatalError && fatalError.userId === sessionUserId ? fatalError.message : null
@@ -267,7 +271,7 @@ function AppBootstrap() {
     )
   }
 
-  if (!player || !resources || !visibleResources || !progression || !wheelToday || !dailyRewardToday || !dailyChallenge || !gacha || !characters || !teams || !permissions) {
+  if (!player || !resources || !visibleResources || !progression || !wheelToday || !dailyRewardToday || !dailyChallenge || !dailyCombat || !gacha || !characters || !teams || !permissions) {
     return <StatusScreen title="Chargement du profil…" message="Synchronisation de vos ressources." loading />
   }
 
@@ -279,6 +283,13 @@ function AppBootstrap() {
       wheelToday={wheelToday}
       dailyRewardToday={dailyRewardToday}
       dailyChallenge={dailyChallenge}
+      dailyCombat={dailyCombat}
+      onSetDailyCombatSlot={async (position, characterId) => { const next = await getGameApiClient().setDailyCombatSlot(position, characterId); setDailyCombat(next); return next }}
+      onRemoveDailyCombatSlot={async (position) => { const next = await getGameApiClient().removeDailyCombatSlot(position); setDailyCombat(next); return next }}
+      onCopyActiveTeamToDailyCombat={async () => { const next = await getGameApiClient().copyActiveTeamToDailyCombat(); setDailyCombat(next); return next }}
+      onAutoSelectDailyCombat={async () => { const next = await getGameApiClient().autoSelectDailyCombat(); setDailyCombat(next); return next }}
+      onClearDailyCombatLoadout={async () => { const next = await getGameApiClient().clearDailyCombatLoadout(); setDailyCombat(next); return next }}
+      onFightDailyCombat={async (idempotencyKey) => { const result = await getGameApiClient().fightDailyCombat(idempotencyKey); setDailyCombat(result.view); setResources(result.resources); return result }}
       onPurchaseDailyChallenge={async (idempotencyKey) => {
         const result = await getGameApiClient().purchaseDailyChallenge(idempotencyKey)
         setDailyChallenge(result)
@@ -360,6 +371,7 @@ function AppBootstrap() {
         setPendingGachaPull(null)
         setGachaPrimogemPreview(null)
         setTeams(null)
+        setDailyCombat(null)
         setPermissions(null)
         progressionRef.current = null
         setLevelUpFeedbacks([])

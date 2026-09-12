@@ -40,6 +40,8 @@ import type { NavigationPreferencesService } from './application/navigation/navi
 import { registerNavigationPreferenceRoutes } from './api/routes/navigation-preferences.js';
 import { registerDailyChallengeRoutes } from './api/routes/daily-challenge.js';
 import type { ConvertPersonalParticles, GetDailyChallenge, PurchaseDailyChallenge, SwitchDailyChallenge } from './application/daily-challenge/daily-challenge-services.js';
+import type { CombatService } from './application/combat/daily-combat-service.js';
+import { registerDailyCombatRoutes } from './api/routes/daily-combat.js';
 
 export type AppDependencies = Readonly<{
   authIdentityVerifier: AuthIdentityVerifier;
@@ -84,6 +86,7 @@ export type AppDependencies = Readonly<{
   getPlayerShopHistory?: GetPlayerShopHistory;
   purchaseShopItem?: PurchaseShopItem;
   navigationPreferences?: NavigationPreferencesService;
+  dailyCombatService?: CombatService;
   close?: () => Promise<void>;
 }>;
 
@@ -196,6 +199,9 @@ export async function buildApp(
     }
     if (dependencies.getDailyChallenge && dependencies.purchaseDailyChallenge && dependencies.switchDailyChallenge) {
       await app.register(registerDailyChallengeRoutes, { authenticate, getDailyChallenge: dependencies.getDailyChallenge, purchaseDailyChallenge: dependencies.purchaseDailyChallenge, switchDailyChallenge: dependencies.switchDailyChallenge });
+    }
+    if (dependencies.dailyCombatService) {
+      await app.register(registerDailyCombatRoutes, { authenticate, service: dependencies.dailyCombatService });
     }
 
     if (dependencies.close) {

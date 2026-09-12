@@ -37,6 +37,8 @@ import { NavigationPreferencesService } from '../application/navigation/navigati
 import { PrismaNavigationPreferenceStore } from './database/prisma-navigation-preference-store.js';
 import { PrismaDailyChallengeStore } from './database/prisma-daily-challenge-store.js';
 import { ConvertPersonalParticles, GetDailyChallenge, PurchaseDailyChallenge, SwitchDailyChallenge } from '../application/daily-challenge/daily-challenge-services.js';
+import { CombatService } from '../application/combat/daily-combat-service.js';
+import { PrismaDailyCombatStore } from './database/prisma-daily-combat-store.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
   if (!config.databaseUrl) {
@@ -52,6 +54,7 @@ export function createRuntimeDependencies(config: AppConfig) {
   const random = new NodeRandomSource();
   const dailyRewardStore = new PrismaDailyRewardStore(database);
   const dailyChallengeStore = new PrismaDailyChallengeStore(database);
+  const dailyCombatStore = new PrismaDailyCombatStore(database, { encounter: random, fight: random });
   const gachaStore = new PrismaGachaStore(database, undefined, undefined, undefined, undefined, dailyChallengeStore);
   const scheduler = new WeeklyBannerScheduler(gachaStore, clock, random);
   const boxStore = new PrismaBoxStore(database);
@@ -113,6 +116,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     getPlayerShopHistory: new GetPlayerShopHistory(getCurrentPlayer, shopStore),
     purchaseShopItem: new PurchaseShopItem(getCurrentPlayer, shopStore, clock),
     navigationPreferences: new NavigationPreferencesService(getCurrentPlayer, new PrismaNavigationPreferenceStore(database)),
+    dailyCombatService: new CombatService(getCurrentPlayer, dailyCombatStore, clock),
     start: async () => { await scheduler.start(); await bankInterestScheduler.start(); },
     close: async () => { scheduler.stop(); bankInterestScheduler.stop(); await database.$disconnect(); },
   };

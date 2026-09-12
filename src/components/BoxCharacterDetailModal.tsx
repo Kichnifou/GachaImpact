@@ -8,15 +8,17 @@ import GameAssetIcon from './GameAssetIcon'
 
 const c6Stats = ['strength', 'intelligence', 'beauty', 'charisma', 'popularity'] as const
 
-function BoxCharacterDetailModal({ character, stellaQuantity, stellaRetryAvailable, favoritePending, stellaPending, stellaFeedback, actionError, onToggleFavorite, onUseStella, onClose }: {
+function BoxCharacterDetailModal({ character, combatState, showStella = true, stellaQuantity, stellaRetryAvailable, favoritePending, stellaPending, stellaFeedback, actionError, onToggleFavorite, onUseStella, onClose }: {
   character: BoxCharacterDto
+  combatState?: Readonly<{ ko: boolean; stats: Readonly<{ fights: string; wins: string; losses: string; winRatePercent: number }> }>
+  showStella?: boolean
   stellaQuantity: string
   stellaRetryAvailable: boolean
   favoritePending: boolean
   stellaPending: boolean
   stellaFeedback: StellaResultPresentation | null
   actionError?: string | null
-  onToggleFavorite: () => void
+  onToggleFavorite?: () => void
   onUseStella: () => void
   onClose: () => void
 }) {
@@ -53,7 +55,7 @@ function BoxCharacterDetailModal({ character, stellaQuantity, stellaRetryAvailab
             <div className="box-detail-name-row">
               <div className="box-detail-name-and-favorite">
                 <h2 className="box-detail-character-name">{character.name}</h2>
-                <button type="button" className={`box-detail-favorite-star${character.favorite ? ' active' : ''}`} aria-label={character.favorite ? `Retirer ${character.name} des favoris` : `Ajouter ${character.name} aux favoris`} aria-pressed={character.favorite} disabled={favoritePending} onClick={onToggleFavorite}>
+                <button type="button" className={`box-detail-favorite-star${character.favorite ? ' active' : ''}`} aria-label={character.favorite ? `Retirer ${character.name} des favoris` : `Ajouter ${character.name} aux favoris`} aria-pressed={character.favorite} disabled={favoritePending || !onToggleFavorite} onClick={onToggleFavorite}>
                   <span aria-hidden="true">{character.favorite ? '★' : '☆'}</span>
                 </button>
               </div>
@@ -69,7 +71,11 @@ function BoxCharacterDetailModal({ character, stellaQuantity, stellaRetryAvailab
             <div><dt>Copies obtenues</dt><dd>{character.copies}</dd></div>
             <div><dt>Première obtention</dt><dd>{formatObtainedAt(character.firstObtainedAt)}</dd></div>
           </dl>
-          {character.rarity === 5 && <section className="box-stella-zone" aria-label="Masterless Stella Fortuna">
+          {combatState && <section className={`box-combat-state${combatState.ko ? ' ko' : ''}`} aria-label="État du Combat quotidien">
+            <strong>Combat : {combatState.ko ? '💀 KO — Disponible demain' : 'OK'}</strong>
+            <dl><div><dt>Combats</dt><dd>{combatState.stats.fights}</dd></div><div><dt>Victoires</dt><dd>{combatState.stats.wins}</dd></div><div><dt>Défaites</dt><dd>{combatState.stats.losses}</dd></div><div><dt>Taux</dt><dd>{combatState.stats.winRatePercent.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} %</dd></div></dl>
+          </section>}
+          {showStella && character.rarity === 5 && <section className="box-stella-zone" aria-label="Masterless Stella Fortuna">
             <div className="box-stella-copy"><strong>Masterless Stella Fortuna × {stellaQuantity}</strong><small>Renforce ce personnage</small><p className="box-stella-feedback" role="status" aria-live="polite">{stellaFeedback?.message ?? (stellaRetryAvailable ? 'Résultat à vérifier · la nouvelle tentative reprendra la même opération.' : '\u00a0')}</p></div>
             <button type="button" disabled={(!hasStella && !stellaRetryAvailable) || stellaPending} onClick={() => { stellaSubmitted.current = false; setConfirmingStella(true) }}>{stellaPending ? 'Utilisation…' : stellaRetryAvailable ? 'Reprendre l’utilisation' : 'Utiliser une Stella'}</button>
           </section>}

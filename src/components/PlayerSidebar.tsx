@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import type { CurrentGachaDto, DailyRewardClaimDto, DailyRewardTodayDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto } from '../api/types'
+import type { CurrentGachaDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto } from '../api/types'
 import { getProgressionPercent } from '../progression/presentation'
 import type { ScreenId } from '../types'
 import { currencyAssetPaths, getElementAssetPath } from '../utils/gameAssets'
@@ -15,20 +15,19 @@ type PlayerSidebarProps = {
   onClose: () => void
   onNavigate: (screen: ScreenId) => void
   onOpenParticleConversion: () => void
+  onOpenDailiesOverview?: () => void
   playerData: PlayerDto
   resources: PlayerResourcesDto
   progression: PlayerProgressionDto
   levelUpDelta?: number | null
   profileLevelUpActive?: boolean
-  dailyRewardToday: DailyRewardTodayDto
-  onClaimDailyReward: () => Promise<DailyRewardClaimDto>
   gacha: CurrentGachaDto
   teams: PlayerTeamsDto
 }
 
 const particleElements = ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro'] as const
 
-function PlayerSidebar({ isOpen, onClose, onNavigate, onOpenParticleConversion, playerData, resources, progression, levelUpDelta = null, profileLevelUpActive = false, dailyRewardToday, onClaimDailyReward, gacha, teams }: PlayerSidebarProps) {
+function PlayerSidebar({ isOpen, onClose, onNavigate, onOpenParticleConversion, onOpenDailiesOverview, playerData, resources, progression, levelUpDelta = null, profileLevelUpActive = false, gacha, teams }: PlayerSidebarProps) {
   const featuredCharacter = gacha.banner.featuredFiveStars.find(({ id }) => id === gacha.playerState.selectedBannerCharacterId)
   const progressionPercent = getProgressionPercent(progression)
   const elementTheme = playerData.elementKey ? elementThemes[playerData.elementKey] : null
@@ -158,7 +157,7 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, onOpenParticleConversion, 
         </div> : <button type="button" className="objective-empty" onClick={() => onNavigate('invocation')}><strong>Aucune cible sélectionnée</strong><span>Choisir parmi les quatre 5★ →</span></button>}
         </section>
 
-        {playerData.elementKey && <DailyRewardCard today={dailyRewardToday} elementKey={playerData.elementKey} onClaim={onClaimDailyReward} />}
+        {playerData.elementKey && <DailyRewardCard onOpenOverview={onOpenDailiesOverview} />}
       </div>
     </aside>
   )

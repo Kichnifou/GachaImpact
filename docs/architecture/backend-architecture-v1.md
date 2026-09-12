@@ -1117,3 +1117,11 @@ Les prix sont informatifs et ne constituent jamais une constante métier du repo
 Les routes authentifiées `GET /api/v1/me/daily-challenge`, `POST .../purchase`, `POST .../switch` et `POST /api/v1/me/inventory/particles/convert` suivent `route → service d’application → store Prisma`. Elles ne reçoivent jamais Player, prix, récompense, cible, type, pool ou RNG du client. Tous les montants `bigint` traversent l’API en chaînes décimales.
 
 Achat, switch et conversion utilisent `BusinessOperation`, une clé d’intention stable et une transaction `SERIALIZABLE` verrouillée par Player. `PrismaDailyChallengeStore.progress` est appelé par les producteurs dans leur propre transaction : Gacha après persistance effective des résultats, Conversion après ses mouvements économiques. La complétion et le crédit de 800 Primos sont atomiques. Le frontend recharge le snapshot Défi après chaque producteur sans refaire le bootstrap complet.
+
+## Vertical backend physique 0.86 — Combat quotidien
+
+Les routes privées `GET /api/v1/me/combat/daily`, les mutations ciblées de loadout et `POST /fight` suivent `route Fastify → CombatService → DailyCombatStore → Prisma`. `CombatService` résout le Player authentifié et la `businessDate` Europe/Paris ; aucun Player, ennemi, chance, roll ou mode autoritaire n'est accepté du navigateur.
+
+La formule de chance vit dans une fonction de domaine pure unique, utilisée par le preview, l'Auto et le fight en demi-points exacts. Le store génère paresseusement la rencontre globale sous verrou transactionnel, persiste les quatre éléments ennemis snapshotés, nettoie seulement les slots devenus inactifs, lit Box/possessions et Team active sans jamais les modifier, et mémorise le mode de la prochaine tentative côté serveur.
+
+Le fight utilise une transaction `SERIALIZABLE`, un verrou Player et `BusinessOperation`. Tentative, snapshots des quatre membres, KO de défaite, compteurs Player/personnage, récompense de victoire et `ResourceMovement` sont atomiques. Un retry de la même intention relit son résultat ; deux intentions concurrentes ne peuvent ni dépasser la première victoire ni créditer deux fois les +800 Primogemmes et +20 000 Moras. Mission reste un futur consommateur de l'événement autoritatif ; elle ne recalcule pas Combat. Le Boss mensuel n'est pas implémenté dans ce vertical.

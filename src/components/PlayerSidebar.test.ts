@@ -49,8 +49,6 @@ function renderProgression(value: PlayerProgressionDto, elementKey: ElementKey |
     playerData: { id: 'p1', displayName: 'Kichnifou', elementKey, status: 'ACTIVE' },
     resources,
     progression: value,
-    dailyRewardToday: { claimed: false, businessDate: '2026-09-05', rewards: { primogems: '160', mainElementParticles: '160', moras: '10000' } },
-    onClaimDailyReward: vi.fn(),
     gacha,
     teams: teamState,
   }))
@@ -78,6 +76,9 @@ describe('Player sidebar progression', () => {
     expect((html.match(/★★★★★/g) ?? [])).toHaveLength(5)
     expect(html).not.toContain('Niv. 90')
     expect(html).toContain('C1')
+    expect(html).toContain('class="panel daily-card daily-card-navigation"')
+    expect(html).toContain('Aperçu du jour')
+    expect(html).not.toContain('Récupérer')
   })
 
   it('renders a level transition and its dynamic bar', () => {
@@ -132,8 +133,7 @@ describe('Player sidebar progression', () => {
       isOpen: false, onClose: vi.fn(), onNavigate: vi.fn(), onOpenParticleConversion: vi.fn(),
       playerData: { id: 'p1', displayName: 'Kichnifou', elementKey: 'hydro', status: 'ACTIVE' },
       resources, progression: progression(12, '4'), levelUpDelta: 3, profileLevelUpActive: true,
-      dailyRewardToday: { claimed: false, businessDate: '2026-09-05', rewards: { primogems: '160', mainElementParticles: '160', moras: '10000' } },
-      onClaimDailyReward: vi.fn(), gacha, teams,
+      gacha, teams,
     }))
     expect(html).toContain('profile-card level-up-active')
     expect(html).toContain('Niveau 12<em class="level-up-delta">+3</em>')

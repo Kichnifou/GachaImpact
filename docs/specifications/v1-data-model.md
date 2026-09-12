@@ -1072,54 +1072,35 @@ Aucun historique player-facing supplémentaire n'est nécessaire en V1 si le dom
 
 ## 19.1 `DailyCombatEncounter`
 
-État global du jour :
+État global unique par `businessDate` Europe/Paris, généré paresseusement et de façon race-safe. `DailyCombatEnemy` porte quatre positions et quatre personnages distincts actifs à la génération ; `elementKeySnapshot` fige l'élément utilisé par la formule pendant toute la journée.
 
-- date serveur
-- quatre ennemis
-- statut/configuration utile
-
-Une seule rencontre globale est partagée par tous.
+Une seule rencontre globale est partagée par tous les Players.
 
 ## 19.2 `PlayerDailyCombatLoadout`
 
-Mémoire persistante des quatre slots du joueur.
+Mémoire persistante du Player, indépendante de la date et de Team. Le parent conserve `nextAttemptMode` (`MANUAL` par défaut) et `PlayerDailyCombatLoadoutSlot` porte de zéro à quatre positions distinctes. Une édition manuelle, une copie volontaire de Team ou un clear fixe le prochain mode à `MANUAL`; Auto remplit les quatre slots et fixe `AUTO` jusqu'à la prochaine mutation ou tentative.
 
-Distincte de Team.
+Un personnage catalogue devenu inactif invalide uniquement son slot lors de la consultation suivante.
 
 ## 19.3 `DailyCombatAttempt`
 
-- joueur
-- encounter
-- composition snapshot
-- type MANUAL/AUTO
-- chance calculée
-- résultat
-- timestamp
+Journal serveur immuable d'une tentative : Player, encounter, mode `MANUAL/AUTO`, chance exacte en demi-points, roll serveur, résultat, opération idempotente et timestamp. `DailyCombatAttemptMember` snapshotte pour chaque position personnage, rareté, constellation, élément et contribution en demi-points.
 
 ## 19.4 `PlayerDailyCombatState`
 
-État du jour :
+État Player/encounter portant la victoire éventuelle. `PlayerDailyCombatKo` porte chaque personnage mis KO par une défaite. Le reset est naturel : la nouvelle rencontre quotidienne a une autre clé et ne réutilise aucun KO précédent. La composition persistante n'est pas vidée.
 
-- victoire obtenue ou non ;
-- personnages KO ;
-- informations nécessaires aux retentes.
+`PlayerCombatStats` conserve combats, victoires, défaites et victoires manuelles. `PlayerCharacterCombatStats` conserve victoires/défaites par possession ; combats et taux sont dérivés.
 
-Les KO sont propres au quotidien et reset selon la journée serveur.
+## 19.5 `ElementCombatMatchup`
 
-## 19.5 `ElementCombatRule`
+Référentiel backend normalisé de clé `(attackerElementKey, defenderElementKey)` et relation `+1/-1`. L'absence signifie neutre. Cette forme représente les deux avantages et deux désavantages de chacun des sept éléments ; le seed canonique comporte exactement 28 lignes.
 
-Configuration serveur de la matrice élémentaire utilisée par Combat.
+## 19.6 État physique 0.86
 
-Une définition par élément peut contenir :
+La migration additive Prisma `20260912120000_014_add_daily_combat` crée l'enum et les tables ci-dessus, les contraintes et index, active la RLS et révoque `anon`/`authenticated`. `CombatService` expose la projection privée du Player, tandis que les transactions de fight sont propriétaires de la formule, du mode, des KO, des statistiques et de la récompense économique unique (+800 Primogemmes, +20 000 Moras).
 
-- élément ;
-- élément favorisé ;
-- élément défavorisé ;
-- statut/version de configuration.
-
-`combat_config.json` devient une source de seed/configuration initiale.
-
-Cette configuration n'est pas une donnée joueur et ne nécessite aucun historique legacy.
+Le Boss mensuel reste uniquement un modèle cible futur et n'est pas matérialisé par 014.
 
 ---
 

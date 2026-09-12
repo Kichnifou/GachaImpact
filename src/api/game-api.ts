@@ -35,6 +35,8 @@ import type {
   NavigationMenuPreferenceDto,
   DailyChallengeDto,
   DailyChallengeMutationDto,
+  DailyCombatDto,
+  DailyCombatFightDto,
 } from './types'
 
 type ApiClientDependencies = Readonly<{
@@ -150,6 +152,13 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getDailyChallenge: () => request<DailyChallengeDto>('/api/v1/me/daily-challenge'),
     purchaseDailyChallenge: (idempotencyKey: string) => request<DailyChallengeMutationDto>('/api/v1/me/daily-challenge/purchase', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     switchDailyChallenge: (idempotencyKey: string) => request<DailyChallengeMutationDto>('/api/v1/me/daily-challenge/switch', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+    getDailyCombat: () => request<DailyCombatDto>('/api/v1/me/combat/daily'),
+    setDailyCombatSlot: (position: number, characterId: string) => request<DailyCombatDto>(`/api/v1/me/combat/daily/loadout/${position}`, { method: 'PUT', body: JSON.stringify({ characterId }) }),
+    removeDailyCombatSlot: (position: number) => request<DailyCombatDto>(`/api/v1/me/combat/daily/loadout/${position}`, { method: 'DELETE' }),
+    copyActiveTeamToDailyCombat: () => request<DailyCombatDto>('/api/v1/me/combat/daily/loadout/copy-active', { method: 'POST' }),
+    autoSelectDailyCombat: () => request<DailyCombatDto>('/api/v1/me/combat/daily/loadout/auto', { method: 'POST' }),
+    clearDailyCombatLoadout: () => request<DailyCombatDto>('/api/v1/me/combat/daily/loadout', { method: 'DELETE' }),
+    fightDailyCombat: (idempotencyKey: string) => request<DailyCombatFightDto>('/api/v1/me/combat/daily/fight', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     getBank: () => request<PlayerBankDto>('/api/v1/me/bank'),
     getBankHistory: (page: number) => request<BankHistoryDto>(`/api/v1/me/bank/history?page=${page}`),
     depositBank: (amount: string, idempotencyKey: string) => request<BankTransferDto>('/api/v1/me/bank/deposit', {

@@ -104,7 +104,7 @@ describe('real inventory screen', () => {
     const { container } = await mount({ onConvertParticles })
     const resourcesTab = Array.from(container.querySelectorAll<HTMLButtonElement>('.inventory-categories button')).find((button) => button.textContent?.includes('Ressources'))!
     act(() => resourcesTab.click())
-    const convertButtons = Array.from(container.querySelectorAll<HTMLButtonElement>('.inventory-card-action button')).filter((button) => button.textContent?.startsWith('Convertir'))
+    const convertButtons = Array.from(container.querySelectorAll<HTMLButtonElement>('button.inventory-resource-card')).filter((button) => button.textContent?.includes('Convertir →'))
     expect(convertButtons).toHaveLength(1)
     expect(convertButtons[0]!.closest('.inventory-resource-card')?.textContent).toContain('hydro')
     act(() => convertButtons[0]!.click())
@@ -135,9 +135,9 @@ describe('real inventory screen', () => {
     const { container } = await mount({ onNavigateBank, onNavigateShop })
     const card = container.querySelector<HTMLElement>('.inventory-resource-card.mora')!
     expect(card.textContent).toContain('Accéder à la Banque')
-    act(() => card.querySelector<HTMLButtonElement>('.inventory-card-action button')!.click())
+    act(() => card.click())
     expect(onNavigateBank).toHaveBeenCalledOnce()
-    act(() => container.querySelector<HTMLElement>('.inventory-resource-card:not(.mora) .inventory-card-action button')!.click())
+    act(() => container.querySelector<HTMLButtonElement>('button.inventory-resource-card.primogem')!.click())
     expect(onNavigateShop).toHaveBeenCalledOnce()
     expect(container.querySelectorAll('.inventory-resource-card .inventory-card-action')).toHaveLength(3)
     expect(container.querySelectorAll('.inventory-resource-card:not(.has-action) .inventory-card-action')).toHaveLength(0)
@@ -162,7 +162,7 @@ describe('real inventory screen', () => {
   it('opens a 5★-only Stella picker and keeps the final confirmation in the reused Box detail', async () => {
     vi.useFakeTimers()
     const { container, props } = await mount()
-    const useButton = Array.from(container.querySelectorAll<HTMLButtonElement>('.inventory-use-button')).find((button) => button.textContent === 'Utiliser')!
+    const useButton = container.querySelector<HTMLButtonElement>('button.inventory-stella-card')!
     await act(async () => { useButton.click(); await Promise.resolve(); await Promise.resolve() })
     expect(container.querySelector('.inventory-stella-picker')?.textContent).toContain('Furina')
     expect(container.querySelector('.inventory-stella-picker')?.textContent).not.toContain('Collei')

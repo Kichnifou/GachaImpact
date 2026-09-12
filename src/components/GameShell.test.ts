@@ -8,4 +8,10 @@ describe('GameShell shared particle conversion overlay', () => {
     expect(gameShellSource).toContain('onOpenParticleConversion={() => setIsParticleConversionOpen(true)}')
     expect(gameShellSource).toContain('{isParticleConversionOpen && player.elementKey && <ParticleConversionModal')
   })
+
+  it('uses a transient request token so the sidebar shortcut always forces the Quotidiennes overview', () => {
+    expect(gameShellSource).toContain('const [dailiesOverviewRequestToken, setDailiesOverviewRequestToken] = useState(0)')
+    expect(gameShellSource).toContain('setDailiesOverviewRequestToken((value) => value + 1); navigate(\'activities-dailies\')')
+    expect(gameShellSource).toContain('dailiesOverviewRequestToken={dailiesOverviewRequestToken}')
+  })
 })

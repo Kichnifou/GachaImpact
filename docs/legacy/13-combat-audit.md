@@ -1609,3 +1609,13 @@ Dépendances reportées :
 - consommation des réglages de visibilité Combat → résolue conceptuellement par Ami / Social R469/R473/R474/R486/R488 ;
 - présentation transversale des classements → Top / Classements ;
 - équilibrage final des valeurs → playtests et passe d'économie globale.
+
+---
+
+# Appendice physique 0.86 — Combat quotidien / Entraînement
+
+Le candidat 0.86 matérialise uniquement le Combat quotidien. La migration Prisma additive `20260912120000_014_add_daily_combat` crée l'enum `combat_attempt_mode`, `element_combat_matchups`, les rencontres et ennemis quotidiens, le loadout persistant et ses slots, les états/KO, les tentatives et membres snapshotés ainsi que les statistiques Player/personnage. La matrice normalisée de 28 paires remplace techniquement l'ancien modèle cible à un seul avantage/faiblesse ; les relations neutres restent implicites. RLS est active et les accès directs navigateur sont révoqués.
+
+L'API privée expose la consultation, l'édition/retrait/clear des slots, la copie volontaire de Team active, l'Auto et le fight. `CombatService` et le store Prisma possèdent la date Europe/Paris, la génération globale race-safe, la formule unique en demi-points, le mode pending, le RNG serveur, l'idempotence, les KO, les statistiques et l'intégration Economy. Box et Team ne sont que des sources de lecture.
+
+Le frontend `Activités > Combat > Entraînement` est réel : quatre ennemis, composition 0..4, picker Box, copie Team, Auto, preview détaillé, tentative, résultat, KO et fiche personnage partagée. La carte Combat de Quotidiennes projette ses quatre états et n'affiche plus `Accéder` après complétion. L'onglet Boss reste une coque honnête `Bientôt disponible` ; aucune table, attaque, récompense ou statistique Boss n'est livrée en 0.86.

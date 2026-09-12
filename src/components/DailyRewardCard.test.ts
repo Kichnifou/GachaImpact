@@ -8,10 +8,14 @@ import { formatDailyRewardDetails } from '../daily-reward/presentation'
 const rewards = { primogems: '160', mainElementParticles: '160', moras: '10000' } as const
 
 describe('daily reward card', () => {
-  it('shows the CTA for an available bootstrap state', () => {
-    const html = renderToStaticMarkup(createElement(DailyRewardCard, { today: { claimed: false, businessDate: '2026-09-05', rewards }, elementKey: 'hydro', onClaim: vi.fn() }))
-    expect(html).toContain('Récupérer')
-    expect(html).not.toContain('Déjà récupérée')
+  it('turns the preserved sidebar card into one accessible Quotidiennes shortcut', () => {
+    const html = renderToStaticMarkup(createElement(DailyRewardCard, { onOpenOverview: vi.fn() }))
+    expect(html).toContain('class="panel daily-card daily-card-navigation"')
+    expect(html).toContain('Quotidiennes')
+    expect(html).toContain('Aperçu du jour')
+    expect(html).toContain('Ouvrir l’aperçu →')
+    expect(html).not.toContain('Récupérer')
+    expect((html.match(/<button/g) ?? [])).toHaveLength(1)
   })
 
   it('shows the persisted done state after reload without a CTA', () => {

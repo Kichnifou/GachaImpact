@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { BoxCharacterDto, BoxSortPreferenceDto, ElementKey, PlayerBoxDto, StellaUseDto } from '../api/types'
+import type { BoxCharacterDto, BoxSortPreferenceDto, DailyCombatDto, ElementKey, PlayerBoxDto, StellaUseDto } from '../api/types'
 import type { BoxConstellationFilter, BoxElementFilter, BoxFilters, BoxRarityTab, BoxSortKey } from '../box/box-presentation'
 import { boxElements, initialBoxFiltersWithPreference, presentBoxCharacters } from '../box/box-presentation'
 import { useBoxCollection } from '../box/use-box-collection'
@@ -18,9 +18,10 @@ type BoxScreenProps = {
   onSetSortPreference: (preference: BoxSortPreferenceDto) => Promise<BoxSortPreferenceDto>
   onUseStella: (characterId: string) => Promise<StellaUseDto>
   stellaRetryCharacterId: string | null
+  dailyCombat?: DailyCombatDto
 }
 
-function BoxScreen({ initialBox, onLoadBox, onSetFavorite, onSetSortPreference, onUseStella, stellaRetryCharacterId }: BoxScreenProps) {
+function BoxScreen({ initialBox, dailyCombat, onLoadBox, onSetFavorite, onSetSortPreference, onUseStella, stellaRetryCharacterId }: BoxScreenProps) {
   const [filters, setFilters] = useState<BoxFilters>(() => initialBoxFiltersWithPreference(initialBox?.preference))
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const { box, error, setError, load, favoritePendingId, stellaPendingId, stellaFeedback, setStellaFeedback, stellaRetryId, toggleFavorite, useStella } = useBoxCollection({ initialBox, onLoadBox, onSetFavorite, onUseStella, stellaRetryCharacterId })
@@ -55,11 +56,12 @@ function BoxScreen({ initialBox, onLoadBox, onSetFavorite, onSetSortPreference, 
   if (!box) return null
 
   const selected = box.characters.find(({ id }) => id === selectedId) ?? null
-  return <BoxView box={box} filters={filters} error={error} favoritePendingId={favoritePendingId} stellaPendingId={stellaPendingId} stellaRetryId={stellaRetryId} stellaFeedback={stellaFeedback} selected={selected} onFilters={changeFilters} onSelect={setSelectedId} onToggleFavorite={toggleFavorite} onUseStella={useStella} onCloseDetail={() => { setSelectedId(null); setStellaFeedback(null) }} />
+  return <BoxView box={box} dailyCombat={dailyCombat} filters={filters} error={error} favoritePendingId={favoritePendingId} stellaPendingId={stellaPendingId} stellaRetryId={stellaRetryId} stellaFeedback={stellaFeedback} selected={selected} onFilters={changeFilters} onSelect={setSelectedId} onToggleFavorite={toggleFavorite} onUseStella={useStella} onCloseDetail={() => { setSelectedId(null); setStellaFeedback(null) }} />
 }
 
-export function BoxView({ box, filters, error, favoritePendingId, stellaPendingId, stellaRetryId, stellaFeedback, selected, onFilters, onSelect, onToggleFavorite, onUseStella, onCloseDetail }: {
+export function BoxView({ box, dailyCombat, filters, error, favoritePendingId, stellaPendingId, stellaRetryId, stellaFeedback, selected, onFilters, onSelect, onToggleFavorite, onUseStella, onCloseDetail }: {
   box: PlayerBoxDto
+  dailyCombat?: DailyCombatDto
   filters: BoxFilters
   error: string | null
   favoritePendingId: string | null
@@ -86,7 +88,7 @@ export function BoxView({ box, filters, error, favoritePendingId, stellaPendingI
         {visibleCharacters.map((character) => <BoxCharacterCard character={character} favoritePending={favoritePendingId === character.id} onOpen={() => onSelect(character.id)} onToggleFavorite={() => onToggleFavorite(character)} key={character.id} />)}
       </section>}
     </ScrollableScreenPanel>
-    {selected && <BoxCharacterDetailModal character={selected} stellaQuantity={box.stella.quantity} stellaRetryAvailable={stellaRetryId === selected.id} favoritePending={favoritePendingId === selected.id} stellaPending={stellaPendingId === selected.id} stellaFeedback={stellaFeedback} actionError={error} onToggleFavorite={() => onToggleFavorite(selected)} onUseStella={() => onUseStella(selected)} onClose={onCloseDetail} />}
+    {selected && <BoxCharacterDetailModal character={selected} combatState={combatStateFor(dailyCombat, selected.id)} stellaQuantity={box.stella.quantity} stellaRetryAvailable={stellaRetryId === selected.id} favoritePending={favoritePendingId === selected.id} stellaPending={stellaPendingId === selected.id} stellaFeedback={stellaFeedback} actionError={error} onToggleFavorite={() => onToggleFavorite(selected)} onUseStella={() => onUseStella(selected)} onClose={onCloseDetail} />}
   </div>
 }
 
@@ -115,5 +117,6 @@ export function BoxStatus({ kind, title, detail, onRetry }: { kind: 'loading' | 
 }
 
 function elementLabel(element: ElementKey) { return ({ pyro: 'Pyro', hydro: 'Hydro', cryo: 'Cryo', electro: 'Électro', anemo: 'Anémo', geo: 'Géo', dendro: 'Dendro' } as const)[element] }
+function combatStateFor(combat: DailyCombatDto | undefined, characterId: string) { const character = combat?.availableCharacters.find(({ id }) => id === characterId); return combat && character ? { ko: combat.koCharacterIds.includes(characterId), stats: character.combatStats } : undefined }
 
 export default BoxScreen

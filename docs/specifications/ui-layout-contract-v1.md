@@ -1,6 +1,6 @@
 # Contrat de layout UI V1
 
-Statut : contrat transverse validé — correctif physique candidat 0.85.
+Statut : contrat transverse validé — extension physique candidate 0.86.
 
 Ce document est la source de vérité des règles de composition et de stabilité visuelle communes. Les documents métier restent propriétaires du contenu et des actions de chaque écran ; le shell de navigation reste propriétaire des destinations.
 
@@ -25,7 +25,13 @@ Recherche, filtre, tri, pagination, mutation, chargement, état vide et feedback
 
 Les modales d’historique Banque et Boutique ont une capacité visuelle exacte de dix lignes : dix lignes remplissent le body jusqu’au footer, quatre lignes matérialisent six emplacements vides, et zéro ligne conserve le footer à la même position. Sur desktop, la hauteur des onze rangées (header de table + dix slots) est calculée depuis le body disponible et ce body n’a aucun scroll vertical ; `scrollHeight` reste au plus égal à `clientHeight + 1 px` à 1920 × 1080 comme à 1366 × 768. Mobile peut conserver un scroll interne, notamment horizontal.
 
-Une carte à états conserve ses dimensions extérieures et réserve ses zones internes avant l’interaction : contenu principal, état/feedback, action et confirmation ne se repoussent pas mutuellement. Ajouter une action à une carte existante ne conduit jamais à agrandir artificiellement toutes les cartes de sa grille. Lorsque le langage visuel existant offre déjà l’espace nécessaire, l’action s’intègre dans cette géométrie ; une carte sans action ne réserve aucun footer vide universel.
+Une carte à états conserve ses dimensions extérieures et réserve ses zones internes avant l'interaction : contenu principal, état/feedback, action et confirmation ne se repoussent pas mutuellement. Ajouter une action à une carte existante ne conduit jamais à agrandir artificiellement toutes les cartes de sa grille. Lorsque le langage visuel existant offre déjà l'espace nécessaire, l'action s'intègre dans cette géométrie ; une carte sans action ne réserve aucun footer vide universel.
+
+## Grilles de cartes homogènes
+
+Les cartes d'une même grille partagent leur géométrie extérieure, leurs axes visuels et les lignes de titre, description, quantité et action. L'ajout d'une action contextuelle ne déplace pas l'icône ni les lignes communes. À géométrie égale, les centres verticaux des icônes restent cohérents ; les contrôles desktop vérifient un écart maximal de 1 px entre le centre de la carte et celui de l'icône.
+
+Lorsqu'une carte représente une seule action, toute sa surface est un unique hit target accessible au clavier. Le libellé d'affordance reste visible mais n'est pas un contrôle imbriqué ni la seule zone cliquable. Hover et `focus-visible` réagissent sur le cadre entier avec l'accent contextuel de la ressource. Une carte sans action ne simule ni curseur, ni hover interactif. Une variante visuelle arbitraire n'est admise que pour une raison métier explicite.
 
 ## Drag-and-drop
 

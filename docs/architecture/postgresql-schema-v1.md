@@ -1378,16 +1378,17 @@ Elle reste traçable via `resource_movements`.
 
 # 20. Combat quotidien
 
-## 20.1 `element_combat_rules`
+## 20.1 `element_combat_matchups`
+
+Matrice normalisée réellement migrée par 014. L'ancien modèle cible `element_combat_rules`, limité à un avantage et un désavantage par élément, est remplacé.
 
 Colonnes :
 
-- `element_key text PRIMARY KEY REFERENCES elements(key)`
-- `favored_against_element_key text NULL REFERENCES elements(key)`
-- `disfavored_against_element_key text NULL REFERENCES elements(key)`
-- `version integer NOT NULL DEFAULT 1`
-- `is_active boolean NOT NULL DEFAULT true`
-- `updated_at timestamptz NOT NULL DEFAULT now()`
+- `attacker_element_key text NOT NULL REFERENCES elements(key) ON DELETE RESTRICT`
+- `defender_element_key text NOT NULL REFERENCES elements(key) ON DELETE RESTRICT`
+- `relation smallint NOT NULL CHECK (relation IN (-1, 1))`
+
+PK : `PRIMARY KEY(attacker_element_key, defender_element_key)`. Attaquant et défenseur doivent être distincts. L'absence d'une paire signifie une relation neutre ; le seed canonique contient 28 relations.
 
 ---
 
@@ -1397,7 +1398,6 @@ Colonnes :
 
 - `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
 - `business_date date NOT NULL UNIQUE`
-- `generated_at timestamptz NOT NULL`
 - `created_at timestamptz NOT NULL DEFAULT now()`
 
 ---
@@ -1409,6 +1409,7 @@ Colonnes :
 - `encounter_id uuid NOT NULL REFERENCES daily_combat_encounters(id) ON DELETE CASCADE`
 - `position smallint NOT NULL`
 - `character_id uuid NOT NULL REFERENCES characters(id) ON DELETE RESTRICT`
+- `element_key_snapshot text NOT NULL REFERENCES elements(key) ON DELETE RESTRICT`
 
 PK :
 
@@ -1421,23 +1422,21 @@ Contraintes :
 
 ---
 
-## 20.4 `player_daily_combat_loadout`
+## 20.4 `player_daily_combat_loadouts` et `player_daily_combat_loadout_slots`
 
-Colonnes :
+Le parent persistant, indépendant du jour, porte :
 
-- `player_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE`
-- `position smallint NOT NULL`
-- `character_id uuid NOT NULL REFERENCES characters(id) ON DELETE RESTRICT`
+- `player_id uuid PRIMARY KEY REFERENCES players(id) ON DELETE CASCADE`
+- `next_attempt_mode combat_attempt_mode NOT NULL DEFAULT 'MANUAL'`
 - `updated_at timestamptz NOT NULL DEFAULT now()`
 
-PK :
+Les slots portent :
 
-`PRIMARY KEY(player_id, position)`
+- `player_id uuid NOT NULL REFERENCES player_daily_combat_loadouts(player_id) ON DELETE CASCADE`
+- `position smallint NOT NULL CHECK (position BETWEEN 1 AND 4)`
+- `character_id uuid NOT NULL REFERENCES characters(id) ON DELETE RESTRICT`
 
-Contraintes :
-
-- `position BETWEEN 1 AND 4`
-- `UNIQUE(player_id, character_id)`
+PK : `(player_id, position)` ; unicité `(player_id, character_id)`.
 
 ---
 
@@ -1448,7 +1447,6 @@ Colonnes :
 - `player_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE`
 - `encounter_id uuid NOT NULL REFERENCES daily_combat_encounters(id) ON DELETE CASCADE`
 - `won_at timestamptz NULL`
-- `blocked_at timestamptz NULL`
 - `created_at timestamptz NOT NULL DEFAULT now()`
 - `updated_at timestamptz NOT NULL DEFAULT now()`
 
@@ -1458,14 +1456,14 @@ PK :
 
 ---
 
-## 20.6 `daily_combat_ko`
+## 20.6 `player_daily_combat_kos`
 
 Colonnes :
 
 - `player_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE`
 - `encounter_id uuid NOT NULL REFERENCES daily_combat_encounters(id) ON DELETE CASCADE`
 - `character_id uuid NOT NULL REFERENCES characters(id) ON DELETE RESTRICT`
-- `ko_at timestamptz NOT NULL DEFAULT now()`
+- `created_at timestamptz NOT NULL DEFAULT now()`
 
 PK :
 
@@ -1481,18 +1479,15 @@ Colonnes :
 - `player_id uuid NOT NULL REFERENCES players(id) ON DELETE RESTRICT`
 - `encounter_id uuid NOT NULL REFERENCES daily_combat_encounters(id) ON DELETE RESTRICT`
 - `mode combat_attempt_mode NOT NULL`
-- `success_chance numeric(5,2) NOT NULL`
+- `chance_half_points smallint NOT NULL CHECK (chance_half_points BETWEEN 10 AND 190)`
 - `won boolean NOT NULL`
+- `rng_roll smallint NOT NULL CHECK (rng_roll BETWEEN 1 AND 200)`
 - `operation_id uuid NOT NULL UNIQUE REFERENCES business_operations(id) ON DELETE RESTRICT`
 - `created_at timestamptz NOT NULL DEFAULT now()`
 
-Contraintes :
-
-`success_chance BETWEEN 0 AND 100`
-
 Index :
 
-`(player_id, created_at DESC)`
+`(player_id, encounter_id, created_at DESC)`
 
 ---
 
@@ -1505,14 +1500,26 @@ Colonnes :
 - `attempt_id uuid NOT NULL REFERENCES daily_combat_attempts(id) ON DELETE CASCADE`
 - `position smallint NOT NULL`
 - `character_id uuid NOT NULL REFERENCES characters(id) ON DELETE RESTRICT`
-- `rarity smallint NOT NULL`
-- `constellation smallint NOT NULL`
-- `element_key text NOT NULL REFERENCES elements(key)`
-- `contribution numeric(8,2) NULL`
+- `rarity_snapshot smallint NOT NULL CHECK (rarity_snapshot IN (4, 5))`
+- `constellation_snapshot smallint NOT NULL CHECK (constellation_snapshot BETWEEN 0 AND 6)`
+- `element_key_snapshot text NOT NULL REFERENCES elements(key)`
+- `contribution_half_points smallint NOT NULL`
 
 PK :
 
 `PRIMARY KEY(attempt_id, position)`
+
+## 20.9 `player_combat_stats`
+
+Une ligne par Player : `total_fights`, `total_wins`, `total_losses`, `total_manual_wins` en `bigint` non négatifs. Les contraintes imposent `total_fights = total_wins + total_losses` et `total_manual_wins <= total_wins`.
+
+## 20.10 `player_character_combat_stats`
+
+PK `(player_id, character_id)`, avec `wins` et `losses` en `bigint` non négatifs. Le nombre de combats et le taux de victoire sont dérivés.
+
+## 20.11 État physique 0.86
+
+La migration additive Prisma `20260912120000_014_add_daily_combat` crée `combat_attempt_mode` (`MANUAL`, `AUTO`) et toutes les tables 20.1 à 20.10. Les tables ont la RLS active, aucune policy navigateur, et tous les droits directs sont révoqués à `anon` et `authenticated`. Le Boss mensuel n'est pas créé par cette migration.
 
 ---
 

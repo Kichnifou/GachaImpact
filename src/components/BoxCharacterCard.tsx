@@ -1,14 +1,17 @@
 import type { BoxCharacterDto } from '../api/types'
 import CharacterPortraitFrame from './CharacterPortraitFrame'
 
-function BoxCharacterCard({ character, onOpen, onToggleFavorite, favoritePending = false }: {
+function BoxCharacterCard({ character, onOpen, onToggleFavorite, favoritePending = false, disabled = false, statusLabel, showFavorite = true }: {
   character: BoxCharacterDto
   onOpen: () => void
   onToggleFavorite: () => void
   favoritePending?: boolean
+  disabled?: boolean
+  statusLabel?: string
+  showFavorite?: boolean
 }) {
-  return <article className={`character-card box-character-card ${character.elementKey}`}>
-    <button type="button" className="box-card-open" onClick={onOpen} aria-label={`Ouvrir la fiche de ${character.name}`}>
+  return <article className={`character-card box-character-card ${character.elementKey}${disabled ? ' disabled' : ''}`}>
+    <button type="button" className="box-card-open" disabled={disabled} onClick={onOpen} aria-label={`Ouvrir la fiche de ${character.name}`}>
       <CharacterPortraitFrame
         characterName={character.name}
         element={character.elementKey}
@@ -23,16 +26,17 @@ function BoxCharacterCard({ character, onOpen, onToggleFavorite, favoritePending
         <h3>{character.name}</h3>
         <div className="character-rarity">{'★'.repeat(character.rarity)}</div>
         <div className="character-card-meta"><span>{character.elementKey}</span><strong>C{character.constellation}</strong></div>
+        {statusLabel && <small className="box-character-status">{statusLabel}</small>}
       </div>
     </button>
-    <button
+    {showFavorite && <button
       type="button"
       className={`box-favorite-button${character.favorite ? ' active' : ''}`}
       aria-label={`${character.favorite ? 'Retirer' : 'Ajouter'} ${character.name} ${character.favorite ? 'des' : 'aux'} favoris`}
       aria-pressed={character.favorite}
       disabled={favoritePending}
       onClick={onToggleFavorite}
-    >★</button>
+    >★</button>}
   </article>
 }
 

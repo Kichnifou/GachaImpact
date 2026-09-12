@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.85
+Version : 0.86
 Date : 2026-09-12
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
@@ -3702,14 +3702,25 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Boutique, History, migration 013, schéma Prisma et Supabase restent inchangés. Les huit comptes DEV légitimes confirmés et toutes leurs données restent intacts.
 - Le propriétaire a validé publiquement le 0.84 : Team et ses passifs, la direction générale Daily Reward, Configuration arrow-only, le redesign Défi, ses actions Conversion/Invocation, la confirmation de changement, le contenu et les liens Ressources, la Conversion de sidebar et le standard `✅ Terminé` constituent le checkpoint public courant. Quotidiennes / Défi demeure le domaine actif.
 
-## État du candidat 0.85 — complétion des Quotidiennes et scroll interne du Sac
+## État public 0.85 — complétion des Quotidiennes et scroll interne du Sac
 
 - Dans `Quotidiennes > Aperçu`, une activité réelle terminée affiche désormais trois lignes stables : `✅ Terminé`, son détail contextuel et `Obtenu : <résultat réel>`. Daily Reward lit les gains de son DTO, Roue utilise une restitution compacte incluant `Obtenu : Rien`, et Défi lit `rewardPrimogems`.
 - Une Daily Reward, une Roue ou un Défi terminé ne rend plus aucun bouton d’action dans Aperçu ; les dimensions externes 0.84 restent inchangées et les tabs permettent toujours la consultation directe.
 - Les six codes métier DailyChallenge connus possèdent une restitution française explicite. L’insuffisance de wallet distingue l’achat du changement et mentionne directement le manque de Moras ; aucun code backend ni comportement serveur n’est modifié.
 - La hauteur externe mesurée de Masterless Stella Fortuna, 73 px à 1920 × 1080 comme à 1366 × 768, devient l’étalon des neuf cartes Ressources. Leur structure, leur contenu, leurs icônes et leurs liens validés restent inchangés ; Stella n’est pas leur modèle interne.
 - Dans Sac desktop, le header fonctionnel reste fixe et tout ce qui le suit appartient à un body `minmax(0, 1fr)` en `overflow-y: auto`. Les catégories gauches restent immobiles ; mobile conserve son flux naturel sans second scroll interne.
-- Aucun backend, schéma, migration, service Supabase, donnée DEV ou déploiement manuel n’appartient à ce candidat. Quotidiennes / Défi reste le domaine actif et le candidat 0.85 doit être reviewé indépendamment avant toute promotion.
+- Aucun backend, schéma, migration, service Supabase, donnée DEV ou déploiement manuel n’appartient à ce lot. Le candidat 0.85 a été reviewé, promu puis validé publiquement par le propriétaire.
+
+## État du candidat 0.86 — Combat quotidien / Entraînement
+
+- Le cadre bas de la sidebar devient un raccourci plein-clic `Quotidiennes > Aperçu`, sans claim ni faux compteur. Une intention éphémère force Aperçu depuis n'importe quel écran, y compris Roue ou Défi déjà monté.
+- Les cartes Sac de 73 px conservent leurs axes communs. Primos, Moras, particules personnelles et Masterless Stella Fortuna utilisent toute leur surface comme action accessible, avec affordance et accent hover/focus contextuels ; les autres entrées restent non interactives et Stella ouvre directement son picker existant.
+- La migration additive Prisma `20260912120000_014_add_daily_combat` matérialise `combat_attempt_mode`, la matrice normalisée de 28 matchups, la rencontre globale quotidienne et ses quatre snapshots ennemis, la composition persistante, ses slots, l'état journalier, les KO, les tentatives et membres snapshotés ainsi que les statistiques Player/personnage. RLS est active et les accès directs navigateur sont révoqués.
+- `CombatService` et son store Prisma sont propriétaires de la journée `Europe/Paris`, de la génération race-safe, de la sélection manuelle, de la copie volontaire de Team, de l'Auto top 4 déterministe, du mode pending, de la formule unique en demi-points, du RNG serveur et de la résolution transactionnelle/idempotente.
+- Une défaite incrémente les statistiques, rend les quatre membres KO pour la rencontre et permet une nouvelle tentative avec d'autres personnages. Une première victoire crédite exactement +800 Primogemmes et +20 000 Moras via l'économie centrale, une seule fois, puis clôt le quotidien. Box et Team ne sont que lues ; aucune composition active n'est modifiée.
+- `Activités > Combat > Entraînement` affiche la rencontre, les slots, le picker Box, le preview détaillé, les modes, KO, résultats et statistiques partagées dans la fiche personnage. `Quotidiennes > Aperçu` projette À faire / En cours / Bloqué / Terminé et retire `Accéder` après victoire.
+- `Boss` reste une coque honnête `Bientôt disponible` sans gameplay, schéma, statistique ou donnée fictive. Expedition, Missions permanentes et commandes chat/Twitch ne commencent pas dans ce lot.
+- Le domaine fonctionnel actif est désormais Combat quotidien / Entraînement. Le candidat 0.86 doit être reviewé indépendamment sur `review`, puis validé publiquement après promotion avant d'ouvrir Expedition.
 
 ## État du lot — Invocation x1/x10
 
@@ -3851,7 +3862,7 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Faire reviewer indépendamment le candidat correctif 0.85 uniquement sur `review` → corriger les éventuels retours sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → revalider publiquement les trois lignes des Quotidiennes terminées, l’absence de leurs boutons, les erreurs Défi et le Sac (hauteurs, header fixe et scroll du body).** Quotidiennes / Défi reste le domaine actif jusqu’à cette validation. Combat ou Expédition ne commencent pas avant ce checkpoint public. `PAID_INFRA_APPROVED = false` reste inchangé.
+**Faire reviewer indépendamment le candidat 0.86 uniquement sur `review` → corriger les éventuels retours sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → valider publiquement la sidebar Quotidiennes, les cartes Sac plein-clic et le Combat quotidien / Entraînement.** Boss et Expedition restent non commencés. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

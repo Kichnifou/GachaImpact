@@ -348,6 +348,47 @@ export type PlayerTeamsDto = Readonly<{
   passiveReference: readonly TeamPassiveDefinitionDto[]
 }>
 
+export type DailyCombatCharacterDto = Omit<BoxCharacterDto, 'c6CompetitionStats'> & Readonly<{
+  displayOrder: number | null
+  combatStats: Readonly<{ fights: string; wins: string; losses: string; winRatePercent: number }>
+}>
+
+export type DailyCombatPreviewDto = Readonly<{
+  baseHalfPoints: 100
+  rarityBonusHalfPoints: number
+  constellationBonusHalfPoints: number
+  favorableMatchups: number
+  favorableBonusHalfPoints: number
+  unfavorableMatchups: number
+  unfavorableMalusHalfPoints: number
+  rawHalfPoints: number
+  clamp: 'MINIMUM' | 'MAXIMUM' | null
+  finalHalfPoints: number
+  memberContributions: readonly Readonly<{ characterId: string; halfPoints: number }>[]
+}>
+
+export type DailyCombatDto = Readonly<{
+  businessDate: string
+  status: 'TODO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED'
+  encounter: Readonly<{ id: string; enemies: readonly Readonly<{ position: 1 | 2 | 3 | 4; character: Omit<GachaCharacterDto, 'classKey'> & Readonly<{ displayOrder: number | null }> }>[] }>
+  loadout: Readonly<{ nextAttemptMode: 'MANUAL' | 'AUTO'; slots: readonly Readonly<{ position: 1 | 2 | 3 | 4; character: DailyCombatCharacterDto | null; ko: boolean }>[] }>
+  availableCharacters: readonly DailyCombatCharacterDto[]
+  koCharacterIds: readonly string[]
+  availableCharacterCount: number
+  preview: DailyCombatPreviewDto | null
+  canFight: boolean
+  reward: Readonly<{ primogems: string; moras: string }>
+  lastAttempt: Readonly<{ id: string; mode: 'MANUAL' | 'AUTO'; won: boolean; chanceHalfPoints: number; createdAt: string }> | null
+  playerStats: Readonly<{ totalFights: string; totalWins: string; totalLosses: string; totalManualWins: string }>
+}>
+
+export type DailyCombatFightDto = Readonly<{
+  operation: Readonly<{ id: string; alreadyProcessed: boolean }>
+  result: Readonly<{ won: boolean; mode: 'MANUAL' | 'AUTO'; chanceHalfPoints: number }>
+  view: DailyCombatDto
+  resources: PlayerResourcesDto
+}>
+
 export type GachaPullResultItemDto = Readonly<{
   index: number
   resultType: 'character' | 'resource'

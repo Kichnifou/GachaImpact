@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { BoxCharacterDto, DailyChallengeMutationDto, ElementKey, InventoryItemDto, InventoryResourceDto, PlayerBoxDto, PlayerInventoryDto, PlayerResourcesDto, PlayerTeamsDto, StellaUseDto } from '../api/types'
+import type { BoxCharacterDto, DailyChallengeMutationDto, DailyCombatDto, ElementKey, InventoryItemDto, InventoryResourceDto, PlayerBoxDto, PlayerInventoryDto, PlayerResourcesDto, PlayerTeamsDto, StellaUseDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
 import { presentStellaResult, type StellaResultPresentation } from '../box/stella-result-presentation'
 import { MASTERLESS_STELLA_FORTUNA_KEY } from '../inventory/inventory-memory-cache'
@@ -15,6 +15,7 @@ type InventoryScreenProps = {
   initialInventory: PlayerInventoryDto | null
   resources: PlayerResourcesDto
   elementKey: ElementKey
+  dailyCombat?: DailyCombatDto
   onLoad: () => Promise<PlayerInventoryDto>
   onConvertParticles: (amount: string, idempotencyKey: string) => Promise<DailyChallengeMutationDto>
   onNavigateShop: () => void
@@ -33,7 +34,7 @@ const categories: readonly { id: InventoryCategory; label: string; icon: string 
   { id: 'collection', label: 'Collection', icon: '▣' },
 ]
 
-function InventoryScreen({ initialInventory, resources, elementKey, onLoad, onConvertParticles, onNavigateShop, onNavigateBank, onLoadBox, onSetBoxFavorite, onUseStella, stellaRetryCharacterId, onLoadTeams }: InventoryScreenProps) {
+function InventoryScreen({ initialInventory, resources, elementKey, dailyCombat, onLoad, onConvertParticles, onNavigateShop, onNavigateBank, onLoadBox, onSetBoxFavorite, onUseStella, stellaRetryCharacterId, onLoadTeams }: InventoryScreenProps) {
   const [inventory, setInventory] = useState(initialInventory)
   const [activeCategory, setActiveCategory] = useState<InventoryCategory>('all')
   const [query, setQuery] = useState('')
@@ -152,7 +153,7 @@ function InventoryScreen({ initialInventory, resources, elementKey, onLoad, onCo
     </div>
     {selectedItem && <ItemDetailModal item={selectedItem} onClose={() => setSelectedItem(null)} onUseStella={selectedItem.externalKey === MASTERLESS_STELLA_FORTUNA_KEY ? () => void openStellaPicker() : undefined} />}
     {stellaPickerOpen && <StellaPicker box={box} error={boxError} stellaQuantity={stella?.quantity ?? '0'} favoritePendingId={favoritePendingId} onClose={() => { setStellaPickerOpen(false); setSelectedCharacterId(null); setBoxError(null); setStellaFeedback(null) }} onSelect={setSelectedCharacterId} onRetry={() => void openStellaPicker()} onToggleFavorite={toggleFavorite} />}
-    {selectedCharacter && <BoxCharacterDetailModal character={selectedCharacter} stellaQuantity={stella?.quantity ?? '0'} stellaRetryAvailable={stellaRetryId === selectedCharacter.id} favoritePending={favoritePendingId === selectedCharacter.id} stellaPending={stellaPendingId === selectedCharacter.id} stellaFeedback={stellaFeedback} actionError={boxError} onToggleFavorite={() => void toggleFavorite(selectedCharacter)} onUseStella={() => void submitStella(selectedCharacter)} onClose={() => { setSelectedCharacterId(null); setStellaFeedback(null); setBoxError(null) }} />}
+    {selectedCharacter && <BoxCharacterDetailModal character={selectedCharacter} combatState={combatStateFor(dailyCombat, selectedCharacter.id)} stellaQuantity={stella?.quantity ?? '0'} stellaRetryAvailable={stellaRetryId === selectedCharacter.id} favoritePending={favoritePendingId === selectedCharacter.id} stellaPending={stellaPendingId === selectedCharacter.id} stellaFeedback={stellaFeedback} actionError={boxError} onToggleFavorite={() => void toggleFavorite(selectedCharacter)} onUseStella={() => void submitStella(selectedCharacter)} onClose={() => { setSelectedCharacterId(null); setStellaFeedback(null); setBoxError(null) }} />}
     {conversionOpen && <ParticleConversionModal elementKey={elementKey} stock={inventory.resources.find(({ key }) => key === `particles_${elementKey}`)?.amount ?? '0'} onClose={() => setConversionOpen(false)} onConvert={async (amount, idempotencyKey) => {
       const result = await onConvertParticles(amount, idempotencyKey)
       setInventory((current) => current ? { ...current, resources: current.resources.map((resource) => resource.key === `particles_${elementKey}` ? { ...resource, amount: result.resources.particles[elementKey] } : resource.key === 'primogems' ? { ...resource, amount: result.resources.primogems } : resource) } : current)
@@ -163,22 +164,26 @@ function InventoryScreen({ initialInventory, resources, elementKey, onLoad, onCo
 
 function InventoryCard({ entry, mainElementKey, onConvert, onNavigateShop, onNavigateBank, onSelectItem, onUseStella }: { entry: InventoryEntry; mainElementKey: ElementKey; onConvert: () => void; onNavigateShop: () => void; onNavigateBank: () => void; onSelectItem: (item: InventoryItemDto) => void; onUseStella: () => void }) {
   if (entry.type === 'resource') {
-    const content = <><ResourceIcon resource={entry.resource} /><div><strong>{entry.resource.displayName}</strong><p>{resourceDetail(entry.resource, entry.amount)}</p></div><span className="item-amount">× {formatResourceAmount(entry.amount)}</span></>
+    const content = <><ResourceIcon resource={entry.resource} /><span className="inventory-card-copy"><strong>{entry.resource.displayName}</strong><p>{resourceDetail(entry.resource, entry.amount)}</p></span><span className="item-amount">× {formatResourceAmount(entry.amount)}</span></>
     const action = entry.resource.key === 'primogems'
-      ? <button type="button" onClick={onNavigateShop}>Accéder à la Boutique →</button>
+      ? { label: 'Accéder à la Boutique →', run: onNavigateShop, tone: 'primogem' }
       : entry.resource.key === 'moras'
-        ? <button type="button" onClick={onNavigateBank}>Accéder à la Banque →</button>
+        ? { label: 'Accéder à la Banque →', run: onNavigateBank, tone: 'mora' }
         : entry.resource.key === `particles_${mainElementKey}`
-          ? <button type="button" disabled={BigInt(entry.amount) === 0n} onClick={onConvert}>Convertir →</button>
+          ? { label: 'Convertir →', run: onConvert, tone: entry.resource.elementKey ?? 'particle' }
           : null
-    return <article className={`inventory-item inventory-resource-card${action ? ' has-action' : ''}${entry.resource.key === 'moras' ? ' mora' : ''}`}>{content}{action && <div className="inventory-card-action">{action}</div>}</article>
+    return action
+      ? <button type="button" className={`inventory-item inventory-resource-card has-action contextual-card ${action.tone}`} onClick={action.run} aria-label={`${action.label.replace(' →', '')}, ${entry.resource.displayName} × ${formatResourceAmount(entry.amount)}`}>{content}<span className="inventory-card-action">{action.label}</span></button>
+      : <article className="inventory-item inventory-resource-card">{content}</article>
   }
   const owned = BigInt(entry.item.quantity) > 0n
+  if (entry.item.externalKey === MASTERLESS_STELLA_FORTUNA_KEY) return <button type="button" className="inventory-item inventory-stella-card contextual-card violet" disabled={!owned} onClick={onUseStella}>
+    <span className="item-icon violet" aria-hidden="true"><span className="item-icon-glyph">{owned ? '✦' : '?'}</span></span><span className="inventory-card-copy"><strong>{entry.item.displayName}</strong><p>{entry.item.description ?? 'Renforce un personnage 5★ possédé.'}</p></span><span className="item-amount">× {formatResourceAmount(entry.item.quantity)}</span><span className="inventory-card-action">Utiliser →</span>
+  </button>
   return <article className={`inventory-item inventory-object-card${owned ? '' : ' unowned'}`} title={entry.item.acquisitionHint ?? undefined}>
     <button type="button" className="inventory-item-main" onClick={() => onSelectItem(entry.item)}>
       <span className="item-icon violet" aria-hidden="true"><span className="item-icon-glyph">{owned ? '✦' : '?'}</span></span><div><strong>{entry.item.displayName}</strong><p>{entry.item.description ?? 'Aucune description disponible.'}</p></div><span className="item-amount">× {formatResourceAmount(entry.item.quantity)}</span>
     </button>
-    {entry.item.externalKey === MASTERLESS_STELLA_FORTUNA_KEY && <button type="button" className="inventory-use-button" disabled={!owned} onClick={onUseStella}>Utiliser</button>}
   </article>
 }
 
@@ -243,6 +248,11 @@ function resourceDetail(resource: InventoryResourceDto, amount: string) {
   if (resource.key === 'primogems') return `${BigInt(amount) / 160n} vœux possibles`
   if (resource.key === 'moras') return 'Monnaie du jeu'
   return `Particules ${resource.elementKey ? elementLabels[resource.elementKey] : ''}`
+}
+
+function combatStateFor(combat: DailyCombatDto | undefined, characterId: string) {
+  const character = combat?.availableCharacters.find(({ id }) => id === characterId)
+  return combat && character ? { ko: combat.koCharacterIds.includes(characterId), stats: character.combatStats } : undefined
 }
 
 function emptyTitle(category: InventoryCategory) { return category === 'collection' ? 'Collection encore vide' : category === 'objects' ? 'Aucun objet disponible' : 'Aucune entrée disponible' }
