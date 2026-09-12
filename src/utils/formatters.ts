@@ -70,6 +70,16 @@ export function apiErrorMessage(error: unknown): string {
     BANK_TRANSFER_INTENT_CONFLICT: 'Une opération Banque précédente doit d’abord être vérifiée ou réessayée avec le même montant.',
     MODERATION_IN_PROGRESS: 'Une opération de test est déjà en cours.',
     MODERATION_INTENT_CONFLICT: 'Une opération de test précédente a un résultat incertain. Réessayez la même action pour vérifier son résultat avant d’en lancer une autre.',
+    DAILY_COMBAT_POSITION_INVALID: 'Cet emplacement de Combat est invalide.',
+    DAILY_COMBAT_CHARACTER_NOT_OWNED: 'Ce personnage ne fait pas partie de votre Box.',
+    DAILY_COMBAT_CHARACTER_INACTIVE: 'Ce personnage n’est plus disponible.',
+    DAILY_COMBAT_CHARACTER_DUPLICATE: 'Ce personnage est déjà sélectionné.',
+    DAILY_COMBAT_LOADOUT_INCOMPLETE: 'Sélectionnez 4 personnages.',
+    DAILY_COMBAT_CHARACTER_KO: 'Un personnage sélectionné est KO jusqu’à demain.',
+    DAILY_COMBAT_ALREADY_COMPLETED: 'Le Combat quotidien est déjà terminé.',
+    DAILY_COMBAT_NOT_ENOUGH_AVAILABLE: 'Vous n’avez plus assez de personnages disponibles aujourd’hui.',
+    DAILY_COMBAT_ENCOUNTER_UNAVAILABLE: 'Le Combat du jour est momentanément indisponible.',
+    DAILY_COMBAT_IDEMPOTENCY_CONFLICT: 'Une tentative précédente doit d’abord être vérifiée ou reprise avant de continuer.',
   }
 
   return typeof code === 'string' && messages[code]

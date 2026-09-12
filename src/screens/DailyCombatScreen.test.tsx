@@ -84,6 +84,27 @@ describe('Daily Combat screen', () => {
     expect(container.querySelector('.combat-resolution')?.textContent).toContain('Obtenu : +800 Primogemmes · +20 000 Moras')
   })
 
+  it('surfaces a controlled Combat message when a fight rejects a KO character', async () => {
+    const value = combat({
+      loadout: { nextAttemptMode: 'MANUAL', slots: characters.slice(0, 4).map((character, index) => ({ position: (index + 1) as 1 | 2 | 3 | 4, character, ko: false })) },
+      preview: { baseHalfPoints: 100, rarityBonusHalfPoints: 48, constellationBonusHalfPoints: 12, favorableMatchups: 0, favorableBonusHalfPoints: 0, unfavorableMatchups: 0, unfavorableMalusHalfPoints: 0, rawHalfPoints: 160, clamp: null, finalHalfPoints: 160, memberContributions: [] }, canFight: true,
+    })
+    const { container } = mount(value, { onFight: vi.fn().mockRejectedValue({ code: 'DAILY_COMBAT_CHARACTER_KO' }) })
+    await act(async () => { container.querySelector<HTMLButtonElement>('.combat-resolution button')!.click(); await Promise.resolve() })
+    const alert = container.querySelector('[role="alert"]')
+    expect(alert?.textContent).toBe('Un personnage sélectionné est KO jusqu’à demain.')
+    expect(alert?.textContent).not.toBe('La demande n’a pas pu être traitée.')
+  })
+
+  it('surfaces a controlled Combat message when Auto has too few available characters', async () => {
+    const { container } = mount(combat(), { onAuto: vi.fn().mockRejectedValue({ code: 'DAILY_COMBAT_NOT_ENOUGH_AVAILABLE' }) })
+    const auto = Array.from(container.querySelectorAll<HTMLButtonElement>('.combat-loadout-actions button')).find((button) => button.textContent === 'Équipe automatique')!
+    await act(async () => { auto.click(); await Promise.resolve() })
+    const alert = container.querySelector('[role="alert"]')
+    expect(alert?.textContent).toBe('Vous n’avez plus assez de personnages disponibles aujourd’hui.')
+    expect(alert?.textContent).not.toBe('La demande n’a pas pu être traitée.')
+  })
+
   it('keeps Boss as an honest unavailable shell with no invented gameplay', () => {
     const { container } = mount(combat())
     act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('.combat-tabs button')).find((button) => button.textContent === 'Boss')!.click())
