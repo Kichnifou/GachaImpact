@@ -1,24 +1,9 @@
-import { useEffect, useState } from 'react'
-
-import type { ExpeditionDto } from '../api/types'
+import type { ExpeditionClientSnapshot } from '../expedition/expedition-client-snapshot'
+import { expeditionRemainingSeconds } from '../expedition/expedition-client-snapshot'
 import { formatRemainingSeconds } from '../expedition/expedition-presentation'
 
-function ExpeditionCountdown({ value }: { value: ExpeditionDto }) {
-  return <ExpeditionCountdownValue key={`${value.operationalStatus}:${value.readyAt ?? ''}:${value.remainingSeconds}`} initialRemainingSeconds={value.remainingSeconds} running={value.operationalStatus === 'RUNNING' && Boolean(value.readyAt)} />
-}
-
-function ExpeditionCountdownValue({ initialRemainingSeconds, running }: { initialRemainingSeconds: number; running: boolean }) {
-  const [remainingSeconds, setRemainingSeconds] = useState(initialRemainingSeconds)
-
-  useEffect(() => {
-    if (!running) return
-    const clientStartedAt = Date.now()
-    const refresh = () => setRemainingSeconds(Math.max(0, initialRemainingSeconds - Math.floor((Date.now() - clientStartedAt) / 1_000)))
-    const timer = window.setInterval(refresh, 1_000)
-    return () => window.clearInterval(timer)
-  }, [initialRemainingSeconds, running])
-
-  return formatRemainingSeconds(remainingSeconds)
+function ExpeditionCountdown({ snapshot, monotonicNow }: { snapshot: ExpeditionClientSnapshot; monotonicNow: number }) {
+  return formatRemainingSeconds(expeditionRemainingSeconds(snapshot, monotonicNow))
 }
 
 export default ExpeditionCountdown

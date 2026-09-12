@@ -1,11 +1,12 @@
 // @vitest-environment happy-dom
 
-import { act } from 'react'
+import { act, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { BoxCharacterDto, ExpeditionDto } from '../api/types'
 import BoxCharacterDetailModal from './BoxCharacterDetailModal'
+import { createExpeditionClientSnapshot } from '../expedition/expedition-client-snapshot'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -19,21 +20,41 @@ afterEach(() => {
 })
 
 describe('BoxCharacterDetailModal Expedition countdown', () => {
-  it('reanchors immediately on IDLE to RUNNING and follows remainingSeconds despite client clock skew', () => {
+  it('keeps one monotonic snapshot across close/reopen and reanchors only on a fresh server projection', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2030-01-01T00:00:00Z'))
     const container = document.createElement('div')
     document.body.append(container)
     const root = createRoot(container)
-    act(() => root.render(<BoxCharacterDetailModal {...shared} expedition={idle} />))
-
-    const running: ExpeditionDto = { ...idle, operationalStatus: 'RUNNING', activeCharacter: character, departedAt: '2040-01-01T00:00:00Z', readyAt: '2040-01-01T20:00:00Z', remainingSeconds: 72_000, startedOnCurrentBusinessDate: true, departureUsedToday: true, canStartToday: false }
-    act(() => root.render(<BoxCharacterDetailModal {...shared} expedition={running} />))
-    expect(container.textContent).toContain('20:00:00')
+    const running: ExpeditionDto = { ...idle, operationalStatus: 'RUNNING', activeCharacter: character, departedAt: '2040-01-01T00:00:00Z', readyAt: '2040-01-01T20:00:00Z', remainingSeconds: 71_420, startedOnCurrentBusinessDate: true, departureUsedToday: true, canStartToday: false }
+    const snapshot = createExpeditionClientSnapshot(running, performance.now())
+    act(() => root.render(<CountdownHarness key={snapshot.observedAt} snapshot={snapshot} open />))
+    expect(container.textContent).toContain('19:50:20')
     expect(container.textContent).not.toMatch(/\d{4,}:/)
 
+    act(() => vi.advanceTimersByTime(5_000))
+    expect(container.textContent).toContain('19:50:15')
+    act(() => root.render(<CountdownHarness key={snapshot.observedAt} snapshot={snapshot} open={false} />))
+    act(() => root.render(<CountdownHarness key={snapshot.observedAt} snapshot={snapshot} open />))
+    expect(container.textContent).toContain('19:50:15')
+    expect(container.textContent).not.toContain('19:50:20')
+
+    const fresh = createExpeditionClientSnapshot({ ...running, remainingSeconds: 71_390 }, performance.now())
+    act(() => root.render(<CountdownHarness key={fresh.observedAt} snapshot={fresh} open />))
+    expect(container.textContent).toContain('19:49:50')
+
+    vi.setSystemTime(new Date('1999-01-01T00:00:00Z'))
     act(() => vi.advanceTimersByTime(1_000))
-    expect(container.textContent).toContain('19:59:59')
+    expect(container.textContent).toContain('19:49:49')
     act(() => root.unmount())
   })
 })
+
+function CountdownHarness({ snapshot, open }: { snapshot: ReturnType<typeof createExpeditionClientSnapshot>; open: boolean }) {
+  const [monotonicNow, setMonotonicNow] = useState(snapshot.observedAt)
+  useEffect(() => {
+    const timer = window.setInterval(() => setMonotonicNow(performance.now()), 1_000)
+    return () => window.clearInterval(timer)
+  }, [])
+  return open ? <BoxCharacterDetailModal {...shared} expedition={snapshot} expeditionMonotonicNow={monotonicNow} /> : <div>Fiche fermée</div>
+}

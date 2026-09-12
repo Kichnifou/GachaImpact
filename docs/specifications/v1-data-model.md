@@ -1873,6 +1873,10 @@ Lorsqu'une information existe dans `viewers_data.json` et dans une source spéci
 
 Les contraintes exprimant un état `actif uniquement` pourront être réalisées par index partiels, contraintes applicatives transactionnelles ou mécanisme équivalent selon la base retenue.
 
+## 34.8 État physique candidat 0.90 — pilote dry-run
+
+La Phase 1 physique est strictement limitée à l'inventaire, au parsing, à la lecture ciblée d'un Player standalone, à la comparaison et à la génération d'un rapport privé fingerprinté. Elle ne matérialise encore aucune table `MigrationRun`/`MigrationMapping`, aucune migration Prisma et aucun chemin d'application. Le contrat opératoire, les statuts de proposition et les conditions préalables d'un futur lot distinct sont centralisés dans `docs/migration/legacy-pilot-runbook.md`.
+
 Le choix SQL exact appartient à la prochaine phase technique.
 
 ---

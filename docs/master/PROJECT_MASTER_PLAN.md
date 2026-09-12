@@ -1,8 +1,8 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.89
+Version : 0.90
 Date : 2026-09-12
-Statut : CANDIDAT 0.89 — REVIEW INDÉPENDANTE REQUISE
+Statut : CANDIDAT 0.90 — REVIEW INDÉPENDANTE REQUISE
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
@@ -3750,6 +3750,15 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Le header abandonne ses notifications fictives au profit du socle physique minimal : READY unique, lecture, lecture globale, archivage des lues, résolution au claim ou à l'annulation administrative, et deep link vers la fiche Box.
 - Boss, Social, Event, Missions permanentes UI, chat/Twitch et tout domaine suivant restent hors périmètre. `PAID_INFRA_APPROVED = false` demeure inchangé ; aucun déploiement manuel n'appartient à ce candidat.
 
+## État du candidat 0.90 — continuité Expedition et pilote migration legacy
+
+- Le lot 0.89 déployé est largement validé publiquement : départ réel, état RUNNING, badge et fiche, timer initial, projection Quotidiennes, absence de second départ, Notifications vides réelles, Arme/Région, Modération et frontend général. Deux défauts frontend ont été observés : le countdown se réinitialisait au remount de la fiche et le callback `Accéder` se perdait dans `ActivitiesScreen` avant d'atteindre Quotidiennes.
+- READY réel après 20 h, notification READY, priorité READY, claim, récompense, résolution de notification et nouveau départ post-claim restent à valider publiquement sur l'Expedition réelle en cours. Ils ne sont pas déclarés validés par 0.90.
+- Le candidat 0.90 publie chaque nouvelle projection serveur Expedition une seule fois avec une ancre monotone centrale. Box et Quotidiennes consomment cette même ancre ; fermer/réouvrir ou changer d'écran ne remonte plus le timer. Le zéro visuel ne transforme jamais RUNNING en READY : les revalidations serveur existantes restent autoritatives.
+- Le chaînage `GameShell → ActivitiesScreen → DailiesScreen → ExpeditionOverviewCard` transmet désormais l'intention. RUNNING/READY ouvre la fiche Box one-shot du personnage ; IDLE ouvre la Box normale et nettoie toute ancienne intention.
+- La Phase 1 de la migration pilote legacy est physique en mode dry-run seulement : bundle externe, ciblage UUID + pseudo legacy, parser, fingerprint SHA-256, lecteur standalone read-only, comparaison par domaine, provenance, statuts stables, rapport JSON privé et sortie console. Le runbook est `docs/migration/legacy-pilot-runbook.md`.
+- Aucun bundle réel n'a été fourni (`REAL_LEGACY_SOURCE_NOT_AVAILABLE`) ; seules des fixtures synthétiques sont testées. Aucun Player réel, compte protégé, donnée Supabase, migration Prisma, DDL ou service Railway n'est touché. Social, Event, Missions permanentes, Boss et Twitch restent différés ; les historiques impossibles ne sont pas inventés. `PAID_INFRA_APPROVED = false` demeure inchangé.
+
 ## État du lot — Invocation x1/x10
 
 Le vertical slice Pull réel est physiquement implémenté. Le **target design** (`docs/architecture/postgresql-schema-v1.md`, `docs/specifications/v1-data-model.md`) et les audits 06/07/15 restent les autorités de conception ; ce Master porte l'état vivant.
@@ -3890,7 +3899,7 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Faire reviewer indépendamment le candidat 0.89 uniquement sur `review` → corriger les éventuels retours sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → valider publiquement Expedition dans Box/Quotidiennes/Notifications et les finitions UI 0.89.** Expedition est le domaine actif ; Boss, Social, Event, Missions permanentes UI et chat/Twitch restent non commencés. `PAID_INFRA_APPROVED = false` reste inchangé.
+**Faire reviewer indépendamment le candidat 0.90 uniquement sur `review` → corriger les éventuels retours sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → terminer le test public READY/claim de l'Expedition réelle → localiser le bundle legacy externe → exécuter le dry-run explicitement ciblé → review humaine du rapport avant de concevoir tout lot APPLY distinct.** La migration pilote legacy Phase 1 est le domaine actif ; Social standalone n'est pas commencé. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

@@ -16,6 +16,7 @@ import { abandonGachaPresentationBeforeSignOut, applyGachaPrimogemCostPreview, c
 import { applyBankWalletToResources } from './bank/bank-presentation'
 import { gachaLevelRewards, type LevelUpFeedbackEvent } from './progression/level-up-feedback'
 import { publishProgressionUpdate } from './progression/publish-progression-update'
+import { createExpeditionClientSnapshot, type ExpeditionClientSnapshot } from './expedition/expedition-client-snapshot'
 
 function AppBootstrap() {
   const { status: authStatus, session, configurationMessage, signOut } = useAuth()
@@ -27,7 +28,8 @@ function AppBootstrap() {
   const [dailyRewardToday, setDailyRewardToday] = useState<DailyRewardTodayDto | null>(null)
   const [dailyChallenge, setDailyChallenge] = useState<DailyChallengeDto | null>(null)
   const [dailyCombat, setDailyCombat] = useState<DailyCombatDto | null>(null)
-  const [expedition, setExpedition] = useState<ExpeditionDto | null>(null)
+  const [expedition, setExpedition] = useState<ExpeditionClientSnapshot | null>(null)
+  const [expeditionMonotonicNow, setExpeditionMonotonicNow] = useState(0)
   const [notifications, setNotifications] = useState<NotificationsDto | null>(null)
   const [gacha, setGacha] = useState<CurrentGachaDto | null>(null)
   const [characters, setCharacters] = useState<readonly GachaCharacterDto[] | null>(null)
@@ -66,14 +68,25 @@ function AppBootstrap() {
     setDailyCombat(nextDailyCombat)
     return nextDailyCombat
   }, [])
-  const loadExpedition = useCallback(async () => { const next = await getGameApiClient().getExpedition(); setExpedition(next); return next }, [])
+  const publishExpedition = useCallback((next: ExpeditionDto) => {
+    const observedAt = performance.now()
+    setExpedition(createExpeditionClientSnapshot(next, observedAt))
+    setExpeditionMonotonicNow(observedAt)
+    return next
+  }, [])
+  const loadExpedition = useCallback(async () => publishExpedition(await getGameApiClient().getExpedition()), [publishExpedition])
   const loadNotifications = useCallback(async () => { const next = await getGameApiClient().getNotifications(); setNotifications(next); return next }, [])
   useEffect(() => {
-    if (expedition?.operationalStatus !== 'RUNNING' || !expedition.readyAt) return
-    const delay = Math.max(0, Date.parse(expedition.readyAt) - Date.now()) + 100
+    if (expedition?.value.operationalStatus !== 'RUNNING' || !expedition.value.readyAt) return
+    const delay = Math.max(0, Date.parse(expedition.value.readyAt) - Date.now()) + 100
     const timer = window.setTimeout(() => { void Promise.all([loadExpedition(), loadNotifications()]).catch(() => undefined) }, delay)
     return () => window.clearTimeout(timer)
-  }, [expedition?.operationalStatus, expedition?.readyAt, loadExpedition, loadNotifications])
+  }, [expedition?.value.operationalStatus, expedition?.value.readyAt, loadExpedition, loadNotifications])
+  useEffect(() => {
+    if (expedition?.value.operationalStatus !== 'RUNNING') return
+    const timer = window.setInterval(() => setExpeditionMonotonicNow(performance.now()), 1_000)
+    return () => window.clearInterval(timer)
+  }, [expedition?.observedAt, expedition?.value.operationalStatus])
   const publishBankTransfer = useCallback((result: BankTransferDto) => {
     setResources((current) => current ? applyBankWalletToResources(current, result) : current)
     return result
@@ -115,13 +128,13 @@ function AppBootstrap() {
     setDailyRewardToday(nextDailyRewardToday)
     setDailyChallenge(nextDailyChallenge)
     setDailyCombat(nextDailyCombat)
-    setExpedition(nextExpedition)
+    publishExpedition(nextExpedition)
     setNotifications(nextNotifications)
     setGacha(nextGacha)
     setCharacters(nextCatalog.characters)
     setTeams(nextTeams)
     setPermissions(nextPermissions)
-  }, [])
+  }, [publishExpedition])
 
   const publishProgression = useCallback((next: PlayerProgressionDto, options: { id: string; rewards?: readonly { resourceKey: string; amount: string }[]; emitLevelUpFeedback?: boolean }) => {
     const published = publishProgressionUpdate(progressionRef.current, next, options)
@@ -220,6 +233,7 @@ function AppBootstrap() {
           setDailyChallenge(null)
           setDailyCombat(null)
           setExpedition(null)
+          setExpeditionMonotonicNow(0)
           setNotifications(null)
           setGacha(null)
           setCharacters(null)
@@ -306,10 +320,11 @@ function AppBootstrap() {
       dailyChallenge={dailyChallenge}
       dailyCombat={dailyCombat}
       expedition={expedition}
+      expeditionMonotonicNow={expeditionMonotonicNow}
       notifications={notifications}
       onLoadExpedition={loadExpedition}
-      onStartExpedition={async (characterId, idempotencyKey) => { const result = await getGameApiClient().startExpedition(characterId, idempotencyKey); setExpedition(result.view); return result }}
-      onClaimExpedition={async (idempotencyKey) => { const result = await getGameApiClient().claimExpedition(idempotencyKey); setExpedition(result.view); setResources(result.resources); await loadNotifications(); return result }}
+      onStartExpedition={async (characterId, idempotencyKey) => { const result = await getGameApiClient().startExpedition(characterId, idempotencyKey); publishExpedition(result.view); return result }}
+      onClaimExpedition={async (idempotencyKey) => { const result = await getGameApiClient().claimExpedition(idempotencyKey); publishExpedition(result.view); setResources(result.resources); await loadNotifications(); return result }}
       onLoadNotifications={loadNotifications}
       onReadNotification={async (id) => { const next = await getGameApiClient().readNotification(id); setNotifications(next); return next }}
       onReadAllNotifications={async () => { const next = await getGameApiClient().readAllNotifications(); setNotifications(next); return next }}

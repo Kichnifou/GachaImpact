@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyRewardClaimDto, DailyRewardTodayDto, ElementKey, ExpeditionDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import type { ScreenId } from '../types'
 import ActivitiesScreen from './ActivitiesScreen'
+import { createExpeditionClientSnapshot } from '../expedition/expedition-client-snapshot'
 
 const roots: Root[] = []
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -18,6 +19,7 @@ function mount(overrides: Partial<typeof shared> & Partial<React.ComponentProps<
 function activity(container: HTMLElement, title: string) { return container.querySelector<HTMLElement>(`[data-daily-activity="${title}"]`)! }
 const combat = (status: DailyCombatDto['status'], koCharacterIds: readonly string[] = []): DailyCombatDto => ({ businessDate: '2026-09-11', status, encounter: { id: 'encounter', enemies: [] }, loadout: { nextAttemptMode: 'MANUAL', slots: [1, 2, 3, 4].map((position) => ({ position: position as 1 | 2 | 3 | 4, character: null, ko: false })) }, availableCharacters: [], koCharacterIds, availableCharacterCount: status === 'BLOCKED' ? 3 : 8, preview: null, canFight: false, reward: { primogems: '800', moras: '20000' }, lastAttempt: status === 'IN_PROGRESS' ? { id: 'attempt', mode: 'MANUAL', won: false, chanceHalfPoints: 148, createdAt: '2026-09-11T10:00:00.000Z' } : null, playerStats: { totalFights: '0', totalWins: '0', totalLosses: '0', totalManualWins: '0' } })
 const expedition = (overrides: Partial<ExpeditionDto> = {}): ExpeditionDto => ({ businessDate: '2026-09-11', operationalStatus: 'IDLE', departureUsedToday: false, canStartToday: true, activeCharacter: null, departedAt: null, readyAt: null, remainingSeconds: 0, startedOnCurrentBusinessDate: false, totalCompleted: '0', ...overrides })
+const expeditionSnapshot = (value: ExpeditionDto, observedAt = 0) => createExpeditionClientSnapshot(value, observedAt)
 
 describe('Activities shells', () => {
   it('keeps daily tabs outside the framed scroll body for overview, Wheel and Challenge', () => { const { container } = mount(); const frame = container.querySelector('.dailies-frame')!; expect(frame.querySelector('.scrollable-screen-panel-controls .activity-inner-tabs')).not.toBeNull(); expect(frame.querySelector('.scrollable-screen-panel-body .dailies-overview')).not.toBeNull(); act(() => Array.from(frame.querySelectorAll('button')).find((button) => button.textContent === 'Roue')!.click()); expect(frame.querySelector('.scrollable-screen-panel-body .wheel-card')).not.toBeNull(); act(() => Array.from(frame.querySelectorAll('button')).find((button) => button.textContent === 'Défi')!.click()); expect(frame.querySelector('.scrollable-screen-panel-body .daily-challenge-card')).not.toBeNull() })
@@ -53,7 +55,7 @@ describe('Activities shells', () => {
     [expedition({ operationalStatus: 'READY', activeCharacter: { id: 'furina', externalKey: 'furina', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: 'Épée', region: 'Fontaine', iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null }, departedAt: '2026-09-10T01:00:00Z', readyAt: '2026-09-11T01:00:00Z', startedOnCurrentBusinessDate: false, departureUsedToday: false, canStartToday: false }), 'À récupérer', 'Le départ du jour reste disponible après récupération.', true],
     [expedition({ departureUsedToday: true, canStartToday: false, totalCompleted: '1' }), '✅ Terminé', 'Expédition effectuée aujourd’hui.', false],
   ] as const)('projects every Expedition daily state without a fictitious reward', (value, status, detail, hasAccess) => {
-    const { container } = mount({ expedition: value })
+    const { container } = mount({ expedition: expeditionSnapshot(value) })
     const card = activity(container, 'Expédition')
     expect(card.textContent).toContain(status)
     expect(card.textContent).toContain(detail)
@@ -64,11 +66,21 @@ describe('Activities shells', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2030-01-01T00:00:00Z'))
     const value = expedition({ operationalStatus: 'RUNNING', activeCharacter: { id: 'furina', externalKey: 'furina', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: 'Épée', region: 'Fontaine', iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null }, departedAt: '2040-01-01T00:00:00Z', readyAt: '2040-01-01T20:00:00Z', remainingSeconds: 72_000, startedOnCurrentBusinessDate: true, departureUsedToday: true, canStartToday: false })
-    const { container } = mount({ expedition: value })
+    const mounted = mount({ expedition: expeditionSnapshot(value), expeditionMonotonicNow: 0 })
+    const { container } = mounted
     expect(activity(container, 'Expédition').textContent).toContain('20:00:00')
-    act(() => vi.advanceTimersByTime(1_000))
+    act(() => mounted.root.render(<ActivitiesScreen screen="activities-dailies" {...mounted.props} expedition={expeditionSnapshot(value)} expeditionMonotonicNow={1_000} />))
     expect(activity(container, 'Expédition').textContent).toContain('19:59:59')
     vi.useRealTimers()
+  })
+  it('forwards the real RUNNING Expedition action instead of navigating to a plain Box', () => {
+    const onOpenExpedition = vi.fn()
+    const onNavigate = vi.fn()
+    const value = expedition({ operationalStatus: 'RUNNING', activeCharacter: { id: 'furina', externalKey: 'furina', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: 'Épée', region: 'Fontaine', iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null }, departedAt: '2026-09-11T01:00:00Z', readyAt: '2026-09-12T21:00:00Z', remainingSeconds: 72_000, startedOnCurrentBusinessDate: true, departureUsedToday: true, canStartToday: false })
+    const { container } = mount({ expedition: expeditionSnapshot(value), onOpenExpedition, onNavigate })
+    act(() => activity(container, 'Expédition').querySelector<HTMLButtonElement>('button')!.click())
+    expect(onOpenExpedition).toHaveBeenCalledOnce()
+    expect(onNavigate).not.toHaveBeenCalledWith('characters-box')
   })
   it.each([
     [{ resultType: 'nothing', resourceKey: null, amount: null }, 'Obtenu : Rien'],

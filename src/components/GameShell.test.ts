@@ -27,8 +27,13 @@ describe('GameShell shared particle conversion overlay', () => {
   it('consumes Box character deep links once without remounting the Box', () => {
     expect(gameShellSource).not.toContain('key={`${player.id}:${boxOpenIntent?.token ?? 0}`}')
     expect(gameShellSource).toContain('onOpenCharacterIntentConsumed={(token) => setBoxOpenIntent((current) => current?.token === token ? null : current)}')
-    expect(gameShellSource).toContain('setBoxOpenIntent({ characterId: expedition.activeCharacter.id, token: crypto.randomUUID() })')
+    expect(gameShellSource).toContain('setBoxOpenIntent({ characterId: expedition.value.activeCharacter.id, token: crypto.randomUUID() })')
     expect(gameShellSource).toContain('setBoxOpenIntent({ characterId: notification.actionTargetId, token: crypto.randomUUID() })')
     expect(gameShellSource).toContain("else { setBoxOpenIntent(null); navigate('characters-box') }")
+  })
+
+  it('passes the same central Expedition snapshot and monotonic clock to Box and Activities', () => {
+    expect(gameShellSource).toContain('expedition={expedition} expeditionMonotonicNow={expeditionMonotonicNow}')
+    expect(gameShellSource.match(/expeditionMonotonicNow=\{expeditionMonotonicNow\}/g)).toHaveLength(2)
   })
 })

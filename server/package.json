@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:db": "vitest run --config vitest.db.config.ts",
     "test:manual:player-flow": "node scripts/test-player-flow.mjs",
+    "migration:legacy:dry-run": "tsx src/cli/legacy-migration-dry-run.ts",
     "typecheck": "tsc --noEmit --project tsconfig.json",
     "prisma:generate": "prisma generate",
     "catalog:generate": "node scripts/generate-gacha-catalog.mjs",

@@ -9,6 +9,7 @@ import BoxScreen, { BoxStatus, BoxView } from './BoxScreen'
 import boxCollectionSource from '../box/use-box-collection.ts?raw'
 import boxScreenSource from './BoxScreen.tsx?raw'
 import detailSource from '../components/BoxCharacterDetailModal.tsx?raw'
+import { createExpeditionClientSnapshot } from '../expedition/expedition-client-snapshot'
 
 const appCssSource = readFileSync('src/App.css', 'utf8')
 
@@ -25,6 +26,7 @@ const records = [
 ]
 const box: PlayerBoxDto = { characters: records, summary: { totalOwned: 4, fiveStars: 2, fourStars: 2, c6: 1 }, preference: { sortKey: 'alphabetical', direction: 'asc' }, stella: { quantity: '0' } }
 const expedition = (overrides: Partial<ExpeditionDto> = {}): ExpeditionDto => ({ businessDate: '2026-09-11', operationalStatus: 'IDLE', departureUsedToday: false, canStartToday: true, activeCharacter: null, departedAt: null, readyAt: null, remainingSeconds: 0, startedOnCurrentBusinessDate: false, totalCompleted: '0', ...overrides })
+const expeditionSnapshot = (value: ExpeditionDto) => createExpeditionClientSnapshot(value, 0)
 const modalProps = { stellaQuantity: '0', stellaRetryAvailable: false, favoritePending: false, stellaPending: false, stellaFeedback: null, onToggleFavorite: vi.fn(), onUseStella: vi.fn(), onClose: vi.fn() }
 const renderView = (filters: BoxFilters = initialBoxFilters, overrides: Partial<Parameters<typeof BoxView>[0]> = {}) => renderToStaticMarkup(<BoxView box={box} filters={filters} error={null} favoritePendingId={null} stellaPendingId={null} stellaRetryId={null} stellaFeedback={null} selected={null} onFilters={vi.fn()} onSelect={vi.fn()} onToggleFavorite={vi.fn()} onUseStella={vi.fn()} onCloseDetail={vi.fn()} {...overrides} />)
 
@@ -186,22 +188,22 @@ describe('real personal Box', () => {
 
   it('prioritizes a READY character before favorites while preserving active filters', () => {
     const ready = expedition({ operationalStatus: 'READY', activeCharacter: records[3]!, departedAt: '2026-09-10T01:00:00Z', readyAt: '2026-09-11T01:00:00Z', canStartToday: false })
-    const all = renderView(initialBoxFilters, { expedition: ready })
+    const all = renderView(initialBoxFilters, { expedition: expeditionSnapshot(ready) })
     expect(all.indexOf('Bennett')).toBeLessThan(all.indexOf('Furina'))
     expect(all).toContain('✅ À récupérer')
-    const hydroOnly = renderView({ ...initialBoxFilters, element: 'hydro' }, { expedition: ready })
+    const hydroOnly = renderView({ ...initialBoxFilters, element: 'hydro' }, { expedition: expeditionSnapshot(ready) })
     expect(hydroOnly).toContain('Furina')
     expect(hydroOnly).not.toContain('Bennett')
   })
 
   it('renders Expedition actions and status only for the applicable character', () => {
-    const idle = renderToStaticMarkup(<BoxCharacterDetailModal character={records[2]!} expedition={expedition()} {...modalProps} />)
+    const idle = renderToStaticMarkup(<BoxCharacterDetailModal character={records[2]!} expedition={expeditionSnapshot(expedition())} {...modalProps} />)
     expect(idle).toContain('Disponible aujourd’hui · durée 20 h')
     expect(idle).toContain('Envoyer en expédition')
-    const running = renderToStaticMarkup(<BoxCharacterDetailModal character={records[2]!} expedition={expedition({ operationalStatus: 'RUNNING', activeCharacter: records[2]!, departedAt: '2026-09-11T01:00:00Z', readyAt: '2099-09-12T21:00:00Z', remainingSeconds: 72000, startedOnCurrentBusinessDate: true, departureUsedToday: true, canStartToday: false })} {...modalProps} />)
+    const running = renderToStaticMarkup(<BoxCharacterDetailModal character={records[2]!} expedition={expeditionSnapshot(expedition({ operationalStatus: 'RUNNING', activeCharacter: records[2]!, departedAt: '2026-09-11T01:00:00Z', readyAt: '2099-09-12T21:00:00Z', remainingSeconds: 72000, startedOnCurrentBusinessDate: true, departureUsedToday: true, canStartToday: false }))} {...modalProps} />)
     expect(running).toContain('En expédition')
     expect(running).not.toContain('Envoyer en expédition')
-    const ready = renderToStaticMarkup(<BoxCharacterDetailModal character={records[2]!} expedition={expedition({ operationalStatus: 'READY', activeCharacter: records[2]!, departedAt: '2026-09-10T01:00:00Z', readyAt: '2026-09-11T01:00:00Z', canStartToday: false })} {...modalProps} />)
+    const ready = renderToStaticMarkup(<BoxCharacterDetailModal character={records[2]!} expedition={expeditionSnapshot(expedition({ operationalStatus: 'READY', activeCharacter: records[2]!, departedAt: '2026-09-10T01:00:00Z', readyAt: '2026-09-11T01:00:00Z', canStartToday: false }))} {...modalProps} />)
     expect(ready).toContain('À récupérer')
     expect(ready).toContain('Récupérer l’expédition')
   })
