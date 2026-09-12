@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import type { DailyChallengeDto, DailyChallengeMutationDto, DailyRewardClaimDto, DailyRewardTodayDto, ElementKey, WheelSpinDto, WheelTodayDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
-import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
+import { formatResourceAmount, formatWheelOverviewResult } from '../utils/formatters'
 import WheelCard from '../components/WheelCard'
 import DailyRewardCard from '../components/DailyRewardCard'
 import ScreenHeader from '../components/ScreenHeader'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import type { ScreenId } from '../types'
-import { dailyChallengeProgressSentence } from '../daily-challenge/presentation'
+import { dailyChallengeErrorMessage, dailyChallengeProgressSentence } from '../daily-challenge/presentation'
 
 type ActivitiesScreenProps = {
   screen: ScreenId
@@ -34,19 +34,21 @@ type DailyOverviewCardProps = {
   status: string
   completed?: boolean
   detail?: string
+  obtained?: string
   onAccess?: () => void
   accessLabel?: string
 }
 
-function DailyOverviewCard({ title, status, completed = false, detail, onAccess, accessLabel }: DailyOverviewCardProps) {
+function DailyOverviewCard({ title, status, completed = false, detail, obtained, onAccess, accessLabel }: DailyOverviewCardProps) {
   return (
     <section className="panel daily-overview-card" data-daily-activity={title}>
       <div>
         <h2>{title}</h2>
         <p className={completed ? 'daily-overview-complete' : undefined}>{status}</p>
         {detail && <p className="daily-overview-detail">{detail}</p>}
+        {obtained && <p className="daily-overview-obtained">Obtenu : {obtained}</p>}
       </div>
-      <div className="daily-overview-action-slot"><button type="button" className="small-primary-button" onClick={onAccess} disabled={!onAccess} aria-label={accessLabel ?? `Accéder à ${title}`}>Accéder</button></div>
+      {!completed && <div className="daily-overview-action-slot"><button type="button" className="small-primary-button" onClick={onAccess} disabled={!onAccess} aria-label={accessLabel ?? `Accéder à ${title}`}>Accéder</button></div>}
     </section>
   )
 }
@@ -56,7 +58,7 @@ function DailiesScreen({ wheelToday, onSpinWheel, dailyRewardToday, dailyChallen
   const tabs = <nav className="activity-inner-tabs" aria-label="Sections Quotidiennes"><button className={tab === 'overview' ? 'active' : ''} onClick={() => setTab('overview')}>Aperçu</button><button className={tab === 'wheel' ? 'active' : ''} onClick={() => setTab('wheel')}>Roue</button><button className={tab === 'challenge' ? 'active' : ''} onClick={() => setTab('challenge')}>Défi</button></nav>
   const challengeCompleted = dailyChallenge.status === 'COMPLETED' && Boolean(dailyChallenge.challenge)
   const challengeStatus = challengeCompleted ? '✅ Terminé' : dailyChallenge.assigned && dailyChallenge.challenge ? `${dailyChallenge.challenge.displayName} · ${dailyChallenge.challenge.progress} / ${dailyChallenge.challenge.target}` : `Disponible — ${formatResourceAmount(dailyChallenge.purchaseCost)} Moras`
-  return <div className="screen-content activity-shell dailies-shell long-screen-layout"><ScreenHeader eyebrow="Activités" title="Quotidiennes" description="Retrouvez les activités du jour et leur disponibilité réelle." /><ScrollableScreenPanel className="dailies-frame" fixed={tabs}>{tab === 'overview' && <div className="dailies-overview"><div className="daily-overview-item" data-daily-activity="Récompense quotidienne"><DailyRewardCard variant="overview" today={dailyRewardToday} elementKey={elementKey} onClaim={onClaimDailyReward} /></div><DailyOverviewCard title="Roue" status={wheelToday.spun ? '✅ Terminé' : 'Une tentative disponible aujourd’hui.'} completed={wheelToday.spun} detail={wheelToday.spun ? 'Roue utilisée aujourd’hui.' : undefined} onAccess={() => setTab('wheel')} /><DailyOverviewCard title="Défi" status={challengeStatus} completed={challengeCompleted} detail={challengeCompleted ? dailyChallengeProgressSentence(dailyChallenge.challenge!) : undefined} onAccess={() => setTab('challenge')} /><DailyOverviewCard title="Combat" status="Bientôt disponible. Entraînement et Boss sont indisponibles." onAccess={() => onNavigate('activities-combat')} /><DailyOverviewCard title="Expédition" status="Bientôt disponible. Le système Expédition n’est pas encore implémenté." onAccess={() => onNavigate('characters-box')} /><DailyOverviewCard title="Amitié" status="Bientôt disponible. Social et Amis ne sont pas encore implémentés." accessLabel="Accéder à Amitié — Social et Amis bientôt disponibles" /><DailyOverviewCard title="Événement" status="Bientôt disponible. Le système Événement n’est pas encore implémenté." onAccess={() => onNavigate('activities-event')} /></div>}{tab === 'wheel' && <WheelCard today={wheelToday} onSpin={onSpinWheel} />}{tab === 'challenge' && <DailyChallengeCard value={dailyChallenge} onPurchase={onPurchaseDailyChallenge} onSwitch={onSwitchDailyChallenge} onOpenParticleConversion={onOpenParticleConversion} onNavigate={onNavigate} />}</ScrollableScreenPanel></div>
+  return <div className="screen-content activity-shell dailies-shell long-screen-layout"><ScreenHeader eyebrow="Activités" title="Quotidiennes" description="Retrouvez les activités du jour et leur disponibilité réelle." /><ScrollableScreenPanel className="dailies-frame" fixed={tabs}>{tab === 'overview' && <div className="dailies-overview"><div className="daily-overview-item" data-daily-activity="Récompense quotidienne"><DailyRewardCard variant="overview" today={dailyRewardToday} elementKey={elementKey} onClaim={onClaimDailyReward} /></div><DailyOverviewCard title="Roue" status={wheelToday.spun ? '✅ Terminé' : 'Une tentative disponible aujourd’hui.'} completed={wheelToday.spun} detail={wheelToday.spun ? 'Roue utilisée aujourd’hui.' : undefined} obtained={wheelToday.spun && wheelToday.result ? formatWheelOverviewResult(wheelToday.result) : undefined} onAccess={() => setTab('wheel')} /><DailyOverviewCard title="Défi" status={challengeStatus} completed={challengeCompleted} detail={challengeCompleted ? dailyChallengeProgressSentence(dailyChallenge.challenge!) : undefined} obtained={challengeCompleted ? `+${formatResourceAmount(dailyChallenge.challenge!.rewardPrimogems)} Primogemmes` : undefined} onAccess={() => setTab('challenge')} /><DailyOverviewCard title="Combat" status="Bientôt disponible. Entraînement et Boss sont indisponibles." onAccess={() => onNavigate('activities-combat')} /><DailyOverviewCard title="Expédition" status="Bientôt disponible. Le système Expédition n’est pas encore implémenté." onAccess={() => onNavigate('characters-box')} /><DailyOverviewCard title="Amitié" status="Bientôt disponible. Social et Amis ne sont pas encore implémentés." accessLabel="Accéder à Amitié — Social et Amis bientôt disponibles" /><DailyOverviewCard title="Événement" status="Bientôt disponible. Le système Événement n’est pas encore implémenté." onAccess={() => onNavigate('activities-event')} /></div>}{tab === 'wheel' && <WheelCard today={wheelToday} onSpin={onSpinWheel} />}{tab === 'challenge' && <DailyChallengeCard value={dailyChallenge} onPurchase={onPurchaseDailyChallenge} onSwitch={onSwitchDailyChallenge} onOpenParticleConversion={onOpenParticleConversion} onNavigate={onNavigate} />}</ScrollableScreenPanel></div>
 }
 
 export function DailyChallengeCard({ value, onPurchase, onSwitch, onOpenParticleConversion, onNavigate }: { value: DailyChallengeDto; onPurchase: (key: string) => Promise<DailyChallengeMutationDto>; onSwitch: (key: string) => Promise<DailyChallengeMutationDto>; onOpenParticleConversion: () => void; onNavigate: (screen: ScreenId) => void }) {
@@ -69,7 +71,7 @@ export function DailyChallengeCard({ value, onPurchase, onSwitch, onOpenParticle
     const current = intent?.action === action ? intent : { action, key: crypto.randomUUID() }
     setIntent(current); setPending(action); setError(null)
     try { await (action === 'purchase' ? onPurchase(current.key) : onSwitch(current.key)); setIntent(null); setConfirmSwitch(false) }
-    catch (reason) { if (!isAmbiguousMutationError(reason)) setIntent(null); setError(apiErrorMessage(reason)) }
+    catch (reason) { if (!isAmbiguousMutationError(reason)) setIntent(null); setError(dailyChallengeErrorMessage(reason, action)) }
     finally { setPending(null) }
   }
   if (!value.assigned || !value.challenge) return <section className="panel daily-challenge-card available" data-challenge-state="available">

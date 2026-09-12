@@ -1,6 +1,6 @@
 # Contrat de layout UI V1
 
-Statut : contrat transverse validé — correctif physique candidat 0.84.
+Statut : contrat transverse validé — correctif physique candidat 0.85.
 
 Ce document est la source de vérité des règles de composition et de stabilité visuelle communes. Les documents métier restent propriétaires du contenu et des actions de chaque écran ; le shell de navigation reste propriétaire des destinations.
 
@@ -9,6 +9,8 @@ Ce document est la source de vérité des règles de composition et de stabilit�
 À partir du breakpoint desktop, un écran long occupe toute la hauteur utile de `screen-stage`, jusqu’au même bord inférieur que le chat. Son cadre reste fermé et visible. Il est structuré en zones fixes (header, navigation locale, recherche, filtres, tris ou actions nécessaires) puis en un body `minmax(0, 1fr)` dont le défilement est interne.
 
 Le document, le shell et les contrôles fixes ne doivent pas défiler pour parcourir les données. Un body vide conserve la hauteur disponible : il ne raccourcit pas le cadre. Boutique, Quotidiennes, Configuration, Box, Catalogue et Modération suivent cette règle lorsqu’ils utilisent le pattern d’écran long.
+
+Lorsqu’un panneau fonctionnel associe un header local (titre, recherche ou filtres) à un contenu susceptible de dépasser, ce header reste hors du conteneur de défilement. Tout ce qui le suit — erreurs, résumés, groupes, listes et états vides — appartient à un body `minmax(0, 1fr)` dont `overflow-y: auto` n’affiche une barre que si nécessaire. Les contrôles ou catégories placés dans une colonne sœur restent eux aussi immobiles.
 
 ## Défilement et responsive
 

@@ -36,11 +36,10 @@ function DailyRewardCard({ today, elementKey, onClaim, variant = 'sidebar' }: Da
         <h2>Récompense quotidienne</h2>
         <p className={claimed ? 'daily-overview-complete' : undefined}>{claimed ? '✅ Terminé' : 'Disponible aujourd’hui.'}</p>
         {claimed && <p className="daily-overview-detail">Récompense récupérée aujourd’hui.</p>}
-        <p className={`daily-overview-feedback${errorMessage ? ' error' : ''}`} role={errorMessage ? 'alert' : undefined}>{errorMessage ?? ''}</p>
+        {claimed && <p className="daily-overview-obtained">Obtenu : {formatDailyRewardDetails(freshClaim ?? today, elementKey)}</p>}
+        {!claimed && <p className={`daily-overview-feedback${errorMessage ? ' error' : ''}`} role={errorMessage ? 'alert' : undefined}>{errorMessage ?? ''}</p>}
       </div>
-      <div className="daily-overview-action-slot">
-        {!claimed && <button type="button" className="small-primary-button" onClick={claim} disabled={isClaiming}>{isClaiming ? 'Récupération…' : 'Récupérer'}</button>}
-      </div>
+      {!claimed && <div className="daily-overview-action-slot"><button type="button" className="small-primary-button" onClick={claim} disabled={isClaiming}>{isClaiming ? 'Récupération…' : 'Récupérer'}</button></div>}
     </section>
   )
 

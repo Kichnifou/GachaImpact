@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatResourceAmount, formatWheelResult, formatFreshWheelResult } from './formatters'
+import { formatResourceAmount, formatWheelResult, formatFreshWheelResult, formatWheelOverviewResult } from './formatters'
 
 describe('gameplay presentation mapping', () => {
   it.each([
@@ -27,5 +27,16 @@ describe('gameplay presentation mapping', () => {
     expect(
       formatWheelResult(result),
     ).toContain(expectedText)
+  })
+
+  it.each([
+    [{ resultType: 'nothing', resourceKey: null, amount: null }, 'Rien'],
+    [{ resultType: 'particles', resourceKey: 'particles_hydro', amount: '500' }, '+500 particules Hydro'],
+    [{ resultType: 'moras', resourceKey: 'moras', amount: '50000' }, '+50 000 Moras'],
+    [{ resultType: 'primogems', resourceKey: 'primogems', amount: '1600' }, '+1 600 Primos'],
+  ] as const)('keeps the completed overview result compact and factual', (result, expected) => {
+    const text = formatWheelOverviewResult(result)
+    expect(text).toBe(expected)
+    expect(text).not.toMatch(/JACKPOT|Félicitations/)
   })
 })

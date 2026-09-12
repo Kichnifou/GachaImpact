@@ -69,6 +69,13 @@ describe('real inventory screen', () => {
     expect(container.querySelectorAll('.inventory-group-heading')).toHaveLength(3)
     expect(Array.from(container.querySelectorAll('.inventory-group-heading')).map((heading) => heading.textContent)).toEqual(['Ressources', 'Progression', 'Objets rares'])
     expect(container.querySelector('.inventory-resource-icon img')).not.toBeNull()
+    const content = container.querySelector('.inventory-content')!
+    const heading = content.querySelector('.inventory-heading')!
+    const scrollBody = content.querySelector('.inventory-scroll-body')!
+    expect(heading.parentElement).toBe(content)
+    expect(scrollBody.parentElement).toBe(content)
+    expect(scrollBody.contains(container.querySelector('.inventory-groups'))).toBe(true)
+    expect(heading.contains(scrollBody)).toBe(false)
   })
 
   it('keeps navigation labels stable while every filtered category shows its final group label', async () => {
@@ -135,8 +142,11 @@ describe('real inventory screen', () => {
     expect(container.querySelectorAll('.inventory-resource-card .inventory-card-action')).toHaveLength(3)
     expect(container.querySelectorAll('.inventory-resource-card:not(.has-action) .inventory-card-action')).toHaveLength(0)
     expect(appCssSource).not.toMatch(/\.inventory-resource-card\s*\{[^}]*min-height:\s*112px/s)
-    expect(appCssSource).toMatch(/\.inventory-resource-card\s*\{[^}]*height:\s*82px;[^}]*min-height:\s*82px;/s)
+    expect(appCssSource).toMatch(/\.inventory-resource-card\s*\{[^}]*height:\s*73px;[^}]*min-height:\s*73px;/s)
     expect(appCssSource).not.toMatch(/\.inventory-resource-card\.has-action\s*\{[^}]*(?:height|min-height):/s)
+    expect(appCssSource).toMatch(/@media\s*\(min-width:\s*1121px\)[\s\S]*?\.inventory-content\s*\{[^}]*grid-template-rows:\s*auto minmax\(0, 1fr\);[^}]*\}/s)
+    expect(appCssSource).toMatch(/@media\s*\(min-width:\s*1121px\)[\s\S]*?\.inventory-scroll-body\s*\{[^}]*overflow-y:\s*auto;[^}]*\}/s)
+    expect(appCssSource).toMatch(/\.inventory-scroll-body\s*\{\s*min-width:\s*0;\s*\}/s)
   })
 
   it('orders Collection owned then unknown and opens real details', async () => {

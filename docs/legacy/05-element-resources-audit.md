@@ -1530,3 +1530,9 @@ Idée future documentée :
 En 0.83, cette modale et son intention sont extraites en composant partagé. Les particules personnelles ouvrent la conversion depuis Sac (`Tout` ou `Ressources`) et depuis un lien discret de la sidebar, superposé à l’écran courant ; les six autres éléments n’exposent aucune action. Primos ouvre Boutique et Moras ouvre Banque.
 
 Le correctif physique 0.84 remplace l’interprétation erronée du pied réservé universel : les cartes reprennent la géométrie compacte pré-0.83 dont Moras est la référence. Les liens Primos, Moras et particules personnelles s’intègrent sans augmenter la hauteur ; les six autres cartes ne rendent ni action ni emplacement vide. Dans la sidebar, `Convertir →` est positionné dans l’espace interne bas droite du panneau Particules, sans changer les dimensions du cadre ni naviguer hors de l’écran courant.
+
+### Hauteur et défilement du Sac 0.85
+
+Masterless Stella Fortuna remplace Moras uniquement comme étalon de hauteur extérieure : sa mesure desktop réelle de 73 px devient la hauteur des neuf cartes Ressources, avec un écart maximal admis de 1 px. La structure interne des Ressources 0.84 reste autoritative : icône, nom, description, montant, liens Boutique/Banque/Conversion et absence d’action sur les six autres éléments ne sont ni déplacés ni reconstruits. Stella conserve elle aussi son contenu et son bouton `Utiliser`; elle n’est pas le modèle interne des Ressources.
+
+Sur desktop, le panneau droit du Sac sépare le header fonctionnel fixe d’un body `minmax(0, 1fr)` en `overflow-y: auto`. Ce body contient erreurs, résumé Collection, groupes, objets et états vides ; il devient le seul propriétaire du scroll quand le contenu dépasse. Les catégories gauches ne défilent pas avec lui, et mobile conserve le flux naturel afin d’éviter un double scroll.

@@ -32,10 +32,26 @@ describe('Activities shells', () => {
     const claimedReward = activity(claimed.container, 'Récompense quotidienne')
     expect(claimedReward.textContent).toContain('✅ Terminé')
     expect(claimedReward.textContent).toContain('Récompense récupérée aujourd’hui.')
+    expect(claimedReward.textContent).toContain('Obtenu : +800 Primos · +500 particules Hydro · +50 000 Moras')
     expect(claimedReward.querySelector('button')).toBeNull()
+    expect(claimedReward.querySelector('.daily-overview-action-slot')).toBeNull()
   })
   it('shows the real available Wheel state and opens the Wheel subview from Accéder', () => { const { container } = mount(); const wheel = activity(container, 'Roue'); expect(wheel.textContent).toContain('Une tentative disponible aujourd’hui'); expect(wheel.textContent).not.toContain('À faire'); expect(wheel.querySelector('button')?.textContent).toBe('Accéder'); act(() => wheel.querySelector('button')!.click()); expect(container.textContent).toContain('Roue astrale'); expect(container.textContent).toContain('Votre tentative du jour est disponible') })
-  it('shows the authoritative used Wheel state while keeping Accéder', () => { const { container } = mount({ wheelToday: { spun: true, businessDate: '2026-09-11', result: { resultType: 'moras', resourceKey: 'moras', amount: '50000' } } }); const wheel = activity(container, 'Roue'); expect(wheel.textContent).toContain('✅ Terminé'); expect(wheel.textContent).toContain('Roue utilisée aujourd’hui.'); expect(wheel.querySelector('button')?.textContent).toBe('Accéder') })
+  it.each([
+    [{ resultType: 'nothing', resourceKey: null, amount: null }, 'Obtenu : Rien'],
+    [{ resultType: 'particles', resourceKey: 'particles_hydro', amount: '500' }, 'Obtenu : +500 particules Hydro'],
+    [{ resultType: 'moras', resourceKey: 'moras', amount: '50000' }, 'Obtenu : +50 000 Moras'],
+    [{ resultType: 'primogems', resourceKey: 'primogems', amount: '1600' }, 'Obtenu : +1 600 Primos'],
+  ] as const)('shows a compact completed Wheel overview without an action', (result, expected) => {
+    const { container } = mount({ wheelToday: { spun: true, businessDate: '2026-09-11', result } })
+    const wheel = activity(container, 'Roue')
+    expect(wheel.textContent).toContain('✅ Terminé')
+    expect(wheel.textContent).toContain('Roue utilisée aujourd’hui.')
+    expect(wheel.textContent).toContain(expected)
+    expect(wheel.textContent).not.toMatch(/JACKPOT|Félicitations/)
+    expect(wheel.querySelector('button')).toBeNull()
+    expect(wheel.querySelector('.daily-overview-action-slot')).toBeNull()
+  })
   it('hides the objective before purchase and exposes the authoritative price, reward and reset', () => { const { container } = mount(); const challenge = activity(container, 'Défi'); expect(challenge.textContent).toContain('Disponible'); act(() => challenge.querySelector('button')!.click()); expect(container.textContent).toContain('Défi du jour'); expect(container.textContent).toMatch(/10\D000 Moras/); expect(container.textContent).toContain('800 Primogemmes'); expect(container.textContent).toContain('reset journalier'); expect(container.textContent).not.toContain('Invocations effectuées') })
   it('switches directly at zero progress and asks for confirmation only after progress exists', async () => {
     const direct = vi.fn(async () => ({ ...activeChallenge, operation: { id: 'direct', alreadyProcessed: false }, resources: { primogems: '0', moras: '0', particles: { pyro: '0', hydro: '0', cryo: '0', electro: '0', anemo: '0', geo: '0', dendro: '0' } } }))
@@ -57,13 +73,33 @@ describe('Activities shells', () => {
   it('shows a completed challenge with its received reward and no switch or claim action', () => {
     const completed = { ...activeChallenge, status: 'COMPLETED' as const, canSwitch: false, nextSwitchCost: null, completedAt: '2026-09-11T12:00:00.000Z', challenge: { ...activeChallenge.challenge!, progress: '5' } }
     const { container } = mount({ dailyChallenge: completed })
-    expect(activity(container, 'Défi').textContent).toContain('Terminé')
-    act(() => activity(container, 'Défi').querySelector('button')!.click())
+    const overview = activity(container, 'Défi')
+    expect(overview.textContent).toContain('Terminé')
+    expect(overview.textContent).toContain('5 / 5 Invocations effectuées.')
+    expect(overview.textContent).toContain('Obtenu : +800 Primogemmes')
+    expect(overview.querySelector('button')).toBeNull()
+    expect(overview.querySelector('.daily-overview-action-slot')).toBeNull()
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('.activity-inner-tabs button')).find((button) => button.textContent === 'Défi')!.click())
     expect(container.textContent).toContain('5 / 5 Invocations effectuées.')
     expect(container.textContent).toContain('+800 Primogemmes')
     expect(container.textContent).toContain('Récompense reçue')
     expect(container.textContent).not.toContain('Changer de Défi')
     expect(container.textContent).not.toContain('Réclamer')
+  })
+  it('shows an explicit insufficient-wallet error when purchasing a challenge', async () => {
+    const onPurchaseDailyChallenge = vi.fn(async () => { throw { code: 'DAILY_CHALLENGE_WALLET_INSUFFICIENT' } })
+    const { container } = mount({ onPurchaseDailyChallenge })
+    act(() => activity(container, 'Défi').querySelector('button')!.click())
+    await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent?.startsWith('Acheter le Défi'))!.click(); await Promise.resolve() })
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe('Vous n’avez pas assez de Moras pour acheter le Défi.')
+  })
+
+  it('shows an explicit insufficient-wallet error when switching a challenge', async () => {
+    const onSwitchDailyChallenge = vi.fn(async () => { throw { code: 'DAILY_CHALLENGE_WALLET_INSUFFICIENT' } })
+    const { container } = mount({ dailyChallenge: activeChallenge, onSwitchDailyChallenge })
+    act(() => activity(container, 'Défi').querySelector('button')!.click())
+    await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent?.startsWith('Changer de Défi'))!.click(); await Promise.resolve() })
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe('Vous n’avez pas assez de Moras pour changer de Défi.')
   })
   it('opens the shared conversion overlay without navigation and routes Pulls to Invocation', () => {
     const conversion = { ...activeChallenge, challenge: { ...activeChallenge.challenge!, externalKey: 'daily_convert_particles_320', type: 'conversion' as const, displayName: 'Alchimie élémentaire', description: 'Convertissez 320 particules.', progressLabel: 'Particules converties', target: '320' } }

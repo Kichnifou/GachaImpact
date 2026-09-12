@@ -1,7 +1,7 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.84
-Date : 2026-09-11
+Version : 0.85
+Date : 2026-09-12
 Statut : DOCUMENT MAÎTRE ÉVOLUTIF  
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
@@ -3691,7 +3691,7 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Le candidat 0.83 a été reviewé, promu et testé publiquement. Le propriétaire valide la géométrie générale Team et son bouton, les headers Activités, Boutique, History, l’UTF-8 Défi, le lien Primogemmes, ainsi que le standard général `✅ Terminé`.
 - Le même test public refuse encore le statut secondaire du panneau Passifs, la présentation Daily Reward d’Aperçu, le DnD Configuration, la carte Défi 350 px, l’allongement universel des cartes Ressources et la position bas gauche de Conversion dans la sidebar. Ces points deviennent le correctif candidat 0.84 ; le métier Défi, la conversion 1:1 et le feedback de complétion restent inchangés.
 
-## État du candidat 0.84 — simplification Défi et restauration des layouts Ressources
+## État public 0.84 — simplification Défi et restauration des layouts Ressources
 
 - Team conserve intégralement le panneau 126 px, la grille 1/2/3/4, la colonne d’action et la modale détaillée validés ; seul le statut secondaire `Aperçu`/`Team active` est retiré.
 - `Quotidiennes > Aperçu` présente la Récompense quotidienne avec la même carte, le même pied d’action et le même bouton que Roue/Défi, sans losange. Les états sont `Disponible aujourd’hui.` avec `Récupérer`, ou `✅ Terminé` avec `Récompense récupérée aujourd’hui.`, sans layout shift de mutation. La carte Daily Reward de sidebar n’est pas reconstruite.
@@ -3699,7 +3699,17 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - La carte Défi est entièrement recomposée en quatre zones stables — header, contenu, progression et actions — sur toute la largeur et sous 280 px desktop. Disponible, Actif, confirmation et Terminé partagent le même cadre ; progression et phrase sont séparées. Conversion ouvre la modale transverse sans navigation, Pulls va vers Invocation sans tirer, Messages n’expose aucune action factice. Changer reste secondaire et sa confirmation remplace le pied sans agrandir la carte.
 - Le feedback `Défi terminé !` reste déclenché uniquement sur `ACTIVE → COMPLETED`, jamais au chargement, avec verrou, backdrop/`Escape` et auto-dismiss inchangés. Il reste à revalider publiquement sur une transition réelle.
 - Le Sac reprend la géométrie compacte de la carte Moras au checkpoint `fc3ee53d7507e878e793bc75ef136a4f7fb3f59f`. Primos, Moras et les particules personnelles intègrent leur lien sans `min-height: 112px` ni footer universel ; les autres particules ne réservent rien. Dans la sidebar, `Convertir →` occupe l’espace interne bas droite sans modifier le cadre Particules.
-- Boutique, History, migration 013, schéma Prisma et Supabase restent inchangés. Les huit comptes DEV légitimes confirmés et toutes leurs données restent intacts. Quotidiennes / Défi demeure le domaine actif ; le candidat 0.84 doit être reviewé indépendamment avant toute promotion.
+- Boutique, History, migration 013, schéma Prisma et Supabase restent inchangés. Les huit comptes DEV légitimes confirmés et toutes leurs données restent intacts.
+- Le propriétaire a validé publiquement le 0.84 : Team et ses passifs, la direction générale Daily Reward, Configuration arrow-only, le redesign Défi, ses actions Conversion/Invocation, la confirmation de changement, le contenu et les liens Ressources, la Conversion de sidebar et le standard `✅ Terminé` constituent le checkpoint public courant. Quotidiennes / Défi demeure le domaine actif.
+
+## État du candidat 0.85 — complétion des Quotidiennes et scroll interne du Sac
+
+- Dans `Quotidiennes > Aperçu`, une activité réelle terminée affiche désormais trois lignes stables : `✅ Terminé`, son détail contextuel et `Obtenu : <résultat réel>`. Daily Reward lit les gains de son DTO, Roue utilise une restitution compacte incluant `Obtenu : Rien`, et Défi lit `rewardPrimogems`.
+- Une Daily Reward, une Roue ou un Défi terminé ne rend plus aucun bouton d’action dans Aperçu ; les dimensions externes 0.84 restent inchangées et les tabs permettent toujours la consultation directe.
+- Les six codes métier DailyChallenge connus possèdent une restitution française explicite. L’insuffisance de wallet distingue l’achat du changement et mentionne directement le manque de Moras ; aucun code backend ni comportement serveur n’est modifié.
+- La hauteur externe mesurée de Masterless Stella Fortuna, 73 px à 1920 × 1080 comme à 1366 × 768, devient l’étalon des neuf cartes Ressources. Leur structure, leur contenu, leurs icônes et leurs liens validés restent inchangés ; Stella n’est pas leur modèle interne.
+- Dans Sac desktop, le header fonctionnel reste fixe et tout ce qui le suit appartient à un body `minmax(0, 1fr)` en `overflow-y: auto`. Les catégories gauches restent immobiles ; mobile conserve son flux naturel sans second scroll interne.
+- Aucun backend, schéma, migration, service Supabase, donnée DEV ou déploiement manuel n’appartient à ce candidat. Quotidiennes / Défi reste le domaine actif et le candidat 0.85 doit être reviewé indépendamment avant toute promotion.
 
 ## État du lot — Invocation x1/x10
 
@@ -3841,7 +3851,7 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Faire reviewer indépendamment le candidat correctif 0.84 uniquement sur `review` → corriger les éventuels retours sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → revalider publiquement Daily Reward Aperçu, Configuration, Défi, Sac, sidebar Conversion et le feedback de complétion sur une transition réelle.** Quotidiennes / Défi reste le domaine actif jusqu’à cette validation. Combat ou Expédition ne commencent pas avant ce checkpoint public. `PAID_INFRA_APPROVED = false` reste inchangé.
+**Faire reviewer indépendamment le candidat correctif 0.85 uniquement sur `review` → corriger les éventuels retours sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → revalider publiquement les trois lignes des Quotidiennes terminées, l’absence de leurs boutons, les erreurs Défi et le Sac (hauteurs, header fixe et scroll du body).** Quotidiennes / Défi reste le domaine actif jusqu’à cette validation. Combat ou Expédition ne commencent pas avant ce checkpoint public. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

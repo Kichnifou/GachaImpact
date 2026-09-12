@@ -1225,3 +1225,9 @@ La migration additive Prisma 013 répare uniquement `display_name`, `description
 La présentation 0.83 à 350 px est remplacée sans changement métier. La carte utilise quatre zones stables — header/statut, contenu, progression avec phrase sous la barre, puis actions — et conserve la même hauteur externe pour `AVAILABLE`, `ACTIVE`, confirmation et `COMPLETED` à viewport identique. La confirmation remplace le pied d’action sans créer de bloc supplémentaire.
 
 Un Défi Conversion actif ouvre la `ParticleConversionModal` transverse sans navigation ; un Défi Pulls conduit à Invocation sans lancer de Pull. Le type Messages, toujours physiquement inéligible, n’expose aucune fausse action Chat. `Changer de Défi` reste secondaire, ses règles de progression et de coût ne changent pas, et le feedback global `ACTIVE → COMPLETED` conserve son déclenchement, son verrou et ses modes de fermeture 0.83.
+
+### Restitution de complétion et erreurs 0.85
+
+Dans `Quotidiennes > Aperçu`, les trois activités réelles terminées suivent un même pattern sans modifier leur gameplay : `✅ Terminé`, détail contextuel, puis `Obtenu : <résultat autoritatif>`. Daily Reward restitue les trois gains de son DTO, Roue emploie un format compact sans texte célébratoire et écrit `Obtenu : Rien` lorsque `resultType = nothing`, et Défi lit son snapshot `rewardPrimogems`. Une activité terminée ne rend plus de bouton d’action dans Aperçu ; une activité disponible conserve son action et la carte garde sa hauteur 0.84.
+
+La présentation frontend mappe explicitement `DAILY_CHALLENGE_ALREADY_ASSIGNED`, `DAILY_CHALLENGE_NOT_ASSIGNED`, `DAILY_CHALLENGE_SWITCH_UNAVAILABLE`, `DAILY_CHALLENGE_POOL_UNAVAILABLE`, `DAILY_CHALLENGE_WALLET_INSUFFICIENT` et `DAILY_CHALLENGE_IDEMPOTENCY_CONFLICT`. L’insuffisance de wallet précise s’il manque des Moras pour acheter ou changer le Défi. Les codes, transactions, coûts, progression, attribution et récompense backend restent inchangés.

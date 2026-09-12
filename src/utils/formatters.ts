@@ -30,6 +30,10 @@ export function formatWheelResult(result: WheelRewardDto): string {
   return `+${formatResourceAmount(result.amount ?? '0')} particules ${label}`
 }
 
+export function formatWheelOverviewResult(result: WheelRewardDto): string {
+  return result.resultType === 'nothing' ? 'Rien' : formatWheelResult(result)
+}
+
 export function formatFreshWheelResult(result: WheelRewardDto): string {
   if (result.resultType === 'nothing') return 'Pas de gain cette fois. Retente ta chance demain !'
   if (result.resultType === 'primogems') return `🌟 JACKPOT ! ${formatWheelResult(result)} !`

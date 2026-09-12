@@ -15,10 +15,12 @@ describe('daily reward card', () => {
   })
 
   it('shows the persisted done state after reload without a CTA', () => {
-    const html = renderToStaticMarkup(createElement(DailyRewardCard, { today: { claimed: true, businessDate: '2026-09-05', rewards }, elementKey: 'hydro', onClaim: vi.fn() }))
+    const html = renderToStaticMarkup(createElement(DailyRewardCard, { variant: 'overview', today: { claimed: true, businessDate: '2026-09-05', rewards }, elementKey: 'hydro', onClaim: vi.fn() }))
     expect(html).toContain('✅ Terminé')
     expect(html).toContain('Récompense récupérée aujourd’hui.')
+    expect(html).toContain('Obtenu : +160 Primos · +160 particules Hydro · +10 000 Moras')
     expect(html).not.toContain('<button')
+    expect(html).not.toContain('daily-overview-action-slot')
   })
 
   it('formats all three fresh rewards with the main element', () => {

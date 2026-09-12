@@ -139,13 +139,15 @@ function InventoryScreen({ initialInventory, resources, elementKey, onLoad, onCo
           <div><span className="eyebrow">Sac personnel</span><h2>{categories.find(({ id }) => id === activeCategory)?.label}</h2></div>
           <label className="search-field compact-search"><span aria-hidden="true">⌕</span><span className="sr-only">Rechercher dans le Sac</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher…" /></label>
         </div>
-        {activeCategory === 'collection' && <div className="inventory-collection-summary"><span>Collection connue</span><strong>{completion.owned} / {completion.total}</strong></div>}
-        {error && <p className="inventory-inline-error" role="alert">{error}</p>}
-        {entries.length ? <div className="inventory-groups">{groups.map((group) => <section className="inventory-group" aria-labelledby={`inventory-group-${group.id}`} key={group.id}>
-          <header className="inventory-group-heading"><span id={`inventory-group-${group.id}`}>{group.label}</span></header>
-          <div className="inventory-grid">{group.entries.map((entry) => <InventoryCard entry={entry} mainElementKey={elementKey} onConvert={() => setConversionOpen(true)} onNavigateShop={onNavigateShop} onNavigateBank={onNavigateBank} onSelectItem={setSelectedItem} onUseStella={() => void openStellaPicker()} key={entry.type === 'resource' ? entry.resource.key : entry.item.id} />)}</div>
-        </section>)}</div>
-          : <div className="inventory-empty" role="status"><span aria-hidden="true">◇</span><strong>{query ? 'Aucun résultat' : emptyTitle(activeCategory)}</strong><p>{query ? 'Modifiez votre recherche pour retrouver une entrée.' : emptyDetail(activeCategory)}</p></div>}
+        <div className="inventory-scroll-body">
+          {activeCategory === 'collection' && <div className="inventory-collection-summary"><span>Collection connue</span><strong>{completion.owned} / {completion.total}</strong></div>}
+          {error && <p className="inventory-inline-error" role="alert">{error}</p>}
+          {entries.length ? <div className="inventory-groups">{groups.map((group) => <section className="inventory-group" aria-labelledby={`inventory-group-${group.id}`} key={group.id}>
+            <header className="inventory-group-heading"><span id={`inventory-group-${group.id}`}>{group.label}</span></header>
+            <div className="inventory-grid">{group.entries.map((entry) => <InventoryCard entry={entry} mainElementKey={elementKey} onConvert={() => setConversionOpen(true)} onNavigateShop={onNavigateShop} onNavigateBank={onNavigateBank} onSelectItem={setSelectedItem} onUseStella={() => void openStellaPicker()} key={entry.type === 'resource' ? entry.resource.key : entry.item.id} />)}</div>
+          </section>)}</div>
+            : <div className="inventory-empty" role="status"><span aria-hidden="true">◇</span><strong>{query ? 'Aucun résultat' : emptyTitle(activeCategory)}</strong><p>{query ? 'Modifiez votre recherche pour retrouver une entrée.' : emptyDetail(activeCategory)}</p></div>}
+        </div>
       </section>
     </div>
     {selectedItem && <ItemDetailModal item={selectedItem} onClose={() => setSelectedItem(null)} onUseStella={selectedItem.externalKey === MASTERLESS_STELLA_FORTUNA_KEY ? () => void openStellaPicker() : undefined} />}
