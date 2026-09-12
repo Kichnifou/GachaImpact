@@ -37,6 +37,10 @@ import type {
   DailyChallengeMutationDto,
   DailyCombatDto,
   DailyCombatFightDto,
+  ExpeditionDto,
+  ExpeditionStartDto,
+  ExpeditionClaimDto,
+  NotificationsDto,
 } from './types'
 
 type ApiClientDependencies = Readonly<{
@@ -159,6 +163,13 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     autoSelectDailyCombat: () => request<DailyCombatDto>('/api/v1/me/combat/daily/loadout/auto', { method: 'POST' }),
     clearDailyCombatLoadout: () => request<DailyCombatDto>('/api/v1/me/combat/daily/loadout', { method: 'DELETE' }),
     fightDailyCombat: (idempotencyKey: string) => request<DailyCombatFightDto>('/api/v1/me/combat/daily/fight', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+    getExpedition: () => request<ExpeditionDto>('/api/v1/me/expedition'),
+    startExpedition: (characterId: string, idempotencyKey: string) => request<ExpeditionStartDto>('/api/v1/me/expedition/start', { method: 'POST', body: JSON.stringify({ characterId, idempotencyKey }) }),
+    claimExpedition: (idempotencyKey: string) => request<ExpeditionClaimDto>('/api/v1/me/expedition/claim', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+    getNotifications: () => request<NotificationsDto>('/api/v1/me/notifications'),
+    readNotification: (notificationId: string) => request<NotificationsDto>(`/api/v1/me/notifications/${notificationId}/read`, { method: 'POST' }),
+    readAllNotifications: () => request<NotificationsDto>('/api/v1/me/notifications/read-all', { method: 'POST' }),
+    archiveReadNotifications: () => request<NotificationsDto>('/api/v1/me/notifications/archive-read', { method: 'POST' }),
     getBank: () => request<PlayerBankDto>('/api/v1/me/bank'),
     getBankHistory: (page: number) => request<BankHistoryDto>(`/api/v1/me/bank/history?page=${page}`),
     depositBank: (amount: string, idempotencyKey: string) => request<BankTransferDto>('/api/v1/me/bank/deposit', {

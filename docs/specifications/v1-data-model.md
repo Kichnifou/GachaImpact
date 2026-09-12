@@ -1995,3 +1995,10 @@ Avant de considérer la Phase B clôturée, il reste à :
 `DailyChallengeDefinition` est le catalogue extensible (`externalKey`, type, cible, libellés, récompense, poids, enabled/eligible/order). `PlayerDailyChallenge` porte une attribution unique par `(playerId, businessDate)`, sa définition, les snapshots player-facing et économiques, la progression bornée, `ACTIVE | COMPLETED | EXPIRED`, les dates et le nombre de changements.
 
 Les snapshots empêchent une modification ultérieure du catalogue de transformer une attribution existante. Aucun état n’est créé pour un Player tant qu’il n’achète pas son Défi. Pull et Conversion restent propriétaires de leur action ; ils publient une progression au service Défi dans la même transaction, sans seconde implémentation métier.
+## État physique candidat 0.89 — Expedition / Notifications
+
+La migration 015 matérialise `PlayerExpedition` comme état unique par Player avec `state`, personnage actif nullable, `departedAt`, `readyAt`, `departureBusinessDate`, `lastCompletedAt` et `totalCompleted`. La statistique durable `totalCompleted` est incrémentée uniquement lors d'un claim réussi ; aucune table statistique redondante n'est créée.
+
+`departureBusinessDate` survit au retour à IDLE après claim afin de porter la règle d'un départ par journée Europe/Paris. Une annulation due à la désactivation catalogue remet l'état à IDLE et efface cette date sans gain ni incrément.
+
+`Notification` est également physique avec états `UNREAD`, `READ`, `RESOLVED`, `ARCHIVED`. Pour Expedition, RUNNING → READY produit une entrée dédupliquée `expedition/ready` dont l'action `open-expedition-character` cible le personnage ; claim ou annulation la résout.

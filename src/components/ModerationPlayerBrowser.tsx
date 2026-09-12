@@ -63,10 +63,10 @@ function ModerationPlayerBrowser({ selectedPlayerId, onListPlayers, onConfirm, o
       </div>
       <div className="moderation-browser-results" aria-busy={loading}>
         {error ? <p className="moderation-target-empty error" role="alert">{error}</p>
-          : result?.players.length ? result.players.map((candidate) => <button type="button" className={candidate.id === temporarySelectionId ? 'active' : ''} aria-pressed={candidate.id === temporarySelectionId} onClick={() => setTemporarySelectionId(candidate.id)} key={candidate.id}>
+          : result?.players.length ? <>{result.players.map((candidate) => <button type="button" className={candidate.id === temporarySelectionId ? 'active' : ''} aria-pressed={candidate.id === temporarySelectionId} onClick={() => setTemporarySelectionId(candidate.id)} key={candidate.id}>
             <span className="moderation-player-identity"><strong>{candidate.displayName}</strong><small>Niveau {candidate.level} · {candidate.elementKey ? elementLabels[candidate.elementKey] : 'Élément non choisi'}</small></span>
             {candidate.tester && <span className="moderation-tester-badge">Testeur</span>}
-          </button>)
+          </button>)}{Array.from({ length: 10 - result.players.length }, (_, index) => <span className="moderation-browser-placeholder" aria-hidden="true" key={`placeholder-${index}`} />)}</>
             : <p className="moderation-target-empty" role="status">{loading ? 'Chargement des joueurs…' : 'Aucun joueur trouvé.'}</p>}
       </div>
       <footer className="moderation-browser-footer">

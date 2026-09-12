@@ -546,15 +546,15 @@ Le départ de la journée actuelle a été effectué et aucune action Expedition
 
 Le hub ne doit jamais réduire tous ces cas à un simple booléen fait/pas fait lorsqu'une information opérationnelle plus utile existe.
 
-## R365 — Bouton Accéder toujours disponible
+## R365 — Bouton Accéder selon l'action opérationnelle — ✅ RÉVISÉ PAR R844 / 0.89
 
-La carte Expedition du hub `Quotidiennes` conserve un bouton `Accéder` quel que soit son état.
+La carte Expedition du hub `Quotidiennes` conserve un bouton `Accéder` tant qu'une action opérationnelle reste utile.
 
 Comportement :
 - `À faire` → ouvrir la Box ;
 - `En cours` → ouvrir la Box et, lorsque l'architecture le permet proprement, la fiche du personnage concerné ;
 - `À récupérer` → ouvrir directement la Box / fiche du personnage concerné ;
-- `Fait aujourd'hui` → ouvrir la Box normalement.
+- `Fait aujourd'hui` avec état `IDLE` → appliquer le standard R844 : afficher `✅ Terminé` sans bouton `Accéder`.
 
 Le hub ne récupère jamais lui-même la récompense.
 
@@ -704,6 +704,18 @@ Le nom exact des classes/tables/événements sera défini en Phase 2/3.
 Décisions R340 à R369 validées / dérivées.
 
 **Domaine Expedition : CLÔTURÉ.**
+
+## Appendice physique — candidat 0.89
+
+Le contrat R340–R369 est physiquement implémenté par la migration additive `20260912180000_015_add_expedition_and_notifications`, le modèle unique `player_expeditions` et `ExpeditionService`, propriétaire de `getState`, `start`, `claim` et de la réconciliation administrative.
+
+- API privée : `GET /api/v1/me/expedition`, `POST /api/v1/me/expedition/start`, `POST /api/v1/me/expedition/claim`.
+- Box : départ/récupération dans la fiche réelle, timer dérivé de `readyAt`, badges RUNNING/READY et priorité READY après filtrage.
+- Quotidiennes : projection À faire / En cours / À récupérer / `✅ Terminé`, avec distinction des départs précédents et application de la révision R365 au seul cas `IDLE` déjà effectué aujourd'hui.
+- Récompense : RNG serveur uniquement au claim, crédit via `EconomyService`, `BusinessOperation`, mouvement de ressource et `totalCompleted +1` atomiques et idempotents.
+- Missions : l'événement typé `expedition.completed` forme uniquement la frontière du futur consommateur ; aucune UI Missions permanente n'est créée.
+- Notifications : READY crée une notification physique UNREAD dédupliquée ; claim et annulation catalogue la résolvent. Le header expose lecture, lecture globale, archivage et ouverture de la fiche concernée.
+- Concurrence : verrou Player partagé par start/claim/réconciliation ; un retry ou deux requêtes concurrentes ne peuvent ni rejouer le RNG, ni doubler un gain, une statistique ou une notification.
 
 Sont cadrés :
 - durée 20 h ;

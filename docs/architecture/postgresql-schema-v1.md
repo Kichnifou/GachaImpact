@@ -2890,3 +2890,12 @@ Premier lot recommandé :
 La migration additive `20260911180000_012_add_daily_challenge` crée l’enum `daily_challenge_status`, `daily_challenge_definitions` et `player_daily_challenges`. Le catalogue impose clés externes uniques, valeurs positives et index de pool. L’état Player impose l’unicité `(player_id, business_date)`, une progression entre zéro et la cible snapshot, la cohérence de `completed_at`, et indexe les lectures Player/statut/date.
 
 Les trois définitions finales sont seedées avec UUID stables ; messages est conservé mais `is_eligible=false` jusqu’au vrai producteur. Les deux tables ont RLS activée et tous les droits sont retirés à `anon` et `authenticated` : seul le backend Prisma direct les utilise. Les migrations 010 et 011 ne sont pas modifiées.
+## État physique candidat 0.89 — migration 015
+
+La migration additive `20260912180000_015_add_expedition_and_notifications` matérialise les enums `expedition_state` (`IDLE`, `RUNNING`, `READY`) et `notification_state` (`UNREAD`, `READ`, `RESOLVED`, `ARCHIVED`).
+
+`player_expeditions` porte un état unique par Player : personnage et timestamps actifs, `departure_business_date`, `last_completed_at` et `total_completed`. Une contrainte de forme garantit que les références/timestamps sont absents en IDLE et complets en RUNNING/READY ; des index couvrent le personnage et la transition par état/échéance.
+
+`notifications` porte le domaine/type, le payload JSON, l'action, sa cible, l'état et les timestamps de cycle de vie. `deduplication_key` est unique pour rendre la notification Expedition READY idempotente.
+
+Les deux tables sont privées, avec RLS activée et tous les droits révoqués à `anon` et `authenticated`. Aucun accès navigateur direct ni policy d'écriture n'est créé ; les accès passent par le backend authentifié.

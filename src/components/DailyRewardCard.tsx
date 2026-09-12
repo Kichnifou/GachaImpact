@@ -15,7 +15,7 @@ type DailyRewardCardProps = {
 
 function DailyRewardCard(props: DailyRewardCardProps) {
   if (props.variant !== 'overview') return <button type="button" className="panel daily-card daily-card-navigation" onClick={props.onOpenOverview} aria-label="Ouvrir Quotidiennes, aperçu du jour">
-    <span className="daily-navigation-copy"><strong>Quotidiennes</strong><span>Aperçu du jour</span><small>Consultez vos activités quotidiennes.</small><em>Ouvrir l’aperçu →</em></span>
+    <span className="daily-navigation-copy"><span className="daily-navigation-top"><small>ACTIVITÉS</small><strong>Quotidiennes</strong></span><span className="daily-navigation-center"><b>Aperçu du jour</b><small>Consultez vos activités et leur état.</small></span><em>Ouvrir l’aperçu →</em></span>
   </button>
 
   return <DailyRewardOverviewCard variant="overview" today={props.today} elementKey={props.elementKey} onClaim={props.onClaim} />

@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it, vi } from 'vitest'
-import type { BoxCharacterDto, PlayerBoxDto } from '../api/types'
+import type { BoxCharacterDto, ExpeditionDto, PlayerBoxDto } from '../api/types'
 import { initialBoxFilters, initialBoxFiltersWithPreference, presentBoxCharacters, replaceFavorite, type BoxFilters } from '../box/box-presentation'
 import BoxCharacterCard from '../components/BoxCharacterCard'
 import BoxCharacterDetailModal from '../components/BoxCharacterDetailModal'
@@ -24,6 +24,7 @@ const records = [
   character({ id: 'four-normal', name: 'Bennett', rarity: 4, elementKey: 'pyro', constellation: 4, copies: 5, favorite: false, firstObtainedAt: '2026-08-04T00:00:00Z' }),
 ]
 const box: PlayerBoxDto = { characters: records, summary: { totalOwned: 4, fiveStars: 2, fourStars: 2, c6: 1 }, preference: { sortKey: 'alphabetical', direction: 'asc' }, stella: { quantity: '0' } }
+const expedition = (overrides: Partial<ExpeditionDto> = {}): ExpeditionDto => ({ businessDate: '2026-09-11', operationalStatus: 'IDLE', departureUsedToday: false, canStartToday: true, activeCharacter: null, departedAt: null, readyAt: null, remainingSeconds: 0, startedOnCurrentBusinessDate: false, totalCompleted: '0', ...overrides })
 const modalProps = { stellaQuantity: '0', stellaRetryAvailable: false, favoritePending: false, stellaPending: false, stellaFeedback: null, onToggleFavorite: vi.fn(), onUseStella: vi.fn(), onClose: vi.fn() }
 const renderView = (filters: BoxFilters = initialBoxFilters, overrides: Partial<Parameters<typeof BoxView>[0]> = {}) => renderToStaticMarkup(<BoxView box={box} filters={filters} error={null} favoritePendingId={null} stellaPendingId={null} stellaRetryId={null} stellaFeedback={null} selected={null} onFilters={vi.fn()} onSelect={vi.fn()} onToggleFavorite={vi.fn()} onUseStella={vi.fn()} onCloseDetail={vi.fn()} {...overrides} />)
 
@@ -80,6 +81,11 @@ describe('real personal Box', () => {
     expect(html).not.toContain('<dt>Constellation</dt>')
     expect(html).toContain('Copies obtenues')
     expect(html).toContain('<dd>20</dd>')
+    expect(html.indexOf('Copies obtenues')).toBeLessThan(html.indexOf('Arme'))
+    expect(html.indexOf('Arme')).toBeLessThan(html.indexOf('Région'))
+    expect(html.indexOf('Région')).toBeLessThan(html.indexOf('Première obtention'))
+    expect(html).toContain('<dt>Arme</dt><dd>sword</dd>')
+    expect(html).toContain('<dt>Région</dt><dd>fontaine</dd>')
     expect(html).toContain('3 août 2026')
     expect(html).not.toContain('<dt>Favori</dt>')
     expect(html).toContain('class="box-detail-favorite-star"')
@@ -176,6 +182,28 @@ describe('real personal Box', () => {
   it('keeps the shared detail artwork structurally full-height without an arbitrary scale', () => {
     expect(appCssSource).toMatch(/\.box-detail-image\.character-portrait-image\s*\{[^}]*inset:\s*0;[^}]*height:\s*100%;[^}]*object-fit:\s*cover;/s)
     expect(appCssSource).toMatch(/\.box-detail-image\.character-portrait-image\s*\{[^}]*transform:\s*none;/s)
+  })
+
+  it('prioritizes a READY character before favorites while preserving active filters', () => {
+    const ready = expedition({ operationalStatus: 'READY', activeCharacter: records[3]!, departedAt: '2026-09-10T01:00:00Z', readyAt: '2026-09-11T01:00:00Z', canStartToday: false })
+    const all = renderView(initialBoxFilters, { expedition: ready })
+    expect(all.indexOf('Bennett')).toBeLessThan(all.indexOf('Furina'))
+    expect(all).toContain('✅ À récupérer')
+    const hydroOnly = renderView({ ...initialBoxFilters, element: 'hydro' }, { expedition: ready })
+    expect(hydroOnly).toContain('Furina')
+    expect(hydroOnly).not.toContain('Bennett')
+  })
+
+  it('renders Expedition actions and status only for the applicable character', () => {
+    const idle = renderToStaticMarkup(<BoxCharacterDetailModal character={records[2]!} expedition={expedition()} {...modalProps} />)
+    expect(idle).toContain('Disponible aujourd’hui · durée 20 h')
+    expect(idle).toContain('Envoyer en expédition')
+    const running = renderToStaticMarkup(<BoxCharacterDetailModal character={records[2]!} expedition={expedition({ operationalStatus: 'RUNNING', activeCharacter: records[2]!, departedAt: '2026-09-11T01:00:00Z', readyAt: '2099-09-12T21:00:00Z', remainingSeconds: 72000, startedOnCurrentBusinessDate: true, departureUsedToday: true, canStartToday: false })} {...modalProps} />)
+    expect(running).toContain('En expédition')
+    expect(running).not.toContain('Envoyer en expédition')
+    const ready = renderToStaticMarkup(<BoxCharacterDetailModal character={records[2]!} expedition={expedition({ operationalStatus: 'READY', activeCharacter: records[2]!, departedAt: '2026-09-10T01:00:00Z', readyAt: '2026-09-11T01:00:00Z', canStartToday: false })} {...modalProps} />)
+    expect(ready).toContain('À récupérer')
+    expect(ready).toContain('Récupérer l’expédition')
   })
 
   it('never renders C6 competition statistics for a four-star character', () => {

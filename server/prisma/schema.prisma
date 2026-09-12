@@ -36,6 +36,23 @@ enum OperationStatus {
   @@map("operation_status")
 }
 
+enum ExpeditionState {
+  IDLE
+  RUNNING
+  READY
+
+  @@map("expedition_state")
+}
+
+enum NotificationState {
+  UNREAD
+  READ
+  RESOLVED
+  ARCHIVED
+
+  @@map("notification_state")
+}
+
 enum DailyChallengeStatus {
   ACTIVE
   COMPLETED
@@ -141,6 +158,8 @@ model Player {
   dailyCombatAttempts  DailyCombatAttempt[]
   combatStats          PlayerCombatStats?
   characterCombatStats PlayerCharacterCombatStats[]
+  expedition           PlayerExpedition?
+  notifications        Notification[]
 
   @@index([status], map: "players_status_idx")
   @@index([elementKey], map: "players_element_key_idx")
@@ -270,6 +289,7 @@ model Character {
   dailyCombatKos            PlayerDailyCombatKo[]
   dailyCombatAttemptMembers DailyCombatAttemptMember[]
   playerCombatStats         PlayerCharacterCombatStats[]
+  playerExpeditions         PlayerExpedition[]
 
   @@index([isActive, rarity], map: "characters_active_rarity_idx")
   @@index([elementKey, isActive], map: "characters_element_active_idx")
@@ -869,4 +889,43 @@ model PlayerCharacterCombatStats {
   @@id([playerId, characterId])
   @@index([characterId], map: "player_character_combat_stats_character_idx")
   @@map("player_character_combat_stats")
+}
+
+model PlayerExpedition {
+  playerId              String          @id @map("player_id") @db.Uuid
+  state                 ExpeditionState @default(IDLE)
+  characterId           String?         @map("character_id") @db.Uuid
+  departedAt            DateTime?       @map("departed_at") @db.Timestamptz(6)
+  readyAt               DateTime?       @map("ready_at") @db.Timestamptz(6)
+  departureBusinessDate DateTime?       @map("departure_business_date") @db.Date
+  lastCompletedAt       DateTime?       @map("last_completed_at") @db.Timestamptz(6)
+  totalCompleted        BigInt          @default(0) @map("total_completed")
+  createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player                Player          @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  character             Character?      @relation(fields: [characterId], references: [id], onDelete: Restrict)
+
+  @@index([characterId], map: "player_expeditions_character_idx")
+  @@index([state, readyAt], map: "player_expeditions_state_ready_idx")
+  @@map("player_expeditions")
+}
+
+model Notification {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId         String            @map("player_id") @db.Uuid
+  domainKey        String            @map("domain_key") @db.Text
+  typeKey          String            @map("type_key") @db.Text
+  payload          Json              @db.JsonB
+  state            NotificationState @default(UNREAD)
+  actionKey        String?           @map("action_key") @db.Text
+  actionTargetId   String?           @map("action_target_id") @db.Text
+  deduplicationKey String?           @unique(map: "notifications_deduplication_key_key") @map("deduplication_key") @db.Text
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  readAt           DateTime?         @map("read_at") @db.Timestamptz(6)
+  resolvedAt       DateTime?         @map("resolved_at") @db.Timestamptz(6)
+  archivedAt       DateTime?         @map("archived_at") @db.Timestamptz(6)
+  player           Player            @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, state, createdAt(sort: Desc)], map: "notifications_player_state_created_idx")
+  @@map("notifications")
 }

@@ -39,6 +39,8 @@ import { PrismaDailyChallengeStore } from './database/prisma-daily-challenge-sto
 import { ConvertPersonalParticles, GetDailyChallenge, PurchaseDailyChallenge, SwitchDailyChallenge } from '../application/daily-challenge/daily-challenge-services.js';
 import { CombatService } from '../application/combat/daily-combat-service.js';
 import { PrismaDailyCombatStore } from './database/prisma-daily-combat-store.js';
+import { ExpeditionService } from '../application/expedition/expedition-service.js';
+import { NotificationService } from '../application/notification/notification-service.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
   if (!config.databaseUrl) {
@@ -63,6 +65,7 @@ export function createRuntimeDependencies(config: AppConfig) {
   const inventoryStore = new PrismaInventoryStore(database);
   const shopStore = new PrismaShopStore(database, random);
   const bankInterestScheduler = new BankInterestScheduler(new BankInterestProcessor(bankingStore, clock), clock);
+  const expeditionService = new ExpeditionService(getCurrentPlayer, database, clock, random);
 
   return {
     authIdentityVerifier: createSupabaseAuthAdapter(issuer),
@@ -117,6 +120,8 @@ export function createRuntimeDependencies(config: AppConfig) {
     purchaseShopItem: new PurchaseShopItem(getCurrentPlayer, shopStore, clock),
     navigationPreferences: new NavigationPreferencesService(getCurrentPlayer, new PrismaNavigationPreferenceStore(database)),
     dailyCombatService: new CombatService(getCurrentPlayer, dailyCombatStore, clock),
+    expeditionService,
+    notificationService: new NotificationService(getCurrentPlayer, database, clock, expeditionService),
     start: async () => { await scheduler.start(); await bankInterestScheduler.start(); },
     close: async () => { scheduler.stop(); bankInterestScheduler.stop(); await database.$disconnect(); },
   };

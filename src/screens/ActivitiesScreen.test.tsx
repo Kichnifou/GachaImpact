@@ -2,7 +2,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyRewardClaimDto, DailyRewardTodayDto, ElementKey, WheelSpinDto, WheelTodayDto } from '../api/types'
+import type { DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyRewardClaimDto, DailyRewardTodayDto, ElementKey, ExpeditionDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import type { ScreenId } from '../types'
 import ActivitiesScreen from './ActivitiesScreen'
 
@@ -17,6 +17,7 @@ const shared: SharedProps = { wheelToday: { spun: false, businessDate: '2026-09-
 function mount(overrides: Partial<typeof shared> & Partial<React.ComponentProps<typeof ActivitiesScreen>> = {}, screen: ScreenId = 'activities-dailies') { const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root); const props = { ...shared, ...overrides }; act(() => root.render(<ActivitiesScreen screen={screen} {...props} />)); return { container, props, root } }
 function activity(container: HTMLElement, title: string) { return container.querySelector<HTMLElement>(`[data-daily-activity="${title}"]`)! }
 const combat = (status: DailyCombatDto['status'], koCharacterIds: readonly string[] = []): DailyCombatDto => ({ businessDate: '2026-09-11', status, encounter: { id: 'encounter', enemies: [] }, loadout: { nextAttemptMode: 'MANUAL', slots: [1, 2, 3, 4].map((position) => ({ position: position as 1 | 2 | 3 | 4, character: null, ko: false })) }, availableCharacters: [], koCharacterIds, availableCharacterCount: status === 'BLOCKED' ? 3 : 8, preview: null, canFight: false, reward: { primogems: '800', moras: '20000' }, lastAttempt: status === 'IN_PROGRESS' ? { id: 'attempt', mode: 'MANUAL', won: false, chanceHalfPoints: 148, createdAt: '2026-09-11T10:00:00.000Z' } : null, playerStats: { totalFights: '0', totalWins: '0', totalLosses: '0', totalManualWins: '0' } })
+const expedition = (overrides: Partial<ExpeditionDto> = {}): ExpeditionDto => ({ businessDate: '2026-09-11', operationalStatus: 'IDLE', departureUsedToday: false, canStartToday: true, activeCharacter: null, departedAt: null, readyAt: null, remainingSeconds: 0, startedOnCurrentBusinessDate: false, totalCompleted: '0', ...overrides })
 
 describe('Activities shells', () => {
   it('keeps daily tabs outside the framed scroll body for overview, Wheel and Challenge', () => { const { container } = mount(); const frame = container.querySelector('.dailies-frame')!; expect(frame.querySelector('.scrollable-screen-panel-controls .activity-inner-tabs')).not.toBeNull(); expect(frame.querySelector('.scrollable-screen-panel-body .dailies-overview')).not.toBeNull(); act(() => Array.from(frame.querySelectorAll('button')).find((button) => button.textContent === 'Roue')!.click()); expect(frame.querySelector('.scrollable-screen-panel-body .wheel-card')).not.toBeNull(); act(() => Array.from(frame.querySelectorAll('button')).find((button) => button.textContent === 'Défi')!.click()); expect(frame.querySelector('.scrollable-screen-panel-body .daily-challenge-card')).not.toBeNull() })
@@ -45,6 +46,20 @@ describe('Activities shells', () => {
     ['BLOCKED', ['a', 'b', 'c', 'd'], 'Bloqué', 'Moins de 4 personnages disponibles.', true],
     ['COMPLETED', [], '✅ Terminé', 'Victoire obtenue aujourd’hui.', false],
   ] as const)('projects Combat %s honestly in Quotidiennes', (status, kos, label, detail, hasAccess) => { const { container } = mount({ dailyCombat: combat(status, kos) }); const card = activity(container, 'Combat'); expect(card.textContent).toContain(label); if (detail) expect(card.textContent).toContain(detail); expect(Boolean(card.querySelector('button'))).toBe(hasAccess); if (status === 'TODO') { expect(card.textContent).not.toContain('À faire'); expect(card.textContent).not.toContain('Aucune tentative aujourd’hui.') } if (status === 'COMPLETED') expect(card.textContent).toContain('Obtenu : +800 Primogemmes · +20 000 Moras') })
+  it.each([
+    [expedition(), 'À faire', 'Aucune expédition lancée aujourd’hui.', true],
+    [expedition({ operationalStatus: 'RUNNING', activeCharacter: { id: 'furina', externalKey: 'furina', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: 'Épée', region: 'Fontaine', iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null }, departedAt: '2026-09-11T01:00:00Z', readyAt: '2099-09-12T21:00:00Z', remainingSeconds: 72000, startedOnCurrentBusinessDate: true, departureUsedToday: true, canStartToday: false }), 'En cours', 'Furina', true],
+    [expedition({ operationalStatus: 'RUNNING', activeCharacter: { id: 'furina', externalKey: 'furina', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: 'Épée', region: 'Fontaine', iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null }, departedAt: '2026-09-10T01:00:00Z', readyAt: '2099-09-12T21:00:00Z', remainingSeconds: 72000, startedOnCurrentBusinessDate: false, departureUsedToday: false, canStartToday: false }), 'En cours', 'Départ précédent', true],
+    [expedition({ operationalStatus: 'READY', activeCharacter: { id: 'furina', externalKey: 'furina', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: 'Épée', region: 'Fontaine', iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null }, departedAt: '2026-09-10T01:00:00Z', readyAt: '2026-09-11T01:00:00Z', startedOnCurrentBusinessDate: false, departureUsedToday: false, canStartToday: false }), 'À récupérer', 'Le départ du jour reste disponible après récupération.', true],
+    [expedition({ departureUsedToday: true, canStartToday: false, totalCompleted: '1' }), '✅ Terminé', 'Expédition effectuée aujourd’hui.', false],
+  ] as const)('projects every Expedition daily state without a fictitious reward', (value, status, detail, hasAccess) => {
+    const { container } = mount({ expedition: value })
+    const card = activity(container, 'Expédition')
+    expect(card.textContent).toContain(status)
+    expect(card.textContent).toContain(detail)
+    expect(card.textContent).not.toContain('Obtenu :')
+    expect(Boolean(card.querySelector('button'))).toBe(hasAccess)
+  })
   it.each([
     [{ resultType: 'nothing', resourceKey: null, amount: null }, 'Obtenu : Rien'],
     [{ resultType: 'particles', resourceKey: 'particles_hydro', amount: '500' }, 'Obtenu : +500 particules Hydro'],

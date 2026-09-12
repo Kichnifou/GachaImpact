@@ -1,16 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
-import type { BoxCharacterDto } from '../api/types'
+import type { BoxCharacterDto, ExpeditionDto } from '../api/types'
 import type { StellaResultPresentation } from '../box/stella-result-presentation'
 import { c6StatLabel } from '../gacha/pull-result-presentation'
 import { getElementAssetPath } from '../utils/gameAssets'
+import { expeditionInitialNow, formatRemaining } from '../expedition/expedition-presentation'
 import CharacterPortraitFrame from './CharacterPortraitFrame'
 import GameAssetIcon from './GameAssetIcon'
 
 const c6Stats = ['strength', 'intelligence', 'beauty', 'charisma', 'popularity'] as const
+const idleExpedition: ExpeditionDto = { businessDate: '', operationalStatus: 'IDLE', departureUsedToday: false, canStartToday: false, activeCharacter: null, departedAt: null, readyAt: null, remainingSeconds: 0, startedOnCurrentBusinessDate: false, totalCompleted: '0' }
 
-function BoxCharacterDetailModal({ character, combatState, showStella = true, stellaQuantity, stellaRetryAvailable, favoritePending, stellaPending, stellaFeedback, actionError, onToggleFavorite, onUseStella, onClose }: {
+function BoxCharacterDetailModal({ character, combatState, expedition = idleExpedition, expeditionPending = false, expeditionFeedback = null, showStella = true, stellaQuantity, stellaRetryAvailable, favoritePending, stellaPending, stellaFeedback, actionError, onToggleFavorite, onUseStella, onStartExpedition = () => undefined, onClaimExpedition = () => undefined, onClose }: {
   character: BoxCharacterDto
   combatState?: Readonly<{ ko: boolean; stats: Readonly<{ fights: string; wins: string; losses: string; winRatePercent: number }> }>
+  expedition?: ExpeditionDto
+  expeditionPending?: boolean
+  expeditionFeedback?: string | null
   showStella?: boolean
   stellaQuantity: string
   stellaRetryAvailable: boolean
@@ -20,10 +25,13 @@ function BoxCharacterDetailModal({ character, combatState, showStella = true, st
   actionError?: string | null
   onToggleFavorite?: () => void
   onUseStella: () => void
+  onStartExpedition?: () => void
+  onClaimExpedition?: () => void
   onClose: () => void
 }) {
   const [confirmingStella, setConfirmingStella] = useState(false)
   const [showCombatDetails, setShowCombatDetails] = useState(false)
+  const [now, setNow] = useState(() => expeditionInitialNow(expedition))
   const stellaSubmitted = useRef(false)
   const hasStella = /^\d+$/.test(stellaQuantity) && BigInt(stellaQuantity) > 0n
   const c6CompetitionStats = character.c6CompetitionStats
@@ -33,6 +41,8 @@ function BoxCharacterDetailModal({ character, combatState, showStella = true, st
     document.addEventListener('keydown', closeOnEscape)
     return () => document.removeEventListener('keydown', closeOnEscape)
   }, [onClose, showCombatDetails])
+  useEffect(() => { if (expedition.operationalStatus !== 'RUNNING') return; const timer = window.setInterval(() => setNow(Date.now()), 1_000); return () => window.clearInterval(timer) }, [expedition.operationalStatus])
+  const isExpeditionCharacter = expedition.activeCharacter?.id === character.id
 
   return <><div className="modal-layer" role="presentation" onMouseDown={onClose}>
     <section className={`floating-panel box-detail-modal ${character.elementKey}`} role="dialog" aria-modal="true" aria-label={`Fiche du personnage possédé ${character.name}`} onMouseDown={(event) => event.stopPropagation()}>
@@ -71,8 +81,14 @@ function BoxCharacterDetailModal({ character, combatState, showStella = true, st
           </div>
           <dl>
             <div><dt>Copies obtenues</dt><dd>{character.copies}</dd></div>
+            <div><dt>Arme</dt><dd>{character.weaponType ?? '—'}</dd></div>
+            <div><dt>Région</dt><dd>{character.region ?? '—'}</dd></div>
             <div><dt>Première obtention</dt><dd>{formatObtainedAt(character.firstObtainedAt)}</dd></div>
           </dl>
+          <section className={`box-expedition-zone ${isExpeditionCharacter ? expedition.operationalStatus.toLowerCase() : 'idle'}`} aria-label="Expédition">
+            <div><strong>Expédition</strong>{isExpeditionCharacter && expedition.operationalStatus === 'RUNNING' ? <small>🧭 En expédition · {formatRemaining(expedition.readyAt, now)}</small> : isExpeditionCharacter && expedition.operationalStatus === 'READY' ? <small>✅ À récupérer · {character.name} est revenu.</small> : <small>{expedition.canStartToday ? 'Disponible aujourd’hui · durée 20 h' : expedition.departureUsedToday ? 'Expédition effectuée aujourd’hui.' : 'Une autre expédition est active.'}</small>}<p role="status">{expeditionFeedback ?? '\u00a0'}</p></div>
+            {isExpeditionCharacter && expedition.operationalStatus === 'READY' ? <button type="button" disabled={expeditionPending} onClick={onClaimExpedition}>{expeditionPending ? 'Récupération…' : 'Récupérer l’expédition'}</button> : !isExpeditionCharacter && expedition.canStartToday ? <button type="button" disabled={expeditionPending} onClick={onStartExpedition}>{expeditionPending ? 'Départ…' : 'Envoyer en expédition'}</button> : null}
+          </section>
           {showStella && character.rarity === 5 && <section className="box-stella-zone" aria-label="Masterless Stella Fortuna">
             <div className="box-stella-copy"><strong>Masterless Stella Fortuna × {stellaQuantity}</strong><small>Renforce ce personnage</small><p className="box-stella-feedback" role="status" aria-live="polite">{stellaFeedback?.message ?? (stellaRetryAvailable ? 'Résultat à vérifier · la nouvelle tentative reprendra la même opération.' : '\u00a0')}</p></div>
             <button type="button" disabled={(!hasStella && !stellaRetryAvailable) || stellaPending} onClick={() => { stellaSubmitted.current = false; setConfirmingStella(true) }}>{stellaPending ? 'Utilisation…' : stellaRetryAvailable ? 'Reprendre l’utilisation' : 'Utiliser une Stella'}</button>

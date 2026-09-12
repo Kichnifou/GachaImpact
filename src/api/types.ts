@@ -394,6 +394,40 @@ export type DailyCombatFightDto = Readonly<{
   resources: PlayerResourcesDto
 }>
 
+export type ExpeditionDto = Readonly<{
+  businessDate: string
+  operationalStatus: 'IDLE' | 'RUNNING' | 'READY'
+  departureUsedToday: boolean
+  canStartToday: boolean
+  activeCharacter: Omit<GachaCharacterDto, 'classKey'> | null
+  departedAt: string | null
+  readyAt: string | null
+  remainingSeconds: number
+  startedOnCurrentBusinessDate: boolean
+  totalCompleted: string
+}>
+
+export type ExpeditionStartDto = Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; view: ExpeditionDto }>
+export type ExpeditionClaimDto = Readonly<{
+  operation: Readonly<{ id: string; alreadyProcessed: boolean }>
+  reward: Readonly<{ roll: number; kind: 'primogems' | 'particles' | 'moras'; resourceKey: string; amount: string }>
+  view: ExpeditionDto
+  resources: PlayerResourcesDto
+}>
+
+export type NotificationDto = Readonly<{
+  id: string
+  domainKey: string
+  typeKey: string
+  payload: Readonly<Record<string, unknown>>
+  state: 'UNREAD' | 'READ'
+  actionKey: string | null
+  actionTargetId: string | null
+  createdAt: string
+  readAt: string | null
+}>
+export type NotificationsDto = Readonly<{ unreadCount: number; notifications: readonly NotificationDto[] }>
+
 export type GachaPullResultItemDto = Readonly<{
   index: number
   resultType: 'character' | 'resource'

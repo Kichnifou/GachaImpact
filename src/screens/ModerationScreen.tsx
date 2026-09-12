@@ -145,7 +145,7 @@ function ModerationScreen({ actorPlayerId, capabilities, onLoad, onListPlayers, 
 }
 
 function ModerationToolHeading({ title, current }: { title: string; current: string }) {
-  return <header className="moderation-tool-heading"><h2>{title}</h2><small className="moderation-current">{current}</small></header>
+  return <header className="moderation-tool-heading"><h2>{title}</h2><small className="moderation-current">{current.replace(/^Actuel :\s*/, '')}</small></header>
 }
 
 function moderationResourceCurrent(state: ModerationStateDto | null, resourceKey: string) {

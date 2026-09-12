@@ -26,7 +26,7 @@ describe('ModerationPlayerBrowser', () => {
   it('keeps a fixed viewport-bounded desktop height with fixed controls and a flexible results body', () => {
     expect(cssSource).toMatch(/\.moderation-player-browser \{[^}]*height: min\(760px, calc\(100dvh - 32px\)\)/)
     expect(cssSource).toContain('grid-template-rows: auto auto minmax(180px, 1fr) auto')
-    expect(cssSource).toMatch(/\.moderation-browser-results \{[^}]*min-height: 0;[^}]*overflow-x: hidden; overflow-y: auto;/)
+    expect(cssSource).toMatch(/\.moderation-browser-results \{[^}]*grid-template-rows: repeat\(10, minmax\(0, 1fr\)\);[^}]*overflow: hidden;/)
   })
   it('loads A-Z first, forwards combined filters and pages by ten', async () => {
     const onListPlayers = vi.fn(async (input: ModerationPlayerListQuery) => response(input))

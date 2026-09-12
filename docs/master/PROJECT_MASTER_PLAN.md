@@ -1,8 +1,8 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.88
+Version : 0.89
 Date : 2026-09-12
-Statut : CANDIDAT 0.88 — REVIEW INDÉPENDANTE REQUISE
+Statut : CANDIDAT 0.89 — REVIEW INDÉPENDANTE REQUISE
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
@@ -3740,6 +3740,16 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Les outils Ressources, Progression, Gacha et Objets de Modération affichent le snapshot autoritatif courant de la cible dans leur en-tête sans modifier leur hauteur externe ; sélection de ressource, changement de cible et mutations adoptent immédiatement le `ModerationStateDto` retourné.
 - Aucun moteur, formule, backend, schéma, migration, donnée DEV ou service externe n'est modifié. Boss et Expedition restent non commencés. Le candidat 0.88 doit être reviewé indépendamment sur `review` avant toute promotion.
 
+## État du candidat 0.89 — lancement Expedition et finitions publiques
+
+- Le lot public 0.88 est validé par le propriétaire avec un bilan très positif. Sa sidebar, son Combat, ses modales, sa fiche personnage et sa Modération forment le checkpoint public courant ; 0.89 ne leur apporte que les finitions ciblées demandées.
+- La carte basse Quotidiennes conserve son enveloppe 0.88 et adopte une composition interne en trois zones. Combat rapproche légèrement Ennemis des onglets et égalise Base/Résultat. La fiche affiche les données catalogue existantes Arme/Région. Modération retire `Actuel :` et son navigateur desktop matérialise dix slots fixes sans scroll vertical.
+- Expedition devient le domaine fonctionnel actif : état personnel `IDLE/RUNNING/READY`, départ quotidien Europe/Paris, durée 20 h, récupération manuelle, reward au claim uniquement, économie et statistique atomiques, idempotence et concurrence sérialisée.
+- Le workflow reste strictement dans `Personnages > Box`, `Activités > Quotidiennes` et le header Notifications. La Box porte actions, timer, badges et priorité READY respectant les filtres ; Quotidiennes projette les états autoritatifs et ouvre la fiche concernée.
+- La migration additive 015 matérialise `player_expeditions`, `notifications` et leurs enums, contraintes, index, RLS et révocations navigateur. `totalCompleted` constitue la statistique durable minimale et la frontière `expedition.completed` prépare le futur consommateur Missions sans commencer ce domaine.
+- Le header abandonne ses notifications fictives au profit du socle physique minimal : READY unique, lecture, lecture globale, archivage des lues, résolution au claim ou à l'annulation administrative, et deep link vers la fiche Box.
+- Boss, Social, Event, Missions permanentes UI, chat/Twitch et tout domaine suivant restent hors périmètre. `PAID_INFRA_APPROVED = false` demeure inchangé ; aucun déploiement manuel n'appartient à ce candidat.
+
 ## État du lot — Invocation x1/x10
 
 Le vertical slice Pull réel est physiquement implémenté. Le **target design** (`docs/architecture/postgresql-schema-v1.md`, `docs/specifications/v1-data-model.md`) et les audits 06/07/15 restent les autorités de conception ; ce Master porte l'état vivant.
@@ -3880,7 +3890,7 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Faire reviewer indépendamment le candidat 0.88 uniquement sur `review` → corriger les éventuels retours sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → valider publiquement la hiérarchie finale de `Combat > Entraînement`, la command bar, les modales, la fiche Box, la sidebar verticale et les valeurs actuelles de Modération.** Le métier Combat reste validé ; Boss et Expedition restent non commencés. `PAID_INFRA_APPROVED = false` reste inchangé.
+**Faire reviewer indépendamment le candidat 0.89 uniquement sur `review` → corriger les éventuels retours sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → valider publiquement Expedition dans Box/Quotidiennes/Notifications et les finitions UI 0.89.** Expedition est le domaine actif ; Boss, Social, Event, Missions permanentes UI et chat/Twitch restent non commencés. `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 
