@@ -22,16 +22,18 @@ type BoxScreenProps = {
   stellaRetryCharacterId: string | null
   dailyCombat?: DailyCombatDto
   expedition?: ExpeditionDto
-  openCharacterIntent?: { characterId: string; token: number } | null
+  openCharacterIntent?: { characterId: string; token: string } | null
+  onOpenCharacterIntentConsumed?: (token: string) => void
   onLoadExpedition?: () => Promise<ExpeditionDto>
   onStartExpedition?: (characterId: string, idempotencyKey: string) => Promise<ExpeditionStartDto>
   onClaimExpedition?: (idempotencyKey: string) => Promise<ExpeditionClaimDto>
   onNotificationsChanged?: () => Promise<unknown>
 }
 
-function BoxScreen({ initialBox, dailyCombat, expedition = idleExpedition, openCharacterIntent = null, onLoadExpedition = async () => idleExpedition, onStartExpedition = async () => { throw new Error('Expédition indisponible.') }, onClaimExpedition = async () => { throw new Error('Expédition indisponible.') }, onNotificationsChanged = async () => undefined, onLoadBox, onSetFavorite, onSetSortPreference, onUseStella, stellaRetryCharacterId }: BoxScreenProps) {
+function BoxScreen({ initialBox, dailyCombat, expedition = idleExpedition, openCharacterIntent = null, onOpenCharacterIntentConsumed = () => undefined, onLoadExpedition = async () => idleExpedition, onStartExpedition = async () => { throw new Error('Expédition indisponible.') }, onClaimExpedition = async () => { throw new Error('Expédition indisponible.') }, onNotificationsChanged = async () => undefined, onLoadBox, onSetFavorite, onSetSortPreference, onUseStella, stellaRetryCharacterId }: BoxScreenProps) {
   const [filters, setFilters] = useState<BoxFilters>(() => initialBoxFiltersWithPreference(initialBox?.preference))
-  const [selectedId, setSelectedId] = useState<string | null>(openCharacterIntent?.characterId ?? null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const consumedOpenIntentToken = useRef<string | null>(null)
   const { box, error, setError, load, favoritePendingId, stellaPendingId, stellaFeedback, setStellaFeedback, stellaRetryId, toggleFavorite, useStella } = useBoxCollection({ initialBox, onLoadBox, onSetFavorite, onUseStella, stellaRetryCharacterId })
   const preferenceInteractionRevision = useRef(0)
   const preferenceSaveQueue = useRef(Promise.resolve())
@@ -43,6 +45,12 @@ function BoxScreen({ initialBox, dailyCombat, expedition = idleExpedition, openC
     if (!box || preferenceInteractionRevision.current > 0) return
     setFilters((current) => ({ ...current, sort: box.preference.sortKey, direction: box.preference.direction }))
   }, [box])
+  useEffect(() => {
+    if (!openCharacterIntent || consumedOpenIntentToken.current === openCharacterIntent.token) return
+    consumedOpenIntentToken.current = openCharacterIntent.token
+    setSelectedId(openCharacterIntent.characterId)
+    onOpenCharacterIntentConsumed(openCharacterIntent.token)
+  }, [onOpenCharacterIntentConsumed, openCharacterIntent])
   useEffect(() => {
     if (expedition.operationalStatus !== 'RUNNING' || !expedition.readyAt) return
     const delay = Math.max(0, Date.parse(expedition.readyAt) - Date.now()) + 100

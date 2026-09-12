@@ -130,7 +130,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
   const [lastCharacterScreen, setLastCharacterScreen] = useState<ScreenId>(() => activeScreen.startsWith('characters-') ? activeScreen : 'characters-box')
   const [lastActivityScreen, setLastActivityScreen] = useState<ScreenId>(() => activeScreen.startsWith('activities-') ? activeScreen : 'activities-dailies')
   const [dailiesOverviewRequestToken, setDailiesOverviewRequestToken] = useState(0)
-  const [boxOpenIntent, setBoxOpenIntent] = useState<{ characterId: string; token: number } | null>(null)
+  const [boxOpenIntent, setBoxOpenIntent] = useState<{ characterId: string; token: string } | null>(null)
   const [boxCache] = useState(() => new BoxMemoryCache())
   const [stellaIntents] = useState(() => new StellaIntentCoordinator())
   const [bankTransferIntents] = useState(() => new BankTransferIntentCoordinator())
@@ -283,7 +283,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
       case 'invocation':
         return <InvocationScreen gacha={gacha} teams={teams} onSetTarget={onSetGachaTarget} onPull={onPullGacha} pendingPullCount={pendingGachaPullCount} onPresentationDisclosed={onGachaPresentationDisclosed} onGetHistory={onGetGachaHistory} />
       case 'characters-box':
-        return <BoxScreen key={`${player.id}:${boxOpenIntent?.token ?? 0}`} initialBox={boxCache.read(player.id)} dailyCombat={dailyCombat} expedition={expedition} openCharacterIntent={boxOpenIntent} onLoadExpedition={onLoadExpedition} onStartExpedition={onStartExpedition} onClaimExpedition={onClaimExpedition} onNotificationsChanged={onLoadNotifications} onLoadBox={loadBox} onSetFavorite={setBoxFavorite} onSetSortPreference={setBoxSortPreference} onUseStella={useStella} stellaRetryCharacterId={stellaIntents.getIntent(player.id)?.characterId ?? null} />
+        return <BoxScreen initialBox={boxCache.read(player.id)} dailyCombat={dailyCombat} expedition={expedition} openCharacterIntent={boxOpenIntent} onOpenCharacterIntentConsumed={(token) => setBoxOpenIntent((current) => current?.token === token ? null : current)} onLoadExpedition={onLoadExpedition} onStartExpedition={onStartExpedition} onClaimExpedition={onClaimExpedition} onNotificationsChanged={onLoadNotifications} onLoadBox={loadBox} onSetFavorite={setBoxFavorite} onSetSortPreference={setBoxSortPreference} onUseStella={useStella} stellaRetryCharacterId={stellaIntents.getIntent(player.id)?.characterId ?? null} />
       case 'characters-catalog':
         return <CharactersScreen characters={characters} />
       case 'characters-team':
@@ -301,7 +301,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
       case 'activities-combat':
       case 'activities-event':
       case 'activities-contest':
-        return <ActivitiesScreen screen={activeScreen} dailiesOverviewRequestToken={dailiesOverviewRequestToken} wheelToday={wheelToday} onSpinWheel={onSpinWheel} dailyRewardToday={dailyRewardToday} dailyChallenge={dailyChallenge} dailyCombat={dailyCombat} expedition={expedition} dailyCombatBox={{ initialBox: boxCache.read(player.id), onLoadBox: loadBox, onSetFavorite: setBoxFavorite, onUseStella: useStella, stellaRetryCharacterId: stellaIntents.getIntent(player.id)?.characterId ?? null, onCharacterProgressed: () => Promise.all([onLoadTeams(), onLoadDailyCombat()]) }} elementKey={player.elementKey!} onClaimDailyReward={onClaimDailyReward} onPurchaseDailyChallenge={onPurchaseDailyChallenge} onSwitchDailyChallenge={onSwitchDailyChallenge} onSetDailyCombatSlot={onSetDailyCombatSlot} onRemoveDailyCombatSlot={onRemoveDailyCombatSlot} onCopyActiveTeamToDailyCombat={onCopyActiveTeamToDailyCombat} onAutoSelectDailyCombat={onAutoSelectDailyCombat} onClearDailyCombatLoadout={onClearDailyCombatLoadout} onFightDailyCombat={onFightDailyCombat} onOpenParticleConversion={() => setIsParticleConversionOpen(true)} onOpenExpedition={() => { if (expedition.activeCharacter && expedition.operationalStatus !== 'IDLE') setBoxOpenIntent({ characterId: expedition.activeCharacter.id, token: Date.now() }); navigate('characters-box') }} onNavigate={navigate} />
+        return <ActivitiesScreen screen={activeScreen} dailiesOverviewRequestToken={dailiesOverviewRequestToken} wheelToday={wheelToday} onSpinWheel={onSpinWheel} dailyRewardToday={dailyRewardToday} dailyChallenge={dailyChallenge} dailyCombat={dailyCombat} expedition={expedition} dailyCombatBox={{ initialBox: boxCache.read(player.id), onLoadBox: loadBox, onSetFavorite: setBoxFavorite, onUseStella: useStella, stellaRetryCharacterId: stellaIntents.getIntent(player.id)?.characterId ?? null, onCharacterProgressed: () => Promise.all([onLoadTeams(), onLoadDailyCombat()]) }} elementKey={player.elementKey!} onClaimDailyReward={onClaimDailyReward} onPurchaseDailyChallenge={onPurchaseDailyChallenge} onSwitchDailyChallenge={onSwitchDailyChallenge} onSetDailyCombatSlot={onSetDailyCombatSlot} onRemoveDailyCombatSlot={onRemoveDailyCombatSlot} onCopyActiveTeamToDailyCombat={onCopyActiveTeamToDailyCombat} onAutoSelectDailyCombat={onAutoSelectDailyCombat} onClearDailyCombatLoadout={onClearDailyCombatLoadout} onFightDailyCombat={onFightDailyCombat} onOpenParticleConversion={() => setIsParticleConversionOpen(true)} onOpenExpedition={() => { if (expedition.activeCharacter && expedition.operationalStatus !== 'IDLE') { setBoxOpenIntent({ characterId: expedition.activeCharacter.id, token: crypto.randomUUID() }); navigate('characters-box') } else { setBoxOpenIntent(null); navigate('characters-box') } }} onNavigate={navigate} />
       case 'configuration':
         return <ConfigurationScreen preference={menuPreference} onSave={saveMenuPreference} onReset={() => saveMenuPreference(defaultNavigationPreference)} />
       default:
@@ -324,7 +324,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
         onReadNotification={onReadNotification}
         onReadAllNotifications={onReadAllNotifications}
         onArchiveReadNotifications={onArchiveReadNotifications}
-        onOpenNotification={(notification) => { if (notification.actionKey === 'open-expedition-character' && notification.actionTargetId) { setBoxOpenIntent({ characterId: notification.actionTargetId, token: Date.now() }); navigate('characters-box') } }}
+        onOpenNotification={(notification) => { if (notification.actionKey === 'open-expedition-character' && notification.actionTargetId) { setBoxOpenIntent({ characterId: notification.actionTargetId, token: crypto.randomUUID() }); navigate('characters-box') } }}
       />
 
       <div className="game-layout">

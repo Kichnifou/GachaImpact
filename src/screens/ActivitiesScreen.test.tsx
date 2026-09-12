@@ -60,6 +60,16 @@ describe('Activities shells', () => {
     expect(card.textContent).not.toContain('Obtenu :')
     expect(Boolean(card.querySelector('button'))).toBe(hasAccess)
   })
+  it('anchors the Expedition overview countdown to server remainingSeconds despite client clock skew', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2030-01-01T00:00:00Z'))
+    const value = expedition({ operationalStatus: 'RUNNING', activeCharacter: { id: 'furina', externalKey: 'furina', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: 'Épée', region: 'Fontaine', iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null }, departedAt: '2040-01-01T00:00:00Z', readyAt: '2040-01-01T20:00:00Z', remainingSeconds: 72_000, startedOnCurrentBusinessDate: true, departureUsedToday: true, canStartToday: false })
+    const { container } = mount({ expedition: value })
+    expect(activity(container, 'Expédition').textContent).toContain('20:00:00')
+    act(() => vi.advanceTimersByTime(1_000))
+    expect(activity(container, 'Expédition').textContent).toContain('19:59:59')
+    vi.useRealTimers()
+  })
   it.each([
     [{ resultType: 'nothing', resourceKey: null, amount: null }, 'Obtenu : Rien'],
     [{ resultType: 'particles', resourceKey: 'particles_hydro', amount: '500' }, 'Obtenu : +500 particules Hydro'],

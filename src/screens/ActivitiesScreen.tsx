@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import type { DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyCombatFightDto, DailyRewardClaimDto, DailyRewardTodayDto, ElementKey, ExpeditionDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
 import { formatResourceAmount, formatWheelOverviewResult } from '../utils/formatters'
 import WheelCard from '../components/WheelCard'
 import DailyRewardCard from '../components/DailyRewardCard'
+import ExpeditionCountdown from '../components/ExpeditionCountdown'
 import ScreenHeader from '../components/ScreenHeader'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import type { ScreenId } from '../types'
@@ -56,7 +57,7 @@ type DailyOverviewCardProps = {
   title: string
   status: string
   completed?: boolean
-  detail?: string
+  detail?: ReactNode
   obtained?: string
   onAccess?: () => void
   accessLabel?: string
@@ -92,10 +93,12 @@ function ExpeditionOverviewCard(props: { value?: ExpeditionDto; onAccess: () => 
 }
 function ExpeditionOverviewContent({ value, onAccess }: { value?: ExpeditionDto; onAccess: () => void }) {
   value ??= unavailableExpedition
-  const [now, setNow] = useState(() => expeditionInitialNow(value))
-  useEffect(() => { if (value.operationalStatus !== 'RUNNING') return; const timer = window.setInterval(() => setNow(Date.now()), 1_000); return () => window.clearInterval(timer) }, [value.operationalStatus])
-  const presentation = expeditionOverview(value, now)
-  return <DailyOverviewCard title="Expédition" {...presentation} onAccess={presentation.completed ? undefined : onAccess} />
+  const presentation = expeditionOverview(value, expeditionInitialNow(value))
+  const previousDeparture = value.activeCharacter && !value.startedOnCurrentBusinessDate
+  const detail = value.operationalStatus === 'RUNNING'
+    ? <>{value.activeCharacter?.name ?? 'Personnage'} · <ExpeditionCountdown value={value} />{previousDeparture ? ' · Départ précédent · le départ du jour sera disponible après récupération.' : ''}</>
+    : presentation.detail
+  return <DailyOverviewCard title="Expédition" {...presentation} detail={detail} onAccess={presentation.completed ? undefined : onAccess} />
 }
 
 function dailyCombatOverview(value: DailyCombatDto) {

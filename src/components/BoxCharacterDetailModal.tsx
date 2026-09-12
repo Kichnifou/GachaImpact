@@ -3,8 +3,8 @@ import type { BoxCharacterDto, ExpeditionDto } from '../api/types'
 import type { StellaResultPresentation } from '../box/stella-result-presentation'
 import { c6StatLabel } from '../gacha/pull-result-presentation'
 import { getElementAssetPath } from '../utils/gameAssets'
-import { expeditionInitialNow, formatRemaining } from '../expedition/expedition-presentation'
 import CharacterPortraitFrame from './CharacterPortraitFrame'
+import ExpeditionCountdown from './ExpeditionCountdown'
 import GameAssetIcon from './GameAssetIcon'
 
 const c6Stats = ['strength', 'intelligence', 'beauty', 'charisma', 'popularity'] as const
@@ -31,7 +31,6 @@ function BoxCharacterDetailModal({ character, combatState, expedition = idleExpe
 }) {
   const [confirmingStella, setConfirmingStella] = useState(false)
   const [showCombatDetails, setShowCombatDetails] = useState(false)
-  const [now, setNow] = useState(() => expeditionInitialNow(expedition))
   const stellaSubmitted = useRef(false)
   const hasStella = /^\d+$/.test(stellaQuantity) && BigInt(stellaQuantity) > 0n
   const c6CompetitionStats = character.c6CompetitionStats
@@ -41,7 +40,6 @@ function BoxCharacterDetailModal({ character, combatState, expedition = idleExpe
     document.addEventListener('keydown', closeOnEscape)
     return () => document.removeEventListener('keydown', closeOnEscape)
   }, [onClose, showCombatDetails])
-  useEffect(() => { if (expedition.operationalStatus !== 'RUNNING') return; const timer = window.setInterval(() => setNow(Date.now()), 1_000); return () => window.clearInterval(timer) }, [expedition.operationalStatus])
   const isExpeditionCharacter = expedition.activeCharacter?.id === character.id
 
   return <><div className="modal-layer" role="presentation" onMouseDown={onClose}>
@@ -86,7 +84,7 @@ function BoxCharacterDetailModal({ character, combatState, expedition = idleExpe
             <div><dt>Première obtention</dt><dd>{formatObtainedAt(character.firstObtainedAt)}</dd></div>
           </dl>
           <section className={`box-expedition-zone ${isExpeditionCharacter ? expedition.operationalStatus.toLowerCase() : 'idle'}`} aria-label="Expédition">
-            <div><strong>Expédition</strong>{isExpeditionCharacter && expedition.operationalStatus === 'RUNNING' ? <small>🧭 En expédition · {formatRemaining(expedition.readyAt, now)}</small> : isExpeditionCharacter && expedition.operationalStatus === 'READY' ? <small>✅ À récupérer · {character.name} est revenu.</small> : <small>{expedition.canStartToday ? 'Disponible aujourd’hui · durée 20 h' : expedition.departureUsedToday ? 'Expédition effectuée aujourd’hui.' : 'Une autre expédition est active.'}</small>}<p role="status">{expeditionFeedback ?? '\u00a0'}</p></div>
+            <div><strong>Expédition</strong>{isExpeditionCharacter && expedition.operationalStatus === 'RUNNING' ? <small>🧭 En expédition · <ExpeditionCountdown value={expedition} /></small> : isExpeditionCharacter && expedition.operationalStatus === 'READY' ? <small>✅ À récupérer · {character.name} est revenu.</small> : <small>{expedition.canStartToday ? 'Disponible aujourd’hui · durée 20 h' : expedition.departureUsedToday ? 'Expédition effectuée aujourd’hui.' : 'Une autre expédition est active.'}</small>}<p role="status">{expeditionFeedback ?? '\u00a0'}</p></div>
             {isExpeditionCharacter && expedition.operationalStatus === 'READY' ? <button type="button" disabled={expeditionPending} onClick={onClaimExpedition}>{expeditionPending ? 'Récupération…' : 'Récupérer l’expédition'}</button> : !isExpeditionCharacter && expedition.canStartToday ? <button type="button" disabled={expeditionPending} onClick={onStartExpedition}>{expeditionPending ? 'Départ…' : 'Envoyer en expédition'}</button> : null}
           </section>
           {showStella && character.rarity === 5 && <section className="box-stella-zone" aria-label="Masterless Stella Fortuna">

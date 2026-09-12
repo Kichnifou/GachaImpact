@@ -20,5 +20,9 @@ export function expeditionInitialNow(value: ExpeditionDto) {
 export function formatRemaining(readyAt: string | null, now: number) {
   if (!readyAt) return '—'
   const seconds = Math.max(0, Math.ceil((Date.parse(readyAt) - now) / 1_000))
+  return formatRemainingSeconds(seconds)
+}
+
+export function formatRemainingSeconds(seconds: number) {
   return `${String(Math.floor(seconds / 3_600)).padStart(2, '0')}:${String(Math.floor(seconds % 3_600 / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
 }

@@ -23,4 +23,12 @@ describe('GameShell shared particle conversion overlay', () => {
     expect(gameShellSource).toContain('onUseStella: useStella')
     expect(gameShellSource).toContain('onCharacterProgressed: () => Promise.all([onLoadTeams(), onLoadDailyCombat()])')
   })
+
+  it('consumes Box character deep links once without remounting the Box', () => {
+    expect(gameShellSource).not.toContain('key={`${player.id}:${boxOpenIntent?.token ?? 0}`}')
+    expect(gameShellSource).toContain('onOpenCharacterIntentConsumed={(token) => setBoxOpenIntent((current) => current?.token === token ? null : current)}')
+    expect(gameShellSource).toContain('setBoxOpenIntent({ characterId: expedition.activeCharacter.id, token: crypto.randomUUID() })')
+    expect(gameShellSource).toContain('setBoxOpenIntent({ characterId: notification.actionTargetId, token: crypto.randomUUID() })')
+    expect(gameShellSource).toContain("else { setBoxOpenIntent(null); navigate('characters-box') }")
+  })
 })
