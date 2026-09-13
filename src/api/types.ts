@@ -424,7 +424,7 @@ export type MonthlyBossAttackDto = Readonly<{ operation: Readonly<{ id: string; 
 export type MonthlyBossHistoryEntryDto = Readonly<{ id: string; monthStart: string; name: string; baseHp: string; maxHp: string; currentHp: string; resistanceElementKey: ElementKey; status: 'DEFEATED' | 'FAILED'; defeatedAt: string | null; finalBlowPlayer: Readonly<{ id: string; displayName: string }> | null; victoryDayCount: number | null; daysRemainingAfterVictory: number | null; nextBaseAdjustment: string; community: MonthlyBossCommunitySummaryDto; records: MonthlyBossRecordsDto }>
 export type MonthlyBossHistoryDto = Readonly<{ page: number; pageSize: number; total: number; totalPages: number; bosses: readonly MonthlyBossHistoryEntryDto[] }>
 
-export type ContestThemeDto = Readonly<{ key: 'STRENGTH' | 'INTELLIGENCE' | 'BEAUTY' | 'CHARISMA' | 'POPULARITY'; label: string; title: string }>
+export type ContestThemeDto = Readonly<{ key: 'STRENGTH' | 'INTELLIGENCE' | 'BEAUTY' | 'CHARISMA' | 'POPULARITY'; label: string; title: string; statKey: 'strength' | 'intelligence' | 'beauty' | 'charisma' | 'popularity' }>
 export type ContestParticipantDto = Readonly<{
   slot: number
   kind: 'HUMAN' | 'BOT'
@@ -459,10 +459,18 @@ export type ContestSnapshotDto = Readonly<{
   winnerSlot: number | null
   startedAt: string | null
   finishedAt: string | null
-  viewer: Readonly<{ participantSlot: number | null; spectator: boolean; organizer: boolean; selectedForSupport: boolean }>
+  viewer: Readonly<{ participantSlot: number | null; selectedCharacterId: string | null; spectator: boolean; organizer: boolean; selectedForSupport: boolean }>
   participants: readonly ContestParticipantDto[]
   spectators: readonly Readonly<{ playerId: string; displayName: string; selected: boolean }>[]
-  events: readonly Readonly<{ id: string; type: string; actorPlayerId: string | null; targetPlayerId: string | null; targetSlot: number | null; payload: unknown; createdAt: string }>[]
+  promotions: readonly Readonly<{ playerId: string; slot: number; characterName: string | null; fromRank: number; toRank: number; title: string }>[]
+  historyEvents: readonly (
+    | Readonly<{ kind: 'PARTICIPANT_LEFT'; occurredAt: string; slot: number | null; playerName: string | null }>
+    | Readonly<{ kind: 'PARTICIPANT_REPLACED'; occurredAt: string; slot: number | null; playerName: string | null; reason: string | null }>
+    | Readonly<{ kind: 'SUPPORT_SELECTED'; occurredAt: string; round: number | null; playerName: string | null }>
+    | Readonly<{ kind: 'SUPPORT_PLAYED'; occurredAt: string; slot: number | null; playerName: string | null; targetName: string | null; points: number | null }>
+    | Readonly<{ kind: 'SUPPORT_SKIPPED'; occurredAt: string; round: number | null }>
+    | Readonly<{ kind: 'TITLE_PROMOTED'; occurredAt: string; slot: number; playerName: string | null; characterName: string | null; fromRank: number; toRank: number; title: string }>
+  )[]
 }>
 export type ContestLegendDto = Readonly<{
   character: Readonly<{ id: string; externalKey: string; name: string; iconPath: string | null; elementKey: ElementKey }>
@@ -479,7 +487,16 @@ export type ContestDto = Readonly<{
   lastResult: ContestSnapshotDto | null
   legends: readonly ContestLegendDto[]
 }>
-export type ContestHistoryDto = Readonly<{ page: number; pageSize: number; total: number; pageCount: number; contests: readonly ContestSnapshotDto[] }>
+export type ContestHistorySummaryDto = Readonly<{
+  id: string
+  businessDate: string
+  theme: ContestThemeDto
+  currentRound: number
+  winner: Readonly<{ slot: number; displayName: string; kind: 'HUMAN' | 'BOT' }> | null
+  startedAt: string | null
+  finishedAt: string | null
+}>
+export type ContestHistoryDto = Readonly<{ page: number; pageSize: number; total: number; pageCount: number; contests: readonly ContestHistorySummaryDto[] }>
 
 export type ExpeditionDto = Readonly<{
   businessDate: string

@@ -47,6 +47,33 @@ describe('MonthlyBossScreen', () => {
     act(() => root.unmount())
   })
 
+  it('shows the complete live personal contribution and Top 3 from authoritative values', () => {
+    const container = document.createElement('div'); document.body.append(container); const root = createRoot(container)
+    act(() => root.render(<MonthlyBossScreen value={value} {...callbacks} />))
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Bilan →')!.click())
+    const text = container.querySelector('[aria-label="Bilan Boss"]')?.textContent ?? ''
+    expect(text).toContain('Rang#4')
+    expect(text).toContain('Dégâts totaux30 000')
+    expect(text).toContain('Attaques3')
+    expect(text).toContain('Meilleur coup12 000')
+    expect(text).toContain('Part des PV max2,00 % sur 1 500 000 PV')
+    expect(text).toContain('Top 3')
+    expect(text).toContain('Joueur')
+    act(() => root.unmount())
+  })
+
+  it('keeps an honest live contribution empty state while retaining the Top 3', () => {
+    const container = document.createElement('div'); document.body.append(container); const root = createRoot(container)
+    act(() => root.render(<MonthlyBossScreen value={{ ...value, participation: null }} {...callbacks} />))
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Bilan →')!.click())
+    const text = container.querySelector('[aria-label="Bilan Boss"]')?.textContent ?? ''
+    expect(text).toContain('Vous n’avez pas encore participé à ce Boss.')
+    expect(text).toContain('Top 3')
+    expect(text).toContain('Joueur')
+    expect(text).not.toContain('Dégâts totaux30 000')
+    act(() => root.unmount())
+  })
+
   it('keeps attack visible but disabled once the Boss is defeated', () => {
     const container = document.createElement('div'); document.body.append(container); const root = createRoot(container)
     act(() => root.render(<MonthlyBossScreen value={{ ...value, status: 'DEFEATED', attackState: 'DEFEATED', canAttack: false, defeatedSummary, participation: { ...value.participation!, contributionBasisPoints: '164' }, boss: { ...value.boss, currentHp: '0', defeatedAt: '2026-09-13T08:00:00Z', finalBlowPlayer: { id: 'p3', displayName: 'Charlie' }, nextBaseAdjustment: '1275000' } }} {...callbacks} />))

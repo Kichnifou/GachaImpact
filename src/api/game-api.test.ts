@@ -307,4 +307,18 @@ describe('game API client', () => {
       [`http://127.0.0.1:3001/api/v1/me/shop/${itemId}/purchase`, 'POST', { quantity: '10', idempotencyKey }],
     ])
   })
+
+  it('loads the existing Contest history detail endpoint', async () => {
+    const fetchImplementation = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ id: 'contest-id' })))
+    const client = createGameApiClient({ baseUrl: 'http://127.0.0.1:3001', getAccessToken: async () => 'token', fetchImplementation })
+    const contestId = crypto.randomUUID()
+
+    await client.getContestHistory(2)
+    await client.getContestHistoryDetail(contestId)
+
+    expect(fetchImplementation.mock.calls.map(([url]) => url)).toEqual([
+      'http://127.0.0.1:3001/api/v1/contest/history?page=2',
+      `http://127.0.0.1:3001/api/v1/contest/history/${contestId}`,
+    ])
+  })
 })

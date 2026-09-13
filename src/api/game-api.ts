@@ -46,6 +46,7 @@ import type {
   MonthlyBossHistoryDto,
   ContestDto,
   ContestHistoryDto,
+  ContestSnapshotDto,
 } from './types'
 
 type ApiClientDependencies = Readonly<{
@@ -177,6 +178,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getMonthlyBossHistory: (page: number) => request<MonthlyBossHistoryDto>(`/api/v1/combat/boss/history?page=${page}`),
     getContest: () => request<ContestDto>('/api/v1/contest'),
     getContestHistory: (page: number) => request<ContestHistoryDto>(`/api/v1/contest/history?page=${page}`),
+    getContestHistoryDetail: (contestId: string) => request<ContestSnapshotDto>(`/api/v1/contest/history/${encodeURIComponent(contestId)}`),
     openContest: (characterId: string, idempotencyKey: string) => request<ContestDto>('/api/v1/contest/open', { method: 'POST', body: JSON.stringify({ characterId, idempotencyKey }) }),
     joinContest: (characterId: string, idempotencyKey: string) => request<ContestDto>('/api/v1/contest/join', { method: 'POST', body: JSON.stringify({ characterId, idempotencyKey }) }),
     selectContestLegend: (characterId: string, idempotencyKey: string) => request<ContestDto>('/api/v1/contest/legend', { method: 'POST', body: JSON.stringify({ characterId, idempotencyKey }) }),

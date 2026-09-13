@@ -35,6 +35,14 @@ async function fixture(name: string) {
   return { id, character, service: new ContestService(current, database, clock, random) };
 }
 
+async function addLegend(playerId: string, name: string) {
+  const characterId = randomUUID(); characterIds.add(characterId);
+  const character = await database.character.create({ data: { id: characterId, externalKey: `contest-fixture-${characterId}`, name: `Legend ${name}`, rarity: 5, elementKey: 'anemo', isActive: true } });
+  await database.playerCharacter.create({ data: { playerId, characterId, constellation: 6, copies: 7, firstObtainedAt: now } });
+  await database.c6CompetitionProgress.create({ data: { playerId, characterId, strength: 18, intelligence: 17, beauty: 16, charisma: 15, popularity: 14, unlockedAt: now } });
+  return character;
+}
+
 async function eligibilityFixture(name: string, options: { rarity: number; constellation: number; isActive: boolean; possession: boolean }) {
   const characterId = randomUUID(); characterIds.add(characterId);
   const externalKey = `contest-fixture-${characterId}`;
@@ -81,17 +89,45 @@ describe('Contest persistence', () => {
     expect(await database.$queryRawUnsafe<{ count: bigint }[]>(`SELECT count(*)::bigint AS count FROM _prisma_migrations WHERE migration_name = '20260913170000_017_add_contests' AND finished_at IS NOT NULL`)).toEqual([{ count: 1n }]);
   });
 
-  it('opens one global lobby, keeps the daily unused, resets readiness and blocks a fourth rejoin after three removals', async () => {
+  it('treats the lobby timeout as ten minutes of participant inactivity without GET, spectator or replay keep-alive', async () => {
     now = new Date('2098-09-01T10:00:00Z'); const organizer = await fixture('Organizer'); const guest = await fixture('Guest'); const key = randomUUID();
     const opened = await organizer.service.createLobby(identity, organizer.character.id, key);
-    expect(opened.active).toMatchObject({ status: 'LOBBY', organizerPlayerId: organizer.id, participants: [{ slot: 1, ready: false }] }); expect(opened.dailyUsed).toBe(false);
+    expect(opened.active).toMatchObject({ status: 'LOBBY', organizerPlayerId: organizer.id, lobbyDeadlineAt: '2098-09-01T10:10:00.000Z' }); expect(opened.dailyUsed).toBe(false);
     expect((await organizer.service.createLobby(identity, organizer.character.id, key)).active?.id).toBe(opened.active?.id);
     await expect(organizer.service.createLobby(identity, organizer.character.id, randomUUID())).rejects.toMatchObject({ code: 'CONTEST_ALREADY_ACTIVE' });
+    now = new Date('2098-09-01T10:05:00Z'); const readyKey = randomUUID();
+    expect((await organizer.service.setReady(identity, true, readyKey)).active?.lobbyDeadlineAt).toBe('2098-09-01T10:15:00.000Z');
+    now = new Date('2098-09-01T10:06:00Z');
+    expect((await organizer.service.setReady(identity, true, readyKey)).active?.lobbyDeadlineAt).toBe('2098-09-01T10:15:00.000Z');
+    expect((await organizer.service.getCurrent(identity)).active?.lobbyDeadlineAt).toBe('2098-09-01T10:15:00.000Z');
+    now = new Date('2098-09-01T10:07:00Z');
+    expect((await guest.service.joinAsSpectator(identity, randomUUID())).active?.lobbyDeadlineAt).toBe('2098-09-01T10:15:00.000Z');
+    now = new Date('2098-09-01T10:10:00Z');
+    expect((await organizer.service.getCurrent(identity)).active?.status).toBe('LOBBY');
+    now = new Date('2098-09-01T10:15:00Z');
+    expect((await organizer.service.getCurrent(identity)).active).toBeNull();
+    expect(await database.contest.findUniqueOrThrow({ where: { id: opened.active!.id } })).toMatchObject({ status: 'CANCELLED', cancellationKind: 'LOBBY_TIMEOUT' });
+    expect(await database.contestDailyParticipation.count({ where: { playerId: { in: [organizer.id, guest.id] } } })).toBe(0);
+  }, 30_000);
+
+  it('scopes Ready to each human across join, Legend change and removal while preserving rejoin limits', async () => {
+    now = new Date('2098-09-07T10:00:00Z'); const organizer = await fixture('ReadyOrganizer'); const guest = await fixture('ReadyGuest'); const secondLegend = await addLegend(organizer.id, 'Second');
+    await organizer.service.createLobby(identity, organizer.character.id, randomUUID());
     await organizer.service.setReady(identity, true, randomUUID());
     await guest.service.joinAsParticipant(identity, guest.character.id, randomUUID());
-    expect((await organizer.service.getCurrent(identity)).active?.participants.every(({ ready }) => !ready)).toBe(true);
+    let participants = (await organizer.service.getCurrent(identity)).active!.participants;
+    expect(participants.find(({ playerId }) => playerId === organizer.id)?.ready).toBe(true);
+    expect(participants.find(({ playerId }) => playerId === guest.id)?.ready).toBe(false);
+    await guest.service.setReady(identity, true, randomUUID());
+    await organizer.service.selectLegend(identity, secondLegend.id, randomUUID());
+    participants = (await organizer.service.getCurrent(identity)).active!.participants;
+    expect(participants.find(({ playerId }) => playerId === organizer.id)?.ready).toBe(false);
+    expect(participants.find(({ playerId }) => playerId === guest.id)?.ready).toBe(true);
+    await organizer.service.setReady(identity, true, randomUUID());
+    await organizer.service.removeFromLobby(identity, guest.id, randomUUID());
+    expect((await organizer.service.getCurrent(identity)).active?.participants.find(({ playerId }) => playerId === organizer.id)?.ready).toBe(true);
     for (let index = 0; index < 3; index += 1) {
-      await organizer.service.removeFromLobby(identity, guest.id, randomUUID());
+      if (index > 0) await organizer.service.removeFromLobby(identity, guest.id, randomUUID());
       if (index < 2) await guest.service.joinAsParticipant(identity, guest.character.id, randomUUID());
     }
     await expect(guest.service.joinAsParticipant(identity, guest.character.id, randomUUID())).rejects.toMatchObject({ code: 'CONTEST_ALREADY_JOINED' });
@@ -145,6 +181,31 @@ describe('Contest persistence', () => {
     expect(await database.c6CompetitionProgress.findUniqueOrThrow({ where: { playerId_characterId: { playerId: player.id, characterId: player.character.id } } })).toMatchObject({ totalContests: 3n, totalWins: 3n, strengthParticipations: 3n, strengthWins: 3n, strengthTitleFloor: 2 });
     expect(await database.contestEvent.findFirst({ where: { contestId, type: 'TITLE_PROMOTED', targetPlayerId: player.id } })).toMatchObject({ payload: expect.objectContaining({ from: 0, to: 2, title: 'Titan Argent' }) });
   }, 30_000);
+
+  it('persists and projects every title threshold without promoting bots or non-winning slots', async () => {
+    const player = await fixture('TitleThresholds');
+    const transitions = [
+      { day: 10, wins: 0n, floor: 0, title: 'Titan Bronze', toRank: 1 },
+      { day: 11, wins: 2n, floor: 1, title: 'Titan Argent', toRank: 2 },
+      { day: 12, wins: 6n, floor: 2, title: 'Titan Or', toRank: 3 },
+      { day: 13, wins: 14n, floor: 3, title: 'Titan Platine', toRank: 4 },
+    ];
+    for (const transition of transitions) {
+      now = new Date(`2098-09-${transition.day}T10:00:00Z`); rolls = Array(80).fill(0);
+      await database.c6CompetitionProgress.update({ where: { playerId_characterId: { playerId: player.id, characterId: player.character.id } }, data: { totalContests: transition.wins, totalWins: transition.wins, strengthParticipations: transition.wins, strengthWins: transition.wins, strengthTitleFloor: transition.floor } });
+      await player.service.createLobby(identity, player.character.id, randomUUID()); await player.service.setReady(identity, true, randomUUID());
+      const started = await player.service.start(identity, randomUUID()); const contestId = started.active!.id;
+      const human = started.active!.participants.find(({ playerId }) => playerId === player.id)!;
+      await database.contestParticipant.updateMany({ where: { contestId }, data: { turnOrder: null } });
+      await database.contestParticipant.update({ where: { contestId_slot: { contestId, slot: human.slot } }, data: { score: 49, turnOrder: 1 } });
+      await database.contest.update({ where: { id: contestId }, data: { currentTurnOrder: 1, turnDeadlineAt: new Date(now.getTime() + 60_000) } });
+      const finished = await player.service.play(identity, 'BASIC', randomUUID());
+      expect(finished.lastResult?.promotions).toEqual([{ playerId: player.id, slot: human.slot, characterName: player.character.name, fromRank: transition.floor, toRank: transition.toRank, title: transition.title }]);
+      expect(finished.lastResult?.historyEvents).toContainEqual(expect.objectContaining({ kind: 'TITLE_PROMOTED', toRank: transition.toRank, title: transition.title }));
+      expect(await database.contestEvent.count({ where: { contestId, type: 'TITLE_PROMOTED' } })).toBe(1);
+      expect((await player.service.getHistoryDetail(contestId)).promotions).toEqual(finished.lastResult?.promotions);
+    }
+  }, 60_000);
 
   it('fills exactly 2/2, 3/1 and 4/0 rosters while enforcing organizer, Ready and single-start rules', async () => {
     rolls = Array(300).fill(0);
@@ -223,9 +284,10 @@ describe('Contest persistence', () => {
     await organizer.service.createLobby(identity, organizer.character.id, randomUUID()); await guest.service.joinAsSpectator(identity, randomUUID());
     await guest.service.joinAsParticipant(identity, guest.character.id, randomUUID());
     expect((await guest.service.getCurrent(identity)).active?.viewer).toMatchObject({ participantSlot: 2, spectator: false });
+    await guest.service.setReady(identity, true, randomUUID());
     await organizer.service.leave(identity, randomUUID());
-    expect((await guest.service.getCurrent(identity)).active).toMatchObject({ status: 'LOBBY', organizerPlayerId: guest.id });
-    await guest.service.setReady(identity, true, randomUUID()); await guest.service.start(identity, randomUUID());
+    expect((await guest.service.getCurrent(identity)).active).toMatchObject({ status: 'LOBBY', organizerPlayerId: guest.id, participants: [expect.objectContaining({ playerId: guest.id, ready: true })] });
+    await guest.service.start(identity, randomUUID());
     const contestId = (await guest.service.getCurrent(identity)).active!.id;
     await guest.service.leave(identity, randomUUID());
     const persisted = await database.contest.findUniqueOrThrow({ where: { id: contestId }, include: { participants: true } });
@@ -244,7 +306,41 @@ describe('Contest persistence', () => {
     await database.contest.create({ data: { businessDate, theme: 'STRENGTH', status: 'CANCELLED', phase: 'CANCELLED', currentRound: 1, cancelledAt: now, cancellationKind: 'TECHNICAL' } });
     const first = await viewer.service.getHistory(1); const second = await viewer.service.getHistory(2);
     expect(first).toMatchObject({ pageSize: 10, total: 12, pageCount: 2 }); expect(first.contests).toHaveLength(10); expect(second.contests).toHaveLength(2);
-    expect([...first.contests, ...second.contests].every(({ status }) => status === 'FINISHED')).toBe(true);
+    expect([...first.contests, ...second.contests].every(({ finishedAt }) => finishedAt !== null)).toBe(true);
+  }, 30_000);
+
+  it('projects a compact history list and an interpreted four-slot finished detail', async () => {
+    now = new Date('2098-09-09T10:00:00Z');
+    const alpha = await fixture('DetailAlpha'); const replaced = await fixture('DetailReplaced'); const fan = await fixture('DetailFan');
+    const businessDate = new Date('2098-09-09T00:00:00Z');
+    await alpha.service.getCurrent(identity);
+    const contest = await database.contest.create({ data: {
+      businessDate, theme: 'STRENGTH', status: 'FINISHED', phase: 'FINISHED', currentRound: 5, winnerSlot: 1,
+      startedAt: new Date('2098-09-09T10:00:00Z'), finishedAt: new Date('2098-09-09T10:07:30Z'),
+      participants: { create: [
+        { slot: 1, kind: 'HUMAN', playerId: alpha.id, originalPlayerId: alpha.id, characterId: alpha.character.id, playerNameSnapshot: 'Alpha', characterNameSnapshot: alpha.character.name, themeStatSnapshot: 20, basePointsSnapshot: 5, turnOrder: 2, ready: true, score: 52, finalRank: 1, rewardPrimogems: 800n },
+        { slot: 2, kind: 'BOT', originalPlayerId: replaced.id, playerNameSnapshot: 'Astra · Bot', characterNameSnapshot: 'Légende relayée', themeStatSnapshot: 12, basePointsSnapshot: 3, turnOrder: 1, ready: true, score: 41, finalRank: 2, rewardPrimogems: 0n, eligibleForResult: false, replacedAt: new Date('2098-09-09T10:04:00Z'), leftAt: new Date('2098-09-09T10:04:00Z'), replacementReason: 'LEFT' },
+        { slot: 3, kind: 'BOT', playerNameSnapshot: 'Braise · Bot', characterNameSnapshot: 'Légende invitée', themeStatSnapshot: 10, basePointsSnapshot: 3, turnOrder: 4, ready: true, score: 35, finalRank: 3, rewardPrimogems: 0n },
+        { slot: 4, kind: 'BOT', playerNameSnapshot: 'Céleste · Bot', characterNameSnapshot: 'Légende invitée', themeStatSnapshot: 9, basePointsSnapshot: 2, turnOrder: 3, ready: true, score: 29, finalRank: 4, rewardPrimogems: 0n },
+      ] },
+      spectators: { create: [{ playerId: fan.id }] },
+      events: { create: [
+        { type: 'MEMBER_LEFT', actorPlayerId: replaced.id, payload: { slot: 2 }, createdAt: new Date('2098-09-09T10:04:00Z') },
+        { type: 'PARTICIPANT_REPLACED', targetPlayerId: replaced.id, targetSlot: 2, payload: { slot: 2, reason: 'LEFT', inheritedScore: 24 }, createdAt: new Date('2098-09-09T10:04:00Z') },
+        { type: 'SUPPORT_SELECTED', actorPlayerId: fan.id, payload: { round: 4 }, createdAt: new Date('2098-09-09T10:05:00Z') },
+        { type: 'SUPPORT_PLAYED', actorPlayerId: fan.id, targetPlayerId: alpha.id, targetSlot: 1, payload: { targetSlot: 1, points: 3 }, createdAt: new Date('2098-09-09T10:05:10Z') },
+        { type: 'TITLE_PROMOTED', actorPlayerId: alpha.id, targetPlayerId: alpha.id, targetSlot: 1, payload: { slot: 1, from: 2, to: 3, title: 'Titan Or' }, createdAt: new Date('2098-09-09T10:07:30Z') },
+      ] },
+    } });
+    await database.contest.create({ data: { businessDate, theme: 'STRENGTH', status: 'CANCELLED', phase: 'CANCELLED', cancelledAt: now, cancellationKind: 'TECHNICAL' } });
+    const list = await alpha.service.getHistory(1);
+    expect(list).toMatchObject({ total: 1, contests: [{ id: contest.id, currentRound: 5, winner: { slot: 1, displayName: 'Alpha', kind: 'HUMAN' } }] });
+    expect(list.contests[0]).not.toHaveProperty('participants');
+    const detail = await alpha.service.getHistoryDetail(contest.id);
+    expect(detail.participants).toHaveLength(4);
+    expect(detail.participants.find(({ slot }) => slot === 2)).toMatchObject({ kind: 'BOT', replaced: true, replacementReason: 'LEFT', finalRank: 2 });
+    expect(detail.promotions).toEqual([{ playerId: alpha.id, slot: 1, characterName: alpha.character.name, fromRank: 2, toRank: 3, title: 'Titan Or' }]);
+    expect(detail.historyEvents.map(({ kind }) => kind)).toEqual(['PARTICIPANT_LEFT', 'PARTICIPANT_REPLACED', 'SUPPORT_SELECTED', 'SUPPORT_PLAYED', 'TITLE_PROMOTED']);
   }, 30_000);
 
   it('serializes concurrent restart reconciliation, auto-plays timed-out humans and cancels after the third inactive replacement', async () => {

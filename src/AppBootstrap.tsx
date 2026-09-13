@@ -335,6 +335,7 @@ function AppBootstrap() {
       contest={contest}
       onRefreshContest={loadContest}
       onLoadContestHistory={(page) => getGameApiClient().getContestHistory(page)}
+      onLoadContestHistoryDetail={(contestId) => getGameApiClient().getContestHistoryDetail(contestId)}
       onOpenContest={(characterId, key) => publishContest(getGameApiClient().openContest(characterId, key))}
       onJoinContest={(characterId, key) => publishContest(getGameApiClient().joinContest(characterId, key))}
       onSelectContestLegend={(characterId, key) => publishContest(getGameApiClient().selectContestLegend(characterId, key))}

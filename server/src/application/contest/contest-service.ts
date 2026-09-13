@@ -128,7 +128,7 @@ export class ContestService {
         originalPlayerId: player.id, characterId, playerNameSnapshot: player.displayName,
         characterNameSnapshot: legend.character.name, avatarSnapshot: legend.character.iconPath,
       } });
-      await resetHumanReadiness(tx, contest.id);
+      await touchLobbyDeadline(tx, contest.id, this.clock.now());
       await createEvent(tx, contest.id, 'PARTICIPANT_JOINED', idempotencyKey, player.id, { slot, characterId });
     });
     return this.readView(player.id);
@@ -157,9 +157,9 @@ export class ContestService {
       if (!participant) throw new BusinessError('CONTEST_NOT_JOINED', 'Vous ne participez pas à ce lobby.');
       const legend = await findLegend(tx, player.id, characterId);
       await tx.contestParticipant.update({ where: { contestId_slot: { contestId: contest.id, slot: participant.slot } }, data: {
-        characterId, characterNameSnapshot: legend.character.name, avatarSnapshot: legend.character.iconPath,
+        characterId, characterNameSnapshot: legend.character.name, avatarSnapshot: legend.character.iconPath, ready: false,
       } });
-      await resetHumanReadiness(tx, contest.id);
+      await touchLobbyDeadline(tx, contest.id, this.clock.now());
       await createEvent(tx, contest.id, 'LEGEND_SELECTED', idempotencyKey, player.id, { characterId, slot: participant.slot });
     });
     return this.readView(player.id);
@@ -172,6 +172,7 @@ export class ContestService {
       const participant = contest.participants.find((item) => item.playerId === player.id && item.kind === ContestParticipantKind.HUMAN);
       if (!participant) throw new BusinessError('CONTEST_NOT_JOINED', 'Vous ne participez pas à ce lobby.');
       await tx.contestParticipant.update({ where: { contestId_slot: { contestId: contest.id, slot: participant.slot } }, data: { ready } });
+      await touchLobbyDeadline(tx, contest.id, this.clock.now());
       await createEvent(tx, contest.id, 'READINESS_CHANGED', idempotencyKey, player.id, { ready, slot: participant.slot });
     });
     return this.readView(player.id);
@@ -267,9 +268,10 @@ export class ContestService {
       const participant = contest.participants.find((item) => item.playerId === player.id);
       if (!participant) throw new BusinessError('CONTEST_NOT_JOINED', 'Vous n’êtes pas membre actif de ce Concours.');
       if (contest.status === ContestStatus.LOBBY) {
+        const now = this.clock.now();
         await tx.contestParticipant.delete({ where: { contestId_slot: { contestId: contest.id, slot: participant.slot } } });
-        await resetHumanReadiness(tx, contest.id);
-        await transferOrganizerOrCancel(tx, contest.id, player.id, this.clock.now());
+        await transferOrganizerOrCancel(tx, contest.id, player.id, now);
+        await touchLobbyDeadline(tx, contest.id, now);
       } else {
         await replaceWithBot(tx, contest, participant.slot, ContestReplacementReason.LEFT, this.clock.now());
         await transferOrganizerOrCancel(tx, contest.id, player.id, this.clock.now());
@@ -300,7 +302,7 @@ export class ContestService {
       if (!participant) throw new BusinessError('CONTEST_NOT_JOINED', 'Ce joueur ne participe pas au lobby.');
       await tx.contestParticipant.delete({ where: { contestId_slot: { contestId: contest.id, slot: participant.slot } } });
       await tx.contestLobbyRemoval.upsert({ where: { contestId_playerId: { contestId: contest.id, playerId: targetPlayerId } }, create: { contestId: contest.id, playerId: targetPlayerId, count: 1 }, update: { count: { increment: 1 } } });
-      await resetHumanReadiness(tx, contest.id);
+      await touchLobbyDeadline(tx, contest.id, this.clock.now());
       await createEvent(tx, contest.id, 'LOBBY_PARTICIPANT_REMOVED', idempotencyKey, organizer.id, { slot: participant.slot, targetPlayerId }, targetPlayerId, participant.slot);
     });
     return this.readView(organizer.id);
@@ -314,9 +316,11 @@ export class ContestService {
       const participant = contest.participants.find((item) => item.playerId === targetPlayerId);
       if (!participant) throw new BusinessError('CONTEST_NOT_JOINED', 'Ce joueur ne participe pas au Concours.');
       if (contest.status === ContestStatus.LOBBY) {
+        const now = this.clock.now();
         await tx.contestParticipant.delete({ where: { contestId_slot: { contestId: contest.id, slot: participant.slot } } });
         await tx.contestLobbyRemoval.upsert({ where: { contestId_playerId: { contestId: contest.id, playerId: targetPlayerId } }, create: { contestId: contest.id, playerId: targetPlayerId, count: 1 }, update: { count: { increment: 1 } } });
-        await resetHumanReadiness(tx, contest.id);
+        await transferOrganizerOrCancel(tx, contest.id, targetPlayerId, now);
+        await touchLobbyDeadline(tx, contest.id, now);
       } else {
         await replaceWithBot(tx, contest, participant.slot, ContestReplacementReason.ADMIN_REMOVAL, this.clock.now());
         await transferOrganizerOrCancel(tx, contest.id, targetPlayerId, this.clock.now());
@@ -334,7 +338,7 @@ export class ContestService {
       this.database.contest.count({ where: { status: ContestStatus.FINISHED } }),
       this.database.contest.findMany({ where: { status: ContestStatus.FINISHED }, include: contestInclude, orderBy: { finishedAt: 'desc' }, skip: (page - 1) * HISTORY_PAGE_SIZE, take: HISTORY_PAGE_SIZE }),
     ]);
-    return { page, pageSize: HISTORY_PAGE_SIZE, total, pageCount: Math.max(1, Math.ceil(total / HISTORY_PAGE_SIZE)), contests: contests.map((contest) => presentContest(contest, null, true)) };
+    return { page, pageSize: HISTORY_PAGE_SIZE, total, pageCount: Math.max(1, Math.ceil(total / HISTORY_PAGE_SIZE)), contests: contests.map(presentContestHistorySummary) };
   }
 
   public async getHistoryDetail(contestId: string) {
@@ -512,7 +516,12 @@ async function consumeDaily(tx: Prisma.TransactionClient, playerId: string, busi
   });
 }
 
-async function resetHumanReadiness(tx: Prisma.TransactionClient, contestId: string) { await tx.contestParticipant.updateMany({ where: { contestId, kind: ContestParticipantKind.HUMAN }, data: { ready: false } }); }
+async function touchLobbyDeadline(tx: Prisma.TransactionClient, contestId: string, now: Date) {
+  await tx.contest.updateMany({
+    where: { id: contestId, status: ContestStatus.LOBBY },
+    data: { lobbyDeadlineAt: new Date(now.getTime() + CONTEST_LOBBY_TIMEOUT_MS) },
+  });
+}
 
 async function createEvent(tx: Prisma.TransactionClient, contestId: string, type: string, idempotencyKey: string | null, actorPlayerId: string | null, payload?: Prisma.InputJsonValue, targetPlayerId?: string | null, targetSlot?: number | null) {
   if (idempotencyKey && actorPlayerId) {
@@ -657,7 +666,7 @@ function titleRankForProgress(progress: Prisma.C6CompetitionProgressGetPayload<o
   return progress.popularityTitleFloor;
 }
 
-function presentTheme(theme: ContestTheme) { const item = contestThemePresentation[theme as ContestThemeKey]; return { key: theme, label: item.label, title: item.title }; }
+function presentTheme(theme: ContestTheme) { const item = contestThemePresentation[theme as ContestThemeKey]; return { key: theme, label: item.label, title: item.title, statKey: item.statKey }; }
 
 function presentLegend(progress: Prisma.C6CompetitionProgressGetPayload<{ include: { character: true } }>) {
   return {
@@ -677,6 +686,7 @@ function presentLegend(progress: Prisma.C6CompetitionProgressGetPayload<{ includ
 function presentContest(contest: ContestRecord, viewerPlayerId: string | null, history: boolean) {
   const viewerParticipant = contest.participants.find((item) => item.playerId === viewerPlayerId);
   const viewerSpectator = contest.spectators.find((item) => item.playerId === viewerPlayerId);
+  const promotions = history ? presentPromotions(contest) : [];
   return {
     id: contest.id, businessDate: databaseDateToBusinessDate(contest.businessDate), theme: presentTheme(contest.theme),
     status: contest.status, phase: contest.phase, organizerPlayerId: contest.organizerPlayerId,
@@ -684,7 +694,7 @@ function presentContest(contest: ContestRecord, viewerPlayerId: string | null, h
     supportDeadlineAt: contest.supportDeadlineAt?.toISOString() ?? null, currentTurnOrder: contest.currentTurnOrder,
     currentRound: contest.currentRound, winnerSlot: contest.winnerSlot, startedAt: contest.startedAt?.toISOString() ?? null,
     finishedAt: contest.finishedAt?.toISOString() ?? null,
-    viewer: { participantSlot: viewerParticipant?.slot ?? null, spectator: Boolean(viewerSpectator), organizer: contest.organizerPlayerId === viewerPlayerId, selectedForSupport: contest.selectedSpectatorPlayerId === viewerPlayerId },
+    viewer: { participantSlot: viewerParticipant?.slot ?? null, selectedCharacterId: viewerParticipant?.characterId ?? null, spectator: Boolean(viewerSpectator), organizer: contest.organizerPlayerId === viewerPlayerId, selectedForSupport: contest.selectedSpectatorPlayerId === viewerPlayerId },
     participants: contest.participants.map((item) => ({
       slot: item.slot, kind: item.kind, playerId: item.playerId, displayName: item.playerNameSnapshot,
       characterName: item.characterNameSnapshot, avatar: item.avatarSnapshot, basePoints: item.basePointsSnapshot,
@@ -695,6 +705,73 @@ function presentContest(contest: ContestRecord, viewerPlayerId: string | null, h
       finalRank: history ? item.finalRank : null, rewardPrimogems: history ? item.rewardPrimogems.toString() : null,
     })),
     spectators: contest.spectators.map((item) => ({ playerId: item.playerId, displayName: item.player.displayName, selected: contest.selectedSpectatorPlayerId === item.playerId })),
-    events: history ? contest.events.map((event) => ({ id: event.id, type: event.type, actorPlayerId: event.actorPlayerId, targetPlayerId: event.targetPlayerId, targetSlot: event.targetSlot, payload: event.payload, createdAt: event.createdAt.toISOString() })) : [],
+    promotions,
+    historyEvents: history ? presentHistoryEvents(contest) : [],
   };
 }
+
+function presentContestHistorySummary(contest: ContestRecord) {
+  const winner = contest.participants.find((item) => item.slot === contest.winnerSlot);
+  return {
+    id: contest.id,
+    businessDate: databaseDateToBusinessDate(contest.businessDate),
+    theme: presentTheme(contest.theme),
+    currentRound: contest.currentRound,
+    winner: winner ? { slot: winner.slot, displayName: winner.playerNameSnapshot, kind: winner.kind } : null,
+    startedAt: contest.startedAt?.toISOString() ?? null,
+    finishedAt: contest.finishedAt?.toISOString() ?? null,
+  };
+}
+
+function presentPromotions(contest: ContestRecord) {
+  return contest.events.flatMap((event) => {
+    if (event.type !== 'TITLE_PROMOTED') return [];
+    const payload = jsonObject(event.payload);
+    const slot = numberValue(payload.slot) ?? event.targetSlot;
+    const fromRank = numberValue(payload.from);
+    const toRank = numberValue(payload.to);
+    const title = stringValue(payload.title);
+    const participant = contest.participants.find((item) => item.slot === slot && item.kind === ContestParticipantKind.HUMAN && !item.replacedAt);
+    if (!participant || !event.targetPlayerId || fromRank === null || toRank === null || !title) return [];
+    return [{ playerId: event.targetPlayerId, slot: participant.slot, characterName: participant.characterNameSnapshot, fromRank, toRank, title }];
+  });
+}
+
+type PresentedHistoryEvent =
+  | { kind: 'PARTICIPANT_LEFT'; occurredAt: string; slot: number | null; playerName: string | null }
+  | { kind: 'PARTICIPANT_REPLACED'; occurredAt: string; slot: number | null; playerName: string | null; reason: string | null }
+  | { kind: 'SUPPORT_SELECTED'; occurredAt: string; round: number | null; playerName: string | null }
+  | { kind: 'SUPPORT_PLAYED'; occurredAt: string; slot: number | null; playerName: string | null; targetName: string | null; points: number | null }
+  | { kind: 'SUPPORT_SKIPPED'; occurredAt: string; round: number | null }
+  | { kind: 'TITLE_PROMOTED'; occurredAt: string; slot: number; playerName: string | null; characterName: string | null; fromRank: number; toRank: number; title: string };
+
+function presentHistoryEvents(contest: ContestRecord): PresentedHistoryEvent[] {
+  const displayName = (playerId: string | null) => {
+    if (!playerId) return null;
+    const participant = contest.participants.find((item) => item.playerId === playerId || item.originalPlayerId === playerId);
+    if (participant?.playerId === playerId) return participant.playerNameSnapshot;
+    if (participant?.originalPlayerId === playerId) return participant.originalPlayer?.displayName ?? participant.playerNameSnapshot;
+    return contest.spectators.find((item) => item.playerId === playerId)?.player.displayName ?? null;
+  };
+  const result: PresentedHistoryEvent[] = [];
+  for (const event of contest.events) {
+    const payload = jsonObject(event.payload);
+    const occurredAt = event.createdAt.toISOString();
+    if (event.type === 'MEMBER_LEFT') result.push({ kind: 'PARTICIPANT_LEFT', occurredAt, slot: numberValue(payload.slot), playerName: displayName(event.actorPlayerId) });
+    if (event.type === 'PARTICIPANT_REPLACED') result.push({ kind: 'PARTICIPANT_REPLACED', occurredAt, slot: numberValue(payload.slot), playerName: displayName(event.targetPlayerId), reason: stringValue(payload.reason) });
+    if (event.type === 'SUPPORT_SELECTED') result.push({ kind: 'SUPPORT_SELECTED', occurredAt, round: numberValue(payload.round), playerName: displayName(event.actorPlayerId) });
+    if (event.type === 'SUPPORT_PLAYED') result.push({ kind: 'SUPPORT_PLAYED', occurredAt, slot: numberValue(payload.targetSlot) ?? event.targetSlot, playerName: displayName(event.actorPlayerId), targetName: displayName(event.targetPlayerId), points: numberValue(payload.points) });
+    if (event.type === 'SUPPORT_SKIPPED') result.push({ kind: 'SUPPORT_SKIPPED', occurredAt, round: numberValue(payload.round) });
+    if (event.type === 'TITLE_PROMOTED') {
+      const promotion = presentPromotions({ ...contest, events: [event] })[0];
+      if (promotion) result.push({ kind: 'TITLE_PROMOTED', occurredAt, slot: promotion.slot, playerName: displayName(promotion.playerId), characterName: promotion.characterName, fromRank: promotion.fromRank, toRank: promotion.toRank, title: promotion.title });
+    }
+  }
+  return result;
+}
+
+function jsonObject(value: Prisma.JsonValue | null): Record<string, Prisma.JsonValue> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, Prisma.JsonValue> : {};
+}
+function numberValue(value: Prisma.JsonValue | undefined): number | null { return typeof value === 'number' ? value : null; }
+function stringValue(value: Prisma.JsonValue | undefined): string | null { return typeof value === 'string' ? value : null; }

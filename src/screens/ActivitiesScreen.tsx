@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import type { ContestDto, ContestHistoryDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyCombatFightDto, DailyRewardClaimDto, DailyRewardTodayDto, ElementKey, ExpeditionDto, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto, WheelSpinDto, WheelTodayDto } from '../api/types'
+import type { ContestDto, ContestHistoryDto, ContestSnapshotDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyCombatFightDto, DailyRewardClaimDto, DailyRewardTodayDto, ElementKey, ExpeditionDto, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
 import { formatResourceAmount, formatWheelOverviewResult } from '../utils/formatters'
 import WheelCard from '../components/WheelCard'
@@ -47,6 +47,7 @@ type ActivitiesScreenProps = {
   onLoadMonthlyBossHistory?: (page: number) => Promise<MonthlyBossHistoryDto>
   onRefreshContest?: () => Promise<ContestDto>
   onLoadContestHistory?: (page: number) => Promise<ContestHistoryDto>
+  onLoadContestHistoryDetail?: (contestId: string) => Promise<ContestSnapshotDto>
   onOpenContest?: (characterId: string, key: string) => Promise<ContestDto>
   onJoinContest?: (characterId: string, key: string) => Promise<ContestDto>
   onSelectContestLegend?: (characterId: string, key: string) => Promise<ContestDto>
@@ -71,7 +72,8 @@ function ActivitiesScreen(props: ActivitiesScreenProps) {
   if (screen === 'activities-contest') {
     const unchanged = async () => contest
     const emptyHistory = async () => ({ page: 1, pageSize: 10, total: 0, pageCount: 1, contests: [] as const })
-    return <ContestScreen value={contest} onRefresh={props.onRefreshContest ?? unchanged} onLoadHistory={props.onLoadContestHistory ?? emptyHistory} onOpen={props.onOpenContest ?? unchanged} onJoin={props.onJoinContest ?? unchanged} onSelectLegend={props.onSelectContestLegend ?? unchanged} onReady={props.onSetContestReady ?? unchanged} onStart={props.onStartContest ?? unchanged} onSpectate={props.onSpectateContest ?? unchanged} onLeave={props.onLeaveContest ?? unchanged} onCancel={props.onCancelContest ?? unchanged} onPlay={props.onPlayContest ?? unchanged} onSupport={props.onSupportContest ?? unchanged} onRemoveParticipant={props.onRemoveContestParticipant ?? unchanged} />
+    const emptyDetail = async () => { throw new Error('Détail indisponible.') }
+    return <ContestScreen value={contest} onRefresh={props.onRefreshContest ?? unchanged} onLoadHistory={props.onLoadContestHistory ?? emptyHistory} onLoadHistoryDetail={props.onLoadContestHistoryDetail ?? emptyDetail} onOpen={props.onOpenContest ?? unchanged} onJoin={props.onJoinContest ?? unchanged} onSelectLegend={props.onSelectContestLegend ?? unchanged} onReady={props.onSetContestReady ?? unchanged} onStart={props.onStartContest ?? unchanged} onSpectate={props.onSpectateContest ?? unchanged} onLeave={props.onLeaveContest ?? unchanged} onCancel={props.onCancelContest ?? unchanged} onPlay={props.onPlayContest ?? unchanged} onSupport={props.onSupportContest ?? unchanged} onRemoveParticipant={props.onRemoveContestParticipant ?? unchanged} />
   }
   const content = screen === 'activities-missions' ? { title: 'Missions', description: 'Les missions permanentes seront disponibles ici.', tabs: ['B', 'A', 'S', 'Z'] } : screen === 'activities-event' ? { title: 'Événement', description: 'Les événements mensuels seront accessibles ici.', tabs: ['Jeux', 'Shop', 'Classement'] } : { title: 'Concours', description: 'Le Concours C6 sera accessible ici lorsqu’il sera implémenté.', tabs: [] }
   return <div className="screen-content activity-shell"><ScreenHeader eyebrow="Activités" title={content.title} description={content.description} /><nav className="activity-inner-tabs" aria-label={`Sections ${content.title}`}>{content.tabs.map((tab) => <button type="button" disabled key={tab}>{tab}</button>)}</nav><section className="panel unavailable-shell"><strong>Bientôt disponible</strong><p>Aucune progression fictive n’est affichée.</p></section></div>
@@ -85,7 +87,7 @@ const unavailableDailyCombat: DailyCombatDto = {
   playerStats: { totalFights: '0', totalWins: '0', totalLosses: '0', totalManualWins: '0' },
 }
 const unavailableContest: ContestDto = {
-  businessDate: '', theme: { key: 'STRENGTH', label: 'Force', title: 'Titan' }, dailyUsed: false,
+  businessDate: '', theme: { key: 'STRENGTH', label: 'Force', title: 'Titan', statKey: 'strength' }, dailyUsed: false,
   permissions: { canOpen: false, canJoin: false, canSpectate: false, canLeave: false, canReady: false, canStart: false, canCancel: false, canPlay: false, canSupport: false },
   active: null, lastResult: null, legends: [],
 }
