@@ -6,7 +6,10 @@ import type { RandomSource } from '../../domain/wheel/wheel.js';
 import {
   calculateBossDamage,
   calculateBossMaxHp,
+  calculateBossVictoryTiming,
+  calculateContributionBasisPoints,
   calculateNextBossBase,
+  calculateRoundedBossAverage,
   getBusinessMonth,
   MONTHLY_BOSS_INITIAL_BASE_HP,
   MONTHLY_BOSS_REWARD,
@@ -48,6 +51,24 @@ export type MonthlyBossRankingEntry = Readonly<{
   bestHit: bigint;
 }>;
 
+export type MonthlyBossSummary = Readonly<{
+  victoryDayCount: number | null;
+  daysRemainingAfterVictory: number | null;
+  community: {
+    participantCount: number;
+    attackCount: bigint;
+    totalDamage: bigint;
+    averageDamage: bigint;
+  };
+  records: {
+    topContributor: MonthlyBossRankingEntry | null;
+    biggestHit: { playerId: string; displayName: string; damage: bigint; createdAt: Date } | null;
+    mostAttacks: MonthlyBossRankingEntry | null;
+    finalBlow: { id: string; displayName: string } | null;
+    topThree: readonly MonthlyBossRankingEntry[];
+  };
+}>;
+
 export type MonthlyBossView = Readonly<{
   businessDate: string;
   boss: {
@@ -70,8 +91,9 @@ export type MonthlyBossView = Readonly<{
   availableCharacters: readonly MonthlyBossCharacter[];
   preview: null | { totalDamage: bigint; contributions: ReturnType<typeof calculateBossDamage>['contributions'] };
   reward: typeof MONTHLY_BOSS_REWARD;
-  participation: null | { rank: number; totalDamage: bigint; attackCount: bigint; bestHit: bigint };
+  participation: null | { rank: number; totalDamage: bigint; attackCount: bigint; bestHit: bigint; contributionBasisPoints: bigint };
   ranking: readonly MonthlyBossRankingEntry[];
+  defeatedSummary: MonthlyBossSummary | null;
   playerStats: { totalDamage: bigint; totalAttacks: bigint; totalParticipated: bigint; totalRewarded: bigint; finalBlows: bigint; bestHit: bigint };
 }>;
 
@@ -288,19 +310,29 @@ export class MonthlyBossService {
       orderBy: { monthStart: 'desc' },
       skip: (page - 1) * HISTORY_PAGE_SIZE,
       take: HISTORY_PAGE_SIZE,
-      include: { finalBlowPlayer: { select: { id: true, displayName: true } }, _count: { select: { participations: true } } },
+      include: { finalBlowPlayer: { select: { id: true, displayName: true } } },
     });
-    return { page, pageSize: HISTORY_PAGE_SIZE, total, totalPages: Math.max(1, Math.ceil(total / HISTORY_PAGE_SIZE)), bosses: bosses.map((boss) => ({
-      id: boss.id,
-      monthStart: databaseDateToBusinessDate(boss.monthStart),
-      name: boss.nameSnapshot,
-      maxHp: boss.maxHp,
-      currentHp: boss.currentHp,
-      resistanceElementKey: elementKey(boss.resistanceElementKey),
-      defeatedAt: boss.defeatedAt,
-      finalBlowPlayer: boss.finalBlowPlayer,
-      participantCount: boss._count.participations,
-    })) };
+    const summaries = await readBossSummaries(this.database, bosses);
+    return { page, pageSize: HISTORY_PAGE_SIZE, total, totalPages: Math.max(1, Math.ceil(total / HISTORY_PAGE_SIZE)), bosses: bosses.map((boss) => {
+      const summary = summaries.get(boss.id)!.summary;
+      return {
+        id: boss.id,
+        monthStart: databaseDateToBusinessDate(boss.monthStart),
+        name: boss.nameSnapshot,
+        baseHp: boss.baseHp,
+        maxHp: boss.maxHp,
+        currentHp: boss.currentHp,
+        resistanceElementKey: elementKey(boss.resistanceElementKey),
+        status: boss.defeatedAt ? 'DEFEATED' as const : 'FAILED' as const,
+        defeatedAt: boss.defeatedAt,
+        finalBlowPlayer: boss.finalBlowPlayer,
+        victoryDayCount: summary.victoryDayCount,
+        daysRemainingAfterVictory: summary.daysRemainingAfterVictory,
+        nextBaseAdjustment: calculateNextBossBase({ baseHp: boss.baseHp, currentHp: boss.currentHp, monthStart: databaseDateToBusinessDate(boss.monthStart), defeatedAt: boss.defeatedAt }).adjustment,
+        community: summary.community,
+        records: summary.records,
+      };
+    }) };
   }
 
   private async context(identity: AuthenticatedIdentity) {
@@ -365,14 +397,16 @@ export class MonthlyBossScheduler {
 }
 
 async function readView(client: Client, playerId: string, businessDate: string, bossId: string): Promise<MonthlyBossView> {
-  const [boss, loadout, possessions, todayAttack, stats, ranking] = await Promise.all([
+  const [boss, loadout, possessions, todayAttack, stats] = await Promise.all([
     client.monthlyBoss.findUniqueOrThrow({ where: { id: bossId }, include: { finalBlowPlayer: { select: { id: true, displayName: true } } } }),
     client.playerBossLoadout.findUnique({ where: { playerId }, include: { slots: { orderBy: { position: 'asc' } } } }),
     client.playerCharacter.findMany({ where: { playerId, character: { isActive: true } }, select: possessionSelection }),
     client.bossAttack.findUnique({ where: { bossId_playerId_businessDate: { bossId, playerId, businessDate: businessDateToDatabaseDate(businessDate) } } }),
     client.playerBossStats.findUnique({ where: { playerId } }),
-    readRanking(client, bossId),
   ]);
+  const summaryData = (await readBossSummaries(client, [boss])).get(boss.id)!;
+  const summary = summaryData.summary;
+  const ranking = summaryData.ranking;
   const characters = possessions.map(toCharacter);
   const byId = new Map(characters.map((character) => [character.id, character]));
   const slots = ([1, 2, 3, 4] as const).map((position) => {
@@ -395,11 +429,88 @@ async function readView(client: Client, playerId: string, businessDate: string, 
     availableCharacters: characters,
     preview,
     reward: MONTHLY_BOSS_REWARD,
-    participation: own ? { rank: own.rank, totalDamage: own.totalDamage, attackCount: own.attackCount, bestHit: own.bestHit } : null,
-    ranking: ranking.slice(0, 3),
+    participation: own ? { rank: own.rank, totalDamage: own.totalDamage, attackCount: own.attackCount, bestHit: own.bestHit, contributionBasisPoints: calculateContributionBasisPoints(own.totalDamage, boss.maxHp) } : null,
+    ranking: summary.records.topThree,
+    defeatedSummary: defeated ? summary : null,
     playerStats: stats ? { totalDamage: stats.totalDamage, totalAttacks: stats.totalAttacks, totalParticipated: stats.totalParticipated, totalRewarded: stats.totalRewarded, finalBlows: stats.finalBlows, bestHit: stats.bestHit } : { totalDamage: 0n, totalAttacks: 0n, totalParticipated: 0n, totalRewarded: 0n, finalBlows: 0n, bestHit: 0n },
   };
 }
+
+type BossSummarySource = Readonly<{
+  id: string;
+  monthStart: Date;
+  baseHp: bigint;
+  maxHp: bigint;
+  currentHp: bigint;
+  defeatedAt: Date | null;
+  finalBlowPlayer: { id: string; displayName: string } | null;
+}>;
+
+type BossSummaryData = Readonly<{ summary: MonthlyBossSummary; ranking: readonly MonthlyBossRankingEntry[] }>;
+
+async function readBossSummaries(client: Client, bosses: readonly BossSummarySource[]): Promise<ReadonlyMap<string, BossSummaryData>> {
+  if (!bosses.length) return new Map();
+  const bossIds = bosses.map(({ id }) => id);
+  const [participations, attacks] = await Promise.all([
+    client.playerBossParticipation.findMany({
+      where: { bossId: { in: bossIds } },
+      include: { player: { select: { displayName: true } } },
+    }),
+    client.bossAttack.findMany({
+      where: { bossId: { in: bossIds } },
+      select: { id: true, bossId: true, playerId: true, damage: true, createdAt: true, player: { select: { displayName: true } } },
+    }),
+  ]);
+  return new Map(bosses.map((boss) => {
+    const bossParticipations = participations.filter(({ bossId }) => bossId === boss.id).sort(compareParticipationRanking);
+    const ranking = bossParticipations.map((row, index) => ({
+      rank: index + 1,
+      playerId: row.playerId,
+      displayName: row.player.displayName,
+      totalDamage: row.totalDamage,
+      attackCount: row.attackCount,
+      bestHit: row.bestHit,
+    }));
+    const bossAttacks = attacks.filter(({ bossId }) => bossId === boss.id);
+    const totalDamage = bossAttacks.reduce((sum, { damage }) => sum + damage, 0n);
+    const attackCount = BigInt(bossAttacks.length);
+    const biggestHit = [...bossAttacks].sort(compareBiggestHit)[0];
+    const mostAttacks = [...ranking].sort(compareMostAttacks)[0] ?? null;
+    const timing = calculateBossVictoryTiming(databaseDateToBusinessDate(boss.monthStart), boss.defeatedAt);
+    const summary: MonthlyBossSummary = {
+      ...timing,
+      community: {
+        participantCount: ranking.length,
+        attackCount,
+        totalDamage,
+        averageDamage: calculateRoundedBossAverage(totalDamage, attackCount),
+      },
+      records: {
+        topContributor: ranking[0] ?? null,
+        biggestHit: biggestHit ? { playerId: biggestHit.playerId, displayName: biggestHit.player.displayName, damage: biggestHit.damage, createdAt: biggestHit.createdAt } : null,
+        mostAttacks,
+        finalBlow: boss.finalBlowPlayer,
+        topThree: ranking.slice(0, 3),
+      },
+    };
+    return [boss.id, { summary, ranking }] as const;
+  }));
+}
+
+function compareParticipationRanking(left: { totalDamage: bigint; firstAttackAt: Date; playerId: string }, right: { totalDamage: bigint; firstAttackAt: Date; playerId: string }): number {
+  return compareBigIntDesc(left.totalDamage, right.totalDamage) || left.firstAttackAt.getTime() - right.firstAttackAt.getTime() || compareText(left.playerId, right.playerId);
+}
+
+function compareMostAttacks(left: MonthlyBossRankingEntry, right: MonthlyBossRankingEntry): number {
+  return compareBigIntDesc(left.attackCount, right.attackCount) || compareBigIntDesc(left.totalDamage, right.totalDamage) || compareText(left.playerId, right.playerId);
+}
+
+function compareBiggestHit(left: { damage: bigint; createdAt: Date; playerId: string; id: string }, right: { damage: bigint; createdAt: Date; playerId: string; id: string }): number {
+  return compareBigIntDesc(left.damage, right.damage) || left.createdAt.getTime() - right.createdAt.getTime() || compareText(left.playerId, right.playerId) || compareText(left.id, right.id);
+}
+
+function compareBigIntDesc(left: bigint, right: bigint): number { return left === right ? 0 : left > right ? -1 : 1; }
+function compareText(left: string, right: string): number { return left < right ? -1 : left > right ? 1 : 0; }
 
 async function readRanking(client: Client, bossId: string): Promise<MonthlyBossRankingEntry[]> {
   const rows = await client.playerBossParticipation.findMany({ where: { bossId }, include: { player: { select: { displayName: true } } }, orderBy: [{ totalDamage: 'desc' }, { firstAttackAt: 'asc' }, { playerId: 'asc' }] });

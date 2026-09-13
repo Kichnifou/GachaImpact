@@ -98,34 +98,18 @@ Ne pas le mélanger avec l'audit actuel de GachaImpact.
 
 Ne jamais dépendre uniquement de la mémoire de conversation.
 
-Pour savoir :
-- où en est le projet ;
-- quel domaine est actif ;
-- quelles décisions sont déjà prises ;
-- quelle est la prochaine étape ;
-- quelles dépendances ont été reportées ;
-
-lire en priorité :
-
-1. `docs/master/PROJECT_MASTER_PLAN.md`
-2. `docs/process/implementation-workflow.md` lorsqu’il faut préparer, reviewer ou valider un lot d’implémentation
-3. `docs/roadmap/implementation-order-v1.md` lorsqu’il faut connaître la séquence de développement prévue
-4. le document spécialisé du domaine actif dans `docs/legacy/`
-5. `docs/specifications/decisions-log.md` si une décision transverse doit être vérifiée
-6. `docs/commands/command-reference.md` pour les commandes
-7. `docs/specifications/navigation-shell-v1.md` pour la navigation, le Menu, Configuration et le Tutoriel, puis `docs/specifications/ui-layout-contract-v1.md` lorsqu’un écran long, un scroll, une pagination, une modale ou un drag-and-drop est concerné
-8. `docs/legacy/02-current-player-model.md` pour la vision conceptuelle du joueur
-9. `docs/legacy/03-command-data-matrix.md` pour les relations scripts/données
-
-Le Master doit indiquer la prochaine étape exacte.
+Pour savoir où en est le projet, quel domaine est actif et quelle étape vient ensuite, appliquer le parcours ordonné de la section `# 15. Reprendre le projet dans une nouvelle conversation`. Le Master fournit l’état vivant et la prochaine étape exacte ; la roadmap d’implémentation fournit ensuite la séquence durable, puis l’index de la section `# 14. Où trouver le détail métier` mène à l’audit propriétaire. Cette chaîne évite de reconstruire l’état depuis la mémoire d’une conversation.
 
 ## Responsabilité unique des documents
 
 Pour éviter les contradictions et rendre la documentation sûre pour Codex :
 
 - `docs/master/PROJECT_MASTER_PLAN.md` est le **seul pointeur global vivant** : phase active, domaine actif, état global et prochaine étape exacte ;
+- `docs/roadmap/implementation-order-v1.md` est le propriétaire de la séquence durable des développements V1 et de leurs dépendances principales, sans suivre les checkpoints ;
 - un document `docs/legacy/*-audit.md` décrit uniquement son domaine : legacy réel, décisions validées, cible standalone, migration, dépendances et état propre du domaine ;
 - `docs/specifications/decisions-log.md` conserve les décisions validées de manière durable et cumulative, sans devenir un tracker de reprise ;
+- `docs/specifications/v1-data-model.md`, `docs/architecture/backend-architecture-v1.md` et `docs/architecture/postgresql-schema-v1.md` décrivent respectivement le modèle conceptuel, l’architecture backend/son état physique et le schéma relationnel cible/physique ;
+- `docs/specifications/navigation-shell-v1.md` et `docs/specifications/ui-layout-contract-v1.md` possèdent la navigation et les règles UI transversales ;
 - `docs/commands/command-reference.md` décrit les contrats et comportements des commandes ;
 - `docs/roadmap/development-roadmap.md` décrit uniquement la trajectoire macro du projet et ne doit pas dupliquer l'avancement courant du Master ;
 - `docs/process/implementation-workflow.md` décrit le déroulement opérationnel d’un lot, de sa conception à sa validation publique et son checkpoint ;
@@ -663,24 +647,37 @@ Le socle réellement retenu et utilisé est PostgreSQL/Supabase avec Prisma côt
 
 # 14. Où trouver le détail métier
 
-Ne pas copier toutes les décisions métier dans ce fichier.
+Cet index route vers les fichiers réellement présents sous `docs/legacy/`. Il ne remplace pas leurs règles. Identifier d’abord le domaine actif dans le Master, puis ouvrir uniquement les propriétaires utiles.
 
-Pour le détail :
+| Domaine / preuve | Audit propriétaire |
+|---|---|
+| Inventaire des sources | [01-data-sources-inventory.md](../docs/legacy/01-data-sources-inventory.md) |
+| Modèle Player historique | [02-current-player-model.md](../docs/legacy/02-current-player-model.md) |
+| Matrice commandes / données | [03-command-data-matrix.md](../docs/legacy/03-command-data-matrix.md) |
+| XP | [04-xp-audit.md](../docs/legacy/04-xp-audit.md) |
+| Ressources / éléments / échanges | [05-element-resources-audit.md](../docs/legacy/05-element-resources-audit.md) |
+| Gacha / Invocation / votes de bannière | [06-gacha-invocation-audit.md](../docs/legacy/06-gacha-invocation-audit.md) |
+| Box / possessions / obtention | [07-box-possession-obtention-audit.md](../docs/legacy/07-box-possession-obtention-audit.md) |
+| Teams | [08-team-audit.md](../docs/legacy/08-team-audit.md) |
+| Banque | [09-banque-audit.md](../docs/legacy/09-banque-audit.md) |
+| Sac / Collection / Boutique | [10-sac-coffre-shop-audit.md](../docs/legacy/10-sac-coffre-shop-audit.md) |
+| Missions / Quotidiennes | [11-missions-daily-audit.md](../docs/legacy/11-missions-daily-audit.md) |
+| Expedition | [12-expedition-audit.md](../docs/legacy/12-expedition-audit.md) |
+| Combat / Boss | [13-combat-audit.md](../docs/legacy/13-combat-audit.md) |
+| Profils / présence / confidentialité / amitié / chat | [14-ami-social-audit.md](../docs/legacy/14-ami-social-audit.md) |
+| Concours / personnages C6 | [15-concours-c6-audit.md](../docs/legacy/15-concours-c6-audit.md) |
+| Événements mensuels | [16-event-monthly-audit.md](../docs/legacy/16-event-monthly-audit.md) |
+| Roue quotidienne | [17-roue-quotidien-audit.md](../docs/legacy/17-roue-quotidien-audit.md) |
+| Faveur de l’Astre | [18-faveur-subscription-audit.md](../docs/legacy/18-faveur-subscription-audit.md) |
+| Codes cadeaux | [19-codes-cadeaux-audit.md](../docs/legacy/19-codes-cadeaux-audit.md) |
+| Gift Suprême / Twitch | [20-gift-twitch-audit.md](../docs/legacy/20-gift-twitch-audit.md) |
+| Giveaway / Wish | [21-giveaway-wish-audit.md](../docs/legacy/21-giveaway-wish-audit.md) |
+| Top / classements | [22-top-classements-audit.md](../docs/legacy/22-top-classements-audit.md) |
+| Help / cohérence des commandes | [23-help-command-coherence-audit.md](../docs/legacy/23-help-command-coherence-audit.md) |
+| Sweep final des scripts | [24-final-script-sweep.md](../docs/legacy/24-final-script-sweep.md) |
+| Sweep final des JSON | [25-final-json-sweep.md](../docs/legacy/25-final-json-sweep.md) |
 
-- XP : `docs/legacy/04-xp-audit.md`
-- Ressources / échanges : `docs/legacy/05-element-resources-audit.md`
-- Gacha : `docs/legacy/06-gacha-invocation-audit.md`
-- Box / possessions : `docs/legacy/07-box-possession-obtention-audit.md`
-- Team : `docs/legacy/08-team-audit.md`
-- Banque : `docs/legacy/09-banque-audit.md`
-- Sac / Coffre / Shop : `docs/legacy/10-sac-coffre-shop-audit.md`
-- Missions / Daily : `docs/legacy/11-missions-daily-audit.md`
-- Expedition : `docs/legacy/12-expedition-audit.md`
-- Combat : `docs/legacy/13-combat-audit.md`
-- Ami / Social : `docs/legacy/14-ami-social-audit.md`
-- domaine actif suivant : voir le Master puis lire son document spécialisé
-
-Toujours préférer ces documents au contenu d'anciens chats.
+Toujours préférer ces propriétaires au contenu d’anciens chats.
 
 ---
 
@@ -688,18 +685,22 @@ Toujours préférer ces documents au contenu d'anciens chats.
 
 Lorsqu'une nouvelle conversation commence :
 
-1. récupérer les HEAD actuels de `main` et de `review` sur GitHub lorsqu’elle existe, noter leurs SHA et ne pas supposer qu’un SHA ancien est encore le dernier ;
-2. lire `AGENTS.md` ;
-3. lire `.chatgpt/CHATGPT_GUIDE.md` ;
-4. lire `docs/master/PROJECT_MASTER_PLAN.md` depuis ce HEAD ;
-5. lire `docs/process/implementation-workflow.md` ;
-6. lire `docs/roadmap/implementation-order-v1.md` ;
-7. lire les passages pertinents de `docs/specifications/decisions-log.md` ;
-8. identifier le domaine actif et la prochaine étape exacte dans le Master ;
-9. lire uniquement les audits métier pertinents à ce domaine ;
-10. lire l'architecture et le schéma cible pertinents ;
-11. inspecter le code, le schéma Prisma et les migrations physiques correspondants ;
-12. comparer explicitement cible et état physique avant de proposer l'implémentation.
+Commencer par récupérer les HEAD actuels de `main` et `review`, noter leurs SHA et utiliser un même HEAD vérifié pour les documents comparés. Lire ensuite, dans cet ordre :
+
+1. [AGENTS.md](../AGENTS.md) — connaître les garde-fous permanents applicables aux agents ;
+2. [.chatgpt/CHATGPT_GUIDE.md](CHATGPT_GUIDE.md) — appliquer la méthode de reprise et router la lecture sans dépendre d’un ancien chat ;
+3. [PROJECT_MASTER_PLAN.md](../docs/master/PROJECT_MASTER_PLAN.md) — obtenir le checkpoint, le domaine actif, les validations restantes et la prochaine étape exacte ;
+4. [implementation-order-v1.md](../docs/roadmap/implementation-order-v1.md) — situer cette étape dans la séquence V1 durable ;
+5. l’audit spécialisé du domaine actif, trouvé dans l’index de la section 14 — lire la source fonctionnelle sans ouvrir inutilement tous les audits ;
+6. [decisions-log.md](../docs/specifications/decisions-log.md) — vérifier les décisions durables transverses ou cumulatives concernées ;
+7. [v1-data-model.md](../docs/specifications/v1-data-model.md) — comprendre les entités conceptuelles et les données dérivées/persistées ;
+8. [backend-architecture-v1.md](../docs/architecture/backend-architecture-v1.md) — connaître les frontières backend et l’état physique annoncé ;
+9. [postgresql-schema-v1.md](../docs/architecture/postgresql-schema-v1.md) — vérifier le schéma relationnel cible et physique avant toute évolution DB ;
+10. [navigation-shell-v1.md](../docs/specifications/navigation-shell-v1.md) et [ui-layout-contract-v1.md](../docs/specifications/ui-layout-contract-v1.md) lorsqu’une UI est concernée — préserver navigation, scroll, pagination, modales et responsive ;
+11. [implementation-workflow.md](../docs/process/implementation-workflow.md) lorsqu’un lot, une review ou une promotion est traité — appliquer les gates opérationnels et Git ;
+12. [command-reference.md](../docs/commands/command-reference.md) lorsqu’un chat, Twitch ou une commande est concerné — vérifier le contrat player-facing partagé.
+
+Après cette lecture, inspecter le code, le schéma Prisma et les migrations physiques concernés, puis comparer explicitement cible documentaire et état réel avant de proposer une implémentation.
 
 Ne jamais déduire qu'une table, une route ou une fonctionnalité existe physiquement uniquement parce qu'elle figure dans un document d'architecture cible. Lire aussi `docs/commands/command-reference.md` lorsque le domaine touche des commandes, puis vérifier le dernier Rxxx documenté avant toute nouvelle décision.
 

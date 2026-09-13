@@ -1645,3 +1645,11 @@ Le candidat 0.91 matérialise le Boss sans modifier les décisions R390 à R450.
 Le lethal crédite dans la même transaction chaque participant unique de 16 000 Primogemmes et 500 000 Moras via le moteur économique, met à jour les statistiques et crée une notification non lue dédupliquée ouvrant `Activités > Combat > Boss`. L’attaquant final ne reçoit aucun supplément. Le frontend consomme exclusivement la preview serveur et affiche le Boss courant même vaincu, le Top 3, la place personnelle, les statistiques lifetime et les mois antérieurs dans l’Historique paginé.
 
 Le sous-indicateur Quotidiennes est indépendant du résultat du Combat quotidien. Aucun Auto Boss, aucune commande chat/Twitch, aucun raccord Missions, aucun import legacy et aucun gain XP ne sont ajoutés dans ce candidat. La validation publique 0.91 reste à effectuer.
+
+## Correctif physique final 0.91 — bilan R404 et historique R408
+
+Le bilan du Boss vaincu matérialise désormais les quatre groupes R404 : Boss, Communauté, Records et Votre contribution. Les projections serveur dérivent depuis les instances, attaques et participations existantes le jour inclusif de victoire selon Europe/Paris, les jours restants, le nombre de participants et d’attaques, les dégâts totaux, la moyenne arrondie à l’entier le plus proche, les records et le pourcentage personnel arrondi à deux décimales. Un non-participant reçoit explicitement un état sans statistique personnelle inventée.
+
+Les tie-breaks sont techniques et stables : le classement départage les dégâts égaux par première attaque puis UUID Player ; le plus grand nombre d’attaques départage par dégâts totaux puis UUID ; le plus gros coup départage par timestamp, UUID Player puis UUID attaque. Le Top 3 courant conserve la même convention.
+
+Chaque entrée R408 expose physiquement `baseHp`, `maxHp`, PV restants, statut, date éventuelle, résistance, agrégats, meilleur contributeur, plus gros coup, autres records et adjustment de base suivant dérivé par la formule réelle. La liste demeure compacte, limitée à dix Boss par page, et ouvre ces informations dans un détail responsive. Aucun champ, table ou enum n’est ajouté : la migration 016 et le cœur transactionnel Boss restent inchangés.

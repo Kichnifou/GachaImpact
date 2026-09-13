@@ -10,7 +10,7 @@ const view: MonthlyBossView = {
   boss: { id: bossId, monthStart: '2026-09-01', name: 'Seigneur des Ruines Oubliées', baseHp: 1_500_000n, hpVariationPercent: 0, maxHp: 1_500_000n, currentHp: 1_490_000n, resistanceElementKey: 'hydro', defeatedAt: null, finalBlowPlayer: null, nextBaseAdjustment: null },
   status: 'ALIVE', attackState: 'AVAILABLE', canAttack: false,
   loadout: { slots: [1, 2, 3, 4].map((position) => ({ position: position as 1 | 2 | 3 | 4, character: null })) }, availableCharacters: [], preview: null,
-  reward: { primogems: 16_000n, moras: 500_000n }, participation: null, ranking: [], playerStats: { totalDamage: 0n, totalAttacks: 0n, totalParticipated: 0n, totalRewarded: 0n, finalBlows: 0n, bestHit: 0n },
+  reward: { primogems: 16_000n, moras: 500_000n }, participation: null, ranking: [], defeatedSummary: null, playerStats: { totalDamage: 0n, totalAttacks: 0n, totalParticipated: 0n, totalRewarded: 0n, finalBlows: 0n, bestHit: 0n },
 };
 
 describe('monthly Boss HTTP contract', () => {
@@ -21,7 +21,12 @@ describe('monthly Boss HTTP contract', () => {
       getCurrent: vi.fn(async () => view), setSlot: vi.fn(async () => view), removeSlot: vi.fn(async () => view), copyActiveTeam: vi.fn(async () => view), clearLoadout: vi.fn(async () => view),
       attack: vi.fn(async () => ({ operation: { id: randomUUID(), alreadyProcessed: false }, result: { damage: 10_000n, defeated: false }, view, resources: { primogems: 0n, moras: 0n, particles_pyro: 0n, particles_hydro: 0n, particles_cryo: 0n, particles_electro: 0n, particles_anemo: 0n, particles_geo: 0n, particles_dendro: 0n } })),
       getRanking: vi.fn(async () => ({ boss: { id: bossId, nameSnapshot: view.boss.name, monthStart: view.boss.monthStart, defeatedAt: null }, ranking: [{ rank: 1, playerId, displayName: 'Fixture', totalDamage: 10_000n, attackCount: 1n, bestHit: 10_000n }] })),
-      getHistory: vi.fn(async () => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, bosses: [] })),
+      getHistory: vi.fn(async () => ({ page: 1, pageSize: 10, total: 1, totalPages: 1, bosses: [{
+        id: bossId, monthStart: '2026-08-01', name: 'Monstre Abyssal', baseHp: 1_500_000n, maxHp: 1_600_000n, currentHp: 0n, resistanceElementKey: 'hydro' as const, status: 'DEFEATED' as const,
+        defeatedAt: new Date('2026-08-14T10:00:00Z'), finalBlowPlayer: { id: playerId, displayName: 'Fixture' }, victoryDayCount: 14, daysRemainingAfterVictory: 17, nextBaseAdjustment: 1_275_000n,
+        community: { participantCount: 3, attackCount: 5n, totalDamage: 1_610_000n, averageDamage: 322_000n },
+        records: { topContributor: { rank: 1, playerId, displayName: 'Fixture', totalDamage: 900_000n, attackCount: 2n, bestHit: 500_000n }, biggestHit: { playerId, displayName: 'Fixture', damage: 500_000n, createdAt: new Date('2026-08-10T10:00:00Z') }, mostAttacks: { rank: 1, playerId, displayName: 'Fixture', totalDamage: 900_000n, attackCount: 2n, bestHit: 500_000n }, finalBlow: { id: playerId, displayName: 'Fixture' }, topThree: [{ rank: 1, playerId, displayName: 'Fixture', totalDamage: 900_000n, attackCount: 2n, bestHit: 500_000n }] },
+      }] })),
     };
     const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, { authIdentityVerifier: { verify: async () => ({ subject: 'subject' }) }, getOrProvisionCurrentPlayer: { execute: vi.fn() } as never, monthlyBossService: service as never });
     apps.push(app); return { app, service };
@@ -44,6 +49,8 @@ describe('monthly Boss HTTP contract', () => {
     expect(service.attack).toHaveBeenCalledWith(expect.anything(), bossId, idempotencyKey);
     expect((await app.inject({ method: 'POST', url: '/api/v1/me/combat/boss/attack', headers, payload: { bossId, idempotencyKey: randomUUID(), damage: '999999' } })).statusCode).toBe(400);
     expect((await app.inject({ method: 'POST', url: '/api/v1/me/combat/boss/loadout/clear', headers })).statusCode).toBe(200);
-    expect((await app.inject({ url: '/api/v1/combat/boss/history?page=1' })).statusCode).toBe(200);
+    const history = await app.inject({ url: '/api/v1/combat/boss/history?page=1' });
+    expect(history.statusCode).toBe(200);
+    expect(history.json().bosses[0]).toMatchObject({ baseHp: '1500000', maxHp: '1600000', currentHp: '0', nextBaseAdjustment: '1275000', community: { participantCount: 3, attackCount: '5', totalDamage: '1610000', averageDamage: '322000' }, records: { topContributor: { totalDamage: '900000' }, biggestHit: { damage: '500000' } } });
   });
 });

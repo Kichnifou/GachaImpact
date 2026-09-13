@@ -5,13 +5,14 @@ import { MonthlyBossService } from '../src/application/combat/monthly-boss-servi
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import { loadConfig } from '../src/config/environment.js';
 import { resourceKeys } from '../src/domain/economy/resources.js';
+import { calculateContributionBasisPoints, calculateNextBossBase } from '../src/domain/combat/monthly-boss.js';
 import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 
 const config = loadConfig(); if (!config.databaseUrl) throw new Error('DATABASE_URL is required for monthly Boss database tests.');
 const database = createDatabase(config.databaseUrl);
 const playerIds = new Set<string>();
 const characterIds = new Set<string>();
-const months = ['2098-01-01', '2098-02-01', '2098-03-01', '2098-04-01', '2098-05-01'] as const;
+const months = ['2098-01-01', '2098-02-01', '2098-03-01', '2098-04-01', '2098-05-01', '2098-06-01'] as const;
 let now = new Date('2098-01-10T12:00:00.000Z');
 let randomCalls = 0;
 const clock = { now: () => now };
@@ -145,4 +146,45 @@ describe('monthly Boss persistence', () => {
     expect(await database.bossAttack.count({ where: { playerId: player.id } })).toBe(0);
     await database.character.update({ where: { id }, data: { isActive: true } });
   });
+
+  it('derives the complete defeated summary and historical records from isolated attacks', async () => {
+    now = new Date('2098-06-10T12:00:00Z');
+    const alpha = await fixture(); const bravo = await fixture(); const charlie = await fixture(); const spectator = await fixture();
+    const boss = await alpha.service.getCurrent(identity);
+    const attackRows = [
+      { playerId: alpha.id, businessDate: '2098-06-10', createdAt: '2098-06-10T09:00:00Z', damage: 10_000n },
+      { playerId: bravo.id, businessDate: '2098-06-10', createdAt: '2098-06-10T10:00:00Z', damage: 20_000n },
+      { playerId: charlie.id, businessDate: '2098-06-10', createdAt: '2098-06-10T11:00:00Z', damage: 5_000n },
+      { playerId: alpha.id, businessDate: '2098-06-11', createdAt: '2098-06-11T09:00:00Z', damage: 12_000n },
+      { playerId: charlie.id, businessDate: '2098-06-11', createdAt: '2098-06-11T10:00:00Z', damage: 7_000n },
+    ] as const;
+    for (const row of attackRows) {
+      const operation = await database.businessOperation.create({ data: { playerId: row.playerId, operationType: 'monthly-boss.attack', sourceChannel: 'UI', status: 'COMPLETED', idempotencyKey: `summary-fixture:${randomUUID()}`, completedAt: new Date(row.createdAt) } });
+      await database.bossAttack.create({ data: { bossId: boss.boss.id, playerId: row.playerId, businessDate: new Date(`${row.businessDate}T00:00:00Z`), damage: row.damage, operationId: operation.id, createdAt: new Date(row.createdAt) } });
+    }
+    await database.playerBossParticipation.createMany({ data: [
+      { bossId: boss.boss.id, playerId: alpha.id, totalDamage: 22_000n, attackCount: 2n, bestHit: 12_000n, firstAttackAt: new Date('2098-06-10T09:00:00Z'), lastAttackAt: new Date('2098-06-11T09:00:00Z') },
+      { bossId: boss.boss.id, playerId: bravo.id, totalDamage: 20_000n, attackCount: 1n, bestHit: 20_000n, firstAttackAt: new Date('2098-06-10T10:00:00Z'), lastAttackAt: new Date('2098-06-10T10:00:00Z') },
+      { bossId: boss.boss.id, playerId: charlie.id, totalDamage: 12_000n, attackCount: 2n, bestHit: 7_000n, firstAttackAt: new Date('2098-06-10T11:00:00Z'), lastAttackAt: new Date('2098-06-11T10:00:00Z') },
+    ] });
+    await database.monthlyBoss.update({ where: { id: boss.boss.id }, data: { currentHp: 0n, defeatedAt: new Date('2098-06-13T12:00:00Z'), finalBlowPlayerId: charlie.id } });
+
+    const summary = (await alpha.service.getCurrent(identity)).defeatedSummary!;
+    expect(summary).toMatchObject({ victoryDayCount: 13, daysRemainingAfterVictory: 17, community: { participantCount: 3, attackCount: 5n, totalDamage: 54_000n, averageDamage: 10_800n } });
+    expect(summary.records.topThree.map(({ playerId }) => playerId)).toEqual([alpha.id, bravo.id, charlie.id]);
+    expect(summary.records.topContributor?.playerId).toBe(alpha.id);
+    expect(summary.records.biggestHit).toMatchObject({ playerId: bravo.id, damage: 20_000n });
+    expect(summary.records.mostAttacks?.playerId).toBe(alpha.id);
+    expect(summary.records.finalBlow?.id).toBe(charlie.id);
+    expect((await alpha.service.getCurrent(identity)).participation).toMatchObject({ rank: 1, totalDamage: 22_000n, attackCount: 2n, bestHit: 12_000n, contributionBasisPoints: calculateContributionBasisPoints(22_000n, boss.boss.maxHp) });
+    expect((await spectator.service.getCurrent(identity)).participation).toBeNull();
+
+    now = new Date('2098-07-01T12:00:00Z');
+    const history = await alpha.service.getHistory(1);
+    const archived = history.bosses.find(({ id }) => id === boss.boss.id)!;
+    expect(archived).toMatchObject({ baseHp: boss.boss.baseHp, maxHp: boss.boss.maxHp, currentHp: 0n, status: 'DEFEATED', victoryDayCount: 13, daysRemainingAfterVictory: 17, nextBaseAdjustment: 1_275_000n, community: { participantCount: 3, attackCount: 5n, totalDamage: 54_000n, averageDamage: 10_800n } });
+    expect(archived.records.biggestHit).toMatchObject({ playerId: bravo.id, damage: 20_000n });
+    const failed = history.bosses.find(({ monthStart }) => monthStart === '2098-05-01')!;
+    expect(failed).toMatchObject({ status: 'FAILED', nextBaseAdjustment: calculateNextBossBase({ baseHp: failed.baseHp, currentHp: failed.currentHp, monthStart: failed.monthStart, defeatedAt: null }).adjustment, community: { participantCount: 0, attackCount: 0n, totalDamage: 0n, averageDamage: 0n } });
+  }, 30_000);
 });

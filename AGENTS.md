@@ -8,10 +8,13 @@ Ce document est la référence permanente destinée aux agents qui interviennent
 
 Avant d'implémenter un système, un agent doit consulter :
 1. `docs/master/PROJECT_MASTER_PLAN.md` pour l'état global, le périmètre courant et la navigation documentaire ;
-2. `docs/process/implementation-workflow.md` pour le déroulement opérationnel d'un lot ;
-3. le ou les documents spécialisés concernés dans `docs/legacy/` ;
-4. `docs/specifications/decisions-log.md` lorsqu'une décision transverse doit être vérifiée ;
-5. `docs/commands/command-reference.md` lorsqu'une commande est concernée.
+2. `docs/roadmap/implementation-order-v1.md` pour la séquence durable des domaines V1 ;
+3. `docs/process/implementation-workflow.md` pour le déroulement opérationnel d'un lot ;
+4. le ou les documents spécialisés concernés dans `docs/legacy/` ;
+5. `docs/specifications/decisions-log.md` lorsqu'une décision transverse doit être vérifiée ;
+6. `docs/specifications/v1-data-model.md`, `docs/architecture/backend-architecture-v1.md` et `docs/architecture/postgresql-schema-v1.md` lorsqu'un modèle physique ou la base est concerné ;
+7. `docs/specifications/navigation-shell-v1.md` et `docs/specifications/ui-layout-contract-v1.md` lorsqu'un écran est concerné ;
+8. `docs/commands/command-reference.md` lorsqu'une commande est concernée.
 
 Les règles produit validées dans ces documents priment sur les exemples ou trajectoires générales plus anciennes présentes dans `AGENTS.md`.
 

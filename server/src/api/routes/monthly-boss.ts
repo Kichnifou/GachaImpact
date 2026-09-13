@@ -38,7 +38,16 @@ export const registerMonthlyBossRoutes: FastifyPluginAsync<Options> = async (app
   app.get('/api/v1/combat/boss/history', async (request) => {
     const query = parse(historyQuery, request.query);
     const result = await options.service.getHistory(query.page);
-    return { ...result, bosses: result.bosses.map((boss) => ({ ...boss, maxHp: boss.maxHp.toString(), currentHp: boss.currentHp.toString(), defeatedAt: boss.defeatedAt?.toISOString() ?? null })) };
+    return { ...result, bosses: result.bosses.map((boss) => ({
+      ...boss,
+      baseHp: boss.baseHp.toString(),
+      maxHp: boss.maxHp.toString(),
+      currentHp: boss.currentHp.toString(),
+      defeatedAt: boss.defeatedAt?.toISOString() ?? null,
+      nextBaseAdjustment: boss.nextBaseAdjustment.toString(),
+      community: serializeCommunity(boss.community),
+      records: serializeRecords(boss.records),
+    })) };
   });
 };
 
@@ -56,11 +65,24 @@ function serializeView(view: MonthlyBossView) {
     availableCharacters: view.availableCharacters.map(serializeCharacter),
     preview: view.preview ? { totalDamage: view.preview.totalDamage.toString(), contributions: view.preview.contributions.map((item) => ({ ...item, damageBeforeResistance: item.damageBeforeResistance.toString(), damage: item.damage.toString() })) } : null,
     reward: { primogems: view.reward.primogems.toString(), moras: view.reward.moras.toString() },
-    participation: view.participation ? { ...view.participation, totalDamage: view.participation.totalDamage.toString(), attackCount: view.participation.attackCount.toString(), bestHit: view.participation.bestHit.toString() } : null,
+    participation: view.participation ? { ...view.participation, totalDamage: view.participation.totalDamage.toString(), attackCount: view.participation.attackCount.toString(), bestHit: view.participation.bestHit.toString(), contributionBasisPoints: view.participation.contributionBasisPoints.toString() } : null,
     ranking: view.ranking.map(serializeRanking),
+    defeatedSummary: view.defeatedSummary ? {
+      ...view.defeatedSummary,
+      community: serializeCommunity(view.defeatedSummary.community),
+      records: serializeRecords(view.defeatedSummary.records),
+    } : null,
     playerStats: Object.fromEntries(Object.entries(view.playerStats).map(([key, value]) => [key, value.toString()])),
   };
 }
 
 function serializeCharacter(character: MonthlyBossView['availableCharacters'][number]) { return { ...character, firstObtainedAt: character.firstObtainedAt.toISOString() }; }
 function serializeRanking(entry: MonthlyBossView['ranking'][number]) { return { ...entry, totalDamage: entry.totalDamage.toString(), attackCount: entry.attackCount.toString(), bestHit: entry.bestHit.toString() }; }
+function serializeCommunity(community: NonNullable<MonthlyBossView['defeatedSummary']>['community']) { return { ...community, attackCount: community.attackCount.toString(), totalDamage: community.totalDamage.toString(), averageDamage: community.averageDamage.toString() }; }
+function serializeRecords(records: NonNullable<MonthlyBossView['defeatedSummary']>['records']) { return {
+  ...records,
+  topContributor: records.topContributor ? serializeRanking(records.topContributor) : null,
+  biggestHit: records.biggestHit ? { ...records.biggestHit, damage: records.biggestHit.damage.toString(), createdAt: records.biggestHit.createdAt.toISOString() } : null,
+  mostAttacks: records.mostAttacks ? serializeRanking(records.mostAttacks) : null,
+  topThree: records.topThree.map(serializeRanking),
+}; }

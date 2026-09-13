@@ -39,23 +39,46 @@ Ce fichier n’est pas un tracker vivant et ne doit pas être modifié pour enre
    - Récompense quotidienne, Roue, missions quotidiennes, Combat, Expédition et futur écran Quotidiennes.
    - Le choix UX du raccourci/carrousel de quotidiennes sur l’Accueil reste reporté à une décision du propriétaire.
 
-9. **Principaux domaines standalone encore manquants**
-   - Combat Boss est techniquement matérialisé dans le candidat 0.91 et reste à valider publiquement ; Concours, Event, Historique transverse, Tutoriel et autres systèmes nécessaires au cutover restent à venir.
-   - Leur ordre détaillé reste décidé lot par lot ; ils doivent être suffisamment physiques et stabilisés avant de reprendre la migration legacy.
+## Gates avant le prochain domaine
 
-10. **Social standalone**
-    - Chat interne, présence, amis, notifications et confidentialité.
+Avant d’ouvrir l’étape restante 1, le Master doit confirmer les validations publiques encore requises : candidat Boss 0.91, Expedition READY/notification/claim, puis Combat défaite/KO dès qu’une configuration permet réellement de perdre. Ces validations sont des gates du checkpoint courant, pas des domaines supplémentaires ; leur état vivant appartient uniquement au Master.
 
-11. **Twitch**
-    - Liaison `TwitchIdentity`, commandes et logique métier partagée UI/chat/Twitch.
-    - Streamer.bot reste absent de la nouvelle architecture.
+## Trajectoire V1 restante après Boss
 
-12. **Migration pilote legacy**
-    - Reportée après les principaux domaines standalone encore manquants, dont Boss, Concours, Event, Amitié/Social, Historique, Tutoriel, Chat et Twitch.
-    - Kichnifou d'abord, puis quelques profils représentatifs ; migration générale seulement après validation.
+1. **Concours / personnages C6** — matérialiser le gameplay déjà cadré dans [15-concours-c6-audit.md](../legacy/15-concours-c6-audit.md).
+2. **Collection / Sac à compléter** — achever les surfaces et règles restantes de [10-sac-coffre-shop-audit.md](../legacy/10-sac-coffre-shop-audit.md), avec les possessions de [07-box-possession-obtention-audit.md](../legacy/07-box-possession-obtention-audit.md).
+3. **Codes cadeaux** — implémenter [19-codes-cadeaux-audit.md](../legacy/19-codes-cadeaux-audit.md).
+4. **Événements mensuels** — implémenter [16-event-monthly-audit.md](../legacy/16-event-monthly-audit.md).
+5. **Votes de bannière communautaires** — compléter le domaine cadré dans [06-gacha-invocation-audit.md](../legacy/06-gacha-invocation-audit.md).
+6. **Profils joueurs / annuaire / présence** — suivre [14-ami-social-audit.md](../legacy/14-ami-social-audit.md).
+7. **Confidentialité et consultations publiques autorisées** — appliquer les règles de [14-ami-social-audit.md](../legacy/14-ami-social-audit.md).
+8. **Amitié** — implémenter le sous-domaine de [14-ami-social-audit.md](../legacy/14-ami-social-audit.md).
+9. **Échanges de particules** — croiser [05-element-resources-audit.md](../legacy/05-element-resources-audit.md) et les relations sociales autorisées.
+10. **Chat global et messages privés** — suivre [14-ami-social-audit.md](../legacy/14-ami-social-audit.md), avec logique métier serveur partagée.
+11. **Missions permanentes B / A / S / Z** — implémenter [11-missions-daily-audit.md](../legacy/11-missions-daily-audit.md).
+12. **Statistiques générales** — consolider les projections transversales avant les classements.
+13. **Top / classements globaux** — implémenter [22-top-classements-audit.md](../legacy/22-top-classements-audit.md).
+14. **Historique global** — créer la surface transverse unique prévue, sans dupliquer les historiques métier locaux utiles.
+15. **Apparence / avatars / titres** — intégrer ces choix aux profils selon [14-ami-social-audit.md](../legacy/14-ami-social-audit.md).
+16. **Liaison TwitchIdentity** — préparer l’identité stable selon [14-ami-social-audit.md](../legacy/14-ami-social-audit.md) et [03-command-data-matrix.md](../legacy/03-command-data-matrix.md).
+17. **Commandes et événements Twitch** — brancher les contrats de [command-reference.md](../commands/command-reference.md) sur les services métier communs ; Streamer.bot reste absent.
+18. **Faveur de l’Astre** — implémenter [18-faveur-subscription-audit.md](../legacy/18-faveur-subscription-audit.md).
+19. **Gift Suprême** — implémenter [20-gift-twitch-audit.md](../legacy/20-gift-twitch-audit.md).
+20. **Giveaway / Wish** — implémenter [21-giveaway-wish-audit.md](../legacy/21-giveaway-wish-audit.md).
+21. **Compléments Notifications transversaux** — finaliser les producteurs, résolutions et deep-links inter-domaines.
+22. **Administration / Modération complète** — achever les outils privés nécessaires aux domaines physiques.
+23. **Mini-jeux XP interface** — concevoir les vrais mini-jeux cadrés dans [04-xp-audit.md](../legacy/04-xp-audit.md), sans transformer les activités ordinaires en source XP.
+24. **Accueil dynamique et résumé Quotidiennes/sidebar final** — consolider [11-missions-daily-audit.md](../legacy/11-missions-daily-audit.md) et [navigation-shell-v1.md](../specifications/navigation-shell-v1.md).
+25. **Tutoriel interactif et Help final** — suivre [23-help-command-coherence-audit.md](../legacy/23-help-command-coherence-audit.md) et la navigation propriétaire.
+26. **Recette fonctionnelle complète et équilibrage économie/progression** — vérifier ensemble les domaines physiques et leurs interactions.
+27. **Finition technique et visuelle** — responsive/mobile, accessibilité, sécurité, concurrence, performances et cohérence avec [ui-layout-contract-v1.md](../specifications/ui-layout-contract-v1.md).
+28. **Migration pilote legacy** — reprendre les preuves de [01-data-sources-inventory.md](../legacy/01-data-sources-inventory.md), [02-current-player-model.md](../legacy/02-current-player-model.md) et [03-command-data-matrix.md](../legacy/03-command-data-matrix.md) sur un petit ensemble contrôlé.
+29. **Migration générale / cutover** — migrer uniquement après validation du pilote et stabilisation des domaines requis.
+30. **Validation finale V1** — exécuter la recette publique finale et clôturer les écarts restants.
 
-13. **Stabilisation**
-    - Responsive/mobile, sécurité, concurrence, performance, équilibrage et migration générale lorsqu’elle est prête.
+## Sujet hors séquence obligatoire
+
+**Objectifs personnels** reste `FUTUR / PÉRIMÈTRE V1 À TRANCHER`. Aucune position obligatoire dans la trajectoire ci-dessus ne lui est attribuée tant que le propriétaire n’a pas statué.
 
 ## Vérité UI et dé-mock progressif
 

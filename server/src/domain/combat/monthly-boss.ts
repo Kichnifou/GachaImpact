@@ -95,3 +95,23 @@ export function calculateNextBossBase(previous: Readonly<{ baseHp: bigint; curre
   const capped = increase > MONTHLY_BOSS_MAX_MONTHLY_INCREASE ? MONTHLY_BOSS_MAX_MONTHLY_INCREASE : increase;
   return { baseHp: previous.baseHp + capped, adjustment: capped };
 }
+
+export function calculateBossVictoryTiming(monthStart: string, defeatedAt: Date | null): Readonly<{ victoryDayCount: number | null; daysRemainingAfterVictory: number | null }> {
+  if (!defeatedAt) return { victoryDayCount: null, daysRemainingAfterVictory: null };
+  const defeatedBusinessDate = getBusinessDate(defeatedAt);
+  const monthStartTime = Date.parse(`${monthStart}T00:00:00.000Z`);
+  const defeatedTime = Date.parse(`${defeatedBusinessDate}T00:00:00.000Z`);
+  const nextMonthTime = Date.parse(`${nextBusinessMonth(monthStart)}T00:00:00.000Z`);
+  const victoryDayCount = Math.floor((defeatedTime - monthStartTime) / 86_400_000) + 1;
+  const daysInMonth = Math.floor((nextMonthTime - monthStartTime) / 86_400_000);
+  if (victoryDayCount < 1 || victoryDayCount > daysInMonth) throw new Error(`Boss victory ${defeatedBusinessDate} is outside ${monthStart}.`);
+  return { victoryDayCount, daysRemainingAfterVictory: daysInMonth - victoryDayCount };
+}
+
+export function calculateRoundedBossAverage(totalDamage: bigint, attackCount: bigint): bigint {
+  return attackCount > 0n ? (totalDamage + attackCount / 2n) / attackCount : 0n;
+}
+
+export function calculateContributionBasisPoints(totalDamage: bigint, maxHp: bigint): bigint {
+  return maxHp > 0n ? (totalDamage * 10_000n + maxHp / 2n) / maxHp : 0n;
+}

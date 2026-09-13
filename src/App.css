@@ -7670,13 +7670,24 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .boss-empty-slot { place-items: center; grid-template-rows: auto auto auto; align-content: center; gap: 7px; cursor: pointer; }
 .boss-empty-slot > span { color: #6396bd; font-size: 22px; }
 .boss-ranking, .boss-lifetime, .boss-history { padding: 16px 18px; }
-.boss-ranking ol { display: grid; gap: 7px; margin: 13px 0 0; padding: 0; list-style: none; }
-.boss-ranking li { display: grid; grid-template-columns: 38px minmax(100px, 1fr) auto; align-items: center; gap: 8px; padding: 10px; border-radius: 8px; background: rgba(18, 47, 72, .55); }
-.boss-ranking li small { grid-column: 2 / -1; color: #8eaac1; }
+.boss-ranking ol, .boss-records-group ol { display: grid; gap: 7px; margin: 13px 0 0; padding: 0; list-style: none; }
+.boss-ranking li, .boss-records-group li { display: grid; grid-template-columns: 38px minmax(100px, 1fr) auto; align-items: center; gap: 8px; padding: 10px; border-radius: 8px; background: rgba(18, 47, 72, .55); }
+.boss-ranking li small, .boss-records-group li small { grid-column: 2 / -1; color: #8eaac1; }
 .boss-lifetime dl { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin: 12px 0 0; }
 .boss-lifetime dl div { display: grid; gap: 4px; padding: 9px; border-radius: 8px; background: rgba(18, 47, 72, .55); }
 .boss-lifetime dt { color: #8eaac1; font-size: 11px; }
 .boss-lifetime dd { margin: 0; color: #f0f9ff; font-weight: 800; }
+.boss-defeated-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.boss-summary-group { min-width: 0; padding: 16px 18px; }
+.boss-summary-group h2 { margin: 3px 0 12px; color: #ecf7ff; font-size: 18px; }
+.boss-summary-group h3 { margin: 15px 0 8px; color: #bfd9ec; font-size: 13px; }
+.boss-summary-group > dl, .boss-history-details dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 14px; margin: 0; }
+.boss-summary-group dl div, .boss-history-details dl div { min-width: 0; padding: 7px 0; border-bottom: 1px solid rgba(112, 169, 209, .13); }
+.boss-summary-group dt, .boss-history-details dt { color: #8eaac1; font-size: 11px; }
+.boss-summary-group dd, .boss-history-details dd { margin: 3px 0 0; overflow-wrap: anywhere; color: #f0f9ff; font-weight: 750; }
+.boss-scaling-callout { margin: 13px 0 0; padding: 10px 12px; color: #9ee7ca; border: 1px solid rgba(94, 225, 172, .22); border-radius: 8px; background: rgba(32, 117, 83, .12); }
+.boss-player-contribution { margin: 0; color: #c5d9e8; line-height: 1.65; }
+.boss-records-list { grid-template-columns: 1fr !important; }
 .boss-picker { width: min(760px, calc(100vw - 24px)); max-height: min(760px, calc(100dvh - 30px)); }
 .boss-picker-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 14px; overflow-y: auto; }
 .boss-picker-grid > button { display: grid; gap: 5px; min-width: 0; padding: 8px; color: #edf8ff; border: 1px solid rgba(104, 176, 229, .23); border-radius: 9px; background: rgba(12, 35, 59, .8); cursor: pointer; }
@@ -7691,7 +7702,13 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .boss-history article { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px; border-radius: 8px; background: rgba(18, 47, 72, .55); }
 .boss-history article > div { display: grid; }
 .boss-history article p { margin: 0; }
+.boss-history article > button { min-height: 31px; padding: 0 10px; flex: 0 0 auto; color: #8edfff; border: 1px solid rgba(105, 212, 255, .25); border-radius: 7px; background: rgba(13, 50, 76, .75); cursor: pointer; }
 .boss-history footer { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 14px; }
+.boss-history-details { width: min(720px, calc(100vw - 24px)); max-height: min(760px, calc(100dvh - 30px)); display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
+.boss-history-details-body { min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 14px; padding: 15px 18px 18px; overflow-y: auto; }
+.boss-history-details-body section { min-width: 0; padding: 12px; border-radius: 9px; background: rgba(18, 47, 72, .55); }
+.boss-history-details-body h3 { margin: 0 0 8px; color: #dceeff; }
+.boss-history-details-body > .boss-scaling-callout { grid-column: 1 / -1; margin: 0; }
 @media (max-width: 900px) {
   .boss-loadout-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .boss-lifetime dl { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -7708,11 +7725,14 @@ button.inventory-stella-card { width: 100%; font: inherit; }
   .boss-character-card { min-height: 205px; }
   .boss-character-image { height: 115px; }
   .boss-picker-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .boss-ranking li { grid-template-columns: 32px 1fr; }
-  .boss-ranking li > strong { grid-column: 2; }
-  .boss-ranking li small { grid-column: 2; }
+  .boss-defeated-grid, .boss-history-details-body { grid-template-columns: 1fr; }
+  .boss-summary-group > dl, .boss-history-details dl { grid-template-columns: 1fr; }
+  .boss-ranking li, .boss-records-group li { grid-template-columns: 32px 1fr; }
+  .boss-ranking li > strong, .boss-records-group li > strong { grid-column: 2; }
+  .boss-ranking li small, .boss-records-group li small { grid-column: 2; }
   .boss-lifetime dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .boss-history article { align-items: flex-start; flex-direction: column; }
+  .boss-history article { align-items: stretch; flex-direction: column; }
+  .boss-history article > button { align-self: flex-start; }
 }
 .notification-item { width: 100%; font: inherit; text-align: left; }
 .notification-empty { padding: 20px 12px; color: var(--muted); text-align: center; }

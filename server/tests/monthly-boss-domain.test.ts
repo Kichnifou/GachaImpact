@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateBossDamage, calculateBossMaxHp, calculateNextBossBase, getBusinessMonth, monthlyBossName } from '../src/domain/combat/monthly-boss.js';
+import { calculateBossDamage, calculateBossMaxHp, calculateBossVictoryTiming, calculateContributionBasisPoints, calculateNextBossBase, calculateRoundedBossAverage, getBusinessMonth, monthlyBossName } from '../src/domain/combat/monthly-boss.js';
 
 describe('monthly Boss domain', () => {
   it('uses the Europe/Paris calendar month, including the UTC boundary', () => {
@@ -30,5 +30,13 @@ describe('monthly Boss domain', () => {
   it('reduces a surviving Boss base by the HP left, with a 500,000 minimum and no maximum', () => {
     expect(calculateNextBossBase({ baseHp: 5_000_000n, currentHp: 1_200_000n, monthStart: '2026-09-01', defeatedAt: null })).toEqual({ baseHp: 3_800_000n, adjustment: -1_200_000n });
     expect(calculateNextBossBase({ baseHp: 800_000n, currentHp: 700_000n, monthStart: '2026-09-01', defeatedAt: null })).toEqual({ baseHp: 500_000n, adjustment: -300_000n });
+  });
+
+  it('derives an inclusive Paris victory day count and deterministic rounded summary values', () => {
+    expect(calculateBossVictoryTiming('2026-09-01', new Date('2026-09-13T21:59:59Z'))).toEqual({ victoryDayCount: 13, daysRemainingAfterVictory: 17 });
+    expect(calculateBossVictoryTiming('2026-09-01', new Date('2026-09-13T22:00:00Z'))).toEqual({ victoryDayCount: 14, daysRemainingAfterVictory: 16 });
+    expect(calculateRoundedBossAverage(54_001n, 5n)).toBe(10_800n);
+    expect(calculateRoundedBossAverage(54_003n, 5n)).toBe(10_801n);
+    expect(calculateContributionBasisPoints(24_600n, 1_500_000n)).toBe(164n);
   });
 });
