@@ -1,7 +1,7 @@
 # Résumé de la version de travail
 
 > VUE GÉNÉRÉE — ne pas modifier ce fichier. Source : [STORY_SOURCE.md](../STORY_SOURCE.md).
-> Empreinte SHA-256 : `bfb838ad7d987313a569aaa72a225e0be28fa6c77d825a780f0c3e8815cff8ba`.
+> Empreinte SHA-256 : `f375bf807225b54948ae2e5a31efcb93a0a2e379a28d7ba342e34a6d66d6e13b`.
 
 ## Elio et Lyra : noms et rôles lisibles
 
@@ -19,7 +19,7 @@ Orthe est le Monde des Origines, une planète réelle au sein du même univers q
 
 **CONFIRME** · Origine : utilisateur · [HIST-001](../STORY_SOURCE.md#hist-001)
 
-Une guerre ancienne provoque la scission politique d’Orthe, la naissance du Concordat et la perte des pouvoirs actifs dans tous les camps. Séveran et ses anciens Porteurs ne bénéficient pas d’une exemption intacte.
+Séveran et le futur Concordat provoquent volontairement, pendant une guerre ancienne, la désactivation des noyaux de tous les camps afin de reprendre ensuite le contrôle de leur usage. Leurs propres Porteurs perdent également leurs capacités.
 
 ## Les enjeux politiques de la guerre
 
@@ -27,11 +27,11 @@ Une guerre ancienne provoque la scission politique d’Orthe, la naissance du Co
 
 La guerre oppose deux réponses à un problème réel : qui peut autoriser l’usage de pouvoirs capables de modifier les conditions de vie de populations entières ?
 
-## Le Grand Bâillon : catastrophe puis exploitation politique
+## Le Grand Bâillon : mécanisme proposé d’un sabotage confirmé
 
 **PROPOSE** · Origine : assistant · [HIST-003](../STORY_SOURCE.md#hist-003)
 
-Le Grand Bâillon est une inhibition durable de la fonction active des noyaux. Séveran provoque son déclenchement général, y compris contre son propre camp, puis exploite le désarmement commun pour prendre le contrôle des moyens matériels.
+Le Grand Bâillon est le nom proposé pour l’inhibition durable des noyaux volontairement provoquée par Séveran. Le sabotage et son objectif de contrôle sont confirmés ; le mécanisme de réseau décrit ici reste une solution de travail.
 
 ## Une seule capsule survivante
 
@@ -47,63 +47,135 @@ Elio est déjà un jeune adulte lorsqu’il entre en stase puis lorsqu’il en s
 
 ## Couverture professionnelle, rencontre et amour
 
-**PROPOSE** · Origine : utilisateur · [COUPLE-001](../STORY_SOURCE.md#couple-001)
+**CONFIRME** · Origine : utilisateur · [COUPLE-001](../STORY_SOURCE.md#couple-001)
 
 Lors de son retour sur Sélis, Lyra se fait embaucher sous couverture dans l’environnement de travail d’Elio. Leur relation naît alors de contacts adultes, d’une amitié et de travaux communs ; au prologue, ils sont déjà en couple.
 
-## Ce qu’est un noyau et ce qui a été perdu
+## Rupture de mission et conséquences relationnelles proposées
 
-**PROPOSE** · Origine : assistant · [NOYAU-001](../STORY_SOURCE.md#noyau-001)
+**PROPOSE** · Origine : assistant · [COUPLE-003](../STORY_SOURCE.md#couple-003)
 
-Un noyau est un organe vivant primordial, pas une réserve abstraite de points de magie. Sa fonction vitale maintient la continuité biologique ; sa fonction active permet de produire des effets extraordinaires.
+Lyra cesserait de transmettre des informations personnelles et renoncerait à la part intrusive de sa mission avant de s’engager dans la relation. Son secret resterait une faute : Elio n’avait pas toutes les informations, même si les sentiments étaient réels.
 
-## Le réaccord libre : pourquoi Elio peut aider
+## Les deux parcours du partenaire
 
-**PROPOSE** · Origine : assistant · [NOYAU-002](../STORY_SOURCE.md#noyau-002)
+**CONFIRME** · Origine : utilisateur · [COUPLE-002](../STORY_SOURCE.md#couple-002)
 
-Le noyau intact d’Elio sert de référence vivante pour permettre à un autre noyau de retrouver sa propre stabilité. Il n’offre pas son pouvoir à quelqu’un et ne transforme pas l’autre en dépendant permanent.
+Lyra de l’histoire-source et Lyra du prologue partagent le passé du couple jusqu’à A, puis vivent des événements différents. Lyra-source meurt en s’interposant lorsque Séveran attaque Elio pendant une tentative de restauration du Cœur ; le sauvetage final concerne la personne du prologue joué, pas sa version plus âgée.
+
+## Fonction des noyaux et vie de leur porteur
+
+**CONFIRME** · Origine : utilisateur · [NOYAU-001](../STORY_SOURCE.md#noyau-001)
+
+Les noyaux ont été transmis aux Porteurs pour entretenir et réguler des fonctions du monde, non initialement pour gouverner les humains. Ils donnent accès aux pouvoirs, mais ne sont indispensables ni à la vie humaine ni à l’identité personnelle.
+
+## Réactivation temporaire et recharge
+
+**CONFIRME** · Origine : utilisateur · [NOYAU-002](../STORY_SOURCE.md#noyau-002)
+
+Elio peut réactiver sainement le noyau d’un autre Porteur et lui fournir une charge qui n’est pas permanente. Le bénéficiaire doit ensuite être rechargé, notamment auprès d’un fragment régional ou en accompagnant le protagoniste.
 
 ## Les réveils forcés du Concordat
 
-**PROPOSE** · Origine : utilisateur · [NOYAU-003](../STORY_SOURCE.md#noyau-003)
+**CONFIRME** · Origine : utilisateur · [NOYAU-003](../STORY_SOURCE.md#noyau-003)
 
-Le Concordat obtient de rares réactivations par des méthodes dangereuses : les pouvoirs peuvent presque retrouver leur ampleur, mais l’instabilité atteint le corps et peut altérer l’esprit du bénéficiaire.
+Le Concordat obtient de rares réactivations par des méthodes dangereuses, incertaines et altérantes. Les pouvoirs peuvent presque retrouver leur ampleur, mais l’instabilité atteint le corps et peut affecter l’esprit du bénéficiaire.
 
-## Le but politique : restaurer la puissance sous tutelle
+## Procédé proposé des réveils forcés
 
-**PROPOSE** · Origine : assistant · [SEVERAN-001](../STORY_SOURCE.md#severan-001)
+**PROPOSE** · Origine : assistant · [NOYAU-007](../STORY_SOURCE.md#noyau-007)
 
-Séveran veut une élite de Porteurs durablement réactivés et dépendants de son autorité, capable d’écraser les résistances et de contrôler les infrastructures d’Orthe.
+La méthode impériale forcerait le noyau à fonctionner sans réparer sa référence. Des implants et charges extérieures maintiendraient artificiellement la coordination, au prix de douleurs, crises, lésions ou troubles variables de mémoire et d’impulsion.
+
+## Une sécurité imposée au nom du bien commun
+
+**CONFIRME** · Origine : utilisateur · [SEVERAN-001](../STORY_SOURCE.md#severan-001)
+
+Séveran pense agir pour le bien : il veut prévenir une nouvelle guerre de Porteurs, distribuer capacités et ressources et garantir les services essentiels, mais seulement sous une tutelle centrale qu’il contrôle.
 
 ## À quoi servirait exactement le noyau volé
 
 **PROPOSE** · Origine : assistant · [SEVERAN-002](../STORY_SOURCE.md#severan-002)
 
-Séveran veut installer le noyau intact dans une Matrice de tutelle : une infrastructure capable de stabiliser les réveils de ses alliés, tout en conservant sur eux un contrôle matériel.
+La Matrice de tutelle est une solution proposée pour expliquer comment Séveran exploiterait le centre pur : une infrastructure capable de stabiliser les réveils de ses alliés tout en conservant sur eux un contrôle matériel.
 
-## Pourquoi le noyau jeune plutôt que celui du scientifique
+## Découverte tardive, marchandage et raid vers A
 
-**PROPOSE** · Origine : assistant · [SEVERAN-003](../STORY_SOURCE.md#severan-003)
+**CONFIRME** · Origine : utilisateur · [SEVERAN-003](../STORY_SOURCE.md#severan-003)
 
-L’Elio de l’histoire-source a appris à protéger son noyau et détruit sa référence exploitable lors de l’assaut en Z. L’anneau de A offre alors à Séveran une cible intacte, moins entraînée et déjà localisée.
+Elio-source agit d’abord clandestinement : des communautés le connaissent et l’apprécient sans que les dirigeants du Concordat aient identifié la source pure. Lors d’une tentative de restauration du Cœur, Séveran détecte son noyau, intervient et tue Lyra lorsqu’elle s’interpose.
+
+## Mécanismes proposés de la coopération et de la sécurité
+
+**PROPOSE** · Origine : assistant · [SEVERAN-004](../STORY_SOURCE.md#severan-004)
+
+Séveran disposerait d’installations, d’archives et d’un savoir dont Elio endeuillé a besoin. La promesse de revoir Lyra porterait sur une recherche plausible, non sur une résurrection déjà maîtrisée. Elio accepterait certains travaux utiles au Concordat tout en refusant la confiscation de son noyau ; il partirait lorsque le régime franchit ses limites et détourne les résultats vers les captures ou réveils forcés.
 
 ## Soigner, réparer, choisir de changer
 
-**PROPOSE** · Origine : utilisateur · [REDEMPTION-001](../STORY_SOURCE.md#redemption-001)
+**CONFIRME** · Origine : utilisateur · [REDEMPTION-001](../STORY_SOURCE.md#redemption-001)
 
-Certains adversaires réactivés peuvent être stabilisés par le protagoniste et choisir ensuite une rédemption, voire devenir jouables. Leur guérison ne les convertit pas automatiquement au « bon camp ».
+Un ancien ennemi peut être soigné, choisir de changer de camp puis devenir jouable ; un ancien allié peut aussi prendre le chemin inverse. La guérison ne convertit personne automatiquement et la dégradation n’est pas une définition du mal.
+
+## Parcours proposé de Saren
+
+**PROPOSE** · Origine : assistant · [REDEMPTION-002](../STORY_SOURCE.md#redemption-002)
+
+Saren pourrait être le premier ancien ennemi développé : commandant ayant accepté un réveil forcé pour protéger son unité, commis des violences puis découvert que le régime sacrifie ses soldats.
+
+## Procédure proposée de mise en accord
+
+**PROPOSE** · Origine : assistant · [NOYAU-005](../STORY_SOURCE.md#noyau-005)
+
+La première activation associerait un diagnostic individuel, un calibrage conscient du flux d’Elio, une réponse volontaire du bénéficiaire et une charge d’essai. Le temps partagé aiderait à apprendre cette réponse ; l’amour et la simple proximité ne seraient jamais des interrupteurs.
+
+## Quatre catégories de pouvoirs
+
+**CONFIRME** · Origine : utilisateur · [POUVOIR-001](../STORY_SOURCE.md#pouvoir-001)
+
+Chaque Porteur relève d’une catégorie de pouvoir — Gravité, Énergie, Biotique ou Spatial — dont l’expression est modelée par la personne. Une fonction de combat n’est pas une catégorie cosmologique, et aucun Porteur n’accède automatiquement à toutes les expressions de sa famille.
+
+## Limites communes et catégorie d’Elio
+
+**PROPOSE** · Origine : assistant · [POUVOIR-002](../STORY_SOURCE.md#pouvoir-002)
+
+La réactivation propre au centre pur d’Elio ne constitue pas une cinquième catégorie donnant tous les pouvoirs. Elio pourrait relever du Spatial ou de l’Énergie, mais son choix reste ouvert en Q27.
+
+## Le Cœur d’Orthe et la restauration
+
+**CONFIRME** · Origine : utilisateur · [COEUR-001](../STORY_SOURCE.md#coeur-001)
+
+Le Cœur central permet une vie normale ainsi que la stabilisation et la recharge du réseau. Sa restauration permettra aux Porteurs de retrouver leur potentiel et de s’entraîner pour combattre le Concordat ; avant cela, des recharges limitées et coûteuses restent possibles.
+
+## Débit, synchronisation et autonomie proposés
+
+**PROPOSE** · Origine : assistant · [COEUR-002](../STORY_SOURCE.md#coeur-002)
+
+Le centre pur produirait ou renouvellerait son énergie durablement sans pouvoir délivrer une puissance instantanée infinie. Son débit, le stockage disponible et le corps d’Elio resteraient limités ; le Cœur demanderait une impulsion stable, simultanée et distribuée qu’Elio seul ne peut maintenir.
+
+## Centre pur, pétales et sept fragments identifiés
+
+**CONFIRME** · Origine : utilisateur · [FRAGMENT-001](../STORY_SOURCE.md#fragment-001)
+
+Le noyau pur d’Elio possède une structure en marguerite : le centre jaune est sa partie génératrice et les pétales sont des fragments détachables. Elio-source laisse un fragment dans chacune des six régions et en implante un dans Nacre ; au moins sept fragments détachés sont donc identifiés, sans fixer le nombre total de pétales.
+
+## Autonomie proposée des pétales
+
+**PROPOSE** · Origine : assistant · [FRAGMENT-002](../STORY_SOURCE.md#fragment-002)
+
+Les pétales séparés conserveraient une réserve et une capacité de stabilisation limitées sans recréer de centre générateur. Des moyens régionaux coûteux pourraient les entretenir ; l’inertage ultérieur du centre d’Elio-source ne les détruirait pas automatiquement.
 
 ## La fenêtre n’efface pas le passé réalisé
 
-**PROPOSE** · Origine : v1 · [TEMPS-001](../STORY_SOURCE.md#temps-001)
+**CONFIRME** · Origine : utilisateur · [TEMPS-001](../STORY_SOURCE.md#temps-001)
 
-La technologie ouvre la continuation matérielle locale d’un instant conservé ; elle ne modifie pas l’histoire-source de l’univers. Les personnes de la fenêtre vivent réellement, mais les événements déjà réalisés ailleurs ne sont pas réécrits.
+La technologie ouvre une continuation matérielle réelle et locale à partir d’un instant A conservé ; elle ne modifie pas l’histoire-source de l’univers. Le sauvetage reprend la même scène après la blessure et l’extraction initiale, sans retour illimité au début ni duplication libre.
 
 ## Une invention naissante, une ambition plus grande
 
 **PROPOSE** · Origine : utilisateur · [TEMPS-002](../STORY_SOURCE.md#temps-002)
 
-Le scientifique voulait d’abord revenir réellement en arrière pour réparer ses compromissions. À Z, son prototype ne sait faire que des ouvertures locales ancrées ; le désir de réécrire le passé n’est pas une capacité acquise.
+Le scientifique veut revoir Lyra et réparer ses erreurs. À Z, il a préparé personnellement une ouverture vers A, moment de leur vie commune ; son prototype ne sait toutefois produire que des ouvertures locales ancrées, pas réécrire l’histoire-source.
 
 ## Ancre, machine et accès : trois choses distinctes
 
@@ -147,20 +219,44 @@ La fenêtre est suspendue après le retour de Séveran, et non au moment où Eli
 
 La double extraction d’urgence surcharge l’interface de Nacre et détruit des index et des circuits de lecture. Elle garde sa personnalité et ses souvenirs nouveaux, mais ne possède plus toutes les preuves concernant Z.
 
-## Rencontrer, libérer, puis stabiliser un Accord
+## Le fragment de Nacre et son transfert final
+
+**CONFIRME** · Origine : utilisateur · [IA-006](../STORY_SOURCE.md#ia-006)
+
+Nacre possède réellement un fragment du noyau d’Elio-source : elle voyage avec une trace de lui, sans que cela confirme une copie consciente du scientifique, une connaissance totale de sa vie ou un oracle capable de résoudre l’aventure.
+
+## Mémoire datée et autonomie proposées pour Nacre
+
+**PROPOSE** · Origine : assistant · [IA-007](../STORY_SOURCE.md#ia-007)
+
+Le fragment de Nacre participerait au redémarrage du Cœur sans être extrait définitivement. Le Cœur réparé deviendrait ensuite autonome, ce qui permettrait la destruction du composant temporel sans replonger Orthe dans la panne.
+
+## Rencontrer puis réactiver par le premier pull
 
 **CONFIRME** · Origine : utilisateur · [GACHA-001](../STORY_SOURCE.md#gacha-001)
 
-Aucun personnage ne peut être tiré avant une véritable rencontre narrative. Les ennemis connus restent inéligibles tant qu’ils n’ont pas choisi une coopération crédible.
+Aucun personnage ne peut être tiré avant une véritable rencontre narrative et une coopération crédible. Le premier pull correspond principalement à la réactivation de son noyau par Elio, et non à un contrat abstrait ou à la création d’une copie.
 
 ## Sauver sans revenir avant la blessure
 
-**PROPOSE** · Origine : utilisateur · [FIN-001](../STORY_SOURCE.md#fin-001)
+**CONFIRME** · Origine : utilisateur · [FIN-001](../STORY_SOURCE.md#fin-001)
 
-Le groupe reconstruit une machine compatible avec l’anneau original et reprend le même reliquat. Il est trop tard pour empêcher l’agression, mais pas nécessairement trop tard pour sauver Lyra.
+Après la résolution collective au présent, le groupe reprend la même scène conservée après la blessure et l’extraction initiale. Il est trop tard pour empêcher l’agression, mais Lyra du prologue peut encore être extraite vivante et soignée.
+
+## Moyens proposés de la dernière extraction
+
+**PROPOSE** · Origine : assistant · [FIN-004](../STORY_SOURCE.md#fin-004)
+
+Un appareil compatible, un examen direct, une stabilisation biologique et une enveloppe d’extraction médicalisée apporteraient au final ce qui manquait au secours initial de Nacre. Des mesures partielles établiraient auparavant la conservation et une chance de survie sans la garantir.
 
 ## Victoire et monde après l’histoire
 
 **PROPOSE** · Origine : v1 · [FIN-002](../STORY_SOURCE.md#fin-002)
 
-L’affrontement final a lieu dans le présent d’Orthe, après le raid initial et le sauvetage. La victoire empêche la Matrice de tutelle et ouvre une restauration partagée des pouvoirs, sans effacer l’histoire-source.
+Après le redémarrage du Cœur, le monde doit organiser une restauration partagée des pouvoirs sans remplacer la tutelle de Séveran par celle d’Elio. La forme durable de cet accès et le fonctionnement du gacha post-jeu restent ouverts en Q31.
+
+## Conclusion collective avant le sauvetage intime
+
+**CONFIRME** · Origine : utilisateur · [FIN-003](../STORY_SOURCE.md#fin-003)
+
+La fin suit cet ordre : conflit autour du redémarrage du Cœur, défaite du projet de tutelle de Séveran, stabilisation d’Orthe, dernière ouverture pour sauver Lyra, destruction de l’accès temporel avec transfert risqué de Nacre, puis épilogue et retour préparé de Nacre sans pouvoir temporel.

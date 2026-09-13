@@ -1,7 +1,7 @@
 # Campagne : ordre vécu par le joueur
 
 > VUE GÉNÉRÉE — ne pas modifier ce fichier. Source : [STORY_SOURCE.md](../STORY_SOURCE.md).
-> Empreinte SHA-256 : `bfb838ad7d987313a569aaa72a225e0be28fa6c77d825a780f0c3e8815cff8ba`.
+> Empreinte SHA-256 : `f375bf807225b54948ae2e5a31efcb93a0a2e379a28d7ba342e34a6d66d6e13b`.
 
 ## Chapitre 0 — Une place à côté de toi
 
@@ -17,7 +17,7 @@ Mise en scène et garde-fous : Montrer l’anneau, une défense issue d’un éq
 
 **PROPOSE** · Origine : assistant · [CH-01](../STORY_SOURCE.md#ch-01)
 
-Elio arrive au Havre. Certains habitants reconnaissent son visage, d’autres doutent devant son manque d’expérience. Nacre établit le décalage d’époque et dit avoir été créée par le scientifique connu ici.
+Elio arrive au Havre. Certains habitants reconnaissent son visage, d’autres doutent devant son manque d’expérience. Nacre établit le décalage d’époque et dit avoir été créée par le scientifique connu ici. Séveran n’engage pas encore de traque personnelle parce qu’il croit le jeune Elio mort, selon une explication encore ouverte.
 
 Mise en scène et garde-fous : Le mystère porte sur ce que cet autre Elio a fait, pas sur une date que tout le monde pourrait donner. Sa mort n’est pas encore prouvée aux habitants.
 
@@ -27,17 +27,17 @@ Mise en scène et garde-fous : Le mystère porte sur ce que cet autre Elio a fai
 
 **PROPOSE** · Origine : assistant · [CH-02](../STORY_SOURCE.md#ch-02)
 
-Le héros protège une évacuation et réalise avec Varek un réaccord limité. Yselle accorde sa confiance à des actes concrets. Une première équipe se forme sans imposer de tirage aléatoire.
+Le héros protège une évacuation et réalise avec Varek une première activation limitée et consciente. Yselle accorde sa confiance à des actes concrets. Le fragment du Havre recharge ensuite le bénéficiaire ; une première équipe se forme sans imposer de tirage rare pour avancer.
 
 Mise en scène et garde-fous : Montrer le consentement et le rôle indispensable du bénéficiaire. La victoire permet de mieux vivre au Havre, pas seulement d’obtenir une clé de scénario.
 
-**Règles associées :** [REG-001](../STORY_SOURCE.md#reg-001) — Havre des Traverses : accueil et confiance ; [NOYAU-002](../STORY_SOURCE.md#noyau-002) — Le réaccord libre : pourquoi Elio peut aider ; [GACHA-001](../STORY_SOURCE.md#gacha-001) — Rencontrer, libérer, puis stabiliser un Accord.
+**Règles associées :** [REG-001](../STORY_SOURCE.md#reg-001) — Havre des Traverses : accueil et confiance ; [NOYAU-002](../STORY_SOURCE.md#noyau-002) — Réactivation temporaire et recharge ; [GACHA-001](../STORY_SOURCE.md#gacha-001) — Rencontrer puis réactiver par le premier pull.
 
 ## Chapitre 3 — Les absents ont une voix
 
 **PROPOSE** · Origine : assistant · [CH-03](../STORY_SOURCE.md#ch-03)
 
-Aux Palais de Sel, les récits d’une guerre se contredisent. Un témoin reconnaît Lyra et rapporte un événement de sa vie postérieur au prologue. Les dates incompatibles troublent Elio.
+Aux Palais de Sel, les récits d’une guerre se contredisent. Un témoin reconnaît Lyra et rapporte sa mort lors de l’attaque de Séveran contre une tentative de restauration du Cœur, après A-source. Les dates incompatibles troublent Elio.
 
 Mise en scène et garde-fous : Ne pas faire taire un témoin qui connaît son origine. Les détails de la mission et les preuves de la mort-source restent réellement à trouver.
 
@@ -47,11 +47,11 @@ Mise en scène et garde-fous : Ne pas faire taire un témoin qui connaît son or
 
 **PROPOSE** · Origine : assistant · [CH-04](../STORY_SOURCE.md#ch-04)
 
-Orsane et l’équipe protègent des témoins avant de dévoiler des falsifications. Nacre récupère des moyens de lecture. Les contrats établissent que le scientifique a aidé des installations impériales.
+Orsane et l’équipe protègent des témoins avant de dévoiler des falsifications. Nacre récupère des moyens de lecture et l’équipe négocie le deuxième fragment. Les contrats établissent que le scientifique a collaboré avec Séveran après la mort de Lyra, dans l’espoir de la revoir.
 
 Mise en scène et garde-fous : Un rapport sur les équipements saisis prépare la piste de l’anneau. La bonne réputation du scientifique demeure vraie sur certains aspects.
 
-**Règles associées :** [REG-002](../STORY_SOURCE.md#reg-002) — Palais de Sel : mémoire et responsabilité ; [IA-005](../STORY_SOURCE.md#ia-005) — Ce qui est perdu dans la mémoire de Nacre ; [EVT-013](../STORY_SOURCE.md#evt-013) — Les compromis.
+**Règles associées :** [REG-002](../STORY_SOURCE.md#reg-002) — Palais de Sel : mémoire et responsabilité ; [IA-005](../STORY_SOURCE.md#ia-005) — Ce qui est perdu dans la mémoire de Nacre ; [EVT-013](../STORY_SOURCE.md#evt-013) — Le marchandage et la collaboration.
 
 ## Chapitre 5 — Les mains libres
 
@@ -67,7 +67,7 @@ Mise en scène et garde-fous : Le premier diagnostic sépare volonté, contraint
 
 **PROPOSE** · Origine : assistant · [CH-06](../STORY_SOURCE.md#ch-06)
 
-Des alimentations indépendantes rendent possible une libération locale. Une opération documentée récupère l’anneau original. Une stabilisation d’urgence d’un adversaire démontre qu’une autre réponse est envisageable.
+Des alimentations indépendantes rendent possible une libération locale et le retrait risqué du troisième fragment. Une opération documentée récupère l’anneau original. Une stabilisation d’urgence d’un adversaire démontre qu’une autre réponse est envisageable.
 
 Mise en scène et garde-fous : Le héros protège l’objet sans savoir encore si Lyra survit. Il ne reçoit pas le pardon pour les travaux de l’autre Elio en échange de sa réparation.
 
@@ -87,7 +87,7 @@ Mise en scène et garde-fous : Le public doit comprendre le modèle avant le der
 
 **PROPOSE** · Origine : assistant · [CH-08](../STORY_SOURCE.md#ch-08)
 
-La tentative médicale devient concevable, mais une accélération priverait les soins de moyens essentiels. Elio la refuse sans garantie d’une autre réussite. L’équipe construit un protocole soutenable.
+La tentative médicale devient concevable, mais une accélération ou le retrait immédiat du quatrième fragment priverait les soins de moyens essentiels. Elio la refuse sans garantie d’une autre réussite. L’équipe construit un protocole de transition soutenable.
 
 Mise en scène et garde-fous : Ne pas certifier la survie de Lyra à distance. Donner un espoir mesurable, des limites et un enjeu moral réel.
 
@@ -101,23 +101,23 @@ Au Contrejour, la propagande lui attribue les actes de l’autre Elio. L’enqu�
 
 Mise en scène et garde-fous : Les trous de mémoire de stase sont corroborés, pas comblés d’un seul coup par une révélation magique. L’exception de son noyau a une cause matérielle.
 
-**Règles associées :** [REG-005](../STORY_SOURCE.md#reg-005) — Villes du Contrejour : identité et responsabilité ; [GRAINE-002](../STORY_SOURCE.md#graine-002) — Le réveil adulte : solution proposée pour la nouvelle origine ; [HIST-003](../STORY_SOURCE.md#hist-003) — Le Grand Bâillon : catastrophe puis exploitation politique.
+**Règles associées :** [REG-005](../STORY_SOURCE.md#reg-005) — Villes du Contrejour : identité et responsabilité ; [GRAINE-002](../STORY_SOURCE.md#graine-002) — Le réveil adulte : solution proposée pour la nouvelle origine ; [HIST-003](../STORY_SOURCE.md#hist-003) — Le Grand Bâillon : mécanisme proposé d’un sabotage confirmé.
 
 ## Chapitre 10 — L’envoyée qui a choisi
 
 **PROPOSE** · Origine : assistant · [CH-10](../STORY_SOURCE.md#ch-10)
 
-Le parcours de Lyra apparaît : découverte, rappel, retour, couverture professionnelle, amitié puis amour. Saren stabilisé doit choisir ce qu’il fait des informations sur le programme qui l’a abîmé.
+Le parcours de Lyra apparaît : découverte, rappel, retour, couverture professionnelle, amitié puis amour. Elio n’a pas réactivé son noyau par simple proximité avant A. Saren stabilisé doit choisir ce qu’il fait des informations sur le programme qui l’a abîmé ; la décision locale autour du cinquième fragment accompagne ce choix.
 
 Mise en scène et garde-fous : Les flashbacks montrent des moments adultes réels. Le titre devient « L’envoyé qui a choisi » dans le point de vue Lyra ; les rôles s’inversent partout.
 
-**Règles associées :** [NOMS-001](../STORY_SOURCE.md#noms-001) — Elio et Lyra : noms et rôles lisibles ; [COUPLE-001](../STORY_SOURCE.md#couple-001) — Couverture professionnelle, rencontre et amour ; [REDEMPTION-001](../STORY_SOURCE.md#redemption-001) — Soigner, réparer, choisir de changer.
+**Règles associées :** [NOMS-001](../STORY_SOURCE.md#noms-001) — Elio et Lyra : noms et rôles lisibles ; [COUPLE-001](../STORY_SOURCE.md#couple-001) — Couverture professionnelle, rencontre et amour ; [COUPLE-003](../STORY_SOURCE.md#couple-003) — Rupture de mission et conséquences relationnelles proposées ; [REDEMPTION-001](../STORY_SOURCE.md#redemption-001) — Soigner, réparer, choisir de changer ; [REDEMPTION-002](../STORY_SOURCE.md#redemption-002) — Parcours proposé de Saren.
 
 ## Chapitre 11 — Un demain sans garanties
 
 **PROPOSE** · Origine : assistant · [CH-11](../STORY_SOURCE.md#ch-11)
 
-À la Couronne, les régions préparent une circulation partagée. Thyr et ses équipages défendent une sécurité qui ne dépend pas d’un maître unique.
+À la Couronne, les régions préparent une circulation partagée et le retrait défendu du sixième fragment. Thyr et ses équipages protègent les routes pendant que les six apports convergent sans dépendre d’un maître unique.
 
 Mise en scène et garde-fous : Les relais et les régulateurs construits permettent autant l’autonomie d’Orthe que le futur sauvetage. Pas d’arrêt du temps cosmique pour faciliter une scène.
 
@@ -127,49 +127,49 @@ Mise en scène et garde-fous : Les relais et les régulateurs construits permett
 
 **PROPOSE** · Origine : assistant · [CH-12](../STORY_SOURCE.md#ch-12)
 
-Les archives montrent la prise du laboratoire de Sélis, la destruction volontaire de la référence du scientifique et sa dernière consigne à Nacre. La Matrice de tutelle donne enfin un sens précis au raid de Séveran.
+Les archives montrent la prise du laboratoire de Z, la désactivation volontaire du centre d’Elio-source, son assassinat physique et sa dernière consigne à Nacre. Elles établissent que l’essai vers A avait été préparé par Elio avant que Séveran détourne sa destination. La Matrice de tutelle proposée donne un sens précis au raid.
 
 Mise en scène et garde-fous : Révéler l’usage du noyau, pas seulement annoncer qu’il est très puissant. La réparation tardive du scientifique n’efface pas les victimes de ses compromis.
 
-**Règles associées :** [SEVERAN-002](../STORY_SOURCE.md#severan-002) — À quoi servirait exactement le noyau volé ; [SEVERAN-003](../STORY_SOURCE.md#severan-003) — Pourquoi le noyau jeune plutôt que celui du scientifique ; [IA-002](../STORY_SOURCE.md#ia-002) — La dernière consigne du scientifique ; [TEMPS-004](../STORY_SOURCE.md#temps-004) — Le lieu de Z et les deux déplacements de Nacre.
+**Règles associées :** [SEVERAN-002](../STORY_SOURCE.md#severan-002) — À quoi servirait exactement le noyau volé ; [SEVERAN-003](../STORY_SOURCE.md#severan-003) — Découverte tardive, marchandage et raid vers A ; [IA-002](../STORY_SOURCE.md#ia-002) — La dernière consigne du scientifique ; [TEMPS-004](../STORY_SOURCE.md#temps-004) — Le lieu de Z et les deux déplacements de Nacre.
 
 ## Chapitre 13 — L’empire à hauteur d’homme
 
 **PROPOSE** · Origine : assistant · [CH-13](../STORY_SOURCE.md#ch-13)
 
-La coalition désorganise les forces et protège les populations. La machine reconstruite est alimentée avec des moyens partagés ; l’anneau déjà repris est amené sous protection. Saren peut agir pour réparer ses fautes.
+La coalition rassemble les six fragments régionaux, Nacre, Elio et les alliés sans exiger la possession gacha de tous les gardiens. Elle protège les populations, prépare le redémarrage du Cœur et garde l’anneau sous protection pour l’étape suivante. Saren peut agir pour réparer ses fautes.
 
 Mise en scène et garde-fous : Distinguer prendre une infrastructure et obtenir l’obéissance d’une région. Tous les moyens indispensables sont accessibles par le récit.
 
-**Règles associées :** [FIN-002](../STORY_SOURCE.md#fin-002) — Victoire et monde après l’histoire ; [REDEMPTION-001](../STORY_SOURCE.md#redemption-001) — Soigner, réparer, choisir de changer ; [GACHA-001](../STORY_SOURCE.md#gacha-001) — Rencontrer, libérer, puis stabiliser un Accord.
+**Règles associées :** [FIN-002](../STORY_SOURCE.md#fin-002) — Victoire et monde après l’histoire ; [REDEMPTION-001](../STORY_SOURCE.md#redemption-001) — Soigner, réparer, choisir de changer ; [GACHA-001](../STORY_SOURCE.md#gacha-001) — Rencontrer puis réactiver par le premier pull.
 
-## Chapitre 14 — La dernière fenêtre
-
-**PROPOSE** · Origine : assistant · [CH-14](../STORY_SOURCE.md#ch-14)
-
-La même fenêtre reprend après le retour de Séveran. Elio voit qu’il ne peut plus empêcher l’agression, mais un examen direct révèle une continuité vitale. L’équipe stabilise Lyra, la ramène puis poursuit ses soins.
-
-Mise en scène et garde-fous : Montrer la différence entre « trop tard pour éviter la blessure » et « trop tard pour sauver ». L’anneau est consommé ; personne ne revient au début de la scène.
-
-**Règles associées :** [FIN-001](../STORY_SOURCE.md#fin-001) — Sauver sans revenir avant la blessure ; [TEMPS-003](../STORY_SOURCE.md#temps-003) — Ancre, machine et accès : trois choses distinctes ; [IA-004](../STORY_SOURCE.md#ia-004) — La fermeture visible et la suspension réelle.
-
-## Chapitre 15 — Le droit de ne pas recommencer
+## Chapitre 14 — Le droit de ne pas recommencer
 
 **PROPOSE** · Origine : assistant · [CH-15](../STORY_SOURCE.md#ch-15)
 
-La coalition affronte Séveran au présent d’Orthe et empêche la Matrice de tutelle. L’Elio joué refuse la place de référence captive centrale, même présentée comme un moyen rapide de tout réparer.
+La coalition redémarre et stabilise le Cœur, puis affronte Séveran au présent d’Orthe et défait son projet de tutelle. L’Elio joué refuse la place de référence captive centrale, même présentée comme un moyen rapide de tout réparer.
 
 Mise en scène et garde-fous : La victoire doit protéger les fonctions vitales et les victimes des réveils forcés. L’ennemi n’est pas vaincu dans un passé qui annulerait son propre raid.
 
-**Règles associées :** [SEVERAN-002](../STORY_SOURCE.md#severan-002) — À quoi servirait exactement le noyau volé ; [FIN-002](../STORY_SOURCE.md#fin-002) — Victoire et monde après l’histoire.
+**Règles associées :** [SEVERAN-002](../STORY_SOURCE.md#severan-002) — À quoi servirait exactement le noyau volé ; [FIN-003](../STORY_SOURCE.md#fin-003) — Conclusion collective avant le sauvetage intime ; [COEUR-001](../STORY_SOURCE.md#coeur-001) — Le Cœur d’Orthe et la restauration.
+
+## Chapitre 15 — La dernière fenêtre
+
+**PROPOSE** · Origine : assistant · [CH-14](../STORY_SOURCE.md#ch-14)
+
+Après la victoire collective, la même fenêtre reprend après le retour de Séveran. Elio voit qu’il ne peut plus empêcher l’agression, mais un examen direct révèle une continuité vitale. L’équipe stabilise Lyra, la ramène puis poursuit ses soins.
+
+Mise en scène et garde-fous : Montrer la différence entre « trop tard pour éviter la blessure » et « trop tard pour sauver ». L’anneau est consommé ; personne ne revient au début de la scène.
+
+**Règles associées :** [FIN-001](../STORY_SOURCE.md#fin-001) — Sauver sans revenir avant la blessure ; [FIN-004](../STORY_SOURCE.md#fin-004) — Moyens proposés de la dernière extraction ; [TEMPS-003](../STORY_SOURCE.md#temps-003) — Ancre, machine et accès : trois choses distinctes ; [IA-004](../STORY_SOURCE.md#ia-004) — La fermeture visible et la suspension réelle ; [FIN-003](../STORY_SOURCE.md#fin-003) — Conclusion collective avant le sauvetage intime.
 
 ## Chapitre 16 — Ceux qui restent
 
 **PROPOSE** · Origine : assistant · [CH-16](../STORY_SOURCE.md#ch-16)
 
-Les morts de la guerre et de l’histoire-source restent honorés. Lyra récupère ; le couple affronte les secrets et décide de la suite. Elio reprend contact avec les proches qui ont connu sa vie sur Sélis.
+Après le sauvetage de Lyra, Nacre consent au renoncement temporel. Son composant dangereux est détruit et un transfert préparé tente de préserver son identité et ses souvenirs dans un assistant sans pouvoir temporel. Lyra récupère ; le couple affronte les secrets et décide de la suite.
 
-Mise en scène et garde-fous : Remplacer la famille adoptive de la v1.0 par les amis, mentors et collègues réellement définis dans cette version. Aucune guérison instantanée ne gomme les conséquences.
+Mise en scène et garde-fous : Ne pas annoncer une mort absolument définitive de Nacre avant son transfert. Remplacer la famille adoptive de la v1.0 par les amis, mentors et collègues réellement définis dans cette version. Aucune guérison instantanée ne gomme les conséquences.
 
 **Règles associées :** [GRAINE-002](../STORY_SOURCE.md#graine-002) — Le réveil adulte : solution proposée pour la nouvelle origine ; [COUPLE-001](../STORY_SOURCE.md#couple-001) — Couverture professionnelle, rencontre et amour ; [FIN-001](../STORY_SOURCE.md#fin-001) — Sauver sans revenir avant la blessure.
 
@@ -177,7 +177,7 @@ Mise en scène et garde-fous : Remplacer la famille adoptive de la v1.0 par les 
 
 **PROPOSE** · Origine : assistant · [CH-17](../STORY_SOURCE.md#ch-17)
 
-Les passages s’ouvrent, la recherche se partage et les régions continuent de vivre avec leurs désaccords. Le groupe peut voyager vers d’autres planètes du même univers.
+Nacre revient comme assistant ordinaire, sans technologie temporelle. Les passages s’ouvrent, la recherche se partage et les régions continuent de vivre avec leurs désaccords. Le groupe peut voyager vers d’autres planètes du même univers.
 
 Mise en scène et garde-fous : Le post-game n’introduit ni une réserve cachée de graines intactes survivantes, ni une ancre de remplacement permettant de refaire toute perte.
 
