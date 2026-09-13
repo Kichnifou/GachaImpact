@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import appBootstrapSource from '../AppBootstrap.tsx?raw'
 import gameShellSource from './GameShell.tsx?raw'
 
 describe('GameShell shared particle conversion overlay', () => {
@@ -36,5 +37,13 @@ describe('GameShell shared particle conversion overlay', () => {
   it('passes the same central Expedition snapshot and monotonic clock to Box and Activities', () => {
     expect(gameShellSource).toContain('expedition={expedition} expeditionMonotonicNow={expeditionMonotonicNow}')
     expect(gameShellSource.match(/expeditionMonotonicNow=\{expeditionMonotonicNow\}/g)).toHaveLength(2)
+  })
+
+  it('keeps navigation preference callbacks stable across Expedition ticks and Contest renders', () => {
+    expect(appBootstrapSource).toContain('const loadNavigationPreferences = useCallback(')
+    expect(appBootstrapSource).toContain('const saveNavigationPreferences = useCallback(')
+    expect(appBootstrapSource).toContain('onLoadNavigationPreferences={loadNavigationPreferences}')
+    expect(appBootstrapSource).toContain('onSaveNavigationPreferences={saveNavigationPreferences}')
+    expect(appBootstrapSource).not.toContain('onLoadNavigationPreferences={() =>')
   })
 })

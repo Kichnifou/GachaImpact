@@ -57,6 +57,9 @@ describe('GameShell Expedition deep-link', () => {
     document.body.append(container)
     const root = createRoot(container)
     await act(async () => { root.render(<GameShell {...props} />); await Promise.resolve() })
+    expect(props.onLoadNavigationPreferences).toHaveBeenCalledTimes(1)
+    await act(async () => { root.render(<GameShell {...props} expeditionMonotonicNow={1_000} />); await Promise.resolve() })
+    expect(props.onLoadNavigationPreferences).toHaveBeenCalledTimes(1)
 
     await clickExpeditionAccess(container)
     expect(container.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toContain('Keqing')

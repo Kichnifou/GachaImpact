@@ -42,6 +42,6 @@ describe('daily reward card', () => {
 
   it('reserves the same overview height before and after the claim mutation', () => {
     const css = readFileSync('src/App.css', 'utf8')
-    expect(css).toMatch(/\.daily-overview-card\s*\{[^}]*height:\s*167px;[^}]*min-height:\s*167px;/s)
+    expect(css).toMatch(/\/\* Candidate 0\.93[\s\S]*\.daily-overview-card\s*\{[^}]*height:\s*136px;[^}]*min-height:\s*136px;/s)
   })
 })

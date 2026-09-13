@@ -1,8 +1,8 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.92
+Version : 0.93
 Date : 2026-09-13
-Statut : CANDIDAT 0.92 — REVIEW INDÉPENDANTE REQUISE
+Statut : CANDIDAT 0.93 DE STABILISATION — REVIEW INDÉPENDANTE REQUISE
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
@@ -3544,7 +3544,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Concours / personnages C6 — candidat 0.92 physiquement implémenté, en attente de review indépendante puis de validation publique. La prochaine étape après validation est Collection / Sac à compléter.**
+**Concours / personnages C6 — 0.92 déployé mais validation publique bloquée ; candidat correctif 0.93 en attente de review indépendante puis de validation publique. La prochaine étape après validation reste Collection / Sac à compléter.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3773,7 +3773,16 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Les validations automatisées utilisent seulement des Players fixtures UUID et des mois 2098, puis les nettoient. Les comptes DEV confirmés `Kichnifou`, `Mynonyme`, `MynonymeTest1`, `MynonymeTest2`, `MynonymeTest3`, `Céo`, `Mika` et `Jean Julien`, ainsi que leur Expedition réelle, n’ont été ni ciblés ni modifiés. `PAID_INFRA_APPROVED = false` reste inchangé ; aucun service payant ni déploiement Railway manuel ne fait partie du candidat.
 - Le domaine actif reste Combat, centré sur le candidat Boss 0.91 final corrigé. Sa validation publique n’a pas encore eu lieu ; aucun domaine suivant n’est commencé. Après franchissement des gates publiques listées ci-dessous, le prochain domaine exact est **Concours / personnages C6**, selon [implementation-order-v1.md](../roadmap/implementation-order-v1.md).
 
-## État du candidat 0.92 — Concours / C6 et densité Boss
+## État du candidat 0.93 — stabilisation Concours et alignement Activités
+
+- La version 0.92 est déployée, mais sa validation publique Concours est **bloquée** : le backend a subi des erreurs Prisma `P2028`, des réponses 502 et des redémarrages pendant une partie ; le frontend multipliait en parallèle certaines lectures et présentait des actions lentes sans feedback immédiat. Les défauts visuels observés concernent aussi la géométrie Concours, les modales Concours/Boss, les contrôles blancs, l’icône de résistance et la densité des cartes Quotidiennes.
+- Le candidat 0.93 est exclusivement un lot correctif. La réconciliation Concours devient mono-vol dans un processus, préfiltre les transitions dues par une lecture légère, tente le verrou inter-processus puis revalide sous verrou avant mutation. Le scheduler attend chaque exécution, gère localement ses erreurs transitoires, repart sur un délai maîtrisé et s’arrête avant la déconnexion Prisma. Les mutations ne patientent plus derrière un rattrapage complet et les projections live n’embarquent plus systématiquement événements, récompenses et dernier résultat historique.
+- Le frontend stabilise les callbacks de préférences de navigation, déduplique les lectures Concours simultanées, sépare lecture et mutation par révision et applique un polling séquentiel avec pause cachée, reprise visible et backoff borné. Toute mutation Concours possède un état pending immédiat, une garde synchrone contre le double clic et conserve sa clé d’idempotence après un résultat réseau ambigu.
+- Le layout Activités restaure des headers naturels et des bodies `minmax(0, 1fr)`. Concours réserve quatre slots de lobby, dix emplacements spectateurs et une zone d’action stable ; Mes Légendes affiche trois entrées par page après filtre/tri personnel et l’Historique dix résultats par page. Le Bilan Boss garde ses trois onglets dans une enveloppe compacte stable et les huit cartes Quotidiennes partagent une hauteur desktop de 136 px.
+- Aucune règle R526–R593, formule, récompense, donnée, migration ou schéma n’est modifié. Les validations PostgreSQL et le parcours navigateur multi-session restent conditionnés à une base réellement isolée ; ils ne doivent jamais être improvisés sur les données DEV réelles.
+- Le domaine actif reste **Concours / personnages C6**, candidat correctif 0.93. Après review indépendante, promotion, déploiements automatiques et validation publique, la prochaine étape reste **Collection / Sac à compléter**.
+
+## État déployé 0.92 — Concours / C6 et densité Boss
 
 - Le propriétaire a validé publiquement en 0.91 l’affichage général du Boss, une attaque réelle et son quota quotidien, ainsi que l’état Expedition RUNNING dans Quotidiennes. Restent à tester publiquement Expedition READY/notification/claim, Combat défaite/KO, Boss vaincu/notification, rollover/historique Boss réel et tout le vertical Concours.
 - L’écran Boss conserve strictement le moteur 0.91 mais devient compact : mois et `Bilan →`, identité/statut/résistance iconique, PV remontés, barre d’attaque en trois régions et formation `Votre formation`. Contribution, statistiques lifetime et historique paginé vivent dans une seule modale Bilan à trois onglets ; tant que le Boss vit, Contribution affiche aussi rang, dégâts, attaques, meilleur coup et part personnelle des PV max avec le Top 3. Les cartes joueur et la fiche Box sont partagées avec Entraînement ; aucun Auto Boss ni interaction avec les KO quotidiens n’est ajouté.
@@ -3783,7 +3792,7 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - `Mes Légendes`, le dernier résultat et l’historique public FINISHED paginé à dix avec détail sont réels. Les pickers personnels affichent la statistique exacte du thème `/20` et se calent sur la sélection persistée ; résultat et détail exposent les promotions de titre durables ainsi que classement, scores, récompenses et événements métier interprétés. Les statistiques exactes `/20` restent personnelles ; l’écran public n’expose que les snapshots utiles au match. Le polling actif est complété par focus/retour visible sans Realtime. Aucun Social, Realtime, chat, Twitch, présence passive, migration legacy ou image générée n’est commencé.
 - La migration additive `20260913170000_017_add_contests` étend la table C6 existante avec compteurs/titres initialisés à zéro et crée uniquement thèmes, concours, participants, spectateurs, consommations quotidiennes, retraits lobby, événements et récompenses. Les cinq statistiques existantes sont conservées. RLS est active, les accès `anon`/`authenticated` sont révoqués et Prisma suit 17 migrations à jour.
 - Les tests DB utilisent uniquement des Players UUID, des dates dédiées 2097/2098 et un cleanup exact. Les huit comptes DEV confirmés, l’attaque/PV/états/statistiques du Boss réel de septembre 2026 et l’Expedition réelle restent intacts. `PAID_INFRA_APPROVED = false` demeure inchangé ; aucun service payant ni déploiement Railway manuel n’appartient au candidat.
-- Le domaine actif est **Concours / personnages C6**, candidat 0.92. Après review, promotion, déploiement automatique et validation publique, la prochaine étape est **Collection / Sac à compléter**.
+- Le domaine 0.92 est déployé, mais sa validation publique Concours est bloquée par l’incident de disponibilité et les défauts UI traités dans le candidat correctif 0.93. **Collection / Sac à compléter** reste conditionnée à la validation publique de cette stabilisation.
 
 ## État du lot — Invocation x1/x10
 
@@ -3925,7 +3934,7 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Faire la review indépendante du candidat 0.92 uniquement sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → valider publiquement Concours et les finitions Boss/Quotidiennes.** Les validations encore ouvertes restent Expedition READY/notification/claim, Combat défaite/KO, Boss vaincu/notification et rollover/historique Boss réel. Après validation du candidat 0.92, ouvrir **Collection / Sac à compléter**. L’ordre complet restant appartient à [implementation-order-v1.md](../roadmap/implementation-order-v1.md). La migration legacy reste reportée ; `PAID_INFRA_APPROVED = false` reste inchangé.
+**Faire la review indépendante du candidat correctif 0.93 uniquement sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → reprendre la validation publique Concours et les finitions Boss/Quotidiennes.** Les validations encore ouvertes restent Expedition READY/notification/claim, Combat défaite/KO, Boss vaincu/notification et rollover/historique Boss réel. Après validation publique de 0.93, ouvrir **Collection / Sac à compléter**. L’ordre complet restant appartient à [implementation-order-v1.md](../roadmap/implementation-order-v1.md). La migration legacy reste reportée ; `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

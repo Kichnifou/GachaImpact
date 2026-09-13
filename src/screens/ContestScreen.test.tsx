@@ -3,12 +3,25 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { ApiError } from '../api/game-api'
 import type { ContestDto, ContestHistoryDto, ContestSnapshotDto } from '../api/types'
 import ContestScreen from './ContestScreen'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 const roots: Root[] = []
-afterEach(() => { act(() => roots.splice(0).forEach((root) => root.unmount())); document.body.replaceChildren() })
+afterEach(() => {
+  act(() => roots.splice(0).forEach((root) => root.unmount()))
+  document.body.replaceChildren()
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
+  vi.useRealTimers()
+})
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (reason: unknown) => void
+  const promise = new Promise<T>((done, fail) => { resolve = done; reject = fail })
+  return { promise, resolve, reject }
+}
 
 const theme = { key: 'STRENGTH', label: 'Force', title: 'Titan', statKey: 'strength' } as const
 const legend = {
@@ -74,6 +87,29 @@ describe('ContestScreen', () => {
     expect(onOpen).toHaveBeenCalledWith('character-1', expect.any(String))
     act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Mes Légendes')!.click())
     expect(container.querySelector('[aria-label="Mes Légendes"]')?.textContent).toContain('Force 12/20')
+    expect(container.querySelectorAll('.contest-legends-list > *')).toHaveLength(3)
+  })
+
+  it('filters, sorts, and paginates personal Legends after three complete entries', () => {
+    const legends = [
+      { ...legend, character: { ...legend.character, id: 'z', name: 'Zhongli', elementKey: 'geo' as const }, stats: { ...legend.stats, strength: 20 } },
+      { ...legend, character: { ...legend.character, id: 'e', name: 'Éclair', elementKey: 'electro' as const }, stats: { ...legend.stats, strength: 2 } },
+      { ...legend, character: { ...legend.character, id: 'a', name: 'Amber', elementKey: 'pyro' as const }, stats: { ...legend.stats, strength: 4 } },
+      { ...legend, character: { ...legend.character, id: 'n', name: 'Nahida', elementKey: 'dendro' as const }, stats: { ...legend.stats, strength: 15 } },
+    ]
+    const { container } = mount({ ...base, legends })
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Mes Légendes')!.click())
+    const modal = container.querySelector<HTMLElement>('[aria-label="Mes Légendes"]')!
+    expect(modal.querySelectorAll('.contest-legends-list article')).toHaveLength(3)
+    expect(modal.querySelector('.history-modal-pagination')?.textContent).toContain('Page 1 / 2')
+    act(() => Array.from(modal.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Suivant')!.click())
+    expect(modal.querySelector('.contest-legends-list')?.textContent).toContain('Zhongli')
+
+    const search = modal.querySelector<HTMLInputElement>('.contest-legends-controls input')!
+    act(() => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, 'eclair'); search.dispatchEvent(new Event('input', { bubbles: true })) })
+    expect(modal.querySelectorAll('.contest-legends-list article')).toHaveLength(1)
+    expect(modal.querySelector('.contest-legends-list')?.textContent).toContain('Éclair')
+    expect(Array.from(modal.querySelectorAll<HTMLSelectElement>('.contest-legends-controls select'))[1]?.textContent).toContain('Puissance totale')
   })
 
   it('shows lobby readiness and strict organizer controls without exposing raw stat maxima', async () => {
@@ -141,6 +177,7 @@ describe('ContestScreen', () => {
     await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Historique')!.click(); await Promise.resolve() })
     expect(onLoadHistory).toHaveBeenCalledWith(1)
     expect(container.querySelector('[aria-label="Historique des Concours"]')?.textContent).toContain('vainqueur Kichnifou')
+    expect(container.querySelectorAll('.contest-history-list > *')).toHaveLength(10)
     await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Détails →')!.click(); await Promise.resolve() })
     expect(onLoadHistoryDetail).toHaveBeenCalledWith('contest-1')
     expect(container.querySelector('[aria-label="Historique des Concours"]')?.textContent).toContain('#1 Kichnifou')
@@ -277,6 +314,72 @@ describe('ContestScreen', () => {
     const root = roots.pop()!; act(() => root.unmount())
     await act(async () => { window.dispatchEvent(new Event('focus')); document.dispatchEvent(new Event('visibilitychange')); vi.advanceTimersByTime(4_000); await Promise.resolve() })
     expect(onRefresh).toHaveBeenCalledTimes(3)
-    vi.useRealTimers()
+  })
+
+  it('does not accumulate polling, focus, or visibility reads behind a slow response', async () => {
+    vi.useFakeTimers()
+    const value = { ...base, active: lobby, permissions: { ...permissions, canOpen: false } }
+    const slow = deferred<ContestDto>()
+    const onRefresh = vi.fn().mockImplementationOnce(() => slow.promise).mockResolvedValue(value)
+    mount(value, { onRefresh })
+
+    await act(async () => { vi.advanceTimersByTime(2_000); await Promise.resolve() })
+    expect(onRefresh).toHaveBeenCalledTimes(1)
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'))
+      document.dispatchEvent(new Event('visibilitychange'))
+      vi.advanceTimersByTime(10_000)
+      await Promise.resolve()
+    })
+    expect(onRefresh).toHaveBeenCalledTimes(1)
+
+    await act(async () => { slow.resolve(value); await slow.promise; await Promise.resolve() })
+    await act(async () => { vi.advanceTimersByTime(2_000); await Promise.resolve() })
+    expect(onRefresh).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps Quitter and Annuler usable while a polling read is in flight', async () => {
+    const value = { ...base, active: lobby, permissions: { ...permissions, canOpen: false, canLeave: true, canCancel: true } }
+    const slowRefresh = deferred<ContestDto>()
+    const onLeave = vi.fn(async () => value)
+    const onCancel = vi.fn(async () => value)
+    const { container } = mount(value, { onRefresh: vi.fn(() => slowRefresh.promise), onLeave, onCancel })
+
+    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() })
+    await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Quitter')!.click(); await Promise.resolve() })
+    expect(onLeave).toHaveBeenCalledOnce()
+    await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Annuler le lobby')!.click(); await Promise.resolve() })
+    expect(onCancel).toHaveBeenCalledOnce()
+    await act(async () => { slowRefresh.resolve(value); await slowRefresh.promise })
+  })
+
+  it('shows immediate pending feedback, blocks a double click, and retries an ambiguous action with the same key', async () => {
+    const running: ContestSnapshotDto = { ...lobby, status: 'RUNNING', phase: 'TURNS', startedAt: '2026-09-13T10:00:00Z', turnDeadlineAt: '2099-09-13T12:00:00Z', currentRound: 2, currentTurnOrder: 1, participants: lobby.participants.map((participant) => ({ ...participant, basePoints: 3, turnOrder: 1, ready: true, activeTurn: true })) }
+    const value = { ...base, active: running, permissions: { ...permissions, canOpen: false, canLeave: true, canPlay: true } }
+    const first = deferred<ContestDto>()
+    const onPlay = vi.fn().mockImplementationOnce(() => first.promise).mockResolvedValue(value)
+    const { container } = mount(value, { onPlay })
+    const actionButton = () => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Action de base' || button.textContent === 'Action en cours…')!
+
+    act(() => { actionButton().click(); actionButton().click() })
+    expect(onPlay).toHaveBeenCalledTimes(1)
+    expect(actionButton().textContent).toBe('Action en cours…')
+    expect(actionButton().getAttribute('aria-busy')).toBe('true')
+    const firstKey = onPlay.mock.calls[0]![1]
+
+    await act(async () => { first.reject(new ApiError('NETWORK_ERROR', 'Réponse perdue', null)); await first.promise.catch(() => undefined); await Promise.resolve() })
+    await act(async () => { actionButton().click(); await Promise.resolve() })
+    expect(onPlay).toHaveBeenCalledTimes(2)
+    expect(onPlay.mock.calls[1]![1]).toBe(firstKey)
+  })
+
+  it('separates a polling outage from mutation feedback and clears it after recovery', async () => {
+    const value = { ...base, active: lobby, permissions: { ...permissions, canOpen: false } }
+    const onRefresh = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValue(value)
+    const { container } = mount(value, { onRefresh })
+    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve(); await Promise.resolve() })
+    expect(container.querySelector('.contest-sync-feedback')?.textContent).toContain('Synchronisation temporairement indisponible')
+    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve(); await Promise.resolve() })
+    expect(container.querySelector('.contest-sync-feedback')?.textContent).toBe('')
   })
 })

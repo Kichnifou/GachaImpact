@@ -1,7 +1,7 @@
 type ScreenHeaderProps = {
   eyebrow: string
   title: string
-  description: string
+  description?: string
   meta?: string
 }
 
@@ -11,7 +11,7 @@ function ScreenHeader({ eyebrow, title, description, meta }: ScreenHeaderProps) 
       <div>
         <span className="eyebrow">{eyebrow}</span>
         <h1>{title}</h1>
-        <p>{description}</p>
+        {description && <p>{description}</p>}
       </div>
       {meta && <span className="screen-meta">{meta}</span>}
     </header>

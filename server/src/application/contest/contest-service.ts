@@ -48,19 +48,44 @@ const participantInclude = {
   originalPlayer: { select: { id: true, displayName: true } },
 } satisfies Prisma.ContestParticipantInclude;
 
-const contestInclude = {
+const liveContestInclude = {
   participants: { include: participantInclude, orderBy: { slot: 'asc' as const } },
   spectators: { include: { player: { select: { id: true, displayName: true } } }, orderBy: { joinedAt: 'asc' as const } },
-  events: { orderBy: { createdAt: 'asc' as const } },
-  rewards: true,
 } satisfies Prisma.ContestInclude;
 
-type ContestRecord = Prisma.ContestGetPayload<{ include: typeof contestInclude }>;
+const historyContestInclude = {
+  ...liveContestInclude,
+  events: { orderBy: { createdAt: 'asc' as const } },
+} satisfies Prisma.ContestInclude;
+
+const historySummaryInclude = {
+  participants: { include: participantInclude, orderBy: { slot: 'asc' as const } },
+} satisfies Prisma.ContestInclude;
+
+const reconciliationCandidateSelect = {
+  id: true,
+  businessDate: true,
+  status: true,
+  phase: true,
+  lobbyDeadlineAt: true,
+  turnDeadlineAt: true,
+  supportDeadlineAt: true,
+  selectedSpectatorPlayerId: true,
+  currentTurnOrder: true,
+  participants: { select: { kind: true, playerId: true, turnOrder: true } },
+} satisfies Prisma.ContestSelect;
+
+type ContestRecord = Prisma.ContestGetPayload<{ include: typeof liveContestInclude }>;
+type ContestHistoryRecord = Prisma.ContestGetPayload<{ include: typeof historyContestInclude }>;
+type ContestHistorySummaryRecord = Prisma.ContestGetPayload<{ include: typeof historySummaryInclude }>;
+type ReconciliationCandidate = Prisma.ContestGetPayload<{ select: typeof reconciliationCandidateSelect }>;
 type Client = PrismaClient | Prisma.TransactionClient;
 
 export type ContestView = Awaited<ReturnType<ContestService['getCurrent']>>;
 
 export class ContestService {
+  private reconciliationInFlight: Promise<void> | null = null;
+
   public constructor(
     private readonly getPlayer: GetCurrentPlayer,
     private readonly database: PrismaClient,
@@ -71,7 +96,11 @@ export class ContestService {
 
   public async getCurrent(identity: AuthenticatedIdentity) {
     const player = await this.getPlayer.execute(identity);
-    await this.reconcile();
+    try { await this.reconcile(); }
+    catch (error) {
+      if (!isRetryableTransactionError(error)) throw error;
+      logContestReconciliationDeferred(error);
+    }
     return this.readView(player.id);
   }
 
@@ -112,7 +141,7 @@ export class ContestService {
   public async joinAsParticipant(identity: AuthenticatedIdentity, characterId: string, idempotencyKey: string) {
     const player = await this.getPlayer.execute(identity);
     await this.mutateActive(player.id, 'PARTICIPANT_JOINED', idempotencyKey, { characterId }, async (tx, contest) => {
-      assertLobby(contest);
+      assertLobbyOpen(contest, this.clock.now());
       await assertDailyAvailable(tx, player.id, databaseDateToBusinessDate(contest.businessDate));
       await findLegend(tx, player.id, characterId);
       const current = contest.participants.find((item) => item.playerId === player.id);
@@ -138,8 +167,9 @@ export class ContestService {
   public async joinAsSpectator(identity: AuthenticatedIdentity, idempotencyKey: string) {
     const player = await this.getPlayer.execute(identity);
     await this.mutateActive(player.id, 'SPECTATOR_JOINED', idempotencyKey, {}, async (tx, contest) => {
+      if (contest.status === ContestStatus.LOBBY) assertLobbyOpen(contest, this.clock.now());
       if (contest.participants.some((item) => item.playerId === player.id)) throw new BusinessError('CONTEST_ALREADY_JOINED', 'Un participant ne peut pas être spectateur actif.');
-      if (wasContestParticipant(contest, player.id)) {
+      if (await wasContestParticipant(tx, contest, player.id)) {
         throw new BusinessError('CONTEST_ALREADY_JOINED', 'Un ancien participant ne peut pas devenir spectateur pendant ce Concours.');
       }
       if (contest.spectators.some((item) => item.playerId === player.id)) return;
@@ -153,7 +183,7 @@ export class ContestService {
   public async selectLegend(identity: AuthenticatedIdentity, characterId: string, idempotencyKey: string) {
     const player = await this.getPlayer.execute(identity);
     await this.mutateActive(player.id, 'LEGEND_SELECTED', idempotencyKey, { characterId }, async (tx, contest) => {
-      assertLobby(contest);
+      assertLobbyOpen(contest, this.clock.now());
       const participant = contest.participants.find((item) => item.playerId === player.id);
       if (!participant) throw new BusinessError('CONTEST_NOT_JOINED', 'Vous ne participez pas à ce lobby.');
       const legend = await findLegend(tx, player.id, characterId);
@@ -169,7 +199,7 @@ export class ContestService {
   public async setReady(identity: AuthenticatedIdentity, ready: boolean, idempotencyKey: string) {
     const player = await this.getPlayer.execute(identity);
     await this.mutateActive(player.id, 'READINESS_CHANGED', idempotencyKey, { ready }, async (tx, contest) => {
-      assertLobby(contest);
+      assertLobbyOpen(contest, this.clock.now());
       const participant = contest.participants.find((item) => item.playerId === player.id && item.kind === ContestParticipantKind.HUMAN);
       if (!participant) throw new BusinessError('CONTEST_NOT_JOINED', 'Vous ne participez pas à ce lobby.');
       await tx.contestParticipant.update({ where: { contestId_slot: { contestId: contest.id, slot: participant.slot } }, data: { ready } });
@@ -182,7 +212,7 @@ export class ContestService {
   public async start(identity: AuthenticatedIdentity, idempotencyKey: string) {
     const player = await this.getPlayer.execute(identity);
     await this.mutateActive(player.id, 'CONTEST_STARTED', idempotencyKey, {}, async (tx, contest) => {
-      assertLobby(contest);
+      assertLobbyOpen(contest, this.clock.now());
       if (contest.organizerPlayerId !== player.id) throw new BusinessError('CONTEST_NOT_ORGANIZER', 'Seul l’organisateur peut lancer le Concours.');
       const humans = contest.participants.filter((item) => item.kind === ContestParticipantKind.HUMAN && item.playerId);
       if (humans.length === 0 || humans.some((item) => !item.ready)) throw new BusinessError('CONTEST_NOT_READY', 'Tous les participants humains doivent être prêts.');
@@ -222,7 +252,6 @@ export class ContestService {
       } });
       await createEvent(tx, contest.id, 'CONTEST_STARTED', idempotencyKey, player.id, { order });
     });
-    await this.reconcile();
     return this.readView(player.id);
   }
 
@@ -230,11 +259,12 @@ export class ContestService {
     const player = await this.getPlayer.execute(identity);
     await this.mutateActive(player.id, 'TURN_PLAYED', idempotencyKey, { action }, async (tx, contest) => {
       assertRunningTurns(contest);
+      const now = this.clock.now();
+      if (contest.turnDeadlineAt && contest.turnDeadlineAt <= now) throw new BusinessError('CONTEST_NOT_YOUR_TURN', 'Le délai de ce tour est écoulé. Actualisez le Concours.');
       const participant = contest.participants.find((item) => item.playerId === player.id);
       if (!participant || participant.turnOrder !== contest.currentTurnOrder) throw new BusinessError('CONTEST_NOT_YOUR_TURN', 'Ce n’est pas votre tour.');
-      await applyTurn(tx, contest, participant, action, false, idempotencyKey, player.id, this.clock.now(), this.random, this.economy);
+      await applyTurn(tx, contest, participant, action, false, idempotencyKey, player.id, now, this.random, this.economy);
     });
-    await this.reconcile();
     return this.readView(player.id);
   }
 
@@ -244,15 +274,16 @@ export class ContestService {
       if (contest.status !== ContestStatus.RUNNING || contest.phase !== ContestPhase.SUPPORT || contest.selectedSpectatorPlayerId !== player.id) {
         throw new BusinessError('CONTEST_SUPPORT_UNAVAILABLE', 'Aucun soutien ne vous est proposé actuellement.');
       }
+      const now = this.clock.now();
+      if (contest.supportDeadlineAt && contest.supportDeadlineAt <= now) throw new BusinessError('CONTEST_SUPPORT_UNAVAILABLE', 'Le délai de soutien est écoulé. Actualisez le Concours.');
       const target = contest.participants.find((item) => item.slot === targetSlot);
       if (!target) throw new BusinessError('CONTEST_SUPPORT_UNAVAILABLE', 'Cette cible de soutien est invalide.');
       const points = selectSupportPoints(this.random);
       await tx.contestParticipant.update({ where: { contestId_slot: { contestId: contest.id, slot: targetSlot } }, data: { score: { increment: points } } });
       await createEvent(tx, contest.id, 'SUPPORT_PLAYED', idempotencyKey, player.id, { targetSlot, points }, target.playerId, targetSlot);
-      if (target.score + points >= CONTEST_WINNING_SCORE) await finishContest(tx, contest.id, targetSlot, this.clock.now(), this.economy);
-      else await beginNextRound(tx, contest.id, contest.currentRound, this.clock.now());
+      if (target.score + points >= CONTEST_WINNING_SCORE) await finishContest(tx, contest.id, targetSlot, now, this.economy);
+      else await beginNextRound(tx, contest.id, contest.currentRound, now);
     });
-    await this.reconcile();
     return this.readView(player.id);
   }
 
@@ -279,7 +310,6 @@ export class ContestService {
       }
       await createEvent(tx, contest.id, 'MEMBER_LEFT', idempotencyKey, player.id, { slot: participant.slot });
     });
-    await this.reconcile();
     return this.readView(player.id);
   }
 
@@ -296,7 +326,7 @@ export class ContestService {
   public async removeFromLobby(identity: AuthenticatedIdentity, targetPlayerId: string, idempotencyKey: string) {
     const organizer = await this.getPlayer.execute(identity);
     await this.mutateActive(organizer.id, 'LOBBY_PARTICIPANT_REMOVED', idempotencyKey, { targetPlayerId }, async (tx, contest) => {
-      assertLobby(contest);
+      assertLobbyOpen(contest, this.clock.now());
       if (contest.organizerPlayerId !== organizer.id) throw new BusinessError('CONTEST_NOT_ORGANIZER', 'Seul l’organisateur peut retirer un participant du lobby.');
       if (targetPlayerId === organizer.id) throw new BusinessError('CONTEST_NOT_ORGANIZER', 'L’organisateur doit quitter le lobby pour céder sa place.');
       const participant = contest.participants.find((item) => item.playerId === targetPlayerId);
@@ -326,7 +356,6 @@ export class ContestService {
       await createEvent(tx, contest.id, 'SPECTATOR_REMOVED', idempotencyKey, actor.id, { targetPlayerId, spectatorName: spectator.player.displayName, selectedForSupport, round: contest.currentRound }, targetPlayerId);
       if (selectedForSupport) await beginNextRound(tx, contest.id, contest.currentRound, this.clock.now());
     });
-    await this.reconcile();
     return this.readView(actor.id);
   }
 
@@ -348,74 +377,83 @@ export class ContestService {
       }
       await createEvent(tx, contest.id, 'ADMIN_REMOVAL', idempotencyKey, actor.id, { slot: participant.slot, targetPlayerId }, targetPlayerId, participant.slot);
     });
-    await this.reconcile();
     return this.readView(actor.id);
   }
 
   public async getHistory(page: number) {
     if (!Number.isInteger(page) || page < 1) throw new BusinessError('CONTEST_NOT_FOUND', 'Cette page d’historique est invalide.');
-    await this.reconcile();
     const [total, contests] = await Promise.all([
       this.database.contest.count({ where: { status: ContestStatus.FINISHED } }),
-      this.database.contest.findMany({ where: { status: ContestStatus.FINISHED }, include: contestInclude, orderBy: { finishedAt: 'desc' }, skip: (page - 1) * HISTORY_PAGE_SIZE, take: HISTORY_PAGE_SIZE }),
+      this.database.contest.findMany({ where: { status: ContestStatus.FINISHED }, include: historySummaryInclude, orderBy: { finishedAt: 'desc' }, skip: (page - 1) * HISTORY_PAGE_SIZE, take: HISTORY_PAGE_SIZE }),
     ]);
     return { page, pageSize: HISTORY_PAGE_SIZE, total, pageCount: Math.max(1, Math.ceil(total / HISTORY_PAGE_SIZE)), contests: contests.map(presentContestHistorySummary) };
   }
 
   public async getHistoryDetail(contestId: string) {
-    await this.reconcile();
-    const contest = await this.database.contest.findFirst({ where: { id: contestId, status: ContestStatus.FINISHED }, include: contestInclude });
+    const contest = await this.database.contest.findFirst({ where: { id: contestId, status: ContestStatus.FINISHED }, include: historyContestInclude });
     if (!contest) throw new BusinessError('CONTEST_NOT_FOUND', 'Ce résultat de Concours est introuvable.');
     return presentContest(contest, null, true);
   }
 
   public async reconcile(): Promise<void> {
-    for (let step = 0; step < 12; step += 1) {
+    if (this.reconciliationInFlight) return this.reconciliationInFlight;
+    const reconciliation = this.runReconciliation();
+    this.reconciliationInFlight = reconciliation;
+    try { await reconciliation; }
+    finally { if (this.reconciliationInFlight === reconciliation) this.reconciliationInFlight = null; }
+  }
+
+  private async runReconciliation(): Promise<void> {
+    for (let step = 0; step < 4; step += 1) {
+      const now = this.clock.now();
+      const candidate = await findReconciliationCandidate(this.database);
+      if (!candidate || !reconciliationIsDue(candidate, now)) return;
       const outcome = await withSerializableRetry(this.database, async (tx) => {
-        await lockContest(tx);
+        if (!await tryLockContest(tx)) return 'STOP' as const;
         const active = await findActive(tx);
         if (!active) return 'STOP' as const;
-        const now = this.clock.now();
+        const lockedNow = this.clock.now();
+        if (!reconciliationIsDue(active, lockedNow)) return 'STOP' as const;
         if (active.status === ContestStatus.LOBBY) {
-          if (databaseDateToBusinessDate(active.businessDate) !== getBusinessDate(now)) {
-            await cancelContest(tx, active, ContestCancellationKind.LOBBY_TIMEOUT, 'Changement de journée avant lancement', null, false, now);
+          if (databaseDateToBusinessDate(active.businessDate) !== getBusinessDate(lockedNow)) {
+            await cancelContest(tx, active, ContestCancellationKind.LOBBY_TIMEOUT, 'Changement de journée avant lancement', null, false, lockedNow);
             return 'STOP' as const;
           }
-          if (active.lobbyDeadlineAt && active.lobbyDeadlineAt <= now) {
-            await cancelContest(tx, active, ContestCancellationKind.LOBBY_TIMEOUT, 'Lobby inactif pendant dix minutes', null, false, now);
+          if (active.lobbyDeadlineAt && active.lobbyDeadlineAt <= lockedNow) {
+            await cancelContest(tx, active, ContestCancellationKind.LOBBY_TIMEOUT, 'Lobby inactif pendant dix minutes', null, false, lockedNow);
           }
           return 'STOP' as const;
         }
         const humans = active.participants.filter((item) => item.kind === ContestParticipantKind.HUMAN && item.playerId);
         if (humans.length === 0) {
-          await cancelContest(tx, active, ContestCancellationKind.NO_HUMANS, 'Aucun participant humain restant', null, false, now);
+          await cancelContest(tx, active, ContestCancellationKind.NO_HUMANS, 'Aucun participant humain restant', null, false, lockedNow);
           return 'STOP' as const;
         }
         if (active.phase === ContestPhase.SUPPORT) {
-          if (!active.selectedSpectatorPlayerId || (active.supportDeadlineAt && active.supportDeadlineAt <= now)) {
+          if (!active.selectedSpectatorPlayerId || (active.supportDeadlineAt && active.supportDeadlineAt <= lockedNow)) {
             await createEvent(tx, active.id, 'SUPPORT_SKIPPED', null, null, { round: active.currentRound });
-            await beginNextRound(tx, active.id, active.currentRound, now);
+            await beginNextRound(tx, active.id, active.currentRound, lockedNow);
             return 'CONTINUE' as const;
           }
           return 'STOP' as const;
         }
         if (active.phase !== ContestPhase.TURNS || !active.currentTurnOrder) {
-          await cancelContest(tx, active, ContestCancellationKind.TECHNICAL, 'État de tour impossible', null, true, now);
+          await cancelContest(tx, active, ContestCancellationKind.TECHNICAL, 'État de tour impossible', null, true, lockedNow);
           return 'STOP' as const;
         }
         const participant = active.participants.find((item) => item.turnOrder === active.currentTurnOrder);
         if (!participant || !participant.basePointsSnapshot) {
-          await cancelContest(tx, active, ContestCancellationKind.TECHNICAL, 'Participant de tour introuvable', null, true, now);
+          await cancelContest(tx, active, ContestCancellationKind.TECHNICAL, 'Participant de tour introuvable', null, true, lockedNow);
           return 'STOP' as const;
         }
-        const isTimeout = Boolean(active.turnDeadlineAt && active.turnDeadlineAt <= now);
+        const isTimeout = Boolean(active.turnDeadlineAt && active.turnDeadlineAt <= lockedNow);
         if (participant.kind === ContestParticipantKind.HUMAN && !isTimeout) return 'STOP' as const;
         if (participant.kind === ContestParticipantKind.BOT) {
           const leadingScore = Math.max(...active.participants.map(({ score }) => score));
           const action = selectBotAction({ score: participant.score, leadingScore, basePoints: participant.basePointsSnapshot }, this.random);
-          await applyTurn(tx, active, participant, action, false, null, null, now, this.random, this.economy);
+          await applyTurn(tx, active, participant, action, false, null, null, lockedNow, this.random, this.economy);
         } else {
-          await applyTurn(tx, active, participant, 'BASIC', true, null, participant.playerId, now, this.random, this.economy);
+          await applyTurn(tx, active, participant, 'BASIC', true, null, participant.playerId, lockedNow, this.random, this.economy);
         }
         return 'CONTINUE' as const;
       });
@@ -424,7 +462,6 @@ export class ContestService {
   }
 
   private async mutateActive(playerId: string, type: string, idempotencyKey: string, requestPayload: Record<string, unknown>, change: (tx: Prisma.TransactionClient, contest: ContestRecord) => Promise<void>) {
-    await this.reconcile();
     const replay = await this.findReplay(playerId, type, idempotencyKey, requestPayload);
     if (replay) return;
     try {
@@ -451,10 +488,9 @@ export class ContestService {
 
   private async readView(playerId: string) {
     const businessDate = getBusinessDate(this.clock.now());
-    const [theme, active, lastResult, legends, daily, ownedC6] = await Promise.all([
-      this.database.$transaction((tx) => ensureDailyTheme(tx, businessDate, this.random)),
-      this.database.contest.findFirst({ where: { status: { in: [...ACTIVE_STATUSES] } }, include: contestInclude }),
-      this.database.contest.findFirst({ where: { status: ContestStatus.FINISHED }, include: contestInclude, orderBy: { finishedAt: 'desc' } }),
+    const [theme, active, legends, daily, ownedC6] = await Promise.all([
+      readOrCreateDailyTheme(this.database, businessDate, this.random),
+      this.database.contest.findFirst({ where: { status: { in: [...ACTIVE_STATUSES] } }, include: liveContestInclude }),
       this.database.c6CompetitionProgress.findMany({ where: { playerId, character: { isActive: true, rarity: 5 } }, include: { character: true }, orderBy: { character: { displayOrder: 'asc' } } }),
       this.database.contestDailyParticipation.findUnique({ where: { playerId_businessDate: { playerId, businessDate: businessDateToDatabaseDate(businessDate) } } }),
       this.database.playerCharacter.findMany({ where: { playerId, constellation: 6, character: { isActive: true, rarity: 5 } }, select: { characterId: true } }),
@@ -464,6 +500,8 @@ export class ContestService {
     const dailyUsed = Boolean(daily && !daily.refundedAt);
     const participant = active?.participants.find((item) => item.playerId === playerId);
     const spectator = active?.spectators.some((item) => item.playerId === playerId) ?? false;
+    const formerParticipant = active && !participant && !spectator ? await wasContestParticipant(this.database, active, playerId) : false;
+    const lastResult = active ? null : await this.database.contest.findFirst({ where: { status: ContestStatus.FINISHED }, include: historyContestInclude, orderBy: { finishedAt: 'desc' } });
     return {
       businessDate,
       theme: presentTheme(theme),
@@ -471,7 +509,7 @@ export class ContestService {
       permissions: {
         canOpen: !active && !dailyUsed && eligibleLegends.length > 0,
         canJoin: Boolean(active?.status === ContestStatus.LOBBY && !participant && !dailyUsed && active.participants.length < 4 && eligibleLegends.length > 0),
-        canSpectate: Boolean(active && !participant && !spectator && active.spectators.length < CONTEST_MAX_SPECTATORS && !wasContestParticipant(active, playerId)),
+        canSpectate: Boolean(active && !participant && !spectator && active.spectators.length < CONTEST_MAX_SPECTATORS && !formerParticipant),
         canLeave: Boolean(active && (participant || spectator)),
         canReady: Boolean(active?.status === ContestStatus.LOBBY && participant),
         canStart: Boolean(active?.status === ContestStatus.LOBBY && active.organizerPlayerId === playerId && active.participants.every((item) => item.kind !== ContestParticipantKind.HUMAN || item.ready)),
@@ -488,31 +526,116 @@ export class ContestService {
 
 export class ContestScheduler {
   private timer: NodeJS.Timeout | null = null;
-  public constructor(private readonly service: ContestService) {}
-  public start() { if (!this.timer) { this.timer = setInterval(() => { void this.service.reconcile(); }, 2_000); this.timer.unref(); } }
-  public stop() { if (this.timer) clearInterval(this.timer); this.timer = null; }
+  private running: Promise<void> | null = null;
+  private started = false;
+
+  public constructor(
+    private readonly service: Pick<ContestService, 'reconcile'>,
+    private readonly intervalMs = 2_000,
+    private readonly onError: (error: unknown) => void = logContestSchedulerError,
+  ) {}
+
+  public start() {
+    if (this.started) return;
+    this.started = true;
+    this.schedule(0);
+  }
+
+  public async stop() {
+    this.started = false;
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = null;
+    if (this.running) await this.running.catch(() => undefined);
+  }
+
+  private schedule(delay: number) {
+    if (!this.started || this.timer) return;
+    this.timer = setTimeout(() => { this.timer = null; void this.tick(); }, delay);
+    this.timer.unref();
+  }
+
+  private async tick() {
+    if (!this.started || this.running) return;
+    const running = this.service.reconcile();
+    this.running = running;
+    try { await running; }
+    catch (error) { this.onError(error); }
+    finally {
+      if (this.running === running) this.running = null;
+      this.schedule(this.intervalMs);
+    }
+  }
 }
 
-const serializable = { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 20_000 } as const;
-
+const serializable = { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 2_000, timeout: 15_000 } as const;
 async function withSerializableRetry<T>(database: PrismaClient, action: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
   for (let attempt = 0; ; attempt += 1) {
     try { return await database.$transaction(action, serializable); }
     catch (error) {
-      if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2034' || attempt >= 4) throw error;
+      if (!isRetryableTransactionError(error) || attempt >= 2) throw error;
+      await wait(50 * 2 ** attempt);
     }
   }
 }
 
 async function lockContest(tx: Prisma.TransactionClient) { await tx.$queryRaw`SELECT true FROM pg_advisory_xact_lock(hashtext('contest:active'))`; }
-async function findActive(tx: Client) { return tx.contest.findFirst({ where: { status: { in: [...ACTIVE_STATUSES] } }, include: contestInclude }); }
+async function tryLockContest(tx: Prisma.TransactionClient) {
+  const rows = await tx.$queryRaw<Array<{ acquired: boolean }>>`SELECT pg_try_advisory_xact_lock(hashtext('contest:active')) AS acquired`;
+  return rows[0]?.acquired === true;
+}
+async function findActive(tx: Client) { return tx.contest.findFirst({ where: { status: { in: [...ACTIVE_STATUSES] } }, include: liveContestInclude }); }
+async function findReconciliationCandidate(tx: Client) { return tx.contest.findFirst({ where: { status: { in: [...ACTIVE_STATUSES] } }, select: reconciliationCandidateSelect }); }
 function assertLobby(contest: ContestRecord) { if (contest.status !== ContestStatus.LOBBY) throw new BusinessError('CONTEST_NOT_IN_LOBBY', 'Le lobby de ce Concours est fermé.'); }
+function assertLobbyOpen(contest: ContestRecord, now: Date) {
+  assertLobby(contest);
+  if (databaseDateToBusinessDate(contest.businessDate) !== getBusinessDate(now) || (contest.lobbyDeadlineAt && contest.lobbyDeadlineAt <= now)) {
+    throw new BusinessError('CONTEST_NOT_IN_LOBBY', 'Le délai de ce lobby est écoulé. Actualisez le Concours.');
+  }
+}
 function assertRunningTurns(contest: ContestRecord) { if (contest.status !== ContestStatus.RUNNING || contest.phase !== ContestPhase.TURNS) throw new BusinessError('CONTEST_NOT_RUNNING', 'Le Concours n’attend pas d’action de tour.'); }
-function wasContestParticipant(contest: ContestRecord, playerId: string): boolean {
+async function wasContestParticipant(tx: Client, contest: ContestRecord, playerId: string): Promise<boolean> {
   if (contest.participants.some((participant) => participant.playerId === playerId || participant.originalPlayerId === playerId)) return true;
-  return contest.events.some((event) =>
-    (['LOBBY_CREATED', 'PARTICIPANT_JOINED', 'MEMBER_LEFT'].includes(event.type) && event.actorPlayerId === playerId)
-    || (['LOBBY_PARTICIPANT_REMOVED', 'ADMIN_REMOVAL', 'PARTICIPANT_REPLACED'].includes(event.type) && event.targetPlayerId === playerId));
+  const event = await tx.contestEvent.findFirst({
+    where: {
+      contestId: contest.id,
+      OR: [
+        { actorPlayerId: playerId, type: { in: ['LOBBY_CREATED', 'PARTICIPANT_JOINED', 'MEMBER_LEFT'] } },
+        { targetPlayerId: playerId, type: { in: ['LOBBY_PARTICIPANT_REMOVED', 'ADMIN_REMOVAL', 'PARTICIPANT_REPLACED'] } },
+      ],
+    },
+    select: { id: true },
+  });
+  return Boolean(event);
+}
+
+function reconciliationIsDue(contest: ReconciliationCandidate, now: Date): boolean {
+  if (contest.status === ContestStatus.LOBBY) {
+    return databaseDateToBusinessDate(contest.businessDate) !== getBusinessDate(now)
+      || Boolean(contest.lobbyDeadlineAt && contest.lobbyDeadlineAt <= now);
+  }
+  if (!contest.participants.some((participant) => participant.kind === ContestParticipantKind.HUMAN && participant.playerId)) return true;
+  if (contest.phase === ContestPhase.SUPPORT) return !contest.selectedSpectatorPlayerId || Boolean(contest.supportDeadlineAt && contest.supportDeadlineAt <= now);
+  if (contest.phase !== ContestPhase.TURNS || !contest.currentTurnOrder) return true;
+  const participant = contest.participants.find((item) => item.turnOrder === contest.currentTurnOrder);
+  return !participant || participant.kind === ContestParticipantKind.BOT || Boolean(contest.turnDeadlineAt && contest.turnDeadlineAt <= now);
+}
+
+function wait(delay: number) { return new Promise<void>((resolve) => setTimeout(resolve, delay)); }
+function isRetryableTransactionError(error: unknown) {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
+  if (error.code === 'P2034') return true;
+  if (error.code !== 'P2028') return false;
+  const detail = typeof error.meta?.error === 'string' ? error.meta.error : '';
+  return `${error.message} ${detail}`.includes('Unable to start a transaction');
+}
+function logContestSchedulerError(error: unknown) {
+  const code = error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined;
+  const name = error instanceof Error ? error.name : 'UnknownError';
+  console.error('[contest-scheduler] reconciliation failed', { name, code });
+}
+function logContestReconciliationDeferred(error: unknown) {
+  const code = error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined;
+  console.warn('[contest-read] reconciliation deferred', { code });
 }
 
 async function ensureDailyTheme(tx: Client, businessDate: string, random: RandomSource): Promise<ContestTheme> {
@@ -525,6 +648,11 @@ async function ensureDailyTheme(tx: Client, businessDate: string, random: Random
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') return (await tx.contestDailyTheme.findUniqueOrThrow({ where: { businessDate: date } })).theme;
     throw error;
   }
+}
+
+async function readOrCreateDailyTheme(database: PrismaClient, businessDate: string, random: RandomSource): Promise<ContestTheme> {
+  const existing = await database.contestDailyTheme.findUnique({ where: { businessDate: businessDateToDatabaseDate(businessDate) } });
+  return existing?.theme ?? database.$transaction((tx) => ensureDailyTheme(tx, businessDate, random), serializable);
 }
 
 async function findLegend(tx: Client, playerId: string, characterId: string) {
@@ -619,7 +747,7 @@ async function replaceWithBot(tx: Prisma.TransactionClient, contest: ContestReco
 }
 
 async function transferOrganizerOrCancel(tx: Prisma.TransactionClient, contestId: string, departingPlayerId: string, now: Date) {
-  const contest = await tx.contest.findUniqueOrThrow({ where: { id: contestId }, include: contestInclude });
+  const contest = await tx.contest.findUniqueOrThrow({ where: { id: contestId }, include: liveContestInclude });
   const humans = contest.participants
     .filter((participant) => participant.kind === ContestParticipantKind.HUMAN && participant.playerId)
     .sort((left, right) => contest.status === ContestStatus.RUNNING
@@ -649,7 +777,7 @@ async function cancelContest(tx: Prisma.TransactionClient, contest: ContestRecor
 }
 
 async function finishContest(tx: Prisma.TransactionClient, contestId: string, winnerSlot: number, now: Date, economy: PrismaEconomyService) {
-  const contest = await tx.contest.findUniqueOrThrow({ where: { id: contestId }, include: contestInclude });
+  const contest = await tx.contest.findUniqueOrThrow({ where: { id: contestId }, include: liveContestInclude });
   const ranked = [...contest.participants].sort((a, b) => b.score - a.score || a.slot - b.slot);
   for (let index = 0; index < ranked.length; index += 1) {
     const participant = ranked[index]!;
@@ -734,10 +862,11 @@ function presentLegend(progress: Prisma.C6CompetitionProgressGetPayload<{ includ
   };
 }
 
-function presentContest(contest: ContestRecord, viewerPlayerId: string | null, history: boolean) {
+function presentContest(contest: ContestRecord | ContestHistoryRecord, viewerPlayerId: string | null, history: boolean) {
   const viewerParticipant = contest.participants.find((item) => item.playerId === viewerPlayerId);
   const viewerSpectator = contest.spectators.find((item) => item.playerId === viewerPlayerId);
-  const promotions = history ? presentPromotions(contest) : [];
+  const historyContest = history ? contest as ContestHistoryRecord : null;
+  const promotions = historyContest ? presentPromotions(historyContest) : [];
   const liveRanks = contest.status === ContestStatus.RUNNING ? contestLiveRanks(contest.participants) : new Map<number, number>();
   const presentedParticipants = contest.status === ContestStatus.LOBBY
     ? contest.participants
@@ -764,11 +893,11 @@ function presentContest(contest: ContestRecord, viewerPlayerId: string | null, h
     }}),
     spectators: contest.spectators.map((item) => ({ playerId: item.playerId, displayName: item.player.displayName, selected: contest.selectedSpectatorPlayerId === item.playerId })),
     promotions,
-    historyEvents: history ? presentHistoryEvents(contest) : [],
+    historyEvents: historyContest ? presentHistoryEvents(historyContest) : [],
   };
 }
 
-function presentContestHistorySummary(contest: ContestRecord) {
+function presentContestHistorySummary(contest: ContestHistorySummaryRecord) {
   const winner = contest.participants.find((item) => item.slot === contest.winnerSlot);
   const winnerIdentity = winner ? presentParticipantIdentity(winner) : null;
   return {
@@ -782,7 +911,7 @@ function presentContestHistorySummary(contest: ContestRecord) {
   };
 }
 
-function presentPromotions(contest: ContestRecord) {
+function presentPromotions(contest: ContestHistoryRecord) {
   return contest.events.flatMap((event) => {
     if (event.type !== 'TITLE_PROMOTED') return [];
     const payload = jsonObject(event.payload);
@@ -805,7 +934,7 @@ type PresentedHistoryEvent =
   | { kind: 'SUPPORT_SKIPPED'; occurredAt: string; round: number | null }
   | { kind: 'TITLE_PROMOTED'; occurredAt: string; slot: number; playerName: string | null; characterName: string | null; fromRank: number; toRank: number; title: string };
 
-function presentHistoryEvents(contest: ContestRecord): PresentedHistoryEvent[] {
+function presentHistoryEvents(contest: ContestHistoryRecord): PresentedHistoryEvent[] {
   const displayName = (playerId: string | null) => {
     if (!playerId) return null;
     const participant = contest.participants.find((item) => item.playerId === playerId || item.originalPlayerId === playerId);

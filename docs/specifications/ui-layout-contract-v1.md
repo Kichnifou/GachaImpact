@@ -1,6 +1,6 @@
 # Contrat de layout UI V1
 
-Statut : contrat transverse validé — extension physique candidate 0.89.
+Statut : contrat transverse validé — extension physique candidate 0.93.
 
 Ce document est la source de vérité des règles de composition et de stabilité visuelle communes. Les documents métier restent propriétaires du contenu et des actions de chaque écran ; le shell de navigation reste propriétaire des destinations.
 
@@ -52,6 +52,16 @@ Le drag-and-drop n’est utilisé que lorsqu’une spécification métier le dem
 Lorsqu’un panneau associe un contenu extensible et une action latérale stable, sa grille utilise `minmax(0, 1fr) max-content` : le contenu absorbe la largeur variable et l’action ne modifie ni sa position ni sa largeur selon l’état affiché.
 
 Aucune requête n’est envoyée pendant le mouvement. Un drop valide produit exactement une sauvegarde. Un abandon ne sauvegarde rien. Un échec restaure le dernier état confirmé complet, y compris les éléments masqués. Une alternative accessible par boutons ou clavier reste disponible.
+
+## Interactions, modales et régions dynamiques
+
+- Tout contrôle interactif activé annonce son affordance avec un curseur cohérent et un état `focus-visible`. Un contrôle désactivé conserve son rendu de feedback, utilise un style grisé et `cursor: not-allowed` ; une surface non interactive ne simule pas un clic.
+- Une mutation affiche son état pending dès le rendu suivant le clic, avant la réponse réseau. Son libellé et son éventuel indicateur `aria-busy` restent dans une enveloppe de dimensions stables afin de ne pas déplacer les contrôles voisins. Une garde synchrone protège le double clic lorsque le state React n’a pas encore été rendu.
+- Les modales d’un même shell réutilisent le contrôle de fermeture sombre standard avec le label accessible `Fermer`. Elles se ferment à la souris et avec Escape, enferment Tab dans le dialogue et rendent le focus au contrôle d’ouverture. Leur fermeture et leur navigation ne sont pas bloquées par une mutation de fond sans nécessité métier.
+- Toute pagination déclare une capacité visuelle explicite. Header, filtres, body et footer conservent leur position pour une page pleine, partielle, vide ou en chargement ; les emplacements structurels vides n’inventent aucune donnée et sont ignorés par les technologies d’assistance.
+- Un contenu dynamique attendu réserve sa région avant apparition : spectateurs, feedback, pending, actions alternantes, état vide et erreur courte ne doivent pas pousser brutalement les commandes suivantes ni modifier le bord inférieur du panneau.
+- Un header possède une hauteur naturelle non compressible. Il ne peut être recouvert par le panneau suivant, ni réduit par une ligne de grille `minmax(0, 1fr)` qui appartient au body extensible. Supprimer une description supprime aussi sa hauteur réservée.
+- Toute validation de layout utilise le GameShell complet et les feuilles de style de production réellement chargées. Un composant isolé sans la cascade globale ne suffit pas à conclure à l’absence de recouvrement, de contenu masqué ou d’overflow du document.
 
 ## Validation minimale
 

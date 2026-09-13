@@ -41,6 +41,8 @@ describe('MonthlyBossScreen', () => {
     expect(container.textContent).toContain('Seigneur des Ruines Oubliées')
     expect(container.textContent).toContain('1 490 000 / 1 500 000')
     expect(container.querySelector('[aria-label="Résistance Hydro — dégâts ×0,5"]')).not.toBeNull()
+    expect(container.querySelector('.boss-resistance-label')?.textContent).toBe('Res :')
+    expect(container.querySelector<HTMLImageElement>('.boss-element-icon img')?.getAttribute('src')).toBe('/assets/genshin/elements/hydro.png')
     expect(container.textContent).toContain('Bilan →')
     expect(container.textContent).not.toContain('Votre place : #4')
     expect(container.querySelector<HTMLButtonElement>('.boss-attack-button')?.disabled).toBe(false)
@@ -51,6 +53,7 @@ describe('MonthlyBossScreen', () => {
     const container = document.createElement('div'); document.body.append(container); const root = createRoot(container)
     act(() => root.render(<MonthlyBossScreen value={value} {...callbacks} />))
     act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Bilan →')!.click())
+    expect(container.querySelector('[aria-label="Fermer"]')?.classList.contains('modal-close-button')).toBe(true)
     const text = container.querySelector('[aria-label="Bilan Boss"]')?.textContent ?? ''
     expect(text).toContain('Rang#4')
     expect(text).toContain('Dégâts totaux30 000')

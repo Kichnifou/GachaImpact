@@ -65,7 +65,7 @@ export default function DailyCombatScreen({ value, box, onSetSlot, onRemoveSlot,
   const tabs = <nav className="activity-inner-tabs combat-tabs" aria-label="Sections Combat"><button type="button" className={tab === 'training' ? 'active' : ''} onClick={() => setTab('training')}>Entraînement</button><button type="button" className={tab === 'boss' ? 'active' : ''} onClick={() => setTab('boss')}>Boss</button></nav>
   const feedback = combatFeedback(value, lastResult, error)
   return <div className="screen-content activity-shell combat-shell long-screen-layout">
-    <ScreenHeader eyebrow="Activités" title="Combat" description="Affrontez l’équipe ennemie du jour avec quatre personnages disponibles." />
+    <ScreenHeader eyebrow="Activités" title="Combat" />
     <ScrollableScreenPanel className="combat-frame" bodyClassName="combat-scroll-body" fixed={tabs}>
       {tab === 'boss' ? <MonthlyBossScreen value={monthlyBoss} dailyCombat={value} box={box} onSetSlot={onSetBossSlot} onRemoveSlot={onRemoveBossSlot} onCopyActive={onCopyActiveToBoss} onClear={onClearBoss} onAttack={onAttackBoss} onLoadHistory={onLoadBossHistory} /> : <>
         <section className="combat-enemies" aria-labelledby="combat-enemies-title"><header className="combat-section-heading combat-enemy-heading"><h2 id="combat-enemies-title">Ennemis</h2></header><div className="combat-card-grid">{value.encounter.enemies.map((enemy) => <EnemyCombatCard enemy={enemy} key={enemy.position} />)}</div></section>

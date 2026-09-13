@@ -130,8 +130,8 @@ export function createRuntimeDependencies(config: AppConfig) {
     contestService,
     expeditionService,
     notificationService: new NotificationService(getCurrentPlayer, database, clock, expeditionService),
-    start: async () => { await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); contestScheduler.start(); await contestService.reconcile(); },
-    close: async () => { scheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); contestScheduler.stop(); await database.$disconnect(); },
+    start: async () => { await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); contestScheduler.start(); },
+    close: async () => { scheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); await contestScheduler.stop(); await database.$disconnect(); },
   };
 }
 
