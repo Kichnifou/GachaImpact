@@ -41,6 +41,9 @@ import type {
   ExpeditionStartDto,
   ExpeditionClaimDto,
   NotificationsDto,
+  MonthlyBossDto,
+  MonthlyBossAttackDto,
+  MonthlyBossHistoryDto,
 } from './types'
 
 type ApiClientDependencies = Readonly<{
@@ -163,6 +166,13 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     autoSelectDailyCombat: () => request<DailyCombatDto>('/api/v1/me/combat/daily/loadout/auto', { method: 'POST' }),
     clearDailyCombatLoadout: () => request<DailyCombatDto>('/api/v1/me/combat/daily/loadout', { method: 'DELETE' }),
     fightDailyCombat: (idempotencyKey: string) => request<DailyCombatFightDto>('/api/v1/me/combat/daily/fight', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+    getMonthlyBoss: () => request<MonthlyBossDto>('/api/v1/me/combat/boss'),
+    setMonthlyBossSlot: (position: number, characterId: string) => request<MonthlyBossDto>(`/api/v1/me/combat/boss/loadout/slots/${position}`, { method: 'PUT', body: JSON.stringify({ characterId }) }),
+    removeMonthlyBossSlot: (position: number) => request<MonthlyBossDto>(`/api/v1/me/combat/boss/loadout/slots/${position}`, { method: 'DELETE' }),
+    copyActiveTeamToMonthlyBoss: () => request<MonthlyBossDto>('/api/v1/me/combat/boss/loadout/copy-active-team', { method: 'POST' }),
+    clearMonthlyBossLoadout: () => request<MonthlyBossDto>('/api/v1/me/combat/boss/loadout/clear', { method: 'POST' }),
+    attackMonthlyBoss: (bossId: string, idempotencyKey: string) => request<MonthlyBossAttackDto>('/api/v1/me/combat/boss/attack', { method: 'POST', body: JSON.stringify({ bossId, idempotencyKey }) }),
+    getMonthlyBossHistory: (page: number) => request<MonthlyBossHistoryDto>(`/api/v1/combat/boss/history?page=${page}`),
     getExpedition: () => request<ExpeditionDto>('/api/v1/me/expedition'),
     startExpedition: (characterId: string, idempotencyKey: string) => request<ExpeditionStartDto>('/api/v1/me/expedition/start', { method: 'POST', body: JSON.stringify({ characterId, idempotencyKey }) }),
     claimExpedition: (idempotencyKey: string) => request<ExpeditionClaimDto>('/api/v1/me/expedition/claim', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),

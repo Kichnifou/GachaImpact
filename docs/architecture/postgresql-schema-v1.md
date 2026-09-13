@@ -2899,3 +2899,11 @@ La migration additive `20260912180000_015_add_expedition_and_notifications` mat�
 `notifications` porte le domaine/type, le payload JSON, l'action, sa cible, l'état et les timestamps de cycle de vie. `deduplication_key` est unique pour rendre la notification Expedition READY idempotente.
 
 Les deux tables sont privées, avec RLS activée et tous les droits révoqués à `anon` et `authenticated`. Aucun accès navigateur direct ni policy d'écriture n'est créé ; les accès passent par le backend authentifié.
+
+## État physique candidat 0.91 — migration 016 Boss mensuel
+
+La migration additive `20260913160000_016_add_monthly_boss` ajoute huit tables sans modifier 001–015 : `monthly_bosses`, `player_boss_loadouts`, `player_boss_loadout_slots`, `boss_attacks`, `boss_attack_members`, `player_boss_participations`, `player_boss_stats` et `boss_rewards`.
+
+Les contraintes SQL imposent mois unique, variation -15..15, cohérence PV/défaite/coup final, positions 1..4, personnages distincts dans une formation, attaque positive unique par Boss/Player/jour, snapshots 4★/5★ et C0..C6, agrégats positifs et récompense unique par participant. Les index servent rollover, historique, classements déterministes, consultations Player/personnage et versements. Les FK historiques sont restrictives ; loadout/stats personnels suivent le cycle du Player.
+
+RLS est activée sur les huit tables et tous les privilèges sont révoqués à `anon` et `authenticated`. Le backend direct reste l’unique propriétaire des écritures. Aucune extension payante, fonction planifiée Supabase ni ligne d’instance courante n’est requise : le rollover est assuré par le process Node et un fallback de premier accès.

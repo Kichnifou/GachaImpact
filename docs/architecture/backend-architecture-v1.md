@@ -1132,3 +1132,11 @@ Le fight utilise une transaction `SERIALIZABLE`, un verrou Player et `BusinessOp
 Le départ ne produit aucun RNG ni gain. Le claim seul choisit la récompense via une source aléatoire injectable, puis orchestre atomiquement `BusinessOperation`, `EconomyService`, `ResourceMovement`, `totalCompleted +1`, résolution de notification et frontière typée `expedition.completed`. Cette frontière est prévue pour un futur consommateur Missions mais ne constitue pas une implémentation du domaine Missions.
 
 `GET /api/v1/me/expedition` alimente les projections personnelles Box et Quotidiennes. Les mutations `start` et `claim` réutilisent le même service et renvoient leurs snapshots autoritatifs. `NotificationService` expose le socle header minimal ; la réconciliation Expedition crée une unique notification READY actionnable vers la fiche Box, sans écran dédié ni dépendance chat/Twitch.
+
+## Vertical backend physique candidat 0.91 — Boss mensuel
+
+`MonthlyBossService` résout le Player authentifié, la date/journée et le mois Europe/Paris. `MonthlyBossScheduler` appelle la même primitive race-safe au démarrage et au prochain début de mois ; chaque GET/mutation conserve le fallback de premier accès. La génération est sous advisory lock et reçoit une `RandomSource` injectable pour la variation et la résistance. Aucun Boss courant n’est encodé en SQL.
+
+Les routes privées couvrent vue courante, PUT/DELETE de slot, copie Team active, clear et attaque. `GET /api/v1/combat/boss/:bossId/ranking` et `GET /api/v1/combat/boss/history` exposent les lectures communautaires contrôlées par le serveur, sans accès SQL navigateur. Les DTO sérialisent tous les `bigint` en chaînes. Le client ne transmet jamais dégâts, HP, résistance, composition snapshot, rang ni récompense.
+
+L’attaque utilise `SERIALIZABLE`, verrou Player puis verrou de la ligne Boss, `BusinessOperation` et une clé stable. Elle revalide l’instance explicite, le quota journalier et les quatre possessions, calcule/snapshotte les contributions, met à jour PV, participation et statistiques. Le lethal fige l’instance et verse dans la même transaction les deux crédits Economy à chaque participant trié, avec une opération système propre au bénéficiaire, un `BossReward` unique et une notification dédupliquée. Les codes d’erreur Boss sont stables et une course perdante n’écrit aucune attaque.

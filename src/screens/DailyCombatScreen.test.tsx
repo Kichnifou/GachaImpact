@@ -263,11 +263,11 @@ describe('Daily Combat screen', () => {
     expect(alert?.textContent).not.toBe('La demande n’a pas pu être traitée.')
   })
 
-  it('keeps Boss as an honest unavailable shell with no invented gameplay', () => {
+  it('opens the physical Boss view without placeholder gameplay', () => {
     const { container } = mount(combat())
     act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('.combat-tabs button')).find((button) => button.textContent === 'Boss')!.click())
-    expect(container.textContent).toContain('Bientôt disponible')
-    expect(container.textContent).toContain('Le Boss n’est pas encore implémenté.')
-    expect(container.textContent).not.toMatch(/PV|résistance|classement/i)
+    expect(container.textContent).toContain('Boss actuel')
+    expect(container.textContent).toMatch(/PV|résistance|classement/i)
+    expect(container.textContent).not.toContain('Bientôt disponible')
   })
 })

@@ -17,10 +17,10 @@ afterEach(() => {
 })
 
 describe('GameShell Expedition deep-link', () => {
-  it('opens the RUNNING character once, stays closed on a normal Box return, and reopens for a second intent', async () => {
+  it('opens the READY character once, stays closed on a normal Box return, and reopens for a second intent', async () => {
     const keqing: BoxCharacterDto = { id: 'keqing-id', externalKey: 'keqing', name: 'Keqing', rarity: 5, elementKey: 'electro', weaponType: 'Épée', region: 'Liyue', iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null, constellation: 0, copies: 1, firstObtainedAt: '2026-09-12T12:00:00Z', favorite: false, c6CompetitionStats: null }
     const box: PlayerBoxDto = { characters: [keqing], summary: { totalOwned: 1, fiveStars: 1, fourStars: 0, c6: 0 }, preference: { sortKey: 'alphabetical', direction: 'asc' }, stella: { quantity: '0' } }
-    const expedition: ExpeditionDto = { businessDate: '2026-09-12', operationalStatus: 'RUNNING', departureUsedToday: true, canStartToday: false, activeCharacter: keqing, departedAt: '2026-09-12T01:00:00Z', readyAt: '2026-09-12T21:00:00Z', remainingSeconds: 72_000, startedOnCurrentBusinessDate: true, totalCompleted: '0' }
+    const expedition: ExpeditionDto = { businessDate: '2026-09-12', operationalStatus: 'READY', departureUsedToday: true, canStartToday: false, activeCharacter: keqing, departedAt: '2026-09-12T01:00:00Z', readyAt: '2026-09-12T21:00:00Z', remainingSeconds: 0, startedOnCurrentBusinessDate: true, totalCompleted: '0' }
     const dailyCombat: DailyCombatDto = { businessDate: '2026-09-12', status: 'TODO', encounter: { id: 'encounter', enemies: [] }, loadout: { nextAttemptMode: 'MANUAL', slots: [1, 2, 3, 4].map((position) => ({ position: position as 1 | 2 | 3 | 4, character: null, ko: false })) }, availableCharacters: [], koCharacterIds: [], availableCharacterCount: 1, preview: null, canFight: false, reward: { primogems: '800', moras: '20000' }, lastAttempt: null, playerStats: { totalFights: '0', totalWins: '0', totalLosses: '0', totalManualWins: '0' } }
     const props = {
       player: { id: 'player-id', displayName: 'Synthetic Player', elementKey: 'electro', status: 'ACTIVE' },
@@ -66,6 +66,16 @@ describe('GameShell Expedition deep-link', () => {
     await navigateByHash('activities-dailies')
     await clickExpeditionAccess(container)
     expect(container.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toContain('Keqing')
+
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Fermer la fiche"]')!.click())
+    const bossNotification = { id: 'boss-notification', domainKey: 'monthly-boss', typeKey: 'MONTHLY_BOSS_DEFEATED', payload: { title: 'Boss vaincu', message: 'Récompense versée automatiquement.' }, state: 'UNREAD' as const, actionKey: 'OPEN_MONTHLY_BOSS', actionTargetId: 'boss-id', createdAt: '2026-09-13T12:00:00Z', readAt: null }
+    await act(async () => { root.render(<GameShell {...props} notifications={{ unreadCount: 1, notifications: [bossNotification] }} />); await Promise.resolve() })
+    await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click(); await Promise.resolve() })
+    expect(container.textContent).toContain('Boss vaincu')
+    expect(container.textContent).toContain('Récompense versée automatiquement.')
+    await act(async () => { container.querySelector<HTMLButtonElement>('.notification-item')!.click(); await Promise.resolve() })
+    expect(window.location.hash).toBe(`#${hashForScreen('activities-combat')}`)
+    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.combat-tabs button')).find((button) => button.classList.contains('active'))?.textContent).toBe('Boss')
     act(() => root.unmount())
   })
 })

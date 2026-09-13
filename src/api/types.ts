@@ -394,6 +394,25 @@ export type DailyCombatFightDto = Readonly<{
   resources: PlayerResourcesDto
 }>
 
+export type MonthlyBossCharacterDto = Omit<BoxCharacterDto, 'c6CompetitionStats'> & Readonly<{ displayOrder: number | null }>
+export type MonthlyBossRankingEntryDto = Readonly<{ rank: number; playerId: string; displayName: string; totalDamage: string; attackCount: string; bestHit: string }>
+export type MonthlyBossDto = Readonly<{
+  businessDate: string
+  boss: Readonly<{ id: string; monthStart: string; name: string; baseHp: string; hpVariationPercent: number; maxHp: string; currentHp: string; resistanceElementKey: ElementKey; defeatedAt: string | null; finalBlowPlayer: Readonly<{ id: string; displayName: string }> | null; nextBaseAdjustment: string | null }>
+  status: 'ALIVE' | 'DEFEATED'
+  attackState: 'AVAILABLE' | 'USED' | 'DEFEATED'
+  canAttack: boolean
+  loadout: Readonly<{ slots: readonly Readonly<{ position: 1 | 2 | 3 | 4; character: MonthlyBossCharacterDto | null }>[] }>
+  availableCharacters: readonly MonthlyBossCharacterDto[]
+  preview: Readonly<{ totalDamage: string; contributions: readonly Readonly<{ characterId: string; characterName: string; rarity: 4 | 5; constellation: number; elementKey: ElementKey; damageBeforeResistance: string; resistanceApplied: boolean; damage: string }>[] }> | null
+  reward: Readonly<{ primogems: string; moras: string }>
+  participation: Readonly<{ rank: number; totalDamage: string; attackCount: string; bestHit: string }> | null
+  ranking: readonly MonthlyBossRankingEntryDto[]
+  playerStats: Readonly<{ totalDamage: string; totalAttacks: string; totalParticipated: string; totalRewarded: string; finalBlows: string; bestHit: string }>
+}>
+export type MonthlyBossAttackDto = Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; result: Readonly<{ damage: string; defeated: boolean }>; view: MonthlyBossDto; resources: PlayerResourcesDto }>
+export type MonthlyBossHistoryDto = Readonly<{ page: number; pageSize: number; total: number; totalPages: number; bosses: readonly Readonly<{ id: string; monthStart: string; name: string; maxHp: string; currentHp: string; resistanceElementKey: ElementKey; defeatedAt: string | null; finalBlowPlayer: Readonly<{ id: string; displayName: string }> | null; participantCount: number }>[] }>
+
 export type ExpeditionDto = Readonly<{
   businessDate: string
   operationalStatus: 'IDLE' | 'RUNNING' | 'READY'

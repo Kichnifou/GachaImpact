@@ -46,6 +46,8 @@ import type { ExpeditionService } from './application/expedition/expedition-serv
 import type { NotificationService } from './application/notification/notification-service.js';
 import { registerExpeditionRoutes } from './api/routes/expedition.js';
 import { registerNotificationRoutes } from './api/routes/notifications.js';
+import type { MonthlyBossService } from './application/combat/monthly-boss-service.js';
+import { registerMonthlyBossRoutes } from './api/routes/monthly-boss.js';
 
 export type AppDependencies = Readonly<{
   authIdentityVerifier: AuthIdentityVerifier;
@@ -93,6 +95,7 @@ export type AppDependencies = Readonly<{
   dailyCombatService?: CombatService;
   expeditionService?: ExpeditionService;
   notificationService?: NotificationService;
+  monthlyBossService?: MonthlyBossService;
   close?: () => Promise<void>;
 }>;
 
@@ -214,6 +217,9 @@ export async function buildApp(
     }
     if (dependencies.notificationService) {
       await app.register(registerNotificationRoutes, { authenticate, service: dependencies.notificationService });
+    }
+    if (dependencies.monthlyBossService) {
+      await app.register(registerMonthlyBossRoutes, { authenticate, service: dependencies.monthlyBossService });
     }
 
     if (dependencies.close) {

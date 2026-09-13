@@ -993,6 +993,14 @@ Direction future :
 
 Au niveau 100, plusieurs paliers d'overflow gagnés simultanément doivent eux aussi être présentés clairement au joueur.
 
+## Clarification candidate 0.91 — sources standalone
+
+Les actions ordinaires donnent exactement 0 XP direct : Pull, Combat quotidien, Boss mensuel, Expedition, Banque, Boutique, Quotidiennes et actions comparables. Cette règle est identique en UI, chat interne et futur canal Twitch ; invoquer une logique métier depuis un autre canal ne transforme jamais cette action en source XP.
+
+La future source XP standalone sera une activité expressément dédiée, composée de vrais mini-jeux ou épreuves autonomes et de tentatives quotidiennes limitées. Le nombre de tentatives et le gain exact `X` restent à décider. La cible d’équilibrage est qu’une bonne performance fournisse environ 30 XP par jour, soit approximativement un niveau au barème actuel. Cette XP se cumule avec l’XP éligible du chat interne et de Twitch.
+
+Cette clarification est documentaire uniquement : le candidat 0.91 n’ajoute aucun code, route, table, migration ou producteur XP.
+
 ### XP cumulative
 
 Pour la V1 :

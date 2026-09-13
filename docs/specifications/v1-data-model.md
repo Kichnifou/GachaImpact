@@ -1100,7 +1100,7 @@ Référentiel backend normalisé de clé `(attackerElementKey, defenderElementKe
 
 La migration additive Prisma `20260912120000_014_add_daily_combat` crée l'enum et les tables ci-dessus, les contraintes et index, active la RLS et révoque `anon`/`authenticated`. `CombatService` expose la projection privée du Player, tandis que les transactions de fight sont propriétaires de la formule, du mode, des KO, des statistiques et de la récompense économique unique (+800 Primogemmes, +20 000 Moras).
 
-Le Boss mensuel reste uniquement un modèle cible futur et n'est pas matérialisé par 014.
+Le Boss mensuel n'est pas matérialisé par 014 ; il l'est séparément par la migration additive 016 décrite en 20.6.
 
 ---
 
@@ -1166,6 +1166,14 @@ Après le cutover :
 - les nouvelles attaques sont de vrais `BossAttack` ;
 - les projections Boss additionnent proprement le carry-over legacy certain et les nouvelles attaques natives ;
 - aucune nouvelle donnée n'est ajoutée à `BossLegacyContribution`.
+
+## 20.6 État physique candidat 0.91
+
+La migration `20260913160000_016_add_monthly_boss` matérialise le sous-ensemble natif requis : `MonthlyBoss`, `PlayerBossLoadout` / `PlayerBossLoadoutSlot`, `BossAttack` / `BossAttackMember`, `PlayerBossParticipation`, `PlayerBossStats` et `BossReward`. La clé mensuelle globale est unique ; l’attaque possède une unicité `(bossId, playerId, businessDate)` et une opération unique ; la récompense possède une unicité `(bossId, playerId)`.
+
+`MonthlyBoss` sépare `baseHp`, variation et `maxHp`, conserve `currentHp`, résistance et état de défaite/coup final. `PlayerBossParticipation` matérialise l’agrégat mensuel nécessaire au classement et au versement communautaire ; `PlayerBossStats` porte au minimum dégâts, attaques, Boss participés, récompenses, coups finaux et meilleur coup sur la durée. Les membres d’attaque figent nom, rareté, élément, constellation, dégâts avant résistance, application de résistance et dégâts finaux.
+
+Toutes les tables sont privées côté navigateur, RLS activée sans policy client et droits `anon`/`authenticated` révoqués. L’instance courante est créée par le service au changement de mois ou au premier accès ; aucune ligne de Boss courant n’est incluse dans la migration SQL. Les structures `BossLegacyContribution` restent un modèle futur de cutover et ne sont pas matérialisées par 016.
 
 ---
 

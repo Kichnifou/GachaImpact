@@ -7629,6 +7629,91 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .box-expedition-zone p { min-height: 12px; margin: 0; color: #8fdcb9; font-size: 8px; }
 .box-expedition-zone > button { min-width: 88px; min-height: 34px; padding: 0 12px; cursor: pointer; color: #061321; font-size: 8px; font-weight: 900; border: 1px solid #8cddff; border-radius: 8px; background: linear-gradient(135deg, #78d8ff, #80aeff); }
 .box-expedition-zone.ready { border-color: rgba(110, 225, 177, .42); box-shadow: 0 0 18px rgba(76, 208, 163, .08); }
+
+/* Monthly Boss */
+.daily-boss-line { color: #9bbbd4; font-size: .88em; }
+.monthly-boss-shell { display: grid; gap: 14px; min-width: 0; padding-bottom: 8px; }
+.boss-inner-tabs { display: flex; gap: 8px; }
+.boss-inner-tabs button { min-height: 34px; padding: 0 15px; color: #9eb6ce; border: 1px solid rgba(110, 170, 214, .2); border-radius: 9px; background: rgba(8, 25, 44, .72); cursor: pointer; }
+.boss-inner-tabs button.active { color: #effaff; border-color: rgba(105, 212, 255, .58); background: rgba(37, 104, 147, .38); }
+.boss-identity-panel { display: grid; grid-template-columns: 1fr auto; gap: 12px 20px; padding: 20px; overflow: hidden; background: radial-gradient(circle at 90% 0, rgba(89, 136, 184, .16), transparent 35%), rgba(7, 21, 38, .88); }
+.boss-identity-copy { min-width: 0; }
+.boss-identity-copy h2 { margin: 4px 0 8px; color: #f3f9ff; font-size: clamp(22px, 2.3vw, 34px); }
+.boss-identity-copy p { display: flex; align-items: center; gap: 7px; margin: 0; color: #9eb6ce; }
+.boss-element-icon { width: 22px; height: 22px; object-fit: contain; }
+.boss-state-badge { align-self: start; padding: 7px 11px; color: #9ee7ca; border: 1px solid rgba(94, 225, 172, .35); border-radius: 999px; background: rgba(32, 117, 83, .22); }
+.boss-hp { grid-column: 1 / -1; display: grid; gap: 7px; }
+.boss-hp > div:first-child { display: flex; align-items: baseline; gap: 10px; color: #c8d9e8; }
+.boss-hp b { margin-left: auto; color: #fff; }
+.boss-hp-track { height: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,.12); border-radius: 999px; background: rgba(0,0,0,.3); }
+.boss-hp-track span { display: block; height: 100%; background: linear-gradient(90deg, #d34762, #f19479); transition: width .25s ease; }
+.boss-defeat-summary { grid-column: 1 / -1; margin: 0; color: #9ee7ca; }
+.boss-command-panel { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(150px, .7fr) auto; align-items: center; gap: 16px; padding: 15px 18px; }
+.boss-command-panel > div { display: grid; gap: 4px; }
+.boss-command-panel span, .boss-command-panel small { color: #9eb6ce; }
+.boss-preview button { justify-self: start; padding: 0; color: #78d8ff; border: 0; background: none; cursor: pointer; }
+.boss-attack-button { min-width: 130px; min-height: 42px; }
+.boss-attack-button:disabled { color: #75899b; border-color: rgba(122, 143, 160, .18); background: #26313d; box-shadow: none; opacity: .7; cursor: not-allowed; }
+.boss-feedback { grid-column: 1 / -1; min-height: 18px; margin: 0; color: #91dfbf; }
+.boss-feedback.error { color: #ff9ca9; }
+.boss-loadout-section { display: grid; gap: 10px; }
+.boss-loadout-section > header, .boss-ranking > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.boss-loadout-section h2, .boss-ranking h2, .boss-lifetime h2, .boss-history h2 { margin: 0; color: #ecf7ff; font-size: 17px; }
+.boss-loadout-section > header > div { display: flex; gap: 7px; }
+.boss-loadout-section > header button, .boss-character-card > div:last-child button, .boss-history footer button { min-height: 30px; padding: 0 10px; color: #bcd0e1; border: 1px solid rgba(109, 168, 213, .25); border-radius: 7px; background: rgba(9, 29, 50, .76); cursor: pointer; }
+.boss-loadout-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.boss-character-card { position: relative; display: grid; grid-template-rows: minmax(120px, 1fr) auto auto; min-width: 0; min-height: 240px; padding: 0; overflow: hidden; color: #eaf6ff; border: 1px solid rgba(100, 171, 218, .24); border-radius: 13px; background: linear-gradient(180deg, rgba(25, 60, 88, .8), rgba(7, 22, 40, .94)); }
+.boss-character-image { width: 100%; height: 150px; object-fit: contain; object-position: center bottom; }
+.boss-character-card > div { display: grid; gap: 3px; padding: 9px 10px; }
+.boss-character-card > div span { color: #e3bf70; font-size: 11px; }
+.boss-character-card > div:last-child { grid-template-columns: 1fr 1fr; padding-top: 0; }
+.boss-empty-slot { place-items: center; grid-template-rows: auto auto auto; align-content: center; gap: 7px; cursor: pointer; }
+.boss-empty-slot > span { color: #6396bd; font-size: 22px; }
+.boss-ranking, .boss-lifetime, .boss-history { padding: 16px 18px; }
+.boss-ranking ol { display: grid; gap: 7px; margin: 13px 0 0; padding: 0; list-style: none; }
+.boss-ranking li { display: grid; grid-template-columns: 38px minmax(100px, 1fr) auto; align-items: center; gap: 8px; padding: 10px; border-radius: 8px; background: rgba(18, 47, 72, .55); }
+.boss-ranking li small { grid-column: 2 / -1; color: #8eaac1; }
+.boss-lifetime dl { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin: 12px 0 0; }
+.boss-lifetime dl div { display: grid; gap: 4px; padding: 9px; border-radius: 8px; background: rgba(18, 47, 72, .55); }
+.boss-lifetime dt { color: #8eaac1; font-size: 11px; }
+.boss-lifetime dd { margin: 0; color: #f0f9ff; font-weight: 800; }
+.boss-picker { width: min(760px, calc(100vw - 24px)); max-height: min(760px, calc(100dvh - 30px)); }
+.boss-picker-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 14px; overflow-y: auto; }
+.boss-picker-grid > button { display: grid; gap: 5px; min-width: 0; padding: 8px; color: #edf8ff; border: 1px solid rgba(104, 176, 229, .23); border-radius: 9px; background: rgba(12, 35, 59, .8); cursor: pointer; }
+.boss-picker-grid > button:disabled { opacity: .45; cursor: not-allowed; }
+.boss-picker-image { width: 100%; height: 90px; object-fit: contain; }
+.boss-picker-grid small { color: #d7b66a; }
+.boss-details { width: min(560px, calc(100vw - 24px)); }
+.boss-details > p, .boss-details > ul, .boss-details > footer { margin: 12px 18px; }
+.boss-details ul { display: grid; gap: 7px; padding: 0; list-style: none; }
+.boss-details li { display: flex; justify-content: space-between; gap: 12px; padding: 9px; border-radius: 7px; background: rgba(18, 47, 72, .55); }
+.boss-history > div { display: grid; gap: 8px; margin-top: 12px; }
+.boss-history article { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px; border-radius: 8px; background: rgba(18, 47, 72, .55); }
+.boss-history article > div { display: grid; }
+.boss-history article p { margin: 0; }
+.boss-history footer { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 14px; }
+@media (max-width: 900px) {
+  .boss-loadout-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .boss-lifetime dl { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .boss-picker-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .boss-identity-panel { grid-template-columns: 1fr; padding: 14px; }
+  .boss-state-badge { grid-row: 1; }
+  .boss-command-panel { grid-template-columns: 1fr; }
+  .boss-feedback { grid-column: 1; }
+  .boss-attack-button { width: 100%; }
+  .boss-loadout-section > header { align-items: flex-start; flex-direction: column; }
+  .boss-loadout-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .boss-character-card { min-height: 205px; }
+  .boss-character-image { height: 115px; }
+  .boss-picker-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .boss-ranking li { grid-template-columns: 32px 1fr; }
+  .boss-ranking li > strong { grid-column: 2; }
+  .boss-ranking li small { grid-column: 2; }
+  .boss-lifetime dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .boss-history article { align-items: flex-start; flex-direction: column; }
+}
 .notification-item { width: 100%; font: inherit; text-align: left; }
 .notification-empty { padding: 20px 12px; color: var(--muted); text-align: center; }
 .notifications-panel .floating-panel-footer { justify-content: flex-end; }

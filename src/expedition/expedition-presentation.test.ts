@@ -7,8 +7,8 @@ const idle: ExpeditionDto = { businessDate: '2026-09-12', operationalStatus: 'ID
 describe('Expedition presentation', () => {
   it('uses the four exact Quotidiennes states without a fake obtained reward', () => {
     expect(expeditionOverview(idle, 0)).toEqual({ status: 'À faire', detail: 'Aucune expédition lancée aujourd’hui.', completed: false })
-    expect(expeditionOverview({ ...idle, operationalStatus: 'RUNNING', activeCharacter: character, readyAt: '1970-01-01T01:00:00Z' }, 0)).toMatchObject({ status: 'En cours', detail: 'Furina · 01:00:00 · Départ précédent · le départ du jour sera disponible après récupération.' })
-    expect(expeditionOverview({ ...idle, operationalStatus: 'READY', activeCharacter: character }, 0)).toMatchObject({ status: 'À récupérer', detail: 'Furina est revenu. Le départ du jour reste disponible après récupération.' })
+    expect(expeditionOverview({ ...idle, operationalStatus: 'RUNNING', activeCharacter: character, readyAt: '1970-01-01T01:00:00Z' }, 0)).toMatchObject({ status: '✅ Terminé', detail: 'Furina · 01:00:00', completed: true })
+    expect(expeditionOverview({ ...idle, operationalStatus: 'READY', activeCharacter: character }, 0)).toMatchObject({ status: '✅ Terminé', detail: 'Furina est revenu · Récompense à récupérer.', completed: true })
     expect(expeditionOverview({ ...idle, departureUsedToday: true, canStartToday: false }, 0)).toEqual({ status: '✅ Terminé', detail: 'Expédition effectuée aujourd’hui.', completed: true })
   })
   it('places READY before favorites without changing card data', () => {

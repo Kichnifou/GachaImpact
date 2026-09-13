@@ -41,6 +41,7 @@ import { CombatService } from '../application/combat/daily-combat-service.js';
 import { PrismaDailyCombatStore } from './database/prisma-daily-combat-store.js';
 import { ExpeditionService } from '../application/expedition/expedition-service.js';
 import { NotificationService } from '../application/notification/notification-service.js';
+import { MonthlyBossScheduler, MonthlyBossService } from '../application/combat/monthly-boss-service.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
   if (!config.databaseUrl) {
@@ -66,6 +67,8 @@ export function createRuntimeDependencies(config: AppConfig) {
   const shopStore = new PrismaShopStore(database, random);
   const bankInterestScheduler = new BankInterestScheduler(new BankInterestProcessor(bankingStore, clock), clock);
   const expeditionService = new ExpeditionService(getCurrentPlayer, database, clock, random);
+  const monthlyBossService = new MonthlyBossService(getCurrentPlayer, database, clock, random);
+  const monthlyBossScheduler = new MonthlyBossScheduler(monthlyBossService, clock);
 
   return {
     authIdentityVerifier: createSupabaseAuthAdapter(issuer),
@@ -120,10 +123,11 @@ export function createRuntimeDependencies(config: AppConfig) {
     purchaseShopItem: new PurchaseShopItem(getCurrentPlayer, shopStore, clock),
     navigationPreferences: new NavigationPreferencesService(getCurrentPlayer, new PrismaNavigationPreferenceStore(database)),
     dailyCombatService: new CombatService(getCurrentPlayer, dailyCombatStore, clock),
+    monthlyBossService,
     expeditionService,
     notificationService: new NotificationService(getCurrentPlayer, database, clock, expeditionService),
-    start: async () => { await scheduler.start(); await bankInterestScheduler.start(); },
-    close: async () => { scheduler.stop(); bankInterestScheduler.stop(); await database.$disconnect(); },
+    start: async () => { await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); },
+    close: async () => { scheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); await database.$disconnect(); },
   };
 }
 

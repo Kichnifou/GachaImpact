@@ -96,6 +96,8 @@ model Element {
   combatMatchupsAsDefender ElementCombatMatchup[]     @relation("CombatDefenderElement")
   dailyCombatEnemies       DailyCombatEnemy[]         @relation("DailyCombatEnemyElement")
   dailyCombatMembers       DailyCombatAttemptMember[] @relation("DailyCombatMemberElement")
+  monthlyBosses            MonthlyBoss[]              @relation("MonthlyBossResistance")
+  bossAttackMembers        BossAttackMember[]         @relation("BossAttackMemberElement")
 
   @@map("elements")
 }
@@ -160,6 +162,12 @@ model Player {
   characterCombatStats PlayerCharacterCombatStats[]
   expedition           PlayerExpedition?
   notifications        Notification[]
+  bossLoadout          PlayerBossLoadout?
+  bossAttacks          BossAttack[]
+  bossParticipations   PlayerBossParticipation[]
+  bossStats            PlayerBossStats?
+  bossRewards          BossReward[]
+  bossFinalBlows       MonthlyBoss[]                @relation("MonthlyBossFinalBlow")
 
   @@index([status], map: "players_status_idx")
   @@index([elementKey], map: "players_element_key_idx")
@@ -290,6 +298,8 @@ model Character {
   dailyCombatAttemptMembers DailyCombatAttemptMember[]
   playerCombatStats         PlayerCharacterCombatStats[]
   playerExpeditions         PlayerExpedition[]
+  bossLoadoutSlots          PlayerBossLoadoutSlot[]
+  bossAttackMembers         BossAttackMember[]
 
   @@index([isActive, rarity], map: "characters_active_rarity_idx")
   @@index([elementKey, isActive], map: "characters_element_active_idx")
@@ -412,6 +422,8 @@ model BusinessOperation {
   adminAuditEntry    AdminAuditEntry?
   shopPurchase       ShopPurchase?
   dailyCombatAttempt DailyCombatAttempt?
+  bossAttack         BossAttack?
+  bossRewards        BossReward[]
 
   @@index([playerId, startedAt(sort: Desc)], map: "business_operations_player_started_at_idx")
   @@index([operationType, startedAt(sort: Desc)], map: "business_operations_type_started_at_idx")
@@ -928,4 +940,138 @@ model Notification {
 
   @@index([playerId, state, createdAt(sort: Desc)], map: "notifications_player_state_created_idx")
   @@map("notifications")
+}
+
+model MonthlyBoss {
+  id                   String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  monthStart           DateTime                  @unique(map: "monthly_bosses_month_start_key") @map("month_start") @db.Date
+  nameSnapshot         String                    @map("name_snapshot") @db.Text
+  baseHp               BigInt                    @map("base_hp")
+  hpVariationPercent   Int                       @map("hp_variation_percent") @db.SmallInt
+  maxHp                BigInt                    @map("max_hp")
+  currentHp            BigInt                    @map("current_hp")
+  resistanceElementKey String                    @map("resistance_element_key") @db.Text
+  defeatedAt           DateTime?                 @map("defeated_at") @db.Timestamptz(6)
+  finalBlowPlayerId    String?                   @map("final_blow_player_id") @db.Uuid
+  createdAt            DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  resistanceElement    Element                   @relation("MonthlyBossResistance", fields: [resistanceElementKey], references: [key], onDelete: Restrict)
+  finalBlowPlayer      Player?                   @relation("MonthlyBossFinalBlow", fields: [finalBlowPlayerId], references: [id], onDelete: Restrict)
+  attacks              BossAttack[]
+  participations       PlayerBossParticipation[]
+  rewards              BossReward[]
+
+  @@index([monthStart(sort: Desc)], map: "monthly_bosses_created_idx")
+  @@index([resistanceElementKey], map: "monthly_bosses_resistance_idx")
+  @@map("monthly_bosses")
+}
+
+model PlayerBossLoadout {
+  playerId  String                  @id @map("player_id") @db.Uuid
+  updatedAt DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player    Player                  @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  slots     PlayerBossLoadoutSlot[]
+
+  @@map("player_boss_loadouts")
+}
+
+model PlayerBossLoadoutSlot {
+  playerId    String            @map("player_id") @db.Uuid
+  position    Int               @db.SmallInt
+  characterId String            @map("character_id") @db.Uuid
+  loadout     PlayerBossLoadout @relation(fields: [playerId], references: [playerId], onDelete: Cascade)
+  character   Character         @relation(fields: [characterId], references: [id], onDelete: Restrict)
+
+  @@id([playerId, position])
+  @@unique([playerId, characterId], map: "player_boss_loadout_slots_player_character_key")
+  @@index([characterId], map: "player_boss_loadout_slots_character_idx")
+  @@map("player_boss_loadout_slots")
+}
+
+model BossAttack {
+  id           String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bossId       String             @map("boss_id") @db.Uuid
+  playerId     String             @map("player_id") @db.Uuid
+  businessDate DateTime           @map("business_date") @db.Date
+  damage       BigInt
+  operationId  String             @unique(map: "boss_attacks_operation_id_key") @map("operation_id") @db.Uuid
+  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  boss         MonthlyBoss        @relation(fields: [bossId], references: [id], onDelete: Restrict)
+  player       Player             @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  operation    BusinessOperation  @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  members      BossAttackMember[]
+
+  @@unique([bossId, playerId, businessDate], map: "boss_attacks_player_day_key")
+  @@index([bossId, createdAt(sort: Desc)], map: "boss_attacks_boss_created_idx")
+  @@index([playerId, createdAt(sort: Desc)], map: "boss_attacks_player_created_idx")
+  @@map("boss_attacks")
+}
+
+model BossAttackMember {
+  attackId               String     @map("attack_id") @db.Uuid
+  position               Int        @db.SmallInt
+  characterId            String     @map("character_id") @db.Uuid
+  characterNameSnapshot  String     @map("character_name_snapshot") @db.Text
+  raritySnapshot         Int        @map("rarity_snapshot") @db.SmallInt
+  elementKeySnapshot     String     @map("element_key_snapshot") @db.Text
+  constellationSnapshot  Int        @map("constellation_snapshot") @db.SmallInt
+  damageBeforeResistance BigInt     @map("damage_before_resistance")
+  resistanceApplied      Boolean    @map("resistance_applied")
+  damage                 BigInt
+  attack                 BossAttack @relation(fields: [attackId], references: [id], onDelete: Cascade)
+  character              Character  @relation(fields: [characterId], references: [id], onDelete: Restrict)
+  elementSnapshot        Element    @relation("BossAttackMemberElement", fields: [elementKeySnapshot], references: [key], onDelete: Restrict)
+
+  @@id([attackId, position])
+  @@index([characterId], map: "boss_attack_members_character_idx")
+  @@map("boss_attack_members")
+}
+
+model PlayerBossParticipation {
+  bossId        String      @map("boss_id") @db.Uuid
+  playerId      String      @map("player_id") @db.Uuid
+  totalDamage   BigInt      @default(0) @map("total_damage")
+  attackCount   BigInt      @default(0) @map("attack_count")
+  bestHit       BigInt      @default(0) @map("best_hit")
+  firstAttackAt DateTime    @map("first_attack_at") @db.Timestamptz(6)
+  lastAttackAt  DateTime    @map("last_attack_at") @db.Timestamptz(6)
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  boss          MonthlyBoss @relation(fields: [bossId], references: [id], onDelete: Restrict)
+  player        Player      @relation(fields: [playerId], references: [id], onDelete: Restrict)
+
+  @@id([bossId, playerId])
+  @@index([bossId, totalDamage(sort: Desc), firstAttackAt, playerId], map: "player_boss_participations_ranking_idx")
+  @@index([playerId, lastAttackAt(sort: Desc)], map: "player_boss_participations_player_idx")
+  @@map("player_boss_participations")
+}
+
+model PlayerBossStats {
+  playerId          String   @id @map("player_id") @db.Uuid
+  totalDamage       BigInt   @default(0) @map("total_damage")
+  totalAttacks      BigInt   @default(0) @map("total_attacks")
+  totalParticipated BigInt   @default(0) @map("total_participated")
+  totalRewarded     BigInt   @default(0) @map("total_rewarded")
+  finalBlows        BigInt   @default(0) @map("final_blows")
+  bestHit           BigInt   @default(0) @map("best_hit")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player            Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@map("player_boss_stats")
+}
+
+model BossReward {
+  bossId      String            @map("boss_id") @db.Uuid
+  playerId    String            @map("player_id") @db.Uuid
+  primogems   BigInt
+  moras       BigInt
+  operationId String            @map("operation_id") @db.Uuid
+  awardedAt   DateTime          @map("awarded_at") @db.Timestamptz(6)
+  boss        MonthlyBoss       @relation(fields: [bossId], references: [id], onDelete: Restrict)
+  player      Player            @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  operation   BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+
+  @@id([bossId, playerId])
+  @@index([playerId, awardedAt(sort: Desc)], map: "boss_rewards_player_idx")
+  @@index([operationId], map: "boss_rewards_operation_idx")
+  @@map("boss_rewards")
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { BoxCharacterDto, DailyCombatCharacterDto, DailyCombatDto, DailyCombatFightDto, ElementKey, PlayerBoxDto, StellaUseDto } from '../api/types'
+import type { BoxCharacterDto, DailyCombatCharacterDto, DailyCombatDto, DailyCombatFightDto, ElementKey, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto, PlayerBoxDto, StellaUseDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
 import { useBoxCollection } from '../box/use-box-collection'
 import BoxCharacterCard from '../components/BoxCharacterCard'
@@ -10,6 +10,8 @@ import ScreenHeader from '../components/ScreenHeader'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import { apiErrorMessage, elementLabels, formatResourceAmount } from '../utils/formatters'
 import { getElementAssetPath } from '../utils/gameAssets'
+import MonthlyBossScreen from './MonthlyBossScreen'
+import { unavailableMonthlyBoss } from '../combat/monthly-boss-unavailable'
 
 export type DailyCombatBoxBindings = Readonly<{
   initialBox: PlayerBoxDto | null
@@ -29,10 +31,20 @@ export type DailyCombatScreenProps = Readonly<{
   onAuto: () => Promise<DailyCombatDto>
   onClear: () => Promise<DailyCombatDto>
   onFight: (idempotencyKey: string) => Promise<DailyCombatFightDto>
+  monthlyBoss?: MonthlyBossDto
+  bossRequestToken?: number
+  onSetBossSlot?: (position: number, characterId: string) => Promise<MonthlyBossDto>
+  onRemoveBossSlot?: (position: number) => Promise<MonthlyBossDto>
+  onCopyActiveToBoss?: () => Promise<MonthlyBossDto>
+  onClearBoss?: () => Promise<MonthlyBossDto>
+  onAttackBoss?: (bossId: string, idempotencyKey: string) => Promise<MonthlyBossAttackDto>
+  onLoadBossHistory?: (page: number) => Promise<MonthlyBossHistoryDto>
 }>
 
-export default function DailyCombatScreen({ value, box, onSetSlot, onRemoveSlot, onCopyActive, onAuto, onClear, onFight }: DailyCombatScreenProps) {
-  const [tab, setTab] = useState<'training' | 'boss'>('training')
+export default function DailyCombatScreen({ value, box, onSetSlot, onRemoveSlot, onCopyActive, onAuto, onClear, onFight, monthlyBoss = unavailableMonthlyBoss, bossRequestToken = 0, onSetBossSlot = async () => unavailableMonthlyBoss, onRemoveBossSlot = async () => unavailableMonthlyBoss, onCopyActiveToBoss = async () => unavailableMonthlyBoss, onClearBoss = async () => unavailableMonthlyBoss, onAttackBoss = async () => { throw new Error('Boss indisponible.') }, onLoadBossHistory = async () => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, bosses: [] }) }: DailyCombatScreenProps) {
+  const [tabSelection, setTabSelection] = useState<{ tab: 'training' | 'boss'; requestToken: number }>({ tab: bossRequestToken > 0 ? 'boss' : 'training', requestToken: bossRequestToken })
+  const tab = tabSelection.requestToken === bossRequestToken ? tabSelection.tab : 'boss'
+  const setTab = (next: 'training' | 'boss') => setTabSelection({ tab: next, requestToken: bossRequestToken })
   const [pickerPosition, setPickerPosition] = useState<number | null>(null)
   const [detailId, setDetailId] = useState<string | null>(null)
   const [calculationOpen, setCalculationOpen] = useState(false)
@@ -63,7 +75,7 @@ export default function DailyCombatScreen({ value, box, onSetSlot, onRemoveSlot,
   return <div className="screen-content activity-shell combat-shell long-screen-layout">
     <ScreenHeader eyebrow="Activités" title="Combat" description="Affrontez l’équipe ennemie du jour avec quatre personnages disponibles." />
     <ScrollableScreenPanel className="combat-frame" bodyClassName="combat-scroll-body" fixed={tabs}>
-      {tab === 'boss' ? <section className="panel combat-boss-unavailable"><strong>Bientôt disponible</strong><p>Le Boss n’est pas encore implémenté.</p></section> : <>
+      {tab === 'boss' ? <MonthlyBossScreen value={monthlyBoss} onSetSlot={onSetBossSlot} onRemoveSlot={onRemoveBossSlot} onCopyActive={onCopyActiveToBoss} onClear={onClearBoss} onAttack={onAttackBoss} onLoadHistory={onLoadBossHistory} /> : <>
         <section className="combat-enemies" aria-labelledby="combat-enemies-title"><header className="combat-section-heading combat-enemy-heading"><h2 id="combat-enemies-title">Ennemis</h2></header><div className="combat-card-grid">{value.encounter.enemies.map((enemy) => <EnemyCombatCard enemy={enemy} key={enemy.position} />)}</div></section>
 
         <section className="panel combat-command-bar" aria-labelledby="combat-command-title">

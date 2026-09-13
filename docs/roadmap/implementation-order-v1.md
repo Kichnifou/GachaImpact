@@ -40,7 +40,7 @@ Ce fichier n’est pas un tracker vivant et ne doit pas être modifié pour enre
    - Le choix UX du raccourci/carrousel de quotidiennes sur l’Accueil reste reporté à une décision du propriétaire.
 
 9. **Principaux domaines standalone encore manquants**
-   - Combat Boss, Concours, Event, Historique, Tutoriel et autres systèmes nécessaires au cutover.
+   - Combat Boss est techniquement matérialisé dans le candidat 0.91 et reste à valider publiquement ; Concours, Event, Historique transverse, Tutoriel et autres systèmes nécessaires au cutover restent à venir.
    - Leur ordre détaillé reste décidé lot par lot ; ils doivent être suffisamment physiques et stabilisés avant de reprendre la migration legacy.
 
 10. **Social standalone**

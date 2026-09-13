@@ -22,6 +22,7 @@ describe('GameShell shared particle conversion overlay', () => {
     expect(gameShellSource).toContain('onSetFavorite: setBoxFavorite')
     expect(gameShellSource).toContain('onUseStella: useStella')
     expect(gameShellSource).toContain('onCharacterProgressed: () => Promise.all([onLoadTeams(), onLoadDailyCombat()])')
+    expect(gameShellSource).toContain('await refreshMonthlyBoss()')
   })
 
   it('consumes Box character deep links once without remounting the Box', () => {

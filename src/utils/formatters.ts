@@ -80,6 +80,14 @@ export function apiErrorMessage(error: unknown): string {
     DAILY_COMBAT_NOT_ENOUGH_AVAILABLE: 'Vous n’avez plus assez de personnages disponibles aujourd’hui.',
     DAILY_COMBAT_ENCOUNTER_UNAVAILABLE: 'Le Combat du jour est momentanément indisponible.',
     DAILY_COMBAT_IDEMPOTENCY_CONFLICT: 'Une tentative précédente doit d’abord être vérifiée ou reprise avant de continuer.',
+    BOSS_DEFEATED: 'Le Boss de ce mois est déjà vaincu.',
+    BOSS_ATTACK_ALREADY_USED: 'Votre attaque Boss a déjà été utilisée aujourd’hui.',
+    BOSS_LOADOUT_INCOMPLETE: 'Sélectionnez exactement 4 personnages.',
+    BOSS_CHARACTER_NOT_OWNED: 'Ce personnage ne fait pas partie de votre Box.',
+    BOSS_CHARACTER_INACTIVE: 'Un personnage indisponible a été retiré de la formation Boss.',
+    BOSS_CHARACTER_DUPLICATE: 'Ce personnage est déjà sélectionné.',
+    BOSS_INSTANCE_CHANGED: 'Le Boss mensuel a changé. Rechargez sa fiche.',
+    BOSS_IDEMPOTENCY_CONFLICT: 'Une attaque précédente doit d’abord être vérifiée ou reprise.',
   }
 
   return typeof code === 'string' && messages[code]

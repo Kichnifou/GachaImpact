@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import { ApiError, getGameApiClient } from './api/game-api'
-import type { BankTransferDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyRewardTodayDto, ElementKey, ExpeditionDto, GachaCharacterDto, GachaPullDto, ModerationPermissionsDto, ModerationStateDto, NotificationsDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, ShopPurchaseDto, WheelTodayDto } from './api/types'
+import type { BankTransferDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyRewardTodayDto, ElementKey, ExpeditionDto, GachaCharacterDto, GachaPullDto, ModerationPermissionsDto, ModerationStateDto, MonthlyBossDto, NotificationsDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, ShopPurchaseDto, WheelTodayDto } from './api/types'
 import { useAuth } from './auth/auth-context'
 import { resolveBootstrapStage } from './auth/bootstrap-state'
 import AuthScreen from './components/AuthScreen'
@@ -28,6 +28,7 @@ function AppBootstrap() {
   const [dailyRewardToday, setDailyRewardToday] = useState<DailyRewardTodayDto | null>(null)
   const [dailyChallenge, setDailyChallenge] = useState<DailyChallengeDto | null>(null)
   const [dailyCombat, setDailyCombat] = useState<DailyCombatDto | null>(null)
+  const [monthlyBoss, setMonthlyBoss] = useState<MonthlyBossDto | null>(null)
   const [expedition, setExpedition] = useState<ExpeditionClientSnapshot | null>(null)
   const [expeditionMonotonicNow, setExpeditionMonotonicNow] = useState(0)
   const [notifications, setNotifications] = useState<NotificationsDto | null>(null)
@@ -68,6 +69,7 @@ function AppBootstrap() {
     setDailyCombat(nextDailyCombat)
     return nextDailyCombat
   }, [])
+  const loadMonthlyBoss = useCallback(async () => { const next = await getGameApiClient().getMonthlyBoss(); setMonthlyBoss(next); return next }, [])
   const publishExpedition = useCallback((next: ExpeditionDto) => {
     const observedAt = performance.now()
     setExpedition(createExpeditionClientSnapshot(next, observedAt))
@@ -107,13 +109,14 @@ function AppBootstrap() {
 
   const loadGameState = useCallback(async () => {
     const api = getGameApiClient()
-    const [nextResources, nextProgression, nextWheelToday, nextDailyRewardToday, nextDailyChallenge, nextDailyCombat, nextExpedition, nextNotifications, nextGacha, nextCatalog, nextTeams, nextPermissions] = await Promise.all([
+    const [nextResources, nextProgression, nextWheelToday, nextDailyRewardToday, nextDailyChallenge, nextDailyCombat, nextMonthlyBoss, nextExpedition, nextNotifications, nextGacha, nextCatalog, nextTeams, nextPermissions] = await Promise.all([
       api.getResources(),
       api.getProgression(),
       api.getWheelToday(),
       api.getDailyRewardToday(),
       api.getDailyChallenge(),
       api.getDailyCombat(),
+      api.getMonthlyBoss(),
       api.getExpedition(),
       api.getNotifications(),
       api.getCurrentGacha(),
@@ -128,6 +131,7 @@ function AppBootstrap() {
     setDailyRewardToday(nextDailyRewardToday)
     setDailyChallenge(nextDailyChallenge)
     setDailyCombat(nextDailyCombat)
+    setMonthlyBoss(nextMonthlyBoss)
     publishExpedition(nextExpedition)
     setNotifications(nextNotifications)
     setGacha(nextGacha)
@@ -178,7 +182,8 @@ function AppBootstrap() {
     if (gachaPresentation.current === null) gachaPresentation.current = createGachaPresentationCoordinator({
       execute: async (count, idempotencyKey, onPullSucceeded) => {
         const result = await performGachaPullAndRefresh(getGameApiClient(), count, idempotencyKey, onPullSucceeded)
-        setDailyChallenge(await getGameApiClient().getDailyChallenge())
+        const [nextDailyChallenge] = await Promise.all([getGameApiClient().getDailyChallenge(), loadMonthlyBoss()])
+        setDailyChallenge(nextDailyChallenge)
         return result
       },
       publish: publishGachaUpdate,
@@ -195,7 +200,7 @@ function AppBootstrap() {
       },
     })
     gachaPresentation.current.setSession(sessionUserId ?? null)
-  }, [publishGachaUpdate, sessionUserId])
+  }, [loadMonthlyBoss, publishGachaUpdate, sessionUserId])
 
   const pendingGachaPullCount = pendingGachaPull && pendingGachaPull.sessionId === sessionUserId
     ? pendingGachaPull.count
@@ -232,6 +237,7 @@ function AppBootstrap() {
           setDailyRewardToday(null)
           setDailyChallenge(null)
           setDailyCombat(null)
+          setMonthlyBoss(null)
           setExpedition(null)
           setExpeditionMonotonicNow(0)
           setNotifications(null)
@@ -261,7 +267,7 @@ function AppBootstrap() {
     authStatus,
     player,
     playerResolved,
-    resources !== null && progression !== null && wheelToday !== null && dailyRewardToday !== null && dailyChallenge !== null && dailyCombat !== null && expedition !== null && notifications !== null && gacha !== null && characters !== null && teams !== null && permissions !== null,
+    resources !== null && progression !== null && wheelToday !== null && dailyRewardToday !== null && dailyChallenge !== null && dailyCombat !== null && monthlyBoss !== null && expedition !== null && notifications !== null && gacha !== null && characters !== null && teams !== null && permissions !== null,
   )
   const currentFatalError =
     fatalError && fatalError.userId === sessionUserId ? fatalError.message : null
@@ -306,7 +312,7 @@ function AppBootstrap() {
     )
   }
 
-  if (!player || !resources || !visibleResources || !progression || !wheelToday || !dailyRewardToday || !dailyChallenge || !dailyCombat || !expedition || !notifications || !gacha || !characters || !teams || !permissions) {
+  if (!player || !resources || !visibleResources || !progression || !wheelToday || !dailyRewardToday || !dailyChallenge || !dailyCombat || !monthlyBoss || !expedition || !notifications || !gacha || !characters || !teams || !permissions) {
     return <StatusScreen title="Chargement du profil…" message="Synchronisation de vos ressources." loading />
   }
 
@@ -319,6 +325,8 @@ function AppBootstrap() {
       dailyRewardToday={dailyRewardToday}
       dailyChallenge={dailyChallenge}
       dailyCombat={dailyCombat}
+      monthlyBoss={monthlyBoss}
+      onLoadMonthlyBoss={loadMonthlyBoss}
       expedition={expedition}
       expeditionMonotonicNow={expeditionMonotonicNow}
       notifications={notifications}
@@ -336,6 +344,12 @@ function AppBootstrap() {
       onAutoSelectDailyCombat={async () => { const next = await getGameApiClient().autoSelectDailyCombat(); setDailyCombat(next); return next }}
       onClearDailyCombatLoadout={async () => { const next = await getGameApiClient().clearDailyCombatLoadout(); setDailyCombat(next); return next }}
       onFightDailyCombat={async (idempotencyKey) => { const result = await getGameApiClient().fightDailyCombat(idempotencyKey); setDailyCombat(result.view); setResources(result.resources); return result }}
+      onSetMonthlyBossSlot={async (position, characterId) => { const next = await getGameApiClient().setMonthlyBossSlot(position, characterId); setMonthlyBoss(next); return next }}
+      onRemoveMonthlyBossSlot={async (position) => { const next = await getGameApiClient().removeMonthlyBossSlot(position); setMonthlyBoss(next); return next }}
+      onCopyActiveTeamToMonthlyBoss={async () => { const next = await getGameApiClient().copyActiveTeamToMonthlyBoss(); setMonthlyBoss(next); return next }}
+      onClearMonthlyBossLoadout={async () => { const next = await getGameApiClient().clearMonthlyBossLoadout(); setMonthlyBoss(next); return next }}
+      onAttackMonthlyBoss={async (bossId, idempotencyKey) => { const result = await getGameApiClient().attackMonthlyBoss(bossId, idempotencyKey); setMonthlyBoss(result.view); setResources(result.resources); await loadNotifications(); return result }}
+      onLoadMonthlyBossHistory={(page) => getGameApiClient().getMonthlyBossHistory(page)}
       onPurchaseDailyChallenge={async (idempotencyKey) => {
         const result = await getGameApiClient().purchaseDailyChallenge(idempotencyKey)
         setDailyChallenge(result)
@@ -418,6 +432,7 @@ function AppBootstrap() {
         setGachaPrimogemPreview(null)
         setTeams(null)
         setDailyCombat(null)
+        setMonthlyBoss(null)
         setPermissions(null)
         progressionRef.current = null
         setLevelUpFeedbacks([])
