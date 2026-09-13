@@ -13,7 +13,7 @@ describe('Contest HTTP contracts', () => {
   async function setup() {
     const service = {
       getCurrent: vi.fn(async () => view), getHistory: vi.fn(async () => ({ page: 1, pageSize: 10, total: 0, pageCount: 1, contests: [] })), getHistoryDetail: vi.fn(async (contestId: string) => ({ id: contestId, status: 'FINISHED' })),
-      createLobby: vi.fn(async () => view), joinAsParticipant: vi.fn(async () => view), selectLegend: vi.fn(async () => view), setReady: vi.fn(async () => view), start: vi.fn(async () => view), joinAsSpectator: vi.fn(async () => view), leave: vi.fn(async () => view), cancel: vi.fn(async () => view), play: vi.fn(async () => view), support: vi.fn(async () => view), removeFromLobby: vi.fn(async () => view), adminRemove: vi.fn(async () => view),
+      createLobby: vi.fn(async () => view), joinAsParticipant: vi.fn(async () => view), selectLegend: vi.fn(async () => view), setReady: vi.fn(async () => view), start: vi.fn(async () => view), joinAsSpectator: vi.fn(async () => view), leave: vi.fn(async () => view), cancel: vi.fn(async () => view), play: vi.fn(async () => view), support: vi.fn(async () => view), removeFromLobby: vi.fn(async () => view), removeSpectator: vi.fn(async () => view), adminRemove: vi.fn(async () => view),
     } as unknown as ContestService;
     const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, { authIdentityVerifier: { verify: async () => ({ subject: 'subject' }) }, getOrProvisionCurrentPlayer: { execute: vi.fn() } as never, contestService: service });
     apps.push(app); return { app, service };
@@ -27,6 +27,9 @@ describe('Contest HTTP contracts', () => {
     expect(service.createLobby).toHaveBeenCalledWith(expect.objectContaining({ subject: 'subject' }), characterId, idempotencyKey);
     expect((await app.inject({ method: 'POST', url: '/api/v1/contest/action', headers, payload: { action: 'CHEAT', idempotencyKey } })).statusCode).toBe(400);
     expect((await app.inject({ method: 'POST', url: '/api/v1/contest/support', headers, payload: { targetSlot: 5, idempotencyKey } })).statusCode).toBe(400);
+    const spectatorId = randomUUID();
+    expect((await app.inject({ method: 'DELETE', url: `/api/v1/contest/spectators/${spectatorId}`, headers, payload: { idempotencyKey } })).statusCode).toBe(200);
+    expect(service.removeSpectator).toHaveBeenCalledWith(expect.objectContaining({ subject: 'subject' }), spectatorId, idempotencyKey);
   });
 
   it('exposes only finished history through the public history contract', async () => {

@@ -441,6 +441,7 @@ export type ContestParticipantDto = Readonly<{
   activeTurn: boolean
   replaced: boolean
   replacementReason?: 'LEFT' | 'INACTIVE' | 'ADMIN_REMOVAL' | null
+  liveRank: number | null
   finalRank: number | null
   rewardPrimogems: string | null
 }>
@@ -465,7 +466,8 @@ export type ContestSnapshotDto = Readonly<{
   promotions: readonly Readonly<{ playerId: string; slot: number; characterName: string | null; fromRank: number; toRank: number; title: string }>[]
   historyEvents: readonly (
     | Readonly<{ kind: 'PARTICIPANT_LEFT'; occurredAt: string; slot: number | null; playerName: string | null }>
-    | Readonly<{ kind: 'PARTICIPANT_REPLACED'; occurredAt: string; slot: number | null; playerName: string | null; reason: string | null }>
+    | Readonly<{ kind: 'PARTICIPANT_REPLACED'; occurredAt: string; slot: number | null; playerName: string | null; characterName: string | null; botName: string | null; score: number | null; reason: string | null }>
+    | Readonly<{ kind: 'SPECTATOR_REMOVED'; occurredAt: string; playerName: string | null; selectedForSupport: boolean }>
     | Readonly<{ kind: 'SUPPORT_SELECTED'; occurredAt: string; round: number | null; playerName: string | null }>
     | Readonly<{ kind: 'SUPPORT_PLAYED'; occurredAt: string; slot: number | null; playerName: string | null; targetName: string | null; points: number | null }>
     | Readonly<{ kind: 'SUPPORT_SKIPPED'; occurredAt: string; round: number | null }>

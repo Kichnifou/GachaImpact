@@ -16,10 +16,11 @@ export const contestThemePresentation: Readonly<Record<ContestThemeKey, { label:
   INTELLIGENCE: { label: 'Intelligence', statKey: 'intelligence', title: 'Sage' },
   BEAUTY: { label: 'Beauté', statKey: 'beauty', title: 'Éclat' },
   CHARISMA: { label: 'Charisme', statKey: 'charisma', title: 'Icône' },
-  POPULARITY: { label: 'Popularité', statKey: 'popularity', title: 'Idole' },
+  POPULARITY: { label: 'Popularité', statKey: 'popularity', title: 'Idôle' },
 };
 
 export const contestTitleRanks = ['', 'Bronze', 'Argent', 'Or', 'Platine'] as const;
+const contestTitleRankConnectors = ['', 'de Bronze', 'd’Argent', 'd’Or', 'de Platine'] as const;
 
 export function contestBasePoints(stat: number): number {
   if (!Number.isInteger(stat) || stat < 1 || stat > 20) throw new RangeError('A contest stat must be an integer from 1 through 20.');
@@ -37,7 +38,13 @@ export function contestTitleFloor(wins: bigint | number): number {
 
 export function contestTitle(theme: ContestThemeKey, rank: number): string | null {
   if (rank < 1 || rank > 4) return null;
-  return `${contestThemePresentation[theme].title} ${contestTitleRanks[rank]}`;
+  return `${contestThemePresentation[theme].title} ${contestTitleRankConnectors[rank]}`;
+}
+
+export function contestLiveRanks(participants: readonly Readonly<{ slot: number; score: number; turnOrder: number | null }>[]): ReadonlyMap<number, number> {
+  return new Map([...participants]
+    .sort((left, right) => right.score - left.score || (left.turnOrder ?? Number.MAX_SAFE_INTEGER) - (right.turnOrder ?? Number.MAX_SAFE_INTEGER) || left.slot - right.slot)
+    .map((participant, index) => [participant.slot, index + 1]));
 }
 
 export function selectContestTheme(random: RandomSource): ContestThemeKey {

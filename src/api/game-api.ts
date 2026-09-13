@@ -190,6 +190,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     playContest: (action: 'BASIC' | 'RISK', idempotencyKey: string) => request<ContestDto>('/api/v1/contest/action', { method: 'POST', body: JSON.stringify({ action, idempotencyKey }) }),
     supportContest: (targetSlot: number, idempotencyKey: string) => request<ContestDto>('/api/v1/contest/support', { method: 'POST', body: JSON.stringify({ targetSlot, idempotencyKey }) }),
     removeContestParticipant: (playerId: string, idempotencyKey: string) => request<ContestDto>(`/api/v1/contest/participants/${playerId}`, { method: 'DELETE', body: JSON.stringify({ idempotencyKey }) }),
+    removeContestSpectator: (playerId: string, idempotencyKey: string) => request<ContestDto>(`/api/v1/contest/spectators/${playerId}`, { method: 'DELETE', body: JSON.stringify({ idempotencyKey }) }),
     getExpedition: () => request<ExpeditionDto>('/api/v1/me/expedition'),
     startExpedition: (characterId: string, idempotencyKey: string) => request<ExpeditionStartDto>('/api/v1/me/expedition/start', { method: 'POST', body: JSON.stringify({ characterId, idempotencyKey }) }),
     claimExpedition: (idempotencyKey: string) => request<ExpeditionClaimDto>('/api/v1/me/expedition/claim', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),

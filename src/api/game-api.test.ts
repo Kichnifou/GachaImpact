@@ -308,17 +308,21 @@ describe('game API client', () => {
     ])
   })
 
-  it('loads the existing Contest history detail endpoint', async () => {
+  it('loads Contest history detail and removes spectators through the dedicated mutation', async () => {
     const fetchImplementation = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ id: 'contest-id' })))
     const client = createGameApiClient({ baseUrl: 'http://127.0.0.1:3001', getAccessToken: async () => 'token', fetchImplementation })
     const contestId = crypto.randomUUID()
+    const spectatorId = crypto.randomUUID()
+    const idempotencyKey = crypto.randomUUID()
 
     await client.getContestHistory(2)
     await client.getContestHistoryDetail(contestId)
+    await client.removeContestSpectator(spectatorId, idempotencyKey)
 
-    expect(fetchImplementation.mock.calls.map(([url]) => url)).toEqual([
-      'http://127.0.0.1:3001/api/v1/contest/history?page=2',
-      `http://127.0.0.1:3001/api/v1/contest/history/${contestId}`,
+    expect(fetchImplementation.mock.calls.map(([url, init]) => [url, init?.method, init?.body ? JSON.parse(String(init.body)) : null])).toEqual([
+      ['http://127.0.0.1:3001/api/v1/contest/history?page=2', undefined, null],
+      [`http://127.0.0.1:3001/api/v1/contest/history/${contestId}`, undefined, null],
+      [`http://127.0.0.1:3001/api/v1/contest/spectators/${spectatorId}`, 'DELETE', { idempotencyKey }],
     ])
   })
 })

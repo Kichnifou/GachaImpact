@@ -6822,6 +6822,10 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .contest-participant { position: relative; min-width: 0; display: grid; justify-items: center; gap: 5px; padding: 14px; overflow: hidden; text-align: center; }
 .contest-participant.active-turn { border-color: rgba(244, 205, 104, .85); box-shadow: 0 0 0 2px rgba(244, 205, 104, .13), 0 15px 35px rgba(0, 0, 0, .25); }
 .contest-participant.winner { background: linear-gradient(160deg, rgba(116, 84, 18, .58), rgba(15, 30, 55, .94)); }
+.contest-participant.contest-title-rank-1 { border-color: rgba(194, 120, 74, .62); box-shadow: inset 0 0 20px rgba(142, 76, 39, .11); }
+.contest-participant.contest-title-rank-2 { border-color: rgba(188, 204, 224, .66); box-shadow: inset 0 0 20px rgba(162, 184, 211, .1); }
+.contest-participant.contest-title-rank-3 { border-color: rgba(246, 202, 82, .72); box-shadow: inset 0 0 24px rgba(204, 151, 31, .13); }
+.contest-participant.contest-title-rank-4 { border-color: rgba(152, 231, 255, .9); background-image: linear-gradient(145deg, rgba(102, 219, 238, .14), rgba(178, 138, 255, .11) 52%, rgba(14, 29, 54, .2)); box-shadow: inset 0 0 28px rgba(131, 220, 255, .16), 0 0 0 1px rgba(198, 171, 255, .28); }
 .contest-avatar { width: 76px; height: 76px; display: grid; place-items: center; overflow: hidden; border: 1px solid rgba(130, 177, 230, .25); border-radius: 50%; background: rgba(9, 24, 45, .85); }
 .contest-avatar span { color: #f6d77d; font-size: 25px; }
 .contest-avatar-image { width: 100%; height: 100%; object-fit: cover; }
@@ -6832,14 +6836,21 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .contest-score strong { color: #fff1b1; font-size: 27px; }
 .contest-score span, .contest-title, .contest-ready-state { color: #9eb3d1; font-size: 9px; }
 .contest-title { min-height: 21px; padding: 4px 8px; border-radius: 999px; background: rgba(111, 78, 176, .24); }
+.contest-title-rank-1 .contest-title { color: #efb48d; background: rgba(126, 65, 33, .34); }
+.contest-title-rank-2 .contest-title { color: #dce8f6; background: rgba(106, 126, 151, .34); }
+.contest-title-rank-3 .contest-title { color: #ffe18b; background: rgba(136, 96, 18, .4); }
+.contest-title-rank-4 .contest-title { color: #e5fbff; border: 1px solid rgba(173, 232, 255, .52); background: linear-gradient(100deg, rgba(44, 139, 170, .46), rgba(123, 78, 179, .42)); }
 .contest-ready-state.ready { color: #8cf0b6; }
 .contest-rank { color: #f1d274; font-size: 11px; }
+.contest-live-rank { position: absolute; top: 9px; right: 9px; min-width: 32px; padding: 4px 7px; color: #07182d; font-size: 10px; border-radius: 999px; background: #f5d879; box-shadow: 0 5px 14px rgba(0, 0, 0, .25); }
 .contest-replaced { color: #f3b978; font-size: 9px; }
 .contest-remove { min-height: 28px; padding: 0 9px; color: #f5a8aa; border: 1px solid rgba(231, 105, 113, .28); border-radius: 8px; background: transparent; }
 .contest-spectators { display: flex; align-items: center; gap: 12px; padding: 10px 14px; }
 .contest-spectators > div { display: flex; flex-wrap: wrap; gap: 6px; }
-.contest-spectators > div > span { padding: 5px 9px; color: #9db2d0; font-size: 9px; border: 1px solid rgba(112, 153, 215, .16); border-radius: 999px; background: rgba(20, 43, 76, .45); }
+.contest-spectators > div > span { min-width: 0; max-width: 100%; display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; color: #9db2d0; font-size: 9px; border: 1px solid rgba(112, 153, 215, .16); border-radius: 999px; background: rgba(20, 43, 76, .45); }
+.contest-spectators > div > span > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .contest-spectators > div > span.selected { color: #ffe6a4; border-color: rgba(241, 197, 83, .5); background: rgba(107, 77, 20, .38); }
+.contest-spectator-remove { flex: 0 0 auto; min-height: 24px; padding: 0 7px; color: #ffc0c2; font-size: 9px; border: 1px solid rgba(232, 113, 121, .32); border-radius: 999px; background: rgba(91, 25, 37, .32); }
 .contest-join-panel, .contest-lobby-controls, .contest-turn-actions, .contest-support-actions, .contest-result-hero { display: grid; gap: 13px; padding: 17px; }
 .contest-lobby-controls { grid-template-columns: minmax(220px, 340px) 1fr; align-items: end; }
 .contest-ready.active { color: #83efaf; border-color: rgba(72, 213, 127, .55); background: rgba(31, 112, 69, .3); }

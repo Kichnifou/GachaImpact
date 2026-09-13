@@ -20,6 +20,7 @@ import {
   CONTEST_WINNING_SCORE,
   botIdentity,
   contestBasePoints,
+  contestLiveRanks,
   contestThemePresentation,
   contestTitle,
   contestTitleFloor,
@@ -138,7 +139,7 @@ export class ContestService {
     const player = await this.getPlayer.execute(identity);
     await this.mutateActive(player.id, 'SPECTATOR_JOINED', idempotencyKey, {}, async (tx, contest) => {
       if (contest.participants.some((item) => item.playerId === player.id)) throw new BusinessError('CONTEST_ALREADY_JOINED', 'Un participant ne peut pas être spectateur actif.');
-      if (contest.status === ContestStatus.RUNNING && contest.participants.some((item) => item.originalPlayerId === player.id)) {
+      if (wasContestParticipant(contest, player.id)) {
         throw new BusinessError('CONTEST_ALREADY_JOINED', 'Un ancien participant ne peut pas devenir spectateur pendant ce Concours.');
       }
       if (contest.spectators.some((item) => item.playerId === player.id)) return;
@@ -308,6 +309,27 @@ export class ContestService {
     return this.readView(organizer.id);
   }
 
+  public async removeSpectator(identity: AuthenticatedIdentity, targetPlayerId: string, idempotencyKey: string) {
+    const actor = await this.getPlayer.execute(identity);
+    await this.mutateActive(actor.id, 'SPECTATOR_REMOVED', idempotencyKey, { targetPlayerId }, async (tx, contest) => {
+      const authorizedAdmin = contest.organizerPlayerId === actor.id ? null : await tx.playerRoleAssignment.findFirst({
+        where: { playerId: actor.id, role: 'ADMIN', revokedAt: null },
+        select: { id: true },
+      });
+      if (contest.organizerPlayerId !== actor.id && !authorizedAdmin) {
+        throw new BusinessError('CONTEST_SPECTATOR_REMOVE_FORBIDDEN', 'Seuls l’organisateur et l’administration peuvent retirer un spectateur actif.');
+      }
+      const spectator = contest.spectators.find((item) => item.playerId === targetPlayerId);
+      if (!spectator) throw new BusinessError('CONTEST_NOT_JOINED', 'Ce joueur n’est pas spectateur actif de ce Concours.');
+      const selectedForSupport = contest.phase === ContestPhase.SUPPORT && contest.selectedSpectatorPlayerId === targetPlayerId;
+      await tx.contestSpectator.delete({ where: { contestId_playerId: { contestId: contest.id, playerId: targetPlayerId } } });
+      await createEvent(tx, contest.id, 'SPECTATOR_REMOVED', idempotencyKey, actor.id, { targetPlayerId, spectatorName: spectator.player.displayName, selectedForSupport, round: contest.currentRound }, targetPlayerId);
+      if (selectedForSupport) await beginNextRound(tx, contest.id, contest.currentRound, this.clock.now());
+    });
+    await this.reconcile();
+    return this.readView(actor.id);
+  }
+
   public async adminRemove(identity: AuthenticatedIdentity, targetPlayerId: string, idempotencyKey: string) {
     const actor = await this.getPlayer.execute(identity);
     const isAdmin = await this.database.playerRoleAssignment.findFirst({ where: { playerId: actor.id, role: 'ADMIN', revokedAt: null }, select: { id: true } });
@@ -318,7 +340,6 @@ export class ContestService {
       if (contest.status === ContestStatus.LOBBY) {
         const now = this.clock.now();
         await tx.contestParticipant.delete({ where: { contestId_slot: { contestId: contest.id, slot: participant.slot } } });
-        await tx.contestLobbyRemoval.upsert({ where: { contestId_playerId: { contestId: contest.id, playerId: targetPlayerId } }, create: { contestId: contest.id, playerId: targetPlayerId, count: 1 }, update: { count: { increment: 1 } } });
         await transferOrganizerOrCancel(tx, contest.id, targetPlayerId, now);
         await touchLobbyDeadline(tx, contest.id, now);
       } else {
@@ -356,6 +377,10 @@ export class ContestService {
         if (!active) return 'STOP' as const;
         const now = this.clock.now();
         if (active.status === ContestStatus.LOBBY) {
+          if (databaseDateToBusinessDate(active.businessDate) !== getBusinessDate(now)) {
+            await cancelContest(tx, active, ContestCancellationKind.LOBBY_TIMEOUT, 'Changement de journée avant lancement', null, false, now);
+            return 'STOP' as const;
+          }
           if (active.lobbyDeadlineAt && active.lobbyDeadlineAt <= now) {
             await cancelContest(tx, active, ContestCancellationKind.LOBBY_TIMEOUT, 'Lobby inactif pendant dix minutes', null, false, now);
           }
@@ -446,7 +471,7 @@ export class ContestService {
       permissions: {
         canOpen: !active && !dailyUsed && eligibleLegends.length > 0,
         canJoin: Boolean(active?.status === ContestStatus.LOBBY && !participant && !dailyUsed && active.participants.length < 4 && eligibleLegends.length > 0),
-        canSpectate: Boolean(active && !participant && !spectator && active.spectators.length < CONTEST_MAX_SPECTATORS && !(active.status === ContestStatus.RUNNING && active.participants.some((item) => item.originalPlayerId === playerId))),
+        canSpectate: Boolean(active && !participant && !spectator && active.spectators.length < CONTEST_MAX_SPECTATORS && !wasContestParticipant(active, playerId)),
         canLeave: Boolean(active && (participant || spectator)),
         canReady: Boolean(active?.status === ContestStatus.LOBBY && participant),
         canStart: Boolean(active?.status === ContestStatus.LOBBY && active.organizerPlayerId === playerId && active.participants.every((item) => item.kind !== ContestParticipantKind.HUMAN || item.ready)),
@@ -483,6 +508,12 @@ async function lockContest(tx: Prisma.TransactionClient) { await tx.$queryRaw`SE
 async function findActive(tx: Client) { return tx.contest.findFirst({ where: { status: { in: [...ACTIVE_STATUSES] } }, include: contestInclude }); }
 function assertLobby(contest: ContestRecord) { if (contest.status !== ContestStatus.LOBBY) throw new BusinessError('CONTEST_NOT_IN_LOBBY', 'Le lobby de ce Concours est fermé.'); }
 function assertRunningTurns(contest: ContestRecord) { if (contest.status !== ContestStatus.RUNNING || contest.phase !== ContestPhase.TURNS) throw new BusinessError('CONTEST_NOT_RUNNING', 'Le Concours n’attend pas d’action de tour.'); }
+function wasContestParticipant(contest: ContestRecord, playerId: string): boolean {
+  if (contest.participants.some((participant) => participant.playerId === playerId || participant.originalPlayerId === playerId)) return true;
+  return contest.events.some((event) =>
+    (['LOBBY_CREATED', 'PARTICIPANT_JOINED', 'MEMBER_LEFT'].includes(event.type) && event.actorPlayerId === playerId)
+    || (['LOBBY_PARTICIPANT_REMOVED', 'ADMIN_REMOVAL', 'PARTICIPANT_REPLACED'].includes(event.type) && event.targetPlayerId === playerId));
+}
 
 async function ensureDailyTheme(tx: Client, businessDate: string, random: RandomSource): Promise<ContestTheme> {
   const date = businessDateToDatabaseDate(businessDate);
@@ -545,11 +576,11 @@ async function applyTurn(tx: Prisma.TransactionClient, contest: ContestRecord, p
   const inactivity = automatic && participant.kind === ContestParticipantKind.HUMAN ? participant.inactivityCount + 1 : 0;
   await tx.contestParticipant.update({ where: { contestId_slot: { contestId: contest.id, slot: participant.slot } }, data: { score: { increment: points }, inactivityCount: inactivity } });
   await createEvent(tx, contest.id, automatic ? 'TURN_AUTO_BASIC' : participant.kind === ContestParticipantKind.BOT ? 'BOT_TURN_PLAYED' : 'TURN_PLAYED', idempotencyKey, actorPlayerId, { slot: participant.slot, action, basePoints: base, points, round: contest.currentRound }, participant.playerId, participant.slot);
-  if (inactivity >= 3 && participant.playerId) await replaceWithBot(tx, contest, participant.slot, ContestReplacementReason.INACTIVE, now);
   if (participant.score + points >= CONTEST_WINNING_SCORE) {
     await finishContest(tx, contest.id, participant.slot, now, economy);
     return;
   }
+  if (inactivity >= 3 && participant.playerId) await replaceWithBot(tx, contest, participant.slot, ContestReplacementReason.INACTIVE, now);
   await advanceTurn(tx, contest, now, random);
 }
 
@@ -572,18 +603,28 @@ async function beginNextRound(tx: Prisma.TransactionClient, contestId: string, c
 
 async function replaceWithBot(tx: Prisma.TransactionClient, contest: ContestRecord, slot: number, reason: ContestReplacementReason, now: Date) {
   const participant = await tx.contestParticipant.findUniqueOrThrow({ where: { contestId_slot: { contestId: contest.id, slot } } });
-  const relayNames = ['Astra', 'Braise', 'Céleste', 'Dune'];
   await tx.contestParticipant.update({ where: { contestId_slot: { contestId: contest.id, slot } }, data: {
-    kind: ContestParticipantKind.BOT, playerId: null, characterId: null, eligibleForResult: false,
+    kind: ContestParticipantKind.BOT, playerId: null, eligibleForResult: false,
     leftAt: now, replacedAt: now, replacementReason: reason,
-    playerNameSnapshot: `${relayNames[slot - 1]} · Bot`, characterNameSnapshot: 'Légende relayée', avatarSnapshot: `bot-${slot}`,
   } });
-  await createEvent(tx, contest.id, 'PARTICIPANT_REPLACED', null, null, { slot, reason, inheritedScore: participant.score, inheritedBasePoints: participant.basePointsSnapshot }, participant.originalPlayerId, slot);
+  await createEvent(tx, contest.id, 'PARTICIPANT_REPLACED', null, null, {
+    slot,
+    reason,
+    inheritedScore: participant.score,
+    inheritedBasePoints: participant.basePointsSnapshot,
+    originalPlayerName: participant.playerNameSnapshot,
+    originalCharacterName: participant.characterNameSnapshot,
+    replacementBotName: replacementBotIdentity(slot).displayName,
+  }, participant.originalPlayerId, slot);
 }
 
 async function transferOrganizerOrCancel(tx: Prisma.TransactionClient, contestId: string, departingPlayerId: string, now: Date) {
-  const humans = await tx.contestParticipant.findMany({ where: { contestId, kind: ContestParticipantKind.HUMAN, playerId: { not: null } }, orderBy: { slot: 'asc' } });
   const contest = await tx.contest.findUniqueOrThrow({ where: { id: contestId }, include: contestInclude });
+  const humans = contest.participants
+    .filter((participant) => participant.kind === ContestParticipantKind.HUMAN && participant.playerId)
+    .sort((left, right) => contest.status === ContestStatus.RUNNING
+      ? (left.turnOrder ?? Number.MAX_SAFE_INTEGER) - (right.turnOrder ?? Number.MAX_SAFE_INTEGER) || left.slot - right.slot
+      : left.slot - right.slot);
   if (humans.length === 0) { await cancelContest(tx, contest, ContestCancellationKind.NO_HUMANS, 'Aucun participant humain restant', null, false, now); return; }
   if (contest.organizerPlayerId === departingPlayerId) {
     await tx.contest.update({ where: { id: contestId }, data: { organizerPlayerId: humans[0]!.playerId } });
@@ -666,6 +707,16 @@ function titleRankForProgress(progress: Prisma.C6CompetitionProgressGetPayload<o
   return progress.popularityTitleFloor;
 }
 
+function replacementBotIdentity(slot: number) {
+  const names = ['Astra', 'Braise', 'Céleste', 'Dune'];
+  return { displayName: `${names[slot - 1] ?? 'Relais'} · Bot`, characterName: 'Légende relayée', avatar: `bot-${slot}` };
+}
+
+function presentParticipantIdentity(participant: ContestRecord['participants'][number]) {
+  if (participant.kind === ContestParticipantKind.BOT && participant.originalPlayerId) return replacementBotIdentity(participant.slot);
+  return { displayName: participant.playerNameSnapshot, characterName: participant.characterNameSnapshot, avatar: participant.avatarSnapshot };
+}
+
 function presentTheme(theme: ContestTheme) { const item = contestThemePresentation[theme as ContestThemeKey]; return { key: theme, label: item.label, title: item.title, statKey: item.statKey }; }
 
 function presentLegend(progress: Prisma.C6CompetitionProgressGetPayload<{ include: { character: true } }>) {
@@ -687,6 +738,10 @@ function presentContest(contest: ContestRecord, viewerPlayerId: string | null, h
   const viewerParticipant = contest.participants.find((item) => item.playerId === viewerPlayerId);
   const viewerSpectator = contest.spectators.find((item) => item.playerId === viewerPlayerId);
   const promotions = history ? presentPromotions(contest) : [];
+  const liveRanks = contest.status === ContestStatus.RUNNING ? contestLiveRanks(contest.participants) : new Map<number, number>();
+  const presentedParticipants = contest.status === ContestStatus.LOBBY
+    ? contest.participants
+    : [...contest.participants].sort((left, right) => (left.turnOrder ?? Number.MAX_SAFE_INTEGER) - (right.turnOrder ?? Number.MAX_SAFE_INTEGER) || left.slot - right.slot);
   return {
     id: contest.id, businessDate: databaseDateToBusinessDate(contest.businessDate), theme: presentTheme(contest.theme),
     status: contest.status, phase: contest.phase, organizerPlayerId: contest.organizerPlayerId,
@@ -695,15 +750,18 @@ function presentContest(contest: ContestRecord, viewerPlayerId: string | null, h
     currentRound: contest.currentRound, winnerSlot: contest.winnerSlot, startedAt: contest.startedAt?.toISOString() ?? null,
     finishedAt: contest.finishedAt?.toISOString() ?? null,
     viewer: { participantSlot: viewerParticipant?.slot ?? null, selectedCharacterId: viewerParticipant?.characterId ?? null, spectator: Boolean(viewerSpectator), organizer: contest.organizerPlayerId === viewerPlayerId, selectedForSupport: contest.selectedSpectatorPlayerId === viewerPlayerId },
-    participants: contest.participants.map((item) => ({
-      slot: item.slot, kind: item.kind, playerId: item.playerId, displayName: item.playerNameSnapshot,
-      characterName: item.characterNameSnapshot, avatar: item.avatarSnapshot, basePoints: item.basePointsSnapshot,
+    participants: presentedParticipants.map((item) => {
+      const identity = presentParticipantIdentity(item);
+      return {
+      slot: item.slot, kind: item.kind, playerId: item.playerId, displayName: identity.displayName,
+      characterName: identity.characterName, avatar: identity.avatar, basePoints: item.basePointsSnapshot,
       titleRank: item.titleRankSnapshot, title: contestTitle(contest.theme as ContestThemeKey, item.titleRankSnapshot),
       score: item.score, turnOrder: item.turnOrder, ready: item.ready,
       activeTurn: contest.phase === ContestPhase.TURNS && item.turnOrder === contest.currentTurnOrder,
       replaced: Boolean(item.replacedAt), replacementReason: history ? item.replacementReason : undefined,
+      liveRank: liveRanks.get(item.slot) ?? null,
       finalRank: history ? item.finalRank : null, rewardPrimogems: history ? item.rewardPrimogems.toString() : null,
-    })),
+    }}),
     spectators: contest.spectators.map((item) => ({ playerId: item.playerId, displayName: item.player.displayName, selected: contest.selectedSpectatorPlayerId === item.playerId })),
     promotions,
     historyEvents: history ? presentHistoryEvents(contest) : [],
@@ -712,12 +770,13 @@ function presentContest(contest: ContestRecord, viewerPlayerId: string | null, h
 
 function presentContestHistorySummary(contest: ContestRecord) {
   const winner = contest.participants.find((item) => item.slot === contest.winnerSlot);
+  const winnerIdentity = winner ? presentParticipantIdentity(winner) : null;
   return {
     id: contest.id,
     businessDate: databaseDateToBusinessDate(contest.businessDate),
     theme: presentTheme(contest.theme),
     currentRound: contest.currentRound,
-    winner: winner ? { slot: winner.slot, displayName: winner.playerNameSnapshot, kind: winner.kind } : null,
+    winner: winner && winnerIdentity ? { slot: winner.slot, displayName: winnerIdentity.displayName, kind: winner.kind } : null,
     startedAt: contest.startedAt?.toISOString() ?? null,
     finishedAt: contest.finishedAt?.toISOString() ?? null,
   };
@@ -739,7 +798,8 @@ function presentPromotions(contest: ContestRecord) {
 
 type PresentedHistoryEvent =
   | { kind: 'PARTICIPANT_LEFT'; occurredAt: string; slot: number | null; playerName: string | null }
-  | { kind: 'PARTICIPANT_REPLACED'; occurredAt: string; slot: number | null; playerName: string | null; reason: string | null }
+  | { kind: 'PARTICIPANT_REPLACED'; occurredAt: string; slot: number | null; playerName: string | null; characterName: string | null; botName: string | null; score: number | null; reason: string | null }
+  | { kind: 'SPECTATOR_REMOVED'; occurredAt: string; playerName: string | null; selectedForSupport: boolean }
   | { kind: 'SUPPORT_SELECTED'; occurredAt: string; round: number | null; playerName: string | null }
   | { kind: 'SUPPORT_PLAYED'; occurredAt: string; slot: number | null; playerName: string | null; targetName: string | null; points: number | null }
   | { kind: 'SUPPORT_SKIPPED'; occurredAt: string; round: number | null }
@@ -758,7 +818,21 @@ function presentHistoryEvents(contest: ContestRecord): PresentedHistoryEvent[] {
     const payload = jsonObject(event.payload);
     const occurredAt = event.createdAt.toISOString();
     if (event.type === 'MEMBER_LEFT') result.push({ kind: 'PARTICIPANT_LEFT', occurredAt, slot: numberValue(payload.slot), playerName: displayName(event.actorPlayerId) });
-    if (event.type === 'PARTICIPANT_REPLACED') result.push({ kind: 'PARTICIPANT_REPLACED', occurredAt, slot: numberValue(payload.slot), playerName: displayName(event.targetPlayerId), reason: stringValue(payload.reason) });
+    if (event.type === 'PARTICIPANT_REPLACED') {
+      const slot = numberValue(payload.slot) ?? event.targetSlot;
+      const participant = contest.participants.find((item) => item.slot === slot);
+      result.push({
+        kind: 'PARTICIPANT_REPLACED',
+        occurredAt,
+        slot,
+        playerName: stringValue(payload.originalPlayerName) ?? displayName(event.targetPlayerId),
+        characterName: stringValue(payload.originalCharacterName) ?? participant?.characterNameSnapshot ?? null,
+        botName: stringValue(payload.replacementBotName) ?? (slot ? replacementBotIdentity(slot).displayName : null),
+        score: numberValue(payload.inheritedScore) ?? participant?.score ?? null,
+        reason: stringValue(payload.reason),
+      });
+    }
+    if (event.type === 'SPECTATOR_REMOVED') result.push({ kind: 'SPECTATOR_REMOVED', occurredAt, playerName: stringValue(payload.spectatorName) ?? displayName(event.targetPlayerId), selectedForSupport: payload.selectedForSupport === true });
     if (event.type === 'SUPPORT_SELECTED') result.push({ kind: 'SUPPORT_SELECTED', occurredAt, round: numberValue(payload.round), playerName: displayName(event.actorPlayerId) });
     if (event.type === 'SUPPORT_PLAYED') result.push({ kind: 'SUPPORT_PLAYED', occurredAt, slot: numberValue(payload.targetSlot) ?? event.targetSlot, playerName: displayName(event.actorPlayerId), targetName: displayName(event.targetPlayerId), points: numberValue(payload.points) });
     if (event.type === 'SUPPORT_SKIPPED') result.push({ kind: 'SUPPORT_SKIPPED', occurredAt, round: numberValue(payload.round) });

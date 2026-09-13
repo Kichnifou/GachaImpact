@@ -347,6 +347,7 @@ function AppBootstrap() {
       onPlayContest={(action, key) => publishContest(getGameApiClient().playContest(action, key))}
       onSupportContest={(slot, key) => publishContest(getGameApiClient().supportContest(slot, key))}
       onRemoveContestParticipant={(playerId, key) => publishContest(getGameApiClient().removeContestParticipant(playerId, key))}
+      onRemoveContestSpectator={(playerId, key) => publishContest(getGameApiClient().removeContestSpectator(playerId, key))}
       onLoadMonthlyBoss={loadMonthlyBoss}
       expedition={expedition}
       expeditionMonotonicNow={expeditionMonotonicNow}

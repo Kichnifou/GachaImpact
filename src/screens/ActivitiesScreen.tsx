@@ -59,6 +59,7 @@ type ActivitiesScreenProps = {
   onPlayContest?: (action: 'BASIC' | 'RISK', key: string) => Promise<ContestDto>
   onSupportContest?: (slot: number, key: string) => Promise<ContestDto>
   onRemoveContestParticipant?: (playerId: string, key: string) => Promise<ContestDto>
+  onRemoveContestSpectator?: (playerId: string, key: string) => Promise<ContestDto>
   onOpenParticleConversion: () => void
   onOpenExpedition?: () => void
   onOpenBoss?: () => void
@@ -73,7 +74,7 @@ function ActivitiesScreen(props: ActivitiesScreenProps) {
     const unchanged = async () => contest
     const emptyHistory = async () => ({ page: 1, pageSize: 10, total: 0, pageCount: 1, contests: [] as const })
     const emptyDetail = async () => { throw new Error('Détail indisponible.') }
-    return <ContestScreen value={contest} onRefresh={props.onRefreshContest ?? unchanged} onLoadHistory={props.onLoadContestHistory ?? emptyHistory} onLoadHistoryDetail={props.onLoadContestHistoryDetail ?? emptyDetail} onOpen={props.onOpenContest ?? unchanged} onJoin={props.onJoinContest ?? unchanged} onSelectLegend={props.onSelectContestLegend ?? unchanged} onReady={props.onSetContestReady ?? unchanged} onStart={props.onStartContest ?? unchanged} onSpectate={props.onSpectateContest ?? unchanged} onLeave={props.onLeaveContest ?? unchanged} onCancel={props.onCancelContest ?? unchanged} onPlay={props.onPlayContest ?? unchanged} onSupport={props.onSupportContest ?? unchanged} onRemoveParticipant={props.onRemoveContestParticipant ?? unchanged} />
+    return <ContestScreen value={contest} onRefresh={props.onRefreshContest ?? unchanged} onLoadHistory={props.onLoadContestHistory ?? emptyHistory} onLoadHistoryDetail={props.onLoadContestHistoryDetail ?? emptyDetail} onOpen={props.onOpenContest ?? unchanged} onJoin={props.onJoinContest ?? unchanged} onSelectLegend={props.onSelectContestLegend ?? unchanged} onReady={props.onSetContestReady ?? unchanged} onStart={props.onStartContest ?? unchanged} onSpectate={props.onSpectateContest ?? unchanged} onLeave={props.onLeaveContest ?? unchanged} onCancel={props.onCancelContest ?? unchanged} onPlay={props.onPlayContest ?? unchanged} onSupport={props.onSupportContest ?? unchanged} onRemoveParticipant={props.onRemoveContestParticipant ?? unchanged} onRemoveSpectator={props.onRemoveContestSpectator ?? unchanged} />
   }
   const content = screen === 'activities-missions' ? { title: 'Missions', description: 'Les missions permanentes seront disponibles ici.', tabs: ['B', 'A', 'S', 'Z'] } : screen === 'activities-event' ? { title: 'Événement', description: 'Les événements mensuels seront accessibles ici.', tabs: ['Jeux', 'Shop', 'Classement'] } : { title: 'Concours', description: 'Le Concours C6 sera accessible ici lorsqu’il sera implémenté.', tabs: [] }
   return <div className="screen-content activity-shell"><ScreenHeader eyebrow="Activités" title={content.title} description={content.description} /><nav className="activity-inner-tabs" aria-label={`Sections ${content.title}`}>{content.tabs.map((tab) => <button type="button" disabled key={tab}>{tab}</button>)}</nav><section className="panel unavailable-shell"><strong>Bientôt disponible</strong><p>Aucune progression fictive n’est affichée.</p></section></div>

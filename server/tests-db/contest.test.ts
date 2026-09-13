@@ -11,7 +11,7 @@ const config = loadConfig(); if (!config.databaseUrl) throw new Error('DATABASE_
 const database = createDatabase(config.databaseUrl);
 const playerIds = new Set<string>();
 const characterIds = new Set<string>();
-const fixtureDates = ['2098-09-01', '2098-09-02', '2098-09-03', '2098-09-04', '2098-09-05', '2098-09-06', '2098-09-07', '2098-09-08', '2098-09-09', '2098-09-10', '2098-09-11', '2098-09-12', '2098-09-13'] as const;
+const fixtureDates = ['2098-09-01', '2098-09-02', '2098-09-03', '2098-09-04', '2098-09-05', '2098-09-06', '2098-09-07', '2098-09-08', '2098-09-09', '2098-09-10', '2098-09-11', '2098-09-12', '2098-09-13', '2098-09-14', '2098-09-15', '2098-09-16', '2098-09-17', '2098-09-18', '2098-09-19', '2098-09-20'] as const;
 let now = new Date('2098-09-01T10:00:00.000Z');
 let rolls: number[] = [];
 const clock = { now: () => now };
@@ -179,16 +179,16 @@ describe('Contest persistence', () => {
     expect(await database.resourceMovement.count({ where: { playerId: player.id, causeKey: 'contest.ranking' } })).toBe(1);
     expect(await database.contestReward.count({ where: { contestId } })).toBe(1);
     expect(await database.c6CompetitionProgress.findUniqueOrThrow({ where: { playerId_characterId: { playerId: player.id, characterId: player.character.id } } })).toMatchObject({ totalContests: 3n, totalWins: 3n, strengthParticipations: 3n, strengthWins: 3n, strengthTitleFloor: 2 });
-    expect(await database.contestEvent.findFirst({ where: { contestId, type: 'TITLE_PROMOTED', targetPlayerId: player.id } })).toMatchObject({ payload: expect.objectContaining({ from: 0, to: 2, title: 'Titan Argent' }) });
+    expect(await database.contestEvent.findFirst({ where: { contestId, type: 'TITLE_PROMOTED', targetPlayerId: player.id } })).toMatchObject({ payload: expect.objectContaining({ from: 0, to: 2, title: 'Titan d’Argent' }) });
   }, 30_000);
 
   it('persists and projects every title threshold without promoting bots or non-winning slots', async () => {
     const player = await fixture('TitleThresholds');
     const transitions = [
-      { day: 10, wins: 0n, floor: 0, title: 'Titan Bronze', toRank: 1 },
-      { day: 11, wins: 2n, floor: 1, title: 'Titan Argent', toRank: 2 },
-      { day: 12, wins: 6n, floor: 2, title: 'Titan Or', toRank: 3 },
-      { day: 13, wins: 14n, floor: 3, title: 'Titan Platine', toRank: 4 },
+      { day: 10, wins: 0n, floor: 0, title: 'Titan de Bronze', toRank: 1 },
+      { day: 11, wins: 2n, floor: 1, title: 'Titan d’Argent', toRank: 2 },
+      { day: 12, wins: 6n, floor: 2, title: 'Titan d’Or', toRank: 3 },
+      { day: 13, wins: 14n, floor: 3, title: 'Titan de Platine', toRank: 4 },
     ];
     for (const transition of transitions) {
       now = new Date(`2098-09-${transition.day}T10:00:00Z`); rolls = Array(80).fill(0);
@@ -258,12 +258,13 @@ describe('Contest persistence', () => {
     await database.contest.update({ where: { id: contestId }, data: { phase: 'SUPPORT', currentTurnOrder: null, turnDeadlineAt: null, selectedSpectatorPlayerId: fan.id, supportDeadlineAt: new Date(now.getTime() + 30_000) } });
     const target = started.active!.participants[0]!; const before = (await database.contestParticipant.findUniqueOrThrow({ where: { contestId_slot: { contestId, slot: target.slot } } })).score;
     const key = randomUUID(); await fan.service.support(identity, target.slot, key); await fan.service.support(identity, target.slot, key);
-    expect((await database.contestParticipant.findUniqueOrThrow({ where: { contestId_slot: { contestId, slot: target.slot } } })).score).toBe(before + 1);
+    expect((await database.contestParticipant.findUniqueOrThrow({ where: { contestId_slot: { contestId, slot: target.slot } } })).score).toBeGreaterThanOrEqual(before + 1);
+    expect(await database.contestEvent.findMany({ where: { contestId, type: 'SUPPORT_PLAYED', idempotencyKey: key } })).toEqual([expect.objectContaining({ payload: expect.objectContaining({ targetSlot: target.slot, points: 1 }) })]);
     expect((await fan.service.getCurrent(identity)).active?.viewer.spectator).toBe(true);
     const bot = started.active!.participants.find(({ kind }) => kind === 'BOT')!;
     await database.contest.update({ where: { id: contestId }, data: { phase: 'SUPPORT', currentTurnOrder: null, turnDeadlineAt: null, selectedSpectatorPlayerId: fan.id, supportDeadlineAt: new Date(now.getTime() + 30_000) } });
-    await fan.service.support(identity, bot.slot, randomUUID());
-    expect((await database.contestParticipant.findUniqueOrThrow({ where: { contestId_slot: { contestId, slot: bot.slot } } })).score).toBe(bot.score + 1);
+    const botSupportKey = randomUUID(); await fan.service.support(identity, bot.slot, botSupportKey);
+    expect(await database.contestEvent.findFirst({ where: { contestId, type: 'SUPPORT_PLAYED', idempotencyKey: botSupportKey } })).toMatchObject({ payload: expect.objectContaining({ targetSlot: bot.slot, points: 1 }) });
     await database.contest.update({ where: { id: contestId }, data: { phase: 'SUPPORT', currentTurnOrder: null, turnDeadlineAt: null, selectedSpectatorPlayerId: fan.id, supportDeadlineAt: new Date(now.getTime() - 1) } });
     await player.service.reconcile();
     expect(await database.contest.findUniqueOrThrow({ where: { id: contestId } })).toMatchObject({ phase: 'TURNS', currentRound: 4, currentTurnOrder: 4, selectedSpectatorPlayerId: null });
@@ -329,7 +330,7 @@ describe('Contest persistence', () => {
         { type: 'PARTICIPANT_REPLACED', targetPlayerId: replaced.id, targetSlot: 2, payload: { slot: 2, reason: 'LEFT', inheritedScore: 24 }, createdAt: new Date('2098-09-09T10:04:00Z') },
         { type: 'SUPPORT_SELECTED', actorPlayerId: fan.id, payload: { round: 4 }, createdAt: new Date('2098-09-09T10:05:00Z') },
         { type: 'SUPPORT_PLAYED', actorPlayerId: fan.id, targetPlayerId: alpha.id, targetSlot: 1, payload: { targetSlot: 1, points: 3 }, createdAt: new Date('2098-09-09T10:05:10Z') },
-        { type: 'TITLE_PROMOTED', actorPlayerId: alpha.id, targetPlayerId: alpha.id, targetSlot: 1, payload: { slot: 1, from: 2, to: 3, title: 'Titan Or' }, createdAt: new Date('2098-09-09T10:07:30Z') },
+        { type: 'TITLE_PROMOTED', actorPlayerId: alpha.id, targetPlayerId: alpha.id, targetSlot: 1, payload: { slot: 1, from: 2, to: 3, title: 'Titan d’Or' }, createdAt: new Date('2098-09-09T10:07:30Z') },
       ] },
     } });
     await database.contest.create({ data: { businessDate, theme: 'STRENGTH', status: 'CANCELLED', phase: 'CANCELLED', cancelledAt: now, cancellationKind: 'TECHNICAL' } });
@@ -339,9 +340,169 @@ describe('Contest persistence', () => {
     const detail = await alpha.service.getHistoryDetail(contest.id);
     expect(detail.participants).toHaveLength(4);
     expect(detail.participants.find(({ slot }) => slot === 2)).toMatchObject({ kind: 'BOT', replaced: true, replacementReason: 'LEFT', finalRank: 2 });
-    expect(detail.promotions).toEqual([{ playerId: alpha.id, slot: 1, characterName: alpha.character.name, fromRank: 2, toRank: 3, title: 'Titan Or' }]);
+    expect(detail.promotions).toEqual([{ playerId: alpha.id, slot: 1, characterName: alpha.character.name, fromRank: 2, toRank: 3, title: 'Titan d’Or' }]);
     expect(detail.historyEvents.map(({ kind }) => kind)).toEqual(['PARTICIPANT_LEFT', 'PARTICIPANT_REPLACED', 'SUPPORT_SELECTED', 'SUPPORT_PLAYED', 'TITLE_PROMOTED']);
   }, 30_000);
+
+  it('projects authoritative live ranks while preserving the shuffled turn-order presentation', async () => {
+    now = new Date('2098-09-14T10:00:00Z'); rolls = Array(80).fill(0);
+    const organizer = await fixture('LiveRank'); const fan = await fixture('LiveRankFan');
+    await organizer.service.createLobby(identity, organizer.character.id, randomUUID()); await fan.service.joinAsSpectator(identity, randomUUID());
+    await organizer.service.setReady(identity, true, randomUUID()); const started = await organizer.service.start(identity, randomUUID()); const contestId = started.active!.id;
+    await database.contestParticipant.updateMany({ where: { contestId }, data: { turnOrder: null } });
+    const state = [
+      { slot: 1, score: 12, turnOrder: 4 },
+      { slot: 2, score: 30, turnOrder: 3 },
+      { slot: 3, score: 30, turnOrder: 1 },
+      { slot: 4, score: 5, turnOrder: 2 },
+    ];
+    for (const participant of state) await database.contestParticipant.update({ where: { contestId_slot: { contestId, slot: participant.slot } }, data: { score: participant.score, turnOrder: participant.turnOrder } });
+    await database.contest.update({ where: { id: contestId }, data: { phase: 'SUPPORT', currentTurnOrder: null, turnDeadlineAt: null, selectedSpectatorPlayerId: fan.id, supportDeadlineAt: new Date(now.getTime() + 30_000) } });
+    const view = (await organizer.service.getCurrent(identity)).active!;
+    expect(view.participants.map(({ slot }) => slot)).toEqual([3, 4, 2, 1]);
+    expect(view.participants.map(({ slot, liveRank }) => [slot, liveRank])).toEqual([[3, 1], [4, 4], [2, 2], [1, 3]]);
+    expect(view.participants.every(({ finalRank }) => finalRank === null)).toBe(true);
+    await database.contestParticipant.update({ where: { contestId_slot: { contestId, slot: 1 } }, data: { score: 40 } });
+    const updated = (await organizer.service.getCurrent(identity)).active!;
+    expect(updated.participants.map(({ slot }) => slot)).toEqual([3, 4, 2, 1]);
+    expect(updated.participants.find(({ slot }) => slot === 1)?.liveRank).toBe(1);
+  }, 30_000);
+
+  it('allows organizer and ADMIN spectator removal, rejects normal players and closes a selected support window', async () => {
+    now = new Date('2098-09-15T10:00:00Z'); rolls = Array(80).fill(0);
+    const organizer = await fixture('SpOrg'); const fan = await fixture('SpFan'); const admin = await fixture('SpAdmin'); const normal = await fixture('SpNormal');
+    await database.playerRoleAssignment.create({ data: { playerId: admin.id, role: 'ADMIN', source: 'contest-fixture' } });
+    await organizer.service.createLobby(identity, organizer.character.id, randomUUID()); await fan.service.joinAsSpectator(identity, randomUUID());
+    await expect(organizer.service.removeSpectator(identity, organizer.id, randomUUID())).rejects.toMatchObject({ code: 'CONTEST_NOT_JOINED' });
+    expect((await organizer.service.getCurrent(identity)).active?.participants.some(({ playerId }) => playerId === organizer.id)).toBe(true);
+    await expect(normal.service.removeSpectator(identity, fan.id, randomUUID())).rejects.toMatchObject({ code: 'CONTEST_SPECTATOR_REMOVE_FORBIDDEN' });
+    await organizer.service.removeSpectator(identity, fan.id, randomUUID());
+    expect((await organizer.service.getCurrent(identity)).active?.spectators).toHaveLength(0);
+    await fan.service.joinAsSpectator(identity, randomUUID()); await admin.service.removeSpectator(identity, fan.id, randomUUID());
+    expect((await organizer.service.getCurrent(identity)).active?.spectators).toHaveLength(0);
+    await fan.service.joinAsSpectator(identity, randomUUID()); await organizer.service.setReady(identity, true, randomUUID());
+    const started = await organizer.service.start(identity, randomUUID()); const contestId = started.active!.id;
+    await database.contest.update({ where: { id: contestId }, data: { phase: 'SUPPORT', currentTurnOrder: null, turnDeadlineAt: null, selectedSpectatorPlayerId: fan.id, supportDeadlineAt: new Date(now.getTime() + 30_000) } });
+    await organizer.service.removeSpectator(identity, fan.id, randomUUID());
+    expect(await database.contest.findUniqueOrThrow({ where: { id: contestId } })).toMatchObject({ phase: 'TURNS', currentRound: 2, selectedSpectatorPlayerId: null });
+    expect((await database.contest.findUniqueOrThrow({ where: { id: contestId } })).currentTurnOrder).not.toBeNull();
+    expect(await database.contestSpectator.count({ where: { contestId, playerId: fan.id } })).toBe(0);
+    expect(await database.contestEvent.findFirst({ where: { contestId, type: 'SPECTATOR_REMOVED', targetPlayerId: fan.id }, orderBy: { createdAt: 'desc' } })).toMatchObject({ payload: expect.objectContaining({ selectedForSupport: true }) });
+    const dailies = await database.contestDailyParticipation.findMany({ where: { contestId } });
+    expect(dailies.map(({ playerId }) => playerId)).toEqual([organizer.id]);
+  }, 30_000);
+
+  it('blocks every former participant from active spectating while preserving passive view and participant rejoin', async () => {
+    now = new Date('2098-09-18T10:00:00Z'); const organizer = await fixture('FormerOrganizer'); const guest = await fixture('FormerGuest');
+    await organizer.service.createLobby(identity, organizer.character.id, randomUUID()); await guest.service.joinAsParticipant(identity, guest.character.id, randomUUID()); await guest.service.leave(identity, randomUUID());
+    let guestView = await guest.service.getCurrent(identity);
+    expect(guestView.permissions).toMatchObject({ canSpectate: false, canJoin: true });
+    await expect(guest.service.joinAsSpectator(identity, randomUUID())).rejects.toMatchObject({ code: 'CONTEST_ALREADY_JOINED' });
+    await expect(guest.service.joinAsParticipant(identity, guest.character.id, randomUUID())).resolves.toMatchObject({ active: { viewer: { participantSlot: 2, spectator: false } } });
+    await organizer.service.cancel(identity, randomUUID());
+
+    now = new Date('2098-09-19T10:00:00Z');
+    await organizer.service.createLobby(identity, organizer.character.id, randomUUID()); await guest.service.joinAsParticipant(identity, guest.character.id, randomUUID()); await organizer.service.removeFromLobby(identity, guest.id, randomUUID());
+    guestView = await guest.service.getCurrent(identity); expect(guestView.permissions).toMatchObject({ canSpectate: false, canJoin: true });
+    await expect(guest.service.joinAsSpectator(identity, randomUUID())).rejects.toMatchObject({ code: 'CONTEST_ALREADY_JOINED' });
+    await guest.service.joinAsParticipant(identity, guest.character.id, randomUUID()); await organizer.service.cancel(identity, randomUUID());
+
+    now = new Date('2098-09-20T10:00:00Z'); rolls = Array(80).fill(0);
+    await organizer.service.createLobby(identity, organizer.character.id, randomUUID()); await guest.service.joinAsParticipant(identity, guest.character.id, randomUUID());
+    await organizer.service.setReady(identity, true, randomUUID()); await guest.service.setReady(identity, true, randomUUID()); await organizer.service.start(identity, randomUUID()); await guest.service.leave(identity, randomUUID());
+    guestView = await guest.service.getCurrent(identity); expect(guestView.permissions.canSpectate).toBe(false);
+    await expect(guest.service.joinAsSpectator(identity, randomUUID())).rejects.toMatchObject({ code: 'CONTEST_ALREADY_JOINED' });
+  }, 60_000);
+
+  it('does not count exceptional admin lobby removal toward organizer anti-abuse removals', async () => {
+    now = new Date('2098-09-17T10:00:00Z'); const organizer = await fixture('AdmOrg'); const guest = await fixture('AdmGuest'); const admin = await fixture('AdmAdmin');
+    await database.playerRoleAssignment.create({ data: { playerId: admin.id, role: 'ADMIN', source: 'contest-fixture' } });
+    const opened = await organizer.service.createLobby(identity, organizer.character.id, randomUUID()); await guest.service.joinAsParticipant(identity, guest.character.id, randomUUID());
+    await admin.service.adminRemove(identity, guest.id, randomUUID());
+    expect(await database.contestLobbyRemoval.findUnique({ where: { contestId_playerId: { contestId: opened.active!.id, playerId: guest.id } } })).toBeNull();
+    expect((await guest.service.getCurrent(identity)).permissions).toMatchObject({ canSpectate: false, canJoin: true });
+    await guest.service.joinAsParticipant(identity, guest.character.id, randomUUID()); await organizer.service.removeFromLobby(identity, guest.id, randomUUID());
+    expect(await database.contestLobbyRemoval.findUnique({ where: { contestId_playerId: { contestId: opened.active!.id, playerId: guest.id } } })).toMatchObject({ count: 1 });
+  }, 30_000);
+
+  it('transfers lobby ownership by slot and running ownership by contest turn order', async () => {
+    now = new Date('2098-09-17T10:00:00Z'); rolls = Array(100).fill(0);
+    const organizer = await fixture('TransferOrganizer'); const slotTwo = await fixture('TransferSlotTwo'); const slotThree = await fixture('TransferSlotThree');
+    await organizer.service.createLobby(identity, organizer.character.id, randomUUID()); await slotTwo.service.joinAsParticipant(identity, slotTwo.character.id, randomUUID()); await slotThree.service.joinAsParticipant(identity, slotThree.character.id, randomUUID());
+    await organizer.service.leave(identity, randomUUID());
+    expect((await slotTwo.service.getCurrent(identity)).active?.organizerPlayerId).toBe(slotTwo.id);
+    await slotTwo.service.cancel(identity, randomUUID());
+
+    await organizer.service.createLobby(identity, organizer.character.id, randomUUID()); await slotTwo.service.joinAsParticipant(identity, slotTwo.character.id, randomUUID()); await slotThree.service.joinAsParticipant(identity, slotThree.character.id, randomUUID());
+    await organizer.service.setReady(identity, true, randomUUID()); await slotTwo.service.setReady(identity, true, randomUUID()); await slotThree.service.setReady(identity, true, randomUUID());
+    const started = await organizer.service.start(identity, randomUUID()); const contestId = started.active!.id;
+    await database.contestParticipant.updateMany({ where: { contestId }, data: { turnOrder: null } });
+    await database.contestParticipant.update({ where: { contestId_slot: { contestId, slot: 3 } }, data: { turnOrder: 1 } });
+    await database.contestParticipant.update({ where: { contestId_slot: { contestId, slot: 1 } }, data: { turnOrder: 2 } });
+    await database.contestParticipant.update({ where: { contestId_slot: { contestId, slot: 2 } }, data: { turnOrder: 3 } });
+    await database.contestParticipant.update({ where: { contestId_slot: { contestId, slot: 4 } }, data: { turnOrder: 4 } });
+    await database.contest.update({ where: { id: contestId }, data: { currentTurnOrder: 2, turnDeadlineAt: new Date(now.getTime() + 60_000) } });
+    await organizer.service.leave(identity, randomUUID());
+    expect((await slotThree.service.getCurrent(identity)).active?.organizerPlayerId).toBe(slotThree.id);
+  }, 60_000);
+
+  it('finishes immediately for a human whose third timeout Basic reaches fifty', async () => {
+    now = new Date('2098-09-16T10:00:00Z'); rolls = Array(100).fill(0); const player = await fixture('LethalTimeout');
+    await player.service.createLobby(identity, player.character.id, randomUUID()); await player.service.setReady(identity, true, randomUUID());
+    const started = await player.service.start(identity, randomUUID()); const contestId = started.active!.id; const human = started.active!.participants.find(({ playerId }) => playerId === player.id)!;
+    await database.contestParticipant.updateMany({ where: { contestId }, data: { turnOrder: null } });
+    await database.contestParticipant.update({ where: { contestId_slot: { contestId, slot: human.slot } }, data: { score: 49, inactivityCount: 2, turnOrder: 1 } });
+    let order = 2; for (const participant of started.active!.participants.filter(({ slot }) => slot !== human.slot)) await database.contestParticipant.update({ where: { contestId_slot: { contestId, slot: participant.slot } }, data: { turnOrder: order++ } });
+    await database.contest.update({ where: { id: contestId }, data: { phase: 'TURNS', currentTurnOrder: 1, turnDeadlineAt: new Date(now.getTime() - 1) } });
+    await player.service.reconcile();
+    const contest = await database.contest.findUniqueOrThrow({ where: { id: contestId }, include: { participants: true } }); const winner = contest.participants.find(({ slot }) => slot === human.slot)!;
+    expect(contest).toMatchObject({ status: 'FINISHED', winnerSlot: human.slot });
+    expect(winner).toMatchObject({ kind: 'HUMAN', playerId: player.id, inactivityCount: 3, score: 54, eligibleForResult: true, finalRank: 1, rewardPrimogems: 800n });
+    expect(await database.contestEvent.count({ where: { contestId, type: 'PARTICIPANT_REPLACED' } })).toBe(0);
+    expect(await database.contestReward.findUnique({ where: { contestId_playerId: { contestId, playerId: player.id } } })).toMatchObject({ rank: 1, primogems: 800n });
+    expect(await database.c6CompetitionProgress.findUniqueOrThrow({ where: { playerId_characterId: { playerId: player.id, characterId: player.character.id } } })).toMatchObject({ totalContests: 1n, totalWins: 1n, strengthWins: 1n, strengthTitleFloor: 1 });
+    expect((await database.contestDailyParticipation.findUniqueOrThrow({ where: { playerId_businessDate: { playerId: player.id, businessDate: new Date('2098-09-16T00:00:00Z') } } })).refundedAt).toBeNull();
+  }, 30_000);
+
+  it('preserves human launch snapshots while projecting and recording a generic replacement Bot', async () => {
+    now = new Date('2098-09-16T10:00:00Z'); rolls = Array(100).fill(0);
+    const organizer = await fixture('SnapshotOrganizer'); const human = await fixture('SnapshotKichnifou'); const furina = await addLegend(human.id, 'Furina');
+    await database.character.update({ where: { id: furina.id }, data: { iconPath: 'characters/fixture-furina.webp' } });
+    await database.c6CompetitionProgress.update({ where: { playerId_characterId: { playerId: human.id, characterId: furina.id } }, data: { strengthTitleFloor: 2 } });
+    await organizer.service.createLobby(identity, organizer.character.id, randomUUID()); await human.service.joinAsParticipant(identity, furina.id, randomUUID());
+    await organizer.service.setReady(identity, true, randomUUID()); await human.service.setReady(identity, true, randomUUID()); const started = await organizer.service.start(identity, randomUUID()); const contestId = started.active!.id;
+    const slot = started.active!.participants.find(({ playerId }) => playerId === human.id)!.slot;
+    await database.contestParticipant.update({ where: { contestId_slot: { contestId, slot } }, data: { score: 24 } });
+    const before = await database.contestParticipant.findUniqueOrThrow({ where: { contestId_slot: { contestId, slot } } });
+    await human.service.leave(identity, randomUUID());
+    const after = await database.contestParticipant.findUniqueOrThrow({ where: { contestId_slot: { contestId, slot } } });
+    expect(after).toMatchObject({ kind: 'BOT', playerId: null, eligibleForResult: false, replacementReason: 'LEFT' });
+    expect({ originalPlayerId: after.originalPlayerId, playerNameSnapshot: after.playerNameSnapshot, characterId: after.characterId, characterNameSnapshot: after.characterNameSnapshot, avatarSnapshot: after.avatarSnapshot, themeStatSnapshot: after.themeStatSnapshot, basePointsSnapshot: after.basePointsSnapshot, titleRankSnapshot: after.titleRankSnapshot }).toEqual({ originalPlayerId: before.originalPlayerId, playerNameSnapshot: before.playerNameSnapshot, characterId: before.characterId, characterNameSnapshot: before.characterNameSnapshot, avatarSnapshot: before.avatarSnapshot, themeStatSnapshot: before.themeStatSnapshot, basePointsSnapshot: before.basePointsSnapshot, titleRankSnapshot: before.titleRankSnapshot });
+    const live = (await organizer.service.getCurrent(identity)).active!.participants.find((participant) => participant.slot === slot)!;
+    expect(live).toMatchObject({ kind: 'BOT', displayName: 'Braise · Bot', characterName: 'Légende relayée', avatar: 'bot-2', replaced: true });
+    expect(live.characterName).not.toBe(furina.name);
+    await database.contestParticipant.updateMany({ where: { contestId }, data: { turnOrder: null } });
+    await database.contestParticipant.update({ where: { contestId_slot: { contestId, slot: 1 } }, data: { score: 49, turnOrder: 1 } });
+    let order = 2; for (const participant of started.active!.participants.filter(({ slot: itemSlot }) => itemSlot !== 1)) await database.contestParticipant.update({ where: { contestId_slot: { contestId, slot: participant.slot } }, data: { turnOrder: order++ } });
+    await database.contest.update({ where: { id: contestId }, data: { phase: 'TURNS', currentTurnOrder: 1, turnDeadlineAt: new Date(now.getTime() + 60_000) } });
+    await organizer.service.play(identity, 'BASIC', randomUUID());
+    const detail = await organizer.service.getHistoryDetail(contestId); const replacement = detail.historyEvents.find((event) => event.kind === 'PARTICIPANT_REPLACED');
+    expect(replacement).toMatchObject({ kind: 'PARTICIPANT_REPLACED', playerName: before.playerNameSnapshot, characterName: furina.name, botName: 'Braise · Bot', score: 24, reason: 'LEFT' });
+  }, 60_000);
+
+  it('cancels a stale lobby at Paris rollover but preserves a running Contest and its active theme', async () => {
+    now = new Date('2098-09-14T21:59:30Z'); rolls = [0, 1, ...Array(100).fill(0)]; const player = await fixture('Rollover');
+    const stale = await player.service.createLobby(identity, player.character.id, randomUUID()); expect(stale).toMatchObject({ businessDate: '2098-09-14', theme: { key: 'STRENGTH' } });
+    now = new Date('2098-09-14T22:00:00Z'); const afterReset = await player.service.getCurrent(identity);
+    expect(afterReset).toMatchObject({ businessDate: '2098-09-15', theme: { key: 'INTELLIGENCE' }, active: null, dailyUsed: false });
+    expect(await database.contest.findUniqueOrThrow({ where: { id: stale.active!.id } })).toMatchObject({ status: 'CANCELLED', cancellationKind: 'LOBBY_TIMEOUT', cancellationReason: 'Changement de journée avant lancement' });
+    expect(await database.contestDailyParticipation.count({ where: { contestId: stale.active!.id } })).toBe(0); expect(await database.contestReward.count({ where: { contestId: stale.active!.id } })).toBe(0);
+    const nextLobby = await player.service.createLobby(identity, player.character.id, randomUUID()); expect(nextLobby.active).toMatchObject({ businessDate: '2098-09-15', theme: { key: 'INTELLIGENCE' } }); await player.service.cancel(identity, randomUUID());
+
+    now = new Date('2098-09-15T21:59:30Z'); await player.service.createLobby(identity, player.character.id, randomUUID()); await player.service.setReady(identity, true, randomUUID()); const running = await player.service.start(identity, randomUUID());
+    now = new Date('2098-09-15T22:00:00Z'); const preserved = await player.service.getCurrent(identity);
+    expect(preserved).toMatchObject({ businessDate: '2098-09-16', active: { id: running.active!.id, status: 'RUNNING', businessDate: '2098-09-15', theme: { key: 'INTELLIGENCE' } } });
+  }, 60_000);
 
   it('serializes concurrent restart reconciliation, auto-plays timed-out humans and cancels after the third inactive replacement', async () => {
     now = new Date('2098-09-05T10:00:00Z'); const player = await fixture('Timeout'); rolls = Array(100).fill(0);

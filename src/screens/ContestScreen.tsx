@@ -20,6 +20,7 @@ type Props = {
   onPlay: (action: 'BASIC' | 'RISK', key: string) => Promise<ContestDto>
   onSupport: (slot: number, key: string) => Promise<ContestDto>
   onRemoveParticipant: (playerId: string, key: string) => Promise<ContestDto>
+  onRemoveSpectator: (playerId: string, key: string) => Promise<ContestDto>
   onLoadHistory: (page: number) => Promise<ContestHistoryDto>
   onLoadHistoryDetail: (contestId: string) => Promise<ContestSnapshotDto>
 }
@@ -67,7 +68,8 @@ export default function ContestScreen(props: Props) {
     setHistoryOpen(true); setHistoryError(null)
     try { setHistory(await props.onLoadHistory(page)) } catch (reason) { setHistoryError(apiErrorMessage(reason)) }
   }
-  const fixed = <div className="contest-toolbar"><div><span className="eyebrow">Thème du jour</span><strong>{props.value.theme.label}</strong></div><div className="contest-toolbar-actions"><button type="button" onClick={() => setLegendsOpen(true)}>Mes Légendes</button><button type="button" onClick={() => void openHistory()}>Historique</button></div></div>
+  const toolbarTheme = props.value.active?.theme ?? props.value.theme
+  const fixed = <div className="contest-toolbar"><div><span className="eyebrow">{props.value.active ? 'Thème du Concours' : 'Thème du jour'}</span><strong>{toolbarTheme.label}</strong></div><div className="contest-toolbar-actions"><button type="button" onClick={() => setLegendsOpen(true)}>Mes Légendes</button><button type="button" onClick={() => void openHistory()}>Historique</button></div></div>
 
   return <div className="screen-content contest-screen long-screen-layout">
     <ScreenHeader eyebrow="Activités" title="Concours" description="Faites briller vos Légendes C6 dans un affrontement public au tour par tour." />
@@ -110,9 +112,9 @@ function ContestLobby(props: Props & { contest: ContestSnapshotDto; selectedLege
   return <>
     <section className="panel contest-state-header"><div><span className="eyebrow">Lobby public</span><h2>{contest.theme.label}</h2></div><Countdown label="Fermeture" deadline={contest.lobbyDeadlineAt} now={props.now} /></section>
     <ParticipantGrid contest={contest} organizerCanRemove={contest.viewer.organizer} onRemove={(playerId) => void props.run(`remove:${playerId}`, (key) => props.onRemoveParticipant(playerId, key))} pending={props.pending} />
-    <SpectatorStrip contest={contest} />
-    {!me && <section className="panel contest-join-panel"><LegendSelect legends={value.legends} theme={value.theme} value={props.selectedLegendId} onChange={props.onSelect} /><div className="contest-inline-actions"><button type="button" className="primary-button" disabled={!value.permissions.canJoin || !props.selectedLegendId || Boolean(props.pending)} onClick={() => void props.run(`join:${props.selectedLegendId}`, (key) => props.onJoin(props.selectedLegendId, key))}>Participer</button>{value.permissions.canSpectate && <button type="button" onClick={() => void props.run('spectate', props.onSpectate)}>Regarder activement</button>}</div></section>}
-    {me && <section className="panel contest-lobby-controls"><LegendSelect legends={value.legends} theme={value.theme} value={props.selectedLegendId} onChange={(id) => void changeLegend(id)} /><div className="contest-inline-actions"><button type="button" className={me.ready ? 'contest-ready active' : 'contest-ready'} onClick={() => void props.run(`ready:${!me.ready}`, (key) => props.onReady(!me.ready, key))}>{me.ready ? '✓ Prêt' : 'Je suis prêt'}</button>{contest.viewer.organizer && <button type="button" className="primary-button" disabled={!value.permissions.canStart} onClick={() => void props.run('start', props.onStart)}>Lancer</button>}<button type="button" onClick={() => void props.run('leave', props.onLeave)}>Quitter</button>{contest.viewer.organizer && <button type="button" className="danger-button" onClick={() => void props.run('cancel', props.onCancel)}>Annuler le lobby</button>}</div></section>}
+    <SpectatorStrip contest={contest} organizerCanRemove={contest.viewer.organizer} onRemove={(playerId) => void props.run(`remove-spectator:${playerId}`, (key) => props.onRemoveSpectator(playerId, key))} pending={props.pending} />
+    {!me && <section className="panel contest-join-panel"><LegendSelect legends={value.legends} theme={contest.theme} value={props.selectedLegendId} onChange={props.onSelect} /><div className="contest-inline-actions"><button type="button" className="primary-button" disabled={!value.permissions.canJoin || !props.selectedLegendId || Boolean(props.pending)} onClick={() => void props.run(`join:${props.selectedLegendId}`, (key) => props.onJoin(props.selectedLegendId, key))}>Participer</button>{value.permissions.canSpectate && <button type="button" onClick={() => void props.run('spectate', props.onSpectate)}>Regarder activement</button>}{contest.viewer.spectator && value.permissions.canLeave && <button type="button" onClick={() => void props.run('leave', props.onLeave)}>Quitter le rôle de spectateur</button>}</div></section>}
+    {me && <section className="panel contest-lobby-controls"><LegendSelect legends={value.legends} theme={contest.theme} value={props.selectedLegendId} onChange={(id) => void changeLegend(id)} /><div className="contest-inline-actions"><button type="button" className={me.ready ? 'contest-ready active' : 'contest-ready'} onClick={() => void props.run(`ready:${!me.ready}`, (key) => props.onReady(!me.ready, key))}>{me.ready ? '✓ Prêt' : 'Je suis prêt'}</button>{contest.viewer.organizer && <button type="button" className="primary-button" disabled={!value.permissions.canStart} onClick={() => void props.run('start', props.onStart)}>Lancer</button>}<button type="button" onClick={() => void props.run('leave', props.onLeave)}>Quitter</button>{contest.viewer.organizer && <button type="button" className="danger-button" onClick={() => void props.run('cancel', props.onCancel)}>Annuler le lobby</button>}</div></section>}
   </>
 }
 
@@ -122,7 +124,7 @@ function ContestRunning(props: Props & { contest: ContestSnapshotDto; pending: s
   return <>
     <section className="panel contest-state-header"><div><span className="eyebrow">Manche {contest.currentRound}</span><h2>{contest.phase === 'SUPPORT' ? 'Soutien du public' : 'Concours en cours'}</h2></div><Countdown label={contest.phase === 'SUPPORT' ? 'Soutien' : 'Tour'} deadline={deadline} now={props.now} /></section>
     <ParticipantGrid contest={contest} />
-    <SpectatorStrip contest={contest} />
+    <SpectatorStrip contest={contest} organizerCanRemove={contest.viewer.organizer} onRemove={(playerId) => void props.run(`remove-spectator:${playerId}`, (key) => props.onRemoveSpectator(playerId, key))} pending={props.pending} />
     {value.permissions.canPlay && <section className="panel contest-turn-actions"><h3>À vous de jouer</h3><p>L’action sûre rapporte vos points de base. Le risque rapporte 0, ×1 ou ×2.</p><div><button type="button" className="primary-button" disabled={Boolean(props.pending)} onClick={() => void props.run('play:BASIC', (key) => props.onPlay('BASIC', key))}>Action de base</button><button type="button" disabled={Boolean(props.pending)} onClick={() => void props.run('play:RISK', (key) => props.onPlay('RISK', key))}>Prendre un risque</button></div></section>}
     {value.permissions.canSupport && <section className="panel contest-support-actions"><h3>Vous avez été choisi pour soutenir</h3><p>Sélectionnez n’importe quel participant : votre soutien lui accordera 1, 2 ou 3 points.</p><div>{contest.participants.map((item) => <button type="button" key={item.slot} onClick={() => void props.run(`support:${item.slot}`, (key) => props.onSupport(item.slot, key))}>{item.displayName}</button>)}</div></section>}
     {!value.permissions.canPlay && !value.permissions.canSupport && <p className="contest-watching">Le serveur poursuit la partie. Cette vue s’actualise automatiquement.</p>}
@@ -131,20 +133,21 @@ function ContestRunning(props: Props & { contest: ContestSnapshotDto; pending: s
 }
 
 function ParticipantGrid({ contest, organizerCanRemove = false, onRemove, pending }: { contest: ContestSnapshotDto; organizerCanRemove?: boolean; onRemove?: (playerId: string) => void; pending?: string | null }) {
-  return <div className="contest-participant-grid">{contest.participants.map((item) => <article className={`panel contest-participant${item.activeTurn ? ' active-turn' : ''}${item.finalRank === 1 ? ' winner' : ''}`} key={item.slot}>
+  return <div className="contest-participant-grid">{contest.participants.map((item) => <article className={`panel contest-participant${item.activeTurn ? ' active-turn' : ''}${item.finalRank === 1 ? ' winner' : ''}${item.titleRank >= 1 && item.titleRank <= 4 ? ` contest-title-rank-${item.titleRank}` : ''}`} key={item.slot}>
     <div className="contest-avatar"><CharacterAssetImage characterName={item.characterName ?? item.displayName} className="contest-avatar-image" assetPaths={item.kind === 'HUMAN' ? [item.avatar] : []} fallback={<span>{item.kind === 'BOT' ? '◆' : item.displayName.slice(0, 1).toUpperCase()}</span>} /></div>
     <span className="contest-slot">#{item.slot}{item.turnOrder ? ` · tour ${item.turnOrder}` : ''}</span><h3>{item.displayName}</h3><p>{item.characterName}</p>
     {item.basePoints !== null && <div className="contest-score"><strong>{item.score}</strong><span>points · base +{item.basePoints}</span></div>}
     {item.title && <span className="contest-title">{item.title}</span>}{contest.status === 'LOBBY' && <span className={item.ready ? 'contest-ready-state ready' : 'contest-ready-state'}>{item.ready ? 'Prêt' : 'Pas prêt'}</span>}
     {item.replaced && <span className="contest-replaced">Remplacement IA</span>}
+    {contest.status === 'RUNNING' && item.liveRank && <strong className="contest-live-rank" aria-label={`Classement en direct : ${rankLabel(item.liveRank)}`}>{rankLabel(item.liveRank)}</strong>}
     {item.finalRank && <strong className="contest-rank">{item.finalRank}<sup>e</sup> · {formatResourceAmount(item.rewardPrimogems ?? '0')} Primos</strong>}
     {organizerCanRemove && item.playerId && item.playerId !== contest.organizerPlayerId && <button type="button" className="contest-remove" disabled={Boolean(pending)} onClick={() => onRemove?.(item.playerId!)}>Retirer</button>}
   </article>)}</div>
 }
 
-function SpectatorStrip({ contest }: { contest: ContestSnapshotDto }) {
+function SpectatorStrip({ contest, organizerCanRemove = false, onRemove, pending }: { contest: ContestSnapshotDto; organizerCanRemove?: boolean; onRemove?: (playerId: string) => void; pending?: string | null }) {
   if (contest.spectators.length === 0) return null
-  return <section className="panel contest-spectators" aria-label="Spectateurs actifs"><span className="eyebrow">Spectateurs actifs</span><div>{contest.spectators.map((spectator) => <span className={spectator.selected ? 'selected' : ''} key={spectator.playerId}>{spectator.displayName}{spectator.selected ? ' · soutien sélectionné' : ''}</span>)}</div></section>
+  return <section className="panel contest-spectators" aria-label="Spectateurs actifs"><span className="eyebrow">Spectateurs actifs</span><div>{contest.spectators.map((spectator) => <span className={spectator.selected ? 'selected' : ''} key={spectator.playerId}><span>{spectator.displayName}{spectator.selected ? ' · soutien sélectionné' : ''}</span>{organizerCanRemove && <button type="button" className="contest-spectator-remove" disabled={Boolean(pending)} onClick={() => onRemove?.(spectator.playerId)}>Retirer</button>}</span>)}</div></section>
 }
 
 function ContestResult({ contest, legends, theme, canOpen, selectedLegendId, onSelect, pending, onOpen }: { contest: ContestSnapshotDto; legends: readonly ContestLegendDto[]; theme: ContestDto['theme']; canOpen: boolean; selectedLegendId: string; onSelect: (id: string) => void; pending: string | null; onOpen: () => void }) {
@@ -187,12 +190,15 @@ function ContestHistoryDetail({ contest, onBack }: { contest: ContestSnapshotDto
 
 function historyEventLabel(event: ContestSnapshotDto['historyEvents'][number]) {
   if (event.kind === 'PARTICIPANT_LEFT') return `${event.playerName ?? 'Un participant'} a quitté le Concours${event.slot ? ` (slot ${event.slot})` : ''}.`
-  if (event.kind === 'PARTICIPANT_REPLACED') return `${event.playerName ?? 'Un participant'} a été remplacé par l’IA${event.slot ? ` (slot ${event.slot})` : ''} · ${replacementReason(event.reason)}.`
+  if (event.kind === 'PARTICIPANT_REPLACED') return `${event.playerName ?? 'Un participant'}${event.characterName ? ` · ${event.characterName}` : ''} a été remplacé par ${event.botName ?? 'un Bot'} pour ${replacementReason(event.reason)}${event.score !== null ? ` · score conservé : ${event.score}` : ''}.`
+  if (event.kind === 'SPECTATOR_REMOVED') return `${event.playerName ?? 'Un spectateur'} a été retiré du rôle de spectateur${event.selectedForSupport ? ' pendant sa fenêtre de soutien' : ''}.`
   if (event.kind === 'SUPPORT_SELECTED') return `${event.playerName ?? 'Un spectateur'} a été sélectionné pour le soutien${event.round ? ` à la manche ${event.round}` : ''}.`
   if (event.kind === 'SUPPORT_PLAYED') return `${event.playerName ?? 'Un spectateur'} a soutenu ${event.targetName ?? `le slot ${event.slot ?? '—'}`} de ${event.points ?? 0} point${event.points === 1 ? '' : 's'}.`
   if (event.kind === 'SUPPORT_SKIPPED') return `Le soutien${event.round ? ` de la manche ${event.round}` : ''} n’a pas été joué.`
   return `${event.characterName ?? 'Une Légende'} devient ${event.title}.`
 }
+
+function rankLabel(rank: number) { return rank === 1 ? '1er' : `${rank}e` }
 
 function replacementReason(reason: ContestSnapshotDto['participants'][number]['replacementReason'] | string | null | undefined) {
   if (reason === 'LEFT') return 'départ volontaire'

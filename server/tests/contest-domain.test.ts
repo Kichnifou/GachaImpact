@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { botIdentity, contestBasePoints, contestTitle, contestTitleFloor, selectBotAction, selectBotStat, selectContestTheme, selectRiskPoints, selectSupportPoints, shuffledTurnOrder } from '../src/domain/contest/contest.js';
+import { botIdentity, contestBasePoints, contestLiveRanks, contestTitle, contestTitleFloor, selectBotAction, selectBotStat, selectContestTheme, selectRiskPoints, selectSupportPoints, shuffledTurnOrder } from '../src/domain/contest/contest.js';
 
 const random = (values: number[]) => ({ nextInt: (max: number) => (values.shift() ?? 0) % max });
 
@@ -11,7 +11,20 @@ describe('contest domain', () => {
 
   it('keeps title floors monotonic at 1, 3, 7 and 15 wins', () => {
     expect([0, 1, 2, 3, 6, 7, 14, 15].map(contestTitleFloor)).toEqual([0, 1, 1, 2, 2, 3, 3, 4]);
-    expect(contestTitle('BEAUTY', 4)).toBe('\u00c9clat Platine');
+    expect(contestTitle('STRENGTH', 1)).toBe('Titan de Bronze');
+    expect(contestTitle('INTELLIGENCE', 2)).toBe('Sage d’Argent');
+    expect(contestTitle('CHARISMA', 3)).toBe('Icône d’Or');
+    expect(contestTitle('POPULARITY', 4)).toBe('Idôle de Platine');
+  });
+
+  it('projects stable live ranks by score, turn order and slot', () => {
+    const participants = [
+      { slot: 1, score: 12, turnOrder: 4 },
+      { slot: 2, score: 30, turnOrder: 3 },
+      { slot: 3, score: 30, turnOrder: 1 },
+      { slot: 4, score: 5, turnOrder: 2 },
+    ];
+    expect(Object.fromEntries(contestLiveRanks(participants))).toEqual({ 1: 3, 2: 2, 3: 1, 4: 4 });
   });
 
   it('draws risk points uniformly from zero, base and double base', () => {

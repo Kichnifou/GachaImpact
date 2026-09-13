@@ -48,6 +48,10 @@ export const registerContestRoutes: FastifyPluginAsync<Options> = async (app, op
     const params = parse(playerParams, request.params); const body = parse(simpleMutation, request.body);
     return options.service.removeFromLobby(requireAuthenticatedIdentity(request), params.playerId, body.idempotencyKey);
   });
+  app.delete('/api/v1/contest/spectators/:playerId', { preHandler: options.authenticate }, async (request) => {
+    const params = parse(playerParams, request.params); const body = parse(simpleMutation, request.body);
+    return options.service.removeSpectator(requireAuthenticatedIdentity(request), params.playerId, body.idempotencyKey);
+  });
   app.delete('/api/v1/moderation/contest/participants/:playerId', { preHandler: options.authenticate }, async (request) => {
     const params = parse(playerParams, request.params); const body = parse(simpleMutation, request.body);
     return options.service.adminRemove(requireAuthenticatedIdentity(request), params.playerId, body.idempotencyKey);
