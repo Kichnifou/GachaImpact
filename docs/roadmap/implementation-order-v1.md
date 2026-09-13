@@ -39,8 +39,9 @@ Ce fichier n’est pas un tracker vivant et ne doit pas être modifié pour enre
    - Récompense quotidienne, Roue, missions quotidiennes, Combat, Expédition et futur écran Quotidiennes.
    - Le choix UX du raccourci/carrousel de quotidiennes sur l’Accueil reste reporté à une décision du propriétaire.
 
-9. **Migration pilote legacy**
-   - Kichnifou d’abord, puis quelques profils représentatifs ; migration générale seulement après validation.
+9. **Principaux domaines standalone encore manquants**
+   - Combat Boss, Concours, Event, Historique, Tutoriel et autres systèmes nécessaires au cutover.
+   - Leur ordre détaillé reste décidé lot par lot ; ils doivent être suffisamment physiques et stabilisés avant de reprendre la migration legacy.
 
 10. **Social standalone**
     - Chat interne, présence, amis, notifications et confidentialité.
@@ -49,7 +50,11 @@ Ce fichier n’est pas un tracker vivant et ne doit pas être modifié pour enre
     - Liaison `TwitchIdentity`, commandes et logique métier partagée UI/chat/Twitch.
     - Streamer.bot reste absent de la nouvelle architecture.
 
-12. **Stabilisation**
+12. **Migration pilote legacy**
+    - Reportée après les principaux domaines standalone encore manquants, dont Boss, Concours, Event, Amitié/Social, Historique, Tutoriel, Chat et Twitch.
+    - Kichnifou d'abord, puis quelques profils représentatifs ; migration générale seulement après validation.
+
+13. **Stabilisation**
     - Responsive/mobile, sécurité, concurrence, performance, équilibrage et migration générale lorsqu’elle est prête.
 
 ## Vérité UI et dé-mock progressif
