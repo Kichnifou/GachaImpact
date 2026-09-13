@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import { ApiError, getGameApiClient } from './api/game-api'
-import type { BankTransferDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyRewardTodayDto, ElementKey, ExpeditionDto, GachaCharacterDto, GachaPullDto, ModerationPermissionsDto, ModerationStateDto, MonthlyBossDto, NotificationsDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, ShopPurchaseDto, WheelTodayDto } from './api/types'
+import type { BankTransferDto, ContestDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyRewardTodayDto, ElementKey, ExpeditionDto, GachaCharacterDto, GachaPullDto, ModerationPermissionsDto, ModerationStateDto, MonthlyBossDto, NotificationsDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, ShopPurchaseDto, WheelTodayDto } from './api/types'
 import { useAuth } from './auth/auth-context'
 import { resolveBootstrapStage } from './auth/bootstrap-state'
 import AuthScreen from './components/AuthScreen'
@@ -29,6 +29,7 @@ function AppBootstrap() {
   const [dailyChallenge, setDailyChallenge] = useState<DailyChallengeDto | null>(null)
   const [dailyCombat, setDailyCombat] = useState<DailyCombatDto | null>(null)
   const [monthlyBoss, setMonthlyBoss] = useState<MonthlyBossDto | null>(null)
+  const [contest, setContest] = useState<ContestDto | null>(null)
   const [expedition, setExpedition] = useState<ExpeditionClientSnapshot | null>(null)
   const [expeditionMonotonicNow, setExpeditionMonotonicNow] = useState(0)
   const [notifications, setNotifications] = useState<NotificationsDto | null>(null)
@@ -70,6 +71,8 @@ function AppBootstrap() {
     return nextDailyCombat
   }, [])
   const loadMonthlyBoss = useCallback(async () => { const next = await getGameApiClient().getMonthlyBoss(); setMonthlyBoss(next); return next }, [])
+  const loadContest = useCallback(async () => { const next = await getGameApiClient().getContest(); setContest(next); return next }, [])
+  const publishContest = useCallback(async (request: Promise<ContestDto>) => { const next = await request; setContest(next); if (!next.active && next.lastResult) await loadResources(); return next }, [loadResources])
   const publishExpedition = useCallback((next: ExpeditionDto) => {
     const observedAt = performance.now()
     setExpedition(createExpeditionClientSnapshot(next, observedAt))
@@ -109,7 +112,7 @@ function AppBootstrap() {
 
   const loadGameState = useCallback(async () => {
     const api = getGameApiClient()
-    const [nextResources, nextProgression, nextWheelToday, nextDailyRewardToday, nextDailyChallenge, nextDailyCombat, nextMonthlyBoss, nextExpedition, nextNotifications, nextGacha, nextCatalog, nextTeams, nextPermissions] = await Promise.all([
+    const [nextResources, nextProgression, nextWheelToday, nextDailyRewardToday, nextDailyChallenge, nextDailyCombat, nextMonthlyBoss, nextContest, nextExpedition, nextNotifications, nextGacha, nextCatalog, nextTeams, nextPermissions] = await Promise.all([
       api.getResources(),
       api.getProgression(),
       api.getWheelToday(),
@@ -117,6 +120,7 @@ function AppBootstrap() {
       api.getDailyChallenge(),
       api.getDailyCombat(),
       api.getMonthlyBoss(),
+      api.getContest(),
       api.getExpedition(),
       api.getNotifications(),
       api.getCurrentGacha(),
@@ -132,6 +136,7 @@ function AppBootstrap() {
     setDailyChallenge(nextDailyChallenge)
     setDailyCombat(nextDailyCombat)
     setMonthlyBoss(nextMonthlyBoss)
+    setContest(nextContest)
     publishExpedition(nextExpedition)
     setNotifications(nextNotifications)
     setGacha(nextGacha)
@@ -238,6 +243,7 @@ function AppBootstrap() {
           setDailyChallenge(null)
           setDailyCombat(null)
           setMonthlyBoss(null)
+          setContest(null)
           setExpedition(null)
           setExpeditionMonotonicNow(0)
           setNotifications(null)
@@ -267,7 +273,7 @@ function AppBootstrap() {
     authStatus,
     player,
     playerResolved,
-    resources !== null && progression !== null && wheelToday !== null && dailyRewardToday !== null && dailyChallenge !== null && dailyCombat !== null && monthlyBoss !== null && expedition !== null && notifications !== null && gacha !== null && characters !== null && teams !== null && permissions !== null,
+    resources !== null && progression !== null && wheelToday !== null && dailyRewardToday !== null && dailyChallenge !== null && dailyCombat !== null && monthlyBoss !== null && contest !== null && expedition !== null && notifications !== null && gacha !== null && characters !== null && teams !== null && permissions !== null,
   )
   const currentFatalError =
     fatalError && fatalError.userId === sessionUserId ? fatalError.message : null
@@ -312,7 +318,7 @@ function AppBootstrap() {
     )
   }
 
-  if (!player || !resources || !visibleResources || !progression || !wheelToday || !dailyRewardToday || !dailyChallenge || !dailyCombat || !monthlyBoss || !expedition || !notifications || !gacha || !characters || !teams || !permissions) {
+  if (!player || !resources || !visibleResources || !progression || !wheelToday || !dailyRewardToday || !dailyChallenge || !dailyCombat || !monthlyBoss || !contest || !expedition || !notifications || !gacha || !characters || !teams || !permissions) {
     return <StatusScreen title="Chargement du profil…" message="Synchronisation de vos ressources." loading />
   }
 
@@ -326,6 +332,20 @@ function AppBootstrap() {
       dailyChallenge={dailyChallenge}
       dailyCombat={dailyCombat}
       monthlyBoss={monthlyBoss}
+      contest={contest}
+      onRefreshContest={loadContest}
+      onLoadContestHistory={(page) => getGameApiClient().getContestHistory(page)}
+      onOpenContest={(characterId, key) => publishContest(getGameApiClient().openContest(characterId, key))}
+      onJoinContest={(characterId, key) => publishContest(getGameApiClient().joinContest(characterId, key))}
+      onSelectContestLegend={(characterId, key) => publishContest(getGameApiClient().selectContestLegend(characterId, key))}
+      onSetContestReady={(ready, key) => publishContest(getGameApiClient().setContestReady(ready, key))}
+      onStartContest={(key) => publishContest(getGameApiClient().startContest(key))}
+      onSpectateContest={(key) => publishContest(getGameApiClient().spectateContest(key))}
+      onLeaveContest={(key) => publishContest(getGameApiClient().leaveContest(key))}
+      onCancelContest={(key) => publishContest(getGameApiClient().cancelContest(key))}
+      onPlayContest={(action, key) => publishContest(getGameApiClient().playContest(action, key))}
+      onSupportContest={(slot, key) => publishContest(getGameApiClient().supportContest(slot, key))}
+      onRemoveContestParticipant={(playerId, key) => publishContest(getGameApiClient().removeContestParticipant(playerId, key))}
       onLoadMonthlyBoss={loadMonthlyBoss}
       expedition={expedition}
       expeditionMonotonicNow={expeditionMonotonicNow}

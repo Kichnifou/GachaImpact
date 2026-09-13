@@ -1536,3 +1536,15 @@ Une future implémentation devra notamment vérifier :
 Les détails d'implémentation SQL, classes, tables, indexes et primitives de verrouillage seront choisis lors de la conception backend en respectant ces invariants.
 
 Le domaine actif et la prochaine étape exacte du projet doivent être indiqués uniquement dans `docs/master/PROJECT_MASTER_PLAN.md`.
+
+---
+
+# Appendice physique 0.92 — Concours / C6
+
+Le candidat 0.92 matérialise R526 à R593 sans recréer les cinq statistiques existantes. `ContestService` possède le thème journalier Europe/Paris, le lobby global unique, l’éligibilité par possession 5★ C6 active, Ready, lancement explicite, snapshots, bots, ordre, tours, timeouts, remplacements, spectateurs, soutien, victoire, annulations et reprise. Les mutations sensibles passent par des transactions sérialisables, un verrou global Concours, `BusinessOperation` et une clé d’idempotence stable ; le scheduler et chaque accès réutilisent la même réconciliation persistante.
+
+La migration additive `20260913170000_017_add_contests` étend `c6_competition_progress` avec les compteurs globaux/thématiques et planchers de titres initialisés à zéro. Elle crée les thèmes quotidiens, concours, quatre participants snapshotés, spectateurs actifs, consommations quotidiennes remboursables, compteurs de retrait du lobby, événements et récompenses. L’index partiel interdit deux états LOBBY/RUNNING globaux. Toutes les tables activent la RLS et révoquent les accès directs navigateur.
+
+Au lancement, la daily est consommée pour chaque humain et les slots libres deviennent des bots génériques sans possession catalogue. Le serveur arbitre Basic/Risque, l’IA, les délais 60/30 secondes et la fin immédiate à 50. Le classement conserve les quatre rangs, bots compris ; seuls les humains encore présents reçoivent leur montant 800/400/200/0 exact, progressent leurs compteurs et peuvent promouvoir leur titre à 1/3/7/15 victoires.
+
+Le frontend réel expose états vide/lobby/running/result, contrôles selon rôle, countdowns informatifs, soutien sélectionné, dernier résultat, `Mes Légendes` personnel et historique public FINISHED à dix entrées par page. Les `/20` exacts restent dans la consultation personnelle et ne sont pas exposés dans les cartes publiques. La présence passive, Social, Realtime, chat/Twitch et l’ancien historique legacy restent reportés.

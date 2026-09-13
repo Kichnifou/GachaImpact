@@ -8,8 +8,8 @@ export function prioritizeReady(characters: BoxCharacterDto[], expedition: Exped
 export function expeditionOverview(value: ExpeditionDto, now: number) {
   if (value.operationalStatus === 'RUNNING') return { status: '✅ Terminé', detail: `${value.activeCharacter?.name ?? 'Personnage'} · ${formatRemaining(value.readyAt, now)}`, completed: true }
   if (value.operationalStatus === 'READY') return { status: '✅ Terminé', detail: `${value.activeCharacter?.name ?? 'Le personnage'} est revenu · Récompense à récupérer.`, completed: true }
-  if (value.departureUsedToday) return { status: '✅ Terminé', detail: 'Expédition effectuée aujourd’hui.', completed: true }
-  return { status: 'À faire', detail: 'Aucune expédition lancée aujourd’hui.', completed: false }
+  if (value.departureUsedToday) return { status: '✅ Terminé', detail: 'Expédition effectuée.', completed: true }
+  return { status: 'À faire', detail: 'Aucune expédition lancée.', completed: false }
 }
 
 export function expeditionInitialNow(value: ExpeditionDto) {

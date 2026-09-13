@@ -44,6 +44,8 @@ import type {
   MonthlyBossDto,
   MonthlyBossAttackDto,
   MonthlyBossHistoryDto,
+  ContestDto,
+  ContestHistoryDto,
 } from './types'
 
 type ApiClientDependencies = Readonly<{
@@ -173,6 +175,19 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     clearMonthlyBossLoadout: () => request<MonthlyBossDto>('/api/v1/me/combat/boss/loadout/clear', { method: 'POST' }),
     attackMonthlyBoss: (bossId: string, idempotencyKey: string) => request<MonthlyBossAttackDto>('/api/v1/me/combat/boss/attack', { method: 'POST', body: JSON.stringify({ bossId, idempotencyKey }) }),
     getMonthlyBossHistory: (page: number) => request<MonthlyBossHistoryDto>(`/api/v1/combat/boss/history?page=${page}`),
+    getContest: () => request<ContestDto>('/api/v1/contest'),
+    getContestHistory: (page: number) => request<ContestHistoryDto>(`/api/v1/contest/history?page=${page}`),
+    openContest: (characterId: string, idempotencyKey: string) => request<ContestDto>('/api/v1/contest/open', { method: 'POST', body: JSON.stringify({ characterId, idempotencyKey }) }),
+    joinContest: (characterId: string, idempotencyKey: string) => request<ContestDto>('/api/v1/contest/join', { method: 'POST', body: JSON.stringify({ characterId, idempotencyKey }) }),
+    selectContestLegend: (characterId: string, idempotencyKey: string) => request<ContestDto>('/api/v1/contest/legend', { method: 'POST', body: JSON.stringify({ characterId, idempotencyKey }) }),
+    setContestReady: (ready: boolean, idempotencyKey: string) => request<ContestDto>('/api/v1/contest/ready', { method: 'POST', body: JSON.stringify({ ready, idempotencyKey }) }),
+    startContest: (idempotencyKey: string) => request<ContestDto>('/api/v1/contest/start', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+    spectateContest: (idempotencyKey: string) => request<ContestDto>('/api/v1/contest/spectator', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+    leaveContest: (idempotencyKey: string) => request<ContestDto>('/api/v1/contest/leave', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+    cancelContest: (idempotencyKey: string) => request<ContestDto>('/api/v1/contest/cancel', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+    playContest: (action: 'BASIC' | 'RISK', idempotencyKey: string) => request<ContestDto>('/api/v1/contest/action', { method: 'POST', body: JSON.stringify({ action, idempotencyKey }) }),
+    supportContest: (targetSlot: number, idempotencyKey: string) => request<ContestDto>('/api/v1/contest/support', { method: 'POST', body: JSON.stringify({ targetSlot, idempotencyKey }) }),
+    removeContestParticipant: (playerId: string, idempotencyKey: string) => request<ContestDto>(`/api/v1/contest/participants/${playerId}`, { method: 'DELETE', body: JSON.stringify({ idempotencyKey }) }),
     getExpedition: () => request<ExpeditionDto>('/api/v1/me/expedition'),
     startExpedition: (characterId: string, idempotencyKey: string) => request<ExpeditionStartDto>('/api/v1/me/expedition/start', { method: 'POST', body: JSON.stringify({ characterId, idempotencyKey }) }),
     claimExpedition: (idempotencyKey: string) => request<ExpeditionClaimDto>('/api/v1/me/expedition/claim', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),

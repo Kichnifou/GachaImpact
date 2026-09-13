@@ -266,8 +266,9 @@ describe('Daily Combat screen', () => {
   it('opens the physical Boss view without placeholder gameplay', () => {
     const { container } = mount(combat())
     act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('.combat-tabs button')).find((button) => button.textContent === 'Boss')!.click())
-    expect(container.textContent).toContain('Boss actuel')
-    expect(container.textContent).toMatch(/PV|résistance|classement/i)
+    expect(container.textContent).toContain('Bilan →')
+    expect(container.textContent).toContain('PV')
+    expect(container.textContent).not.toContain('Classement du mois')
     expect(container.textContent).not.toContain('Bientôt disponible')
   })
 })

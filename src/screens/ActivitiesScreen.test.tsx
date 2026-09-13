@@ -23,7 +23,7 @@ const expeditionSnapshot = (value: ExpeditionDto, observedAt = 0) => createExped
 
 describe('Activities shells', () => {
   it('keeps daily tabs outside the framed scroll body for overview, Wheel and Challenge', () => { const { container } = mount(); const frame = container.querySelector('.dailies-frame')!; expect(frame.querySelector('.scrollable-screen-panel-controls .activity-inner-tabs')).not.toBeNull(); expect(frame.querySelector('.scrollable-screen-panel-body .dailies-overview')).not.toBeNull(); act(() => Array.from(frame.querySelectorAll('button')).find((button) => button.textContent === 'Roue')!.click()); expect(frame.querySelector('.scrollable-screen-panel-body .wheel-card')).not.toBeNull(); act(() => Array.from(frame.querySelectorAll('button')).find((button) => button.textContent === 'Défi')!.click()); expect(frame.querySelector('.scrollable-screen-panel-body .daily-challenge-card')).not.toBeNull() })
-  it('lists the seven decided daily activities in order without fake progress', () => { const { container } = mount(); expect(Array.from(container.querySelectorAll<HTMLElement>('[data-daily-activity]'), (entry) => entry.dataset.dailyActivity)).toEqual(['Récompense quotidienne', 'Roue', 'Défi', 'Combat', 'Expédition', 'Amitié', 'Événement']); expect(container.textContent).toContain('Disponible aujourd’hui.'); expect(container.textContent).not.toContain('Mission quotidienne'); expect(container.textContent).not.toMatch(/\d+\s*\/\s*\d+/); expect(container.querySelector('.dailies-overview')).not.toBeNull() })
+  it('lists the eight decided daily activities in order without fake progress', () => { const { container } = mount(); expect(Array.from(container.querySelectorAll<HTMLElement>('[data-daily-activity]'), (entry) => entry.dataset.dailyActivity)).toEqual(['Récompense quotidienne', 'Roue', 'Défi', 'Combat', 'Boss', 'Expédition', 'Amitié', 'Événement']); expect(container.textContent).toContain('Disponible.'); expect(container.textContent).not.toContain('Mission quotidienne'); expect(container.textContent).not.toMatch(/\d+\s*\/\s*\d+/); expect(container.querySelector('.dailies-overview')).not.toBeNull() })
   it('uses the shared overview card and action geometry for available and claimed Daily Reward states', () => {
     const available = mount()
     const reward = activity(available.container, 'Récompense quotidienne')
@@ -35,25 +35,25 @@ describe('Activities shells', () => {
     const claimed = mount({ dailyRewardToday: { ...shared.dailyRewardToday, claimed: true } })
     const claimedReward = activity(claimed.container, 'Récompense quotidienne')
     expect(claimedReward.textContent).toContain('✅ Terminé')
-    expect(claimedReward.textContent).toContain('Récompense récupérée aujourd’hui.')
+    expect(claimedReward.textContent).toContain('Récompense récupérée.')
     expect(claimedReward.textContent).toContain('Obtenu : +800 Primos · +500 particules Hydro · +50 000 Moras')
     expect(claimedReward.querySelector('button')).toBeNull()
     expect(claimedReward.querySelector('.daily-overview-action-slot')).toBeNull()
   })
-  it('shows the real available Wheel state and opens the Wheel subview from Accéder', () => { const { container } = mount(); const wheel = activity(container, 'Roue'); expect(wheel.textContent).toContain('Une tentative disponible aujourd’hui'); expect(wheel.textContent).not.toContain('À faire'); expect(wheel.querySelector('button')?.textContent).toBe('Accéder'); act(() => wheel.querySelector('button')!.click()); expect(container.textContent).toContain('Roue astrale'); expect(container.textContent).toContain('Votre tentative du jour est disponible') })
+  it('shows the real available Wheel state and opens the Wheel subview from Accéder', () => { const { container } = mount(); const wheel = activity(container, 'Roue'); expect(wheel.textContent).toContain('Une tentative disponible.'); expect(wheel.textContent).not.toContain('À faire'); expect(wheel.querySelector('button')?.textContent).toBe('Accéder'); act(() => wheel.querySelector('button')!.click()); expect(container.textContent).toContain('Roue astrale'); expect(container.textContent).toContain('Votre tentative du jour est disponible') })
   it('forces Aperçu again when an explicit sidebar request arrives from Roue or Défi', () => { const mounted = mount({ dailiesOverviewRequestToken: 0 }); const render = (token: number) => mounted.root.render(<ActivitiesScreen screen="activities-dailies" {...mounted.props} dailiesOverviewRequestToken={token} />); act(() => Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.activity-inner-tabs button')).find((button) => button.textContent === 'Roue')!.click()); expect(mounted.container.querySelector('.wheel-card')).not.toBeNull(); act(() => render(1)); expect(mounted.container.querySelector('.dailies-overview')).not.toBeNull(); act(() => Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.activity-inner-tabs button')).find((button) => button.textContent === 'Défi')!.click()); expect(mounted.container.querySelector('.daily-challenge-card')).not.toBeNull(); act(() => render(2)); expect(mounted.container.querySelector('.dailies-overview')).not.toBeNull() })
   it.each([
     ['TODO', [], 'Prêt à combattre', null, true],
     ['IN_PROGRESS', ['a', 'b', 'c', 'd'], 'En cours', '4 personnages KO.', true],
     ['BLOCKED', ['a', 'b', 'c', 'd'], 'Bloqué', 'Moins de 4 personnages disponibles.', true],
-    ['COMPLETED', [], '✅ Terminé', 'Victoire obtenue aujourd’hui.', false],
+    ['COMPLETED', [], '✅ Terminé', 'Victoire obtenue.', false],
   ] as const)('projects Combat %s honestly in Quotidiennes', (status, kos, label, detail, hasAccess) => { const { container } = mount({ dailyCombat: combat(status, kos) }); const card = activity(container, 'Combat'); expect(card.textContent).toContain(label); if (detail) expect(card.textContent).toContain(detail); expect(Boolean(card.querySelector('button'))).toBe(hasAccess); if (status === 'TODO') { expect(card.textContent).not.toContain('À faire'); expect(card.textContent).not.toContain('Aucune tentative aujourd’hui.') } if (status === 'COMPLETED') expect(card.textContent).toContain('Obtenu : +800 Primogemmes · +20 000 Moras') })
   it.each([
-    [expedition(), 'À faire', 'Aucune expédition lancée aujourd’hui.', true],
+    [expedition(), 'À faire', 'Aucune expédition lancée.', true],
     [expedition({ operationalStatus: 'RUNNING', activeCharacter: { id: 'furina', externalKey: 'furina', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: 'Épée', region: 'Fontaine', iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null }, departedAt: '2026-09-11T01:00:00Z', readyAt: '2099-09-12T21:00:00Z', remainingSeconds: 72000, startedOnCurrentBusinessDate: true, departureUsedToday: true, canStartToday: false }), '✅ Terminé', 'Furina', false],
     [expedition({ operationalStatus: 'RUNNING', activeCharacter: { id: 'furina', externalKey: 'furina', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: 'Épée', region: 'Fontaine', iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null }, departedAt: '2026-09-10T01:00:00Z', readyAt: '2099-09-12T21:00:00Z', remainingSeconds: 72000, startedOnCurrentBusinessDate: false, departureUsedToday: false, canStartToday: false }), '✅ Terminé', 'Furina', false],
     [expedition({ operationalStatus: 'READY', activeCharacter: { id: 'furina', externalKey: 'furina', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: 'Épée', region: 'Fontaine', iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null }, departedAt: '2026-09-10T01:00:00Z', readyAt: '2026-09-11T01:00:00Z', startedOnCurrentBusinessDate: false, departureUsedToday: false, canStartToday: false }), '✅ Terminé', 'Récompense à récupérer.', true],
-    [expedition({ departureUsedToday: true, canStartToday: false, totalCompleted: '1' }), '✅ Terminé', 'Expédition effectuée aujourd’hui.', false],
+    [expedition({ departureUsedToday: true, canStartToday: false, totalCompleted: '1' }), '✅ Terminé', 'Expédition effectuée.', false],
   ] as const)('projects every Expedition daily state without a fictitious reward', (value, status, detail, hasAccess) => {
     const { container } = mount({ expedition: expeditionSnapshot(value) })
     const card = activity(container, 'Expédition')
@@ -91,7 +91,7 @@ describe('Activities shells', () => {
     const { container } = mount({ wheelToday: { spun: true, businessDate: '2026-09-11', result } })
     const wheel = activity(container, 'Roue')
     expect(wheel.textContent).toContain('✅ Terminé')
-    expect(wheel.textContent).toContain('Roue utilisée aujourd’hui.')
+    expect(wheel.textContent).toContain('Roue utilisée.')
     expect(wheel.textContent).toContain(expected)
     expect(wheel.textContent).not.toMatch(/JACKPOT|Félicitations/)
     expect(wheel.querySelector('button')).toBeNull()
@@ -161,7 +161,20 @@ describe('Activities shells', () => {
     expect(onNavigate).toHaveBeenCalledWith('invocation')
   })
   it.each([['Combat', 'activities-combat'], ['Expédition', 'characters-box'], ['Événement', 'activities-event']] as const)('routes %s to its existing owner', (title, destination) => { const onNavigate = vi.fn(); const { container } = mount({ onNavigate }); act(() => activity(container, title).querySelector('button')!.click()); expect(onNavigate).toHaveBeenCalledWith(destination) })
+  it('shows the dedicated Boss daily state and opens its deep-link', () => { const onOpenBoss = vi.fn(); const { container } = mount({ onOpenBoss }); const boss = activity(container, 'Boss'); expect(boss.textContent).toContain('À faire'); expect(boss.textContent).toContain('Une attaque disponible.'); act(() => boss.querySelector<HTMLButtonElement>('button')!.click()); expect(onOpenBoss).toHaveBeenCalledOnce() })
+  it.each([
+    ['USED', 'ALIVE', 'Attaque effectuée.'],
+    ['DEFEATED', 'DEFEATED', 'Boss vaincu ce mois-ci.'],
+  ] as const)('shows the completed Boss %s daily state without action or fake gain', (attackState, status, detail) => {
+    const { container } = mount({ monthlyBoss: { boss: {}, attackState, status } as unknown as React.ComponentProps<typeof ActivitiesScreen>['monthlyBoss'] })
+    const boss = activity(container, 'Boss')
+    expect(boss.textContent).toContain('✅ Terminé')
+    expect(boss.textContent).toContain(detail)
+    expect(boss.textContent).not.toContain('Obtenu :')
+    expect(boss.querySelector('button')).toBeNull()
+  })
+  it('contains no redundant aujourd’hui wording in the daily overview', () => { const { container } = mount(); expect(container.querySelector('.dailies-overview')?.textContent?.toLocaleLowerCase('fr-FR')).not.toContain('aujourd’hui') })
   it('keeps Amitié unavailable without inventing a Social route', () => { const onNavigate = vi.fn(); const { container } = mount({ onNavigate }); const friendship = activity(container, 'Amitié'); const button = friendship.querySelector<HTMLButtonElement>('button')!; expect(friendship.textContent).toContain('Bientôt disponible'); expect(button.disabled).toBe(true); expect(button.getAttribute('aria-label')).toContain('Social et Amis bientôt disponibles'); expect(onNavigate).not.toHaveBeenCalled() })
   it.each([['activities-missions', ['B', 'A', 'S', 'Z']], ['activities-event', ['Jeux', 'Shop', 'Classement']]] as const)('exposes the reserved labels for %s without fake gameplay', (screen, labels) => { const { container } = mount({}, screen); labels.forEach((label) => expect(container.textContent).toContain(label)); expect(container.textContent).toContain('Bientôt disponible') })
-  it('renders real Entraînement and the distinct physical Boss view', () => { const { container } = mount({}, 'activities-combat'); expect(container.textContent).toContain('Entraînement'); expect(container.textContent).toContain('Rencontre du jour'); expect(container.textContent).toContain('Ennemis'); act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('.combat-tabs button')).find((button) => button.textContent === 'Boss')!.click()); expect(container.textContent).toContain('Boss actuel'); expect(container.textContent).toContain('PV'); expect(container.textContent).toContain('Classement du mois'); expect(container.textContent).not.toContain('Bientôt disponible') })
+  it('renders real Entraînement and the compact physical Boss view', () => { const { container } = mount({}, 'activities-combat'); expect(container.textContent).toContain('Entraînement'); expect(container.textContent).toContain('Rencontre du jour'); expect(container.textContent).toContain('Ennemis'); act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('.combat-tabs button')).find((button) => button.textContent === 'Boss')!.click()); expect(container.textContent).toContain('Bilan →'); expect(container.textContent).toContain('PV'); expect(container.textContent).not.toContain('Classement du mois'); expect(container.textContent).not.toContain('Bientôt disponible') })
 })

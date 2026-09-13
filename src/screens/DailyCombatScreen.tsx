@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { BoxCharacterDto, DailyCombatCharacterDto, DailyCombatDto, DailyCombatFightDto, ElementKey, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto, PlayerBoxDto, StellaUseDto } from '../api/types'
+import type { BoxCharacterDto, DailyCombatCharacterDto, DailyCombatDto, DailyCombatFightDto, ElementKey, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
-import { useBoxCollection } from '../box/use-box-collection'
 import BoxCharacterCard from '../components/BoxCharacterCard'
-import BoxCharacterDetailModal from '../components/BoxCharacterDetailModal'
 import CharacterAssetImage from '../components/CharacterAssetImage'
 import GameAssetIcon from '../components/GameAssetIcon'
+import { CombatBoxCharacterDetail, PlayerCombatCard, type CombatBoxBindings } from '../components/CombatPlayerFormation'
 import ScreenHeader from '../components/ScreenHeader'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import { apiErrorMessage, elementLabels, formatResourceAmount } from '../utils/formatters'
@@ -13,14 +12,7 @@ import { getElementAssetPath } from '../utils/gameAssets'
 import MonthlyBossScreen from './MonthlyBossScreen'
 import { unavailableMonthlyBoss } from '../combat/monthly-boss-unavailable'
 
-export type DailyCombatBoxBindings = Readonly<{
-  initialBox: PlayerBoxDto | null
-  onLoadBox: () => Promise<PlayerBoxDto>
-  onSetFavorite: (characterId: string, favorite: boolean) => Promise<BoxCharacterDto>
-  onUseStella: (characterId: string) => Promise<StellaUseDto>
-  stellaRetryCharacterId: string | null
-  onCharacterProgressed?: () => Promise<unknown> | unknown
-}>
+export type DailyCombatBoxBindings = CombatBoxBindings
 
 export type DailyCombatScreenProps = Readonly<{
   value: DailyCombatDto
@@ -75,7 +67,7 @@ export default function DailyCombatScreen({ value, box, onSetSlot, onRemoveSlot,
   return <div className="screen-content activity-shell combat-shell long-screen-layout">
     <ScreenHeader eyebrow="Activités" title="Combat" description="Affrontez l’équipe ennemie du jour avec quatre personnages disponibles." />
     <ScrollableScreenPanel className="combat-frame" bodyClassName="combat-scroll-body" fixed={tabs}>
-      {tab === 'boss' ? <MonthlyBossScreen value={monthlyBoss} onSetSlot={onSetBossSlot} onRemoveSlot={onRemoveBossSlot} onCopyActive={onCopyActiveToBoss} onClear={onClearBoss} onAttack={onAttackBoss} onLoadHistory={onLoadBossHistory} /> : <>
+      {tab === 'boss' ? <MonthlyBossScreen value={monthlyBoss} dailyCombat={value} box={box} onSetSlot={onSetBossSlot} onRemoveSlot={onRemoveBossSlot} onCopyActive={onCopyActiveToBoss} onClear={onClearBoss} onAttack={onAttackBoss} onLoadHistory={onLoadBossHistory} /> : <>
         <section className="combat-enemies" aria-labelledby="combat-enemies-title"><header className="combat-section-heading combat-enemy-heading"><h2 id="combat-enemies-title">Ennemis</h2></header><div className="combat-card-grid">{value.encounter.enemies.map((enemy) => <EnemyCombatCard enemy={enemy} key={enemy.position} />)}</div></section>
 
         <section className="panel combat-command-bar" aria-labelledby="combat-command-title">
@@ -107,15 +99,6 @@ function EnemyCombatCard({ enemy }: { enemy: Enemy }) {
   </article>
 }
 
-function PlayerCombatCard({ character, position, ko, pending, canOpenDetail, onOpenDetail, onChange, onRemove }: { character: DailyCombatCharacterDto; position: number; ko: boolean; pending: boolean; canOpenDetail: boolean; onOpenDetail: () => void; onChange: () => void; onRemove: () => void }) {
-  return <article className={`combat-character-card combat-player-card ${character.elementKey}${ko ? ' ko' : ''}`} data-position={position}>
-    <CombatPortrait character={character} />
-    <div className="combat-card-info"><div className="combat-card-name"><ElementIcon element={character.elementKey} /><strong>{character.name}</strong></div><span className="combat-card-rarity">{'★'.repeat(character.rarity)}</span><span className="combat-card-constellation">C{character.constellation}</span></div>
-    {ko && <span className="combat-ko-badge">💀 KO · Demain</span>}
-    <div className="combat-slot-actions"><button type="button" disabled={!canOpenDetail} onClick={onOpenDetail}>Fiche</button><button type="button" disabled={pending} onClick={onChange}>Changer</button><button type="button" disabled={pending} onClick={onRemove}>Retirer</button></div>
-  </article>
-}
-
 function CombatPortrait({ character }: { character: Pick<DailyCombatCharacterDto, 'name' | 'iconPath' | 'fullbodyPath' | 'wishPath' | 'splashPath'> }) {
   return <div className="combat-card-art"><span className="combat-card-fallback">{character.name.slice(0, 1)}</span><CharacterAssetImage characterName={character.name} assetPaths={[character.fullbodyPath, character.wishPath, character.splashPath, character.iconPath]} className="combat-card-image" fallback={null} alt="" /></div>
 }
@@ -144,20 +127,6 @@ function CalculationStat({ label, value }: { label: string; value: string }) { r
 function CombatPicker({ value, selectedIds, position, pending, onClose, onSelect }: { value: DailyCombatDto; selectedIds: ReadonlySet<string>; position: number; pending: boolean; onClose: () => void; onSelect: (id: string) => void }) {
   const currentId = value.loadout.slots.find((slot) => slot.position === position)?.character?.id
   return <div className="modal-layer" role="presentation" onMouseDown={onClose}><section className="floating-panel combat-picker" role="dialog" aria-modal="true" aria-labelledby="combat-picker-title" onMouseDown={(event) => event.stopPropagation()}><header className="floating-panel-heading"><div><span className="eyebrow">Emplacement {position}</span><h2 id="combat-picker-title">Choisir un personnage</h2></div><button type="button" className="icon-button" onClick={onClose} aria-label="Fermer"><span className="icon-glyph">×</span></button></header><div className="combat-picker-grid">{value.availableCharacters.map((character) => { const ko = value.koCharacterIds.includes(character.id); const used = selectedIds.has(character.id) && character.id !== currentId; return <BoxCharacterCard character={asBoxCharacter(character)} disabled={pending || ko || used} statusLabel={ko ? '💀 KO · Disponible demain' : used ? 'Déjà sélectionné' : undefined} showFavorite={false} onOpen={() => onSelect(character.id)} onToggleFavorite={() => undefined} key={character.id} /> })}</div></section></div>
-}
-
-function CombatBoxCharacterDetail({ characterId, combat, bindings, onClose }: { characterId: string; combat: DailyCombatDto; bindings: DailyCombatBoxBindings; onClose: () => void }) {
-  const detail = useBoxCollection({ initialBox: bindings.initialBox, onLoadBox: bindings.onLoadBox, onSetFavorite: bindings.onSetFavorite, onUseStella: bindings.onUseStella, stellaRetryCharacterId: bindings.stellaRetryCharacterId, onCharacterProgressed: bindings.onCharacterProgressed })
-  const character = detail.box?.characters.find(({ id }) => id === characterId) ?? null
-  const combatCharacter = combat.availableCharacters.find(({ id }) => id === characterId)
-  const combatState = combatCharacter ? { ko: combat.koCharacterIds.includes(characterId), stats: combatCharacter.combatStats } : undefined
-  if (!detail.box && !detail.error) return <CombatDetailStatus title="Ouverture de la fiche…" detail="Chargement de votre possession." onClose={onClose} />
-  if (!detail.box || !character) return <CombatDetailStatus title="Fiche indisponible" detail={detail.error ?? 'Ce personnage ne figure plus dans votre Box.'} onClose={onClose} />
-  return <BoxCharacterDetailModal character={character} combatState={combatState} stellaQuantity={detail.box.stella.quantity} stellaRetryAvailable={detail.stellaRetryId === character.id} favoritePending={detail.favoritePendingId === character.id} stellaPending={detail.stellaPendingId === character.id} stellaFeedback={detail.stellaFeedback} actionError={detail.error} onToggleFavorite={() => void detail.toggleFavorite(character)} onUseStella={() => void detail.useStella(character)} onClose={onClose} />
-}
-
-function CombatDetailStatus({ title, detail, onClose }: { title: string; detail: string; onClose: () => void }) {
-  return <div className="modal-layer" role="presentation" onMouseDown={onClose}><section className="floating-panel combat-detail-status" role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => event.stopPropagation()}><button type="button" className="icon-button" onClick={onClose} aria-label="Fermer"><span className="icon-glyph">×</span></button><strong>{title}</strong><p>{detail}</p></section></div>
 }
 
 function asBoxCharacter(character: DailyCombatCharacterDto): BoxCharacterDto { return { ...character, c6CompetitionStats: null } }

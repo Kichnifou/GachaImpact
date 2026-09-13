@@ -424,6 +424,63 @@ export type MonthlyBossAttackDto = Readonly<{ operation: Readonly<{ id: string; 
 export type MonthlyBossHistoryEntryDto = Readonly<{ id: string; monthStart: string; name: string; baseHp: string; maxHp: string; currentHp: string; resistanceElementKey: ElementKey; status: 'DEFEATED' | 'FAILED'; defeatedAt: string | null; finalBlowPlayer: Readonly<{ id: string; displayName: string }> | null; victoryDayCount: number | null; daysRemainingAfterVictory: number | null; nextBaseAdjustment: string; community: MonthlyBossCommunitySummaryDto; records: MonthlyBossRecordsDto }>
 export type MonthlyBossHistoryDto = Readonly<{ page: number; pageSize: number; total: number; totalPages: number; bosses: readonly MonthlyBossHistoryEntryDto[] }>
 
+export type ContestThemeDto = Readonly<{ key: 'STRENGTH' | 'INTELLIGENCE' | 'BEAUTY' | 'CHARISMA' | 'POPULARITY'; label: string; title: string }>
+export type ContestParticipantDto = Readonly<{
+  slot: number
+  kind: 'HUMAN' | 'BOT'
+  playerId: string | null
+  displayName: string
+  characterName: string | null
+  avatar: string | null
+  basePoints: number | null
+  titleRank: number
+  title: string | null
+  score: number
+  turnOrder: number | null
+  ready: boolean
+  activeTurn: boolean
+  replaced: boolean
+  replacementReason?: 'LEFT' | 'INACTIVE' | 'ADMIN_REMOVAL' | null
+  finalRank: number | null
+  rewardPrimogems: string | null
+}>
+export type ContestSnapshotDto = Readonly<{
+  id: string
+  businessDate: string
+  theme: ContestThemeDto
+  status: 'LOBBY' | 'RUNNING' | 'FINISHED'
+  phase: 'LOBBY' | 'TURNS' | 'SUPPORT' | 'FINISHED'
+  organizerPlayerId: string | null
+  lobbyDeadlineAt: string | null
+  turnDeadlineAt: string | null
+  supportDeadlineAt: string | null
+  currentTurnOrder: number | null
+  currentRound: number
+  winnerSlot: number | null
+  startedAt: string | null
+  finishedAt: string | null
+  viewer: Readonly<{ participantSlot: number | null; spectator: boolean; organizer: boolean; selectedForSupport: boolean }>
+  participants: readonly ContestParticipantDto[]
+  spectators: readonly Readonly<{ playerId: string; displayName: string; selected: boolean }>[]
+  events: readonly Readonly<{ id: string; type: string; actorPlayerId: string | null; targetPlayerId: string | null; targetSlot: number | null; payload: unknown; createdAt: string }>[]
+}>
+export type ContestLegendDto = Readonly<{
+  character: Readonly<{ id: string; externalKey: string; name: string; iconPath: string | null; elementKey: ElementKey }>
+  stats: Readonly<Record<'strength' | 'intelligence' | 'beauty' | 'charisma' | 'popularity', number>>
+  totals: Readonly<{ contests: string; wins: string }>
+  themes: Readonly<Record<ContestThemeDto['key'], Readonly<{ participations: string; wins: string; titleRank: number; title: string | null }>>>
+}>
+export type ContestDto = Readonly<{
+  businessDate: string
+  theme: ContestThemeDto
+  dailyUsed: boolean
+  permissions: Readonly<Record<'canOpen' | 'canJoin' | 'canSpectate' | 'canLeave' | 'canReady' | 'canStart' | 'canCancel' | 'canPlay' | 'canSupport', boolean>>
+  active: ContestSnapshotDto | null
+  lastResult: ContestSnapshotDto | null
+  legends: readonly ContestLegendDto[]
+}>
+export type ContestHistoryDto = Readonly<{ page: number; pageSize: number; total: number; pageCount: number; contests: readonly ContestSnapshotDto[] }>
+
 export type ExpeditionDto = Readonly<{
   businessDate: string
   operationalStatus: 'IDLE' | 'RUNNING' | 'READY'

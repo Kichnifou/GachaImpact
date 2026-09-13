@@ -930,11 +930,11 @@ Colonnes :
 
 - `player_id uuid NOT NULL`
 - `character_id uuid NOT NULL`
-- cinq statistiques Concours en `smallint NOT NULL DEFAULT 0`
-- `total_contests integer NOT NULL DEFAULT 0`
-- `total_wins integer NOT NULL DEFAULT 0`
-- compteurs thématiques nécessaires
-- `title_rank_floor text NULL`
+- cinq statistiques Concours en `smallint NOT NULL DEFAULT 1`
+- `total_contests bigint NOT NULL DEFAULT 0`
+- `total_wins bigint NOT NULL DEFAULT 0`
+- participations/victoires thématiques en `bigint NOT NULL DEFAULT 0`
+- un plancher de titre par thème en `smallint NOT NULL DEFAULT 0`
 - `unlocked_at timestamptz NOT NULL`
 - `created_at timestamptz NOT NULL DEFAULT now()`
 - `updated_at timestamptz NOT NULL DEFAULT now()`
@@ -956,12 +956,13 @@ chaque statistique Concours `BETWEEN 0 AND 20`.
 Colonnes principales :
 
 - `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
-- `organizer_player_id uuid NOT NULL REFERENCES players(id) ON DELETE RESTRICT`
+- `organizer_player_id uuid NULL REFERENCES players(id) ON DELETE RESTRICT`
 - `business_date date NOT NULL`
-- `state contest_state NOT NULL`
-- `turn_order jsonb NULL`
-- `current_turn_index integer NULL`
-- `winning_participant_id uuid NULL`
+- `status contest_status NOT NULL`
+- `phase contest_phase NOT NULL`
+- deadlines lobby/tour/soutien
+- `current_turn_order smallint NULL`
+- `winner_slot smallint NULL`
 - `started_at timestamptz NULL`
 - `finished_at timestamptz NULL`
 - `created_at timestamptz NOT NULL DEFAULT now()`
@@ -976,21 +977,22 @@ au plus un Concours global actif/lobby/running selon la règle serveur.
 
 Colonnes :
 
-- `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
 - `contest_id uuid NOT NULL REFERENCES contests(id) ON DELETE CASCADE`
 - `slot smallint NOT NULL`
 - `player_id uuid NULL REFERENCES players(id) ON DELETE RESTRICT`
-- `character_id uuid NOT NULL REFERENCES characters(id) ON DELETE RESTRICT`
-- `is_bot boolean NOT NULL DEFAULT false`
-- `is_ready boolean NOT NULL DEFAULT false`
+- `character_id uuid NULL REFERENCES characters(id) ON DELETE RESTRICT`
+- `kind contest_participant_kind NOT NULL`
+- `ready boolean NOT NULL DEFAULT false`
+- snapshots identité/personnage/statistique/base/titre au lancement
 - `score integer NOT NULL DEFAULT 0`
 - `final_rank smallint NULL`
-- `created_at timestamptz NOT NULL DEFAULT now()`
+- `reward_primogems bigint NOT NULL DEFAULT 0`
+- compteurs et métadonnées de départ/remplacement
 
 Contraintes :
 
 - `slot BETWEEN 1 AND 4`
-- `UNIQUE(contest_id, slot)`
+- `PRIMARY KEY(contest_id, slot)`
 - un participant humain unique par contest
 
 ---
@@ -1399,6 +1401,16 @@ Colonnes :
 - `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
 - `business_date date NOT NULL UNIQUE`
 - `created_at timestamptz NOT NULL DEFAULT now()`
+
+État physique 0.92 : aucune table `contest_results` séparée n’est créée. Le résultat permanent est normalisé dans le `Contest` terminal et ses quatre `ContestParticipant` snapshotés ; cette représentation couvre rang, score, récompense et historique sans dupliquer la vérité.
+
+## 13.6 État physique candidat 0.92 — migration 017
+
+La migration additive `20260913170000_017_add_contests` crée les enums thème, statut, phase, type de participant, type d’annulation et motif de remplacement. Elle ajoute à `c6_competition_progress` les compteurs globaux/thématiques et cinq planchers de titre, tous initialisés à zéro et bornés par contraintes, sans modifier les cinq statistiques 1..20 existantes.
+
+Les tables physiques sont `contest_daily_themes`, `contests`, `contest_participants`, `contest_spectators`, `contest_daily_participations`, `contest_lobby_removals`, `contest_events` et `contest_rewards`. Les contraintes imposent thème unique par date, au plus un LOBBY/RUNNING global, quatre slots/ordres/rangs bornés, cohérence humain/bot, score non négatif, spectateur/daily uniques, trois retraits maximum et une récompense/opération unique. Les FK historiques sont restrictives ; seules les agrégations internes au concours utilisent les cascades nécessaires.
+
+Toutes les tables 017 activent la RLS sans policy navigateur et révoquent `anon`/`authenticated`. Le backend avec rôle serveur reste le seul chemin d’écriture et l’API filtre l’historique public sur FINISHED.
 
 ---
 

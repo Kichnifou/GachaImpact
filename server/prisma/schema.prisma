@@ -36,6 +36,60 @@ enum OperationStatus {
   @@map("operation_status")
 }
 
+enum ContestTheme {
+  STRENGTH
+  INTELLIGENCE
+  BEAUTY
+  CHARISMA
+  POPULARITY
+
+  @@map("contest_theme")
+}
+
+enum ContestStatus {
+  LOBBY
+  RUNNING
+  FINISHED
+  CANCELLED
+
+  @@map("contest_status")
+}
+
+enum ContestPhase {
+  LOBBY
+  TURNS
+  SUPPORT
+  FINISHED
+  CANCELLED
+
+  @@map("contest_phase")
+}
+
+enum ContestParticipantKind {
+  HUMAN
+  BOT
+
+  @@map("contest_participant_kind")
+}
+
+enum ContestCancellationKind {
+  ORGANIZER
+  TECHNICAL
+  ADMIN
+  LOBBY_TIMEOUT
+  NO_HUMANS
+
+  @@map("contest_cancellation_kind")
+}
+
+enum ContestReplacementReason {
+  LEFT
+  INACTIVE
+  ADMIN_REMOVAL
+
+  @@map("contest_replacement_reason")
+}
+
 enum ExpeditionState {
   IDLE
   RUNNING
@@ -120,54 +174,64 @@ model ResourceDefinition {
 }
 
 model Player {
-  id                   String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  displayName          String                       @map("display_name") @db.Text
-  elementKey           String?                      @map("element_key") @db.Text
-  status               PlayerStatus                 @default(ACTIVE)
-  createdAt            DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt            DateTime                     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  migrationRunId       String?                      @map("migration_run_id") @db.Uuid
-  legacyUsername       String?                      @map("legacy_username") @db.Text
-  element              Element?                     @relation(fields: [elementKey], references: [key], onDelete: Restrict)
-  webIdentity          WebIdentity?
-  businessOperations   BusinessOperation[]
-  resourceBalances     PlayerResourceBalance[]
-  resourceMovements    ResourceMovement[]
-  economyStats         PlayerEconomyStats?
-  wheelStats           PlayerWheelStats?
-  wheelDailyStates     PlayerWheelDailyState[]
-  dailyRewardState     PlayerDailyRewardState?
-  progression          PlayerProgression?
-  gachaState           PlayerGachaState?
-  bannerVotes          BannerVote[]
-  characters           PlayerCharacter[]
-  c6Progress           C6CompetitionProgress[]
-  pullOperations       PullOperation[]
-  preferences          PlayerPreference[]
-  items                PlayerItem[]
-  teams                Team[]
-  bankAccount          PlayerBankAccount?
-  bankTransactions     BankTransaction[]
-  shopPurchases        ShopPurchase[]
-  dailyChallenges      PlayerDailyChallenge[]
-  rolesGranted         PlayerRoleAssignment[]       @relation("RoleSubject")
-  rolesGrantedBy       PlayerRoleAssignment[]       @relation("RoleGrantor")
-  auditEntriesAsActor  AdminAuditEntry[]            @relation("AuditActor")
-  auditEntriesAsTarget AdminAuditEntry[]            @relation("AuditTarget")
-  dailyCombatLoadout   PlayerDailyCombatLoadout?
-  dailyCombatStates    PlayerDailyCombatState[]
-  dailyCombatKos       PlayerDailyCombatKo[]
-  dailyCombatAttempts  DailyCombatAttempt[]
-  combatStats          PlayerCombatStats?
-  characterCombatStats PlayerCharacterCombatStats[]
-  expedition           PlayerExpedition?
-  notifications        Notification[]
-  bossLoadout          PlayerBossLoadout?
-  bossAttacks          BossAttack[]
-  bossParticipations   PlayerBossParticipation[]
-  bossStats            PlayerBossStats?
-  bossRewards          BossReward[]
-  bossFinalBlows       MonthlyBoss[]                @relation("MonthlyBossFinalBlow")
+  id                    String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  displayName           String                       @map("display_name") @db.Text
+  elementKey            String?                      @map("element_key") @db.Text
+  status                PlayerStatus                 @default(ACTIVE)
+  createdAt             DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime                     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  migrationRunId        String?                      @map("migration_run_id") @db.Uuid
+  legacyUsername        String?                      @map("legacy_username") @db.Text
+  element               Element?                     @relation(fields: [elementKey], references: [key], onDelete: Restrict)
+  webIdentity           WebIdentity?
+  businessOperations    BusinessOperation[]
+  resourceBalances      PlayerResourceBalance[]
+  resourceMovements     ResourceMovement[]
+  economyStats          PlayerEconomyStats?
+  wheelStats            PlayerWheelStats?
+  wheelDailyStates      PlayerWheelDailyState[]
+  dailyRewardState      PlayerDailyRewardState?
+  progression           PlayerProgression?
+  gachaState            PlayerGachaState?
+  bannerVotes           BannerVote[]
+  characters            PlayerCharacter[]
+  c6Progress            C6CompetitionProgress[]
+  pullOperations        PullOperation[]
+  preferences           PlayerPreference[]
+  items                 PlayerItem[]
+  teams                 Team[]
+  bankAccount           PlayerBankAccount?
+  bankTransactions      BankTransaction[]
+  shopPurchases         ShopPurchase[]
+  dailyChallenges       PlayerDailyChallenge[]
+  rolesGranted          PlayerRoleAssignment[]       @relation("RoleSubject")
+  rolesGrantedBy        PlayerRoleAssignment[]       @relation("RoleGrantor")
+  auditEntriesAsActor   AdminAuditEntry[]            @relation("AuditActor")
+  auditEntriesAsTarget  AdminAuditEntry[]            @relation("AuditTarget")
+  dailyCombatLoadout    PlayerDailyCombatLoadout?
+  dailyCombatStates     PlayerDailyCombatState[]
+  dailyCombatKos        PlayerDailyCombatKo[]
+  dailyCombatAttempts   DailyCombatAttempt[]
+  combatStats           PlayerCombatStats?
+  characterCombatStats  PlayerCharacterCombatStats[]
+  expedition            PlayerExpedition?
+  notifications         Notification[]
+  bossLoadout           PlayerBossLoadout?
+  bossAttacks           BossAttack[]
+  bossParticipations    PlayerBossParticipation[]
+  bossStats             PlayerBossStats?
+  bossRewards           BossReward[]
+  bossFinalBlows        MonthlyBoss[]                @relation("MonthlyBossFinalBlow")
+  contestsOrganized     Contest[]                    @relation("ContestOrganizer")
+  contestSlots          ContestParticipant[]         @relation("ContestActivePlayer")
+  contestOriginalSlots  ContestParticipant[]         @relation("ContestOriginalPlayer")
+  contestSpectators     ContestSpectator[]
+  contestDailyEntries   ContestDailyParticipation[]
+  contestRemovals       ContestLobbyRemoval[]
+  contestEventsAsActor  ContestEvent[]               @relation("ContestEventActor")
+  contestEventsAsTarget ContestEvent[]               @relation("ContestEventTarget")
+  contestSupportPicks   Contest[]                    @relation("ContestSelectedSpectator")
+  contestRewards        ContestReward[]
 
   @@index([status], map: "players_status_idx")
   @@index([elementKey], map: "players_element_key_idx")
@@ -289,6 +353,7 @@ model Character {
   selectedByGachaStates     PlayerGachaState[]
   playerPossessions         PlayerCharacter[]
   c6Progress                C6CompetitionProgress[]
+  contestParticipants       ContestParticipant[]
   pullTargets               PullOperation[]
   pullResults               PullResult[]
   teamMemberships           TeamMember[]
@@ -424,6 +489,7 @@ model BusinessOperation {
   dailyCombatAttempt DailyCombatAttempt?
   bossAttack         BossAttack?
   bossRewards        BossReward[]
+  contestReward      ContestReward?
 
   @@index([playerId, startedAt(sort: Desc)], map: "business_operations_player_started_at_idx")
   @@index([operationType, startedAt(sort: Desc)], map: "business_operations_type_started_at_idx")
@@ -653,22 +719,197 @@ model PlayerCharacter {
 }
 
 model C6CompetitionProgress {
-  playerId     String    @map("player_id") @db.Uuid
-  characterId  String    @map("character_id") @db.Uuid
-  strength     Int       @default(1) @db.SmallInt
-  intelligence Int       @default(1) @db.SmallInt
-  beauty       Int       @default(1) @db.SmallInt
-  charisma     Int       @default(1) @db.SmallInt
-  popularity   Int       @default(1) @db.SmallInt
-  unlockedAt   DateTime  @map("unlocked_at") @db.Timestamptz(6)
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  player       Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  character    Character @relation(fields: [characterId], references: [id], onDelete: Restrict)
+  playerId                   String    @map("player_id") @db.Uuid
+  characterId                String    @map("character_id") @db.Uuid
+  strength                   Int       @default(1) @db.SmallInt
+  intelligence               Int       @default(1) @db.SmallInt
+  beauty                     Int       @default(1) @db.SmallInt
+  charisma                   Int       @default(1) @db.SmallInt
+  popularity                 Int       @default(1) @db.SmallInt
+  totalContests              BigInt    @default(0) @map("total_contests")
+  totalWins                  BigInt    @default(0) @map("total_wins")
+  strengthParticipations     BigInt    @default(0) @map("strength_participations")
+  strengthWins               BigInt    @default(0) @map("strength_wins")
+  strengthTitleFloor         Int       @default(0) @map("strength_title_floor") @db.SmallInt
+  intelligenceParticipations BigInt    @default(0) @map("intelligence_participations")
+  intelligenceWins           BigInt    @default(0) @map("intelligence_wins")
+  intelligenceTitleFloor     Int       @default(0) @map("intelligence_title_floor") @db.SmallInt
+  beautyParticipations       BigInt    @default(0) @map("beauty_participations")
+  beautyWins                 BigInt    @default(0) @map("beauty_wins")
+  beautyTitleFloor           Int       @default(0) @map("beauty_title_floor") @db.SmallInt
+  charismaParticipations     BigInt    @default(0) @map("charisma_participations")
+  charismaWins               BigInt    @default(0) @map("charisma_wins")
+  charismaTitleFloor         Int       @default(0) @map("charisma_title_floor") @db.SmallInt
+  popularityParticipations   BigInt    @default(0) @map("popularity_participations")
+  popularityWins             BigInt    @default(0) @map("popularity_wins")
+  popularityTitleFloor       Int       @default(0) @map("popularity_title_floor") @db.SmallInt
+  unlockedAt                 DateTime  @map("unlocked_at") @db.Timestamptz(6)
+  createdAt                  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player                     Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  character                  Character @relation(fields: [characterId], references: [id], onDelete: Restrict)
 
   @@id([playerId, characterId])
   @@index([characterId], map: "c6_competition_progress_character_idx")
   @@map("c6_competition_progress")
+}
+
+model ContestDailyTheme {
+  businessDate DateTime     @id @map("business_date") @db.Date
+  theme        ContestTheme
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  contests     Contest[]
+
+  @@map("contest_daily_themes")
+}
+
+model Contest {
+  id                        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessDate              DateTime                    @map("business_date") @db.Date
+  theme                     ContestTheme
+  status                    ContestStatus               @default(LOBBY)
+  phase                     ContestPhase                @default(LOBBY)
+  organizerPlayerId         String?                     @map("organizer_player_id") @db.Uuid
+  lobbyDeadlineAt           DateTime?                   @map("lobby_deadline_at") @db.Timestamptz(6)
+  turnDeadlineAt            DateTime?                   @map("turn_deadline_at") @db.Timestamptz(6)
+  supportDeadlineAt         DateTime?                   @map("support_deadline_at") @db.Timestamptz(6)
+  selectedSpectatorPlayerId String?                     @map("selected_spectator_player_id") @db.Uuid
+  currentTurnOrder          Int?                        @map("current_turn_order") @db.SmallInt
+  currentRound              Int                         @default(1) @map("current_round")
+  winnerSlot                Int?                        @map("winner_slot") @db.SmallInt
+  startedAt                 DateTime?                   @map("started_at") @db.Timestamptz(6)
+  finishedAt                DateTime?                   @map("finished_at") @db.Timestamptz(6)
+  cancelledAt               DateTime?                   @map("cancelled_at") @db.Timestamptz(6)
+  cancellationKind          ContestCancellationKind?    @map("cancellation_kind")
+  cancellationReason        String?                     @map("cancellation_reason") @db.Text
+  createdAt                 DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                 DateTime                    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  dailyTheme                ContestDailyTheme           @relation(fields: [businessDate], references: [businessDate], onDelete: Restrict)
+  organizer                 Player?                     @relation("ContestOrganizer", fields: [organizerPlayerId], references: [id], onDelete: Restrict)
+  selectedSpectator         Player?                     @relation("ContestSelectedSpectator", fields: [selectedSpectatorPlayerId], references: [id], onDelete: Restrict)
+  participants              ContestParticipant[]
+  spectators                ContestSpectator[]
+  dailyParticipations       ContestDailyParticipation[]
+  removals                  ContestLobbyRemoval[]
+  events                    ContestEvent[]
+  rewards                   ContestReward[]
+
+  @@index([status, createdAt(sort: Desc)], map: "contests_status_created_idx")
+  @@index([businessDate, createdAt(sort: Desc)], map: "contests_business_date_idx")
+  @@map("contests")
+}
+
+model ContestParticipant {
+  contestId             String                    @map("contest_id") @db.Uuid
+  slot                  Int                       @db.SmallInt
+  kind                  ContestParticipantKind
+  playerId              String?                   @map("player_id") @db.Uuid
+  originalPlayerId      String?                   @map("original_player_id") @db.Uuid
+  characterId           String?                   @map("character_id") @db.Uuid
+  playerNameSnapshot    String                    @map("player_name_snapshot") @db.Text
+  characterNameSnapshot String?                   @map("character_name_snapshot") @db.Text
+  avatarSnapshot        String?                   @map("avatar_snapshot") @db.Text
+  themeStatSnapshot     Int?                      @map("theme_stat_snapshot") @db.SmallInt
+  basePointsSnapshot    Int?                      @map("base_points_snapshot") @db.SmallInt
+  titleRankSnapshot     Int                       @default(0) @map("title_rank_snapshot") @db.SmallInt
+  score                 Int                       @default(0)
+  turnOrder             Int?                      @map("turn_order") @db.SmallInt
+  ready                 Boolean                   @default(false)
+  inactivityCount       Int                       @default(0) @map("inactivity_count") @db.SmallInt
+  eligibleForResult     Boolean                   @default(true) @map("eligible_for_result")
+  joinedAt              DateTime                  @default(now()) @map("joined_at") @db.Timestamptz(6)
+  leftAt                DateTime?                 @map("left_at") @db.Timestamptz(6)
+  replacedAt            DateTime?                 @map("replaced_at") @db.Timestamptz(6)
+  replacementReason     ContestReplacementReason? @map("replacement_reason")
+  finalRank             Int?                      @map("final_rank") @db.SmallInt
+  rewardPrimogems       BigInt                    @default(0) @map("reward_primogems")
+  contest               Contest                   @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  player                Player?                   @relation("ContestActivePlayer", fields: [playerId], references: [id], onDelete: Restrict)
+  originalPlayer        Player?                   @relation("ContestOriginalPlayer", fields: [originalPlayerId], references: [id], onDelete: Restrict)
+  character             Character?                @relation(fields: [characterId], references: [id], onDelete: Restrict)
+
+  @@id([contestId, slot])
+  @@unique([contestId, playerId], map: "contest_participants_contest_player_key")
+  @@unique([contestId, turnOrder], map: "contest_participants_contest_turn_key")
+  @@index([playerId], map: "contest_participants_player_idx")
+  @@index([originalPlayerId], map: "contest_participants_original_player_idx")
+  @@index([characterId], map: "contest_participants_character_idx")
+  @@map("contest_participants")
+}
+
+model ContestSpectator {
+  contestId String   @map("contest_id") @db.Uuid
+  playerId  String   @map("player_id") @db.Uuid
+  joinedAt  DateTime @default(now()) @map("joined_at") @db.Timestamptz(6)
+  contest   Contest  @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Restrict)
+
+  @@id([contestId, playerId])
+  @@index([contestId, joinedAt], map: "contest_spectators_joined_idx")
+  @@index([playerId], map: "contest_spectators_player_idx")
+  @@map("contest_spectators")
+}
+
+model ContestDailyParticipation {
+  playerId     String    @map("player_id") @db.Uuid
+  businessDate DateTime  @map("business_date") @db.Date
+  contestId    String    @map("contest_id") @db.Uuid
+  consumedAt   DateTime  @map("consumed_at") @db.Timestamptz(6)
+  refundedAt   DateTime? @map("refunded_at") @db.Timestamptz(6)
+  player       Player    @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  contest      Contest   @relation(fields: [contestId], references: [id], onDelete: Restrict)
+
+  @@id([playerId, businessDate])
+  @@index([contestId], map: "contest_daily_participations_contest_idx")
+  @@map("contest_daily_participations")
+}
+
+model ContestLobbyRemoval {
+  contestId String   @map("contest_id") @db.Uuid
+  playerId  String   @map("player_id") @db.Uuid
+  count     Int      @default(0) @db.SmallInt
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  contest   Contest  @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Restrict)
+
+  @@id([contestId, playerId])
+  @@map("contest_lobby_removals")
+}
+
+model ContestEvent {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contestId      String   @map("contest_id") @db.Uuid
+  type           String   @db.Text
+  idempotencyKey String?  @unique(map: "contest_events_idempotency_key_key") @map("idempotency_key") @db.Text
+  actorPlayerId  String?  @map("actor_player_id") @db.Uuid
+  targetPlayerId String?  @map("target_player_id") @db.Uuid
+  targetSlot     Int?     @map("target_slot") @db.SmallInt
+  payload        Json?    @db.JsonB
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  contest        Contest  @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  actor          Player?  @relation("ContestEventActor", fields: [actorPlayerId], references: [id], onDelete: Restrict)
+  target         Player?  @relation("ContestEventTarget", fields: [targetPlayerId], references: [id], onDelete: Restrict)
+
+  @@index([contestId, createdAt], map: "contest_events_contest_created_idx")
+  @@index([actorPlayerId], map: "contest_events_actor_idx")
+  @@index([targetPlayerId], map: "contest_events_target_idx")
+  @@map("contest_events")
+}
+
+model ContestReward {
+  contestId   String            @map("contest_id") @db.Uuid
+  playerId    String            @map("player_id") @db.Uuid
+  rank        Int               @db.SmallInt
+  primogems   BigInt
+  operationId String            @unique(map: "contest_rewards_operation_id_key") @map("operation_id") @db.Uuid
+  awardedAt   DateTime          @map("awarded_at") @db.Timestamptz(6)
+  contest     Contest           @relation(fields: [contestId], references: [id], onDelete: Restrict)
+  player      Player            @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  operation   BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+
+  @@id([contestId, playerId])
+  @@index([playerId, awardedAt(sort: Desc)], map: "contest_rewards_player_idx")
+  @@map("contest_rewards")
 }
 
 model PullOperation {

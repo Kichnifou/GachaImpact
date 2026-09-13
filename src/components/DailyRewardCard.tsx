@@ -45,8 +45,8 @@ function DailyRewardOverviewCard({ today, elementKey, onClaim }: Extract<DailyRe
     <section className="panel daily-overview-card daily-reward-overview-card">
       <div>
         <h2>Récompense quotidienne</h2>
-        <p className={claimed ? 'daily-overview-complete' : undefined}>{claimed ? '✅ Terminé' : 'Disponible aujourd’hui.'}</p>
-        {claimed && <p className="daily-overview-detail">Récompense récupérée aujourd’hui.</p>}
+        <p className={claimed ? 'daily-overview-complete' : undefined}>{claimed ? '✅ Terminé' : 'Disponible.'}</p>
+        {claimed && <p className="daily-overview-detail">Récompense récupérée.</p>}
         {claimed && <p className="daily-overview-obtained">Obtenu : {formatDailyRewardDetails(freshClaim ?? today, elementKey)}</p>}
         {!claimed && <p className={`daily-overview-feedback${errorMessage ? ' error' : ''}`} role={errorMessage ? 'alert' : undefined}>{errorMessage ?? ''}</p>}
       </div>

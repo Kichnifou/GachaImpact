@@ -805,6 +805,14 @@ Séparer conceptuellement :
 
 L'ancien historique non migré n'est pas recréé.
 
+## 12.4 État physique candidat 0.92
+
+La migration `20260913170000_017_add_contests` conserve les cinq statistiques existantes de `C6CompetitionProgress` et lui ajoute, avec défaut zéro, totaux de concours/victoires, participations/victoires par thème et planchers de titres par thème. Une possession 5★ C6 active reste obligatoire ; la ligne C6 seule ne prouve jamais la possession.
+
+`ContestDailyTheme` persiste une seule sélection globale par date métier. `Contest` porte état, phase, deadlines, round, ordre courant, organisateur, soutien sélectionné et terminalité. `ContestParticipant` matérialise les quatre slots et conserve les snapshots de lancement, le score, l’ordre, l’inactivité, les remplacements, le rang et la récompense. `ContestSpectator`, `ContestDailyParticipation`, `ContestLobbyRemoval`, `ContestEvent` et `ContestReward` portent respectivement les dix présences actives, la consommation/refund, la limite de retraits, le journal/idempotence et le versement final.
+
+L’historique natif n’a pas besoin d’une table de résultat concurrente : un `Contest` FINISHED et ses participants terminalisés conservent le snapshot complet. CANCELLED reste persistant pour l’audit mais absent des projections player-facing. Le dernier FINISHED est projeté jusqu’à la création du lobby suivant.
+
 ---
 
 # 13. Teams / Passifs

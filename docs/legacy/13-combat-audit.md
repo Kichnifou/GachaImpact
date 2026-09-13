@@ -1653,3 +1653,11 @@ Le bilan du Boss vaincu matérialise désormais les quatre groupes R404 : Boss, 
 Les tie-breaks sont techniques et stables : le classement départage les dégâts égaux par première attaque puis UUID Player ; le plus grand nombre d’attaques départage par dégâts totaux puis UUID ; le plus gros coup départage par timestamp, UUID Player puis UUID attaque. Le Top 3 courant conserve la même convention.
 
 Chaque entrée R408 expose physiquement `baseHp`, `maxHp`, PV restants, statut, date éventuelle, résistance, agrégats, meilleur contributeur, plus gros coup, autres records et adjustment de base suivant dérivé par la formule réelle. La liste demeure compacte, limitée à dix Boss par page, et ouvre ces informations dans un détail responsive. Aucun champ, table ou enum n’est ajouté : la migration 016 et le cœur transactionnel Boss restent inchangés.
+
+# Appendice présentation 0.92 — Boss compact et Bilan unifié
+
+Le moteur, les données et la migration 016 de 0.91 sont inchangés. La sous-navigation `Boss actuel | Historique` disparaît. Le flux principal remonte le mois avec `Bilan →`, le nom, le statut, `Res :` suivi de l’icône élémentaire accessible, la barre de PV, puis une command bar compacte à trois régions : état à gauche, Attaquer au centre, preview et détail à droite. Après attaque, les dégâts rejoignent la ligne `✅ Utilisée aujourd’hui · X dégâts infligés.`.
+
+`Bilan →` ouvre une modale unique à trois onglets exacts : Contribution, Vos statistiques Boss et Historique. Le premier conserve, selon l’état courant, le classement/contribution ou les quatre groupes complets R404 ; le second porte les statistiques lifetime ; le troisième conserve la pagination et les détails R408. Aucune de ces sections ne subsiste dans le flux principal.
+
+La section s’appelle `Votre formation` et réutilise les mêmes cartes joueur et la même fiche Box qu’Entraînement, avec `Fiche`, `Changer`, `Retirer`, copie volontaire de Team active et `Vider`. Elle n’ajoute aucun Auto et ne consulte pas les KO quotidiens comme règle d’éligibilité Boss.

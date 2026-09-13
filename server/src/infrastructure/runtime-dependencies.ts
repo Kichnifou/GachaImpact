@@ -42,6 +42,7 @@ import { PrismaDailyCombatStore } from './database/prisma-daily-combat-store.js'
 import { ExpeditionService } from '../application/expedition/expedition-service.js';
 import { NotificationService } from '../application/notification/notification-service.js';
 import { MonthlyBossScheduler, MonthlyBossService } from '../application/combat/monthly-boss-service.js';
+import { ContestScheduler, ContestService } from '../application/contest/contest-service.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
   if (!config.databaseUrl) {
@@ -69,6 +70,8 @@ export function createRuntimeDependencies(config: AppConfig) {
   const expeditionService = new ExpeditionService(getCurrentPlayer, database, clock, random);
   const monthlyBossService = new MonthlyBossService(getCurrentPlayer, database, clock, random);
   const monthlyBossScheduler = new MonthlyBossScheduler(monthlyBossService, clock);
+  const contestService = new ContestService(getCurrentPlayer, database, clock, random);
+  const contestScheduler = new ContestScheduler(contestService);
 
   return {
     authIdentityVerifier: createSupabaseAuthAdapter(issuer),
@@ -124,10 +127,11 @@ export function createRuntimeDependencies(config: AppConfig) {
     navigationPreferences: new NavigationPreferencesService(getCurrentPlayer, new PrismaNavigationPreferenceStore(database)),
     dailyCombatService: new CombatService(getCurrentPlayer, dailyCombatStore, clock),
     monthlyBossService,
+    contestService,
     expeditionService,
     notificationService: new NotificationService(getCurrentPlayer, database, clock, expeditionService),
-    start: async () => { await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); },
-    close: async () => { scheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); await database.$disconnect(); },
+    start: async () => { await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); contestScheduler.start(); await contestService.reconcile(); },
+    close: async () => { scheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); contestScheduler.stop(); await database.$disconnect(); },
   };
 }
 

@@ -39,13 +39,13 @@ Ce fichier n’est pas un tracker vivant et ne doit pas être modifié pour enre
    - Récompense quotidienne, Roue, missions quotidiennes, Combat, Expédition et futur écran Quotidiennes.
    - Le choix UX du raccourci/carrousel de quotidiennes sur l’Accueil reste reporté à une décision du propriétaire.
 
-## Gates avant le prochain domaine
+## Gates du checkpoint courant
 
-Avant d’ouvrir l’étape restante 1, le Master doit confirmer les validations publiques encore requises : candidat Boss 0.91, Expedition READY/notification/claim, puis Combat défaite/KO dès qu’une configuration permet réellement de perdre. Ces validations sont des gates du checkpoint courant, pas des domaines supplémentaires ; leur état vivant appartient uniquement au Master.
+Le candidat 0.92 matérialise Concours / personnages C6. Sa review indépendante et sa validation publique restent requises avant d’ouvrir l’étape suivante. Expedition READY/notification/claim, Combat défaite/KO, Boss vaincu/notification et rollover/historique Boss réel restent également des validations publiques ouvertes ; leur état vivant appartient uniquement au Master.
 
 ## Trajectoire V1 restante après Boss
 
-1. **Concours / personnages C6** — matérialiser le gameplay déjà cadré dans [15-concours-c6-audit.md](../legacy/15-concours-c6-audit.md).
+1. **Concours / personnages C6** — candidat 0.92 physiquement implémenté selon [15-concours-c6-audit.md](../legacy/15-concours-c6-audit.md), en attente de review et validation publique.
 2. **Collection / Sac à compléter** — achever les surfaces et règles restantes de [10-sac-coffre-shop-audit.md](../legacy/10-sac-coffre-shop-audit.md), avec les possessions de [07-box-possession-obtention-audit.md](../legacy/07-box-possession-obtention-audit.md).
 3. **Codes cadeaux** — implémenter [19-codes-cadeaux-audit.md](../legacy/19-codes-cadeaux-audit.md).
 4. **Événements mensuels** — implémenter [16-event-monthly-audit.md](../legacy/16-event-monthly-audit.md).

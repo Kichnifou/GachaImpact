@@ -35,13 +35,14 @@ const defeatedSummary = {
 } as const
 
 describe('MonthlyBossScreen', () => {
-  it('shows authoritative identity, HP, resistance, preview and the always-present attack control', () => {
+  it('shows the compact authoritative identity, HP, resistance and always-present attack control', () => {
     const container = document.createElement('div'); document.body.append(container); const root = createRoot(container)
     act(() => root.render(<MonthlyBossScreen value={value} {...callbacks} />))
     expect(container.textContent).toContain('Seigneur des Ruines Oubliées')
     expect(container.textContent).toContain('1 490 000 / 1 500 000')
-    expect(container.textContent).toContain('Résistance Hydro')
-    expect(container.textContent).toContain('Votre place : #4')
+    expect(container.querySelector('[aria-label="Résistance Hydro — dégâts ×0,5"]')).not.toBeNull()
+    expect(container.textContent).toContain('Bilan →')
+    expect(container.textContent).not.toContain('Votre place : #4')
     expect(container.querySelector<HTMLButtonElement>('.boss-attack-button')?.disabled).toBe(false)
     act(() => root.unmount())
   })
@@ -50,8 +51,8 @@ describe('MonthlyBossScreen', () => {
     const container = document.createElement('div'); document.body.append(container); const root = createRoot(container)
     act(() => root.render(<MonthlyBossScreen value={{ ...value, status: 'DEFEATED', attackState: 'DEFEATED', canAttack: false, defeatedSummary, participation: { ...value.participation!, contributionBasisPoints: '164' }, boss: { ...value.boss, currentHp: '0', defeatedAt: '2026-09-13T08:00:00Z', finalBlowPlayer: { id: 'p3', displayName: 'Charlie' }, nextBaseAdjustment: '1275000' } }} {...callbacks} />))
     expect(container.textContent).toContain('✅ Vaincu')
-    expect(container.textContent).toContain('récompenses ont été versées automatiquement')
-    expect(container.textContent).toContain('Versement automatique effectué.')
+    expect(container.textContent).toContain('✅ Boss vaincu ce mois-ci.')
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Bilan →')!.click())
     expect(container.textContent).toContain('Boss')
     expect(container.textContent).toContain('Communauté')
     expect(container.textContent).toContain('Records')
@@ -69,6 +70,7 @@ describe('MonthlyBossScreen', () => {
   it('shows a sober defeated state for a non-participant without invented personal stats', () => {
     const container = document.createElement('div'); document.body.append(container); const root = createRoot(container)
     act(() => root.render(<MonthlyBossScreen value={{ ...value, status: 'DEFEATED', attackState: 'DEFEATED', canAttack: false, defeatedSummary, participation: null, boss: { ...value.boss, currentHp: '0', defeatedAt: '2026-09-13T08:00:00Z', finalBlowPlayer: { id: 'p3', displayName: 'Charlie' }, nextBaseAdjustment: '1275000' } }} {...callbacks} />))
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Bilan →')!.click())
     expect(container.textContent).toContain('Vous n’avez pas participé à ce Boss.')
     expect(container.textContent).not.toContain('1,64 %')
     act(() => root.unmount())
@@ -80,18 +82,19 @@ describe('MonthlyBossScreen', () => {
     const failed = { ...archived, id: 'failed', monthStart: '2026-07-01', name: 'Titan du Soleil Brisé', baseHp: '1200000', maxHp: '1500000', currentHp: '225000', resistanceElementKey: 'hydro' as const, status: 'FAILED' as const, defeatedAt: null, finalBlowPlayer: null, victoryDayCount: null, daysRemainingAfterVictory: null, nextBaseAdjustment: '-225000', records: { ...defeatedSummary.records, finalBlow: null } }
     const onLoadHistory = vi.fn(async (page: number) => page === 1 ? { page: 1, pageSize: 10, total: 11, totalPages: 2, bosses: Array.from({ length: 10 }, (_, index) => ({ ...archived, id: `archived-${index}` })) } : { page: 2, pageSize: 10, total: 11, totalPages: 2, bosses: [failed] })
     act(() => root.render(<MonthlyBossScreen value={value} {...callbacks} onLoadHistory={onLoadHistory} />))
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Bilan →')!.click())
     await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Historique')!.click(); await Promise.resolve() })
     expect(container.textContent).toContain('Monstre Abyssal')
     expect(container.textContent).toContain('✅ Vaincu')
     expect(container.querySelectorAll('.boss-history article')).toHaveLength(10)
-    await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Détails →')!.click() })
+    await act(async () => { container.querySelector<HTMLButtonElement>('.boss-history article button')!.click() })
     expect(container.textContent).toContain('1 500 000 PV')
     expect(container.textContent).toContain('Dégâts totaux')
     await act(async () => { container.querySelector<HTMLButtonElement>('.boss-history-details .icon-button')!.click() })
     await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Suivant')!.click(); await Promise.resolve() })
     expect(onLoadHistory).toHaveBeenLastCalledWith(2)
     expect(container.textContent).toContain('225 000 PV restants')
-    await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Détails →')!.click() })
+    await act(async () => { container.querySelector<HTMLButtonElement>('.boss-history article button')!.click() })
     expect(container.textContent).toContain('225 000 PV restants → −225 000 baseHp le mois suivant')
     act(() => root.unmount())
   })
@@ -99,6 +102,7 @@ describe('MonthlyBossScreen', () => {
   it('keeps an empty history state and stable one-page pagination', async () => {
     const container = document.createElement('div'); document.body.append(container); const root = createRoot(container)
     act(() => root.render(<MonthlyBossScreen value={value} {...callbacks} />))
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Bilan →')!.click())
     await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Historique')!.click(); await Promise.resolve() })
     expect(container.textContent).toContain('Aucun Boss archivé.')
     expect(container.textContent).toContain('1 / 1')

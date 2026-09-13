@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import type { DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyCombatFightDto, DailyRewardClaimDto, DailyRewardTodayDto, ElementKey, ExpeditionDto, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto, WheelSpinDto, WheelTodayDto } from '../api/types'
+import type { ContestDto, ContestHistoryDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyCombatFightDto, DailyRewardClaimDto, DailyRewardTodayDto, ElementKey, ExpeditionDto, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
 import { formatResourceAmount, formatWheelOverviewResult } from '../utils/formatters'
 import WheelCard from '../components/WheelCard'
@@ -13,6 +13,7 @@ import DailyCombatScreen, { type DailyCombatBoxBindings } from './DailyCombatScr
 import { unavailableMonthlyBoss } from '../combat/monthly-boss-unavailable'
 import { expeditionOverview } from '../expedition/expedition-presentation'
 import { createExpeditionClientSnapshot, type ExpeditionClientSnapshot } from '../expedition/expedition-client-snapshot'
+import ContestScreen from './ContestScreen'
 
 type ActivitiesScreenProps = {
   screen: ScreenId
@@ -24,6 +25,7 @@ type ActivitiesScreenProps = {
   dailyChallenge: DailyChallengeDto
   dailyCombat?: DailyCombatDto
   monthlyBoss?: MonthlyBossDto
+  contest?: ContestDto
   bossRequestToken?: number
   expedition?: ExpeditionClientSnapshot
   expeditionMonotonicNow?: number
@@ -43,14 +45,34 @@ type ActivitiesScreenProps = {
   onClearMonthlyBossLoadout?: () => Promise<MonthlyBossDto>
   onAttackMonthlyBoss?: (bossId: string, idempotencyKey: string) => Promise<MonthlyBossAttackDto>
   onLoadMonthlyBossHistory?: (page: number) => Promise<MonthlyBossHistoryDto>
+  onRefreshContest?: () => Promise<ContestDto>
+  onLoadContestHistory?: (page: number) => Promise<ContestHistoryDto>
+  onOpenContest?: (characterId: string, key: string) => Promise<ContestDto>
+  onJoinContest?: (characterId: string, key: string) => Promise<ContestDto>
+  onSelectContestLegend?: (characterId: string, key: string) => Promise<ContestDto>
+  onSetContestReady?: (ready: boolean, key: string) => Promise<ContestDto>
+  onStartContest?: (key: string) => Promise<ContestDto>
+  onSpectateContest?: (key: string) => Promise<ContestDto>
+  onLeaveContest?: (key: string) => Promise<ContestDto>
+  onCancelContest?: (key: string) => Promise<ContestDto>
+  onPlayContest?: (action: 'BASIC' | 'RISK', key: string) => Promise<ContestDto>
+  onSupportContest?: (slot: number, key: string) => Promise<ContestDto>
+  onRemoveContestParticipant?: (playerId: string, key: string) => Promise<ContestDto>
   onOpenParticleConversion: () => void
   onOpenExpedition?: () => void
+  onOpenBoss?: () => void
   onNavigate: (screen: ScreenId) => void
 }
 
-function ActivitiesScreen({ screen, wheelToday, onSpinWheel, dailyRewardToday, dailyChallenge, dailyCombat = unavailableDailyCombat, monthlyBoss = unavailableMonthlyBoss, bossRequestToken = 0, expedition, expeditionMonotonicNow = 0, dailyCombatBox, dailiesOverviewRequestToken = 0, elementKey, onClaimDailyReward, onPurchaseDailyChallenge, onSwitchDailyChallenge, onSetDailyCombatSlot = async () => unavailableDailyCombat, onRemoveDailyCombatSlot = async () => unavailableDailyCombat, onCopyActiveTeamToDailyCombat = async () => unavailableDailyCombat, onAutoSelectDailyCombat = async () => unavailableDailyCombat, onClearDailyCombatLoadout = async () => unavailableDailyCombat, onFightDailyCombat = async () => { throw new Error('Combat indisponible.') }, onSetMonthlyBossSlot = async () => unavailableMonthlyBoss, onRemoveMonthlyBossSlot = async () => unavailableMonthlyBoss, onCopyActiveTeamToMonthlyBoss = async () => unavailableMonthlyBoss, onClearMonthlyBossLoadout = async () => unavailableMonthlyBoss, onAttackMonthlyBoss = async () => { throw new Error('Boss indisponible.') }, onLoadMonthlyBossHistory = async () => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, bosses: [] }), onOpenParticleConversion, onOpenExpedition, onNavigate }: ActivitiesScreenProps) {
-  if (screen === 'activities-dailies') return <DailiesScreen wheelToday={wheelToday} onSpinWheel={onSpinWheel} dailyRewardToday={dailyRewardToday} dailyChallenge={dailyChallenge} dailyCombat={dailyCombat} monthlyBoss={monthlyBoss} expedition={expedition} expeditionMonotonicNow={expeditionMonotonicNow} dailiesOverviewRequestToken={dailiesOverviewRequestToken} elementKey={elementKey} onClaimDailyReward={onClaimDailyReward} onPurchaseDailyChallenge={onPurchaseDailyChallenge} onSwitchDailyChallenge={onSwitchDailyChallenge} onSetDailyCombatSlot={onSetDailyCombatSlot} onRemoveDailyCombatSlot={onRemoveDailyCombatSlot} onCopyActiveTeamToDailyCombat={onCopyActiveTeamToDailyCombat} onAutoSelectDailyCombat={onAutoSelectDailyCombat} onClearDailyCombatLoadout={onClearDailyCombatLoadout} onFightDailyCombat={onFightDailyCombat} onSetMonthlyBossSlot={onSetMonthlyBossSlot} onRemoveMonthlyBossSlot={onRemoveMonthlyBossSlot} onCopyActiveTeamToMonthlyBoss={onCopyActiveTeamToMonthlyBoss} onClearMonthlyBossLoadout={onClearMonthlyBossLoadout} onAttackMonthlyBoss={onAttackMonthlyBoss} onLoadMonthlyBossHistory={onLoadMonthlyBossHistory} onOpenParticleConversion={onOpenParticleConversion} onOpenExpedition={onOpenExpedition} onNavigate={onNavigate} />
+function ActivitiesScreen(props: ActivitiesScreenProps) {
+  const { screen, dailyCombat = unavailableDailyCombat, monthlyBoss = unavailableMonthlyBoss, contest = unavailableContest, bossRequestToken = 0, expedition, dailyCombatBox, onSetDailyCombatSlot = async () => unavailableDailyCombat, onRemoveDailyCombatSlot = async () => unavailableDailyCombat, onCopyActiveTeamToDailyCombat = async () => unavailableDailyCombat, onAutoSelectDailyCombat = async () => unavailableDailyCombat, onClearDailyCombatLoadout = async () => unavailableDailyCombat, onFightDailyCombat = async () => { throw new Error('Combat indisponible.') }, onSetMonthlyBossSlot = async () => unavailableMonthlyBoss, onRemoveMonthlyBossSlot = async () => unavailableMonthlyBoss, onCopyActiveTeamToMonthlyBoss = async () => unavailableMonthlyBoss, onClearMonthlyBossLoadout = async () => unavailableMonthlyBoss, onAttackMonthlyBoss = async () => { throw new Error('Boss indisponible.') }, onLoadMonthlyBossHistory = async () => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, bosses: [] }), onOpenBoss } = props
+  if (screen === 'activities-dailies') return <DailiesScreen {...props} dailyCombat={dailyCombat} monthlyBoss={monthlyBoss} expedition={expedition} onOpenBoss={onOpenBoss} />
   if (screen === 'activities-combat') return <DailyCombatScreen value={dailyCombat} box={dailyCombatBox} onSetSlot={onSetDailyCombatSlot} onRemoveSlot={onRemoveDailyCombatSlot} onCopyActive={onCopyActiveTeamToDailyCombat} onAuto={onAutoSelectDailyCombat} onClear={onClearDailyCombatLoadout} onFight={onFightDailyCombat} monthlyBoss={monthlyBoss} bossRequestToken={bossRequestToken} onSetBossSlot={onSetMonthlyBossSlot} onRemoveBossSlot={onRemoveMonthlyBossSlot} onCopyActiveToBoss={onCopyActiveTeamToMonthlyBoss} onClearBoss={onClearMonthlyBossLoadout} onAttackBoss={onAttackMonthlyBoss} onLoadBossHistory={onLoadMonthlyBossHistory} />
+  if (screen === 'activities-contest') {
+    const unchanged = async () => contest
+    const emptyHistory = async () => ({ page: 1, pageSize: 10, total: 0, pageCount: 1, contests: [] as const })
+    return <ContestScreen value={contest} onRefresh={props.onRefreshContest ?? unchanged} onLoadHistory={props.onLoadContestHistory ?? emptyHistory} onOpen={props.onOpenContest ?? unchanged} onJoin={props.onJoinContest ?? unchanged} onSelectLegend={props.onSelectContestLegend ?? unchanged} onReady={props.onSetContestReady ?? unchanged} onStart={props.onStartContest ?? unchanged} onSpectate={props.onSpectateContest ?? unchanged} onLeave={props.onLeaveContest ?? unchanged} onCancel={props.onCancelContest ?? unchanged} onPlay={props.onPlayContest ?? unchanged} onSupport={props.onSupportContest ?? unchanged} onRemoveParticipant={props.onRemoveContestParticipant ?? unchanged} />
+  }
   const content = screen === 'activities-missions' ? { title: 'Missions', description: 'Les missions permanentes seront disponibles ici.', tabs: ['B', 'A', 'S', 'Z'] } : screen === 'activities-event' ? { title: 'Événement', description: 'Les événements mensuels seront accessibles ici.', tabs: ['Jeux', 'Shop', 'Classement'] } : { title: 'Concours', description: 'Le Concours C6 sera accessible ici lorsqu’il sera implémenté.', tabs: [] }
   return <div className="screen-content activity-shell"><ScreenHeader eyebrow="Activités" title={content.title} description={content.description} /><nav className="activity-inner-tabs" aria-label={`Sections ${content.title}`}>{content.tabs.map((tab) => <button type="button" disabled key={tab}>{tab}</button>)}</nav><section className="panel unavailable-shell"><strong>Bientôt disponible</strong><p>Aucune progression fictive n’est affichée.</p></section></div>
 }
@@ -61,6 +83,11 @@ const unavailableDailyCombat: DailyCombatDto = {
   availableCharacters: [], koCharacterIds: [], availableCharacterCount: 0, preview: null, canFight: false,
   reward: { primogems: '800', moras: '20000' }, lastAttempt: null,
   playerStats: { totalFights: '0', totalWins: '0', totalLosses: '0', totalManualWins: '0' },
+}
+const unavailableContest: ContestDto = {
+  businessDate: '', theme: { key: 'STRENGTH', label: 'Force', title: 'Titan' }, dailyUsed: false,
+  permissions: { canOpen: false, canJoin: false, canSpectate: false, canLeave: false, canReady: false, canStart: false, canCancel: false, canPlay: false, canSupport: false },
+  active: null, lastResult: null, legends: [],
 }
 const unavailableExpedition: ExpeditionDto = { businessDate: '', operationalStatus: 'IDLE', departureUsedToday: false, canStartToday: false, activeCharacter: null, departedAt: null, readyAt: null, remainingSeconds: 0, startedOnCurrentBusinessDate: false, totalCompleted: '0' }
 
@@ -90,7 +117,7 @@ function DailyOverviewCard({ title, status, completed = false, detail, obtained,
   )
 }
 
-function DailiesScreen({ wheelToday, onSpinWheel, dailyRewardToday, dailyChallenge, dailyCombat = unavailableDailyCombat, monthlyBoss = unavailableMonthlyBoss, expedition, expeditionMonotonicNow = 0, dailiesOverviewRequestToken = 0, elementKey, onClaimDailyReward, onPurchaseDailyChallenge, onSwitchDailyChallenge, onOpenParticleConversion, onOpenExpedition, onNavigate }: Omit<ActivitiesScreenProps, 'screen'>) {
+function DailiesScreen({ wheelToday, onSpinWheel, dailyRewardToday, dailyChallenge, dailyCombat = unavailableDailyCombat, monthlyBoss = unavailableMonthlyBoss, expedition, expeditionMonotonicNow = 0, dailiesOverviewRequestToken = 0, elementKey, onClaimDailyReward, onPurchaseDailyChallenge, onSwitchDailyChallenge, onOpenParticleConversion, onOpenExpedition, onOpenBoss, onNavigate }: Omit<ActivitiesScreenProps, 'screen'>) {
   const [selection, setSelection] = useState<{ tab: 'overview' | 'wheel' | 'challenge'; requestToken: number }>({ tab: 'overview', requestToken: dailiesOverviewRequestToken })
   const tab = selection.requestToken === dailiesOverviewRequestToken ? selection.tab : 'overview'
   const selectTab = (next: typeof tab) => setSelection({ tab: next, requestToken: dailiesOverviewRequestToken })
@@ -98,7 +125,18 @@ function DailiesScreen({ wheelToday, onSpinWheel, dailyRewardToday, dailyChallen
   const challengeCompleted = dailyChallenge.status === 'COMPLETED' && Boolean(dailyChallenge.challenge)
   const challengeStatus = challengeCompleted ? '✅ Terminé' : dailyChallenge.assigned && dailyChallenge.challenge ? `${dailyChallenge.challenge.displayName} · ${dailyChallenge.challenge.progress} / ${dailyChallenge.challenge.target}` : `Disponible — ${formatResourceAmount(dailyChallenge.purchaseCost)} Moras`
   const combatOverview = dailyCombatOverview(dailyCombat)
-  return <div className="screen-content activity-shell dailies-shell long-screen-layout"><ScreenHeader eyebrow="Activités" title="Quotidiennes" description="Retrouvez les activités du jour et leur disponibilité réelle." /><ScrollableScreenPanel className="dailies-frame" fixed={tabs}>{tab === 'overview' && <div className="dailies-overview"><div className="daily-overview-item" data-daily-activity="Récompense quotidienne"><DailyRewardCard variant="overview" today={dailyRewardToday} elementKey={elementKey} onClaim={onClaimDailyReward} /></div><DailyOverviewCard title="Roue" status={wheelToday.spun ? '✅ Terminé' : 'Une tentative disponible aujourd’hui.'} completed={wheelToday.spun} detail={wheelToday.spun ? 'Roue utilisée aujourd’hui.' : undefined} obtained={wheelToday.spun && wheelToday.result ? formatWheelOverviewResult(wheelToday.result) : undefined} onAccess={() => selectTab('wheel')} /><DailyOverviewCard title="Défi" status={challengeStatus} completed={challengeCompleted} detail={challengeCompleted ? dailyChallengeProgressSentence(dailyChallenge.challenge!) : undefined} obtained={challengeCompleted ? `+${formatResourceAmount(dailyChallenge.challenge!.rewardPrimogems)} Primogemmes` : undefined} onAccess={() => selectTab('challenge')} /><DailyOverviewCard title="Combat" status={combatOverview.status} completed={dailyCombat.status === 'COMPLETED'} detail={<>{combatOverview.detail}{combatOverview.detail && <br />}<span className="daily-boss-line">Boss : {monthlyBoss.status === 'DEFEATED' ? '✅ vaincu ce mois-ci' : monthlyBoss.attackState === 'USED' ? '✅ attaqué aujourd’hui' : 'attaque disponible'}</span></>} obtained={dailyCombat.status === 'COMPLETED' ? `+${formatResourceAmount(dailyCombat.reward.primogems)} Primogemmes · +${formatResourceAmount(dailyCombat.reward.moras)} Moras` : undefined} onAccess={() => onNavigate('activities-combat')} /><ExpeditionOverviewCard snapshot={expedition} monotonicNow={expeditionMonotonicNow} onAccess={onOpenExpedition ?? (() => onNavigate('characters-box'))} /><DailyOverviewCard title="Amitié" status="Bientôt disponible. Social et Amis ne sont pas encore implémentés." accessLabel="Accéder à Amitié — Social et Amis bientôt disponibles" /><DailyOverviewCard title="Événement" status="Bientôt disponible. Le système Événement n’est pas encore implémenté." onAccess={() => onNavigate('activities-event')} /></div>}{tab === 'wheel' && <WheelCard today={wheelToday} onSpin={onSpinWheel} />}{tab === 'challenge' && <DailyChallengeCard value={dailyChallenge} onPurchase={onPurchaseDailyChallenge} onSwitch={onSwitchDailyChallenge} onOpenParticleConversion={onOpenParticleConversion} onNavigate={onNavigate} />}</ScrollableScreenPanel></div>
+  const bossCompleted = monthlyBoss.attackState !== 'AVAILABLE'
+  const bossDetail = monthlyBoss.attackState === 'DEFEATED' ? 'Boss vaincu ce mois-ci.' : monthlyBoss.attackState === 'USED' ? 'Attaque effectuée.' : 'Une attaque disponible.'
+  return <div className="screen-content activity-shell dailies-shell long-screen-layout"><ScreenHeader eyebrow="Activités" title="Quotidiennes" description="Retrouvez les activités du jour et leur disponibilité réelle." /><ScrollableScreenPanel className="dailies-frame" fixed={tabs}>{tab === 'overview' && <div className="dailies-overview">
+    <div className="daily-overview-item" data-daily-activity="Récompense quotidienne"><DailyRewardCard variant="overview" today={dailyRewardToday} elementKey={elementKey} onClaim={onClaimDailyReward} /></div>
+    <DailyOverviewCard title="Roue" status={wheelToday.spun ? '✅ Terminé' : 'Une tentative disponible.'} completed={wheelToday.spun} detail={wheelToday.spun ? 'Roue utilisée.' : undefined} obtained={wheelToday.spun && wheelToday.result ? formatWheelOverviewResult(wheelToday.result) : undefined} onAccess={() => selectTab('wheel')} />
+    <DailyOverviewCard title="Défi" status={challengeStatus} completed={challengeCompleted} detail={challengeCompleted ? dailyChallengeProgressSentence(dailyChallenge.challenge!) : undefined} obtained={challengeCompleted ? `+${formatResourceAmount(dailyChallenge.challenge!.rewardPrimogems)} Primogemmes` : undefined} onAccess={() => selectTab('challenge')} />
+    <DailyOverviewCard title="Combat" status={combatOverview.status} completed={dailyCombat.status === 'COMPLETED'} detail={combatOverview.detail} obtained={dailyCombat.status === 'COMPLETED' ? `+${formatResourceAmount(dailyCombat.reward.primogems)} Primogemmes · +${formatResourceAmount(dailyCombat.reward.moras)} Moras` : undefined} onAccess={() => onNavigate('activities-combat')} />
+    <DailyOverviewCard title="Boss" status={bossCompleted ? '✅ Terminé' : 'À faire'} completed={bossCompleted} detail={bossDetail} onAccess={onOpenBoss} />
+    <ExpeditionOverviewCard snapshot={expedition} monotonicNow={expeditionMonotonicNow} onAccess={onOpenExpedition ?? (() => onNavigate('characters-box'))} />
+    <DailyOverviewCard title="Amitié" status="Bientôt disponible. Social et Amis ne sont pas encore implémentés." accessLabel="Accéder à Amitié — Social et Amis bientôt disponibles" />
+    <DailyOverviewCard title="Événement" status="Bientôt disponible. Le système Événement n’est pas encore implémenté." onAccess={() => onNavigate('activities-event')} />
+  </div>}{tab === 'wheel' && <WheelCard today={wheelToday} onSpin={onSpinWheel} />}{tab === 'challenge' && <DailyChallengeCard value={dailyChallenge} onPurchase={onPurchaseDailyChallenge} onSwitch={onSwitchDailyChallenge} onOpenParticleConversion={onOpenParticleConversion} onNavigate={onNavigate} />}</ScrollableScreenPanel></div>
 }
 
 function ExpeditionOverviewCard({ snapshot = unavailableExpeditionSnapshot, monotonicNow, onAccess }: { snapshot?: ExpeditionClientSnapshot; monotonicNow: number; onAccess: () => void }) {
@@ -114,7 +152,7 @@ function ExpeditionOverviewCard({ snapshot = unavailableExpeditionSnapshot, mono
 const unavailableExpeditionSnapshot = createExpeditionClientSnapshot(unavailableExpedition, 0)
 
 function dailyCombatOverview(value: DailyCombatDto) {
-  if (value.status === 'COMPLETED') return { status: '✅ Terminé', detail: 'Victoire obtenue aujourd’hui.' }
+  if (value.status === 'COMPLETED') return { status: '✅ Terminé', detail: 'Victoire obtenue.' }
   if (value.status === 'BLOCKED') return { status: 'Bloqué', detail: 'Moins de 4 personnages disponibles.' }
   if (value.status === 'IN_PROGRESS') return { status: 'En cours', detail: `${value.koCharacterIds.length} personnages KO.` }
   return { status: 'Prêt à combattre' }
@@ -135,7 +173,7 @@ export function DailyChallengeCard({ value, onPurchase, onSwitch, onOpenParticle
   }
   if (!value.assigned || !value.challenge) return <section className="panel daily-challenge-card available" data-challenge-state="available">
     <header className="daily-challenge-header"><div><span className="eyebrow">Défi du jour</span><small>{value.businessDate}</small></div><strong>Disponible</strong></header>
-    <div className="daily-challenge-content"><h2>Un objectif pour aujourd’hui</h2><p>Obtenez un objectif aléatoire à accomplir avant le reset journalier. Il sera révélé après l’achat.</p><dl><div><dt>Prix</dt><dd>{formatResourceAmount(value.purchaseCost)} Moras</dd></div><div><dt>Récompense</dt><dd>800 Primogemmes</dd></div></dl></div>
+    <div className="daily-challenge-content"><h2>Un objectif à révéler</h2><p>Obtenez un objectif aléatoire à accomplir avant le reset journalier. Il sera révélé après l’achat.</p><dl><div><dt>Prix</dt><dd>{formatResourceAmount(value.purchaseCost)} Moras</dd></div><div><dt>Récompense</dt><dd>800 Primogemmes</dd></div></dl></div>
     <div className="daily-challenge-progress-zone available"><span>Objectif révélé après attribution.</span><p className={`daily-challenge-feedback${error ? ' error' : ''}`} role={error ? 'alert' : undefined}>{error ?? ''}</p></div>
     <div className="daily-challenge-actions"><button type="button" className="small-primary-button" disabled={Boolean(pending)} onClick={() => void run('purchase')}>{pending === 'purchase' ? 'Attribution…' : 'Acheter le Défi'}</button></div>
   </section>

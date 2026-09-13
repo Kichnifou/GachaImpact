@@ -1231,3 +1231,9 @@ Un Défi Conversion actif ouvre la `ParticleConversionModal` transverse sans nav
 Dans `Quotidiennes > Aperçu`, les trois activités réelles terminées suivent un même pattern sans modifier leur gameplay : `✅ Terminé`, détail contextuel, puis `Obtenu : <résultat autoritatif>`. Daily Reward restitue les trois gains de son DTO, Roue emploie un format compact sans texte célébratoire et écrit `Obtenu : Rien` lorsque `resultType = nothing`, et Défi lit son snapshot `rewardPrimogems`. Une activité terminée ne rend plus de bouton d’action dans Aperçu ; une activité disponible conserve son action et la carte garde sa hauteur 0.84.
 
 La présentation frontend mappe explicitement `DAILY_CHALLENGE_ALREADY_ASSIGNED`, `DAILY_CHALLENGE_NOT_ASSIGNED`, `DAILY_CHALLENGE_SWITCH_UNAVAILABLE`, `DAILY_CHALLENGE_POOL_UNAVAILABLE`, `DAILY_CHALLENGE_WALLET_INSUFFICIENT` et `DAILY_CHALLENGE_IDEMPOTENCY_CONFLICT`. L’insuffisance de wallet précise s’il manque des Moras pour acheter ou changer le Défi. Les codes, transactions, coûts, progression, attribution et récompense backend restent inchangés.
+
+### Aperçu Quotidiennes 0.92 — Boss autonome
+
+L’Aperçu liste désormais Récompense quotidienne, Roue, Défi, Combat, Boss, Expédition, Amitié et Événement. Combat projette uniquement Entraînement. Boss possède sa carte indépendante : AVAILABLE affiche `À faire`, `Une attaque disponible.` et deep-link vers `Combat > Boss`; USED affiche `✅ Terminé` et `Attaque effectuée.` sans action ; DEFEATED affiche `✅ Terminé` et `Boss vaincu ce mois-ci.`. Aucun état Boss ne présente de faux `Obtenu`.
+
+Les formulations `aujourd’hui` redondantes sont retirées uniquement des détails de cet Aperçu pour Récompense, Roue, Combat, Boss et Expédition. Les écrans propriétaires conservent leur vocabulaire lorsque le contexte journalier reste utile.

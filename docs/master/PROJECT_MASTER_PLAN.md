@@ -1,8 +1,8 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.90
+Version : 0.92
 Date : 2026-09-13
-Statut : CANDIDAT 0.90 — REVIEW INDÉPENDANTE REQUISE
+Statut : CANDIDAT 0.92 — REVIEW INDÉPENDANTE REQUISE
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
@@ -3544,7 +3544,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Combat — candidat 0.91 final centré sur le Boss mensuel, son bilan vaincu complet et son historique détaillé. La validation publique Boss, Expedition READY/notification/claim et Combat défaite/KO reste à terminer avant d’ouvrir Concours / personnages C6.**
+**Concours / personnages C6 — candidat 0.92 physiquement implémenté, en attente de review indépendante puis de validation publique. La prochaine étape après validation est Collection / Sac à compléter.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3561,8 +3561,8 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - squelette Fastify / TypeScript checkpointé ;
 - Prisma ORM 7.10.0 stable ;
 - Supabase DEV provisionné et connexion PostgreSQL fonctionnelle ;
-- douze migrations applicatives versionnées, avec la migration additive 012 Défi appliquée sur Supabase DEV ;
-- 34 tables présentes, dont les tables privées `player_characters`, `c6_competition_progress`, `pull_operations`, `pull_results`, `player_preferences`, `item_definitions`, `player_items`, `teams`, `team_members`, `player_bank_accounts`, `bank_transactions`, `player_role_assignments`, `admin_audit_entries`, `shop_item_definitions`, `shop_purchases`, `daily_challenge_definitions` et `player_daily_challenges` ;
+- dix-sept migrations applicatives versionnées et suivies par Prisma, dont la migration additive 017 Concours appliquée sur Supabase DEV ;
+- les tables privées couvrent notamment possessions/C6, Gacha, préférences, Sac, Teams, Banque, Boutique, Défi, Combat, Expedition/Notifications, Boss et désormais le cycle complet Concours ;
 - référentiels seedés avec 7 éléments et 9 ressources ;
 - RLS activée sur les tables de fondation, sans policy client permissive ;
 - Auth Supabase réel checkpointé au commit `027d230f7d047e0469076418d3d5122e831bdce6` ;
@@ -3773,6 +3773,18 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Les validations automatisées utilisent seulement des Players fixtures UUID et des mois 2098, puis les nettoient. Les comptes DEV confirmés `Kichnifou`, `Mynonyme`, `MynonymeTest1`, `MynonymeTest2`, `MynonymeTest3`, `Céo`, `Mika` et `Jean Julien`, ainsi que leur Expedition réelle, n’ont été ni ciblés ni modifiés. `PAID_INFRA_APPROVED = false` reste inchangé ; aucun service payant ni déploiement Railway manuel ne fait partie du candidat.
 - Le domaine actif reste Combat, centré sur le candidat Boss 0.91 final corrigé. Sa validation publique n’a pas encore eu lieu ; aucun domaine suivant n’est commencé. Après franchissement des gates publiques listées ci-dessous, le prochain domaine exact est **Concours / personnages C6**, selon [implementation-order-v1.md](../roadmap/implementation-order-v1.md).
 
+## État du candidat 0.92 — Concours / C6 et densité Boss
+
+- Le propriétaire a validé publiquement en 0.91 l’affichage général du Boss, une attaque réelle et son quota quotidien, ainsi que l’état Expedition RUNNING dans Quotidiennes. Restent à tester publiquement Expedition READY/notification/claim, Combat défaite/KO, Boss vaincu/notification, rollover/historique Boss réel et tout le vertical Concours.
+- L’écran Boss conserve strictement le moteur 0.91 mais devient compact : mois et `Bilan →`, identité/statut/résistance iconique, PV remontés, barre d’attaque en trois régions et formation `Votre formation`. Contribution, statistiques lifetime et historique paginé vivent dans une seule modale Bilan à trois onglets. Les cartes joueur et la fiche Box sont partagées avec Entraînement ; aucun Auto Boss ni interaction avec les KO quotidiens n’est ajouté.
+- Quotidiennes liste désormais huit cartes dans l’ordre Récompense, Roue, Défi, Combat, Boss, Expédition, Amitié, Événement. Combat ne porte plus d’état Boss. La carte Boss projette `AVAILABLE`, `USED` ou `DEFEATED` et deep-link vers le bon onglet sans claim ni faux `Obtenu`. Les formulations temporelles redondantes sont retirées uniquement de l’Aperçu Quotidiennes.
+- Le domaine `Activités > Concours` matérialise R526–R593 : thème journalier global Europe/Paris, lobby public unique de dix minutes, quatre slots avec bots de remplissage, Ready explicite, snapshot au lancement, ordre mélangé, actions Basic/Risque, IA serveur, tours de 60 s, remplacement au troisième timeout, spectateurs actifs, soutien de 30 s et victoire immédiate à 50 points.
+- La participation quotidienne n’est consommée qu’au lancement. Départs, transfert d’organisateur, annulations/refunds, zéro humain, concurrence et reprises sont arbitrés côté serveur sous verrou transactionnel. Le classement global conserve les bots ; seuls les humains encore présents reçoivent 800/400/200/0 selon leur rang exact, puis statistiques et titres thématiques aux seuils 1/3/7/15.
+- `Mes Légendes`, le dernier résultat et l’historique public FINISHED paginé à dix sont réels. Les statistiques exactes `/20` restent personnelles ; l’écran public n’expose que les snapshots utiles au match. Aucun Social, Realtime, chat, Twitch, présence passive, migration legacy ou image générée n’est commencé.
+- La migration additive `20260913170000_017_add_contests` étend la table C6 existante avec compteurs/titres initialisés à zéro et crée uniquement thèmes, concours, participants, spectateurs, consommations quotidiennes, retraits lobby, événements et récompenses. Les cinq statistiques existantes sont conservées. RLS est active, les accès `anon`/`authenticated` sont révoqués et Prisma suit 17 migrations à jour.
+- Les tests DB utilisent uniquement des Players UUID, des dates dédiées 2097/2098 et un cleanup exact. Les huit comptes DEV confirmés, l’attaque/PV/états/statistiques du Boss réel de septembre 2026 et l’Expedition réelle restent intacts. `PAID_INFRA_APPROVED = false` demeure inchangé ; aucun service payant ni déploiement Railway manuel n’appartient au candidat.
+- Le domaine actif est **Concours / personnages C6**, candidat 0.92. Après review, promotion, déploiement automatique et validation publique, la prochaine étape est **Collection / Sac à compléter**.
+
 ## État du lot — Invocation x1/x10
 
 Le vertical slice Pull réel est physiquement implémenté. Le **target design** (`docs/architecture/postgresql-schema-v1.md`, `docs/specifications/v1-data-model.md`) et les audits 06/07/15 restent les autorités de conception ; ce Master porte l'état vivant.
@@ -3913,7 +3925,7 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Faire la review finale du candidat 0.91 uniquement sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → valider publiquement le Boss mensuel et les nouveaux états Quotidiennes Expedition → terminer le test public READY/claim de l’Expedition réelle → valider publiquement Combat défaite/KO → ouvrir ensuite Concours / personnages C6.** Aucun domaine suivant ne commence avant ces gates. L’ordre complet restant appartient à [implementation-order-v1.md](../roadmap/implementation-order-v1.md). La migration legacy reste reportée jusqu'à ce que les principaux domaines standalone encore manquants soient physiques et stabilisés. `PAID_INFRA_APPROVED = false` reste inchangé.
+**Faire la review indépendante du candidat 0.92 uniquement sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → valider publiquement Concours et les finitions Boss/Quotidiennes.** Les validations encore ouvertes restent Expedition READY/notification/claim, Combat défaite/KO, Boss vaincu/notification et rollover/historique Boss réel. Après validation du candidat 0.92, ouvrir **Collection / Sac à compléter**. L’ordre complet restant appartient à [implementation-order-v1.md](../roadmap/implementation-order-v1.md). La migration legacy reste reportée ; `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

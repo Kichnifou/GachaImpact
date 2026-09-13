@@ -12,6 +12,7 @@ const config = loadConfig(); if (!config.databaseUrl) throw new Error('DATABASE_
 const database = createDatabase(config.databaseUrl);
 const playerIds = new Set<string>();
 const characterIds = new Set<string>();
+const anchorMonth = '2097-12-01';
 const months = ['2098-01-01', '2098-02-01', '2098-03-01', '2098-04-01', '2098-05-01', '2098-06-01'] as const;
 let now = new Date('2098-01-10T12:00:00.000Z');
 let randomCalls = 0;
@@ -19,7 +20,18 @@ const clock = { now: () => now };
 const random = { nextInt: (maximum: number) => { randomCalls += 1; return maximum === 31 ? 15 : 0; } };
 const identity = { subject: 'monthly-boss-fixture' } as const;
 
-beforeAll(cleanup);
+beforeAll(async () => {
+  await cleanup();
+  await database.monthlyBoss.create({ data: {
+    monthStart: new Date(`${anchorMonth}T00:00:00.000Z`),
+    nameSnapshot: 'Boss fixture précédent',
+    baseHp: 2_000_000n,
+    hpVariationPercent: 0,
+    maxHp: 2_000_000n,
+    currentHp: 500_000n,
+    resistanceElementKey: 'hydro',
+  } });
+});
 afterAll(async () => { try { await cleanup(); } finally { await database.$disconnect(); } });
 
 async function fixture(characterCount = 4) {
@@ -41,7 +53,7 @@ async function fill(service: MonthlyBossService, characters: readonly { id: stri
 
 async function cleanup() {
   const ids = [...playerIds];
-  const monthDates = months.map((month) => new Date(`${month}T00:00:00.000Z`));
+  const monthDates = [anchorMonth, ...months].map((month) => new Date(`${month}T00:00:00.000Z`));
   const bosses = await database.monthlyBoss.findMany({ where: { monthStart: { in: monthDates } }, select: { id: true } });
   const bossIds = bosses.map(({ id }) => id);
   if (bossIds.length) {
