@@ -12,7 +12,7 @@ import GiftCodesScreen from './GiftCodesScreen'
 const code: GiftCodeDto = { id: 'code-1', editionId: 'edition-1', token: 'FESTIVALRECOLTES', title: 'Festival des Récoltes', description: 'Un cadeau de septembre.', type: 'ANNUAL', editionKey: '2026', startsAt: '2026-08-31T22:00:00.000Z', endsAt: '2026-09-30T22:00:00.000Z', available: true, claimed: false, claimedAt: null, rewards: [{ resourceKey: 'primogems', displayName: 'Primogemmes', amount: '1600' }, { resourceKey: 'moras', displayName: 'Moras', amount: '200000' }] }
 const initial: PlayerGiftCodesDto = { available: [code], claimed: [] }
 let roots: Root[] = []
-afterEach(() => { roots.forEach((root) => act(() => root.unmount())); roots = [] })
+afterEach(() => { roots.forEach((root) => act(() => root.unmount())); roots = []; document.body.replaceChildren() })
 
 describe('GiftCodesScreen', () => {
   it('shows exact rewards and moves a claimed edition to Récupérés', async () => {
@@ -59,5 +59,58 @@ describe('GiftCodesScreen', () => {
     expect(lockedInput).not.toHaveProperty('type')
     expect(lockedInput).not.toHaveProperty('recurringMonth')
     expect(lockedInput).not.toHaveProperty('rewards')
+  })
+
+  it('keeps both admin modals accessible and restores focus for every close path', async () => {
+    const adminCode: AdminGiftCodeDto = { id: 'code-admin', token: 'CADEAU-TEST', title: 'Cadeau test', description: 'Description', type: 'ANNUAL', status: 'PUBLISHED', recurringMonth: 9, startsAt: null, endsAt: null, createdAt: '2026-09-13T12:00:00.000Z', publishedAt: '2026-09-14T12:00:00.000Z', claimCount: 1, locked: true, rewards: [{ resourceKey: 'primogems', displayName: 'Primogemmes', amount: '1600' }], editions: [] }
+    const value: AdminGiftCodesDto = { actorPlayerId: 'admin', codes: [adminCode] }
+    const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root)
+    await act(async () => { root.render(<GiftCodeAdminPanel onLoad={async () => value} onCreate={async () => value} onPublish={async () => value} onUpdate={async () => value} onClaimants={async () => ({ code: { id: adminCode.id, token: adminCode.token, title: adminCode.title }, claimants: [{ playerId: 'player-1', displayName: 'Joueuse', editionKey: '2026', claimedAt: '2026-09-14T12:00:00.000Z' }] })} />); await Promise.resolve() })
+
+    const button = (label: string) => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((candidate) => candidate.textContent === label)!
+    const open = async (label: string) => { const opener = button(label); opener.focus(); await act(async () => { opener.click(); await Promise.resolve() }); return opener }
+    const press = async (key: string, shiftKey = false) => { await act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key, shiftKey, bubbles: true })); await Promise.resolve() }) }
+
+    let opener = await open('Modifier')
+    let dialog = container.querySelector<HTMLElement>('[role="dialog"]')!
+    expect(dialog).not.toBeNull()
+    expect(dialog.contains(document.activeElement)).toBe(true)
+    const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled)'))
+    focusable.at(-1)!.focus()
+    await press('Tab')
+    expect(document.activeElement).toBe(focusable[0])
+    await press('Escape')
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
+    expect(document.activeElement).toBe(opener)
+
+    opener = await open('Modifier')
+    await act(async () => { container.querySelector<HTMLElement>('.modal-layer')!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); await Promise.resolve() })
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
+    expect(document.activeElement).toBe(opener)
+
+    opener = await open('Modifier')
+    await act(async () => { container.querySelector<HTMLButtonElement>('[role="dialog"] [aria-label="Fermer"]')!.click(); await Promise.resolve() })
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
+    expect(document.activeElement).toBe(opener)
+
+    opener = await open('Récupérations')
+    dialog = container.querySelector<HTMLElement>('[role="dialog"]')!
+    expect(dialog.getAttribute('aria-label')).toBe('Détail des récupérations')
+    expect(dialog.contains(document.activeElement)).toBe(true)
+    await press('Tab')
+    expect(dialog.contains(document.activeElement)).toBe(true)
+    await press('Escape')
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
+    expect(document.activeElement).toBe(opener)
+
+    opener = await open('Récupérations')
+    await act(async () => { container.querySelector<HTMLElement>('.modal-layer')!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); await Promise.resolve() })
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
+    expect(document.activeElement).toBe(opener)
+
+    opener = await open('Récupérations')
+    await act(async () => { container.querySelector<HTMLButtonElement>('[role="dialog"] [aria-label="Fermer"]')!.click(); await Promise.resolve() })
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
+    expect(document.activeElement).toBe(opener)
   })
 })

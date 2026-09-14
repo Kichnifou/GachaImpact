@@ -2,7 +2,7 @@
 
 Version : 0.97
 Date : 2026-09-14
-Statut : CANDIDAT 0.97 LOCAL — CODES CADEAUX V1 ET POLISH CONCOURS, REVIEW INDÉPENDANTE REQUISE
+Statut : CANDIDAT 0.97 PUBLIÉ SUR review — REVIEW INDÉPENDANTE EN COURS
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
@@ -3813,14 +3813,14 @@ Le commit 0.95 `3e510307f49ffa389df902d35c83287ea0ebe96e` est désormais sur `ma
 - Le commit fonctionnel 0.96 `ea046f421a2199d3b4b7fee56dff3ade795233c6` et son checkpoint documentaire ont été approuvés, promus puis validés publiquement. Le résultat Concours reste visible cinq minutes, l’état `dailyUsed` conserve le lobby consultable avec participation désactivée, et le catalogue Collection, les quantités zéro, les compteurs et le détail ont été validés.
 - R863 devient validé publiquement. R864 reste une garantie technique du ledger : aucune validation réelle d’acquisitions multiples produites par Event n’est revendiquée avant l’implémentation de ce domaine. Les images Collection restent volontairement reportées. Le retour naturel Expedition READY/notification/claim reste une validation publique ouverte.
 
-## État du candidat local 0.97 — Codes cadeaux V1 et finalisation visuelle Concours
+## État du candidat 0.97 publié sur review — Codes cadeaux V1 et finalisation visuelle Concours
 
 - Le domaine actif devient **Codes cadeaux**. La migration additive 019 crée les définitions, éditions, récompenses et claims privés, avec RLS active et droits navigateur révoqués. Elle publie les douze codes Festival annuels connus, chacun à +1 600 Primogemmes et +200 000 Moras, sans créer de claim ni crédit joueur.
 - Le claim est serveur-authoritative, transactionnel et idempotent : unicité Player/édition, `BusinessOperation`, crédits par `PrismaEconomyService`, `ResourceMovement`, statistiques économiques et résolution de notification partagent la même transaction sérialisable. Une nouvelle édition annuelle est matérialisée au mois concerné et réactive sa propre notification.
 - `#codes` expose l’écran personnel `Disponibles | Récupérés`, les récompenses exactes avant action et la synchronisation immédiate des ressources globales. La destination `Codes` rejoint le registre Menu près de Boutique/Banque sans modifier les sept tuiles principales. `OPEN_GIFT_CODE` ouvre cet écran.
-- L’administration Codes est intégrée à Modération mais rendue et autorisée uniquement pour ADMIN : brouillon, token manuel ou généré, titre/description, ponctuel ou annuel, période, neuf ressources sûres, aperçu, publication explicite, modification contrôlée, désactivation/réactivation, compteurs et détail des claimants. Token, type et récompenses ne disposent d’aucune mutation ; la récurrence se verrouille après le premier claim. Chaque mutation est auditée et idempotente.
+- L’administration Codes est intégrée à Modération mais rendue et autorisée uniquement pour ADMIN : brouillon, token manuel ou généré, titre/description, ponctuel ou annuel, période, neuf ressources sûres, aperçu, publication explicite, modification contrôlée, désactivation/réactivation, compteurs et détail des claimants. Avant le premier claim, token, type, récurrence/période et récompenses restent modifiables selon R687 ; après le premier claim, identité/token/type/récompenses sont verrouillés et seuls les champs expressément autorisés par R687 restent éditables. Chaque mutation est auditée et idempotente.
 - Concours recharge immédiatement à l’entrée et continue son polling même sans session active. Son bandeau RUNNING emploie trois zones stables, le spectateur lit exactement `En attente des joueurs...`, les confirmations expliquent les conséquences de Lancer/Quitter/Annuler/Retirer, et le footer est compact sans toucher aux boutons globaux. Le propriétaire du scroll desktop est le body fonctionnel ; le `screen-stage` ne crée plus une seconde scrollbar pour un écran long, tandis que mobile conserve son flux naturel.
-- Aucun Event, chat, Twitch, Realtime, image Collection, service payant ou fichier `docs/Story/**` n’est commencé. `PAID_INFRA_APPROVED = false` reste inchangé. Le candidat local doit maintenant recevoir une review indépendante avant tout commit/push/promotion.
+- Aucun Event, chat, Twitch, Realtime, image Collection, service payant ou fichier `docs/Story/**` n’est commencé. `PAID_INFRA_APPROVED = false` reste inchangé. Le commit fonctionnel `7d31c2603b01ae67e4419b083c4dabf7d981d839` est publié sur `review`, pas sur `main`, non déployé et non validé publiquement. La review indépendante est en cours ; son correctif séparé durcit le replay idempotent post-expiration et applique le contrat modal accessible aux deux dialogues Admin.
 
 ## État déployé 0.92 — Concours / C6 et densité Boss
 
@@ -3975,9 +3975,9 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 
 Prochaine étape exacte :
 
-1. Effectuer la review indépendante du candidat local 0.97, code, migration 019, sécurité, concurrence, tests et documentation.
-2. Ne créer et ne pousser le commit 0.97 qu’après instruction explicite du propriétaire.
-3. Ne pas ouvrir Événements mensuels avant promotion et validation suffisante de Codes cadeaux.
+1. Faire contrôler indépendamment le correctif de review 0.97.
+2. S’il est conforme, promouvoir `review` vers `main` en fast-forward strict, laisser agir les déploiements automatiques, puis contrôler le healthcheck et effectuer la validation publique 0.97.
+3. Ne pas ouvrir Événements mensuels avant cette promotion et une validation suffisante de Codes cadeaux.
 
 L’ordre complet restant appartient à [implementation-order-v1.md](../roadmap/implementation-order-v1.md). La migration legacy reste reportée ; `PAID_INFRA_APPROVED = false` reste inchangé.
 

@@ -61,7 +61,8 @@ describe('GiftCodeService on Supabase DEV', () => {
     const [left, right] = await Promise.all([service.claim(identity, festival!.editionId, leftKey), service.claim(identity, festival!.editionId, rightKey)]);
     expect([left.operation.alreadyProcessed, right.operation.alreadyProcessed].sort()).toEqual([false, true]);
     expect(left.operation.id).toBe(right.operation.id);
-    const retry = await service.claim(identity, festival!.editionId, leftKey);
+    const completedKey = left.operation.alreadyProcessed ? rightKey : leftKey;
+    const retry = await service.claim(identity, festival!.editionId, completedKey);
     expect(retry.operation).toEqual({ id: left.operation.id, alreadyProcessed: true });
     const [claimCount, movements, balances, notification] = await Promise.all([
       database.giftCodeClaim.count({ where: { giftCodeEditionId: festival!.editionId, playerId: created.player.id } }),
@@ -76,6 +77,19 @@ describe('GiftCodeService on Supabase DEV', () => {
     const after = await service.listForPlayer(identity);
     expect(after.available.some(({ editionId }) => editionId === festival!.editionId)).toBe(false);
     expect(after.claimed.some(({ editionId }) => editionId === festival!.editionId)).toBe(true);
+
+    testNow = new Date('2026-10-02T12:00:00.000Z');
+    const expiredRetry = await service.claim(identity, festival!.editionId, completedKey);
+    expect(expiredRetry.operation).toEqual({ id: left.operation.id, alreadyProcessed: true });
+    await expect(service.claim(identity, festival!.editionId, randomUUID())).rejects.toMatchObject({ code: 'GIFT_CODE_UNAVAILABLE' });
+    const [expiredClaimCount, expiredMovements, expiredBalances] = await Promise.all([
+      database.giftCodeClaim.count({ where: { giftCodeEditionId: festival!.editionId, playerId: created.player.id } }),
+      database.resourceMovement.findMany({ where: { playerId: created.player.id, operationId: left.operation.id }, orderBy: { resourceKey: 'asc' } }),
+      database.playerResourceBalance.findMany({ where: { playerId: created.player.id, resourceKey: { in: ['moras', 'primogems'] } }, orderBy: { resourceKey: 'asc' } }),
+    ]);
+    expect(expiredClaimCount).toBe(1);
+    expect(expiredMovements.map(({ resourceKey, delta }) => [resourceKey, delta])).toEqual([['moras', 200000n], ['primogems', 1600n]]);
+    expect(expiredBalances.map(({ resourceKey, amount }) => [resourceKey, amount])).toEqual([['moras', 200000n], ['primogems', 1600n]]);
 
     testNow = new Date('2027-09-14T12:00:00.000Z');
     const nextYear = await service.listForPlayer(identity);

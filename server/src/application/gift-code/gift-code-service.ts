@@ -59,6 +59,12 @@ export class GiftCodeService {
       try {
         const result = await this.database.$transaction(async (tx) => {
           await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
+          const existingOperation = await tx.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey } });
+          if (existingOperation) {
+            const request = readJsonRecord(existingOperation.resultSummary)?.request;
+            if (existingOperation.playerId !== player.id || existingOperation.operationType !== 'gift-code.claim' || readJsonRecord(request)?.editionId !== editionId || existingOperation.status !== OperationStatus.COMPLETED) throw new BusinessError('GIFT_CODE_IDEMPOTENCY_CONFLICT', 'Cette clé d’idempotence appartient à une autre opération.');
+            return { operationId: existingOperation.id, alreadyProcessed: true };
+          }
           await tx.$queryRaw`SELECT id FROM gift_codes WHERE id = (SELECT gift_code_id FROM gift_code_editions WHERE id = ${editionId}::uuid) FOR UPDATE`;
           const edition = await tx.giftCodeEdition.findUnique({
             where: { id: editionId },
@@ -66,12 +72,6 @@ export class GiftCodeService {
           });
           if (!edition) throw new BusinessError('GIFT_CODE_NOT_FOUND', 'Ce code cadeau n’existe pas.');
           if (!isEditionAvailable(edition.giftCode.status, edition.startsAt, edition.endsAt, now)) throw new BusinessError('GIFT_CODE_UNAVAILABLE', 'Ce code cadeau n’est pas disponible.');
-          const existingOperation = await tx.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey } });
-          if (existingOperation) {
-            const request = readJsonRecord(existingOperation.resultSummary)?.request;
-            if (existingOperation.playerId !== player.id || existingOperation.operationType !== 'gift-code.claim' || readJsonRecord(request)?.editionId !== editionId || existingOperation.status !== OperationStatus.COMPLETED) throw new BusinessError('GIFT_CODE_IDEMPOTENCY_CONFLICT', 'Cette clé d’idempotence appartient à une autre opération.');
-            return { operationId: existingOperation.id, alreadyProcessed: true };
-          }
           if (edition.claims.length > 0) {
             return { operationId: edition.claims[0]!.operationId, alreadyProcessed: true };
           }
