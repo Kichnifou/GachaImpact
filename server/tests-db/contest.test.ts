@@ -310,6 +310,34 @@ describe('Contest persistence', () => {
     expect([...first.contests, ...second.contests].every(({ finishedAt }) => finishedAt !== null)).toBe(true);
   }, 30_000);
 
+  it('projects the last result strictly before five minutes without blocking history or a new lobby', async () => {
+    now = new Date('2098-09-16T10:05:00.000Z');
+    const viewer = await fixture('ResultWindow');
+    await database.contestDailyTheme.create({ data: { businessDate: new Date('2098-09-16T00:00:00.000Z'), theme: 'STRENGTH' } });
+    const finishedAt = new Date(now.getTime() - 5 * 60_000 + 1);
+    const result = await database.contest.create({ data: {
+      businessDate: new Date('2098-09-16T00:00:00.000Z'), theme: 'STRENGTH', status: 'FINISHED', phase: 'FINISHED',
+      currentRound: 3, winnerSlot: 1, startedAt: new Date(finishedAt.getTime() - 60_000), finishedAt,
+    } });
+    const before = await viewer.service.getCurrent(identity);
+    expect(before.lastResult?.id).toBe(result.id);
+    expect((await viewer.service.getHistory(1)).contests.some(({ id }) => id === result.id)).toBe(true);
+    expect(before.permissions.canOpen).toBe(true);
+    expect((await viewer.service.createLobby(identity, viewer.character.id, randomUUID())).active?.status).toBe('LOBBY');
+  }, 30_000);
+
+  it('stops projecting the last result at exactly five minutes while retaining history', async () => {
+    now = new Date('2098-09-17T10:05:00.000Z');
+    const viewer = await fixture('ExpiredResult');
+    await database.contestDailyTheme.create({ data: { businessDate: new Date('2098-09-17T00:00:00.000Z'), theme: 'BEAUTY' } });
+    const result = await database.contest.create({ data: {
+      businessDate: new Date('2098-09-17T00:00:00.000Z'), theme: 'BEAUTY', status: 'FINISHED', phase: 'FINISHED',
+      currentRound: 2, winnerSlot: 1, startedAt: new Date('2098-09-17T09:59:00.000Z'), finishedAt: new Date('2098-09-17T10:00:00.000Z'),
+    } });
+    expect((await viewer.service.getCurrent(identity)).lastResult).toBeNull();
+    expect((await viewer.service.getHistory(1)).contests.some(({ id }) => id === result.id)).toBe(true);
+  }, 30_000);
+
   it('projects a compact history list and an interpreted four-slot finished detail', async () => {
     now = new Date('2098-09-09T10:00:00Z');
     const alpha = await fixture('DetailAlpha'); const replaced = await fixture('DetailReplaced'); const fan = await fixture('DetailFan');

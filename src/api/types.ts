@@ -67,6 +67,18 @@ export type InventoryItemDto = Readonly<{
   quantity: string
   firstObtainedAt: string | null
   acquisitionHint: string | null
+  originFestival?: string | null
+  originMonth?: string | null
+  visualKey?: string | null
+}>
+
+export type InventoryItemDetailDto = Readonly<{
+  item: InventoryItemDto
+  history: readonly Readonly<{ id: string; quantity: string; sourceKey: string; provenance: unknown; acquiredAt: string }>[]
+  page: number
+  pageSize: number
+  total: number
+  pageCount: number
 }>
 
 export type PlayerInventoryDto = Readonly<{

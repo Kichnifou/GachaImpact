@@ -28,7 +28,7 @@ import { PrismaTeamStore } from './database/prisma-team-store.js';
 import { BankInterestScheduler } from '../application/banking/bank-interest-scheduler.js';
 import { BankInterestProcessor, GetCurrentPlayerBank, GetPlayerBankHistory, TransferPlayerBank } from '../application/banking/banking-services.js';
 import { PrismaBankingStore } from './database/prisma-banking-store.js';
-import { GetCurrentPlayerInventory } from '../application/inventory/inventory-services.js';
+import { GetCurrentPlayerInventory, GetCurrentPlayerInventoryItemDetail } from '../application/inventory/inventory-services.js';
 import { PrismaInventoryStore } from './database/prisma-inventory-store.js';
 import { PrismaModerationTools } from './database/prisma-moderation-tools.js';
 import { PrismaShopStore } from './database/prisma-shop-store.js';
@@ -116,6 +116,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     depositPlayerBank: new TransferPlayerBank('deposit', getCurrentPlayer, bankingStore, clock),
     withdrawPlayerBank: new TransferPlayerBank('withdraw', getCurrentPlayer, bankingStore, clock),
     getCurrentPlayerInventory: new GetCurrentPlayerInventory(getCurrentPlayer, inventoryStore),
+    getCurrentPlayerInventoryItemDetail: new GetCurrentPlayerInventoryItemDetail(getCurrentPlayer, inventoryStore),
     convertPersonalParticles: new ConvertPersonalParticles(getCurrentPlayer, dailyChallengeStore, clock),
     getDailyChallenge: new GetDailyChallenge(getCurrentPlayer, dailyChallengeStore, clock),
     purchaseDailyChallenge: new PurchaseDailyChallenge(getCurrentPlayer, dailyChallengeStore, clock, random),

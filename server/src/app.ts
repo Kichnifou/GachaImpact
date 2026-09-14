@@ -32,7 +32,7 @@ import type { ClaimDailyReward } from './application/daily-reward/claim-daily-re
 import type { GetCurrentPlayerBox, SetBoxCharacterFavorite, SetBoxSortPreference, UseMasterlessStella } from './application/box/box-services.js';
 import type { ActivatePlayerTeam, ClearPlayerTeam, CreateNextPlayerTeam, DeleteExtraPlayerTeam, GetCurrentPlayerTeams, RemovePlayerTeamSlot, RenamePlayerTeam, ReorderPlayerTeams, ReorderPlayerTeamSlots, SetPlayerTeamSlot } from './application/team/team-services.js';
 import type { GetCurrentPlayerBank, GetPlayerBankHistory, TransferPlayerBank } from './application/banking/banking-services.js';
-import type { GetCurrentPlayerInventory } from './application/inventory/inventory-services.js';
+import type { GetCurrentPlayerInventory, GetCurrentPlayerInventoryItemDetail } from './application/inventory/inventory-services.js';
 import type { AppConfig } from './config/environment.js';
 import type { GetCurrentPlayerShop, GetPlayerShopHistory, PurchaseShopItem } from './application/shop/shop-services.js';
 import { loadConfig } from './config/environment.js';
@@ -85,6 +85,7 @@ export type AppDependencies = Readonly<{
   depositPlayerBank?: TransferPlayerBank;
   withdrawPlayerBank?: TransferPlayerBank;
   getCurrentPlayerInventory?: GetCurrentPlayerInventory;
+  getCurrentPlayerInventoryItemDetail?: GetCurrentPlayerInventoryItemDetail;
   convertPersonalParticles?: ConvertPersonalParticles;
   getDailyChallenge?: GetDailyChallenge;
   purchaseDailyChallenge?: PurchaseDailyChallenge;
@@ -198,7 +199,7 @@ export async function buildApp(
       });
     }
     if (dependencies.getCurrentPlayerInventory) {
-      await app.register(registerInventoryRoutes, { authenticate, getCurrentPlayerInventory: dependencies.getCurrentPlayerInventory, convertPersonalParticles: dependencies.convertPersonalParticles });
+      await app.register(registerInventoryRoutes, { authenticate, getCurrentPlayerInventory: dependencies.getCurrentPlayerInventory, getCurrentPlayerInventoryItemDetail: dependencies.getCurrentPlayerInventoryItemDetail, convertPersonalParticles: dependencies.convertPersonalParticles });
     }
     if (dependencies.moderationTools) {
       await app.register(registerModerationRoutes, { authenticate, moderationTools: dependencies.moderationTools });

@@ -3983,13 +3983,20 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .inventory-status p { color: var(--muted); font-size: 9px; }
 .inventory-status button { min-height: 34px; margin-top: 5px; padding: 0 15px; color: #dcedff; font-size: 8px; font-weight: 800; border: 1px solid rgba(91, 174, 245, .35); border-radius: 9px; background: rgba(31, 85, 145, .34); }
 
-.inventory-item-detail { width: min(430px, calc(100vw - 24px)); display: grid; justify-items: center; gap: 9px; padding: 18px; text-align: center; }
+.inventory-item-detail { width: min(520px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); display: grid; justify-items: center; gap: 9px; padding: 18px; overflow-y: auto; text-align: center; }
 .inventory-item-detail .floating-panel-heading { width: 100%; }
 .inventory-item-detail h2 { font-size: 21px; }
 .inventory-item-detail > strong { color: #eaf5ff; }
 .inventory-item-detail > p { color: var(--muted); font-size: 9px; line-height: 1.5; }
 .inventory-item-detail > small { color: #8fcfff; font-size: 8px; }
 .inventory-item-detail .inventory-use-button { margin: 5px 0 0; }
+.inventory-acquisition-history { width: 100%; display: grid; gap: 8px; padding-top: 8px; border-top: 1px solid rgba(132, 163, 211, .18); text-align: left; }
+.inventory-acquisition-history h3,
+.inventory-acquisition-history p { margin: 0; }
+.inventory-acquisition-history ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.inventory-acquisition-history li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 9px; border-radius: 8px; background: rgba(17, 39, 70, .65); }
+.inventory-acquisition-history li span { color: var(--muted); font-size: 9px; text-align: right; }
+.inventory-acquisition-history footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 
 .inventory-stella-layer { z-index: 82; }
 .inventory-stella-picker { width: min(850px, calc(100vw - 24px)); max-height: calc(100dvh - 40px); display: grid; grid-template-rows: auto auto minmax(0, 1fr); overflow: hidden; }
@@ -8063,10 +8070,12 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .boss-identity-status .boss-state-badge { position: absolute; top: 13px; right: 15px; }
 .boss-resistance { display: inline-flex; align-items: center; gap: 4px; }
 
-.contest-scroll-body { overflow-y: auto; }
-.contest-body { height: auto; min-height: 100%; grid-template-rows: auto auto; overflow: visible; }
+.contest-scroll-body { overflow-y: auto; overflow-x: hidden; scrollbar-gutter: auto; }
+.contest-body { height: auto; min-height: 0; grid-template-rows: auto auto; overflow: visible; }
 .contest-active-layout { grid-template-rows: auto 230px 66px minmax(104px, auto) auto; overflow: visible; }
 .contest-participant-grid { height: 230px; min-height: 230px; grid-auto-rows: 230px; }
+.contest-join-unavailable { margin: 0; color: #ff7f8d; font-size: 10px; font-weight: 700; }
+
 .contest-participant {
   box-sizing: border-box;
   height: 230px;
@@ -8128,6 +8137,10 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 
 @media (max-width: 760px) {
   .boss-compact-title h2 { padding-right: 105px; }
+  .contest-toolbar { align-items: stretch; flex-direction: column; gap: 8px; }
+  .contest-toolbar-actions { width: 100%; }
+  .contest-toolbar-actions button { flex: 1 1 130px; min-width: 0; }
+  .contest-state-header { min-width: 0; flex-wrap: wrap; }
   .contest-body { min-height: 0; }
   .contest-active-layout { grid-template-rows: none; }
   .contest-participant-grid { height: auto; min-height: 0; grid-auto-rows: 230px; }

@@ -35,6 +35,20 @@ async function createPlayer(label: string) {
 }
 
 describe('personal inventory persistence', () => {
+  it('materializes the twelve Collection definitions without granting a possession', async () => {
+    const player = await createPlayer('Catalog');
+    const expectedKeys = ['lanterne_nouvel_an', 'coeur_cristallin', 'bourgeon_eternel', 'oeuf_enchante', 'fleur_de_printemps', 'coquillage_dore', 'etoile_filante', 'boussole_antique', 'gerbe_de_recolte', 'citrouille_hantee', 'feuille_ancienne', 'flocon_enchante'];
+    const definitions = await database.itemDefinition.findMany({ where: { externalKey: { in: expectedKeys } }, orderBy: { externalKey: 'asc' } });
+    expect(definitions).toHaveLength(12);
+    expect(definitions.every(({ category, isActive }) => category === 'COLLECTION' && isActive)).toBe(true);
+    expect(await database.playerItem.count({ where: { playerId: player.id, itemId: { in: definitions.map(({ id }) => id) } } })).toBe(0);
+    const items = (await new PrismaInventoryStore(database).getInventory(player.id)).items.filter(({ externalKey }) => expectedKeys.includes(externalKey));
+    expect(items).toHaveLength(12);
+    expect(items.every(({ quantity }) => quantity === 0n)).toBe(true);
+    expect(await database.$queryRawUnsafe<{ relrowsecurity: boolean }[]>(`SELECT relrowsecurity FROM pg_class WHERE relname = 'item_acquisitions'`)).toEqual([{ relrowsecurity: true }]);
+    expect(await database.$queryRawUnsafe<{ count: bigint }[]>(`SELECT count(*)::bigint AS count FROM information_schema.role_table_grants WHERE table_name = 'item_acquisitions' AND grantee IN ('anon','authenticated')`)).toEqual([{ count: 0n }]);
+    expect(await database.$queryRawUnsafe<{ count: bigint }[]>(`SELECT count(*)::bigint AS count FROM _prisma_migrations WHERE migration_name = '20260914120000_018_add_collection_catalog_and_acquisitions' AND finished_at IS NOT NULL`)).toEqual([{ count: 1n }]);
+  });
   it('returns the nine stable resources at zero and isolates lossless player balances', async () => {
     const player = await createPlayer('Inventory');
     const other = await createPlayer('Other');
@@ -71,5 +85,22 @@ describe('personal inventory persistence', () => {
     expect(items.find(({ id }) => id === collection.id)).toMatchObject({ section: 'collection', quantity: 0n, acquisitionHint: 'Obtenu pendant un événement.' });
     expect(items.some(({ id }) => id === inactive.id)).toBe(false);
     expect(items.find(({ id }) => id === collection.id)?.quantity).not.toBe(7n);
+  });
+
+  it('reads only the requested player acquisition history without treating it as stock', async () => {
+    const player = await createPlayer('History');
+    const other = await createPlayer('OtherHistory');
+    const item = await database.itemDefinition.findUniqueOrThrow({ where: { externalKey: 'lanterne_nouvel_an' } });
+    await database.playerItem.create({ data: { playerId: player.id, itemId: item.id, quantity: 2n, firstObtainedAt: new Date('2026-01-15T10:00:00Z') } });
+    await database.itemAcquisition.createMany({ data: [
+      { playerId: player.id, itemId: item.id, quantity: 1n, sourceKey: 'EVENT', acquiredAt: new Date('2026-01-15T10:00:00Z') },
+      { playerId: player.id, itemId: item.id, quantity: 1n, sourceKey: 'EVENT', acquiredAt: new Date('2027-01-15T10:00:00Z') },
+      { playerId: other.id, itemId: item.id, quantity: 9_007_199_254_740_993n, sourceKey: 'TEST', acquiredAt: new Date('2026-01-15T10:00:00Z') },
+    ] });
+    const detail = await new PrismaInventoryStore(database).getItemDetail(player.id, item.id, 1);
+    expect(detail?.item.quantity).toBe(2n);
+    expect(detail?.history.map(({ quantity }) => quantity)).toEqual([1n, 1n]);
+    expect(detail?.total).toBe(2);
+    expect(detail?.item.originFestival).toBe('Festival du Nouvel An');
   });
 });

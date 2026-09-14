@@ -63,8 +63,45 @@ export class PrismaInventoryStore implements InventoryStore {
           quantity: balance?.quantity ?? 0n,
           firstObtainedAt: balance?.firstObtainedAt ?? null,
           acquisitionHint: metadataString(row.metadata, 'acquisitionHint'),
+          originFestival: metadataString(row.metadata, 'originFestival'),
+          originMonth: metadataString(row.metadata, 'originMonth'),
+          visualKey: metadataString(row.metadata, 'visualKey'),
         };
       }),
+    };
+  }
+
+  public async getItemDetail(playerId: string, itemId: string, page: number) {
+    const pageSize = 20;
+    const definition = await this.database.itemDefinition.findFirst({
+      where: { id: itemId, isActive: true },
+      select: {
+        id: true, externalKey: true, displayName: true, category: true, description: true, metadata: true,
+        playerBalances: { where: { playerId }, select: { quantity: true, firstObtainedAt: true }, take: 1 },
+      },
+    });
+    if (!definition) return null;
+    const [history, total] = await Promise.all([
+      this.database.itemAcquisition.findMany({
+        where: { playerId, itemId }, orderBy: [{ acquiredAt: 'desc' }, { id: 'desc' }],
+        skip: (page - 1) * pageSize, take: pageSize,
+        select: { id: true, quantity: true, sourceKey: true, provenance: true, acquiredAt: true },
+      }),
+      this.database.itemAcquisition.count({ where: { playerId, itemId } }),
+    ]);
+    const balance = definition.playerBalances[0];
+    return {
+      item: {
+        id: definition.id, externalKey: definition.externalKey, displayName: definition.displayName,
+        category: definition.category, section: inventorySection(definition.category, definition.metadata),
+        description: definition.description, quantity: balance?.quantity ?? 0n,
+        firstObtainedAt: balance?.firstObtainedAt ?? null,
+        acquisitionHint: metadataString(definition.metadata, 'acquisitionHint'),
+        originFestival: metadataString(definition.metadata, 'originFestival'),
+        originMonth: metadataString(definition.metadata, 'originMonth'),
+        visualKey: metadataString(definition.metadata, 'visualKey'),
+      },
+      history, page, pageSize, total, pageCount: Math.max(1, Math.ceil(total / pageSize)),
     };
   }
 }

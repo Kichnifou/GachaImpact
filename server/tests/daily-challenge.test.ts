@@ -28,7 +28,7 @@ describe('Daily Challenge HTTP contract', () => {
     const playerStore = { findByIdentity: async () => ({ id: playerId, displayName: 'Daily Test', elementKey: 'hydro', status: 'ACTIVE' as const }), provision: vi.fn() };
     const current = new GetCurrentPlayer(playerStore);
     const clock = { now: () => now };
-    const inventoryStore = { getInventory: vi.fn(async () => ({ resources: [], items: [] })) };
+    const inventoryStore = { getInventory: vi.fn(async () => ({ resources: [], items: [] })), getItemDetail: vi.fn(async () => null) };
     const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, {
       authIdentityVerifier: { verify: async () => ({ subject: 'subject' }) },
       getOrProvisionCurrentPlayer: new GetOrProvisionCurrentPlayer(playerStore),

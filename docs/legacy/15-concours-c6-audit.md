@@ -1289,9 +1289,9 @@ Les titres restent honorifiques conformément à R563.
 
 ---
 
-## R593 — Conservation visuelle du dernier résultat — ✅ VALIDÉ A
+## R593 — Conservation visuelle du dernier résultat — 🔁 RÉVISÉE PAR R863
 
-Après la fin d'un concours, l'écran Concours continue d'afficher son résultat tant qu'aucun nouveau lobby n'existe.
+Après la fin d'un concours, l'écran Concours affiche son résultat strictement pendant cinq minutes à partir du `finishedAt` autoritatif serveur. À cinq minutes révolues, il revient à l'état neutre si aucun nouveau lobby n'existe. Le résultat FINISHED reste intégralement disponible dans l'Historique.
 
 Il peut notamment proposer :
 - podium ;
@@ -1299,7 +1299,7 @@ Il peut notamment proposer :
 - `Voir l'historique` ;
 - `Créer un nouveau concours` pour un joueur éligible.
 
-La création d'un nouveau lobby remplace naturellement cet affichage.
+La création d'un nouveau lobby remplace naturellement cet affichage, y compris avant l'expiration des cinq minutes.
 
 Aucun délai artificiel n'empêche de créer le concours suivant.
 

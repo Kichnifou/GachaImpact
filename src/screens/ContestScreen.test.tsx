@@ -81,6 +81,16 @@ describe('ContestScreen', () => {
     expect(onOpen).toHaveBeenCalledWith('character-2', expect.any(String))
   })
 
+  it('disables joining affordances after daily use while preserving spectating', () => {
+    const otherLobby = { ...lobby, viewer: { ...lobby.viewer, participantSlot: null, selectedCharacterId: null, organizer: false }, participants: [{ ...lobby.participants[0]!, playerId: 'other-player', displayName: 'Autre joueur' }] }
+    const value = { ...base, dailyUsed: true, active: otherLobby, permissions: { ...permissions, canOpen: false, canJoin: false, canSpectate: true } }
+    const { container } = mount(value)
+    expect(container.querySelector<HTMLSelectElement>('.contest-join-panel select')?.disabled).toBe(true)
+    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.contest-inline-actions button')).find((button) => button.textContent === 'Participer')?.disabled).toBe(true)
+    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.contest-inline-actions button')).find((button) => button.textContent === 'Regarder activement')?.disabled).toBe(false)
+    expect(container.querySelector('.contest-join-unavailable')?.textContent).toBe('Participation quotidienne déjà utilisée.')
+  })
+
   it('opens an eligible C6 lobby and keeps detailed /20 stats inside Mes Légendes', async () => {
     const onOpen = vi.fn(async () => base)
     const { container } = mount(base, { onOpen })
@@ -351,6 +361,18 @@ describe('ContestScreen', () => {
     expect(onRefresh).toHaveBeenCalledTimes(4)
   })
 
+  it('keeps polling a temporary result so server expiration returns the open screen to neutral', async () => {
+    vi.useFakeTimers()
+    const finished = { ...lobby, status: 'FINISHED' as const, phase: 'FINISHED' as const, finishedAt: '2026-09-13T10:00:00Z' }
+    const projected = { ...base, lastResult: finished, permissions: { ...permissions, canOpen: true } }
+    const onRefresh = vi.fn(async () => base)
+    mount(projected, { onRefresh })
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    expect(onRefresh).toHaveBeenCalledTimes(1)
+    await act(async () => { vi.advanceTimersByTime(3_000); await Promise.resolve(); await Promise.resolve() })
+    expect(onRefresh).toHaveBeenCalledTimes(2)
+  })
+
   it('revalidates immediately on entry and discovers a distant lobby within the three-second idle poll', async () => {
     vi.useFakeTimers()
     const onRefresh = vi.fn(async () => base)
@@ -542,5 +564,6 @@ describe('ContestScreen', () => {
     expect(appCss).toContain('.contest-spectators > div > span.removable { grid-template-columns: minmax(0, 1fr) 18px; }')
     expect(appCss).toMatch(/\.contest-card-actions \{[\s\S]*?position: absolute/)
     expect(appCss).toMatch(/\.contest-score-change \{[\s\S]*?position: absolute/)
+    expect(appCss).toMatch(/\.contest-body \{[^}]*min-height: 0;[^}]*overflow: visible;/)
   })
 })

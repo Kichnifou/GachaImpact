@@ -39,6 +39,11 @@ async function mount(overrides: Partial<React.ComponentProps<typeof InventoryScr
     resources,
     elementKey: 'hydro' as const,
     onLoad: vi.fn(async () => inventory),
+    onLoadItemDetail: vi.fn(async (itemId: string, page = 1) => {
+      const item = inventory.items.find(({ id }) => id === itemId)!
+      const history = itemId === 'owned' ? [{ id: 'acquisition-1', quantity: '1', sourceKey: 'EVENT', provenance: null, acquiredAt: '2026-09-09T00:00:00Z' }] : []
+      return { item: itemId === 'owned' ? { ...item, originFestival: 'Festival de Fontaine', originMonth: 'Septembre', visualKey: 'souvenir-fontaine' } : item, history, page, pageSize: 20, total: history.length, pageCount: 1 }
+    }),
     onConvertParticles: vi.fn(),
     onNavigateShop: vi.fn(),
     onNavigateBank: vi.fn(),
@@ -155,8 +160,10 @@ describe('real inventory screen', () => {
     act(() => collectionTab.click())
     const cards = Array.from(container.querySelectorAll<HTMLElement>('.inventory-object-card'))
     expect(cards.map((card) => card.textContent)).toEqual([expect.stringContaining('Éclat de Fontaine'), expect.stringContaining('Branche de Sumeru')])
-    act(() => cards[0]!.querySelector<HTMLButtonElement>('.inventory-item-main')!.click())
+    await act(async () => { cards[0]!.querySelector<HTMLButtonElement>('.inventory-item-main')!.click(); await Promise.resolve(); await Promise.resolve() })
     expect(container.querySelector('.inventory-item-detail')?.textContent).toContain('Événement Fontaine.')
+    expect(container.querySelector('.inventory-item-detail')?.textContent).toContain('Festival de Fontaine')
+    expect(container.querySelector('.inventory-acquisition-history')?.textContent).toContain('+1')
   })
 
   it('opens a 5★-only Stella picker and keeps the final confirmation in the reused Box detail', async () => {

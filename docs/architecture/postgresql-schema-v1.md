@@ -1140,9 +1140,22 @@ Contrainte :
 
 `quantity >= 0`
 
-État physique/API 0.74, sans migration : les tables existantes `resource_definitions`, `player_resource_balances`, `item_definitions` et `player_items` suffisent au premier vertical Sac. `GET /api/v1/me/inventory` joint uniquement le Player authentifié, restitue les neuf ressources structurelles dans un ordre stable même lorsque leur solde vaut zéro, puis les définitions d'objets actives avec la quantité et la première obtention éventuelles du joueur. Les définitions de Collection restent visibles sans possession afin de permettre la complétion et l'ordre possédés/non possédés ; aucune définition Collection ni possession factice n'est ajoutée. Tous les `bigint` sont transmis en chaînes décimales lossless.
+État physique/API 0.96 : `GET /api/v1/me/inventory` joint uniquement le Player authentifié, restitue les neuf ressources structurelles dans un ordre stable même lorsque leur solde vaut zéro, puis les définitions d'objets actives avec la quantité et la première obtention éventuelles du joueur. La migration 018 matérialise les douze définitions Collection mensuelles sans créer de `player_items` ; elles restent donc visibles à zéro. Tous les `bigint` sont transmis en chaînes décimales lossless.
 
-Le Sac n'introduit aucune table, aucun solde et aucune mutation générique supplémentaires. La consommation de Stella reste portée par le service transactionnel Box/possessions existant ; l'API Inventory est une projection de lecture.
+La consommation de Stella reste portée par le service transactionnel Box/possessions existant ; l'API Inventory est une projection de lecture.
+
+## 15.3 `item_acquisitions`
+
+- `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
+- `player_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE`
+- `item_id uuid NOT NULL REFERENCES item_definitions(id) ON DELETE RESTRICT`
+- `quantity bigint NOT NULL CHECK (quantity > 0)`
+- `source_key text NOT NULL`
+- `provenance jsonb NULL`
+- `operation_id uuid NULL REFERENCES business_operations(id) ON DELETE SET NULL`
+- `acquired_at timestamptz NOT NULL DEFAULT now()`
+
+Le ledger ne porte aucun solde : `player_items.quantity` reste autoritatif. L’unicité nullable `(operation_id, item_id)` aide les futurs producteurs idempotents ; les lectures personnelles utilisent l’index `(player_id, item_id, acquired_at DESC)`. La migration 018 n’effectue aucun backfill. RLS est activée et les droits `anon`/`authenticated` sont révoqués.
 
 ---
 

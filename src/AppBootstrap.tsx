@@ -440,6 +440,7 @@ function AppBootstrap() {
       onUseStella={useStella}
       onLoadBank={loadBank}
       onLoadInventory={() => getGameApiClient().getInventory()}
+      onLoadInventoryItemDetail={(itemId, page) => getGameApiClient().getInventoryItemDetail(itemId, page)}
       onConvertParticles={async (amount, idempotencyKey): Promise<DailyChallengeMutationDto> => {
         const result = await getGameApiClient().convertPersonalParticles(amount, idempotencyKey)
         setResources(result.resources)

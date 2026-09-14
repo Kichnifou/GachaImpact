@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { BoxCharacterDto, DailyChallengeMutationDto, DailyCombatDto, ElementKey, InventoryItemDto, InventoryResourceDto, PlayerBoxDto, PlayerInventoryDto, PlayerResourcesDto, PlayerTeamsDto, StellaUseDto } from '../api/types'
+import type { BoxCharacterDto, DailyChallengeMutationDto, DailyCombatDto, ElementKey, InventoryItemDetailDto, InventoryItemDto, InventoryResourceDto, PlayerBoxDto, PlayerInventoryDto, PlayerResourcesDto, PlayerTeamsDto, StellaUseDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
 import { presentStellaResult, type StellaResultPresentation } from '../box/stella-result-presentation'
 import { MASTERLESS_STELLA_FORTUNA_KEY } from '../inventory/inventory-memory-cache'
@@ -17,6 +17,7 @@ type InventoryScreenProps = {
   elementKey: ElementKey
   dailyCombat?: DailyCombatDto
   onLoad: () => Promise<PlayerInventoryDto>
+  onLoadItemDetail: (itemId: string, page?: number) => Promise<InventoryItemDetailDto>
   onConvertParticles: (amount: string, idempotencyKey: string) => Promise<DailyChallengeMutationDto>
   onNavigateShop: () => void
   onNavigateBank: () => void
@@ -34,12 +35,14 @@ const categories: readonly { id: InventoryCategory; label: string; icon: string 
   { id: 'collection', label: 'Collection', icon: '▣' },
 ]
 
-function InventoryScreen({ initialInventory, resources, elementKey, dailyCombat, onLoad, onConvertParticles, onNavigateShop, onNavigateBank, onLoadBox, onSetBoxFavorite, onUseStella, stellaRetryCharacterId, onLoadTeams }: InventoryScreenProps) {
+function InventoryScreen({ initialInventory, resources, elementKey, dailyCombat, onLoad, onLoadItemDetail, onConvertParticles, onNavigateShop, onNavigateBank, onLoadBox, onSetBoxFavorite, onUseStella, stellaRetryCharacterId, onLoadTeams }: InventoryScreenProps) {
   const [inventory, setInventory] = useState(initialInventory)
   const [activeCategory, setActiveCategory] = useState<InventoryCategory>('all')
   const [query, setQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [selectedItem, setSelectedItem] = useState<InventoryItemDto | null>(null)
+  const [itemDetail, setItemDetail] = useState<InventoryItemDetailDto | null>(null)
+  const [itemDetailError, setItemDetailError] = useState<string | null>(null)
   const [stellaPickerOpen, setStellaPickerOpen] = useState(false)
   const [box, setBox] = useState<PlayerBoxDto | null>(null)
   const [boxError, setBoxError] = useState<string | null>(null)
@@ -88,6 +91,14 @@ function InventoryScreen({ initialInventory, resources, elementKey, dailyCombat,
     setBoxError(null)
     try { setBox(await onLoadBox()) }
     catch (reason) { setBoxError(apiErrorMessage(reason)) }
+  }
+
+  const openItemDetail = async (item: InventoryItemDto, page = 1) => {
+    setSelectedItem(item)
+    setItemDetailError(null)
+    if (page === 1) setItemDetail(null)
+    try { setItemDetail(await onLoadItemDetail(item.id, page)) }
+    catch (reason) { setItemDetailError(apiErrorMessage(reason)) }
   }
 
   const toggleFavorite = async (character: BoxCharacterDto) => {
@@ -145,13 +156,13 @@ function InventoryScreen({ initialInventory, resources, elementKey, dailyCombat,
           {error && <p className="inventory-inline-error" role="alert">{error}</p>}
           {entries.length ? <div className="inventory-groups">{groups.map((group) => <section className="inventory-group" aria-labelledby={`inventory-group-${group.id}`} key={group.id}>
             <header className="inventory-group-heading"><span id={`inventory-group-${group.id}`}>{group.label}</span></header>
-            <div className="inventory-grid">{group.entries.map((entry) => <InventoryCard entry={entry} mainElementKey={elementKey} onConvert={() => setConversionOpen(true)} onNavigateShop={onNavigateShop} onNavigateBank={onNavigateBank} onSelectItem={setSelectedItem} onUseStella={() => void openStellaPicker()} key={entry.type === 'resource' ? entry.resource.key : entry.item.id} />)}</div>
+            <div className="inventory-grid">{group.entries.map((entry) => <InventoryCard entry={entry} mainElementKey={elementKey} onConvert={() => setConversionOpen(true)} onNavigateShop={onNavigateShop} onNavigateBank={onNavigateBank} onSelectItem={(item) => void openItemDetail(item)} onUseStella={() => void openStellaPicker()} key={entry.type === 'resource' ? entry.resource.key : entry.item.id} />)}</div>
           </section>)}</div>
             : <div className="inventory-empty" role="status"><span aria-hidden="true">◇</span><strong>{query ? 'Aucun résultat' : emptyTitle(activeCategory)}</strong><p>{query ? 'Modifiez votre recherche pour retrouver une entrée.' : emptyDetail(activeCategory)}</p></div>}
         </div>
       </section>
     </div>
-    {selectedItem && <ItemDetailModal item={selectedItem} onClose={() => setSelectedItem(null)} onUseStella={selectedItem.externalKey === MASTERLESS_STELLA_FORTUNA_KEY ? () => void openStellaPicker() : undefined} />}
+    {selectedItem && <ItemDetailModal item={itemDetail?.item ?? selectedItem} detail={itemDetail} error={itemDetailError} onPage={(page) => void openItemDetail(selectedItem, page)} onClose={() => { setSelectedItem(null); setItemDetail(null); setItemDetailError(null) }} onUseStella={selectedItem.externalKey === MASTERLESS_STELLA_FORTUNA_KEY ? () => void openStellaPicker() : undefined} />}
     {stellaPickerOpen && <StellaPicker box={box} error={boxError} stellaQuantity={stella?.quantity ?? '0'} favoritePendingId={favoritePendingId} onClose={() => { setStellaPickerOpen(false); setSelectedCharacterId(null); setBoxError(null); setStellaFeedback(null) }} onSelect={setSelectedCharacterId} onRetry={() => void openStellaPicker()} onToggleFavorite={toggleFavorite} />}
     {selectedCharacter && <BoxCharacterDetailModal character={selectedCharacter} combatState={combatStateFor(dailyCombat, selectedCharacter.id)} stellaQuantity={stella?.quantity ?? '0'} stellaRetryAvailable={stellaRetryId === selectedCharacter.id} favoritePending={favoritePendingId === selectedCharacter.id} stellaPending={stellaPendingId === selectedCharacter.id} stellaFeedback={stellaFeedback} actionError={boxError} onToggleFavorite={() => void toggleFavorite(selectedCharacter)} onUseStella={() => void submitStella(selectedCharacter)} onClose={() => { setSelectedCharacterId(null); setStellaFeedback(null); setBoxError(null) }} />}
     {conversionOpen && <ParticleConversionModal elementKey={elementKey} stock={inventory.resources.find(({ key }) => key === `particles_${elementKey}`)?.amount ?? '0'} onClose={() => setConversionOpen(false)} onConvert={async (amount, idempotencyKey) => {
@@ -224,10 +235,15 @@ function StellaPicker({ box, error, stellaQuantity, favoritePendingId, onClose, 
   </div>
 }
 
-function ItemDetailModal({ item, onClose, onUseStella }: { item: InventoryItemDto; onClose: () => void; onUseStella?: () => void }) {
+function ItemDetailModal({ item, detail, error, onPage, onClose, onUseStella }: { item: InventoryItemDto; detail: InventoryItemDetailDto | null; error: string | null; onPage: (page: number) => void; onClose: () => void; onUseStella?: () => void }) {
   return <div className="modal-layer" role="presentation" onMouseDown={onClose}><section className="floating-panel inventory-item-detail" role="dialog" aria-modal="true" aria-labelledby="inventory-item-title" onMouseDown={(event) => event.stopPropagation()}>
     <header className="floating-panel-heading"><span className="eyebrow">{item.section === 'collection' ? 'Collection' : 'Objet'}</span><button type="button" className="icon-button" onClick={onClose} aria-label="Fermer la fiche"><span className="icon-glyph">×</span></button></header>
-    <span className="item-icon violet" aria-hidden="true">{BigInt(item.quantity) > 0n ? '✦' : '?'}</span><h2 id="inventory-item-title">{item.displayName}</h2><strong>× {formatResourceAmount(item.quantity)}</strong><p>{item.description ?? 'Aucune description disponible.'}</p>{item.acquisitionHint && <small>{item.acquisitionHint}</small>}{onUseStella && <button type="button" className="inventory-use-button" disabled={BigInt(item.quantity) === 0n} onClick={onUseStella}>Utiliser</button>}
+    <span className="item-icon violet" aria-hidden="true">{BigInt(item.quantity) > 0n ? '✦' : '?'}</span><h2 id="inventory-item-title">{item.displayName}</h2><strong>× {formatResourceAmount(item.quantity)}</strong><p>{item.description ?? 'Aucune description disponible.'}</p>
+    {item.originFestival && <p><b>Origine :</b> {item.originFestival}{item.originMonth ? ` · ${item.originMonth}` : ''}</p>}
+    {item.acquisitionHint && <p><b>Obtention :</b> {item.acquisitionHint}</p>}
+    <p><b>Première obtention :</b> {item.firstObtainedAt ? formatInventoryDate(item.firstObtainedAt) : 'Non connue'}</p>
+    <section className="inventory-acquisition-history"><h3>Historique d’acquisition</h3>{error ? <p role="alert">{error}</p> : !detail ? <p>Chargement…</p> : detail.history.length === 0 ? <p>Aucune acquisition enregistrée.</p> : <ul>{detail.history.map((entry) => <li key={entry.id}><strong>+{formatResourceAmount(entry.quantity)}</strong><span>{formatInventoryDate(entry.acquiredAt)} · {acquisitionSourceLabel(entry.sourceKey)}</span></li>)}</ul>}{detail && detail.pageCount > 1 && <footer><button type="button" disabled={detail.page <= 1} onClick={() => onPage(detail.page - 1)}>Précédent</button><span>{detail.page} / {detail.pageCount}</span><button type="button" disabled={detail.page >= detail.pageCount} onClick={() => onPage(detail.page + 1)}>Suivant</button></footer>}</section>
+    {onUseStella && <button type="button" className="inventory-use-button" disabled={BigInt(item.quantity) === 0n} onClick={onUseStella}>Utiliser</button>}
   </section></div>
 }
 
@@ -249,6 +265,9 @@ function resourceDetail(resource: InventoryResourceDto, amount: string) {
   if (resource.key === 'moras') return 'Monnaie du jeu'
   return `Particules ${resource.elementKey ? elementLabels[resource.elementKey] : ''}`
 }
+
+function formatInventoryDate(value: string) { return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(value)) }
+function acquisitionSourceLabel(value: string) { return value === 'EVENT' ? 'Événement' : value === 'LEGACY_MIGRATION' ? 'Migration historique' : value }
 
 function combatStateFor(combat: DailyCombatDto | undefined, characterId: string) {
   const character = combat?.availableCharacters.find(({ id }) => id === characterId)

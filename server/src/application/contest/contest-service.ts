@@ -41,6 +41,7 @@ import { BusinessError } from '../errors.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
 
 const HISTORY_PAGE_SIZE = 10;
+const LAST_RESULT_WINDOW_MS = 5 * 60 * 1_000;
 const ACTIVE_STATUSES = [ContestStatus.LOBBY, ContestStatus.RUNNING] as const;
 const SCORE_EVENT_TYPES = ['TURN_PLAYED', 'BOT_TURN_PLAYED', 'TURN_AUTO_BASIC', 'SUPPORT_PLAYED'] as const;
 
@@ -519,7 +520,12 @@ export class ContestService {
     const spectator = active?.spectators.some((item) => item.playerId === playerId) ?? false;
     const formerParticipant = active && !participant && !spectator ? await wasContestParticipant(this.database, active, playerId) : false;
     const recentScoreEvents = active ? await this.database.contestEvent.findMany(recentScoreEventQuery(active.id)) : [];
-    const lastResult = active ? null : await this.database.contest.findFirst({ where: { status: ContestStatus.FINISHED }, include: historyContestInclude, orderBy: { finishedAt: 'desc' } });
+    const resultCutoff = new Date(this.clock.now().getTime() - LAST_RESULT_WINDOW_MS);
+    const lastResult = active ? null : await this.database.contest.findFirst({
+      where: { status: ContestStatus.FINISHED, finishedAt: { gt: resultCutoff } },
+      include: historyContestInclude,
+      orderBy: { finishedAt: 'desc' },
+    });
     return {
       businessDate,
       theme: presentTheme(theme),

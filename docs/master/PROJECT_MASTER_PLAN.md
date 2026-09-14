@@ -1,8 +1,8 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.95
+Version : 0.96
 Date : 2026-09-14
-Statut : CANDIDAT CORRECTIF 0.95 — REVIEW INDÉPENDANTE REQUISE
+Statut : CANDIDAT LOCAL 0.96 — REVIEW INDÉPENDANTE REQUISE, NON PUBLIÉ
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
@@ -3803,6 +3803,15 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Le picker Boss réutilise désormais `BoxCharacterCard`, la grille et l’enveloppe du picker Entraînement : portraits, élément, rareté, constellation et état neutre `Déjà sélectionné` sont identiques. Un KO du Combat quotidien ne désactive toujours jamais un personnage contre le Boss.
 - Aucun moteur de score, règle Concours/Boss, schéma, migration, donnée réelle, service payant ou fichier `docs/Story/**` n’est modifié. Le domaine actif reste **Concours / personnages C6**, candidat correctif 0.95. Après review indépendante, promotion, déploiements automatiques et validation publique du propriétaire, la prochaine étape reste **Collection / Sac à compléter**.
 
+Le commit 0.95 `3e510307f49ffa389df902d35c83287ea0ebe96e` est désormais sur `main`, auto-déployé avec succès par Railway (`/health` HTTP 200). Les actions RUNNING sur cartes, le feedback `+N` cross-viewer et le picker Boss aligné sur Entraînement sont validés publiquement. La revalidation visuelle finale Notifications attend un retour Expedition naturel ; READY et son deep-link avaient déjà été validés.
+
+## État du candidat local 0.96 — Collection / Sac et micro-corrections Concours
+
+- Le domaine actif devient **Collection / Sac à compléter**. Les douze objets mensuels connus sont des définitions permanentes visibles à quantité zéro sans créer de possession ; `PlayerItem.quantity` reste le stock autoritatif.
+- La migration additive 018 ajoute uniquement un ledger `ItemAcquisition`, sans backfill, et les douze définitions Collection. Le détail personnel est chargé à la demande et paginé ; il expose origine, méthode, première obtention connue et acquisitions réellement enregistrées.
+- Concours projette le dernier résultat strictement moins de cinq minutes après son `finishedAt` serveur, sans supprimer l’historique ni bloquer un nouveau lobby. Un viewer ayant consommé sa participation voit le sélecteur et Participer désactivés avec une raison explicite, mais peut toujours devenir spectateur si le serveur l’autorise. Le scroll desktop n’apparaît que si le contenu déborde réellement.
+- Ce candidat reste local : il n’est ni publié sur `review`, ni promu, ni déployé, ni validé publiquement. Aucun fichier `docs/Story/**` n’est modifié.
+
 ## État déployé 0.92 — Concours / C6 et densité Boss
 
 - Le propriétaire a validé publiquement en 0.91 l’affichage général du Boss, une attaque réelle et son quota quotidien, ainsi que l’état Expedition RUNNING dans Quotidiennes. Restent à tester publiquement Expedition READY/notification/claim, Combat défaite/KO, Boss vaincu/notification, rollover/historique Boss réel et tout le vertical Concours.
@@ -3917,7 +3926,7 @@ Premier vertical Banque réel **DÉPLOYÉ ET VALIDÉ PUBLIQUEMENT POUR LE PARCOU
 Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; EN ATTENTE DE REVIEW ET DE VALIDATION PUBLIQUE PROPRIÉTAIRE** :
 
 - `GET /api/v1/me/inventory` est une lecture personnelle authentifiée qui agrège les neuf définitions de ressources, leurs soldes pour le Player courant, les définitions d'objets actives et les quantités `player_items` correspondantes. Tous les `bigint` sont sérialisés en chaînes décimales ; aucune mutation économique générique n'est ajoutée au Sac ;
-- les structures physiques existantes `resource_definitions`, `player_resource_balances`, `item_definitions` et `player_items` suffisent. Aucune migration, aucun catalogue Collection fictif et aucun crédit de possession n'ont été créés ;
+- les structures initiales restent le socle ; la migration additive 018 matérialise le catalogue permanent de douze définitions Collection et un historique d’acquisition distinct du stock, sans aucun crédit de possession ni backfill joueur ;
 - l'écran réel utilise uniquement `Tout`, `Ressources`, `Objets` et `Collection`. Les neuf ressources structurelles restent visibles à zéro ; `Tout` les agrège avec objets et collection ; le compteur de Collection mesure les définitions connues possédées ;
 - les montants affichés viennent du snapshot Resources/Economy global déjà autoritatif dans `AppBootstrap`, et non d'un second wallet client. Les vœux possibles sont dérivés par `floor(Primos / 160)` ; toute la carte Moras est une surface accessible vers Banque avec `Accéder à la Banque` ;
 - les mocks historiques du Sac et leurs types ont été supprimés. Recherche temps réel, insensible à la casse et aux accents, par sous-chaîne contiguë ; états vides dédiés pour Objets, Collection et recherche ;
@@ -3955,7 +3964,7 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Faire la review indépendante du candidat correctif 0.95 uniquement sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → effectuer la validation publique finale Concours/Notifications/Boss.** La récupération/récompense Expedition, Boss vaincu/notification et rollover/historique Boss réel restent ouverts tant qu’ils n’ont pas été testés publiquement. Après validation publique de 0.95, ouvrir **Collection / Sac à compléter**. L’ordre complet restant appartient à [implementation-order-v1.md](../roadmap/implementation-order-v1.md). La migration legacy reste reportée ; `PAID_INFRA_APPROVED = false` reste inchangé.
+**Faire la review indépendante du candidat local 0.96, puis le publier explicitement sur `review` seulement après approbation locale.** Ne pas promouvoir ni déployer manuellement. La validation publique 0.96 viendra après promotion et déploiements automatiques ; Codes cadeaux ne commence pas encore. L’ordre complet restant appartient à [implementation-order-v1.md](../roadmap/implementation-order-v1.md). La migration legacy reste reportée ; `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

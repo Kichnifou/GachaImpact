@@ -199,6 +199,7 @@ model Player {
   pullOperations        PullOperation[]
   preferences           PlayerPreference[]
   items                 PlayerItem[]
+  itemAcquisitions      ItemAcquisition[]
   teams                 Team[]
   bankAccount           PlayerBankAccount?
   bankTransactions      BankTransaction[]
@@ -309,6 +310,7 @@ model ItemDefinition {
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   playerBalances PlayerItem[]
+  acquisitions   ItemAcquisition[]
 
   @@map("item_definitions")
 }
@@ -326,6 +328,25 @@ model PlayerItem {
   @@id([playerId, itemId])
   @@index([itemId], map: "player_items_item_id_idx")
   @@map("player_items")
+}
+
+model ItemAcquisition {
+  id          String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId    String             @map("player_id") @db.Uuid
+  itemId      String             @map("item_id") @db.Uuid
+  quantity    BigInt
+  sourceKey   String             @map("source_key") @db.Text
+  provenance  Json?              @db.JsonB
+  operationId String?            @map("operation_id") @db.Uuid
+  acquiredAt  DateTime           @default(now()) @map("acquired_at") @db.Timestamptz(6)
+  player      Player             @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  item        ItemDefinition     @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  operation   BusinessOperation? @relation(fields: [operationId], references: [id], onDelete: SetNull)
+
+  @@unique([operationId, itemId], map: "item_acquisitions_operation_item_key")
+  @@index([playerId, itemId, acquiredAt(sort: Desc)], map: "item_acquisitions_player_item_acquired_idx")
+  @@index([itemId, acquiredAt(sort: Desc)], map: "item_acquisitions_item_acquired_idx")
+  @@map("item_acquisitions")
 }
 
 model Character {
@@ -490,6 +511,7 @@ model BusinessOperation {
   bossAttack         BossAttack?
   bossRewards        BossReward[]
   contestReward      ContestReward?
+  itemAcquisitions   ItemAcquisition[]
 
   @@index([playerId, startedAt(sort: Desc)], map: "business_operations_player_started_at_idx")
   @@index([operationType, startedAt(sort: Desc)], map: "business_operations_type_started_at_idx")

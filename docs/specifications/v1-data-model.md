@@ -811,7 +811,7 @@ La migration `20260913170000_017_add_contests` conserve les cinq statistiques ex
 
 `ContestDailyTheme` persiste une seule sélection globale par date métier. `Contest` porte état, phase, deadlines, round, ordre courant, organisateur, soutien sélectionné et terminalité. `ContestParticipant` matérialise les quatre slots et conserve les snapshots de lancement, le score, l’ordre, l’inactivité, les remplacements, le rang et la récompense. `ContestSpectator`, `ContestDailyParticipation`, `ContestLobbyRemoval`, `ContestEvent` et `ContestReward` portent respectivement les dix présences actives, la consommation/refund, la limite de retraits, le journal/idempotence et le versement final.
 
-L’historique natif n’a pas besoin d’une table de résultat concurrente : un `Contest` FINISHED et ses participants terminalisés conservent le snapshot complet. CANCELLED reste persistant pour l’audit mais absent des projections player-facing. Le dernier FINISHED est projeté jusqu’à la création du lobby suivant.
+L’historique natif n’a pas besoin d’une table de résultat concurrente : un `Contest` FINISHED et ses participants terminalisés conservent le snapshot complet. CANCELLED reste persistant pour l’audit mais absent des projections player-facing. Le dernier FINISHED est projeté strictement moins de cinq minutes après son `finishedAt`, ou jusqu’à la création d’un lobby si elle survient avant ; cette projection temporaire n’efface jamais l’historique.
 
 ---
 
@@ -888,9 +888,15 @@ Contient :
 
 La consommation passe par un service central d'inventaire.
 
-État physique 0.74, sans migration : le Sac réel est une projection agrégée en lecture seule des neuf ressources structurelles et de leurs `PlayerResourceBalance`, puis des `ItemDefinition` actives et de la quantité `PlayerItem` du joueur authentifié. Une définition de Collection peut donc être visible avec une quantité nulle, tandis qu'aucun objet ni solde fictif n'est créé pour remplir l'écran. Les sections `objects` / `collection` proviennent des métadonnées de catalogue ou de la catégorie Collection existante.
+État physique 0.96 : le socle Sac 0.74 reste une projection agrégée en lecture seule des neuf ressources structurelles et de leurs `PlayerResourceBalance`, puis des `ItemDefinition` actives et de la quantité `PlayerItem` du joueur authentifié. La migration 018 matérialise les douze définitions Collection permanentes sans créer de `PlayerItem` ; elles apparaissent donc à quantité nulle tant qu’aucune possession réelle n’existe. Les sections `objects` / `collection` proviennent des métadonnées de catalogue ou de la catégorie Collection existante.
 
 `GET /api/v1/me/inventory` sérialise les montants et quantités `bigint` en chaînes décimales. Le frontend n'utilise pas le snapshot Ressources inclus dans cette projection comme un second wallet : l'état Resources/Economy global reste l'unique source des montants affichés. Le cache Sac est éphémère, isolé par Player, protégé contre les revalidations obsolètes et vidé avant logout. L'utilisation d'une Stella depuis le Sac délègue toujours au service de possession central déjà partagé avec Box et Team.
+
+---
+
+## 14.3 `ItemAcquisition`
+
+Ledger historique distinct du stock : chaque ligne rattache une quantité positive, une source/provenance et un horodatage à un Player et une `ItemDefinition`. Il ne remplace ni ne recalcule `PlayerItem.quantity`. La migration 018 crée ce ledger sans backfill et matérialise les douze définitions Collection mensuelles permanentes ; aucune possession n’est créditée. `GET /api/v1/me/inventory/items/:itemId?page=N` charge seulement le détail personnel demandé, par pages de vingt.
 
 ---
 

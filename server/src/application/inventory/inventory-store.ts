@@ -20,6 +20,19 @@ export type InventoryItem = Readonly<{
   quantity: bigint;
   firstObtainedAt: Date | null;
   acquisitionHint: string | null;
+  originFestival?: string | null;
+  originMonth?: string | null;
+  visualKey?: string | null;
+}>;
+
+export type ItemAcquisition = Readonly<{ id: string; quantity: bigint; sourceKey: string; provenance: unknown; acquiredAt: Date }>;
+export type InventoryItemDetail = Readonly<{
+  item: InventoryItem;
+  history: readonly ItemAcquisition[];
+  page: number;
+  pageSize: number;
+  total: number;
+  pageCount: number;
 }>;
 
 export type PlayerInventory = Readonly<{
@@ -29,4 +42,5 @@ export type PlayerInventory = Readonly<{
 
 export interface InventoryStore {
   getInventory(playerId: string): Promise<PlayerInventory>;
+  getItemDetail(playerId: string, itemId: string, page: number): Promise<InventoryItemDetail | null>;
 }
