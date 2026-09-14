@@ -153,35 +153,59 @@ export default function ContestScreen(props: Props) {
 }
 
 type ScoreFeedback = ContestLatestScoreChangeDto
-type ScoreFeedbackState = Readonly<{ contestId: string; event: ScoreFeedback }>
+type ScoreFeedbackState = Readonly<{ contestId: string; events: readonly ScoreFeedback[] }>
+const emptyScoreChanges: readonly ScoreFeedback[] = []
 
 function useLatestScoreFeedback(contest: ContestSnapshotDto | null): ScoreFeedback | null {
-  const seen = useRef<{ contestId: string; eventId: string | null } | null>(null)
+  const seen = useRef<{ contestId: string; eventIds: Set<string> } | null>(null)
+  const baselineNextProjection = useRef(false)
   const [feedback, setFeedback] = useState<ScoreFeedbackState | null>(null)
   const contestId = contest?.id ?? null
-  const event = contest?.latestScoreChange ?? null
+  const events = contest?.recentScoreChanges ?? emptyScoreChanges
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'hidden') return
+      baselineNextProjection.current = true
+      setFeedback(null)
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [])
 
   useEffect(() => {
     if (!contestId) {
       seen.current = null
+      baselineNextProjection.current = false
       return
     }
     if (!seen.current || seen.current.contestId !== contestId) {
-      seen.current = { contestId, eventId: event?.eventId ?? null }
+      seen.current = { contestId, eventIds: new Set(events.map((event) => event.eventId)) }
+      baselineNextProjection.current = false
       return
     }
-    if (!event || seen.current.eventId === event.eventId) return
-    seen.current = { contestId, eventId: event.eventId }
-    setFeedback({ contestId, event })
-  }, [contestId, event])
+    if (baselineNextProjection.current) {
+      seen.current = { contestId, eventIds: new Set(events.map((event) => event.eventId)) }
+      baselineNextProjection.current = false
+      return
+    }
+    const unseen = events.filter((event) => !seen.current!.eventIds.has(event.eventId))
+    seen.current = { contestId, eventIds: new Set(events.map((event) => event.eventId)) }
+    if (unseen.length > 0) setFeedback((current) => ({ contestId, events: [...(current?.contestId === contestId ? current.events : []), ...unseen] }))
+  }, [contestId, events])
 
   useEffect(() => {
-    if (!feedback) return
-    const timer = window.setTimeout(() => setFeedback((current) => current?.event.eventId === feedback.event.eventId ? null : current), 1_200)
+    const currentEvent = feedback?.events[0]
+    if (!currentEvent) return
+    const timer = window.setTimeout(() => setFeedback((current) => {
+      if (!current || current.contestId !== feedback.contestId || current.events[0]?.eventId !== currentEvent.eventId) return current
+      const remaining = current.events.slice(1)
+      return remaining.length > 0 ? { ...current, events: remaining } : null
+    }), 1_200)
     return () => window.clearTimeout(timer)
   }, [feedback])
 
-  return feedback?.contestId === contestId ? feedback.event : null
+  return feedback?.contestId === contestId ? feedback.events[0] ?? null : null
 }
 
 function ContestEmpty({ value, selectedLegendId, onSelect, pending, onOpen }: { value: ContestDto; selectedLegendId: string; onSelect: (id: string) => void; pending: string | null; onOpen: () => void }) {
@@ -222,31 +246,35 @@ function ContestLobby(props: Props & { contest: ContestSnapshotDto; selectedLege
 function ContestRunning(props: Props & { contest: ContestSnapshotDto; pending: string | null; run: Runner; now: number; scoreFeedback: ScoreFeedback | null }) {
   const { contest, value } = props
   const deadline = contest.phase === 'SUPPORT' ? contest.supportDeadlineAt : contest.turnDeadlineAt
-  return <div className="contest-active-layout">
-    <section className="panel contest-state-header"><div><span className="eyebrow">Manche {contest.currentRound}</span><h2>{contest.phase === 'SUPPORT' ? 'Soutien du public' : 'Concours en cours'}</h2></div><Countdown label={contest.phase === 'SUPPORT' ? 'Soutien' : 'Tour'} deadline={deadline} now={props.now} /></section>
-    <ParticipantGrid contest={contest} scoreFeedback={props.scoreFeedback} />
+  const status = value.permissions.canPlay
+    ? 'À vous de jouer.'
+    : value.permissions.canSupport
+      ? 'À vous de soutenir un participant.'
+      : contest.viewer.spectator
+        ? 'En attente des joueurs · vous pouvez être choisi pour soutenir.'
+        : 'En attente du prochain tour.'
+  return <div className="contest-active-layout running">
+    <section className="panel contest-state-header"><div><span className="eyebrow">Manche {contest.currentRound}</span><h2>{contest.phase === 'SUPPORT' ? 'Soutien du public' : 'Concours en cours'}</h2><p className="contest-running-status">{status}</p></div><Countdown label={contest.phase === 'SUPPORT' ? 'Soutien' : 'Tour'} deadline={deadline} now={props.now} /></section>
+    <ParticipantGrid contest={contest} scoreFeedback={props.scoreFeedback} playSlot={value.permissions.canPlay ? contest.viewer.participantSlot : null} canSupport={value.permissions.canSupport} pending={props.pending} onPlay={(action) => void props.run(`play:${action}`, (key) => props.onPlay(action, key))} onSupport={(slot) => void props.run(`support:${slot}`, (key) => props.onSupport(slot, key))} />
     <SpectatorStrip contest={contest} organizerCanRemove={contest.viewer.organizer} onRemove={(playerId) => void props.run(`remove-spectator:${playerId}`, (key) => props.onRemoveSpectator(playerId, key))} pending={props.pending} />
-    <section className="panel contest-action-region">
-      {value.permissions.canPlay && <div className="contest-turn-actions"><h3>À vous de jouer</h3><p>L’action sûre rapporte vos points de base. Le risque rapporte 0, ×1 ou ×2.</p><div><PendingButton signature="play:BASIC" pending={props.pending} pendingLabel="Action en cours…" className="primary-button" onClick={() => void props.run('play:BASIC', (key) => props.onPlay('BASIC', key))}>Action de base</PendingButton><PendingButton signature="play:RISK" pending={props.pending} pendingLabel="Action en cours…" onClick={() => void props.run('play:RISK', (key) => props.onPlay('RISK', key))}>Prendre un risque</PendingButton></div></div>}
-      {value.permissions.canSupport && <div className="contest-support-actions"><h3>Vous avez été choisi pour soutenir</h3><p>Sélectionnez n’importe quel participant : votre soutien lui accordera 1, 2 ou 3 points.</p><div>{contest.participants.map((item) => <PendingButton signature={`support:${item.slot}`} pending={props.pending} pendingLabel="Soutien…" onClick={() => void props.run(`support:${item.slot}`, (key) => props.onSupport(item.slot, key))} key={item.slot}>{item.displayName}</PendingButton>)}</div></div>}
-      {!value.permissions.canPlay && !value.permissions.canSupport && <p className="contest-watching">Le serveur poursuit la partie. Cette vue s’actualise automatiquement.</p>}
-    </section>
     <div className="contest-footer-actions">{value.permissions.canLeave && <PendingButton signature="leave" pending={props.pending} pendingLabel="Sortie…" onClick={() => void props.run('leave', props.onLeave)}>Quitter le Concours</PendingButton>}{value.permissions.canCancel && <PendingButton signature="cancel" pending={props.pending} pendingLabel="Annulation…" className="danger-button" onClick={() => void props.run('cancel', props.onCancel)}>Annuler le Concours</PendingButton>}</div>
   </div>
 }
 
-function PendingButton({ signature, pending, pendingLabel, disabled = false, className, onClick, children }: { signature: string; pending: string | null; pendingLabel: string; disabled?: boolean; className?: string; onClick: () => void; children: string }) {
+function PendingButton({ signature, pending, pendingLabel, disabled = false, className, ariaLabel, onClick, children }: { signature: string; pending: string | null; pendingLabel: string; disabled?: boolean; className?: string; ariaLabel?: string; onClick: () => void; children: string }) {
   const loading = pending === signature
-  return <button type="button" className={`${className ?? ''} contest-mutation-button`.trim()} disabled={disabled || Boolean(pending)} aria-busy={loading} onClick={onClick}>{loading ? pendingLabel : children}</button>
+  return <button type="button" className={`${className ?? ''} contest-mutation-button`.trim()} disabled={disabled || Boolean(pending)} aria-busy={loading} aria-label={ariaLabel} onClick={onClick}>{loading ? pendingLabel : children}</button>
 }
 
-function ParticipantGrid({ contest, organizerCanRemove = false, onRemove, pending, scoreFeedback = null }: { contest: ContestSnapshotDto; organizerCanRemove?: boolean; onRemove?: (playerId: string) => void; pending?: string | null; scoreFeedback?: ScoreFeedback | null }) {
+function ParticipantGrid({ contest, organizerCanRemove = false, onRemove, pending, scoreFeedback = null, playSlot = null, canSupport = false, onPlay, onSupport }: { contest: ContestSnapshotDto; organizerCanRemove?: boolean; onRemove?: (playerId: string) => void; pending?: string | null; scoreFeedback?: ScoreFeedback | null; playSlot?: number | null; canSupport?: boolean; onPlay?: (action: 'BASIC' | 'RISK') => void; onSupport?: (slot: number) => void }) {
   const bySlot = new Map(contest.participants.map((participant) => [participant.slot, participant]))
   const displayedSlots = contest.status === 'LOBBY' ? [1, 2, 3, 4] : contest.participants.map((participant) => participant.slot)
   return <div className="contest-participant-grid">{displayedSlots.map((slot) => {
     const item = bySlot.get(slot)
     if (!item) return <article className="panel contest-participant contest-free-slot" aria-label={`Place ${slot} libre`} key={slot}><span className="contest-slot">#{slot}</span><span aria-hidden="true">＋</span><h3>Place libre</h3><p>Disponible avant lancement</p></article>
-    return <article className={`panel contest-participant${item.activeTurn ? ' active-turn' : ''}${item.finalRank === 1 ? ' winner' : ''}${item.titleRank >= 1 && item.titleRank <= 4 ? ` contest-title-rank-${item.titleRank}` : ''}`} key={item.slot}>
+    const canPlayHere = playSlot === item.slot
+    const actionable = canPlayHere || canSupport
+    return <article className={`panel contest-participant${item.activeTurn ? ' active-turn' : ''}${item.finalRank === 1 ? ' winner' : ''}${item.titleRank >= 1 && item.titleRank <= 4 ? ` contest-title-rank-${item.titleRank}` : ''}${actionable ? ' contest-participant-actionable' : ''}`} key={item.slot}>
       <div className="contest-avatar"><CharacterAssetImage characterName={item.characterName ?? item.displayName} className="contest-avatar-image" assetPaths={item.kind === 'HUMAN' ? [item.avatar] : []} fallback={<span>{item.kind === 'BOT' ? '◆' : item.displayName.slice(0, 1).toUpperCase()}</span>} /></div>
       <span className="contest-slot">#{item.slot}{item.turnOrder ? ` · tour ${item.turnOrder}` : ''}</span><h3>{item.displayName}</h3><p>{item.characterName}</p>
       {item.basePoints !== null && <div className="contest-score"><div className="contest-score-value"><strong>{item.score}</strong>{scoreFeedback?.slot === item.slot && <span className="contest-score-change" role="status" aria-label={`Gain de ${scoreFeedback.points} point${scoreFeedback.points === 1 ? '' : 's'}`} data-event-id={scoreFeedback.eventId}>+{scoreFeedback.points}</span>}</div><span>points · base +{item.basePoints}</span></div>}
@@ -255,14 +283,15 @@ function ParticipantGrid({ contest, organizerCanRemove = false, onRemove, pendin
       {contest.status === 'RUNNING' && item.liveRank && <strong className="contest-live-rank" aria-label={`Classement en direct : ${rankLabel(item.liveRank)}`}>{rankLabel(item.liveRank)}</strong>}
       {item.finalRank && <strong className="contest-rank">{item.finalRank}<sup>e</sup> · {formatResourceAmount(item.rewardPrimogems ?? '0')} Primos</strong>}
       {organizerCanRemove && item.playerId && item.playerId !== contest.organizerPlayerId && <PendingButton signature={`remove:${item.playerId}`} pending={pending ?? null} pendingLabel="Retrait…" className="contest-remove" onClick={() => onRemove?.(item.playerId!)}>Retirer</PendingButton>}
+      {actionable && <div className="contest-card-actions" aria-label={`Actions pour ${item.displayName}`}>{canPlayHere ? <><PendingButton signature="play:BASIC" pending={pending ?? null} pendingLabel="Action en cours…" className="primary-button" onClick={() => onPlay?.('BASIC')}>Action de base</PendingButton><PendingButton signature="play:RISK" pending={pending ?? null} pendingLabel="Action en cours…" onClick={() => onPlay?.('RISK')}>Prendre un risque</PendingButton></> : <PendingButton signature={`support:${item.slot}`} pending={pending ?? null} pendingLabel="Soutien…" onClick={() => onSupport?.(item.slot)}>Soutenir</PendingButton>}</div>}
     </article>
   })}</div>
 }
 
 function SpectatorStrip({ contest, organizerCanRemove = false, onRemove, pending }: { contest: ContestSnapshotDto; organizerCanRemove?: boolean; onRemove?: (playerId: string) => void; pending?: string | null }) {
-  return <section className="panel contest-spectators" aria-label="Spectateurs actifs"><span className="eyebrow">Spectateurs actifs</span><div>{Array.from({ length: 10 }, (_, index) => {
+  return <section className="panel contest-spectators" aria-label="Spectateurs"><span className="eyebrow">Spectateurs</span><div>{Array.from({ length: 10 }, (_, index) => {
     const spectator = contest.spectators[index]
-    return spectator ? <span className={spectator.selected ? 'selected' : ''} key={spectator.playerId}><span>{spectator.displayName}{spectator.selected ? ' · soutien sélectionné' : ''}</span>{organizerCanRemove && <PendingButton signature={`remove-spectator:${spectator.playerId}`} pending={pending ?? null} pendingLabel="Retrait…" className="contest-spectator-remove" onClick={() => onRemove?.(spectator.playerId)}>Retirer</PendingButton>}</span> : <span className="contest-spectator-placeholder" aria-hidden="true" key={`empty-${index}`} />
+    return spectator ? <span className={`${spectator.selected ? 'selected ' : ''}${organizerCanRemove ? 'removable' : ''}`.trim()} key={spectator.playerId}><span>{spectator.displayName}{spectator.selected ? ' · soutien sélectionné' : ''}</span>{organizerCanRemove && <PendingButton signature={`remove-spectator:${spectator.playerId}`} pending={pending ?? null} pendingLabel="…" className="contest-spectator-remove" ariaLabel={`Retirer ${spectator.displayName} des spectateurs`} onClick={() => onRemove?.(spectator.playerId)}>×</PendingButton>}</span> : <span className="contest-spectator-placeholder" aria-hidden="true" key={`empty-${index}`} />
   })}</div></section>
 }
 

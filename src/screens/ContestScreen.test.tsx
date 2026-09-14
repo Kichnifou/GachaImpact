@@ -44,7 +44,7 @@ const lobby: ContestSnapshotDto = {
   winnerSlot: null, startedAt: null, finishedAt: null,
   viewer: { participantSlot: 1, selectedCharacterId: 'character-1', spectator: false, organizer: true, selectedForSupport: false },
   participants: [{ slot: 1, kind: 'HUMAN', playerId: 'player-1', displayName: 'Kichnifou', characterName: 'Furina', avatar: null, basePoints: null, titleRank: 0, title: null, score: 0, turnOrder: null, ready: false, activeTurn: false, replaced: false, liveRank: null, finalRank: null, rewardPrimogems: null }],
-  spectators: [], latestScoreChange: null, promotions: [], historyEvents: [],
+  spectators: [], recentScoreChanges: [], promotions: [], historyEvents: [],
 }
 
 function mount(value: ContestDto, overrides: Partial<React.ComponentProps<typeof ContestScreen>> = {}) {
@@ -148,7 +148,10 @@ describe('ContestScreen', () => {
     const organizerValue = { ...base, active: organizerLobby, permissions: { ...permissions, canLeave: true } }
     const onRemoveSpectator = vi.fn(async () => organizerValue)
     const organizerView = mount(organizerValue, { onRemoveSpectator }).container
-    await act(async () => { organizerView.querySelector<HTMLButtonElement>('.contest-spectator-remove')!.click(); await Promise.resolve() })
+    const removeButton = organizerView.querySelector<HTMLButtonElement>('.contest-spectator-remove')!
+    expect(removeButton.textContent).toBe('×')
+    expect(removeButton.getAttribute('aria-label')).toBe('Retirer Jean Julien des spectateurs')
+    await act(async () => { removeButton.click(); await Promise.resolve() })
     expect(onRemoveSpectator).toHaveBeenCalledWith('spectator-target', expect.any(String))
   })
 
@@ -228,20 +231,28 @@ describe('ContestScreen', () => {
   })
 
   it('renders passive spectators, a selected support window, and a replaced participant', async () => {
+    const supportTargets: ContestSnapshotDto['participants'] = [
+      { ...lobby.participants[0]!, kind: 'BOT', playerId: null, displayName: 'Astra · Bot 1', ready: true, basePoints: 3, turnOrder: 1, replaced: true },
+      { ...lobby.participants[0]!, slot: 2, playerId: 'player-2', displayName: 'Mynonyme', ready: true, basePoints: 2, turnOrder: 2 },
+      { ...lobby.participants[0]!, slot: 3, playerId: 'player-3', displayName: 'Mika', ready: true, basePoints: 2, turnOrder: 3 },
+      { ...lobby.participants[0]!, slot: 4, playerId: 'player-4', displayName: 'Céo', ready: true, basePoints: 4, turnOrder: 4 },
+    ]
     const running: ContestSnapshotDto = {
       ...lobby, status: 'RUNNING', phase: 'SUPPORT', startedAt: '2026-09-13T10:00:00Z', supportDeadlineAt: '2099-09-13T12:00:00Z',
       currentRound: 2, viewer: { participantSlot: null, selectedCharacterId: null, spectator: true, organizer: false, selectedForSupport: true },
-      participants: [{ ...lobby.participants[0]!, kind: 'BOT', playerId: null, displayName: 'Astra · Bot 1', ready: true, basePoints: 3, turnOrder: 1, replaced: true }],
+      participants: supportTargets,
       spectators: [{ playerId: 'spectator-1', displayName: 'Jean Julien', selected: true }],
     }
     const value = { ...base, active: running, permissions: { ...permissions, canOpen: false, canLeave: true, canSupport: true } }
     const onSupport = vi.fn(async () => value)
     const { container } = mount(value, { onSupport })
-    expect(container.querySelector('[aria-label="Spectateurs actifs"]')?.textContent).toContain('Jean Julien · soutien sélectionné')
+    expect(container.querySelector('[aria-label="Spectateurs"]')?.textContent).toContain('Jean Julien · soutien sélectionné')
     expect(container.textContent).toContain('Remplacement IA')
-    expect(container.textContent).toContain('Vous avez été choisi pour soutenir')
-    await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('.contest-support-actions button'))[0]!.click(); await Promise.resolve() })
-    expect(onSupport).toHaveBeenCalledWith(1, expect.any(String))
+    expect(container.textContent).toContain('À vous de soutenir un participant.')
+    expect(container.querySelector('.contest-action-region')).toBeNull()
+    expect(container.querySelectorAll<HTMLButtonElement>('.contest-card-actions button')).toHaveLength(4)
+    await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('.contest-card-actions button'))[1]!.click(); await Promise.resolve() })
+    expect(onSupport).toHaveBeenCalledWith(2, expect.any(String))
   })
 
   it('shows another player turn without controls and renders a bot winner with title-bearing human result', () => {
@@ -252,7 +263,8 @@ describe('ContestScreen', () => {
       spectators: [{ playerId: 'spectator-1', displayName: 'Mika', selected: false }],
     }
     const passive = mount({ ...base, active: otherTurn, permissions: { ...permissions, canOpen: false, canLeave: true } }).container
-    expect(passive.textContent).toContain('Le serveur poursuit la partie.')
+    expect(passive.textContent).toContain('En attente des joueurs · vous pouvez être choisi pour soutenir.')
+    expect(passive.querySelector('.contest-action-region')).toBeNull()
     expect(passive.textContent).not.toContain('Action de base')
 
     const finished: ContestSnapshotDto = {
@@ -268,6 +280,22 @@ describe('ContestScreen', () => {
     expect(result.textContent).toContain('Titan d’Argent')
     expect(result.textContent).toContain('✨ Furina devient Titan d’Argent !')
     expect(result.textContent).toContain('2e · 400 Primos')
+  })
+
+  it('puts play controls only on the current viewer card without changing card geometry', () => {
+    const participants: ContestSnapshotDto['participants'] = [1, 2, 3, 4].map((slot) => ({
+      ...lobby.participants[0]!, slot, playerId: `player-${slot}`, displayName: `Joueur ${slot}`, basePoints: 2, turnOrder: slot, ready: true, activeTurn: slot === 2,
+    }))
+    const running: ContestSnapshotDto = { ...lobby, status: 'RUNNING', phase: 'TURNS', startedAt: '2026-09-13T10:00:00Z', turnDeadlineAt: '2099-09-13T12:00:00Z', currentTurnOrder: 2, viewer: { ...lobby.viewer, participantSlot: 2 }, participants }
+    const container = mount({ ...base, active: running, permissions: { ...permissions, canPlay: true } }).container
+    const cards = container.querySelectorAll('.contest-participant')
+    expect(cards[0]?.querySelector('.contest-card-actions')).toBeNull()
+    expect(cards[1]?.querySelector('.contest-card-actions')?.textContent).toContain('Action de base')
+    expect(cards[1]?.querySelector('.contest-card-actions')?.textContent).toContain('Prendre un risque')
+    expect(cards[2]?.querySelector('.contest-card-actions')).toBeNull()
+    expect(cards[3]?.querySelector('.contest-card-actions')).toBeNull()
+    expect(container.textContent).toContain('À vous de jouer.')
+    expect(appCss).toMatch(/\.contest-card-actions \{[\s\S]*?position: absolute/)
   })
 
   it('reloads the persisted lobby Legend and restores it after a failed change', async () => {
@@ -409,13 +437,13 @@ describe('ContestScreen', () => {
       status: 'RUNNING', phase: 'TURNS', startedAt: '2026-09-13T10:00:00Z', turnDeadlineAt: '2099-09-13T12:00:00Z',
       currentTurnOrder: 1,
       participants: [{ ...lobby.participants[0]!, score: 4, basePoints: 2, turnOrder: 1, activeTurn: true }],
-      latestScoreChange: { eventId: 'already-seen', slot: 1, points: 2, kind: 'TURN_PLAYED', createdAt: '2026-09-13T10:00:00Z' },
+      recentScoreChanges: [{ eventId: 'already-seen', slot: 1, points: 2, kind: 'TURN_PLAYED', createdAt: '2026-09-13T10:00:00Z' }],
     }
     const value = { ...base, active: running, permissions: { ...permissions, canOpen: false } }
     const mounted = mount(value)
     expect(mounted.container.querySelector('.contest-score-change')).toBeNull()
 
-    const zeroEvent = { ...running, latestScoreChange: { eventId: 'risk-zero', slot: 1, points: 0, kind: 'TURN_PLAYED' as const, createdAt: '2026-09-13T10:00:01Z' } }
+    const zeroEvent = { ...running, recentScoreChanges: [...running.recentScoreChanges, { eventId: 'risk-zero', slot: 1, points: 0, kind: 'TURN_PLAYED' as const, createdAt: '2026-09-13T10:00:01Z' }] }
     act(() => mounted.root.render(<ContestScreen {...mounted.props} value={{ ...value, active: zeroEvent }} />))
     expect(mounted.container.querySelector('.contest-score strong')?.textContent).toBe('4')
     expect(mounted.container.querySelectorAll('.contest-score-change')).toHaveLength(1)
@@ -432,26 +460,87 @@ describe('ContestScreen', () => {
       { ...lobby.participants[0]!, score: 5, basePoints: 1, turnOrder: 1, activeTurn: false },
       { ...lobby.participants[0]!, slot: 2, kind: 'BOT', playerId: null, displayName: 'Astra · Bot', characterName: 'Légende invitée', score: 8, basePoints: 1, turnOrder: 2, activeTurn: true },
     ]
-    const initial: ContestSnapshotDto = { ...lobby, status: 'RUNNING', phase: 'SUPPORT', startedAt: '2026-09-13T10:00:00Z', participants, latestScoreChange: null }
+    const initial: ContestSnapshotDto = { ...lobby, status: 'RUNNING', phase: 'SUPPORT', startedAt: '2026-09-13T10:00:00Z', participants, recentScoreChanges: [] }
     const value = { ...base, active: initial, permissions: { ...permissions, canOpen: false } }
     const mounted = mount(value)
 
-    const support = { ...initial, participants: participants.map((item) => item.slot === 2 ? { ...item, score: 11 } : item), latestScoreChange: { eventId: 'support-3', slot: 2, points: 3, kind: 'SUPPORT_PLAYED' as const, createdAt: '2026-09-13T10:00:01Z' } }
+    const support = { ...initial, participants: participants.map((item) => item.slot === 2 ? { ...item, score: 11 } : item), recentScoreChanges: [{ eventId: 'support-3', slot: 2, points: 3, kind: 'SUPPORT_PLAYED' as const, createdAt: '2026-09-13T10:00:01Z' }] }
     act(() => mounted.root.render(<ContestScreen {...mounted.props} value={{ ...value, active: support }} />))
     expect(mounted.container.querySelectorAll('.contest-participant')[1]?.querySelector('.contest-score-change')?.textContent).toBe('+3')
     expect(mounted.container.querySelectorAll('.contest-participant')[0]?.querySelector('.contest-score-change')).toBeNull()
 
-    const bot = { ...support, latestScoreChange: { eventId: 'bot-1', slot: 2, points: 1, kind: 'BOT_TURN_PLAYED' as const, createdAt: '2026-09-13T10:00:02Z' } }
+    const bot = { ...support, recentScoreChanges: [...support.recentScoreChanges, { eventId: 'bot-1', slot: 2, points: 1, kind: 'BOT_TURN_PLAYED' as const, createdAt: '2026-09-13T10:00:02Z' }] }
     act(() => mounted.root.render(<ContestScreen {...mounted.props} value={{ ...value, active: bot }} />))
-    expect(mounted.container.querySelectorAll('.contest-participant')[1]?.querySelector('.contest-score-change')?.textContent).toBe('+1')
+    expect(mounted.container.querySelectorAll('.contest-participant')[1]?.querySelector('.contest-score-change')?.textContent).toBe('+3')
+  })
+
+  it('queues every unseen event chronologically, including remote +0 feedback', async () => {
+    vi.useFakeTimers()
+    const eventA = { eventId: 'A', slot: 1, points: 1, kind: 'TURN_PLAYED' as const, createdAt: '2026-09-13T10:00:00Z' }
+    const eventB = { eventId: 'B', slot: 1, points: 0, kind: 'TURN_PLAYED' as const, createdAt: '2026-09-13T10:00:01Z' }
+    const eventC = { eventId: 'C', slot: 1, points: 2, kind: 'TURN_AUTO_BASIC' as const, createdAt: '2026-09-13T10:00:02Z' }
+    const running: ContestSnapshotDto = { ...lobby, status: 'RUNNING', phase: 'TURNS', startedAt: '2026-09-13T10:00:00Z', participants: [{ ...lobby.participants[0]!, basePoints: 2, turnOrder: 1 }], recentScoreChanges: [eventA] }
+    const value = { ...base, active: running, permissions: { ...permissions } }
+    const mounted = mount(value)
+    act(() => mounted.root.render(<ContestScreen {...mounted.props} value={{ ...value, active: { ...running, recentScoreChanges: [eventA, eventB, eventC] } }} />))
+    expect(mounted.container.querySelector('.contest-score-change')?.textContent).toBe('+0')
+    expect(mounted.container.querySelector('.contest-score-change')?.getAttribute('data-event-id')).toBe('B')
+    await act(async () => { vi.advanceTimersByTime(1_200); await Promise.resolve() })
+    expect(mounted.container.querySelector('.contest-score-change')?.textContent).toBe('+2')
+    expect(mounted.container.querySelector('.contest-score-change')?.getAttribute('data-event-id')).toBe('C')
+  })
+
+  it('shows the same remote turn and support events to independent player and spectator views', () => {
+    const participants: ContestSnapshotDto['participants'] = [1, 2, 3, 4].map((slot) => ({ ...lobby.participants[0]!, slot, playerId: `player-${slot}`, displayName: `Joueur ${slot}`, basePoints: 2, turnOrder: slot }))
+    const eventA = { eventId: 'A', slot: 1, points: 1, kind: 'TURN_PLAYED' as const, createdAt: '2026-09-13T10:00:00Z' }
+    const initial: ContestSnapshotDto = { ...lobby, status: 'RUNNING', phase: 'TURNS', startedAt: '2026-09-13T10:00:00Z', participants, recentScoreChanges: [eventA] }
+    const player = mount({ ...base, active: initial, permissions: { ...permissions } })
+    const spectatorInitial = { ...initial, viewer: { participantSlot: null, selectedCharacterId: null, spectator: true, organizer: false, selectedForSupport: false } }
+    const spectator = mount({ ...base, active: spectatorInitial, permissions: { ...permissions } })
+    const remoteZero = { eventId: 'B', slot: 2, points: 0, kind: 'TURN_PLAYED' as const, createdAt: '2026-09-13T10:00:01Z' }
+    act(() => {
+      player.root.render(<ContestScreen {...player.props} value={{ ...base, active: { ...initial, recentScoreChanges: [eventA, remoteZero] }, permissions }} />)
+      spectator.root.render(<ContestScreen {...spectator.props} value={{ ...base, active: { ...spectatorInitial, recentScoreChanges: [eventA, remoteZero] }, permissions }} />)
+    })
+    expect(player.container.querySelector('.contest-score-change')?.textContent).toBe('+0')
+    expect(spectator.container.querySelector('.contest-score-change')?.textContent).toBe('+0')
+
+    const support = { eventId: 'support-shared', slot: 3, points: 2, kind: 'SUPPORT_PLAYED' as const, createdAt: '2026-09-13T10:00:02Z' }
+    const playerSupport = mount({ ...base, active: { ...initial, phase: 'SUPPORT', recentScoreChanges: [eventA] }, permissions })
+    const spectatorSupport = mount({ ...base, active: { ...spectatorInitial, phase: 'SUPPORT', recentScoreChanges: [eventA] }, permissions })
+    act(() => {
+      playerSupport.root.render(<ContestScreen {...playerSupport.props} value={{ ...base, active: { ...initial, phase: 'SUPPORT', recentScoreChanges: [eventA, support] }, permissions }} />)
+      spectatorSupport.root.render(<ContestScreen {...spectatorSupport.props} value={{ ...base, active: { ...spectatorInitial, phase: 'SUPPORT', recentScoreChanges: [eventA, support] }, permissions }} />)
+    })
+    for (const view of [playerSupport, spectatorSupport]) {
+      const feedback = view.container.querySelectorAll('.contest-participant')[2]?.querySelector('.contest-score-change')
+      expect(feedback?.textContent).toBe('+2')
+      expect(feedback?.getAttribute('data-event-id')).toBe('support-shared')
+    }
+  })
+
+  it('re-baselines the first fresh projection after a hidden-tab resume', () => {
+    const eventA = { eventId: 'A', slot: 1, points: 1, kind: 'TURN_PLAYED' as const, createdAt: '2026-09-13T10:00:00Z' }
+    const eventB = { eventId: 'B', slot: 1, points: 2, kind: 'TURN_PLAYED' as const, createdAt: '2026-09-13T10:00:01Z' }
+    const eventC = { eventId: 'C', slot: 1, points: 3, kind: 'TURN_PLAYED' as const, createdAt: '2026-09-13T10:00:02Z' }
+    const running: ContestSnapshotDto = { ...lobby, status: 'RUNNING', phase: 'TURNS', startedAt: '2026-09-13T10:00:00Z', participants: [{ ...lobby.participants[0]!, basePoints: 2, turnOrder: 1 }], recentScoreChanges: [eventA] }
+    const value = { ...base, active: running, permissions }
+    const mounted = mount(value)
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
+    act(() => document.dispatchEvent(new Event('visibilitychange')))
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
+    act(() => mounted.root.render(<ContestScreen {...mounted.props} value={{ ...value, active: { ...running, recentScoreChanges: [eventA, eventB] } }} />))
+    expect(mounted.container.querySelector('.contest-score-change')).toBeNull()
+    act(() => mounted.root.render(<ContestScreen {...mounted.props} value={{ ...value, active: { ...running, recentScoreChanges: [eventA, eventB, eventC] } }} />))
+    expect(mounted.container.querySelector('.contest-score-change')?.getAttribute('data-event-id')).toBe('C')
   })
 
   it('keeps participant, spectator, and action geometry stable at desktop breakpoints', () => {
-    expect(appCss).toContain('grid-template-rows: auto 230px 66px minmax(104px, auto) auto')
-    expect(appCss).toContain('grid-template-rows: 42px 190px 66px minmax(104px, auto) 26px')
+    expect(appCss).toContain('.contest-active-layout.running { grid-template-rows: 74px 230px 66px auto; }')
+    expect(appCss).toContain('.contest-active-layout.running { grid-template-rows: 58px 190px 66px 26px; }')
     expect(appCss).not.toContain('.contest-participant .contest-avatar { display: none; }')
-    expect(appCss).toMatch(/\.contest-spectators > div > span \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\) max-content/)
-    expect(appCss).toMatch(/\.contest-action-region \{ min-height: 104px; overflow: visible; \}/)
+    expect(appCss).toContain('.contest-spectators > div > span.removable { grid-template-columns: minmax(0, 1fr) 18px; }')
+    expect(appCss).toMatch(/\.contest-card-actions \{[\s\S]*?position: absolute/)
     expect(appCss).toMatch(/\.contest-score-change \{[\s\S]*?position: absolute/)
   })
 })

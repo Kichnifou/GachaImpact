@@ -2,8 +2,11 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
+import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import GameHeader from './GameHeader'
+
+const appCss = readFileSync(`${process.cwd()}/src/App.css`, 'utf8')
 
 const roots: Root[] = []
 afterEach(() => { act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren() })
@@ -50,5 +53,26 @@ describe('GameHeader moderation capability', () => {
     act(() => roots[0]!.render(<GameHeader displayName="Test" onNavigateHome={vi.fn()} onOpenSidebar={vi.fn()} onSignOut={vi.fn()} showModeration={false} onOpenModeration={vi.fn()} onOpenMenu={vi.fn()} notifications={{ unreadCount: 1, notifications: [unread] }} onReadAllNotifications={onReadAllNotifications} />))
     await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(button => button.textContent === 'Tout marquer comme lu')!.click(); await Promise.resolve() })
     expect(onReadAllNotifications).toHaveBeenCalledTimes(1)
+  })
+
+  it('distinguishes navigable and informational notifications without a false hover affordance', async () => {
+    const onReadNotification = vi.fn(async () => ({ unreadCount: 0, notifications: [] }))
+    const onOpenNotification = vi.fn()
+    const base = { id: '11111111-1111-4111-8111-111111111111', domainKey: 'expedition', typeKey: 'ready', payload: { characterName: 'Furina' }, state: 'UNREAD' as const, actionTargetId: 'character', createdAt: '2026-09-12T12:00:00Z', readAt: null }
+    const navigable = { ...base, actionKey: 'open-expedition-character' }
+    const informational = { ...base, id: '22222222-2222-4222-8222-222222222222', actionKey: null }
+    const container = mount({ notifications: { unreadCount: 2, notifications: [navigable, informational] }, onReadNotification, onOpenNotification })
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
+    const items = container.querySelectorAll<HTMLButtonElement>('.notification-item')
+    expect(items[0]?.classList.contains('actionable')).toBe(true)
+    expect(items[0]?.dataset.actionable).toBe('true')
+    expect(items[1]?.classList.contains('actionable')).toBe(false)
+    expect(items[1]?.dataset.actionable).toBe('false')
+    expect(appCss).toMatch(/\.notification-item\.actionable \{ cursor: pointer; \}/)
+    expect(appCss).toMatch(/\.notification-item\.actionable:hover,[\s\S]*?border-color: rgba\(92, 217, 255, \.72\)/)
+    await act(async () => { items[1]!.click(); await Promise.resolve() })
+    expect(onReadNotification).toHaveBeenCalledWith(informational.id)
+    expect(onOpenNotification).not.toHaveBeenCalled()
+    expect(container.querySelector('.notifications-panel')).not.toBeNull()
   })
 })

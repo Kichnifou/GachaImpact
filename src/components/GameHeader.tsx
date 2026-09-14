@@ -33,7 +33,12 @@ function GameHeader({ displayName, onNavigateHome, onOpenSidebar, onSignOut, sho
     const timer = window.setInterval(refresh, 60_000)
     return () => { window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', visible); window.clearInterval(timer) }
   }, [onRefreshNotifications])
-  const open = async (notification: NotificationDto) => { if (notification.state === 'UNREAD') await onReadNotification(notification.id); setIsNotificationsOpen(false); onOpenNotification(notification) }
+  const open = async (notification: NotificationDto) => {
+    if (notification.state === 'UNREAD') await onReadNotification(notification.id)
+    if (notification.actionKey === null) return
+    setIsNotificationsOpen(false)
+    onOpenNotification(notification)
+  }
   return <header className="game-header">
     <button type="button" className="brand" onClick={onNavigateHome} aria-label="GachaImpact — accueil"><span className="brand-mark" aria-hidden="true">✦</span><span><strong>Gacha<span>Impact</span></strong><small>Chroniques astrales</small></span></button>
     <div className="header-actions">
@@ -45,7 +50,7 @@ function GameHeader({ displayName, onNavigateHome, onOpenSidebar, onSignOut, sho
         <button type="button" className={`header-icon-button${isNotificationsOpen ? ' active' : ''}`} onClick={() => { setIsNotificationsOpen(value => !value); void onRefreshNotifications().catch(() => undefined) }} aria-label="Afficher les notifications" aria-expanded={isNotificationsOpen}><span aria-hidden="true">♢</span>{notifications.unreadCount > 0 && <span className="header-count">{notifications.unreadCount}</span>}</button>
         {isNotificationsOpen && <section className="floating-panel notifications-panel" aria-label="Notifications">
           <div className="floating-panel-heading"><div><span className="eyebrow">Activité</span><h2>Notifications</h2></div>{notifications.unreadCount > 0 && <button type="button" className="text-action" onClick={() => void onReadAllNotifications()}>Tout marquer comme lu</button>}</div>
-          <div className="notification-list">{notifications.notifications.length === 0 ? <p className="notification-empty">Aucune notification.</p> : notifications.notifications.map(notification => <button type="button" className={`notification-item${notification.state === 'UNREAD' ? ' unread' : ''}`} onClick={() => void open(notification)} key={notification.id}><span className="notification-symbol" aria-hidden="true">✦</span><span><strong>{notificationTitle(notification)}</strong><p>{notificationMessage(notification)}</p><small>{new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(notification.createdAt))}</small></span>{notification.state === 'UNREAD' && <span className="notification-dot" aria-label="Non lue" />}</button>)}</div>
+          <div className="notification-list">{notifications.notifications.length === 0 ? <p className="notification-empty">Aucune notification.</p> : notifications.notifications.map(notification => <button type="button" className={`notification-item${notification.state === 'UNREAD' ? ' unread' : ''}${notification.actionKey !== null ? ' actionable' : ''}`} data-actionable={notification.actionKey !== null ? 'true' : 'false'} onClick={() => void open(notification)} key={notification.id}><span className="notification-symbol" aria-hidden="true">✦</span><span><strong>{notificationTitle(notification)}</strong><p>{notificationMessage(notification)}</p><small>{new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(notification.createdAt))}</small></span>{notification.state === 'UNREAD' && <span className="notification-dot" aria-label="Non lue" />}</button>)}</div>
           {notifications.notifications.some(item => item.state === 'READ') && <div className="floating-panel-footer"><button type="button" onClick={() => void onArchiveReadNotifications()}>Archiver les notifications lues</button></div>}
         </section>}
       </div>

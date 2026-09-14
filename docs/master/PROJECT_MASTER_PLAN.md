@@ -1,8 +1,8 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.94
+Version : 0.95
 Date : 2026-09-14
-Statut : CANDIDAT CORRECTIF 0.94 — REVIEW INDÉPENDANTE REQUISE
+Statut : CANDIDAT CORRECTIF 0.95 — REVIEW INDÉPENDANTE REQUISE
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
@@ -3782,16 +3782,26 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Aucune règle R526–R593, formule, récompense, donnée, migration ou schéma n’est modifié. Les validations PostgreSQL et le parcours navigateur multi-session restent conditionnés à une base réellement isolée ; ils ne doivent jamais être improvisés sur les données DEV réelles.
 - Le domaine actif reste **Concours / personnages C6**. La stabilité runtime 0.93 est acquise sur le parcours public observé et ne doit pas être reconstruite ; les dernières corrections player-facing appartiennent au candidat 0.94 ci-dessous.
 
-## État du candidat 0.94 — réactivité et feedback final du Concours
+## État public 0.94 — réactivité et feedback du Concours
 
 - L’entrée réelle dans `Activités > Concours` revalide immédiatement la projection. Tant que l’écran est visible, le polling mono-vol reste à environ deux secondes avec un Concours actif et découvre aussi un lobby distant en environ trois secondes lorsqu’aucun Concours n’est actif ; onglet caché, focus et retour visible conservent les garde-fous 0.93.
 - Une Stella réussie et chaque Pull x1/x10 réussi invalident puis rechargent une seule projection Concours fraîche via le coordinateur partagé. Une nouvelle possession 5★ C6 devient donc disponible sans rechargement manuel, que l’écran soit déjà ouvert ou visité ensuite.
-- La projection live ajoute uniquement le dernier événement de score pertinent (`TURN_PLAYED`, `BOT_TURN_PLAYED`, `TURN_AUTO_BASIC` ou `SUPPORT_PLAYED`) par un `select` minimal limité à une ligne. Le frontend suit son `eventId`, ignore l’événement déjà présent au premier rendu et affiche une seule animation absolue `+0`/`+N` sur le slot bénéficiaire, sans réintroduire l’historique événementiel dans les GET live.
+- La projection live 0.94 ajoutait uniquement le dernier événement de score pertinent (`TURN_PLAYED`, `BOT_TURN_PLAYED`, `TURN_AUTO_BASIC` ou `SUPPORT_PLAYED`) par un `select` minimal limité à une ligne. Le frontend suivait son `eventId`, ignorait l’événement déjà présent au premier rendu et affichait une animation absolue `+0`/`+N` sur le slot bénéficiaire ; les tests publics multi-viewer ont ensuite montré que cette projection pouvait perdre un événement entre deux polls, corrigé en 0.95.
 - Les portraits humains retombent sur la découverte standard par nom de Légende lorsqu’un snapshot explicite est vide ou invalide. Les quatre cartes gardent une hauteur fixe par breakpoint, y compris à 1366 × 768 avec portrait compact ; noms, scores et rangs restent accessibles et le body devient propriétaire du scroll si la hauteur manque. Les actions du lobby ne sont plus coupées, les dix slots spectateurs restent stables et `Retirer` possède sa colonne propre.
 - Le statut `Boss actif` occupe le véritable coin supérieur droit de la carte desktop et `Res :` reste quasi collé à son icône. Aucun moteur Boss/Concours, formule, verrou, retry, schéma, migration, donnée réelle, service payant ou fichier `docs/Story/**` n’est modifié.
 - Le parcours public Combat en défaite est désormais validé par le propriétaire : les quatre membres deviennent KO, leurs cartes sont assombries, le picker les désactive et l’indisponibilité de la nouvelle tentative est correcte. Le micro-correctif final conserve ce métier intact, simplifie le badge de formation en `💀 KO` et réserve `💀 KO · Disponible demain` au picker avec le même traitement rouge ; `Déjà sélectionné` reste neutre.
 - Le feedback `Défi terminé !` conserve son auto-fermeture d’environ 5,4 secondes mais accepte désormais immédiatement un clic réel sur son backdrop ou `Escape`, sans modifier le verrou propre au feedback de montée de niveau et sans double appel de fin.
-- Le domaine actif reste **Concours / personnages C6**, candidat correctif 0.94. Après review indépendante, promotion, déploiements automatiques et validation publique du propriétaire, la prochaine étape reste **Collection / Sac à compléter**.
+- La validation publique 0.94 confirme la détection dynamique d’un nouveau C6 et d’un lobby distant, les portraits humains, les noms et la géométrie principale du Concours, le Boss principal, Quotidiennes, le parcours Combat KO, la fermeture du feedback Défi terminé et la stabilité de performance issue de 0.93/0.94.
+- La notification Expedition READY réelle est également validée publiquement : apparition dans le header, lecture au clic et deep-link vers la fiche du personnage revenu. La récupération et la récompense Expedition restent à valider publiquement.
+
+## État du candidat 0.95 — interactions finales Concours, Notifications et picker Boss
+
+- Notifications conserve sa logique autoritative et son deep-link Expedition, mais adopte une présentation bleu nuit lisible. Seules les entrées dont `actionKey` est non nul portent l’affordance cyan hover/focus et le curseur de navigation ; une entrée informationnelle reste lisible et peut être marquée lue sans simuler un lien.
+- Le libellé visible devient `Spectateurs`. Pour l’organisateur, chaque pastille réserve une colonne fixe de 18 px à une croix accessible `×`, révélée au hover/focus et toujours disponible sur interface tactile ; le pseudo reste dans sa colonne avec ellipsis sans recouvrement.
+- En RUNNING, la grande région d’action inférieure disparaît. Les actions Basic/Risque sont un overlay absolu sur la seule carte du participant autorisé et Soutenir apparaît sur chacune des quatre cartes, bots compris, pour le spectateur sélectionné. Un statut compact de hauteur stable dans le bandeau distingue jeu, soutien et attente ; mobile et clavier ne dépendent pas d’un hover inexistant.
+- La projection live `recentScoreChanges` interroge au plus huit petits événements de score par `select` minimal, newest-first puis les restitue dans l’ordre chronologique. Chaque client amorce les identifiants présents, met tous les nouveaux événements en file séquentielle et conserve `+0`, bots et soutien pour l’acteur comme pour les autres viewers ; la première fenêtre fraîche après reprise d’un onglet caché devient un nouveau baseline.
+- Le picker Boss réutilise désormais `BoxCharacterCard`, la grille et l’enveloppe du picker Entraînement : portraits, élément, rareté, constellation et état neutre `Déjà sélectionné` sont identiques. Un KO du Combat quotidien ne désactive toujours jamais un personnage contre le Boss.
+- Aucun moteur de score, règle Concours/Boss, schéma, migration, donnée réelle, service payant ou fichier `docs/Story/**` n’est modifié. Le domaine actif reste **Concours / personnages C6**, candidat correctif 0.95. Après review indépendante, promotion, déploiements automatiques et validation publique du propriétaire, la prochaine étape reste **Collection / Sac à compléter**.
 
 ## État déployé 0.92 — Concours / C6 et densité Boss
 
@@ -3945,7 +3955,7 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Faire la review indépendante du candidat correctif 0.93 uniquement sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → reprendre la validation publique Concours et les finitions Boss/Quotidiennes.** Les validations encore ouvertes restent Expedition READY/notification/claim, Combat défaite/KO, Boss vaincu/notification et rollover/historique Boss réel. Après validation publique de 0.93, ouvrir **Collection / Sac à compléter**. L’ordre complet restant appartient à [implementation-order-v1.md](../roadmap/implementation-order-v1.md). La migration legacy reste reportée ; `PAID_INFRA_APPROVED = false` reste inchangé.
+**Faire la review indépendante du candidat correctif 0.95 uniquement sur `review` → promotion fast-forward vers `main` seulement après approbation → attendre les déploiements automatiques → effectuer la validation publique finale Concours/Notifications/Boss.** La récupération/récompense Expedition, Boss vaincu/notification et rollover/historique Boss réel restent ouverts tant qu’ils n’ont pas été testés publiquement. Après validation publique de 0.95, ouvrir **Collection / Sac à compléter**. L’ordre complet restant appartient à [implementation-order-v1.md](../roadmap/implementation-order-v1.md). La migration legacy reste reportée ; `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 

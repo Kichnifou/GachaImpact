@@ -21,6 +21,11 @@ const value: MonthlyBossDto = {
   playerStats: { totalDamage: '30000', totalAttacks: '3', totalParticipated: '1', totalRewarded: '0', finalBlows: '0', bestHit: '12000' },
 }
 const callbacks = { onSetSlot: vi.fn(), onRemoveSlot: vi.fn(), onCopyActive: vi.fn(), onClear: vi.fn(), onAttack: vi.fn(), onLoadHistory: vi.fn(async () => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, bosses: [] })) }
+const bossCharacter = {
+  id: 'character-1', externalKey: 'furina', name: 'Furina', rarity: 5 as const, elementKey: 'hydro' as const,
+  weaponType: 'Épée', region: 'Fontaine', iconPath: '/assets/furina.png', splashPath: null, wishPath: null, fullbodyPath: null,
+  constellation: 2, copies: 3, firstObtainedAt: '2026-01-01T00:00:00Z', favorite: false, displayOrder: 1,
+}
 const defeatedSummary = {
   victoryDayCount: 13, daysRemainingAfterVictory: 17,
   community: { participantCount: 3, attackCount: '5', totalDamage: '1500000', averageDamage: '300000' },
@@ -53,6 +58,30 @@ describe('MonthlyBossScreen', () => {
     expect(container.textContent).toContain('Bilan →')
     expect(container.textContent).not.toContain('Votre place : #4')
     expect(container.querySelector<HTMLButtonElement>('.boss-attack-button')?.disabled).toBe(false)
+    act(() => root.unmount())
+  })
+
+  it('reuses the Training character cards in the Boss picker and disables only another Boss slot selection', () => {
+    const nahida = { ...bossCharacter, id: 'character-2', externalKey: 'nahida', name: 'Nahida', elementKey: 'dendro' as const, iconPath: '/assets/nahida.png', constellation: 6 }
+    const pickerValue: MonthlyBossDto = {
+      ...value,
+      availableCharacters: [bossCharacter, nahida],
+      loadout: { slots: [
+        { position: 1, character: bossCharacter }, { position: 2, character: null }, { position: 3, character: null }, { position: 4, character: null },
+      ] },
+    }
+    const container = document.createElement('div'); document.body.append(container); const root = createRoot(container)
+    act(() => root.render(<MonthlyBossScreen value={pickerValue} {...callbacks} />))
+    act(() => container.querySelectorAll<HTMLButtonElement>('.combat-empty-slot')[0]!.click())
+    const picker = container.querySelector('.boss-picker.combat-picker')!
+    expect(picker.querySelector('.combat-picker-grid')).not.toBeNull()
+    expect(picker.querySelectorAll('.box-character-card')).toHaveLength(2)
+    expect(picker.querySelectorAll<HTMLButtonElement>('.box-card-open')[0]?.disabled).toBe(true)
+    expect(picker.querySelectorAll('.box-character-status')[0]?.textContent).toBe('Déjà sélectionné')
+    expect(picker.querySelectorAll<HTMLButtonElement>('.box-card-open')[1]?.disabled).toBe(false)
+    expect(picker.textContent).toContain('Nahida')
+    expect(picker.querySelector('.character-asset-image')).not.toBeNull()
+    expect(picker.querySelector('.box-character-status.danger')).toBeNull()
     act(() => root.unmount())
   })
 

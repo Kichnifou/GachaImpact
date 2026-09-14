@@ -81,13 +81,22 @@ type ContestHistoryRecord = Prisma.ContestGetPayload<{ include: typeof historyCo
 type ContestHistorySummaryRecord = Prisma.ContestGetPayload<{ include: typeof historySummaryInclude }>;
 type ReconciliationCandidate = Prisma.ContestGetPayload<{ select: typeof reconciliationCandidateSelect }>;
 type Client = PrismaClient | Prisma.TransactionClient;
-type LatestScoreEvent = Readonly<{
+type ScoreEvent = Readonly<{
   id: string;
   type: string;
   payload: Prisma.JsonValue;
   targetSlot: number | null;
   createdAt: Date;
 }>;
+
+export function recentScoreEventQuery(contestId: string) {
+  return {
+    where: { contestId, type: { in: [...SCORE_EVENT_TYPES] } },
+    select: { id: true, type: true, payload: true, targetSlot: true, createdAt: true },
+    orderBy: [{ createdAt: 'desc' as const }, { id: 'desc' as const }],
+    take: 8,
+  } satisfies Prisma.ContestEventFindManyArgs;
+}
 
 export type ContestView = Awaited<ReturnType<ContestService['getCurrent']>>;
 
@@ -509,11 +518,7 @@ export class ContestService {
     const participant = active?.participants.find((item) => item.playerId === playerId);
     const spectator = active?.spectators.some((item) => item.playerId === playerId) ?? false;
     const formerParticipant = active && !participant && !spectator ? await wasContestParticipant(this.database, active, playerId) : false;
-    const latestScoreEvent = active ? await this.database.contestEvent.findFirst({
-      where: { contestId: active.id, type: { in: [...SCORE_EVENT_TYPES] } },
-      select: { id: true, type: true, payload: true, targetSlot: true, createdAt: true },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-    }) : null;
+    const recentScoreEvents = active ? await this.database.contestEvent.findMany(recentScoreEventQuery(active.id)) : [];
     const lastResult = active ? null : await this.database.contest.findFirst({ where: { status: ContestStatus.FINISHED }, include: historyContestInclude, orderBy: { finishedAt: 'desc' } });
     return {
       businessDate,
@@ -530,7 +535,7 @@ export class ContestService {
         canPlay: Boolean(active?.status === ContestStatus.RUNNING && active.phase === ContestPhase.TURNS && participant?.turnOrder === active.currentTurnOrder),
         canSupport: Boolean(active?.status === ContestStatus.RUNNING && active.phase === ContestPhase.SUPPORT && active.selectedSpectatorPlayerId === playerId),
       },
-      active: active ? presentContest(active, playerId, false, presentLatestScoreChange(latestScoreEvent)) : null,
+      active: active ? presentContest(active, playerId, false, presentRecentScoreChanges(recentScoreEvents)) : null,
       lastResult: !active && lastResult ? presentContest(lastResult, playerId, true) : null,
       legends: eligibleLegends.map((progress) => presentLegend(progress)),
     };
@@ -875,7 +880,7 @@ function presentLegend(progress: Prisma.C6CompetitionProgressGetPayload<{ includ
   };
 }
 
-function presentContest(contest: ContestRecord | ContestHistoryRecord, viewerPlayerId: string | null, history: boolean, latestScoreChange: ReturnType<typeof presentLatestScoreChange> = null) {
+function presentContest(contest: ContestRecord | ContestHistoryRecord, viewerPlayerId: string | null, history: boolean, recentScoreChanges: ReturnType<typeof presentRecentScoreChanges> = []) {
   const viewerParticipant = contest.participants.find((item) => item.playerId === viewerPlayerId);
   const viewerSpectator = contest.spectators.find((item) => item.playerId === viewerPlayerId);
   const historyContest = history ? contest as ContestHistoryRecord : null;
@@ -905,13 +910,13 @@ function presentContest(contest: ContestRecord | ContestHistoryRecord, viewerPla
       finalRank: history ? item.finalRank : null, rewardPrimogems: history ? item.rewardPrimogems.toString() : null,
     }}),
     spectators: contest.spectators.map((item) => ({ playerId: item.playerId, displayName: item.player.displayName, selected: contest.selectedSpectatorPlayerId === item.playerId })),
-    latestScoreChange,
+    recentScoreChanges,
     promotions,
     historyEvents: historyContest ? presentHistoryEvents(historyContest) : [],
   };
 }
 
-export function presentLatestScoreChange(event: LatestScoreEvent | null) {
+export function presentLatestScoreChange(event: ScoreEvent | null) {
   if (!event || !SCORE_EVENT_TYPES.includes(event.type as (typeof SCORE_EVENT_TYPES)[number])) return null;
   const payload = jsonObject(event.payload);
   const slot = numberValue(payload.slot) ?? numberValue(payload.targetSlot) ?? event.targetSlot;
@@ -924,6 +929,10 @@ export function presentLatestScoreChange(event: LatestScoreEvent | null) {
     kind: event.type as (typeof SCORE_EVENT_TYPES)[number],
     createdAt: event.createdAt.toISOString(),
   };
+}
+
+export function presentRecentScoreChanges(events: readonly ScoreEvent[]) {
+  return events.slice(0, 8).reverse().map((event) => presentLatestScoreChange(event)).filter((event): event is NonNullable<typeof event> => event !== null);
 }
 
 function presentContestHistorySummary(contest: ContestHistorySummaryRecord) {

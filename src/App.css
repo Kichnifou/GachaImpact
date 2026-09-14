@@ -7837,11 +7837,6 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 @media (max-width: 430px) { .boss-live-contribution-stats { grid-template-columns: 1fr; } }
 .boss-records-list { grid-template-columns: 1fr !important; }
 .boss-picker { width: min(760px, calc(100vw - 24px)); max-height: min(760px, calc(100dvh - 30px)); }
-.boss-picker-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 14px; overflow-y: auto; }
-.boss-picker-grid > button { display: grid; gap: 5px; min-width: 0; padding: 8px; color: #edf8ff; border: 1px solid rgba(104, 176, 229, .23); border-radius: 9px; background: rgba(12, 35, 59, .8); cursor: pointer; }
-.boss-picker-grid > button:disabled { opacity: .45; cursor: not-allowed; }
-.boss-picker-image { width: 100%; height: 90px; object-fit: contain; }
-.boss-picker-grid small { color: #d7b66a; }
 .boss-details { width: min(560px, calc(100vw - 24px)); }
 .boss-details > p, .boss-details > ul, .boss-details > footer { margin: 12px 18px; }
 .boss-details ul { display: grid; gap: 7px; padding: 0; list-style: none; }
@@ -7860,7 +7855,6 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 @media (max-width: 900px) {
   .boss-loadout-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .boss-lifetime dl { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .boss-picker-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 520px) {
   .boss-identity-panel { grid-template-columns: 1fr; padding: 14px; }
@@ -7872,7 +7866,6 @@ button.inventory-stella-card { width: 100%; font: inherit; }
   .boss-loadout-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .boss-character-card { min-height: 205px; }
   .boss-character-image { height: 115px; }
-  .boss-picker-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .boss-defeated-grid, .boss-history-details-body { grid-template-columns: 1fr; }
   .boss-summary-group > dl, .boss-history-details dl { grid-template-columns: 1fr; }
   .boss-ranking li, .boss-records-group li { grid-template-columns: 32px 1fr; }
@@ -8149,4 +8142,123 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 
 @media (prefers-reduced-motion: reduce) {
   .contest-score-change { animation: none; }
+}
+
+/* Candidate 0.95 — notification affordances and in-card Contest actions */
+.notifications-panel {
+  box-sizing: border-box;
+  max-width: calc(100vw - 24px);
+  color: #eaf4ff;
+  border-color: rgba(91, 191, 241, .34);
+  background: linear-gradient(155deg, #101f39, #071225 78%);
+}
+.notifications-panel .floating-panel-heading,
+.notifications-panel .floating-panel-footer { background: rgba(5, 15, 32, .72); }
+.notification-list { padding: 7px; background: #071327; scrollbar-color: rgba(91, 191, 241, .38) rgba(4, 12, 27, .7); }
+.notification-item {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0 0 6px;
+  appearance: none;
+  cursor: default;
+  color: #dcecff;
+  text-align: left;
+  border: 1px solid rgba(104, 153, 215, .2);
+  border-radius: 11px;
+  background: rgba(13, 31, 57, .88);
+  box-shadow: none;
+  transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+.notification-item:last-child { margin-bottom: 0; }
+.notification-item.unread {
+  border-color: rgba(81, 198, 244, .4);
+  background: linear-gradient(100deg, rgba(22, 62, 101, .96), rgba(13, 35, 66, .94));
+}
+.notification-item strong { color: #edf7ff; }
+.notification-item > span:nth-child(2) { min-width: 0; }
+.notification-item p { color: #a9bed8; }
+.notification-item small { color: #718aa8; }
+.notification-symbol { color: #78dcff; border: 1px solid rgba(96, 205, 247, .2); background: rgba(32, 117, 166, .2); }
+.notification-dot { background: #67d9ff; box-shadow: 0 0 10px rgba(76, 205, 255, .92); }
+.notification-item.actionable { cursor: pointer; }
+.notification-item.actionable:hover,
+.notification-item.actionable:focus-visible {
+  outline: none;
+  border-color: rgba(92, 217, 255, .72);
+  background: rgba(24, 65, 105, .98);
+  box-shadow: 0 0 0 2px rgba(67, 192, 239, .11), 0 8px 20px rgba(0, 7, 20, .24);
+  transform: translateY(-1px);
+}
+.notifications-panel .floating-panel-footer { padding: 9px 12px; border-top: 1px solid rgba(104, 153, 215, .15); }
+.notifications-panel .text-action,
+.notifications-panel .floating-panel-footer button { cursor: pointer; color: #9cddff; }
+.notifications-panel .text-action:hover,
+.notifications-panel .text-action:focus-visible,
+.notifications-panel .floating-panel-footer button:hover,
+.notifications-panel .floating-panel-footer button:focus-visible { color: #effbff; outline: 1px solid rgba(94, 211, 255, .52); outline-offset: 3px; }
+
+.contest-state-header { box-sizing: border-box; }
+.contest-state-header > div:first-child { min-width: 0; }
+.contest-running-status { min-height: 13px; margin: 3px 0 0; overflow: hidden; color: #91aaca; font-size: 9px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.contest-active-layout.running { grid-template-rows: 74px 230px 66px auto; }
+.contest-active-layout.running .contest-state-header { height: 74px; min-height: 74px; }
+.contest-card-actions {
+  position: absolute;
+  z-index: 5;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  padding: 28px 7px 8px;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(3, 11, 25, .98) 38%);
+  transition: opacity 140ms ease;
+}
+.contest-participant-actionable:hover .contest-card-actions,
+.contest-participant-actionable:focus-within .contest-card-actions { opacity: 1; pointer-events: auto; }
+.contest-card-actions .contest-mutation-button { min-width: 0; min-height: 31px; padding: 0 8px; color: #e7f4ff; font-size: 8px; border: 1px solid rgba(104, 191, 244, .42); border-radius: 8px; background: rgba(20, 67, 111, .94); }
+.contest-card-actions .contest-mutation-button:hover,
+.contest-card-actions .contest-mutation-button:focus-visible { outline: none; border-color: #76dcff; background: rgba(28, 94, 147, .98); box-shadow: 0 0 0 2px rgba(76, 200, 245, .15); }
+.contest-spectators > div > span.removable { grid-template-columns: minmax(0, 1fr) 18px; }
+.contest-spectator-remove {
+  width: 18px;
+  min-width: 18px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+  opacity: 0;
+  color: #ffc4ca;
+  font-size: 13px;
+  line-height: 1;
+  pointer-events: none;
+  transition: opacity 120ms ease, border-color 120ms ease, background-color 120ms ease;
+}
+.contest-spectators > div > span:hover .contest-spectator-remove,
+.contest-spectators > div > span:focus-within .contest-spectator-remove { opacity: 1; pointer-events: auto; }
+.contest-spectator-remove:focus-visible { outline: 2px solid #70dcff; outline-offset: 1px; }
+.boss-picker.combat-picker { box-sizing: border-box; width: min(900px, calc(100vw - 40px)); max-height: calc(100dvh - 32px); }
+
+@media (min-width: 1121px) and (max-height: 850px) {
+  .contest-active-layout.running { grid-template-rows: 58px 190px 66px 26px; }
+  .contest-active-layout.running .contest-state-header { height: 58px; min-height: 58px; }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .contest-card-actions { opacity: 1; pointer-events: auto; }
+  .contest-spectator-remove { opacity: 1; pointer-events: auto; }
+}
+
+@media (max-width: 760px) {
+  .notifications-panel { left: 12px; right: auto; width: calc(100vw - 24px); }
+  .notifications-panel .floating-panel-heading { min-width: 0; flex-wrap: wrap; }
+  .notifications-panel .floating-panel-heading > div { min-width: 0; }
+  .notifications-panel .text-action { min-width: 0; max-width: 100%; margin-left: auto; white-space: normal; text-align: right; }
+  .notifications-panel .floating-panel-footer { min-width: 0; overflow: hidden; }
+  .notifications-panel .floating-panel-footer button { min-width: 0; max-width: 100%; white-space: normal; text-align: right; }
+  .contest-active-layout.running { grid-template-rows: none; }
+  .contest-active-layout.running .contest-state-header { height: 84px; min-height: 84px; }
+  .contest-running-status { white-space: normal; }
 }
