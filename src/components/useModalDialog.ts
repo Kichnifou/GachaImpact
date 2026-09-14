@@ -16,9 +16,9 @@ export function useModalDialog<T extends HTMLElement>(onClose: () => void) {
     ;(focusable()[0] ?? dialog).focus()
 
     const onKeyDown = (event: KeyboardEvent) => {
-      const dialogs = Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"]'))
+      const dialogs = Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"], [role="alertdialog"]'))
       const activeDialog = document.activeElement instanceof HTMLElement
-        ? document.activeElement.closest<HTMLElement>('[role="dialog"]')
+        ? document.activeElement.closest<HTMLElement>('[role="dialog"], [role="alertdialog"]')
         : null
       if ((activeDialog ?? dialogs.at(-1)) !== dialog) return
       if (event.key === 'Escape') {

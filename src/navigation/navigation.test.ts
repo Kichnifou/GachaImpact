@@ -8,7 +8,7 @@ describe('navigation shell registry', () => {
     expect(activityTabs.map(({ label }) => label)).toEqual(['Quotidiennes', 'Missions', 'Combat', 'Événement', 'Concours'])
   })
   it.each([
-    ['#box', 'characters-box'], ['#team', 'characters-team'], ['#characters', 'characters-catalog'], ['#inventory', 'inventory'], ['#shop', 'shop'], ['#bank', 'bank'], ['#moderation', 'moderation'],
+    ['#box', 'characters-box'], ['#team', 'characters-team'], ['#characters', 'characters-catalog'], ['#inventory', 'inventory'], ['#shop', 'shop'], ['#bank', 'bank'], ['#codes', 'codes'], ['#moderation', 'moderation'],
     ['#characters/box', 'characters-box'], ['#activities/dailies', 'activities-dailies'],
   ] as const)('maps %s to %s', (hash, screen) => expect(parseNavigationHash(hash)).toBe(screen))
   it('emits canonical deep links and marks future destinations unavailable', () => {
@@ -16,8 +16,8 @@ describe('navigation shell registry', () => {
     expect(hashForScreen('activities-event')).toBe('activities/event')
     expect(navigationDestinations.filter(({ available }) => !available).map(({ id }) => id)).toEqual(['history', 'tutorial'])
   })
-  it('keeps the exhaustive sixteen-entry global registry without Social or Stats', () => {
-    expect(navigationDestinations.map(({ id }) => id)).toEqual(['home', 'invocation', 'box', 'team', 'catalog', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'history', 'tutorial', 'configuration'])
-    expect(new Set(navigationDestinations.map(({ id }) => id)).size).toBe(16)
+  it('adds Codes near the economic destinations without changing the seven main tiles', () => {
+    expect(navigationDestinations.map(({ id }) => id)).toEqual(['home', 'invocation', 'box', 'team', 'catalog', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'codes', 'history', 'tutorial', 'configuration'])
+    expect(new Set(navigationDestinations.map(({ id }) => id)).size).toBe(17)
   })
 })

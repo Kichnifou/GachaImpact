@@ -107,6 +107,21 @@ enum NotificationState {
   @@map("notification_state")
 }
 
+enum GiftCodeType {
+  ONE_OFF
+  ANNUAL
+
+  @@map("gift_code_type")
+}
+
+enum GiftCodeStatus {
+  DRAFT
+  PUBLISHED
+  DISABLED
+
+  @@map("gift_code_status")
+}
+
 enum DailyChallengeStatus {
   ACTIVE
   COMPLETED
@@ -169,6 +184,7 @@ model ResourceDefinition {
   wheelDailyStates  PlayerWheelDailyState[]
   pullResults       PullResult[]
   shopItemsPriced   ShopItemDefinition[]
+  giftCodeRewards   GiftCodeReward[]
 
   @@map("resource_definitions")
 }
@@ -233,6 +249,9 @@ model Player {
   contestEventsAsTarget ContestEvent[]               @relation("ContestEventTarget")
   contestSupportPicks   Contest[]                    @relation("ContestSelectedSpectator")
   contestRewards        ContestReward[]
+  giftCodeClaims        GiftCodeClaim[]
+  giftCodesCreated      GiftCode[]                   @relation("GiftCodeCreator")
+  giftCodesUpdated      GiftCode[]                   @relation("GiftCodeUpdater")
 
   @@index([status], map: "players_status_idx")
   @@index([elementKey], map: "players_element_key_idx")
@@ -300,15 +319,15 @@ model PlayerPreference {
 }
 
 model ItemDefinition {
-  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  externalKey    String       @unique(map: "item_definitions_external_key_key") @map("external_key") @db.Text
-  displayName    String       @map("display_name") @db.Text
-  category       String       @db.Text
-  description    String?      @db.Text
-  isActive       Boolean      @default(true) @map("is_active")
-  metadata       Json?        @db.JsonB
-  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id             String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  externalKey    String            @unique(map: "item_definitions_external_key_key") @map("external_key") @db.Text
+  displayName    String            @map("display_name") @db.Text
+  category       String            @db.Text
+  description    String?           @db.Text
+  isActive       Boolean           @default(true) @map("is_active")
+  metadata       Json?             @db.JsonB
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   playerBalances PlayerItem[]
   acquisitions   ItemAcquisition[]
 
@@ -512,6 +531,7 @@ model BusinessOperation {
   bossRewards        BossReward[]
   contestReward      ContestReward?
   itemAcquisitions   ItemAcquisition[]
+  giftCodeClaim      GiftCodeClaim?
 
   @@index([playerId, startedAt(sort: Desc)], map: "business_operations_player_started_at_idx")
   @@index([operationType, startedAt(sort: Desc)], map: "business_operations_type_started_at_idx")
@@ -1203,6 +1223,74 @@ model Notification {
 
   @@index([playerId, state, createdAt(sort: Desc)], map: "notifications_player_state_created_idx")
   @@map("notifications")
+}
+
+model GiftCode {
+  id             String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  token          String            @unique(map: "gift_codes_token_key") @db.Text
+  title          String            @db.Text
+  description    String            @db.Text
+  type           GiftCodeType
+  status         GiftCodeStatus    @default(DRAFT)
+  recurringMonth Int?              @map("recurring_month") @db.SmallInt
+  startsAt       DateTime?         @map("starts_at") @db.Timestamptz(6)
+  endsAt         DateTime?         @map("ends_at") @db.Timestamptz(6)
+  publishedAt    DateTime?         @map("published_at") @db.Timestamptz(6)
+  disabledAt     DateTime?         @map("disabled_at") @db.Timestamptz(6)
+  createdById    String?           @map("created_by_id") @db.Uuid
+  updatedById    String?           @map("updated_by_id") @db.Uuid
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy      Player?           @relation("GiftCodeCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy      Player?           @relation("GiftCodeUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  editions       GiftCodeEdition[]
+  rewards        GiftCodeReward[]
+
+  @@index([status, startsAt, endsAt], map: "gift_codes_availability_idx")
+  @@index([type, recurringMonth], map: "gift_codes_recurrence_idx")
+  @@map("gift_codes")
+}
+
+model GiftCodeEdition {
+  id         String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  giftCodeId String          @map("gift_code_id") @db.Uuid
+  editionKey String          @map("edition_key") @db.Text
+  startsAt   DateTime        @map("starts_at") @db.Timestamptz(6)
+  endsAt     DateTime        @map("ends_at") @db.Timestamptz(6)
+  year       Int?            @db.SmallInt
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  giftCode   GiftCode        @relation(fields: [giftCodeId], references: [id], onDelete: Cascade)
+  claims     GiftCodeClaim[]
+
+  @@unique([giftCodeId, editionKey], map: "gift_code_editions_code_edition_key")
+  @@index([startsAt, endsAt], map: "gift_code_editions_availability_idx")
+  @@map("gift_code_editions")
+}
+
+model GiftCodeReward {
+  giftCodeId  String             @map("gift_code_id") @db.Uuid
+  resourceKey String             @map("resource_key") @db.Text
+  amount      BigInt
+  giftCode    GiftCode           @relation(fields: [giftCodeId], references: [id], onDelete: Cascade)
+  resource    ResourceDefinition @relation(fields: [resourceKey], references: [key], onDelete: Restrict)
+
+  @@id([giftCodeId, resourceKey])
+  @@map("gift_code_rewards")
+}
+
+model GiftCodeClaim {
+  giftCodeEditionId String            @map("gift_code_edition_id") @db.Uuid
+  playerId          String            @map("player_id") @db.Uuid
+  sourceChannel     SourceChannel     @map("source_channel")
+  operationId       String            @unique(map: "gift_code_claims_operation_id_key") @map("operation_id") @db.Uuid
+  claimedAt         DateTime          @default(now()) @map("claimed_at") @db.Timestamptz(6)
+  edition           GiftCodeEdition   @relation(fields: [giftCodeEditionId], references: [id], onDelete: Restrict)
+  player            Player            @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  operation         BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+
+  @@id([giftCodeEditionId, playerId])
+  @@index([playerId, claimedAt(sort: Desc)], map: "gift_code_claims_player_claimed_idx")
+  @@map("gift_code_claims")
 }
 
 model MonthlyBoss {

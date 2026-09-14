@@ -44,6 +44,11 @@ const expectedTables = [
   'daily_combat_enemies',
   'element_combat_matchups',
   'elements',
+  'gift_code_claims',
+  'gift_code_editions',
+  'gift_code_rewards',
+  'gift_codes',
+  'item_acquisitions',
   'item_definitions',
   'monthly_bosses',
   'notifications',
@@ -131,6 +136,12 @@ const expectedCheckConstraints = [
   'element_combat_matchups_distinct_elements_check',
   'element_combat_matchups_relation_check',
   'elements_display_order_positive_check',
+  'gift_code_editions_period_check',
+  'gift_code_rewards_amount_check',
+  'gift_code_rewards_safe_resource_check',
+  'gift_codes_recurrence_check',
+  'gift_codes_token_format_check',
+  'item_acquisitions_quantity_check',
   'monthly_bosses_defeat_shape_check',
   'monthly_bosses_hp_check',
   'monthly_bosses_month_start_check',
@@ -230,6 +241,16 @@ const expectedManualIndexes = [
   'daily_combat_encounters_business_date_key',
   'daily_combat_enemies_character_idx',
   'daily_combat_enemies_encounter_character_key',
+  'gift_code_claims_operation_id_key',
+  'gift_code_claims_player_claimed_idx',
+  'gift_code_editions_availability_idx',
+  'gift_code_editions_code_edition_key',
+  'gift_codes_availability_idx',
+  'gift_codes_recurrence_idx',
+  'gift_codes_token_key',
+  'item_acquisitions_item_acquired_idx',
+  'item_acquisitions_operation_item_key',
+  'item_acquisitions_player_item_acquired_idx',
   'monthly_bosses_created_idx',
   'monthly_bosses_month_start_key',
   'monthly_bosses_resistance_idx',
@@ -301,6 +322,16 @@ describe('Supabase development database', () => {
     ]);
   });
 
+  it('contains the twelve annual Festival code definitions without seeding claims', async () => {
+    const festivals = await database.giftCode.findMany({ where: { token: { startsWith: 'FESTIVAL' } }, include: { rewards: { orderBy: { resourceKey: 'asc' } } }, orderBy: { recurringMonth: 'asc' } });
+    expect(festivals).toHaveLength(12);
+    expect(festivals.map(({ recurringMonth }) => recurringMonth)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    for (const festival of festivals) {
+      expect(festival).toMatchObject({ type: 'ANNUAL', status: 'PUBLISHED' });
+      expect(festival.rewards.map(({ resourceKey, amount }) => [resourceKey, amount])).toEqual([['moras', 200000n], ['primogems', 1600n]]);
+    }
+  });
+
   it('contains only the expected initial tables with RLS enabled', async () => {
     const tables = await database.$queryRaw<{ tableName: string }[]>`
       SELECT table_name AS "tableName"
@@ -323,12 +354,20 @@ describe('Supabase development database', () => {
       FROM pg_policies
       WHERE schemaname = 'public'
     `;
+    const browserGrants = await database.$queryRaw<{ grantee: string; tableName: string }[]>`
+      SELECT grantee, table_name AS "tableName"
+      FROM information_schema.role_table_grants
+      WHERE table_schema = 'public'
+        AND grantee IN ('anon', 'authenticated')
+        AND table_name IN ('gift_codes', 'gift_code_editions', 'gift_code_rewards', 'gift_code_claims')
+    `;
 
     expect(tables.map(({ tableName }) => tableName)).toEqual(expectedTables);
     expect(rlsStates).toEqual(
       expectedTables.map((tableName) => ({ tableName, rlsEnabled: true })),
     );
     expect(policies).toEqual([]);
+    expect(browserGrants).toEqual([]);
   });
 
   it('contains the PostgreSQL checks and indexes maintained by the migration SQL', async () => {
@@ -384,6 +423,16 @@ describe('Supabase development database', () => {
           'daily_combat_encounters_business_date_key',
           'daily_combat_enemies_character_idx',
           'daily_combat_enemies_encounter_character_key',
+          'gift_code_claims_operation_id_key',
+          'gift_code_claims_player_claimed_idx',
+          'gift_code_editions_availability_idx',
+          'gift_code_editions_code_edition_key',
+          'gift_codes_availability_idx',
+          'gift_codes_recurrence_idx',
+          'gift_codes_token_key',
+          'item_acquisitions_item_acquired_idx',
+          'item_acquisitions_operation_item_key',
+          'item_acquisitions_player_item_acquired_idx',
           'monthly_bosses_created_idx',
           'monthly_bosses_month_start_key',
           'monthly_bosses_resistance_idx',

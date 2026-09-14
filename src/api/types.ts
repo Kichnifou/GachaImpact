@@ -15,7 +15,7 @@ export type ModerationPermissionsDto = Readonly<{
 }>
 export type ModerationPlayerDto = Readonly<{ id: string; displayName: string; elementKey: ElementKey | null; level: number; tester: boolean; rank: 'SUPER' | 'MODERATOR' | 'TESTER' | 'PLAYER' }>
 
-export const navigationMenuDestinationIds = ['home', 'invocation', 'box', 'team', 'catalog', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'history', 'tutorial', 'configuration'] as const
+export const navigationMenuDestinationIds = ['home', 'invocation', 'box', 'team', 'catalog', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'codes', 'history', 'tutorial', 'configuration'] as const
 export type NavigationMenuDestinationId = (typeof navigationMenuDestinationIds)[number]
 export type NavigationMenuPreferenceDto = Readonly<{ version: 1; order: readonly NavigationMenuDestinationId[]; hidden: readonly NavigationMenuDestinationId[] }>
 export type ModerationPlayerListQuery = Readonly<{
@@ -553,6 +553,14 @@ export type NotificationDto = Readonly<{
   readAt: string | null
 }>
 export type NotificationsDto = Readonly<{ unreadCount: number; notifications: readonly NotificationDto[] }>
+
+export type GiftCodeRewardDto = Readonly<{ resourceKey: 'primogems' | 'moras' | `particles_${ElementKey}`; displayName: string; amount: string }>
+export type GiftCodeDto = Readonly<{ id: string; editionId: string; token: string; title: string; description: string; type: 'ONE_OFF' | 'ANNUAL'; editionKey: string; startsAt: string; endsAt: string; available: boolean; claimed: boolean; claimedAt: string | null; rewards: readonly GiftCodeRewardDto[] }>
+export type PlayerGiftCodesDto = Readonly<{ available: readonly GiftCodeDto[]; claimed: readonly GiftCodeDto[] }>
+export type GiftCodeClaimDto = PlayerGiftCodesDto & Readonly<{ resources: PlayerResourcesDto; operation: Readonly<{ id: string; alreadyProcessed: boolean }> }>
+export type AdminGiftCodeDto = Readonly<{ id: string; token: string; title: string; description: string; type: 'ONE_OFF' | 'ANNUAL'; status: 'DRAFT' | 'PUBLISHED' | 'DISABLED'; recurringMonth: number | null; startsAt: string | null; endsAt: string | null; createdAt: string; publishedAt: string | null; claimCount: number; locked: boolean; rewards: readonly GiftCodeRewardDto[]; editions: readonly Readonly<{ id: string; editionKey: string; startsAt: string; endsAt: string; claimCount: number }>[] }>
+export type AdminGiftCodesDto = Readonly<{ actorPlayerId: string; codes: readonly AdminGiftCodeDto[] }>
+export type GiftCodeClaimantsDto = Readonly<{ code: Readonly<{ id: string; token: string; title: string }>; claimants: readonly Readonly<{ playerId: string; displayName: string; editionKey: string; claimedAt: string }>[] }>
 
 export type GachaPullResultItemDto = Readonly<{
   index: number

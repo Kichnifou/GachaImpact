@@ -50,6 +50,8 @@ import type { MonthlyBossService } from './application/combat/monthly-boss-servi
 import { registerMonthlyBossRoutes } from './api/routes/monthly-boss.js';
 import type { ContestService } from './application/contest/contest-service.js';
 import { registerContestRoutes } from './api/routes/contest.js';
+import type { GiftCodeService } from './application/gift-code/gift-code-service.js';
+import { registerGiftCodeRoutes } from './api/routes/gift-codes.js';
 
 export type AppDependencies = Readonly<{
   authIdentityVerifier: AuthIdentityVerifier;
@@ -100,6 +102,7 @@ export type AppDependencies = Readonly<{
   notificationService?: NotificationService;
   monthlyBossService?: MonthlyBossService;
   contestService?: ContestService;
+  giftCodeService?: GiftCodeService;
   close?: () => Promise<void>;
 }>;
 
@@ -227,6 +230,9 @@ export async function buildApp(
     }
     if (dependencies.contestService) {
       await app.register(registerContestRoutes, { authenticate, service: dependencies.contestService });
+    }
+    if (dependencies.giftCodeService) {
+      await app.register(registerGiftCodeRoutes, { authenticate, service: dependencies.giftCodeService });
     }
 
     if (dependencies.close) {

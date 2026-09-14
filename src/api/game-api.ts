@@ -48,6 +48,10 @@ import type {
   ContestDto,
   ContestHistoryDto,
   ContestSnapshotDto,
+  PlayerGiftCodesDto,
+  GiftCodeClaimDto,
+  AdminGiftCodesDto,
+  GiftCodeClaimantsDto,
 } from './types'
 
 type ApiClientDependencies = Readonly<{
@@ -197,6 +201,13 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     startExpedition: (characterId: string, idempotencyKey: string) => request<ExpeditionStartDto>('/api/v1/me/expedition/start', { method: 'POST', body: JSON.stringify({ characterId, idempotencyKey }) }),
     claimExpedition: (idempotencyKey: string) => request<ExpeditionClaimDto>('/api/v1/me/expedition/claim', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     getNotifications: () => request<NotificationsDto>('/api/v1/me/notifications'),
+    getGiftCodes: () => request<PlayerGiftCodesDto>('/api/v1/me/gift-codes'),
+    claimGiftCode: (editionId: string, idempotencyKey: string) => request<GiftCodeClaimDto>(`/api/v1/me/gift-codes/${encodeURIComponent(editionId)}/claim`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+    getAdminGiftCodes: () => request<AdminGiftCodesDto>('/api/v1/moderation/gift-codes'),
+    createGiftCode: (input: { token?: string; title: string; description: string; type: 'ONE_OFF' | 'ANNUAL'; recurringMonth?: number; startsAt?: string; endsAt?: string; rewards: readonly { resourceKey: string; amount: string }[]; idempotencyKey: string }) => request<AdminGiftCodesDto>('/api/v1/moderation/gift-codes', { method: 'POST', body: JSON.stringify(input) }),
+    publishGiftCode: (codeId: string, idempotencyKey: string) => request<AdminGiftCodesDto>(`/api/v1/moderation/gift-codes/${encodeURIComponent(codeId)}/publish`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+    updateGiftCode: (codeId: string, input: { token?: string; title?: string; description?: string; type?: 'ONE_OFF' | 'ANNUAL'; recurringMonth?: number; startsAt?: string; endsAt?: string; rewards?: readonly { resourceKey: string; amount: string }[]; disabled?: boolean; idempotencyKey: string }) => request<AdminGiftCodesDto>(`/api/v1/moderation/gift-codes/${encodeURIComponent(codeId)}`, { method: 'PATCH', body: JSON.stringify(input) }),
+    getGiftCodeClaimants: (codeId: string) => request<GiftCodeClaimantsDto>(`/api/v1/moderation/gift-codes/${encodeURIComponent(codeId)}/claimants`),
     readNotification: (notificationId: string) => request<NotificationsDto>(`/api/v1/me/notifications/${notificationId}/read`, { method: 'POST' }),
     readAllNotifications: () => request<NotificationsDto>('/api/v1/me/notifications/read-all', { method: 'POST' }),
     archiveReadNotifications: () => request<NotificationsDto>('/api/v1/me/notifications/archive-read', { method: 'POST' }),

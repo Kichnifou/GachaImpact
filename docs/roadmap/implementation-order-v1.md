@@ -41,13 +41,13 @@ Ce fichier n’est pas un tracker vivant et ne doit pas être modifié pour enre
 
 ## Gates du checkpoint courant
 
-Le candidat 0.92 matérialise Concours / personnages C6. Sa review indépendante et sa validation publique restent requises avant d’ouvrir l’étape suivante. Expedition READY/notification/claim, Combat défaite/KO, Boss vaincu/notification et rollover/historique Boss réel restent également des validations publiques ouvertes ; leur état vivant appartient uniquement au Master.
+Concours / personnages C6 et Collection / Sac ont franchi leur checkpoint public, avec les réserves techniques conservées dans le Master. Le candidat local 0.97 matérialise désormais Codes cadeaux ; sa review indépendante, sa promotion et sa validation publique restent requises avant d’ouvrir Événements mensuels. Expedition READY/notification/claim naturel reste une validation publique transverse ouverte ; son état vivant appartient uniquement au Master.
 
 ## Trajectoire V1 restante après Boss
 
-1. **Concours / personnages C6** — candidat 0.92 physiquement implémenté selon [15-concours-c6-audit.md](../legacy/15-concours-c6-audit.md), en attente de review et validation publique.
-2. **Collection / Sac à compléter** — achever les surfaces et règles restantes de [10-sac-coffre-shop-audit.md](../legacy/10-sac-coffre-shop-audit.md), avec les possessions de [07-box-possession-obtention-audit.md](../legacy/07-box-possession-obtention-audit.md).
-3. **Codes cadeaux** — implémenter [19-codes-cadeaux-audit.md](../legacy/19-codes-cadeaux-audit.md).
+1. **Concours / personnages C6** — implémenté et validé publiquement, avec le polish de scrollbar/confirmations inclus au candidat 0.97.
+2. **Collection / Sac à compléter** — implémenté et validé publiquement en 0.96 ; R864 reste technique jusqu’à un producteur Event réel et les images Collection sont reportées.
+3. **Codes cadeaux** — candidat local 0.97 physiquement implémenté selon [19-codes-cadeaux-audit.md](../legacy/19-codes-cadeaux-audit.md), en attente de review indépendante puis validation publique.
 4. **Événements mensuels** — implémenter [16-event-monthly-audit.md](../legacy/16-event-monthly-audit.md).
 5. **Votes de bannière communautaires** — compléter le domaine cadré dans [06-gacha-invocation-audit.md](../legacy/06-gacha-invocation-audit.md).
 6. **Profils joueurs / annuaire / présence** — suivre [14-ami-social-audit.md](../legacy/14-ami-social-audit.md).

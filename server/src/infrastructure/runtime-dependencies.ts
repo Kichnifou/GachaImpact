@@ -43,6 +43,7 @@ import { ExpeditionService } from '../application/expedition/expedition-service.
 import { NotificationService } from '../application/notification/notification-service.js';
 import { MonthlyBossScheduler, MonthlyBossService } from '../application/combat/monthly-boss-service.js';
 import { ContestScheduler, ContestService } from '../application/contest/contest-service.js';
+import { GiftCodeScheduler, GiftCodeService } from '../application/gift-code/gift-code-service.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
   if (!config.databaseUrl) {
@@ -72,6 +73,8 @@ export function createRuntimeDependencies(config: AppConfig) {
   const monthlyBossScheduler = new MonthlyBossScheduler(monthlyBossService, clock);
   const contestService = new ContestService(getCurrentPlayer, database, clock, random);
   const contestScheduler = new ContestScheduler(contestService);
+  const giftCodeService = new GiftCodeService(getCurrentPlayer, database, clock);
+  const giftCodeScheduler = new GiftCodeScheduler(giftCodeService);
 
   return {
     authIdentityVerifier: createSupabaseAuthAdapter(issuer),
@@ -129,10 +132,11 @@ export function createRuntimeDependencies(config: AppConfig) {
     dailyCombatService: new CombatService(getCurrentPlayer, dailyCombatStore, clock),
     monthlyBossService,
     contestService,
+    giftCodeService,
     expeditionService,
-    notificationService: new NotificationService(getCurrentPlayer, database, clock, expeditionService),
-    start: async () => { await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); contestScheduler.start(); },
-    close: async () => { scheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); await contestScheduler.stop(); await database.$disconnect(); },
+    notificationService: new NotificationService(getCurrentPlayer, database, clock, expeditionService, giftCodeService),
+    start: async () => { await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); await giftCodeScheduler.start(); contestScheduler.start(); },
+    close: async () => { scheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); giftCodeScheduler.stop(); await contestScheduler.stop(); await database.$disconnect(); },
   };
 }
 

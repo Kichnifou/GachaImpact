@@ -138,7 +138,7 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, onOpenParticleConversion, 
               characterName={featuredCharacter.name}
               assetPaths={[featuredCharacter.iconPath, featuredCharacter.fullbodyPath]}
               className="objective-asset-image"
-              fallback={featuredCharacter.name.slice(0, 1)}
+              fallback={null}
               alt={featuredCharacter.name}
             />
           </div>

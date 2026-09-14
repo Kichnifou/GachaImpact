@@ -516,6 +516,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Modification :** récompenses/token/type verrouillés après le premier claim
 - **Atomicité :** claim + récompenses dans une seule opération serveur idempotente
 - **Migration :** conserver les douze définitions Event et tous les `usedCodes` sans repayer les anciens claims
+- **État physique 0.97 :** écran `#codes`, service de claim, notifications et administration ADMIN implémentés ; les commandes chat/Twitch et l’import legacy `usedCodes` restent non implémentés et devront réutiliser ce même service.
 
 ## `!event`
 

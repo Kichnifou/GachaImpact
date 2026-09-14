@@ -2183,9 +2183,17 @@ Colonnes :
 
 - `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
 - `token text NOT NULL UNIQUE`
-- `display_title text NOT NULL`
-- `code_type text NOT NULL`
-- `status text NOT NULL`
+- `title text NOT NULL`
+- `description text NOT NULL`
+- `type gift_code_type NOT NULL`
+- `status gift_code_status NOT NULL`
+- `recurring_month smallint NULL`
+- `starts_at timestamptz NULL`
+- `ends_at timestamptz NULL`
+- `published_at timestamptz NULL`
+- `disabled_at timestamptz NULL`
+- `created_by_id uuid NULL REFERENCES players(id) ON DELETE SET NULL`
+- `updated_by_id uuid NULL REFERENCES players(id) ON DELETE SET NULL`
 - `created_at timestamptz NOT NULL DEFAULT now()`
 - `updated_at timestamptz NOT NULL DEFAULT now()`
 
@@ -2201,9 +2209,8 @@ Colonnes :
 - `gift_code_id uuid NOT NULL REFERENCES gift_codes(id) ON DELETE RESTRICT`
 - `edition_key text NOT NULL`
 - `starts_at timestamptz NOT NULL`
-- `ends_at timestamptz NULL`
+- `ends_at timestamptz NOT NULL`
 - `year smallint NULL`
-- `status text NOT NULL`
 - `created_at timestamptz NOT NULL DEFAULT now()`
 
 Contrainte :
@@ -2216,14 +2223,13 @@ Contrainte :
 
 Colonnes :
 
-- `gift_code_edition_id uuid NOT NULL REFERENCES gift_code_editions(id) ON DELETE CASCADE`
-- `reward_index smallint NOT NULL`
+- `gift_code_id uuid NOT NULL REFERENCES gift_codes(id) ON DELETE CASCADE`
 - `resource_key text NOT NULL REFERENCES resource_definitions(key)`
 - `amount bigint NOT NULL`
 
 PK :
 
-`PRIMARY KEY(gift_code_edition_id, reward_index)`
+`PRIMARY KEY(gift_code_id, resource_key)`
 
 Contrainte :
 
@@ -2240,11 +2246,12 @@ Colonnes :
 - `source_channel source_channel NOT NULL`
 - `operation_id uuid NOT NULL UNIQUE REFERENCES business_operations(id) ON DELETE RESTRICT`
 - `claimed_at timestamptz NOT NULL DEFAULT now()`
-- `migration_run_id uuid NULL`
 
 PK :
 
 `PRIMARY KEY(gift_code_edition_id, player_id)`
+
+État physique candidat 0.97 : migration additive `20260914180000_019_add_gift_codes`, quatre tables avec RLS active et `REVOKE ALL ... FROM anon, authenticated`. Les types sont des enums PostgreSQL ; des checks bornent token, récurrence, période, montants positifs et les neuf seules ressources autorisées. Les récompenses vivent sur la définition car l’API ne propose aucune mutation de leur snapshot ; les éditions conservent les périodes annuelles/ponctuelles et les claims expliquent exactement quelle définition a été distribuée. La migration insère les douze définitions Festival annuelles et leurs deux récompenses, sans ligne dans `gift_code_claims`, `business_operations`, `resource_movements` ou les soldes joueurs.
 
 ---
 

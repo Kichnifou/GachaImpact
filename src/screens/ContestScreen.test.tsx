@@ -139,7 +139,55 @@ describe('ContestScreen', () => {
     expect(onReady).toHaveBeenCalledWith(true, expect.any(String))
     expect(container.textContent).not.toContain('Lancer avec des bots')
     await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Lancer')!.click(); await Promise.resolve() })
+    expect(container.textContent).toContain('participation quotidienne de tous les participants humains')
+    expect(onStart).not.toHaveBeenCalled()
+    act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+    expect(container.querySelector('[role="alertdialog"]')).toBeNull()
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Lancer')!.click())
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('[role="alertdialog"] button')).find((button) => button.textContent === 'Non')!.click())
+    expect(onStart).not.toHaveBeenCalled()
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Lancer')!.click())
+    await act(async () => { container.querySelector<HTMLButtonElement>('[role="alertdialog"] [aria-label="Lancer le Concours"]')!.click(); await Promise.resolve() })
     expect(onStart).toHaveBeenCalledWith(expect.any(String))
+    expect(onStart).toHaveBeenCalledTimes(1)
+  })
+
+  it('confirms irreversible running participation consequences but not lobby or spectator exits', async () => {
+    const running: ContestSnapshotDto = { ...lobby, status: 'RUNNING', phase: 'TURNS', startedAt: '2026-09-13T10:00:00Z', turnDeadlineAt: '2099-09-13T12:00:00Z', currentRound: 2, currentTurnOrder: 1 }
+    const runningValue = { ...base, active: running, permissions: { ...permissions, canLeave: true, canCancel: true } }
+    const onLeave = vi.fn(async () => runningValue)
+    const onCancel = vi.fn(async () => runningValue)
+    const { container } = mount(runningValue, { onLeave, onCancel })
+
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Quitter le Concours')!.click())
+    expect(container.querySelector('[role="alertdialog"]')?.textContent).toContain('déjà été consommée au lancement')
+    expect(onLeave).not.toHaveBeenCalled()
+    act(() => container.querySelector<HTMLButtonElement>('[role="alertdialog"] [aria-label="Fermer"]')!.click())
+    expect(onLeave).not.toHaveBeenCalled()
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Quitter le Concours')!.click())
+    await act(async () => { container.querySelector<HTMLButtonElement>('[role="alertdialog"] [aria-label="Quitter le Concours"]')!.click(); await Promise.resolve() })
+    expect(onLeave).toHaveBeenCalledTimes(1)
+
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Annuler le Concours')!.click())
+    expect(container.querySelector('[role="alertdialog"]')?.textContent).toContain('autres participants humains récupéreront la leur')
+    expect(onCancel).not.toHaveBeenCalled()
+    await act(async () => { container.querySelector<HTMLButtonElement>('[role="alertdialog"] [aria-label="Annuler le Concours"]')!.click(); await Promise.resolve() })
+    expect(onCancel).toHaveBeenCalledTimes(1)
+
+    const spectatorContest = { ...running, viewer: { ...running.viewer, participantSlot: null, spectator: true, organizer: false } }
+    const spectatorValue = { ...base, active: spectatorContest, permissions: { ...permissions, canLeave: true } }
+    const spectatorLeave = vi.fn(async () => spectatorValue)
+    const spectator = mount(spectatorValue, { onLeave: spectatorLeave }).container
+    await act(async () => { Array.from(spectator.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Quitter le Concours')!.click(); await Promise.resolve() })
+    expect(spectator.querySelector('[role="alertdialog"]')).toBeNull()
+    expect(spectatorLeave).toHaveBeenCalledTimes(1)
+
+    const lobbyValue = { ...base, active: lobby, permissions: { ...permissions, canCancel: true } }
+    const lobbyCancel = vi.fn(async () => lobbyValue)
+    const lobbyView = mount(lobbyValue, { onCancel: lobbyCancel }).container
+    await act(async () => { Array.from(lobbyView.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Annuler le lobby')!.click(); await Promise.resolve() })
+    expect(lobbyView.querySelector('[role="alertdialog"]')).toBeNull()
+    expect(lobbyCancel).toHaveBeenCalledTimes(1)
   })
 
   it('lets a lobby spectator leave and lets the organizer remove active spectators', async () => {
@@ -273,7 +321,8 @@ describe('ContestScreen', () => {
       spectators: [{ playerId: 'spectator-1', displayName: 'Mika', selected: false }],
     }
     const passive = mount({ ...base, active: otherTurn, permissions: { ...permissions, canOpen: false, canLeave: true } }).container
-    expect(passive.textContent).toContain('En attente des joueurs · vous pouvez être choisi pour soutenir.')
+    expect(passive.textContent).toContain('En attente des joueurs...')
+    expect(passive.textContent).not.toContain('vous pouvez être choisi pour soutenir')
     expect(passive.querySelector('.contest-action-region')).toBeNull()
     expect(passive.textContent).not.toContain('Action de base')
 

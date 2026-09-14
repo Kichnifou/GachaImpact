@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type ComponentProps, type FormEvent } from 'react'
 
-import type { ModerationPlayerDto, ModerationPlayerListQuery, ModerationPlayerPageDto, ModerationStateDto } from '../api/types'
+import type { AdminGiftCodesDto, GiftCodeClaimantsDto, ModerationPlayerDto, ModerationPlayerListQuery, ModerationPlayerPageDto, ModerationStateDto } from '../api/types'
+import GiftCodeAdminPanel from '../components/GiftCodeAdminPanel'
 import ModerationPlayerBrowser from '../components/ModerationPlayerBrowser'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import type { ModerationGachaInput, ModerationResourceInput, ModerationXpInput } from '../moderation/moderation-intent-coordinator'
@@ -17,13 +18,18 @@ type Props = {
   onStella: (targetPlayerId: string, quantity: string) => Promise<ModerationStateDto>
   onTester: (targetPlayerId: string, enabled: boolean) => Promise<ModerationStateDto>
   onApplied: (state: ModerationStateDto) => void
+  onLoadGiftCodes?: () => Promise<AdminGiftCodesDto>
+  onCreateGiftCode?: ComponentProps<typeof GiftCodeAdminPanel>['onCreate']
+  onPublishGiftCode?: (codeId: string, key: string) => Promise<AdminGiftCodesDto>
+  onUpdateGiftCode?: ComponentProps<typeof GiftCodeAdminPanel>['onUpdate']
+  onGiftCodeClaimants?: (codeId: string) => Promise<GiftCodeClaimantsDto>
 }
 
 const resources = [['primogems', 'Primos'], ['moras', 'Moras'], ['particles_pyro', 'Pyro'], ['particles_hydro', 'Hydro'], ['particles_cryo', 'Cryo'], ['particles_electro', 'Electro'], ['particles_anemo', 'Anémo'], ['particles_geo', 'Géo'], ['particles_dendro', 'Dendro']] as const
 const moderationRankLabels = { SUPER: 'Super', MODERATOR: 'Modérateur', TESTER: 'Testeur', PLAYER: 'Joueur' } as const
 const integerText = (value: string) => value.replace(/[^0-9]/g, '')
 
-function ModerationScreen({ actorPlayerId, capabilities, onLoad, onListPlayers, onResource, onXp, onGacha, onStella, onTester, onApplied }: Props) {
+function ModerationScreen({ actorPlayerId, capabilities, onLoad, onListPlayers, onResource, onXp, onGacha, onStella, onTester, onApplied, onLoadGiftCodes, onCreateGiftCode, onPublishGiftCode, onUpdateGiftCode, onGiftCodeClaimants }: Props) {
   const [state, setState] = useState<ModerationStateDto | null>(null)
   const [selectedTargetId, setSelectedTargetId] = useState(actorPlayerId)
   const [query, setQuery] = useState('')
@@ -139,6 +145,7 @@ function ModerationScreen({ actorPlayerId, capabilities, onLoad, onListPlayers, 
           {isSuper && !isSelf && <section className="panel moderation-tool moderation-role"><h2>Testeur</h2><p>{state?.player.tester ? 'Ce joueur possède actuellement le rôle Testeur.' : 'Ce joueur ne possède pas le rôle Testeur.'}</p><button disabled={pending} type="button" onClick={() => void execute(() => onTester(selectedTargetId, !state?.player.tester))}>{state?.player.tester ? 'Retirer Testeur' : 'Attribuer Testeur'}</button></section>}
         </>}
       </div>
+      {isSuper && onLoadGiftCodes && onCreateGiftCode && onPublishGiftCode && onUpdateGiftCode && onGiftCodeClaimants && <GiftCodeAdminPanel onLoad={onLoadGiftCodes} onCreate={onCreateGiftCode} onPublish={onPublishGiftCode} onUpdate={onUpdateGiftCode} onClaimants={onGiftCodeClaimants} />}
     </ScrollableScreenPanel>
     {browserOpen && <ModerationPlayerBrowser selectedPlayerId={selectedTargetId} onListPlayers={onListPlayers} onConfirm={(playerId) => { setBrowserOpen(false); selectTarget(playerId) }} onClose={() => setBrowserOpen(false)} />}
   </div>

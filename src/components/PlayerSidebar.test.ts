@@ -1,11 +1,15 @@
-import { createElement } from 'react'
+// @vitest-environment happy-dom
+import { act, createElement } from 'react'
 import { readFileSync } from 'node:fs'
+import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { ElementKey, PlayerProgressionDto, PlayerTeamsDto } from '../api/types'
 import { elementThemes } from '../utils/elementTheme'
 import PlayerSidebar from './PlayerSidebar'
+
+;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const appCssSource = readFileSync('src/App.css', 'utf8')
 
@@ -55,6 +59,40 @@ function renderProgression(value: PlayerProgressionDto, elementKey: ElementKey |
 }
 
 describe('Player sidebar progression', () => {
+  it('shows only the objective portrait while preserving its text, watermark and navigation', async () => {
+    const container = document.createElement('div')
+    const root = createRoot(container)
+    const onNavigate = vi.fn()
+    await act(async () => { root.render(createElement(PlayerSidebar, {
+      isOpen: false,
+      onClose: vi.fn(),
+      onNavigate,
+      onOpenParticleConversion: vi.fn(),
+      playerData: { id: 'p1', displayName: 'Kichnifou', elementKey: 'hydro', status: 'ACTIVE' },
+      resources,
+      progression: progression(0, '0'),
+      gacha,
+      teams,
+    })) })
+    const objective = container.querySelector<HTMLElement>('.objective-card')!
+    const art = objective.querySelector<HTMLElement>('.objective-art')!
+    const portrait = art.querySelector<HTMLImageElement>('.objective-asset-image')!
+    expect(portrait.getAttribute('src')).toBe('/mavuika.png')
+    expect(art.textContent).toBe('')
+    expect(objective.querySelector('.objective-name-line h3')?.textContent).toBe('Mavuika')
+    expect(objective.querySelector('.objective-element-watermark')).not.toBeNull()
+    expect(objective.textContent).toContain('Garantie 5★ : Oui')
+    expect(objective.textContent).toContain('Capture : 2 / 3')
+    expect(objective.textContent).toContain('12 / 90')
+    expect(objective.textContent).toContain('3 / 10')
+    await act(async () => { portrait.dispatchEvent(new Event('load')) })
+    expect(art.textContent).toBe('')
+    await act(async () => { objective.querySelector<HTMLButtonElement>('.section-heading')!.click() })
+    expect(onNavigate).toHaveBeenCalledOnce()
+    expect(onNavigate).toHaveBeenCalledWith('invocation')
+    await act(async () => root.unmount())
+  })
+
   it('renders a fresh real progression at zero', () => {
     const html = renderProgression(progression(0, '0'))
     expect(html).toContain('Niveau 0')

@@ -1571,6 +1571,10 @@ Migration de `usedCodes` :
 
 Définition, édition et claim sont trois concepts séparés.
 
+État physique candidat 0.97 : la migration 019 matérialise `GiftCode`, `GiftCodeEdition`, `GiftCodeReward` et `GiftCodeClaim`. Les récompenses sont portées par la définition et deviennent de fait un snapshot immuable dès le premier claim ; chaque édition référence cette définition, possède sa fenêtre concrète et conserve ses claims. Le runtime matérialise au plus une édition annuelle `(giftCodeId, année)` pendant le mois Europe/Paris configuré. Les douze définitions Festival sont préchargées publiées avec deux lignes de récompense positives (`primogems = 1600`, `moras = 200000`) et aucune possession/claim.
+
+Le claim UI crée ou rejoue une `BusinessOperation` `gift-code.claim`, verrouille le Player, insère l’unique `(giftCodeEditionId, playerId)`, crédite chaque montant positif par le service Economy central, puis résout la notification actionnable dans la même transaction sérialisable. La projection personnelle retourne séparément les éditions disponibles et récupérées ; une édition récupérée reste visible même après désactivation de sa définition. Les mutations Admin utilisent `sourceChannel = ADMIN`, une clé d’idempotence et `AdminAuditEntry` ; les routes contrôlent à nouveau le rôle ADMIN indépendamment du rendu frontend.
+
 ---
 
 # 28. Faveur

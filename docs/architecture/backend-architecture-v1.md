@@ -1162,3 +1162,11 @@ Les mutations sérialisées ne déclenchent plus un rattrapage de bots préalabl
 ## Vertical backend physique candidat 0.96 — détail Collection
 
 `GET /api/v1/me/inventory` reste la projection légère de grille. La route authentifiée `GET /api/v1/me/inventory/items/:itemId?page=N` résout le Player courant, charge une définition active et son unique `PlayerItem`, puis lit uniquement les acquisitions de ce Player par pages de vingt. Elle ne somme pas le ledger et ne remplace jamais `PlayerItem.quantity`. Le catalogue Collection et `item_acquisitions` sont privés côté base : RLS active, aucun droit navigateur, accès uniquement via Fastify → service d’application → store Prisma.
+
+## Vertical backend physique candidat 0.97 — Codes cadeaux
+
+`GiftCodeService` est l’unique orchestration native des Codes. `GET /api/v1/me/gift-codes` matérialise si nécessaire l’édition annuelle du mois Europe/Paris, réconcilie les notifications de ce Player et projette `available` / `claimed`. `POST /api/v1/me/gift-codes/:editionId/claim` exécute sous isolation sérialisable et verrou Player : validation de fenêtre/statut, unicité Player/édition, `BusinessOperation`, crédits `PrismaEconomyService`, mouvements/statistiques et résolution de notification. Les collisions uniques ou sérialisables ont un retry borné ; un replay connu retourne l’opération déjà traitée sans second crédit.
+
+Le scheduler Codes réconcilie les passages de fenêtres chaque minute et au démarrage ; la lecture Notifications garde un fallback par Player, couvrant un nouveau joueur ou une reprise après indisponibilité du scheduler. Une notification est dédupliquée par Player/édition et son `actionTargetId` est l’édition. Une expiration, désactivation ou claim la fait passer à `RESOLVED`.
+
+Les routes `/api/v1/moderation/gift-codes/**` délèguent au même service mais celui-ci exige une attribution ADMIN active. Création, publication et modification contrôlée sont des opérations ADMIN idempotentes et auditables. Aucun endpoint ne modifie token, type ou récompenses après création ; la récurrence devient également verrouillée après premier claim. Le frontend ne reçoit aucun accès direct aux tables RLS privées.

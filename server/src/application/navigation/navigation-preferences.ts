@@ -2,7 +2,7 @@ import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-
 import type { GetCurrentPlayer } from '../player/get-current-player.js'
 
 export const navigationMenuPreferenceKey = 'navigation_menu_v1'
-export const navigationMenuDestinationIds = ['home', 'invocation', 'box', 'team', 'catalog', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'history', 'tutorial', 'configuration'] as const
+export const navigationMenuDestinationIds = ['home', 'invocation', 'box', 'team', 'catalog', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'codes', 'history', 'tutorial', 'configuration'] as const
 export type NavigationMenuDestinationId = (typeof navigationMenuDestinationIds)[number]
 export type NavigationMenuPreferenceDto = Readonly<{ version: 1; order: readonly NavigationMenuDestinationId[]; hidden: readonly NavigationMenuDestinationId[] }>
 

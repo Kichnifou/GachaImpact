@@ -5,12 +5,15 @@ import { BusinessError } from '../errors.js';
 import type { ExpeditionService } from '../expedition/expedition-service.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
 
+export type NotificationReconciler = Readonly<{ reconcileNotificationsForPlayer(playerId: string, now?: Date): Promise<void> }>;
+
 export class NotificationService {
-  public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly database: PrismaClient, private readonly clock: Clock, private readonly expeditions: ExpeditionService) {}
+  public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly database: PrismaClient, private readonly clock: Clock, private readonly expeditions: ExpeditionService, private readonly giftCodes?: NotificationReconciler) {}
 
   public async list(identity: AuthenticatedIdentity) {
     const player = await this.getPlayer.execute(identity);
     await this.expeditions.getState(identity);
+    await this.giftCodes?.reconcileNotificationsForPlayer(player.id, this.clock.now());
     const notifications = await this.database.notification.findMany({ where: { playerId: player.id, state: { in: [NotificationState.UNREAD, NotificationState.READ] } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
     return { unreadCount: notifications.filter(item => item.state === NotificationState.UNREAD).length, notifications };
   }

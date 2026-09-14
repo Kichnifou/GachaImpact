@@ -5,7 +5,7 @@ import type { ElementKey, ResourceKey } from '../../domain/economy/resources.js'
 
 export type CreditResourceInput = Readonly<{
   playerId: string;
-  playerElementKey: ElementKey;
+  playerElementKey: ElementKey | null;
   resourceKey: ResourceKey;
   amount: bigint;
   causeKey: string;

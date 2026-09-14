@@ -126,6 +126,18 @@ function AppBootstrap() {
     setGacha((current) => current ? { ...current, playerState: result.gachaState } : current)
     return result
   }, [])
+  const loadGiftCodes = useCallback(() => getGameApiClient().getGiftCodes(), [])
+  const claimGiftCode = useCallback(async (editionId: string, idempotencyKey: string) => {
+    const result = await getGameApiClient().claimGiftCode(editionId, idempotencyKey)
+    setResources(result.resources)
+    await loadNotifications()
+    return result
+  }, [loadNotifications])
+  const loadAdminGiftCodes = useCallback(() => getGameApiClient().getAdminGiftCodes(), [])
+  const createGiftCode = useCallback((input: Parameters<ReturnType<typeof getGameApiClient>['createGiftCode']>[0]) => getGameApiClient().createGiftCode(input), [])
+  const publishGiftCode = useCallback((codeId: string, key: string) => getGameApiClient().publishGiftCode(codeId, key), [])
+  const updateGiftCode = useCallback((codeId: string, input: Parameters<ReturnType<typeof getGameApiClient>['updateGiftCode']>[1]) => getGameApiClient().updateGiftCode(codeId, input), [])
+  const loadGiftCodeClaimants = useCallback((codeId: string) => getGameApiClient().getGiftCodeClaimants(codeId), [])
 
   const loadGameState = useCallback(async () => {
     const api = getGameApiClient()
@@ -453,6 +465,13 @@ function AppBootstrap() {
       onLoadShop={loadShop}
       onLoadShopHistory={loadShopHistory}
       onPurchaseShop={purchaseShop}
+      onLoadGiftCodes={loadGiftCodes}
+      onClaimGiftCode={claimGiftCode}
+      onLoadAdminGiftCodes={loadAdminGiftCodes}
+      onCreateGiftCode={createGiftCode}
+      onPublishGiftCode={publishGiftCode}
+      onUpdateGiftCode={updateGiftCode}
+      onGiftCodeClaimants={loadGiftCodeClaimants}
       onLoadNavigationPreferences={loadNavigationPreferences}
       onSaveNavigationPreferences={saveNavigationPreferences}
       onClaimDailyReward={async () => {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import type { BankHistoryDto, BankTransferDto, BoxCharacterDto, BoxSortPreferenceDto, ContestDto, ContestHistoryDto, ContestSnapshotDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyCombatFightDto, DailyRewardClaimDto, DailyRewardTodayDto, ExpeditionClaimDto, ExpeditionDto, ExpeditionStartDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, InventoryItemDetailDto, ModerationPermissionsDto, ModerationPlayerListQuery, ModerationPlayerPageDto, ModerationStateDto, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto, NavigationMenuPreferenceDto, NotificationsDto, PlayerBankDto, PlayerBoxDto, PlayerDto, PlayerInventoryDto, PlayerProgressionDto, PlayerResourcesDto, PlayerShopDto, PlayerTeamsDto, ShopHistoryDto, ShopPurchaseDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
+import type { AdminGiftCodesDto, BankHistoryDto, BankTransferDto, BoxCharacterDto, BoxSortPreferenceDto, ContestDto, ContestHistoryDto, ContestSnapshotDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyCombatFightDto, DailyRewardClaimDto, DailyRewardTodayDto, ExpeditionClaimDto, ExpeditionDto, ExpeditionStartDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, GiftCodeClaimDto, GiftCodeClaimantsDto, InventoryItemDetailDto, ModerationPermissionsDto, ModerationPlayerListQuery, ModerationPlayerPageDto, ModerationStateDto, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto, NavigationMenuPreferenceDto, NotificationsDto, PlayerBankDto, PlayerBoxDto, PlayerDto, PlayerGiftCodesDto, PlayerInventoryDto, PlayerProgressionDto, PlayerResourcesDto, PlayerShopDto, PlayerTeamsDto, ShopHistoryDto, ShopPurchaseDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import type { ScreenId } from '../types'
 import BoxScreen from '../screens/BoxScreen'
 import CharactersScreen from '../screens/CharactersScreen'
@@ -10,6 +10,7 @@ import InvocationScreen from '../screens/InvocationScreen'
 import ShopScreen from '../screens/ShopScreen'
 import TeamScreen from '../screens/TeamScreen'
 import BankScreen from '../screens/BankScreen'
+import GiftCodesScreen from '../screens/GiftCodesScreen'
 import ModerationScreen from '../screens/ModerationScreen'
 import ChatPanel from './ChatPanel'
 import GameHeader from './GameHeader'
@@ -126,6 +127,8 @@ type GameShellProps = {
   onLoadShop: () => Promise<PlayerShopDto>
   onLoadShopHistory: (page: number) => Promise<ShopHistoryDto>
   onPurchaseShop: (itemId: string, quantity: string, idempotencyKey: string) => Promise<ShopPurchaseDto>
+  onLoadGiftCodes: () => Promise<PlayerGiftCodesDto>
+  onClaimGiftCode: (editionId: string, idempotencyKey: string) => Promise<GiftCodeClaimDto>
   onLoadInventory: () => Promise<PlayerInventoryDto>
   onLoadInventoryItemDetail: (itemId: string, page?: number) => Promise<InventoryItemDetailDto>
   onConvertParticles: (amount: string, idempotencyKey: string) => Promise<DailyChallengeMutationDto>
@@ -138,11 +141,16 @@ type GameShellProps = {
   onModerationStella: (targetPlayerId: string, quantity: string, idempotencyKey: string) => Promise<ModerationStateDto>
   onModerationTester: (targetPlayerId: string, enabled: boolean, idempotencyKey: string) => Promise<ModerationStateDto>
   onModerationApplied: (state: ModerationStateDto, targetIsSelf: boolean) => void
+  onLoadAdminGiftCodes: () => Promise<AdminGiftCodesDto>
+  onCreateGiftCode: Parameters<typeof ModerationScreen>[0]['onCreateGiftCode']
+  onPublishGiftCode: (codeId: string, key: string) => Promise<AdminGiftCodesDto>
+  onUpdateGiftCode: Parameters<typeof ModerationScreen>[0]['onUpdateGiftCode']
+  onGiftCodeClaimants: (codeId: string) => Promise<GiftCodeClaimantsDto>
   onLoadNavigationPreferences: () => Promise<NavigationMenuPreferenceDto>
   onSaveNavigationPreferences: (value: NavigationMenuPreferenceDto) => Promise<NavigationMenuPreferenceDto>
 }
 
-function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, dailyChallenge, onPurchaseDailyChallenge, onSwitchDailyChallenge, dailyCombat, monthlyBoss, onLoadMonthlyBoss, contest, onRefreshContest, onLoadContestHistory, onLoadContestHistoryDetail, onOpenContest, onJoinContest, onSelectContestLegend, onSetContestReady, onStartContest, onSpectateContest, onLeaveContest, onCancelContest, onPlayContest, onSupportContest, onRemoveContestParticipant, onRemoveContestSpectator, expedition, expeditionMonotonicNow, notifications, onLoadExpedition, onStartExpedition, onClaimExpedition, onLoadNotifications, onReadNotification, onReadAllNotifications, onArchiveReadNotifications, onLoadDailyCombat, onSetDailyCombatSlot, onRemoveDailyCombatSlot, onCopyActiveTeamToDailyCombat, onAutoSelectDailyCombat, onClearDailyCombatLoadout, onFightDailyCombat, onSetMonthlyBossSlot, onRemoveMonthlyBossSlot, onCopyActiveTeamToMonthlyBoss, onClearMonthlyBossLoadout, onAttackMonthlyBoss, onLoadMonthlyBossHistory, onSignOut, gacha, characters, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank, onLoadShop, onLoadShopHistory, onPurchaseShop, onLoadInventory, onLoadInventoryItemDetail, onConvertParticles, permissions, onLoadModeration, onListModerationPlayers, onModerationResource, onModerationXp, onModerationGacha, onModerationStella, onModerationTester, onModerationApplied, onLoadNavigationPreferences, onSaveNavigationPreferences }: GameShellProps) {
+function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, dailyChallenge, onPurchaseDailyChallenge, onSwitchDailyChallenge, dailyCombat, monthlyBoss, onLoadMonthlyBoss, contest, onRefreshContest, onLoadContestHistory, onLoadContestHistoryDetail, onOpenContest, onJoinContest, onSelectContestLegend, onSetContestReady, onStartContest, onSpectateContest, onLeaveContest, onCancelContest, onPlayContest, onSupportContest, onRemoveContestParticipant, onRemoveContestSpectator, expedition, expeditionMonotonicNow, notifications, onLoadExpedition, onStartExpedition, onClaimExpedition, onLoadNotifications, onReadNotification, onReadAllNotifications, onArchiveReadNotifications, onLoadDailyCombat, onSetDailyCombatSlot, onRemoveDailyCombatSlot, onCopyActiveTeamToDailyCombat, onAutoSelectDailyCombat, onClearDailyCombatLoadout, onFightDailyCombat, onSetMonthlyBossSlot, onRemoveMonthlyBossSlot, onCopyActiveTeamToMonthlyBoss, onClearMonthlyBossLoadout, onAttackMonthlyBoss, onLoadMonthlyBossHistory, onSignOut, gacha, characters, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank, onLoadShop, onLoadShopHistory, onPurchaseShop, onLoadGiftCodes, onClaimGiftCode, onLoadInventory, onLoadInventoryItemDetail, onConvertParticles, permissions, onLoadModeration, onListModerationPlayers, onModerationResource, onModerationXp, onModerationGacha, onModerationStella, onModerationTester, onModerationApplied, onLoadAdminGiftCodes, onCreateGiftCode, onPublishGiftCode, onUpdateGiftCode, onGiftCodeClaimants, onLoadNavigationPreferences, onSaveNavigationPreferences }: GameShellProps) {
   const refreshMonthlyBoss = useCallback(() => onLoadMonthlyBoss ? onLoadMonthlyBoss() : Promise.resolve(monthlyBoss), [monthlyBoss, onLoadMonthlyBoss])
   const [activeScreen, setActiveScreen] = useState<ScreenId>(getScreenFromHash)
   const activeScreenRef = useRef(activeScreen)
@@ -324,7 +332,9 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
       case 'bank':
         return <BankScreen initialBank={bankCache.read(player.id)} onLoad={loadBank} onLoadHistory={onLoadBankHistory} onTransfer={transferBank} />
       case 'moderation':
-        return permissions.capabilities.moderationAccess ? <ModerationScreen actorPlayerId={player.id} capabilities={permissions.capabilities} onLoad={onLoadModeration} onListPlayers={onListModerationPlayers} onResource={moderateResource} onXp={moderateXp} onGacha={moderateGacha} onStella={moderateStella} onTester={moderateTester} onApplied={applyModerationResult} /> : <HomeScreen onNavigate={navigate} gacha={gacha} onSetGachaTarget={onSetGachaTarget} />
+        return permissions.capabilities.moderationAccess ? <ModerationScreen actorPlayerId={player.id} capabilities={permissions.capabilities} onLoad={onLoadModeration} onListPlayers={onListModerationPlayers} onResource={moderateResource} onXp={moderateXp} onGacha={moderateGacha} onStella={moderateStella} onTester={moderateTester} onApplied={applyModerationResult} onLoadGiftCodes={onLoadAdminGiftCodes} onCreateGiftCode={onCreateGiftCode} onPublishGiftCode={onPublishGiftCode} onUpdateGiftCode={onUpdateGiftCode} onGiftCodeClaimants={onGiftCodeClaimants} /> : <HomeScreen onNavigate={navigate} gacha={gacha} onSetGachaTarget={onSetGachaTarget} />
+      case 'codes':
+        return <GiftCodesScreen onLoad={onLoadGiftCodes} onClaim={onClaimGiftCode} />
       case 'shop':
         return <ShopScreen initialShop={shopCache.read(player.id)} onLoad={loadShop} onLoadHistory={onLoadShopHistory} onPurchase={purchaseShop} onNavigateBank={() => navigate('bank')} />
       case 'activities-dailies':
@@ -355,7 +365,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
         onReadNotification={onReadNotification}
         onReadAllNotifications={onReadAllNotifications}
         onArchiveReadNotifications={onArchiveReadNotifications}
-        onOpenNotification={(notification) => { if (notification.actionKey === 'open-expedition-character' && notification.actionTargetId) { setBoxOpenIntent({ characterId: notification.actionTargetId, token: crypto.randomUUID() }); navigate('characters-box') } else if (notification.actionKey === 'OPEN_MONTHLY_BOSS') { setBossRequestToken((value) => value + 1); navigate('activities-combat') } }}
+        onOpenNotification={(notification) => { if (notification.actionKey === 'open-expedition-character' && notification.actionTargetId) { setBoxOpenIntent({ characterId: notification.actionTargetId, token: crypto.randomUUID() }); navigate('characters-box') } else if (notification.actionKey === 'OPEN_MONTHLY_BOSS') { setBossRequestToken((value) => value + 1); navigate('activities-combat') } else if (notification.actionKey === 'OPEN_GIFT_CODE') navigate('codes') }}
       />
 
       <div className="game-layout">

@@ -12,6 +12,7 @@ export type ScreenId =
   | 'bank'
   | 'inventory'
   | 'shop'
+  | 'codes'
   | 'configuration'
   | 'moderation'
 

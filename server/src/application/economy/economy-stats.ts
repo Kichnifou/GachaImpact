@@ -16,12 +16,12 @@ export function getEconomySpentIncrement(resourceKey: ResourceKey, amount: bigin
 export function getEconomyEarnedIncrement(
   resourceKey: ResourceKey,
   amount: bigint,
-  playerElementKey: ElementKey,
+  playerElementKey: ElementKey | null,
 ): EconomyEarnedIncrement {
   return {
     totalPrimosEarned: resourceKey === 'primogems' ? amount : 0n,
     totalMorasEarned: resourceKey === 'moras' ? amount : 0n,
     totalMainElementParticlesEarned:
-      resourceKey === particleResourceKey(playerElementKey) ? amount : 0n,
+      playerElementKey && resourceKey === particleResourceKey(playerElementKey) ? amount : 0n,
   };
 }
