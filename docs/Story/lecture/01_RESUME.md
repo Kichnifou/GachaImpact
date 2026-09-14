@@ -1,7 +1,7 @@
 # Résumé de la version de travail
 
 > VUE GÉNÉRÉE — ne pas modifier ce fichier. Source : [STORY_SOURCE.md](../STORY_SOURCE.md).
-> Empreinte SHA-256 : `f375bf807225b54948ae2e5a31efcb93a0a2e379a28d7ba342e34a6d66d6e13b`.
+> Empreinte SHA-256 : `5f5a53cf41cc7ef7fde4e97e5e4f85720edf9c2c3d38d683d574ee066453ee02`.
 
 ## Elio et Lyra : noms et rôles lisibles
 
@@ -33,11 +33,11 @@ La guerre oppose deux réponses à un problème réel : qui peut autoriser l’u
 
 Le Grand Bâillon est le nom proposé pour l’inhibition durable des noyaux volontairement provoquée par Séveran. Le sabotage et son objectif de contrôle sont confirmés ; le mécanisme de réseau décrit ici reste une solution de travail.
 
-## Une seule capsule survivante
+## Environ cent capsules, un seul survivant retrouvé
 
 **CONFIRME** · Origine : utilisateur · [GRAINE-001](../STORY_SOURCE.md#graine-001)
 
-Elio est l’unique survivant du programme de capsules. Son noyau est resté intact pendant une très longue stase sur Sélis. La cause technique précise de cette préservation reste proposée dans les blocs associés.
+À l’époque du Grand Bâillon, environ cent Porteurs volontaires sont placés dans des capsules de stase et envoyés vers différentes planètes. Ce nombre est un ordre de grandeur de référence, pas un décompte définitif immuable. Elio est le seul survivant retrouvé et confirmé pendant l’arc principal ; son noyau est resté intact pendant une très longue stase sur Sélis.
 
 ## Le réveil adulte : solution proposée pour la nouvelle origine
 
@@ -73,7 +73,7 @@ Les noyaux ont été transmis aux Porteurs pour entretenir et réguler des fonct
 
 **CONFIRME** · Origine : utilisateur · [NOYAU-002](../STORY_SOURCE.md#noyau-002)
 
-Elio peut réactiver sainement le noyau d’un autre Porteur et lui fournir une charge qui n’est pas permanente. Le bénéficiaire doit ensuite être rechargé, notamment auprès d’un fragment régional ou en accompagnant le protagoniste.
+Elio peut réactiver sainement le noyau d’un autre Porteur et lui fournir une première impulsion qui n’est pas une charge permanente. La compatibilité ainsi établie reste acquise, mais les pétales du bénéficiaire se déchargent avant la restauration du Cœur. Ils doivent ensuite être rechargés auprès d’Elio, d’un pétale régional ou d’un relais adapté.
 
 ## Les réveils forcés du Concordat
 
@@ -123,47 +123,65 @@ Un ancien ennemi peut être soigné, choisir de changer de camp puis devenir jou
 
 Saren pourrait être le premier ancien ennemi développé : commandant ayant accepté un réveil forcé pour protéger son unité, commis des violences puis découvert que le régime sacrifie ses soldats.
 
-## Procédure proposée de mise en accord
+## Rituel conscient de première réactivation
 
-**PROPOSE** · Origine : assistant · [NOYAU-005](../STORY_SOURCE.md#noyau-005)
+**CONFIRME** · Origine : utilisateur · [NOYAU-005](../STORY_SOURCE.md#noyau-005)
 
-La première activation associerait un diagnostic individuel, un calibrage conscient du flux d’Elio, une réponse volontaire du bénéficiaire et une charge d’essai. Le temps partagé aiderait à apprendre cette réponse ; l’amour et la simple proximité ne seraient jamais des interrupteurs.
+La première réactivation saine exige la volonté explicite du Porteur, la présence d’Elio, une confiance ou un confort mutuel suffisant, un rapprochement réel et un rituel conscient de synchronisation. Le lien peut relever de l’amitié, du respect ou d’une forte coopération ; il n’a pas à être romantique.
 
 ## Quatre catégories de pouvoirs
 
 **CONFIRME** · Origine : utilisateur · [POUVOIR-001](../STORY_SOURCE.md#pouvoir-001)
 
-Chaque Porteur relève d’une catégorie de pouvoir — Gravité, Énergie, Biotique ou Spatial — dont l’expression est modelée par la personne. Une fonction de combat n’est pas une catégorie cosmologique, et aucun Porteur n’accède automatiquement à toutes les expressions de sa famille.
+En règle générale, un Porteur construit sa maîtrise autour d’une catégorie de pouvoir — Gravité, Énergie, Biotique ou Spatial — dont l’expression est modelée par la personne. Une fonction de combat n’est pas une catégorie cosmologique, et aucun Porteur n’accède automatiquement à toutes les expressions de sa famille.
 
-## Limites communes et catégorie d’Elio
+## Limites communes et disciplines distinctes
 
-**PROPOSE** · Origine : assistant · [POUVOIR-002](../STORY_SOURCE.md#pouvoir-002)
+**CONFIRME** · Origine : utilisateur · [POUVOIR-002](../STORY_SOURCE.md#pouvoir-002)
 
-La réactivation propre au centre pur d’Elio ne constitue pas une cinquième catégorie donnant tous les pouvoirs. Elio pourrait relever du Spatial ou de l’Énergie, mais son choix reste ouvert en Q27.
+La réactivation propre au centre pur d’Elio ne constitue pas une catégorie donnant tous les pouvoirs. Elio apprend plusieurs disciplines parce que sa stase lui a permis de repartir de nouveaux apprentissages conscients ; il ne possède pas un noyau polyharmonique naturellement conçu pour les cumuler.
+
+## Désapprendre pour réapprendre : progression d’Elio
+
+**CONFIRME** · Origine : utilisateur · [ELIO-POUVOIRS-001](../STORY_SOURCE.md#elio-pouvoirs-001)
+
+Avant sa stase, Elio maîtrise consciemment Spatial. La très longue stase efface ce savoir conscient, sans supprimer les mémoires implicites inscrites dans son noyau, ses réflexes et sa perception. Sur Sélis, ses intuitions des distances, des structures et de l’espace nourrissent ses recherches sans lui donner magiquement des connaissances scientifiques complètes.
+
+## Mecha : discipline humaine artificielle
+
+**CONFIRME** · Origine : utilisateur · [MECHA-001](../STORY_SOURCE.md#mecha-001)
+
+Mecha est une discipline technologique développée par les humains d’Orthe, et non une cinquième catégorie divine ni un noyau créé par les dieux. Sa région d’origine exacte n’est pas encore confirmée ; ses techniques se sont répandues grâce aux voyages, aux migrations, au travail et aux conflits.
 
 ## Le Cœur d’Orthe et la restauration
 
 **CONFIRME** · Origine : utilisateur · [COEUR-001](../STORY_SOURCE.md#coeur-001)
 
-Le Cœur central permet une vie normale ainsi que la stabilisation et la recharge du réseau. Sa restauration permettra aux Porteurs de retrouver leur potentiel et de s’entraîner pour combattre le Concordat ; avant cela, des recharges limitées et coûteuses restent possibles.
+Le Cœur central permet une vie normale ainsi que la stabilisation et la recharge du réseau. Sa restauration rend aux véritables noyaux des Porteurs leur fonctionnement complet, soit l’équivalent narratif de leurs sept pétales actifs. Ils retrouvent leur potentiel et peuvent s’entraîner sans dépendre des recharges temporaires de l’arc principal.
 
-## Débit, synchronisation et autonomie proposés
+## Énergie renouvelable, débit et effort collectif
 
-**PROPOSE** · Origine : assistant · [COEUR-002](../STORY_SOURCE.md#coeur-002)
+**CONFIRME** · Origine : utilisateur · [COEUR-002](../STORY_SOURCE.md#coeur-002)
 
-Le centre pur produirait ou renouvellerait son énergie durablement sans pouvoir délivrer une puissance instantanée infinie. Son débit, le stockage disponible et le corps d’Elio resteraient limités ; le Cœur demanderait une impulsion stable, simultanée et distribuée qu’Elio seul ne peut maintenir.
+Le centre pur d’Elio peut produire ou renouveler de l’énergie indéfiniment dans la durée. Il ne donne ni puissance instantanée infinie, ni endurance infinie, ni déversement continu sans conséquence. Elio possède un débit maximal, une quantité limitée qu’il peut manipuler simultanément et une capacité physique limitée à supporter le transfert.
 
-## Centre pur, pétales et sept fragments identifiés
+## Centre pur et exactement sept pétales
 
 **CONFIRME** · Origine : utilisateur · [FRAGMENT-001](../STORY_SOURCE.md#fragment-001)
 
-Le noyau pur d’Elio possède une structure en marguerite : le centre jaune est sa partie génératrice et les pétales sont des fragments détachables. Elio-source laisse un fragment dans chacune des six régions et en implante un dans Nacre ; au moins sept fragments détachés sont donc identifiés, sans fixer le nombre total de pétales.
+Chaque véritable noyau primordial possède un centre et exactement sept pétales. Le centre porte la fonction fondamentale du noyau ; les pétales portent notamment sa capacité exploitable, ses réserves et ses niveaux d’éveil ou de maîtrise. Le noyau d’Elio est particulier parce que son centre n’a jamais été corrompu par le Grand Bâillon et conserve sa capacité génératrice.
 
-## Autonomie proposée des pétales
+## Micro-noyaux entretenus et limités
 
-**PROPOSE** · Origine : assistant · [FRAGMENT-002](../STORY_SOURCE.md#fragment-002)
+**CONFIRME** · Origine : utilisateur · [FRAGMENT-002](../STORY_SOURCE.md#fragment-002)
 
-Les pétales séparés conserveraient une réserve et une capacité de stabilisation limitées sans recréer de centre générateur. Des moyens régionaux coûteux pourraient les entretenir ; l’inertage ultérieur du centre d’Elio-source ne les détruirait pas automatiquement.
+Les pétales séparés deviennent des sortes de micro-noyaux. Leur réserve énergétique est très inférieure à celle d’un noyau complet ; ils peuvent se stabiliser et recharger les pétales de Porteurs déjà réactivés. Sans centre pur, ils ne peuvent ni créer un nouveau noyau, ni réactiver seuls un Porteur jamais réveillé, ni redémarrer seuls le Cœur d’Orthe.
+
+## Mémoires et émotions arrêtées au détachement
+
+**CONFIRME** · Origine : utilisateur · [FRAGMENT-003](../STORY_SOURCE.md#fragment-003)
+
+Chaque pétale détaché contient une empreinte émotionnelle, une trace de la personnalité d’Elio-source à cette période et ses souvenirs jusqu’au moment précis de sa séparation. Il ne connaît aucun événement vécu ensuite.
 
 ## La fenêtre n’efface pas le passé réalisé
 
@@ -213,29 +231,41 @@ Nacre franchit la faille après Séveran. Pendant que Lyra s’interpose et occu
 
 La fenêtre est suspendue après le retour de Séveran, et non au moment où Elio la quitte. Le reliquat conserve Lyra sans lui faire vivre les mois de l’aventure.
 
-## Ce qui est perdu dans la mémoire de Nacre
+## Mémoire endommagée et septième pétale inaccessible
 
-**PROPOSE** · Origine : assistant · [IA-005](../STORY_SOURCE.md#ia-005)
+**CONFIRME** · Origine : utilisateur · [IA-005](../STORY_SOURCE.md#ia-005)
 
-La double extraction d’urgence surcharge l’interface de Nacre et détruit des index et des circuits de lecture. Elle garde sa personnalité et ses souvenirs nouveaux, mais ne possède plus toutes les preuves concernant Z.
+L’utilisation de la technologie de localité temporelle pendant le secours surcharge Nacre et endommage ses index et circuits de lecture. Elle garde sa personnalité et ses souvenirs nouveaux, mais perd l’accès à une partie de ses archives historiques et au pétale intégré dans son propre corps.
 
 ## Le fragment de Nacre et son transfert final
 
 **CONFIRME** · Origine : utilisateur · [IA-006](../STORY_SOURCE.md#ia-006)
 
-Nacre possède réellement un fragment du noyau d’Elio-source : elle voyage avec une trace de lui, sans que cela confirme une copie consciente du scientifique, une connaissance totale de sa vie ou un oracle capable de résoudre l’aventure.
+Nacre possède réellement le septième et dernier pétale détaché du noyau d’Elio-source. Elle voyage avec cette trace sans en avoir conscience au début et sans devenir une copie du scientifique, une connaissance totale de sa vie ou un oracle capable de résoudre l’aventure.
 
-## Mémoire datée et autonomie proposées pour Nacre
+## Résonance, dernière mémoire et autonomie du Cœur
 
-**PROPOSE** · Origine : assistant · [IA-007](../STORY_SOURCE.md#ia-007)
+**CONFIRME** · Origine : utilisateur · [IA-007](../STORY_SOURCE.md#ia-007)
 
-Le fragment de Nacre participerait au redémarrage du Cœur sans être extrait définitivement. Le Cœur réparé deviendrait ensuite autonome, ce qui permettrait la destruction du composant temporel sans replonger Orthe dans la panne.
+Le pétale de Nacre participe avec les six autres au redémarrage distribué du Cœur. La méthode exacte de connexion reste à développer, mais elle ne requiert pas la mort de Nacre avant la dernière fenêtre. Le Cœur réparé devient ensuite autonome, ce qui permet le transfert final et la destruction du composant temporel dangereux sans replonger Orthe dans la panne.
 
-## Rencontrer puis réactiver par le premier pull
+## Rencontrer puis atteindre N1 par le premier pull
 
 **CONFIRME** · Origine : utilisateur · [GACHA-001](../STORY_SOURCE.md#gacha-001)
 
-Aucun personnage ne peut être tiré avant une véritable rencontre narrative et une coopération crédible. Le premier pull correspond principalement à la réactivation de son noyau par Elio, et non à un contrat abstrait ou à la création d’une copie.
+Aucun personnage ne peut être tiré avant une véritable rencontre narrative et une coopération crédible. Pour un Porteur, le premier pull accomplit ou matérialise sa première réactivation consciente avec le protagoniste au centre pur et éveille le premier niveau de son noyau : N1. Pour un humain Mecha, il établit la première synchronisation complète de son noyau artificiel : N1. Il ne crée jamais une copie de la personne.
+
+## N1 à N7 : éveil des pétales ou modules
+
+**CONFIRME** · Origine : utilisateur · [GACHA-002](../STORY_SOURCE.md#gacha-002)
+
+La première obtention d’un personnage est N1. Chaque obtention suivante augmente son niveau d’un cran jusqu’à N7 : deuxième obtention N2, troisième N3, quatrième N4, cinquième N5, sixième N6 et septième N7. Il n’existe pas de N0 dans cette progression.
+
+## Plein noyau narratif et collection séparée
+
+**CONFIRME** · Origine : utilisateur · [GACHA-003](../STORY_SOURCE.md#gacha-003)
+
+Après la restauration du Cœur, les véritables noyaux retrouvent narrativement l’équivalent de leur plein fonctionnement et de leurs sept pétales. Cet état du monde ne modifie pas la box : un personnage N1 ou N2 y conserve son niveau mécanique, les obtentions futures restent utiles et l’économie gacha n’est pas supprimée.
 
 ## Sauver sans revenir avant la blessure
 
@@ -253,10 +283,10 @@ Un appareil compatible, un examen direct, une stabilisation biologique et une en
 
 **PROPOSE** · Origine : v1 · [FIN-002](../STORY_SOURCE.md#fin-002)
 
-Après le redémarrage du Cœur, le monde doit organiser une restauration partagée des pouvoirs sans remplacer la tutelle de Séveran par celle d’Elio. La forme durable de cet accès et le fonctionnement du gacha post-jeu restent ouverts en Q31.
+Après le redémarrage du Cœur, les noyaux véritables retrouvent leur fonctionnement narratif complet sans remplacer la tutelle de Séveran par celle d’Elio. Le niveau N1 à N7 de la collection reste séparé de cette restauration mondiale.
 
 ## Conclusion collective avant le sauvetage intime
 
 **CONFIRME** · Origine : utilisateur · [FIN-003](../STORY_SOURCE.md#fin-003)
 
-La fin suit cet ordre : conflit autour du redémarrage du Cœur, défaite du projet de tutelle de Séveran, stabilisation d’Orthe, dernière ouverture pour sauver Lyra, destruction de l’accès temporel avec transfert risqué de Nacre, puis épilogue et retour préparé de Nacre sans pouvoir temporel.
+La fin suit cet ordre : conflit autour du redémarrage du Cœur, défaite du projet de tutelle de Séveran, stabilisation d’Orthe, dernière ouverture pour sauver Lyra, début de l’apprentissage Biotique, révélation et lecture du septième pétale de Nacre selon la mise en scène finale, destruction de l’accès temporel avec transfert risqué de Nacre, puis épilogue et retour préparé de Nacre sans pouvoir temporel.

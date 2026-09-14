@@ -1,7 +1,7 @@
 # Campagne : ordre vécu par le joueur
 
 > VUE GÉNÉRÉE — ne pas modifier ce fichier. Source : [STORY_SOURCE.md](../STORY_SOURCE.md).
-> Empreinte SHA-256 : `f375bf807225b54948ae2e5a31efcb93a0a2e379a28d7ba342e34a6d66d6e13b`.
+> Empreinte SHA-256 : `5f5a53cf41cc7ef7fde4e97e5e4f85720edf9c2c3d38d683d574ee066453ee02`.
 
 ## Chapitre 0 — Une place à côté de toi
 
@@ -17,31 +17,31 @@ Mise en scène et garde-fous : Montrer l’anneau, une défense issue d’un éq
 
 **PROPOSE** · Origine : assistant · [CH-01](../STORY_SOURCE.md#ch-01)
 
-Elio arrive au Havre. Certains habitants reconnaissent son visage, d’autres doutent devant son manque d’expérience. Nacre établit le décalage d’époque et dit avoir été créée par le scientifique connu ici. Séveran n’engage pas encore de traque personnelle parce qu’il croit le jeune Elio mort, selon une explication encore ouverte.
+Elio arrive au Havre. Certains habitants reconnaissent son visage, d’autres doutent devant son manque d’expérience. Nacre établit le décalage d’époque et dit avoir été créée par le scientifique connu ici. Séveran n’engage pas encore de traque personnelle : il ignore si Elio a survécu, où il a disparu et par quel moyen.
 
 Mise en scène et garde-fous : Le mystère porte sur ce que cet autre Elio a fait, pas sur une date que tout le monde pourrait donner. Sa mort n’est pas encore prouvée aux habitants.
 
-**Règles associées :** [EVT-018](../STORY_SOURCE.md#evt-018) — L’arrivée chez ceux qui le connaissent ; [REG-001](../STORY_SOURCE.md#reg-001) — Havre des Traverses : accueil et confiance ; [IA-005](../STORY_SOURCE.md#ia-005) — Ce qui est perdu dans la mémoire de Nacre.
+**Règles associées :** [EVT-018](../STORY_SOURCE.md#evt-018) — L’arrivée chez ceux qui le connaissent ; [REG-001](../STORY_SOURCE.md#reg-001) — Havre des Traverses : accueil et confiance ; [IA-005](../STORY_SOURCE.md#ia-005) — Mémoire endommagée et septième pétale inaccessible.
 
 ## Chapitre 2 — Le prix d’un refuge
 
 **PROPOSE** · Origine : assistant · [CH-02](../STORY_SOURCE.md#ch-02)
 
-Le héros protège une évacuation et réalise avec Varek une première activation limitée et consciente. Yselle accorde sa confiance à des actes concrets. Le fragment du Havre recharge ensuite le bénéficiaire ; une première équipe se forme sans imposer de tirage rare pour avancer.
+Le héros protège une évacuation et réalise avec Varek le premier rituel de réactivation consciente. Il apprend parallèlement à maîtriser Énergie, premier pouvoir actif de sa continuité jouée. Yselle accorde sa confiance à des actes concrets. Le pétale du Havre recharge ensuite le bénéficiaire ; une première équipe se forme sans imposer de tirage rare pour avancer.
 
 Mise en scène et garde-fous : Montrer le consentement et le rôle indispensable du bénéficiaire. La victoire permet de mieux vivre au Havre, pas seulement d’obtenir une clé de scénario.
 
-**Règles associées :** [REG-001](../STORY_SOURCE.md#reg-001) — Havre des Traverses : accueil et confiance ; [NOYAU-002](../STORY_SOURCE.md#noyau-002) — Réactivation temporaire et recharge ; [GACHA-001](../STORY_SOURCE.md#gacha-001) — Rencontrer puis réactiver par le premier pull.
+**Règles associées :** [REG-001](../STORY_SOURCE.md#reg-001) — Havre des Traverses : accueil et confiance ; [NOYAU-002](../STORY_SOURCE.md#noyau-002) — Réactivation temporaire et recharge ; [NOYAU-005](../STORY_SOURCE.md#noyau-005) — Rituel conscient de première réactivation ; [GACHA-001](../STORY_SOURCE.md#gacha-001) — Rencontrer puis atteindre N1 par le premier pull ; [ELIO-POUVOIRS-001](../STORY_SOURCE.md#elio-pouvoirs-001) — Désapprendre pour réapprendre : progression d’Elio.
 
 ## Chapitre 3 — Les absents ont une voix
 
 **PROPOSE** · Origine : assistant · [CH-03](../STORY_SOURCE.md#ch-03)
 
-Aux Palais de Sel, les récits d’une guerre se contredisent. Un témoin reconnaît Lyra et rapporte sa mort lors de l’attaque de Séveran contre une tentative de restauration du Cœur, après A-source. Les dates incompatibles troublent Elio.
+Aux Palais de Sel, les récits d’une guerre se contredisent. Le deuxième pétale livre une tranche de mémoire postérieure à la première sans connaître la suite. Un témoin reconnaît Lyra et rapporte sa mort lors de l’attaque de Séveran contre le deuxième essai du Cœur, après A-source. Les dates incompatibles troublent Elio.
 
 Mise en scène et garde-fous : Ne pas faire taire un témoin qui connaît son origine. Les détails de la mission et les preuves de la mort-source restent réellement à trouver.
 
-**Règles associées :** [REG-002](../STORY_SOURCE.md#reg-002) — Palais de Sel : mémoire et responsabilité ; [COUPLE-002](../STORY_SOURCE.md#couple-002) — Les deux parcours du partenaire.
+**Règles associées :** [REG-002](../STORY_SOURCE.md#reg-002) — Palais de Sel : mémoire et responsabilité ; [COUPLE-002](../STORY_SOURCE.md#couple-002) — Les deux parcours du partenaire ; [FRAGMENT-003](../STORY_SOURCE.md#fragment-003) — Mémoires et émotions arrêtées au détachement.
 
 ## Chapitre 4 — La dette des archives
 
@@ -51,7 +51,7 @@ Orsane et l’équipe protègent des témoins avant de dévoiler des falsificati
 
 Mise en scène et garde-fous : Un rapport sur les équipements saisis prépare la piste de l’anneau. La bonne réputation du scientifique demeure vraie sur certains aspects.
 
-**Règles associées :** [REG-002](../STORY_SOURCE.md#reg-002) — Palais de Sel : mémoire et responsabilité ; [IA-005](../STORY_SOURCE.md#ia-005) — Ce qui est perdu dans la mémoire de Nacre ; [EVT-013](../STORY_SOURCE.md#evt-013) — Le marchandage et la collaboration.
+**Règles associées :** [REG-002](../STORY_SOURCE.md#reg-002) — Palais de Sel : mémoire et responsabilité ; [IA-005](../STORY_SOURCE.md#ia-005) — Mémoire endommagée et septième pétale inaccessible ; [EVT-013](../STORY_SOURCE.md#evt-013) — Le marchandage et la collaboration.
 
 ## Chapitre 5 — Les mains libres
 
@@ -67,11 +67,11 @@ Mise en scène et garde-fous : Le premier diagnostic sépare volonté, contraint
 
 **PROPOSE** · Origine : assistant · [CH-06](../STORY_SOURCE.md#ch-06)
 
-Des alimentations indépendantes rendent possible une libération locale et le retrait risqué du troisième fragment. Une opération documentée récupère l’anneau original. Une stabilisation d’urgence d’un adversaire démontre qu’une autre réponse est envisageable.
+Des alimentations indépendantes rendent possible une libération locale et le retrait risqué du troisième pétale. Ses traces rapprochent Elio de la maîtrise Gravité de son autre parcours. Une opération documentée récupère l’anneau original. Une stabilisation d’urgence d’un adversaire démontre qu’une autre réponse est envisageable.
 
 Mise en scène et garde-fous : Le héros protège l’objet sans savoir encore si Lyra survit. Il ne reçoit pas le pardon pour les travaux de l’autre Elio en échange de sa réparation.
 
-**Règles associées :** [REG-003](../STORY_SOURCE.md#reg-003) — Chantiers de Cendre : autonomie et premiers noyaux forcés ; [EVT-019](../STORY_SOURCE.md#evt-019) — La reprise de l’ancre ; [REDEMPTION-001](../STORY_SOURCE.md#redemption-001) — Soigner, réparer, choisir de changer.
+**Règles associées :** [REG-003](../STORY_SOURCE.md#reg-003) — Chantiers de Cendre : autonomie et premiers noyaux forcés ; [EVT-019](../STORY_SOURCE.md#evt-019) — La reprise de l’ancre ; [REDEMPTION-001](../STORY_SOURCE.md#redemption-001) — Soigner, réparer, choisir de changer ; [ELIO-POUVOIRS-001](../STORY_SOURCE.md#elio-pouvoirs-001) — Désapprendre pour réapprendre : progression d’Elio.
 
 ## Chapitre 7 — Un tombeau, deux histoires
 
@@ -97,11 +97,11 @@ Mise en scène et garde-fous : Ne pas certifier la survie de Lyra à distance. D
 
 **PROPOSE** · Origine : assistant · [CH-09](../STORY_SOURCE.md#ch-09)
 
-Au Contrejour, la propagande lui attribue les actes de l’autre Elio. L’enquête retrouve les traces de la capsule, du réveil adulte et des humains qui l’ont aidé à s’intégrer.
+Au Contrejour, la propagande lui attribue les actes de l’autre Elio. L’enquête retrouve les traces des capsules, du réveil adulte et des humains qui l’ont aidé à s’intégrer. Un très ancien habitant ayant connu Elio avant sa stase révèle sa maîtrise originelle de Spatial ; la résonance des pétales lui permet de commencer à la retrouver consciemment.
 
 Mise en scène et garde-fous : Les trous de mémoire de stase sont corroborés, pas comblés d’un seul coup par une révélation magique. L’exception de son noyau a une cause matérielle.
 
-**Règles associées :** [REG-005](../STORY_SOURCE.md#reg-005) — Villes du Contrejour : identité et responsabilité ; [GRAINE-002](../STORY_SOURCE.md#graine-002) — Le réveil adulte : solution proposée pour la nouvelle origine ; [HIST-003](../STORY_SOURCE.md#hist-003) — Le Grand Bâillon : mécanisme proposé d’un sabotage confirmé.
+**Règles associées :** [REG-005](../STORY_SOURCE.md#reg-005) — Villes du Contrejour : identité et responsabilité ; [GRAINE-002](../STORY_SOURCE.md#graine-002) — Le réveil adulte : solution proposée pour la nouvelle origine ; [HIST-003](../STORY_SOURCE.md#hist-003) — Le Grand Bâillon : mécanisme proposé d’un sabotage confirmé ; [ELIO-POUVOIRS-001](../STORY_SOURCE.md#elio-pouvoirs-001) — Désapprendre pour réapprendre : progression d’Elio.
 
 ## Chapitre 10 — L’envoyée qui a choisi
 
@@ -137,15 +137,15 @@ Mise en scène et garde-fous : Révéler l’usage du noyau, pas seulement annon
 
 **PROPOSE** · Origine : assistant · [CH-13](../STORY_SOURCE.md#ch-13)
 
-La coalition rassemble les six fragments régionaux, Nacre, Elio et les alliés sans exiger la possession gacha de tous les gardiens. Elle protège les populations, prépare le redémarrage du Cœur et garde l’anneau sous protection pour l’étape suivante. Saren peut agir pour réparer ses fautes.
+La coalition rassemble les six pétales régionaux, Nacre, Elio et les alliés sans exiger la possession gacha de tous les gardiens. Avant cette convergence, Elio a aussi appris Mecha auprès de la culture technologique concernée ; sa région et son chapitre d’introduction restent à placer. L’équipe protège les populations, prépare le redémarrage du Cœur et garde l’anneau sous protection pour l’étape suivante. Saren peut agir pour réparer ses fautes.
 
 Mise en scène et garde-fous : Distinguer prendre une infrastructure et obtenir l’obéissance d’une région. Tous les moyens indispensables sont accessibles par le récit.
 
-**Règles associées :** [FIN-002](../STORY_SOURCE.md#fin-002) — Victoire et monde après l’histoire ; [REDEMPTION-001](../STORY_SOURCE.md#redemption-001) — Soigner, réparer, choisir de changer ; [GACHA-001](../STORY_SOURCE.md#gacha-001) — Rencontrer puis réactiver par le premier pull.
+**Règles associées :** [FIN-002](../STORY_SOURCE.md#fin-002) — Victoire et monde après l’histoire ; [REDEMPTION-001](../STORY_SOURCE.md#redemption-001) — Soigner, réparer, choisir de changer ; [GACHA-001](../STORY_SOURCE.md#gacha-001) — Rencontrer puis atteindre N1 par le premier pull ; [ELIO-POUVOIRS-001](../STORY_SOURCE.md#elio-pouvoirs-001) — Désapprendre pour réapprendre : progression d’Elio ; [MECHA-001](../STORY_SOURCE.md#mecha-001) — Mecha : discipline humaine artificielle.
 
 ## Chapitre 14 — Le droit de ne pas recommencer
 
-**PROPOSE** · Origine : assistant · [CH-15](../STORY_SOURCE.md#ch-15)
+**PROPOSE** · Origine : assistant · [CH-14](../STORY_SOURCE.md#ch-14)
 
 La coalition redémarre et stabilise le Cœur, puis affronte Séveran au présent d’Orthe et défait son projet de tutelle. L’Elio joué refuse la place de référence captive centrale, même présentée comme un moyen rapide de tout réparer.
 
@@ -155,7 +155,7 @@ Mise en scène et garde-fous : La victoire doit protéger les fonctions vitales 
 
 ## Chapitre 15 — La dernière fenêtre
 
-**PROPOSE** · Origine : assistant · [CH-14](../STORY_SOURCE.md#ch-14)
+**PROPOSE** · Origine : assistant · [CH-15](../STORY_SOURCE.md#ch-15)
 
 Après la victoire collective, la même fenêtre reprend après le retour de Séveran. Elio voit qu’il ne peut plus empêcher l’agression, mais un examen direct révèle une continuité vitale. L’équipe stabilise Lyra, la ramène puis poursuit ses soins.
 
@@ -167,18 +167,18 @@ Mise en scène et garde-fous : Montrer la différence entre « trop tard pour é
 
 **PROPOSE** · Origine : assistant · [CH-16](../STORY_SOURCE.md#ch-16)
 
-Après le sauvetage de Lyra, Nacre consent au renoncement temporel. Son composant dangereux est détruit et un transfert préparé tente de préserver son identité et ses souvenirs dans un assistant sans pouvoir temporel. Lyra récupère ; le couple affronte les secrets et décide de la suite.
+Après le sauvetage, Lyra récupère et commence ultérieurement à transmettre Biotique au protagoniste. La résonance finale révèle puis permet de lire le septième pétale intégré à Nacre, dernière pièce de la mémoire d’Elio-source. Nacre consent ensuite au renoncement temporel : son composant dangereux est détruit et un transfert préparé tente de préserver son identité et ses souvenirs dans un assistant sans pouvoir temporel. Le couple affronte les secrets et décide de la suite.
 
 Mise en scène et garde-fous : Ne pas annoncer une mort absolument définitive de Nacre avant son transfert. Remplacer la famille adoptive de la v1.0 par les amis, mentors et collègues réellement définis dans cette version. Aucune guérison instantanée ne gomme les conséquences.
 
-**Règles associées :** [GRAINE-002](../STORY_SOURCE.md#graine-002) — Le réveil adulte : solution proposée pour la nouvelle origine ; [COUPLE-001](../STORY_SOURCE.md#couple-001) — Couverture professionnelle, rencontre et amour ; [FIN-001](../STORY_SOURCE.md#fin-001) — Sauver sans revenir avant la blessure.
+**Règles associées :** [GRAINE-002](../STORY_SOURCE.md#graine-002) — Le réveil adulte : solution proposée pour la nouvelle origine ; [COUPLE-001](../STORY_SOURCE.md#couple-001) — Couverture professionnelle, rencontre et amour ; [FIN-001](../STORY_SOURCE.md#fin-001) — Sauver sans revenir avant la blessure ; [IA-005](../STORY_SOURCE.md#ia-005) — Mémoire endommagée et septième pétale inaccessible ; [IA-006](../STORY_SOURCE.md#ia-006) — Le fragment de Nacre et son transfert final ; [IA-007](../STORY_SOURCE.md#ia-007) — Résonance, dernière mémoire et autonomie du Cœur ; [ELIO-POUVOIRS-001](../STORY_SOURCE.md#elio-pouvoirs-001) — Désapprendre pour réapprendre : progression d’Elio.
 
 ## Chapitre 17 — Les routes ouvertes
 
 **PROPOSE** · Origine : assistant · [CH-17](../STORY_SOURCE.md#ch-17)
 
-Nacre revient comme assistant ordinaire, sans technologie temporelle. Les passages s’ouvrent, la recherche se partage et les régions continuent de vivre avec leurs désaccords. Le groupe peut voyager vers d’autres planètes du même univers.
+Nacre revient comme assistant ordinaire, sans technologie temporelle. Les passages s’ouvrent, la recherche se partage et les régions continuent de vivre avec leurs désaccords. Le groupe peut voyager vers d’autres planètes du même univers et rechercher les capsules dont aucun destin collectif n’a été confirmé.
 
-Mise en scène et garde-fous : Le post-game n’introduit ni une réserve cachée de graines intactes survivantes, ni une ancre de remplacement permettant de refaire toute perte.
+Mise en scène et garde-fous : Les occupants éventuels ne forment pas une réserve uniforme d’alliés ; ils peuvent avoir connu des destins très différents. Le post-game n’introduit pas d’ancre de remplacement permettant de refaire toute perte.
 
-**Règles associées :** [FIN-002](../STORY_SOURCE.md#fin-002) — Victoire et monde après l’histoire ; [GRAINE-001](../STORY_SOURCE.md#graine-001) — Une seule capsule survivante.
+**Règles associées :** [FIN-002](../STORY_SOURCE.md#fin-002) — Victoire et monde après l’histoire ; [GRAINE-001](../STORY_SOURCE.md#graine-001) — Environ cent capsules, un seul survivant retrouvé ; [ELIO-POUVOIRS-001](../STORY_SOURCE.md#elio-pouvoirs-001) — Désapprendre pour réapprendre : progression d’Elio.
