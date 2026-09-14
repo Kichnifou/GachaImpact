@@ -1,7 +1,7 @@
 # Résumé de la version de travail
 
 > VUE GÉNÉRÉE — ne pas modifier ce fichier. Source : [STORY_SOURCE.md](../STORY_SOURCE.md).
-> Empreinte SHA-256 : `5f5a53cf41cc7ef7fde4e97e5e4f85720edf9c2c3d38d683d574ee066453ee02`.
+> Empreinte SHA-256 : `ba944c7a74e945856f5afd53d6ffbf036331574db7b128b5b9383f7a00d388f2`.
 
 ## Elio et Lyra : noms et rôles lisibles
 
@@ -15,35 +15,53 @@ Elio est le nom provisoire du personnage masculin ; Lyra, celui du personnage f�
 
 Orthe est le Monde des Origines, une planète réelle au sein du même univers que Sélis et les autres planètes. Ce n’est ni une simulation, ni un microcosme créé pour le protagoniste.
 
-## La rupture ancienne et la perte générale des pouvoirs
+## La crise politique de l’héritage
 
 **CONFIRME** · Origine : utilisateur · [HIST-001](../STORY_SOURCE.md#hist-001)
 
-Séveran et le futur Concordat provoquent volontairement, pendant une guerre ancienne, la désactivation des noyaux de tous les camps afin de reprendre ensuite le contrôle de leur usage. Leurs propres Porteurs perdent également leurs capacités.
+Avant le Grand Bâillon, de véritables abus de pouvoirs ont provoqué catastrophes, destructions, intimidation et impunité. Orthe se divise alors entre deux grandes visions. La première considère le Cœur comme un héritage commun des dieux, les noyaux comme appartenant à leurs Porteurs et leur alimentation libre comme un droit qu’aucune institution ne peut réserver aux personnes qu’elle juge méritantes. La seconde veut réguler les noyaux, limiter ou désactiver ceux de personnes jugées dangereuses et favoriser ceux qui servent la société.
 
-## Les enjeux politiques de la guerre
+## Le vote refusé et le coup d’État
 
-**PROPOSE** · Origine : assistant · [HIST-002](../STORY_SOURCE.md#hist-002)
+**CONFIRME** · Origine : utilisateur · [HIST-002](../STORY_SOURCE.md#hist-002)
 
-La guerre oppose deux réponses à un problème réel : qui peut autoriser l’usage de pouvoirs capables de modifier les conditions de vie de populations entières ?
+Une décision politique majeure soumet à la population d’Orthe la direction à donner au Cœur et au contrôle des noyaux. Le détail constitutionnel reste à définir. Malgré la propagande, les pressions, les manipulations et les tentatives de corruption venant notamment de la faction de Séveran, la tendance finale paraît favorable au maintien d’un Cœur libre et de l’héritage existant.
 
-## Le Grand Bâillon : mécanisme proposé d’un sabotage confirmé
+## Le Grand Bâillon : catastrophe d’une prise de contrôle
 
 **PROPOSE** · Origine : assistant · [HIST-003](../STORY_SOURCE.md#hist-003)
 
-Le Grand Bâillon est le nom proposé pour l’inhibition durable des noyaux volontairement provoquée par Séveran. Le sabotage et son objectif de contrôle sont confirmés ; le mécanisme de réseau décrit ici reste une solution de travail.
+Pendant la bataille, le dispositif expérimental de régulation est connecté au Cœur ou interfère avec lui. Les combats endommagent, surchargent ou déstabilisent l’ensemble, qui échappe au contrôle de ses concepteurs. Une résonance catastrophique rend alors les noyaux naturels présents dans la zone d’influence d’Orthe inactifs ou désaccordés : c’est le Grand Bâillon.
+
+## Les prototypes clandestins et la victoire après le Bâillon
+
+**CONFIRME** · Origine : utilisateur · [HIST-004](../STORY_SOURCE.md#hist-004)
+
+Pendant le débat politique, le camp de Séveran développe secrètement des implants, régulateurs et systèmes expérimentaux capables de forcer une réactivation, de maintenir artificiellement un noyau et peut-être d’en modifier le fonctionnement. Leur défaut caché est une altération progressive du noyau susceptible de dégrader le corps et l’esprit. Certains proches ou Porteurs alliés les ont déjà testés avant la catastrophe ; leur nombre exact et l’état de Séveran lui-même restent indéterminés.
 
 ## Environ cent capsules, un seul survivant retrouvé
 
 **CONFIRME** · Origine : utilisateur · [GRAINE-001](../STORY_SOURCE.md#graine-001)
 
-À l’époque du Grand Bâillon, environ cent Porteurs volontaires sont placés dans des capsules de stase et envoyés vers différentes planètes. Ce nombre est un ordre de grandeur de référence, pas un décompte définitif immuable. Elio est le seul survivant retrouvé et confirmé pendant l’arc principal ; son noyau est resté intact pendant une très longue stase sur Sélis.
+Pendant les tensions politiques qui précèdent le vote et le Grand Bâillon, environ cent Porteurs volontaires sont placés dans des capsules de stase et envoyés vers différentes planètes. Au moment de la catastrophe, les capsules ont déjà quitté Orthe et sa zone d’influence ; leurs noyaux peuvent donc rester naturellement intacts. Ce nombre est un ordre de grandeur de référence, pas un décompte définitif immuable. Elio est le seul survivant retrouvé et confirmé pendant l’arc principal ; son noyau est resté intact pendant une très longue stase sur Sélis.
 
-## Le réveil adulte : solution proposée pour la nouvelle origine
+## Le réveil adulte : âge encore proposé
 
 **PROPOSE** · Origine : assistant · [GRAINE-002](../STORY_SOURCE.md#graine-002)
 
 Elio est déjà un jeune adulte lorsqu’il entre en stase puis lorsqu’il en sort. Cette proposition remplace l’enfance adoptive de la v1.0 et permet son intégration autonome sur Sélis.
+
+## Une mémoire autobiographique perdue, des savoirs et réflexes préservés
+
+**CONFIRME** · Origine : utilisateur · [MEMOIRE-001](../STORY_SOURCE.md#memoire-001)
+
+La très longue stase efface presque entièrement la mémoire autobiographique d’Elio : il ne se souvient clairement ni d’Orthe, ni de la crise et de la guerre, ni de ses anciens proches, ni de son histoire personnelle, ni de son statut de Porteur, ni de sa maîtrise consciente de Spatial.
+
+## Le partenaire Biotique et la mission des capsules
+
+**CONFIRME** · Origine : utilisateur · [LYRA-001](../STORY_SOURCE.md#lyra-001)
+
+Dans la version de référence, Lyra appartient à un collectif encore sans nom définitif de Biotiques d’Orthe, historiquement formés à la maîtrise du vivant, à la médecine et au soin des blessés et des populations. Même lorsque leurs noyaux sont affaiblis ou inactifs, leur formation médicale et scientifique demeure utile. Lyra maîtrise elle-même Biotique.
 
 ## Couverture professionnelle, rencontre et amour
 
@@ -51,17 +69,17 @@ Elio est déjà un jeune adulte lorsqu’il entre en stase puis lorsqu’il en s
 
 Lors de son retour sur Sélis, Lyra se fait embaucher sous couverture dans l’environnement de travail d’Elio. Leur relation naît alors de contacts adultes, d’une amitié et de travaux communs ; au prologue, ils sont déjà en couple.
 
-## Rupture de mission et conséquences relationnelles proposées
+## Révélation, crise temporaire et réconciliation
 
-**PROPOSE** · Origine : assistant · [COUPLE-003](../STORY_SOURCE.md#couple-003)
+**CONFIRME** · Origine : utilisateur · [COUPLE-003](../STORY_SOURCE.md#couple-003)
 
-Lyra cesserait de transmettre des informations personnelles et renoncerait à la part intrusive de sa mission avant de s’engager dans la relation. Son secret resterait une faute : Elio n’avait pas toutes les informations, même si les sentiments étaient réels.
+Après A-source, Lyra révèle à Elio son origine d’Orthe, sa nature de Porteuse Biotique, sa participation à la recherche des capsules, le fait qu’elle l’a retrouvé et réveillé, et la mission initiale attachée à sa couverture professionnelle. Elle ne doit pas être décrite comme ayant nécessairement trahi son collectif ou désobéi avant de tomber amoureuse.
 
 ## Les deux parcours du partenaire
 
 **CONFIRME** · Origine : utilisateur · [COUPLE-002](../STORY_SOURCE.md#couple-002)
 
-Lyra de l’histoire-source et Lyra du prologue partagent le passé du couple jusqu’à A, puis vivent des événements différents. Lyra-source meurt en s’interposant lorsque Séveran attaque Elio pendant une tentative de restauration du Cœur ; le sauvetage final concerne la personne du prologue joué, pas sa version plus âgée.
+Lyra de l’histoire-source et Lyra du prologue partagent le passé du couple jusqu’à A, alors qu’Elio ignore encore son origine et sa mission, puis vivent des événements différents. Lyra-source révèle ensuite la vérité, traverse la crise et la réconciliation du couple, part sur Orthe et meurt en s’interposant lorsque Séveran attaque Elio pendant une tentative de restauration du Cœur. Le sauvetage final concerne la personne du prologue joué, pas sa version plus âgée.
 
 ## Fonction des noyaux et vie de leur porteur
 
@@ -79,19 +97,19 @@ Elio peut réactiver sainement le noyau d’un autre Porteur et lui fournir une 
 
 **CONFIRME** · Origine : utilisateur · [NOYAU-003](../STORY_SOURCE.md#noyau-003)
 
-Le Concordat obtient de rares réactivations par des méthodes dangereuses, incertaines et altérantes. Les pouvoirs peuvent presque retrouver leur ampleur, mais l’instabilité atteint le corps et peut affecter l’esprit du bénéficiaire.
+Le mouvement de Séveran expérimente avant le Grand Bâillon des méthodes clandestines de réactivation et de maintien artificiels. Après la catastrophe, le Concordat exploite ces prototypes pour obtenir de rares réactivations dangereuses, incertaines et altérantes. Les pouvoirs peuvent presque retrouver leur ampleur, mais l’instabilité atteint le noyau, le corps et parfois l’esprit du bénéficiaire.
 
 ## Procédé proposé des réveils forcés
 
 **PROPOSE** · Origine : assistant · [NOYAU-007](../STORY_SOURCE.md#noyau-007)
 
-La méthode impériale forcerait le noyau à fonctionner sans réparer sa référence. Des implants et charges extérieures maintiendraient artificiellement la coordination, au prix de douleurs, crises, lésions ou troubles variables de mémoire et d’impulsion.
+La méthode clandestine puis impériale forcerait le noyau à fonctionner sans réparer son accord naturel avec le Cœur. Des implants, régulateurs et charges extérieures maintiendraient artificiellement la coordination, au prix d’une corruption progressive, de douleurs, crises, lésions ou troubles variables de mémoire et d’impulsion.
 
-## Une sécurité imposée au nom du bien commun
+## Du réformateur respecté au monopole autoritaire
 
 **CONFIRME** · Origine : utilisateur · [SEVERAN-001](../STORY_SOURCE.md#severan-001)
 
-Séveran pense agir pour le bien : il veut prévenir une nouvelle guerre de Porteurs, distribuer capacités et ressources et garantir les services essentiels, mais seulement sous une tutelle centrale qu’il contrôle.
+Séveran a réellement constaté des abus, des impunités, des catastrophes liées aux pouvoirs et l’incapacité d’institutions à contrôler certains Porteurs très puissants. Il commence comme un réformateur qui réclame responsabilité, lois, limites et sanctions. Son besoin de régulation devient progressivement besoin de contrôle, puis monopole et conviction que son mouvement sait mieux que la population ce qui doit la protéger.
 
 ## À quoi servirait exactement le noyau volé
 
@@ -151,7 +169,7 @@ Avant sa stase, Elio maîtrise consciemment Spatial. La très longue stase effac
 
 **CONFIRME** · Origine : utilisateur · [MECHA-001](../STORY_SOURCE.md#mecha-001)
 
-Mecha est une discipline technologique développée par les humains d’Orthe, et non une cinquième catégorie divine ni un noyau créé par les dieux. Sa région d’origine exacte n’est pas encore confirmée ; ses techniques se sont répandues grâce aux voyages, aux migrations, au travail et aux conflits.
+Mecha est une discipline technologique développée par les humains d’Orthe, et non une cinquième catégorie divine ni un noyau créé par les dieux. Son berceau historique est confirmé : après le Grand Bâillon, aux Chantiers de Cendre, des ingénieurs, ouvriers, médecins et scientifiques cherchent clandestinement une manière de résister sans dépendre du monopole des réactivations du Concordat.
 
 ## Le Cœur d’Orthe et la restauration
 
@@ -189,17 +207,17 @@ Chaque pétale détaché contient une empreinte émotionnelle, une trace de la p
 
 La technologie ouvre une continuation matérielle réelle et locale à partir d’un instant A conservé ; elle ne modifie pas l’histoire-source de l’univers. Le sauvetage reprend la même scène après la blessure et l’extraction initiale, sans retour illimité au début ni duplication libre.
 
-## Une invention naissante, une ambition plus grande
+## De la localisation précise à l’ancre temporelle
 
-**PROPOSE** · Origine : utilisateur · [TEMPS-002](../STORY_SOURCE.md#temps-002)
+**CONFIRME** · Origine : utilisateur · [TEMPS-002](../STORY_SOURCE.md#temps-002)
 
-Le scientifique veut revoir Lyra et réparer ses erreurs. À Z, il a préparé personnellement une ouverture vers A, moment de leur vie commune ; son prototype ne sait toutefois produire que des ouvertures locales ancrées, pas réécrire l’histoire-source.
+À A-source, Elio est fasciné par le voyage, la localisation, les référentiels, les phénomènes temporels et les relations entre position, état et instant. Avec Lyra, il travaille sur une technologie encore primitive de localisation spatio-temporelle extrêmement précise ou sur un dispositif apparenté. Elle peut viser l’amélioration de relais, l’enregistrement exact de l’état d’un lieu, la synchronisation de déplacements ou la comparaison de référentiels ; ces applications scientifiques exactes restent proposées.
 
 ## Ancre, machine et accès : trois choses distinctes
 
 **PROPOSE** · Origine : assistant · [TEMPS-003](../STORY_SOURCE.md#temps-003)
 
-L’anneau témoin est l’ancre unique de l’événement A ; la machine est l’appareil qui ouvre cet événement ; Nacre transporte des commandes et des coordonnées. Reconstruire un appareil ne recrée pas l’ancre ni un nouveau partenaire.
+L’« anneau témoin » reste un nom de travail pour le dispositif primitif qui enregistre à A une empreinte exceptionnellement précise du laboratoire. Il n’est pas présenté à cette date comme une technologie temporelle maîtrisée. Plus tard, cette empreinte devient l’ancre unique de l’événement A ; la machine développée après G est l’appareil qui ouvre cet événement ; Nacre transporte des commandes et des coordonnées. Reconstruire un appareil ne recrée pas l’ancre ni un nouveau partenaire.
 
 ## Le lieu de Z et les deux déplacements de Nacre
 
@@ -213,17 +231,17 @@ Z est une date, pas une planète. Pour conserver littéralement le trajet souhai
 
 Nacre est un assistant mobile créé par le scientifique de l’histoire-source avec des ingénieurs d’Orthe. Elle sert aux recherches, aux diagnostics, aux réaccords et à l’utilisation de relais spatiaux déjà construits.
 
-## La dernière consigne du scientifique
+## Une évacuation générale qui change de cible
 
-**PROPOSE** · Origine : utilisateur · [IA-002](../STORY_SOURCE.md#ia-002)
+**CONFIRME** · Origine : utilisateur · [IA-002](../STORY_SOURCE.md#ia-002)
 
-Mortellement blessé, le scientifique arme une routine de secours déjà prévue dans Nacre : suivre l’ouverture hostile, récupérer sa version jeune, la ramener en Z puis l’évacuer vers Orthe.
+À Z, Elio-source pressent le danger et arme dans Nacre une routine générale dont l’ordre est de le protéger, de l’évacuer du laboratoire, d’utiliser un relais sûr et de l’emmener sur Orthe. Cette routine vise Elio-source lui-même ; elle n’est pas conçue pour récupérer sa version du point A.
 
 ## L’extraction pendant l’interposition
 
 **PROPOSE** · Origine : utilisateur · [IA-003](../STORY_SOURCE.md#ia-003)
 
-Nacre franchit la faille après Séveran. Pendant que Lyra s’interpose et occupe son attention, elle arrache Elio au danger, le fait repasser physiquement par la faille puis active l’évacuation spatiale vers Orthe.
+Nacre franchit la faille après Séveran. Pendant que Lyra s’interpose et occupe son attention, elle arrache l’Elio joué au danger et le fait repasser physiquement par la faille vers Z. Avec un Elio vivant redevenu cible de la routine, elle achève simplement l’ordre initial en activant l’évacuation spatiale vers Orthe. Le trajet A-fenêtre → Z → Orthe forme une seule logique de secours.
 
 ## La fermeture visible et la suspension réelle
 
@@ -235,13 +253,13 @@ La fenêtre est suspendue après le retour de Séveran, et non au moment où Eli
 
 **CONFIRME** · Origine : utilisateur · [IA-005](../STORY_SOURCE.md#ia-005)
 
-L’utilisation de la technologie de localité temporelle pendant le secours surcharge Nacre et endommage ses index et circuits de lecture. Elle garde sa personnalité et ses souvenirs nouveaux, mais perd l’accès à une partie de ses archives historiques et au pétale intégré dans son propre corps.
+Le passage temporel inhabituel et l’opération d’urgence surchargent Nacre et endommagent ses index, ses accès aux archives et ses circuits de lecture. Elle garde sa personnalité, ses fonctions d’accompagnement et ses souvenirs nouveaux, mais perd l’accès à une partie de ses archives historiques et au pétale intégré dans son propre corps à Z.
 
 ## Le fragment de Nacre et son transfert final
 
 **CONFIRME** · Origine : utilisateur · [IA-006](../STORY_SOURCE.md#ia-006)
 
-Nacre possède réellement le septième et dernier pétale détaché du noyau d’Elio-source. Elle voyage avec cette trace sans en avoir conscience au début et sans devenir une copie du scientifique, une connaissance totale de sa vie ou un oracle capable de résoudre l’aventure.
+Nacre existe pendant la tournée régionale sans porter le dernier fragment. Ce n’est qu’à Z, quelques instants avant l’arrivée de Séveran, qu’Elio-source détache son septième pétale et le lui intègre. Elle voyage ensuite avec cette trace sans en avoir conscience au début et sans devenir une copie du scientifique, une connaissance totale de sa vie ou un oracle capable de résoudre l’aventure.
 
 ## Résonance, dernière mémoire et autonomie du Cœur
 
@@ -289,4 +307,4 @@ Après le redémarrage du Cœur, les noyaux véritables retrouvent leur fonction
 
 **CONFIRME** · Origine : utilisateur · [FIN-003](../STORY_SOURCE.md#fin-003)
 
-La fin suit cet ordre : conflit autour du redémarrage du Cœur, défaite du projet de tutelle de Séveran, stabilisation d’Orthe, dernière ouverture pour sauver Lyra, début de l’apprentissage Biotique, révélation et lecture du septième pétale de Nacre selon la mise en scène finale, destruction de l’accès temporel avec transfert risqué de Nacre, puis épilogue et retour préparé de Nacre sans pouvoir temporel.
+La fin suit cet ordre : six fragments régionaux rassemblés et souvenirs reconstruits, conflit autour du redémarrage du Cœur, défaite du projet de tutelle de Séveran, stabilisation d’Orthe, dernière ouverture pour sauver Lyra, début de l’apprentissage Biotique, découverte puis lecture du septième pétale placé dans Nacre à Z, complément apporté par les données propres de l’IA, destruction de l’accès temporel avec transfert risqué de Nacre, puis épilogue et retour préparé de Nacre sans pouvoir temporel.
