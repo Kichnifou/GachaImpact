@@ -2,7 +2,7 @@
 
 Version : 0.96
 Date : 2026-09-14
-Statut : CANDIDAT LOCAL 0.96 — REVIEW INDÉPENDANTE REQUISE, NON PUBLIÉ
+Statut : CANDIDAT 0.96 PUBLIÉ SUR `review` — REVIEW INDÉPENDANTE EN COURS
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
@@ -3805,12 +3805,12 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 
 Le commit 0.95 `3e510307f49ffa389df902d35c83287ea0ebe96e` est désormais sur `main`, auto-déployé avec succès par Railway (`/health` HTTP 200). Les actions RUNNING sur cartes, le feedback `+N` cross-viewer et le picker Boss aligné sur Entraînement sont validés publiquement. La revalidation visuelle finale Notifications attend un retour Expedition naturel ; READY et son deep-link avaient déjà été validés.
 
-## État du candidat local 0.96 — Collection / Sac et micro-corrections Concours
+## État du candidat 0.96 publié sur `review` — Collection / Sac et micro-corrections Concours
 
 - Le domaine actif devient **Collection / Sac à compléter**. Les douze objets mensuels connus sont des définitions permanentes visibles à quantité zéro sans créer de possession ; `PlayerItem.quantity` reste le stock autoritatif.
 - La migration additive 018 ajoute uniquement un ledger `ItemAcquisition`, sans backfill, et les douze définitions Collection. Le détail personnel est chargé à la demande et paginé ; il expose origine, méthode, première obtention connue et acquisitions réellement enregistrées.
 - Concours projette le dernier résultat strictement moins de cinq minutes après son `finishedAt` serveur, sans supprimer l’historique ni bloquer un nouveau lobby. Un viewer ayant consommé sa participation voit le sélecteur et Participer désactivés avec une raison explicite, mais peut toujours devenir spectateur si le serveur l’autorise. Le scroll desktop n’apparaît que si le contenu déborde réellement.
-- Ce candidat reste local : il n’est ni publié sur `review`, ni promu, ni déployé, ni validé publiquement. Aucun fichier `docs/Story/**` n’est modifié.
+- Le commit fonctionnel 0.96 `ea046f421a2199d3b4b7fee56dff3ade795233c6` est publié sur `review`. Il n’est ni promu sur `main`, ni déployé en production, ni validé publiquement. La review indépendante ChatGPT du code et de la DB est favorable sous réserve du présent micro-correctif documentaire. Aucun fichier `docs/Story/**` n’est modifié.
 
 ## État déployé 0.92 — Concours / C6 et densité Boss
 
@@ -3964,7 +3964,15 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
 Prochaine étape exacte :
-**Faire la review indépendante du candidat local 0.96, puis le publier explicitement sur `review` seulement après approbation locale.** Ne pas promouvoir ni déployer manuellement. La validation publique 0.96 viendra après promotion et déploiements automatiques ; Codes cadeaux ne commence pas encore. L’ordre complet restant appartient à [implementation-order-v1.md](../roadmap/implementation-order-v1.md). La migration legacy reste reportée ; `PAID_INFRA_APPROVED = false` reste inchangé.
+
+1. Terminer la review indépendante après ce micro-correctif documentaire.
+2. Si conforme, promouvoir `review` vers `main` par fast-forward strict.
+3. Attendre les déploiements automatiques.
+4. Vérifier Railway et le healthcheck.
+5. Effectuer la validation publique 0.96.
+6. Ne pas ouvrir Codes cadeaux avant validation suffisante.
+
+L’ordre complet restant appartient à [implementation-order-v1.md](../roadmap/implementation-order-v1.md). La migration legacy reste reportée ; `PAID_INFRA_APPROVED = false` reste inchangé.
 
 Le premier lot ne doit pas implémenter tous les domaines V1 d'un coup.
 
