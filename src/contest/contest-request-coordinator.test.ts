@@ -34,6 +34,24 @@ describe('contest request coordinator', () => {
     expect(publish.mock.calls).toEqual([[4]])
   })
 
+  it('starts one fresh revalidation after an external progression change and deduplicates its consumers', async () => {
+    const staleRead = deferred<number>()
+    const refreshed = deferred<number>()
+    const loadFresh = vi.fn(() => refreshed.promise)
+    const publish = vi.fn()
+    const coordinator = createContestRequestCoordinator(publish)
+
+    const stale = coordinator.read(() => staleRead.promise)
+    const refreshes = [coordinator.refresh(loadFresh), coordinator.refresh(loadFresh), coordinator.read(loadFresh)]
+    expect(loadFresh).toHaveBeenCalledOnce()
+
+    refreshed.resolve(6)
+    await expect(Promise.all(refreshes)).resolves.toEqual([6, 6, 6])
+    staleRead.resolve(0)
+    await expect(stale).resolves.toBe(0)
+    expect(publish.mock.calls).toEqual([[6]])
+  })
+
   it('also invalidates a read started while a mutation is still in flight', async () => {
     const mutationResult = deferred<number>()
     const staleRead = deferred<number>()

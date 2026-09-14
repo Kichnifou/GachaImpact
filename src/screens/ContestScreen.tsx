@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { ContestDto, ContestHistoryDto, ContestLegendDto, ContestSnapshotDto, ElementKey } from '../api/types'
+import type { ContestDto, ContestHistoryDto, ContestLatestScoreChangeDto, ContestLegendDto, ContestSnapshotDto, ElementKey } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
 import { apiErrorMessage, elementLabels, formatResourceAmount } from '../utils/formatters'
 import CharacterAssetImage from '../components/CharacterAssetImage'
@@ -47,6 +47,7 @@ export default function ContestScreen(props: Props) {
   const refresh = props.onRefresh
   const authoritativeLegendId = props.value.active?.status === 'LOBBY' ? props.value.active.viewer.selectedCharacterId : null
   const selectedLegendId = authoritativeLegendId ?? (props.value.legends.some((legend) => legend.character.id === legendDraftId) ? legendDraftId : '')
+  const scoreFeedback = useLatestScoreFeedback(props.value.active)
 
   useEffect(() => {
     let mounted = true
@@ -56,7 +57,7 @@ export default function ContestScreen(props: Props) {
     const clearPoll = () => { if (pollTimer !== null) window.clearTimeout(pollTimer); pollTimer = null }
     const schedule = (delay: number) => {
       clearPoll()
-      if (mounted && activeContestId && document.visibilityState !== 'hidden') pollTimer = window.setTimeout(() => { void revalidate() }, delay)
+      if (mounted && document.visibilityState !== 'hidden') pollTimer = window.setTimeout(() => { void revalidate() }, delay)
     }
     const revalidate = () => {
       if (!mounted || document.visibilityState === 'hidden') return Promise.resolve()
@@ -71,7 +72,7 @@ export default function ContestScreen(props: Props) {
         setSyncError('Synchronisation temporairement indisponible. Nouvel essai automatique.')
       }).finally(() => {
         if (inFlight === request) inFlight = null
-        if (mounted && activeContestId) schedule(Math.min(15_000, 2_000 * 2 ** failures))
+        if (mounted) schedule(Math.min(15_000, (activeContestId ? 2_000 : 3_000) * 2 ** failures))
       })
       inFlight = request
       return request
@@ -83,7 +84,7 @@ export default function ContestScreen(props: Props) {
     }
     window.addEventListener('focus', onFocus)
     document.addEventListener('visibilitychange', onVisibilityChange)
-    if (activeContestId) schedule(2_000)
+    void revalidate()
     return () => {
       mounted = false
       clearPoll()
@@ -141,7 +142,7 @@ export default function ContestScreen(props: Props) {
       <div className="contest-body">
         {!props.value.active && !props.value.lastResult && <ContestEmpty value={props.value} selectedLegendId={selectedLegendId} onSelect={setSelectedLegendId} pending={pending} onOpen={() => void run(`open:${selectedLegendId}`, (key) => props.onOpen(selectedLegendId, key))} />}
         {props.value.active?.status === 'LOBBY' && <ContestLobby {...props} contest={props.value.active} selectedLegendId={selectedLegendId} onSelect={setSelectedLegendId} pending={pending} run={run} now={now} />}
-        {props.value.active?.status === 'RUNNING' && <ContestRunning {...props} contest={props.value.active} pending={pending} run={run} now={now} />}
+        {props.value.active?.status === 'RUNNING' && <ContestRunning {...props} contest={props.value.active} pending={pending} run={run} now={now} scoreFeedback={scoreFeedback} />}
         {!props.value.active && props.value.lastResult && <ContestResult contest={props.value.lastResult} legends={props.value.legends} theme={props.value.theme} canOpen={props.value.permissions.canOpen} selectedLegendId={selectedLegendId} onSelect={setSelectedLegendId} pending={pending} onOpen={() => void run(`open:${selectedLegendId}`, (key) => props.onOpen(selectedLegendId, key))} />}
         <div className="contest-feedback-region"><p className={`contest-feedback${error ? ' error' : ''}`} role={error ? 'alert' : undefined}>{error ?? ''}</p><p className={`contest-sync-feedback${syncError && !error ? ' error' : ''}`} role={syncError && !error ? 'status' : undefined}>{error ? '' : syncError ?? ''}</p></div>
       </div>
@@ -149,6 +150,38 @@ export default function ContestScreen(props: Props) {
     {legendsOpen && <LegendsModal legends={props.value.legends} theme={toolbarTheme} onClose={() => setLegendsOpen(false)} />}
     {historyOpen && <HistoryModal history={history} error={historyError} onPage={openHistory} onLoadDetail={props.onLoadHistoryDetail} onClose={() => setHistoryOpen(false)} />}
   </div>
+}
+
+type ScoreFeedback = ContestLatestScoreChangeDto
+type ScoreFeedbackState = Readonly<{ contestId: string; event: ScoreFeedback }>
+
+function useLatestScoreFeedback(contest: ContestSnapshotDto | null): ScoreFeedback | null {
+  const seen = useRef<{ contestId: string; eventId: string | null } | null>(null)
+  const [feedback, setFeedback] = useState<ScoreFeedbackState | null>(null)
+  const contestId = contest?.id ?? null
+  const event = contest?.latestScoreChange ?? null
+
+  useEffect(() => {
+    if (!contestId) {
+      seen.current = null
+      return
+    }
+    if (!seen.current || seen.current.contestId !== contestId) {
+      seen.current = { contestId, eventId: event?.eventId ?? null }
+      return
+    }
+    if (!event || seen.current.eventId === event.eventId) return
+    seen.current = { contestId, eventId: event.eventId }
+    setFeedback({ contestId, event })
+  }, [contestId, event])
+
+  useEffect(() => {
+    if (!feedback) return
+    const timer = window.setTimeout(() => setFeedback((current) => current?.event.eventId === feedback.event.eventId ? null : current), 1_200)
+    return () => window.clearTimeout(timer)
+  }, [feedback])
+
+  return feedback?.contestId === contestId ? feedback.event : null
 }
 
 function ContestEmpty({ value, selectedLegendId, onSelect, pending, onOpen }: { value: ContestDto; selectedLegendId: string; onSelect: (id: string) => void; pending: string | null; onOpen: () => void }) {
@@ -186,12 +219,12 @@ function ContestLobby(props: Props & { contest: ContestSnapshotDto; selectedLege
   </div>
 }
 
-function ContestRunning(props: Props & { contest: ContestSnapshotDto; pending: string | null; run: Runner; now: number }) {
+function ContestRunning(props: Props & { contest: ContestSnapshotDto; pending: string | null; run: Runner; now: number; scoreFeedback: ScoreFeedback | null }) {
   const { contest, value } = props
   const deadline = contest.phase === 'SUPPORT' ? contest.supportDeadlineAt : contest.turnDeadlineAt
   return <div className="contest-active-layout">
     <section className="panel contest-state-header"><div><span className="eyebrow">Manche {contest.currentRound}</span><h2>{contest.phase === 'SUPPORT' ? 'Soutien du public' : 'Concours en cours'}</h2></div><Countdown label={contest.phase === 'SUPPORT' ? 'Soutien' : 'Tour'} deadline={deadline} now={props.now} /></section>
-    <ParticipantGrid contest={contest} />
+    <ParticipantGrid contest={contest} scoreFeedback={props.scoreFeedback} />
     <SpectatorStrip contest={contest} organizerCanRemove={contest.viewer.organizer} onRemove={(playerId) => void props.run(`remove-spectator:${playerId}`, (key) => props.onRemoveSpectator(playerId, key))} pending={props.pending} />
     <section className="panel contest-action-region">
       {value.permissions.canPlay && <div className="contest-turn-actions"><h3>À vous de jouer</h3><p>L’action sûre rapporte vos points de base. Le risque rapporte 0, ×1 ou ×2.</p><div><PendingButton signature="play:BASIC" pending={props.pending} pendingLabel="Action en cours…" className="primary-button" onClick={() => void props.run('play:BASIC', (key) => props.onPlay('BASIC', key))}>Action de base</PendingButton><PendingButton signature="play:RISK" pending={props.pending} pendingLabel="Action en cours…" onClick={() => void props.run('play:RISK', (key) => props.onPlay('RISK', key))}>Prendre un risque</PendingButton></div></div>}
@@ -207,7 +240,7 @@ function PendingButton({ signature, pending, pendingLabel, disabled = false, cla
   return <button type="button" className={`${className ?? ''} contest-mutation-button`.trim()} disabled={disabled || Boolean(pending)} aria-busy={loading} onClick={onClick}>{loading ? pendingLabel : children}</button>
 }
 
-function ParticipantGrid({ contest, organizerCanRemove = false, onRemove, pending }: { contest: ContestSnapshotDto; organizerCanRemove?: boolean; onRemove?: (playerId: string) => void; pending?: string | null }) {
+function ParticipantGrid({ contest, organizerCanRemove = false, onRemove, pending, scoreFeedback = null }: { contest: ContestSnapshotDto; organizerCanRemove?: boolean; onRemove?: (playerId: string) => void; pending?: string | null; scoreFeedback?: ScoreFeedback | null }) {
   const bySlot = new Map(contest.participants.map((participant) => [participant.slot, participant]))
   const displayedSlots = contest.status === 'LOBBY' ? [1, 2, 3, 4] : contest.participants.map((participant) => participant.slot)
   return <div className="contest-participant-grid">{displayedSlots.map((slot) => {
@@ -216,7 +249,7 @@ function ParticipantGrid({ contest, organizerCanRemove = false, onRemove, pendin
     return <article className={`panel contest-participant${item.activeTurn ? ' active-turn' : ''}${item.finalRank === 1 ? ' winner' : ''}${item.titleRank >= 1 && item.titleRank <= 4 ? ` contest-title-rank-${item.titleRank}` : ''}`} key={item.slot}>
       <div className="contest-avatar"><CharacterAssetImage characterName={item.characterName ?? item.displayName} className="contest-avatar-image" assetPaths={item.kind === 'HUMAN' ? [item.avatar] : []} fallback={<span>{item.kind === 'BOT' ? '◆' : item.displayName.slice(0, 1).toUpperCase()}</span>} /></div>
       <span className="contest-slot">#{item.slot}{item.turnOrder ? ` · tour ${item.turnOrder}` : ''}</span><h3>{item.displayName}</h3><p>{item.characterName}</p>
-      {item.basePoints !== null && <div className="contest-score"><strong>{item.score}</strong><span>points · base +{item.basePoints}</span></div>}
+      {item.basePoints !== null && <div className="contest-score"><div className="contest-score-value"><strong>{item.score}</strong>{scoreFeedback?.slot === item.slot && <span className="contest-score-change" role="status" aria-label={`Gain de ${scoreFeedback.points} point${scoreFeedback.points === 1 ? '' : 's'}`} data-event-id={scoreFeedback.eventId}>+{scoreFeedback.points}</span>}</div><span>points · base +{item.basePoints}</span></div>}
       {item.title && <span className="contest-title">{item.title}</span>}{contest.status === 'LOBBY' && <span className={item.ready ? 'contest-ready-state ready' : 'contest-ready-state'}>{item.ready ? 'Prêt' : 'Pas prêt'}</span>}
       {item.replaced && <span className="contest-replaced">Remplacement IA</span>}
       {contest.status === 'RUNNING' && item.liveRank && <strong className="contest-live-rank" aria-label={`Classement en direct : ${rankLabel(item.liveRank)}`}>{rankLabel(item.liveRank)}</strong>}

@@ -1,9 +1,12 @@
 // @vitest-environment happy-dom
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
+import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { MonthlyBossDto } from '../api/types'
 import MonthlyBossScreen from './MonthlyBossScreen'
+
+const appCss = readFileSync(`${process.cwd()}/src/App.css`, 'utf8')
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 afterEach(() => document.body.replaceChildren())
@@ -42,6 +45,10 @@ describe('MonthlyBossScreen', () => {
     expect(container.textContent).toContain('1 490 000 / 1 500 000')
     expect(container.querySelector('[aria-label="Résistance Hydro — dégâts ×0,5"]')).not.toBeNull()
     expect(container.querySelector('.boss-resistance-label')?.textContent).toBe('Res :')
+    expect(container.querySelector('.boss-resistance')?.children).toHaveLength(2)
+    expect(container.querySelector('.boss-state-badge')?.textContent).toBe('Boss actif')
+    expect(appCss).toMatch(/\.boss-identity-status \.boss-state-badge \{ position: absolute; top: 13px; right: 15px; \}/)
+    expect(appCss).toContain('.boss-resistance { display: inline-flex; align-items: center; gap: 4px; }')
     expect(container.querySelector<HTMLImageElement>('.boss-element-icon img')?.getAttribute('src')).toBe('/assets/genshin/elements/hydro.png')
     expect(container.textContent).toContain('Bilan →')
     expect(container.textContent).not.toContain('Votre place : #4')

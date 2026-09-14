@@ -57,13 +57,18 @@ function AppBootstrap() {
     return nextResources
   }, [])
 
+  const loadContest = useCallback(() => contestRequests.read(() => getGameApiClient().getContest()), [contestRequests])
+  const refreshContest = useCallback(() => contestRequests.refresh(() => getGameApiClient().getContest()), [contestRequests])
   const loadBox = useCallback(() => getGameApiClient().getBox(), [])
   const setBoxFavorite = useCallback(async (characterId: string, favorite: boolean) =>
     (await getGameApiClient().setBoxFavorite(characterId, favorite)).character, [])
   const setBoxSortPreference = useCallback(async (preference: Parameters<ReturnType<typeof getGameApiClient>['setBoxSortPreference']>[0]) =>
     (await getGameApiClient().setBoxSortPreference(preference)).preference, [])
-  const useStella = useCallback((characterId: string, idempotencyKey: string) =>
-    getGameApiClient().useStella(characterId, idempotencyKey), [])
+  const useStella = useCallback(async (characterId: string, idempotencyKey: string) => {
+    const result = await getGameApiClient().useStella(characterId, idempotencyKey)
+    await refreshContest()
+    return result
+  }, [refreshContest])
   const loadTeams = useCallback(async () => {
     const nextTeams = await getGameApiClient().getTeams()
     setTeams(nextTeams)
@@ -75,7 +80,6 @@ function AppBootstrap() {
     return nextDailyCombat
   }, [])
   const loadMonthlyBoss = useCallback(async () => { const next = await getGameApiClient().getMonthlyBoss(); setMonthlyBoss(next); return next }, [])
-  const loadContest = useCallback(() => contestRequests.read(() => getGameApiClient().getContest()), [contestRequests])
   const publishContest = useCallback(async (request: () => Promise<ContestDto>) => {
     const next = await contestRequests.mutate(request)
     if (!next.active && next.lastResult) void loadResources().catch(() => undefined)
@@ -200,7 +204,7 @@ function AppBootstrap() {
     if (gachaPresentation.current === null) gachaPresentation.current = createGachaPresentationCoordinator({
       execute: async (count, idempotencyKey, onPullSucceeded) => {
         const result = await performGachaPullAndRefresh(getGameApiClient(), count, idempotencyKey, onPullSucceeded)
-        const [nextDailyChallenge] = await Promise.all([getGameApiClient().getDailyChallenge(), loadMonthlyBoss()])
+        const [nextDailyChallenge] = await Promise.all([getGameApiClient().getDailyChallenge(), loadMonthlyBoss(), refreshContest()])
         setDailyChallenge(nextDailyChallenge)
         return result
       },
@@ -218,7 +222,7 @@ function AppBootstrap() {
       },
     })
     gachaPresentation.current.setSession(sessionUserId ?? null)
-  }, [loadMonthlyBoss, publishGachaUpdate, sessionUserId])
+  }, [loadMonthlyBoss, publishGachaUpdate, refreshContest, sessionUserId])
 
   const pendingGachaPullCount = pendingGachaPull && pendingGachaPull.sessionId === sessionUserId
     ? pendingGachaPull.count

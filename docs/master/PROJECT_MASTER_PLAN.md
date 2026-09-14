@@ -1,8 +1,8 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.93
-Date : 2026-09-13
-Statut : CANDIDAT 0.93 DE STABILISATION — REVIEW INDÉPENDANTE REQUISE
+Version : 0.94
+Date : 2026-09-14
+Statut : CANDIDAT CORRECTIF 0.94 — REVIEW INDÉPENDANTE REQUISE
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
@@ -3773,14 +3773,23 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - Les validations automatisées utilisent seulement des Players fixtures UUID et des mois 2098, puis les nettoient. Les comptes DEV confirmés `Kichnifou`, `Mynonyme`, `MynonymeTest1`, `MynonymeTest2`, `MynonymeTest3`, `Céo`, `Mika` et `Jean Julien`, ainsi que leur Expedition réelle, n’ont été ni ciblés ni modifiés. `PAID_INFRA_APPROVED = false` reste inchangé ; aucun service payant ni déploiement Railway manuel ne fait partie du candidat.
 - Le domaine actif reste Combat, centré sur le candidat Boss 0.91 final corrigé. Sa validation publique n’a pas encore eu lieu ; aucun domaine suivant n’est commencé. Après franchissement des gates publiques listées ci-dessous, le prochain domaine exact est **Concours / personnages C6**, selon [implementation-order-v1.md](../roadmap/implementation-order-v1.md).
 
-## État du candidat 0.93 — stabilisation Concours et alignement Activités
+## État public 0.93 — stabilisation Concours et alignement Activités
 
-- La version 0.92 est déployée, mais sa validation publique Concours est **bloquée** : le backend a subi des erreurs Prisma `P2028`, des réponses 502 et des redémarrages pendant une partie ; le frontend multipliait en parallèle certaines lectures et présentait des actions lentes sans feedback immédiat. Les défauts visuels observés concernent aussi la géométrie Concours, les modales Concours/Boss, les contrôles blancs, l’icône de résistance et la densité des cartes Quotidiennes.
+- La stabilisation 0.93 est déployée et nettement améliorée publiquement : le nouveau parcours multi-compte n’a montré aucun `P2028`, aucun 5xx et aucun redémarrage serveur. Le lobby global, le rôle spectateur, le soutien et une partie complète sont jouables ; quelques finitions de réactivité et de présentation restent regroupées dans 0.94.
 - Le candidat 0.93 est exclusivement un lot correctif. La réconciliation Concours devient mono-vol dans un processus, préfiltre les transitions dues par une lecture légère, tente le verrou inter-processus puis revalide sous verrou avant mutation. Le scheduler attend chaque exécution, gère localement ses erreurs transitoires, repart sur un délai maîtrisé et s’arrête avant la déconnexion Prisma. Les mutations ne patientent plus derrière un rattrapage complet et les projections live n’embarquent plus systématiquement événements, récompenses et dernier résultat historique.
 - Le frontend stabilise les callbacks de préférences de navigation, déduplique les lectures Concours simultanées, sépare lecture et mutation par révision et applique un polling séquentiel avec pause cachée, reprise visible et backoff borné. Toute mutation Concours possède un état pending immédiat, une garde synchrone contre le double clic et conserve sa clé d’idempotence après un résultat réseau ambigu.
 - Le layout Activités restaure des headers naturels et des bodies `minmax(0, 1fr)`. Concours réserve quatre slots de lobby, dix emplacements spectateurs et une zone d’action stable ; Mes Légendes affiche trois entrées par page après filtre/tri personnel et l’Historique dix résultats par page. Le Bilan Boss garde ses trois onglets dans une enveloppe compacte stable et les huit cartes Quotidiennes partagent une hauteur desktop de 136 px.
 - Aucune règle R526–R593, formule, récompense, donnée, migration ou schéma n’est modifié. Les validations PostgreSQL et le parcours navigateur multi-session restent conditionnés à une base réellement isolée ; ils ne doivent jamais être improvisés sur les données DEV réelles.
-- Le domaine actif reste **Concours / personnages C6**, candidat correctif 0.93. Après review indépendante, promotion, déploiements automatiques et validation publique, la prochaine étape reste **Collection / Sac à compléter**.
+- Le domaine actif reste **Concours / personnages C6**. La stabilité runtime 0.93 est acquise sur le parcours public observé et ne doit pas être reconstruite ; les dernières corrections player-facing appartiennent au candidat 0.94 ci-dessous.
+
+## État du candidat 0.94 — réactivité et feedback final du Concours
+
+- L’entrée réelle dans `Activités > Concours` revalide immédiatement la projection. Tant que l’écran est visible, le polling mono-vol reste à environ deux secondes avec un Concours actif et découvre aussi un lobby distant en environ trois secondes lorsqu’aucun Concours n’est actif ; onglet caché, focus et retour visible conservent les garde-fous 0.93.
+- Une Stella réussie et chaque Pull x1/x10 réussi invalident puis rechargent une seule projection Concours fraîche via le coordinateur partagé. Une nouvelle possession 5★ C6 devient donc disponible sans rechargement manuel, que l’écran soit déjà ouvert ou visité ensuite.
+- La projection live ajoute uniquement le dernier événement de score pertinent (`TURN_PLAYED`, `BOT_TURN_PLAYED`, `TURN_AUTO_BASIC` ou `SUPPORT_PLAYED`) par un `select` minimal limité à une ligne. Le frontend suit son `eventId`, ignore l’événement déjà présent au premier rendu et affiche une seule animation absolue `+0`/`+N` sur le slot bénéficiaire, sans réintroduire l’historique événementiel dans les GET live.
+- Les portraits humains retombent sur la découverte standard par nom de Légende lorsqu’un snapshot explicite est vide ou invalide. Les quatre cartes gardent une hauteur fixe par breakpoint, y compris à 1366 × 768 avec portrait compact ; noms, scores et rangs restent accessibles et le body devient propriétaire du scroll si la hauteur manque. Les actions du lobby ne sont plus coupées, les dix slots spectateurs restent stables et `Retirer` possède sa colonne propre.
+- Le statut `Boss actif` occupe le véritable coin supérieur droit de la carte desktop et `Res :` reste quasi collé à son icône. Aucun moteur Boss/Concours, formule, verrou, retry, schéma, migration, donnée réelle, service payant ou fichier `docs/Story/**` n’est modifié.
+- Le domaine actif reste **Concours / personnages C6**, candidat correctif 0.94. Après review indépendante, promotion, déploiements automatiques et validation publique du propriétaire, la prochaine étape reste **Collection / Sac à compléter**.
 
 ## État déployé 0.92 — Concours / C6 et densité Boss
 

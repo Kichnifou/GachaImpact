@@ -19,7 +19,8 @@ function CharacterAssetImage({
   assetPaths: providedAssetPaths,
 }: CharacterAssetImageProps) {
   const discoveredAssetPaths = useCharacterAssetPaths(characterName, order)
-  const assetPaths = providedAssetPaths?.filter((path): path is string => Boolean(path)) ?? discoveredAssetPaths
+  const explicitAssetPaths = providedAssetPaths?.filter((path): path is string => Boolean(path)) ?? []
+  const assetPaths = [...explicitAssetPaths, ...discoveredAssetPaths.filter((path) => !explicitAssetPaths.includes(path))]
   const assetKey = `${characterName}|${assetPaths.join('|')}`
   const [assetState, setAssetState] = useState({ key: assetKey, index: 0, isLoaded: false })
   const currentState = assetState.key === assetKey

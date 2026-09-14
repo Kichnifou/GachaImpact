@@ -2,17 +2,22 @@
 
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api/game-api'
 import type { ContestDto, ContestHistoryDto, ContestSnapshotDto } from '../api/types'
 import ContestScreen from './ContestScreen'
 
+const appCss = readFileSync(`${process.cwd()}/src/App.css`, 'utf8')
+
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 const roots: Root[] = []
+beforeEach(() => vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ matched: [], unmatched: [] }) }))))
 afterEach(() => {
   act(() => roots.splice(0).forEach((root) => root.unmount()))
   document.body.replaceChildren()
   Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
+  vi.unstubAllGlobals()
   vi.useRealTimers()
 })
 
@@ -39,7 +44,7 @@ const lobby: ContestSnapshotDto = {
   winnerSlot: null, startedAt: null, finishedAt: null,
   viewer: { participantSlot: 1, selectedCharacterId: 'character-1', spectator: false, organizer: true, selectedForSupport: false },
   participants: [{ slot: 1, kind: 'HUMAN', playerId: 'player-1', displayName: 'Kichnifou', characterName: 'Furina', avatar: null, basePoints: null, titleRank: 0, title: null, score: 0, turnOrder: null, ready: false, activeTurn: false, replaced: false, liveRank: null, finalRank: null, rewardPrimogems: null }],
-  spectators: [], promotions: [], historyEvents: [],
+  spectators: [], latestScoreChange: null, promotions: [], historyEvents: [],
 }
 
 function mount(value: ContestDto, overrides: Partial<React.ComponentProps<typeof ContestScreen>> = {}) {
@@ -55,7 +60,7 @@ function mount(value: ContestDto, overrides: Partial<React.ComponentProps<typeof
   const container = document.createElement('div'); document.body.append(container)
   const root = createRoot(container); roots.push(root)
   act(() => root.render(<ContestScreen {...props} />))
-  return { container, props }
+  return { container, props, root }
 }
 
 describe('ContestScreen', () => {
@@ -301,19 +306,33 @@ describe('ContestScreen', () => {
     const value = { ...base, active: lobby, permissions: { ...permissions, canOpen: false } }
     const onRefresh = vi.fn(async () => value)
     mount(value, { onRefresh })
-    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() })
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
     expect(onRefresh).toHaveBeenCalledTimes(1)
+    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() })
+    expect(onRefresh).toHaveBeenCalledTimes(2)
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
     await act(async () => { document.dispatchEvent(new Event('visibilitychange')); await Promise.resolve() })
-    expect(onRefresh).toHaveBeenCalledTimes(1)
+    expect(onRefresh).toHaveBeenCalledTimes(2)
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
     await act(async () => { document.dispatchEvent(new Event('visibilitychange')); await Promise.resolve() })
-    expect(onRefresh).toHaveBeenCalledTimes(2)
-    await act(async () => { vi.advanceTimersByTime(2_000); await Promise.resolve() })
     expect(onRefresh).toHaveBeenCalledTimes(3)
+    await act(async () => { vi.advanceTimersByTime(2_000); await Promise.resolve() })
+    expect(onRefresh).toHaveBeenCalledTimes(4)
     const root = roots.pop()!; act(() => root.unmount())
     await act(async () => { window.dispatchEvent(new Event('focus')); document.dispatchEvent(new Event('visibilitychange')); vi.advanceTimersByTime(4_000); await Promise.resolve() })
-    expect(onRefresh).toHaveBeenCalledTimes(3)
+    expect(onRefresh).toHaveBeenCalledTimes(4)
+  })
+
+  it('revalidates immediately on entry and discovers a distant lobby within the three-second idle poll', async () => {
+    vi.useFakeTimers()
+    const onRefresh = vi.fn(async () => base)
+    mount(base, { onRefresh })
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    expect(onRefresh).toHaveBeenCalledOnce()
+    await act(async () => { vi.advanceTimersByTime(2_999); await Promise.resolve() })
+    expect(onRefresh).toHaveBeenCalledOnce()
+    await act(async () => { vi.advanceTimersByTime(1); await Promise.resolve() })
+    expect(onRefresh).toHaveBeenCalledTimes(2)
   })
 
   it('does not accumulate polling, focus, or visibility reads behind a slow response', async () => {
@@ -381,5 +400,58 @@ describe('ContestScreen', () => {
     expect(container.querySelector('.contest-sync-feedback')?.textContent).toContain('Synchronisation temporairement indisponible')
     await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve(); await Promise.resolve() })
     expect(container.querySelector('.contest-sync-feedback')?.textContent).toBe('')
+  })
+
+  it('shows a new +0 event exactly once without changing the score', async () => {
+    vi.useFakeTimers()
+    const running: ContestSnapshotDto = {
+      ...lobby,
+      status: 'RUNNING', phase: 'TURNS', startedAt: '2026-09-13T10:00:00Z', turnDeadlineAt: '2099-09-13T12:00:00Z',
+      currentTurnOrder: 1,
+      participants: [{ ...lobby.participants[0]!, score: 4, basePoints: 2, turnOrder: 1, activeTurn: true }],
+      latestScoreChange: { eventId: 'already-seen', slot: 1, points: 2, kind: 'TURN_PLAYED', createdAt: '2026-09-13T10:00:00Z' },
+    }
+    const value = { ...base, active: running, permissions: { ...permissions, canOpen: false } }
+    const mounted = mount(value)
+    expect(mounted.container.querySelector('.contest-score-change')).toBeNull()
+
+    const zeroEvent = { ...running, latestScoreChange: { eventId: 'risk-zero', slot: 1, points: 0, kind: 'TURN_PLAYED' as const, createdAt: '2026-09-13T10:00:01Z' } }
+    act(() => mounted.root.render(<ContestScreen {...mounted.props} value={{ ...value, active: zeroEvent }} />))
+    expect(mounted.container.querySelector('.contest-score strong')?.textContent).toBe('4')
+    expect(mounted.container.querySelectorAll('.contest-score-change')).toHaveLength(1)
+    expect(mounted.container.querySelector('.contest-score-change')?.textContent).toBe('+0')
+
+    await act(async () => { vi.advanceTimersByTime(1_200); await Promise.resolve() })
+    expect(mounted.container.querySelector('.contest-score-change')).toBeNull()
+    act(() => mounted.root.render(<ContestScreen {...mounted.props} value={{ ...value, active: { ...zeroEvent } }} />))
+    expect(mounted.container.querySelector('.contest-score-change')).toBeNull()
+  })
+
+  it('targets score feedback to support recipients and bot turns', () => {
+    const participants: ContestSnapshotDto['participants'] = [
+      { ...lobby.participants[0]!, score: 5, basePoints: 1, turnOrder: 1, activeTurn: false },
+      { ...lobby.participants[0]!, slot: 2, kind: 'BOT', playerId: null, displayName: 'Astra · Bot', characterName: 'Légende invitée', score: 8, basePoints: 1, turnOrder: 2, activeTurn: true },
+    ]
+    const initial: ContestSnapshotDto = { ...lobby, status: 'RUNNING', phase: 'SUPPORT', startedAt: '2026-09-13T10:00:00Z', participants, latestScoreChange: null }
+    const value = { ...base, active: initial, permissions: { ...permissions, canOpen: false } }
+    const mounted = mount(value)
+
+    const support = { ...initial, participants: participants.map((item) => item.slot === 2 ? { ...item, score: 11 } : item), latestScoreChange: { eventId: 'support-3', slot: 2, points: 3, kind: 'SUPPORT_PLAYED' as const, createdAt: '2026-09-13T10:00:01Z' } }
+    act(() => mounted.root.render(<ContestScreen {...mounted.props} value={{ ...value, active: support }} />))
+    expect(mounted.container.querySelectorAll('.contest-participant')[1]?.querySelector('.contest-score-change')?.textContent).toBe('+3')
+    expect(mounted.container.querySelectorAll('.contest-participant')[0]?.querySelector('.contest-score-change')).toBeNull()
+
+    const bot = { ...support, latestScoreChange: { eventId: 'bot-1', slot: 2, points: 1, kind: 'BOT_TURN_PLAYED' as const, createdAt: '2026-09-13T10:00:02Z' } }
+    act(() => mounted.root.render(<ContestScreen {...mounted.props} value={{ ...value, active: bot }} />))
+    expect(mounted.container.querySelectorAll('.contest-participant')[1]?.querySelector('.contest-score-change')?.textContent).toBe('+1')
+  })
+
+  it('keeps participant, spectator, and action geometry stable at desktop breakpoints', () => {
+    expect(appCss).toContain('grid-template-rows: auto 230px 66px minmax(104px, auto) auto')
+    expect(appCss).toContain('grid-template-rows: 42px 190px 66px minmax(104px, auto) 26px')
+    expect(appCss).not.toContain('.contest-participant .contest-avatar { display: none; }')
+    expect(appCss).toMatch(/\.contest-spectators > div > span \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\) max-content/)
+    expect(appCss).toMatch(/\.contest-action-region \{ min-height: 104px; overflow: visible; \}/)
+    expect(appCss).toMatch(/\.contest-score-change \{[\s\S]*?position: absolute/)
   })
 })

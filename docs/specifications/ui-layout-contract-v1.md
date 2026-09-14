@@ -33,6 +33,8 @@ Une information secondaire ajoutée à un panneau compact — valeur actuelle, r
 
 Une zone d'artwork conçue comme colonne plein-hauteur dans une fiche étire son enveloppe et son média jusqu'à la borne basse de la région qu'elle représente. Elle ne laisse aucune bande morte sous l'image ; le crop est assuré par le média dans cette enveloppe, sans scale arbitraire destiné à masquer un défaut de grille.
 
+Dans une grille dont les cartes changent d’état en direct, toutes les cartes conservent la même hauteur extérieure au viewport courant : score, tour, soutien, titre, rang, remplacement ou feedback s’insèrent dans cette enveloppe sans modifier la rangée. Si la hauteur utile ne suffit plus à présenter le contenu et les commandes, le body fonctionnel devient propriétaire du scroll interne ; aucun `overflow: hidden` ne coupe un contrôle interactif ou une information principale pour simuler un écran sans scroll.
+
 La sidebar desktop occupe exactement la hauteur utile que lui attribue le shell et ne devient pas un propriétaire de scroll. Sa densité interne peut varier selon la hauteur du viewport, sans masquer d'information essentielle ; les régions flexibles absorbent le surplus et distribuent leur contenu de façon volontaire, tandis que son bord inférieur reste aligné avec ceux du contenu principal et du chat.
 
 Lorsqu'une carte de sidebar sert de raccourci synthétique dans une enveloppe de hauteur imposée, son contenu se répartit en trois zones : identité en haut, résumé extensible au centre et action/affordance en bas. La zone centrale absorbe la hauteur supplémentaire et reste prête à recevoir une future projection réelle sans modifier le cadre extérieur.

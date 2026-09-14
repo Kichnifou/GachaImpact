@@ -445,6 +445,13 @@ export type ContestParticipantDto = Readonly<{
   finalRank: number | null
   rewardPrimogems: string | null
 }>
+export type ContestLatestScoreChangeDto = Readonly<{
+  eventId: string
+  slot: number
+  points: number
+  kind: 'TURN_PLAYED' | 'BOT_TURN_PLAYED' | 'TURN_AUTO_BASIC' | 'SUPPORT_PLAYED'
+  createdAt: string
+}>
 export type ContestSnapshotDto = Readonly<{
   id: string
   businessDate: string
@@ -463,6 +470,7 @@ export type ContestSnapshotDto = Readonly<{
   viewer: Readonly<{ participantSlot: number | null; selectedCharacterId: string | null; spectator: boolean; organizer: boolean; selectedForSupport: boolean }>
   participants: readonly ContestParticipantDto[]
   spectators: readonly Readonly<{ playerId: string; displayName: string; selected: boolean }>[]
+  latestScoreChange: ContestLatestScoreChangeDto | null
   promotions: readonly Readonly<{ playerId: string; slot: number; characterName: string | null; fromRank: number; toRank: number; title: string }>[]
   historyEvents: readonly (
     | Readonly<{ kind: 'PARTICIPANT_LEFT'; occurredAt: string; slot: number | null; playerName: string | null }>
