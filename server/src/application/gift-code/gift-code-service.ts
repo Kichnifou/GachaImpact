@@ -31,15 +31,26 @@ export type GiftCodeUpdateInput = Readonly<{
   disabled?: boolean;
   idempotencyKey: string;
 }>;
+export type GiftCodeAdminQuery = Readonly<{
+  page: number;
+  search?: string;
+  status?: 'DRAFT' | 'PUBLISHED' | 'DISABLED';
+  type?: 'ONE_OFF' | 'ANNUAL';
+  availability?: 'CURRENT' | 'FUTURE' | 'OUTSIDE';
+  sort: 'createdAt' | 'publishedAt' | 'title' | 'claims';
+  direction: 'asc' | 'desc';
+}>;
+export type GiftCodeClaimantQuery = Readonly<{ page: number; search?: string; editionKey?: string }>;
 
 type Database = PrismaClient | Prisma.TransactionClient;
+type GiftCodeMaintenanceScope = Readonly<{ annualCodeIds?: readonly string[]; activePlayerIds?: readonly string[] }>;
 const activeNotificationStates = [NotificationState.UNREAD, NotificationState.READ] as const;
 const noExpiry = new Date('9999-12-31T23:59:59.999Z');
 
 export class GiftCodeService {
   private readonly economy = new PrismaEconomyService();
 
-  public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly database: PrismaClient, private readonly clock: Clock) {}
+  public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly database: PrismaClient, private readonly clock: Clock, private readonly maintenanceScope: GiftCodeMaintenanceScope = {}) {}
 
   public async listForPlayer(identity: AuthenticatedIdentity) {
     const player = await this.getPlayer.execute(identity);
@@ -98,14 +109,21 @@ export class GiftCodeService {
     return { ...codes, resources, operation: { id: operationId, alreadyProcessed } };
   }
 
-  public async reconcileNotificationsForPlayer(playerId: string, now = this.clock.now()): Promise<void> {
-    await this.materializeAnnualEditions(this.database, now);
-    const editions = await this.database.giftCodeEdition.findMany({
-      where: { startsAt: { lte: now }, endsAt: { gt: now }, giftCode: { status: GiftCodeStatus.PUBLISHED }, claims: { none: { playerId } } },
-      include: { giftCode: { include: { rewards: true } } },
-    });
-    const activeIds = editions.map(({ id }) => id);
+  public async reconcileNotificationsForPlayer(playerId: string, now = this.clock.now(), materialize = true): Promise<void> {
+    if (materialize) await this.materializeAnnualEditions(this.database, now);
     await this.database.$transaction(async (tx) => {
+      await tx.$queryRaw`
+        SELECT gc.id
+        FROM gift_codes gc
+        JOIN gift_code_editions gce ON gce.gift_code_id = gc.id
+        WHERE gc.status = 'PUBLISHED' AND gce.starts_at <= ${now} AND gce.ends_at > ${now}
+        FOR KEY SHARE OF gc
+      `;
+      const editions = await tx.giftCodeEdition.findMany({
+        where: { startsAt: { lte: now }, endsAt: { gt: now }, giftCode: { status: GiftCodeStatus.PUBLISHED }, claims: { none: { playerId } } },
+        include: { giftCode: { include: { rewards: true } } },
+      });
+      const activeIds = editions.map(({ id }) => id);
       for (const edition of editions) {
         const rewards = edition.giftCode.rewards.map((reward) => ({ resourceKey: reward.resourceKey, amount: reward.amount.toString() }));
         const deduplicationKey = `gift-code:${playerId}:${edition.id}`;
@@ -129,11 +147,45 @@ export class GiftCodeService {
     });
   }
 
-  public async listAdmin(identity: AuthenticatedIdentity) {
+  public async listAdmin(identity: AuthenticatedIdentity, query: GiftCodeAdminQuery = { page: 1, sort: 'createdAt', direction: 'desc' }) {
     const actor = await this.requireAdmin(identity);
-    await this.materializeAnnualEditions(this.database, this.clock.now());
-    const codes = await this.database.giftCode.findMany({ include: { rewards: { include: { resource: true }, orderBy: { resourceKey: 'asc' } }, editions: { include: { _count: { select: { claims: true } } }, orderBy: { startsAt: 'desc' } } }, orderBy: [{ createdAt: 'desc' }, { token: 'asc' }] });
-    return { actorPlayerId: actor.id, codes: codes.map(serializeAdminCode) };
+    const now = this.clock.now();
+    await this.materializeAnnualEditions(this.database, now);
+    const pageSize = 20;
+    const page = Math.max(1, query.page);
+    const where = adminWhere(query, now);
+    const order = adminOrder(query.sort, query.direction);
+    const [rows, totals] = await Promise.all([
+      this.database.$queryRaw<readonly { id: string }[]>`
+        SELECT gc.id
+        FROM gift_codes gc
+        LEFT JOIN LATERAL (
+          SELECT COUNT(*)::bigint AS claim_count
+          FROM gift_code_editions gce
+          JOIN gift_code_claims gcc ON gcc.gift_code_edition_id = gce.id
+          WHERE gce.gift_code_id = gc.id
+        ) claim_stats ON TRUE
+        ${where}
+        ORDER BY ${order}, gc.id ${query.direction === 'asc' ? Prisma.raw('ASC') : Prisma.raw('DESC')}
+        LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}
+      `,
+      this.database.$queryRaw<readonly { total: bigint | number }[]>`
+        SELECT COUNT(*)::bigint AS total
+        FROM gift_codes gc
+        LEFT JOIN LATERAL (
+          SELECT COUNT(*)::bigint AS claim_count
+          FROM gift_code_editions gce
+          JOIN gift_code_claims gcc ON gcc.gift_code_edition_id = gce.id
+          WHERE gce.gift_code_id = gc.id
+        ) claim_stats ON TRUE
+        ${where}
+      `,
+    ]);
+    const ids = rows.map(({ id }) => id);
+    const loaded = ids.length ? await this.database.giftCode.findMany({ where: { id: { in: ids } }, include: adminCodeInclude }) : [];
+    const byId = new Map(loaded.map((code) => [code.id, code]));
+    const total = Number(totals[0]?.total ?? 0);
+    return { actorPlayerId: actor.id, page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)), codes: ids.map((id) => serializeAdminCode(byId.get(id)!)) };
   }
 
   public async createDraft(identity: AuthenticatedIdentity, input: GiftCodeDraftInput) {
@@ -142,16 +194,16 @@ export class GiftCodeService {
     const token = normalizeToken(input.token || `CADEAU-${input.idempotencyKey.replace(/-/g, '').slice(0, 8)}`);
     const oneOffStartsAt = input.startsAt ?? this.clock.now();
     const oneOffEndsAt = input.endsAt ?? noExpiry;
-    await this.adminMutation(actor.id, 'create', input.idempotencyKey, { ...input, token, rewards: input.rewards.map(stringifyReward) }, async (tx, operationId) => {
+    const codeId = await this.adminMutation(actor.id, 'create', input.idempotencyKey, { ...input, token, rewards: input.rewards.map(stringifyReward) }, async (tx, operationId) => {
       const code = await tx.giftCode.create({ data: { token, title: input.title.trim(), description: input.description.trim(), type: input.type, status: GiftCodeStatus.DRAFT, recurringMonth: input.type === 'ANNUAL' ? input.recurringMonth : null, startsAt: input.type === 'ONE_OFF' ? oneOffStartsAt : null, endsAt: input.type === 'ONE_OFF' ? oneOffEndsAt : null, createdById: actor.id, updatedById: actor.id, rewards: { create: input.rewards.filter(({ amount }) => amount > 0n).map((reward) => ({ resourceKey: reward.resourceKey, amount: reward.amount })) } } });
       return [{}, { codeId: code.id, token, status: code.status }, code.id, operationId];
     });
-    return this.listAdmin(identity);
+    return { code: await this.adminCodeById(codeId) };
   }
 
   public async publish(identity: AuthenticatedIdentity, codeId: string, idempotencyKey: string) {
     const actor = await this.requireAdmin(identity); const now = this.clock.now();
-    await this.adminMutation(actor.id, 'publish', idempotencyKey, { codeId }, async (tx, operationId) => {
+    const affectedCodeId = await this.adminMutation(actor.id, 'publish', idempotencyKey, { codeId }, async (tx, operationId) => {
       const before = await tx.giftCode.findUnique({ where: { id: codeId }, include: { rewards: true } });
       if (!before) throw new BusinessError('GIFT_CODE_NOT_FOUND', 'Ce code cadeau n’existe pas.');
       if (before.rewards.length === 0) throw invalidConfiguration();
@@ -159,15 +211,14 @@ export class GiftCodeService {
       if (after.type === GiftCodeType.ONE_OFF) await tx.giftCodeEdition.upsert({ where: { giftCodeId_editionKey: { giftCodeId: codeId, editionKey: 'once' } }, create: { giftCodeId: codeId, editionKey: 'once', startsAt: after.startsAt!, endsAt: after.endsAt! }, update: { startsAt: after.startsAt!, endsAt: after.endsAt! } });
       return [{ status: before.status }, { status: after.status }, codeId, operationId];
     });
-    await this.materializeAnnualEditions(this.database, now);
-    await this.reconcileAllActivePlayers(now);
-    return this.listAdmin(identity);
+    await this.materializeAnnualEditionForCode(this.database, affectedCodeId, now);
+    return { code: await this.adminCodeById(affectedCodeId) };
   }
 
   public async update(identity: AuthenticatedIdentity, codeId: string, input: GiftCodeUpdateInput) {
     const actor = await this.requireAdmin(identity);
     const request = { codeId, ...input, rewards: input.rewards?.map(stringifyReward) };
-    await this.adminMutation(actor.id, input.disabled === true ? 'disable' : 'update', input.idempotencyKey, request, async (tx, operationId) => {
+    const affectedCodeId = await this.adminMutation(actor.id, input.disabled === true ? 'disable' : 'update', input.idempotencyKey, request, async (tx, operationId) => {
       await tx.$queryRaw`SELECT id FROM gift_codes WHERE id = ${codeId}::uuid FOR UPDATE`;
       const before = await tx.giftCode.findUnique({ where: { id: codeId }, include: { rewards: true, editions: { include: { _count: { select: { claims: true } } } } } });
       if (!before) throw new BusinessError('GIFT_CODE_NOT_FOUND', 'Ce code cadeau n’existe pas.');
@@ -204,25 +255,38 @@ export class GiftCodeService {
       if (after.type === GiftCodeType.ONE_OFF && after.status === GiftCodeStatus.PUBLISHED) {
         await tx.giftCodeEdition.upsert({ where: { giftCodeId_editionKey: { giftCodeId: codeId, editionKey: 'once' } }, create: { giftCodeId: codeId, editionKey: 'once', startsAt: after.startsAt!, endsAt: after.endsAt! }, update: { startsAt: after.startsAt!, endsAt: after.endsAt! } });
       }
+      if (input.disabled === true && before.editions.length > 0) {
+        await tx.notification.updateMany({
+          where: { domainKey: 'gift-codes', actionKey: 'OPEN_GIFT_CODE', actionTargetId: { in: before.editions.map(({ id }) => id) }, state: { in: [...activeNotificationStates] } },
+          data: { state: NotificationState.RESOLVED, resolvedAt: this.clock.now() },
+        });
+      }
       const snapshot = (code: typeof before | typeof after) => ({ token: code.token, title: code.title, description: code.description, type: code.type, status: code.status, recurringMonth: code.recurringMonth, startsAt: code.startsAt?.toISOString() ?? null, endsAt: code.endsAt?.toISOString() ?? null, rewards: code.rewards.map(({ resourceKey, amount }) => ({ resourceKey, amount: amount.toString() })) });
       return [snapshot(before), snapshot(after), codeId, operationId];
     });
-    await this.reconcileAllActivePlayers(this.clock.now());
-    return this.listAdmin(identity);
+    await this.materializeAnnualEditionForCode(this.database, affectedCodeId, this.clock.now());
+    return { code: await this.adminCodeById(affectedCodeId) };
   }
 
-  public async claimants(identity: AuthenticatedIdentity, codeId: string) {
+  public async claimants(identity: AuthenticatedIdentity, codeId: string, query: GiftCodeClaimantQuery = { page: 1 }) {
     await this.requireAdmin(identity);
     const code = await this.database.giftCode.findUnique({ where: { id: codeId }, select: { id: true, token: true, title: true } });
     if (!code) throw new BusinessError('GIFT_CODE_NOT_FOUND', 'Ce code cadeau n’existe pas.');
-    const claims = await this.database.giftCodeClaim.findMany({ where: { edition: { giftCodeId: codeId } }, include: { player: { select: { id: true, displayName: true } }, edition: { select: { editionKey: true } } }, orderBy: { claimedAt: 'desc' } });
-    return { code, claimants: claims.map((claim) => ({ playerId: claim.player.id, displayName: claim.player.displayName, editionKey: claim.edition.editionKey, claimedAt: claim.claimedAt.toISOString() })) };
+    const page = Math.max(1, query.page); const pageSize = 20;
+    const where: Prisma.GiftCodeClaimWhereInput = { edition: { giftCodeId: codeId, ...(query.editionKey ? { editionKey: query.editionKey } : {}) }, ...(query.search?.trim() ? { player: { displayName: { contains: query.search.trim(), mode: 'insensitive' } } } : {}) };
+    const [claims, total] = await Promise.all([
+      this.database.giftCodeClaim.findMany({ where, include: { player: { select: { id: true, displayName: true } }, edition: { select: { editionKey: true } } }, orderBy: [{ claimedAt: 'desc' }, { giftCodeEditionId: 'asc' }, { playerId: 'asc' }], skip: (page - 1) * pageSize, take: pageSize }),
+      this.database.giftCodeClaim.count({ where }),
+    ]);
+    return { code, page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)), claimants: claims.map((claim) => ({ playerId: claim.player.id, displayName: claim.player.displayName, editionKey: claim.edition.editionKey, claimedAt: claim.claimedAt.toISOString() })) };
   }
 
   public async reconcileAllActivePlayers(now = this.clock.now()): Promise<void> {
     await this.materializeAnnualEditions(this.database, now);
-    const players = await this.database.player.findMany({ where: { status: 'ACTIVE' }, select: { id: true } });
-    for (const player of players) await this.reconcileNotificationsForPlayer(player.id, now);
+    const players = await this.database.player.findMany({ where: { status: 'ACTIVE', ...(this.maintenanceScope.activePlayerIds ? { id: { in: [...this.maintenanceScope.activePlayerIds] } } : {}) }, select: { id: true } });
+    for (let offset = 0; offset < players.length; offset += 10) {
+      await Promise.all(players.slice(offset, offset + 10).map((player) => this.reconcileNotificationsForPlayer(player.id, now, false)));
+    }
   }
 
   private async playerSnapshot(playerId: string, now: Date) {
@@ -243,9 +307,23 @@ export class GiftCodeService {
 
   private async materializeAnnualEditions(database: Database, now: Date): Promise<void> {
     const [yearText, monthText] = getBusinessDate(now).split('-'); const year = Number(yearText); const month = Number(monthText);
-    const codes = await database.giftCode.findMany({ where: { status: GiftCodeStatus.PUBLISHED, type: GiftCodeType.ANNUAL, recurringMonth: month }, select: { id: true } });
+    const codes = await database.giftCode.findMany({ where: { status: GiftCodeStatus.PUBLISHED, type: GiftCodeType.ANNUAL, recurringMonth: month, ...(this.maintenanceScope.annualCodeIds ? { id: { in: [...this.maintenanceScope.annualCodeIds] } } : {}) }, select: { id: true } });
     const startsAt = monthStart(year, month); const endsAt = month === 12 ? monthStart(year + 1, 1) : monthStart(year, month + 1);
     for (const code of codes) await database.giftCodeEdition.upsert({ where: { giftCodeId_editionKey: { giftCodeId: code.id, editionKey: String(year) } }, create: { giftCodeId: code.id, editionKey: String(year), year, startsAt, endsAt }, update: {} });
+  }
+
+  private async materializeAnnualEditionForCode(database: Database, codeId: string, now: Date): Promise<void> {
+    const [yearText, monthText] = getBusinessDate(now).split('-'); const year = Number(yearText); const month = Number(monthText);
+    const code = await database.giftCode.findFirst({ where: { id: codeId, status: GiftCodeStatus.PUBLISHED, type: GiftCodeType.ANNUAL, recurringMonth: month }, select: { id: true } });
+    if (!code) return;
+    const startsAt = monthStart(year, month); const endsAt = month === 12 ? monthStart(year + 1, 1) : monthStart(year, month + 1);
+    await database.giftCodeEdition.upsert({ where: { giftCodeId_editionKey: { giftCodeId: code.id, editionKey: String(year) } }, create: { giftCodeId: code.id, editionKey: String(year), year, startsAt, endsAt }, update: {} });
+  }
+
+  private async adminCodeById(codeId: string) {
+    const code = await this.database.giftCode.findUnique({ where: { id: codeId }, include: adminCodeInclude });
+    if (!code) throw new BusinessError('GIFT_CODE_NOT_FOUND', 'Ce code cadeau n’existe pas.');
+    return serializeAdminCode(code);
   }
 
   private async requireAdmin(identity: AuthenticatedIdentity) {
@@ -255,39 +333,79 @@ export class GiftCodeService {
     return actor;
   }
 
-  private async adminMutation(actorPlayerId: string, action: string, idempotencyKey: string, request: unknown, change: (tx: Prisma.TransactionClient, operationId: string) => Promise<readonly [Prisma.InputJsonValue, Prisma.InputJsonValue, string, string]>) {
+  private async adminMutation(actorPlayerId: string, action: string, idempotencyKey: string, request: unknown, change: (tx: Prisma.TransactionClient, operationId: string) => Promise<readonly [Prisma.InputJsonValue, Prisma.InputJsonValue, string, string]>): Promise<string> {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
-        await this.database.$transaction(async (tx) => {
+        return await this.database.$transaction(async (tx) => {
       const existing = await tx.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.ADMIN, idempotencyKey } });
       if (existing) {
         const summary = readJsonRecord(existing.resultSummary);
         if (existing.playerId !== actorPlayerId || existing.operationType !== `gift-code.admin.${action}` || jsonFingerprint(summary?.request) !== jsonFingerprint(jsonSafe(request)) || existing.status !== OperationStatus.COMPLETED) throw new BusinessError('GIFT_CODE_IDEMPOTENCY_CONFLICT', 'Cette clé d’idempotence appartient à une autre opération.');
-        return;
+        const codeId = summary?.codeId;
+        if (typeof codeId !== 'string') throw new BusinessError('GIFT_CODE_IDEMPOTENCY_CONFLICT', 'Le résultat de cette opération ne peut pas être relu.');
+        return codeId;
       }
       const operation = await tx.businessOperation.create({ data: { playerId: actorPlayerId, operationType: `gift-code.admin.${action}`, sourceChannel: SourceChannel.ADMIN, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request: jsonSafe(request) } } });
       const [before, after, codeId] = await change(tx, operation.id);
       await tx.adminAuditEntry.create({ data: { actorPlayerId, targetPlayerId: actorPlayerId, action, domain: 'gift-codes', before, after, operationId: operation.id } });
       await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: this.clock.now(), resultSummary: { request: jsonSafe(request), codeId } } });
+      return codeId;
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
-        return;
       } catch (error) {
         if (attempt < 2 && isPrismaConcurrencyCollision(error)) continue;
         throw error;
       }
     }
+    throw new Error('Gift code concurrency retry exhausted.');
   }
 }
 
 export class GiftCodeScheduler {
   private timer: NodeJS.Timeout | null = null;
-  public constructor(private readonly service: GiftCodeService) {}
-  public async start() { await this.service.reconcileAllActivePlayers(); this.timer = setInterval(() => void this.service.reconcileAllActivePlayers().catch(() => undefined), 60_000); this.timer.unref(); }
-  public stop() { if (this.timer) clearInterval(this.timer); this.timer = null; }
+  private stopped = true;
+  public constructor(private readonly service: GiftCodeService, private readonly reportError: (error: unknown) => void = (error) => console.error('Gift code reconciliation failed.', error)) {}
+  public async start() { this.stopped = false; await this.run(); }
+  public stop() { this.stopped = true; if (this.timer) clearTimeout(this.timer); this.timer = null; }
+  private async run() {
+    try { await this.service.reconcileAllActivePlayers(); }
+    catch (error) { this.reportError(error); }
+    finally {
+      if (!this.stopped) { this.timer = setTimeout(() => void this.run(), 60_000); this.timer.unref(); }
+    }
+  }
 }
 
 function monthStart(year: number, month: number) { return getBusinessDayStartAt(`${year}-${String(month).padStart(2, '0')}-01`); }
 function isEditionAvailable(status: GiftCodeStatus, startsAt: Date, endsAt: Date, now: Date) { return status === GiftCodeStatus.PUBLISHED && startsAt <= now && endsAt > now; }
+const adminCodeInclude = {
+  rewards: { include: { resource: true }, orderBy: { resourceKey: 'asc' as const } },
+  editions: { include: { _count: { select: { claims: true } } }, orderBy: { startsAt: 'desc' as const } },
+} as const;
+
+function adminWhere(query: GiftCodeAdminQuery, now: Date) {
+  const clauses: Prisma.Sql[] = [];
+  if (query.search?.trim()) {
+    const search = query.search.trim();
+    clauses.push(Prisma.sql`(POSITION(LOWER(${search}) IN LOWER(gc.title)) > 0 OR POSITION(LOWER(${search}) IN LOWER(gc.token)) > 0)`);
+  }
+  if (query.status) clauses.push(Prisma.sql`gc.status = CAST(${query.status} AS gift_code_status)`);
+  if (query.type) clauses.push(Prisma.sql`gc.type = CAST(${query.type} AS gift_code_type)`);
+  if (query.availability) {
+    const month = Number(getBusinessDate(now).slice(5, 7));
+    if (query.availability === 'CURRENT') clauses.push(Prisma.sql`gc.status = 'PUBLISHED' AND ((gc.type = 'ONE_OFF' AND gc.starts_at <= ${now} AND gc.ends_at > ${now}) OR (gc.type = 'ANNUAL' AND gc.recurring_month = ${month}))`);
+    if (query.availability === 'FUTURE') clauses.push(Prisma.sql`gc.status = 'PUBLISHED' AND ((gc.type = 'ONE_OFF' AND gc.starts_at > ${now}) OR (gc.type = 'ANNUAL' AND gc.recurring_month > ${month}))`);
+    if (query.availability === 'OUTSIDE') clauses.push(Prisma.sql`gc.status = 'PUBLISHED' AND ((gc.type = 'ONE_OFF' AND gc.ends_at <= ${now}) OR (gc.type = 'ANNUAL' AND gc.recurring_month < ${month}))`);
+  }
+  return clauses.length ? Prisma.sql`WHERE ${Prisma.join(clauses, ' AND ')}` : Prisma.empty;
+}
+
+function adminOrder(sort: GiftCodeAdminQuery['sort'], direction: GiftCodeAdminQuery['direction']) {
+  const order = direction === 'asc' ? Prisma.raw('ASC') : Prisma.raw('DESC');
+  if (sort === 'publishedAt') return Prisma.sql`gc.published_at ${order} NULLS LAST`;
+  if (sort === 'title') return Prisma.sql`LOWER(gc.title) ${order}`;
+  if (sort === 'claims') return Prisma.sql`COALESCE(claim_stats.claim_count, 0) ${order}`;
+  return Prisma.sql`gc.created_at ${order}`;
+}
 function serializePlayerCode(edition: Prisma.GiftCodeEditionGetPayload<{ include: { giftCode: { include: { rewards: { include: { resource: true } } } }; claims: true } }>, now: Date) {
   const claim = edition.claims[0];
   return { id: edition.giftCode.id, editionId: edition.id, token: edition.giftCode.token, title: edition.giftCode.title, description: edition.giftCode.description, type: edition.giftCode.type, editionKey: edition.editionKey, startsAt: edition.startsAt.toISOString(), endsAt: edition.endsAt.toISOString(), available: isEditionAvailable(edition.giftCode.status, edition.startsAt, edition.endsAt, now), claimed: Boolean(claim), claimedAt: claim?.claimedAt.toISOString() ?? null, rewards: edition.giftCode.rewards.map((reward) => ({ resourceKey: reward.resourceKey, displayName: reward.resource.displayName, amount: reward.amount.toString() })) };

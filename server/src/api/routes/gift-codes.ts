@@ -19,16 +19,22 @@ const draftSchema = z.object({
 }).strict();
 const updateSchema = z.object({ token: z.string().max(64).optional(), title: z.string().trim().min(1).max(120).optional(), description: z.string().trim().min(1).max(500).optional(), type: z.enum(['ONE_OFF', 'ANNUAL']).optional(), recurringMonth: z.number().int().min(1).max(12).optional(), startsAt: z.iso.datetime({ offset: true }).optional(), endsAt: z.iso.datetime({ offset: true }).optional(), rewards: rewardsSchema.optional(), disabled: z.boolean().optional(), idempotencyKey }).strict();
 const mutationSchema = z.object({ idempotencyKey }).strict();
+const adminListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1), search: z.string().trim().max(120).optional(),
+  status: z.enum(['DRAFT', 'PUBLISHED', 'DISABLED']).optional(), type: z.enum(['ONE_OFF', 'ANNUAL']).optional(),
+  availability: z.enum(['CURRENT', 'FUTURE', 'OUTSIDE']).optional(), sort: z.enum(['createdAt', 'publishedAt', 'title', 'claims']).default('createdAt'), direction: z.enum(['asc', 'desc']).default('desc'),
+}).strict();
+const claimantQuerySchema = z.object({ page: z.coerce.number().int().min(1).default(1), search: z.string().trim().max(120).optional(), editionKey: z.string().trim().max(20).optional() }).strict();
 
 export async function registerGiftCodeRoutes(app: FastifyInstance, options: Options) {
   const identity = (request: Parameters<typeof requireAuthenticatedIdentity>[0]) => requireAuthenticatedIdentity(request);
   app.get('/api/v1/me/gift-codes', { preHandler: options.authenticate }, (request) => options.service.listForPlayer(identity(request)));
   app.post('/api/v1/me/gift-codes/:editionId/claim', { preHandler: options.authenticate }, (request) => options.service.claim(identity(request), parse(editionParams, request.params).editionId, parse(mutationSchema, request.body).idempotencyKey));
-  app.get('/api/v1/moderation/gift-codes', { preHandler: options.authenticate }, (request) => options.service.listAdmin(identity(request)));
+  app.get('/api/v1/moderation/gift-codes', { preHandler: options.authenticate }, (request) => options.service.listAdmin(identity(request), parse(adminListQuerySchema, request.query)));
   app.post('/api/v1/moderation/gift-codes', { preHandler: options.authenticate }, (request) => { const value = parse(draftSchema, request.body); return options.service.createDraft(identity(request), { ...value, startsAt: value.startsAt ? new Date(value.startsAt) : undefined, endsAt: value.endsAt ? new Date(value.endsAt) : undefined, rewards: value.rewards.map((reward) => ({ ...reward, amount: BigInt(reward.amount) })) }); });
   app.post('/api/v1/moderation/gift-codes/:codeId/publish', { preHandler: options.authenticate }, (request) => options.service.publish(identity(request), parse(codeParams, request.params).codeId, parse(mutationSchema, request.body).idempotencyKey));
   app.patch('/api/v1/moderation/gift-codes/:codeId', { preHandler: options.authenticate }, (request) => { const value = parse(updateSchema, request.body); return options.service.update(identity(request), parse(codeParams, request.params).codeId, { ...value, startsAt: value.startsAt ? new Date(value.startsAt) : undefined, endsAt: value.endsAt ? new Date(value.endsAt) : undefined, rewards: value.rewards?.map((reward) => ({ ...reward, amount: BigInt(reward.amount) })) }); });
-  app.get('/api/v1/moderation/gift-codes/:codeId/claimants', { preHandler: options.authenticate }, (request) => options.service.claimants(identity(request), parse(codeParams, request.params).codeId));
+  app.get('/api/v1/moderation/gift-codes/:codeId/claimants', { preHandler: options.authenticate }, (request) => options.service.claimants(identity(request), parse(codeParams, request.params).codeId, parse(claimantQuerySchema, request.query)));
 }
 
 function parse<T>(schema: z.ZodType<T>, value: unknown): T { const parsed = schema.safeParse(value); if (!parsed.success) throw new AppError('La demande de code cadeau est invalide.', 400, 'VALIDATION_ERROR'); return parsed.data; }

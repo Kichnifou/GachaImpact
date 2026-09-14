@@ -71,6 +71,8 @@ Codex termine l’implémentation, exécute les tests automatisés pertinents et
 
 Les tests PostgreSQL qui utilisent la base Supabase DEV partagée s’exécutent fichier par fichier (`fileParallelism: false` dans la configuration Vitest DB) afin qu’une fixture temporaire d’un domaine ne puisse pas être observée par les invariants d’un autre fichier. Chaque fichier reste responsable du suivi et du nettoyage transactionnel de ses propres fixtures, y compris après un échec ; les scénarios de concurrence métier explicites au sein d’un même fichier restent autorisés.
 
+L’isolation ne se limite jamais à créer un Player fixture. Avant d’exécuter un test qui publie, réconcilie, diffuse ou matérialise globalement, ses dépendances doivent être bornées aux UUID exacts du test : Players, définitions, éditions et notifications. Aucun paramètre d’audience de test n’est exposé par une route publique. Le cleanup ne cible que les identifiants suivis par l’exécution courante, jamais un préfixe partagé ; un test ne matérialise aucune édition fictive d’une définition réelle et ne publie aucune notification de test vers les comptes existants.
+
 Pour tout lot DB, la validation confronte le dossier versionné `server/prisma/migrations` au registre `_prisma_migrations`, puis exécute `prisma migrate status`. L’existence des tables ne suffit jamais à déclarer une migration appliquée. Si le SQL d’une migration Prisma a exceptionnellement été exécuté hors Prisma, son enregistrement se fait seulement après vérification structurelle avec `prisma migrate resolve --applied`, jamais par modification manuelle de `_prisma_migrations`.
 
 ## 4. Publier le candidat sur `review`

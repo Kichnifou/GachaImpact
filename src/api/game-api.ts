@@ -51,6 +51,9 @@ import type {
   PlayerGiftCodesDto,
   GiftCodeClaimDto,
   AdminGiftCodesDto,
+  AdminGiftCodeMutationDto,
+  GiftCodeAdminQuery,
+  GiftCodeClaimantQuery,
   GiftCodeClaimantsDto,
 } from './types'
 
@@ -203,11 +206,11 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getNotifications: () => request<NotificationsDto>('/api/v1/me/notifications'),
     getGiftCodes: () => request<PlayerGiftCodesDto>('/api/v1/me/gift-codes'),
     claimGiftCode: (editionId: string, idempotencyKey: string) => request<GiftCodeClaimDto>(`/api/v1/me/gift-codes/${encodeURIComponent(editionId)}/claim`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
-    getAdminGiftCodes: () => request<AdminGiftCodesDto>('/api/v1/moderation/gift-codes'),
-    createGiftCode: (input: { token?: string; title: string; description: string; type: 'ONE_OFF' | 'ANNUAL'; recurringMonth?: number; startsAt?: string; endsAt?: string; rewards: readonly { resourceKey: string; amount: string }[]; idempotencyKey: string }) => request<AdminGiftCodesDto>('/api/v1/moderation/gift-codes', { method: 'POST', body: JSON.stringify(input) }),
-    publishGiftCode: (codeId: string, idempotencyKey: string) => request<AdminGiftCodesDto>(`/api/v1/moderation/gift-codes/${encodeURIComponent(codeId)}/publish`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
-    updateGiftCode: (codeId: string, input: { token?: string; title?: string; description?: string; type?: 'ONE_OFF' | 'ANNUAL'; recurringMonth?: number; startsAt?: string; endsAt?: string; rewards?: readonly { resourceKey: string; amount: string }[]; disabled?: boolean; idempotencyKey: string }) => request<AdminGiftCodesDto>(`/api/v1/moderation/gift-codes/${encodeURIComponent(codeId)}`, { method: 'PATCH', body: JSON.stringify(input) }),
-    getGiftCodeClaimants: (codeId: string) => request<GiftCodeClaimantsDto>(`/api/v1/moderation/gift-codes/${encodeURIComponent(codeId)}/claimants`),
+    getAdminGiftCodes: (query: GiftCodeAdminQuery) => request<AdminGiftCodesDto>(`/api/v1/moderation/gift-codes?${queryString(query)}`),
+    createGiftCode: (input: { token?: string; title: string; description: string; type: 'ONE_OFF' | 'ANNUAL'; recurringMonth?: number; startsAt?: string; endsAt?: string; rewards: readonly { resourceKey: string; amount: string }[]; idempotencyKey: string }) => request<AdminGiftCodeMutationDto>('/api/v1/moderation/gift-codes', { method: 'POST', body: JSON.stringify(input) }),
+    publishGiftCode: (codeId: string, idempotencyKey: string) => request<AdminGiftCodeMutationDto>(`/api/v1/moderation/gift-codes/${encodeURIComponent(codeId)}/publish`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+    updateGiftCode: (codeId: string, input: { token?: string; title?: string; description?: string; type?: 'ONE_OFF' | 'ANNUAL'; recurringMonth?: number; startsAt?: string; endsAt?: string; rewards?: readonly { resourceKey: string; amount: string }[]; disabled?: boolean; idempotencyKey: string }) => request<AdminGiftCodeMutationDto>(`/api/v1/moderation/gift-codes/${encodeURIComponent(codeId)}`, { method: 'PATCH', body: JSON.stringify(input) }),
+    getGiftCodeClaimants: (codeId: string, query: GiftCodeClaimantQuery) => request<GiftCodeClaimantsDto>(`/api/v1/moderation/gift-codes/${encodeURIComponent(codeId)}/claimants?${queryString(query)}`),
     readNotification: (notificationId: string) => request<NotificationsDto>(`/api/v1/me/notifications/${notificationId}/read`, { method: 'POST' }),
     readAllNotifications: () => request<NotificationsDto>('/api/v1/me/notifications/read-all', { method: 'POST' }),
     archiveReadNotifications: () => request<NotificationsDto>('/api/v1/me/notifications/archive-read', { method: 'POST' }),
@@ -283,6 +286,12 @@ export function getGameApiClient(): GameApiClient {
   }
 
   return singleton
+}
+
+function queryString(value: object) {
+  const params = new URLSearchParams()
+  for (const [key, entry] of Object.entries(value)) if (entry !== undefined && entry !== '') params.set(key, String(entry))
+  return params.toString()
 }
 
 async function readJson(response: Response): Promise<unknown> {

@@ -10,8 +10,9 @@ describe('Gift code HTTP contracts', () => {
   async function setup() {
     const editionId = randomUUID(); const codeId = randomUUID();
     const playerResult = { available: [{ id: codeId, editionId, token: 'FESTIVALRECOLTES', title: 'Festival des Récoltes', description: 'Septembre', type: 'ANNUAL', editionKey: '2026', startsAt: new Date().toISOString(), endsAt: new Date().toISOString(), available: true, claimed: false, claimedAt: null, rewards: [{ resourceKey: 'primogems', displayName: 'Primogemmes', amount: '1600' }] }], claimed: [] };
-    const adminResult = { actorPlayerId: randomUUID(), codes: [] };
-    const service = { listForPlayer: vi.fn(async () => playerResult), claim: vi.fn(async () => ({ ...playerResult, resources: {}, operation: { id: randomUUID(), alreadyProcessed: false } })), listAdmin: vi.fn(async () => adminResult), createDraft: vi.fn(async () => adminResult), publish: vi.fn(async () => adminResult), update: vi.fn(async () => adminResult), claimants: vi.fn(async () => ({ code: {}, claimants: [] })) } as unknown as GiftCodeService;
+    const adminResult = { actorPlayerId: randomUUID(), page: 1, pageSize: 20, total: 0, totalPages: 1, codes: [] };
+    const mutationResult = { code: {} };
+    const service = { listForPlayer: vi.fn(async () => playerResult), claim: vi.fn(async () => ({ ...playerResult, resources: {}, operation: { id: randomUUID(), alreadyProcessed: false } })), listAdmin: vi.fn(async () => adminResult), createDraft: vi.fn(async () => mutationResult), publish: vi.fn(async () => mutationResult), update: vi.fn(async () => mutationResult), claimants: vi.fn(async () => ({ code: {}, page: 1, pageSize: 20, total: 0, totalPages: 1, claimants: [] })) } as unknown as GiftCodeService;
     const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, { authIdentityVerifier: { verify: async () => ({ subject: 'subject' }) }, getOrProvisionCurrentPlayer: { execute: vi.fn() } as never, giftCodeService: service }); apps.push(app); return { app, service, editionId, codeId };
   }
   it('protects player routes and validates idempotent claims', async () => {
@@ -24,12 +25,15 @@ describe('Gift code HTTP contracts', () => {
   });
   it('exposes the ADMIN management contract through authenticated routes', async () => {
     const { app, service, codeId } = await setup(); const headers = { authorization: 'Bearer token' }; const key = randomUUID();
-    expect((await app.inject({ url: '/api/v1/moderation/gift-codes', headers })).statusCode).toBe(200);
+    expect((await app.inject({ url: '/api/v1/moderation/gift-codes?page=2&search=festival&status=PUBLISHED&type=ANNUAL&availability=CURRENT&sort=claims&direction=asc', headers })).statusCode).toBe(200);
+    expect(service.listAdmin).toHaveBeenCalledWith(expect.objectContaining({ subject: 'subject' }), { page: 2, search: 'festival', status: 'PUBLISHED', type: 'ANNUAL', availability: 'CURRENT', sort: 'claims', direction: 'asc' });
     await app.inject({ method: 'POST', url: `/api/v1/moderation/gift-codes/${codeId}/publish`, headers, payload: { idempotencyKey: key } });
     expect(service.publish).toHaveBeenCalledWith(expect.objectContaining({ subject: 'subject' }), codeId, key);
     const updateKey = randomUUID();
     const update = await app.inject({ method: 'PATCH', url: `/api/v1/moderation/gift-codes/${codeId}`, headers, payload: { token: 'CADEAU-EDIT', type: 'ONE_OFF', rewards: [{ resourceKey: 'moras', amount: '456' }], idempotencyKey: updateKey } });
     expect(update.statusCode).toBe(200);
     expect(service.update).toHaveBeenCalledWith(expect.objectContaining({ subject: 'subject' }), codeId, expect.objectContaining({ token: 'CADEAU-EDIT', type: 'ONE_OFF', rewards: [{ resourceKey: 'moras', amount: 456n }], idempotencyKey: updateKey }));
+    await app.inject({ url: `/api/v1/moderation/gift-codes/${codeId}/claimants?page=3&search=myno&editionKey=2026`, headers });
+    expect(service.claimants).toHaveBeenCalledWith(expect.objectContaining({ subject: 'subject' }), codeId, { page: 3, search: 'myno', editionKey: '2026' });
   });
 });

@@ -75,4 +75,27 @@ describe('GameHeader moderation capability', () => {
     expect(onOpenNotification).not.toHaveBeenCalled()
     expect(container.querySelector('.notifications-panel')).not.toBeNull()
   })
+
+  it('presents simultaneous Expedition, Code and Boss notifications distinctly and keeps unknown events honest', async () => {
+    const onOpenNotification = vi.fn()
+    const common = { state: 'UNREAD' as const, createdAt: '2026-09-14T12:00:00Z', readAt: null }
+    const expedition = { ...common, id: '11111111-1111-4111-8111-111111111111', domainKey: 'expedition', typeKey: 'ready', payload: { characterName: 'Furina' }, actionKey: 'open-expedition-character', actionTargetId: 'character-1' }
+    const giftCode = { ...common, id: '22222222-2222-4222-8222-222222222222', domainKey: 'gift-codes', typeKey: 'GIFT_CODE_AVAILABLE', payload: { title: 'Festival des Récoltes', token: 'FESTIVALRECOLTES' }, actionKey: 'OPEN_GIFT_CODE', actionTargetId: 'edition-1' }
+    const boss = { ...common, id: '33333333-3333-4333-8333-333333333333', domainKey: 'monthly-boss', typeKey: 'MONTHLY_BOSS_DEFEATED', payload: { title: 'Boss vaincu', message: 'Récompense créditée.' }, actionKey: 'OPEN_MONTHLY_BOSS', actionTargetId: null }
+    const unknown = { ...common, id: '44444444-4444-4444-8444-444444444444', domainKey: 'future-domain', typeKey: 'FUTURE_EVENT', payload: {}, actionKey: 'UNKNOWN_ACTION', actionTargetId: 'unknown' }
+    const container = mount({ notifications: { unreadCount: 4, notifications: [expedition, giftCode, boss, unknown] }, onOpenNotification })
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
+    expect(container.textContent).toContain('Expédition terminée')
+    expect(container.textContent).toContain('Furina est revenu.')
+    expect(container.textContent).toContain('Code cadeau disponible')
+    expect(container.textContent).toContain('Festival des Récoltes · FESTIVALRECOLTES')
+    expect(container.textContent).toContain('Boss vaincu')
+    expect(container.textContent).toContain('Récompense créditée.')
+    expect(container.textContent).toContain('Une nouvelle information est disponible.')
+    expect(container.textContent?.match(/Expédition terminée/g)).toHaveLength(1)
+    const items = container.querySelectorAll<HTMLButtonElement>('.notification-item')
+    expect(Array.from(items, (item) => item.dataset.actionable)).toEqual(['true', 'true', 'true', 'false'])
+    await act(async () => { items[1]!.click(); await Promise.resolve() })
+    expect(onOpenNotification).toHaveBeenCalledWith(giftCode)
+  })
 })

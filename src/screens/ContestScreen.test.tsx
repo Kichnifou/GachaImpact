@@ -139,17 +139,68 @@ describe('ContestScreen', () => {
     expect(onReady).toHaveBeenCalledWith(true, expect.any(String))
     expect(container.textContent).not.toContain('Lancer avec des bots')
     await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Lancer')!.click(); await Promise.resolve() })
-    expect(container.textContent).toContain('participation quotidienne de tous les participants humains')
+    expect(document.body.textContent).toContain('participation quotidienne de tous les joueurs participants')
     expect(onStart).not.toHaveBeenCalled()
     act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
-    expect(container.querySelector('[role="alertdialog"]')).toBeNull()
+    expect(document.querySelector('[role="alertdialog"]')).toBeNull()
     act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Lancer')!.click())
-    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('[role="alertdialog"] button')).find((button) => button.textContent === 'Non')!.click())
+    act(() => Array.from(document.querySelectorAll<HTMLButtonElement>('[role="alertdialog"] button')).find((button) => button.textContent === 'Non')!.click())
     expect(onStart).not.toHaveBeenCalled()
     act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Lancer')!.click())
-    await act(async () => { container.querySelector<HTMLButtonElement>('[role="alertdialog"] [aria-label="Lancer le Concours"]')!.click(); await Promise.resolve() })
+    await act(async () => { document.querySelector<HTMLButtonElement>('[role="alertdialog"] [aria-label="Lancer le Concours"]')!.click(); await Promise.resolve() })
     expect(onStart).toHaveBeenCalledWith(expect.any(String))
     expect(onStart).toHaveBeenCalledTimes(1)
+  })
+
+  it('closes confirmations when their authoritative Contest context becomes stale and never executes stale Yes', async () => {
+    const lobbyValue = { ...base, active: lobby, permissions: { ...permissions, canStart: true, canCancel: true } }
+    const onStart = vi.fn(async () => lobbyValue)
+    const mounted = mount(lobbyValue, { onStart })
+    act(() => Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Lancer')!.click())
+    expect(document.querySelector('[role="alertdialog"]')).not.toBeNull()
+    const running = { ...lobby, status: 'RUNNING' as const, phase: 'TURNS' as const, currentRound: 1, currentTurnOrder: 1, startedAt: '2026-09-14T12:00:00Z', turnDeadlineAt: '2099-09-14T12:00:00Z' }
+    const runningValue = { ...base, active: running, permissions: { ...permissions, canLeave: true, canCancel: true } }
+    await act(async () => { mounted.root.render(<ContestScreen {...mounted.props} value={runningValue} />); await Promise.resolve() })
+    expect(document.querySelector('[role="alertdialog"]')).toBeNull()
+    expect(onStart).not.toHaveBeenCalled()
+
+    const leave = vi.fn(async () => runningValue)
+    await act(async () => { mounted.root.render(<ContestScreen {...mounted.props} value={runningValue} onLeave={leave} />); await Promise.resolve() })
+    act(() => Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Quitter le Concours')!.click())
+    expect(document.querySelector('[role="alertdialog"]')).not.toBeNull()
+    const nextTurn = { ...runningValue, active: { ...running, currentTurnOrder: 2 } }
+    await act(async () => { mounted.root.render(<ContestScreen {...mounted.props} value={nextTurn} onLeave={leave} />); await Promise.resolve() })
+    expect(document.querySelector('[role="alertdialog"]')).toBeNull()
+    expect(leave).not.toHaveBeenCalled()
+
+    act(() => Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Quitter le Concours')!.click())
+    const noPermission = { ...nextTurn, permissions: { ...nextTurn.permissions, canLeave: false } }
+    await act(async () => { mounted.root.render(<ContestScreen {...mounted.props} value={noPermission} onLeave={leave} />); await Promise.resolve() })
+    expect(document.querySelector('[role="alertdialog"]')).toBeNull()
+    expect(leave).not.toHaveBeenCalled()
+  })
+
+  it('treats an expired confirmation as No without sending a mutation', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-09-14T12:00:00.000Z'))
+    const running = {
+      ...lobby,
+      status: 'RUNNING' as const,
+      phase: 'TURNS' as const,
+      currentRound: 1,
+      currentTurnOrder: 1,
+      startedAt: '2026-09-14T11:59:00.000Z',
+      turnDeadlineAt: '2026-09-14T12:00:01.000Z',
+    }
+    const value = { ...base, active: running, permissions: { ...permissions, canLeave: true } }
+    const onLeave = vi.fn(async () => value)
+    const { container } = mount(value, { onLeave })
+
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Quitter le Concours')!.click())
+    expect(document.querySelector('[role="alertdialog"]')).not.toBeNull()
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_100) })
+    expect(document.querySelector('[role="alertdialog"]')).toBeNull()
+    expect(onLeave).not.toHaveBeenCalled()
   })
 
   it('confirms irreversible running participation consequences but not lobby or spectator exits', async () => {
@@ -160,18 +211,18 @@ describe('ContestScreen', () => {
     const { container } = mount(runningValue, { onLeave, onCancel })
 
     act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Quitter le Concours')!.click())
-    expect(container.querySelector('[role="alertdialog"]')?.textContent).toContain('déjà été consommée au lancement')
+    expect(document.querySelector('[role="alertdialog"]')?.textContent).toContain('déjà été consommée au lancement')
     expect(onLeave).not.toHaveBeenCalled()
-    act(() => container.querySelector<HTMLButtonElement>('[role="alertdialog"] [aria-label="Fermer"]')!.click())
+    act(() => document.querySelector<HTMLButtonElement>('[role="alertdialog"] [aria-label="Fermer"]')!.click())
     expect(onLeave).not.toHaveBeenCalled()
     act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Quitter le Concours')!.click())
-    await act(async () => { container.querySelector<HTMLButtonElement>('[role="alertdialog"] [aria-label="Quitter le Concours"]')!.click(); await Promise.resolve() })
+    await act(async () => { document.querySelector<HTMLButtonElement>('[role="alertdialog"] [aria-label="Quitter le Concours"]')!.click(); await Promise.resolve() })
     expect(onLeave).toHaveBeenCalledTimes(1)
 
     act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Annuler le Concours')!.click())
-    expect(container.querySelector('[role="alertdialog"]')?.textContent).toContain('autres participants humains récupéreront la leur')
+    expect(document.querySelector('[role="alertdialog"]')?.textContent).toContain('autres participants humains récupéreront la leur')
     expect(onCancel).not.toHaveBeenCalled()
-    await act(async () => { container.querySelector<HTMLButtonElement>('[role="alertdialog"] [aria-label="Annuler le Concours"]')!.click(); await Promise.resolve() })
+    await act(async () => { document.querySelector<HTMLButtonElement>('[role="alertdialog"] [aria-label="Annuler le Concours"]')!.click(); await Promise.resolve() })
     expect(onCancel).toHaveBeenCalledTimes(1)
 
     const spectatorContest = { ...running, viewer: { ...running.viewer, participantSlot: null, spectator: true, organizer: false } }
@@ -353,7 +404,7 @@ describe('ContestScreen', () => {
     expect(cards[1]?.querySelector('.contest-card-actions')?.textContent).toContain('Prendre un risque')
     expect(cards[2]?.querySelector('.contest-card-actions')).toBeNull()
     expect(cards[3]?.querySelector('.contest-card-actions')).toBeNull()
-    expect(container.textContent).toContain('À vous de jouer.')
+    expect(container.textContent).toContain('À votre tour !')
     expect(appCss).toMatch(/\.contest-card-actions \{[\s\S]*?position: absolute/)
   })
 
@@ -498,7 +549,7 @@ describe('ContestScreen', () => {
     await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve(); await Promise.resolve() })
     expect(container.querySelector('.contest-sync-feedback')?.textContent).toContain('Synchronisation temporairement indisponible')
     await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve(); await Promise.resolve() })
-    expect(container.querySelector('.contest-sync-feedback')?.textContent).toBe('')
+    expect(container.querySelector('.contest-sync-feedback')).toBeNull()
   })
 
   it('shows a new +0 event exactly once without changing the score', async () => {
@@ -607,12 +658,16 @@ describe('ContestScreen', () => {
   })
 
   it('keeps participant, spectator, and action geometry stable at desktop breakpoints', () => {
-    expect(appCss).toContain('.contest-active-layout.running { grid-template-rows: 74px 230px 66px auto; }')
-    expect(appCss).toContain('.contest-active-layout.running { grid-template-rows: 58px 190px 66px 26px; }')
+    expect(appCss).toContain('.contest-scroll-body { min-height: 0; overflow-x: hidden; overflow-y: auto; }')
+    expect(appCss).toContain('.contest-active-layout.running { grid-template-rows: auto auto auto auto; }')
+    expect(appCss).not.toContain('grid-template-rows: 74px 230px 66px auto')
+    expect(appCss).not.toContain('grid-template-rows: 58px 190px 66px 26px')
+    expect(appCss).toContain('.contest-participant-grid { min-height: 210px; align-items: stretch; grid-auto-rows: minmax(210px, auto); }')
     expect(appCss).not.toContain('.contest-participant .contest-avatar { display: none; }')
     expect(appCss).toContain('.contest-spectators > div > span.removable { grid-template-columns: minmax(0, 1fr) 18px; }')
     expect(appCss).toMatch(/\.contest-card-actions \{[\s\S]*?position: absolute/)
     expect(appCss).toMatch(/\.contest-score-change \{[\s\S]*?position: absolute/)
-    expect(appCss).toMatch(/\.contest-body \{[^}]*min-height: 0;[^}]*overflow: visible;/)
+    expect(appCss).not.toContain('.contest-feedback-region { min-height: 32px')
+    expect(appCss).toContain('font-size: 15px; font-weight: 800;')
   })
 })

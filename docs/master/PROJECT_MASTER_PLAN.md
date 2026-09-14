@@ -1,8 +1,8 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.97
+Version : 0.98
 Date : 2026-09-14
-Statut : CANDIDAT 0.97 PUBLIÉ SUR review — APPROUVÉ POUR PROMOTION
+Statut : CANDIDAT CORRECTIF 0.98 LOCAL — RAPPORT ET PUBLICATION review À VENIR
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
@@ -3813,14 +3813,24 @@ Le commit 0.95 `3e510307f49ffa389df902d35c83287ea0ebe96e` est désormais sur `ma
 - Le commit fonctionnel 0.96 `ea046f421a2199d3b4b7fee56dff3ade795233c6` et son checkpoint documentaire ont été approuvés, promus puis validés publiquement. Le résultat Concours reste visible cinq minutes, l’état `dailyUsed` conserve le lobby consultable avec participation désactivée, et le catalogue Collection, les quantités zéro, les compteurs et le détail ont été validés.
 - R863 devient validé publiquement. R864 reste une garantie technique du ledger : aucune validation réelle d’acquisitions multiples produites par Event n’est revendiquée avant l’implémentation de ce domaine. Les images Collection restent volontairement reportées. Le retour naturel Expedition READY/notification/claim reste une validation publique ouverte.
 
-## État du candidat 0.97 publié sur review et approuvé pour promotion — Codes cadeaux V1 et finalisation visuelle Concours
+## État public 0.97 — Codes cadeaux V1 et finalisation visuelle Concours
 
 - Le domaine actif devient **Codes cadeaux**. La migration additive 019 crée les définitions, éditions, récompenses et claims privés, avec RLS active et droits navigateur révoqués. Elle publie les douze codes Festival annuels connus, chacun à +1 600 Primogemmes et +200 000 Moras, sans créer de claim ni crédit joueur.
 - Le claim est serveur-authoritative, transactionnel et idempotent : unicité Player/édition, `BusinessOperation`, crédits par `PrismaEconomyService`, `ResourceMovement`, statistiques économiques et résolution de notification partagent la même transaction sérialisable. Une nouvelle édition annuelle est matérialisée au mois concerné et réactive sa propre notification.
 - `#codes` expose l’écran personnel `Disponibles | Récupérés`, les récompenses exactes avant action et la synchronisation immédiate des ressources globales. La destination `Codes` rejoint le registre Menu près de Boutique/Banque sans modifier les sept tuiles principales. `OPEN_GIFT_CODE` ouvre cet écran.
 - L’administration Codes est intégrée à Modération mais rendue et autorisée uniquement pour ADMIN : brouillon, token manuel ou généré, titre/description, ponctuel ou annuel, période, neuf ressources sûres, aperçu, publication explicite, modification contrôlée, désactivation/réactivation, compteurs et détail des claimants. Avant le premier claim, token, type, récurrence/période et récompenses restent modifiables selon R687 ; après le premier claim, identité/token/type/récompenses sont verrouillés et seuls les champs expressément autorisés par R687 restent éditables. Chaque mutation est auditée et idempotente.
 - Concours recharge immédiatement à l’entrée et continue son polling même sans session active. Son bandeau RUNNING emploie trois zones stables, le spectateur lit exactement `En attente des joueurs...`, les confirmations expliquent les conséquences de Lancer/Quitter/Annuler/Retirer, et le footer est compact sans toucher aux boutons globaux. Le propriétaire du scroll desktop est le body fonctionnel ; le `screen-stage` ne crée plus une seconde scrollbar pour un écran long, tandis que mobile conserve son flux naturel.
-- Aucun Event, chat, Twitch, Realtime, image Collection, service payant ou fichier `docs/Story/**` n’est commencé. `PAID_INFRA_APPROVED = false` reste inchangé. Le commit fonctionnel `7d31c2603b01ae67e4419b083c4dabf7d981d839` et le correctif de review `b631289de875a58ce8609aadea9540a76a7a2f1e` sont publiés sur `review`, pas sur `main`, non déployés et non validés publiquement. La review indépendante code, DB, sécurité, concurrence et UI est terminée favorablement ; le replay idempotent post-expiration est durci et les deux modales Admin Codes respectent le contrat modal accessible.
+- Le checkpoint 0.97 `b7438d276ab75e9ce89fba0a0b56481565842611` est promu sur `main` et déployé. La validation publique confirme la sidebar, l’accès Codes, les récompenses affichées et une récupération réelle. La récupération Expedition réelle a également réussi, mais sa notification a révélé une présentation erronée : le header assimilait par défaut un type non-Boss à une Expédition. Les défauts de confirmations/scroll Concours et de latence/présentation Admin Codes restent ouverts dans cet état public et motivent le correctif 0.98.
+
+## État du candidat correctif local 0.98 — Notifications, Concours et administration Codes
+
+- Le header résout désormais explicitement Expedition READY, Code cadeau disponible et Boss vaincu ; un type inconnu reste neutre et sans fausse navigation. Aucune notification existante n’est purgée ou réécrite.
+- Les confirmations Concours sont liées au contexte autoritatif de leur ouverture et se ferment sans mutation à l’échéance ou lors d’un changement de partie, statut, phase, manche, tour, viewer, permission ou cible. Le bandeau conserve ses trois zones et affiche exactement `À votre tour !` lorsque `canPlay` est vrai. Le body `contest-scroll-body` est le propriétaire réel du scroll, les anciennes rangées fixes contradictoires sont retirées et aucun emplacement de feedback vide n’est réservé.
+- Les surfaces touchées partagent une primitive de bouton sombre à variantes explicites. Modération sépare `Système de jeu` et `Codes`, garde le sélecteur Player dans le seul premier onglet et expose Bannières, Événements et Communauté uniquement comme repères désactivés. Codes reste strictement ADMIN/Super.
+- Création Codes et Liste sont séparées. La liste vit dans une modale bornée, conserve son état lorsqu’une fiche Modifier ou Récupérations est ouverte, et applique côté serveur recherche, filtres, tri et pagination de vingt. Les récupérations sont elles aussi filtrées et paginées par vingt sans projection privée inutile.
+- Publication, désactivation et réactivation ne bloquent plus sur une diffusion à tous les Players ni sur le rechargement intégral du catalogue. La transaction cible le code, la désactivation résout en groupe ses notifications, l’édition annuelle concernée seule est matérialisée, puis le scheduler séquentiel et les lectures Player assurent le rattrapage. Les tests Codes bornent diffusion et matérialisation aux UUID exacts des fixtures et ne nettoient jamais par préfixe.
+- Le commit Story `65169df5b10d17699520833b74bbd9366260347e` reste la base intacte de `review` ; aucun fichier `docs/Story/**`, aucune migration 001–019, aucune donnée réelle, aucun compte DEV protégé et aucun service externe ne sont modifiés. `PAID_INFRA_APPROVED = false` reste inchangé.
+- 0.98 demeure un candidat correctif **local**, non committé, non publié et non validé publiquement. Events n’est pas commencé. Prochaine étape exacte : rapport local, publication explicite sur `review`, review indépendante ChatGPT, puis seulement promotion et validation publique.
 
 ## État déployé 0.92 — Concours / C6 et densité Boss
 
@@ -3975,11 +3985,11 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 
 Prochaine étape exacte :
 
-1. Promouvoir `review` vers `main` en fast-forward strict.
-2. Attendre les déploiements automatiques.
-3. Vérifier Railway et `/health`.
-4. Effectuer la validation publique 0.97.
-5. Ne commencer Événements mensuels qu’après une validation suffisante de Codes cadeaux.
+1. Finaliser le rapport local du candidat correctif 0.98.
+2. Publier explicitement le candidat sur `review` dans une intervention Git séparée.
+3. Effectuer la review indépendante ChatGPT du commit et de son diff.
+4. Après approbation seulement, promouvoir vers `main`, attendre les déploiements automatiques et vérifier Railway ainsi que `/health`.
+5. Effectuer la validation publique 0.98 ; ne commencer Événements mensuels qu’après validation suffisante de Codes cadeaux et de ce correctif.
 
 L’ordre complet restant appartient à [implementation-order-v1.md](../roadmap/implementation-order-v1.md). La migration legacy reste reportée ; `PAID_INFRA_APPROVED = false` reste inchangé.
 

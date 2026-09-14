@@ -111,6 +111,13 @@ async function mount(superTools = true) {
       states.set(target, updated)
       return updated
     }), onTester, onApplied: vi.fn(),
+    ...(superTools ? {
+      onLoadGiftCodes: vi.fn(async () => ({ actorPlayerId: 'self', page: 1, pageSize: 20 as const, total: 0, totalPages: 1, codes: [] })),
+      onCreateGiftCode: vi.fn(async () => { throw new Error('not used') }),
+      onPublishGiftCode: vi.fn(async () => { throw new Error('not used') }),
+      onUpdateGiftCode: vi.fn(async () => { throw new Error('not used') }),
+      onGiftCodeClaimants: vi.fn(async () => { throw new Error('not used') }),
+    } : {}),
   }
   const container = document.createElement('div')
   document.body.append(container)
@@ -135,7 +142,8 @@ describe('ModerationScreen', () => {
   it('starts with the targeted-player panel and renders a readable Super quick search', async () => {
     const { container, onListPlayers } = await mount()
     expect(container.querySelector('.moderation-screen-heading')).toBeNull()
-    expect(container.querySelector('.scrollable-screen-panel-controls')?.firstElementChild?.classList.contains('moderation-target')).toBe(true)
+    expect(container.querySelector('.scrollable-screen-panel-controls')?.firstElementChild?.classList.contains('moderation-tabs')).toBe(true)
+    expect(container.querySelector('.scrollable-screen-panel-controls .moderation-target')).not.toBeNull()
     expect(container.querySelector('.scrollable-screen-panel-body .moderation-grid')).not.toBeNull()
     expect(container.textContent).toContain('Rang : Super')
     expect(container.querySelector('.moderation-target-heading strong')?.textContent).toBe('Kichnifou')
@@ -145,6 +153,27 @@ describe('ModerationScreen', () => {
     expect(listbox.textContent).toContain('Mynonyme')
     expect(listbox.textContent).toContain('Niveau 6')
     expect(listbox.textContent).toContain('Testeur')
+  })
+
+  it('keeps player targeting inside Système de jeu and mounts Codes only for a Super who selects that tab', async () => {
+    const { container, props } = await mount()
+    const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('.moderation-tabs [role="tab"]'))
+    expect(tabs.map((tab) => [tab.textContent, tab.disabled])).toEqual([['Système de jeu', false], ['Codes', false], ['Bannières', true], ['Événements', true], ['Communauté', true]])
+    expect(props.onLoadGiftCodes).not.toHaveBeenCalled()
+    tabs[0]!.focus()
+    await act(async () => { tabs[0]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); await Promise.resolve(); await Promise.resolve() })
+    expect(document.activeElement).toBe(tabs[1])
+    expect(tabs[1]!.getAttribute('aria-selected')).toBe('true')
+    expect(container.querySelector('.moderation-target')).toBeNull()
+    expect(container.querySelector('.gift-code-admin')).not.toBeNull()
+    expect(props.onLoadGiftCodes).not.toHaveBeenCalled()
+    act(() => tabs[1]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })))
+    expect(document.activeElement).toBe(tabs[0])
+    expect(container.querySelector('.moderation-target')).not.toBeNull()
+
+    const tester = await mount(false)
+    const testerCodes = Array.from(tester.container.querySelectorAll<HTMLButtonElement>('.moderation-tabs [role="tab"]')).find((tab) => tab.textContent === 'Codes')!
+    expect(testerCodes.disabled).toBe(true)
   })
 
   it('shows authoritative current values and changes the resource summary with its selector', async () => {

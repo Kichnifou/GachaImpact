@@ -16,7 +16,10 @@ export function mergeNavigationMenuPreference(value: unknown): NavigationMenuPre
   const known = new Set<string>(navigationMenuDestinationIds)
   const savedOrder = Array.isArray(record?.order) ? record.order.filter((id): id is NavigationMenuDestinationId => typeof id === 'string' && known.has(id)) : []
   const order = [...new Set(savedOrder)]
-  for (const id of navigationMenuDestinationIds) if (!order.includes(id)) order.push(id)
+  const missing = navigationMenuDestinationIds.filter((id) => id !== 'configuration' && !order.includes(id))
+  const configurationIndex = order.indexOf('configuration')
+  if (configurationIndex >= 0) order.splice(configurationIndex, 0, ...missing)
+  else order.push(...missing, 'configuration')
   const savedHidden = Array.isArray(record?.hidden) ? record.hidden.filter((id): id is NavigationMenuDestinationId => typeof id === 'string' && known.has(id) && id !== 'configuration') : []
   return { version: 1, order, hidden: [...new Set(savedHidden)] }
 }

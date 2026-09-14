@@ -1,6 +1,6 @@
 # Contrat de layout UI V1
 
-Statut : contrat transverse validé — extension physique candidate 0.97.
+Statut : contrat transverse validé — extension physique candidate 0.98.
 
 Ce document est la source de vérité des règles de composition et de stabilité visuelle communes. Les documents métier restent propriétaires du contenu et des actions de chaque écran ; le shell de navigation reste propriétaire des destinations.
 
@@ -20,6 +20,7 @@ Lorsqu’un panneau fonctionnel associe un header local (titre, recherche ou fil
 - Les sous-navigations ne défilent jamais verticalement. Sur desktop, leurs onglets tiennent dans la largeur disponible ; sur mobile, elles autorisent un pan horizontal interne sans imposer de largeur minimale au document.
 - Sous le breakpoint desktop, les écrans reviennent à un flux naturel. Les tableaux, barres d’onglets ou contenus réellement larges défilent dans leur propre conteneur horizontal ; ils ne créent pas d’overflow horizontal du document.
 - Les modales sont bornées par `100dvh`, restent fermables et conservent leurs actions dans le viewport.
+- Une modale de liste potentiellement longue utilise quatre régions explicites : header, recherche/filtres/tri, body `minmax(0, 1fr)` seul propriétaire du scroll, puis footer/pagination. La pagination serveur borne la projection à sa capacité métier ; une pagination frontend placée devant un chargement intégral ne satisfait pas ce contrat. Une modale imbriquée conserve la liste parente montée, son état et sa position de scroll ; seule la modale supérieure traite Escape et le focus revient au contrôle qui l’a ouverte.
 
 ## Stabilité et layout shift
 
@@ -59,13 +60,14 @@ Aucune requête n’est envoyée pendant le mouvement. Un drop valide produit ex
 
 ## Interactions, modales et régions dynamiques
 
+- Les boutons d’action réutilisent une primitive partagée dont la variante secondaire sombre, primaire, danger ou iconique définit elle-même fond, couleur, bordure, rayon, dimensions et états hover, `focus-visible`, disabled et pending. Le type par défaut est `button`. Aucun contrôle de ces familles ne dépend du fond natif clair du navigateur ou d’un héritage de couleur isolé ; les variantes métier déjà établies hors de la surface touchée ne sont pas repeintes implicitement.
 - Tout contrôle interactif activé annonce son affordance avec un curseur cohérent et un état `focus-visible`. Un contrôle désactivé conserve son rendu de feedback, utilise un style grisé et `cursor: not-allowed` ; une surface non interactive ne simule pas un clic.
 - Une mutation affiche son état pending dès le rendu suivant le clic, avant la réponse réseau. Son libellé et son éventuel indicateur `aria-busy` restent dans une enveloppe de dimensions stables afin de ne pas déplacer les contrôles voisins. Une garde synchrone protège le double clic lorsque le state React n’a pas encore été rendu.
 - Les modales d’un même shell réutilisent le contrôle de fermeture sombre standard avec le label accessible `Fermer`. Elles se ferment à la souris et avec Escape, enferment Tab dans le dialogue et rendent le focus au contrôle d’ouverture. Leur fermeture et leur navigation ne sont pas bloquées par une mutation de fond sans nécessité métier.
 - Toute pagination déclare une capacité visuelle explicite. Header, filtres, body et footer conservent leur position pour une page pleine, partielle, vide ou en chargement ; les emplacements structurels vides n’inventent aucune donnée et sont ignorés par les technologies d’assistance.
 - Un contenu dynamique attendu réserve sa région avant apparition : spectateurs, feedback, pending, actions alternantes, état vide et erreur courte ne doivent pas pousser brutalement les commandes suivantes ni modifier le bord inférieur du panneau.
 - Un header possède une hauteur naturelle non compressible. Il ne peut être recouvert par le panneau suivant, ni réduit par une ligne de grille `minmax(0, 1fr)` qui appartient au body extensible. Supprimer une description supprime aussi sa hauteur réservée.
-- Toute validation de layout utilise le GameShell complet et les feuilles de style de production réellement chargées. Un composant isolé sans la cascade globale ne suffit pas à conclure à l’absence de recouvrement, de contenu masqué ou d’overflow du document.
+- Toute validation de layout utilise le GameShell complet et les feuilles de style de production réellement chargées. Un composant isolé sans la cascade globale ne suffit pas à conclure à l’absence de recouvrement, de contenu masqué ou d’overflow du document. Lorsqu’un lot vérifie précisément le scroll, il est interdit de masquer les barres par option navigateur, `scrollbar-width: none`, suppression des pseudo-éléments ou `overflow: hidden` coupant le contenu ; la validation relève `clientHeight` et `scrollHeight` du véritable propriétaire.
 
 ## Validation minimale
 

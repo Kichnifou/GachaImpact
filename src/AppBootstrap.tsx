@@ -133,11 +133,11 @@ function AppBootstrap() {
     await loadNotifications()
     return result
   }, [loadNotifications])
-  const loadAdminGiftCodes = useCallback(() => getGameApiClient().getAdminGiftCodes(), [])
+  const loadAdminGiftCodes = useCallback((query: Parameters<ReturnType<typeof getGameApiClient>['getAdminGiftCodes']>[0]) => getGameApiClient().getAdminGiftCodes(query), [])
   const createGiftCode = useCallback((input: Parameters<ReturnType<typeof getGameApiClient>['createGiftCode']>[0]) => getGameApiClient().createGiftCode(input), [])
   const publishGiftCode = useCallback((codeId: string, key: string) => getGameApiClient().publishGiftCode(codeId, key), [])
   const updateGiftCode = useCallback((codeId: string, input: Parameters<ReturnType<typeof getGameApiClient>['updateGiftCode']>[1]) => getGameApiClient().updateGiftCode(codeId, input), [])
-  const loadGiftCodeClaimants = useCallback((codeId: string) => getGameApiClient().getGiftCodeClaimants(codeId), [])
+  const loadGiftCodeClaimants = useCallback((codeId: string, query: Parameters<ReturnType<typeof getGameApiClient>['getGiftCodeClaimants']>[1]) => getGameApiClient().getGiftCodeClaimants(codeId, query), [])
 
   const loadGameState = useCallback(async () => {
     const api = getGameApiClient()

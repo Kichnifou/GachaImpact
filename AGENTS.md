@@ -60,6 +60,8 @@ La maquette `Concept1.png` fournie par le propriétaire constitue la référence
 
 Les règles transverses de hauteur, scroll, stabilité, pagination, drag-and-drop et responsive sont définies dans `docs/specifications/ui-layout-contract-v1.md`. Toute évolution d’un écran long ou d’une modale de données doit respecter ce contrat et identifier explicitement le conteneur propriétaire du défilement.
 
+Les contrôles d’action ajoutés à une surface doivent réutiliser une base de bouton partagée à styles explicites : fond, texte, bordure et états hover, `focus-visible`, disabled et pending ne peuvent dépendre du style natif clair du navigateur ni du seul parent DOM. Toute surface UI touchée est vérifiée visuellement dans le `GameShell` complet avec les feuilles de style de production réellement chargées, aux viewports pertinents définis par le contrat UI.
+
 Dans une grille de cartes homogènes, préserver une géométrie et des axes visuels communs. Une carte portant une seule action utilise toute sa surface comme hit target accessible ; son cadre entier porte les états hover/focus et l’ajout de l’action ne désaligne pas son contenu.
 
 Toute décision d'interface doit préserver la compatibilité PC/mobile. Ne pas commencer ou étendre l'interface sans demande explicite.

@@ -51,11 +51,13 @@ describe('Expedition persistence', () => {
     await expect(service.claim(identity, randomUUID())).rejects.toMatchObject({ code: 'EXPEDITION_NOT_READY', message: 'Cette expédition n’est pas encore terminée.' });
     now = new Date('2099-08-02T06:00:01.000Z'); expect((await service.getState(identity)).operationalStatus).toBe('READY'); expect((await service.getState(identity)).operationalStatus).toBe('READY');
     expect(await database.notification.count({ where: { playerId: id, typeKey: 'ready' } })).toBe(1);
+    const giftNotification = await database.notification.create({ data: { playerId: id, domainKey: 'gift-codes', typeKey: 'GIFT_CODE_AVAILABLE', payload: { title: 'Fixture code', token: 'FIXTURE' }, actionKey: 'OPEN_GIFT_CODE', actionTargetId: randomUUID(), deduplicationKey: `expedition-isolation-gift:${id}` } });
     const claimKey = randomUUID(); const [left, right] = await Promise.all([service.claim(identity, claimKey), service.claim(identity, claimKey)]);
     expect([left.operation.alreadyProcessed, right.operation.alreadyProcessed].sort()).toEqual([false, true]); expect(randomCalls).toBe(1);
     expect(left.reward).toMatchObject({ kind: 'primogems', amount: 1_600n }); expect(left.view.operationalStatus).toBe('IDLE'); expect(left.view.totalCompleted).toBe(1n);
     expect(await database.resourceMovement.count({ where: { playerId: id, causeKey: 'expedition.claim' } })).toBe(1);
-    expect((await database.notification.findFirstOrThrow({ where: { playerId: id } })).state).toBe('RESOLVED');
+    expect((await database.notification.findFirstOrThrow({ where: { playerId: id, domainKey: 'expedition' } })).state).toBe('RESOLVED');
+    expect((await database.notification.findUniqueOrThrow({ where: { id: giftNotification.id } })).state).toBe('UNREAD');
     expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: id, resourceKey: 'primogems' } } })).amount).toBe(1_600n);
   }, 20_000);
 

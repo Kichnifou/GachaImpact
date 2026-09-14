@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ComponentProps, type FormEvent } from 'react'
 
-import type { AdminGiftCodesDto, GiftCodeClaimantsDto, ModerationPlayerDto, ModerationPlayerListQuery, ModerationPlayerPageDto, ModerationStateDto } from '../api/types'
+import type { ModerationPlayerDto, ModerationPlayerListQuery, ModerationPlayerPageDto, ModerationStateDto } from '../api/types'
+import AppButton from '../components/AppButton'
 import GiftCodeAdminPanel from '../components/GiftCodeAdminPanel'
 import ModerationPlayerBrowser from '../components/ModerationPlayerBrowser'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
@@ -18,11 +19,11 @@ type Props = {
   onStella: (targetPlayerId: string, quantity: string) => Promise<ModerationStateDto>
   onTester: (targetPlayerId: string, enabled: boolean) => Promise<ModerationStateDto>
   onApplied: (state: ModerationStateDto) => void
-  onLoadGiftCodes?: () => Promise<AdminGiftCodesDto>
+  onLoadGiftCodes?: ComponentProps<typeof GiftCodeAdminPanel>['onLoad']
   onCreateGiftCode?: ComponentProps<typeof GiftCodeAdminPanel>['onCreate']
-  onPublishGiftCode?: (codeId: string, key: string) => Promise<AdminGiftCodesDto>
+  onPublishGiftCode?: ComponentProps<typeof GiftCodeAdminPanel>['onPublish']
   onUpdateGiftCode?: ComponentProps<typeof GiftCodeAdminPanel>['onUpdate']
-  onGiftCodeClaimants?: (codeId: string) => Promise<GiftCodeClaimantsDto>
+  onGiftCodeClaimants?: ComponentProps<typeof GiftCodeAdminPanel>['onClaimants']
 }
 
 const resources = [['primogems', 'Primos'], ['moras', 'Moras'], ['particles_pyro', 'Pyro'], ['particles_hydro', 'Hydro'], ['particles_cryo', 'Cryo'], ['particles_electro', 'Electro'], ['particles_anemo', 'Anémo'], ['particles_geo', 'Géo'], ['particles_dendro', 'Dendro']] as const
@@ -45,13 +46,17 @@ function ModerationScreen({ actorPlayerId, capabilities, onLoad, onListPlayers, 
   const [stella, setStella] = useState('0')
   const [pending, setPending] = useState(true)
   const [message, setMessage] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'system' | 'codes'>('system')
   const onLoadRef = useRef(onLoad)
   const onAppliedRef = useRef(onApplied)
+  const systemTabRef = useRef<HTMLButtonElement>(null)
+  const codesTabRef = useRef<HTMLButtonElement>(null)
   const requestRevision = useRef(0)
   const isSuper = capabilities.superTools
   const isSelf = selectedTargetId === actorPlayerId
   const canUseGameplayTools = capabilities.selfGameplayTools || isSuper
   const currentResource = moderationResourceCurrent(state, resourceKey)
+  const codesAvailable = Boolean(isSuper && onLoadGiftCodes && onCreateGiftCode && onPublishGiftCode && onUpdateGiftCode && onGiftCodeClaimants)
 
   useEffect(() => { onLoadRef.current = onLoad }, [onLoad])
   useEffect(() => { onAppliedRef.current = onApplied }, [onApplied])
@@ -121,7 +126,11 @@ function ModerationScreen({ actorPlayerId, capabilities, onLoad, onListPlayers, 
 
   return <div className="screen-content moderation-screen long-screen-layout">
     <ScrollableScreenPanel className="moderation-screen-panel" bodyClassName="moderation-tools-body" fixed={<>
-      <section className="panel moderation-target" aria-busy={pending}>
+      <nav className="moderation-tabs" role="tablist" aria-label="Outils de modération" onKeyDown={(event) => {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+        event.preventDefault(); const next = activeTab === 'system' && codesAvailable ? 'codes' : 'system'; setActiveTab(next); (next === 'codes' ? codesTabRef : systemTabRef).current?.focus()
+      }}><AppButton ref={systemTabRef} role="tab" aria-selected={activeTab === 'system'} tabIndex={activeTab === 'system' ? 0 : -1} className={activeTab === 'system' ? 'active' : ''} onClick={() => setActiveTab('system')}>Système de jeu</AppButton><AppButton ref={codesTabRef} role="tab" aria-selected={activeTab === 'codes'} tabIndex={activeTab === 'codes' ? 0 : -1} className={activeTab === 'codes' ? 'active' : ''} disabled={!codesAvailable} onClick={() => setActiveTab('codes')}>Codes</AppButton><AppButton role="tab" aria-selected={false} tabIndex={-1} disabled>Bannières</AppButton><AppButton role="tab" aria-selected={false} tabIndex={-1} disabled>Événements</AppButton><AppButton role="tab" aria-selected={false} tabIndex={-1} disabled>Communauté</AppButton></nav>
+      {activeTab === 'system' && <section className="panel moderation-target" aria-busy={pending}>
         <div className="moderation-target-heading">
           <div><span className="eyebrow">Joueur ciblé</span><strong title={state?.player.displayName}>{state?.player.displayName ?? 'Chargement…'}</strong><small>Rang : {state ? moderationRankLabels[state.player.rank] : 'Chargement…'}</small></div>
           {isSuper && <div className="moderation-target-actions"><button type="button" className="moderation-self-button" disabled={pending || isSelf} onClick={() => selectTarget(actorPlayerId)}>Moi</button><button type="button" className="moderation-self-button primary" disabled={pending} onClick={() => setBrowserOpen(true)}>Choisir</button></div>}
@@ -133,10 +142,10 @@ function ModerationScreen({ actorPlayerId, capabilities, onLoad, onListPlayers, 
             {candidate.tester && <span className="moderation-tester-badge">Testeur</span>}
           </button>) : <p className="moderation-target-empty">Aucun joueur trouvé.</p>}
         </div>}
-      </section>
-      <p className={`moderation-feedback${message ? ' error' : ' empty'}`} role={message ? 'alert' : undefined}>{message ?? '\u00a0'}</p>
+      </section>}
+      {activeTab === 'system' && <p className={`moderation-feedback${message ? ' error' : ' empty'}`} role={message ? 'alert' : undefined}>{message ?? '\u00a0'}</p>}
     </>}>
-      <div className="moderation-grid">
+      {activeTab === 'system' && <div className="moderation-grid">
         <form className="panel moderation-tool" onSubmit={(event) => submit(event, () => onResource(selectedTargetId, { resourceKey, amount, direction: 'add' }))}><ModerationToolHeading title="Ressources" current={currentResource} /><label>Ressource<select value={resourceKey} onChange={(event) => setResourceKey(event.target.value)}>{resources.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label><label>Montant<input inputMode="numeric" pattern="[0-9]*" required value={amount} onChange={(event) => setAmount(integerText(event.target.value))} /></label><div className="moderation-actions"><button disabled={pending}>Ajouter</button><button type="button" disabled={pending} onClick={() => void execute(() => onResource(selectedTargetId, { resourceKey, amount, direction: 'remove' }))}>Retirer</button></div></form>
         {canUseGameplayTools && <>
           <form className="panel moderation-tool" onSubmit={(event) => submit(event, () => onXp(selectedTargetId, { totalXp: xp }))}><ModerationToolHeading title="Progression" current={state ? `Actuel : ${formatResourceAmount(state.progression.totalXp)} XP · Niveau ${state.progression.level}` : 'Actuel : chargement…'} /><label>XP totale<input inputMode="numeric" pattern="[0-9]*" required value={xp} onChange={(event) => setXp(integerText(event.target.value))} /></label><div className="moderation-actions"><button disabled={pending}>Définir l’XP</button><button type="button" disabled={pending} onClick={() => void execute(() => onXp(selectedTargetId, { prepareNextLevel: true }))}>Préparer prochain niveau</button></div></form>
@@ -144,8 +153,8 @@ function ModerationScreen({ actorPlayerId, capabilities, onLoad, onListPlayers, 
           <form className="panel moderation-tool" onSubmit={(event) => submit(event, () => onStella(selectedTargetId, stella))}><ModerationToolHeading title="Objets" current={state ? `Actuel : ${formatResourceAmount(state.stella.quantity)} Stella` : 'Actuel : chargement…'} /><label>Masterless Stella Fortuna<input inputMode="numeric" pattern="[0-9]*" required value={stella} onChange={(event) => setStella(integerText(event.target.value))} /></label><button disabled={pending}>Définir la quantité</button></form>
           {isSuper && !isSelf && <section className="panel moderation-tool moderation-role"><h2>Testeur</h2><p>{state?.player.tester ? 'Ce joueur possède actuellement le rôle Testeur.' : 'Ce joueur ne possède pas le rôle Testeur.'}</p><button disabled={pending} type="button" onClick={() => void execute(() => onTester(selectedTargetId, !state?.player.tester))}>{state?.player.tester ? 'Retirer Testeur' : 'Attribuer Testeur'}</button></section>}
         </>}
-      </div>
-      {isSuper && onLoadGiftCodes && onCreateGiftCode && onPublishGiftCode && onUpdateGiftCode && onGiftCodeClaimants && <GiftCodeAdminPanel onLoad={onLoadGiftCodes} onCreate={onCreateGiftCode} onPublish={onPublishGiftCode} onUpdate={onUpdateGiftCode} onClaimants={onGiftCodeClaimants} />}
+      </div>}
+      {activeTab === 'codes' && codesAvailable && <GiftCodeAdminPanel onLoad={onLoadGiftCodes!} onCreate={onCreateGiftCode!} onPublish={onPublishGiftCode!} onUpdate={onUpdateGiftCode!} onClaimants={onGiftCodeClaimants!} />}
     </ScrollableScreenPanel>
     {browserOpen && <ModerationPlayerBrowser selectedPlayerId={selectedTargetId} onListPlayers={onListPlayers} onConfirm={(playerId) => { setBrowserOpen(false); selectTarget(playerId) }} onClose={() => setBrowserOpen(false)} />}
   </div>

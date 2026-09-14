@@ -18,6 +18,15 @@ describe('navigation preferences', () => {
     expect(merged.hidden).toEqual(['bank'])
     expect(mergeNavigationMenuPreference('{bad json')).toMatchObject({ version: 1, hidden: [] })
   })
+  it('inserts every newly introduced destination immediately before a saved Configuration', () => {
+    const oldPreference = mergeNavigationMenuPreference({ version: 1, order: ['shop', 'home', 'configuration'], hidden: ['combat', 'codes', 'configuration', 'codes'] })
+    expect(oldPreference.order.slice(0, 2)).toEqual(['shop', 'home'])
+    expect(oldPreference.order.at(-1)).toBe('configuration')
+    expect(oldPreference.order.at(-2)).toBe('tutorial')
+    expect(oldPreference.order.indexOf('codes')).toBeLessThan(oldPreference.order.indexOf('configuration'))
+    expect(oldPreference.hidden).toEqual(['combat', 'codes'])
+    expect(new Set(oldPreference.order).size).toBe(navigationLength())
+  })
   it('authenticates GET/PUT, rejects invalid shapes and persists only player-owned ids', async () => {
     let stored: unknown = null
     const store: NavigationPreferenceStore = { read: vi.fn(async () => stored), write: vi.fn(async (_playerId, value) => { stored = value }) }
@@ -36,3 +45,5 @@ describe('navigation preferences', () => {
     expect((await app.inject({ url: '/api/v1/me/navigation-preferences', headers })).json()).toEqual(response.json())
   })
 })
+
+function navigationLength() { return mergeNavigationMenuPreference(null).order.length }

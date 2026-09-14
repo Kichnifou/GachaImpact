@@ -18,7 +18,7 @@ const provision = new GetOrProvisionCurrentPlayer(store);
 const getPlayer = new GetCurrentPlayer(store);
 let testNow = new Date('2026-09-14T12:00:00.000Z');
 const clock = { now: () => testNow };
-const service = new GiftCodeService(getPlayer, database, clock);
+let service: GiftCodeService;
 let fixtureSubject: string | null = null;
 let fixtureCodeIds: string[] = [];
 
@@ -26,7 +26,7 @@ async function cleanupSubject(subject: string) {
   const identity = await database.webIdentity.findUnique({ where: { provider_providerSubject: { provider: 'supabase', providerSubject: subject } }, select: { playerId: true } });
   if (identity) {
     const operations = await database.businessOperation.findMany({ where: { playerId: identity.playerId, operationType: { startsWith: 'gift-code.' } }, select: { id: true } });
-    await database.notification.deleteMany({ where: { playerId: identity.playerId, domainKey: 'gift-codes' } });
+    await database.notification.deleteMany({ where: { playerId: identity.playerId } });
     await database.giftCodeClaim.deleteMany({ where: { playerId: identity.playerId } });
     await database.resourceMovement.deleteMany({ where: { operationId: { in: operations.map(({ id }) => id) } } });
     await database.adminAuditEntry.deleteMany({ where: { OR: [{ actorPlayerId: identity.playerId }, { targetPlayerId: identity.playerId }] } });
@@ -38,8 +38,6 @@ async function cleanupSubject(subject: string) {
 beforeEach(async () => {
   testNow = new Date('2026-09-14T12:00:00.000Z');
   fixtureCodeIds = [];
-  const stale = await database.webIdentity.findMany({ where: { provider: 'supabase', providerSubject: { startsWith: 'codex-gift-code-' } }, select: { providerSubject: true } });
-  for (const row of stale) await cleanupSubject(row.providerSubject);
 });
 afterEach(async () => {
   if (fixtureSubject) await cleanupSubject(fixtureSubject);
@@ -50,12 +48,16 @@ afterEach(async () => {
 afterAll(async () => database.$disconnect());
 
 describe('GiftCodeService on Supabase DEV', () => {
-  it('claims one annual edition exactly once under concurrent requests and resolves its notification atomically', async () => {
+  it('claims one isolated edition exactly once and resolves only its own notification atomically', async () => {
     fixtureSubject = `codex-gift-code-${randomUUID()}`;
     const identity = { subject: fixtureSubject };
     const created = await provision.execute(identity, `Codex Gift ${randomUUID().slice(0, 8)}`);
+    service = new GiftCodeService(getPlayer, database, clock, { annualCodeIds: [], activePlayerIds: [created.player.id] });
+    const code = await database.giftCode.create({ data: { token: `CODEXISO${randomUUID().replace(/-/g, '').slice(0, 12)}`.toUpperCase(), title: 'Code isolé', description: 'Fixture exacte', type: 'ONE_OFF', status: 'PUBLISHED', startsAt: new Date('2026-09-01T00:00:00Z'), endsAt: new Date('2026-10-01T00:00:00Z'), publishedAt: testNow, createdById: created.player.id, updatedById: created.player.id, rewards: { create: [{ resourceKey: 'primogems', amount: 1600n }, { resourceKey: 'moras', amount: 200000n }] }, editions: { create: { editionKey: 'once', startsAt: new Date('2026-09-01T00:00:00Z'), endsAt: new Date('2026-10-01T00:00:00Z') } } }, include: { editions: true } });
+    fixtureCodeIds.push(code.id);
+    await database.notification.create({ data: { playerId: created.player.id, domainKey: 'expedition', typeKey: 'ready', payload: { characterName: 'Fixture' }, actionKey: 'open-expedition-character', actionTargetId: randomUUID(), deduplicationKey: `gift-code-isolation-expedition:${created.player.id}` } });
     const before = await service.listForPlayer(identity);
-    const festival = before.available.find(({ token }) => token === 'FESTIVALRECOLTES');
+    const festival = before.available.find(({ id }) => id === code.id);
     expect(festival?.rewards.map(({ resourceKey, amount }) => [resourceKey, amount])).toEqual([['moras', '200000'], ['primogems', '1600']]);
     const leftKey = randomUUID(); const rightKey = randomUUID();
     const [left, right] = await Promise.all([service.claim(identity, festival!.editionId, leftKey), service.claim(identity, festival!.editionId, rightKey)]);
@@ -64,16 +66,18 @@ describe('GiftCodeService on Supabase DEV', () => {
     const completedKey = left.operation.alreadyProcessed ? rightKey : leftKey;
     const retry = await service.claim(identity, festival!.editionId, completedKey);
     expect(retry.operation).toEqual({ id: left.operation.id, alreadyProcessed: true });
-    const [claimCount, movements, balances, notification] = await Promise.all([
+    const [claimCount, movements, balances, notification, expeditionNotification] = await Promise.all([
       database.giftCodeClaim.count({ where: { giftCodeEditionId: festival!.editionId, playerId: created.player.id } }),
       database.resourceMovement.findMany({ where: { playerId: created.player.id, operationId: left.operation.id }, orderBy: { resourceKey: 'asc' } }),
       database.playerResourceBalance.findMany({ where: { playerId: created.player.id, resourceKey: { in: ['moras', 'primogems'] } }, orderBy: { resourceKey: 'asc' } }),
       database.notification.findUnique({ where: { deduplicationKey: `gift-code:${created.player.id}:${festival!.editionId}` } }),
+      database.notification.findUniqueOrThrow({ where: { deduplicationKey: `gift-code-isolation-expedition:${created.player.id}` } }),
     ]);
     expect(claimCount).toBe(1);
     expect(movements.map(({ resourceKey, delta }) => [resourceKey, delta])).toEqual([['moras', 200000n], ['primogems', 1600n]]);
     expect(balances.map(({ resourceKey, amount }) => [resourceKey, amount])).toEqual([['moras', 200000n], ['primogems', 1600n]]);
     expect(notification?.state).toBe('RESOLVED');
+    expect(expeditionNotification.state).toBe('UNREAD');
     const after = await service.listForPlayer(identity);
     expect(after.available.some(({ editionId }) => editionId === festival!.editionId)).toBe(false);
     expect(after.claimed.some(({ editionId }) => editionId === festival!.editionId)).toBe(true);
@@ -91,23 +95,13 @@ describe('GiftCodeService on Supabase DEV', () => {
     expect(expiredMovements.map(({ resourceKey, delta }) => [resourceKey, delta])).toEqual([['moras', 200000n], ['primogems', 1600n]]);
     expect(expiredBalances.map(({ resourceKey, amount }) => [resourceKey, amount])).toEqual([['moras', 200000n], ['primogems', 1600n]]);
 
-    testNow = new Date('2027-09-14T12:00:00.000Z');
-    const nextYear = await service.listForPlayer(identity);
-    const nextEdition = nextYear.available.find(({ token, editionKey }) => token === 'FESTIVALRECOLTES' && editionKey === '2027');
-    expect(nextEdition).toBeDefined();
-    await service.claim(identity, nextEdition!.editionId, randomUUID());
-    const [annualClaimCount, annualBalances] = await Promise.all([
-      database.giftCodeClaim.count({ where: { playerId: created.player.id, edition: { giftCode: { token: 'FESTIVALRECOLTES' } } } }),
-      database.playerResourceBalance.findMany({ where: { playerId: created.player.id, resourceKey: { in: ['moras', 'primogems'] } }, orderBy: { resourceKey: 'asc' } }),
-    ]);
-    expect(annualClaimCount).toBe(2);
-    expect(annualBalances.map(({ resourceKey, amount }) => [resourceKey, amount])).toEqual([['moras', 400000n], ['primogems', 3200n]]);
   }, 15_000);
 
   it('rejects unavailable one-off editions and preserves lossless bigint particle rewards for a player without an element', async () => {
     fixtureSubject = `codex-gift-code-${randomUUID()}`;
     const identity = { subject: fixtureSubject };
     const created = await provision.execute(identity, `Codex Gift ${randomUUID().slice(0, 8)}`);
+    service = new GiftCodeService(getPlayer, database, clock, { annualCodeIds: [], activePlayerIds: [created.player.id] });
     expect(created.player.elementKey).toBeNull();
     await expect(service.listAdmin(identity)).rejects.toMatchObject({ code: 'GIFT_CODE_ADMIN_FORBIDDEN' });
     await database.playerRoleAssignment.createMany({ data: [
@@ -151,12 +145,13 @@ describe('GiftCodeService on Supabase DEV', () => {
     fixtureSubject = `codex-gift-code-${randomUUID()}`;
     const identity = { subject: fixtureSubject };
     const created = await provision.execute(identity, `Codex Gift ${randomUUID().slice(0, 8)}`);
+    service = new GiftCodeService(getPlayer, database, clock, { annualCodeIds: [], activePlayerIds: [created.player.id] });
     await database.playerRoleAssignment.create({ data: { playerId: created.player.id, role: 'ADMIN', source: 'codex-gift-code-test' } });
     const token = `CODEXADMIN${randomUUID().replace(/-/g, '').slice(0, 8)}`.toUpperCase();
     const createKey = randomUUID();
     const draftInput = { token, title: 'Cadeau test', description: 'Brouillon test', type: 'ANNUAL' as const, recurringMonth: 9, rewards: [{ resourceKey: 'primogems' as const, amount: 123n }], idempotencyKey: createKey };
     const createdDraft = await service.createDraft(identity, draftInput);
-    const draft = createdDraft.codes.find((code) => code.token === token)!;
+    const draft = createdDraft.code;
     fixtureCodeIds.push(draft.id);
     expect(draft.status).toBe('DRAFT');
     await service.createDraft(identity, draftInput);
@@ -172,7 +167,7 @@ describe('GiftCodeService on Supabase DEV', () => {
       rewards: [{ resourceKey: 'moras', amount: 456n }],
       idempotencyKey: randomUUID(),
     });
-    expect(editedDraft.codes.find((code) => code.id === draft.id)).toMatchObject({ token: editedToken, type: 'ONE_OFF', locked: false, rewards: [{ resourceKey: 'moras', amount: '456' }] });
+    expect(editedDraft.code).toMatchObject({ token: editedToken, type: 'ONE_OFF', locked: false, rewards: [{ resourceKey: 'moras', amount: '456' }] });
 
     const publishKey = randomUUID();
     await service.publish(identity, draft.id, publishKey);
@@ -182,10 +177,36 @@ describe('GiftCodeService on Supabase DEV', () => {
     await service.claim(identity, available.editionId, randomUUID());
     await expect(service.update(identity, draft.id, { token, type: 'ANNUAL', recurringMonth: 10, rewards: [{ resourceKey: 'primogems', amount: 123n }], idempotencyKey: randomUUID() })).rejects.toMatchObject({ code: 'GIFT_CODE_LOCKED' });
     const disabled = await service.update(identity, draft.id, { title: 'Cadeau test obtenu', disabled: true, idempotencyKey: randomUUID() });
-    expect(disabled.codes.find((code) => code.id === draft.id)).toMatchObject({ title: 'Cadeau test obtenu', status: 'DISABLED', claimCount: 1, locked: true });
+    expect(disabled.code).toMatchObject({ title: 'Cadeau test obtenu', status: 'DISABLED', claimCount: 1, locked: true });
     expect((await service.listForPlayer(identity)).claimed.some((code) => code.token === editedToken)).toBe(true);
     expect((await service.claimants(identity, draft.id)).claimants).toHaveLength(1);
     const audits = await database.adminAuditEntry.findMany({ where: { actorPlayerId: created.player.id, domain: 'gift-codes' }, select: { action: true } });
     expect(audits.map(({ action }) => action).sort()).toEqual(['create', 'disable', 'publish', 'update']);
+  }, 30_000);
+
+  it('cannot resurrect an affected notification when disable races reconciliation', async () => {
+    fixtureSubject = `codex-gift-code-${randomUUID()}`;
+    const identity = { subject: fixtureSubject };
+    const created = await provision.execute(identity, `Codex Gift ${randomUUID().slice(0, 8)}`);
+    await database.playerRoleAssignment.create({ data: { playerId: created.player.id, role: 'ADMIN', source: 'codex-gift-code-test' } });
+    service = new GiftCodeService(getPlayer, database, clock, { annualCodeIds: [], activePlayerIds: [created.player.id] });
+    const draft = await service.createDraft(identity, {
+      token: `CODEXRACE${randomUUID().replace(/-/g, '').slice(0, 8)}`.toUpperCase(),
+      title: 'Course notification', description: 'Fixture exacte de concurrence', type: 'ONE_OFF',
+      startsAt: new Date('2026-09-01T00:00:00.000Z'), endsAt: new Date('2026-10-01T00:00:00.000Z'),
+      rewards: [{ resourceKey: 'primogems', amount: 1n }], idempotencyKey: randomUUID(),
+    });
+    fixtureCodeIds.push(draft.code.id);
+    const published = await service.publish(identity, draft.code.id, randomUUID());
+    const editionId = published.code.editions[0]!.id;
+    await service.reconcileNotificationsForPlayer(created.player.id);
+
+    await Promise.all([
+      service.reconcileNotificationsForPlayer(created.player.id),
+      service.update(identity, draft.code.id, { disabled: true, idempotencyKey: randomUUID() }),
+    ]);
+
+    const notification = await database.notification.findUniqueOrThrow({ where: { deduplicationKey: `gift-code:${created.player.id}:${editionId}` } });
+    expect(notification.state).toBe('RESOLVED');
   }, 30_000);
 });
