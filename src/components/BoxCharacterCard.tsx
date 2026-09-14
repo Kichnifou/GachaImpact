@@ -1,13 +1,14 @@
 import type { BoxCharacterDto } from '../api/types'
 import CharacterPortraitFrame from './CharacterPortraitFrame'
 
-function BoxCharacterCard({ character, onOpen, onToggleFavorite, favoritePending = false, disabled = false, statusLabel, showFavorite = true }: {
+function BoxCharacterCard({ character, onOpen, onToggleFavorite, favoritePending = false, disabled = false, statusLabel, statusTone = 'default', showFavorite = true }: {
   character: BoxCharacterDto
   onOpen: () => void
   onToggleFavorite: () => void
   favoritePending?: boolean
   disabled?: boolean
   statusLabel?: string
+  statusTone?: 'default' | 'danger'
   showFavorite?: boolean
 }) {
   return <article className={`character-card box-character-card ${character.elementKey}${disabled ? ' disabled' : ''}`}>
@@ -26,7 +27,7 @@ function BoxCharacterCard({ character, onOpen, onToggleFavorite, favoritePending
         <h3>{character.name}</h3>
         <div className="character-rarity">{'★'.repeat(character.rarity)}</div>
         <div className="character-card-meta"><span>{character.elementKey}</span><strong>C{character.constellation}</strong></div>
-        {statusLabel && <small className="box-character-status">{statusLabel}</small>}
+        {statusLabel && <small className={`box-character-status${statusTone === 'danger' ? ' danger' : ''}`}>{statusLabel}</small>}
       </div>
     </button>
     {showFavorite && <button

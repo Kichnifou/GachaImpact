@@ -71,6 +71,35 @@ describe('Daily Combat screen', () => {
     expect(props.onSetSlot).toHaveBeenCalledWith(1, 'character-1')
   })
 
+  it('keeps formation KO concise and gives only picker KO statuses the danger tone', () => {
+    const value = combat({
+      status: 'IN_PROGRESS',
+      koCharacterIds: ['character-1'],
+      loadout: { nextAttemptMode: 'MANUAL', slots: [
+        { position: 1, character: characters[0]!, ko: true },
+        { position: 2, character: characters[1]!, ko: false },
+        { position: 3, character: null, ko: false },
+        { position: 4, character: null, ko: false },
+      ] },
+    })
+    const { container } = mount(value)
+    const formationKo = container.querySelector('.combat-ko-badge')
+    expect(formationKo?.textContent).toBe('💀 KO')
+    expect(formationKo?.textContent).not.toContain('Demain')
+
+    act(() => container.querySelector<HTMLButtonElement>('.combat-empty-slot')!.click())
+    const pickerCards = Array.from(container.querySelectorAll<HTMLElement>('.combat-picker .box-character-card'))
+    const koStatus = pickerCards[0]?.querySelector('.box-character-status')
+    const selectedStatus = pickerCards[1]?.querySelector('.box-character-status')
+    expect(koStatus?.textContent).toBe('💀 KO · Disponible demain')
+    expect(koStatus?.classList.contains('danger')).toBe(true)
+    expect(pickerCards[0]?.querySelector<HTMLButtonElement>('.box-card-open')?.disabled).toBe(true)
+    expect(selectedStatus?.textContent).toBe('Déjà sélectionné')
+    expect(selectedStatus?.classList.contains('danger')).toBe(false)
+    expect(pickerCards[2]?.querySelector('.box-character-status')).toBeNull()
+    expect(pickerCards[2]?.querySelector<HTMLButtonElement>('.box-card-open')?.disabled).toBe(false)
+  })
+
   it('shows chance and Mode in the command bar and explains Base, Bonus, Malus and final result', () => {
     const value = combat({
       status: 'IN_PROGRESS', koCharacterIds: ['character-1'],

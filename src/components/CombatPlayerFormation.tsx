@@ -21,7 +21,7 @@ export function PlayerCombatCard({ character, position, ko = false, pending, can
   return <article className={`combat-character-card combat-player-card ${character.elementKey}${ko ? ' ko' : ''}`} data-position={position}>
     <CombatPortrait character={character} />
     <div className="combat-card-info"><div className="combat-card-name"><ElementIcon element={character.elementKey} /><strong>{character.name}</strong></div><span className="combat-card-rarity">{'★'.repeat(character.rarity)}</span><span className="combat-card-constellation">C{character.constellation}</span></div>
-    {ko && <span className="combat-ko-badge">💀 KO · Demain</span>}
+    {ko && <span className="combat-ko-badge">💀 KO</span>}
     <div className="combat-slot-actions"><button type="button" disabled={!canOpenDetail} onClick={onOpenDetail}>Fiche</button><button type="button" disabled={pending} onClick={onChange}>Changer</button><button type="button" disabled={pending} onClick={onRemove}>Retirer</button></div>
   </article>
 }

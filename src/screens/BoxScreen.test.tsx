@@ -70,6 +70,14 @@ describe('real personal Box', () => {
     expect(html).not.toContain('20')
     expect(html).toContain('aria-pressed="false"')
   })
+  it('keeps status tones opt-in so neutral usages are not styled as KO', () => {
+    const danger = renderToStaticMarkup(<BoxCharacterCard character={records[0]!} statusLabel="💀 KO · Disponible demain" statusTone="danger" disabled onOpen={vi.fn()} onToggleFavorite={vi.fn()} />)
+    const neutral = renderToStaticMarkup(<BoxCharacterCard character={records[0]!} statusLabel="Déjà sélectionné" disabled onOpen={vi.fn()} onToggleFavorite={vi.fn()} />)
+    expect(danger).toContain('box-character-status danger')
+    expect(neutral).toContain('box-character-status')
+    expect(neutral).not.toContain('box-character-status danger')
+    expect(appCssSource).toMatch(/\.combat-ko-badge,[\s\S]*?\.box-character-status\.danger \{[\s\S]*?color: #ffe1e1;[\s\S]*?border: 1px solid rgba\(255, 102, 102, \.42\);[\s\S]*?background: rgba\(88, 17, 28, \.9\);/)
+  })
   it('uses the requested detail hierarchy without duplicated element or constellation information', () => {
     const html = renderToStaticMarkup(<BoxCharacterDetailModal character={records[0]!} {...modalProps} />)
     const header = html.match(/<header class="floating-panel-heading">.*?<\/header>/)?.[0] ?? ''

@@ -7381,7 +7381,9 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .box-combat-modal > dl > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px; border: 1px solid rgba(105, 153, 215, .15); border-radius: 8px; background: rgba(5, 14, 30, .6); }
 .box-combat-modal dt { color: var(--muted); font-size: 8px; }
 .box-combat-modal dd { margin: 0; color: #e8f3ff; font-size: 10px; font-weight: 800; }
-.box-character-card.disabled { opacity: .48; filter: grayscale(.35); }
+.box-character-card.disabled .character-portrait,
+.box-character-card.disabled .character-card-copy > :not(.box-character-status) { opacity: .48; filter: grayscale(.35); }
+.box-character-card.disabled .box-card-open { cursor: not-allowed; }
 .box-character-status { display: block; margin-top: 4px; color: #ffb0b0; font-size: 7px; }
 
 .combat-shell { height: 100%; }
@@ -7436,7 +7438,9 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .combat-slot-actions { position: absolute; z-index: 4; right: 0; bottom: 0; left: 42%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; padding: 5px; opacity: 0; pointer-events: none; background: linear-gradient(180deg, transparent, rgba(3, 10, 22, .98) 30%); transition: opacity 140ms ease; }
 .combat-player-card:hover .combat-slot-actions, .combat-player-card:focus-within .combat-slot-actions { opacity: 1; pointer-events: auto; }
 .combat-slot-actions button { min-width: 0; padding-inline: 3px; }
-.combat-ko-badge { position: absolute; z-index: 3; top: 6px; left: 6px; padding: 4px 6px; color: #ffe1e1; font-size: 7px; font-weight: 900; border: 1px solid rgba(255, 102, 102, .42); border-radius: 7px; background: rgba(88, 17, 28, .9); }
+.combat-ko-badge { position: absolute; z-index: 3; top: 6px; left: 6px; }
+.combat-ko-badge,
+.box-character-status.danger { padding: 4px 6px; color: #ffe1e1; font-size: 7px; font-weight: 900; border: 1px solid rgba(255, 102, 102, .42); border-radius: 7px; background: rgba(88, 17, 28, .9); }
 .combat-empty-slot { grid-template-columns: 1fr; place-items: center; align-content: center; gap: 4px; cursor: pointer; color: #91a5c0; border-style: dashed; background: rgba(5, 13, 29, .45); }
 .combat-empty-slot > span { font-size: 9px; }
 .combat-empty-slot > strong { color: #d8e8fa; font-size: 12px; }
