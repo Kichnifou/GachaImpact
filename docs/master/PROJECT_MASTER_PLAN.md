@@ -1,8 +1,8 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : Event Lot 2 — Jeu A candidat sur review
+Version : Event Lot 2 — Jeu A polish public candidat sur review
 Date : 2026-09-15
-Statut : EVENT LOT 2 — JEU A CANDIDAT SUR review — CORRECTIF TEMPOREL À REVALIDER
+Statut : EVENT LOT 2 — JEU A FONCTIONNEL SUR main — POLISH UI/UX CANDIDAT SUR review À REVALIDER
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
@@ -3544,7 +3544,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Événements mensuels — Event Lot 1 Fondations reste clôturé, déployé et validé publiquement. Event Lot 2 — Jeu A est implémenté comme candidat sur `review` : fenêtres personnelles persistantes, tentative autoritaire, cooldown, réussite et gains Event. La prochaine étape est la review indépendante du vrai diff GitHub.**
+**Événements mensuels — Event Lot 1 Fondations reste clôturé, déployé et validé publiquement. Event Lot 2 — Jeu A est sur `main`, déployé et validé fonctionnellement par le propriétaire ; son polish UI/UX public est candidat sur `review`. La prochaine étape est la review indépendante du vrai diff GitHub, puis un nouveau spot-check public après promotion.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3867,8 +3867,10 @@ Le commit 0.95 `3e510307f49ffa389df902d35c83287ea0ebe96e` est désormais sur `ma
 - Un échec incrémente les tentatives et pose le cooldown sans gain. La première réussite du jour incrémente atomiquement les tentatives, `game_a_success`, les points de la participation et la balance saisonnière de un, puis interdit toute nouvelle tentative Jeu A ce jour. Les futurs paliers pourront constater ces points, mais aucun palier ni récompense de seuil n’est payé dans ce lot.
 - L’onglet `Jeux` affiche le thème, les trois fenêtres et leurs états temporels, les tentatives, le cooldown et la réussite ; `Shop` et `Classement` restent visibles et désactivés. La carte Quotidiennes conserve un accès avant inscription et après inscription tant que Jeu A reste à réussir, puis masque son CTA après la réussite du jour.
 - Chaque projection Event expose `refreshAfterMs`, délai autoritatif calculé depuis le temps serveur jusqu’à la prochaine fin de cooldown, ouverture/fermeture de fenêtre ou remise à zéro `Europe/Paris`. `AppBootstrap` possède l’unique timer temporel Event, recharge le snapshot avec une petite marge et le republie pour Event comme pour Quotidiennes ; il remplace ou annule ce timer au changement de projection/session. `EventScreen` ne possède plus de timer cooldown concurrent et l’horloge murale du navigateur ne décide jamais de `canAttempt`.
+- Le polish UI/UX public sépare désormais `Inscription | Jeux | Shop | Classement`, ouvre Inscription par défaut et place sous Jeux les trois identités thématiques data-driven du Festival, dont seule la première est active. La présentation commune porte aussi les douze singuliers de monnaie et les copies d’échec inspirées du legacy sans jargon Twitch. Le cooldown conserve l’autorité serveur et ajoute seulement un décompte monotone local `3/2/1`; les feedbacks réussite/échec et l’état neutre `Délai dépassé...` sont visuellement distincts.
+- Quotidiennes s’appuie sur un agrégateur Event unique : le CTA n’apparaît que pour une inscription encore possible ou un Jeu A non réussi possédant une fenêtre active/future. Il disparaît après réussite ou expiration des trois fenêtres et réapparaît naturellement lorsque le snapshot autoritatif du lendemain est publié.
 - Les fixtures DB sont exclusivement dédiées et nettoyées exactement. Aucun compte DEV protégé, donnée Story ou participation réelle n’a été modifié. Restent exclus : R602/bonus quotidien Event, Jeu B, Jeu C, paliers/récompenses, Boutique Event, acquisition Collection, Classement, Calendrier, notifications Event, chat/Twitch et migration legacy.
-- Le candidat corrigé n’est ni promu sur `main`, ni déployé, ni validé publiquement. Prochaine étape exacte : nouvelle review indépendante du vrai diff GitHub incluant le correctif temporel, corrections éventuelles sur `review`, puis promotion seulement après approbation.
+- Les commits Jeu A fonctionnels `a3d48716efd772bd854ec1ce199739aee31b39a8` et `970a0854852eefa158bc911ec5bca0e229f902d6` sont sur `main`, déployés et validés fonctionnellement. Le polish UI/UX reste candidat sur `review`, non promu, non déployé et non validé publiquement. Prochaine étape exacte : review indépendante du vrai diff GitHub, corrections éventuelles sur `review`, promotion seulement après approbation, puis nouveau spot-check public avant clôture du Lot 2.
 
 ## État déployé 0.92 — Concours / C6 et densité Boss
 

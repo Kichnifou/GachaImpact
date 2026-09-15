@@ -13,6 +13,7 @@ import DailyCombatScreen, { type DailyCombatBoxBindings } from './DailyCombatScr
 import { unavailableMonthlyBoss } from '../combat/monthly-boss-unavailable'
 import { expeditionOverview } from '../expedition/expedition-presentation'
 import { createExpeditionClientSnapshot, type ExpeditionClientSnapshot } from '../expedition/expedition-client-snapshot'
+import { eventDailyDetail, eventHasActionableContentToday } from '../event/event-presentation'
 import ContestScreen from './ContestScreen'
 import EventScreen from './EventScreen'
 
@@ -145,7 +146,7 @@ function DailiesScreen({ wheelToday, onSpinWheel, dailyRewardToday, dailyChallen
     <DailyOverviewCard title="Boss" status={bossCompleted ? '✅ Terminé' : 'À faire'} completed={bossCompleted} detail={bossDetail} onAccess={onOpenBoss} />
     <ExpeditionOverviewCard snapshot={expedition} monotonicNow={expeditionMonotonicNow} onAccess={onOpenExpedition ?? (() => onNavigate('characters-box'))} />
     <DailyOverviewCard title="Amitié" status="Bientôt disponible. Social et Amis ne sont pas encore implémentés." accessLabel="Accéder à Amitié — Social et Amis bientôt disponibles" />
-    <DailyOverviewCard title="Événement" status={event ? `${event.festival.emoji} ${event.festival.title}` : 'Synchronisation du Festival…'} detail={event ? `${event.participation.joined ? event.gameA.completedToday ? 'Jeu du jour réussi' : 'Jeu du jour disponible' : 'Participation disponible'} · ${formatResourceAmount(event.currency.amount)} ${event.festival.currency.label}` : undefined} hideAction={Boolean(event?.participation.joined && event.gameA.completedToday)} onAccess={() => onNavigate('activities-event')} />
+    <DailyOverviewCard title="Événement" status={event ? `${event.festival.emoji} ${event.festival.title}` : 'Synchronisation du Festival…'} detail={event ? `${eventDailyDetail(event)} · ${formatResourceAmount(event.currency.amount)} ${event.festival.currency.label}` : undefined} hideAction={event ? !eventHasActionableContentToday(event) : false} onAccess={() => onNavigate('activities-event')} />
   </div>}{tab === 'wheel' && <WheelCard today={wheelToday} onSpin={onSpinWheel} />}{tab === 'challenge' && <DailyChallengeCard value={dailyChallenge} onPurchase={onPurchaseDailyChallenge} onSwitch={onSwitchDailyChallenge} onOpenParticleConversion={onOpenParticleConversion} onNavigate={onNavigate} />}</ScrollableScreenPanel></div>
 }
 

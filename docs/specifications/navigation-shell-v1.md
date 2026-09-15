@@ -1,6 +1,6 @@
 # Navigation et shell V1
 
-Statut : cible validée ; navigation physique publique, surface Event Lot 2 — Jeu A candidate sur `review`.
+Statut : cible validée ; navigation physique publique, polish Event Lot 2 — Jeu A candidat sur `review`.
 
 Ce document est la source de vérité de la navigation principale, du Menu global, de la Configuration du Menu et de l’architecture future du Tutoriel. Les audits métier restent propriétaires de leurs règles ; ce document fixe uniquement leurs points d’entrée dans le shell.
 
@@ -26,10 +26,10 @@ Les sous-onglets Activités sont exactement `Quotidiennes | Missions | Combat | 
 
 - Missions expose une coque honnête avec les rangs `B | A | S | Z` ; l’ancienne quotidienne payante est désormais appelée `Défi` et n’est plus assimilée à l’écran Missions.
 - Combat réserve les entrées internes `Entraînement | Boss`.
-- Événement est une surface réelle qui expose le Festival mensuel, l’édition, l’inscription, les points et la balance saisonnière autoritatifs. `Jeux` est fonctionnel pour Jeu A ; `Shop` et `Classement` restent des repères visibles et désactivés, sans badge de roadmap ni faux contenu.
+- Événement est une surface réelle organisée dans l’ordre `Inscription | Jeux | Shop | Classement`. Inscription, ouvert par défaut, porte le hero Festival, le statut et le résumé personnel de l’édition. Jeux possède une seconde barre de trois sous-onglets aux identités thématiques du Festival : seul Jeu A est actif et fonctionnel, tandis que Jeu B/C, Shop et Classement restent des repères désactivés sans badge de roadmap ni faux contenu.
 - Concours est une surface réelle ; son contrat métier reste propriétaire de son contenu.
 
-Quotidiennes possède `Aperçu | Roue | Défi`. Aperçu liste toujours, dans cet ordre, le catalogue quotidien décidé : `Récompense quotidienne | Roue | Défi | Combat | Boss | Expédition | Amitié | Événement`. Les domaines implémentés, dont Event Lot 2 — Jeu A, utilisent leur état serveur réel ; les autres restent visibles avec un état neutre et honnête, sans progression, compteur ni donnée fictive. Le hub ne réimplémente jamais leur logique métier. La carte Event propose l’accès avant inscription et, après inscription, tant que Jeu A n’est pas réussi pour la business date ; elle masque de nouveau son CTA après cette réussite sans présenter l’Event entier comme terminé.
+Quotidiennes possède `Aperçu | Roue | Défi`. Aperçu liste toujours, dans cet ordre, le catalogue quotidien décidé : `Récompense quotidienne | Roue | Défi | Combat | Boss | Expédition | Amitié | Événement`. Les domaines implémentés, dont Event Lot 2 — Jeu A, utilisent leur état serveur réel ; les autres restent visibles avec un état neutre et honnête, sans progression, compteur ni donnée fictive. Le hub ne réimplémente jamais leur logique métier. La carte Event délègue sa disponibilité à un agrégateur de présentation central : son CTA est visible seulement si l’inscription reste possible ou, après inscription, si Jeu A n’est pas réussi et possède encore une fenêtre active/future. Réussite et expiration des trois fenêtres masquent le CTA ; le refresh autoritatif de la nouvelle business date le fait réapparaître dès qu’une nouvelle opportunité existe. Ce principe accueillera les actions réelles des futurs Jeux B/C sans transformer le CTA en simple lien de visite.
 
 Les boutons `Accéder` conduisent vers leurs propriétaires : Roue → sous-onglet Roue ; Défi → sous-onglet Défi ; Combat → `Activités > Combat` ; Expédition → `Personnages > Box` ; Amitié → futur Social/Amis, avec contrôle désactivé tant que cette destination n’existe pas ; Événement → `Activités > Événement`. Roue réutilise le composant et le service existants et n’est plus jouable depuis Accueil. Défi remplace l’ancienne mission quotidienne player-facing et utilise exclusivement son état serveur réel ; Missions B/A/S/Z reste un domaine séparé et indisponible. Dans la carte Défi active, Conversion ouvre la modale transverse sans navigation et Pulls conduit à Invocation sans lancer de Pull ; aucun raccourci Chat factice n’est exposé pour Messages.
 
