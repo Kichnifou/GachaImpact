@@ -55,6 +55,11 @@ export default function EventScreen({ value, onLoad, onJoin, onAttempt }: Props)
     return () => { active = false }
   }, [onLoad])
 
+  useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- A server snapshot can invalidate the selected Event section.
+    if (!value.participation.joined && section === 'games') setSection('registration')
+  }, [section, value.participation.joined])
+
   const join = async () => {
     if (pendingRef.current || !value.canJoin) return
     const key = intentKey ?? crypto.randomUUID()
@@ -103,7 +108,7 @@ export default function EventScreen({ value, onLoad, onJoin, onAttempt }: Props)
   const tabs = <>
     <nav className="activity-inner-tabs event-tabs" aria-label="Sections Événement">
       <button type="button" className={section === 'registration' ? 'active' : ''} aria-current={section === 'registration' ? 'page' : undefined} onClick={() => setSection('registration')}>Inscription</button>
-      <button type="button" className={section === 'games' ? 'active' : ''} aria-current={section === 'games' ? 'page' : undefined} onClick={() => setSection('games')}>Jeux</button>
+      <button type="button" className={section === 'games' ? 'active' : ''} aria-current={section === 'games' ? 'page' : undefined} disabled={!value.participation.joined} onClick={() => setSection('games')}>Jeux</button>
       {['Shop', 'Classement'].map((tab) => <button type="button" disabled key={tab}>{tab}</button>)}
     </nav>
     {section === 'games' && <nav className="activity-inner-tabs event-game-tabs" aria-label="Jeux du Festival">

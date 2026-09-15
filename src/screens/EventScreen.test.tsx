@@ -48,9 +48,37 @@ describe('EventScreen presentation', () => {
     expect(mounted.container.textContent).toContain('du 1 septembre 2026 au 30 septembre 2026')
     expect(mounted.container.textContent).toContain('Non inscrit')
     expect(mounted.container.querySelector<HTMLButtonElement>('.event-foundation-card button')?.disabled).toBe(false)
-    expect(Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button'), ({ textContent }) => textContent)).toEqual(['Inscription', 'Jeux', 'Shop', 'Classement'])
+    const tabs = Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
+    expect(tabs.map(({ textContent }) => textContent)).toEqual(['Inscription', 'Jeux', 'Shop', 'Classement'])
+    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, true, true])
+    act(() => tabs[1].click())
     expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Inscription')
+    expect(mounted.container.querySelector('.event-stat-grid')).not.toBeNull()
     expect(mounted.container.textContent).not.toMatch(/À venir|Bientôt disponible|prochains lots/)
+  })
+
+  it('enables Games after the server join snapshot without leaving registration', () => {
+    const mounted = mount()
+    act(() => mounted.root.render(<EventScreen {...mounted.props} value={afterJoin} />))
+    const tabs = Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
+    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, false, true, true])
+    expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Inscription')
+    expect(mounted.container.textContent).toContain('Événement rejoint')
+    expect(mounted.container.querySelector('.event-game-a')).toBeNull()
+  })
+
+  it('returns to registration when a new snapshot removes event participation', () => {
+    const mounted = mount({ value: afterJoin })
+    selectGames(mounted.container)
+    expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Jeux')
+
+    act(() => mounted.root.render(<EventScreen {...mounted.props} value={{ ...beforeJoin, edition: { ...beforeJoin.edition, id: 'edition-2027', year: 2027 } }} />))
+
+    const tabs = Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
+    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, true, true])
+    expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Inscription')
+    expect(mounted.container.textContent).toContain('Recevez 1 Jeton de Récolte')
+    expect(mounted.container.querySelector('.event-stat-grid')).not.toBeNull()
   })
 
   it('presents the exclusive December boundary as the last included calendar day', () => {
@@ -127,7 +155,7 @@ describe('EventScreen presentation', () => {
     await act(async () => { container.querySelector<HTMLButtonElement>('.event-foundation-card button')!.click(); await Promise.resolve() })
     expect(container.querySelector('[role="alert"]')?.textContent).toContain('momentanément inaccessible')
     const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
-    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, false, true, true])
+    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, true, true])
     expect(tabs.every((tab) => !tab.hasAttribute('title') && tab.querySelector('small') === null)).toBe(true)
   })
 
