@@ -43,7 +43,14 @@ export type GiftCodeAdminQuery = Readonly<{
 export type GiftCodeClaimantQuery = Readonly<{ page: number; search?: string; editionKey?: string }>;
 
 type Database = PrismaClient | Prisma.TransactionClient;
-type GiftCodeMaintenanceScope = Readonly<{ annualCodeIds?: readonly string[]; activePlayerIds?: readonly string[] }>;
+type GiftCodeMaintenanceScope = Readonly<{
+  annualCodeIds?: readonly string[];
+  activePlayerIds?: readonly string[];
+  testHooks?: Readonly<{
+    afterReconciliationCodeLock?: () => Promise<void>;
+    afterAdminCodeLock?: () => Promise<void>;
+  }>;
+}>;
 const activeNotificationStates = [NotificationState.UNREAD, NotificationState.READ] as const;
 const noExpiry = new Date('9999-12-31T23:59:59.999Z');
 
@@ -117,8 +124,9 @@ export class GiftCodeService {
         FROM gift_codes gc
         JOIN gift_code_editions gce ON gce.gift_code_id = gc.id
         WHERE gc.status = 'PUBLISHED' AND gce.starts_at <= ${now} AND gce.ends_at > ${now}
-        FOR KEY SHARE OF gc
+        FOR SHARE OF gc
       `;
+      await this.maintenanceScope.testHooks?.afterReconciliationCodeLock?.();
       const editions = await tx.giftCodeEdition.findMany({
         where: { startsAt: { lte: now }, endsAt: { gt: now }, giftCode: { status: GiftCodeStatus.PUBLISHED }, claims: { none: { playerId } } },
         include: { giftCode: { include: { rewards: true } } },
@@ -220,6 +228,7 @@ export class GiftCodeService {
     const request = { codeId, ...input, rewards: input.rewards?.map(stringifyReward) };
     const affectedCodeId = await this.adminMutation(actor.id, input.disabled === true ? 'disable' : 'update', input.idempotencyKey, request, async (tx, operationId) => {
       await tx.$queryRaw`SELECT id FROM gift_codes WHERE id = ${codeId}::uuid FOR UPDATE`;
+      await this.maintenanceScope.testHooks?.afterAdminCodeLock?.();
       const before = await tx.giftCode.findUnique({ where: { id: codeId }, include: { rewards: true, editions: { include: { _count: { select: { claims: true } } } } } });
       if (!before) throw new BusinessError('GIFT_CODE_NOT_FOUND', 'Ce code cadeau n’existe pas.');
       const hasClaims = before.editions.some((edition) => edition._count.claims > 0);

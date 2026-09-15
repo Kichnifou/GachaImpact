@@ -20,7 +20,14 @@ let testNow = new Date('2026-09-14T12:00:00.000Z');
 const clock = { now: () => testNow };
 let service: GiftCodeService;
 let fixtureSubject: string | null = null;
+let extraFixtureSubjects: string[] = [];
 let fixtureCodeIds: string[] = [];
+
+function deferred() {
+  let resolve!: () => void;
+  const promise = new Promise<void>((done) => { resolve = done; });
+  return { promise, resolve };
+}
 
 async function cleanupSubject(subject: string) {
   const identity = await database.webIdentity.findUnique({ where: { provider_providerSubject: { provider: 'supabase', providerSubject: subject } }, select: { playerId: true } });
@@ -37,17 +44,70 @@ async function cleanupSubject(subject: string) {
 }
 beforeEach(async () => {
   testNow = new Date('2026-09-14T12:00:00.000Z');
+  extraFixtureSubjects = [];
   fixtureCodeIds = [];
 });
 afterEach(async () => {
   if (fixtureSubject) await cleanupSubject(fixtureSubject);
+  for (const subject of extraFixtureSubjects) await cleanupSubject(subject);
   if (fixtureCodeIds.length) await database.giftCode.deleteMany({ where: { id: { in: fixtureCodeIds } } });
   fixtureSubject = null;
+  extraFixtureSubjects = [];
   fixtureCodeIds = [];
 });
 afterAll(async () => database.$disconnect());
 
 describe('GiftCodeService on Supabase DEV', () => {
+  async function createConcurrencyFixture() {
+    fixtureSubject = `codex-gift-code-lock-${randomUUID()}`;
+    const otherSubject = `codex-gift-code-lock-other-${randomUUID()}`;
+    extraFixtureSubjects.push(otherSubject);
+    const identity = { subject: fixtureSubject };
+    const otherIdentity = { subject: otherSubject };
+    const [created, other] = await Promise.all([
+      provision.execute(identity, `Codex Lock ${randomUUID().slice(0, 8)}`),
+      provision.execute(otherIdentity, `Codex Other ${randomUUID().slice(0, 8)}`),
+    ]);
+    await database.playerRoleAssignment.create({ data: { playerId: created.player.id, role: 'ADMIN', source: 'codex-gift-code-test' } });
+    const baseService = new GiftCodeService(getPlayer, database, clock, { annualCodeIds: [], activePlayerIds: [created.player.id, other.player.id] });
+    const createPublished = async (label: string) => {
+      const draft = await baseService.createDraft(identity, {
+        token: `CODEXLOCK${label}${randomUUID().replace(/-/g, '').slice(0, 8)}`.toUpperCase(),
+        title: `Verrou ${label}`, description: `Fixture isolée ${label}`, type: 'ONE_OFF',
+        startsAt: new Date('2026-09-01T00:00:00.000Z'), endsAt: new Date('2026-10-01T00:00:00.000Z'),
+        rewards: [{ resourceKey: 'primogems', amount: 1n }], idempotencyKey: randomUUID(),
+      });
+      fixtureCodeIds.push(draft.code.id);
+      const published = await baseService.publish(identity, draft.code.id, randomUUID());
+      return { codeId: draft.code.id, editionId: published.code.editions[0]!.id };
+    };
+    const affected = await createPublished('AFFECTED');
+    const guard = await createPublished('GUARD');
+    await Promise.all([
+      baseService.reconcileNotificationsForPlayer(created.player.id),
+      baseService.reconcileNotificationsForPlayer(other.player.id),
+    ]);
+    return {
+      identity,
+      playerIds: [created.player.id, other.player.id] as const,
+      affected,
+      guard,
+      serviceWithHooks: (testHooks: Readonly<{ afterReconciliationCodeLock?: () => Promise<void>; afterAdminCodeLock?: () => Promise<void> }>) => new GiftCodeService(getPlayer, database, clock, { annualCodeIds: [], activePlayerIds: [created.player.id, other.player.id], testHooks }),
+    };
+  }
+
+  async function expectDisabledFixtureState(fixture: Awaited<ReturnType<typeof createConcurrencyFixture>>) {
+    const [codes, notifications] = await Promise.all([
+      database.giftCode.findMany({ where: { id: { in: [fixture.affected.codeId, fixture.guard.codeId] } }, select: { id: true, status: true } }),
+      database.notification.findMany({ where: { playerId: { in: [...fixture.playerIds] }, actionTargetId: { in: [fixture.affected.editionId, fixture.guard.editionId] } }, select: { playerId: true, actionTargetId: true, state: true } }),
+    ]);
+    expect(codes.find(({ id }) => id === fixture.affected.codeId)?.status).toBe('DISABLED');
+    expect(codes.find(({ id }) => id === fixture.guard.codeId)?.status).toBe('PUBLISHED');
+    expect(notifications).toHaveLength(4);
+    expect(notifications.filter(({ actionTargetId }) => actionTargetId === fixture.affected.editionId).map(({ state }) => state).sort()).toEqual(['RESOLVED', 'RESOLVED']);
+    expect(notifications.filter(({ actionTargetId }) => actionTargetId === fixture.guard.editionId).map(({ state }) => state).sort()).toEqual(['UNREAD', 'UNREAD']);
+  }
+
   it('claims one isolated edition exactly once and resolves only its own notification atomically', async () => {
     fixtureSubject = `codex-gift-code-${randomUUID()}`;
     const identity = { subject: fixtureSubject };
@@ -208,5 +268,59 @@ describe('GiftCodeService on Supabase DEV', () => {
 
     const notification = await database.notification.findUniqueOrThrow({ where: { deduplicationKey: `gift-code:${created.player.id}:${editionId}` } });
     expect(notification.state).toBe('RESOLVED');
+  }, 30_000);
+
+  it('serializes disable after a reconciliation that already holds the published-code lock', async () => {
+    const fixture = await createConcurrencyFixture();
+    const reconciliationLocked = deferred();
+    const releaseReconciliation = deferred();
+    const order: string[] = [];
+    service = fixture.serviceWithHooks({
+      afterReconciliationCodeLock: async () => {
+        order.push('reconciliation-locked');
+        reconciliationLocked.resolve();
+        await releaseReconciliation.promise;
+        order.push('reconciliation-released');
+      },
+      afterAdminCodeLock: async () => { order.push('disable-locked'); },
+    });
+
+    const reconciliation = service.reconcileNotificationsForPlayer(fixture.playerIds[0]);
+    await reconciliationLocked.promise;
+    const disable = service.update(fixture.identity, fixture.affected.codeId, { disabled: true, idempotencyKey: randomUUID() });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(order).toEqual(['reconciliation-locked']);
+    releaseReconciliation.resolve();
+    await Promise.all([reconciliation, disable]);
+
+    expect(order.indexOf('disable-locked')).toBeGreaterThan(order.indexOf('reconciliation-released'));
+    await expectDisabledFixtureState(fixture);
+  }, 30_000);
+
+  it('makes reconciliation wait for a disable that already holds the code lock', async () => {
+    const fixture = await createConcurrencyFixture();
+    const disableLocked = deferred();
+    const releaseDisable = deferred();
+    const order: string[] = [];
+    service = fixture.serviceWithHooks({
+      afterAdminCodeLock: async () => {
+        order.push('disable-locked');
+        disableLocked.resolve();
+        await releaseDisable.promise;
+        order.push('disable-released');
+      },
+      afterReconciliationCodeLock: async () => { order.push('reconciliation-locked'); },
+    });
+
+    const disable = service.update(fixture.identity, fixture.affected.codeId, { disabled: true, idempotencyKey: randomUUID() });
+    await disableLocked.promise;
+    const reconciliation = service.reconcileNotificationsForPlayer(fixture.playerIds[0]);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(order).toEqual(['disable-locked']);
+    releaseDisable.resolve();
+    await Promise.all([disable, reconciliation]);
+
+    expect(order.indexOf('reconciliation-locked')).toBeGreaterThan(order.indexOf('disable-released'));
+    await expectDisabledFixtureState(fixture);
   }, 30_000);
 });

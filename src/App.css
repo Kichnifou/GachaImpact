@@ -6810,10 +6810,6 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .contest-toolbar > div:first-child { display: grid; gap: 3px; }
 .contest-toolbar strong { color: #f7d884; font-size: 16px; }
 .contest-toolbar-actions, .contest-inline-actions, .contest-footer-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }
-.contest-toolbar button, .contest-inline-actions button, .contest-footer-actions button, .contest-ready, .contest-state-header button { min-height: 36px; padding: 0 14px; color: #dceaff; border: 1px solid rgba(112, 170, 235, .28); border-radius: 10px; background: rgba(21, 50, 91, .55); }
-.contest-empty button, .contest-result-hero button { min-height: 38px; padding: 0 16px; color: #eaf4ff; border: 1px solid rgba(101, 174, 244, .45); border-radius: 10px; background: linear-gradient(180deg, #2381d8, #1760ad); box-shadow: 0 8px 20px rgba(16, 92, 171, .22); }
-.contest-screen .danger-button { color: #ffb3b5; border-color: rgba(231, 105, 113, .35); background: rgba(105, 29, 43, .28); }
-.contest-screen button:disabled { cursor: not-allowed; opacity: .45; box-shadow: none; }
 .contest-empty { min-height: 330px; display: grid; place-items: center; align-content: center; gap: 12px; text-align: center; }
 .contest-empty h2, .contest-empty p { margin: 0; }
 .contest-theme-glyph { color: #f1cc71; font-size: 44px; filter: drop-shadow(0 0 16px rgba(241, 204, 113, .38)); }
@@ -6851,13 +6847,13 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .contest-rank { color: #f1d274; font-size: 11px; }
 .contest-live-rank { position: absolute; top: 9px; right: 9px; min-width: 32px; padding: 4px 7px; color: #07182d; font-size: 10px; border-radius: 999px; background: #f5d879; box-shadow: 0 5px 14px rgba(0, 0, 0, .25); }
 .contest-replaced { color: #f3b978; font-size: 9px; }
-.contest-remove { min-height: 28px; padding: 0 9px; color: #f5a8aa; border: 1px solid rgba(231, 105, 113, .28); border-radius: 8px; background: transparent; }
+.contest-remove { min-height: 28px; padding: 0 9px; }
 .contest-spectators { display: flex; align-items: center; gap: 12px; padding: 10px 14px; }
 .contest-spectators > div { display: flex; flex-wrap: wrap; gap: 6px; }
 .contest-spectators > div > span { min-width: 0; max-width: 100%; display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; color: #9db2d0; font-size: 9px; border: 1px solid rgba(112, 153, 215, .16); border-radius: 999px; background: rgba(20, 43, 76, .45); }
 .contest-spectators > div > span > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .contest-spectators > div > span.selected { color: #ffe6a4; border-color: rgba(241, 197, 83, .5); background: rgba(107, 77, 20, .38); }
-.contest-spectator-remove { flex: 0 0 auto; min-height: 24px; padding: 0 7px; color: #ffc0c2; font-size: 9px; border: 1px solid rgba(232, 113, 121, .32); border-radius: 999px; background: rgba(91, 25, 37, .32); }
+.contest-spectator-remove { flex: 0 0 auto; min-height: 24px; padding: 0 7px; font-size: 9px; }
 .contest-join-panel, .contest-lobby-controls, .contest-turn-actions, .contest-support-actions, .contest-result-hero { display: grid; gap: 13px; padding: 17px; }
 .contest-lobby-controls { grid-template-columns: minmax(220px, 340px) 1fr; align-items: end; }
 .contest-ready.active { color: #83efaf; border-color: rgba(72, 213, 127, .55); background: rgba(31, 112, 69, .3); }
@@ -6866,7 +6862,6 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .contest-promotions strong { color: #ffe29a; }
 .contest-new-lobby { grid-template-columns: minmax(220px, 340px) auto; align-items: end; }
 .contest-turn-actions > div, .contest-support-actions > div { display: flex; gap: 9px; flex-wrap: wrap; }
-.contest-support-actions button { min-height: 38px; padding: 0 14px; color: #edf4ff; border: 1px solid rgba(126, 171, 231, .28); border-radius: 10px; background: rgba(22, 53, 95, .52); }
 .contest-footer-actions { justify-content: flex-end; }
 .contest-feedback { min-height: 20px; margin: 0; color: #9fc4ee; }
 .contest-feedback.error { color: #ff9d9d; }
@@ -6881,7 +6876,7 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .contest-history-list article { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
 .contest-history-list article > div { display: grid; gap: 5px; }
 .contest-history-list article > div > span { color: #93aac9; }
-.contest-history-list article > button, .contest-history-back { min-height: 34px; padding: 0 12px; color: #cde4ff; border: 1px solid rgba(112, 170, 235, .28); border-radius: 8px; background: rgba(21, 50, 91, .55); white-space: nowrap; }
+.contest-history-list article > .app-button, .contest-history-back { white-space: nowrap; }
 .contest-history-detail { display: grid; align-content: start; gap: 16px; padding: 16px; overflow-y: auto; }
 .contest-history-detail > dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
 .contest-history-detail > dl > div { padding: 9px; border-radius: 8px; background: rgba(38, 68, 108, .25); }
@@ -6948,10 +6943,7 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .contest-confirmation h2, .contest-confirmation p { margin: 0; }
 .contest-confirmation p { color: #aabbd3; line-height: 1.55; }
 .contest-confirmation > div { display: flex; justify-content: flex-end; gap: 9px; }
-.contest-confirmation button { min-height: 36px; padding-inline: 15px; }
-.contest-confirmation .contest-confirmation-close { position: absolute; top: 10px; right: 10px; min-width: 32px; padding: 0; cursor: pointer; color: #ddecff; border: 1px solid rgba(112, 170, 235, .3); border-radius: 8px; background: #0b1a30; }
-.contest-confirmation .primary-button { cursor: pointer; color: #eff8ff; border: 1px solid rgba(83, 210, 255, .48); border-radius: 9px; background: linear-gradient(180deg, #2381d8, #1760ad); }
-.contest-confirmation .danger-button { cursor: pointer; color: #ffc1c6; border: 1px solid rgba(231, 105, 113, .42); border-radius: 9px; background: rgba(105, 29, 43, .5); }
+.contest-confirmation .contest-confirmation-close { position: absolute; top: 10px; right: 10px; }
 
 .gift-codes-frame, .gift-codes-frame > .scrollable-screen-panel-content { height: 100%; }
 .gift-codes-tabs { display: flex; gap: 8px; padding: 10px 13px; }
@@ -6983,7 +6975,6 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .gift-code-admin-form { display: grid; gap: 13px; padding: 16px; }
 .gift-code-admin-form-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .gift-code-admin-form-heading h3 { margin: 0; }
-.gift-code-admin-form-heading button, .gift-code-admin-actions button { min-height: 32px; padding-inline: 10px; cursor: pointer; color: #dceaff; border: 1px solid rgba(112, 170, 235, .28); border-radius: 8px; background: rgba(21, 50, 91, .65); }
 .gift-code-admin-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
 .gift-code-admin-fields .wide { grid-column: span 2; }
 .gift-code-admin label, .gift-code-edit-modal label { display: grid; gap: 4px; color: #8fa8c8; font-size: 9px; font-weight: 800; text-transform: uppercase; }
@@ -6994,7 +6985,7 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .gift-code-admin-rewards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
 .gift-code-admin-preview { display: grid; gap: 4px; padding: 11px; border: 1px dashed rgba(93, 210, 255, .32); border-radius: 9px; background: rgba(14, 42, 70, .45); }
 .gift-code-admin-preview p { margin: 2px 0 0; color: #c8d8ea; }
-.gift-code-admin-form > .primary-button { justify-self: end; min-height: 37px; padding-inline: 15px; cursor: pointer; color: #eff8ff; border: 1px solid rgba(83, 210, 255, .48); border-radius: 9px; background: linear-gradient(180deg, #2381d8, #1760ad); }
+.gift-code-admin-form > .app-button { justify-self: end; }
 .gift-code-admin-list { display: grid; gap: 9px; }
 .gift-code-admin-list > article { min-width: 0; display: grid; grid-template-columns: minmax(230px, 1fr) minmax(240px, .9fr) auto; align-items: center; gap: 14px; padding: 13px; }
 .gift-code-admin-list h3, .gift-code-admin-list p { margin: 4px 0; }
@@ -7008,7 +6999,6 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .gift-code-edit-modal, .gift-code-claimants-modal { box-sizing: border-box; width: min(560px, calc(100vw - 28px)); max-height: calc(100dvh - 28px); display: grid; gap: 11px; padding: 18px; overflow-y: auto; }
 .gift-code-edit-modal header, .gift-code-claimants-modal header { display: flex; justify-content: space-between; align-items: center; }
 .gift-code-edit-modal header h2 { margin: 0; }
-.gift-code-edit-modal header button, .gift-code-claimants-modal header button { min-width: 32px; min-height: 32px; cursor: pointer; color: #ddecff; border: 1px solid rgba(112, 170, 235, .3); border-radius: 8px; background: #0b1a30; }
 .gift-code-edit-modal footer { display: flex; justify-content: flex-end; gap: 8px; }
 .gift-code-claimants-modal > div { max-height: 50dvh; overflow-y: auto; }
 .gift-code-claimants-modal p { display: flex; justify-content: space-between; gap: 12px; color: #9fb4ce; }
@@ -7756,8 +7746,8 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .history-table th, .history-modal .bank-history-table th { position: sticky; z-index: 1; top: 0; color: #8fa9cf; font-size: 8px; letter-spacing: .07em; text-transform: uppercase; background: #0d1a31; }
 .history-table td, .history-modal .bank-history-table td { color: #dbe7f8; font-size: 9px; }
 .history-modal-pagination { min-height: 58px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 11px 20px; border-top: 1px solid rgba(108, 145, 205, .16); background: rgba(6, 14, 29, .96); }
-.history-modal-pagination button { min-height: 34px; padding: 0 14px; color: #ddecff; font-size: 8px; font-weight: 800; border: 1px solid rgba(101, 168, 236, .32); border-radius: 9px; background: rgba(26, 66, 113, .3); }
-.history-modal-pagination button:disabled { opacity: .42; }
+.history-modal-pagination button:not(.app-button) { min-height: 34px; padding: 0 14px; color: #ddecff; font-size: 8px; font-weight: 800; border: 1px solid rgba(101, 168, 236, .32); border-radius: 9px; background: rgba(26, 66, 113, .3); }
+.history-modal-pagination button:not(.app-button):disabled { opacity: .42; }
 .history-modal-pagination span { color: var(--muted); font-size: 9px; text-align: center; }
 
 .daily-challenge-card { box-sizing: border-box; position: relative; width: 100%; max-width: none; height: clamp(240px, 26vh, 280px); display: grid; grid-template-rows: auto minmax(0, 1fr) 48px 46px; gap: 10px; padding: 18px 20px; overflow: hidden; }
@@ -7988,20 +7978,11 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 }
 
 /* Candidate 0.93 — stable activity geometry and interaction states */
-.modal-close-button {
-  color: #aebbd3 !important;
-  border-color: rgba(123, 157, 214, .3) !important;
-  background: rgba(8, 20, 39, .94) !important;
-}
-.modal-close-button:hover,
-.modal-close-button:focus-visible { color: #eff7ff !important; border-color: rgba(111, 190, 255, .58) !important; background: rgba(25, 59, 99, .92) !important; }
-.contest-screen button:not(:disabled),
 .boss-bilan-modal button:not(:disabled),
 .boss-picker button:not(:disabled),
 .boss-details button:not(:disabled),
 .boss-history-details button:not(:disabled),
 .modal-close-button:not(:disabled) { cursor: pointer; }
-.contest-screen button:disabled,
 .boss-bilan-modal button:disabled,
 .boss-picker button:disabled,
 .boss-details button:disabled,
@@ -8039,8 +8020,6 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .contest-support-actions p { margin: 0; }
 .contest-turn-actions > div,
 .contest-support-actions > div { display: flex; flex-wrap: wrap; gap: 7px; }
-.contest-turn-actions button,
-.contest-support-actions button { min-height: 36px; padding: 0 14px; color: #e7f1ff; border: 1px solid rgba(112, 170, 235, .34); border-radius: 9px; background: rgba(21, 50, 91, .72); }
 .contest-mutation-button { min-width: 132px; white-space: nowrap; }
 .contest-inline-pending { color: #9fc4ee; font-size: 9px; }
 .contest-footer-actions { min-height: 36px; flex-wrap: nowrap; }
@@ -8059,7 +8038,7 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .contest-legends-controls label { min-width: 0; display: grid; gap: 4px; color: #91a9ca; font-size: 8px; font-weight: 800; text-transform: uppercase; }
 .contest-legends-controls input,
 .contest-legends-controls select { min-width: 0; height: 34px; padding: 0 9px; color: #eef5ff; border: 1px solid rgba(112, 170, 235, .28); border-radius: 8px; background: #101e35; }
-.contest-sort-direction { width: 36px; height: 34px; color: #dceaff; border: 1px solid rgba(112, 170, 235, .28); border-radius: 8px; background: rgba(21, 50, 91, .72); }
+.contest-sort-direction { width: 36px; height: 34px; }
 .contest-legends-list { position: relative; min-height: 0; display: grid; grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 10px 14px; overflow: hidden; }
 .contest-legends-list article { min-height: 0; display: grid; align-content: center; gap: 6px; padding: 9px 11px; overflow: hidden; }
 .contest-legends-list h3 { margin: 0; font-size: 14px; }
@@ -8133,10 +8112,9 @@ button.inventory-stella-card { width: 100%; font: inherit; }
   .contest-support-actions h3 { font-size: 14px; line-height: 1.15; }
   .contest-turn-actions p,
   .contest-support-actions p { font-size: 9px; }
-  .contest-turn-actions button,
-  .contest-support-actions button { min-height: 30px; }
+  .contest-action-region .contest-mutation-button { min-height: 30px; }
   .contest-footer-actions,
-  .contest-footer-actions button { min-height: 26px; }
+  .contest-footer-actions .contest-mutation-button { min-height: 26px; }
 }
 
 @media (max-width: 760px) {
@@ -8300,9 +8278,7 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 }
 .contest-participant-actionable:hover .contest-card-actions,
 .contest-participant-actionable:focus-within .contest-card-actions { opacity: 1; pointer-events: auto; }
-.contest-card-actions .contest-mutation-button { min-width: 0; min-height: 31px; padding: 0 8px; color: #e7f4ff; font-size: 8px; border: 1px solid rgba(104, 191, 244, .42); border-radius: 8px; background: rgba(20, 67, 111, .94); }
-.contest-card-actions .contest-mutation-button:hover,
-.contest-card-actions .contest-mutation-button:focus-visible { outline: none; border-color: #76dcff; background: rgba(28, 94, 147, .98); box-shadow: 0 0 0 2px rgba(76, 200, 245, .15); }
+.contest-card-actions .contest-mutation-button { min-width: 0; min-height: 31px; padding: 0 8px; font-size: 8px; }
 .contest-spectators > div > span.removable { grid-template-columns: minmax(0, 1fr) 18px; }
 .contest-spectators .contest-spectator-remove {
   width: 18px;
@@ -8311,15 +8287,13 @@ button.inventory-stella-card { width: 100%; font: inherit; }
   min-height: 18px;
   padding: 0;
   opacity: 0;
-  color: #ffc4ca;
   font-size: 13px;
   line-height: 1;
   pointer-events: none;
-  transition: opacity 120ms ease, border-color 120ms ease, background-color 120ms ease;
+  transition: opacity 120ms ease;
 }
 .contest-spectators > div > span:hover .contest-spectator-remove,
 .contest-spectators > div > span:focus-within .contest-spectator-remove { opacity: 1; pointer-events: auto; }
-.contest-spectator-remove:focus-visible { outline: 2px solid #70dcff; outline-offset: 1px; }
 .boss-picker.combat-picker { box-sizing: border-box; width: min(900px, calc(100vw - 40px)); max-height: calc(100dvh - 32px); }
 
 @media (hover: none), (pointer: coarse) {
@@ -8370,7 +8344,6 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .moderation-tabs { min-width: 0; display: flex; flex-wrap: wrap; gap: 7px; padding: 8px; border: 1px solid rgba(105, 157, 220, .16); border-radius: 11px; background: rgba(8, 22, 42, .62); }
 .moderation-tabs .app-button { flex: 1 1 130px; min-width: 0; }
 .moderation-tabs .app-button.active { color: #f2fbff; border-color: rgba(83, 210, 255, .62); background: rgba(24, 81, 126, .88); box-shadow: inset 0 -2px #5fd7ff; }
-.moderation-tabs .app-button:disabled { color: #74869e; background: rgba(15, 29, 50, .5); opacity: .7; }
 
 .gift-code-admin-form-heading > div { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
 .gift-code-list-modal { box-sizing: border-box; width: min(1120px, calc(100vw - 28px)); height: min(760px, calc(100dvh - 28px)); display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; padding: 0; overflow: hidden; }

@@ -77,7 +77,7 @@ describe('ContestScreen', () => {
     const select = container.querySelector<HTMLSelectElement>('.contest-legend-select select')!
     expect(Array.from(select.options).map((option) => option.textContent)).toEqual(['Choisir une Légende', 'Furina — 12/20', 'Nahida — 12/20'])
     act(() => { select.value = 'character-2'; select.dispatchEvent(new Event('change', { bubbles: true })) })
-    await act(async () => { container.querySelector<HTMLButtonElement>('.contest-empty .primary-button')!.click(); await Promise.resolve() })
+    await act(async () => { container.querySelector<HTMLButtonElement>('.contest-empty .app-button-primary')!.click(); await Promise.resolve() })
     expect(onOpen).toHaveBeenCalledWith('character-2', expect.any(String))
   })
 
@@ -98,7 +98,7 @@ describe('ContestScreen', () => {
     expect(container.querySelector('.contest-participant-grid')?.textContent ?? '').not.toContain('/20')
     const picker = container.querySelector<HTMLSelectElement>('.contest-legend-select select')!
     act(() => { picker.value = 'character-1'; picker.dispatchEvent(new Event('change', { bubbles: true })) })
-    await act(async () => { container.querySelector<HTMLButtonElement>('.contest-empty .primary-button')!.click(); await Promise.resolve() })
+    await act(async () => { container.querySelector<HTMLButtonElement>('.contest-empty .app-button-primary')!.click(); await Promise.resolve() })
     expect(onOpen).toHaveBeenCalledWith('character-1', expect.any(String))
     act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Mes Légendes')!.click())
     expect(container.querySelector('[aria-label="Mes Légendes"]')?.textContent).toContain('Force 12/20')
@@ -430,7 +430,7 @@ describe('ContestScreen', () => {
     const onOpen = vi.fn(async () => value)
     const { container } = mount(value, { onOpen })
     const select = container.querySelector<HTMLSelectElement>('.contest-result-hero select')!
-    const button = container.querySelector<HTMLButtonElement>('.contest-result-hero .primary-button')!
+    const button = container.querySelector<HTMLButtonElement>('.contest-result-hero .app-button-primary')!
     expect(select.value).toBe('')
     expect(button.disabled).toBe(true)
     expect(select.textContent).toContain('Nahida — 18/20')
