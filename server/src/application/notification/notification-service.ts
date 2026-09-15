@@ -13,30 +13,34 @@ export class NotificationService {
   public async list(identity: AuthenticatedIdentity) {
     const player = await this.getPlayer.execute(identity);
     const now = this.clock.now();
-    const currentBusinessDayStart = getBusinessDayStartAt(getBusinessDate(now));
-    await this.database.notification.updateMany({
-      where: { playerId: player.id, state: NotificationState.READ, readAt: { lt: currentBusinessDayStart } },
-      data: { state: NotificationState.ARCHIVED, archivedAt: now },
-    });
     await this.expeditions.getState(identity);
     await this.giftCodes?.reconcileNotificationsForPlayer(player.id, now);
-    const notifications = await this.database.notification.findMany({ where: { playerId: player.id, state: { in: [NotificationState.UNREAD, NotificationState.READ] } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
-    return { unreadCount: notifications.filter(item => item.state === NotificationState.UNREAD).length, notifications };
+    return this.snapshot(player.id, now);
   }
 
   public async readOne(identity: AuthenticatedIdentity, notificationId: string) {
     const player = await this.getPlayer.execute(identity); const now = this.clock.now();
     const result = await this.database.notification.updateMany({ where: { id: notificationId, playerId: player.id, state: NotificationState.UNREAD }, data: { state: NotificationState.READ, readAt: now } });
     if (!result.count) { const exists = await this.database.notification.findFirst({ where: { id: notificationId, playerId: player.id } }); if (!exists) throw new BusinessError('NOTIFICATION_NOT_FOUND', 'Cette notification n’existe plus.'); }
-    return this.list(identity);
+    return this.snapshot(player.id, now);
   }
 
-  public async readAll(identity: AuthenticatedIdentity) { const player = await this.getPlayer.execute(identity); const now = this.clock.now(); await this.database.notification.updateMany({ where: { playerId: player.id, state: NotificationState.UNREAD }, data: { state: NotificationState.READ, readAt: now } }); return this.list(identity); }
+  public async readAll(identity: AuthenticatedIdentity) { const player = await this.getPlayer.execute(identity); const now = this.clock.now(); await this.database.notification.updateMany({ where: { playerId: player.id, state: NotificationState.UNREAD }, data: { state: NotificationState.READ, readAt: now } }); return this.snapshot(player.id, now); }
   public async archiveOne(identity: AuthenticatedIdentity, notificationId: string) {
     const player = await this.getPlayer.execute(identity); const now = this.clock.now();
     const result = await this.database.notification.updateMany({ where: { id: notificationId, playerId: player.id, state: { in: [NotificationState.UNREAD, NotificationState.READ] } }, data: { state: NotificationState.ARCHIVED, archivedAt: now } });
     if (!result.count) { const exists = await this.database.notification.findFirst({ where: { id: notificationId, playerId: player.id } }); if (!exists) throw new BusinessError('NOTIFICATION_NOT_FOUND', 'Cette notification n’existe plus.'); }
-    return this.list(identity);
+    return this.snapshot(player.id, now);
   }
-  public async archiveRead(identity: AuthenticatedIdentity) { const player = await this.getPlayer.execute(identity); const now = this.clock.now(); await this.database.notification.updateMany({ where: { playerId: player.id, state: NotificationState.READ }, data: { state: NotificationState.ARCHIVED, archivedAt: now } }); return this.list(identity); }
+  public async archiveRead(identity: AuthenticatedIdentity) { const player = await this.getPlayer.execute(identity); const now = this.clock.now(); await this.database.notification.updateMany({ where: { playerId: player.id, state: NotificationState.READ }, data: { state: NotificationState.ARCHIVED, archivedAt: now } }); return this.snapshot(player.id, now); }
+
+  private async snapshot(playerId: string, now: Date) {
+    const currentBusinessDayStart = getBusinessDayStartAt(getBusinessDate(now));
+    await this.database.notification.updateMany({
+      where: { playerId, state: NotificationState.READ, readAt: { lt: currentBusinessDayStart } },
+      data: { state: NotificationState.ARCHIVED, archivedAt: now },
+    });
+    const notifications = await this.database.notification.findMany({ where: { playerId, state: { in: [NotificationState.UNREAD, NotificationState.READ] } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
+    return { unreadCount: notifications.filter(item => item.state === NotificationState.UNREAD).length, notifications };
+  }
 }

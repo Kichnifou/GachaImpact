@@ -41,6 +41,7 @@ export type GiftCodeAdminQuery = Readonly<{
   direction: 'asc' | 'desc';
 }>;
 export type GiftCodeClaimantQuery = Readonly<{ page: number; search?: string; editionKey?: string }>;
+export const GIFT_CODE_RECONCILIATION_CONCURRENCY = 4;
 
 type Database = PrismaClient | Prisma.TransactionClient;
 type GiftCodeMaintenanceScope = Readonly<{
@@ -293,8 +294,8 @@ export class GiftCodeService {
   public async reconcileAllActivePlayers(now = this.clock.now()): Promise<void> {
     await this.materializeAnnualEditions(this.database, now);
     const players = await this.database.player.findMany({ where: { status: 'ACTIVE', ...(this.maintenanceScope.activePlayerIds ? { id: { in: [...this.maintenanceScope.activePlayerIds] } } : {}) }, select: { id: true } });
-    for (let offset = 0; offset < players.length; offset += 10) {
-      await Promise.all(players.slice(offset, offset + 10).map((player) => this.reconcileNotificationsForPlayer(player.id, now, false)));
+    for (let offset = 0; offset < players.length; offset += GIFT_CODE_RECONCILIATION_CONCURRENCY) {
+      await Promise.all(players.slice(offset, offset + GIFT_CODE_RECONCILIATION_CONCURRENCY).map((player) => this.reconcileNotificationsForPlayer(player.id, now, false)));
     }
   }
 

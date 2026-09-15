@@ -2,7 +2,7 @@
 
 Version : 0.98
 Date : 2026-09-15
-Statut : CANDIDAT 0.98 PUBLIÉ SUR review — APPROUVÉ POUR PROMOTION
+Statut : 0.98 PUBLIQUE VALIDÉE — POLISH FINAL CANDIDAT SUR review
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
@@ -3822,21 +3822,25 @@ Le commit 0.95 `3e510307f49ffa389df902d35c83287ea0ebe96e` est désormais sur `ma
 - Concours recharge immédiatement à l’entrée et continue son polling même sans session active. Son bandeau RUNNING emploie trois zones stables, le spectateur lit exactement `En attente des joueurs...`, les confirmations expliquent les conséquences de Lancer/Quitter/Annuler/Retirer, et le footer est compact sans toucher aux boutons globaux. Le propriétaire du scroll desktop est le body fonctionnel ; le `screen-stage` ne crée plus une seconde scrollbar pour un écran long, tandis que mobile conserve son flux naturel.
 - Le checkpoint 0.97 `b7438d276ab75e9ce89fba0a0b56481565842611` est promu sur `main` et déployé. La validation publique confirme la sidebar, l’accès Codes, les récompenses affichées et une récupération réelle. La récupération Expedition réelle a également réussi, mais sa notification a révélé une présentation erronée : le header assimilait par défaut un type non-Boss à une Expédition. Les défauts de confirmations/scroll Concours et de latence/présentation Admin Codes restent ouverts dans cet état public et motivent le correctif 0.98.
 
-## État du candidat 0.98 publié sur `review` — Notifications, Concours et administration Codes
+## État public 0.98 validé — polish final candidat sur `review`
 
 - Le header résout désormais explicitement Expedition READY, Code cadeau disponible et Boss vaincu ; un type inconnu reste neutre et sans fausse navigation. Aucune notification existante n’est purgée ou réécrite.
 - Les confirmations Concours sont liées au contexte autoritatif de leur ouverture et se ferment sans mutation à l’échéance ou lors d’un changement de partie, statut, phase, manche, tour, viewer, permission ou cible. Le bandeau conserve ses trois zones et affiche exactement `À votre tour !` lorsque `canPlay` est vrai. Le body `contest-scroll-body` est le propriétaire réel du scroll, les anciennes rangées fixes contradictoires sont retirées et aucun emplacement de feedback vide n’est réservé.
 - Les surfaces touchées partagent une primitive de bouton sombre à variantes explicites. Modération sépare `Système de jeu` et `Codes`, garde le sélecteur Player dans le seul premier onglet et expose Bannières, Événements et Communauté uniquement comme repères désactivés. Codes reste strictement ADMIN/Super.
 - Création Codes et Liste sont séparées. La liste vit dans une modale bornée, conserve son état lorsqu’une fiche Modifier ou Récupérations est ouverte, et applique côté serveur recherche, filtres, tri et pagination de vingt. Les récupérations sont elles aussi filtrées et paginées par vingt sans projection privée inutile.
 - Publication, désactivation et réactivation ne bloquent plus sur une diffusion à tous les Players ni sur le rechargement intégral du catalogue. La transaction cible le code, la désactivation résout en groupe ses notifications, l’édition annuelle concernée seule est matérialisée, puis le scheduler séquentiel et les lectures Player assurent le rattrapage. Les tests Codes bornent diffusion et matérialisation aux UUID exacts des fixtures et ne nettoient jamais par préfixe.
-- Le commit fonctionnel 0.98 `6d9eaf27d963fde0aac0ca7644d3d2290aab58b7` stabilise l’UX Concours et l’administration Codes. Il est publié sur `review` mais n’est ni sur `main`, ni déployé, ni validé publiquement.
+- Le commit fonctionnel 0.98 `6d9eaf27d963fde0aac0ca7644d3d2290aab58b7` stabilise l’UX Concours et l’administration Codes.
 - Le correctif de review `7e1d65737d1d9c0584279fa4032a73b4144be9a1` retire les anciennes peintures parentales des boutons partagés et remplace le verrou `FOR KEY SHARE` par le verrou minimal suffisant `FOR SHARE` sur les définitions publiées. La cascade `AppButton`, la sérialisation réconciliation/désactivation et leurs tests déterministes sont revalidés.
 - Le polish `3d39a5008da706c3683f048c7921ef27d2f0f8f5` ajoute aux Notifications une croix d’archivage individuelle distincte de la surface principale, visible au survol/focus et directement disponible sur tactile. Une entrée READ reste visible pendant la journée puis est archivée paresseusement au reset Europe/Paris ; une entrée UNREAD n’est jamais purgée pour son âge. La victoire Boss fournit à chaque participant récompensé un payload structuré dérivé de `MONTHLY_BOSS_REWARD` ; le header affiche le nom et les gains exacts, tout en conservant le fallback des anciennes notifications textuelles.
 - La règle permanente de travail est désormais explicite dans `AGENTS.md`, le guide ChatGPT et le workflow : toute intervention Codex qui modifie les fichiers du projet doit contrôler, créer un commit normal et le pousser sur la branche permanente `review` dans la même intervention, sauf demande locale-only explicite. Les corrections issues d’une review restent des commits séparés ; aucun passage implicite sur `main` ni force-push n’est autorisé.
 - La review indépendante ChatGPT du vrai diff GitHub des trois commits Développement 0.98 est terminée favorablement. Aucun bloqueur technique connu ne subsiste avant promotion.
 - La validation locale du layout reste acquise : les cinq états RUNNING standards tiennent à 1774×864 sans scroll inutile (`425 / 425`) ; à 1366×768, les cartes longues conservent le scroll réel nécessaire (`329 / 403`, soit 74 px), avec bandeau sticky et footer accessible.
 - Le commit Story `b097e0400eb3b60a46c100adb5775a8ff912f444` (`Update story source with v1.4 narrative foundations`) reste la base intacte du candidat, après `65169df5b10d17699520833b74bbd9366260347e`. Aucun fichier `docs/Story/**`, aucune migration 001–019, aucune donnée réelle, aucun compte DEV protégé et aucun service externe ne sont modifiés. `PAID_INFRA_APPROVED = false` reste inchangé.
-- 0.98 reste non promue sur `main`, non déployée et non validée publiquement. Events n’est pas commencé. Prochaine étape exacte : promotion fast-forward stricte de `review` vers `main`, attente des déploiements automatiques, vérification Railway et `/health`, vérification Cloudflare/frontend si applicable, puis validation publique 0.98. Les Events mensuels ne commencent qu’ensuite.
+- Le checkpoint documentaire approuvé `a0f0950510e847df6262513594442438349b6a4b` est sur `main`. Il constitue le SHA de production avant le présent polish. Son déploiement Railway est `SUCCESS` et `/health` répond HTTP 200.
+- La validation publique propriétaire est acquise sur les six blocs demandés : Notifications, Concours, ordre du Menu, Codes joueur, Modération/Codes Admin et récupération des Codes. Les types, lecture et archivages Notifications ; scroll, statut de tour et confirmations Concours ; Configuration en dernière position ; vues, filtres, listes et récupérations Codes sont fonctionnellement validés.
+- Trois finitions mineures post-validation forment le présent polish final 0.98 candidat sur `review` : les mutations Notifications utilisent une projection légère sans réconciliation Expedition/Codes, le bouton `Prendre un risque` adopte la variante danger rouge pleine, et toutes les zones de scroll visibles des surfaces sombres héritent du thème scrollbar commun sans changer leur layout. Le scheduler Codes borne aussi sa concurrence de démarrage à quatre Players au lieu de dix.
+- Le workflow permanent appliqué reste `modification Codex → tests → commit/push review → review GitHub ChatGPT → corrections éventuelles sur review → promotion main après approbation`.
+- Ce polish n’est pas encore sur `main`, ni déployé, ni spot-checké publiquement. Events n’est pas commencé. Il devient le prochain domaine fonctionnel uniquement après review, promotion et spot-check de ce petit polish.
 
 ## État déployé 0.92 — Concours / C6 et densité Boss
 
@@ -3991,12 +3995,11 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 
 Prochaine étape exacte :
 
-1. Promouvoir le candidat approuvé par fast-forward strict de `review` vers `main`.
-2. Attendre les déploiements automatiques.
-3. Vérifier Railway et `/health`.
-4. Vérifier Cloudflare/frontend si applicable.
-5. Effectuer la validation publique 0.98.
-6. Ne commencer les Events mensuels qu’après cette validation suffisante.
+1. Tester, committer et pousser le polish final 0.98 sur `review` dans la présente intervention.
+2. Effectuer la review indépendante ChatGPT du vrai commit et de son diff GitHub.
+3. Après approbation seulement, promouvoir par fast-forward strict vers `main`, attendre les déploiements automatiques et vérifier Railway, `/health` et le frontend.
+4. Effectuer un spot-check public des trois finitions.
+5. Commencer ensuite seulement le premier lot borné des Events mensuels.
 
 L’ordre complet restant appartient à [implementation-order-v1.md](../roadmap/implementation-order-v1.md). La migration legacy reste reportée ; `PAID_INFRA_APPROVED = false` reste inchangé.
 

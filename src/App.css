@@ -4908,6 +4908,31 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
   background: radial-gradient(circle, rgba(83, 128, 188, 0.11), transparent 48%);
 }
 
+:where(#root, #root *) {
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+:where(#root, #root *)::-webkit-scrollbar {
+  background: var(--scrollbar-track);
+}
+
+:where(#root, #root *)::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 99px;
+}
+
+:where(#root, #root *)::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border: 2px solid transparent;
+  border-radius: 99px;
+  background-clip: padding-box;
+}
+
+:where(#root, #root *)::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  background-clip: padding-box;
+}
+
 .screen-stage,
 .player-sidebar,
 .message-list,
@@ -4919,7 +4944,6 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .inventory-scroll-body,
 .shop-grid {
   scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 .screen-stage::-webkit-scrollbar,
@@ -4934,50 +4958,6 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .shop-grid::-webkit-scrollbar {
   width: 8px;
   height: 8px;
-}
-
-.screen-stage::-webkit-scrollbar-track,
-.player-sidebar::-webkit-scrollbar-track,
-.message-list::-webkit-scrollbar-track,
-.notification-list::-webkit-scrollbar-track,
-.online-player-list::-webkit-scrollbar-track,
-.team-selector::-webkit-scrollbar-track,
-.character-grid::-webkit-scrollbar-track,
-.inventory-grid::-webkit-scrollbar-track,
-.inventory-scroll-body::-webkit-scrollbar-track,
-.shop-grid::-webkit-scrollbar-track {
-  background: var(--scrollbar-track);
-  border-radius: 99px;
-}
-
-.screen-stage::-webkit-scrollbar-thumb,
-.player-sidebar::-webkit-scrollbar-thumb,
-.message-list::-webkit-scrollbar-thumb,
-.notification-list::-webkit-scrollbar-thumb,
-.online-player-list::-webkit-scrollbar-thumb,
-.team-selector::-webkit-scrollbar-thumb,
-.character-grid::-webkit-scrollbar-thumb,
-.inventory-grid::-webkit-scrollbar-thumb,
-.inventory-scroll-body::-webkit-scrollbar-thumb,
-.shop-grid::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border: 2px solid transparent;
-  border-radius: 99px;
-  background-clip: padding-box;
-}
-
-.screen-stage::-webkit-scrollbar-thumb:hover,
-.player-sidebar::-webkit-scrollbar-thumb:hover,
-.message-list::-webkit-scrollbar-thumb:hover,
-.notification-list::-webkit-scrollbar-thumb:hover,
-.online-player-list::-webkit-scrollbar-thumb:hover,
-.team-selector::-webkit-scrollbar-thumb:hover,
-.character-grid::-webkit-scrollbar-thumb:hover,
-.inventory-grid::-webkit-scrollbar-thumb:hover,
-.inventory-scroll-body::-webkit-scrollbar-thumb:hover,
-.shop-grid::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
-  background-clip: padding-box;
 }
 
 .online-player-list {

@@ -402,6 +402,10 @@ describe('ContestScreen', () => {
     expect(cards[0]?.querySelector('.contest-card-actions')).toBeNull()
     expect(cards[1]?.querySelector('.contest-card-actions')?.textContent).toContain('Action de base')
     expect(cards[1]?.querySelector('.contest-card-actions')?.textContent).toContain('Prendre un risque')
+    expect(Array.from(cards[1]!.querySelectorAll<HTMLButtonElement>('.contest-card-actions button')).map((button) => button.className)).toEqual([
+      expect.stringContaining('app-button-primary'),
+      expect.stringContaining('app-button-danger'),
+    ])
     expect(cards[2]?.querySelector('.contest-card-actions')).toBeNull()
     expect(cards[3]?.querySelector('.contest-card-actions')).toBeNull()
     expect(container.textContent).toContain('À votre tour !')

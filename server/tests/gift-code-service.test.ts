@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 
-import { GiftCodeScheduler, GiftCodeService } from '../src/application/gift-code/gift-code-service.js';
+import { GIFT_CODE_RECONCILIATION_CONCURRENCY, GiftCodeScheduler, GiftCodeService } from '../src/application/gift-code/gift-code-service.js';
 
 const identity = { subject: 'admin-subject' };
 const now = new Date('2026-09-14T12:00:00.000Z');
@@ -63,6 +63,27 @@ describe('GiftCodeService administration', () => {
 });
 
 describe('GiftCodeScheduler', () => {
+  it('bounds Player reconciliation concurrency below the database session pool', async () => {
+    const players = Array.from({ length: 11 }, (_, index) => ({ id: `player-${index}` }));
+    const database = {
+      giftCode: { findMany: vi.fn(async () => []) },
+      player: { findMany: vi.fn(async () => players) },
+    };
+    const service = new GiftCodeService({} as never, database as never, { now: () => now });
+    let active = 0; let maximum = 0;
+    const reconcile = vi.spyOn(service, 'reconcileNotificationsForPlayer').mockImplementation(async () => {
+      active += 1; maximum = Math.max(maximum, active);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      active -= 1;
+    });
+
+    await service.reconcileAllActivePlayers(now);
+
+    expect(GIFT_CODE_RECONCILIATION_CONCURRENCY).toBe(4);
+    expect(maximum).toBe(GIFT_CODE_RECONCILIATION_CONCURRENCY);
+    expect(reconcile).toHaveBeenCalledTimes(players.length);
+  });
+
   it('waits for one reconciliation before scheduling the next and reports failures', async () => {
     vi.useFakeTimers();
     let releaseFirst!: () => void;

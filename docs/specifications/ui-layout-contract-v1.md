@@ -17,6 +17,7 @@ Lorsqu’un panneau fonctionnel associe un header local (titre, recherche ou fil
 ## Défilement et responsive
 
 - Le propriétaire du scroll doit être explicite ; deux scrolls verticaux imbriqués pour le même contenu sont interdits.
+- Toute zone de scroll visible appartenant à une surface sombre GachaImpact utilise le thème scrollbar commun, sous Firefox comme sous Chromium/WebKit. Une nouvelle zone scrollable ne doit jamais retomber sur la scrollbar native claire du navigateur. Ce thème porte la couleur et la cohérence visuelle ; il ne sert jamais à masquer un overflow, supprimer une barre nécessaire ou modifier artificiellement la géométrie du conteneur.
 - Les sous-navigations ne défilent jamais verticalement. Sur desktop, leurs onglets tiennent dans la largeur disponible ; sur mobile, elles autorisent un pan horizontal interne sans imposer de largeur minimale au document.
 - Sous le breakpoint desktop, les écrans reviennent à un flux naturel. Les tableaux, barres d’onglets ou contenus réellement larges défilent dans leur propre conteneur horizontal ; ils ne créent pas d’overflow horizontal du document.
 - Les modales sont bornées par `100dvh`, restent fermables et conservent leurs actions dans le viewport.
