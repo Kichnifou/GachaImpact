@@ -13,7 +13,6 @@ function CharacterCard({ character, compact = false, selected = false, disabled 
       characterName={character.name}
       element={elementKey}
       assetPaths={catalogCharacter ? [catalogCharacter.iconPath, catalogCharacter.fullbodyPath, catalogCharacter.wishPath, catalogCharacter.splashPath] : undefined}
-      fallback={<><span>{character.name.slice(0, 1)}</span><i /></>}
       frameClassName="character-portrait"
       imageClassName="character-asset-image"
       badgeClassName="character-element"

@@ -38,6 +38,7 @@ describe('PullResults', () => {
     const reveal = renderToStaticMarkup(<PullResultCard result={newCharacter} />)
     expect(reveal).toContain('character-result')
     expect(reveal).toContain('src="/splash/furina.png"')
+    expect(reveal).not.toContain('>F<')
     expect(reveal).not.toContain('pull-result-backdrop-image')
     expect((reveal.match(/src="\/splash\/furina.png"/g) ?? [])).toHaveLength(1)
     expect(reveal).not.toContain('src="/icon/furina.png"')

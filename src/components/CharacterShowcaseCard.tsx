@@ -10,7 +10,7 @@ type CharacterShowcaseCardProps = {
   element: string
   tone: string
   assetPaths?: readonly (string | null)[]
-  fallback: ReactNode
+  fallback?: ReactNode
   slot?: string
   level?: number
   levelLabel?: 'Niveau' | 'Niv.'
@@ -59,7 +59,7 @@ function CharacterShowcaseCard({
   element,
   tone,
   assetPaths,
-  fallback,
+  fallback = null,
   slot,
   level,
   levelLabel = 'Niv.',

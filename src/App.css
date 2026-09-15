@@ -4908,27 +4908,27 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
   background: radial-gradient(circle, rgba(83, 128, 188, 0.11), transparent 48%);
 }
 
-:where(#root, #root *) {
+:where(#root, #root *, .modal-layer, .modal-layer *) {
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
-:where(#root, #root *)::-webkit-scrollbar {
+:where(#root, #root *, .modal-layer, .modal-layer *)::-webkit-scrollbar {
   background: var(--scrollbar-track);
 }
 
-:where(#root, #root *)::-webkit-scrollbar-track {
+:where(#root, #root *, .modal-layer, .modal-layer *)::-webkit-scrollbar-track {
   background: var(--scrollbar-track);
   border-radius: 99px;
 }
 
-:where(#root, #root *)::-webkit-scrollbar-thumb {
+:where(#root, #root *, .modal-layer, .modal-layer *)::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
   border: 2px solid transparent;
   border-radius: 99px;
   background-clip: padding-box;
 }
 
-:where(#root, #root *)::-webkit-scrollbar-thumb:hover {
+:where(#root, #root *, .modal-layer, .modal-layer *)::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
   background-clip: padding-box;
 }
@@ -7489,7 +7489,6 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .combat-card-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .combat-character-card { box-sizing: border-box; position: relative; min-width: 0; width: 100%; height: 118px; min-height: 118px; display: grid; grid-template-columns: 42% minmax(0, 1fr); overflow: hidden; padding: 0; color: inherit; text-align: left; border: 1px solid rgba(111, 155, 216, .2); border-radius: 11px; background: rgba(5, 13, 29, .72); }
 .combat-card-art { position: relative; min-width: 0; height: 100%; overflow: hidden; background: radial-gradient(circle at 50% 40%, rgba(83, 155, 216, .22), transparent 67%); }
-.combat-card-fallback { position: absolute; inset: 0; display: grid; place-items: center; color: #6581a5; font-family: Georgia, serif; font-size: 34px; }
 .combat-card-image { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; object-position: center 20%; }
 .combat-card-info { min-width: 0; display: grid; align-content: center; gap: 5px; padding: 9px; }
 .combat-card-name { min-width: 0; display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: center; gap: 6px; }

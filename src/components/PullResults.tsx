@@ -43,7 +43,7 @@ export function PullResultCard({ result, order = 0, compact = false }: { result:
       {(compact || !result.character) && <span className="pull-result-index">#{result.index}</span>}
       {result.character ? <>
         <div className="pull-result-portrait" style={{ '--character-color': elementThemes[result.character.elementKey].color } as CSSProperties}>
-          <CharacterAssetImage characterName={result.character.name} className="pull-result-image" assetPaths={characterAssetPaths} fallback={<span>{result.character.name.slice(0, 1)}</span>} alt={result.character.name} />
+          <CharacterAssetImage characterName={result.character.name} className="pull-result-image" assetPaths={characterAssetPaths} alt={result.character.name} />
         </div>
         <div className="pull-result-copy">
           <span className="pull-character-identity">

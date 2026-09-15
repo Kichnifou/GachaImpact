@@ -64,6 +64,25 @@ function mount(value: ContestDto, overrides: Partial<React.ComponentProps<typeof
 }
 
 describe('ContestScreen', () => {
+  it('keeps an Émilie HUMAN portrait neutral while loading or failing and preserves the BOT symbol', async () => {
+    const participants: ContestSnapshotDto['participants'] = [
+      { ...lobby.participants[0]!, displayName: 'MynonymeTest3', characterName: 'Émilie', avatar: '/assets/emilie-icon.png' },
+      { ...lobby.participants[0]!, slot: 2, kind: 'BOT', playerId: null, displayName: 'Astra · Bot', characterName: 'Légende invitée', avatar: null },
+    ]
+    const value = { ...base, active: { ...lobby, participants }, permissions: { ...permissions, canOpen: false } }
+    const { container } = mount(value)
+    const portraits = container.querySelectorAll<HTMLElement>('.contest-avatar')
+    const emilieImage = portraits[0]!.querySelector<HTMLImageElement>('img')!
+
+    expect(emilieImage.getAttribute('src')).toBe('/assets/emilie-icon.png')
+    expect(portraits[0]!.textContent).toBe('')
+    await act(async () => { emilieImage.dispatchEvent(new Event('load')); await Promise.resolve() })
+    expect(portraits[0]!.textContent).toBe('')
+    await act(async () => { emilieImage.dispatchEvent(new Event('error')); await Promise.resolve() })
+    expect(portraits[0]!.textContent).toBe('')
+    expect(portraits[1]!.textContent).toBe('◆')
+  })
+
   it('keeps no-C6 players in view-only mode and lets several eligible Legends be selected', async () => {
     const noLegend = { ...base, legends: [], permissions: { ...permissions, canOpen: false, canSpectate: true } }
     const empty = mount(noLegend).container

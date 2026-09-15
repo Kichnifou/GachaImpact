@@ -110,6 +110,7 @@ describe('Player sidebar progression', () => {
     expect((html.match(/character-showcase-sidebar/g) ?? [])).toHaveLength(4)
     expect((html.match(/character-portrait-badge/g) ?? [])).toHaveLength(4)
     expect((html.match(/character-portrait-frame/g) ?? [])).toHaveLength(4)
+    expect(html).not.toContain('>M<')
     expect((html.match(/class="team-member-copy character-display-copy"/g) ?? [])).toHaveLength(4)
     expect((html.match(/★★★★★/g) ?? [])).toHaveLength(5)
     expect(html).not.toContain('Niv. 90')

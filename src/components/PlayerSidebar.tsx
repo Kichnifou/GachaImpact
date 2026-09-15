@@ -119,7 +119,6 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, onOpenParticleConversion, 
                 element={character.elementKey}
                 tone={character.elementKey}
                 assetPaths={[character.iconPath, character.fullbodyPath, character.wishPath, character.splashPath]}
-                fallback={<span>{character.name.slice(0, 1)}</span>}
                 constellation={character.constellation}
                 key={position}
               />

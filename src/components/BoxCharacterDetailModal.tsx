@@ -58,7 +58,6 @@ function BoxCharacterDetailModal({ character, combatState, expedition = idleExpe
             characterName={character.name}
             element={character.elementKey}
             assetPaths={[character.iconPath, character.fullbodyPath, character.wishPath, character.splashPath]}
-            fallback={<><span>{character.name.slice(0, 1)}</span><i /></>}
             frameClassName="box-detail-portrait"
             imageClassName="box-detail-image"
           />

@@ -17,7 +17,6 @@ function BoxCharacterCard({ character, onOpen, onToggleFavorite, favoritePending
         characterName={character.name}
         element={character.elementKey}
         assetPaths={[character.iconPath, character.fullbodyPath, character.wishPath, character.splashPath]}
-        fallback={<><span>{character.name.slice(0, 1)}</span><i /></>}
         frameClassName="character-portrait"
         imageClassName="character-asset-image"
         badgeClassName="character-element"

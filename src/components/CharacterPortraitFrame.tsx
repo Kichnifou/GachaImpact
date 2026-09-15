@@ -9,7 +9,7 @@ type CharacterPortraitFrameProps = {
   element: string
   assetPaths?: readonly (string | null)[]
   order?: readonly CharacterAssetKind[]
-  fallback: ReactNode
+  fallback?: ReactNode
   frameClassName: string
   imageClassName: string
   badgeClassName?: string
@@ -22,7 +22,7 @@ function CharacterPortraitFrame({
   element,
   assetPaths,
   order,
-  fallback,
+  fallback = null,
   frameClassName,
   imageClassName,
   badgeClassName,

@@ -4,7 +4,7 @@ import { DEFAULT_CHARACTER_ASSET_ORDER, useCharacterAssetPaths, type CharacterAs
 type CharacterAssetImageProps = {
   characterName: string
   className: string
-  fallback: ReactNode
+  fallback?: ReactNode
   order?: readonly CharacterAssetKind[]
   alt?: string
   assetPaths?: readonly (string | null)[]
@@ -13,7 +13,7 @@ type CharacterAssetImageProps = {
 function CharacterAssetImage({
   characterName,
   className,
-  fallback,
+  fallback = null,
   order = DEFAULT_CHARACTER_ASSET_ORDER,
   alt = '',
   assetPaths: providedAssetPaths,

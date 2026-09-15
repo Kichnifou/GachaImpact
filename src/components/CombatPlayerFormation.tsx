@@ -27,7 +27,7 @@ export function PlayerCombatCard({ character, position, ko = false, pending, can
 }
 
 export function CombatPortrait({ character }: { character: Pick<FormationCharacter, 'name' | 'iconPath' | 'fullbodyPath' | 'wishPath' | 'splashPath'> }) {
-  return <div className="combat-card-art"><span className="combat-card-fallback">{character.name.slice(0, 1)}</span><CharacterAssetImage characterName={character.name} assetPaths={[character.fullbodyPath, character.wishPath, character.splashPath, character.iconPath]} className="combat-card-image" fallback={null} alt="" /></div>
+  return <div className="combat-card-art"><CharacterAssetImage characterName={character.name} assetPaths={[character.fullbodyPath, character.wishPath, character.splashPath, character.iconPath]} className="combat-card-image" alt="" /></div>
 }
 
 export function ElementIcon({ element }: { element: ElementKey }) {

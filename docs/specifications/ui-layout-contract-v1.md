@@ -17,7 +17,7 @@ Lorsqu’un panneau fonctionnel associe un header local (titre, recherche ou fil
 ## Défilement et responsive
 
 - Le propriétaire du scroll doit être explicite ; deux scrolls verticaux imbriqués pour le même contenu sont interdits.
-- Toute zone de scroll visible appartenant à une surface sombre GachaImpact utilise le thème scrollbar commun, sous Firefox comme sous Chromium/WebKit. Une nouvelle zone scrollable ne doit jamais retomber sur la scrollbar native claire du navigateur. Ce thème porte la couleur et la cohérence visuelle ; il ne sert jamais à masquer un overflow, supprimer une barre nécessaire ou modifier artificiellement la géométrie du conteneur.
+- Toute zone de scroll visible appartenant à une surface sombre GachaImpact utilise le thème scrollbar commun, sous Firefox comme sous Chromium/WebKit. Sa portée couvre les descendants du shell comme les couches de modales React portalisées dans `document.body` hors de `#root`. Une nouvelle zone scrollable ne doit jamais retomber sur la scrollbar native claire du navigateur. Ce thème porte la couleur et la cohérence visuelle ; il ne sert jamais à masquer un overflow, supprimer une barre nécessaire ou modifier artificiellement la géométrie du conteneur.
 - Les sous-navigations ne défilent jamais verticalement. Sur desktop, leurs onglets tiennent dans la largeur disponible ; sur mobile, elles autorisent un pan horizontal interne sans imposer de largeur minimale au document.
 - Sous le breakpoint desktop, les écrans reviennent à un flux naturel. Les tableaux, barres d’onglets ou contenus réellement larges défilent dans leur propre conteneur horizontal ; ils ne créent pas d’overflow horizontal du document.
 - Les modales sont bornées par `100dvh`, restent fermables et conservent leurs actions dans le viewport.
@@ -44,6 +44,8 @@ La sidebar desktop occupe exactement la hauteur utile que lui attribue le shell 
 Lorsqu'une carte de sidebar sert de raccourci synthétique dans une enveloppe de hauteur imposée, son contenu se répartit en trois zones : identité en haut, résumé extensible au centre et action/affordance en bas. La zone centrale absorbe la hauteur supplémentaire et reste prête à recevoir une future projection réelle sans modifier le cadre extérieur.
 
 ## Grilles de cartes homogènes
+
+Une surface représentant un personnage connu n’utilise jamais une initiale textuelle de Player ou de personnage comme fallback d’image. Pendant le chargement et après l’échec de tous les assets, elle conserve le cadre et la géométrie du portrait avec un fallback nul ou un placeholder neutre non textuel. Une initiale reste permise sur une surface qui représente effectivement l’avatar générique d’un Player.
 
 Les cartes d'une même grille partagent leur géométrie extérieure, leurs axes visuels et les lignes de titre, description, quantité et action. L'ajout d'une action contextuelle ne déplace pas l'icône ni les lignes communes. À géométrie égale, les centres verticaux des icônes restent cohérents ; les contrôles desktop vérifient un écart maximal de 1 px entre le centre de la carte et celui de l'icône.
 
