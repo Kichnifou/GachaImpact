@@ -2,7 +2,7 @@
 
 Version : Event Lot 2 — Jeu A candidat sur review
 Date : 2026-09-15
-Statut : EVENT LOT 2 — JEU A CANDIDAT SUR review — REVIEW INDÉPENDANTE À EFFECTUER
+Statut : EVENT LOT 2 — JEU A CANDIDAT SUR review — CORRECTIF TEMPOREL À REVALIDER
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
@@ -3866,8 +3866,9 @@ Le commit 0.95 `3e510307f49ffa389df902d35c83287ea0ebe96e` est désormais sur `ma
 - `POST /api/v1/me/event/game-a/attempt` reçoit seulement une clé d’idempotence UUID. Sous transaction `SERIALIZABLE`, verrou Player puis état quotidien, il refuse les non-inscrits, les bornes hors `[start, end[`, le cooldown serveur de trois secondes et les jours déjà réussis. Une tentative valide consomme un unique tirage serveur injectable à 20 % ; son replay `BusinessOperation` ne reroll ni ne réapplique les effets.
 - Un échec incrémente les tentatives et pose le cooldown sans gain. La première réussite du jour incrémente atomiquement les tentatives, `game_a_success`, les points de la participation et la balance saisonnière de un, puis interdit toute nouvelle tentative Jeu A ce jour. Les futurs paliers pourront constater ces points, mais aucun palier ni récompense de seuil n’est payé dans ce lot.
 - L’onglet `Jeux` affiche le thème, les trois fenêtres et leurs états temporels, les tentatives, le cooldown et la réussite ; `Shop` et `Classement` restent visibles et désactivés. La carte Quotidiennes conserve un accès avant inscription et après inscription tant que Jeu A reste à réussir, puis masque son CTA après la réussite du jour.
+- Chaque projection Event expose `refreshAfterMs`, délai autoritatif calculé depuis le temps serveur jusqu’à la prochaine fin de cooldown, ouverture/fermeture de fenêtre ou remise à zéro `Europe/Paris`. `AppBootstrap` possède l’unique timer temporel Event, recharge le snapshot avec une petite marge et le republie pour Event comme pour Quotidiennes ; il remplace ou annule ce timer au changement de projection/session. `EventScreen` ne possède plus de timer cooldown concurrent et l’horloge murale du navigateur ne décide jamais de `canAttempt`.
 - Les fixtures DB sont exclusivement dédiées et nettoyées exactement. Aucun compte DEV protégé, donnée Story ou participation réelle n’a été modifié. Restent exclus : R602/bonus quotidien Event, Jeu B, Jeu C, paliers/récompenses, Boutique Event, acquisition Collection, Classement, Calendrier, notifications Event, chat/Twitch et migration legacy.
-- Le candidat n’est ni promu sur `main`, ni déployé, ni validé publiquement. Prochaine étape exacte : review indépendante du vrai diff GitHub, corrections éventuelles sur `review`, puis promotion seulement après approbation.
+- Le candidat corrigé n’est ni promu sur `main`, ni déployé, ni validé publiquement. Prochaine étape exacte : nouvelle review indépendante du vrai diff GitHub incluant le correctif temporel, corrections éventuelles sur `review`, puis promotion seulement après approbation.
 
 ## État déployé 0.92 — Concours / C6 et densité Boss
 

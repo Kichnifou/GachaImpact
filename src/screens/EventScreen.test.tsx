@@ -13,6 +13,7 @@ afterEach(() => { act(() => roots.splice(0).forEach((root) => root.unmount())); 
 
 const beforeJoin: EventDto = {
   businessDate: '2026-09-15',
+  refreshAfterMs: 3600000,
   festival: { key: 'harvest', month: 9, title: 'Festival des Récoltes', emoji: '🌾', currency: { key: 'harvest-tokens', label: 'Jetons de Récolte', emoji: '🌾' }, collection: { key: 'harvest-sheaf', label: 'Gerbe de Récolte' } },
   edition: { id: 'edition-2026', year: 2026, startsAt: '2026-08-31T22:00:00.000Z', endsAt: '2026-09-30T22:00:00.000Z' },
   participation: { joined: false, joinedAt: null, points: 0 }, currency: { amount: '0' }, canJoin: true,

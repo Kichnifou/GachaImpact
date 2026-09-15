@@ -18,6 +18,7 @@ import { gachaLevelRewards, type LevelUpFeedbackEvent } from './progression/leve
 import { publishProgressionUpdate } from './progression/publish-progression-update'
 import { createExpeditionClientSnapshot, type ExpeditionClientSnapshot } from './expedition/expedition-client-snapshot'
 import { createContestRequestCoordinator, type ContestRequestCoordinator } from './contest/contest-request-coordinator'
+import { useEventTemporalRefresh } from './event/use-event-temporal-refresh'
 
 function AppBootstrap() {
   const { status: authStatus, session, configurationMessage, signOut } = useAuth()
@@ -91,6 +92,7 @@ function AppBootstrap() {
   const loadEvent = useCallback(async () => { const next = await getGameApiClient().getEvent(); setEvent(next); return next }, [])
   const joinEvent = useCallback(async (idempotencyKey: string) => { const next = await getGameApiClient().joinEvent(idempotencyKey); setEvent(next); return next }, [])
   const attemptEventGameA = useCallback(async (idempotencyKey: string) => { const next = await getGameApiClient().attemptEventGameA(idempotencyKey); setEvent(next); return next }, [])
+  useEventTemporalRefresh(event, sessionUserId, loadEvent)
   const loadNavigationPreferences = useCallback(() => getGameApiClient().getNavigationPreferences(), [])
   const saveNavigationPreferences = useCallback((value: Parameters<ReturnType<typeof getGameApiClient>['putNavigationPreferences']>[0]) => getGameApiClient().putNavigationPreferences(value), [])
   useEffect(() => { contestRequests.reset() }, [contestRequests, sessionUserId])

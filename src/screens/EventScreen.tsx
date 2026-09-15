@@ -35,12 +35,6 @@ export default function EventScreen({ value, onLoad, onJoin, onAttempt }: Props)
     return () => { active = false }
   }, [onLoad])
 
-  useEffect(() => {
-    if (value.gameA.cooldownRemainingMs <= 0) return
-    const timer = window.setTimeout(() => { void onLoad().catch(() => undefined) }, value.gameA.cooldownRemainingMs + 50)
-    return () => window.clearTimeout(timer)
-  }, [onLoad, value.gameA.cooldownRemainingMs])
-
   const join = async () => {
     if (pendingRef.current || !value.canJoin) return
     const key = intentKey ?? crypto.randomUUID()

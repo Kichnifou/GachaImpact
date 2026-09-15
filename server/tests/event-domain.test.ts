@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { EventService, resolveCurrentEventPeriod } from '../src/application/event/event-service.js';
-import { activeEventGameAWindow, eventGameASucceeded, generateEventGameAState } from '../src/domain/event/game-a.js';
-import { getBusinessMinuteAt } from '../src/domain/time/business-date.js';
+import { activeEventGameAWindow, computeEventRefreshAfterMs, eventGameASucceeded, generateEventGameAState } from '../src/domain/event/game-a.js';
+import { getBusinessMinuteAt, getNextBusinessResetAt } from '../src/domain/time/business-date.js';
 
 describe('monthly Event period resolution', () => {
   it('generates three exact personal one-hour windows from injectable rolls', () => {
@@ -26,6 +26,31 @@ describe('monthly Event period resolution', () => {
   it('converts daytime Paris windows with the correct DST offset', () => {
     expect(getBusinessMinuteAt('2026-03-29', 7 * 60).toISOString()).toBe('2026-03-29T05:00:00.000Z');
     expect(getBusinessMinuteAt('2026-10-25', 7 * 60).toISOString()).toBe('2026-10-25T06:00:00.000Z');
+  });
+
+  it('targets future starts, active ends and a closer cooldown from server time', () => {
+    const reset = new Date('2026-09-15T22:00:00.000Z');
+    const windows = [{ startAt: new Date('2026-09-15T10:00:00.000Z'), endAt: new Date('2026-09-15T11:00:00.000Z') }];
+    expect(computeEventRefreshAfterMs({ now: new Date('2026-09-15T09:59:59.000Z'), nextBusinessResetAt: reset, completedToday: false, windows, cooldownEndsAt: null })).toBe(1_000);
+    expect(computeEventRefreshAfterMs({ now: new Date('2026-09-15T10:15:00.000Z'), nextBusinessResetAt: reset, completedToday: false, windows, cooldownEndsAt: null })).toBe(45 * 60_000);
+    expect(computeEventRefreshAfterMs({ now: new Date('2026-09-15T10:15:00.000Z'), nextBusinessResetAt: reset, completedToday: false, windows, cooldownEndsAt: new Date('2026-09-15T10:15:03.000Z') })).toBe(3_000);
+  });
+
+  it('falls back to the Paris reset after the windows, after success and before joining', () => {
+    const now = new Date('2026-09-15T21:30:00.000Z');
+    const reset = getNextBusinessResetAt(now);
+    const windows = [{ startAt: new Date('2026-09-15T18:00:00.000Z'), endAt: new Date('2026-09-15T19:00:00.000Z') }];
+    const expected = reset.getTime() - now.getTime();
+    expect(computeEventRefreshAfterMs({ now, nextBusinessResetAt: reset, completedToday: false, windows, cooldownEndsAt: null })).toBe(expected);
+    expect(computeEventRefreshAfterMs({ now, nextBusinessResetAt: reset, completedToday: true, windows, cooldownEndsAt: new Date('2026-09-15T21:30:03.000Z') })).toBe(expected);
+    expect(computeEventRefreshAfterMs({ now, nextBusinessResetAt: reset, completedToday: false, windows: [], cooldownEndsAt: null })).toBe(expected);
+  });
+
+  it('keeps the next Paris reset correct across the autumn DST transition', () => {
+    const now = new Date('2026-10-24T22:00:00.000Z');
+    const reset = getNextBusinessResetAt(now);
+    expect(reset.toISOString()).toBe('2026-10-25T23:00:00.000Z');
+    expect(computeEventRefreshAfterMs({ now, nextBusinessResetAt: reset, completedToday: true, windows: [], cooldownEndsAt: null })).toBe(25 * 60 * 60_000);
   });
   it.each([
     ['2026-01-31T22:59:59.999Z', 2026, 1],
@@ -83,6 +108,7 @@ describe('monthly Event period resolution', () => {
       collection: { key: 'harvest-sheaf', label: 'Gerbe de Récolte' },
     });
     expect(result.currency.amount).toBe('7');
+    expect(result.refreshAfterMs).toBe(10 * 60 * 60_000);
     expect(database.eventEdition.upsert).not.toHaveBeenCalled();
     expect(database.playerEventCurrencyBalance.findUnique).toHaveBeenCalledWith({
       where: { playerId_eventDefinitionId: { playerId: '20000000-0000-4000-8000-000000000009', eventDefinitionId: definitionId } },

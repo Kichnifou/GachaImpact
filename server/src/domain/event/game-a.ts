@@ -42,6 +42,24 @@ export function eventGameASucceeded(roll: number): boolean {
   return roll < 20;
 }
 
+export function computeEventRefreshAfterMs(input: Readonly<{
+  now: Date;
+  nextBusinessResetAt: Date;
+  completedToday: boolean;
+  windows: readonly Readonly<{ startAt: Date; endAt: Date }>[];
+  cooldownEndsAt: Date | null;
+}>): number {
+  const nowMs = input.now.getTime();
+  const candidates = [input.nextBusinessResetAt.getTime()];
+  if (!input.completedToday) {
+    for (const window of input.windows) candidates.push(window.startAt.getTime(), window.endAt.getTime());
+    if (input.cooldownEndsAt) candidates.push(input.cooldownEndsAt.getTime());
+  }
+  const futureCandidates = candidates.filter((candidate) => Number.isFinite(candidate) && candidate > nowMs);
+  if (futureCandidates.length === 0) return 0;
+  return Math.max(0, Math.min(...futureCandidates) - nowMs);
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
 }

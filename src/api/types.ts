@@ -567,6 +567,7 @@ export type GiftCodeClaimantsDto = Readonly<{ code: Readonly<{ id: string; token
 
 export type EventDto = Readonly<{
   businessDate: string
+  refreshAfterMs: number
   festival: Readonly<{
     key: string
     month: number

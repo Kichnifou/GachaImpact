@@ -1,7 +1,7 @@
 import { EventEditionStatus, OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
-import { activeEventGameAWindow, EVENT_GAME_A_COOLDOWN_MS, eventGameASucceeded, generateEventGameAState, parseEventGameAState } from '../../domain/event/game-a.js';
-import { businessDateToDatabaseDate, getBusinessDate, getBusinessDayStartAt, getBusinessMinuteAt, type Clock } from '../../domain/time/business-date.js';
+import { activeEventGameAWindow, computeEventRefreshAfterMs, EVENT_GAME_A_COOLDOWN_MS, eventGameASucceeded, generateEventGameAState, parseEventGameAState } from '../../domain/event/game-a.js';
+import { businessDateToDatabaseDate, getBusinessDate, getBusinessDayStartAt, getBusinessMinuteAt, getNextBusinessResetAt, type Clock } from '../../domain/time/business-date.js';
 import type { RandomSource } from '../../domain/wheel/wheel.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
 import { BusinessError } from '../errors.js';
@@ -264,8 +264,16 @@ export class EventService {
     ]);
     const daily = participant && materializeDaily ? await this.ensureDailyState(database, context.edition.id, playerId, context.period.businessDate, now) : participant ? await database.eventDailyPlayerState.findUnique({ where: { eventEditionId_playerId_businessDate: { eventEditionId: context.edition.id, playerId, businessDate: businessDateToDatabaseDate(context.period.businessDate) } } }) : null;
     const gameA = this.gameAProjection(context.editionSnapshot.externalKey, context.period.businessDate, daily, now);
+    const refreshAfterMs = computeEventRefreshAfterMs({
+      now,
+      nextBusinessResetAt: getNextBusinessResetAt(now),
+      completedToday: gameA.completedToday,
+      windows: gameA.windows.map(({ startAt, endAt }) => ({ startAt: new Date(startAt), endAt: new Date(endAt) })),
+      cooldownEndsAt: daily?.gameALastAttemptAt ? new Date(daily.gameALastAttemptAt.getTime() + EVENT_GAME_A_COOLDOWN_MS) : null,
+    });
     return {
       businessDate: context.period.businessDate,
+      refreshAfterMs,
       festival: {
         key: context.editionSnapshot.externalKey,
         month: context.editionSnapshot.calendarMonth,
