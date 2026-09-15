@@ -1,8 +1,8 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : Event Lot 1 (socle post-0.98)
+Version : Event Lot 1 clôturé / Event Lot 2 à ouvrir
 Date : 2026-09-15
-Statut : 0.98 CLÔTURÉE — EVENT LOT 1 DÉPLOYÉ ET VALIDÉ FONCTIONNELLEMENT, POLISH UI CANDIDAT SUR review
+Statut : 0.98 CLÔTURÉE — EVENT LOT 1 FONDATIONS CLÔTURÉ, DÉPLOYÉ ET VALIDÉ PUBLIQUEMENT
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
@@ -3544,7 +3544,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Événements mensuels — Event Lot 1 Fondations est sur `main`, déployé avec succès et validé fonctionnellement en public. Le polish UI final est le candidat actif sur `review` avant un dernier spot-check public.**
+**Événements mensuels — Event Lot 1 Fondations est clôturé, déployé avec succès et validé fonctionnellement et visuellement en public. La prochaine étape fonctionnelle est Event Lot 2 — Jeu A ; aucune implémentation ni migration 021 n’est encore engagée.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3845,16 +3845,18 @@ Le commit 0.95 `3e510307f49ffa389df902d35c83287ea0ebe96e` est désormais sur `ma
 - Le workflow permanent appliqué reste `modification Codex → tests → commit/push review → review GitHub ChatGPT → corrections éventuelles sur review → promotion main après approbation`.
 - La version 0.98 est clôturée : elle est promue, déployée, saine et validée publiquement avec toutes les finitions demandées. Aucun correctif 0.98 n’attend encore review, promotion, déploiement ou validation.
 
-## Event Lot 1 public — polish UI final candidat
+## Event Lot 1 — Fondations clôturé, déployé et validé publiquement
 
-- Le domaine actif devient **Événements mensuels**. La migration additive `20260915120000_020_add_monthly_event_foundations` est appliquée sur Supabase DEV et suivie par Prisma. Elle matérialise uniquement `event_definitions`, `event_editions`, `player_event_currency_balances` et `event_participants`, avec contraintes métier, index, RLS active et droits navigateur révoqués.
+- Les commits fonctionnels du lot sont `105aecce99453c3997d89604d67060d29bf17d5b` (`feat: establish monthly event foundations`), `849158854c2ae1fed532deb366fb964323257de6` (`fix: freeze event editions and period presentation`) et `03d9087e8939c5c93db4eb07c85943bb570c3364` (`fix: polish monthly event foundation UX`). Le HEAD public actuel `722e53fbc1385701fe41d63aad653524276a8a83` ajoute uniquement le commit Story légitime v1.5 et ne change pas le contenu fonctionnel Event.
+- La migration additive `20260915120000_020_add_monthly_event_foundations` est appliquée sur Supabase DEV et suivie par Prisma. Elle matérialise exactement quatre tables Event Lot 1 — `event_definitions`, `event_editions`, `player_event_currency_balances` et `event_participants` — avec contraintes métier, index, RLS active et droits navigateur révoqués.
 - Le seed déterministe contient exactement les douze Festivals fixes de janvier à décembre avec leur nom, monnaie, emoji et métadonnée Collection. Il ne crée aucune édition, participation, balance Player, acquisition ou donnée legacy ; après les tests à fixtures UUID et leur cleanup exact, les compteurs Player Event restent à zéro.
 - `EventService` résout la date et les bornes de mois en `Europe/Paris`, récupère ou matérialise paresseusement l’édition annuelle unique et projette uniquement le Player authentifié. La monnaie saisonnière est portée par Player + définition stable : elle reste séparée des neuf `ResourceKey`, survit entre les années et ne peut pas être partagée avec un autre Festival.
-- `GET /api/v1/me/event` reste consultable avant inscription. `POST /api/v1/me/event/join` exige une clé UUID, verrouille le Player et l’édition dans une transaction `SERIALIZABLE`, crée au plus une participation à zéro point et crédite exactement +1 monnaie lors de la seule première inscription. `BusinessOperation`, le verrou et les contraintes rendent replay, double clic et clés concurrentes sans double crédit.
-- `Activités > Événement` est désormais une vraie surface alimentée par le snapshot serveur : Festival/édition, statut inscrit, points, solde saisonnier, objet Collection descriptif et CTA d’inscription. `Jeux | Shop | Classement` restent des repères explicitement désactivés. La carte Quotidiennes projette aussi le Festival réel sans dupliquer sa logique.
-- Le correctif de review fige effectivement la projection d’une édition matérialisée sur `EventEdition.snapshot`, tout en conservant `EventDefinition.id` comme identité de balance saisonnière. La période mensuelle reste techniquement semi-ouverte `[startsAt, endsAt[` mais son affichage player-facing présente désormais le dernier jour inclus du mois.
-- Sont expressément exclus de ce candidat : Jeux A/B/C, bonus quotidien, paliers, Boutique Event, conversions, achat/acquisition Collection, Classement, Calendrier de Noël, notifications Event, commandes/chat/Twitch et migration legacy. Aucun fichier `docs/Story/**` ni roadmap n’est modifié ; `PAID_INFRA_APPROVED = false` reste inchangé.
-- Event Lot 1 est sur `main`, déployé `SUCCESS` et validé fonctionnellement par le propriétaire : Festival des Récoltes réel, join réussi, +1 Jeton exact, points à 0, aucun recrédit au reload et carte Quotidiennes alimentée par l’état réel. Un polish UI reste candidat sur `review` : séparation structurelle du header et du panneau, retrait des contenus de roadmap, simplification des cartes statistiques, état rejoint non interactif et disparition du CTA Quotidiennes après inscription. Event Lot 1 ne sera clôturé publiquement qu’après review indépendante puis dernier spot-check de cette finition.
+- `GET /api/v1/me/event` reste consultable avant inscription. `POST /api/v1/me/event/join` exige une clé UUID, verrouille le Player et l’édition dans une transaction `SERIALIZABLE`, crée au plus une participation à zéro point et crédite exactement +1 monnaie lors de la seule première inscription. `BusinessOperation`, le verrou et les contraintes couvrent concurrence, idempotence, replay et double clic sans double crédit.
+- La validation publique confirme le Festival des Récoltes réel du 1er au 30 septembre 2026, ses Jetons de Récolte 🌾, la Collection descriptive Gerbe de Récolte et sa consultation avant inscription. Le join volontaire crédite exactement +1 Jeton la première fois, initialise les points à 0, restaure le statut Inscrit et la balance saisonnière après reload ou retour écran, sans recrédit.
+- `EventEdition.snapshot` est autoritatif pour l’identité et la configuration figées de l’édition ; `EventDefinition.id` reste l’identité durable de la balance saisonnière. La période technique semi-ouverte `[startsAt, endsAt[` est présentée au joueur jusqu’au dernier jour inclus.
+- La validation visuelle publique confirme l’absence de chevauchement entre `ScreenHeader` et panneau grâce à leurs lignes structurelles distinctes, les onglets `Jeux | Shop | Classement` présents mais simplement désactivés, l’absence de badge futur ou de faux contenu, les cartes Points/Monnaie/Collection épurées et l’état « Événement rejoint » non interactif. Dans l’état Lot 1, le CTA Event des Quotidiennes est présent avant join puis absent après join, tandis que la carte conserve le Festival et le solde réels.
+- Event Lot 1 est sur `main`, déployé automatiquement avec Railway `SUCCESS`, `/health` HTTP 200, et validé publiquement sur les plans fonctionnel et visuel. Il est **CLÔTURÉ — DÉPLOYÉ ET VALIDÉ PUBLIQUEMENT**. Restent hors de ce lot Jeu A/B/C, bonus quotidien, paliers, Boutique Event, conversions, acquisition Collection, Classement, Calendrier, notifications Event, commandes/chat/Twitch et migration legacy ; `PAID_INFRA_APPROVED = false` reste inchangé.
+- La prochaine étape fonctionnelle est **Event Lot 2 — Jeu A**, à cadrer depuis `docs/legacy/16-event-monthly-audit.md`. Elle appliquera R598 (trois archétypes communs réutilisés par les douze Festivals), R599 (trois fenêtres personnelles quotidiennes d’une heure : matin, après-midi et soir), R600 (cooldown serveur de 3 secondes) et R601 (20 % de réussite ; première réussite quotidienne : +1 point Event et +1 monnaie Event). Aucun de ces comportements ni modèle physique associé n’est encore implémenté ; le prochain prompt décidera précisément du besoin éventuel de migration 021.
 
 ## État déployé 0.92 — Concours / C6 et densité Boss
 
@@ -4009,10 +4011,10 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 
 Prochaine étape exacte :
 
-1. Ouvrir officiellement **EVENT LOT 1 — FONDATIONS**, avec `docs/legacy/16-event-monthly-audit.md` comme source fonctionnelle principale.
-2. Cadrer précisément le modèle physique et la migration additive probable 020 avant toute exécution.
-3. Implémenter uniquement le moteur Event mensuel commun data-driven, la configuration des douze Festivals, la résolution de l’édition courante Europe/Paris, le modèle édition/participation, l’inscription volontaire idempotente avec `+1` monnaie Event à la première inscription, les points Event, la balance saisonnière durable, la projection GET serveur et la vraie surface `Activités > Événement`.
-4. Exclure de ce premier lot Jeu A, Jeu B, Jeu C, Boutique Event, achat Collection, Classement, Calendrier de Noël, Twitch/chat et migration legacy.
+1. Ouvrir officiellement **EVENT LOT 2 — JEU A**, avec `docs/legacy/16-event-monthly-audit.md` comme source produit principale.
+2. Cadrer le modèle physique nécessaire à R598–R601 avant de décider et créer toute éventuelle migration 021.
+3. Limiter le prochain lot aux trois fenêtres personnelles quotidiennes d’une heure, au cooldown serveur de 3 secondes, aux tentatives à 20 % et à la première réussite quotidienne donnant +1 point Event et +1 monnaie Event.
+4. Exclure encore R602 et le bonus quotidien Event, Jeu B, Jeu C, Boutique Event, paliers, acquisition Collection, Classement, Calendrier, Twitch/chat et migration legacy.
 
 L’ordre complet restant appartient à [implementation-order-v1.md](../roadmap/implementation-order-v1.md). La migration legacy reste reportée ; `PAID_INFRA_APPROVED = false` reste inchangé.
 
