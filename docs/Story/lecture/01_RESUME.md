@@ -1,7 +1,7 @@
 # Résumé de la version de travail
 
 > VUE GÉNÉRÉE — ne pas modifier ce fichier. Source : [STORY_SOURCE.md](../STORY_SOURCE.md).
-> Empreinte SHA-256 : `ba944c7a74e945856f5afd53d6ffbf036331574db7b128b5b9383f7a00d388f2`.
+> Empreinte SHA-256 : `e86b10d3045b8a92825b10c7f0688528df40639bce1021219dbed6cb30ebb7e1`.
 
 ## Elio et Lyra : noms et rôles lisibles
 
@@ -9,11 +9,35 @@
 
 Elio est le nom provisoire du personnage masculin ; Lyra, celui du personnage féminin. Les sigles H et C disparaissent de la nouvelle référence.
 
-## Un seul univers, un véritable Monde des Origines
+## Orthe, monde réel et origine de ses peuples
 
 **CONFIRME** · Origine : utilisateur · [MONDE-001](../STORY_SOURCE.md#monde-001)
 
-Orthe est le Monde des Origines, une planète réelle au sein du même univers que Sélis et les autres planètes. Ce n’est ni une simulation, ni un microcosme créé pour le protagoniste.
+Orthe est le Monde des Origines, une planète réelle, ancienne et autonome au sein du même univers que Sélis et les autres planètes. Ce n’est ni une simulation, ni un microcosme créé pour le protagoniste. Le titre désigne l’origine de ses peuples et de leur héritage ; il ne signifie plus que les divinités locales ont certainement créé tout le cosmos.
+
+## Huit divinités locales et la signature du noyau
+
+**CONFIRME** · Origine : utilisateur · [COSMO-001](../STORY_SOURCE.md#cosmo-001)
+
+L’organisation divine locale d’Orthe comprend huit divinités : un premier dieu à l’origine des sept autres, puis parmi ces sept un dieu associé à la capitale et six associés aux six autres grands ensembles régionaux. Cette architecture symbolique d’un centre et de sept éléments se retrouve dans les noyaux, formés d’un centre et exactement sept pétales.
+
+## Une hiérarchie cosmique au-dessus des dieux locaux
+
+**PROPOSE** · Origine : utilisateur · [COSMO-002](../STORY_SOURCE.md#cosmo-002)
+
+La cosmologie de travail propose que des dieux originels d’un ordre supérieur aient créé le cosmos et missionné des divinités locales pour façonner différentes planètes. Les dieux d’Orthe auraient ensuite été rappelés par ces puissances originelles. Cette piste ouvre d’autres mondes fondés autrement ; elle n’est pas encore une révélation détenue par les personnages.
+
+## Six régions de collecte et une région-capitale
+
+**CONFIRME** · Origine : utilisateur · [GEOGRAPHIE-001](../STORY_SOURCE.md#geographie-001)
+
+Orthe comprend six grands ensembles régionaux parcourus pour les pétales, plus une région-capitale : sept ensembles géographiques et narratifs, mais seulement six régions de collecte. Le septième pétale se trouve dans Nacre, jamais dans une septième région à vider.
+
+## Fédération régionale avant la tutelle
+
+**CONFIRME** · Origine : utilisateur · [POLITIQUE-001](../STORY_SOURCE.md#politique-001)
+
+Après le départ des dieux, des institutions régionales se développent puis s’articulent en une fédération de régions autonomes dotée de représentants et d’une assemblée centrale. Celle-ci traite du Cœur, des grandes infrastructures, des relations régionales et de règles communes, ce qui permet le vote sur le contrôle des noyaux. « Assemblée d’Orthe » reste un nom de travail, pas une constitution définitive.
 
 ## La crise politique de l’héritage
 
@@ -37,13 +61,13 @@ Pendant la bataille, le dispositif expérimental de régulation est connecté au
 
 **CONFIRME** · Origine : utilisateur · [HIST-004](../STORY_SOURCE.md#hist-004)
 
-Pendant le débat politique, le camp de Séveran développe secrètement des implants, régulateurs et systèmes expérimentaux capables de forcer une réactivation, de maintenir artificiellement un noyau et peut-être d’en modifier le fonctionnement. Leur défaut caché est une altération progressive du noyau susceptible de dégrader le corps et l’esprit. Certains proches ou Porteurs alliés les ont déjà testés avant la catastrophe ; leur nombre exact et l’état de Séveran lui-même restent indéterminés.
+Pendant le débat politique, le camp de Séveran développe secrètement des implants, régulateurs et systèmes expérimentaux capables de forcer une réactivation, de maintenir artificiellement un noyau et peut-être d’en modifier le fonctionnement. Leur défaut caché est une altération progressive du noyau susceptible de dégrader le corps et l’esprit. Certains proches ou Porteurs alliés les ont déjà testés avant la catastrophe. Séveran recourt lui-même à ces implants pour soutenir son noyau Énergie après le Bâillon ; le nombre des premiers sujets, la date de sa propre implantation et ses séquelles précises restent indéterminés.
 
-## Environ cent capsules, un seul survivant retrouvé
+## Autant de capsules que possible, un seul survivant retrouvé
 
 **CONFIRME** · Origine : utilisateur · [GRAINE-001](../STORY_SOURCE.md#graine-001)
 
-Pendant les tensions politiques qui précèdent le vote et le Grand Bâillon, environ cent Porteurs volontaires sont placés dans des capsules de stase et envoyés vers différentes planètes. Au moment de la catastrophe, les capsules ont déjà quitté Orthe et sa zone d’influence ; leurs noyaux peuvent donc rester naturellement intacts. Ce nombre est un ordre de grandeur de référence, pas un décompte définitif immuable. Elio est le seul survivant retrouvé et confirmé pendant l’arc principal ; son noyau est resté intact pendant une très longue stase sur Sélis.
+Pendant les tensions politiques qui précèdent le vote et le Grand Bâillon, les organisateurs tentent d’envoyer autant de capsules et de volontaires que possible dans des conditions difficiles. Les volontaires ont déjà vécu comme Porteurs et utilisé leurs capacités ; Elio maîtrise Spatial avant sa stase. Le nombre tenté, le nombre ayant quitté la zone, le nombre arrivé et le nombre de survivants sont distincts et non fixés.
 
 ## Le réveil adulte : âge encore proposé
 
@@ -81,17 +105,37 @@ Après A-source, Lyra révèle à Elio son origine d’Orthe, sa nature de Porte
 
 Lyra de l’histoire-source et Lyra du prologue partagent le passé du couple jusqu’à A, alors qu’Elio ignore encore son origine et sa mission, puis vivent des événements différents. Lyra-source révèle ensuite la vérité, traverse la crise et la réconciliation du couple, part sur Orthe et meurt en s’interposant lorsque Séveran attaque Elio pendant une tentative de restauration du Cœur. Le sauvetage final concerne la personne du prologue joué, pas sa version plus âgée.
 
-## Fonction des noyaux et vie de leur porteur
+## Vaisseaux, relais énergétiques, téléportation et temps
+
+**CONFIRME** · Origine : utilisateur · [VOYAGE-001](../STORY_SOURCE.md#voyage-001)
+
+Quatre systèmes restent distincts. Les vaisseaux et capsules assurent les migrations, la recherche de Lyra et les premiers voyages du couple entre planètes ; leurs vitesses et durées ne sont pas fixées. Les relais énergétiques régionaux distribuent l’apport du Cœur et ne téléportent personne. Les pouvoirs Spatial agissent localement et ne permettent ni traversée libre du cosmos ni voyage temporel inné. La machine temporelle dépend séparément de l’ancre de A.
+
+## Fonction, architecture et continuité des noyaux
 
 **CONFIRME** · Origine : utilisateur · [NOYAU-001](../STORY_SOURCE.md#noyau-001)
 
 Les noyaux ont été transmis aux Porteurs pour entretenir et réguler des fonctions du monde, non initialement pour gouverner les humains. Ils donnent accès aux pouvoirs, mais ne sont indispensables ni à la vie humaine ni à l’identité personnelle.
 
+## États distincts d’un noyau
+
+**CONFIRME** · Origine : utilisateur · [ETATS-NOYAU-001](../STORY_SOURCE.md#etats-noyau-001)
+
+| État | Conséquence |
+|---|---|
+| Naturellement fonctionnel | Noyau sain capable de renouveler sa charge et de préserver sa fonction biologique basale. |
+| Déchargé | Réserve active épuisée après usage ; repos et recharge naturelle restent possibles, sans altération héréditaire automatique. |
+| Bâillonné | Désaccord durable du centre ; repos ou voyage ne suffisent pas à le guérir, mais sa fonction biologique basale et la longévité peuvent subsister. |
+| Pétales temporairement réactivés | Capacités et réserve partiellement accessibles sans guérison complète du centre. |
+| Artificiellement réanimé | Fonctionnement forcé par implant ou régulateur, avec corruption et risques distincts d’une restauration naturelle. |
+| Totalement retiré ou détruit | Plus de pouvoirs ni de longévité extraordinaire ; la perte n’est pas une mort automatique. |
+| Centre volontairement rendu inexploitable | Sécurité d’Elio à Z, sans neutraliser les pétales déjà séparés et sans le tuer par elle-même. |
+
 ## Réactivation temporaire et recharge
 
 **CONFIRME** · Origine : utilisateur · [NOYAU-002](../STORY_SOURCE.md#noyau-002)
 
-Elio peut réactiver sainement le noyau d’un autre Porteur et lui fournir une première impulsion qui n’est pas une charge permanente. La compatibilité ainsi établie reste acquise, mais les pétales du bénéficiaire se déchargent avant la restauration du Cœur. Ils doivent ensuite être rechargés auprès d’Elio, d’un pétale régional ou d’un relais adapté.
+Un noyau naturellement sain renouvelle sa charge de lui-même, même loin d’Orthe ; la consommation peut toutefois dépasser cette recharge naturelle. Un noyau Bâillonné ne guérit ni par repos ni par voyage. Elio peut temporairement réactiver sainement les pétales d’un autre Porteur et lui fournir une première impulsion qui n’est pas une restauration permanente de son centre. La compatibilité ainsi établie reste acquise, mais la réserve du bénéficiaire peut se décharger avant la restauration du Cœur. Elle doit ensuite être alimentée par Elio, un pétale régional ou un relais énergétique adapté.
 
 ## Les réveils forcés du Concordat
 
@@ -109,7 +153,7 @@ La méthode clandestine puis impériale forcerait le noyau à fonctionner sans r
 
 **CONFIRME** · Origine : utilisateur · [SEVERAN-001](../STORY_SOURCE.md#severan-001)
 
-Séveran a réellement constaté des abus, des impunités, des catastrophes liées aux pouvoirs et l’incapacité d’institutions à contrôler certains Porteurs très puissants. Il commence comme un réformateur qui réclame responsabilité, lois, limites et sanctions. Son besoin de régulation devient progressivement besoin de contrôle, puis monopole et conviction que son mouvement sait mieux que la population ce qui doit la protéger.
+Séveran est un ancien Porteur Énergie, ce qui explique sa longévité malgré le Bâillon. Sa spécialisation de travail est la captation, la régulation et la redistribution des flux : ses anciens usages peuvent protéger des installations et alimenter des services, avant que les mêmes aptitudes ne servent sa tutelle. Il ne maîtrise pas toute forme d’énergie sans limite, n’absorbe pas toute attaque et ne cumule pas les quatre catégories. Ses implants soutiennent son fonctionnement avant la restauration, avec les risques établis ; la date de sa première implantation et ses séquelles précises restent ouvertes.
 
 ## À quoi servirait exactement le noyau volé
 
@@ -121,13 +165,19 @@ La Matrice de tutelle est une solution proposée pour expliquer comment Séveran
 
 **CONFIRME** · Origine : utilisateur · [SEVERAN-003](../STORY_SOURCE.md#severan-003)
 
-Elio-source agit d’abord clandestinement : des communautés le connaissent et l’apprécient sans que les dirigeants du Concordat aient identifié la source pure. Lors d’une tentative de restauration du Cœur, Séveran détecte son noyau, intervient et tue Lyra lorsqu’elle s’interpose.
+Elio-source agit d’abord clandestinement : des communautés le connaissent et l’apprécient sans que les dirigeants du Concordat aient identifié la source pure ou le dispositif complet des six pétales. Lors de la deuxième tentative de restauration du Cœur, Séveran détecte son noyau, comprend le rôle des fragments, intervient et tue Lyra lorsqu’elle s’interpose. La campagne impériale de saisie des pétales commence alors ; elle n’explique pas rétroactivement l’occupation plus ancienne.
 
 ## Mécanismes proposés de la coopération et de la sécurité
 
 **PROPOSE** · Origine : assistant · [SEVERAN-004](../STORY_SOURCE.md#severan-004)
 
-Séveran disposerait d’installations, d’archives et d’un savoir dont Elio endeuillé a besoin. La promesse de revoir Lyra porterait sur une recherche plausible, non sur une résurrection déjà maîtrisée. Elio accepterait certains travaux utiles au Concordat tout en refusant la confiscation de son noyau ; il partirait lorsque le régime franchit ses limites et détourne les résultats vers les captures ou réveils forcés.
+Séveran disposerait d’installations, d’archives et d’un savoir dont Elio endeuillé a besoin. La promesse de revoir Lyra porterait sur une recherche plausible, non sur une résurrection déjà maîtrisée. Elio accepterait certains travaux utiles au Concordat tout en refusant la confiscation de son noyau et des pétales ; le régime pourrait placer des relais sous surveillance ou « protection » sans les posséder matériellement. Il partirait lorsque le régime franchit ses limites et détourne les résultats vers les captures ou réveils forcés.
+
+## Chasse aux pétales, accord et résistances régionales
+
+**CONFIRME** · Origine : utilisateur · [CONCORDAT-PETALES-001](../STORY_SOURCE.md#concordat-petales-001)
+
+Séveran découvre le principe des six pétales lors du deuxième essai d’Elio-source, sans obtenir magiquement leurs positions, passages et défenses. Il les convoite pour réduire l’autonomie des populations, imposer leur dépendance, soutenir certaines réactivations forcées et étudier les travaux d’Elio. L’oppression du Concordat précède cette chasse de longue date.
 
 ## Soigner, réparer, choisir de changer
 
@@ -135,17 +185,60 @@ Séveran disposerait d’installations, d’archives et d’un savoir dont Elio 
 
 Un ancien ennemi peut être soigné, choisir de changer de camp puis devenir jouable ; un ancien allié peut aussi prendre le chemin inverse. La guérison ne convertit personne automatiquement et la dégradation n’est pas une définition du mal.
 
+## Une survie et une rédemption possibles, jamais acquises
+
+**PROPOSE** · Origine : utilisateur · [SEVERAN-005](../STORY_SOURCE.md#severan-005)
+
+Après sa défaite et sa neutralisation, Séveran peut survivre, échanger avec Elio, reconnaître certains faits, changer partiellement et entreprendre un chemin de rédemption. Il pourrait devenir jouable dans un arc ultérieur. Cette possibilité n’est ni une absolution, ni un pardon général, ni un recrutement automatique après le boss.
+
 ## Parcours proposé de Saren
 
 **PROPOSE** · Origine : assistant · [REDEMPTION-002](../STORY_SOURCE.md#redemption-002)
 
 Saren pourrait être le premier ancien ennemi développé : commandant ayant accepté un réveil forcé pour protéger son unité, commis des violences puis découvert que le régime sacrifie ses soldats.
 
+## Hérédité naturelle, fabrication artificielle interdite
+
+**CONFIRME** · Origine : utilisateur · [NOYAU-004](../STORY_SOURCE.md#noyau-004)
+
+Le don divin peut se transmettre naturellement selon les règles de `HEREDITE-001`. Cette transmission biologique ne permet pas de fabriquer artificiellement un noyau primordial à partir d’un prélèvement, d’une archive ou d’un pétale. Réparer un noyau vivant reste différent d’en créer un neuf.
+
 ## Rituel conscient de première réactivation
 
 **CONFIRME** · Origine : utilisateur · [NOYAU-005](../STORY_SOURCE.md#noyau-005)
 
 La première réactivation saine exige la volonté explicite du Porteur, la présence d’Elio, une confiance ou un confort mutuel suffisant, un rapprochement réel et un rituel conscient de synchronisation. Le lien peut relever de l’amitié, du respect ou d’une forte coopération ; il n’a pas à être romantique.
+
+## Longévité basale et perte complète du noyau
+
+**CONFIRME** · Origine : utilisateur · [NOYAU-006](../STORY_SOURCE.md#noyau-006)
+
+Un Porteur dont le centre conserve sa fonction biologique basale mûrit puis cesse de vieillir normalement, même lorsque sa fonction active est Bâillonnée. Les âges exacts restent ouverts. Après retrait ou destruction complète du noyau, il reprend son vieillissement depuis son âge biologique présent, sans rattrapage instantané des millénaires, et devient mortel comme un humain.
+
+## Transmission naturelle des noyaux
+
+**CONFIRME** · Origine : utilisateur · [HEREDITE-001](../STORY_SOURCE.md#heredite-001)
+
+| Parents | Enfant |
+|---|---|
+| Deux Porteurs aux centres naturellement sains | Porteur au noyau naturellement fonctionnel, qui doit grandir et apprendre. |
+| Deux Porteurs aux centres Bâillonnés | Porteur au noyau Bâillonné. |
+| Un Porteur sain et un Porteur Bâillonné | Porteur au noyau Bâillonné. |
+| Deux Porteurs dont seuls les pétales sont temporairement rechargés | Porteur au noyau Bâillonné si les centres parentaux le restent. |
+| Un Porteur et un humain sans noyau | Enfant sans noyau divin, avec les sensibilités définies dans `HEREDITE-002`. |
+| Deux humains sans noyau | Enfant sans noyau divin. |
+
+## Enfants de Porteur et d’humain : sensibilités sans noyau
+
+**CONFIRME** · Origine : utilisateur · [HEREDITE-002](../STORY_SOURCE.md#heredite-002)
+
+L’enfant d’un Porteur et d’un humain naît sans noyau divin, mais peut présenter des sens et sensibilités accrus liés à la catégorie ou aux catégories effectivement maîtrisées par son parent Porteur. Il ne reçoit ni pouvoirs actifs automatiques, ni catégorie secrète, ni longévité infinie, ni supériorité intellectuelle ou morale générale.
+
+## Populations anciennes, générations bâillonnées et lignées lointaines
+
+**PROPOSE** · Origine : assistant · [DEMOGRAPHIE-001](../STORY_SOURCE.md#demographie-001)
+
+Orthe réunit des humains sans noyau, dont des utilisateurs de Mecha, des Porteurs ayant connu leurs pouvoirs avant le Grand Bâillon, des générations nées avec un noyau déjà Bâillonné et des descendants mixtes sans noyau. Ces groupes ne forment ni castes homogènes ni camps politiques automatiques. Après la restauration, les anciens Porteurs peuvent retrouver des pratiques apprises, tandis que les générations nées Bâillonnées récupèrent un potentiel qu’elles doivent encore découvrir et maîtriser.
 
 ## Quatre catégories de pouvoirs
 
@@ -175,13 +268,19 @@ Mecha est une discipline technologique développée par les humains d’Orthe, e
 
 **CONFIRME** · Origine : utilisateur · [COEUR-001](../STORY_SOURCE.md#coeur-001)
 
-Le Cœur central permet une vie normale ainsi que la stabilisation et la recharge du réseau. Sa restauration rend aux véritables noyaux des Porteurs leur fonctionnement complet, soit l’équivalent narratif de leurs sept pétales actifs. Ils retrouvent leur potentiel et peuvent s’entraîner sans dépendre des recharges temporaires de l’arc principal.
+Le Cœur central harmonise et alimente le réseau énergétique d’Orthe. Sa restauration rend aux véritables noyaux présents dans sa zone d’influence leur fonctionnement naturel complet, qu’ils appartiennent aux alliés, aux forces de Séveran ou à aucun camp. Les générations nées Bâillonnées retrouvent un potentiel, pas une expérience jamais acquise. Les implants peuvent laisser des séquelles et aucune conviction ou responsabilité morale n’est effacée.
 
 ## Énergie renouvelable, débit et effort collectif
 
 **CONFIRME** · Origine : utilisateur · [COEUR-002](../STORY_SOURCE.md#coeur-002)
 
-Le centre pur d’Elio peut produire ou renouveler de l’énergie indéfiniment dans la durée. Il ne donne ni puissance instantanée infinie, ni endurance infinie, ni déversement continu sans conséquence. Elio possède un débit maximal, une quantité limitée qu’il peut manipuler simultanément et une capacité physique limitée à supporter le transfert.
+Un noyau naturellement fonctionnel renouvelle sa charge dans la durée, même loin du Cœur. Près du monument ou d’un relais énergétique alimenté, l’accès devient cependant beaucoup plus aisé, abondant et stable ; loin du réseau, la consommation peut largement dépasser la recharge naturelle. Le centre pur d’Elio conserve une capacité renouvelable exceptionnelle, mais ne donne ni puissance instantanée infinie, ni endurance infinie, ni déversement continu sans conséquence. Elio possède un débit maximal, une réserve et un stockage limités, ainsi qu’une capacité physique limitée à supporter le transfert.
+
+## Monument divin et relais énergétiques des peuples
+
+**CONFIRME** · Origine : utilisateur · [COEUR-003](../STORY_SOURCE.md#coeur-003)
+
+Le Cœur est une œuvre divine immense, visible et imposante, autour de laquelle la capitale a été construite. Il n’est ni un petit objet, ni un dispositif entièrement enfoui, ni le centre géologique de la planète. Des ramifications, racines et installations de manipulation existent sous la surface. Il n’a pas de plans industriels copiables et ne peut matériellement pas être emporté dans une capsule ; les peuples savent entretenir ou comprendre certaines fonctions sans pouvoir en fabriquer librement un second.
 
 ## Centre pur et exactement sept pétales
 
@@ -193,7 +292,7 @@ Chaque véritable noyau primordial possède un centre et exactement sept pétale
 
 **CONFIRME** · Origine : utilisateur · [FRAGMENT-002](../STORY_SOURCE.md#fragment-002)
 
-Les pétales séparés deviennent des sortes de micro-noyaux. Leur réserve énergétique est très inférieure à celle d’un noyau complet ; ils peuvent se stabiliser et recharger les pétales de Porteurs déjà réactivés. Sans centre pur, ils ne peuvent ni créer un nouveau noyau, ni réactiver seuls un Porteur jamais réveillé, ni redémarrer seuls le Cœur d’Orthe.
+Les pétales séparés deviennent des sortes de micro-noyaux. Leur réserve énergétique est très inférieure à celle d’un noyau complet ; installés dans les relais régionaux, ils peuvent se stabiliser et recharger les pétales de Porteurs déjà réactivés. Ils ne sont ni des sources originelles autonomes, ni des dispositifs de téléportation. Sans centre pur, ils ne peuvent ni créer un nouveau noyau, ni réactiver seuls un Porteur jamais réveillé, ni redémarrer seuls le Cœur d’Orthe.
 
 ## Mémoires et émotions arrêtées au détachement
 
@@ -223,25 +322,25 @@ L’« anneau témoin » reste un nom de travail pour le dispositif primitif qui
 
 **PROPOSE** · Origine : assistant · [TEMPS-004](../STORY_SOURCE.md#temps-004)
 
-Z est une date, pas une planète. Pour conserver littéralement le trajet souhaité, cette version propose un laboratoire de Z sur Sélis, puis une téléportation spatiale vers un relais d’Orthe.
+Z est une date, pas une planète. Cette version conserve comme proposition un laboratoire de Z sur Sélis, puis une téléportation technologique vers une installation préparée sur Orthe.
 
 ## Nacre : assistant de terrain, pas oracle
 
 **PROPOSE** · Origine : utilisateur · [IA-001](../STORY_SOURCE.md#ia-001)
 
-Nacre est un assistant mobile créé par le scientifique de l’histoire-source avec des ingénieurs d’Orthe. Elle sert aux recherches, aux diagnostics, aux réaccords et à l’utilisation de relais spatiaux déjà construits.
+Nacre est un assistant mobile créé par le scientifique de l’histoire-source avec des ingénieurs d’Orthe. Elle sert aux recherches, aux diagnostics, aux réaccords et, tard dans la vie d’Elio-source, à commander les installations de téléportation interplanétaire qu’ils ont construites. Elle ne transforme jamais un relais énergétique régional en portail.
 
 ## Une évacuation générale qui change de cible
 
 **CONFIRME** · Origine : utilisateur · [IA-002](../STORY_SOURCE.md#ia-002)
 
-À Z, Elio-source pressent le danger et arme dans Nacre une routine générale dont l’ordre est de le protéger, de l’évacuer du laboratoire, d’utiliser un relais sûr et de l’emmener sur Orthe. Cette routine vise Elio-source lui-même ; elle n’est pas conçue pour récupérer sa version du point A.
+À Z, Elio-source pressent le danger et arme dans Nacre une routine générale dont l’ordre est de le protéger, de l’évacuer du laboratoire, d’utiliser l’installation de téléportation sûre et de l’emmener sur Orthe. Cette routine vise Elio-source lui-même ; elle n’est pas conçue pour récupérer sa version du point A.
 
 ## L’extraction pendant l’interposition
 
 **PROPOSE** · Origine : utilisateur · [IA-003](../STORY_SOURCE.md#ia-003)
 
-Nacre franchit la faille après Séveran. Pendant que Lyra s’interpose et occupe son attention, elle arrache l’Elio joué au danger et le fait repasser physiquement par la faille vers Z. Avec un Elio vivant redevenu cible de la routine, elle achève simplement l’ordre initial en activant l’évacuation spatiale vers Orthe. Le trajet A-fenêtre → Z → Orthe forme une seule logique de secours.
+Nacre franchit la faille après Séveran. Pendant que Lyra s’interpose et occupe son attention, elle arrache l’Elio joué au danger et le fait repasser physiquement par la faille vers Z. Avec un Elio vivant redevenu cible de la routine, elle achève simplement l’ordre initial en activant l’installation tardive de téléportation vers Orthe. Le trajet A-fenêtre → Z → Orthe forme une seule logique de secours.
 
 ## La fermeture visible et la suspension réelle
 
@@ -259,13 +358,27 @@ Le passage temporel inhabituel et l’opération d’urgence surchargent Nacre e
 
 **CONFIRME** · Origine : utilisateur · [IA-006](../STORY_SOURCE.md#ia-006)
 
-Nacre existe pendant la tournée régionale sans porter le dernier fragment. Ce n’est qu’à Z, quelques instants avant l’arrivée de Séveran, qu’Elio-source détache son septième pétale et le lui intègre. Elle voyage ensuite avec cette trace sans en avoir conscience au début et sans devenir une copie du scientifique, une connaissance totale de sa vie ou un oracle capable de résoudre l’aventure.
+Nacre existe pendant la tournée régionale sans porter le dernier fragment. Ce n’est qu’à Z, quelques instants avant l’arrivée de Séveran, qu’Elio-source détache son septième pétale et le lui intègre. Elle voyage ensuite avec cette trace sans en avoir conscience et sans devenir une copie du scientifique, une connaissance totale de sa vie ou un oracle capable de résoudre l’aventure. Le groupe ne l’identifie qu’après sa contribution au redémarrage et la sécurisation de la situation.
 
 ## Résonance, dernière mémoire et autonomie du Cœur
 
 **CONFIRME** · Origine : utilisateur · [IA-007](../STORY_SOURCE.md#ia-007)
 
-Le pétale de Nacre participe avec les six autres au redémarrage distribué du Cœur. La méthode exacte de connexion reste à développer, mais elle ne requiert pas la mort de Nacre avant la dernière fenêtre. Le Cœur réparé devient ensuite autonome, ce qui permet le transfert final et la destruction du composant temporel dangereux sans replonger Orthe dans la panne.
+Le groupe prépare le redémarrage avec six fragments connus, Elio, les réserves, les relais énergétiques réparés et les compétences des Porteurs réunis. Le flux collectif approche de la réussite sans se stabiliser complètement. Nacre décide alors d’apporter ses fonctions connues de raccordement et de stabilisation, sans savoir qu’elle contient un pétale. Son apport n’est pas supérieur à celui de tous les alliés : il complète d’une manière exceptionnellement compatible la résonance des six fragments et permet à l’effort collectif d’aboutir.
+
+## Vérité d’auteur, connaissance du groupe et révélation au joueur
+
+**CONFIRME** · Origine : utilisateur · [REVELATIONS-001](../STORY_SOURCE.md#revelations-001)
+
+| Étape jouée | Informations accessibles | Informations encore non certaines |
+|---|---|---|
+| Prologue A | Couple, recherche primitive, intrusion, blessure de Lyra et secours vu par Elio. | Origine de Lyra, connaissance d’Orthe par Elio, identité du septième pétale, déroulement de Z. |
+| Premières régions | Orthe, réputation et apprentissages d’Elio-source, premiers fragments, pouvoirs et histoires locales. | Preuve complète de l’assassinat à Z, changement de cible et pétale de Nacre identifié. |
+| Arcs intermédiaires | Mort de Lyra-source avec preuves datées, collaboration, origine de Lyra, passé Spatial, hypothèses sur l’ancre et possibilité de secours. | Images ou journaux complets révélant le septième fragment et toute la routine de Z. |
+| Préparation du Cœur | Projet de Séveran, usage prévu du centre, menaces, recherches et preuves partielles sur Elio-source. | Révélation complète de Z et du secours. |
+| Redémarrage | Contribution surprenante de Nacre. | Connaissance préalable obligatoire de son fragment. |
+| Après sécurisation | Découverte du septième, derniers souvenirs directs, données de l’assassinat et du secours, paramètres d’extraction. | Aucun souvenir postérieur au détachement attribué au pétale. |
+| Dernière fenêtre | Usage de l’ancre, des paramètres, de la puissance et des soins pour extraire Lyra. | Retour avant la blessure, ancre neuve ou résurrection de Lyra-source. |
 
 ## Rencontrer puis atteindre N1 par le premier pull
 
@@ -285,17 +398,23 @@ La première obtention d’un personnage est N1. Chaque obtention suivante augme
 
 Après la restauration du Cœur, les véritables noyaux retrouvent narrativement l’équivalent de leur plein fonctionnement et de leurs sept pétales. Cet état du monde ne modifie pas la box : un personnage N1 ou N2 y conserve son niveau mécanique, les obtentions futures restent utiles et l’économie gacha n’est pas supprimée.
 
+## Deux affrontements, une révélation et le secours
+
+**CONFIRME** · Origine : utilisateur · [FIN-SEQUENCE-001](../STORY_SOURCE.md#fin-sequence-001)
+
+Le final joué suit ces jalons sans les confondre avec les deux essais historiques d’Elio-source :
+
 ## Sauver sans revenir avant la blessure
 
 **CONFIRME** · Origine : utilisateur · [FIN-001](../STORY_SOURCE.md#fin-001)
 
-Après la résolution collective au présent, le groupe reprend la même scène conservée après la blessure et l’extraction initiale. Il est trop tard pour empêcher l’agression, mais Lyra du prologue peut encore être extraite vivante et soignée.
+Après le redémarrage, le second affrontement et la révélation de Z, le groupe réunit trois conditions : la même ancre physique et un appareil compatible ; la connaissance opérationnelle précise issue du septième pétale et des données de Nacre ; la puissance stable du Cœur restauré avec les moyens médicaux d’extraction. Il reprend la même scène conservée après la blessure, l’extraction initiale d’Elio et la sortie de Séveran. Il est trop tard pour empêcher l’agression, mais Lyra du prologue peut encore être stabilisée, extraite vivante et soignée.
 
 ## Moyens proposés de la dernière extraction
 
 **PROPOSE** · Origine : assistant · [FIN-004](../STORY_SOURCE.md#fin-004)
 
-Un appareil compatible, un examen direct, une stabilisation biologique et une enveloppe d’extraction médicalisée apporteraient au final ce qui manquait au secours initial de Nacre. Des mesures partielles établiraient auparavant la conservation et une chance de survie sans la garantir.
+Un appareil compatible, les paramètres retrouvés après lecture de Z, un examen direct, une stabilisation biologique et une enveloppe d’extraction médicalisée apporteraient au final ce qui manquait au secours initial de Nacre. Des mesures partielles établiraient auparavant la conservation et une chance de survie sans la garantir. Le prototype original de Z pouvait fonctionner sans Cœur restauré parce qu’il utilisait une installation complète, une ancre encore non consommée et une opération risquée ; le secours final travaille sur un reliquat partiellement consommé avec une blessée à transférer.
 
 ## Victoire et monde après l’histoire
 
@@ -307,4 +426,4 @@ Après le redémarrage du Cœur, les noyaux véritables retrouvent leur fonction
 
 **CONFIRME** · Origine : utilisateur · [FIN-003](../STORY_SOURCE.md#fin-003)
 
-La fin suit cet ordre : six fragments régionaux rassemblés et souvenirs reconstruits, conflit autour du redémarrage du Cœur, défaite du projet de tutelle de Séveran, stabilisation d’Orthe, dernière ouverture pour sauver Lyra, début de l’apprentissage Biotique, découverte puis lecture du septième pétale placé dans Nacre à Z, complément apporté par les données propres de l’IA, destruction de l’accès temporel avec transfert risqué de Nacre, puis épilogue et retour préparé de Nacre sans pouvoir temporel.
+La fin suit impérativement l’ordre de `FIN-SEQUENCE-001` : premier affrontement avant le redémarrage ; contribution inexpliquée de Nacre ; restauration des noyaux alliés et ennemis ; second affrontement et neutralisation de Séveran ; découverte puis lecture du septième pétale et des données de Z ; dernière ouverture pour sauver Lyra ; destruction de l’accès temporel avec transfert risqué de Nacre ; convalescence, puis épilogue. L’apprentissage Biotique ne commence que plus tard auprès de Lyra rétablie.
