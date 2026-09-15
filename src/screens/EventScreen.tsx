@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-import type { EventDto, EventJoinDto } from '../api/types'
+import type { EventDto, EventGameAAttemptDto, EventJoinDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
 import ScreenHeader from '../components/ScreenHeader'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
@@ -10,6 +10,7 @@ type Props = Readonly<{
   value: EventDto
   onLoad: () => Promise<EventDto>
   onJoin: (idempotencyKey: string) => Promise<EventJoinDto>
+  onAttempt: (idempotencyKey: string) => Promise<EventGameAAttemptDto>
 }>
 
 const periodFormatter = new Intl.DateTimeFormat('fr-FR', {
@@ -19,17 +20,26 @@ const periodFormatter = new Intl.DateTimeFormat('fr-FR', {
   year: 'numeric',
 })
 
-export default function EventScreen({ value, onLoad, onJoin }: Props) {
+const timeFormatter = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })
+
+export default function EventScreen({ value, onLoad, onJoin, onAttempt }: Props) {
   const [pending, setPending] = useState(false)
   const pendingRef = useRef(false)
   const [intentKey, setIntentKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [attemptFeedback, setAttemptFeedback] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
     void onLoad().catch((reason) => { if (active) setError(apiErrorMessage(reason)) })
     return () => { active = false }
   }, [onLoad])
+
+  useEffect(() => {
+    if (value.gameA.cooldownRemainingMs <= 0) return
+    const timer = window.setTimeout(() => { void onLoad().catch(() => undefined) }, value.gameA.cooldownRemainingMs + 50)
+    return () => window.clearTimeout(timer)
+  }, [onLoad, value.gameA.cooldownRemainingMs])
 
   const join = async () => {
     if (pendingRef.current || !value.canJoin) return
@@ -50,8 +60,30 @@ export default function EventScreen({ value, onLoad, onJoin }: Props) {
     }
   }
 
+  const attemptGameA = async () => {
+    if (pendingRef.current || !value.gameA.canAttempt) return
+    const key = intentKey ?? crypto.randomUUID()
+    pendingRef.current = true
+    setPending(true)
+    setIntentKey(key)
+    setError(null)
+    setAttemptFeedback(null)
+    try {
+      const result = await onAttempt(key)
+      setIntentKey(null)
+      setAttemptFeedback(result.attempt.succeeded ? `Réussite ! +1 point et +1 ${result.festival.currency.label}.` : 'Pas cette fois. Vous pourrez retenter après le court délai.')
+    } catch (reason) {
+      if (!isAmbiguousMutationError(reason)) setIntentKey(null)
+      setError(apiErrorMessage(reason))
+    } finally {
+      pendingRef.current = false
+      setPending(false)
+    }
+  }
+
   const tabs = <nav className="activity-inner-tabs event-tabs" aria-label="Sections Événement">
-    {['Jeux', 'Shop', 'Classement'].map((tab) => <button type="button" disabled key={tab}>{tab}</button>)}
+    <button type="button" className="active" aria-current="page">Jeux</button>
+    {['Shop', 'Classement'].map((tab) => <button type="button" disabled key={tab}>{tab}</button>)}
   </nav>
   const startsAt = periodFormatter.format(new Date(value.edition.startsAt))
   const endsAt = periodFormatter.format(new Date(new Date(value.edition.endsAt).getTime() - 1))
@@ -81,6 +113,18 @@ export default function EventScreen({ value, onLoad, onJoin }: Props) {
           ? <span className="event-joined-status">Événement rejoint</span>
           : <button type="button" className="small-primary-button" disabled={!value.canJoin || pending} onClick={() => void join()}>{pending ? 'Inscription…' : 'Rejoindre l’événement'}</button>}
       </section>
+      {value.participation.joined && <section className="panel event-game-a" data-theme={value.gameA.theme.key}>
+        <div className="event-game-a-heading"><div><span className="eyebrow">Jeu du Festival</span><h2>{value.gameA.theme.label}</h2></div><span className={`event-game-a-day-state${value.gameA.completedToday ? ' complete' : ''}`}>{value.gameA.completedToday ? 'Réussi aujourd’hui' : 'À réussir aujourd’hui'}</span></div>
+        <div className="event-game-a-windows">
+          {value.gameA.windows.map((window, index) => <article className={`event-game-a-window ${window.state.toLowerCase()}`} key={window.startAt} data-window-state={window.state}>
+            <span>Fenêtre {index + 1}</span><strong>{timeFormatter.format(new Date(window.startAt))} – {timeFormatter.format(new Date(window.endAt))}</strong><small>{window.state === 'ACTIVE' ? 'Active' : window.state === 'PAST' ? 'Terminée' : 'Prochaine'}</small>
+          </article>)}
+        </div>
+        <div className="event-game-a-action"><span>{value.gameA.attemptsToday} tentative{value.gameA.attemptsToday > 1 ? 's' : ''} aujourd’hui</span>
+          {value.gameA.completedToday ? <strong>Votre gain du jour est acquis.</strong> : value.gameA.cooldownRemainingMs > 0 ? <button type="button" className="small-primary-button" disabled>Patientez {Math.ceil(value.gameA.cooldownRemainingMs / 1000)} s</button> : value.gameA.canAttempt ? <button type="button" className="small-primary-button" disabled={pending} onClick={() => void attemptGameA()}>{pending ? 'Tentative…' : 'Tenter ma chance'}</button> : <strong>Aucune fenêtre active.</strong>}
+        </div>
+        <p className="event-game-a-feedback" role="status" aria-live="polite">{attemptFeedback ?? ''}</p>
+      </section>}
       <p className="event-feedback" role={error ? 'alert' : 'status'}>{error ?? ''}</p>
     </ScrollableScreenPanel>
   </div>

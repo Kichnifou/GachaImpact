@@ -76,7 +76,7 @@ export function createRuntimeDependencies(config: AppConfig) {
   const contestScheduler = new ContestScheduler(contestService);
   const giftCodeService = new GiftCodeService(getCurrentPlayer, database, clock);
   const giftCodeScheduler = new GiftCodeScheduler(giftCodeService);
-  const eventService = new EventService(getCurrentPlayer, database, clock);
+  const eventService = new EventService(getCurrentPlayer, database, clock, random);
 
   return {
     authIdentityVerifier: createSupabaseAuthAdapter(issuer),

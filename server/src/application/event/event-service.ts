@@ -1,6 +1,8 @@
 import { EventEditionStatus, OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
-import { getBusinessDate, getBusinessDayStartAt, type Clock } from '../../domain/time/business-date.js';
+import { activeEventGameAWindow, EVENT_GAME_A_COOLDOWN_MS, eventGameASucceeded, generateEventGameAState, parseEventGameAState } from '../../domain/event/game-a.js';
+import { businessDateToDatabaseDate, getBusinessDate, getBusinessDayStartAt, getBusinessMinuteAt, type Clock } from '../../domain/time/business-date.js';
+import type { RandomSource } from '../../domain/wheel/wheel.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
 import { BusinessError } from '../errors.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
@@ -20,6 +22,13 @@ type EditionSnapshot = Readonly<{
   currencyKey: string;
   config: FestivalConfig;
 }>;
+
+const gameAThemes = {
+  'new-year': { key: 'feu', label: 'Feu' }, hearts: { key: 'coeur', label: 'Cœur' }, spring: { key: 'pousse', label: 'Pousse' },
+  bells: { key: 'oeuf', label: 'Œuf' }, flowers: { key: 'fleur', label: 'Fleur' }, summer: { key: 'peche', label: 'Pêche' },
+  stars: { key: 'etoile', label: 'Étoile' }, adventurers: { key: 'expedition', label: 'Expédition' }, harvest: { key: 'recolte', label: 'Récolte' },
+  shadows: { key: 'fantome', label: 'Fantôme' }, mists: { key: 'feuille', label: 'Feuille' }, christmas: { key: 'cadeau', label: 'Cadeau' },
+} as const;
 
 type Definition = Readonly<{
   id: string;
@@ -58,13 +67,25 @@ export class EventService {
     private readonly getPlayer: GetCurrentPlayer,
     private readonly database: PrismaClient,
     private readonly clock: Clock,
+    private readonly random: RandomSource,
   ) {}
 
   public async getCurrent(identity: AuthenticatedIdentity) {
     const player = await this.getPlayer.execute(identity);
     const now = this.clock.now();
     const context = await this.resolveCurrentEdition(this.database, now);
-    return this.snapshot(this.database, player.id, context, now);
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        return await this.database.$transaction(async (tx) => {
+          await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
+          return this.snapshot(tx, player.id, context, now, true);
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      } catch (error) {
+        if (attempt < 2 && isPrismaConcurrencyCollision(error)) continue;
+        throw error;
+      }
+    }
+    throw new Error('Current Event state could not be loaded.');
   }
 
   public async join(identity: AuthenticatedIdentity, idempotencyKey: string) {
@@ -91,7 +112,7 @@ export class EventService {
             ) {
               throw new BusinessError('EVENT_IDEMPOTENCY_CONFLICT', 'Cette clé d’idempotence appartient à une autre opération.');
             }
-            return { operationId: existingOperation.id, alreadyProcessed: true };
+            return { operationId: existingOperation.id, alreadyProcessed: true, view: null };
           }
 
           await tx.$queryRaw`SELECT id FROM event_editions WHERE id = ${context.edition.id}::uuid FOR SHARE`;
@@ -129,11 +150,12 @@ export class EventService {
               resultSummary: { request: { editionId: context.edition.id }, joined: true, credited: !participant },
             },
           });
-          return { operationId: operation.id, alreadyProcessed: false };
+          return { operationId: operation.id, alreadyProcessed: false, view: await this.snapshot(tx, player.id, context, now, true) };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
         operationId = result.operationId;
         alreadyProcessed = result.alreadyProcessed;
+        if (result.view) return { ...result.view, operation: { id: operationId, alreadyProcessed } };
         break;
       } catch (error) {
         if (attempt < 2 && isPrismaConcurrencyCollision(error)) continue;
@@ -142,9 +164,60 @@ export class EventService {
     }
 
     return {
-      ...await this.snapshot(this.database, player.id, context, now),
+      ...await this.getCurrent(identity),
       operation: { id: operationId, alreadyProcessed },
     };
+  }
+
+  public async attemptGameA(identity: AuthenticatedIdentity, idempotencyKey: string) {
+    const player = await this.getPlayer.execute(identity);
+    const now = this.clock.now();
+    const context = await this.resolveCurrentEdition(this.database, now);
+    let retainedRoll: number | null = null;
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        return await this.database.$transaction(async (tx) => {
+          await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
+          const existingOperation = await tx.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey } });
+          if (existingOperation) {
+            const summary = readRecord(existingOperation.resultSummary);
+            const request = readRecord(summary?.request);
+            if (existingOperation.playerId !== player.id || existingOperation.operationType !== 'event.game-a.attempt' || request?.editionId !== context.edition.id || request.businessDate !== context.period.businessDate || existingOperation.status !== OperationStatus.COMPLETED) {
+              throw new BusinessError('EVENT_GAME_A_IDEMPOTENCY_CONFLICT', 'Cette clé d’idempotence appartient à une autre tentative.');
+            }
+            return { ...await this.snapshot(tx, player.id, context, now, true), operation: { id: existingOperation.id, alreadyProcessed: true }, attempt: { succeeded: summary?.succeeded === true } };
+          }
+
+          await tx.$queryRaw`SELECT id FROM event_editions WHERE id = ${context.edition.id}::uuid FOR SHARE`;
+          const participant = await tx.eventParticipant.findUnique({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: player.id } } });
+          if (!participant) throw new BusinessError('EVENT_NOT_JOINED', 'Rejoignez le Festival avant de jouer.');
+          let daily = await this.ensureDailyState(tx, context.edition.id, player.id, context.period.businessDate, now);
+          await tx.$queryRaw`SELECT event_edition_id FROM event_daily_player_states WHERE event_edition_id = ${context.edition.id}::uuid AND player_id = ${player.id}::uuid AND business_date = ${businessDateToDatabaseDate(context.period.businessDate)}::date FOR UPDATE`;
+          daily = await tx.eventDailyPlayerState.findUniqueOrThrow({ where: { eventEditionId_playerId_businessDate: { eventEditionId: context.edition.id, playerId: player.id, businessDate: businessDateToDatabaseDate(context.period.businessDate) } } });
+          if (daily.gameASuccess) throw new BusinessError('EVENT_GAME_A_ALREADY_COMPLETED', 'Le Jeu A est déjà réussi pour aujourd’hui.');
+          const state = parseEventGameAState(daily.state);
+          const activeWindowIndex = activeEventGameAWindow(state.gameA.windows, parisMinuteOfDay(now));
+          if (activeWindowIndex === null) throw new BusinessError('EVENT_GAME_A_OUTSIDE_WINDOW', 'Aucune fenêtre du Jeu A n’est active actuellement.');
+          if (daily.gameALastAttemptAt && now.getTime() - daily.gameALastAttemptAt.getTime() < EVENT_GAME_A_COOLDOWN_MS) throw new BusinessError('EVENT_GAME_A_COOLDOWN', 'Patientez avant une nouvelle tentative.');
+
+          retainedRoll ??= this.random.nextInt(100);
+          const succeeded = eventGameASucceeded(retainedRoll);
+          const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'event.game-a.attempt', sourceChannel: SourceChannel.UI, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request: { editionId: context.edition.id, businessDate: context.period.businessDate } } } });
+          await tx.eventDailyPlayerState.update({ where: { eventEditionId_playerId_businessDate: { eventEditionId: context.edition.id, playerId: player.id, businessDate: businessDateToDatabaseDate(context.period.businessDate) } }, data: { gameAAttempts: { increment: 1 }, gameASuccess: succeeded, gameALastAttemptAt: now, updatedAt: now } });
+          if (succeeded) {
+            await tx.eventParticipant.update({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: player.id } }, data: { points: { increment: 1 } } });
+            await tx.playerEventCurrencyBalance.upsert({ where: { playerId_eventDefinitionId: { playerId: player.id, eventDefinitionId: context.definition.id } }, create: { playerId: player.id, eventDefinitionId: context.definition.id, amount: 1n, updatedAt: now }, update: { amount: { increment: 1n }, updatedAt: now } });
+          }
+          await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request: { editionId: context.edition.id, businessDate: context.period.businessDate }, succeeded } } });
+          return { ...await this.snapshot(tx, player.id, context, now, false), operation: { id: operation.id, alreadyProcessed: false }, attempt: { succeeded } };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      } catch (error) {
+        if (attempt < 2 && isPrismaConcurrencyCollision(error)) continue;
+        throw error;
+      }
+    }
+    throw new Error('Event Game A attempt could not be completed.');
   }
 
   public async resolveCurrentEdition(database: Database, now: Date) {
@@ -179,6 +252,7 @@ export class EventService {
     playerId: string,
     context: Awaited<ReturnType<EventService['resolveCurrentEdition']>>,
     now: Date,
+    materializeDaily: boolean,
   ) {
     const [participant, balance] = await Promise.all([
       database.eventParticipant.findUnique({
@@ -188,6 +262,8 @@ export class EventService {
         where: { playerId_eventDefinitionId: { playerId, eventDefinitionId: context.definition.id } },
       }),
     ]);
+    const daily = participant && materializeDaily ? await this.ensureDailyState(database, context.edition.id, playerId, context.period.businessDate, now) : participant ? await database.eventDailyPlayerState.findUnique({ where: { eventEditionId_playerId_businessDate: { eventEditionId: context.edition.id, playerId, businessDate: businessDateToDatabaseDate(context.period.businessDate) } } }) : null;
+    const gameA = this.gameAProjection(context.editionSnapshot.externalKey, context.period.businessDate, daily, now);
     return {
       businessDate: context.period.businessDate,
       festival: {
@@ -211,6 +287,29 @@ export class EventService {
       },
       currency: { amount: (balance?.amount ?? 0n).toString() },
       canJoin: !participant && now >= context.edition.startsAt && now < context.edition.endsAt,
+      gameA,
+    };
+  }
+
+  private async ensureDailyState(database: Database, editionId: string, playerId: string, businessDate: string, now: Date) {
+    const key = { eventEditionId: editionId, playerId, businessDate: businessDateToDatabaseDate(businessDate) };
+    const existing = await database.eventDailyPlayerState.findUnique({ where: { eventEditionId_playerId_businessDate: key } });
+    if (existing) return existing;
+    return database.eventDailyPlayerState.create({ data: { ...key, state: generateEventGameAState(this.random) as Prisma.InputJsonValue, updatedAt: now } });
+  }
+
+  private gameAProjection(externalKey: string, businessDate: string, daily: Awaited<ReturnType<EventService['ensureDailyState']>> | null, now: Date) {
+    const theme = gameAThemes[externalKey as keyof typeof gameAThemes];
+    if (!theme) throw new BusinessError('EVENT_CONFIGURATION_MISSING', 'La configuration du Jeu A est absente pour ce Festival.');
+    if (!daily) return { available: false, theme, completedToday: false, attemptsToday: 0, windows: [], activeWindowIndex: null, canAttempt: false, cooldownRemainingMs: 0 };
+    const state = parseEventGameAState(daily.state);
+    const localMinute = parisMinuteOfDay(now);
+    const activeWindowIndex = activeEventGameAWindow(state.gameA.windows, localMinute);
+    const cooldownRemainingMs = daily.gameALastAttemptAt ? Math.max(0, EVENT_GAME_A_COOLDOWN_MS - (now.getTime() - daily.gameALastAttemptAt.getTime())) : 0;
+    return {
+      available: true, theme, completedToday: daily.gameASuccess, attemptsToday: daily.gameAAttempts,
+      windows: state.gameA.windows.map(({ startMinute, endMinute }) => ({ startAt: getBusinessMinuteAt(businessDate, startMinute).toISOString(), endAt: getBusinessMinuteAt(businessDate, endMinute).toISOString(), state: now < getBusinessMinuteAt(businessDate, startMinute) ? 'FUTURE' : now >= getBusinessMinuteAt(businessDate, endMinute) ? 'PAST' : 'ACTIVE' })),
+      activeWindowIndex, canAttempt: !daily.gameASuccess && activeWindowIndex !== null && cooldownRemainingMs === 0, cooldownRemainingMs,
     };
   }
 }
@@ -261,4 +360,10 @@ function parseConfig(value: unknown): FestivalConfig {
 
 function readRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+const parisTimeFormatter = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+function parisMinuteOfDay(now: Date): number {
+  const parts = Object.fromEntries(parisTimeFormatter.formatToParts(now).filter(({ type }) => type !== 'literal').map(({ type, value }) => [type, value]));
+  return Number(parts.hour) * 60 + Number(parts.minute);
 }

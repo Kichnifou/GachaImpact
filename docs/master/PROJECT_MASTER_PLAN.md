@@ -1,8 +1,8 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : Event Lot 1 clôturé / Event Lot 2 à ouvrir
+Version : Event Lot 2 — Jeu A candidat sur review
 Date : 2026-09-15
-Statut : 0.98 CLÔTURÉE — EVENT LOT 1 FONDATIONS CLÔTURÉ, DÉPLOYÉ ET VALIDÉ PUBLIQUEMENT
+Statut : EVENT LOT 2 — JEU A CANDIDAT SUR review — REVIEW INDÉPENDANTE À EFFECTUER
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
@@ -3544,7 +3544,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Événements mensuels — Event Lot 1 Fondations est clôturé, déployé avec succès et validé fonctionnellement et visuellement en public. La prochaine étape fonctionnelle est Event Lot 2 — Jeu A ; aucune implémentation ni migration 021 n’est encore engagée.**
+**Événements mensuels — Event Lot 1 Fondations reste clôturé, déployé et validé publiquement. Event Lot 2 — Jeu A est implémenté comme candidat sur `review` : fenêtres personnelles persistantes, tentative autoritaire, cooldown, réussite et gains Event. La prochaine étape est la review indépendante du vrai diff GitHub.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3561,8 +3561,8 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - squelette Fastify / TypeScript checkpointé ;
 - Prisma ORM 7.10.0 stable ;
 - Supabase DEV provisionné et connexion PostgreSQL fonctionnelle ;
-- vingt migrations applicatives versionnées et suivies par Prisma, dont la migration additive 020 Event Lot 1 appliquée sur Supabase DEV ;
-- les tables privées couvrent notamment possessions/C6, Gacha, préférences, Sac, Teams, Banque, Boutique, Défi, Combat, Expedition/Notifications, Boss, Concours, Codes et les fondations Event ;
+- vingt-et-une migrations applicatives versionnées et suivies par Prisma, dont les migrations additives 020 Event Lot 1 et 021 Event Jeu A appliquées sur Supabase DEV ;
+- les tables privées couvrent notamment possessions/C6, Gacha, préférences, Sac, Teams, Banque, Boutique, Défi, Combat, Expedition/Notifications, Boss, Concours, Codes, les fondations Event et l’état quotidien Event ;
 - référentiels seedés avec 7 éléments et 9 ressources ;
 - RLS activée sur les tables de fondation, sans policy client permissive ;
 - Auth Supabase réel checkpointé au commit `027d230f7d047e0469076418d3d5122e831bdce6` ;
@@ -3847,7 +3847,7 @@ Le commit 0.95 `3e510307f49ffa389df902d35c83287ea0ebe96e` est désormais sur `ma
 
 ## Event Lot 1 — Fondations clôturé, déployé et validé publiquement
 
-- Les commits fonctionnels du lot sont `105aecce99453c3997d89604d67060d29bf17d5b` (`feat: establish monthly event foundations`), `849158854c2ae1fed532deb366fb964323257de6` (`fix: freeze event editions and period presentation`) et `03d9087e8939c5c93db4eb07c85943bb570c3364` (`fix: polish monthly event foundation UX`). Le HEAD public actuel `722e53fbc1385701fe41d63aad653524276a8a83` ajoute uniquement le commit Story légitime v1.5 et ne change pas le contenu fonctionnel Event.
+- Les commits fonctionnels du lot sont `105aecce99453c3997d89604d67060d29bf17d5b` (`feat: establish monthly event foundations`), `849158854c2ae1fed532deb366fb964323257de6` (`fix: freeze event editions and period presentation`) et `03d9087e8939c5c93db4eb07c85943bb570c3364` (`fix: polish monthly event foundation UX`). Le checkpoint public actuel `6e615df44c6c0e652da4017b30dd021ea2606b3b` clôt cette validation ; le commit Story v1.5 intermédiaire reste intact et ne change pas le contenu fonctionnel Event.
 - La migration additive `20260915120000_020_add_monthly_event_foundations` est appliquée sur Supabase DEV et suivie par Prisma. Elle matérialise exactement quatre tables Event Lot 1 — `event_definitions`, `event_editions`, `player_event_currency_balances` et `event_participants` — avec contraintes métier, index, RLS active et droits navigateur révoqués.
 - Le seed déterministe contient exactement les douze Festivals fixes de janvier à décembre avec leur nom, monnaie, emoji et métadonnée Collection. Il ne crée aucune édition, participation, balance Player, acquisition ou donnée legacy ; après les tests à fixtures UUID et leur cleanup exact, les compteurs Player Event restent à zéro.
 - `EventService` résout la date et les bornes de mois en `Europe/Paris`, récupère ou matérialise paresseusement l’édition annuelle unique et projette uniquement le Player authentifié. La monnaie saisonnière est portée par Player + définition stable : elle reste séparée des neuf `ResourceKey`, survit entre les années et ne peut pas être partagée avec un autre Festival.
@@ -3856,7 +3856,18 @@ Le commit 0.95 `3e510307f49ffa389df902d35c83287ea0ebe96e` est désormais sur `ma
 - `EventEdition.snapshot` est autoritatif pour l’identité et la configuration figées de l’édition ; `EventDefinition.id` reste l’identité durable de la balance saisonnière. La période technique semi-ouverte `[startsAt, endsAt[` est présentée au joueur jusqu’au dernier jour inclus.
 - La validation visuelle publique confirme l’absence de chevauchement entre `ScreenHeader` et panneau grâce à leurs lignes structurelles distinctes, les onglets `Jeux | Shop | Classement` présents mais simplement désactivés, l’absence de badge futur ou de faux contenu, les cartes Points/Monnaie/Collection épurées et l’état « Événement rejoint » non interactif. Dans l’état Lot 1, le CTA Event des Quotidiennes est présent avant join puis absent après join, tandis que la carte conserve le Festival et le solde réels.
 - Event Lot 1 est sur `main`, déployé automatiquement avec Railway `SUCCESS`, `/health` HTTP 200, et validé publiquement sur les plans fonctionnel et visuel. Il est **CLÔTURÉ — DÉPLOYÉ ET VALIDÉ PUBLIQUEMENT**. Restent hors de ce lot Jeu A/B/C, bonus quotidien, paliers, Boutique Event, conversions, acquisition Collection, Classement, Calendrier, notifications Event, commandes/chat/Twitch et migration legacy ; `PAID_INFRA_APPROVED = false` reste inchangé.
-- La prochaine étape fonctionnelle est **Event Lot 2 — Jeu A**, à cadrer depuis `docs/legacy/16-event-monthly-audit.md`. Elle appliquera R598 (trois archétypes communs réutilisés par les douze Festivals), R599 (trois fenêtres personnelles quotidiennes d’une heure : matin, après-midi et soir), R600 (cooldown serveur de 3 secondes) et R601 (20 % de réussite ; première réussite quotidienne : +1 point Event et +1 monnaie Event). Aucun de ces comportements ni modèle physique associé n’est encore implémenté ; le prochain prompt décidera précisément du besoin éventuel de migration 021.
+- Event Lot 2 construit son candidat au-dessus de cette fondation sans rouvrir la validation publique du Lot 1.
+
+## Event Lot 2 — Jeu A candidat sur review
+
+- Le moteur Jeu A est commun et data-driven pour les douze Festivals. Une configuration immutable versionnée en code associe la clé de Festival figée dans `EventEdition.snapshot` à son habillage Jeu A (`feu`, `coeur`, `pousse`, `oeuf`, `fleur`, `peche`, `etoile`, `expedition`, `recolte`, `fantome`, `feuille`, `cadeau`) ; aucune édition matérialisée ne relit une définition mutable pour changer de thème.
+- La migration additive `20260915180000_021_add_event_game_a` est appliquée sur Supabase DEV et suivie par Prisma. Elle matérialise `event_daily_player_states` avec la clé `(event_edition_id, player_id, business_date)`, les champs communs prévus par 28.5 et `game_a_last_attempt_at` pour un cooldown atomiquement comparable. RLS est active et aucun droit direct `anon`/`authenticated` n’est accordé.
+- Après inscription volontaire, l’état quotidien est matérialisé paresseusement sous verrou Player. Son `state` JSON versionné persiste exactement trois fenêtres personnelles de 60 minutes, générées à la minute près dans les plages `07:00–12:00`, `12:00–18:00` et `18:00–23:00` en `Europe/Paris`. Une même journée ne reroll jamais au GET ; le changement de business date produit naturellement un nouvel état.
+- `POST /api/v1/me/event/game-a/attempt` reçoit seulement une clé d’idempotence UUID. Sous transaction `SERIALIZABLE`, verrou Player puis état quotidien, il refuse les non-inscrits, les bornes hors `[start, end[`, le cooldown serveur de trois secondes et les jours déjà réussis. Une tentative valide consomme un unique tirage serveur injectable à 20 % ; son replay `BusinessOperation` ne reroll ni ne réapplique les effets.
+- Un échec incrémente les tentatives et pose le cooldown sans gain. La première réussite du jour incrémente atomiquement les tentatives, `game_a_success`, les points de la participation et la balance saisonnière de un, puis interdit toute nouvelle tentative Jeu A ce jour. Les futurs paliers pourront constater ces points, mais aucun palier ni récompense de seuil n’est payé dans ce lot.
+- L’onglet `Jeux` affiche le thème, les trois fenêtres et leurs états temporels, les tentatives, le cooldown et la réussite ; `Shop` et `Classement` restent visibles et désactivés. La carte Quotidiennes conserve un accès avant inscription et après inscription tant que Jeu A reste à réussir, puis masque son CTA après la réussite du jour.
+- Les fixtures DB sont exclusivement dédiées et nettoyées exactement. Aucun compte DEV protégé, donnée Story ou participation réelle n’a été modifié. Restent exclus : R602/bonus quotidien Event, Jeu B, Jeu C, paliers/récompenses, Boutique Event, acquisition Collection, Classement, Calendrier, notifications Event, chat/Twitch et migration legacy.
+- Le candidat n’est ni promu sur `main`, ni déployé, ni validé publiquement. Prochaine étape exacte : review indépendante du vrai diff GitHub, corrections éventuelles sur `review`, puis promotion seulement après approbation.
 
 ## État déployé 0.92 — Concours / C6 et densité Boss
 
@@ -4011,10 +4022,11 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 
 Prochaine étape exacte :
 
-1. Ouvrir officiellement **EVENT LOT 2 — JEU A**, avec `docs/legacy/16-event-monthly-audit.md` comme source produit principale.
-2. Cadrer le modèle physique nécessaire à R598–R601 avant de décider et créer toute éventuelle migration 021.
-3. Limiter le prochain lot aux trois fenêtres personnelles quotidiennes d’une heure, au cooldown serveur de 3 secondes, aux tentatives à 20 % et à la première réussite quotidienne donnant +1 point Event et +1 monnaie Event.
-4. Exclure encore R602 et le bonus quotidien Event, Jeu B, Jeu C, Boutique Event, paliers, acquisition Collection, Classement, Calendrier, Twitch/chat et migration legacy.
+1. Effectuer la review indépendante ChatGPT du vrai diff GitHub d’**EVENT LOT 2 — JEU A**.
+2. Apporter sur `review` les éventuelles corrections issues de cette review et les revalider.
+3. Promouvoir `review` vers `main` uniquement après approbation, puis laisser les déploiements automatiques agir.
+4. Vérifier Railway, `/health`, Cloudflare/frontend si applicable, puis effectuer la validation publique fonctionnelle et visuelle du Lot 2.
+5. Garder hors périmètre R602, Jeu B, Jeu C, Boutique Event, paliers, acquisition Collection, Classement, Calendrier, notifications Event, Twitch/chat et migration legacy.
 
 L’ordre complet restant appartient à [implementation-order-v1.md](../roadmap/implementation-order-v1.md). La migration legacy reste reportée ; `PAID_INFRA_APPROVED = false` reste inchangé.
 

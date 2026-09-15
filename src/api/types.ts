@@ -579,9 +579,20 @@ export type EventDto = Readonly<{
   participation: Readonly<{ joined: boolean; joinedAt: string | null; points: number }>
   currency: Readonly<{ amount: string }>
   canJoin: boolean
+  gameA: Readonly<{
+    available: boolean
+    theme: Readonly<{ key: string; label: string }>
+    completedToday: boolean
+    attemptsToday: number
+    windows: readonly Readonly<{ startAt: string; endAt: string; state: 'PAST' | 'ACTIVE' | 'FUTURE' }>[]
+    activeWindowIndex: number | null
+    canAttempt: boolean
+    cooldownRemainingMs: number
+  }>
 }>
 
 export type EventJoinDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }> }>
+export type EventGameAAttemptDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; attempt: Readonly<{ succeeded: boolean }> }>
 
 export type GachaPullResultItemDto = Readonly<{
   index: number

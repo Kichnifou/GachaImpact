@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiError } from '../api/game-api'
-import type { EventDto, EventJoinDto } from '../api/types'
+import type { EventDto, EventGameAAttemptDto, EventJoinDto } from '../api/types'
 import EventScreen from './EventScreen'
 
 const roots: Root[] = []
@@ -16,13 +16,19 @@ const beforeJoin: EventDto = {
   festival: { key: 'harvest', month: 9, title: 'Festival des Récoltes', emoji: '🌾', currency: { key: 'harvest-tokens', label: 'Jetons de Récolte', emoji: '🌾' }, collection: { key: 'harvest-sheaf', label: 'Gerbe de Récolte' } },
   edition: { id: 'edition-2026', year: 2026, startsAt: '2026-08-31T22:00:00.000Z', endsAt: '2026-09-30T22:00:00.000Z' },
   participation: { joined: false, joinedAt: null, points: 0 }, currency: { amount: '0' }, canJoin: true,
+  gameA: { available: false, theme: { key: 'recolte', label: 'Récolte' }, completedToday: false, attemptsToday: 0, windows: [], activeWindowIndex: null, canAttempt: false, cooldownRemainingMs: 0 },
 }
-const afterJoin: EventJoinDto = { ...beforeJoin, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, operation: { id: 'operation-1', alreadyProcessed: false } }
+const joinedGameA = { available: true, theme: { key: 'recolte', label: 'Récolte' }, completedToday: false, attemptsToday: 0, windows: [
+  { startAt: '2026-09-15T07:00:00.000Z', endAt: '2026-09-15T08:00:00.000Z', state: 'PAST' as const },
+  { startAt: '2026-09-15T12:00:00.000Z', endAt: '2026-09-15T13:00:00.000Z', state: 'ACTIVE' as const },
+  { startAt: '2026-09-15T18:00:00.000Z', endAt: '2026-09-15T19:00:00.000Z', state: 'FUTURE' as const },
+], activeWindowIndex: 1, canAttempt: true, cooldownRemainingMs: 0 }
+const afterJoin: EventJoinDto = { ...beforeJoin, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, gameA: joinedGameA, operation: { id: 'operation-1', alreadyProcessed: false } }
 
-function mount(options: { value?: EventDto; onLoad?: () => Promise<EventDto>; onJoin?: (key: string) => Promise<EventJoinDto> } = {}) {
+function mount(options: { value?: EventDto; onLoad?: () => Promise<EventDto>; onJoin?: (key: string) => Promise<EventJoinDto>; onAttempt?: (key: string) => Promise<EventGameAAttemptDto> } = {}) {
   const container = document.createElement('div'); document.body.append(container)
   const root = createRoot(container); roots.push(root)
-  const props = { value: options.value ?? beforeJoin, onLoad: options.onLoad ?? vi.fn(async () => beforeJoin), onJoin: options.onJoin ?? vi.fn(async () => afterJoin) }
+  const props = { value: options.value ?? beforeJoin, onLoad: options.onLoad ?? vi.fn(async () => beforeJoin), onJoin: options.onJoin ?? vi.fn(async () => afterJoin), onAttempt: options.onAttempt ?? vi.fn(async () => ({ ...afterJoin, attempt: { succeeded: false } })) }
   act(() => root.render(<EventScreen {...props} />))
   return { container, root, props }
 }
@@ -65,6 +71,30 @@ describe('EventScreen foundations', () => {
     expect(container.querySelector('.event-foundation-card .small-primary-button')).toBeNull()
     expect(container.textContent).toContain('Votre solde restera associé à ce Festival entre les années.')
     expect(container.textContent).not.toMatch(/prochains lots|arriveront|À venir|Bientôt disponible/)
+    expect(container.querySelector<HTMLButtonElement>('.event-tabs button')?.disabled).toBe(false)
+    expect(container.textContent).toContain('Récolte')
+    expect(container.querySelectorAll('.event-game-a-window')).toHaveLength(3)
+    expect(container.querySelector('[data-window-state="ACTIVE"]')?.textContent).toContain('Active')
+    expect(container.querySelector<HTMLButtonElement>('.event-game-a-action button')?.textContent).toBe('Tenter ma chance')
+  })
+
+  it('projects failure, cooldown and success without leaving an obsolete action', async () => {
+    const failed: EventGameAAttemptDto = { ...afterJoin, gameA: { ...joinedGameA, attemptsToday: 1, canAttempt: false, cooldownRemainingMs: 3000 }, operation: { id: 'attempt-1', alreadyProcessed: false }, attempt: { succeeded: false } }
+    const onAttempt = vi.fn(async () => failed)
+    const mounted = mount({ value: afterJoin, onAttempt })
+    await act(async () => { mounted.container.querySelector<HTMLButtonElement>('.event-game-a-action button')!.click(); await Promise.resolve() })
+    expect(onAttempt).toHaveBeenCalledOnce()
+    expect(mounted.container.textContent).toContain('Pas cette fois')
+    act(() => mounted.root.render(<EventScreen {...mounted.props} value={failed} />))
+    expect(mounted.container.querySelector<HTMLButtonElement>('.event-game-a-action button')?.disabled).toBe(true)
+    expect(mounted.container.textContent).toContain('Patientez 3 s')
+    const success: EventGameAAttemptDto = { ...failed, participation: { ...failed.participation, points: 1 }, currency: { amount: '2' }, gameA: { ...failed.gameA, completedToday: true, canAttempt: false, cooldownRemainingMs: 0 }, operation: { id: 'attempt-2', alreadyProcessed: false }, attempt: { succeeded: true } }
+    act(() => mounted.root.render(<EventScreen {...mounted.props} value={success} />))
+    expect(mounted.container.textContent).toContain('Réussi aujourd’hui')
+    const stats = Array.from(mounted.container.querySelectorAll('.event-stat'), (entry) => entry.textContent)
+    expect(stats[0]).toContain('1')
+    expect(stats[1]).toContain('2')
+    expect(mounted.container.querySelector('.event-game-a-action button')).toBeNull()
   })
 
   it('keeps one pending join stable under a double click', async () => {
@@ -86,7 +116,7 @@ describe('EventScreen foundations', () => {
     expect(container.querySelector('[role="alert"]')?.textContent).toContain('momentanément inaccessible')
     const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
     expect(tabs.map(({ textContent }) => textContent)).toEqual(['Jeux', 'Shop', 'Classement'])
-    expect(tabs.every(({ disabled }) => disabled)).toBe(true)
+    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, true])
     expect(tabs.every((tab) => !tab.hasAttribute('title') && tab.querySelector('small') === null)).toBe(true)
     expect(container.textContent).not.toMatch(/Top 3|mini-jeu|acheté/)
   })

@@ -1,8 +1,32 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { EventService, resolveCurrentEventPeriod } from '../src/application/event/event-service.js';
+import { activeEventGameAWindow, eventGameASucceeded, generateEventGameAState } from '../src/domain/event/game-a.js';
+import { getBusinessMinuteAt } from '../src/domain/time/business-date.js';
 
 describe('monthly Event period resolution', () => {
+  it('generates three exact personal one-hour windows from injectable rolls', () => {
+    const nextInt = vi.fn().mockReturnValueOnce(0).mockReturnValueOnce(300).mockReturnValueOnce(240);
+    expect(generateEventGameAState({ nextInt })).toEqual({ version: 1, gameA: { windows: [
+      { startMinute: 420, endMinute: 480 }, { startMinute: 1020, endMinute: 1080 }, { startMinute: 1320, endMinute: 1380 },
+    ] } });
+    expect(nextInt.mock.calls.map(([maximum]) => maximum)).toEqual([241, 301, 241]);
+  });
+
+  it('uses half-open window boundaries and an exact twenty-percent roll mapping', () => {
+    const windows = [{ startMinute: 480, endMinute: 540 }];
+    expect(activeEventGameAWindow(windows, 479)).toBeNull();
+    expect(activeEventGameAWindow(windows, 480)).toBe(0);
+    expect(activeEventGameAWindow(windows, 539)).toBe(0);
+    expect(activeEventGameAWindow(windows, 540)).toBeNull();
+    expect(eventGameASucceeded(19)).toBe(true);
+    expect(eventGameASucceeded(20)).toBe(false);
+  });
+
+  it('converts daytime Paris windows with the correct DST offset', () => {
+    expect(getBusinessMinuteAt('2026-03-29', 7 * 60).toISOString()).toBe('2026-03-29T05:00:00.000Z');
+    expect(getBusinessMinuteAt('2026-10-25', 7 * 60).toISOString()).toBe('2026-10-25T06:00:00.000Z');
+  });
   it.each([
     ['2026-01-31T22:59:59.999Z', 2026, 1],
     ['2026-01-31T23:00:00.000Z', 2026, 2],
@@ -37,6 +61,8 @@ describe('monthly Event period resolution', () => {
       status: 'ACTIVE', snapshot: originalSnapshot, createdAt: new Date('2026-09-01T00:00:00.000Z'),
     };
     const database = {
+      $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => callback(database)),
+      $queryRaw: vi.fn(async () => []),
       eventDefinition: { findFirst: vi.fn(async () => ({ id: definitionId, externalKey: 'changed', displayName: 'Festival renommé', calendarMonth: 9, currencyKey: 'changed-currency', config: { emoji: '❌', currency: { label: 'Monnaie modifiée', emoji: '❌' }, collection: { key: 'changed-item', label: 'Collection modifiée' } } })) },
       eventEdition: { findUnique: vi.fn(async () => edition), upsert: vi.fn() },
       eventParticipant: { findUnique: vi.fn(async () => null) },
@@ -46,6 +72,7 @@ describe('monthly Event period resolution', () => {
       { execute: vi.fn(async () => ({ id: '20000000-0000-4000-8000-000000000009' })) } as never,
       database as never,
       { now: () => new Date('2026-09-15T12:00:00.000Z') },
+      { nextInt: vi.fn(() => 0) },
     );
 
     const result = await service.getCurrent({ subject: 'snapshot-test' });

@@ -262,6 +262,7 @@ model Player {
   giftCodesUpdated      GiftCode[]                   @relation("GiftCodeUpdater")
   eventCurrencyBalances PlayerEventCurrencyBalance[]
   eventParticipations   EventParticipant[]
+  eventDailyStates      EventDailyPlayerState[]
 
   @@index([status], map: "players_status_idx")
   @@index([elementKey], map: "players_element_key_idx")
@@ -576,6 +577,7 @@ model EventEdition {
   createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   definition        EventDefinition    @relation(fields: [eventDefinitionId], references: [id], onDelete: Restrict)
   participants      EventParticipant[]
+  dailyPlayerStates EventDailyPlayerState[]
 
   @@unique([eventDefinitionId, year], map: "event_editions_definition_year_key")
   @@index([startsAt, endsAt], map: "event_editions_period_idx")
@@ -606,6 +608,26 @@ model EventParticipant {
   @@id([eventEditionId, playerId])
   @@index([playerId, joinedAt(sort: Desc)], map: "event_participants_player_joined_idx")
   @@map("event_participants")
+}
+
+model EventDailyPlayerState {
+  eventEditionId    String       @map("event_edition_id") @db.Uuid
+  playerId          String       @map("player_id") @db.Uuid
+  businessDate      DateTime     @map("business_date") @db.Date
+  gameASuccess      Boolean      @default(false) @map("game_a_success")
+  gameAAttempts     Int          @default(0) @map("game_a_attempts")
+  gameALastAttemptAt DateTime?   @map("game_a_last_attempt_at") @db.Timestamptz(6)
+  gameBAttemptsUsed Int          @default(0) @map("game_b_attempts_used")
+  gameCSent         Boolean      @default(false) @map("game_c_sent")
+  dailyBonusClaimed Boolean      @default(false) @map("daily_bonus_claimed")
+  state             Json         @db.JsonB
+  updatedAt         DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  edition           EventEdition @relation(fields: [eventEditionId], references: [id], onDelete: Cascade)
+  player            Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@id([eventEditionId, playerId, businessDate])
+  @@index([playerId, businessDate(sort: Desc)], map: "event_daily_player_states_player_date_idx")
+  @@map("event_daily_player_states")
 }
 
 model PlayerRoleAssignment {

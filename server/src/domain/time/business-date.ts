@@ -52,10 +52,21 @@ export function getNextBusinessResetAt(instant: Date): Date {
 
 export function getBusinessDayStartAt(businessDate: string): Date {
   const utcMidnight = new Date(`${businessDate}T00:00:00.000Z`);
-  const offsetName = parisOffsetFormatter.formatToParts(utcMidnight).find(({ type }) => type === 'timeZoneName')?.value;
+  return new Date(utcMidnight.getTime() - parisOffsetMs(utcMidnight));
+}
+
+export function getBusinessMinuteAt(businessDate: string, minuteOfDay: number): Date {
+  if (!Number.isInteger(minuteOfDay) || minuteOfDay < 0 || minuteOfDay > 24 * 60) throw new RangeError('Business minute must be between 0 and 1440.');
+  const [year, month, day] = businessDate.split('-').map(Number);
+  if (!year || !month || !day) throw new Error('Invalid business date.');
+  const utcGuess = new Date(Date.UTC(year, month - 1, day, Math.floor(minuteOfDay / 60), minuteOfDay % 60));
+  return new Date(utcGuess.getTime() - parisOffsetMs(utcGuess));
+}
+
+function parisOffsetMs(instant: Date): number {
+  const offsetName = parisOffsetFormatter.formatToParts(instant).find(({ type }) => type === 'timeZoneName')?.value;
   const match = offsetName?.match(/^GMT([+-])(\d{2}):(\d{2})$/);
   if (!match) throw new Error('Unable to resolve the Europe/Paris UTC offset.');
   const direction = match[1] === '+' ? 1 : -1;
-  const offset = direction * (Number(match[2]) * 60 + Number(match[3])) * 60_000;
-  return new Date(utcMidnight.getTime() - offset);
+  return direction * (Number(match[2]) * 60 + Number(match[3])) * 60_000;
 }

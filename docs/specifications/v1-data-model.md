@@ -1498,6 +1498,16 @@ Le premier sous-ensemble physique suit le modèle relationnel cible sans blob Pl
 
 La migration 020 ne matérialise aucun sous-état Jeu A/B/C, palier, social, Collection ou Calendrier. Elle ne migre aucune donnée legacy et ne crée aucune ligne Player Event.
 
+## 26.6 État physique Event Lot 2 — Jeu A
+
+La migration 021 matérialise `EventDailyPlayerState`, sans second modèle concurrent. Sa clé physique est `eventEditionId + playerId + businessDate`. Elle porte réellement pour Jeu A : `gameASuccess`, `gameAAttempts`, `gameALastAttemptAt`, un `state` JSON versionné et `updatedAt`. Les champs structurels prévus pour Jeu B, Jeu C et le bonus quotidien existent avec leurs defaults, mais aucune mécanique correspondante n’est implémentée dans ce lot.
+
+`state.version = 1` et `state.gameA.windows` contiennent les trois couples `startMinute` / `endMinute` personnels du jour. Ces minutes représentent l’heure locale `Europe/Paris` et sont converties par les helpers timezone du serveur ; chaque fenêtre est semi-ouverte `[start, end[` et dure exactement 60 minutes. `gameALastAttemptAt` reste une colonne temporelle explicite afin que le cooldown commun soit contrôlé atomiquement sous verrou.
+
+Le modèle est matérialisé paresseusement uniquement après l’inscription volontaire du Player. La clé composite, le verrou Player et la transaction garantissent une configuration stable malgré les GET répétés ou concurrents. Une nouvelle business date produit une nouvelle ligne sans effacer les points d’édition ni la balance saisonnière durable.
+
+La réussite quotidienne met atomiquement à jour cet état, `EventParticipant.points` et `PlayerEventCurrencyBalance.amount`. `BusinessOperation` porte l’idempotence de `event.game-a.attempt`. Les récompenses de paliers restent un lot futur : les points déjà gagnés seront observables sans faux claim ni paiement anticipé.
+
 ---
 
 # 27. Codes cadeaux

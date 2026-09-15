@@ -2076,7 +2076,7 @@ La migration `20260915120000_020_add_monthly_event_foundations` matérialise exa
 
 Les éditions sont matérialisées paresseusement par le service avec l’unicité définition/année, des bornes calculées au début des mois `Europe/Paris`, le statut initial `ACTIVE` et un snapshot de définition. La participation reste annuelle et porte les points ; la balance monétaire reste durable sur Player/définition, donc indépendante de l’édition et des autres Festivals.
 
-Les quatre tables ont RLS active sans policy client et les droits directs `anon`/`authenticated` sont révoqués. Les tables des sections 28.5 à 28.10 restent des cibles futures non matérialisées par 020.
+Les quatre tables ont RLS active sans policy client et les droits directs `anon`/`authenticated` sont révoqués. Les tables des sections 28.6 à 28.10 restent des cibles futures non matérialisées par 020 ; la section 28.5 est désormais matérialisée séparément par la migration 021.
 
 ---
 
@@ -2089,15 +2089,47 @@ Colonnes :
 - `business_date date NOT NULL`
 - `game_a_success boolean NOT NULL DEFAULT false`
 - `game_a_attempts integer NOT NULL DEFAULT 0`
+- `game_a_last_attempt_at timestamptz NULL`
 - `game_b_attempts_used integer NOT NULL DEFAULT 0`
 - `game_c_sent boolean NOT NULL DEFAULT false`
 - `daily_bonus_claimed boolean NOT NULL DEFAULT false`
-- `state jsonb NULL`
+- `state jsonb NOT NULL`
 - `updated_at timestamptz NOT NULL DEFAULT now()`
 
 PK :
 
 `PRIMARY KEY(event_edition_id, player_id, business_date)`
+
+Index :
+
+`INDEX(player_id, business_date DESC)`
+
+Contraintes :
+
+- `game_a_attempts >= 0`
+- `game_b_attempts_used >= 0`
+- `jsonb_typeof(state) = 'object'`
+
+### 28.5.1 État physique Event Lot 2 — Jeu A
+
+La migration `20260915180000_021_add_event_game_a` matérialise cette table quotidienne commune. Elle n’implémente aucune mécanique Jeu B, Jeu C ou bonus quotidien : leurs colonnes structurelles restent à leurs valeurs par défaut pour permettre les extensions prévues sans table concurrente.
+
+`game_a_last_attempt_at` est une colonne explicite plutôt qu’une chaîne enfouie dans `state` : la mutation peut ainsi verrouiller la ligne et comparer atomiquement le cooldown serveur de trois secondes avec un type temporel PostgreSQL. `state` reste réservé à la configuration quotidienne versionnée :
+
+```json
+{
+  "version": 1,
+  "gameA": {
+    "windows": [
+      { "startMinute": 420, "endMinute": 480 },
+      { "startMinute": 720, "endMinute": 780 },
+      { "startMinute": 1080, "endMinute": 1140 }
+    ]
+  }
+}
+```
+
+Les valeurs illustrent uniquement la forme. Le service génère et persiste trois débuts personnels uniformes à la minute dans les intervalles autorisés, avec `endMinute = startMinute + 60`. La clé primaire rend unique la matérialisation par édition, Player et business date. Les deux clés étrangères sont couvertes par la clé primaire ou l’index Player/date. RLS est active, sans policy navigateur permissive, et les droits directs `anon`/`authenticated` sont révoqués.
 
 ---
 
