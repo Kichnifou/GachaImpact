@@ -51,7 +51,7 @@ export default function EventScreen({ value, onLoad, onJoin }: Props) {
   }
 
   const tabs = <nav className="activity-inner-tabs event-tabs" aria-label="Sections Événement">
-    {['Jeux', 'Shop', 'Classement'].map((tab) => <button type="button" disabled key={tab} title="À venir">{tab}<small>À venir</small></button>)}
+    {['Jeux', 'Shop', 'Classement'].map((tab) => <button type="button" disabled key={tab}>{tab}</button>)}
   </nav>
   const startsAt = periodFormatter.format(new Date(value.edition.startsAt))
   const endsAt = periodFormatter.format(new Date(new Date(value.edition.endsAt).getTime() - 1))
@@ -70,19 +70,18 @@ export default function EventScreen({ value, onLoad, onJoin }: Props) {
       </section>
 
       <div className="event-stat-grid">
-        <section className="panel event-stat"><span>Points de l’édition</span><strong>{formatResourceAmount(String(value.participation.points))}</strong><small>Compteur autoritatif</small></section>
-        <section className="panel event-stat"><span>{value.festival.currency.label}</span><strong>{value.festival.currency.emoji} {formatResourceAmount(value.currency.amount)}</strong><small>Solde durable de ce Festival</small></section>
-        <section className="panel event-stat"><span>Collection de l’édition</span><strong>{value.festival.collection.label}</strong><small>Objet descriptif · acquisition à venir</small></section>
+        <section className="panel event-stat"><span>Points de l’édition</span><strong>{formatResourceAmount(String(value.participation.points))}</strong></section>
+        <section className="panel event-stat"><span>{value.festival.currency.label}</span><strong>{value.festival.currency.emoji} {formatResourceAmount(value.currency.amount)}</strong></section>
+        <section className="panel event-stat"><span>Collection de l’édition</span><strong>{value.festival.collection.label}</strong></section>
       </div>
 
       <section className="panel event-foundation-card">
-        <div><span className="eyebrow">Participation volontaire</span><h2>{value.participation.joined ? 'Votre inscription est enregistrée' : `Recevez 1 ${value.festival.currency.label}`}</h2><p>{value.participation.joined ? 'Votre bonus d’inscription est inclus dans le solde affiché. Les activités du Festival arriveront dans les prochains lots.' : 'La première inscription à cette édition crédite exactement une monnaie saisonnière. Votre solde restera associé à ce Festival entre les années.'}</p></div>
+        <div><span className="eyebrow">Participation volontaire</span><h2>{value.participation.joined ? 'Votre inscription est enregistrée' : `Recevez 1 ${value.festival.currency.label}`}</h2><p>Votre solde restera associé à ce Festival entre les années.</p></div>
         {value.participation.joined
-          ? <button type="button" className="small-primary-button" disabled>Événement rejoint</button>
+          ? <span className="event-joined-status">Événement rejoint</span>
           : <button type="button" className="small-primary-button" disabled={!value.canJoin || pending} onClick={() => void join()}>{pending ? 'Inscription…' : 'Rejoindre l’événement'}</button>}
       </section>
       <p className="event-feedback" role={error ? 'alert' : 'status'}>{error ?? ''}</p>
-      <section className="panel event-coming-soon"><strong>La suite du Festival</strong><p>Jeux, Shop et Classement sont encore indisponibles. Aucun progrès ni résultat fictif n’est affiché.</p></section>
     </ScrollableScreenPanel>
   </div>
 }

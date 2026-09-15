@@ -2,7 +2,7 @@
 
 Version : Event Lot 1 (socle post-0.98)
 Date : 2026-09-15
-Statut : 0.98 CLÔTURÉE — EVENT LOT 1 CANDIDAT SUR review, REVIEW INDÉPENDANTE REQUISE
+Statut : 0.98 CLÔTURÉE — EVENT LOT 1 DÉPLOYÉ ET VALIDÉ FONCTIONNELLEMENT, POLISH UI CANDIDAT SUR review
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
@@ -3544,7 +3544,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Événements mensuels — Event Lot 1 Fondations est le candidat actif sur `review`. La prochaine étape exacte est la review indépendante du vrai commit GitHub ; aucune promotion, aucun déploiement ni validation publique Event n’est encore acquis.**
+**Événements mensuels — Event Lot 1 Fondations est sur `main`, déployé avec succès et validé fonctionnellement en public. Le polish UI final est le candidat actif sur `review` avant un dernier spot-check public.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3845,7 +3845,7 @@ Le commit 0.95 `3e510307f49ffa389df902d35c83287ea0ebe96e` est désormais sur `ma
 - Le workflow permanent appliqué reste `modification Codex → tests → commit/push review → review GitHub ChatGPT → corrections éventuelles sur review → promotion main après approbation`.
 - La version 0.98 est clôturée : elle est promue, déployée, saine et validée publiquement avec toutes les finitions demandées. Aucun correctif 0.98 n’attend encore review, promotion, déploiement ou validation.
 
-## Candidat Event Lot 1 — Fondations mensuelles
+## Event Lot 1 public — polish UI final candidat
 
 - Le domaine actif devient **Événements mensuels**. La migration additive `20260915120000_020_add_monthly_event_foundations` est appliquée sur Supabase DEV et suivie par Prisma. Elle matérialise uniquement `event_definitions`, `event_editions`, `player_event_currency_balances` et `event_participants`, avec contraintes métier, index, RLS active et droits navigateur révoqués.
 - Le seed déterministe contient exactement les douze Festivals fixes de janvier à décembre avec leur nom, monnaie, emoji et métadonnée Collection. Il ne crée aucune édition, participation, balance Player, acquisition ou donnée legacy ; après les tests à fixtures UUID et leur cleanup exact, les compteurs Player Event restent à zéro.
@@ -3854,7 +3854,7 @@ Le commit 0.95 `3e510307f49ffa389df902d35c83287ea0ebe96e` est désormais sur `ma
 - `Activités > Événement` est désormais une vraie surface alimentée par le snapshot serveur : Festival/édition, statut inscrit, points, solde saisonnier, objet Collection descriptif et CTA d’inscription. `Jeux | Shop | Classement` restent des repères explicitement désactivés. La carte Quotidiennes projette aussi le Festival réel sans dupliquer sa logique.
 - Le correctif de review fige effectivement la projection d’une édition matérialisée sur `EventEdition.snapshot`, tout en conservant `EventDefinition.id` comme identité de balance saisonnière. La période mensuelle reste techniquement semi-ouverte `[startsAt, endsAt[` mais son affichage player-facing présente désormais le dernier jour inclus du mois.
 - Sont expressément exclus de ce candidat : Jeux A/B/C, bonus quotidien, paliers, Boutique Event, conversions, achat/acquisition Collection, Classement, Calendrier de Noël, notifications Event, commandes/chat/Twitch et migration legacy. Aucun fichier `docs/Story/**` ni roadmap n’est modifié ; `PAID_INFRA_APPROVED = false` reste inchangé.
-- Ce candidat Event Lot 1 n’est ni sur `main`, ni déployé, ni validé publiquement. Prochaine étape exacte : **review indépendante du vrai commit GitHub poussé sur `review`**, puis corrections éventuelles sur `review`; la promotion `main`, les déploiements automatiques et la validation publique viendront seulement après approbation.
+- Event Lot 1 est sur `main`, déployé `SUCCESS` et validé fonctionnellement par le propriétaire : Festival des Récoltes réel, join réussi, +1 Jeton exact, points à 0, aucun recrédit au reload et carte Quotidiennes alimentée par l’état réel. Un polish UI reste candidat sur `review` : séparation structurelle du header et du panneau, retrait des contenus de roadmap, simplification des cartes statistiques, état rejoint non interactif et disparition du CTA Quotidiennes après inscription. Event Lot 1 ne sera clôturé publiquement qu’après review indépendante puis dernier spot-check de cette finition.
 
 ## État déployé 0.92 — Concours / C6 et densité Boss
 

@@ -27,6 +27,12 @@ describe('long screen and elemental visual patterns', () => {
     expect(cssSource).toMatch(/\.moderation-target-results \{ position: absolute;/)
   })
 
+  it('reserves a dedicated row for direct screen headers before the scrollable content', () => {
+    expect(cssSource).toMatch(
+      /\.long-screen-layout:has\(> \.screen-header\)\s*\{\s*grid-template-rows:\s*auto minmax\(0, 1fr\);\s*\}/,
+    )
+  })
+
   it('defines a coherent inventory border color for all seven canonical elements', () => {
     for (const element of ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro']) expect(cssSource).toContain(`.item-icon.${element}`)
     expect(cssSource).toContain('background: color-mix(in srgb, currentColor 10%, transparent)')

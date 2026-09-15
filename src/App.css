@@ -4974,6 +4974,10 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
     overflow: hidden;
   }
 
+  .long-screen-layout:has(> .screen-header) {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
   .long-screen-layout > .scrollable-screen-panel,
   .long-screen-layout > .scrollable-screen-panel > .scrollable-screen-panel-content {
     height: 100%;
@@ -7387,25 +7391,23 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .activity-inner-tabs button:disabled { cursor: default; opacity: .72; }
 .event-frame > .scrollable-screen-panel-content { height: 100%; }
 .event-frame .scrollable-screen-panel-body { display: grid; align-content: start; gap: 12px; padding-right: 4px; }
-.event-tabs button { display: inline-flex; align-items: center; gap: 7px; }
-.event-tabs button small { padding: 2px 6px; color: var(--muted); font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; border: 1px solid rgba(121, 153, 198, .18); border-radius: 999px; }
+.event-tabs button { display: inline-flex; align-items: center; }
 .event-hero { position: relative; min-height: 144px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 18px; padding: 22px; overflow: hidden; background: radial-gradient(circle at 12% 25%, rgba(236, 181, 73, .18), transparent 35%), linear-gradient(135deg, rgba(21, 42, 72, .96), rgba(12, 24, 44, .98)); }
 .event-hero::after { content: ''; position: absolute; inset: 0; pointer-events: none; border: 1px solid rgba(244, 200, 103, .15); border-radius: inherit; }
 .event-hero-symbol { width: 76px; height: 76px; display: grid; place-items: center; font-size: 42px; border: 1px solid rgba(244, 200, 103, .28); border-radius: 22px; background: rgba(5, 13, 27, .5); box-shadow: 0 14px 36px rgba(0, 0, 0, .28); }
 .event-hero-copy { min-width: 0; }
 .event-hero-copy h2, .event-foundation-card h2 { margin: 5px 0 0; color: #fff; font-size: 22px; }
-.event-hero-copy p, .event-foundation-card p, .event-coming-soon p { margin: 7px 0 0; color: var(--muted); line-height: 1.5; }
+.event-hero-copy p, .event-foundation-card p { margin: 7px 0 0; color: var(--muted); line-height: 1.5; }
 .event-membership { align-self: start; padding: 6px 10px; color: #d7deeb; font-size: 11px; font-weight: 850; border: 1px solid rgba(151, 167, 192, .26); border-radius: 999px; background: rgba(4, 11, 23, .55); }
 .event-membership.joined { color: #8df1c8; border-color: rgba(78, 221, 166, .3); background: rgba(36, 147, 108, .14); }
 .event-stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.event-stat { min-width: 0; display: grid; align-content: start; gap: 7px; padding: 18px; }
+.event-stat { min-width: 0; display: grid; align-content: center; gap: 7px; padding: 18px; }
 .event-stat > span { color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
 .event-stat strong { color: #fff; font-size: 19px; line-height: 1.25; overflow-wrap: anywhere; }
-.event-stat small { color: #8090aa; line-height: 1.35; }
 .event-foundation-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 20px; padding: 20px; }
 .event-foundation-card .small-primary-button { min-width: 180px; }
+.event-joined-status { min-width: 180px; display: inline-flex; justify-content: center; align-items: center; box-sizing: border-box; min-height: 38px; padding: 0 14px; color: #aeb9ca; font-size: 12px; font-weight: 800; border: 1px solid rgba(151, 167, 192, .22); border-radius: 9px; background: rgba(68, 80, 101, .22); }
 .event-feedback { min-height: 18px; margin: -3px 3px 0; color: #f0a0a9; font-size: 11px; }
-.event-coming-soon { padding: 18px 20px; text-align: center; }
 
 @media (max-width: 760px) {
   .event-hero { grid-template-columns: auto minmax(0, 1fr); gap: 12px; padding: 16px; }
@@ -7414,6 +7416,7 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
   .event-stat-grid { grid-template-columns: 1fr; }
   .event-foundation-card { grid-template-columns: 1fr; }
   .event-foundation-card .small-primary-button { width: 100%; min-width: 0; }
+  .event-joined-status { width: 100%; min-width: 0; }
 }
 .dailies-overview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .daily-overview-item { min-height: 0; }

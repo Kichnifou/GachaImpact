@@ -39,6 +39,8 @@ describe('EventScreen foundations', () => {
     expect(mounted.container.textContent).not.toContain('au 1 octobre 2026')
     expect(mounted.container.textContent).toContain('Non inscrit')
     expect(mounted.container.textContent).toContain('Points de l’édition0')
+    expect(mounted.container.textContent).toContain('Votre solde restera associé à ce Festival entre les années.')
+    expect(mounted.container.textContent).not.toMatch(/Compteur autoritatif|Solde durable|Objet descriptif|La suite du Festival|À venir|prochains lots|Bientôt disponible/)
     expect(mounted.container.querySelector<HTMLButtonElement>('.event-foundation-card button')?.disabled).toBe(false)
   })
 
@@ -58,8 +60,11 @@ describe('EventScreen foundations', () => {
     const { container } = mount({ value: afterJoin })
     expect(container.textContent).toContain('Inscrit')
     expect(container.textContent).toContain('🌾 1')
-    expect(container.querySelector<HTMLButtonElement>('.event-foundation-card button')?.textContent).toBe('Événement rejoint')
-    expect(container.querySelector<HTMLButtonElement>('.event-foundation-card button')?.disabled).toBe(true)
+    expect(container.querySelector('.event-joined-status')?.textContent).toBe('Événement rejoint')
+    expect(container.querySelector('.event-foundation-card button')).toBeNull()
+    expect(container.querySelector('.event-foundation-card .small-primary-button')).toBeNull()
+    expect(container.textContent).toContain('Votre solde restera associé à ce Festival entre les années.')
+    expect(container.textContent).not.toMatch(/prochains lots|arriveront|À venir|Bientôt disponible/)
   })
 
   it('keeps one pending join stable under a double click', async () => {
@@ -74,14 +79,15 @@ describe('EventScreen foundations', () => {
     await act(async () => { resolve(afterJoin); await Promise.resolve() })
   })
 
-  it('reports API errors and leaves future sections explicitly unavailable', async () => {
+  it('reports API errors and keeps future tabs disabled without roadmap labels', async () => {
     const onJoin = vi.fn(async () => { throw new ApiError('NETWORK_ERROR', 'Impossible de joindre le serveur GachaImpact.', null) })
     const { container } = mount({ onJoin })
     await act(async () => { container.querySelector<HTMLButtonElement>('.event-foundation-card button')!.click(); await Promise.resolve() })
     expect(container.querySelector('[role="alert"]')?.textContent).toContain('momentanément inaccessible')
     const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
-    expect(tabs.map(({ textContent }) => textContent)).toEqual(['JeuxÀ venir', 'ShopÀ venir', 'ClassementÀ venir'])
+    expect(tabs.map(({ textContent }) => textContent)).toEqual(['Jeux', 'Shop', 'Classement'])
     expect(tabs.every(({ disabled }) => disabled)).toBe(true)
+    expect(tabs.every((tab) => !tab.hasAttribute('title') && tab.querySelector('small') === null)).toBe(true)
     expect(container.textContent).not.toMatch(/Top 3|mini-jeu|acheté/)
   })
 

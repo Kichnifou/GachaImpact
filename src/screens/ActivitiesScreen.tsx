@@ -82,7 +82,7 @@ function ActivitiesScreen(props: ActivitiesScreenProps) {
   }
   if (screen === 'activities-event' && props.event && props.onLoadEvent && props.onJoinEvent) return <EventScreen value={props.event} onLoad={props.onLoadEvent} onJoin={props.onJoinEvent} />
   const content = screen === 'activities-missions' ? { title: 'Missions', description: 'Les missions permanentes seront disponibles ici.', tabs: ['B', 'A', 'S', 'Z'] } : screen === 'activities-event' ? { title: 'Événement', description: 'Chargement du Festival mensuel indisponible.', tabs: ['Jeux', 'Shop', 'Classement'] } : { title: 'Concours', description: 'Le Concours C6 sera accessible ici lorsqu’il sera implémenté.', tabs: [] }
-  return <div className="screen-content activity-shell"><ScreenHeader eyebrow="Activités" title={content.title} description={content.description} /><nav className="activity-inner-tabs" aria-label={`Sections ${content.title}`}>{content.tabs.map((tab) => <button type="button" disabled key={tab}>{tab}</button>)}</nav><section className="panel unavailable-shell"><strong>Bientôt disponible</strong><p>Aucune progression fictive n’est affichée.</p></section></div>
+  return <div className="screen-content activity-shell"><ScreenHeader eyebrow="Activités" title={content.title} description={content.description} /><nav className="activity-inner-tabs" aria-label={`Sections ${content.title}`}>{content.tabs.map((tab) => <button type="button" disabled key={tab}>{tab}</button>)}</nav><section className="panel unavailable-shell"><strong>{screen === 'activities-event' ? 'Festival indisponible' : 'Bientôt disponible'}</strong><p>Aucune progression fictive n’est affichée.</p></section></div>
 }
 
 const unavailableDailyCombat: DailyCombatDto = {
@@ -108,10 +108,11 @@ type DailyOverviewCardProps = {
   onAccess?: () => void
   accessLabel?: string
   showAccessWhenCompleted?: boolean
+  hideAction?: boolean
   actionText?: string
 }
 
-function DailyOverviewCard({ title, status, completed = false, detail, obtained, onAccess, accessLabel, showAccessWhenCompleted = false, actionText = 'Accéder' }: DailyOverviewCardProps) {
+function DailyOverviewCard({ title, status, completed = false, detail, obtained, onAccess, accessLabel, showAccessWhenCompleted = false, hideAction = false, actionText = 'Accéder' }: DailyOverviewCardProps) {
   return (
     <section className="panel daily-overview-card" data-daily-activity={title}>
       <div>
@@ -120,7 +121,7 @@ function DailyOverviewCard({ title, status, completed = false, detail, obtained,
         {detail && <p className="daily-overview-detail">{detail}</p>}
         {obtained && <p className="daily-overview-obtained">Obtenu : {obtained}</p>}
       </div>
-      {(!completed || showAccessWhenCompleted) && <div className="daily-overview-action-slot"><button type="button" className="small-primary-button" onClick={onAccess} disabled={!onAccess} aria-label={accessLabel ?? `${actionText} ${title}`}>{actionText}</button></div>}
+      {!hideAction && (!completed || showAccessWhenCompleted) && <div className="daily-overview-action-slot"><button type="button" className="small-primary-button" onClick={onAccess} disabled={!onAccess} aria-label={accessLabel ?? `${actionText} ${title}`}>{actionText}</button></div>}
     </section>
   )
 }
@@ -143,7 +144,7 @@ function DailiesScreen({ wheelToday, onSpinWheel, dailyRewardToday, dailyChallen
     <DailyOverviewCard title="Boss" status={bossCompleted ? '✅ Terminé' : 'À faire'} completed={bossCompleted} detail={bossDetail} onAccess={onOpenBoss} />
     <ExpeditionOverviewCard snapshot={expedition} monotonicNow={expeditionMonotonicNow} onAccess={onOpenExpedition ?? (() => onNavigate('characters-box'))} />
     <DailyOverviewCard title="Amitié" status="Bientôt disponible. Social et Amis ne sont pas encore implémentés." accessLabel="Accéder à Amitié — Social et Amis bientôt disponibles" />
-    <DailyOverviewCard title="Événement" status={event ? `${event.festival.emoji} ${event.festival.title}` : 'Synchronisation du Festival…'} detail={event ? `${event.participation.joined ? 'Inscrit' : 'Participation disponible'} · ${formatResourceAmount(event.currency.amount)} ${event.festival.currency.label}` : undefined} onAccess={() => onNavigate('activities-event')} />
+    <DailyOverviewCard title="Événement" status={event ? `${event.festival.emoji} ${event.festival.title}` : 'Synchronisation du Festival…'} detail={event ? `${event.participation.joined ? 'Inscrit' : 'Participation disponible'} · ${formatResourceAmount(event.currency.amount)} ${event.festival.currency.label}` : undefined} hideAction={Boolean(event?.participation.joined)} onAccess={() => onNavigate('activities-event')} />
   </div>}{tab === 'wheel' && <WheelCard today={wheelToday} onSpin={onSpinWheel} />}{tab === 'challenge' && <DailyChallengeCard value={dailyChallenge} onPurchase={onPurchaseDailyChallenge} onSwitch={onSwitchDailyChallenge} onOpenParticleConversion={onOpenParticleConversion} onNavigate={onNavigate} />}</ScrollableScreenPanel></div>
 }
 

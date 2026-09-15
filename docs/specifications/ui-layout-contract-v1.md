@@ -14,6 +14,10 @@ Le `screen-stage` desktop ne devient pas un second propriétaire de scroll lorsq
 
 Lorsqu’un panneau fonctionnel associe un header local (titre, recherche ou filtres) à un contenu susceptible de dépasser, ce header reste hors du conteneur de défilement. Tout ce qui le suit — erreurs, résumés, groupes, listes et états vides — appartient à un body `minmax(0, 1fr)` dont `overflow-y: auto` n’affiche une barre que si nécessaire. Les contrôles ou catégories placés dans une colonne sœur restent eux aussi immobiles.
 
+Un `ScreenHeader` structurel et les contrôles ou panneaux qui le suivent occupent toujours des zones de layout distinctes. Le layout réserve la hauteur intrinsèque non compressible du header avant d’attribuer le reste au panneau fonctionnel ; aucun contrôle sticky ou fixe interne ne peut recouvrir son titre ou sa description. Un `z-index`, un masque, une translation ou un `overflow` coupant le contenu ne constitue jamais une correction acceptable d’un chevauchement.
+
+Une fonctionnalité future peut conserver un onglet ou contrôle structurel désactivé et visuellement grisé lorsque celui-ci représente la composition finale connue. Elle n’ajoute pas par défaut de badge « À venir », de carte « Bientôt disponible », de texte de roadmap, de faux résultat ou de contenu fictif simplement pour combler l’espace. Cette règle s’applique aux surfaces touchées à mesure de leur évolution, sans imposer une refonte globale des placeholders historiques.
+
 ## Défilement et responsive
 
 - Le propriétaire du scroll doit être explicite ; deux scrolls verticaux imbriqués pour le même contenu sont interdits.
