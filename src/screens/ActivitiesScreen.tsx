@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import type { ContestDto, ContestHistoryDto, ContestSnapshotDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyCombatFightDto, DailyRewardClaimDto, DailyRewardTodayDto, ElementKey, ExpeditionDto, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto, WheelSpinDto, WheelTodayDto } from '../api/types'
+import type { ContestDto, ContestHistoryDto, ContestSnapshotDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyCombatFightDto, DailyRewardClaimDto, DailyRewardTodayDto, ElementKey, EventDto, EventJoinDto, ExpeditionDto, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
 import { formatResourceAmount, formatWheelOverviewResult } from '../utils/formatters'
 import WheelCard from '../components/WheelCard'
@@ -14,6 +14,7 @@ import { unavailableMonthlyBoss } from '../combat/monthly-boss-unavailable'
 import { expeditionOverview } from '../expedition/expedition-presentation'
 import { createExpeditionClientSnapshot, type ExpeditionClientSnapshot } from '../expedition/expedition-client-snapshot'
 import ContestScreen from './ContestScreen'
+import EventScreen from './EventScreen'
 
 type ActivitiesScreenProps = {
   screen: ScreenId
@@ -26,6 +27,9 @@ type ActivitiesScreenProps = {
   dailyCombat?: DailyCombatDto
   monthlyBoss?: MonthlyBossDto
   contest?: ContestDto
+  event?: EventDto
+  onLoadEvent?: () => Promise<EventDto>
+  onJoinEvent?: (key: string) => Promise<EventJoinDto>
   bossRequestToken?: number
   expedition?: ExpeditionClientSnapshot
   expeditionMonotonicNow?: number
@@ -76,7 +80,8 @@ function ActivitiesScreen(props: ActivitiesScreenProps) {
     const emptyDetail = async () => { throw new Error('Détail indisponible.') }
     return <ContestScreen value={contest} onRefresh={props.onRefreshContest ?? unchanged} onLoadHistory={props.onLoadContestHistory ?? emptyHistory} onLoadHistoryDetail={props.onLoadContestHistoryDetail ?? emptyDetail} onOpen={props.onOpenContest ?? unchanged} onJoin={props.onJoinContest ?? unchanged} onSelectLegend={props.onSelectContestLegend ?? unchanged} onReady={props.onSetContestReady ?? unchanged} onStart={props.onStartContest ?? unchanged} onSpectate={props.onSpectateContest ?? unchanged} onLeave={props.onLeaveContest ?? unchanged} onCancel={props.onCancelContest ?? unchanged} onPlay={props.onPlayContest ?? unchanged} onSupport={props.onSupportContest ?? unchanged} onRemoveParticipant={props.onRemoveContestParticipant ?? unchanged} onRemoveSpectator={props.onRemoveContestSpectator ?? unchanged} />
   }
-  const content = screen === 'activities-missions' ? { title: 'Missions', description: 'Les missions permanentes seront disponibles ici.', tabs: ['B', 'A', 'S', 'Z'] } : screen === 'activities-event' ? { title: 'Événement', description: 'Les événements mensuels seront accessibles ici.', tabs: ['Jeux', 'Shop', 'Classement'] } : { title: 'Concours', description: 'Le Concours C6 sera accessible ici lorsqu’il sera implémenté.', tabs: [] }
+  if (screen === 'activities-event' && props.event && props.onLoadEvent && props.onJoinEvent) return <EventScreen value={props.event} onLoad={props.onLoadEvent} onJoin={props.onJoinEvent} />
+  const content = screen === 'activities-missions' ? { title: 'Missions', description: 'Les missions permanentes seront disponibles ici.', tabs: ['B', 'A', 'S', 'Z'] } : screen === 'activities-event' ? { title: 'Événement', description: 'Chargement du Festival mensuel indisponible.', tabs: ['Jeux', 'Shop', 'Classement'] } : { title: 'Concours', description: 'Le Concours C6 sera accessible ici lorsqu’il sera implémenté.', tabs: [] }
   return <div className="screen-content activity-shell"><ScreenHeader eyebrow="Activités" title={content.title} description={content.description} /><nav className="activity-inner-tabs" aria-label={`Sections ${content.title}`}>{content.tabs.map((tab) => <button type="button" disabled key={tab}>{tab}</button>)}</nav><section className="panel unavailable-shell"><strong>Bientôt disponible</strong><p>Aucune progression fictive n’est affichée.</p></section></div>
 }
 
@@ -120,7 +125,7 @@ function DailyOverviewCard({ title, status, completed = false, detail, obtained,
   )
 }
 
-function DailiesScreen({ wheelToday, onSpinWheel, dailyRewardToday, dailyChallenge, dailyCombat = unavailableDailyCombat, monthlyBoss = unavailableMonthlyBoss, expedition, expeditionMonotonicNow = 0, dailiesOverviewRequestToken = 0, elementKey, onClaimDailyReward, onPurchaseDailyChallenge, onSwitchDailyChallenge, onOpenParticleConversion, onOpenExpedition, onOpenBoss, onNavigate }: Omit<ActivitiesScreenProps, 'screen'>) {
+function DailiesScreen({ wheelToday, onSpinWheel, dailyRewardToday, dailyChallenge, dailyCombat = unavailableDailyCombat, monthlyBoss = unavailableMonthlyBoss, event, expedition, expeditionMonotonicNow = 0, dailiesOverviewRequestToken = 0, elementKey, onClaimDailyReward, onPurchaseDailyChallenge, onSwitchDailyChallenge, onOpenParticleConversion, onOpenExpedition, onOpenBoss, onNavigate }: Omit<ActivitiesScreenProps, 'screen'>) {
   const [selection, setSelection] = useState<{ tab: 'overview' | 'wheel' | 'challenge'; requestToken: number }>({ tab: 'overview', requestToken: dailiesOverviewRequestToken })
   const tab = selection.requestToken === dailiesOverviewRequestToken ? selection.tab : 'overview'
   const selectTab = (next: typeof tab) => setSelection({ tab: next, requestToken: dailiesOverviewRequestToken })
@@ -138,7 +143,7 @@ function DailiesScreen({ wheelToday, onSpinWheel, dailyRewardToday, dailyChallen
     <DailyOverviewCard title="Boss" status={bossCompleted ? '✅ Terminé' : 'À faire'} completed={bossCompleted} detail={bossDetail} onAccess={onOpenBoss} />
     <ExpeditionOverviewCard snapshot={expedition} monotonicNow={expeditionMonotonicNow} onAccess={onOpenExpedition ?? (() => onNavigate('characters-box'))} />
     <DailyOverviewCard title="Amitié" status="Bientôt disponible. Social et Amis ne sont pas encore implémentés." accessLabel="Accéder à Amitié — Social et Amis bientôt disponibles" />
-    <DailyOverviewCard title="Événement" status="Bientôt disponible. Le système Événement n’est pas encore implémenté." onAccess={() => onNavigate('activities-event')} />
+    <DailyOverviewCard title="Événement" status={event ? `${event.festival.emoji} ${event.festival.title}` : 'Synchronisation du Festival…'} detail={event ? `${event.participation.joined ? 'Inscrit' : 'Participation disponible'} · ${formatResourceAmount(event.currency.amount)} ${event.festival.currency.label}` : undefined} onAccess={() => onNavigate('activities-event')} />
   </div>}{tab === 'wheel' && <WheelCard today={wheelToday} onSpin={onSpinWheel} />}{tab === 'challenge' && <DailyChallengeCard value={dailyChallenge} onPurchase={onPurchaseDailyChallenge} onSwitch={onSwitchDailyChallenge} onOpenParticleConversion={onOpenParticleConversion} onNavigate={onNavigate} />}</ScrollableScreenPanel></div>
 }
 

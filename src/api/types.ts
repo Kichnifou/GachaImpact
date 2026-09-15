@@ -565,6 +565,24 @@ export type AdminGiftCodeMutationDto = Readonly<{ code: AdminGiftCodeDto }>
 export type GiftCodeClaimantQuery = Readonly<{ page: number; search?: string; editionKey?: string }>
 export type GiftCodeClaimantsDto = Readonly<{ code: Readonly<{ id: string; token: string; title: string }>; page: number; pageSize: 20; total: number; totalPages: number; claimants: readonly Readonly<{ playerId: string; displayName: string; editionKey: string; claimedAt: string }>[] }>
 
+export type EventDto = Readonly<{
+  businessDate: string
+  festival: Readonly<{
+    key: string
+    month: number
+    title: string
+    emoji: string
+    currency: Readonly<{ key: string; label: string; emoji: string }>
+    collection: Readonly<{ key: string; label: string }>
+  }>
+  edition: Readonly<{ id: string; year: number; startsAt: string; endsAt: string }>
+  participation: Readonly<{ joined: boolean; joinedAt: string | null; points: number }>
+  currency: Readonly<{ amount: string }>
+  canJoin: boolean
+}>
+
+export type EventJoinDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }> }>
+
 export type GachaPullResultItemDto = Readonly<{
   index: number
   resultType: 'character' | 'resource'

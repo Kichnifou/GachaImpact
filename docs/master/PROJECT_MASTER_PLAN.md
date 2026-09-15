@@ -1,8 +1,8 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : 0.98
+Version : Event Lot 1 (socle post-0.98)
 Date : 2026-09-15
-Statut : 0.98 CLÔTURÉE — DÉPLOYÉE ET VALIDÉE PUBLIQUEMENT
+Statut : 0.98 CLÔTURÉE — EVENT LOT 1 CANDIDAT SUR review, REVIEW INDÉPENDANTE REQUISE
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
@@ -3544,7 +3544,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Concours / personnages C6 — 0.92 déployé mais validation publique bloquée ; candidat correctif 0.93 en attente de review indépendante puis de validation publique. La prochaine étape après validation reste Collection / Sac à compléter.**
+**Événements mensuels — Event Lot 1 Fondations est le candidat actif sur `review`. La prochaine étape exacte est la review indépendante du vrai commit GitHub ; aucune promotion, aucun déploiement ni validation publique Event n’est encore acquis.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3561,8 +3561,8 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - squelette Fastify / TypeScript checkpointé ;
 - Prisma ORM 7.10.0 stable ;
 - Supabase DEV provisionné et connexion PostgreSQL fonctionnelle ;
-- dix-sept migrations applicatives versionnées et suivies par Prisma, dont la migration additive 017 Concours appliquée sur Supabase DEV ;
-- les tables privées couvrent notamment possessions/C6, Gacha, préférences, Sac, Teams, Banque, Boutique, Défi, Combat, Expedition/Notifications, Boss et désormais le cycle complet Concours ;
+- vingt migrations applicatives versionnées et suivies par Prisma, dont la migration additive 020 Event Lot 1 appliquée sur Supabase DEV ;
+- les tables privées couvrent notamment possessions/C6, Gacha, préférences, Sac, Teams, Banque, Boutique, Défi, Combat, Expedition/Notifications, Boss, Concours, Codes et les fondations Event ;
 - référentiels seedés avec 7 éléments et 9 ressources ;
 - RLS activée sur les tables de fondation, sans policy client permissive ;
 - Auth Supabase réel checkpointé au commit `027d230f7d047e0469076418d3d5122e831bdce6` ;
@@ -3844,6 +3844,16 @@ Le commit 0.95 `3e510307f49ffa389df902d35c83287ea0ebe96e` est désormais sur `ma
 - Validation technique : le scheduler Codes reste limité à quatre réconciliations simultanées et aucun nouvel `EMAXCONNSESSION` n’a été observé au démarrage suivant.
 - Le workflow permanent appliqué reste `modification Codex → tests → commit/push review → review GitHub ChatGPT → corrections éventuelles sur review → promotion main après approbation`.
 - La version 0.98 est clôturée : elle est promue, déployée, saine et validée publiquement avec toutes les finitions demandées. Aucun correctif 0.98 n’attend encore review, promotion, déploiement ou validation.
+
+## Candidat Event Lot 1 — Fondations mensuelles
+
+- Le domaine actif devient **Événements mensuels**. La migration additive `20260915120000_020_add_monthly_event_foundations` est appliquée sur Supabase DEV et suivie par Prisma. Elle matérialise uniquement `event_definitions`, `event_editions`, `player_event_currency_balances` et `event_participants`, avec contraintes métier, index, RLS active et droits navigateur révoqués.
+- Le seed déterministe contient exactement les douze Festivals fixes de janvier à décembre avec leur nom, monnaie, emoji et métadonnée Collection. Il ne crée aucune édition, participation, balance Player, acquisition ou donnée legacy ; après les tests à fixtures UUID et leur cleanup exact, les compteurs Player Event restent à zéro.
+- `EventService` résout la date et les bornes de mois en `Europe/Paris`, récupère ou matérialise paresseusement l’édition annuelle unique et projette uniquement le Player authentifié. La monnaie saisonnière est portée par Player + définition stable : elle reste séparée des neuf `ResourceKey`, survit entre les années et ne peut pas être partagée avec un autre Festival.
+- `GET /api/v1/me/event` reste consultable avant inscription. `POST /api/v1/me/event/join` exige une clé UUID, verrouille le Player et l’édition dans une transaction `SERIALIZABLE`, crée au plus une participation à zéro point et crédite exactement +1 monnaie lors de la seule première inscription. `BusinessOperation`, le verrou et les contraintes rendent replay, double clic et clés concurrentes sans double crédit.
+- `Activités > Événement` est désormais une vraie surface alimentée par le snapshot serveur : Festival/édition, statut inscrit, points, solde saisonnier, objet Collection descriptif et CTA d’inscription. `Jeux | Shop | Classement` restent des repères explicitement désactivés. La carte Quotidiennes projette aussi le Festival réel sans dupliquer sa logique.
+- Sont expressément exclus de ce candidat : Jeux A/B/C, bonus quotidien, paliers, Boutique Event, conversions, achat/acquisition Collection, Classement, Calendrier de Noël, notifications Event, commandes/chat/Twitch et migration legacy. Aucun fichier `docs/Story/**` ni roadmap n’est modifié ; `PAID_INFRA_APPROVED = false` reste inchangé.
+- Ce candidat Event Lot 1 n’est ni sur `main`, ni déployé, ni validé publiquement. Prochaine étape exacte : **review indépendante du vrai commit GitHub poussé sur `review`**, puis corrections éventuelles sur `review`; la promotion `main`, les déploiements automatiques et la validation publique viendront seulement après approbation.
 
 ## État déployé 0.92 — Concours / C6 et densité Boss
 

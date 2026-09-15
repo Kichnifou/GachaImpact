@@ -1492,6 +1492,12 @@ Le tirage mensuel et un éventuel snapshot final/classement sont persistés comm
 
 Ne pas introduire `monthly_events.json` dans le modèle : ce fichier legacy est vide et non migré.
 
+## 26.5 État physique Event Lot 1
+
+Le premier sous-ensemble physique suit le modèle relationnel cible sans blob Player concurrent : `EventDefinition` porte l’identité récurrente et son `config`, `EventEdition` l’instance annuelle et son snapshot, `EventParticipant` l’inscription unique et les points de l’édition, et `PlayerEventCurrencyBalance` le solde durable par Player + Festival stable. Ce dernier précise le libellé historique « monnaie Event courante » de 26.3 : la participation ne possède pas le solde, afin que celui-ci survive au changement d’année et reste isolé des onze autres Festivals.
+
+La migration 020 ne matérialise aucun sous-état Jeu A/B/C, palier, social, Collection ou Calendrier. Elle ne migre aucune donnée legacy et ne crée aucune ligne Player Event.
+
 ---
 
 # 27. Codes cadeaux

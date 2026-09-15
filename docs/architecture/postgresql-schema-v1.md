@@ -2001,6 +2001,13 @@ Colonnes :
 - `created_at timestamptz NOT NULL DEFAULT now()`
 - `updated_at timestamptz NOT NULL DEFAULT now()`
 
+Contraintes physiques :
+
+- `calendar_month BETWEEN 1 AND 12`
+- `calendar_month` unique
+- clés externes et monnaies uniques au format stable
+- `config` est un objet JSON
+
 ---
 
 ## 28.2 `event_editions`
@@ -2062,6 +2069,14 @@ PK :
 Contrainte :
 
 `points >= 0`
+
+## 28.4.1 État physique Event Lot 1
+
+La migration `20260915120000_020_add_monthly_event_foundations` matérialise exactement les sections 28.1 à 28.4. Les douze lignes `event_definitions` possèdent des UUID fixes, des mois uniques 1..12 et un `config` portant emoji, libellé de monnaie et métadonnée Collection. Le seed ne crée ni édition, ni participation, ni balance Player.
+
+Les éditions sont matérialisées paresseusement par le service avec l’unicité définition/année, des bornes calculées au début des mois `Europe/Paris`, le statut initial `ACTIVE` et un snapshot de définition. La participation reste annuelle et porte les points ; la balance monétaire reste durable sur Player/définition, donc indépendante de l’édition et des autres Festivals.
+
+Les quatre tables ont RLS active sans policy client et les droits directs `anon`/`authenticated` sont révoqués. Les tables des sections 28.5 à 28.10 restent des cibles futures non matérialisées par 020.
 
 ---
 

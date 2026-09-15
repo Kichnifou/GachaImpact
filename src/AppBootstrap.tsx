@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import { ApiError, getGameApiClient } from './api/game-api'
-import type { BankTransferDto, ContestDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyRewardTodayDto, ElementKey, ExpeditionDto, GachaCharacterDto, GachaPullDto, ModerationPermissionsDto, ModerationStateDto, MonthlyBossDto, NotificationsDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, ShopPurchaseDto, WheelTodayDto } from './api/types'
+import type { BankTransferDto, ContestDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyRewardTodayDto, ElementKey, EventDto, ExpeditionDto, GachaCharacterDto, GachaPullDto, ModerationPermissionsDto, ModerationStateDto, MonthlyBossDto, NotificationsDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, ShopPurchaseDto, WheelTodayDto } from './api/types'
 import { useAuth } from './auth/auth-context'
 import { resolveBootstrapStage } from './auth/bootstrap-state'
 import AuthScreen from './components/AuthScreen'
@@ -31,6 +31,7 @@ function AppBootstrap() {
   const [dailyCombat, setDailyCombat] = useState<DailyCombatDto | null>(null)
   const [monthlyBoss, setMonthlyBoss] = useState<MonthlyBossDto | null>(null)
   const [contest, setContest] = useState<ContestDto | null>(null)
+  const [event, setEvent] = useState<EventDto | null>(null)
   const [expedition, setExpedition] = useState<ExpeditionClientSnapshot | null>(null)
   const [expeditionMonotonicNow, setExpeditionMonotonicNow] = useState(0)
   const [notifications, setNotifications] = useState<NotificationsDto | null>(null)
@@ -87,6 +88,8 @@ function AppBootstrap() {
   }, [contestRequests, loadResources])
   const loadContestHistory = useCallback((page: number) => getGameApiClient().getContestHistory(page), [])
   const loadContestHistoryDetail = useCallback((contestId: string) => getGameApiClient().getContestHistoryDetail(contestId), [])
+  const loadEvent = useCallback(async () => { const next = await getGameApiClient().getEvent(); setEvent(next); return next }, [])
+  const joinEvent = useCallback(async (idempotencyKey: string) => { const next = await getGameApiClient().joinEvent(idempotencyKey); setEvent(next); return next }, [])
   const loadNavigationPreferences = useCallback(() => getGameApiClient().getNavigationPreferences(), [])
   const saveNavigationPreferences = useCallback((value: Parameters<ReturnType<typeof getGameApiClient>['putNavigationPreferences']>[0]) => getGameApiClient().putNavigationPreferences(value), [])
   useEffect(() => { contestRequests.reset() }, [contestRequests, sessionUserId])
@@ -141,7 +144,7 @@ function AppBootstrap() {
 
   const loadGameState = useCallback(async () => {
     const api = getGameApiClient()
-    const [nextResources, nextProgression, nextWheelToday, nextDailyRewardToday, nextDailyChallenge, nextDailyCombat, nextMonthlyBoss, nextContest, nextExpedition, nextNotifications, nextGacha, nextCatalog, nextTeams, nextPermissions] = await Promise.all([
+    const [nextResources, nextProgression, nextWheelToday, nextDailyRewardToday, nextDailyChallenge, nextDailyCombat, nextMonthlyBoss, nextContest, nextEvent, nextExpedition, nextNotifications, nextGacha, nextCatalog, nextTeams, nextPermissions] = await Promise.all([
       api.getResources(),
       api.getProgression(),
       api.getWheelToday(),
@@ -150,6 +153,7 @@ function AppBootstrap() {
       api.getDailyCombat(),
       api.getMonthlyBoss(),
       loadContest(),
+      api.getEvent(),
       api.getExpedition(),
       api.getNotifications(),
       api.getCurrentGacha(),
@@ -166,6 +170,7 @@ function AppBootstrap() {
     setDailyCombat(nextDailyCombat)
     setMonthlyBoss(nextMonthlyBoss)
     void nextContest
+    setEvent(nextEvent)
     publishExpedition(nextExpedition)
     setNotifications(nextNotifications)
     setGacha(nextGacha)
@@ -347,7 +352,7 @@ function AppBootstrap() {
     )
   }
 
-  if (!player || !resources || !visibleResources || !progression || !wheelToday || !dailyRewardToday || !dailyChallenge || !dailyCombat || !monthlyBoss || !contest || !expedition || !notifications || !gacha || !characters || !teams || !permissions) {
+  if (!player || !resources || !visibleResources || !progression || !wheelToday || !dailyRewardToday || !dailyChallenge || !dailyCombat || !monthlyBoss || !contest || !event || !expedition || !notifications || !gacha || !characters || !teams || !permissions) {
     return <StatusScreen title="Chargement du profil…" message="Synchronisation de vos ressources." loading />
   }
 
@@ -362,6 +367,9 @@ function AppBootstrap() {
       dailyCombat={dailyCombat}
       monthlyBoss={monthlyBoss}
       contest={contest}
+      event={event}
+      onLoadEvent={loadEvent}
+      onJoinEvent={joinEvent}
       onRefreshContest={loadContest}
       onLoadContestHistory={loadContestHistory}
       onLoadContestHistoryDetail={loadContestHistoryDetail}

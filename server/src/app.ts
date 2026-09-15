@@ -52,6 +52,8 @@ import type { ContestService } from './application/contest/contest-service.js';
 import { registerContestRoutes } from './api/routes/contest.js';
 import type { GiftCodeService } from './application/gift-code/gift-code-service.js';
 import { registerGiftCodeRoutes } from './api/routes/gift-codes.js';
+import type { EventService } from './application/event/event-service.js';
+import { registerEventRoutes } from './api/routes/event.js';
 
 export type AppDependencies = Readonly<{
   authIdentityVerifier: AuthIdentityVerifier;
@@ -103,6 +105,7 @@ export type AppDependencies = Readonly<{
   monthlyBossService?: MonthlyBossService;
   contestService?: ContestService;
   giftCodeService?: GiftCodeService;
+  eventService?: EventService;
   close?: () => Promise<void>;
 }>;
 
@@ -233,6 +236,9 @@ export async function buildApp(
     }
     if (dependencies.giftCodeService) {
       await app.register(registerGiftCodeRoutes, { authenticate, service: dependencies.giftCodeService });
+    }
+    if (dependencies.eventService) {
+      await app.register(registerEventRoutes, { authenticate, service: dependencies.eventService });
     }
 
     if (dependencies.close) {

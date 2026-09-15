@@ -55,6 +55,8 @@ import type {
   GiftCodeAdminQuery,
   GiftCodeClaimantQuery,
   GiftCodeClaimantsDto,
+  EventDto,
+  EventJoinDto,
 } from './types'
 
 type ApiClientDependencies = Readonly<{
@@ -205,6 +207,8 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     claimExpedition: (idempotencyKey: string) => request<ExpeditionClaimDto>('/api/v1/me/expedition/claim', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     getNotifications: () => request<NotificationsDto>('/api/v1/me/notifications'),
     getGiftCodes: () => request<PlayerGiftCodesDto>('/api/v1/me/gift-codes'),
+    getEvent: () => request<EventDto>('/api/v1/me/event'),
+    joinEvent: (idempotencyKey: string) => request<EventJoinDto>('/api/v1/me/event/join', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     claimGiftCode: (editionId: string, idempotencyKey: string) => request<GiftCodeClaimDto>(`/api/v1/me/gift-codes/${encodeURIComponent(editionId)}/claim`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     getAdminGiftCodes: (query: GiftCodeAdminQuery) => request<AdminGiftCodesDto>(`/api/v1/moderation/gift-codes?${queryString(query)}`),
     createGiftCode: (input: { token?: string; title: string; description: string; type: 'ONE_OFF' | 'ANNUAL'; recurringMonth?: number; startsAt?: string; endsAt?: string; rewards: readonly { resourceKey: string; amount: string }[]; idempotencyKey: string }) => request<AdminGiftCodeMutationDto>('/api/v1/moderation/gift-codes', { method: 'POST', body: JSON.stringify(input) }),

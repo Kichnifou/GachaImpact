@@ -44,6 +44,7 @@ import { NotificationService } from '../application/notification/notification-se
 import { MonthlyBossScheduler, MonthlyBossService } from '../application/combat/monthly-boss-service.js';
 import { ContestScheduler, ContestService } from '../application/contest/contest-service.js';
 import { GiftCodeScheduler, GiftCodeService } from '../application/gift-code/gift-code-service.js';
+import { EventService } from '../application/event/event-service.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
   if (!config.databaseUrl) {
@@ -75,6 +76,7 @@ export function createRuntimeDependencies(config: AppConfig) {
   const contestScheduler = new ContestScheduler(contestService);
   const giftCodeService = new GiftCodeService(getCurrentPlayer, database, clock);
   const giftCodeScheduler = new GiftCodeScheduler(giftCodeService);
+  const eventService = new EventService(getCurrentPlayer, database, clock);
 
   return {
     authIdentityVerifier: createSupabaseAuthAdapter(issuer),
@@ -133,6 +135,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     monthlyBossService,
     contestService,
     giftCodeService,
+    eventService,
     expeditionService,
     notificationService: new NotificationService(getCurrentPlayer, database, clock, expeditionService, giftCodeService),
     start: async () => { await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); await giftCodeScheduler.start(); contestScheduler.start(); },

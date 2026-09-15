@@ -1,6 +1,6 @@
 # Navigation et shell V1
 
-Statut : cible validée, lot physique public 0.83 et correctif candidat 0.84.
+Statut : cible validée ; navigation physique publique, surface Event Lot 1 candidate sur `review`.
 
 Ce document est la source de vérité de la navigation principale, du Menu global, de la Configuration du Menu et de l’architecture future du Tutoriel. Les audits métier restent propriétaires de leurs règles ; ce document fixe uniquement leurs points d’entrée dans le shell.
 
@@ -26,10 +26,10 @@ Les sous-onglets Activités sont exactement `Quotidiennes | Missions | Combat | 
 
 - Missions expose une coque honnête avec les rangs `B | A | S | Z` ; l’ancienne quotidienne payante est désormais appelée `Défi` et n’est plus assimilée à l’écran Missions.
 - Combat réserve les entrées internes `Entraînement | Boss`.
-- Événement réserve `Jeux | Shop | Classement`.
-- Concours reste une coque indisponible tant que le domaine n’est pas implémenté.
+- Événement est une surface réelle qui expose le Festival mensuel, l’édition, l’inscription, les points et la balance saisonnière autoritatifs ; elle conserve `Jeux | Shop | Classement` comme repères désactivés tant que ces lots n’existent pas.
+- Concours est une surface réelle ; son contrat métier reste propriétaire de son contenu.
 
-Quotidiennes possède `Aperçu | Roue | Défi`. Aperçu liste toujours, dans cet ordre, le catalogue quotidien décidé : `Récompense quotidienne | Roue | Défi | Combat | Expédition | Amitié | Événement`. Récompense quotidienne et Roue utilisent leurs états serveur réels ; les domaines non implémentés restent visibles avec un état neutre et honnête, sans progression, compteur ni donnée fictive. Le hub ne réimplémente jamais leur logique métier.
+Quotidiennes possède `Aperçu | Roue | Défi`. Aperçu liste toujours, dans cet ordre, le catalogue quotidien décidé : `Récompense quotidienne | Roue | Défi | Combat | Boss | Expédition | Amitié | Événement`. Les domaines implémentés, dont Event Lot 1, utilisent leur état serveur réel ; les autres restent visibles avec un état neutre et honnête, sans progression, compteur ni donnée fictive. Le hub ne réimplémente jamais leur logique métier.
 
 Les boutons `Accéder` conduisent vers leurs propriétaires : Roue → sous-onglet Roue ; Défi → sous-onglet Défi ; Combat → `Activités > Combat` ; Expédition → `Personnages > Box` ; Amitié → futur Social/Amis, avec contrôle désactivé tant que cette destination n’existe pas ; Événement → `Activités > Événement`. Roue réutilise le composant et le service existants et n’est plus jouable depuis Accueil. Défi remplace l’ancienne mission quotidienne player-facing et utilise exclusivement son état serveur réel ; Missions B/A/S/Z reste un domaine séparé et indisponible. Dans la carte Défi active, Conversion ouvre la modale transverse sans navigation et Pulls conduit à Invocation sans lancer de Pull ; aucun raccourci Chat factice n’est exposé pour Messages.
 
