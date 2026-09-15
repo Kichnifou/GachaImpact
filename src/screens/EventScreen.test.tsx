@@ -35,9 +35,23 @@ describe('EventScreen foundations', () => {
     expect(mounted.container.textContent).toContain('Festival des Récoltes')
     expect(mounted.container.textContent).toContain('Jetons de Récolte')
     expect(mounted.container.textContent).toContain('Gerbe de Récolte')
+    expect(mounted.container.textContent).toContain('du 1 septembre 2026 au 30 septembre 2026')
+    expect(mounted.container.textContent).not.toContain('au 1 octobre 2026')
     expect(mounted.container.textContent).toContain('Non inscrit')
     expect(mounted.container.textContent).toContain('Points de l’édition0')
     expect(mounted.container.querySelector<HTMLButtonElement>('.event-foundation-card button')?.disabled).toBe(false)
+  })
+
+  it('presents the exclusive December boundary as the last included calendar day', () => {
+    const december = {
+      ...beforeJoin,
+      businessDate: '2026-12-15',
+      festival: { ...beforeJoin.festival, key: 'christmas', month: 12, title: 'Festival de Noël' },
+      edition: { ...beforeJoin.edition, startsAt: '2026-11-30T23:00:00.000Z', endsAt: '2026-12-31T23:00:00.000Z' },
+    }
+    const { container } = mount({ value: december })
+    expect(container.textContent).toContain('du 1 décembre 2026 au 31 décembre 2026')
+    expect(container.textContent).not.toContain('au 1 janvier 2027')
   })
 
   it('shows the authoritative joined snapshot without a second client-side credit', () => {

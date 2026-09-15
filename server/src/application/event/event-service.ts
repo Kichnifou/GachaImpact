@@ -13,6 +13,14 @@ type FestivalConfig = Readonly<{
   collection: Readonly<{ key: string; label: string }>;
 }>;
 
+type EditionSnapshot = Readonly<{
+  externalKey: string;
+  displayName: string;
+  calendarMonth: number;
+  currencyKey: string;
+  config: FestivalConfig;
+}>;
+
 type Definition = Readonly<{
   id: string;
   externalKey: string;
@@ -145,20 +153,25 @@ export class EventService {
       where: { calendarMonth: period.month, isActive: true },
     });
     if (!definition) throw new BusinessError('EVENT_CONFIGURATION_MISSING', 'Le Festival du mois courant n’est pas configuré.');
-    const config = parseConfig(definition.config);
-    const edition = await database.eventEdition.upsert({
-      where: { eventDefinitionId_year: { eventDefinitionId: definition.id, year: period.year } },
-      create: {
-        eventDefinitionId: definition.id,
-        year: period.year,
-        startsAt: period.startsAt,
-        endsAt: period.endsAt,
-        status: EventEditionStatus.ACTIVE,
-        snapshot: definitionSnapshot(definition, config),
-      },
-      update: {},
+    const editionKey = { eventDefinitionId: definition.id, year: period.year };
+    let edition = await database.eventEdition.findUnique({
+      where: { eventDefinitionId_year: editionKey },
     });
-    return { period, definition, config, edition };
+    if (!edition) {
+      const config = parseConfig(definition.config);
+      edition = await database.eventEdition.upsert({
+        where: { eventDefinitionId_year: editionKey },
+        create: {
+          ...editionKey,
+          startsAt: period.startsAt,
+          endsAt: period.endsAt,
+          status: EventEditionStatus.ACTIVE,
+          snapshot: definitionSnapshot(definition, config),
+        },
+        update: {},
+      });
+    }
+    return { period, definition, edition, editionSnapshot: parseEditionSnapshot(edition.snapshot) };
   }
 
   private async snapshot(
@@ -178,12 +191,12 @@ export class EventService {
     return {
       businessDate: context.period.businessDate,
       festival: {
-        key: context.definition.externalKey,
-        month: context.definition.calendarMonth,
-        title: context.definition.displayName,
-        emoji: context.config.emoji,
-        currency: { key: context.definition.currencyKey, ...context.config.currency },
-        collection: context.config.collection,
+        key: context.editionSnapshot.externalKey,
+        month: context.editionSnapshot.calendarMonth,
+        title: context.editionSnapshot.displayName,
+        emoji: context.editionSnapshot.config.emoji,
+        currency: { key: context.editionSnapshot.currencyKey, ...context.editionSnapshot.config.currency },
+        collection: context.editionSnapshot.config.collection,
       },
       edition: {
         id: context.edition.id,
@@ -209,6 +222,26 @@ function definitionSnapshot(definition: Definition, config: FestivalConfig): Pri
     calendarMonth: definition.calendarMonth,
     currencyKey: definition.currencyKey,
     config,
+  };
+}
+
+function parseEditionSnapshot(value: unknown): EditionSnapshot {
+  const record = readRecord(value);
+  if (
+    typeof record?.externalKey !== 'string'
+    || typeof record.displayName !== 'string'
+    || typeof record.calendarMonth !== 'number'
+    || !Number.isInteger(record.calendarMonth)
+    || record.calendarMonth < 1
+    || record.calendarMonth > 12
+    || typeof record.currencyKey !== 'string'
+  ) throw new Error('Invalid Event edition snapshot.');
+  return {
+    externalKey: record.externalKey,
+    displayName: record.displayName,
+    calendarMonth: record.calendarMonth,
+    currencyKey: record.currencyKey,
+    config: parseConfig(record.config),
   };
 }
 

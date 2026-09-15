@@ -54,7 +54,7 @@ export default function EventScreen({ value, onLoad, onJoin }: Props) {
     {['Jeux', 'Shop', 'Classement'].map((tab) => <button type="button" disabled key={tab} title="À venir">{tab}<small>À venir</small></button>)}
   </nav>
   const startsAt = periodFormatter.format(new Date(value.edition.startsAt))
-  const endsAt = periodFormatter.format(new Date(value.edition.endsAt))
+  const endsAt = periodFormatter.format(new Date(new Date(value.edition.endsAt).getTime() - 1))
 
   return <div className="screen-content activity-shell event-screen long-screen-layout">
     <ScreenHeader eyebrow="Activités · Événement" title={value.festival.title} description={`Édition ${value.edition.year} · du ${startsAt} au ${endsAt}`} />
