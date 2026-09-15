@@ -37,7 +37,7 @@ Chaque gros prompt Codex doit demander de :
 - persister, si nécessaire, la validation du lot précédent ;
 - persister les nouvelles décisions durables réellement prises ;
 - respecter un périmètre exact et borné ;
-- ne pas commit ni push par défaut.
+- terminer toute intervention qui modifie des fichiers par les validations pertinentes, un commit propre et un push normal sur `review`, sauf instruction explicite `local uniquement`.
 
 ## 2A. Documentation / état du projet à mettre à jour
 
@@ -63,11 +63,11 @@ ChatGPT évalue au minimum les propriétaires suivants :
 
 Avant de terminer, Codex confronte les documents modifiés au code réellement produit. Son rapport précise les documents modifiés et pourquoi, ceux laissés inchangés, la version du Master avant/après, l'état du domaine, la validation acquise ou restante, la prochaine étape et toute différence entre cible et état physique.
 
-Avant la publication du candidat sur `review`, ChatGPT peut effectuer un contrôle local du code et de la cohérence documentaire. La review de référence porte ensuite sur le commit et son diff réellement poussés sur GitHub. Elle vérifie notamment le Master, la prochaine étape, la distinction validation technique/publique, les Rxxx, l'absence de cible présentée comme déjà physique et l'absence d'ancienne prochaine étape encore active.
+Codex contrôle localement le code et la cohérence documentaire avant de publier le candidat sur `review` dans la même intervention. La review de référence porte ensuite sur le commit et son diff réellement poussés sur GitHub. Elle vérifie notamment le Master, la prochaine étape, la distinction validation technique/publique, les Rxxx, l'absence de cible présentée comme déjà physique et l'absence d'ancienne prochaine étape encore active.
 
 ## 3. Terminer et valider localement le travail Codex
 
-Codex termine l’implémentation, exécute les tests automatisés pertinents et réalise une inspection visuelle locale réelle lorsqu’elle est utile. Il fournit ensuite un rapport structuré. Pendant l’implémentation, il ne committe et ne pousse pas par défaut ; la publication du candidat sur `review` fait l’objet d’une instruction explicite après la validation locale.
+Codex termine l’implémentation, exécute les tests automatisés pertinents, réalise une inspection visuelle locale réelle lorsqu’elle est utile et vérifie précisément le périmètre. Dès que l’intervention a modifié au moins un fichier, il crée ensuite un commit propre et le pousse normalement sur `review` dans cette même intervention, puis vérifie le SHA distant et laisse un worktree propre. Seules une intervention strictement read-only ou une instruction explicite `local uniquement` dispensent de commit/push.
 
 Les tests PostgreSQL qui utilisent la base Supabase DEV partagée s’exécutent fichier par fichier (`fileParallelism: false` dans la configuration Vitest DB) afin qu’une fixture temporaire d’un domaine ne puisse pas être observée par les invariants d’un autre fichier. Chaque fichier reste responsable du suivi et du nettoyage transactionnel de ses propres fixtures, y compris après un échec ; les scénarios de concurrence métier explicites au sein d’un même fichier restent autorisés.
 
@@ -80,11 +80,11 @@ Pour tout lot DB, la validation confronte le dossier versionné `server/prisma/m
 Le workflow Git permanent est le suivant :
 
 1. `main` représente le dernier état public et la production ;
-2. Codex travaille d’abord localement sur un lot borné ;
-3. les tests automatisés pertinents sont exécutés localement ;
-4. le candidat est committé puis poussé sur la branche permanente `review` ;
-5. ChatGPT et le propriétaire inspectent sur GitHub le commit et son diff par rapport à `main` ;
-6. les corrections éventuelles sont apportées, testées et poussées sur `review` ;
+2. Codex travaille sur un lot borné, exécute les tests pertinents et contrôle son périmètre ;
+3. dans la même intervention, le candidat est committé puis poussé normalement sur la branche permanente `review` ;
+4. ChatGPT inspecte sur GitHub le vrai commit et son diff par rapport à `main` avant de valider ou de demander une correction technique ;
+5. chaque correction éventuelle suit à son tour `modification → tests → commit séparé → push review` ;
+6. ChatGPT re-review le vrai nouveau commit ;
 7. une fois la review approuvée, `review` est mergée ou avancée proprement vers `main` selon l’historique réel ;
 8. l’arrivée du commit sur `main` déclenche les déploiements de production ;
 9. Railway et Cloudflare Pages sont vérifiés ;
@@ -93,11 +93,11 @@ Le workflow Git permanent est le suivant :
 
 `review` est uniquement une branche de pré-review Git. Elle ne constitue pas un environnement staging, ne possède ni backend ni base séparés et ne permet de prétendre à aucun test public. Un push sur `main` ne doit jamais servir de moyen de review : `main` reste conceptuellement protégée comme branche de production.
 
-Lorsqu’un candidat doit être publié par Codex ou par le propriétaire :
+Lorsqu’un candidat est publié par Codex ou par le propriétaire, seuls les fichiers vérifiés du lot sont indexés :
 
 ```powershell
 git status
-git add .
+git add -- <fichiers-du-lot>
 git commit -m "message adapté"
 git push -u origin review
 git status
@@ -105,7 +105,7 @@ git status
 
 ## 5. Review GitHub du candidat
 
-ChatGPT vérifie le HEAD de `review`, le compare au dernier état de `main`, contrôle la liste des fichiers, la documentation et les fichiers critiques. Il distingue les validations automatisées déjà acquises des validations publiques encore impossibles à ce stade.
+ChatGPT vérifie le HEAD de `review`, le compare au dernier état de `main`, contrôle la liste des fichiers, la documentation et les fichiers critiques. Cette review de référence porte sur le vrai commit GitHub, jamais uniquement sur le résumé d’un worktree local non publié. Il distingue les validations automatisées déjà acquises des validations publiques encore impossibles à ce stade.
 
 Si le lot n’est pas acceptable, les corrections restent sur `review`. S’il est acceptable, ChatGPT et le propriétaire autorisent explicitement seulement alors son passage vers `main`.
 

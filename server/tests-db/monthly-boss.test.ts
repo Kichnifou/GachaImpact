@@ -5,7 +5,7 @@ import { MonthlyBossService } from '../src/application/combat/monthly-boss-servi
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import { loadConfig } from '../src/config/environment.js';
 import { resourceKeys } from '../src/domain/economy/resources.js';
-import { calculateContributionBasisPoints, calculateNextBossBase } from '../src/domain/combat/monthly-boss.js';
+import { calculateContributionBasisPoints, calculateNextBossBase, MONTHLY_BOSS_REWARD } from '../src/domain/combat/monthly-boss.js';
 import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 
 const config = loadConfig(); if (!config.databaseUrl) throw new Error('DATABASE_URL is required for monthly Boss database tests.');
@@ -127,7 +127,7 @@ describe('monthly Boss persistence', () => {
   }, 30_000);
 
   it('serializes a concurrent lethal race, preserves the loser daily attempt, and rewards every prior participant once', async () => {
-    now = new Date('2098-04-10T12:00:00Z'); const left = await fixture(); const right = await fixture(); await fill(left.service, left.characters); await fill(right.service, right.characters);
+    now = new Date('2098-04-10T12:00:00Z'); const left = await fixture(); const right = await fixture(); const nonParticipant = await fixture(); await fill(left.service, left.characters); await fill(right.service, right.characters);
     const boss = await left.service.getCurrent(identity);
     await left.service.attack(identity, boss.boss.id, randomUUID()); await right.service.attack(identity, boss.boss.id, randomUUID());
     now = new Date('2098-04-11T12:00:00Z'); await database.monthlyBoss.update({ where: { id: boss.boss.id }, data: { currentHp: 1n } });
@@ -138,7 +138,18 @@ describe('monthly Boss persistence', () => {
     expect(await database.bossReward.count({ where: { bossId: boss.boss.id } })).toBe(2);
     expect(await database.businessOperation.count({ where: { playerId: { in: [left.id, right.id] }, operationType: 'monthly-boss.reward', sourceChannel: 'SYSTEM', status: 'COMPLETED' } })).toBe(2);
     expect(await database.resourceMovement.count({ where: { playerId: { in: [left.id, right.id] }, domainKey: 'monthly-boss', sourceChannel: 'SYSTEM' } })).toBe(4);
-    expect(await database.notification.count({ where: { actionTargetId: boss.boss.id, typeKey: 'MONTHLY_BOSS_DEFEATED', state: 'UNREAD' } })).toBe(2);
+    const victoryNotifications = await database.notification.findMany({ where: { actionTargetId: boss.boss.id, typeKey: 'MONTHLY_BOSS_DEFEATED', state: 'UNREAD' } });
+    expect(victoryNotifications).toHaveLength(2);
+    expect(victoryNotifications.some(({ playerId }) => playerId === nonParticipant.id)).toBe(false);
+    for (const notification of victoryNotifications) expect(notification.payload).toMatchObject({
+      title: 'Boss vaincu',
+      bossName: boss.boss.name,
+      message: `${boss.boss.name} a été vaincu.`,
+      rewards: [
+        { resourceKey: 'primogems', amount: MONTHLY_BOSS_REWARD.primogems.toString() },
+        { resourceKey: 'moras', amount: MONTHLY_BOSS_REWARD.moras.toString() },
+      ],
+    });
     for (const player of [left, right]) {
       expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: player.id, resourceKey: 'primogems' } } })).amount).toBe(16_000n);
       expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: player.id, resourceKey: 'moras' } } })).amount).toBe(500_000n);

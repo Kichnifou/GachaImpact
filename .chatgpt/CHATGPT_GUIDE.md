@@ -433,7 +433,17 @@ Si un nouveau fichier de documentation doit être créé, générer un fichier t
 
 Avant de produire un prompt Codex, ChatGPT analyse le feedback du propriétaire, inspecte les captures et le vrai code concerné, pose les questions utiles puis consolide les décisions. Le prompt n’est généré que lorsque les choix sont suffisamment mûrs ou que le propriétaire le demande explicitement.
 
-Le cycle reste : Codex implémente et teste localement → le candidat est poussé sur `review` → ChatGPT et le propriétaire inspectent le diff GitHub → les corrections restent sur `review` → `main` n'est mise à jour qu'après approbation → déploiements et test public. Le détail, les responsabilités, la validation publique et le rollback sont définis dans [implementation-workflow.md](../docs/process/implementation-workflow.md).
+Le cycle reste : Codex implémente et teste → committe et pousse le candidat sur `review` dans la même intervention → ChatGPT et le propriétaire inspectent le vrai diff GitHub → chaque correction est elle aussi testée, committée séparément et poussée sur `review` → `main` n'est mise à jour qu'après approbation → déploiements et test public. Le détail, les responsabilités, la validation publique et le rollback sont définis dans [implementation-workflow.md](../docs/process/implementation-workflow.md).
+
+## Workflow Git permanent avec le propriétaire
+
+- `review` est la branche obligatoire de visibilité et de review ; `main` représente l’état public auto-déployé.
+- Toute intervention Codex qui modifie un fichier se termine, après tests et contrôle du périmètre, par un commit propre puis un push normal sur `review` dans la même intervention.
+- ChatGPT inspecte le vrai commit et le vrai diff GitHub avant de valider ou de demander une correction technique ; le résumé d’un worktree local non publié ne constitue jamais une review de référence.
+- Toute correction demandée suit à nouveau `modification → tests → commit séparé → push review`, puis ChatGPT re-review le nouveau commit réel.
+- Aucune promotion de `main` n’a lieu avant approbation indépendante explicite. Aucun force-push n’appartient au workflow normal.
+- Les seules exceptions au commit/push sont une intervention strictement read-only ou une instruction explicite du propriétaire demandant de conserver le travail local uniquement.
+- Les commits parallèles qui touchent exclusivement `docs/Story/**` sont légitimes : ils sont conservés dans l’historique et ne sont jamais modifiés, réécrits, squashés ou revertés par les lots GachaImpact.
 
 ---
 
@@ -443,22 +453,19 @@ Lors d'un push/checkpoint, utiliser ce workflow :
 
 ```powershell
 git status
-git add .
+git add -- <fichiers-du-lot>
 git commit -m "message adapté"
 git push -u origin review
 git status
 ```
-
-Préférence explicite :
-toujours utiliser `git add .`.
 
 ## Workflow de review d'un lot Codex
 
 Après chaque lot de code Codex :
 
 1. Codex termine le lot et exécute ses tests automatisés localement.
-2. Codex ne committe et ne pousse pas pendant l’implémentation, sauf instruction explicite de publier le candidat.
-3. Le candidat validé localement est committé et poussé sur `review`.
+2. Après contrôle du périmètre, Codex committe et pousse normalement le candidat sur `review` dans la même intervention, sauf exception read-only ou instruction explicite `local uniquement`.
+3. Le candidat devient ainsi visible pour la review de référence sur son vrai commit GitHub.
 4. ChatGPT vérifie le commit et le diff `review` par rapport à `main` ; le propriétaire complète la review.
 5. Les corrections éventuelles sont testées et poussées sur `review`.
 6. `main` n’est mise à jour qu’après approbation explicite de la review.
@@ -529,7 +536,7 @@ Avant d'écrire le prompt, ChatGPT détermine quels propriétaires documentaires
 - l'état attendu du Master et sa prochaine étape exacte ;
 - les décisions Rxxx à créer ou amender, ou explicitement qu'aucune nouvelle décision n'est requise.
 
-La sélection détaillée des propriétaires et les contrôles de fin de lot sont définis dans [implementation-workflow.md](../docs/process/implementation-workflow.md). Après le rapport Codex, ChatGPT vérifie la cohérence documentaire avant la publication du candidat sur `review`, puis review le commit et son diff sur GitHub après le push.
+La sélection détaillée des propriétaires et les contrôles de fin de lot sont définis dans [implementation-workflow.md](../docs/process/implementation-workflow.md). Codex vérifie la cohérence documentaire puis publie le candidat sur `review` dans la même intervention ; ChatGPT review ensuite le commit et son diff réels sur GitHub.
 
 Pour les tâches complexes :
 - architecture ;
@@ -699,6 +706,8 @@ Commencer par récupérer les HEAD actuels de `main` et `review`, noter leurs SH
 10. [navigation-shell-v1.md](../docs/specifications/navigation-shell-v1.md) et [ui-layout-contract-v1.md](../docs/specifications/ui-layout-contract-v1.md) lorsqu’une UI est concernée — préserver navigation, scroll, pagination, modales et responsive ;
 11. [implementation-workflow.md](../docs/process/implementation-workflow.md) lorsqu’un lot, une review ou une promotion est traité — appliquer les gates opérationnels et Git ;
 12. [command-reference.md](../docs/commands/command-reference.md) lorsqu’un chat, Twitch ou une commande est concerné — vérifier le contrat player-facing partagé.
+
+Avant d’orchestrer un nouveau lot Codex, une nouvelle conversation ChatGPT doit donc avoir consulté au minimum `AGENTS.md`, le Master et `implementation-workflow.md`, en plus du présent guide.
 
 Après cette lecture, inspecter le code, le schéma Prisma et les migrations physiques concernés, puis comparer explicitement cible documentaire et état réel avant de proposer une implémentation.
 

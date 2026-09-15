@@ -1,7 +1,9 @@
 import type { NotificationDto } from '../api/types'
+import { formatResourceAmount } from '../utils/formatters'
 
 export type NotificationDestination = 'expedition' | 'gift-code' | 'monthly-boss'
-export type NotificationPresentation = Readonly<{ title: string; message: string; destination: NotificationDestination | null }>
+export type NotificationRewardPresentation = Readonly<{ resourceKey: string; label: string; amount: string }>
+export type NotificationPresentation = Readonly<{ title: string; message: string; rewards?: readonly NotificationRewardPresentation[]; destination: NotificationDestination | null }>
 type Resolver = (notification: NotificationDto) => NotificationPresentation
 
 const resolvers: Readonly<Record<string, Resolver>> = {
@@ -18,6 +20,7 @@ const resolvers: Readonly<Record<string, Resolver>> = {
   'monthly-boss:MONTHLY_BOSS_DEFEATED': (notification) => ({
     title: text(notification.payload.title, 'Boss vaincu'),
     message: text(notification.payload.message, 'Votre récompense a été versée automatiquement.'),
+    rewards: rewardPresentation(notification.payload.rewards),
     destination: notification.actionKey === 'OPEN_MONTHLY_BOSS' ? 'monthly-boss' : null,
   }),
 }
@@ -39,4 +42,17 @@ function giftCodeMessage(notification: NotificationDto) {
 
 function text(value: unknown, fallback: string) {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback
+}
+
+function rewardPresentation(value: unknown): readonly NotificationRewardPresentation[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const rewards = value.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return []
+    const resourceKey = 'resourceKey' in entry && typeof entry.resourceKey === 'string' ? entry.resourceKey : ''
+    const amount = 'amount' in entry && typeof entry.amount === 'string' && /^\d+$/.test(entry.amount) ? entry.amount : ''
+    if (!resourceKey || !amount) return []
+    const label = resourceKey === 'primogems' ? 'Primos' : resourceKey === 'moras' ? 'Moras' : resourceKey
+    return [{ resourceKey, label, amount: formatResourceAmount(amount) }]
+  })
+  return rewards.length ? rewards : undefined
 }

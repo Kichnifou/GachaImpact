@@ -36,7 +36,7 @@ describe('GameShell Expedition deep-link', () => {
       expedition: createExpeditionClientSnapshot(expedition, 0), expeditionMonotonicNow: 0,
       notifications: { unreadCount: 0, notifications: [] },
       onLoadExpedition: vi.fn(async () => expedition), onStartExpedition: vi.fn(), onClaimExpedition: vi.fn(),
-      onLoadNotifications: vi.fn(async () => ({ unreadCount: 0, notifications: [] })), onReadNotification: vi.fn(), onReadAllNotifications: vi.fn(), onArchiveReadNotifications: vi.fn(),
+      onLoadNotifications: vi.fn(async () => ({ unreadCount: 0, notifications: [] })), onReadNotification: vi.fn(), onArchiveNotification: vi.fn(), onReadAllNotifications: vi.fn(), onArchiveReadNotifications: vi.fn(),
       onLoadDailyCombat: vi.fn(async () => dailyCombat), onSetDailyCombatSlot: vi.fn(), onRemoveDailyCombatSlot: vi.fn(), onCopyActiveTeamToDailyCombat: vi.fn(), onAutoSelectDailyCombat: vi.fn(), onClearDailyCombatLoadout: vi.fn(), onFightDailyCombat: vi.fn(),
       onLoadMonthlyBoss: vi.fn(async () => monthlyBoss), onSetMonthlyBossSlot: vi.fn(), onRemoveMonthlyBossSlot: vi.fn(), onCopyActiveTeamToMonthlyBoss: vi.fn(), onClearMonthlyBossLoadout: vi.fn(), onAttackMonthlyBoss: vi.fn(), onLoadMonthlyBossHistory: vi.fn(),
       onSignOut: vi.fn(),
@@ -79,11 +79,12 @@ describe('GameShell Expedition deep-link', () => {
     expect(window.location.hash).toBe(`#${hashForScreen('activities-combat')}`)
     expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.combat-tabs button')).find((button) => button.classList.contains('active'))?.textContent).toBe('Boss')
 
-    const bossNotification = { id: 'boss-notification', domainKey: 'monthly-boss', typeKey: 'MONTHLY_BOSS_DEFEATED', payload: { title: 'Boss vaincu', message: 'Récompense versée automatiquement.' }, state: 'UNREAD' as const, actionKey: 'OPEN_MONTHLY_BOSS', actionTargetId: 'boss-id', createdAt: '2026-09-13T12:00:00Z', readAt: null }
+    const bossNotification = { id: 'boss-notification', domainKey: 'monthly-boss', typeKey: 'MONTHLY_BOSS_DEFEATED', payload: { title: 'Boss vaincu', message: 'Récompense versée automatiquement.', rewards: [{ resourceKey: 'primogems', amount: '16000' }, { resourceKey: 'moras', amount: '500000' }] }, state: 'UNREAD' as const, actionKey: 'OPEN_MONTHLY_BOSS', actionTargetId: 'boss-id', createdAt: '2026-09-13T12:00:00Z', readAt: null }
     await act(async () => { root.render(<GameShell {...props} notifications={{ unreadCount: 1, notifications: [bossNotification] }} />); await Promise.resolve() })
     await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click(); await Promise.resolve() })
     expect(container.textContent).toContain('Boss vaincu')
     expect(container.textContent).toContain('Récompense versée automatiquement.')
+    expect(container.textContent).toContain('+16 000 Primos · +500 000 Moras')
     await act(async () => { container.querySelector<HTMLButtonElement>('.notification-item')!.click(); await Promise.resolve() })
     expect(window.location.hash).toBe(`#${hashForScreen('activities-combat')}`)
     expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.combat-tabs button')).find((button) => button.classList.contains('active'))?.textContent).toBe('Boss')

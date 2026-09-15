@@ -386,6 +386,7 @@ function AppBootstrap() {
       onClaimExpedition={async (idempotencyKey) => { const result = await getGameApiClient().claimExpedition(idempotencyKey); publishExpedition(result.view); setResources(result.resources); await loadNotifications(); return result }}
       onLoadNotifications={loadNotifications}
       onReadNotification={async (id) => { const next = await getGameApiClient().readNotification(id); setNotifications(next); return next }}
+      onArchiveNotification={async (id) => { const next = await getGameApiClient().archiveNotification(id); setNotifications(next); return next }}
       onReadAllNotifications={async () => { const next = await getGameApiClient().readAllNotifications(); setNotifications(next); return next }}
       onArchiveReadNotifications={async () => { const next = await getGameApiClient().archiveReadNotifications(); setNotifications(next); return next }}
       onLoadDailyCombat={loadDailyCombat}

@@ -121,4 +121,32 @@ describe('Expedition persistence', () => {
     expect((await database.notification.findUniqueOrThrow({ where: { id: notificationId } })).state).toBe('ARCHIVED');
     expect(await database.notification.count({ where: { playerId: id } })).toBe(1);
   });
+
+  it('archives one owned notification and lazily cleans only READ notifications from a previous Paris day', async () => {
+    now = new Date('2099-08-12T10:00:00.000Z');
+    const actor = await fixture(); const other = await fixture();
+    const notifications = new NotificationService(actor.current, database, clock, actor.service);
+    const rows = await Promise.all([
+      database.notification.create({ data: { playerId: actor.id, domainKey: 'fixture', typeKey: 'unread-current', payload: {}, state: 'UNREAD', createdAt: now } }),
+      database.notification.create({ data: { playerId: actor.id, domainKey: 'fixture', typeKey: 'read-current', payload: {}, state: 'READ', createdAt: now, readAt: now } }),
+      database.notification.create({ data: { playerId: actor.id, domainKey: 'fixture', typeKey: 'read-old', payload: {}, state: 'READ', createdAt: new Date('2099-08-10T10:00:00.000Z'), readAt: new Date('2099-08-10T10:00:00.000Z') } }),
+      database.notification.create({ data: { playerId: actor.id, domainKey: 'fixture', typeKey: 'unread-old', payload: {}, state: 'UNREAD', createdAt: new Date('2099-08-10T10:00:00.000Z') } }),
+      database.notification.create({ data: { playerId: other.id, domainKey: 'fixture', typeKey: 'other-player', payload: {}, state: 'UNREAD', createdAt: now } }),
+    ]);
+
+    const initial = await notifications.list(identity);
+    expect(initial.notifications.map(({ id }) => id)).toEqual(expect.arrayContaining([rows[0]!.id, rows[1]!.id, rows[3]!.id]));
+    expect(initial.notifications).toHaveLength(3);
+    expect(initial.unreadCount).toBe(2);
+    expect((await database.notification.findUniqueOrThrow({ where: { id: rows[2]!.id } }))).toMatchObject({ state: 'ARCHIVED', archivedAt: now });
+
+    const afterUnreadArchive = await notifications.archiveOne(identity, rows[0]!.id);
+    expect(afterUnreadArchive.unreadCount).toBe(1);
+    expect(afterUnreadArchive.notifications.map(({ id }) => id)).toEqual(expect.arrayContaining([rows[1]!.id, rows[3]!.id]));
+    await notifications.archiveOne(identity, rows[1]!.id);
+    await expect(notifications.archiveOne(identity, rows[1]!.id)).resolves.toMatchObject({ unreadCount: 1 });
+    await expect(notifications.archiveOne(identity, rows[4]!.id)).rejects.toMatchObject({ code: 'NOTIFICATION_NOT_FOUND' });
+    expect((await database.notification.findUniqueOrThrow({ where: { id: rows[3]!.id } })).state).toBe('UNREAD');
+    expect((await database.notification.findUniqueOrThrow({ where: { id: rows[4]!.id } })).state).toBe('UNREAD');
+  });
 });

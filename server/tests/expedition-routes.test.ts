@@ -13,7 +13,7 @@ describe('Expedition and notification HTTP contracts', () => {
   async function setup() {
     const expedition = { getState: vi.fn(async () => view), start: vi.fn(async () => ({ operation: { id: randomUUID(), alreadyProcessed: false }, view })), claim: vi.fn(async () => ({ operation: { id: randomUUID(), alreadyProcessed: false }, reward: { roll: 1, kind: 'primogems' as const, resourceKey: 'primogems' as const, amount: 1600n }, view: { ...view, operationalStatus: 'IDLE' as const }, resources: balances, missionEvent: { type: 'expedition.completed' as const, playerId, characterId, completedAt: new Date() } })) } as unknown as ExpeditionService;
     const notificationResult = { unreadCount: 1, notifications: [{ id: randomUUID(), playerId, domainKey: 'expedition', typeKey: 'ready', payload: { characterName: 'Fixture' }, state: 'UNREAD' as const, actionKey: 'open-expedition-character', actionTargetId: characterId, deduplicationKey: 'key', createdAt: new Date(), readAt: null, resolvedAt: null, archivedAt: null }] };
-    const notification = { list: vi.fn(async () => notificationResult), readOne: vi.fn(async () => notificationResult), readAll: vi.fn(async () => notificationResult), archiveRead: vi.fn(async () => notificationResult) } as unknown as NotificationService;
+    const notification = { list: vi.fn(async () => notificationResult), readOne: vi.fn(async () => notificationResult), archiveOne: vi.fn(async () => notificationResult), readAll: vi.fn(async () => notificationResult), archiveRead: vi.fn(async () => notificationResult) } as unknown as NotificationService;
     const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, { authIdentityVerifier: { verify: async () => ({ subject: 'subject' }) }, getOrProvisionCurrentPlayer: { execute: vi.fn() } as never, expeditionService: expedition, notificationService: notification }); apps.push(app); return { app, expedition, notification };
   }
   it('protects, validates and serializes the private Expedition routes', async () => {
@@ -29,8 +29,11 @@ describe('Expedition and notification HTTP contracts', () => {
     const response = await app.inject({ url: '/api/v1/me/notifications', headers }); expect(response.statusCode).toBe(200); expect(response.json()).toMatchObject({ unreadCount: 1, notifications: [{ domainKey: 'expedition', actionKey: 'open-expedition-character', actionTargetId: characterId }] });
     const notificationId = randomUUID();
     expect((await app.inject({ method: 'POST', url: `/api/v1/me/notifications/${notificationId}/read`, headers })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'POST', url: `/api/v1/me/notifications/${notificationId}/archive`, headers })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'POST', url: '/api/v1/me/notifications/not-a-uuid/archive', headers })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'POST', url: `/api/v1/me/notifications/${notificationId}/archive` })).statusCode).toBe(401);
     expect((await app.inject({ method: 'POST', url: '/api/v1/me/notifications/read-all', headers })).statusCode).toBe(200);
     expect((await app.inject({ method: 'POST', url: '/api/v1/me/notifications/archive-read', headers })).statusCode).toBe(200);
-    expect(notification.readOne).toHaveBeenCalledWith(expect.objectContaining({ subject: 'subject' }), notificationId); expect(notification.readAll).toHaveBeenCalled(); expect(notification.archiveRead).toHaveBeenCalled();
+    expect(notification.readOne).toHaveBeenCalledWith(expect.objectContaining({ subject: 'subject' }), notificationId); expect(notification.archiveOne).toHaveBeenCalledWith(expect.objectContaining({ subject: 'subject' }), notificationId); expect(notification.readAll).toHaveBeenCalled(); expect(notification.archiveRead).toHaveBeenCalled();
   });
 });

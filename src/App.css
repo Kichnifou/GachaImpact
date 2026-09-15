@@ -8216,10 +8216,12 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .notifications-panel .floating-panel-heading,
 .notifications-panel .floating-panel-footer { background: rgba(5, 15, 32, .72); }
 .notification-list { padding: 7px; background: #071327; scrollbar-color: rgba(91, 191, 241, .38) rgba(4, 12, 27, .7); }
+.notification-row { position: relative; margin: 0 0 6px; }
+.notification-row:last-child { margin-bottom: 0; }
 .notification-item {
   box-sizing: border-box;
   width: 100%;
-  margin: 0 0 6px;
+  margin: 0;
   appearance: none;
   cursor: default;
   color: #dcecff;
@@ -8230,7 +8232,7 @@ button.inventory-stella-card { width: 100%; font: inherit; }
   box-shadow: none;
   transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
 }
-.notification-item:last-child { margin-bottom: 0; }
+.notification-row .notification-item { padding-right: 44px; }
 .notification-item.unread {
   border-color: rgba(81, 198, 244, .4);
   background: linear-gradient(100deg, rgba(22, 62, 101, .96), rgba(13, 35, 66, .94));
@@ -8239,6 +8241,10 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .notification-item > span:nth-child(2) { min-width: 0; }
 .notification-item p { color: #a9bed8; }
 .notification-item small { color: #718aa8; }
+.notification-rewards { display: block; margin: 4px 0; color: #f1d58b; font-size: 8px; font-weight: 800; line-height: 1.4; }
+.notification-row .notification-archive-button { position: absolute; z-index: 1; top: 8px; right: 8px; width: 24px; min-width: 24px; height: 24px; min-height: 24px; padding: 0; opacity: 0; pointer-events: none; }
+.notification-row:hover .notification-archive-button,
+.notification-row:focus-within .notification-archive-button { opacity: 1; pointer-events: auto; }
 .notification-symbol { color: #78dcff; border: 1px solid rgba(96, 205, 247, .2); background: rgba(32, 117, 166, .2); }
 .notification-dot { background: #67d9ff; box-shadow: 0 0 10px rgba(76, 205, 255, .92); }
 .notification-item.actionable { cursor: pointer; }
@@ -8309,6 +8315,10 @@ button.inventory-stella-card { width: 100%; font: inherit; }
   .notifications-panel .floating-panel-footer { min-width: 0; overflow: hidden; }
   .notifications-panel .floating-panel-footer button { min-width: 0; max-width: 100%; white-space: normal; text-align: right; }
   .contest-running-status { white-space: normal; }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .notification-row .notification-archive-button { opacity: 1; pointer-events: auto; }
 }
 
 @media (min-width: 1121px) {

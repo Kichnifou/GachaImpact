@@ -370,7 +370,15 @@ export class MonthlyBossService {
           playerId: participant.playerId,
           domainKey: 'monthly-boss',
           typeKey: 'MONTHLY_BOSS_DEFEATED',
-          payload: { title: 'Boss vaincu', message: `${bossName} a été vaincu. Récompense : 16 000 Primos et 500 000 Moras.` },
+          payload: {
+            title: 'Boss vaincu',
+            bossName,
+            message: `${bossName} a été vaincu.`,
+            rewards: [
+              { resourceKey: 'primogems', amount: MONTHLY_BOSS_REWARD.primogems.toString() },
+              { resourceKey: 'moras', amount: MONTHLY_BOSS_REWARD.moras.toString() },
+            ],
+          },
           state: NotificationState.UNREAD,
           actionKey: 'OPEN_MONTHLY_BOSS',
           actionTargetId: bossId,

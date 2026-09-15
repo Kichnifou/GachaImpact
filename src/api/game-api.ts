@@ -212,6 +212,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     updateGiftCode: (codeId: string, input: { token?: string; title?: string; description?: string; type?: 'ONE_OFF' | 'ANNUAL'; recurringMonth?: number; startsAt?: string; endsAt?: string; rewards?: readonly { resourceKey: string; amount: string }[]; disabled?: boolean; idempotencyKey: string }) => request<AdminGiftCodeMutationDto>(`/api/v1/moderation/gift-codes/${encodeURIComponent(codeId)}`, { method: 'PATCH', body: JSON.stringify(input) }),
     getGiftCodeClaimants: (codeId: string, query: GiftCodeClaimantQuery) => request<GiftCodeClaimantsDto>(`/api/v1/moderation/gift-codes/${encodeURIComponent(codeId)}/claimants?${queryString(query)}`),
     readNotification: (notificationId: string) => request<NotificationsDto>(`/api/v1/me/notifications/${notificationId}/read`, { method: 'POST' }),
+    archiveNotification: (notificationId: string) => request<NotificationsDto>(`/api/v1/me/notifications/${notificationId}/archive`, { method: 'POST' }),
     readAllNotifications: () => request<NotificationsDto>('/api/v1/me/notifications/read-all', { method: 'POST' }),
     archiveReadNotifications: () => request<NotificationsDto>('/api/v1/me/notifications/archive-read', { method: 'POST' }),
     getBank: () => request<PlayerBankDto>('/api/v1/me/bank'),

@@ -55,6 +55,26 @@ describe('GameHeader moderation capability', () => {
     expect(onReadAllNotifications).toHaveBeenCalledTimes(1)
   })
 
+  it('archives exactly one notification from a sibling icon button without reading or opening it', async () => {
+    const onArchiveNotification = vi.fn(async () => ({ unreadCount: 0, notifications: [] }))
+    const onReadNotification = vi.fn(async () => ({ unreadCount: 0, notifications: [] }))
+    const onOpenNotification = vi.fn()
+    const unread = { id: '11111111-1111-4111-8111-111111111111', domainKey: 'expedition', typeKey: 'ready', payload: { characterName: 'Furina' }, state: 'UNREAD' as const, actionKey: 'open-expedition-character', actionTargetId: 'character', createdAt: '2026-09-12T12:00:00Z', readAt: null }
+    const container = mount({ notifications: { unreadCount: 1, notifications: [unread] }, onArchiveNotification, onReadNotification, onOpenNotification })
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
+    const row = container.querySelector<HTMLElement>('.notification-row')!
+    const main = row.querySelector<HTMLButtonElement>('.notification-item')!
+    const archive = row.querySelector<HTMLButtonElement>('[aria-label="Supprimer la notification"]')!
+    expect(main.querySelector('button')).toBeNull()
+    expect(archive.parentElement).toBe(row)
+    await act(async () => { archive.click(); await Promise.resolve() })
+    expect(onArchiveNotification).toHaveBeenCalledWith(unread.id)
+    expect(onReadNotification).not.toHaveBeenCalled()
+    expect(onOpenNotification).not.toHaveBeenCalled()
+    expect(appCss).toMatch(/\.notification-row:hover \.notification-archive-button,[\s\S]*?opacity: 1; pointer-events: auto/)
+    expect(appCss).toMatch(/@media \(hover: none\), \(pointer: coarse\)[\s\S]*?\.notification-row \.notification-archive-button \{ opacity: 1; pointer-events: auto; \}/)
+  })
+
   it('distinguishes navigable and informational notifications without a false hover affordance', async () => {
     const onReadNotification = vi.fn(async () => ({ unreadCount: 0, notifications: [] }))
     const onOpenNotification = vi.fn()
@@ -81,7 +101,7 @@ describe('GameHeader moderation capability', () => {
     const common = { state: 'UNREAD' as const, createdAt: '2026-09-14T12:00:00Z', readAt: null }
     const expedition = { ...common, id: '11111111-1111-4111-8111-111111111111', domainKey: 'expedition', typeKey: 'ready', payload: { characterName: 'Furina' }, actionKey: 'open-expedition-character', actionTargetId: 'character-1' }
     const giftCode = { ...common, id: '22222222-2222-4222-8222-222222222222', domainKey: 'gift-codes', typeKey: 'GIFT_CODE_AVAILABLE', payload: { title: 'Festival des Récoltes', token: 'FESTIVALRECOLTES' }, actionKey: 'OPEN_GIFT_CODE', actionTargetId: 'edition-1' }
-    const boss = { ...common, id: '33333333-3333-4333-8333-333333333333', domainKey: 'monthly-boss', typeKey: 'MONTHLY_BOSS_DEFEATED', payload: { title: 'Boss vaincu', message: 'Récompense créditée.' }, actionKey: 'OPEN_MONTHLY_BOSS', actionTargetId: null }
+    const boss = { ...common, id: '33333333-3333-4333-8333-333333333333', domainKey: 'monthly-boss', typeKey: 'MONTHLY_BOSS_DEFEATED', payload: { title: 'Boss vaincu', message: 'Le Dévoreur de Lune a été vaincu.', rewards: [{ resourceKey: 'primogems', amount: '16000' }, { resourceKey: 'moras', amount: '500000' }] }, actionKey: 'OPEN_MONTHLY_BOSS', actionTargetId: null }
     const unknown = { ...common, id: '44444444-4444-4444-8444-444444444444', domainKey: 'future-domain', typeKey: 'FUTURE_EVENT', payload: {}, actionKey: 'UNKNOWN_ACTION', actionTargetId: 'unknown' }
     const container = mount({ notifications: { unreadCount: 4, notifications: [expedition, giftCode, boss, unknown] }, onOpenNotification })
     act(() => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
@@ -90,12 +110,21 @@ describe('GameHeader moderation capability', () => {
     expect(container.textContent).toContain('Code cadeau disponible')
     expect(container.textContent).toContain('Festival des Récoltes · FESTIVALRECOLTES')
     expect(container.textContent).toContain('Boss vaincu')
-    expect(container.textContent).toContain('Récompense créditée.')
+    expect(container.textContent).toContain('Le Dévoreur de Lune a été vaincu.')
+    expect(container.textContent).toContain('+16 000 Primos · +500 000 Moras')
     expect(container.textContent).toContain('Une nouvelle information est disponible.')
     expect(container.textContent?.match(/Expédition terminée/g)).toHaveLength(1)
     const items = container.querySelectorAll<HTMLButtonElement>('.notification-item')
     expect(Array.from(items, (item) => item.dataset.actionable)).toEqual(['true', 'true', 'true', 'false'])
     await act(async () => { items[1]!.click(); await Promise.resolve() })
     expect(onOpenNotification).toHaveBeenCalledWith(giftCode)
+  })
+
+  it('keeps the legacy Boss message when structured rewards are absent', () => {
+    const boss = { id: '33333333-3333-4333-8333-333333333333', domainKey: 'monthly-boss', typeKey: 'MONTHLY_BOSS_DEFEATED', payload: { title: 'Boss vaincu', message: 'Récompense déjà créditée.' }, state: 'READ' as const, actionKey: 'OPEN_MONTHLY_BOSS', actionTargetId: 'boss-id', createdAt: '2026-09-14T12:00:00Z', readAt: '2026-09-14T12:01:00Z' }
+    const container = mount({ notifications: { unreadCount: 0, notifications: [boss] } })
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
+    expect(container.textContent).toContain('Récompense déjà créditée.')
+    expect(container.querySelector('.notification-rewards')).toBeNull()
   })
 })
