@@ -14,8 +14,9 @@ describe('Event HTTP contracts', () => {
       edition: { id: randomUUID(), year: 2026, startsAt: '2026-08-31T22:00:00.000Z', endsAt: '2026-09-30T22:00:00.000Z' },
       participation: { joined: false, joinedAt: null, points: 0 }, currency: { amount: '0' }, canJoin: true,
       gameA: { available: false, theme: { key: 'recolte', label: 'Récolte' }, completedToday: false, attemptsToday: 0, windows: [], activeWindowIndex: null, canAttempt: false, cooldownRemainingMs: 0 },
+      gameB: { available: false, theme: { key: 'harvest', label: 'Grenier' }, solvedToday: false, discoveredBy: null, attemptsUsed: 0, attemptsRemaining: 0, testedCodes: [], remainingCodes: Array.from({ length: 32 }, (_, index) => index.toString(2).padStart(5, '0')), canAttempt: false },
     };
-    const service = { getCurrent: vi.fn(async () => snapshot), join: vi.fn(async () => ({ ...snapshot, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, operation: { id: randomUUID(), alreadyProcessed: false } })), attemptGameA: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false }, attempt: { succeeded: false } })) } as unknown as EventService;
+    const service = { getCurrent: vi.fn(async () => snapshot), join: vi.fn(async () => ({ ...snapshot, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, operation: { id: randomUUID(), alreadyProcessed: false } })), attemptGameA: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false }, attempt: { succeeded: false } })), attemptGameB: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false }, attempt: { kind: 'INCORRECT' } })) } as unknown as EventService;
     const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, { authIdentityVerifier: { verify: async () => ({ subject: 'event-subject' }) }, getOrProvisionCurrentPlayer: { execute: vi.fn() } as never, eventService: service });
     apps.push(app);
     return { app, service };
@@ -26,7 +27,9 @@ describe('Event HTTP contracts', () => {
     expect((await app.inject({ url: '/api/v1/me/event' })).statusCode).toBe(401);
     const response = await app.inject({ url: '/api/v1/me/event', headers: { authorization: 'Bearer token' } });
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toMatchObject({ festival: { key: 'harvest' }, participation: { joined: false, points: 0 }, currency: { amount: '0' } });
+    expect(response.json()).toMatchObject({ festival: { key: 'harvest' }, participation: { joined: false, points: 0 }, currency: { amount: '0' }, gameB: { solvedToday: false, testedCodes: [], attemptsRemaining: 0 } });
+    expect(response.json().gameB.remainingCodes).toHaveLength(32);
+    expect(JSON.stringify(response.json())).not.toContain('solutionCode');
   });
 
   it('requires a strict UUID idempotency key for join', async () => {
@@ -42,5 +45,15 @@ describe('Event HTTP contracts', () => {
     expect((await app.inject({ method: 'POST', url: '/api/v1/me/event/game-a/attempt', headers, payload: { idempotencyKey: key } })).statusCode).toBe(200);
     expect(service.attemptGameA).toHaveBeenCalledWith(expect.objectContaining({ subject: 'event-subject' }), key);
     expect((await app.inject({ method: 'POST', url: '/api/v1/me/event/game-a/attempt', headers, payload: { idempotencyKey: 'bad' } })).statusCode).toBe(400);
+  });
+
+  it('authenticates and strictly validates Game B codes and payloads', async () => {
+    const { app, service } = await setup(); const key = randomUUID(); const headers = { authorization: 'Bearer token' };
+    expect((await app.inject({ method: 'POST', url: '/api/v1/me/event/game-b/attempt', payload: { code: '01011', idempotencyKey: key } })).statusCode).toBe(401);
+    expect((await app.inject({ method: 'POST', url: '/api/v1/me/event/game-b/attempt', headers, payload: { code: '01011', idempotencyKey: key } })).statusCode).toBe(200);
+    expect(service.attemptGameB).toHaveBeenCalledWith(expect.objectContaining({ subject: 'event-subject' }), '01011', key);
+    for (const code of ['101', '010111', '01012', '01 11', 'abcde']) expect((await app.inject({ method: 'POST', url: '/api/v1/me/event/game-b/attempt', headers, payload: { code, idempotencyKey: key } })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'POST', url: '/api/v1/me/event/game-b/attempt', headers, payload: { code: '01011', idempotencyKey: key, extra: true } })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'POST', url: '/api/v1/me/event/game-b/attempt', headers, payload: { code: '01011', idempotencyKey: 'bad' } })).statusCode).toBe(400);
   });
 });

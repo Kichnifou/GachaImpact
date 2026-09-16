@@ -7,6 +7,7 @@ import { AppError } from '../errors.js';
 
 type Options = Readonly<{ authenticate: preHandlerHookHandler; service: EventService }>;
 const joinSchema = z.object({ idempotencyKey: z.uuid() }).strict();
+const gameBAttemptSchema = z.object({ code: z.string().regex(/^[01]{5}$/), idempotencyKey: z.uuid() }).strict();
 
 export const registerEventRoutes: FastifyPluginAsync<Options> = async (app, options) => {
   app.get('/api/v1/me/event', { preHandler: options.authenticate }, (request) =>
@@ -20,5 +21,10 @@ export const registerEventRoutes: FastifyPluginAsync<Options> = async (app, opti
     const parsed = joinSchema.safeParse(request.body);
     if (!parsed.success) throw new AppError('La tentative du Jeu A est invalide.', 400, 'VALIDATION_ERROR');
     return options.service.attemptGameA(requireAuthenticatedIdentity(request), parsed.data.idempotencyKey);
+  });
+  app.post('/api/v1/me/event/game-b/attempt', { preHandler: options.authenticate }, (request) => {
+    const parsed = gameBAttemptSchema.safeParse(request.body);
+    if (!parsed.success) throw new AppError('La tentative du Jeu B est invalide.', 400, 'VALIDATION_ERROR');
+    return options.service.attemptGameB(requireAuthenticatedIdentity(request), parsed.data.code, parsed.data.idempotencyKey);
   });
 };

@@ -3,7 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api/game-api'
-import type { EventDto, EventGameAAttemptDto, EventJoinDto } from '../api/types'
+import type { EventDto, EventGameAAttemptDto, EventGameBAttemptDto, EventJoinDto } from '../api/types'
 import EventScreen from './EventScreen'
 
 const roots: Root[] = []
@@ -16,18 +16,19 @@ const beforeJoin: EventDto = {
   edition: { id: 'edition-2026', year: 2026, startsAt: '2026-08-31T22:00:00.000Z', endsAt: '2026-09-30T22:00:00.000Z' },
   participation: { joined: false, joinedAt: null, points: 0 }, currency: { amount: '0' }, canJoin: true,
   gameA: { available: false, theme: { key: 'recolte', label: 'Récolte' }, completedToday: false, attemptsToday: 0, windows: [], activeWindowIndex: null, canAttempt: false, cooldownRemainingMs: 0 },
+  gameB: { available: false, theme: { key: 'harvest', label: 'Festival des Récoltes' }, solvedToday: false, discoveredBy: null, attemptsUsed: 0, attemptsRemaining: 0, testedCodes: [], remainingCodes: Array.from({ length: 32 }, (_, index) => index.toString(2).padStart(5, '0')), canAttempt: false },
 }
 const joinedGameA = { available: true, theme: { key: 'recolte', label: 'Récolte' }, completedToday: false, attemptsToday: 0, windows: [
   { startAt: '2026-09-15T07:00:00.000Z', endAt: '2026-09-15T08:00:00.000Z', state: 'PAST' as const },
   { startAt: '2026-09-15T12:00:00.000Z', endAt: '2026-09-15T13:00:00.000Z', state: 'ACTIVE' as const },
   { startAt: '2026-09-15T18:00:00.000Z', endAt: '2026-09-15T19:00:00.000Z', state: 'FUTURE' as const },
 ], activeWindowIndex: 1, canAttempt: true, cooldownRemainingMs: 0 }
-const afterJoin: EventJoinDto = { ...beforeJoin, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, gameA: joinedGameA, operation: { id: 'operation-1', alreadyProcessed: false } }
+const afterJoin: EventJoinDto = { ...beforeJoin, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, gameA: joinedGameA, gameB: { ...beforeJoin.gameB, available: true, attemptsRemaining: 3, canAttempt: true }, operation: { id: 'operation-1', alreadyProcessed: false } }
 
-function mount(options: { value?: EventDto; onLoad?: () => Promise<EventDto>; onJoin?: (key: string) => Promise<EventJoinDto>; onAttempt?: (key: string) => Promise<EventGameAAttemptDto> } = {}) {
+function mount(options: { value?: EventDto; onLoad?: () => Promise<EventDto>; onJoin?: (key: string) => Promise<EventJoinDto>; onAttempt?: (key: string) => Promise<EventGameAAttemptDto>; onAttemptB?: (code: string, key: string) => Promise<EventGameBAttemptDto> } = {}) {
   const container = document.createElement('div'); document.body.append(container)
   const root = createRoot(container); roots.push(root)
-  const props = { value: options.value ?? beforeJoin, onLoad: options.onLoad ?? vi.fn(async () => beforeJoin), onJoin: options.onJoin ?? vi.fn(async () => afterJoin), onAttempt: options.onAttempt ?? vi.fn(async () => ({ ...afterJoin, attempt: { succeeded: false } })) }
+  const props = { value: options.value ?? beforeJoin, onLoad: options.onLoad ?? vi.fn(async () => beforeJoin), onJoin: options.onJoin ?? vi.fn(async () => afterJoin), onAttempt: options.onAttempt ?? vi.fn(async () => ({ ...afterJoin, attempt: { succeeded: false } })), onAttemptB: options.onAttemptB ?? vi.fn(async () => ({ ...afterJoin, attempt: { kind: 'INCORRECT' as const } })) }
   act(() => root.render(<EventScreen {...props} />))
   return { container, root, props }
 }
@@ -95,7 +96,7 @@ describe('EventScreen presentation', () => {
     selectGames(container)
     expect(container.querySelector('.event-stat-grid')).toBeNull()
     expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button'), ({ textContent }) => textContent)).toEqual(['Récolte', 'Grenier', 'Panier'])
-    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button'), ({ disabled }) => disabled)).toEqual([false, true, true])
+    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button'), ({ disabled }) => disabled)).toEqual([false, false, true])
     expect(container.querySelectorAll('.event-game-a-window')).toHaveLength(3)
     expect(container.querySelector('[data-window-state="ACTIVE"]')?.textContent).toContain('Active')
     expect(container.querySelector<HTMLButtonElement>('.event-game-a-action button')?.textContent).toBe('Tenter ma chance')
@@ -138,6 +139,49 @@ describe('EventScreen presentation', () => {
     expect(container.querySelector('.event-game-a-day-state.expired')?.textContent).toBe('Délai dépassé...')
     expect(container.querySelector('.event-game-a-action button')).toBeNull()
     expect(container.textContent).not.toContain('À réussir aujourd’hui')
+  })
+
+  it('shows 32 distinct Game B codes, marks tested codes, and consumes a wrong guess', async () => {
+    const value: EventDto = { ...afterJoin, gameB: { ...afterJoin.gameB, testedCodes: ['00000'], remainingCodes: afterJoin.gameB.remainingCodes.filter((code) => code !== '00000') } }
+    const onAttemptB = vi.fn(async (code: string): Promise<EventGameBAttemptDto> => ({ ...value, gameB: { ...value.gameB, attemptsUsed: 1, attemptsRemaining: 2, testedCodes: ['00000', code], remainingCodes: value.gameB.remainingCodes.filter((entry) => entry !== code) }, operation: { id: 'attempt-b', alreadyProcessed: false }, attempt: { kind: 'INCORRECT' } }))
+    const { container } = mount({ value, onAttemptB }); selectGames(container)
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')).find(({ textContent }) => textContent === 'Grenier')!.click())
+    const codes = Array.from(container.querySelectorAll<HTMLButtonElement>('.event-game-b-code'))
+    expect(codes).toHaveLength(32)
+    expect(new Set(codes.map(({ textContent }) => textContent)).size).toBe(32)
+    expect(codes[0].classList.contains('tested')).toBe(true)
+    expect(codes[0].disabled).toBe(true)
+    expect(codes[1].disabled).toBe(false)
+    expect(container.textContent).toContain('3 essais personnels restants')
+    act(() => codes[1].click())
+    await act(async () => { container.querySelector<HTMLButtonElement>('.event-game-b-action button')!.click(); await Promise.resolve() })
+    expect(onAttemptB).toHaveBeenCalledWith('00001', expect.any(String))
+    expect(container.querySelector('.event-game-b-feedback')?.textContent).toBe('Code incorrect : un essai consommé.')
+  })
+
+  it('shows the discoverer and removes the action after collective resolution', () => {
+    const value: EventDto = { ...afterJoin, gameB: { ...afterJoin.gameB, solvedToday: true, discoveredBy: { id: 'discoverer', displayName: 'Kyo' }, testedCodes: ['11111'], remainingCodes: afterJoin.gameB.remainingCodes.filter((code) => code !== '11111'), canAttempt: false } }
+    const { container } = mount({ value }); selectGames(container)
+    act(() => container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[1].click())
+    expect(container.querySelector('.event-game-b')?.textContent).toContain('Découvert par Kyo')
+    expect(container.querySelector('.event-game-b-action button')).toBeNull()
+    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.event-game-b-code')).every(({ disabled }) => disabled)).toBe(true)
+  })
+
+  it('replays an ambiguous Game B response with the same key after the snapshot exhausts attempts', async () => {
+    const onAttemptB = vi.fn()
+      .mockRejectedValueOnce(new ApiError('NETWORK_ERROR', 'Réseau indisponible.', null))
+      .mockResolvedValueOnce({ ...afterJoin, operation: { id: 'attempt-b', alreadyProcessed: true }, attempt: { kind: 'INCORRECT' } })
+    const mounted = mount({ value: afterJoin, onAttemptB }); selectGames(mounted.container)
+    act(() => mounted.container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[1].click())
+    act(() => mounted.container.querySelector<HTMLButtonElement>('.event-game-b-code')!.click())
+    await act(async () => { mounted.container.querySelector<HTMLButtonElement>('.event-game-b-action button')!.click(); await Promise.resolve() })
+    const firstKey = onAttemptB.mock.calls[0][1]
+    const exhausted: EventDto = { ...afterJoin, gameB: { ...afterJoin.gameB, attemptsUsed: 3, attemptsRemaining: 0, canAttempt: false } }
+    act(() => mounted.root.render(<EventScreen {...mounted.props} value={exhausted} />))
+    expect(mounted.container.querySelector<HTMLButtonElement>('.event-game-b-action button')?.textContent).toBe('Réessayer 00000')
+    await act(async () => { mounted.container.querySelector<HTMLButtonElement>('.event-game-b-action button')!.click(); await Promise.resolve() })
+    expect(onAttemptB.mock.calls.map((call) => call[1])).toEqual([firstKey, firstKey])
   })
 
   it('visually completes every window after a success during an active window', () => {

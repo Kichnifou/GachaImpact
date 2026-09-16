@@ -590,10 +590,22 @@ export type EventDto = Readonly<{
     canAttempt: boolean
     cooldownRemainingMs: number
   }>
+  gameB: Readonly<{
+    available: boolean
+    theme: Readonly<{ key: string; label: string }>
+    solvedToday: boolean
+    discoveredBy: Readonly<{ id: string; displayName: string }> | null
+    attemptsUsed: number
+    attemptsRemaining: number
+    testedCodes: readonly string[]
+    remainingCodes: readonly string[]
+    canAttempt: boolean
+  }>
 }>
 
 export type EventJoinDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }> }>
 export type EventGameAAttemptDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; attempt: Readonly<{ succeeded: boolean }> }>
+export type EventGameBAttemptDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; attempt: Readonly<{ kind: 'ALREADY_TESTED' | 'INCORRECT' | 'CORRECT' }> }>
 
 export type GachaPullResultItemDto = Readonly<{
   index: number

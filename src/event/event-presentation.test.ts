@@ -10,6 +10,7 @@ const event = (joined: boolean, completedToday: boolean, states: readonly ('PAST
   edition: { id: 'edition', year: 2026, startsAt: '', endsAt: '' },
   participation: { joined, joinedAt: joined ? '2026-09-15T08:00:00.000Z' : null, points: 0 }, currency: { amount: '1' }, canJoin,
   gameA: { available: joined, theme: { key: 'recolte', label: 'Récolte' }, completedToday, attemptsToday: 0, windows: states.map((state, index) => ({ startAt: `${index}`, endAt: `${index + 1}`, state })), activeWindowIndex: null, canAttempt: false, cooldownRemainingMs: 0 },
+  gameB: { available: joined, theme: { key: 'harvest', label: 'Festival des Récoltes' }, solvedToday: false, discoveredBy: null, attemptsUsed: 0, attemptsRemaining: joined ? 3 : 0, testedCodes: [], remainingCodes: [], canAttempt: false },
 })
 
 describe('Event presentation', () => {
@@ -40,6 +41,15 @@ describe('Event presentation', () => {
     const nextDay = { ...event(true, false, ['FUTURE']), businessDate: '2026-09-16' }
     expect(eventHasActionableContentToday(completed)).toBe(false)
     expect(eventHasActionableContentToday(nextDay)).toBe(true)
+  })
+
+  it('keeps the Event CTA for Game B when Game A is complete or expired', () => {
+    const withB = (value: EventDto): EventDto => ({ ...value, gameB: { ...value.gameB, canAttempt: true, remainingCodes: ['00000'] } })
+    expect(eventHasActionableContentToday(withB(event(true, true, ['PAST'])))).toBe(true)
+    expect(eventDailyDetail(withB(event(true, true, ['PAST'])))).toBe('Énigme du jour disponible')
+    expect(eventHasActionableContentToday(withB(event(true, false, ['PAST'])))).toBe(true)
+    expect(eventHasActionableContentToday(event(true, false, ['PAST']))).toBe(false)
+    expect(eventHasActionableContentToday({ ...withB(event(true, true, ['PAST'])), gameB: { ...withB(event(true, true, ['PAST'])).gameB, solvedToday: true, canAttempt: false } })).toBe(false)
   })
 
   it('gives the shared primary button an explicit foreground and a neutral disabled state', () => {

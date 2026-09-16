@@ -2149,6 +2149,12 @@ PK :
 
 `PRIMARY KEY(event_edition_id, business_date)`
 
+### 28.6.1 État physique Event Lot 3 — Jeu B
+
+La migration additive `20260916120000_022_add_event_game_b` matérialise cette unique ligne globale par édition et business date. `solution_code` est contraint à cinq bits (`^[01]{5}$`) et `tested_codes` à un tableau JSON ; le service valide en plus chaque entrée, son unicité et son appartenance aux 32 possibilités. La FK édition est couverte par la clé primaire ; la FK facultative du découvreur possède son index dédié et passe à `NULL` si le Player est supprimé sans annuler l'état résolu. La table a RLS active, aucune policy navigateur permissive et aucun droit direct `anon`/`authenticated`.
+
+Le compteur personnel `game_b_attempts_used` reste dans `event_daily_player_states` (migration 021) : aucune seconde table d'essais n'est créée. La solution demeure privée au serveur ; seuls résolu, découvreur, codes testés/restants et quota personnel sont projetés. La résolution et la distribution collective ont lieu dans la même transaction sérialisable.
+
 ---
 
 ## 28.7 `event_milestone_claims`

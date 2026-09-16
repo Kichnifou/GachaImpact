@@ -1508,6 +1508,12 @@ Le modèle est matérialisé paresseusement uniquement après l’inscription vo
 
 La réussite quotidienne met atomiquement à jour cet état, `EventParticipant.points` et `PlayerEventCurrencyBalance.amount`. `BusinessOperation` porte l’idempotence de `event.game-a.attempt`. Les récompenses de paliers restent un lot futur : les points déjà gagnés seront observables sans faux claim ni paiement anticipé.
 
+## 26.7 État physique Event Lot 3 — Jeu B
+
+`EventGameBDailyState` est matérialisé par la migration 022 avec la clé `eventEditionId + businessDate` : solution globale cinq bits, instant de résolution, découvreur facultatif, codes testés et date de mise à jour. Le compteur d'essais personnel déjà présent dans `EventDailyPlayerState` (021) est l'unique source du quota de trois ; aucune nouvelle table Player n'est introduite. Une nouvelle business date crée un état indépendant sans effacer les points d'édition ou la monnaie durable.
+
+Le GET expose au Player et à la communauté la résolution, le découvreur, les 32 codes testés/restants et son quota personnel, jamais `solutionCode`. `BusinessOperation` garde l'intention `event.game-b.attempt` avec édition, business date, code et résultat ; un replay ne consomme ni essai ni récompense. La première résolution incrémente atomiquement les points et la balance de tous les inscrits de un. Le join d'un Player après cette résolution crédite une fois le rattrapage du jour en plus du bonus normal d'inscription. Aucun palier n'est payé dans ce lot.
+
 ---
 
 # 27. Codes cadeaux

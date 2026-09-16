@@ -57,6 +57,7 @@ import type {
   GiftCodeClaimantsDto,
   EventDto,
   EventGameAAttemptDto,
+  EventGameBAttemptDto,
   EventJoinDto,
 } from './types'
 
@@ -211,6 +212,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getEvent: () => request<EventDto>('/api/v1/me/event'),
     joinEvent: (idempotencyKey: string) => request<EventJoinDto>('/api/v1/me/event/join', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     attemptEventGameA: (idempotencyKey: string) => request<EventGameAAttemptDto>('/api/v1/me/event/game-a/attempt', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+    attemptEventGameB: (code: string, idempotencyKey: string) => request<EventGameBAttemptDto>('/api/v1/me/event/game-b/attempt', { method: 'POST', body: JSON.stringify({ code, idempotencyKey }) }),
     claimGiftCode: (editionId: string, idempotencyKey: string) => request<GiftCodeClaimDto>(`/api/v1/me/gift-codes/${encodeURIComponent(editionId)}/claim`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     getAdminGiftCodes: (query: GiftCodeAdminQuery) => request<AdminGiftCodesDto>(`/api/v1/moderation/gift-codes?${queryString(query)}`),
     createGiftCode: (input: { token?: string; title: string; description: string; type: 'ONE_OFF' | 'ANNUAL'; recurringMonth?: number; startsAt?: string; endsAt?: string; rewards: readonly { resourceKey: string; amount: string }[]; idempotencyKey: string }) => request<AdminGiftCodeMutationDto>('/api/v1/moderation/gift-codes', { method: 'POST', body: JSON.stringify(input) }),

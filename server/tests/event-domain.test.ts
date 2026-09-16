@@ -2,9 +2,21 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { EventService, resolveCurrentEventPeriod } from '../src/application/event/event-service.js';
 import { activeEventGameAWindow, computeEventRefreshAfterMs, eventGameASucceeded, generateEventGameAState } from '../src/domain/event/game-a.js';
+import { EVENT_GAME_B_CODES, generateEventGameBSolution, isEventGameBCode, parseEventGameBTestedCodes } from '../src/domain/event/game-b.js';
 import { getBusinessMinuteAt, getNextBusinessResetAt } from '../src/domain/time/business-date.js';
 
 describe('monthly Event period resolution', () => {
+  it('generates one of exactly 32 five-bit codes with injectable RNG', () => {
+    expect(EVENT_GAME_B_CODES).toHaveLength(32);
+    expect(new Set(EVENT_GAME_B_CODES).size).toBe(32);
+    expect(EVENT_GAME_B_CODES.every(isEventGameBCode)).toBe(true);
+    const nextInt = vi.fn(() => 11);
+    expect(generateEventGameBSolution({ nextInt })).toBe('01011');
+    expect(nextInt).toHaveBeenCalledWith(32);
+    expect(['01011']).toEqual(parseEventGameBTestedCodes(['01011']));
+    expect(() => parseEventGameBTestedCodes(['01011', '01011'])).toThrow();
+    expect(['101', '010111', '01012', '01 11', 'abcde'].every((code) => !isEventGameBCode(code))).toBe(true);
+  });
   it('generates three exact personal one-hour windows from injectable rolls', () => {
     const nextInt = vi.fn().mockReturnValueOnce(0).mockReturnValueOnce(300).mockReturnValueOnce(240);
     expect(generateEventGameAState({ nextInt })).toEqual({ version: 1, gameA: { windows: [
@@ -92,6 +104,7 @@ describe('monthly Event period resolution', () => {
       eventEdition: { findUnique: vi.fn(async () => edition), upsert: vi.fn() },
       eventParticipant: { findUnique: vi.fn(async () => null) },
       playerEventCurrencyBalance: { findUnique: vi.fn(async () => ({ amount: 7n })) },
+      eventGameBDailyState: { findUnique: vi.fn(async () => ({ solutionCode: '01011', solvedAt: null, discovererPlayerId: null, testedCodes: [] })), upsert: vi.fn() },
     };
     const service = new EventService(
       { execute: vi.fn(async () => ({ id: '20000000-0000-4000-8000-000000000009' })) } as never,

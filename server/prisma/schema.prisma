@@ -263,6 +263,7 @@ model Player {
   eventCurrencyBalances PlayerEventCurrencyBalance[]
   eventParticipations   EventParticipant[]
   eventDailyStates      EventDailyPlayerState[]
+  eventGameBDiscoveries  EventGameBDailyState[]
 
   @@index([status], map: "players_status_idx")
   @@index([elementKey], map: "players_element_key_idx")
@@ -578,6 +579,7 @@ model EventEdition {
   definition        EventDefinition    @relation(fields: [eventDefinitionId], references: [id], onDelete: Restrict)
   participants      EventParticipant[]
   dailyPlayerStates EventDailyPlayerState[]
+  gameBDailyStates  EventGameBDailyState[]
 
   @@unique([eventDefinitionId, year], map: "event_editions_definition_year_key")
   @@index([startsAt, endsAt], map: "event_editions_period_idx")
@@ -628,6 +630,22 @@ model EventDailyPlayerState {
   @@id([eventEditionId, playerId, businessDate])
   @@index([playerId, businessDate(sort: Desc)], map: "event_daily_player_states_player_date_idx")
   @@map("event_daily_player_states")
+}
+
+model EventGameBDailyState {
+  eventEditionId    String       @map("event_edition_id") @db.Uuid
+  businessDate      DateTime     @map("business_date") @db.Date
+  solutionCode      String       @map("solution_code") @db.Text
+  solvedAt          DateTime?    @map("solved_at") @db.Timestamptz(6)
+  discovererPlayerId String?    @map("discoverer_player_id") @db.Uuid
+  testedCodes       Json         @default("[]") @map("tested_codes") @db.JsonB
+  updatedAt         DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  edition           EventEdition @relation(fields: [eventEditionId], references: [id], onDelete: Cascade)
+  discoverer        Player?      @relation(fields: [discovererPlayerId], references: [id], onDelete: SetNull)
+
+  @@id([eventEditionId, businessDate])
+  @@index([discovererPlayerId], map: "event_game_b_daily_states_discoverer_idx")
+  @@map("event_game_b_daily_states")
 }
 
 model PlayerRoleAssignment {

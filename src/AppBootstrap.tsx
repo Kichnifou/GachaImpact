@@ -92,6 +92,7 @@ function AppBootstrap() {
   const loadEvent = useCallback(async () => { const next = await getGameApiClient().getEvent(); setEvent(next); return next }, [])
   const joinEvent = useCallback(async (idempotencyKey: string) => { const next = await getGameApiClient().joinEvent(idempotencyKey); setEvent(next); return next }, [])
   const attemptEventGameA = useCallback(async (idempotencyKey: string) => { const next = await getGameApiClient().attemptEventGameA(idempotencyKey); setEvent(next); return next }, [])
+  const attemptEventGameB = useCallback(async (code: string, idempotencyKey: string) => { const next = await getGameApiClient().attemptEventGameB(code, idempotencyKey); setEvent(next); return next }, [])
   useEventTemporalRefresh(event, sessionUserId, loadEvent)
   const loadNavigationPreferences = useCallback(() => getGameApiClient().getNavigationPreferences(), [])
   const saveNavigationPreferences = useCallback((value: Parameters<ReturnType<typeof getGameApiClient>['putNavigationPreferences']>[0]) => getGameApiClient().putNavigationPreferences(value), [])
@@ -374,6 +375,7 @@ function AppBootstrap() {
       onLoadEvent={loadEvent}
       onJoinEvent={joinEvent}
       onAttemptEventGameA={attemptEventGameA}
+      onAttemptEventGameB={attemptEventGameB}
       onRefreshContest={loadContest}
       onLoadContestHistory={loadContestHistory}
       onLoadContestHistoryDetail={loadContestHistoryDetail}

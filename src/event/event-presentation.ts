@@ -37,11 +37,12 @@ export function eventGameAExpiredToday(event: EventDto): boolean {
 
 export function eventHasActionableContentToday(event: EventDto): boolean {
   if (!event.participation.joined) return event.canJoin
-  return !event.gameA.completedToday && eventGameAHasRemainingWindow(event)
+  return (!event.gameA.completedToday && eventGameAHasRemainingWindow(event)) || event.gameB.canAttempt
 }
 
 export function eventDailyDetail(event: EventDto): string {
   if (!event.participation.joined) return 'Participation disponible'
+  if (event.gameB.canAttempt && (event.gameA.completedToday || !eventGameAHasRemainingWindow(event))) return 'Énigme du jour disponible'
   if (event.gameA.completedToday) return 'Jeu du jour réussi'
   return eventGameAHasRemainingWindow(event) ? 'Jeu du jour disponible' : 'Délai dépassé'
 }
