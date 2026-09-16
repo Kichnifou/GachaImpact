@@ -8,7 +8,7 @@ import { AppError } from '../errors.js';
 type Options = Readonly<{ authenticate: preHandlerHookHandler; service: EventService }>;
 const joinSchema = z.object({ idempotencyKey: z.uuid() }).strict();
 const gameBAttemptSchema = z.object({ code: z.string().regex(/^[01]{5}$/), idempotencyKey: z.uuid() }).strict();
-const gameCSearchSchema = z.object({ q: z.string().trim().min(2).max(100), page: z.coerce.number().int().min(1).max(50).default(1) }).strict();
+const gameCSearchSchema = z.object({ q: z.string().trim().max(100).default(''), elementKey: z.enum(['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro']).optional(), sort: z.enum(['name', 'level']).default('name'), direction: z.enum(['asc', 'desc']).default('asc'), page: z.coerce.number().int().min(1).max(50).default(1) }).strict();
 const gameCSendSchema = z.object({ recipientPlayerId: z.uuid(), message: z.string().trim().min(1).max(500), idempotencyKey: z.uuid() }).strict();
 
 export const registerEventRoutes: FastifyPluginAsync<Options> = async (app, options) => {
@@ -32,7 +32,7 @@ export const registerEventRoutes: FastifyPluginAsync<Options> = async (app, opti
   app.get('/api/v1/me/event/game-c/recipients', { preHandler: options.authenticate }, (request) => {
     const parsed = gameCSearchSchema.safeParse(request.query);
     if (!parsed.success) throw new AppError('La recherche de destinataire est invalide.', 400, 'VALIDATION_ERROR');
-    return options.service.searchGameCRecipients(requireAuthenticatedIdentity(request), parsed.data.q, parsed.data.page);
+    return options.service.searchGameCRecipients(requireAuthenticatedIdentity(request), parsed.data);
   });
   app.post('/api/v1/me/event/game-c/send', { preHandler: options.authenticate }, (request) => {
     const parsed = gameCSendSchema.safeParse(request.body);

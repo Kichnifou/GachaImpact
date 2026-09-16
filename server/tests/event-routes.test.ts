@@ -61,8 +61,8 @@ describe('Event HTTP contracts', () => {
     const { app, service } = await setup(); const key = randomUUID(); const recipientPlayerId = randomUUID(); const headers = { authorization: 'Bearer token' };
     expect((await app.inject({ url: '/api/v1/me/event/game-c/recipients?q=Al' })).statusCode).toBe(401);
     expect((await app.inject({ url: '/api/v1/me/event/game-c/recipients?q=Al&page=1', headers })).statusCode).toBe(200);
-    expect(service.searchGameCRecipients).toHaveBeenCalledWith(expect.objectContaining({ subject: 'event-subject' }), 'Al', 1);
-    expect((await app.inject({ url: '/api/v1/me/event/game-c/recipients?q=A', headers })).statusCode).toBe(400);
+    expect(service.searchGameCRecipients).toHaveBeenCalledWith(expect.objectContaining({ subject: 'event-subject' }), { q: 'Al', sort: 'name', direction: 'asc', page: 1 });
+    expect((await app.inject({ url: '/api/v1/me/event/game-c/recipients?q=A', headers })).statusCode).toBe(200);
     expect((await app.inject({ method: 'POST', url: '/api/v1/me/event/game-c/send', payload: { recipientPlayerId, message: 'Bonjour', idempotencyKey: key } })).statusCode).toBe(401);
     expect((await app.inject({ method: 'POST', url: '/api/v1/me/event/game-c/send', headers, payload: { recipientPlayerId, message: ' Bonjour ', idempotencyKey: key } })).statusCode).toBe(200);
     expect(service.sendGameC).toHaveBeenCalledWith(expect.objectContaining({ subject: 'event-subject' }), recipientPlayerId, 'Bonjour', key);

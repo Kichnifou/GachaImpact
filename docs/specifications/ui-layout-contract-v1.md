@@ -67,6 +67,8 @@ Aucune requête n’est envoyée pendant le mouvement. Un drop valide produit ex
 
 ## Interactions, modales et régions dynamiques
 
+Avant de créer une nouvelle interaction ou un nouveau composant UI, rechercher les patterns existants et les réutiliser ou en extraire une primitive commune. Une UX distincte ne se justifie que si les interactions existantes ne répondent pas au besoin. Les spécialisations d’une primitive commune conservent leurs permissions et données propres à chaque domaine.
+
 - Les boutons d’action réutilisent une primitive partagée dont la variante secondaire sombre, primaire, danger ou iconique définit elle-même fond, couleur, bordure, rayon, dimensions et états hover, `focus-visible`, disabled et pending. Le type par défaut est `button`. Aucun contrôle de ces familles ne dépend du fond natif clair du navigateur ou d’un héritage de couleur isolé ; les variantes métier déjà établies hors de la surface touchée ne sont pas repeintes implicitement.
 - Tout contrôle interactif activé annonce son affordance avec un curseur cohérent et un état `focus-visible`. Un contrôle désactivé conserve son rendu de feedback, utilise un style grisé et `cursor: not-allowed` ; une surface non interactive ne simule pas un clic.
 - Une mutation affiche son état pending dès le rendu suivant le clic, avant la réponse réseau. Son libellé et son éventuel indicateur `aria-busy` restent dans une enveloppe de dimensions stables afin de ne pas déplacer les contrôles voisins. Une garde synchrone protège le double clic lorsque le state React n’a pas encore été rendu.

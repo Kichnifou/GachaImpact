@@ -95,7 +95,7 @@ function AppBootstrap() {
   const joinEvent = useCallback((idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().joinEvent(idempotencyKey)), [eventRequests])
   const attemptEventGameA = useCallback((idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().attemptEventGameA(idempotencyKey)), [eventRequests])
   const attemptEventGameB = useCallback((code: string, idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().attemptEventGameB(code, idempotencyKey)), [eventRequests])
-  const searchEventGameCRecipients = useCallback((q: string, page: number) => getGameApiClient().searchEventGameCRecipients(q, page), [])
+  const searchEventGameCRecipients = useCallback((input: Parameters<ReturnType<typeof getGameApiClient>['searchEventGameCRecipients']>[0]) => getGameApiClient().searchEventGameCRecipients(input), [])
   const sendEventGameC = useCallback((recipientPlayerId: string, message: string, idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().sendEventGameC(recipientPlayerId, message, idempotencyKey)), [eventRequests])
   useLayoutEffect(() => { eventRequests.reset() }, [eventRequests, sessionUserId])
   useEventTemporalRefresh(event, sessionUserId, loadEvent)

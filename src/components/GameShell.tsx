@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { BankHistoryDto, BankTransferDto, BoxCharacterDto, BoxSortPreferenceDto, ContestDto, ContestHistoryDto, ContestSnapshotDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyCombatFightDto, DailyRewardClaimDto, DailyRewardTodayDto, EventDto, EventGameAAttemptDto, EventJoinDto, ExpeditionClaimDto, ExpeditionDto, ExpeditionStartDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, GiftCodeClaimDto, InventoryItemDetailDto, ModerationPermissionsDto, ModerationPlayerListQuery, ModerationPlayerPageDto, ModerationStateDto, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto, NavigationMenuPreferenceDto, NotificationsDto, PlayerBankDto, PlayerBoxDto, PlayerDto, PlayerGiftCodesDto, PlayerInventoryDto, PlayerProgressionDto, PlayerResourcesDto, PlayerShopDto, PlayerTeamsDto, ShopHistoryDto, ShopPurchaseDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import type { ScreenId } from '../types'
-import type { EventGameBAttemptDto, EventGameCRecipientsDto, EventGameCSendDto } from '../api/types'
+import type { EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto } from '../api/types'
 import BoxScreen from '../screens/BoxScreen'
 import CharactersScreen from '../screens/CharactersScreen'
 import HomeScreen from '../screens/HomeScreen'
@@ -64,7 +64,7 @@ type GameShellProps = {
   onJoinEvent: (key: string) => Promise<EventJoinDto>
   onAttemptEventGameA: (key: string) => Promise<EventGameAAttemptDto>
   onAttemptEventGameB: (code: string, key: string) => Promise<EventGameBAttemptDto>
-  onSearchEventGameCRecipients: (q: string, page: number) => Promise<EventGameCRecipientsDto>
+  onSearchEventGameCRecipients: (query: EventGameCRecipientQuery) => Promise<EventGameCRecipientsDto>
   onSendEventGameC: (recipientPlayerId: string, message: string, key: string) => Promise<EventGameCSendDto>
   onConsultEventGameCMessages: () => Promise<EventDto>
   onRefreshContest: () => Promise<ContestDto>

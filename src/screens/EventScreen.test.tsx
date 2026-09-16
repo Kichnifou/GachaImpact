@@ -3,7 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api/game-api'
-import type { EventDto, EventGameAAttemptDto, EventGameBAttemptDto, EventGameCRecipientsDto, EventGameCSendDto, EventJoinDto } from '../api/types'
+import type { EventDto, EventGameAAttemptDto, EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto, EventJoinDto } from '../api/types'
 import EventScreen from './EventScreen'
 
 const roots: Root[] = []
@@ -26,7 +26,7 @@ const joinedGameA = { available: true, theme: { key: 'recolte', label: 'Récolte
 ], activeWindowIndex: 1, canAttempt: true, cooldownRemainingMs: 0 }
 const afterJoin: EventJoinDto = { ...beforeJoin, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, gameA: joinedGameA, gameB: { ...beforeJoin.gameB, available: true, attemptsRemaining: 3, canAttempt: true }, gameC: { ...beforeJoin.gameC, available: true, canSend: true }, operation: { id: 'operation-1', alreadyProcessed: false } }
 
-function mount(options: { value?: EventDto; onLoad?: () => Promise<EventDto>; onJoin?: (key: string) => Promise<EventJoinDto>; onAttempt?: (key: string) => Promise<EventGameAAttemptDto>; onAttemptB?: (code: string, key: string) => Promise<EventGameBAttemptDto>; onSearchRecipients?: (q: string, page: number) => Promise<EventGameCRecipientsDto>; onSendGameC?: (recipientId: string, message: string, key: string) => Promise<EventGameCSendDto>; onConsultMessages?: () => Promise<EventDto>; openMessagesToken?: number } = {}) {
+function mount(options: { value?: EventDto; onLoad?: () => Promise<EventDto>; onJoin?: (key: string) => Promise<EventJoinDto>; onAttempt?: (key: string) => Promise<EventGameAAttemptDto>; onAttemptB?: (code: string, key: string) => Promise<EventGameBAttemptDto>; onSearchRecipients?: (query: EventGameCRecipientQuery) => Promise<EventGameCRecipientsDto>; onSendGameC?: (recipientId: string, message: string, key: string) => Promise<EventGameCSendDto>; onConsultMessages?: () => Promise<EventDto>; openMessagesToken?: number } = {}) {
   const container = document.createElement('div'); document.body.append(container)
   const root = createRoot(container); roots.push(root)
   const props = { value: options.value ?? beforeJoin, onLoad: options.onLoad ?? vi.fn(async () => beforeJoin), onJoin: options.onJoin ?? vi.fn(async () => afterJoin), onAttempt: options.onAttempt ?? vi.fn(async () => ({ ...afterJoin, attempt: { succeeded: false } })), onAttemptB: options.onAttemptB ?? vi.fn(async () => ({ ...afterJoin, attempt: { kind: 'INCORRECT' as const } })), onSearchRecipients: options.onSearchRecipients, onSendGameC: options.onSendGameC, onConsultMessages: options.onConsultMessages, openMessagesToken: options.openMessagesToken }
@@ -285,7 +285,8 @@ describe('EventScreen presentation', () => {
     const { container } = mount({ value: afterJoin })
     selectGames(container)
     act(() => container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[2]!.click())
-    expect(container.querySelector('.event-game-c-send input[type="search"]')).not.toBeNull()
+    expect(container.querySelector('.event-game-c-send input[type="search"]')).toBeNull()
+    expect(container.textContent).toContain('Choisir un joueur')
     expect(container.querySelector('.event-game-c-send textarea')).not.toBeNull()
     expect(container.querySelector('.event-game-c-inbox')?.textContent).toContain('Aucun message reçu aujourd’hui')
   })
@@ -309,22 +310,57 @@ describe('EventScreen presentation', () => {
   })
 
   it('searches an eligible recipient, selects their ID and sends one trimmed daily message', async () => {
-    const onSearchRecipients = vi.fn(async () => ({ page: 1, hasMore: false, recipients: [{ playerId: 'player-2', displayName: 'Ami Panier' }] }))
+    const onSearchRecipients = vi.fn(async () => ({ page: 1, pageSize: 10 as const, total: 1, totalPages: 1, recipients: [{ playerId: 'player-2', displayName: 'Ami Panier', level: 5, elementKey: 'hydro' as const }] }))
     const onSendGameC = vi.fn(async () => ({ ...afterJoin, gameC: { ...afterJoin.gameC, sentToday: true, canSend: false }, participation: { ...afterJoin.participation, points: 1 }, currency: { amount: '2' }, operation: { id: 'operation-c', alreadyProcessed: false } }))
     const mounted = mount({ value: afterJoin, onSearchRecipients, onSendGameC })
     selectGames(mounted.container)
     act(() => mounted.container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[2]!.click())
-    const input = mounted.container.querySelector<HTMLInputElement>('.event-game-c-send input[type="search"]')!
+    act(() => Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-game-c-send button')).find((button) => button.textContent === 'Choisir un joueur')!.click())
+    const input = mounted.container.querySelector<HTMLInputElement>('.event-player-browser input[type="search"]')!
     act(() => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'Ami'); input.dispatchEvent(new Event('input', { bubbles: true })) })
-    await act(async () => { await new Promise((resolve) => window.setTimeout(resolve, 300)) })
-    expect(onSearchRecipients).toHaveBeenCalledWith('Ami', 1)
-    act(() => mounted.container.querySelector<HTMLButtonElement>('.event-game-c-results button')!.click())
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    expect(onSearchRecipients).toHaveBeenLastCalledWith({ query: 'Ami', elementKey: null, sort: 'name', direction: 'asc', page: 1 })
+    act(() => mounted.container.querySelector<HTMLButtonElement>('.event-player-browser .moderation-browser-results button')!.click())
+    act(() => Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-player-browser button')).find((button) => button.textContent === 'Choisir ce joueur')!.click())
     const textarea = mounted.container.querySelector<HTMLTextAreaElement>('.event-game-c-send textarea')!
     act(() => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, ' Bon Festival ! '); textarea.dispatchEvent(new Event('input', { bubbles: true })) })
-    await act(async () => { mounted.container.querySelector<HTMLButtonElement>('.event-game-c-send .small-primary-button')!.click(); await Promise.resolve() })
+    await act(async () => { Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-game-c-send .small-primary-button')).find((button) => button.textContent === 'Envoyer')!.click(); await Promise.resolve() })
     expect(onSendGameC).toHaveBeenCalledWith('player-2', 'Bon Festival !', expect.any(String))
     act(() => mounted.root.render(<EventScreen {...mounted.props} value={{ ...afterJoin, gameC: { ...afterJoin.gameC, sentToday: true, canSend: false } }} />))
     expect(mounted.container.querySelector('.event-game-c-sent')?.textContent).toContain('Envoyé aujourd’hui')
+  })
+
+  it('uses the shared browser with only safe Event filters and pages of ten', async () => {
+    const onSearchRecipients = vi.fn(async (query: EventGameCRecipientQuery): Promise<EventGameCRecipientsDto> => ({
+      page: query.page, pageSize: 10, total: 11, totalPages: 2,
+      recipients: [{ playerId: `recipient-${query.page}`, displayName: 'Destinataire', level: 9, elementKey: 'geo' }],
+    }))
+    const { container } = mount({ value: afterJoin, onSearchRecipients })
+    selectGames(container)
+    act(() => container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[2]!.click())
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('.event-game-c-send button')).find((button) => button.textContent === 'Choisir un joueur')!.click())
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    expect(onSearchRecipients).toHaveBeenLastCalledWith({ query: '', elementKey: null, sort: 'name', direction: 'asc', page: 1 })
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull()
+    expect(container.textContent).not.toContain('Rôle Testeur')
+    expect(container.textContent).not.toContain('Testeur')
+    const search = container.querySelector<HTMLInputElement>('.event-player-browser input[type="search"]')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, 'D'); search.dispatchEvent(new Event('input', { bubbles: true })); await Promise.resolve(); await Promise.resolve() })
+    expect(onSearchRecipients).toHaveBeenLastCalledWith({ query: 'D', elementKey: null, sort: 'name', direction: 'asc', page: 1 })
+    const selects = container.querySelectorAll<HTMLSelectElement>('.event-player-browser select')
+    expect(selects).toHaveLength(2)
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(selects[0], 'geo'); selects[0]!.dispatchEvent(new Event('change', { bubbles: true }))
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(selects[1], 'level'); selects[1]!.dispatchEvent(new Event('change', { bubbles: true }))
+      await Promise.resolve(); await Promise.resolve()
+    })
+    act(() => container.querySelector<HTMLButtonElement>('.event-player-browser .sort-direction-button')!.click())
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    expect(onSearchRecipients).toHaveBeenLastCalledWith({ query: 'D', elementKey: 'geo', sort: 'level', direction: 'desc', page: 1 })
+    await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('.event-player-browser button')).find((button) => button.textContent === 'Suivant')!.click(); await Promise.resolve(); await Promise.resolve() })
+    expect(onSearchRecipients).toHaveBeenLastCalledWith({ query: 'D', elementKey: 'geo', sort: 'level', direction: 'desc', page: 2 })
+    act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })))
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
   })
 
   it.each([[1920, 1080], [1774, 864], [1366, 768], [390, 844]])('keeps one bounded scroll owner at %d×%d', (width, height) => {

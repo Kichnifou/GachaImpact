@@ -16,7 +16,7 @@ import { createExpeditionClientSnapshot, type ExpeditionClientSnapshot } from '.
 import { eventDailyDetail, eventHasActionableContentToday } from '../event/event-presentation'
 import ContestScreen from './ContestScreen'
 import EventScreen from './EventScreen'
-import type { EventGameBAttemptDto, EventGameCRecipientsDto, EventGameCSendDto } from '../api/types'
+import type { EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto } from '../api/types'
 
 type ActivitiesScreenProps = {
   screen: ScreenId
@@ -34,7 +34,7 @@ type ActivitiesScreenProps = {
   onJoinEvent?: (key: string) => Promise<EventJoinDto>
   onAttemptEventGameA?: (key: string) => Promise<EventGameAAttemptDto>
   onAttemptEventGameB?: (code: string, key: string) => Promise<EventGameBAttemptDto>
-  onSearchEventGameCRecipients?: (q: string, page: number) => Promise<EventGameCRecipientsDto>
+  onSearchEventGameCRecipients?: (query: EventGameCRecipientQuery) => Promise<EventGameCRecipientsDto>
   onSendEventGameC?: (recipientPlayerId: string, message: string, key: string) => Promise<EventGameCSendDto>
   onConsultEventGameCMessages?: () => Promise<EventDto>
   eventMessagesRequestToken?: number

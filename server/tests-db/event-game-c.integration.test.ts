@@ -95,7 +95,7 @@ describe('Event Game C with isolated future editions and fixture Players', () =>
   it('applies both block directions, Public/Friends/Private and moderation to search and send', async () => {
     const sender = await fixture('Sender'); const recipient = await fixture('Recipient');
     await join(sender);
-    const search = () => service.searchGameCRecipients(sender.identity, recipient.displayName.slice(0, 8), 1);
+    const search = () => service.searchGameCRecipients(sender.identity, { q: recipient.displayName.slice(0, 8), sort: 'name', direction: 'asc', page: 1 });
     expect((await search()).recipients.map(({ playerId }) => playerId)).toContain(recipient.playerId);
     await database.playerBlock.create({ data: { blockerPlayerId: sender.playerId, blockedPlayerId: recipient.playerId } });
     expect((await search()).recipients).toHaveLength(0);

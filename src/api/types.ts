@@ -615,7 +615,9 @@ export type EventDto = Readonly<{
 export type EventJoinDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }> }>
 export type EventGameAAttemptDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; attempt: Readonly<{ succeeded: boolean }> }>
 export type EventGameBAttemptDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; attempt: Readonly<{ kind: 'ALREADY_TESTED' | 'INCORRECT' | 'CORRECT' }> }>
-export type EventGameCRecipientsDto = Readonly<{ page: number; hasMore: boolean; recipients: readonly Readonly<{ playerId: string; displayName: string }>[] }>
+export type EventGameCRecipientQuery = Readonly<{ query: string; elementKey: ElementKey | null; sort: 'name' | 'level'; direction: 'asc' | 'desc'; page: number }>
+export type EventGameCRecipientDto = Readonly<{ playerId: string; displayName: string; level: number; elementKey: ElementKey | null }>
+export type EventGameCRecipientsDto = Readonly<{ page: number; pageSize: 10; total: number; totalPages: number; recipients: readonly EventGameCRecipientDto[] }>
 export type EventGameCSendDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }> }>
 
 export type GachaPullResultItemDto = Readonly<{

@@ -58,6 +58,7 @@ import type {
   EventDto,
   EventGameAAttemptDto,
   EventGameBAttemptDto,
+  EventGameCRecipientQuery,
   EventGameCRecipientsDto,
   EventGameCSendDto,
   EventJoinDto,
@@ -215,7 +216,11 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     joinEvent: (idempotencyKey: string) => request<EventJoinDto>('/api/v1/me/event/join', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     attemptEventGameA: (idempotencyKey: string) => request<EventGameAAttemptDto>('/api/v1/me/event/game-a/attempt', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     attemptEventGameB: (code: string, idempotencyKey: string) => request<EventGameBAttemptDto>('/api/v1/me/event/game-b/attempt', { method: 'POST', body: JSON.stringify({ code, idempotencyKey }) }),
-    searchEventGameCRecipients: (q: string, page = 1) => request<EventGameCRecipientsDto>(`/api/v1/me/event/game-c/recipients?q=${encodeURIComponent(q)}&page=${page}`),
+    searchEventGameCRecipients: (input: EventGameCRecipientQuery) => {
+      const query = new URLSearchParams({ q: input.query, sort: input.sort, direction: input.direction, page: String(input.page) })
+      if (input.elementKey) query.set('elementKey', input.elementKey)
+      return request<EventGameCRecipientsDto>(`/api/v1/me/event/game-c/recipients?${query}`)
+    },
     sendEventGameC: (recipientPlayerId: string, message: string, idempotencyKey: string) => request<EventGameCSendDto>('/api/v1/me/event/game-c/send', { method: 'POST', body: JSON.stringify({ recipientPlayerId, message, idempotencyKey }) }),
     consultEventGameCMessages: () => request<EventDto>('/api/v1/me/event/game-c/messages/consult', { method: 'POST', body: '{}' }),
     claimGiftCode: (editionId: string, idempotencyKey: string) => request<GiftCodeClaimDto>(`/api/v1/me/gift-codes/${encodeURIComponent(editionId)}/claim`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),

@@ -6,6 +6,7 @@ import { businessDateToDatabaseDate, getBusinessDate, getBusinessDayStartAt, get
 import type { RandomSource } from '../../domain/wheel/wheel.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
 import { BusinessError } from '../errors.js';
+import { MAX_PLAYER_LEVEL, XP_PER_LEVEL } from '../../domain/player/player-progression.js';
 import { reconcileEventMessageAggregate } from '../notification/event-message-notifications.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
 import { eligibleContactRecipient } from '../social/contact-permission.js';
@@ -295,20 +296,30 @@ export class EventService {
     throw new Error('Event Game B attempt could not be completed.');
   }
 
-  public async searchGameCRecipients(identity: AuthenticatedIdentity, query: string, page: number) {
+  public async searchGameCRecipients(identity: AuthenticatedIdentity, query: Readonly<{ q: string; elementKey?: 'pyro' | 'hydro' | 'cryo' | 'electro' | 'anemo' | 'geo' | 'dendro'; sort: 'name' | 'level'; direction: 'asc' | 'desc'; page: number }>) {
     const player = await this.getPlayer.execute(identity);
     if (player.status !== 'ACTIVE') throw new BusinessError('EVENT_GAME_C_CONTACT_UNAVAILABLE', 'Ce message ne peut pas être envoyé.');
-    const q = query.trim();
-    if (q.length < 2 || q.length > 100 || !Number.isInteger(page) || page < 1 || page > 50) throw new BusinessError('EVENT_GAME_C_INVALID_SEARCH', 'Saisissez au moins deux caractères pour rechercher un joueur.');
+    const q = query.q.trim();
+    if (q.length > 100 || !Number.isInteger(query.page) || query.page < 1 || query.page > 50) throw new BusinessError('EVENT_GAME_C_INVALID_SEARCH', 'La recherche de joueur est invalide.');
     const context = await this.resolveCurrentEdition(this.database, this.clock.now());
     const participant = await this.database.eventParticipant.findUnique({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: player.id } }, select: { playerId: true } });
     if (!participant) throw new BusinessError('EVENT_NOT_JOINED', 'Rejoignez le Festival avant de jouer.');
     const rows = await this.database.player.findMany({
-      where: { ...eligibleContactRecipient(player.id), displayName: { contains: q, mode: 'insensitive' } },
-      select: { id: true, displayName: true },
-      orderBy: [{ displayName: 'asc' }, { id: 'asc' }], skip: (page - 1) * 20, take: 21,
+      where: { ...eligibleContactRecipient(player.id), ...(q ? { displayName: { contains: q, mode: 'insensitive' as const } } : {}), ...(query.elementKey ? { elementKey: query.elementKey } : {}) },
+      select: { id: true, displayName: true, elementKey: true, progression: { select: { xp: true } } },
     });
-    return { page, hasMore: rows.length > 20, recipients: rows.slice(0, 20).map(({ id, displayName }) => ({ playerId: id, displayName })) };
+    const collator = new Intl.Collator('fr-FR', { sensitivity: 'base', numeric: true });
+    const recipients = rows.map(({ id, displayName, elementKey, progression }) => ({ playerId: id, displayName, elementKey, level: Math.min(MAX_PLAYER_LEVEL, Number((progression?.xp ?? 0n) / XP_PER_LEVEL)) }));
+    const direction = query.direction === 'asc' ? 1 : -1;
+    recipients.sort((left, right) => {
+      const primary = query.sort === 'level' ? left.level - right.level : collator.compare(left.displayName, right.displayName);
+      return primary !== 0 ? primary * direction : collator.compare(left.displayName, right.displayName) || left.playerId.localeCompare(right.playerId);
+    });
+    const pageSize = 10 as const;
+    const total = recipients.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const page = Math.min(query.page, totalPages);
+    return { page, pageSize, total, totalPages, recipients: recipients.slice((page - 1) * pageSize, page * pageSize) };
   }
 
   public async sendGameC(identity: AuthenticatedIdentity, recipientPlayerId: string, message: string, idempotencyKey: string) {

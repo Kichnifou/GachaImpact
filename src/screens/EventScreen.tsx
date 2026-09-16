@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
-import type { EventDto, EventGameAAttemptDto, EventGameBAttemptDto, EventGameCRecipientsDto, EventGameCSendDto, EventJoinDto } from '../api/types'
+import type { EventDto, EventGameAAttemptDto, EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto, EventJoinDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
 import ScreenHeader from '../components/ScreenHeader'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
+import PlayerSelectionBrowser, { type PlayerBrowserQuery } from '../components/PlayerSelectionBrowser'
 import { eventGameAExpiredToday, eventPresentation } from '../event/event-presentation'
 import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
 
@@ -13,7 +14,7 @@ type Props = Readonly<{
   onJoin: (idempotencyKey: string) => Promise<EventJoinDto>
   onAttempt: (idempotencyKey: string) => Promise<EventGameAAttemptDto>
   onAttemptB: (code: string, idempotencyKey: string) => Promise<EventGameBAttemptDto>
-  onSearchRecipients?: (q: string, page: number) => Promise<EventGameCRecipientsDto>
+  onSearchRecipients?: (query: EventGameCRecipientQuery) => Promise<EventGameCRecipientsDto>
   onSendGameC?: (recipientPlayerId: string, message: string, idempotencyKey: string) => Promise<EventGameCSendDto>
   onConsultMessages?: () => Promise<EventDto>
   openMessagesToken?: number
@@ -27,7 +28,7 @@ const periodFormatter = new Intl.DateTimeFormat('fr-FR', {
 })
 
 const timeFormatter = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })
-const unavailableRecipientSearch = async (): Promise<EventGameCRecipientsDto> => ({ page: 1, hasMore: false, recipients: [] })
+const unavailableRecipientSearch = async (): Promise<EventGameCRecipientsDto> => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, recipients: [] })
 const unavailableGameCSend = async (): Promise<EventGameCSendDto> => { throw new Error('Jeu C indisponible.') }
 
 function EventCooldownButton({ durationMs }: Readonly<{ durationMs: number }>) {
@@ -54,9 +55,7 @@ export default function EventScreen({ value, onLoad, onJoin, onAttempt, onAttemp
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
   const [gameBIntent, setGameBIntent] = useState<Readonly<{ code: string; key: string }> | null>(null)
   const [gameBFeedback, setGameBFeedback] = useState<string | null>(null)
-  const [recipientQuery, setRecipientQuery] = useState('')
-  const [recipientPage, setRecipientPage] = useState(1)
-  const [recipientResults, setRecipientResults] = useState<EventGameCRecipientsDto | null>(null)
+  const [recipientBrowserOpen, setRecipientBrowserOpen] = useState(false)
   const [selectedRecipient, setSelectedRecipient] = useState<EventGameCRecipientsDto['recipients'][number] | null>(null)
   const [gameCMessage, setGameCMessage] = useState('')
   const [gameCIntent, setGameCIntent] = useState<Readonly<{ recipientPlayerId: string; message: string; key: string }> | null>(null)
@@ -110,12 +109,10 @@ export default function EventScreen({ value, onLoad, onJoin, onAttempt, onAttemp
     if (!value.participation.joined && section === 'games' && gameTab !== 2) setGameTab(2)
   }, [section, gameTab, value.participation.joined, value.gameC.available, openMessagesToken])
 
-  useEffect(() => {
-    if (section !== 'games' || gameTab !== 2 || !value.gameC.canSend || recipientQuery.trim().length < 2) return
-    let active = true
-    const timer = window.setTimeout(() => { void onSearchRecipients(recipientQuery.trim(), recipientPage).then((result) => { if (active) setRecipientResults(result) }).catch((reason) => { if (active) setError(apiErrorMessage(reason)) }) }, 250)
-    return () => { active = false; window.clearTimeout(timer) }
-  }, [section, gameTab, value.gameC.canSend, recipientQuery, recipientPage, onSearchRecipients])
+  const listRecipients = useCallback(async (query: PlayerBrowserQuery) => {
+    const result = await onSearchRecipients({ query: query.query, elementKey: query.elementKey, sort: query.sort, direction: query.direction, page: query.page })
+    return { ...result, players: result.recipients.map((recipient) => ({ ...recipient, id: recipient.playerId })) }
+  }, [onSearchRecipients])
 
   useEffect(() => {
     if (section !== 'games' || gameTab !== 2 || value.gameC.unviewedCount === 0 || !onConsultMessages) return
@@ -290,10 +287,8 @@ export default function EventScreen({ value, onLoad, onJoin, onAttempt, onAttemp
       {section === 'games' && gameTab === 2 && value.gameC.available && <section className="panel event-game-c">
         <header><span className="eyebrow">Message du Festival</span><h2>{presentation.games[2]}</h2></header>
         {value.gameC.canSend ? <div className="event-game-c-send">
-          <label htmlFor="event-game-c-search">Rechercher un joueur</label>
-          <input id="event-game-c-search" type="search" value={recipientQuery} maxLength={100} onChange={(event) => { setRecipientQuery(event.target.value); setRecipientPage(1); setRecipientResults(null); setSelectedRecipient(null) }} placeholder="Saisissez au moins 2 caractères" />
-          {recipientResults && <div className="event-game-c-results" aria-label="Destinataires éligibles">{recipientResults.recipients.length ? recipientResults.recipients.map((recipient) => <button type="button" className={selectedRecipient?.playerId === recipient.playerId ? 'selected' : ''} key={recipient.playerId} onClick={() => setSelectedRecipient(recipient)}>{recipient.displayName}</button>) : <p>Aucun joueur éligible trouvé.</p>}{recipientResults.hasMore && <button type="button" onClick={() => setRecipientPage((page) => page + 1)}>Plus de résultats</button>}</div>}
-          {selectedRecipient && <p>Destinataire : <strong>{selectedRecipient.displayName}</strong></p>}
+          {selectedRecipient ? <p>Destinataire : <strong>{selectedRecipient.displayName}</strong><br /><span>Niveau {selectedRecipient.level} · {selectedRecipient.elementKey ?? 'Élément non choisi'}</span></p> : null}
+          <button type="button" className="small-primary-button" onClick={() => setRecipientBrowserOpen(true)}>{selectedRecipient ? 'Changer' : 'Choisir un joueur'}</button>
           <label htmlFor="event-game-c-message">Votre message</label>
           <textarea id="event-game-c-message" value={gameCMessage} maxLength={500} rows={3} onChange={(event) => setGameCMessage(event.target.value)} />
           <button type="button" className="small-primary-button" disabled={pending || !selectedRecipient || !gameCMessage.trim()} onClick={() => void sendGameC()}>{pending ? 'Envoi…' : 'Envoyer'}</button>
@@ -303,5 +298,6 @@ export default function EventScreen({ value, onLoad, onJoin, onAttempt, onAttemp
       </section>}
       <p className="event-feedback" role={error ? 'alert' : 'status'}>{error ?? ''}</p>
     </ScrollableScreenPanel>
+    {recipientBrowserOpen && <PlayerSelectionBrowser eyebrow="Événement · Panier" title="Choisir un joueur" selectedPlayerId={selectedRecipient?.playerId ?? ''} onListPlayers={listRecipients} onConfirm={(recipient) => { setSelectedRecipient(recipient); setRecipientBrowserOpen(false) }} onClose={() => setRecipientBrowserOpen(false)} />}
   </div>
 }
