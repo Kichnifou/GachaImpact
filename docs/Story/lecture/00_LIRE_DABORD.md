@@ -1,7 +1,7 @@
 # Les Origines — dossier de lecture
 
 > VUE GÉNÉRÉE — ne pas modifier ce fichier. Source : [STORY_SOURCE.md](../STORY_SOURCE.md).
-> Empreinte SHA-256 : `e86b10d3045b8a92825b10c7f0688528df40639bce1021219dbed6cb30ebb7e1`.
+> Empreinte SHA-256 : `b020ae137ef53d3ccf9df8c1c6b2dc7e6100dc4eeceb520ba8c90f29342c42ae`.
 
 La source peut être consultée dans VS Code et versionnée dans le dépôt. Aucun fichier du jeu n’est modifié par cette génération.
 
@@ -14,7 +14,7 @@ La source peut être consultée dans VS Code et versionnée dans le dépôt. Auc
 | [Chapitres](05_CHAPITRES.md) | Suivre l’ordre de révélation au joueur. |
 | [Index et impacts](06_INDEX_ET_IMPACTS.md) | Trouver un bloc et ses dépendances. |
 
-144 blocs ; 77 confirmés ; 9 arbitrages ouverts.
+153 blocs ; 87 confirmés ; 9 arbitrages ouverts.
 
 ## Export Word
 

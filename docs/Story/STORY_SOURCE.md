@@ -1,6 +1,6 @@
 # Les Origines — Source narrative unique
 
-Version : 1.5 de travail — 15 septembre 2026
+Version : 1.6 de travail — 16 septembre 2026
 
 Ce fichier remplace la bible narrative v1.0 comme source éditable. Divulgâchage intégral. Les décisions confirmées, les propositions et les questions sont distinguées au niveau de chaque bloc.
 
@@ -15,7 +15,7 @@ Le script `node tools/generer-story.mjs` produit les vues de lecture depuis cett
 <a id="cadre-001"></a>
 ## Périmètre de cette version
 
-Cette révision 1.5 de travail consolide la cosmologie d’Orthe, la géographie, les capsules, les transports, l’hérédité, la chasse aux pétales et le dénouement en deux affrontements, tout en conservant explicitement les mécanismes proposés et les arbitrages encore ouverts.
+Cette révision 1.6 de travail consolide la crise ancienne, la fuite des capsules, la progression Gravité/Spatial, l’extraction du centre, le lien des pétales, la collaboration, l’ouverture de Z, les archives de Nacre, les empreintes sensorielles et la différence entre les essais du Cœur. Les scènes précises et les arbitrages non décidés restent proposés ou ouverts.
 
 CONFIRME désigne une orientation explicitement fixée par l’auteur. PROPOSE désigne une solution de travail, qu’elle vienne de l’auteur ou de l’assistant. OUVERT désigne un arbitrage restant à faire. Le champ « origine » précise la provenance ; une proposition héritée de la v1.0 n’est pas automatiquement approuvée.
 
@@ -23,7 +23,7 @@ Orthe, Sélis, Séveran et Nacre restent les noms de travail utilisés pour la c
 
 Le fichier STORY_SOURCE.md est le seul document narratif à modifier. Les vues du dossier lecture sont calculées depuis ses blocs. Le Word est un export daté de lecture, pas une deuxième source. Une décision importante peut demander de revoir plusieurs blocs liés ; la génération évite les recopies, mais ne corrige pas automatiquement la causalité.
 
-Les anciennes règles remplacées en v1.5 sont consolidées dans `COSMO-001`, `GEOGRAPHIE-001`, `COEUR-003`, `VOYAGE-001`, `ETATS-NOYAU-001`, `HEREDITE-001`, `HEREDITE-002`, `DEMOGRAPHIE-001`, `CONCORDAT-PETALES-001`, `FIN-SEQUENCE-001` et `REVELATIONS-001`. La méthode de la phase suivante est fixée dans `PRODUCTION-001` ; elle n’autorise encore ni scénario détaillé ni choix de gameplay.
+Les remplacements v1.6 sont centralisés dans `INHIBITEUR-001`, `AMPLIFICATEUR-001`, `CENTRE-EXTRAIT-001`, `LIEN-PETALES-001`, `LIEN-TEMPS-001`, `CORPS-001`, `ESSAIS-COEUR-001` et `FRAGMENT-003`. La phase suivante suit `PRODUCTION-001` ; cette consolidation n’autorise ni scène détaillée, ni gameplay fixé, ni nouvelle image.
 <!-- END:CADRE-001 -->
 
 # Fondations
@@ -40,7 +40,7 @@ Elio est le nom provisoire du personnage masculin ; Lyra, celui du personnage f�
 | Elio | Elio | Lyra |
 | Lyra | Lyra | Elio |
 
-Pour alléger la lecture, le présent dossier raconte la version où Elio est joué. Dans l’autre version, tous les rôles s’inversent : Lyra est la volontaire Spatial préservée en capsule, amnésique, puis la scientifique qui apprend Gravité, place six pétales dans les relais régionaux et le dernier dans Nacre à Z ; Elio vient d’Orthe, appartient au collectif Biotique, recherche les capsules, la soigne masqué, lui transmet son prénom, cache son origine et s’interpose lors du deuxième essai du Cœur puis au prologue. Lyra-source collabore ensuite avec Séveran avant d’être assassinée ; Nacre vise d’abord cette Lyra-source vivante, sauve la Lyra jouée et le partenaire Elio est sauvé à la fin. La structure politique, temporelle et émotionnelle reste identique. Séveran demeure Porteur Énergie. Il ne s’agit pas de deux intrigues différentes.
+Pour alléger la lecture, le présent dossier raconte la version où Elio est joué. Dans le miroir, Lyra est la Porteuse préservée en capsule : elle maîtrise Gravité avant la stase, apprend Spatial après G, laisse six pétales régionaux, collabore avec Séveran, prépare les deux balises, amorce le prototype par son septième pétale et ouvre A avant l’attaque. Séveran aperçoit la Lyra jeune en A, frappe mortellement la Lyra-source puis extrait son centre ; encore brièvement vivante, elle donne son dernier ordre à Nacre, qui échoue à la sauver avant d’adapter sa routine à la Lyra jeune. Elio partenaire Biotique trouve la capsule, soigne Lyra sous masque, garde le secret et s’interpose lors du deuxième essai puis du prologue. Nacre sauve la Lyra jouée, dont le centre réactive les pétales-source ; seule cette Lyra éprouve leurs empreintes. Le corps-source conservé est celui de Lyra, et le partenaire Elio est sauvé à la fin. Séveran demeure Porteur Énergie. Il s’agit des mêmes rôles et règles, non de deux intrigues indépendantes.
 
 Les qualificatifs remplacent les indices opaques : « Elio de l’histoire-source », « Elio joué », « Lyra de l’histoire-source » et « Lyra du prologue ». « Elio futur » est un raccourci de point de vue : l’Elio joué n’est pas destiné à devenir cette autre continuation.
 <!-- END:NOMS-001 -->
@@ -52,7 +52,7 @@ Les qualificatifs remplacent les indices opaques : « Elio de l’histoire-sourc
 
 Orthe est le Monde des Origines, une planète réelle, ancienne et autonome au sein du même univers que Sélis et les autres planètes. Ce n’est ni une simulation, ni un microcosme créé pour le protagoniste. Le titre désigne l’origine de ses peuples et de leur héritage ; il ne signifie plus que les divinités locales ont certainement créé tout le cosmos.
 
-Les divinités locales ont façonné Orthe, ses premiers peuples humains, ses premiers Porteurs et le Cœur. Elles ont modelé des parties de paysages déjà existants et transmis les noyaux pour entretenir et réguler le monde, pas seulement pour combattre. Des régions, pays, peuples humains et communautés de Porteurs y coexistent et poursuivent leur histoire après leur disparition.
+Les divinités locales ont façonné Orthe et ses premiers peuples humains, dont les Porteurs : ceux-ci sont des humains dotés d’un noyau divin, pas une autre humanité. Elles ont modelé des paysages existants et transmis les noyaux pour entretenir et réguler le monde, pas seulement pour combattre. À l’époque divine, cette organisation est globalement acceptée sans supprimer les personnalités ni le libre arbitre ; questions, jalousies et divergences politiques se développent ensuite, sans devenir ici une intrigue centrale nouvelle.
 
 Chaque région doit posséder des intérêts et des conflits qui existeraient sans Elio. Les habitants ne constituent pas une réserve de pouvoirs ou de souvenirs fabriquée pour sauver son couple.
 <!-- END:MONDE-001 -->
@@ -62,9 +62,9 @@ Chaque région doit posséder des intérêts et des conflits qui existeraient sa
 <a id="monde-002"></a>
 ## Migration humaine et exceptions au départ des Porteurs
 
-Les grandes migrations anciennes ont dispersé les humains ordinaires ; les Porteurs sont restés sur Orthe. Les capsules de sauvegarde et les missions de recherche sont des départs exceptionnels postérieurs, pas une diaspora ancienne de Porteurs.
+Une partie des humains sans noyau migre anciennement par vaisseaux ; la majorité demeure alors sur Orthe, et les Porteurs y restent concentrés. « Des milliers » est une échelle possible de migrants, non un décompte confirmé. Les capsules de fuite et les missions de recherche sont des départs exceptionnels bien plus tardifs, pas une diaspora fondatrice de Porteurs.
 
-Une population humaine importante est restée sur Orthe. Les migrations fondatrices n’ont pas dispersé de Porteurs, mais les capsules ultérieures peuvent exceptionnellement avoir transporté des Porteurs sains ailleurs. Si plusieurs survivants y ont fondé une société, leur hérédité naturelle peut avoir produit des descendants Porteurs hors d’Orthe ; cette possibilité d’endgame n’affirme encore aucun monde, nombre ou destin précis.
+Les migrations fondatrices n’ont pas dispersé de Porteurs, mais les capsules ultérieures peuvent avoir transporté des Porteurs sains ailleurs. Si plusieurs survivants y ont fondé une société, leur hérédité naturelle peut avoir produit des descendants Porteurs hors d’Orthe ; cette possibilité d’endgame n’affirme encore aucun monde, nombre ou destin précis.
 
 La phrase « tous les Porteurs sont restés » décrit la période des migrations fondatrices. Elle n’interdit donc pas à Lyra d’effectuer ultérieurement une mission interplanétaire, ni à Elio d’être envoyé en capsule. Le pouvoir d’Elio n’est pas expliqué par un héritage ayant sauté des générations sur Sélis.
 <!-- END:MONDE-002 -->
@@ -126,7 +126,7 @@ Après le coup d’État, beaucoup d’institutions subsistent sous tutelle, pre
 <a id="hist-001"></a>
 ## La crise politique de l’héritage
 
-Avant le Grand Bâillon, de véritables abus de pouvoirs ont provoqué catastrophes, destructions, intimidation et impunité. Orthe se divise alors entre deux grandes visions. La première considère le Cœur comme un héritage commun des dieux, les noyaux comme appartenant à leurs Porteurs et leur alimentation libre comme un droit qu’aucune institution ne peut réserver aux personnes qu’elle juge méritantes. La seconde veut réguler les noyaux, limiter ou désactiver ceux de personnes jugées dangereuses et favoriser ceux qui servent la société.
+Avant le Grand Bâillon, de véritables abus de pouvoirs ont provoqué catastrophes, destructions, intimidation et impunité. Orthe se divise alors entre deux grandes visions. La première considère le Cœur comme un héritage commun des dieux, les noyaux comme appartenant à leurs Porteurs et leur alimentation libre comme un droit qu’aucune institution ne peut réserver aux personnes qu’elle juge méritantes. La seconde veut réguler leur accès à l’apport distribué par le Cœur, limiter les personnes jugées dangereuses et favoriser celles qui servent la société. Cette régulation envisagée ne peut pas vider instantanément un noyau sain de sa réserve propre.
 
 Séveran commence comme un réformateur respecté qui demande responsabilité, lois, limites et sanctions. Sa logique se radicalise progressivement : sanctionner les abus devient contrôler les noyaux, puis confier à une autorité le pouvoir de décider qui mérite ses capacités, jusqu’à considérer que la population doit être protégée malgré elle. Son mouvement répond donc à un problème réel sans que son autoritarisme ultérieur soit excusé.
 
@@ -140,19 +140,19 @@ Le conflit n’oppose pas un camp unanimement innocent à une idéologie manifes
 
 Une décision politique majeure soumet à la population d’Orthe la direction à donner au Cœur et au contrôle des noyaux. Le détail constitutionnel reste à définir. Malgré la propagande, les pressions, les manipulations et les tentatives de corruption venant notamment de la faction de Séveran, la tendance finale paraît favorable au maintien d’un Cœur libre et de l’héritage existant.
 
-Comprenant qu’il risque de perdre politiquement, le camp radical de Séveran refuse la limite du vote et tente de prendre le contrôle du Cœur afin d’imposer son programme de régulation. L’opération provoque une réaction des opposants, des affrontements et une guerre civile autour du Cœur et de ses installations.
+Comprenant qu’il risque de perdre politiquement, le camp radical de Séveran refuse la limite du vote et tente de prendre le contrôle du Cœur afin d’imposer son programme de régulation. L’opération provoque une réaction des opposants et des affrontements. Les amplificateurs personnels déjà implantés avant le vote donnent un avantage tactique à sa faction ; les départs en capsules s’accélèrent alors sous la poursuite. Dans cette escalade, Séveran met en service prématurément son inhibiteur, et la résistance frappe le dispositif. Le Grand Bâillon atteint les deux camps, puis l’avantage résiduel des amplificateurs aide le coup d’État à s’imposer.
 
 Ce coup d’État constitue le franchissement moral majeur de Séveran. Son objectif initial est de contrôler le système, pas de désactiver tous les noyaux de la planète.
 <!-- END:HIST-002 -->
 
 <!-- BEGIN:HIST-003 -->
-<!-- META:{"status":"PROPOSE","origin":"assistant","kind":"regle","views":"resume","period":"","order":0,"refs":"HIST-001,HIST-002,HIST-004,GRAINE-001,NOYAU-001"} -->
+<!-- META:{"status":"CONFIRME","origin":"utilisateur","kind":"regle","views":"resume","period":"","order":0,"refs":"HIST-001,HIST-002,HIST-004,GRAINE-001,NOYAU-001,INHIBITEUR-001"} -->
 <a id="hist-003"></a>
 ## Le Grand Bâillon : catastrophe d’une prise de contrôle
 
-Pendant la bataille, le dispositif expérimental de régulation est connecté au Cœur ou interfère avec lui. Les combats endommagent, surchargent ou déstabilisent l’ensemble, qui échappe au contrôle de ses concepteurs. Une résonance catastrophique rend alors les noyaux naturels présents dans la zone d’influence d’Orthe inactifs ou désaccordés : c’est le Grand Bâillon.
+Pendant la bataille, l’inhibiteur expérimental est déjà installé sur le Cœur et activé trop tôt. La résistance frappe le dispositif au cours des combats ; le contrôle échappe à ses concepteurs. Une résonance catastrophique rend les noyaux naturels présents dans la zone d’influence d’Orthe inactifs ou désaccordés : c’est le Grand Bâillon. Le coup précis et son auteur ne sont pas fixés.
 
-Le mécanisme scientifique exact — Cœur endommagé, dispositif hors contrôle, résonance ou combinaison de ces facteurs — reste proposé. La causalité politique ne l’est pas : le camp de Séveran a refusé le vote, déclenché la prise du Cœur et employé une technologie dangereuse. Séveran reste lourdement responsable sans avoir planifié une extinction générale.
+Le mécanisme scientifique exact de cette résonance reste ouvert. La causalité politique ne l’est pas : le camp de Séveran a refusé le vote, déclenché la prise du Cœur et employé une technologie dangereuse avant qu’elle soit maîtrisée. Séveran reste lourdement responsable sans avoir planifié une extinction générale.
 
 La portée du Bâillon est liée à Orthe et à son système d’influence immédiat ; elle ne désactive pas automatiquement les noyaux situés sur des planètes lointaines. Les capsules avaient déjà quitté cette zone. Leur préservation ne dépend donc ni d’une exemption de registre ni d’un isolement technique particulier.
 
@@ -162,14 +162,35 @@ La portée du Bâillon est liée à Orthe et à son système d’influence immé
 <!-- BEGIN:HIST-004 -->
 <!-- META:{"status":"CONFIRME","origin":"utilisateur","kind":"regle","views":"resume","period":"","order":0,"refs":"HIST-001,HIST-002,HIST-003,NOYAU-003,SEVERAN-001"} -->
 <a id="hist-004"></a>
-## Les prototypes clandestins et la victoire après le Bâillon
+## Deux technologies clandestines et l’avantage après le Bâillon
 
-Pendant le débat politique, le camp de Séveran développe secrètement des implants, régulateurs et systèmes expérimentaux capables de forcer une réactivation, de maintenir artificiellement un noyau et peut-être d’en modifier le fonctionnement. Leur défaut caché est une altération progressive du noyau susceptible de dégrader le corps et l’esprit. Certains proches ou Porteurs alliés les ont déjà testés avant la catastrophe. Séveran recourt lui-même à ces implants pour soutenir son noyau Énergie après le Bâillon ; le nombre des premiers sujets, la date de sa propre implantation et ses séquelles précises restent indéterminés.
+Pendant le débat politique, Séveran et une équipe de scientifiques Porteurs et humains sans noyau développent deux projets distincts : l’inhibiteur du Cœur décrit dans `INHIBITEUR-001` et les amplificateurs personnels décrits dans `AMPLIFICATEUR-001`. Son poste élevé dans la capitale permet l’étude discrète du Cœur ; le titre précis demeure ouvert. Les premiers amplificateurs fournissent de l’énergie à un Porteur volontairement déchargé, sans anticiper le Bâillon. Leur risque d’altération progressive est caché à une partie des soutiens. Séveran utilise lui-même cette technologie pour soutenir son noyau Énergie après la catastrophe ; date de sa première implantation et séquelles exactes restent ouvertes.
 
-Après le Grand Bâillon, presque tous les Porteurs d’Orthe perdent leur accès naturel tandis que les utilisateurs de ces prototypes conservent une puissance artificielle, instable et corruptrice. Cet avantage militaire permet à la faction de Séveran d’imposer progressivement son contrôle et de fonder le Concordat en exploitant une catastrophe qu’elle n’avait pas exactement voulue.
+Après le Grand Bâillon, tous les camps présents sont touchés. Les utilisateurs déjà implantés récupèrent cependant une capacité partielle et coûteuse malgré le désaccord de leur centre ; cet avantage militaire permet à Séveran d’imposer progressivement le Concordat, sans transformer ses amplificateurs en guérison naturelle ni faire du désastre son objectif initial.
 
 Le récit officiel du Concordat peut prétendre que l’effondrement prouve la nécessité de sa tutelle et que ses technologies ont seules maintenu l’ordre. Cette propagande contient une part de vérité pratique, mais cache le coup d’État, la contribution du dispositif à la catastrophe, la corruption des réveils forcés et la probable défaite électorale du mouvement. Ses formulations précises restent proposées.
+
 <!-- END:HIST-004 -->
+
+<!-- BEGIN:INHIBITEUR-001 -->
+<!-- META:{"status":"CONFIRME","origin":"utilisateur","kind":"regle","views":"resume","period":"","order":0,"refs":"HIST-002,HIST-003,COEUR-002,AMPLIFICATEUR-001"} -->
+<a id="inhibiteur-001"></a>
+## Inhibiteur du Cœur : contrôle ciblé de l’approvisionnement
+
+Séveran veut installer sur le Cœur planétaire un dispositif de contrôle de sa distribution. Il entend intercepter les flux, identifier des Porteurs ciblés par renseignements et décisions humaines, limiter leur approvisionnement et rendre leur maîtrise plus facile. Un noyau sain garde sa réserve et sa recharge propre : couper le réseau ne supprime pas instantanément tout pouvoir. L’inhibiteur n’arrache aucun organe et ne juge pas magiquement qui serait criminel.
+
+Après le vote défavorable attendu et pendant l’escalade post-coup, la faction déploie prématurément ce prototype pour contenir opposants et départs. Des résistants interviennent ; un coup porté au dispositif au cours de l’affrontement le met hors contrôle et provoque le Grand Bâillon. L’identité de l’auteur du coup et le détail physique de la résonance restent ouverts. Séveran demeure responsable d’avoir imposé un prototype dangereux sur une œuvre divine qu’il ne savait pas recréer. Une interface distante montrant flux et signatures est seulement une présentation proposée.
+<!-- END:INHIBITEUR-001 -->
+
+<!-- BEGIN:AMPLIFICATEUR-001 -->
+<!-- META:{"status":"CONFIRME","origin":"utilisateur","kind":"regle","views":"resume","period":"","order":0,"refs":"HIST-004,INHIBITEUR-001,NOYAU-003,MECHA-001"} -->
+<a id="amplificateur-001"></a>
+## Amplificateurs personnels : apport limité et corruption
+
+Étudiés à partir des flux du Cœur, les amplificateurs sont implantés près du noyau naturel d’un Porteur pour simuler une partie de l’apport énergétique du réseau. Avant le Bâillon, les volontaires abaissent leur charge et vérifient que l’implant compense ce manque ; les résultats initiaux convainquent. Cette décharge expérimentale n’est pas un Bâillon, et les appareils ne sont pas conçus en prévision d’une catastrophe que Séveran ne connaît pas.
+
+Ils soutiennent une capacité sans créer de noyau, de catégorie nouvelle ni de puissance infinie. Leur usage prolongé ou forcé altère progressivement noyau, corps ou esprit ; le risque n’est pas honnêtement annoncé à toute la base. Après le Bâillon, ils ne font fonctionner que partiellement des pétales malgré le centre désaccordé, sans le restaurer. Un amplificateur biologique, un équipement Mecha d’humain sans noyau et un pétale-relais sain d’Elio sont trois systèmes différents.
+<!-- END:AMPLIFICATEUR-001 -->
 
 # Origines du couple
 
@@ -178,7 +199,7 @@ Le récit officiel du Concordat peut prétendre que l’effondrement prouve la n
 <a id="graine-001"></a>
 ## Autant de capsules que possible, un seul survivant retrouvé
 
-Pendant les tensions politiques qui précèdent le vote et le Grand Bâillon, les organisateurs tentent d’envoyer autant de capsules et de volontaires que possible dans des conditions difficiles. Les volontaires ont déjà vécu comme Porteurs et utilisé leurs capacités ; Elio maîtrise Spatial avant sa stase. Le nombre tenté, le nombre ayant quitté la zone, le nombre arrivé et le nombre de survivants sont distincts et non fixés.
+Après le vote et le début du coup d’État, avant le Grand Bâillon, les organisateurs tentent d’envoyer autant de capsules et de volontaires que possible sous la poursuite des forces de Séveran. Les volontaires ont déjà vécu comme Porteurs et utilisé leurs capacités ; Elio maîtrise Gravité avant sa stase. Le nombre tenté, le nombre ayant quitté la zone, le nombre arrivé et le nombre de survivants sont distincts et non fixés.
 
 Leurs motivations sont multiples : préserver l’héritage et des savoirs, fuir l’autoritarisme ou une catastrophe pressentie, protéger des proches, chercher des réponses, une aide ou des civilisations capables de soutenir un retour futur. Aucun héroïsme uniforme n’est imposé ; certains habitants restés sur Orthe peuvent juger ces départs lâches sans que ce jugement devienne la vérité morale du récit.
 
@@ -187,12 +208,20 @@ Certaines capsules sont interceptées, détruites, endommagées, dérivent ou ne
 Les autorités organisatrices, les destinations, les réveils manqués et les nombres restent à développer. Lyra se porte ultérieurement volontaire pour une mission exceptionnelle de recherche par vaisseau, sans calendrier de retour ni liste exhaustive confirmés.
 <!-- END:GRAINE-001 -->
 
+<!-- BEGIN:CAPSULE-SELIS-001 -->
+<!-- META:{"status":"CONFIRME","origin":"utilisateur","kind":"regle","views":"resume","period":"","order":0,"refs":"GRAINE-001,GRAINE-002,LYRA-001,EVT-007"} -->
+<a id="capsule-selis-001"></a>
+## Une ville autour de la capsule
+
+La capsule d’Elio s’écrase sur une zone de Sélis alors inhabitée ou très peu peuplée. Une ville croît ensuite autour de ce site au fil de sa stase. Bien plus tard, Lyra retrouve la capsule à l’aide d’un appareil sensible à la signature matérielle particulière des capsules ; la proximité d’une ville ne suffit ni à la découverte ni à expliquer l’amnésie. La scène médicale et le réveil adulte restent distincts de cette enquête technique.
+<!-- END:CAPSULE-SELIS-001 -->
+
 <!-- BEGIN:GRAINE-002 -->
-<!-- META:{"status":"PROPOSE","origin":"assistant","kind":"regle","views":"resume","period":"","order":0,"refs":"GRAINE-001,MEMOIRE-001"} -->
+<!-- META:{"status":"PROPOSE","origin":"assistant","kind":"regle","views":"resume","period":"","order":0,"refs":"GRAINE-001,CAPSULE-SELIS-001,MEMOIRE-001"} -->
 <a id="graine-002"></a>
 ## Le réveil adulte : âge encore proposé
 
-Elio est déjà un jeune adulte lorsqu’il entre en stase puis lorsqu’il en sort. Cette proposition remplace l’enfance adoptive de la v1.0 et permet son intégration autonome sur Sélis.
+Elio est déjà un jeune adulte lorsqu’il entre en stase puis lorsqu’il en sort. Cette proposition remplace l’enfance adoptive de la v1.0 et permet son intégration autonome sur Sélis. La trajectoire confirmée de sa capsule et la croissance de la ville sont fixées séparément dans `CAPSULE-SELIS-001`.
 
 La stase excessivement longue produit le modèle de mémoire confirmé dans `MEMOIRE-001`. Elio apprend normalement après son réveil : ses souvenirs récents ne disparaissent pas au gré des besoins du scénario. Son âge biologique ou chiffré précis reste ouvert.
 
@@ -206,11 +235,11 @@ Il se construit une place par ses études complémentaires, ses relations et son
 <a id="memoire-001"></a>
 ## Une mémoire autobiographique perdue, des savoirs et réflexes préservés
 
-La très longue stase efface presque entièrement la mémoire autobiographique d’Elio : il ne se souvient clairement ni d’Orthe, ni de la crise et de la guerre, ni de ses anciens proches, ni de son histoire personnelle, ni de son statut de Porteur, ni de sa maîtrise consciente de Spatial.
+La très longue stase efface presque entièrement la mémoire autobiographique d’Elio : il ne se souvient clairement ni d’Orthe, ni de la crise et de la guerre, ni de ses anciens proches, ni de son histoire personnelle, ni de son statut de Porteur, ni de sa maîtrise consciente de Gravité.
 
 Ses connaissances générales sont conservées. Il garde le langage, la logique, les mathématiques et les connaissances d’un adulte instruit, ses compétences intellectuelles de base, les gestes ordinaires et sa capacité normale à apprendre. Il ne repart pas comme un enfant et ne reçoit pas automatiquement un savoir scientifique complet.
 
-Une mémoire implicite subsiste : intuition anormale des distances et des structures, perception des relations spatiales, certains réflexes et facilités de raisonnement scientifique. Elle contribue à son talent de chercheur sur Sélis. Des impressions de déjà-vu, de courts flashs, des architectures familières, des gestes instinctifs ou des sensations prises pour des rêves peuvent révéler progressivement son passé sans le résoudre d’un coup.
+Une mémoire implicite subsiste : intuition des forces, poids, trajectoires et équilibres, certains réflexes et facilités de raisonnement scientifique. Elle contribue à son talent de chercheur sur Sélis sans constituer une maîtrise consciente ni une explication de toute son invention. Des impressions de déjà-vu, de courts flashs, des architectures familières, des gestes instinctifs ou des sensations prises pour des rêves peuvent révéler progressivement son passé sans le résoudre d’un coup. Une vision de pétale, une mémoire implicite et un pouvoir réappris restent trois phénomènes distincts.
 
 Le prénom figure dans les données d’identité de la capsule. Lyra le lit et le transmet à Elio lors de la première rencontre médicale ; Nacre n’existe pas encore. Au début de l’aventure jouable, Nacre peut ensuite l’identifier clairement sous ce nom sans être la personne qui l’a nommé sur Sélis. Dans le scénario miroir, les mêmes règles s’appliquent à Lyra protagoniste et le partenaire Elio lui transmet son prénom.
 <!-- END:MEMOIRE-001 -->
@@ -222,7 +251,7 @@ Le prénom figure dans les données d’identité de la capsule. Lyra le lit et 
 
 Dans la version de référence, Lyra appartient à un collectif encore sans nom définitif de Biotiques d’Orthe, historiquement formés à la maîtrise du vivant, à la médecine et au soin des blessés et des populations. Même lorsque leurs noyaux sont affaiblis ou inactifs, leur formation médicale et scientifique demeure utile. Lyra maîtrise elle-même Biotique.
 
-Sans fonction fixe importante au moment où la recherche des capsules est organisée, elle se porte volontaire. Elle voyage entre plusieurs planètes en vaisseau, retrouve sur Sélis une capsule dont les données lui donnent le prénom d’Elio, puis le réveille et le stabilise avec sa formation, du matériel et un poste de soins. Ses pouvoirs Biotiques ne sont pas rétablis.
+Sans fonction fixe importante au moment où la recherche des capsules est organisée, elle se porte volontaire. Elle voyage entre plusieurs planètes en vaisseau et utilise un dispositif détectant la signature matérielle particulière des capsules pour retrouver, sous ou près de la ville de Sélis, celle dont les données lui donnent le prénom d’Elio. Elle le réveille et le stabilise avec sa formation, du matériel et un poste de soins. Ses pouvoirs Biotiques ne sont pas rétablis.
 
 Elio est encore confus, les yeux fermés ou à peine ouverts. Masquée et coiffée comme une soignante locale, Lyra lui dit son prénom et qu’il se trouve sur Sélis, puis contacte le service médical local. Elle présente l’accident et l’amnésie sévère comme cause de couverture, jamais comme vérité d’auteur sur la stase. Elle assure la prise en charge par les secours, se retire et l’observe à distance. « Tu es sur Sélis. Tu t’appelles Elio. Tu n’es plus seul. » reste un exemple de mise en scène proposé, pas un dialogue définitif.
 
@@ -274,7 +303,7 @@ Lyra du prologue reçoit une blessure gravissime mais son noyau n’est pas dét
 
 Quatre systèmes restent distincts. Les vaisseaux et capsules assurent les migrations, la recherche de Lyra et les premiers voyages du couple entre planètes ; leurs vitesses et durées ne sont pas fixées. Les relais énergétiques régionaux distribuent l’apport du Cœur et ne téléportent personne. Les pouvoirs Spatial agissent localement et ne permettent ni traversée libre du cosmos ni voyage temporel inné. La machine temporelle dépend séparément de l’ancre de A.
 
-Les portails ou installations de téléportation interplanétaire sont une invention tardive d’Elio-source, développée vers la fin de sa vie avec Nacre. Des dispositifs préparés sur Sélis et Orthe avant Z rendent possible le trajet de secours Z → Orthe. Lyra ne les utilise donc pas pour rechercher les capsules, et le couple rejoint d’abord Orthe en G par vaisseau. Nacre commande des installations construites avec coordonnées, autorisations et moyens matériels ; elle ne crée pas seule une capacité de téléportation.
+Les portails ou installations de téléportation interplanétaire sont une invention tardive d’Elio-source, développée vers la fin de sa vie avec Nacre. Ils exigent des balises préparées aux deux extrémités, de l’énergie, des coordonnées et des autorisations. Un premier voyage préparatoire par transport ordinaire permet l’installation de la balise sur Sélis, puis Elio revient par ce même moyen ; sa désertion définitive d’Orthe vers Sélis constitue le premier véritable test de téléportation. Les détails d’autorisation restent ouverts. Les deux extrémités existent ainsi avant Z pour le secours Z → Orthe. Lyra ne les utilise pas pour rechercher les capsules, et le couple rejoint d’abord Orthe en G par vaisseau. Nacre commande les installations ; elle ne crée pas seule une capacité de téléportation.
 <!-- END:VOYAGE-001 -->
 
 <!-- BEGIN:NOYAU-001 -->
@@ -302,10 +331,42 @@ Tant que son centre conserve sa fonction biologique basale, un Porteur mûrit pu
 | Pétales temporairement réactivés | Capacités et réserve partiellement accessibles sans guérison complète du centre. |
 | Artificiellement réanimé | Fonctionnement forcé par implant ou régulateur, avec corruption et risques distincts d’une restauration naturelle. |
 | Totalement retiré ou détruit | Plus de pouvoirs ni de longévité extraordinaire ; la perte n’est pas une mort automatique. |
-| Centre volontairement rendu inexploitable | Sécurité d’Elio à Z, sans neutraliser les pétales déjà séparés et sans le tuer par elle-même. |
+| Centre extrait | L’organe perd aussitôt et irréversiblement sa fonction active ; l’extraction seule ne tue pas automatiquement la personne. Les sept pétales d’Elio-source deviennent dormants, non détruits. |
 
 Dans les règles d’hérédité, « éteint » signifie Bâillonné, jamais simplement déchargé.
 <!-- END:ETATS-NOYAU-001 -->
+
+<!-- BEGIN:CENTRE-EXTRAIT-001 -->
+<!-- META:{"status":"CONFIRME","origin":"utilisateur","kind":"regle","views":"resume","period":"","order":0,"refs":"ETATS-NOYAU-001,SEVERAN-002,LIEN-PETALES-001,IA-002,CORPS-001"} -->
+<a id="centre-extrait-001"></a>
+## Extraction du centre : perte immédiate et irréversible
+
+Le centre pur d’Elio est un organe actif uniquement tant qu’il reste dans son corps vivant. Dès son extraction, il devient définitivement inerte : ni conservation, ni expérience, ni greffe ultérieure ne rendent sa fonction à ce même centre. Cette extraction n’est pas une commande de sabotage ou une sécurité personnelle inventée par Elio ; elle n’entraîne pas à elle seule sa mort. Le danger mortel du raid Z vient des coups de Séveran. Un centre post-mortem conservé reste un vestige et une preuve, jamais une référence vivante exploitable. Séveran a donc besoin d’un Elio vivant avec son centre encore en place.
+<!-- END:CENTRE-EXTRAIT-001 -->
+
+<!-- BEGIN:LIEN-PETALES-001 -->
+<!-- META:{"status":"CONFIRME","origin":"utilisateur","kind":"regle","views":"resume","period":"","order":0,"refs":"CENTRE-EXTRAIT-001,LIEN-TEMPS-001,FRAGMENT-001,FRAGMENT-002,IA-006"} -->
+<a id="lien-petales-001"></a>
+## Sept pétales et centre vivant de même signature
+
+Un pétale séparé reste un relais de capacité limitée seulement s’il est raccordé à un centre vivant, compatible et de la même signature fondamentale. L’extraction du centre d’Elio-source rend aussitôt dormants ses six pétales d’Orthe et celui de Nacre, sans les détruire. La proximité temporelle et matérielle de l’Elio jeune peut rétablir leur lien ; elle ne transfère ni la mémoire autobiographique du scientifique ni une maîtrise instantanée. Un pétale dormant n’efface pas la réserve ou la longévité personnelle des Porteurs déjà réactivés : c’est le relais et son entretien régional qui cessent de fonctionner normalement.
+<!-- END:LIEN-PETALES-001 -->
+
+<!-- BEGIN:LIEN-TEMPS-001 -->
+<!-- META:{"status":"CONFIRME","origin":"utilisateur","kind":"regle","views":"resume","period":"","order":0,"refs":"TEMPS-001,LIEN-PETALES-001,IA-002,IA-003"} -->
+<a id="lien-temps-001"></a>
+## Le raccord ne franchit pas la fenêtre A–Z
+
+La même signature ne suffit pas si le centre et le pétale sont de part et d’autre d’une fenêtre temporelle ouverte. Avant l’extraction à Z, les six pétales sur Orthe et celui de Nacre y fonctionnent par le centre d’Elio-source. Après l’extraction, les sept dorment. Lorsque Nacre passe en A, son pétale peut se raccorder au jeune Elio présent en A ; les six restés sur Orthe demeurent dormants. Quand Nacre ramène le jeune Elio en Z, les six d’Orthe se raccordent avant même la téléportation vers Orthe et y restent actifs. Le franchissement ne transporte ni souvenirs ni maîtrise du scientifique.
+
+| Situation | Six pétales d’Orthe | Pétale de Nacre |
+|---|---|---|
+| Elio-source vivant à Z, centre en place | Actifs via Elio-source | Actif via Elio-source |
+| Centre source extrait à Z | Dormants | Dormant |
+| Nacre passe en A, jeune Elio vivant en A | Dormants, car de l’autre côté | Actif via le jeune Elio |
+| Nacre et jeune Elio reviennent en Z | Actifs via le jeune Elio, avant la téléportation | Actif via le jeune Elio |
+| Jeune Elio arrive sur Orthe | Actifs via le jeune Elio | Actif via le jeune Elio |
+<!-- END:LIEN-TEMPS-001 -->
 
 <!-- BEGIN:NOYAU-002 -->
 <!-- META:{"status":"CONFIRME","origin":"utilisateur","kind":"regle","views":"resume","period":"","order":0,"refs":"NOYAU-001,ETATS-NOYAU-001,COEUR-002"} -->
@@ -317,6 +378,8 @@ Un noyau naturellement sain renouvelle sa charge de lui-même, même loin d’Or
 Un noyau temporairement réactivé ne devient pas un nouveau centre pur : il ne peut ni éveiller d’autres Porteurs, ni reproduire le pouvoir particulier d’Elio. La compétence ancienne et la charge disponible restent deux choses différentes ; les Porteurs expérimentés peuvent savoir quoi faire sans disposer de l’énergie nécessaire, tandis que les générations nées Bâillonnées doivent apprendre des capacités qu’elles n’ont jamais utilisées.
 
 La simple proximité ne déclenche jamais la première réactivation. Elio et le Porteur doivent accomplir consciemment le rituel défini dans `NOYAU-005`. Elio demeure indispensable à cette première activation saine ; un bénéficiaire réactivé ne peut pas la transmettre à d’autres.
+
+La dormance des relais d’Elio-source entraîne des coupures locales, de la maintenance et des redémarrages manuels, pas un second Bâillon global des Porteurs déjà aidés : leurs propres réserves, leur compatibilité et leur longévité basale subsistent.
 <!-- END:NOYAU-002 -->
 
 <!-- BEGIN:NOYAU-003 -->
@@ -324,7 +387,7 @@ La simple proximité ne déclenche jamais la première réactivation. Elio et le
 <a id="noyau-003"></a>
 ## Les réveils forcés du Concordat
 
-Le mouvement de Séveran expérimente avant le Grand Bâillon des méthodes clandestines de réactivation et de maintien artificiels. Après la catastrophe, le Concordat exploite ces prototypes pour obtenir de rares réactivations dangereuses, incertaines et altérantes. Les pouvoirs peuvent presque retrouver leur ampleur, mais l’instabilité atteint le noyau, le corps et parfois l’esprit du bénéficiaire.
+Avant le Grand Bâillon, le mouvement de Séveran expérimente clandestinement des amplificateurs personnels sur des volontaires dont la charge a été abaissée. Après la catastrophe, le Concordat exploite ces prototypes pour obtenir des réactivations partielles dangereuses et altérantes, sans guérir le centre désaccordé. Leurs générations ultérieures s’améliorent sans atteindre la pureté d’un noyau sain ; l’instabilité peut atteindre noyau, corps et esprit.
 
 La dégradation physique ou mentale ne définit pas le mal. Certains sujets sont volontaires, d’autres contraints ; des personnes lucides soutiennent le Concordat, tandis que d’autres peuvent changer de camp ou être devenues dangereuses sans avoir choisi son idéologie.
 
@@ -336,7 +399,7 @@ Lorsque le Cœur retrouve son fonctionnement, les noyaux biologiques ainsi forc�
 <a id="noyau-007"></a>
 ## Procédé proposé des réveils forcés
 
-La méthode clandestine puis impériale forcerait le noyau à fonctionner sans réparer son accord naturel avec le Cœur. Des implants, régulateurs et charges extérieures maintiendraient artificiellement la coordination, au prix d’une corruption progressive, de douleurs, crises, lésions ou troubles variables de mémoire et d’impulsion.
+Le procédé confirmé apporte au noyau une énergie extérieure près de son centre sans réparer son accord naturel avec le Cœur. Ses mécanismes exacts restent proposés : implants, régulateurs et charges extérieures maintiendraient artificiellement la coordination, au prix d’une corruption progressive, de douleurs, crises, lésions ou troubles variables de mémoire et d’impulsion.
 
 Les rares réussites coûteraient cher, exigeraient une surveillance et ne permettraient pas d’armer toute la population. Des personnages d’Orthe pourraient être tentés par ces procédés ; leur refus collectif ne serait ni automatique ni facile.
 <!-- END:NOYAU-007 -->
@@ -358,20 +421,20 @@ Certaines réalisations du Concordat aident réellement des populations et ses i
 <!-- BEGIN:SEVERAN-002 -->
 <!-- META:{"status":"PROPOSE","origin":"assistant","kind":"regle","views":"resume","period":"","order":0,"refs":"NOYAU-002,NOYAU-003,SEVERAN-001,FRAGMENT-001,CONCORDAT-PETALES-001"} -->
 <a id="severan-002"></a>
-## À quoi servirait exactement le noyau volé
+## Pourquoi Séveran a besoin d’Elio vivant
 
-La Matrice de tutelle est une solution proposée pour expliquer comment Séveran exploiterait le centre pur : une infrastructure capable de stabiliser les réveils de ses alliés tout en conservant sur eux un contrôle matériel.
+La Matrice de tutelle est une solution proposée pour expliquer comment Séveran exploiterait la référence fournie par Elio vivant, avec son centre pur toujours dans son corps : une infrastructure capable de stabiliser les réveils de ses alliés tout en conservant sur eux un contrôle matériel. Un centre extrait est immédiatement inerte et ne peut fournir cette référence.
 
 | Besoin | Utilisation proposée du noyau |
 |---|---|
-| Éviter les réveils destructeurs | L’organe vivant fournit une référence active stable que les méthodes actuelles ne savent pas fabriquer. |
+| Éviter les réveils destructeurs | Le centre en place dans le corps vivant d’Elio fournit une référence active stable que les méthodes actuelles ne savent pas fabriquer. |
 | Restaurer les troupes d’élite | La Matrice calibre successivement des noyaux sélectionnés ; elle ne crée ni personnes ni spécialités nouvelles. |
 | Garder le commandement | Les réactivations passent par des régulateurs impériaux, au lieu de rendre à chacun une autonomie complète. |
 | Consolider l’empire | Les unités ainsi stabilisées reprennent les villes, sécurisent les relais et rendent les révoltes beaucoup plus difficiles. |
 
 Les pétales régionaux intéressent aussi Séveran pour couper les recharges des communautés, imposer leur dépendance, alimenter certaines réactivations forcées et étudier les travaux d’Elio. Ils restent toutefois inférieurs au centre pur : ils ne créent aucun nouveau centre, ne réactivent pas seuls un nouveau Porteur et ne rendent pas la capture d’Elio inutile. La Matrice ne fonctionne donc pas déjà parfaitement grâce à six fragments impériaux.
 
-Séveran ne veut ni manger le noyau, ni obtenir tous les pouvoirs en l’avalant. Une extraction forcée pourrait tuer Elio par sa violence, mais la perte du noyau n’est pas automatiquement mortelle. Même en cas de réussite, la restauration d’une armée demanderait des moyens, du temps et l’adaptation de chaque bénéficiaire.
+Séveran ne veut ni manger ni extraire le centre : il le perdrait ainsi. Il veut tenir Elio vivant et actif pour exploiter sa réponse aux instabilités. Même en cas de capture, la restauration d’une armée demanderait des moyens, du temps et l’adaptation de chaque bénéficiaire.
 
 Une simple mesure ancienne du noyau ne suffit pas : le processus nécessite sa réponse vivante aux instabilités. La distinction avec le réaccord libre est donc à la fois technique et politique : une référence capturée pour administrer les autres, contre une aide temporaire destinée à leur autonomie.
 <!-- END:SEVERAN-002 -->
@@ -383,11 +446,11 @@ Une simple mesure ancienne du noyau ne suffit pas : le processus nécessite sa r
 
 Elio-source agit d’abord clandestinement : des communautés le connaissent et l’apprécient sans que les dirigeants du Concordat aient identifié la source pure ou le dispositif complet des six pétales. Lors de la deuxième tentative de restauration du Cœur, Séveran détecte son noyau, comprend le rôle des fragments, intervient et tue Lyra lorsqu’elle s’interpose. La campagne impériale de saisie des pétales commence alors ; elle n’explique pas rétroactivement l’occupation plus ancienne.
 
-Elio veut d’abord tuer Séveran, sans en avoir la puissance, et empêche la confiscation de son noyau en menaçant d’en rendre définitivement le centre inexploitable grâce à une sécurité qu’il a inventée. Séveran lui propose alors de combiner leurs technologies pour lui permettre de revoir Lyra. L’accord de collaboration interdit la confiscation ou la destruction des pétales régionaux. Elio endeuillé collabore avec lui, détaché émotionnellement, puis le quitte et retourne secrètement sur Sélis poursuivre ses recherches. Après cette rupture, les opérations impériales de saisie s’intensifient sans qu’aucune confiscation réussie soit imposée comme fait.
+Elio veut d’abord tuer Séveran, sans en avoir la puissance. Séveran a besoin de lui vivant avec son centre en place : l’extraire le rendrait inerte et tuer Elio priverait le régime de sa référence. Séveran lui propose alors de combiner leurs technologies pour lui permettre de revoir Lyra. Elio accepte un marché de collaboration avec une mobilité relative, des séances de travail et l’interdiction de confisquer ou détruire les pétales régionaux ; ce n’est ni un emprisonnement continu ni une garantie magique contre la sédation. Les années de collaboration améliorent partiellement la pureté des amplificateurs sans restaurer les centres. Elio mène secrètement des recherches temporelles, sur Nacre et sur la téléportation ; il part quand il comprend que le marché sert désormais Séveran plus que sa recherche et retourne sur Sélis. Après cette rupture, les opérations impériales de saisie s’intensifient sans qu’aucune confiscation réussie soit imposée comme fait.
 
 La clandestinité initiale n’est pas une invisibilité magique : les communautés qui connaissent Elio ne publient pas toutes son identité au régime, et leurs moyens de discrétion restent à développer. Les services sincères rendus par Elio et les souvenirs reconnaissants n’effacent ni les victimes possibles de ses travaux ultérieurs ni sa responsabilité à examiner.
 
-Elio prépare à l’avance un essai vers A, moment de leur vie commune qu’il souhaite revoir, sans savoir que Séveran arrivera. En Z, il intègre son dernier pétale à Nacre et arme une évacuation générale vers Orthe. Séveran le retrouve avant que cette routine puisse l’emporter ; Elio rend volontairement son centre inutilisable, puis Séveran le tue physiquement. L’antagoniste utilise ensuite le prototype déjà réglé sur A afin d’atteindre le noyau jeune, pur et non protégé. La fragmentation seule ne rendait pas le centre adulte sans valeur.
+Elio prépare à l’avance un essai vers A, moment de leur vie commune qu’il souhaite revoir, sans savoir que Séveran arrivera. Il connaît le risque qu’une rupture de son centre coupe ses pétales, mais choisit l’essai dans son désespoir, sans plan prophétique de récupération. En Z, il intègre son dernier pétale à Nacre, amorce le prototype et ouvre lui-même A. Il observe d’abord A depuis Z ; les habitants de A ne voient pas Z. Séveran arrive pendant cette observation et voit le jeune Elio vivant à travers la fenêtre. Il porte alors un coup mortel à Elio-source, puis seulement arrache son centre. Encore brièvement vivant après cette extraction, Elio-source donne à Nacre son dernier ordre d’évacuation vers Orthe ; Nacre ne parvient pas à l’emporter avant sa mort. Séveran constate l’inertie irréversible du centre extrait et traverse la fenêtre pour capturer l’Elio jeune, vivant et intact. La fragmentation des pétales n’avait pas rendu le centre adulte sans valeur.
 
 Après l’intrusion au point A, Séveran constate seulement la disparition de l’Elio joué. Il ne voit pas l’extraction de Nacre et ne possède aucune preuve de mort ni de survie. Sans localisation, piste certaine ou confirmation que sa cible a survécu, il ne lance pas immédiatement de chasse personnelle sur Orthe. Les forces impériales y poursuivent néanmoins leurs opérations ordinaires ; des indices ultérieurs peuvent révéler la survie d’Elio.
 <!-- END:SEVERAN-003 -->
@@ -395,11 +458,11 @@ Après l’intrusion au point A, Séveran constate seulement la disparition de l
 <!-- BEGIN:SEVERAN-004 -->
 <!-- META:{"status":"PROPOSE","origin":"assistant","kind":"regle","views":"resume","period":"","order":0,"refs":"SEVERAN-003,SEVERAN-002,IA-003,CONCORDAT-PETALES-001"} -->
 <a id="severan-004"></a>
-## Mécanismes proposés de la coopération et de la sécurité
+## Mécanismes proposés de la coopération et de la rupture
 
-Séveran disposerait d’installations, d’archives et d’un savoir dont Elio endeuillé a besoin. La promesse de revoir Lyra porterait sur une recherche plausible, non sur une résurrection déjà maîtrisée. Elio accepterait certains travaux utiles au Concordat tout en refusant la confiscation de son noyau et des pétales ; le régime pourrait placer des relais sous surveillance ou « protection » sans les posséder matériellement. Il partirait lorsque le régime franchit ses limites et détourne les résultats vers les captures ou réveils forcés.
+Séveran disposerait d’installations, d’archives et d’un savoir dont Elio endeuillé a besoin. La promesse de revoir Lyra porterait sur une recherche plausible, non sur une résurrection déjà maîtrisée. Elio accepterait certaines séances et certains travaux utiles au Concordat, tout en conservant une mobilité relative et en refusant la confiscation des pétales ; le régime pourrait placer des relais sous surveillance ou « protection » sans les posséder matériellement. Il partirait lorsque l’accord ne soutient plus sa recherche et que le régime détourne les résultats vers les captures ou réveils forcés.
 
-La sécurité serait volontaire, protégée contre une extraction forcée et insensible aux blessures ordinaires. Elle rendrait le centre inexploitable sans désactiver simultanément la machine, Nacre et les fragments séparés. Ses conditions exactes et la façon d’empêcher une récupération après l’assassinat restent proposées.
+Il n’existe ni bouton de sabotage, ni sécurité passive empêchant une capture, ni organe exploitable après extraction. Le marchandage dépend du besoin pratique de Séveran de garder Elio vivant et coopératif, des conditions négociées et des rapports de force. Les pétales séparés deviennent dormants lorsque son centre est extrait ; leur réactivation par le jeune Elio suit `LIEN-TEMPS-001`.
 
 Après A-fenêtre, Séveran reste incertain : la disparition de la signature ne prouve ni mort ni survie et ne révèle aucune destination. Les moyens précis par lesquels ses services découvrent plus tard les activités de l’Elio joué restent à développer sans lui attribuer rétrospectivement une preuve impossible.
 <!-- END:SEVERAN-004 -->
@@ -556,11 +619,11 @@ Elio ne peut normalement activer qu’une discipline divine ou Mecha à la fois.
 <a id="elio-pouvoirs-001"></a>
 ## Désapprendre pour réapprendre : progression d’Elio
 
-Avant sa stase, Elio maîtrise consciemment Spatial. La très longue stase efface ce savoir conscient, sans supprimer les mémoires implicites inscrites dans son noyau, ses réflexes et sa perception. Sur Sélis, ses intuitions des distances, des structures et de l’espace nourrissent ses recherches sans lui donner magiquement des connaissances scientifiques complètes.
+Avant sa stase, Elio maîtrise consciemment Gravité. La très longue stase efface ce savoir conscient, sans supprimer certaines mémoires implicites de forces, trajectoires et équilibre. Sur Sélis, elles nourrissent ses recherches sans lui donner magiquement des connaissances scientifiques complètes ni une maîtrise active.
 
-Après G, l’Elio de l’histoire-source apprend consciemment Gravité auprès des habitants d’Orthe, tandis que Spatial reste enfoui. Sa maîtrise de Gravité, ses intuitions spatiales anciennes, ses compétences scientifiques réelles et les technologies auxquelles il accède contribuent ensemble à l’invention temporelle. Spatial ne produit pas directement le voyage dans le temps.
+Après G, l’Elio de l’histoire-source apprend consciemment Spatial auprès des habitants d’Orthe. Sa maîtrise ancienne de Gravité reste enfouie ; son apprentissage spatial, ses compétences scientifiques et les technologies collectives contribuent ensemble à l’invention temporelle. Spatial ne produit pas directement le voyage dans le temps.
 
-L’Elio joué arrive d’une continuation antérieure à G et ne possède pas l’apprentissage Gravité dont les habitants se souviennent. Au début de l’aventure, il apprend Énergie. La résonance avec les pétales d’Elio-source lui rend ensuite progressivement Gravité. Plus tard, un très ancien habitant d’Orthe ayant connu Elio avant sa stase lui révèle sa première discipline ; une nouvelle résonance réveille Spatial. Il apprend également Mecha aux Chantiers de Cendre, berceau de cette culture technologique rebelle.
+L’Elio joué arrive d’une continuation antérieure à G et ne possède pas l’apprentissage Spatial dont les habitants se souviennent. Au début de l’aventure, il apprend Énergie, suffisante pour les premières réactivations. Par indices locaux des pétales et pratique, il reconstruit ensuite Spatial : les visions ne livrent aucune maîtrise instantanée. Plus tard, un très ancien habitant d’Orthe ayant connu Elio avant sa stase révèle que sa première discipline était Gravité ; l’Elio joué la réapprend graduellement. Il apprend séparément Mecha aux Chantiers de Cendre, puis Biotique après le sauvetage auprès de Lyra. Ces étapes sont espacées et chacune demande des essais et un enseignement.
 
 Après le sauvetage de Lyra, celle-ci lui transmet son savoir Biotique. Elio a appris à reconstruire plusieurs disciplines, mais les détails de ce dernier apprentissage restent à développer. Il n’active normalement qu’un style à la fois : Énergie, Gravité, Spatial, Mecha ou Biotique.
 
@@ -600,7 +663,7 @@ Un noyau naturellement fonctionnel renouvelle sa charge dans la durée, même lo
 
 Produire, transférer ou utiliser trop d’énergie le fatigue. Un dépassement important peut provoquer des lésions, atteindre ses fonctions vitales et le tuer. Le stockage externe est également limité en capacité, stabilité et restitution : remplir un réservoir pendant plusieurs années ne permet pas de contourner le besoin d’une impulsion stable, simultanée et distribuée.
 
-Le redémarrage du Cœur exige donc plusieurs Porteurs actifs, des réserves, des relais énergétiques, des voies de distribution, des compétences et une synchronisation collective. Les six pétales connus, le centre d’Elio et l’apport encore inexpliqué de Nacre participent à cette convergence sans devenir chacun une source originelle. Une fois réparé, le Cœur entretient son fonctionnement sans maintenir Nacre éternellement connectée. Son énergie harmonise les noyaux sans sélectionner les bénéficiaires selon leur mérite.
+Le redémarrage du Cœur exige donc plusieurs Porteurs actifs, des réserves, des relais énergétiques, des voies de distribution, des compétences et une synchronisation collective. Les six pétales régionaux sont physiquement rassemblés au Cœur ; le jeune Elio apporte son centre vivant et ses sept pétales propres, et Nacre son raccord compatible encore inexpliqué. Aucun de ces éléments n’est une source originelle illimitée. Une fois réparé, le Cœur entretient son fonctionnement sans maintenir Nacre ou Elio éternellement connectés, y compris pendant le secours en A. Son énergie harmonise les noyaux sans sélectionner les bénéficiaires selon leur mérite.
 <!-- END:COEUR-002 -->
 
 <!-- BEGIN:COEUR-003 -->
@@ -622,13 +685,13 @@ La disparition divine et le Bâillon sont deux crises distinctes. Le Cœur ne se
 
 Chaque véritable noyau primordial possède un centre et exactement sept pétales. Le centre porte la fonction fondamentale du noyau ; les pétales portent notamment sa capacité exploitable, ses réserves et ses niveaux d’éveil ou de maîtrise. Le noyau d’Elio est particulier parce que son centre n’a jamais été corrompu par le Grand Bâillon et conserve sa capacité génératrice.
 
-Pendant sa tournée, Elio-source détache six pétales seulement, un dans chacune des six grandes régions d’Orthe, et les installe dans les relais énergétiques construits autrefois par les peuples. Il conserve alors son centre pur et son septième pétale. Nacre existe déjà mais ne porte pas encore ce dernier fragment. Ce n’est qu’à Z, quelques instants avant l’arrivée de Séveran, qu’Elio détache le septième pétale et l’intègre à Nacre. Détacher ses pétales ne l’empêche pas de poursuivre les premières réactivations tant que son centre reste utilisable ; aucun pétale ni bénéficiaire rechargé ne devient un nouveau centre pur.
+Elio-source découvre comment séparer les pétales de son propre noyau, puis en détache six seulement pendant sa tournée, un dans chacune des six grandes régions d’Orthe, et les installe dans les relais énergétiques construits autrefois par les peuples. Il conserve alors son centre pur et son septième pétale. Nacre existe déjà mais ne porte pas encore ce dernier fragment. Ce n’est qu’à Z, avant l’arrivée de Séveran, qu’Elio détache le septième pétale et l’intègre à Nacre pour amorcer le prototype. Détacher ses pétales ne l’empêche pas de poursuivre les premières réactivations tant que son centre reste utilisable ; aucun pétale ni bénéficiaire rechargé ne devient un nouveau centre pur.
 
-Les gardiens des fragments ont des responsabilités locales et une puissance renforcée sans être nécessairement chefs d’État. Chaque pétale porte les traces définies dans `FRAGMENT-003`, susceptibles d’exercer une influence subtile sans possession, effacement du libre arbitre ni émotion unique imposée à toute une région.
+Les gardiens des fragments ont des responsabilités locales et une puissance renforcée sans être nécessairement chefs d’État. Chaque pétale porte l’empreinte locale définie dans `FRAGMENT-003`, perceptible en privé par le jeune Elio. Les effets éventuels sur un gardien relèvent d’une influence distincte, sans possession ni effacement du libre arbitre.
 
-Le joueur rassemble les six pétales régionaux connus, Nacre, les Porteurs alliés et son propre noyau au centre pur pour retenter la restauration du Cœur. Le groupe et le joueur ne savent pas encore que Nacre transporte depuis Z le septième fragment. Retirer un pétale peut priver une région de recharge et l’exposer à une attaque ; les habitants peuvent refuser. Il faut aider, discuter et préparer la transition sans faire disparaître ce risque par un remplacement parfait et gratuit. Aucun pétale régional n’est confirmé comme déjà confisqué par le Concordat.
+Le joueur rassemble les six pétales régionaux connus, Nacre, les Porteurs alliés et son propre noyau au centre pur pour retenter la restauration du Cœur. Il ne greffe pas les six pétales à son propre noyau : il les rapporte physiquement au monument pour une convergence distribuée. Le groupe et le joueur ne savent pas encore que Nacre transporte depuis Z le septième fragment. Retirer un pétale peut priver une région de recharge et l’exposer à une attaque ; les habitants peuvent refuser. Il faut aider, discuter et préparer la transition sans faire disparaître ce risque par un remplacement parfait et gratuit. Aucun pétale régional n’est confirmé comme déjà confisqué par le Concordat.
 
-Elio-source échoue une première fois avant de répartir ses pétales et de multiplier les réactivations. Après la tournée, un deuxième essai plus important attire l’attention de Séveran. Cette structure à deux essais est confirmée.
+Elio-source échoue une première fois avant la tournée : son centre seul ne peut fournir au Cœur une puissance assez distribuée. Après la tournée, le deuxième essai utilise les six pétales encore installés dans leurs relais régionaux, des Porteurs actifs et des soutiens, mais le flux demeure insuffisant ou instable avant l’attaque de Séveran, qui interrompt l’opération et tue Lyra-source. Cette structure à deux essais est confirmée ; la tentative jouée, distincte, réunit physiquement les six pétales au Cœur, le centre entier et les sept pétales du jeune Elio, les alliés et Nacre.
 <!-- END:FRAGMENT-001 -->
 
 <!-- BEGIN:FRAGMENT-002 -->
@@ -640,20 +703,44 @@ Les pétales séparés deviennent des sortes de micro-noyaux. Leur réserve éne
 
 Ils reçoivent de l’énergie extérieure naturelle ou artificielle, l’utilisent pour maintenir leur stabilité et redistribuent une énergie compatible. Des Porteurs réactivés et des relais régionaux participent à cet entretien. Ils peuvent durer des années, des décennies ou davantage, sans que leur pérennité absolument infinie soit garantie.
 
-L’inertage ultérieur du centre d’Elio-source ne les détruit pas automatiquement. Leur micro-mécanique scientifique exacte reste à développer sans autoriser la duplication spontanée de centres purs.
+L’extraction ultérieure du centre d’Elio-source les rend dormants, sans les détruire ; leur reprise grâce au centre vivant du jeune Elio exige de l’énergie et de l’entretien locaux. L’arrêt peut laisser des infrastructures en panne qu’il faut réparer et redémarrer manuellement. Les Porteurs déjà réactivés conservent leurs propres réserves, leur compatibilité et leur longévité basale : la panne des relais n’est pas un second Bâillon global. Leur micro-mécanique scientifique exacte reste à développer sans autoriser la duplication spontanée de centres purs.
 <!-- END:FRAGMENT-002 -->
 
 <!-- BEGIN:FRAGMENT-003 -->
 <!-- META:{"status":"CONFIRME","origin":"utilisateur","kind":"regle","views":"resume","period":"","order":0,"refs":"FRAGMENT-001"} -->
 <a id="fragment-003"></a>
-## Mémoires et émotions arrêtées au détachement
+## Empreintes locales, privées et interprétables
 
-Chaque pétale détaché contient une empreinte émotionnelle, une trace de la personnalité d’Elio-source à cette période et ses souvenirs jusqu’au moment précis de sa séparation. Il ne connaît aucun événement vécu ensuite.
+Chaque pétale détaché contient une empreinte sensorielle et émotionnelle locale du moment entourant sa séparation et son don, pas une archive autobiographique cumulative. Il ne connaît aucun événement vécu ensuite ni tout le passé antérieur. Seul le jeune Elio de même signature peut éprouver cette vision privée ; Nacre, ses instruments et les gardiens ne la lisent pas. Son contenu doit être interprété et corroboré : il ne fournit ni coordonnées techniques, ni savoir-faire, ni maîtrise instantanée.
 
-Les six pétales régionaux reconstituent progressivement et chronologiquement le parcours d’Elio-source : ses pensées, ses relations, ses erreurs, ses espoirs et l’évolution de sa vision du monde. Le septième pétale, détaché à Z puis intégré à Nacre, contient ses derniers souvenirs directs jusqu’à cet instant, quelques moments avant sa mort. Il ne connaît ni l’assassinat qui suit ni les événements postérieurs. Ceux-ci doivent provenir des journaux, capteurs et archives propres à Nacre ou de témoins réels.
+Les six scènes locales jalonnent la tournée sans reconstituer une biographie exhaustive. Le septième pétale donne seulement la scène locale de l’amorçage du prototype à Z, au moment où il est confié à Nacre ; il ne raconte ni toute la collaboration, ni l’attaque, ni la mort. Les journaux partiels de Nacre, des témoins, le corps retrouvé et des mesures réelles fournissent les autres preuves et les paramètres du secours.
 
-L’influence sur un gardien peut amplifier certains états ou résonances, mais ne constitue ni une possession, ni un effacement du libre arbitre, ni une émotion unique imposée à une région entière.
+Une influence sur un gardien peut amplifier certains états ou résonances, mais reste distincte de la vision privée d’Elio et ne constitue ni une possession, ni une émotion unique imposée à une région entière.
 <!-- END:FRAGMENT-003 -->
+
+<!-- BEGIN:ESSAIS-COEUR-001 -->
+<!-- META:{"status":"CONFIRME","origin":"utilisateur","kind":"regle","views":"resume","period":"","order":0,"refs":"FRAGMENT-001,COEUR-002,EVT-012,EVT-013,FIN-SEQUENCE-001"} -->
+<a id="essais-coeur-001"></a>
+## Trois tentatives distinctes au Cœur
+
+Premier essai historique : avant la tournée, Elio-source et son centre pur manquent de puissance distribuée, même avec des aides initiales ; il décide de chercher des relais et des alliés. Deuxième essai historique : ses six pétales sont encore dans leurs relais régionaux, et des Porteurs qu’il a réactivés participent ; le flux demeure instable et insuffisant avant que Séveran n’attaque. L’attaque interrompt l’essai et tue Lyra-source, mais elle n’en est pas l’unique cause technique d’échec. Tentative jouée : le groupe retire et apporte physiquement les six pétales au Cœur après consentement et préparation des régions, avec le noyau complet du jeune Elio, ses propres sept pétales, les alliés, les réserves et Nacre. Celle-ci complète la compatibilité collective sans être une source d’énergie illimitée.
+<!-- END:ESSAIS-COEUR-001 -->
+
+<!-- BEGIN:CORPS-001 -->
+<!-- META:{"status":"CONFIRME","origin":"utilisateur","kind":"regle","views":"resume","period":"","order":0,"refs":"CENTRE-EXTRAIT-001,SEVERAN-003,REVELATIONS-001,FIN-SEQUENCE-001"} -->
+<a id="corps-001"></a>
+## Le corps d’Elio-source conservé comme preuve
+
+Après le raid Z, Séveran récupère le corps d’Elio-source et son centre extrait devenu inerte. Ses chercheurs essaient en vain d’en tirer une référence active ; ils conservent ensuite les restes post-mortem et les travaux saisis, sans stase d’un sujet vivant ni résurrection possible. Le groupe ne découvre physiquement le corps et le centre qu’après les deux affrontements du final et la révélation de Z par Nacre ; une indication de Séveran peut contribuer à les retrouver, sans être la seule piste. Une sépulture après le secours de Lyra est proposée, pas obligatoire à ce stade.
+<!-- END:CORPS-001 -->
+
+<!-- BEGIN:TOURNEE-001 -->
+<!-- META:{"status":"PROPOSE","origin":"assistant","kind":"piste","views":"resume","period":"","order":0,"refs":"FRAGMENT-001,FRAGMENT-003,ESSAIS-COEUR-001"} -->
+<a id="tournee-001"></a>
+## Pistes brèves pour la tournée d’Elio-source
+
+Chaque don régional peut associer un besoin concret, un accord local et un coût ultérieur de dépendance au relais : défense d’un refuge, soins, atelier, passage, réparation ou communauté isolée. Les six scènes précises, leur ordre, les gardiens, les dialogues et les durées ne sont pas confirmés ; ils seront écrits période par période lors du scénario détaillé. Les empreintes locales ne doivent pas révéler tout ce qu’Elio-source vivra après chaque don.
+<!-- END:TOURNEE-001 -->
 
 # Temps et machine
 
@@ -680,11 +767,11 @@ Dans les dialogues ordinaires, « retourner dans le passé » peut être un racc
 
 L’expérience de A produit une empreinte extraordinairement précise du laboratoire et de son état. Ce n’est pas encore une machine fonctionnelle de voyage temporel. Bien plus tard, Elio-source découvre que l’empreinte n’a pas seulement conservé où cet état se trouvait, mais assez d’informations pour retrouver quand il existait. Elle devient l’ancre de ses recherches temporelles.
 
-Après la mort de Lyra-source, le scientifique veut la revoir et réparer ses erreurs. À Z, il a préparé personnellement une ouverture vers A, moment de leur vie commune ; son prototype ne sait toutefois produire que des ouvertures locales ancrées, pas réécrire l’histoire-source. Sa capacité à le concevoir associe sa maîtrise consciente de Gravité, ses intuitions Spatial anciennes, ses compétences scientifiques réelles et les recherches collectives auxquelles il accède. Spatial ne lui confère aucun voyage temporel inné.
+Après la mort de Lyra-source, le scientifique veut la revoir et réparer ses erreurs. À Z, il a préparé personnellement une ouverture vers A, moment de leur vie commune ; il amorce le prototype avec le septième pétale confié à Nacre puis ouvre lui-même la fenêtre avant l’arrivée de Séveran. Son prototype ne sait produire que des ouvertures locales ancrées, pas réécrire l’histoire-source. Sa capacité à le concevoir associe sa maîtrise consciente de Spatial acquise après G, ses intuitions de Gravité anciennes, ses compétences scientifiques réelles et les recherches collectives auxquelles il accède. Spatial ne lui confère aucun voyage temporel inné.
 
 Les essais temporels ultérieurs portent sur des volumes réduits, des objets, des instruments et le retour de sondes. Une intrusion puis une extraction humaine n’ont pas encore été validées en conditions sûres. Le dossier ne doit pas promettre qu’une vraie réécriture deviendra forcément possible avec davantage de recherche. L’Elio joué termine l’histoire avec un sauvetage limité, pas avec un pouvoir de refaire toute réalité.
 
-Elio ignore que Séveran va arriver. La prise du laboratoire peut être préparée à partir de traces, d’espionnage ou de travaux antérieurs, mais l’antagoniste ne choisit pas providentiellement A après coup : il détourne la destination déjà programmée.
+Elio ignore que Séveran va arriver. La prise du laboratoire peut être préparée à partir de traces, d’espionnage ou de travaux antérieurs, mais l’antagoniste ne choisit pas providentiellement A après coup : il traverse la destination déjà ouverte. Le temps limité de la fenêtre commence dès l’ouverture, y compris l’observation de A depuis Z et l’affrontement dans le laboratoire de Z. La fenêtre amorcée reste brièvement ouverte indépendamment de la dormance puis du nouveau raccord du pétale de Nacre.
 <!-- END:TEMPS-002 -->
 
 <!-- BEGIN:TEMPS-003 -->
@@ -706,35 +793,25 @@ Le volume, le temps actif et les possibilités d’extraction sont limités. Une
 <!-- END:TEMPS-003 -->
 
 <!-- BEGIN:TEMPS-004 -->
-<!-- META:{"status":"PROPOSE","origin":"assistant","kind":"regle","views":"resume","period":"","order":0,"refs":"IA-003,VOYAGE-001"} -->
+<!-- META:{"status":"CONFIRME","origin":"utilisateur","kind":"regle","views":"resume","period":"","order":0,"refs":"IA-003,VOYAGE-001,CAPSULE-SELIS-001"} -->
 <a id="temps-004"></a>
-## Le lieu de Z et les deux déplacements de Nacre
+## Sélis, site original de A et les deux déplacements de Nacre
 
-Z est une date, pas une planète. Cette version conserve comme proposition un laboratoire de Z sur Sélis, puis une téléportation technologique vers une installation préparée sur Orthe.
+Z est une date, pas une planète. Le laboratoire de Z se trouve sur Sélis, au site de l’expérience originale de A ; après l’extraction A → Z, Nacre emploie les balises préparées pour téléporter le jeune Elio vers Orthe. La dernière intervention médicale doit revenir à ce site original, avec son ancre physique : la restauration du Cœur fournit l’énergie, pas une nouvelle adresse temporelle.
 
-Le scientifique est revenu travailler dans un observatoire de Sélis, où se trouve l’anneau de son ancienne expérience. Vers la fin de sa vie, il développe avec Nacre des portails ou installations de téléportation interplanétaire et prépare les deux extrémités nécessaires. Le Concordat possède des installations et des moyens de passage vers ce site, sans nécessairement gouverner toute la planète.
+Le scientifique est revenu travailler au site de Sélis où se trouve l’anneau de son ancienne expérience ; la forme précise du laboratoire ou observatoire reste proposée. Vers la fin de sa vie, il développe avec Nacre des installations de téléportation interplanétaire et prépare les deux extrémités nécessaires. Le Concordat possède des moyens d’accès à ce site, sans nécessairement gouverner toute la planète.
 
 Le trajet du secours est : A-fenêtre → laboratoire de Sélis au présent Z → installation clandestine de téléportation au Havre des Traverses, sur Orthe. Séveran revient séparément au laboratoire. Le Méridien et sa région-capitale restent distincts de la Couronne des Marées et constituent le lieu proposé des affrontements finaux.
 
-Cette localisation remplace la v1.0, où la fenêtre était ouverte directement au Méridien : dire ensuite « téléporté sur Orthe » aurait alors été trompeur. Si l’auteur préfère garder le laboratoire sur Orthe, il faut parler de changement de région et non de planète.
+Cette localisation remplace la v1.0, où la fenêtre était ouverte directement au Méridien : le trajet vers Orthe est ici une véritable téléportation interplanétaire, et le secours final exige de revenir au laboratoire original de Sélis.
 <!-- END:TEMPS-004 -->
 
 <!-- BEGIN:TEMPS-005 -->
-<!-- META:{"status":"PROPOSE","origin":"assistant","kind":"parametre","views":"","period":"","order":0,"refs":"IA-004"} -->
+<!-- META:{"status":"PROPOSE","origin":"assistant","kind":"parametre","views":"","period":"","order":0,"refs":"IA-004,TEMPS-002"} -->
 <a id="temps-005"></a>
-## Minutage de travail du prologue
+## Durée limitée sans chronomètre canonique
 
-Les chiffres ci-dessous ne sont que des repères de mise en scène. La règle essentielle est l’ordre : interposition, extraction d’Elio, retour de Séveran, puis suspension.
-
-| Temps actif dans la fenêtre | Événement proposé |
-|---|---|
-| 0 seconde | Ouverture et poursuite de la scène du couple ; intrusion de Séveran. |
-| Environ 112 secondes | Lyra intercepte le dispositif et reçoit une blessure grave. |
-| Environ 118 secondes | Nacre extrait Elio pendant la diversion ; le héros a vu Lyra tomber. |
-| Environ 146 secondes | Séveran revient ; le mode de conservation suspend le reliquat après sa sortie. |
-| 180 secondes au maximum | Budget initial d’activité de l’ancre ; il reste donc 34 secondes à reprendre. |
-
-Les dernières secondes du prologue peuvent ne pas être montrées du point de vue d’Elio. Le final reprend au point de suspension, jamais avant le coup. Le jeu n’a pas à imposer un chronomètre de 34 secondes au joueur : il s’agit de temps narratif, avec des gestes préparés et une ellipse de gameplay.
+La durée de la fenêtre est courte et limitée, mais aucun nombre de secondes n’est canonique. Le compte commence quand Elio-source ouvre A à Z : observation depuis Z, arrivée de Séveran, vision du jeune Elio, coup mortel, extraction du centre, dernier ordre à Nacre, mort de la source, traversée vers A, interposition de Lyra, extraction du jeune Elio, retour de Séveran et suspension consomment tous cette durée. La mise en scène devra vérifier un budget crédible sans réutiliser les anciens repères de 112, 118, 146, 180 ou 34 secondes. Le final reprend au point de suspension, jamais avant le coup ; il ne promet aucun chronomètre de gameplay ni essais infinis.
 <!-- END:TEMPS-005 -->
 
 # Nacre et le secours
@@ -758,11 +835,11 @@ Elle dit les faits qu’elle peut vérifier et distingue clairement certitude, m
 <a id="ia-002"></a>
 ## Une évacuation générale qui change de cible
 
-À Z, Elio-source pressent le danger et arme dans Nacre une routine générale dont l’ordre est de le protéger, de l’évacuer du laboratoire, d’utiliser l’installation de téléportation sûre et de l’emmener sur Orthe. Cette routine vise Elio-source lui-même ; elle n’est pas conçue pour récupérer sa version du point A.
+À Z, Elio-source connaît le risque d’une interruption et prépare Nacre à une évacuation possible, mais ne prévoit ni l’attaque exacte ni le secours du jeune Elio. Après le coup mortel et l’extraction de son centre, encore brièvement conscient, il donne son dernier ordre à Nacre : le protéger, l’évacuer du laboratoire, utiliser l’installation de téléportation sûre et l’emmener sur Orthe. La routine vise Elio-source lui-même ; elle n’est pas conçue pour récupérer sa version du point A.
 
-Séveran arrive avant l’évacuation. Elio rend son centre inutilisable pour l’antagoniste, puis meurt de l’agression physique de Séveran. Nacre reste avec une cible principale morte, une routine active et l’ordre inachevé de conduire Elio vers Orthe. La neutralisation du centre n’est pas la cause de sa mort.
+Séveran arrive pendant la fenêtre déjà ouverte et voit le jeune Elio depuis Z. Il porte un coup mortel à Elio-source, puis extrait son centre ; celui-ci devient inerte aussitôt et les sept pétales se taisent. Elio donne alors l’ordre ci-dessus ; il est encore brièvement vivant, mais Nacre ne parvient pas à l’évacuer avant sa mort. Elle reste avec une cible principale morte, une routine active et l’ordre inachevé de conduire Elio vers Orthe. L’extraction n’est pas la cause automatique de sa mort.
 
-Lorsque Séveran ouvre la faille réglée sur A, Nacre détecte de l’autre côté une signature fondamentale compatible avec Elio — même centre pur et même identité biologique ou signature de noyau — mais vivante. Le détail informatique reste proposé. Le protocole adapte alors sa cible de secours et suit la faille. Elio-source n’avait prévu ni cette continuation exacte, ni l’interposition de Lyra, ni toute l’aventure future ; Nacre prend une décision opérationnelle à partir d’une routine générale, pas d’une prophétie.
+Lorsque Séveran traverse la faille déjà ouverte sur A, Nacre détecte de l’autre côté une signature fondamentale compatible avec Elio — même centre pur et même identité biologique ou signature de noyau — mais vivante. Le détail informatique reste proposé. Le protocole adapte alors sa cible de secours et suit la faille. En A, son pétale peut se raccorder au jeune Elio, tandis que les six pétales d’Orthe restent dormants. Elio-source n’avait prévu ni cette continuation exacte, ni l’interposition de Lyra, ni toute l’aventure future ; Nacre prend une décision opérationnelle à partir d’une routine générale, pas d’une prophétie.
 <!-- END:IA-002 -->
 
 <!-- BEGIN:IA-003 -->
@@ -770,11 +847,11 @@ Lorsque Séveran ouvre la faille réglée sur A, Nacre détecte de l’autre cô
 <a id="ia-003"></a>
 ## L’extraction pendant l’interposition
 
-Nacre franchit la faille après Séveran. Pendant que Lyra s’interpose et occupe son attention, elle arrache l’Elio joué au danger et le fait repasser physiquement par la faille vers Z. Avec un Elio vivant redevenu cible de la routine, elle achève simplement l’ordre initial en activant l’installation tardive de téléportation vers Orthe. Le trajet A-fenêtre → Z → Orthe forme une seule logique de secours.
+Nacre franchit la faille après Séveran. Pendant que Lyra, sans pouvoirs Biotiques restaurés, blesse Séveran avec ses moyens ordinaires ou son équipement puis reçoit une blessure gravissime, Nacre arrache l’Elio joué au danger et le fait repasser physiquement par la faille vers Z. Les six pétales d’Orthe se raccordent alors au centre jeune avant le passage interplanétaire. Elio entrevoit un corps indistinct dans le laboratoire, sans le reconnaître et sans nouvelle amnésie. Nacre achève l’ordre initial en activant l’installation tardive de téléportation vers Orthe. Le trajet A-fenêtre → Z → Orthe forme une seule logique de secours.
 
 La scène doit disposer les personnages de façon lisible : l’instrument de Séveran vise Elio, Lyra se place entre eux, et le corps de l’assaillant ainsi que la perturbation lumineuse masquent le retour vers la faille. Nacre entre sous couverture instrumentale de maintenance, pas grâce à une invisibilité illimitée.
 
-Séveran ne voit pas la manœuvre. Après l’avoir mortellement blessée en apparence, il cherche Elio, constate sa disparition et revient au présent avant la fermeture. Il ne reste pas ignorant de l’échec ; il ignore d’abord son mécanisme et la destination d’Elio.
+Séveran, blessé et désorienté par Lyra, ses implants et le franchissement, ne voit pas la manœuvre. Il cherche Elio, constate sa disparition puis revient séparément au présent Z. Il ne reste pas ignorant de l’échec ; il ignore d’abord son mécanisme et la destination d’Elio. Ses forces organisées continuent néanmoins d’agir sur Orthe. La suspension du reliquat de A n’intervient qu’après ce retour.
 
 Nacre ne peut emmener le couple : la seule enveloppe d’extraction d’urgence est calibrée pour Elio et son noyau sain. Lyra vient d’être gravement blessée ; la déplacer ainsi la tuerait sans stabilisation adaptée. Nacre n’a ni les équipements ni l’énergie d’un second secours. Le final apportera précisément ces moyens manquants.
 <!-- END:IA-003 -->
@@ -798,13 +875,13 @@ La coalition le récupère lors de l’arc des Chantiers, avant de pouvoir recon
 <a id="ia-005"></a>
 ## Mémoire endommagée et septième pétale inaccessible
 
-Le passage temporel inhabituel et l’opération d’urgence surchargent Nacre et endommagent ses index, ses accès aux archives et ses circuits de lecture. Elle garde sa personnalité, ses fonctions d’accompagnement et ses souvenirs nouveaux, mais perd l’accès à une partie de ses archives historiques et au pétale intégré dans son propre corps à Z.
+L’extraction du centre d’Elio-source éteint le raccord du pétale de Nacre et endommage surtout ses index historiques et ses accès à certaines archives ; les commutations lors du passage A puis du retour Z aggravent ce désordre. Le seul passage temporel ou une dépense d’énergie ordinaire ne sont pas l’explication suffisante. Elle garde sa personnalité, ses fonctions d’accompagnement et ses souvenirs nouveaux ; aucune archive complète et lisible de Z n’est secrètement disponible au début.
 
-Au début, Nacre ne se souvient pas qu’elle possède ce septième pétale, ne peut pas accéder à ses souvenirs et ne peut pas lire directement son empreinte. L’Elio joué ignore lui aussi que le dernier fragment est à ses côtés. Les connaissances restantes ne sont pas stockées dans un seul « souvenir du boss » : l’aventure restaure des instruments, des journaux, des relais et des témoignages complémentaires.
+Au début, Nacre ne se souvient pas qu’elle possède ce septième pétale et ne peut pas lire son empreinte — de toute façon, seul le jeune Elio peut éprouver cette vision locale. L’Elio joué ignore lui aussi que le dernier fragment est à ses côtés. Les connaissances restantes ne sont pas stockées dans un seul « souvenir du boss » : l’aventure restaure des instruments, des journaux partiels, des relais et des témoignages complémentaires.
 
 Nacre peut constater l’époque, son origine scientifique et l’exécution d’un secours. Ses propres journaux et capteurs sont la source possible des événements postérieurs au détachement du septième pétale, notamment l’assassinat, mais leurs index sont endommagés et ne lui donnent pas au début un récit complet immédiatement lisible. Elle a vu la blessure de Lyra et perdu la télémétrie ; elle ne doit jamais annoncer une mort médicalement confirmée puis révéler qu’elle connaissait la survie depuis le début.
 
-À mesure que les six pétales régionaux résonnent avec l’Elio joué, Nacre reconstruit certains accès mémoriels et manifeste des réactions inhabituelles, sans que le groupe ou le joueur puisse encore identifier un septième fragment. Cette restauration progressive prépare la révélation finale sans transformer Nacre en copie consciente complète d’Elio-source.
+À mesure que les six pétales régionaux résonnent avec l’Elio joué, Nacre peut reconstruire certains index et manifester des réactions inhabituelles, sans que le groupe ou le joueur puisse encore identifier un septième fragment. Cette restauration progressive ne donne pas à Nacre les visions privées d’Elio et ne la transforme pas en copie consciente du scientifique.
 <!-- END:IA-005 -->
 
 <!-- BEGIN:IA-006 -->
@@ -812,23 +889,23 @@ Nacre peut constater l’époque, son origine scientifique et l’exécution d�
 <a id="ia-006"></a>
 ## Le fragment de Nacre et son transfert final
 
-Nacre existe pendant la tournée régionale sans porter le dernier fragment. Ce n’est qu’à Z, quelques instants avant l’arrivée de Séveran, qu’Elio-source détache son septième pétale et le lui intègre. Elle voyage ensuite avec cette trace sans en avoir conscience et sans devenir une copie du scientifique, une connaissance totale de sa vie ou un oracle capable de résoudre l’aventure. Le groupe ne l’identifie qu’après sa contribution au redémarrage et la sécurisation de la situation.
+Nacre existe pendant la tournée régionale sans porter le dernier fragment. Ce n’est qu’à Z, avant l’arrivée de Séveran et pour amorcer le prototype, qu’Elio-source détache son septième pétale et le lui intègre. Le pétale devient dormant lorsque le centre source est extrait, se raccorde au jeune Elio de son côté de A, puis demeure raccordé après son retour en Z. Nacre voyage avec cette trace sans en avoir conscience et sans devenir une copie du scientifique, une connaissance totale de sa vie ou un oracle. Le groupe ne l’identifie qu’après sa contribution au redémarrage et la sécurisation de la situation.
 
-Après la découverte du pétale, ses souvenirs directs et les données propres de Nacre donnent les paramètres opératoires nécessaires au secours de Lyra. Une fois ce secours accompli, son corps ou composant temporel dangereux est détruit irréversiblement. Une tentative préparée et consentie préserve son identité et ses souvenirs personnels, puis Nacre revient sous la forme d’un assistant dépourvu de pouvoir temporel. Ce retour ne doit pas être raconté comme la résurrection gratuite d’une IA dont la disparition absolue aurait auparavant été certifiée. Le sort matériel exact du pétale pendant ce transfert reste ouvert.
+Après la découverte du pétale, le jeune Elio en éprouve l’empreinte locale d’amorçage ; les données partielles de Nacre, des mesures de l’ancre et d’autres preuves établissent les paramètres opératoires du secours de Lyra. Une fois ce secours accompli, le composant temporel dangereux est détruit irréversiblement. Une tentative préparée et consentie préserve l’identité et les souvenirs personnels de Nacre dans un assistant dépourvu de pouvoir temporel. Ce retour ne doit pas être raconté comme la résurrection gratuite d’une IA dont la disparition absolue aurait auparavant été certifiée. Le sort matériel exact du pétale pendant ce transfert reste ouvert.
 
-Ses lacunes historiques proviennent des dommages du secours temporel, pas de la collecte d’énergie destinée au Cœur. Le transfert final préserve autant que possible sa personnalité et ses souvenirs personnels ; sa réalisation technique détaillée reste à développer.
+Ses lacunes historiques proviennent principalement de la rupture puis des changements de raccord du pétale, pas de la collecte d’énergie destinée au Cœur. Le transfert final préserve autant que possible sa personnalité et ses souvenirs personnels ; sa réalisation technique détaillée reste à développer.
 <!-- END:IA-006 -->
 
 <!-- BEGIN:IA-007 -->
 <!-- META:{"status":"CONFIRME","origin":"utilisateur","kind":"regle","views":"resume","period":"","order":0,"refs":"IA-005,IA-006,COEUR-001,COEUR-002,FRAGMENT-003,FIN-SEQUENCE-001,REVELATIONS-001"} -->
 <a id="ia-007"></a>
-## Résonance, dernière mémoire et autonomie du Cœur
+## Résonance, empreinte locale et autonomie du Cœur
 
-Le groupe prépare le redémarrage avec six fragments connus, Elio, les réserves, les relais énergétiques réparés et les compétences des Porteurs réunis. Le flux collectif approche de la réussite sans se stabiliser complètement. Nacre décide alors d’apporter ses fonctions connues de raccordement et de stabilisation, sans savoir qu’elle contient un pétale. Son apport n’est pas supérieur à celui de tous les alliés : il complète d’une manière exceptionnellement compatible la résonance des six fragments et permet à l’effort collectif d’aboutir.
+Le groupe prépare le redémarrage avec les six fragments physiquement rapportés au Cœur, le centre vivant et les sept pétales propres du jeune Elio, les réserves, les relais réparés et les compétences des Porteurs réunis. Le flux collectif approche de la réussite sans se stabiliser. Nacre apporte alors ses fonctions connues de raccordement, sans savoir qu’elle contient un pétale déjà relié au jeune Elio. Son apport n’est pas supérieur à celui de tous les alliés : cette compatibilité complète l’effort collectif.
 
-Les pétales ne possèdent que des souvenirs antérieurs ou contemporains à leur séparation. Le septième fournit les derniers souvenirs directs d’Elio-source jusqu’à son détachement à Z, jamais sa mort ultérieure. L’assassinat, l’ouverture de la faille et l’adaptation du secours doivent être complétés par les données propres à Nacre, ses journaux, des témoins ou d’autres archives réellement créées à cette date. La surcharge du secours a endommagé ses accès sans effacer les souvenirs personnels formés pendant l’aventure.
+Les pétales ne portent que l’empreinte locale de leur séparation. Le septième fournit au seul jeune Elio un fragment sensoriel et émotionnel de l’amorçage à Z, jamais l’assassinat ni l’histoire complète de la collaboration. L’attaque, l’extraction, la mort et l’adaptation du secours doivent être établies par les données partielles propres à Nacre, des témoins, le corps et le centre retrouvés ou d’autres archives réellement créées à cette date. Les changements de raccord ont endommagé les index historiques sans effacer les souvenirs personnels formés pendant l’aventure.
 
-Le Cœur restauré agit ensuite sur les noyaux des alliés comme des adversaires et devient autonome. Après la sécurisation obtenue lors du second affrontement, l’équipe analyse la contribution de Nacre : la résonance et ses accès restaurés révèlent alors, et seulement alors, le septième fragment. Sa lecture et les données postérieures de l’IA fournissent la dernière pièce du parcours d’Elio-source ainsi que les paramètres nécessaires au sauvetage. Cette séquence n’exige pas la mort de Nacre avant la dernière fenêtre.
+Le Cœur restauré agit ensuite sur les noyaux des alliés comme des adversaires et devient autonome, y compris lorsque le jeune Elio se rend ensuite en A. Après la sécurisation obtenue lors du second affrontement, l’équipe analyse la contribution de Nacre : la résonance et ses index partiellement réparés révèlent alors, et seulement alors, le septième fragment. La vision privée d’Elio, les mesures et les données corroborées donnent des paramètres utilisables pour le sauvetage, pas des coordonnées tombées toutes faites d’une mémoire. Cette séquence n’exige pas la mort de Nacre avant la dernière fenêtre.
 <!-- END:IA-007 -->
 
 <!-- BEGIN:REVELATIONS-001 -->
@@ -838,13 +915,13 @@ Le Cœur restauré agit ensuite sur les noyaux des alliés comme des adversaires
 
 | Étape jouée | Informations accessibles | Informations encore non certaines |
 |---|---|---|
-| Prologue A | Couple, recherche primitive, intrusion, blessure de Lyra et secours vu par Elio. | Origine de Lyra, connaissance d’Orthe par Elio, identité du septième pétale, déroulement de Z. |
-| Premières régions | Orthe, réputation et apprentissages d’Elio-source, premiers fragments, pouvoirs et histoires locales. | Preuve complète de l’assassinat à Z, changement de cible et pétale de Nacre identifié. |
-| Arcs intermédiaires | Mort de Lyra-source avec preuves datées, collaboration, origine de Lyra, passé Spatial, hypothèses sur l’ancre et possibilité de secours. | Images ou journaux complets révélant le septième fragment et toute la routine de Z. |
-| Préparation du Cœur | Projet de Séveran, usage prévu du centre, menaces, recherches et preuves partielles sur Elio-source. | Révélation complète de Z et du secours. |
-| Redémarrage | Contribution surprenante de Nacre. | Connaissance préalable obligatoire de son fragment. |
-| Après sécurisation | Découverte du septième, derniers souvenirs directs, données de l’assassinat et du secours, paramètres d’extraction. | Aucun souvenir postérieur au détachement attribué au pétale. |
-| Dernière fenêtre | Usage de l’ancre, des paramètres, de la puissance et des soins pour extraire Lyra. | Retour avant la blessure, ancre neuve ou résurrection de Lyra-source. |
+| Prologue A | Couple, recherche primitive, intrusion, blessure de Lyra et secours vu par Elio ; bref corps indistinct à Z sans reconnaissance. | Origine de Lyra, identité du corps, septième pétale, déroulement de Z. |
+| Première région | Panne locale du relais puis remise en service ; les habitants expliquent l’insuffisance du premier essai historique. Elio propose de rassembler les pétales au Cœur comme hypothèse, non certitude prophétique. | Mort d’Elio-source, détail de Z et identité du septième pétale. |
+| Régions suivantes | Scènes locales privées éprouvées par Elio autour de chaque don, récits de témoins, Spatial réappris, puis passé Gravité révélé et réappris ; preuves datées de la mort de Lyra-source et de la collaboration. | Archives exhaustives ou vision de la mort par un pétale. |
+| Préparation du Cœur | Usage voulu par Séveran d’un Elio vivant, limites des essais historiques, choix et coût du retrait des pétales régionaux. | Révélation complète de Z, coordonnées de secours ou septième identifié. |
+| Redémarrage et second combat | Contribution surprenante de Nacre et restauration non sélective, puis neutralisation de Séveran. | Corps et centre physiquement découverts, paramètres définitifs du secours. |
+| Après sécurisation | Septième identifié ; vision locale d’amorçage vécue par Elio ; données partielles et preuves corroborées établissent Z ; corps et centre inerte retrouvés ; mesures de l’ancre donnent les paramètres opératoires. | Aucun souvenir postérieur au détachement attribué au pétale. |
+| Dernière fenêtre | Retour au site original de Sélis avec ancre physique, puissance autonome du Cœur et soins pour extraire Lyra. | Retour avant la blessure, ancre neuve ou résurrection de Lyra-source. |
 
 La bible expose toute la vérité d’auteur, mais un fait écrit ici n’est pas automatiquement dicible par Nacre au chapitre 1. Les révélations tardives reposent sur des preuves réellement absentes, verrouillées ou endommagées ; les témoins peuvent dire plus tôt les faits qu’ils connaissent légitimement.
 <!-- END:REVELATIONS-001 -->
@@ -896,13 +973,13 @@ Cette différence est une abstraction assumée entre récit et collection. Elle 
 
 Le final joué suit ces jalons sans les confondre avec les deux essais historiques d’Elio-source :
 
-1. la coalition rassemble les six fragments connus, Elio, Nacre, les réserves, les relais et les compétences alliées ;
+1. la coalition rassemble physiquement les six fragments connus au Cœur après accord et transition dans les régions, avec le centre et les sept pétales du jeune Elio, Nacre, les réserves et les compétences alliées ;
 2. un premier grand affrontement contre Séveran et son dispositif ouvre et protège l’accès au Cœur sans résoudre définitivement toute l’opposition ni imposer sa mort ;
 3. l’effort collectif approche de la réussite, puis la contribution compatible mais encore inexpliquée de Nacre complète la stabilisation ;
 4. le Cœur redémarre et restaure naturellement les noyaux concernés des alliés comme des adversaires ;
 5. un second grand affrontement tient compte de cette puissance retrouvée et aboutit à la neutralisation politique et militaire de Séveran et des forces fidèles, sans mort obligatoire ;
-6. après sécurisation, l’analyse révèle le septième pétale dans Nacre ; sa lecture et les données propres de l’IA donnent la vérité de Z et les paramètres du secours ;
-7. le groupe utilise l’ancre originale, cette connaissance, la puissance stable du Cœur et une équipe de soins/extraction pour sauver Lyra du prologue ;
+6. après sécurisation, l’analyse révèle le septième pétale dans Nacre ; Elio seul en éprouve la scène locale d’amorçage, tandis que journaux partiels et autres preuves établissent Z ; le groupe retrouve ensuite physiquement le corps d’Elio-source et son centre inerte ; des mesures vérifiées donnent les paramètres du secours ;
+7. le groupe revient au site original de Sélis avec l’ancre physique, cette connaissance, la puissance stable et autonome du Cœur et une équipe de soins/extraction pour sauver Lyra du prologue ;
 8. l’accès temporel est définitivement fermé, les composants dangereux sont détruits, Nacre traverse un transfert risqué, puis viennent convalescence et épilogue.
 
 Les phases de combat, la contention de Séveran entre les deux affrontements et les modalités précises de sa survie restent à concevoir après le cadrage du jeu. La victoire vient des alliances, compétences, préparatifs et moyens de neutralisation, pas d’une énergie qui choisirait le camp moralement bon.
@@ -913,7 +990,7 @@ Les phases de combat, la contention de Séveran entre les deux affrontements et 
 <a id="fin-001"></a>
 ## Sauver sans revenir avant la blessure
 
-Après le redémarrage, le second affrontement et la révélation de Z, le groupe réunit trois conditions : la même ancre physique et un appareil compatible ; la connaissance opérationnelle précise issue du septième pétale et des données de Nacre ; la puissance stable du Cœur restauré avec les moyens médicaux d’extraction. Il reprend la même scène conservée après la blessure, l’extraction initiale d’Elio et la sortie de Séveran. Il est trop tard pour empêcher l’agression, mais Lyra du prologue peut encore être stabilisée, extraite vivante et soignée.
+Après le redémarrage, le second affrontement, la révélation de Z et la découverte du corps, le groupe réunit trois conditions au site original de Sélis : la même ancre physique et un appareil compatible ; des paramètres opérationnels vérifiés par vision locale d’Elio, données partielles de Nacre, mesures et corroborations ; la puissance stable du Cœur restauré avec les moyens médicaux d’extraction. Le Cœur reste autonome pendant le voyage du jeune Elio en A. Le groupe reprend la même scène conservée après la blessure, l’extraction initiale d’Elio et la sortie de Séveran. Il est trop tard pour empêcher l’agression, mais Lyra du prologue peut encore être stabilisée, extraite vivante et soignée.
 
 L’énergie du Cœur ne crée aucune ancre, ne recharge aucun instant consommé et n’autorise pas d’essais infinis. La fermeture consomme l’accès restant. Elio-source et Lyra-source restent morts. Le sauvetage de Lyra du prologue n’annule ni le départ d’Elio ni les morts de la guerre. Une nouvelle machine sans cet anneau ne peut pas recommencer la même scène.
 <!-- END:FIN-001 -->
@@ -923,9 +1000,9 @@ L’énergie du Cœur ne crée aucune ancre, ne recharge aucun instant consommé
 <a id="fin-004"></a>
 ## Moyens proposés de la dernière extraction
 
-Un appareil compatible, les paramètres retrouvés après lecture de Z, un examen direct, une stabilisation biologique et une enveloppe d’extraction médicalisée apporteraient au final ce qui manquait au secours initial de Nacre. Des mesures partielles établiraient auparavant la conservation et une chance de survie sans la garantir. Le prototype original de Z pouvait fonctionner sans Cœur restauré parce qu’il utilisait une installation complète, une ancre encore non consommée et une opération risquée ; le secours final travaille sur un reliquat partiellement consommé avec une blessée à transférer.
+Un appareil compatible, les paramètres établis par recoupement des preuves de Z et des mesures de l’ancre, un examen direct, une stabilisation biologique et une enveloppe d’extraction médicalisée apporteraient au final ce qui manquait au secours initial de Nacre. Des mesures partielles établiraient auparavant la conservation et une chance de survie sans la garantir. Le prototype original de Z pouvait fonctionner sans Cœur restauré parce qu’il utilisait une installation complète, une ancre encore non consommée et une opération risquée ; le secours final travaille sur un reliquat partiellement consommé avec une blessée à transférer.
 
-Lyra récupérerait progressivement après son arrivée dans le présent et ne combattrait pas immédiatement comme si aucune blessure n’avait eu lieu. Les détails médicaux, le lieu de l’anneau et la durée du reliquat restent révisables.
+Lyra récupérerait progressivement après son arrivée dans le présent et ne combattrait pas immédiatement comme si aucune blessure n’avait eu lieu. Les détails médicaux et la durée du reliquat restent révisables ; le site du secours demeure le laboratoire original de Sélis, sans nouvelle ancre.
 <!-- END:FIN-004 -->
 
 <!-- BEGIN:FIN-002 -->
@@ -947,7 +1024,7 @@ Les arcs suivants peuvent explorer les routes planétaires, les conséquences du
 <a id="fin-003"></a>
 ## Conclusion collective avant le sauvetage intime
 
-La fin suit impérativement l’ordre de `FIN-SEQUENCE-001` : premier affrontement avant le redémarrage ; contribution inexpliquée de Nacre ; restauration des noyaux alliés et ennemis ; second affrontement et neutralisation de Séveran ; découverte puis lecture du septième pétale et des données de Z ; dernière ouverture pour sauver Lyra ; destruction de l’accès temporel avec transfert risqué de Nacre ; convalescence, puis épilogue. L’apprentissage Biotique ne commence que plus tard auprès de Lyra rétablie.
+La fin suit impérativement l’ordre de `FIN-SEQUENCE-001` : premier affrontement avant le redémarrage ; contribution inexpliquée de Nacre ; restauration des noyaux alliés et ennemis ; second affrontement et neutralisation de Séveran ; découverte du septième pétale, vision locale privée d’Elio et preuves de Z ; découverte physique du corps et du centre inerte ; mesures et dernière ouverture au site de Sélis pour sauver Lyra ; destruction de l’accès temporel avec transfert risqué de Nacre ; convalescence, puis épilogue. L’apprentissage Biotique ne commence que plus tard auprès de Lyra rétablie.
 
 La microchronologie des combats et la contention de Séveran entre les deux affrontements restent adaptables. En revanche, la restauration n’est pas une sélection morale, la révélation de Z précède le secours qui en dépend, la victoire collective précède le sauvetage intime et aucun combat du présent n’efface l’histoire-source. Séveran doit être maîtrisé et mis hors d’état de nuire, pas nécessairement tué.
 <!-- END:FIN-003 -->
@@ -967,7 +1044,7 @@ Les huit divinités locales façonnent Orthe, ses premiers peuples, les noyaux e
 <a id="evt-002"></a>
 ## Les migrations humaines
 
-Des humains ordinaires gagnent d’autres planètes par vaisseau tandis que les Porteurs restent alors concentrés sur Orthe. Les divinités locales disparaissent ou sont rappelées pour un motif non fixé ; la distribution énergétique devient plus difficile. Les peuples construisent des relais énergétiques non téléportants, développent leurs institutions régionales puis une fédération avec assemblée centrale.
+Une partie des humains ordinaires gagne d’autres planètes par vaisseau, tandis que leur majorité reste sur Orthe et que les Porteurs s’y concentrent alors. Les divinités locales disparaissent ou sont rappelées pour un motif non fixé ; la distribution énergétique devient plus difficile. Les peuples construisent des relais énergétiques non téléportants, développent leurs institutions régionales puis une fédération avec assemblée centrale.
 <!-- END:EVT-002 -->
 
 <!-- BEGIN:EVT-003 -->
@@ -975,23 +1052,23 @@ Des humains ordinaires gagnent d’autres planètes par vaisseau tandis que les 
 <a id="evt-003"></a>
 ## La crise de l’héritage
 
-Des abus réels de pouvoirs nourrissent les mouvements de régulation. Séveran, Porteur Énergie, commence comme réformateur, puis son projet se radicalise tandis que sa faction développe clandestinement implants et régulateurs. Les tensions politiques croissent ; les noms des institutions et les dates exactes restent à définir.
+Des abus réels de pouvoirs nourrissent les mouvements de régulation. Séveran, Porteur Énergie et haut responsable de la capitale, commence comme réformateur, puis son projet se radicalise tandis que son équipe scientifique développe séparément l’inhibiteur du Cœur et des amplificateurs personnels testés sur des Porteurs volontairement déchargés. Les tensions politiques croissent ; le titre précis et les dates restent à définir.
 <!-- END:EVT-003 -->
 
 <!-- BEGIN:EVT-004 -->
-<!-- META:{"status":"CONFIRME","origin":"utilisateur","kind":"evenement","views":"timeline","period":"Avant le vote et le Grand Bâillon","order":4,"refs":"GRAINE-001,HIST-003,ELIO-POUVOIRS-001"} -->
+<!-- META:{"status":"CONFIRME","origin":"utilisateur","kind":"evenement","views":"timeline","period":"Après le vote, avant le Grand Bâillon","order":4,"refs":"GRAINE-001,HIST-002,ELIO-POUVOIRS-001"} -->
 <a id="evt-004"></a>
-## L’envoi des capsules
+## Vote, coup d’État et envoi des capsules
 
-Les organisateurs tentent d’envoyer autant de capsules et de volontaires Porteurs que possible pendant les tensions politiques. Motivations, interceptions, destructions, dérives et pertes de suivi varient. Les capsules préservées ont déjà quitté Orthe et sa zone d’influence lorsque survient le Bâillon ; leur préservation ne dépend d’aucune exemption de registre. Les nombres, autorités et destinations restent à préciser. Elio maîtrise déjà Spatial lorsqu’il entre en stase, même si celle-ci lui fera perdre cet apprentissage conscient.
+La tendance du vote favorise un Cœur libre. Séveran refuse cette issue, lance le coup d’État et tire avantage des amplificateurs déjà implantés. Les organisateurs tentent alors d’envoyer autant de capsules et de volontaires Porteurs que possible sous la poursuite. Motivations, interceptions, destructions, dérives et pertes de suivi varient. Les capsules préservées ont déjà quitté la zone d’influence lorsque survient le Bâillon ; leur nombre demeure inconnu. Elio maîtrise déjà Gravité lorsqu’il entre en stase ; il cherche des solutions ailleurs.
 <!-- END:EVT-004 -->
 
 <!-- BEGIN:EVT-005 -->
-<!-- META:{"status":"CONFIRME","origin":"utilisateur","kind":"evenement","views":"timeline","period":"Après le départ des capsules","order":5,"refs":"HIST-001,HIST-002,HIST-003,HIST-004"} -->
+<!-- META:{"status":"CONFIRME","origin":"utilisateur","kind":"evenement","views":"timeline","period":"Après le départ des capsules","order":5,"refs":"HIST-002,HIST-003,HIST-004,INHIBITEUR-001,AMPLIFICATEUR-001"} -->
 <a id="evt-005"></a>
-## Le vote, le coup d’État et le Grand Bâillon
+## L’inhibiteur frappé et le Grand Bâillon
 
-La tendance du vote favorise le maintien d’un Cœur libre. La faction radicale de Séveran refuse cette issue, tente de prendre le Cœur et déclenche une guerre civile autour de ses installations. L’interférence du dispositif expérimental et les dégâts de la bataille provoquent accidentellement le Grand Bâillon dans la zone d’influence d’Orthe. Les prototypes clandestins donnent ensuite à la faction un avantage militaire décisif malgré leurs effets corrupteurs ; elle consolide le Concordat au nom de l’ordre.
+Dans l’escalade post-coup, Séveran déploie prématurément son inhibiteur sur le Cœur. La résistance frappe le dispositif pendant l’affrontement et provoque accidentellement le Grand Bâillon dans la zone d’influence d’Orthe. Les deux camps perdent leurs pouvoirs naturels ; les amplificateurs clandestins donnent ensuite à la faction de Séveran un avantage partiel malgré leurs effets corrupteurs. Elle consolide le Concordat au nom de l’ordre.
 <!-- END:EVT-005 -->
 
 <!-- BEGIN:EVT-006 -->
@@ -1007,7 +1084,7 @@ Orthe connaît des phases de paix contrainte, de révolte et de recomposition ; 
 <a id="evt-007"></a>
 ## Le réveil d’Elio
 
-Lyra retrouve sur Sélis la seule capsule dont un survivant sera confirmé pour les habitants de l’arc principal. Elle lit le prénom d’Elio dans les données, le stabilise avec connaissances et matériel sous une couverture médicale masquée, lui transmet son nom et le lieu, puis invoque un accident et une amnésie comme couverture auprès des secours locaux. Elio conserve ses savoirs généraux et des intuitions spatiales implicites. Lyra se retire, l’observe, puis est rappelée sur Orthe pour soigner les blessés d’affrontements contemporains. Nacre n’existe pas encore.
+La capsule d’Elio s’est écrasée dans une zone inhabitée ou peu peuplée de Sélis ; une ville a grandi autour. Un détecteur de signature matérielle conduit Lyra à cette capsule, seule à livrer un survivant confirmé pour l’arc principal. Elle lit son prénom dans les données, le stabilise avec connaissances et matériel sous une couverture médicale masquée, lui transmet son nom et le lieu, puis invoque un accident et une amnésie comme couverture auprès des secours locaux. Elio conserve ses savoirs généraux et des intuitions gravitationnelles implicites. Lyra se retire, l’observe, puis est rappelée sur Orthe pour soigner les blessés d’affrontements contemporains. Nacre n’existe pas encore.
 <!-- END:EVT-007 -->
 
 <!-- BEGIN:EVT-008 -->
@@ -1040,6 +1117,8 @@ Elio et Lyra testent dans le laboratoire de Sélis une technologie primitive de 
 ## La révélation, la réconciliation et Orthe
 
 Après A-source, Lyra révèle son origine, sa nature, la recherche de la capsule et sa mission. Elio se sent trompé et le couple cesse temporairement de se parler, puis se réconcilie. La durée et les scènes exactes restent à écrire. Après cette réconciliation, ils gagnent Orthe en vaisseau au point G ; Elio reste sain car le Bâillon n’est pas un champ permanent, tandis que quitter Orthe ne guérit pas Lyra. Les habitants reconnaissent son noyau intact et travaillent avec lui. Ses premiers travaux restent clandestins : des communautés l’apprécient sans que le Concordat ait encore identifié personnellement la source pure.
+
+Sur Orthe après G, Elio-source apprend progressivement Spatial, discipline distincte de la Gravité qu’il maîtrisait avant la stase mais dont il a perdu la maîtrise consciente.
 <!-- END:EVT-011 -->
 
 <!-- BEGIN:EVT-023 -->
@@ -1055,7 +1134,7 @@ Elio-source tente une première restauration du Cœur après son arrivée sur Or
 <a id="evt-012"></a>
 ## La tournée des six régions
 
-Le couple aide les six régions, Elio réactive des Porteurs et détache progressivement un pétale dans chacune d’elles, soit six pétales seulement, installés dans les relais énergétiques. Il développe Nacre avec des ingénieurs d’Orthe, mais ne lui intègre encore aucun fragment. Les pétales, relais et alliés préparent une deuxième tentative ; l’ordre interne des régions et les moyens de discrétion restent à développer.
+Le couple aide les six régions, Elio réactive des Porteurs et détache progressivement un pétale dans chacune d’elles, soit six pétales seulement, installés dans les relais énergétiques. Chaque séparation laisse une empreinte locale privée, non un journal cumulatif. Il développe Nacre avec des ingénieurs d’Orthe, mais ne lui intègre encore aucun fragment. Les pétales, relais et alliés préparent une deuxième tentative ; l’ordre interne des régions et les moyens de discrétion restent à développer.
 <!-- END:EVT-012 -->
 
 <!-- BEGIN:EVT-013 -->
@@ -1063,7 +1142,7 @@ Le couple aide les six régions, Elio réactive des Porteurs et détache progres
 <a id="evt-013"></a>
 ## Le marchandage et la collaboration
 
-Après la mort de Lyra, Elio veut tuer Séveran mais n’en a pas la puissance. Sa sécurité anti-confiscation empêche une prise immédiate du noyau. Séveran lui propose de combiner leurs technologies pour lui permettre de revoir Lyra ; Elio endeuillé accepte une coopération qui interdit la confiscation ou la destruction des six pétales. Le Concordat peut surveiller ou occuper leurs territoires sans posséder les fragments. Les modalités, la durée et le travail précis restent proposés.
+Après la mort de Lyra, Elio veut tuer Séveran mais n’en a pas la puissance. Séveran a besoin de le garder vivant avec son centre dans le corps, car l’extraction rendrait ce centre inerte. Il lui propose de combiner leurs technologies pour lui permettre de revoir Lyra ; Elio endeuillé accepte une coopération avec mobilité relative et séances de travail, qui interdit la confiscation ou la destruction des six pétales. Au fil des années, la pureté des amplificateurs progresse partiellement sans restaurer les centres ; Elio poursuit en secret Nacre, le temps et la téléportation. Le Concordat peut surveiller ou occuper les territoires des fragments sans les posséder.
 <!-- END:EVT-013 -->
 
 <!-- BEGIN:EVT-014 -->
@@ -1071,7 +1150,7 @@ Après la mort de Lyra, Elio veut tuer Séveran mais n’en a pas la puissance. 
 <a id="evt-014"></a>
 ## La perte de l’histoire-source
 
-Après la tournée, Elio et ses alliés tentent une restauration plus importante du Cœur. L’opération attire l’attention de Séveran, qui découvre Elio, son centre pur et le rôle des six pétales. Sa chasse commence alors. Il attaque ; Lyra-source s’interpose et meurt des blessures de l’affrontement, non de la destruction de son noyau.
+Après la tournée, Elio et ses alliés tentent une restauration plus importante du Cœur alors que les six pétales restent dans les relais régionaux. Malgré les Porteurs réactivés, le flux est instable et insuffisant avant l’attaque. Séveran détecte Elio, son centre pur et le rôle des pétales ; sa chasse commence. Il attaque et interrompt l’essai ; Lyra-source s’interpose et meurt des blessures de l’affrontement, non de la destruction de son noyau.
 <!-- END:EVT-014 -->
 
 <!-- BEGIN:EVT-015 -->
@@ -1079,7 +1158,7 @@ Après la tournée, Elio et ses alliés tentent une restauration plus importante
 <a id="evt-015"></a>
 ## La rupture et l’essai préparé vers A
 
-Elio quitte Séveran ; les tentatives de saisie des pétales s’intensifient sans confiscation confirmée. Vers la fin de sa vie, il développe avec Nacre des installations de téléportation interplanétaire sur Orthe et Sélis, puis retourne secrètement sur Sélis. Il poursuit ses recherches pour revoir Lyra, comprend que l’empreinte primitive de A permet d’en retrouver l’instant et prépare une ouverture vers cette période. Nacre existe encore sans le septième pétale. L’ordre précis des derniers travaux et le motif détaillé de la rupture restent proposés.
+Elio quitte Séveran ; les tentatives de saisie des pétales s’intensifient sans confiscation confirmée. Vers la fin de sa vie, il développe avec Nacre des installations de téléportation à deux balises. Un voyage préparatoire ordinaire dépose celle de Sélis, puis Elio revient sur Orthe. Sa désertion définitive Orthe → Sélis constitue le premier vrai test. Il poursuit ses recherches pour revoir Lyra, comprend que l’empreinte primitive de A permet d’en retrouver l’instant et prépare une ouverture vers cette période. Nacre ne porte pas encore le septième pétale. Les autorisations et détails des derniers travaux restent ouverts.
 <!-- END:EVT-015 -->
 
 <!-- BEGIN:EVT-016 -->
@@ -1087,7 +1166,7 @@ Elio quitte Séveran ; les tentatives de saisie des pétales s’intensifient sa
 <a id="evt-016"></a>
 ## L’assaut contre le scientifique
 
-Pressentant un danger, Elio détache à Z son septième pétale, l’intègre à Nacre et arme la routine « évacue-moi vers Orthe ». Séveran arrive avant l’évacuation. Elio rend son centre inutilisable, puis l’antagoniste le tue par violence physique. La routine reste active avec une cible morte ; Séveran ouvre ensuite le prototype déjà réglé sur A pour tenter de capturer le noyau jeune.
+À Z, Elio détache son septième pétale, l’intègre à Nacre pour amorcer le prototype et ouvre lui-même A. Il observe A sans y être visible. Séveran arrive pendant la fenêtre, aperçoit le jeune Elio vivant, frappe l’Elio-source mortellement, puis extrait son centre : celui-ci devient aussitôt inerte, les sept pétales dorment. Elio survit brièvement à l’extraction et donne alors son dernier ordre « évacue-moi vers Orthe » ; Nacre échoue à l’emporter avant sa mort. Séveran constate l’inertie et traverse A pour tenter de capturer le noyau jeune encore en place. Le budget temporel court depuis l’ouverture initiale.
 <!-- END:EVT-016 -->
 
 <!-- BEGIN:EVT-017 -->
@@ -1095,7 +1174,7 @@ Pressentant un danger, Elio détache à Z son septième pétale, l’intègre à
 <a id="evt-017"></a>
 ## Le prologue joué
 
-Séveran entre dans A-fenêtre. La routine active de Nacre détecte de l’autre côté une version vivante compatible d’Elio et adapte sa cible ; elle suit la faille. Lyra s’interpose, Elio la croit morte et Nacre l’extrait pendant la diversion. Séveran constate la disparition de sa cible et ressort sans voir l’extraction. La fenêtre n’est suspendue qu’après son retour ; Lyra demeure à l’intérieur, gravement blessée mais pas définitivement morte.
+Séveran entre dans A-fenêtre. La routine active de Nacre détecte de l’autre côté une version vivante compatible d’Elio et adapte sa cible ; elle suit la faille, et son pétale se raccorde au jeune Elio du même côté. Lyra, privée de pouvoirs restaurés, blesse Séveran avec ses moyens ordinaires et reçoit une blessure gravissime. Elio la croit morte ; Nacre l’extrait pendant la diversion. Séveran, blessé et désorienté, constate la disparition de sa cible puis revient séparément en Z. La fenêtre n’est suspendue qu’après son retour ; Lyra demeure à l’intérieur, vivante mais en péril.
 <!-- END:EVT-017 -->
 
 <!-- BEGIN:EVT-018 -->
@@ -1103,7 +1182,7 @@ Séveran entre dans A-fenêtre. La routine active de Nacre détecte de l’autre
 <a id="evt-018"></a>
 ## L’arrivée chez ceux qui le connaissent
 
-Nacre et Elio repassent par le laboratoire au présent Z, puis la routine termine son ordre initial en utilisant l’installation tardive de téléportation vers le Havre d’Orthe. Les habitants ont connu le scientifique et Lyra-source. Elio n’a pas vécu ces années et ignorait jusqu’à l’existence d’Orthe ainsi que la véritable identité de Lyra ; leur familiarité est donc profondément perturbante. La mort du scientifique n’est pas encore publiquement établie. Séveran ignore où sa cible a disparu et ses forces ne disposent d’abord d’aucune piste personnelle certaine.
+Nacre et Elio repassent par le laboratoire au présent Z ; Elio entrevoit un corps indistinct sans le reconnaître et ne subit aucune nouvelle amnésie. Les six pétales d’Orthe se raccordent alors à son centre, avant que la routine ne termine son ordre par téléportation vers le Havre d’Orthe. Les habitants ont connu le scientifique et Lyra-source. Elio n’a pas vécu ces années et ignorait Orthe ainsi que la véritable identité de Lyra ; leur familiarité le trouble. La mort du scientifique n’est pas encore publiquement établie. Séveran ignore où sa cible a disparu, mais ses forces poursuivent leurs opérations.
 <!-- END:EVT-018 -->
 
 <!-- BEGIN:EVT-019 -->
@@ -1111,9 +1190,9 @@ Nacre et Elio repassent par le laboratoire au présent Z, puis la routine termin
 <a id="evt-019"></a>
 ## La reprise de l’ancre
 
-L’équipe traite les conflits propres aux six régions, affronte des menaces impériales différenciées, négocie le retrait risqué de chaque pétale et prépare des relais énergétiques de transition sans supprimer tout coût. Aucun fragment n’est déjà possédé par le Concordat. Le héros apprend d’abord Énergie, retrouve progressivement Gravité grâce aux fragments, puis Spatial après la révélation de son passé ancien. Il apprend aussi Mecha dans son berceau historique, les Chantiers de Cendre. Après plusieurs actions visibles, des rapports peuvent confirmer sa survie à Séveran et déclencher une traque ciblée ; le moment exact reste proposé.
+L’équipe traite les conflits propres aux six régions, remet en marche les relais tombés en panne, affronte des menaces impériales différenciées, négocie le retrait risqué de chaque pétale et prépare une transition sans supprimer tout coût. Aucun fragment n’est déjà possédé par le Concordat. Le héros apprend d’abord Énergie, reconstruit ensuite Spatial par indices et pratique, puis réapprend son ancienne Gravité après un témoignage antérieur à la stase. Il apprend séparément Mecha dans son berceau historique, les Chantiers de Cendre. Après plusieurs actions visibles, des rapports peuvent confirmer sa survie à Séveran et déclencher une traque ciblée ; le moment exact reste proposé.
 
-Les six empreintes racontent chronologiquement le parcours d’Elio-source sans connaître les événements postérieurs à leur séparation. L’équipe récupère aussi l’anneau original parmi les équipements impériaux saisis. Les archives datées et les soins acquis donnent un espoir conditionnel pour Lyra, pas une assurance de succès.
+Les six empreintes privées d’Elio montrent chacune un moment local de don, sans dérouler toute la biographie. L’équipe récupère aussi l’anneau original parmi les équipements impériaux saisis. Les archives datées et les soins acquis donnent un espoir conditionnel pour Lyra, pas une assurance de succès.
 <!-- END:EVT-019 -->
 
 <!-- BEGIN:EVT-020 -->
@@ -1121,7 +1200,7 @@ Les six empreintes racontent chronologiquement le parcours d’Elio-source sans 
 <a id="evt-020"></a>
 ## La dernière ouverture
 
-Après la découverte du septième pétale et la récupération des données de Z, le groupe dispose des paramètres exacts. Avec l’ancre originale, un appareil compatible, la puissance stable du Cœur et une équipe médicale, Elio reprend le même reliquat après la victoire collective. Il est trop tard pour éviter le coup ; une continuité viable permet l’extraction de Lyra. Les soins se poursuivent dans le présent, puis Lyra commence bien plus tard à transmettre Biotique au protagoniste.
+Après la découverte du septième pétale, la vision privée d’Elio, les données partielles de Z, la découverte du corps et des mesures corroborées, le groupe dispose de paramètres vérifiés. Il retourne au laboratoire original de Sélis avec l’ancre physique, un appareil compatible, la puissance stable et autonome du Cœur et une équipe médicale. Elio reprend le même reliquat après la victoire collective. Il est trop tard pour éviter le coup ; une continuité viable permet l’extraction de Lyra. Les soins se poursuivent dans le présent, puis Lyra commence bien plus tard à transmettre Biotique au protagoniste.
 <!-- END:EVT-020 -->
 
 <!-- BEGIN:EVT-021 -->
@@ -1129,7 +1208,7 @@ Après la découverte du septième pétale et la récupération des données de 
 <a id="evt-021"></a>
 ## Les deux affrontements et le Cœur
 
-La coalition affronte d’abord Séveran pour ouvrir et protéger l’accès au Cœur. Avec les six pétales connus, Elio, les relais, les réserves et les Porteurs, elle approche du redémarrage ; l’apport inexpliqué de Nacre complète la stabilisation. Le Cœur restaure alors les noyaux des alliés comme des ennemis. Un second grand affrontement aboutit à la neutralisation de Séveran et de son projet sans imposer sa mort. Après sécurisation, l’analyse révèle le septième pétale, puis ses souvenirs et les données de Nacre livrent Z et les paramètres du secours. La microchronologie des combats reste ouverte.
+La coalition affronte d’abord Séveran pour ouvrir et protéger l’accès au Cœur. Avec les six pétales physiquement rassemblés, le noyau entier d’Elio, les réserves et les Porteurs, elle approche du redémarrage ; l’apport compatible inexpliqué de Nacre complète la stabilisation. Le Cœur restaure alors les noyaux des alliés comme des ennemis. Un second grand affrontement aboutit à la neutralisation de Séveran sans imposer sa mort. Après sécurisation, l’analyse révèle le septième pétale ; Elio vit sa scène locale, les autres preuves établissent Z, puis le corps et le centre inerte sont retrouvés. Les mesures permettent le secours. La microchronologie des combats reste ouverte.
 <!-- END:EVT-021 -->
 
 <!-- BEGIN:EVT-022 -->
@@ -1153,9 +1232,9 @@ Yselle, responsable humaine des quais, organise la survie avant de croire au hé
 
 Une évacuation et la protection d’un convoi fondent la coopération. Le Collecteur des Routes, automate impérial, menace les passages. Le quartier sauvé devient ensuite un soutien logistique réel.
 
-Apport au fil rouge : premières explications sur l’époque, Nacre et la réputation de l’autre Elio. Apport aux pouvoirs : démonstration limitée d’une activation saine, sans armée restaurée en une journée.
+Apport au fil rouge : le relais dormant laisse une panne locale que les habitants doivent diagnostiquer et redémarrer avec Elio, Nacre, énergie et maintenance. Ils expliquent pourquoi le premier essai d’Elio-source, avant la tournée, manquait de puissance distribuée, sans connaître le raid Z. Elio propose alors de rassembler un jour les pétales au Cœur ; il y croit sans pouvoir garantir le succès. Apport aux pouvoirs : démonstration limitée d’une activation saine grâce à Énergie, sans armée restaurée en une journée.
 
-Le Havre entretient le premier des six pétales régionaux, sous une responsabilité locale dont le titulaire et l’influence émotionnelle restent à fixer. Sa mémoire s’arrête au moment de son détachement. Le retirer menace les recharges et les routes protégées : l’équipe doit préparer une transition avec les habitants, pas emporter une clé sans leur accord.
+Le Havre entretient le premier des six pétales régionaux, sous une responsabilité locale dont le titulaire reste à fixer. Seul Elio peut ressentir son empreinte sensorielle locale autour du don ; elle ne révèle pas la suite. Le retirer menace les recharges et les routes protégées : l’équipe doit préparer une transition avec les habitants et obtenir leur accord, pas emporter une clé sans coût.
 <!-- END:REG-001 -->
 
 <!-- BEGIN:REG-002 -->
@@ -1167,7 +1246,7 @@ Des archives minérales conservent les versions incompatibles d’une guerre. De
 
 Orsane, Porteuse archiviste, a parfois dissimulé la vérité pour éviter de nouveaux massacres. Elle découvre que ce silence permet à la violence de continuer. La solution nécessite des preuves, une protection des témoins et une divulgation responsable.
 
-Le Scribe blanc, instrument de censure, reproduit des attaques enregistrées ; ses projections ne sont pas des personnes temporellement recréées. Les fonctions de lecture de Nacre sont réparées ici.
+Le Scribe blanc, instrument de censure, reproduit des attaques enregistrées ; ses projections ne sont pas des personnes temporellement recréées. Certains index historiques de Nacre peuvent être réparés ici, sans rendre disponible un récit complet de Z ni lui permettre de lire les visions privées des pétales.
 
 Un témoin reconnaît Lyra et raconte sa disparition dans l’histoire-source, à une date incompatible avec le prologue. Les documents montrent aussi la collaboration réelle du scientifique avec les institutions de Séveran. Les informations postérieures à la séparation des fragments proviennent d’archives datées et de témoins, jamais de souvenirs futurs apparus dans un pétale ancien.
 
@@ -1199,7 +1278,7 @@ Les Jardins mêlent centres de soins et mémoriaux. Les ressources destinées au
 
 Miren, soignant humain, conteste les priorités héritées. Éloa, Porteuse spécialiste de stabilisation biologique, distingue un noyau encore viable d’une personne définitivement perdue. Le Cerf de verre, gardien malade, peut faire l’objet d’une victoire par stabilisation plutôt que destruction.
 
-La tombe et les témoins établissent la mort de Lyra de l’histoire-source. L’analyse de l’anneau retrouvé prouve la conservation d’un reliquat ; une survie reste envisageable, mais le diagnostic à distance ne permet pas de la garantir.
+La tombe et les témoins établissent la mort de Lyra de l’histoire-source. Ce n’est pas la tombe d’Elio-source, dont le corps demeure encore caché. L’analyse de l’anneau retrouvé prouve la conservation d’un reliquat ; une survie reste envisageable, mais le diagnostic à distance ne permet pas de la garantir.
 
 Elio refuse de priver les soins civils de leurs moyens pour accélérer sa tentative personnelle. Il choisit les autres avant d’avoir la certitude que cette décision lui rendra Lyra. L’équipe élabore une extraction médicalisée différente du secours de Nacre au prologue.
 
@@ -1213,7 +1292,7 @@ Le fragment régional alimente une partie des stabilisations biologiques. Son re
 
 Une région de registres, de masques civils et de tribunaux protège des persécutés mais peut aussi dissimuler des auteurs de violences. Le Concordat utilise le visage d’Elio pour lui attribuer les actes de sa version-source.
 
-Léandre, enquêteur humain, distingue filiation d’une histoire et culpabilité personnelle. L’enquête expose les capsules, le réveil adulte, les réseaux d’accueil et la couverture de Lyra. Des lettres et des témoins établissent une amitié réelle, sans excuser le secret.
+Léandre, enquêteur humain, distingue filiation d’une histoire et culpabilité personnelle. L’enquête expose les capsules, le réveil adulte, les réseaux d’accueil et la couverture de Lyra. Un témoin très ancien ayant connu Elio avant sa stase révèle sa maîtrise première de Gravité, distincte du Spatial appris après G ; Elio doit encore la réapprendre. Des lettres et des témoins établissent une amitié réelle, sans excuser le secret.
 
 Saren est confronté aux conséquences des réveils forcés. Une stabilisation possible ne suffit pas à faire de lui un allié : sa coopération dépend d’un choix et d’actes de réparation.
 
@@ -1231,7 +1310,7 @@ Les routes de l’archipel sont instables. Séveran promet une circulation parfa
 
 Thyr, navigateur Porteur, connaît les risques mais refuse de confondre sécurité et souveraineté absolue. Les équipes construisent un réseau où les décisions et les compétences peuvent se relayer.
 
-Des plans impériaux révèlent la Matrice de tutelle et l’usage prévu pour le noyau intact. Des preuves partielles éclairent les recherches d’Elio-source sans dévoiler l’assassinat de Z, la présence du septième pétale ni la routine complète de secours. La coalition prépare le démantèlement militaire et formule encore des hypothèses sur l’ancre.
+Des plans impériaux révèlent la Matrice de tutelle proposée et le besoin d’Elio vivant, avec son centre encore en place ; l’organe extrait serait inerte. Des preuves partielles éclairent les recherches d’Elio-source sans dévoiler l’assassinat de Z, la présence du septième pétale ni la routine complète de secours. La coalition prépare le démantèlement militaire et formule encore des hypothèses sur l’ancre.
 
 Le sixième fragment régional soutient les passages de l’archipel. Le retirer expose les routes à une attaque au moment même où la coalition doit converger ; les équipages et sa garde locale organisent donc le risque au lieu de le nier.
 <!-- END:REG-006 -->
@@ -1281,7 +1360,7 @@ Séveran n’est pas recruté automatiquement après le final. Une survie, des �
 <a id="ch-00"></a>
 ## Une place à côté de toi
 
-Le couple travaille sur une expérience de localisation extrêmement précise encore présentée comme non temporelle. Ils sont amoureux et complices. Elio ignore l’existence d’Orthe, l’origine Biotique de Lyra, la capsule et sa mission. L’intrusion interrompt la scène ; Lyra s’interpose, Elio la voit tomber et Nacre profite de la diversion pour le ramener par la faille. Le point de vue du héros ne montre pas encore le retour ultérieur de Séveran.
+Le couple travaille sur une expérience de localisation extrêmement précise encore présentée comme non temporelle. Ils sont amoureux et complices. Elio ignore l’existence d’Orthe, l’origine Biotique de Lyra, la capsule et sa mission. Depuis Z, Elio-source a déjà ouvert A et observe sans être visible. Séveran traverse ensuite et interrompt la scène ; Lyra le blesse sans pouvoirs restaurés, s’interpose, reçoit une blessure gravissime et Elio la voit tomber. Nacre profite de la diversion pour le ramener par la faille. Le point de vue du héros ne montre pas encore le retour ultérieur de Séveran.
 
 Mise en scène et garde-fous : Montrer l’anneau, une défense issue d’un équipement et la blessure sans certifier médicalement une mort. Préparer la géographie de la scène pour que le sauvetage ne dépende pas d’un adversaire aveugle.
 <!-- END:CH-00 -->
@@ -1301,7 +1380,7 @@ Mise en scène et garde-fous : Le mystère porte sur ce que cet autre Elio a fai
 <a id="ch-02"></a>
 ## Le prix d’un refuge
 
-Le héros protège une évacuation et réalise avec Varek le premier rituel de réactivation consciente. Il apprend parallèlement à maîtriser Énergie, premier pouvoir actif de sa continuité jouée. Yselle accorde sa confiance à des actes concrets. Le pétale du Havre recharge ensuite le bénéficiaire ; une première équipe se forme sans imposer de tirage rare pour avancer.
+Le héros et les habitants constatent une panne du relais lié à la dormance passée du pétale ; ils le réparent et le redémarrent avant d’en tirer une recharge stable. Le héros protège une évacuation et réalise avec Varek le premier rituel de réactivation consciente. Il apprend parallèlement à maîtriser Énergie, premier pouvoir actif de sa continuité jouée et suffisant pour ce réaccord. Les habitants expliquent l’insuffisance distribuée du premier essai historique sans connaître Z ; Elio avance l’hypothèse de réunir les pétales au Cœur, sans certitude. Yselle accorde sa confiance à des actes concrets ; une première équipe se forme sans imposer de tirage rare.
 
 Mise en scène et garde-fous : Montrer le consentement et le rôle indispensable du bénéficiaire. La victoire permet de mieux vivre au Havre, pas seulement d’obtenir une clé de scénario.
 <!-- END:CH-02 -->
@@ -1311,7 +1390,7 @@ Mise en scène et garde-fous : Montrer le consentement et le rôle indispensable
 <a id="ch-03"></a>
 ## Les absents ont une voix
 
-Aux Palais de Sel, les récits d’une guerre se contredisent. Le deuxième pétale livre une tranche de mémoire postérieure à la première sans connaître la suite. Un témoin reconnaît Lyra et rapporte sa mort lors de l’attaque de Séveran contre le deuxième essai du Cœur, après A-source. Les dates incompatibles troublent Elio.
+Aux Palais de Sel, les récits d’une guerre se contredisent. Le deuxième pétale fait vivre au seul Elio une scène sensorielle locale autour de son don, sans livrer une mémoire cumulative ou postérieure. Un témoin reconnaît Lyra et rapporte sa mort lors de l’attaque de Séveran contre le deuxième essai du Cœur, après A-source. Les dates incompatibles troublent Elio.
 
 Mise en scène et garde-fous : Ne pas faire taire un témoin qui connaît son origine. Les détails de la mission et les preuves de la mort-source restent réellement à trouver.
 <!-- END:CH-03 -->
@@ -1341,7 +1420,7 @@ Mise en scène et garde-fous : Le premier diagnostic sépare volonté, contraint
 <a id="ch-06"></a>
 ## Ce qu’on ne rachète pas
 
-Des alimentations indépendantes rendent possible une libération locale et le retrait risqué du troisième pétale. Ses traces rapprochent Elio de la maîtrise Gravité de son autre parcours, tandis que la culture rebelle des Chantiers lui ouvre l’apprentissage de Mecha. Une opération documentée récupère l’anneau original. Une stabilisation d’urgence d’un adversaire démontre qu’une autre réponse est envisageable.
+Des alimentations indépendantes rendent possible une libération locale et le retrait risqué du troisième pétale. Des indices privés et la pratique aident Elio à reconstruire Spatial, discipline apprise par sa version-source après G ; la culture rebelle des Chantiers lui ouvre séparément Mecha. Une opération documentée récupère l’anneau original. Une stabilisation d’urgence d’un adversaire démontre qu’une autre réponse est envisageable.
 
 Mise en scène et garde-fous : Le héros protège l’objet sans savoir encore si Lyra survit. Il ne reçoit pas le pardon pour les travaux de l’autre Elio en échange de sa réparation.
 <!-- END:CH-06 -->
@@ -1371,7 +1450,7 @@ Mise en scène et garde-fous : Ne pas certifier la survie de Lyra à distance. D
 <a id="ch-09"></a>
 ## Le visage dans la vitre
 
-Au Contrejour, la propagande lui attribue les actes de l’autre Elio. L’enquête retrouve les traces des capsules, du réveil et des humains qui l’ont aidé à s’intégrer. Elle confirme la perte de sa mémoire autobiographique, la conservation de ses savoirs généraux et ses intuitions spatiales implicites. Un très ancien habitant ayant connu Elio avant sa stase révèle sa maîtrise originelle de Spatial ; la résonance des pétales lui permet de commencer à la retrouver consciemment.
+Au Contrejour, la propagande lui attribue les actes de l’autre Elio. L’enquête retrouve les traces des capsules, du réveil et des humains qui l’ont aidé à s’intégrer. Elle confirme la perte de sa mémoire autobiographique, la conservation de ses savoirs généraux et ses intuitions gravitationnelles implicites. Un très ancien habitant ayant connu Elio avant sa stase révèle sa maîtrise originelle de Gravité ; il doit la réapprendre consciemment par pratique, et non par vision instantanée.
 
 Mise en scène et garde-fous : Les trous de mémoire de stase sont corroborés, pas comblés d’un seul coup par une révélation magique. L’exception de son noyau a une cause matérielle.
 <!-- END:CH-09 -->
@@ -1401,7 +1480,7 @@ Mise en scène et garde-fous : Les relais énergétiques construits soutiennent 
 <a id="ch-12"></a>
 ## Le projet derrière la tutelle
 
-Les archives et installations dévoilent le projet de Séveran : l’usage prévu du centre pur, la Matrice de tutelle proposée, la chasse aux pétales après le deuxième essai et les recherches conduites avec Elio-source. Elles établissent l’accord de non-confiscation pendant la collaboration, les pressions exercées sur les relais puis les tentatives de saisie après la rupture. Des preuves partielles indiquent qu’Elio préparait un accès vers A et qu’un drame s’est produit à Z, sans encore montrer son dernier pétale, son assassinat ni le changement de cible de Nacre.
+Les archives et installations dévoilent le projet de Séveran : l’usage prévu d’Elio vivant avec son centre pur en place, la Matrice de tutelle proposée, la chasse aux pétales après le deuxième essai et les recherches conduites avec Elio-source. Elles établissent l’accord de non-confiscation pendant la collaboration, les pressions exercées sur les relais puis les tentatives de saisie après la rupture. Des preuves partielles indiquent qu’Elio préparait un accès vers A et qu’un drame s’est produit à Z, sans encore montrer son dernier pétale, son assassinat ni le changement de cible de Nacre.
 
 Mise en scène et garde-fous : Révéler l’usage du noyau, les responsabilités et les objectifs, pas le mécanisme complet du secours. La réparation tardive du scientifique n’efface pas les victimes de ses compromis. Les soupçons sur Z restent des soupçons jusqu’après le redémarrage.
 <!-- END:CH-12 -->
@@ -1411,7 +1490,7 @@ Mise en scène et garde-fous : Révéler l’usage du noyau, les responsabilité
 <a id="ch-13"></a>
 ## L’empire à hauteur d’homme
 
-La coalition rassemble les six pétales connus, Nacre, Elio, les réserves, les relais énergétiques et les alliés sans exiger la possession gacha de tous les gardiens. Elle protège les populations, prépare le redémarrage du Cœur monumental dans la région-capitale et garde l’anneau sous protection pour l’étape suivante. Le plan prévoit un premier affrontement pour empêcher la captation du Cœur et maintenir l’accès pendant l’opération. Saren peut agir pour réparer ses fautes.
+Après consentement et transitions imparfaites dans chaque région, la coalition rapporte physiquement les six pétales connus au Cœur. Elle réunit aussi le centre vivant et les sept pétales du jeune Elio, Nacre, les réserves et les alliés sans exiger la possession gacha de tous les gardiens. Elle protège les populations, prépare le redémarrage du Cœur monumental et garde l’anneau sous protection pour l’étape suivante. Le plan prévoit un premier affrontement pour empêcher la captation du Cœur et maintenir l’accès pendant l’opération. Saren peut agir pour réparer ses fautes.
 
 Mise en scène et garde-fous : Distinguer prendre une infrastructure et obtenir l’obéissance d’une région. Le groupe raisonne avec six fragments connus et ne connaît pas encore celui de Nacre. Tous les moyens indispensables sont accessibles par le récit.
 <!-- END:CH-13 -->
@@ -1431,7 +1510,7 @@ Mise en scène et garde-fous : La victoire doit protéger les fonctions vitales 
 <a id="ch-15"></a>
 ## La dernière fenêtre
 
-Après la sécurisation, l’équipe analyse la contribution de Nacre. La résonance révèle son septième pétale ; ses souvenirs s’arrêtent au détachement à Z, puis les journaux de Nacre établissent l’assassinat, l’ouverture et le changement de cible. Ces données fournissent les coordonnées et paramètres manquants. Avec l’ancre originale, un appareil compatible, la puissance stable du Cœur et une équipe médicale, la même fenêtre reprend après le retour de Séveran. Elio ne peut plus empêcher l’agression, mais un examen direct révèle une continuité vitale ; l’équipe stabilise Lyra, l’extrait et poursuit ses soins.
+Après la sécurisation, l’équipe analyse la contribution de Nacre. La résonance révèle son septième pétale ; seul Elio éprouve la scène locale de son don et de l’amorçage à Z. Les journaux partiels, témoins et autres preuves établissent l’attaque, l’extraction, la mort et le changement de cible. Le groupe découvre physiquement, après ces révélations, le corps d’Elio-source et son centre inerte conservés post-mortem. Des mesures de l’ancre et des données corroborées donnent les paramètres manquants. L’équipe revient au laboratoire original de Sélis avec l’ancre physique, un appareil compatible, la puissance autonome du Cœur et une équipe médicale. La même fenêtre reprend après le retour de Séveran : Elio ne peut plus empêcher l’agression, mais un examen direct révèle une continuité vitale ; l’équipe stabilise Lyra, l’extrait et poursuit ses soins.
 
 Mise en scène et garde-fous : La révélation doit précéder le secours qui dépend de ses informations. Montrer la différence entre « trop tard pour éviter la blessure » et « trop tard pour sauver ». L’anneau est consommé ; personne ne revient au début de la scène.
 <!-- END:CH-15 -->
@@ -1461,7 +1540,7 @@ Mise en scène et garde-fous : Les occupants éventuels ne forment pas une rése
 <a id="production-001"></a>
 ## Ordre de travail après la consolidation
 
-La phase suivante doit respecter cet ordre : faire contrôler la présente consolidation ; construire la chronologie d’auteur complète, y compris les événements non jouables ; dresser le squelette complet des chapitres avec périodes, contenu général et révélations ; définir concrètement la forme du jeu, ses modes d’exploration et de combat, son rythme et ses contraintes ; développer seulement ensuite les scènes, dialogues et besoins visuels chapitre par chapitre.
+La phase suivante respecte cet ordre : consolider la présente bible et en vérifier la cohérence ; ne construire une chronologie visuelle complète que lorsque l’auteur aura précisé son format ; discuter ensuite la forme visuelle et jouable du futur jeu, ses modes d’exploration, de combat et son rythme ; développer alors le scénario période par période, notamment la première tournée d’Elio-source ; enfin seulement écrire chapitres, scènes, dialogues et besoins en assets. Les chapitres présents sont un squelette provisoire de cohérence, pas un scénario détaillé validé.
 
 Cette version ne choisit ni caméra, ni moteur, ni monde ouvert, ni temps réel, ni tour par tour. Le laboratoire GachaImpact ne fixe pas automatiquement le format du futur jeu original.
 <!-- END:PRODUCTION-001 -->
@@ -1484,11 +1563,14 @@ La cohérence dépend du maintien simultané de l’histoire-source, de l’ancr
 | Reconstruire l’appareil suffit-il pour créer une autre Lyra ? | Non. La même ancre physique est nécessaire, sans remise à zéro. |
 | Pourquoi ne pas sauver le scientifique ou Lyra-source ? | Aucun reliquat accessible ne conserve leur continuité viable ; un récit ou un souvenir ne remplace pas l’ancre. |
 | Pourquoi ne pas tirer des personnages depuis le temps ? | Le premier pull réactive un noyau présent après rencontre et coopération ; il n’utilise pas les fenêtres. |
-| Spatial permet-il à Elio de voyager naturellement dans le temps ? | Non. Ses intuitions spatiales aident sa recherche, mais la fenêtre exige une invention collective, une machine et une ancre. |
+| Spatial permet-il à Elio de voyager naturellement dans le temps ? | Non. Sa maîtrise Spatial acquise après G aide sa recherche, mais la fenêtre exige une invention collective, une machine et une ancre. |
 | L’expérience de A est-elle déjà une machine temporelle ? | Non. Elle produit une empreinte de localisation extrêmement précise dont la dimension temporelle ne sera comprise et exploitée que bien plus tard. |
 | Pourquoi l’Elio joué ignore-t-il Orthe et la mission de Lyra ? | A-source précède sa révélation. A-fenêtre diverge avant cette conversation future, puis Nacre extrait le protagoniste. |
 | Pourquoi le groupe ne sauve-t-il pas Lyra dès la récupération de l’anneau ? | L’ancre seule ne suffit pas : les paramètres de Z et du secours sont encore verrouillés, la puissance stable et les moyens médicaux complets ne sont pas réunis. |
 | Le Cœur recrée-t-il ou recharge-t-il l’ancre ? | Non. Il alimente l’opération finale, mais l’ancre physique unique reste partiellement consommée et ne récupère aucun instant. |
+| Où se déroule le sauvetage final ? | Au laboratoire original de Sélis, avec la même ancre physique ; le Cœur restauré fournit une énergie stable à distance et reste autonome lorsque le jeune Elio passe en A. |
+| Le corps aperçu à Z révèle-t-il déjà la mort du scientifique ? | Non. L’Elio joué l’aperçoit indistinctement, sans le reconnaître ni souffrir d’une nouvelle amnésie ; l’identification physique arrive après les deux affrontements et la révélation de Z. |
+| Pourquoi ne pas relancer la fenêtre avant l’attaque ? | L’accès reprend le reliquat suspendu après la sortie de Séveran, non l’instant A-source ni le début de A-fenêtre ; aucun nouveau chronomètre ou nouvelle ancre n’est créé. |
 | Pourquoi la défaite de Séveran ne supprime-t-elle pas l’aventure ? | Elle survient au présent après son raid, sans réécriture rétroactive. |
 | Pourquoi ne pas suspendre un adversaire partout ailleurs ? | La suspension ne concerne que le reliquat de l’enceinte liée à l’ancre. |
 
@@ -1504,26 +1586,30 @@ Le noyau doit avoir une utilité précise, chaque secours doit avoir des moyens 
 
 | Objection | Réponse ou point de vigilance |
 |---|---|
-| Séveran voulait-il désactiver tous les noyaux ? | Non. Il voulait imposer le contrôle du Cœur par un coup d’État ; l’interférence de sa technologie et la bataille ont provoqué le Bâillon hors de son plan exact. |
-| Pourquoi sa faction domine-t-elle après une catastrophe qui la touche aussi ? | Elle possède déjà des prototypes clandestins de réactivation artificielle. Instables et corrupteurs, ils lui donnent néanmoins un avantage militaire immédiat. |
+| Séveran voulait-il désactiver tous les noyaux ? | Non. L’inhibiteur visait la distribution ciblée ; son activation prématurée et le coup porté au dispositif par la résistance provoquent le Bâillon hors du plan exact. |
+| Pourquoi sa faction domine-t-elle après une catastrophe qui la touche aussi ? | Elle possède déjà des amplificateurs personnels testés avant la catastrophe. Partiels et corrupteurs, ils lui donnent néanmoins un avantage militaire immédiat. |
 | Pourquoi tous ses officiers ne dominent-ils pas déjà Orthe ? | Les réveils forcés restent rares, instables, coûteux et exigeants en maintenance. |
 | Pourquoi le noyau intact change-t-il la situation ? | Il peut stabiliser les réveils sélectionnés via la Matrice au lieu de forcer des noyaux sans référence saine. |
 | Pourquoi ne pas utiliser une archive du noyau ? | Elle ne reproduit pas les réponses vivantes nécessaires aux corrections successives. |
-| Pourquoi ne pas voler l’organe avant Z ? | Elio menace de désactiver son centre et sa collaboration est utile ; Séveran lui promet une voie pour revoir Lyra. Les détails de cette sécurité restent proposés. |
+| Pourquoi ne pas extraire l’organe avant Z ? | L’extraction le rend immédiatement et irréversiblement inerte. Séveran a besoin d’Elio vivant avec centre en place et profite de sa collaboration. |
 | Le Concordat possède-t-il déjà les six pétales pendant la collaboration ? | Non. L’accord en interdit confiscation et destruction. Surveillance ou occupation ne valent pas possession ; après la rupture, seules des tentatives renforcées sont confirmées. |
-| Pourquoi tuer le scientifique au lieu de le capturer ? | Elio désactive volontairement son centre ; Séveran le tue ensuite par violence. La perte du noyau n’est pas elle-même mortelle. |
+| Pourquoi tuer le scientifique au lieu de le capturer ? | Le raid dégénère : Séveran porte un coup mortel avant d’extraire le centre, puis constate son inertie. Il vise alors l’Elio jeune vivant ; l’extraction seule n’a pas tué l’adulte. |
 | Pourquoi le retour temporel n’efface-t-il pas ses erreurs ? | Le prototype n’a jamais atteint l’ambition de réécriture de son créateur. |
 | Pourquoi Nacre ne peut-elle pas sauver deux personnes ? | Secours calibré pour un noyau sain, énergie limitée et absence de stabilisation médicale du partenaire blessé. |
 | Pourquoi Nacre suit-elle Séveran dans A ? | Sa cible initiale vient de mourir, sa routine d’évacuation reste active et la faille révèle soudain une version vivante compatible d’Elio. Elle adapte sa cible sans avoir prévu cette continuation. |
+| Comment la fenêtre reste-t-elle ouverte malgré la dormance des pétales ? | Elio-source l’a amorcée avec Nacre et ouverte avant l’attaque ; le reliquat limité tient temporairement sans raccord continu. Son budget commence dès cette ouverture. |
+| Pourquoi les six relais reprennent-ils alors que le jeune Elio est encore sur Sélis ? | À son retour en Z, ils sont du même côté temporel et de même signature ; leur lien se rétablit avant la téléportation vers Orthe. La remise en marche des infrastructures reste locale et manuelle. |
+| Pourquoi Nacre ne révèle-t-elle pas tout Z au réveil ? | Les changements de raccord du pétale ont surtout abîmé ses index historiques ; sa personnalité et sa mémoire nouvelle subsistent, mais aucun journal complet lisible n’est caché. |
+| Le septième pétale peut-il raconter l’assassinat ? | Non. Elio seul éprouve une scène locale d’amorçage antérieure au raid ; capteurs, témoins, corps et mesures doivent établir le reste. |
 | Pourquoi Nacre permet-elle le redémarrage sans être une batterie infinie ? | Tous les alliés approchent de la réussite ; son raccordement complète de façon exceptionnellement compatible la résonance des six fragments. |
 | Pourquoi faut-il encore combattre après le redémarrage ? | Le Cœur restaure aussi les noyaux ennemis. La coalition doit neutraliser Séveran et ses forces lors d’un second affrontement. |
 | Séveran sait-il si le jeune Elio est mort ? | Non. Il ne voit pas l’extraction et reste sans preuve de mort, de survie ou de destination. |
 | Pourquoi garde-t-il un anneau apparemment en panne ? | C’est un vestige de recherche irremplaçable. Son mode dormant n’est pas exploitable avec ses seules commandes. La coalition le récupère ensuite. |
 | Pourquoi ne capture-t-il pas immédiatement Elio sur Orthe ? | Il ignore sa destination et ne possède aucune piste personnelle certaine ; ses forces poursuivent néanmoins leurs opérations et peuvent ensuite découvrir des indices. |
-| Pourquoi ne gagne-t-il pas aussitôt avec le noyau volé ? | La Matrice demande des installations, des sujets compatibles, du temps et des opérations successives. |
+| Pourquoi ne gagne-t-il pas aussitôt avec le noyau extrait ? | Ce centre est inerte et inutilisable, malgré les essais post-mortem. La Matrice aurait exigé un Elio vivant, des installations, du temps et des sujets compatibles. |
 | Pourquoi Elio inépuisable ne redémarre-t-il pas seul le Cœur ? | Sa production durable ne supprime ni débit maximal, ni fatigue et lésions, ni limites du stockage, ni synchronisation distribuée. |
 | Pourquoi retirer les fragments est-il un choix ? | Chaque région perd temporairement une recharge ou une fonction et s’expose à une attaque ; les transitions réduisent le risque sans l’annuler. |
-| L’inertage d’Elio détruit-il Nacre et les relais ? | Non. Les pétales séparés sont des micro-noyaux entretenus qui survivent indépendamment du centre, sans devenir des sources pures. |
+| L’extraction détruit-elle Nacre et les relais ? | Non, mais les sept pétales deviennent dormants sans centre vivant de même signature et du même côté temporel. Ils se raccordent au jeune Elio selon son déplacement ; les relais locaux exigent ensuite énergie et redémarrage manuel. |
 
 La perte du scientifique, le mode de conservation et le vol de l’anneau restent les trois scènes techniques à storyboarder en priorité. Elles ne doivent pas dépendre d’une incapacité arbitraire des antagonistes.
 <!-- END:AUDIT-002 -->
@@ -1594,7 +1680,7 @@ Lyra peut accomplir sa mission d’approche sans trahir son collectif : elle app
 <a id="q-004"></a>
 ## Minutage et géographie du secours
 
-Le trajet, le mode de conservation, les positions et les trois prérequis du secours doivent être vérifiés ensemble au storyboard. Les secondes proposées ne sont pas figées ; déplacer le retour de Séveran oblige à recalculer le reliquat et l’état de Lyra. Le laboratoire de Z sur Sélis et les installations tardives de téléportation restent des raccords proposés, distincts des relais énergétiques.
+Le trajet, le mode de conservation, les positions et les prérequis du secours doivent être vérifiés ensemble au storyboard. Aucun ancien nombre de secondes n’est canonique ; la durée commence dès l’ouverture par Elio-source à Z et inclut observation et combat. La suspension suit le retour séparé de Séveran. Le laboratoire original de A/Z et le sauvetage final sont sur Sélis ; les balises tardives de téléportation restent distinctes des relais énergétiques.
 <!-- END:Q-004 -->
 
 <!-- BEGIN:Q-005 -->
@@ -1602,7 +1688,7 @@ Le trajet, le mode de conservation, les positions et les trois prérequis du sec
 <a id="q-005"></a>
 ## Détails encore ouverts de l’histoire ancienne
 
-Restent à définir : motif du rappel divin, identité des dieux cosmiques, noms et récits des huit dieux locaux, institutions et dates anciennes, dimensions et racines précises du Cœur, fonctionnement fin des relais et du dispositif du Bâillon, démographie ainsi qu’autorités, nombres, destinations et destins des capsules. Leur départ antérieur au Bâillon et la portée locale à Orthe sont confirmés. Des survivants peuvent transmettre naturellement des noyaux selon `HEREDITE-001`, sans permettre leur fabrication artificielle.
+Restent à définir : motif du rappel divin, identité des dieux cosmiques, noms et récits des huit dieux locaux, institutions et dates anciennes, dimensions et racines précises du Cœur, fonctionnement fin des relais et de l’inhibiteur après le coup reçu, démographie ainsi qu’autorités, nombres, destinations et destins des capsules. Leur départ après le vote et le coup d’État mais avant le Bâillon, ainsi que la portée locale à Orthe, sont confirmés. Des survivants peuvent transmettre naturellement des noyaux selon `HEREDITE-001`, sans permettre leur fabrication artificielle.
 <!-- END:Q-005 -->
 
 <!-- BEGIN:Q-006 -->
@@ -1682,7 +1768,7 @@ La première réactivation saine exige la volonté du Porteur, le protagoniste a
 <a id="audit-q27"></a>
 ## Q27 — Décision clôturée : disciplines successives d’Elio
 
-Elio maîtrisait Spatial avant sa stase, l’a oublié, puis l’Elio-source a appris Gravité. L’Elio joué apprend Énergie, retrouve Gravité puis Spatial grâce aux pétales, apprend Mecha et reçoit plus tard l’enseignement Biotique de Lyra. Cette exception vient de sa capacité à reconstruire ses apprentissages ; elle ne lui permet normalement d’activer qu’une discipline à la fois et s’inverse avec les rôles dans le scénario miroir.
+Elio maîtrisait Gravité avant sa stase, l’a oubliée, puis l’Elio-source a appris Spatial après G. L’Elio joué apprend Énergie, reconstruit Spatial par indices et pratique, retrouve puis réapprend plus tard Gravité après le témoignage d’un ancien, apprend séparément Mecha et reçoit enfin l’enseignement Biotique de Lyra. Les visions privées ne donnent jamais une maîtrise instantanée. Cette exception ne lui permet normalement d’activer qu’une discipline à la fois et s’inverse avec les rôles dans le scénario miroir.
 <!-- END:AUDIT-Q27 -->
 
 <!-- BEGIN:AUDIT-Q28 -->
@@ -1690,7 +1776,7 @@ Elio maîtrisait Spatial avant sa stase, l’a oublié, puis l’Elio-source a a
 <a id="audit-q28"></a>
 ## Q28 — Décision clôturée : deux essais du Cœur
 
-L’histoire-source comprend deux essais : premier échec faute de puissance distribuée, tournée des six régions, réactivations, détachement de six pétales seulement et création de Nacre encore sans fragment, puis deuxième essai coordonné. Ce dernier révèle Elio et les fragments à Séveran, déclenche sa chasse, provoque l’attaque et la mort physique de Lyra-source, puis le marchandage et la coopération avec accord de non-confiscation. Le septième pétale n’est placé dans Nacre qu’à Z. Ces essais ne sont pas les deux affrontements distincts du final joué.
+L’histoire-source comprend deux essais : premier échec faute de puissance distribuée, tournée des six régions, réactivations, détachement de six pétales seulement et création de Nacre encore sans fragment, puis deuxième essai coordonné alors que les six pétales demeurent dans leurs relais. Ce deuxième flux reste insuffisant avant que Séveran ne l’interrompe et tue physiquement Lyra-source. Suivent le marchandage et la coopération avec accord de non-confiscation. Le septième pétale n’est placé dans Nacre qu’à Z. La tentative jouée rassemble physiquement les six avec le noyau complet jeune et Nacre ; elle est distincte des deux affrontements du final.
 <!-- END:AUDIT-Q28 -->
 
 <!-- BEGIN:AUDIT-Q29 -->
@@ -1706,7 +1792,7 @@ Séveran ne croit pas l’Elio joué mort avec certitude. Il voit sa cible dispa
 <a id="audit-q30"></a>
 ## Q30 — Décision clôturée : septième pétale et mémoire de Nacre
 
-Nacre ne reçoit le septième pétale qu’à Z, quelques instants avant la mort d’Elio-source. Après les dommages du secours, elle ne s’en souvient plus et le groupe ne l’identifie pas pendant l’aventure. Nacre contribue au redémarrage par un raccordement dont elle connaît les fonctions ordinaires ; la réussite précède l’explication. Après le second affrontement et la sécurisation, la résonance révèle le pétale : sa lecture fournit les souvenirs jusqu’au détachement, tandis que les données propres de Nacre complètent les événements postérieurs et les paramètres du secours. Le Cœur devient autonome avant la destruction temporelle.
+Nacre ne reçoit le septième pétale qu’à Z pour amorcer la fenêtre avant l’attaque. L’extraction du centre source et les changements de raccord endommagent surtout ses index historiques ; sa personnalité et ses souvenirs nouveaux subsistent. Elle contribue au redémarrage par un raccordement dont elle connaît les fonctions ordinaires ; la réussite précède l’explication. Après le second affrontement, la résonance révèle le pétale : seul le jeune Elio vit son empreinte locale d’amorçage, tandis que données partielles, mesures, témoins et corps retrouvé corroborent les événements postérieurs et les paramètres du secours. Le Cœur devient autonome avant la destruction temporelle.
 <!-- END:AUDIT-Q30 -->
 
 <!-- BEGIN:AUDIT-Q31 -->

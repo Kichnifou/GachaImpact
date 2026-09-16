@@ -1,17 +1,17 @@
 # Campagne : ordre vécu par le joueur
 
 > VUE GÉNÉRÉE — ne pas modifier ce fichier. Source : [STORY_SOURCE.md](../STORY_SOURCE.md).
-> Empreinte SHA-256 : `e86b10d3045b8a92825b10c7f0688528df40639bce1021219dbed6cb30ebb7e1`.
+> Empreinte SHA-256 : `b020ae137ef53d3ccf9df8c1c6b2dc7e6100dc4eeceb520ba8c90f29342c42ae`.
 
 ## Chapitre 0 — Une place à côté de toi
 
 **PROPOSE** · Origine : assistant · [CH-00](../STORY_SOURCE.md#ch-00)
 
-Le couple travaille sur une expérience de localisation extrêmement précise encore présentée comme non temporelle. Ils sont amoureux et complices. Elio ignore l’existence d’Orthe, l’origine Biotique de Lyra, la capsule et sa mission. L’intrusion interrompt la scène ; Lyra s’interpose, Elio la voit tomber et Nacre profite de la diversion pour le ramener par la faille. Le point de vue du héros ne montre pas encore le retour ultérieur de Séveran.
+Le couple travaille sur une expérience de localisation extrêmement précise encore présentée comme non temporelle. Ils sont amoureux et complices. Elio ignore l’existence d’Orthe, l’origine Biotique de Lyra, la capsule et sa mission. Depuis Z, Elio-source a déjà ouvert A et observe sans être visible. Séveran traverse ensuite et interrompt la scène ; Lyra le blesse sans pouvoirs restaurés, s’interpose, reçoit une blessure gravissime et Elio la voit tomber. Nacre profite de la diversion pour le ramener par la faille. Le point de vue du héros ne montre pas encore le retour ultérieur de Séveran.
 
 Mise en scène et garde-fous : Montrer l’anneau, une défense issue d’un équipement et la blessure sans certifier médicalement une mort. Préparer la géographie de la scène pour que le sauvetage ne dépende pas d’un adversaire aveugle.
 
-**Règles associées :** [IA-003](../STORY_SOURCE.md#ia-003) — L’extraction pendant l’interposition ; [IA-004](../STORY_SOURCE.md#ia-004) — La fermeture visible et la suspension réelle ; [TEMPS-002](../STORY_SOURCE.md#temps-002) — De la localisation précise à l’ancre temporelle ; [TEMPS-005](../STORY_SOURCE.md#temps-005) — Minutage de travail du prologue ; [COUPLE-001](../STORY_SOURCE.md#couple-001) — Couverture professionnelle, rencontre et amour.
+**Règles associées :** [IA-003](../STORY_SOURCE.md#ia-003) — L’extraction pendant l’interposition ; [IA-004](../STORY_SOURCE.md#ia-004) — La fermeture visible et la suspension réelle ; [TEMPS-002](../STORY_SOURCE.md#temps-002) — De la localisation précise à l’ancre temporelle ; [TEMPS-005](../STORY_SOURCE.md#temps-005) — Durée limitée sans chronomètre canonique ; [COUPLE-001](../STORY_SOURCE.md#couple-001) — Couverture professionnelle, rencontre et amour.
 
 ## Chapitre 1 — Ceux qui prononcent ton nom
 
@@ -27,7 +27,7 @@ Mise en scène et garde-fous : Le mystère porte sur ce que cet autre Elio a fai
 
 **PROPOSE** · Origine : assistant · [CH-02](../STORY_SOURCE.md#ch-02)
 
-Le héros protège une évacuation et réalise avec Varek le premier rituel de réactivation consciente. Il apprend parallèlement à maîtriser Énergie, premier pouvoir actif de sa continuité jouée. Yselle accorde sa confiance à des actes concrets. Le pétale du Havre recharge ensuite le bénéficiaire ; une première équipe se forme sans imposer de tirage rare pour avancer.
+Le héros et les habitants constatent une panne du relais lié à la dormance passée du pétale ; ils le réparent et le redémarrent avant d’en tirer une recharge stable. Le héros protège une évacuation et réalise avec Varek le premier rituel de réactivation consciente. Il apprend parallèlement à maîtriser Énergie, premier pouvoir actif de sa continuité jouée et suffisant pour ce réaccord. Les habitants expliquent l’insuffisance distribuée du premier essai historique sans connaître Z ; Elio avance l’hypothèse de réunir les pétales au Cœur, sans certitude. Yselle accorde sa confiance à des actes concrets ; une première équipe se forme sans imposer de tirage rare.
 
 Mise en scène et garde-fous : Montrer le consentement et le rôle indispensable du bénéficiaire. La victoire permet de mieux vivre au Havre, pas seulement d’obtenir une clé de scénario.
 
@@ -37,11 +37,11 @@ Mise en scène et garde-fous : Montrer le consentement et le rôle indispensable
 
 **PROPOSE** · Origine : assistant · [CH-03](../STORY_SOURCE.md#ch-03)
 
-Aux Palais de Sel, les récits d’une guerre se contredisent. Le deuxième pétale livre une tranche de mémoire postérieure à la première sans connaître la suite. Un témoin reconnaît Lyra et rapporte sa mort lors de l’attaque de Séveran contre le deuxième essai du Cœur, après A-source. Les dates incompatibles troublent Elio.
+Aux Palais de Sel, les récits d’une guerre se contredisent. Le deuxième pétale fait vivre au seul Elio une scène sensorielle locale autour de son don, sans livrer une mémoire cumulative ou postérieure. Un témoin reconnaît Lyra et rapporte sa mort lors de l’attaque de Séveran contre le deuxième essai du Cœur, après A-source. Les dates incompatibles troublent Elio.
 
 Mise en scène et garde-fous : Ne pas faire taire un témoin qui connaît son origine. Les détails de la mission et les preuves de la mort-source restent réellement à trouver.
 
-**Règles associées :** [REG-002](../STORY_SOURCE.md#reg-002) — Palais de Sel : mémoire et responsabilité ; [COUPLE-002](../STORY_SOURCE.md#couple-002) — Les deux parcours du partenaire ; [FRAGMENT-003](../STORY_SOURCE.md#fragment-003) — Mémoires et émotions arrêtées au détachement.
+**Règles associées :** [REG-002](../STORY_SOURCE.md#reg-002) — Palais de Sel : mémoire et responsabilité ; [COUPLE-002](../STORY_SOURCE.md#couple-002) — Les deux parcours du partenaire ; [FRAGMENT-003](../STORY_SOURCE.md#fragment-003) — Empreintes locales, privées et interprétables.
 
 ## Chapitre 4 — La dette des archives
 
@@ -67,7 +67,7 @@ Mise en scène et garde-fous : Le premier diagnostic sépare volonté, contraint
 
 **PROPOSE** · Origine : assistant · [CH-06](../STORY_SOURCE.md#ch-06)
 
-Des alimentations indépendantes rendent possible une libération locale et le retrait risqué du troisième pétale. Ses traces rapprochent Elio de la maîtrise Gravité de son autre parcours, tandis que la culture rebelle des Chantiers lui ouvre l’apprentissage de Mecha. Une opération documentée récupère l’anneau original. Une stabilisation d’urgence d’un adversaire démontre qu’une autre réponse est envisageable.
+Des alimentations indépendantes rendent possible une libération locale et le retrait risqué du troisième pétale. Des indices privés et la pratique aident Elio à reconstruire Spatial, discipline apprise par sa version-source après G ; la culture rebelle des Chantiers lui ouvre séparément Mecha. Une opération documentée récupère l’anneau original. Une stabilisation d’urgence d’un adversaire démontre qu’une autre réponse est envisageable.
 
 Mise en scène et garde-fous : Le héros protège l’objet sans savoir encore si Lyra survit. Il ne reçoit pas le pardon pour les travaux de l’autre Elio en échange de sa réparation.
 
@@ -97,7 +97,7 @@ Mise en scène et garde-fous : Ne pas certifier la survie de Lyra à distance. D
 
 **PROPOSE** · Origine : assistant · [CH-09](../STORY_SOURCE.md#ch-09)
 
-Au Contrejour, la propagande lui attribue les actes de l’autre Elio. L’enquête retrouve les traces des capsules, du réveil et des humains qui l’ont aidé à s’intégrer. Elle confirme la perte de sa mémoire autobiographique, la conservation de ses savoirs généraux et ses intuitions spatiales implicites. Un très ancien habitant ayant connu Elio avant sa stase révèle sa maîtrise originelle de Spatial ; la résonance des pétales lui permet de commencer à la retrouver consciemment.
+Au Contrejour, la propagande lui attribue les actes de l’autre Elio. L’enquête retrouve les traces des capsules, du réveil et des humains qui l’ont aidé à s’intégrer. Elle confirme la perte de sa mémoire autobiographique, la conservation de ses savoirs généraux et ses intuitions gravitationnelles implicites. Un très ancien habitant ayant connu Elio avant sa stase révèle sa maîtrise originelle de Gravité ; il doit la réapprendre consciemment par pratique, et non par vision instantanée.
 
 Mise en scène et garde-fous : Les trous de mémoire de stase sont corroborés, pas comblés d’un seul coup par une révélation magique. L’exception de son noyau a une cause matérielle.
 
@@ -127,17 +127,17 @@ Mise en scène et garde-fous : Les relais énergétiques construits soutiennent 
 
 **PROPOSE** · Origine : assistant · [CH-12](../STORY_SOURCE.md#ch-12)
 
-Les archives et installations dévoilent le projet de Séveran : l’usage prévu du centre pur, la Matrice de tutelle proposée, la chasse aux pétales après le deuxième essai et les recherches conduites avec Elio-source. Elles établissent l’accord de non-confiscation pendant la collaboration, les pressions exercées sur les relais puis les tentatives de saisie après la rupture. Des preuves partielles indiquent qu’Elio préparait un accès vers A et qu’un drame s’est produit à Z, sans encore montrer son dernier pétale, son assassinat ni le changement de cible de Nacre.
+Les archives et installations dévoilent le projet de Séveran : l’usage prévu d’Elio vivant avec son centre pur en place, la Matrice de tutelle proposée, la chasse aux pétales après le deuxième essai et les recherches conduites avec Elio-source. Elles établissent l’accord de non-confiscation pendant la collaboration, les pressions exercées sur les relais puis les tentatives de saisie après la rupture. Des preuves partielles indiquent qu’Elio préparait un accès vers A et qu’un drame s’est produit à Z, sans encore montrer son dernier pétale, son assassinat ni le changement de cible de Nacre.
 
 Mise en scène et garde-fous : Révéler l’usage du noyau, les responsabilités et les objectifs, pas le mécanisme complet du secours. La réparation tardive du scientifique n’efface pas les victimes de ses compromis. Les soupçons sur Z restent des soupçons jusqu’après le redémarrage.
 
-**Règles associées :** [SEVERAN-002](../STORY_SOURCE.md#severan-002) — À quoi servirait exactement le noyau volé ; [SEVERAN-003](../STORY_SOURCE.md#severan-003) — Découverte tardive, marchandage et raid vers A ; [SEVERAN-004](../STORY_SOURCE.md#severan-004) — Mécanismes proposés de la coopération et de la sécurité ; [CONCORDAT-PETALES-001](../STORY_SOURCE.md#concordat-petales-001) — Chasse aux pétales, accord et résistances régionales ; [REVELATIONS-001](../STORY_SOURCE.md#revelations-001) — Vérité d’auteur, connaissance du groupe et révélation au joueur.
+**Règles associées :** [SEVERAN-002](../STORY_SOURCE.md#severan-002) — Pourquoi Séveran a besoin d’Elio vivant ; [SEVERAN-003](../STORY_SOURCE.md#severan-003) — Découverte tardive, marchandage et raid vers A ; [SEVERAN-004](../STORY_SOURCE.md#severan-004) — Mécanismes proposés de la coopération et de la rupture ; [CONCORDAT-PETALES-001](../STORY_SOURCE.md#concordat-petales-001) — Chasse aux pétales, accord et résistances régionales ; [REVELATIONS-001](../STORY_SOURCE.md#revelations-001) — Vérité d’auteur, connaissance du groupe et révélation au joueur.
 
 ## Chapitre 13 — L’empire à hauteur d’homme
 
 **PROPOSE** · Origine : assistant · [CH-13](../STORY_SOURCE.md#ch-13)
 
-La coalition rassemble les six pétales connus, Nacre, Elio, les réserves, les relais énergétiques et les alliés sans exiger la possession gacha de tous les gardiens. Elle protège les populations, prépare le redémarrage du Cœur monumental dans la région-capitale et garde l’anneau sous protection pour l’étape suivante. Le plan prévoit un premier affrontement pour empêcher la captation du Cœur et maintenir l’accès pendant l’opération. Saren peut agir pour réparer ses fautes.
+Après consentement et transitions imparfaites dans chaque région, la coalition rapporte physiquement les six pétales connus au Cœur. Elle réunit aussi le centre vivant et les sept pétales du jeune Elio, Nacre, les réserves et les alliés sans exiger la possession gacha de tous les gardiens. Elle protège les populations, prépare le redémarrage du Cœur monumental et garde l’anneau sous protection pour l’étape suivante. Le plan prévoit un premier affrontement pour empêcher la captation du Cœur et maintenir l’accès pendant l’opération. Saren peut agir pour réparer ses fautes.
 
 Mise en scène et garde-fous : Distinguer prendre une infrastructure et obtenir l’obéissance d’une région. Le groupe raisonne avec six fragments connus et ne connaît pas encore celui de Nacre. Tous les moyens indispensables sont accessibles par le récit.
 
@@ -151,17 +151,17 @@ Dans une sous-structure encore adaptable, la coalition affronte d’abord Séver
 
 Mise en scène et garde-fous : La victoire doit protéger les fonctions vitales et les victimes des réveils forcés. Les ennemis bénéficient réellement de la restauration ; la coalition gagne grâce à ses alliances, compétences et préparatifs. La contention entre les affrontements reste à concevoir. L’ennemi n’est pas vaincu dans un passé qui annulerait son propre raid.
 
-**Règles associées :** [SEVERAN-002](../STORY_SOURCE.md#severan-002) — À quoi servirait exactement le noyau volé ; [SEVERAN-005](../STORY_SOURCE.md#severan-005) — Une survie et une rédemption possibles, jamais acquises ; [FIN-003](../STORY_SOURCE.md#fin-003) — Conclusion collective avant le sauvetage intime ; [FIN-SEQUENCE-001](../STORY_SOURCE.md#fin-sequence-001) — Deux affrontements, une révélation et le secours ; [COEUR-001](../STORY_SOURCE.md#coeur-001) — Le Cœur d’Orthe et la restauration ; [IA-007](../STORY_SOURCE.md#ia-007) — Résonance, dernière mémoire et autonomie du Cœur ; [REG-007](../STORY_SOURCE.md#reg-007) — Méridien et région-capitale : le Cœur monumental.
+**Règles associées :** [SEVERAN-002](../STORY_SOURCE.md#severan-002) — Pourquoi Séveran a besoin d’Elio vivant ; [SEVERAN-005](../STORY_SOURCE.md#severan-005) — Une survie et une rédemption possibles, jamais acquises ; [FIN-003](../STORY_SOURCE.md#fin-003) — Conclusion collective avant le sauvetage intime ; [FIN-SEQUENCE-001](../STORY_SOURCE.md#fin-sequence-001) — Deux affrontements, une révélation et le secours ; [COEUR-001](../STORY_SOURCE.md#coeur-001) — Le Cœur d’Orthe et la restauration ; [IA-007](../STORY_SOURCE.md#ia-007) — Résonance, empreinte locale et autonomie du Cœur ; [REG-007](../STORY_SOURCE.md#reg-007) — Méridien et région-capitale : le Cœur monumental.
 
 ## Chapitre 15 — La dernière fenêtre
 
 **PROPOSE** · Origine : assistant · [CH-15](../STORY_SOURCE.md#ch-15)
 
-Après la sécurisation, l’équipe analyse la contribution de Nacre. La résonance révèle son septième pétale ; ses souvenirs s’arrêtent au détachement à Z, puis les journaux de Nacre établissent l’assassinat, l’ouverture et le changement de cible. Ces données fournissent les coordonnées et paramètres manquants. Avec l’ancre originale, un appareil compatible, la puissance stable du Cœur et une équipe médicale, la même fenêtre reprend après le retour de Séveran. Elio ne peut plus empêcher l’agression, mais un examen direct révèle une continuité vitale ; l’équipe stabilise Lyra, l’extrait et poursuit ses soins.
+Après la sécurisation, l’équipe analyse la contribution de Nacre. La résonance révèle son septième pétale ; seul Elio éprouve la scène locale de son don et de l’amorçage à Z. Les journaux partiels, témoins et autres preuves établissent l’attaque, l’extraction, la mort et le changement de cible. Le groupe découvre physiquement, après ces révélations, le corps d’Elio-source et son centre inerte conservés post-mortem. Des mesures de l’ancre et des données corroborées donnent les paramètres manquants. L’équipe revient au laboratoire original de Sélis avec l’ancre physique, un appareil compatible, la puissance autonome du Cœur et une équipe médicale. La même fenêtre reprend après le retour de Séveran : Elio ne peut plus empêcher l’agression, mais un examen direct révèle une continuité vitale ; l’équipe stabilise Lyra, l’extrait et poursuit ses soins.
 
 Mise en scène et garde-fous : La révélation doit précéder le secours qui dépend de ses informations. Montrer la différence entre « trop tard pour éviter la blessure » et « trop tard pour sauver ». L’anneau est consommé ; personne ne revient au début de la scène.
 
-**Règles associées :** [FIN-001](../STORY_SOURCE.md#fin-001) — Sauver sans revenir avant la blessure ; [FIN-004](../STORY_SOURCE.md#fin-004) — Moyens proposés de la dernière extraction ; [TEMPS-003](../STORY_SOURCE.md#temps-003) — Ancre, machine et accès : trois choses distinctes ; [IA-004](../STORY_SOURCE.md#ia-004) — La fermeture visible et la suspension réelle ; [IA-005](../STORY_SOURCE.md#ia-005) — Mémoire endommagée et septième pétale inaccessible ; [IA-006](../STORY_SOURCE.md#ia-006) — Le fragment de Nacre et son transfert final ; [IA-007](../STORY_SOURCE.md#ia-007) — Résonance, dernière mémoire et autonomie du Cœur ; [FIN-003](../STORY_SOURCE.md#fin-003) — Conclusion collective avant le sauvetage intime ; [REVELATIONS-001](../STORY_SOURCE.md#revelations-001) — Vérité d’auteur, connaissance du groupe et révélation au joueur.
+**Règles associées :** [FIN-001](../STORY_SOURCE.md#fin-001) — Sauver sans revenir avant la blessure ; [FIN-004](../STORY_SOURCE.md#fin-004) — Moyens proposés de la dernière extraction ; [TEMPS-003](../STORY_SOURCE.md#temps-003) — Ancre, machine et accès : trois choses distinctes ; [IA-004](../STORY_SOURCE.md#ia-004) — La fermeture visible et la suspension réelle ; [IA-005](../STORY_SOURCE.md#ia-005) — Mémoire endommagée et septième pétale inaccessible ; [IA-006](../STORY_SOURCE.md#ia-006) — Le fragment de Nacre et son transfert final ; [IA-007](../STORY_SOURCE.md#ia-007) — Résonance, empreinte locale et autonomie du Cœur ; [FIN-003](../STORY_SOURCE.md#fin-003) — Conclusion collective avant le sauvetage intime ; [REVELATIONS-001](../STORY_SOURCE.md#revelations-001) — Vérité d’auteur, connaissance du groupe et révélation au joueur.
 
 ## Chapitre 16 — Ceux qui restent
 
@@ -171,7 +171,7 @@ Après le sauvetage, Lyra commence une convalescence réelle. Nacre consent au r
 
 Mise en scène et garde-fous : Ne pas annoncer une mort absolument définitive de Nacre avant son transfert. Remplacer la famille adoptive de la v1.0 par les amis, mentors et collègues réellement définis dans cette version. Aucune guérison instantanée ne gomme les conséquences.
 
-**Règles associées :** [GRAINE-002](../STORY_SOURCE.md#graine-002) — Le réveil adulte : âge encore proposé ; [COUPLE-001](../STORY_SOURCE.md#couple-001) — Couverture professionnelle, rencontre et amour ; [FIN-001](../STORY_SOURCE.md#fin-001) — Sauver sans revenir avant la blessure ; [IA-005](../STORY_SOURCE.md#ia-005) — Mémoire endommagée et septième pétale inaccessible ; [IA-006](../STORY_SOURCE.md#ia-006) — Le fragment de Nacre et son transfert final ; [IA-007](../STORY_SOURCE.md#ia-007) — Résonance, dernière mémoire et autonomie du Cœur ; [ELIO-POUVOIRS-001](../STORY_SOURCE.md#elio-pouvoirs-001) — Désapprendre pour réapprendre : progression d’Elio.
+**Règles associées :** [GRAINE-002](../STORY_SOURCE.md#graine-002) — Le réveil adulte : âge encore proposé ; [COUPLE-001](../STORY_SOURCE.md#couple-001) — Couverture professionnelle, rencontre et amour ; [FIN-001](../STORY_SOURCE.md#fin-001) — Sauver sans revenir avant la blessure ; [IA-005](../STORY_SOURCE.md#ia-005) — Mémoire endommagée et septième pétale inaccessible ; [IA-006](../STORY_SOURCE.md#ia-006) — Le fragment de Nacre et son transfert final ; [IA-007](../STORY_SOURCE.md#ia-007) — Résonance, empreinte locale et autonomie du Cœur ; [ELIO-POUVOIRS-001](../STORY_SOURCE.md#elio-pouvoirs-001) — Désapprendre pour réapprendre : progression d’Elio.
 
 ## Chapitre 17 — Les routes ouvertes
 
