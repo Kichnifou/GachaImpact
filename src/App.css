@@ -7443,7 +7443,7 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .event-shop-balance h2 { margin: 6px 0; overflow-wrap: anywhere; }
 .event-shop-balance p, .event-shop-card p { color: #b8c3d3; }
 .event-shop-balance > span { font-size: 48px; flex: none; }
-.event-shop-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.event-shop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 14px; }
 .event-shop-card { display: flex; flex-direction: column; gap: 9px; min-width: 0; padding: 20px; }
 .event-shop-icon { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid rgba(228, 189, 107, .45); border-radius: 12px; color: #f5d797; background: rgba(186, 129, 42, .13); font-size: 27px; }
 .event-shop-card h2 { margin: 0; overflow-wrap: anywhere; }
@@ -7451,18 +7451,19 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .event-shop-card label { font-weight: 700; font-size: 13px; }
 .event-shop-quantity { display: flex; min-width: 0; gap: 5px; }
 .event-shop-quantity button, .event-shop-quantity input { box-sizing: border-box; min-height: 38px; border: 1px solid rgba(161, 177, 204, .35); border-radius: 8px; color: #f5f8ff; background: #1d293b; }
-.event-shop-quantity button { min-width: 36px; padding: 0 9px; cursor: pointer; }
+.event-shop-quantity button { flex: 0 0 auto; min-width: 36px; padding: 0 9px; cursor: pointer; }
 .event-shop-quantity button:hover:not(:disabled), .event-shop-quantity button:focus-visible { border-color: #e7c77f; background: #33405b; }
 .event-shop-quantity button:disabled { opacity: .5; cursor: not-allowed; }
-.event-shop-quantity input { width: 100%; min-width: 48px; padding: 0 7px; text-align: center; }
+.event-shop-quantity input { flex: 1 1 auto; width: 0; min-width: 0; padding: 0 7px; text-align: center; }
 .event-shop-quantity input::-webkit-inner-spin-button, .event-shop-quantity input::-webkit-outer-spin-button { appearance: none; margin: 0; }
 .event-shop-quantity input { appearance: textfield; }
-.event-shop-quantity .event-shop-max { min-width: 46px; font-weight: 800; }
+.event-shop-quantity .event-shop-max { min-width: max-content; padding-inline: 12px; font-weight: 800; white-space: nowrap; }
 .event-shop-preview-total { margin-top: auto !important; }
 .event-shop-preview-total strong { display: block; color: #f5d797; overflow-wrap: anywhere; }
 .event-shop-card > .small-primary-button { align-self: stretch; margin-top: 8px; }
 .event-shop-collection-state { margin-top: auto !important; color: #b9eacb !important; }
 .event-shop-preview, .event-shop-feedback { margin: 0; }
+.event-shop-feedback.success { color: #8df1c8; }
 .event-shop-feedback[role="alert"] { color: #ffb7ab; }
 .event-ranking { padding: 22px; min-width: 0; }
 .event-ranking header { display: flex; justify-content: space-between; align-items: start; gap: 16px; }
@@ -7476,8 +7477,7 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .event-ranking-list li strong { min-width: 0; overflow-wrap: anywhere; }
 .event-ranking-list li > span:last-child { color: #dfe8f5; font-weight: 700; white-space: nowrap; }
 .event-ranking-rank { color: #f1d59d; font-weight: 800; }
-@media (max-width: 1180px) { .event-shop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 650px) { .event-shop-grid { grid-template-columns: minmax(0, 1fr); } .event-shop-balance { padding: 18px; } .event-shop-balance > span { font-size: 34px; } }
+@media (max-width: 650px) { .event-shop-balance { padding: 18px; } .event-shop-balance > span { font-size: 34px; } }
 @media (max-width: 650px) { .event-ranking { padding: 16px; } .event-ranking header { flex-direction: column; gap: 8px; } .event-ranking-list li { grid-template-columns: 38px minmax(0, 1fr); gap: 6px 10px; } .event-ranking-list li > span:last-child { grid-column: 2; } }
 .event-game-a { display: grid; gap: 16px; padding: 20px; }
 .event-game-a-heading, .event-game-a-action { display: flex; align-items: center; justify-content: space-between; gap: 16px; }

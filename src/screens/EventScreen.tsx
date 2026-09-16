@@ -7,7 +7,7 @@ import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import PlayerSelectionBrowser, { type PlayerBrowserQuery } from '../components/PlayerSelectionBrowser'
 import EventShopSection, { type EventShopIntent, type EventShopTarget } from './EventShopSection'
 import EventRankingSection from './EventRankingSection'
-import { eventGameAExpiredToday, eventPresentation } from '../event/event-presentation'
+import { eventCurrencyLabel, eventGameAExpiredToday, eventPresentation } from '../event/event-presentation'
 import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
 
 type Props = Readonly<{
@@ -271,6 +271,8 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
     if (shopPendingRef.current || !value.shop.available) return
     const previous = shopIntentRef.current
     if (previous && previous.target !== target) return
+    setShopFeedback('')
+    setShopError('')
     if (target === 'COLLECTION') {
       if (!onPurchaseCollection || !value.shop.collection.available || value.shop.collection.obtainedThisEdition) return
       if (!previous && BigInt(value.shop.balance) < BigInt(value.shop.collection.cost)) { setShopError('Votre solde est insuffisant pour cet objet.'); return }
@@ -285,7 +287,6 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
     shopPendingRef.current = true
     setShopIntent(intent)
     setShopPending(true)
-    setShopError('')
     try {
       await (intent.target === 'COLLECTION' ? onPurchaseCollection!(intent.key) : onConvertShop!(intent.target, intent.quantity, intent.key))
       if (sameBoundary()) {
@@ -293,7 +294,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
         setShopIntent(null)
         setShopFeedback(intent.target === 'COLLECTION'
           ? `Objet obtenu : ${value.shop.collection.label}`
-          : `Échange effectué : ${formatResourceAmount((BigInt(intent.quantity) * BigInt(value.shop.rates[intent.target === 'PRIMOGEMS' ? 'primogems' : 'moras'])).toString())} ${intent.target === 'PRIMOGEMS' ? 'Primogemmes' : 'Moras'}.`)
+          : `Échange effectué ! Vous obtenez ${formatResourceAmount((BigInt(intent.quantity) * BigInt(value.shop.rates[intent.target === 'PRIMOGEMS' ? 'primogems' : 'moras'])).toString())} ${intent.target === 'PRIMOGEMS' ? 'Primogemmes' : 'Moras'} contre ${intent.quantity} ${eventCurrencyLabel(intent.quantity, value.festival.currency)}.`)
       }
     } catch (reason) {
       if (sameBoundary()) {

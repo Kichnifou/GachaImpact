@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { readFileSync } from 'node:fs'
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -27,6 +28,15 @@ function click(button: HTMLButtonElement) { act(() => button.click()) }
 function buttons(container: HTMLElement) { return Array.from(container.querySelectorAll<HTMLButtonElement>('button')) }
 
 describe('Event Shop', () => {
+  it('keeps quantity buttons intrinsic and lets the input absorb available space', () => {
+    const css = readFileSync('src/App.css', 'utf8')
+    expect(css).toMatch(/\.event-shop-grid\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(min\(100%,\s*280px\),\s*1fr\)\);/s)
+    expect(css).toMatch(/\.event-shop-quantity button\s*\{[^}]*flex:\s*0 0 auto;/s)
+    expect(css).toMatch(/\.event-shop-quantity input\s*\{[^}]*flex:\s*1 1 auto;[^}]*min-width:\s*0;/s)
+    expect(css).toMatch(/\.event-shop-quantity \.event-shop-max\s*\{[^}]*min-width:\s*max-content;[^}]*padding-inline:\s*12px;[^}]*white-space:\s*nowrap;/s)
+    expect(css).toMatch(/\.event-shop-feedback\.success\s*\{[^}]*color:\s*#8df1c8;/s)
+  })
+
   it('previews all three offers publicly while forbidding purchases before joining', () => {
     const { container } = mount(view(false, '7'))
     expect(container.textContent).toContain('Primogemmes')

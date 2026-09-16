@@ -46,6 +46,6 @@ export default function EventShopSection({ value, intent, pending, feedback, err
       })}
       <article className="panel event-shop-card event-shop-collection"><span className="event-shop-icon" aria-hidden="true">✧</span><span className="eyebrow">Objet Collection</span><h2>{value.shop.collection.label}</h2><p>{formatResourceAmount(value.shop.collection.cost)} {eventCurrencyLabel(value.shop.collection.cost, value.festival.currency)} · un exemplaire par édition</p><p className="event-shop-collection-state">{value.shop.collection.obtainedThisEdition ? `Obtenu — édition ${value.edition.year}` : 'À conserver dans votre Collection.'}</p><button type="button" className="small-primary-button" disabled={!value.shop.available || !canPurchaseCollection || !value.shop.collection.available || value.shop.collection.obtainedThisEdition || (balance < BigInt(value.shop.collection.cost) && intent?.target !== 'COLLECTION') || pending || Boolean(intent && intent.target !== 'COLLECTION')} onClick={() => onTransact('COLLECTION', 1)}>{value.shop.collection.obtainedThisEdition ? 'Déjà obtenu' : pending && intent?.target === 'COLLECTION' ? 'Achat…' : intent?.target === 'COLLECTION' ? 'Réessayer' : 'Acheter'}</button></article>
     </div>
-    <p className="event-shop-feedback" role={error ? 'alert' : 'status'} aria-live="polite">{error || feedback}</p>
+    <p className={`event-shop-feedback${feedback && !error ? ' success' : ''}`} role={error ? 'alert' : 'status'} aria-live="polite">{error || feedback}</p>
   </section>
 }

@@ -143,6 +143,40 @@ describe('EventScreen presentation', () => {
     expect(onConvertShop.mock.calls[1][2]).not.toBe(onConvertShop.mock.calls[0][2])
   })
 
+  it.each([
+    { target: 'PRIMOGEMS' as const, quantity: 1, expected: 'Échange effectué ! Vous obtenez 160 Primogemmes contre 1 Jeton de Récolte.' },
+    { target: 'PRIMOGEMS' as const, quantity: 2, expected: 'Échange effectué ! Vous obtenez 320 Primogemmes contre 2 Jetons de Récolte.' },
+    { target: 'MORAS' as const, quantity: 1, expected: 'Échange effectué ! Vous obtenez 20 000 Moras contre 1 Jeton de Récolte.' },
+    { target: 'MORAS' as const, quantity: 5, expected: 'Échange effectué ! Vous obtenez 100 000 Moras contre 5 Jetons de Récolte.' },
+  ])('shows exact green conversion feedback for $quantity $target', async ({ target, quantity, expected }) => {
+    const shopValue = { ...afterJoin, shop: { ...afterJoin.shop, available: true, balance: String(quantity) } }
+    const mounted = mount({ value: shopValue, onConvertShop: vi.fn(async () => shopValue) })
+    act(() => Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button')).find((button) => button.textContent === 'Shop')!.click())
+    const card = Array.from(mounted.container.querySelectorAll<HTMLElement>('.event-shop-card')).find((item) => item.querySelector('h2')?.textContent === (target === 'MORAS' ? 'Moras' : 'Primogemmes'))!
+    if (quantity > 1) act(() => card.querySelector<HTMLButtonElement>('.event-shop-max')!.click())
+    await act(async () => { card.querySelector<HTMLButtonElement>('button.small-primary-button')!.click(); await Promise.resolve() })
+    const feedback = mounted.container.querySelector('.event-shop-feedback')!
+    expect(feedback.textContent).toBe(expected)
+    expect(feedback.classList.contains('success')).toBe(true)
+    expect(feedback.getAttribute('role')).toBe('status')
+  })
+
+  it('uses the active Festival currency labels and replaces success with an alert on a failed next exchange', async () => {
+    const currency = { key: 'star-coins', unit: 'Pièce d’Étoile', label: 'Pièces d’Étoile', emoji: '✦' }
+    const shopValue = { ...afterJoin, festival: { ...afterJoin.festival, currency }, shop: { ...afterJoin.shop, available: true, balance: '2' } }
+    const onConvertShop = vi.fn().mockResolvedValueOnce(shopValue).mockRejectedValueOnce(new ApiError('SHOP_ERROR', 'Échange refusé.', null))
+    const mounted = mount({ value: shopValue, onConvertShop })
+    act(() => Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button')).find((button) => button.textContent === 'Shop')!.click())
+    const convert = () => mounted.container.querySelector<HTMLButtonElement>('.event-shop-card button.small-primary-button')!
+    await act(async () => { convert().click(); await Promise.resolve() })
+    expect(mounted.container.querySelector('.event-shop-feedback')?.textContent).toBe('Échange effectué ! Vous obtenez 160 Primogemmes contre 1 Pièce d’Étoile.')
+    await act(async () => { convert().click(); await Promise.resolve() })
+    const feedback = mounted.container.querySelector('.event-shop-feedback')!
+    expect(feedback.textContent).toBe('La demande n’a pas pu être traitée.')
+    expect(feedback.classList.contains('success')).toBe(false)
+    expect(feedback.getAttribute('role')).toBe('alert')
+  })
+
   it('retries an ambiguous Shop conversion with the exact intent after tab and business-date changes', async () => {
     const onConvertShop = vi.fn()
       .mockRejectedValueOnce(new ApiError('NETWORK_ERROR', 'Réseau indisponible.', null))
@@ -179,6 +213,7 @@ describe('EventScreen presentation', () => {
     expect(mounted.container.querySelector<HTMLButtonElement>('.event-shop-card button.small-primary-button')?.textContent).toBe('Convertir')
     await act(async () => { mounted.container.querySelector<HTMLButtonElement>('.event-shop-collection button')!.click(); await Promise.resolve() })
     expect(mounted.container.querySelector('.event-shop-feedback')?.textContent).toBe('Objet obtenu : Gerbe de Récolte')
+    expect(mounted.container.querySelector('.event-shop-feedback')?.classList.contains('success')).toBe(true)
   })
 
   it('does not restore a prior player’s pending Shop operation when its response arrives late', async () => {
