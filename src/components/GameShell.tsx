@@ -373,7 +373,8 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
         onOpenMenu={() => setIsMenuOpen(true)}
         onSignOut={signOutAndClearCaches}
         notifications={notifications}
-        onRefreshNotifications={async () => { await Promise.all([onLoadExpedition(), refreshMonthlyBoss(), onLoadNotifications()]) }}
+        pollSessionKey={player.id}
+        onRefreshNotifications={onLoadNotifications}
         onReadNotification={onReadNotification}
         onArchiveNotification={onArchiveNotification}
         onReadAllNotifications={onReadAllNotifications}

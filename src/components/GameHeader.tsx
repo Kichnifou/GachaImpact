@@ -12,7 +12,8 @@ type GameHeaderProps = {
   onOpenModeration: () => void
   onOpenMenu: () => void
   notifications?: NotificationsDto
-  onRefreshNotifications?: () => Promise<void>
+  pollSessionKey?: string
+  onRefreshNotifications?: () => Promise<unknown>
   onReadNotification?: (id: string) => Promise<NotificationsDto>
   onArchiveNotification?: (id: string) => Promise<NotificationsDto>
   onReadAllNotifications?: () => Promise<NotificationsDto>
@@ -21,22 +22,34 @@ type GameHeaderProps = {
 }
 
 const emptyNotifications: NotificationsDto = { unreadCount: 0, notifications: [] }
-function GameHeader({ displayName, onNavigateHome, onOpenSidebar, onSignOut, showModeration, onOpenModeration, onOpenMenu, notifications = emptyNotifications, onRefreshNotifications = async () => undefined, onReadNotification = async () => emptyNotifications, onArchiveNotification = async () => emptyNotifications, onReadAllNotifications = async () => emptyNotifications, onArchiveReadNotifications = async () => emptyNotifications, onOpenNotification = () => undefined }: GameHeaderProps) {
+function GameHeader({ displayName, onNavigateHome, onOpenSidebar, onSignOut, showModeration, onOpenModeration, onOpenMenu, notifications = emptyNotifications, pollSessionKey, onRefreshNotifications = async () => undefined, onReadNotification = async () => emptyNotifications, onArchiveNotification = async () => emptyNotifications, onReadAllNotifications = async () => emptyNotifications, onArchiveReadNotifications = async () => emptyNotifications, onOpenNotification = () => undefined }: GameHeaderProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const [archivingNotificationId, setArchivingNotificationId] = useState<string | null>(null)
   const notificationAnchorRef = useRef<HTMLDivElement>(null)
+  const refreshNowRef = useRef<() => void>(() => undefined)
   useEffect(() => {
     if (!isNotificationsOpen) return
     const close = (event: PointerEvent) => { if (!notificationAnchorRef.current?.contains(event.target as Node)) setIsNotificationsOpen(false) }
     document.addEventListener('pointerdown', close); return () => document.removeEventListener('pointerdown', close)
   }, [isNotificationsOpen])
   useEffect(() => {
-    const refresh = () => void onRefreshNotifications().catch(() => undefined)
-    const visible = () => { if (document.visibilityState === 'visible') refresh() }
-    window.addEventListener('focus', refresh); document.addEventListener('visibilitychange', visible)
-    const timer = window.setInterval(refresh, 60_000)
-    return () => { window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', visible); window.clearInterval(timer) }
-  }, [onRefreshNotifications])
+    let active = true
+    let inFlight = false
+    let timer: number | undefined
+    const schedule = () => { if (active && document.visibilityState === 'visible') timer = window.setTimeout(refresh, 3_000) }
+    const refresh = () => {
+      if (!active || inFlight || document.visibilityState !== 'visible') return
+      window.clearTimeout(timer)
+      inFlight = true
+      void onRefreshNotifications().catch(() => undefined).finally(() => { inFlight = false; schedule() })
+    }
+    const visible = () => { window.clearTimeout(timer); if (document.visibilityState === 'visible') refresh() }
+    refreshNowRef.current = refresh
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', visible)
+    schedule()
+    return () => { active = false; refreshNowRef.current = () => undefined; window.clearTimeout(timer); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', visible) }
+  }, [onRefreshNotifications, pollSessionKey])
   const open = async (notification: NotificationDto) => {
     if (notification.state === 'UNREAD') await onReadNotification(notification.id)
     if (resolveNotificationPresentation(notification).destination === null) return
@@ -55,7 +68,7 @@ function GameHeader({ displayName, onNavigateHome, onOpenSidebar, onSignOut, sho
       {showModeration && <button type="button" className="moderation-header-button" onClick={onOpenModeration}>Modération</button>}
       <button type="button" className="sign-out-button" onClick={() => void onSignOut()}>Déconnexion</button>
       <div className="notification-anchor" ref={notificationAnchorRef}>
-        <button type="button" className={`header-icon-button${isNotificationsOpen ? ' active' : ''}`} onClick={() => { setIsNotificationsOpen(value => !value); void onRefreshNotifications().catch(() => undefined) }} aria-label="Afficher les notifications" aria-expanded={isNotificationsOpen}><span aria-hidden="true">♢</span>{notifications.unreadCount > 0 && <span className="header-count">{notifications.unreadCount}</span>}</button>
+        <button type="button" className={`header-icon-button${isNotificationsOpen ? ' active' : ''}`} onClick={() => { setIsNotificationsOpen(value => !value); refreshNowRef.current() }} aria-label="Afficher les notifications" aria-expanded={isNotificationsOpen}><span aria-hidden="true">♢</span>{notifications.unreadCount > 0 && <span className="header-count">{notifications.unreadCount}</span>}</button>
         {isNotificationsOpen && <section className="floating-panel notifications-panel" aria-label="Notifications">
           <div className="floating-panel-heading"><div><span className="eyebrow">Activité</span><h2>Notifications</h2></div>{notifications.unreadCount > 0 && <button type="button" className="text-action" onClick={() => void onReadAllNotifications()}>Tout marquer comme lu</button>}</div>
           <div className="notification-list">{notifications.notifications.length === 0 ? <p className="notification-empty">Aucune notification.</p> : notifications.notifications.map(notification => { const presentation = resolveNotificationPresentation(notification); const actionable = presentation.destination !== null; const archiving = archivingNotificationId === notification.id; return <div className="notification-row" key={notification.id}><button type="button" className={`notification-item${notification.state === 'UNREAD' ? ' unread' : ''}${actionable ? ' actionable' : ''}`} data-actionable={actionable ? 'true' : 'false'} onClick={() => void open(notification)}><span className="notification-symbol" aria-hidden="true">✦</span><span><strong>{presentation.title}</strong><p>{presentation.message}</p>{presentation.rewards && <span className="notification-rewards">{presentation.rewards.map((reward) => `+${reward.amount} ${reward.label}`).join(' · ')}</span>}<small>{new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(notification.createdAt))}</small></span>{notification.state === 'UNREAD' && <span className="notification-dot" aria-label="Non lue" />}</button><AppButton variant="icon" className="notification-archive-button" aria-label="Supprimer la notification" aria-busy={archiving} disabled={archiving} onClick={() => void archive(notification.id)}>×</AppButton></div> })}</div>

@@ -24,6 +24,8 @@ import { useEventTemporalRefresh } from './event/use-event-temporal-refresh'
 function AppBootstrap() {
   const { status: authStatus, session, configurationMessage, signOut } = useAuth()
   const sessionUserId = session?.user.id
+  const notificationSessionRef = useRef(sessionUserId)
+  useLayoutEffect(() => { notificationSessionRef.current = sessionUserId }, [sessionUserId])
   const [player, setPlayer] = useState<PlayerDto | null>(null)
   const [resources, setResources] = useState<PlayerResourcesDto | null>(null)
   const [progression, setProgression] = useState<PlayerProgressionDto | null>(null)
@@ -109,7 +111,7 @@ function AppBootstrap() {
     return next
   }, [])
   const loadExpedition = useCallback(async () => publishExpedition(await getGameApiClient().getExpedition()), [publishExpedition])
-  const loadNotifications = useCallback(async () => { const next = await getGameApiClient().getNotifications(); setNotifications(next); return next }, [])
+  const loadNotifications = useCallback(async () => { const requestedFor = sessionUserId; const next = await getGameApiClient().getNotifications(); if (notificationSessionRef.current === requestedFor) setNotifications(next); return next }, [sessionUserId])
   const consultEventGameCMessages = useCallback(async () => { const result = await eventRequests.mutate(() => getGameApiClient().consultEventGameCMessages()); await loadNotifications(); return result }, [eventRequests, loadNotifications])
   useEffect(() => {
     if (expedition?.value.operationalStatus !== 'RUNNING' || !expedition.value.readyAt) return

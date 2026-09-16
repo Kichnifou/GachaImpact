@@ -9,7 +9,7 @@ import GameHeader from './GameHeader'
 const appCss = readFileSync(`${process.cwd()}/src/App.css`, 'utf8')
 
 const roots: Root[] = []
-afterEach(() => { act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren() })
+afterEach(() => { act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren(); Reflect.deleteProperty(document, 'visibilityState'); vi.useRealTimers() })
 
 function mount(props: Partial<React.ComponentProps<typeof GameHeader>> = {}) {
   const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root)
@@ -18,6 +18,44 @@ function mount(props: Partial<React.ComponentProps<typeof GameHeader>> = {}) {
 }
 
 describe('GameHeader moderation capability', () => {
+  it('polls notifications every three seconds only while visible, refreshes on focus, and never overlaps requests', async () => {
+    vi.useFakeTimers()
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
+    let release: (() => void) | undefined
+    const onRefreshNotifications = vi.fn(() => new Promise<void>((resolve) => { release = resolve }))
+    mount({ onRefreshNotifications, pollSessionKey: 'player-a' })
+    await act(async () => { await vi.advanceTimersByTimeAsync(3_000) })
+    expect(onRefreshNotifications).toHaveBeenCalledTimes(1)
+    await act(async () => { await vi.advanceTimersByTimeAsync(9_000); window.dispatchEvent(new Event('focus')) })
+    expect(onRefreshNotifications).toHaveBeenCalledTimes(1)
+    await act(async () => { release?.(); await Promise.resolve() })
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
+    act(() => document.dispatchEvent(new Event('visibilitychange')))
+    await act(async () => { await vi.advanceTimersByTimeAsync(9_000) })
+    expect(onRefreshNotifications).toHaveBeenCalledTimes(1)
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
+    act(() => document.dispatchEvent(new Event('visibilitychange')))
+    expect(onRefreshNotifications).toHaveBeenCalledTimes(2)
+    await act(async () => { release?.(); await Promise.resolve() })
+    act(() => roots[0]!.unmount())
+    roots.splice(0, 1)
+    await act(async () => { await vi.advanceTimersByTimeAsync(9_000) })
+    expect(onRefreshNotifications).toHaveBeenCalledTimes(2)
+  })
+  it('drops the previous session polling loop when the player changes', async () => {
+    vi.useFakeTimers()
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
+    let releaseOld: (() => void) | undefined
+    const oldRefresh = vi.fn(() => new Promise<void>((resolve) => { releaseOld = resolve }))
+    const newRefresh = vi.fn(async () => undefined)
+    mount({ onRefreshNotifications: oldRefresh, pollSessionKey: 'player-a' })
+    await act(async () => { await vi.advanceTimersByTimeAsync(3_000) })
+    expect(oldRefresh).toHaveBeenCalledOnce()
+    act(() => roots[0]!.render(<GameHeader displayName="Test" onNavigateHome={vi.fn()} onOpenSidebar={vi.fn()} onSignOut={vi.fn()} showModeration={false} onOpenModeration={vi.fn()} onOpenMenu={vi.fn()} onRefreshNotifications={newRefresh} pollSessionKey="player-b" />))
+    await act(async () => { releaseOld?.(); await vi.advanceTimersByTimeAsync(3_000) })
+    expect(oldRefresh).toHaveBeenCalledOnce()
+    expect(newRefresh).toHaveBeenCalledOnce()
+  })
   it('shows Modération immediately before Déconnexion only when authorized', () => {
     const authorized = renderToStaticMarkup(<GameHeader displayName="Test" onNavigateHome={vi.fn()} onOpenSidebar={vi.fn()} onSignOut={vi.fn()} showModeration onOpenModeration={vi.fn()} onOpenMenu={vi.fn()} />)
     const denied = renderToStaticMarkup(<GameHeader displayName="Test" onNavigateHome={vi.fn()} onOpenSidebar={vi.fn()} onSignOut={vi.fn()} showModeration={false} onOpenModeration={vi.fn()} onOpenMenu={vi.fn()} />)
