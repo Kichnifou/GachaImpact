@@ -19,6 +19,7 @@ const snapshot = (refreshAfterMs: number, completedToday = false, businessDate =
   canJoin: false,
   gameA: { available: true, theme: { key: 'recolte', label: 'Récolte' }, completedToday, attemptsToday: completedToday ? 1 : 0, windows: [], activeWindowIndex: null, canAttempt: false, cooldownRemainingMs: 0 },
   gameB: { available: true, theme: { key: 'harvest', label: 'Festival des Récoltes' }, solvedToday: false, resolvedCode: null, discoveredBy: null, attemptsUsed: 0, attemptsRemaining: 3, testedCodes: [], remainingCodes: [], canAttempt: false },
+  gameC: { available: true, theme: { key: 'harvest', label: 'Panier' }, sentToday: false, canSend: false, receivedMessages: [], unviewedCount: 0 },
 })
 
 function Harness({ initial, sessionUserId, refresh }: Readonly<{ initial: EventDto; sessionUserId?: string; refresh: () => Promise<EventDto> }>) {

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
-import type { EventDto, EventGameAAttemptDto, EventGameBAttemptDto, EventJoinDto } from '../api/types'
+import type { EventDto, EventGameAAttemptDto, EventGameBAttemptDto, EventGameCRecipientsDto, EventGameCSendDto, EventJoinDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
 import ScreenHeader from '../components/ScreenHeader'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
@@ -13,6 +13,9 @@ type Props = Readonly<{
   onJoin: (idempotencyKey: string) => Promise<EventJoinDto>
   onAttempt: (idempotencyKey: string) => Promise<EventGameAAttemptDto>
   onAttemptB: (code: string, idempotencyKey: string) => Promise<EventGameBAttemptDto>
+  onSearchRecipients?: (q: string, page: number) => Promise<EventGameCRecipientsDto>
+  onSendGameC?: (recipientPlayerId: string, message: string, idempotencyKey: string) => Promise<EventGameCSendDto>
+  onConsultMessages?: () => Promise<EventDto>
 }>
 
 const periodFormatter = new Intl.DateTimeFormat('fr-FR', {
@@ -23,6 +26,8 @@ const periodFormatter = new Intl.DateTimeFormat('fr-FR', {
 })
 
 const timeFormatter = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })
+const unavailableRecipientSearch = async (): Promise<EventGameCRecipientsDto> => ({ page: 1, hasMore: false, recipients: [] })
+const unavailableGameCSend = async (): Promise<EventGameCSendDto> => { throw new Error('Jeu C indisponible.') }
 
 function EventCooldownButton({ durationMs }: Readonly<{ durationMs: number }>) {
   const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(1, Math.ceil(durationMs / 1000)))
@@ -42,12 +47,19 @@ function EventCooldownButton({ durationMs }: Readonly<{ durationMs: number }>) {
   return <button type="button" className="small-primary-button event-cooldown-button" disabled>Patientez {remainingSeconds} seconde{remainingSeconds > 1 ? 's' : ''}...</button>
 }
 
-export default function EventScreen({ value, onLoad, onJoin, onAttempt, onAttemptB }: Props) {
+export default function EventScreen({ value, onLoad, onJoin, onAttempt, onAttemptB, onSearchRecipients = unavailableRecipientSearch, onSendGameC = unavailableGameCSend, onConsultMessages }: Props) {
   const [section, setSection] = useState<'registration' | 'games'>('registration')
-  const [gameTab, setGameTab] = useState<0 | 1>(0)
+  const [gameTab, setGameTab] = useState<0 | 1 | 2>(0)
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
   const [gameBIntent, setGameBIntent] = useState<Readonly<{ code: string; key: string }> | null>(null)
   const [gameBFeedback, setGameBFeedback] = useState<string | null>(null)
+  const [recipientQuery, setRecipientQuery] = useState('')
+  const [recipientPage, setRecipientPage] = useState(1)
+  const [recipientResults, setRecipientResults] = useState<EventGameCRecipientsDto | null>(null)
+  const [selectedRecipient, setSelectedRecipient] = useState<EventGameCRecipientsDto['recipients'][number] | null>(null)
+  const [gameCMessage, setGameCMessage] = useState('')
+  const [gameCIntent, setGameCIntent] = useState<Readonly<{ recipientPlayerId: string; message: string; key: string }> | null>(null)
+  const [gameCFeedback, setGameCFeedback] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const pendingRef = useRef(false)
   const [intentKey, setIntentKey] = useState<string | null>(null)
@@ -63,6 +75,10 @@ export default function EventScreen({ value, onLoad, onJoin, onAttempt, onAttemp
     setSelectedCode(null)
     setGameBIntent(null)
     setGameBFeedback(null)
+    setGameCIntent(null)
+    setGameCFeedback(null)
+    setSelectedRecipient(null)
+    setGameCMessage('')
     setError(null)
     if (previous.editionId !== value.edition.id) {
       setSection('registration')
@@ -78,8 +94,21 @@ export default function EventScreen({ value, onLoad, onJoin, onAttempt, onAttemp
 
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect -- A server snapshot can invalidate the selected Event section.
-    if (!value.participation.joined && section === 'games') setSection('registration')
-  }, [section, value.participation.joined])
+    if (!value.participation.joined && !value.gameC.available && section === 'games') setSection('registration')
+    if (!value.participation.joined && section === 'games' && gameTab !== 2) setGameTab(2)
+  }, [section, gameTab, value.participation.joined, value.gameC.available])
+
+  useEffect(() => {
+    if (section !== 'games' || gameTab !== 2 || !value.gameC.canSend || recipientQuery.trim().length < 2) return
+    let active = true
+    const timer = window.setTimeout(() => { void onSearchRecipients(recipientQuery.trim(), recipientPage).then((result) => { if (active) setRecipientResults(result) }).catch((reason) => { if (active) setError(apiErrorMessage(reason)) }) }, 250)
+    return () => { active = false; window.clearTimeout(timer) }
+  }, [section, gameTab, value.gameC.canSend, recipientQuery, recipientPage, onSearchRecipients])
+
+  useEffect(() => {
+    if (section !== 'games' || gameTab !== 2 || value.gameC.unviewedCount === 0 || !onConsultMessages) return
+    void onConsultMessages().catch((reason) => setError(apiErrorMessage(reason)))
+  }, [section, gameTab, value.gameC.unviewedCount, onConsultMessages])
 
   useEffect(() => {
     if (section !== 'games' || !value.participation.joined || value.gameB.solvedToday) return
@@ -161,16 +190,36 @@ export default function EventScreen({ value, onLoad, onJoin, onAttempt, onAttemp
     }
   }
 
+  const sendGameC = async () => {
+    if (pendingRef.current || !value.gameC.canSend || (!selectedRecipient && !gameCIntent) || (!gameCMessage.trim() && !gameCIntent)) return
+    const intent = gameCIntent ?? { recipientPlayerId: selectedRecipient!.playerId, message: gameCMessage.trim(), key: crypto.randomUUID() }
+    pendingRef.current = true
+    setPending(true)
+    setGameCIntent(intent)
+    setError(null)
+    try {
+      await onSendGameC(intent.recipientPlayerId, intent.message, intent.key)
+      setGameCIntent(null)
+      setGameCFeedback(`Message envoyé. +1 point et +1 ${presentation.currencyUnit}.`)
+    } catch (reason) {
+      if (!isAmbiguousMutationError(reason)) setGameCIntent(null)
+      setError(apiErrorMessage(reason))
+    } finally {
+      pendingRef.current = false
+      setPending(false)
+    }
+  }
+
   const presentation = eventPresentation(value.festival.key)
   const expiredToday = eventGameAExpiredToday(value)
   const tabs = <>
     <nav className="activity-inner-tabs event-tabs" aria-label="Sections Événement">
       <button type="button" className={section === 'registration' ? 'active' : ''} aria-current={section === 'registration' ? 'page' : undefined} onClick={() => setSection('registration')}>Inscription</button>
-      <button type="button" className={section === 'games' ? 'active' : ''} aria-current={section === 'games' ? 'page' : undefined} disabled={!value.participation.joined} onClick={() => setSection('games')}>Jeux</button>
+      <button type="button" className={section === 'games' ? 'active' : ''} aria-current={section === 'games' ? 'page' : undefined} disabled={!value.participation.joined && !value.gameC.available} onClick={() => { setGameTab(value.participation.joined ? 0 : 2); setSection('games') }}>Jeux</button>
       {['Shop', 'Classement'].map((tab) => <button type="button" disabled key={tab}>{tab}</button>)}
     </nav>
     {section === 'games' && <nav className="activity-inner-tabs event-game-tabs" aria-label="Jeux du Festival">
-      {presentation.games.map((game, index) => <button type="button" className={index === gameTab ? 'active' : ''} aria-current={index === gameTab ? 'page' : undefined} disabled={index > 1} onClick={() => { if (index < 2) { setGameTab(index as 0 | 1); if (index === 1) void onLoad().catch(() => undefined) } }} key={game}>{game}</button>)}
+      {presentation.games.map((game, index) => <button type="button" className={index === gameTab ? 'active' : ''} aria-current={index === gameTab ? 'page' : undefined} disabled={index < 2 ? !value.participation.joined : !value.gameC.available} onClick={() => { setGameTab(index as 0 | 1 | 2); if (index === 1) void onLoad().catch(() => undefined) }} key={game}>{game}</button>)}
     </nav>}
   </>
   const startsAt = periodFormatter.format(new Date(value.edition.startsAt))
@@ -225,6 +274,20 @@ export default function EventScreen({ value, onLoad, onJoin, onAttempt, onAttemp
         })}</div>
         {!value.gameB.solvedToday && <div className="event-game-b-action">{gameBIntent || value.gameB.canAttempt ? <button type="button" className="small-primary-button" disabled={pending || (!gameBIntent && (!selectedCode || !value.gameB.remainingCodes.includes(selectedCode)))} onClick={() => void attemptGameB()}>{pending ? 'Tentative…' : gameBIntent ? `Réessayer ${gameBIntent.code}` : selectedCode ? `Tester ${selectedCode}` : 'Choisissez une combinaison'}</button> : <strong>{value.gameB.attemptsRemaining === 0 ? 'Vos trois essais sont utilisés pour aujourd’hui.' : 'Toutes les combinaisons ont été testées.'}</strong>}</div>}
         <p className={`event-game-b-feedback${value.gameB.solvedToday || gameBFeedback?.startsWith('Combinaison découverte') ? ' success' : ''}`} role="status" aria-live="polite">{gameBFeedback ?? (value.gameB.solvedToday ? 'Combinaison découverte ! Tous les participants inscrits gagnent 1 point et 1 monnaie du Festival.' : '')}</p>
+      </section>}
+      {section === 'games' && gameTab === 2 && value.gameC.available && <section className="panel event-game-c">
+        <header><span className="eyebrow">Message du Festival</span><h2>{presentation.games[2]}</h2></header>
+        {value.gameC.canSend ? <div className="event-game-c-send">
+          <label htmlFor="event-game-c-search">Rechercher un joueur</label>
+          <input id="event-game-c-search" type="search" value={recipientQuery} maxLength={100} onChange={(event) => { setRecipientQuery(event.target.value); setRecipientPage(1); setRecipientResults(null); setSelectedRecipient(null) }} placeholder="Saisissez au moins 2 caractères" />
+          {recipientResults && <div className="event-game-c-results" aria-label="Destinataires éligibles">{recipientResults.recipients.length ? recipientResults.recipients.map((recipient) => <button type="button" className={selectedRecipient?.playerId === recipient.playerId ? 'selected' : ''} key={recipient.playerId} onClick={() => setSelectedRecipient(recipient)}>{recipient.displayName}</button>) : <p>Aucun joueur éligible trouvé.</p>}{recipientResults.hasMore && <button type="button" onClick={() => setRecipientPage((page) => page + 1)}>Plus de résultats</button>}</div>}
+          {selectedRecipient && <p>Destinataire : <strong>{selectedRecipient.displayName}</strong></p>}
+          <label htmlFor="event-game-c-message">Votre message</label>
+          <textarea id="event-game-c-message" value={gameCMessage} maxLength={500} rows={3} onChange={(event) => setGameCMessage(event.target.value)} />
+          <button type="button" className="small-primary-button" disabled={pending || !selectedRecipient || !gameCMessage.trim()} onClick={() => void sendGameC()}>{pending ? 'Envoi…' : 'Envoyer'}</button>
+        </div> : <p className="event-game-c-sent">{value.gameC.sentToday ? 'Envoyé aujourd’hui' : 'Rejoignez le Festival pour envoyer un message.'}</p>}
+        <p className="event-game-c-feedback" role="status">{gameCFeedback ?? ''}</p>
+        <div className="event-game-c-inbox"><h3>Messages reçus aujourd’hui</h3>{value.gameC.receivedMessages.length ? value.gameC.receivedMessages.map((entry) => <article key={entry.id}><div><strong>{entry.sender.displayName}</strong><time dateTime={entry.createdAt}>{timeFormatter.format(new Date(entry.createdAt))}</time></div><p>{entry.message}</p></article>) : <p>Aucun message reçu aujourd’hui.</p>}</div>
       </section>}
       <p className="event-feedback" role={error ? 'alert' : 'status'}>{error ?? ''}</p>
     </ScrollableScreenPanel>

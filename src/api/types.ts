@@ -602,11 +602,21 @@ export type EventDto = Readonly<{
     remainingCodes: readonly string[]
     canAttempt: boolean
   }>
+  gameC: Readonly<{
+    available: boolean
+    theme: Readonly<{ key: string; label: string }>
+    sentToday: boolean
+    canSend: boolean
+    receivedMessages: readonly Readonly<{ id: string; sender: Readonly<{ id: string; displayName: string }>; message: string; createdAt: string; viewed: boolean }>[]
+    unviewedCount: number
+  }>
 }>
 
 export type EventJoinDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }> }>
 export type EventGameAAttemptDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; attempt: Readonly<{ succeeded: boolean }> }>
 export type EventGameBAttemptDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; attempt: Readonly<{ kind: 'ALREADY_TESTED' | 'INCORRECT' | 'CORRECT' }> }>
+export type EventGameCRecipientsDto = Readonly<{ page: number; hasMore: boolean; recipients: readonly Readonly<{ playerId: string; displayName: string }>[] }>
+export type EventGameCSendDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }> }>
 
 export type GachaPullResultItemDto = Readonly<{
   index: number

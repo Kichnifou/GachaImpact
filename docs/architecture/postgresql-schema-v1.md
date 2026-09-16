@@ -2184,10 +2184,13 @@ Colonnes :
 - `recipient_player_id uuid NOT NULL REFERENCES players(id) ON DELETE RESTRICT`
 - `content text NOT NULL`
 - `created_at timestamptz NOT NULL DEFAULT now()`
+- `viewed_at timestamptz NULL` : consultation effective de Panier, indépendante de la lecture d'une notification.
 
 Index :
 
 `(recipient_player_id, event_edition_id, business_date, created_at)`
+
+La migration additive `20260916180000_023_add_event_game_c` matérialise cette table, ainsi que le seul socle Social nécessaire à R609 : `friendships`, `player_blocks` et `privacy_settings` avec le réglage `PRIVATE_MESSAGES` initialement `PUBLIC`. Les index additionnels couvrent les FK expéditeur, édition/date, deuxième joueur d'une amitié et joueur bloqué. Les quatre tables ont RLS activée et aucun droit direct `anon`/`authenticated`. Elle ne matérialise pas demandes d'ami, MP généraux, présence ni UI Social. Les messages Event historiques sont conservés ; la projection Panier filtre la business date `Europe/Paris`.
 
 ---
 

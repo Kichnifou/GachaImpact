@@ -95,6 +95,8 @@ function AppBootstrap() {
   const joinEvent = useCallback((idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().joinEvent(idempotencyKey)), [eventRequests])
   const attemptEventGameA = useCallback((idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().attemptEventGameA(idempotencyKey)), [eventRequests])
   const attemptEventGameB = useCallback((code: string, idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().attemptEventGameB(code, idempotencyKey)), [eventRequests])
+  const searchEventGameCRecipients = useCallback((q: string, page: number) => getGameApiClient().searchEventGameCRecipients(q, page), [])
+  const sendEventGameC = useCallback((recipientPlayerId: string, message: string, idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().sendEventGameC(recipientPlayerId, message, idempotencyKey)), [eventRequests])
   useLayoutEffect(() => { eventRequests.reset() }, [eventRequests, sessionUserId])
   useEventTemporalRefresh(event, sessionUserId, loadEvent)
   const loadNavigationPreferences = useCallback(() => getGameApiClient().getNavigationPreferences(), [])
@@ -108,6 +110,7 @@ function AppBootstrap() {
   }, [])
   const loadExpedition = useCallback(async () => publishExpedition(await getGameApiClient().getExpedition()), [publishExpedition])
   const loadNotifications = useCallback(async () => { const next = await getGameApiClient().getNotifications(); setNotifications(next); return next }, [])
+  const consultEventGameCMessages = useCallback(() => eventRequests.mutate(() => getGameApiClient().consultEventGameCMessages()), [eventRequests])
   useEffect(() => {
     if (expedition?.value.operationalStatus !== 'RUNNING' || !expedition.value.readyAt) return
     const delay = Math.max(0, Date.parse(expedition.value.readyAt) - Date.now()) + 100
@@ -379,6 +382,9 @@ function AppBootstrap() {
       onJoinEvent={joinEvent}
       onAttemptEventGameA={attemptEventGameA}
       onAttemptEventGameB={attemptEventGameB}
+      onSearchEventGameCRecipients={searchEventGameCRecipients}
+      onSendEventGameC={sendEventGameC}
+      onConsultEventGameCMessages={consultEventGameCMessages}
       onRefreshContest={loadContest}
       onLoadContestHistory={loadContestHistory}
       onLoadContestHistoryDetail={loadContestHistoryDetail}

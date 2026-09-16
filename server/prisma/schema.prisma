@@ -17,6 +17,21 @@ enum PlayerStatus {
   @@map("player_status")
 }
 
+enum FriendshipState {
+  ACTIVE
+  ARCHIVED
+
+  @@map("friendship_state")
+}
+
+enum PrivacyLevel {
+  PUBLIC
+  FRIENDS
+  PRIVATE
+
+  @@map("privacy_level")
+}
+
 enum SourceChannel {
   UI
   INTERNAL_CHAT
@@ -264,6 +279,13 @@ model Player {
   eventParticipations   EventParticipant[]
   eventDailyStates      EventDailyPlayerState[]
   eventGameBDiscoveries  EventGameBDailyState[]
+  friendshipsAsA        Friendship[]                 @relation("FriendshipA")
+  friendshipsAsB        Friendship[]                 @relation("FriendshipB")
+  blocksCreated         PlayerBlock[]                @relation("Blocker")
+  blocksReceived        PlayerBlock[]                @relation("Blocked")
+  privacySettings       PrivacySetting[]
+  eventMessagesSent     EventSocialMessage[]         @relation("EventMessageSender")
+  eventMessagesReceived EventSocialMessage[]         @relation("EventMessageRecipient")
 
   @@index([status], map: "players_status_idx")
   @@index([elementKey], map: "players_element_key_idx")
@@ -580,6 +602,7 @@ model EventEdition {
   participants      EventParticipant[]
   dailyPlayerStates EventDailyPlayerState[]
   gameBDailyStates  EventGameBDailyState[]
+  socialMessages    EventSocialMessage[]
 
   @@unique([eventDefinitionId, year], map: "event_editions_definition_year_key")
   @@index([startsAt, endsAt], map: "event_editions_period_idx")
@@ -646,6 +669,67 @@ model EventGameBDailyState {
   @@id([eventEditionId, businessDate])
   @@index([discovererPlayerId], map: "event_game_b_daily_states_discoverer_idx")
   @@map("event_game_b_daily_states")
+}
+
+model Friendship {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerAId       String          @map("player_a_id") @db.Uuid
+  playerBId       String          @map("player_b_id") @db.Uuid
+  state           FriendshipState @default(ACTIVE)
+  level           Int             @default(0)
+  totalHearts     BigInt          @default(0) @map("total_hearts")
+  becameFriendsAt DateTime?       @map("became_friends_at") @db.Timestamptz(6)
+  archivedAt      DateTime?       @map("archived_at") @db.Timestamptz(6)
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  playerA         Player          @relation("FriendshipA", fields: [playerAId], references: [id], onDelete: Restrict)
+  playerB         Player          @relation("FriendshipB", fields: [playerBId], references: [id], onDelete: Restrict)
+
+  @@unique([playerAId, playerBId], map: "friendships_player_pair_key")
+  @@index([playerBId], map: "friendships_player_b_idx")
+  @@map("friendships")
+}
+
+model PlayerBlock {
+  blockerPlayerId String   @map("blocker_player_id") @db.Uuid
+  blockedPlayerId String   @map("blocked_player_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  blocker         Player   @relation("Blocker", fields: [blockerPlayerId], references: [id], onDelete: Cascade)
+  blocked         Player   @relation("Blocked", fields: [blockedPlayerId], references: [id], onDelete: Cascade)
+
+  @@id([blockerPlayerId, blockedPlayerId])
+  @@index([blockedPlayerId], map: "player_blocks_blocked_idx")
+  @@map("player_blocks")
+}
+
+model PrivacySetting {
+  playerId    String       @map("player_id") @db.Uuid
+  categoryKey String       @map("category_key") @db.Text
+  level       PrivacyLevel
+  updatedAt   DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player      Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@id([playerId, categoryKey])
+  @@map("privacy_settings")
+}
+
+model EventSocialMessage {
+  id                String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventEditionId    String       @map("event_edition_id") @db.Uuid
+  businessDate      DateTime     @map("business_date") @db.Date
+  senderPlayerId    String       @map("sender_player_id") @db.Uuid
+  recipientPlayerId String       @map("recipient_player_id") @db.Uuid
+  content           String       @db.Text
+  createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  viewedAt          DateTime?    @map("viewed_at") @db.Timestamptz(6)
+  edition           EventEdition @relation(fields: [eventEditionId], references: [id], onDelete: Restrict)
+  sender            Player       @relation("EventMessageSender", fields: [senderPlayerId], references: [id], onDelete: Restrict)
+  recipient         Player       @relation("EventMessageRecipient", fields: [recipientPlayerId], references: [id], onDelete: Restrict)
+
+  @@index([recipientPlayerId, eventEditionId, businessDate, createdAt], map: "event_social_messages_recipient_day_idx")
+  @@index([senderPlayerId], map: "event_social_messages_sender_idx")
+  @@index([eventEditionId, businessDate], map: "event_social_messages_edition_day_idx")
+  @@map("event_social_messages")
 }
 
 model PlayerRoleAssignment {

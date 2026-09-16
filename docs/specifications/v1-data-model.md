@@ -1512,7 +1512,15 @@ La réussite quotidienne met atomiquement à jour cet état, `EventParticipant.p
 
 `EventGameBDailyState` est matérialisé par la migration 022 avec la clé `eventEditionId + businessDate` : solution globale cinq bits, instant de résolution, découvreur facultatif, codes testés et date de mise à jour. Le compteur d'essais personnel déjà présent dans `EventDailyPlayerState` (021) est l'unique source du quota de trois ; aucune nouvelle table Player n'est introduite. Une nouvelle business date crée un état indépendant sans effacer les points d'édition ou la monnaie durable.
 
-Le GET expose au Player et à la communauté la résolution, le découvreur, les 32 codes testés/restants et son quota personnel, jamais `solutionCode`. `BusinessOperation` garde l'intention `event.game-b.attempt` avec édition, business date, code et résultat ; un replay ne consomme ni essai ni récompense. La première résolution incrémente atomiquement les points et la balance de tous les inscrits de un. Le join d'un Player après cette résolution crédite une fois le rattrapage du jour en plus du bonus normal d'inscription. Aucun palier n'est payé dans ce lot.
+Le GET expose au Player et à la communauté la résolution, le découvreur, les 32 codes testés/restants et son quota personnel. Il n'expose le code gagnant qu'après résolution (`resolvedCode` nul auparavant) ; le secret `solutionCode` interne n'est jamais projeté avant sa découverte. `BusinessOperation` garde l'intention `event.game-b.attempt` avec édition, business date, code et résultat ; un replay ne consomme ni essai ni récompense. La première résolution incrémente atomiquement les points et la balance de tous les inscrits de un. Le join d'un Player après cette résolution crédite une fois le rattrapage du jour en plus du bonus normal d'inscription. Aucun palier n'est payé dans ce lot.
+
+## 26.8 État physique candidat Event Lot 4 — Jeu C
+
+La migration 023 matérialise `EventSocialMessage` avec édition, business date, expéditeur, destinataire, texte, instant de création et `viewedAt` facultatif. Le destinataire voit uniquement ses messages du jour dans Panier ; la consultation marque les messages présents sans les supprimer. Une nouvelle date masque les anciens messages dans l'UI, sans détruire l'historique ni anticiper une future livraison chat/Twitch.
+
+`EventDailyPlayerState.gameCSent` reste l'unique quota d'envoi réussi par jour. L'opération `event.game-c.send` lie l'édition, la date, l'expéditeur, le destinataire et le texte normalisé à sa clé d'idempotence. L'envoi atomique crée un message, consomme le quota et crédite uniquement l'expéditeur de +1 point et +1 monnaie ; le destinataire n'est pas inscrit ni crédité automatiquement.
+
+Le contrôle de contact réutilise le sous-ensemble physique Social validé : amitié active canonique, blocages dans les deux sens et autorisation de recevoir des MP `PUBLIC | FRIENDS | PRIVATE` (valeur initiale `PUBLIC`). Aucun état de blocage ou de confidentialité propre à Event n'est introduit. Les autres catégories de confidentialité et les opérations UI Social restent futures.
 
 ---
 

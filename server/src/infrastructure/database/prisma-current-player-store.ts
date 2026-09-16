@@ -103,6 +103,7 @@ export class PrismaCurrentPlayerStore implements CurrentPlayerStore {
             dailyRewardState: { create: {} },
             progression: { create: {} },
             gachaState: { create: {} },
+            privacySettings: { create: [{ categoryKey: 'PRIVATE_MESSAGES', level: 'PUBLIC' }] },
             resourceBalances: {
               create: resources.map(({ key }) => ({
                 resourceKey: key,

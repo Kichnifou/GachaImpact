@@ -3,7 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api/game-api'
-import type { EventDto, EventGameAAttemptDto, EventGameBAttemptDto, EventJoinDto } from '../api/types'
+import type { EventDto, EventGameAAttemptDto, EventGameBAttemptDto, EventGameCRecipientsDto, EventGameCSendDto, EventJoinDto } from '../api/types'
 import EventScreen from './EventScreen'
 
 const roots: Root[] = []
@@ -17,18 +17,19 @@ const beforeJoin: EventDto = {
   participation: { joined: false, joinedAt: null, points: 0 }, currency: { amount: '0' }, canJoin: true,
   gameA: { available: false, theme: { key: 'recolte', label: 'Récolte' }, completedToday: false, attemptsToday: 0, windows: [], activeWindowIndex: null, canAttempt: false, cooldownRemainingMs: 0 },
   gameB: { available: false, theme: { key: 'harvest', label: 'Festival des Récoltes' }, solvedToday: false, resolvedCode: null, discoveredBy: null, attemptsUsed: 0, attemptsRemaining: 0, testedCodes: [], remainingCodes: Array.from({ length: 32 }, (_, index) => index.toString(2).padStart(5, '0')), canAttempt: false },
+  gameC: { available: false, theme: { key: 'harvest', label: 'Panier' }, sentToday: false, canSend: false, receivedMessages: [], unviewedCount: 0 },
 }
 const joinedGameA = { available: true, theme: { key: 'recolte', label: 'Récolte' }, completedToday: false, attemptsToday: 0, windows: [
   { startAt: '2026-09-15T07:00:00.000Z', endAt: '2026-09-15T08:00:00.000Z', state: 'PAST' as const },
   { startAt: '2026-09-15T12:00:00.000Z', endAt: '2026-09-15T13:00:00.000Z', state: 'ACTIVE' as const },
   { startAt: '2026-09-15T18:00:00.000Z', endAt: '2026-09-15T19:00:00.000Z', state: 'FUTURE' as const },
 ], activeWindowIndex: 1, canAttempt: true, cooldownRemainingMs: 0 }
-const afterJoin: EventJoinDto = { ...beforeJoin, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, gameA: joinedGameA, gameB: { ...beforeJoin.gameB, available: true, attemptsRemaining: 3, canAttempt: true }, operation: { id: 'operation-1', alreadyProcessed: false } }
+const afterJoin: EventJoinDto = { ...beforeJoin, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, gameA: joinedGameA, gameB: { ...beforeJoin.gameB, available: true, attemptsRemaining: 3, canAttempt: true }, gameC: { ...beforeJoin.gameC, available: true, canSend: true }, operation: { id: 'operation-1', alreadyProcessed: false } }
 
-function mount(options: { value?: EventDto; onLoad?: () => Promise<EventDto>; onJoin?: (key: string) => Promise<EventJoinDto>; onAttempt?: (key: string) => Promise<EventGameAAttemptDto>; onAttemptB?: (code: string, key: string) => Promise<EventGameBAttemptDto> } = {}) {
+function mount(options: { value?: EventDto; onLoad?: () => Promise<EventDto>; onJoin?: (key: string) => Promise<EventJoinDto>; onAttempt?: (key: string) => Promise<EventGameAAttemptDto>; onAttemptB?: (code: string, key: string) => Promise<EventGameBAttemptDto>; onSearchRecipients?: (q: string, page: number) => Promise<EventGameCRecipientsDto>; onSendGameC?: (recipientId: string, message: string, key: string) => Promise<EventGameCSendDto>; onConsultMessages?: () => Promise<EventDto> } = {}) {
   const container = document.createElement('div'); document.body.append(container)
   const root = createRoot(container); roots.push(root)
-  const props = { value: options.value ?? beforeJoin, onLoad: options.onLoad ?? vi.fn(async () => beforeJoin), onJoin: options.onJoin ?? vi.fn(async () => afterJoin), onAttempt: options.onAttempt ?? vi.fn(async () => ({ ...afterJoin, attempt: { succeeded: false } })), onAttemptB: options.onAttemptB ?? vi.fn(async () => ({ ...afterJoin, attempt: { kind: 'INCORRECT' as const } })) }
+  const props = { value: options.value ?? beforeJoin, onLoad: options.onLoad ?? vi.fn(async () => beforeJoin), onJoin: options.onJoin ?? vi.fn(async () => afterJoin), onAttempt: options.onAttempt ?? vi.fn(async () => ({ ...afterJoin, attempt: { succeeded: false } })), onAttemptB: options.onAttemptB ?? vi.fn(async () => ({ ...afterJoin, attempt: { kind: 'INCORRECT' as const } })), onSearchRecipients: options.onSearchRecipients, onSendGameC: options.onSendGameC, onConsultMessages: options.onConsultMessages }
   act(() => root.render(<EventScreen {...props} />))
   return { container, root, props }
 }
@@ -96,7 +97,7 @@ describe('EventScreen presentation', () => {
     selectGames(container)
     expect(container.querySelector('.event-stat-grid')).toBeNull()
     expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button'), ({ textContent }) => textContent)).toEqual(['Récolte', 'Grenier', 'Panier'])
-    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button'), ({ disabled }) => disabled)).toEqual([false, false, true])
+    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button'), ({ disabled }) => disabled)).toEqual([false, false, false])
     expect(container.querySelectorAll('.event-game-a-window')).toHaveLength(3)
     expect(container.querySelector('[data-window-state="ACTIVE"]')?.textContent).toContain('Active')
     expect(container.querySelector<HTMLButtonElement>('.event-game-a-action button')?.textContent).toBe('Tenter ma chance')
@@ -265,6 +266,28 @@ describe('EventScreen presentation', () => {
     const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
     expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, true, true])
     expect(tabs.every((tab) => !tab.hasAttribute('title') && tab.querySelector('small') === null)).toBe(true)
+  })
+
+  it('lets an unregistered recipient consult only Panier and marks the inbox on opening it', async () => {
+    const incoming: EventDto = { ...beforeJoin, gameC: { ...beforeJoin.gameC, available: true, receivedMessages: [{ id: 'message-1', sender: { id: 'sender-1', displayName: 'Ami' }, message: 'Belle récolte !', createdAt: '2026-09-15T12:00:00.000Z', viewed: false }], unviewedCount: 1 } }
+    const onConsultMessages = vi.fn(async () => ({ ...incoming, gameC: { ...incoming.gameC, receivedMessages: incoming.gameC.receivedMessages.map((entry) => ({ ...entry, viewed: true })), unviewedCount: 0 } }))
+    const { container } = mount({ value: incoming, onLoad: vi.fn(async () => incoming), onConsultMessages })
+    const games = container.querySelectorAll<HTMLButtonElement>('.event-tabs button')[1]!
+    expect(games.disabled).toBe(false)
+    await act(async () => { games.click(); await Promise.resolve() })
+    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button'), ({ disabled }) => disabled)).toEqual([true, true, false])
+    expect(container.querySelector('.event-game-c-inbox')?.textContent).toContain('Belle récolte !')
+    expect(container.querySelector('.event-game-c-send')).toBeNull()
+    expect(onConsultMessages).toHaveBeenCalledOnce()
+  })
+
+  it('opens the Game C sender surface only for a participant and keeps its personal inbox empty without fixtures', () => {
+    const { container } = mount({ value: afterJoin })
+    selectGames(container)
+    act(() => container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[2]!.click())
+    expect(container.querySelector('.event-game-c-send input[type="search"]')).not.toBeNull()
+    expect(container.querySelector('.event-game-c-send textarea')).not.toBeNull()
+    expect(container.querySelector('.event-game-c-inbox')?.textContent).toContain('Aucun message reçu aujourd’hui')
   })
 
   it.each([[1920, 1080], [1774, 864], [1366, 768], [390, 844]])('keeps one bounded scroll owner at %d×%d', (width, height) => {

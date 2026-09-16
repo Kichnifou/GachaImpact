@@ -7,6 +7,7 @@ import type { RandomSource } from '../../domain/wheel/wheel.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
 import { BusinessError } from '../errors.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
+import { eligibleContactRecipient } from '../social/contact-permission.js';
 
 type Database = PrismaClient | Prisma.TransactionClient;
 
@@ -34,6 +35,11 @@ const gameAThemes = {
 const gameBThemes = {
   'new-year': 'Coffre', hearts: 'Cadeau', spring: 'Racine', bells: 'Panier', flowers: 'Bouquet', summer: 'Trésor',
   stars: 'Constellation', adventurers: 'Ruine', harvest: 'Grenier', shadows: 'Crypte', mists: 'Relique', christmas: 'Hotte',
+} as const;
+
+const gameCThemes = {
+  'new-year': 'Vœu', hearts: 'Mot doux', spring: 'Graine', bells: 'Chocolat', flowers: 'Mot printanier', summer: 'Lettre',
+  stars: 'Vœu', adventurers: 'Carnet', harvest: 'Panier', shadows: 'Sort', mists: 'Murmure', christmas: 'Carte',
 } as const;
 
 type Definition = Readonly<{
@@ -288,6 +294,76 @@ export class EventService {
     throw new Error('Event Game B attempt could not be completed.');
   }
 
+  public async searchGameCRecipients(identity: AuthenticatedIdentity, query: string, page: number) {
+    const player = await this.getPlayer.execute(identity);
+    if (player.status !== 'ACTIVE') throw new BusinessError('EVENT_GAME_C_CONTACT_UNAVAILABLE', 'Ce message ne peut pas être envoyé.');
+    const q = query.trim();
+    if (q.length < 2 || q.length > 100 || !Number.isInteger(page) || page < 1 || page > 50) throw new BusinessError('EVENT_GAME_C_INVALID_SEARCH', 'Saisissez au moins deux caractères pour rechercher un joueur.');
+    const context = await this.resolveCurrentEdition(this.database, this.clock.now());
+    const participant = await this.database.eventParticipant.findUnique({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: player.id } }, select: { playerId: true } });
+    if (!participant) throw new BusinessError('EVENT_NOT_JOINED', 'Rejoignez le Festival avant de jouer.');
+    const rows = await this.database.player.findMany({
+      where: { ...eligibleContactRecipient(player.id), displayName: { contains: q, mode: 'insensitive' } },
+      select: { id: true, displayName: true },
+      orderBy: [{ displayName: 'asc' }, { id: 'asc' }], skip: (page - 1) * 20, take: 21,
+    });
+    return { page, hasMore: rows.length > 20, recipients: rows.slice(0, 20).map(({ id, displayName }) => ({ playerId: id, displayName })) };
+  }
+
+  public async sendGameC(identity: AuthenticatedIdentity, recipientPlayerId: string, message: string, idempotencyKey: string) {
+    const content = message.trim();
+    if (!content || content.length > 500) throw new BusinessError('EVENT_GAME_C_INVALID_MESSAGE', 'Le message doit contenir entre 1 et 500 caractères.');
+    const player = await this.getPlayer.execute(identity);
+    if (player.id === recipientPlayerId) throw new BusinessError('EVENT_GAME_C_CONTACT_UNAVAILABLE', 'Ce message ne peut pas être envoyé.');
+    const now = this.clock.now();
+    const context = await this.resolveCurrentEdition(this.database, now);
+    await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
+    const request = { editionId: context.edition.id, businessDate: context.period.businessDate, recipientPlayerId, content };
+    for (let retry = 0; retry < 4; retry += 1) {
+      try {
+        return await this.database.$transaction(async (tx) => {
+          await tx.$queryRaw`SELECT id FROM players WHERE id IN (${player.id}::uuid, ${recipientPlayerId}::uuid) ORDER BY id FOR UPDATE`;
+          const previous = await tx.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey } });
+          if (previous) {
+            const previousRequest = readRecord(readRecord(previous.resultSummary)?.request);
+            if (previous.playerId !== player.id || previous.operationType !== 'event.game-c.send' || previous.status !== OperationStatus.COMPLETED || previousRequest?.editionId !== request.editionId || previousRequest.businessDate !== request.businessDate || previousRequest.recipientPlayerId !== request.recipientPlayerId || previousRequest.content !== request.content) throw new BusinessError('EVENT_GAME_C_IDEMPOTENCY_CONFLICT', 'Cette clé d’idempotence appartient à un autre envoi.');
+            return { ...await this.snapshot(tx, player.id, context, now, false), operation: { id: previous.id, alreadyProcessed: true } };
+          }
+          const sender = await tx.player.findUnique({ where: { id: player.id }, select: { status: true } });
+          const recipient = await tx.player.findFirst({ where: { ...eligibleContactRecipient(player.id), id: recipientPlayerId }, select: { id: true } });
+          if (sender?.status !== 'ACTIVE' || !recipient) throw new BusinessError('EVENT_GAME_C_CONTACT_UNAVAILABLE', 'Ce message ne peut pas être envoyé.');
+          const participant = await tx.eventParticipant.findUnique({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: player.id } }, select: { playerId: true } });
+          if (!participant) throw new BusinessError('EVENT_NOT_JOINED', 'Rejoignez le Festival avant de jouer.');
+          const daily = await this.ensureDailyState(tx, context.edition.id, player.id, context.period.businessDate, now);
+          if (daily.gameCSent) throw new BusinessError('EVENT_GAME_C_ALREADY_SENT', 'Votre message du Festival a déjà été envoyé aujourd’hui.');
+          const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'event.game-c.send', sourceChannel: SourceChannel.UI, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request } } });
+          await tx.eventSocialMessage.create({ data: { eventEditionId: context.edition.id, businessDate: businessDateToDatabaseDate(context.period.businessDate), senderPlayerId: player.id, recipientPlayerId, content, createdAt: now } });
+          await tx.eventDailyPlayerState.update({ where: { eventEditionId_playerId_businessDate: { eventEditionId: context.edition.id, playerId: player.id, businessDate: businessDateToDatabaseDate(context.period.businessDate) } }, data: { gameCSent: true, updatedAt: now } });
+          await tx.eventParticipant.update({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: player.id } }, data: { points: { increment: 1 } } });
+          await tx.playerEventCurrencyBalance.upsert({ where: { playerId_eventDefinitionId: { playerId: player.id, eventDefinitionId: context.definition.id } }, create: { playerId: player.id, eventDefinitionId: context.definition.id, amount: 1n, updatedAt: now }, update: { amount: { increment: 1n }, updatedAt: now } });
+          await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request } } });
+          return { ...await this.snapshot(tx, player.id, context, now, false), operation: { id: operation.id, alreadyProcessed: false } };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      } catch (error) {
+        if (retry < 3 && isPrismaConcurrencyCollision(error)) continue;
+        throw error;
+      }
+    }
+    throw new Error('Event Game C send could not be completed.');
+  }
+
+  public async consultGameCMessages(identity: AuthenticatedIdentity) {
+    const player = await this.getPlayer.execute(identity);
+    const now = this.clock.now();
+    const context = await this.resolveCurrentEdition(this.database, now);
+    await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
+    return this.database.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
+      await tx.eventSocialMessage.updateMany({ where: { recipientPlayerId: player.id, eventEditionId: context.edition.id, businessDate: businessDateToDatabaseDate(context.period.businessDate), viewedAt: null }, data: { viewedAt: now } });
+      return this.snapshot(tx, player.id, context, now, false);
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  }
+
   public async resolveCurrentEdition(database: Database, now: Date) {
     const period = resolveCurrentEventPeriod(now);
     const definition = await database.eventDefinition.findFirst({
@@ -328,7 +404,7 @@ export class EventService {
     now: Date,
     materializeDaily: boolean,
   ) {
-    const [participant, balance, global] = await Promise.all([
+    const [participant, balance, global, receivedMessages, player] = await Promise.all([
       database.eventParticipant.findUnique({
         where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId } },
       }),
@@ -336,6 +412,8 @@ export class EventService {
         where: { playerId_eventDefinitionId: { playerId, eventDefinitionId: context.definition.id } },
       }),
       database.eventGameBDailyState.findUnique({ where: { eventEditionId_businessDate: { eventEditionId: context.edition.id, businessDate: businessDateToDatabaseDate(context.period.businessDate) } } }),
+      database.eventSocialMessage.findMany({ where: { recipientPlayerId: playerId, eventEditionId: context.edition.id, businessDate: businessDateToDatabaseDate(context.period.businessDate) }, include: { sender: { select: { id: true, displayName: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] }),
+      database.player.findUnique({ where: { id: playerId }, select: { status: true } }),
     ]);
     const daily = participant && materializeDaily ? await this.ensureDailyState(database, context.edition.id, playerId, context.period.businessDate, now) : participant ? await database.eventDailyPlayerState.findUnique({ where: { eventEditionId_playerId_businessDate: { eventEditionId: context.edition.id, playerId, businessDate: businessDateToDatabaseDate(context.period.businessDate) } } }) : null;
     const gameA = this.gameAProjection(context.editionSnapshot.externalKey, context.period.businessDate, daily, now);
@@ -344,6 +422,8 @@ export class EventService {
     const discoverer = global.discovererPlayerId ? await database.player.findUnique({ where: { id: global.discovererPlayerId }, select: { id: true, displayName: true } }) : null;
     const gameBTheme = gameBThemes[context.editionSnapshot.externalKey as keyof typeof gameBThemes];
     if (!gameBTheme) throw new BusinessError('EVENT_CONFIGURATION_MISSING', 'La configuration du Jeu B est absente pour ce Festival.');
+    const gameCTheme = gameCThemes[context.editionSnapshot.externalKey as keyof typeof gameCThemes];
+    if (!gameCTheme) throw new BusinessError('EVENT_CONFIGURATION_MISSING', 'La configuration du Jeu C est absente pour ce Festival.');
     const attemptsUsed = participant ? daily?.gameBAttemptsUsed ?? 0 : 0;
     const remainingCodes = EVENT_GAME_B_CODES.filter((code) => !testedCodes.includes(code));
     const refreshAfterMs = computeEventRefreshAfterMs({
@@ -384,6 +464,14 @@ export class EventService {
         attemptsUsed, attemptsRemaining: participant ? Math.max(0, EVENT_GAME_B_MAX_ATTEMPTS - attemptsUsed) : 0,
         testedCodes, remainingCodes,
         canAttempt: Boolean(participant) && !global.solvedAt && attemptsUsed < EVENT_GAME_B_MAX_ATTEMPTS && remainingCodes.length > 0,
+      },
+      gameC: {
+        available: Boolean(participant) || receivedMessages.length > 0,
+        theme: { key: context.editionSnapshot.externalKey, label: gameCTheme },
+        sentToday: daily?.gameCSent ?? false,
+        canSend: Boolean(participant) && player?.status === 'ACTIVE' && !(daily?.gameCSent ?? false),
+        receivedMessages: receivedMessages.map(({ id, sender, content, createdAt, viewedAt }) => ({ id, sender, message: content, createdAt: createdAt.toISOString(), viewed: viewedAt !== null })),
+        unviewedCount: receivedMessages.filter(({ viewedAt }) => viewedAt === null).length,
       },
     };
   }
