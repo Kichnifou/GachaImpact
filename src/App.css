@@ -6890,7 +6890,7 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .boss-compact-kicker span::after { content: " ·"; }
 .boss-compact-title { display: grid; gap: 4px; }
 .boss-compact-kicker span { color: #8fa9cf; font-size: 9px; font-weight: 800; letter-spacing: .08em; }
-.boss-compact-kicker button { padding: 0; color: #b9d7ff; border: 0; background: none; }
+.boss-compact-kicker button { padding: 0; cursor: pointer; color: #b9d7ff; border: 0; background: none; }
 .boss-compact-title h2 { margin: 0; padding-right: 112px; font-size: 21px; }
 .boss-compact-title > div { color: #9db1cd; font-size: 10px; }
 .boss-compact-title .boss-state-badge { position: absolute; top: 13px; right: 15px; }
@@ -7401,7 +7401,7 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .activity-shell > .screen-header h1 { font-size: 21px; }
 .activity-shell > .screen-header p { margin-top: 4px; }
 .activity-inner-tabs { display: flex; gap: 6px; padding: 4px 6px; overflow-x: auto; border-bottom: 1px solid rgba(121, 153, 198, .16); }
-.activity-inner-tabs button:disabled { cursor: default; opacity: .72; }
+.activity-inner-tabs button:disabled { cursor: not-allowed; opacity: .72; }
 .event-frame > .scrollable-screen-panel-content { height: 100%; }
 .event-milestone-progress { min-width: 0; display: grid; gap: 6px; padding: 10px 14px; border: 1px solid rgba(244, 200, 103, .22); border-radius: 12px; background: rgba(18, 34, 59, .92); }
 .event-milestone-summary { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; color: #e9f3ff; font-size: 12px; }
@@ -7513,9 +7513,9 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .event-game-b-code { min-width: 0; min-height: 42px; cursor: pointer; color: #eef7ff; font: inherit; font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; border: 1px solid rgba(108, 195, 255, .4); border-radius: 9px; background: rgba(55, 121, 183, .15); }
 .event-game-b-code:hover:not(:disabled), .event-game-b-code:focus-visible { border-color: #8fcfff; background: rgba(55, 121, 183, .3); outline: 2px solid rgba(143, 207, 255, .35); outline-offset: 1px; }
 .event-game-b-code.selected { border-color: #f2cf7d; background: rgba(236, 181, 73, .2); }
-.event-game-b-code.tested { cursor: default; color: #8a98ac; text-decoration: line-through; border-color: rgba(151, 167, 192, .2); background: rgba(68, 80, 101, .3); }
-.event-game-b-code.resolved, .event-game-b-code.resolved:disabled { cursor: default; color: #a7f7d5; opacity: 1; text-decoration: none; border-color: #45d99b; background: rgba(41, 158, 111, .24); }
-.event-game-b-code:disabled:not(.tested) { cursor: default; opacity: .65; }
+.event-game-b-code.tested { color: #8a98ac; text-decoration: line-through; border-color: rgba(151, 167, 192, .2); background: rgba(68, 80, 101, .3); }
+.event-game-b-code.resolved, .event-game-b-code.resolved:disabled { color: #a7f7d5; opacity: 1; text-decoration: none; border-color: #45d99b; background: rgba(41, 158, 111, .24); }
+.event-game-b-code:disabled { cursor: not-allowed; opacity: .65; }
 .event-game-b-code.resolved:disabled { opacity: 1; }
 .event-game-b-action { min-height: 38px; display: flex; align-items: center; color: #cbd5e5; font-size: 12px; }
 .event-game-b-feedback { min-height: 18px; font-size: 12px; font-weight: 750; }
@@ -8038,6 +8038,7 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .boss-command-panel > div { display: grid; gap: 4px; }
 .boss-command-panel span, .boss-command-panel small { color: #9eb6ce; }
 .boss-preview button { justify-self: start; padding: 0; color: #78d8ff; border: 0; background: none; cursor: pointer; }
+.boss-preview button:disabled { cursor: not-allowed; }
 .boss-attack-button { min-width: 130px; min-height: 42px; }
 .boss-attack-button:disabled { color: #75899b; border-color: rgba(122, 143, 160, .18); background: #26313d; box-shadow: none; opacity: .7; cursor: not-allowed; }
 .boss-feedback { grid-column: 1 / -1; min-height: 18px; margin: 0; color: #91dfbf; }
