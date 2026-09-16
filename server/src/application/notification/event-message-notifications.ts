@@ -9,20 +9,21 @@ export async function reconcileEventMessageAggregate(database: Database, recipie
   const deduplicationKey = editionId ? `event-messages:${recipientPlayerId}:${editionId}:${businessDate}` : null;
   await database.notification.updateMany({
     where: { playerId: recipientPlayerId, typeKey: TYPE_KEY, state: { in: [NotificationState.UNREAD, NotificationState.READ] }, ...(deduplicationKey ? { deduplicationKey: { not: deduplicationKey } } : {}) },
-    data: { state: NotificationState.ARCHIVED, resolvedAt: now, archivedAt: now },
+    data: { state: NotificationState.RESOLVED, resolvedAt: now },
   });
   if (!editionId || !deduplicationKey) return;
   const pending = await database.eventSocialMessage.count({ where: { recipientPlayerId, eventEditionId: editionId, businessDate: businessDateToDatabaseDate(businessDate), viewedAt: null } });
   const current = await database.notification.findUnique({ where: { deduplicationKey }, select: { id: true, state: true } });
   if (pending === 0) {
-    if (current && current.state !== NotificationState.ARCHIVED) await database.notification.update({ where: { id: current.id }, data: { state: NotificationState.ARCHIVED, resolvedAt: now, archivedAt: now } });
+    if (current && (current.state === NotificationState.UNREAD || current.state === NotificationState.READ)) await database.notification.update({ where: { id: current.id }, data: { state: NotificationState.RESOLVED, resolvedAt: now } });
     return;
   }
   const payload = { count: pending, businessDate };
   if (!current) {
     await database.notification.create({ data: { playerId: recipientPlayerId, domainKey: 'event', typeKey: TYPE_KEY, deduplicationKey, payload, actionKey: 'OPEN_EVENT_MESSAGES', actionTargetId: editionId, state: NotificationState.UNREAD, createdAt: now } });
   } else {
-    await database.notification.update({ where: { id: current.id }, data: { payload, state: newMessage || current.state === NotificationState.ARCHIVED ? NotificationState.UNREAD : current.state, ...(newMessage || current.state === NotificationState.ARCHIVED ? { readAt: null, archivedAt: null, resolvedAt: null, createdAt: now } : {}) } });
+    const reactivate = newMessage || current.state === NotificationState.RESOLVED || current.state === NotificationState.ARCHIVED;
+    await database.notification.update({ where: { id: current.id }, data: { payload, state: reactivate ? NotificationState.UNREAD : current.state, ...(reactivate ? { readAt: null, archivedAt: null, resolvedAt: null, createdAt: now } : {}) } });
   }
 }
 
