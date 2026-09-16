@@ -219,11 +219,12 @@ export default function EventScreen({ value, onLoad, onJoin, onAttempt, onAttemp
         <p className="event-game-b-attempts">{value.gameB.attemptsRemaining} essai{value.gameB.attemptsRemaining > 1 ? 's' : ''} personnel{value.gameB.attemptsRemaining > 1 ? 's' : ''} restant{value.gameB.attemptsRemaining > 1 ? 's' : ''} · {value.gameB.remainingCodes.length} combinaison{value.gameB.remainingCodes.length > 1 ? 's' : ''} disponible{value.gameB.remainingCodes.length > 1 ? 's' : ''}</p>
         <div className="event-game-b-legend"><span>Disponible</span><span>Déjà testée</span></div>
         <div className="event-game-b-codes" aria-label="Combinaisons du Grenier">{Array.from({ length: 32 }, (_, index) => index.toString(2).padStart(5, '0')).map((code) => {
-          const tested = value.gameB.testedCodes.includes(code)
-          return <button type="button" className={`event-game-b-code${tested ? ' tested' : ''}${selectedCode === code ? ' selected' : ''}`} disabled={tested || !value.gameB.canAttempt || pending || Boolean(gameBIntent)} aria-pressed={selectedCode === code && !tested} onClick={() => setSelectedCode(code)} key={code}>{code}</button>
+          const resolved = value.gameB.resolvedCode === code
+          const tested = !resolved && value.gameB.testedCodes.includes(code)
+          return <button type="button" className={`event-game-b-code${resolved ? ' resolved' : tested ? ' tested' : ''}${selectedCode === code ? ' selected' : ''}`} disabled={resolved || tested || !value.gameB.canAttempt || pending || Boolean(gameBIntent)} aria-pressed={selectedCode === code && !tested && !resolved} onClick={() => setSelectedCode(code)} key={code}>{resolved ? `✓ ${code}` : code}</button>
         })}</div>
         {!value.gameB.solvedToday && <div className="event-game-b-action">{gameBIntent || value.gameB.canAttempt ? <button type="button" className="small-primary-button" disabled={pending || (!gameBIntent && (!selectedCode || !value.gameB.remainingCodes.includes(selectedCode)))} onClick={() => void attemptGameB()}>{pending ? 'Tentative…' : gameBIntent ? `Réessayer ${gameBIntent.code}` : selectedCode ? `Tester ${selectedCode}` : 'Choisissez une combinaison'}</button> : <strong>{value.gameB.attemptsRemaining === 0 ? 'Vos trois essais sont utilisés pour aujourd’hui.' : 'Toutes les combinaisons ont été testées.'}</strong>}</div>}
-        <p className="event-game-b-feedback" role="status" aria-live="polite">{gameBFeedback ?? ''}</p>
+        <p className={`event-game-b-feedback${value.gameB.solvedToday || gameBFeedback?.startsWith('Combinaison découverte') ? ' success' : ''}`} role="status" aria-live="polite">{gameBFeedback ?? (value.gameB.solvedToday ? 'Combinaison découverte ! Tous les participants inscrits gagnent 1 point et 1 monnaie du Festival.' : '')}</p>
       </section>}
       <p className="event-feedback" role={error ? 'alert' : 'status'}>{error ?? ''}</p>
     </ScrollableScreenPanel>

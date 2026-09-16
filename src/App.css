@@ -7454,9 +7454,12 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .event-game-b-code:hover:not(:disabled), .event-game-b-code:focus-visible { border-color: #8fcfff; background: rgba(55, 121, 183, .3); outline: 2px solid rgba(143, 207, 255, .35); outline-offset: 1px; }
 .event-game-b-code.selected { border-color: #f2cf7d; background: rgba(236, 181, 73, .2); }
 .event-game-b-code.tested { cursor: default; color: #8a98ac; text-decoration: line-through; border-color: rgba(151, 167, 192, .2); background: rgba(68, 80, 101, .3); }
+.event-game-b-code.resolved, .event-game-b-code.resolved:disabled { cursor: default; color: #a7f7d5; opacity: 1; text-decoration: none; border-color: #45d99b; background: rgba(41, 158, 111, .24); }
 .event-game-b-code:disabled:not(.tested) { cursor: default; opacity: .65; }
+.event-game-b-code.resolved:disabled { opacity: 1; }
 .event-game-b-action { min-height: 38px; display: flex; align-items: center; color: #cbd5e5; font-size: 12px; }
 .event-game-b-feedback { min-height: 18px; font-size: 12px; font-weight: 750; }
+.event-game-b-feedback.success { color: #8df1c8; }
 .event-feedback { min-height: 18px; margin: -3px 3px 0; color: #f0a0a9; font-size: 11px; }
 
 @media (max-width: 760px) {

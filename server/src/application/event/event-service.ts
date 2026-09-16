@@ -380,7 +380,7 @@ export class EventService {
       gameA,
       gameB: {
         available: Boolean(participant), theme: { key: context.editionSnapshot.externalKey, label: gameBTheme },
-        solvedToday: global.solvedAt !== null, discoveredBy: discoverer,
+        solvedToday: global.solvedAt !== null, resolvedCode: global.solvedAt ? global.solutionCode : null, discoveredBy: discoverer,
         attemptsUsed, attemptsRemaining: participant ? Math.max(0, EVENT_GAME_B_MAX_ATTEMPTS - attemptsUsed) : 0,
         testedCodes, remainingCodes,
         canAttempt: Boolean(participant) && !global.solvedAt && attemptsUsed < EVENT_GAME_B_MAX_ATTEMPTS && remainingCodes.length > 0,

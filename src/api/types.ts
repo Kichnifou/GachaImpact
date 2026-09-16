@@ -594,6 +594,7 @@ export type EventDto = Readonly<{
     available: boolean
     theme: Readonly<{ key: string; label: string }>
     solvedToday: boolean
+    resolvedCode: string | null
     discoveredBy: Readonly<{ id: string; displayName: string }> | null
     attemptsUsed: number
     attemptsRemaining: number

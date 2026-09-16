@@ -75,6 +75,7 @@ describe('Event Game B on isolated future editions', () => {
     const [first, second] = await Promise.all([view(player), view(player)]);
     expect(first.edition.id).toBe(second.edition.id);
     expect(first.gameB.remainingCodes).toHaveLength(32);
+    expect(first.gameB.resolvedCode).toBeNull();
     expect(JSON.stringify(first)).not.toContain('solutionCode');
     expect(await database.eventGameBDailyState.count({ where: { eventEditionId: first.edition.id } })).toBe(1);
     const global = await database.eventGameBDailyState.findFirstOrThrow({ where: { eventEditionId: first.edition.id } });
@@ -100,6 +101,7 @@ describe('Event Game B on isolated future editions', () => {
     const current = await view(first);
     expect(current.gameB).toMatchObject({ attemptsUsed: 3, attemptsRemaining: 0, canAttempt: false, testedCodes: ['00000', '00001', '00010'] });
     expect(current.gameB.remainingCodes).toHaveLength(29);
+    expect(current.gameB.resolvedCode).toBeNull();
     expect(JSON.stringify(current)).not.toContain('solutionCode');
   }, 30_000);
 
@@ -120,7 +122,7 @@ describe('Event Game B on isolated future editions', () => {
     const first = await fixture(); const second = await fixture(); const late = await fixture();
     await join(first); await join(second);
     const resolved = await service.attemptGameB(first.identity, '11111', randomUUID());
-    expect(resolved).toMatchObject({ attempt: { kind: 'CORRECT' }, gameB: { solvedToday: true, discoveredBy: { id: first.playerId }, canAttempt: false } });
+    expect(resolved).toMatchObject({ attempt: { kind: 'CORRECT' }, gameB: { solvedToday: true, resolvedCode: '11111', discoveredBy: { id: first.playerId }, canAttempt: false } });
     expect((await view(first)).participation.points).toBe(1);
     expect((await view(second)).participation.points).toBe(1);
     expect(await balance(first.playerId)).toBe(2n);

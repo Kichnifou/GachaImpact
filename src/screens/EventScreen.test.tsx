@@ -16,7 +16,7 @@ const beforeJoin: EventDto = {
   edition: { id: 'edition-2026', year: 2026, startsAt: '2026-08-31T22:00:00.000Z', endsAt: '2026-09-30T22:00:00.000Z' },
   participation: { joined: false, joinedAt: null, points: 0 }, currency: { amount: '0' }, canJoin: true,
   gameA: { available: false, theme: { key: 'recolte', label: 'Récolte' }, completedToday: false, attemptsToday: 0, windows: [], activeWindowIndex: null, canAttempt: false, cooldownRemainingMs: 0 },
-  gameB: { available: false, theme: { key: 'harvest', label: 'Festival des Récoltes' }, solvedToday: false, discoveredBy: null, attemptsUsed: 0, attemptsRemaining: 0, testedCodes: [], remainingCodes: Array.from({ length: 32 }, (_, index) => index.toString(2).padStart(5, '0')), canAttempt: false },
+  gameB: { available: false, theme: { key: 'harvest', label: 'Festival des Récoltes' }, solvedToday: false, resolvedCode: null, discoveredBy: null, attemptsUsed: 0, attemptsRemaining: 0, testedCodes: [], remainingCodes: Array.from({ length: 32 }, (_, index) => index.toString(2).padStart(5, '0')), canAttempt: false },
 }
 const joinedGameA = { available: true, theme: { key: 'recolte', label: 'Récolte' }, completedToday: false, attemptsToday: 0, windows: [
   { startAt: '2026-09-15T07:00:00.000Z', endAt: '2026-09-15T08:00:00.000Z', state: 'PAST' as const },
@@ -160,10 +160,15 @@ describe('EventScreen presentation', () => {
   })
 
   it('shows the discoverer and removes the action after collective resolution', () => {
-    const value: EventDto = { ...afterJoin, gameB: { ...afterJoin.gameB, solvedToday: true, discoveredBy: { id: 'discoverer', displayName: 'Kyo' }, testedCodes: ['11111'], remainingCodes: afterJoin.gameB.remainingCodes.filter((code) => code !== '11111'), canAttempt: false } }
+    const value: EventDto = { ...afterJoin, gameB: { ...afterJoin.gameB, solvedToday: true, resolvedCode: '11111', discoveredBy: { id: 'discoverer', displayName: 'Kyo' }, testedCodes: ['11111'], remainingCodes: afterJoin.gameB.remainingCodes.filter((code) => code !== '11111'), canAttempt: false } }
     const { container } = mount({ value }); selectGames(container)
     act(() => container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[1].click())
     expect(container.querySelector('.event-game-b')?.textContent).toContain('Découvert par Kyo')
+    const winningCode = Array.from(container.querySelectorAll<HTMLButtonElement>('.event-game-b-code')).find(({ textContent }) => textContent?.includes('11111'))
+    expect(winningCode?.textContent).toBe('✓ 11111')
+    expect(winningCode?.classList.contains('resolved')).toBe(true)
+    expect(winningCode?.classList.contains('tested')).toBe(false)
+    expect(container.querySelector('.event-game-b-feedback.success')?.textContent).toContain('Combinaison découverte')
     expect(container.querySelector('.event-game-b-action button')).toBeNull()
     expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.event-game-b-code')).every(({ disabled }) => disabled)).toBe(true)
   })
