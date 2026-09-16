@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import type { EventDto, EventGameAAttemptDto, EventGameBAttemptDto, EventJoinDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
@@ -53,6 +53,22 @@ export default function EventScreen({ value, onLoad, onJoin, onAttempt, onAttemp
   const [intentKey, setIntentKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [attemptFeedback, setAttemptFeedback] = useState<Readonly<{ kind: 'success' | 'failure'; message: string }> | null>(null)
+  const boundaryRef = useRef({ businessDate: value.businessDate, editionId: value.edition.id })
+
+  useLayoutEffect(() => {
+    const previous = boundaryRef.current
+    if (previous.businessDate === value.businessDate && previous.editionId === value.edition.id) return
+    boundaryRef.current = { businessDate: value.businessDate, editionId: value.edition.id }
+    // oxlint-disable-next-line react(set-state-in-effect) -- A new server business boundary invalidates the previous local attempt.
+    setSelectedCode(null)
+    setGameBIntent(null)
+    setGameBFeedback(null)
+    setError(null)
+    if (previous.editionId !== value.edition.id) {
+      setSection('registration')
+      setGameTab(0)
+    }
+  }, [value.businessDate, value.edition.id])
 
   useEffect(() => {
     let active = true
@@ -120,6 +136,8 @@ export default function EventScreen({ value, onLoad, onJoin, onAttempt, onAttemp
   const attemptGameB = async () => {
     if (pendingRef.current || (!value.gameB.canAttempt && !gameBIntent) || (!gameBIntent && (!selectedCode || !value.gameB.remainingCodes.includes(selectedCode)))) return
     const intent = gameBIntent ?? { code: selectedCode!, key: crypto.randomUUID() }
+    const requestBoundary = { businessDate: value.businessDate, editionId: value.edition.id }
+    const sameBoundary = () => boundaryRef.current.businessDate === requestBoundary.businessDate && boundaryRef.current.editionId === requestBoundary.editionId
     pendingRef.current = true
     setPending(true)
     setGameBIntent(intent)
@@ -127,12 +145,16 @@ export default function EventScreen({ value, onLoad, onJoin, onAttempt, onAttemp
     setError(null)
     try {
       const result = await onAttemptB(intent.code, intent.key)
-      setGameBIntent(null)
-      setSelectedCode(null)
-      setGameBFeedback(result.attempt.kind === 'CORRECT' ? 'Combinaison découverte ! Tous les participants inscrits gagnent 1 point et 1 monnaie du Festival.' : result.attempt.kind === 'ALREADY_TESTED' ? 'Code déjà testé : aucun essai consommé.' : 'Code incorrect : un essai consommé.')
+      if (sameBoundary()) {
+        setGameBIntent(null)
+        setSelectedCode(null)
+        setGameBFeedback(result.attempt.kind === 'CORRECT' ? 'Combinaison découverte ! Tous les participants inscrits gagnent 1 point et 1 monnaie du Festival.' : result.attempt.kind === 'ALREADY_TESTED' ? 'Code déjà testé : aucun essai consommé.' : 'Code incorrect : un essai consommé.')
+      }
     } catch (reason) {
-      if (!isAmbiguousMutationError(reason)) setGameBIntent(null)
-      setError(apiErrorMessage(reason))
+      if (sameBoundary()) {
+        if (!isAmbiguousMutationError(reason)) setGameBIntent(null)
+        setError(apiErrorMessage(reason))
+      }
     } finally {
       pendingRef.current = false
       setPending(false)

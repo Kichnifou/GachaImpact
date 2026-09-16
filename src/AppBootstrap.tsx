@@ -18,6 +18,7 @@ import { gachaLevelRewards, type LevelUpFeedbackEvent } from './progression/leve
 import { publishProgressionUpdate } from './progression/publish-progression-update'
 import { createExpeditionClientSnapshot, type ExpeditionClientSnapshot } from './expedition/expedition-client-snapshot'
 import { createContestRequestCoordinator, type ContestRequestCoordinator } from './contest/contest-request-coordinator'
+import { createEventRequestCoordinator, type EventRequestCoordinator } from './event/event-request-coordinator'
 import { useEventTemporalRefresh } from './event/use-event-temporal-refresh'
 
 function AppBootstrap() {
@@ -49,6 +50,7 @@ function AppBootstrap() {
   const [contestRequests] = useState<ContestRequestCoordinator<ContestDto>>(
     () => createContestRequestCoordinator<ContestDto>((value) => setContest(value)),
   )
+  const [eventRequests] = useState<EventRequestCoordinator>(() => createEventRequestCoordinator((value) => setEvent(value)))
   const dismissLevelUpFeedback = useCallback((id: string) => {
     setLevelUpFeedbacks((current) => current.filter((event) => event.id !== id))
   }, [])
@@ -89,10 +91,11 @@ function AppBootstrap() {
   }, [contestRequests, loadResources])
   const loadContestHistory = useCallback((page: number) => getGameApiClient().getContestHistory(page), [])
   const loadContestHistoryDetail = useCallback((contestId: string) => getGameApiClient().getContestHistoryDetail(contestId), [])
-  const loadEvent = useCallback(async () => { const next = await getGameApiClient().getEvent(); setEvent(next); return next }, [])
-  const joinEvent = useCallback(async (idempotencyKey: string) => { const next = await getGameApiClient().joinEvent(idempotencyKey); setEvent(next); return next }, [])
-  const attemptEventGameA = useCallback(async (idempotencyKey: string) => { const next = await getGameApiClient().attemptEventGameA(idempotencyKey); setEvent(next); return next }, [])
-  const attemptEventGameB = useCallback(async (code: string, idempotencyKey: string) => { const next = await getGameApiClient().attemptEventGameB(code, idempotencyKey); setEvent(next); return next }, [])
+  const loadEvent = useCallback(() => eventRequests.refresh(() => getGameApiClient().getEvent()), [eventRequests])
+  const joinEvent = useCallback((idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().joinEvent(idempotencyKey)), [eventRequests])
+  const attemptEventGameA = useCallback((idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().attemptEventGameA(idempotencyKey)), [eventRequests])
+  const attemptEventGameB = useCallback((code: string, idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().attemptEventGameB(code, idempotencyKey)), [eventRequests])
+  useLayoutEffect(() => { eventRequests.reset() }, [eventRequests, sessionUserId])
   useEventTemporalRefresh(event, sessionUserId, loadEvent)
   const loadNavigationPreferences = useCallback(() => getGameApiClient().getNavigationPreferences(), [])
   const saveNavigationPreferences = useCallback((value: Parameters<ReturnType<typeof getGameApiClient>['putNavigationPreferences']>[0]) => getGameApiClient().putNavigationPreferences(value), [])
@@ -157,7 +160,7 @@ function AppBootstrap() {
       api.getDailyCombat(),
       api.getMonthlyBoss(),
       loadContest(),
-      api.getEvent(),
+      eventRequests.read(() => api.getEvent()),
       api.getExpedition(),
       api.getNotifications(),
       api.getCurrentGacha(),
@@ -174,14 +177,14 @@ function AppBootstrap() {
     setDailyCombat(nextDailyCombat)
     setMonthlyBoss(nextMonthlyBoss)
     void nextContest
-    setEvent(nextEvent)
+    void nextEvent
     publishExpedition(nextExpedition)
     setNotifications(nextNotifications)
     setGacha(nextGacha)
     setCharacters(nextCatalog.characters)
     setTeams(nextTeams)
     setPermissions(nextPermissions)
-  }, [loadContest, publishExpedition])
+  }, [eventRequests, loadContest, publishExpedition])
 
   const publishProgression = useCallback((next: PlayerProgressionDto, options: { id: string; rewards?: readonly { resourceKey: string; amount: string }[]; emitLevelUpFeedback?: boolean }) => {
     const published = publishProgressionUpdate(progressionRef.current, next, options)

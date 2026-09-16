@@ -184,6 +184,54 @@ describe('EventScreen presentation', () => {
     expect(onAttemptB.mock.calls.map((call) => call[1])).toEqual([firstKey, firstKey])
   })
 
+  it('discards an ambiguous Game B intent at the next business date and creates a new UUID', async () => {
+    const onAttemptB = vi.fn()
+      .mockRejectedValueOnce(new ApiError('NETWORK_ERROR', 'Réseau indisponible.', null))
+      .mockResolvedValueOnce({ ...afterJoin, operation: { id: 'new-day-attempt', alreadyProcessed: false }, attempt: { kind: 'INCORRECT' } })
+    const mounted = mount({ value: afterJoin, onAttemptB }); selectGames(mounted.container)
+    act(() => mounted.container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[1].click())
+    act(() => mounted.container.querySelectorAll<HTMLButtonElement>('.event-game-b-code')[0].click())
+    await act(async () => { mounted.container.querySelector<HTMLButtonElement>('.event-game-b-action button')!.click(); await Promise.resolve() })
+    const oldKey = onAttemptB.mock.calls[0][1]
+    expect(mounted.container.querySelector('.event-game-b-action')?.textContent).toContain('Réessayer 00000')
+
+    const nextDay: EventDto = { ...afterJoin, businessDate: '2026-09-16' }
+    act(() => mounted.root.render(<EventScreen {...mounted.props} value={nextDay} />))
+    expect(mounted.container.querySelector('.event-game-tabs .active')?.textContent).toBe('Grenier')
+    expect(mounted.container.querySelector('.event-game-b-action')?.textContent).toContain('Choisissez une combinaison')
+    expect(mounted.container.querySelectorAll('.event-game-b-code.selected')).toHaveLength(0)
+    expect(mounted.container.querySelector('.event-game-b-feedback')?.textContent).toBe('')
+    expect(mounted.container.querySelector('.event-feedback')?.textContent).toBe('')
+    act(() => mounted.container.querySelectorAll<HTMLButtonElement>('.event-game-b-code')[1].click())
+    await act(async () => { mounted.container.querySelector<HTMLButtonElement>('.event-game-b-action button')!.click(); await Promise.resolve() })
+    expect(onAttemptB.mock.calls[1][0]).toBe('00001')
+    expect(onAttemptB.mock.calls[1][1]).not.toBe(oldKey)
+    expect(onAttemptB.mock.calls[1][1]).toMatch(/^[0-9a-f-]{36}$/)
+  })
+
+  it('returns to registration and discards Game B state when the edition changes', async () => {
+    const onAttemptB = vi.fn()
+      .mockRejectedValueOnce(new ApiError('NETWORK_ERROR', 'Réseau indisponible.', null))
+      .mockResolvedValueOnce({ ...afterJoin, operation: { id: 'new-edition-attempt', alreadyProcessed: false }, attempt: { kind: 'INCORRECT' } })
+    const mounted = mount({ value: afterJoin, onAttemptB }); selectGames(mounted.container)
+    act(() => mounted.container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[1].click())
+    act(() => mounted.container.querySelectorAll<HTMLButtonElement>('.event-game-b-code')[0].click())
+    await act(async () => { mounted.container.querySelector<HTMLButtonElement>('.event-game-b-action button')!.click(); await Promise.resolve() })
+    const oldKey = onAttemptB.mock.calls[0][1]
+    const nextEdition: EventDto = { ...afterJoin, edition: { ...afterJoin.edition, id: 'edition-2027', year: 2027 }, businessDate: '2027-09-15' }
+    act(() => mounted.root.render(<EventScreen {...mounted.props} value={nextEdition} />))
+    expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Inscription')
+    expect(mounted.container.querySelector('.event-game-b')).toBeNull()
+    act(() => mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button')[1].click())
+    act(() => mounted.container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[1].click())
+    expect(mounted.container.querySelector('.event-game-b-action')?.textContent).toContain('Choisissez une combinaison')
+    expect(mounted.container.querySelectorAll('.event-game-b-code.selected')).toHaveLength(0)
+    expect(mounted.container.querySelector('.event-game-b-feedback')?.textContent).toBe('')
+    act(() => mounted.container.querySelectorAll<HTMLButtonElement>('.event-game-b-code')[1].click())
+    await act(async () => { mounted.container.querySelector<HTMLButtonElement>('.event-game-b-action button')!.click(); await Promise.resolve() })
+    expect(onAttemptB.mock.calls[1][1]).not.toBe(oldKey)
+  })
+
   it('visually completes every window after a success during an active window', () => {
     const complete: EventDto = { ...afterJoin, gameA: { ...joinedGameA, completedToday: true, canAttempt: false } }
     const { container } = mount({ value: complete }); selectGames(container)
