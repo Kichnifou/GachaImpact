@@ -146,8 +146,8 @@ export default function EventScreen({ value, onLoad, onJoin, onAttempt }: Props)
       {section === 'games' && value.participation.joined && <section className="panel event-game-a" data-theme={value.gameA.theme.key}>
         <div className="event-game-a-heading"><div><span className="eyebrow">Jeu du Festival</span><h2>{presentation.games[0]}</h2></div><span className={`event-game-a-day-state${value.gameA.completedToday ? ' complete' : expiredToday ? ' expired' : ''}`}>{value.gameA.completedToday ? 'Réussi aujourd’hui' : expiredToday ? 'Délai dépassé...' : 'À réussir aujourd’hui'}</span></div>
         <div className="event-game-a-windows">
-          {value.gameA.windows.map((window, index) => <article className={`event-game-a-window ${window.state.toLowerCase()}`} key={window.startAt} data-window-state={window.state}>
-            <span>Fenêtre {index + 1}</span><strong>{timeFormatter.format(new Date(window.startAt))} – {timeFormatter.format(new Date(window.endAt))}</strong><small>{window.state === 'ACTIVE' ? 'Active' : window.state === 'PAST' ? 'Terminée' : 'Prochaine'}</small>
+          {value.gameA.windows.map((window, index) => <article className={`event-game-a-window ${value.gameA.completedToday ? 'completed' : window.state.toLowerCase()}`} key={window.startAt} data-window-state={value.gameA.completedToday ? 'COMPLETED' : window.state}>
+            <span>Fenêtre {index + 1}</span><strong>{timeFormatter.format(new Date(window.startAt))} – {timeFormatter.format(new Date(window.endAt))}</strong><small>{value.gameA.completedToday || window.state === 'PAST' ? 'Terminée' : window.state === 'ACTIVE' ? 'Active' : 'Prochaine'}</small>
           </article>)}
         </div>
         <div className="event-game-a-action"><span>{value.gameA.attemptsToday} tentative{value.gameA.attemptsToday > 1 ? 's' : ''} aujourd’hui</span>

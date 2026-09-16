@@ -140,6 +140,17 @@ describe('EventScreen presentation', () => {
     expect(container.textContent).not.toContain('À réussir aujourd’hui')
   })
 
+  it('visually completes every window after a success during an active window', () => {
+    const complete: EventDto = { ...afterJoin, gameA: { ...joinedGameA, completedToday: true, canAttempt: false } }
+    const { container } = mount({ value: complete }); selectGames(container)
+    expect(container.querySelectorAll('.event-game-a-window.completed')).toHaveLength(3)
+    expect(container.querySelectorAll('.event-game-a-window.active')).toHaveLength(0)
+    expect(Array.from(container.querySelectorAll('.event-game-a-window'), (window) => window.getAttribute('data-window-state'))).toEqual(['COMPLETED', 'COMPLETED', 'COMPLETED'])
+    expect(Array.from(container.querySelectorAll('.event-game-a-window small'), (label) => label.textContent)).toEqual(['Terminée', 'Terminée', 'Terminée'])
+    expect(container.querySelector('.event-game-a-windows')?.textContent).not.toContain('Active')
+    expect(container.querySelector('.event-game-a-windows')?.textContent).toContain('14:00')
+  })
+
   it('keeps one pending join stable under a double click', async () => {
     let resolve!: (value: EventJoinDto) => void
     const onJoin = vi.fn(() => new Promise<EventJoinDto>((done) => { resolve = done }))

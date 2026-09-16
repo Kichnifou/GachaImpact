@@ -7433,6 +7433,7 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .event-game-a-window.active { border-color: rgba(236, 181, 73, .55); background: rgba(236, 181, 73, .12); box-shadow: inset 0 0 0 1px rgba(236, 181, 73, .1); }
 .event-game-a-window.active small { color: #f2cf7d; }
 .event-game-a-window.past { opacity: .65; }
+.event-game-a-window.completed { opacity: .65; }
 .event-game-a-action { min-height: 38px; color: var(--muted); font-size: 12px; }
 .event-game-a-action > strong { min-height: 38px; display: flex; align-items: center; color: #cbd5e5; }
 .event-cooldown-button { min-width: 184px; font-variant-numeric: tabular-nums; }
