@@ -3,7 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api/game-api'
-import type { EventDto, EventGameAAttemptDto, EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto, EventJoinDto } from '../api/types'
+import type { EventDto, EventDailyBonusClaimDto, EventGameAAttemptDto, EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto, EventJoinDto } from '../api/types'
 import EventScreen from './EventScreen'
 
 const roots: Root[] = []
@@ -15,6 +15,7 @@ const beforeJoin: EventDto = {
   festival: { key: 'harvest', month: 9, title: 'Festival des Récoltes', emoji: '\u{1F33E}', currency: { key: 'harvest-tokens', label: 'Jetons de Récolte', emoji: '\u{1F33E}' }, collection: { key: 'harvest-sheaf', label: 'Gerbe de Récolte' } },
   edition: { id: 'edition-2026', year: 2026, startsAt: '2026-08-31T22:00:00.000Z', endsAt: '2026-09-30T22:00:00.000Z' },
   participation: { joined: false, joinedAt: null, points: 0 }, currency: { amount: '0' }, canJoin: true,
+  dailyBonus: { claimedToday: false, canClaim: false }, milestones: { currentPoints: 0, thresholds: [] },
   gameA: { available: false, theme: { key: 'recolte', label: 'Récolte' }, completedToday: false, attemptsToday: 0, windows: [], activeWindowIndex: null, canAttempt: false, cooldownRemainingMs: 0 },
   gameB: { available: false, theme: { key: 'harvest', label: 'Festival des Récoltes' }, solvedToday: false, resolvedCode: null, discoveredBy: null, attemptsUsed: 0, attemptsRemaining: 0, testedCodes: [], remainingCodes: Array.from({ length: 32 }, (_, index) => index.toString(2).padStart(5, '0')), canAttempt: false },
   gameC: { available: false, theme: { key: 'harvest', label: 'Panier' }, sentToday: false, canSend: false, receivedMessages: [], unviewedCount: 0 },
@@ -24,12 +25,12 @@ const joinedGameA = { available: true, theme: { key: 'recolte', label: 'Récolte
   { startAt: '2026-09-15T12:00:00.000Z', endAt: '2026-09-15T13:00:00.000Z', state: 'ACTIVE' as const },
   { startAt: '2026-09-15T18:00:00.000Z', endAt: '2026-09-15T19:00:00.000Z', state: 'FUTURE' as const },
 ], activeWindowIndex: 1, canAttempt: true, cooldownRemainingMs: 0 }
-const afterJoin: EventJoinDto = { ...beforeJoin, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, gameA: joinedGameA, gameB: { ...beforeJoin.gameB, available: true, attemptsRemaining: 3, canAttempt: true }, gameC: { ...beforeJoin.gameC, available: true, canSend: true }, operation: { id: 'operation-1', alreadyProcessed: false } }
+const afterJoin: EventJoinDto = { ...beforeJoin, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, dailyBonus: { claimedToday: false, canClaim: true }, gameA: joinedGameA, gameB: { ...beforeJoin.gameB, available: true, attemptsRemaining: 3, canAttempt: true }, gameC: { ...beforeJoin.gameC, available: true, canSend: true }, operation: { id: 'operation-1', alreadyProcessed: false } }
 
-function mount(options: { value?: EventDto; onLoad?: () => Promise<EventDto>; onJoin?: (key: string) => Promise<EventJoinDto>; onAttempt?: (key: string) => Promise<EventGameAAttemptDto>; onAttemptB?: (code: string, key: string) => Promise<EventGameBAttemptDto>; onSearchRecipients?: (query: EventGameCRecipientQuery) => Promise<EventGameCRecipientsDto>; onSendGameC?: (recipientId: string, message: string, key: string) => Promise<EventGameCSendDto>; onConsultMessages?: () => Promise<EventDto>; openMessagesToken?: number } = {}) {
+function mount(options: { value?: EventDto; onLoad?: () => Promise<EventDto>; onJoin?: (key: string) => Promise<EventJoinDto>; onClaimDailyBonus?: (key: string) => Promise<EventDailyBonusClaimDto>; onAttempt?: (key: string) => Promise<EventGameAAttemptDto>; onAttemptB?: (code: string, key: string) => Promise<EventGameBAttemptDto>; onSearchRecipients?: (query: EventGameCRecipientQuery) => Promise<EventGameCRecipientsDto>; onSendGameC?: (recipientId: string, message: string, key: string) => Promise<EventGameCSendDto>; onConsultMessages?: () => Promise<EventDto>; openMessagesToken?: number } = {}) {
   const container = document.createElement('div'); document.body.append(container)
   const root = createRoot(container); roots.push(root)
-  const props = { value: options.value ?? beforeJoin, onLoad: options.onLoad ?? vi.fn(async () => beforeJoin), onJoin: options.onJoin ?? vi.fn(async () => afterJoin), onAttempt: options.onAttempt ?? vi.fn(async () => ({ ...afterJoin, attempt: { succeeded: false } })), onAttemptB: options.onAttemptB ?? vi.fn(async () => ({ ...afterJoin, attempt: { kind: 'INCORRECT' as const } })), onSearchRecipients: options.onSearchRecipients, onSendGameC: options.onSendGameC, onConsultMessages: options.onConsultMessages, openMessagesToken: options.openMessagesToken }
+  const props = { value: options.value ?? beforeJoin, onLoad: options.onLoad ?? vi.fn(async () => beforeJoin), onJoin: options.onJoin ?? vi.fn(async () => afterJoin), onClaimDailyBonus: options.onClaimDailyBonus, onAttempt: options.onAttempt ?? vi.fn(async () => ({ ...afterJoin, attempt: { succeeded: false } })), onAttemptB: options.onAttemptB ?? vi.fn(async () => ({ ...afterJoin, attempt: { kind: 'INCORRECT' as const } })), onSearchRecipients: options.onSearchRecipients, onSendGameC: options.onSendGameC, onConsultMessages: options.onConsultMessages, openMessagesToken: options.openMessagesToken }
   act(() => root.render(<EventScreen {...props} />))
   return { container, root, props }
 }
@@ -39,6 +40,33 @@ function selectGames(container: HTMLElement) {
 }
 
 describe('EventScreen presentation', () => {
+  it('claims the daily bonus once and shows the next-day reset without a fake claim action', async () => {
+    const claimed: EventDailyBonusClaimDto = { ...afterJoin, dailyBonus: { claimedToday: true, canClaim: false }, currency: { amount: '2' }, operation: { id: 'bonus-operation', alreadyProcessed: false } }
+    const onClaimDailyBonus = vi.fn(async () => claimed)
+    const mounted = mount({ value: afterJoin, onClaimDailyBonus })
+    expect(mounted.container.textContent).toContain('+1 Jeton de Récolte')
+    await act(async () => { Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-daily-bonus button')).find((button) => button.textContent === 'Réclamer')!.click(); await Promise.resolve() })
+    expect(onClaimDailyBonus).toHaveBeenCalledWith(expect.any(String))
+    act(() => mounted.root.render(<EventScreen {...mounted.props} value={claimed} />))
+    expect(mounted.container.querySelector('.event-daily-bonus')?.textContent).toContain('Réclamé aujourd’hui')
+    expect(mounted.container.querySelector('.event-daily-bonus button')).toBeNull()
+    act(() => mounted.root.render(<EventScreen {...mounted.props} value={{ ...afterJoin, businessDate: '2026-09-16' }} />))
+    expect(mounted.container.querySelector('.event-daily-bonus button')?.textContent).toBe('Réclamer')
+  })
+
+  it.each([0, 9, 10, 79, 80, 87])('keeps the milestone bar visible at %i points across Event sections', (points) => {
+    const thresholds = [10, 20, 30, 40, 50, 60, 70, 80].map((threshold) => ({ points: threshold, reached: points >= threshold, rewarded: points >= threshold, rewardLabel: `${threshold} points : récompense` }))
+    const value: EventDto = { ...afterJoin, participation: { ...afterJoin.participation, points }, milestones: { currentPoints: points, thresholds } }
+    const { container } = mount({ value })
+    const progress = container.querySelector<HTMLElement>('[role="progressbar"]')!
+    expect(progress.getAttribute('aria-valuenow')).toBe(String(Math.min(points, 80)))
+    expect(container.querySelector('.event-milestone-summary')?.textContent).toContain(`${points} points`)
+    expect(container.querySelectorAll('.event-milestone-marker')).toHaveLength(8)
+    expect(container.querySelectorAll('.event-milestone-marker.rewarded')).toHaveLength(thresholds.filter((threshold) => threshold.rewarded).length)
+    selectGames(container)
+    expect(container.querySelector('[role="progressbar"]')).toBe(progress)
+    expect(container.querySelector('.event-milestone-summary')?.textContent).toContain(`${points} points`)
+  })
   it('refreshes on entry and opens the registration summary first', async () => {
     const mounted = mount()
     await act(async () => { await Promise.resolve() })

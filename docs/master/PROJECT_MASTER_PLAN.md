@@ -1,8 +1,8 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : Event Lot 4 — Jeu C / Panier candidat sur review
+Version : Event Lot 5 — bonus quotidien et paliers candidat sur review
 Date : 2026-09-16
-Statut : EVENT LOT 3 — JEU B VALIDÉ PUBLIQUEMENT ; EVENT LOT 4 — JEU C / PANIER CANDIDAT SUR review À REVIEWER
+Statut : EVENT LOT 4 — JEU C / PANIER SUFFISAMMENT VALIDÉ PUBLIQUEMENT ; EVENT LOT 5 — BONUS QUOTIDIEN ET PALIERS CANDIDAT SUR review À REVIEWER
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
@@ -3544,7 +3544,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Événements mensuels — Lots 1 à 3 sur `main` et suffisamment validés publiquement pour poursuivre. Event Lot 4 — Jeu C / Panier est candidat sur `review` : prochaine étape, review indépendante du vrai diff GitHub, sans promotion ni validation publique anticipée.**
+**Événements mensuels — Lots 1 à 4 sur `main` et suffisamment validés publiquement pour poursuivre. Event Lot 5 — bonus quotidien et paliers est candidat sur `review` : prochaine étape, review indépendante du vrai diff GitHub, sans promotion ni validation publique anticipée.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3882,13 +3882,22 @@ Le commit 0.95 `3e510307f49ffa389df902d35c83287ea0ebe96e` est désormais sur `ma
 - Correction de review frontend : l'intention ambiguë, la sélection et le feedback Jeu B sont invalidés à chaque changement de business date ou d'édition ; une nouvelle édition revient sur Inscription. Les GET Event d'entrée, de focus, de visibilité, de polling et de timer partagent une frontière de coordination ; un refresh plus récent, une mutation réussie ou un changement de session empêche une ancienne réponse de republier un snapshot obsolète. Aucun changement backend ou DB n'en résulte. La vérification visuelle navigateur aux quatre viewports demandés reste à réaliser tant qu'elle n'est pas effectivement observée.
 - Les commits Jeu B `d1cf6b80f8486877957720f85b971d1233a8af15`, `b2b822368d00b424716afc383adf17191c19d614` et `5eff4c96a229f7d5e14cfb9d612114a1f3515222` sont sur `main`. Le propriétaire a validé publiquement le Jeu B suffisamment pour ouvrir le Lot 4 ; le polish de sa combinaison résolue appartient au commit A séparé du nouveau candidat. `PAID_INFRA_APPROVED = false` reste inchangé.
 
-## Event Lot 4 — Jeu C / Panier candidat sur review
+## Event Lot 4 — Jeu C / Panier sur main, validation publique suffisante
 
 - Commit A `fix: clarify resolved event game b` : `resolvedCode` reste nul avant la résolution du Grenier, puis projette la combinaison gagnante sans fuite préalable ; elle est verte, bordée, cochée et non barrée, avec feedback collectif success. Aucun changement économique.
 - Commit B `feat: implement monthly event game c` : Panier est le troisième archétype commun aux douze thèmes. La recherche bornée résout un Player ID autoritatif, exclut soi-même et applique le statut ACTIVE, les blocages dans les deux sens et la confidentialité MP Public/Amis/Privé via les primitives Social validées, sans blocage Event parallèle. Un destinataire non inscrit peut recevoir et consulter, sans envoyer. Un inscrit actif peut envoyer un seul message valide par business date, en transaction idempotente : +1 point et +1 monnaie à l'expéditeur seul. L'inbox privée filtre la date `Europe/Paris`, conserve les anciens messages en base et marque `viewed_at` uniquement lors de l'ouverture effective de Panier. L'agrégateur Quotidiennes expose `Accéder` tant qu'un message reste à consulter.
 - Le gate physique Social a constaté l'absence de `friendships`, `player_blocks` et `privacy_settings`. La migration additive 023 matérialise uniquement ce sous-ensemble Social déjà validé et `event_social_messages`, avec RLS, révocation des accès directs, index FK et consultation persistante. Le réglage MP est Public par défaut, y compris pour les Players préexistants. Aucun système Social complet, écran de réglages, chat ni Twitch n'est ajouté. Migration 023 appliquée et suivie par Prisma sur Supabase DEV ; ne pas la réappliquer manuellement.
 - Commit C `feat: aggregate event message notifications` : clarification propriétaire du 16/09/2026 — tant qu'au moins un message Event courant reste à consulter, une seule notification agrégée par destinataire et business date est active, jamais une notification par message. Les nouveaux messages mettent à jour le compteur ; Panier marque les messages consultés et résout l'agrégat ; un message ultérieur le réactive. READ seule n'est pas une consultation. La réconciliation NotificationService s'appuie sur `viewed_at IS NULL`, et l'action explicite `OPEN_EVENT_MESSAGES` ouvre Activités → Événement → Jeux → Panier. Le refresh Notifications existant suffit, sans Realtime ni polling additionnel.
-- Le candidat n'est ni sur `main`, ni déployé, ni validé publiquement. Restent exclus R602, paliers, Boutique Event, acquisition Collection, Classement, Calendrier, chat/Twitch, Social complet et migration legacy. Aucun fichier `docs/Story/**` n'est modifié ; `PAID_INFRA_APPROVED = false` reste inchangé.
+- Le lot est sur `main` au checkpoint `1153b6ed20932b2ad61933a0a431042a06075ecc` et le propriétaire en a suffisamment validé publiquement Grenier résolu, Panier, destinataire non inscrit, agrégation Notification, deep-link, réactivation et Quotidiennes pour ouvrir le Lot 5. La recherche inline Panier et la latence de notification sont les deux polishes du candidat suivant ; elles ne rouvrent pas la logique métier Jeu C. Restent exclus Boutique Event, acquisition Collection, Classement, Calendrier, chat/Twitch, Social complet et migration legacy.
+
+## Event Lot 5 — bonus quotidien et paliers candidat sur review
+
+- Polish A `7dc4dc5` (`refactor: reuse player browser for event recipients`) : Panier réutilise la primitive de modale du sélecteur Modération, qui conserve ses filtres et son badge Testeur. Event utilise son propre endpoint Social, paginé à dix, recherche dès zéro ou un caractère, filtres Élément et tri Nom/Niveau ascendant/descendant ; sa projection n'expose que pseudo, niveau et élément. La règle durable reuse-first UI est dans `AGENTS.md` et le contrat UI.
+- Polish B `1fc5ad6` (`fix: reduce notification refresh latency`) : le header charge uniquement `GET Notifications` toutes les trois secondes visibles, immédiatement au focus/retour visible et sans requêtes superposées. Le GET conserve les réconciliations serveur ; les snapshots UI Boss et Expédition ne sont plus rechargés par chaque tick. C'est le compromis alpha/V1 actuel sans Realtime/SSE/WebSocket.
+- Lot métier C `feat: implement event daily bonus and milestones` : R602 réclame +1 monnaie saisonnière une fois par business date via `POST /api/v1/me/event/daily-bonus/claim`, la clé idempotente `event.daily-bonus.claim` et l'état physique existant `event_daily_player_states.daily_bonus_claimed`. Quotidiennes maintient son accès Event tant que ce bonus ou une autre action réelle reste disponible. Chat interne et Twitch ne sont pas implémentés.
+- R614–R617 : les huit seuils 10–80 sont automatiques, sans bouton, et le score continue au-delà de 80. Les points Jeu A/B/C et rattrapage Jeu B au join passent par une attribution commune ; chaque palier manquant franchi crée une claim et une opération système uniques dans la transaction du gain de points. Les récompenses exactes restent celles de l'audit : particules aléatoires/personnelles avec fallback, monnaie saisonnière, Moras et Primogemmes. Les ressources standard passent par `PrismaEconomyService` et la projection Event republie les ressources globales.
+- Le gate Supabase DEV en lecture seule juste avant migration constatait 6 participants, maximum 2 points et aucun à 10+. La migration additive `20260917120000_024_add_event_milestones` ne matérialise que `event_milestone_claims` avec PK édition/Player/palier, opération unique, contraintes, index FK, RLS et droits navigateur révoqués. Elle est appliquée et suivie par Prisma (`24` migrations à jour). Aucun backfill économique réel ni modification des migrations 001–023.
+- La barre de progression et les huit repères restent en haut de l'écran Event sur ses sections actives ; le nombre de points réel, même supérieur à 80, reste visible. Le bouton bonus n'existe que si l'action est disponible et l'état réclamé ne simule pas de CTA. Les tests techniques précèdent la review GitHub ; le Lot 5 n'est ni sur `main`, ni déployé, ni validé publiquement. Aucun `docs/Story/**` n'est modifié ; `PAID_INFRA_APPROVED = false` demeure inchangé.
 
 ## État déployé 0.92 — Concours / C6 et densité Boss
 
@@ -4043,10 +4052,10 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 
 Prochaine étape exacte :
 
-1. Effectuer la review indépendante ChatGPT du vrai diff GitHub d’**EVENT LOT 4 — JEU C / PANIER**, commits A, B et C séparés sur `review`.
+1. Effectuer la review indépendante ChatGPT du vrai diff GitHub des trois commits **Event Lot 5** A (sélecteur), B (Notifications) et C (bonus/paliers) sur `review`.
 2. Apporter sur `review` les éventuelles corrections et les revalider ; ne promouvoir qu'après approbation.
-3. Laisser ensuite les déploiements automatiques agir, vérifier Railway, `/health` et Cloudflare/frontend, puis obtenir la validation publique fonctionnelle et visuelle du Lot 4.
-4. Garder hors périmètre R602, Boutique Event, paliers, acquisition Collection, Classement, Calendrier, Social complet, Twitch/chat et migration legacy.
+3. Laisser ensuite les déploiements automatiques agir, vérifier Railway, `/health` et Cloudflare/frontend, puis obtenir la validation publique fonctionnelle et visuelle du Lot 5.
+4. Garder hors périmètre Boutique Event R618–R624, acquisition Collection, Classement, Calendrier, Social complet, Twitch/chat et migration legacy.
 
 L’ordre complet restant appartient à [implementation-order-v1.md](../roadmap/implementation-order-v1.md). La migration legacy reste reportée ; `PAID_INFRA_APPROVED = false` reste inchangé.
 

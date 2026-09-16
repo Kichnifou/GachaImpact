@@ -52,7 +52,7 @@ function AppBootstrap() {
   const [contestRequests] = useState<ContestRequestCoordinator<ContestDto>>(
     () => createContestRequestCoordinator<ContestDto>((value) => setContest(value)),
   )
-  const [eventRequests] = useState<EventRequestCoordinator>(() => createEventRequestCoordinator((value) => setEvent(value)))
+  const [eventRequests] = useState<EventRequestCoordinator>(() => createEventRequestCoordinator((value) => { setEvent(value); if (value.resources) setResources(value.resources) }))
   const dismissLevelUpFeedback = useCallback((id: string) => {
     setLevelUpFeedbacks((current) => current.filter((event) => event.id !== id))
   }, [])
@@ -95,6 +95,7 @@ function AppBootstrap() {
   const loadContestHistoryDetail = useCallback((contestId: string) => getGameApiClient().getContestHistoryDetail(contestId), [])
   const loadEvent = useCallback(() => eventRequests.refresh(() => getGameApiClient().getEvent()), [eventRequests])
   const joinEvent = useCallback((idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().joinEvent(idempotencyKey)), [eventRequests])
+  const claimEventDailyBonus = useCallback((idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().claimEventDailyBonus(idempotencyKey)), [eventRequests])
   const attemptEventGameA = useCallback((idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().attemptEventGameA(idempotencyKey)), [eventRequests])
   const attemptEventGameB = useCallback((code: string, idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().attemptEventGameB(code, idempotencyKey)), [eventRequests])
   const searchEventGameCRecipients = useCallback((input: Parameters<ReturnType<typeof getGameApiClient>['searchEventGameCRecipients']>[0]) => getGameApiClient().searchEventGameCRecipients(input), [])
@@ -382,6 +383,7 @@ function AppBootstrap() {
       event={event}
       onLoadEvent={loadEvent}
       onJoinEvent={joinEvent}
+      onClaimEventDailyBonus={claimEventDailyBonus}
       onAttemptEventGameA={attemptEventGameA}
       onAttemptEventGameB={attemptEventGameB}
       onSearchEventGameCRecipients={searchEventGameCRecipients}

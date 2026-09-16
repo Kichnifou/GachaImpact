@@ -17,6 +17,7 @@ const snapshot = (refreshAfterMs: number, completedToday = false, businessDate =
   participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: completedToday ? 1 : 0 },
   currency: { amount: completedToday ? '2' : '1' },
   canJoin: false,
+  dailyBonus: { claimedToday: true, canClaim: false }, milestones: { currentPoints: 0, thresholds: [] },
   gameA: { available: true, theme: { key: 'recolte', label: 'Récolte' }, completedToday, attemptsToday: completedToday ? 1 : 0, windows: [], activeWindowIndex: null, canAttempt: false, cooldownRemainingMs: 0 },
   gameB: { available: true, theme: { key: 'harvest', label: 'Festival des Récoltes' }, solvedToday: false, resolvedCode: null, discoveredBy: null, attemptsUsed: 0, attemptsRemaining: 3, testedCodes: [], remainingCodes: [], canAttempt: false },
   gameC: { available: true, theme: { key: 'harvest', label: 'Panier' }, sentToday: false, canSend: false, receivedMessages: [], unviewedCount: 0 },

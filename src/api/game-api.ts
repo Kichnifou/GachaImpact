@@ -56,6 +56,7 @@ import type {
   GiftCodeClaimantQuery,
   GiftCodeClaimantsDto,
   EventDto,
+  EventDailyBonusClaimDto,
   EventGameAAttemptDto,
   EventGameBAttemptDto,
   EventGameCRecipientQuery,
@@ -214,6 +215,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getGiftCodes: () => request<PlayerGiftCodesDto>('/api/v1/me/gift-codes'),
     getEvent: () => request<EventDto>('/api/v1/me/event'),
     joinEvent: (idempotencyKey: string) => request<EventJoinDto>('/api/v1/me/event/join', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+    claimEventDailyBonus: (idempotencyKey: string) => request<EventDailyBonusClaimDto>('/api/v1/me/event/daily-bonus/claim', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     attemptEventGameA: (idempotencyKey: string) => request<EventGameAAttemptDto>('/api/v1/me/event/game-a/attempt', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     attemptEventGameB: (code: string, idempotencyKey: string) => request<EventGameBAttemptDto>('/api/v1/me/event/game-b/attempt', { method: 'POST', body: JSON.stringify({ code, idempotencyKey }) }),
     searchEventGameCRecipients: (input: EventGameCRecipientQuery) => {

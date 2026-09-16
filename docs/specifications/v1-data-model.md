@@ -1514,13 +1514,19 @@ La réussite quotidienne met atomiquement à jour cet état, `EventParticipant.p
 
 Le GET expose au Player et à la communauté la résolution, le découvreur, les 32 codes testés/restants et son quota personnel. Il n'expose le code gagnant qu'après résolution (`resolvedCode` nul auparavant) ; le secret `solutionCode` interne n'est jamais projeté avant sa découverte. `BusinessOperation` garde l'intention `event.game-b.attempt` avec édition, business date, code et résultat ; un replay ne consomme ni essai ni récompense. La première résolution incrémente atomiquement les points et la balance de tous les inscrits de un. Le join d'un Player après cette résolution crédite une fois le rattrapage du jour en plus du bonus normal d'inscription. Aucun palier n'est payé dans ce lot.
 
-## 26.8 État physique candidat Event Lot 4 — Jeu C
+## 26.8 État physique Event Lot 4 — Jeu C
 
 La migration 023 matérialise `EventSocialMessage` avec édition, business date, expéditeur, destinataire, texte, instant de création et `viewedAt` facultatif. Le destinataire voit uniquement ses messages du jour dans Panier ; la consultation marque les messages présents sans les supprimer. Une nouvelle date masque les anciens messages dans l'UI, sans détruire l'historique ni anticiper une future livraison chat/Twitch.
 
 `EventDailyPlayerState.gameCSent` reste l'unique quota d'envoi réussi par jour. L'opération `event.game-c.send` lie l'édition, la date, l'expéditeur, le destinataire et le texte normalisé à sa clé d'idempotence. L'envoi atomique crée un message, consomme le quota et crédite uniquement l'expéditeur de +1 point et +1 monnaie ; le destinataire n'est pas inscrit ni crédité automatiquement.
 
 Le contrôle de contact réutilise le sous-ensemble physique Social validé : amitié active canonique, blocages dans les deux sens et autorisation de recevoir des MP `PUBLIC | FRIENDS | PRIVATE` (valeur initiale `PUBLIC`). Aucun état de blocage ou de confidentialité propre à Event n'est introduit. Les autres catégories de confidentialité et les opérations UI Social restent futures.
+
+## 26.9 État physique candidat Event Lot 5 — bonus et paliers
+
+R602 utilise la colonne existante `EventDailyPlayerState.dailyBonusClaimed`, unique par édition, Player et business date `Europe/Paris`. Le claim explicite crédite +1 monnaie saisonnière dans une transaction idempotente ; une nouvelle date ouvre un état indépendant. Le GET ne réclame jamais le bonus à la place du Player.
+
+La migration 024 matérialise `EventMilestoneClaim` avec clé `eventEditionId + playerId + milestone`, référence unique à `BusinessOperation` et date de versement. Les seuils 10, 20, 30, 40, 50, 60, 70 et 80 sont franchis et payés automatiquement dans la même transaction que les points gagnés par les Jeux A/B/C ou le rattrapage Jeu B. Chaque seuil non encore réclamé dispose d'une claim et d'une opération système distinctes ; un replay ou un gain concurrent ne paie pas deux fois. Les ressources standard empruntent le service d'économie autoritatif et les particules personnelles/aléatoires respectent les règles de l'audit Event. Les points continuent à croître après 80 sans nouveau palier.
 
 ---
 

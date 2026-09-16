@@ -2171,6 +2171,10 @@ PK :
 
 `PRIMARY KEY(event_edition_id, player_id, milestone)`
 
+### 28.7.1 État physique Event Lot 5
+
+La migration additive `20260917120000_024_add_event_milestones` matérialise `event_milestone_claims` sans modifier les migrations 001–023. La clé composite empêche un second versement pour le même palier de la même édition ; `operation_id` est unique et référence l'opération métier système qui trace le versement. Les clés étrangères et leur index Player sont présents, la RLS est activée et les droits directs `anon`/`authenticated` sont révoqués. Les claims sont créées automatiquement dans la transaction sérialisable d'attribution des points, y compris lorsque plusieurs seuils sont franchis d'un seul coup. Aucun rattrapage économique global n'est exécuté lors de la migration.
+
 ---
 
 ## 28.8 `event_social_messages`

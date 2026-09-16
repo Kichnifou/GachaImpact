@@ -7403,6 +7403,23 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .activity-inner-tabs { display: flex; gap: 6px; padding: 4px 6px; overflow-x: auto; border-bottom: 1px solid rgba(121, 153, 198, .16); }
 .activity-inner-tabs button:disabled { cursor: default; opacity: .72; }
 .event-frame > .scrollable-screen-panel-content { height: 100%; }
+.event-milestone-progress { min-width: 0; display: grid; gap: 6px; padding: 10px 14px; border: 1px solid rgba(244, 200, 103, .22); border-radius: 12px; background: rgba(18, 34, 59, .92); }
+.event-milestone-summary { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; color: #e9f3ff; font-size: 12px; }
+.event-milestone-summary span { color: var(--muted); font-size: 10px; }
+.event-milestone-track-scroll { min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+.event-milestone-track { position: relative; min-width: 720px; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
+.event-milestone-track::before { content: ''; position: absolute; top: 9px; left: 6.25%; right: 6.25%; height: 2px; background: rgba(104, 146, 205, .35); }
+.event-milestone-fill { position: absolute; top: 9px; left: 6.25%; height: 2px; max-width: 87.5%; background: #f4c867; }
+.event-milestone-marker { z-index: 1; display: grid; justify-items: center; align-content: start; gap: 2px; color: #9cacc3; text-align: center; }
+.event-milestone-marker > span { color: #637a9a; font-size: 13px; line-height: 18px; }
+.event-milestone-marker.reached > span { color: #8fd3ff; }
+.event-milestone-marker.rewarded > span { color: #f4c867; }
+.event-milestone-marker strong { font-size: 10px; }
+.event-milestone-marker small { max-width: 90px; overflow-wrap: anywhere; font-size: 10px; line-height: 1.2; }
+.event-daily-bonus { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px; }
+.event-daily-bonus h2 { margin: 5px 0; font-size: 18px; }
+.event-daily-bonus p { margin: 0; color: var(--muted); font-size: 11px; }
+.event-daily-bonus > strong { color: #f4c867; font-size: 12px; }
 .event-frame .scrollable-screen-panel-body { display: grid; align-content: start; gap: 12px; padding-right: 4px; }
 .event-tabs button { display: inline-flex; align-items: center; }
 .event-game-tabs { border-top: 1px solid rgba(121, 153, 198, .1); }
@@ -7489,6 +7506,7 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
   .event-membership { grid-column: 1 / -1; justify-self: start; }
   .event-stat-grid { grid-template-columns: 1fr; }
   .event-foundation-card { grid-template-columns: 1fr; }
+  .event-daily-bonus { align-items: stretch; flex-direction: column; }
   .event-foundation-card .small-primary-button { width: 100%; min-width: 0; }
   .event-joined-status { width: 100%; min-width: 0; }
   .event-game-a-windows { grid-template-columns: 1fr; }

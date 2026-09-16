@@ -277,6 +277,7 @@ model Player {
   giftCodesUpdated      GiftCode[]                   @relation("GiftCodeUpdater")
   eventCurrencyBalances PlayerEventCurrencyBalance[]
   eventParticipations   EventParticipant[]
+  eventMilestoneClaims  EventMilestoneClaim[]
   eventDailyStates      EventDailyPlayerState[]
   eventGameBDiscoveries  EventGameBDailyState[]
   friendshipsAsA        Friendship[]                 @relation("FriendshipA")
@@ -566,6 +567,7 @@ model BusinessOperation {
   contestReward      ContestReward?
   itemAcquisitions   ItemAcquisition[]
   giftCodeClaim      GiftCodeClaim?
+  eventMilestoneClaim EventMilestoneClaim?
 
   @@index([playerId, startedAt(sort: Desc)], map: "business_operations_player_started_at_idx")
   @@index([operationType, startedAt(sort: Desc)], map: "business_operations_type_started_at_idx")
@@ -603,6 +605,7 @@ model EventEdition {
   dailyPlayerStates EventDailyPlayerState[]
   gameBDailyStates  EventGameBDailyState[]
   socialMessages    EventSocialMessage[]
+  milestoneClaims   EventMilestoneClaim[]
 
   @@unique([eventDefinitionId, year], map: "event_editions_definition_year_key")
   @@index([startsAt, endsAt], map: "event_editions_period_idx")
@@ -633,6 +636,21 @@ model EventParticipant {
   @@id([eventEditionId, playerId])
   @@index([playerId, joinedAt(sort: Desc)], map: "event_participants_player_joined_idx")
   @@map("event_participants")
+}
+
+model EventMilestoneClaim {
+  eventEditionId String            @map("event_edition_id") @db.Uuid
+  playerId       String            @map("player_id") @db.Uuid
+  milestone      Int
+  operationId    String            @unique(map: "event_milestone_claims_operation_id_key") @map("operation_id") @db.Uuid
+  claimedAt      DateTime          @default(now()) @map("claimed_at") @db.Timestamptz(6)
+  edition        EventEdition      @relation(fields: [eventEditionId], references: [id], onDelete: Restrict)
+  player         Player            @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  operation      BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+
+  @@id([eventEditionId, playerId, milestone])
+  @@index([playerId], map: "event_milestone_claims_player_idx")
+  @@map("event_milestone_claims")
 }
 
 model EventDailyPlayerState {

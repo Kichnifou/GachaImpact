@@ -579,6 +579,9 @@ export type EventDto = Readonly<{
   edition: Readonly<{ id: string; year: number; startsAt: string; endsAt: string }>
   participation: Readonly<{ joined: boolean; joinedAt: string | null; points: number }>
   currency: Readonly<{ amount: string }>
+  resources?: PlayerResourcesDto
+  dailyBonus: Readonly<{ claimedToday: boolean; canClaim: boolean }>
+  milestones: Readonly<{ currentPoints: number; thresholds: readonly Readonly<{ points: number; reached: boolean; rewarded: boolean; rewardLabel: string }>[] }>
   canJoin: boolean
   gameA: Readonly<{
     available: boolean
@@ -613,6 +616,7 @@ export type EventDto = Readonly<{
 }>
 
 export type EventJoinDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }> }>
+export type EventDailyBonusClaimDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }> }>
 export type EventGameAAttemptDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; attempt: Readonly<{ succeeded: boolean }> }>
 export type EventGameBAttemptDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; attempt: Readonly<{ kind: 'ALREADY_TESTED' | 'INCORRECT' | 'CORRECT' }> }>
 export type EventGameCRecipientQuery = Readonly<{ query: string; elementKey: ElementKey | null; sort: 'name' | 'level'; direction: 'asc' | 'desc'; page: number }>

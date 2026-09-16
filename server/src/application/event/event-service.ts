@@ -7,6 +7,9 @@ import type { RandomSource } from '../../domain/wheel/wheel.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
 import { BusinessError } from '../errors.js';
 import { MAX_PLAYER_LEVEL, XP_PER_LEVEL } from '../../domain/player/player-progression.js';
+import { elementKeys, isElementKey, particleResourceKey, type ResourceKey } from '../../domain/economy/resources.js';
+import { EVENT_MILESTONES, milestoneParticleElement } from '../../domain/event/milestones.js';
+import { PrismaEconomyService } from '../../infrastructure/database/prisma-economy-service.js';
 import { reconcileEventMessageAggregate } from '../notification/event-message-notifications.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
 import { eligibleContactRecipient } from '../social/contact-permission.js';
@@ -43,6 +46,8 @@ const gameCThemes = {
   'new-year': 'Vœu', hearts: 'Mot doux', spring: 'Graine', bells: 'Chocolat', flowers: 'Mot printanier', summer: 'Lettre',
   stars: 'Vœu', adventurers: 'Carnet', harvest: 'Panier', shadows: 'Sort', mists: 'Murmure', christmas: 'Carte',
 } as const;
+
+const economy = new PrismaEconomyService();
 
 type Definition = Readonly<{
   id: string;
@@ -152,8 +157,9 @@ export class EventService {
             const gameB = await tx.eventGameBDailyState.findUniqueOrThrow({ where: { eventEditionId_businessDate: { eventEditionId: context.edition.id, businessDate: businessDateToDatabaseDate(context.period.businessDate) } }, select: { solvedAt: true } });
             const lateReward = gameB.solvedAt !== null;
             await tx.eventParticipant.create({
-              data: { eventEditionId: context.edition.id, playerId: player.id, points: lateReward ? 1 : 0, joinedAt: now },
+              data: { eventEditionId: context.edition.id, playerId: player.id, points: 0, joinedAt: now },
             });
+            if (lateReward) await this.awardEventPoints(tx, context, player.id, 1, now);
             await tx.playerEventCurrencyBalance.upsert({
               where: { playerId_eventDefinitionId: { playerId: player.id, eventDefinitionId: context.definition.id } },
               create: { playerId: player.id, eventDefinitionId: context.definition.id, amount: lateReward ? 2n : 1n, updatedAt: now },
@@ -226,7 +232,7 @@ export class EventService {
           const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'event.game-a.attempt', sourceChannel: SourceChannel.UI, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request: { editionId: context.edition.id, businessDate: context.period.businessDate } } } });
           await tx.eventDailyPlayerState.update({ where: { eventEditionId_playerId_businessDate: { eventEditionId: context.edition.id, playerId: player.id, businessDate: businessDateToDatabaseDate(context.period.businessDate) } }, data: { gameAAttempts: { increment: 1 }, gameASuccess: succeeded, gameALastAttemptAt: now, updatedAt: now } });
           if (succeeded) {
-            await tx.eventParticipant.update({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: player.id } }, data: { points: { increment: 1 } } });
+            await this.awardEventPoints(tx, context, player.id, 1, now);
             await tx.playerEventCurrencyBalance.upsert({ where: { playerId_eventDefinitionId: { playerId: player.id, eventDefinitionId: context.definition.id } }, create: { playerId: player.id, eventDefinitionId: context.definition.id, amount: 1n, updatedAt: now }, update: { amount: { increment: 1n }, updatedAt: now } });
           }
           await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request: { editionId: context.edition.id, businessDate: context.period.businessDate }, succeeded } } });
@@ -280,14 +286,14 @@ export class EventService {
             if (kind === 'CORRECT') {
               const participants = await tx.eventParticipant.findMany({ where: { eventEditionId: context.edition.id }, orderBy: { playerId: 'asc' }, select: { playerId: true } });
               for (const entry of participants) {
-                await tx.eventParticipant.update({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: entry.playerId } }, data: { points: { increment: 1 } } });
+                await this.awardEventPoints(tx, context, entry.playerId, 1, now);
                 await tx.playerEventCurrencyBalance.upsert({ where: { playerId_eventDefinitionId: { playerId: entry.playerId, eventDefinitionId: context.definition.id } }, create: { playerId: entry.playerId, eventDefinitionId: context.definition.id, amount: 1n, updatedAt: now }, update: { amount: { increment: 1n }, updatedAt: now } });
               }
             }
           }
           await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request: { editionId: context.edition.id, businessDate: context.period.businessDate, code }, kind } } });
           return { ...await this.snapshot(tx, player.id, context, now, false), operation: { id: operation.id, alreadyProcessed: false }, attempt: { kind } };
-        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30_000 });
       } catch (error) {
         if (retry < 3 && isPrismaConcurrencyCollision(error)) continue;
         throw error;
@@ -351,7 +357,7 @@ export class EventService {
           const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'event.game-c.send', sourceChannel: SourceChannel.UI, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request } } });
           await tx.eventSocialMessage.create({ data: { eventEditionId: context.edition.id, businessDate: businessDateToDatabaseDate(context.period.businessDate), senderPlayerId: player.id, recipientPlayerId, content, createdAt: now } });
           await tx.eventDailyPlayerState.update({ where: { eventEditionId_playerId_businessDate: { eventEditionId: context.edition.id, playerId: player.id, businessDate: businessDateToDatabaseDate(context.period.businessDate) } }, data: { gameCSent: true, updatedAt: now } });
-          await tx.eventParticipant.update({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: player.id } }, data: { points: { increment: 1 } } });
+          await this.awardEventPoints(tx, context, player.id, 1, now);
           await tx.playerEventCurrencyBalance.upsert({ where: { playerId_eventDefinitionId: { playerId: player.id, eventDefinitionId: context.definition.id } }, create: { playerId: player.id, eventDefinitionId: context.definition.id, amount: 1n, updatedAt: now }, update: { amount: { increment: 1n }, updatedAt: now } });
           await reconcileEventMessageAggregate(tx, recipientPlayerId, context.edition.id, context.period.businessDate, now, true);
           await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request } } });
@@ -376,6 +382,76 @@ export class EventService {
       await reconcileEventMessageAggregate(tx, player.id, context.edition.id, context.period.businessDate, now);
       return this.snapshot(tx, player.id, context, now, false);
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  }
+
+  public async claimDailyBonus(identity: AuthenticatedIdentity, idempotencyKey: string) {
+    const player = await this.getPlayer.execute(identity);
+    const now = this.clock.now();
+    const context = await this.resolveCurrentEdition(this.database, now);
+    await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
+    for (let retry = 0; retry < 4; retry += 1) {
+      try {
+        return await this.database.$transaction(async (tx) => {
+          await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
+          const previous = await tx.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey } });
+          if (previous) {
+            const request = readRecord(readRecord(previous.resultSummary)?.request);
+            if (previous.playerId !== player.id || previous.operationType !== 'event.daily-bonus.claim' || previous.status !== OperationStatus.COMPLETED || request?.editionId !== context.edition.id || request.businessDate !== context.period.businessDate) throw new BusinessError('EVENT_DAILY_BONUS_IDEMPOTENCY_CONFLICT', 'Cette clé d’idempotence appartient à une autre réclamation.');
+            return { ...await this.snapshot(tx, player.id, context, now, false), operation: { id: previous.id, alreadyProcessed: true } };
+          }
+          const participant = await tx.eventParticipant.findUnique({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: player.id } }, select: { playerId: true } });
+          if (!participant) throw new BusinessError('EVENT_NOT_JOINED', 'Rejoignez le Festival avant de réclamer le bonus.');
+          const daily = await this.ensureDailyState(tx, context.edition.id, player.id, context.period.businessDate, now);
+          if (daily.dailyBonusClaimed) throw new BusinessError('EVENT_DAILY_BONUS_ALREADY_CLAIMED', 'Le bonus du Festival est déjà réclamé aujourd’hui.');
+          const request = { editionId: context.edition.id, businessDate: context.period.businessDate };
+          const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'event.daily-bonus.claim', sourceChannel: SourceChannel.UI, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request } } });
+          await tx.eventDailyPlayerState.update({ where: { eventEditionId_playerId_businessDate: { eventEditionId: context.edition.id, playerId: player.id, businessDate: businessDateToDatabaseDate(context.period.businessDate) } }, data: { dailyBonusClaimed: true, updatedAt: now } });
+          await tx.playerEventCurrencyBalance.upsert({ where: { playerId_eventDefinitionId: { playerId: player.id, eventDefinitionId: context.definition.id } }, create: { playerId: player.id, eventDefinitionId: context.definition.id, amount: 1n, updatedAt: now }, update: { amount: { increment: 1n }, updatedAt: now } });
+          await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request } } });
+          return { ...await this.snapshot(tx, player.id, context, now, false), operation: { id: operation.id, alreadyProcessed: false } };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      } catch (error) {
+        if (retry < 3 && isPrismaConcurrencyCollision(error)) continue;
+        throw error;
+      }
+    }
+    throw new Error('Event daily bonus claim could not be completed.');
+  }
+
+  private async awardEventPoints(tx: Prisma.TransactionClient, context: Awaited<ReturnType<EventService['resolveCurrentEdition']>>, playerId: string, amount: number, now: Date) {
+    const participant = await tx.eventParticipant.update({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId } }, data: { points: { increment: amount } }, select: { points: true } });
+    await this.grantReachedEventMilestones(tx, context, playerId, participant.points, now);
+  }
+
+  private async grantReachedEventMilestones(tx: Prisma.TransactionClient, context: Awaited<ReturnType<EventService['resolveCurrentEdition']>>, playerId: string, points: number, now: Date) {
+    const reached = EVENT_MILESTONES.filter((milestone) => milestone <= points);
+    if (reached.length === 0) return;
+    const claims = await tx.eventMilestoneClaim.findMany({ where: { eventEditionId: context.edition.id, playerId }, select: { milestone: true } });
+    const claimed = new Set(claims.map(({ milestone }) => milestone));
+    const player = await tx.player.findUniqueOrThrow({ where: { id: playerId }, select: { elementKey: true } });
+    const personalElement = player.elementKey && isElementKey(player.elementKey) ? player.elementKey : null;
+    for (const milestone of reached) {
+      if (claimed.has(milestone)) continue;
+      let resourceKey: ResourceKey | null = null;
+      let resourceAmount = 0n;
+      let currencyAmount = 0n;
+      if (milestone === 10 || milestone === 30) {
+        const element = milestoneParticleElement(milestone, personalElement, this.random);
+        resourceKey = particleResourceKey(element);
+        resourceAmount = 500n;
+      } else if (milestone === 50) { resourceKey = 'moras'; resourceAmount = 50_000n; }
+      else if (milestone === 70) { resourceKey = 'primogems'; resourceAmount = 1_600n; }
+      else currencyAmount = BigInt(milestone === 20 ? 1 : milestone === 40 ? 2 : milestone === 60 ? 5 : 10);
+      const operation = await tx.businessOperation.create({ data: {
+        playerId, operationType: 'event.milestone.reward', sourceChannel: SourceChannel.SYSTEM,
+        idempotencyKey: `event-milestone:${context.edition.id}:${playerId}:${milestone}`,
+        status: OperationStatus.PENDING, resultSummary: { editionId: context.edition.id, milestone, resourceKey, resourceAmount: resourceAmount.toString(), currencyAmount: currencyAmount.toString() },
+      } });
+      await tx.eventMilestoneClaim.create({ data: { eventEditionId: context.edition.id, playerId, milestone, operationId: operation.id, claimedAt: now } });
+      if (resourceKey) await economy.credit(tx, { playerId, playerElementKey: personalElement, resourceKey, amount: resourceAmount, causeKey: `event.milestone.${milestone}`, domainKey: 'event', operationId: operation.id, sourceChannel: SourceChannel.SYSTEM });
+      if (currencyAmount > 0n) await tx.playerEventCurrencyBalance.upsert({ where: { playerId_eventDefinitionId: { playerId, eventDefinitionId: context.definition.id } }, create: { playerId, eventDefinitionId: context.definition.id, amount: currencyAmount, updatedAt: now }, update: { amount: { increment: currencyAmount }, updatedAt: now } });
+      await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now } });
+    }
   }
 
   public async resolveCurrentEdition(database: Database, now: Date) {
@@ -418,7 +494,7 @@ export class EventService {
     now: Date,
     materializeDaily: boolean,
   ) {
-    const [participant, balance, global, receivedMessages, player] = await Promise.all([
+    const [participant, balance, global, receivedMessages, player, milestoneClaims, resourceBalances] = await Promise.all([
       database.eventParticipant.findUnique({
         where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId } },
       }),
@@ -428,7 +504,11 @@ export class EventService {
       database.eventGameBDailyState.findUnique({ where: { eventEditionId_businessDate: { eventEditionId: context.edition.id, businessDate: businessDateToDatabaseDate(context.period.businessDate) } } }),
       database.eventSocialMessage.findMany({ where: { recipientPlayerId: playerId, eventEditionId: context.edition.id, businessDate: businessDateToDatabaseDate(context.period.businessDate) }, include: { sender: { select: { id: true, displayName: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] }),
       database.player.findUnique({ where: { id: playerId }, select: { status: true } }),
+      database.eventMilestoneClaim.findMany({ where: { eventEditionId: context.edition.id, playerId }, select: { milestone: true } }),
+      database.playerResourceBalance.findMany({ where: { playerId }, select: { resourceKey: true, amount: true } }),
     ]);
+    const resourcesByKey = new Map(resourceBalances.map(({ resourceKey, amount }) => [resourceKey, amount.toString()]));
+    const rewardedMilestones = new Set(milestoneClaims.map(({ milestone }) => milestone));
     const daily = participant && materializeDaily ? await this.ensureDailyState(database, context.edition.id, playerId, context.period.businessDate, now) : participant ? await database.eventDailyPlayerState.findUnique({ where: { eventEditionId_playerId_businessDate: { eventEditionId: context.edition.id, playerId, businessDate: businessDateToDatabaseDate(context.period.businessDate) } } }) : null;
     const gameA = this.gameAProjection(context.editionSnapshot.externalKey, context.period.businessDate, daily, now);
     if (!global) throw new Error('Event Game B daily state was not materialized.');
@@ -470,6 +550,9 @@ export class EventService {
         points: participant?.points ?? 0,
       },
       currency: { amount: (balance?.amount ?? 0n).toString() },
+      resources: { primogems: resourcesByKey.get('primogems') ?? '0', moras: resourcesByKey.get('moras') ?? '0', particles: Object.fromEntries(elementKeys.map((key) => [key, resourcesByKey.get(particleResourceKey(key)) ?? '0'])) },
+      dailyBonus: { claimedToday: daily?.dailyBonusClaimed ?? false, canClaim: Boolean(participant) && !(daily?.dailyBonusClaimed ?? false) },
+      milestones: { currentPoints: participant?.points ?? 0, thresholds: EVENT_MILESTONES.map((points) => ({ points, reached: (participant?.points ?? 0) >= points, rewarded: rewardedMilestones.has(points), rewardLabel: eventMilestoneRewardLabel(points, context.editionSnapshot.config.currency.label) })) },
       canJoin: !participant && now >= context.edition.startsAt && now < context.edition.endsAt,
       gameA,
       gameB: {
@@ -574,6 +657,15 @@ function parseConfig(value: unknown): FestivalConfig {
 
 function readRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function eventMilestoneRewardLabel(points: number, currencyLabel: string): string {
+  if (points === 10) return '500 particules d’un élément aléatoire';
+  if (points === 30) return '500 particules de votre élément';
+  if (points === 50) return '50 000 Moras';
+  if (points === 70) return '1 600 Primogemmes';
+  const amount = points === 20 ? 1 : points === 40 ? 2 : points === 60 ? 5 : 10;
+  return `${amount} ${currencyLabel}`;
 }
 
 function parseGameBResultKind(value: unknown): 'ALREADY_TESTED' | 'INCORRECT' | 'CORRECT' {
