@@ -13,7 +13,7 @@ import DailyCombatScreen, { type DailyCombatBoxBindings } from './DailyCombatScr
 import { unavailableMonthlyBoss } from '../combat/monthly-boss-unavailable'
 import { expeditionOverview } from '../expedition/expedition-presentation'
 import { createExpeditionClientSnapshot, type ExpeditionClientSnapshot } from '../expedition/expedition-client-snapshot'
-import { eventDailyDetail, eventHasActionableContentToday } from '../event/event-presentation'
+import { eventCurrencyLabel, eventDailyDetail, eventHasActionableContentToday } from '../event/event-presentation'
 import ContestScreen from './ContestScreen'
 import EventScreen from './EventScreen'
 import type { EventDailyBonusClaimDto, EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto } from '../api/types'
@@ -144,6 +144,7 @@ function DailiesScreen({ wheelToday, onSpinWheel, dailyRewardToday, dailyChallen
   const challengeStatus = challengeCompleted ? '✅ Terminé' : dailyChallenge.assigned && dailyChallenge.challenge ? `${dailyChallenge.challenge.displayName} · ${dailyChallenge.challenge.progress} / ${dailyChallenge.challenge.target}` : `Disponible — ${formatResourceAmount(dailyChallenge.purchaseCost)} Moras`
   const combatOverview = dailyCombatOverview(dailyCombat)
   const bossCompleted = monthlyBoss.attackState !== 'AVAILABLE'
+  const eventActionable = event ? eventHasActionableContentToday(event) : false
   const bossDetail = monthlyBoss.attackState === 'DEFEATED' ? 'Boss vaincu ce mois-ci.' : monthlyBoss.attackState === 'USED' ? 'Attaque effectuée.' : 'Une attaque disponible.'
   return <div className="screen-content activity-shell dailies-shell long-screen-layout"><ScreenHeader eyebrow="Activités" title="Quotidiennes" description="Retrouvez les activités du jour et leur disponibilité réelle." /><ScrollableScreenPanel className="dailies-frame" fixed={tabs}>{tab === 'overview' && <div className="dailies-overview">
     <div className="daily-overview-item" data-daily-activity="Récompense quotidienne"><DailyRewardCard variant="overview" today={dailyRewardToday} elementKey={elementKey} onClaim={onClaimDailyReward} /></div>
@@ -153,7 +154,7 @@ function DailiesScreen({ wheelToday, onSpinWheel, dailyRewardToday, dailyChallen
     <DailyOverviewCard title="Boss" status={bossCompleted ? '✅ Terminé' : 'À faire'} completed={bossCompleted} detail={bossDetail} onAccess={onOpenBoss} />
     <ExpeditionOverviewCard snapshot={expedition} monotonicNow={expeditionMonotonicNow} onAccess={onOpenExpedition ?? (() => onNavigate('characters-box'))} />
     <DailyOverviewCard title="Amitié" status="Bientôt disponible. Social et Amis ne sont pas encore implémentés." accessLabel="Accéder à Amitié — Social et Amis bientôt disponibles" />
-    <DailyOverviewCard title="Événement" status={event ? `${event.festival.emoji} ${event.festival.title}` : 'Synchronisation du Festival…'} detail={event ? `${eventDailyDetail(event)} · ${formatResourceAmount(event.currency.amount)} ${event.festival.currency.label}` : undefined} hideAction={event ? !eventHasActionableContentToday(event) : false} onAccess={() => onNavigate('activities-event')} />
+    <DailyOverviewCard title="Événement" status={event ? eventActionable ? `${event.festival.emoji} ${event.festival.title}` : '✅ Terminé' : 'Synchronisation du Festival…'} completed={Boolean(event) && !eventActionable} detail={event ? `${event.festival.title} · ${eventDailyDetail(event)} · ${formatResourceAmount(event.currency.amount)} ${eventCurrencyLabel(event.currency.amount, event.festival.currency)}` : undefined} hideAction={Boolean(event) && !eventActionable} onAccess={() => onNavigate('activities-event')} />
   </div>}{tab === 'wheel' && <WheelCard today={wheelToday} onSpin={onSpinWheel} />}{tab === 'challenge' && <DailyChallengeCard value={dailyChallenge} onPurchase={onPurchaseDailyChallenge} onSwitch={onSwitchDailyChallenge} onOpenParticleConversion={onOpenParticleConversion} onNavigate={onNavigate} />}</ScrollableScreenPanel></div>
 }
 

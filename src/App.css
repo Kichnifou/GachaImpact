@@ -7406,7 +7406,7 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .event-milestone-progress { min-width: 0; display: grid; gap: 6px; padding: 10px 14px; border: 1px solid rgba(244, 200, 103, .22); border-radius: 12px; background: rgba(18, 34, 59, .92); }
 .event-milestone-summary { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; color: #e9f3ff; font-size: 12px; }
 .event-milestone-summary span { color: var(--muted); font-size: 10px; }
-.event-milestone-track-scroll { min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+.event-milestone-track-scroll { min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
 .event-milestone-track { position: relative; min-width: 720px; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
 .event-milestone-track::before { content: ''; position: absolute; top: 9px; left: 6.25%; right: 6.25%; height: 2px; background: rgba(104, 146, 205, .35); }
 .event-milestone-fill { position: absolute; top: 9px; left: 6.25%; height: 2px; max-width: 87.5%; background: #f4c867; }

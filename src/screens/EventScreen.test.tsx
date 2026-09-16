@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { readFileSync } from 'node:fs'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -12,7 +13,7 @@ afterEach(() => { act(() => roots.splice(0).forEach((root) => root.unmount())); 
 
 const beforeJoin: EventDto = {
   businessDate: '2026-09-15', refreshAfterMs: 3600000,
-  festival: { key: 'harvest', month: 9, title: 'Festival des Récoltes', emoji: '\u{1F33E}', currency: { key: 'harvest-tokens', label: 'Jetons de Récolte', emoji: '\u{1F33E}' }, collection: { key: 'harvest-sheaf', label: 'Gerbe de Récolte' } },
+  festival: { key: 'harvest', month: 9, title: 'Festival des Récoltes', emoji: '\u{1F33E}', currency: { key: 'harvest-tokens', label: 'Jetons de Récolte', unit: 'Jeton de Récolte', emoji: '\u{1F33E}' }, collection: { key: 'harvest-sheaf', label: 'Gerbe de Récolte' } },
   edition: { id: 'edition-2026', year: 2026, startsAt: '2026-08-31T22:00:00.000Z', endsAt: '2026-09-30T22:00:00.000Z' },
   participation: { joined: false, joinedAt: null, points: 0 }, currency: { amount: '0' }, canJoin: true,
   dailyBonus: { claimedToday: false, canClaim: false }, milestones: { currentPoints: 0, thresholds: [] },
@@ -45,6 +46,9 @@ describe('EventScreen presentation', () => {
     const onClaimDailyBonus = vi.fn(async () => claimed)
     const mounted = mount({ value: afterJoin, onClaimDailyBonus })
     expect(mounted.container.textContent).toContain('+1 Jeton de Récolte')
+    const bonus = mounted.container.querySelector('.event-daily-bonus')!
+    const participation = mounted.container.querySelector('.event-foundation-card')!
+    expect(bonus.compareDocumentPosition(participation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     await act(async () => { Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-daily-bonus button')).find((button) => button.textContent === 'Réclamer')!.click(); await Promise.resolve() })
     expect(onClaimDailyBonus).toHaveBeenCalledWith(expect.any(String))
     act(() => mounted.root.render(<EventScreen {...mounted.props} value={claimed} />))
@@ -61,11 +65,17 @@ describe('EventScreen presentation', () => {
     const progress = container.querySelector<HTMLElement>('[role="progressbar"]')!
     expect(progress.getAttribute('aria-valuenow')).toBe(String(Math.min(points, 80)))
     expect(container.querySelector('.event-milestone-summary')?.textContent).toContain(`${points} points`)
+    expect(container.querySelector('.event-milestone-summary')?.textContent).toContain('Votre progression')
+    expect(container.querySelector('.event-milestone-summary')?.textContent).not.toContain('Progression vers 80 points')
     expect(container.querySelectorAll('.event-milestone-marker')).toHaveLength(8)
     expect(container.querySelectorAll('.event-milestone-marker.rewarded')).toHaveLength(thresholds.filter((threshold) => threshold.rewarded).length)
     selectGames(container)
     expect(container.querySelector('[role="progressbar"]')).toBe(progress)
     expect(container.querySelector('.event-milestone-summary')?.textContent).toContain(`${points} points`)
+  })
+  it('keeps horizontal milestone scrolling without a vertical scrollbar', () => {
+    const css = readFileSync('src/App.css', 'utf8')
+    expect(css).toMatch(/\.event-milestone-track-scroll\s*\{[^}]*overflow-x:\s*auto;[^}]*overflow-y:\s*hidden;/s)
   })
   it('refreshes on entry and opens the registration summary first', async () => {
     const mounted = mount()

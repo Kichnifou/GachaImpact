@@ -182,7 +182,7 @@ export default function EventScreen({ value, onLoad, onJoin, onClaimDailyBonus, 
       setIntentKey(null)
       const presentation = eventPresentation(result.festival.key)
       setAttemptFeedback(result.attempt.succeeded
-        ? { kind: 'success', message: `Réussite ! +1 point et +1 ${presentation.currencyUnit}.` }
+        ? { kind: 'success', message: `Réussite ! +1 point et +1 ${value.festival.currency.unit}.` }
         : { kind: 'failure', message: presentation.gameAFailure })
     } catch (reason) {
       if (!isAmbiguousMutationError(reason)) setIntentKey(null)
@@ -231,7 +231,7 @@ export default function EventScreen({ value, onLoad, onJoin, onClaimDailyBonus, 
     try {
       await onSendGameC(intent.recipientPlayerId, intent.message, intent.key)
       setGameCIntent(null)
-      setGameCFeedback(`Message envoyé. +1 point et +1 ${presentation.currencyUnit}.`)
+      setGameCFeedback(`Message envoyé. +1 point et +1 ${value.festival.currency.unit}.`)
     } catch (reason) {
       if (!isAmbiguousMutationError(reason)) setGameCIntent(null)
       setError(apiErrorMessage(reason))
@@ -246,7 +246,7 @@ export default function EventScreen({ value, onLoad, onJoin, onClaimDailyBonus, 
   const milestoneProgress = Math.min(87.5, Math.max(0, (value.milestones.currentPoints - 10) / 70 * 87.5))
   const tabs = <>
     <section className="event-milestone-progress" aria-label="Progression du Festival">
-      <div className="event-milestone-summary"><strong>{formatResourceAmount(String(value.milestones.currentPoints))} points</strong><span>{value.milestones.currentPoints >= 80 ? 'Tous les paliers atteints' : 'Progression vers 80 points'}</span></div>
+      <div className="event-milestone-summary"><strong>{formatResourceAmount(String(value.milestones.currentPoints))} points</strong><span>Votre progression</span></div>
       <div className="event-milestone-track-scroll"><div className="event-milestone-track">
         <span className="event-milestone-fill" role="progressbar" aria-label="Paliers du Festival" aria-valuemin={0} aria-valuemax={80} aria-valuenow={Math.min(80, value.milestones.currentPoints)} style={{ width: `${milestoneProgress}%` }} />
         {value.milestones.thresholds.map((threshold) => <div className={`event-milestone-marker${threshold.rewarded ? ' rewarded' : threshold.reached ? ' reached' : ''}`} key={threshold.points}><span aria-hidden="true">◆</span><strong>{threshold.points}</strong><small>{threshold.rewardLabel}</small></div>)}
@@ -283,13 +283,14 @@ export default function EventScreen({ value, onLoad, onJoin, onClaimDailyBonus, 
         <section className="panel event-stat"><span>Collection de l’édition</span><strong>{value.festival.collection.label}</strong></section>
       </div>
 
+      {value.participation.joined && <section className="panel event-daily-bonus"><div><span className="eyebrow">Bonus quotidien</span><h2>+1 {value.festival.currency.unit}</h2><p>Une fois par jour pendant le Festival.</p></div>{value.dailyBonus.claimedToday ? <strong>Réclamé aujourd’hui</strong> : <button type="button" className="small-primary-button" disabled={!value.dailyBonus.canClaim || pending || !onClaimDailyBonus} onClick={() => void claimDailyBonus()}>{pending ? 'Réclamation…' : 'Réclamer'}</button>}</section>}
       <section className="panel event-foundation-card">
-        <div><span className="eyebrow">Participation volontaire</span><h2>{value.participation.joined ? 'Votre inscription est enregistrée' : `Recevez 1 ${presentation.currencyUnit}`}</h2><p>Votre solde restera associé à ce Festival entre les années.</p></div>
+        <div><span className="eyebrow">Participation volontaire</span><h2>{value.participation.joined ? 'Votre inscription est enregistrée' : `Recevez 1 ${value.festival.currency.unit}`}</h2><p>Votre solde restera associé à ce Festival entre les années.</p></div>
         {value.participation.joined
           ? <span className="event-joined-status">Événement rejoint</span>
           : <button type="button" className="small-primary-button" disabled={!value.canJoin || pending} onClick={() => void join()}>{pending ? 'Inscription…' : 'Rejoindre l’événement'}</button>}
       </section>
-      {value.participation.joined && <section className="panel event-daily-bonus"><div><span className="eyebrow">Bonus quotidien</span><h2>+1 {presentation.currencyUnit}</h2><p>Une fois par jour pendant le Festival.</p></div>{value.dailyBonus.claimedToday ? <strong>Réclamé aujourd’hui</strong> : <button type="button" className="small-primary-button" disabled={!value.dailyBonus.canClaim || pending || !onClaimDailyBonus} onClick={() => void claimDailyBonus()}>{pending ? 'Réclamation…' : 'Réclamer'}</button>}</section>}</>}
+      </>}
       {section === 'games' && gameTab === 0 && value.participation.joined && <section className="panel event-game-a" data-theme={value.gameA.theme.key}>
         <div className="event-game-a-heading"><div><span className="eyebrow">Jeu du Festival</span><h2>{presentation.games[0]}</h2></div><span className={`event-game-a-day-state${value.gameA.completedToday ? ' complete' : expiredToday ? ' expired' : ''}`}>{value.gameA.completedToday ? 'Réussi aujourd’hui' : expiredToday ? 'Délai dépassé...' : 'À réussir aujourd’hui'}</span></div>
         <div className="event-game-a-windows">

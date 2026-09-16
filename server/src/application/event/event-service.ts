@@ -9,6 +9,7 @@ import { BusinessError } from '../errors.js';
 import { MAX_PLAYER_LEVEL, XP_PER_LEVEL } from '../../domain/player/player-progression.js';
 import { elementKeys, isElementKey, particleResourceKey, type ResourceKey } from '../../domain/economy/resources.js';
 import { EVENT_MILESTONES, milestoneParticleElement } from '../../domain/event/milestones.js';
+import { eventCurrencyName, eventCurrencyUnit } from '../../domain/event/currency-presentation.js';
 import { PrismaEconomyService } from '../../infrastructure/database/prisma-economy-service.js';
 import { reconcileEventMessageAggregate } from '../notification/event-message-notifications.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
@@ -535,7 +536,7 @@ export class EventService {
         month: context.editionSnapshot.calendarMonth,
         title: context.editionSnapshot.displayName,
         emoji: context.editionSnapshot.config.emoji,
-        currency: { key: context.editionSnapshot.currencyKey, ...context.editionSnapshot.config.currency },
+        currency: { key: context.editionSnapshot.currencyKey, ...context.editionSnapshot.config.currency, unit: eventCurrencyUnit(context.editionSnapshot.externalKey) },
         collection: context.editionSnapshot.config.collection,
       },
       edition: {
@@ -552,7 +553,7 @@ export class EventService {
       currency: { amount: (balance?.amount ?? 0n).toString() },
       resources: { primogems: resourcesByKey.get('primogems') ?? '0', moras: resourcesByKey.get('moras') ?? '0', particles: Object.fromEntries(elementKeys.map((key) => [key, resourcesByKey.get(particleResourceKey(key)) ?? '0'])) },
       dailyBonus: { claimedToday: daily?.dailyBonusClaimed ?? false, canClaim: Boolean(participant) && !(daily?.dailyBonusClaimed ?? false) },
-      milestones: { currentPoints: participant?.points ?? 0, thresholds: EVENT_MILESTONES.map((points) => ({ points, reached: (participant?.points ?? 0) >= points, rewarded: rewardedMilestones.has(points), rewardLabel: eventMilestoneRewardLabel(points, context.editionSnapshot.config.currency.label) })) },
+      milestones: { currentPoints: participant?.points ?? 0, thresholds: EVENT_MILESTONES.map((points) => ({ points, reached: (participant?.points ?? 0) >= points, rewarded: rewardedMilestones.has(points), rewardLabel: eventMilestoneRewardLabel(points, eventCurrencyUnit(context.editionSnapshot.externalKey), context.editionSnapshot.config.currency.label) })) },
       canJoin: !participant && now >= context.edition.startsAt && now < context.edition.endsAt,
       gameA,
       gameB: {
@@ -659,13 +660,13 @@ function readRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
 }
 
-function eventMilestoneRewardLabel(points: number, currencyLabel: string): string {
+function eventMilestoneRewardLabel(points: number, currencyUnit: string, currencyLabel: string): string {
   if (points === 10) return '500 particules d’un élément aléatoire';
   if (points === 30) return '500 particules de votre élément';
   if (points === 50) return '50 000 Moras';
   if (points === 70) return '1 600 Primogemmes';
   const amount = points === 20 ? 1 : points === 40 ? 2 : points === 60 ? 5 : 10;
-  return `${amount} ${currencyLabel}`;
+  return eventCurrencyName(amount, currencyUnit, currencyLabel);
 }
 
 function parseGameBResultKind(value: unknown): 'ALREADY_TESTED' | 'INCORRECT' | 'CORRECT' {

@@ -12,7 +12,7 @@ const roots: Root[] = []
 const snapshot = (refreshAfterMs: number, completedToday = false, businessDate = '2026-09-15'): EventDto => ({
   businessDate,
   refreshAfterMs,
-  festival: { key: 'harvest', month: 9, title: 'Festival des Récoltes', emoji: '🌾', currency: { key: 'harvest-tokens', label: 'Jetons de Récolte', emoji: '🌾' }, collection: { key: 'harvest-sheaf', label: 'Gerbe de Récolte' } },
+  festival: { key: 'harvest', month: 9, title: 'Festival des Récoltes', emoji: '🌾', currency: { key: 'harvest-tokens', label: 'Jetons de Récolte', unit: 'Jeton de Récolte', emoji: '🌾' }, collection: { key: 'harvest-sheaf', label: 'Gerbe de Récolte' } },
   edition: { id: 'edition-2026', year: 2026, startsAt: '2026-08-31T22:00:00.000Z', endsAt: '2026-09-30T22:00:00.000Z' },
   participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: completedToday ? 1 : 0 },
   currency: { amount: completedToday ? '2' : '1' },

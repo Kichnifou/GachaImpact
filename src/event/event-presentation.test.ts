@@ -2,11 +2,11 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 import type { EventDto } from '../api/types'
-import { eventDailyDetail, eventHasActionableContentToday, eventPresentation } from './event-presentation'
+import { eventCurrencyLabel, eventDailyDetail, eventHasActionableContentToday, eventPresentation } from './event-presentation'
 
 const event = (joined: boolean, completedToday: boolean, states: readonly ('PAST' | 'ACTIVE' | 'FUTURE')[], canJoin = !joined): EventDto => ({
   businessDate: '2026-09-15', refreshAfterMs: 1000,
-  festival: { key: 'harvest', month: 9, title: 'Festival des Récoltes', emoji: '', currency: { key: 'harvest-tokens', label: 'Jetons de Récolte', emoji: '' }, collection: { key: 'harvest-sheaf', label: 'Gerbe de Récolte' } },
+  festival: { key: 'harvest', month: 9, title: 'Festival des Récoltes', emoji: '', currency: { key: 'harvest-tokens', label: 'Jetons de Récolte', unit: 'Jeton de Récolte', emoji: '' }, collection: { key: 'harvest-sheaf', label: 'Gerbe de Récolte' } },
   edition: { id: 'edition', year: 2026, startsAt: '', endsAt: '' },
   participation: { joined, joinedAt: joined ? '2026-09-15T08:00:00.000Z' : null, points: 0 }, currency: { amount: '1' }, canJoin,
   dailyBonus: { claimedToday: true, canClaim: false }, milestones: { currentPoints: 0, thresholds: [] },
@@ -16,14 +16,9 @@ const event = (joined: boolean, completedToday: boolean, states: readonly ('PAST
 })
 
 describe('Event presentation', () => {
-  it('maps all twelve immutable Festival themes and singular currencies', () => {
-    expect(Object.fromEntries([
-      'new-year', 'hearts', 'spring', 'bells', 'flowers', 'summer', 'stars', 'adventurers', 'harvest', 'shadows', 'mists', 'christmas',
-    ].map((key) => [key, eventPresentation(key).currencyUnit]))).toEqual({
-      'new-year': 'Éclat de Fortune', hearts: 'Cœur Étincelant', spring: 'Bourgeon Mystique', bells: 'Œuf Enchanté',
-      flowers: 'Pétale Magique', summer: 'Coquillage Doré', stars: 'Étoile Tombée', adventurers: 'Relique d’Exploration',
-      harvest: 'Jeton de Récolte', shadows: 'Bonbon Maudit', mists: 'Feuille Ancienne', christmas: 'Étoile de Noël',
-    })
+  it('uses the authoritative singular or plural from the Festival projection', () => {
+    expect(eventCurrencyLabel('1', event(true, false, []).festival.currency)).toBe('Jeton de Récolte')
+    expect(eventCurrencyLabel('2', event(true, false, []).festival.currency)).toBe('Jetons de Récolte')
     expect(eventPresentation('harvest').games).toEqual(['Récolte', 'Grenier', 'Panier'])
   })
 

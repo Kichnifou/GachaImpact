@@ -573,7 +573,7 @@ export type EventDto = Readonly<{
     month: number
     title: string
     emoji: string
-    currency: Readonly<{ key: string; label: string; emoji: string }>
+    currency: Readonly<{ key: string; label: string; unit: string; emoji: string }>
     collection: Readonly<{ key: string; label: string }>
   }>
   edition: Readonly<{ id: string; year: number; startsAt: string; endsAt: string }>

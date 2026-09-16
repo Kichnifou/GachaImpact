@@ -90,7 +90,7 @@ describe('GameShell Expedition deep-link', () => {
     expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.combat-tabs button')).find((button) => button.classList.contains('active'))?.textContent).toBe('Boss')
     const event = {
       businessDate: '2026-09-15', refreshAfterMs: 3600000,
-      festival: { key: 'harvest', month: 9, title: 'Festival des Récoltes', emoji: '🌾', currency: { key: 'harvest-tokens', label: 'Jetons de Récolte', emoji: '🌾' }, collection: { key: 'harvest-sheaf', label: 'Gerbe de Récolte' } },
+      festival: { key: 'harvest', month: 9, title: 'Festival des Récoltes', emoji: '🌾', currency: { key: 'harvest-tokens', label: 'Jetons de Récolte', unit: 'Jeton de Récolte', emoji: '🌾' }, collection: { key: 'harvest-sheaf', label: 'Gerbe de Récolte' } },
       edition: { id: 'event-edition', year: 2026, startsAt: '2026-08-31T22:00:00Z', endsAt: '2026-09-30T22:00:00Z' },
       participation: { joined: false, joinedAt: null, points: 0 }, currency: { amount: '0' }, canJoin: true,
       dailyBonus: { claimedToday: false, canClaim: false }, milestones: { currentPoints: 0, thresholds: [] },

@@ -121,7 +121,7 @@ describe('monthly Event period resolution', () => {
 
     expect(result.festival).toEqual({
       key: 'harvest', month: 9, title: 'Festival des Récoltes', emoji: '🌾',
-      currency: { key: 'harvest-tokens', label: 'Jetons de Récolte', emoji: '🌾' },
+      currency: { key: 'harvest-tokens', label: 'Jetons de Récolte', unit: 'Jeton de Récolte', emoji: '🌾' },
       collection: { key: 'harvest-sheaf', label: 'Gerbe de Récolte' },
     });
     expect(result.currency.amount).toBe('7');
