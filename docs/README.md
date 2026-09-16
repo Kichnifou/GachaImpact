@@ -52,7 +52,7 @@ Le code courant comprend au minimum `src/` pour le frontend et `server/` pour le
 4. [Ordre d'implémentation V1](roadmap/implementation-order-v1.md)
 5. [Journal des décisions](specifications/decisions-log.md)
 6. [Architecture backend cible](architecture/backend-architecture-v1.md), [schéma PostgreSQL cible](architecture/postgresql-schema-v1.md), [shell de navigation V1](specifications/navigation-shell-v1.md) et [contrat de layout UI V1](specifications/ui-layout-contract-v1.md)
-7. audit du domaine actif indiqué par le Master — actuellement [Missions / Daily](legacy/11-missions-daily-audit.md), pour le vertical Quotidiennes / Défi candidat
+7. audit spécialisé du domaine actif indiqué par le Master, sans recopier ici un checkpoint susceptible de changer.
 
 Le Guide décrit l'ordre complet, incluant la vérification du HEAD et la comparaison entre cible documentaire et état physique. Il ne faut pas charger tous les audits dans chaque nouvelle conversation.
 

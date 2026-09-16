@@ -36,19 +36,21 @@ Ce fichier n’est pas un tracker vivant et ne doit pas être modifié pour enre
 7. **Banque, Sac, Boutique et économie secondaire**.
 
 8. **Boucle Quotidiennes plus complète**
-   - Récompense quotidienne, Roue, missions quotidiennes, Combat, Expédition et futur écran Quotidiennes.
+   - Récompense quotidienne, Roue, missions quotidiennes, Combat, Expédition et écran Quotidiennes.
    - Le choix UX du raccourci/carrousel de quotidiennes sur l’Accueil reste reporté à une décision du propriétaire.
 
-## Gates du checkpoint courant
+## Gates transverses avant une étape suivante
 
-Le candidat 0.92 matérialise Concours / personnages C6. Sa review indépendante et sa validation publique restent requises avant d’ouvrir l’étape suivante. Expedition READY/notification/claim, Combat défaite/KO, Boss vaincu/notification et rollover/historique Boss réel restent également des validations publiques ouvertes ; leur état vivant appartient uniquement au Master.
+Avant d'ouvrir une étape suivante, vérifier dans le Master que le lot précédent a atteint le niveau de review, de déploiement et de validation publique requis. Les scénarios temporels et d'historique non encore validés doivent rester explicitement ouverts dans ce checkpoint vivant, sans être recopiés ici comme état actuel.
 
-## Trajectoire V1 restante après Boss
+## Trajectoire V1 de référence après Boss
 
-1. **Concours / personnages C6** — candidat 0.92 physiquement implémenté selon [15-concours-c6-audit.md](../legacy/15-concours-c6-audit.md), en attente de review et validation publique.
-2. **Collection / Sac à compléter** — achever les surfaces et règles restantes de [10-sac-coffre-shop-audit.md](../legacy/10-sac-coffre-shop-audit.md), avec les possessions de [07-box-possession-obtention-audit.md](../legacy/07-box-possession-obtention-audit.md).
-3. **Codes cadeaux** — implémenter [19-codes-cadeaux-audit.md](../legacy/19-codes-cadeaux-audit.md).
-4. **Événements mensuels** — implémenter [16-event-monthly-audit.md](../legacy/16-event-monthly-audit.md).
+Cette séquence inclut les domaines déjà traversés ; elle ne les déclare pas encore candidats ou restants. Seul le Master indique le point atteint.
+
+1. **Concours / personnages C6** — suivre [15-concours-c6-audit.md](../legacy/15-concours-c6-audit.md).
+2. **Collection / Sac à compléter** — selon [10-sac-coffre-shop-audit.md](../legacy/10-sac-coffre-shop-audit.md), avec les possessions de [07-box-possession-obtention-audit.md](../legacy/07-box-possession-obtention-audit.md).
+3. **Codes cadeaux** — selon [19-codes-cadeaux-audit.md](../legacy/19-codes-cadeaux-audit.md).
+4. **Événements mensuels** — selon [16-event-monthly-audit.md](../legacy/16-event-monthly-audit.md).
 5. **Votes de bannière communautaires** — compléter le domaine cadré dans [06-gacha-invocation-audit.md](../legacy/06-gacha-invocation-audit.md).
 6. **Profils joueurs / annuaire / présence** — suivre [14-ami-social-audit.md](../legacy/14-ami-social-audit.md).
 7. **Confidentialité et consultations publiques autorisées** — appliquer les règles de [14-ami-social-audit.md](../legacy/14-ami-social-audit.md).

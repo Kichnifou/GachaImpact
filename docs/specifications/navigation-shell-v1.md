@@ -1,6 +1,6 @@
 # Navigation et shell V1
 
-Statut : cible validée ; navigation physique publique, Event Lot 6 — Shop et Classement candidats sur `review`.
+Statut : contrat de navigation validé. L'état physique et le statut de review des lots appartiennent au Master.
 
 Ce document est la source de vérité de la navigation principale, du Menu global, de la Configuration du Menu et de l’architecture future du Tutoriel. Les audits métier restent propriétaires de leurs règles ; ce document fixe uniquement leurs points d’entrée dans le shell.
 

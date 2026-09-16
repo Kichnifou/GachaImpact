@@ -111,9 +111,9 @@ Les mécaniques temporelles doivent fonctionner indépendamment du navigateur : 
 
 La connexion, l'activité, la présence, le chat, les tâches temporelles et les mécaniques de jeu sont des responsabilités distinctes. Ne pas reproduire l'ancien fonctionnement dans lequel le premier message quotidien d'un joueur déclenchait artificiellement des traitements sans rapport avec le chat.
 
-## Administration future
+## Administration et extensions futures
 
-Un panneau administrateur privé sera créé ultérieurement pour gérer notamment les joueurs, ressources, bannières, événements, chat et modération, boss, récompenses et configuration du pont Twitch. Ne pas le créer avant qu'il soit explicitement demandé.
+Des outils privés de Modération et d'administration existent déjà. Le panneau complet pourra être étendu ultérieurement pour gérer notamment les joueurs, ressources, bannières, événements, chat, boss, récompenses et configuration du pont Twitch. Ne pas développer ces extensions avant une demande explicite ; l'état physique et les entrées existantes sont décrits par le Master et le contrat de navigation.
 
 ## État du produit : V0 existante et V1 métier future
 

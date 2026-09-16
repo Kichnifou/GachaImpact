@@ -1,6 +1,6 @@
 # Contrat de layout UI V1
 
-Statut : contrat transverse validé — extension physique candidate 0.98.
+Statut : contrat transverse validé. L'état physique courant des lots appartient au Master.
 
 Ce document est la source de vérité des règles de composition et de stabilité visuelle communes. Les documents métier restent propriétaires du contenu et des actions de chaque écran ; le shell de navigation reste propriétaire des destinations.
 

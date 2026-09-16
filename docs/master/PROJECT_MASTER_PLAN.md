@@ -7,6 +7,19 @@ But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de compren
 
 ---
 
+## Reprise rapide — état vivant
+
+- Production publique : `main` au checkpoint `8fece390a512bac08abfab553ec91227e1482060` (Event Lot 5 déployé et suffisamment validé publiquement sur ses principaux parcours).
+- Candidat : Event Lot 6 sur `review`, construit avec `061c43a` (finitions), `ed288e9` (Shop/Collection) et `0dbfa09` (Classement), puis les correctifs de consolidation `68febb6` (intention Shop) et `4707a87` (curseurs/test Boss) et ce checkpoint documentaire. Le commit parallèle Story `1a0fca5` reste intact dans l'historique ; il ne fait pas partie du produit Event.
+- Domaine actif : Événements mensuels. Les quatre sections Event sont réelles dans le candidat ; le Lot 6 n'est ni promu sur `main`, ni déployé, ni validé publiquement.
+- Base DEV : 25 migrations applicatives versionnées ; la 025 `20260917180000_025_add_event_shop_collection` est documentée comme appliquée et suivie par Prisma. Aucune action DB ou migration n'appartient à cette consolidation.
+- Infrastructure : `PAID_INFRA_APPROVED = false` ; `review` est une branche Git de pré-review, pas un staging. Aucune action Railway/Cloudflare manuelle n'est requise pour ce candidat.
+- Validation locale de consolidation : 74 fichiers / 579 tests frontend réussis sans exclusion ; lint et build réussis avec avertissements non bloquants. Restent la review indépendante du vrai diff GitHub du candidat complet, puis seulement promotion, déploiements automatiques Railway/Cloudflare et validation publique par le propriétaire.
+- Prochaine étape exacte : **review indépendante ChatGPT du candidat Lot 6 complet réellement poussé sur GitHub**. Les éventuels correctifs restent des commits séparés sur `review` ; aucune promotion automatique n'est autorisée par ce checkpoint.
+- Lire ensuite [le workflow](../process/implementation-workflow.md), [l'audit Event](../legacy/16-event-monthly-audit.md), [la navigation](../specifications/navigation-shell-v1.md), [le contrat UI](../specifications/ui-layout-contract-v1.md) et, pour la séquence future, [l'ordre V1](../roadmap/implementation-order-v1.md). Les sections de checkpoints ci-dessous sont des preuves historiques et peuvent conserver leur ancien contexte ; ce bloc est le pointeur vivant de reprise.
+
+---
+
 # 0. RÈGLE D'OR DU PROJET
 
 Ce document doit être considéré comme une **mémoire externe centrale** du projet.
@@ -2271,7 +2284,7 @@ docs/
 
 # 23. FEUILLE DE ROUTE HISTORIQUE — PLAN INITIAL
 
-Cette section conserve la trajectoire initiale et ses statuts d'époque. Elle n'est plus le tracker courant : l'état physique, le domaine actif et la prochaine étape se trouvent dans la section `# 38. PROCHAINE ÉTAPE EXACTE`, et l'ordre statique V1 dans `docs/roadmap/implementation-order-v1.md`.
+Cette section conserve la trajectoire initiale et ses statuts d'époque. Elle n'est plus le tracker courant : l'état physique, le domaine actif et la prochaine étape se trouvent dans le bloc **Reprise rapide — état vivant** au début du Master, et l'ordre statique V1 dans `docs/roadmap/implementation-order-v1.md`.
 
 ## PHASE 0 — Prototype visuel
 Statut : TRÈS AVANCÉ / QUASI VALIDÉ
@@ -2981,9 +2994,11 @@ Les systèmes ne doivent pas redéfinir chacun le nom/élément du personnage.
 
 ---
 
-# 35. RÈGLES DE TRAVAIL AVEC CODEX
+# 35. RÈGLES DE TRAVAIL AVEC CODEX — ARCHIVE
 
-Avant un développement important :
+Cette liste décrit l'ancien mode de travail. Pour une intervention actuelle, appliquer [AGENTS.md](../../AGENTS.md) et [le workflow](../process/implementation-workflow.md), notamment le commit et le push ciblé sur `review` après modification.
+
+Rappel historique avant un développement important :
 1. lire `AGENTS.md` ;
 2. lire les docs concernées ;
 3. inspecter les sources legacy si la fonctionnalité vient de Streamer.bot ;
@@ -2992,7 +3007,7 @@ Avant un développement important :
 6. tester lint/build ;
 7. tester desktop/mobile si UI ;
 8. lister les fichiers modifiés ;
-9. ne pas créer de commit sauf demande.
+9. ancienne règle « ne pas créer de commit sauf demande », remplacée par le workflow permanent.
 
 ---
 
@@ -3013,33 +3028,18 @@ ChatGPT doit :
 
 ---
 
-# 37. GIT / GITHUB
+# 37. GIT / GITHUB — ARCHIVE
 
 Dépôt public :
 `https://github.com/Kichnifou/GachaImpact`
 
-Workflow Git canonique du projet :
-
-```powershell
-git status
-git add .
-git commit -m "message adapté"
-git push
-git status
-```
-
-Toujours utiliser `git add .`.
-
-Avant chaque commit :
-- vérifier `git status` ;
-- s'assurer que les changements présents correspondent bien au checkpoint voulu ;
-- utiliser un message de commit adapté au lot réellement poussé.
-
-Après chaque push important, ChatGPT doit vérifier le commit réellement présent sur GitHub avant de poursuivre l'audit ou le développement.
+L'ancien conseil `git add .` / `git push` sans branche explicite est obsolète. Le [workflow actuel](../process/implementation-workflow.md) demande de vérifier le périmètre, d'indexer seulement les fichiers du lot, de pousser normalement sur `review` et de reviewer ensuite le vrai commit GitHub. Aucun push `main` ou force-push ne découle de cette archive.
 
 ---
 
-# 38. PROCHAINE ÉTAPE EXACTE
+# 38. HISTORIQUE DES AUDITS ET REPRISES PASSÉES — ARCHIVE
+
+Les formulations de reprise de cette section sont conservées comme checkpoints historiques et ne déterminent plus le domaine actif. Le pointeur vivant est le bloc **Reprise rapide — état vivant** au début du Master.
 
 Domaines clôturés :
 - `docs/legacy/04-xp-audit.md` — XP / cycle de vie joueur ;
@@ -3300,7 +3300,7 @@ Sont finalisés :
 - concurrence, idempotence et migration ;
 - producteurs et consommateurs.
 
-La reprise globale et le domaine actuellement actif sont indiqués uniquement dans la section `# 38. PROCHAINE ÉTAPE EXACTE`.
+La reprise globale et le domaine actuellement actif sont indiqués uniquement dans le bloc **Reprise rapide — état vivant** au début du Master.
 
 Dépendance future à conserver :
 - lors de l'audit `Top / Classements`, décider explicitement portefeuille vs patrimoine total pour les Moras ;
@@ -3561,7 +3561,7 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - squelette Fastify / TypeScript checkpointé ;
 - Prisma ORM 7.10.0 stable ;
 - Supabase DEV provisionné et connexion PostgreSQL fonctionnelle ;
-- vingt-deux migrations applicatives versionnées et suivies par Prisma, dont les migrations additives 020 Event Lot 1, 021 Event Jeu A et 022 Event Jeu B appliquées sur Supabase DEV ;
+- vingt-cinq migrations applicatives versionnées et suivies par Prisma, dont les migrations additives 020–025 des fondations Event, Jeux A/B/C, paliers et Shop/Collection appliquées sur Supabase DEV ;
 - les tables privées couvrent notamment possessions/C6, Gacha, préférences, Sac, Teams, Banque, Boutique, Défi, Combat, Expedition/Notifications, Boss, Concours, Codes, les fondations Event et l’état quotidien Event ;
 - référentiels seedés avec 7 éléments et 9 ressources ;
 - RLS activée sur les tables de fondation, sans policy client permissive ;
@@ -3901,9 +3901,10 @@ Le commit 0.95 `3e510307f49ffa389df902d35c83287ea0ebe96e` est désormais sur `ma
 
 ## Event Lot 6 — finitions, Boutique et Classement candidats sur review
 
-- Commit A `fix: polish event progression and daily completion` : Quotidiennes réutilise exactement `eventHasActionableContentToday` pour afficher soit le CTA, soit `✅ Terminé` en vert ; Shop et Classement ne sont jamais des daily. Après inscription, Bonus quotidien précède le statut Participation. Les douze monnaies ont un singulier explicite partagé par les feedbacks et les libellés de palier ; la barre affiche « Votre progression » et son conteneur horizontal interdit le scroll vertical parasite.
-- Commit B `feat: implement monthly event shop` : Shop est consultable sans inscription ; acheter exige une participation. Une monnaie saisonnière vaut exactement 160 Primogemmes ou 20 000 Moras, par quantité entière positive avec MAX côté interface. La balance durable Player + définition de Festival est débitée sous verrou dans une transaction sérialisable et idempotente ; les crédits standard créent les `ResourceMovement` via le moteur économique commun et sont republiés dans la sidebar. La carte Collection coûte 80 monnaies pour un exemplaire réel : `PlayerItem.quantity`, `ItemAcquisition` et le garde annuel `EventCollectionAcquisition` sont écrits atomiquement. Le Sac recharge son inventaire autoritatif après acquisition, sans F5. La migration additive 025 ne crée que la garde annuelle, avec RLS, droits directs révoqués, FK et index ; elle est appliquée et suivie par Prisma sur DEV, sans backfill ni modification des migrations 001–024.
-- Commit C `feat: implement monthly event ranking` : le Classement public de l'édition active lit les points `EventParticipant`, limite à dix et trie points décroissants, puis inscription et ID croissants en cas d'égalité. Un endpoint léger dédié est rafraîchi environ toutes les trois secondes uniquement pendant l'affichage visible du Classement, immédiatement au focus/retour visible et sans requêtes superposées ; il ne poll pas le snapshot Event complet. Le rang reste honorifique sans versement, claim ou notification.
+- Commit A `061c43a` (`fix: polish event progression and daily completion`) : Quotidiennes réutilise exactement `eventHasActionableContentToday` pour afficher soit le CTA, soit `✅ Terminé` en vert ; Shop et Classement ne sont jamais des daily. Après inscription, Bonus quotidien précède le statut Participation. Les douze monnaies ont un singulier explicite partagé par les feedbacks et les libellés de palier ; la barre affiche « Votre progression » et son conteneur horizontal interdit le scroll vertical parasite.
+- Commit B `ed288e9` (`feat: implement monthly event shop`) : Shop est consultable sans inscription ; acheter exige une participation. Une monnaie saisonnière vaut exactement 160 Primogemmes ou 20 000 Moras, par quantité entière positive avec MAX côté interface. La balance durable Player + définition de Festival est débitée sous verrou dans une transaction sérialisable et idempotente ; les crédits standard créent les `ResourceMovement` via le moteur économique commun et sont republiés dans la sidebar. La carte Collection coûte 80 monnaies pour un exemplaire réel : `PlayerItem.quantity`, `ItemAcquisition` et le garde annuel `EventCollectionAcquisition` sont écrits atomiquement. Le Sac recharge son inventaire autoritatif après acquisition, sans F5. La migration additive 025 ne crée que la garde annuelle, avec RLS, droits directs révoqués, FK et index ; elle est appliquée et suivie par Prisma sur DEV, sans backfill ni modification des migrations 001–024.
+- Commit C `0dbfa09` (`feat: implement monthly event ranking`) : le Classement public de l'édition active lit les points `EventParticipant`, limite à dix et trie points décroissants, puis inscription et ID croissants en cas d'égalité. Un endpoint léger dédié est rafraîchi environ toutes les trois secondes uniquement pendant l'affichage visible du Classement, immédiatement au focus/retour visible et sans requêtes superposées ; il ne poll pas le snapshot Event complet. Le rang reste honorifique sans versement, claim ou notification.
+- Consolidation `68febb6` : l'intention Shop (cible, quantité, UUID) survit aux changements d'onglet dans `EventScreen`, bloque synchroniquement le double clic, reprend le même retry ambigu et se réinitialise au changement de Player ou d'édition ; feedback exact en `BigInt` et libellé Collection neutre. Consolidation `4707a87` : curseurs d'actions ciblés et scénario d'historique Boss réparé sur le bouton accessible `Fermer`, sans exclusion de test. Le commit Story `1a0fca5` est conservé comme travail narratif parallèle et ne relève pas du domaine Event.
 - Les quatre sections Inscription, Jeux, Shop et Classement sont réelles ; aucune section factice ne reste. Le candidat Lot 6 attend la review indépendante du vrai diff GitHub, puis seulement sa promotion, les déploiements automatiques et la validation publique. L'historique Event transversal R633/R634, le Calendrier de Noël, le chat, Twitch, Realtime et la migration legacy restent reportés. Aucun `docs/Story/**` n'est modifié ; aucune promotion `main` ni déploiement manuel n'appartient à ce candidat.
 
 ## État déployé 0.92 — Concours / C6 et densité Boss
@@ -4057,12 +4058,7 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 - test public sans frontend/backend local : **VALIDÉ** — connexion, Player réel, élément et ressources persistants, état quotidien de la Roue restauré, logout/login et chaîne Cloudflare → Railway → Supabase ;
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
-Prochaine étape exacte :
-
-1. Effectuer la review indépendante ChatGPT du vrai diff GitHub des trois commits **Event Lot 6** A (finitions), B (Boutique/Collection) et C (Classement) sur `review`.
-2. Apporter sur `review` les éventuelles corrections et les revalider ; ne promouvoir qu'après approbation.
-3. Laisser ensuite les déploiements automatiques agir, vérifier Railway, `/health` et Cloudflare/frontend, puis obtenir la validation publique fonctionnelle et visuelle du Lot 6.
-4. Garder hors périmètre l'historique Event transversal, le Calendrier de Noël, Social complet, Twitch/chat et la migration legacy.
+Pour la prochaine étape exacte, consulter le bloc **Reprise rapide — état vivant** au début du Master. Après approbation de la review seulement : promotion contrôlée, déploiements automatiques, vérifications Railway et Cloudflare, puis validation publique du propriétaire. L'historique Event transversal, le Calendrier de Noël, Social complet, Twitch/chat et la migration legacy restent hors périmètre.
 
 L’ordre complet restant appartient à [implementation-order-v1.md](../roadmap/implementation-order-v1.md). La migration legacy reste reportée ; `PAID_INFRA_APPROVED = false` reste inchangé.
 

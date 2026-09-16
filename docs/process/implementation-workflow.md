@@ -69,6 +69,10 @@ Codex contrôle localement le code et la cohérence documentaire avant de publie
 
 Codex termine l’implémentation, exécute les tests automatisés pertinents, réalise une inspection visuelle locale réelle lorsqu’elle est utile et vérifie précisément le périmètre. Dès que l’intervention a modifié au moins un fichier, il crée ensuite un commit propre et le pousse normalement sur `review` dans cette même intervention, puis vérifie le SHA distant et laisse un worktree propre. Seules une intervention strictement read-only ou une instruction explicite `local uniquement` dispensent de commit/push.
 
+Le rapport de validation distingue explicitement ce qui a été **exécuté et réussi**, **exécuté et échoué**, **exclu**, **non exécuté** ou **reporté**. Un test exclu n'est pas un test réussi ; un échec préexistant n'est pas automatiquement « flaky ». Avant ce qualificatif, reproduire le test isolément et rechercher sa cause. Une capture statique vérifie un état visuel, pas un timer, une transition, une concurrence ou un retry : ces comportements exigent des interactions ou des tests dédiés. Une fixture créée puis nettoyée sur une base réelle reste une action DB à déclarer, même si aucune donnée durable n'est conservée.
+
+Les étapes ne se substituent pas les unes aux autres : validation locale ≠ candidat poussé sur `review` ≠ promotion sur `main` ≠ backend Railway déployé ≠ frontend Cloudflare déployé ≠ validation publique du propriétaire. Un Railway `SUCCESS` ne prouve pas le build ni l'affichage Cloudflare.
+
 Les tests PostgreSQL qui utilisent la base Supabase DEV partagée s’exécutent fichier par fichier (`fileParallelism: false` dans la configuration Vitest DB) afin qu’une fixture temporaire d’un domaine ne puisse pas être observée par les invariants d’un autre fichier. Chaque fichier reste responsable du suivi et du nettoyage transactionnel de ses propres fixtures, y compris après un échec ; les scénarios de concurrence métier explicites au sein d’un même fichier restent autorisés.
 
 L’isolation ne se limite jamais à créer un Player fixture. Avant d’exécuter un test qui publie, réconcilie, diffuse ou matérialise globalement, ses dépendances doivent être bornées aux UUID exacts du test : Players, définitions, éditions et notifications. Aucun paramètre d’audience de test n’est exposé par une route publique. Le cleanup ne cible que les identifiants suivis par l’exécution courante, jamais un préfixe partagé ; un test ne matérialise aucune édition fictive d’une définition réelle et ne publie aucune notification de test vers les comptes existants.
@@ -92,6 +96,8 @@ Le workflow Git permanent est le suivant :
 11. le checkpoint n’est marqué comme publiquement validé dans le Master qu’après la réussite de ce test.
 
 `review` est uniquement une branche de pré-review Git. Elle ne constitue pas un environnement staging, ne possède ni backend ni base séparés et ne permet de prétendre à aucun test public. Un push sur `main` ne doit jamais servir de moyen de review : `main` reste conceptuellement protégée comme branche de production.
+
+Les commits parallèles légitimes limités à `docs/Story/**` restent dans l'historique sans réécriture ni modification par un lot produit. Un changement distant inattendu hors de ce périmètre impose une nouvelle vérification avant tout push ou promotion ; un lot ne rebase, squash ou force-push jamais ces commits.
 
 Lorsqu’un candidat est publié par Codex ou par le propriétaire, seuls les fichiers vérifiés du lot sont indexés :
 
