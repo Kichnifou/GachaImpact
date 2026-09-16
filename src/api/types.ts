@@ -624,6 +624,7 @@ export type EventDto = Readonly<{
 export type EventJoinDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }> }>
 export type EventDailyBonusClaimDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }> }>
 export type EventShopMutationDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }> }>
+export type EventRankingDto = Readonly<{ editionId: string; entries: readonly Readonly<{ rank: number; playerId: string; displayName: string; points: number }>[] }>
 export type EventGameAAttemptDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; attempt: Readonly<{ succeeded: boolean }> }>
 export type EventGameBAttemptDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; attempt: Readonly<{ kind: 'ALREADY_TESTED' | 'INCORRECT' | 'CORRECT' }> }>
 export type EventGameCRecipientQuery = Readonly<{ query: string; elementKey: ElementKey | null; sort: 'name' | 'level'; direction: 'asc' | 'desc'; page: number }>

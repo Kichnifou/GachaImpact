@@ -15,6 +15,8 @@ const shopConversionSchema = z.object({ target: z.enum(['PRIMOGEMS', 'MORAS']), 
 export const registerEventRoutes: FastifyPluginAsync<Options> = async (app, options) => {
   app.get('/api/v1/me/event', { preHandler: options.authenticate }, (request) =>
     options.service.getCurrent(requireAuthenticatedIdentity(request)));
+  app.get('/api/v1/me/event/ranking', { preHandler: options.authenticate }, (request) =>
+    options.service.getRanking(requireAuthenticatedIdentity(request)));
   app.post('/api/v1/me/event/join', { preHandler: options.authenticate }, (request) => {
     const parsed = joinSchema.safeParse(request.body);
     if (!parsed.success) throw new AppError('La demande d’inscription Event est invalide.', 400, 'VALIDATION_ERROR');

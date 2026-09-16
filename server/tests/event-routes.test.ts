@@ -16,7 +16,7 @@ describe('Event HTTP contracts', () => {
       gameA: { available: false, theme: { key: 'recolte', label: 'Récolte' }, completedToday: false, attemptsToday: 0, windows: [], activeWindowIndex: null, canAttempt: false, cooldownRemainingMs: 0 },
       gameB: { available: false, theme: { key: 'harvest', label: 'Grenier' }, solvedToday: false, discoveredBy: null, attemptsUsed: 0, attemptsRemaining: 0, testedCodes: [], remainingCodes: Array.from({ length: 32 }, (_, index) => index.toString(2).padStart(5, '0')), canAttempt: false },
     };
-    const service = { getCurrent: vi.fn(async () => snapshot), join: vi.fn(async () => ({ ...snapshot, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, operation: { id: randomUUID(), alreadyProcessed: false } })), claimDailyBonus: vi.fn(async () => ({ ...snapshot, dailyBonus: { claimedToday: true, canClaim: false }, operation: { id: randomUUID(), alreadyProcessed: false } })), convertShop: vi.fn(async () => snapshot), purchaseCollection: vi.fn(async () => snapshot), attemptGameA: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false }, attempt: { succeeded: false } })), attemptGameB: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false }, attempt: { kind: 'INCORRECT' } })), searchGameCRecipients: vi.fn(async () => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, recipients: [] })), sendGameC: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false } })), consultGameCMessages: vi.fn(async () => snapshot) } as unknown as EventService;
+    const service = { getCurrent: vi.fn(async () => snapshot), getRanking: vi.fn(async () => ({ editionId: snapshot.edition.id, entries: [] })), join: vi.fn(async () => ({ ...snapshot, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, operation: { id: randomUUID(), alreadyProcessed: false } })), claimDailyBonus: vi.fn(async () => ({ ...snapshot, dailyBonus: { claimedToday: true, canClaim: false }, operation: { id: randomUUID(), alreadyProcessed: false } })), convertShop: vi.fn(async () => snapshot), purchaseCollection: vi.fn(async () => snapshot), attemptGameA: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false }, attempt: { succeeded: false } })), attemptGameB: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false }, attempt: { kind: 'INCORRECT' } })), searchGameCRecipients: vi.fn(async () => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, recipients: [] })), sendGameC: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false } })), consultGameCMessages: vi.fn(async () => snapshot) } as unknown as EventService;
     const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, { authIdentityVerifier: { verify: async () => ({ subject: 'event-subject' }) }, getOrProvisionCurrentPlayer: { execute: vi.fn() } as never, eventService: service });
     apps.push(app);
     return { app, service };
@@ -45,6 +45,16 @@ describe('Event HTTP contracts', () => {
     expect((await app.inject({ method: 'POST', url: '/api/v1/me/event/daily-bonus/claim', headers, payload: { idempotencyKey: key } })).statusCode).toBe(200);
     expect(service.claimDailyBonus).toHaveBeenCalledWith(expect.objectContaining({ subject: 'event-subject' }), key);
     expect((await app.inject({ method: 'POST', url: '/api/v1/me/event/daily-bonus/claim', headers, payload: { idempotencyKey: 'bad', extra: true } })).statusCode).toBe(400);
+  });
+
+  it('serves a lightweight public ranking to authenticated nonparticipants', async () => {
+    const { app, service } = await setup();
+    expect((await app.inject({ url: '/api/v1/me/event/ranking' })).statusCode).toBe(401);
+    const result = await app.inject({ url: '/api/v1/me/event/ranking', headers: { authorization: 'Bearer token' } });
+    expect(result.statusCode).toBe(200);
+    expect(result.json()).toEqual({ editionId: expect.any(String), entries: [] });
+    expect(service.getRanking).toHaveBeenCalledWith(expect.objectContaining({ subject: 'event-subject' }));
+    expect(service.getCurrent).not.toHaveBeenCalled();
   });
 
   it('validates Event Shop conversion and Collection contracts', async () => {

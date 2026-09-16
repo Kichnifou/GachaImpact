@@ -1534,6 +1534,8 @@ La migration 024 matérialise `EventMilestoneClaim` avec clé `eventEditionId + 
 
 Les conversions consomment `PlayerEventCurrencyBalance` par Player + définition de Festival, indépendamment de l'année d'acquisition des monnaies. Quantité entière positive et solde suffisant sont contrôlés côté serveur sous verrou ; le résultat 1 → 160 Primogemmes ou 1 → 20 000 Moras emprunte `PrismaEconomyService`, `ResourceMovement` et `BusinessOperation`. Le produit Collection coûte 80 monnaies, sans quantité libre ni MAX ; il crédite `PlayerItem.quantity` et écrit une ligne `ItemAcquisition` avec provenance Festival, édition et année. La garde `EventCollectionAcquisition` introduite par la migration 025 garantit une seule acquisition par Player/édition ; elle ne stocke pas une seconde quantité. Les définitions Collection et le ledger existants restent la source du Sac.
 
+Le Classement actif ne matérialise aucun nouveau modèle : il projette au plus dix lignes `EventParticipant` de l'édition courante, triées par points décroissants puis `joinedAt` et `playerId` croissants. Le rang est honorifique, sans payout. L'historique Event transversal et son écran sont reportés.
+
 ---
 
 # 27. Codes cadeaux

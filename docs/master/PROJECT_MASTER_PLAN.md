@@ -1,8 +1,8 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : Event Lot 5 — bonus quotidien et paliers candidat sur review
+Version : Event Lot 6 — finitions, Boutique et Classement candidats sur review
 Date : 2026-09-16
-Statut : EVENT LOT 4 — JEU C / PANIER SUFFISAMMENT VALIDÉ PUBLIQUEMENT ; EVENT LOT 5 — BONUS QUOTIDIEN ET PALIERS CANDIDAT SUR review À REVIEWER
+Statut : EVENT LOT 5 SUR main, DÉPLOYÉ ET SUFFISAMMENT VALIDÉ PUBLIQUEMENT ; EVENT LOT 6 CANDIDAT SUR review À REVIEWER
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
@@ -3544,7 +3544,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Événements mensuels — Lots 1 à 4 sur `main` et suffisamment validés publiquement pour poursuivre. Event Lot 5 — bonus quotidien et paliers est candidat sur `review` : prochaine étape, review indépendante du vrai diff GitHub, sans promotion ni validation publique anticipée.**
+**Événements mensuels — Lots 1 à 5 sur `main` ; le Lot 5 est déployé et suffisamment validé publiquement sur ses principaux parcours. Event Lot 6 — finitions, Boutique et Classement est candidat sur `review` : prochaine étape, review indépendante du vrai diff GitHub, sans promotion ni validation publique anticipée.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3890,14 +3890,21 @@ Le commit 0.95 `3e510307f49ffa389df902d35c83287ea0ebe96e` est désormais sur `ma
 - Commit C `feat: aggregate event message notifications` : clarification propriétaire du 16/09/2026 — tant qu'au moins un message Event courant reste à consulter, une seule notification agrégée par destinataire et business date est active, jamais une notification par message. Les nouveaux messages mettent à jour le compteur ; Panier marque les messages consultés et résout l'agrégat ; un message ultérieur le réactive. READ seule n'est pas une consultation. La réconciliation NotificationService s'appuie sur `viewed_at IS NULL`, et l'action explicite `OPEN_EVENT_MESSAGES` ouvre Activités → Événement → Jeux → Panier. Le refresh Notifications existant suffit, sans Realtime ni polling additionnel.
 - Le lot est sur `main` au checkpoint `1153b6ed20932b2ad61933a0a431042a06075ecc` et le propriétaire en a suffisamment validé publiquement Grenier résolu, Panier, destinataire non inscrit, agrégation Notification, deep-link, réactivation et Quotidiennes pour ouvrir le Lot 5. La recherche inline Panier et la latence de notification sont les deux polishes du candidat suivant ; elles ne rouvrent pas la logique métier Jeu C. Restent exclus Boutique Event, acquisition Collection, Classement, Calendrier, chat/Twitch, Social complet et migration legacy.
 
-## Event Lot 5 — bonus quotidien et paliers candidat sur review
+## Event Lot 5 — bonus quotidien et paliers sur main, validation publique suffisante
 
 - Polish A `7dc4dc5` (`refactor: reuse player browser for event recipients`) : Panier réutilise la primitive de modale du sélecteur Modération, qui conserve ses filtres et son badge Testeur. Event utilise son propre endpoint Social, paginé à dix, recherche dès zéro ou un caractère, filtres Élément et tri Nom/Niveau ascendant/descendant ; sa projection n'expose que pseudo, niveau et élément. La règle durable reuse-first UI est dans `AGENTS.md` et le contrat UI.
 - Polish B `1fc5ad6` (`fix: reduce notification refresh latency`) : le header charge uniquement `GET Notifications` toutes les trois secondes visibles, immédiatement au focus/retour visible et sans requêtes superposées. Le GET conserve les réconciliations serveur ; les snapshots UI Boss et Expédition ne sont plus rechargés par chaque tick. C'est le compromis alpha/V1 actuel sans Realtime/SSE/WebSocket.
 - Lot métier C `feat: implement event daily bonus and milestones` : R602 réclame +1 monnaie saisonnière une fois par business date via `POST /api/v1/me/event/daily-bonus/claim`, la clé idempotente `event.daily-bonus.claim` et l'état physique existant `event_daily_player_states.daily_bonus_claimed`. Quotidiennes maintient son accès Event tant que ce bonus ou une autre action réelle reste disponible. Chat interne et Twitch ne sont pas implémentés.
 - R614–R617 : les huit seuils 10–80 sont automatiques, sans bouton, et le score continue au-delà de 80. Les points Jeu A/B/C et rattrapage Jeu B au join passent par une attribution commune ; chaque palier manquant franchi crée une claim et une opération système uniques dans la transaction du gain de points. Les récompenses exactes restent celles de l'audit : particules aléatoires/personnelles avec fallback, monnaie saisonnière, Moras et Primogemmes. Les ressources standard passent par `PrismaEconomyService` et la projection Event republie les ressources globales.
 - Le gate Supabase DEV en lecture seule juste avant migration constatait 6 participants, maximum 2 points et aucun à 10+. La migration additive `20260917120000_024_add_event_milestones` ne matérialise que `event_milestone_claims` avec PK édition/Player/palier, opération unique, contraintes, index FK, RLS et droits navigateur révoqués. Elle est appliquée et suivie par Prisma (`24` migrations à jour). Aucun backfill économique réel ni modification des migrations 001–023.
-- La barre de progression et les huit repères restent en haut de l'écran Event sur ses sections actives ; le nombre de points réel, même supérieur à 80, reste visible. Le bouton bonus n'existe que si l'action est disponible et l'état réclamé ne simule pas de CTA. Les tests techniques précèdent la review GitHub ; le Lot 5 n'est ni sur `main`, ni déployé, ni validé publiquement. Aucun `docs/Story/**` n'est modifié ; `PAID_INFRA_APPROVED = false` demeure inchangé.
+- La barre de progression et les huit repères restent en haut de l'écran Event sur ses sections actives ; le nombre de points réel, même supérieur à 80, reste visible. Le bouton bonus n'existe que si l'action est disponible et l'état réclamé ne simule pas de CTA. Le Lot 5 a été promu sur `main`, déployé et suffisamment validé publiquement par le propriétaire sur ses principaux parcours ; ses derniers défauts de finition sont traités dans le candidat Lot 6. Aucun `docs/Story/**` n'est modifié ; `PAID_INFRA_APPROVED = false` demeure inchangé.
+
+## Event Lot 6 — finitions, Boutique et Classement candidats sur review
+
+- Commit A `fix: polish event progression and daily completion` : Quotidiennes réutilise exactement `eventHasActionableContentToday` pour afficher soit le CTA, soit `✅ Terminé` en vert ; Shop et Classement ne sont jamais des daily. Après inscription, Bonus quotidien précède le statut Participation. Les douze monnaies ont un singulier explicite partagé par les feedbacks et les libellés de palier ; la barre affiche « Votre progression » et son conteneur horizontal interdit le scroll vertical parasite.
+- Commit B `feat: implement monthly event shop` : Shop est consultable sans inscription ; acheter exige une participation. Une monnaie saisonnière vaut exactement 160 Primogemmes ou 20 000 Moras, par quantité entière positive avec MAX côté interface. La balance durable Player + définition de Festival est débitée sous verrou dans une transaction sérialisable et idempotente ; les crédits standard créent les `ResourceMovement` via le moteur économique commun et sont republiés dans la sidebar. La carte Collection coûte 80 monnaies pour un exemplaire réel : `PlayerItem.quantity`, `ItemAcquisition` et le garde annuel `EventCollectionAcquisition` sont écrits atomiquement. Le Sac recharge son inventaire autoritatif après acquisition, sans F5. La migration additive 025 ne crée que la garde annuelle, avec RLS, droits directs révoqués, FK et index ; elle est appliquée et suivie par Prisma sur DEV, sans backfill ni modification des migrations 001–024.
+- Commit C `feat: implement monthly event ranking` : le Classement public de l'édition active lit les points `EventParticipant`, limite à dix et trie points décroissants, puis inscription et ID croissants en cas d'égalité. Un endpoint léger dédié est rafraîchi environ toutes les trois secondes uniquement pendant l'affichage visible du Classement, immédiatement au focus/retour visible et sans requêtes superposées ; il ne poll pas le snapshot Event complet. Le rang reste honorifique sans versement, claim ou notification.
+- Les quatre sections Inscription, Jeux, Shop et Classement sont réelles ; aucune section factice ne reste. Le candidat Lot 6 attend la review indépendante du vrai diff GitHub, puis seulement sa promotion, les déploiements automatiques et la validation publique. L'historique Event transversal R633/R634, le Calendrier de Noël, le chat, Twitch, Realtime et la migration legacy restent reportés. Aucun `docs/Story/**` n'est modifié ; aucune promotion `main` ni déploiement manuel n'appartient à ce candidat.
 
 ## État déployé 0.92 — Concours / C6 et densité Boss
 
@@ -4052,10 +4059,10 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 
 Prochaine étape exacte :
 
-1. Effectuer la review indépendante ChatGPT du vrai diff GitHub des trois commits **Event Lot 5** A (sélecteur), B (Notifications) et C (bonus/paliers) sur `review`.
+1. Effectuer la review indépendante ChatGPT du vrai diff GitHub des trois commits **Event Lot 6** A (finitions), B (Boutique/Collection) et C (Classement) sur `review`.
 2. Apporter sur `review` les éventuelles corrections et les revalider ; ne promouvoir qu'après approbation.
-3. Laisser ensuite les déploiements automatiques agir, vérifier Railway, `/health` et Cloudflare/frontend, puis obtenir la validation publique fonctionnelle et visuelle du Lot 5.
-4. Garder hors périmètre Boutique Event R618–R624, acquisition Collection, Classement, Calendrier, Social complet, Twitch/chat et migration legacy.
+3. Laisser ensuite les déploiements automatiques agir, vérifier Railway, `/health` et Cloudflare/frontend, puis obtenir la validation publique fonctionnelle et visuelle du Lot 6.
+4. Garder hors périmètre l'historique Event transversal, le Calendrier de Noël, Social complet, Twitch/chat et la migration legacy.
 
 L’ordre complet restant appartient à [implementation-order-v1.md](../roadmap/implementation-order-v1.md). La migration legacy reste reportée ; `PAID_INFRA_APPROVED = false` reste inchangé.
 

@@ -110,6 +110,21 @@ export class EventService {
     throw new Error('Current Event state could not be loaded.');
   }
 
+  public async getRanking(identity: AuthenticatedIdentity) {
+    await this.getPlayer.execute(identity);
+    const context = await this.resolveCurrentEdition(this.database, this.clock.now());
+    const participants = await this.database.eventParticipant.findMany({
+      where: { eventEditionId: context.edition.id },
+      orderBy: [{ points: 'desc' }, { joinedAt: 'asc' }, { playerId: 'asc' }],
+      take: 10,
+      select: { playerId: true, points: true, player: { select: { displayName: true } } },
+    });
+    return {
+      editionId: context.edition.id,
+      entries: participants.map(({ playerId, player, points }, index) => ({ rank: index + 1, playerId, displayName: player.displayName, points })),
+    };
+  }
+
   public async join(identity: AuthenticatedIdentity, idempotencyKey: string) {
     const player = await this.getPlayer.execute(identity);
     const now = this.clock.now();
@@ -580,10 +595,13 @@ export class EventService {
     materializeDaily: boolean,
   ) {
     const collectionExternalKey = collectionItemExternalKey(context.editionSnapshot.config.collection.key);
-    const [participant, balance, global, receivedMessages, player, milestoneClaims, resourceBalances, collectionItem, collectionAcquisition] = await Promise.all([
-      database.eventParticipant.findUnique({
-        where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId } },
-      }),
+    const [participationRows, balance, global, receivedMessages, player, milestoneClaims, resourceBalances] = await Promise.all([
+      database.$queryRaw<Array<{ player_id: string; points: number; joined_at: Date; collection_obtained: boolean }>>`
+        SELECT ep.player_id, ep.points, ep.joined_at,
+          EXISTS (SELECT 1 FROM event_collection_acquisitions eca
+            WHERE eca.event_edition_id = ep.event_edition_id AND eca.player_id = ep.player_id) AS collection_obtained
+        FROM event_participants ep
+        WHERE ep.event_edition_id = ${context.edition.id}::uuid AND ep.player_id = ${playerId}::uuid`,
       database.playerEventCurrencyBalance.findUnique({
         where: { playerId_eventDefinitionId: { playerId, eventDefinitionId: context.definition.id } },
       }),
@@ -592,9 +610,9 @@ export class EventService {
       database.player.findUnique({ where: { id: playerId }, select: { status: true } }),
       database.eventMilestoneClaim.findMany({ where: { eventEditionId: context.edition.id, playerId }, select: { milestone: true } }),
       database.playerResourceBalance.findMany({ where: { playerId }, select: { resourceKey: true, amount: true } }),
-      database.itemDefinition.findUnique({ where: { externalKey: collectionExternalKey }, select: { id: true, displayName: true, isActive: true, category: true } }),
-      database.eventCollectionAcquisition.findUnique({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId } }, select: { itemId: true } }),
     ]);
+    const participationRow = participationRows[0];
+    const participant = participationRow ? { playerId: participationRow.player_id, points: participationRow.points, joinedAt: participationRow.joined_at } : null;
     const resourcesByKey = new Map(resourceBalances.map(({ resourceKey, amount }) => [resourceKey, amount.toString()]));
     const rewardedMilestones = new Set(milestoneClaims.map(({ milestone }) => milestone));
     const daily = participant && materializeDaily ? await this.ensureDailyState(database, context.edition.id, playerId, context.period.businessDate, now) : participant ? await database.eventDailyPlayerState.findUnique({ where: { eventEditionId_playerId_businessDate: { eventEditionId: context.edition.id, playerId, businessDate: businessDateToDatabaseDate(context.period.businessDate) } } }) : null;
@@ -642,7 +660,7 @@ export class EventService {
         available: Boolean(participant),
         balance: (balance?.amount ?? 0n).toString(),
         rates: { primogems: EVENT_SHOP_RATES.PRIMOGEMS.toString(), moras: EVENT_SHOP_RATES.MORAS.toString() },
-        collection: { itemExternalKey: collectionExternalKey, label: collectionItem?.displayName ?? context.editionSnapshot.config.collection.label, cost: EVENT_COLLECTION_COST.toString(), obtainedThisEdition: Boolean(collectionAcquisition), available: Boolean(collectionItem?.isActive && collectionItem.category === 'COLLECTION') },
+        collection: { itemExternalKey: collectionExternalKey, label: context.editionSnapshot.config.collection.label, cost: EVENT_COLLECTION_COST.toString(), obtainedThisEdition: participationRow?.collection_obtained ?? false, available: true },
       },
       resources: { primogems: resourcesByKey.get('primogems') ?? '0', moras: resourcesByKey.get('moras') ?? '0', particles: Object.fromEntries(elementKeys.map((key) => [key, resourcesByKey.get(particleResourceKey(key)) ?? '0'])) },
       dailyBonus: { claimedToday: daily?.dailyBonusClaimed ?? false, canClaim: Boolean(participant) && !(daily?.dailyBonusClaimed ?? false) },

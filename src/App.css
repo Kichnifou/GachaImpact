@@ -7464,8 +7464,21 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .event-shop-collection-state { margin-top: auto !important; color: #b9eacb !important; }
 .event-shop-preview, .event-shop-feedback { margin: 0; }
 .event-shop-feedback[role="alert"] { color: #ffb7ab; }
+.event-ranking { padding: 22px; min-width: 0; }
+.event-ranking header { display: flex; justify-content: space-between; align-items: start; gap: 16px; }
+.event-ranking h2 { margin: 6px 0 0; }
+.event-ranking > p { color: #b8c3d3; }
+.event-ranking > p[role="alert"] { color: #ffb7ab; }
+.event-ranking-honor { flex: none; padding: 7px 11px; border: 1px solid rgba(224, 186, 110, .35); border-radius: 999px; color: #f1d59d; background: rgba(180, 125, 43, .13); font-size: 12px; font-weight: 700; }
+.event-ranking-list { list-style: none; display: grid; gap: 8px; margin: 18px 0 0; padding: 0; }
+.event-ranking-list li { display: grid; grid-template-columns: 54px minmax(0, 1fr) auto; align-items: center; gap: 14px; min-height: 56px; padding: 9px 16px; border: 1px solid rgba(161, 177, 204, .19); border-radius: 11px; background: rgba(30, 39, 58, .75); }
+.event-ranking-list li:nth-child(-n + 3) { border-color: rgba(224, 186, 110, .35); background: rgba(111, 80, 42, .17); }
+.event-ranking-list li strong { min-width: 0; overflow-wrap: anywhere; }
+.event-ranking-list li > span:last-child { color: #dfe8f5; font-weight: 700; white-space: nowrap; }
+.event-ranking-rank { color: #f1d59d; font-weight: 800; }
 @media (max-width: 1180px) { .event-shop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 650px) { .event-shop-grid { grid-template-columns: minmax(0, 1fr); } .event-shop-balance { padding: 18px; } .event-shop-balance > span { font-size: 34px; } }
+@media (max-width: 650px) { .event-ranking { padding: 16px; } .event-ranking header { flex-direction: column; gap: 8px; } .event-ranking-list li { grid-template-columns: 38px minmax(0, 1fr); gap: 6px 10px; } .event-ranking-list li > span:last-child { grid-column: 2; } }
 .event-game-a { display: grid; gap: 16px; padding: 20px; }
 .event-game-a-heading, .event-game-a-action { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .event-game-a-heading h2 { margin: 5px 0 0; color: #fff; font-size: 21px; }

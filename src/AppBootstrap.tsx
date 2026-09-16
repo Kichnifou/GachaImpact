@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import { ApiError, getGameApiClient } from './api/game-api'
-import type { BankTransferDto, ContestDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyRewardTodayDto, ElementKey, EventDto, ExpeditionDto, GachaCharacterDto, GachaPullDto, ModerationPermissionsDto, ModerationStateDto, MonthlyBossDto, NotificationsDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, ShopPurchaseDto, WheelTodayDto } from './api/types'
+import type { BankTransferDto, ContestDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyRewardTodayDto, ElementKey, EventDto, EventRankingDto, ExpeditionDto, GachaCharacterDto, GachaPullDto, ModerationPermissionsDto, ModerationStateDto, MonthlyBossDto, NotificationsDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, ShopPurchaseDto, WheelTodayDto } from './api/types'
 import { useAuth } from './auth/auth-context'
 import { resolveBootstrapStage } from './auth/bootstrap-state'
 import AuthScreen from './components/AuthScreen'
@@ -36,6 +36,7 @@ function AppBootstrap() {
   const [monthlyBoss, setMonthlyBoss] = useState<MonthlyBossDto | null>(null)
   const [contest, setContest] = useState<ContestDto | null>(null)
   const [event, setEvent] = useState<EventDto | null>(null)
+  const rankingFlightRef = useRef<{ userId: string | undefined; promise: Promise<EventRankingDto> } | null>(null)
   const [expedition, setExpedition] = useState<ExpeditionClientSnapshot | null>(null)
   const [expeditionMonotonicNow, setExpeditionMonotonicNow] = useState(0)
   const [notifications, setNotifications] = useState<NotificationsDto | null>(null)
@@ -94,6 +95,15 @@ function AppBootstrap() {
   const loadContestHistory = useCallback((page: number) => getGameApiClient().getContestHistory(page), [])
   const loadContestHistoryDetail = useCallback((contestId: string) => getGameApiClient().getContestHistoryDetail(contestId), [])
   const loadEvent = useCallback(() => eventRequests.refresh(() => getGameApiClient().getEvent()), [eventRequests])
+  const loadEventRanking = useCallback(() => {
+    const current = rankingFlightRef.current
+    if (current && current.userId === sessionUserId) return current.promise
+    const promise = getGameApiClient().getEventRanking()
+    rankingFlightRef.current = { userId: sessionUserId, promise }
+    const clear = () => { if (rankingFlightRef.current?.promise === promise) rankingFlightRef.current = null }
+    void promise.then(clear, clear)
+    return promise
+  }, [sessionUserId])
   const joinEvent = useCallback((idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().joinEvent(idempotencyKey)), [eventRequests])
   const claimEventDailyBonus = useCallback((idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().claimEventDailyBonus(idempotencyKey)), [eventRequests])
   const convertEventShop = useCallback((target: 'PRIMOGEMS' | 'MORAS', quantity: number, idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().convertEventShop(target, quantity, idempotencyKey)), [eventRequests])
@@ -386,6 +396,7 @@ function AppBootstrap() {
       onLoadEvent={loadEvent}
       onJoinEvent={joinEvent}
       onClaimEventDailyBonus={claimEventDailyBonus}
+      onLoadEventRanking={loadEventRanking}
       onConvertEventShop={convertEventShop}
       onPurchaseEventCollection={purchaseEventCollection}
       onAttemptEventGameA={attemptEventGameA}

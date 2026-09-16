@@ -28,10 +28,10 @@ const joinedGameA = { available: true, theme: { key: 'recolte', label: 'Récolte
 ], activeWindowIndex: 1, canAttempt: true, cooldownRemainingMs: 0 }
 const afterJoin: EventJoinDto = { ...beforeJoin, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, dailyBonus: { claimedToday: false, canClaim: true }, gameA: joinedGameA, gameB: { ...beforeJoin.gameB, available: true, attemptsRemaining: 3, canAttempt: true }, gameC: { ...beforeJoin.gameC, available: true, canSend: true }, operation: { id: 'operation-1', alreadyProcessed: false } }
 
-function mount(options: { value?: EventDto; onLoad?: () => Promise<EventDto>; onJoin?: (key: string) => Promise<EventJoinDto>; onClaimDailyBonus?: (key: string) => Promise<EventDailyBonusClaimDto>; onAttempt?: (key: string) => Promise<EventGameAAttemptDto>; onAttemptB?: (code: string, key: string) => Promise<EventGameBAttemptDto>; onSearchRecipients?: (query: EventGameCRecipientQuery) => Promise<EventGameCRecipientsDto>; onSendGameC?: (recipientId: string, message: string, key: string) => Promise<EventGameCSendDto>; onConsultMessages?: () => Promise<EventDto>; openMessagesToken?: number } = {}) {
+function mount(options: { value?: EventDto; onLoad?: () => Promise<EventDto>; onLoadRanking?: () => Promise<{ editionId: string; entries: { rank: number; playerId: string; displayName: string; points: number }[] }>; onJoin?: (key: string) => Promise<EventJoinDto>; onClaimDailyBonus?: (key: string) => Promise<EventDailyBonusClaimDto>; onAttempt?: (key: string) => Promise<EventGameAAttemptDto>; onAttemptB?: (code: string, key: string) => Promise<EventGameBAttemptDto>; onSearchRecipients?: (query: EventGameCRecipientQuery) => Promise<EventGameCRecipientsDto>; onSendGameC?: (recipientId: string, message: string, key: string) => Promise<EventGameCSendDto>; onConsultMessages?: () => Promise<EventDto>; openMessagesToken?: number } = {}) {
   const container = document.createElement('div'); document.body.append(container)
   const root = createRoot(container); roots.push(root)
-  const props = { value: options.value ?? beforeJoin, onLoad: options.onLoad ?? vi.fn(async () => beforeJoin), onJoin: options.onJoin ?? vi.fn(async () => afterJoin), onClaimDailyBonus: options.onClaimDailyBonus, onAttempt: options.onAttempt ?? vi.fn(async () => ({ ...afterJoin, attempt: { succeeded: false } })), onAttemptB: options.onAttemptB ?? vi.fn(async () => ({ ...afterJoin, attempt: { kind: 'INCORRECT' as const } })), onSearchRecipients: options.onSearchRecipients, onSendGameC: options.onSendGameC, onConsultMessages: options.onConsultMessages, openMessagesToken: options.openMessagesToken }
+  const props = { value: options.value ?? beforeJoin, onLoad: options.onLoad ?? vi.fn(async () => beforeJoin), onLoadRanking: options.onLoadRanking, onJoin: options.onJoin ?? vi.fn(async () => afterJoin), onClaimDailyBonus: options.onClaimDailyBonus, onAttempt: options.onAttempt ?? vi.fn(async () => ({ ...afterJoin, attempt: { succeeded: false } })), onAttemptB: options.onAttemptB ?? vi.fn(async () => ({ ...afterJoin, attempt: { kind: 'INCORRECT' as const } })), onSearchRecipients: options.onSearchRecipients, onSendGameC: options.onSendGameC, onConsultMessages: options.onConsultMessages, openMessagesToken: options.openMessagesToken }
   act(() => root.render(<EventScreen {...props} />))
   return { container, root, props }
 }
@@ -90,7 +90,7 @@ describe('EventScreen presentation', () => {
     expect(mounted.container.querySelector<HTMLButtonElement>('.event-foundation-card button')?.disabled).toBe(false)
     const tabs = Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
     expect(tabs.map(({ textContent }) => textContent)).toEqual(['Inscription', 'Jeux', 'Shop', 'Classement'])
-    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, false, true])
+    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, false, false])
     act(() => tabs[1].click())
     expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Inscription')
     expect(mounted.container.querySelector('.event-stat-grid')).not.toBeNull()
@@ -101,10 +101,24 @@ describe('EventScreen presentation', () => {
     const mounted = mount()
     act(() => mounted.root.render(<EventScreen {...mounted.props} value={afterJoin} />))
     const tabs = Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
-    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, false, false, true])
+    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, false, false, false])
     expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Inscription')
     expect(mounted.container.textContent).toContain('Événement rejoint')
     expect(mounted.container.querySelector('.event-game-a')).toBeNull()
+  })
+
+  it('opens Shop and Classement publicly without joining or refreshing the full Event for ranking', async () => {
+    const onLoad = vi.fn(async () => beforeJoin)
+    const onLoadRanking = vi.fn(async () => ({ editionId: beforeJoin.edition.id, entries: [{ rank: 1, playerId: 'another-player', displayName: 'Festivaliste', points: 12 }] }))
+    const mounted = mount({ onLoad, onLoadRanking })
+    const tabs = Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
+    act(() => tabs[2].click())
+    expect(mounted.container.querySelector('.event-shop')).not.toBeNull()
+    expect(mounted.container.textContent).toContain('Gerbe de Récolte')
+    await act(async () => { tabs[3].click(); await Promise.resolve() })
+    expect(mounted.container.querySelector('.event-ranking-list')?.textContent).toContain('Festivaliste')
+    expect(onLoadRanking).toHaveBeenCalledTimes(1)
+    expect(onLoad).toHaveBeenCalledTimes(1)
   })
 
   it('returns to registration when a new snapshot removes event participation', () => {
@@ -115,7 +129,7 @@ describe('EventScreen presentation', () => {
     act(() => mounted.root.render(<EventScreen {...mounted.props} value={{ ...beforeJoin, edition: { ...beforeJoin.edition, id: 'edition-2027', year: 2027 } }} />))
 
     const tabs = Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
-    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, false, true])
+    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, false, false])
     expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Inscription')
     expect(mounted.container.textContent).toContain('Recevez 1 Jeton de Récolte')
     expect(mounted.container.querySelector('.event-stat-grid')).not.toBeNull()
@@ -302,7 +316,7 @@ describe('EventScreen presentation', () => {
     await act(async () => { container.querySelector<HTMLButtonElement>('.event-foundation-card button')!.click(); await Promise.resolve() })
     expect(container.querySelector('[role="alert"]')?.textContent).toContain('momentanément inaccessible')
     const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
-    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, false, true])
+    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, false, false])
     expect(tabs.every((tab) => !tab.hasAttribute('title') && tab.querySelector('small') === null)).toBe(true)
   })
 

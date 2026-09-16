@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
-import type { EventDto, EventDailyBonusClaimDto, EventGameAAttemptDto, EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto, EventJoinDto } from '../api/types'
+import type { EventDto, EventDailyBonusClaimDto, EventGameAAttemptDto, EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto, EventJoinDto, EventRankingDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
 import ScreenHeader from '../components/ScreenHeader'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import PlayerSelectionBrowser, { type PlayerBrowserQuery } from '../components/PlayerSelectionBrowser'
 import EventShopSection from './EventShopSection'
+import EventRankingSection from './EventRankingSection'
 import { eventGameAExpiredToday, eventPresentation } from '../event/event-presentation'
 import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
 
 type Props = Readonly<{
   value: EventDto
   onLoad: () => Promise<EventDto>
+  onLoadRanking?: () => Promise<EventRankingDto>
   onJoin: (idempotencyKey: string) => Promise<EventJoinDto>
   onClaimDailyBonus?: (idempotencyKey: string) => Promise<EventDailyBonusClaimDto>
   onConvertShop?: (target: 'PRIMOGEMS' | 'MORAS', quantity: number, key: string) => Promise<EventDto>
@@ -53,8 +55,8 @@ function EventCooldownButton({ durationMs }: Readonly<{ durationMs: number }>) {
   return <button type="button" className="small-primary-button event-cooldown-button" disabled>Patientez {remainingSeconds} seconde{remainingSeconds > 1 ? 's' : ''}...</button>
 }
 
-export default function EventScreen({ value, onLoad, onJoin, onClaimDailyBonus, onConvertShop, onPurchaseCollection, onAttempt, onAttemptB, onSearchRecipients = unavailableRecipientSearch, onSendGameC = unavailableGameCSend, onConsultMessages, openMessagesToken = 0 }: Props) {
-  const [section, setSection] = useState<'registration' | 'games' | 'shop'>(openMessagesToken > 0 ? 'games' : 'registration')
+export default function EventScreen({ value, onLoad, onLoadRanking, onJoin, onClaimDailyBonus, onConvertShop, onPurchaseCollection, onAttempt, onAttemptB, onSearchRecipients = unavailableRecipientSearch, onSendGameC = unavailableGameCSend, onConsultMessages, openMessagesToken = 0 }: Props) {
+  const [section, setSection] = useState<'registration' | 'games' | 'shop' | 'ranking'>(openMessagesToken > 0 ? 'games' : 'registration')
   const [gameTab, setGameTab] = useState<0 | 1 | 2>(openMessagesToken > 0 ? 2 : 0)
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
   const [gameBIntent, setGameBIntent] = useState<Readonly<{ code: string; key: string }> | null>(null)
@@ -259,7 +261,7 @@ export default function EventScreen({ value, onLoad, onJoin, onClaimDailyBonus, 
       <button type="button" className={section === 'registration' ? 'active' : ''} aria-current={section === 'registration' ? 'page' : undefined} onClick={() => setSection('registration')}>Inscription</button>
       <button type="button" className={section === 'games' ? 'active' : ''} aria-current={section === 'games' ? 'page' : undefined} disabled={!value.participation.joined && !value.gameC.available} onClick={() => { setGameTab(value.participation.joined ? 0 : 2); setSection('games') }}>Jeux</button>
       <button type="button" className={section === 'shop' ? 'active' : ''} aria-current={section === 'shop' ? 'page' : undefined} onClick={() => setSection('shop')}>Shop</button>
-      <button type="button" disabled>Classement</button>
+      <button type="button" className={section === 'ranking' ? 'active' : ''} aria-current={section === 'ranking' ? 'page' : undefined} onClick={() => setSection('ranking')}>Classement</button>
     </nav>
     {section === 'games' && <nav className="activity-inner-tabs event-game-tabs" aria-label="Jeux du Festival">
       {presentation.games.map((game, index) => <button type="button" className={index === gameTab ? 'active' : ''} aria-current={index === gameTab ? 'page' : undefined} disabled={index < 2 ? !value.participation.joined : !value.gameC.available} onClick={() => { setGameTab(index as 0 | 1 | 2); if (index === 1) void onLoad().catch(() => undefined) }} key={game}>{game}</button>)}
@@ -296,6 +298,7 @@ export default function EventScreen({ value, onLoad, onJoin, onClaimDailyBonus, 
       </section>
       </>}
       {section === 'shop' && <EventShopSection value={value} onConvert={onConvertShop} onPurchaseCollection={onPurchaseCollection} />}
+      {section === 'ranking' && <EventRankingSection editionId={value.edition.id} onLoad={onLoadRanking} />}
       {section === 'games' && gameTab === 0 && value.participation.joined && <section className="panel event-game-a" data-theme={value.gameA.theme.key}>
         <div className="event-game-a-heading"><div><span className="eyebrow">Jeu du Festival</span><h2>{presentation.games[0]}</h2></div><span className={`event-game-a-day-state${value.gameA.completedToday ? ' complete' : expiredToday ? ' expired' : ''}`}>{value.gameA.completedToday ? 'Réussi aujourd’hui' : expiredToday ? 'Délai dépassé...' : 'À réussir aujourd’hui'}</span></div>
         <div className="event-game-a-windows">
