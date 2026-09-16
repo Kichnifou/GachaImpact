@@ -3,6 +3,7 @@ import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { EventService } from '../src/application/event/event-service.js';
+import { EventMessageNotificationReconciler } from '../src/application/notification/event-message-notifications.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
 import { loadConfig } from '../src/config/environment.js';
@@ -48,6 +49,7 @@ afterEach(async () => {
   }
   if (playerIds.length) {
     const ids = playerIds.splice(0);
+    await database.notification.deleteMany({ where: { playerId: { in: ids }, typeKey: 'EVENT_MESSAGES_PENDING' } });
     await database.friendship.deleteMany({ where: { OR: [{ playerAId: { in: ids } }, { playerBId: { in: ids } }] } });
     await database.playerBlock.deleteMany({ where: { OR: [{ blockerPlayerId: { in: ids } }, { blockedPlayerId: { in: ids } }] } });
     await database.playerEventCurrencyBalance.deleteMany({ where: { playerId: { in: ids } } });
@@ -112,6 +114,10 @@ describe('Event Game C with isolated future editions and fixture Players', () =>
     await database.player.update({ where: { id: recipient.playerId }, data: { status: 'SUSPENDED' } });
     expect((await search()).recipients).toHaveLength(0);
     await expect(send(sender, recipient)).rejects.toMatchObject({ code: 'EVENT_GAME_C_CONTACT_UNAVAILABLE' });
+    await database.player.update({ where: { id: recipient.playerId }, data: { status: 'ACTIVE' } });
+    await database.player.update({ where: { id: sender.playerId }, data: { status: 'SUSPENDED' } });
+    expect((await view(sender)).gameC.canSend).toBe(false);
+    await expect(send(sender, recipient)).rejects.toMatchObject({ code: 'EVENT_GAME_C_CONTACT_UNAVAILABLE' });
     expect((await view(sender)).gameC.sentToday).toBe(false);
   }, 30_000);
 
@@ -130,5 +136,42 @@ describe('Event Game C with isolated future editions and fixture Players', () =>
     expect((await view(winner)).gameC.receivedMessages).toHaveLength(0);
     expect((await view(sender)).gameC.sentToday).toBe(false);
   }, 30_000);
+
+  it('keeps five messages in one aggregate, resolves on consultation and reactivates on a later message', async () => {
+    const recipient = await fixture('Recipient');
+    const senders = [];
+    for (let index = 0; index < 6; index += 1) senders.push(await fixture(`Sender ${index}`));
+    for (const sender of senders) await join(sender);
+    for (const sender of senders.slice(0, 5)) await send(sender, recipient);
+    const edition = await view(recipient);
+    const aggregate = await database.notification.findMany({ where: { playerId: recipient.playerId, typeKey: 'EVENT_MESSAGES_PENDING', state: { in: ['UNREAD', 'READ'] } } });
+    expect(aggregate).toHaveLength(1);
+    expect(aggregate[0]?.payload).toMatchObject({ count: 5 });
+    expect(edition.gameC.unviewedCount).toBe(5);
+    await database.notification.update({ where: { id: aggregate[0]!.id }, data: { state: 'READ', readAt: now } });
+    await new EventMessageNotificationReconciler(database).reconcileNotificationsForPlayer(recipient.playerId, now);
+    expect((await database.notification.findUnique({ where: { id: aggregate[0]!.id } }))?.state).toBe('READ');
+    await service.consultGameCMessages(recipient.identity);
+    expect((await database.notification.findUnique({ where: { id: aggregate[0]!.id } }))?.state).toBe('ARCHIVED');
+    await send(senders[5]!, recipient);
+    const revived = await database.notification.findMany({ where: { playerId: recipient.playerId, typeKey: 'EVENT_MESSAGES_PENDING', state: { in: ['UNREAD', 'READ'] } } });
+    expect(revived).toHaveLength(1);
+    expect(revived[0]).toMatchObject({ id: aggregate[0]!.id, state: 'UNREAD' });
+    expect(revived[0]?.payload).toMatchObject({ count: 1 });
+    now = new Date(`${year}-09-16T12:00:00.000Z`);
+    await new EventMessageNotificationReconciler(database).reconcileNotificationsForPlayer(recipient.playerId, now);
+    expect((await database.notification.findUnique({ where: { id: aggregate[0]!.id } }))?.state).toBe('ARCHIVED');
+  }, 60_000);
+
+  it('serializes two senders to one recipient without duplicate active notifications', async () => {
+    const first = await fixture('First'); const second = await fixture('Second'); const recipient = await fixture('Recipient');
+    await join(first); await join(second);
+    const results = await Promise.allSettled([send(first, recipient), send(second, recipient)]);
+    expect(results.map(({ status }) => status)).toEqual(['fulfilled', 'fulfilled']);
+    expect((await view(recipient)).gameC.unviewedCount).toBe(2);
+    const active = await database.notification.findMany({ where: { playerId: recipient.playerId, typeKey: 'EVENT_MESSAGES_PENDING', state: { in: ['UNREAD', 'READ'] } } });
+    expect(active).toHaveLength(1);
+    expect(active[0]?.payload).toMatchObject({ count: 2 });
+  }, 45_000);
 
 });

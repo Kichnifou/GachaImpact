@@ -6,6 +6,7 @@ import { businessDateToDatabaseDate, getBusinessDate, getBusinessDayStartAt, get
 import type { RandomSource } from '../../domain/wheel/wheel.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
 import { BusinessError } from '../errors.js';
+import { reconcileEventMessageAggregate } from '../notification/event-message-notifications.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
 import { eligibleContactRecipient } from '../social/contact-permission.js';
 
@@ -341,6 +342,7 @@ export class EventService {
           await tx.eventDailyPlayerState.update({ where: { eventEditionId_playerId_businessDate: { eventEditionId: context.edition.id, playerId: player.id, businessDate: businessDateToDatabaseDate(context.period.businessDate) } }, data: { gameCSent: true, updatedAt: now } });
           await tx.eventParticipant.update({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: player.id } }, data: { points: { increment: 1 } } });
           await tx.playerEventCurrencyBalance.upsert({ where: { playerId_eventDefinitionId: { playerId: player.id, eventDefinitionId: context.definition.id } }, create: { playerId: player.id, eventDefinitionId: context.definition.id, amount: 1n, updatedAt: now }, update: { amount: { increment: 1n }, updatedAt: now } });
+          await reconcileEventMessageAggregate(tx, recipientPlayerId, context.edition.id, context.period.businessDate, now, true);
           await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request } } });
           return { ...await this.snapshot(tx, player.id, context, now, false), operation: { id: operation.id, alreadyProcessed: false } };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
@@ -360,6 +362,7 @@ export class EventService {
     return this.database.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
       await tx.eventSocialMessage.updateMany({ where: { recipientPlayerId: player.id, eventEditionId: context.edition.id, businessDate: businessDateToDatabaseDate(context.period.businessDate), viewedAt: null }, data: { viewedAt: now } });
+      await reconcileEventMessageAggregate(tx, player.id, context.edition.id, context.period.businessDate, now);
       return this.snapshot(tx, player.id, context, now, false);
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }

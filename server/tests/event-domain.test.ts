@@ -103,6 +103,8 @@ describe('monthly Event period resolution', () => {
       eventDefinition: { findFirst: vi.fn(async () => ({ id: definitionId, externalKey: 'changed', displayName: 'Festival renommé', calendarMonth: 9, currencyKey: 'changed-currency', config: { emoji: '❌', currency: { label: 'Monnaie modifiée', emoji: '❌' }, collection: { key: 'changed-item', label: 'Collection modifiée' } } })) },
       eventEdition: { findUnique: vi.fn(async () => edition), upsert: vi.fn() },
       eventParticipant: { findUnique: vi.fn(async () => null) },
+      eventSocialMessage: { findMany: vi.fn(async () => []) },
+      player: { findUnique: vi.fn(async () => ({ status: 'ACTIVE' })) },
       playerEventCurrencyBalance: { findUnique: vi.fn(async () => ({ amount: 7n })) },
       eventGameBDailyState: { findUnique: vi.fn(async () => ({ solutionCode: '01011', solvedAt: null, discovererPlayerId: null, testedCodes: [] })), upsert: vi.fn() },
     };

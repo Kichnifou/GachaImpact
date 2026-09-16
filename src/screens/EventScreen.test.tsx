@@ -26,10 +26,10 @@ const joinedGameA = { available: true, theme: { key: 'recolte', label: 'Récolte
 ], activeWindowIndex: 1, canAttempt: true, cooldownRemainingMs: 0 }
 const afterJoin: EventJoinDto = { ...beforeJoin, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, gameA: joinedGameA, gameB: { ...beforeJoin.gameB, available: true, attemptsRemaining: 3, canAttempt: true }, gameC: { ...beforeJoin.gameC, available: true, canSend: true }, operation: { id: 'operation-1', alreadyProcessed: false } }
 
-function mount(options: { value?: EventDto; onLoad?: () => Promise<EventDto>; onJoin?: (key: string) => Promise<EventJoinDto>; onAttempt?: (key: string) => Promise<EventGameAAttemptDto>; onAttemptB?: (code: string, key: string) => Promise<EventGameBAttemptDto>; onSearchRecipients?: (q: string, page: number) => Promise<EventGameCRecipientsDto>; onSendGameC?: (recipientId: string, message: string, key: string) => Promise<EventGameCSendDto>; onConsultMessages?: () => Promise<EventDto> } = {}) {
+function mount(options: { value?: EventDto; onLoad?: () => Promise<EventDto>; onJoin?: (key: string) => Promise<EventJoinDto>; onAttempt?: (key: string) => Promise<EventGameAAttemptDto>; onAttemptB?: (code: string, key: string) => Promise<EventGameBAttemptDto>; onSearchRecipients?: (q: string, page: number) => Promise<EventGameCRecipientsDto>; onSendGameC?: (recipientId: string, message: string, key: string) => Promise<EventGameCSendDto>; onConsultMessages?: () => Promise<EventDto>; openMessagesToken?: number } = {}) {
   const container = document.createElement('div'); document.body.append(container)
   const root = createRoot(container); roots.push(root)
-  const props = { value: options.value ?? beforeJoin, onLoad: options.onLoad ?? vi.fn(async () => beforeJoin), onJoin: options.onJoin ?? vi.fn(async () => afterJoin), onAttempt: options.onAttempt ?? vi.fn(async () => ({ ...afterJoin, attempt: { succeeded: false } })), onAttemptB: options.onAttemptB ?? vi.fn(async () => ({ ...afterJoin, attempt: { kind: 'INCORRECT' as const } })), onSearchRecipients: options.onSearchRecipients, onSendGameC: options.onSendGameC, onConsultMessages: options.onConsultMessages }
+  const props = { value: options.value ?? beforeJoin, onLoad: options.onLoad ?? vi.fn(async () => beforeJoin), onJoin: options.onJoin ?? vi.fn(async () => afterJoin), onAttempt: options.onAttempt ?? vi.fn(async () => ({ ...afterJoin, attempt: { succeeded: false } })), onAttemptB: options.onAttemptB ?? vi.fn(async () => ({ ...afterJoin, attempt: { kind: 'INCORRECT' as const } })), onSearchRecipients: options.onSearchRecipients, onSendGameC: options.onSendGameC, onConsultMessages: options.onConsultMessages, openMessagesToken: options.openMessagesToken }
   act(() => root.render(<EventScreen {...props} />))
   return { container, root, props }
 }
@@ -288,6 +288,43 @@ describe('EventScreen presentation', () => {
     expect(container.querySelector('.event-game-c-send input[type="search"]')).not.toBeNull()
     expect(container.querySelector('.event-game-c-send textarea')).not.toBeNull()
     expect(container.querySelector('.event-game-c-inbox')?.textContent).toContain('Aucun message reçu aujourd’hui')
+  })
+
+  it('uses the explicit notification intent to open Panier for a nonparticipant', async () => {
+    const incoming: EventDto = { ...beforeJoin, gameC: { ...beforeJoin.gameC, available: true, receivedMessages: [{ id: 'message-1', sender: { id: 'sender-1', displayName: 'Ami' }, message: 'Bon Festival !', createdAt: '2026-09-15T12:00:00.000Z', viewed: false }], unviewedCount: 1 } }
+    const onConsultMessages = vi.fn(async () => ({ ...incoming, gameC: { ...incoming.gameC, unviewedCount: 0 } }))
+    const { container } = mount({ value: incoming, onLoad: vi.fn(async () => incoming), onConsultMessages, openMessagesToken: 1 })
+    await act(async () => { await Promise.resolve() })
+    expect(container.querySelector('.event-tabs .active')?.textContent).toBe('Jeux')
+    expect(container.querySelector('.event-game-tabs .active')?.textContent).toBe('Panier')
+    expect(container.querySelector('.event-game-c-inbox')?.textContent).toContain('Bon Festival !')
+    expect(onConsultMessages).toHaveBeenCalledOnce()
+  })
+
+  it('returns to registration if a stale message notification has no current-day inbox', async () => {
+    const mounted = mount({ value: beforeJoin, onLoad: vi.fn(async () => beforeJoin), openMessagesToken: 1 })
+    await act(async () => { await Promise.resolve() })
+    expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Inscription')
+    expect(mounted.container.querySelector('.event-game-c')).toBeNull()
+  })
+
+  it('searches an eligible recipient, selects their ID and sends one trimmed daily message', async () => {
+    const onSearchRecipients = vi.fn(async () => ({ page: 1, hasMore: false, recipients: [{ playerId: 'player-2', displayName: 'Ami Panier' }] }))
+    const onSendGameC = vi.fn(async () => ({ ...afterJoin, gameC: { ...afterJoin.gameC, sentToday: true, canSend: false }, participation: { ...afterJoin.participation, points: 1 }, currency: { amount: '2' }, operation: { id: 'operation-c', alreadyProcessed: false } }))
+    const mounted = mount({ value: afterJoin, onSearchRecipients, onSendGameC })
+    selectGames(mounted.container)
+    act(() => mounted.container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[2]!.click())
+    const input = mounted.container.querySelector<HTMLInputElement>('.event-game-c-send input[type="search"]')!
+    act(() => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'Ami'); input.dispatchEvent(new Event('input', { bubbles: true })) })
+    await act(async () => { await new Promise((resolve) => window.setTimeout(resolve, 300)) })
+    expect(onSearchRecipients).toHaveBeenCalledWith('Ami', 1)
+    act(() => mounted.container.querySelector<HTMLButtonElement>('.event-game-c-results button')!.click())
+    const textarea = mounted.container.querySelector<HTMLTextAreaElement>('.event-game-c-send textarea')!
+    act(() => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, ' Bon Festival ! '); textarea.dispatchEvent(new Event('input', { bubbles: true })) })
+    await act(async () => { mounted.container.querySelector<HTMLButtonElement>('.event-game-c-send .small-primary-button')!.click(); await Promise.resolve() })
+    expect(onSendGameC).toHaveBeenCalledWith('player-2', 'Bon Festival !', expect.any(String))
+    act(() => mounted.root.render(<EventScreen {...mounted.props} value={{ ...afterJoin, gameC: { ...afterJoin.gameC, sentToday: true, canSend: false } }} />))
+    expect(mounted.container.querySelector('.event-game-c-sent')?.textContent).toContain('Envoyé aujourd’hui')
   })
 
   it.each([[1920, 1080], [1774, 864], [1366, 768], [390, 844]])('keeps one bounded scroll owner at %d×%d', (width, height) => {

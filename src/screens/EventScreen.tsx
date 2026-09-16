@@ -16,6 +16,7 @@ type Props = Readonly<{
   onSearchRecipients?: (q: string, page: number) => Promise<EventGameCRecipientsDto>
   onSendGameC?: (recipientPlayerId: string, message: string, idempotencyKey: string) => Promise<EventGameCSendDto>
   onConsultMessages?: () => Promise<EventDto>
+  openMessagesToken?: number
 }>
 
 const periodFormatter = new Intl.DateTimeFormat('fr-FR', {
@@ -47,9 +48,9 @@ function EventCooldownButton({ durationMs }: Readonly<{ durationMs: number }>) {
   return <button type="button" className="small-primary-button event-cooldown-button" disabled>Patientez {remainingSeconds} seconde{remainingSeconds > 1 ? 's' : ''}...</button>
 }
 
-export default function EventScreen({ value, onLoad, onJoin, onAttempt, onAttemptB, onSearchRecipients = unavailableRecipientSearch, onSendGameC = unavailableGameCSend, onConsultMessages }: Props) {
-  const [section, setSection] = useState<'registration' | 'games'>('registration')
-  const [gameTab, setGameTab] = useState<0 | 1 | 2>(0)
+export default function EventScreen({ value, onLoad, onJoin, onAttempt, onAttemptB, onSearchRecipients = unavailableRecipientSearch, onSendGameC = unavailableGameCSend, onConsultMessages, openMessagesToken = 0 }: Props) {
+  const [section, setSection] = useState<'registration' | 'games'>(openMessagesToken > 0 ? 'games' : 'registration')
+  const [gameTab, setGameTab] = useState<0 | 1 | 2>(openMessagesToken > 0 ? 2 : 0)
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
   const [gameBIntent, setGameBIntent] = useState<Readonly<{ code: string; key: string }> | null>(null)
   const [gameBFeedback, setGameBFeedback] = useState<string | null>(null)
@@ -87,16 +88,27 @@ export default function EventScreen({ value, onLoad, onJoin, onAttempt, onAttemp
   }, [value.businessDate, value.edition.id])
 
   useEffect(() => {
+    if (openMessagesToken > 0) return
     let active = true
     void onLoad().catch((reason) => { if (active) setError(apiErrorMessage(reason)) })
     return () => { active = false }
-  }, [onLoad])
+  }, [onLoad, openMessagesToken])
+
+  useEffect(() => {
+    if (openMessagesToken === 0) return
+    let active = true
+    // oxlint-disable-next-line react/set-state-in-effect -- Notification intent selects the inbox before its fresh snapshot arrives.
+    setSection('games')
+    setGameTab(2)
+    void onLoad().then((latest) => { if (active && !latest.gameC.available) { setSection('registration'); setGameTab(0) } }).catch((reason) => { if (active) setError(apiErrorMessage(reason)) })
+    return () => { active = false }
+  }, [openMessagesToken, onLoad])
 
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect -- A server snapshot can invalidate the selected Event section.
-    if (!value.participation.joined && !value.gameC.available && section === 'games') setSection('registration')
+    if (!value.participation.joined && !value.gameC.available && !openMessagesToken && section === 'games') setSection('registration')
     if (!value.participation.joined && section === 'games' && gameTab !== 2) setGameTab(2)
-  }, [section, gameTab, value.participation.joined, value.gameC.available])
+  }, [section, gameTab, value.participation.joined, value.gameC.available, openMessagesToken])
 
   useEffect(() => {
     if (section !== 'games' || gameTab !== 2 || !value.gameC.canSend || recipientQuery.trim().length < 2) return

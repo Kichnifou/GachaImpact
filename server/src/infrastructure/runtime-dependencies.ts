@@ -41,6 +41,7 @@ import { CombatService } from '../application/combat/daily-combat-service.js';
 import { PrismaDailyCombatStore } from './database/prisma-daily-combat-store.js';
 import { ExpeditionService } from '../application/expedition/expedition-service.js';
 import { NotificationService } from '../application/notification/notification-service.js';
+import { EventMessageNotificationReconciler } from '../application/notification/event-message-notifications.js';
 import { MonthlyBossScheduler, MonthlyBossService } from '../application/combat/monthly-boss-service.js';
 import { ContestScheduler, ContestService } from '../application/contest/contest-service.js';
 import { GiftCodeScheduler, GiftCodeService } from '../application/gift-code/gift-code-service.js';
@@ -137,7 +138,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     giftCodeService,
     eventService,
     expeditionService,
-    notificationService: new NotificationService(getCurrentPlayer, database, clock, expeditionService, giftCodeService),
+    notificationService: new NotificationService(getCurrentPlayer, database, clock, expeditionService, giftCodeService, new EventMessageNotificationReconciler(database)),
     start: async () => { await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); await giftCodeScheduler.start(); contestScheduler.start(); },
     close: async () => { scheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); giftCodeScheduler.stop(); await contestScheduler.stop(); await database.$disconnect(); },
   };

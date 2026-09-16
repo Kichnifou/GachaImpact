@@ -1,7 +1,7 @@
 import type { NotificationDto } from '../api/types'
 import { formatResourceAmount } from '../utils/formatters'
 
-export type NotificationDestination = 'expedition' | 'gift-code' | 'monthly-boss'
+export type NotificationDestination = 'expedition' | 'gift-code' | 'monthly-boss' | 'event-messages'
 export type NotificationRewardPresentation = Readonly<{ resourceKey: string; label: string; amount: string }>
 export type NotificationPresentation = Readonly<{ title: string; message: string; rewards?: readonly NotificationRewardPresentation[]; destination: NotificationDestination | null }>
 type Resolver = (notification: NotificationDto) => NotificationPresentation
@@ -23,6 +23,10 @@ const resolvers: Readonly<Record<string, Resolver>> = {
     rewards: rewardPresentation(notification.payload.rewards),
     destination: notification.actionKey === 'OPEN_MONTHLY_BOSS' ? 'monthly-boss' : null,
   }),
+  'event:EVENT_MESSAGES_PENDING': (notification) => {
+    const count = typeof notification.payload.count === 'number' && Number.isInteger(notification.payload.count) && notification.payload.count > 0 ? notification.payload.count : 1
+    return { title: 'Messages du Festival', message: `Vous avez ${count} message${count > 1 ? 's' : ''} du Festival à consulter.`, destination: notification.actionKey === 'OPEN_EVENT_MESSAGES' ? 'event-messages' : null }
+  },
 }
 
 export function resolveNotificationPresentation(notification: NotificationDto): NotificationPresentation {

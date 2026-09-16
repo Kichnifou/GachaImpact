@@ -2,6 +2,11 @@
 
 Statut : évolutif.
 
+## Event — messages du Jeu C (clarification propriétaire du 16/09/2026)
+
+- `VALIDÉ` — Tant qu'au moins un message Event de la business date courante reste à consulter pour un Player, une seule notification agrégée est active pour ce destinataire et cette journée ; jamais une notification par message.
+- `VALIDÉ` — La lecture de la notification ne vaut pas consultation des messages. L'ouverture effective de Panier marque les messages courants consultés et résout l'agrégat ; un nouveau message ultérieur réactive le même agrégat. Le changement de business date retire l'ancien agrégat actif sans effacer les messages conservés.
+
 ## Identité joueur
 - `VALIDÉ` — Le compte GachaImpact possède un ID interne immuable.
 - `VALIDÉ` — Le pseudo GachaImpact est distinct du pseudo Twitch et peut être le pseudo affiché.

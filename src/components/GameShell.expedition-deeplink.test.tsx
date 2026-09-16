@@ -88,6 +88,29 @@ describe('GameShell Expedition deep-link', () => {
     await act(async () => { container.querySelector<HTMLButtonElement>('.notification-item')!.click(); await Promise.resolve() })
     expect(window.location.hash).toBe(`#${hashForScreen('activities-combat')}`)
     expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.combat-tabs button')).find((button) => button.classList.contains('active'))?.textContent).toBe('Boss')
+    const event = {
+      businessDate: '2026-09-15', refreshAfterMs: 3600000,
+      festival: { key: 'harvest', month: 9, title: 'Festival des Récoltes', emoji: '🌾', currency: { key: 'harvest-tokens', label: 'Jetons de Récolte', emoji: '🌾' }, collection: { key: 'harvest-sheaf', label: 'Gerbe de Récolte' } },
+      edition: { id: 'event-edition', year: 2026, startsAt: '2026-08-31T22:00:00Z', endsAt: '2026-09-30T22:00:00Z' },
+      participation: { joined: false, joinedAt: null, points: 0 }, currency: { amount: '0' }, canJoin: true,
+      gameA: { available: false, theme: { key: 'harvest', label: 'Récolte' }, completedToday: false, attemptsToday: 0, windows: [], activeWindowIndex: null, canAttempt: false, cooldownRemainingMs: 0 },
+      gameB: { available: false, theme: { key: 'harvest', label: 'Grenier' }, solvedToday: false, resolvedCode: null, discoveredBy: null, attemptsUsed: 0, attemptsRemaining: 0, testedCodes: [], remainingCodes: [], canAttempt: false },
+      gameC: { available: true, theme: { key: 'harvest', label: 'Panier' }, sentToday: false, canSend: false, receivedMessages: [{ id: 'message-1', sender: { id: 'friend-1', displayName: 'Ami' }, message: 'Bon Festival !', createdAt: '2026-09-15T12:00:00Z', viewed: false }], unviewedCount: 1 },
+    }
+    const eventNotification = { id: 'event-notification', domainKey: 'event', typeKey: 'EVENT_MESSAGES_PENDING', payload: { count: 1 }, state: 'UNREAD' as const, actionKey: 'OPEN_EVENT_MESSAGES', actionTargetId: 'event-edition', createdAt: '2026-09-15T12:00:00Z', readAt: null }
+    const onConsultEventGameCMessages = vi.fn(async () => ({ ...event, gameC: { ...event.gameC, unviewedCount: 0, receivedMessages: event.gameC.receivedMessages.map((message) => ({ ...message, viewed: true })) } }))
+    await act(async () => { root.render(<GameShell {...props} event={event} onLoadEvent={vi.fn(async () => event)} onJoinEvent={vi.fn()} onAttemptEventGameA={vi.fn()} onConsultEventGameCMessages={onConsultEventGameCMessages} notifications={{ unreadCount: 1, notifications: [eventNotification] }} />); await Promise.resolve() })
+    await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click(); await Promise.resolve() })
+    expect(container.textContent).toContain('1 message du Festival à consulter')
+    await act(async () => { container.querySelector<HTMLButtonElement>('.notification-item')!.click(); await Promise.resolve() })
+    expect(window.location.hash).toBe(`#${hashForScreen('activities-event')}`)
+    expect(container.querySelector('.event-tabs .active')?.textContent).toBe('Jeux')
+    expect(container.querySelector('.event-game-tabs .active')?.textContent).toBe('Panier')
+    expect(container.querySelector('.event-game-c-inbox')?.textContent).toContain('Bon Festival !')
+    expect(onConsultEventGameCMessages).toHaveBeenCalledOnce()
+    await navigateByHash('activities-dailies')
+    await navigateByHash('activities-event')
+    expect(container.querySelector('.event-tabs .active')?.textContent).toBe('Inscription')
     act(() => root.unmount())
   })
 })

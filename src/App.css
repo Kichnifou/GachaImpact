@@ -7468,7 +7468,7 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .event-game-c-send input:focus-visible, .event-game-c-send textarea:focus-visible { outline: 2px solid #8fcfff; outline-offset: 2px; }
 .event-game-c-send > button { justify-self: start; }
 .event-game-c-results { display: grid; gap: 5px; max-height: 180px; overflow-y: auto; }
-.event-game-c-results button { padding: 9px 12px; color: #eef7ff; text-align: left; font: inherit; border: 1px solid rgba(108, 195, 255, .25); border-radius: 8px; background: rgba(55, 121, 183, .12); cursor: pointer; }
+.event-game-c-results button { min-width: 0; padding: 9px 12px; color: #eef7ff; text-align: left; overflow-wrap: anywhere; font: inherit; border: 1px solid rgba(108, 195, 255, .25); border-radius: 8px; background: rgba(55, 121, 183, .12); cursor: pointer; }
 .event-game-c-results button:hover, .event-game-c-results button:focus-visible, .event-game-c-results button.selected { border-color: #8fcfff; background: rgba(55, 121, 183, .3); outline: none; }
 .event-game-c-results p, .event-game-c-sent, .event-game-c-feedback { margin: 0; color: var(--muted); font-size: 12px; }
 .event-game-c-feedback { color: #8df1c8; }
@@ -7476,6 +7476,7 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .event-game-c-inbox h3 { margin: 0; font-size: 15px; }
 .event-game-c-inbox article { min-width: 0; padding: 12px; border: 1px solid rgba(108, 195, 255, .2); border-radius: 10px; background: rgba(17, 33, 54, .6); }
 .event-game-c-inbox article > div { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.event-game-c-inbox article strong { min-width: 0; overflow-wrap: anywhere; }
 .event-game-c-inbox article p { margin: 7px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 .event-game-c-inbox time { color: var(--muted); font-size: 11px; }
 .event-feedback { min-height: 18px; margin: -3px 3px 0; color: #f0a0a9; font-size: 11px; }

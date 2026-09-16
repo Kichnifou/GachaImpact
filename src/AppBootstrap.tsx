@@ -110,7 +110,7 @@ function AppBootstrap() {
   }, [])
   const loadExpedition = useCallback(async () => publishExpedition(await getGameApiClient().getExpedition()), [publishExpedition])
   const loadNotifications = useCallback(async () => { const next = await getGameApiClient().getNotifications(); setNotifications(next); return next }, [])
-  const consultEventGameCMessages = useCallback(() => eventRequests.mutate(() => getGameApiClient().consultEventGameCMessages()), [eventRequests])
+  const consultEventGameCMessages = useCallback(async () => { const result = await eventRequests.mutate(() => getGameApiClient().consultEventGameCMessages()); await loadNotifications(); return result }, [eventRequests, loadNotifications])
   useEffect(() => {
     if (expedition?.value.operationalStatus !== 'RUNNING' || !expedition.value.readyAt) return
     const delay = Math.max(0, Date.parse(expedition.value.readyAt) - Date.now()) + 100
