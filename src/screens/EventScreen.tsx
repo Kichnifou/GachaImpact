@@ -5,12 +5,13 @@ import { isAmbiguousMutationError } from '../api/mutation-errors'
 import ScreenHeader from '../components/ScreenHeader'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import PlayerSelectionBrowser, { type PlayerBrowserQuery } from '../components/PlayerSelectionBrowser'
-import EventShopSection from './EventShopSection'
+import EventShopSection, { type EventShopIntent, type EventShopTarget } from './EventShopSection'
 import EventRankingSection from './EventRankingSection'
 import { eventGameAExpiredToday, eventPresentation } from '../event/event-presentation'
 import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
 
 type Props = Readonly<{
+  sessionUserId: string
   value: EventDto
   onLoad: () => Promise<EventDto>
   onLoadRanking?: () => Promise<EventRankingDto>
@@ -55,7 +56,7 @@ function EventCooldownButton({ durationMs }: Readonly<{ durationMs: number }>) {
   return <button type="button" className="small-primary-button event-cooldown-button" disabled>Patientez {remainingSeconds} seconde{remainingSeconds > 1 ? 's' : ''}...</button>
 }
 
-export default function EventScreen({ value, onLoad, onLoadRanking, onJoin, onClaimDailyBonus, onConvertShop, onPurchaseCollection, onAttempt, onAttemptB, onSearchRecipients = unavailableRecipientSearch, onSendGameC = unavailableGameCSend, onConsultMessages, openMessagesToken = 0 }: Props) {
+export default function EventScreen({ sessionUserId, value, onLoad, onLoadRanking, onJoin, onClaimDailyBonus, onConvertShop, onPurchaseCollection, onAttempt, onAttemptB, onSearchRecipients = unavailableRecipientSearch, onSendGameC = unavailableGameCSend, onConsultMessages, openMessagesToken = 0 }: Props) {
   const [section, setSection] = useState<'registration' | 'games' | 'shop' | 'ranking'>(openMessagesToken > 0 ? 'games' : 'registration')
   const [gameTab, setGameTab] = useState<0 | 1 | 2>(openMessagesToken > 0 ? 2 : 0)
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
@@ -66,6 +67,13 @@ export default function EventScreen({ value, onLoad, onLoadRanking, onJoin, onCl
   const [gameCMessage, setGameCMessage] = useState('')
   const [gameCIntent, setGameCIntent] = useState<Readonly<{ recipientPlayerId: string; message: string; key: string }> | null>(null)
   const [gameCFeedback, setGameCFeedback] = useState<string | null>(null)
+  const [shopIntent, setShopIntent] = useState<EventShopIntent | null>(null)
+  const shopIntentRef = useRef<EventShopIntent | null>(null)
+  const [shopPending, setShopPending] = useState(false)
+  const shopPendingRef = useRef(false)
+  const [shopFeedback, setShopFeedback] = useState('')
+  const [shopError, setShopError] = useState('')
+  const shopBoundaryRef = useRef({ sessionUserId, editionId: value.edition.id })
   const [pending, setPending] = useState(false)
   const pendingRef = useRef(false)
   const [intentKey, setIntentKey] = useState<string | null>(null)
@@ -73,6 +81,19 @@ export default function EventScreen({ value, onLoad, onLoadRanking, onJoin, onCl
   const [error, setError] = useState<string | null>(null)
   const [attemptFeedback, setAttemptFeedback] = useState<Readonly<{ kind: 'success' | 'failure'; message: string }> | null>(null)
   const boundaryRef = useRef({ businessDate: value.businessDate, editionId: value.edition.id })
+
+  useLayoutEffect(() => {
+    const previous = shopBoundaryRef.current
+    if (previous.sessionUserId === sessionUserId && previous.editionId === value.edition.id) return
+    shopBoundaryRef.current = { sessionUserId, editionId: value.edition.id }
+    shopIntentRef.current = null
+    shopPendingRef.current = false
+    // oxlint-disable-next-line react(set-state-in-effect) -- A different player or edition invalidates the previous Shop operation.
+    setShopIntent(null)
+    setShopPending(false)
+    setShopFeedback('')
+    setShopError('')
+  }, [sessionUserId, value.edition.id])
 
   useLayoutEffect(() => {
     const previous = boundaryRef.current
@@ -246,6 +267,44 @@ export default function EventScreen({ value, onLoad, onLoadRanking, onJoin, onCl
     }
   }
 
+  const transactShop = async (target: EventShopTarget, quantity: number) => {
+    if (shopPendingRef.current || !value.shop.available) return
+    const previous = shopIntentRef.current
+    if (previous && previous.target !== target) return
+    if (target === 'COLLECTION') {
+      if (!onPurchaseCollection || !value.shop.collection.available || value.shop.collection.obtainedThisEdition) return
+      if (!previous && BigInt(value.shop.balance) < BigInt(value.shop.collection.cost)) { setShopError('Votre solde est insuffisant pour cet objet.'); return }
+    } else {
+      if (!onConvertShop) return
+      if (!previous && (!Number.isSafeInteger(quantity) || quantity <= 0 || BigInt(quantity) > BigInt(value.shop.balance))) { setShopError('Choisissez une quantité valide, dans la limite de votre solde.'); return }
+    }
+    const intent = previous ?? { target, quantity, key: crypto.randomUUID() }
+    const requestBoundary = { sessionUserId, editionId: value.edition.id }
+    const sameBoundary = () => shopBoundaryRef.current.sessionUserId === requestBoundary.sessionUserId && shopBoundaryRef.current.editionId === requestBoundary.editionId
+    shopIntentRef.current = intent
+    shopPendingRef.current = true
+    setShopIntent(intent)
+    setShopPending(true)
+    setShopError('')
+    try {
+      await (intent.target === 'COLLECTION' ? onPurchaseCollection!(intent.key) : onConvertShop!(intent.target, intent.quantity, intent.key))
+      if (sameBoundary()) {
+        shopIntentRef.current = null
+        setShopIntent(null)
+        setShopFeedback(intent.target === 'COLLECTION'
+          ? `Objet obtenu : ${value.shop.collection.label}`
+          : `Échange effectué : ${formatResourceAmount((BigInt(intent.quantity) * BigInt(value.shop.rates[intent.target === 'PRIMOGEMS' ? 'primogems' : 'moras'])).toString())} ${intent.target === 'PRIMOGEMS' ? 'Primogemmes' : 'Moras'}.`)
+      }
+    } catch (reason) {
+      if (sameBoundary()) {
+        if (!isAmbiguousMutationError(reason)) { shopIntentRef.current = null; setShopIntent(null) }
+        setShopError(apiErrorMessage(reason))
+      }
+    } finally {
+      if (sameBoundary()) { shopPendingRef.current = false; setShopPending(false) }
+    }
+  }
+
   const presentation = eventPresentation(value.festival.key)
   const expiredToday = eventGameAExpiredToday(value)
   const milestoneProgress = Math.min(87.5, Math.max(0, (value.milestones.currentPoints - 10) / 70 * 87.5))
@@ -297,7 +356,7 @@ export default function EventScreen({ value, onLoad, onLoadRanking, onJoin, onCl
           : <button type="button" className="small-primary-button" disabled={!value.canJoin || pending} onClick={() => void join()}>{pending ? 'Inscription…' : 'Rejoindre l’événement'}</button>}
       </section>
       </>}
-      {section === 'shop' && <EventShopSection value={value} onConvert={onConvertShop} onPurchaseCollection={onPurchaseCollection} />}
+      {section === 'shop' && <EventShopSection value={value} intent={shopIntent} pending={shopPending} feedback={shopFeedback} error={shopError} canConvert={Boolean(onConvertShop)} canPurchaseCollection={Boolean(onPurchaseCollection)} onTransact={(target, quantity) => void transactShop(target, quantity)} />}
       {section === 'ranking' && <EventRankingSection editionId={value.edition.id} onLoad={onLoadRanking} />}
       {section === 'games' && gameTab === 0 && value.participation.joined && <section className="panel event-game-a" data-theme={value.gameA.theme.key}>
         <div className="event-game-a-heading"><div><span className="eyebrow">Jeu du Festival</span><h2>{presentation.games[0]}</h2></div><span className={`event-game-a-day-state${value.gameA.completedToday ? ' complete' : expiredToday ? ' expired' : ''}`}>{value.gameA.completedToday ? 'Réussi aujourd’hui' : expiredToday ? 'Délai dépassé...' : 'À réussir aujourd’hui'}</span></div>

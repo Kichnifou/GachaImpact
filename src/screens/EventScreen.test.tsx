@@ -28,10 +28,10 @@ const joinedGameA = { available: true, theme: { key: 'recolte', label: 'Récolte
 ], activeWindowIndex: 1, canAttempt: true, cooldownRemainingMs: 0 }
 const afterJoin: EventJoinDto = { ...beforeJoin, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, dailyBonus: { claimedToday: false, canClaim: true }, gameA: joinedGameA, gameB: { ...beforeJoin.gameB, available: true, attemptsRemaining: 3, canAttempt: true }, gameC: { ...beforeJoin.gameC, available: true, canSend: true }, operation: { id: 'operation-1', alreadyProcessed: false } }
 
-function mount(options: { value?: EventDto; onLoad?: () => Promise<EventDto>; onLoadRanking?: () => Promise<{ editionId: string; entries: { rank: number; playerId: string; displayName: string; points: number }[] }>; onJoin?: (key: string) => Promise<EventJoinDto>; onClaimDailyBonus?: (key: string) => Promise<EventDailyBonusClaimDto>; onAttempt?: (key: string) => Promise<EventGameAAttemptDto>; onAttemptB?: (code: string, key: string) => Promise<EventGameBAttemptDto>; onSearchRecipients?: (query: EventGameCRecipientQuery) => Promise<EventGameCRecipientsDto>; onSendGameC?: (recipientId: string, message: string, key: string) => Promise<EventGameCSendDto>; onConsultMessages?: () => Promise<EventDto>; openMessagesToken?: number } = {}) {
+function mount(options: { sessionUserId?: string; value?: EventDto; onLoad?: () => Promise<EventDto>; onLoadRanking?: () => Promise<{ editionId: string; entries: { rank: number; playerId: string; displayName: string; points: number }[] }>; onJoin?: (key: string) => Promise<EventJoinDto>; onClaimDailyBonus?: (key: string) => Promise<EventDailyBonusClaimDto>; onConvertShop?: (target: 'PRIMOGEMS' | 'MORAS', quantity: number, key: string) => Promise<EventDto>; onPurchaseCollection?: (key: string) => Promise<EventDto>; onAttempt?: (key: string) => Promise<EventGameAAttemptDto>; onAttemptB?: (code: string, key: string) => Promise<EventGameBAttemptDto>; onSearchRecipients?: (query: EventGameCRecipientQuery) => Promise<EventGameCRecipientsDto>; onSendGameC?: (recipientId: string, message: string, key: string) => Promise<EventGameCSendDto>; onConsultMessages?: () => Promise<EventDto>; openMessagesToken?: number } = {}) {
   const container = document.createElement('div'); document.body.append(container)
   const root = createRoot(container); roots.push(root)
-  const props = { value: options.value ?? beforeJoin, onLoad: options.onLoad ?? vi.fn(async () => beforeJoin), onLoadRanking: options.onLoadRanking, onJoin: options.onJoin ?? vi.fn(async () => afterJoin), onClaimDailyBonus: options.onClaimDailyBonus, onAttempt: options.onAttempt ?? vi.fn(async () => ({ ...afterJoin, attempt: { succeeded: false } })), onAttemptB: options.onAttemptB ?? vi.fn(async () => ({ ...afterJoin, attempt: { kind: 'INCORRECT' as const } })), onSearchRecipients: options.onSearchRecipients, onSendGameC: options.onSendGameC, onConsultMessages: options.onConsultMessages, openMessagesToken: options.openMessagesToken }
+  const props = { sessionUserId: options.sessionUserId ?? 'player-1', value: options.value ?? beforeJoin, onLoad: options.onLoad ?? vi.fn(async () => beforeJoin), onLoadRanking: options.onLoadRanking, onJoin: options.onJoin ?? vi.fn(async () => afterJoin), onClaimDailyBonus: options.onClaimDailyBonus, onConvertShop: options.onConvertShop, onPurchaseCollection: options.onPurchaseCollection, onAttempt: options.onAttempt ?? vi.fn(async () => ({ ...afterJoin, attempt: { succeeded: false } })), onAttemptB: options.onAttemptB ?? vi.fn(async () => ({ ...afterJoin, attempt: { kind: 'INCORRECT' as const } })), onSearchRecipients: options.onSearchRecipients, onSendGameC: options.onSendGameC, onConsultMessages: options.onConsultMessages, openMessagesToken: options.openMessagesToken }
   act(() => root.render(<EventScreen {...props} />))
   return { container, root, props }
 }
@@ -119,6 +119,84 @@ describe('EventScreen presentation', () => {
     expect(mounted.container.querySelector('.event-ranking-list')?.textContent).toContain('Festivaliste')
     expect(onLoadRanking).toHaveBeenCalledTimes(1)
     expect(onLoad).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps one Shop request in flight across tabs and issues a new key after confirmed success', async () => {
+    let completeFirst!: (value: EventDto) => void
+    const first = new Promise<EventDto>((resolve) => { completeFirst = resolve })
+    const onConvertShop = vi.fn().mockReturnValueOnce(first).mockResolvedValue(afterJoin)
+    const shopValue = { ...afterJoin, shop: { ...afterJoin.shop, available: true, balance: '80', rates: { primogems: '9007199254740993', moras: '20000' } } }
+    const mounted = mount({ value: shopValue, onConvertShop })
+    const tab = (name: string) => Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button')).find((button) => button.textContent === name)!
+    act(() => tab('Shop').click())
+    const convert = () => mounted.container.querySelector<HTMLButtonElement>('.event-shop-card button.small-primary-button')!
+    act(() => { convert().click(); convert().click() })
+    expect(onConvertShop).toHaveBeenCalledTimes(1)
+    expect(onConvertShop).toHaveBeenCalledWith('PRIMOGEMS', 1, expect.any(String))
+    act(() => { tab('Inscription').click(); tab('Shop').click() })
+    expect(convert().disabled).toBe(true)
+    expect(convert().textContent).toBe('Échange…')
+    await act(async () => { completeFirst(shopValue); await first })
+    expect(mounted.container.querySelector('.event-shop-feedback')?.textContent).toContain('9 007 199 254 740 993 Primogemmes')
+    await act(async () => { convert().click(); await Promise.resolve() })
+    expect(onConvertShop).toHaveBeenCalledTimes(2)
+    expect(onConvertShop.mock.calls[1][2]).not.toBe(onConvertShop.mock.calls[0][2])
+  })
+
+  it('retries an ambiguous Shop conversion with the exact intent after tab and business-date changes', async () => {
+    const onConvertShop = vi.fn()
+      .mockRejectedValueOnce(new ApiError('NETWORK_ERROR', 'Réseau indisponible.', null))
+      .mockResolvedValue(afterJoin)
+    const shopValue = { ...afterJoin, shop: { ...afterJoin.shop, available: true, balance: '80' } }
+    const mounted = mount({ value: shopValue, onConvertShop })
+    const tab = (name: string) => Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button')).find((button) => button.textContent === name)!
+    act(() => tab('Shop').click())
+    act(() => mounted.container.querySelector<HTMLButtonElement>('.event-shop-max')!.click())
+    await act(async () => { mounted.container.querySelector<HTMLButtonElement>('.event-shop-card button.small-primary-button')!.click(); await Promise.resolve() })
+    const original = onConvertShop.mock.calls[0]
+    expect(original).toEqual(['PRIMOGEMS', 80, expect.any(String)])
+    act(() => { tab('Classement').click(); tab('Shop').click() })
+    act(() => mounted.root.render(<EventScreen {...mounted.props} value={{ ...shopValue, businessDate: '2026-09-16' }} />))
+    expect((mounted.container.querySelector('#event-shop-PRIMOGEMS') as HTMLInputElement).value).toBe('80')
+    await act(async () => { Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-shop-card button')).find((button) => button.textContent === 'Réessayer')!.click(); await Promise.resolve() })
+    expect(onConvertShop.mock.calls[1]).toEqual(original)
+  })
+
+  it('drops a Shop intent at player and edition boundaries and uses neutral Collection feedback', async () => {
+    const onConvertShop = vi.fn().mockRejectedValue(new ApiError('NETWORK_ERROR', 'Réseau indisponible.', null))
+    const onPurchaseCollection = vi.fn(async () => afterJoin)
+    const shopValue = { ...afterJoin, shop: { ...afterJoin.shop, available: true, balance: '80' } }
+    const mounted = mount({ value: shopValue, onConvertShop, onPurchaseCollection })
+    const shopTab = () => Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button')).find((button) => button.textContent === 'Shop')!
+    act(() => shopTab().click())
+    await act(async () => { mounted.container.querySelector<HTMLButtonElement>('.event-shop-card button.small-primary-button')!.click(); await Promise.resolve() })
+    act(() => mounted.root.render(<EventScreen {...mounted.props} sessionUserId="player-2" />))
+    expect(mounted.container.querySelector<HTMLButtonElement>('.event-shop-card button.small-primary-button')?.textContent).toBe('Convertir')
+    await act(async () => { mounted.container.querySelector<HTMLButtonElement>('.event-shop-card button.small-primary-button')!.click(); await Promise.resolve() })
+    expect(onConvertShop.mock.calls[1][2]).not.toBe(onConvertShop.mock.calls[0][2])
+    act(() => mounted.root.render(<EventScreen {...mounted.props} sessionUserId="player-2" value={{ ...shopValue, edition: { ...shopValue.edition, id: 'edition-2027', year: 2027 } }} />))
+    act(() => shopTab().click())
+    expect(mounted.container.querySelector<HTMLButtonElement>('.event-shop-card button.small-primary-button')?.textContent).toBe('Convertir')
+    await act(async () => { mounted.container.querySelector<HTMLButtonElement>('.event-shop-collection button')!.click(); await Promise.resolve() })
+    expect(mounted.container.querySelector('.event-shop-feedback')?.textContent).toBe('Objet obtenu : Gerbe de Récolte')
+  })
+
+  it('does not restore a prior player’s pending Shop operation when its response arrives late', async () => {
+    let complete!: (value: EventDto) => void
+    const inFlight = new Promise<EventDto>((resolve) => { complete = resolve })
+    const onConvertShop = vi.fn().mockReturnValueOnce(inFlight).mockResolvedValue(afterJoin)
+    const shopValue = { ...afterJoin, shop: { ...afterJoin.shop, available: true, balance: '80' } }
+    const mounted = mount({ value: shopValue, onConvertShop })
+    const shopTab = () => Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button')).find((button) => button.textContent === 'Shop')!
+    act(() => shopTab().click())
+    act(() => mounted.container.querySelector<HTMLButtonElement>('.event-shop-card button.small-primary-button')!.click())
+    act(() => mounted.root.render(<EventScreen {...mounted.props} sessionUserId="player-2" />))
+    await act(async () => { complete(shopValue); await inFlight })
+    expect(mounted.container.querySelector<HTMLButtonElement>('.event-shop-card button.small-primary-button')?.textContent).toBe('Convertir')
+    expect(mounted.container.querySelector('.event-shop-feedback')?.textContent).toBe('')
+    await act(async () => { mounted.container.querySelector<HTMLButtonElement>('.event-shop-card button.small-primary-button')!.click(); await Promise.resolve() })
+    expect(onConvertShop).toHaveBeenCalledTimes(2)
+    expect(onConvertShop.mock.calls[1][2]).not.toBe(onConvertShop.mock.calls[0][2])
   })
 
   it('returns to registration when a new snapshot removes event participation', () => {

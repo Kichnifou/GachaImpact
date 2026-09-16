@@ -17,11 +17,11 @@ const view = (joined: boolean, balance: string, obtained = false): EventDto => (
 const mounted: Array<{ root: ReturnType<typeof createRoot>; container: HTMLDivElement }> = []
 afterEach(() => { for (const { root, container } of mounted.splice(0)) { act(() => root.unmount()); container.remove() } })
 
-function mount(value = view(true, '7'), onConvert = vi.fn(async () => value), onPurchaseCollection = vi.fn(async () => value)) {
+function mount(value = view(true, '7'), onTransact = vi.fn()) {
   const container = document.createElement('div'); document.body.append(container)
   const root = createRoot(container); mounted.push({ root, container })
-  act(() => root.render(<EventShopSection value={value} onConvert={onConvert} onPurchaseCollection={onPurchaseCollection} />))
-  return { container, root, onConvert, onPurchaseCollection }
+  act(() => root.render(<EventShopSection value={value} intent={null} pending={false} feedback="" error="" canConvert canPurchaseCollection onTransact={onTransact} />))
+  return { container, root, onTransact }
 }
 function click(button: HTMLButtonElement) { act(() => button.click()) }
 function buttons(container: HTMLElement) { return Array.from(container.querySelectorAll<HTMLButtonElement>('button')) }
@@ -38,13 +38,13 @@ describe('Event Shop', () => {
   })
 
   it('computes MAX and a multi-unit Primogemmes preview from the server rates', async () => {
-    const onConvert = vi.fn(async () => view(true, '0'))
-    const { container } = mount(view(true, '7'), onConvert)
+    const onTransact = vi.fn()
+    const { container } = mount(view(true, '7'), onTransact)
     click(buttons(container).find((button) => button.textContent === 'MAX')!)
     expect((container.querySelector('#event-shop-PRIMOGEMS') as HTMLInputElement).value).toBe('7')
     expect(container.textContent).toContain('1 120 Primogemmes')
     await act(async () => { buttons(container).find((button) => button.textContent === 'Convertir')!.click(); await Promise.resolve() })
-    expect(onConvert).toHaveBeenCalledWith('PRIMOGEMS', 7, expect.any(String))
+    expect(onTransact).toHaveBeenCalledWith('PRIMOGEMS', 7)
   })
 
   it('shows the annual Collection state and disables a second purchase', () => {
