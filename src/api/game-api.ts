@@ -57,6 +57,7 @@ import type {
   GiftCodeClaimantsDto,
   EventDto,
   EventDailyBonusClaimDto,
+  EventShopMutationDto,
   EventGameAAttemptDto,
   EventGameBAttemptDto,
   EventGameCRecipientQuery,
@@ -216,6 +217,8 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getEvent: () => request<EventDto>('/api/v1/me/event'),
     joinEvent: (idempotencyKey: string) => request<EventJoinDto>('/api/v1/me/event/join', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     claimEventDailyBonus: (idempotencyKey: string) => request<EventDailyBonusClaimDto>('/api/v1/me/event/daily-bonus/claim', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+    convertEventShop: (target: 'PRIMOGEMS' | 'MORAS', quantity: number, idempotencyKey: string) => request<EventShopMutationDto>('/api/v1/me/event/shop/convert', { method: 'POST', body: JSON.stringify({ target, quantity, idempotencyKey }) }),
+    purchaseEventCollection: (idempotencyKey: string) => request<EventShopMutationDto>('/api/v1/me/event/shop/collection', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     attemptEventGameA: (idempotencyKey: string) => request<EventGameAAttemptDto>('/api/v1/me/event/game-a/attempt', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     attemptEventGameB: (code: string, idempotencyKey: string) => request<EventGameBAttemptDto>('/api/v1/me/event/game-b/attempt', { method: 'POST', body: JSON.stringify({ code, idempotencyKey }) }),
     searchEventGameCRecipients: (input: EventGameCRecipientQuery) => {

@@ -92,7 +92,7 @@ describe('GameShell Expedition deep-link', () => {
       businessDate: '2026-09-15', refreshAfterMs: 3600000,
       festival: { key: 'harvest', month: 9, title: 'Festival des Récoltes', emoji: '🌾', currency: { key: 'harvest-tokens', label: 'Jetons de Récolte', unit: 'Jeton de Récolte', emoji: '🌾' }, collection: { key: 'harvest-sheaf', label: 'Gerbe de Récolte' } },
       edition: { id: 'event-edition', year: 2026, startsAt: '2026-08-31T22:00:00Z', endsAt: '2026-09-30T22:00:00Z' },
-      participation: { joined: false, joinedAt: null, points: 0 }, currency: { amount: '0' }, canJoin: true,
+      participation: { joined: false, joinedAt: null, points: 0 }, currency: { amount: '0' }, shop: { available: false, balance: '0', rates: { primogems: '160', moras: '20000' }, collection: { itemExternalKey: 'gerbe_de_recolte', label: 'Gerbe de Récolte', cost: '80', obtainedThisEdition: false, available: true } }, canJoin: true,
       dailyBonus: { claimedToday: false, canClaim: false }, milestones: { currentPoints: 0, thresholds: [] },
       gameA: { available: false, theme: { key: 'harvest', label: 'Récolte' }, completedToday: false, attemptsToday: 0, windows: [], activeWindowIndex: null, canAttempt: false, cooldownRemainingMs: 0 },
       gameB: { available: false, theme: { key: 'harvest', label: 'Grenier' }, solvedToday: false, resolvedCode: null, discoveredBy: null, attemptsUsed: 0, attemptsRemaining: 0, testedCodes: [], remainingCodes: [], canAttempt: false },

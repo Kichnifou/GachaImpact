@@ -239,6 +239,7 @@ model Player {
   preferences           PlayerPreference[]
   items                 PlayerItem[]
   itemAcquisitions      ItemAcquisition[]
+  eventCollectionAcquisitions EventCollectionAcquisition[]
   teams                 Team[]
   bankAccount           PlayerBankAccount?
   bankTransactions      BankTransaction[]
@@ -365,6 +366,7 @@ model ItemDefinition {
   updatedAt      DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   playerBalances PlayerItem[]
   acquisitions   ItemAcquisition[]
+  eventCollectionAcquisitions EventCollectionAcquisition[]
 
   @@map("item_definitions")
 }
@@ -396,6 +398,7 @@ model ItemAcquisition {
   player      Player             @relation(fields: [playerId], references: [id], onDelete: Cascade)
   item        ItemDefinition     @relation(fields: [itemId], references: [id], onDelete: Restrict)
   operation   BusinessOperation? @relation(fields: [operationId], references: [id], onDelete: SetNull)
+  eventCollectionAcquisition EventCollectionAcquisition?
 
   @@unique([operationId, itemId], map: "item_acquisitions_operation_item_key")
   @@index([playerId, itemId, acquiredAt(sort: Desc)], map: "item_acquisitions_player_item_acquired_idx")
@@ -566,6 +569,7 @@ model BusinessOperation {
   bossRewards        BossReward[]
   contestReward      ContestReward?
   itemAcquisitions   ItemAcquisition[]
+  eventCollectionAcquisition EventCollectionAcquisition?
   giftCodeClaim      GiftCodeClaim?
   eventMilestoneClaim EventMilestoneClaim?
 
@@ -606,10 +610,30 @@ model EventEdition {
   gameBDailyStates  EventGameBDailyState[]
   socialMessages    EventSocialMessage[]
   milestoneClaims   EventMilestoneClaim[]
+  collectionAcquisitions EventCollectionAcquisition[]
 
   @@unique([eventDefinitionId, year], map: "event_editions_definition_year_key")
   @@index([startsAt, endsAt], map: "event_editions_period_idx")
   @@map("event_editions")
+}
+
+model EventCollectionAcquisition {
+  eventEditionId    String            @map("event_edition_id") @db.Uuid
+  playerId          String            @map("player_id") @db.Uuid
+  itemId            String            @map("item_id") @db.Uuid
+  itemAcquisitionId String            @unique(map: "event_collection_acquisitions_item_acquisition_key") @map("item_acquisition_id") @db.Uuid
+  operationId       String            @unique(map: "event_collection_acquisitions_operation_key") @map("operation_id") @db.Uuid
+  acquiredAt        DateTime          @default(now()) @map("acquired_at") @db.Timestamptz(6)
+  edition           EventEdition      @relation(fields: [eventEditionId], references: [id], onDelete: Restrict)
+  player            Player            @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  item              ItemDefinition    @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  itemAcquisition   ItemAcquisition   @relation(fields: [itemAcquisitionId], references: [id], onDelete: Restrict)
+  operation         BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+
+  @@id([eventEditionId, playerId])
+  @@index([playerId], map: "event_collection_acquisitions_player_idx")
+  @@index([itemId], map: "event_collection_acquisitions_item_idx")
+  @@map("event_collection_acquisitions")
 }
 
 model PlayerEventCurrencyBalance {

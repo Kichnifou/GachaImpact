@@ -2202,16 +2202,18 @@ La migration additive `20260916180000_023_add_event_game_c` matérialise cette t
 
 Colonnes :
 
+- `event_edition_id uuid NOT NULL REFERENCES event_editions(id) ON DELETE RESTRICT`
 - `player_id uuid NOT NULL REFERENCES players(id) ON DELETE RESTRICT`
 - `item_id uuid NOT NULL REFERENCES item_definitions(id) ON DELETE RESTRICT`
-- `year smallint NOT NULL`
-- `event_edition_id uuid NOT NULL REFERENCES event_editions(id) ON DELETE RESTRICT`
+- `item_acquisition_id uuid NOT NULL UNIQUE REFERENCES item_acquisitions(id) ON DELETE RESTRICT`
 - `operation_id uuid NOT NULL UNIQUE REFERENCES business_operations(id) ON DELETE RESTRICT`
 - `acquired_at timestamptz NOT NULL DEFAULT now()`
 
 PK :
 
-`PRIMARY KEY(player_id, item_id, year)`
+`PRIMARY KEY(event_edition_id, player_id)`
+
+La migration additive `20260917180000_025_add_event_shop_collection` matérialise uniquement ce garde-fou annuel. L'édition identifie déjà la définition du Festival et son année : une seconde acquisition du même Player pour cette édition est impossible, tandis que l'édition de l'année suivante possède une clé distincte. `item_id` désigne l'objet réel du catalogue ; `item_acquisition_id` relie l'entrée du ledger générique. Les index couvrent les FK non couvertes par la PK ou les uniques. RLS est active et les droits directs `anon`/`authenticated` sont révoqués. Cette table ne porte aucun stock : `player_items.quantity` reste autoritatif. Aucun backfill fictif ni modification des migrations 001–024.
 
 ---
 

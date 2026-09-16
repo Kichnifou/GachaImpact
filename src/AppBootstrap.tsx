@@ -96,6 +96,8 @@ function AppBootstrap() {
   const loadEvent = useCallback(() => eventRequests.refresh(() => getGameApiClient().getEvent()), [eventRequests])
   const joinEvent = useCallback((idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().joinEvent(idempotencyKey)), [eventRequests])
   const claimEventDailyBonus = useCallback((idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().claimEventDailyBonus(idempotencyKey)), [eventRequests])
+  const convertEventShop = useCallback((target: 'PRIMOGEMS' | 'MORAS', quantity: number, idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().convertEventShop(target, quantity, idempotencyKey)), [eventRequests])
+  const purchaseEventCollection = useCallback((idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().purchaseEventCollection(idempotencyKey)), [eventRequests])
   const attemptEventGameA = useCallback((idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().attemptEventGameA(idempotencyKey)), [eventRequests])
   const attemptEventGameB = useCallback((code: string, idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().attemptEventGameB(code, idempotencyKey)), [eventRequests])
   const searchEventGameCRecipients = useCallback((input: Parameters<ReturnType<typeof getGameApiClient>['searchEventGameCRecipients']>[0]) => getGameApiClient().searchEventGameCRecipients(input), [])
@@ -384,6 +386,8 @@ function AppBootstrap() {
       onLoadEvent={loadEvent}
       onJoinEvent={joinEvent}
       onClaimEventDailyBonus={claimEventDailyBonus}
+      onConvertEventShop={convertEventShop}
+      onPurchaseEventCollection={purchaseEventCollection}
       onAttemptEventGameA={attemptEventGameA}
       onAttemptEventGameB={attemptEventGameB}
       onSearchEventGameCRecipients={searchEventGameCRecipients}

@@ -16,7 +16,7 @@ describe('Event HTTP contracts', () => {
       gameA: { available: false, theme: { key: 'recolte', label: 'Récolte' }, completedToday: false, attemptsToday: 0, windows: [], activeWindowIndex: null, canAttempt: false, cooldownRemainingMs: 0 },
       gameB: { available: false, theme: { key: 'harvest', label: 'Grenier' }, solvedToday: false, discoveredBy: null, attemptsUsed: 0, attemptsRemaining: 0, testedCodes: [], remainingCodes: Array.from({ length: 32 }, (_, index) => index.toString(2).padStart(5, '0')), canAttempt: false },
     };
-    const service = { getCurrent: vi.fn(async () => snapshot), join: vi.fn(async () => ({ ...snapshot, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, operation: { id: randomUUID(), alreadyProcessed: false } })), claimDailyBonus: vi.fn(async () => ({ ...snapshot, dailyBonus: { claimedToday: true, canClaim: false }, operation: { id: randomUUID(), alreadyProcessed: false } })), attemptGameA: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false }, attempt: { succeeded: false } })), attemptGameB: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false }, attempt: { kind: 'INCORRECT' } })), searchGameCRecipients: vi.fn(async () => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, recipients: [] })), sendGameC: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false } })), consultGameCMessages: vi.fn(async () => snapshot) } as unknown as EventService;
+    const service = { getCurrent: vi.fn(async () => snapshot), join: vi.fn(async () => ({ ...snapshot, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, operation: { id: randomUUID(), alreadyProcessed: false } })), claimDailyBonus: vi.fn(async () => ({ ...snapshot, dailyBonus: { claimedToday: true, canClaim: false }, operation: { id: randomUUID(), alreadyProcessed: false } })), convertShop: vi.fn(async () => snapshot), purchaseCollection: vi.fn(async () => snapshot), attemptGameA: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false }, attempt: { succeeded: false } })), attemptGameB: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false }, attempt: { kind: 'INCORRECT' } })), searchGameCRecipients: vi.fn(async () => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, recipients: [] })), sendGameC: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false } })), consultGameCMessages: vi.fn(async () => snapshot) } as unknown as EventService;
     const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, { authIdentityVerifier: { verify: async () => ({ subject: 'event-subject' }) }, getOrProvisionCurrentPlayer: { execute: vi.fn() } as never, eventService: service });
     apps.push(app);
     return { app, service };
@@ -45,6 +45,18 @@ describe('Event HTTP contracts', () => {
     expect((await app.inject({ method: 'POST', url: '/api/v1/me/event/daily-bonus/claim', headers, payload: { idempotencyKey: key } })).statusCode).toBe(200);
     expect(service.claimDailyBonus).toHaveBeenCalledWith(expect.objectContaining({ subject: 'event-subject' }), key);
     expect((await app.inject({ method: 'POST', url: '/api/v1/me/event/daily-bonus/claim', headers, payload: { idempotencyKey: 'bad', extra: true } })).statusCode).toBe(400);
+  });
+
+  it('validates Event Shop conversion and Collection contracts', async () => {
+    const { app, service } = await setup(); const key = randomUUID(); const headers = { authorization: 'Bearer token' };
+    expect((await app.inject({ method: 'POST', url: '/api/v1/me/event/shop/convert', payload: { target: 'PRIMOGEMS', quantity: 1, idempotencyKey: key } })).statusCode).toBe(401);
+    expect((await app.inject({ method: 'POST', url: '/api/v1/me/event/shop/convert', headers, payload: { target: 'PRIMOGEMS', quantity: 5, idempotencyKey: key } })).statusCode).toBe(200);
+    expect(service.convertShop).toHaveBeenCalledWith(expect.objectContaining({ subject: 'event-subject' }), 'PRIMOGEMS', 5, key);
+    for (const quantity of [0, -1, 1.5, '1']) expect((await app.inject({ method: 'POST', url: '/api/v1/me/event/shop/convert', headers, payload: { target: 'MORAS', quantity, idempotencyKey: key } })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'POST', url: '/api/v1/me/event/shop/convert', headers, payload: { target: 'GOLD', quantity: 1, idempotencyKey: key } })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'POST', url: '/api/v1/me/event/shop/collection', headers, payload: { idempotencyKey: key } })).statusCode).toBe(200);
+    expect(service.purchaseCollection).toHaveBeenCalledWith(expect.objectContaining({ subject: 'event-subject' }), key);
+    expect((await app.inject({ method: 'POST', url: '/api/v1/me/event/shop/collection', headers, payload: { idempotencyKey: key, quantity: 1 } })).statusCode).toBe(400);
   });
 
   it('authenticates and validates Game A attempts', async () => {

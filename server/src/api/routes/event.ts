@@ -10,6 +10,7 @@ const joinSchema = z.object({ idempotencyKey: z.uuid() }).strict();
 const gameBAttemptSchema = z.object({ code: z.string().regex(/^[01]{5}$/), idempotencyKey: z.uuid() }).strict();
 const gameCSearchSchema = z.object({ q: z.string().trim().max(100).default(''), elementKey: z.enum(['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro']).optional(), sort: z.enum(['name', 'level']).default('name'), direction: z.enum(['asc', 'desc']).default('asc'), page: z.coerce.number().int().min(1).max(50).default(1) }).strict();
 const gameCSendSchema = z.object({ recipientPlayerId: z.uuid(), message: z.string().trim().min(1).max(500), idempotencyKey: z.uuid() }).strict();
+const shopConversionSchema = z.object({ target: z.enum(['PRIMOGEMS', 'MORAS']), quantity: z.number().int().positive().max(Number.MAX_SAFE_INTEGER), idempotencyKey: z.uuid() }).strict();
 
 export const registerEventRoutes: FastifyPluginAsync<Options> = async (app, options) => {
   app.get('/api/v1/me/event', { preHandler: options.authenticate }, (request) =>
@@ -23,6 +24,16 @@ export const registerEventRoutes: FastifyPluginAsync<Options> = async (app, opti
     const parsed = joinSchema.safeParse(request.body);
     if (!parsed.success) throw new AppError('La réclamation du bonus Event est invalide.', 400, 'VALIDATION_ERROR');
     return options.service.claimDailyBonus(requireAuthenticatedIdentity(request), parsed.data.idempotencyKey);
+  });
+  app.post('/api/v1/me/event/shop/convert', { preHandler: options.authenticate }, (request) => {
+    const parsed = shopConversionSchema.safeParse(request.body);
+    if (!parsed.success) throw new AppError('La conversion du Festival est invalide.', 400, 'VALIDATION_ERROR');
+    return options.service.convertShop(requireAuthenticatedIdentity(request), parsed.data.target, parsed.data.quantity, parsed.data.idempotencyKey);
+  });
+  app.post('/api/v1/me/event/shop/collection', { preHandler: options.authenticate }, (request) => {
+    const parsed = joinSchema.safeParse(request.body);
+    if (!parsed.success) throw new AppError('L’achat Collection du Festival est invalide.', 400, 'VALIDATION_ERROR');
+    return options.service.purchaseCollection(requireAuthenticatedIdentity(request), parsed.data.idempotencyKey);
   });
   app.post('/api/v1/me/event/game-a/attempt', { preHandler: options.authenticate }, (request) => {
     const parsed = joinSchema.safeParse(request.body);

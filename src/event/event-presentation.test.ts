@@ -8,7 +8,7 @@ const event = (joined: boolean, completedToday: boolean, states: readonly ('PAST
   businessDate: '2026-09-15', refreshAfterMs: 1000,
   festival: { key: 'harvest', month: 9, title: 'Festival des Récoltes', emoji: '', currency: { key: 'harvest-tokens', label: 'Jetons de Récolte', unit: 'Jeton de Récolte', emoji: '' }, collection: { key: 'harvest-sheaf', label: 'Gerbe de Récolte' } },
   edition: { id: 'edition', year: 2026, startsAt: '', endsAt: '' },
-  participation: { joined, joinedAt: joined ? '2026-09-15T08:00:00.000Z' : null, points: 0 }, currency: { amount: '1' }, canJoin,
+  participation: { joined, joinedAt: joined ? '2026-09-15T08:00:00.000Z' : null, points: 0 }, currency: { amount: '1' }, shop: { available: false, balance: '0', rates: { primogems: '160', moras: '20000' }, collection: { itemExternalKey: 'gerbe_de_recolte', label: 'Gerbe de Récolte', cost: '80', obtainedThisEdition: false, available: true } }, canJoin,
   dailyBonus: { claimedToday: true, canClaim: false }, milestones: { currentPoints: 0, thresholds: [] },
   gameA: { available: joined, theme: { key: 'recolte', label: 'Récolte' }, completedToday, attemptsToday: 0, windows: states.map((state, index) => ({ startAt: `${index}`, endAt: `${index + 1}`, state })), activeWindowIndex: null, canAttempt: false, cooldownRemainingMs: 0 },
   gameB: { available: joined, theme: { key: 'harvest', label: 'Festival des Récoltes' }, solvedToday: false, resolvedCode: null, discoveredBy: null, attemptsUsed: 0, attemptsRemaining: joined ? 3 : 0, testedCodes: [], remainingCodes: [], canAttempt: false },

@@ -15,7 +15,7 @@ const beforeJoin: EventDto = {
   businessDate: '2026-09-15', refreshAfterMs: 3600000,
   festival: { key: 'harvest', month: 9, title: 'Festival des Récoltes', emoji: '\u{1F33E}', currency: { key: 'harvest-tokens', label: 'Jetons de Récolte', unit: 'Jeton de Récolte', emoji: '\u{1F33E}' }, collection: { key: 'harvest-sheaf', label: 'Gerbe de Récolte' } },
   edition: { id: 'edition-2026', year: 2026, startsAt: '2026-08-31T22:00:00.000Z', endsAt: '2026-09-30T22:00:00.000Z' },
-  participation: { joined: false, joinedAt: null, points: 0 }, currency: { amount: '0' }, canJoin: true,
+  participation: { joined: false, joinedAt: null, points: 0 }, currency: { amount: '0' }, shop: { available: false, balance: '0', rates: { primogems: '160', moras: '20000' }, collection: { itemExternalKey: 'gerbe_de_recolte', label: 'Gerbe de Récolte', cost: '80', obtainedThisEdition: false, available: true } }, canJoin: true,
   dailyBonus: { claimedToday: false, canClaim: false }, milestones: { currentPoints: 0, thresholds: [] },
   gameA: { available: false, theme: { key: 'recolte', label: 'Récolte' }, completedToday: false, attemptsToday: 0, windows: [], activeWindowIndex: null, canAttempt: false, cooldownRemainingMs: 0 },
   gameB: { available: false, theme: { key: 'harvest', label: 'Festival des Récoltes' }, solvedToday: false, resolvedCode: null, discoveredBy: null, attemptsUsed: 0, attemptsRemaining: 0, testedCodes: [], remainingCodes: Array.from({ length: 32 }, (_, index) => index.toString(2).padStart(5, '0')), canAttempt: false },
@@ -90,7 +90,7 @@ describe('EventScreen presentation', () => {
     expect(mounted.container.querySelector<HTMLButtonElement>('.event-foundation-card button')?.disabled).toBe(false)
     const tabs = Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
     expect(tabs.map(({ textContent }) => textContent)).toEqual(['Inscription', 'Jeux', 'Shop', 'Classement'])
-    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, true, true])
+    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, false, true])
     act(() => tabs[1].click())
     expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Inscription')
     expect(mounted.container.querySelector('.event-stat-grid')).not.toBeNull()
@@ -101,7 +101,7 @@ describe('EventScreen presentation', () => {
     const mounted = mount()
     act(() => mounted.root.render(<EventScreen {...mounted.props} value={afterJoin} />))
     const tabs = Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
-    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, false, true, true])
+    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, false, false, true])
     expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Inscription')
     expect(mounted.container.textContent).toContain('Événement rejoint')
     expect(mounted.container.querySelector('.event-game-a')).toBeNull()
@@ -115,7 +115,7 @@ describe('EventScreen presentation', () => {
     act(() => mounted.root.render(<EventScreen {...mounted.props} value={{ ...beforeJoin, edition: { ...beforeJoin.edition, id: 'edition-2027', year: 2027 } }} />))
 
     const tabs = Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
-    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, true, true])
+    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, false, true])
     expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Inscription')
     expect(mounted.container.textContent).toContain('Recevez 1 Jeton de Récolte')
     expect(mounted.container.querySelector('.event-stat-grid')).not.toBeNull()
@@ -302,7 +302,7 @@ describe('EventScreen presentation', () => {
     await act(async () => { container.querySelector<HTMLButtonElement>('.event-foundation-card button')!.click(); await Promise.resolve() })
     expect(container.querySelector('[role="alert"]')?.textContent).toContain('momentanément inaccessible')
     const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
-    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, true, true])
+    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, false, true])
     expect(tabs.every((tab) => !tab.hasAttribute('title') && tab.querySelector('small') === null)).toBe(true)
   })
 

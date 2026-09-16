@@ -15,7 +15,7 @@ const snapshot = (refreshAfterMs: number, completedToday = false, businessDate =
   festival: { key: 'harvest', month: 9, title: 'Festival des Récoltes', emoji: '🌾', currency: { key: 'harvest-tokens', label: 'Jetons de Récolte', unit: 'Jeton de Récolte', emoji: '🌾' }, collection: { key: 'harvest-sheaf', label: 'Gerbe de Récolte' } },
   edition: { id: 'edition-2026', year: 2026, startsAt: '2026-08-31T22:00:00.000Z', endsAt: '2026-09-30T22:00:00.000Z' },
   participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: completedToday ? 1 : 0 },
-  currency: { amount: completedToday ? '2' : '1' },
+  currency: { amount: completedToday ? '2' : '1' }, shop: { available: false, balance: '0', rates: { primogems: '160', moras: '20000' }, collection: { itemExternalKey: 'gerbe_de_recolte', label: 'Gerbe de Récolte', cost: '80', obtainedThisEdition: false, available: true } },
   canJoin: false,
   dailyBonus: { claimedToday: true, canClaim: false }, milestones: { currentPoints: 0, thresholds: [] },
   gameA: { available: true, theme: { key: 'recolte', label: 'Récolte' }, completedToday, attemptsToday: completedToday ? 1 : 0, windows: [], activeWindowIndex: null, canAttempt: false, cooldownRemainingMs: 0 },

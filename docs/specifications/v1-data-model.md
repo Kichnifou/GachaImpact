@@ -1478,6 +1478,8 @@ Référence également l'édition Event ayant produit l'acquisition.
 
 Cette entité est volontairement séparée de l'état mensuel afin que le changement de mois ne supprime plus la règle validée d'une acquisition par édition annuelle.
 
+État physique Event Lot 6 : la clé primaire minimale est `eventEditionId + playerId`, équivalente pour le seul objet Collection fixé par l'édition annuelle. `itemId`, `itemAcquisitionId` unique et `operationId` unique relient respectivement le catalogue, l'historique générique `ItemAcquisition` et l'opération idempotente. Une nouvelle année crée une autre édition et permet une nouvelle acquisition ; `PlayerItem.quantity` additionne réellement les exemplaires entre éditions, sans inventaire Event parallèle.
+
 ### `EventCalendarClaim`
 
 État du calendrier de décembre lorsqu'il est actif.
@@ -1527,6 +1529,10 @@ Le contrôle de contact réutilise le sous-ensemble physique Social validé : am
 R602 utilise la colonne existante `EventDailyPlayerState.dailyBonusClaimed`, unique par édition, Player et business date `Europe/Paris`. Le claim explicite crédite +1 monnaie saisonnière dans une transaction idempotente ; une nouvelle date ouvre un état indépendant. Le GET ne réclame jamais le bonus à la place du Player.
 
 La migration 024 matérialise `EventMilestoneClaim` avec clé `eventEditionId + playerId + milestone`, référence unique à `BusinessOperation` et date de versement. Les seuils 10, 20, 30, 40, 50, 60, 70 et 80 sont franchis et payés automatiquement dans la même transaction que les points gagnés par les Jeux A/B/C ou le rattrapage Jeu B. Chaque seuil non encore réclamé dispose d'une claim et d'une opération système distinctes ; un replay ou un gain concurrent ne paie pas deux fois. Les ressources standard empruntent le service d'économie autoritatif et les particules personnelles/aléatoires respectent les règles de l'audit Event. Les points continuent à croître après 80 sans nouveau palier.
+
+## 26.10 État physique candidat Event Lot 6 — Boutique et Collection
+
+Les conversions consomment `PlayerEventCurrencyBalance` par Player + définition de Festival, indépendamment de l'année d'acquisition des monnaies. Quantité entière positive et solde suffisant sont contrôlés côté serveur sous verrou ; le résultat 1 → 160 Primogemmes ou 1 → 20 000 Moras emprunte `PrismaEconomyService`, `ResourceMovement` et `BusinessOperation`. Le produit Collection coûte 80 monnaies, sans quantité libre ni MAX ; il crédite `PlayerItem.quantity` et écrit une ligne `ItemAcquisition` avec provenance Festival, édition et année. La garde `EventCollectionAcquisition` introduite par la migration 025 garantit une seule acquisition par Player/édition ; elle ne stocke pas une seconde quantité. Les définitions Collection et le ledger existants restent la source du Sac.
 
 ---
 

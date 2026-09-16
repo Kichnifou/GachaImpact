@@ -108,6 +108,8 @@ describe('monthly Event period resolution', () => {
       player: { findUnique: vi.fn(async () => ({ status: 'ACTIVE' })) },
       playerEventCurrencyBalance: { findUnique: vi.fn(async () => ({ amount: 7n })) },
       playerResourceBalance: { findMany: vi.fn(async () => []) },
+      itemDefinition: { findUnique: vi.fn(async () => ({ id: 'item', displayName: 'Gerbe de Récolte', isActive: true, category: 'COLLECTION' })) },
+      eventCollectionAcquisition: { findUnique: vi.fn(async () => null) },
       eventGameBDailyState: { findUnique: vi.fn(async () => ({ solutionCode: '01011', solvedAt: null, discovererPlayerId: null, testedCodes: [] })), upsert: vi.fn() },
     };
     const service = new EventService(

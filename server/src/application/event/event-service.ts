@@ -10,6 +10,7 @@ import { MAX_PLAYER_LEVEL, XP_PER_LEVEL } from '../../domain/player/player-progr
 import { elementKeys, isElementKey, particleResourceKey, type ResourceKey } from '../../domain/economy/resources.js';
 import { EVENT_MILESTONES, milestoneParticleElement } from '../../domain/event/milestones.js';
 import { eventCurrencyName, eventCurrencyUnit } from '../../domain/event/currency-presentation.js';
+import { collectionItemExternalKey, EVENT_COLLECTION_COST, EVENT_SHOP_RATES, eventShopQuantity, type EventShopTarget } from '../../domain/event/shop.js';
 import { PrismaEconomyService } from '../../infrastructure/database/prisma-economy-service.js';
 import { reconcileEventMessageAggregate } from '../notification/event-message-notifications.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
@@ -419,6 +420,89 @@ export class EventService {
     throw new Error('Event daily bonus claim could not be completed.');
   }
 
+  public async convertShop(identity: AuthenticatedIdentity, target: EventShopTarget, quantity: number, idempotencyKey: string) {
+    const units = eventShopQuantity(quantity);
+    const player = await this.getPlayer.execute(identity);
+    const now = this.clock.now();
+    const context = await this.resolveCurrentEdition(this.database, now);
+    await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
+    const request = { editionId: context.edition.id, target, quantity };
+    for (let retry = 0; retry < 4; retry += 1) {
+      try {
+        const result = await this.database.$transaction(async (tx) => {
+          await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
+          const previous = await tx.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey } });
+          if (previous) {
+            const original = readRecord(readRecord(previous.resultSummary)?.request);
+            if (previous.playerId !== player.id || previous.operationType !== 'event.shop.convert' || previous.status !== OperationStatus.COMPLETED || original?.editionId !== request.editionId || original.target !== target || original.quantity !== quantity) throw new BusinessError('EVENT_SHOP_IDEMPOTENCY_CONFLICT', 'Cette clé appartient à un autre échange.');
+            return { operationId: previous.id, alreadyProcessed: true, view: null };
+          }
+          const participant = await tx.eventParticipant.findUnique({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: player.id } }, select: { playerId: true } });
+          if (!participant) throw new BusinessError('EVENT_NOT_JOINED', 'Rejoignez le Festival avant un échange.');
+          await this.debitEventCurrency(tx, player.id, context.definition.id, units, now);
+          const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'event.shop.convert', sourceChannel: SourceChannel.UI, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request } } });
+          const resourceKey = target === 'PRIMOGEMS' ? 'primogems' : 'moras';
+          const playerRecord = await tx.player.findUniqueOrThrow({ where: { id: player.id }, select: { elementKey: true } });
+          await economy.credit(tx, { playerId: player.id, playerElementKey: playerRecord.elementKey && isElementKey(playerRecord.elementKey) ? playerRecord.elementKey : null, resourceKey, amount: units * EVENT_SHOP_RATES[target], causeKey: 'event.shop.convert', domainKey: 'event', operationId: operation.id, sourceChannel: SourceChannel.UI });
+          await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request, amount: (units * EVENT_SHOP_RATES[target]).toString() } } });
+          return { operationId: operation.id, alreadyProcessed: false, view: await this.snapshot(tx, player.id, context, now, false) };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+        return { ...(result.view ?? await this.getCurrent(identity)), operation: { id: result.operationId, alreadyProcessed: result.alreadyProcessed } };
+      } catch (error) {
+        if (retry < 3 && isPrismaConcurrencyCollision(error)) continue;
+        throw error;
+      }
+    }
+    throw new Error('Event Shop conversion could not be completed.');
+  }
+
+  public async purchaseCollection(identity: AuthenticatedIdentity, idempotencyKey: string) {
+    const player = await this.getPlayer.execute(identity);
+    const now = this.clock.now();
+    const context = await this.resolveCurrentEdition(this.database, now);
+    await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
+    const request = { editionId: context.edition.id, itemKey: collectionItemExternalKey(context.editionSnapshot.config.collection.key) };
+    for (let retry = 0; retry < 4; retry += 1) {
+      try {
+        const result = await this.database.$transaction(async (tx) => {
+          await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
+          const previous = await tx.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey } });
+          if (previous) {
+            const original = readRecord(readRecord(previous.resultSummary)?.request);
+            if (previous.playerId !== player.id || previous.operationType !== 'event.shop.collection' || previous.status !== OperationStatus.COMPLETED || original?.editionId !== request.editionId || original.itemKey !== request.itemKey) throw new BusinessError('EVENT_SHOP_IDEMPOTENCY_CONFLICT', 'Cette clé appartient à un autre achat.');
+            return { operationId: previous.id, alreadyProcessed: true, view: null };
+          }
+          const participant = await tx.eventParticipant.findUnique({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: player.id } }, select: { playerId: true } });
+          if (!participant) throw new BusinessError('EVENT_NOT_JOINED', 'Rejoignez le Festival avant un achat.');
+          const acquired = await tx.eventCollectionAcquisition.findUnique({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: player.id } }, select: { playerId: true } });
+          if (acquired) throw new BusinessError('EVENT_COLLECTION_ALREADY_OBTAINED', 'Cet objet a déjà été obtenu pour cette édition.');
+          const item = await tx.itemDefinition.findUnique({ where: { externalKey: request.itemKey }, select: { id: true, isActive: true, category: true } });
+          if (!item || !item.isActive || item.category !== 'COLLECTION') throw new BusinessError('EVENT_COLLECTION_UNAVAILABLE', 'L’objet Collection du Festival est indisponible.');
+          await this.debitEventCurrency(tx, player.id, context.definition.id, EVENT_COLLECTION_COST, now);
+          const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'event.shop.collection', sourceChannel: SourceChannel.UI, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request } } });
+          const currentItem = await tx.playerItem.findUnique({ where: { playerId_itemId: { playerId: player.id, itemId: item.id } }, select: { firstObtainedAt: true } });
+          await tx.playerItem.upsert({ where: { playerId_itemId: { playerId: player.id, itemId: item.id } }, create: { playerId: player.id, itemId: item.id, quantity: 1n, firstObtainedAt: now }, update: { quantity: { increment: 1n }, firstObtainedAt: currentItem?.firstObtainedAt ?? now, updatedAt: now } });
+          const acquisition = await tx.itemAcquisition.create({ data: { playerId: player.id, itemId: item.id, quantity: 1n, sourceKey: 'EVENT', provenance: { festival: context.editionSnapshot.externalKey, editionId: context.edition.id, year: context.edition.year }, operationId: operation.id, acquiredAt: now } });
+          await tx.eventCollectionAcquisition.create({ data: { eventEditionId: context.edition.id, playerId: player.id, itemId: item.id, itemAcquisitionId: acquisition.id, operationId: operation.id, acquiredAt: now } });
+          await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request } } });
+          return { operationId: operation.id, alreadyProcessed: false, view: await this.snapshot(tx, player.id, context, now, false) };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+        return { ...(result.view ?? await this.getCurrent(identity)), operation: { id: result.operationId, alreadyProcessed: result.alreadyProcessed } };
+      } catch (error) {
+        if (retry < 3 && isPrismaConcurrencyCollision(error)) continue;
+        throw error;
+      }
+    }
+    throw new Error('Event Collection purchase could not be completed.');
+  }
+
+  private async debitEventCurrency(tx: Prisma.TransactionClient, playerId: string, definitionId: string, amount: bigint, now: Date) {
+    await tx.$queryRaw`SELECT amount FROM player_event_currency_balances WHERE player_id = ${playerId}::uuid AND event_definition_id = ${definitionId}::uuid FOR UPDATE`;
+    const balance = await tx.playerEventCurrencyBalance.findUnique({ where: { playerId_eventDefinitionId: { playerId, eventDefinitionId: definitionId } }, select: { amount: true } });
+    if (!balance || balance.amount < amount) throw new BusinessError('EVENT_SHOP_INSUFFICIENT_CURRENCY', 'Vous ne possédez pas assez de monnaies du Festival.');
+    await tx.playerEventCurrencyBalance.update({ where: { playerId_eventDefinitionId: { playerId, eventDefinitionId: definitionId } }, data: { amount: { decrement: amount }, updatedAt: now } });
+  }
+
   private async awardEventPoints(tx: Prisma.TransactionClient, context: Awaited<ReturnType<EventService['resolveCurrentEdition']>>, playerId: string, amount: number, now: Date) {
     const participant = await tx.eventParticipant.update({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId } }, data: { points: { increment: amount } }, select: { points: true } });
     await this.grantReachedEventMilestones(tx, context, playerId, participant.points, now);
@@ -495,7 +579,8 @@ export class EventService {
     now: Date,
     materializeDaily: boolean,
   ) {
-    const [participant, balance, global, receivedMessages, player, milestoneClaims, resourceBalances] = await Promise.all([
+    const collectionExternalKey = collectionItemExternalKey(context.editionSnapshot.config.collection.key);
+    const [participant, balance, global, receivedMessages, player, milestoneClaims, resourceBalances, collectionItem, collectionAcquisition] = await Promise.all([
       database.eventParticipant.findUnique({
         where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId } },
       }),
@@ -507,6 +592,8 @@ export class EventService {
       database.player.findUnique({ where: { id: playerId }, select: { status: true } }),
       database.eventMilestoneClaim.findMany({ where: { eventEditionId: context.edition.id, playerId }, select: { milestone: true } }),
       database.playerResourceBalance.findMany({ where: { playerId }, select: { resourceKey: true, amount: true } }),
+      database.itemDefinition.findUnique({ where: { externalKey: collectionExternalKey }, select: { id: true, displayName: true, isActive: true, category: true } }),
+      database.eventCollectionAcquisition.findUnique({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId } }, select: { itemId: true } }),
     ]);
     const resourcesByKey = new Map(resourceBalances.map(({ resourceKey, amount }) => [resourceKey, amount.toString()]));
     const rewardedMilestones = new Set(milestoneClaims.map(({ milestone }) => milestone));
@@ -551,6 +638,12 @@ export class EventService {
         points: participant?.points ?? 0,
       },
       currency: { amount: (balance?.amount ?? 0n).toString() },
+      shop: {
+        available: Boolean(participant),
+        balance: (balance?.amount ?? 0n).toString(),
+        rates: { primogems: EVENT_SHOP_RATES.PRIMOGEMS.toString(), moras: EVENT_SHOP_RATES.MORAS.toString() },
+        collection: { itemExternalKey: collectionExternalKey, label: collectionItem?.displayName ?? context.editionSnapshot.config.collection.label, cost: EVENT_COLLECTION_COST.toString(), obtainedThisEdition: Boolean(collectionAcquisition), available: Boolean(collectionItem?.isActive && collectionItem.category === 'COLLECTION') },
+      },
       resources: { primogems: resourcesByKey.get('primogems') ?? '0', moras: resourcesByKey.get('moras') ?? '0', particles: Object.fromEntries(elementKeys.map((key) => [key, resourcesByKey.get(particleResourceKey(key)) ?? '0'])) },
       dailyBonus: { claimedToday: daily?.dailyBonusClaimed ?? false, canClaim: Boolean(participant) && !(daily?.dailyBonusClaimed ?? false) },
       milestones: { currentPoints: participant?.points ?? 0, thresholds: EVENT_MILESTONES.map((points) => ({ points, reached: (participant?.points ?? 0) >= points, rewarded: rewardedMilestones.has(points), rewardLabel: eventMilestoneRewardLabel(points, eventCurrencyUnit(context.editionSnapshot.externalKey), context.editionSnapshot.config.currency.label) })) },
