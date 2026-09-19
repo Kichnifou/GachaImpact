@@ -16,7 +16,7 @@ import { createExpeditionClientSnapshot, type ExpeditionClientSnapshot } from '.
 import { eventCurrencyLabel, eventDailyDetail, eventHasActionableContentToday } from '../event/event-presentation'
 import ContestScreen from './ContestScreen'
 import EventScreen from './EventScreen'
-import type { EventDailyBonusClaimDto, EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto } from '../api/types'
+import type { EventDailyBonusClaimDto, EventCalendarClaimDto, EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto } from '../api/types'
 
 type ActivitiesScreenProps = {
   sessionUserId: string
@@ -33,6 +33,7 @@ type ActivitiesScreenProps = {
   event?: EventDto
   onLoadEvent?: () => Promise<EventDto>
   onJoinEvent?: (key: string) => Promise<EventJoinDto>
+  onClaimEventCalendar?: (key: string) => Promise<EventCalendarClaimDto>
   onClaimEventDailyBonus?: (key: string) => Promise<EventDailyBonusClaimDto>
   onLoadEventRanking?: () => Promise<EventRankingDto>
   onConvertEventShop?: (target: 'PRIMOGEMS' | 'MORAS', quantity: number, key: string) => Promise<EventDto>
@@ -93,7 +94,7 @@ function ActivitiesScreen(props: ActivitiesScreenProps) {
     const emptyDetail = async () => { throw new Error('Détail indisponible.') }
     return <ContestScreen value={contest} onRefresh={props.onRefreshContest ?? unchanged} onLoadHistory={props.onLoadContestHistory ?? emptyHistory} onLoadHistoryDetail={props.onLoadContestHistoryDetail ?? emptyDetail} onOpen={props.onOpenContest ?? unchanged} onJoin={props.onJoinContest ?? unchanged} onSelectLegend={props.onSelectContestLegend ?? unchanged} onReady={props.onSetContestReady ?? unchanged} onStart={props.onStartContest ?? unchanged} onSpectate={props.onSpectateContest ?? unchanged} onLeave={props.onLeaveContest ?? unchanged} onCancel={props.onCancelContest ?? unchanged} onPlay={props.onPlayContest ?? unchanged} onSupport={props.onSupportContest ?? unchanged} onRemoveParticipant={props.onRemoveContestParticipant ?? unchanged} onRemoveSpectator={props.onRemoveContestSpectator ?? unchanged} />
   }
-if (screen === 'activities-event' && props.event && props.onLoadEvent && props.onJoinEvent && props.onAttemptEventGameA) return <EventScreen key={`${props.sessionUserId}:${props.event.edition.id}`} sessionUserId={props.sessionUserId} value={props.event} onLoad={props.onLoadEvent} onLoadRanking={props.onLoadEventRanking} onJoin={props.onJoinEvent} onClaimDailyBonus={props.onClaimEventDailyBonus} onConvertShop={props.onConvertEventShop} onPurchaseCollection={props.onPurchaseEventCollection} onAttempt={props.onAttemptEventGameA} onAttemptB={props.onAttemptEventGameB ?? (async () => { throw new Error('Jeu B indisponible.') })} onSearchRecipients={props.onSearchEventGameCRecipients} onSendGameC={props.onSendEventGameC} onConsultMessages={props.onConsultEventGameCMessages} openMessagesToken={props.eventMessagesRequestToken} />
+if (screen === 'activities-event' && props.event && props.onLoadEvent && props.onJoinEvent && props.onAttemptEventGameA) return <EventScreen key={`${props.sessionUserId}:${props.event.edition.id}`} sessionUserId={props.sessionUserId} value={props.event} onLoad={props.onLoadEvent} onLoadRanking={props.onLoadEventRanking} onJoin={props.onJoinEvent} onClaimCalendar={props.onClaimEventCalendar} onClaimDailyBonus={props.onClaimEventDailyBonus} onConvertShop={props.onConvertEventShop} onPurchaseCollection={props.onPurchaseEventCollection} onAttempt={props.onAttemptEventGameA} onAttemptB={props.onAttemptEventGameB ?? (async () => { throw new Error('Jeu B indisponible.') })} onSearchRecipients={props.onSearchEventGameCRecipients} onSendGameC={props.onSendEventGameC} onConsultMessages={props.onConsultEventGameCMessages} openMessagesToken={props.eventMessagesRequestToken} />
   const content = screen === 'activities-missions' ? { title: 'Missions', description: 'Les missions permanentes seront disponibles ici.', tabs: ['B', 'A', 'S', 'Z'] } : screen === 'activities-event' ? { title: 'Événement', description: 'Chargement du Festival mensuel indisponible.', tabs: ['Inscription', 'Jeux', 'Shop', 'Classement'] } : { title: 'Concours', description: 'Le Concours C6 sera accessible ici lorsqu’il sera implémenté.', tabs: [] }
   return <div className="screen-content activity-shell"><ScreenHeader eyebrow="Activités" title={content.title} description={content.description} /><nav className="activity-inner-tabs" aria-label={`Sections ${content.title}`}>{content.tabs.map((tab) => <button type="button" disabled key={tab}>{tab}</button>)}</nav><section className="panel unavailable-shell"><strong>{screen === 'activities-event' ? 'Festival indisponible' : 'Bientôt disponible'}</strong><p>Aucune progression fictive n’est affichée.</p></section></div>
 }

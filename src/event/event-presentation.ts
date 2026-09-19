@@ -39,10 +39,11 @@ export function eventGameAExpiredToday(event: EventDto): boolean {
 }
 
 export function eventHasActionableContentToday(event: EventDto): boolean {
-  return event.canJoin || event.dailyBonus.canClaim || (!event.gameA.completedToday && eventGameAHasRemainingWindow(event)) || event.gameB.canAttempt || event.gameC.canSend || event.gameC.unviewedCount > 0
+  return event.canJoin || Boolean(event.calendar?.canClaimToday) || event.dailyBonus.canClaim || (!event.gameA.completedToday && eventGameAHasRemainingWindow(event)) || event.gameB.canAttempt || event.gameC.canSend || event.gameC.unviewedCount > 0
 }
 
 export function eventDailyDetail(event: EventDto): string {
+  if (event.calendar?.canClaimToday) return 'Case du Calendrier de Noël disponible'
   if (event.gameC.unviewedCount > 0) return `${event.gameC.unviewedCount} message${event.gameC.unviewedCount > 1 ? 's' : ''} du Festival à consulter`
   if (!event.participation.joined) return 'Participation disponible'
   if (event.dailyBonus.canClaim && !event.gameC.canSend && !event.gameB.canAttempt && (event.gameA.completedToday || !eventGameAHasRemainingWindow(event))) return 'Bonus quotidien à réclamer'

@@ -15,6 +15,7 @@ import { PrismaEconomyService } from '../../infrastructure/database/prisma-econo
 import { reconcileEventMessageAggregate } from '../notification/event-message-notifications.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
 import { eligibleContactRecipient } from '../social/contact-permission.js';
+import { calendarReward, projectCalendar } from '../../domain/event/calendar.js';
 
 type Database = PrismaClient | Prisma.TransactionClient;
 
@@ -401,6 +402,50 @@ export class EventService {
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
+  public async claimCalendar(identity: AuthenticatedIdentity, idempotencyKey: string) {
+    const player = await this.getPlayer.execute(identity);
+    const now = this.clock.now();
+    const context = await this.resolveCurrentEdition(this.database, now);
+    await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
+    let retainedReward: number | null = null;
+    for (let retry = 0; retry < 4; retry += 1) {
+      try {
+        return await this.database.$transaction(async (tx) => {
+          await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
+          const previous = await tx.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey } });
+          // A confirmed opening remains replayable after midnight or the end of December.
+          if (previous) {
+            if (previous.playerId !== player.id || previous.operationType !== 'event.calendar.claim' || previous.status !== OperationStatus.COMPLETED) {
+              throw new BusinessError('EVENT_IDEMPOTENCY_CONFLICT', 'Cette clé appartient à une autre opération.');
+            }
+            const claim = await tx.eventCalendarClaim.findUniqueOrThrow({ where: { operationId: previous.id } });
+            return { ...await this.snapshot(tx, player.id, context, now, false), operation: { id: previous.id, alreadyProcessed: true }, calendarClaim: { day: claim.calendarDay, reward: claim.rewardAmount } };
+          }
+          const editions = await tx.$queryRaw<Array<{ status: EventEditionStatus }>>`SELECT status FROM event_editions WHERE id = ${context.edition.id}::uuid FOR SHARE`;
+          const date = getBusinessDate(this.clock.now());
+          const day = Number(date.slice(8, 10));
+          if (date !== context.period.businessDate || date.slice(5, 7) !== '12' || day > 25 || context.editionSnapshot.externalKey !== 'christmas' || editions[0]?.status !== EventEditionStatus.ACTIVE || now < context.edition.startsAt || now >= context.edition.endsAt) {
+            throw new BusinessError('EVENT_CALENDAR_UNAVAILABLE', 'Aucune case du calendrier ne peut être ouverte actuellement.');
+          }
+          const key = { eventEditionId: context.edition.id, playerId: player.id };
+          if (!await tx.eventParticipant.findUnique({ where: { eventEditionId_playerId: key } })) throw new BusinessError('EVENT_NOT_JOINED', 'Rejoignez le Festival avant d’ouvrir une case.');
+          if (await tx.eventCalendarClaim.findUnique({ where: { eventEditionId_playerId_calendarDay: { ...key, calendarDay: day } } })) throw new BusinessError('EVENT_CALENDAR_ALREADY_CLAIMED', 'Cette case est déjà ouverte.');
+          retainedReward ??= calendarReward(day, this.random);
+          const request = { editionId: context.edition.id, businessDate: date };
+          const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'event.calendar.claim', sourceChannel: SourceChannel.UI, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request } } });
+          await tx.eventCalendarClaim.create({ data: { ...key, calendarDay: day, rewardAmount: retainedReward, operationId: operation.id, claimedAt: now } });
+          await tx.playerEventCurrencyBalance.upsert({ where: { playerId_eventDefinitionId: { playerId: player.id, eventDefinitionId: context.definition.id } }, create: { playerId: player.id, eventDefinitionId: context.definition.id, amount: BigInt(retainedReward), updatedAt: now }, update: { amount: { increment: BigInt(retainedReward) }, updatedAt: now } });
+          await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request, day, reward: retainedReward } } });
+          return { ...await this.snapshot(tx, player.id, context, now, false), operation: { id: operation.id, alreadyProcessed: false }, calendarClaim: { day, reward: retainedReward } };
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      } catch (error) {
+        if (retry < 3 && isPrismaConcurrencyCollision(error)) continue;
+        throw error;
+      }
+    }
+    throw new Error('Calendar claim could not complete.');
+  }
+
   public async claimDailyBonus(identity: AuthenticatedIdentity, idempotencyKey: string) {
     const player = await this.getPlayer.execute(identity);
     const now = this.clock.now();
@@ -617,6 +662,9 @@ export class EventService {
     const rewardedMilestones = new Set(milestoneClaims.map(({ milestone }) => milestone));
     const daily = participant && materializeDaily ? await this.ensureDailyState(database, context.edition.id, playerId, context.period.businessDate, now) : participant ? await database.eventDailyPlayerState.findUnique({ where: { eventEditionId_playerId_businessDate: { eventEditionId: context.edition.id, playerId, businessDate: businessDateToDatabaseDate(context.period.businessDate) } } }) : null;
     const gameA = this.gameAProjection(context.editionSnapshot.externalKey, context.period.businessDate, daily, now);
+    const calendarClaims = context.editionSnapshot.externalKey === 'christmas'
+      ? await database.eventCalendarClaim.findMany({ where: { eventEditionId: context.edition.id, playerId }, select: { calendarDay: true, rewardAmount: true } })
+      : [];
     if (!global) throw new Error('Event Game B daily state was not materialized.');
     const testedCodes = parseEventGameBTestedCodes(global.testedCodes);
     const discoverer = global.discovererPlayerId ? await database.player.findUnique({ where: { id: global.discovererPlayerId }, select: { id: true, displayName: true } }) : null;
@@ -636,6 +684,7 @@ export class EventService {
     return {
       businessDate: context.period.businessDate,
       refreshAfterMs,
+      calendar: projectCalendar(context.editionSnapshot.externalKey, context.period.businessDate, Boolean(participant), calendarClaims),
       festival: {
         key: context.editionSnapshot.externalKey,
         month: context.editionSnapshot.calendarMonth,

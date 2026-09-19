@@ -105,6 +105,7 @@ function AppBootstrap() {
     return promise
   }, [sessionUserId])
   const joinEvent = useCallback((idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().joinEvent(idempotencyKey)), [eventRequests])
+  const claimEventCalendar = useCallback((idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().claimEventCalendar(idempotencyKey)), [eventRequests])
   const claimEventDailyBonus = useCallback((idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().claimEventDailyBonus(idempotencyKey)), [eventRequests])
   const convertEventShop = useCallback((target: 'PRIMOGEMS' | 'MORAS', quantity: number, idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().convertEventShop(target, quantity, idempotencyKey)), [eventRequests])
   const purchaseEventCollection = useCallback((idempotencyKey: string) => eventRequests.mutate(() => getGameApiClient().purchaseEventCollection(idempotencyKey)), [eventRequests])
@@ -395,6 +396,7 @@ function AppBootstrap() {
       event={event}
       onLoadEvent={loadEvent}
       onJoinEvent={joinEvent}
+      onClaimEventCalendar={claimEventCalendar}
       onClaimEventDailyBonus={claimEventDailyBonus}
       onLoadEventRanking={loadEventRanking}
       onConvertEventShop={convertEventShop}

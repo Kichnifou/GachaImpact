@@ -16,7 +16,7 @@ describe('Event HTTP contracts', () => {
       gameA: { available: false, theme: { key: 'recolte', label: 'Récolte' }, completedToday: false, attemptsToday: 0, windows: [], activeWindowIndex: null, canAttempt: false, cooldownRemainingMs: 0 },
       gameB: { available: false, theme: { key: 'harvest', label: 'Grenier' }, solvedToday: false, discoveredBy: null, attemptsUsed: 0, attemptsRemaining: 0, testedCodes: [], remainingCodes: Array.from({ length: 32 }, (_, index) => index.toString(2).padStart(5, '0')), canAttempt: false },
     };
-    const service = { getCurrent: vi.fn(async () => snapshot), getRanking: vi.fn(async () => ({ editionId: snapshot.edition.id, entries: [] })), join: vi.fn(async () => ({ ...snapshot, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, operation: { id: randomUUID(), alreadyProcessed: false } })), claimDailyBonus: vi.fn(async () => ({ ...snapshot, dailyBonus: { claimedToday: true, canClaim: false }, operation: { id: randomUUID(), alreadyProcessed: false } })), convertShop: vi.fn(async () => snapshot), purchaseCollection: vi.fn(async () => snapshot), attemptGameA: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false }, attempt: { succeeded: false } })), attemptGameB: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false }, attempt: { kind: 'INCORRECT' } })), searchGameCRecipients: vi.fn(async () => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, recipients: [] })), sendGameC: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false } })), consultGameCMessages: vi.fn(async () => snapshot) } as unknown as EventService;
+    const service = { claimCalendar: vi.fn(async () => ({ ...snapshot, calendarClaim: { day: 1, reward: 3 } })), getCurrent: vi.fn(async () => snapshot), getRanking: vi.fn(async () => ({ editionId: snapshot.edition.id, entries: [] })), join: vi.fn(async () => ({ ...snapshot, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, operation: { id: randomUUID(), alreadyProcessed: false } })), claimDailyBonus: vi.fn(async () => ({ ...snapshot, dailyBonus: { claimedToday: true, canClaim: false }, operation: { id: randomUUID(), alreadyProcessed: false } })), convertShop: vi.fn(async () => snapshot), purchaseCollection: vi.fn(async () => snapshot), attemptGameA: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false }, attempt: { succeeded: false } })), attemptGameB: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false }, attempt: { kind: 'INCORRECT' } })), searchGameCRecipients: vi.fn(async () => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, recipients: [] })), sendGameC: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false } })), consultGameCMessages: vi.fn(async () => snapshot) } as unknown as EventService;
     const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, { authIdentityVerifier: { verify: async () => ({ subject: 'event-subject' }) }, getOrProvisionCurrentPlayer: { execute: vi.fn() } as never, eventService: service });
     apps.push(app);
     return { app, service };
@@ -30,6 +30,19 @@ describe('Event HTTP contracts', () => {
     expect(response.json()).toMatchObject({ festival: { key: 'harvest' }, participation: { joined: false, points: 0 }, currency: { amount: '0' }, gameB: { solvedToday: false, testedCodes: [], attemptsRemaining: 0 } });
     expect(response.json().gameB.remainingCodes).toHaveLength(32);
     expect(JSON.stringify(response.json())).not.toContain('solutionCode');
+  });
+  it('authenticates calendar opening and rejects client-selected dates or rewards', async () => {
+    const { app, service } = await setup();
+    const url = '/api/v1/me/event/calendar/claim';
+    const headers = { authorization: 'Bearer token' };
+    const idempotencyKey = randomUUID();
+    expect((await app.inject({ method: 'POST', url, payload: { idempotencyKey } })).statusCode).toBe(401);
+    for (const payload of [{ idempotencyKey: 'bad' }, { idempotencyKey, day: 14 }, { idempotencyKey, reward: 50 }, { idempotencyKey, playerId: randomUUID() }]) {
+      expect((await app.inject({ method: 'POST', url, headers, payload })).statusCode).toBe(400);
+    }
+    expect((await app.inject({ method: 'POST', url, headers, payload: { idempotencyKey } })).statusCode).toBe(200);
+    expect(service.claimCalendar).toHaveBeenCalledOnce();
+    expect(service.claimCalendar).toHaveBeenCalledWith({ subject: 'event-subject' }, idempotencyKey);
   });
 
   it('requires a strict UUID idempotency key for join', async () => {

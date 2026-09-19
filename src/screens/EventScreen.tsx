@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
-import type { EventDto, EventDailyBonusClaimDto, EventGameAAttemptDto, EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto, EventJoinDto, EventRankingDto } from '../api/types'
+import type { EventDto, EventDailyBonusClaimDto, EventCalendarClaimDto, EventGameAAttemptDto, EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto, EventJoinDto, EventRankingDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
 import ScreenHeader from '../components/ScreenHeader'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import PlayerSelectionBrowser, { type PlayerBrowserQuery } from '../components/PlayerSelectionBrowser'
 import EventShopSection, { type EventShopIntent, type EventShopTarget } from './EventShopSection'
+import EventCalendar from './EventCalendar'
+import { useCalendarClaim } from '../event/use-calendar-claim'
 import EventRankingSection from './EventRankingSection'
 import { eventCurrencyLabel, eventGameAExpiredToday, eventPresentation } from '../event/event-presentation'
 import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
@@ -16,6 +18,7 @@ type Props = Readonly<{
   onLoad: () => Promise<EventDto>
   onLoadRanking?: () => Promise<EventRankingDto>
   onJoin: (idempotencyKey: string) => Promise<EventJoinDto>
+  onClaimCalendar?: (key: string) => Promise<EventCalendarClaimDto>
   onClaimDailyBonus?: (idempotencyKey: string) => Promise<EventDailyBonusClaimDto>
   onConvertShop?: (target: 'PRIMOGEMS' | 'MORAS', quantity: number, key: string) => Promise<EventDto>
   onPurchaseCollection?: (key: string) => Promise<EventDto>
@@ -56,7 +59,8 @@ function EventCooldownButton({ durationMs }: Readonly<{ durationMs: number }>) {
   return <button type="button" className="small-primary-button event-cooldown-button" disabled>Patientez {remainingSeconds} seconde{remainingSeconds > 1 ? 's' : ''}...</button>
 }
 
-export default function EventScreen({ sessionUserId, value, onLoad, onLoadRanking, onJoin, onClaimDailyBonus, onConvertShop, onPurchaseCollection, onAttempt, onAttemptB, onSearchRecipients = unavailableRecipientSearch, onSendGameC = unavailableGameCSend, onConsultMessages, openMessagesToken = 0 }: Props) {
+export default function EventScreen({ sessionUserId, value, onLoad, onLoadRanking, onJoin, onClaimCalendar, onClaimDailyBonus, onConvertShop, onPurchaseCollection, onAttempt, onAttemptB, onSearchRecipients = unavailableRecipientSearch, onSendGameC = unavailableGameCSend, onConsultMessages, openMessagesToken = 0 }: Props) {
+  const calendarAction = useCalendarClaim(`${sessionUserId}:${value.edition.id}:${value.businessDate}`, onClaimCalendar)
   const [section, setSection] = useState<'registration' | 'games' | 'shop' | 'ranking'>(openMessagesToken > 0 ? 'games' : 'registration')
   const [gameTab, setGameTab] = useState<0 | 1 | 2>(openMessagesToken > 0 ? 2 : 0)
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
@@ -356,6 +360,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
           ? <span className="event-joined-status">Événement rejoint</span>
           : <button type="button" className="small-primary-button" disabled={!value.canJoin || pending} onClick={() => void join()}>{pending ? 'Inscription…' : 'Rejoindre l’événement'}</button>}
       </section>
+      <EventCalendar value={value} action={calendarAction} enabled={Boolean(onClaimCalendar)} />
       </>}
       {section === 'shop' && <EventShopSection value={value} intent={shopIntent} pending={shopPending} feedback={shopFeedback} error={shopError} canConvert={Boolean(onConvertShop)} canPurchaseCollection={Boolean(onPurchaseCollection)} onTransact={(target, quantity) => void transactShop(target, quantity)} />}
       {section === 'ranking' && <EventRankingSection editionId={value.edition.id} onLoad={onLoadRanking} />}

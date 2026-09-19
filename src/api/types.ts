@@ -566,6 +566,14 @@ export type GiftCodeClaimantQuery = Readonly<{ page: number; search?: string; ed
 export type GiftCodeClaimantsDto = Readonly<{ code: Readonly<{ id: string; token: string; title: string }>; page: number; pageSize: 20; total: number; totalPages: number; claimants: readonly Readonly<{ playerId: string; displayName: string; editionKey: string; claimedAt: string }>[] }>
 
 export type EventDto = Readonly<{
+  calendar?: Readonly<{
+    startsOn: string
+    endsOn: string
+    currentDay: number | null
+    recap: boolean
+    canClaimToday: boolean
+    days: readonly Readonly<{ day: number; state: 'OPENED' | 'AVAILABLE' | 'MISSED' | 'FUTURE'; reward: number | null }>[]
+  }> | null
   businessDate: string
   refreshAfterMs: number
   festival: Readonly<{
@@ -623,6 +631,7 @@ export type EventDto = Readonly<{
 
 export type EventJoinDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }> }>
 export type EventDailyBonusClaimDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }> }>
+export type EventCalendarClaimDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; calendarClaim: Readonly<{ day: number; reward: number }> }>
 export type EventShopMutationDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }> }>
 export type EventRankingDto = Readonly<{ editionId: string; entries: readonly Readonly<{ rank: number; playerId: string; displayName: string; points: number }>[] }>
 export type EventGameAAttemptDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; attempt: Readonly<{ succeeded: boolean }> }>

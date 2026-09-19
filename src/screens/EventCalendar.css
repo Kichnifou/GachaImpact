@@ -1,0 +1,13 @@
+.event-calendar { padding: 18px; min-width: 0; }
+.event-calendar > p { color: var(--text-muted, #a8b5cd); }
+.event-calendar-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.event-calendar-cell, .app-button.event-calendar-cell { display: grid; align-content: center; justify-items: center; gap: 5px; min-width: 0; min-height: 100px; padding: 10px 6px; border: 1px solid #3e4d65; border-radius: 12px; text-align: center; overflow-wrap: anywhere; }
+.event-calendar-cell strong { font-size: 22px; }
+.event-calendar-cell small { min-height: 2.5em; }
+.event-calendar-cell.current { outline: 2px solid #91ceff; outline-offset: 1px; }
+.event-calendar-cell.opened { background: #18352e; color: #8df1c8; }
+.event-calendar-cell.missed { color: #a8b5cd; background: #202735; }
+.event-calendar-feedback { min-height: 2.5em; }
+.event-calendar-feedback .success { color: #8df1c8; }
+.event-calendar-feedback [role="alert"] { color: #ff9d9d; }
+@media (max-width: 700px) { .event-calendar-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } }

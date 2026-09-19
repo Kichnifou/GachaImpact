@@ -27,6 +27,11 @@ export const registerEventRoutes: FastifyPluginAsync<Options> = async (app, opti
     if (!parsed.success) throw new AppError('La réclamation du bonus Event est invalide.', 400, 'VALIDATION_ERROR');
     return options.service.claimDailyBonus(requireAuthenticatedIdentity(request), parsed.data.idempotencyKey);
   });
+  app.post('/api/v1/me/event/calendar/claim', { preHandler: options.authenticate }, (request) => {
+    const parsed = joinSchema.safeParse(request.body);
+    if (!parsed.success) throw new AppError('La demande d’ouverture est invalide.', 400, 'VALIDATION_ERROR');
+    return options.service.claimCalendar(requireAuthenticatedIdentity(request), parsed.data.idempotencyKey);
+  });
   app.post('/api/v1/me/event/shop/convert', { preHandler: options.authenticate }, (request) => {
     const parsed = shopConversionSchema.safeParse(request.body);
     if (!parsed.success) throw new AppError('La conversion du Festival est invalide.', 400, 'VALIDATION_ERROR');
