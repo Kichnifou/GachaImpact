@@ -191,6 +191,7 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 - **Décisions cible :** cible librement modifiable ; vidée automatiquement à chaque nouvelle bannière ; aucune pity/garantie reset lors d'un changement
 
 ## `!vote`
+- **État physique Batch A :** le bouton `Personnages > Catalogue` utilise `BannerVoteService` et le canal UI. Les disponibilités chat/Twitch ci-dessous décrivent le contrat cible audité : aucun parseur `!vote`, canal textuel ni fuzzy matching n'est implémenté dans ce batch. Les futurs canaux partageront la même unicité Player/rotation et le même service.
 - **Statut audit :** Audité — domaine Gacha / Invocation clôturé
 - **But :** Influencer le quatrième personnage 5★ de la bannière suivante.
 - **Syntaxes :** `!vote`, `!vote <nom>`

@@ -1090,6 +1090,18 @@ Toute réévaluation doit comparer les coûts **au moment où elle est faite**, 
 
 ---
 
+# Complément physique Batch A — Event lifecycle / Votes
+
+`NotificationService.list` branche `EventLifecycleNotificationReconciler` après les réconciliations existantes. L'édition est résolue côté serveur ; sous verrou Player et transaction sérialisable, l'upsert sans mise à jour conserve une preuve durable de livraison Player/édition/type. Les annonces périmées sont résolues ; un archivage ne réactive jamais la même annonce. R643 compare les dates Europe/Paris de maintenant et de `endsAt - 1 ms`. Aucun nouveau scheduler ni canal chat/Twitch.
+
+`EventService` consomme `GiftCodeService.festivalAvailability` : seuls statut annuel publié, mois, fenêtre et absence de claim décident de `giftCode.available`. Les éditions sont matérialisées par le moteur Codes existant. La projection ne divulgue aucun token et ne crédite rien ; le claim reste une mutation Codes et rafraîchit le snapshot Event client.
+
+`BannerVoteService` expose GET/POST `/api/v1/gacha/vote`. La lecture RepeatableRead retourne cycle serveur, candidats/id/compteurs, ownVote et version légère du catalogue. La mutation reçoit les UUID personnage/rotation, résout le Player authentifié, impose UI et utilise le verrou advisory `70422401` partagé avec `PrismaGachaStore.ensureRotation`, en SERIALIZABLE avec retry borné. L'unicité rotation/Player permet le replay naturel ; une rotation fournie périmée ne vote jamais dans la nouvelle semaine. Aucun compteur ni état Gacha/économique n'est muté par le vote.
+
+`WeeklyBannerScheduler` et `selectBannerFeatured` restent uniques : les votes de l'ancienne ACTIVE pondèrent le quatrième 5★ de la suivante après exclusion des trois random et des featured précédents. L'échec de génération rollbacke sans fermer/remplacer la bannière ni supprimer ses votes ; la fenêtre temporelle ferme néanmoins le vote. Une génération réussie clôt la rotation, conserve les lignes historiques et ouvre le nouveau cycle, tout en vidant les anciennes cibles selon la règle existante.
+
+Le Catalogue utilise une boucle de trois secondes après réponse, visible-only, anti-overlap, réveil focus/visibility et nettoyage au démontage. Les réponses de lecture obsolètes ne remplacent pas une mutation récente. Le catalogue complet n'est rechargé que si sa version change ; pas de polling Gacha complet. Aucun cache de votes inter-Player.
+
 # 24. Sources de prix consultées — snapshot 2026-09-04
 
 Supabase :

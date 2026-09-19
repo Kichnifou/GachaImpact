@@ -8,6 +8,8 @@ Les règles transverses de hauteur, scroll, stabilité, pagination, drag-and-dro
 
 ## Navigation principale
 
+Batch A : le vote communautaire habite uniquement `Personnages > Catalogue`, sur les cartes des 5★ éligibles, avec compteurs publics, choix personnel définitif et échéance de la rotation. Aucun onglet principal Votes. Les notifications Festival ouvrent `Activités > Événement` ; le rappel de dernier jour ouvre sa section Shop. Le signal Code dans Inscription ouvre l'écran Codes, sans claim direct ni action Quotidiennes supplémentaire.
+
 La barre principale contient exactement sept tuiles, dans cet ordre :
 
 `Accueil | Invocation | Personnages | Activités | Sac | Boutique | Configuration`

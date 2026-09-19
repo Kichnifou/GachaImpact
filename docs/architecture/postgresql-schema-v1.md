@@ -771,6 +771,8 @@ Cible V1 :
 
 ## 11.3 `banner_votes`
 
+État physique Batch A : table existante réutilisée sans changement de colonnes ni de `schema.prisma`. RLS vérifiée active ; unique rotation/Player, index rotation/personnage et FK restrictives vérifiés sur DEV. La migration additive autorisée `20260919200000_027_harden_banner_vote_grants` retire les grants hérités `TRUNCATE`/`REFERENCES`/`TRIGGER` et révoque tout accès `PUBLIC`, `anon`, `authenticated` à cette table. Elle ne touche aucune ligne. Toutes les lectures/mutations passent par le backend ; pas de policy permissive.
+
 Colonnes :
 
 - `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`

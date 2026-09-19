@@ -1,25 +1,39 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : Event — Calendrier de Noël et Configuration, candidat de review
+Version : Batch A — lifecycle Event et Votes communautaires, candidat de review
 Date : 2026-09-19
-Statut : EVENT LOTS 1 À 6 CLÔTURÉS PUBLIQUEMENT ; CALENDRIER DE NOËL ET CORRECTIF CONFIGURATION CANDIDATS SUR review — REVIEW INDÉPENDANTE REQUISE
+Statut : EVENT STANDALONE TECHNIQUEMENT COMPLET ; BATCH A EVENT / VOTES CANDIDAT SUR review — REVIEW INDÉPENDANTE REQUISE
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
 
 ## Reprise rapide — état vivant
 
-- Référence Git publique : `origin/main` au checkpoint documentaire `d6555a36e2ae0e4e63fea9829f9c35366c1c3b1d`. Le dernier micro-polish fonctionnel publiquement validé reste `4ac7ee19d04c0a5e7080cbc2a82842a08966af2a` ; le candidat Noël n'est ni promu, ni déployé, ni validé publiquement.
+- Référence Git publique : `origin/main = b976595b60c2871d49ace061160d383713359e46`. Noël est techniquement implémenté sur main ; sa validation publique naturelle est reportée à décembre, sans falsification du temps de production. Le propriétaire a validé les onglets Configuration et n'a constaté aucune régression sur l'Event actuel. Le nouveau Batch A n'est ni promu ni validé publiquement.
 - État Event : Lots 1 à 6 clôturés. Le dernier spot-check a validé Quotidiennes `✅ Terminé`, l'ordre Bonus/Participation, la progression, les conversions Shop, MAX, le feedback vert détaillé, Collection, le Classement, le curseur Boss `Bilan →` et le responsive observé. Aucune correction Event Lot 6 restante n'est connue. Le commit parallèle Story `1a0fca5` reste intact dans l'historique.
-- Domaine actif : Événements mensuels. Calendrier de Noël R625–R629/R644 et correctif indépendant Configuration implémentés en candidat ; la clôture publique des Lots 1–6 ne clôture pas encore tout le domaine.
-- Base DEV : 26 migrations applicatives versionnées et suivies par Prisma. La 026 `20260919120000_026_add_event_christmas_calendar` est appliquée ; checksum `68eb88c02de0f77ecaf05445917069a43e44990f736aa0383bb05b18f0df02a3`. Les migrations 001–025 restent intactes.
+- Domaine actif : finalisation Event / Votes communautaires de bannière. R641–R643 et Votes sont implémentés dans le candidat. Event standalone est techniquement terminé hors reports explicites : R633/R634 vers Historique global, commandes vers Chat/Twitch, recette naturelle Noël en décembre. Profils/annuaire/présence et confidentialité publique ne sont pas commencés.
+- Base DEV : 27 migrations applicatives suivies par Prisma. 026 reste inchangée et appliquée. La 027 `20260919200000_027_harden_banner_vote_grants`, explicitement autorisée après découverte de grants hérités, révoque tous les droits `PUBLIC`/`anon`/`authenticated` sur `banner_votes`, sans nouvelle table ni modification de données. Checksum : `8170b7c2e944d707aac8e94e989d5c6838ad43375c3bf448a738a546ba4bda5f`. Les migrations 001–026 restent intactes.
 - Infrastructure : `PAID_INFRA_APPROVED = false` ; `review` est une branche Git de pré-review, pas un staging. Aucune action Railway/Cloudflare manuelle n'appartient à ce checkpoint.
-- Prochaine étape exacte : **review indépendante ChatGPT du vrai candidat GitHub sur `review`**. Une éventuelle promotion, les déploiements automatiques et la validation publique restent des étapes ultérieures soumises à approbation ; aucun Vote de bannière communautaire n'est commencé.
+- Prochaine étape exacte : **review indépendante ChatGPT du vrai candidat GitHub sur `review`** ; puis promotion approuvée, déploiements automatiques et validation publique du Batch A. Après ces gates seulement : Profils joueurs / annuaire / présence + Confidentialité / consultations publiques.
 - Lire ensuite [le workflow](../process/implementation-workflow.md), [l'audit Event](../legacy/16-event-monthly-audit.md), [la navigation](../specifications/navigation-shell-v1.md), [le contrat UI](../specifications/ui-layout-contract-v1.md) et, pour la séquence future, [l'ordre V1](../roadmap/implementation-order-v1.md). Les sections de checkpoints ci-dessous sont des preuves historiques et peuvent conserver leur ancien contexte ; ce bloc est le pointeur vivant de reprise.
 
 ---
 
 # 0. RÈGLE D'OR DU PROJET
+
+## Checkpoint candidat — Batch A Event / Votes, 2026-09-19
+
+- Commits fonctionnels : `0d626220eb8e3cc2fc171fb7b72300f6cdf3a068` (lifecycle Event) puis `ce1ff235da03391765ed1cdc4a4a945948507ebb` (Votes et migration de sécurité autorisée), construits sans réécriture sur `b976595b60c2871d49ace061160d383713359e46`. Le troisième commit est le présent checkpoint documentaire.
+- R641 : `EventLifecycleNotificationReconciler`, appelé par le GET Notifications habituel, délivre l'annonce à la première présence de l'édition, même en milieu de mois. La clé durable `event-delivery:type:Player:édition` est une preuve commune réutilisable par les futurs canaux ; elle reste conservée après lecture/archivage. Deep-link `OPEN_EVENT`.
+- R643 : même réconciliateur, uniquement lorsque la business date serveur Europe/Paris égale celle de `endsAt - 1 ms`, un rappel court par Player/édition vers `OPEN_EVENT_SHOP`. Pas de création tardive pour l'ancienne édition au mois suivant, pas de solde dans le message.
+- R642 : `GiftCodeService.festivalAvailability` matérialise les éditions annuelles selon le moteur Codes existant et vérifie statut, fenêtre courante et absence de claim personnel. Event ne reçoit que `giftCode.available`, jamais token/récompenses. « Voir les Codes » ouvre Codes ; le claim reste dans Codes et rafraîchit Event. Aucune activité Quotidiennes artificielle.
+- Configuration : seule la phrase « Neuf destinations maximum sont affichées par page. » est retirée ; titre, reset, onglets, préférences et layout sont conservés.
+- Votes : `BannerVoteService`, GET/POST authentifiés `/api/v1/gacha/vote`, modèles existants `BannerRotation`/`BannerVote`. POST accepte seulement `characterId` et `bannerRotationId` (garde contre un écran ancien au rollover). Player résolu depuis l'identité ; canal UI imposé côté backend. 5★ actif hors bannière courante, un choix définitif par Player/rotation, retry identique reconnu même après rollover, autre choix refusé. Aucun coût ni gain.
+- Concurrence : transaction sérialisable, retry borné et verrou advisory identique à `ensureRotation`. Compteurs dérivés des lignes individuelles. Lundi 00:00 Paris, le scheduler existant consomme réellement les votes : trois 5★ aléatoires puis un pondéré parmi les restants, fallback aléatoire, exclusion des featured précédents 5★/4★. Échec = rollback, ancienne ACTIVE et votes conservés mais vote fermé après `endsAt` ; retry avec les mêmes votes, nouveau cycle seulement après succès, ancienne cible vidée. Les votes historiques et `selectionSource` restent durables, sans nouvel écran Historique.
+- Catalogue : compteurs et CTA uniquement sur candidats éligibles, badge personnel, suppression des autres CTA après vote, échéance serveur et caractère définitif affichés. Recherche/filtres/tris conservés. Polling léger à 3 secondes après réponse, visible-only, focus/visibility, anti-overlap et cleanup ; version de catalogue déclenchant un rechargement ponctuel, pas de full snapshot Gacha périodique.
+- Validation : 264 tests backend, 594 tests frontend ; typecheck/build backend, build frontend et diff-check réussis. Dix tests PostgreSQL Event/lifecycle/votes/Noël passent dans des schémas privés UUID ; DDL et fixtures synthétiques effectivement écrits puis supprimés exactement. Aucun compte DEV protégé utilisé, aucun vote réel ni état économique public modifié. La seule modification publique DB est la révocation de grants autorisée via 027, terminée et suivie dans Prisma ; zéro droit navigateur résiduel sur `banner_votes`. Avertissements non bloquants : deux warnings lint préexistants ContestScreen, taille du bundle Vite et dépréciation `pg` observée pendant les tests DB. Aucune suite DB Concours publique n'est relancée.
+- Browser : GameShell complet avec CSS du projet, 1920×1080, 1774×864, 1366×768 et 390×844 ; filtre 5★, compteurs, vote et état après vote, signal Code, deep-link Shop et onglets Configuration contrôlés sans débordement horizontal. Aucun harness ni capture dans les commits.
+- Aucun nouveau Rxxx, Story, Social/Profils, Chat/Twitch réel, Historique global, migration legacy ou service payant. Le contrat UI et la roadmap durable ne changent pas ; seules leurs fonctionnalités existantes sont appliquées.
 
 ## Checkpoint candidat — Calendrier de Noël / Configuration, 2026-09-19
 

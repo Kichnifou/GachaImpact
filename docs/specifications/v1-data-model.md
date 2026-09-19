@@ -677,6 +677,8 @@ Contrainte :
 
 Le total par personnage est dérivé.
 
+État physique Batch A : le cycle est la `BannerRotation` ACTIVE et prépare la suivante. `BannerVote` conserve `sourceChannel` (UI pour ce lot) et `votedAt` ; unicité rotation/Player, choix immuable et replay identique sans second vote, y compris après rotation. Les candidats sont les 5★ actifs absents de la bannière courante ; un nouvel import actif est immédiatement éligible. Les lignes closes ne sont jamais supprimées : agrégats historiques recalculables et origine `COMMUNITY_VOTE` du personnage retenu conservée. Aucun `VoteCycle`, compteur dénormalisé, récompense ou nouvel écran historique n'est ajouté.
+
 ## 10.4 `PlayerGachaState`
 
 État personnel courant :
@@ -1493,6 +1495,8 @@ Contrainte adaptée au contrat :
 La mutation exige une participation existante et le jour serveur `Europe/Paris` correspondant : aucune case passée/future choisie par le client. Claim, crédit dans `PlayerEventCurrencyBalance` et opération sont atomiques, sans point Event ni palier. Une ouverture confirmée se rejoue avec son montant initial sans nouveau tirage. La projection distingue Ouverte/Disponible/Manquée/À venir ; aucun montant futur aléatoire n'est exposé. Du 26 au 31 décembre elle reste un bilan non actionnable, puis devient absente hors décembre. Aucune donnée historique fictive ni backfill n'est créé.
 
 ### Tirage / résultat mensuel
+
+Lifecycle standalone R641/R643 : `Notification.deduplicationKey` unique conserve la preuve de livraison type + Player + édition, y compris après archivage. Aucun modèle `event_announcements` parallèle. R642 expose uniquement `giftCode.available` dans Event, calculé par le domaine Codes sur ses éditions/claims annuels existants ; Event ne stocke ni token ni récompenses Codes.
 
 Le tirage mensuel et un éventuel snapshot final/classement sont persistés comme résultats de l'édition lorsqu'ils sont nécessaires au contrat Event.
 
