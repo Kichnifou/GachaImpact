@@ -700,3 +700,9 @@ export type BackendErrorDto = Readonly<{
     requestId?: string
   }>
 }>
+export type BannerVoteDto = Readonly<{
+  bannerRotationId: string; startsAt: string; endsAt: string; canVote: boolean
+  ownVote: Readonly<{ characterId: string; votedAt: string }> | null
+  candidates: readonly Readonly<{ characterId: string; voteCount: number }>[]
+  catalogVersion: string
+}>

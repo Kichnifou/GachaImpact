@@ -1,4 +1,5 @@
 import { loadFrontendConfig } from '../config/environment'
+import type { BannerVoteDto } from './types'
 import { getSupabaseClient } from '../infrastructure/supabase/client'
 import type {
   BackendErrorDto,
@@ -260,6 +261,8 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getDailyRewardToday: () => request<DailyRewardTodayDto>('/api/v1/daily-reward/today'),
     claimDailyReward: () => request<DailyRewardClaimDto>('/api/v1/daily-reward/claim', { method: 'POST' }),
     getCharacters: () => request<CharacterCatalogDto>('/api/v1/characters'),
+    getBannerVotes: () => request<BannerVoteDto>('/api/v1/gacha/vote'),
+    voteForBanner: (characterId: string, bannerRotationId: string) => request<BannerVoteDto>('/api/v1/gacha/vote', { method: 'POST', body: JSON.stringify({ characterId, bannerRotationId }) }),
     getCurrentGacha: () => request<CurrentGachaDto>('/api/v1/gacha/current'),
     setGachaTarget: (characterId: string) => request<{ playerState: PlayerGachaStateDto }>('/api/v1/gacha/target', { method: 'POST', body: JSON.stringify({ characterId }) }),
     pullGacha: (count: 1 | 10, idempotencyKey: string) => request<GachaPullDto>('/api/v1/gacha/pull', { method: 'POST', body: JSON.stringify({ count, idempotencyKey }) }),

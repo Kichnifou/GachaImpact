@@ -9,6 +9,15 @@ const catalog: GachaCharacter[] = Array.from({ length: 30 }, (_, index) => ({
 const random = { nextInt: (max: number) => max - 1 };
 
 describe('weekly Gacha banner domain', () => {
+  it('uses every vote as a weight, not a majority winner, and excludes the three random slots', () => {
+    const winners: string[] = [];
+    for (let roll = 0; roll < 7; roll++) {
+      let call = 0;
+      const result = selectBannerFeatured(catalog, new Set(), [{ characterId: 'c0', votes: 999 }, { characterId: 'c3', votes: 5 }, { characterId: 'c4', votes: 1 }, { characterId: 'c5', votes: 1 }], { nextInt: max => { call++; if (call === 4) { expect(max).toBe(7); return roll; } return 0; } });
+      winners.push(result[3]!.character.id);
+    }
+    expect(winners).toEqual(['c3', 'c3', 'c3', 'c3', 'c3', 'c4', 'c5']);
+  });
   it('uses Paris Monday boundaries including DST', () => {
     expect(getParisWeekWindow(new Date('2026-03-29T12:00:00Z'))).toEqual({ startsAt: new Date('2026-03-22T23:00:00Z'), endsAt: new Date('2026-03-29T22:00:00Z') });
     expect(getParisWeekWindow(new Date('2026-10-25T12:00:00Z'))).toEqual({ startsAt: new Date('2026-10-18T22:00:00Z'), endsAt: new Date('2026-10-25T23:00:00Z') });

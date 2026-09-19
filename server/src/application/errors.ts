@@ -9,6 +9,9 @@ export class BusinessError extends Error {
 }
 
 export type BusinessErrorCode =
+  | 'BANNER_VOTE_CLOSED'
+  | 'BANNER_VOTE_USED'
+  | 'BANNER_VOTE_INELIGIBLE'
   | 'ELEMENT_ALREADY_CHOSEN'
   | 'ELEMENT_NOT_AVAILABLE'
   | 'ONBOARDING_DISPLAY_NAME_REQUIRED'

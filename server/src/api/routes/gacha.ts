@@ -1,17 +1,26 @@
 import type { FastifyInstance, preHandlerHookHandler } from 'fastify';
 import { z } from 'zod';
+import type { BannerVoteService } from '../../application/gacha/banner-vote-service.js';
 import type { GetCharacters, GetCurrentGacha, GetGachaHistory, PerformGachaPull, SetGachaTarget } from '../../application/gacha/gacha-services.js';
 import type { PlayerGachaState } from '../../application/gacha/gacha-store.js';
 import type { GachaCharacter } from '../../domain/gacha/gacha.js';
 import { requireAuthenticatedIdentity } from '../auth/authentication.js';
 import { AppError } from '../errors.js';
 
-type Options = Readonly<{ authenticate: preHandlerHookHandler; getCharacters: GetCharacters; getCurrentGacha: GetCurrentGacha; setGachaTarget: SetGachaTarget; performGachaPull?: PerformGachaPull; getGachaHistory?: GetGachaHistory }>;
+type Options = Readonly<{ authenticate: preHandlerHookHandler; getCharacters: GetCharacters; getCurrentGacha: GetCurrentGacha; setGachaTarget: SetGachaTarget; performGachaPull?: PerformGachaPull; getGachaHistory?: GetGachaHistory; bannerVotes?: BannerVoteService }>;
 const targetSchema = z.object({ characterId: z.uuid() }).strict();
 const pullSchema = z.object({ count: z.union([z.literal(1), z.literal(10)]), idempotencyKey: z.uuid() }).strict();
 const historyQuerySchema = z.object({ page: z.coerce.number().int().min(1).default(1) }).strict();
 
 export async function registerGachaRoutes(app: FastifyInstance, options: Options): Promise<void> {
+  if (options.bannerVotes) {
+    app.get('/api/v1/gacha/vote', { preHandler: options.authenticate }, request => options.bannerVotes!.getCurrent(requireAuthenticatedIdentity(request)));
+    app.post('/api/v1/gacha/vote', { preHandler: options.authenticate }, async request => {
+      const parsed = z.object({ characterId: z.uuid(), bannerRotationId: z.uuid() }).strict().safeParse(request.body);
+      if (!parsed.success) throw new AppError('Valid characterId and bannerRotationId are required.', 400, 'VALIDATION_ERROR');
+      return options.bannerVotes!.vote(requireAuthenticatedIdentity(request), parsed.data.characterId, parsed.data.bannerRotationId);
+    });
+  }
   app.get('/api/v1/characters', { preHandler: options.authenticate }, async () => ({ characters: (await options.getCharacters.execute()).map(characterDto) }));
   app.get('/api/v1/gacha/current', { preHandler: options.authenticate }, async (request) => {
     const current = await options.getCurrentGacha.execute(requireAuthenticatedIdentity(request));

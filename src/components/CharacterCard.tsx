@@ -1,10 +1,11 @@
 import type { GachaCharacterDto } from '../api/types'
+import type { ReactNode } from 'react'
 import type { Character } from '../types'
 import CharacterPortraitFrame from './CharacterPortraitFrame'
 
-type CharacterCardProps = { character: GachaCharacterDto | Character; compact?: boolean; selected?: boolean; disabled?: boolean; onClick?: () => void }
+type CharacterCardProps = { character: GachaCharacterDto | Character; compact?: boolean; selected?: boolean; disabled?: boolean; onClick?: () => void; footer?: ReactNode }
 
-function CharacterCard({ character, compact = false, selected = false, disabled = false, onClick }: CharacterCardProps) {
+function CharacterCard({ character, compact = false, selected = false, disabled = false, onClick, footer }: CharacterCardProps) {
   const catalogCharacter = 'externalKey' in character ? character : null
   const legacyCharacter = catalogCharacter ? null : character as Character
   const elementKey = catalogCharacter?.elementKey ?? legacyCharacter!.tone
@@ -25,6 +26,7 @@ function CharacterCard({ character, compact = false, selected = false, disabled 
         ? <p>{[catalogCharacter.weaponType, catalogCharacter.region].filter(Boolean).join(' · ') || elementKey}</p>
         : legacyCharacter && <div className="character-card-meta"><span>Niv. {legacyCharacter.level}</span><span>C{legacyCharacter.constellation}</span></div>}
     </div>
+    {footer}
     {selected && <span className="selected-mark">✓</span>}
   </>
   const className = `character-card ${elementKey}${compact ? ' compact' : ''}${selected ? ' selected' : ''}${disabled ? ' disabled' : ''}`

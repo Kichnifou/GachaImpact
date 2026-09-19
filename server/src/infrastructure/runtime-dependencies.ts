@@ -43,6 +43,7 @@ import { ExpeditionService } from '../application/expedition/expedition-service.
 import { NotificationService } from '../application/notification/notification-service.js';
 import { EventMessageNotificationReconciler } from '../application/notification/event-message-notifications.js';
 import { EventLifecycleNotificationReconciler } from '../application/notification/event-lifecycle-notifications.js';
+import { BannerVoteService } from '../application/gacha/banner-vote-service.js';
 import { MonthlyBossScheduler, MonthlyBossService } from '../application/combat/monthly-boss-service.js';
 import { ContestScheduler, ContestService } from '../application/contest/contest-service.js';
 import { GiftCodeScheduler, GiftCodeService } from '../application/gift-code/gift-code-service.js';
@@ -101,6 +102,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     claimDailyReward: new ClaimDailyReward(getCurrentPlayer, dailyRewardStore, clock),
     getCharacters: new GetCharacters(gachaStore),
     getCurrentGacha: new GetCurrentGacha(getCurrentPlayer, gachaStore),
+    bannerVotes: new BannerVoteService(getCurrentPlayer, database, clock),
     setGachaTarget: new SetGachaTarget(getCurrentPlayer, gachaStore),
     performGachaPull: new PerformGachaPull(getCurrentPlayer, gachaStore, clock, random),
     getGachaHistory: new GetGachaHistory(getCurrentPlayer, gachaStore),

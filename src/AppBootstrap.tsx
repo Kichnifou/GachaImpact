@@ -156,6 +156,9 @@ function AppBootstrap() {
     return result
   }, [])
   const loadGiftCodes = useCallback(() => getGameApiClient().getGiftCodes(), [])
+  const loadBannerVotes = useCallback(() => getGameApiClient().getBannerVotes(), [])
+  const voteForBanner = useCallback((characterId: string, rotationId: string) => getGameApiClient().voteForBanner(characterId, rotationId), [])
+  const reloadCatalog = useCallback(async () => { setCharacters((await getGameApiClient().getCharacters()).characters) }, [])
   const claimGiftCode = useCallback(async (editionId: string, idempotencyKey: string) => {
     const result = await getGameApiClient().claimGiftCode(editionId, idempotencyKey)
     setResources(result.resources)
@@ -384,6 +387,7 @@ function AppBootstrap() {
 
   return (
     <GameShell
+      bannerVoteActions={{ onLoadVotes: loadBannerVotes, onVote: voteForBanner, onReloadCatalog: reloadCatalog }}
       player={player}
       resources={visibleResources}
       progression={progression}

@@ -19,6 +19,7 @@ import type { SpinDailyWheel } from './application/wheel/spin-daily-wheel.js';
 import type { GetTodayWheelState } from './application/wheel/get-today-wheel-state.js';
 import { registerDailyRewardRoutes } from './api/routes/daily-reward.js';
 import { registerGachaRoutes } from './api/routes/gacha.js';
+import type { BannerVoteService } from './application/gacha/banner-vote-service.js';
 import { registerBoxRoutes } from './api/routes/box.js';
 import { registerTeamRoutes } from './api/routes/team.js';
 import { registerBankRoutes } from './api/routes/bank.js';
@@ -67,6 +68,7 @@ export type AppDependencies = Readonly<{
   claimDailyReward?: ClaimDailyReward;
   getCharacters?: GetCharacters;
   getCurrentGacha?: GetCurrentGacha;
+  bannerVotes?: BannerVoteService;
   setGachaTarget?: SetGachaTarget;
   performGachaPull?: PerformGachaPull;
   getGachaHistory?: GetGachaHistory;
@@ -170,7 +172,7 @@ export async function buildApp(
       await app.register(registerDailyRewardRoutes, { authenticate, getTodayDailyReward: dependencies.getTodayDailyReward, claimDailyReward: dependencies.claimDailyReward });
     }
     if (dependencies.getCharacters && dependencies.getCurrentGacha && dependencies.setGachaTarget) {
-      await app.register(registerGachaRoutes, { authenticate, getCharacters: dependencies.getCharacters, getCurrentGacha: dependencies.getCurrentGacha, setGachaTarget: dependencies.setGachaTarget, performGachaPull: dependencies.performGachaPull, getGachaHistory: dependencies.getGachaHistory });
+      await app.register(registerGachaRoutes, { authenticate, getCharacters: dependencies.getCharacters, getCurrentGacha: dependencies.getCurrentGacha, setGachaTarget: dependencies.setGachaTarget, performGachaPull: dependencies.performGachaPull, getGachaHistory: dependencies.getGachaHistory, bannerVotes: dependencies.bannerVotes });
     }
     if (dependencies.getCurrentPlayerBox && dependencies.setBoxCharacterFavorite && dependencies.setBoxSortPreference && dependencies.useMasterlessStella) {
       await app.register(registerBoxRoutes, {

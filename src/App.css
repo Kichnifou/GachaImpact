@@ -3341,6 +3341,11 @@
 }
 
 button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit; }
+.catalog-vote-summary { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 6px 0; font-size: 11px; color: var(--muted); }
+.catalog-vote-summary strong { color: var(--text); }
+.catalog-character-vote { min-height: 44px; padding: 6px 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; font-size: 11px; }
+.catalog-character-vote .app-button { min-height: 30px; padding: 4px 10px; }
+.catalog-character-vote strong { color: var(--gold); }
 .character-card.hydro { --character-color: #62caff; }
 .character-card.pyro { --character-color: #ff7d64; }
 .character-card.cryo { --character-color: #9edfff; }
