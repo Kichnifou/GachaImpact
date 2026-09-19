@@ -7944,7 +7944,7 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 @media (min-width: 1121px) {
   .secondary-navigation { width: 100%; overflow-x: hidden; }
   .dailies-shell { grid-template-rows: auto minmax(0, 1fr); }
-  .configuration-screen { grid-template-rows: auto auto minmax(0, 1fr); }
+  .configuration-screen.long-screen-layout:has(> .screen-header) { grid-template-rows: auto auto minmax(0, 1fr); }
   .dailies-frame, .configuration-frame,
   .dailies-frame > .scrollable-screen-panel-content,
   .configuration-frame > .scrollable-screen-panel-content { height: 100%; }

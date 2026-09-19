@@ -14,6 +14,9 @@ const roots: ReturnType<typeof createRoot>[] = []
 afterEach(() => { act(() => roots.splice(0).forEach((root) => root.unmount())); document.body.replaceChildren() })
 
 describe('ConfigurationScreen', () => {
+  it('reserves three desktop grid tracks with specificity above the generic two-track screen', () => {
+    expect(appCssSource).toMatch(/\.configuration-screen\.long-screen-layout:has\(> \.screen-header\)\s*\{\s*grid-template-rows:\s*auto auto minmax\(0, 1fr\);/)
+  })
   it('offers accessible ordering, visibility and reset controls without allowing Configuration to be hidden', async () => {
     const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root)
     const onSave = vi.fn().mockResolvedValue(undefined); const onReset = vi.fn().mockResolvedValue(undefined)
