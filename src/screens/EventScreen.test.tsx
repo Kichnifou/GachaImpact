@@ -41,6 +41,17 @@ function selectGames(container: HTMLElement) {
 }
 
 describe('EventScreen presentation', () => {
+  it('exposes only a Codes navigation action and honors the Shop notification intent', () => {
+    const mounted = mount({ value: { ...afterJoin, giftCode: { available: true } } })
+    const onOpenCodes = vi.fn()
+    act(() => mounted.root.render(<EventScreen {...mounted.props} value={{ ...afterJoin, giftCode: { available: true } }} onOpenCodes={onOpenCodes} />))
+    const link = Array.from(mounted.container.querySelectorAll('button')).find(button => button.textContent === 'Voir les Codes')!
+    act(() => link.click())
+    expect(onOpenCodes).toHaveBeenCalledOnce()
+    act(() => mounted.root.render(<EventScreen {...mounted.props} openShopToken={1} />))
+    expect(mounted.container.querySelector('.event-shop')).not.toBeNull()
+    expect(mounted.container.textContent).not.toContain('Voir les Codes')
+  })
   it('claims the daily bonus once and shows the next-day reset without a fake claim action', async () => {
     const claimed: EventDailyBonusClaimDto = { ...afterJoin, dailyBonus: { claimedToday: true, canClaim: false }, currency: { amount: '2' }, operation: { id: 'bonus-operation', alreadyProcessed: false } }
     const onClaimDailyBonus = vi.fn(async () => claimed)

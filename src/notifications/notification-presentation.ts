@@ -1,12 +1,14 @@
 import type { NotificationDto } from '../api/types'
 import { formatResourceAmount } from '../utils/formatters'
 
-export type NotificationDestination = 'expedition' | 'gift-code' | 'monthly-boss' | 'event-messages'
+export type NotificationDestination = 'expedition' | 'gift-code' | 'monthly-boss' | 'event-messages' | 'event' | 'event-shop'
 export type NotificationRewardPresentation = Readonly<{ resourceKey: string; label: string; amount: string }>
 export type NotificationPresentation = Readonly<{ title: string; message: string; rewards?: readonly NotificationRewardPresentation[]; destination: NotificationDestination | null }>
 type Resolver = (notification: NotificationDto) => NotificationPresentation
 
 const resolvers: Readonly<Record<string, Resolver>> = {
+  'event:EVENT_EDITION_AVAILABLE': (notification) => ({ title: text(notification.payload.title, 'Festival du mois'), message: text(notification.payload.message, 'Le Festival du mois est disponible.'), destination: notification.actionKey === 'OPEN_EVENT' ? 'event' : null }),
+  'event:EVENT_EDITION_LAST_DAY': (notification) => ({ title: text(notification.payload.title, 'Festival du mois'), message: text(notification.payload.message, 'Le Festival se termine aujourd’hui !'), destination: notification.actionKey === 'OPEN_EVENT_SHOP' ? 'event-shop' : null }),
   'expedition:ready': (notification) => ({
     title: 'Expédition terminée',
     message: `${text(notification.payload.characterName, 'Votre personnage')} est revenu.`,

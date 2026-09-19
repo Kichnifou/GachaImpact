@@ -159,9 +159,9 @@ function AppBootstrap() {
   const claimGiftCode = useCallback(async (editionId: string, idempotencyKey: string) => {
     const result = await getGameApiClient().claimGiftCode(editionId, idempotencyKey)
     setResources(result.resources)
-    await loadNotifications()
+    await Promise.all([loadNotifications(), loadEvent()])
     return result
-  }, [loadNotifications])
+  }, [loadNotifications, loadEvent])
   const loadAdminGiftCodes = useCallback((query: Parameters<ReturnType<typeof getGameApiClient>['getAdminGiftCodes']>[0]) => getGameApiClient().getAdminGiftCodes(query), [])
   const createGiftCode = useCallback((input: Parameters<ReturnType<typeof getGameApiClient>['createGiftCode']>[0]) => getGameApiClient().createGiftCode(input), [])
   const publishGiftCode = useCallback((codeId: string, key: string) => getGameApiClient().publishGiftCode(codeId, key), [])

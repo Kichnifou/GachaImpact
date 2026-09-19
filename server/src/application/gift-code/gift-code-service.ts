@@ -68,6 +68,15 @@ export class GiftCodeService {
     return this.playerSnapshot(player.id, now);
   }
 
+  public async festivalAvailability(playerId: string, month: number, now: Date, database: Database = this.database) {
+    await this.materializeAnnualEditions(database, now);
+    const edition = await database.giftCodeEdition.findFirst({
+      where: { startsAt: { lte: now }, endsAt: { gt: now }, giftCode: { status: GiftCodeStatus.PUBLISHED, type: GiftCodeType.ANNUAL, recurringMonth: month }, claims: { none: { playerId } } },
+      select: { id: true },
+    });
+    return { available: Boolean(edition) };
+  }
+
   public async claim(identity: AuthenticatedIdentity, editionId: string, idempotencyKey: string) {
     const player = await this.getPlayer.execute(identity);
     const now = this.clock.now();

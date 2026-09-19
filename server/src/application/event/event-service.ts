@@ -16,6 +16,7 @@ import { reconcileEventMessageAggregate } from '../notification/event-message-no
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
 import { eligibleContactRecipient } from '../social/contact-permission.js';
 import { calendarReward, projectCalendar } from '../../domain/event/calendar.js';
+import type { GiftCodeService } from '../gift-code/gift-code-service.js';
 
 type Database = PrismaClient | Prisma.TransactionClient;
 
@@ -90,6 +91,7 @@ export class EventService {
     private readonly database: PrismaClient,
     private readonly clock: Clock,
     private readonly random: RandomSource,
+    private readonly giftCodes?: Pick<GiftCodeService, 'festivalAvailability'>,
   ) {}
 
   public async getCurrent(identity: AuthenticatedIdentity) {
@@ -685,6 +687,7 @@ export class EventService {
       businessDate: context.period.businessDate,
       refreshAfterMs,
       calendar: projectCalendar(context.editionSnapshot.externalKey, context.period.businessDate, Boolean(participant), calendarClaims),
+      giftCode: this.giftCodes ? await this.giftCodes.festivalAvailability(playerId, context.editionSnapshot.calendarMonth, now, database) : { available: false },
       festival: {
         key: context.editionSnapshot.externalKey,
         month: context.editionSnapshot.calendarMonth,

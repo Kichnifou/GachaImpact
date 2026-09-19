@@ -3,6 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import type { EventDto, EventDailyBonusClaimDto, EventCalendarClaimDto, EventGameAAttemptDto, EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto, EventJoinDto, EventRankingDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
 import ScreenHeader from '../components/ScreenHeader'
+import AppButton from '../components/AppButton'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import PlayerSelectionBrowser, { type PlayerBrowserQuery } from '../components/PlayerSelectionBrowser'
 import EventShopSection, { type EventShopIntent, type EventShopTarget } from './EventShopSection'
@@ -28,6 +29,8 @@ type Props = Readonly<{
   onSendGameC?: (recipientPlayerId: string, message: string, idempotencyKey: string) => Promise<EventGameCSendDto>
   onConsultMessages?: () => Promise<EventDto>
   openMessagesToken?: number
+  openShopToken?: number
+  onOpenCodes?: () => void
 }>
 
 const periodFormatter = new Intl.DateTimeFormat('fr-FR', {
@@ -59,9 +62,13 @@ function EventCooldownButton({ durationMs }: Readonly<{ durationMs: number }>) {
   return <button type="button" className="small-primary-button event-cooldown-button" disabled>Patientez {remainingSeconds} seconde{remainingSeconds > 1 ? 's' : ''}...</button>
 }
 
-export default function EventScreen({ sessionUserId, value, onLoad, onLoadRanking, onJoin, onClaimCalendar, onClaimDailyBonus, onConvertShop, onPurchaseCollection, onAttempt, onAttemptB, onSearchRecipients = unavailableRecipientSearch, onSendGameC = unavailableGameCSend, onConsultMessages, openMessagesToken = 0 }: Props) {
+export default function EventScreen({ sessionUserId, value, onLoad, onLoadRanking, onJoin, onClaimCalendar, onClaimDailyBonus, onConvertShop, onPurchaseCollection, onAttempt, onAttemptB, onSearchRecipients = unavailableRecipientSearch, onSendGameC = unavailableGameCSend, onConsultMessages, openMessagesToken = 0, openShopToken = 0, onOpenCodes }: Props) {
   const calendarAction = useCalendarClaim(`${sessionUserId}:${value.edition.id}:${value.businessDate}`, onClaimCalendar)
-  const [section, setSection] = useState<'registration' | 'games' | 'shop' | 'ranking'>(openMessagesToken > 0 ? 'games' : 'registration')
+  const [section, setSection] = useState<'registration' | 'games' | 'shop' | 'ranking'>(openShopToken > 0 ? 'shop' : openMessagesToken > 0 ? 'games' : 'registration')
+  useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- Explicit notification navigation intent.
+    if (openShopToken > 0) setSection('shop')
+  }, [openShopToken])
   const [gameTab, setGameTab] = useState<0 | 1 | 2>(openMessagesToken > 0 ? 2 : 0)
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
   const [gameBIntent, setGameBIntent] = useState<Readonly<{ code: string; key: string }> | null>(null)
@@ -361,6 +368,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
           : <button type="button" className="small-primary-button" disabled={!value.canJoin || pending} onClick={() => void join()}>{pending ? 'Inscription…' : 'Rejoindre l’événement'}</button>}
       </section>
       <EventCalendar value={value} action={calendarAction} enabled={Boolean(onClaimCalendar)} />
+      {value.giftCode?.available && <div className="panel"><p>Un code cadeau du Festival est disponible.</p><AppButton onClick={onOpenCodes} disabled={!onOpenCodes}>Voir les Codes</AppButton></div>}
       </>}
       {section === 'shop' && <EventShopSection value={value} intent={shopIntent} pending={shopPending} feedback={shopFeedback} error={shopError} canConvert={Boolean(onConvertShop)} canPurchaseCollection={Boolean(onPurchaseCollection)} onTransact={(target, quantity) => void transactShop(target, quantity)} />}
       {section === 'ranking' && <EventRankingSection editionId={value.edition.id} onLoad={onLoadRanking} />}

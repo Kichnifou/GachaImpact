@@ -9,6 +9,10 @@ const pending: NotificationDto = {
 }
 
 describe('Event message notification presentation', () => {
+  it('routes lifecycle announcements and last-day reminders without exposing balances', () => {
+    expect(resolveNotificationPresentation({ ...pending, typeKey: 'EVENT_EDITION_AVAILABLE', actionKey: 'OPEN_EVENT', payload: { title: 'Festival', message: 'Disponible' } })).toMatchObject({ title: 'Festival', message: 'Disponible', destination: 'event' })
+    expect(resolveNotificationPresentation({ ...pending, typeKey: 'EVENT_EDITION_LAST_DAY', actionKey: 'OPEN_EVENT_SHOP', payload: { title: 'Festival', message: 'Dernier jour' } })).toMatchObject({ destination: 'event-shop' })
+  })
   it('shows one aggregate count with a typed Panier destination', () => {
     expect(resolveNotificationPresentation(pending)).toEqual({ title: 'Messages du Festival', message: 'Vous avez 3 messages du Festival à consulter.', destination: 'event-messages' })
     expect(resolveNotificationPresentation({ ...pending, payload: { count: 1 } }).message).toContain('1 message du Festival')

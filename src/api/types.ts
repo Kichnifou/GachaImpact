@@ -566,6 +566,7 @@ export type GiftCodeClaimantQuery = Readonly<{ page: number; search?: string; ed
 export type GiftCodeClaimantsDto = Readonly<{ code: Readonly<{ id: string; token: string; title: string }>; page: number; pageSize: 20; total: number; totalPages: number; claimants: readonly Readonly<{ playerId: string; displayName: string; editionKey: string; claimedAt: string }>[] }>
 
 export type EventDto = Readonly<{
+  giftCode?: Readonly<{ available: boolean }>
   calendar?: Readonly<{
     startsOn: string
     endsOn: string
