@@ -71,7 +71,7 @@ export class GiftCodeService {
   public async festivalAvailability(playerId: string, month: number, now: Date, database: Database = this.database) {
     await this.materializeAnnualEditions(database, now);
     const edition = await database.giftCodeEdition.findFirst({
-      where: { startsAt: { lte: now }, endsAt: { gt: now }, giftCode: { status: GiftCodeStatus.PUBLISHED, type: GiftCodeType.ANNUAL, recurringMonth: month }, claims: { none: { playerId } } },
+      where: { startsAt: { lte: now }, endsAt: { gt: now }, giftCode: { status: GiftCodeStatus.PUBLISHED, type: GiftCodeType.ANNUAL, recurringMonth: month, createdById: null }, claims: { none: { playerId } } },
       select: { id: true },
     });
     return { available: Boolean(edition) };

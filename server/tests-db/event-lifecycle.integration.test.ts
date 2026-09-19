@@ -47,12 +47,13 @@ describe('Event lifecycle isolated PostgreSQL', () => {
     expect(await database.notification.count({ where: { typeKey: 'EVENT_EDITION_LAST_DAY' } })).toBe(2);
   }, 60_000);
 
-  it('projects real annual code availability without token or rewards', async () => {
+  it('projects only the system Festival annual code without token or rewards', async () => {
     now = new Date('2026-09-15T12:00:00Z');
     const player = await database.player.create({ data: { displayName: 'Code fixture' } });
     const identity = { subject: player.id };
     expect((await events.getCurrent(identity)).giftCode).toEqual({ available: false });
-    const code = await database.giftCode.create({ data: { token: `TEST${randomUUID()}`, title: 'Festival fixture', description: 'Fixture', type: 'ANNUAL', status: 'PUBLISHED', recurringMonth: 9 } });
+    const code = await database.giftCode.create({ data: { token: `SYSTEM${randomUUID()}`, title: 'Titre modifié', description: 'Fixture', type: 'ANNUAL', status: 'PUBLISHED', recurringMonth: 9 } });
+    await database.giftCode.update({ where: { id: code.id }, data: { token: `RENAMED${randomUUID()}`, title: 'Titre encore modifié' } });
     const current = await events.getCurrent(identity);
     expect(current.giftCode).toEqual({ available: true });
     expect(JSON.stringify(current)).not.toContain(code.token);
@@ -63,7 +64,8 @@ describe('Event lifecycle isolated PostgreSQL', () => {
     expect((await events.getCurrent(identity)).giftCode).toEqual({ available: false });
     expect(await database.giftCodeClaim.count()).toBe(1);
     expect(await database.resourceMovement.count()).toBe(0);
-    await database.giftCode.update({ where: { id: code.id }, data: { status: 'DISABLED' } });
+    const admin = await database.player.create({ data: { displayName: 'Admin annual fixture' } });
+    await database.giftCode.create({ data: { token: `ADMIN${randomUUID()}`, title: 'Anniversaire septembre', description: 'Admin fixture', type: 'ANNUAL', status: 'PUBLISHED', recurringMonth: 9, createdById: admin.id, updatedById: admin.id } });
     expect((await events.getCurrent(identity)).giftCode).toEqual({ available: false });
   }, 60_000);
 });
