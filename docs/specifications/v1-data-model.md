@@ -1488,6 +1488,10 @@ Contrainte adaptée au contrat :
 
 `eventEditionId + playerId + calendarDay`
 
+État physique candidat Noël : migration additive 026, table `event_calendar_claims`. La clé ci-dessus est primaire ; `rewardAmount` persiste le tirage (1–5 jours 1–24, 50 jour 25), `operationId` unique lie la `BusinessOperation` idempotente et `claimedAt` mémorise l'ouverture. FK restrictives vers édition, Player et opération ; CHECK jour/récompense ; RLS et aucun accès direct navigateur.
+
+La mutation exige une participation existante et le jour serveur `Europe/Paris` correspondant : aucune case passée/future choisie par le client. Claim, crédit dans `PlayerEventCurrencyBalance` et opération sont atomiques, sans point Event ni palier. Une ouverture confirmée se rejoue avec son montant initial sans nouveau tirage. La projection distingue Ouverte/Disponible/Manquée/À venir ; aucun montant futur aléatoire n'est exposé. Du 26 au 31 décembre elle reste un bilan non actionnable, puis devient absente hors décembre. Aucune donnée historique fictive ni backfill n'est créé.
+
 ### Tirage / résultat mensuel
 
 Le tirage mensuel et un éventuel snapshot final/classement sont persistés comme résultats de l'édition lorsqu'ils sont nécessaires au contrat Event.

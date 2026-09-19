@@ -2224,6 +2224,7 @@ Colonnes :
 - `event_edition_id uuid NOT NULL REFERENCES event_editions(id) ON DELETE RESTRICT`
 - `player_id uuid NOT NULL REFERENCES players(id) ON DELETE RESTRICT`
 - `calendar_day smallint NOT NULL`
+- `reward_amount smallint NOT NULL`
 - `operation_id uuid NOT NULL UNIQUE REFERENCES business_operations(id) ON DELETE RESTRICT`
 - `claimed_at timestamptz NOT NULL DEFAULT now()`
 
@@ -2234,6 +2235,10 @@ PK :
 Contrainte :
 
 `calendar_day BETWEEN 1 AND 25`
+
+État physique candidat Noël : migration additive `20260919120000_026_add_event_christmas_calendar`, sans modification 001–025. CHECK supplémentaire : jours 1–24 avec `reward_amount BETWEEN 1 AND 5`, ou jour 25 avec `reward_amount = 50`. Le montant est définitif après commit ; un replay ne retire jamais une nouvelle valeur.
+
+Index unique `operation_id`, index `player_id` ; le préfixe de la PK couvre `event_edition_id`. FK `ON DELETE RESTRICT`, RLS activée et droits `PUBLIC`, `anon`, `authenticated` révoqués. Le serveur seul exécute la transaction sérialisable claim + incrément du solde saisonnier + complétion de l'opération, avec verrou Player et édition. Aucune attribution de points/palier. L'inscription et la date exacte Europe/Paris restent des validations métier serveur ; aucun accès SQL navigateur.
 
 ---
 

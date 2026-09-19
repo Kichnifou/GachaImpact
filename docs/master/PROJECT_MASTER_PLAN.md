@@ -1,25 +1,39 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : Event Lot 6 — clôture publique ; cas spéciaux de décembre à préparer
-Date : 2026-09-16
-Statut : EVENT LOTS 1 À 6 CLÔTURÉS ET VALIDÉS PUBLIQUEMENT ; DOMAINE ÉVÉNEMENTS MENSUELS ACTIF POUR LES CAS SPÉCIAUX DE DÉCEMBRE
+Version : Event — Calendrier de Noël et Configuration, candidat de review
+Date : 2026-09-19
+Statut : EVENT LOTS 1 À 6 CLÔTURÉS PUBLIQUEMENT ; CALENDRIER DE NOËL ET CORRECTIF CONFIGURATION CANDIDATS SUR review — REVIEW INDÉPENDANTE REQUISE
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
 
 ## Reprise rapide — état vivant
 
-- Production publique : `main` au checkpoint `4ac7ee19d04c0a5e7080cbc2a82842a08966af2a` (dernier micro-polish Event Shop promu, déployé automatiquement et validé publiquement par le propriétaire ; Railway a déployé ce SHA en `SUCCESS`).
+- Référence Git publique : `origin/main` au checkpoint documentaire `d6555a36e2ae0e4e63fea9829f9c35366c1c3b1d`. Le dernier micro-polish fonctionnel publiquement validé reste `4ac7ee19d04c0a5e7080cbc2a82842a08966af2a` ; le candidat Noël n'est ni promu, ni déployé, ni validé publiquement.
 - État Event : Lots 1 à 6 clôturés. Le dernier spot-check a validé Quotidiennes `✅ Terminé`, l'ordre Bonus/Participation, la progression, les conversions Shop, MAX, le feedback vert détaillé, Collection, le Classement, le curseur Boss `Bilan →` et le responsive observé. Aucune correction Event Lot 6 restante n'est connue. Le commit parallèle Story `1a0fca5` reste intact dans l'historique.
-- Domaine actif : Événements mensuels, uniquement pour les derniers cas spéciaux déjà décidés, notamment décembre / Noël ; la clôture du Lot 6 ne clôture pas encore tout le domaine.
-- Base DEV : 25 migrations applicatives versionnées ; la 025 `20260917180000_025_add_event_shop_collection` est documentée comme appliquée et suivie par Prisma. Aucune action DB ou migration n'appartient à ce checkpoint documentaire.
+- Domaine actif : Événements mensuels. Calendrier de Noël R625–R629/R644 et correctif indépendant Configuration implémentés en candidat ; la clôture publique des Lots 1–6 ne clôture pas encore tout le domaine.
+- Base DEV : 26 migrations applicatives versionnées et suivies par Prisma. La 026 `20260919120000_026_add_event_christmas_calendar` est appliquée ; checksum `68eb88c02de0f77ecaf05445917069a43e44990f736aa0383bb05b18f0df02a3`. Les migrations 001–025 restent intactes.
 - Infrastructure : `PAID_INFRA_APPROVED = false` ; `review` est une branche Git de pré-review, pas un staging. Aucune action Railway/Cloudflare manuelle n'appartient à ce checkpoint.
-- Prochaine étape exacte : **préparer puis implémenter le lot spécial décembre / Calendrier de Noël depuis [l'audit Event](../legacy/16-event-monthly-audit.md)**, selon les décisions existantes R625–R629 et R644 : Festival de Noël, Étoiles de Noël 🎄, Flocon Enchanté et bilan du calendrier du 26 au 31 décembre. Aucun développement de ce lot ne commence dans le présent checkpoint.
+- Prochaine étape exacte : **review indépendante ChatGPT du vrai candidat GitHub sur `review`**. Une éventuelle promotion, les déploiements automatiques et la validation publique restent des étapes ultérieures soumises à approbation ; aucun Vote de bannière communautaire n'est commencé.
 - Lire ensuite [le workflow](../process/implementation-workflow.md), [l'audit Event](../legacy/16-event-monthly-audit.md), [la navigation](../specifications/navigation-shell-v1.md), [le contrat UI](../specifications/ui-layout-contract-v1.md) et, pour la séquence future, [l'ordre V1](../roadmap/implementation-order-v1.md). Les sections de checkpoints ci-dessous sont des preuves historiques et peuvent conserver leur ancien contexte ; ce bloc est le pointeur vivant de reprise.
 
 ---
 
 # 0. RÈGLE D'OR DU PROJET
+
+## Checkpoint candidat — Calendrier de Noël / Configuration, 2026-09-19
+
+- Le calendrier est intégré à Inscription sous Participation/Bonus, sans cinquième onglet : 25 cases, jours 1–24 = tirage uniforme serveur 1–5 Étoiles de Noël, jour 25 = 50 sans RNG. Aucun point Event, classement ou palier n'est attribué par cette opération. Les Jeux A/B/C, le Shop et leurs règles restent inchangés.
+- `POST /api/v1/me/event/calendar/claim` accepte seulement une clé UUID. L'horloge injectée et `Europe/Paris` déterminent la case ; aucun rattrapage, aucune inscription implicite. Transaction sérialisable, verrou Player/édition, unicité édition/Player/jour et opération : claim, solde saisonnier et journal sont atomiques. Le replay restitue le gain persisté sans reroll, même après la journée/fin décembre.
+- Le snapshot Event porte `calendar` (`null` hors décembre), ses 25 états et les seuls montants révélables. Du 26 au 31, bilan sans action ; disparition au changement de mois. Le coordinateur Event existant publie le snapshot après mutation sans F5. La garde client bloque le double clic et conserve l'UUID après une erreur ambiguë. Quotidiennes consomme le même agrégateur de disponibilité ; le bilan ne maintient pas le CTA.
+- Migration 026 : `EventCalendarClaim` / `event_calendar_claims`, récompense persistée, FK, CHECK jour/récompense, index, RLS et révocation des droits navigateur. Prisma indique 26 migrations à jour ; structure réelle et checksum vérifiés. Aucune claim dans la table publique après les tests.
+- Tests DB : cinq tests passent dans un schéma privé à UUID propre à l'exécution, avec fixtures synthétiques et suppression exacte de ce schéma ; aucune donnée économique réelle ni compte protégé modifié. Les essais ont temporairement écrit des fixtures/DDL DEV isolés. Aucun schéma de test résiduel au contrôle final.
+- Configuration : la règle générique `.long-screen-layout:has(> .screen-header)` à deux lignes gagnait par spécificité contre `.configuration-screen`. Le sélecteur ciblé `.configuration-screen.long-screen-layout:has(> .screen-header)` rétablit `auto auto minmax(0, 1fr)` : header, onglets, frame. Menu reste actif ; Confidentialité/Apparence restent visibles et disabled. Aucun nouveau masquage ni texte ajouté.
+- Validation Chromium, GameShell complet et CSS réelles : Configuration 1920×1080, 1366×768, 390×844 et équivalents zoom desktop 80/100/125 % ; onglets hauts de 46 px, boutons de 37 px, espacements de 12 px entre régions. `header.bottom <= tabs.top` et `tabs.bottom <= frame.top` vérifiés. Body Menu propriétaire du scroll desktop ; flux naturel mobile conservé. Event testé à 1920×1080, 1774×864, 1366×768, 390×844 : 25 cases, cinq colonnes desktop/trois mobile, aucun débordement horizontal, ouverture et feedback vert observés avec réponses synthétiques locales, pas sur un Festival public artificiel.
+- Validations : suites backend 262 tests et frontend 589 tests réussies ; cinq tests DB Calendrier réussis ; typecheck/build backend, build frontend et contrôle diff validés. Lint : deux avertissements préexistants dans ContestScreen ; build frontend : avertissement de taille du bundle. Aucun test silencieusement exclu ; les autres suites DB ne sont pas relancées sur les données partagées.
+- R641/R642/R643 ne sont pas ajoutées : l'orchestration Event inspectée ne possède pas encore ces annonces/rappels/signalements. Le moteur Codes et ses notifications existants ne valent pas implémentation du signalement Event R642. R633/R634 restent reportées à l'Historique transversal. Aucun nouveau Rxxx, migration legacy, Story ou service payant.
+
+Ce checkpoint décrit un candidat, pas une validation publique. L'architecture backend ne change pas de propriétaire : `EventService`, coordinateur Event et timer serveur existants sont réutilisés. Le contrat UI couvre déjà les régions fixes et le propriétaire du scroll ; aucune nouvelle règle transverse n'est nécessaire.
 
 Ce document doit être considéré comme une **mémoire externe centrale** du projet.
 
@@ -3543,7 +3557,7 @@ Architecture backend consolidée :
 - `docs/architecture/postgresql-schema-v1.md` — **schéma relationnel V1 consolidé : tables, types, clés, contraintes, index, transactions, idempotence, RLS, ordre des migrations et sous-ensemble du premier vertical slice définis**.
 
 Domaine actif :
-**Événements mensuels — Lots 1 à 6 clôturés et validés publiquement. Le domaine reste actif pour les derniers cas spéciaux, à commencer par le lot décembre / Calendrier de Noël déjà cadré dans l'audit Event ; les votes de bannière communautaires viennent seulement après.**
+**Événements mensuels — Lots 1 à 6 clôturés publiquement ; Calendrier de Noël et correctif Configuration candidats sur review, à soumettre à la review indépendante ChatGPT. Les votes de bannière communautaires ne sont pas commencés.**
 
 Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadmap/implementation-order-v1.md). Le Master reste le seul tracker vivant.
 
@@ -3560,7 +3574,7 @@ Ordre d’implémentation V1 détaillé : [implementation-order-v1.md](../roadma
 - squelette Fastify / TypeScript checkpointé ;
 - Prisma ORM 7.10.0 stable ;
 - Supabase DEV provisionné et connexion PostgreSQL fonctionnelle ;
-- vingt-cinq migrations applicatives versionnées et suivies par Prisma, dont les migrations additives 020–025 des fondations Event, Jeux A/B/C, paliers et Shop/Collection appliquées sur Supabase DEV ;
+- vingt-six migrations applicatives versionnées et suivies par Prisma, dont les migrations additives 020–026 des fondations Event, Jeux A/B/C, paliers, Shop/Collection et Calendrier de Noël appliquées sur Supabase DEV ;
 - les tables privées couvrent notamment possessions/C6, Gacha, préférences, Sac, Teams, Banque, Boutique, Défi, Combat, Expedition/Notifications, Boss, Concours, Codes, les fondations Event et l’état quotidien Event ;
 - référentiels seedés avec 7 éléments et 9 ressources ;
 - RLS activée sur les tables de fondation, sans policy client permissive ;
@@ -4058,7 +4072,7 @@ Premier vertical Sac réel **TECHNIQUEMENT IMPLÉMENTÉ DANS LE CANDIDAT 0.74 ; 
 - test public sans frontend/backend local : **VALIDÉ** — connexion, Player réel, élément et ressources persistants, état quotidien de la Roue restauré, logout/login et chaîne Cloudflare → Railway → Supabase ;
 - `PAID_INFRA_APPROVED = false` reste inchangé. Railway est actuellement en Trial Free (30 jours ou 5 USD de crédits) ; Railway Hobby n’est pas activé et aucune disponibilité 24/7 après expiration du Trial n’est garantie. Cloudflare Pages et Supabase restent sur leurs offres Free actuelles.
 
-Pour la prochaine étape exacte, consulter le bloc **Reprise rapide — état vivant** au début du Master. Après approbation de la review seulement : promotion contrôlée, déploiements automatiques, vérifications Railway et Cloudflare, puis validation publique du propriétaire. L'historique Event transversal, le Calendrier de Noël, Social complet, Twitch/chat et la migration legacy restent hors périmètre.
+Pour la prochaine étape exacte, consulter le bloc **Reprise rapide — état vivant** au début du Master. Après approbation de la review seulement : promotion contrôlée, déploiements automatiques, vérifications Railway et Cloudflare, puis validation publique du propriétaire. L'historique Event transversal, Social complet, Twitch/chat et la migration legacy restent hors périmètre ; le Calendrier de Noël appartient au candidat courant, pas encore public.
 
 L’ordre complet restant appartient à [implementation-order-v1.md](../roadmap/implementation-order-v1.md). La migration legacy reste reportée ; `PAID_INFRA_APPROVED = false` reste inchangé.
 
