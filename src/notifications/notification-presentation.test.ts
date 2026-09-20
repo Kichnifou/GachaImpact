@@ -9,6 +9,9 @@ const pending: NotificationDto = {
 }
 
 describe('Event message notification presentation', () => {
+  it('presents a received friend request as a Social requests destination', () => {
+    expect(resolveNotificationPresentation({ ...pending, domainKey: 'social', typeKey: 'FRIEND_REQUEST_RECEIVED', actionKey: 'OPEN_SOCIAL_REQUESTS', actionTargetId: 'sender-id', payload: { senderDisplayName: 'Mynonyme' } })).toEqual({ title: 'Demande d’ami', message: 'Mynonyme vous a envoyé une demande d’ami.', destination: 'social-requests' })
+  })
   it('routes lifecycle announcements and last-day reminders without exposing balances', () => {
     expect(resolveNotificationPresentation({ ...pending, typeKey: 'EVENT_EDITION_AVAILABLE', actionKey: 'OPEN_EVENT', payload: { title: 'Festival', message: 'Disponible' } })).toMatchObject({ title: 'Festival', message: 'Disponible', destination: 'event' })
     expect(resolveNotificationPresentation({ ...pending, typeKey: 'EVENT_EDITION_LAST_DAY', actionKey: 'OPEN_EVENT_SHOP', payload: { title: 'Festival', message: 'Dernier jour' } })).toMatchObject({ destination: 'event-shop' })

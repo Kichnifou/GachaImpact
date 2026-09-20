@@ -80,6 +80,9 @@ describe('Friendship isolated PostgreSQL', () => {
     expect(first.state).toBe('PENDING');
     expect(await service.mutate(a, b, 'ADD', key)).toEqual(first);
     expect(await service.mutate(a, b, 'ADD', randomUUID())).toEqual(first);
+    const notifications = await db.notification.findMany({ where: { playerId: b, domainKey: 'social' } });
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0]).toMatchObject({ typeKey: 'FRIEND_REQUEST_RECEIVED', actionKey: 'OPEN_SOCIAL_REQUESTS', actionTargetId: a, state: 'UNREAD' });
     await expect(service.mutate(a, a, 'ADD', randomUUID())).rejects.toThrow();
     await expect(service.mutate(a, randomUUID(), 'ADD', randomUUID())).rejects.toThrow();
     await db.player.update({ where: { id: b }, data: { status: 'SUSPENDED' } });
@@ -102,6 +105,7 @@ describe('Friendship isolated PostgreSQL', () => {
     const results = await Promise.allSettled([service.mutate(b, a, 'ACCEPT', randomUUID(), 'UI', request.requestId), service.mutate(b, a, 'REFUSE', randomUUID(), 'UI', request.requestId), service.mutate(a, b, 'CANCEL', randomUUID(), 'UI', request.requestId)]);
     expect(results.filter(r => r.status === 'fulfilled')).toHaveLength(1);
     expect((await db.friendRequest.findUniqueOrThrow({ where: { id: request.requestId! } })).state).not.toBe('PENDING');
+    expect((await db.notification.findUniqueOrThrow({ where: { deduplicationKey: `friend-request:${request.requestId}` } })).state).toBe('RESOLVED');
     for (const action of ['REFUSE', 'CANCEL'] as const) {
       const c = await player(), d = await player();
       await service.mutate(c, d, 'ADD', randomUUID());
@@ -113,10 +117,12 @@ describe('Friendship isolated PostgreSQL', () => {
   }, 30_000);
   it('credits both ledgers and earned stats, cumulative outgoing stats and common progression exactly once per Paris day', async () => {
     const a = await player(), b = await player(); await befriend(a, b);
+    const notificationCount = await db.notification.count();
     const key = randomUUID(), first = await service.sendHearts(a, b, key);
     expect(first).toMatchObject({ sent: 1, senderReward: '5', level: 2 });
     expect(await service.sendHearts(a, b, key)).toEqual(first);
     expect((await service.sendHearts(a, b, randomUUID())).alreadySent).toBe(1);
+    expect(await db.notification.count()).toBe(notificationCount);
     expect(await balance(a)).toBe(5n); expect(await balance(b)).toBe(5n);
     expect(await sent(a)).toBe(1n); expect(await sent(b)).toBe(0n);
     expect((await db.playerEconomyStats.findUniqueOrThrow({ where: { playerId: a } })).totalPrimosEarned).toBe(5n);
@@ -207,6 +213,9 @@ describe('Friendship isolated PostgreSQL', () => {
     expect(offline.total).toBe(21); expect(offline.players).toHaveLength(20);
     expect((await social.directory({ subject: a }, { ...query, status: 'OFFLINE', page: 2 })).players).toHaveLength(1);
     expect((await social.directory({ subject: a }, { ...query, status: 'ONLINE' })).players.map(p => p.id)).toEqual([ids[1]]);
+    const request = await service.mutate(ids[2]!, a, 'ADD', randomUUID());
+    expect((await social.directory({ subject: a }, { ...query, relation: 'RECEIVED' })).players.map(p => p.id)).toEqual([ids[2]]);
+    expect((await social.directory({ subject: a }, query)).players[0]).toMatchObject({ id: ids[2], relation: 'RECEIVED', requestId: request.requestId });
     await service.saveSort(a, 'heart'); expect((await service.snapshot(a)).sort).toBe('heart');
   }, 60_000);
   it('enforces physical pair, day, progress and pending uniqueness constraints', async () => {

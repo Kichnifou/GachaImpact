@@ -12,7 +12,7 @@ import { PrivacyService, privacyAllowedWhere } from './privacy-service.js';
 import { PresenceService, derivePresence, PRESENCE_CONNECTION_TIMEOUT_MS } from './presence-service.js';
 import { FriendshipService } from './friendship-service.js';
 
-export type SocialQuery = { q: string; element?: string; status?: 'ONLINE' | 'AWAY' | 'OFFLINE'; page: number };
+export type SocialQuery = { q: string; element?: string; status?: 'ONLINE' | 'AWAY' | 'OFFLINE'; relation?: 'SELF' | 'FRIEND' | 'SENT' | 'RECEIVED' | 'NONE'; page: number };
 export type Access<T> = { access: 'PRIVATE' } | { access: 'ALLOWED'; data: T };
 const hidden = { access: 'PRIVATE' } as const;
 const allowed = <T>(data: T): Access<T> => ({ access: 'ALLOWED', data });
@@ -53,11 +53,15 @@ export class SocialService {
     let identities = (await this.identities(query.element)).filter(p => normalizePlayerSearch(p.displayName).includes(needle));
     const presence = await this.visiblePresence(viewer.id, identities.map(p => p.id));
     if (query.status) identities = identities.filter(p => presence.get(p.id) === query.status);
+    const social = await this.friendship.snapshot(viewer.id);
+    const relations = new Map<string, 'SELF' | 'FRIEND' | 'SENT' | 'RECEIVED'>([[viewer.id, 'SELF'], ...social.friends.map(friend => [friend.playerId, 'FRIEND'] as const), ...social.requests.map(request => [request.playerId, request.direction] as const)]);
+    const relation = (id: string) => relations.get(id) ?? 'NONE' as const;
+    if (query.relation) identities = identities.filter(p => relation(p.id) === query.relation);
+    identities.sort((a, b) => Number(relation(b.id) === 'RECEIVED') - Number(relation(a.id) === 'RECEIVED') || a.displayName.localeCompare(b.displayName, 'fr', { sensitivity: 'base' }) || a.id.localeCompare(b.id));
     const totalPages = Math.max(1, Math.ceil(identities.length / 20));
     const page = Math.min(query.page, totalPages);
     const rows = identities.slice((page - 1) * 20, page * 20);
-    const social = await this.friendship.snapshot(viewer.id);
-    return { players: rows.map(p => ({ ...p, presence: presence.has(p.id) ? allowed(presence.get(p.id)!) : hidden, relation: p.id === viewer.id ? 'SELF' : social.friends.some(f => f.playerId === p.id) ? 'FRIEND' : social.requests.find(r => r.playerId === p.id)?.direction ?? 'NONE', requestId: social.requests.find(r => r.playerId === p.id)?.id ?? null })), page, pageSize: 20, total: identities.length, totalPages };
+    return { players: rows.map(p => ({ ...p, presence: presence.has(p.id) ? allowed(presence.get(p.id)!) : hidden, relation: relation(p.id), requestId: social.requests.find(r => r.playerId === p.id)?.id ?? null })), page, pageSize: 20, total: identities.length, totalPages };
   }
   async friends(identity: AuthenticatedIdentity) {
     const viewer = await this.actor(identity);

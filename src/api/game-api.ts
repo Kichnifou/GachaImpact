@@ -147,7 +147,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
       friendAction: (targetPlayerId, action, idempotencyKey, requestId) => request<{ state: string }>('/api/v1/me/friends/actions', { method: 'POST', body: JSON.stringify({ targetPlayerId, action, idempotencyKey, requestId }) }),
       sendHearts: (targetPlayerId, idempotencyKey) => request<HeartResult>('/api/v1/me/friends/hearts', { method: 'POST', body: JSON.stringify({ targetPlayerId, idempotencyKey }) }),
       saveFriendSort: sort => request<{ sort: FriendSort }>('/api/v1/me/friends/sort', { method: 'PATCH', body: JSON.stringify({ sort }) }),
-      directory: query => request<DirectoryPage>('/api/v1/players?' + new URLSearchParams({ q: query.q, page: String(query.page), ...(query.element ? { element: query.element } : {}), ...(query.status ? { status: query.status } : {}) })),
+      directory: query => request<DirectoryPage>('/api/v1/players?' + new URLSearchParams({ q: query.q, page: String(query.page), ...(query.element ? { element: query.element } : {}), ...(query.status ? { status: query.status } : {}), ...(query.relation ? { relation: query.relation } : {}) })),
       profile: id => request<Profile>('/api/v1/players/' + encodeURIComponent(id) + '/profile'),
       connected: () => request<ConnectedPlayers>('/api/v1/social/presence'),
       privacy: () => request<PrivacySettings>('/api/v1/me/privacy'),

@@ -2,9 +2,11 @@ import type { BoxCharacterDto, ElementKey, InventoryItemDto, PlayerTeamDto } fro
 
 export type Access<T> = { access: 'PRIVATE' } | { access: 'ALLOWED'; data: T }
 export type PresenceStatus = 'ONLINE' | 'AWAY' | 'OFFLINE'
+export type RelationshipState = 'SELF' | 'FRIEND' | 'SENT' | 'RECEIVED' | 'NONE'
+export type RelationshipFilter = RelationshipState | 'ALL'
 export type SocialIdentity = { id: string; displayName: string; level: number; elementKey: ElementKey | null }
-export type DirectoryQuery = { q: string; element?: ElementKey; status?: PresenceStatus; page: number }
-export type DirectoryPage = { players: (SocialIdentity & { presence: Access<PresenceStatus>; relation?: 'SELF' | 'FRIEND' | 'SENT' | 'RECEIVED' | 'NONE'; requestId?: string | null })[]; page: number; pageSize: number; total: number; totalPages: number }
+export type DirectoryQuery = { q: string; element?: ElementKey; status?: PresenceStatus; relation?: Exclude<RelationshipFilter, 'ALL'>; page: number }
+export type DirectoryPage = { players: (SocialIdentity & { presence: Access<PresenceStatus>; relation: RelationshipState; requestId: string | null })[]; page: number; pageSize: number; total: number; totalPages: number }
 export type FriendSort = 'presence' | 'name' | 'level' | 'heart'
 export type FriendAction = 'ADD' | 'ACCEPT' | 'REFUSE' | 'CANCEL' | 'REMOVE'
 export type FriendsSnapshot = {

@@ -7,6 +7,7 @@ import ProfileScreen from '../screens/ProfileScreen'
 import OnlinePlayersPanel from '../components/OnlinePlayersPanel'
 import { defaultNavigationPreference } from '../navigation/navigation'
 import type { Profile, SocialActions } from './types'
+import type { FriendshipController } from './use-friendships'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 const roots: ReturnType<typeof createRoot>[] = []
@@ -19,6 +20,7 @@ async function mount(node: ReactNode) {
 }
 const player = { id: 'owner', displayName: 'Test Player', level: 3, elementKey: 'pyro' as const }
 const button = (container: HTMLElement, text: string) => Array.from(container.querySelectorAll('button')).find(b => b.textContent === text)!
+const controller = { value: { businessDate: '2026-09-20', sort: 'presence', totalFriendHeartsSent: '0', players: [], friends: [], requests: [], summary: { activeFriends: 0, available: 0, alreadySent: 0 } }, error: '', feedback: '', feedbackScope: '', pending: false, refresh: vi.fn(), mutate: vi.fn(), saveSort: vi.fn(), clearFeedback: vi.fn() } as unknown as FriendshipController
 
 describe('Social screens', () => {
   it('keeps confirmed privacy after a failed save, then accepts server confirmation without touching Menu', async () => {
@@ -47,7 +49,7 @@ describe('Social screens', () => {
   it('distinguishes a private section from an empty public section and exposes no mutation controls', async () => {
     const value: Profile = { player, own: false, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'ALLOWED', data: null }, box: { access: 'ALLOWED', data: [] }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
     const actions = { profile: vi.fn().mockResolvedValue(value) } as unknown as SocialActions
-    const container = await mount(<ProfileScreen playerId={player.id} actions={actions} onDirectory={vi.fn()} onPrivacy={vi.fn()} />)
+    const container = await mount(<ProfileScreen playerId={player.id} ownerPlayerId={player.id} actions={actions} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()} />)
     expect(container.textContent).toContain('Présence privée')
     expect(container.textContent).toContain('Dernière activité privée')
     expect(container.textContent).not.toContain('Aucune Team active.')
@@ -64,18 +66,18 @@ describe('Social screens', () => {
 
   it('renders the real connected projection and opens Profile or Social without a fake friendship action', async () => {
     const onProfile = vi.fn(), onDirectory = vi.fn()
-    const container = await mount(<OnlinePlayersPanel value={{ total: 2, players: [{ ...player, status: 'ONLINE' }, { ...player, id: 'away', displayName: 'Away Player', status: 'AWAY' }] }} error={false} onClose={vi.fn()} onProfile={onProfile} onDirectory={onDirectory} />)
+    const container = await mount(<OnlinePlayersPanel value={{ total: 2, players: [{ ...player, status: 'ONLINE' }, { ...player, id: 'away', displayName: 'Away Player', status: 'AWAY' }] }} error={false} ownerPlayerId={player.id} controller={controller} onClose={vi.fn()} onProfile={onProfile} onDirectory={onDirectory} />)
     expect(container.textContent).toContain('2 joueurs connectés')
     expect(container.textContent).toContain('En ligne'); expect(container.textContent).toContain('Absent')
-    expect(container.textContent).not.toMatch(/Hors ligne|Ajouter/)
+    expect(container.textContent).not.toContain('Hors ligne'); expect(container.textContent).toContain('Ajouter')
     await act(async () => { Array.from(container.querySelectorAll('button')).find(b => b.textContent?.includes('Test Player'))!.click() })
     expect(onProfile).toHaveBeenCalledWith(player.id)
     await act(async () => { button(container, 'Voir tous les joueurs →').click() })
     expect(onDirectory).toHaveBeenCalledOnce()
-    await act(async () => { roots.at(-1)!.render(<OnlinePlayersPanel value={null} error onClose={vi.fn()} onProfile={onProfile} onDirectory={onDirectory} />) })
+    await act(async () => { roots.at(-1)!.render(<OnlinePlayersPanel value={null} error ownerPlayerId={player.id} controller={controller} onClose={vi.fn()} onProfile={onProfile} onDirectory={onDirectory} />) })
     expect(container.textContent).toContain('Présence indisponible.')
     expect(container.textContent).not.toContain('Aucun joueur connecté visible.')
-    await act(async () => { roots.at(-1)!.render(<OnlinePlayersPanel value={{ total: 0, players: [] }} error={false} onClose={vi.fn()} onProfile={onProfile} onDirectory={onDirectory} />) })
+    await act(async () => { roots.at(-1)!.render(<OnlinePlayersPanel value={{ total: 0, players: [] }} error={false} ownerPlayerId={player.id} controller={controller} onClose={vi.fn()} onProfile={onProfile} onDirectory={onDirectory} />) })
     expect(container.textContent).toContain('Aucun joueur connecté visible.')
     expect(container.textContent).not.toContain('Présence indisponible.')
   })

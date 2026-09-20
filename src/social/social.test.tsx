@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act } from 'react'
+import { act, useEffect, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import SocialScreen from '../screens/SocialScreen'
@@ -17,7 +17,7 @@ afterEach(() => { act(() => root?.unmount()); root = undefined; document.body.re
 const player = { id: 'owner', displayName: 'Éloïse', level: 3, elementKey: 'pyro' as const }
 const profile: Profile = { player, own: false, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'ALLOWED', data: [] }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
 function actions(): SocialActions {
-  return { directory: vi.fn(async () => ({ players: [{ ...player, presence: { access: 'PRIVATE' as const } }], page: 1, pageSize: 20, total: 21, totalPages: 2 })), profile: vi.fn(async () => profile), connected: vi.fn(async () => ({ players: [{ ...player, status: 'AWAY' as const }], total: 1 })),
+  return { directory: vi.fn(async () => ({ players: [{ ...player, presence: { access: 'PRIVATE' as const }, relation: 'SELF' as const, requestId: null }], page: 1, pageSize: 20, total: 21, totalPages: 2 })), profile: vi.fn(async () => profile), connected: vi.fn(async () => ({ players: [{ ...player, status: 'AWAY' as const }], total: 1 })),
     friends: vi.fn(async () => ({ businessDate: '2026-09-20', sort: 'presence' as const, totalFriendHeartsSent: '0', players: [], friends: [], requests: [], summary: { activeFriends: 0, available: 0, alreadySent: 0 } })),
     friendAction: vi.fn(async () => ({ state: 'PENDING' })), sendHearts: vi.fn(async () => ({ sent: 0, alreadySent: 0, unavailable: 0, activeFriends: 0, senderReward: '0', recipientReward: '5', status: 'NO_FRIENDS' as const })), saveFriendSort: vi.fn(async sort => ({ sort })),
     privacy: vi.fn(async () => ({ version: 1, settings: [{ categoryKey: 'BOX' as const, level: 'PUBLIC' as const }] })),
@@ -28,6 +28,8 @@ function actions(): SocialActions {
 async function mount(element: React.ReactNode) { const container = document.createElement('div'); document.body.append(container); root = createRoot(container); await act(async () => root!.render(element)); return container }
 const click = async (container: HTMLElement, label: string) => act(async () => { Array.from(container.querySelectorAll('button')).find(b => b.textContent === label)!.click() })
 function Directory({ api, open }: { api: SocialActions; open: (id: string) => void }) { const controller = useFriendships(api); return <SocialScreen actions={api} onProfile={open} initialTab="players" controller={controller} /> }
+function ProfileSurface({ api }: { api: SocialActions }) { const controller = useFriendships(api); return <ProfileScreen playerId="owner" ownerPlayerId="owner" actions={api} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()} /> }
+function PlayersSurface({ api, onProfile, onDirectory, onClose }: { api: SocialActions; onProfile: (id: string) => void; onDirectory: () => void; onClose: () => void }) { const controller = useFriendships(api); const [value, setValue] = useState<Awaited<ReturnType<SocialActions['connected']>> | null>(null); useEffect(() => { void api.connected().then(setValue) }, [api]); return <OnlinePlayersPanel value={value} error={false} ownerPlayerId="owner" controller={controller} onProfile={onProfile} onDirectory={onDirectory} onClose={onClose} /> }
 describe('Social UI', () => {
   it('searches and filters on the server, paginates and opens identity without a fake offline status', async () => {
     const api = actions(), open = vi.fn(), container = await mount(<Directory api={api} open={open} />)
@@ -44,7 +46,7 @@ describe('Social UI', () => {
     expect(api.directory).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 }))
   })
   it('distinguishes private sections from empty possessions and exposes no mutation controls', async () => {
-    const container = await mount(<ProfileScreen playerId="owner" actions={actions()} onDirectory={vi.fn()} onPrivacy={vi.fn()} />)
+    const container = await mount(<ProfileSurface api={actions()} />)
     expect(container.textContent).toContain('Dernière activité privée')
     await click(container, 'Team active')
     expect(container.textContent).toContain('Cette rubrique est privée.')
@@ -70,7 +72,7 @@ describe('Social UI', () => {
   })
   it('renders the real connected count and accessible profile/directory links without friendship mocks', async () => {
     const api = actions(), onProfile = vi.fn(), onDirectory = vi.fn(), onClose = vi.fn()
-    const container = await mount(<OnlinePlayersPanel value={await api.connected()} error={false} onProfile={onProfile} onDirectory={onDirectory} onClose={onClose} />)
+    const container = await mount(<PlayersSurface api={api} onProfile={onProfile} onDirectory={onDirectory} onClose={onClose} />)
     expect(container.textContent).toContain('1 joueur connecté')
     expect(container.textContent).toContain('Absent')
     expect(container.textContent).not.toContain('Ajouter')

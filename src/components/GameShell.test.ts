@@ -34,6 +34,11 @@ describe('GameShell shared particle conversion overlay', () => {
     expect(gameShellSource).toContain("else { setBoxOpenIntent(null); navigate('characters-box') }")
   })
 
+  it('routes a received friend request notification to the Requests tab', () => {
+    expect(gameShellSource).toContain("notification.actionKey === 'OPEN_SOCIAL_REQUESTS'")
+    expect(gameShellSource).toContain("setSocialTab('requests'); navigate('social')")
+  })
+
   it('passes the same central Expedition snapshot and monotonic clock to Box and Activities', () => {
     expect(gameShellSource).toContain('expedition={expedition} expeditionMonotonicNow={expeditionMonotonicNow}')
     expect(gameShellSource.match(/expeditionMonotonicNow=\{expeditionMonotonicNow\}/g)).toHaveLength(2)

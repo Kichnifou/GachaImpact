@@ -3,11 +3,11 @@ import { useState } from 'react'
 type GameAssetIconProps = {
   src: string
   fallback: string
-  className: string
+  className?: string
   title?: string
 }
 
-function GameAssetIcon({ src, fallback, className, title }: GameAssetIconProps) {
+function GameAssetIcon({ src, fallback, className = 'game-asset-icon', title }: GameAssetIconProps) {
   const [failedSource, setFailedSource] = useState<string | null>(null)
   const hasError = failedSource === src
 

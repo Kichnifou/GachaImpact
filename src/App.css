@@ -8569,6 +8569,7 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .social-player-identity > span:nth-child(2) { min-width: 0; flex: 1; }
 .social-player-identity strong { display: block; overflow-wrap: anywhere; }
 .social-player-identity small { display: block; color: var(--muted); }
+.social-player-identity .social-presence-label { flex: 0 0 78px; min-width: 78px; text-align: right; }
 .social-pagination, .profile-navigation { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 8px 0; }
 .privacy-settings { display: grid; gap: 0; }
 .privacy-settings label { display: grid; grid-template-columns: minmax(0, 1fr) minmax(130px, 200px); gap: 20px; align-items: center; padding: 18px 12px; border-bottom: 1px solid var(--border); }
@@ -8576,6 +8577,7 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .privacy-settings select, .social-screen input, .social-screen select { min-width: 0; color: var(--text); background: #151f31; border: 1px solid var(--border); border-radius: 8px; padding: 9px; }
 .privacy-feedback { min-height: 20px; }
 .profile-navigation { justify-content: flex-start; }
+.profile-social-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
 .profile-frame .secondary-navigation { display: flex; gap: 6px; overflow-x: auto; }
 .profile-frame .secondary-navigation .active { border-color: var(--gold); }
 .profile-character-meta { padding: 8px; margin: 0; }
@@ -8601,32 +8603,42 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .social-filters label { flex: 1 1 130px; min-width: 0; }
 .social-filters > label { font-size: 12px; }
 .social-filters input, .social-filters select { width: 100%; }
+.social-bulk-action { display: flex; justify-content: flex-end; padding-top: 10px; }
 .social-feedback { min-height: 30px; padding-top: 8px; color: var(--gold); font-size: 13px; }
-.social-row { display: grid; grid-template-columns: minmax(0, 1fr) max-content; align-items: center; gap: 12px; padding: 8px; border: 1px solid var(--border); border-radius: 12px; min-width: 0; }
+.social-row { display: grid; grid-template-columns: minmax(0, 1fr) 132px; align-items: center; gap: 12px; padding: 8px; border: 1px solid var(--border); border-radius: 12px; min-width: 0; }
 .social-row:hover, .social-row:focus-within { border-color: var(--gold); }
+.social-row-attention { border-color: rgba(237, 203, 105, .68); background: linear-gradient(90deg, rgba(237, 203, 105, .14), rgba(34, 52, 82, .22)); box-shadow: inset 3px 0 0 var(--gold); }
 .social-row .social-player-identity { border-color: transparent; transform: none; }
 .social-player-identity.app-button:hover { transform: none; }
-.social-row-actions { display: flex; flex-direction: column; gap: 8px; align-items: stretch; max-width: 180px; font-size: 12px; }
+.social-row-actions { display: flex; flex-direction: column; gap: 8px; align-items: stretch; width: 132px; font-size: 12px; }
 .social-row-actions .app-button { min-width: 112px; min-height: 36px; font-size: 12px; }
 .friendship-detail { margin: 6px 10px; color: var(--muted); font-size: 12px; }
+.social-friend-main { min-width: 0; overflow: hidden; border: 1px solid rgba(92, 217, 255, .2); border-radius: 10px; background: linear-gradient(120deg, rgba(23, 70, 110, .55), rgba(18, 31, 51, .72)); }
 .profile-identity { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: center; gap: 32px; padding: 24px 12px; }
 .profile-identity h2 { overflow-wrap: anywhere; }
-.profile-avatar-status { text-align: center; }
-.profile-avatar-status .mini-avatar { width: 100px; height: 100px; font-size: 36px; margin: 0 auto; }
-.profile-avatar-status p { display: flex; gap: 7px; align-items: center; justify-content: center; }
+.profile-identity > .mini-avatar { width: 100px; height: 100px; font-size: 36px; }
+.profile-identity-copy { display: grid; gap: 7px; }
+.profile-identity-copy > * { margin: 0; }
+.profile-presence, .profile-element { display: flex; gap: 7px; align-items: center; }
+.profile-element .game-asset-icon { display: inline-flex; width: 22px; height: 22px; }
+.profile-element .game-asset-icon img { width: 100%; height: 100%; object-fit: contain; }
 .presence-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
 .presence-online { background: #64d6a0; }
 .presence-away { background: #edcb69; }
 .presence-offline { background: #8c96a6; }
 .profile-activity-section { border-top: 1px solid var(--border); padding: 24px 12px; }
-.players-panel { display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 14px; padding: 24px; max-height: calc(100dvh - 32px); }
+.players-panel { display: grid; grid-template-rows: auto auto auto minmax(0, 1fr) auto; gap: 14px; padding: 24px; max-height: calc(100dvh - 32px); }
 .players-panel .online-player-list { display: grid; gap: 10px; padding: 4px; }
+.online-player-row { display: grid; grid-template-columns: minmax(0, 1fr) 100px; gap: 10px; align-items: center; }
+.online-player-action .app-button { width: 100%; min-height: 36px; font-size: 12px; }
 .players-panel .players-directory-button { justify-self: end; min-height: 34px; font-size: 13px; }
 @media (max-width: 700px) {
   .social-row { gap: 6px; padding: 5px; }
-  .social-row-actions { max-width: 112px; }
+  .social-row { grid-template-columns: minmax(0, 1fr) 104px; }
+  .social-row-actions { width: 104px; }
   .social-row-actions .app-button { min-width: 0; padding: 8px; }
   .profile-identity { gap: 18px; padding: 16px 4px; }
-  .profile-avatar-status .mini-avatar { width: 80px; height: 80px; }
+  .profile-identity > .mini-avatar { width: 80px; height: 80px; }
+  .social-player-identity .social-presence-label { flex-basis: 58px; min-width: 58px; }
   .privacy-settings label { gap: 10px; padding: 16px 4px; }
 }

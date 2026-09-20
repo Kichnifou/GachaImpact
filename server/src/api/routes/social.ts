@@ -7,7 +7,7 @@ import { requireAuthenticatedIdentity } from '../auth/authentication.js';
 import { AppError } from '../errors.js';
 import { friendSorts } from '../../application/social/friendship-service.js';
 
-const querySchema = z.object({ q: z.string().max(100).default(''), element: z.enum(elementKeys).optional(), status: z.enum(['ONLINE', 'AWAY', 'OFFLINE']).optional(), page: z.coerce.number().int().min(1).max(1_000_000).default(1) }).strict();
+const querySchema = z.object({ q: z.string().max(100).default(''), element: z.enum(elementKeys).optional(), status: z.enum(['ONLINE', 'AWAY', 'OFFLINE']).optional(), relation: z.enum(['SELF', 'FRIEND', 'SENT', 'RECEIVED', 'NONE']).optional(), page: z.coerce.number().int().min(1).max(1_000_000).default(1) }).strict();
 const profileSchema = z.object({ playerId: z.uuid() }).strict();
 const privacySchema = z.object({ categoryKey: z.enum(privacyCategories), level: z.enum(['PUBLIC', 'FRIENDS', 'PRIVATE']) }).strict();
 const sessionSchema = z.object({ sessionKey: z.uuid(), activity: z.boolean().default(false) }).strict();

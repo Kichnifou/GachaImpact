@@ -391,7 +391,7 @@ return <ActivitiesScreen friendship={friendship.value?.summary} friendshipError=
       case 'social':
         return socialActions ? <SocialScreen actions={socialActions} onProfile={openProfile} controller={friendship} selectedTab={socialTab} onTabChange={setSocialTab} /> : null
       case 'profile':
-        return socialActions ? <ProfileScreen key={profileId} playerId={profileId} actions={socialActions} onDirectory={() => { setSocialTab('players'); navigate('social') }} onPrivacy={() => { setConfigurationTab('privacy'); navigate('configuration') }} /> : null
+        return socialActions ? <ProfileScreen key={profileId} playerId={profileId} ownerPlayerId={player.id} actions={socialActions} controller={friendship} onDirectory={() => { setSocialTab('players'); navigate('social') }} onPrivacy={() => { setConfigurationTab('privacy'); navigate('configuration') }} /> : null
       case 'configuration':
         return <ConfigurationScreen socialActions={socialActions} initialTab={configurationTab} preference={menuPreference} onSave={saveMenuPreference} onReset={() => saveMenuPreference(defaultNavigationPreference)} />
       default:
@@ -416,7 +416,7 @@ return <ActivitiesScreen friendship={friendship.value?.summary} friendshipError=
         onArchiveNotification={onArchiveNotification}
         onReadAllNotifications={onReadAllNotifications}
         onArchiveReadNotifications={onArchiveReadNotifications}
-        onOpenNotification={(notification) => { if (notification.actionKey === 'open-expedition-character' && notification.actionTargetId) { setBoxOpenIntent({ characterId: notification.actionTargetId, token: crypto.randomUUID() }); navigate('characters-box') } else if (notification.actionKey === 'OPEN_MONTHLY_BOSS') { setBossRequestToken((value) => value + 1); navigate('activities-combat') } else if (notification.actionKey === 'OPEN_EVENT_MESSAGES') { setEventMessagesRequestToken((value) => value + 1); navigate('activities-event') } else if (notification.actionKey === 'OPEN_EVENT_SHOP') { setEventShopRequestToken((value) => value + 1); navigate('activities-event') } else if (notification.actionKey === 'OPEN_EVENT') { setEventMessagesRequestToken(0); setEventShopRequestToken(0); navigate('activities-event') } else if (notification.actionKey === 'OPEN_GIFT_CODE') navigate('codes') }}
+        onOpenNotification={(notification) => { if (notification.actionKey === 'open-expedition-character' && notification.actionTargetId) { setBoxOpenIntent({ characterId: notification.actionTargetId, token: crypto.randomUUID() }); navigate('characters-box') } else if (notification.actionKey === 'OPEN_MONTHLY_BOSS') { setBossRequestToken((value) => value + 1); navigate('activities-combat') } else if (notification.actionKey === 'OPEN_EVENT_MESSAGES') { setEventMessagesRequestToken((value) => value + 1); navigate('activities-event') } else if (notification.actionKey === 'OPEN_EVENT_SHOP') { setEventShopRequestToken((value) => value + 1); navigate('activities-event') } else if (notification.actionKey === 'OPEN_EVENT') { setEventMessagesRequestToken(0); setEventShopRequestToken(0); navigate('activities-event') } else if (notification.actionKey === 'OPEN_GIFT_CODE') navigate('codes'); else if (notification.actionKey === 'OPEN_SOCIAL_REQUESTS') { setSocialTab('requests'); navigate('social') } }}
       />
 
       <div className="game-layout">
@@ -459,7 +459,7 @@ return <ActivitiesScreen friendship={friendship.value?.summary} friendshipError=
         />
       )}
 
-      {isPlayersOpen && <OnlinePlayersPanel value={presence.value} error={presence.error} onProfile={openProfile} onDirectory={() => { setIsPlayersOpen(false); setSocialTab('players'); navigate('social') }} onClose={() => setIsPlayersOpen(false)} />}
+      {isPlayersOpen && <OnlinePlayersPanel value={presence.value} error={presence.error} ownerPlayerId={player.id} controller={friendship} onProfile={openProfile} onDirectory={() => { setIsPlayersOpen(false); setSocialTab('players'); navigate('social') }} onClose={() => { friendship.clearFeedback(); setIsPlayersOpen(false) }} />}
       {isMenuOpen && <GlobalMenu preference={menuPreference} page={menuPage} onPageChange={setMenuPage} onNavigate={screen => { if (screen === 'social') setSocialTab('friends'); navigate(screen) }} onActivities={() => navigateMain('activities')} onClose={() => setIsMenuOpen(false)} />}
       {isParticleConversionOpen && player.elementKey && <ParticleConversionModal elementKey={player.elementKey} stock={resources.particles[player.elementKey]} onClose={() => setIsParticleConversionOpen(false)} onConvert={convertParticles} />}
       {activeLevelUpFeedback && activeLevelUpFeedback.id !== closedLevelUpModalId && <LevelUpFeedback key={activeLevelUpFeedback.id} event={activeLevelUpFeedback} onFinished={finishLevelUpModal} />}

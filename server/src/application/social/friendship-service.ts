@@ -1,4 +1,4 @@
-import { Prisma, type PrismaClient, type SourceChannel } from '../../../generated/prisma/client.js';
+import { NotificationState, Prisma, type PrismaClient, type SourceChannel } from '../../../generated/prisma/client.js';
 import { AppError } from '../../api/errors.js';
 import { businessDateToDatabaseDate, getBusinessDate, type Clock } from '../../domain/time/business-date.js';
 import { PrismaEconomyService } from '../../infrastructure/database/prisma-economy-service.js';
@@ -81,10 +81,15 @@ export class FriendshipService {
       } else if (action === 'ADD' && (!pending || pending.senderPlayerId === playerId)) {
         const request = pending ?? await tx.friendRequest.create({ data: { senderPlayerId: playerId, recipientPlayerId: target, sourceChannel: source, createdAt: now } });
         changed = !pending; result = { state: 'PENDING', requestId: request.id };
+        if (!pending) {
+          const sender = await tx.player.findUniqueOrThrow({ where: { id: playerId }, select: { displayName: true } });
+          await tx.notification.create({ data: { playerId: target, domainKey: 'social', typeKey: 'FRIEND_REQUEST_RECEIVED', deduplicationKey: `friend-request:${request.id}`, payload: { senderPlayerId: playerId, senderDisplayName: sender.displayName }, actionKey: 'OPEN_SOCIAL_REQUESTS', actionTargetId: playerId, state: NotificationState.UNREAD, createdAt: now } });
+        }
       } else {
         if (!pending || (requestId && pending.id !== requestId) || (action === 'CANCEL' ? pending.senderPlayerId !== playerId : pending.recipientPlayerId !== playerId)) throw unavailable();
         const state = action === 'REFUSE' ? 'REFUSED' : action === 'CANCEL' ? 'CANCELLED' : 'ACCEPTED';
         await tx.friendRequest.update({ where: { id: pending.id }, data: { state, resolvedAt: now } });
+        await tx.notification.updateMany({ where: { deduplicationKey: `friend-request:${pending.id}`, state: { in: [NotificationState.UNREAD, NotificationState.READ] } }, data: { state: NotificationState.RESOLVED, resolvedAt: now } });
         changed = true; result = { state, requestId: pending.id };
         if (state === 'ACCEPTED') {
           const relation = await tx.friendship.upsert({ where: { playerAId_playerBId: playerPair }, create: { ...playerPair, level: 1, becameFriendsAt: now }, update: { state: 'ACTIVE', archivedAt: null } });
