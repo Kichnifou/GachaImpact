@@ -3,29 +3,38 @@ import type { FriendAction, FriendsSnapshot, FriendSort, SocialActions } from '.
 import { apiErrorMessage } from '../utils/formatters'
 
 /** Shared by Social and Quotidiennes; old polls cannot replace a mutation result. */
-export function useFriendships(actions?: SocialActions) {
+export function useFriendships(actions?: SocialActions, active = false) {
   const [value, setValue] = useState<FriendsSnapshot | null>(null)
   const [error, setError] = useState(''), [feedback, setFeedback] = useState(''), [feedbackScope, setFeedbackScope] = useState(''), [pending, setPending] = useState(false)
-  const alive = useRef(false), busy = useRef(false), revision = useRef(0), intent = useRef<{ signature: string; key: string } | null>(null), feedbackTimer = useRef<number | undefined>(undefined)
+  const alive = useRef(false), busy = useRef(false), refreshing = useRef<Promise<void> | null>(null), revision = useRef(0), intent = useRef<{ signature: string; key: string } | null>(null), feedbackTimer = useRef<number | undefined>(undefined)
   const clearFeedback = useCallback(() => { window.clearTimeout(feedbackTimer.current); setFeedback(''); setFeedbackScope('') }, [])
   const showFeedback = useCallback((scope: string, message: string) => {
     window.clearTimeout(feedbackTimer.current); setFeedbackScope(scope); setFeedback(message)
     feedbackTimer.current = window.setTimeout(() => { if (alive.current) { setFeedback(''); setFeedbackScope('') } }, 4_000)
   }, [])
-  const refresh = useCallback(async () => {
-    if (!actions) return
+  const refresh = useCallback(() => {
+    if (!actions) return Promise.resolve()
+    if (refreshing.current) return refreshing.current
     const version = ++revision.current
-    try { const next = await actions.friends(); if (alive.current && version === revision.current) { setValue(next); setError('') } }
-    catch (reason) { if (alive.current && version === revision.current) setError(apiErrorMessage(reason)) }
+    const request = (async () => {
+      try { const next = await actions.friends(); if (alive.current && version === revision.current) { setValue(next); setError('') } }
+      catch (reason) { if (alive.current && version === revision.current) setError(apiErrorMessage(reason)) }
+    })()
+    refreshing.current = request
+    void request.finally(() => { if (refreshing.current === request) refreshing.current = null })
+    return request
   }, [actions])
   useEffect(() => {
     // GameShell is keyed by Player: a different account starts with fresh state.
     alive.current = true; revision.current++; intent.current = null
     let timer: number | undefined, stopped = false
-    const poll = async () => { if (document.visibilityState !== 'hidden' && !busy.current) await refresh(); if (!stopped) timer = window.setTimeout(() => void poll(), 30_000) }
+    const poll = async () => { if (document.visibilityState !== 'hidden' && !busy.current) await refresh(); if (!stopped) timer = window.setTimeout(() => void poll(), active ? 5_000 : 30_000) }
+    const refreshVisible = () => { if (active && document.visibilityState !== 'hidden') void refresh() }
+    window.addEventListener('focus', refreshVisible)
+    document.addEventListener('visibilitychange', refreshVisible)
     void poll()
-    return () => { stopped = true; alive.current = false; window.clearTimeout(timer); window.clearTimeout(feedbackTimer.current) }
-  }, [refresh])
+    return () => { stopped = true; alive.current = false; window.removeEventListener('focus', refreshVisible); document.removeEventListener('visibilitychange', refreshVisible); window.clearTimeout(timer); window.clearTimeout(feedbackTimer.current) }
+  }, [active, refresh])
   const mutate = async (target: string, action: FriendAction | 'HEART', requestId?: string, scope = 'friends') => {
     if (!actions || busy.current) return
     busy.current = true; revision.current++; setPending(true); setError(''); clearFeedback()

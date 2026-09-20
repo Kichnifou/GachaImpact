@@ -26,6 +26,7 @@ function makeApi() {
 }
 function Surface({ api }: { api: SocialActions }) { const controller = useFriendships(api); return <><output data-available>{controller.value?.summary.available}</output><SocialScreen actions={api} onProfile={() => {}} controller={controller} /></> }
 function ProfileSurface({ api }: { api: SocialActions }) { const controller = useFriendships(api); return <ProfileScreen actions={api} controller={controller} ownerPlayerId="owner" playerId={person.id} onDirectory={() => {}} onPrivacy={() => {}} /> }
+function ActiveProbe({ api }: { api: SocialActions }) { useFriendships(api, true); return null }
 async function mount(node: React.ReactNode) { const container = document.createElement('div'); document.body.append(container); root = createRoot(container); await act(async () => root!.render(node)); return container }
 const button = (c: HTMLElement, text: string) => Array.from(c.querySelectorAll('button')).find(b => b.textContent === text)!
 const click = (c: HTMLElement, text: string) => act(async () => button(c, text).click())
@@ -121,6 +122,27 @@ describe('Friendship UI and shared projection', () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(4_000) })
     expect(c.textContent).not.toContain('Demande envoyée.')
   })
+  it('refreshes active surfaces on focus without overlapping an in-flight friendship request', async () => {
+    let resolve!: (value: FriendsSnapshot) => void
+    const { api } = makeApi(); vi.mocked(api.friends).mockImplementation(() => new Promise(done => { resolve = done }))
+    await mount(<ActiveProbe api={api} />)
+    act(() => { window.dispatchEvent(new Event('focus')); document.dispatchEvent(new Event('visibilitychange')) })
+    expect(api.friends).toHaveBeenCalledTimes(1)
+    await act(async () => resolve(initial))
+    act(() => window.dispatchEvent(new Event('focus')))
+    expect(api.friends).toHaveBeenCalledTimes(2)
+  })
+  it('keeps profile friendship controls neutral until the friendship snapshot is loaded', async () => {
+    let resolve!: (value: FriendsSnapshot) => void
+    const { api } = makeApi(); vi.mocked(api.friends).mockImplementationOnce(() => new Promise(done => { resolve = done }))
+    api.profile = vi.fn(async (): Promise<Profile> => ({ player: person, own: false, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }))
+    const c = await mount(<ProfileSurface api={api} />)
+    await act(async () => { await new Promise(resolve => window.setTimeout(resolve, 0)) })
+    expect(button(c, 'Chargement…').disabled).toBe(true)
+    expect(c.textContent).not.toContain('Ajouter')
+    await act(async () => resolve({ ...initial, friends: [], summary: { activeFriends: 0, available: 0, alreadySent: 0 } }))
+    expect(button(c, 'Ajouter').disabled).toBe(false)
+  })
   it('shows profile status under the avatar and the exact empty activity without duplicating Team', async () => {
     const profile: Profile = { player: person, own: false, presence: { access: 'ALLOWED', data: 'ONLINE' }, lastActivity: { access: 'ALLOWED', data: null }, team: { access: 'ALLOWED', data: null }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
     const { api } = makeApi(); api.profile = vi.fn(async () => profile)
@@ -128,6 +150,8 @@ describe('Friendship UI and shared projection', () => {
     expect(c.querySelector('.profile-presence .presence-online')).not.toBeNull()
     expect(c.querySelector('.profile-identity-copy')?.children[1]?.classList.contains('profile-presence')).toBe(true)
     expect(c.querySelector('.profile-element img')).not.toBeNull()
+    expect(c.querySelector('.profile-element')?.getAttribute('aria-label')).toBe('Élément Pyro')
+    expect(c.querySelector('.profile-element')?.textContent).toBe('')
     expect(c.textContent).toContain('Envoyer un cœur'); expect(c.textContent).toContain('Retirer')
     expect(c.textContent).toContain('Aucune activité récente.'); expect(c.querySelector('.profile-overview')?.textContent).not.toContain('Team active')
     await click(c, 'Team active'); expect(c.textContent).toContain('Aucune Team active.')

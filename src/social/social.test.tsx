@@ -74,6 +74,7 @@ describe('Social UI', () => {
     const api = actions(), onProfile = vi.fn(), onDirectory = vi.fn(), onClose = vi.fn()
     const container = await mount(<PlayersSurface api={api} onProfile={onProfile} onDirectory={onDirectory} onClose={onClose} />)
     expect(container.textContent).toContain('1 joueur connecté')
+    expect(container.querySelector('.players-summary .status-dot')).not.toBeNull()
     expect(container.textContent).toContain('Absent')
     expect(container.textContent).not.toContain('Ajouter')
     await act(async () => (container.querySelector('.social-player-identity') as HTMLButtonElement).click())
@@ -81,6 +82,16 @@ describe('Social UI', () => {
     await click(container, 'Voir tous les joueurs →'); expect(onDirectory).toHaveBeenCalled()
     act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
     expect(onClose).toHaveBeenCalled()
+  })
+  it('keeps connected-player actions neutral until friendship data is available', async () => {
+    const api = actions(); let resolve!: (value: Awaited<ReturnType<SocialActions['friends']>>) => void
+    vi.mocked(api.friends).mockImplementationOnce(() => new Promise(done => { resolve = done }))
+    vi.mocked(api.connected).mockResolvedValue({ players: [{ ...player, id: 'guest', displayName: 'Ami', status: 'ONLINE' }], total: 1 })
+    const container = await mount(<PlayersSurface api={api} onProfile={vi.fn()} onDirectory={vi.fn()} onClose={vi.fn()} />)
+    await act(async () => { await new Promise(resolve => window.setTimeout(resolve, 0)) })
+    expect((Array.from(container.querySelectorAll('button')).find(button => button.textContent === 'Chargement…'))?.disabled).toBe(true)
+    await act(async () => resolve({ businessDate: '2026-09-20', sort: 'presence', totalFriendHeartsSent: '0', players: [], friends: [], requests: [], summary: { activeFriends: 0, available: 0, alreadySent: 0 } }))
+    expect((Array.from(container.querySelectorAll('button')).find(button => button.textContent === 'Ajouter'))?.disabled).toBe(false)
   })
   it('sends technical heartbeats without activity and isolates tab identity on account changes', async () => {
     vi.useFakeTimers(); vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')

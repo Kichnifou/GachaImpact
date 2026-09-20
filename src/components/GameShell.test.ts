@@ -36,7 +36,12 @@ describe('GameShell shared particle conversion overlay', () => {
 
   it('routes a received friend request notification to the Requests tab', () => {
     expect(gameShellSource).toContain("notification.actionKey === 'OPEN_SOCIAL_REQUESTS'")
+    expect(gameShellSource).toContain("void friendship.refresh(); setSocialTab('requests'); navigate('social')")
     expect(gameShellSource).toContain("setSocialTab('requests'); navigate('social')")
+  })
+
+  it('uses the faster friendship rhythm only while a Social surface is active', () => {
+    expect(gameShellSource).toContain("useFriendships(socialActions, activeScreen === 'social' || activeScreen === 'profile' || isPlayersOpen)")
   })
 
   it('passes the same central Expedition snapshot and monotonic clock to Box and Activities', () => {
