@@ -19,6 +19,18 @@ async function mount(onLoadVotes = vi.fn(async () => snapshot), onVote = vi.fn(a
   return { container, onLoadVotes, onVote, onReloadCatalog }
 }
 describe('Catalogue community votes', () => {
+  it('sorts eligible candidates by descending votes, reverses counts and keeps ineligible characters last', async () => {
+    const { container } = await mount()
+    const select = container.querySelector('select')!
+    act(() => { select.value = 'votes'; select.dispatchEvent(new Event('change', { bubbles: true })) })
+    const names = () => Array.from(container.querySelectorAll('.character-card h3'), e => e.textContent)
+    expect(names()).toEqual(['Personnage 0', 'Personnage 1', 'Personnage 2', 'Personnage 3'])
+    act(() => (container.querySelector('.sort-direction-button') as HTMLButtonElement).click())
+    expect(names()).toEqual(['Personnage 1', 'Personnage 0', 'Personnage 2', 'Personnage 3'])
+    act(() => Array.from(container.querySelectorAll('button')).find(b => b.textContent === '5★')!.click())
+    expect(names()).toEqual(['Personnage 1', 'Personnage 0', 'Personnage 3'])
+    expect(container.textContent).toContain('0 vote')
+  })
   it('does not overlap slow reads on repeated focus and preserves filters', async () => {
     vi.useFakeTimers()
     let release!: (value: BannerVoteDto) => void

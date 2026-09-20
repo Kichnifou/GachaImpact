@@ -14,7 +14,7 @@
  * de référence puis remplacer progressivement ces mocks par les vraies données.
  */
 
-import type { Character, NotificationItem, OnlinePlayer } from '../types'
+import type { Character, NotificationItem } from '../types'
 
 export const player = {
   name: 'Kichnifou',
@@ -49,13 +49,6 @@ export const characters: Character[] = [
 ]
 
 export const activeTeam = characters.slice(0, 4)
-
-export const onlinePlayers: OnlinePlayer[] = [
-  { name: 'Lumina', level: 38, status: 'En ligne', friend: true, tone: 'hydro' },
-  { name: 'Nox', level: 51, status: 'En ligne', friend: false, tone: 'electro' },
-  { name: 'Akitsu', level: 29, status: 'En ligne', friend: true, tone: 'pyro' },
-  { name: 'Mélodie', level: 44, status: 'Récent', friend: false, tone: 'anemo' },
-]
 
 export const notifications: NotificationItem[] = [
   { id: 1, title: 'Récompense quotidienne', detail: 'Votre récompense du jour est disponible.', time: 'Maintenant', unread: true, icon: '♢' },

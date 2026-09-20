@@ -31,6 +31,16 @@ const teamSelection = {
 export class PrismaTeamStore implements TeamStore {
   public constructor(private readonly database: PrismaClient) {}
 
+  /** Public projection: no provisioning/cleanup, no saved Teams or unrelated Box. */
+  public async readActive(playerId: string) {
+    const team = await this.database.team.findFirst({ where: { playerId, isActive: true }, select: teamSelection });
+    if (!team) return null;
+    const rows = await this.database.playerCharacter.findMany({ where: { playerId, characterId: { in: team.members.map(m => m.characterId) }, character: { isActive: true } }, select: possessionSelection });
+    const characters = new Map(rows.map(row => [row.character.id, toTeamCharacter(row)]));
+    const slots = SLOT_POSITIONS.map(position => ({ position, character: characters.get(team.members.find(m => m.position === position)?.characterId ?? '') ?? null }));
+    return { id: team.id, position: team.displayPosition, name: team.name, active: true, slots, passives: deriveTeamPassives(slots.flatMap(s => s.character ? [s.character.elementKey] : [])) };
+  }
+
   public getOrProvision(playerId: string): Promise<PlayerTeams> {
     return runTeamTransaction(this.database, async (transaction) => {
       await lockPlayer(transaction, playerId);

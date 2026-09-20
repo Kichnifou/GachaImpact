@@ -34,7 +34,7 @@ function CharactersScreen({ characters, voteCache, ...voteActions }: { character
   return <div className="screen-content collection-screen catalog-screen long-screen-layout">
     <ScrollableScreenPanel className="collection-screen-panel" bodyClassName="collection-results-body" fixed={<>
       <div className="collection-summary"><span>{filtering ? `${filtered.length} / ${characters.length} personnages` : `${characters.length} personnages actifs`}</span></div>
-      <CollectionFilters allowVotes placeholder="Rechercher un personnage…" query={query} rarity={rarity} element={element} sortKey={sortKey} direction={direction} onQueryChange={setQuery} onRarityChange={setRarity} onElementChange={setElement} onSortKeyChange={(key) => { setSortKey(key); setDirection(key === 'votes' ? 'desc' : 'asc') }} onDirectionChange={() => setDirection((value) => value === 'asc' ? 'desc' : 'asc')} />
+      <CollectionFilters allowVotes placeholder="Rechercher un personnage…" query={query} rarity={rarity} element={element} sortKey={sortKey} direction={direction} onQueryChange={setQuery} onRarityChange={setRarity} onElementChange={setElement} onSortKeyChange={(key) => { setSortKey(key); if (key === 'votes') setDirection('desc') }} onDirectionChange={() => setDirection((value) => value === 'asc' ? 'desc' : 'asc')} />
     </>}>
     <div className="catalog-vote-feedback" role="alert">{votes.error}</div>
     {filtered.length ? <section className="character-grid" aria-label="Catalogue des personnages">{filtered.map((character) => {

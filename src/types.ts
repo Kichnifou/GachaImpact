@@ -13,6 +13,8 @@ export type ScreenId =
   | 'inventory'
   | 'shop'
   | 'codes'
+  | 'social'
+  | 'profile'
   | 'configuration'
   | 'moderation'
 
@@ -29,14 +31,6 @@ export type Character = {
   level: number
   owned: boolean
   role: string
-}
-
-export type OnlinePlayer = {
-  name: string
-  level: number
-  status: 'En ligne' | 'Récent'
-  friend: boolean
-  tone: ElementTone
 }
 
 export type NotificationItem = {

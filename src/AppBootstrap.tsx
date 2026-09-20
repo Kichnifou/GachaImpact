@@ -387,6 +387,7 @@ function AppBootstrap() {
 
   return (
     <GameShell
+      socialActions={getGameApiClient().social}
       bannerVoteActions={{ onLoadVotes: loadBannerVotes, onVote: voteForBanner, onReloadCatalog: reloadCatalog }}
       player={player}
       resources={visibleResources}

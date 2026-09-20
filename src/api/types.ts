@@ -15,7 +15,7 @@ export type ModerationPermissionsDto = Readonly<{
 }>
 export type ModerationPlayerDto = Readonly<{ id: string; displayName: string; elementKey: ElementKey | null; level: number; tester: boolean; rank: 'SUPER' | 'MODERATOR' | 'TESTER' | 'PLAYER' }>
 
-export const navigationMenuDestinationIds = ['home', 'invocation', 'box', 'team', 'catalog', 'activities', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'codes', 'history', 'tutorial', 'configuration'] as const
+export const navigationMenuDestinationIds = ['home', 'invocation', 'box', 'team', 'catalog', 'activities', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'codes', 'social', 'history', 'tutorial', 'configuration'] as const
 export type NavigationMenuDestinationId = (typeof navigationMenuDestinationIds)[number]
 export type NavigationMenuPreferenceDto = Readonly<{ version: 1; order: readonly NavigationMenuDestinationId[]; hidden: readonly NavigationMenuDestinationId[] }>
 export type ModerationPlayerListQuery = Readonly<{

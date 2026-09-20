@@ -5,6 +5,17 @@ import { isElementKey, isResourceKey, resourceKeys } from '../../domain/economy/
 export class PrismaInventoryStore implements InventoryStore {
   public constructor(private readonly database: PrismaClient) {}
 
+  public async getCollection(playerId: string) {
+    // Resolve the public catalogue first; retrieve balances only for Collection definitions.
+    const definitions = await this.database.itemDefinition.findMany({ where: { isActive: true }, select: { id: true, category: true, metadata: true } });
+    const ids = definitions.filter(d => inventorySection(d.category, d.metadata) === 'collection').map(d => d.id);
+    const rows = await this.database.itemDefinition.findMany({ where: { id: { in: ids } }, orderBy: [{ displayName: 'asc' }, { externalKey: 'asc' }], select: {
+      id: true, externalKey: true, displayName: true, category: true, description: true, metadata: true,
+      playerBalances: { where: { playerId }, select: { quantity: true, firstObtainedAt: true }, take: 1 },
+    } });
+    return mapInventoryItems(rows);
+  }
+
   public async getInventory(playerId: string) {
     const [resourceRows, itemRows] = await Promise.all([
       this.database.resourceDefinition.findMany({
@@ -51,23 +62,7 @@ export class PrismaInventoryStore implements InventoryStore {
 
     return {
       resources,
-      items: itemRows.map((row): InventoryItem => {
-        const balance = row.playerBalances[0];
-        return {
-          id: row.id,
-          externalKey: row.externalKey,
-          displayName: row.displayName,
-          category: row.category,
-          section: inventorySection(row.category, row.metadata),
-          description: row.description,
-          quantity: balance?.quantity ?? 0n,
-          firstObtainedAt: balance?.firstObtainedAt ?? null,
-          acquisitionHint: metadataString(row.metadata, 'acquisitionHint'),
-          originFestival: metadataString(row.metadata, 'originFestival'),
-          originMonth: metadataString(row.metadata, 'originMonth'),
-          visualKey: metadataString(row.metadata, 'visualKey'),
-        };
-      }),
+      items: mapInventoryItems(itemRows),
     };
   }
 
@@ -118,3 +113,25 @@ function metadataString(metadata: Prisma.JsonValue | null, key: string): string 
   const value = metadata[key];
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
+
+function mapInventoryItems(itemRows: InventoryProjection[]) {
+    return itemRows.map((row): InventoryItem => {
+        const balance = row.playerBalances[0];
+        return {
+          id: row.id,
+          externalKey: row.externalKey,
+          displayName: row.displayName,
+          category: row.category,
+          section: inventorySection(row.category, row.metadata),
+          description: row.description,
+          quantity: balance?.quantity ?? 0n,
+          firstObtainedAt: balance?.firstObtainedAt ?? null,
+          acquisitionHint: metadataString(row.metadata, 'acquisitionHint'),
+          originFestival: metadataString(row.metadata, 'originFestival'),
+          originMonth: metadataString(row.metadata, 'originMonth'),
+          visualKey: metadataString(row.metadata, 'visualKey'),
+        };
+      });
+}
+
+type InventoryProjection = { id: string; externalKey: string; displayName: string; category: string; description: string | null; metadata: Prisma.JsonValue | null; playerBalances: { quantity: bigint; firstObtainedAt: Date | null }[] };

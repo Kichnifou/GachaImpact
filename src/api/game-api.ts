@@ -1,3 +1,4 @@
+import type { SocialActions, DirectoryPage, Profile, ConnectedPlayers, PrivacySettings } from '../social/types'
 import { loadFrontendConfig } from '../config/environment'
 import type { BannerVoteDto } from './types'
 import { getSupabaseClient } from '../infrastructure/supabase/client'
@@ -141,6 +142,16 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
   return {
     getCurrentPlayer: () => request<PlayerDto>('/api/v1/me'),
     getPermissions: () => request<ModerationPermissionsDto>('/api/v1/me/permissions'),
+    social: {
+      directory: query => request<DirectoryPage>('/api/v1/players?' + new URLSearchParams({ q: query.q, page: String(query.page), ...(query.element ? { element: query.element } : {}) })),
+      profile: id => request<Profile>('/api/v1/players/' + encodeURIComponent(id) + '/profile'),
+      connected: () => request<ConnectedPlayers>('/api/v1/social/presence'),
+      privacy: () => request<PrivacySettings>('/api/v1/me/privacy'),
+      savePrivacy: (categoryKey, level) => request<PrivacySettings>('/api/v1/me/privacy', { method: 'PATCH', body: JSON.stringify({ categoryKey, level }) }),
+      session: (sessionKey, activity) => request('/api/v1/me/presence/session', { method: 'POST', body: JSON.stringify({ sessionKey, activity }) }),
+      heartbeat: (sessionKey, activity) => request('/api/v1/me/presence/heartbeat', { method: 'POST', body: JSON.stringify({ sessionKey, activity }) }),
+      end: sessionKey => request('/api/v1/me/presence/session', { method: 'DELETE', keepalive: true, body: JSON.stringify({ sessionKey }) }),
+    } satisfies SocialActions,
     getNavigationPreferences: () => request<NavigationMenuPreferenceDto>('/api/v1/me/navigation-preferences'),
     putNavigationPreferences: (value: NavigationMenuPreferenceDto) => request<NavigationMenuPreferenceDto>('/api/v1/me/navigation-preferences', { method: 'PUT', body: JSON.stringify(value) }),
     getModerationState: () => request<ModerationStateDto>('/api/v1/moderation/me'),

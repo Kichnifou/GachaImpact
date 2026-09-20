@@ -287,6 +287,8 @@ model Player {
   blocksCreated         PlayerBlock[]                @relation("Blocker")
   blocksReceived        PlayerBlock[]                @relation("Blocked")
   privacySettings       PrivacySetting[]
+  sessions              PlayerSession[]
+  activityState         PlayerActivityState?
   eventMessagesSent     EventSocialMessage[]         @relation("EventMessageSender")
   eventMessagesReceived EventSocialMessage[]         @relation("EventMessageRecipient")
 
@@ -772,6 +774,33 @@ model PrivacySetting {
 
   @@id([playerId, categoryKey])
   @@map("privacy_settings")
+}
+
+model PlayerSession {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId         String    @map("player_id") @db.Uuid
+  sessionTokenHash String    @unique @map("session_token_hash") @db.Text
+  startedAt        DateTime  @default(now()) @map("started_at") @db.Timestamptz(6)
+  lastHeartbeatAt  DateTime  @default(now()) @map("last_heartbeat_at") @db.Timestamptz(6)
+  lastActivityAt   DateTime? @map("last_activity_at") @db.Timestamptz(6)
+  endedAt          DateTime? @map("ended_at") @db.Timestamptz(6)
+  player           Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, endedAt])
+  @@index([lastHeartbeatAt])
+  @@map("player_sessions")
+}
+
+model PlayerActivityState {
+  playerId               String    @id @map("player_id") @db.Uuid
+  lastAppActivityAt      DateTime? @map("last_app_activity_at") @db.Timestamptz(6)
+  lastInternalChatAt     DateTime? @map("last_internal_chat_at") @db.Timestamptz(6)
+  lastTwitchActivityAt   DateTime? @map("last_twitch_activity_at") @db.Timestamptz(6)
+  lastGameplayActivityAt DateTime? @map("last_gameplay_activity_at") @db.Timestamptz(6)
+  updatedAt              DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player                 Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@map("player_activity_state")
 }
 
 model EventSocialMessage {

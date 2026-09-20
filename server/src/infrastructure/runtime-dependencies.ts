@@ -1,3 +1,4 @@
+import { SocialService } from '../application/social/social-service.js';
 import { ChoosePlayerElement } from '../application/player/choose-player-element.js';
 import { GetCurrentPlayer } from '../application/player/get-current-player.js';
 import { GetCurrentPlayerResources } from '../application/player/get-current-player-resources.js';
@@ -140,6 +141,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     contestService,
     giftCodeService,
     eventService,
+    socialService: new SocialService(getCurrentPlayer, database, clock),
     expeditionService,
     notificationService: new NotificationService(getCurrentPlayer, database, clock, expeditionService, giftCodeService, new EventMessageNotificationReconciler(database), new EventLifecycleNotificationReconciler(database, eventService)),
     start: async () => { await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); await giftCodeScheduler.start(); contestScheduler.start(); },

@@ -8560,3 +8560,36 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 
 .catalog-vote-slot { min-height: 48px; }
 .catalog-vote-feedback { min-height: 20px; font-size: 12px; }
+
+/* Social uses the shell's fixed controls and scrolling body. */
+.social-screen, .profile-screen { min-width: 0; }
+.scrollable-screen-panel-content.has-footer { grid-template-rows: auto minmax(0, 1fr) auto; }
+.social-player-list { display: grid; gap: 8px; align-content: start; min-height: 200px; }
+.social-player-identity.app-button { display: flex; width: 100%; text-align: left; gap: 12px; align-items: center; justify-content: flex-start; min-height: 62px; }
+.social-player-identity > span:nth-child(2) { min-width: 0; flex: 1; }
+.social-player-identity strong { display: block; overflow-wrap: anywhere; }
+.social-player-identity small { display: block; color: var(--muted); }
+.social-pagination, .profile-navigation { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 8px 0; }
+.privacy-settings { display: grid; gap: 10px; }
+.privacy-settings label { display: grid; grid-template-columns: minmax(0, 1fr) minmax(130px, 180px); gap: 12px; align-items: center; padding: 8px; }
+.privacy-settings select, .social-screen input, .social-screen select { min-width: 0; color: var(--text); background: #151f31; border: 1px solid var(--border); border-radius: 8px; padding: 9px; }
+.privacy-feedback { min-height: 20px; }
+.profile-navigation { justify-content: flex-start; }
+.profile-frame .secondary-navigation { display: flex; gap: 6px; overflow-x: auto; }
+.profile-frame .secondary-navigation .active { border-color: var(--gold); }
+.profile-character-meta { padding: 8px; margin: 0; }
+.profile-empty-slot { min-height: 150px; border: 1px dashed var(--border); display: grid; place-items: center; }
+.profile-statistics { display: grid; gap: 10px; }
+.profile-statistics > div { display: flex; justify-content: space-between; padding: 12px; background: #151f31; border-radius: 8px; }
+.profile-last-activity summary { cursor: pointer; }
+.profile-name-button { color: inherit; font: inherit; padding: 0; background: transparent; border: 0; cursor: pointer; }
+.profile-name-button:focus-visible, .avatar-placeholder:focus-visible { outline: 2px solid var(--gold); }
+.players-panel .online-player-list { min-height: 0; max-height: 60vh; overflow-y: auto; }
+@media (max-width: 700px) { .privacy-settings label { grid-template-columns: minmax(0, 1fr) 130px; } .social-player-identity.app-button { gap: 8px; } }
+
+/* Wrap shared character filters within the actual panel width, including public Box. */
+.collection-filters { display: flex; flex-wrap: wrap; }
+.collection-filters > * { min-width: 0; max-width: 100%; }
+.collection-filters .search-field { flex: 1 1 170px; }
+.collection-filters .filter-group, .collection-filters .element-filters { flex-wrap: wrap; }
+.collection-filters .sort-direction-button { width: 38px; flex: 0 0 38px; }

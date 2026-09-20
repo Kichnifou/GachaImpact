@@ -1,3 +1,4 @@
+import InventoryObjectCard from '../components/InventoryObjectCard'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { BoxCharacterDto, DailyChallengeMutationDto, DailyCombatDto, ElementKey, InventoryItemDetailDto, InventoryItemDto, InventoryResourceDto, PlayerBoxDto, PlayerInventoryDto, PlayerResourcesDto, PlayerTeamsDto, StellaUseDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
@@ -191,11 +192,7 @@ function InventoryCard({ entry, mainElementKey, onConvert, onNavigateShop, onNav
   if (entry.item.externalKey === MASTERLESS_STELLA_FORTUNA_KEY) return <button type="button" className="inventory-item inventory-stella-card contextual-card violet" disabled={!owned} onClick={onUseStella}>
     <span className="item-icon violet" aria-hidden="true"><span className="item-icon-glyph">{owned ? '✦' : '?'}</span></span><span className="inventory-card-copy"><strong>{entry.item.displayName}</strong><p>{entry.item.description ?? 'Renforce un personnage 5★ possédé.'}</p></span><span className="item-amount">× {formatResourceAmount(entry.item.quantity)}</span><span className="inventory-card-action">Utiliser →</span>
   </button>
-  return <article className={`inventory-item inventory-object-card${owned ? '' : ' unowned'}`} title={entry.item.acquisitionHint ?? undefined}>
-    <button type="button" className="inventory-item-main" onClick={() => onSelectItem(entry.item)}>
-      <span className="item-icon violet" aria-hidden="true"><span className="item-icon-glyph">{owned ? '✦' : '?'}</span></span><div><strong>{entry.item.displayName}</strong><p>{entry.item.description ?? 'Aucune description disponible.'}</p></div><span className="item-amount">× {formatResourceAmount(entry.item.quantity)}</span>
-    </button>
-  </article>
+  return <InventoryObjectCard item={entry.item} onSelect={() => onSelectItem(entry.item)} />
 }
 
 function ResourceIcon({ resource }: { resource: InventoryResourceDto }) {

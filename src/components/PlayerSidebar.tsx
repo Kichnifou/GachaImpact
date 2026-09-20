@@ -12,6 +12,7 @@ import { elementThemes } from '../utils/elementTheme'
 
 type PlayerSidebarProps = {
   isOpen: boolean
+  onOpenProfile?: () => void
   onClose: () => void
   onNavigate: (screen: ScreenId) => void
   onOpenParticleConversion: () => void
@@ -27,7 +28,7 @@ type PlayerSidebarProps = {
 
 const particleElements = ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro'] as const
 
-function PlayerSidebar({ isOpen, onClose, onNavigate, onOpenParticleConversion, onOpenDailiesOverview, playerData, resources, progression, levelUpDelta = null, profileLevelUpActive = false, gacha, teams }: PlayerSidebarProps) {
+function PlayerSidebar({ isOpen, onClose, onOpenProfile, onNavigate, onOpenParticleConversion, onOpenDailiesOverview, playerData, resources, progression, levelUpDelta = null, profileLevelUpActive = false, gacha, teams }: PlayerSidebarProps) {
   const featuredCharacter = gacha.banner.featuredFiveStars.find(({ id }) => id === gacha.playerState.selectedBannerCharacterId)
   const progressionPercent = getProgressionPercent(progression)
   const elementTheme = playerData.elementKey ? elementThemes[playerData.elementKey] : null
@@ -57,11 +58,11 @@ function PlayerSidebar({ isOpen, onClose, onNavigate, onOpenParticleConversion, 
       <div className="player-priority">
         <section className={`panel profile-card${profileLevelUpActive ? ' level-up-active' : ''}`} style={profileStyle}>
           {playerData.elementKey && <GameAssetIcon className="profile-element-watermark" src={getElementAssetPath(playerData.elementKey)} fallback="" />}
-          <div className="avatar-placeholder" aria-label={`Avatar de ${playerData.displayName}`}>
+          <button type="button" onClick={onOpenProfile} className="avatar-placeholder" aria-label={`Avatar de ${playerData.displayName}`}>
             <span>{playerData.displayName.slice(0, 1).toUpperCase()}</span>
-          </div>
+          </button>
           <div className="profile-copy">
-            <h2>{playerData.displayName}</h2>
+            <h2><button type="button" className="profile-name-button" onClick={onOpenProfile}>{playerData.displayName}</button></h2>
             <div className="level-line">
               <span>Niveau {progression.level}{levelUpDelta ? <em className="level-up-delta">+{levelUpDelta}</em> : null}</span>
               <small>{formatResourceAmount(progression.xpIntoCurrentStep)} / {formatResourceAmount(progression.xpPerStep)} XP</small>

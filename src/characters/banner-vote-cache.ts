@@ -2,6 +2,8 @@ import type { BannerVoteDto } from '../api/types'
 
 /** Owned by one Player's GameShell session, never persisted. */
 export class BannerVoteCache {
+  readonly playerId: string | undefined
+  constructor(playerId?: string) { this.playerId = playerId }
   value: BannerVoteDto | null = null
   private revision = 0
   private request = 0

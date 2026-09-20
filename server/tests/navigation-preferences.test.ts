@@ -24,6 +24,7 @@ describe('navigation preferences', () => {
     expect(oldPreference.order.at(-1)).toBe('configuration')
     expect(oldPreference.order.at(-2)).toBe('tutorial')
     expect(oldPreference.order.indexOf('codes')).toBeLessThan(oldPreference.order.indexOf('configuration'))
+    expect(oldPreference.order).toEqual(expect.arrayContaining(['activities', 'social']))
     expect(oldPreference.hidden).toEqual(['combat', 'codes'])
     expect(new Set(oldPreference.order).size).toBe(navigationLength())
   })

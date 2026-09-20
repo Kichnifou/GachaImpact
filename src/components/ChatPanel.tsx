@@ -1,12 +1,13 @@
 import { chatMessages } from '../data/mockData'
 
 type ChatPanelProps = {
+  connectedCount?: number | null
   isCollapsed: boolean
   onToggle: () => void
   onOpenPlayers: () => void
 }
 
-function ChatPanel({ isCollapsed, onToggle, onOpenPlayers }: ChatPanelProps) {
+function ChatPanel({ isCollapsed, onToggle, onOpenPlayers, connectedCount = null }: ChatPanelProps) {
   if (isCollapsed) {
     return (
       <aside className="chat-panel collapsed" aria-label="Chat global replié">
@@ -28,7 +29,7 @@ function ChatPanel({ isCollapsed, onToggle, onOpenPlayers }: ChatPanelProps) {
 
       <button type="button" className="chat-presence" onClick={onOpenPlayers}>
         <span className="status-dot" />
-        28 joueurs en ligne
+        {connectedCount === null ? 'Joueurs connectés' : `${connectedCount} joueur${connectedCount > 1 ? 's' : ''} connecté${connectedCount > 1 ? 's' : ''}`}
         <span aria-hidden="true">›</span>
       </button>
 

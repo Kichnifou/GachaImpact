@@ -1,3 +1,5 @@
+import type { SocialService } from './application/social/social-service.js';
+import { registerSocialRoutes } from './api/routes/social.js';
 import { randomUUID } from 'node:crypto';
 
 import cors from '@fastify/cors';
@@ -108,6 +110,7 @@ export type AppDependencies = Readonly<{
   contestService?: ContestService;
   giftCodeService?: GiftCodeService;
   eventService?: EventService;
+  socialService?: SocialService;
   close?: () => Promise<void>;
 }>;
 
@@ -148,6 +151,7 @@ export async function buildApp(
     });
 
     const authenticate = createAuthenticationHook(dependencies.authIdentityVerifier);
+    if (dependencies.socialService) await app.register(registerSocialRoutes, { authenticate, service: dependencies.socialService });
     if (dependencies.choosePlayerElement && dependencies.getCurrentPlayerResources) {
       await app.register(registerPlayerGameRoutes, {
         authenticate,
