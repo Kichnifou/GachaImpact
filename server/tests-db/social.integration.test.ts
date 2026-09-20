@@ -90,14 +90,17 @@ describe('Social isolated PostgreSQL', () => {
       strength: 11, intelligence: 12, beauty: 13, charisma: 14, popularity: 15,
     } });
     const c6Read = vi.spyOn(database.c6CompetitionProgress, 'findMany');
-    const response = await app.inject({ url: `/api/v1/players/${owner}/profile`, headers: { authorization: `Bearer ${viewer}` } });
-    c6Read.mockRestore();
-    expect(response.statusCode).toBe(200);
-    const profileBox = response.json().box.data as Record<string, unknown>[];
-    const publicCharacter = profileBox.find(value => value.id === character.id)!;
-    expect(publicCharacter).toMatchObject({ id: character.id, constellation: 6, copies: 7, weaponType: 'sword', region: 'fixture' });
-    expect(c6Read).not.toHaveBeenCalled();
-    expect(Object.keys(publicCharacter).sort()).toEqual(['id', 'externalKey', 'name', 'rarity', 'elementKey', 'weaponType', 'region', 'iconPath', 'splashPath', 'wishPath', 'fullbodyPath', 'constellation', 'copies', 'firstObtainedAt'].sort());
+    try {
+      const response = await app.inject({ url: `/api/v1/players/${owner}/profile`, headers: { authorization: `Bearer ${viewer}` } });
+      expect(c6Read).not.toHaveBeenCalled();
+      expect(response.statusCode).toBe(200);
+      const profileBox = response.json().box.data as Record<string, unknown>[];
+      const publicCharacter = profileBox.find(value => value.id === character.id)!;
+      expect(publicCharacter).toMatchObject({ id: character.id, constellation: 6, copies: 7, weaponType: 'sword', region: 'fixture' });
+      expect(Object.keys(publicCharacter).sort()).toEqual(['id', 'externalKey', 'name', 'rarity', 'elementKey', 'weaponType', 'region', 'iconPath', 'splashPath', 'wishPath', 'fullbodyPath', 'constellation', 'copies', 'firstObtainedAt'].sort());
+    } finally {
+      c6Read.mockRestore();
+    }
   }, 30_000);
   it('tracks per-tab heartbeats without fake activity and handles timeout, inactivity, resume and close races', async () => {
     const key = randomUUID(), second = randomUUID();
