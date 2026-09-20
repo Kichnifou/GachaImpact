@@ -71,7 +71,7 @@ export class SocialService {
       permissions.PRESENCE ? this.visiblePresence(viewer.id, [playerId]).then(m => allowed(m.get(playerId)!)) : hidden,
       permissions.LAST_ACTIVITY ? this.database.playerActivityState.findUnique({ where: { playerId }, select: { lastAppActivityAt: true } }).then(r => allowed(r?.lastAppActivityAt?.toISOString() ?? null)) : hidden,
       permissions.ACTIVE_TEAM ? new PrismaTeamStore(this.database).readActive(playerId).then(allowed) : hidden,
-      permissions.BOX ? new PrismaBoxStore(this.database).listVisiblePossessions(playerId).then(rows => allowed(rows.map(({ favorite: _favorite, ...c }) => ({ ...c, firstObtainedAt: c.firstObtainedAt.toISOString() })))) : hidden,
+      permissions.BOX ? new PrismaBoxStore(this.database).listProfilePossessions(playerId).then(rows => allowed(rows.map(c => ({ ...c, firstObtainedAt: c.firstObtainedAt.toISOString() })))) : hidden,
       permissions.COLLECTION ? new PrismaInventoryStore(this.database).getCollection(playerId).then(items => allowed(items.map(i => ({ ...i, quantity: i.quantity.toString(), firstObtainedAt: i.firstObtainedAt?.toISOString() ?? null })))) : hidden,
       permissions.GENERAL_STATISTICS ? this.statistics(playerId).then(allowed) : hidden,
     ]);

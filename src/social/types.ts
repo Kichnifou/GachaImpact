@@ -8,7 +8,7 @@ export type DirectoryPage = { players: (SocialIdentity & { presence: Access<Pres
 export type ConnectedPlayers = { players: (SocialIdentity & { status: 'ONLINE' | 'AWAY' })[]; total: number }
 export type Profile = {
   player: SocialIdentity; own: boolean; presence: Access<PresenceStatus>; lastActivity: Access<string | null>
-  team: Access<PlayerTeamDto | null>; box: Access<Omit<BoxCharacterDto, 'favorite'>[]>; collection: Access<InventoryItemDto[]>
+  team: Access<PlayerTeamDto | null>; box: Access<Omit<BoxCharacterDto, 'favorite' | 'c6CompetitionStats'>[]>; collection: Access<InventoryItemDto[]>
   statistics: Access<{ totalXp: string | null; totalPulls: string | null; totalFiveStars: string | null; totalFourStars: string | null; combatWins: string | null; expeditionsCompleted: string | null }>
 }
 export const privacyLabels = {

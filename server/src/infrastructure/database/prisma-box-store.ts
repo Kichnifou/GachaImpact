@@ -21,6 +21,15 @@ const boxSelection = {
   } },
 } satisfies Prisma.PlayerCharacterSelect;
 type BoxRow = Prisma.PlayerCharacterGetPayload<{ select: typeof boxSelection }>;
+const profileBoxSelection = {
+  characterId: true, constellation: true, copies: true, firstObtainedAt: true,
+  character: { select: {
+    id: true, externalKey: true, name: true, rarity: true, elementKey: true,
+    weaponType: true, region: true, iconPath: true, splashPath: true, wishPath: true, fullbodyPath: true,
+  } },
+} satisfies Prisma.PlayerCharacterSelect;
+type ProfileBoxRow = Prisma.PlayerCharacterGetPayload<{ select: typeof profileBoxSelection }>;
+export type ProfileBoxCharacter = Omit<BoxCharacter, 'favorite' | 'c6CompetitionStats'>;
 
 export class PrismaBoxStore implements BoxStore {
   public constructor(
@@ -38,6 +47,12 @@ export class PrismaBoxStore implements BoxStore {
       if (row.character.rarity === 5 && row.constellation === 6 && !stats) throw new Error(`C6 competition progression missing for possession ${playerId}/${row.characterId}.`);
       return toBoxCharacter(row, stats);
     });
+  }
+
+  /** Read-only Profile projection: never loads preferences or Contest/C6 progress. */
+  public async listProfilePossessions(playerId: string): Promise<readonly ProfileBoxCharacter[]> {
+    const rows = await this.database.playerCharacter.findMany({ where: { playerId, character: { isActive: true } }, select: profileBoxSelection });
+    return rows.map(toProfileBoxCharacter);
   }
 
   public async setFavorite(playerId: string, characterId: string, favorite: boolean): Promise<BoxCharacter | null> {
@@ -222,5 +237,14 @@ function toBoxCharacter(row: BoxRow, c6CompetitionStats: C6CompetitionStats | nu
     constellation: Math.min(6, Math.max(0, row.constellation)), copies: row.copies,
     firstObtainedAt: row.firstObtainedAt, favorite: row.favorite,
     c6CompetitionStats,
+  };
+}
+function toProfileBoxCharacter(row: ProfileBoxRow): ProfileBoxCharacter {
+  if (row.character.rarity !== 4 && row.character.rarity !== 5) throw new Error(`Invalid stored rarity for ${row.character.id}.`);
+  if (!isElementKey(row.character.elementKey)) throw new Error(`Invalid stored element for ${row.character.id}.`);
+  return {
+    ...row.character, rarity: row.character.rarity, elementKey: row.character.elementKey,
+    constellation: Math.min(6, Math.max(0, row.constellation)), copies: row.copies,
+    firstObtainedAt: row.firstObtainedAt,
   };
 }

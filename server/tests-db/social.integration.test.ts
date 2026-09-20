@@ -54,7 +54,7 @@ describe('Social isolated PostgreSQL', () => {
   it('never retrieves private Team/Box/Collection content and preserves GET read-only behavior', async () => {
     for (const category of ['ACTIVE_TEAM','BOX','COLLECTION','GENERAL_STATISTICS'] as const) await service.privacy.save(owner, category, 'PRIVATE');
     const before = await database.team.count();
-    const boxRead = vi.spyOn(PrismaBoxStore.prototype, 'listVisiblePossessions');
+    const boxRead = vi.spyOn(PrismaBoxStore.prototype, 'listProfilePossessions');
     const teamRead = vi.spyOn(PrismaTeamStore.prototype, 'readActive');
     const collectionRead = vi.spyOn(PrismaInventoryStore.prototype, 'getCollection');
     const result = await profile();
@@ -81,6 +81,23 @@ describe('Social isolated PostgreSQL', () => {
     expect(result.collection).toMatchObject({ access: 'ALLOWED', data: [{ id: collection.id, quantity: '1' }] });
     for (const privateValue of ['Secret preset', 'Secret Sac fixture', '"stella"', '"favorite"', '"resources"']) expect(JSON.stringify(result)).not.toContain(privateValue);
     expect(await database.team.count({ where: { playerId: owner } })).toBe(2);
+  }, 30_000);
+  it('serializes a real public C6 Box character without loading or exposing Contest progression', async () => {
+    const character = await database.character.create({ data: { externalKey: randomUUID(), name: 'C6 public fixture', rarity: 5, elementKey: 'pyro', weaponType: 'sword', region: 'fixture' } });
+    await database.playerCharacter.create({ data: { playerId: owner, characterId: character.id, constellation: 6, copies: 7, firstObtainedAt: now, favorite: true } });
+    await database.c6CompetitionProgress.create({ data: {
+      playerId: owner, characterId: character.id, unlockedAt: now,
+      strength: 11, intelligence: 12, beauty: 13, charisma: 14, popularity: 15,
+    } });
+    const c6Read = vi.spyOn(database.c6CompetitionProgress, 'findMany');
+    const response = await app.inject({ url: `/api/v1/players/${owner}/profile`, headers: { authorization: `Bearer ${viewer}` } });
+    c6Read.mockRestore();
+    expect(response.statusCode).toBe(200);
+    const profileBox = response.json().box.data as Record<string, unknown>[];
+    const publicCharacter = profileBox.find(value => value.id === character.id)!;
+    expect(publicCharacter).toMatchObject({ id: character.id, constellation: 6, copies: 7, weaponType: 'sword', region: 'fixture' });
+    expect(c6Read).not.toHaveBeenCalled();
+    expect(Object.keys(publicCharacter).sort()).toEqual(['id', 'externalKey', 'name', 'rarity', 'elementKey', 'weaponType', 'region', 'iconPath', 'splashPath', 'wishPath', 'fullbodyPath', 'constellation', 'copies', 'firstObtainedAt'].sort());
   }, 30_000);
   it('tracks per-tab heartbeats without fake activity and handles timeout, inactivity, resume and close races', async () => {
     const key = randomUUID(), second = randomUUID();
