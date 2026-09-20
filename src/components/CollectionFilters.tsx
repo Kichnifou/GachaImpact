@@ -3,10 +3,11 @@ import { getElementAssetPath } from '../utils/gameAssets'
 import GameAssetIcon from './GameAssetIcon'
 
 export type CharacterRarityFilter = 'all' | 4 | 5
-export type CharacterSortKey = 'name' | 'rarity' | 'element'
+export type CharacterSortKey = 'name' | 'rarity' | 'element' | 'votes'
 export type CharacterSortDirection = 'asc' | 'desc'
 
 type CollectionFiltersProps = {
+  allowVotes?: boolean
   placeholder: string
   query: string
   rarity: CharacterRarityFilter
@@ -42,7 +43,7 @@ function CollectionFilters(props: CollectionFiltersProps) {
       </button>)}
     </div>
     <label className="sort-select"><span>Trier</span><select value={sortKey} onChange={(event) => onSortKeyChange(event.target.value as CharacterSortKey)} aria-label="Critère de tri">
-      <option value="name">Nom</option><option value="rarity">Rareté</option><option value="element">Élément</option>
+      <option value="name">Nom</option><option value="rarity">Rareté</option><option value="element">Élément</option>{props.allowVotes && <option value="votes">Votes</option>}
     </select></label>
     <button type="button" className="sort-direction-button" onClick={onDirectionChange} aria-label={`Tri ${direction === 'asc' ? 'croissant' : 'décroissant'}`}>{direction === 'asc' ? '↑' : '↓'}</button>
   </div>

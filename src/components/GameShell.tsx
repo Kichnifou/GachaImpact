@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { BannerVoteCache } from '../characters/banner-vote-cache'
 import type { BannerVoteActions } from '../characters/use-banner-votes'
 
 import type { BankHistoryDto, BankTransferDto, BoxCharacterDto, BoxSortPreferenceDto, ContestDto, ContestHistoryDto, ContestSnapshotDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyCombatFightDto, DailyRewardClaimDto, DailyRewardTodayDto, EventDto, EventRankingDto, EventGameAAttemptDto, EventJoinDto, ExpeditionClaimDto, ExpeditionDto, ExpeditionStartDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, GiftCodeClaimDto, InventoryItemDetailDto, ModerationPermissionsDto, ModerationPlayerListQuery, ModerationPlayerPageDto, ModerationStateDto, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto, NavigationMenuPreferenceDto, NotificationsDto, PlayerBankDto, PlayerBoxDto, PlayerDto, PlayerGiftCodesDto, PlayerInventoryDto, PlayerProgressionDto, PlayerResourcesDto, PlayerShopDto, PlayerTeamsDto, ShopHistoryDto, ShopPurchaseDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
@@ -168,6 +169,8 @@ type GameShellProps = {
 }
 
 function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, dailyChallenge, onPurchaseDailyChallenge, onSwitchDailyChallenge, dailyCombat, monthlyBoss, onLoadMonthlyBoss, contest, event, onLoadEvent, onLoadEventRanking, onJoinEvent, onClaimEventCalendar, onClaimEventDailyBonus, onConvertEventShop, onPurchaseEventCollection, onAttemptEventGameA, onAttemptEventGameB, onSearchEventGameCRecipients, onSendEventGameC, onConsultEventGameCMessages, onRefreshContest, onLoadContestHistory, onLoadContestHistoryDetail, onOpenContest, onJoinContest, onSelectContestLegend, onSetContestReady, onStartContest, onSpectateContest, onLeaveContest, onCancelContest, onPlayContest, onSupportContest, onRemoveContestParticipant, onRemoveContestSpectator, expedition, expeditionMonotonicNow, notifications, onLoadExpedition, onStartExpedition, onClaimExpedition, onLoadNotifications, onReadNotification, onArchiveNotification, onReadAllNotifications, onArchiveReadNotifications, onLoadDailyCombat, onSetDailyCombatSlot, onRemoveDailyCombatSlot, onCopyActiveTeamToDailyCombat, onAutoSelectDailyCombat, onClearDailyCombatLoadout, onFightDailyCombat, onSetMonthlyBossSlot, onRemoveMonthlyBossSlot, onCopyActiveTeamToMonthlyBoss, onClearMonthlyBossLoadout, onAttackMonthlyBoss, onLoadMonthlyBossHistory, onSignOut, gacha, characters, bannerVoteActions, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank, onLoadShop, onLoadShopHistory, onPurchaseShop, onLoadGiftCodes, onClaimGiftCode, onLoadInventory, onLoadInventoryItemDetail, onConvertParticles, permissions, onLoadModeration, onListModerationPlayers, onModerationResource, onModerationXp, onModerationGacha, onModerationStella, onModerationTester, onModerationApplied, onLoadAdminGiftCodes, onCreateGiftCode, onPublishGiftCode, onUpdateGiftCode, onGiftCodeClaimants, onLoadNavigationPreferences, onSaveNavigationPreferences }: GameShellProps) {
+  const voteCache = useMemo(() => new BannerVoteCache(), [player.id])
+  useEffect(() => () => voteCache.clear(), [voteCache])
   const refreshMonthlyBoss = useCallback(() => onLoadMonthlyBoss ? onLoadMonthlyBoss() : Promise.resolve(monthlyBoss), [monthlyBoss, onLoadMonthlyBoss])
   const [activeScreen, setActiveScreen] = useState<ScreenId>(getScreenFromHash)
   const activeScreenRef = useRef(activeScreen)
@@ -307,6 +310,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
     })
   }, [boxCache, inventoryCache, onModerationApplied, player.id])
   const signOutAndClearCaches = useCallback(async () => {
+    voteCache.clear()
     boxCache.clear()
     bankCache.clear()
     inventoryCache.clear()
@@ -314,7 +318,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
     shopCache.clear()
     shopIntents.clear()
     await onSignOut()
-  }, [bankCache, boxCache, inventoryCache, moderationIntents, onSignOut, shopCache, shopIntents])
+  }, [bankCache, boxCache, inventoryCache, moderationIntents, onSignOut, shopCache, shopIntents, voteCache])
 
   const changeScreen = useCallback((screen: ScreenId) => {
     if (activeScreenRef.current === 'invocation' && screen !== 'invocation') onGachaPresentationAbandoned()
@@ -350,7 +354,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
       case 'characters-box':
         return <BoxScreen initialBox={boxCache.read(player.id)} dailyCombat={dailyCombat} expedition={expedition} expeditionMonotonicNow={expeditionMonotonicNow} openCharacterIntent={boxOpenIntent} onOpenCharacterIntentConsumed={(token) => setBoxOpenIntent((current) => current?.token === token ? null : current)} onLoadExpedition={onLoadExpedition} onStartExpedition={onStartExpedition} onClaimExpedition={onClaimExpedition} onNotificationsChanged={onLoadNotifications} onLoadBox={loadBox} onSetFavorite={setBoxFavorite} onSetSortPreference={setBoxSortPreference} onUseStella={useStella} stellaRetryCharacterId={stellaIntents.getIntent(player.id)?.characterId ?? null} />
       case 'characters-catalog':
-        return <CharactersScreen key={player.id} characters={characters} {...bannerVoteActions} />
+        return <CharactersScreen key={player.id} characters={characters} voteCache={voteCache} {...bannerVoteActions} />
       case 'characters-team':
         return <TeamScreen teams={teams} dailyCombat={dailyCombat} initialBox={boxCache.read(player.id)} stellaRetryCharacterId={stellaIntents.getIntent(player.id)?.characterId ?? null} onLoad={onLoadTeams} onActivate={onActivateTeam} onRename={onRenameTeam} onCreateNext={onCreateNextTeam} onDelete={onDeleteTeam} onReorderTeams={onReorderTeams} onSetSlot={onSetTeamSlot} onReorderSlots={onReorderTeamSlots} onRemoveSlot={onRemoveTeamSlot} onClear={onClearTeam} onLoadBox={loadBox} onSetBoxFavorite={setBoxFavorite} onUseStella={useStella} />
       case 'inventory':
@@ -436,7 +440,7 @@ return <ActivitiesScreen sessionUserId={player.id} screen={activeScreen} event={
       )}
 
       {isPlayersOpen && <OnlinePlayersPanel onClose={() => setIsPlayersOpen(false)} />}
-      {isMenuOpen && <GlobalMenu preference={menuPreference} page={menuPage} onPageChange={setMenuPage} onNavigate={navigate} onClose={() => setIsMenuOpen(false)} />}
+      {isMenuOpen && <GlobalMenu preference={menuPreference} page={menuPage} onPageChange={setMenuPage} onNavigate={navigate} onActivities={() => navigateMain('activities')} onClose={() => setIsMenuOpen(false)} />}
       {isParticleConversionOpen && player.elementKey && <ParticleConversionModal elementKey={player.elementKey} stock={resources.particles[player.elementKey]} onClose={() => setIsParticleConversionOpen(false)} onConvert={convertParticles} />}
       {activeLevelUpFeedback && activeLevelUpFeedback.id !== closedLevelUpModalId && <LevelUpFeedback key={activeLevelUpFeedback.id} event={activeLevelUpFeedback} onFinished={finishLevelUpModal} />}
       {completedChallengeFeedback && !activeLevelUpFeedback && pendingGachaPullCount === null && !isParticleConversionOpen && <DailyChallengeCompletionFeedback challenge={completedChallengeFeedback} onFinished={() => setCompletedChallengeFeedback(null)} />}

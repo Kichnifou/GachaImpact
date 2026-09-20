@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { BannerVoteDto } from '../api/types'
 import { apiErrorMessage } from '../utils/formatters'
+import { BannerVoteCache } from './banner-vote-cache'
 
 export type BannerVoteActions = Readonly<{
   onLoadVotes?: () => Promise<BannerVoteDto>
@@ -8,13 +9,15 @@ export type BannerVoteActions = Readonly<{
   onReloadCatalog?: () => Promise<void>
 }>
 
-export function useBannerVotes({ onLoadVotes, onVote, onReloadCatalog }: BannerVoteActions) {
-  const [value, setValue] = useState<BannerVoteDto | null>(null)
+export function useBannerVotes({ onLoadVotes, onVote, onReloadCatalog }: BannerVoteActions, sharedCache?: BannerVoteCache) {
+  const [localCache] = useState(() => new BannerVoteCache())
+  const cache = sharedCache ?? localCache
+  const [value, setValue] = useState<BannerVoteDto | null>(() => cache.value)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   const alive = useRef(false)
   const revision = useRef(0)
-  const catalogVersion = useRef<string | null>(null)
+  const catalogVersion = useRef<string | null>(cache.value?.catalogVersion ?? null)
   useEffect(() => {
     alive.current = true
     let active = true
@@ -26,7 +29,7 @@ export function useBannerVotes({ onLoadVotes, onVote, onReloadCatalog }: BannerV
       inFlight = true
       const version = revision.current
       try {
-        const next = await onLoadVotes?.()
+        const next = onLoadVotes ? await cache.revalidate(onLoadVotes) : null
         if (!active || !next || version !== revision.current) return
         if (catalogVersion.current !== next.catalogVersion) {
           await onReloadCatalog?.()
@@ -42,13 +45,13 @@ export function useBannerVotes({ onLoadVotes, onVote, onReloadCatalog }: BannerV
     window.addEventListener('focus', wake)
     document.addEventListener('visibilitychange', wake)
     return () => { active = false; alive.current = false; window.clearTimeout(timer); window.removeEventListener('focus', wake); document.removeEventListener('visibilitychange', wake) }
-  }, [onLoadVotes, onReloadCatalog])
+  }, [cache, onLoadVotes, onReloadCatalog])
   const mutation = useRef(false)
   const vote = async (characterId: string) => {
     if (!value || !onVote || mutation.current || !value.canVote) return
     mutation.current = true; revision.current++; setPending(true); setError('')
     try {
-      const next = await onVote(characterId, value.bannerRotationId)
+      const next = await cache.vote(() => onVote(characterId, value.bannerRotationId))
       if (alive.current) setValue(next)
     } catch (reason) { if (alive.current) setError(apiErrorMessage(reason)) }
     finally { mutation.current = false; revision.current++; if (alive.current) setPending(false) }
