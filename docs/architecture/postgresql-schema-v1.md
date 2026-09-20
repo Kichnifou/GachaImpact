@@ -1755,7 +1755,7 @@ Contrainte :
 
 `UNIQUE(friendship_id, sender_player_id, business_date)`
 
-Physique 029 : unicité de `operation_id`, index expéditeur/date et destinataire, CHECK participants distincts et trigger `check_friend_heart_pair` vérifiant leur appartenance à la relation. La fonction reste SECURITY INVOKER et son exécution directe est révoquée à PUBLIC/anon/authenticated. Le verrou quotidien survit à l'archivage puisque le cœur et l'identité de la relation sont conservés.
+Physique 029 : unicité de `operation_id`, index expéditeur/date et destinataire, CHECK participants distincts et trigger `check_friend_heart_pair` vérifiant leur appartenance à la relation. La fonction reste SECURITY INVOKER et son exécution directe est révoquée à PUBLIC/anon/authenticated. La migration additive 030 fixe explicitement son `search_path` à `pg_catalog, public`, sans recréer la fonction ni le trigger. Le verrou quotidien survit à l'archivage puisque le cœur et l'identité de la relation sont conservés.
 
 ### `player_social_stats`
 

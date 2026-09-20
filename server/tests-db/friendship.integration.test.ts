@@ -24,6 +24,14 @@ beforeAll(async () => {
   // Prisma's schema diff omits CHECKs, partial indexes and triggers. Exercise the
   // actual migration's additional SQL in this UUID schema as well.
   await fixture.admin.query(sql.slice(sql.indexOf('-- The minimal')).replace('DROP CONSTRAINT "friendships_level_check"', 'DROP CONSTRAINT IF EXISTS "friendships_level_check"'));
+  const hardening = readFileSync('prisma/migrations/20260920220000_030_harden_friend_heart_trigger_search_path/migration.sql', 'utf8')
+    // The production migration fixes public. The fixture has its own schema, so adapt
+    // only those schema identifiers before exercising the identical hardening there.
+    .replace('public.check_friend_heart_pair()', `"${fixture.schema}".check_friend_heart_pair()`)
+    .replace('pg_catalog, public', `pg_catalog, ${fixture.schema}`);
+  await fixture.admin.query(hardening);
+  const configuration = await fixture.admin.query<{ proconfig: string[] | null }>('SELECT p.proconfig FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = $1 AND p.proname = $2', [fixture.schema, 'check_friend_heart_pair']);
+  expect(configuration.rows[0]?.proconfig).toEqual([`search_path=pg_catalog, ${fixture.schema}`]);
   await db.resourceDefinition.create({ data: { key: 'primogems', displayName: 'Primogemmes', category: 'currency' } });
 }, 60_000);
 afterAll(async () => { await fixture.cleanup(); }, 60_000);
