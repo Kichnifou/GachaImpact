@@ -6,22 +6,34 @@ import { apiErrorMessage } from '../utils/formatters'
 export function useFriendships(actions?: SocialActions, active = false) {
   const [value, setValue] = useState<FriendsSnapshot | null>(null)
   const [error, setError] = useState(''), [feedback, setFeedback] = useState(''), [feedbackScope, setFeedbackScope] = useState(''), [pending, setPending] = useState(false)
-  const alive = useRef(false), busy = useRef(false), refreshing = useRef<Promise<void> | null>(null), revision = useRef(0), intent = useRef<{ signature: string; key: string } | null>(null), feedbackTimer = useRef<number | undefined>(undefined)
+  const alive = useRef(false), busy = useRef(false), refreshing = useRef<Promise<void> | null>(null), authoritativeRefresh = useRef<Promise<void> | null>(null), revision = useRef(0), intent = useRef<{ signature: string; key: string } | null>(null), feedbackTimer = useRef<number | undefined>(undefined)
   const clearFeedback = useCallback(() => { window.clearTimeout(feedbackTimer.current); setFeedback(''); setFeedbackScope('') }, [])
   const showFeedback = useCallback((scope: string, message: string) => {
     window.clearTimeout(feedbackTimer.current); setFeedbackScope(scope); setFeedback(message)
     feedbackTimer.current = window.setTimeout(() => { if (alive.current) { setFeedback(''); setFeedbackScope('') } }, 4_000)
   }, [])
-  const refresh = useCallback(() => {
+  const refresh = useCallback((authoritative = false) => {
     if (!actions) return Promise.resolve()
-    if (refreshing.current) return refreshing.current
-    const version = ++revision.current
+    const start = () => {
+      if (refreshing.current) return refreshing.current
+      const version = ++revision.current
+      const request = (async () => {
+        try { const next = await actions.friends(); if (alive.current && version === revision.current) { setValue(next); setError('') } }
+        catch (reason) { if (alive.current && version === revision.current) setError(apiErrorMessage(reason)) }
+      })()
+      refreshing.current = request
+      void request.finally(() => { if (refreshing.current === request) refreshing.current = null })
+      return request
+    }
+    if (!authoritative) return start()
+    if (authoritativeRefresh.current) return authoritativeRefresh.current
     const request = (async () => {
-      try { const next = await actions.friends(); if (alive.current && version === revision.current) { setValue(next); setError('') } }
-      catch (reason) { if (alive.current && version === revision.current) setError(apiErrorMessage(reason)) }
+      const current = refreshing.current
+      if (current) await current
+      return start()
     })()
-    refreshing.current = request
-    void request.finally(() => { if (refreshing.current === request) refreshing.current = null })
+    authoritativeRefresh.current = request
+    void request.finally(() => { if (authoritativeRefresh.current === request) authoritativeRefresh.current = null })
     return request
   }, [actions])
   useEffect(() => {
@@ -49,14 +61,14 @@ export function useFriendships(actions?: SocialActions, active = false) {
         if (alive.current) showFeedback(scope, result.state === 'PENDING' ? 'Demande envoyée.' : result.state === 'ACCEPTED' || result.state === 'ACTIVE' ? 'Vous êtes amis.' : result.state === 'ARCHIVED' ? 'Ami retiré.' : result.state === 'REFUSED' ? 'Demande refusée.' : 'Demande annulée.')
       }
       intent.current = null
-      await refresh()
+      await refresh(true)
     } catch (reason) { if (alive.current) setError(apiErrorMessage(reason)) }
     finally { busy.current = false; if (alive.current) setPending(false) }
   }
   const saveSort = async (sort: FriendSort) => {
     if (!actions || busy.current) return
     busy.current = true; setPending(true); clearFeedback()
-    try { await actions.saveFriendSort(sort); await refresh() }
+    try { await actions.saveFriendSort(sort); await refresh(true) }
     catch (reason) { if (alive.current) setError(apiErrorMessage(reason)) }
     finally { busy.current = false; if (alive.current) setPending(false) }
   }

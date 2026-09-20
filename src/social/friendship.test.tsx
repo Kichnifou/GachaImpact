@@ -27,6 +27,7 @@ function makeApi() {
 function Surface({ api }: { api: SocialActions }) { const controller = useFriendships(api); return <><output data-available>{controller.value?.summary.available}</output><SocialScreen actions={api} onProfile={() => {}} controller={controller} /></> }
 function ProfileSurface({ api }: { api: SocialActions }) { const controller = useFriendships(api); return <ProfileScreen actions={api} controller={controller} ownerPlayerId="owner" playerId={person.id} onDirectory={() => {}} onPrivacy={() => {}} /> }
 function ActiveProbe({ api }: { api: SocialActions }) { useFriendships(api, true); return null }
+function MutationProbe({ api }: { api: SocialActions }) { const controller = useFriendships(api, true); return <><button onClick={() => void controller.mutate(person.id, 'ADD')}>Muter</button><output data-snapshot>{controller.value?.businessDate}</output></> }
 async function mount(node: React.ReactNode) { const container = document.createElement('div'); document.body.append(container); root = createRoot(container); await act(async () => root!.render(node)); return container }
 const button = (c: HTMLElement, text: string) => Array.from(c.querySelectorAll('button')).find(b => b.textContent === text)!
 const click = (c: HTMLElement, text: string) => act(async () => button(c, text).click())
@@ -131,6 +132,24 @@ describe('Friendship UI and shared projection', () => {
     await act(async () => resolve(initial))
     act(() => window.dispatchEvent(new Event('focus')))
     expect(api.friends).toHaveBeenCalledTimes(2)
+  })
+  it('replays an authoritative refresh after a mutation when polling is already in flight', async () => {
+    let resolveInitial!: (value: FriendsSnapshot) => void, resolveStale!: (value: FriendsSnapshot) => void, resolveFresh!: (value: FriendsSnapshot) => void
+    const { api } = makeApi()
+    vi.mocked(api.friends)
+      .mockImplementationOnce(() => new Promise(done => { resolveInitial = done }))
+      .mockImplementationOnce(() => new Promise(done => { resolveStale = done }))
+      .mockImplementationOnce(() => new Promise(done => { resolveFresh = done }))
+    const c = await mount(<MutationProbe api={api} />)
+    await act(async () => resolveInitial({ ...initial, businessDate: 'initial' }))
+    act(() => window.dispatchEvent(new Event('focus')))
+    expect(api.friends).toHaveBeenCalledTimes(2)
+    act(() => button(c, 'Muter').click())
+    expect(api.friendAction).toHaveBeenCalledWith(person.id, 'ADD', expect.any(String), undefined)
+    await act(async () => resolveStale({ ...initial, businessDate: 'stale' }))
+    expect(api.friends).toHaveBeenCalledTimes(3)
+    await act(async () => resolveFresh({ ...initial, businessDate: 'fresh' }))
+    expect(c.querySelector('[data-snapshot]')?.textContent).toBe('fresh')
   })
   it('keeps profile friendship controls neutral until the friendship snapshot is loaded', async () => {
     let resolve!: (value: FriendsSnapshot) => void
