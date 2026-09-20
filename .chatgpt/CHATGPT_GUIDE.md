@@ -113,6 +113,7 @@ Pour éviter les contradictions et rendre la documentation sûre pour Codex :
 - `docs/commands/command-reference.md` décrit les contrats et comportements des commandes ;
 - `docs/roadmap/development-roadmap.md` décrit uniquement la trajectoire macro du projet et ne doit pas dupliquer l'avancement courant du Master ;
 - `docs/process/implementation-workflow.md` décrit le déroulement opérationnel d’un lot, de sa conception à sa validation publique et son checkpoint ;
+- `docs/process/conversation-handoff.md` décrit la fermeture et la reprise entre deux conversations ChatGPT ;
 - `AGENTS.md` définit les garde-fous permanents de développement pour les agents, mais ne doit pas dupliquer les spécifications métier détaillées.
 
 Un audit spécialisé peut indiquer qu'il est `EN COURS` ou `CLÔTURÉ` et mentionner ses dépendances, mais il ne doit pas annoncer le prochain domaine global du projet.
@@ -697,17 +698,18 @@ Commencer par récupérer les HEAD actuels de `main` et `review`, noter leurs SH
 1. [AGENTS.md](../AGENTS.md) — connaître les garde-fous permanents applicables aux agents ;
 2. [.chatgpt/CHATGPT_GUIDE.md](CHATGPT_GUIDE.md) — appliquer la méthode de reprise et router la lecture sans dépendre d’un ancien chat ;
 3. [PROJECT_MASTER_PLAN.md](../docs/master/PROJECT_MASTER_PLAN.md) — obtenir le checkpoint, le domaine actif, les validations restantes et la prochaine étape exacte ;
-4. [implementation-order-v1.md](../docs/roadmap/implementation-order-v1.md) — situer cette étape dans la séquence V1 durable ;
-5. l’audit spécialisé du domaine actif, trouvé dans l’index de la section 14 — lire la source fonctionnelle sans ouvrir inutilement tous les audits ;
-6. [decisions-log.md](../docs/specifications/decisions-log.md) — vérifier les décisions durables transverses ou cumulatives concernées ;
-7. [v1-data-model.md](../docs/specifications/v1-data-model.md) — comprendre les entités conceptuelles et les données dérivées/persistées ;
-8. [backend-architecture-v1.md](../docs/architecture/backend-architecture-v1.md) — connaître les frontières backend et l’état physique annoncé ;
-9. [postgresql-schema-v1.md](../docs/architecture/postgresql-schema-v1.md) — vérifier le schéma relationnel cible et physique avant toute évolution DB ;
-10. [navigation-shell-v1.md](../docs/specifications/navigation-shell-v1.md) et [ui-layout-contract-v1.md](../docs/specifications/ui-layout-contract-v1.md) lorsqu’une UI est concernée — préserver navigation, scroll, pagination, modales et responsive ;
-11. [implementation-workflow.md](../docs/process/implementation-workflow.md) lorsqu’un lot, une review ou une promotion est traité — appliquer les gates opérationnels et Git ;
-12. [command-reference.md](../docs/commands/command-reference.md) lorsqu’un chat, Twitch ou une commande est concerné — vérifier le contrat player-facing partagé.
+4. [implementation-workflow.md](../docs/process/implementation-workflow.md) — appliquer le workflow d’un lot ;
+5. [conversation-handoff.md](../docs/process/conversation-handoff.md) — appliquer le workflow de passation entre conversations ;
+6. [implementation-order-v1.md](../docs/roadmap/implementation-order-v1.md) — situer cette étape dans la séquence V1 durable ;
+7. l’audit spécialisé du domaine actif, trouvé dans l’index de la section 14 — lire la source fonctionnelle sans ouvrir inutilement tous les audits ;
+8. [decisions-log.md](../docs/specifications/decisions-log.md) — vérifier les décisions durables transverses ou cumulatives concernées ;
+9. [v1-data-model.md](../docs/specifications/v1-data-model.md) — comprendre les entités conceptuelles et les données dérivées/persistées ;
+10. [backend-architecture-v1.md](../docs/architecture/backend-architecture-v1.md) — connaître les frontières backend et l’état physique annoncé ;
+11. [postgresql-schema-v1.md](../docs/architecture/postgresql-schema-v1.md) — vérifier le schéma relationnel cible et physique avant toute évolution DB ;
+12. [navigation-shell-v1.md](../docs/specifications/navigation-shell-v1.md) et [ui-layout-contract-v1.md](../docs/specifications/ui-layout-contract-v1.md) lorsqu’une UI est concernée — préserver navigation, scroll, pagination, modales et responsive ;
+13. [command-reference.md](../docs/commands/command-reference.md) lorsqu’un chat, Twitch ou une commande est concerné — vérifier le contrat player-facing partagé.
 
-Avant d’orchestrer un nouveau lot Codex, une nouvelle conversation ChatGPT doit donc avoir consulté au minimum `AGENTS.md`, le Master et `implementation-workflow.md`, en plus du présent guide.
+Avant d’orchestrer un nouveau lot Codex, une nouvelle conversation ChatGPT doit donc avoir consulté au minimum `AGENTS.md`, le Master, `implementation-workflow.md` et `conversation-handoff.md`, en plus du présent guide. Le premier décrit le workflow d'un lot ; le second celui de la passation entre conversations.
 
 Après cette lecture, inspecter le code, le schéma Prisma et les migrations physiques concernés, puis comparer explicitement cible documentaire et état réel avant de proposer une implémentation.
 

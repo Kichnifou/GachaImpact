@@ -7,6 +7,7 @@ Il possède la méthode de travail et la répartition des responsabilités entre
 Documents liés :
 
 - [Guide opératoire ChatGPT](../../.chatgpt/CHATGPT_GUIDE.md) : reprise d’une conversation et règles propres à ChatGPT ;
+- [Conversation handoff](conversation-handoff.md) : procédure de fermeture/reprise lors d'un changement de conversation ChatGPT ;
 - [AGENTS.md](../../AGENTS.md) : garde-fous permanents applicables aux agents ;
 - [Master](../master/PROJECT_MASTER_PLAN.md) : état global vivant, domaine actif et prochaine étape exacte ;
 - [Ordre d’implémentation V1](../roadmap/implementation-order-v1.md) : séquence de développement prévue ;
@@ -132,3 +133,7 @@ Lorsque plusieurs défauts appartiennent au même sujet, les grouper dans un lot
 ## 8. Rollback
 
 `main` est l’alpha auto-déployée. Les checkpoints Git constituent le filet de sécurité du projet. Pour annuler un lot public, préférer `git revert`. Ne jamais utiliser de force-push ou de reset destructif de `main`.
+
+## 9. Changer de conversation
+
+Suivre [Conversation handoff](conversation-handoff.md), effectuer le checkpoint documentaire avant de quitter la conversation et ne reprendre le développement qu'après validation du contexte dans la nouvelle conversation.

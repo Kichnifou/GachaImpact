@@ -35,7 +35,7 @@ La finalité opérationnelle principale de cette documentation est de maintenir 
 - `architecture/` : choix du socle backend, schéma PostgreSQL cible, sécurité, infrastructure et préparation technique de l'implémentation.
 - `commands/` : contrats des commandes et future aide intégrée.
 - `notion/` : documentations externes prêtes à être publiées dans Notion, notamment les guides Twitch joueur et technique.
-- `process/` : workflow de conception, implémentation, review, validation publique et checkpoint.
+- `process/` : workflow d'implémentation, procédure de passation entre conversations ChatGPT, review, validation publique et checkpoint.
 - `roadmap/` : trajectoire macro de développement, sans dupliquer l'état courant du Master.
 
 Les sources brutes de l'ancien jeu restent hors de `docs/`, principalement dans `legacy/streamerbot/`.
@@ -49,10 +49,11 @@ Le code courant comprend au minimum `src/` pour le frontend et `server/` pour le
 1. [Guide opératoire ChatGPT](../.chatgpt/CHATGPT_GUIDE.md)
 2. [Master — état vivant](master/PROJECT_MASTER_PLAN.md)
 3. [Workflow d'implémentation](process/implementation-workflow.md)
-4. [Ordre d'implémentation V1](roadmap/implementation-order-v1.md)
-5. [Journal des décisions](specifications/decisions-log.md)
-6. [Architecture backend cible](architecture/backend-architecture-v1.md), [schéma PostgreSQL cible](architecture/postgresql-schema-v1.md), [shell de navigation V1](specifications/navigation-shell-v1.md) et [contrat de layout UI V1](specifications/ui-layout-contract-v1.md)
-7. audit spécialisé du domaine actif indiqué par le Master, sans recopier ici un checkpoint susceptible de changer.
+4. [Conversation handoff](process/conversation-handoff.md)
+5. [Ordre d'implémentation V1](roadmap/implementation-order-v1.md)
+6. [Journal des décisions](specifications/decisions-log.md)
+7. [Architecture backend cible](architecture/backend-architecture-v1.md), [schéma PostgreSQL cible](architecture/postgresql-schema-v1.md), [shell de navigation V1](specifications/navigation-shell-v1.md) et [contrat de layout UI V1](specifications/ui-layout-contract-v1.md)
+8. audit spécialisé du domaine actif indiqué par le Master, sans recopier ici un checkpoint susceptible de changer.
 
 Le Guide décrit l'ordre complet, incluant la vérification du HEAD et la comparaison entre cible documentaire et état physique. Il ne faut pas charger tous les audits dans chaque nouvelle conversation.
 
