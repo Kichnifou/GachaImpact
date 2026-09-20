@@ -996,6 +996,8 @@ Les aides ne recommandent qu'une seule syntaxe canonique.
 
 ## `!infos`
 
+État physique Batch B : Profil UI standalone implémenté pour Aperçu/Team active/Box/Collection/Statistiques selon permissions. La commande reste future ; aucun Chat/Twitch réel n'est branché.
+
 - **Statut audit :** CLÔTURÉ — R471/R489/R490/R525
 - **Syntaxe canonique :** `!infos <pseudo>`
 - **Alias accepté :** `!info <pseudo>`
@@ -1010,6 +1012,8 @@ Les aides ne recommandent qu'une seule syntaxe canonique.
 - **Titre :** jamais affiché dans les chats
 
 ## `!liste`
+
+État physique Batch B : annuaire UI et présence standalone implémentés. Les commandes ci-dessous restent des contrats futurs, sans exécution Chat/Twitch dans ce lot.
 
 - **Statut audit :** CLÔTURÉ — R462/R464/R472/R523/R524
 - **Élément :** `!liste <élément> [page]`

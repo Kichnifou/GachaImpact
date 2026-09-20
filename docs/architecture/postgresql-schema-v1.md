@@ -1775,20 +1775,22 @@ blocker != blocked
 
 ## 23.1 `player_sessions`
 
+État physique Batch B : migration additive `20260920130000_028_add_social_presence`, pour cette table et `player_activity_state`. Hash SHA-256 unique, CHECK format/chronologie, FK cascade Player, index `(player_id, ended_at)` et heartbeat. RLS activée et tous droits PUBLIC/anon/authenticated révoqués sur les deux tables ; seuls les services backend lisent/écrivent. Le modèle actuel n'utilise pas `client_metadata`. Le suivi et le checksum vérifiés sont consignés dans le Master.
+
 Colonnes :
 
 - `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
 - `player_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE`
 - `session_token_hash text NOT NULL UNIQUE`
 - `started_at timestamptz NOT NULL DEFAULT now()`
-- `last_activity_at timestamptz NOT NULL DEFAULT now()`
+- `last_heartbeat_at timestamptz NOT NULL DEFAULT now()`
+- `last_activity_at timestamptz NULL`
 - `ended_at timestamptz NULL`
-- `client_metadata jsonb NULL`
 
 Index :
 
 - `(player_id, ended_at)`
-- `(last_activity_at)`
+- `(last_heartbeat_at)`
 
 L'état En ligne/Absent/Hors ligne reste dérivé.
 
@@ -1826,7 +1828,7 @@ PK :
 
 `PRIMARY KEY(player_id, category_key)`
 
-Le seed de profil crée la matrice par défaut validée.
+Les lignes présentes sont des overrides. Batch B applique la matrice serveur R518/R519 version 1 aux catégories sans ligne ; aucun seed/backfill ne réinitialise les réglages existants.
 
 ---
 

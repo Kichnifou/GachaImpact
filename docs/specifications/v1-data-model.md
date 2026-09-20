@@ -1255,7 +1255,7 @@ Séparer conceptuellement :
 
 ## 22.1 `PlayerSession`
 
-Session standalone connectée.
+Session standalone connectée. Batch B distingue `lastHeartbeatAt` (transport) et `lastActivityAt` nullable (interaction). Identifiant d'onglet distinct, hash lié au Player côté serveur ; `endedAt` ferme la session. L'état est dérivé parmi les sessions encore valides. Aucun timestamp client autoritaire.
 
 ## 22.2 Activités récentes
 
@@ -1319,7 +1319,7 @@ Contient :
 - version/politique initiale si utile
 - date de modification
 
-Le serveur applique la permission avant de renvoyer les données.
+Le serveur applique la permission avant de lire/projeter les données privées. Batch B matérialise les 18 catégories R518/R519 par une matrice serveur versionnée : absence de ligne = défaut, ligne existante = override prioritaire. Aucun backfill/reset. Présence et dernière activité sont distinctes ; FRIENDS exige une amitié ACTIVE, les blocages masquent présence et dernière activité.
 
 Une donnée privée et une donnée vide restent deux états différents.
 
@@ -1530,7 +1530,7 @@ La migration 023 matérialise `EventSocialMessage` avec édition, business date,
 
 `EventDailyPlayerState.gameCSent` reste l'unique quota d'envoi réussi par jour. L'opération `event.game-c.send` lie l'édition, la date, l'expéditeur, le destinataire et le texte normalisé à sa clé d'idempotence. L'envoi atomique crée un message, consomme le quota et crédite uniquement l'expéditeur de +1 point et +1 monnaie ; le destinataire n'est pas inscrit ni crédité automatiquement.
 
-Le contrôle de contact réutilise le sous-ensemble physique Social validé : amitié active canonique, blocages dans les deux sens et autorisation de recevoir des MP `PUBLIC | FRIENDS | PRIVATE` (valeur initiale `PUBLIC`). Aucun état de blocage ou de confidentialité propre à Event n'est introduit. Les autres catégories de confidentialité et les opérations UI Social restent futures.
+Le contrôle de contact réutilise le sous-ensemble physique Social validé : amitié active canonique, blocages dans les deux sens et autorisation de recevoir des MP `PUBLIC | FRIENDS | PRIVATE` (valeur initiale `PUBLIC`). Aucun état de blocage ou de confidentialité propre à Event n'est introduit. Batch B ajoute les catégories et les contrôles UI décrits dans [Social Foundations](../architecture/backend-architecture-v1.md#social-foundations), sans modifier la règle de contact Event ni développer les MP.
 
 ## 26.9 État physique candidat Event Lot 5 — bonus et paliers
 

@@ -58,6 +58,12 @@ Lorsque deux groupes opposés représentent des objets directement comparables �
 
 Lorsqu'une carte représente une seule action, toute sa surface est un unique hit target accessible au clavier. Le libellé d'affordance reste visible mais n'est pas un contrôle imbriqué ni la seule zone cliquable. Hover et `focus-visible` réagissent sur le cadre entier avec l'accent contextuel de la ressource. Une carte sans action ne simule ni curseur, ni hover interactif. Une variante visuelle arbitraire n'est admise que pour une raison métier explicite.
 
+## Filtres et pagination des grilles
+
+Les filtres partagés des grilles conservent recherche, filtres, tri et direction dans leur région de contrôle. Ils reviennent à la ligne selon la largeur disponible ; un contrôle ne doit pas être coupé à 1366 px desktop ou 390 px mobile. Dans Catalogue, la zone de vote reste réservée même avant la première réponse et sur les cartes non candidates : compteurs, attente et confirmation ne déplacent ni les filtres ni la grille.
+
+Un écran long peut utiliser trois régions : contrôles fixes, body scrollable et footer fixe de pagination. Annuaire et Profil réutilisent `ScrollableScreenPanel` ; leurs grilles publiques réutilisent les cartes métier en lecture seule. Une carte sans action n'acquiert ni bouton ni hover interactif. Le responsive mobile conserve le flux naturel du shell.
+
 ## Drag-and-drop
 
 Le drag-and-drop n’est utilisé que lorsqu’une spécification métier le demande explicitement. Une liste réellement prévue pour ce mode distingue deux intentions par des surfaces explicites : des zones de drop autonomes entre les lignes insèrent l’élément à cet emplacement ; le corps complet d’une ligne échange les deux éléments. Aucun seuil ou ratio calculé depuis la position du pointeur dans une ligne ne décide de l’intention. Chaque target accepte `dragover`, annonce `dropEffect = move`, et l’aperçu local rend insertion et échange nettement différents sans découper ni masquer les lignes. `Configuration > Menu` est explicitement arrow-only et n’applique pas ce contrat DnD ; Team continue de l’utiliser selon sa propre spécification.

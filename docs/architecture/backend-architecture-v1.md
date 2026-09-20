@@ -638,7 +638,7 @@ Une commande reste donc un vrai message utilisateur, mais son exécution métier
 
 ## Présence
 
-Presence Supabase peut servir de signal temps réel de session.
+Batch B utilise des sessions PostgreSQL et du polling HTTP authentifié. Aucun Supabase Realtime supplémentaire n'est nécessaire pour la taille actuelle. Presence Supabase reste une option future, pas une dépendance de ce candidat.
 
 Les états métier :
 
@@ -1238,6 +1238,31 @@ La fonction commune d'attribution des points Event est appelée par la réussite
 `GET /api/v1/me/event` expose le solde saisonnier durable `PlayerEventCurrencyBalance` et les trois offres Shop de l'édition courante, même avant inscription. Les mutations `POST /api/v1/me/event/shop/convert` et `/shop/collection` exigent une participation réelle. Une transaction sérialisable verrouille le Player puis sa balance saisonnière, valide la quantité positive et le solde, débite la monnaie et complète une `BusinessOperation` idempotente. Une même clé et une même intention ne débitent jamais deux fois ; une intention différente provoque un conflit. Le taux est immuable : une monnaie Event vaut 160 Primogemmes ou 20 000 Moras. Le crédit standard passe exclusivement par `PrismaEconomyService`, avec `ResourceMovement`, puis la projection Event republie les ressources de la sidebar.
 
 L'achat Collection coûte 80 monnaies et ajoute un exemplaire à `PlayerItem`, une ligne au ledger `ItemAcquisition` et la garde durable `EventCollectionAcquisition` dans la même transaction. Sa clé primaire édition + Player empêche un second achat annuel même en concurrence ; une autre édition annuelle peut ajouter un exemplaire au stock permanent. Les clés de présentation gelées dans `EventEdition.snapshot` sont mappées explicitement aux douze clés du catalogue Collection existant. Le Sac réutilise son API autoritative et son cache est invalidé après un achat confirmé. La migration 025 n'ajoute que la garde d'unicité, sans deuxième inventaire ni backfill.
+
+## Social Foundations
+
+Batch B implémente `SocialService`, `PrivacyService` et `PresenceService`. Toutes les routes suivantes exigent une identité authentifiée résolue en Player ACTIVE ; les écritures `/me` ne prennent jamais un Player propriétaire fourni par le client. Les réponses Social portent `Cache-Control: no-store`.
+
+| Route | Contrat physique |
+| --- | --- |
+| `GET /api/v1/players` | Annuaire ACTIVE ; `q` normalisé accents/casse, filtre `element`, `page`, vingt résultats par page, ordre alphabétique stable. |
+| `GET /api/v1/players/:playerId/profile` | Identité, présence autorisée, dernière activité autorisée et sections avec accès `ALLOWED`/`PRIVATE`. |
+| `GET /api/v1/social/presence` | Liste et compteur des Players En ligne/Absent visibles pour le lecteur. Une présence masquée est omise, jamais inventée Hors ligne. |
+| `GET /api/v1/me/privacy`, `PATCH /api/v1/me/privacy` | Matrice effective ; écriture d'une seule catégorie/niveau validés strictement. |
+| `POST /api/v1/me/presence/session`, `POST /api/v1/me/presence/heartbeat` | Clé UUID d'onglet et booléen d'activité ; temps autoritaire serveur. |
+| `DELETE /api/v1/me/presence/session` | Fin idempotente de cette session, y compris avant l'arrivée réseau de son start. |
+
+L'annuaire charge les seules identités/progressions ACTIVE, normalise et pagine côté serveur, puis lit les présences de la page en requêtes groupées. Ce choix simple convient à l'alpha d'environ cent Players ; l'ensemble des identités est encore trié en mémoire serveur. La liste connectée groupe elle aussi permissions et sessions, sans requête par Player. Aucun snapshot de gameplay complet n'est chargé pour ces deux listes.
+
+Le Profil vérifie chaque permission **avant** la lecture du domaine. `PRIVATE` ne contient aucune donnée cachée. La Team lit la formation active sans provisioning ni nettoyage ; la Box utilise les possessions visibles, sans favoris/Stella/préférences personnelles. La Collection filtre les définitions puis lit uniquement les balances Collection, sans Sac ni monnaie. Les statistiques sélectionnent les agrégats physiques disponibles (XP, tirages/raretés, victoires Combat, expéditions terminées) ; une donnée absente reste indisponible. Aucun GET public ne modifie la cible.
+
+La politique version 1 complète les lignes absentes sans seed ni reset : PUBLIC pour Team active, Box, Collection, statistiques générales, Missions, dernière activité, pity/garantie, réception MP et présence ; FRIENDS pour liste d'amis ; PRIVATE pour monnaies, Banque, Sac, presets Team, expédition active, Combat quotidien, état Boss et historique détaillé. Les overrides existants restent prioritaires. Le propriétaire voit ses données ; FRIENDS exige une amitié ACTIVE dans les relations canoniques existantes. Les blocages dans les deux sens masquent présence, dernière activité et réception MP. Le contrôle Event Game C existant reste conservé. Les catégories sans projection actuelle sont réglables et persistées pour leurs futurs consommateurs ; cela ne crée pas ces domaines.
+
+La migration additive 028 matérialise `PlayerSession` et `PlayerActivityState`, protégées par RLS et sans grants PUBLIC/anon/authenticated. La clé UUID propre au montage d'onglet est stockée en sessionStorage et hachée avec le Player côté serveur ; elle ne remplace pas l'authentification. Le client envoie un heartbeat toutes les 45 s et regroupe les interactions réelles toutes les 15 s. Un heartbeat seul n'avance pas l'activité. Le serveur sérialise start/heartbeat/end et agrégat par verrou transactionnel Player. Une session close reste close ; un tombstone empêche sa résurrection par un start en vol.
+
+Une session est En ligne avant dix minutes d'inactivité, Absente ensuite et Hors ligne à deux heures sans activité. Trois minutes sans heartbeat ou une fermeture explicite la rendent aussi Hors ligne. Les sessions vivantes s'agrègent : une session active suffit pour En ligne ; terminer un onglet ne ferme pas les autres. L'activité application durable est distincte des champs Chat/Twitch/gameplay. Fermeture pagehide et logout sont best-effort ; le timeout couvre une fermeture brutale. Les lectures automatiques ne sont pas des activités utilisateur.
+
+Le panneau connecté et son compteur partagent un polling HTTP visible-only de 30 s, sans chevauchement ; l'annuaire rafraîchit sa page ouverte. Ce choix réutilise le backend et ne requiert ni service payant ni Realtime supplémentaire. Les erreurs de transport sont affichées distinctement d'une liste vide. Amitié, cœurs, MP, Chat/Twitch réels, avatars/titres déblocables et Historique global restent différés.
 
 ## Vertical backend physique candidat Event Lot 6 — Classement actif
 
