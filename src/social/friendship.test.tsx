@@ -28,6 +28,7 @@ function Surface({ api }: { api: SocialActions }) { const controller = useFriend
 function ProfileSurface({ api }: { api: SocialActions }) { const controller = useFriendships(api); return <ProfileScreen actions={api} controller={controller} ownerPlayerId="owner" playerId={person.id} onDirectory={() => {}} onPrivacy={() => {}} /> }
 function ActiveProbe({ api }: { api: SocialActions }) { useFriendships(api, true); return null }
 function MutationProbe({ api }: { api: SocialActions }) { const controller = useFriendships(api, true); return <><button onClick={() => void controller.mutate(person.id, 'ADD')}>Muter</button><output data-snapshot>{controller.value?.businessDate}</output></> }
+function AuthoritativeMutationProbe({ api }: { api: SocialActions }) { const controller = useFriendships(api, true); return <><button onClick={() => void controller.refresh(true)}>Autoritaire</button><button onClick={() => void controller.mutate(person.id, 'ADD')}>Muter</button><output data-snapshot>{controller.value?.businessDate}</output></> }
 async function mount(node: React.ReactNode) { const container = document.createElement('div'); document.body.append(container); root = createRoot(container); await act(async () => root!.render(node)); return container }
 const button = (c: HTMLElement, text: string) => Array.from(c.querySelectorAll('button')).find(b => b.textContent === text)!
 const click = (c: HTMLElement, text: string) => act(async () => button(c, text).click())
@@ -150,6 +151,25 @@ describe('Friendship UI and shared projection', () => {
     expect(api.friends).toHaveBeenCalledTimes(3)
     await act(async () => resolveFresh({ ...initial, businessDate: 'fresh' }))
     expect(c.querySelector('[data-snapshot]')?.textContent).toBe('fresh')
+  })
+  it('coalesces trailing authoritative refreshes without losing a mutation during one', async () => {
+    let resolveInitial!: (value: FriendsSnapshot) => void, resolveAuthoritative!: (value: FriendsSnapshot) => void, resolveFresh!: (value: FriendsSnapshot) => void
+    const { api } = makeApi()
+    vi.mocked(api.friends)
+      .mockImplementationOnce(() => new Promise(done => { resolveInitial = done }))
+      .mockImplementationOnce(() => new Promise(done => { resolveAuthoritative = done }))
+      .mockImplementationOnce(() => new Promise(done => { resolveFresh = done }))
+    const c = await mount(<AuthoritativeMutationProbe api={api} />)
+    await act(async () => resolveInitial({ ...initial, businessDate: 'initial' }))
+    act(() => button(c, 'Autoritaire').click())
+    expect(api.friends).toHaveBeenCalledTimes(2)
+    act(() => { button(c, 'Autoritaire').click(); button(c, 'Muter').click() })
+    expect(api.friends).toHaveBeenCalledTimes(2)
+    await act(async () => resolveAuthoritative({ ...initial, businessDate: 'stale' }))
+    expect(api.friends).toHaveBeenCalledTimes(3)
+    await act(async () => resolveFresh({ ...initial, businessDate: 'fresh' }))
+    expect(c.querySelector('[data-snapshot]')?.textContent).toBe('fresh')
+    expect(api.friends).toHaveBeenCalledTimes(3)
   })
   it('keeps profile friendship controls neutral until the friendship snapshot is loaded', async () => {
     let resolve!: (value: FriendsSnapshot) => void

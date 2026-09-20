@@ -6,7 +6,7 @@ import { apiErrorMessage } from '../utils/formatters'
 export function useFriendships(actions?: SocialActions, active = false) {
   const [value, setValue] = useState<FriendsSnapshot | null>(null)
   const [error, setError] = useState(''), [feedback, setFeedback] = useState(''), [feedbackScope, setFeedbackScope] = useState(''), [pending, setPending] = useState(false)
-  const alive = useRef(false), busy = useRef(false), refreshing = useRef<Promise<void> | null>(null), authoritativeRefresh = useRef<Promise<void> | null>(null), revision = useRef(0), intent = useRef<{ signature: string; key: string } | null>(null), feedbackTimer = useRef<number | undefined>(undefined)
+  const alive = useRef(false), busy = useRef(false), refreshing = useRef<Promise<void> | null>(null), authoritativeDrain = useRef<Promise<void> | null>(null), authoritativeRequested = useRef(0), authoritativeCompleted = useRef(0), revision = useRef(0), intent = useRef<{ signature: string; key: string } | null>(null), feedbackTimer = useRef<number | undefined>(undefined)
   const clearFeedback = useCallback(() => { window.clearTimeout(feedbackTimer.current); setFeedback(''); setFeedbackScope('') }, [])
   const showFeedback = useCallback((scope: string, message: string) => {
     window.clearTimeout(feedbackTimer.current); setFeedbackScope(scope); setFeedback(message)
@@ -26,14 +26,19 @@ export function useFriendships(actions?: SocialActions, active = false) {
       return request
     }
     if (!authoritative) return start()
-    if (authoritativeRefresh.current) return authoritativeRefresh.current
+    authoritativeRequested.current++
+    if (authoritativeDrain.current) return authoritativeDrain.current
     const request = (async () => {
-      const current = refreshing.current
-      if (current) await current
-      return start()
+      while (authoritativeCompleted.current < authoritativeRequested.current) {
+        const requested = authoritativeRequested.current
+        const current = refreshing.current
+        if (current) await current
+        await start()
+        authoritativeCompleted.current = requested
+      }
     })()
-    authoritativeRefresh.current = request
-    void request.finally(() => { if (authoritativeRefresh.current === request) authoritativeRefresh.current = null })
+    authoritativeDrain.current = request
+    void request.finally(() => { if (authoritativeDrain.current === request) authoritativeDrain.current = null })
     return request
   }, [actions])
   useEffect(() => {
