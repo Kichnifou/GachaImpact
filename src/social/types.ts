@@ -3,8 +3,18 @@ import type { BoxCharacterDto, ElementKey, InventoryItemDto, PlayerTeamDto } fro
 export type Access<T> = { access: 'PRIVATE' } | { access: 'ALLOWED'; data: T }
 export type PresenceStatus = 'ONLINE' | 'AWAY' | 'OFFLINE'
 export type SocialIdentity = { id: string; displayName: string; level: number; elementKey: ElementKey | null }
-export type DirectoryQuery = { q: string; element?: ElementKey; page: number }
-export type DirectoryPage = { players: (SocialIdentity & { presence: Access<PresenceStatus> })[]; page: number; pageSize: number; total: number; totalPages: number }
+export type DirectoryQuery = { q: string; element?: ElementKey; status?: PresenceStatus; page: number }
+export type DirectoryPage = { players: (SocialIdentity & { presence: Access<PresenceStatus>; relation?: 'SELF' | 'FRIEND' | 'SENT' | 'RECEIVED' | 'NONE'; requestId?: string | null })[]; page: number; pageSize: number; total: number; totalPages: number }
+export type FriendSort = 'presence' | 'name' | 'level' | 'heart'
+export type FriendAction = 'ADD' | 'ACCEPT' | 'REFUSE' | 'CANCEL' | 'REMOVE'
+export type FriendsSnapshot = {
+  businessDate: string; sort: FriendSort; totalFriendHeartsSent: string
+  players: (SocialIdentity & { presence: Access<PresenceStatus> })[]
+  friends: { id: string; playerId: string; level: number; tier: string; totalHearts: string; heartSent: boolean; canSend: boolean }[]
+  requests: { id: string; playerId: string; direction: 'SENT' | 'RECEIVED'; createdAt: string }[]
+  summary: { activeFriends: number; available: number; alreadySent: number }
+}
+export type HeartResult = { sent: number; alreadySent: number; unavailable: number; activeFriends: number; senderReward: string; recipientReward: string; status: 'SENT' | 'NO_FRIENDS' | 'ALL_SENT' | 'UNAVAILABLE'; level?: number; tier?: string; message?: string }
 export type ConnectedPlayers = { players: (SocialIdentity & { status: 'ONLINE' | 'AWAY' })[]; total: number }
 export type Profile = {
   player: SocialIdentity; own: boolean; presence: Access<PresenceStatus>; lastActivity: Access<string | null>
@@ -21,6 +31,10 @@ export type PrivacyCategory = keyof typeof privacyLabels
 export type PrivacyLevel = 'PUBLIC' | 'FRIENDS' | 'PRIVATE'
 export type PrivacySettings = { version: number; settings: { categoryKey: PrivacyCategory; level: PrivacyLevel }[] }
 export type SocialActions = {
+  friends: () => Promise<FriendsSnapshot>
+  friendAction: (targetPlayerId: string, action: FriendAction, idempotencyKey: string, requestId?: string) => Promise<{ state: string }>
+  sendHearts: (targetPlayerId: string, idempotencyKey: string) => Promise<HeartResult>
+  saveFriendSort: (sort: FriendSort) => Promise<{ sort: FriendSort }>
   directory: (query: DirectoryQuery) => Promise<DirectoryPage>
   profile: (id: string) => Promise<Profile>
   connected: () => Promise<ConnectedPlayers>

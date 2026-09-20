@@ -5,6 +5,7 @@ import { EVENT_GAME_B_CODES, EVENT_GAME_B_MAX_ATTEMPTS, generateEventGameBSoluti
 import { businessDateToDatabaseDate, getBusinessDate, getBusinessDayStartAt, getBusinessMinuteAt, getNextBusinessResetAt, type Clock } from '../../domain/time/business-date.js';
 import type { RandomSource } from '../../domain/wheel/wheel.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
+import { PlayerActivityRecorder } from '../player/player-activity-recorder.js';
 import { BusinessError } from '../errors.js';
 import { MAX_PLAYER_LEVEL, XP_PER_LEVEL } from '../../domain/player/player-progression.js';
 import { elementKeys, isElementKey, particleResourceKey, type ResourceKey } from '../../domain/economy/resources.js';
@@ -380,6 +381,7 @@ export class EventService {
           await this.awardEventPoints(tx, context, player.id, 1, now);
           await tx.playerEventCurrencyBalance.upsert({ where: { playerId_eventDefinitionId: { playerId: player.id, eventDefinitionId: context.definition.id } }, create: { playerId: player.id, eventDefinitionId: context.definition.id, amount: 1n, updatedAt: now }, update: { amount: { increment: 1n }, updatedAt: now } });
           await reconcileEventMessageAggregate(tx, recipientPlayerId, context.edition.id, context.period.businessDate, now, true);
+          await new PlayerActivityRecorder().record(tx, player.id, now, 'GAMEPLAY');
           await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request } } });
           return { ...await this.snapshot(tx, player.id, context, now, false), operation: { id: operation.id, alreadyProcessed: false } };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });

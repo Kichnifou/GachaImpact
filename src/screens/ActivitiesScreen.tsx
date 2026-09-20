@@ -19,6 +19,9 @@ import EventScreen from './EventScreen'
 import type { EventDailyBonusClaimDto, EventCalendarClaimDto, EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto } from '../api/types'
 
 type ActivitiesScreenProps = {
+  friendship?: { activeFriends: number; available: number; alreadySent: number }
+  friendshipError?: string
+  onOpenFriends?: () => void
   sessionUserId: string
   screen: ScreenId
   wheelToday: WheelTodayDto
@@ -141,7 +144,7 @@ function DailyOverviewCard({ title, status, completed = false, detail, obtained,
   )
 }
 
-function DailiesScreen({ wheelToday, onSpinWheel, dailyRewardToday, dailyChallenge, dailyCombat = unavailableDailyCombat, monthlyBoss = unavailableMonthlyBoss, event, expedition, expeditionMonotonicNow = 0, dailiesOverviewRequestToken = 0, elementKey, onClaimDailyReward, onPurchaseDailyChallenge, onSwitchDailyChallenge, onOpenParticleConversion, onOpenExpedition, onOpenBoss, onNavigate }: Omit<ActivitiesScreenProps, 'screen'>) {
+function DailiesScreen({ friendship, friendshipError, onOpenFriends, wheelToday, onSpinWheel, dailyRewardToday, dailyChallenge, dailyCombat = unavailableDailyCombat, monthlyBoss = unavailableMonthlyBoss, event, expedition, expeditionMonotonicNow = 0, dailiesOverviewRequestToken = 0, elementKey, onClaimDailyReward, onPurchaseDailyChallenge, onSwitchDailyChallenge, onOpenParticleConversion, onOpenExpedition, onOpenBoss, onNavigate }: Omit<ActivitiesScreenProps, 'screen'>) {
   const [selection, setSelection] = useState<{ tab: 'overview' | 'wheel' | 'challenge'; requestToken: number }>({ tab: 'overview', requestToken: dailiesOverviewRequestToken })
   const tab = selection.requestToken === dailiesOverviewRequestToken ? selection.tab : 'overview'
   const selectTab = (next: typeof tab) => setSelection({ tab: next, requestToken: dailiesOverviewRequestToken })
@@ -159,7 +162,7 @@ function DailiesScreen({ wheelToday, onSpinWheel, dailyRewardToday, dailyChallen
     <DailyOverviewCard title="Combat" status={combatOverview.status} completed={dailyCombat.status === 'COMPLETED'} detail={combatOverview.detail} obtained={dailyCombat.status === 'COMPLETED' ? `+${formatResourceAmount(dailyCombat.reward.primogems)} Primogemmes · +${formatResourceAmount(dailyCombat.reward.moras)} Moras` : undefined} onAccess={() => onNavigate('activities-combat')} />
     <DailyOverviewCard title="Boss" status={bossCompleted ? '✅ Terminé' : 'À faire'} completed={bossCompleted} detail={bossDetail} onAccess={onOpenBoss} />
     <ExpeditionOverviewCard snapshot={expedition} monotonicNow={expeditionMonotonicNow} onAccess={onOpenExpedition ?? (() => onNavigate('characters-box'))} />
-    <DailyOverviewCard title="Amitié" status="Bientôt disponible. Social et Amis ne sont pas encore implémentés." accessLabel="Accéder à Amitié — Social et Amis bientôt disponibles" />
+    <DailyOverviewCard title="Amitié" status={friendshipError ? 'Amitié indisponible.' : !friendship ? 'Chargement de l’amitié…' : !friendship.activeFriends ? 'Aucun ami actif.' : friendship.available ? `${friendship.available} cœur(s) à envoyer` : friendship.alreadySent === friendship.activeFriends ? '✅ Terminé' : 'Aucun envoi disponible.'} completed={Boolean(friendship?.activeFriends && friendship.alreadySent === friendship.activeFriends)} hideAction={!friendship?.available || Boolean(friendshipError)} onAccess={onOpenFriends} />
     <DailyOverviewCard title="Événement" status={event ? eventActionable ? `${event.festival.emoji} ${event.festival.title}` : '✅ Terminé' : 'Synchronisation du Festival…'} completed={Boolean(event) && !eventActionable} detail={event ? `${event.festival.title} · ${eventDailyDetail(event)} · ${formatResourceAmount(event.currency.amount)} ${eventCurrencyLabel(event.currency.amount, event.festival.currency)}` : undefined} hideAction={Boolean(event) && !eventActionable} onAccess={() => onNavigate('activities-event')} />
   </div>}{tab === 'wheel' && <WheelCard today={wheelToday} onSpin={onSpinWheel} />}{tab === 'challenge' && <DailyChallengeCard value={dailyChallenge} onPurchase={onPurchaseDailyChallenge} onSwitch={onSwitchDailyChallenge} onOpenParticleConversion={onOpenParticleConversion} onNavigate={onNavigate} />}</ScrollableScreenPanel></div>
 }

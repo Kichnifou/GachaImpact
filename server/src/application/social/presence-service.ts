@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { PrismaClient } from '../../../generated/prisma/client.js';
 import type { Clock } from '../../domain/time/business-date.js';
 import { AppError } from '../../api/errors.js';
+import { PlayerActivityRecorder } from '../player/player-activity-recorder.js';
 
 export const PRESENCE_AWAY_MS = 10 * 60_000;
 export const PRESENCE_INACTIVE_MS = 2 * 60 * 60_000;
@@ -29,7 +30,7 @@ export class PresenceService {
       const recordActivity = activity && (!row?.lastActivityAt || now.getTime() - row.lastActivityAt.getTime() >= 15_000);
       if (!row) await tx.playerSession.create({ data: { playerId, sessionTokenHash, startedAt: now, lastHeartbeatAt: now, lastActivityAt: activity ? now : null } });
       else await tx.playerSession.update({ where: { id: row.id }, data: { lastHeartbeatAt: now, ...(start ? { endedAt: null } : {}), ...(recordActivity ? { lastActivityAt: now } : {}) } });
-      if (recordActivity) await tx.playerActivityState.upsert({ where: { playerId }, create: { playerId, lastAppActivityAt: now, updatedAt: now }, update: { lastAppActivityAt: now, updatedAt: now } });
+      if (recordActivity) await new PlayerActivityRecorder().record(tx, playerId, now, 'APPLICATION');
       return { serverTime: now.toISOString() };
     });
   }

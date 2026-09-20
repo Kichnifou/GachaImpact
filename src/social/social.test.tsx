@@ -8,6 +8,7 @@ import ConfigurationScreen from '../screens/ConfigurationScreen'
 import OnlinePlayersPanel from '../components/OnlinePlayersPanel'
 import { defaultNavigationPreference } from '../navigation/navigation'
 import { usePresence } from './use-presence'
+import { useFriendships } from './use-friendships'
 import { privacyLabels, type Profile, type SocialActions } from './types'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -17,6 +18,8 @@ const player = { id: 'owner', displayName: 'Éloïse', level: 3, elementKey: 'py
 const profile: Profile = { player, own: false, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'ALLOWED', data: [] }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
 function actions(): SocialActions {
   return { directory: vi.fn(async () => ({ players: [{ ...player, presence: { access: 'PRIVATE' as const } }], page: 1, pageSize: 20, total: 21, totalPages: 2 })), profile: vi.fn(async () => profile), connected: vi.fn(async () => ({ players: [{ ...player, status: 'AWAY' as const }], total: 1 })),
+    friends: vi.fn(async () => ({ businessDate: '2026-09-20', sort: 'presence' as const, totalFriendHeartsSent: '0', players: [], friends: [], requests: [], summary: { activeFriends: 0, available: 0, alreadySent: 0 } })),
+    friendAction: vi.fn(async () => ({ state: 'PENDING' })), sendHearts: vi.fn(async () => ({ sent: 0, alreadySent: 0, unavailable: 0, activeFriends: 0, senderReward: '0', recipientReward: '5', status: 'NO_FRIENDS' as const })), saveFriendSort: vi.fn(async sort => ({ sort })),
     privacy: vi.fn(async () => ({ version: 1, settings: [{ categoryKey: 'BOX' as const, level: 'PUBLIC' as const }] })),
     savePrivacy: vi.fn(async (categoryKey, level) => ({ version: 1, settings: [{ categoryKey, level }] })),
     session: vi.fn(async () => ({})), heartbeat: vi.fn(async () => ({})), end: vi.fn(async () => ({})),
@@ -24,10 +27,11 @@ function actions(): SocialActions {
 }
 async function mount(element: React.ReactNode) { const container = document.createElement('div'); document.body.append(container); root = createRoot(container); await act(async () => root!.render(element)); return container }
 const click = async (container: HTMLElement, label: string) => act(async () => { Array.from(container.querySelectorAll('button')).find(b => b.textContent === label)!.click() })
+function Directory({ api, open }: { api: SocialActions; open: (id: string) => void }) { const controller = useFriendships(api); return <SocialScreen actions={api} onProfile={open} initialTab="players" controller={controller} /> }
 describe('Social UI', () => {
   it('searches and filters on the server, paginates and opens identity without a fake offline status', async () => {
-    const api = actions(), open = vi.fn(), container = await mount(<SocialScreen actions={api} onProfile={open} />)
-    expect(container.textContent).not.toContain('Hors ligne')
+    const api = actions(), open = vi.fn(), container = await mount(<Directory api={api} open={open} />)
+    expect(container.querySelector('.social-player-list')?.textContent).not.toContain('Hors ligne')
     await act(async () => (container.querySelector('.social-player-identity') as HTMLButtonElement).click())
     expect(open).toHaveBeenCalledWith('owner')
     const search = container.querySelector('input')!
@@ -42,6 +46,7 @@ describe('Social UI', () => {
   it('distinguishes private sections from empty possessions and exposes no mutation controls', async () => {
     const container = await mount(<ProfileScreen playerId="owner" actions={actions()} onDirectory={vi.fn()} onPrivacy={vi.fn()} />)
     expect(container.textContent).toContain('Dernière activité privée')
+    await click(container, 'Team active')
     expect(container.textContent).toContain('Cette rubrique est privée.')
     expect(container.textContent).not.toContain('Aucune Team active.')
     await click(container, 'Box')

@@ -20,6 +20,15 @@ afterEach(() => {
 })
 
 describe('BoxCharacterDetailModal Expedition countdown', () => {
+  it('already distinguishes pending claim from pending departure', () => {
+    const container = document.createElement('div'); document.body.append(container); const root = createRoot(container)
+    const ready: ExpeditionDto = { ...idle, operationalStatus: 'READY', activeCharacter: character, canStartToday: false }
+    act(() => root.render(<BoxCharacterDetailModal {...shared} expedition={createExpeditionClientSnapshot(ready, 0)} expeditionMonotonicNow={0} expeditionPending onClaimExpedition={() => {}} onStartExpedition={() => {}} />))
+    expect(container.textContent).toContain('Récupération…'); expect(container.textContent).not.toContain('Départ…')
+    act(() => root.render(<BoxCharacterDetailModal {...shared} expedition={createExpeditionClientSnapshot(idle, 0)} expeditionMonotonicNow={0} expeditionPending onClaimExpedition={() => {}} onStartExpedition={() => {}} />))
+    expect(container.textContent).toContain('Départ…'); expect(container.textContent).not.toContain('Récupération…')
+    act(() => root.unmount())
+  })
   it('keeps one monotonic snapshot across close/reopen and reanchors only on a fresh server projection', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2030-01-01T00:00:00Z'))

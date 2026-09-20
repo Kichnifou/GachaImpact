@@ -5,8 +5,9 @@ import { privacyCategories } from '../../application/social/privacy-service.js';
 import { elementKeys } from '../../domain/economy/resources.js';
 import { requireAuthenticatedIdentity } from '../auth/authentication.js';
 import { AppError } from '../errors.js';
+import { friendSorts } from '../../application/social/friendship-service.js';
 
-const querySchema = z.object({ q: z.string().max(100).default(''), element: z.enum(elementKeys).optional(), page: z.coerce.number().int().min(1).max(1_000_000).default(1) }).strict();
+const querySchema = z.object({ q: z.string().max(100).default(''), element: z.enum(elementKeys).optional(), status: z.enum(['ONLINE', 'AWAY', 'OFFLINE']).optional(), page: z.coerce.number().int().min(1).max(1_000_000).default(1) }).strict();
 const profileSchema = z.object({ playerId: z.uuid() }).strict();
 const privacySchema = z.object({ categoryKey: z.enum(privacyCategories), level: z.enum(['PUBLIC', 'FRIENDS', 'PRIVATE']) }).strict();
 const sessionSchema = z.object({ sessionKey: z.uuid(), activity: z.boolean().default(false) }).strict();
@@ -23,6 +24,20 @@ export async function registerSocialRoutes(app: FastifyInstance, options: { auth
   app.get('/api/v1/players', config, request => service.directory(requireAuthenticatedIdentity(request), parse(querySchema, request.query)));
   app.get('/api/v1/players/:playerId/profile', config, request => service.profile(requireAuthenticatedIdentity(request), parse(profileSchema, request.params).playerId));
   app.get('/api/v1/social/presence', config, request => service.connected(requireAuthenticatedIdentity(request)));
+  app.get('/api/v1/me/friends', config, request => service.friends(requireAuthenticatedIdentity(request)));
+  app.patch('/api/v1/me/friends/sort', config, async request => {
+    const body = parse(z.object({ sort: z.enum(friendSorts) }).strict(), request.body);
+    return service.friendship.saveSort((await service.actor(requireAuthenticatedIdentity(request))).id, body.sort);
+  });
+  app.post('/api/v1/me/friends/actions', config, async request => {
+    const body = parse(z.object({ targetPlayerId: z.uuid(), action: z.enum(['ADD', 'ACCEPT', 'REFUSE', 'CANCEL', 'REMOVE']), idempotencyKey: z.uuid(), requestId: z.uuid().optional() }).strict(), request.body);
+    if (['ACCEPT', 'REFUSE', 'CANCEL'].includes(body.action) && !body.requestId) throw new AppError('Demande manquante.', 400, 'VALIDATION_ERROR');
+    return service.friendship.mutate((await service.actor(requireAuthenticatedIdentity(request))).id, body.targetPlayerId, body.action, body.idempotencyKey, 'UI', body.requestId);
+  });
+  app.post('/api/v1/me/friends/hearts', config, async request => {
+    const body = parse(z.object({ targetPlayerId: z.union([z.uuid(), z.literal('all')]), idempotencyKey: z.uuid() }).strict(), request.body);
+    return service.friendship.sendHearts((await service.actor(requireAuthenticatedIdentity(request))).id, body.targetPlayerId, body.idempotencyKey);
+  });
   app.get('/api/v1/me/privacy', config, async request => service.privacy.settings((await service.actor(requireAuthenticatedIdentity(request))).id));
   app.patch('/api/v1/me/privacy', config, async request => {
     const body = parse(privacySchema, request.body);

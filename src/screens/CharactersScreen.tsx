@@ -39,7 +39,7 @@ function CharactersScreen({ characters, voteCache, ...voteActions }: { character
     <div className="catalog-vote-feedback" role="alert">{votes.error}</div>
     {filtered.length ? <section className="character-grid" aria-label="Catalogue des personnages">{filtered.map((character) => {
       const candidate = votes.value?.candidates.find(entry => entry.characterId === character.id)
-      return <CharacterCard character={character} key={character.id} footer={<div className="catalog-vote-slot">{candidate && <div className="catalog-character-vote"><span>{candidate.voteCount} vote{candidate.voteCount <= 1 ? '' : 's'}</span>{votes.value?.ownVote?.characterId === character.id ? <strong>Voté</strong> : votes.value?.canVote && <AppButton variant="primary" aria-label={`Voter pour ${character.name} — choix définitif pour cette semaine`} disabled={votes.pending} onClick={() => void votes.vote(character.id)}>Voter</AppButton>}</div>}</div>} />
+      return <CharacterCard character={character} key={character.id} footer={<div className="catalog-vote-slot">{candidate && <div className="catalog-character-vote"><span>{candidate.voteCount} vote{candidate.voteCount <= 1 ? '' : 's'}</span>{votes.value?.ownVote?.characterId === character.id ? <strong>Voté ✓</strong> : votes.value?.canVote && <AppButton variant="primary" aria-label={`Voter pour ${character.name} — choix définitif pour cette semaine`} disabled={votes.pending} onClick={() => void votes.vote(character.id)}>Voter</AppButton>}</div>}</div>} />
     })}</section>
       : <section className="catalog-empty" role="status"><p>Aucun personnage ne correspond à ces filtres.</p><button type="button" onClick={reset}>Réinitialiser</button></section>}
     </ScrollableScreenPanel>

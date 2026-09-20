@@ -57,7 +57,7 @@ describe('Catalogue community votes', () => {
     expect(onVote).toHaveBeenCalledWith('c0', 'rotation')
     expect(container.querySelectorAll('.catalog-character-vote button')).toHaveLength(0)
     expect(container.textContent).toContain('4 votes')
-    expect(container.textContent).toContain('Voté')
+    expect(container.querySelector('.catalog-character-vote strong')?.textContent).toBe('Voté ✓')
     expect(container.querySelectorAll('.character-card')).toHaveLength(4)
   })
   it('polls only while visible, reloads catalog only on version change, cleans up', async () => {

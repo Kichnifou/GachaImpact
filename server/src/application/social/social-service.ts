@@ -10,8 +10,9 @@ import { PrismaInventoryStore } from '../../infrastructure/database/prisma-inven
 import { AppError } from '../../api/errors.js';
 import { PrivacyService, privacyAllowedWhere } from './privacy-service.js';
 import { PresenceService, derivePresence, PRESENCE_CONNECTION_TIMEOUT_MS } from './presence-service.js';
+import { FriendshipService } from './friendship-service.js';
 
-export type SocialQuery = { q: string; element?: string; page: number };
+export type SocialQuery = { q: string; element?: string; status?: 'ONLINE' | 'AWAY' | 'OFFLINE'; page: number };
 export type Access<T> = { access: 'PRIVATE' } | { access: 'ALLOWED'; data: T };
 const hidden = { access: 'PRIVATE' } as const;
 const allowed = <T>(data: T): Access<T> => ({ access: 'ALLOWED', data });
@@ -20,9 +21,11 @@ export const normalizePlayerSearch = (value: string) => value.trim().normalize('
 export class SocialService {
   readonly privacy: PrivacyService;
   readonly presence: PresenceService;
+  readonly friendship: FriendshipService;
   constructor(private readonly getPlayer: GetCurrentPlayer, private readonly database: PrismaClient, private readonly clock: Clock) {
     this.privacy = new PrivacyService(database);
     this.presence = new PresenceService(database, clock);
+    this.friendship = new FriendshipService(database, clock);
   }
   async actor(identity: AuthenticatedIdentity) {
     const player = await this.getPlayer.execute(identity);
@@ -45,14 +48,24 @@ export class SocialService {
   async directory(identity: AuthenticatedIdentity, query: SocialQuery) {
     const viewer = await this.actor(identity);
     // Same accent/case/substring semantics as the existing Player browser. Only identities
-    // are scanned; private reads are batched for the requested page, never per Player.
+    // are scanned; authorized presence is batched before status filtering/pagination.
     const needle = normalizePlayerSearch(query.q);
-    const identities = (await this.identities(query.element)).filter(p => normalizePlayerSearch(p.displayName).includes(needle));
+    let identities = (await this.identities(query.element)).filter(p => normalizePlayerSearch(p.displayName).includes(needle));
+    const presence = await this.visiblePresence(viewer.id, identities.map(p => p.id));
+    if (query.status) identities = identities.filter(p => presence.get(p.id) === query.status);
     const totalPages = Math.max(1, Math.ceil(identities.length / 20));
     const page = Math.min(query.page, totalPages);
     const rows = identities.slice((page - 1) * 20, page * 20);
-    const presence = await this.visiblePresence(viewer.id, rows.map(p => p.id));
-    return { players: rows.map(p => ({ ...p, presence: presence.has(p.id) ? allowed(presence.get(p.id)!) : hidden })), page, pageSize: 20, total: identities.length, totalPages };
+    const social = await this.friendship.snapshot(viewer.id);
+    return { players: rows.map(p => ({ ...p, presence: presence.has(p.id) ? allowed(presence.get(p.id)!) : hidden, relation: p.id === viewer.id ? 'SELF' : social.friends.some(f => f.playerId === p.id) ? 'FRIEND' : social.requests.find(r => r.playerId === p.id)?.direction ?? 'NONE', requestId: social.requests.find(r => r.playerId === p.id)?.id ?? null })), page, pageSize: 20, total: identities.length, totalPages };
+  }
+  async friends(identity: AuthenticatedIdentity) {
+    const viewer = await this.actor(identity);
+    const state = await this.friendship.snapshot(viewer.id);
+    const ids = new Set([...state.friends.map(f => f.playerId), ...state.requests.map(r => r.playerId)]);
+    const identities = (await this.identities()).filter(p => ids.has(p.id));
+    const presence = await this.visiblePresence(viewer.id, identities.map(p => p.id));
+    return { ...state, players: identities.map(p => ({ ...p, presence: presence.has(p.id) ? allowed(presence.get(p.id)!) : hidden })) };
   }
   async connected(identity: AuthenticatedIdentity) {
     const viewer = await this.actor(identity);

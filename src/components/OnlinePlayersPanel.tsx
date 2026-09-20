@@ -11,6 +11,6 @@ export default function OnlinePlayersPanel({ value, error, onClose, onProfile, o
     <header className="floating-panel-heading"><div><span className="eyebrow">Communauté</span><h2 id="players-title">Joueurs connectés</h2></div><ModalCloseButton onClose={onClose} /></header>
     <div className="players-summary">{value ? `${value.total} joueur${value.total > 1 ? 's' : ''} connecté${value.total > 1 ? 's' : ''}` : error ? 'Présence indisponible.' : 'Chargement…'}</div>
     <div className="online-player-list">{value?.players.map(player => <PlayerIdentity key={player.id} player={player} onOpen={() => onProfile(player.id)} status={presenceLabels[player.status]} />)}{value?.total === 0 && <p>Aucun joueur connecté visible.</p>}</div>
-    <AppButton onClick={onDirectory}>Voir tous les joueurs →</AppButton>
+    <AppButton className="players-directory-button" onClick={onDirectory}>Voir tous les joueurs →</AppButton>
   </section></div>
 }

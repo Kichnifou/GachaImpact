@@ -24,6 +24,15 @@ enum FriendshipState {
   @@map("friendship_state")
 }
 
+enum FriendRequestState {
+  PENDING
+  ACCEPTED
+  REFUSED
+  CANCELLED
+
+  @@map("friend_request_state")
+}
+
 enum PrivacyLevel {
   PUBLIC
   FRIENDS
@@ -289,6 +298,11 @@ model Player {
   privacySettings       PrivacySetting[]
   sessions              PlayerSession[]
   activityState         PlayerActivityState?
+  socialStats           PlayerSocialStats?
+  friendRequestsSent    FriendRequest[] @relation("FriendRequestSender")
+  friendRequestsReceived FriendRequest[] @relation("FriendRequestRecipient")
+  friendHeartsSent       FriendHeart[] @relation("FriendHeartSender")
+  friendHeartsReceived   FriendHeart[] @relation("FriendHeartRecipient")
   eventMessagesSent     EventSocialMessage[]         @relation("EventMessageSender")
   eventMessagesReceived EventSocialMessage[]         @relation("EventMessageRecipient")
 
@@ -576,6 +590,7 @@ model BusinessOperation {
   giftCodeClaim      GiftCodeClaim?
   eventMilestoneClaim EventMilestoneClaim?
   eventCalendarClaim  EventCalendarClaim?
+  friendHeart        FriendHeart?
 
   @@index([playerId, startedAt(sort: Desc)], map: "business_operations_player_started_at_idx")
   @@index([operationType, startedAt(sort: Desc)], map: "business_operations_type_started_at_idx")
@@ -739,7 +754,7 @@ model Friendship {
   playerAId       String          @map("player_a_id") @db.Uuid
   playerBId       String          @map("player_b_id") @db.Uuid
   state           FriendshipState @default(ACTIVE)
-  level           Int             @default(0)
+  level           Int             @default(1)
   totalHearts     BigInt          @default(0) @map("total_hearts")
   becameFriendsAt DateTime?       @map("became_friends_at") @db.Timestamptz(6)
   archivedAt      DateTime?       @map("archived_at") @db.Timestamptz(6)
@@ -747,10 +762,55 @@ model Friendship {
   updatedAt       DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   playerA         Player          @relation("FriendshipA", fields: [playerAId], references: [id], onDelete: Restrict)
   playerB         Player          @relation("FriendshipB", fields: [playerBId], references: [id], onDelete: Restrict)
+  hearts          FriendHeart[]
 
   @@unique([playerAId, playerBId], map: "friendships_player_pair_key")
   @@index([playerBId], map: "friendships_player_b_idx")
   @@map("friendships")
+}
+
+model FriendRequest {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  senderPlayerId String @map("sender_player_id") @db.Uuid
+  recipientPlayerId String @map("recipient_player_id") @db.Uuid
+  state FriendRequestState @default(PENDING)
+  sourceChannel SourceChannel @map("source_channel")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz(6)
+  sender Player @relation("FriendRequestSender", fields: [senderPlayerId], references: [id], onDelete: Restrict)
+  recipient Player @relation("FriendRequestRecipient", fields: [recipientPlayerId], references: [id], onDelete: Restrict)
+
+  @@index([senderPlayerId, state], map: "friend_requests_sender_state_idx")
+  @@index([recipientPlayerId, state], map: "friend_requests_recipient_state_idx")
+  @@map("friend_requests")
+}
+
+model FriendHeart {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  friendshipId String @map("friendship_id") @db.Uuid
+  senderPlayerId String @map("sender_player_id") @db.Uuid
+  recipientPlayerId String @map("recipient_player_id") @db.Uuid
+  businessDate DateTime @map("business_date") @db.Date
+  operationId String @unique(map: "friend_hearts_operation_id_key") @map("operation_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  friendship Friendship @relation(fields: [friendshipId], references: [id], onDelete: Restrict)
+  sender Player @relation("FriendHeartSender", fields: [senderPlayerId], references: [id], onDelete: Restrict)
+  recipient Player @relation("FriendHeartRecipient", fields: [recipientPlayerId], references: [id], onDelete: Restrict)
+  operation BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+
+  @@unique([friendshipId, senderPlayerId, businessDate], map: "friend_hearts_daily_key")
+  @@index([senderPlayerId, businessDate], map: "friend_hearts_sender_date_idx")
+  @@index([recipientPlayerId], map: "friend_hearts_recipient_idx")
+  @@map("friend_hearts")
+}
+
+model PlayerSocialStats {
+  playerId String @id @map("player_id") @db.Uuid
+  totalFriendHeartsSent BigInt @default(0) @map("total_friend_hearts_sent")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
+
+  @@map("player_social_stats")
 }
 
 model PlayerBlock {

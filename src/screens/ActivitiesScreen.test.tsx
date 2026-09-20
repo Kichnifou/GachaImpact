@@ -212,7 +212,17 @@ describe('Activities shells', () => {
     expect(activity(nextDay.container, 'Événement').querySelector<HTMLButtonElement>('button')?.textContent).toBe('Accéder')
     expect(activity(nextDay.container, 'Événement').querySelector('.daily-overview-complete')).toBeNull()
   })
-  it('keeps Amitié unavailable without inventing a Social route', () => { const onNavigate = vi.fn(); const { container } = mount({ onNavigate }); const friendship = activity(container, 'Amitié'); const button = friendship.querySelector<HTMLButtonElement>('button')!; expect(friendship.textContent).toContain('Bientôt disponible'); expect(button.disabled).toBe(true); expect(button.getAttribute('aria-label')).toContain('Social et Amis bientôt disponibles'); expect(onNavigate).not.toHaveBeenCalled() })
+  it('shows actual friendship availability and opens Social Amis', () => {
+    const onOpenFriends = vi.fn(); const { container } = mount({ friendship: { activeFriends: 3, available: 2, alreadySent: 1 }, onOpenFriends });
+    const card = activity(container, 'Amitié'); expect(card.textContent).toContain('2 cœur(s) à envoyer');
+    act(() => card.querySelector<HTMLButtonElement>('button')!.click()); expect(onOpenFriends).toHaveBeenCalledOnce();
+  })
+  it('shows no task without friends and completed after all hearts have been sent', () => {
+    const empty = activity(mount({ friendship: { activeFriends: 0, available: 0, alreadySent: 0 } }).container, 'Amitié');
+    expect(empty.textContent).toContain('Aucun ami actif.'); expect(empty.querySelector('button')).toBeNull();
+    const done = activity(mount({ friendship: { activeFriends: 2, available: 0, alreadySent: 2 } }).container, 'Amitié');
+    expect(done.textContent).toContain('✅ Terminé'); expect(done.querySelector('button')).toBeNull();
+  })
   it('keeps the reserved Mission labels without fake gameplay', () => { const { container } = mount({}, 'activities-missions'); ['B', 'A', 'S', 'Z'].forEach((label) => expect(container.textContent).toContain(label)); expect(container.textContent).toContain('Bientôt disponible') })
   it('renders the real Event surface with Games guarded until registration', () => { const { container } = mount({ event: eventBeforeJoin, onLoadEvent: vi.fn(async () => eventBeforeJoin), onJoinEvent: vi.fn(), onAttemptEventGameA: vi.fn() }, 'activities-event'); const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('.event-tabs button')); expect(tabs.map(({ textContent }) => textContent)).toEqual(['Inscription', 'Jeux', 'Shop', 'Classement']); expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, false, false]); expect(container.textContent).not.toMatch(/À venir|Bientôt disponible|La suite du Festival/) })
   it('keeps the unavailable Event fallback aligned with the official tab order', () => { const { container } = mount({}, 'activities-event'); const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('.activity-inner-tabs button')); expect(tabs.map(({ textContent }) => textContent)).toEqual(['Inscription', 'Jeux', 'Shop', 'Classement']); expect(tabs.every(({ disabled }) => disabled)).toBe(true); expect(container.textContent).toContain('Festival indisponible') })

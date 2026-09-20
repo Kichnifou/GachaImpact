@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import { ApiError, getGameApiClient } from './api/game-api'
 import type { BankTransferDto, ContestDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyRewardTodayDto, ElementKey, EventDto, EventRankingDto, ExpeditionDto, GachaCharacterDto, GachaPullDto, ModerationPermissionsDto, ModerationStateDto, MonthlyBossDto, NotificationsDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, ShopPurchaseDto, WheelTodayDto } from './api/types'
@@ -63,6 +63,14 @@ function AppBootstrap() {
     setResources(nextResources)
     return nextResources
   }, [])
+
+  const socialActions = useMemo(() => ({ ...getGameApiClient().social,
+    sendHearts: async (target: string, key: string) => {
+      const result = await getGameApiClient().social.sendHearts(target, key)
+      await loadResources()
+      return result
+    },
+  }), [loadResources])
 
   const loadContest = useCallback(() => contestRequests.read(() => getGameApiClient().getContest()), [contestRequests])
   const refreshContest = useCallback(() => contestRequests.refresh(() => getGameApiClient().getContest()), [contestRequests])
@@ -387,7 +395,8 @@ function AppBootstrap() {
 
   return (
     <GameShell
-      socialActions={getGameApiClient().social}
+      key={player.id}
+      socialActions={socialActions}
       bannerVoteActions={{ onLoadVotes: loadBannerVotes, onVote: voteForBanner, onReloadCatalog: reloadCatalog }}
       player={player}
       resources={visibleResources}
