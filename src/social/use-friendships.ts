@@ -72,7 +72,7 @@ export function useFriendships(actions?: SocialActions, active = false) {
   }
   const saveSort = async (sort: FriendSort) => {
     if (!actions || busy.current) return
-    busy.current = true; setPending(true); clearFeedback()
+    busy.current = true; setPending(true)
     try { await actions.saveFriendSort(sort); await refresh(true) }
     catch (reason) { if (alive.current) setError(apiErrorMessage(reason)) }
     finally { busy.current = false; if (alive.current) setPending(false) }

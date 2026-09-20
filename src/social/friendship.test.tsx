@@ -114,18 +114,33 @@ describe('Friendship UI and shared projection', () => {
     const css = readFileSync('src/App.css', 'utf8')
     expect(css).toMatch(/\.social-row \{[^}]*grid-template-columns: minmax\(0, 1fr\) 132px/)
   })
-  it('keeps success feedback on its surface, clears it on navigation and replaces it on a new action', async () => {
+  it('keeps feedback across search, filters and sort, then clears it only on tab change', async () => {
     vi.useFakeTimers()
     const { api } = makeApi(), c = await mount(<Surface api={api} />)
     await click(c, 'Joueurs'); await click(c, 'Ajouter')
     expect(c.textContent).toContain('Demande envoyée.')
-    await click(c, 'Amis'); expect(c.textContent).not.toContain('Demande envoyée.')
-    await click(c, 'Joueurs'); await click(c, 'Ajouter')
     await act(async () => { await vi.advanceTimersByTimeAsync(4_000) })
     expect(c.textContent).toContain('Demande envoyée.')
+    const search = c.querySelector('input')!
+    await act(async () => { search.value = 'elo'; search.dispatchEvent(new Event('input', { bubbles: true })) })
+    for (const [label, value] of [['Élément', 'pyro'], ['Statut', 'AWAY'], ['Relation', 'NONE']] as const) {
+      const select = Array.from(c.querySelectorAll('label')).find(item => item.textContent?.startsWith(label))!.querySelector('select')!
+      await act(async () => { select.value = value; select.dispatchEvent(new Event('change', { bubbles: true })) })
+      expect(c.textContent).toContain('Demande envoyée.')
+    }
     vi.mocked(api.friendAction).mockResolvedValueOnce({ state: 'REFUSED' })
     await click(c, 'Ajouter')
     expect(c.textContent).toContain('Demande refusée.')
+    await click(c, 'Amis'); expect(c.textContent).not.toContain('Demande refusée.')
+    vi.mocked(api.friendAction).mockResolvedValueOnce({ state: 'ARCHIVED' })
+    await click(c, 'Retirer')
+    expect(c.textContent).toContain('Ami retiré.')
+    const friendSearch = c.querySelector('input')!
+    await act(async () => { friendSearch.value = 'elo'; friendSearch.dispatchEvent(new Event('input', { bubbles: true })) })
+    const sort = Array.from(c.querySelectorAll('label')).find(item => item.textContent?.startsWith('Trier les amis'))!.querySelector('select')!
+    await act(async () => { sort.value = 'level'; sort.dispatchEvent(new Event('change', { bubbles: true })) })
+    expect(c.textContent).toContain('Ami retiré.')
+    await click(c, 'Demandes'); expect(c.textContent).not.toContain('Ami retiré.')
   })
   it('refreshes active surfaces on focus without overlapping an in-flight friendship request', async () => {
     let resolve!: (value: FriendsSnapshot) => void
