@@ -1688,13 +1688,15 @@ Garantit une seule récompense communautaire.
 
 Stocke une paire canonique.
 
+État physique Batch C : `20260920210000_029_add_friendship_workflows` complète le socle 023 sans recréer cette table. L'ancien default/intervalle 0..1000 du socle minimal est corrigé à **1..1000**, conformément à R457 et aux invariants de l'audit. La migration refuse une ligne incompatible au lieu de réécrire silencieusement un historique ; la table était vide lors du contrôle DEV préalable.
+
 Colonnes :
 
 - `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
 - `player_a_id uuid NOT NULL REFERENCES players(id) ON DELETE RESTRICT`
 - `player_b_id uuid NOT NULL REFERENCES players(id) ON DELETE RESTRICT`
 - `state friendship_state NOT NULL DEFAULT 'ACTIVE'`
-- `level integer NOT NULL DEFAULT 0`
+- `level integer NOT NULL DEFAULT 1`
 - `total_hearts bigint NOT NULL DEFAULT 0`
 - compteurs directionnels legacy si nécessaires
 - `became_friends_at timestamptz NULL`
@@ -1706,7 +1708,7 @@ Contraintes :
 
 - `player_a_id < player_b_id` conceptuellement pour canonicaliser la paire
 - `UNIQUE(player_a_id, player_b_id)`
-- `level BETWEEN 0 AND 1000`
+- `level BETWEEN 1 AND 1000`
 - `total_hearts >= 0`
 
 Le service ordonne toujours les UUID avant insertion.
@@ -1733,6 +1735,8 @@ Index unique partiel :
 
 une demande ouverte max par paire non orientée.
 
+Physique 029 : index unique partiel sur `LEAST(sender_player_id, recipient_player_id), GREATEST(...) WHERE state = 'PENDING'`, index `(sender_player_id, state)` et `(recipient_player_id, state)`, CHECK expéditeur distinct et cohérence de `resolved_at`. Les demandes résolues restent conservées. Les intentions/replays sont portés par `BusinessOperation`, sans clé concurrente dans la demande.
+
 ---
 
 ## 22.3 `friend_hearts`
@@ -1750,6 +1754,14 @@ Colonnes :
 Contrainte :
 
 `UNIQUE(friendship_id, sender_player_id, business_date)`
+
+Physique 029 : unicité de `operation_id`, index expéditeur/date et destinataire, CHECK participants distincts et trigger `check_friend_heart_pair` vérifiant leur appartenance à la relation. La fonction reste SECURITY INVOKER et son exécution directe est révoquée à PUBLIC/anon/authenticated. Le verrou quotidien survit à l'archivage puisque le cœur et l'identité de la relation sont conservés.
+
+### `player_social_stats`
+
+Physique 029 : `player_id uuid PRIMARY KEY REFERENCES players(id) ON DELETE RESTRICT`, `total_friend_hearts_sent bigint NOT NULL DEFAULT 0 CHECK (total_friend_hearts_sent >= 0)`, `updated_at timestamptz NOT NULL`. Compteur cumulatif indépendant de l'historique détaillé pour permettre une future reprise legacy exacte.
+
+Les trois nouvelles tables ont RLS activée, sans politique navigateur ni droits PUBLIC/anon/authenticated. Les crédits utilisent les ledgers économiques existants. Aucun import legacy ni reset de confidentialité.
 
 ---
 

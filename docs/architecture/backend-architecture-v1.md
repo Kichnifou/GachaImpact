@@ -1252,7 +1252,7 @@ Batch B implémente `SocialService`, `PrivacyService` et `PresenceService`. Tout
 | `POST /api/v1/me/presence/session`, `POST /api/v1/me/presence/heartbeat` | Clé UUID d'onglet et booléen d'activité ; temps autoritaire serveur. |
 | `DELETE /api/v1/me/presence/session` | Fin idempotente de cette session, y compris avant l'arrivée réseau de son start. |
 
-L'annuaire charge les seules identités/progressions ACTIVE, normalise et pagine côté serveur, puis lit les présences de la page en requêtes groupées. Ce choix simple convient à l'alpha d'environ cent Players ; l'ensemble des identités est encore trié en mémoire serveur. La liste connectée groupe elle aussi permissions et sessions, sans requête par Player. Aucun snapshot de gameplay complet n'est chargé pour ces deux listes.
+L'annuaire charge les seules identités/progressions ACTIVE, normalise la recherche et lit les présences autorisées en requêtes groupées. Depuis Batch C, le filtre `status` s'applique avant la pagination serveur de vingt. Ce choix simple convient à l'alpha d'environ cent Players ; l'ensemble des identités est encore trié en mémoire serveur. La liste connectée groupe elle aussi permissions et sessions, sans requête par Player. Aucun snapshot de gameplay complet n'est chargé pour ces deux listes.
 
 Le Profil vérifie chaque permission **avant** la lecture du domaine. `PRIVATE` ne contient aucune donnée cachée. La Team lit la formation active sans provisioning ni nettoyage ; la Box utilise une projection dédiée des possessions, sans favoris/Stella/préférences personnelles ni lecture de `C6CompetitionProgress` ou de statistiques Concours détaillées. La Collection filtre les définitions puis lit uniquement les balances Collection, sans Sac ni monnaie. Les statistiques sélectionnent les agrégats physiques disponibles (XP, tirages/raretés, victoires Combat, expéditions terminées) ; une donnée absente reste indisponible. Aucun GET public ne modifie la cible.
 
@@ -1262,7 +1262,27 @@ La migration additive 028 matérialise `PlayerSession` et `PlayerActivityState`,
 
 Une session est En ligne avant dix minutes d'inactivité, Absente ensuite et Hors ligne à deux heures sans activité. Trois minutes sans heartbeat ou une fermeture explicite la rendent aussi Hors ligne. Les sessions vivantes s'agrègent : une session active suffit pour En ligne ; terminer un onglet ne ferme pas les autres. L'activité application durable est distincte des champs Chat/Twitch/gameplay. Fermeture pagehide et logout sont best-effort ; le timeout couvre une fermeture brutale. Les lectures automatiques ne sont pas des activités utilisateur.
 
-Le panneau connecté et son compteur partagent un polling HTTP visible-only de 30 s, sans chevauchement ; l'annuaire rafraîchit sa page ouverte. Ce choix réutilise le backend et ne requiert ni service payant ni Realtime supplémentaire. Les erreurs de transport sont affichées distinctement d'une liste vide. Amitié, cœurs, MP, Chat/Twitch réels, avatars/titres déblocables et Historique global restent différés.
+Le panneau connecté et son compteur partagent un polling HTTP visible-only de 30 s, sans chevauchement ; l'annuaire rafraîchit sa page ouverte. Ce choix réutilise le backend et ne requiert ni service payant ni Realtime supplémentaire. Les erreurs de transport sont affichées distinctement d'une liste vide. Batch C complète Amitié ci-dessous ; MP, Chat/Twitch réels, avatars/titres déblocables et Historique global restent différés.
+
+## Amitié et activité Player — Batch C
+
+`FriendshipService`, composé par `SocialService`, possède demandes, transitions, relations, cœurs, statistiques sociales et projection personnelle. Les futurs adaptateurs chat/Twitch peuvent appeler ses mêmes méthodes avec un canal joueur explicite ; aucun transport supplémentaire n'est implémenté. SYSTEM/ADMIN/MIGRATION ne sont pas des sources admises pour ces actions.
+
+| Route authentifiée | Responsabilité |
+| --- | --- |
+| `GET /api/v1/me/friends` | Amis ACTIVE, demandes reçues/envoyées, identités et présences autorisées, palier, disponibilité du cœur et résumé Quotidiennes. |
+| `POST /api/v1/me/friends/actions` | `ADD`, `ACCEPT`, `REFUSE`, `CANCEL`, `REMOVE` ; cible et clé UUID, demande explicite pour une résolution. Auteur résolu côté serveur. |
+| `POST /api/v1/me/friends/hearts` | Cible UUID ou `all`, clé UUID ; résultat compact et gains exacts. |
+| `PATCH /api/v1/me/friends/sort` | Préférence `friend_sort_v1` dans `player_preferences`, sans autre table. |
+| `GET /api/v1/players` | Ajoute `status=ONLINE/AWAY/OFFLINE`, appliqué **avant** pagination de vingt ; statut privé exclu d'un filtre précis, toujours distinct de Hors ligne. État relationnel personnel joint par requêtes groupées. |
+
+Toutes ces réponses portent `Cache-Control: no-store`. L'alpha utilise des lectures groupées simples ; aucun appel par ami pour résoudre identité/présence. `useFriendships` partage la projection entre Social et Quotidiennes et invalide les anciennes lectures pendant une mutation. Une erreur garde le dernier état confirmé et la clé d'intention ambiguë ; succès puis refresh synchronisent amis, demandes, annuaire et disponibilité Quotidiennes. Le shell est propre à l'identité Player ; l'envoi recharge également les ressources du shell.
+
+Les mutations utilisent `SERIALIZABLE`, retry borné, un verrou advisory transactionnel Social puis les lignes Player dans l'ordre croissant des UUID. Cette stratégie volontairement simple convient à l'alpha ; les autres domaines coordonnent leurs crédits via les verrous Player/solde existants. Les blocages sont revérifiés dans la transaction par le prédicat Social commun, sans imposer la permission MP aux demandes d'amitié. Une résolution concurrente ne peut gagner qu'une fois. Une demande inverse est acceptée, une relation archivée réactivée avec le même UUID et sans reset de ses compteurs.
+
+L'envoi individuel et global suivent la même primitive. Chaque cœur possède sa propre `BusinessOperation` et deux mouvements Economy ; l'intention globale a son résultat persisté. Cœur, niveau plafonné, total commun, `PlayerSocialStats.totalFriendHeartsSent`, soldes et statistiques économiques sont atomiques. Les contraintes de 029 renforcent le verrou quotidien Europe/Paris, la paire des participants et l'unicité des demandes ouvertes. Les phrases individuelles R497 proviennent du catalogue legacy ; aucun tirage par ami dans l'envoi global. Aucune notification de cœur.
+
+`PlayerActivityRecorder` est l'unique écrivain de `player_activity_state` pour les producteurs intégrés : interaction de présence réelle, Game C réussi, transitions Amitié effectives et cœur réellement envoyé. Ses catégories APPLICATION/GAMEPLAY/INTERNAL_CHAT/TWITCH réutilisent les colonnes physiques ; GAMEPLAY nourrit aussi la dernière activité application, TWITCH reste distinct. Les `GREATEST` préservent la monotonie des timestamps. L'écriture accompagne la transaction métier ; elle ne crée aucune opération à elle seule et ne modifie pas les sessions de présence. Replays, échecs, GET/polling, heartbeat technique, scheduler, destinataire/notification reçue et fin automatique d'Expédition n'appellent pas ce producteur. Les autres domaines pourront le réutiliser au fil de leurs intégrations explicites.
 
 ## Vertical backend physique candidat Event Lot 6 — Classement actif
 

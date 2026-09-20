@@ -1197,6 +1197,8 @@ Toutes les tables sont privées côté navigateur, RLS activée sans policy clie
 
 ## 21.1 `Friendship`
 
+État physique Batch C : la relation du socle Social conserve son UUID, sa paire canonique et son historique après archivage/réactivation. Le niveau initial est **1**, borné à 1000 ; le total commun continue au-delà du plafond. La migration additive 029 complète les demandes et cœurs ci-dessous, sans importer les données legacy.
+
 Paire canonique de joueurs :
 
 - deux Player IDs
@@ -1236,6 +1238,12 @@ Contrainte logique :
 
 `friendship + sender + serverDay` unique.
 
+Chaque cœur physique référence une opération économique propre, y compris lors d'un envoi global. `FriendshipService` orchestre atomiquement le cœur, le niveau, le total commun et les crédits +5/+5 via le moteur Economy existant.
+
+### Statistique sociale individuelle
+
+`PlayerSocialStats` / `player_social_stats` porte `totalFriendHeartsSent` (`bigint`, initialement 0), par Player. Ce compteur sortant augmente dans la transaction du cœur et reste indépendant du décompte des lignes `FriendHeart` : la future migration pourra conserver l'historique individuel sans inventer les événements détaillés manquants. Aucun backfill ni consommateur Missions B/A/S/Z n'est implémenté ici.
+
 ## 21.4 `PlayerBlock`
 
 Blocage entre joueurs :
@@ -1267,6 +1275,8 @@ Selon besoin :
 - dernière activité gameplay.
 
 Certaines valeurs peuvent être stockées directement comme timestamps récents plutôt qu'en historique exhaustif si aucun produit ne demande l'historique complet.
+
+Batch C réutilise exclusivement `PlayerActivityState` via `PlayerActivityRecorder`, propriétaire transverse des écritures d'activité. Interactions standalone, envoi Game C réussi et mutations Amitié effectives sont branchés ; le destinataire passif, les replays, lectures, heartbeats techniques et traitements automatiques ne sont pas des producteurs. Les timestamps sont monotones même si les transactions arrivent dans le désordre.
 
 La présence en ligne est un état temps réel distinct de l'historique métier.
 

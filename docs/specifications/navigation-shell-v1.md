@@ -8,7 +8,7 @@ Les règles transverses de hauteur, scroll, stabilité, pagination, drag-and-dro
 
 ## Navigation principale
 
-Le vote communautaire habite uniquement `Personnages > Catalogue`, sur les cartes des 5★ éligibles. Batch B retire le bandeau : compteurs, CTA et badge exact `Voté` restent sur les cartes ; le choix définitif est rappelé dans l'aria-label. Tri Votes, cache RAM de session et footer stable complètent cette surface. Aucun onglet principal Votes. Les notifications Festival ouvrent `Activités > Événement` ; le rappel de dernier jour ouvre sa section Shop. Le signal Code dans Inscription ouvre Codes, sans claim direct ni action Quotidiennes supplémentaire.
+Le vote communautaire habite uniquement `Personnages > Catalogue`, sur les cartes des 5★ éligibles. Batch B retire le bandeau : compteurs, CTA et badge `Voté ✓` (polish Batch C) restent sur les cartes ; le choix définitif est rappelé dans l'aria-label. Tri Votes, cache RAM de session et footer stable complètent cette surface. Aucun onglet principal Votes. Les notifications Festival ouvrent `Activités > Événement` ; le rappel de dernier jour ouvre sa section Shop. Le signal Code dans Inscription ouvre Codes, sans claim direct ni action Quotidiennes supplémentaire.
 
 La barre principale contient exactement sept tuiles, dans cet ordre :
 
@@ -37,7 +37,7 @@ La même fonction `eventHasActionableContentToday` gouverne aussi le statut : sa
 
 En décembre, le Calendrier de Noël est un panneau de la section Inscription, sous Participation/Bonus, sans cinquième onglet. Il est consultable avant inscription ; seule la case du jour autorisée par le serveur est interactive pour un participant. `calendar.canClaimToday` participe au même agrégateur Quotidiennes : après ouverture, ou pendant le bilan du 26 au 31, le calendrier ne maintient plus le CTA si aucune autre action Event ne reste. Hors décembre le panneau est absent.
 
-Les boutons `Accéder` conduisent vers leurs propriétaires : Roue → sous-onglet Roue ; Défi → sous-onglet Défi ; Combat → `Activités > Combat` ; Expédition → `Personnages > Box` ; Amitié → futur Social/Amis, avec contrôle désactivé tant que cette destination n’existe pas ; Événement → `Activités > Événement`. Roue réutilise le composant et le service existants et n’est plus jouable depuis Accueil. Défi remplace l’ancienne mission quotidienne player-facing et utilise exclusivement son état serveur réel ; Missions B/A/S/Z reste un domaine séparé et indisponible. Dans la carte Défi active, Conversion ouvre la modale transverse sans navigation et Pulls conduit à Invocation sans lancer de Pull ; aucun raccourci Chat factice n’est exposé pour Messages.
+Les boutons `Accéder` conduisent vers leurs propriétaires : Roue → sous-onglet Roue ; Défi → sous-onglet Défi ; Combat → `Activités > Combat` ; Expédition → `Personnages > Box` ; Amitié → `Social > Amis` lorsque des cœurs sont disponibles ; Événement → `Activités > Événement`. Roue réutilise le composant et le service existants et n’est plus jouable depuis Accueil. Défi remplace l’ancienne mission quotidienne player-facing et utilise exclusivement son état serveur réel ; Missions B/A/S/Z reste un domaine séparé et indisponible. Dans la carte Défi active, Conversion ouvre la modale transverse sans navigation et Pulls conduit à Invocation sans lancer de Pull ; aucun raccourci Chat factice n’est exposé pour Messages.
 
 Le hero Accueil est conservé. Le futur tableau de bord inférieur attend que davantage d’activités soient réelles. La carte Récompense quotidienne peut rester dans la sidebar au lot 0.80 ; une future synthèse compacte Quotidiennes ne devra jamais inventer de compteur `X/Y`.
 
@@ -55,11 +55,15 @@ Banque conserve ses accès contextuels et Menu. Le futur Historique restera auss
 
 Les ressources possèdent aussi des raccourcis contextuels cohérents sans dupliquer leur logique : Primos ouvre Boutique, Moras ouvre Banque et les particules de l’élément personnel ouvrent la modale de conversion partagée. Ces entrées existent dans Sac (`Tout` et `Ressources`) et dans la sidebar. Ouvrir la conversion depuis la sidebar superpose la modale à l’écran courant sans changer de route ; toutes les entrées utilisent le même composant et la même intention idempotente.
 
-## Social / Profils — Batch B
+## Social / Profils — Batch B et Batch C
 
-Social (`#social`) ouvre Joueurs : recherche par pseudo, filtre Élément, pagination serveur de vingt et profil depuis avatar/pseudo. Aucune huitième tuile principale, aucun faux onglet Amis/Demandes/Messages. Le profil (`#profile`) conserve sa cible en mémoire de session ; un rechargement ouvre le profil personnel. Rubriques réelles : Aperçu, Team active, Box, Collection et Statistiques. Consultation en lecture seule selon permissions serveur, privé distinct de vide. Le profil personnel propose Configuration > Confidentialité.
+Social (`#social`) ouvre **Amis** par défaut, avec les trois onglets réels **Amis / Demandes / Joueurs**. Amis présente progression, cœur individuel, Envoyer à tous et retrait ; son dernier tri est conservé dans les préférences Player. Demandes sépare reçues/envoyées et expose accepter/refuser/annuler. Joueurs conserve recherche normalisée, Élément et pagination serveur de vingt, ajoute le filtre réel Tous/En ligne/Absent/Hors ligne et l'action relationnelle contextuelle. Une présence privée n'est jamais inventée Hors ligne. Identité et actions sont des contrôles séparés. Aucune huitième tuile principale ni onglet Messages.
 
-Le panneau Joueurs connectés et le compteur Chat partagent la présence visible : En ligne et Absent seulement, sans valeur fictive ni bouton Ajouter. Avatar/pseudo ouvrent Profil ; « Voir tous les joueurs → » ouvre Social. La sidebar ouvre le profil personnel. Les messages du Chat restent un prototype sans clic de profil ni envoi réel.
+Le profil (`#profile`) conserve sa cible en mémoire de session ; un rechargement ouvre le profil personnel. Rubriques réelles : Aperçu, Team active, Box, Collection et Statistiques. Aperçu contient l'identité agrandie, le statut autorisé sous l'avatar avec pastille et la dernière activité séparée ; Team active reste uniquement dans son onglet. Fallback exact : « Aucune activité récente. » Consultation en lecture seule selon permissions serveur, privé distinct de vide. Le profil personnel propose Configuration > Confidentialité, présentée en lignes séparées avec selects alignés.
+
+Le panneau Joueurs connectés et le compteur Chat partagent la présence visible : En ligne et Absent seulement, sans valeur fictive ni bouton Ajouter. Avatar/pseudo ouvrent Profil ; « Voir tous les joueurs → » ouvre explicitement **Social > Joueurs**, même si Social était déjà ouvert sur Amis. La sidebar ouvre le profil personnel. Les messages du Chat restent un prototype sans clic de profil ni envoi réel.
+
+La carte Amitié de Quotidiennes utilise la projection du même service : nombre réel de cœurs disponibles et accès à Social > Amis, « ✅ Terminé » lorsque tous sont envoyés, ou « Aucun ami actif. » sans tâche artificielle. Une mutation rafraîchit ce résumé sans F5. Catalogue affiche désormais « Voté ✓ » doré dans une zone réservée plus compacte ; cache, polling et tri restent conservés. Le claim Expédition utilisait déjà « Récupération… » et le départ « Départ… » : aucun changement métier.
 
 ## Navigation interne de Modération
 
