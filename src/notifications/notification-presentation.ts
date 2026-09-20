@@ -1,13 +1,14 @@
 import type { NotificationDto } from '../api/types'
 import { formatResourceAmount } from '../utils/formatters'
 
-export type NotificationDestination = 'expedition' | 'gift-code' | 'monthly-boss' | 'event-messages' | 'event' | 'event-shop' | 'social-requests'
+export type NotificationDestination = 'expedition' | 'gift-code' | 'monthly-boss' | 'event-messages' | 'event' | 'event-shop' | 'social-requests' | 'social-friends'
 export type NotificationRewardPresentation = Readonly<{ resourceKey: string; label: string; amount: string }>
 export type NotificationPresentation = Readonly<{ title: string; message: string; rewards?: readonly NotificationRewardPresentation[]; destination: NotificationDestination | null }>
 type Resolver = (notification: NotificationDto) => NotificationPresentation
 
 const resolvers: Readonly<Record<string, Resolver>> = {
   'social:FRIEND_REQUEST_RECEIVED': (notification) => ({ title: 'Demande d\u2019ami', message: `${text(notification.payload.senderDisplayName, 'Un joueur')} vous a envoy\u00e9 une demande d\u2019ami.`, destination: notification.actionKey === 'OPEN_SOCIAL_REQUESTS' ? 'social-requests' : null }),
+  'social:FRIEND_REQUEST_ACCEPTED': (notification) => ({ title: 'Nouvel ami', message: `${text(notification.payload.acceptorDisplayName, 'Un joueur')} a accept\u00e9 votre demande d\u2019ami.`, destination: notification.actionKey === 'OPEN_SOCIAL_FRIENDS' ? 'social-friends' : null }),
   'event:EVENT_EDITION_AVAILABLE': (notification) => ({ title: text(notification.payload.title, 'Festival du mois'), message: text(notification.payload.message, 'Le Festival du mois est disponible.'), destination: notification.actionKey === 'OPEN_EVENT' ? 'event' : null }),
   'event:EVENT_EDITION_LAST_DAY': (notification) => ({ title: text(notification.payload.title, 'Festival du mois'), message: text(notification.payload.message, 'Le Festival se termine aujourd’hui !'), destination: notification.actionKey === 'OPEN_EVENT_SHOP' ? 'event-shop' : null }),
   'expedition:ready': (notification) => ({

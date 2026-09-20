@@ -12,6 +12,9 @@ describe('Event message notification presentation', () => {
   it('presents a received friend request as a Social requests destination', () => {
     expect(resolveNotificationPresentation({ ...pending, domainKey: 'social', typeKey: 'FRIEND_REQUEST_RECEIVED', actionKey: 'OPEN_SOCIAL_REQUESTS', actionTargetId: 'sender-id', payload: { senderDisplayName: 'Mynonyme' } })).toEqual({ title: 'Demande d’ami', message: 'Mynonyme vous a envoyé une demande d’ami.', destination: 'social-requests' })
   })
+  it('presents an accepted friend request as a Social friends destination', () => {
+    expect(resolveNotificationPresentation({ ...pending, domainKey: 'social', typeKey: 'FRIEND_REQUEST_ACCEPTED', actionKey: 'OPEN_SOCIAL_FRIENDS', actionTargetId: 'acceptor-id', payload: { acceptorDisplayName: 'Mynonyme' } })).toEqual({ title: 'Nouvel ami', message: 'Mynonyme a accepté votre demande d’ami.', destination: 'social-friends' })
+  })
   it('routes lifecycle announcements and last-day reminders without exposing balances', () => {
     expect(resolveNotificationPresentation({ ...pending, typeKey: 'EVENT_EDITION_AVAILABLE', actionKey: 'OPEN_EVENT', payload: { title: 'Festival', message: 'Disponible' } })).toMatchObject({ title: 'Festival', message: 'Disponible', destination: 'event' })
     expect(resolveNotificationPresentation({ ...pending, typeKey: 'EVENT_EDITION_LAST_DAY', actionKey: 'OPEN_EVENT_SHOP', payload: { title: 'Festival', message: 'Dernier jour' } })).toMatchObject({ destination: 'event-shop' })

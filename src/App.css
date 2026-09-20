@@ -8614,12 +8614,24 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .social-row-actions .app-button { min-width: 112px; min-height: 36px; font-size: 12px; }
 .friendship-detail { margin: 6px 10px; color: var(--muted); font-size: 12px; }
 .social-friend-main { min-width: 0; overflow: hidden; border: 1px solid rgba(92, 217, 255, .2); border-radius: 10px; background: linear-gradient(120deg, rgba(23, 70, 110, .55), rgba(18, 31, 51, .72)); }
-.profile-identity { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: center; gap: 32px; padding: 24px 12px; }
+.social-screen > .screen-header { min-height: 76px; padding-block: 10px; }
+.social-screen .scrollable-screen-panel-content,
+.social-screen .scrollable-screen-panel-controls { gap: 6px; }
+.social-screen .social-tabs { margin-bottom: 2px; }
+.social-screen .social-filters { gap: 8px; }
+.social-screen .social-bulk-action { padding-top: 2px; }
+.social-screen .social-feedback { min-height: 22px; padding-top: 2px; }
+.social-screen .social-player-list { gap: 7px; padding-top: 0; }
+.social-bulk-button { min-height: 32px; padding: 6px 10px; font-size: 12px; }
+.profile-identity { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: start; gap: 18px; padding: 16px 8px; }
 .profile-identity h2 { overflow-wrap: anywhere; }
-.profile-identity > .mini-avatar { width: 100px; height: 100px; font-size: 36px; }
+.profile-identity > .mini-avatar { width: 128px; height: 128px; font-size: 44px; }
 .profile-identity-copy { display: grid; gap: 7px; }
 .profile-identity-copy > * { margin: 0; }
 .profile-identity-copy > .profile-social-actions { margin-top: 5px; }
+.profile-name-line { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.profile-name-line h2 { min-width: 0; margin: 0; }
+.profile-name-line .profile-element { flex: 0 0 auto; }
 .profile-presence, .profile-element { display: flex; gap: 7px; align-items: center; }
 .profile-element .game-asset-icon { display: inline-flex; width: 22px; height: 22px; }
 .profile-element .game-asset-icon img { width: 100%; height: 100%; object-fit: contain; }
@@ -8638,8 +8650,8 @@ button.inventory-stella-card { width: 100%; font: inherit; }
   .social-row { grid-template-columns: minmax(0, 1fr) 104px; }
   .social-row-actions { width: 104px; }
   .social-row-actions .app-button { min-width: 0; padding: 8px; }
-  .profile-identity { gap: 18px; padding: 16px 4px; }
-  .profile-identity > .mini-avatar { width: 80px; height: 80px; }
+  .profile-identity { gap: 12px; padding: 14px 4px; }
+  .profile-identity > .mini-avatar { width: 96px; height: 96px; font-size: 34px; }
   .social-player-identity .social-presence-label { flex-basis: 58px; min-width: 58px; }
   .privacy-settings label { gap: 10px; padding: 16px 4px; }
 }

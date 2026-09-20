@@ -42,13 +42,13 @@ describe('Friendship UI and shared projection', () => {
     expect(c.textContent).toContain('Amitié Sincère'); expect(c.textContent).not.toContain('Messages')
   })
   it('sends individual and all hearts and refreshes the same summary used by Quotidiennes without remounting', async () => {
-    for (const target of ['Envoyer un cœur', 'Envoyer un cœur à tous']) {
+    for (const target of ['Envoyer un cœur', 'Envoyer des cœurs']) {
       const { api } = makeApi(), c = await mount(<Surface api={api} />)
       await click(c, target)
-      expect(api.sendHearts).toHaveBeenCalledWith(target === 'Envoyer un cœur à tous' ? 'all' : person.id, expect.any(String))
+      expect(api.sendHearts).toHaveBeenCalledWith(target === 'Envoyer des cœurs' ? 'all' : person.id, expect.any(String))
       expect(c.querySelector('[data-available]')?.textContent).toBe('0')
       expect(c.textContent).toContain('Cœur envoyé ✓'); expect(c.textContent).toContain('+5 Primos')
-      expect(button(c, 'Envoyer un cœur à tous').disabled).toBe(true)
+      expect(button(c, 'Envoyer des cœurs').disabled).toBe(true)
       act(() => root!.unmount()); root = undefined
     }
   })
@@ -114,7 +114,7 @@ describe('Friendship UI and shared projection', () => {
     const css = readFileSync('src/App.css', 'utf8')
     expect(css).toMatch(/\.social-row \{[^}]*grid-template-columns: minmax\(0, 1fr\) 132px/)
   })
-  it('scopes success feedback to its surface, clears it on navigation and expires it', async () => {
+  it('keeps success feedback on its surface, clears it on navigation and replaces it on a new action', async () => {
     vi.useFakeTimers()
     const { api } = makeApi(), c = await mount(<Surface api={api} />)
     await click(c, 'Joueurs'); await click(c, 'Ajouter')
@@ -122,7 +122,10 @@ describe('Friendship UI and shared projection', () => {
     await click(c, 'Amis'); expect(c.textContent).not.toContain('Demande envoyée.')
     await click(c, 'Joueurs'); await click(c, 'Ajouter')
     await act(async () => { await vi.advanceTimersByTimeAsync(4_000) })
-    expect(c.textContent).not.toContain('Demande envoyée.')
+    expect(c.textContent).toContain('Demande envoyée.')
+    vi.mocked(api.friendAction).mockResolvedValueOnce({ state: 'REFUSED' })
+    await click(c, 'Ajouter')
+    expect(c.textContent).toContain('Demande refusée.')
   })
   it('refreshes active surfaces on focus without overlapping an in-flight friendship request', async () => {
     let resolve!: (value: FriendsSnapshot) => void

@@ -13,6 +13,7 @@ export const navigationDestinations: readonly NavigationDestination[] = [
   { id: 'dailies', label: 'Quotidiennes', icon: '☼', screen: 'activities-dailies', available: true }, { id: 'missions', label: 'Missions', icon: '▤', screen: 'activities-missions', available: true }, { id: 'combat', label: 'Combat', icon: '⚔', screen: 'activities-combat', available: true }, { id: 'event', label: 'Événement', icon: '◈', screen: 'activities-event', available: true }, { id: 'contest', label: 'Concours', icon: '♜', screen: 'activities-contest', available: true },
   { id: 'inventory', label: 'Sac', icon: '◇', screen: 'inventory', available: true }, { id: 'shop', label: 'Boutique', icon: '♢', screen: 'shop', available: true }, { id: 'bank', label: 'Banque', icon: '●', screen: 'bank', available: true }, { id: 'codes', label: 'Codes', icon: '✧', screen: 'codes', available: true },
   { id: 'social', label: 'Social', icon: '♙', screen: 'social', available: true },
+  { id: 'friends', label: 'Amis', icon: '♥', screen: 'social', available: true },
   { id: 'history', label: 'Historique', icon: '◷', screen: null, available: false }, { id: 'tutorial', label: 'Tutoriel', icon: '?', screen: null, available: false }, { id: 'configuration', label: 'Configuration', icon: '⚙', screen: 'configuration', available: true },
 ]
 export const defaultNavigationPreference: NavigationMenuPreferenceDto = { version: 1, order: navigationDestinations.map(({ id }) => id), hidden: [] }

@@ -40,6 +40,11 @@ describe('GameShell shared particle conversion overlay', () => {
     expect(gameShellSource).toContain("setSocialTab('requests'); navigate('social')")
   })
 
+  it('routes an accepted friendship notification to Amis', () => {
+    expect(gameShellSource).toContain("notification.actionKey === 'OPEN_SOCIAL_FRIENDS'")
+    expect(gameShellSource).toContain("void friendship.refresh(true); setSocialTab('friends'); navigate('social')")
+  })
+
   it('uses the faster friendship rhythm only while a Social surface is active', () => {
     expect(gameShellSource).toContain("useFriendships(socialActions, activeScreen === 'social' || activeScreen === 'profile' || isPlayersOpen)")
   })

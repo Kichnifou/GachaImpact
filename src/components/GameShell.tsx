@@ -190,6 +190,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isPlayersOpen, setIsPlayersOpen] = useState(false)
   const friendship = useFriendships(socialActions, activeScreen === 'social' || activeScreen === 'profile' || isPlayersOpen)
+  const clearFriendshipFeedback = friendship.clearFeedback
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isParticleConversionOpen, setIsParticleConversionOpen] = useState(false)
   const previousDailyChallengeStatus = useRef(dailyChallenge.status)
@@ -343,7 +344,8 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
     if (screen !== 'activities-event') { setEventMessagesRequestToken(0); setEventShopRequestToken(0) }
     if (screen.startsWith('characters-')) setLastCharacterScreen(screen)
     if (screen.startsWith('activities-')) setLastActivityScreen(screen)
-  }, [onGachaPresentationAbandoned, setConfigurationTab, setBossRequestToken, setEventMessagesRequestToken, setEventShopRequestToken])
+    clearFriendshipFeedback()
+  }, [clearFriendshipFeedback, onGachaPresentationAbandoned, setConfigurationTab, setBossRequestToken, setEventMessagesRequestToken, setEventShopRequestToken])
 
   useEffect(() => {
     const syncScreenWithHash = () => changeScreen(getScreenFromHash())
@@ -416,7 +418,7 @@ return <ActivitiesScreen friendship={friendship.value?.summary} friendshipError=
         onArchiveNotification={onArchiveNotification}
         onReadAllNotifications={onReadAllNotifications}
         onArchiveReadNotifications={onArchiveReadNotifications}
-        onOpenNotification={(notification) => { if (notification.actionKey === 'open-expedition-character' && notification.actionTargetId) { setBoxOpenIntent({ characterId: notification.actionTargetId, token: crypto.randomUUID() }); navigate('characters-box') } else if (notification.actionKey === 'OPEN_MONTHLY_BOSS') { setBossRequestToken((value) => value + 1); navigate('activities-combat') } else if (notification.actionKey === 'OPEN_EVENT_MESSAGES') { setEventMessagesRequestToken((value) => value + 1); navigate('activities-event') } else if (notification.actionKey === 'OPEN_EVENT_SHOP') { setEventShopRequestToken((value) => value + 1); navigate('activities-event') } else if (notification.actionKey === 'OPEN_EVENT') { setEventMessagesRequestToken(0); setEventShopRequestToken(0); navigate('activities-event') } else if (notification.actionKey === 'OPEN_GIFT_CODE') navigate('codes'); else if (notification.actionKey === 'OPEN_SOCIAL_REQUESTS') { void friendship.refresh(true); setSocialTab('requests'); navigate('social') } }}
+        onOpenNotification={(notification) => { if (notification.actionKey === 'open-expedition-character' && notification.actionTargetId) { setBoxOpenIntent({ characterId: notification.actionTargetId, token: crypto.randomUUID() }); navigate('characters-box') } else if (notification.actionKey === 'OPEN_MONTHLY_BOSS') { setBossRequestToken((value) => value + 1); navigate('activities-combat') } else if (notification.actionKey === 'OPEN_EVENT_MESSAGES') { setEventMessagesRequestToken((value) => value + 1); navigate('activities-event') } else if (notification.actionKey === 'OPEN_EVENT_SHOP') { setEventShopRequestToken((value) => value + 1); navigate('activities-event') } else if (notification.actionKey === 'OPEN_EVENT') { setEventMessagesRequestToken(0); setEventShopRequestToken(0); navigate('activities-event') } else if (notification.actionKey === 'OPEN_GIFT_CODE') navigate('codes'); else if (notification.actionKey === 'OPEN_SOCIAL_REQUESTS') { void friendship.refresh(true); setSocialTab('requests'); navigate('social') } else if (notification.actionKey === 'OPEN_SOCIAL_FRIENDS') { void friendship.refresh(true); setSocialTab('friends'); navigate('social') } }}
       />
 
       <div className="game-layout">

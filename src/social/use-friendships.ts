@@ -5,24 +5,24 @@ import { apiErrorMessage } from '../utils/formatters'
 /** Shared by Social and Quotidiennes; old polls cannot replace a mutation result. */
 export function useFriendships(actions?: SocialActions, active = false) {
   const [value, setValue] = useState<FriendsSnapshot | null>(null)
-  const [error, setError] = useState(''), [feedback, setFeedback] = useState(''), [feedbackScope, setFeedbackScope] = useState(''), [pending, setPending] = useState(false)
-  const alive = useRef(false), busy = useRef(false), refreshing = useRef<Promise<void> | null>(null), authoritativeDrain = useRef<Promise<void> | null>(null), authoritativeRequested = useRef(0), authoritativeCompleted = useRef(0), revision = useRef(0), intent = useRef<{ signature: string; key: string } | null>(null), feedbackTimer = useRef<number | undefined>(undefined)
-  const clearFeedback = useCallback(() => { window.clearTimeout(feedbackTimer.current); setFeedback(''); setFeedbackScope('') }, [])
+  const [error, setError] = useState(''), [feedback, setFeedback] = useState(''), [feedbackScope, setFeedbackScope] = useState(''), [pending, setPending] = useState(false), [refreshingState, setRefreshingState] = useState(false)
+  const alive = useRef(false), busy = useRef(false), refreshing = useRef<Promise<void> | null>(null), authoritativeDrain = useRef<Promise<void> | null>(null), authoritativeRequested = useRef(0), authoritativeCompleted = useRef(0), revision = useRef(0), intent = useRef<{ signature: string; key: string } | null>(null)
+  const clearFeedback = useCallback(() => { setFeedback(''); setFeedbackScope('') }, [])
   const showFeedback = useCallback((scope: string, message: string) => {
-    window.clearTimeout(feedbackTimer.current); setFeedbackScope(scope); setFeedback(message)
-    feedbackTimer.current = window.setTimeout(() => { if (alive.current) { setFeedback(''); setFeedbackScope('') } }, 4_000)
+    setFeedbackScope(scope); setFeedback(message)
   }, [])
   const refresh = useCallback((authoritative = false) => {
     if (!actions) return Promise.resolve()
     const start = () => {
       if (refreshing.current) return refreshing.current
       const version = ++revision.current
+      if (alive.current) setRefreshingState(true)
       const request = (async () => {
         try { const next = await actions.friends(); if (alive.current && version === revision.current) { setValue(next); setError('') } }
         catch (reason) { if (alive.current && version === revision.current) setError(apiErrorMessage(reason)) }
       })()
       refreshing.current = request
-      void request.finally(() => { if (refreshing.current === request) refreshing.current = null })
+      void request.finally(() => { if (refreshing.current === request) { refreshing.current = null; if (alive.current) setRefreshingState(false) } })
       return request
     }
     if (!authoritative) return start()
@@ -50,7 +50,7 @@ export function useFriendships(actions?: SocialActions, active = false) {
     window.addEventListener('focus', refreshVisible)
     document.addEventListener('visibilitychange', refreshVisible)
     void poll()
-    return () => { stopped = true; alive.current = false; window.removeEventListener('focus', refreshVisible); document.removeEventListener('visibilitychange', refreshVisible); window.clearTimeout(timer); window.clearTimeout(feedbackTimer.current) }
+    return () => { stopped = true; alive.current = false; window.removeEventListener('focus', refreshVisible); document.removeEventListener('visibilitychange', refreshVisible); window.clearTimeout(timer) }
   }, [active, refresh])
   const mutate = async (target: string, action: FriendAction | 'HEART', requestId?: string, scope = 'friends') => {
     if (!actions || busy.current) return
@@ -77,6 +77,6 @@ export function useFriendships(actions?: SocialActions, active = false) {
     catch (reason) { if (alive.current) setError(apiErrorMessage(reason)) }
     finally { busy.current = false; if (alive.current) setPending(false) }
   }
-  return { value, error, feedback, feedbackScope, pending, refresh, mutate, saveSort, clearFeedback }
+  return { value, error, feedback, feedbackScope, pending, refreshing: refreshingState, refresh, mutate, saveSort, clearFeedback }
 }
 export type FriendshipController = ReturnType<typeof useFriendships>

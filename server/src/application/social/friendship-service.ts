@@ -94,6 +94,8 @@ export class FriendshipService {
         if (state === 'ACCEPTED') {
           const relation = await tx.friendship.upsert({ where: { playerAId_playerBId: playerPair }, create: { ...playerPair, level: 1, becameFriendsAt: now }, update: { state: 'ACTIVE', archivedAt: null } });
           result.friendshipId = relation.id;
+          const acceptor = await tx.player.findUniqueOrThrow({ where: { id: playerId }, select: { displayName: true } });
+          await tx.notification.create({ data: { playerId: pending.senderPlayerId, domainKey: 'social', typeKey: 'FRIEND_REQUEST_ACCEPTED', deduplicationKey: `friend-request-accepted:${pending.id}`, payload: { acceptorPlayerId: playerId, acceptorDisplayName: acceptor.displayName }, actionKey: 'OPEN_SOCIAL_FRIENDS', actionTargetId: playerId, state: NotificationState.UNREAD, createdAt: now } });
         }
       }
       await this.complete(tx, playerId, key, source, type, intentTarget, result, now);

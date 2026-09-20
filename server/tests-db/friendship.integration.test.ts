@@ -97,6 +97,19 @@ describe('Friendship isolated PostgreSQL', () => {
     expect((await service.snapshot(a)).requests).toHaveLength(0);
     expect((await service.mutate(a, b, 'ADD', randomUUID())).state).toBe('ACTIVE');
   }, 30_000);
+  it('notifies only the sender when a pending request is accepted', async () => {
+    const a = await player(), b = await player();
+    const request = await service.mutate(a, b, 'ADD', randomUUID());
+    await service.mutate(b, a, 'ACCEPT', randomUUID(), 'UI', request.requestId);
+    const accepted = await db.notification.findMany({ where: { deduplicationKey: `friend-request-accepted:${request.requestId}` } });
+    expect(accepted).toHaveLength(1);
+    expect(accepted[0]).toMatchObject({ playerId: a, typeKey: 'FRIEND_REQUEST_ACCEPTED', actionKey: 'OPEN_SOCIAL_FRIENDS', actionTargetId: b, state: 'UNREAD' });
+    await service.sendHearts(a, b, randomUUID());
+    expect(await db.notification.count({ where: { playerId: a, domainKey: 'social' } })).toBe(1);
+    const c = await player(), d = await player(); const refused = await service.mutate(c, d, 'ADD', randomUUID());
+    await service.mutate(d, c, 'REFUSE', randomUUID(), 'UI', refused.requestId);
+    expect(await db.notification.count({ where: { deduplicationKey: `friend-request-accepted:${refused.requestId}` } })).toBe(0);
+  }, 30_000);
   it('authorizes recipient/sender transitions, retains resolutions and gives only one concurrent transition the win', async () => {
     const a = await player(), b = await player();
     const request = await service.mutate(a, b, 'ADD', randomUUID());
