@@ -7,9 +7,10 @@ export function useTrades(actions: TradeActions, onSnapshot: (value: TradeSnapsh
   const [snapshot, setSnapshot] = useState<TradeSnapshot | null>(null)
   const [partners, setPartners] = useState<TradePartners | null>(null)
   const [pending, setPending] = useState(false), [error, setError] = useState<string | null>(null), [feedback, setFeedback] = useState('')
-  const [syncError, setSyncError] = useState(''), [partnerRevision, setPartnerRevision] = useState(0)
+  const [syncError, setSyncError] = useState('')
   const partnerRequest = useRef<{ controller: AbortController } | null>(null)
   const partnerDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const partnerGeneration = useRef(0)
   const alive = useRef(false), busy = useRef(false), revision = useRef(0), requested = useRef(0), completed = useRef(0)
   const flight = useRef<Promise<void> | null>(null)
   const latest = useRef({ actions, onSnapshot, query, page, partnersActive })
@@ -49,13 +50,22 @@ export function useTrades(actions: TradeActions, onSnapshot: (value: TradeSnapsh
   const loadPartners = useCallback(() => {
     const { query, page, partnersActive } = latest.current
     if (!partnersActive || partnerRequest.current) return
-    const controller = new AbortController(), request = { controller }
+    const controller = new AbortController(), generation = partnerGeneration.current, request = { controller }
     partnerRequest.current = request
     void latest.current.actions.partners(query, page, controller.signal)
-      .then(list => { if (alive.current && !controller.signal.aborted && partnerRequest.current === request) { setPartners(list); setSyncError('') } })
-      .catch(() => { if (alive.current && !controller.signal.aborted && partnerRequest.current === request) setSyncError('Recherche indisponible. Réessayez dans un instant.') })
+      .then(list => { if (alive.current && generation === partnerGeneration.current && !controller.signal.aborted && partnerRequest.current === request) { setPartners(list); setSyncError('') } })
+      .catch(() => { if (alive.current && generation === partnerGeneration.current && !controller.signal.aborted && partnerRequest.current === request) setSyncError('Recherche indisponible. Réessayez dans un instant.') })
       .finally(() => { if (partnerRequest.current === request) partnerRequest.current = null })
   }, [])
+  const refreshPartnersAfterConfirmedMutation = useCallback(() => {
+    partnerGeneration.current++
+    partnerRequest.current?.controller.abort()
+    partnerRequest.current = null
+    if (!latest.current.partnersActive) return
+    if (partnerDebounce.current) clearTimeout(partnerDebounce.current)
+    partnerDebounce.current = null
+    loadPartners()
+  }, [loadPartners])
   useEffect(() => {
     if (!partnersActive) return
     if (query) partnerDebounce.current = setTimeout(() => { partnerDebounce.current = null; loadPartners() }, 120)
@@ -67,9 +77,6 @@ export function useTrades(actions: TradeActions, onSnapshot: (value: TradeSnapsh
       partnerRequest.current = null
     }
   }, [query, page, partnersActive, loadPartners])
-  useEffect(() => {
-    if (partnersActive && !partnerDebounce.current) loadPartners()
-  }, [partnerRevision, partnersActive, loadPartners])
   useEffect(() => {
     if (!partnersActive) return
     const refreshPartners = () => {
@@ -91,7 +98,7 @@ export function useTrades(actions: TradeActions, onSnapshot: (value: TradeSnapsh
       const message = await run(intent.current.key)
       intent.current = null
       retryAction.current = null
-      if (alive.current) { setFeedback(message); setPartnerRevision(value => value + 1); void refresh() }
+      if (alive.current) { setFeedback(message); refreshPartnersAfterConfirmedMutation(); void refresh() }
     } catch (reason) {
       if (reason instanceof ApiError && reason.status !== null && reason.status < 500) intent.current = null
       if (alive.current) { setError(apiErrorMessage(reason)); setCanRetry(intent.current !== null) }

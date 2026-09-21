@@ -147,6 +147,33 @@ describe('Particle trades UI', () => {
     await click(node, 'Reçues')
     expect(signalC?.aborted).toBe(true)
   })
+  it('replaces an in-flight partner projection after a confirmed creation', async () => {
+    vi.useFakeTimers()
+    const c = { id: 'ceo', displayName: 'Céo', elementKey: 'pyro' as const, maximum: '300' }
+    const actions = api(), { node } = await mount(actions)
+    await act(async () => Promise.resolve())
+    actions.partners.mockClear()
+    let resolveA!: (value: Awaited<ReturnType<TradeActions['partners']>>) => void
+    let resolveB!: (value: Awaited<ReturnType<TradeActions['partners']>>) => void
+    let signalA: AbortSignal | undefined
+    actions.partners.mockImplementation((_query, _page, signal) => new Promise(resolve => {
+      if (!signalA) { signalA = signal; resolveA = resolve }
+      else resolveB = resolve
+    }))
+    actions.partners.mockResolvedValueOnce({ partners: [c], page: 1, total: 1, pageSize: 10, totalPages: 1 })
+    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve(); await Promise.resolve() })
+    await choose(node); await click(node, 'MAX')
+    await act(async () => vi.advanceTimersByTimeAsync(120))
+    expect(actions.partners).toHaveBeenCalledTimes(2)
+    await click(node, 'Envoyer')
+    expect(signalA?.aborted).toBe(true)
+    expect(actions.partners).toHaveBeenCalledTimes(3)
+    await act(async () => resolveB({ partners: [], page: 1, total: 0, pageSize: 10, totalPages: 1 }))
+    expect(node.textContent).not.toContain('Céo')
+    await act(async () => resolveA({ partners: [c], page: 1, total: 1, pageSize: 10, totalPages: 1 }))
+    expect(node.textContent).not.toContain('Céo')
+    expect(node.textContent).not.toContain('Recherche indisponible')
+  })
   it('shows stocks, MAX fills without sending, creation refreshes authoritatively and publishes shell stocks', async () => {
     const actions = api(), { node, onSnapshot } = await mount(actions)
     expect(node.textContent).toContain('Total / Réservé / Disponible')
