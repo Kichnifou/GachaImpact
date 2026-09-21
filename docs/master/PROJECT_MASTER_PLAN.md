@@ -1,8 +1,8 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : Échanges — correctifs après second test public, candidat review
+Version : Échanges — correctifs après second test public, candidat approuvé pour main
 Date : 2026-09-21
-Statut : SECOND TEST PUBLIC EFFECTUÉ SUR 661f87a ; VERTICAL ÉCHANGES NON CLÔTURÉ, NOUVEAUX CORRECTIFS EN REVIEW
+Statut : SECOND TEST PUBLIC EFFECTUÉ SUR 661f87a ; CANDIDAT APPROUVÉ, PROMOTION MAIN AUTORISÉE ; TEST PUBLIC POST-DÉPLOIEMENT REQUIS
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
@@ -16,7 +16,7 @@ But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de compren
 - Le checkpoint public 661f87a est déployé selon la confirmation propriétaire. Le nouveau candidat de correctifs n'est ni promu ni validé publiquement. `PAID_INFRA_APPROVED = false`.
 - Activité transverse : `PlayerActivityRecorder` écrit atomiquement l'activité réelle de présence, les actions Amitié effectives et Game C réussi. Aucun GET, heartbeat technique, replay, scheduler ou destinataire passif ne produit d'activité. Les futurs domaines disposent de ce propriétaire réutilisable ; les autres domaines gameplay ne sont pas tous nouvellement branchés dans ce lot.
 - Nettoyage DEV terminé : uniquement `Codex Event 2f5fb3ad` et `Sender5 090faef4`, après inspection des FK et dépendances ; détail et UUID au checkpoint ci-dessous. Comptes protégés intacts, aucun import/reset.
-- Prochaine étape : review indépendante du nouveau candidat GitHub, puis éventuelle mission dédiée de promotion et checklist publique. **Chat global + messages privés** attend la clôture des retours publics Échanges/polish ; R633/R634 restent différées vers Historique global.
+- Prochaine étape : promotion fast-forward autorisée du candidat reviewé jusqu'à `9716cbcd7bcef0cf0462c7a7b3c0ed4fd5a30a52`, puis vérification indépendante des déploiements et nouveau test public propriétaire. **Chat global + messages privés** attend la clôture publique des retours Échanges/polish ; R633/R634 restent différées vers Historique global.
 - Lire [le workflow](../process/implementation-workflow.md), [l'architecture Échanges](../architecture/backend-architecture-v1.md#échanges-de-particules--état-physique-031), [la navigation](../specifications/navigation-shell-v1.md) et le checkpoint ci-dessous. Les checkpoints antérieurs sont historiques et ne constituent pas une prochaine étape encore active.
 
 ---
@@ -26,7 +26,7 @@ But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de compren
 ## Candidat — correctifs après second test public, 2026-09-21
 
 - Départ vérifié : branche review, main = review = `661f87acc958046e60257382ec19256767c16a96`, divergence 0/0, worktree propre. Le propriétaire confirme ce SHA promu, Cloudflare SUCCESS, Railway SUCCESS et healthcheck 200. Ces déploiements sont rapportés par lui, pas revérifiés dans ce lot.
-- Commits du candidat : `e6e5858703138a357e41d27f4427605cffb19e0c` (interface, parent 661f87a) → `268a46db280bd6691ebe06ce1e87555100cda8ae` (notification d'acceptation), suivis du présent checkpoint documentaire. Review indépendante et future promotion restent nécessaires.
+- Commits du candidat : `e6e5858703138a357e41d27f4427605cffb19e0c` (interface, parent 661f87a) → `268a46db280bd6691ebe06ce1e87555100cda8ae` (notification d'acceptation) → `fafb7b254e6edc186300a1d923b8745ce4342303` (checkpoint) → `9716cbcd7bcef0cf0462c7a7b3c0ed4fd5a30a52` (fraîcheur Partenaires). La review indépendante ChatGPT est **APPROUVÉE** et la promotion dédiée est autorisée dans cette mission ; la version corrigée reste à tester publiquement après déploiement.
 - **Validé publiquement dans cette passe** : ouverture Échanges améliorée, envoi de demande, accès depuis Conversion/Profil, envoi global des cœurs, Joueurs connectés, notification Trade vers Reçues et notifications globales sans nouveau défaut remonté.
 - **Retours encore ouverts à validation publique** : composition Partenaires, nouvelle notification d'acceptation, boutons Conversion, Panier/sélection Player, Convertir en sidebar, clic intégral Profil/Objectif, viewport et ligne filtres/cœurs Social, libellé pending Expédition. Les correctifs locaux ci-dessous ne clôturent pas le vertical. Chat global + MP attend cette clôture.
 - Expédition : l'action start/claim déclenchée est transmise à la modale ; READY → clic Récupérer → publication IDLE → refresh Notifications encore pending conserve `Récupération…`, jamais `Départ…`.
