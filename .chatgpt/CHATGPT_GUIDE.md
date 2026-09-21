@@ -486,13 +486,23 @@ Ne jamais demander :
 
 Workflow attendu :
 
-1. faire lire à Codex `AGENTS.md`, le Master et les docs spécialisés nécessaires ;
+1. choisir le mode documentaire adapté : Bootstrap pour une nouvelle conversation Codex ou un nouveau domaine important, Continuité pour une correction du même lot dans la même conversation ;
 2. lui faire auditer le code réellement présent dans le repo avant modification ;
 3. lui demander une architecture / roadmap technique lorsque le lot le justifie ;
 4. découper l'implémentation en lots bornés ;
 5. demander tests et critères d'acceptation ;
 6. limiter clairement les fichiers / systèmes qu'il peut toucher ;
 7. vérifier le résultat réel du lot avant d'enchaîner sur le suivant.
+
+## Bootstrap et Continuité Codex
+
+Pour une **nouvelle conversation Codex** ou un **nouveau domaine important**, le prompt demande un Bootstrap documentaire complet : `AGENTS.md`, Master, workflow, sources spécialisées nécessaires et code réel concerné. La procédure de [reprise dans une nouvelle conversation](#15-reprendre-le-projet-dans-une-nouvelle-conversation) reste la référence de cette lecture.
+
+Pour une correction du même lot dans la même conversation Codex, utiliser explicitement le mode **`CONTINUITÉ`**. Codex réutilise alors le contexte déjà acquis, inspecte d'abord les fichiers directement concernés et ne rouvre que les documents nécessaires à la correction. Il ne relit pas systématiquement tout le corpus. Si une compaction, une ambiguïté ou une contradiction rend une règle nécessaire incertaine, il relit avant modification la source propriétaire concernée. Un Bootstrap redevient requis dès que le contexte est insuffisant ou perdu, qu'une nouvelle conversation commence ou qu'un vrai gros changement de domaine intervient.
+
+Ce mode ne réduit jamais le checkpoint Git : dans tous les cas, vérifier la branche locale, `origin/main`, `origin/review`, leur divergence, le baseline attendu et un worktree propre avant de modifier.
+
+Avant chaque prompt Codex, ChatGPT indique au propriétaire, **hors du bloc de prompt à copier**, le modèle Codex recommandé et le niveau de réflexion recommandé. Cette recommandation est adaptée à la difficulté réelle du lot : une petite correction localisée peut demander un niveau léger ; une architecture, migration, concurrence transverse ou un gros domaine demande un niveau plus capable lorsque nécessaire. Ne pas figer de noms de modèles : l'offre peut évoluer. La recommandation explicite reste obligatoire pour chaque prompt.
 
 ## Definition of Ready documentaire pour Codex
 

@@ -40,6 +40,8 @@ Chaque gros prompt Codex doit demander de :
 - respecter un périmètre exact et borné ;
 - terminer toute intervention qui modifie des fichiers par les validations pertinentes, un commit propre et un push normal sur `review`, sauf instruction explicite `local uniquement`.
 
+Cette lecture documentaire exhaustive est le **Bootstrap** d'une nouvelle conversation Codex ou d'un nouveau domaine important. Une correction du même lot dans la même conversation peut être explicitement placée en mode **`CONTINUITÉ`** : Codex réutilise alors le contexte déjà acquis et inspecte les fichiers directement concernés, puis ne rouvre que les propriétaires nécessaires. En cas de compaction, ambiguïté ou contradiction sur une règle utile, il relit cette source avant de modifier. Le checkpoint Git reste obligatoire dans les deux modes ; le détail et la recommandation ChatGPT du modèle/niveau de réflexion figurent dans le [Guide opératoire ChatGPT](../../.chatgpt/CHATGPT_GUIDE.md#bootstrap-et-continuité-codex).
+
 ## 2A. Documentation / état du projet à mettre à jour
 
 Chaque prompt d'implémentation Codex doit contenir une section intitulée exactement **`DOCUMENTATION / ÉTAT DU PROJET À METTRE À JOUR`**. Le code et la documentation appartiennent au même lot : avant d'écrire le prompt, ChatGPT choisit les documents concernés et ne reporte pas leur maintenance à plus tard.
