@@ -55,6 +55,7 @@ function GameHeader({ displayName, onNavigateHome, onOpenSidebar, onSignOut, sho
     if (resolveNotificationPresentation(notification).destination === null) return
     setIsNotificationsOpen(false)
     onOpenNotification(notification)
+    if (notification.domainKey === 'social' && notification.typeKey === 'FRIEND_REQUEST_ACCEPTED' && notification.actionKey === 'OPEN_SOCIAL_FRIENDS') await onArchiveNotification(notification.id)
   }
   const archive = async (notificationId: string) => {
     setArchivingNotificationId(notificationId)
