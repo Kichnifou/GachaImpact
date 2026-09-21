@@ -31,6 +31,31 @@ async function mount(actions: TradeActions) {
 async function click(node: HTMLElement, text: string) { const button = Array.from(node.querySelectorAll('button')).find(b => b.textContent === text)!; expect(button).toBeTruthy(); await act(async () => button.click()) }
 async function choose(node: HTMLElement) { await act(async () => node.querySelector<HTMLButtonElement>('.trade-partner')!.click()) }
 describe('Particle trades UI', () => {
+  it('coalesces quick typing at 120ms and fills the field from either selection source', async () => {
+    vi.useFakeTimers()
+    const actions = api(), { node } = await mount(actions)
+    const input = node.querySelector<HTMLInputElement>('[role="combobox"]')!
+    const type = async (text: string) => act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, text); input.dispatchEvent(new Event('input', { bubbles: true })) })
+    actions.partners.mockClear()
+    for (const value of ['B', 'Bo', 'Bob']) { await type(value); await act(async () => vi.advanceTimersByTimeAsync(30)) }
+    expect(actions.partners).not.toHaveBeenCalled()
+    await act(async () => vi.advanceTimersByTimeAsync(90))
+    expect(actions.partners).toHaveBeenCalledExactlyOnceWith('Bob', 1, expect.any(AbortSignal))
+    await act(async () => node.querySelector<HTMLButtonElement>('[role="option"]')!.click())
+    expect(input.value).toBe('Bob')
+    expect(node.querySelector('[role="listbox"]')?.hasAttribute('hidden')).toBe(true)
+    await type('B')
+    expect(node.querySelector('.trade-partner[aria-pressed="true"]')).toBeNull()
+    await choose(node)
+    expect(input.value).toBe('Bob')
+    expect(node.textContent).not.toContain('Partenaire :')
+    expect(node.textContent).not.toContain('Seules vos particules')
+    const amount = node.querySelector<HTMLInputElement>('[aria-label="Quantité"]')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(amount, '1234567890123'); amount.dispatchEvent(new Event('input', { bubbles: true })) })
+    expect(amount.value).toBe('1234567890123')
+    expect(amount.maxLength).toBe(-1)
+  })
+
   it('resolves a profile intent from actual partners with one initial snapshot and no fabricated eligibility', async () => {
     vi.useFakeTimers()
     const actions = api(), node = document.createElement('div'); document.body.append(node)
@@ -81,6 +106,8 @@ describe('Particle trades UI', () => {
     await act(async () => roots[0]!.render(<TradesScreen actions={actions} onSnapshot={onSnapshot} playerId="a" intent={{ token: 'notification-1', tab: 'received' }} />))
     expect(node.querySelector('[aria-current="page"]')?.textContent).toBe('Reçues')
     expect(actions.snapshot.mock.calls.length).toBeGreaterThan(reads)
+    await act(async () => roots[0]!.render(<TradesScreen actions={actions} onSnapshot={onSnapshot} playerId="a" intent={{ token: 'accepted', tab: 'history' }} />))
+    expect(node.querySelector('[aria-current="page"]')?.textContent).toBe('Historique')
   })
   it('starts the latest search after its debounce without waiting for an obsolete request', async () => {
     vi.useFakeTimers()
@@ -104,7 +131,10 @@ describe('Particle trades UI', () => {
     await act(async () => vi.advanceTimersByTimeAsync(15_000))
     expect(actions.partners).toHaveBeenCalledTimes(1)
     await type('B')
-    await act(async () => vi.advanceTimersByTimeAsync(250))
+    expect(signalA?.aborted).toBe(true)
+    await act(async () => releaseA({ partners: [{ ...a, maximum: '200' }], page: 1, total: 1, pageSize: 10, totalPages: 1 }))
+    expect(node.querySelector('.trade-partner')?.textContent).not.toContain('Alice')
+    await act(async () => vi.advanceTimersByTimeAsync(120))
     expect(signalA?.aborted).toBe(true)
     expect(actions.partners).toHaveBeenCalledTimes(2)
     expect(actions.partners.mock.calls[1]?.slice(0, 2)).toEqual(['B', 1])

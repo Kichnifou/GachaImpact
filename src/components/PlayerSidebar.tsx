@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties, HTMLAttributes } from 'react'
 import type { CurrentGachaDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto } from '../api/types'
 import { getProgressionPercent } from '../progression/presentation'
 import type { ScreenId } from '../types'
@@ -48,6 +48,12 @@ function PlayerSidebar({ isOpen, onClose, onOpenProfile, onNavigate, onOpenParti
   const activeTeam = teams.teams.find(({ active }) => active) ?? teams.teams[0]
   const activeMembers = activeTeam?.slots.filter(({ character }) => character !== null).length ?? 0
 
+  const cardAction = (label: string, run: () => void): HTMLAttributes<HTMLElement> => ({
+    role: 'button', tabIndex: 0, 'aria-label': label,
+    onClick: event => { if (!(event.target instanceof Element) || !event.target.closest('button, a, input, select, textarea')) run() },
+    onKeyDown: event => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); run() } },
+  })
+
   return (
     <aside className={`player-sidebar${isOpen ? ' mobile-open' : ''}`} aria-label="Informations du joueur">
       <div className="mobile-sidebar-heading">
@@ -56,8 +62,7 @@ function PlayerSidebar({ isOpen, onClose, onOpenProfile, onNavigate, onOpenParti
       </div>
 
       <div className="player-priority">
-        <section className={`panel profile-card${profileLevelUpActive ? ' level-up-active' : ''} sidebar-clickable`} style={profileStyle}>
-          <button type="button" className="sidebar-card-link" aria-label="Ouvrir mon profil" onClick={onOpenProfile} />
+        <section className={`panel profile-card${profileLevelUpActive ? ' level-up-active' : ''} sidebar-clickable`} style={profileStyle} {...cardAction("Ouvrir mon profil", () => onOpenProfile?.())}>
           {playerData.elementKey && <GameAssetIcon className="profile-element-watermark" src={getElementAssetPath(playerData.elementKey)} fallback="" />}
           <button type="button" onClick={onOpenProfile} className="avatar-placeholder" aria-label={`Avatar de ${playerData.displayName}`}>
             <span>{playerData.displayName.slice(0, 1).toUpperCase()}</span>
@@ -130,8 +135,7 @@ function PlayerSidebar({ isOpen, onClose, onOpenProfile, onNavigate, onOpenParti
         </div>
         </section>
 
-        <section className="panel objective-card sidebar-clickable" style={objectiveStyle}>
-        <button type="button" className="sidebar-card-link" aria-label="Ouvrir mon objectif d’invocation" onClick={() => onNavigate('invocation')} />
+        <section className="panel objective-card sidebar-clickable" style={objectiveStyle} {...cardAction("Ouvrir mon objectif d’invocation", () => onNavigate('invocation'))}>
         {featuredCharacter && <GameAssetIcon className="objective-element-watermark" src={getElementAssetPath(featuredCharacter.elementKey)} fallback="" />}
         <button type="button" className="section-heading section-link" onClick={() => onNavigate('invocation')}>
           <span>Objectif actuel</span>

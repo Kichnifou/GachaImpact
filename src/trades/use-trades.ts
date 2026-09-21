@@ -9,7 +9,7 @@ export function useTrades(actions: TradeActions, onSnapshot: (value: TradeSnapsh
   const [pending, setPending] = useState(false), [error, setError] = useState<string | null>(null), [feedback, setFeedback] = useState('')
   const [syncError, setSyncError] = useState(''), [partnerRevision, setPartnerRevision] = useState(0)
   const partnerRequest = useRef<{ controller: AbortController } | null>(null)
-  const partnerInput = useRef<{ query: string; page: number } | null>(null)
+  const partnerDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   const alive = useRef(false), busy = useRef(false), revision = useRef(0), requested = useRef(0), completed = useRef(0)
   const flight = useRef<Promise<void> | null>(null)
   const latest = useRef({ actions, onSnapshot, query, page, partnersActive })
@@ -46,40 +46,40 @@ export function useTrades(actions: TradeActions, onSnapshot: (value: TradeSnapsh
     void poll(); window.addEventListener('focus', focus); document.addEventListener('visibilitychange', focus)
     return () => { disposed = true; alive.current = false; invalidate(); clearTimeout(timer); window.removeEventListener('focus', focus); document.removeEventListener('visibilitychange', focus) }
   }, [refresh, invalidate])
+  const loadPartners = useCallback(() => {
+    const { query, page, partnersActive } = latest.current
+    if (!partnersActive || partnerRequest.current) return
+    const controller = new AbortController(), request = { controller }
+    partnerRequest.current = request
+    void latest.current.actions.partners(query, page, controller.signal)
+      .then(list => { if (alive.current && !controller.signal.aborted && partnerRequest.current === request) { setPartners(list); setSyncError('') } })
+      .catch(() => { if (alive.current && !controller.signal.aborted && partnerRequest.current === request) setSyncError('Recherche indisponible. Réessayez dans un instant.') })
+      .finally(() => { if (partnerRequest.current === request) partnerRequest.current = null })
+  }, [])
   useEffect(() => {
     if (!partnersActive) return
-    const previousInput = partnerInput.current
-    const isUserSearch = previousInput === null || previousInput.query !== query || previousInput.page !== page
-    partnerInput.current = { query, page }
-    const load = () => {
-      // A typed search supersedes an older query. Background refreshes never interrupt it.
-      if (!isUserSearch && partnerRequest.current) return
+    if (query) partnerDebounce.current = setTimeout(() => { partnerDebounce.current = null; loadPartners() }, 120)
+    else loadPartners()
+    return () => {
+      if (partnerDebounce.current) clearTimeout(partnerDebounce.current)
+      partnerDebounce.current = null
       partnerRequest.current?.controller.abort()
-      const controller = new AbortController(), request = { controller }
-      partnerRequest.current = request
-      void latest.current.actions.partners(query, page, controller.signal)
-        .then(list => { if (alive.current && !controller.signal.aborted && partnerRequest.current === request) { setPartners(list); setSyncError('') } })
-        .catch(() => { if (alive.current && !controller.signal.aborted && partnerRequest.current === request) setSyncError('Recherche indisponible. Réessayez dans un instant.') })
-        .finally(() => { if (partnerRequest.current === request) partnerRequest.current = null })
+      partnerRequest.current = null
     }
-    const timer = query ? setTimeout(load, 250) : undefined
-    if (!query) load()
-    return () => { clearTimeout(timer) }
-  }, [query, page, partnersActive, partnerRevision])
+  }, [query, page, partnersActive, loadPartners])
+  useEffect(() => {
+    if (partnersActive && !partnerDebounce.current) loadPartners()
+  }, [partnerRevision, partnersActive, loadPartners])
   useEffect(() => {
     if (!partnersActive) return
     const refreshPartners = () => {
-      if (document.visibilityState !== 'hidden' && !busy.current && !partnerRequest.current) setPartnerRevision(value => value + 1)
+      if (document.visibilityState !== 'hidden' && !busy.current && !partnerDebounce.current) loadPartners()
     }
     const timer = setInterval(refreshPartners, 15_000)
     window.addEventListener('focus', refreshPartners)
     document.addEventListener('visibilitychange', refreshPartners)
     return () => { clearInterval(timer); window.removeEventListener('focus', refreshPartners); document.removeEventListener('visibilitychange', refreshPartners) }
-  }, [partnersActive])
-  useEffect(() => {
-    if (!partnersActive) partnerRequest.current?.controller.abort()
-  }, [partnersActive])
-  useEffect(() => () => { partnerRequest.current?.controller.abort() }, [])
+  }, [partnersActive, loadPartners])
   const mutate = async (signature: string, run: (key: string) => Promise<string>) => {
     if (busy.current) return
     // Ambiguous retries keep their exact intent; changing it requires a definite result.

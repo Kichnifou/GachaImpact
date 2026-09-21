@@ -93,16 +93,26 @@ describe('Player sidebar progression', () => {
     expect(onNavigate).toHaveBeenCalledWith('invocation')
     expect(container.querySelector('button button')).toBeNull()
     for (const [selector, destination] of [
-      ['.profile-card .sidebar-card-link', 'profile'],
+      ['.profile-card', 'profile'],
       ['.currency-summary-card .sidebar-card-link', 'inventory'],
       ['.particles-card .sidebar-card-link', 'inventory'],
-      ['.objective-card .sidebar-card-link', 'invocation'],
+      ['.objective-card', 'invocation'],
       ['[aria-label^="Ouvrir la Boutique"]', 'shop'],
       ['[aria-label^="Ouvrir la Banque"]', 'bank'],
     ]) {
       onNavigate.mockClear()
       await act(async () => container.querySelector<HTMLButtonElement>(selector!)!.click())
       expect(onNavigate).toHaveBeenCalledExactlyOnceWith(destination)
+    }
+    for (const [selector, destination] of [['.profile-copy', 'profile'], ['.profile-element-watermark', 'profile'], ['.objective-content', 'invocation'], ['.objective-element-watermark', 'invocation']]) {
+      onNavigate.mockClear()
+      await act(async () => container.querySelector<HTMLElement>(selector!)!.click())
+      expect(onNavigate).toHaveBeenCalledExactlyOnceWith(destination)
+    }
+    for (const key of ['Enter', ' ']) {
+      onNavigate.mockClear()
+      await act(async () => objective.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true })))
+      expect(onNavigate).toHaveBeenCalledExactlyOnceWith('invocation')
     }
     onNavigate.mockClear()
     await act(async () => container.querySelector<HTMLButtonElement>('.sidebar-particle-convert')!.click())

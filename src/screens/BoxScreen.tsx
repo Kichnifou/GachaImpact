@@ -96,15 +96,16 @@ function BoxScreen({ initialBox, dailyCombat, expedition = idleExpeditionSnapsho
   if (!box) return null
 
   const selected = box.characters.find(({ id }) => id === selectedId) ?? null
-  return <BoxView box={box} dailyCombat={dailyCombat} expedition={expedition} expeditionMonotonicNow={expeditionMonotonicNow} expeditionPending={expeditionPending} expeditionFeedback={expeditionFeedback} filters={filters} error={error} favoritePendingId={favoritePendingId} stellaPendingId={stellaPendingId} stellaRetryId={stellaRetryId} stellaFeedback={stellaFeedback} selected={selected} onFilters={changeFilters} onSelect={setSelectedId} onToggleFavorite={toggleFavorite} onUseStella={useStella} onExpedition={runExpedition} onCloseDetail={() => { setSelectedId(null); setStellaFeedback(null); setExpeditionFeedback(null) }} />
+  return <BoxView box={box} dailyCombat={dailyCombat} expedition={expedition} expeditionMonotonicNow={expeditionMonotonicNow} expeditionPending={expeditionPending} expeditionPendingAction={expeditionPending ? expeditionIntent?.action : undefined} expeditionFeedback={expeditionFeedback} filters={filters} error={error} favoritePendingId={favoritePendingId} stellaPendingId={stellaPendingId} stellaRetryId={stellaRetryId} stellaFeedback={stellaFeedback} selected={selected} onFilters={changeFilters} onSelect={setSelectedId} onToggleFavorite={toggleFavorite} onUseStella={useStella} onExpedition={runExpedition} onCloseDetail={() => { setSelectedId(null); setStellaFeedback(null); setExpeditionFeedback(null) }} />
 }
 
-export function BoxView({ box, dailyCombat, expedition = idleExpeditionSnapshot, expeditionMonotonicNow = 0, expeditionPending = false, expeditionFeedback = null, filters, error, favoritePendingId, stellaPendingId, stellaRetryId, stellaFeedback, selected, onFilters, onSelect, onToggleFavorite, onUseStella, onExpedition = () => undefined, onCloseDetail }: {
+export function BoxView({ box, dailyCombat, expedition = idleExpeditionSnapshot, expeditionMonotonicNow = 0, expeditionPending = false, expeditionPendingAction, expeditionFeedback = null, filters, error, favoritePendingId, stellaPendingId, stellaRetryId, stellaFeedback, selected, onFilters, onSelect, onToggleFavorite, onUseStella, onExpedition = () => undefined, onCloseDetail }: {
   box: PlayerBoxDto
   dailyCombat?: DailyCombatDto
   expedition?: ExpeditionClientSnapshot
   expeditionMonotonicNow?: number
   expeditionPending?: boolean
+  expeditionPendingAction?: 'start' | 'claim'
   expeditionFeedback?: string | null
   filters: BoxFilters
   error: string | null
@@ -134,7 +135,7 @@ export function BoxView({ box, dailyCombat, expedition = idleExpeditionSnapshot,
         {visibleCharacters.map((character) => <BoxCharacterCard character={character} statusLabel={value.activeCharacter?.id === character.id ? value.operationalStatus === 'READY' ? '✅ À récupérer' : value.operationalStatus === 'RUNNING' ? '🧭 En expédition' : undefined : undefined} favoritePending={favoritePendingId === character.id} onOpen={() => onSelect(character.id)} onToggleFavorite={() => onToggleFavorite(character)} key={character.id} />)}
       </section>}
     </ScrollableScreenPanel>
-    {selected && <BoxCharacterDetailModal character={selected} combatState={combatStateFor(dailyCombat, selected.id)} expedition={expedition} expeditionMonotonicNow={expeditionMonotonicNow} expeditionPending={expeditionPending} expeditionFeedback={expeditionFeedback} stellaQuantity={box.stella.quantity} stellaRetryAvailable={stellaRetryId === selected.id} favoritePending={favoritePendingId === selected.id} stellaPending={stellaPendingId === selected.id} stellaFeedback={stellaFeedback} actionError={error} onToggleFavorite={() => onToggleFavorite(selected)} onUseStella={() => onUseStella(selected)} onStartExpedition={() => onExpedition('start', selected)} onClaimExpedition={() => onExpedition('claim', selected)} onClose={onCloseDetail} />}
+    {selected && <BoxCharacterDetailModal character={selected} combatState={combatStateFor(dailyCombat, selected.id)} expedition={expedition} expeditionMonotonicNow={expeditionMonotonicNow} expeditionPending={expeditionPending} expeditionPendingAction={expeditionPendingAction} expeditionFeedback={expeditionFeedback} stellaQuantity={box.stella.quantity} stellaRetryAvailable={stellaRetryId === selected.id} favoritePending={favoritePendingId === selected.id} stellaPending={stellaPendingId === selected.id} stellaFeedback={stellaFeedback} actionError={error} onToggleFavorite={() => onToggleFavorite(selected)} onUseStella={() => onUseStella(selected)} onStartExpedition={() => onExpedition('start', selected)} onClaimExpedition={() => onExpedition('claim', selected)} onClose={onCloseDetail} />}
   </div>
 }
 

@@ -461,7 +461,7 @@ describe('EventScreen presentation', () => {
     const { container } = mount({ value: afterJoin })
     selectGames(container)
     act(() => container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[2]!.click())
-    expect(container.querySelector('.event-game-c-send input[type="search"]')).toBeNull()
+    expect(container.querySelector('.event-game-c-send input[type="search"]')).not.toBeNull()
     expect(container.textContent).toContain('Choisir un joueur')
     expect(container.querySelector('.event-game-c-send textarea')).not.toBeNull()
     expect(container.querySelector('.event-game-c-inbox')?.textContent).toContain('Aucun message reçu aujourd’hui')
@@ -483,6 +483,27 @@ describe('EventScreen presentation', () => {
     await act(async () => { await Promise.resolve() })
     expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Inscription')
     expect(mounted.container.querySelector('.event-game-c')).toBeNull()
+  })
+
+  it('selects directly from inline search and ignores stale results after typing or selection', async () => {
+    vi.useFakeTimers()
+    let release!: (value: EventGameCRecipientsDto) => void
+    const page = (name: string): EventGameCRecipientsDto => ({ page: 1, pageSize: 10, total: 1, totalPages: 1, recipients: [{ playerId: name, displayName: name, level: 9, elementKey: 'hydro' }] })
+    const onSearchRecipients = vi.fn((query: EventGameCRecipientQuery) => query.query === 'A' ? new Promise<EventGameCRecipientsDto>(resolve => { release = resolve }) : Promise.resolve(page('Céo')))
+    const { container } = mount({ value: afterJoin, onSearchRecipients })
+    selectGames(container)
+    act(() => container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[2]!.click())
+    const input = container.querySelector<HTMLInputElement>('.player-quick-search input')!
+    const type = async (text: string) => act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, text); input.dispatchEvent(new Event('input', { bubbles: true })) })
+    await type('A'); await act(async () => vi.advanceTimersByTimeAsync(120))
+    await type('C'); await act(async () => vi.advanceTimersByTimeAsync(120))
+    await act(async () => container.querySelector<HTMLButtonElement>('.player-quick-search .moderation-target-results button')!.click())
+    expect(container.querySelector('.event-recipient-control')?.textContent).toContain('Destinataire : Céo')
+    expect(container.querySelector('.player-quick-search .moderation-target-results')).toBeNull()
+    await act(async () => release(page('Ancien')))
+    expect(container.querySelector('.event-recipient-control')?.textContent).toContain('Céo')
+    expect(container.textContent).not.toContain('Ancien')
+    expect(input.value).toBe('Céo')
   })
 
   it('searches an eligible recipient, selects their ID and sends one trimmed daily message', async () => {
@@ -518,7 +539,7 @@ describe('EventScreen presentation', () => {
     act(() => container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[2]!.click())
     act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('.event-game-c-send button')).find((button) => button.textContent === 'Choisir un joueur')!.click())
     await act(async () => { await Promise.resolve(); await Promise.resolve() })
-    expect(onSearchRecipients).not.toHaveBeenCalled()
+    expect(onSearchRecipients).toHaveBeenLastCalledWith({ query: '', elementKey: null, sort: 'name', direction: 'asc', page: 1 })
     expect(container.querySelector('[role="dialog"]')).not.toBeNull()
     expect(container.textContent).not.toContain('Rôle Testeur')
     expect(container.textContent).not.toContain('Testeur')

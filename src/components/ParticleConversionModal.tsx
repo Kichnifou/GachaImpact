@@ -1,3 +1,4 @@
+import AppButton from './AppButton'
 import { useState } from 'react'
 import type { DailyChallengeMutationDto, ElementKey } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
@@ -43,8 +44,8 @@ function ParticleConversionModal({ elementKey, stock, onClose, onConvert, onOpen
     <button type="button" className="conversion-max-button" onClick={() => { setAmount(stock); setIntent(null) }}>MAX</button>
     <p className="conversion-preview">{amount || '0'} particules → {amount || '0'} Primos</p>
     {error && <p role="alert" className="inventory-inline-error">{error}</p>}
-    <button type="button" className="small-primary-button" disabled={!valid || pending} onClick={() => void submit()}>{pending ? 'Conversion…' : 'Convertir'}</button>
-    {onOpenTrades && <button type="button" className="conversion-max-button" onClick={() => { onClose(); onOpenTrades() }}>Échanger avec des joueurs</button>}
+    <div className="conversion-actions"><AppButton variant="primary" disabled={!valid || pending} onClick={() => void submit()}>{pending ? 'Conversion…' : 'Convertir'}</AppButton>
+    {onOpenTrades && <AppButton onClick={() => { onClose(); onOpenTrades() }}>Échanger avec des joueurs</AppButton>}</div>
   </section></div>
 }
 

@@ -12,12 +12,13 @@ const c6Stats = ['strength', 'intelligence', 'beauty', 'charisma', 'popularity']
 const idleExpedition: ExpeditionDto = { businessDate: '', operationalStatus: 'IDLE', departureUsedToday: false, canStartToday: false, activeCharacter: null, departedAt: null, readyAt: null, remainingSeconds: 0, startedOnCurrentBusinessDate: false, totalCompleted: '0' }
 const idleExpeditionSnapshot = createExpeditionClientSnapshot(idleExpedition, 0)
 
-function BoxCharacterDetailModal({ character, combatState, expedition = idleExpeditionSnapshot, expeditionMonotonicNow = 0, expeditionPending = false, expeditionFeedback = null, showStella = true, stellaQuantity, stellaRetryAvailable, favoritePending, stellaPending, stellaFeedback, actionError, onToggleFavorite, onUseStella, onStartExpedition = () => undefined, onClaimExpedition = () => undefined, onClose }: {
+function BoxCharacterDetailModal({ character, combatState, expedition = idleExpeditionSnapshot, expeditionMonotonicNow = 0, expeditionPending = false, expeditionPendingAction, expeditionFeedback = null, showStella = true, stellaQuantity, stellaRetryAvailable, favoritePending, stellaPending, stellaFeedback, actionError, onToggleFavorite, onUseStella, onStartExpedition = () => undefined, onClaimExpedition = () => undefined, onClose }: {
   character: BoxCharacterDto
   combatState?: Readonly<{ ko: boolean; stats: Readonly<{ fights: string; wins: string; losses: string; winRatePercent: number }> }>
   expedition?: ExpeditionClientSnapshot
   expeditionMonotonicNow?: number
   expeditionPending?: boolean
+  expeditionPendingAction?: 'start' | 'claim'
   expeditionFeedback?: string | null
   showStella?: boolean
   stellaQuantity: string
@@ -88,7 +89,7 @@ function BoxCharacterDetailModal({ character, combatState, expedition = idleExpe
           </dl>
           <section className={`box-expedition-zone ${isExpeditionCharacter ? expeditionValue.operationalStatus.toLowerCase() : 'idle'}`} aria-label="Expédition">
             <div><strong>Expédition</strong>{isExpeditionCharacter && expeditionValue.operationalStatus === 'RUNNING' ? <small>🧭 En expédition · <ExpeditionCountdown snapshot={expedition} monotonicNow={expeditionMonotonicNow} /></small> : isExpeditionCharacter && expeditionValue.operationalStatus === 'READY' ? <small>✅ À récupérer · {character.name} est revenu.</small> : <small>{expeditionValue.canStartToday ? 'Disponible aujourd’hui · durée 20 h' : expeditionValue.departureUsedToday ? 'Expédition effectuée aujourd’hui.' : 'Une autre expédition est active.'}</small>}<p role="status">{expeditionFeedback ?? '\u00a0'}</p></div>
-            {isExpeditionCharacter && expeditionValue.operationalStatus === 'READY' ? <button type="button" disabled={expeditionPending} onClick={onClaimExpedition}>{expeditionPending ? 'Récupération…' : 'Récupérer l’expédition'}</button> : !isExpeditionCharacter && expeditionValue.canStartToday ? <button type="button" disabled={expeditionPending} onClick={onStartExpedition}>{expeditionPending ? 'Départ…' : 'Envoyer en expédition'}</button> : null}
+            {expeditionPending && expeditionPendingAction ? <button type="button" disabled>{expeditionPendingAction === 'claim' ? 'Récupération…' : 'Départ…'}</button> : isExpeditionCharacter && expeditionValue.operationalStatus === 'READY' ? <button type="button" disabled={expeditionPending} onClick={onClaimExpedition}>{expeditionPending ? 'Récupération…' : 'Récupérer l’expédition'}</button> : !isExpeditionCharacter && expeditionValue.canStartToday ? <button type="button" disabled={expeditionPending} onClick={onStartExpedition}>{expeditionPending ? 'Départ…' : 'Envoyer en expédition'}</button> : null}
           </section>
           {showStella && character.rarity === 5 && <section className="box-stella-zone" aria-label="Masterless Stella Fortuna">
             <div className="box-stella-copy"><strong>Masterless Stella Fortuna × {stellaQuantity}</strong><small>Renforce ce personnage</small><p className="box-stella-feedback" role="status" aria-live="polite">{stellaFeedback?.message ?? (stellaRetryAvailable ? 'Résultat à vérifier · la nouvelle tentative reprendra la même opération.' : '\u00a0')}</p></div>

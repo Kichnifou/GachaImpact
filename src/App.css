@@ -7945,6 +7945,8 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .particle-conversion-modal label { display: grid; gap: 5px; color: var(--muted); font-size: 9px; }
 .particle-conversion-modal input { min-height: 36px; padding: 0 10px; color: white; border: 1px solid var(--border); border-radius: 8px; background: rgba(4, 10, 22, .75); }
 .conversion-max-button { align-self: end; min-height: 36px; padding: 0 13px; color: white; border: 1px solid var(--border); border-radius: 8px; background: rgba(25, 59, 99, .72); }
+.conversion-actions { grid-column: 1 / -1; display: grid; gap: 8px; }
+.conversion-actions .app-button { width: 100%; min-height: 40px; padding: 10px 14px; border-radius: 9px; font-size: 12px; }
 .conversion-preview { padding: 10px; color: #c7eaff !important; text-align: center; border-radius: 8px; background: rgba(34, 85, 130, .2); }
 
 @media (min-width: 1121px) {
@@ -8624,7 +8626,11 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .social-screen .social-filters { gap: 8px; }
 .social-screen .social-bulk-action { padding-top: 2px; }
 .social-screen .social-feedback { min-height: 22px; padding-top: 2px; }
-.social-screen .social-player-list { gap: 7px; padding-top: 0; }
+.social-screen .social-player-list { gap: 7px; min-height: 0; padding: 0; }
+.social-frame .scrollable-screen-panel-body { border: 1px solid var(--border); border-radius: 12px; background: rgba(4, 10, 22, .25); padding: 8px; scroll-padding: 16px; }
+.social-player-list button { scroll-margin-block: 16px; }
+.social-filters input, .social-filters select, .social-filters .social-bulk-button { height: 39px; box-sizing: border-box; }
+.social-filters .social-bulk-button { flex: 0 0 auto; }
 .social-bulk-button { min-height: 32px; padding: 6px 10px; font-size: 12px; }
 .profile-identity { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: start; gap: 18px; padding: 16px 8px; }
 .profile-identity h2 { overflow-wrap: anywhere; }
@@ -8652,6 +8658,8 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .event-recipient-control { display: flex; gap: 12px; align-items: center; min-height: 48px; }
 .event-recipient-control p { flex: 1; min-width: 0; overflow-wrap: anywhere; margin: 0; }
 .event-recipient-control button { width: auto; flex: 0 0 auto; }
+.player-quick-search { position: relative; }
+.player-quick-search .moderation-target-results { top: 100%; bottom: auto; left: 0; right: 0; transform: none; }
 .player-search-only { width: min(480px, calc(100vw - 32px)); }
 .player-search-only .moderation-browser-filters > :not(:first-child) { display: none; }
 .player-search-only .moderation-browser-filters { grid-template-columns: minmax(0, 1fr); }
@@ -8659,7 +8667,10 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .player-search-only .moderation-browser-results { min-height: 100px; max-height: 280px; }
 .sidebar-clickable { position: relative; isolation: isolate; }
 .sidebar-clickable > .sidebar-card-link { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; border-radius: inherit; background: transparent; cursor: pointer; z-index: 1; }
-.sidebar-clickable button:not(.sidebar-card-link) { position: relative; z-index: 2; }
+.sidebar-clickable button:not(.sidebar-card-link) { z-index: 2; }
+.sidebar-clickable button:not(.sidebar-card-link):not(.sidebar-particle-convert) { position: relative; }
+.sidebar-clickable[role='button'] { cursor: pointer; }
+.sidebar-clickable[role='button']:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 .sidebar-card-link:focus-visible { outline: 2px solid #8fcfff; outline-offset: -3px; }
 .sidebar-card-link:hover { background: #8fcfff08; }
 .players-panel .online-player-list { display: grid; gap: 10px; padding: 4px; }

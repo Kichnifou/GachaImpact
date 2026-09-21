@@ -4,8 +4,9 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { BoxCharacterDto, PlayerBoxDto } from '../api/types'
+import type { BoxCharacterDto, PlayerBoxDto, ExpeditionDto } from '../api/types'
 import BoxScreen from './BoxScreen'
+import { createExpeditionClientSnapshot } from '../expedition/expedition-client-snapshot'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -21,6 +22,25 @@ afterEach(() => {
 })
 
 describe('Box one-shot character intent', () => {
+  it('keeps claim pending through an IDLE publication and the notification refresh', async () => {
+    const node = document.createElement('div'); document.body.append(node); const root = createRoot(node)
+    const idle: ExpeditionDto = { businessDate: '2040-01-01', operationalStatus: 'IDLE', departureUsedToday: false, canStartToday: true, activeCharacter: null, departedAt: null, readyAt: null, remainingSeconds: 0, startedOnCurrentBusinessDate: false, totalCompleted: '1' }
+    let finish!: () => void
+    const notifications = vi.fn(() => new Promise<void>(resolve => { finish = resolve }))
+    const props = { initialBox: box, onLoadBox: vi.fn(async () => box), onSetFavorite: vi.fn(async () => alpha), onSetSortPreference: vi.fn(async value => value), onUseStella: vi.fn(), stellaRetryCharacterId: null, openCharacterIntent: { characterId: alpha.id, token: 'claim' }, onNotificationsChanged: notifications, onClaimExpedition: vi.fn(async () => ({ operation: { id: 'claim', alreadyProcessed: false }, view: idle, resources: { primogems: '10', moras: '0', particles: { pyro: '0', hydro: '0', cryo: '0', electro: '0', anemo: '0', geo: '0', dendro: '0' } }, reward: { roll: 1, kind: 'primogems' as const, resourceKey: 'primogems', amount: '10' } })) }
+    const render = (value: ExpeditionDto) => root.render(<BoxScreen {...props} expedition={createExpeditionClientSnapshot(value, 0)} />)
+    await act(async () => render({ ...idle, operationalStatus: 'READY', activeCharacter: alpha, canStartToday: false }))
+    await act(async () => Array.from(node.querySelectorAll('button')).find(b => b.textContent === 'Récupérer l’expédition')!.click())
+    expect(notifications).toHaveBeenCalledOnce()
+    await act(async () => render(idle))
+    const pending = Array.from(node.querySelectorAll('button')).find(b => b.textContent === 'Récupération…')
+    expect(pending?.disabled).toBe(true)
+    expect(node.textContent).not.toContain('Départ…')
+    await act(async () => finish())
+    expect(node.textContent).not.toContain('Récupération…')
+    act(() => root.unmount())
+  })
+
   it('consumes A, stays closed after normal navigation, then opens a later B intent', async () => {
     const container = document.createElement('div')
     document.body.append(container)

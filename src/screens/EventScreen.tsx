@@ -5,6 +5,7 @@ import { isAmbiguousMutationError } from '../api/mutation-errors'
 import ScreenHeader from '../components/ScreenHeader'
 import AppButton from '../components/AppButton'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
+import PlayerQuickSearch from '../components/PlayerQuickSearch'
 import PlayerSelectionBrowser, { type PlayerBrowserQuery } from '../components/PlayerSelectionBrowser'
 import EventShopSection, { type EventShopIntent, type EventShopTarget } from './EventShopSection'
 import EventCalendar from './EventCalendar'
@@ -400,6 +401,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
       {section === 'games' && gameTab === 2 && value.gameC.available && <section className="panel event-game-c">
         <header><span className="eyebrow">Message du Festival</span><h2>{presentation.games[2]}</h2></header>
         {value.gameC.canSend ? <div className="event-game-c-send">
+          <PlayerQuickSearch onListPlayers={listRecipients} onSelect={setSelectedRecipient} />
           <div className="event-recipient-control"><p>Destinataire : <strong>{selectedRecipient?.displayName ?? 'À choisir'}</strong></p><button type="button" className="small-primary-button" onClick={() => setRecipientBrowserOpen(true)}>{selectedRecipient ? 'Changer' : 'Choisir un joueur'}</button></div>
           <label htmlFor="event-game-c-message">Votre message</label>
           <textarea id="event-game-c-message" value={gameCMessage} maxLength={500} rows={3} onChange={(event) => setGameCMessage(event.target.value)} />
@@ -410,6 +412,6 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
       </section>}
       <p className="event-feedback" role={error ? 'alert' : 'status'}>{error ?? ''}</p>
     </ScrollableScreenPanel>
-    {recipientBrowserOpen && <PlayerSelectionBrowser searchOnly eyebrow="Événement · Panier" title="Choisir un joueur" selectedPlayerId={selectedRecipient?.playerId ?? ''} onListPlayers={listRecipients} onConfirm={(recipient) => { setSelectedRecipient(recipient); setRecipientBrowserOpen(false) }} onClose={() => setRecipientBrowserOpen(false)} />}
+    {recipientBrowserOpen && <PlayerSelectionBrowser eyebrow="Événement · Panier" title="Choisir un joueur" selectedPlayerId={selectedRecipient?.playerId ?? ''} onListPlayers={listRecipients} onConfirm={(recipient) => { setSelectedRecipient(recipient); setRecipientBrowserOpen(false) }} onClose={() => setRecipientBrowserOpen(false)} />}
   </div>
 }
