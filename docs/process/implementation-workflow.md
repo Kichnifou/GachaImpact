@@ -92,7 +92,7 @@ Le workflow Git permanent est le suivant :
 4. ChatGPT inspecte sur GitHub le vrai commit et son diff par rapport à `main` avant de valider ou de demander une correction technique ;
 5. chaque correction éventuelle suit à son tour `modification → tests → commit séparé → push review` ;
 6. ChatGPT re-review le vrai nouveau commit ;
-7. une fois la review approuvée, `review` est mergée ou avancée proprement vers `main` selon l’historique réel ;
+7. une fois la review approuvée, ChatGPT fournit directement le modèle/niveau Codex recommandés et un prompt dédié de promotion copiable. L'exécution volontaire de ce prompt par le propriétaire constitue l'autorisation explicite de cette mission ; `review` est alors avancée proprement vers `main` selon l’historique réel ;
 8. l’arrivée du commit sur `main` déclenche les déploiements de production ;
 9. Railway et Cloudflare Pages sont vérifiés ;
 10. le propriétaire réalise le test public ;
@@ -116,7 +116,7 @@ git status
 
 ChatGPT vérifie le HEAD de `review`, le compare au dernier état de `main`, contrôle la liste des fichiers, la documentation et les fichiers critiques. Cette review de référence porte sur le vrai commit GitHub, jamais uniquement sur le résumé d’un worktree local non publié. Il distingue les validations automatisées déjà acquises des validations publiques encore impossibles à ce stade.
 
-Si le lot n’est pas acceptable, les corrections restent sur `review`. S’il est acceptable, ChatGPT et le propriétaire autorisent explicitement seulement alors son passage vers `main`.
+Si le lot n’est pas acceptable, les corrections restent sur `review`. S’il est acceptable, ChatGPT fournit directement le prompt Codex dédié de promotion, avec le modèle et le niveau de réflexion recommandés. Ce prompt ne déclenche rien seul : son exécution volontaire par le propriétaire est l'autorisation explicite requise. ChatGPT ne promeut jamais silencieusement un candidat et ne demande pas une seconde confirmation conversationnelle après avoir fourni ce prompt.
 
 ## 6. Promouvoir vers `main`, déployer et valider publiquement
 

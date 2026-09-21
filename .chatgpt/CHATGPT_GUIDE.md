@@ -442,7 +442,7 @@ Le cycle reste : Codex implémente et teste → committe et pousse le candidat s
 - Toute intervention Codex qui modifie un fichier se termine, après tests et contrôle du périmètre, par un commit propre puis un push normal sur `review` dans la même intervention.
 - ChatGPT inspecte le vrai commit et le vrai diff GitHub avant de valider ou de demander une correction technique ; le résumé d’un worktree local non publié ne constitue jamais une review de référence.
 - Toute correction demandée suit à nouveau `modification → tests → commit séparé → push review`, puis ChatGPT re-review le nouveau commit réel.
-- Aucune promotion de `main` n’a lieu avant approbation indépendante explicite. Aucun force-push n’appartient au workflow normal.
+- Aucune promotion de `main` n’a lieu avant approbation indépendante explicite. Quand la review indépendante du vrai `review` GitHub est favorable, ChatGPT fournit directement le modèle et niveau de réflexion Codex recommandés, puis un prompt dédié de promotion copiable. L'exécution volontaire de ce prompt par le propriétaire vaut autorisation explicite de cette mission : aucune confirmation conversationnelle supplémentaire de type « go » n'est requise. ChatGPT ne promeut jamais silencieusement un candidat ; aucun force-push n’appartient au workflow normal.
 - Les seules exceptions au commit/push sont une intervention strictement read-only ou une instruction explicite du propriétaire demandant de conserver le travail local uniquement.
 - Les commits parallèles qui touchent exclusivement `docs/Story/**` sont légitimes : ils sont conservés dans l’historique et ne sont jamais modifiés, réécrits, squashés ou revertés par les lots GachaImpact.
 
@@ -469,7 +469,7 @@ Après chaque lot de code Codex :
 3. Le candidat devient ainsi visible pour la review de référence sur son vrai commit GitHub.
 4. ChatGPT vérifie le commit et le diff `review` par rapport à `main` ; le propriétaire complète la review.
 5. Les corrections éventuelles sont testées et poussées sur `review`.
-6. `main` n’est mise à jour qu’après approbation explicite de la review.
+6. Après une review favorable, ChatGPT fournit immédiatement le modèle/niveau Codex recommandés et un prompt dédié de promotion. L'exécution volontaire de ce prompt par le propriétaire est l'autorisation explicite de promouvoir ; `main` n’est jamais mise à jour silencieusement.
 7. Le passage sur `main` déclenche Railway et Cloudflare Pages ; le propriétaire teste ensuite la version publique.
 8. Le Master ne marque la validation publique qu’après ce test réussi.
 9. Chaque nouveau lot documente correctement l’état réellement poussé du lot précédent avant de commencer.
