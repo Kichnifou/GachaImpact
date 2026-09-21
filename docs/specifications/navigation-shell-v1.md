@@ -55,6 +55,10 @@ Banque conserve ses accès contextuels et Menu. Le futur Historique restera auss
 
 Les ressources possèdent aussi des raccourcis contextuels cohérents sans dupliquer leur logique : Primos ouvre Boutique, Moras ouvre Banque et les particules de l’élément personnel ouvrent la modale de conversion partagée. Ces entrées existent dans Sac (`Tout` et `Ressources`) et dans la sidebar. Ouvrir la conversion depuis la sidebar superpose la modale à l’écran courant sans changer de route ; toutes les entrées utilisent le même composant et la même intention idempotente.
 
+## Panneau Communauté — Chat et MP futurs
+
+Le panneau de droite conserve les onglets `Chat | MP` de Social R506. Le [contrat Chat global V1](global-chat-v1.md) porte les règles de composition, scroll, non-lus, mentions, réponses et modération ; l'[audit Social](../legacy/14-ami-social-audit.md) reste propriétaire des MP. Un message global joueur ouvre le Profil par avatar/pseudo via le pattern existant ; l'action `Envoyer un message privé` peut basculer vers MP et ouvrir le parcours autorisé, sans rédaction de MP dans Chat ni commande `!mp`. Cette navigation est cible documentaire : la coque Chat actuelle demeure mockée et aucun onglet MP réel n'est encore implémenté.
+
 ## Social / Profils — Batch B et Batch C
 
 Le clic sur `social / FRIEND_REQUEST_ACCEPTED / OPEN_SOCIAL_FRIENDS` ouvre Amis avec le refresh autoritatif existant, puis archive cette notification via le cycle Notifications. Une demande reçue et les autres notifications gardent leur cycle propre.

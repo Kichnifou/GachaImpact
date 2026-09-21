@@ -1980,6 +1980,8 @@ Les administrateurs ne disposent pas d'une lecture libre des MP.
 
 # 27. Chat global
 
+Cible relationnelle conceptuelle alignée sur le [contrat Chat global R872–R883](../specifications/global-chat-v1.md) ; aucune table Chat/MP générale n'est encore présente dans `server/prisma/schema.prisma`. Les noms/contraintes physiques exacts seront vérifiés au premier lot.
+
 ## 27.1 `global_chat_messages`
 
 Colonnes :
@@ -1991,8 +1993,8 @@ Colonnes :
 - `content text NOT NULL`
 - `external_message_id text NULL`
 - `operation_id uuid NULL REFERENCES business_operations(id) ON DELETE SET NULL`
+- `reply_to_message_id uuid NULL REFERENCES global_chat_messages(id) ON DELETE SET NULL`
 - `created_at timestamptz NOT NULL DEFAULT now()`
-- `edited_at timestamptz NULL`
 - `deleted_at timestamptz NULL`
 - `moderation_state text NULL`
 
@@ -2004,7 +2006,7 @@ Index :
 
 `(created_at DESC)`
 
-Le stockage et l'exécution d'une commande sont séparés.
+Le stockage et l'exécution d'une commande sont séparés. Aucun `edited_at` n'est requis : l'auteur ne peut pas éditer son message global. La suppression garde la ligne ; l'état doit permettre de distinguer suppression auteur et modération, sans exposer la raison privée. Une réponse conserve un lien vers sa cible et résout l'aperçu de l'état actuel, sans copier durablement le texte supprimé vers le flux joueur. Les signalements exigent un snapshot et un contexte privés distincts du message public ; leur forme relationnelle précise est à choisir au lot physique. Mentions réelles et curseur de lecture Chat demandent des données autoritaires adaptées ; leur structure exacte, comme la rétention et le seuil anti-rafale, n'est pas figée ici. Le masquage d'affichage ne crée aucune table `PlayerBlock` supplémentaire.
 
 ---
 

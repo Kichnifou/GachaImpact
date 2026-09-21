@@ -627,14 +627,16 @@ Une donnée privée ne doit jamais être envoyée au client pour être cachée e
 
 ## Chat global
 
-Flux cible :
+Le [contrat Chat global R872–R883](../specifications/global-chat-v1.md) fixe le comportement produit ; les MP gardent leur contrat Social R501–R522. Aucun service Chat/MP général n'existe physiquement à ce checkpoint.
+
+Flux conceptuel cible :
 
 1. client envoie le message à l'API ;
-2. API valide et persiste ;
-3. XP/commande éventuelle est traitée ;
-4. Realtime diffuse le nouveau message.
+2. API authentifiée valide le contenu, l'anti-rafale et les permissions pertinentes, puis persiste le message et son identité ;
+3. compteurs/XP éventuels et commande sont traités sans attribuer la réponse du jeu au joueur ;
+4. le mécanisme de diffusion retenu pour le lot rend le nouveau message disponible aux lecteurs, avec lecture progressive et non-lus autoritaires.
 
-Une commande reste donc un vrai message utilisateur, mais son exécution métier est séparée.
+Une commande reste un vrai message utilisateur public. Son exécution métier est séparée et produit un retour public `GachaImpact`, même en cas d'erreur ou de syntaxe invalide. Une action UI conserve son retour UI sauf règle produit spécialisée explicite. Les suppressions et signalements conservent les preuves nécessaires à la modération privée. Le transport exact, la rétention serveur et les seuils anti-rafale sont à préciser pour le premier lot physique ; aucune réponse privée de commande n'y est prévue.
 
 ## Présence
 

@@ -2,6 +2,23 @@
 
 Statut : évolutif.
 
+## Chat global — décisions produit validées pour le premier lot
+
+La [source spécialisée Chat global](global-chat-v1.md) détaille ces règles. Les MP restent gouvernés par Social R501–R522.
+
+- `VALIDÉ R872` — Chat global monoligne, Entrée pour envoyer, 500 caractères : texte brut, emojis Unicode et URL externes cliquables ; aucun HTML interprété, média ou pièce jointe.
+- `VALIDÉ R873` — Pas d'édition ni de réactions V1 initiales ; suppression par l'auteur ou la modération en conservant la ligne avec son libellé respectif, sans raison de modération publique.
+- `VALIDÉ R874` — Réponse dans le flux chronologique avec aperçu de la cible ; une cible supprimée n'expose plus son ancien texte dans l'aperçu.
+- `VALIDÉ R875` — Mentions `@pseudo` assistées et mises en évidence, sans notification persistante ; joueur bloqué exclu des suggestions et d'une mention réelle même si sa chaîne est saisie.
+- `VALIDÉ R876` — Scroll suivi seulement au niveau des messages récents ; indicateur de nouveaux messages sinon. Badge Chat lors de la consultation MP ou du Chat non consulté ; vu seulement si Chat est effectivement affiché au niveau récent, pour les vrais messages globaux destinés à tous.
+- `VALIDÉ R877` — Chargement progressif en remontant, fenêtre UI techniquement bornable, sans pagination numérotée ni écran d'historique Chat séparé dans le premier périmètre ; rétention serveur exacte à décider plus tard.
+- `VALIDÉ R878` — Le blocage Social n'efface pas le flux public ; masquage local par auteur avec ligne `Message masqué — Afficher` et réouverture ponctuelle, distinct de `PlayerBlock`.
+- `VALIDÉ R879` — Signalement d'un message global avec snapshot et contexte pour modération privée, sans retrait public automatique ; une suppression de modération conserve sa ligne.
+- `VALIDÉ R880` — Anti-rafale serveur simple, seuil technique ultérieur ; indépendant du quota général et des cooldowns métier, qui ne bloquent pas la discussion normale.
+- `VALIDÉ R881` — Commande `!` = message public original du joueur, compté dans `totalMessages` selon XP et exécuté séparément par les services métier communs. Toutes les réponses `GachaImpact`, y compris consultations, aide et erreurs, sont publiques dans le premier périmètre ; réponses privées reportées au polish final.
+- `VALIDÉ R882` — Aucune annonce générique de présence ni publication Chat automatique d'une action UI ; seules des règles spécialisées explicites peuvent publier. Annonces particulières et extension UI → Chat reportées au polish final.
+- `VALIDÉ R883` — Avatar/pseudo du Chat ouvrent Profil ; actions contextuelles pertinentes réutilisées. `Envoyer un message privé` ouvre le parcours dans l'onglet MP sous ses permissions ; aucun `!mp` ni rédaction de MP dans le Chat global.
+
 ## Event — messages du Jeu C (clarification propriétaire du 16/09/2026)
 
 - `VALIDÉ` — Tant qu'au moins un message Event de la business date courante reste à consulter pour un Player, une seule notification agrégée est active pour ce destinataire et cette journée ; jamais une notification par message.

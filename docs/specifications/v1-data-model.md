@@ -1288,6 +1288,8 @@ La présence en ligne est un état temps réel distinct de l'historique métier.
 
 Message du chat global GachaImpact.
 
+Le [contrat Chat global R872–R883](global-chat-v1.md) est propriétaire du comportement joueur. Cette entité est une cible conceptuelle, absente du schéma Prisma physique courant.
+
 Conceptuellement :
 
 - `id`
@@ -1298,6 +1300,7 @@ Conceptuellement :
 - `createdAt`
 - identifiant externe du message lorsque pertinent
 - opération métier liée lorsque pertinent
+- `replyToMessageId` nullable pour l'aperçu de réponse, résolu depuis l'état courant du message ciblé plutôt qu'une copie player-facing de son texte
 - état de modération/suppression lorsque nécessaire
 
 Contraintes :
@@ -1306,6 +1309,9 @@ Contraintes :
 - une réponse automatique du jeu n'est pas attribuée statistiquement au joueur ;
 - envoyer une commande reste bien un message du joueur pour les compteurs qui le prévoient ;
 - l'exécution métier d'une commande reste séparée du stockage/transport du message.
+- une suppression conserve le message et sa position ; le rendu distingue suppression par l'auteur et par la modération, sans édition du contenu après envoi ;
+- les mentions réelles et les non-lus requièrent une résolution serveur/état de lecture propre au Chat, sans notification persistante de mention ; le masquage individuel reste un filtre d'affichage, pas une relation Social ;
+- un signalement conserve un snapshot du message et un contexte privé de modération, distinct du contenu public courant.
 
 Le pont Twitch futur peut injecter un message dans ce même flux selon la configuration validée.
 
