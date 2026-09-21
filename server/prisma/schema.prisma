@@ -203,7 +203,60 @@ model Element {
   @@map("elements")
 }
 
+enum TradeRequestState {
+  PENDING
+  ACCEPTED
+  REFUSED
+  CANCELLED
+  EXPIRED
+
+  @@map("trade_request_state")
+}
+
+model TradeRequest {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  senderPlayerId String @map("sender_player_id") @db.Uuid
+  recipientPlayerId String @map("recipient_player_id") @db.Uuid
+  senderResourceKey String @map("sender_resource_key") @db.Text
+  recipientResourceKey String @map("recipient_resource_key") @db.Text
+  originalAmount BigInt @map("original_amount")
+  currentAmount BigInt @map("current_amount")
+  state TradeRequestState @default(PENDING)
+  sourceChannel SourceChannel @map("source_channel")
+  operationId String @unique @map("operation_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz(6)
+  sender Player @relation("TradeSender", fields: [senderPlayerId], references: [id], onDelete: Restrict)
+  recipient Player @relation("TradeRecipient", fields: [recipientPlayerId], references: [id], onDelete: Restrict)
+  senderResource ResourceDefinition @relation("TradeSenderResource", fields: [senderResourceKey], references: [key], onDelete: Restrict)
+  recipientResource ResourceDefinition @relation("TradeRecipientResource", fields: [recipientResourceKey], references: [key], onDelete: Restrict)
+  operation BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  execution TradeExecution?
+
+  @@index([senderPlayerId, state, createdAt])
+  @@index([recipientPlayerId, state, createdAt])
+  @@index([state, expiresAt])
+  @@map("trade_requests")
+}
+
+model TradeExecution {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tradeRequestId String @unique @map("trade_request_id") @db.Uuid
+  amount BigInt
+  operationId String @unique @map("operation_id") @db.Uuid
+  executedAt DateTime @default(now()) @map("executed_at") @db.Timestamptz(6)
+  request TradeRequest @relation(fields: [tradeRequestId], references: [id], onDelete: Restrict)
+  operation BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+
+  @@index([executedAt])
+  @@map("trade_executions")
+}
+
 model ResourceDefinition {
+  tradesSent TradeRequest[] @relation("TradeSenderResource")
+  tradesReceived TradeRequest[] @relation("TradeRecipientResource")
   key               String                  @id @db.Text
   displayName       String                  @map("display_name") @db.Text
   category          String                  @db.Text
@@ -222,6 +275,8 @@ model ResourceDefinition {
 }
 
 model Player {
+  tradesSent TradeRequest[] @relation("TradeSender")
+  tradesReceived TradeRequest[] @relation("TradeRecipient")
   id                    String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   displayName           String                       @map("display_name") @db.Text
   elementKey            String?                      @map("element_key") @db.Text
@@ -564,6 +619,8 @@ model WebIdentity {
 }
 
 model BusinessOperation {
+  tradeRequest TradeRequest?
+  tradeExecution TradeExecution?
   id                 String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   playerId           String?                 @map("player_id") @db.Uuid
   operationType      String                  @map("operation_type") @db.Text

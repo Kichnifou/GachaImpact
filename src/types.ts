@@ -13,6 +13,7 @@ export type ScreenId =
   | 'inventory'
   | 'shop'
   | 'codes'
+  | 'trades'
   | 'social'
   | 'profile'
   | 'configuration'

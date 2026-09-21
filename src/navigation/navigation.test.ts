@@ -17,7 +17,7 @@ describe('navigation shell registry', () => {
     expect(navigationDestinations.filter(({ available }) => !available).map(({ id }) => id)).toEqual(['history', 'tutorial'])
   })
   it('adds Codes near the economic destinations without changing the seven main tiles', () => {
-    expect(navigationDestinations.map(({ id }) => id)).toEqual(['home', 'invocation', 'box', 'team', 'catalog', 'activities', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'codes', 'social', 'friends', 'history', 'tutorial', 'configuration'])
-    expect(new Set(navigationDestinations.map(({ id }) => id)).size).toBe(20)
+    expect(navigationDestinations.map(({ id }) => id)).toEqual(['home', 'invocation', 'box', 'team', 'catalog', 'activities', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'codes', 'social', 'friends', 'trades', 'history', 'tutorial', 'configuration'])
+    expect(new Set(navigationDestinations.map(({ id }) => id)).size).toBe(21)
   })
 })

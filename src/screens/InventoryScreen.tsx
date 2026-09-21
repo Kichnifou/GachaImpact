@@ -21,6 +21,7 @@ type InventoryScreenProps = {
   onLoadItemDetail: (itemId: string, page?: number) => Promise<InventoryItemDetailDto>
   onConvertParticles: (amount: string, idempotencyKey: string) => Promise<DailyChallengeMutationDto>
   onNavigateShop: () => void
+  onNavigateTrades?: () => void
   onNavigateBank: () => void
   onLoadBox: () => Promise<PlayerBoxDto>
   onSetBoxFavorite: (characterId: string, favorite: boolean) => Promise<BoxCharacterDto>
@@ -36,7 +37,7 @@ const categories: readonly { id: InventoryCategory; label: string; icon: string 
   { id: 'collection', label: 'Collection', icon: '▣' },
 ]
 
-function InventoryScreen({ initialInventory, resources, elementKey, dailyCombat, onLoad, onLoadItemDetail, onConvertParticles, onNavigateShop, onNavigateBank, onLoadBox, onSetBoxFavorite, onUseStella, stellaRetryCharacterId, onLoadTeams }: InventoryScreenProps) {
+function InventoryScreen({ initialInventory, resources, elementKey, dailyCombat, onLoad, onLoadItemDetail, onConvertParticles, onNavigateShop, onNavigateBank, onNavigateTrades, onLoadBox, onSetBoxFavorite, onUseStella, stellaRetryCharacterId, onLoadTeams }: InventoryScreenProps) {
   const [inventory, setInventory] = useState(initialInventory)
   const [activeCategory, setActiveCategory] = useState<InventoryCategory>('all')
   const [query, setQuery] = useState('')
@@ -157,7 +158,7 @@ function InventoryScreen({ initialInventory, resources, elementKey, dailyCombat,
           {error && <p className="inventory-inline-error" role="alert">{error}</p>}
           {entries.length ? <div className="inventory-groups">{groups.map((group) => <section className="inventory-group" aria-labelledby={`inventory-group-${group.id}`} key={group.id}>
             <header className="inventory-group-heading"><span id={`inventory-group-${group.id}`}>{group.label}</span></header>
-            <div className="inventory-grid">{group.entries.map((entry) => <InventoryCard entry={entry} mainElementKey={elementKey} onConvert={() => setConversionOpen(true)} onNavigateShop={onNavigateShop} onNavigateBank={onNavigateBank} onSelectItem={(item) => void openItemDetail(item)} onUseStella={() => void openStellaPicker()} key={entry.type === 'resource' ? entry.resource.key : entry.item.id} />)}</div>
+            <div className="inventory-grid">{group.entries.map((entry) => <InventoryCard entry={entry} mainElementKey={elementKey} onConvert={() => setConversionOpen(true)} onNavigateShop={onNavigateShop} onNavigateBank={onNavigateBank} onNavigateTrades={onNavigateTrades} onSelectItem={(item) => void openItemDetail(item)} onUseStella={() => void openStellaPicker()} key={entry.type === 'resource' ? entry.resource.key : entry.item.id} />)}</div>
           </section>)}</div>
             : <div className="inventory-empty" role="status"><span aria-hidden="true">◇</span><strong>{query ? 'Aucun résultat' : emptyTitle(activeCategory)}</strong><p>{query ? 'Modifiez votre recherche pour retrouver une entrée.' : emptyDetail(activeCategory)}</p></div>}
         </div>
@@ -174,7 +175,7 @@ function InventoryScreen({ initialInventory, resources, elementKey, dailyCombat,
   </div>
 }
 
-function InventoryCard({ entry, mainElementKey, onConvert, onNavigateShop, onNavigateBank, onSelectItem, onUseStella }: { entry: InventoryEntry; mainElementKey: ElementKey; onConvert: () => void; onNavigateShop: () => void; onNavigateBank: () => void; onSelectItem: (item: InventoryItemDto) => void; onUseStella: () => void }) {
+function InventoryCard({ entry, mainElementKey, onConvert, onNavigateShop, onNavigateBank, onNavigateTrades, onSelectItem, onUseStella }: { entry: InventoryEntry; mainElementKey: ElementKey; onConvert: () => void; onNavigateShop: () => void; onNavigateBank: () => void; onNavigateTrades?: () => void; onSelectItem: (item: InventoryItemDto) => void; onUseStella: () => void }) {
   if (entry.type === 'resource') {
     const content = <><ResourceIcon resource={entry.resource} /><span className="inventory-card-copy"><strong>{entry.resource.displayName}</strong><p>{resourceDetail(entry.resource, entry.amount)}</p></span><span className="item-amount">× {formatResourceAmount(entry.amount)}</span></>
     const action = entry.resource.key === 'primogems'
@@ -183,7 +184,8 @@ function InventoryCard({ entry, mainElementKey, onConvert, onNavigateShop, onNav
         ? { label: 'Accéder à la Banque →', run: onNavigateBank, tone: 'mora' }
         : entry.resource.key === `particles_${mainElementKey}`
           ? { label: 'Convertir →', run: onConvert, tone: entry.resource.elementKey ?? 'particle' }
-          : null
+          : entry.resource.key.startsWith('particles_') && BigInt(entry.amount) > 0n && onNavigateTrades
+            ? { label: 'Échanger →', run: onNavigateTrades, tone: entry.resource.elementKey ?? 'particle' } : null
     return action
       ? <button type="button" className={`inventory-item inventory-resource-card has-action contextual-card ${action.tone}`} onClick={action.run} aria-label={`${action.label.replace(' →', '')}, ${entry.resource.displayName} × ${formatResourceAmount(entry.amount)}`}>{content}<span className="inventory-card-action">{action.label}</span></button>
       : <article className="inventory-item inventory-resource-card">{content}</article>

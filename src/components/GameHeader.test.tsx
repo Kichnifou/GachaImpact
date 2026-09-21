@@ -24,6 +24,10 @@ describe('GameHeader moderation capability', () => {
     const accepted = { id: 'accepted', domainKey: 'social', typeKey: 'FRIEND_REQUEST_ACCEPTED', payload: { acceptorDisplayName: 'Alice' }, state: 'UNREAD' as const, actionKey: 'OPEN_SOCIAL_FRIENDS', actionTargetId: 'alice', createdAt: '2026-09-21T12:00:00Z', readAt: null }
     const received = { ...accepted, id: 'received', typeKey: 'FRIEND_REQUEST_RECEIVED', actionKey: 'OPEN_SOCIAL_REQUESTS', payload: { senderDisplayName: 'Bob' } }
     const container = mount({ notifications: { unreadCount: 2, notifications: [accepted, received] }, onOpenNotification, onArchiveNotification })
+    onArchiveNotification.mockImplementation(async () => {
+      roots[0]!.render(<GameHeader displayName="Test" onNavigateHome={vi.fn()} onOpenSidebar={vi.fn()} onSignOut={vi.fn()} showModeration={false} onOpenModeration={vi.fn()} onOpenMenu={vi.fn()} notifications={{ unreadCount: 1, notifications: [received] }} onOpenNotification={onOpenNotification} onArchiveNotification={onArchiveNotification} />)
+      return { unreadCount: 0, notifications: [] }
+    })
     act(() => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
     expect(container.textContent).toContain('Nouvel ami')
     await act(async () => { container.querySelector<HTMLButtonElement>('.notification-item')!.click() })
@@ -31,7 +35,9 @@ describe('GameHeader moderation capability', () => {
     expect(onArchiveNotification).toHaveBeenCalledWith(accepted.id)
     expect(onOpenNotification.mock.invocationCallOrder[0]).toBeLessThan(onArchiveNotification.mock.invocationCallOrder[0]!)
     act(() => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
-    await act(async () => { container.querySelectorAll<HTMLButtonElement>('.notification-item')[1]!.click() })
+    expect(container.textContent).not.toContain('Nouvel ami')
+    expect(container.querySelectorAll('.notification-item')).toHaveLength(1)
+    await act(async () => { container.querySelector<HTMLButtonElement>('.notification-item')!.click() })
     expect(onOpenNotification).toHaveBeenLastCalledWith(received)
     expect(onArchiveNotification).toHaveBeenCalledTimes(1)
   })

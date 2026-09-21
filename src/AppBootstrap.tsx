@@ -72,6 +72,19 @@ function AppBootstrap() {
     },
   }), [loadResources])
 
+  const tradeActions = useMemo(() => ({ ...getGameApiClient().trades,
+    mutate: async (...args: Parameters<ReturnType<typeof getGameApiClient>['trades']['mutate']>) => {
+      const result = await getGameApiClient().trades.mutate(...args)
+      await loadResources()
+      return result
+    },
+    all: async (...args: Parameters<ReturnType<typeof getGameApiClient>['trades']['all']>) => {
+      const result = await getGameApiClient().trades.all(...args)
+      await loadResources()
+      return result
+    },
+  }), [loadResources])
+
   const loadContest = useCallback(() => contestRequests.read(() => getGameApiClient().getContest()), [contestRequests])
   const refreshContest = useCallback(() => contestRequests.refresh(() => getGameApiClient().getContest()), [contestRequests])
   const loadBox = useCallback(() => getGameApiClient().getBox(), [])
@@ -397,6 +410,16 @@ function AppBootstrap() {
     <GameShell
       key={player.id}
       socialActions={socialActions}
+      tradeActions={tradeActions}
+      onTradeSnapshot={snapshot => setResources(current => {
+        if (!current) return current
+        const particles = { ...current.particles }
+        for (const stock of snapshot.stocks) {
+          const element = stock.resourceKey.replace('particles_', '') as keyof typeof particles
+          if (element in particles) particles[element] = stock.total
+        }
+        return { ...current, particles }
+      })}
       bannerVoteActions={{ onLoadVotes: loadBannerVotes, onVote: voteForBanner, onReloadCatalog: reloadCatalog }}
       player={player}
       resources={visibleResources}

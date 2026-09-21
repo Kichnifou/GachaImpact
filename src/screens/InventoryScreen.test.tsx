@@ -63,6 +63,15 @@ async function mount(overrides: Partial<React.ComponentProps<typeof InventoryScr
 }
 
 describe('real inventory screen', () => {
+  it('opens Trades only for owned foreign particles and preserves personal conversion', async () => {
+    const onNavigateTrades = vi.fn(), { container } = await mount({ onNavigateTrades })
+    const tradeButtons = Array.from(container.querySelectorAll<HTMLButtonElement>('button.inventory-resource-card')).filter(b => b.textContent?.includes('Échanger →'))
+    expect(tradeButtons).toHaveLength(3)
+    expect(tradeButtons.map(b => b.textContent).join(' ')).not.toContain('Particules pyro')
+    act(() => tradeButtons[0]!.click()); expect(onNavigateTrades).toHaveBeenCalledOnce()
+    const convert = Array.from(container.querySelectorAll<HTMLButtonElement>('button.inventory-resource-card')).find(b => b.textContent?.includes('Convertir →'))!
+    act(() => convert.click()); expect(container.querySelector('[role="dialog"]')).not.toBeNull()
+  })
   it('contains no mock inventory import and renders the four final categories', async () => {
     expect(inventorySource).not.toContain('mockData')
     const { container } = await mount()

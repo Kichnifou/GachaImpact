@@ -50,6 +50,9 @@ import { ContestScheduler, ContestService } from '../application/contest/contest
 import { GiftCodeScheduler, GiftCodeService } from '../application/gift-code/gift-code-service.js';
 import { EventService } from '../application/event/event-service.js';
 
+import { TradeService } from '../application/trades/trade-service.js';
+import { TradeScheduler } from '../application/trades/trade-scheduler.js';
+
 export function createRuntimeDependencies(config: AppConfig) {
   if (!config.databaseUrl) {
     throw new Error('DATABASE_URL is required to start database-backed routes.');
@@ -61,6 +64,8 @@ export function createRuntimeDependencies(config: AppConfig) {
   const getCurrentPlayer = new GetCurrentPlayer(store);
   const wheelStore = new PrismaWheelStore(database);
   const clock = new SystemClock();
+  const tradeService = new TradeService(database, clock);
+  const tradeScheduler = new TradeScheduler(tradeService, clock);
   const random = new NodeRandomSource();
   const dailyRewardStore = new PrismaDailyRewardStore(database);
   const dailyChallengeStore = new PrismaDailyChallengeStore(database);
@@ -83,6 +88,8 @@ export function createRuntimeDependencies(config: AppConfig) {
   const eventService = new EventService(getCurrentPlayer, database, clock, random, giftCodeService);
 
   return {
+    tradeService,
+    tradePlayer: getCurrentPlayer,
     authIdentityVerifier: createSupabaseAuthAdapter(issuer),
     getOrProvisionCurrentPlayer: new GetOrProvisionCurrentPlayer(store),
     choosePlayerElement: new ChoosePlayerElement(
@@ -144,8 +151,8 @@ export function createRuntimeDependencies(config: AppConfig) {
     socialService: new SocialService(getCurrentPlayer, database, clock),
     expeditionService,
     notificationService: new NotificationService(getCurrentPlayer, database, clock, expeditionService, giftCodeService, new EventMessageNotificationReconciler(database), new EventLifecycleNotificationReconciler(database, eventService)),
-    start: async () => { await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); await giftCodeScheduler.start(); contestScheduler.start(); },
-    close: async () => { scheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); giftCodeScheduler.stop(); await contestScheduler.stop(); await database.$disconnect(); },
+    start: async () => { await tradeScheduler.start(); await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); await giftCodeScheduler.start(); contestScheduler.start(); },
+    close: async () => { scheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); giftCodeScheduler.stop(); await tradeScheduler.stop(); await contestScheduler.stop(); await database.$disconnect(); },
   };
 }
 

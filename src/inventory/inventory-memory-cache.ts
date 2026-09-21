@@ -3,6 +3,12 @@ import type { ElementKey, PlayerInventoryDto, StellaUseDto } from '../api/types'
 export const MASTERLESS_STELLA_FORTUNA_KEY = 'masterless-stella-fortuna'
 
 export class InventoryMemoryCache {
+  applyTradeStocks(playerId: string, stocks: readonly { resourceKey: string; total: string }[]): void {
+    const current = this.entries.get(playerId)
+    if (!current) return
+    const amounts = new Map(stocks.map(s => [s.resourceKey, s.total]))
+    this.entries.set(playerId, { revision: current.revision + 1, inventory: { ...current.inventory, resources: current.inventory.resources.map(resource => ({ ...resource, amount: amounts.get(resource.key) ?? resource.amount })) } })
+  }
   private entries = new Map<string, { inventory: PlayerInventoryDto; revision: number }>()
   private lifecycleRevision = 0
 

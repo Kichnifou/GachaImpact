@@ -8,6 +8,14 @@ const player = { id: crypto.randomUUID(), displayName: 'Menu Test', elementKey: 
 const identity = { subject: 'navigation-subject' }
 
 describe('navigation preferences', () => {
+  it('enriches the previous complete menu with Trades before Configuration and preserves hidden choices', () => {
+    const current = mergeNavigationMenuPreference(null)
+    const old = { ...current, order: current.order.filter(id => id !== 'trades'), hidden: ['friends'] }
+    const merged = mergeNavigationMenuPreference(old)
+    expect(merged.order.at(-2)).toBe('trades')
+    expect(merged.order.at(-1)).toBe('configuration')
+    expect(merged.hidden).toEqual(['friends'])
+  })
   const apps: Awaited<ReturnType<typeof buildApp>>[] = []
   afterEach(async () => Promise.all(apps.splice(0).map((app) => app.close())))
   it('merges known saved order, appends new ids, ignores unknown ids and restores Configuration', () => {

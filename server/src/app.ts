@@ -1,4 +1,7 @@
 import type { SocialService } from './application/social/social-service.js';
+import type { TradeService } from './application/trades/trade-service.js';
+import type { GetCurrentPlayer } from './application/player/get-current-player.js';
+import { registerTradeRoutes } from './api/routes/trades.js';
 import { registerSocialRoutes } from './api/routes/social.js';
 import { randomUUID } from 'node:crypto';
 
@@ -59,6 +62,8 @@ import type { EventService } from './application/event/event-service.js';
 import { registerEventRoutes } from './api/routes/event.js';
 
 export type AppDependencies = Readonly<{
+  tradeService?: TradeService;
+  tradePlayer?: GetCurrentPlayer;
   authIdentityVerifier: AuthIdentityVerifier;
   getOrProvisionCurrentPlayer: GetOrProvisionCurrentPlayer;
   choosePlayerElement?: ChoosePlayerElement;
@@ -151,6 +156,7 @@ export async function buildApp(
     });
 
     const authenticate = createAuthenticationHook(dependencies.authIdentityVerifier);
+    if (dependencies.tradeService && dependencies.tradePlayer) await app.register(registerTradeRoutes, { authenticate, service: dependencies.tradeService, getPlayer: dependencies.tradePlayer });
     if (dependencies.socialService) await app.register(registerSocialRoutes, { authenticate, service: dependencies.socialService });
     if (dependencies.choosePlayerElement && dependencies.getCurrentPlayerResources) {
       await app.register(registerPlayerGameRoutes, {

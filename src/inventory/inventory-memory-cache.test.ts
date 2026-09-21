@@ -20,6 +20,15 @@ function deferred<Value>() {
 }
 
 describe('InventoryMemoryCache', () => {
+  it('publishes authoritative trade stocks and rejects an older Inventory response', async () => {
+    const cache = new InventoryMemoryCache()
+    const initial: PlayerInventoryDto = { ...inventory(), resources: [{ key: 'particles_pyro', displayName: 'Pyro', category: 'resource', elementKey: 'pyro', amount: '500' }] }
+    await cache.revalidate('player', async () => initial)
+    const stale = deferred<PlayerInventoryDto>(), refresh = cache.revalidate('player', () => stale.promise)
+    cache.applyTradeStocks('player', [{ resourceKey: 'particles_pyro', total: '700' }])
+    stale.resolve(initial); await refresh
+    expect(cache.read('player')?.resources[0]?.amount).toBe('700')
+  })
   it('updates cached Stella quantity immediately for moderation', async () => {
     const cache = new InventoryMemoryCache()
     await cache.revalidate('player', async () => inventory())

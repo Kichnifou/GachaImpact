@@ -1,4 +1,5 @@
 import { Prisma, type PrismaClient } from '../../../generated/prisma/client.js'
+import { PrismaEconomyService } from './prisma-economy-service.js'
 import { BusinessError } from '../../application/errors.js'
 import type { ModerationPermissionsDto, ModerationPlayerDto, ModerationPlayerListQuery, ModerationRole, ModerationStateDto, ModerationTools } from '../../application/moderation/moderation-tools.js'
 import type { GetCurrentPlayer } from '../../application/player/get-current-player.js'
@@ -63,12 +64,8 @@ export class PrismaModerationTools implements ModerationTools {
     const actor = await this.getCurrentPlayer.execute(identity); const target = await this.authorizeTarget(actor.id, targetPlayerId, 'resource')
     if (input.amount <= 0n) throw new BusinessError('MODERATION_INVALID_AMOUNT', 'Le montant doit être un entier strictement positif.')
     await this.mutate(actor.id, target.id, 'resources', 'adjust-resource', input.idempotencyKey, input, async (tx, operationId) => {
-      await tx.$queryRaw`SELECT amount FROM player_resource_balances WHERE player_id = ${target.id}::uuid AND resource_key = ${input.resourceKey} FOR UPDATE`
-      const balance = await tx.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: target.id, resourceKey: input.resourceKey } } }); const delta = input.direction === 'add' ? input.amount : -input.amount; const amountAfter = balance.amount + delta
-      if (amountAfter < 0n) throw new BusinessError('MODERATION_INSUFFICIENT_RESOURCE', 'Le solde de cette ressource est insuffisant.')
-      await tx.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId: target.id, resourceKey: input.resourceKey } }, data: { amount: amountAfter } })
-      await tx.resourceMovement.create({ data: { playerId: target.id, resourceKey: input.resourceKey, delta, balanceBefore: balance.amount, balanceAfter: amountAfter, causeKey: 'moderation.test-tool', domainKey: 'moderation', operationId, sourceChannel: 'ADMIN' } })
-      return [{ resourceKey: input.resourceKey, amount: balance.amount.toString() }, { resourceKey: input.resourceKey, amount: amountAfter.toString() }]
+      const result = await new PrismaEconomyService().adjustWithoutStats(tx, { playerId: target.id, resourceKey: input.resourceKey, delta: input.direction === 'add' ? input.amount : -input.amount, causeKey: 'moderation.test-tool', domainKey: 'moderation', operationId, sourceChannel: 'ADMIN' })
+      return [{ resourceKey: input.resourceKey, amount: result.before.toString() }, { resourceKey: input.resourceKey, amount: result.after.toString() }]
     }); return this.snapshot(target.id, await this.permissionsFor(actor.id))
   }
   public async setXp(identity: AuthenticatedIdentity, targetPlayerId: string, input: Parameters<ModerationTools['setXp']>[2]) {

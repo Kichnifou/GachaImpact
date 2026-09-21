@@ -9,6 +9,8 @@ export class BusinessError extends Error {
 }
 
 export type BusinessErrorCode =
+  | 'TRADE_STOCK_CHANGED'
+  | 'INSUFFICIENT_AVAILABLE_PARTICLES'
   | 'BANNER_VOTE_CLOSED'
   | 'BANNER_VOTE_USED'
   | 'BANNER_VOTE_INELIGIBLE'

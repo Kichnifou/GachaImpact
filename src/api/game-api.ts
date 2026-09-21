@@ -1,5 +1,6 @@
 import type { SocialActions, DirectoryPage, Profile, ConnectedPlayers, PrivacySettings, FriendsSnapshot, HeartResult, FriendSort } from '../social/types'
 import { loadFrontendConfig } from '../config/environment'
+import type { TradeActions, TradeSnapshot, TradePartners, TradeResult } from '../trades/types'
 import type { BannerVoteDto } from './types'
 import { getSupabaseClient } from '../infrastructure/supabase/client'
 import type {
@@ -156,6 +157,13 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
       heartbeat: (sessionKey, activity) => request('/api/v1/me/presence/heartbeat', { method: 'POST', body: JSON.stringify({ sessionKey, activity }) }),
       end: sessionKey => request('/api/v1/me/presence/session', { method: 'DELETE', keepalive: true, body: JSON.stringify({ sessionKey }) }),
     } satisfies SocialActions,
+    trades: {
+      snapshot: () => request<TradeSnapshot>('/api/v1/me/trades'),
+      partners: (q, page) => request<TradePartners>('/api/v1/me/trades/partners?' + new URLSearchParams({ q, page: String(page) })),
+      create: (recipientPlayerId, amount, idempotencyKey) => request<TradeResult>('/api/v1/me/trades', { method: 'POST', body: JSON.stringify({ recipientPlayerId, amount, idempotencyKey }) }),
+      mutate: (id, action, idempotencyKey) => request<TradeResult>(`/api/v1/me/trades/${encodeURIComponent(id)}/${action}`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+      all: (action, idempotencyKey) => request<{ results: TradeResult[] }>(`/api/v1/me/trades/${action}-all`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+    } satisfies TradeActions,
     getNavigationPreferences: () => request<NavigationMenuPreferenceDto>('/api/v1/me/navigation-preferences'),
     putNavigationPreferences: (value: NavigationMenuPreferenceDto) => request<NavigationMenuPreferenceDto>('/api/v1/me/navigation-preferences', { method: 'PUT', body: JSON.stringify(value) }),
     getModerationState: () => request<ModerationStateDto>('/api/v1/moderation/me'),
