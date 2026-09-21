@@ -1,12 +1,13 @@
 import type { NotificationDto } from '../api/types'
 import { formatResourceAmount } from '../utils/formatters'
 
-export type NotificationDestination = 'expedition' | 'gift-code' | 'monthly-boss' | 'event-messages' | 'event' | 'event-shop' | 'social-requests' | 'social-friends' | 'trades'
+export type NotificationDestination = 'expedition' | 'gift-code' | 'monthly-boss' | 'event-messages' | 'event' | 'event-shop' | 'social-requests' | 'social-friends' | 'trades' | 'trades-history'
 export type NotificationRewardPresentation = Readonly<{ resourceKey: string; label: string; amount: string }>
 export type NotificationPresentation = Readonly<{ title: string; message: string; rewards?: readonly NotificationRewardPresentation[]; destination: NotificationDestination | null }>
 type Resolver = (notification: NotificationDto) => NotificationPresentation
 
 const resolvers: Readonly<Record<string, Resolver>> = {
+  'trades:TRADE_ACCEPTED': notification => ({ title: 'Échange accepté', message: `${text(notification.payload.accepterDisplayName, 'Un joueur')} a accepté votre échange de particules.`, destination: notification.actionKey === 'OPEN_TRADES_HISTORY' ? 'trades-history' : null }),
   'trades:TRADES_PENDING': notification => ({ title: 'Échanges de particules', message: `${typeof notification.payload.count === 'number' ? notification.payload.count : 0} demande(s) d’échange en attente`, destination: notification.actionKey === 'OPEN_TRADES' ? 'trades' : null }),
   'social:FRIEND_REQUEST_RECEIVED': (notification) => ({ title: 'Demande d\u2019ami', message: `${text(notification.payload.senderDisplayName, 'Un joueur')} vous a envoy\u00e9 une demande d\u2019ami.`, destination: notification.actionKey === 'OPEN_SOCIAL_REQUESTS' ? 'social-requests' : null }),
   'social:FRIEND_REQUEST_ACCEPTED': (notification) => ({ title: 'Nouvel ami', message: `${text(notification.payload.acceptorDisplayName, 'Un joueur')} a accept\u00e9 votre demande d\u2019ami.`, destination: notification.actionKey === 'OPEN_SOCIAL_FRIENDS' ? 'social-friends' : null }),

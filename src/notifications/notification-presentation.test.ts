@@ -9,6 +9,12 @@ const pending: NotificationDto = {
 }
 
 describe('Event message notification presentation', () => {
+  it('presents an accepted trade separately from the received aggregate', () => {
+    const notification = { ...pending, domainKey: 'trades', typeKey: 'TRADE_ACCEPTED', actionKey: 'OPEN_TRADES_HISTORY', payload: { accepterDisplayName: 'Céo' } }
+    expect(resolveNotificationPresentation(notification)).toEqual({ title: 'Échange accepté', message: 'Céo a accepté votre échange de particules.', destination: 'trades-history' })
+    expect(resolveNotificationPresentation({ ...notification, actionKey: 'OPEN_TRADES' }).destination).toBeNull()
+  })
+
   it('presents a received friend request as a Social requests destination', () => {
     expect(resolveNotificationPresentation({ ...pending, domainKey: 'social', typeKey: 'FRIEND_REQUEST_RECEIVED', actionKey: 'OPEN_SOCIAL_REQUESTS', actionTargetId: 'sender-id', payload: { senderDisplayName: 'Mynonyme' } })).toEqual({ title: 'Demande d’ami', message: 'Mynonyme vous a envoyé une demande d’ami.', destination: 'social-requests' })
   })

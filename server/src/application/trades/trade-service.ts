@@ -117,6 +117,14 @@ export class TradeService {
         await tx.tradeRequest.update({ where: { id: requestId }, data: { state, resolvedAt: now, updatedAt: now } });
         await this.economy.exchangeParticlesWithoutStats(tx, { senderId: request.senderPlayerId, recipientId: request.recipientPlayerId, senderResource: pair.senderResource, recipientResource: pair.recipientResource, amount: request.currentAmount, operationId: operation.row.id, sourceChannel: source });
         await tx.tradeExecution.create({ data: { tradeRequestId: requestId, amount: request.currentAmount, operationId: operation.row.id, executedAt: now } });
+        // The transfer, execution and notification commit together; a replay exits above.
+        await tx.notification.create({ data: {
+          playerId: request.senderPlayerId, domainKey: 'trades', typeKey: 'TRADE_ACCEPTED',
+          deduplicationKey: `trade-accepted:${requestId}`, state: 'UNREAD', createdAt: now,
+          actionKey: 'OPEN_TRADES_HISTORY', actionTargetId: requestId,
+          payload: { requestId, accepterPlayerId: pair.recipient.id, accepterDisplayName: pair.recipient.displayName,
+            amount: request.currentAmount.toString(), senderResourceKey: request.senderResourceKey, recipientResourceKey: request.recipientResourceKey },
+        } });
       } else await tx.tradeRequest.update({ where: { id: requestId }, data: { state, resolvedAt: now, updatedAt: now } });
       await refreshTradeNotification(tx, request.recipientPlayerId, now);
       await this.record(tx, playerId, source);
@@ -178,7 +186,8 @@ export class TradeService {
       const players = await tx.player.findMany({ where: { AND: [unblockedRecipient(playerId), { elementKey: { not: actor.elementKey } }] }, select: identity });
       const pending = await tx.tradeRequest.findMany({ where: { state: 'PENDING', OR: [{ senderPlayerId: playerId }, { recipientPlayerId: playerId }] }, select: { senderPlayerId: true, recipientPlayerId: true } });
       const paired = new Set(pending.flatMap(r => [r.senderPlayerId, r.recipientPlayerId]));
-      const candidates = players.filter(p => p.elementKey && isElementKey(p.elementKey) && !paired.has(p.id) && normalizePlayerSearch(p.displayName).includes(normalizePlayerSearch(q)));
+      const normalizedQuery = normalizePlayerSearch(q);
+      const candidates = players.filter(p => p.elementKey && isElementKey(p.elementKey) && !paired.has(p.id) && normalizePlayerSearch(p.displayName).includes(normalizedQuery));
       const ids = [playerId, ...candidates.map(p => p.id)];
       const balances = await tx.playerResourceBalance.findMany({ where: { playerId: { in: ids }, resourceKey: { startsWith: 'particles_' } }, select: { playerId: true, resourceKey: true, amount: true } });
       const reservations = await tx.tradeRequest.groupBy({ by: ['senderPlayerId', 'senderResourceKey'], where: { senderPlayerId: { in: ids }, state: 'PENDING' }, _sum: { currentAmount: true } });

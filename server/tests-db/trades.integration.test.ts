@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { Prisma } from '../generated/prisma/client.js';
 import { isolatedBatchDatabase } from './isolated-batch-database.js';
+import { PlayerActivityRecorder } from '../src/application/player/player-activity-recorder.js';
 import { TradeService } from '../src/application/trades/trade-service.js';
 import { PrismaEconomyService } from '../src/infrastructure/database/prisma-economy-service.js';
 import { isPrismaConcurrencyCollision } from '../src/infrastructure/database/prisma-concurrency.js';
@@ -56,6 +57,34 @@ async function debitWithRetry(id: string, amount: bigint, resourceKey: ResourceK
   }
 }
 describe('Particle trades isolated PostgreSQL', () => {
+  it('resolves the recipient pending aggregate immediately when its sender cancels the last request', async () => {
+    const a = await player(), b = await player('pyro'), r = await request(a, b);
+    expect(await notification(b)).toMatchObject({ state: 'UNREAD', payload: { count: 1 } });
+    await service.mutate(a, r.requestId, 'cancel', randomUUID());
+    expect(await db.tradeRequest.findUniqueOrThrow({ where: { id: r.requestId } })).toMatchObject({ state: 'CANCELLED' });
+    expect(await notification(b)).toMatchObject({ state: 'RESOLVED', payload: { count: 0 } });
+    expect(await db.notification.count({ where: { typeKey: 'TRADE_ACCEPTED', playerId: { in: [a, b] } } })).toBe(0);
+  }, 30_000);
+  it('notifies only the sender after acceptance and deduplicates both kinds of replay', async () => {
+    const a = await player(), b = await player('pyro'), r = await request(a, b, 100n), key = randomUUID();
+    await db.player.update({ where: { id: b }, data: { displayName: 'Céo' } });
+    const accepted = await service.mutate(b, r.requestId, 'accept', key);
+    expect(accepted.state).toBe('ACCEPTED');
+    expect(await balance(a, 'particles_pyro')).toBe(400n);
+    expect(await balance(b, 'particles_cryo')).toBe(400n);
+    expect(await balance(a, 'particles_cryo')).toBe(600n);
+    expect(await balance(b, 'particles_pyro')).toBe(600n);
+    expect(await notification(b)).toMatchObject({ state: 'RESOLVED', payload: { count: 0 } });
+    const where = { deduplicationKey: `trade-accepted:${r.requestId}` };
+    expect(await db.notification.findUniqueOrThrow({ where })).toMatchObject({
+      playerId: a, typeKey: 'TRADE_ACCEPTED', state: 'UNREAD', actionKey: 'OPEN_TRADES_HISTORY',
+      payload: { requestId: r.requestId, accepterPlayerId: b, accepterDisplayName: 'Céo', amount: '100', senderResourceKey: 'particles_pyro', recipientResourceKey: 'particles_cryo' },
+    });
+    expect(await service.mutate(b, r.requestId, 'accept', key)).toEqual(accepted);
+    expect((await service.mutate(b, r.requestId, 'accept', randomUUID())).state).toBe('UNAVAILABLE');
+    expect(await db.notification.count({ where })).toBe(1);
+    expect(await db.notification.count({ where: { playerId: b, typeKey: 'TRADE_ACCEPTED' } })).toBe(0);
+  }, 30_000);
   it('authenticates the API, rejects forged ownership/invalid amounts and returns private string projections', async () => {
     const a = await player(), b = await player('pyro');
     const getPlayer = new GetCurrentPlayer({ findByIdentity: async (_provider, id) => { const p = await db.player.findUnique({ where: { id } }); return p ? { id: p.id, displayName: p.displayName, elementKey: null, status: p.status } : null; }, provision: async () => { throw Error('No provisioning'); } });
@@ -195,6 +224,14 @@ describe('Particle trades isolated PostgreSQL', () => {
     await expect(new TradeService(db, clock, failing).mutate(b, r.requestId, 'accept', randomUUID())).rejects.toThrow('injected');
     expect(await balance(a, 'particles_pyro')).toBe(500n); expect(await balance(b, 'particles_cryo')).toBe(500n);
     expect((await stock(a)).reserved).toBe('300'); expect(await db.tradeExecution.count({ where: { tradeRequestId: r.requestId } })).toBe(0);
+    expect(await db.notification.count({ where: { deduplicationKey: `trade-accepted:${r.requestId}` } })).toBe(0);
+    const activity = new PlayerActivityRecorder();
+    vi.spyOn(activity, 'record').mockRejectedValueOnce(Error('after notification'));
+    await expect(new TradeService(db, clock, economy, activity).mutate(b, r.requestId, 'accept', randomUUID())).rejects.toThrow('after notification');
+    expect(await db.notification.count({ where: { deduplicationKey: `trade-accepted:${r.requestId}` } })).toBe(0);
+    expect(await db.tradeExecution.count({ where: { tradeRequestId: r.requestId } })).toBe(0);
+    expect(await balance(a, 'particles_pyro')).toBe(500n);
+    expect((await stock(a)).reserved).toBe('300');
   }, 30_000);
   it('reduces 500 to 200, releases 300 immediately, never grows back, resolves silently at zero', async () => {
     const a = await player(), b = await player('pyro'); const r = await request(a, b, 500n);
@@ -212,6 +249,9 @@ describe('Particle trades isolated PostgreSQL', () => {
     const key = randomUUID(), result = await service.all(b, 'accept', key);
     expect(result.results.map(r => [r.requestId, r.amount])).toEqual([[first.requestId, '300'], [second.requestId, '200']]);
     expect(await service.all(b, 'accept', key)).toEqual(result); expect(await balance(b, 'particles_cryo')).toBe(0n);
+    const notifications = await db.notification.findMany({ where: { playerId: { in: [a, c] }, typeKey: 'TRADE_ACCEPTED' } });
+    expect(notifications).toHaveLength(2);
+    expect(notifications.map(n => [n.playerId, (n.payload as { amount: string }).amount]).sort()).toEqual([[a, '300'], [c, '200']].sort());
   }, 30_000);
   it('accept-all continues past an unavailable contact and does not capture later arrivals on retry', async () => {
     const a = await player(), b = await player('pyro'), c = await player();
@@ -222,6 +262,7 @@ describe('Particle trades isolated PostgreSQL', () => {
     const d = await player(); const later = await request(d, b, 100n);
     expect(await service.all(b, 'accept', key)).toEqual(result);
     expect((await db.tradeRequest.findUniqueOrThrow({ where: { id: later.requestId } })).state).toBe('PENDING');
+    expect(await db.notification.findMany({ where: { typeKey: 'TRADE_ACCEPTED', playerId: { in: [a, b, c, d] } } })).toMatchObject([{ playerId: c, deduplicationKey: `trade-accepted:${second.requestId}` }]);
   }, 30_000);
   it('refuses, cancels, refuses all idempotently and restricts actions to their owner', async () => {
     const a = await player(), b = await player('pyro'), c = await player(); const r = await request(a, b);

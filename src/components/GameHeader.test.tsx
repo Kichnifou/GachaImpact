@@ -18,11 +18,11 @@ function mount(props: Partial<React.ComponentProps<typeof GameHeader>> = {}) {
 }
 
 describe('GameHeader moderation capability', () => {
-  it('opens a Trade notification before its pending background read completes', async () => {
+  it.each([['TRADES_PENDING', 'OPEN_TRADES'], ['TRADE_ACCEPTED', 'OPEN_TRADES_HISTORY']])('opens %s before its pending background read completes', async (typeKey, actionKey) => {
     let resolveRead!: (value: { unreadCount: number; notifications: never[] }) => void
     const onReadNotification = vi.fn(() => new Promise<{ unreadCount: number; notifications: never[] }>(resolve => { resolveRead = resolve }))
     const onOpenNotification = vi.fn(), onArchiveNotification = vi.fn()
-    const trade = { id: 'trade', domainKey: 'trades', typeKey: 'TRADES_PENDING', payload: { count: 2 }, state: 'UNREAD' as const, actionKey: 'OPEN_TRADES', actionTargetId: null, createdAt: '2026-09-21T12:00:00Z', readAt: null }
+    const trade = { id: 'trade', domainKey: 'trades', typeKey, payload: { count: 2 }, state: 'UNREAD' as const, actionKey, actionTargetId: null, createdAt: '2026-09-21T12:00:00Z', readAt: null }
     const container = mount({ notifications: { unreadCount: 1, notifications: [trade] }, onReadNotification, onOpenNotification, onArchiveNotification })
     act(() => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
     await act(async () => { container.querySelector<HTMLButtonElement>('.notification-item')!.click(); await Promise.resolve() })

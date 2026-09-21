@@ -112,6 +112,17 @@ describe('GameShell Expedition deep-link', () => {
     await navigateByHash('activities-dailies')
     await navigateByHash('activities-event')
     expect(container.querySelector('.event-tabs .active')?.textContent).toBe('Inscription')
+    const acceptedTrade = { id: 'trade-accepted', domainKey: 'trades', typeKey: 'TRADE_ACCEPTED', actionKey: 'OPEN_TRADES_HISTORY', actionTargetId: 'request', state: 'UNREAD' as const, createdAt: '2026-09-21T12:00:00Z', readAt: null, payload: { accepterDisplayName: 'Céo' } }
+    const tradeActions = { snapshot: vi.fn(async () => ({ stocks: [], received: [], sent: [], history: [] })), partners: vi.fn(async () => ({ partners: [], page: 1, pageSize: 10 as const, total: 0, totalPages: 1 })), create: vi.fn(), mutate: vi.fn(), all: vi.fn() }
+    const onReadNotification = vi.fn(async () => ({ unreadCount: 0, notifications: [] })), onArchiveNotification = vi.fn()
+    await act(async () => root.render(<GameShell {...props} tradeActions={tradeActions} onReadNotification={onReadNotification} onArchiveNotification={onArchiveNotification} notifications={{ unreadCount: 1, notifications: [acceptedTrade] }} />))
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
+    await act(async () => container.querySelector<HTMLButtonElement>('.notification-item')!.click())
+    expect(window.location.hash).toBe('#trades')
+    expect(container.querySelector('.trade-tabs [aria-current="page"]')?.textContent).toBe('Historique')
+    expect(onReadNotification).toHaveBeenCalledExactlyOnceWith(acceptedTrade.id)
+    expect(onArchiveNotification).not.toHaveBeenCalled()
+    expect(tradeActions.partners).not.toHaveBeenCalled()
     act(() => root.unmount())
   })
 })
