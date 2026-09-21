@@ -93,7 +93,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
   const [dailyBonusIntentKey, setDailyBonusIntentKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [attemptFeedback, setAttemptFeedback] = useState<Readonly<{ kind: 'success' | 'failure'; message: string }> | null>(null)
-  const boundaryRef = useRef({ businessDate: value.businessDate, editionId: value.edition.id })
+  const boundaryRef = useRef({ sessionUserId, businessDate: value.businessDate, editionId: value.edition.id })
 
   useLayoutEffect(() => {
     const previous = shopBoundaryRef.current
@@ -110,9 +110,9 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
 
   useLayoutEffect(() => {
     const previous = boundaryRef.current
-    if (previous.businessDate === value.businessDate && previous.editionId === value.edition.id) return
-    boundaryRef.current = { businessDate: value.businessDate, editionId: value.edition.id }
-    // oxlint-disable-next-line react(set-state-in-effect) -- A new server business boundary invalidates the previous local attempt.
+    if (previous.sessionUserId === sessionUserId && previous.businessDate === value.businessDate && previous.editionId === value.edition.id) return
+    boundaryRef.current = { sessionUserId, businessDate: value.businessDate, editionId: value.edition.id }
+    // oxlint-disable-next-line react(set-state-in-effect) -- A new player, edition or server business boundary invalidates the previous local attempt.
     setSelectedCode(null)
     setGameBIntent(null)
     setGameBFeedback(null)
@@ -120,13 +120,14 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
     setGameCIntent(null)
     setGameCFeedback(null)
     setSelectedRecipient(null)
+    setRecipientSearchText('')
     setGameCMessage('')
     setError(null)
     if (previous.editionId !== value.edition.id) {
       setSection('registration')
       setGameTab(0)
     }
-  }, [value.businessDate, value.edition.id])
+  }, [sessionUserId, value.businessDate, value.edition.id])
 
   useEffect(() => {
     if (openMessagesToken > 0) return

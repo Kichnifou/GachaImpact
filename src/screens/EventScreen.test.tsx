@@ -528,6 +528,39 @@ describe('EventScreen presentation', () => {
     expect(send.disabled).toBe(true)
   })
 
+  it('clears the Game C recipient at business-date and session boundaries', async () => {
+    vi.useFakeTimers()
+    const onSearchRecipients = vi.fn(async () => ({ page: 1, pageSize: 10 as const, total: 1, totalPages: 1, recipients: [{ playerId: 'mika-id', displayName: 'Mika', level: 9, elementKey: 'hydro' as const }] }))
+    const mounted = mount({ value: afterJoin, onSearchRecipients })
+    selectGames(mounted.container)
+    act(() => mounted.container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[2]!.click())
+    const input = mounted.container.querySelector<HTMLInputElement>('.player-quick-search input')!
+    const textarea = mounted.container.querySelector<HTMLTextAreaElement>('.event-game-c-send textarea')!
+    const send = Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-game-c-send > button')).find(button => button.textContent === 'Envoyer')!
+    const typeInput = (text: string) => act(() => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, text); input.dispatchEvent(new Event('input', { bubbles: true })) })
+    const typeMessage = (text: string) => act(() => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, text); textarea.dispatchEvent(new Event('input', { bubbles: true })) })
+    const selectMika = async () => {
+      typeInput('Mi')
+      await act(async () => vi.advanceTimersByTimeAsync(120))
+      act(() => mounted.container.querySelector<HTMLButtonElement>('.player-quick-search .moderation-target-results button')!.click())
+      expect(input.value).toBe('Mika')
+    }
+
+    typeMessage('Bon Festival')
+    await selectMika()
+    expect(send.disabled).toBe(false)
+    act(() => mounted.root.render(<EventScreen {...mounted.props} value={{ ...afterJoin, businessDate: '2026-09-16' }} />))
+    expect(input.value).toBe('')
+    expect(send.disabled).toBe(true)
+
+    typeMessage('Bon Festival')
+    await selectMika()
+    expect(send.disabled).toBe(false)
+    act(() => mounted.root.render(<EventScreen {...mounted.props} sessionUserId="player-2" />))
+    expect(input.value).toBe('')
+    expect(send.disabled).toBe(true)
+  })
+
   it('replaces old search text when the shared browser confirms another Player and keeps the compact layout', async () => {
     vi.useFakeTimers()
     const onSearchRecipients = vi.fn(async (query: EventGameCRecipientQuery) => ({ page: 1, pageSize: 10 as const, total: 1, totalPages: 1, recipients: [{ playerId: 'mika-id', displayName: 'Mika', level: 9, elementKey: 'hydro' as const }, ...(query.query === 'Céo' ? [{ playerId: 'ceo-id', displayName: 'Céo', level: 9, elementKey: 'hydro' as const }] : [])] }))
