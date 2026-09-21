@@ -8,11 +8,13 @@ Il complète le [Guide opératoire ChatGPT](../../.chatgpt/CHATGPT_GUIDE.md), qu
 
 ### 1. Décider explicitement la passation
 
-Ne pas abandonner une conversation devenue longue. Avant de la quitter, décider d'un checkpoint documentaire afin que la suite ne dépende pas de sa mémoire implicite.
+L'annonce explicite du propriétaire qu'il va changer de conversation ChatGPT déclenche cette procédure. Avant de la quitter, préparer le checkpoint documentaire afin que la suite ne dépende pas de sa mémoire implicite. Une nouvelle conversation ChatGPT n'est pas une nouvelle conversation Codex : si Codex reste dans le même fil et le même lot, il peut poursuivre en CONTINUITÉ après cette passation.
 
 ### 2. Consolider l'état réel
 
 Recenser ce qui est développé et corrigé, les commits reviewés, l'état de `main` et `review`, les déploiements, les validations publiques réellement effectuées, les défauts ouverts, les prochaines fonctionnalités décidées et les reports explicites.
+
+Vérifier le vrai GitHub avant cette synthèse : SHA de `main` et `review`, divergence et commits pertinents. Les déploiements et la DB ne sont inspectés que lorsque leur état est nécessaire au checkpoint.
 
 Toujours distinguer : implémenté, testé automatiquement, reviewé, présent sur `main`, déployé, validé publiquement et simplement prévu. Une information non vérifiée ne devient pas un fait dans le checkpoint.
 
@@ -22,15 +24,17 @@ Relire au minimum le Master et évaluer les documents spécialisés concernés. 
 
 Ne pas créer de second tracker vivant. Les documents spécialisés décrivent leur domaine ; le Master reste le seul pointeur global.
 
+Rechercher les contradictions et états documentaires en retard. Vérifier aussi la permanence des directives de travail : Git/review, prompts Codex, recommandation modèle et niveau de réflexion, Bootstrap/Continuité, économie de contexte, tests proportionnés au risque et review indépendante. Les règles détaillées appartiennent au Guide et au workflow ; les compléter si nécessaire avant la passation.
+
 ### 4. Publier et reviewer le checkpoint documentaire
 
 Les modifications suivent le workflow normal : travail sur `review`, commit propre, push normal sur `review`, puis worktree propre. ChatGPT vérifie ensuite le vrai commit GitHub : SHA, parent, diff, fichiers, cohérence du Master et références `main`/`review`. Le rapport local de Codex ne remplace pas cette review indépendante.
 
-Après approbation explicite, promouvoir le checkpoint par fast-forward strict de `review` vers `main`. Ne pas rebase, squash, créer de merge commit inutile ni force-push. Vérifier ensuite que `main == review`, que la divergence est nulle et que le worktree est propre.
+Faire corriger et publier les documents nécessaires avant de finaliser la passation, puis vérifier le checkpoint réellement publié. Une promotion vers `main` exige toujours une mission et une approbation explicites ; la passation seule ne l'autorise pas. Préserver la distinction entre checkpoint public et candidat `review`.
 
-### 5. Préparer le bootstrap seulement après la promotion
+### 5. Préparer le prompt seulement après publication vérifiée
 
-Le prompt de la nouvelle conversation est finalisé seulement après la promotion documentaire. Il utilise alors le SHA de `main` réellement vérifié, jamais une référence provisoire.
+Le prompt court et copiable de la nouvelle conversation est finalisé seulement après vérification du checkpoint documentaire publié. Il référence les SHA réels de `main` et `review` et leur divergence, sans présenter un candidat non promu comme public.
 
 ## Contrat du prompt de bootstrap
 

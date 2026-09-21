@@ -504,6 +504,14 @@ Ce mode ne réduit jamais le checkpoint Git : dans tous les cas, vérifier la br
 
 Avant chaque prompt Codex, ChatGPT indique au propriétaire, **hors du bloc de prompt à copier**, le modèle Codex recommandé et le niveau de réflexion recommandé. Cette recommandation est adaptée à la difficulté réelle du lot : une petite correction localisée peut demander un niveau léger ; une architecture, migration, concurrence transverse ou un gros domaine demande un niveau plus capable lorsque nécessaire. Ne pas figer de noms de modèles : l'offre peut évoluer. La recommandation explicite reste obligatoire pour chaque prompt.
 
+## Économie de contexte et preuves
+
+Économiser le contexte signifie réduire le bruit, avec les mêmes garanties utiles. Ne pas répéter intégralement un compte rendu, un checkpoint, une liste de fichiers ou une explication déjà acquise. Préférer des commandes ciblées, recherches précises, extraits, résumés de diff, compteurs et statuts ; ne restituer un log volumineux que si son contenu complet sert réellement au diagnostic.
+
+Pour le visuel, choisir les quelques états et viewports qui prouvent un changement ; réutiliser les validations antérieures des surfaces intactes, sans galerie systématique. En CONTINUITÉ, ne pas relire tout le corpus sans raison. Les tests restent proportionnés au risque : aucune économie de tokens ne justifie de supprimer une preuve nécessaire, d'ignorer DB/concurrence ou d'éviter une suite complète lorsqu'un changement transverse l'exige. Une affirmation ne remplace pas un contrôle comportemental.
+
+Le rapport Codex reste compact : SHA, commits, fichiers, changements importants, tests, warnings ou blocages. Il ne recopie pas les commandes réussies. L'annonce d'un changement de conversation ChatGPT déclenche la [passation documentaire](../docs/process/conversation-handoff.md), y compris le contrôle de ces directives durables.
+
 ## Definition of Ready documentaire pour Codex
 
 Avant de préparer un prompt d'implémentation d'un domaine métier important, ChatGPT doit effectuer une courte **revue de readiness Codex**.
