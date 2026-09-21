@@ -470,10 +470,11 @@ Après chaque lot de code Codex :
 4. ChatGPT vérifie le commit et le diff `review` par rapport à `main` ; le propriétaire complète la review.
 5. Les corrections éventuelles sont testées et poussées sur `review`.
 6. Après une review favorable, ChatGPT fournit immédiatement le modèle/niveau Codex recommandés et un prompt dédié de promotion. L'exécution volontaire de ce prompt par le propriétaire est l'autorisation explicite de promouvoir ; `main` n’est jamais mise à jour silencieusement.
-7. Le passage sur `main` déclenche Railway et Cloudflare Pages ; le propriétaire teste ensuite la version publique.
-8. Le Master ne marque la validation publique qu’après ce test réussi.
-9. Chaque nouveau lot documente correctement l’état réellement poussé du lot précédent avant de commencer.
-10. Si un lot public doit être annulé, privilégier un `git revert` propre du commit concerné plutôt qu'un force-push ou un reset destructif de `main`.
+7. Le passage sur `main` déclenche Railway et Cloudflare Pages.
+8. Dès que ChatGPT a vérifié `main == review`, Cloudflare, Railway et le healthcheck, il fournit de lui-même **À tester en public**, sans attendre une demande. Cette checklist concise est fondée sur le diff réellement promu, regroupée par parcours et limitée aux ajouts/modifications et interactions à risque ; elle ne recopie ni tests techniques ni liste générique de tout le jeu. Le propriétaire réalise ensuite ce test public.
+9. Le Master ne marque la validation publique qu’après ce test réussi.
+10. Chaque nouveau lot documente correctement l’état réellement poussé du lot précédent avant de commencer.
+11. Si un lot public doit être annulé, privilégier un `git revert` propre du commit concerné plutôt qu'un force-push ou un reset destructif de `main`.
 
 ---
 

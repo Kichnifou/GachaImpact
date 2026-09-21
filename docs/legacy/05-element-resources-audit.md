@@ -645,17 +645,21 @@ La réduction automatique R16 reste distincte d'une négociation manuelle.
 
 ---
 
-## R24 — Résolution des échanges et historique UI — ✅ VALIDÉ
+## R24 — Résolution des échanges et historique UI — 🔁 RÉVISÉ
 
 Ne pas créer de notification individuelle lorsqu'une demande est :
-- acceptée ;
+
 - refusée ;
 - annulée ;
 - réduite automatiquement ;
 - supprimée automatiquement à montant 0 ;
 - expirée au reset.
 
-La notification dédiée aux échanges reste uniquement la notification agrégée des **demandes reçues actuellement en attente**.
+L'agrégat R19 reste réservé aux **demandes reçues actuellement PENDING** : dynamique, diminué immédiatement lors d'une annulation par l'expéditeur et RESOLVED à zéro.
+
+Révision propriétaire du 2026-09-21 : une acceptation réellement commitée crée **une notification individuelle de succès pour l'expéditeur uniquement**, `trades / TRADE_ACCEPTED`, dédupliquée par `trade-accepted:<requestId>`. Transfert, exécution et notification sont atomiques ; replay, refus, annulation, réduction, montant zéro, expiration et acceptation impossible n'en créent aucune. Accepter tout produit une notification par demande réellement acceptée, jamais pour UNAVAILABLE.
+
+Le clic `OPEN_TRADES_HISTORY` ouvre **Échanges > Historique**, puis suit READ / archivage normal sans archive automatique. L'accepteur conserve son feedback immédiat, sans notification dupliquée.
 
 Pour informer le joueur des échanges réellement effectués, l'écran Échanges doit posséder une zone d'historique récent.
 
@@ -1469,7 +1473,7 @@ Validé :
 - R21 : réservation expéditeur libérée immédiatement lors d'une réduction ;
 - R22 : plusieurs demandes reçues peuvent viser le même stock non réservé ;
 - R23 : aucune acceptation partielle manuelle ;
-- R24 : pas de notifications individuelles de résolution ; historique récent directement dans l'écran Échanges ;
+- R24 : acceptation commitée notifiée individuellement à l'expéditeur ; autres résolutions silencieuses ; historique récent dans Échanges ;
 - R25 : action Refuser tout ;
 - R26 : ne pas migrer les demandes legacy encore en attente ;
 - R27 : participants identifiés par IDs internes immuables, jamais par pseudo comme clé métier ;

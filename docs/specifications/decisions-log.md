@@ -241,7 +241,7 @@ Statut : évolutif.
 - `VALIDÉ` — Dans le chat, la quantité réellement échangeable est affichée entre parenthèses à côté du pseudo.
 - `VALIDÉ` — À partir de GachaImpact, conserver côté serveur un historique des événements importants d'échange pour sécurité, diagnostic et statistiques futures, sans inventer d'historique rétroactif legacy.
 - `VALIDÉ` — L'historique serveur complet n'est pas exposé intégralement ; l'écran Échanges affiche seulement une fenêtre récente limitée à environ 20–30 transactions.
-- `VALIDÉ` — Une résolution d'échange (acceptation, refus, annulation, réduction automatique, suppression à 0 ou expiration) ne crée pas de notification individuelle.
+- `RÉVISÉ — R24, 2026-09-21` — Une acceptation d'échange commitée crée une notification individuelle TRADE_ACCEPTED pour l'expéditeur uniquement, dédupliquée par request UUID et ouvrant Échanges > Historique (READ normal, sans archive automatique). Replays, refus, annulation, réduction automatique, suppression à 0, expiration et acceptation impossible n'en créent aucune. Accepter tout notifie chaque acceptation réelle, jamais UNAVAILABLE. R19 reste l'agrégat dynamique des demandes reçues PENDING, diminué/résolu immédiatement à l'annulation par l'expéditeur.
 - `VALIDÉ` — L'écran Échanges affiche un historique récent des transactions : environ 3 visibles immédiatement, avec scroll jusqu'à environ 20–30 dernières transactions maximum.
 - `VALIDÉ` — L'historique serveur complet reste disponible au-delà de cette fenêtre UI pour audit, diagnostic et statistiques futures.
 - `VALIDÉ` — Ajouter une action `Refuser tout` pour les demandes reçues ; UI et future commande chat doivent appeler la même logique métier, syntaxe chat exacte à définir plus tard.

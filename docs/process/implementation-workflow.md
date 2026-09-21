@@ -94,9 +94,10 @@ Le workflow Git permanent est le suivant :
 6. ChatGPT re-review le vrai nouveau commit ;
 7. une fois la review approuvée, ChatGPT fournit directement le modèle/niveau Codex recommandés et un prompt dédié de promotion copiable. L'exécution volontaire de ce prompt par le propriétaire constitue l'autorisation explicite de cette mission ; `review` est alors avancée proprement vers `main` selon l’historique réel ;
 8. l’arrivée du commit sur `main` déclenche les déploiements de production ;
-9. Railway et Cloudflare Pages sont vérifiés ;
-10. le propriétaire réalise le test public ;
-11. le checkpoint n’est marqué comme publiquement validé dans le Master qu’après la réussite de ce test.
+9. ChatGPT vérifie `main == review`, Railway, Cloudflare Pages et le healthcheck ;
+10. ChatGPT fournit immédiatement **À tester en public**, sans attendre une demande : checklist concise basée sur le diff réellement promu, regroupée par parcours utilisateur, limitée aux ajouts/modifications et interactions à risque, sans recopier les tests automatisés ni lister tout le jeu ;
+11. le propriétaire réalise ce test public ;
+12. le checkpoint n’est marqué comme publiquement validé dans le Master qu’après la réussite de ce test.
 
 `review` est uniquement une branche de pré-review Git. Elle ne constitue pas un environnement staging, ne possède ni backend ni base séparés et ne permet de prétendre à aucun test public. Un push sur `main` ne doit jamais servir de moyen de review : `main` reste conceptuellement protégée comme branche de production.
 
