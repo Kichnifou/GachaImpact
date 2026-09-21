@@ -159,7 +159,12 @@ export class TradeService {
     return this.transaction(async tx => {
       await this.actor(tx, playerId);
       const balances = await tx.playerResourceBalance.findMany({ where: { playerId, resourceKey: { startsWith: 'particles_' } }, orderBy: { resourceKey: 'asc' } });
-      const stocks = await Promise.all(balances.map(async balance => { const stock = await particleStock(tx, playerId, balance.resourceKey); return { resourceKey: balance.resourceKey, total: stock.total.toString(), reserved: stock.reserved.toString(), available: stock.available.toString() }; }));
+      const reservations = await tx.tradeRequest.groupBy({ by: ['senderResourceKey'], where: { senderPlayerId: playerId, state: 'PENDING' }, _sum: { currentAmount: true } });
+      const reservedByResource = new Map(reservations.map(row => [row.senderResourceKey, row._sum.currentAmount ?? 0n]));
+      const stocks = balances.map(balance => {
+        const reserved = reservedByResource.get(balance.resourceKey) ?? 0n;
+        return { resourceKey: balance.resourceKey, total: balance.amount.toString(), reserved: reserved.toString(), available: (balance.amount - reserved).toString() };
+      });
       const where = { OR: [{ senderPlayerId: playerId }, { recipientPlayerId: playerId }] };
       const requests = await tx.tradeRequest.findMany({ where: { ...where, state: 'PENDING' }, include, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] });
       const project = (r: typeof requests[number]) => ({ id: r.id, sender: r.sender, recipient: r.recipient, senderResourceKey: r.senderResourceKey, recipientResourceKey: r.recipientResourceKey, originalAmount: r.originalAmount.toString(), currentAmount: r.currentAmount.toString(), createdAt: r.createdAt.toISOString(), expiresAt: r.expiresAt.toISOString() });
