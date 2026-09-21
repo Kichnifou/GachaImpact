@@ -9,7 +9,7 @@ import EventScreen from './EventScreen'
 
 const roots: Root[] = []
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
-afterEach(() => { act(() => roots.splice(0).forEach((root) => root.unmount())); document.body.replaceChildren(); vi.useRealTimers() })
+afterEach(() => { act(() => roots.splice(0).forEach((root) => root.unmount())); document.body.replaceChildren(); window.localStorage.clear(); vi.useRealTimers() })
 
 const beforeJoin: EventDto = {
   businessDate: '2026-09-15', refreshAfterMs: 3600000,
@@ -87,6 +87,42 @@ describe('EventScreen presentation', () => {
   it('keeps horizontal milestone scrolling without a vertical scrollbar', () => {
     const css = readFileSync('src/App.css', 'utf8')
     expect(css).toMatch(/\.event-milestone-track-scroll\s*\{[^}]*overflow-x:\s*auto;[^}]*overflow-y:\s*hidden;/s)
+  })
+  it('collapses the milestone track and remembers the choice for the same Player', () => {
+    const mounted = mount({ sessionUserId: 'milestone-player', value: afterJoin })
+    const button = mounted.container.querySelector<HTMLButtonElement>('.event-milestone-summary button')!
+    const track = mounted.container.querySelector<HTMLElement>('#event-milestone-track')!
+    expect(button.getAttribute('aria-expanded')).toBe('true')
+    expect(track.hidden).toBe(false)
+    act(() => button.click())
+    expect(button.textContent).toBe('Afficher les paliers')
+    expect(button.getAttribute('aria-expanded')).toBe('false')
+    expect(track.hidden).toBe(true)
+    expect(mounted.container.querySelector('.event-milestone-summary')?.textContent).toContain('0 points')
+    selectGames(mounted.container)
+    expect(track.hidden).toBe(true)
+    const samePlayer = mount({ sessionUserId: 'milestone-player', value: afterJoin })
+    expect(samePlayer.container.querySelector<HTMLElement>('#event-milestone-track')?.hidden).toBe(true)
+    const otherPlayer = mount({ sessionUserId: 'other-milestone-player', value: afterJoin })
+    expect(otherPlayer.container.querySelector<HTMLElement>('#event-milestone-track')?.hidden).toBe(false)
+    act(() => button.click())
+    expect(track.hidden).toBe(false)
+    expect(button.textContent).toBe('Rétracter les paliers')
+  })
+
+  it('keeps the three game labels while removing their repeated large titles', () => {
+    const { container } = mount({ value: afterJoin })
+    selectGames(container)
+    const gameTabs = container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')
+    expect(Array.from(gameTabs, tab => tab.textContent)).toEqual(['Récolte', 'Grenier', 'Panier'])
+    expect(container.querySelector('.event-game-a-heading .eyebrow')?.textContent).toBe('Jeu du Festival')
+    expect(container.querySelector('.event-game-a-heading h2')).toBeNull()
+    act(() => gameTabs[1]!.click())
+    expect(container.querySelector('.event-game-b-heading .eyebrow')?.textContent).toBe('Énigme collective du Festival')
+    expect(container.querySelector('.event-game-b-heading h2')).toBeNull()
+    act(() => gameTabs[2]!.click())
+    expect(container.querySelector('.event-game-c header .eyebrow')?.textContent).toBe('Message du Festival')
+    expect(container.querySelector('.event-game-c header h2')).toBeNull()
   })
   it('refreshes on entry and opens the registration summary first', async () => {
     const mounted = mount()

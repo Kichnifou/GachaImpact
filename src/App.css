@@ -7410,8 +7410,11 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .activity-inner-tabs button:disabled { cursor: not-allowed; opacity: .72; }
 .event-frame > .scrollable-screen-panel-content { height: 100%; }
 .event-milestone-progress { min-width: 0; display: grid; gap: 6px; padding: 10px 14px; border: 1px solid rgba(244, 200, 103, .22); border-radius: 12px; background: rgba(18, 34, 59, .92); }
-.event-milestone-summary { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; color: #e9f3ff; font-size: 12px; }
+.event-milestone-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; color: #e9f3ff; font-size: 12px; }
 .event-milestone-summary span { color: var(--muted); font-size: 10px; }
+.event-milestone-summary button { margin-left: auto; padding: 5px 9px; color: #e9f3ff; font: inherit; font-size: 11px; font-weight: 800; border: 1px solid rgba(244, 200, 103, .35); border-radius: 7px; background: rgba(244, 200, 103, .1); cursor: pointer; }
+.event-milestone-summary button:hover, .event-milestone-summary button:focus-visible { border-color: #f4c867; background: rgba(244, 200, 103, .2); outline: 2px solid rgba(244, 200, 103, .35); outline-offset: 2px; }
+.event-milestone-track-scroll[hidden] { display: none; }
 .event-milestone-track-scroll { min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
 .event-milestone-track { position: relative; min-width: 720px; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
 .event-milestone-track::before { content: ''; position: absolute; top: 9px; left: 6.25%; right: 6.25%; height: 2px; background: rgba(104, 146, 205, .35); }
@@ -7487,7 +7490,6 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 @media (max-width: 650px) { .event-ranking { padding: 16px; } .event-ranking header { flex-direction: column; gap: 8px; } .event-ranking-list li { grid-template-columns: 38px minmax(0, 1fr); gap: 6px 10px; } .event-ranking-list li > span:last-child { grid-column: 2; } }
 .event-game-a { display: grid; gap: 16px; padding: 20px; }
 .event-game-a-heading, .event-game-a-action { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.event-game-a-heading h2 { margin: 5px 0 0; color: #fff; font-size: 21px; }
 .event-game-a-day-state { padding: 6px 10px; color: #f2cf7d; font-size: 11px; font-weight: 850; border: 1px solid rgba(236, 181, 73, .28); border-radius: 999px; background: rgba(236, 181, 73, .1); }
 .event-game-a-day-state.complete { color: #8df1c8; border-color: rgba(78, 221, 166, .3); background: rgba(36, 147, 108, .14); }
 .event-game-a-day-state.expired { color: #aeb9ca; border-color: rgba(151, 167, 192, .22); background: rgba(68, 80, 101, .22); }
@@ -7508,7 +7510,6 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .event-game-a-feedback.failure { color: #f0a0a9; }
 .event-game-b { min-width: 0; display: grid; align-content: start; gap: 16px; padding: 20px; }
 .event-game-b-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
-.event-game-b-heading h2 { margin: 5px 0 0; color: #fff; font-size: 21px; }
 .event-game-b-heading > strong { padding: 6px 10px; color: #8df1c8; font-size: 11px; border: 1px solid rgba(78, 221, 166, .3); border-radius: 999px; background: rgba(36, 147, 108, .14); }
 .event-game-b > p { margin: 0; color: var(--muted); line-height: 1.5; }
 .event-game-b-attempts { font-weight: 800; }
@@ -7527,7 +7528,6 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .event-game-b-feedback { min-height: 18px; font-size: 12px; font-weight: 750; }
 .event-game-b-feedback.success { color: #8df1c8; }
 .event-game-c { min-width: 0; display: grid; gap: 18px; padding: 20px; }
-.event-game-c header h2 { margin: 5px 0 0; color: #fff; font-size: 21px; }
 .event-game-c-send { min-width: 0; display: grid; gap: 10px; }
 .event-game-c-send label { color: #dce9f6; font-size: 12px; font-weight: 800; }
 .event-game-c-send input, .event-game-c-send textarea { box-sizing: border-box; width: 100%; min-width: 0; padding: 11px 12px; color: #eef7ff; font: inherit; border: 1px solid rgba(108, 195, 255, .4); border-radius: 9px; background: rgba(17, 33, 54, .86); resize: vertical; }

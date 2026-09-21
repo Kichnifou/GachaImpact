@@ -44,6 +44,13 @@ const periodFormatter = new Intl.DateTimeFormat('fr-FR', {
 const timeFormatter = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })
 const unavailableRecipientSearch = async (): Promise<EventGameCRecipientsDto> => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, recipients: [] })
 const unavailableGameCSend = async (): Promise<EventGameCSendDto> => { throw new Error('Jeu C indisponible.') }
+const milestonePreferenceKey = (playerId: string) => `gachaimpact:event:milestones-collapsed:${playerId}`
+const readMilestonePreference = (playerId: string) => {
+  try { return window.localStorage.getItem(milestonePreferenceKey(playerId)) === 'true' } catch { return false }
+}
+const saveMilestonePreference = (playerId: string, collapsed: boolean) => {
+  try { window.localStorage.setItem(milestonePreferenceKey(playerId), String(collapsed)) } catch { /* Keep the choice for this mounted screen. */ }
+}
 
 function EventCooldownButton({ durationMs }: Readonly<{ durationMs: number }>) {
   const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(1, Math.ceil(durationMs / 1000)))
@@ -75,6 +82,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
   const [gameBIntent, setGameBIntent] = useState<Readonly<{ code: string; key: string }> | null>(null)
   const [gameBFeedback, setGameBFeedback] = useState<string | null>(null)
   const [recipientBrowserOpen, setRecipientBrowserOpen] = useState(false)
+  const [milestonePreference, setMilestonePreference] = useState(() => ({ playerId: sessionUserId, collapsed: readMilestonePreference(sessionUserId) }))
   const [selectedRecipient, setSelectedRecipient] = useState<EventGameCRecipientsDto['recipients'][number] | null>(null)
   const [recipientSearchText, setRecipientSearchText] = useState('')
   const [gameCMessage, setGameCMessage] = useState('')
@@ -322,11 +330,17 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
 
   const presentation = eventPresentation(value.festival.key)
   const expiredToday = eventGameAExpiredToday(value)
+  const milestonesCollapsed = milestonePreference.playerId === sessionUserId ? milestonePreference.collapsed : readMilestonePreference(sessionUserId)
+  const toggleMilestones = () => {
+    const next = !milestonesCollapsed
+    setMilestonePreference({ playerId: sessionUserId, collapsed: next })
+    saveMilestonePreference(sessionUserId, next)
+  }
   const milestoneProgress = Math.min(87.5, Math.max(0, (value.milestones.currentPoints - 10) / 70 * 87.5))
   const tabs = <>
     <section className="event-milestone-progress" aria-label="Progression du Festival">
-      <div className="event-milestone-summary"><strong>{formatResourceAmount(String(value.milestones.currentPoints))} points</strong><span>Votre progression</span></div>
-      <div className="event-milestone-track-scroll"><div className="event-milestone-track">
+      <div className="event-milestone-summary"><strong>{formatResourceAmount(String(value.milestones.currentPoints))} points</strong><span>Votre progression</span><button type="button" aria-expanded={!milestonesCollapsed} aria-controls="event-milestone-track" onClick={toggleMilestones}>{milestonesCollapsed ? 'Afficher les paliers' : 'Rétracter les paliers'}</button></div>
+      <div id="event-milestone-track" className="event-milestone-track-scroll" hidden={milestonesCollapsed}><div className="event-milestone-track">
         <span className="event-milestone-fill" role="progressbar" aria-label="Paliers du Festival" aria-valuemin={0} aria-valuemax={80} aria-valuenow={Math.min(80, value.milestones.currentPoints)} style={{ width: `${milestoneProgress}%` }} />
         {value.milestones.thresholds.map((threshold) => <div className={`event-milestone-marker${threshold.rewarded ? ' rewarded' : threshold.reached ? ' reached' : ''}`} key={threshold.points}><span aria-hidden="true">◆</span><strong>{threshold.points}</strong><small>{threshold.rewardLabel}</small></div>)}
       </div></div>
@@ -376,7 +390,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
       {section === 'shop' && <EventShopSection value={value} intent={shopIntent} pending={shopPending} feedback={shopFeedback} error={shopError} canConvert={Boolean(onConvertShop)} canPurchaseCollection={Boolean(onPurchaseCollection)} onTransact={(target, quantity) => void transactShop(target, quantity)} />}
       {section === 'ranking' && <EventRankingSection editionId={value.edition.id} onLoad={onLoadRanking} />}
       {section === 'games' && gameTab === 0 && value.participation.joined && <section className="panel event-game-a" data-theme={value.gameA.theme.key}>
-        <div className="event-game-a-heading"><div><span className="eyebrow">Jeu du Festival</span><h2>{presentation.games[0]}</h2></div><span className={`event-game-a-day-state${value.gameA.completedToday ? ' complete' : expiredToday ? ' expired' : ''}`}>{value.gameA.completedToday ? 'Réussi aujourd’hui' : expiredToday ? 'Délai dépassé...' : 'À réussir aujourd’hui'}</span></div>
+        <div className="event-game-a-heading"><span className="eyebrow">Jeu du Festival</span><span className={`event-game-a-day-state${value.gameA.completedToday ? ' complete' : expiredToday ? ' expired' : ''}`}>{value.gameA.completedToday ? 'Réussi aujourd’hui' : expiredToday ? 'Délai dépassé...' : 'À réussir aujourd’hui'}</span></div>
         <div className="event-game-a-windows">
           {value.gameA.windows.map((window, index) => <article className={`event-game-a-window ${value.gameA.completedToday ? 'completed' : window.state.toLowerCase()}`} key={window.startAt} data-window-state={value.gameA.completedToday ? 'COMPLETED' : window.state}>
             <span>Fenêtre {index + 1}</span><strong>{timeFormatter.format(new Date(window.startAt))} – {timeFormatter.format(new Date(window.endAt))}</strong><small>{value.gameA.completedToday || window.state === 'PAST' ? 'Terminée' : window.state === 'ACTIVE' ? 'Active' : 'Prochaine'}</small>
@@ -388,7 +402,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
         <p className={`event-game-a-feedback${attemptFeedback ? ` ${attemptFeedback.kind}` : ''}`} role="status" aria-live="polite">{attemptFeedback?.message ?? ''}</p>
       </section>}
       {section === 'games' && gameTab === 1 && value.participation.joined && <section className="panel event-game-b">
-        <div className="event-game-b-heading"><div><span className="eyebrow">Énigme collective du Festival</span><h2>{presentation.games[1]}</h2></div><strong>{value.gameB.solvedToday ? 'Découvert aujourd’hui' : 'Encore à découvrir'}</strong></div>
+        <div className="event-game-b-heading"><span className="eyebrow">Énigme collective du Festival</span><strong>{value.gameB.solvedToday ? 'Découvert aujourd’hui' : 'Encore à découvrir'}</strong></div>
         <p>{value.gameB.solvedToday ? `Découvert par ${value.gameB.discoveredBy?.displayName ?? 'un participant'}.` : 'Une seule combinaison de cinq chiffres 0 ou 1 est correcte pour tous les participants aujourd’hui.'}</p>
         <p className="event-game-b-attempts">{value.gameB.attemptsRemaining} essai{value.gameB.attemptsRemaining > 1 ? 's' : ''} personnel{value.gameB.attemptsRemaining > 1 ? 's' : ''} restant{value.gameB.attemptsRemaining > 1 ? 's' : ''} · {value.gameB.remainingCodes.length} combinaison{value.gameB.remainingCodes.length > 1 ? 's' : ''} disponible{value.gameB.remainingCodes.length > 1 ? 's' : ''}</p>
         <div className="event-game-b-legend"><span>Disponible</span><span>Déjà testée</span></div>
@@ -401,7 +415,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
         <p className={`event-game-b-feedback${value.gameB.solvedToday || gameBFeedback?.startsWith('Combinaison découverte') ? ' success' : ''}`} role="status" aria-live="polite">{gameBFeedback ?? (value.gameB.solvedToday ? 'Combinaison découverte ! Tous les participants inscrits gagnent 1 point et 1 monnaie du Festival.' : '')}</p>
       </section>}
       {section === 'games' && gameTab === 2 && value.gameC.available && <section className="panel event-game-c">
-        <header><span className="eyebrow">Message du Festival</span><h2>{presentation.games[2]}</h2></header>
+        <header><span className="eyebrow">Message du Festival</span></header>
         {value.gameC.canSend ? <div className="event-game-c-send">
           <PlayerQuickSearch value={recipientSearchText} onValueChange={(text) => { setRecipientSearchText(text); setSelectedRecipient(null) }} onListPlayers={listRecipients} onSelect={(recipient) => { setSelectedRecipient(recipient); setRecipientSearchText(recipient.displayName) }} action={(closeSuggestions) => <button type="button" className="small-primary-button" onClick={() => { closeSuggestions(); setRecipientBrowserOpen(true) }}>{selectedRecipient ? 'Changer' : 'Choisir un joueur'}</button>} />
           <label htmlFor="event-game-c-message">Votre message</label>
