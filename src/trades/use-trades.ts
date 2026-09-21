@@ -8,11 +8,12 @@ export function useTrades(actions: TradeActions, onSnapshot: (value: TradeSnapsh
   const [partners, setPartners] = useState<TradePartners | null>(null)
   const [pending, setPending] = useState(false), [error, setError] = useState<string | null>(null), [feedback, setFeedback] = useState('')
   const [syncError, setSyncError] = useState(''), [partnerRevision, setPartnerRevision] = useState(0)
-  const partnerFlight = useRef<Promise<TradePartners> | null>(null)
+  const partnerRequest = useRef<{ controller: AbortController } | null>(null)
+  const partnerInput = useRef<{ query: string; page: number } | null>(null)
   const alive = useRef(false), busy = useRef(false), revision = useRef(0), requested = useRef(0), completed = useRef(0)
   const flight = useRef<Promise<void> | null>(null)
-  const latest = useRef({ actions, onSnapshot, query, page })
-  useLayoutEffect(() => { latest.current = { actions, onSnapshot, query, page } }, [actions, onSnapshot, query, page])
+  const latest = useRef({ actions, onSnapshot, query, page, partnersActive })
+  useLayoutEffect(() => { latest.current = { actions, onSnapshot, query, page, partnersActive } }, [actions, onSnapshot, query, page, partnersActive])
   const invalidate = useCallback(() => { revision.current++ }, [])
   const intent = useRef<{ signature: string; key: string } | null>(null)
   const retryAction = useRef<{ signature: string; run: (key: string) => Promise<string> } | null>(null)
@@ -47,32 +48,38 @@ export function useTrades(actions: TradeActions, onSnapshot: (value: TradeSnapsh
   }, [refresh, invalidate])
   useEffect(() => {
     if (!partnersActive) return
-    let disposed = false
+    const previousInput = partnerInput.current
+    const isUserSearch = previousInput === null || previousInput.query !== query || previousInput.page !== page
+    partnerInput.current = { query, page }
     const load = () => {
-      void (async () => {
-        if (partnerFlight.current) await partnerFlight.current.catch(() => undefined)
-        if (disposed) return
-        const request = latest.current.actions.partners(query, page)
-        partnerFlight.current = request
-        try { const list = await request; if (!disposed) setPartners(list) }
-        catch { if (!disposed) setSyncError('Recherche indisponible. Réessayez dans un instant.') }
-        finally { if (partnerFlight.current === request) partnerFlight.current = null }
-      })()
+      // A typed search supersedes an older query. Background refreshes never interrupt it.
+      if (!isUserSearch && partnerRequest.current) return
+      partnerRequest.current?.controller.abort()
+      const controller = new AbortController(), request = { controller }
+      partnerRequest.current = request
+      void latest.current.actions.partners(query, page, controller.signal)
+        .then(list => { if (alive.current && !controller.signal.aborted && partnerRequest.current === request) { setPartners(list); setSyncError('') } })
+        .catch(() => { if (alive.current && !controller.signal.aborted && partnerRequest.current === request) setSyncError('Recherche indisponible. Réessayez dans un instant.') })
+        .finally(() => { if (partnerRequest.current === request) partnerRequest.current = null })
     }
     const timer = query ? setTimeout(load, 250) : undefined
     if (!query) load()
-    return () => { disposed = true; clearTimeout(timer) }
+    return () => { clearTimeout(timer) }
   }, [query, page, partnersActive, partnerRevision])
   useEffect(() => {
     if (!partnersActive) return
     const refreshPartners = () => {
-      if (document.visibilityState !== 'hidden' && !busy.current && !partnerFlight.current) setPartnerRevision(value => value + 1)
+      if (document.visibilityState !== 'hidden' && !busy.current && !partnerRequest.current) setPartnerRevision(value => value + 1)
     }
     const timer = setInterval(refreshPartners, 15_000)
     window.addEventListener('focus', refreshPartners)
     document.addEventListener('visibilitychange', refreshPartners)
     return () => { clearInterval(timer); window.removeEventListener('focus', refreshPartners); document.removeEventListener('visibilitychange', refreshPartners) }
   }, [partnersActive])
+  useEffect(() => {
+    if (!partnersActive) partnerRequest.current?.controller.abort()
+  }, [partnersActive])
+  useEffect(() => () => { partnerRequest.current?.controller.abort() }, [])
   const mutate = async (signature: string, run: (key: string) => Promise<string>) => {
     if (busy.current) return
     // Ambiguous retries keep their exact intent; changing it requires a definite result.

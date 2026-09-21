@@ -7,7 +7,7 @@ export type TradePartners = { partners: (TradePlayer & { maximum: string })[]; p
 export type TradeResult = { requestId: string; state: string; amount: string }
 export type TradeActions = {
   snapshot(): Promise<TradeSnapshot>
-  partners(q: string, page: number): Promise<TradePartners>
+  partners(q: string, page: number, signal?: AbortSignal): Promise<TradePartners>
   create(recipientPlayerId: string, amount: string, key: string): Promise<TradeResult>
   mutate(id: string, action: 'accept' | 'refuse' | 'cancel', key: string): Promise<TradeResult>
   all(action: 'accept' | 'refuse', key: string): Promise<{ results: TradeResult[] }>

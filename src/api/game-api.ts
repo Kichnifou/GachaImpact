@@ -159,7 +159,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     } satisfies SocialActions,
     trades: {
       snapshot: () => request<TradeSnapshot>('/api/v1/me/trades'),
-      partners: (q, page) => request<TradePartners>('/api/v1/me/trades/partners?' + new URLSearchParams({ q, page: String(page) })),
+      partners: (q, page, signal) => request<TradePartners>('/api/v1/me/trades/partners?' + new URLSearchParams({ q, page: String(page) }), { signal }),
       create: (recipientPlayerId, amount, idempotencyKey) => request<TradeResult>('/api/v1/me/trades', { method: 'POST', body: JSON.stringify({ recipientPlayerId, amount, idempotencyKey }) }),
       mutate: (id, action, idempotencyKey) => request<TradeResult>(`/api/v1/me/trades/${encodeURIComponent(id)}/${action}`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
       all: (action, idempotencyKey) => request<{ results: TradeResult[] }>(`/api/v1/me/trades/${action}-all`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),

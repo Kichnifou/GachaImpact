@@ -50,12 +50,19 @@ function GameHeader({ displayName, onNavigateHome, onOpenSidebar, onSignOut, sho
     schedule()
     return () => { active = false; refreshNowRef.current = () => undefined; window.clearTimeout(timer); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', visible) }
   }, [onRefreshNotifications, pollSessionKey, isNotificationsOpen])
-  const open = async (notification: NotificationDto) => {
-    if (notification.state === 'UNREAD') await onReadNotification(notification.id)
-    if (resolveNotificationPresentation(notification).destination === null) return
+  const open = (notification: NotificationDto) => {
+    const presentation = resolveNotificationPresentation(notification)
+    if (presentation.destination === null) {
+      if (notification.state === 'UNREAD') void onReadNotification(notification.id).catch(() => undefined)
+      return
+    }
     setIsNotificationsOpen(false)
     onOpenNotification(notification)
-    if (notification.domainKey === 'social' && notification.typeKey === 'FRIEND_REQUEST_ACCEPTED' && notification.actionKey === 'OPEN_SOCIAL_FRIENDS') await onArchiveNotification(notification.id)
+    if (notification.domainKey === 'social' && notification.typeKey === 'FRIEND_REQUEST_ACCEPTED' && notification.actionKey === 'OPEN_SOCIAL_FRIENDS') {
+      void onArchiveNotification(notification.id).catch(() => undefined)
+      return
+    }
+    if (notification.state === 'UNREAD') void onReadNotification(notification.id).catch(() => undefined)
   }
   const archive = async (notificationId: string) => {
     setArchivingNotificationId(notificationId)

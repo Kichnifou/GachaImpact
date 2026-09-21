@@ -18,6 +18,19 @@ function mount(props: Partial<React.ComponentProps<typeof GameHeader>> = {}) {
 }
 
 describe('GameHeader moderation capability', () => {
+  it('opens a Trade notification before its pending background read completes', async () => {
+    let resolveRead!: (value: { unreadCount: number; notifications: never[] }) => void
+    const onReadNotification = vi.fn(() => new Promise<{ unreadCount: number; notifications: never[] }>(resolve => { resolveRead = resolve }))
+    const onOpenNotification = vi.fn(), onArchiveNotification = vi.fn()
+    const trade = { id: 'trade', domainKey: 'trades', typeKey: 'TRADES_PENDING', payload: { count: 2 }, state: 'UNREAD' as const, actionKey: 'OPEN_TRADES', actionTargetId: null, createdAt: '2026-09-21T12:00:00Z', readAt: null }
+    const container = mount({ notifications: { unreadCount: 1, notifications: [trade] }, onReadNotification, onOpenNotification, onArchiveNotification })
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
+    await act(async () => { container.querySelector<HTMLButtonElement>('.notification-item')!.click(); await Promise.resolve() })
+    expect(onOpenNotification).toHaveBeenCalledWith(trade)
+    expect(onReadNotification).toHaveBeenCalledWith(trade.id)
+    expect(onArchiveNotification).not.toHaveBeenCalled()
+    await act(async () => { resolveRead({ unreadCount: 0, notifications: [] }); await Promise.resolve() })
+  })
   it('refreshes open notifications every three seconds and preserves a trade aggregate on opening', async () => {
     vi.useFakeTimers()
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
@@ -34,10 +47,10 @@ describe('GameHeader moderation capability', () => {
   })
   it('opens Friends then archives only the accepted friendship notification', async () => {
     const onOpenNotification = vi.fn()
-    const onArchiveNotification = vi.fn(async () => ({ unreadCount: 0, notifications: [] }))
+    const onArchiveNotification = vi.fn(async () => ({ unreadCount: 0, notifications: [] })), onReadNotification = vi.fn(async () => ({ unreadCount: 0, notifications: [] }))
     const accepted = { id: 'accepted', domainKey: 'social', typeKey: 'FRIEND_REQUEST_ACCEPTED', payload: { acceptorDisplayName: 'Alice' }, state: 'UNREAD' as const, actionKey: 'OPEN_SOCIAL_FRIENDS', actionTargetId: 'alice', createdAt: '2026-09-21T12:00:00Z', readAt: null }
     const received = { ...accepted, id: 'received', typeKey: 'FRIEND_REQUEST_RECEIVED', actionKey: 'OPEN_SOCIAL_REQUESTS', payload: { senderDisplayName: 'Bob' } }
-    const container = mount({ notifications: { unreadCount: 2, notifications: [accepted, received] }, onOpenNotification, onArchiveNotification })
+    const container = mount({ notifications: { unreadCount: 2, notifications: [accepted, received] }, onOpenNotification, onArchiveNotification, onReadNotification })
     onArchiveNotification.mockImplementation(async () => {
       roots[0]!.render(<GameHeader displayName="Test" onNavigateHome={vi.fn()} onOpenSidebar={vi.fn()} onSignOut={vi.fn()} showModeration={false} onOpenModeration={vi.fn()} onOpenMenu={vi.fn()} notifications={{ unreadCount: 1, notifications: [received] }} onOpenNotification={onOpenNotification} onArchiveNotification={onArchiveNotification} />)
       return { unreadCount: 0, notifications: [] }
@@ -47,6 +60,7 @@ describe('GameHeader moderation capability', () => {
     await act(async () => { container.querySelector<HTMLButtonElement>('.notification-item')!.click() })
     expect(onOpenNotification).toHaveBeenCalledWith(accepted)
     expect(onArchiveNotification).toHaveBeenCalledWith(accepted.id)
+    expect(onReadNotification).not.toHaveBeenCalled()
     expect(onOpenNotification.mock.invocationCallOrder[0]).toBeLessThan(onArchiveNotification.mock.invocationCallOrder[0]!)
     act(() => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
     expect(container.textContent).not.toContain('Nouvel ami')
