@@ -15,7 +15,7 @@ import BoxScreen from '../screens/BoxScreen'
 import CharactersScreen from '../screens/CharactersScreen'
 import HomeScreen from '../screens/HomeScreen'
 import InventoryScreen from '../screens/InventoryScreen'
-import TradesScreen from '../screens/TradesScreen'
+import TradesScreen, { type TradeOpenIntent } from '../screens/TradesScreen'
 import type { TradeActions, TradeSnapshot } from '../trades/types'
 import InvocationScreen from '../screens/InvocationScreen'
 import ShopScreen from '../screens/ShopScreen'
@@ -216,6 +216,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
   const [moderationIntents] = useState(() => new ModerationIntentCoordinator())
   const [shopCache] = useState(() => new ShopMemoryCache())
   const [shopIntents] = useState(() => new ShopPurchaseIntentCoordinator())
+  const [tradeIntent, setTradeIntent] = useState<TradeOpenIntent>()
   const activeLevelUpFeedback = levelUpFeedbacks[0] ?? null
   const [profileLevelUpEvent, setProfileLevelUpEvent] = useState<LevelUpFeedbackEvent | null>(null)
   const [closedLevelUpModalId, setClosedLevelUpModalId] = useState<string | null>(null)
@@ -342,6 +343,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
   const changeScreen = useCallback((screen: ScreenId) => {
     if (activeScreenRef.current === 'invocation' && screen !== 'invocation') onGachaPresentationAbandoned()
     if (screen !== 'configuration') setConfigurationTab('menu')
+    if (screen !== 'trades') setTradeIntent(undefined)
     activeScreenRef.current = screen
     setActiveScreen(screen)
     if (screen !== 'activities-combat') setBossRequestToken(0)
@@ -349,7 +351,7 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
     if (screen.startsWith('characters-')) setLastCharacterScreen(screen)
     if (screen.startsWith('activities-')) setLastActivityScreen(screen)
     clearFriendshipFeedback()
-  }, [clearFriendshipFeedback, onGachaPresentationAbandoned, setConfigurationTab, setBossRequestToken, setEventMessagesRequestToken, setEventShopRequestToken])
+  }, [clearFriendshipFeedback, onGachaPresentationAbandoned, setConfigurationTab, setBossRequestToken, setEventMessagesRequestToken, setEventShopRequestToken, setTradeIntent])
 
   useEffect(() => {
     const syncScreenWithHash = () => changeScreen(getScreenFromHash())
@@ -395,11 +397,11 @@ function GameShell({ player, resources, progression, levelUpFeedbacks, onLevelUp
       case 'activities-contest':
 return <ActivitiesScreen friendship={friendship.value?.summary} friendshipError={friendship.error} onOpenFriends={() => { setSocialTab('friends'); navigate('social') }} sessionUserId={player.id} screen={activeScreen} event={event} onLoadEvent={onLoadEvent} onLoadEventRanking={onLoadEventRanking} onJoinEvent={onJoinEvent} onClaimEventCalendar={onClaimEventCalendar} onClaimEventDailyBonus={onClaimEventDailyBonus} onConvertEventShop={onConvertEventShop} onPurchaseEventCollection={purchaseEventCollection} onAttemptEventGameA={onAttemptEventGameA} onAttemptEventGameB={onAttemptEventGameB} onSearchEventGameCRecipients={onSearchEventGameCRecipients} onSendEventGameC={onSendEventGameC} onConsultEventGameCMessages={onConsultEventGameCMessages} eventMessagesRequestToken={eventMessagesRequestToken} eventShopRequestToken={eventShopRequestToken} dailiesOverviewRequestToken={dailiesOverviewRequestToken} bossRequestToken={bossRequestToken} wheelToday={wheelToday} onSpinWheel={onSpinWheel} dailyRewardToday={dailyRewardToday} dailyChallenge={dailyChallenge} dailyCombat={dailyCombat} monthlyBoss={monthlyBoss} contest={contest} onRefreshContest={onRefreshContest} onLoadContestHistory={onLoadContestHistory} onLoadContestHistoryDetail={onLoadContestHistoryDetail} onOpenContest={onOpenContest} onJoinContest={onJoinContest} onSelectContestLegend={onSelectContestLegend} onSetContestReady={onSetContestReady} onStartContest={onStartContest} onSpectateContest={onSpectateContest} onLeaveContest={onLeaveContest} onCancelContest={onCancelContest} onPlayContest={onPlayContest} onSupportContest={onSupportContest} onRemoveContestParticipant={onRemoveContestParticipant} onRemoveContestSpectator={onRemoveContestSpectator} expedition={expedition} expeditionMonotonicNow={expeditionMonotonicNow} dailyCombatBox={{ initialBox: boxCache.read(player.id), onLoadBox: loadBox, onSetFavorite: setBoxFavorite, onUseStella: useStella, stellaRetryCharacterId: stellaIntents.getIntent(player.id)?.characterId ?? null, onCharacterProgressed: () => Promise.all([onLoadTeams(), onLoadDailyCombat()]) }} elementKey={player.elementKey!} onClaimDailyReward={onClaimDailyReward} onPurchaseDailyChallenge={onPurchaseDailyChallenge} onSwitchDailyChallenge={onSwitchDailyChallenge} onSetDailyCombatSlot={onSetDailyCombatSlot} onRemoveDailyCombatSlot={onRemoveDailyCombatSlot} onCopyActiveTeamToDailyCombat={onCopyActiveTeamToDailyCombat} onAutoSelectDailyCombat={onAutoSelectDailyCombat} onClearDailyCombatLoadout={onClearDailyCombatLoadout} onFightDailyCombat={onFightDailyCombat} onSetMonthlyBossSlot={onSetMonthlyBossSlot} onRemoveMonthlyBossSlot={onRemoveMonthlyBossSlot} onCopyActiveTeamToMonthlyBoss={onCopyActiveTeamToMonthlyBoss} onClearMonthlyBossLoadout={onClearMonthlyBossLoadout} onAttackMonthlyBoss={onAttackMonthlyBoss} onLoadMonthlyBossHistory={onLoadMonthlyBossHistory} onOpenParticleConversion={() => setIsParticleConversionOpen(true)} onOpenBoss={() => { setBossRequestToken((value) => value + 1); navigate('activities-combat') }} onOpenExpedition={() => { if (expedition.value.activeCharacter && expedition.value.operationalStatus !== 'IDLE') { setBoxOpenIntent({ characterId: expedition.value.activeCharacter.id, token: crypto.randomUUID() }); navigate('characters-box') } else { setBoxOpenIntent(null); navigate('characters-box') } }} onNavigate={navigate} />
       case 'trades':
-        return tradeActions ? <TradesScreen key={player.id} actions={tradeActions} playerId={player.id} onSnapshot={value => { inventoryCache.applyTradeStocks(player.id, value.stocks); onTradeSnapshot?.(value) }} /> : null
+        return tradeActions ? <TradesScreen key={player.id} intent={tradeIntent} actions={tradeActions} playerId={player.id} onSnapshot={value => { inventoryCache.applyTradeStocks(player.id, value.stocks); onTradeSnapshot?.(value) }} /> : null
       case 'social':
         return socialActions ? <SocialScreen actions={socialActions} onProfile={openProfile} controller={friendship} selectedTab={socialTab} onTabChange={setSocialTab} /> : null
       case 'profile':
-        return socialActions ? <ProfileScreen key={profileId} playerId={profileId} ownerPlayerId={player.id} actions={socialActions} controller={friendship} onDirectory={() => { setSocialTab('players'); navigate('social') }} onPrivacy={() => { setConfigurationTab('privacy'); navigate('configuration') }} /> : null
+        return socialActions ? <ProfileScreen key={profileId} playerId={profileId} ownerPlayerId={player.id} actions={socialActions} controller={friendship} onTrade={partner => { setTradeIntent({ token: crypto.randomUUID(), partner }); navigate('trades') }} onDirectory={() => { setSocialTab('players'); navigate('social') }} onPrivacy={() => { setConfigurationTab('privacy'); navigate('configuration') }} /> : null
       case 'configuration':
         return <ConfigurationScreen socialActions={socialActions} initialTab={configurationTab} preference={menuPreference} onSave={saveMenuPreference} onReset={() => saveMenuPreference(defaultNavigationPreference)} />
       default:
@@ -424,7 +426,7 @@ return <ActivitiesScreen friendship={friendship.value?.summary} friendshipError=
         onArchiveNotification={onArchiveNotification}
         onReadAllNotifications={onReadAllNotifications}
         onArchiveReadNotifications={onArchiveReadNotifications}
-        onOpenNotification={(notification) => { if (notification.actionKey === 'open-expedition-character' && notification.actionTargetId) { setBoxOpenIntent({ characterId: notification.actionTargetId, token: crypto.randomUUID() }); navigate('characters-box') } else if (notification.actionKey === 'OPEN_MONTHLY_BOSS') { setBossRequestToken((value) => value + 1); navigate('activities-combat') } else if (notification.actionKey === 'OPEN_EVENT_MESSAGES') { setEventMessagesRequestToken((value) => value + 1); navigate('activities-event') } else if (notification.actionKey === 'OPEN_EVENT_SHOP') { setEventShopRequestToken((value) => value + 1); navigate('activities-event') } else if (notification.actionKey === 'OPEN_EVENT') { setEventMessagesRequestToken(0); setEventShopRequestToken(0); navigate('activities-event') } else if (notification.actionKey === 'OPEN_GIFT_CODE') navigate('codes'); else if (notification.actionKey === 'OPEN_SOCIAL_REQUESTS') { void friendship.refresh(true); setSocialTab('requests'); navigate('social') } else if (notification.actionKey === 'OPEN_TRADES' && notification.domainKey === 'trades' && notification.typeKey === 'TRADES_PENDING') { navigate('trades') } else if (notification.actionKey === 'OPEN_SOCIAL_FRIENDS') { void friendship.refresh(true); setSocialTab('friends'); navigate('social') } }}
+        onOpenNotification={(notification) => { if (notification.actionKey === 'open-expedition-character' && notification.actionTargetId) { setBoxOpenIntent({ characterId: notification.actionTargetId, token: crypto.randomUUID() }); navigate('characters-box') } else if (notification.actionKey === 'OPEN_MONTHLY_BOSS') { setBossRequestToken((value) => value + 1); navigate('activities-combat') } else if (notification.actionKey === 'OPEN_EVENT_MESSAGES') { setEventMessagesRequestToken((value) => value + 1); navigate('activities-event') } else if (notification.actionKey === 'OPEN_EVENT_SHOP') { setEventShopRequestToken((value) => value + 1); navigate('activities-event') } else if (notification.actionKey === 'OPEN_EVENT') { setEventMessagesRequestToken(0); setEventShopRequestToken(0); navigate('activities-event') } else if (notification.actionKey === 'OPEN_GIFT_CODE') navigate('codes'); else if (notification.actionKey === 'OPEN_SOCIAL_REQUESTS') { void friendship.refresh(true); setSocialTab('requests'); navigate('social') } else if (notification.actionKey === 'OPEN_TRADES' && notification.domainKey === 'trades' && notification.typeKey === 'TRADES_PENDING') { setTradeIntent({ token: crypto.randomUUID(), tab: 'received' }); navigate('trades') } else if (notification.actionKey === 'OPEN_SOCIAL_FRIENDS') { void friendship.refresh(true); setSocialTab('friends'); navigate('social') } }}
       />
 
       <div className="game-layout">
@@ -469,7 +471,7 @@ return <ActivitiesScreen friendship={friendship.value?.summary} friendshipError=
 
       {isPlayersOpen && <OnlinePlayersPanel value={presence.value} error={presence.error} ownerPlayerId={player.id} controller={friendship} onProfile={openProfile} onDirectory={() => { setIsPlayersOpen(false); setSocialTab('players'); navigate('social') }} onClose={() => { friendship.clearFeedback(); setIsPlayersOpen(false) }} />}
       {isMenuOpen && <GlobalMenu preference={menuPreference} page={menuPage} onPageChange={setMenuPage} onNavigate={screen => { if (screen === 'social') setSocialTab('friends'); navigate(screen) }} onActivities={() => navigateMain('activities')} onClose={() => setIsMenuOpen(false)} />}
-      {isParticleConversionOpen && player.elementKey && <ParticleConversionModal elementKey={player.elementKey} stock={resources.particles[player.elementKey]} onClose={() => setIsParticleConversionOpen(false)} onConvert={convertParticles} />}
+      {isParticleConversionOpen && player.elementKey && <ParticleConversionModal elementKey={player.elementKey} stock={resources.particles[player.elementKey]} onClose={() => setIsParticleConversionOpen(false)} onOpenTrades={() => { setTradeIntent(undefined); navigate('trades') }} onConvert={convertParticles} />}
       {activeLevelUpFeedback && activeLevelUpFeedback.id !== closedLevelUpModalId && <LevelUpFeedback key={activeLevelUpFeedback.id} event={activeLevelUpFeedback} onFinished={finishLevelUpModal} />}
       {completedChallengeFeedback && !activeLevelUpFeedback && pendingGachaPullCount === null && !isParticleConversionOpen && <DailyChallengeCompletionFeedback challenge={completedChallengeFeedback} onFinished={() => setCompletedChallengeFeedback(null)} />}
     </div>

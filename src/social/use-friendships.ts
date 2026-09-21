@@ -7,6 +7,7 @@ export function useFriendships(actions?: SocialActions, active = false) {
   const [value, setValue] = useState<FriendsSnapshot | null>(null)
   const [error, setError] = useState(''), [feedback, setFeedback] = useState(''), [feedbackScope, setFeedbackScope] = useState(''), [pending, setPending] = useState(false), [refreshingState, setRefreshingState] = useState(false)
   const alive = useRef(false), busy = useRef(false), refreshing = useRef<Promise<void> | null>(null), authoritativeDrain = useRef<Promise<void> | null>(null), authoritativeRequested = useRef(0), authoritativeCompleted = useRef(0), revision = useRef(0), intent = useRef<{ signature: string; key: string } | null>(null)
+  const hasSnapshot = useRef(false)
   const clearFeedback = useCallback(() => { setFeedback(''); setFeedbackScope('') }, [])
   const showFeedback = useCallback((scope: string, message: string) => {
     setFeedbackScope(scope); setFeedback(message)
@@ -18,8 +19,9 @@ export function useFriendships(actions?: SocialActions, active = false) {
       const version = ++revision.current
       if (alive.current) setRefreshingState(true)
       const request = (async () => {
-        try { const next = await actions.friends(); if (alive.current && version === revision.current) { setValue(next); setError('') } }
-        catch (reason) { if (alive.current && version === revision.current) setError(apiErrorMessage(reason)) }
+        try { const next = await actions.friends(); if (alive.current && version === revision.current) { hasSnapshot.current = true; setValue(next); setError('') } }
+        // A failed background read keeps the confirmed projection; the next poll retries it.
+        catch (reason) { if (alive.current && version === revision.current && !hasSnapshot.current) setError(apiErrorMessage(reason)) }
       })()
       refreshing.current = request
       void request.finally(() => { if (refreshing.current === request) { refreshing.current = null; if (alive.current) setRefreshingState(false) } })
@@ -66,7 +68,7 @@ export function useFriendships(actions?: SocialActions, active = false) {
         if (alive.current) showFeedback(scope, result.state === 'PENDING' ? 'Demande envoyée.' : result.state === 'ACCEPTED' || result.state === 'ACTIVE' ? 'Vous êtes amis.' : result.state === 'ARCHIVED' ? 'Ami retiré.' : result.state === 'REFUSED' ? 'Demande refusée.' : 'Demande annulée.')
       }
       intent.current = null
-      await refresh(true)
+      void refresh(true)
     } catch (reason) { if (alive.current) setError(apiErrorMessage(reason)) }
     finally { busy.current = false; if (alive.current) setPending(false) }
   }

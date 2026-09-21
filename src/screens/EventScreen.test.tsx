@@ -486,6 +486,7 @@ describe('EventScreen presentation', () => {
   })
 
   it('searches an eligible recipient, selects their ID and sends one trimmed daily message', async () => {
+    vi.useFakeTimers()
     const onSearchRecipients = vi.fn(async () => ({ page: 1, pageSize: 10 as const, total: 1, totalPages: 1, recipients: [{ playerId: 'player-2', displayName: 'Ami Panier', level: 5, elementKey: 'hydro' as const }] }))
     const onSendGameC = vi.fn(async () => ({ ...afterJoin, gameC: { ...afterJoin.gameC, sentToday: true, canSend: false }, participation: { ...afterJoin.participation, points: 1 }, currency: { amount: '2' }, operation: { id: 'operation-c', alreadyProcessed: false } }))
     const mounted = mount({ value: afterJoin, onSearchRecipients, onSendGameC })
@@ -494,7 +495,7 @@ describe('EventScreen presentation', () => {
     act(() => Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-game-c-send button')).find((button) => button.textContent === 'Choisir un joueur')!.click())
     const input = mounted.container.querySelector<HTMLInputElement>('.event-player-browser input[type="search"]')!
     act(() => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'Ami'); input.dispatchEvent(new Event('input', { bubbles: true })) })
-    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    await act(async () => vi.advanceTimersByTimeAsync(250))
     expect(onSearchRecipients).toHaveBeenLastCalledWith({ query: 'Ami', elementKey: null, sort: 'name', direction: 'asc', page: 1 })
     act(() => mounted.container.querySelector<HTMLButtonElement>('.event-player-browser .moderation-browser-results button')!.click())
     act(() => Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-player-browser button')).find((button) => button.textContent === 'Choisir ce joueur')!.click())
@@ -507,6 +508,7 @@ describe('EventScreen presentation', () => {
   })
 
   it('uses the shared browser with only safe Event filters and pages of ten', async () => {
+    vi.useFakeTimers()
     const onSearchRecipients = vi.fn(async (query: EventGameCRecipientQuery): Promise<EventGameCRecipientsDto> => ({
       page: query.page, pageSize: 10, total: 11, totalPages: 2,
       recipients: [{ playerId: `recipient-${query.page}`, displayName: 'Destinataire', level: 9, elementKey: 'geo' }],
@@ -516,12 +518,13 @@ describe('EventScreen presentation', () => {
     act(() => container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[2]!.click())
     act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('.event-game-c-send button')).find((button) => button.textContent === 'Choisir un joueur')!.click())
     await act(async () => { await Promise.resolve(); await Promise.resolve() })
-    expect(onSearchRecipients).toHaveBeenLastCalledWith({ query: '', elementKey: null, sort: 'name', direction: 'asc', page: 1 })
+    expect(onSearchRecipients).not.toHaveBeenCalled()
     expect(container.querySelector('[role="dialog"]')).not.toBeNull()
     expect(container.textContent).not.toContain('Rôle Testeur')
     expect(container.textContent).not.toContain('Testeur')
     const search = container.querySelector<HTMLInputElement>('.event-player-browser input[type="search"]')!
     await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, 'D'); search.dispatchEvent(new Event('input', { bubbles: true })); await Promise.resolve(); await Promise.resolve() })
+    await act(async () => vi.advanceTimersByTimeAsync(250))
     expect(onSearchRecipients).toHaveBeenLastCalledWith({ query: 'D', elementKey: null, sort: 'name', direction: 'asc', page: 1 })
     const selects = container.querySelectorAll<HTMLSelectElement>('.event-player-browser select')
     expect(selects).toHaveLength(2)
@@ -531,9 +534,10 @@ describe('EventScreen presentation', () => {
       await Promise.resolve(); await Promise.resolve()
     })
     act(() => container.querySelector<HTMLButtonElement>('.event-player-browser .sort-direction-button')!.click())
-    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    await act(async () => vi.advanceTimersByTimeAsync(250))
     expect(onSearchRecipients).toHaveBeenLastCalledWith({ query: 'D', elementKey: 'geo', sort: 'level', direction: 'desc', page: 1 })
     await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('.event-player-browser button')).find((button) => button.textContent === 'Suivant')!.click(); await Promise.resolve(); await Promise.resolve() })
+    await act(async () => vi.advanceTimersByTimeAsync(250))
     expect(onSearchRecipients).toHaveBeenLastCalledWith({ query: 'D', elementKey: 'geo', sort: 'level', direction: 'desc', page: 2 })
     act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })))
     expect(container.querySelector('[role="dialog"]')).toBeNull()

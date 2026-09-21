@@ -20,6 +20,9 @@ import { createExpeditionClientSnapshot, type ExpeditionClientSnapshot } from '.
 import { createContestRequestCoordinator, type ContestRequestCoordinator } from './contest/contest-request-coordinator'
 import { createEventRequestCoordinator, type EventRequestCoordinator } from './event/event-request-coordinator'
 import { useEventTemporalRefresh } from './event/use-event-temporal-refresh'
+import type { EventMilestoneFeedback } from './event/event-request-coordinator'
+import LevelUpFeedback from './components/LevelUpFeedback'
+import { confirmedMutation } from './api/confirmed-mutation'
 
 function AppBootstrap() {
   const { status: authStatus, session, configurationMessage, signOut } = useAuth()
@@ -53,7 +56,9 @@ function AppBootstrap() {
   const [contestRequests] = useState<ContestRequestCoordinator<ContestDto>>(
     () => createContestRequestCoordinator<ContestDto>((value) => setContest(value)),
   )
-  const [eventRequests] = useState<EventRequestCoordinator>(() => createEventRequestCoordinator((value) => { setEvent(value); if (value.resources) setResources(value.resources) }))
+  const [milestoneFeedbacks, setMilestoneFeedbacks] = useState<EventMilestoneFeedback[]>([])
+  const [eventRequests] = useState<EventRequestCoordinator>(() => createEventRequestCoordinator((value) => { setEvent(value); if (value.resources) setResources(value.resources) }, values => setMilestoneFeedbacks(current => [...current, ...values.filter(value => !current.some(item => item.id === value.id))])))
+  const finishMilestoneFeedback = useCallback((id: string) => setMilestoneFeedbacks(current => current.filter(value => value.id !== id)), [])
   const dismissLevelUpFeedback = useCallback((id: string) => {
     setLevelUpFeedbacks((current) => current.filter((event) => event.id !== id))
   }, [])
@@ -65,25 +70,10 @@ function AppBootstrap() {
   }, [])
 
   const socialActions = useMemo(() => ({ ...getGameApiClient().social,
-    sendHearts: async (target: string, key: string) => {
-      const result = await getGameApiClient().social.sendHearts(target, key)
-      await loadResources()
-      return result
-    },
+    sendHearts: (target: string, key: string) => confirmedMutation(() => getGameApiClient().social.sendHearts(target, key), loadResources),
   }), [loadResources])
 
-  const tradeActions = useMemo(() => ({ ...getGameApiClient().trades,
-    mutate: async (...args: Parameters<ReturnType<typeof getGameApiClient>['trades']['mutate']>) => {
-      const result = await getGameApiClient().trades.mutate(...args)
-      await loadResources()
-      return result
-    },
-    all: async (...args: Parameters<ReturnType<typeof getGameApiClient>['trades']['all']>) => {
-      const result = await getGameApiClient().trades.all(...args)
-      await loadResources()
-      return result
-    },
-  }), [loadResources])
+  const tradeActions = useMemo(() => getGameApiClient().trades, [])
 
   const loadContest = useCallback(() => contestRequests.read(() => getGameApiClient().getContest()), [contestRequests])
   const refreshContest = useCallback(() => contestRequests.refresh(() => getGameApiClient().getContest()), [contestRequests])
@@ -146,7 +136,14 @@ function AppBootstrap() {
     return next
   }, [])
   const loadExpedition = useCallback(async () => publishExpedition(await getGameApiClient().getExpedition()), [publishExpedition])
-  const loadNotifications = useCallback(async () => { const requestedFor = sessionUserId; const next = await getGameApiClient().getNotifications(); if (notificationSessionRef.current === requestedFor) setNotifications(next); return next }, [sessionUserId])
+  const notificationFlight = useRef<{ userId: string | undefined; promise: Promise<NotificationsDto> } | null>(null)
+  const loadNotifications = useCallback(() => {
+    if (notificationFlight.current && notificationFlight.current.userId === sessionUserId) return notificationFlight.current.promise
+    const requestedFor = sessionUserId
+    const promise = getGameApiClient().getNotifications().then(next => { if (notificationSessionRef.current === requestedFor) setNotifications(next); return next }).finally(() => { if (notificationFlight.current?.promise === promise) notificationFlight.current = null })
+    notificationFlight.current = { userId: sessionUserId, promise }
+    return promise
+  }, [sessionUserId])
   const consultEventGameCMessages = useCallback(async () => { const result = await eventRequests.mutate(() => getGameApiClient().consultEventGameCMessages()); await loadNotifications(); return result }, [eventRequests, loadNotifications])
   useEffect(() => {
     if (expedition?.value.operationalStatus !== 'RUNNING' || !expedition.value.readyAt) return
@@ -307,6 +304,7 @@ function AppBootstrap() {
       .getCurrentPlayer()
       .then(async (nextPlayer) => {
         if (!active) return
+        setMilestoneFeedbacks([])
         setPlayer(nextPlayer)
         if (nextPlayer.elementKey) await loadGameState()
         if (active) {
@@ -322,6 +320,7 @@ function AppBootstrap() {
           setProgression(null)
           progressionRef.current = null
           setLevelUpFeedbacks([])
+          setMilestoneFeedbacks([])
           setWheelToday(null)
           setDailyRewardToday(null)
           setDailyChallenge(null)
@@ -407,7 +406,7 @@ function AppBootstrap() {
   }
 
   return (
-    <GameShell
+    <><GameShell
       key={player.id}
       socialActions={socialActions}
       tradeActions={tradeActions}
@@ -578,9 +577,12 @@ function AppBootstrap() {
         setPermissions(null)
         progressionRef.current = null
         setLevelUpFeedbacks([])
+        setMilestoneFeedbacks([])
         await abandonGachaPresentationBeforeSignOut(gachaPresentation.current!, signOut)
       }}
     />
+    {!levelUpFeedbacks.length && milestoneFeedbacks[0] && <LevelUpFeedback key={milestoneFeedbacks[0].id} event={{ id: milestoneFeedbacks[0].id, levelsGained: 0, rewards: [] }} title={`Palier ${milestoneFeedbacks[0].points} atteint`} rewardLabel={milestoneFeedbacks[0].rewardLabel} onFinished={finishMilestoneFeedback} />}
+    </>
   )
 }
 

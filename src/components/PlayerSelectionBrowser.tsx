@@ -9,11 +9,11 @@ type Props<Candidate extends PlayerBrowserCandidate> = Readonly<{
   eyebrow: string; title: string; selectedPlayerId: string
   onListPlayers: (query: PlayerBrowserQuery) => Promise<PlayerBrowserPage<Candidate>>
   onConfirm: (player: Candidate) => void; onClose: () => void
-  showTesterFilter?: boolean; renderBadge?: (player: Candidate) => ReactNode
+  showTesterFilter?: boolean; renderBadge?: (player: Candidate) => ReactNode; searchOnly?: boolean
 }>
 const elementLabels: Record<ElementKey, string> = { pyro: 'Pyro', hydro: 'Hydro', cryo: 'Cryo', electro: 'Électro', anemo: 'Anémo', geo: 'Géo', dendro: 'Dendro' }
 
-export default function PlayerSelectionBrowser<Candidate extends PlayerBrowserCandidate>({ eyebrow, title, selectedPlayerId, onListPlayers, onConfirm, onClose, showTesterFilter = false, renderBadge }: Props<Candidate>) {
+export default function PlayerSelectionBrowser<Candidate extends PlayerBrowserCandidate>({ eyebrow, title, selectedPlayerId, onListPlayers, onConfirm, onClose, showTesterFilter = false, renderBadge, searchOnly = false }: Props<Candidate>) {
   const [query, setQuery] = useState('')
   const [elementKey, setElementKey] = useState<ElementKey | null>(null)
   const [tester, setTester] = useState<'all' | 'tester' | 'non-tester'>('all')
@@ -23,7 +23,7 @@ export default function PlayerSelectionBrowser<Candidate extends PlayerBrowserCa
   const [result, setResult] = useState<PlayerBrowserPage<Candidate> | null>(null)
   const [temporarySelectionId, setTemporarySelectionId] = useState(selectedPlayerId)
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!searchOnly)
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
     document.addEventListener('keydown', closeOnEscape)
@@ -31,19 +31,22 @@ export default function PlayerSelectionBrowser<Candidate extends PlayerBrowserCa
   }, [onClose])
   useEffect(() => {
     let active = true
-    void onListPlayers({ query, elementKey, ...(showTesterFilter ? { tester } : {}), sort, direction, page })
+    if (searchOnly && !query.trim()) return
+    const load = () => { void onListPlayers({ query, elementKey, ...(showTesterFilter ? { tester } : {}), sort, direction, page })
       .then((next) => { if (!active) return; setError(null); setResult(next); if (next.page !== page) setPage(next.page) })
       .catch((reason) => { if (active) setError(apiErrorMessage(reason)) })
-      .finally(() => { if (active) setLoading(false) })
-    return () => { active = false }
-  }, [direction, elementKey, onListPlayers, page, query, showTesterFilter, sort, tester])
+      .finally(() => { if (active) setLoading(false) }) }
+    const timer = searchOnly ? window.setTimeout(load, 250) : undefined
+    if (!searchOnly) load()
+    return () => { active = false; window.clearTimeout(timer) }
+  }, [direction, elementKey, onListPlayers, page, query, showTesterFilter, sort, tester, searchOnly])
   const resetPage = (action: () => void) => { setLoading(true); setPage(1); action() }
   const selected = result?.players.find((candidate) => candidate.id === temporarySelectionId)
   return <div className="modal-layer" role="presentation" onMouseDown={onClose}>
-    <section className={`floating-panel moderation-player-browser${showTesterFilter ? '' : ' event-player-browser'}`} role="dialog" aria-modal="true" aria-labelledby="player-selection-browser-title" onMouseDown={(event) => event.stopPropagation()}>
+    <section className={`floating-panel moderation-player-browser${showTesterFilter ? '' : ' event-player-browser'}${searchOnly ? ' player-search-only' : ''}`} role="dialog" aria-modal="true" aria-labelledby="player-selection-browser-title" onMouseDown={(event) => event.stopPropagation()}>
       <header className="floating-panel-heading"><div><span className="eyebrow">{eyebrow}</span><h2 id="player-selection-browser-title">{title}</h2></div><button type="button" className="icon-button" aria-label="Fermer le sélecteur" onClick={onClose}><span className="icon-glyph">×</span></button></header>
       <div className="moderation-browser-filters">
-        <label className="moderation-target-search"><span>Rechercher</span><input type="search" value={query} autoComplete="off" placeholder="Pseudo du joueur…" onChange={(event) => resetPage(() => setQuery(event.target.value))} /></label>
+        <label className="moderation-target-search"><span>Rechercher</span><input type="search" value={query} autoComplete="off" placeholder="Pseudo du joueur…" onChange={(event) => { const next = event.target.value; resetPage(() => setQuery(next)); if (searchOnly && !next.trim()) { setResult(null); setLoading(false); setError(null) } }} /></label>
         <label><span>Élément</span><select value={elementKey ?? 'all'} onChange={(event) => resetPage(() => setElementKey(event.target.value === 'all' ? null : event.target.value as ElementKey))}><option value="all">Tous</option>{elementKeys.map((element) => <option value={element} key={element}>{elementLabels[element]}</option>)}</select></label>
         {showTesterFilter && <label><span>Rôle Testeur</span><select value={tester} onChange={(event) => resetPage(() => setTester(event.target.value as typeof tester))}><option value="all">Tous</option><option value="tester">Testeur</option><option value="non-tester">Non-testeur</option></select></label>}
         <label><span>Trier par</span><select value={sort} onChange={(event) => resetPage(() => setSort(event.target.value as typeof sort))}><option value="name">Nom</option><option value="level">Niveau</option></select></label>

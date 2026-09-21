@@ -67,6 +67,7 @@ describe('Player sidebar progression', () => {
       isOpen: false,
       onClose: vi.fn(),
       onNavigate,
+      onOpenProfile: () => onNavigate('profile'),
       onOpenParticleConversion: vi.fn(),
       playerData: { id: 'p1', displayName: 'Kichnifou', elementKey: 'hydro', status: 'ACTIVE' },
       resources,
@@ -90,6 +91,22 @@ describe('Player sidebar progression', () => {
     await act(async () => { objective.querySelector<HTMLButtonElement>('.section-heading')!.click() })
     expect(onNavigate).toHaveBeenCalledOnce()
     expect(onNavigate).toHaveBeenCalledWith('invocation')
+    expect(container.querySelector('button button')).toBeNull()
+    for (const [selector, destination] of [
+      ['.profile-card .sidebar-card-link', 'profile'],
+      ['.currency-summary-card .sidebar-card-link', 'inventory'],
+      ['.particles-card .sidebar-card-link', 'inventory'],
+      ['.objective-card .sidebar-card-link', 'invocation'],
+      ['[aria-label^="Ouvrir la Boutique"]', 'shop'],
+      ['[aria-label^="Ouvrir la Banque"]', 'bank'],
+    ]) {
+      onNavigate.mockClear()
+      await act(async () => container.querySelector<HTMLButtonElement>(selector!)!.click())
+      expect(onNavigate).toHaveBeenCalledExactlyOnceWith(destination)
+    }
+    onNavigate.mockClear()
+    await act(async () => container.querySelector<HTMLButtonElement>('.sidebar-particle-convert')!.click())
+    expect(onNavigate).not.toHaveBeenCalled()
     await act(async () => root.unmount())
   })
 

@@ -20,6 +20,18 @@ function snapshot(businessDate: string, solvedToday = false, editionId = 'editio
 }
 
 describe('Event request coordinator', () => {
+  it('queues only newly confirmed milestone rewards in ascending order, never on GET or replay', async () => {
+    const publish = vi.fn(), feedback = vi.fn(), requests = createEventRequestCoordinator(publish, feedback)
+    const before = { ...snapshot('2026-09-21'), milestones: { currentPoints: 9, thresholds: [{ points: 10, reached: false, rewarded: false, rewardLabel: '500 particules' }, { points: 20, reached: false, rewarded: false, rewardLabel: '1 monnaie' }] } }
+    await requests.read(async () => before)
+    expect(feedback).not.toHaveBeenCalled()
+    const after = { ...before, operation: { alreadyProcessed: false }, milestones: { currentPoints: 20, thresholds: before.milestones.thresholds.map(t => ({ ...t, rewarded: true, reached: true })).reverse() } }
+    await requests.mutate(async () => after)
+    expect(feedback).toHaveBeenCalledExactlyOnceWith([{ id: 'edition-1:10', points: 10, rewardLabel: '500 particules' }, { id: 'edition-1:20', points: 20, rewardLabel: '1 monnaie' }])
+    await requests.mutate(async () => ({ ...after, operation: { alreadyProcessed: true } }))
+    await requests.refresh(async () => after)
+    expect(feedback).toHaveBeenCalledTimes(1)
+  })
   it('deduplicates simultaneous ordinary reads', async () => {
     const pending = deferred<EventDto>()
     const load = vi.fn(() => pending.promise)

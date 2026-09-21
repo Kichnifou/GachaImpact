@@ -36,7 +36,7 @@ function GameHeader({ displayName, onNavigateHome, onOpenSidebar, onSignOut, sho
     let active = true
     let inFlight = false
     let timer: number | undefined
-    const schedule = () => { if (active && document.visibilityState === 'visible') timer = window.setTimeout(refresh, 3_000) }
+    const schedule = () => { if (active && document.visibilityState === 'visible') timer = window.setTimeout(refresh, isNotificationsOpen ? 3_000 : 15_000) }
     const refresh = () => {
       if (!active || inFlight || document.visibilityState !== 'visible') return
       window.clearTimeout(timer)
@@ -49,7 +49,7 @@ function GameHeader({ displayName, onNavigateHome, onOpenSidebar, onSignOut, sho
     document.addEventListener('visibilitychange', visible)
     schedule()
     return () => { active = false; refreshNowRef.current = () => undefined; window.clearTimeout(timer); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', visible) }
-  }, [onRefreshNotifications, pollSessionKey])
+  }, [onRefreshNotifications, pollSessionKey, isNotificationsOpen])
   const open = async (notification: NotificationDto) => {
     if (notification.state === 'UNREAD') await onReadNotification(notification.id)
     if (resolveNotificationPresentation(notification).destination === null) return

@@ -6,7 +6,7 @@ import { levelUpRewardLabel, levelUpTitle } from '../progression/level-up-feedba
 export const LEVEL_UP_FEEDBACK_DURATION_MS = 5_400
 export const LEVEL_UP_FEEDBACK_DISMISS_LOCK_MS = 1_000
 
-function LevelUpFeedback({ event, onFinished }: { event: LevelUpFeedbackEvent; onFinished: (id: string) => void }) {
+function LevelUpFeedback({ event, onFinished, title, rewardLabel }: { event: LevelUpFeedbackEvent; onFinished: (id: string) => void; title?: string; rewardLabel?: string }) {
   const [dismissible, setDismissible] = useState(false)
   const finished = useRef(false)
   const finish = useCallback(() => {
@@ -33,10 +33,10 @@ function LevelUpFeedback({ event, onFinished }: { event: LevelUpFeedbackEvent; o
   }, [dismissible, finish])
 
   return <div className={`level-up-feedback-overlay${dismissible ? ' dismissible' : ''}`} onClick={() => { if (dismissible) finish() }}>
-    <section className="level-up-feedback" role="dialog" aria-modal="true" aria-live="polite" aria-label={levelUpTitle(event.levelsGained)}>
-      <span className="level-up-feedback-kicker">Progression</span>
-      <strong>{levelUpTitle(event.levelsGained)}</strong>
-      {event.rewards.length > 0 && <small>{event.rewards.map(levelUpRewardLabel).join(' · ')}</small>}
+    <section className="level-up-feedback" role="dialog" aria-modal="true" aria-live="polite" aria-label={title ?? levelUpTitle(event.levelsGained)}>
+      <span className="level-up-feedback-kicker">{title ? 'Événement' : 'Progression'}</span>
+      <strong>{title ?? levelUpTitle(event.levelsGained)}</strong>
+      {rewardLabel ? <small>{rewardLabel}</small> : event.rewards.length > 0 && <small>{event.rewards.map(levelUpRewardLabel).join(' · ')}</small>}
     </section>
   </div>
 }

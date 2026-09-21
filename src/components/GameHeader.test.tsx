@@ -18,6 +18,20 @@ function mount(props: Partial<React.ComponentProps<typeof GameHeader>> = {}) {
 }
 
 describe('GameHeader moderation capability', () => {
+  it('refreshes open notifications every three seconds and preserves a trade aggregate on opening', async () => {
+    vi.useFakeTimers()
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
+    const onRefreshNotifications = vi.fn(async () => undefined), onArchiveNotification = vi.fn(), onOpenNotification = vi.fn()
+    const trade = { id: 'trade', domainKey: 'trades', typeKey: 'TRADES_PENDING', payload: { count: 2 }, state: 'UNREAD' as const, actionKey: 'OPEN_TRADES', actionTargetId: null, createdAt: '2026-09-21T12:00:00Z', readAt: null }
+    const c = mount({ notifications: { unreadCount: 1, notifications: [trade] }, onRefreshNotifications, onArchiveNotification, onOpenNotification, onReadNotification: vi.fn(async () => ({ unreadCount: 0, notifications: [trade] })) })
+    await act(async () => c.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
+    expect(onRefreshNotifications).toHaveBeenCalledTimes(1)
+    await act(async () => vi.advanceTimersByTimeAsync(3_000))
+    expect(onRefreshNotifications).toHaveBeenCalledTimes(2)
+    await act(async () => c.querySelector<HTMLButtonElement>('.notification-item')!.click())
+    expect(onOpenNotification).toHaveBeenCalledWith(trade)
+    expect(onArchiveNotification).not.toHaveBeenCalled()
+  })
   it('opens Friends then archives only the accepted friendship notification', async () => {
     const onOpenNotification = vi.fn()
     const onArchiveNotification = vi.fn(async () => ({ unreadCount: 0, notifications: [] }))
@@ -41,13 +55,13 @@ describe('GameHeader moderation capability', () => {
     expect(onOpenNotification).toHaveBeenLastCalledWith(received)
     expect(onArchiveNotification).toHaveBeenCalledTimes(1)
   })
-  it('polls notifications every three seconds only while visible, refreshes on focus, and never overlaps requests', async () => {
+  it('polls closed notifications every fifteen seconds while visible, refreshes on focus, and never overlaps requests', async () => {
     vi.useFakeTimers()
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
     let release: (() => void) | undefined
     const onRefreshNotifications = vi.fn(() => new Promise<void>((resolve) => { release = resolve }))
     mount({ onRefreshNotifications, pollSessionKey: 'player-a' })
-    await act(async () => { await vi.advanceTimersByTimeAsync(3_000) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(15_000) })
     expect(onRefreshNotifications).toHaveBeenCalledTimes(1)
     await act(async () => { await vi.advanceTimersByTimeAsync(9_000); window.dispatchEvent(new Event('focus')) })
     expect(onRefreshNotifications).toHaveBeenCalledTimes(1)
@@ -72,10 +86,10 @@ describe('GameHeader moderation capability', () => {
     const oldRefresh = vi.fn(() => new Promise<void>((resolve) => { releaseOld = resolve }))
     const newRefresh = vi.fn(async () => undefined)
     mount({ onRefreshNotifications: oldRefresh, pollSessionKey: 'player-a' })
-    await act(async () => { await vi.advanceTimersByTimeAsync(3_000) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(15_000) })
     expect(oldRefresh).toHaveBeenCalledOnce()
     act(() => roots[0]!.render(<GameHeader displayName="Test" onNavigateHome={vi.fn()} onOpenSidebar={vi.fn()} onSignOut={vi.fn()} showModeration={false} onOpenModeration={vi.fn()} onOpenMenu={vi.fn()} onRefreshNotifications={newRefresh} pollSessionKey="player-b" />))
-    await act(async () => { releaseOld?.(); await vi.advanceTimersByTimeAsync(3_000) })
+    await act(async () => { releaseOld?.(); await vi.advanceTimersByTimeAsync(15_000) })
     expect(oldRefresh).toHaveBeenCalledOnce()
     expect(newRefresh).toHaveBeenCalledOnce()
   })

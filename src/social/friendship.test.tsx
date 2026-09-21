@@ -25,7 +25,7 @@ function makeApi() {
   return { api, replace: (next: FriendsSnapshot) => { value = next } }
 }
 function Surface({ api }: { api: SocialActions }) { const controller = useFriendships(api); return <><output data-available>{controller.value?.summary.available}</output><SocialScreen actions={api} onProfile={() => {}} controller={controller} /></> }
-function ProfileSurface({ api }: { api: SocialActions }) { const controller = useFriendships(api); return <ProfileScreen actions={api} controller={controller} ownerPlayerId="owner" playerId={person.id} onDirectory={() => {}} onPrivacy={() => {}} /> }
+function ProfileSurface({ api, onTrade }: { api: SocialActions; onTrade?: (partner: { id: string; displayName: string }) => void }) { const controller = useFriendships(api); return <ProfileScreen actions={api} controller={controller} ownerPlayerId="owner" playerId={person.id} onDirectory={() => {}} onPrivacy={() => {}} onTrade={onTrade} /> }
 function ActiveProbe({ api }: { api: SocialActions }) { useFriendships(api, true); return null }
 function MutationProbe({ api }: { api: SocialActions }) { const controller = useFriendships(api, true); return <><button onClick={() => void controller.mutate(person.id, 'ADD')}>Muter</button><output data-snapshot>{controller.value?.businessDate}</output></> }
 function AuthoritativeMutationProbe({ api }: { api: SocialActions }) { const controller = useFriendships(api, true); return <><button onClick={() => void controller.refresh(true)}>Autoritaire</button><button onClick={() => void controller.mutate(person.id, 'ADD')}>Muter</button><output data-snapshot>{controller.value?.businessDate}</output></> }
@@ -34,6 +34,18 @@ const button = (c: HTMLElement, text: string) => Array.from(c.querySelectorAll('
 const click = (c: HTMLElement, text: string) => act(async () => button(c, text).click())
 
 describe('Friendship UI and shared projection', () => {
+  it('releases a confirmed heart immediately and keeps success when the secondary read fails', async () => {
+    const { api } = makeApi(), c = await mount(<Surface api={api} />)
+    let reject!: (reason: Error) => void
+    vi.mocked(api.friends).mockImplementationOnce(() => new Promise((_resolve, no) => { reject = no }))
+    await click(c, 'Envoyer des cœurs')
+    expect(c.textContent).toContain('+5 Primos')
+    expect(c.textContent).not.toContain('Enregistrement…')
+    await act(async () => reject(Error('Secondary read unavailable')))
+    expect(c.textContent).toContain('+5 Primos')
+    expect(c.querySelector('[role="alert"]')).toBeNull()
+    expect(api.sendHearts).toHaveBeenCalledTimes(1)
+  })
   it('opens Amis by default, has exactly three tabs and never infers private presence', async () => {
     const { api } = makeApi(), c = await mount(<Surface api={api} />)
     expect(Array.from(c.querySelectorAll('.social-tabs button')).map(b => b.textContent)).toEqual(['Amis', 'Demandes', 'Joueurs'])
@@ -203,7 +215,10 @@ describe('Friendship UI and shared projection', () => {
   it('shows profile status under the avatar and the exact empty activity without duplicating Team', async () => {
     const profile: Profile = { player: person, own: false, presence: { access: 'ALLOWED', data: 'ONLINE' }, lastActivity: { access: 'ALLOWED', data: null }, team: { access: 'ALLOWED', data: null }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
     const { api } = makeApi(); api.profile = vi.fn(async () => profile)
-    const c = await mount(<ProfileSurface api={api} />)
+    const onTrade = vi.fn(), c = await mount(<ProfileSurface api={api} onTrade={onTrade} />)
+    expect(Array.from(c.querySelectorAll('.profile-social-actions button'), b => b.textContent)).toEqual(['Envoyer un cœur', 'Échanger', 'Retirer'])
+    await click(c, 'Échanger')
+    expect(onTrade).toHaveBeenCalledWith({ id: person.id, displayName: person.displayName })
     expect(c.querySelector('.profile-presence .presence-online')).not.toBeNull()
     expect(c.querySelector('.profile-identity-copy')?.children[1]?.classList.contains('profile-presence')).toBe(true)
     expect(c.querySelector('.profile-element img')).not.toBeNull()

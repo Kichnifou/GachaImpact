@@ -8,9 +8,10 @@ type Props = {
   stock: string
   onClose: () => void
   onConvert: (amount: string, idempotencyKey: string) => Promise<DailyChallengeMutationDto>
+  onOpenTrades?: () => void
 }
 
-function ParticleConversionModal({ elementKey, stock, onClose, onConvert }: Props) {
+function ParticleConversionModal({ elementKey, stock, onClose, onConvert, onOpenTrades }: Props) {
   const [amount, setAmount] = useState('')
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -43,6 +44,7 @@ function ParticleConversionModal({ elementKey, stock, onClose, onConvert }: Prop
     <p className="conversion-preview">{amount || '0'} particules → {amount || '0'} Primos</p>
     {error && <p role="alert" className="inventory-inline-error">{error}</p>}
     <button type="button" className="small-primary-button" disabled={!valid || pending} onClick={() => void submit()}>{pending ? 'Conversion…' : 'Convertir'}</button>
+    {onOpenTrades && <button type="button" className="conversion-max-button" onClick={() => { onClose(); onOpenTrades() }}>Échanger avec des joueurs</button>}
   </section></div>
 }
 

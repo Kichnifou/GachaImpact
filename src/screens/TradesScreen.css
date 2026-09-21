@@ -14,11 +14,18 @@
 .trade-controls { flex-wrap: wrap; padding-bottom: 8px; font-size: .8rem; }
 .trades-screen input, .trades-screen select { color: #eef4ff; background: #121d30; border: 1px solid #ffffff30; border-radius: 8px; padding: 9px; min-width: 0; max-width: 100%; }
 .trades-screen input:focus-visible, .trades-screen select:focus-visible, .trade-partner:focus-visible { outline: 2px solid #79cafa; outline-offset: 2px; }
-.trade-compose { display: grid; grid-template-columns: minmax(0, 1fr) minmax(90px, .6fr) auto auto; gap: 8px; align-items: end; }
+.trade-compose { display: grid; grid-template-columns: minmax(90px, 1fr) auto auto; gap: 8px; align-items: end; }
 .trade-compose label { display: grid; gap: 4px; font-size: .8rem; min-width: 0; }
 .trade-help { font-size: .76rem; color: #b1bcd0; margin: 10px 0; }
 .trade-list { display: grid; gap: 8px; }
-.trade-partner { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; width: 100%; color: #e6edff; background: #162238; border: 1px solid #ffffff20; border-radius: 10px; padding: 10px; text-align: left; cursor: pointer; }
+.trade-partner { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; color: #e6edff; background: #162238; border: 1px solid #ffffff20; border-radius: 10px; padding: 10px; text-align: left; cursor: pointer; }
+.trade-partner > span:last-child { text-align: right; justify-self: end; }
+.trades-panel .scrollable-screen-panel-body { padding: 4px; }
+.trade-controls label { display: grid; gap: 4px; }
+.trade-search { position: relative; min-width: 0; max-width: 100%; }
+.trade-search-results:not([hidden]) { position: absolute; top: 100%; left: 0; right: 0; z-index: 5; display: grid; max-height: 150px; overflow-y: auto; padding: 4px; border: 1px solid #79cafa; border-radius: 8px; background: #121d30; }
+.trade-search-results button { color: #eef4ff; background: transparent; border: 0; padding: 8px; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
+.trade-search-results button:focus-visible { outline: 2px solid #79cafa; outline-offset: -2px; }
 .trade-partner:hover, .trade-partner.selected { border-color: #70bded; background: #20344e; }
 .trade-partner:disabled { cursor: not-allowed; opacity: .6; }
 .trade-partner strong, .trade-partner span, .trade-request strong, .trade-request p { overflow-wrap: anywhere; min-width: 0; }

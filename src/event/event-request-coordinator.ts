@@ -2,11 +2,13 @@ import type { EventDto } from '../api/types'
 
 export type EventRequestCoordinator = ReturnType<typeof createEventRequestCoordinator>
 
-export function createEventRequestCoordinator(publish: (value: EventDto) => void) {
+export type EventMilestoneFeedback = { id: string; points: number; rewardLabel: string }
+export function createEventRequestCoordinator(publish: (value: EventDto) => void, onMilestones?: (values: EventMilestoneFeedback[]) => void) {
   let generation = 0
   let revision = 0
   let inFlightRead: Promise<EventDto> | null = null
   let latest: EventDto | null = null
+  const announcedMilestones = new Set<string>()
 
   const publishCurrent = (value: EventDto) => {
     if (latest) {
@@ -49,10 +51,19 @@ export function createEventRequestCoordinator(publish: (value: EventDto) => void
 
     async mutate<TResult extends EventDto>(request: () => Promise<TResult>): Promise<TResult> {
       const mutationGeneration = generation
+      const before = latest
       revision += 1
       inFlightRead = null
       const value = await request()
       if (generation === mutationGeneration) {
+        const operation = (value as EventDto & { operation?: { alreadyProcessed: boolean } }).operation
+        if (before?.edition.id === value.edition.id && !operation?.alreadyProcessed) {
+          const claimed = new Set(before.milestones?.thresholds.filter(t => t.rewarded).map(t => t.points))
+          const earned = value.milestones?.thresholds.filter(t => t.rewarded && !claimed.has(t.points) && !announcedMilestones.has(`${value.edition.id}:${t.points}`)) ?? []
+          const feedback = earned.sort((a, b) => a.points - b.points).map(t => ({ id: `${value.edition.id}:${t.points}`, points: t.points, rewardLabel: t.rewardLabel }))
+          feedback.forEach(item => announcedMilestones.add(item.id))
+          if (feedback.length) onMilestones?.(feedback)
+        }
         revision += 1
         inFlightRead = null
         publishCurrent(value)
@@ -65,6 +76,7 @@ export function createEventRequestCoordinator(publish: (value: EventDto) => void
       revision += 1
       inFlightRead = null
       latest = null
+      announcedMilestones.clear()
     },
   }
 }

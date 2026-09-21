@@ -3,10 +3,12 @@ import { ApiError } from '../api/game-api'
 import { apiErrorMessage } from '../utils/formatters'
 import type { TradeActions, TradePartners, TradeSnapshot } from './types'
 
-export function useTrades(actions: TradeActions, onSnapshot: (value: TradeSnapshot) => void, query: string, page: number) {
+export function useTrades(actions: TradeActions, onSnapshot: (value: TradeSnapshot) => void, query: string, page: number, partnersActive = true) {
   const [snapshot, setSnapshot] = useState<TradeSnapshot | null>(null)
   const [partners, setPartners] = useState<TradePartners | null>(null)
   const [pending, setPending] = useState(false), [error, setError] = useState<string | null>(null), [feedback, setFeedback] = useState('')
+  const [syncError, setSyncError] = useState(''), [partnerRevision, setPartnerRevision] = useState(0)
+  const partnerFlight = useRef<Promise<TradePartners> | null>(null)
   const alive = useRef(false), busy = useRef(false), revision = useRef(0), requested = useRef(0), completed = useRef(0)
   const flight = useRef<Promise<void> | null>(null)
   const latest = useRef({ actions, onSnapshot, query, page })
@@ -22,11 +24,11 @@ export function useTrades(actions: TradeActions, onSnapshot: (value: TradeSnapsh
       while (alive.current && completed.current < requested.current) {
         const target = requested.current, version = revision.current, current = latest.current
         try {
-          const [value, list] = await Promise.all([current.actions.snapshot(), current.actions.partners(current.query, current.page)])
-          if (alive.current && version === revision.current && current.query === latest.current.query && current.page === latest.current.page) {
-            setSnapshot(value); setPartners(list); current.onSnapshot(value); setError(null)
+          const value = await current.actions.snapshot()
+          if (alive.current && version === revision.current) {
+            setSnapshot(value); current.onSnapshot(value); setSyncError('')
           }
-        } catch (reason) { if (alive.current && version === revision.current) setError(apiErrorMessage(reason)) }
+        } catch { if (alive.current && version === revision.current) setSyncError('Actualisation indisponible. Nouvelle tentative automatique.') }
         completed.current = target
       }
     })()
@@ -43,7 +45,34 @@ export function useTrades(actions: TradeActions, onSnapshot: (value: TradeSnapsh
     void poll(); window.addEventListener('focus', focus); document.addEventListener('visibilitychange', focus)
     return () => { disposed = true; alive.current = false; invalidate(); clearTimeout(timer); window.removeEventListener('focus', focus); document.removeEventListener('visibilitychange', focus) }
   }, [refresh, invalidate])
-  useEffect(() => { revision.current++; if (!busy.current) void refresh() }, [query, page, refresh])
+  useEffect(() => {
+    if (!partnersActive) return
+    let disposed = false
+    const load = () => {
+      void (async () => {
+        if (partnerFlight.current) await partnerFlight.current.catch(() => undefined)
+        if (disposed) return
+        const request = latest.current.actions.partners(query, page)
+        partnerFlight.current = request
+        try { const list = await request; if (!disposed) setPartners(list) }
+        catch { if (!disposed) setSyncError('Recherche indisponible. Réessayez dans un instant.') }
+        finally { if (partnerFlight.current === request) partnerFlight.current = null }
+      })()
+    }
+    const timer = query ? setTimeout(load, 250) : undefined
+    if (!query) load()
+    return () => { disposed = true; clearTimeout(timer) }
+  }, [query, page, partnersActive, partnerRevision])
+  useEffect(() => {
+    if (!partnersActive) return
+    const refreshPartners = () => {
+      if (document.visibilityState !== 'hidden' && !busy.current && !partnerFlight.current) setPartnerRevision(value => value + 1)
+    }
+    const timer = setInterval(refreshPartners, 15_000)
+    window.addEventListener('focus', refreshPartners)
+    document.addEventListener('visibilitychange', refreshPartners)
+    return () => { clearInterval(timer); window.removeEventListener('focus', refreshPartners); document.removeEventListener('visibilitychange', refreshPartners) }
+  }, [partnersActive])
   const mutate = async (signature: string, run: (key: string) => Promise<string>) => {
     if (busy.current) return
     // Ambiguous retries keep their exact intent; changing it requires a definite result.
@@ -52,16 +81,16 @@ export function useTrades(actions: TradeActions, onSnapshot: (value: TradeSnapsh
     intent.current ??= { signature, key: crypto.randomUUID() }
     retryAction.current = { signature, run }; setCanRetry(false)
     try {
-      await flight.current
       const message = await run(intent.current.key)
       intent.current = null
       retryAction.current = null
-      if (alive.current) { setFeedback(message); await refresh() }
+      if (alive.current) { setFeedback(message); setPartnerRevision(value => value + 1); void refresh() }
     } catch (reason) {
       if (reason instanceof ApiError && reason.status !== null && reason.status < 500) intent.current = null
       if (alive.current) { setError(apiErrorMessage(reason)); setCanRetry(intent.current !== null) }
     } finally { busy.current = false; if (alive.current) setPending(false) }
   }
   const retry = () => { const action = retryAction.current; if (action) void mutate(action.signature, action.run) }
-  return { snapshot, partners, pending, error, feedback, mutate, refresh, canRetry, retry }
+  const clearFeedback = useCallback(() => { setFeedback(''); setError(null) }, [])
+  return { snapshot, partners, pending, error, syncError, feedback, mutate, refresh, canRetry, retry, clearFeedback }
 }

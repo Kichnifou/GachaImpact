@@ -29,9 +29,61 @@ async function mount(actions: TradeActions) {
   return { node, onSnapshot }
 }
 async function click(node: HTMLElement, text: string) { const button = Array.from(node.querySelectorAll('button')).find(b => b.textContent === text)!; expect(button).toBeTruthy(); await act(async () => button.click()) }
-async function choose(node: HTMLElement) { const select = node.querySelector('select')!; await act(async () => { select.value = 'b'; select.dispatchEvent(new Event('change', { bubbles: true })) }) }
+async function choose(node: HTMLElement) { await act(async () => node.querySelector<HTMLButtonElement>('.trade-partner')!.click()) }
 describe('Particle trades UI', () => {
+  it('resolves a profile intent from actual partners with one initial snapshot and no fabricated eligibility', async () => {
+    vi.useFakeTimers()
+    const actions = api(), node = document.createElement('div'); document.body.append(node)
+    const root = createRoot(node); roots.push(root)
+    await act(async () => root.render(<TradesScreen actions={actions} onSnapshot={vi.fn()} playerId="a" intent={{ token: 'profile', partner: b }} />))
+    await act(async () => vi.advanceTimersByTimeAsync(250))
+    expect(actions.snapshot).toHaveBeenCalledTimes(1)
+    expect(node.querySelector('.trade-partner[aria-pressed="true"]')?.textContent).toContain('Bob')
+    await act(async () => vi.advanceTimersByTimeAsync(15_000))
+    await act(async () => vi.advanceTimersByTimeAsync(250))
+    expect(actions.partners).toHaveBeenCalledTimes(2)
+    actions.partners.mockResolvedValue({ partners: [], page: 1, total: 0, pageSize: 10, totalPages: 1 })
+    await act(async () => root.render(<TradesScreen actions={actions} onSnapshot={vi.fn()} playerId="a" intent={{ token: 'other', partner: { id: 'missing', displayName: 'Absent' } }} />))
+    await act(async () => vi.advanceTimersByTimeAsync(250))
+    expect(node.textContent).toContain('Aucun échange disponible avec ce joueur pour le moment.')
+    expect(node.querySelector('.trade-partner[aria-pressed="true"]')).toBeNull()
+  })
+  it('confirms acceptance before secondary refresh, preserves success on refresh failure and never offers replay', async () => {
+    const actions = api({ ...empty, received: [request] }), { node } = await mount(actions)
+    await click(node, 'Reçues (1)')
+    let reject!: (error: unknown) => void
+    actions.snapshot.mockImplementationOnce(() => new Promise((_resolve, fail) => { reject = fail }))
+    await click(node, 'Accepter')
+    expect(node.textContent).toContain('Échange effectué')
+    expect(node.textContent).not.toContain('Traitement en cours')
+    await act(async () => reject(new Error('Resources unavailable')))
+    expect(node.textContent).toContain('Échange effectué')
+    expect(node.textContent).toContain('Actualisation indisponible')
+    expect(node.textContent).not.toContain('Réessayer l’action')
+    expect(actions.mutate).toHaveBeenCalledTimes(1)
+  })
+  it('does not search partners outside their tab and retains feedback until another tab is selected', async () => {
+    vi.useFakeTimers()
+    const actions = api({ ...empty, received: [request] }), { node } = await mount(actions)
+    expect(actions.snapshot).toHaveBeenCalledTimes(1)
+    expect(actions.partners).toHaveBeenCalledTimes(1)
+    expect(node.querySelector('details')?.open).toBe(false)
+    await click(node, 'Reçues (1)'); await click(node, 'Accepter')
+    await act(async () => vi.advanceTimersByTimeAsync(18_000))
+    expect(node.textContent).toContain('Échange effectué')
+    expect(actions.partners).toHaveBeenCalledTimes(1)
+    await click(node, 'Historique')
+    expect(node.textContent).not.toContain('Échange effectué')
+  })
+  it('refreshes and switches to received for a new navigation intent even while already open', async () => {
+    const actions = api(), { node, onSnapshot } = await mount(actions)
+    const reads = actions.snapshot.mock.calls.length
+    await act(async () => roots[0]!.render(<TradesScreen actions={actions} onSnapshot={onSnapshot} playerId="a" intent={{ token: 'notification-1', tab: 'received' }} />))
+    expect(node.querySelector('[aria-current="page"]')?.textContent).toBe('Reçues')
+    expect(actions.snapshot.mock.calls.length).toBeGreaterThan(reads)
+  })
   it('sends search to the server and ignores a slow previous search response', async () => {
+    vi.useFakeTimers()
     const actions = api(), { node } = await mount(actions)
     const input = node.querySelector<HTMLInputElement>('[aria-label="Rechercher un partenaire"]')!
     let release!: (value: Awaited<ReturnType<TradeActions['partners']>>) => void
@@ -40,7 +92,11 @@ describe('Particle trades UI', () => {
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value)
       input.dispatchEvent(new Event('input', { bubbles: true }))
     })
-    await type('Ancien'); await type('Alice')
+    await type('An'); await type('Ancien')
+    expect(actions.partners).toHaveBeenCalledTimes(1)
+    await act(async () => vi.advanceTimersByTimeAsync(250))
+    await type('Alice')
+    await act(async () => vi.advanceTimersByTimeAsync(250))
     actions.partners.mockResolvedValue({ partners: [{ ...a, maximum: '200' }], page: 1, total: 1, pageSize: 10, totalPages: 1 })
     await act(async () => release({ partners: [{ ...b, maximum: '300' }], page: 1, total: 1, pageSize: 10, totalPages: 1 }))
     expect(actions.partners).toHaveBeenLastCalledWith('Alice', 1)
