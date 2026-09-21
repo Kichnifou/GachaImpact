@@ -8655,10 +8655,11 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .players-panel { display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 14px; padding: 24px; max-height: calc(100dvh - 32px); }
 .players-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .players-footer .social-feedback { flex: 1; margin: 0; }
-.event-recipient-control { display: flex; gap: 12px; align-items: center; min-height: 48px; }
-.event-recipient-control p { flex: 1; min-width: 0; overflow-wrap: anywhere; margin: 0; }
-.event-recipient-control button { width: auto; flex: 0 0 auto; }
 .player-quick-search { position: relative; }
+.player-quick-search-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 39px; margin-bottom: 6px; }
+.player-quick-search-heading label { min-width: 0; }
+.player-quick-search-heading button { width: auto; flex: 0 0 auto; }
+.player-quick-search > input { min-height: 39px; }
 .player-quick-search .moderation-target-results { top: 100%; bottom: auto; left: 0; right: 0; transform: none; }
 .player-search-only { width: min(480px, calc(100vw - 32px)); }
 .player-search-only .moderation-browser-filters > :not(:first-child) { display: none; }

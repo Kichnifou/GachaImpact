@@ -76,6 +76,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
   const [gameBFeedback, setGameBFeedback] = useState<string | null>(null)
   const [recipientBrowserOpen, setRecipientBrowserOpen] = useState(false)
   const [selectedRecipient, setSelectedRecipient] = useState<EventGameCRecipientsDto['recipients'][number] | null>(null)
+  const [recipientSearchText, setRecipientSearchText] = useState('')
   const [gameCMessage, setGameCMessage] = useState('')
   const [gameCIntent, setGameCIntent] = useState<Readonly<{ recipientPlayerId: string; message: string; key: string }> | null>(null)
   const [gameCFeedback, setGameCFeedback] = useState<string | null>(null)
@@ -401,8 +402,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
       {section === 'games' && gameTab === 2 && value.gameC.available && <section className="panel event-game-c">
         <header><span className="eyebrow">Message du Festival</span><h2>{presentation.games[2]}</h2></header>
         {value.gameC.canSend ? <div className="event-game-c-send">
-          <PlayerQuickSearch onListPlayers={listRecipients} onSelect={setSelectedRecipient} />
-          <div className="event-recipient-control"><p>Destinataire : <strong>{selectedRecipient?.displayName ?? 'À choisir'}</strong></p><button type="button" className="small-primary-button" onClick={() => setRecipientBrowserOpen(true)}>{selectedRecipient ? 'Changer' : 'Choisir un joueur'}</button></div>
+          <PlayerQuickSearch value={recipientSearchText} onValueChange={(text) => { setRecipientSearchText(text); setSelectedRecipient(null) }} onListPlayers={listRecipients} onSelect={(recipient) => { setSelectedRecipient(recipient); setRecipientSearchText(recipient.displayName) }} action={(closeSuggestions) => <button type="button" className="small-primary-button" onClick={() => { closeSuggestions(); setRecipientBrowserOpen(true) }}>{selectedRecipient ? 'Changer' : 'Choisir un joueur'}</button>} />
           <label htmlFor="event-game-c-message">Votre message</label>
           <textarea id="event-game-c-message" value={gameCMessage} maxLength={500} rows={3} onChange={(event) => setGameCMessage(event.target.value)} />
           <button type="button" className="small-primary-button" disabled={pending || !selectedRecipient || !gameCMessage.trim()} onClick={() => void sendGameC()}>{pending ? 'Envoi…' : 'Envoyer'}</button>
@@ -412,6 +412,6 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
       </section>}
       <p className="event-feedback" role={error ? 'alert' : 'status'}>{error ?? ''}</p>
     </ScrollableScreenPanel>
-    {recipientBrowserOpen && <PlayerSelectionBrowser eyebrow="Événement · Panier" title="Choisir un joueur" selectedPlayerId={selectedRecipient?.playerId ?? ''} onListPlayers={listRecipients} onConfirm={(recipient) => { setSelectedRecipient(recipient); setRecipientBrowserOpen(false) }} onClose={() => setRecipientBrowserOpen(false)} />}
+    {recipientBrowserOpen && <PlayerSelectionBrowser eyebrow="Événement · Panier" title="Choisir un joueur" selectedPlayerId={selectedRecipient?.playerId ?? ''} onListPlayers={listRecipients} onConfirm={(recipient) => { setSelectedRecipient(recipient); setRecipientSearchText(recipient.displayName); setRecipientBrowserOpen(false) }} onClose={() => setRecipientBrowserOpen(false)} />}
   </div>
 }

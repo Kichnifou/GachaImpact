@@ -498,12 +498,66 @@ describe('EventScreen presentation', () => {
     await type('A'); await act(async () => vi.advanceTimersByTimeAsync(120))
     await type('C'); await act(async () => vi.advanceTimersByTimeAsync(120))
     await act(async () => container.querySelector<HTMLButtonElement>('.player-quick-search .moderation-target-results button')!.click())
-    expect(container.querySelector('.event-recipient-control')?.textContent).toContain('Destinataire : Céo')
+    expect(input.value).toBe('Céo')
     expect(container.querySelector('.player-quick-search .moderation-target-results')).toBeNull()
     await act(async () => release(page('Ancien')))
-    expect(container.querySelector('.event-recipient-control')?.textContent).toContain('Céo')
+    expect(input.value).toBe('Céo')
     expect(container.textContent).not.toContain('Ancien')
     expect(input.value).toBe('Céo')
+  })
+
+  it('keeps the selected Player in the search field and invalidates the ID when the text changes', async () => {
+    vi.useFakeTimers()
+    const onSearchRecipients = vi.fn(async () => ({ page: 1, pageSize: 10 as const, total: 1, totalPages: 1, recipients: [{ playerId: 'mika-id', displayName: 'Mika', level: 9, elementKey: 'hydro' as const }] }))
+    const { container } = mount({ value: afterJoin, onSearchRecipients })
+    selectGames(container)
+    act(() => container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[2]!.click())
+    const input = container.querySelector<HTMLInputElement>('.player-quick-search input')!
+    const send = Array.from(container.querySelectorAll<HTMLButtonElement>('.event-game-c-send > button')).find(button => button.textContent === 'Envoyer')!
+    const type = (text: string) => act(() => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, text); input.dispatchEvent(new Event('input', { bubbles: true })) })
+    const textarea = container.querySelector<HTMLTextAreaElement>('.event-game-c-send textarea')!
+    act(() => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, 'Bon Festival'); textarea.dispatchEvent(new Event('input', { bubbles: true })) })
+    type('Mi')
+    await act(async () => vi.advanceTimersByTimeAsync(120))
+    act(() => container.querySelector<HTMLButtonElement>('.player-quick-search .moderation-target-results button')!.click())
+    expect(input.value).toBe('Mika')
+    expect(container.querySelector('.player-quick-search .moderation-target-results')).toBeNull()
+    expect(send.disabled).toBe(false)
+    type('Cé')
+    expect(input.value).toBe('Cé')
+    expect(send.disabled).toBe(true)
+  })
+
+  it('replaces old search text when the shared browser confirms another Player and keeps the compact layout', async () => {
+    vi.useFakeTimers()
+    const onSearchRecipients = vi.fn(async (query: EventGameCRecipientQuery) => ({ page: 1, pageSize: 10 as const, total: 1, totalPages: 1, recipients: [{ playerId: 'mika-id', displayName: 'Mika', level: 9, elementKey: 'hydro' as const }, ...(query.query === 'Céo' ? [{ playerId: 'ceo-id', displayName: 'Céo', level: 9, elementKey: 'hydro' as const }] : [])] }))
+    const { container } = mount({ value: afterJoin, onSearchRecipients })
+    selectGames(container)
+    act(() => container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[2]!.click())
+    const form = container.querySelector('.event-game-c-send')!
+    const search = form.querySelector('.player-quick-search')!
+    const input = search.querySelector<HTMLInputElement>('input')!
+    const heading = search.querySelector('.player-quick-search-heading')!
+    expect(heading.querySelector('label')?.textContent).toBe('Recherche rapide d’un joueur')
+    expect(heading.querySelector('button')?.textContent).toBe('Choisir un joueur')
+    expect(search.nextElementSibling?.textContent).toBe('Votre message')
+    expect(search.nextElementSibling?.nextElementSibling).toBe(form.querySelector('textarea'))
+    act(() => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'Céo'); input.dispatchEvent(new Event('input', { bubbles: true })) })
+    await act(async () => vi.advanceTimersByTimeAsync(120))
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('.player-quick-search .moderation-target-results button')).find(button => button.textContent === 'Céo')!.click())
+    expect(input.value).toBe('Céo')
+    expect(heading.querySelector('button')?.textContent).toBe('Changer')
+    act(() => heading.querySelector('button')!.click())
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    const modal = container.querySelector('.event-player-browser')!
+    act(() => modal.querySelector<HTMLButtonElement>('.moderation-browser-results button')!.click())
+    act(() => Array.from(modal.querySelectorAll<HTMLButtonElement>('button')).find(button => button.textContent === 'Choisir ce joueur')!.click())
+    expect(input.value).toBe('Mika')
+    expect(heading.querySelector('button')?.textContent).toBe('Changer')
+    expect(form.textContent).not.toContain('Destinataire :')
+    expect(form.textContent).not.toContain('Céo')
+    expect(search.nextElementSibling?.textContent).toBe('Votre message')
+    expect(search.nextElementSibling?.nextElementSibling).toBe(form.querySelector('textarea'))
   })
 
   it('searches an eligible recipient, selects their ID and sends one trimmed daily message', async () => {
