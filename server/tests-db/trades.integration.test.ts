@@ -5,6 +5,7 @@ import { Prisma } from '../generated/prisma/client.js';
 import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { TradeService } from '../src/application/trades/trade-service.js';
 import { PrismaEconomyService } from '../src/infrastructure/database/prisma-economy-service.js';
+import { isPrismaConcurrencyCollision } from '../src/infrastructure/database/prisma-concurrency.js';
 import { elementKeys, type ElementKey, type ResourceKey } from '../src/domain/economy/resources.js';
 import { getNextBusinessResetAt } from '../src/domain/time/business-date.js';
 import { buildApp } from '../src/app.js';
@@ -38,6 +39,21 @@ async function change(id: string, amount: bigint, resourceKey: ResourceKey = 'pa
     const input = { playerId: id, playerElementKey: null, resourceKey, amount: amount < 0n ? -amount : amount, causeKey: 'test', domainKey: 'test', operationId: op.id, sourceChannel: 'SYSTEM' as const };
     if (amount < 0n) await economy.debit(tx, input); else await economy.credit(tx, input);
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30_000 });
+}
+function deferred() {
+  let resolve!: () => void;
+  return { promise: new Promise<void>(done => { resolve = done; }), resolve };
+}
+async function debitWithRetry(id: string, amount: bigint, resourceKey: ResourceKey, operationId: string) {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      return await db.$transaction(tx => economy.debit(tx, {
+        playerId: id, playerElementKey: null, resourceKey, amount,
+        causeKey: 'test', domainKey: 'test', operationId, sourceChannel: 'SYSTEM',
+      }), { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30_000 });
+    }
+    catch (error) { if (!isPrismaConcurrencyCollision(error) || attempt === 3) throw error; }
+  }
 }
 describe('Particle trades isolated PostgreSQL', () => {
   it('authenticates the API, rejects forged ownership/invalid amounts and returns private string projections', async () => {
@@ -101,6 +117,57 @@ describe('Particle trades isolated PostgreSQL', () => {
     expect((await stock(a)).reserved).toBe('400');
     await expect(change(a, -101n, 'particles_pyro')).rejects.toThrow();
     await change(a, -100n, 'particles_pyro'); expect((await stock(a)).available).toBe('0');
+  }, 30_000);
+  it('serializes a particle debit with a concurrent trade reservation in deterministic lock order', async () => {
+    const a = await player('cryo', 500n), b = await player('pyro', 500n);
+    const reservationService = new TradeService(db, clock, economy);
+    const privateTrade = reservationService as unknown as { lockResources: (tx: Prisma.TransactionClient, ids: string[], resources: string[]) => Promise<void> };
+    const privateEconomy = economy as unknown as { lockBalance: (tx: Prisma.TransactionClient, playerId: string, resourceKey: ResourceKey) => Promise<bigint> };
+    const originalTradeLock = privateTrade.lockResources.bind(reservationService);
+    const originalDebitLock = privateEconomy.lockBalance.bind(economy);
+    const reservationLocked = deferred(), releaseReservation = deferred(), debitStarted = deferred();
+    const debitOperation = await db.businessOperation.create({ data: { playerId: a, operationType: 'test', sourceChannel: 'SYSTEM' } });
+    privateTrade.lockResources = async (tx, ids, resources) => { await originalTradeLock(tx, ids, resources); reservationLocked.resolve(); await releaseReservation.promise; };
+    privateEconomy.lockBalance = async (tx, playerId, resourceKey) => { debitStarted.resolve(); return originalDebitLock(tx, playerId, resourceKey); };
+    try {
+      const pendingReservation = reservationService.create(a, b, 500n, randomUUID());
+      await reservationLocked.promise;
+      const pendingDebit = debitWithRetry(a, 500n, 'particles_pyro', debitOperation.id);
+      await debitStarted.promise;
+      releaseReservation.resolve();
+      await pendingReservation;
+      await expect(pendingDebit).rejects.toMatchObject({ code: 'INSUFFICIENT_AVAILABLE_PARTICLES' });
+    } finally {
+      privateTrade.lockResources = originalTradeLock;
+      privateEconomy.lockBalance = originalDebitLock;
+    }
+    expect(await stock(a)).toEqual({ resourceKey: 'particles_pyro', total: '500', reserved: '500', available: '0' });
+    expect(await db.resourceMovement.count({ where: { playerId: a, resourceKey: 'particles_pyro', causeKey: 'test' } })).toBe(0);
+
+    const c = await player('cryo', 500n), d = await player('pyro', 500n);
+    const consumptionEconomy = new PrismaEconomyService(() => now);
+    const consumptionTrade = new TradeService(db, clock, consumptionEconomy);
+    const privateConsumptionEconomy = consumptionEconomy as unknown as { lockBalance: (tx: Prisma.TransactionClient, playerId: string, resourceKey: ResourceKey) => Promise<bigint> };
+    const originalConsumptionLock = privateConsumptionEconomy.lockBalance.bind(consumptionEconomy);
+    const consumptionLocked = deferred(), releaseConsumption = deferred();
+    privateConsumptionEconomy.lockBalance = async (tx, playerId, resourceKey) => {
+      const value = await originalConsumptionLock(tx, playerId, resourceKey);
+      consumptionLocked.resolve(); await releaseConsumption.promise;
+      return value;
+    };
+    try {
+      const pendingDebit = db.$transaction(async tx => {
+        const operation = await tx.businessOperation.create({ data: { playerId: c, operationType: 'test', sourceChannel: 'SYSTEM' } });
+        await consumptionEconomy.debit(tx, { playerId: c, playerElementKey: null, resourceKey: 'particles_pyro', amount: 500n, causeKey: 'test', domainKey: 'test', operationId: operation.id, sourceChannel: 'SYSTEM' });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30_000 });
+      await consumptionLocked.promise;
+      const pendingReservation = consumptionTrade.create(c, d, 500n, randomUUID());
+      releaseConsumption.resolve();
+      await pendingDebit;
+      await expect(pendingReservation).rejects.toThrow();
+    } finally { privateConsumptionEconomy.lockBalance = originalConsumptionLock; }
+    expect(await balance(c, 'particles_pyro')).toBe(0n);
+    expect(await db.tradeRequest.count({ where: { OR: [{ senderPlayerId: c }, { recipientPlayerId: c }] } })).toBe(0);
   }, 30_000);
   it('accepts atomically with four movements, unchanged stats, exact retries and one execution', async () => {
     const a = await player(), b = await player('pyro'), key = randomUUID();

@@ -73,11 +73,11 @@ export class PrismaEconomyService {
 
   public async debit(transaction: Prisma.TransactionClient, input: DebitResourceInput): Promise<void> {
     if (input.amount <= 0n) throw new RangeError('An economic debit amount must be positive.');
+    const balance = await this.lockBalance(transaction, input.playerId, input.resourceKey);
     if (input.resourceKey.startsWith('particles_')) {
       await expireTrades(transaction, this.now());
       if ((await particleStock(transaction, input.playerId, input.resourceKey)).available < input.amount) throw new BusinessError('INSUFFICIENT_AVAILABLE_PARTICLES', 'Vous ne possédez pas assez de particules disponibles.');
     }
-    const balance = await this.lockBalance(transaction, input.playerId, input.resourceKey);
     if (balance < input.amount) {
       if (input.resourceKey === 'primogems') throw new BusinessError('INSUFFICIENT_PRIMOGEMS', 'Vous ne possédez pas assez de Primos.');
       throw new RangeError(`Insufficient ${input.resourceKey} balance.`);
