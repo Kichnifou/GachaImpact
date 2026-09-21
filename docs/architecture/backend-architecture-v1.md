@@ -1239,6 +1239,30 @@ La fonction commune d'attribution des points Event est appelée par la réussite
 
 L'achat Collection coûte 80 monnaies et ajoute un exemplaire à `PlayerItem`, une ligne au ledger `ItemAcquisition` et la garde durable `EventCollectionAcquisition` dans la même transaction. Sa clé primaire édition + Player empêche un second achat annuel même en concurrence ; une autre édition annuelle peut ajouter un exemplaire au stock permanent. Les clés de présentation gelées dans `EventEdition.snapshot` sont mappées explicitement aux douze clés du catalogue Collection existant. Le Sac réutilise son API autoritative et son cache est invalidé après un achat confirmé. La migration 025 n'ajoute que la garde d'unicité, sans deuxième inventaire ni backfill.
 
+## Échanges de particules — état physique 031
+
+`TradeService` possède création, acceptation, refus, annulation, actions groupées, snapshot et découverte ; les futurs transports UI/chat/Twitch utilisent ce même service. Les partenaires ne sont pas limités aux amis : ACTIVE, élément choisi différent, aucune PENDING sur la paire, blocages bidirectionnels absents et maximum positif. La découverte groupe soldes et réservations, normalise pseudo accents/casse, filtre avant pagination serveur de dix.
+
+Les mutations et projections cohérentes utilisent SERIALIZABLE avec retry borné des collisions, verrou advisory `particles:trades`, Players verrouillés dans l'ordre UUID et soldes verrouillés dans un ordre Player/ressource déterministe. Les producteurs économiques existants conservent leurs transactions sérialisables ; les dépendances de réservation sont lues dans la même transaction. BusinessOperation possède les intentions et résultats : contrôle acteur/type/cible/montant/canal, replay sans activité ni nouvelle exécution. L'unicité SQL PENDING de la paire non orientée et celle de TradeExecution constituent des gardes supplémentaires.
+
+`PrismaEconomyService` reste le propriétaire des soldes : toute consommation de particules compare total moins SUM(currentAmount des PENDING envoyées). Sa primitive `exchangeParticlesWithoutStats` réalise quatre ResourceMovement et aucun compteur Earned/Spent. La demande acceptée libère sa réservation dans cette transaction avant le transfert ; le rollback rétablit tout. L'ajustement Modération réutilise `adjustWithoutStats`, conserve sa neutralité statistique et respecte les mêmes disponibilités. Aucun domaine ne modifie désormais directement PlayerResourceBalance hors de ce moteur.
+
+`trade-state` réconcilie immédiatement les demandes affectées après mutation de particules, y compris une nouvelle réservation. Le montant ne peut que diminuer ; zéro conserve CANCELLED et résout l'agrégat, sans notification individuelle. Chaque incoming compare indépendamment le stock disponible du destinataire, qui n'est jamais réservé indirectement. Accepter tout fige les IDs initiaux oldest-first dans une BusinessOperation et traite chaque demande en transaction indépendante avec une sous-clé stable. Un refus métier n'empêche pas les suivantes ; une erreur d'infrastructure laisse l'opération globale rejouable après traitement des autres demandes. Refuser tout partage cette stratégie.
+
+`TradeScheduler` est branché au lifecycle réel : rattrapage au démarrage, prochain minuit Europe/Paris calculé par le calendrier métier existant (23/25 heures au DST), retry après 30 secondes en cas d'échec et arrêt sans replanification. `expiresAt` permet le catch-up de plusieurs jours et le fallback transactionnel au premier accès/mutation. Réduction et expiration n'enregistrent pas d'activité. `PlayerActivityRecorder` ne reçoit que l'acteur d'une vraie mutation ; les participants passifs, GET, polling et replays sont exclus.
+
+Une seule Notification `trades / TRADES_PENDING`, clé `trades:pending:<recipient>`, porte le compteur courant et OPEN_TRADES. Une nouvelle demande réactive UNREAD, même après lecture/archive ; les autres changements préservent lecture/archive et actualisent le compteur. Zéro devient RESOLVED. Aucun second système de notification.
+
+API authentifiée, Player résolu depuis l'identité, bigint en chaînes et Cache-Control no-store :
+
+- GET `/api/v1/me/trades` : stocks Total/Réservé/Disponible, reçues/envoyées, 25 dernières exécutions ;
+- GET `/api/v1/me/trades/partners?q=&page=` : partenaires réalisables ;
+- POST `/api/v1/me/trades` : recipientPlayerId, amount, idempotencyKey ;
+- POST `/api/v1/me/trades/:requestId/accept|refuse|cancel` ;
+- POST `/api/v1/me/trades/accept-all|refuse-all`.
+
+`useTrades` ne poll que sur la surface visible (trois secondes après la lecture), recharge au focus/retour visible, sérialise ses refreshs et invalide les réponses antérieures à une mutation/recherche/sortie. Une intention ambiguë conserve sa clé et un bouton de retry, même si le partenaire disparaît entre-temps. Le snapshot publié met à jour les particules globales et le cache Sac avec révision anti-stale. Aucun Realtime ni infrastructure payante.
+
 ## Social Foundations
 
 Batch B implémente `SocialService`, `PrivacyService` et `PresenceService`. Toutes les routes suivantes exigent une identité authentifiée résolue en Player ACTIVE ; les écritures `/me` ne prennent jamais un Player propriétaire fourni par le client. Les réponses Social portent `Cache-Control: no-store`.

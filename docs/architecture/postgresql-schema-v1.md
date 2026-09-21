@@ -625,6 +625,8 @@ Index :
 
 # 9. Échanges
 
+État physique : migration additive `20260921100000_031_add_particle_trades`. Les deux tables sont privées backend-only : RLS activée, aucun droit PUBLIC/anon/authenticated. Aucun seed économique ni import des demandes ouvertes.
+
 ## 9.1 `trade_requests`
 
 Colonnes :
@@ -638,10 +640,11 @@ Colonnes :
 - `current_amount bigint NOT NULL`
 - `state trade_request_state NOT NULL DEFAULT 'PENDING'`
 - `source_channel source_channel NOT NULL`
-- `idempotency_key text NULL`
+- `operation_id uuid NOT NULL UNIQUE REFERENCES business_operations(id) ON DELETE RESTRICT` ; la clé d'idempotence appartient à cette opération
 - `created_at timestamptz NOT NULL DEFAULT now()`
 - `updated_at timestamptz NOT NULL DEFAULT now()`
 - `resolved_at timestamptz NULL`
+- `expires_at timestamptz NOT NULL` : prochain minuit Europe/Paris calculé à la création
 
 Contraintes :
 
@@ -649,11 +652,15 @@ Contraintes :
 - original_amount > 0
 - current_amount >= 0
 - current_amount <= original_amount
+- deux clés particules canoniques distinctes ; les éléments des participants sont revalidés par le service
+- PENDING implique current_amount > 0 et resolved_at NULL ; un état résolu impose resolved_at
+- expires_at > created_at
 
 Index :
 
 - `(sender_player_id, state, created_at)`
 - `(recipient_player_id, state, created_at)`
+- `(state, expires_at)`
 
 Index unique partiel PostgreSQL :
 
@@ -678,6 +685,8 @@ Colonnes :
 Contrainte :
 
 `amount > 0`
+
+Unicités `trade_request_id` et `operation_id` : une demande ne produit qu'une exécution. Index `executed_at` pour l'historique récent. La baisse automatique à zéro conserve la demande CANCELLED ; l'expiration conserve EXPIRED. Toutes les FK d'audit sont restrictives.
 
 ---
 

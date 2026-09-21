@@ -568,21 +568,21 @@ Le scheduler serveur exécute un catch-up au démarrage puis planifie le prochai
 
 ## 8.1 `TradeRequest`
 
-Une seule source de vérité par demande.
+Une seule source de vérité par demande, physiquement implémentée par `trade_requests` (migration additive 031).
 
-Conceptuellement :
+Champs physiques :
 
 - `id`
 - `senderPlayerId`
 - `recipientPlayerId`
-- élément/ressource de l'expéditeur
-- élément/ressource attendue
+- `senderResourceKey` : particules de l'élément du destinataire
+- `recipientResourceKey` : particules de l'élément de l'expéditeur
 - `originalAmount`
 - `currentAmount`
-- état
-- dates création/expiration/résolution
-- canal/source
-- idempotency key
+- `state` : PENDING / ACCEPTED / REFUSED / CANCELLED / EXPIRED
+- `createdAt`, `updatedAt`, `expiresAt`, `resolvedAt`
+- `sourceChannel`
+- `operationId` unique vers BusinessOperation, propriétaire de la clé d'idempotence
 
 Ne jamais reproduire la duplication legacy `sent` / `received`.
 
@@ -596,6 +596,8 @@ Le stock réellement disponible est dérivé :
 
 La réconciliation est déclenchée après toute mutation pertinente du stock.
 
+Seules les demandes PENDING envoyées réservent `currentAmount`. Plusieurs demandes reçues peuvent viser indépendamment le même stock. Une réduction ne remonte jamais ; à zéro, la demande reste auditée en CANCELLED avec `resolvedAt`. `expiresAt` matérialise le prochain minuit Europe/Paris, avec rattrapage serveur même hors ligne.
+
 ## 8.3 `TradeExecution`
 
 Historique des échanges réellement exécutés :
@@ -605,6 +607,8 @@ Historique des échanges réellement exécutés :
 - deux joueurs ;
 - deux ressources ;
 - date.
+
+`trade_executions` contient `id`, `tradeRequestId` unique, `amount`, `operationId` unique et `executedAt`. Participants et ressources se lisent depuis la demande conservée par FK restrictive. Quatre ResourceMovement auditent le transfert X/X sans incrémenter Earned/Spent. La projection personnelle limite l'historique aux 25 dernières exécutions ; aucune table de réservation ou de notification supplémentaire.
 
 Les demandes legacy ouvertes au cutover ne sont pas importées.
 
