@@ -388,7 +388,7 @@ L'écart historique de 612 cœurs n'est pas reconstruit ni attribué artificiell
 
 # 6. Décisions R460 à R467 — espace Social et présence
 
-## R460 — Écran Social unique — ✅ RÉVISÉ PAR R817
+## R460 — Écran Social unique — ✅ RÉVISÉ PAR R817, R506 ET R522
 
 Révision R817 : Social reste un futur espace unique, accessible plus tard depuis Menu/Communauté ; il ne devient pas une tuile de la navigation principale à sept entrées.
 
@@ -398,8 +398,9 @@ L'UI standalone utilise un écran Social unique avec :
 
 - `Amis` ouvert par défaut ;
 - `Demandes` ;
-- `Joueurs` ;
-- `Messages`.
+- `Joueurs`.
+
+L'ancien onglet `Messages` de R460 est supersédé par R506 et R522. Les MP généraux vivent exclusivement dans l'onglet `MP` du panneau de droite `Chat | MP`. R817 conserve la place de Social dans la navigation/Menu ; il ne possède pas la localisation des MP.
 
 ## R461 — Tri des amis
 

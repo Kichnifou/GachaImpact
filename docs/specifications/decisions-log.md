@@ -643,7 +643,7 @@ La [source spécialisée Chat global](global-chat-v1.md) détaille ces règles. 
 - `VALIDÉ R457` — Niveau d'amitié réellement plafonné à 1000 ; total historique des cœurs toujours cumulatif.
 - `VALIDÉ R458` — B/A/S comptent les cœurs sortants validés ; Z se termine lorsqu'une relation atteint 1000.
 - `VALIDÉ MIGRATION R459` — Relations, demandes et compteurs exacts sont conservés sans reconstruire l'écart historique de 612 cœurs.
-- `VALIDÉ R460` — Écran Social unique avec Amis/Demandes/Joueurs/Messages ; Amis ouvert par défaut.
+- `RÉVISÉ R460` — Écran Social unique avec Amis/Demandes/Joueurs ; Amis ouvert par défaut. L'ancien onglet Messages est supersédé par R506/R522 : les MP généraux vivent exclusivement dans l'onglet MP du panneau droit `Chat | MP`.
 - `VALIDÉ R461` — Tri par défaut présence puis alphabet ; tris alternatifs mémorisés.
 - `VALIDÉ R462` — Présence standalone En ligne/Absent/Hors ligne.
 - `VALIDÉ R463` — Dernière activité configurable Public/Amis/Privé.
