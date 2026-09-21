@@ -94,7 +94,7 @@ Le workflow Git permanent est le suivant :
 4. ChatGPT inspecte sur GitHub le vrai commit et son diff par rapport à `main` avant de valider ou de demander une correction technique ;
 5. chaque correction éventuelle suit à son tour `modification → tests → commit séparé → push review` ;
 6. ChatGPT re-review le vrai nouveau commit ;
-7. une fois la review approuvée, ChatGPT fournit directement le modèle/niveau Codex recommandés et un prompt dédié de promotion copiable. L'exécution volontaire de ce prompt par le propriétaire constitue l'autorisation explicite de cette mission ; `review` est alors avancée proprement vers `main` selon l’historique réel ;
+7. une fois la review approuvée, ChatGPT fournit directement le modèle/niveau Codex recommandés et un prompt dédié de promotion copiable. L'exécution volontaire de ce prompt par le propriétaire constitue l'autorisation explicite de cette mission ; avant le fast-forward, cette mission finalise le Master et les documents de statut concernés dans un état qui restera exact après la promotion. Le commit documentaire final est poussé sur `review`, le gate Git est exécuté, puis toute `review` est avancée proprement vers `main` par fast-forward strict ;
 8. l’arrivée du commit sur `main` déclenche les déploiements de production ;
 9. ChatGPT vérifie `main == review`, Railway, Cloudflare Pages et le healthcheck ;
 10. ChatGPT fournit immédiatement **À tester en public**, sans attendre une demande : checklist concise basée sur le diff réellement promu, regroupée par parcours utilisateur, limitée aux ajouts/modifications et interactions à risque, sans recopier les tests automatisés ni lister tout le jeu ;
@@ -124,6 +124,8 @@ Si le lot n’est pas acceptable, les corrections restent sur `review`. S’il e
 ## 6. Promouvoir vers `main`, déployer et valider publiquement
 
 Après approbation de la review, le passage contrôlé de `review` vers `main` constitue le checkpoint de production. L’équipe vérifie ensuite les déploiements Railway et Cloudflare Pages avant d’effectuer le test public sur [gachaimpact.pages.dev](https://gachaimpact.pages.dev).
+
+La mission de promotion ne laisse pas dans le commit promu une prochaine étape devenue fausse par son propre fast-forward, telle que « promouvoir ce candidat » ou « attendre la promotion ». Elle décrit l’état post-promotion réellement attendu, sans anticiper Cloudflare, Railway, le healthcheck ou une validation publique : ces preuves sont contrôlées après le push `main` par ChatGPT. Aucun commit documentaire supplémentaire n’est créé uniquement pour constater la promotion ; il faut un changement d’état réel, par exemple un déploiement vérifié, une validation publique, un défaut, une clôture de lot, un changement de domaine ou une décision produit ou technique.
 
 Le Master distingue toujours le commit candidat poussé sur `review`, le commit réellement présent sur `main`, le déploiement réussi et la validation publique du propriétaire. Aucun lot n’est déclaré publiquement validé avant la dernière étape.
 
