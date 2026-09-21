@@ -83,7 +83,7 @@ Partenaires place recherche, quantité (largeur visuelle d'environ dix chiffres,
 
 Dans la sidebar, les rectangles Profil, Ressources, Particules et Objectif sont des cibles clavier/clic : respectivement Profil personnel, Sac, Sac et Invocation. Les contrôles Primos → Boutique, Moras → Banque et Convertir → modale restent indépendants, sans boutons imbriqués. Joueurs connectés place la liste juste sous le compteur et le feedback dans le footer, à gauche de l'annuaire.
 
-Panier utilise la recherche Player partagée avec Modération, dans une surface compacte : aucun résultat avant saisie, sélection puis `Destinataire : pseudo` dans une zone stable. Une mutation Event confirmant un nouveau palier récompensé présente le libellé serveur dans la primitive Level-up (5,4 s, verrou initial 1 s, clic extérieur/Escape). Plusieurs paliers sont présentés dans l'ordre croissant ; les GET et replays ne déclenchent rien.
+Panier utilise la recherche Player partagée avec Modération, dans une surface compacte : aucun résultat avant saisie ; le champ contrôlé affiche directement le pseudo du Player choisi par suggestion ou par navigateur. Le bouton `Choisir un joueur` / `Changer` se trouve à droite du label `Recherche rapide d’un joueur`, et le champ juste dessous ; aucune ligne Destinataire séparée ne précède `Votre message`. Retaper invalide la sélection jusqu'au choix d'un nouvel ID Player réel. Une mutation Event confirmant un nouveau palier récompensé présente le libellé serveur dans la primitive Level-up (5,4 s, verrou initial 1 s, clic extérieur/Escape). Plusieurs paliers sont présentés dans l'ordre croissant ; les GET et replays ne déclenchent rien.
 
 ## Navigation interne de Modération
 

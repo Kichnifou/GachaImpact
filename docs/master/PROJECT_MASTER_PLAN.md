@@ -1,22 +1,22 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : Échanges — correctifs après second test public, candidat approuvé pour main
+Version : Échanges — test public du checkpoint 7f00187 et dernier micro-polish Panier
 Date : 2026-09-21
-Statut : SECOND TEST PUBLIC EFFECTUÉ SUR 661f87a ; CANDIDAT APPROUVÉ, PROMOTION MAIN AUTORISÉE ; TEST PUBLIC POST-DÉPLOIEMENT REQUIS
+Statut : CHECKPOINT 7f00187 TESTÉ PUBLIQUEMENT ; MICRO-POLISH PANIER CANDIDAT SUR REVIEW
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
 
 ## Reprise rapide — état vivant
 
-- Référence publique courante : `661f87acc958046e60257382ec19256767c16a96`, main = review et 0/0 vérifiés par fetch au départ du lot. Promotion, Cloudflare SUCCESS, Railway SUCCESS et healthcheck 200 confirmés par le propriétaire ; second test public effectué. Batch C / Social demeure validé, avec polish listé ci-dessous ; Noël naturel reste à observer en décembre.
-- État Event : Lots 1 à 6 clôturés. Le dernier spot-check a validé Quotidiennes `✅ Terminé`, l'ordre Bonus/Participation, la progression, les conversions Shop, MAX, le feedback vert détaillé, Collection, le Classement, le curseur Boss `Bilan →` et le responsive observé. Le second test public rouvre le polish Panier/sélection Player : sa nouvelle composition est candidate dans le présent lot. Le commit parallèle Story `1a0fca5` reste intact dans l'historique.
-- Domaine actif : **correctifs post-second test public Échanges / Event / Social / Sidebar / Expédition**. Révision produit explicite de R24 pour notifier l'expéditeur après acceptation ; R19 et les règles économiques restent conservées.
+- Référence publique courante : `7f00187c6eeee9dfee8d010878bd375670a20840`, main = review, divergence 0/0 et worktree propre vérifiés par fetch au départ de cette intervention. Cloudflare Pages SUCCESS, Railway SUCCESS, backend `Application ready` et `/health` HTTP 200 ont été vérifiés après promotion selon le propriétaire. Ce SHA a été testé publiquement par le propriétaire. Batch C / Social demeure validé ; Noël naturel reste à observer en décembre.
+- État Event : Lots 1 à 6 clôturés. Le dernier spot-check a validé Quotidiennes `✅ Terminé`, l'ordre Bonus/Participation, la progression, les conversions Shop, MAX, le feedback vert détaillé, Collection, le Classement, le curseur Boss `Bilan →` et le responsive observé. Le test public `7f00187` a confirmé la grande modale Panier et sa recherche, puis identifié le dernier décalage entre le destinataire choisi et le texte du champ rapide. Sa correction et la nouvelle composition compacte sont candidates dans ce lot. Le commit parallèle Story `1a0fca5` reste intact dans l'historique.
+- Domaine actif : **dernier micro-polish Event → Jeux → Panier**. Le test public du SHA `7f00187` valide Expédition `Récupération…`, Échanges Partenaires (composition, sélection, quantité, recherche, textes et fraîcheur), notifications Échanges (agrégat reçu, annulation, TRADE_ACCEPTED et Historique), CTA Conversion, grande modale Panier et recherche, Sidebar (Convertir, Profil et Objectif), ainsi que filtres, tri, cœurs et scroll Social. Seule la synchronisation du champ de recherche Panier après choix dans la modale restait défectueuse. Les échanges métier et leur polish principal sont acquis ; la clôture administrative du vertical attend la validation publique de ce microfix.
 - Base DEV : **31 migrations Prisma** à jour ; dernière additive `20260921100000_031_add_particle_trades`, appliquée via Prisma. Migrations 001–030 intactes. Aucun seed économique, import legacy ou reset Privacy.
-- Le checkpoint public 661f87a est déployé selon la confirmation propriétaire. Le nouveau candidat de correctifs n'est ni promu ni validé publiquement. `PAID_INFRA_APPROVED = false`.
+- Le checkpoint public `7f00187` est déployé et testé publiquement selon la confirmation propriétaire. Le microfix Panier de cette intervention reste candidat sur `review` et n'est pas validé publiquement. `PAID_INFRA_APPROVED = false`.
 - Activité transverse : `PlayerActivityRecorder` écrit atomiquement l'activité réelle de présence, les actions Amitié effectives et Game C réussi. Aucun GET, heartbeat technique, replay, scheduler ou destinataire passif ne produit d'activité. Les futurs domaines disposent de ce propriétaire réutilisable ; les autres domaines gameplay ne sont pas tous nouvellement branchés dans ce lot.
 - Nettoyage DEV terminé : uniquement `Codex Event 2f5fb3ad` et `Sender5 090faef4`, après inspection des FK et dépendances ; détail et UUID au checkpoint ci-dessous. Comptes protégés intacts, aucun import/reset.
-- Prochaine étape : promotion fast-forward autorisée du candidat reviewé jusqu'à `9716cbcd7bcef0cf0462c7a7b3c0ed4fd5a30a52`, puis vérification indépendante des déploiements et nouveau test public propriétaire. **Chat global + messages privés** attend la clôture publique des retours Échanges/polish ; R633/R634 restent différées vers Historique global.
+- Prochaine étape : review indépendante du microfix Panier candidat sur `review`, puis décision de promotion et mini-test public propriétaire. **Chat global + messages privés** est le prochain domaine, préparé par une revue de readiness seulement ; aucune implémentation physique Chat/MP n'est commencée. R633/R634 restent différées vers Historique global.
 - Lire [le workflow](../process/implementation-workflow.md), [l'architecture Échanges](../architecture/backend-architecture-v1.md#échanges-de-particules--état-physique-031), [la navigation](../specifications/navigation-shell-v1.md) et le checkpoint ci-dessous. Les checkpoints antérieurs sont historiques et ne constituent pas une prochaine étape encore active.
 
 ---
