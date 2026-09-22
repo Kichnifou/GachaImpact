@@ -269,7 +269,43 @@ describe('ChatPanel réel', () => {
     expect(Array.from(container.querySelectorAll('.chat-message')).filter(node => node.textContent?.includes('Immédiat'))).toHaveLength(1)
   })
 
-  it('restores a deterministic failure and keeps the fixed composer accessory', async () => {
+  it('keeps a post-clear send visible when its response reveals the newer generation first', async () => {
+    let release!: (value: ChatSendDto) => void
+    const container = await mount()
+    chat.send.mockReturnValueOnce(new Promise<ChatSendDto>(resolve => { release = resolve }))
+    await act(async () => { type(container, 'Après clear immédiat') })
+    act(() => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    await act(async () => { await Promise.resolve() })
+    const key = chat.send.mock.calls.at(-1)![1] as string
+    const authoritative = { ...message, id: '66666666-6666-4666-8666-666666666666', author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content: 'Après clear immédiat', clientIntentKey: key }
+    await act(async () => { release({ message: authoritative, generation: 1, result: null, results: [], xpGranted: 1, refreshScopes: [], dailyChallengeCompleted: false, replayed: false }) })
+    expect(container.textContent).not.toContain('Bonjour https://example.com/')
+    expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
+    expect(Array.from(container.querySelectorAll('.chat-message')).filter(node => node.textContent?.includes('Après clear immédiat'))).toHaveLength(1)
+    chat.messages.mockResolvedValue({ messages: [authoritative], nextCursor: null, generation: 1 })
+    chat.unread.mockResolvedValue({ unreadCount: 0, generation: 1 })
+    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() })
+    expect(Array.from(container.querySelectorAll('.chat-message')).filter(node => node.textContent?.includes('Après clear immédiat'))).toHaveLength(1)
+  })
+
+  it('does not restore a stale send after polling has already observed a clear', async () => {
+    let release!: (value: ChatSendDto) => void
+    const container = await mount()
+    chat.send.mockReturnValueOnce(new Promise<ChatSendDto>(resolve => { release = resolve }))
+    await act(async () => { type(container, 'Avant clear') })
+    act(() => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    await act(async () => { await Promise.resolve() })
+    const key = chat.send.mock.calls.at(-1)![1] as string
+    chat.messages.mockResolvedValue({ messages: [], nextCursor: null, generation: 1 })
+    chat.unread.mockResolvedValue({ unreadCount: 0, generation: 1 })
+    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() })
+    const stale = { ...message, id: '77777777-7777-4777-8777-777777777777', author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content: 'Avant clear', clientIntentKey: key }
+    await act(async () => { release({ message: stale, generation: 0, result: null, results: [], xpGranted: 1, refreshScopes: [], dailyChallengeCompleted: false, replayed: false }) })
+    expect(container.querySelectorAll('.chat-message')).toHaveLength(0)
+    expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
+  })
+
+  it('preserves a deterministic failure in the fixed accessory for recovery', async () => {
     const failure = new ApiError('CHAT_INVALID', 'Refusé', 400)
     chat.send.mockRejectedValueOnce(failure)
     const container = await mount()
@@ -278,9 +314,34 @@ describe('ChatPanel réel', () => {
     await act(async () => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
     expect(container.querySelector('.chat-composer-accessory')).toBe(accessory)
     expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
+    expect((container.querySelector('#chat-message') as HTMLInputElement).value).toBe('')
+    expect(container.querySelector('.chat-failed-status')?.textContent).toContain('À récupérer')
+    await act(async () => { Array.from(container.querySelectorAll('button')).find(item => item.textContent === 'Récupérer')!.click() })
     expect((container.querySelector('#chat-message') as HTMLInputElement).value).toBe('À récupérer')
-    expect(container.textContent).toContain('Refusé')
     expect(container.querySelector('input')?.getAttribute('autocomplete')).toBe('off')
+  })
+
+  it('keeps draft B and failed A recoverable without an optimistic ghost', async () => {
+    let reject!: (cause: Error) => void
+    const container = await mount()
+    const accessory = container.querySelector('.chat-composer-accessory')
+    chat.send.mockReturnValueOnce(new Promise<ChatSendDto>((_resolve, fail) => { reject = fail }))
+    await act(async () => { type(container, 'Message A') })
+    act(() => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    await act(async () => { await Promise.resolve() })
+    const originalKey = chat.send.mock.calls[0]![1]
+    await act(async () => { type(container, 'Brouillon B') })
+    await act(async () => { reject(new ApiError('CHAT_INVALID', 'Refusé', 400)) })
+    expect((container.querySelector('#chat-message') as HTMLInputElement).value).toBe('Brouillon B')
+    expect(container.querySelector('.chat-failed-status')?.textContent).toContain('Message A')
+    expect(container.querySelector('.chat-composer-accessory')).toBe(accessory)
+    expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
+    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(item => item.textContent === 'Récupérer')?.disabled).toBe(true)
+    await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(item => item.textContent === 'Réessayer')!.click() })
+    expect(chat.send.mock.calls[1]![1]).toBe(originalKey)
+    expect(chat.send.mock.calls[1]![0]).toBe('Message A')
+    expect((container.querySelector('#chat-message') as HTMLInputElement).value).toBe('Brouillon B')
+    expect(Array.from(container.querySelectorAll('.chat-message')).filter(node => node.textContent?.includes('Message A'))).toHaveLength(1)
   })
 
   it('discards the old snapshot and unread count on a new server generation', async () => {

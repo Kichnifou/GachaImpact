@@ -1843,6 +1843,9 @@
 .chat-composer-reply button { float: right; }
 .chat-composer-accessory .chat-status { position: absolute; inset: 24px 0 auto; height: 24px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chat-status button { margin-left: 5px; color: #d6efff; background: none; border: 0; text-decoration: underline; cursor: pointer; }
+.chat-failed-status { display: flex; align-items: center; gap: 4px; }
+.chat-failed-status span { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.chat-failed-status button { flex: 0 0 auto; margin-left: 0; padding: 0; }
 .chat-report-confirm { position: absolute; z-index: 5; bottom: 100%; right: 8px; background: #14233f; border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 8px 18px #0009; }
 .chat-report-confirm button { margin-right: 5px; padding: 4px 7px; }
 .chat-mention-suggestions { position: absolute; z-index: 5; bottom: 100%; left: 8px; right: 8px; display: grid; max-height: 150px; overflow: auto; background: #14233f; border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 8px 18px #0009; }

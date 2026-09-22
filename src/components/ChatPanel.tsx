@@ -5,6 +5,7 @@ import { elementColors } from '../utils/elementTheme'
 
 type Props = { playerId: string; playerDisplayName?: string; playerElementKey?: string | null; connectedCount?: number | null; isCollapsed: boolean; onToggle: () => void; onOpenPlayers: () => void; onOpenProfile: (id: string) => void; onRefreshScopes: (scopes: readonly ChatRefreshScope[]) => Promise<void> }
 type Intent = { key: string; content: string; replyId: string | null; mentions: ChatMentionDto[] }
+type FailedIntent = Intent & { reason: string }
 
 function linkChatText(content: string) {
   return content.split(/(https?:\/\/[^\s]+)/giu).map((part, index) => {
@@ -37,6 +38,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const [suggestions, setSuggestions] = useState<{ id: string; displayName: string; elementKey: string | null }[]>([])
   const [pending, setPending] = useState(false)
   const [ambiguousIntents, setAmbiguousIntents] = useState<Intent[]>([])
+  const [failedIntents, setFailedIntents] = useState<FailedIntent[]>([])
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [menuId, setMenuId] = useState<string | null>(null)
@@ -55,37 +57,40 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const deferredLatest = useRef(false)
   const unseenIds = useRef(new Set<string>())
 
+  const adoptGeneration = useCallback((value: number, snapshot: ChatMessageDto[], nextCursor: { createdAt: string; id: string } | null, isLoaded: boolean, nextUnread = 0) => {
+    generation.current = value
+    messagesRef.current = snapshot
+    setMessages(snapshot); setCursor(nextCursor); setLoaded(isLoaded); setUnread(nextUnread); setNewCount(0)
+    readId.current = null; unseenIds.current.clear(); deferredLatest.current = false; atBottom.current = true; prepend.current = null; lastRenderedId.current = null
+    setAmbiguousIntents([])
+    requestAnimationFrame(() => { if (list.current) list.current.scrollTop = list.current.scrollHeight })
+  }, [])
+
   const unreadNow = useCallback(async () => {
     const value = await api.unread()
     if (generation.current !== null && value.generation < generation.current) return
-    setUnread(value.unreadCount)
     if (generation.current !== null && value.generation !== generation.current) {
-      generation.current = value.generation
-      messagesRef.current = []
-      setMessages([]); setCursor(null); setLoaded(false); setNewCount(0); readId.current = null; unseenIds.current.clear(); deferredLatest.current = false; atBottom.current = true
-      setAmbiguousIntents([])
-    }
-  }, [api])
+      adoptGeneration(value.generation, [], null, false, value.unreadCount)
+    } else setUnread(value.unreadCount)
+  }, [adoptGeneration, api])
   const messagesNow = useCallback(async (initial: boolean) => {
     const page = await api.messages()
     if (generation.current !== null && page.generation < generation.current) return
     const changed = generation.current !== null && generation.current !== page.generation
-    generation.current = page.generation
     if (changed) {
-      messagesRef.current = page.messages
-      setMessages(page.messages); setCursor(page.nextCursor); setLoaded(true)
-      unseenIds.current.clear(); deferredLatest.current = false; setNewCount(0); setUnread(0); readId.current = null
-      setAmbiguousIntents([])
-      atBottom.current = true
-      requestAnimationFrame(() => { if (list.current) list.current.scrollTop = list.current.scrollHeight })
+      adoptGeneration(page.generation, page.messages, page.nextCursor, true)
       return
     }
+    generation.current = page.generation
     const current = messagesRef.current
     const previous = new Set(current.filter(item => !item.id.startsWith('optimistic:')).map(item => item.id))
     const fresh = initial ? [] : page.messages.filter(item => !previous.has(item.id) && item.author?.id !== playerId)
     const updates = new Map(page.messages.map(item => [item.id, item]))
     const byIntent = new Map(page.messages.filter(item => item.clientIntentKey).map(item => [item.clientIntentKey, item]))
-    if (byIntent.size) setAmbiguousIntents(items => items.filter(item => !byIntent.has(item.key)))
+    if (byIntent.size) {
+      setAmbiguousIntents(items => items.filter(item => !byIntent.has(item.key)))
+      setFailedIntents(items => items.filter(item => !byIntent.has(item.key)))
+    }
     const retain = (item: ChatMessageDto) => item.id.startsWith('optimistic:') ? byIntent.get(item.clientIntentKey) ?? item : updates.get(item.id) ?? item
     const newlySeen = fresh.filter(item => !unseenIds.current.has(item.id))
     if (newlySeen.length && !atBottom.current) setNewCount(count => count + newlySeen.length)
@@ -102,7 +107,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     messagesRef.current = next
     setMessages(next)
     if (initial) { atBottom.current = false; setCursor(page.nextCursor); setLoaded(true); requestAnimationFrame(() => { if (list.current) { list.current.scrollTop = list.current.scrollHeight; atBottom.current = true; const id = page.messages.at(-1)?.id; if (id && readId.current !== id) { readId.current = id; void api.read(id).then(() => setUnread(0)).catch(() => { readId.current = null }) } } }) }
-  }, [api, playerId])
+  }, [adoptGeneration, api, playerId])
 
   useEffect(() => {
     let cancelled = false, busy = false
@@ -177,20 +182,29 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     try {
       const result = await api.send(next.content, next.key, next.replyId, next.mentions)
       setAmbiguousIntents(current => current.filter(item => item.key !== next.key))
+      setFailedIntents(current => current.filter(item => item.key !== next.key))
       if (result.cleared) {
-        if (generation.current === null || result.generation >= generation.current) {
-          generation.current = result.generation; messagesRef.current = []; setMessages([]); setCursor(null); setNewCount(0); setUnread(0); readId.current = null; unseenIds.current.clear(); deferredLatest.current = false
+        const previousGeneration = generation.current
+        if (previousGeneration === null || result.generation > previousGeneration) adoptGeneration(result.generation, [], null, true)
+        else setMessages(current => current.filter(item => item.clientIntentKey !== next.key))
+        if (previousGeneration === null || result.generation >= previousGeneration) {
           void messagesNow(true).catch(cause => setError(cause instanceof Error ? cause.message : 'Chat indisponible.'))
         }
       } else {
-        if (generation.current === null) generation.current = result.generation
-        setMessages(current => {
-          const without = current.filter(item => item.clientIntentKey !== next.key && item.id !== result.message.id)
-          const confirmed = result.generation === generation.current ? [result.message, ...result.results].filter(item => !without.some(old => old.id === item.id)) : []
-          const merged = orderMessages([...without, ...confirmed]).slice(-350)
-          messagesRef.current = merged
-          return merged
-        })
+        const previousGeneration = generation.current
+        if (previousGeneration !== null && result.generation > previousGeneration) {
+          const confirmed = orderMessages([result.message, ...result.results].filter((item, index, all) => all.findIndex(other => other.id === item.id) === index)).slice(-350)
+          adoptGeneration(result.generation, confirmed, null, true)
+        } else {
+          if (previousGeneration === null) generation.current = result.generation
+          setMessages(current => {
+            const without = current.filter(item => item.clientIntentKey !== next.key && item.id !== result.message.id)
+            const confirmed = result.generation === generation.current ? [result.message, ...result.results].filter(item => !without.some(old => old.id === item.id)) : []
+            const merged = orderMessages([...without, ...confirmed]).slice(-350)
+            messagesRef.current = merged
+            return merged
+          })
+        }
         if (result.refreshScopes.length) void onRefreshScopes(result.refreshScopes).catch(() => setFeedback('Certaines données se mettront à jour au prochain chargement.'))
         if (result.dailyChallengeCompleted) setFeedback('Défi Messages terminé !')
       }
@@ -198,8 +212,12 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
       setError(cause instanceof Error ? cause.message : 'Envoi indisponible.')
       if (cause instanceof ApiError && cause.status !== null && cause.status < 500) {
         setMessages(current => current.filter(item => item.clientIntentKey !== next.key))
-        setDraft(current => current || next.content); setReply(current => current || messagesRef.current.find(item => item.id === next.replyId) || null)
-      } else setAmbiguousIntents(current => current.some(item => item.key === next.key) ? current : [...current, next])
+        setAmbiguousIntents(current => current.filter(item => item.key !== next.key))
+        setFailedIntents(current => current.some(item => item.key === next.key) ? current : [...current, { ...next, reason: cause.message }])
+      } else {
+        setFailedIntents(current => current.filter(item => item.key !== next.key))
+        setAmbiguousIntents(current => current.some(item => item.key === next.key) ? current : [...current, next])
+      }
     } finally { setPending(false) }
   }
 
@@ -213,6 +231,16 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     setMessages(messagesRef.current)
     requestAnimationFrame(() => { if (atBottom.current && list.current) list.current.scrollTop = list.current.scrollHeight })
     queueMicrotask(() => void submitIntent(next))
+  }
+
+  const recoverFailed = () => {
+    const first = failedIntents[0]
+    if (!first || draft) return
+    setDraft(first.content)
+    setReply(messagesRef.current.find(item => item.id === first.replyId) ?? null)
+    setMentions(first.mentions)
+    setFailedIntents(current => current.filter(item => item.key !== first.key))
+    setError(null)
   }
 
   const remove = async (id: string) => { setMenuId(null); try { await api.remove(id); setMessages(current => current.map(message => message.id === id ? { ...message, deletionState: 'AUTHOR', content: null } : message.replyToMessageId === id ? { ...message, replyPreview: 'Message supprimé' } : message)) } catch (cause) { setError(cause instanceof Error ? cause.message : 'Suppression indisponible.') } }
@@ -262,8 +290,9 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
       {reportId && <div className="chat-report-confirm" role="dialog" aria-label="Confirmer le signalement"><p>Signaler ce message ?</p><button type="button" onClick={() => void report(reportId)}>Confirmer</button><button type="button" onClick={() => setReportId(null)}>Annuler</button></div>}
       {!!suggestions.length && <div className="chat-mention-suggestions" role="listbox" aria-label="Joueurs à mentionner">{suggestions.map(person => <button type="button" role="option" aria-selected={false} key={person.id} onClick={() => mention(person)}>{person.displayName}</button>)}</div>}
       <div className="chat-composer-accessory">{reply && <div className="chat-composer-reply">Réponse à {reply.authorLabel}<button type="button" onClick={() => setReply(null)} aria-label="Annuler la réponse">×</button></div>}
-        {!!ambiguousIntents.length && <div className="chat-status">{ambiguousIntents.length === 1 ? 'Envoi non confirmé.' : `${ambiguousIntents.length} envois non confirmés.`} <button type="button" disabled={pending} onClick={() => void submitIntent(ambiguousIntents[0]!)}>Réessayer</button></div>}
-        {error && !ambiguousIntents.length && <p className="chat-status chat-error" role="alert">{error}</p>}{feedback && !error && !ambiguousIntents.length && <p className="chat-status" role="status">{feedback}</p>}
+        {!!failedIntents.length && <div className="chat-status chat-error chat-failed-status" role="alert"><span title={`${failedIntents[0]!.reason} — ${failedIntents[0]!.content}`}>{failedIntents.length > 1 ? `${failedIntents.length} envois refusés : ` : 'Envoi refusé : '}{failedIntents[0]!.content}</span><button type="button" disabled={pending} onClick={() => void submitIntent(failedIntents[0]!)}>Réessayer</button><button type="button" disabled={pending || !!draft} title={draft ? 'Terminer le brouillon courant pour récupérer ce message' : undefined} onClick={recoverFailed}>Récupérer</button></div>}
+        {!!ambiguousIntents.length && !failedIntents.length && <div className="chat-status">{ambiguousIntents.length === 1 ? 'Envoi non confirmé.' : `${ambiguousIntents.length} envois non confirmés.`} <button type="button" disabled={pending} onClick={() => void submitIntent(ambiguousIntents[0]!)}>Réessayer</button></div>}
+        {error && !ambiguousIntents.length && !failedIntents.length && <p className="chat-status chat-error" role="alert">{error}</p>}{feedback && !error && !ambiguousIntents.length && !failedIntents.length && <p className="chat-status" role="status">{feedback}</p>}
       </div>
       <form className="chat-composer" autoComplete="off" onSubmit={send}><label className="sr-only" htmlFor="chat-message">Écrire un message</label><input id="chat-message" name="chat-composer-current-message" autoComplete="off" type="text" value={draft} onChange={event => { const value = Array.from(event.target.value).slice(0, 500).join(''); setDraft(value); setSuggestions([]); setMentions(current => current.filter(item => value.includes(`@${item.displayName}`))) }} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} maxLength={1000} placeholder="Écrire un message…" /><button type="submit" disabled={pending || !draft.trim()} aria-label="Envoyer le message"><span className="icon-glyph">➤</span></button></form>
     </div>
