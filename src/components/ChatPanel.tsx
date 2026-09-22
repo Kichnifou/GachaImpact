@@ -326,12 +326,12 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
 
   const focusComposer = () => requestAnimationFrame(() => { composer.current?.focus(); composer.current?.setSelectionRange(composer.current.value.length, composer.current.value.length) })
   const recoverFailed = () => {
-    const first = failedIntents[0]
-    if (!first || draft) return
-    setDraft(first.content)
-    setReply(messagesRef.current.find(item => item.id === first.replyId) ?? null)
-    setMentions(first.mentions)
-    setFailedIntents(current => current.filter(item => item.key !== first.key))
+    const failed = failedIntents.at(-1)
+    if (!failed || draft) return
+    setDraft(failed.content)
+    setReply(messagesRef.current.find(item => item.id === failed.replyId) ?? null)
+    setMentions(failed.mentions)
+    setFailedIntents(current => current.filter(item => item.key !== failed.key))
     setError(null)
     focusComposer()
   }
@@ -392,7 +392,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
             </div>
             <button type="button" className="chat-message-menu-button" aria-label={`Actions pour le message de ${message.authorLabel}`} aria-expanded={menuId === message.id} onClick={() => setMenuId(value => value === message.id ? null : message.id)}>⋯</button>
             {reportId === message.id && <div className="chat-report-confirm" role="dialog" aria-label="Confirmer le signalement"><p>Signaler ce message ?</p><button type="button" onClick={() => void report(message.id)}>Confirmer</button><button type="button" onClick={() => setReportId(null)}>Annuler</button></div>}
-            {menuId === message.id && <div className="chat-message-menu" role="menu">{canReply && <button type="button" role="menuitem" onClick={replyTo}>Répondre</button>}{canMention && <button type="button" role="menuitem" onClick={mentionAuthor}>Mentionner</button>}{canReport && <button type="button" role="menuitem" onClick={() => { setReportId(message.id); setMenuId(null) }}>Signaler</button>}{canMask && <button type="button" role="menuitem" onClick={() => hide(message.author!.id)}>{hidden.includes(message.author!.id) ? 'Démasquer ce joueur' : 'Masquer les messages de ce joueur'}</button>}{canDelete && <button type="button" role="menuitem" onClick={() => void remove(message.id)}>Supprimer</button>}</div>}</>}
+            {menuId === message.id && <div className="chat-message-menu" role="menu">{canReply && <button type="button" role="menuitem" onClick={replyTo}>Répondre</button>}{canMention && <button type="button" role="menuitem" onClick={mentionAuthor}>Mentionner</button>}{message.content && <button type="button" role="menuitem" onClick={() => { void copy(message); setMenuId(null) }}>Copier le message</button>}{canReport && <button type="button" role="menuitem" onClick={() => { setReportId(message.id); setMenuId(null) }}>Signaler</button>}{canMask && <button type="button" role="menuitem" onClick={() => hide(message.author!.id)}>{hidden.includes(message.author!.id) ? 'Démasquer ce joueur' : 'Masquer les messages de ce joueur'}</button>}{canDelete && <button type="button" role="menuitem" onClick={() => void remove(message.id)}>Supprimer</button>}</div>}</>}
           </div>
         </article>
       })}</div>
@@ -400,7 +400,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     <div className="chat-composer-wrap">
       {!!suggestions.length && <div className="chat-mention-suggestions" role="listbox" aria-label="Joueurs à mentionner">{suggestions.map((person, index) => <button type="button" role="option" aria-selected={index === suggestionIndex} className={index === suggestionIndex ? 'selected' : undefined} key={person.id} onMouseDown={event => event.preventDefault()} onClick={() => mention(person)}>{person.displayName}</button>)}</div>}
       <div className="chat-composer-accessory">{reply && <div className="chat-composer-reply"><span>Réponse à {reply.authorLabel}<small>« {reply.deletionState === 'ACTIVE' ? reply.content : 'Message supprimé'} »</small></span><button type="button" onClick={() => setReply(null)} aria-label="Fermer la réponse">×</button></div>}
-        {!!failedIntents.length && failedOverlayVisible && <div className="chat-status chat-error chat-failed-status" role="alert"><span title={`${failedIntents[0]!.reason} — ${failedIntents[0]!.content}`}>{failedIntents.length > 1 ? `${failedIntents.length} envois refusés : ` : 'Envoi refusé : '}{failedIntents[0]!.content}</span><button type="button" disabled={commandPending} onClick={() => void submitIntent(failedIntents[0]!)}>Réessayer</button><button type="button" disabled={commandPending || !!draft} title={draft ? 'Terminer le brouillon courant pour récupérer ce message' : undefined} onClick={recoverFailed}>Récupérer</button><button type="button" aria-label="Fermer le feedback" onClick={() => setFailedOverlayVisible(false)}>×</button></div>}
+        {!!failedIntents.length && failedOverlayVisible && <div className="chat-status chat-error chat-failed-status" role="alert"><span title={`${failedIntents.at(-1)!.reason} — ${failedIntents.at(-1)!.content}`}>{failedIntents.length > 1 ? `${failedIntents.length} envois refusés : ` : 'Envoi refusé : '}{failedIntents.at(-1)!.content}</span><button type="button" disabled={commandPending} onClick={() => void submitIntent(failedIntents.at(-1)!)}>Réessayer</button><button type="button" disabled={commandPending || !!draft} title={draft ? 'Terminer le brouillon courant pour récupérer ce message' : undefined} onClick={recoverFailed}>Récupérer</button><button type="button" aria-label="Fermer le feedback" onClick={() => setFailedOverlayVisible(false)}>×</button></div>}
         {!!ambiguousIntents.length && !failedIntents.length && ambiguousOverlayVisible && <div className="chat-status">{ambiguousIntents.length === 1 ? 'Envoi non confirmé.' : `${ambiguousIntents.length} envois non confirmés.`} <button type="button" disabled={commandPending} onClick={() => void submitIntent(ambiguousIntents[0]!)}>Réessayer</button><button type="button" aria-label="Fermer le feedback" onClick={() => setAmbiguousOverlayVisible(false)}>×</button></div>}
         {error && !ambiguousIntents.length && !failedIntents.length && <p className="chat-status chat-error" role="alert">{error}<button type="button" aria-label="Fermer le feedback" onClick={() => setError(null)}>×</button></p>}{feedback && !error && !ambiguousIntents.length && !failedIntents.length && <p className="chat-status" role="status">{feedback}<button type="button" aria-label="Fermer le feedback" onClick={() => setFeedback(null)}>×</button></p>}
       </div>

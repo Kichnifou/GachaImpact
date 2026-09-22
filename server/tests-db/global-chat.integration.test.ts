@@ -488,4 +488,34 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(tail.messages.map(row => row.id)).toEqual(newIds.slice(100));
     expect(tail.changes).toEqual([]);
   }, 40_000);
+
+  it('ranks empty mention suggestions by current-generation authors, connected sessions, then name', async () => {
+    const viewer = await player(), blocked = await player(), oldAuthor = await player(), moderator = await player();
+    const recent1 = await player(), recent2 = await player(), connected1 = await player(), connected2 = await player();
+    const alphaA = await player(), alphaB = await player();
+    const names = [
+      [viewer, 'Aaa Viewer'], [blocked, 'Aaa Blocked'], [oldAuthor, 'Zzz Old'],
+      [recent1, 'Recent One'], [recent2, 'Recent Two'], [connected1, 'Connected One'],
+      [connected2, 'Connected Two'], [alphaA, 'Aaa Alpha'], [alphaB, 'Bbb Beta'],
+    ] as const;
+    for (const [id, displayName] of names) await db.player.update({ where: { id }, data: { displayName } });
+    await db.playerBlock.create({ data: { blockerPlayerId: blocked, blockedPlayerId: viewer } });
+    await db.playerRoleAssignment.create({ data: { playerId: moderator, role: 'MODERATOR' } });
+    const oldGeneration = (await db.globalChatState.findUnique({ where: { id: 1 } }))?.generation ?? 0;
+    await db.globalChatMessage.create({ data: { authorPlayerId: oldAuthor, sourceChannel: 'INTERNAL_CHAT', messageType: 'PLAYER', content: 'ancien', createdAt: new Date(now.getTime() + 30_000), generation: oldGeneration } });
+    const { generation } = await dispatcher.clear(as(moderator), '!clear', randomUUID());
+    expect(generation).toBe(oldGeneration + 1);
+    await db.globalChatMessage.createMany({ data: [
+      { authorPlayerId: recent1, sourceChannel: 'INTERNAL_CHAT', messageType: 'PLAYER', content: 'premier', createdAt: new Date(now.getTime() + 1_000), generation },
+      { authorPlayerId: recent2, sourceChannel: 'INTERNAL_CHAT', messageType: 'PLAYER', content: 'dernier', createdAt: new Date(now.getTime() + 2_000), generation },
+      { authorPlayerId: blocked, sourceChannel: 'INTERNAL_CHAT', messageType: 'PLAYER', content: 'bloqué', createdAt: new Date(now.getTime() + 3_000), generation },
+      { authorPlayerId: viewer, sourceChannel: 'INTERNAL_CHAT', messageType: 'PLAYER', content: 'moi', createdAt: new Date(now.getTime() + 4_000), generation },
+    ] });
+    const session = async (id: string, secondsAgo: number) => db.playerSession.create({ data: { playerId: id, sessionTokenHash: createHash('sha256').update(randomUUID()).digest('hex'), startedAt: new Date(now.getTime() - 60_000), lastHeartbeatAt: new Date(now.getTime() - secondsAgo * 1_000) } });
+    const olderSession = await session(connected1, 40);
+    await session(connected2, 10);
+    expect((await service.searchMentions(as(viewer), '')).players.map(item => item.id)).toEqual([recent2, recent1, connected2, connected1, alphaA]);
+    await db.playerSession.update({ where: { id: olderSession.id }, data: { endedAt: now } });
+    expect((await service.searchMentions(as(viewer), '')).players.map(item => item.id)).toEqual([recent2, recent1, connected2, alphaA, alphaB]);
+  }, 30_000);
 });

@@ -133,14 +133,79 @@ describe('ChatPanel réel', () => {
     expect(chat.send.mock.calls[0]?.[3]).toEqual([{ playerId: otherId, displayName: 'Autre' }])
   })
 
-  it('opens and selects empty mention suggestions from the keyboard', async () => {
+  it('navigates empty mention suggestions with arrows, Tab, Enter and Escape without leaving the composer', async () => {
     chat.mentions.mockResolvedValue({ players: Array.from({ length: 6 }, (_, index) => ({ id: `${index}`.padStart(8, '0') + '-0000-4000-8000-000000000000', displayName: `Joueur ${index}`, elementKey: null })) })
     const container = await mount(), input = container.querySelector<HTMLInputElement>('#chat-message')!
+    input.focus()
     await act(async () => { type(container, '@'); await new Promise(resolve => setTimeout(resolve, 10)) })
     expect(chat.mentions).toHaveBeenCalledWith('')
     expect(container.querySelectorAll('[role="option"]')).toHaveLength(5)
-    await act(async () => { input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true })) })
+    const selected = () => container.querySelector<HTMLButtonElement>('[role="option"][aria-selected="true"]')
+    const press = async (key: string) => {
+      const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
+      await act(async () => { input.dispatchEvent(event); await new Promise(resolve => setTimeout(resolve, 20)) })
+      expect(document.activeElement).toBe(input)
+      return event.defaultPrevented
+    }
+    expect(selected()?.textContent).toBe('Joueur 0')
+    expect(selected()?.classList.contains('selected')).toBe(true)
+    expect(await press('ArrowDown')).toBe(true)
     expect(container.querySelector('[aria-selected="true"]')?.textContent).toBe('Joueur 1')
+    expect(selected()?.classList.contains('selected')).toBe(true)
+    expect(await press('ArrowUp')).toBe(true)
+    expect(selected()?.textContent).toBe('Joueur 0')
+    expect(await press('ArrowUp')).toBe(true)
+    expect(selected()?.textContent).toBe('Joueur 4')
+    expect(await press('Tab')).toBe(true)
+    expect(input.value).toBe('@Joueur 4 ')
+    expect(input.selectionStart).toBe(input.value.length)
+    expect(input.selectionEnd).toBe(input.value.length)
+    expect(container.querySelectorAll('[role="option"]')).toHaveLength(0)
+    await act(async () => { type(container, '@'); await new Promise(resolve => setTimeout(resolve, 10)) })
+    expect(await press('ArrowDown')).toBe(true)
+    expect(await press('Enter')).toBe(true)
+    expect(input.value).toBe('@Joueur 1 ')
+    expect(chat.send).not.toHaveBeenCalled()
+    await act(async () => { type(container, '@'); await new Promise(resolve => setTimeout(resolve, 10)) })
+    expect(await press('Escape')).toBe(true)
+    expect(input.value).toBe('@')
+    expect(container.querySelectorAll('[role="option"]')).toHaveLength(0)
+  })
+
+  it('focuses the composer after reply and mention actions and shows the reply excerpt in a floating overlay', async () => {
+    const container = await mount(), input = container.querySelector<HTMLInputElement>('#chat-message')!
+    const composer = container.querySelector('.chat-composer')
+    await act(async () => { button(container, 'Répondre').click(); await new Promise(resolve => setTimeout(resolve, 25)) })
+    expect(document.activeElement).toBe(input)
+    expect(container.querySelector('.chat-composer-reply')?.textContent).toContain('Réponse à Autre')
+    expect(container.querySelector('.chat-composer-reply')?.textContent).toContain('Bonjour https://example.com/ fin')
+    expect(container.querySelector('.chat-composer')).toBe(composer)
+    await act(async () => { button(container, 'Fermer la réponse').click() })
+    expect(container.querySelector('.chat-composer-reply')).toBeNull()
+    await act(async () => { button(container, 'Mentionner').click(); await new Promise(resolve => setTimeout(resolve, 25)) })
+    expect(input.value).toBe('@Autre ')
+    expect(document.activeElement).toBe(input)
+    expect(input.selectionStart).toBe(input.value.length)
+    expect(input.selectionEnd).toBe(input.value.length)
+  })
+
+  it('copies through the desktop action and the touch menu with a dismissible floating feedback', async () => {
+    const writeText = vi.fn(async () => undefined)
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+    const container = await mount()
+    await act(async () => { button(container, 'Copier le message').click(); await Promise.resolve() })
+    expect(writeText).toHaveBeenCalledWith(message.content)
+    expect(container.querySelector('.chat-composer-accessory [role="status"]')?.textContent).toContain('Message copié.')
+    await act(async () => { button(container, 'Fermer le feedback').click() })
+    expect(container.querySelector('.chat-composer-accessory [role="status"]')).toBeNull()
+    await act(async () => { button(container, 'Actions pour le message de Autre').click() })
+    const copyItem = Array.from(container.querySelectorAll<HTMLButtonElement>('.chat-message-menu [role="menuitem"]')).find(item => item.textContent === 'Copier le message')
+    expect(copyItem).toBeDefined()
+    await act(async () => { copyItem!.click(); await Promise.resolve() })
+    expect(writeText).toHaveBeenCalledTimes(2)
+    expect(writeText).toHaveBeenLastCalledWith(message.content)
+    expect(container.querySelector('.chat-message-menu')).toBeNull()
+    expect(container.querySelector('.chat-composer-accessory [role="status"]')?.textContent).toContain('Message copié.')
   })
 
   it('soft-deletes own rows and updates reply previews without exposing old content', async () => {
@@ -533,6 +598,55 @@ describe('ChatPanel réel', () => {
     await act(async () => { Array.from(container.querySelectorAll('button')).find(item => item.textContent === 'Récupérer')!.click() })
     expect((container.querySelector('#chat-message') as HTMLInputElement).value).toBe('À récupérer')
     expect(container.querySelector('input')?.getAttribute('autocomplete')).toBe('off')
+  })
+
+  it('dismisses a failed overlay without losing its intent and reopens for a new failure', async () => {
+    chat.send.mockRejectedValueOnce(new ApiError('CHAT_INVALID', 'Refus A', 400))
+      .mockRejectedValueOnce(new ApiError('CHAT_INVALID', 'Refus B', 400))
+    const container = await mount(), form = container.querySelector('form')!
+    await act(async () => { type(container, 'Message A') })
+    await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    const keyA = chat.send.mock.calls[0]![1]
+    expect(container.querySelector('.chat-failed-status')?.textContent).toContain('Message A')
+    await act(async () => { container.querySelector<HTMLButtonElement>('.chat-failed-status [aria-label="Fermer le feedback"]')!.click() })
+    expect(container.querySelector('.chat-failed-status')).toBeNull()
+    expect(chat.send).toHaveBeenCalledTimes(1)
+    await act(async () => { type(container, 'Message B') })
+    await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    expect(container.querySelector('.chat-failed-status')?.textContent).toContain('2 envois refusés : Message B')
+    await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('.chat-failed-status button')).find(item => item.textContent === 'Récupérer')!.click() })
+    expect((container.querySelector('#chat-message') as HTMLInputElement).value).toBe('Message B')
+    expect(container.querySelector('.chat-failed-status')?.textContent).toContain('Message A')
+    await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('.chat-failed-status button')).find(item => item.textContent === 'Réessayer')!.click(); await Promise.resolve() })
+    expect(chat.send.mock.calls[2]![0]).toBe('Message A')
+    expect(chat.send.mock.calls[2]![1]).toBe(keyA)
+  })
+
+  it('reopens a dismissed ambiguous overlay and reconciles the hidden intent by client key', async () => {
+    const updates = enableUpdates().mockResolvedValue({ generation: 0, reset: false, messages: [], changes: [] })
+    chat.send.mockRejectedValueOnce(new Error('Réseau A')).mockRejectedValueOnce(new Error('Réseau B'))
+    const container = await mount(), form = container.querySelector('form')!
+    await act(async () => { type(container, 'Ambigu A') })
+    await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    const keyA = chat.send.mock.calls[0]![1] as string
+    expect(container.textContent).toContain('Envoi non confirmé.')
+    await act(async () => { container.querySelector<HTMLButtonElement>('.chat-composer-accessory [aria-label="Fermer le feedback"]')!.click() })
+    expect(container.textContent).not.toContain('Envoi non confirmé.')
+    expect(chat.send).toHaveBeenCalledTimes(1)
+    await act(async () => { type(container, 'Ambigu B') })
+    await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    const keyB = chat.send.mock.calls[1]![1] as string
+    expect(keyB).not.toBe(keyA)
+    expect(container.textContent).toContain('2 envois non confirmés.')
+    await act(async () => { container.querySelector<HTMLButtonElement>('.chat-composer-accessory [aria-label="Fermer le feedback"]')!.click() })
+    updates.mockResolvedValue({ generation: 0, reset: false, messages: [{ ...message, id: '66666666-6666-4666-8666-666666666666', author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content: 'Ambigu A', clientIntentKey: keyA }], changes: [] })
+    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() })
+    expect(Array.from(container.querySelectorAll('.chat-message')).filter(item => item.textContent?.includes('Ambigu A'))).toHaveLength(1)
+    expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(1)
+    expect(chat.send).toHaveBeenCalledTimes(2)
+    await act(async () => { container.querySelector<HTMLButtonElement>('.chat-composer-accessory [aria-label="Fermer le feedback"]')?.click() })
+    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() })
+    expect(Array.from(container.querySelectorAll('.chat-message')).filter(item => item.textContent?.includes('Ambigu A'))).toHaveLength(1)
   })
 
   it('keeps draft B and failed A recoverable without an optimistic ghost', async () => {
