@@ -1675,6 +1675,7 @@
   padding: 10px 16px;
   color: #94a3bd;
   font-size: 10px;
+  border-bottom: 1px solid rgba(106, 144, 205, 0.15);
   background: rgba(10, 19, 38, 0.72);
 }
 
@@ -1755,7 +1756,7 @@
   min-height: 42px;
   max-height: 154px;
   min-width: 0;
-  padding: 9px 43px 6px 11px;
+  padding: 10px 43px 5px 11px;
   resize: none;
   overflow-y: hidden;
   color: var(--text);
@@ -1807,6 +1808,8 @@
   background: transparent;
   box-shadow: none;
 }
+
+.chat-send-button .icon-glyph { transform: translateY(-1px); }
 
 .chat-composer .chat-send-button:hover:not(:disabled) { color: #d5eaff; }
 .chat-composer .chat-send-button:disabled { cursor: default; color: #52627b; }
@@ -4734,6 +4737,7 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
   cursor: pointer;
   text-align: left;
   border: 0;
+  border-bottom: 1px solid rgba(106, 144, 205, 0.15);
 }
 
 .chat-presence > span:last-child { margin-left: auto; }
