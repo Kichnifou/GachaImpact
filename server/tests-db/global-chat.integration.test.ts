@@ -1,8 +1,15 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { GlobalChatService } from '../src/application/chat/global-chat-service.js';
+import { ChatCommandDispatcher, type ChatCommandServices } from '../src/application/chat/chat-command-dispatcher.js';
+import { GetCurrentPlayerBank, TransferPlayerBank } from '../src/application/banking/banking-services.js';
+import { PrismaBankingStore } from '../src/infrastructure/database/prisma-banking-store.js';
+import { ConvertPersonalParticles } from '../src/application/daily-challenge/daily-challenge-services.js';
+import { PrismaDailyChallengeStore } from '../src/infrastructure/database/prisma-daily-challenge-store.js';
+import { SocialService } from '../src/application/social/social-service.js';
+import { SourceChannel } from '../generated/prisma/client.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import { PlayerActivityRecorder } from '../src/application/player/player-activity-recorder.js';
 import { PrismaCurrentPlayerStore } from '../src/infrastructure/database/prisma-current-player-store.js';
@@ -13,7 +20,17 @@ const db = fixture.database;
 let now = new Date('2097-03-01T12:00:00.000Z');
 const clock = { now: () => now };
 const random = { nextInt: () => 0 };
-const service = new GlobalChatService(db, new GetCurrentPlayer(new PrismaCurrentPlayerStore(db)), clock, random);
+const getPlayer = new GetCurrentPlayer(new PrismaCurrentPlayerStore(db));
+const service = new GlobalChatService(db, getPlayer, clock, random);
+const bankStore = new PrismaBankingStore(db);
+const commandServices = {
+  getCurrentPlayerBank: new GetCurrentPlayerBank(getPlayer, bankStore, clock),
+  depositPlayerBankChat: new TransferPlayerBank('deposit', getPlayer, bankStore, clock, 'CHAT'),
+  withdrawPlayerBankChat: new TransferPlayerBank('withdraw', getPlayer, bankStore, clock, 'CHAT'),
+  convertPersonalParticlesChat: new ConvertPersonalParticles(getPlayer, new PrismaDailyChallengeStore(db), clock, SourceChannel.INTERNAL_CHAT),
+  socialService: new SocialService(getPlayer, db, clock),
+} as unknown as ChatCommandServices;
+const dispatcher = new ChatCommandDispatcher(service, commandServices);
 const as = (subject: string) => ({ subject });
 const advance = (ms: number) => { now = new Date(now.getTime() + ms); };
 
@@ -159,6 +176,68 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     const foreignKeys = await fixture.admin.query<{ conname: string }>('SELECT c.conname FROM pg_constraint c JOIN pg_namespace n ON n.oid=c.connamespace WHERE n.nspname=$1 AND c.contype=$2 AND c.conrelid IN ($3::regclass,$4::regclass)',
       [schema, 'f', `${schema}.global_chat_messages`, `${schema}.global_chat_read_states`]);
     expect(foreignKeys.rows).toHaveLength(5);
+  });
+
+  it('persists public command answers once, with no reply XP, counters or activity', async () => {
+    const id = await player(0n);
+    const key = randomUUID();
+    const first = await dispatcher.send(as(id), ' !HeLp ', key);
+    expect(first.message).toMatchObject({ messageType: 'COMMAND', content: '!HeLp' });
+    expect(first.result).toMatchObject({ messageType: 'GAME_RESULT', sourceChannel: 'SYSTEM', author: null, authorLabel: 'GachaImpact', replyToMessageId: first.message.id });
+    expect(first.result?.content).toContain('progression');
+    expect(await progress(id)).toMatchObject({ xp: 0n, totalMessages: 1n, countedMessages: 0n });
+    const activity = await db.playerActivityState.findUniqueOrThrow({ where: { playerId: id } });
+    advance(5_000);
+    const replay = await dispatcher.send(as(id), '!HeLp', key);
+    expect(replay.result?.id).toBe(first.result?.id);
+    expect(await db.globalChatMessage.count({ where: { replyToMessageId: first.message.id, messageType: 'GAME_RESULT' } })).toBe(1);
+    expect(await progress(id)).toMatchObject({ xp: 0n, totalMessages: 1n, countedMessages: 0n });
+    expect((await db.playerActivityState.findUniqueOrThrow({ where: { playerId: id } })).lastInternalChatAt).toEqual(activity.lastInternalChatAt);
+    expect((await dispatcher.send(as(id), '!inconnue', randomUUID())).result?.content).toBe('Commande inconnue. Utilise !help.');
+    expect((await dispatcher.send(as(id), '!banque deposer non', randomUUID())).result?.content).toBe('Syntaxe : !banque [deposer|retirer <montant|max>].');
+    expect((await dispatcher.send(as(id), '!wish', randomUUID())).result?.content).toBe('Cette commande est réservée à Twitch.');
+  }, 30_000);
+
+  it('replays a confirmed bank transfer after result publication fails, without a second debit', async () => {
+    const id = await player();
+    await db.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId: id, resourceKey: 'moras' } }, data: { amount: 1_000n } });
+    const key = randomUUID();
+    const publish = vi.spyOn(service, 'publishGameResult').mockRejectedValueOnce(new Error('delivery failed'));
+    try {
+      await expect(dispatcher.send(as(id), '!banque deposer 100', key)).rejects.toThrow('delivery failed');
+    } finally { publish.mockRestore(); }
+    expect((await commandServices.getCurrentPlayerBank.execute(as(id))).bankMoras).toBe(100n);
+    const retry = await dispatcher.send(as(id), '!banque deposer 100', key);
+    expect(retry.result?.content).toContain('Banque : 100 Moras');
+    expect((await commandServices.getCurrentPlayerBank.execute(as(id))).walletMoras).toBe(900n);
+    expect(await db.bankTransaction.count({ where: { playerId: id, transactionType: 'DEPOSIT' } })).toBe(1);
+    expect(await db.businessOperation.count({ where: { playerId: id, operationType: 'bank.deposit', sourceChannel: 'INTERNAL_CHAT' } })).toBe(1);
+    expect(await progress(id)).toMatchObject({ totalMessages: 1n, countedMessages: 0n, xp: 60n });
+  });
+
+  it('uses the resource conversion owner and keeps its Chat source and intent idempotent', async () => {
+    const id = await player();
+    await db.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId: id, resourceKey: 'particles_pyro' } }, data: { amount: 50n } });
+    const key = randomUUID();
+    const first = await dispatcher.send(as(id), '!convertir 20', key);
+    const replay = await dispatcher.send(as(id), '!convertir 20', key);
+    expect(replay.result?.id).toBe(first.result?.id);
+    const balances = await db.playerResourceBalance.findMany({ where: { playerId: id, resourceKey: { in: ['particles_pyro', 'primogems'] } } });
+    expect(Object.fromEntries(balances.map(balance => [balance.resourceKey, balance.amount]))).toMatchObject({ particles_pyro: 30n, primogems: 20n });
+    expect(await db.businessOperation.count({ where: { playerId: id, operationType: 'particles.convert', sourceChannel: 'INTERNAL_CHAT' } })).toBe(1);
+    expect(await progress(id)).toMatchObject({ totalMessages: 1n, countedMessages: 0n, xp: 60n });
+  });
+
+  it('omits private profile sections in a public infos answer', async () => {
+    const viewer = await player();
+    const target = await player();
+    await db.privacySetting.createMany({ data: ['BOX', 'ACTIVE_TEAM', 'GENERAL_STATISTICS'].map(categoryKey => ({ playerId: target, categoryKey, level: 'PRIVATE' as const })) });
+    const name = (await db.player.findUniqueOrThrow({ where: { id: target } })).displayName;
+    const answer = (await dispatcher.send(as(viewer), `!infos ${name}`, randomUUID())).result?.content ?? '';
+    expect(answer).toContain(name);
+    expect(answer).not.toContain('personnages');
+    expect(answer).not.toContain('Pulls');
+    expect(answer).not.toContain('Team');
   });
 
   it('records the exact Prisma 032 and 033 migrations and secures their real public tables', async () => {

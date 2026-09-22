@@ -89,21 +89,22 @@ export class PrismaDailyChallengeStore implements DailyChallengeStore, DailyChal
   }
 
   public async convertParticles(input: ParticleConversionInput): Promise<DailyChallengeMutationResult> {
+    const sourceChannel = input.sourceChannel ?? SourceChannel.UI;
     return this.mutate(input, 'particles.convert', async (transaction, operationId) => {
       const resourceKey = particleResourceKey(input.playerElementKey);
       const stock = await readBalance(transaction, input.playerId, resourceKey);
       if (stock < input.amount) throw new BusinessError('PARTICLE_CONVERSION_INSUFFICIENT', 'Vous ne possédez pas assez de particules de votre élément.');
       await this.economy.debit(transaction, {
         playerId: input.playerId, playerElementKey: input.playerElementKey, resourceKey, amount: input.amount,
-        causeKey: 'particles.convert.consume', domainKey: 'resources', operationId, sourceChannel: SourceChannel.UI,
+        causeKey: 'particles.convert.consume', domainKey: 'resources', operationId, sourceChannel,
       });
       await this.economy.credit(transaction, {
         playerId: input.playerId, playerElementKey: input.playerElementKey, resourceKey: 'primogems', amount: input.amount,
-        causeKey: 'particles.convert.reward', domainKey: 'resources', operationId, sourceChannel: SourceChannel.UI,
+        causeKey: 'particles.convert.reward', domainKey: 'resources', operationId, sourceChannel,
       });
       await this.progress(transaction, {
         playerId: input.playerId, playerElementKey: input.playerElementKey, businessDate: input.businessDate,
-        type: 'conversion', amount: input.amount, now: input.now, operationId, sourceChannel: SourceChannel.UI,
+        type: 'conversion', amount: input.amount, now: input.now, operationId, sourceChannel,
       });
       return { amount: input.amount.toString(), resourceKey };
     }, { amount: input.amount.toString() });
@@ -133,19 +134,20 @@ export class PrismaDailyChallengeStore implements DailyChallengeStore, DailyChal
     request: Prisma.InputJsonObject = {},
   ): Promise<DailyChallengeMutationResult> {
     const operationKey = `${operationType}:${input.playerId}:${input.idempotencyKey}`;
+    const sourceChannel = 'sourceChannel' in input ? input.sourceChannel ?? SourceChannel.UI : SourceChannel.UI;
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
       try {
         return await this.database.$transaction(async (transaction) => {
           await lockPlayer(transaction, input.playerId);
           await expirePrevious(transaction, input.playerId, input.businessDate);
-          const existing = await transaction.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey: operationKey } });
+          const existing = await transaction.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey: operationKey } });
           if (existing) {
             assertExisting(existing, input.playerId, operationType, request);
             if (existing.status !== OperationStatus.COMPLETED) throw new BusinessError('DAILY_CHALLENGE_IDEMPOTENCY_CONFLICT', 'Cette opération est déjà en cours.');
             return { operation: { id: existing.id, alreadyProcessed: true }, view: await readView(transaction, input.playerId, input.businessDate), resources: await readBalances(transaction, input.playerId) };
           }
           const operation = await transaction.businessOperation.create({ data: {
-            playerId: input.playerId, operationType, sourceChannel: SourceChannel.UI, idempotencyKey: operationKey,
+            playerId: input.playerId, operationType, sourceChannel, idempotencyKey: operationKey,
             resultSummary: { ...request },
           }, select: { id: true } });
           const result = await action(transaction, operation.id);

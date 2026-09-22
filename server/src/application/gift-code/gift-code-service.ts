@@ -77,7 +77,7 @@ export class GiftCodeService {
     return { available: Boolean(edition) };
   }
 
-  public async claim(identity: AuthenticatedIdentity, editionId: string, idempotencyKey: string) {
+  public async claim(identity: AuthenticatedIdentity, editionId: string, idempotencyKey: string, sourceChannel: 'UI' | 'INTERNAL_CHAT' = SourceChannel.UI) {
     const player = await this.getPlayer.execute(identity);
     const now = this.clock.now();
     await this.materializeAnnualEditions(this.database, now);
@@ -87,7 +87,7 @@ export class GiftCodeService {
       try {
         const result = await this.database.$transaction(async (tx) => {
           await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
-          const existingOperation = await tx.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey } });
+          const existingOperation = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           if (existingOperation) {
             const request = readJsonRecord(existingOperation.resultSummary)?.request;
             if (existingOperation.playerId !== player.id || existingOperation.operationType !== 'gift-code.claim' || readJsonRecord(request)?.editionId !== editionId || existingOperation.status !== OperationStatus.COMPLETED) throw new BusinessError('GIFT_CODE_IDEMPOTENCY_CONFLICT', 'Cette clé d’idempotence appartient à une autre opération.');
@@ -104,11 +104,11 @@ export class GiftCodeService {
             return { operationId: edition.claims[0]!.operationId, alreadyProcessed: true };
           }
           const playerElementKey = player.elementKey && isElementKey(player.elementKey) ? player.elementKey : null;
-          const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'gift-code.claim', sourceChannel: SourceChannel.UI, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request: { editionId } } } });
-          await tx.giftCodeClaim.create({ data: { giftCodeEditionId: edition.id, playerId: player.id, sourceChannel: SourceChannel.UI, operationId: operation.id, claimedAt: now } });
+          const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'gift-code.claim', sourceChannel, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request: { editionId } } } });
+          await tx.giftCodeClaim.create({ data: { giftCodeEditionId: edition.id, playerId: player.id, sourceChannel, operationId: operation.id, claimedAt: now } });
           for (const reward of edition.giftCode.rewards) {
             if (reward.amount <= 0n || !isResourceKey(reward.resourceKey)) continue;
-            await this.economy.credit(tx, { playerId: player.id, playerElementKey, resourceKey: reward.resourceKey, amount: reward.amount, causeKey: `gift-code.${edition.giftCode.token}`, domainKey: 'gift-codes', operationId: operation.id, sourceChannel: SourceChannel.UI });
+            await this.economy.credit(tx, { playerId: player.id, playerElementKey, resourceKey: reward.resourceKey, amount: reward.amount, causeKey: `gift-code.${edition.giftCode.token}`, domainKey: 'gift-codes', operationId: operation.id, sourceChannel });
           }
           await tx.notification.updateMany({ where: { playerId: player.id, actionKey: 'OPEN_GIFT_CODE', actionTargetId: edition.id, state: { in: [...activeNotificationStates] } }, data: { state: NotificationState.RESOLVED, resolvedAt: now } });
           await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request: { editionId }, claimed: true } } });

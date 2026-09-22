@@ -2,6 +2,7 @@ import type { BannerVoteWeight, FeaturedSelection, GachaCharacter } from '../../
 import type { PullCount } from '../../domain/gacha/pull.js';
 import type { ElementKey, ResourceKey } from '../../domain/economy/resources.js';
 import type { RandomSource } from '../../domain/wheel/wheel.js';
+import type { SourceChannel } from '../../../generated/prisma/client.js';
 import type { C6StatKey } from '../../domain/contest/c6-progress.js';
 
 export type PlayerGachaState = Readonly<{
@@ -50,6 +51,7 @@ export type GachaPullInput = Readonly<{
   idempotencyKey: string;
   now: Date;
   random: RandomSource;
+  sourceChannel?: SourceChannel;
 }>;
 export const GACHA_HISTORY_PAGE_SIZE = 10;
 export type GachaHistoryResult = PullResultRecord & Readonly<{

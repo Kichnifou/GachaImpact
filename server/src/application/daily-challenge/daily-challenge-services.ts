@@ -1,3 +1,4 @@
+import { SourceChannel } from '../../../generated/prisma/client.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import { getBusinessDate, type Clock } from '../../domain/time/business-date.js';
 import type { RandomSource } from '../../domain/wheel/wheel.js';
@@ -41,10 +42,10 @@ export class SwitchDailyChallenge extends DailyChallengePlayerService {
 }
 
 export class ConvertPersonalParticles extends DailyChallengePlayerService {
-  public constructor(getPlayer: GetCurrentPlayer, store: DailyChallengeStore, clock: Clock) { super(getPlayer, store, clock); }
+  public constructor(getPlayer: GetCurrentPlayer, store: DailyChallengeStore, clock: Clock, private readonly sourceChannel: SourceChannel = SourceChannel.UI) { super(getPlayer, store, clock); }
   public async execute(identity: AuthenticatedIdentity, amount: bigint, idempotencyKey: string) {
     if (amount < 1n) throw new BusinessError('PARTICLE_CONVERSION_AMOUNT_INVALID', 'La quantité doit être un entier supérieur ou égal à 1.');
     const { player, playerElementKey, now, businessDate } = await this.context(identity);
-    return this.store.convertParticles({ playerId: player.id, playerElementKey, now, businessDate, amount, idempotencyKey });
+    return this.store.convertParticles({ playerId: player.id, playerElementKey, now, businessDate, amount, idempotencyKey, sourceChannel: this.sourceChannel });
   }
 }

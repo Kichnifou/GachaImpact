@@ -56,6 +56,7 @@ export type ParticleConversionInput = Readonly<{
   now: Date;
   amount: bigint;
   idempotencyKey: string;
+  sourceChannel?: SourceChannel;
 }>;
 
 export interface DailyChallengeProgressor {

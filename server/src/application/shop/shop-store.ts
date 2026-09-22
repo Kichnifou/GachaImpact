@@ -1,4 +1,5 @@
 import type { ElementKey, ResourceKey } from '../../domain/economy/resources.js';
+import type { SourceChannel } from '../../../generated/prisma/client.js';
 
 export type ShopQuantityMode = 'unit' | 'multiple';
 
@@ -84,6 +85,7 @@ export type ShopPurchaseInput = Readonly<{
   quantity: bigint;
   idempotencyKey: string;
   occurredAt: Date;
+  sourceChannel?: SourceChannel;
 }>;
 
 export interface ShopStore {

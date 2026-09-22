@@ -69,6 +69,18 @@ describe('Shop persistence', () => {
     const history = await store.getHistory(playerId, 1); expect(history).toMatchObject({ page: 1, pageSize: 10, totalCount: 2, totalPages: 1 }); expect(history.purchases.map(({ quantity }) => quantity)).toEqual([10n, 2n]);
   });
 
+  it('reuses the Shop owner for INTERNAL_CHAT purchases and replays once', async () => {
+    const playerId = await createPlayer(100_000n);
+    const store = new PrismaShopStore(database, { nextInt: () => 0 });
+    const request = { ...input(playerId, primosId, 2n), sourceChannel: SourceChannel.INTERNAL_CHAT };
+    const first = await store.purchase(request);
+    const replay = await store.purchase(request);
+    expect(replay.operation).toMatchObject({ id: first.operation.id, alreadyProcessed: true });
+    expect(await database.shopPurchase.count({ where: { playerId } })).toBe(1);
+    expect(await database.businessOperation.findUniqueOrThrow({ where: { id: first.operation.id } })).toMatchObject({ sourceChannel: SourceChannel.INTERNAL_CHAT });
+    expect((await database.resourceMovement.findMany({ where: { operationId: first.operation.id } })).every(row => row.sourceChannel === SourceChannel.INTERNAL_CHAT)).toBe(true);
+  });
+
   it('paginates 21 history rows as 10/10/1 with stable order, lossless bigint snapshots and Player isolation', async () => {
     const preexistingIds = (await database.shopPurchase.findMany({ select: { id: true } })).map(({ id }) => id).sort();
     const playerId = await createPlayer(1n);

@@ -41,6 +41,7 @@ export class PrismaShopStore implements ShopStore {
 
   public async purchase(input: ShopPurchaseInput): Promise<ShopPurchaseResult> {
     const operationKey = `shop.purchase:${input.playerId}:${input.idempotencyKey}`;
+    const sourceChannel = input.sourceChannel ?? SourceChannel.UI;
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
       try {
         return await this.database.$transaction(async (transaction) => {
@@ -53,7 +54,7 @@ export class PrismaShopStore implements ShopStore {
             throw new BusinessError('PLAYER_ELEMENT_REQUIRED', 'Un élément permanent est requis pour acheter cet article.');
           }
 
-          const existing = await transaction.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey: operationKey } });
+          const existing = await transaction.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey: operationKey } });
           if (existing) return readExistingPurchase(transaction, input, existing);
 
           const itemRow = await transaction.shopItemDefinition.findFirst({ where: { id: input.itemId, isVisible: true }, include: itemInclude });
@@ -70,14 +71,14 @@ export class PrismaShopStore implements ShopStore {
           const operation = await transaction.businessOperation.create({ data: {
             playerId: input.playerId,
             operationType: 'shop.purchase',
-            sourceChannel: SourceChannel.UI,
+            sourceChannel,
             idempotencyKey: operationKey,
             resultSummary: requestSummary(input),
           }, select: { id: true } });
 
           await this.economy.debit(transaction, {
             playerId: input.playerId, playerElementKey: input.playerElementKey, resourceKey: 'moras', amount: totalPrice,
-            causeKey: `shop.purchase.${item.externalKey}`, domainKey: 'shop', operationId: operation.id, sourceChannel: SourceChannel.UI,
+            causeKey: `shop.purchase.${item.externalKey}`, domainKey: 'shop', operationId: operation.id, sourceChannel,
           });
 
           const effect = await this.applyEffect(transaction, input, item, operation.id);
@@ -101,13 +102,14 @@ export class PrismaShopStore implements ShopStore {
   }
 
   private async applyEffect(transaction: Prisma.TransactionClient, input: ShopPurchaseInput, item: ShopCatalogItem, operationId: string): Promise<ShopEffectSnapshot> {
+    const sourceChannel = input.sourceChannel ?? SourceChannel.UI;
     if (item.effectType === 'resource_bundle') {
       if (!item.rewardPerUnit) throw new BusinessError('SHOP_CATALOG_INVALID', 'La récompense de cet article Boutique est invalide.');
       const amount = item.rewardPerUnit.amount * input.quantity;
       await this.economy.credit(transaction, {
         playerId: input.playerId, playerElementKey: input.playerElementKey,
         resourceKey: item.rewardPerUnit.resourceKey, amount,
-        causeKey: `shop.reward.${item.externalKey}`, domainKey: 'shop', operationId, sourceChannel: SourceChannel.UI,
+        causeKey: `shop.reward.${item.externalKey}`, domainKey: 'shop', operationId, sourceChannel,
       });
       return { type: 'resource_bundle', resourceKey: item.rewardPerUnit.resourceKey, amount };
     }
@@ -133,7 +135,7 @@ export class PrismaShopStore implements ShopStore {
     if (!resourceKey) throw new BusinessError('SHOP_CATALOG_INVALID', 'La ressource de récompense est invalide.');
     await this.economy.credit(transaction, {
       playerId: input.playerId, playerElementKey: input.playerElementKey, resourceKey, amount: reward.amount,
-      causeKey: `shop.ticket.${reward.id}`, domainKey: 'shop', operationId, sourceChannel: SourceChannel.UI,
+      causeKey: `shop.ticket.${reward.id}`, domainKey: 'shop', operationId, sourceChannel,
     });
     if (reward.type === 'main_element_particles') return { type: 'ticket_main_element_particles', rewardId: reward.id, label: reward.label, elementKey: elementKey!, resourceKey, amount: reward.amount };
     if (reward.type === 'other_element_particles') return { type: 'ticket_other_element_particles', rewardId: reward.id, label: reward.label, elementKey: elementKey!, resourceKey, amount: reward.amount };

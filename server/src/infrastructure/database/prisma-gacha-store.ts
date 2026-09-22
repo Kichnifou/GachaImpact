@@ -110,14 +110,15 @@ export class PrismaGachaStore implements GachaStore {
 
   public async pull(input: GachaPullInput): Promise<GachaPullResult> {
     const operationKey = `gacha.pull:${input.playerId}:${input.idempotencyKey}`;
+    const sourceChannel = input.sourceChannel ?? SourceChannel.UI;
     for (let attempt = 1; attempt <= MAX_PULL_ATTEMPTS; attempt += 1) {
-      const existing = await this.findPersistedPull(input.playerId, operationKey, input.count);
+      const existing = await this.findPersistedPull(input.playerId, operationKey, input.count, sourceChannel);
       if (existing) return existing;
       try {
         return await this.pullInTransaction(input, operationKey);
       } catch (error) {
         if (!isPrismaConcurrencyCollision(error)) throw error;
-        const persisted = await this.findPersistedPull(input.playerId, operationKey, input.count);
+        const persisted = await this.findPersistedPull(input.playerId, operationKey, input.count, sourceChannel);
         if (persisted) return persisted;
         if (attempt === MAX_PULL_ATTEMPTS) throw error;
         await waitForConcurrentTransaction(attempt);
@@ -127,6 +128,7 @@ export class PrismaGachaStore implements GachaStore {
   }
 
   private async pullInTransaction(input: GachaPullInput, operationKey: string): Promise<GachaPullResult> {
+    const sourceChannel = input.sourceChannel ?? SourceChannel.UI;
     return this.database.$transaction(async (transaction) => {
       const lockedPlayers = await transaction.$queryRaw<{ elementKey: string | null }[]>`
         SELECT element_key AS "elementKey" FROM players WHERE id = ${input.playerId}::uuid FOR UPDATE
@@ -138,7 +140,7 @@ export class PrismaGachaStore implements GachaStore {
       }
 
       const existingOperation = await transaction.businessOperation.findFirst({
-        where: { sourceChannel: SourceChannel.UI, idempotencyKey: operationKey }, select: { id: true },
+        where: { sourceChannel, idempotencyKey: operationKey }, select: { id: true },
       });
       if (existingOperation) {
         const existing = await this.readPersistedPull(transaction, existingOperation.id, input.count, true);
@@ -166,18 +168,18 @@ export class PrismaGachaStore implements GachaStore {
       const activeTeam = await readActiveTeamSnapshot(transaction, input.playerId);
 
       const businessOperation = await transaction.businessOperation.create({ data: {
-        playerId: input.playerId, operationType: 'gacha.pull', sourceChannel: SourceChannel.UI, idempotencyKey: operationKey,
+        playerId: input.playerId, operationType: 'gacha.pull', sourceChannel, idempotencyKey: operationKey,
       }, select: { id: true } });
       const cost = PULL_COST[input.count];
       const pullOperation = await transaction.pullOperation.create({ data: {
         playerId: input.playerId, bannerRotationId: banner.id, targetCharacterId: target.id,
-        pullCount: input.count, primogemCost: cost, sourceChannel: SourceChannel.UI,
+        pullCount: input.count, primogemCost: cost, sourceChannel,
         businessOperationId: businessOperation.id, createdAt: input.now,
       }, select: { id: true } });
 
       await this.economy.debit(transaction, {
         playerId: input.playerId, playerElementKey: input.playerElementKey, resourceKey: 'primogems', amount: cost,
-        causeKey: 'gacha.pull.cost', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel: SourceChannel.UI,
+        causeKey: 'gacha.pull.cost', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel,
       });
 
       let state: PullState = storedState;
@@ -215,7 +217,7 @@ export class PrismaGachaStore implements GachaStore {
           await this.economy.credit(transaction, {
             playerId: input.playerId, playerElementKey: input.playerElementKey,
             resourceKey: resolved.outcome.resourceKey, amount: resourceAmount,
-            causeKey: 'gacha.pull.secondary-reward', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel: SourceChannel.UI,
+            causeKey: 'gacha.pull.secondary-reward', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel,
           });
           record = {
             index, resultType: 'resource', character: null, rarity: null,
@@ -233,7 +235,7 @@ export class PrismaGachaStore implements GachaStore {
             bonusRewards.push({ resourceKey: 'primogems', amount: refund, causeKey: 'gacha.c6-duplicate-refund' });
             await this.economy.credit(transaction, {
               playerId: input.playerId, playerElementKey: input.playerElementKey, resourceKey: 'primogems', amount: refund,
-              causeKey: 'gacha.c6-duplicate-refund', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel: SourceChannel.UI,
+              causeKey: 'gacha.c6-duplicate-refund', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel,
             });
             if (resolved.outcome.rarity === 5) {
               const progression = await this.c6.progress(transaction, input.playerId, resolved.outcome.character.id, input.now, input.random);
@@ -244,7 +246,7 @@ export class PrismaGachaStore implements GachaStore {
                 bonusRewards.push({ resourceKey: 'moras', amount: progression.amount, causeKey: 'gacha.c6-maxed-compensation' });
                 await this.economy.credit(transaction, {
                   playerId: input.playerId, playerElementKey: input.playerElementKey, resourceKey: 'moras', amount: progression.amount,
-                  causeKey: 'gacha.c6-maxed-compensation', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel: SourceChannel.UI,
+                  causeKey: 'gacha.c6-maxed-compensation', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel,
                 });
               }
             }
@@ -262,7 +264,7 @@ export class PrismaGachaStore implements GachaStore {
           const xpGrant = await this.xp.grant(transaction, {
             playerId: input.playerId, playerElementKey: input.playerElementKey,
             amount: BigInt(activeTeam.effects.xpReward.amount), source: 'team.passive.cryo', now: input.now,
-            operationId: businessOperation.id, sourceChannel: SourceChannel.UI, random: input.random,
+            operationId: businessOperation.id, sourceChannel, random: input.random,
           });
           passiveEffects.push({
             elementKey: 'cryo', type: 'xp', amount: xpGrant.amount, xpAfter: xpGrant.stateAfter.xp,
@@ -281,7 +283,7 @@ export class PrismaGachaStore implements GachaStore {
           const amount = BigInt(activeTeam.effects.primogemRecovery.amount);
           await this.economy.credit(transaction, {
             playerId: input.playerId, playerElementKey: input.playerElementKey, resourceKey: 'primogems', amount,
-            causeKey: 'team.passive.anemo.primogem-recovery', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel: SourceChannel.UI,
+            causeKey: 'team.passive.anemo.primogem-recovery', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel,
           });
           bonusRewards.push({ resourceKey: 'primogems', amount, causeKey: 'team.passive.anemo.primogem-recovery' });
           passiveEffects.push({ elementKey: 'anemo', type: 'primogem_recovery', amount });
@@ -293,7 +295,7 @@ export class PrismaGachaStore implements GachaStore {
             await this.economy.credit(transaction, {
               playerId: input.playerId, playerElementKey: input.playerElementKey,
               resourceKey: reward.resourceKey, amount: reward.amount,
-              causeKey: 'team.passive.dendro.bundle', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel: SourceChannel.UI,
+              causeKey: 'team.passive.dendro.bundle', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel,
             });
             bonusRewards.push({ ...reward, causeKey: 'team.passive.dendro.bundle' });
           }
@@ -321,7 +323,7 @@ export class PrismaGachaStore implements GachaStore {
         amount: BigInt(input.count),
         now: input.now,
         operationId: businessOperation.id,
-        sourceChannel: SourceChannel.UI,
+        sourceChannel,
       });
       await transaction.businessOperation.update({ where: { id: businessOperation.id }, data: {
         status: OperationStatus.COMPLETED, completedAt: input.now,
@@ -330,12 +332,13 @@ export class PrismaGachaStore implements GachaStore {
       return { operation: { id: pullOperation.id, pullCount: input.count, primogemCost: cost, createdAt: input.now, alreadyProcessed: false }, results: records, playerState };
     }, {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-      timeout: 20_000,
+      // A ten-pull can persist many passive rewards in the same atomic operation.
+      timeout: input.count === 10 ? 60_000 : 20_000,
     });
   }
 
-  private async findPersistedPull(playerId: string, operationKey: string, count: GachaPullInput['count']) {
-    const operation = await this.database.businessOperation.findFirst({ where: { playerId, sourceChannel: SourceChannel.UI, idempotencyKey: operationKey }, select: { id: true } });
+  private async findPersistedPull(playerId: string, operationKey: string, count: GachaPullInput['count'], sourceChannel: SourceChannel) {
+    const operation = await this.database.businessOperation.findFirst({ where: { playerId, sourceChannel, idempotencyKey: operationKey }, select: { id: true } });
     return operation ? this.readPersistedPull(this.database, operation.id, count, true) : null;
   }
 

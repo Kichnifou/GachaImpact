@@ -53,6 +53,8 @@ import { EventService } from '../application/event/event-service.js';
 import { TradeService } from '../application/trades/trade-service.js';
 import { TradeScheduler } from '../application/trades/trade-scheduler.js';
 import { GlobalChatService } from '../application/chat/global-chat-service.js';
+import { ChatCommandDispatcher } from '../application/chat/chat-command-dispatcher.js';
+import { SourceChannel } from '../../generated/prisma/client.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
   if (!config.databaseUrl) {
@@ -89,7 +91,7 @@ export function createRuntimeDependencies(config: AppConfig) {
   const giftCodeScheduler = new GiftCodeScheduler(giftCodeService);
   const eventService = new EventService(getCurrentPlayer, database, clock, random, giftCodeService);
 
-  return {
+  const dependencies = {
     globalChatService,
     tradeService,
     tradePlayer: getCurrentPlayer,
@@ -116,6 +118,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     bannerVotes: new BannerVoteService(getCurrentPlayer, database, clock),
     setGachaTarget: new SetGachaTarget(getCurrentPlayer, gachaStore),
     performGachaPull: new PerformGachaPull(getCurrentPlayer, gachaStore, clock, random),
+    performGachaPullChat: new PerformGachaPull(getCurrentPlayer, gachaStore, clock, random, SourceChannel.INTERNAL_CHAT),
     getGachaHistory: new GetGachaHistory(getCurrentPlayer, gachaStore),
     getCurrentPlayerBox: new GetCurrentPlayerBox(getCurrentPlayer, boxStore),
     setBoxCharacterFavorite: new SetBoxCharacterFavorite(getCurrentPlayer, boxStore),
@@ -135,9 +138,12 @@ export function createRuntimeDependencies(config: AppConfig) {
     getPlayerBankHistory: new GetPlayerBankHistory(getCurrentPlayer, bankingStore),
     depositPlayerBank: new TransferPlayerBank('deposit', getCurrentPlayer, bankingStore, clock),
     withdrawPlayerBank: new TransferPlayerBank('withdraw', getCurrentPlayer, bankingStore, clock),
+    depositPlayerBankChat: new TransferPlayerBank('deposit', getCurrentPlayer, bankingStore, clock, 'CHAT'),
+    withdrawPlayerBankChat: new TransferPlayerBank('withdraw', getCurrentPlayer, bankingStore, clock, 'CHAT'),
     getCurrentPlayerInventory: new GetCurrentPlayerInventory(getCurrentPlayer, inventoryStore),
     getCurrentPlayerInventoryItemDetail: new GetCurrentPlayerInventoryItemDetail(getCurrentPlayer, inventoryStore),
     convertPersonalParticles: new ConvertPersonalParticles(getCurrentPlayer, dailyChallengeStore, clock),
+    convertPersonalParticlesChat: new ConvertPersonalParticles(getCurrentPlayer, dailyChallengeStore, clock, SourceChannel.INTERNAL_CHAT),
     getDailyChallenge: new GetDailyChallenge(getCurrentPlayer, dailyChallengeStore, clock),
     purchaseDailyChallenge: new PurchaseDailyChallenge(getCurrentPlayer, dailyChallengeStore, clock, random),
     switchDailyChallenge: new SwitchDailyChallenge(getCurrentPlayer, dailyChallengeStore, clock, random),
@@ -145,6 +151,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     getCurrentPlayerShop: new GetCurrentPlayerShop(getCurrentPlayer, shopStore),
     getPlayerShopHistory: new GetPlayerShopHistory(getCurrentPlayer, shopStore),
     purchaseShopItem: new PurchaseShopItem(getCurrentPlayer, shopStore, clock),
+    purchaseShopItemChat: new PurchaseShopItem(getCurrentPlayer, shopStore, clock, SourceChannel.INTERNAL_CHAT),
     navigationPreferences: new NavigationPreferencesService(getCurrentPlayer, new PrismaNavigationPreferenceStore(database)),
     dailyCombatService: new CombatService(getCurrentPlayer, dailyCombatStore, clock),
     monthlyBossService,
@@ -157,6 +164,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     start: async () => { await tradeScheduler.start(); await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); await giftCodeScheduler.start(); contestScheduler.start(); },
     close: async () => { scheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); giftCodeScheduler.stop(); await tradeScheduler.stop(); await contestScheduler.stop(); await database.$disconnect(); },
   };
+  return { ...dependencies, chatCommandDispatcher: new ChatCommandDispatcher(globalChatService, dependencies) };
 }
 
 function resolveSupabaseIssuer(config: AppConfig): string {

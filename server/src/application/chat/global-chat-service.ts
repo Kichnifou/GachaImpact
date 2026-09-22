@@ -14,7 +14,7 @@ const invalid = (message: string) => new AppError(message, 400, 'CHAT_INVALID');
 const unavailable = () => new AppError('Ce message est indisponible.', 404, 'CHAT_UNAVAILABLE');
 const conflict = () => new AppError('Cette clé appartient à un autre message.', 409, 'CHAT_IDEMPOTENCY_CONFLICT');
 export type ChatCursor = { createdAt: string; id: string };
-type ChatOperationSummary = { fingerprint: string; messageId?: string; xpGranted?: number };
+type ChatOperationSummary = { fingerprint: string; messageId?: string; xpGranted?: number; resolvedQuantity?: string };
 const messageInclude = { author: { select: { id: true, displayName: true } }, replyToMessage: { select: { id: true, content: true, deletionState: true } } } as const;
 
 function normalize(content: string) {
@@ -33,7 +33,8 @@ function project(row: {
 }) {
   const deleted = row.deletionState !== GlobalChatDeletionState.ACTIVE;
   return {
-    id: row.id, author: row.author, sourceChannel: row.sourceChannel, messageType: row.messageType,
+    id: row.id, author: row.author, authorLabel: row.messageType === GlobalChatMessageType.GAME_RESULT ? 'GachaImpact' : row.author?.displayName ?? null,
+    sourceChannel: row.sourceChannel, messageType: row.messageType,
     content: deleted ? null : row.content, createdAt: row.createdAt.toISOString(),
     deletedAt: row.deletedAt?.toISOString() ?? null, deletionState: row.deletionState,
     replyToMessageId: row.replyToMessageId,
@@ -108,6 +109,71 @@ export class GlobalChatService {
       await this.activity.record(tx, player.id, now, 'INTERNAL_CHAT');
       await tx.businessOperation.update({ where: { id: operation.id }, data: { status: 'COMPLETED', completedAt: now, resultSummary: { fingerprint, messageId: message.id, xpGranted } } });
       return { message: project(message), xpGranted, replayed: false };
+    });
+  }
+
+  /** Backend-only public result. The command message ID is the durable delivery key. */
+  async findGameResult(commandMessageId: string) {
+    const row = await this.database.globalChatMessage.findUnique({
+      where: { sourceChannel_externalMessageId: { sourceChannel: 'SYSTEM', externalMessageId: `command:${commandMessageId}` } },
+      include: messageInclude,
+    });
+    return row ? project(row) : null;
+  }
+
+  /** A completed domain operation must be replayed, even if formatting its first reply failed. */
+  async hasConfirmedCommandMutation(commandMessageId: string) {
+    const command = await this.database.globalChatMessage.findUnique({
+      where: { id: commandMessageId }, select: { authorPlayerId: true, messageType: true, sourceChannel: true },
+    });
+    if (command?.messageType !== 'COMMAND' || command.sourceChannel !== 'INTERNAL_CHAT' || !command.authorPlayerId) return false;
+    const operation = await this.database.businessOperation.findFirst({
+      where: {
+        playerId: command.authorPlayerId, sourceChannel: 'INTERNAL_CHAT', status: 'COMPLETED',
+        operationType: { in: ['gacha.pull', 'shop.purchase', 'bank.deposit', 'bank.withdraw', 'particles.convert', 'gift-code.claim'] },
+        OR: [{ idempotencyKey: commandMessageId }, { idempotencyKey: { endsWith: `:${commandMessageId}` } }],
+      }, select: { id: true },
+    });
+    return operation !== null;
+  }
+
+  async publishGameResult(commandMessageId: string, content: string) {
+    const parent = await this.database.globalChatMessage.findUnique({ where: { id: commandMessageId }, select: { messageType: true, sourceChannel: true } });
+    if (parent?.messageType !== 'COMMAND' || parent.sourceChannel !== 'INTERNAL_CHAT') throw unavailable();
+    const value = content.trim();
+    if (!value || /[\r\n\u2028\u2029]/u.test(value) || Array.from(value).length > 500) throw invalid('Résultat Chat invalide.');
+    const existing = await this.findGameResult(commandMessageId);
+    if (existing) return { message: existing, replayed: true };
+    try {
+      const row = await this.database.globalChatMessage.create({
+        data: { authorPlayerId: null, sourceChannel: 'SYSTEM', messageType: 'GAME_RESULT', content: value,
+          externalMessageId: `command:${commandMessageId}`, replyToMessageId: commandMessageId },
+        include: messageInclude,
+      });
+      return { message: project(row), replayed: false };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        const published = await this.findGameResult(commandMessageId);
+        if (published) return { message: published, replayed: true };
+      }
+      throw error;
+    }
+  }
+
+  /** Freeze a computed MAX amount before the domain mutation, including across workers. */
+  async rememberCommandQuantity(commandMessageId: string, proposed: bigint): Promise<bigint> {
+    return this.database.$transaction(async tx => {
+      const rows = await tx.$queryRaw<{ result_summary: ChatOperationSummary }[]>`
+        SELECT o.result_summary FROM business_operations o
+        JOIN global_chat_messages m ON m.operation_id = o.id
+        WHERE m.id = ${commandMessageId}::uuid AND m.message_type = 'COMMAND'::global_chat_message_type
+        FOR UPDATE OF o`;
+      const summary = rows[0]?.result_summary;
+      if (!summary || summary.messageId !== commandMessageId) throw unavailable();
+      if (summary.resolvedQuantity !== undefined) return BigInt(summary.resolvedQuantity);
+      const row = await tx.globalChatMessage.findUniqueOrThrow({ where: { id: commandMessageId }, select: { operationId: true } });
+      await tx.businessOperation.update({ where: { id: row.operationId! }, data: { resultSummary: { ...summary, resolvedQuantity: proposed.toString() } } });
+      return proposed;
     });
   }
 

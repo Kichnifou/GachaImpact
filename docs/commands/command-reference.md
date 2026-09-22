@@ -2,6 +2,8 @@
 
 Statut : CONSOLIDÉ APRÈS SWEEPS LEGACY — 37 scripts + 17 JSON vérifiés.
 
+État physique du candidat orchestrateur Chat interne (serveur seulement, avant review/promotion) : les racines `help`, `banniere`, `pity`, `pull` (x1/x10), `box`, `team` (consultation), `banque`, `convertir`, `sac`, `coffre`, `shop`, `infos`, `liste`, `code`, `event` (consultation/top), `expedition` (consultation), `concours` (consultation), `combat` (consultation/info/stat/boss) et `quotis` sont branchées aux services existants. `element`, `echanger`, `select`, `vote`, `obtention`, `stella`, `top`, `passifs`, `roue` et `ami` restent auditées mais non branchées ; `legende`, `mission` et `faveur` attendent leur domaine physique ; `giveaway` et `wish` restent Twitch uniquement. Cette disponibilité partielle ne modifie aucune syntaxe ou règle métier cible ci-dessous. Le `ChatPanel` et les routes Chat navigateur restent inactifs.
+
 Ce fichier deviendra la base documentaire de la future section **Aide / Commandes** intégrée à GachaImpact.
 
 ## Règle d'audit
@@ -219,6 +221,7 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 - **Statut audit :** Audité — domaine Gacha / Invocation clôturé après R116
 - **But :** Exécuter une ou plusieurs invocations.
 - **Syntaxes :** `!pull`, `!pull <1..10>`
+- **Adaptateur Chat interne candidat :** x1 et x10 uniquement, seuls volumes acceptés par le service moderne actuel ; les autres volumes cibles restent à brancher sans réécrire le moteur Gacha.
 - **Bouton UI équivalent :** `Invocation x1` / `Invocation x10`
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
@@ -517,7 +520,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Modification :** récompenses/token/type verrouillés après le premier claim
 - **Atomicité :** claim + récompenses dans une seule opération serveur idempotente
 - **Migration :** conserver les douze définitions Event et tous les `usedCodes` sans repayer les anciens claims
-- **État physique 0.97 :** écran `#codes`, service de claim, notifications et administration ADMIN implémentés ; les commandes chat/Twitch et l’import legacy `usedCodes` restent non implémentés et devront réutiliser ce même service.
+- **État physique :** écran `#codes`, service de claim, notifications et administration ADMIN implémentés ; consultation et claim Chat interne candidats réutilisent ce service. Twitch et l’import legacy `usedCodes` restent non implémentés.
 
 ## `!event`
 
@@ -623,7 +626,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 
 ## `!banque`
 - **Statut audit :** Audité — Domaine Banque clôturé après R255
-- **Statut implémentation 0.73 :** écran, cache de session et API personnelles, dont historique paginé, réels ; commandes chat GachaImpact/Twitch non encore branchées. Le futur parseur devra appeler les mêmes services de consultation/dépôt/retrait, avec son canal d'origine.
+- **Statut implémentation :** écran, cache de session et API personnelles, dont historique paginé, réels ; consultation/dépôt/retrait Chat interne candidats appellent les mêmes services avec `INTERNAL_CHAT`. Twitch reste non branché.
 - **But :** Consulter et transférer les Moras entre portefeuille et Banque.
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
@@ -657,7 +660,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
 - **UI équivalente :** écran Sac
-- **Statut implémentation UI 0.74 :** écran Sac personnel réel branché sur l'agrégat serveur ; la future commande chat/Twitch reste non implémentée et devra appeler les mêmes sources/services.
+- **Statut implémentation :** écran Sac personnel réel branché sur l'agrégat serveur ; la consultation Chat interne candidate appelle ce même agrégat. Twitch reste non branché.
 - **UI actuelle :** catégories `Tout` / `Ressources` / `Objets` / `Collection`; la carte Moras entière navigue vers Banque et indique discrètement `Accéder à la Banque`; Stella réutilise le flux Box/Team commun.
 - **Profil ciblé :** propriétaire uniquement ; pas de `!sac <pseudo>`
 - **Contenu :** Primogemmes, invocations possibles dérivées, Moras, sept particules, objets spéciaux persistants possédés
@@ -996,7 +999,7 @@ Les aides ne recommandent qu'une seule syntaxe canonique.
 
 ## `!infos`
 
-État physique Batch B : Profil UI standalone implémenté pour Aperçu/Team active/Box/Collection/Statistiques selon permissions. La commande reste future ; aucun Chat/Twitch réel n'est branché.
+État physique : Profil UI standalone implémenté pour Aperçu/Team active/Box/Collection/Statistiques selon permissions. `!infos` Chat interne candidat consulte ce service et les données d'amitié du demandeur ; Twitch reste non branché.
 
 - **Statut audit :** CLÔTURÉ — R471/R489/R490/R525
 - **Syntaxe canonique :** `!infos <pseudo>`
@@ -1013,7 +1016,7 @@ Les aides ne recommandent qu'une seule syntaxe canonique.
 
 ## `!liste`
 
-État physique Batch B : annuaire UI et présence standalone implémentés. Les commandes ci-dessous restent des contrats futurs, sans exécution Chat/Twitch dans ce lot.
+État physique : annuaire UI et présence standalone implémentés. `!liste` Chat interne candidat consulte les mêmes données et applique les mêmes permissions ; Twitch reste non branché.
 
 - **Statut audit :** CLÔTURÉ — R462/R464/R472/R523/R524
 - **Élément :** `!liste <élément> [page]`

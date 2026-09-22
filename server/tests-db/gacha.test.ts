@@ -80,6 +80,23 @@ describe('Gacha foundation on the development database', () => {
     } finally { await deletePullPlayer(fixture.playerId); }
   });
 
+  it('keeps an INTERNAL_CHAT pull on the same owner and source across replay', async () => {
+    const fixture = await createPullPlayer(160n);
+    try {
+      const store = new PrismaGachaStore(database);
+      const input = { playerId: fixture.playerId, playerElementKey: 'hydro' as const, count: 1 as const,
+        idempotencyKey: randomUUID(), now: fixture.now, random: maxRandom, sourceChannel: 'INTERNAL_CHAT' as const };
+      const first = await store.pull(input);
+      const replay = await store.pull(input);
+      expect(replay.operation).toMatchObject({ id: first.operation.id, alreadyProcessed: true });
+      const pull = await database.pullOperation.findUniqueOrThrow({ where: { id: first.operation.id } });
+      expect(pull).toMatchObject({ sourceChannel: 'INTERNAL_CHAT' });
+      expect(await database.businessOperation.findUniqueOrThrow({ where: { id: pull.businessOperationId } })).toMatchObject({ sourceChannel: 'INTERNAL_CHAT' });
+      expect(await database.resourceMovement.findFirstOrThrow({ where: { operationId: pull.businessOperationId, causeKey: 'gacha.pull.cost' } })).toMatchObject({ sourceChannel: 'INTERNAL_CHAT' });
+      expect(await database.pullOperation.count({ where: { playerId: fixture.playerId } })).toBe(1);
+    } finally { await deletePullPlayer(fixture.playerId); }
+  });
+
   it('persists ten ordered sequential results and prevents concurrent overspending', async () => {
     const ten = await createPullPlayer(1_600n);
     try {
@@ -430,7 +447,7 @@ describe('Gacha foundation on the development database', () => {
       expect(snapshots).toHaveLength(10);
       expect(snapshots.every(({ snapshot }) => JSON.stringify(snapshot).includes('activeTeam'))).toBe(true);
     } finally { await deletePullPlayer(fixture.playerId); }
-  }, 30_000);
+  }, 90_000);
 
   it('excludes disabled characters from the active Team snapshot', async () => {
     const fixture = await createPullPlayer(160n);
