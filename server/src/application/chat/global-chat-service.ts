@@ -394,12 +394,20 @@ export class GlobalChatService {
   async searchMentions(identity: AuthenticatedIdentity, query: string) {
     const viewer = await this.actor(identity);
     const needle = normalizePlayerSearch(query);
-    if (!needle || needle.length > 100) return { players: [] };
+    if (needle.length > 100) return { players: [] };
     const blocked = await this.database.playerBlock.findMany({ where: { OR: [{ blockerPlayerId: viewer.id }, { blockedPlayerId: viewer.id }] }, select: { blockerPlayerId: true, blockedPlayerId: true } });
     const excluded = new Set([viewer.id, ...blocked.map(row => row.blockerPlayerId === viewer.id ? row.blockedPlayerId : row.blockerPlayerId)]);
     const players = await this.database.player.findMany({ where: { status: 'ACTIVE', id: { notIn: [...excluded] } }, select: { id: true, displayName: true, elementKey: true } });
-    return { players: players.filter(row => normalizePlayerSearch(row.displayName).includes(needle))
-      .sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr', { sensitivity: 'base' })).slice(0, 8) };
+    const candidates = players.filter(row => normalizePlayerSearch(row.displayName).includes(needle));
+    if (needle) return { players: candidates.sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr', { sensitivity: 'base' })).slice(0, 8) };
+    const [recentMessages, sessions] = await Promise.all([
+      this.database.globalChatMessage.findMany({ where: { authorPlayerId: { not: null }, deletionState: 'ACTIVE' }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 50, select: { authorPlayerId: true } }),
+      this.database.playerSession.findMany({ where: { playerId: { notIn: [...excluded] }, endedAt: null, lastHeartbeatAt: { gt: new Date(this.clock().getTime() - 180_000) } }, orderBy: { lastHeartbeatAt: 'desc' }, take: 50, select: { playerId: true } }),
+    ]);
+    const rank = new Map<string, number>();
+    for (const row of recentMessages) if (row.authorPlayerId && !rank.has(row.authorPlayerId)) rank.set(row.authorPlayerId, rank.size);
+    for (const row of sessions) if (!rank.has(row.playerId)) rank.set(row.playerId, 100 + rank.size);
+    return { players: candidates.sort((a, b) => (rank.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (rank.get(b.id) ?? Number.MAX_SAFE_INTEGER) || a.displayName.localeCompare(b.displayName, 'fr', { sensitivity: 'base' })).slice(0, 5) };
   }
 
   async report(identity: AuthenticatedIdentity, messageId: string) {

@@ -80,6 +80,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const [reply, setReply] = useState<ChatMessageDto | null>(null)
   const [mentions, setMentions] = useState<ChatMentionDto[]>([])
   const [suggestions, setSuggestions] = useState<{ id: string; displayName: string; elementKey: string | null }[]>([])
+  const [suggestionIndex, setSuggestionIndex] = useState(0)
   const [commandPending, setCommandPending] = useState(false)
   const [ambiguousIntents, setAmbiguousIntents] = useState<Intent[]>([])
   const [failedIntents, setFailedIntents] = useState<FailedIntent[]>([])
@@ -102,6 +103,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const deferredLatest = useRef(false)
   const unseenIds = useRef(new Set<string>())
   const initialScrollPending = useRef(true)
+  const composer = useRef<HTMLInputElement>(null)
 
   const adoptGeneration = useCallback((value: number, snapshot: ChatMessageDto[], nextCursor: { createdAt: string; id: string } | null, isLoaded: boolean, nextUnread = 0) => {
     generation.current = value
@@ -244,9 +246,9 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const onScroll = () => { if (!list.current || initialScrollPending.current) return; atBottom.current = list.current.scrollHeight - list.current.scrollTop - list.current.clientHeight < 80; if (atBottom.current) { if (deferredLatest.current) scrollBottom(); else { setNewCount(0); markRecent() } } if (list.current.scrollTop < 90) void loadOlder() }
 
   useEffect(() => {
-    const match = draft.match(/(?:^|\s)@([^\s@]+)$/u), version = ++searchVersion.current
+    const match = draft.match(/(?:^|\s)@([^\s@]*)$/u), version = ++searchVersion.current
     if (!match) return
-    const timer = setTimeout(() => { void api.mentions(match[1]!).then(value => { if (version === searchVersion.current) setSuggestions(value.players) }).catch(() => { if (version === searchVersion.current) setSuggestions([]) }) }, 220)
+    const timer = setTimeout(() => { void api.mentions(match[1]!).then(value => { if (version === searchVersion.current) { setSuggestions(value.players.slice(0, 5)); setSuggestionIndex(0) } }).catch(() => { if (version === searchVersion.current) setSuggestions([]) }) }, match[1] ? 220 : 0)
     return () => clearTimeout(timer)
   }, [api, draft])
   useEffect(() => {
@@ -318,6 +320,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     queueMicrotask(() => void submitIntent(next))
   }
 
+  const focusComposer = () => requestAnimationFrame(() => { composer.current?.focus(); composer.current?.setSelectionRange(composer.current.value.length, composer.current.value.length) })
   const recoverFailed = () => {
     const first = failedIntents[0]
     if (!first || draft) return
@@ -326,6 +329,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     setMentions(first.mentions)
     setFailedIntents(current => current.filter(item => item.key !== first.key))
     setError(null)
+    focusComposer()
   }
 
   const remove = async (id: string) => {
@@ -348,7 +352,8 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   }
   const report = async (id: string) => { try { await api.report(id); setReportId(null); setFeedback('Signalement envoyé.'); setTimeout(() => setFeedback(null), 3000) } catch (cause) { setError(cause instanceof Error ? cause.message : 'Signalement indisponible.') } }
   const hide = (id: string) => { const next = hidden.includes(id) ? hidden.filter(item => item !== id) : [...hidden, id]; setHidden(next); sessionStorage.setItem(`chat.hidden.${playerId}`, JSON.stringify(next)); setMenuId(null); (document.activeElement as HTMLElement | null)?.blur() }
-  const mention = (person: { id: string; displayName: string }) => { setDraft(value => value.replace(/@[^\s@]*$/u, `@${person.displayName} `)); setMentions(value => [...value.filter(item => item.playerId !== person.id), { playerId: person.id, displayName: person.displayName }]); setSuggestions([]) }
+  const mention = (person: { id: string; displayName: string }) => { setDraft(value => value.replace(/@[^\s@]*$/u, `@${person.displayName} `)); setMentions(value => [...value.filter(item => item.playerId !== person.id), { playerId: person.id, displayName: person.displayName }]); setSuggestions([]); focusComposer() }
+  const copy = async (message: ChatMessageDto) => { try { await navigator.clipboard.writeText(message.content ?? ''); setFeedback('Message copié.') } catch { setError('Copie indisponible.') } }
 
   if (isCollapsed) return <aside className="chat-panel collapsed" aria-label="Chat global replié"><button type="button" className="chat-expand-button" onClick={onToggle} aria-label={`Afficher le chat global, ${unread} non lus`}><span aria-hidden="true">‹</span><strong>Chat</strong>{unread > 0 && <span className="unread-count">{unread > 99 ? '99+' : unread}</span>}</button></aside>
   return <aside className="chat-panel panel" aria-label="Chat global">
@@ -366,8 +371,8 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
         const canMask = canMention
         const canAct = canReply || canDelete || canMention || canReport || canMask
         const avatarStyle = message.author?.elementKey && message.author.elementKey in elementColors ? { '--chat-avatar-color': elementColors[message.author.elementKey as keyof typeof elementColors] } as CSSProperties : undefined
-        const replyTo = () => { setReply(message); setMenuId(null) }
-        const mentionAuthor = () => { if (!message.author) return; setDraft(value => `${value}${value && !value.endsWith(' ') ? ' ' : ''}@${message.author!.displayName} `); setMentions(value => [...value, { playerId: message.author!.id, displayName: message.author!.displayName }]); setMenuId(null) }
+        const replyTo = () => { setReply(message); setMenuId(null); focusComposer() }
+        const mentionAuthor = () => { if (!message.author) return; setDraft(value => `${value}${value && !value.endsWith(' ') ? ' ' : ''}@${message.author!.displayName} `); setMentions(value => [...value, { playerId: message.author!.id, displayName: message.author!.displayName }]); setMenuId(null); focusComposer() }
         return <article className={`chat-message${message.mentionedMe || message.repliedToMe ? ' chat-message-mentioned' : ''}${optimistic ? ' chat-message-optimistic' : ''}`} data-command={optimistic && message.messageType === 'COMMAND' ? 'true' : undefined} data-hover-suppressed={suppressedHoverId === message.id ? 'true' : undefined} onPointerLeave={() => setSuppressedHoverId(current => current === message.id ? null : current)} key={message.id}>
           {game ? <div className="message-avatar chat-game-avatar" aria-hidden="true">✦</div> : <button type="button" className="message-avatar chat-avatar-button" style={avatarStyle} aria-label={`Profil de ${message.authorLabel}`} onClick={() => message.author && onOpenProfile(message.author.id)}>{message.authorLabel?.slice(0, 1).toLocaleUpperCase('fr-FR')}</button>}
           <div className="message-content"><div className="message-meta">{game ? <strong className="chat-game-label">GachaImpact</strong> : <button type="button" className="chat-author-button" onClick={() => message.author && onOpenProfile(message.author.id)}>{message.authorLabel}</button>}<time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time></div>
@@ -376,6 +381,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
             {canAct && <><div className="chat-message-actions" aria-label={`Actions pour le message de ${message.authorLabel}`} onClickCapture={event => { if (event.detail) { setSuppressedHoverId(message.id); (document.activeElement as HTMLElement | null)?.blur() } }}>
               {canReply && <button type="button" title="Répondre" aria-label="Répondre" onClick={replyTo}>↩</button>}
               {canMention && <button type="button" title="Mentionner" aria-label="Mentionner" onClick={mentionAuthor}>@</button>}
+              {message.content && <button type="button" title="Copier le message" aria-label="Copier le message" onClick={() => void copy(message)}>⧉</button>}
               {canReport && <button type="button" title="Signaler" aria-label="Signaler" onClick={() => setReportId(message.id)}>⚑</button>}
               {canMask && <button type="button" title={hidden.includes(message.author!.id) ? 'Démasquer ce joueur' : 'Masquer ce joueur'} aria-label={hidden.includes(message.author!.id) ? 'Démasquer ce joueur' : 'Masquer ce joueur'} onClick={() => hide(message.author!.id)}>◌</button>}
               {canDelete && <button type="button" title="Supprimer" aria-label="Supprimer" onClick={() => void remove(message.id)}>×</button>}
@@ -388,13 +394,13 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
       })}</div>
     {newCount > 0 && <button type="button" className="chat-new-messages" onClick={scrollBottom}>{newCount} nouveau{newCount > 1 ? 'x' : ''} message{newCount > 1 ? 's' : ''} ↓</button>}
     <div className="chat-composer-wrap">
-      {!!suggestions.length && <div className="chat-mention-suggestions" role="listbox" aria-label="Joueurs à mentionner">{suggestions.map(person => <button type="button" role="option" aria-selected={false} key={person.id} onClick={() => mention(person)}>{person.displayName}</button>)}</div>}
+      {!!suggestions.length && <div className="chat-mention-suggestions" role="listbox" aria-label="Joueurs à mentionner">{suggestions.map((person, index) => <button type="button" role="option" aria-selected={index === suggestionIndex} className={index === suggestionIndex ? 'selected' : undefined} key={person.id} onMouseDown={event => event.preventDefault()} onClick={() => mention(person)}>{person.displayName}</button>)}</div>}
       <div className="chat-composer-accessory">{reply && <div className="chat-composer-reply">Réponse à {reply.authorLabel}<button type="button" onClick={() => setReply(null)} aria-label="Annuler la réponse">×</button></div>}
         {!!failedIntents.length && <div className="chat-status chat-error chat-failed-status" role="alert"><span title={`${failedIntents[0]!.reason} — ${failedIntents[0]!.content}`}>{failedIntents.length > 1 ? `${failedIntents.length} envois refusés : ` : 'Envoi refusé : '}{failedIntents[0]!.content}</span><button type="button" disabled={commandPending} onClick={() => void submitIntent(failedIntents[0]!)}>Réessayer</button><button type="button" disabled={commandPending || !!draft} title={draft ? 'Terminer le brouillon courant pour récupérer ce message' : undefined} onClick={recoverFailed}>Récupérer</button></div>}
         {!!ambiguousIntents.length && !failedIntents.length && <div className="chat-status">{ambiguousIntents.length === 1 ? 'Envoi non confirmé.' : `${ambiguousIntents.length} envois non confirmés.`} <button type="button" disabled={commandPending} onClick={() => void submitIntent(ambiguousIntents[0]!)}>Réessayer</button></div>}
         {error && !ambiguousIntents.length && !failedIntents.length && <p className="chat-status chat-error" role="alert">{error}</p>}{feedback && !error && !ambiguousIntents.length && !failedIntents.length && <p className="chat-status" role="status">{feedback}</p>}
       </div>
-      <form className="chat-composer" autoComplete="off" onSubmit={send}><label className="sr-only" htmlFor="chat-message">Écrire un message</label><input id="chat-message" name="chat-composer-current-message" autoComplete="off" type="text" value={draft} onChange={event => { const value = Array.from(event.target.value).slice(0, 500).join(''); setDraft(value); setSuggestions([]); setMentions(current => current.filter(item => value.includes(`@${item.displayName}`))) }} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} maxLength={1000} placeholder="Écrire un message…" /><button type="submit" disabled={!draft.trim() || (draft.trim().startsWith('!') && commandPending)} aria-label="Envoyer le message"><span className="icon-glyph">➤</span></button></form>
+      <form className="chat-composer" autoComplete="off" onSubmit={send}><label className="sr-only" htmlFor="chat-message">Écrire un message</label><input ref={composer} id="chat-message" name="chat-composer-current-message" autoComplete="off" type="text" value={draft} onChange={event => { const value = Array.from(event.target.value).slice(0, 500).join(''); setDraft(value); setSuggestions([]); setMentions(current => current.filter(item => value.includes(`@${item.displayName}`))) }} onKeyDown={event => { if (suggestions.length && ['ArrowDown', 'ArrowUp', 'Tab', 'Escape'].includes(event.key)) { event.preventDefault(); if (event.key === 'ArrowDown') setSuggestionIndex(index => (index + 1) % suggestions.length); else if (event.key === 'ArrowUp') setSuggestionIndex(index => (index - 1 + suggestions.length) % suggestions.length); else if (event.key === 'Tab') mention(suggestions[suggestionIndex]!); else setSuggestions([]); return } if (event.key === 'Enter') { if (suggestions.length) { event.preventDefault(); mention(suggestions[suggestionIndex]!); return } event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} maxLength={1000} placeholder="Écrire un message…" /><button type="submit" disabled={!draft.trim() || (draft.trim().startsWith('!') && commandPending)} aria-label="Envoyer le message"><span className="icon-glyph">➤</span></button></form>
     </div>
   </aside>
 }

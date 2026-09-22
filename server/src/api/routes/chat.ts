@@ -11,7 +11,7 @@ const params = z.object({ messageId: uuid }).strict();
 const list = z.object({ limit: z.coerce.number().int().min(1).max(100).default(50), cursorCreatedAt: z.iso.datetime().optional(), cursorId: uuid.optional() }).strict();
 const send = z.object({ content: z.string().min(1).max(1000), idempotencyKey: uuid, replyToMessageId: uuid.nullish(), mentions: z.array(z.object({ playerId: uuid, displayName: z.string().min(1).max(100) }).strict()).max(10).optional() }).strict();
 const read = z.object({ messageId: uuid }).strict();
-const search = z.object({ q: z.string().min(1).max(100) }).strict();
+const search = z.object({ q: z.string().max(100) }).strict();
 const updates = z.object({ generation: z.number().int().min(0), cursorCreatedAt: z.iso.datetime().optional(), cursorId: uuid.optional(), knownIds: z.array(uuid).max(350).default([]) }).strict();
 function parse<T>(schema: z.ZodType<T>, value: unknown): T {
   const result = schema.safeParse(value);

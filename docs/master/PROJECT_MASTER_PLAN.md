@@ -1,8 +1,8 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : Lot réactivité/UX Chat global promu sur main ; déploiements et retest public final à vérifier ; MP encore non physique
+Version : Chat global promu et retesté ; mini-lot final de polish UX sur review ; MP encore non physique
 Date : 2026-09-22
-Statut : CHECKPOINT CHAT RÉACTIVITÉ/UX PROMU SUR MAIN ; DÉPLOIEMENTS ET VALIDATION PUBLIQUE EN ATTENTE
+Statut : CHAT GLOBAL PRESQUE VALIDÉ ; MINI-LOT POLISH UX ET VALIDATION PUBLIQUE FINALE EN ATTENTE
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
