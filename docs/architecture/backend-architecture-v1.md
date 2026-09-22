@@ -627,7 +627,7 @@ Une donnée privée ne doit jamais être envoyée au client pour être cachée e
 
 ## Chat global
 
-Le [contrat Chat global R872–R883](../specifications/global-chat-v1.md) fixe le comportement produit ; les MP gardent leur contrat Social R501–R522. Aucun service Chat/MP général n'existe physiquement à ce checkpoint.
+Le [contrat Chat global R872–R883](../specifications/global-chat-v1.md) fixe le comportement produit ; les MP gardent leur contrat Social R501–R522. La migration 032 et `GlobalChatService` matérialisent les fondations serveur du flux global, sans route player-facing ni branchement du `ChatPanel` mocké.
 
 Flux conceptuel cible :
 
@@ -636,7 +636,7 @@ Flux conceptuel cible :
 3. compteurs/XP éventuels et commande sont traités sans attribuer la réponse du jeu au joueur ;
 4. le mécanisme de diffusion retenu pour le lot rend le nouveau message disponible aux lecteurs, avec lecture progressive et non-lus autoritaires.
 
-Une commande reste un vrai message utilisateur public. Son exécution métier est séparée et produit un retour public `GachaImpact`, même en cas d'erreur ou de syntaxe invalide. Une action UI conserve son retour UI sauf règle produit spécialisée explicite. Les suppressions et signalements conservent les preuves nécessaires à la modération privée. Le transport exact, la rétention serveur et les seuils anti-rafale sont à préciser pour le premier lot physique ; aucune réponse privée de commande n'y est prévue.
+Une commande reste un vrai message utilisateur public. Le socle la classe et la stocke comme `COMMAND`, sans l'exécuter ; le prochain lot doit orchestrer son service métier et son retour public `GachaImpact`, même en cas d'erreur ou de syntaxe invalide. Une action UI conserve son retour UI sauf règle produit spécialisée explicite. Le service actuel verrouille le Player dans une transaction `SERIALIZABLE`, réutilise `BusinessOperation`, le moteur XP et `PlayerActivityRecorder`, et borne les envois à dix messages `PLAYER`/`COMMAND` sur dix secondes glissantes. La suppression auteur garde la ligne et masque son contenu dans le DTO ; le signalement et la modération restent futurs. Le transport et la rétention serveur restent à préciser au lot suivant ; aucune réponse privée de commande n'y est prévue.
 
 ## Présence
 

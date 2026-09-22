@@ -52,6 +52,7 @@ import { EventService } from '../application/event/event-service.js';
 
 import { TradeService } from '../application/trades/trade-service.js';
 import { TradeScheduler } from '../application/trades/trade-scheduler.js';
+import { GlobalChatService } from '../application/chat/global-chat-service.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
   if (!config.databaseUrl) {
@@ -67,6 +68,7 @@ export function createRuntimeDependencies(config: AppConfig) {
   const tradeService = new TradeService(database, clock);
   const tradeScheduler = new TradeScheduler(tradeService, clock);
   const random = new NodeRandomSource();
+  const globalChatService = new GlobalChatService(database, getCurrentPlayer, clock, random);
   const dailyRewardStore = new PrismaDailyRewardStore(database);
   const dailyChallengeStore = new PrismaDailyChallengeStore(database);
   const dailyCombatStore = new PrismaDailyCombatStore(database, { encounter: random, fight: random });
@@ -88,6 +90,7 @@ export function createRuntimeDependencies(config: AppConfig) {
   const eventService = new EventService(getCurrentPlayer, database, clock, random, giftCodeService);
 
   return {
+    globalChatService,
     tradeService,
     tradePlayer: getCurrentPlayer,
     authIdentityVerifier: createSupabaseAuthAdapter(issuer),

@@ -1,8 +1,8 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : Chat global cadré documentairement ; préparation Chat global + MP
-Date : 2026-09-21
-Statut : CHECKPOINT DOCUMENTAIRE CHAT GLOBAL APPROUVÉ ; PROMOTION `main` AUTORISÉE
+Version : Chat global + MP ; fondations serveur Chat global candidates sur `review`
+Date : 2026-09-22
+Statut : CANDIDAT PHYSIQUE CHAT GLOBAL LOT 1 ; REVIEW GITHUB À EFFECTUER
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
@@ -10,15 +10,15 @@ But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de compren
 ## Reprise rapide — état vivant
 
 - Référence PRODUIT publiquement testée : `c90d7aeb7ad8f1f4f7349644eeeaf33d86021191`. Ce checkpoint contient le dernier micro-polish Event réel et a été validé publiquement par le propriétaire.
-- Le checkpoint documentaire Chat global R872–R883, incluant la correction R460, a été reviewé indépendamment et approuvé. Son commit final de promotion sera présent sur `main` et `review` après fast-forward strict. Ce changement est strictement documentaire : il ne modifie aucun comportement produit, déploiement ni donnée. Les preuves Cloudflare, Railway et `/health` ne sont pas anticipées et restent à vérifier après le push `main` par ChatGPT. Batch C / Social demeure validé ; Noël naturel reste à observer en décembre.
+- Le checkpoint documentaire Chat global R872–R883, incluant la correction R460, est sur `main = review` à la base `e662ac7b62f71abc2be6096705804de2cd08456c` ; ChatGPT a rapporté Cloudflare Pages et Railway `SUCCESS`, `Application ready` et `/health` HTTP 200 sur cette base. Le présent Lot 1 physique sera candidat sur `review` seulement ; aucun déploiement ni test public de ce lot n'est encore revendiqué. Batch C / Social demeure validé ; Noël naturel reste à observer en décembre.
 - Échanges de particules et leurs corrections/polish sont **CLÔTURÉS PUBLIQUEMENT**. Création, réception, envoi, historique, stocks Total/Réservé/Disponible, recherche partenaires et fraîcheur après mutation, acceptation/refus/annulation/actions groupées, notifications PENDING et TRADE_ACCEPTED, accès depuis Conversion/Profil, performances et correction des faux échecs sont acquis et validés publiquement par le propriétaire. Les corrections Social, sidebar et Panier réalisées dans ce cycle sont également acquises. Le commit parallèle Story `1a0fca5` reste intact dans l'historique.
 - Le micro-polish Event final promu dans `c90d7ae` est **VALIDÉ PUBLIQUEMENT** : Récolte, Grenier et Panier ne répètent plus leur nom en grand titre ; la frise des paliers se rétracte et se rouvre, conserve le total de points visible, remonte le contenu inférieur et mémorise une préférence indépendante par Player après navigation et rechargement. Aucun blocker ne reste dans ce cycle.
-- Base DEV : **31 migrations Prisma** à jour ; dernière additive `20260921100000_031_add_particle_trades`, appliquée via Prisma. Migrations 001–030 intactes. Aucun seed économique, import legacy ou reset Privacy.
+- Base DEV : **32 migrations Prisma** à jour ; dernière additive `20260922070000_032_add_global_chat_foundations`, appliquée via Prisma et vérifiée par checksum, `prisma migrate status`, contraintes, RLS et grants. Migrations 001–031 intactes. Aucun seed économique, import legacy ou reset Privacy.
 - `PAID_INFRA_APPROVED = false`.
 - Activité transverse : `PlayerActivityRecorder` écrit atomiquement l'activité réelle de présence, les actions Amitié effectives et Game C réussi. Aucun GET, heartbeat technique, replay, scheduler ou destinataire passif ne produit d'activité. Les futurs domaines disposent de ce propriétaire réutilisable ; les autres domaines gameplay ne sont pas tous nouvellement branchés dans ce lot.
 - Nettoyage DEV terminé : uniquement `Codex Event 2f5fb3ad` et `Sender5 090faef4`, après inspection des FK et dépendances ; détail et UUID au checkpoint ci-dessous. Comptes protégés intacts, aucun import/reset.
-- Domaine actif : **Chat global + messages privés**. Le cadrage produit Chat global nécessaire au premier lot est validé dans [sa source spécialisée R872–R883](../specifications/global-chat-v1.md) et le [journal](../specifications/decisions-log.md). Les MP restent régis par Social R501–R522 et leurs sources existantes. Le `ChatPanel` est encore une coque V0 mockée ; aucune implémentation physique générale Chat/MP n'a commencé. Twitch réel reste reporté. Les réponses privées de commandes, les annonces globales automatiques et une extension des publications UI → Chat sont reportées au polish final ; R633/R634 restent différées vers Historique global.
-- Prochaine étape : après la promotion, ChatGPT vérifie le vrai `main = review`, les déploiements Cloudflare/Railway et `/health`. Il définit ensuite et prépare le premier lot physique Chat global + MP ; aucune implémentation n'est déclarée commencée avant ce futur lot.
+- Domaine actif : **Chat global + messages privés**. Le cadrage produit Chat global reste validé dans [R872–R883](../specifications/global-chat-v1.md) et le [journal](../specifications/decisions-log.md). Le Lot 1 matérialise les tables Chat global/read state et `GlobalChatService` : envoi joueur idempotent, totalMessages, XP/countedMessages selon éligibilité et cooldown, activité, anti-rafale, réponses relationnelles, lecture cursorisée, non-lus, marquage monotone et suppression auteur. Validation locale : 8 tests PostgreSQL Chat isolés, 274 tests backend, typecheck, build et lint ciblé réussis. Le `ChatPanel` reste une coque V0 mockée ; aucune API Chat player-facing, orchestration de commandes, MP physique ou pont Twitch. Les réponses privées de commandes, annonces globales automatiques et extension générale UI → Chat restent reportées au polish final ; R633/R634 restent différées vers Historique global.
+- Prochaine étape : review indépendante par ChatGPT du vrai candidat Lot 1 sur GitHub, puis promotion dédiée et contrôle des déploiements si approuvé. Après validation du lot, préparer le Lot 2 : API/transport et rafraîchissement, UI Chat réelle, non-lus, réponses, mentions, suppression, signalement et orchestration des commandes publiques avec les services métier existants. Aucun de ces parcours player-facing n'est déclaré commencé ou validé publiquement.
 - Lire [le workflow](../process/implementation-workflow.md), [le contrat Chat global](../specifications/global-chat-v1.md), [l'audit Social pour les MP](../legacy/14-ami-social-audit.md), [la navigation](../specifications/navigation-shell-v1.md) et le checkpoint ci-dessous. Les checkpoints antérieurs sont historiques et ne constituent pas une prochaine étape encore active.
 
 ---
@@ -476,7 +476,7 @@ Décisions :
 
 ## 3.5 Chat global
 
-Le [contrat Chat global V1](../specifications/global-chat-v1.md) porte désormais les décisions validées R872–R883. Le panneau desktop peut être replié et portera Chat/MP et leurs non-lus. Le flux global et les MP n'ont encore aucune implémentation physique générale ; la coque Chat actuelle est mockée. Twitch et son pont optionnel restent reportés.
+Le [contrat Chat global V1](../specifications/global-chat-v1.md) porte les décisions validées R872–R883. Le panneau desktop peut être replié et portera Chat/MP et leurs non-lus. Le Lot 1 a matérialisé les fondations serveur/DB du flux global, tandis que la coque `ChatPanel` actuelle reste mockée et que les MP ne sont pas encore physiques. Twitch et son pont optionnel restent reportés.
 
 Présence joueurs :
 - le nombre de joueurs en ligne est affiché dans le chat ;

@@ -1980,7 +1980,7 @@ Les administrateurs ne disposent pas d'une lecture libre des MP.
 
 # 27. Chat global
 
-Cible relationnelle conceptuelle alignée sur le [contrat Chat global R872–R883](../specifications/global-chat-v1.md) ; aucune table Chat/MP générale n'est encore présente dans `server/prisma/schema.prisma`. Les noms/contraintes physiques exacts seront vérifiés au premier lot.
+Cible relationnelle alignée sur le [contrat Chat global R872–R883](../specifications/global-chat-v1.md). La migration additive 032 matérialise `global_chat_messages` et `global_chat_read_states` dans Prisma ; aucune table MP générale n'est encore physique.
 
 ## 27.1 `global_chat_messages`
 
@@ -1989,24 +1989,24 @@ Colonnes :
 - `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
 - `author_player_id uuid NULL REFERENCES players(id) ON DELETE RESTRICT`
 - `source_channel source_channel NOT NULL`
-- `message_type text NOT NULL`
+- `message_type global_chat_message_type NOT NULL` (`PLAYER`, `COMMAND`, `GAME_RESULT`, `SYSTEM`)
 - `content text NOT NULL`
 - `external_message_id text NULL`
 - `operation_id uuid NULL REFERENCES business_operations(id) ON DELETE SET NULL`
-- `reply_to_message_id uuid NULL REFERENCES global_chat_messages(id) ON DELETE SET NULL`
+- `reply_to_message_id uuid NULL REFERENCES global_chat_messages(id) ON DELETE RESTRICT`
 - `created_at timestamptz NOT NULL DEFAULT now()`
 - `deleted_at timestamptz NULL`
-- `moderation_state text NULL`
+- `deletion_state global_chat_deletion_state NOT NULL DEFAULT ACTIVE` (`ACTIVE`, `AUTHOR`, `MODERATION`)
 
-Index unique partiel :
+Index uniques :
 
-`UNIQUE(source_channel, external_message_id) WHERE external_message_id IS NOT NULL`
+`UNIQUE(source_channel, external_message_id)` et `UNIQUE(operation_id)` ; PostgreSQL accepte plusieurs `NULL`.
 
 Index :
 
-`(created_at DESC)`
+`(created_at DESC, id DESC)`, `(author_player_id, created_at DESC)` et `(reply_to_message_id)`.
 
-Le stockage et l'exécution d'une commande sont séparés. Aucun `edited_at` n'est requis : l'auteur ne peut pas éditer son message global. La suppression garde la ligne ; l'état doit permettre de distinguer suppression auteur et modération, sans exposer la raison privée. Une réponse conserve un lien vers sa cible et résout l'aperçu de l'état actuel, sans copier durablement le texte supprimé vers le flux joueur. Les signalements exigent un snapshot et un contexte privés distincts du message public ; leur forme relationnelle précise est à choisir au lot physique. Mentions réelles et curseur de lecture Chat demandent des données autoritaires adaptées ; leur structure exacte, comme la rétention et le seuil anti-rafale, n'est pas figée ici. Le masquage d'affichage ne crée aucune table `PlayerBlock` supplémentaire.
+Les CHECKs lient l'état de suppression à `deleted_at`, imposent un auteur aux messages joueur/commande et bornent le contenu interne joueur à 1–500 caractères sans saut de ligne. `global_chat_read_states` porte `player_id` comme PK/FK, `last_read_message_id` comme FK, `last_read_created_at` et `updated_at` ; la paire temps/ID donne un ordre stable indépendant de l'ordre lexical seul des UUID. Les deux tables ont RLS activée, aucun droit direct `PUBLIC`/`anon`/`authenticated` et aucune policy navigateur permissive. Aucun `edited_at` global n'est requis. Le contenu supprimé est masqué par la projection serveur ; l'aperçu de réponse suit l'état actuel de la cible. Signalements, mentions, masquage local, MP et rétention exacte restent hors de cette migration.
 
 ---
 
