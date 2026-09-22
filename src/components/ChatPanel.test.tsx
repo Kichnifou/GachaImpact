@@ -140,6 +140,20 @@ describe('ChatPanel réel', () => {
     expect(input.style.overflowY).toBe('auto')
   })
 
+  it('keeps the send action as a symbol inside the integrated composer field', async () => {
+    const container = await mount()
+    const composer = container.querySelector<HTMLFormElement>('.chat-composer')!
+    const field = container.querySelector<HTMLElement>('.chat-composer-field')!
+    const input = container.querySelector<HTMLTextAreaElement>('.chat-composer-textarea')!
+    const send = button(container, 'Envoyer le message')
+    expect(composer.children).toHaveLength(1)
+    expect(composer.firstElementChild).toBe(field)
+    expect(field.querySelector('.chat-composer-textarea')).toBe(input)
+    expect(field.querySelector('.chat-send-button')).toBe(send)
+    expect(send.parentElement).toBe(field)
+    expect(send.querySelector('.icon-glyph')?.textContent).toBe('›')
+  })
+
   it('shows the Unicode character counter only from 450 through the strict 500 limit', async () => {
     const container = await mount(), input = container.querySelector<HTMLTextAreaElement>('#chat-message')!
     const counter = () => container.querySelector('.chat-character-count')

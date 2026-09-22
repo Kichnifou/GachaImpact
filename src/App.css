@@ -1743,10 +1743,10 @@
 
 .chat-composer {
   position: relative;
-  height: 47px;
+  height: 43px;
 }
 
-.chat-composer-field { position: absolute; right: 10px; bottom: 7px; left: 10px; min-width: 0; }
+.chat-composer-field { position: absolute; right: 0; bottom: 0; left: 0; min-width: 0; }
 
 .chat-composer-textarea {
   display: block;
@@ -1759,20 +1759,22 @@
   resize: none;
   overflow-y: hidden;
   color: var(--text);
+  font-family: inherit;
   font-size: 13px;
   line-height: 19px;
-  border: 1px solid rgba(114, 150, 209, 0.2);
-  border-radius: 9px;
+  border: 0;
+  border-radius: 0 0 12px 12px;
   outline: none;
-  background: rgba(4, 9, 20, 0.7);
+  background: rgba(4, 9, 20, 0.82);
 }
 
 .chat-composer-textarea.with-counter { padding-right: 78px; }
 .chat-composer-textarea::placeholder { color: #64728d; font-size: 13px; }
+.chat-composer-textarea.is-expanded { background: rgba(4, 9, 20, 0.96); }
 
 .chat-send-button {
   position: absolute;
-  right: 5px;
+  right: 4px;
   bottom: 4px;
   width: 28px;
   height: 28px;
@@ -1795,6 +1797,18 @@
   border-radius: 9px;
   background: linear-gradient(145deg, #1f5596, #26366c);
 }
+
+.chat-composer .chat-send-button {
+  color: #8fb9ec;
+  font-size: 20px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.chat-composer .chat-send-button:hover:not(:disabled) { color: #d5eaff; }
+.chat-composer .chat-send-button:disabled { cursor: default; color: #52627b; }
 
 .prototype-note {
   padding: 0 12px 10px;
@@ -1868,7 +1882,7 @@
 .chat-mention-suggestions button.selected { background: #31577f; }
 .chat-new-messages, .chat-report-confirm button, .chat-composer-reply button { cursor: pointer; color: #d6efff; background: #1f426c; border: 1px solid #4676a7; border-radius: 6px; }
 .chat-new-messages { align-self: center; margin: 2px; padding: 3px 7px; font-size: 10px; }
-.chat-composer-wrap { position: relative; flex: 0 0 47px; }
+.chat-composer-wrap { position: relative; flex: 0 0 43px; }
 .chat-composer-accessory { position: absolute; z-index: 6; right: 0; bottom: calc(100% + 5px); left: 0; min-height: 0; pointer-events: none; }
 .chat-composer-reply, .chat-report-confirm, .chat-mention-suggestions, .chat-status { margin: 0; padding: 6px 12px; color: #a8bbd6; font-size: 10px; }
 .chat-composer-reply, .chat-composer-accessory .chat-status { position: relative; display: flex; align-items: center; gap: 5px; min-height: 28px; margin: 0; overflow: visible; white-space: normal; pointer-events: auto; border: 1px solid #4676a7; border-radius: 7px; background: #14233f; box-shadow: 0 6px 16px #0008; }
