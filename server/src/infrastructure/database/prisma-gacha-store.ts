@@ -50,11 +50,27 @@ export class PrismaGachaStore implements GachaStore {
     return { banner: toBanner(banner), playerState: state };
   }
 
-  public async setTarget(playerId: string, characterId: string): Promise<PlayerGachaState> {
+  public async setTarget(playerId: string, characterId: string, idempotencyKey?: string, sourceChannel: SourceChannel = SourceChannel.UI): Promise<PlayerGachaState> {
     return this.database.$transaction(async (tx) => {
+      if (idempotencyKey) {
+        await tx.$queryRaw`SELECT id FROM players WHERE id = ${playerId}::uuid FOR UPDATE`;
+        const key = `gacha.target:${playerId}:${idempotencyKey}`;
+        const previous = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey: key } });
+        if (previous) {
+          if (previous.playerId !== playerId || previous.operationType !== 'gacha.target' || previous.status !== OperationStatus.COMPLETED || (previous.resultSummary as { characterId?: string } | null)?.characterId !== characterId) {
+            throw new BusinessError('GACHA_IDEMPOTENCY_CONFLICT', 'Cette intention de cible Gacha ne correspond plus à l’action attendue.');
+          }
+          return tx.playerGachaState.findUniqueOrThrow({ where: { playerId }, select: stateSelection });
+        }
+      }
       const featured = await tx.bannerFeaturedCharacter.findFirst({ where: { characterId, rarity: 5, bannerRotation: { status: 'ACTIVE' }, character: { isActive: true } }, select: { characterId: true } });
       if (!featured) throw new BusinessError('GACHA_TARGET_INVALID', 'The selected character is not a featured five-star character.');
-      return tx.playerGachaState.update({ where: { playerId }, data: { selectedBannerCharacterId: characterId }, select: stateSelection });
+      const state = await tx.playerGachaState.update({ where: { playerId }, data: { selectedBannerCharacterId: characterId }, select: stateSelection });
+      if (idempotencyKey) await tx.businessOperation.create({ data: {
+        playerId, operationType: 'gacha.target', sourceChannel, idempotencyKey: `gacha.target:${playerId}:${idempotencyKey}`,
+        status: OperationStatus.COMPLETED, completedAt: new Date(), resultSummary: { characterId },
+      } });
+      return state;
     });
   }
 
@@ -84,7 +100,7 @@ export class PrismaGachaStore implements GachaStore {
       hasNext: page < totalPages,
       results: rows.map((result) => ({
         operationId: result.pullOperation.id,
-        operationPullCount: result.pullOperation.pullCount as 1 | 10,
+        operationPullCount: result.pullOperation.pullCount as GachaPullInput['count'],
         occurredAt: result.pullOperation.createdAt,
         index: result.resultIndex,
         resultType: result.resultType as 'character' | 'resource',
@@ -333,7 +349,7 @@ export class PrismaGachaStore implements GachaStore {
     }, {
       isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
       // A ten-pull can persist many passive rewards in the same atomic operation.
-      timeout: input.count === 10 ? 60_000 : 20_000,
+      timeout: input.count > 1 ? 60_000 : 20_000,
     });
   }
 

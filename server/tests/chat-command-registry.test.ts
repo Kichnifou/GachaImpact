@@ -13,7 +13,7 @@ describe('Chat command registry', () => {
     expect(findChatCommand('INFO')?.name).toBe('infos');
     expect(chatHelp('box')).toContain('!box');
     expect(chatHelp('ressources')).toContain('!banque');
-    expect(chatHelp('ressources')).not.toContain('!echanger');
+    expect(chatHelp('ressources')).toContain('!echanger');
   });
 
   it('lists ten validated categories without exposing Twitch-only or unavailable commands as usable', () => {

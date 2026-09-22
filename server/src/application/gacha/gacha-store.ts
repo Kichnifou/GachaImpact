@@ -73,7 +73,7 @@ export type GachaHistoryPage = Readonly<{
 export interface GachaStore {
   listActiveCharacters(): Promise<readonly GachaCharacter[]>;
   getCurrent(playerId: string): Promise<{ banner: CurrentBanner; playerState: PlayerGachaState } | null>;
-  setTarget(playerId: string, characterId: string): Promise<PlayerGachaState>;
+  setTarget(playerId: string, characterId: string, idempotencyKey?: string, sourceChannel?: SourceChannel): Promise<PlayerGachaState>;
   pull(input: GachaPullInput): Promise<GachaPullResult>;
   getHistory(playerId: string, page: number): Promise<GachaHistoryPage>;
   ensureRotation(startsAt: Date, endsAt: Date, select: (catalog: readonly GachaCharacter[], previous: ReadonlySet<string>, votes: readonly BannerVoteWeight[]) => readonly FeaturedSelection[]): Promise<CurrentBanner>;

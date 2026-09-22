@@ -97,6 +97,44 @@ describe('Gacha foundation on the development database', () => {
     } finally { await deletePullPlayer(fixture.playerId); }
   });
 
+  it.each([2, 5] as const)('persists and replays exactly x%i pulls with proportional cost and pity', async count => {
+    const cost = BigInt(count * 160);
+    const fixture = await createPullPlayer(cost);
+    try {
+      const store = new PrismaGachaStore(database);
+      const input = { playerId: fixture.playerId, playerElementKey: 'hydro' as const, count,
+        idempotencyKey: randomUUID(), now: fixture.now, random: maxRandom, sourceChannel: 'INTERNAL_CHAT' as const };
+      const first = await store.pull(input);
+      const replay = await store.pull({ ...input, random: { nextInt: () => { throw new Error('Replay must not reroll.'); } } });
+      expect(first.operation).toMatchObject({ pullCount: count, primogemCost: cost, alreadyProcessed: false });
+      expect(first.results).toHaveLength(count);
+      expect(replay.operation).toMatchObject({ id: first.operation.id, alreadyProcessed: true });
+      expect(replay.results).toEqual(first.results);
+      expect(await database.pullOperation.count({ where: { playerId: fixture.playerId } })).toBe(1);
+      expect(await database.pullResult.count({ where: { pullOperation: { playerId: fixture.playerId } } })).toBe(count);
+      expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: fixture.playerId, resourceKey: 'primogems' } } })).amount).toBe(0n);
+      expect(await database.playerGachaState.findUniqueOrThrow({ where: { playerId: fixture.playerId } })).toMatchObject({ totalPulls: BigInt(count), pity5: count, pity4: count });
+      expect(await database.playerCharacter.count({ where: { playerId: fixture.playerId } })).toBe(first.results.filter(result => result.wasNewCharacter).length);
+      expect(await database.resourceMovement.findFirstOrThrow({ where: { playerId: fixture.playerId, causeKey: 'gacha.pull.cost' } })).toMatchObject({ delta: -cost, balanceBefore: cost, balanceAfter: 0n });
+    } finally { await deletePullPlayer(fixture.playerId); }
+  });
+
+  it('does not reapply an INTERNAL_CHAT target selection after a later UI selection', async () => {
+    const fixture = await createPullPlayer(160n);
+    try {
+      const store = new PrismaGachaStore(database);
+      const current = await store.getCurrent(fixture.playerId);
+      const first = current!.banner.featuredFiveStars[0]!.id;
+      const second = current!.banner.featuredFiveStars[1]!.id;
+      const key = randomUUID();
+      await store.setTarget(fixture.playerId, first, key, 'INTERNAL_CHAT');
+      await store.setTarget(fixture.playerId, second);
+      await store.setTarget(fixture.playerId, first, key, 'INTERNAL_CHAT');
+      expect((await store.getCurrent(fixture.playerId))!.playerState.selectedBannerCharacterId).toBe(second);
+      expect(await database.businessOperation.count({ where: { playerId: fixture.playerId, operationType: 'gacha.target' } })).toBe(1);
+    } finally { await deletePullPlayer(fixture.playerId); }
+  });
+
   it('persists ten ordered sequential results and prevents concurrent overspending', async () => {
     const ten = await createPullPlayer(1_600n);
     try {

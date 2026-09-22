@@ -2,7 +2,7 @@ import { CombatAttemptMode, OperationStatus, Prisma, SourceChannel, type PrismaC
 import { BusinessError } from '../../application/errors.js';
 import type { DailyCombatCharacter, DailyCombatContext, DailyCombatRandoms, DailyCombatStore, DailyCombatView } from '../../application/combat/daily-combat-store.js';
 import { calculateDailyCombatPreview, DAILY_COMBAT_REWARD, projectElementMatchups } from '../../domain/combat/daily-combat.js';
-import { isElementKey, resourceKeys, type ElementKey } from '../../domain/economy/resources.js';
+import { elementKeys, isElementKey, resourceKeys, type ElementKey } from '../../domain/economy/resources.js';
 import { businessDateToDatabaseDate, databaseDateToBusinessDate } from '../../domain/time/business-date.js';
 import type { PlayerResourceBalances } from '../../application/player/player-resource-store.js';
 import { PrismaEconomyService } from './prisma-economy-service.js';
@@ -32,6 +32,27 @@ export class PrismaDailyCombatStore implements DailyCombatStore {
     const encounterId = await this.ensureEncounter(context.businessDate);
     await this.clearInactiveSlots(context.playerId);
     return readView(this.database, context.playerId, context.businessDate, encounterId);
+  }
+
+  public async previewActiveTeam(context: DailyCombatContext): Promise<DailyCombatView['preview']> {
+    const encounterId = await this.ensureEncounter(context.businessDate);
+    const [team, encounter, koRows, matchups] = await Promise.all([
+      this.database.team.findFirst({ where: { playerId: context.playerId, isActive: true }, include: { members: { orderBy: { position: 'asc' } } } }),
+      loadEncounter(this.database, encounterId),
+      this.database.playerDailyCombatKo.findMany({ where: { playerId: context.playerId, encounterId }, select: { characterId: true } }),
+      this.database.elementCombatMatchup.findMany(),
+    ]);
+    const ids = team?.members.map(member => member.characterId) ?? [];
+    if (ids.length !== 4 || new Set(ids).size !== 4 || ids.some(id => koRows.some(row => row.characterId === id))) return null;
+    const possessions = await this.database.playerCharacter.findMany({ where: { playerId: context.playerId, characterId: { in: ids }, character: { isActive: true } }, select: possessionSelection });
+    if (possessions.length !== 4) return null;
+    const byId = new Map(possessions.map(possession => [possession.characterId, possession]));
+    return calculateDailyCombatPreview(ids.map(id => combatMember(byId.get(id)!)), encounter.enemies.map(enemy => elementKey(enemy.elementKeySnapshot)), relationMap(matchups));
+  }
+
+  public async getElementMatrix() {
+    const relations = relationMap(await this.database.elementCombatMatchup.findMany());
+    return elementKeys.map(element => ({ element, ...projectElementMatchups(element, relations) }));
   }
 
   public async setSlot(context: DailyCombatContext & { position: number; characterId: string }): Promise<DailyCombatView> {
@@ -119,15 +140,16 @@ export class PrismaDailyCombatStore implements DailyCombatStore {
     return readView(this.database, context.playerId, context.businessDate, encounterId);
   }
 
-  public async fight(context: DailyCombatContext & { idempotencyKey: string }) {
+  public async fight(context: DailyCombatContext & { idempotencyKey: string; selection?: 'ACTIVE_TEAM' | 'AUTO'; sourceChannel?: SourceChannel }) {
     const encounterId = await this.ensureEncounter(context.businessDate);
     const operationKey = `daily-combat.fight:${context.playerId}:${context.idempotencyKey}`;
+    const sourceChannel = context.sourceChannel ?? SourceChannel.UI;
     let retainedRoll: number | null = null;
     for (let attemptNumber = 1; attemptNumber <= MAX_ATTEMPTS; attemptNumber += 1) {
       try {
         const committed = await this.database.$transaction(async (transaction) => {
           await lockPlayer(transaction, context.playerId);
-          const existing = await transaction.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey: operationKey } });
+          const existing = await transaction.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey: operationKey } });
           if (existing) {
             if (existing.playerId !== context.playerId || existing.operationType !== 'daily-combat.fight') throw new BusinessError('DAILY_COMBAT_IDEMPOTENCY_CONFLICT', 'Cette tentative ne correspond plus à l’action attendue.');
             if (existing.status !== OperationStatus.COMPLETED) throw new BusinessError('DAILY_COMBAT_IDEMPOTENCY_CONFLICT', 'Cette tentative est encore en cours. Réessayez dans un instant.');
@@ -137,6 +159,34 @@ export class PrismaDailyCombatStore implements DailyCombatStore {
           const encounter = await loadEncounter(transaction, encounterId);
           const state = await transaction.playerDailyCombatState.findUnique({ where: { playerId_encounterId: { playerId: context.playerId, encounterId } } });
           if (state?.wonAt) throw new BusinessError('DAILY_COMBAT_ALREADY_COMPLETED', 'Le Combat quotidien est déjà terminé.');
+          if (context.selection) {
+            let ids: string[];
+            if (context.selection === 'ACTIVE_TEAM') {
+              const team = await transaction.team.findFirst({ where: { playerId: context.playerId, isActive: true }, include: { members: { include: { character: true }, orderBy: { position: 'asc' } } } });
+              const members = team?.members ?? [];
+              if (members.length !== 4 || new Set(members.map(member => member.characterId)).size !== 4) throw new BusinessError('DAILY_COMBAT_LOADOUT_INCOMPLETE', 'La Team active doit contenir 4 personnages.');
+              if (members.some(member => !member.character.isActive)) throw new BusinessError('DAILY_COMBAT_CHARACTER_INACTIVE', 'Un personnage de la Team active n’est plus disponible.');
+              ids = members.map(member => member.characterId);
+            } else {
+              const [possessions, koRows, matchups] = await Promise.all([
+                transaction.playerCharacter.findMany({ where: { playerId: context.playerId, character: { isActive: true } }, select: possessionSelection }),
+                transaction.playerDailyCombatKo.findMany({ where: { playerId: context.playerId, encounterId }, select: { characterId: true } }),
+                transaction.elementCombatMatchup.findMany(),
+              ]);
+              const koIds = new Set(koRows.map(row => row.characterId));
+              const eligible = possessions.filter(possession => !koIds.has(possession.characterId));
+              if (eligible.length < 4) throw new BusinessError('DAILY_COMBAT_NOT_ENOUGH_AVAILABLE', 'Vous n’avez plus assez de personnages disponibles aujourd’hui.');
+              const relations = relationMap(matchups);
+              const enemies = encounter.enemies.map(enemy => elementKey(enemy.elementKeySnapshot));
+              ids = eligible.map(possession => ({ possession, score: calculateDailyCombatPreview([combatMember(possession)], enemies, relations).memberContributions[0]!.halfPoints }))
+                .sort((a, b) => b.score - a.score || (a.possession.character.displayOrder ?? Number.MAX_SAFE_INTEGER) - (b.possession.character.displayOrder ?? Number.MAX_SAFE_INTEGER) || a.possession.characterId.localeCompare(b.possession.characterId))
+                .slice(0, 4).map(entry => entry.possession.characterId);
+            }
+            await ensureLoadout(transaction, context.playerId);
+            await transaction.playerDailyCombatLoadoutSlot.deleteMany({ where: { playerId: context.playerId } });
+            await transaction.playerDailyCombatLoadoutSlot.createMany({ data: ids.map((characterId, index) => ({ playerId: context.playerId, position: index + 1, characterId })) });
+            await transaction.playerDailyCombatLoadout.update({ where: { playerId: context.playerId }, data: { nextAttemptMode: context.selection === 'AUTO' ? CombatAttemptMode.AUTO : CombatAttemptMode.MANUAL } });
+          }
           await transaction.playerDailyCombatLoadoutSlot.deleteMany({ where: { playerId: context.playerId, character: { isActive: false } } });
           const loadout = await transaction.playerDailyCombatLoadout.findUnique({ where: { playerId: context.playerId }, include: { slots: { orderBy: { position: 'asc' } } } });
           if (!loadout || loadout.slots.length !== 4) throw new BusinessError('DAILY_COMBAT_LOADOUT_INCOMPLETE', 'Sélectionnez 4 personnages.');
@@ -158,7 +208,7 @@ export class PrismaDailyCombatStore implements DailyCombatStore {
           retainedRoll = roll;
           const won = roll <= preview.finalHalfPoints;
           const operation = await transaction.businessOperation.create({ data: {
-            playerId: context.playerId, operationType: 'daily-combat.fight', sourceChannel: SourceChannel.UI, idempotencyKey: operationKey,
+            playerId: context.playerId, operationType: 'daily-combat.fight', sourceChannel, idempotencyKey: operationKey,
             resultSummary: { encounterId, chanceHalfPoints: preview.finalHalfPoints, mode, won, rngRoll: roll },
           }, select: { id: true } });
           const combatAttempt = await transaction.dailyCombatAttempt.create({ data: {
@@ -185,8 +235,8 @@ export class PrismaDailyCombatStore implements DailyCombatStore {
             playerId: context.playerId, encounterId, wonAt: won ? context.now : null,
           }, update: won ? { wonAt: context.now } : {} });
           if (won) {
-            await this.economy.credit(transaction, { playerId: context.playerId, playerElementKey: context.playerElementKey, resourceKey: 'primogems', amount: DAILY_COMBAT_REWARD.primogems, causeKey: 'daily-combat.victory', domainKey: 'daily-combat', operationId: operation.id, sourceChannel: SourceChannel.UI });
-            await this.economy.credit(transaction, { playerId: context.playerId, playerElementKey: context.playerElementKey, resourceKey: 'moras', amount: DAILY_COMBAT_REWARD.moras, causeKey: 'daily-combat.victory', domainKey: 'daily-combat', operationId: operation.id, sourceChannel: SourceChannel.UI });
+            await this.economy.credit(transaction, { playerId: context.playerId, playerElementKey: context.playerElementKey, resourceKey: 'primogems', amount: DAILY_COMBAT_REWARD.primogems, causeKey: 'daily-combat.victory', domainKey: 'daily-combat', operationId: operation.id, sourceChannel });
+            await this.economy.credit(transaction, { playerId: context.playerId, playerElementKey: context.playerElementKey, resourceKey: 'moras', amount: DAILY_COMBAT_REWARD.moras, causeKey: 'daily-combat.victory', domainKey: 'daily-combat', operationId: operation.id, sourceChannel });
           } else {
             await transaction.playerDailyCombatKo.createMany({ data: ordered.map(({ characterId }) => ({ playerId: context.playerId, encounterId, characterId })), skipDuplicates: true });
           }

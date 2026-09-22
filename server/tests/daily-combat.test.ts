@@ -25,7 +25,7 @@ describe('Daily Combat HTTP contract', () => {
 
   async function setup() {
     const store: DailyCombatStore = {
-      getView: vi.fn(async () => view), setSlot: vi.fn(async () => view), removeSlot: vi.fn(async () => view),
+      getView: vi.fn(async () => view), previewActiveTeam: vi.fn(async () => null), getElementMatrix: vi.fn(async () => []), setSlot: vi.fn(async () => view), removeSlot: vi.fn(async () => view),
       copyActiveTeam: vi.fn(async () => view), autoSelect: vi.fn(async () => view), clearLoadout: vi.fn(async () => view),
       fight: vi.fn(async () => ({ operation: { id: randomUUID(), alreadyProcessed: false }, result: { won: true, mode: 'MANUAL' as const, chanceHalfPoints: 148 }, view: { ...view, status: 'COMPLETED' as const }, resources: { primogems: 800n, moras: 20_000n, particles_pyro: 0n, particles_hydro: 0n, particles_cryo: 0n, particles_electro: 0n, particles_anemo: 0n, particles_geo: 0n, particles_dendro: 0n } })),
     };

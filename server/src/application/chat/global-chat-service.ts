@@ -14,7 +14,7 @@ const invalid = (message: string) => new AppError(message, 400, 'CHAT_INVALID');
 const unavailable = () => new AppError('Ce message est indisponible.', 404, 'CHAT_UNAVAILABLE');
 const conflict = () => new AppError('Cette clé appartient à un autre message.', 409, 'CHAT_IDEMPOTENCY_CONFLICT');
 export type ChatCursor = { createdAt: string; id: string };
-type ChatOperationSummary = { fingerprint: string; messageId?: string; xpGranted?: number; resolvedQuantity?: string };
+type ChatOperationSummary = { fingerprint: string; messageId?: string; xpGranted?: number; resolvedQuantity?: string; targetId?: string; action?: string };
 const messageInclude = { author: { select: { id: true, displayName: true } }, replyToMessage: { select: { id: true, content: true, deletionState: true } } } as const;
 
 function normalize(content: string) {
@@ -23,6 +23,20 @@ function normalize(content: string) {
   const length = Array.from(value).length;
   if (length < 1 || length > 500) throw invalid('Le message doit contenir entre 1 et 500 caractères.');
   return { value, length, type: value.startsWith('!') ? GlobalChatMessageType.COMMAND : GlobalChatMessageType.PLAYER };
+}
+
+function splitGameResult(content: string): string[] {
+  const parts: string[] = [];
+  let remaining = content;
+  while (Array.from(remaining).length > 500) {
+    const characters = Array.from(remaining);
+    let boundary = characters.slice(0, 500).lastIndexOf(' ');
+    if (boundary < 1) boundary = 500;
+    parts.push(characters.slice(0, boundary).join('').trimEnd());
+    remaining = characters.slice(boundary).join('').trimStart();
+  }
+  parts.push(remaining);
+  return parts;
 }
 
 function project(row: {
@@ -121,6 +135,15 @@ export class GlobalChatService {
     return row ? project(row) : null;
   }
 
+  async findGameResults(commandMessageId: string) {
+    const first = await this.findGameResult(commandMessageId);
+    if (!first) return [];
+    const extras = await this.database.globalChatMessage.findMany({
+      where: { sourceChannel: 'SYSTEM', externalMessageId: { startsWith: `command:${commandMessageId}:` } }, include: messageInclude,
+    });
+    return [first, ...extras.sort((a, b) => Number(a.externalMessageId!.split(':').at(-1)) - Number(b.externalMessageId!.split(':').at(-1))).map(project)];
+  }
+
   /** A completed domain operation must be replayed, even if formatting its first reply failed. */
   async hasConfirmedCommandMutation(commandMessageId: string) {
     const command = await this.database.globalChatMessage.findUnique({
@@ -129,35 +152,43 @@ export class GlobalChatService {
     if (command?.messageType !== 'COMMAND' || command.sourceChannel !== 'INTERNAL_CHAT' || !command.authorPlayerId) return false;
     const operation = await this.database.businessOperation.findFirst({
       where: {
-        playerId: command.authorPlayerId, sourceChannel: 'INTERNAL_CHAT', status: 'COMPLETED',
-        operationType: { in: ['gacha.pull', 'shop.purchase', 'bank.deposit', 'bank.withdraw', 'particles.convert', 'gift-code.claim'] },
+        playerId: command.authorPlayerId, sourceChannel: { in: ['INTERNAL_CHAT', 'UI'] }, status: 'COMPLETED',
+        operationType: { not: 'chat.send' },
         OR: [{ idempotencyKey: commandMessageId }, { idempotencyKey: { endsWith: `:${commandMessageId}` } }],
       }, select: { id: true },
     });
-    return operation !== null;
+    if (operation) return true;
+    const contestEvent = await this.database.contestEvent.findFirst({ where: { actorPlayerId: command.authorPlayerId, idempotencyKey: commandMessageId }, select: { id: true } });
+    return contestEvent !== null;
   }
 
   async publishGameResult(commandMessageId: string, content: string) {
     const parent = await this.database.globalChatMessage.findUnique({ where: { id: commandMessageId }, select: { messageType: true, sourceChannel: true } });
     if (parent?.messageType !== 'COMMAND' || parent.sourceChannel !== 'INTERNAL_CHAT') throw unavailable();
     const value = content.trim();
-    if (!value || /[\r\n\u2028\u2029]/u.test(value) || Array.from(value).length > 500) throw invalid('Résultat Chat invalide.');
+    if (!value || /[\r\n\u2028\u2029]/u.test(value)) throw invalid('Résultat Chat invalide.');
+    const parts = splitGameResult(value);
     const existing = await this.findGameResult(commandMessageId);
-    if (existing) return { message: existing, replayed: true };
+    if (existing) return { message: existing, messages: await this.findGameResults(commandMessageId), replayed: true };
     try {
-      const row = await this.database.globalChatMessage.create({
-        data: { authorPlayerId: null, sourceChannel: 'SYSTEM', messageType: 'GAME_RESULT', content: value,
-          externalMessageId: `command:${commandMessageId}`, replyToMessageId: commandMessageId },
-        include: messageInclude,
+      await this.database.$transaction(async tx => {
+        for (let index = 0; index < parts.length; index += 1) {
+          const externalMessageId = index === 0 ? `command:${commandMessageId}` : `command:${commandMessageId}:${index + 1}`;
+          await tx.globalChatMessage.create({
+            data: { authorPlayerId: null, sourceChannel: 'SYSTEM', messageType: 'GAME_RESULT', content: parts[index]!,
+              externalMessageId, replyToMessageId: commandMessageId },
+          });
+        }
       });
-      return { message: project(row), replayed: false };
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         const published = await this.findGameResult(commandMessageId);
-        if (published) return { message: published, replayed: true };
+        if (published) return { message: published, messages: await this.findGameResults(commandMessageId), replayed: true };
       }
       throw error;
     }
+    const messages = await this.findGameResults(commandMessageId);
+    return { message: messages[0]!, messages, replayed: false };
   }
 
   /** Freeze a computed MAX amount before the domain mutation, including across workers. */
@@ -173,6 +204,23 @@ export class GlobalChatService {
       if (summary.resolvedQuantity !== undefined) return BigInt(summary.resolvedQuantity);
       const row = await tx.globalChatMessage.findUniqueOrThrow({ where: { id: commandMessageId }, select: { operationId: true } });
       await tx.businessOperation.update({ where: { id: row.operationId! }, data: { resultSummary: { ...summary, resolvedQuantity: proposed.toString() } } });
+      return proposed;
+    });
+  }
+
+  /** Freeze a resolved target or branch before a domain mutation, including across workers. */
+  async rememberCommandText(commandMessageId: string, field: 'targetId' | 'action', proposed: string): Promise<string> {
+    return this.database.$transaction(async tx => {
+      const rows = await tx.$queryRaw<{ result_summary: ChatOperationSummary }[]>`
+        SELECT o.result_summary FROM business_operations o
+        JOIN global_chat_messages m ON m.operation_id = o.id
+        WHERE m.id = ${commandMessageId}::uuid AND m.message_type = 'COMMAND'::global_chat_message_type
+        FOR UPDATE OF o`;
+      const summary = rows[0]?.result_summary;
+      if (!summary || summary.messageId !== commandMessageId) throw unavailable();
+      if (summary[field] !== undefined) return summary[field]!;
+      const row = await tx.globalChatMessage.findUniqueOrThrow({ where: { id: commandMessageId }, select: { operationId: true } });
+      await tx.businessOperation.update({ where: { id: row.operationId! }, data: { resultSummary: { ...summary, [field]: proposed } } });
       return proposed;
     });
   }

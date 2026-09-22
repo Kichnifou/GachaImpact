@@ -143,6 +143,21 @@ export class MonthlyBossService {
     return readView(this.database, context.playerId, context.businessDate, bossId);
   }
 
+  public async getCurrentForChat(identity: AuthenticatedIdentity): Promise<MonthlyBossView> {
+    const context = await this.context(identity);
+    const bossId = await this.ensureCurrentBoss(context.now);
+    const [view, team] = await Promise.all([
+      readView(this.database, context.playerId, context.businessDate, bossId),
+      this.database.team.findFirst({ where: { playerId: context.playerId, isActive: true }, include: { members: { orderBy: { position: 'asc' } } } }),
+    ]);
+    const ids = team?.members.map(member => member.characterId) ?? [];
+    if (ids.length !== 4 || new Set(ids).size !== 4) return { ...view, preview: null, canAttack: false };
+    const possessions = await this.database.playerCharacter.findMany({ where: { playerId: context.playerId, characterId: { in: ids }, character: { isActive: true } }, select: possessionSelection });
+    if (possessions.length !== 4) return { ...view, preview: null, canAttack: false };
+    const byId = new Map(possessions.map(possession => [possession.characterId, possession]));
+    return { ...view, preview: calculateBossDamage(ids.map(id => toCombatMember(byId.get(id)!)), view.boss.resistanceElementKey), canAttack: view.attackState === 'AVAILABLE' };
+  }
+
   public async setSlot(identity: AuthenticatedIdentity, position: number, characterId: string): Promise<MonthlyBossView> {
     if (!Number.isInteger(position) || position < 1 || position > 4) throw new BusinessError('BOSS_LOADOUT_INCOMPLETE', 'Cet emplacement de Boss est invalide.');
     const context = await this.context(identity);
@@ -201,18 +216,18 @@ export class MonthlyBossService {
     return readView(this.database, context.playerId, context.businessDate, bossId);
   }
 
-  public async attack(identity: AuthenticatedIdentity, bossId: string, idempotencyKey: string) {
+  public async attack(identity: AuthenticatedIdentity, bossId: string, idempotencyKey: string, copyActiveTeam = false, sourceChannel: SourceChannel = SourceChannel.UI) {
     const context = await this.context(identity);
     const currentBossId = await this.ensureCurrentBoss(context.now);
     if (bossId !== currentBossId) throw new BusinessError('BOSS_INSTANCE_CHANGED', 'Le Boss mensuel a changé. Rechargez sa fiche.');
-    if (await this.clearInactiveSlots(context.playerId)) throw new BusinessError('BOSS_CHARACTER_INACTIVE', 'Un personnage indisponible a été retiré de la formation Boss.');
+    if (!copyActiveTeam && await this.clearInactiveSlots(context.playerId)) throw new BusinessError('BOSS_CHARACTER_INACTIVE', 'Un personnage indisponible a été retiré de la formation Boss.');
     const operationKey = `monthly-boss.attack:${context.playerId}:${idempotencyKey}`;
     for (let attemptNumber = 1; attemptNumber <= MAX_TRANSACTION_ATTEMPTS; attemptNumber += 1) {
       try {
         const committed = await this.database.$transaction(async (transaction) => {
           await lockPlayer(transaction, context.playerId);
           await transaction.$queryRaw`SELECT id FROM monthly_bosses WHERE id = ${bossId}::uuid FOR UPDATE`;
-          const existing = await transaction.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey: operationKey } });
+          const existing = await transaction.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey: operationKey } });
           if (existing) {
             if (existing.playerId !== context.playerId || existing.operationType !== 'monthly-boss.attack') throw new BusinessError('BOSS_IDEMPOTENCY_CONFLICT', 'Cette requête ne correspond plus à l’attaque attendue.');
             if (existing.status !== OperationStatus.COMPLETED) throw new BusinessError('BOSS_IDEMPOTENCY_CONFLICT', 'Cette attaque est encore en cours.');
@@ -224,6 +239,15 @@ export class MonthlyBossService {
           if (boss.defeatedAt) throw new BusinessError('BOSS_DEFEATED', 'Le Boss de ce mois est déjà vaincu.');
           const businessDate = businessDateToDatabaseDate(context.businessDate);
           if (await transaction.bossAttack.findUnique({ where: { bossId_playerId_businessDate: { bossId, playerId: context.playerId, businessDate } } })) throw new BusinessError('BOSS_ATTACK_ALREADY_USED', 'Votre attaque Boss a déjà été utilisée aujourd’hui.');
+          if (copyActiveTeam) {
+            const team = await transaction.team.findFirst({ where: { playerId: context.playerId, isActive: true }, include: { members: { include: { character: true }, orderBy: { position: 'asc' } } } });
+            const members = team?.members ?? [];
+            if (members.length !== 4 || new Set(members.map(member => member.characterId)).size !== 4) throw new BusinessError('BOSS_LOADOUT_INCOMPLETE', 'La Team active doit contenir exactement 4 personnages.');
+            if (members.some(member => !member.character.isActive)) throw new BusinessError('BOSS_CHARACTER_INACTIVE', 'Un personnage de la Team active n’est plus disponible.');
+            await ensureLoadout(transaction, context.playerId);
+            await transaction.playerBossLoadoutSlot.deleteMany({ where: { playerId: context.playerId } });
+            await transaction.playerBossLoadoutSlot.createMany({ data: members.map((member, index) => ({ playerId: context.playerId, position: index + 1, characterId: member.characterId })) });
+          }
           const loadout = await transaction.playerBossLoadout.findUnique({ where: { playerId: context.playerId }, include: { slots: { orderBy: { position: 'asc' } } } });
           if (!loadout || loadout.slots.length !== 4 || new Set(loadout.slots.map(({ characterId }) => characterId)).size !== 4) throw new BusinessError('BOSS_LOADOUT_INCOMPLETE', 'Sélectionnez exactement 4 personnages.');
           const ids = loadout.slots.map(({ characterId }) => characterId);
@@ -236,7 +260,7 @@ export class MonthlyBossService {
           const operation = await transaction.businessOperation.create({ data: {
             playerId: context.playerId,
             operationType: 'monthly-boss.attack',
-            sourceChannel: SourceChannel.UI,
+            sourceChannel,
             idempotencyKey: operationKey,
             resultSummary: { bossId, damage: damage.totalDamage.toString() },
           }, select: { id: true } });
@@ -293,6 +317,12 @@ export class MonthlyBossService {
       }
     }
     throw new Error('monthly-boss.attack exhausted all retry attempts.');
+  }
+
+  public async attackWithActiveTeam(identity: AuthenticatedIdentity, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.INTERNAL_CHAT) {
+    const context = await this.context(identity);
+    const bossId = await this.ensureCurrentBoss(context.now);
+    return this.attack(identity, bossId, idempotencyKey, true, sourceChannel);
   }
 
   public async getRanking(bossId: string) {

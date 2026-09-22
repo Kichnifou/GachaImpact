@@ -198,6 +198,21 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect((await dispatcher.send(as(id), '!wish', randomUUID())).result?.content).toBe('Cette commande est réservée à Twitch.');
   }, 30_000);
 
+  it('publishes every part of a long game result atomically and replays the same ordered messages', async () => {
+    const id = await player(0n);
+    const sent = await service.send(as(id), '!help', randomUUID());
+    const content = Array.from({ length: 140 }, (_, index) => `Résultat${index}`).join(' ');
+    const first = await service.publishGameResult(sent.message.id, content);
+    expect(first.messages.length).toBeGreaterThan(1);
+    expect(first.messages.every(message => Array.from(message.content ?? '').length <= 500)).toBe(true);
+    expect(first.messages.map(message => message.content).join(' ')).toBe(content);
+    const replay = await service.publishGameResult(sent.message.id, content);
+    expect(replay.replayed).toBe(true);
+    expect(replay.messages.map(message => message.id)).toEqual(first.messages.map(message => message.id));
+    expect(await db.globalChatMessage.count({ where: { replyToMessageId: sent.message.id, messageType: 'GAME_RESULT' } })).toBe(first.messages.length);
+    expect(await progress(id)).toMatchObject({ xp: 0n, totalMessages: 1n, countedMessages: 0n });
+  });
+
   it('replays a confirmed bank transfer after result publication fails, without a second debit', async () => {
     const id = await player();
     await db.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId: id, resourceKey: 'moras' } }, data: { amount: 1_000n } });

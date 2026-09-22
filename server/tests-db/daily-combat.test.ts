@@ -134,6 +134,36 @@ describe('Daily Combat persistence', () => {
     expect((await store.getView(context(player.id, dates[1]))).status).toBe('TODO');
   });
 
+  it('previews the active Team read-only and atomically fights from Chat with replay', async () => {
+    const player = await createPlayer(5);
+    const store = new PrismaDailyCombatStore(database, { encounter: zero, fight: zero });
+    const team = await database.team.create({ data: { playerId: player.id, displayPosition: 1, isActive: true, isBaseSlot: true,
+      members: { create: player.characters.slice(0, 4).map((character, index) => ({ position: index + 1, characterId: character.id })) } } });
+    const preview = await store.previewActiveTeam(context(player.id, dates[1]));
+    expect(preview).not.toBeNull();
+    expect(await database.playerDailyCombatLoadoutSlot.count({ where: { playerId: player.id } })).toBe(0);
+    const key = randomUUID();
+    const first = await store.fight({ ...context(player.id, dates[1]), idempotencyKey: key, selection: 'ACTIVE_TEAM', sourceChannel: 'INTERNAL_CHAT' });
+    const replay = await store.fight({ ...context(player.id, dates[1]), idempotencyKey: key, selection: 'ACTIVE_TEAM', sourceChannel: 'INTERNAL_CHAT' });
+    expect(first.result).toMatchObject({ won: true, mode: 'MANUAL', chanceHalfPoints: preview!.finalHalfPoints });
+    expect(replay.operation).toMatchObject({ id: first.operation.id, alreadyProcessed: true });
+    expect(await database.dailyCombatAttempt.count({ where: { playerId: player.id } })).toBe(1);
+    expect((await database.team.findUniqueOrThrow({ where: { id: team.id }, include: { members: true } })).members).toHaveLength(4);
+    expect(await database.playerDailyCombatLoadoutSlot.count({ where: { playerId: player.id } })).toBe(4);
+    expect(await database.businessOperation.findUniqueOrThrow({ where: { id: first.operation.id } })).toMatchObject({ sourceChannel: 'INTERNAL_CHAT' });
+  });
+
+  it('selects Auto and fights in one Chat transaction', async () => {
+    const player = await createPlayer(5);
+    const store = new PrismaDailyCombatStore(database, { encounter: zero, fight: zero });
+    const key = randomUUID();
+    const result = await store.fight({ ...context(player.id, dates[2]), idempotencyKey: key, selection: 'AUTO', sourceChannel: 'INTERNAL_CHAT' });
+    expect(result.result).toMatchObject({ won: true, mode: 'AUTO' });
+    expect(await database.dailyCombatAttemptMember.count({ where: { attempt: { playerId: player.id } } })).toBe(4);
+    expect((await store.fight({ ...context(player.id, dates[2]), idempotencyKey: key, selection: 'AUTO', sourceChannel: 'INTERNAL_CHAT' })).operation.alreadyProcessed).toBe(true);
+    expect(await database.dailyCombatAttempt.count({ where: { playerId: player.id } })).toBe(1);
+  });
+
   it('serializes different concurrent intentions so only one victory can complete the day', async () => {
     const player = await createPlayer(4); const store = new PrismaDailyCombatStore(database, { encounter: zero, fight: zero });
     await store.autoSelect(context(player.id, dates[2]));

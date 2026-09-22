@@ -1,6 +1,5 @@
 import {
   OperationStatus,
-  SourceChannel,
   type PlayerWheelDailyState,
   type PrismaClient,
 } from '../../../generated/prisma/client.js';
@@ -37,6 +36,11 @@ export class PrismaWheelStore implements WheelStore {
       } catch (error) {
         if (!isPrismaConcurrencyCollision(error)) {
           throw error;
+        }
+
+        if (input.idempotencyKey) {
+          if (attempt === MAX_SPIN_ATTEMPTS) throw error;
+          continue;
         }
 
         const persistedResult = await this.findByDate(
@@ -78,6 +82,15 @@ export class PrismaWheelStore implements WheelStore {
         );
       }
 
+      const operationKey = input.idempotencyKey ? `wheel.intent:${input.playerId}:${input.idempotencyKey}` : `wheel:${input.playerId}:${input.businessDate}`;
+      const prior = await transaction.businessOperation.findFirst({ where: { sourceChannel: input.sourceChannel, idempotencyKey: operationKey }, select: { id: true, status: true } });
+      if (prior) {
+        if (prior.status !== OperationStatus.COMPLETED) throw new BusinessError('WHEEL_IDEMPOTENCY_CONFLICT', 'Ce tirage est encore en cours.');
+        const state = await transaction.playerWheelDailyState.findFirst({ where: { operationId: prior.id } });
+        if (!state) throw new BusinessError('WHEEL_IDEMPOTENCY_CONFLICT', 'Ce tirage est indisponible.');
+        return { ...this.toResult(state), alreadySpun: true };
+      }
+
       const databaseBusinessDate = businessDateToDatabaseDate(input.businessDate);
       const existing = await transaction.playerWheelDailyState.findUnique({
         where: {
@@ -97,8 +110,8 @@ export class PrismaWheelStore implements WheelStore {
         data: {
           playerId: input.playerId,
           operationType: 'wheel.spin',
-          sourceChannel: SourceChannel.UI,
-          idempotencyKey: `wheel:${input.playerId}:${input.businessDate}`,
+          sourceChannel: input.sourceChannel,
+          idempotencyKey: operationKey,
         },
         select: { id: true },
       });
@@ -112,7 +125,7 @@ export class PrismaWheelStore implements WheelStore {
           causeKey: 'wheel.reward',
           domainKey: 'wheel',
           operationId: operation.id,
-          sourceChannel: SourceChannel.UI,
+          sourceChannel: input.sourceChannel,
         });
       }
 

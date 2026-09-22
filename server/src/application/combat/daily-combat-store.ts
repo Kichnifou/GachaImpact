@@ -1,4 +1,4 @@
-import type { CombatAttemptMode } from '../../../generated/prisma/client.js';
+import type { CombatAttemptMode, SourceChannel } from '../../../generated/prisma/client.js';
 import type { ElementKey } from '../../domain/economy/resources.js';
 import type { CombatPreview } from '../../domain/combat/daily-combat.js';
 import type { RandomSource } from '../../domain/wheel/wheel.js';
@@ -48,12 +48,14 @@ export type DailyCombatContext = Readonly<{ playerId: string; playerElementKey: 
 
 export interface DailyCombatStore {
   getView(context: DailyCombatContext): Promise<DailyCombatView>;
+  previewActiveTeam(context: DailyCombatContext): Promise<DailyCombatView['preview']>;
+  getElementMatrix(): Promise<readonly Readonly<{ element: ElementKey; weakAgainstElements: readonly ElementKey[]; resistantAgainstElements: readonly ElementKey[] }>[] >;
   setSlot(context: DailyCombatContext & Readonly<{ position: number; characterId: string }>): Promise<DailyCombatView>;
   removeSlot(context: DailyCombatContext & Readonly<{ position: number }>): Promise<DailyCombatView>;
   copyActiveTeam(context: DailyCombatContext): Promise<DailyCombatView>;
   autoSelect(context: DailyCombatContext): Promise<DailyCombatView>;
   clearLoadout(context: DailyCombatContext): Promise<DailyCombatView>;
-  fight(context: DailyCombatContext & Readonly<{ idempotencyKey: string }>): Promise<Readonly<{
+  fight(context: DailyCombatContext & Readonly<{ idempotencyKey: string; selection?: 'ACTIVE_TEAM' | 'AUTO'; sourceChannel?: SourceChannel }>): Promise<Readonly<{
     operation: Readonly<{ id: string; alreadyProcessed: boolean }>;
     result: Readonly<{ won: boolean; mode: CombatAttemptMode; chanceHalfPoints: number }>;
     view: DailyCombatView;

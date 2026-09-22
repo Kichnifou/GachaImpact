@@ -182,6 +182,19 @@ describe('authenticated Player vertical slice on the development database', () =
           .filter(({ resourceKey }) => resourceKey !== 'primogems')
           .every(({ amount }) => amount === 0n),
       ).toBe(true);
+
+      const chatDay = { now: () => new Date('2026-09-05T12:00:00.000Z') };
+      const nextDay = { now: () => new Date('2026-09-06T12:00:00.000Z') };
+      const chatSpin = new SpinDailyWheel(getCurrentPlayer, wheelStore, chatDay, random, 'INTERNAL_CHAT');
+      const laterReplay = new SpinDailyWheel(getCurrentPlayer, wheelStore, nextDay, random, 'INTERNAL_CHAT');
+      const key = randomUUID();
+      const chatResult = await chatSpin.execute(identity, key);
+      const replay = await laterReplay.execute(identity, key);
+      expect(chatResult).toMatchObject({ businessDate: '2026-09-05', alreadySpun: false, amount: 1_600n });
+      expect(replay).toEqual({ ...chatResult, alreadySpun: true });
+      expect(await database.playerWheelDailyState.count({ where: { playerId } })).toBe(2);
+      expect(await database.businessOperation.count({ where: { playerId, operationType: 'wheel.spin', sourceChannel: 'INTERNAL_CHAT' } })).toBe(1);
+      expect(random.nextInt).toHaveBeenCalledTimes(2);
     } finally {
       if (playerId) {
         await database.$transaction([

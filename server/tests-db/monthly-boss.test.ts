@@ -126,6 +126,28 @@ describe('monthly Boss persistence', () => {
     expect(await database.bossAttack.count({ where: { playerId: player.id } })).toBe(2);
   }, 30_000);
 
+  it('validates and copies the active Team in the Chat attack transaction', async () => {
+    now = new Date('2098-01-10T12:00:00Z');
+    const player = await fixture();
+    await database.team.create({ data: { playerId: player.id, displayPosition: 1, isActive: true, isBaseSlot: true,
+      members: { create: player.characters.slice(0, 3).map((character, index) => ({ position: index + 1, characterId: character.id })) } } });
+    expect((await player.service.getCurrentForChat(identity)).preview).toBeNull();
+    const key = randomUUID();
+    await expect(player.service.attackWithActiveTeam(identity, key)).rejects.toMatchObject({ code: 'BOSS_LOADOUT_INCOMPLETE' });
+    expect(await database.playerBossLoadoutSlot.count({ where: { playerId: player.id } })).toBe(0);
+    expect(await database.bossAttack.count({ where: { playerId: player.id } })).toBe(0);
+    await database.teamMember.create({ data: { teamId: (await database.team.findFirstOrThrow({ where: { playerId: player.id } })).id, position: 4, characterId: player.characters[3]!.id } });
+    expect((await player.service.getCurrentForChat(identity)).preview?.totalDamage).toBeGreaterThan(0n);
+    expect(await database.playerBossLoadoutSlot.count({ where: { playerId: player.id } })).toBe(0);
+    const first = await player.service.attackWithActiveTeam(identity, key);
+    const replay = await player.service.attackWithActiveTeam(identity, key);
+    expect(first.result.damage).toBeGreaterThan(0n);
+    expect(replay.operation).toMatchObject({ id: first.operation.id, alreadyProcessed: true });
+    expect(await database.bossAttack.count({ where: { playerId: player.id } })).toBe(1);
+    expect(await database.playerBossLoadoutSlot.count({ where: { playerId: player.id } })).toBe(4);
+    expect(await database.businessOperation.findUniqueOrThrow({ where: { id: first.operation.id } })).toMatchObject({ sourceChannel: 'INTERNAL_CHAT' });
+  });
+
   it('serializes a concurrent lethal race, preserves the loser daily attempt, and rewards every prior participant once', async () => {
     now = new Date('2098-04-10T12:00:00Z'); const left = await fixture(); const right = await fixture(); const nonParticipant = await fixture(); await fill(left.service, left.characters); await fill(right.service, right.characters);
     const boss = await left.service.getCurrent(identity);

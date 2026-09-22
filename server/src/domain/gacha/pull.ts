@@ -2,9 +2,11 @@ import type { RandomSource } from '../wheel/wheel.js';
 import { elementKeys, particleResourceKey, type ResourceKey } from '../economy/resources.js';
 import type { GachaCharacter } from './gacha.js';
 
-export const PULL_COST = { 1: 160n, 10: 1_600n } as const;
-
-export type PullCount = keyof typeof PULL_COST;
+export type PullCount = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+export const PULL_COST: Readonly<Record<PullCount, bigint>> = {
+  1: 160n, 2: 320n, 3: 480n, 4: 640n, 5: 800n,
+  6: 960n, 7: 1_120n, 8: 1_280n, 9: 1_440n, 10: 1_600n,
+};
 
 export type PullState = Readonly<{
   pity5: number;

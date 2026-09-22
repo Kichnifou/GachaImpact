@@ -25,9 +25,9 @@ export class GetCurrentGacha {
 
 export class SetGachaTarget {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: GachaStore) {}
-  public async execute(identity: AuthenticatedIdentity, characterId: string) {
+  public async execute(identity: AuthenticatedIdentity, characterId: string, idempotencyKey?: string, sourceChannel: SourceChannel = SourceChannel.UI) {
     const player = await this.getPlayer.execute(identity);
-    try { return await this.store.setTarget(player.id, characterId); }
+    try { return await (idempotencyKey ? this.store.setTarget(player.id, characterId, idempotencyKey, sourceChannel) : this.store.setTarget(player.id, characterId)); }
     catch (error) {
       if (error instanceof BusinessError) throw error;
       throw error;
@@ -45,7 +45,7 @@ export class PerformGachaPull {
   ) {}
 
   public async execute(identity: AuthenticatedIdentity, count: number, idempotencyKey: string) {
-    if (count !== 1 && count !== 10) throw new BusinessError('GACHA_PULL_COUNT_INVALID', 'Une Invocation doit contenir 1 ou 10 vœux.');
+    if (!Number.isInteger(count) || count < 1 || count > 10) throw new BusinessError('GACHA_PULL_COUNT_INVALID', 'Une Invocation doit contenir entre 1 et 10 vœux.');
     const player = await this.getPlayer.execute(identity);
     if (!player.elementKey || !isElementKey(player.elementKey)) throw new BusinessError('PLAYER_ELEMENT_REQUIRED', 'A permanent element is required to perform a pull.');
     return this.store.pull({ playerId: player.id, playerElementKey: player.elementKey, count: count as PullCount, idempotencyKey, now: this.clock.now(), random: this.random, sourceChannel: this.sourceChannel });

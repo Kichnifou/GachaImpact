@@ -111,6 +111,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     ),
     getTodayWheelState: new GetTodayWheelState(getCurrentPlayer, wheelStore, clock),
     spinDailyWheel: new SpinDailyWheel(getCurrentPlayer, wheelStore, clock, random),
+    spinDailyWheelChat: new SpinDailyWheel(getCurrentPlayer, wheelStore, clock, random, SourceChannel.INTERNAL_CHAT),
     getTodayDailyReward: new GetTodayDailyReward(getCurrentPlayer, dailyRewardStore, clock),
     claimDailyReward: new ClaimDailyReward(getCurrentPlayer, dailyRewardStore, clock),
     getCharacters: new GetCharacters(gachaStore),
