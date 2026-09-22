@@ -52,6 +52,11 @@ Statut : décisions produit validées. Le Chat global player-facing est matéria
 - Avatar et pseudo d'un message `PLAYER` ouvrent son Profil via le pattern existant. Un menu contextuel réutilise les primitives adaptées pour `Répondre`, `Mentionner`, `Signaler` et `Masquer` selon la ligne et les droits pertinents.
 - `Envoyer un message privé` depuis un joueur du Chat peut ouvrir l'onglet MP et le parcours de conversation avec ce joueur, sous les permissions MP existantes. Le MP est toujours rédigé et envoyé dans l'onglet MP ; aucun `!mp` n'existe dans le Chat global ou sur Twitch.
 
+## Couleur des auteurs PLAYER — R888
+
+- Le pseudo d'un message `PLAYER` reprend la couleur de l'Élément réel de son auteur. L'avatar et le pseudo lisent la même valeur issue de `elementColors`, y compris pendant l'affichage optimiste du message courant ; l'absence d'Élément valide conserve un violet lisible.
+- L'identité système `GachaImpact` conserve son rendu vert et n'utilise pas cette couleur d'auteur.
+
 ## Disponibilité des commandes internes — R884
 
 - Le Chat conserve le maximum de jeu que les services serveur modernes portent avec le même état métier que l'interface. Il ne crée pas de système parallèle pour une commande.

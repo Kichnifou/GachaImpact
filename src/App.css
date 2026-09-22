@@ -1865,8 +1865,8 @@
 .chat-message-mentioned { border-left: 3px solid #79d7ff; background: rgba(79, 160, 219, .11); }
 .chat-game-avatar { background: linear-gradient(145deg, #168e6b, #164b51); }
 .chat-game-label { color: var(--green) !important; }
-.chat-avatar-button { border: 0; cursor: pointer; background: linear-gradient(145deg, var(--chat-avatar-color, #6952c9), #27355e); }
-.chat-author-button { padding: 0; border: 0; background: none; color: #b794ff; font-size: 12px; font-weight: 700; cursor: pointer; }
+.chat-avatar-button { border: 0; cursor: pointer; background: linear-gradient(145deg, var(--chat-author-color, #b794ff), #27355e); }
+.chat-author-button { padding: 0; border: 0; background: none; color: var(--chat-author-color, #b794ff); font-size: 12px; font-weight: 700; cursor: pointer; }
 .chat-reply-preview { margin-top: 2px; padding-left: 6px; border-left: 2px solid #527cac; color: #9aaecb; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .message-content p { overflow-wrap: anywhere; white-space: pre-wrap; }
 .message-content p a { color: #8bd8ff; text-decoration: underline; }

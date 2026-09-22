@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ChatMessageDto, ChatSendDto } from '../api/types'
 import { ApiError } from '../api/game-api'
+import { elementColors } from '../utils/elementTheme'
 
 const chat = vi.hoisted(() => ({
   messages: vi.fn(), unread: vi.fn(), read: vi.fn(), send: vi.fn(), remove: vi.fn(), mentions: vi.fn(), report: vi.fn(),
@@ -20,10 +21,10 @@ const otherId = '22222222-2222-4222-8222-222222222222'
 const message: ChatMessageDto = { id: '33333333-3333-4333-8333-333333333333', author: { id: otherId, displayName: 'Autre', elementKey: 'cryo' }, authorLabel: 'Autre', sourceChannel: 'INTERNAL_CHAT', messageType: 'PLAYER', content: 'Bonjour https://example.com/ fin', createdAt: '2026-09-22T10:00:00.000Z', deletedAt: null, deletionState: 'ACTIVE', replyToMessageId: null, replyPreview: null, mentionedMe: false, repliedToMe: false }
 const roots: ReturnType<typeof createRoot>[] = []
 const refresh = vi.fn(async () => undefined), openProfile = vi.fn()
-async function mount(collapsed = false) {
+async function mount(collapsed = false, playerElementKey: string | null = null) {
   const container = document.createElement('div'); document.body.append(container)
   const root = createRoot(container); roots.push(root)
-  await act(async () => { root.render(<ChatPanel playerId={ownId} isCollapsed={collapsed} onToggle={vi.fn()} onOpenPlayers={vi.fn()} onOpenProfile={openProfile} onRefreshScopes={refresh} />) })
+  await act(async () => { root.render(<ChatPanel playerId={ownId} playerElementKey={playerElementKey} isCollapsed={collapsed} onToggle={vi.fn()} onOpenPlayers={vi.fn()} onOpenProfile={openProfile} onRefreshScopes={refresh} />) })
   return container
 }
 function type(container: HTMLElement, value: string) {
@@ -49,6 +50,35 @@ beforeEach(() => {
 afterEach(() => { act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren() })
 
 describe('ChatPanel réel', () => {
+  it('shares elementColors between PLAYER avatars and pseudonyms with a readable fallback', async () => {
+    const hydro = { ...message, id: '55555555-5555-4555-8555-555555555555', author: { id: '55555555-5555-4555-8555-555555555555', displayName: 'Hydro', elementKey: 'hydro' }, authorLabel: 'Hydro' }
+    const fallback = { ...message, id: '66666666-6666-4666-8666-666666666666', author: { id: '66666666-6666-4666-8666-666666666666', displayName: 'Sans élément', elementKey: null }, authorLabel: 'Sans élément' }
+    const invalid = { ...message, id: '99999999-9999-4999-8999-999999999999', author: { id: '99999999-9999-4999-8999-999999999999', displayName: 'Élément inconnu', elementKey: 'unknown' }, authorLabel: 'Élément inconnu' }
+    chat.messages.mockResolvedValue({ messages: [message, hydro, fallback, invalid], nextCursor: null, generation: 0 })
+    const container = await mount()
+    const row = (label: string) => Array.from(container.querySelectorAll<HTMLElement>('.chat-message')).find(item => item.querySelector('.chat-author-button')?.textContent === label)!
+    for (const [label, color] of [['Autre', elementColors.cryo], ['Hydro', elementColors.hydro], ['Sans élément', '#b794ff'], ['Élément inconnu', '#b794ff']] as const) {
+      const player = row(label)
+      expect(player.style.getPropertyValue('--chat-author-color')).toBe(color)
+      expect(player.querySelector('.chat-avatar-button')).not.toBeNull()
+      expect(player.querySelector('.chat-author-button')).not.toBeNull()
+    }
+  })
+
+  it('keeps the optimistic author color through confirmation and leaves GachaImpact green', async () => {
+    let confirm!: (value: ChatSendDto) => void
+    chat.send.mockReturnValueOnce(new Promise<ChatSendDto>(resolve => { confirm = resolve }))
+    const container = await mount(false, 'pyro')
+    await act(async () => { type(container, 'Immédiat'); container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve() })
+    expect(container.querySelector<HTMLElement>('.chat-message-optimistic')?.style.getPropertyValue('--chat-author-color')).toBe(elementColors.pyro)
+    await act(async () => { confirm({ message: { ...message, id: '77777777-7777-4777-8777-777777777777', author: { id: ownId, displayName: 'Vous', elementKey: 'pyro' }, authorLabel: 'Vous', content: 'Immédiat' }, generation: 0, result: null, results: [], xpGranted: 1, refreshScopes: [], dailyChallengeCompleted: false, replayed: false }) })
+    expect(Array.from(container.querySelectorAll<HTMLElement>('.chat-message')).find(item => item.textContent?.includes('Immédiat'))?.style.getPropertyValue('--chat-author-color')).toBe(elementColors.pyro)
+    chat.messages.mockResolvedValue({ messages: [{ ...message, id: '88888888-8888-4888-8888-888888888888', author: null, authorLabel: 'GachaImpact', messageType: 'SYSTEM' }], nextCursor: null, generation: 0 })
+    const system = await mount()
+    expect(system.querySelector('.chat-game-label')?.textContent).toBe('GachaImpact')
+    expect(system.querySelector('.chat-game-label')?.closest<HTMLElement>('.chat-message')?.style.getPropertyValue('--chat-author-color')).toBe('')
+  })
+
   it('loads server messages, safe URLs and collapsed unread without marking collapsed messages read', async () => {
     const opened = await mount()
     expect(opened.textContent).toContain('Bonjour')
@@ -790,7 +820,7 @@ describe('ChatPanel réel', () => {
     const container = await mount()
     expect(container.querySelector('.chat-message-mentioned')).not.toBeNull()
     expect(container.textContent).not.toContain('Vous êtes mentionné')
-    expect(container.querySelector('.chat-avatar-button')?.getAttribute('style')).toContain('#9ddfff')
+    expect(container.querySelector('.chat-avatar-button')?.closest<HTMLElement>('.chat-message')?.style.getPropertyValue('--chat-author-color')).toBe(elementColors.cryo)
     expect(container.querySelector('.chat-avatar-button small')).toBeNull()
     const action = button(container, 'Actions pour le message de Autre')
     await act(async () => { action.click() })
