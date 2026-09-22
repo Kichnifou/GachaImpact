@@ -64,6 +64,21 @@ function mount(value: ContestDto, overrides: Partial<React.ComponentProps<typeof
 }
 
 describe('ContestScreen', () => {
+  it('shows a newly unlocked C6 Legend in the open modal from a refreshed prop without a mutation', async () => {
+    const before: ContestDto = { ...base, legends: [], permissions: { ...permissions, canOpen: false } }
+    const onOpen = vi.fn(async () => before), onJoin = vi.fn(async () => before)
+    const { container, root, props } = mount(before, { onOpen, onJoin })
+    await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(button => button.textContent === 'Mes Légendes')!.click() })
+    const screen = container.querySelector('.contest-screen')
+    const modal = container.querySelector('.contest-legends-modal')
+    expect(modal?.textContent).toContain('Aucune Légende')
+    await act(async () => { root.render(<ContestScreen {...props} value={{ ...before, legends: [legend], permissions }} />); await Promise.resolve() })
+    expect(container.querySelector('.contest-screen')).toBe(screen)
+    expect(container.querySelector('.contest-legends-modal')).toBe(modal)
+    expect(modal?.textContent).toContain('Furina')
+    expect(onOpen).not.toHaveBeenCalled()
+    expect(onJoin).not.toHaveBeenCalled()
+  })
   it('keeps an Émilie HUMAN portrait neutral while loading or failing and preserves the BOT symbol', async () => {
     const participants: ContestSnapshotDto['participants'] = [
       { ...lobby.participants[0]!, displayName: 'MynonymeTest3', characterName: 'Émilie', avatar: '/assets/emilie-icon.png' },

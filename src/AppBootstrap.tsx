@@ -242,15 +242,17 @@ function AppBootstrap() {
       resources: loadResources,
       progression: () => api.getProgression().then(next => { progressionRef.current = next; setProgression(next) }),
       gacha: () => api.getCurrentGacha().then(setGacha),
+      teams: loadTeams,
       dailyChallenge: () => api.getDailyChallenge().then(setDailyChallenge),
       wheel: () => api.getWheelToday().then(setWheelToday),
       dailyCombat: loadDailyCombat,
       monthlyBoss: loadMonthlyBoss,
+      contest: refreshContest,
       expedition: loadExpedition,
       event: loadEvent,
       notifications: loadNotifications,
     })
-  }, [loadDailyCombat, loadEvent, loadExpedition, loadMonthlyBoss, loadNotifications, loadResources])
+  }, [loadDailyCombat, loadEvent, loadExpedition, loadMonthlyBoss, loadNotifications, loadResources, loadTeams, refreshContest])
 
   const applyModerationState = useCallback((next: ModerationStateDto) => {
     setPermissions(next.permissions)

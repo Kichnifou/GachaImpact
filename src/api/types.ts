@@ -706,7 +706,7 @@ export type BannerVoteDto = Readonly<{
   candidates: readonly Readonly<{ characterId: string; voteCount: number }>[]
   catalogVersion: string
 }>
-export type ChatRefreshScope = 'player' | 'resources' | 'progression' | 'gacha' | 'bannerVotes' | 'box' | 'teams' | 'inventory' | 'bank' | 'shop' | 'dailyChallenge' | 'wheel' | 'social' | 'trades' | 'expedition' | 'dailyCombat' | 'monthlyBoss' | 'event' | 'giftCodes' | 'notifications'
+export type ChatRefreshScope = 'player' | 'resources' | 'progression' | 'gacha' | 'bannerVotes' | 'box' | 'teams' | 'inventory' | 'bank' | 'shop' | 'dailyChallenge' | 'wheel' | 'social' | 'trades' | 'expedition' | 'dailyCombat' | 'monthlyBoss' | 'contest' | 'event' | 'giftCodes' | 'notifications'
 export type ChatMentionDto = { playerId: string; displayName: string }
 export type ChatMessageDto = {
   id: string

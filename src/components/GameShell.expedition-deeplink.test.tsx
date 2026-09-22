@@ -9,7 +9,7 @@ import { createExpeditionClientSnapshot } from '../expedition/expedition-client-
 import { defaultNavigationPreference, hashForScreen } from '../navigation/navigation'
 import GameShell from './GameShell'
 
-vi.mock('./ChatPanel', () => ({ default: ({ onRefreshScopes }: { onRefreshScopes: (scopes: string[]) => Promise<void> }) => <div><button data-chat-refresh="xp" onClick={() => void onRefreshScopes(['progression', 'dailyChallenge', 'resources'])}>Bonjour</button><button data-chat-refresh="bank" onClick={() => void onRefreshScopes(['bank', 'resources'])}>!banque deposer 1000</button></div> }))
+vi.mock('./ChatPanel', () => ({ default: ({ onRefreshScopes }: { onRefreshScopes: (scopes: string[]) => Promise<void> }) => <div><button data-chat-refresh="xp" onClick={() => void onRefreshScopes(['progression', 'dailyChallenge', 'resources'])}>Bonjour</button><button data-chat-refresh="bank" onClick={() => void onRefreshScopes(['bank', 'resources'])}>!banque deposer 1000</button><button data-chat-refresh="pull" onClick={() => void onRefreshScopes(['resources', 'gacha', 'box', 'inventory', 'dailyChallenge', 'progression', 'teams', 'dailyCombat', 'monthlyBoss', 'contest'])}>!pull 1</button></div> }))
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -80,6 +80,34 @@ describe('GameShell Expedition deep-link', () => {
     await act(async () => { container.querySelector<HTMLElement>('[data-daily-activity="Boss"]')!.querySelector<HTMLButtonElement>('button')!.click(); await Promise.resolve() })
     expect(window.location.hash).toBe(`#${hashForScreen('activities-combat')}`)
     expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.combat-tabs button')).find((button) => button.classList.contains('active'))?.textContent).toBe('Boss')
+    const pullRefresh = vi.fn(async () => undefined)
+    const combatScreen = container.querySelector('.combat-shell')
+    const updatedBoss: MonthlyBossDto = { ...monthlyBoss, preview: { totalDamage: '5000', contributions: [{ characterId: keqing.id, characterName: keqing.name, rarity: 5, constellation: 6, elementKey: 'electro', damageBeforeResistance: '5000', resistanceApplied: false, damage: '5000' }] } }
+    const updatedCombat: DailyCombatDto = { ...dailyCombat, preview: { baseHalfPoints: 100, rarityBonusHalfPoints: 0, constellationBonusHalfPoints: 12, favorableMatchups: 0, favorableBonusHalfPoints: 0, unfavorableMatchups: 0, unfavorableMalusHalfPoints: 0, rawHalfPoints: 112, clamp: null, finalHalfPoints: 112, memberContributions: [{ characterId: keqing.id, halfPoints: 12 }] } }
+    await act(async () => { root.render(<GameShell {...props} onRefreshChatScopes={pullRefresh} />); await Promise.resolve() })
+    await act(async () => { container.querySelector<HTMLButtonElement>('[data-chat-refresh="pull"]')!.click(); await Promise.resolve() })
+    expect(pullRefresh).toHaveBeenCalledWith(['resources', 'gacha', 'box', 'inventory', 'dailyChallenge', 'progression', 'teams', 'dailyCombat', 'monthlyBoss', 'contest'])
+    await act(async () => { root.render(<GameShell {...props} onRefreshChatScopes={pullRefresh} monthlyBoss={updatedBoss} dailyCombat={updatedCombat} />); await Promise.resolve() })
+    expect(container.querySelector('.combat-shell')).toBe(combatScreen)
+    expect(container.querySelector('.combat-tabs .active')?.textContent).toBe('Boss')
+    expect(container.querySelector('.boss-preview')?.textContent).toContain('5\u202f000')
+    await act(async () => { container.querySelector<HTMLButtonElement>('.boss-preview button')!.click() })
+    expect(container.querySelector('.boss-details')?.textContent).toContain('Keqing · C6')
+    await act(async () => { container.querySelector<HTMLButtonElement>('.combat-tabs button')!.click(); await Promise.resolve() })
+    expect(container.querySelector('[aria-label="Chance de victoire : 56 pour cent"]')).not.toBeNull()
+    const c5Character = { ...keqing, classKey: null, constellation: 5 }
+    const teamC5 = { teams: [{ id: 'team', position: 1, name: null, active: true, slots: [1, 2, 3, 4].map((position) => ({ position: position as 1 | 2 | 3 | 4, character: position === 1 ? c5Character : null })), passives: [] }], availableCharacters: [c5Character], passiveReference: [] }
+    const readTeamC5 = vi.fn(async () => teamC5)
+    await act(async () => { root.render(<GameShell {...props} teams={teamC5} onLoadTeams={readTeamC5} onRefreshChatScopes={pullRefresh} />); await Promise.resolve() })
+    await navigateByHash('characters-team')
+    const teamScreen = container.querySelector('.team-screen')
+    expect(teamScreen?.textContent).toContain('C5')
+    const c6Character = { ...c5Character, constellation: 6 }
+    const teamC6 = { ...teamC5, teams: teamC5.teams.map(team => ({ ...team, slots: team.slots.map(slot => ({ ...slot, character: slot.character ? c6Character : null })) })), availableCharacters: [c6Character] }
+    await act(async () => { root.render(<GameShell {...props} teams={teamC6} onLoadTeams={readTeamC5} onRefreshChatScopes={pullRefresh} />); await Promise.resolve() })
+    expect(container.querySelector('.team-screen')).toBe(teamScreen)
+    expect(teamScreen?.textContent).toContain('C6')
+    await navigateByHash('activities-dailies')
 
     const bossNotification = { id: 'boss-notification', domainKey: 'monthly-boss', typeKey: 'MONTHLY_BOSS_DEFEATED', payload: { title: 'Boss vaincu', message: 'Récompense versée automatiquement.', rewards: [{ resourceKey: 'primogems', amount: '16000' }, { resourceKey: 'moras', amount: '500000' }] }, state: 'UNREAD' as const, actionKey: 'OPEN_MONTHLY_BOSS', actionTargetId: 'boss-id', createdAt: '2026-09-13T12:00:00Z', readAt: null }
     await act(async () => { root.render(<GameShell {...props} notifications={{ unreadCount: 1, notifications: [bossNotification] }} />); await Promise.resolve() })

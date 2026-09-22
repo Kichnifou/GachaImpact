@@ -312,7 +312,6 @@ function GameShell({ onRefreshChatScopes, player, resources, progression, levelU
       inventory: loadInventory,
       bank: loadBank,
       shop: loadShop,
-      teams: onLoadTeams,
       social: () => friendship.refresh(true),
       ...(tradeActions ? { trades: () => tradeActions.snapshot().then(value => onTradeSnapshot?.(value)) } : {}),
       ...(bannerVoteActions?.onLoadVotes ? { bannerVotes: () => voteCache.revalidate(bannerVoteActions.onLoadVotes!) } : {}),
@@ -320,7 +319,7 @@ function GameShell({ onRefreshChatScopes, player, resources, progression, levelU
     })])
     if (scopes.some(scope => chatCacheScopesByScreen[activeScreenRef.current]?.includes(scope))) setChatOwnerRevision(value => value + 1)
     if (results.some(result => result.status === 'rejected')) throw new Error('Une projection n’a pas pu être rechargée.')
-  }, [bannerVoteActions, friendship, loadBank, loadBox, loadInventory, loadShop, onLoadGiftCodes, onLoadTeams, onRefreshChatScopes, onTradeSnapshot, tradeActions, voteCache])
+  }, [bannerVoteActions, friendship, loadBank, loadBox, loadInventory, loadShop, onLoadGiftCodes, onRefreshChatScopes, onTradeSnapshot, tradeActions, voteCache])
   const purchaseShop = useCallback((itemId: string, quantity: string) => shopIntents.execute(player.id, itemId, quantity, async (idempotencyKey) => shopCache.writeConfirmed(player.id, await onPurchaseShop(itemId, quantity, idempotencyKey))), [onPurchaseShop, player.id, shopCache, shopIntents])
   const moderateResource = useCallback((targetPlayerId: string, input: ModerationResourceInput) => moderationIntents.execute(
     targetPlayerId,
