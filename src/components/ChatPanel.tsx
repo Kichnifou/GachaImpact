@@ -89,6 +89,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [scrollbarAtBottom, setScrollbarAtBottom] = useState(true)
+  const [composerExpanded, setComposerExpanded] = useState(false)
   const [menuId, setMenuId] = useState<string | null>(null)
   const [reportId, setReportId] = useState<string | null>(null)
   const [suppressedHoverId, setSuppressedHoverId] = useState<string | null>(null)
@@ -106,10 +107,18 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const deferredLatest = useRef(false)
   const unseenIds = useRef(new Set<string>())
   const initialScrollPending = useRef(true)
-  const composer = useRef<HTMLInputElement>(null)
+  const composer = useRef<HTMLTextAreaElement>(null)
   const copyFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => () => { if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current) }, [])
+  useLayoutEffect(() => {
+    if (!composer.current) return
+    composer.current.style.height = '0px'
+    const height = Math.min(Math.max(composer.current.scrollHeight, 36), 154)
+    composer.current.style.height = `${height}px`
+    composer.current.style.overflowY = composer.current.scrollHeight > 154 ? 'auto' : 'hidden'
+    setComposerExpanded(height > 36)
+  }, [draft])
 
   const adoptGeneration = useCallback((value: number, snapshot: ChatMessageDto[], nextCursor: { createdAt: string; id: string } | null, isLoaded: boolean, nextUnread = 0) => {
     generation.current = value
@@ -362,6 +371,8 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const hide = (id: string) => { const next = hidden.includes(id) ? hidden.filter(item => item !== id) : [...hidden, id]; setHidden(next); sessionStorage.setItem(`chat.hidden.${playerId}`, JSON.stringify(next)); setMenuId(null); (document.activeElement as HTMLElement | null)?.blur() }
   const mention = (person: { id: string; displayName: string }) => { setDraft(value => value.replace(/@[^\s@]*$/u, `@${person.displayName} `)); setMentions(value => [...value.filter(item => item.playerId !== person.id), { playerId: person.id, displayName: person.displayName }]); setSuggestions([]); focusComposer() }
   const copy = async (message: ChatMessageDto) => { try { await navigator.clipboard.writeText(message.content ?? ''); if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current); setFeedback('Message copié.'); copyFeedbackTimer.current = setTimeout(() => { setFeedback(current => current === 'Message copié.' ? null : current); copyFeedbackTimer.current = null }, 2000) } catch { setError('Copie indisponible.') } }
+  const characterCount = Array.from(draft).length
+  const showCharacterCount = characterCount >= 450
 
   if (isCollapsed) return <aside className="chat-panel collapsed" aria-label="Chat global replié"><button type="button" className="chat-expand-button" onClick={onToggle} aria-label={`Afficher le chat global, ${unread} non lus`}><span aria-hidden="true">‹</span><strong>Chat</strong>{unread > 0 && <span className="unread-count">{unread > 99 ? '99+' : unread}</span>}</button></aside>
   return <aside className="chat-panel panel" aria-label="Chat global">
@@ -410,9 +421,10 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
             {!!ambiguousIntents.length && !failedIntents.length && ambiguousOverlayVisible && <div className="chat-status"><span className="chat-overlay-content">{ambiguousIntents.length === 1 ? 'Envoi non confirmé.' : `${ambiguousIntents.length} envois non confirmés.`}</span><button type="button" disabled={commandPending} onClick={() => void submitIntent(ambiguousIntents[0]!)}>Réessayer</button><button type="button" className="chat-overlay-close" aria-label="Fermer le feedback" onClick={() => setAmbiguousOverlayVisible(false)}>×</button></div>}
             {error && !ambiguousIntents.length && !failedIntents.length && <p className="chat-status chat-error" role="alert"><span className="chat-overlay-content">{error}</span><button type="button" className="chat-overlay-close" aria-label="Fermer le feedback" onClick={() => setError(null)}>×</button></p>}{feedback && !error && !ambiguousIntents.length && !failedIntents.length && <p className="chat-status" role="status"><span className="chat-overlay-content">{feedback}</span><button type="button" className="chat-overlay-close" aria-label="Fermer le feedback" onClick={() => setFeedback(null)}>×</button></p>}
           </div>
-          <label className="sr-only" htmlFor="chat-message">Écrire un message</label><input ref={composer} id="chat-message" name="chat-composer-current-message" autoComplete="off" type="text" value={draft} onChange={event => { const value = Array.from(event.target.value).slice(0, 500).join(''); setDraft(value); setSuggestions([]); setMentions(current => current.filter(item => value.includes(`@${item.displayName}`))) }} onKeyDown={event => { if (suggestions.length && ['ArrowDown', 'ArrowUp', 'Tab', 'Escape'].includes(event.key)) { event.preventDefault(); if (event.key === 'ArrowDown') setSuggestionIndex(index => (index + 1) % suggestions.length); else if (event.key === 'ArrowUp') setSuggestionIndex(index => (index - 1 + suggestions.length) % suggestions.length); else if (event.key === 'Tab') mention(suggestions[suggestionIndex]!); else setSuggestions([]); return } if (event.key === 'Enter') { if (suggestions.length) { event.preventDefault(); mention(suggestions[suggestionIndex]!); return } event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} maxLength={1000} placeholder="Écrire un message…" />
+          <label className="sr-only" htmlFor="chat-message">Écrire un message</label><textarea ref={composer} id="chat-message" name="chat-composer-current-message" className={`chat-composer-textarea${composerExpanded ? ' is-expanded' : ''}${showCharacterCount ? ' with-counter' : ''}`} data-autogrow="true" rows={1} autoComplete="off" value={draft} onChange={event => { const value = Array.from(event.target.value.replace(/[\r\n]+/gu, ' ')).slice(0, 500).join(''); setDraft(value); setSuggestions([]); setMentions(current => current.filter(item => value.includes(`@${item.displayName}`))) }} onKeyDown={event => { if (suggestions.length && ['ArrowDown', 'ArrowUp', 'Tab', 'Escape'].includes(event.key)) { event.preventDefault(); if (event.key === 'ArrowDown') setSuggestionIndex(index => (index + 1) % suggestions.length); else if (event.key === 'ArrowUp') setSuggestionIndex(index => (index - 1 + suggestions.length) % suggestions.length); else if (event.key === 'Tab') mention(suggestions[suggestionIndex]!); else setSuggestions([]); return } if (event.key === 'Enter') { if (suggestions.length) { event.preventDefault(); mention(suggestions[suggestionIndex]!); return } event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} maxLength={1000} placeholder="Écrire un message…" />
+          {showCharacterCount && <span className="chat-character-count" aria-label={`${500 - characterCount} caractères restants`}>{characterCount - 500}</span>}
+          <button type="submit" className="chat-send-button" disabled={!draft.trim() || (draft.trim().startsWith('!') && commandPending)} aria-label="Envoyer le message"><span className="icon-glyph">➤</span></button>
         </div>
-        <button type="submit" disabled={!draft.trim() || (draft.trim().startsWith('!') && commandPending)} aria-label="Envoyer le message"><span className="icon-glyph">➤</span></button>
       </form>
     </div>
   </aside>

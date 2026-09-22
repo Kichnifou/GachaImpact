@@ -278,7 +278,11 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
 
   it('persists selected mentions, projects only mentionedMe, and excludes blocked Players', async () => {
     const author = await player(), target = await player(), viewer = await player();
-    const targetName = (await db.player.findUniqueOrThrow({ where: { id: target } })).displayName;
+    const targetName = 'Céo';
+    await db.player.update({ where: { id: target }, data: { displayName: targetName } });
+    for (const query of ['ce', 'cé', 'CE']) {
+      expect((await service.searchMentions(as(author), query)).players.map(item => item.id)).toContain(target);
+    }
     const key = randomUUID();
     const sent = await service.send(as(author), `Bonjour @${targetName}`, key, null, [{ playerId: target, displayName: targetName }]);
     expect(await db.globalChatMention.count({ where: { messageId: sent.message.id, mentionedPlayerId: target } })).toBe(1);

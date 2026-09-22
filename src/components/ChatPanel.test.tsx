@@ -27,8 +27,8 @@ async function mount(collapsed = false) {
   return container
 }
 function type(container: HTMLElement, value: string) {
-  const input = container.querySelector<HTMLInputElement>('#chat-message')!
-  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value)
+  const input = container.querySelector<HTMLTextAreaElement>('#chat-message')!
+  Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(input, value)
   input.dispatchEvent(new Event('input', { bubbles: true }))
 }
 const button = (node: HTMLElement, label: string) => node.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!
@@ -67,13 +67,13 @@ describe('ChatPanel réel', () => {
     const form = container.querySelector('form')!
     await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
     expect(container.textContent).toContain('Envoi non confirmé')
-    expect((container.querySelector('#chat-message') as HTMLInputElement).value).toBe('')
+    expect((container.querySelector('#chat-message') as HTMLTextAreaElement).value).toBe('')
     expect(refresh).not.toHaveBeenCalled()
     await act(async () => { Array.from(container.querySelectorAll('button')).find(item => item.textContent === 'Réessayer')!.click() })
     expect(chat.send).toHaveBeenCalledTimes(2)
     expect(chat.send.mock.calls[1]?.[1]).toBe(chat.send.mock.calls[0]?.[1])
     expect(refresh).toHaveBeenCalledWith(['progression', 'dailyChallenge'])
-    expect((container.querySelector('#chat-message') as HTMLInputElement).value).toBe('')
+    expect((container.querySelector('#chat-message') as HTMLTextAreaElement).value).toBe('')
   })
 
   it('opens profile, replies, masks one author, reveals one row and reports privately', async () => {
@@ -103,10 +103,12 @@ describe('ChatPanel réel', () => {
     const confirmed = chat.send.getMockImplementation()!('Bonjour', '00000000-0000-4000-8000-000000000000') as Promise<ChatSendDto>
     chat.send.mockReturnValueOnce(new Promise<ChatSendDto>(resolve => { release = resolve }))
     const container = await mount()
-    const input = container.querySelector<HTMLInputElement>('#chat-message')!
-    expect(input.type).toBe('text'); expect(input.maxLength).toBe(1000)
+    const input = container.querySelector<HTMLTextAreaElement>('#chat-message')!
+    expect(input.tagName).toBe('TEXTAREA'); expect(input.getAttribute('rows')).toBe('1'); expect(input.maxLength).toBe(1000)
     await act(async () => { type(container, '😀'.repeat(501)) })
     expect(Array.from(input.value)).toHaveLength(500)
+    await act(async () => { type(container, 'Bonjour\nmonde') })
+    expect(input.value).toBe('Bonjour monde')
     await act(async () => { type(container, 'Bonjour') })
     act(() => { input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })) })
     expect(input.value).toBe('')
@@ -114,9 +116,46 @@ describe('ChatPanel réel', () => {
     expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(1)
     await act(async () => { await Promise.resolve() })
     expect(chat.send).toHaveBeenCalledOnce()
+    expect(chat.send.mock.calls[0]?.[0]).toBe('Bonjour')
     expect(button(container, 'Envoyer le message').disabled).toBe(true)
     await act(async () => { release(await confirmed) })
     expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
+  })
+
+  it('auto-grows upward within its fixed composer shell and caps its internal height', async () => {
+    const container = await mount(), input = container.querySelector<HTMLTextAreaElement>('#chat-message')!
+    let scrollHeight = 36
+    Object.defineProperty(input, 'scrollHeight', { configurable: true, get: () => scrollHeight })
+    await act(async () => { type(container, 'Court') })
+    expect(input.style.height).toBe('36px')
+    expect(input.classList.contains('is-expanded')).toBe(false)
+    scrollHeight = 112
+    await act(async () => { type(container, 'Texte long '.repeat(30)) })
+    expect(input.style.height).toBe('112px')
+    expect(input.classList.contains('is-expanded')).toBe(true)
+    expect(input.closest('.chat-composer')?.className).toBe('chat-composer')
+    scrollHeight = 220
+    await act(async () => { type(container, 'Texte maximal '.repeat(40)) })
+    expect(input.style.height).toBe('154px')
+    expect(input.style.overflowY).toBe('auto')
+  })
+
+  it('shows the Unicode character counter only from 450 through the strict 500 limit', async () => {
+    const container = await mount(), input = container.querySelector<HTMLTextAreaElement>('#chat-message')!
+    const counter = () => container.querySelector('.chat-character-count')
+    await act(async () => { type(container, 'a'.repeat(449)) })
+    expect(counter()).toBeNull()
+    await act(async () => { type(container, 'a'.repeat(450)) })
+    expect(counter()?.textContent).toBe('-50')
+    await act(async () => { type(container, 'a'.repeat(451)) })
+    expect(counter()?.textContent).toBe('-49')
+    await act(async () => { type(container, 'a'.repeat(499)) })
+    expect(counter()?.textContent).toBe('-1')
+    await act(async () => { type(container, `${'a'.repeat(499)}😀x`) })
+    expect(Array.from(input.value)).toHaveLength(500)
+    expect(input.value.endsWith('😀')).toBe(true)
+    expect(counter()?.textContent).toBe('0')
+    expect(input.classList.contains('with-counter')).toBe(true)
   })
 
   it('autocomplete resolves a selected mention and marks a received mention in text', async () => {
@@ -135,11 +174,13 @@ describe('ChatPanel réel', () => {
 
   it('navigates empty mention suggestions with arrows, Tab, Enter and Escape without leaving the composer', async () => {
     chat.mentions.mockResolvedValue({ players: Array.from({ length: 6 }, (_, index) => ({ id: `${index}`.padStart(8, '0') + '-0000-4000-8000-000000000000', displayName: `Joueur ${index}`, elementKey: null })) })
-    const container = await mount(), input = container.querySelector<HTMLInputElement>('#chat-message')!
+    const container = await mount(), input = container.querySelector<HTMLTextAreaElement>('#chat-message')!
     input.focus()
     await act(async () => { type(container, '@'); await new Promise(resolve => setTimeout(resolve, 10)) })
     expect(chat.mentions).toHaveBeenCalledWith('')
-    expect(container.querySelectorAll('[role="option"]')).toHaveLength(5)
+    const dropdown = container.querySelector('.chat-mention-suggestions')!
+    expect(dropdown.parentElement?.classList.contains('chat-composer-field')).toBe(true)
+    expect(dropdown.querySelectorAll('[role="option"]')).toHaveLength(5)
     const selected = () => container.querySelector<HTMLButtonElement>('[role="option"][aria-selected="true"]')
     const press = async (key: string) => {
       const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
@@ -175,7 +216,7 @@ describe('ChatPanel réel', () => {
   it('focuses the composer and keeps the full reply and draft in the text-field overlay', async () => {
     const longContent = 'Message complet '.repeat(20).trim()
     chat.messages.mockResolvedValue({ messages: [{ ...message, content: longContent }], nextCursor: null, generation: 0 })
-    const container = await mount(), input = container.querySelector<HTMLInputElement>('#chat-message')!
+    const container = await mount(), input = container.querySelector<HTMLTextAreaElement>('#chat-message')!
     const composer = container.querySelector('.chat-composer')
     await act(async () => { button(container, 'Répondre').click(); await new Promise(resolve => setTimeout(resolve, 25)) })
     expect(document.activeElement).toBe(input)
@@ -183,8 +224,11 @@ describe('ChatPanel réel', () => {
     expect(reply.textContent).toContain('Réponse à Autre')
     expect(reply.textContent).toContain(longContent)
     expect(reply.querySelector('.chat-overlay-content')?.nextElementSibling).toBe(button(container, 'Fermer la réponse'))
-    expect(reply.closest('.chat-composer-field')).not.toBeNull()
-    expect(reply.closest('.chat-composer-field')?.nextElementSibling).toBe(button(container, 'Envoyer le message'))
+    const field = reply.closest('.chat-composer-field')!
+    expect(field).not.toBeNull()
+    expect(field.querySelector('.chat-send-button')).toBe(button(container, 'Envoyer le message'))
+    expect(field.querySelector('.chat-composer-textarea')).toBe(input)
+    expect(container.querySelector('.chat-composer')?.children).toHaveLength(1)
     expect(container.querySelector('.chat-composer')).toBe(composer)
     await act(async () => { type(container, 'Brouillon conservé') })
     await act(async () => { button(container, 'Fermer la réponse').click() })
@@ -576,7 +620,7 @@ describe('ChatPanel réel', () => {
     chat.send.mockReturnValueOnce(new Promise<ChatSendDto>(resolve => { release = resolve }))
     await act(async () => { type(container, 'Immédiat') })
     act(() => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
-    expect((container.querySelector('#chat-message') as HTMLInputElement).value).toBe('')
+    expect((container.querySelector('#chat-message') as HTMLTextAreaElement).value).toBe('')
     expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(1)
     await act(async () => { await Promise.resolve() })
     const key = chat.send.mock.calls.at(-1)![1] as string
@@ -634,11 +678,11 @@ describe('ChatPanel réel', () => {
     await act(async () => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
     expect(container.querySelector('.chat-composer-accessory')).toBe(accessory)
     expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
-    expect((container.querySelector('#chat-message') as HTMLInputElement).value).toBe('')
+    expect((container.querySelector('#chat-message') as HTMLTextAreaElement).value).toBe('')
     expect(container.querySelector('.chat-failed-status')?.textContent).toContain('À récupérer')
     await act(async () => { Array.from(container.querySelectorAll('button')).find(item => item.textContent === 'Récupérer')!.click() })
-    expect((container.querySelector('#chat-message') as HTMLInputElement).value).toBe('À récupérer')
-    expect(container.querySelector('input')?.getAttribute('autocomplete')).toBe('off')
+    expect((container.querySelector('#chat-message') as HTMLTextAreaElement).value).toBe('À récupérer')
+    expect(container.querySelector('textarea')?.getAttribute('autocomplete')).toBe('off')
   })
 
   it('dismisses a failed overlay without losing its intent and reopens for a new failure', async () => {
@@ -656,7 +700,7 @@ describe('ChatPanel réel', () => {
     await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
     expect(container.querySelector('.chat-failed-status')?.textContent).toContain('2 envois refusés : Message B')
     await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('.chat-failed-status button')).find(item => item.textContent === 'Récupérer')!.click() })
-    expect((container.querySelector('#chat-message') as HTMLInputElement).value).toBe('Message B')
+    expect((container.querySelector('#chat-message') as HTMLTextAreaElement).value).toBe('Message B')
     expect(container.querySelector('.chat-failed-status')?.textContent).toContain('Message A')
     await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('.chat-failed-status button')).find(item => item.textContent === 'Réessayer')!.click(); await Promise.resolve() })
     expect(chat.send.mock.calls[2]![0]).toBe('Message A')
@@ -701,7 +745,7 @@ describe('ChatPanel réel', () => {
     const originalKey = chat.send.mock.calls[0]![1]
     await act(async () => { type(container, 'Brouillon B') })
     await act(async () => { reject(new ApiError('CHAT_INVALID', 'Refusé', 400)) })
-    expect((container.querySelector('#chat-message') as HTMLInputElement).value).toBe('Brouillon B')
+    expect((container.querySelector('#chat-message') as HTMLTextAreaElement).value).toBe('Brouillon B')
     expect(container.querySelector('.chat-failed-status')?.textContent).toContain('Message A')
     expect(container.querySelector('.chat-composer-accessory')).toBe(accessory)
     expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
@@ -709,7 +753,7 @@ describe('ChatPanel réel', () => {
     await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(item => item.textContent === 'Réessayer')!.click() })
     expect(chat.send.mock.calls[1]![1]).toBe(originalKey)
     expect(chat.send.mock.calls[1]![0]).toBe('Message A')
-    expect((container.querySelector('#chat-message') as HTMLInputElement).value).toBe('Brouillon B')
+    expect((container.querySelector('#chat-message') as HTMLTextAreaElement).value).toBe('Brouillon B')
     expect(Array.from(container.querySelectorAll('.chat-message')).filter(node => node.textContent?.includes('Message A'))).toHaveLength(1)
   })
 
