@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { ChatCommandDispatcher, type ChatCommandServices } from '../src/application/chat/chat-command-dispatcher.js';
 import type { GlobalChatService } from '../src/application/chat/global-chat-service.js';
 import { BusinessError } from '../src/application/errors.js';
@@ -61,12 +61,7 @@ function harness() {
       purchaseCollection: vi.fn(async () => ({ festival: { title: 'Festival', currency: { label: 'Monnaies' } }, shop: { collection: { label: 'Souvenir', cost: 80 } } })),
     },
     expeditionService: { getState: vi.fn(async () => ({ operationalStatus: 'IDLE', departureUsedToday: false })), start: vi.fn(async () => ({})), claim: vi.fn(async () => ({ reward: { amount: 5n, resourceKey: 'primogems' } })) },
-    contestService: {
-      getCurrent: vi.fn(async () => ({ active: null, theme: { label: 'Force' }, dailyUsed: false, legends: [{ character: { id: 'five', name: 'A' } }] })),
-      createLobby: vi.fn(async () => ({})), joinAsParticipant: vi.fn(async () => ({})), joinAsSpectator: vi.fn(async () => ({})),
-      selectLegend: vi.fn(async () => ({})), setReady: vi.fn(async () => ({})), start: vi.fn(async () => ({})), play: vi.fn(async () => ({})),
-      support: vi.fn(async () => ({})), leave: vi.fn(async () => ({})), cancel: vi.fn(async () => ({})),
-    },
+    contestService: { getCurrent: vi.fn(async () => ({ active: null, theme: { label: 'Force' }, dailyUsed: false })) },
     dailyCombatService: { getDaily: vi.fn(async () => ({ status: 'TODO', loadout: { slots: [] }, preview: null, playerStats: { totalFights: 0n, totalWins: 0n, totalManualWins: 0n, totalLosses: 0n }, encounter: { enemies: [{ character: { name: 'Ennemi', elementKey: 'cryo' }, weakAgainstElements: ['pyro'], resistantAgainstElements: ['hydro'] }] }, canFight: false })), previewActiveTeam: vi.fn(async () => ({ finalHalfPoints: 140 })), getElementMatrix: vi.fn(async () => [{ element: 'cryo', weakAgainstElements: ['pyro'], resistantAgainstElements: ['hydro'] }]), fight: vi.fn(async () => ({ result: { won: true, chanceHalfPoints: 140 } })) },
     monthlyBossService: { getCurrentForChat: vi.fn(async () => ({ boss: { id: 'boss', name: 'Boss', currentHp: 10n, maxHp: 20n, resistanceElementKey: 'pyro' }, status: 'ALIVE', attackState: 'AVAILABLE', preview: null, playerStats: { totalDamage: 0n, totalAttacks: 0n, totalParticipated: 0n, totalRewarded: 0n, finalBlows: 0n, bestHit: 0n } })), attackWithActiveTeam: vi.fn(async () => ({ result: { damage: 5n, defeated: false }, view: { boss: { name: 'Boss' } } })) },
     getDailyChallenge: execute({ status: 'AVAILABLE' }),
@@ -79,6 +74,10 @@ function harness() {
 }
 
 describe('Chat command adapters', () => {
+  it('requires only the Contest read projection in its dependency contract', () => {
+    expectTypeOf<keyof ChatCommandServices['contestService']>().toEqualTypeOf<'getCurrent'>();
+  });
+
   it.each([
     ['!pity', 'Pity 5★'], ['!banniere', 'Bannière'], ['!box', 'Box'], ['!team', 'Team 1'],
     ['!sac', 'Sac'], ['!coffre', 'Coffre'], ['!shop', 'Boutique'], ['!banque', 'Banque'],
@@ -136,7 +135,7 @@ describe('Chat command adapters', () => {
     ['!stella A', 'useMasterlessStella', 'execute'], ['!roue', 'spinDailyWheelChat', 'execute'],
     ['!element pyro', 'choosePlayerElement', 'execute'], ['!ami ajouter Autre', 'socialService', 'friendship'],
     ['!echanger Autre 3', 'tradeService', 'create'], ['!expedition A', 'expeditionService', 'start'],
-    ['!concours open A', 'contestService', 'createLobby'], ['!event go', 'eventService', 'join'],
+    ['!event go', 'eventService', 'join'],
     ['!combat go', 'dailyCombatService', 'fight'], ['!combat boss go', 'monthlyBossService', 'attackWithActiveTeam'],
   ])('publishes the domain result for %s without command XP', async (command, service, method) => {
     const { chat, services, send } = harness();
@@ -152,12 +151,46 @@ describe('Chat command adapters', () => {
     '!select', '!vote', '!obtention A', '!passifs', '!ami', '!ami liste', '!ami demandes', '!ami voir Autre', '!ami coeur Autre', '!ami coeur all',
     '!echanger liste', '!echanger Autre MAX', '!echanger accepter', '!echanger accepter Autre', '!echanger annuler Autre',
     '!combat info', '!combat auto', '!combat elements', '!combat help', '!combat stat',
-    '!expedition retour', '!concours rejoindre A', '!concours spectateur', '!concours quitter', '!concours pret', '!concours start', '!concours annuler', '!concours basique', '!concours risque',
-    '!event sac', '!event boutique', '!event primos 1', '!event moras max', '!event collection', '!event calendrier', '!event Feu', '!event Coffre 01010', '!event Mot doux Autre "bonjour"',
+    '!expedition retour',
   ])('returns a public answer for %s', async command => {
     const { services, send } = harness();
     if (command === '!expedition retour') services.expeditionService.getState.mockResolvedValue({ operationalStatus: 'READY', activeCharacter: { name: 'A' } } as never);
     expect(await send(command)).toBeTruthy();
+  });
+
+  it.each([
+    ['!event', 'getCurrent'], ['!event sac', 'getCurrent'], ['!event boutique', 'getCurrent'],
+    ['!event top', 'getRanking'], ['!event go', 'join'], ['!event primos 1', 'convertShop'],
+    ['!event moras max', 'convertShop'], ['!event collection', 'purchaseCollection'],
+    ['!event calendrier', 'claimCalendar'], ['!event Feu', 'attemptGameA'],
+    ['!event Coffre 01010', 'attemptGameB'], ['!event Mot doux Autre "bonjour"', 'sendGameC'],
+  ])('keeps %s connected to the Event owner and a public result', async (command, method) => {
+    const { chat, services, send } = harness();
+    expect(await send(command)).toBeTruthy();
+    expect(services.eventService[method as keyof typeof services.eventService]).toHaveBeenCalled();
+    expect(chat.publishGameResult).toHaveBeenCalledOnce();
+    expect((await chat.send.mock.results[0]!.value).xpGranted).toBe(0);
+  });
+
+  it('passes Game C the resolved recipient, exact message and durable command ID, then replays without another send', async () => {
+    const { chat, services, send } = harness();
+    const first = await send('!event Mot doux Autre "Bonjour exact !"');
+    expect(first).toBe('Mot doux envoyé à Autre.');
+    expect(services.eventService.searchGameCRecipients).toHaveBeenCalledWith(actor, { q: 'Autre', sort: 'name', direction: 'asc', page: 1 });
+    expect(services.eventService.sendGameC).toHaveBeenCalledExactlyOnceWith(actor, 'other', 'Bonjour exact !', commandId);
+    chat.findGameResult.mockResolvedValue({ id: 'answer', content: first, messageType: 'GAME_RESULT' } as never);
+    chat.findGameResults.mockResolvedValue([{ id: 'answer', content: first, messageType: 'GAME_RESULT' }] as never);
+    expect(await send('!event Mot doux Autre "Bonjour exact !"')).toBe(first);
+    expect(services.eventService.sendGameC).toHaveBeenCalledOnce();
+    expect(chat.publishGameResult).toHaveBeenCalledOnce();
+  });
+
+  it('publishes a Game C business refusal without a second domain send', async () => {
+    const { chat, services, send } = harness();
+    services.eventService.sendGameC.mockRejectedValue(new BusinessError('EVENT_GAME_C_ALREADY_SENT', 'Message Event déjà envoyé aujourd’hui.'));
+    expect(await send('!event Mot doux Autre "bonjour"')).toBe('Message Event déjà envoyé aujourd’hui.');
+    expect(services.eventService.sendGameC).toHaveBeenCalledOnce();
+    expect(chat.publishGameResult).toHaveBeenCalledOnce();
   });
 
   it('replays a published command without a second domain mutation', async () => {
@@ -187,11 +220,25 @@ describe('Chat command adapters', () => {
     expect(services.performGachaPullChat.execute).toHaveBeenCalledWith(actor, 10, commandId);
   });
 
-  it('sends Contest support to the selected physical participant', async () => {
-    const { services, send } = harness();
-    services.contestService.getCurrent.mockResolvedValue({ active: { participants: [{ slot: 2, displayName: 'Autre' }] }, theme: { label: 'Force' }, dailyUsed: false } as never);
-    expect(await send('!concours soutenir Autre')).toContain('soutien envoyé');
-    expect(services.contestService.support).toHaveBeenCalledWith(actor, 2, commandId);
+  it('reads the standalone Contest projection without requesting a mutation', async () => {
+    const { chat, services, send } = harness();
+    expect(await send('!concours')).toContain('participation du jour non utilisée');
+    expect(services.contestService.getCurrent).toHaveBeenCalledExactlyOnceWith(actor);
+    services.contestService.getCurrent.mockResolvedValue({ active: { status: 'LOBBY', participants: [{}, {}] }, theme: { label: 'Force' }, dailyUsed: true } as never);
+    expect(await send('!concours')).toContain('2/4 participants');
+    expect(chat.publishGameResult).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    '!concours open A', '!concours rejoindre A', '!concours participant A', '!concours participer A',
+    '!concours spectateur', '!concours quitter', '!concours pret', '!concours start', '!concours lancer',
+    '!concours annuler', '!concours cancel', '!concours basique', '!concours basic', '!concours risque',
+    '!concours risqué', '!concours risk', '!concours soutenir Autre', '!concours autre',
+  ])('redirects %s to standalone without any Contest call', async command => {
+    const { chat, services, send } = harness();
+    expect(await send(command)).toBe('Le Concours se joue dans l’interface. Utilise !concours pour consulter son état.');
+    expect(services.contestService.getCurrent).not.toHaveBeenCalled();
+    expect(chat.publishGameResult).toHaveBeenCalledWith(commandId, 'Le Concours se joue dans l’interface. Utilise !concours pour consulter son état.');
   });
 
   it('accepts the Event theme name from the owner with French ligatures', async () => {

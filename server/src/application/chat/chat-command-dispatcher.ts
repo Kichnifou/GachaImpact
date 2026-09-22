@@ -50,7 +50,7 @@ export type ChatCommandServices = Readonly<{
   dailyCombatService: Pick<CombatService, 'getDaily' | 'previewActiveTeam' | 'getElementMatrix' | 'fight'>;
   monthlyBossService: Pick<MonthlyBossService, 'getCurrentForChat' | 'attackWithActiveTeam'>;
   expeditionService: Pick<ExpeditionService, 'getState' | 'start' | 'claim'>;
-  contestService: Pick<ContestService, 'getCurrent' | 'createLobby' | 'joinAsParticipant' | 'joinAsSpectator' | 'selectLegend' | 'setReady' | 'start' | 'play' | 'support' | 'leave' | 'cancel'>;
+  contestService: Pick<ContestService, 'getCurrent'>;
   eventService: Pick<EventService, 'getCurrent' | 'getRanking' | 'join' | 'attemptGameA' | 'attemptGameB' | 'searchGameCRecipients' | 'sendGameC' | 'claimCalendar' | 'convertShop' | 'purchaseCollection'>;
   giftCodeService: Pick<GiftCodeService, 'listForPlayer' | 'claim'>;
   getDailyChallenge: Pick<GetDailyChallenge, 'execute'>;
@@ -469,43 +469,10 @@ export class ChatCommandDispatcher {
             `Expédition : ${view.activeCharacter?.name ?? 'personnage'} · ${view.operationalStatus === 'READY' ? 'à récupérer' : `en cours, ${view.remainingSeconds} s restantes`}.`;
         }
         case 'concours': {
+          if (args.length) return 'Le Concours se joue dans l’interface. Utilise !concours pour consulter son état.';
           const view = await this.services.contestService.getCurrent(identity);
-          if (!args.length) return view.active ? `Concours : ${statusLabel(view.active.status)} · ${view.active.participants.length}/4 participants · thème ${view.theme.label}.` :
-            `Concours : aucun en cours · thème ${view.theme.label}${view.dailyUsed ? ' · participation du jour utilisée' : ''}.`;
-          const action = args[0]!.toLocaleLowerCase('fr-FR');
-          if (['open', 'rejoindre', 'participant', 'participer'].includes(action)) {
-            const raw = args.slice(1).join(' ');
-            if (!raw) return syntax(definition.syntax);
-            const legend = view.legends.find(entry => normalizePlayerSearch(entry.character.name) === normalizePlayerSearch(raw));
-            const characterId = await this.chat.rememberCommandText(commandMessageId, 'targetId', legend?.character.id ?? '');
-            if (!characterId) return 'Légende C6 possédée introuvable.';
-            if (action === 'open') await this.services.contestService.createLobby(identity, characterId, commandMessageId);
-            else {
-              const branch = await this.chat.rememberCommandText(commandMessageId, 'action', view.active?.viewer.participantSlot ? 'select' : 'join');
-              if (branch === 'select') await this.services.contestService.selectLegend(identity, characterId, commandMessageId);
-              else await this.services.contestService.joinAsParticipant(identity, characterId, commandMessageId);
-            }
-            return `Concours : ${action === 'open' ? 'salon ouvert' : 'participation enregistrée'} avec ${legend?.character.name ?? raw}.`;
-          }
-          if (action === 'spectateur' && args.length === 1) { await this.services.contestService.joinAsSpectator(identity, commandMessageId); return 'Concours : spectateur actif enregistré.'; }
-          if (action === 'quitter' && args.length === 1) { await this.services.contestService.leave(identity, commandMessageId); return 'Concours quitté.'; }
-          if (action === 'pret' && args.length === 1) { await this.services.contestService.setReady(identity, true, commandMessageId); return 'Concours : prêt.'; }
-          if (['start', 'lancer'].includes(action) && args.length === 1) { await this.services.contestService.start(identity, commandMessageId); return 'Concours lancé.'; }
-          if (['annuler', 'cancel'].includes(action) && args.length === 1) { await this.services.contestService.cancel(identity, commandMessageId); return 'Concours annulé.'; }
-          if (['basique', 'basic', 'risque', 'risqué', 'risk'].includes(action) && args.length === 1) {
-            await this.services.contestService.play(identity, ['basique', 'basic'].includes(action) ? 'BASIC' : 'RISK', commandMessageId);
-            return `Concours : action ${['basique', 'basic'].includes(action) ? 'basique' : 'risquée'} jouée.`;
-          }
-          if (action === 'soutenir' && args.length > 1) {
-            const raw = args.slice(1).join(' ');
-            const participant = /^[1-4]$/u.test(raw) ? view.active?.participants.find(entry => entry.slot === Number(raw)) :
-              view.active?.participants.find(entry => normalizePlayerSearch(entry.displayName) === normalizePlayerSearch(raw));
-            const slot = await this.chat.rememberCommandText(commandMessageId, 'targetId', participant?.slot.toString() ?? '');
-            if (!/^[1-4]$/u.test(slot)) return 'Participant introuvable.';
-            await this.services.contestService.support(identity, Number(slot), commandMessageId);
-            return `Concours : soutien envoyé à ${participant?.displayName ?? raw}.`;
-          }
-          return syntax(definition.syntax);
+          return view.active ? `Concours : ${statusLabel(view.active.status)} · ${view.active.participants.length}/4 participants · thème ${view.theme.label}. Participation dans Activités > Concours.` :
+            `Concours : aucun en cours · thème ${view.theme.label}${view.dailyUsed ? ' · participation du jour utilisée' : ' · participation du jour non utilisée'}. Participation dans Activités > Concours.`;
         }
         case 'combat': {
           if (args.length > 2) return syntax(definition.syntax);

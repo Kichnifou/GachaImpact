@@ -50,6 +50,12 @@ Statut : décisions produit validées. Le Lot 1 promu matérialise les fondation
 - Avatar et pseudo d'un message `PLAYER` ouvrent son Profil via le pattern existant. Un menu contextuel réutilise les primitives adaptées pour `Répondre`, `Mentionner`, `Signaler` et `Masquer` selon la ligne et les droits pertinents.
 - `Envoyer un message privé` depuis un joueur du Chat peut ouvrir l'onglet MP et le parcours de conversation avec ce joueur, sous les permissions MP existantes. Le MP est toujours rédigé et envoyé dans l'onglet MP ; aucun `!mp` n'existe dans le Chat global ou sur Twitch.
 
+## Disponibilité des commandes internes — R884
+
+- Le Chat conserve le maximum de jeu que les services serveur modernes portent avec le même état métier que l'interface. Il ne crée pas de système parallèle pour une commande.
+- Le Concours se joue dans l'interface standalone. `!concours` reste une consultation de sa projection ; aucune création, participation, action, sortie ou annulation de Concours n'est disponible depuis `INTERNAL_CHAT`. Les syntaxes historiques restent documentées dans l'audit du domaine, sans devenir une disponibilité Chat actuelle.
+- Event reste complet dans le Chat, Jeu C et sa commande thématique compris. Le texte original de cette commande est public comme toute commande selon R881 ; le message Event persisté conserve les règles de visibilité du domaine Event. Échanges, Combat, Expédition, Amitié et les autres commandes déjà branchées conservent leurs capacités physiques via leurs services propriétaires. La [référence des commandes](../commands/command-reference.md) détaille les syntaxes et l'état physique.
+
 ## Frontières du premier lot
 
 Le pont Twitch réel reste différé et n'est ni développé ni préparé physiquement par ce checkpoint. `R633/R634` relèvent de l'Historique global. Les choix techniques de persistance, de diffusion et de rétention seront pris pendant le cadrage du lot physique, sans annoncer de fonctionnalité déjà implémentée.

@@ -22,4 +22,11 @@ describe('Chat command registry', () => {
     expect(chatHelp('progression')).not.toContain('!xp');
     expect(chatHelp('inconnue')).toBe('Commande inconnue. Utilise !help.');
   });
+
+  it('offers only the read-only Contest command in internal Chat help', () => {
+    expect(findChatCommand('concours')).toMatchObject({ internalChat: 'READY', syntax: '!concours' });
+    expect(chatHelp('concours')).toBe('Aide concours : !concours.');
+    expect(chatHelp('activites')).toContain('!concours');
+    expect(chatHelp('concours')).not.toContain('open');
+  });
 });

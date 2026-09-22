@@ -3,6 +3,8 @@ import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { EventService } from '../src/application/event/event-service.js';
+import { ChatCommandDispatcher, type ChatCommandServices } from '../src/application/chat/chat-command-dispatcher.js';
+import { GlobalChatService } from '../src/application/chat/global-chat-service.js';
 import { EventMessageNotificationReconciler } from '../src/application/notification/event-message-notifications.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
@@ -49,11 +51,17 @@ afterEach(async () => {
   }
   if (playerIds.length) {
     const ids = playerIds.splice(0);
+    const commands = await database.globalChatMessage.findMany({ where: { authorPlayerId: { in: ids } }, select: { id: true } });
+    const commandIds = commands.map(command => command.id);
+    if (commandIds.length) {
+      await database.globalChatMessage.deleteMany({ where: { replyToMessageId: { in: commandIds } } });
+      await database.globalChatMessage.deleteMany({ where: { id: { in: commandIds } } });
+    }
     await database.notification.deleteMany({ where: { playerId: { in: ids }, typeKey: 'EVENT_MESSAGES_PENDING' } });
     await database.friendship.deleteMany({ where: { OR: [{ playerAId: { in: ids } }, { playerBId: { in: ids } }] } });
     await database.playerBlock.deleteMany({ where: { OR: [{ blockerPlayerId: { in: ids } }, { blockedPlayerId: { in: ids } }] } });
     await database.playerEventCurrencyBalance.deleteMany({ where: { playerId: { in: ids } } });
-    await database.businessOperation.deleteMany({ where: { playerId: { in: ids }, operationType: { startsWith: 'event.' } } });
+    await database.businessOperation.deleteMany({ where: { playerId: { in: ids }, OR: [{ operationType: { startsWith: 'event.' } }, { operationType: 'chat.send' }] } });
     await database.webIdentity.deleteMany({ where: { playerId: { in: ids } } });
     await database.player.deleteMany({ where: { id: { in: ids } } });
   }
@@ -63,6 +71,35 @@ afterEach(async () => {
 afterAll(async () => database.$disconnect());
 
 describe('Event Game C with isolated future editions and fixture Players', () => {
+  it('runs Game C through public Chat and the same Event state, with exact text, replay and business refusal', async () => {
+    const sender = await fixture('Sender'); const recipient = await fixture('Recipient');
+    await join(sender); await view(recipient);
+    const theme = (await view(sender)).gameC.theme.label;
+    const chat = new GlobalChatService(database, getPlayer, { now: () => now }, { nextInt: () => 0 });
+    const dispatcher = new ChatCommandDispatcher(chat, { eventService: service } as unknown as ChatCommandServices);
+    const content = `!event ${theme} ${recipient.displayName} "Message exact du Jeu C"`;
+    const key = randomUUID();
+    const first = await dispatcher.send(sender.identity, content, key);
+    expect(first.message).toMatchObject({ messageType: 'COMMAND', content, author: { id: sender.playerId } });
+    expect(first.xpGranted).toBe(0);
+    expect(first.result).toMatchObject({ messageType: 'GAME_RESULT', sourceChannel: 'SYSTEM', replyToMessageId: first.message.id });
+    expect(first.result?.content).toContain(`${theme} envoyé à ${recipient.displayName}`);
+    const eventMessage = await database.eventSocialMessage.findFirstOrThrow({ where: { senderPlayerId: sender.playerId, recipientPlayerId: recipient.playerId } });
+    expect(eventMessage.content).toBe('Message exact du Jeu C');
+    expect((await view(recipient)).gameC.receivedMessages).toEqual(expect.arrayContaining([expect.objectContaining({ message: 'Message exact du Jeu C' })]));
+    const operation = await database.businessOperation.findFirstOrThrow({ where: { playerId: sender.playerId, operationType: 'event.game-c.send', idempotencyKey: first.message.id } });
+    expect(operation.status).toBe('COMPLETED');
+    const replay = await dispatcher.send(sender.identity, content, key);
+    expect(replay.message.id).toBe(first.message.id);
+    expect(replay.result?.id).toBe(first.result?.id);
+    expect(await database.eventSocialMessage.count({ where: { senderPlayerId: sender.playerId } })).toBe(1);
+    const refused = await dispatcher.send(sender.identity, `!event ${theme} ${recipient.displayName} "Deuxième message"`, randomUUID());
+    expect(refused.result).toMatchObject({ messageType: 'GAME_RESULT', sourceChannel: 'SYSTEM' });
+    expect(refused.result?.content).toContain('déjà');
+    expect(await database.eventSocialMessage.count({ where: { senderPlayerId: sender.playerId } })).toBe(1);
+    expect(await database.businessOperation.count({ where: { playerId: sender.playerId, operationType: 'event.game-c.send' } })).toBe(1);
+  }, 30_000);
+
   it('sends to an unregistered recipient, rewards only the sender, and replays the same operation once', async () => {
     const sender = await fixture('Sender'); const recipient = await fixture('Recipient');
     await join(sender); await view(recipient);

@@ -2,7 +2,7 @@
 
 Statut : CONSOLIDÉ APRÈS SWEEPS LEGACY — 37 scripts + 17 JSON vérifiés.
 
-État physique du candidat orchestrateur Chat interne (serveur seulement, avant review/promotion) : `help`, `element` (choix défensif), `banniere`, `select`, `vote`, `pity`, `pull` (tout entier 1..10), `obtention`, `stella`, `passifs`, `roue`, `ami`, `echanger`, `infos`, `liste`, `banque`, `convertir`, `sac`, `coffre`, `shop`, `code`, `event`, `expedition`, `concours`, `combat` et `quotis` appellent les propriétaires modernes. `box` et `team` restent des consultations synthétiques : leurs sous-commandes legacy de tri ou de mutation ne font pas partie de ce branchement. `!echanger annuler` sans pseudo requiert une seule demande envoyée non ambiguë ; aucune action globale d'annulation n'existe dans `TradeService`. `top` n'a pas encore son classement global ; `legende`, `mission` et `faveur` attendent un service adapté ou leur domaine physique. `giveaway` et `wish` restent Twitch uniquement. Cette disponibilité ne modifie aucune syntaxe ou règle métier cible ci-dessous. Le `ChatPanel` et les routes Chat navigateur restent inactifs.
+État physique du candidat orchestrateur Chat interne (serveur seulement, avant review/promotion), selon [R884](../specifications/global-chat-v1.md) : `help`, `element` (choix défensif), `banniere`, `select`, `vote`, `pity`, `pull` (tout entier 1..10), `obtention`, `stella`, `passifs`, `roue`, `ami`, `echanger`, `infos`, `liste`, `banque`, `convertir`, `sac`, `coffre`, `shop`, `code`, `event` complet avec Jeux A/B/C, `expedition`, `combat` et `quotis` appellent les propriétaires modernes. `!concours` consulte uniquement la projection du Concours standalone ; aucune action Concours n'est disponible dans `INTERNAL_CHAT`. `box` et `team` restent des consultations synthétiques : leurs sous-commandes historiques de tri ou de mutation ne font pas partie de ce branchement. `!echanger annuler` sans pseudo requiert une seule demande envoyée non ambiguë ; aucune action globale d'annulation n'existe dans `TradeService`. `top` n'a pas encore son classement global ; `legende`, `mission` et `faveur` attendent un service adapté ou leur domaine physique. `giveaway` et `wish` restent Twitch uniquement. Le `ChatPanel` et les routes Chat navigateur restent inactifs.
 
 Ce fichier deviendra la base documentaire de la future section **Aide / Commandes** intégrée à GachaImpact.
 
@@ -334,10 +334,11 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 
 - **Statut audit :** CLÔTURÉ — Domaine Concours / C6 après R593
 - **But :** créer, rejoindre, regarder et jouer le Concours global
-- **Disponible chat GachaImpact :** oui
+- **Disponible chat GachaImpact, décision R884 :** `!concours` en consultation uniquement ; toute sous-commande répond que le Concours se joue dans `Activités > Concours`, sans mutation.
 - **Disponible Twitch :** oui lorsque l'intégration Twitch sera disponible
 - **UI équivalente :** écran Concours complet
 - **Résumé :** `!concours`
+- **Historique audité ci-dessous :** les syntaxes d'action décrivent l'ancien contrat Chat/Twitch et le domaine standalone ; elles ne sont plus disponibles dans `INTERNAL_CHAT` selon R884.
 - **Créer :** `!concours open <personnage>`
 - **Rejoindre / changer avant lancement :** `!concours rejoindre <personnage>`
 - **Spectateur actif :** `!concours spectateur`
@@ -549,6 +550,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Jeu B déjà résolu :** nouvelle inscription le même jour reçoit le rattrapage +1 point/+1 monnaie
 - **Découvreur Jeu B :** honorifique, aucun bonus économique supplémentaire
 - **Jeu C :** un envoi réussi/jour ; cible existante soumise aux règles Social ; expéditeur +1 point/+1 monnaie
+- **Visibilité Jeu C dans le Chat :** la commande originale, avec son texte entre guillemets, est publique selon R881 ; le message Event persisté garde sa visibilité propre au domaine.
 - **Messages Jeu C UI :** visibles uniquement par le destinataire dans son écran Event et uniquement pour la journée courante
 - **Bonus quotidien :** +1 monnaie ; bouton Réclamer UI ; premier message normal éligible chat/Twitch peut effectuer la même réclamation
 - **Paliers :** 10/20/30/40/50/60/70/80, récompenses automatiques
