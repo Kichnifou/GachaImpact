@@ -17,7 +17,7 @@ Statut : décisions produit validées. Le Chat global player-facing est matéria
 
 ## Mentions — R875
 
-- `@pseudo` dispose d'une autocomplétion légère et d'une mise en évidence pour la personne réellement mentionnée. Aucune notification persistante n'est ajoutée à la cloche Notifications.
+- `@pseudo` dispose d'une autocomplétion légère. Une mention réellement résolue est mise en évidence dans le contenu du message, en conservant exactement la casse saisie ; une chaîne non résolue reste du texte ordinaire. Aucune notification persistante n'est ajoutée à la cloche Notifications.
 - R885 complète R875 : la saisie manuelle d'un `@pseudo` entier et valide crée également une mention réelle. Le serveur résout le pseudo courant sans tenir le `playerId` fourni par le navigateur pour autorité, sans distinguer casse ni accents selon la normalisation Social ; il déduplique les cibles et borne leur nombre à dix. Un pseudo partiel ou inexistant reste du texte ordinaire. Les messages `COMMAND` ne créent aucune mention sociale.
 - Un joueur bloqué est exclu des suggestions. Sa chaîne `@pseudo` saisie manuellement reste du texte ordinaire et ne produit pas de mention réelle.
 
@@ -31,8 +31,7 @@ Statut : décisions produit validées. Le Chat global player-facing est matéria
 ## Blocage, masquage et signalement — R878 et R879
 
 - Un `PlayerBlock` empêche les interactions directes définies par Social, sans effacer automatiquement tous les messages de la personne du flux public.
-- Le joueur peut masquer localement les messages d'une personne : chaque ligne masquée reste à sa place sous `Message masqué — Afficher` et peut être rouverte ponctuellement. Ce filtre d'affichage ne crée pas une relation sociale serveur. Son stockage local ou de session est un détail du futur lot.
-- Une action globale `Ne plus masquer ce joueur` restaure toutes ses lignes masquées dans la session.
+- Le joueur peut masquer localement les messages d'une personne : chaque ligne masquée reste à sa place sous `Message masqué — Afficher` et peut être rouverte ponctuellement. L'action contextuelle de ce même joueur bascule entre `Masquer ce joueur` et `Démasquer ce joueur` et restaure alors toutes ses lignes chargées et futures. Aucun panneau global de joueurs masqués n'est affiché. Ce filtre d'affichage ne crée pas une relation sociale serveur ; son stockage local ou de session est un détail d'implémentation.
 - Chaque message global offre `Signaler`. Le signalement conserve un snapshot du message et un contexte raisonnable autour pour la modération privée ; il ne retire pas automatiquement le message public. Le panneau complet de modération reste hors du premier lot.
 
 ## Anti-spam et commandes — R880 et R881
@@ -58,6 +57,11 @@ Statut : décisions produit validées. Le Chat global player-facing est matéria
 - Le Chat conserve le maximum de jeu que les services serveur modernes portent avec le même état métier que l'interface. Il ne crée pas de système parallèle pour une commande.
 - Le Concours se joue dans l'interface standalone. `!concours` reste une consultation de sa projection ; aucune création, participation, action, sortie ou annulation de Concours n'est disponible depuis `INTERNAL_CHAT`. Les syntaxes historiques restent documentées dans l'audit du domaine, sans devenir une disponibilité Chat actuelle.
 - Event reste complet dans le Chat, Jeu C et sa commande thématique compris. Le texte original de cette commande est public comme toute commande selon R881 ; le message Event persisté conserve les règles de visibilité du domaine Event. Échanges, Combat, Expédition, Amitié et les autres commandes déjà branchées conservent leurs capacités physiques via leurs services propriétaires. La [référence des commandes](../commands/command-reference.md) détaille les syntaxes et l'état physique.
+
+## Transport HTTP incrémental — TECHNIQUE R887
+
+- Quand le Chat est ouvert et le document visible, le navigateur demande uniquement les messages postérieurs à sa dernière ancre autoritative `(createdAt, id)` et les suppressions des lignes déjà chargées, à cadence courte sans requêtes qui se chevauchent. Le snapshot complet reste réservé au chargement initial et au changement de génération.
+- Le panneau replié interroge seulement les non-lus à cadence plus lente. Ce périmètre utilise le polling HTTP authentifié ; Realtime, WebSocket et SSE n'y sont pas introduits.
 
 ## Frontières du premier lot
 

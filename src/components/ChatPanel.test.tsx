@@ -34,6 +34,7 @@ function type(container: HTMLElement, value: string) {
 const button = (node: HTMLElement, label: string) => node.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!
 beforeEach(() => {
   vi.clearAllMocks(); sessionStorage.clear()
+  delete (chat as typeof chat & { updates?: unknown }).updates
   chat.messages.mockResolvedValue({ messages: [message], nextCursor: null, generation: 0 })
   chat.unread.mockResolvedValue({ unreadCount: 3, generation: 0 }); chat.read.mockResolvedValue({ changed: true, lastReadMessageId: message.id })
   chat.mentions.mockResolvedValue({ players: [] }); chat.remove.mockResolvedValue({ changed: true, id: message.id })
@@ -136,6 +137,38 @@ describe('ChatPanel réel', () => {
     expect(chat.remove).toHaveBeenCalledWith(own.id)
     expect(container.textContent).toContain('Message supprimé')
     expect(container.textContent).not.toContain('Texte ancien')
+  })
+
+  it('rolls back an optimistic deletion and its reply preview when the server refuses it', async () => {
+    const own = { ...message, author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content: 'Texte conservé' }
+    chat.messages.mockResolvedValue({ messages: [own, { ...message, id: '55555555-5555-4555-8555-555555555555', content: 'Réponse', replyToMessageId: own.id, replyPreview: own.content }], nextCursor: null, generation: 0 })
+    chat.remove.mockRejectedValueOnce(new Error('Refusée'))
+    const container = await mount()
+    await act(async () => { button(container, 'Actions pour le message de Moi').click() })
+    await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')).find(item => item.textContent === 'Supprimer')!.click(); await Promise.resolve() })
+    expect(container.textContent).toContain('Texte conservé')
+    expect(container.textContent).toContain('Refusée')
+  })
+
+  it('renders only server-resolved mentions in bold while retaining safe links', async () => {
+    chat.messages.mockResolvedValue({ messages: [{ ...message, content: '@autre https://example.com/ @Inconnu', resolvedMentions: [{ playerId: otherId, displayName: 'Autre' }] }], nextCursor: null, generation: 0 })
+    const container = await mount()
+    expect(container.querySelector('.chat-inline-mention')?.textContent).toBe('@autre')
+    expect(container.querySelector('.chat-inline-mention')?.textContent).not.toContain('Inconnu')
+    expect(container.querySelector('a')?.getAttribute('href')).toBe('https://example.com/')
+  })
+
+  it('uses incremental updates after the initial snapshot without unread polling', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      const updates = vi.fn(async () => ({ messages: [], generation: 0, reset: false }))
+      ;(chat as typeof chat & { updates?: typeof updates }).updates = updates
+      await mount()
+      const unreadCalls = chat.unread.mock.calls.length
+      await act(async () => { await vi.advanceTimersByTimeAsync(500) })
+      expect(updates).toHaveBeenCalledWith(0, { createdAt: message.createdAt, id: message.id }, [message.id])
+      expect(chat.unread.mock.calls).toHaveLength(unreadCalls)
+    } finally { vi.useRealTimers() }
   })
 
   it('keeps a scrolled-up reader in place, counts new rows and reads only after returning to bottom', async () => {
@@ -357,7 +390,7 @@ describe('ChatPanel réel', () => {
     expect(container.textContent).toContain('Après clear')
   })
 
-  it('keeps actions and suggestions in overlays and offers global unmasking', async () => {
+  it('keeps actions and suggestions in overlays and toggles masking contextually', async () => {
     chat.messages.mockResolvedValue({ messages: [{ ...message, repliedToMe: true }], nextCursor: null, generation: 0 })
     chat.mentions.mockResolvedValue({ players: [{ id: otherId, displayName: 'Autre', elementKey: 'cryo' }] })
     const container = await mount()
@@ -374,7 +407,8 @@ describe('ChatPanel réel', () => {
     expect(container.querySelector('.chat-message-menu')).toBeNull()
     await act(async () => { button(container, 'Masquer ce joueur').click() })
     expect(container.textContent).toContain('Message masqué')
-    await act(async () => { Array.from(container.querySelectorAll('button')).find(item => item.textContent === 'Ne plus masquer Autre')!.click() })
+    expect(container.textContent).not.toContain('joueur masqué')
+    await act(async () => { button(container, 'Démasquer ce joueur').click() })
     expect(container.textContent).toContain('Bonjour https://example.com/')
     await act(async () => { type(container, '@Aut') })
     await act(async () => { await new Promise(resolve => setTimeout(resolve, 250)) })

@@ -12,6 +12,7 @@ const list = z.object({ limit: z.coerce.number().int().min(1).max(100).default(5
 const send = z.object({ content: z.string().min(1).max(1000), idempotencyKey: uuid, replyToMessageId: uuid.nullish(), mentions: z.array(z.object({ playerId: uuid, displayName: z.string().min(1).max(100) }).strict()).max(10).optional() }).strict();
 const read = z.object({ messageId: uuid }).strict();
 const search = z.object({ q: z.string().min(1).max(100) }).strict();
+const updates = z.object({ generation: z.coerce.number().int().min(0), cursorCreatedAt: z.iso.datetime().optional(), cursorId: uuid.optional(), knownIds: z.string().max(13_000).optional() }).strict();
 function parse<T>(schema: z.ZodType<T>, value: unknown): T {
   const result = schema.safeParse(value);
   if (!result.success) throw new AppError('Paramètres Chat invalides.', 400, 'VALIDATION_ERROR');
@@ -26,6 +27,11 @@ export async function registerChatRoutes(app: FastifyInstance, options: Options)
     if (Boolean(query.cursorId) !== Boolean(query.cursorCreatedAt)) throw new AppError('Curseur Chat invalide.', 400, 'VALIDATION_ERROR');
     return options.service.list(requireAuthenticatedIdentity(request), query.limit,
       query.cursorId && query.cursorCreatedAt ? { id: query.cursorId, createdAt: query.cursorCreatedAt } : undefined);
+  });
+  app.get('/api/v1/chat/updates', config, request => {
+    const query = parse(updates, request.query);
+    if (Boolean(query.cursorId) !== Boolean(query.cursorCreatedAt)) throw new AppError('Curseur Chat invalide.', 400, 'VALIDATION_ERROR');
+    return options.service.updates(requireAuthenticatedIdentity(request), query.generation, query.cursorId && query.cursorCreatedAt ? { id: query.cursorId, createdAt: query.cursorCreatedAt } : undefined, query.knownIds?.split(',').filter(Boolean) ?? []);
   });
   app.post('/api/v1/chat/messages', config, request => {
     const body = parse(send, request.body);

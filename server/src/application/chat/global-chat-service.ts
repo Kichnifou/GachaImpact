@@ -20,7 +20,7 @@ const conflict = () => new AppError('Cette clé appartient à un autre message.'
 export type ChatCursor = { createdAt: string; id: string };
 type ChatOperationSummary = { fingerprint: string; messageId?: string; xpGranted?: number; refreshScopes?: string[]; dailyChallengeCompleted?: boolean; resolvedQuantity?: string; targetId?: string; action?: string };
 export type ChatMentionInput = { playerId: string; displayName: string };
-const messageInclude = { author: { select: { id: true, displayName: true, elementKey: true } }, operation: { select: { idempotencyKey: true } }, replyToMessage: { select: { id: true, content: true, deletionState: true, authorPlayerId: true } }, mentions: { select: { mentionedPlayerId: true } } } as const;
+const messageInclude = { author: { select: { id: true, displayName: true, elementKey: true } }, operation: { select: { idempotencyKey: true } }, replyToMessage: { select: { id: true, content: true, deletionState: true, authorPlayerId: true } }, mentions: { select: { mentionedPlayerId: true, mentionedPlayer: { select: { displayName: true } } } } } as const;
 
 function normalize(content: string) {
   if (typeof content !== 'string' || /[\r\n\u2028\u2029]/u.test(content)) throw invalid('Un message doit tenir sur une seule ligne.');
@@ -49,7 +49,7 @@ function project(row: {
   createdAt: Date; deletedAt: Date | null; deletionState: GlobalChatDeletionState;
   replyToMessageId: string | null; author: { id: string; displayName: string; elementKey: string | null } | null;
   replyToMessage: { id: string; content: string; deletionState: GlobalChatDeletionState; authorPlayerId: string | null } | null;
-  mentions: { mentionedPlayerId: string }[];
+  mentions: { mentionedPlayerId: string; mentionedPlayer: { displayName: string } }[];
   operation: { idempotencyKey: string | null } | null;
 }, viewerId?: string) {
   const deleted = row.deletionState !== GlobalChatDeletionState.ACTIVE;
@@ -61,6 +61,7 @@ function project(row: {
     replyToMessageId: row.replyToMessageId,
     replyPreview: row.replyToMessage ? (row.replyToMessage.deletionState === GlobalChatDeletionState.ACTIVE ? row.replyToMessage.content : 'Message supprimé') : null,
     mentionedMe: !!viewerId && !deleted && row.mentions.some(mention => mention.mentionedPlayerId === viewerId),
+    resolvedMentions: deleted ? [] : row.mentions.map(mention => ({ playerId: mention.mentionedPlayerId, displayName: mention.mentionedPlayer.displayName })),
     repliedToMe: !!viewerId && !deleted && row.replyToMessage?.authorPlayerId === viewerId && row.authorPlayerId !== viewerId,
     clientIntentKey: viewerId && row.authorPlayerId === viewerId ? row.operation?.idempotencyKey ?? null : null,
   };
@@ -215,7 +216,10 @@ export class GlobalChatService {
       }
       await this.activity.record(tx, player.id, now, 'INTERNAL_CHAT');
       await tx.businessOperation.update({ where: { id: operation.id }, data: { status: 'COMPLETED', completedAt: now, resultSummary: { fingerprint, messageId: message.id, xpGranted, refreshScopes, dailyChallengeCompleted } } });
-      return { message: project(message, player.id), generation, xpGranted, refreshScopes, dailyChallengeCompleted, replayed: false };
+      const projected = resolvedMentions.length
+        ? await tx.globalChatMessage.findUniqueOrThrow({ where: { id: message.id }, include: messageInclude })
+        : message;
+      return { message: project(projected, player.id), generation, xpGranted, refreshScopes, dailyChallengeCompleted, replayed: false };
     });
   }
 
@@ -338,6 +342,20 @@ export class GlobalChatService {
       const last = page.at(-1);
       return { messages: page.reverse().map(row => project(row, viewer.id)), nextCursor: rows.length > limit && last ? { createdAt: last.createdAt.toISOString(), id: last.id } : null, generation };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
+  }
+
+  async updates(identity: AuthenticatedIdentity, clientGeneration: number, cursor?: ChatCursor, knownIds: string[] = []) {
+    const viewer = await this.actor(identity);
+    if (!Number.isInteger(clientGeneration) || clientGeneration < 0 || knownIds.length > 350 || knownIds.some(id => !/^[0-9a-f-]{36}$/i.test(id))) throw invalid('Mise à jour Chat invalide.');
+    const generation = await this.generation();
+    if (generation !== clientGeneration) return { generation, reset: true, messages: [] };
+    if (!cursor) return { generation, reset: false, messages: [] };
+    const date = new Date(cursor.createdAt);
+    if (Number.isNaN(date.getTime()) || !/^[0-9a-f-]{36}$/i.test(cursor.id)) throw invalid('Curseur invalide.');
+    const anchor = await this.database.globalChatMessage.findUnique({ where: { id: cursor.id }, select: { createdAt: true, generation: true } });
+    if (!anchor || anchor.generation !== generation || anchor.createdAt.toISOString() !== date.toISOString()) return { generation, reset: true, messages: [] };
+    const rows = await this.database.globalChatMessage.findMany({ where: { generation, OR: [{ createdAt: { gt: anchor.createdAt } }, { createdAt: anchor.createdAt, id: { gt: cursor.id } }, { id: { in: knownIds }, deletionState: { not: 'ACTIVE' } }] }, include: messageInclude, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], take: 100 });
+    return { generation, reset: false, messages: rows.map(row => project(row, viewer.id)) };
   }
 
   async rememberCommandRefreshScopes(commandMessageId: string, scopes: readonly ChatRefreshScope[]) {

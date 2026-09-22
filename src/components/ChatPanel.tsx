@@ -18,6 +18,13 @@ function linkChatText(content: string) {
     return part
   })
 }
+function chatText(content: string, mentions: readonly ChatMentionDto[] = []) {
+  const names = new Set(mentions.map(item => item.displayName.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('fr-FR')))
+  return content.split(/(https?:\/\/[^\s]+|@[^\s@.,!?;:]+)/giu).map((part, index) => {
+    if (/^@/u.test(part) && names.has(part.slice(1).normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('fr-FR'))) return <strong className="chat-inline-mention" key={index}>{part}</strong>
+    return linkChatText(part)
+  })
+}
 
 const orderMessages = (items: ChatMessageDto[]) => items.sort((a, b) => {
   if (a.id.startsWith('optimistic:')) return b.id.startsWith('optimistic:') ? a.createdAt.localeCompare(b.createdAt) : 1
@@ -36,7 +43,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const [reply, setReply] = useState<ChatMessageDto | null>(null)
   const [mentions, setMentions] = useState<ChatMentionDto[]>([])
   const [suggestions, setSuggestions] = useState<{ id: string; displayName: string; elementKey: string | null }[]>([])
-  const [pending, setPending] = useState(false)
+  const [commandPending, setCommandPending] = useState(false)
   const [ambiguousIntents, setAmbiguousIntents] = useState<Intent[]>([])
   const [failedIntents, setFailedIntents] = useState<FailedIntent[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -56,14 +63,15 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const messagesRef = useRef<ChatMessageDto[]>([])
   const deferredLatest = useRef(false)
   const unseenIds = useRef(new Set<string>())
+  const initialScrollPending = useRef(true)
 
   const adoptGeneration = useCallback((value: number, snapshot: ChatMessageDto[], nextCursor: { createdAt: string; id: string } | null, isLoaded: boolean, nextUnread = 0) => {
     generation.current = value
     messagesRef.current = snapshot
     setMessages(snapshot); setCursor(nextCursor); setLoaded(isLoaded); setUnread(nextUnread); setNewCount(0)
     readId.current = null; unseenIds.current.clear(); deferredLatest.current = false; atBottom.current = true; prepend.current = null; lastRenderedId.current = null
+    initialScrollPending.current = true
     setAmbiguousIntents([])
-    requestAnimationFrame(() => { if (list.current) list.current.scrollTop = list.current.scrollHeight })
   }, [])
 
   const unreadNow = useCallback(async () => {
@@ -106,8 +114,23 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     if (initial) { deferredLatest.current = false; unseenIds.current.clear(); setNewCount(0) }
     messagesRef.current = next
     setMessages(next)
-    if (initial) { atBottom.current = false; setCursor(page.nextCursor); setLoaded(true); requestAnimationFrame(() => { if (list.current) { list.current.scrollTop = list.current.scrollHeight; atBottom.current = true; const id = page.messages.at(-1)?.id; if (id && readId.current !== id) { readId.current = id; void api.read(id).then(() => setUnread(0)).catch(() => { readId.current = null }) } } }) }
+    if (initial) { initialScrollPending.current = true; atBottom.current = false; setCursor(page.nextCursor); setLoaded(true) }
   }, [adoptGeneration, api, playerId])
+
+  const updatesNow = useCallback(async () => {
+    if (typeof api.updates !== 'function') return messagesNow(false)
+    if (generation.current === null) return messagesNow(true)
+    const anchor = [...messagesRef.current].reverse().find(item => !item.id.startsWith('optimistic:'))
+    const update = await api.updates(generation.current, anchor ? { createdAt: anchor.createdAt, id: anchor.id } : null, messagesRef.current.filter(item => !item.id.startsWith('optimistic:')).map(item => item.id))
+    if (update.reset) return messagesNow(true)
+    if (!update.messages.length) return
+    const known = new Set(messagesRef.current.map(item => item.id))
+    const incoming = new Map(update.messages.map(item => [item.id, item]))
+    const fresh = update.messages.filter(item => !known.has(item.id) && item.author?.id !== playerId)
+    if (fresh.length && !atBottom.current) setNewCount(value => value + fresh.length)
+    const merged = orderMessages([...messagesRef.current.map(item => incoming.get(item.id) ?? item), ...update.messages.filter(item => !known.has(item.id))].filter((item, index, all) => all.findIndex(other => other.id === item.id) === index)).slice(-350)
+    messagesRef.current = merged; setMessages(merged)
+  }, [api, messagesNow, playerId])
 
   useEffect(() => {
     let cancelled = false, busy = false
@@ -115,16 +138,16 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     const tick = async () => {
       if (cancelled || busy || document.hidden) return
       busy = true
-      try { if (isCollapsed) await unreadNow(); else { await messagesNow(!loaded); await unreadNow() } }
+      try { if (isCollapsed) await unreadNow(); else if (!loaded) await messagesNow(true); else await updatesNow() }
       catch (cause) { if (!cancelled) setError(cause instanceof Error ? cause.message : 'Chat indisponible.') }
       finally { busy = false }
     }
-    const schedule = () => { clearTimeout(timer); if (!cancelled && !document.hidden) timer = setTimeout(async () => { await tick(); schedule() }, isCollapsed ? 5000 : 2500) }
+    const schedule = () => { clearTimeout(timer); if (!cancelled && !document.hidden) timer = setTimeout(async () => { await tick(); schedule() }, isCollapsed ? 5000 : 500) }
     const visible = () => { if (document.hidden) clearTimeout(timer); else { void tick(); schedule() } }
     void tick().then(schedule)
     document.addEventListener('visibilitychange', visible); window.addEventListener('focus', visible)
     return () => { cancelled = true; clearTimeout(timer); document.removeEventListener('visibilitychange', visible); window.removeEventListener('focus', visible) }
-  }, [isCollapsed, loaded, messagesNow, playerId, unreadNow])
+  }, [isCollapsed, loaded, messagesNow, playerId, unreadNow, updatesNow])
 
   useEffect(() => {
     if (isCollapsed || document.hidden || !atBottom.current || !messages.length) return
@@ -138,7 +161,8 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   useLayoutEffect(() => {
     if (!list.current) return
     messagesRef.current = messages
-    if (prepend.current) { list.current.scrollTop = prepend.current.top + list.current.scrollHeight - prepend.current.height; prepend.current = null }
+    if (initialScrollPending.current) { list.current.scrollTop = list.current.scrollHeight; initialScrollPending.current = false; atBottom.current = true }
+    else if (prepend.current) { list.current.scrollTop = prepend.current.top + list.current.scrollHeight - prepend.current.height; prepend.current = null }
     else if (atBottom.current && lastRenderedId.current && messages.at(-1)?.id !== lastRenderedId.current) list.current.scrollTop = list.current.scrollHeight
     lastRenderedId.current = messages.at(-1)?.id ?? null
   }, [messages])
@@ -158,7 +182,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   }
   const markRecent = () => { const id = [...messagesRef.current].reverse().find(item => !item.id.startsWith('optimistic:'))?.id; if (id && !document.hidden && !isCollapsed && readId.current !== id) { readId.current = id; void api.read(id).then(() => setUnread(0)).catch(() => { readId.current = null }) } }
   const scrollBottom = () => { if (deferredLatest.current) { void messagesNow(true).catch(cause => setError(cause instanceof Error ? cause.message : 'Chat indisponible.')); return } if (list.current) list.current.scrollTop = list.current.scrollHeight; atBottom.current = true; setNewCount(0); markRecent() }
-  const onScroll = () => { if (!list.current) return; atBottom.current = list.current.scrollHeight - list.current.scrollTop - list.current.clientHeight < 80; if (atBottom.current) { if (deferredLatest.current) scrollBottom(); else { setNewCount(0); markRecent() } } if (list.current.scrollTop < 90) void loadOlder() }
+  const onScroll = () => { if (!list.current || initialScrollPending.current) return; atBottom.current = list.current.scrollHeight - list.current.scrollTop - list.current.clientHeight < 80; if (atBottom.current) { if (deferredLatest.current) scrollBottom(); else { setNewCount(0); markRecent() } } if (list.current.scrollTop < 90) void loadOlder() }
 
   useEffect(() => {
     const match = draft.match(/(?:^|\s)@([^\s@]+)$/u), version = ++searchVersion.current
@@ -178,7 +202,8 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   }, [])
 
   const submitIntent = async (next: Intent) => {
-    setPending(true); setError(null)
+    const isCommand = next.content.startsWith('!')
+    if (isCommand) setCommandPending(true); setError(null)
     try {
       const result = await api.send(next.content, next.key, next.replyId, next.mentions)
       setAmbiguousIntents(current => current.filter(item => item.key !== next.key))
@@ -218,12 +243,12 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
         setFailedIntents(current => current.filter(item => item.key !== next.key))
         setAmbiguousIntents(current => current.some(item => item.key === next.key) ? current : [...current, next])
       }
-    } finally { setPending(false) }
+    } finally { if (isCommand) setCommandPending(false) }
   }
 
   const send = (event: FormEvent) => {
     event.preventDefault()
-    if (pending || !draft.trim() || Array.from(draft.trim()).length > 500) return
+    if ((draft.trim().startsWith('!') && commandPending) || !draft.trim() || Array.from(draft.trim()).length > 500) return
     const next: Intent = { key: crypto.randomUUID(), content: draft.trim(), replyId: reply?.id ?? null, mentions: mentions.filter(item => draft.includes(`@${item.displayName}`)) }
     const provisional: ChatMessageDto = { id: `optimistic:${next.key}`, clientIntentKey: next.key, author: { id: playerId, displayName: playerDisplayName, elementKey: playerElementKey }, authorLabel: playerDisplayName, sourceChannel: 'INTERNAL_CHAT', messageType: next.content.startsWith('!') ? 'COMMAND' : 'PLAYER', content: next.content, createdAt: new Date().toISOString(), deletedAt: null, deletionState: 'ACTIVE', replyToMessageId: next.replyId, replyPreview: reply?.content ?? null, mentionedMe: false, repliedToMe: false }
     setDraft(''); setReply(null); setSuggestions([]); setMentions([]); setError(null)
@@ -243,17 +268,15 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     setError(null)
   }
 
-  const remove = async (id: string) => { setMenuId(null); try { await api.remove(id); setMessages(current => current.map(message => message.id === id ? { ...message, deletionState: 'AUTHOR', content: null } : message.replyToMessageId === id ? { ...message, replyPreview: 'Message supprimé' } : message)) } catch (cause) { setError(cause instanceof Error ? cause.message : 'Suppression indisponible.') } }
+  const remove = async (id: string) => { setMenuId(null); const before = messagesRef.current; const optimistic = before.map(message => message.id === id ? { ...message, deletionState: 'AUTHOR' as const, content: null } : message.replyToMessageId === id ? { ...message, replyPreview: 'Message supprimé' } : message); messagesRef.current = optimistic; setMessages(optimistic); try { await api.remove(id) } catch (cause) { messagesRef.current = before; setMessages(before); setError(cause instanceof Error ? cause.message : 'Suppression indisponible.') } }
   const report = async (id: string) => { try { await api.report(id); setReportId(null); setFeedback('Signalement envoyé.'); setTimeout(() => setFeedback(null), 3000) } catch (cause) { setError(cause instanceof Error ? cause.message : 'Signalement indisponible.') } }
-  const hide = (id: string) => { const next = [...new Set([...hidden, id])]; setHidden(next); sessionStorage.setItem(`chat.hidden.${playerId}`, JSON.stringify(next)); setMenuId(null) }
-  const unhide = (id: string) => { const next = hidden.filter(item => item !== id); setHidden(next); setRevealed(value => value.filter(messageId => !messages.some(item => item.id === messageId && item.author?.id === id))); sessionStorage.setItem(`chat.hidden.${playerId}`, JSON.stringify(next)); setMenuId(null) }
+  const hide = (id: string) => { const next = hidden.includes(id) ? hidden.filter(item => item !== id) : [...hidden, id]; setHidden(next); sessionStorage.setItem(`chat.hidden.${playerId}`, JSON.stringify(next)); setMenuId(null); (document.activeElement as HTMLElement | null)?.blur() }
   const mention = (person: { id: string; displayName: string }) => { setDraft(value => value.replace(/@[^\s@]*$/u, `@${person.displayName} `)); setMentions(value => [...value.filter(item => item.playerId !== person.id), { playerId: person.id, displayName: person.displayName }]); setSuggestions([]) }
 
   if (isCollapsed) return <aside className="chat-panel collapsed" aria-label="Chat global replié"><button type="button" className="chat-expand-button" onClick={onToggle} aria-label={`Afficher le chat global, ${unread} non lus`}><span aria-hidden="true">‹</span><strong>Chat</strong>{unread > 0 && <span className="unread-count">{unread > 99 ? '99+' : unread}</span>}</button></aside>
   return <aside className="chat-panel panel" aria-label="Chat global">
     <div className="chat-header"><div><span className="eyebrow">Communauté</span><h2>Chat global</h2></div><button type="button" className="icon-button" onClick={onToggle} aria-label="Replier le chat global"><span className="icon-glyph">›</span></button></div>
     <button type="button" className="chat-presence" onClick={onOpenPlayers}><span className="status-dot" />{connectedCount === null ? 'Joueurs connectés' : `${connectedCount} joueur${connectedCount > 1 ? 's' : ''} connecté${connectedCount > 1 ? 's' : ''}`}<span aria-hidden="true">›</span></button>
-    {!!hidden.length && <details className="chat-hidden-players"><summary>{hidden.length} joueur{hidden.length > 1 ? 's' : ''} masqué{hidden.length > 1 ? 's' : ''}</summary><div>{hidden.map(id => <button type="button" key={id} onClick={() => unhide(id)}>Ne plus masquer {messages.find(item => item.author?.id === id)?.author?.displayName ?? 'ce joueur'}</button>)}</div></details>}
     <div className="message-list" ref={list} onScroll={onScroll} aria-live="off">{!loaded && <p className="chat-status">Chargement du Chat…</p>}{loaded && !messages.length && <p className="chat-status">Aucun message pour le moment.</p>}
       {messages.map(message => {
         const own = message.author?.id === playerId, game = message.messageType === 'GAME_RESULT' || message.messageType === 'SYSTEM'
@@ -268,33 +291,33 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
         const avatarStyle = message.author?.elementKey && message.author.elementKey in elementColors ? { '--chat-avatar-color': elementColors[message.author.elementKey as keyof typeof elementColors] } as CSSProperties : undefined
         const replyTo = () => { setReply(message); setMenuId(null) }
         const mentionAuthor = () => { if (!message.author) return; setDraft(value => `${value}${value && !value.endsWith(' ') ? ' ' : ''}@${message.author!.displayName} `); setMentions(value => [...value, { playerId: message.author!.id, displayName: message.author!.displayName }]); setMenuId(null) }
-        return <article className={`chat-message${message.mentionedMe || message.repliedToMe ? ' chat-message-mentioned' : ''}${optimistic ? ' chat-message-optimistic' : ''}`} key={message.id}>
+        return <article className={`chat-message${message.mentionedMe || message.repliedToMe ? ' chat-message-mentioned' : ''}${optimistic ? ' chat-message-optimistic' : ''}`} data-command={optimistic && message.messageType === 'COMMAND' ? 'true' : undefined} key={message.id}>
           {game ? <div className="message-avatar chat-game-avatar" aria-hidden="true">✦</div> : <button type="button" className="message-avatar chat-avatar-button" style={avatarStyle} aria-label={`Profil de ${message.authorLabel}`} onClick={() => message.author && onOpenProfile(message.author.id)}>{message.authorLabel?.slice(0, 1).toLocaleUpperCase('fr-FR')}</button>}
           <div className="message-content"><div className="message-meta">{game ? <strong className="chat-game-label">GachaImpact</strong> : <button type="button" className="chat-author-button" onClick={() => message.author && onOpenProfile(message.author.id)}>{message.authorLabel}</button>}<time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time></div>
             {message.replyToMessageId && <div className="chat-reply-preview">↳ {message.replyPreview ?? 'Message supprimé'}</div>}
-            <p>{masked ? <>Message masqué — <button type="button" onClick={() => setRevealed(value => [...value, message.id])}>Afficher</button></> : message.deletionState === 'AUTHOR' ? 'Message supprimé' : message.deletionState === 'MODERATION' ? 'Message supprimé par la modération' : linkChatText(message.content ?? '')}</p>
-            {canAct && <><div className="chat-message-actions" aria-label={`Actions pour le message de ${message.authorLabel}`}>
+            <p>{masked ? <>Message masqué — <button type="button" onClick={() => setRevealed(value => [...value, message.id])}>Afficher</button></> : message.deletionState === 'AUTHOR' ? 'Message supprimé' : message.deletionState === 'MODERATION' ? 'Message supprimé par la modération' : chatText(message.content ?? '', message.resolvedMentions)}</p>
+            {canAct && <><div className="chat-message-actions" aria-label={`Actions pour le message de ${message.authorLabel}`} onClickCapture={event => { if (event.detail) (document.activeElement as HTMLElement | null)?.blur() }}>
               {canReply && <button type="button" title="Répondre" aria-label="Répondre" onClick={replyTo}>↩</button>}
               {canMention && <button type="button" title="Mentionner" aria-label="Mentionner" onClick={mentionAuthor}>@</button>}
               {canReport && <button type="button" title="Signaler" aria-label="Signaler" onClick={() => setReportId(message.id)}>⚑</button>}
-              {canMask && <button type="button" title="Masquer ce joueur" aria-label="Masquer ce joueur" onClick={() => hide(message.author!.id)}>◌</button>}
+              {canMask && <button type="button" title={hidden.includes(message.author!.id) ? 'Démasquer ce joueur' : 'Masquer ce joueur'} aria-label={hidden.includes(message.author!.id) ? 'Démasquer ce joueur' : 'Masquer ce joueur'} onClick={() => hide(message.author!.id)}>◌</button>}
               {canDelete && <button type="button" title="Supprimer" aria-label="Supprimer" onClick={() => void remove(message.id)}>×</button>}
             </div>
             <button type="button" className="chat-message-menu-button" aria-label={`Actions pour le message de ${message.authorLabel}`} aria-expanded={menuId === message.id} onClick={() => setMenuId(value => value === message.id ? null : message.id)}>⋯</button>
-            {menuId === message.id && <div className="chat-message-menu" role="menu">{canReply && <button type="button" role="menuitem" onClick={replyTo}>Répondre</button>}{canMention && <button type="button" role="menuitem" onClick={mentionAuthor}>Mentionner</button>}{canReport && <button type="button" role="menuitem" onClick={() => { setReportId(message.id); setMenuId(null) }}>Signaler</button>}{canMask && <button type="button" role="menuitem" onClick={() => hide(message.author!.id)}>Masquer les messages de ce joueur</button>}{canDelete && <button type="button" role="menuitem" onClick={() => void remove(message.id)}>Supprimer</button>}</div>}</>}
+            {reportId === message.id && <div className="chat-report-confirm" role="dialog" aria-label="Confirmer le signalement"><p>Signaler ce message ?</p><button type="button" onClick={() => void report(message.id)}>Confirmer</button><button type="button" onClick={() => setReportId(null)}>Annuler</button></div>}
+            {menuId === message.id && <div className="chat-message-menu" role="menu">{canReply && <button type="button" role="menuitem" onClick={replyTo}>Répondre</button>}{canMention && <button type="button" role="menuitem" onClick={mentionAuthor}>Mentionner</button>}{canReport && <button type="button" role="menuitem" onClick={() => { setReportId(message.id); setMenuId(null) }}>Signaler</button>}{canMask && <button type="button" role="menuitem" onClick={() => hide(message.author!.id)}>{hidden.includes(message.author!.id) ? 'Démasquer ce joueur' : 'Masquer les messages de ce joueur'}</button>}{canDelete && <button type="button" role="menuitem" onClick={() => void remove(message.id)}>Supprimer</button>}</div>}</>}
           </div>
         </article>
       })}</div>
     {newCount > 0 && <button type="button" className="chat-new-messages" onClick={scrollBottom}>{newCount} nouveau{newCount > 1 ? 'x' : ''} message{newCount > 1 ? 's' : ''} ↓</button>}
     <div className="chat-composer-wrap">
-      {reportId && <div className="chat-report-confirm" role="dialog" aria-label="Confirmer le signalement"><p>Signaler ce message ?</p><button type="button" onClick={() => void report(reportId)}>Confirmer</button><button type="button" onClick={() => setReportId(null)}>Annuler</button></div>}
       {!!suggestions.length && <div className="chat-mention-suggestions" role="listbox" aria-label="Joueurs à mentionner">{suggestions.map(person => <button type="button" role="option" aria-selected={false} key={person.id} onClick={() => mention(person)}>{person.displayName}</button>)}</div>}
       <div className="chat-composer-accessory">{reply && <div className="chat-composer-reply">Réponse à {reply.authorLabel}<button type="button" onClick={() => setReply(null)} aria-label="Annuler la réponse">×</button></div>}
-        {!!failedIntents.length && <div className="chat-status chat-error chat-failed-status" role="alert"><span title={`${failedIntents[0]!.reason} — ${failedIntents[0]!.content}`}>{failedIntents.length > 1 ? `${failedIntents.length} envois refusés : ` : 'Envoi refusé : '}{failedIntents[0]!.content}</span><button type="button" disabled={pending} onClick={() => void submitIntent(failedIntents[0]!)}>Réessayer</button><button type="button" disabled={pending || !!draft} title={draft ? 'Terminer le brouillon courant pour récupérer ce message' : undefined} onClick={recoverFailed}>Récupérer</button></div>}
-        {!!ambiguousIntents.length && !failedIntents.length && <div className="chat-status">{ambiguousIntents.length === 1 ? 'Envoi non confirmé.' : `${ambiguousIntents.length} envois non confirmés.`} <button type="button" disabled={pending} onClick={() => void submitIntent(ambiguousIntents[0]!)}>Réessayer</button></div>}
+        {!!failedIntents.length && <div className="chat-status chat-error chat-failed-status" role="alert"><span title={`${failedIntents[0]!.reason} — ${failedIntents[0]!.content}`}>{failedIntents.length > 1 ? `${failedIntents.length} envois refusés : ` : 'Envoi refusé : '}{failedIntents[0]!.content}</span><button type="button" disabled={commandPending} onClick={() => void submitIntent(failedIntents[0]!)}>Réessayer</button><button type="button" disabled={commandPending || !!draft} title={draft ? 'Terminer le brouillon courant pour récupérer ce message' : undefined} onClick={recoverFailed}>Récupérer</button></div>}
+        {!!ambiguousIntents.length && !failedIntents.length && <div className="chat-status">{ambiguousIntents.length === 1 ? 'Envoi non confirmé.' : `${ambiguousIntents.length} envois non confirmés.`} <button type="button" disabled={commandPending} onClick={() => void submitIntent(ambiguousIntents[0]!)}>Réessayer</button></div>}
         {error && !ambiguousIntents.length && !failedIntents.length && <p className="chat-status chat-error" role="alert">{error}</p>}{feedback && !error && !ambiguousIntents.length && !failedIntents.length && <p className="chat-status" role="status">{feedback}</p>}
       </div>
-      <form className="chat-composer" autoComplete="off" onSubmit={send}><label className="sr-only" htmlFor="chat-message">Écrire un message</label><input id="chat-message" name="chat-composer-current-message" autoComplete="off" type="text" value={draft} onChange={event => { const value = Array.from(event.target.value).slice(0, 500).join(''); setDraft(value); setSuggestions([]); setMentions(current => current.filter(item => value.includes(`@${item.displayName}`))) }} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} maxLength={1000} placeholder="Écrire un message…" /><button type="submit" disabled={pending || !draft.trim()} aria-label="Envoyer le message"><span className="icon-glyph">➤</span></button></form>
+      <form className="chat-composer" autoComplete="off" onSubmit={send}><label className="sr-only" htmlFor="chat-message">Écrire un message</label><input id="chat-message" name="chat-composer-current-message" autoComplete="off" type="text" value={draft} onChange={event => { const value = Array.from(event.target.value).slice(0, 500).join(''); setDraft(value); setSuggestions([]); setMentions(current => current.filter(item => value.includes(`@${item.displayName}`))) }} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} maxLength={1000} placeholder="Écrire un message…" /><button type="submit" disabled={!draft.trim() || (draft.trim().startsWith('!') && commandPending)} aria-label="Envoyer le message"><span className="icon-glyph">➤</span></button></form>
     </div>
   </aside>
 }

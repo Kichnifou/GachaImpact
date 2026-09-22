@@ -11,6 +11,7 @@ const identity = { subject: 'test-subject' };
 const apps: Awaited<ReturnType<typeof buildApp>>[] = [];
 const service = {
   list: vi.fn(async () => ({ messages: [{ id: messageId, content: 'bonjour' }], nextCursor: { id: messageId, createdAt: '2026-09-22T10:00:00.000Z' }, generation: 0 })),
+  updates: vi.fn(async () => ({ messages: [], generation: 0, reset: false })),
   unreadCount: vi.fn(async () => ({ unreadCount: 3, generation: 0 })),
   markRead: vi.fn(async () => ({ lastReadMessageId: messageId, changed: true })),
   deleteOwn: vi.fn(async () => ({ id: messageId, changed: true })),
@@ -55,6 +56,15 @@ describe('authenticated Chat routes', () => {
       payload: { content: 'bonjour', idempotencyKey: messageId, replyToMessageId: null, mentions: [{ playerId, displayName: 'Éléa' }] } });
     expect(sent.statusCode).toBe(200);
     expect(dispatcher.send).toHaveBeenCalledWith(identity, 'bonjour', messageId, null, [{ playerId, displayName: 'Éléa' }]);
+  });
+
+  it('reads incremental updates with a complete anchor and bounded known messages', async () => {
+    const enabled = await app();
+    const response = await enabled.inject({ method: 'GET', url: `/api/v1/chat/updates?generation=0&cursorId=${messageId}&cursorCreatedAt=2026-09-22T10%3A00%3A00.000Z&knownIds=${messageId}`, headers: token });
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['cache-control']).toBe('no-store');
+    expect(service.updates).toHaveBeenCalledWith(identity, 0, { id: messageId, createdAt: '2026-09-22T10:00:00.000Z' }, [messageId]);
+    expect((await enabled.inject({ method: 'GET', url: '/api/v1/chat/updates?generation=0&cursorId=' + messageId, headers: token })).statusCode).toBe(400);
   });
 
   it('routes unread, read, delete, mention search and private report without arbitrary reads', async () => {
