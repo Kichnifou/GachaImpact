@@ -401,8 +401,8 @@ export class GlobalChatService {
     const candidates = players.filter(row => normalizePlayerSearch(row.displayName).includes(needle));
     if (needle) return { players: candidates.sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr', { sensitivity: 'base' })).slice(0, 8) };
     const [recentMessages, sessions] = await Promise.all([
-      this.database.globalChatMessage.findMany({ where: { authorPlayerId: { not: null }, deletionState: 'ACTIVE' }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 50, select: { authorPlayerId: true } }),
-      this.database.playerSession.findMany({ where: { playerId: { notIn: [...excluded] }, endedAt: null, lastHeartbeatAt: { gt: new Date(this.clock().getTime() - 180_000) } }, orderBy: { lastHeartbeatAt: 'desc' }, take: 50, select: { playerId: true } }),
+      this.database.globalChatMessage.findMany({ where: { generation: await this.generation(), authorPlayerId: { not: null }, deletionState: 'ACTIVE' }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 50, select: { authorPlayerId: true } }),
+      this.database.playerSession.findMany({ where: { playerId: { notIn: [...excluded] }, endedAt: null, lastHeartbeatAt: { gt: new Date(this.clock.now().getTime() - 180_000) } }, orderBy: { lastHeartbeatAt: 'desc' }, take: 50, select: { playerId: true } }),
     ]);
     const rank = new Map<string, number>();
     for (const row of recentMessages) if (row.authorPlayerId && !rank.has(row.authorPlayerId)) rank.set(row.authorPlayerId, rank.size);
