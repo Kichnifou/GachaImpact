@@ -4,18 +4,23 @@ import { AppError } from '../../api/errors.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import { isElementKey } from '../../domain/economy/resources.js';
 import type { Clock } from '../../domain/time/business-date.js';
+import { getBusinessDate } from '../../domain/time/business-date.js';
 import type { RandomSource } from '../../domain/wheel/wheel.js';
 import { PrismaPlayerXpService } from '../../infrastructure/database/prisma-player-xp-service.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
 import { GetCurrentPlayer } from '../player/get-current-player.js';
 import { PlayerActivityRecorder } from '../player/player-activity-recorder.js';
+import { PrismaDailyChallengeStore } from '../../infrastructure/database/prisma-daily-challenge-store.js';
+import { normalizePlayerSearch } from '../social/social-service.js';
+import { scopesForOperation, type ChatRefreshScope } from './chat-refresh-scopes.js';
 
 const invalid = (message: string) => new AppError(message, 400, 'CHAT_INVALID');
 const unavailable = () => new AppError('Ce message est indisponible.', 404, 'CHAT_UNAVAILABLE');
 const conflict = () => new AppError('Cette clé appartient à un autre message.', 409, 'CHAT_IDEMPOTENCY_CONFLICT');
 export type ChatCursor = { createdAt: string; id: string };
-type ChatOperationSummary = { fingerprint: string; messageId?: string; xpGranted?: number; resolvedQuantity?: string; targetId?: string; action?: string };
-const messageInclude = { author: { select: { id: true, displayName: true } }, replyToMessage: { select: { id: true, content: true, deletionState: true } } } as const;
+type ChatOperationSummary = { fingerprint: string; messageId?: string; xpGranted?: number; refreshScopes?: string[]; dailyChallengeCompleted?: boolean; resolvedQuantity?: string; targetId?: string; action?: string };
+export type ChatMentionInput = { playerId: string; displayName: string };
+const messageInclude = { author: { select: { id: true, displayName: true, elementKey: true } }, replyToMessage: { select: { id: true, content: true, deletionState: true } }, mentions: { select: { mentionedPlayerId: true } } } as const;
 
 function normalize(content: string) {
   if (typeof content !== 'string' || /[\r\n\u2028\u2029]/u.test(content)) throw invalid('Un message doit tenir sur une seule ligne.');
@@ -42,9 +47,10 @@ function splitGameResult(content: string): string[] {
 function project(row: {
   id: string; authorPlayerId: string | null; sourceChannel: string; messageType: string; content: string;
   createdAt: Date; deletedAt: Date | null; deletionState: GlobalChatDeletionState;
-  replyToMessageId: string | null; author: { id: string; displayName: string } | null;
+  replyToMessageId: string | null; author: { id: string; displayName: string; elementKey: string | null } | null;
   replyToMessage: { id: string; content: string; deletionState: GlobalChatDeletionState } | null;
-}) {
+  mentions: { mentionedPlayerId: string }[];
+}, viewerId?: string) {
   const deleted = row.deletionState !== GlobalChatDeletionState.ACTIVE;
   return {
     id: row.id, author: row.author, authorLabel: row.messageType === GlobalChatMessageType.GAME_RESULT ? 'GachaImpact' : row.author?.displayName ?? null,
@@ -53,10 +59,10 @@ function project(row: {
     deletedAt: row.deletedAt?.toISOString() ?? null, deletionState: row.deletionState,
     replyToMessageId: row.replyToMessageId,
     replyPreview: row.replyToMessage ? (row.replyToMessage.deletionState === GlobalChatDeletionState.ACTIVE ? row.replyToMessage.content : 'Message supprimé') : null,
+    mentionedMe: !!viewerId && !deleted && row.mentions.some(mention => mention.mentionedPlayerId === viewerId),
   };
 }
 
-/** Server only foundation. No route or UI uses this service in the current lot. */
 export class GlobalChatService {
   constructor(
     private readonly database: PrismaClient,
@@ -65,6 +71,7 @@ export class GlobalChatService {
     private readonly random: RandomSource,
     private readonly xp = new PrismaPlayerXpService(),
     private readonly activity = new PlayerActivityRecorder(),
+    private readonly dailyChallenges = new PrismaDailyChallengeStore(database),
   ) {}
 
   private async actor(identity: AuthenticatedIdentity) { return this.currentPlayer.execute(identity); }
@@ -86,13 +93,15 @@ export class GlobalChatService {
     return rows[0];
   }
 
-  async send(identity: AuthenticatedIdentity, content: string, idempotencyKey: string, replyToMessageId?: string | null) {
+  async send(identity: AuthenticatedIdentity, content: string, idempotencyKey: string, replyToMessageId?: string | null, mentions: readonly ChatMentionInput[] = []) {
     const player = await this.actor(identity);
     const normalized = normalize(content);
     if (typeof idempotencyKey !== 'string' || !idempotencyKey.trim() || idempotencyKey.length > 200) throw invalid('Clé de requête invalide.');
     const replyId = replyToMessageId ?? null;
     if (replyId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(replyId)) throw invalid('Réponse invalide.');
-    const fingerprint = createHash('sha256').update(JSON.stringify([normalized.value, replyId])).digest('hex');
+    if (mentions.length > 10 || mentions.some(mention => !/^[0-9a-f-]{36}$/i.test(mention.playerId) || typeof mention.displayName !== 'string' || mention.displayName.length > 100)) throw invalid('Mention invalide.');
+    const uniqueMentions = [...new Map(mentions.map(mention => [mention.playerId, mention])).values()].sort((a, b) => a.playerId.localeCompare(b.playerId));
+    const fingerprint = createHash('sha256').update(JSON.stringify([normalized.value, replyId, uniqueMentions])).digest('hex');
     return this.transaction(async tx => {
       const actor = await this.lockPlayer(tx, player.id);
       const existing = await tx.businessOperation.findFirst({ where: { sourceChannel: 'INTERNAL_CHAT', idempotencyKey } });
@@ -100,29 +109,58 @@ export class GlobalChatService {
         const summary = existing.resultSummary as ChatOperationSummary | null;
         if (existing.playerId !== player.id || existing.operationType !== 'chat.send' || summary?.fingerprint !== fingerprint || existing.status !== 'COMPLETED' || !summary.messageId) throw conflict();
         const message = await tx.globalChatMessage.findUniqueOrThrow({ where: { id: summary.messageId }, include: messageInclude });
-        return { message: project(message), xpGranted: summary.xpGranted ?? 0, replayed: true };
+        return { message: project(message, player.id), xpGranted: summary.xpGranted ?? 0, refreshScopes: summary.refreshScopes ?? [], dailyChallengeCompleted: summary.dailyChallengeCompleted ?? false, replayed: true };
       }
       const now = this.clock.now();
       if (replyId) {
         const parent = await tx.$queryRaw<{ deletion_state: string }[]>`SELECT deletion_state::text FROM global_chat_messages WHERE id = ${replyId}::uuid FOR SHARE`;
         if (parent[0]?.deletion_state !== 'ACTIVE') throw unavailable();
       }
+      if (normalized.type === GlobalChatMessageType.COMMAND && uniqueMentions.length) throw invalid('Les commandes ne portent pas de mention.');
+      for (const mention of uniqueMentions) {
+        const target = await tx.player.findUnique({ where: { id: mention.playerId }, select: { displayName: true, status: true } });
+        const literal = `@${target?.displayName ?? ''}`;
+        const position = normalized.value.indexOf(literal);
+        const before = position > 0 ? normalized.value[position - 1] : null;
+        const after = position >= 0 ? normalized.value[position + literal.length] : null;
+        if (!target || target.status !== 'ACTIVE' || target.displayName !== mention.displayName || position < 0 || before && !/\s/u.test(before) || after && !/[\s.,!?;:]/u.test(after)) throw invalid('Mention invalide.');
+        const blocked = await tx.playerBlock.count({ where: { OR: [
+          { blockerPlayerId: player.id, blockedPlayerId: mention.playerId },
+          { blockerPlayerId: mention.playerId, blockedPlayerId: player.id },
+        ] } });
+        if (blocked) throw invalid('Mention invalide.');
+      }
       const recent = await tx.globalChatMessage.count({ where: { authorPlayerId: player.id, messageType: { in: ['PLAYER', 'COMMAND'] }, createdAt: { gt: new Date(now.getTime() - 10_000) } } });
       if (recent >= 10) throw new AppError('Vous envoyez des messages trop rapidement.', 429, 'CHAT_RATE_LIMIT');
       const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'chat.send', sourceChannel: 'INTERNAL_CHAT', idempotencyKey, status: 'PENDING', startedAt: now, resultSummary: { fingerprint } } });
       const message = await tx.globalChatMessage.create({ data: { authorPlayerId: player.id, sourceChannel: 'INTERNAL_CHAT', messageType: normalized.type, content: normalized.value, operationId: operation.id, replyToMessageId: replyId, createdAt: now }, include: messageInclude });
+      if (uniqueMentions.length) await tx.globalChatMention.createMany({ data: uniqueMentions.map(mention => ({ messageId: message.id, mentionedPlayerId: mention.playerId })) });
       const progression = await tx.playerProgression.findUniqueOrThrow({ where: { playerId: player.id } });
       await tx.playerProgression.update({ where: { playerId: player.id }, data: { totalMessages: { increment: 1n } } });
       let xpGranted = 0;
+      let dailyChallengeCompleted = false;
+      const refreshScopes: string[] = [];
       if (normalized.type === GlobalChatMessageType.PLAYER && actor.element_key && isElementKey(actor.element_key)
         && (!progression.lastXpMessageAt || now.getTime() - progression.lastXpMessageAt.getTime() >= 2_000)) {
         xpGranted = normalized.length <= 100 ? 1 : normalized.length <= 200 ? 2 : 3;
-        await this.xp.grant(tx, { playerId: player.id, playerElementKey: actor.element_key, amount: BigInt(xpGranted), source: 'chat.message', now, operationId: operation.id, sourceChannel: 'INTERNAL_CHAT', random: this.random });
+        const xpPlan = await this.xp.grant(tx, { playerId: player.id, playerElementKey: actor.element_key, amount: BigInt(xpGranted), source: 'chat.message', now, operationId: operation.id, sourceChannel: 'INTERNAL_CHAT', random: this.random });
         await tx.playerProgression.update({ where: { playerId: player.id }, data: { countedMessages: { increment: 1n }, lastXpMessageAt: now } });
+        const businessDate = getBusinessDate(now);
+        const challengeBefore = await tx.playerDailyChallenge.findUnique({ where: { playerId_businessDate: { playerId: player.id, businessDate: new Date(`${businessDate}T00:00:00.000Z`) } }, select: { status: true } });
+        await this.dailyChallenges.progress(tx, { playerId: player.id, playerElementKey: actor.element_key, businessDate, type: 'messages', amount: 1n, now, operationId: operation.id, sourceChannel: 'INTERNAL_CHAT' });
+        const challengeAfter = await tx.playerDailyChallenge.findUnique({ where: { playerId_businessDate: { playerId: player.id, businessDate: new Date(`${businessDate}T00:00:00.000Z`) } }, select: { status: true } });
+        dailyChallengeCompleted = challengeBefore?.status === 'ACTIVE' && challengeAfter?.status === 'COMPLETED';
+        refreshScopes.push('progression', 'dailyChallenge');
+        if (xpPlan.rewards.length || dailyChallengeCompleted) refreshScopes.push('resources');
+        if (xpPlan.levelsReached.length || xpPlan.overflowRewardsGranted) {
+          const levels = xpPlan.levelsReached.length ? `niveau${xpPlan.levelsReached.length > 1 ? 'x' : ''} ${xpPlan.levelsReached.join(', ')}` : `${xpPlan.overflowRewardsGranted} récompense(s) de niveau 100`;
+          const rewards = xpPlan.rewards.map(reward => `${reward.amount} ${reward.resourceKey}`).join(', ');
+          await tx.globalChatMessage.create({ data: { authorPlayerId: null, sourceChannel: 'SYSTEM', messageType: 'GAME_RESULT', content: `${player.displayName} atteint ${levels} ! ${rewards}.`, replyToMessageId: message.id } });
+        }
       }
       await this.activity.record(tx, player.id, now, 'INTERNAL_CHAT');
-      await tx.businessOperation.update({ where: { id: operation.id }, data: { status: 'COMPLETED', completedAt: now, resultSummary: { fingerprint, messageId: message.id, xpGranted } } });
-      return { message: project(message), xpGranted, replayed: false };
+      await tx.businessOperation.update({ where: { id: operation.id }, data: { status: 'COMPLETED', completedAt: now, resultSummary: { fingerprint, messageId: message.id, xpGranted, refreshScopes, dailyChallengeCompleted } } });
+      return { message: project(message, player.id), xpGranted, refreshScopes, dailyChallengeCompleted, replayed: false };
     });
   }
 
@@ -141,7 +179,7 @@ export class GlobalChatService {
     const extras = await this.database.globalChatMessage.findMany({
       where: { sourceChannel: 'SYSTEM', externalMessageId: { startsWith: `command:${commandMessageId}:` } }, include: messageInclude,
     });
-    return [first, ...extras.sort((a, b) => Number(a.externalMessageId!.split(':').at(-1)) - Number(b.externalMessageId!.split(':').at(-1))).map(project)];
+    return [first, ...extras.sort((a, b) => Number(a.externalMessageId!.split(':').at(-1)) - Number(b.externalMessageId!.split(':').at(-1))).map(row => project(row))];
   }
 
   /** A completed domain operation must be replayed, even if formatting its first reply failed. */
@@ -226,7 +264,7 @@ export class GlobalChatService {
   }
 
   async list(identity: AuthenticatedIdentity, limit = 50, cursor?: ChatCursor) {
-    await this.actor(identity);
+    const viewer = await this.actor(identity);
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw invalid('Taille de page invalide.');
     if (cursor) {
       const date = new Date(cursor.createdAt);
@@ -240,7 +278,60 @@ export class GlobalChatService {
     });
     const page = rows.slice(0, limit);
     const last = page.at(-1);
-    return { messages: page.reverse().map(project), nextCursor: rows.length > limit && last ? { createdAt: last.createdAt.toISOString(), id: last.id } : null };
+    return { messages: page.reverse().map(row => project(row, viewer.id)), nextCursor: rows.length > limit && last ? { createdAt: last.createdAt.toISOString(), id: last.id } : null };
+  }
+
+  async rememberCommandRefreshScopes(commandMessageId: string, scopes: readonly ChatRefreshScope[]) {
+    await this.database.$transaction(async tx => {
+      const message = await tx.globalChatMessage.findUnique({ where: { id: commandMessageId }, select: { operationId: true, messageType: true } });
+      if (!message?.operationId || message.messageType !== 'COMMAND') throw unavailable();
+      const operation = await tx.businessOperation.findUniqueOrThrow({ where: { id: message.operationId } });
+      const summary = operation.resultSummary as ChatOperationSummary;
+      await tx.businessOperation.update({ where: { id: operation.id }, data: { resultSummary: { ...summary, refreshScopes: [...new Set([...(summary.refreshScopes ?? []), ...scopes])] } } });
+    });
+  }
+
+  async commandRefreshScopes(commandMessageId: string): Promise<ChatRefreshScope[]> {
+    const command = await this.database.globalChatMessage.findUnique({ where: { id: commandMessageId }, select: { authorPlayerId: true, operationId: true } });
+    if (!command?.authorPlayerId || !command.operationId) throw unavailable();
+    const [sendOperation, domainOperations] = await Promise.all([
+      this.database.businessOperation.findUniqueOrThrow({ where: { id: command.operationId }, select: { resultSummary: true } }),
+      this.database.businessOperation.findMany({ where: { playerId: command.authorPlayerId, status: 'COMPLETED', operationType: { not: 'chat.send' },
+        OR: [{ idempotencyKey: commandMessageId }, { idempotencyKey: { endsWith: `:${commandMessageId}` } }] }, select: { operationType: true } }),
+    ]);
+    const summary = sendOperation.resultSummary as ChatOperationSummary;
+    return [...new Set([...(summary.refreshScopes ?? []) as ChatRefreshScope[], ...domainOperations.flatMap(operation => scopesForOperation(operation.operationType))])];
+  }
+
+  async searchMentions(identity: AuthenticatedIdentity, query: string) {
+    const viewer = await this.actor(identity);
+    const needle = normalizePlayerSearch(query);
+    if (!needle || needle.length > 100) return { players: [] };
+    const blocked = await this.database.playerBlock.findMany({ where: { OR: [{ blockerPlayerId: viewer.id }, { blockedPlayerId: viewer.id }] }, select: { blockerPlayerId: true, blockedPlayerId: true } });
+    const excluded = new Set([viewer.id, ...blocked.map(row => row.blockerPlayerId === viewer.id ? row.blockedPlayerId : row.blockerPlayerId)]);
+    const players = await this.database.player.findMany({ where: { status: 'ACTIVE', id: { notIn: [...excluded] } }, select: { id: true, displayName: true, elementKey: true } });
+    return { players: players.filter(row => normalizePlayerSearch(row.displayName).includes(needle))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr', { sensitivity: 'base' })).slice(0, 8) };
+  }
+
+  async report(identity: AuthenticatedIdentity, messageId: string) {
+    const reporter = await this.actor(identity);
+    return this.transaction(async tx => {
+      await this.lockPlayer(tx, reporter.id);
+      const target = await tx.globalChatMessage.findUnique({ where: { id: messageId }, include: messageInclude });
+      if (!target || target.deletionState !== 'ACTIVE' || !target.authorPlayerId || target.authorPlayerId === reporter.id || !['PLAYER', 'COMMAND'].includes(target.messageType)) throw unavailable();
+      const existing = await tx.globalChatReport.findUnique({ where: { reporterPlayerId_messageId: { reporterPlayerId: reporter.id, messageId } }, select: { id: true } });
+      if (existing) return { reported: true, duplicate: true };
+      const anchor = { createdAt: target.createdAt, id: target.id };
+      const [before, after] = await Promise.all([
+        tx.globalChatMessage.findMany({ where: { OR: [{ createdAt: { lt: anchor.createdAt } }, { createdAt: anchor.createdAt, id: { lt: anchor.id } }] }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 10, select: { id: true, authorPlayerId: true, messageType: true, content: true, createdAt: true, deletionState: true } }),
+        tx.globalChatMessage.findMany({ where: { OR: [{ createdAt: { gt: anchor.createdAt } }, { createdAt: anchor.createdAt, id: { gt: anchor.id } }] }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], take: 10, select: { id: true, authorPlayerId: true, messageType: true, content: true, createdAt: true, deletionState: true } }),
+      ]);
+      const snapshot = (row: typeof before[number]) => ({ id: row.id, authorPlayerId: row.authorPlayerId, messageType: row.messageType, content: row.content, createdAt: row.createdAt.toISOString(), deletionState: row.deletionState });
+      await tx.globalChatReport.create({ data: { reporterPlayerId: reporter.id, messageId, reportedPlayerId: target.authorPlayerId,
+        messageSnapshot: snapshot(target), contextSnapshot: [...before.reverse(), target, ...after].map(snapshot) } });
+      return { reported: true, duplicate: false };
+    });
   }
 
   async unreadCount(identity: AuthenticatedIdentity) {

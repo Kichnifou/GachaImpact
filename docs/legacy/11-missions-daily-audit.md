@@ -1208,7 +1208,7 @@ Le Domaine Missions reste clôturé.
 
 Le sous-onglet `Quotidiennes > Défi` implémente la quotidienne payante sans ouvrir les Missions permanentes B/A/S/Z. L’objectif reste caché avant le débit autoritatif de 10 000 Moras. L’attribution choisit côté serveur une définition éligible pondérée, en snapshotte les termes, puis conserve une seule ligne Player/journée `Europe/Paris`. Le résultat expose le Défi attribué mais jamais le pool, ses poids ou ses probabilités.
 
-La migration additive 012 installe les trois définitions finales : messages 10, Pulls 5 et conversion 320. Elles gardent le même poids produit. `daily_messages_10` reste désactivé uniquement dans l’éligibilité physique tant qu’aucun vrai producteur de chat n’existe ; les deux autres forment donc temporairement le tirage exécutable sans constituer une nouvelle règle d’équilibrage.
+La migration additive 012 installe les trois définitions finales : messages 10, Pulls 5 et conversion 320. Elles gardent le même poids produit. Historiquement, `daily_messages_10` était désactivé dans l’éligibilité physique faute de producteur Chat. La migration 034 le rend éligible : seul un message PLAYER réellement compté pour l’XP avance ce Défi, dans la même transaction et sans double progression au replay. Ce changement ne modifie ni poids ni équilibrage.
 
 Les Pulls progressent de 1 ou 10 seulement dans leur transaction persistée. La conversion progresse de la quantité réellement convertie. À la cible, la ligne passe une fois à `COMPLETED` et crédite 800 Primos via le moteur économique dans la même transaction. Le switch actif coûte 20 000 Moras puis double, exclut la définition courante et remet la progression à zéro. Une journée suivante n’attribue rien automatiquement ; un actif ancien devient `EXPIRED`, tandis qu’un terminé historique reste terminé.
 
@@ -1224,7 +1224,7 @@ La migration additive Prisma 013 répare uniquement `display_name`, `description
 
 La présentation 0.83 à 350 px est remplacée sans changement métier. La carte utilise quatre zones stables — header/statut, contenu, progression avec phrase sous la barre, puis actions — et conserve la même hauteur externe pour `AVAILABLE`, `ACTIVE`, confirmation et `COMPLETED` à viewport identique. La confirmation remplace le pied d’action sans créer de bloc supplémentaire.
 
-Un Défi Conversion actif ouvre la `ParticleConversionModal` transverse sans navigation ; un Défi Pulls conduit à Invocation sans lancer de Pull. Le type Messages, toujours physiquement inéligible, n’expose aucune fausse action Chat. `Changer de Défi` reste secondaire, ses règles de progression et de coût ne changent pas, et le feedback global `ACTIVE → COMPLETED` conserve son déclenchement, son verrou et ses modes de fermeture 0.83.
+Un Défi Conversion actif ouvre la `ParticleConversionModal` transverse sans navigation ; un Défi Pulls conduit à Invocation sans lancer de Pull. Avec le Chat global physique du candidat `review`, le type Messages devient éligible et progresse depuis les messages XP-counted. `Changer de Défi` reste secondaire, ses règles de progression et de coût ne changent pas, et le feedback global `ACTIVE → COMPLETED` conserve son déclenchement, son verrou et ses modes de fermeture 0.83.
 
 ### Restitution de complétion et erreurs 0.85
 

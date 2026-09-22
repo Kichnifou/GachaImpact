@@ -347,6 +347,9 @@ model Player {
   contestsOrganized     Contest[]                    @relation("ContestOrganizer")
   contestSlots          ContestParticipant[]         @relation("ContestActivePlayer")
   contestOriginalSlots  ContestParticipant[]         @relation("ContestOriginalPlayer")
+  chatMentions          GlobalChatMention[]
+  chatReportsMade       GlobalChatReport[]           @relation("ChatReportReporter")
+  chatReportsReceived   GlobalChatReport[]           @relation("ChatReportReported")
   contestSpectators     ContestSpectator[]
   contestDailyEntries   ContestDailyParticipation[]
   contestRemovals       ContestLobbyRemoval[]
@@ -957,6 +960,8 @@ model GlobalChatMessage {
   replyToMessage   GlobalChatMessage?      @relation("GlobalChatReplies", fields: [replyToMessageId], references: [id], onDelete: Restrict)
   replies          GlobalChatMessage[]     @relation("GlobalChatReplies")
   readStates       GlobalChatReadState[]
+  mentions         GlobalChatMention[]
+  reports          GlobalChatReport[]
 
   @@unique([sourceChannel, externalMessageId], map: "global_chat_messages_source_external_id_key")
   @@index([createdAt(sort: Desc), id(sort: Desc)], map: "global_chat_messages_created_id_idx")
@@ -975,6 +980,36 @@ model GlobalChatReadState {
 
   @@index([lastReadMessageId], map: "global_chat_read_states_last_message_idx")
   @@map("global_chat_read_states")
+}
+
+model GlobalChatMention {
+  messageId         String   @map("message_id") @db.Uuid
+  mentionedPlayerId String   @map("mentioned_player_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  message           GlobalChatMessage @relation(fields: [messageId], references: [id], onDelete: Restrict)
+  mentionedPlayer   Player @relation(fields: [mentionedPlayerId], references: [id], onDelete: Restrict)
+
+  @@id([messageId, mentionedPlayerId])
+  @@index([mentionedPlayerId, createdAt(sort: Desc)], map: "global_chat_mentions_player_created_idx")
+  @@map("global_chat_mentions")
+}
+
+model GlobalChatReport {
+  id                 String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reporterPlayerId   String @map("reporter_player_id") @db.Uuid
+  messageId          String @map("message_id") @db.Uuid
+  reportedPlayerId   String @map("reported_player_id") @db.Uuid
+  messageSnapshot    Json   @map("message_snapshot") @db.JsonB
+  contextSnapshot    Json   @map("context_snapshot") @db.JsonB
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  reporter           Player @relation("ChatReportReporter", fields: [reporterPlayerId], references: [id], onDelete: Restrict)
+  reported           Player @relation("ChatReportReported", fields: [reportedPlayerId], references: [id], onDelete: Restrict)
+  message            GlobalChatMessage @relation(fields: [messageId], references: [id], onDelete: Restrict)
+
+  @@unique([reporterPlayerId, messageId], map: "global_chat_reports_reporter_message_key")
+  @@index([messageId], map: "global_chat_reports_message_idx")
+  @@index([reportedPlayerId, createdAt(sort: Desc)], map: "global_chat_reports_reported_created_idx")
+  @@map("global_chat_reports")
 }
 
 model EventSocialMessage {

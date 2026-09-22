@@ -12,6 +12,8 @@ function harness() {
     findGameResult: vi.fn(async () => null),
     findGameResults: vi.fn(async () => []),
     hasConfirmedCommandMutation: vi.fn(async () => false),
+    commandRefreshScopes: vi.fn(async () => []),
+    rememberCommandRefreshScopes: vi.fn(async () => undefined),
     publishGameResult: vi.fn(async (_id: string, content: string) => ({ message: { id: 'answer', content, messageType: 'GAME_RESULT' }, messages: [{ id: 'answer', content, messageType: 'GAME_RESULT' }], replayed: false })),
     rememberCommandQuantity: vi.fn(async (_id: string, quantity: bigint) => quantity),
     rememberCommandText: vi.fn(async (_id: string, _field: string, value: string) => value),

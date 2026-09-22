@@ -23,6 +23,8 @@ import { useEventTemporalRefresh } from './event/use-event-temporal-refresh'
 import type { EventMilestoneFeedback } from './event/event-request-coordinator'
 import LevelUpFeedback from './components/LevelUpFeedback'
 import { confirmedMutation } from './api/confirmed-mutation'
+import type { ChatRefreshScope } from './api/types'
+import { runChatRefreshScopes } from './chat/refresh-scopes'
 
 function AppBootstrap() {
   const { status: authStatus, session, configurationMessage, signOut } = useAuth()
@@ -233,6 +235,23 @@ function AppBootstrap() {
     if (published.feedback) setLevelUpFeedbacks((current) => [...current, published.feedback!])
   }, [])
 
+  const refreshChatScopes = useCallback(async (scopes: readonly ChatRefreshScope[]) => {
+    const api = getGameApiClient()
+    await runChatRefreshScopes(scopes, {
+      player: () => api.getCurrentPlayer().then(setPlayer),
+      resources: loadResources,
+      progression: () => api.getProgression().then(next => { progressionRef.current = next; setProgression(next) }),
+      gacha: () => api.getCurrentGacha().then(setGacha),
+      dailyChallenge: () => api.getDailyChallenge().then(setDailyChallenge),
+      wheel: () => api.getWheelToday().then(setWheelToday),
+      dailyCombat: loadDailyCombat,
+      monthlyBoss: loadMonthlyBoss,
+      expedition: loadExpedition,
+      event: loadEvent,
+      notifications: loadNotifications,
+    })
+  }, [loadDailyCombat, loadEvent, loadExpedition, loadMonthlyBoss, loadNotifications, loadResources])
+
   const applyModerationState = useCallback((next: ModerationStateDto) => {
     setPermissions(next.permissions)
     setResources(next.resources)
@@ -407,6 +426,7 @@ function AppBootstrap() {
 
   return (
     <><GameShell
+      onRefreshChatScopes={refreshChatScopes}
       key={player.id}
       socialActions={socialActions}
       tradeActions={tradeActions}

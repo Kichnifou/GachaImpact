@@ -706,3 +706,21 @@ export type BannerVoteDto = Readonly<{
   candidates: readonly Readonly<{ characterId: string; voteCount: number }>[]
   catalogVersion: string
 }>
+export type ChatRefreshScope = 'player' | 'resources' | 'progression' | 'gacha' | 'bannerVotes' | 'box' | 'teams' | 'inventory' | 'bank' | 'shop' | 'dailyChallenge' | 'wheel' | 'social' | 'trades' | 'expedition' | 'dailyCombat' | 'monthlyBoss' | 'event' | 'giftCodes' | 'notifications'
+export type ChatMentionDto = { playerId: string; displayName: string }
+export type ChatMessageDto = {
+  id: string
+  author: { id: string; displayName: string; elementKey: string | null } | null
+  authorLabel: string | null
+  sourceChannel: string
+  messageType: 'PLAYER' | 'COMMAND' | 'GAME_RESULT' | 'SYSTEM'
+  content: string | null
+  createdAt: string
+  deletedAt: string | null
+  deletionState: 'ACTIVE' | 'AUTHOR' | 'MODERATION'
+  replyToMessageId: string | null
+  replyPreview: string | null
+  mentionedMe: boolean
+}
+export type ChatPageDto = { messages: ChatMessageDto[]; nextCursor: { createdAt: string; id: string } | null }
+export type ChatSendDto = { message: ChatMessageDto; xpGranted: number; refreshScopes: ChatRefreshScope[]; dailyChallengeCompleted: boolean; replayed: boolean; result: ChatMessageDto | null; results: ChatMessageDto[] }

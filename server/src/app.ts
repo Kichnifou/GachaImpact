@@ -3,6 +3,9 @@ import type { TradeService } from './application/trades/trade-service.js';
 import type { GetCurrentPlayer } from './application/player/get-current-player.js';
 import { registerTradeRoutes } from './api/routes/trades.js';
 import { registerSocialRoutes } from './api/routes/social.js';
+import { registerChatRoutes } from './api/routes/chat.js';
+import type { GlobalChatService } from './application/chat/global-chat-service.js';
+import type { ChatCommandDispatcher } from './application/chat/chat-command-dispatcher.js';
 import { randomUUID } from 'node:crypto';
 
 import cors from '@fastify/cors';
@@ -62,6 +65,8 @@ import type { EventService } from './application/event/event-service.js';
 import { registerEventRoutes } from './api/routes/event.js';
 
 export type AppDependencies = Readonly<{
+  globalChatService?: GlobalChatService;
+  chatCommandDispatcher?: ChatCommandDispatcher;
   tradeService?: TradeService;
   tradePlayer?: GetCurrentPlayer;
   authIdentityVerifier: AuthIdentityVerifier;
@@ -158,6 +163,7 @@ export async function buildApp(
     const authenticate = createAuthenticationHook(dependencies.authIdentityVerifier);
     if (dependencies.tradeService && dependencies.tradePlayer) await app.register(registerTradeRoutes, { authenticate, service: dependencies.tradeService, getPlayer: dependencies.tradePlayer });
     if (dependencies.socialService) await app.register(registerSocialRoutes, { authenticate, service: dependencies.socialService });
+    if (dependencies.globalChatService && dependencies.chatCommandDispatcher) await app.register(registerChatRoutes, { authenticate, service: dependencies.globalChatService, dispatcher: dependencies.chatCommandDispatcher });
     if (dependencies.choosePlayerElement && dependencies.getCurrentPlayerResources) {
       await app.register(registerPlayerGameRoutes, {
         authenticate,

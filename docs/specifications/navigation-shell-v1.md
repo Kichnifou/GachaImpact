@@ -57,7 +57,7 @@ Les ressources possèdent aussi des raccourcis contextuels cohérents sans dupli
 
 ## Panneau Communauté — Chat et MP futurs
 
-Le panneau de droite conserve les onglets `Chat | MP` de Social R506. Le [contrat Chat global V1](global-chat-v1.md) porte les règles de composition, scroll, non-lus, mentions, réponses et modération ; l'[audit Social](../legacy/14-ami-social-audit.md) reste propriétaire des MP. Un message global joueur ouvre le Profil par avatar/pseudo via le pattern existant ; l'action `Envoyer un message privé` peut basculer vers MP et ouvrir le parcours autorisé, sans rédaction de MP dans Chat ni commande `!mp`. Cette navigation est cible documentaire : la coque Chat actuelle demeure mockée et aucun onglet MP réel n'est encore implémenté.
+Le panneau de droite garde la cible `Chat | MP` de Social R506. Le [contrat Chat global V1](global-chat-v1.md) porte les règles de composition, scroll, non-lus, mentions, réponses et modération ; l'[audit Social](../legacy/14-ami-social-audit.md) reste propriétaire des MP. Le candidat `review` rend le Chat global réel : avatar/pseudo d'un joueur ouvre son Profil. L'action `Envoyer un message privé` et l'onglet MP attendent le lot physique MP ; aucun onglet fictif ni commande `!mp` n'est affiché.
 
 ## Social / Profils — Batch B et Batch C
 

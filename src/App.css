@@ -1817,6 +1817,32 @@
   background: #2c7bd4;
 }
 
+.chat-message-mentioned { border-left: 3px solid #79d7ff; background: rgba(79, 160, 219, .11); }
+.chat-mention-label { display: inline-block; margin-top: 4px; color: #b9eaff; font-size: 9px; font-weight: 700; }
+.chat-game-avatar { background: linear-gradient(145deg, #168e6b, #164b51); }
+.chat-game-label { color: var(--green) !important; }
+.chat-avatar-button { position: relative; border: 0; cursor: pointer; }
+.chat-avatar-button small { position: absolute; right: -3px; bottom: -4px; padding: 1px 2px; border-radius: 3px; background: #10203d; font-size: 7px; }
+.chat-author-button { padding: 0; border: 0; background: none; color: #b794ff; font-size: 11px; font-weight: 700; cursor: pointer; }
+.chat-reply-preview { margin-top: 4px; padding-left: 6px; border-left: 2px solid #527cac; color: #9aaecb; font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.message-content p { overflow-wrap: anywhere; white-space: pre-wrap; }
+.message-content p a { color: #8bd8ff; text-decoration: underline; }
+.message-content p button { border: 0; padding: 0; background: none; color: #8bd8ff; text-decoration: underline; cursor: pointer; }
+.chat-message-menu-button { display: block; margin: 3px 0 0 auto; border: 0; color: #9fb4d1; background: transparent; cursor: pointer; }
+.chat-message-menu { display: grid; gap: 2px; padding: 4px; border: 1px solid var(--border); border-radius: 6px; background: #14233f; }
+.chat-message-menu button, .chat-mention-suggestions button { padding: 5px 7px; border: 0; background: transparent; color: #d7e6fa; text-align: left; cursor: pointer; }
+.chat-message-menu button:hover, .chat-mention-suggestions button:hover { background: #27446a; }
+.chat-new-messages, .chat-report-confirm button, .chat-composer-reply button { cursor: pointer; color: #d6efff; background: #1f426c; border: 1px solid #4676a7; border-radius: 6px; }
+.chat-new-messages { align-self: center; margin: 3px; padding: 5px 9px; }
+.chat-composer-reply, .chat-report-confirm, .chat-mention-suggestions, .chat-status { margin: 0; padding: 6px 12px; color: #a8bbd6; font-size: 10px; }
+.chat-composer-reply { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-composer-reply button { float: right; }
+.chat-report-confirm { background: #14233f; }
+.chat-report-confirm button { margin-right: 5px; padding: 4px 7px; }
+.chat-mention-suggestions { display: grid; max-height: 150px; overflow: auto; background: #14233f; }
+.chat-error { color: #ffb8b8; }
+.chat-panel :is(button, input, a):focus-visible { outline: 2px solid #8bd8ff; outline-offset: 2px; }
+
 .sr-only {
   position: absolute;
   width: 1px;

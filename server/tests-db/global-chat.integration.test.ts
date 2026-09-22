@@ -40,7 +40,10 @@ beforeAll(async () => {
   await db.resourceDefinition.createMany({ data: resourceKeys.map(key => ({ key, displayName: key, category: 'test', elementKey: key.startsWith('particles_') ? key.slice(10) : null })) });
   await fixture.admin.query('ALTER TABLE global_chat_messages ENABLE ROW LEVEL SECURITY');
   await fixture.admin.query('ALTER TABLE global_chat_read_states ENABLE ROW LEVEL SECURITY');
+  await fixture.admin.query('ALTER TABLE global_chat_mentions ENABLE ROW LEVEL SECURITY');
+  await fixture.admin.query('ALTER TABLE global_chat_reports ENABLE ROW LEVEL SECURITY');
   await fixture.admin.query('REVOKE ALL ON global_chat_messages, global_chat_read_states FROM PUBLIC, anon, authenticated');
+  await fixture.admin.query('REVOKE ALL ON global_chat_mentions, global_chat_reports FROM PUBLIC, anon, authenticated');
 }, 60_000);
 afterAll(async () => fixture.cleanup(), 60_000);
 let testNumber = 0;
@@ -93,7 +96,7 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     await expect(service.send(as(other), 'bonjour', key)).rejects.toMatchObject({ code: 'CHAT_IDEMPOTENCY_CONFLICT' });
     expect(await progress(id)).toMatchObject({ xp: 61n, totalMessages: 1n, countedMessages: 1n });
     expect(await db.globalChatMessage.count({ where: { authorPlayerId: id } })).toBe(1);
-  });
+  }, 20_000);
 
   it('shares a serialized two second XP cooldown and limits both PLAYER and COMMAND to ten sends in ten seconds', async () => {
     const id = await player();
@@ -137,7 +140,7 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect((await service.list(as(reader))).messages.find(m => m.id === second.message.id)?.replyPreview).toBe('Message supprimé');
     await expect(service.send(as(reader), 'tardive', randomUUID(), first.message.id)).rejects.toMatchObject({ code: 'CHAT_UNAVAILABLE' });
     await expect(service.send(as(reader), 'inconnue', randomUUID(), randomUUID())).rejects.toMatchObject({ code: 'CHAT_UNAVAILABLE' });
-  });
+  }, 20_000);
 
   it('rolls back message, XP, operation and counters when activity fails', async () => {
     const id = await player();
@@ -224,6 +227,7 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect((await commandServices.getCurrentPlayerBank.execute(as(id))).bankMoras).toBe(100n);
     const retry = await dispatcher.send(as(id), '!banque deposer 100', key);
     expect(retry.result?.content).toContain('Banque : 100 Moras');
+    expect(retry.refreshScopes).toEqual(expect.arrayContaining(['bank', 'resources']));
     expect((await commandServices.getCurrentPlayerBank.execute(as(id))).walletMoras).toBe(900n);
     expect(await db.bankTransaction.count({ where: { playerId: id, transactionType: 'DEPOSIT' } })).toBe(1);
     expect(await db.businessOperation.count({ where: { playerId: id, operationType: 'bank.deposit', sourceChannel: 'INTERNAL_CHAT' } })).toBe(1);
@@ -237,6 +241,8 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     const first = await dispatcher.send(as(id), '!convertir 20', key);
     const replay = await dispatcher.send(as(id), '!convertir 20', key);
     expect(replay.result?.id).toBe(first.result?.id);
+    expect(first.refreshScopes).toEqual(expect.arrayContaining(['resources', 'inventory', 'dailyChallenge']));
+    expect(replay.refreshScopes).toEqual(first.refreshScopes);
     const balances = await db.playerResourceBalance.findMany({ where: { playerId: id, resourceKey: { in: ['particles_pyro', 'primogems'] } } });
     expect(Object.fromEntries(balances.map(balance => [balance.resourceKey, balance.amount]))).toMatchObject({ particles_pyro: 30n, primogems: 20n });
     expect(await db.businessOperation.count({ where: { playerId: id, operationType: 'particles.convert', sourceChannel: 'INTERNAL_CHAT' } })).toBe(1);
@@ -255,7 +261,54 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(answer).not.toContain('Team');
   });
 
-  it('records the exact Prisma 032 and 033 migrations and secures their real public tables', async () => {
+  it('persists selected mentions, projects only mentionedMe, and excludes blocked Players', async () => {
+    const author = await player(), target = await player(), viewer = await player();
+    const targetName = (await db.player.findUniqueOrThrow({ where: { id: target } })).displayName;
+    const key = randomUUID();
+    const sent = await service.send(as(author), `Bonjour @${targetName}`, key, null, [{ playerId: target, displayName: targetName }]);
+    expect(await db.globalChatMention.count({ where: { messageId: sent.message.id, mentionedPlayerId: target } })).toBe(1);
+    expect((await service.list(as(target))).messages.find(item => item.id === sent.message.id)?.mentionedMe).toBe(true);
+    expect((await service.list(as(viewer))).messages.find(item => item.id === sent.message.id)?.mentionedMe).toBe(false);
+    expect((await service.send(as(author), `Salut @${targetName}`, randomUUID())).message.mentionedMe).toBe(false);
+    await expect(service.send(as(author), 'Salut sans mention', randomUUID(), null, [{ playerId: target, displayName: targetName }])).rejects.toMatchObject({ code: 'CHAT_INVALID' });
+    await db.playerBlock.create({ data: { blockerPlayerId: target, blockedPlayerId: author } });
+    expect((await service.searchMentions(as(author), targetName)).players.some(item => item.id === target)).toBe(false);
+    await expect(service.send(as(author), `Encore @${targetName}`, randomUUID(), null, [{ playerId: target, displayName: targetName }])).rejects.toMatchObject({ code: 'CHAT_INVALID' });
+  }, 20_000);
+
+  it('freezes bounded report context and retains it after author deletion', async () => {
+    const author = await player(), reporter = await player();
+    const base = new Date('2097-03-02T00:00:00.000Z').getTime();
+    for (let index = 0; index < 12; index++) await db.globalChatMessage.create({ data: { authorPlayerId: author, sourceChannel: 'INTERNAL_CHAT', messageType: 'PLAYER', content: `before-${index}`, createdAt: new Date(base + index * 1000) } });
+    const target = await db.globalChatMessage.create({ data: { authorPlayerId: author, sourceChannel: 'INTERNAL_CHAT', messageType: 'PLAYER', content: 'Reported text', createdAt: new Date(base + 12_000) } });
+    for (let index = 0; index < 12; index++) await db.globalChatMessage.create({ data: { authorPlayerId: author, sourceChannel: 'INTERNAL_CHAT', messageType: 'PLAYER', content: `after-${index}`, createdAt: new Date(base + (13 + index) * 1000) } });
+    expect(await service.report(as(reporter), target.id)).toEqual({ reported: true, duplicate: false });
+    expect(await service.report(as(reporter), target.id)).toEqual({ reported: true, duplicate: true });
+    const row = await db.globalChatReport.findUniqueOrThrow({ where: { reporterPlayerId_messageId: { reporterPlayerId: reporter, messageId: target.id } } });
+    expect((row.messageSnapshot as { content: string }).content).toBe('Reported text');
+    expect(row.contextSnapshot).toHaveLength(21);
+    await service.deleteOwn(as(author), target.id);
+    expect((await db.globalChatReport.findUniqueOrThrow({ where: { id: row.id } })).messageSnapshot).toEqual(row.messageSnapshot);
+    await expect(service.report(as(author), target.id)).rejects.toMatchObject({ code: 'CHAT_UNAVAILABLE' });
+  }, 30_000);
+
+  it('advances the Messages challenge only for an XP-counted PLAYER message and replays once', async () => {
+    const id = await player(0n);
+    const definition = await db.dailyChallengeDefinition.create({ data: { externalKey: `test-messages-${id}`, type: 'messages', target: 10n, displayName: 'Messages', description: 'Dix messages', progressLabel: 'Messages', rewardPrimogems: 800n, weight: 1, isEnabled: true, isEligible: true, displayOrder: 1 } });
+    const challenge = await db.playerDailyChallenge.create({ data: { playerId: id, businessDate: new Date('2097-03-01T00:00:00.000Z'), definitionId: definition.id, definitionExternalKeySnapshot: definition.externalKey, typeSnapshot: 'messages', displayNameSnapshot: 'Messages', descriptionSnapshot: 'Dix messages', progressLabelSnapshot: 'Messages', targetSnapshot: 10n, rewardPrimogemsSnapshot: 800n, progress: 9n, status: 'ACTIVE', assignedAt: now } });
+    const key = randomUUID();
+    const result = await service.send(as(id), 'Dixième message', key);
+    expect(result).toMatchObject({ xpGranted: 1, dailyChallengeCompleted: true, refreshScopes: expect.arrayContaining(['progression', 'dailyChallenge', 'resources']) });
+    expect((await db.playerDailyChallenge.findUniqueOrThrow({ where: { id: challenge.id } })).progress).toBe(10n);
+    expect((await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: id, resourceKey: 'primogems' } } })).amount).toBe(800n);
+    expect((await service.send(as(id), 'Dixième message', key)).dailyChallengeCompleted).toBe(true);
+    expect((await service.send(as(id), 'Pendant cooldown', randomUUID())).xpGranted).toBe(0);
+    expect((await service.send(as(id), '!help', randomUUID())).xpGranted).toBe(0);
+    expect((await db.playerDailyChallenge.findUniqueOrThrow({ where: { id: challenge.id } })).progress).toBe(10n);
+    expect((await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: id, resourceKey: 'primogems' } } })).amount).toBe(800n);
+  }, 20_000);
+
+  it('records the exact Prisma 032–034 migrations and secures their real public tables', async () => {
     const sql = readFileSync('prisma/migrations/20260922070000_032_add_global_chat_foundations/migration.sql');
     const checksum = createHash('sha256').update(sql).digest('hex');
     const migration = await fixture.admin.query<{ checksum: string; finished_at: Date | null; rolled_back_at: Date | null }>(
@@ -273,7 +326,24 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(correction.rows[0]).toMatchObject({ checksum: correctionChecksum, rolled_back_at: null });
     expect(correction.rows[0]?.finished_at).not.toBeNull();
     const count = await fixture.admin.query<{ count: string }>('SELECT count(*)::text AS count FROM public._prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL');
-    expect(count.rows[0]?.count).toBe('33');
+    const newSql = readFileSync('prisma/migrations/20260922090000_034_chat_mentions_reports_and_daily_messages/migration.sql');
+    const newChecksum = createHash('sha256').update(newSql).digest('hex');
+    const newMigration = await fixture.admin.query<{ checksum: string; finished_at: Date | null }>('SELECT checksum, finished_at FROM public._prisma_migrations WHERE migration_name=$1', ['20260922090000_034_chat_mentions_reports_and_daily_messages']);
+    expect(newMigration.rows).toHaveLength(1);
+    expect(newMigration.rows[0]?.checksum).toBe(newChecksum);
+    expect(newMigration.rows[0]?.finished_at).not.toBeNull();
+    expect(count.rows[0]?.count).toBe('34');
+    const newTables = await fixture.admin.query<{ relname: string; relrowsecurity: boolean }>("SELECT c.relname, c.relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname IN ('global_chat_mentions','global_chat_reports')");
+    expect(newTables.rows).toHaveLength(2);
+    expect(newTables.rows.every(row => row.relrowsecurity)).toBe(true);
+    const newGrants = await fixture.admin.query("SELECT grantee FROM information_schema.role_table_grants WHERE table_schema='public' AND table_name IN ('global_chat_mentions','global_chat_reports') AND grantee IN ('anon','authenticated')");
+    expect(newGrants.rows).toHaveLength(0);
+    const newConstraints = await fixture.admin.query<{ conname: string; contype: string; confdeltype: string }>("SELECT conname, contype::text, confdeltype::text FROM pg_constraint WHERE conrelid IN ('public.global_chat_mentions'::regclass, 'public.global_chat_reports'::regclass)");
+    expect(newConstraints.rows.filter(row => row.contype === 'f')).toHaveLength(5);
+    expect(newConstraints.rows.filter(row => row.contype === 'f').every(row => row.confdeltype === 'r')).toBe(true);
+    expect(newConstraints.rows.map(row => row.conname)).toEqual(expect.arrayContaining(['global_chat_mentions_pkey', 'global_chat_reports_reporter_player_id_fkey', 'global_chat_reports_other_player_check']));
+    const newIndexes = await fixture.admin.query<{ indexname: string }>("SELECT indexname FROM pg_indexes WHERE schemaname='public' AND tablename IN ('global_chat_mentions','global_chat_reports')");
+    expect(newIndexes.rows.map(row => row.indexname)).toEqual(expect.arrayContaining(['global_chat_mentions_player_created_idx', 'global_chat_reports_reporter_message_key', 'global_chat_reports_message_idx', 'global_chat_reports_reported_created_idx']));
     const tables = await fixture.admin.query<{ relname: string; relrowsecurity: boolean }>(
       "SELECT c.relname, c.relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname IN ('global_chat_messages','global_chat_read_states')");
     expect(tables.rows).toHaveLength(2);

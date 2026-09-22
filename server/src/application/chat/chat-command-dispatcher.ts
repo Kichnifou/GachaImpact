@@ -27,6 +27,7 @@ import { SourceChannel } from '../../../generated/prisma/client.js';
 import { normalizePlayerSearch } from '../social/social-service.js';
 import { chatHelp, findChatCommand } from './chat-command-registry.js';
 import type { GlobalChatService } from './global-chat-service.js';
+import type { ChatMentionInput } from './global-chat-service.js';
 
 export type ChatCommandServices = Readonly<{
   getCurrentGacha: Pick<GetCurrentGacha, 'execute'>;
@@ -108,14 +109,14 @@ export class ChatCommandDispatcher {
     }
   }
 
-  async send(identity: AuthenticatedIdentity, content: string, idempotencyKey: string) {
-    const sent = await this.chat.send(identity, content, idempotencyKey);
+  async send(identity: AuthenticatedIdentity, content: string, idempotencyKey: string, replyToMessageId?: string | null, mentions: readonly ChatMentionInput[] = []) {
+    const sent = await this.chat.send(identity, content, idempotencyKey, replyToMessageId, mentions);
     if (sent.message.messageType !== 'COMMAND') return { ...sent, result: null, results: [] };
     const existing = await this.chat.findGameResult(sent.message.id);
-    if (existing) return { ...sent, result: existing, results: await this.chat.findGameResults(sent.message.id) };
+    if (existing) return { ...sent, refreshScopes: await this.chat.commandRefreshScopes(sent.message.id), result: existing, results: await this.chat.findGameResults(sent.message.id) };
     const response = await this.resolve(identity, sent.message.content!, sent.message.id);
     const published = await this.chat.publishGameResult(sent.message.id, oneLine(response));
-    return { ...sent, result: published.message, results: published.messages };
+    return { ...sent, refreshScopes: await this.chat.commandRefreshScopes(sent.message.id), result: published.message, results: published.messages };
   }
 
   private async resolve(identity: AuthenticatedIdentity, content: string, commandMessageId: string): Promise<string> {
@@ -131,6 +132,7 @@ export class ChatCommandDispatcher {
         case 'element': {
           if (args.length !== 1 || !elementKeys.includes(args[0]!.toLocaleLowerCase('fr-FR') as typeof elementKeys[number])) return syntax(definition.syntax);
           const result = await this.services.choosePlayerElement.execute(identity, args[0]!.toLocaleLowerCase('fr-FR'));
+          if (!result.alreadySelected) await this.chat.rememberCommandRefreshScopes(commandMessageId, ['player', 'resources', 'progression']);
           return `Élément permanent : ${result.elementKey}.`;
         }
         case 'pity': {
@@ -168,7 +170,8 @@ export class ChatCommandDispatcher {
           const characterId = await this.chat.rememberCommandText(commandMessageId, 'targetId', character?.characterId ?? '');
           if (!characterId) return `Candidat de vote introuvable ou ambigu. ${definition.syntax}.`;
           const rotationId = await this.chat.rememberCommandText(commandMessageId, 'action', vote.bannerRotationId);
-          await this.services.bannerVotes.vote(identity, characterId, rotationId, SourceChannel.INTERNAL_CHAT);
+          const voted = await this.services.bannerVotes.vote(identity, characterId, rotationId, SourceChannel.INTERNAL_CHAT);
+          if (!voted.alreadyProcessed) await this.chat.rememberCommandRefreshScopes(commandMessageId, ['bannerVotes']);
           return `Vote enregistré pour ${catalog.find(entry => entry.id === characterId)?.name ?? args.join(' ')}.`;
         }
         case 'pull': {
@@ -288,6 +291,7 @@ export class ChatCommandDispatcher {
             const targetId = await this.chat.rememberCommandText(commandMessageId, 'targetId', target ?? '');
             if (!targetId) return 'Ami introuvable.';
             const result = await this.services.socialService.friendship.sendHearts(actor.id, targetId, commandMessageId, 'INTERNAL_CHAT');
+            if (result.sent > 0) await this.chat.rememberCommandRefreshScopes(commandMessageId, ['social', 'resources', 'notifications']);
             return result.message ? `${result.message} Niveau ${result.level} · +5 Primogemmes chacun.` : `Cœurs : ${result.sent} envoyés, ${result.alreadySent} déjà faits, ${result.unavailable} indisponibles · +${result.senderReward} Primogemmes.`;
           }
           const mutation = { ajouter: 'ADD', accepter: 'ACCEPT', refuser: 'REFUSE', annuler: 'CANCEL', retirer: 'REMOVE' } as const;
