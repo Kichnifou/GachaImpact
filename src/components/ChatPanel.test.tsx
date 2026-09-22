@@ -172,16 +172,25 @@ describe('ChatPanel réel', () => {
     expect(container.querySelectorAll('[role="option"]')).toHaveLength(0)
   })
 
-  it('focuses the composer after reply and mention actions and shows the reply excerpt in a floating overlay', async () => {
+  it('focuses the composer and keeps the full reply and draft in the text-field overlay', async () => {
+    const longContent = 'Message complet '.repeat(20).trim()
+    chat.messages.mockResolvedValue({ messages: [{ ...message, content: longContent }], nextCursor: null, generation: 0 })
     const container = await mount(), input = container.querySelector<HTMLInputElement>('#chat-message')!
     const composer = container.querySelector('.chat-composer')
     await act(async () => { button(container, 'Répondre').click(); await new Promise(resolve => setTimeout(resolve, 25)) })
     expect(document.activeElement).toBe(input)
-    expect(container.querySelector('.chat-composer-reply')?.textContent).toContain('Réponse à Autre')
-    expect(container.querySelector('.chat-composer-reply')?.textContent).toContain('Bonjour https://example.com/ fin')
+    const reply = container.querySelector('.chat-composer-reply')!
+    expect(reply.textContent).toContain('Réponse à Autre')
+    expect(reply.textContent).toContain(longContent)
+    expect(reply.querySelector('.chat-overlay-content')?.nextElementSibling).toBe(button(container, 'Fermer la réponse'))
+    expect(reply.closest('.chat-composer-field')).not.toBeNull()
+    expect(reply.closest('.chat-composer-field')?.nextElementSibling).toBe(button(container, 'Envoyer le message'))
     expect(container.querySelector('.chat-composer')).toBe(composer)
+    await act(async () => { type(container, 'Brouillon conservé') })
     await act(async () => { button(container, 'Fermer la réponse').click() })
     expect(container.querySelector('.chat-composer-reply')).toBeNull()
+    expect(input.value).toBe('Brouillon conservé')
+    await act(async () => { type(container, '') })
     await act(async () => { button(container, 'Mentionner').click(); await new Promise(resolve => setTimeout(resolve, 25)) })
     expect(input.value).toBe('@Autre ')
     expect(document.activeElement).toBe(input)
@@ -206,6 +215,24 @@ describe('ChatPanel réel', () => {
     expect(writeText).toHaveBeenLastCalledWith(message.content)
     expect(container.querySelector('.chat-message-menu')).toBeNull()
     expect(container.querySelector('.chat-composer-accessory [role="status"]')?.textContent).toContain('Message copié.')
+  })
+
+  it('keeps copy feedback for two seconds and restarts its timer on a newer copy', async () => {
+    const writeText = vi.fn(async () => undefined)
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+    const container = await mount()
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      await act(async () => { button(container, 'Copier le message').click(); await Promise.resolve() })
+      expect(container.querySelector('[role="status"]')?.textContent).toContain('Message copié.')
+      await act(async () => { await vi.advanceTimersByTimeAsync(1999) })
+      expect(container.querySelector('[role="status"]')?.textContent).toContain('Message copié.')
+      await act(async () => { button(container, 'Copier le message').click(); await Promise.resolve() })
+      await act(async () => { await vi.advanceTimersByTimeAsync(1) })
+      expect(container.querySelector('[role="status"]')?.textContent).toContain('Message copié.')
+      await act(async () => { await vi.advanceTimersByTimeAsync(1999) })
+      expect(container.querySelector('[role="status"]')).toBeNull()
+    } finally { vi.useRealTimers() }
   })
 
   it('soft-deletes own rows and updates reply previews without exposing old content', async () => {
@@ -278,6 +305,20 @@ describe('ChatPanel réel', () => {
     expect(container.textContent).toContain('Premier')
     expect(container.textContent).toContain('Second')
     expect(list.scrollTop).toBe(900)
+  })
+
+  it('hides the scrollbar at the exact bottom and shows it while reading history', async () => {
+    const container = await mount()
+    const list = container.querySelector<HTMLDivElement>('.message-list')!
+    Object.defineProperty(list, 'scrollHeight', { configurable: true, value: 1000 })
+    Object.defineProperty(list, 'clientHeight', { configurable: true, value: 100 })
+    expect(list.classList.contains('chat-scrollbar-hidden')).toBe(true)
+    list.scrollTop = 500
+    await act(async () => { list.dispatchEvent(new Event('scroll', { bubbles: true })) })
+    expect(list.classList.contains('chat-scrollbar-hidden')).toBe(false)
+    list.scrollTop = 900
+    await act(async () => { list.dispatchEvent(new Event('scroll', { bubbles: true })) })
+    expect(list.classList.contains('chat-scrollbar-hidden')).toBe(true)
   })
 
   it('reconciles an in-flight PLAYER from incremental updates and clears an ambiguous send', async () => {
@@ -705,9 +746,11 @@ describe('ChatPanel réel', () => {
     expect(container.textContent).not.toContain('joueur masqué')
     await act(async () => { button(container, 'Démasquer ce joueur').click() })
     expect(container.textContent).toContain('Bonjour https://example.com/')
-    await act(async () => { type(container, '@Aut') })
+    await act(async () => { button(container, 'Répondre').click(); type(container, '@Aut') })
     await act(async () => { await new Promise(resolve => setTimeout(resolve, 250)) })
-    expect(container.querySelector('.chat-mention-suggestions')?.parentElement?.className).toBe('chat-composer-wrap')
-    expect(container.querySelector('.chat-composer-accessory')).not.toBeNull()
+    const field = container.querySelector('.chat-composer-field')!
+    expect(container.querySelector('.chat-mention-suggestions')?.parentElement).toBe(field)
+    expect(container.querySelector('.chat-composer-accessory')?.parentElement).toBe(field)
+    expect(container.querySelector('.chat-composer-reply')).not.toBeNull()
   })
 })
