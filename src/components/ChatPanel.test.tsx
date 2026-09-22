@@ -163,6 +163,20 @@ describe('ChatPanel réel', () => {
     expect(container.querySelector('a')?.getAttribute('href')).toBe('https://example.com/')
   })
 
+  it('renders complete resolved names with spaces or punctuation while retaining original text and safe URLs', async () => {
+    chat.messages.mockResolvedValue({ messages: [{ ...message, content: '@Kichnifou heyo @kIcHnIfOu @Jean Dupont bonjour @Dr. Watson @E\u0301lodie https://example.com/ @Jean Dupontx <img src=x>', resolvedMentions: [
+      { playerId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', displayName: 'Kichnifou' },
+      { playerId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', displayName: 'Jean Dupont' },
+      { playerId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', displayName: 'Dr. Watson' },
+      { playerId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', displayName: 'Élodie' },
+    ] }], nextCursor: null, generation: 0 })
+    const container = await mount()
+    expect(Array.from(container.querySelectorAll('.chat-inline-mention')).map(node => node.textContent)).toEqual(['@Kichnifou', '@kIcHnIfOu', '@Jean Dupont', '@Dr. Watson', '@E\u0301lodie'])
+    expect(container.textContent).toContain('@Jean Dupontx')
+    expect(container.querySelector('a')?.getAttribute('href')).toBe('https://example.com/')
+    expect(container.querySelector('img')).toBeNull()
+  })
+
   it('uses incremental updates after the initial snapshot without unread polling', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
     try {

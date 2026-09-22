@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type CSSProperties } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type CSSProperties, type ReactNode } from 'react'
 import { ApiError, getGameApiClient } from '../api/game-api'
 import type { ChatMentionDto, ChatMessageDto, ChatRefreshScope } from '../api/types'
 import { elementColors } from '../utils/elementTheme'
@@ -18,12 +18,49 @@ function linkChatText(content: string) {
     return part
   })
 }
-function chatText(content: string, mentions: readonly ChatMentionDto[] = []) {
-  const names = new Set(mentions.map(item => item.displayName.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('fr-FR')))
-  return content.split(/(https?:\/\/[^\s]+|@[^\s@.,!?;:]+)/giu).map((part, index) => {
-    if (/^@/u.test(part) && names.has(part.slice(1).normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('fr-FR'))) return <strong className="chat-inline-mention" key={index}>{part}</strong>
-    return linkChatText(part)
+const normalizeMention = (value: string) => value.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('fr-FR')
+function resolvedMentionRanges(content: string, mentions: readonly ChatMentionDto[]) {
+  let normalized = ''
+  const starts: number[] = [], ends: number[] = []
+  for (let offset = 0; offset < content.length;) {
+    const point = String.fromCodePoint(content.codePointAt(offset)!)
+    const normalizedPoint = normalizeMention(point)
+    for (let index = 0; index < normalizedPoint.length; index += 1) { normalized += normalizedPoint[index]!; starts.push(offset); ends.push(offset + point.length) }
+    if (!normalizedPoint.length && ends.length) ends[ends.length - 1] = offset + point.length
+    offset += point.length
+  }
+  const matches: { playerId: string; offset: number; length: number }[] = []
+  for (const mention of mentions) {
+    const needle = `@${normalizeMention(mention.displayName)}`
+    if (needle === '@') continue
+    let offset = normalized.indexOf(needle)
+    while (offset >= 0) {
+      const before = offset ? normalized[offset - 1] : null
+      const after = normalized[offset + needle.length] ?? null
+      const following = normalized[offset + needle.length + 1] ?? null
+      if ((!before || /\s/u.test(before)) && (!after || /\s/u.test(after) || /[.,!?;:]/u.test(after) && (!following || /\s/u.test(following)))) matches.push({ playerId: mention.playerId, offset, length: needle.length })
+      offset = normalized.indexOf(needle, offset + 1)
+    }
+  }
+  matches.sort((left, right) => left.offset - right.offset || right.length - left.length || left.playerId.localeCompare(right.playerId))
+  const usedOffsets = new Set<number>()
+  return matches.flatMap(match => {
+    if (usedOffsets.has(match.offset)) return []
+    usedOffsets.add(match.offset)
+    return [{ start: starts[match.offset]!, end: ends[match.offset + match.length - 1]! }]
   })
+}
+function chatText(content: string, mentions: readonly ChatMentionDto[] = []) {
+  const ranges = resolvedMentionRanges(content, mentions)
+  const rendered: ReactNode[] = []
+  let cursor = 0
+  ranges.forEach((range, index) => {
+    if (cursor < range.start) rendered.push(...linkChatText(content.slice(cursor, range.start)))
+    rendered.push(<strong className="chat-inline-mention" key={`mention-${index}`}>{content.slice(range.start, range.end)}</strong>)
+    cursor = range.end
+  })
+  if (cursor < content.length || !rendered.length) rendered.push(...linkChatText(content.slice(cursor)))
+  return rendered
 }
 
 const orderMessages = (items: ChatMessageDto[]) => items.sort((a, b) => {
