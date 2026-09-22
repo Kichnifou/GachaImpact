@@ -726,5 +726,5 @@ export type ChatMessageDto = {
   clientIntentKey?: string | null
 }
 export type ChatPageDto = { messages: ChatMessageDto[]; nextCursor: { createdAt: string; id: string } | null; generation: number }
-export type ChatUpdatesDto = { generation: number; reset: boolean; messages: ChatMessageDto[] }
+export type ChatUpdatesDto = { generation: number; reset: boolean; messages: ChatMessageDto[]; changes: ChatMessageDto[] }
 export type ChatSendDto = { cleared: true; generation: number; replayed: boolean } | { cleared?: false; message: ChatMessageDto; generation: number; xpGranted: number; refreshScopes: ChatRefreshScope[]; dailyChallengeCompleted: boolean; replayed: boolean; result: ChatMessageDto | null; results: ChatMessageDto[] }

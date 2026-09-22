@@ -2,7 +2,7 @@
 
 Version : Second retest public Chat global effectué ; candidat réactivité/UX sur review ; MP encore non physique
 Date : 2026-09-22
-Statut : SECOND RETEST PUBLIC CHAT GLOBAL EFFECTUÉ ; CANDIDAT RÉACTIVITÉ/UX EN PRÉPARATION ; VALIDATION PUBLIQUE EN ATTENTE
+Statut : SECOND RETEST PUBLIC CHAT GLOBAL EFFECTUÉ ; CANDIDAT RÉACTIVITÉ/UX EN REVIEW ; VALIDATION PUBLIQUE EN ATTENTE
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---

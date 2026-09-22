@@ -144,7 +144,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
   return {
     chat: {
       messages: (cursor?: ChatPageDto['nextCursor']) => request<ChatPageDto>('/api/v1/chat/messages' + (cursor ? '?' + new URLSearchParams({ cursorCreatedAt: cursor.createdAt, cursorId: cursor.id }) : '')),
-      updates: (generation: number, cursor: { createdAt: string; id: string } | null, knownIds: string[]) => request<ChatUpdatesDto>('/api/v1/chat/updates?' + new URLSearchParams({ generation: String(generation), ...(cursor ? { cursorCreatedAt: cursor.createdAt, cursorId: cursor.id } : {}), ...(knownIds.length ? { knownIds: knownIds.join(',') } : {}) })),
+      updates: (generation: number, cursor: { createdAt: string; id: string } | null, knownIds: string[]) => request<ChatUpdatesDto>('/api/v1/chat/updates', { method: 'POST', body: JSON.stringify({ generation, ...(cursor ? { cursorCreatedAt: cursor.createdAt, cursorId: cursor.id } : {}), knownIds }) }),
       unread: () => request<{ unreadCount: number; generation: number }>('/api/v1/chat/unread'),
       read: (messageId: string) => request<{ lastReadMessageId: string; changed: boolean }>('/api/v1/chat/read', { method: 'POST', body: JSON.stringify({ messageId }) }),
       send: (content: string, idempotencyKey: string, replyToMessageId: string | null, mentions: ChatMentionDto[]) => request<ChatSendDto>('/api/v1/chat/messages', { method: 'POST', body: JSON.stringify({ content, idempotencyKey, replyToMessageId, mentions }) }),

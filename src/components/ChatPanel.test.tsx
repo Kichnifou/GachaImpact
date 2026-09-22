@@ -32,6 +32,11 @@ function type(container: HTMLElement, value: string) {
   input.dispatchEvent(new Event('input', { bubbles: true }))
 }
 const button = (node: HTMLElement, label: string) => node.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!
+function enableUpdates() {
+  const updates = vi.fn()
+  ;(chat as typeof chat & { updates?: typeof updates }).updates = updates
+  return updates
+}
 beforeEach(() => {
   vi.clearAllMocks(); sessionStorage.clear()
   delete (chat as typeof chat & { updates?: unknown }).updates
@@ -161,7 +166,7 @@ describe('ChatPanel réel', () => {
   it('uses incremental updates after the initial snapshot without unread polling', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
     try {
-      const updates = vi.fn(async () => ({ messages: [], generation: 0, reset: false }))
+      const updates = vi.fn(async () => ({ messages: [], changes: [], generation: 0, reset: false }))
       ;(chat as typeof chat & { updates?: typeof updates }).updates = updates
       await mount()
       const unreadCalls = chat.unread.mock.calls.length
@@ -169,6 +174,158 @@ describe('ChatPanel réel', () => {
       expect(updates).toHaveBeenCalledWith(0, { createdAt: message.createdAt, id: message.id }, [message.id])
       expect(chat.unread.mock.calls).toHaveLength(unreadCalls)
     } finally { vi.useRealTimers() }
+  })
+
+  it('receives the first messages after an empty snapshot and scrolls to the newest', async () => {
+    chat.messages.mockResolvedValue({ messages: [], nextCursor: null, generation: 0 })
+    const updates = enableUpdates().mockResolvedValue({ generation: 0, reset: false, messages: [], changes: [] })
+    const container = await mount()
+    const list = container.querySelector<HTMLDivElement>('.message-list')!
+    Object.defineProperty(list, 'scrollHeight', { configurable: true, value: 900 })
+    Object.defineProperty(list, 'clientHeight', { configurable: true, value: 100 })
+    updates.mockResolvedValue({ generation: 0, reset: false, messages: [{ ...message, content: 'Premier' }, { ...message, id: '66666666-6666-4666-8666-666666666666', createdAt: '2026-09-22T10:00:01.000Z', content: 'Second' }], changes: [] })
+    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() })
+    expect(updates).toHaveBeenCalledWith(0, null, [])
+    expect(container.textContent).toContain('Premier')
+    expect(container.textContent).toContain('Second')
+    expect(list.scrollTop).toBe(900)
+  })
+
+  it('reconciles an in-flight PLAYER from incremental updates and clears an ambiguous send', async () => {
+    let reject!: (cause: Error) => void
+    const updates = enableUpdates().mockResolvedValue({ generation: 0, reset: false, messages: [], changes: [] })
+    chat.send.mockReturnValueOnce(new Promise<ChatSendDto>((_resolve, fail) => { reject = fail }))
+    const container = await mount()
+    await act(async () => { type(container, 'Mon message') })
+    act(() => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    await act(async () => { await Promise.resolve() })
+    const key = chat.send.mock.calls.at(-1)![1] as string
+    const authoritative = { ...message, id: '66666666-6666-4666-8666-666666666666', author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content: 'Mon message', clientIntentKey: key }
+    updates.mockResolvedValue({ generation: 0, reset: false, messages: [authoritative], changes: [] })
+    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() })
+    expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
+    expect(Array.from(container.querySelectorAll('.chat-message')).filter(node => node.textContent?.includes('Mon message'))).toHaveLength(1)
+    await act(async () => { reject(new Error('Réponse perdue')) })
+    expect(container.textContent).not.toContain('Envoi non confirmé')
+    expect(Array.from(container.querySelectorAll('.chat-message')).filter(node => node.textContent?.includes('Mon message'))).toHaveLength(1)
+  })
+
+  it('clears an ambiguous send after the authoritative incremental message arrives', async () => {
+    const updates = enableUpdates().mockResolvedValue({ generation: 0, reset: false, messages: [], changes: [] })
+    chat.send.mockRejectedValueOnce(new Error('Réponse perdue'))
+    const container = await mount()
+    await act(async () => { type(container, 'Ambigu') })
+    await act(async () => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    expect(container.textContent).toContain('Envoi non confirmé')
+    const key = chat.send.mock.calls.at(-1)![1] as string
+    updates.mockResolvedValue({ generation: 0, reset: false, messages: [{ ...message, id: '66666666-6666-4666-8666-666666666666', author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content: 'Ambigu', clientIntentKey: key }], changes: [] })
+    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() })
+    expect(container.textContent).not.toContain('Envoi non confirmé')
+    expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
+    expect(Array.from(container.querySelectorAll('.chat-message')).filter(node => node.textContent?.includes('Ambigu'))).toHaveLength(1)
+  })
+
+  it('updates a distant deletion and every loaded reply preview', async () => {
+    const updates = enableUpdates().mockResolvedValue({ generation: 0, reset: false, messages: [], changes: [] })
+    const reply = { ...message, id: '66666666-6666-4666-8666-666666666666', content: 'Réponse', createdAt: '2026-09-22T10:00:01.000Z', replyToMessageId: message.id, replyPreview: message.content }
+    chat.messages.mockResolvedValue({ messages: [message, reply], nextCursor: null, generation: 0 })
+    const container = await mount()
+    updates.mockResolvedValue({ generation: 0, reset: false, messages: [], changes: [{ ...message, deletionState: 'AUTHOR', content: null }] })
+    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() })
+    expect(container.textContent).not.toContain('Bonjour https://example.com/ fin')
+    expect(container.textContent?.match(/Message supprimé/gu)).toHaveLength(2)
+  })
+
+  it('keeps an incremental arrival when an optimistic deletion rolls back', async () => {
+    let reject!: (cause: Error) => void
+    const updates = enableUpdates().mockResolvedValue({ generation: 0, reset: false, messages: [], changes: [] })
+    const own = { ...message, author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content: 'À restaurer' }
+    chat.messages.mockResolvedValue({ messages: [own], nextCursor: null, generation: 0 })
+    chat.remove.mockReturnValueOnce(new Promise((_resolve, fail) => { reject = fail }))
+    const container = await mount()
+    await act(async () => { button(container, 'Supprimer').click() })
+    expect(container.textContent).toContain('Message supprimé')
+    updates.mockResolvedValue({ generation: 0, reset: false, messages: [{ ...message, id: '66666666-6666-4666-8666-666666666666', content: 'Arrivée C', createdAt: '2026-09-22T10:00:01.000Z' }], changes: [] })
+    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() })
+    await act(async () => { reject(new Error('Refus')) })
+    expect(container.textContent).toContain('À restaurer')
+    expect(container.textContent).toContain('Arrivée C')
+  })
+
+  it('defers incremental arrivals at the history cap until the reader rejoins the latest page', async () => {
+    const updates = enableUpdates().mockResolvedValue({ generation: 0, reset: false, messages: [], changes: [] })
+    const current = Array.from({ length: 350 }, (_, index) => ({ ...message, id: `33333333-3333-4333-8333-${String(index).padStart(12, '0')}`, content: `recent-${index}` }))
+    const newest = { ...message, id: '88888888-8888-4888-8888-888888888888', content: 'Tout nouveau', createdAt: '2026-09-22T10:00:01.000Z' }
+    chat.messages.mockResolvedValue({ messages: current, nextCursor: null, generation: 0 })
+    const container = await mount()
+    const list = container.querySelector<HTMLDivElement>('.message-list')!
+    Object.defineProperty(list, 'scrollHeight', { configurable: true, value: 5000 })
+    Object.defineProperty(list, 'clientHeight', { configurable: true, value: 100 })
+    list.scrollTop = 300
+    await act(async () => { list.dispatchEvent(new Event('scroll', { bubbles: true })) })
+    updates.mockResolvedValue({ generation: 0, reset: false, messages: [newest], changes: [] })
+    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() })
+    expect(container.textContent).toContain('recent-0')
+    expect(container.textContent).not.toContain('Tout nouveau')
+    expect(container.textContent).toContain('1 nouveau message ↓')
+    chat.messages.mockResolvedValue({ messages: [...current.slice(-49), newest], nextCursor: null, generation: 0 })
+    await act(async () => { Array.from(container.querySelectorAll('button')).find(item => item.textContent?.includes('nouveau message ↓'))!.click(); await Promise.resolve() })
+    expect(container.textContent).toContain('Tout nouveau')
+    expect(container.textContent).not.toContain('recent-0')
+  })
+
+  it('hides pointer actions after a click until pointer leave and re-entry', async () => {
+    const container = await mount()
+    const article = container.querySelector<HTMLElement>('.chat-message')!
+    article.dispatchEvent(new Event('pointerenter', { bubbles: true }))
+    await act(async () => { button(container, 'Répondre').dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 })) })
+    expect(article.dataset.hoverSuppressed).toBe('true')
+    await act(async () => { article.dispatchEvent(new PointerEvent('pointerout', { bubbles: true, relatedTarget: document.body })) })
+    expect(article.dataset.hoverSuppressed).toBeUndefined()
+    article.dispatchEvent(new Event('pointerenter', { bubbles: true }))
+    expect(article.dataset.hoverSuppressed).toBeUndefined()
+  })
+
+  it('keeps three PLAYER sends visible and reconciles confirmations out of order', async () => {
+    const releases: Array<(value: ChatSendDto) => void> = []
+    chat.send.mockImplementation(() => new Promise<ChatSendDto>(resolve => { releases.push(resolve) }))
+    const container = await mount()
+    for (const content of ['A', 'B', 'C']) {
+      await act(async () => { type(container, content) })
+      act(() => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+      await act(async () => { await Promise.resolve() })
+      expect(container.textContent).toContain(content)
+    }
+    expect(chat.send).toHaveBeenCalledTimes(3)
+    expect(new Set(chat.send.mock.calls.map(call => call[1])).size).toBe(3)
+    expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(3)
+    await act(async () => { type(container, 'D') })
+    expect(button(container, 'Envoyer le message').disabled).toBe(false)
+    for (const index of [1, 2, 0]) {
+      const content = ['A', 'B', 'C'][index]!
+      const key = chat.send.mock.calls[index]![1] as string
+      await act(async () => { releases[index]!({ message: { ...message, id: `44444444-4444-4444-8444-${String(index).padStart(12, '0')}`, author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content, clientIntentKey: key }, generation: 0, result: null, results: [], xpGranted: 1, refreshScopes: [], dailyChallengeCompleted: false, replayed: false }) })
+    }
+    expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
+    for (const content of ['A', 'B', 'C']) expect(Array.from(container.querySelectorAll('.chat-message')).filter(node => node.querySelector('p')?.textContent === content)).toHaveLength(1)
+  })
+
+  it('allows a PLAYER during a pending command while blocking a second command', async () => {
+    let release!: (value: ChatSendDto) => void
+    chat.send.mockReturnValueOnce(new Promise<ChatSendDto>(resolve => { release = resolve }))
+    const container = await mount()
+    await act(async () => { type(container, '!pull') })
+    act(() => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    await act(async () => { await Promise.resolve() })
+    await act(async () => { type(container, '!banque') })
+    expect(button(container, 'Envoyer le message').disabled).toBe(true)
+    await act(async () => { type(container, 'haha') })
+    expect(button(container, 'Envoyer le message').disabled).toBe(false)
+    await act(async () => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    expect(chat.send).toHaveBeenCalledTimes(2)
+    expect(chat.send.mock.calls[1]![0]).toBe('haha')
+    const key = chat.send.mock.calls[0]![1] as string
+    await act(async () => { release({ message: { ...message, id: '66666666-6666-4666-8666-666666666666', author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content: '!pull', messageType: 'COMMAND', clientIntentKey: key }, generation: 0, result: null, results: [], xpGranted: 0, refreshScopes: [], dailyChallengeCompleted: false, replayed: false }) })
   })
 
   it('keeps a scrolled-up reader in place, counts new rows and reads only after returning to bottom', async () => {

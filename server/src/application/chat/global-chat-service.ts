@@ -348,14 +348,25 @@ export class GlobalChatService {
     const viewer = await this.actor(identity);
     if (!Number.isInteger(clientGeneration) || clientGeneration < 0 || knownIds.length > 350 || knownIds.some(id => !/^[0-9a-f-]{36}$/i.test(id))) throw invalid('Mise à jour Chat invalide.');
     const generation = await this.generation();
-    if (generation !== clientGeneration) return { generation, reset: true, messages: [] };
-    if (!cursor) return { generation, reset: false, messages: [] };
-    const date = new Date(cursor.createdAt);
-    if (Number.isNaN(date.getTime()) || !/^[0-9a-f-]{36}$/i.test(cursor.id)) throw invalid('Curseur invalide.');
-    const anchor = await this.database.globalChatMessage.findUnique({ where: { id: cursor.id }, select: { createdAt: true, generation: true } });
-    if (!anchor || anchor.generation !== generation || anchor.createdAt.toISOString() !== date.toISOString()) return { generation, reset: true, messages: [] };
-    const rows = await this.database.globalChatMessage.findMany({ where: { generation, OR: [{ createdAt: { gt: anchor.createdAt } }, { createdAt: anchor.createdAt, id: { gt: cursor.id } }, { id: { in: knownIds }, deletionState: { not: 'ACTIVE' } }] }, include: messageInclude, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], take: 100 });
-    return { generation, reset: false, messages: rows.map(row => project(row, viewer.id)) };
+    if (generation !== clientGeneration) return { generation, reset: true, messages: [], changes: [] };
+    let anchor: { createdAt: Date; generation: number } | null = null;
+    if (cursor) {
+      const date = new Date(cursor.createdAt);
+      if (Number.isNaN(date.getTime()) || !/^[0-9a-f-]{36}$/i.test(cursor.id)) throw invalid('Curseur invalide.');
+      anchor = await this.database.globalChatMessage.findUnique({ where: { id: cursor.id }, select: { createdAt: true, generation: true } });
+      if (!anchor || anchor.generation !== generation || anchor.createdAt.toISOString() !== date.toISOString()) return { generation, reset: true, messages: [], changes: [] };
+    }
+    const [messages, changes] = await Promise.all([
+      this.database.globalChatMessage.findMany({
+        where: { generation, ...(cursor && anchor ? { OR: [{ createdAt: { gt: anchor.createdAt } }, { createdAt: anchor.createdAt, id: { gt: cursor.id } }] } : {}) },
+        include: messageInclude, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], take: 100,
+      }),
+      knownIds.length ? this.database.globalChatMessage.findMany({
+        where: { generation, id: { in: knownIds }, deletionState: { not: 'ACTIVE' } },
+        include: messageInclude, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], take: 350,
+      }) : Promise.resolve([]),
+    ]);
+    return { generation, reset: false, messages: messages.map(row => project(row, viewer.id)), changes: changes.map(row => project(row, viewer.id)) };
   }
 
   async rememberCommandRefreshScopes(commandMessageId: string, scopes: readonly ChatRefreshScope[]) {

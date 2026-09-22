@@ -60,6 +60,7 @@ async function player(xp = 60n, elementKey: string | null = 'pyro') {
   return id;
 }
 const progress = (id: string) => db.playerProgression.findUniqueOrThrow({ where: { playerId: id } });
+const migrationChecksum = (path: string) => createHash('sha256').update(readFileSync(path, 'utf8').replace(/\r\n?/gu, '\n')).digest('hex');
 
 describe('Global Chat foundation on isolated PostgreSQL', () => {
   it('validates Unicode length and lines, classifies commands, and awards XP only to eligible PLAYER messages', async () => {
@@ -343,16 +344,14 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
   }, 20_000);
 
   it('records the exact Prisma 032–034 migrations and secures their real public tables', async () => {
-    const sql = readFileSync('prisma/migrations/20260922070000_032_add_global_chat_foundations/migration.sql');
-    const checksum = createHash('sha256').update(sql).digest('hex');
+    const checksum = migrationChecksum('prisma/migrations/20260922070000_032_add_global_chat_foundations/migration.sql');
     const migration = await fixture.admin.query<{ checksum: string; finished_at: Date | null; rolled_back_at: Date | null }>(
       'SELECT checksum, finished_at, rolled_back_at FROM public._prisma_migrations WHERE migration_name=$1',
       ['20260922070000_032_add_global_chat_foundations']);
     expect(migration.rows).toHaveLength(1);
     expect(migration.rows[0]).toMatchObject({ checksum, rolled_back_at: null });
     expect(migration.rows[0]?.finished_at).not.toBeNull();
-    const correctionSql = readFileSync('prisma/migrations/20260922080000_033_fix_global_chat_content_check/migration.sql');
-    const correctionChecksum = createHash('sha256').update(correctionSql).digest('hex');
+    const correctionChecksum = migrationChecksum('prisma/migrations/20260922080000_033_fix_global_chat_content_check/migration.sql');
     const correction = await fixture.admin.query<{ checksum: string; finished_at: Date | null; rolled_back_at: Date | null }>(
       'SELECT checksum, finished_at, rolled_back_at FROM public._prisma_migrations WHERE migration_name=$1',
       ['20260922080000_033_fix_global_chat_content_check']);
@@ -360,17 +359,15 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(correction.rows[0]).toMatchObject({ checksum: correctionChecksum, rolled_back_at: null });
     expect(correction.rows[0]?.finished_at).not.toBeNull();
     const count = await fixture.admin.query<{ count: string }>('SELECT count(*)::text AS count FROM public._prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL');
-    const newSql = readFileSync('prisma/migrations/20260922090000_034_chat_mentions_reports_and_daily_messages/migration.sql');
-    const newChecksum = createHash('sha256').update(newSql).digest('hex');
+    const newChecksum = migrationChecksum('prisma/migrations/20260922090000_034_chat_mentions_reports_and_daily_messages/migration.sql');
     const newMigration = await fixture.admin.query<{ checksum: string; finished_at: Date | null }>('SELECT checksum, finished_at FROM public._prisma_migrations WHERE migration_name=$1', ['20260922090000_034_chat_mentions_reports_and_daily_messages']);
     expect(newMigration.rows).toHaveLength(1);
     expect(newMigration.rows[0]?.checksum).toBe(newChecksum);
     expect(newMigration.rows[0]?.finished_at).not.toBeNull();
     expect(count.rows[0]?.count).toBe('35');
-    const clearSql = readFileSync('prisma/migrations/20260922120000_035_add_global_chat_generation/migration.sql');
     const clearMigration = await fixture.admin.query<{ checksum: string; finished_at: Date | null }>('SELECT checksum, finished_at FROM public._prisma_migrations WHERE migration_name=$1', ['20260922120000_035_add_global_chat_generation']);
     expect(clearMigration.rows).toHaveLength(1);
-    expect(clearMigration.rows[0]?.checksum).toBe(createHash('sha256').update(clearSql).digest('hex'));
+    expect(clearMigration.rows[0]?.checksum).toBe(migrationChecksum('prisma/migrations/20260922120000_035_add_global_chat_generation/migration.sql'));
     expect(clearMigration.rows[0]?.finished_at).not.toBeNull();
     const state = await fixture.admin.query<{ relrowsecurity: boolean }>("SELECT relrowsecurity FROM pg_class WHERE oid='public.global_chat_state'::regclass");
     expect(state.rows[0]?.relrowsecurity).toBe(true);
@@ -444,4 +441,51 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     await db.playerRoleAssignment.updateMany({ where: { playerId: moderator, role: 'MODERATOR' }, data: { revokedAt: new Date() } });
     await expect(dispatcher.clear(as(moderator), '!clear', randomUUID())).rejects.toMatchObject({ code: 'CHAT_FORBIDDEN' });
   }, 60_000);
+
+  it('discovers the first message without an anchor, orders later messages, and separates known deletions', async () => {
+    const author = await player(), reader = await player(), moderator = await player();
+    await db.playerRoleAssignment.create({ data: { playerId: moderator, role: 'MODERATOR' } });
+    const cleared = await dispatcher.clear(as(moderator), '!clear', randomUUID());
+    expect(await service.updates(as(reader), cleared.generation)).toEqual({ generation: cleared.generation, reset: false, messages: [], changes: [] });
+    const key = randomUUID();
+    const first = await service.send(as(author), 'Premier', key);
+    const initial = await service.updates(as(author), cleared.generation);
+    expect(initial.messages.map(row => row.id)).toEqual([first.message.id]);
+    expect(initial.messages[0]?.clientIntentKey).toBe(key);
+    expect((await service.updates(as(reader), cleared.generation)).messages[0]?.clientIntentKey).toBeNull();
+    advance(1);
+    const second = await service.send(as(author), 'Second', randomUUID());
+    advance(1);
+    const third = await service.send(as(author), 'Troisième', randomUUID());
+    const anchor = { createdAt: first.message.createdAt, id: first.message.id };
+    expect(await service.updates(as(reader), cleared.generation, { ...anchor, createdAt: '2000-01-01T00:00:00.000Z' })).toEqual({ generation: cleared.generation, reset: true, messages: [], changes: [] });
+    const newer = await service.updates(as(reader), cleared.generation, anchor, [first.message.id]);
+    expect(newer.messages.map(row => row.id)).toEqual([second.message.id, third.message.id]);
+    expect(newer.changes).toEqual([]);
+    await service.deleteOwn(as(author), first.message.id);
+    const deleted = await service.updates(as(reader), cleared.generation, anchor, [first.message.id]);
+    expect(deleted.messages.map(row => row.id)).toEqual([second.message.id, third.message.id]);
+    expect(deleted.changes).toMatchObject([{ id: first.message.id, deletionState: 'AUTHOR', content: null }]);
+    expect((await service.updates(as(reader), cleared.generation, anchor, [])).changes).toEqual([]);
+    expect(await service.updates(as(reader), cleared.generation - 1, anchor)).toEqual({ generation: cleared.generation, reset: true, messages: [], changes: [] });
+  }, 40_000);
+
+  it('bounds new messages independently of many known tombstones and advances the exact anchor', async () => {
+    const author = await player(), moderator = await player();
+    await db.playerRoleAssignment.create({ data: { playerId: moderator, role: 'MODERATOR' } });
+    const { generation } = await dispatcher.clear(as(moderator), '!clear', randomUUID());
+    const oldIds = Array.from({ length: 110 }, () => randomUUID());
+    await db.globalChatMessage.createMany({ data: oldIds.map((id, index) => ({ id, authorPlayerId: author, sourceChannel: 'INTERNAL_CHAT', messageType: 'PLAYER', content: `ancien ${index}`, createdAt: new Date(now.getTime() + index), generation, deletedAt: now, deletionState: 'AUTHOR' })) });
+    const anchor = await db.globalChatMessage.create({ data: { authorPlayerId: author, sourceChannel: 'INTERNAL_CHAT', messageType: 'PLAYER', content: 'ancre', createdAt: new Date(now.getTime() + 200), generation } });
+    const newIds = Array.from({ length: 101 }, () => randomUUID());
+    await db.globalChatMessage.createMany({ data: newIds.map((id, index) => ({ id, authorPlayerId: author, sourceChannel: 'INTERNAL_CHAT', messageType: 'PLAYER', content: `nouveau ${index}`, createdAt: new Date(now.getTime() + 300 + index), generation })) });
+    const page = await service.updates(as(author), generation, { createdAt: anchor.createdAt.toISOString(), id: anchor.id }, oldIds);
+    expect(page.messages).toHaveLength(100);
+    expect(page.messages.map(row => row.id)).toEqual(newIds.slice(0, 100));
+    expect(page.changes).toHaveLength(110);
+    const last = page.messages.at(-1)!;
+    const tail = await service.updates(as(author), generation, { createdAt: last.createdAt, id: last.id });
+    expect(tail.messages.map(row => row.id)).toEqual(newIds.slice(100));
+    expect(tail.changes).toEqual([]);
+  }, 40_000);
 });

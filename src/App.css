@@ -1827,7 +1827,7 @@
 .message-content p a { color: #8bd8ff; text-decoration: underline; }
 .message-content p button { border: 0; padding: 0; background: none; color: #8bd8ff; text-decoration: underline; cursor: pointer; }
 .chat-message-actions { position: absolute; z-index: 2; top: 3px; right: 8px; display: flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 7px; background: #14233f; box-shadow: 0 4px 12px #0008; opacity: 0; pointer-events: none; }
-.chat-message:is(:hover, :focus-within) .chat-message-actions { opacity: 1; pointer-events: auto; }
+.chat-message:not([data-hover-suppressed="true"]):hover .chat-message-actions, .chat-message:focus-within .chat-message-actions { opacity: 1; pointer-events: auto; }
 .chat-message-actions button { width: 25px; height: 24px; border: 0; border-radius: 4px; color: #c6d9f1; background: transparent; cursor: pointer; }
 .chat-message-actions button:hover { background: #27446a; }
 .chat-message-menu-button { display: none; position: absolute; top: 4px; right: 8px; border: 0; color: #9fb4d1; background: #14233f; cursor: pointer; }
