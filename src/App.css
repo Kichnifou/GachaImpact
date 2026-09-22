@@ -1755,14 +1755,14 @@
   min-height: 42px;
   max-height: 154px;
   min-width: 0;
-  padding: 8px 43px 7px 11px;
+  padding: 9px 43px 6px 11px;
   resize: none;
   overflow-y: hidden;
   color: var(--text);
   font-family: inherit;
   font-size: 13px;
   line-height: 19px;
-  border: 1px solid rgba(114, 150, 209, 0.42);
+  border: 2px solid rgba(114, 150, 209, 0.42);
   border-radius: 10px 10px 12px 12px;
   outline: none;
   background: rgba(4, 9, 20, 0.82);
@@ -1776,7 +1776,7 @@
 .chat-send-button {
   position: absolute;
   right: 4px;
-  bottom: 4px;
+  bottom: 7px;
   width: 28px;
   height: 28px;
 }
@@ -1886,10 +1886,12 @@
 .chat-composer-wrap { position: relative; flex: 0 0 42px; }
 .chat-composer-accessory { position: absolute; z-index: 6; right: 0; bottom: calc(100% + 5px); left: 0; min-height: 0; pointer-events: none; }
 .chat-composer-reply, .chat-report-confirm, .chat-mention-suggestions, .chat-status { margin: 0; padding: 6px 12px; color: #a8bbd6; font-size: 10px; }
+.chat-composer-reply { font-size: 11px; }
 .chat-composer-reply, .chat-composer-accessory .chat-status { position: relative; display: flex; align-items: center; gap: 5px; min-height: 28px; margin: 0; overflow: visible; white-space: normal; pointer-events: auto; border: 1px solid #4676a7; border-radius: 7px; background: #14233f; box-shadow: 0 6px 16px #0008; }
 .chat-overlay-content { min-width: 0; flex: 1; overflow-wrap: anywhere; }
 .chat-composer-reply .chat-overlay-content { display: grid; gap: 2px; }
-.chat-composer-reply small { display: block; white-space: normal; }
+.chat-composer-reply small { display: block; font-size: 10px; white-space: normal; }
+.chat-composer-reply .chat-overlay-close { font-size: 16px; line-height: 1; }
 .chat-overlay-close { flex: 0 0 auto; align-self: center; margin-left: auto !important; }
 .chat-composer-accessory .chat-status { height: auto; }
 .chat-status button { margin-left: 5px; color: #d6efff; background: none; border: 0; text-decoration: underline; cursor: pointer; }
