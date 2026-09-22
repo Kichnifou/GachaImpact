@@ -157,7 +157,7 @@ describe('ChatPanel réel', () => {
     let scrollHeight = 36
     Object.defineProperty(input, 'scrollHeight', { configurable: true, get: () => scrollHeight })
     await act(async () => { type(container, 'Court') })
-    expect(input.style.height).toBe('36px')
+    expect(input.style.height).toBe('42px')
     expect(input.classList.contains('is-expanded')).toBe(false)
     scrollHeight = 112
     await act(async () => { type(container, 'Texte long '.repeat(30)) })

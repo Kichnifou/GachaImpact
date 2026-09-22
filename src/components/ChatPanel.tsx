@@ -114,10 +114,10 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   useLayoutEffect(() => {
     if (!composer.current) return
     composer.current.style.height = '0px'
-    const height = Math.min(Math.max(composer.current.scrollHeight, 36), 154)
+    const height = Math.min(Math.max(composer.current.scrollHeight, 42), 154)
     composer.current.style.height = `${height}px`
     composer.current.style.overflowY = composer.current.scrollHeight > 154 ? 'auto' : 'hidden'
-    setComposerExpanded(height > 36)
+    setComposerExpanded(height > 42)
   }, [draft])
 
   const adoptGeneration = useCallback((value: number, snapshot: ChatMessageDto[], nextCursor: { createdAt: string; id: string } | null, isLoaded: boolean, nextUnread = 0) => {
