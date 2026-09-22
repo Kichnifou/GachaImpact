@@ -109,6 +109,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const initialScrollPending = useRef(true)
   const composer = useRef<HTMLTextAreaElement>(null)
   const copyFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const wasCollapsed = useRef(isCollapsed)
 
   useEffect(() => () => { if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current) }, [])
   useLayoutEffect(() => {
@@ -157,7 +158,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     const retain = (item: ChatMessageDto) => item.id.startsWith('optimistic:') ? byIntent.get(item.clientIntentKey) ?? item : updates.get(item.id) ?? item
     const newlySeen = fresh.filter(item => !unseenIds.current.has(item.id))
     if (newlySeen.length && !atBottom.current) setNewCount(count => count + newlySeen.length)
-    if (!initial && !atBottom.current && current.length >= 350) {
+    if (!initial && !atBottom.current && current.length >= 200) {
       newlySeen.forEach(item => unseenIds.current.add(item.id))
       deferredLatest.current = true
       const next = orderMessages(current.map(retain).filter((item, index, all) => all.findIndex(other => other.id === item.id) === index))
@@ -165,7 +166,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
       setMessages(next)
       return
     }
-    const next = initial ? orderMessages([...page.messages, ...current.filter(item => item.id.startsWith('optimistic:') && !byIntent.has(item.clientIntentKey))]) : orderMessages([...current.map(retain), ...page.messages.filter(item => !previous.has(item.id) && !current.some(old => old.clientIntentKey && old.clientIntentKey === item.clientIntentKey))].filter((item, index, all) => all.findIndex(other => other.id === item.id) === index)).slice(-350)
+    const next = (initial ? orderMessages([...page.messages, ...current.filter(item => item.id.startsWith('optimistic:') && !byIntent.has(item.clientIntentKey))]) : orderMessages([...current.map(retain), ...page.messages.filter(item => !previous.has(item.id) && !current.some(old => old.clientIntentKey && old.clientIntentKey === item.clientIntentKey))].filter((item, index, all) => all.findIndex(other => other.id === item.id) === index))).slice(-200)
     if (initial) { deferredLatest.current = false; unseenIds.current.clear(); setNewCount(0) }
     messagesRef.current = next
     setMessages(next)
@@ -197,16 +198,25 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     const fresh = update.messages.filter(item => !known.has(item.id) && !current.some(old => old.clientIntentKey && old.clientIntentKey === item.clientIntentKey))
     const newlySeen = fresh.filter(item => item.author?.id !== playerId && !unseenIds.current.has(item.id))
     if (newlySeen.length && !atBottom.current && !initialScrollPending.current) setNewCount(value => value + newlySeen.length)
-    if (!atBottom.current && !initialScrollPending.current && current.length >= 350 && fresh.length) {
+    if (!atBottom.current && !initialScrollPending.current && current.length >= 200 && fresh.length) {
       newlySeen.forEach(item => unseenIds.current.add(item.id))
       deferredLatest.current = true
       const retained = orderMessages(current.map(retain).filter((item, index, all) => all.findIndex(other => other.id === item.id) === index))
       messagesRef.current = retained; setMessages(retained)
       return
     }
-    const merged = orderMessages([...current.map(retain), ...fresh].filter((item, index, all) => all.findIndex(other => other.id === item.id) === index)).slice(-350)
+    const merged = orderMessages([...current.map(retain), ...fresh].filter((item, index, all) => all.findIndex(other => other.id === item.id) === index)).slice(-200)
     messagesRef.current = merged; setMessages(merged)
   }, [api, messagesNow, playerId])
+
+  useEffect(() => {
+    const reopening = wasCollapsed.current && !isCollapsed
+    wasCollapsed.current = isCollapsed
+    if (!reopening) return
+    initialScrollPending.current = true; atBottom.current = true; deferredLatest.current = false; unseenIds.current.clear()
+    setScrollbarAtBottom(true); setNewCount(0)
+    void messagesNow(true).catch(cause => setError(cause instanceof Error ? cause.message : 'Chat indisponible.'))
+  }, [isCollapsed, messagesNow])
 
   useEffect(() => {
     let cancelled = false, busy = false
@@ -251,7 +261,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
       const page = await api.messages(cursor)
       if (generation.current !== null && page.generation !== generation.current) { await messagesNow(true); return }
       prepend.current = anchor
-      setMessages(current => [...page.messages.filter(item => !current.some(old => old.id === item.id)), ...current].slice(0, 350))
+      setMessages(current => [...page.messages.filter(item => !current.some(old => old.id === item.id)), ...current].slice(0, 200))
       setCursor(page.nextCursor)
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Historique indisponible.') }
     finally { olderBusy.current = false }
@@ -393,22 +403,22 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
         const authorStyle = !game && message.author ? { '--chat-author-color': authorColor } as CSSProperties : undefined
         const replyTo = () => { setReply(message); setMenuId(null); focusComposer() }
         const mentionAuthor = () => { if (!message.author) return; setDraft(value => `${value}${value && !value.endsWith(' ') ? ' ' : ''}@${message.author!.displayName} `); setMentions(value => [...value, { playerId: message.author!.id, displayName: message.author!.displayName }]); setMenuId(null); focusComposer() }
-        return <article className={`chat-message${message.mentionedMe || message.repliedToMe ? ' chat-message-mentioned' : ''}${optimistic ? ' chat-message-optimistic' : ''}`} style={authorStyle} data-command={optimistic && message.messageType === 'COMMAND' ? 'true' : undefined} data-hover-suppressed={suppressedHoverId === message.id ? 'true' : undefined} onPointerLeave={() => setSuppressedHoverId(current => current === message.id ? null : current)} key={message.id}>
+        return <article className={`chat-message${message.mentionedMe || message.repliedToMe ? ' chat-message-mentioned' : ''}${optimistic ? ' chat-message-optimistic' : ''}`} style={authorStyle} data-command={optimistic && message.messageType === 'COMMAND' ? 'true' : undefined} data-hover-suppressed={suppressedHoverId === message.id ? 'true' : undefined} data-report-open={reportId === message.id ? 'true' : undefined} onPointerLeave={() => setSuppressedHoverId(current => current === message.id ? null : current)} key={message.id}>
           {game ? <div className="message-avatar chat-game-avatar" aria-hidden="true">✦</div> : <button type="button" className="message-avatar chat-avatar-button" aria-label={`Profil de ${message.authorLabel}`} onClick={() => message.author && onOpenProfile(message.author.id)}>{message.authorLabel?.slice(0, 1).toLocaleUpperCase('fr-FR')}</button>}
           <div className="message-content"><div className="message-meta">{game ? <strong className="chat-game-label">GachaImpact</strong> : <button type="button" className="chat-author-button" onClick={() => message.author && onOpenProfile(message.author.id)}>{message.authorLabel}</button>}<time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time></div>
             {message.replyToMessageId && <div className="chat-reply-preview">↳ {message.replyPreview ?? 'Message supprimé'}</div>}
             <p>{masked ? <>Message masqué — <button type="button" onClick={() => setRevealed(value => [...value, message.id])}>Afficher</button></> : message.deletionState === 'AUTHOR' ? 'Message supprimé' : message.deletionState === 'MODERATION' ? 'Message supprimé par la modération' : chatText(message.content ?? '', message.resolvedMentions)}</p>
             {canAct && <><div className="chat-message-actions" aria-label={`Actions pour le message de ${message.authorLabel}`} onClickCapture={event => { if (event.detail) { setSuppressedHoverId(message.id); (document.activeElement as HTMLElement | null)?.blur() } }}>
-              {canReply && <button type="button" title="Répondre" aria-label="Répondre" onClick={replyTo}>↩</button>}
-              {canMention && <button type="button" title="Mentionner" aria-label="Mentionner" onClick={mentionAuthor}>@</button>}
-              {message.content && <button type="button" title="Copier le message" aria-label="Copier le message" onClick={() => void copy(message)}>⧉</button>}
               {canReport && <button type="button" title="Signaler" aria-label="Signaler" onClick={() => setReportId(message.id)}>⚑</button>}
               {canMask && <button type="button" title={hidden.includes(message.author!.id) ? 'Démasquer ce joueur' : 'Masquer ce joueur'} aria-label={hidden.includes(message.author!.id) ? 'Démasquer ce joueur' : 'Masquer ce joueur'} onClick={() => hide(message.author!.id)}>◌</button>}
+              {message.content && <button type="button" title="Copier le message" aria-label="Copier le message" onClick={() => void copy(message)}>⧉</button>}
+              {canMention && <button type="button" title="Mentionner" aria-label="Mentionner" onClick={mentionAuthor}>@</button>}
+              {canReply && <button type="button" title="Répondre" aria-label="Répondre" onClick={replyTo}>↩</button>}
               {canDelete && <button type="button" title="Supprimer" aria-label="Supprimer" onClick={() => void remove(message.id)}>×</button>}
             </div>
             <button type="button" className="chat-message-menu-button" aria-label={`Actions pour le message de ${message.authorLabel}`} aria-expanded={menuId === message.id} onClick={() => setMenuId(value => value === message.id ? null : message.id)}>⋯</button>
             {reportId === message.id && <div className="chat-report-confirm" role="dialog" aria-label="Confirmer le signalement"><p>Signaler ce message ?</p><button type="button" onClick={() => void report(message.id)}>Confirmer</button><button type="button" onClick={() => setReportId(null)}>Annuler</button></div>}
-            {menuId === message.id && <div className="chat-message-menu" role="menu">{canReply && <button type="button" role="menuitem" onClick={replyTo}>Répondre</button>}{canMention && <button type="button" role="menuitem" onClick={mentionAuthor}>Mentionner</button>}{message.content && <button type="button" role="menuitem" onClick={() => { void copy(message); setMenuId(null) }}>Copier le message</button>}{canReport && <button type="button" role="menuitem" onClick={() => { setReportId(message.id); setMenuId(null) }}>Signaler</button>}{canMask && <button type="button" role="menuitem" onClick={() => hide(message.author!.id)}>{hidden.includes(message.author!.id) ? 'Démasquer ce joueur' : 'Masquer les messages de ce joueur'}</button>}{canDelete && <button type="button" role="menuitem" onClick={() => void remove(message.id)}>Supprimer</button>}</div>}</>}
+            {menuId === message.id && <div className="chat-message-menu" role="menu">{canReport && <button type="button" role="menuitem" onClick={() => { setReportId(message.id); setMenuId(null) }}>Signaler</button>}{canMask && <button type="button" role="menuitem" onClick={() => hide(message.author!.id)}>{hidden.includes(message.author!.id) ? 'Démasquer ce joueur' : 'Masquer les messages de ce joueur'}</button>}{message.content && <button type="button" role="menuitem" onClick={() => { void copy(message); setMenuId(null) }}>Copier le message</button>}{canMention && <button type="button" role="menuitem" onClick={mentionAuthor}>Mentionner</button>}{canReply && <button type="button" role="menuitem" onClick={replyTo}>Répondre</button>}{canDelete && <button type="button" role="menuitem" onClick={() => void remove(message.id)}>Supprimer</button>}</div>}</>}
           </div>
         </article>
       })}</div>

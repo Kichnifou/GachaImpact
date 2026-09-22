@@ -17,6 +17,7 @@ import { scopesForOperation, type ChatRefreshScope } from './chat-refresh-scopes
 const invalid = (message: string) => new AppError(message, 400, 'CHAT_INVALID');
 const unavailable = () => new AppError('Ce message est indisponible.', 404, 'CHAT_UNAVAILABLE');
 const conflict = () => new AppError('Cette clé appartient à un autre message.', 409, 'CHAT_IDEMPOTENCY_CONFLICT');
+const PLAYER_HISTORY_LIMIT = 200;
 export type ChatCursor = { createdAt: string; id: string };
 type ChatOperationSummary = { fingerprint: string; messageId?: string; xpGranted?: number; refreshScopes?: string[]; dailyChallengeCompleted?: boolean; resolvedQuantity?: string; targetId?: string; action?: string };
 export type ChatMentionInput = { playerId: string; displayName: string };
@@ -330,40 +331,41 @@ export class GlobalChatService {
       if (cursor) {
         const date = new Date(cursor.createdAt);
         if (Number.isNaN(date.getTime()) || !/^[0-9a-f-]{36}$/i.test(cursor.id)) throw invalid('Curseur invalide.');
-        const anchor = await tx.globalChatMessage.findUnique({ where: { id: cursor.id }, select: { createdAt: true, generation: true } });
-        if (!anchor || anchor.createdAt.toISOString() !== date.toISOString()) throw invalid('Curseur invalide.');
-        if (anchor.generation !== generation) return { messages: [], nextCursor: null, generation };
       }
-      const rows = await tx.globalChatMessage.findMany({
-        where: { generation }, include: messageInclude, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: limit + 1,
-        ...(cursor ? { cursor: { id: cursor.id }, skip: 1 } : {}),
-      });
-      const page = rows.slice(0, limit);
+      const window = await tx.globalChatMessage.findMany({ where: { generation }, include: messageInclude, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: PLAYER_HISTORY_LIMIT });
+      const offset = cursor ? window.findIndex(row => row.id === cursor.id && row.createdAt.toISOString() === cursor.createdAt) + 1 : 0;
+      if (cursor && offset === 0) {
+        const stale = await tx.globalChatMessage.findUnique({ where: { id: cursor.id }, select: { generation: true, createdAt: true } });
+        if (stale?.generation !== generation && stale?.createdAt.toISOString() === cursor.createdAt) return { messages: [], nextCursor: null, generation };
+        throw invalid('Curseur hors de la fenêtre visible.');
+      }
+      const page = window.slice(offset, offset + limit);
       const last = page.at(-1);
-      return { messages: page.reverse().map(row => project(row, viewer.id)), nextCursor: rows.length > limit && last ? { createdAt: last.createdAt.toISOString(), id: last.id } : null, generation };
+      return { messages: page.reverse().map(row => project(row, viewer.id)), nextCursor: offset + limit < window.length && last ? { createdAt: last.createdAt.toISOString(), id: last.id } : null, generation };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
 
   async updates(identity: AuthenticatedIdentity, clientGeneration: number, cursor?: ChatCursor, knownIds: string[] = []) {
     const viewer = await this.actor(identity);
-    if (!Number.isInteger(clientGeneration) || clientGeneration < 0 || knownIds.length > 350 || knownIds.some(id => !/^[0-9a-f-]{36}$/i.test(id))) throw invalid('Mise à jour Chat invalide.');
+    if (!Number.isInteger(clientGeneration) || clientGeneration < 0 || knownIds.length > PLAYER_HISTORY_LIMIT || knownIds.some(id => !/^[0-9a-f-]{36}$/i.test(id))) throw invalid('Mise à jour Chat invalide.');
     const generation = await this.generation();
     if (generation !== clientGeneration) return { generation, reset: true, messages: [], changes: [] };
+    const visibleWindow = await this.database.globalChatMessage.findMany({ where: { generation }, include: messageInclude, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: PLAYER_HISTORY_LIMIT });
+    const visibleIds = new Set(visibleWindow.map(row => row.id));
+    const visibleKnownIds = knownIds.filter(id => visibleIds.has(id));
     let anchor: { createdAt: Date; generation: number } | null = null;
     if (cursor) {
       const date = new Date(cursor.createdAt);
       if (Number.isNaN(date.getTime()) || !/^[0-9a-f-]{36}$/i.test(cursor.id)) throw invalid('Curseur invalide.');
-      anchor = await this.database.globalChatMessage.findUnique({ where: { id: cursor.id }, select: { createdAt: true, generation: true } });
-      if (!anchor || anchor.generation !== generation || anchor.createdAt.toISOString() !== date.toISOString()) return { generation, reset: true, messages: [], changes: [] };
+      const row = visibleWindow.find(message => message.id === cursor.id && message.createdAt.toISOString() === date.toISOString());
+      if (!row) return { generation, reset: true, messages: [], changes: [] };
+      anchor = { createdAt: row.createdAt, generation };
     }
     const [messages, changes] = await Promise.all([
-      this.database.globalChatMessage.findMany({
-        where: { generation, ...(cursor && anchor ? { OR: [{ createdAt: { gt: anchor.createdAt } }, { createdAt: anchor.createdAt, id: { gt: cursor.id } }] } : {}) },
-        include: messageInclude, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], take: 100,
-      }),
-      knownIds.length ? this.database.globalChatMessage.findMany({
-        where: { generation, id: { in: knownIds }, deletionState: { not: 'ACTIVE' } },
-        include: messageInclude, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], take: 350,
+      Promise.resolve(visibleWindow.filter(row => !cursor || !anchor || row.createdAt > anchor.createdAt || row.createdAt.getTime() === anchor.createdAt.getTime() && row.id > cursor.id).reverse().slice(0, 100)),
+      visibleKnownIds.length ? this.database.globalChatMessage.findMany({
+        where: { generation, id: { in: visibleKnownIds }, deletionState: { not: 'ACTIVE' } },
+        include: messageInclude, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], take: PLAYER_HISTORY_LIMIT,
       }) : Promise.resolve([]),
     ]);
     return { generation, reset: false, messages: messages.map(row => project(row, viewer.id)), changes: changes.map(row => project(row, viewer.id)) };
@@ -435,10 +437,12 @@ export class GlobalChatService {
     const player = await this.actor(identity);
     // Compare database timestamps at full precision; JS Date would truncate microseconds.
     // Without a read state, every persisted message is unread until an explicit markRead.
-    const rows = await this.database.$queryRaw<{ count: number; generation: number }[]>`SELECT count(*)::integer AS count, g.generation
-      FROM global_chat_state g CROSS JOIN global_chat_messages m LEFT JOIN global_chat_read_states s ON s.player_id = ${player.id}::uuid
-      WHERE g.id = 1 AND m.generation = g.generation AND (s.player_id IS NULL OR s.generation < g.generation OR (m.created_at, m.id) > (s.last_read_created_at, s.last_read_message_id))
-      GROUP BY g.generation`;
+    const rows = await this.database.$queryRaw<{ count: number; generation: number }[]>`SELECT count(*)::integer AS count, visible_window.generation FROM (
+        SELECT m.id, m.created_at, m.generation FROM global_chat_state g JOIN global_chat_messages m ON m.generation = g.generation
+        WHERE g.id = 1 ORDER BY m.created_at DESC, m.id DESC LIMIT ${PLAYER_HISTORY_LIMIT}
+      ) visible_window LEFT JOIN global_chat_read_states s ON s.player_id = ${player.id}::uuid
+      WHERE s.player_id IS NULL OR s.generation < visible_window.generation OR (visible_window.created_at, visible_window.id) > (s.last_read_created_at, s.last_read_message_id)
+      GROUP BY visible_window.generation`;
     return { unreadCount: rows[0]?.count ?? 0, generation: rows[0]?.generation ?? await this.generation() };
   }
 

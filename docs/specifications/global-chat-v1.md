@@ -1,6 +1,6 @@
 # Chat global V1 — contrat produit
 
-Statut : décisions produit validées. Le Chat global player-facing est matérialisé par les migrations 032–035, ses routes et le `ChatPanel` réel, avec resynchronisation UI ciblée. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte seul l'état vivant et la validation publique. Les MP restent régis par [l'audit Social R501–R522](../legacy/14-ami-social-audit.md) et ne sont pas encore physiques ; ce contrat ne modifie ni leurs limites, ni leur historique, ni leurs permissions. Les syntaxes et résultats métier des commandes restent dans la [référence des commandes](../commands/command-reference.md).
+Statut : décisions produit validées. Le Chat global player-facing est matérialisé par les migrations 032–035, ses routes et le `ChatPanel` réel, avec resynchronisation UI ciblée. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte seul l'état vivant et la validation publique. Le socle serveur/DB des MP est matérialisé par les migrations 036–037 sans interface MP ; leurs règles restent celles de [l'audit Social R501–R522](../legacy/14-ami-social-audit.md). Les syntaxes et résultats métier des commandes restent dans la [référence des commandes](../commands/command-reference.md).
 
 ## Messages et composition — R872
 
@@ -26,7 +26,7 @@ Statut : décisions produit validées. Le Chat global player-facing est matéria
 - Quand le lecteur est au niveau des messages récents, les nouveaux messages sont suivis naturellement. S'il est remonté, leur arrivée ne déplace pas son scroll ; un indicateur compact, par exemple `3 nouveaux messages ↓`, permet de rejoindre le bas.
 - Le panneau de droite conserve les onglets Chat/MP de R506. Les nouveaux messages globaux alimentent le badge Chat pendant la consultation des MP, quand le Chat est replié ou quand il n'est pas effectivement consulté. Un message n'est vu que si l'onglet Chat est réellement affiché **et** que le joueur se trouve au niveau des messages récents ; ouvrir l'onglet loin du bas ne purge pas les non-lus.
 - Les vrais messages globaux `PLAYER`, `GAME_RESULT` et `SYSTEM` destinés à tous suivent cette règle. Aucune réponse privée n'est anticipée dans ce mécanisme.
-- L'historique de conversation se charge progressivement en remontant, sans pages numérotées player-facing. La fenêtre UI peut garder seulement quelques centaines de lignes en mémoire et charger les précédentes au besoin. Aucun écran séparé « Voir tout l'historique du Chat » n'appartient au premier périmètre. La durée exacte de conservation serveur reste ouverte jusqu'au besoin technique du premier lot.
+- R877 est précisée par R890 : le joueur voit au maximum les **200 messages les plus récents de la génération courante**, sur la liste, les curseurs, les mises à jour, les non-lus et la mémoire client. Les lignes plus anciennes restent conservées en base pour audit/modération, mais ne sont pas chargeables par le parcours joueur. Aucun écran séparé « Voir tout l'historique du Chat » n'appartient au premier périmètre.
 
 ## Blocage, masquage et signalement — R878 et R879
 
@@ -67,7 +67,13 @@ Statut : décisions produit validées. Le Chat global player-facing est matéria
 
 - Quand le Chat est ouvert et le document visible, le navigateur demande uniquement les messages postérieurs à sa dernière ancre autoritative `(createdAt, id)` et les suppressions des lignes déjà chargées, à cadence courte sans requêtes qui se chevauchent. Le snapshot complet reste réservé au chargement initial et au changement de génération.
 - Le panneau replié interroge seulement les non-lus à cadence plus lente. Ce périmètre utilise le polling HTTP authentifié ; Realtime, WebSocket et SSE n'y sont pas introduits.
+- Selon R893, toute réouverture du panneau replié recharge autoritativement la page la plus récente puis se replace en bas ; elle ne reprend jamais un ancien scroll comme s'il représentait encore l'état courant.
+
+## Actions et signalement — R891–R892
+
+- Sur un message d'un autre joueur, desktop et menu tactile suivent `Signaler`, `Masquer`, `Copier`, `Mentionner`, `Répondre`. Sur son propre message : `Copier`, `Répondre`, `Supprimer`.
+- La confirmation de signalement est ancrée immédiatement sous la rangée d'actions, même lorsque le message est long.
 
 ## Frontières du premier lot
 
-Le pont Twitch réel reste différé et n'est ni développé ni préparé physiquement par ce checkpoint. `R633/R634` relèvent de l'Historique global. Les choix techniques de persistance, de diffusion et de rétention seront pris pendant le cadrage du lot physique, sans annoncer de fonctionnalité déjà implémentée.
+Le Chat global est physiquement persisté dans PostgreSQL et diffusé au navigateur par polling HTTP authentifié ; sa fenêtre joueur de 200 ne purge pas les anciennes lignes. Le pont Twitch réel reste différé et n'est ni développé ni préparé physiquement par ce checkpoint. `R633/R634` relèvent de l'Historique global. La durée de conservation administrative définitive reste un choix technique ultérieur distinct de cette fenêtre player-facing.

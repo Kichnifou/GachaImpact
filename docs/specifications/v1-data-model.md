@@ -1313,7 +1313,7 @@ Contraintes :
 - les mentions réelles et les non-lus requièrent une résolution serveur/état de lecture propre au Chat, sans notification persistante de mention ; le masquage individuel reste un filtre d'affichage, pas une relation Social ;
 - un signalement conserve un snapshot du message et un contexte privé de modération, distinct du contenu public courant.
 
-Les migrations 032 puis 033 matérialisent `GlobalChatMessage` et `GlobalChatReadState` (une ligne maximum par Player) et la contrainte interne monoligne de 1 à 500 caractères, y compris CR, LF, U+2028 et U+2029. La migration 034 crée `GlobalChatMention` (paire message/Player unique) et `GlobalChatReport` (un dossier par reporter/message, snapshots JSON privés), puis rend `daily_messages_10` éligible. La migration 035 ajoute une génération persistante au message et à l'état de lecture, plus `GlobalChatState` comme frontière de visibilité unique. Le curseur de lecture retient le message lu et sa position chronologique `(createdAt, id)` dans sa génération ; un Player sans état de lecture dans la génération courante voit ses messages comme non lus jusqu'à une mutation explicite. Le service serveur fournit envoi idempotent, pagination, non-lus, marquage monotone, suppression auteur, mentions résolues côté serveur et signalement. Le Chat interne exécute les commandes via les services propriétaires ; les MP et Twitch restent non physiques.
+Les migrations 032 puis 033 matérialisent `GlobalChatMessage` et `GlobalChatReadState` (une ligne maximum par Player) et la contrainte interne monoligne de 1 à 500 caractères, y compris CR, LF, U+2028 et U+2029. La migration 034 crée `GlobalChatMention` (paire message/Player unique) et `GlobalChatReport` (un dossier par reporter/message, snapshots JSON privés), puis rend `daily_messages_10` éligible. La migration 035 ajoute une génération persistante au message et à l'état de lecture, plus `GlobalChatState` comme frontière de visibilité unique. Le curseur de lecture retient le message lu et sa position chronologique `(createdAt, id)` dans sa génération ; un Player sans état de lecture dans la génération courante voit ses messages comme non lus jusqu'à une mutation explicite. Le service serveur fournit envoi idempotent, pagination, non-lus, marquage monotone, suppression auteur, mentions résolues côté serveur et signalement. Le Chat interne exécute les commandes via les services propriétaires ; les MP disposent désormais de leur socle PostgreSQL/HTTP sans interface, tandis que Twitch reste non physique.
 
 Le pont Twitch futur peut injecter un message dans ce même flux selon la configuration validée.
 
@@ -1383,7 +1383,7 @@ Les déblocages sont permanents et idempotents.
 
 ## 25.1 `DirectConversation`
 
-Conversation privée standalone.
+Conversation privée standalone, unique par paire canonique ordonnée de deux Players. `lastMessageAt` sert le tri récent sans remplacer les messages autoritatifs.
 
 ## 25.2 `ConversationParticipant`
 
@@ -1392,9 +1392,15 @@ Participants et états personnels :
 - conversation
 - player
 - unread/read state utile
-- paramètres liés aux accusés si nécessaire
+- archivage individuel
+- curseur de lecture interne
+- curseur de lecture partagé distinct et réglage d'accusé
 
-## 25.3 `DirectMessage`
+## 25.3 `DirectConversationRequest`
+
+Demande initiale non amie : expéditeur, destinataire, premier message, état `PENDING | ACCEPTED | REFUSED`, résolution et éventuelle échéance de retry à 24 h. Une conversation ne porte qu'une demande en attente à la fois.
+
+## 25.4 `DirectMessage`
 
 - conversation
 - auteur
@@ -1403,8 +1409,12 @@ Participants et états personnels :
 - editedAt
 - deletedAt
 - état de restauration temporaire selon les règles validées
+- opération idempotente propriétaire
+- marqueur de purge future séparé du tombstone
 
-## 25.4 Modération / signalement
+La projection normale est bornée aux 500 messages les plus récents ; les lignes antérieures restent conservées.
+
+## 25.5 Modération / signalement
 
 Une copie signalée nécessaire à la modération est distincte du contenu courant modifiable/supprimable par l'auteur.
 

@@ -347,7 +347,7 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect((await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: id, resourceKey: 'primogems' } } })).amount).toBe(800n);
   }, 20_000);
 
-  it('records the exact Prisma 032–034 migrations and secures their real public tables', async () => {
+  it('records the exact Prisma 032–035 migrations and secures their real public tables', async () => {
     const checksum = migrationChecksum('prisma/migrations/20260922070000_032_add_global_chat_foundations/migration.sql');
     const migration = await fixture.admin.query<{ checksum: string; finished_at: Date | null; rolled_back_at: Date | null }>(
       'SELECT checksum, finished_at, rolled_back_at FROM public._prisma_migrations WHERE migration_name=$1',
@@ -368,7 +368,7 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(newMigration.rows).toHaveLength(1);
     expect(newMigration.rows[0]?.checksum).toBe(newChecksum);
     expect(newMigration.rows[0]?.finished_at).not.toBeNull();
-    expect(count.rows[0]?.count).toBe('35');
+    expect(count.rows[0]?.count).toBe('37');
     const clearMigration = await fixture.admin.query<{ checksum: string; finished_at: Date | null }>('SELECT checksum, finished_at FROM public._prisma_migrations WHERE migration_name=$1', ['20260922120000_035_add_global_chat_generation']);
     expect(clearMigration.rows).toHaveLength(1);
     expect(clearMigration.rows[0]?.checksum).toBe(migrationChecksum('prisma/migrations/20260922120000_035_add_global_chat_generation/migration.sql'));
@@ -474,7 +474,7 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(await service.updates(as(reader), cleared.generation - 1, anchor)).toEqual({ generation: cleared.generation, reset: true, messages: [], changes: [] });
   }, 40_000);
 
-  it('bounds new messages independently of many known tombstones and advances the exact anchor', async () => {
+  it('bounds every player-facing path to the latest 200 rows while retaining older database rows', async () => {
     const author = await player(), moderator = await player();
     await db.playerRoleAssignment.create({ data: { playerId: moderator, role: 'MODERATOR' } });
     const { generation } = await dispatcher.clear(as(moderator), '!clear', randomUUID());
@@ -486,11 +486,17 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     const page = await service.updates(as(author), generation, { createdAt: anchor.createdAt.toISOString(), id: anchor.id }, oldIds);
     expect(page.messages).toHaveLength(100);
     expect(page.messages.map(row => row.id)).toEqual(newIds.slice(0, 100));
-    expect(page.changes).toHaveLength(110);
+    expect(page.changes).toHaveLength(98);
     const last = page.messages.at(-1)!;
     const tail = await service.updates(as(author), generation, { createdAt: last.createdAt, id: last.id });
     expect(tail.messages.map(row => row.id)).toEqual(newIds.slice(100));
     expect(tail.changes).toEqual([]);
+    let cursor: { createdAt: string; id: string } | undefined, visible: string[] = [];
+    do { const result = await service.list(as(author), 100, cursor); visible = [...visible, ...result.messages.map(row => row.id)]; cursor = result.nextCursor ?? undefined; } while (cursor);
+    expect(visible).toHaveLength(200);
+    expect(await db.globalChatMessage.count({ where: { generation } })).toBe(212);
+    expect(visible).not.toContain(oldIds[0]);
+    expect((await service.unreadCount(as(author))).unreadCount).toBe(200);
   }, 40_000);
 
   it('ranks empty mention suggestions by current-generation authors, connected sessions, then name', async () => {

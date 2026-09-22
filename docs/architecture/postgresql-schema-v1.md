@@ -1898,15 +1898,19 @@ Le choix exact peut être finalisé pendant le mapping Prisma sans impact métie
 
 # 26. Messages privés
 
+État physique : la migration additive `20260922225444_036_add_direct_message_foundations` matérialise le socle backend-only ; `20260922232731_037_harden_direct_message_history` rend restrictives les trois FK enfant → conversation afin qu'une suppression de conversation ne puisse effacer l'historique. Les quatre tables ont RLS active, aucune policy navigateur et aucun droit `PUBLIC`/`anon`/`authenticated`. L'interface MP, l'historique/recherche/signalement et les mutations d'édition/suppression/restauration restent hors de ce lot.
+
 ## 26.1 `direct_conversations`
 
 Colonnes :
 
 - `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
+- `player_a_id uuid NOT NULL REFERENCES players(id) ON DELETE RESTRICT`
+- `player_b_id uuid NOT NULL REFERENCES players(id) ON DELETE RESTRICT`
 - `created_at timestamptz NOT NULL DEFAULT now()`
 - `last_message_at timestamptz NULL`
 
-Pour V1, une conversation directe contient exactement deux participants.
+La paire est ordonnée par CHECK et unique. Elle constitue l'identité durable d'une conversation exactement entre ces deux Players ; un trigger interdit participant, demande ou auteur hors paire.
 
 ---
 
@@ -1914,12 +1918,16 @@ Pour V1, une conversation directe contient exactement deux participants.
 
 Colonnes :
 
-- `conversation_id uuid NOT NULL REFERENCES direct_conversations(id) ON DELETE CASCADE`
+- `conversation_id uuid NOT NULL REFERENCES direct_conversations(id) ON DELETE RESTRICT`
 - `player_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE`
 - `joined_at timestamptz NOT NULL DEFAULT now()`
 - `archived_at timestamptz NULL`
 - `last_read_message_id uuid NULL`
+- `last_read_created_at timestamptz NULL`
 - `read_receipts_enabled boolean NOT NULL DEFAULT true`
+- `last_shared_read_message_id uuid NULL`
+- `last_shared_read_created_at timestamptz NULL`
+- `updated_at timestamptz NOT NULL DEFAULT now()`
 
 PK :
 
@@ -1927,39 +1935,47 @@ PK :
 
 Index :
 
-`(player_id, archived_at, conversation_id)`
+`(player_id, archived_at)` et index des deux FK de curseur.
 
-Une contrainte/application garantit exactement deux joueurs par conversation directe.
+Le curseur interne avance même lorsque l'accusé est désactivé ; seul le curseur partagé s'arrête, afin qu'une lecture future ne soit pas communiquée.
 
 ---
 
-## 26.3 `direct_messages`
+## 26.3 `direct_conversation_requests`
+
+Colonnes : conversation, expéditeur, destinataire, `first_message_id`, état `PENDING | ACCEPTED | REFUSED`, création, résolution et `retry_after`. Un index unique partiel limite chaque conversation à une demande `PENDING`. Les CHECKs imposent deux Players distincts et exactement 24 h entre résolution et retry d'un refus.
+
+---
+
+## 26.4 `direct_messages`
 
 Colonnes :
 
 - `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
 - `conversation_id uuid NOT NULL REFERENCES direct_conversations(id) ON DELETE RESTRICT`
 - `author_player_id uuid NOT NULL REFERENCES players(id) ON DELETE RESTRICT`
-- `content text NOT NULL`
+- `content text NULL`
+- `operation_id uuid NOT NULL UNIQUE REFERENCES business_operations(id) ON DELETE RESTRICT`
 - `created_at timestamptz NOT NULL DEFAULT now()`
 - `edited_at timestamptz NULL`
 - `deleted_at timestamptz NULL`
 - `restored_at timestamptz NULL`
+- `content_purged_at timestamptz NULL`
 
 Contraintes :
 
-- longueur 1..1000 caractères côté application et CHECK approprié
+- contenu présent de 1..1000 caractères, ou contenu nul seulement avec suppression et purge futures explicites
 
 Index :
 
-- `(conversation_id, created_at DESC)`
+- `(conversation_id, created_at DESC, id DESC)`
 - `(author_player_id, created_at DESC)`
 
-Les messages restent historiquement conservés selon les règles validées.
+Les messages restent historiquement conservés. Le service n'expose que les 500 plus récents dans la conversation normale ; il n'existe pas encore de route Historique.
 
 ---
 
-## 26.4 `moderation_reports`
+## 26.5 `moderation_reports`
 
 Colonnes :
 
@@ -1980,7 +1996,7 @@ Les administrateurs ne disposent pas d'une lecture libre des MP.
 
 # 27. Chat global
 
-Cible relationnelle alignée sur le [contrat Chat global R872–R886](../specifications/global-chat-v1.md). La migration additive 032 matérialise `global_chat_messages` et `global_chat_read_states` dans Prisma ; 033 corrige la contrainte de contenu interne ; 034 ajoute mentions, signalements et éligibilité du Défi Messages ; 035 ajoute la génération de visibilité. Aucune table MP générale n'est encore physique.
+Cible relationnelle alignée sur le [contrat Chat global R872–R893](../specifications/global-chat-v1.md). La migration additive 032 matérialise `global_chat_messages` et `global_chat_read_states` dans Prisma ; 033 corrige la contrainte de contenu interne ; 034 ajoute mentions, signalements et éligibilité du Défi Messages ; 035 ajoute la génération de visibilité. La migration MP 036 est indépendante et ne modifie aucune table Chat global.
 
 ## 27.1 `global_chat_messages`
 
@@ -2017,7 +2033,7 @@ Les CHECKs lient l'état de suppression à `deleted_at`, imposent un auteur aux 
 
 ## 27.3 Frontière de visibilité — migration 035
 
-`global_chat_state` contient une seule ligne `id = 1`, `generation integer NOT NULL DEFAULT 0` et `updated_at`. Un CHECK borne l'ID et la génération. `global_chat_messages.generation` et `global_chat_read_states.generation` sont additifs, non nuls et initialisés à 0 ; l'index `(generation, created_at DESC, id DESC)` sert les pages visibles. `!clear` augmente la génération sous verrou et garde toutes les anciennes lignes dans la base. La table d'état a RLS active et aucun droit `PUBLIC`/`anon`/`authenticated` ; seul le backend accède au modèle.
+`global_chat_state` contient une seule ligne `id = 1`, `generation integer NOT NULL DEFAULT 0` et `updated_at`. Un CHECK borne l'ID et la génération. `global_chat_messages.generation` et `global_chat_read_states.generation` sont additifs, non nuls et initialisés à 0 ; l'index `(generation, created_at DESC, id DESC)` sert les pages visibles. `!clear` augmente la génération sous verrou et garde toutes les anciennes lignes dans la base. La table d'état a RLS active et aucun droit `PUBLIC`/`anon`/`authenticated` ; seul le backend accède au modèle. R890 borne désormais toutes les projections joueur aux 200 dernières lignes de cette génération sans purge SQL.
 
 ---
 
@@ -2807,7 +2823,7 @@ Expose les stacks de passifs dérivées.
 
 Le schéma ne sera pas créé en une migration géante.
 
-Cette numérotation décrit le découpage thématique cible historique, pas les noms physiques déjà versionnés. La séquence réelle est autoritative dans `server/prisma/migrations/` et atteint actuellement `20260909150000_008_add_banking` sur Supabase DEV ; la Banque a donc été ajoutée par cette migration physique 008 et non rétroactivement dans la migration physique 002.
+Cette numérotation décrit le découpage thématique cible historique, pas les noms physiques déjà versionnés. La séquence réelle est autoritative dans `server/prisma/migrations/` et atteint actuellement `20260922232731_037_harden_direct_message_history` sur Supabase DEV ; les ajouts restent versionnés dans leur migration réelle et ne sont jamais réécrits rétroactivement.
 
 ## Migration 001 — fondations
 

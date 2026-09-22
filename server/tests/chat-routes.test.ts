@@ -65,7 +65,7 @@ describe('authenticated Chat routes', () => {
     expect(response.headers['cache-control']).toBe('no-store');
     expect(service.updates).toHaveBeenCalledWith(identity, 0, { id: messageId, createdAt: '2026-09-22T10:00:00.000Z' }, [messageId]);
     expect((await enabled.inject({ method: 'POST', url: '/api/v1/chat/updates', headers: token, payload: { generation: 0, cursorId: messageId } })).statusCode).toBe(400);
-    expect((await enabled.inject({ method: 'POST', url: '/api/v1/chat/updates', headers: token, payload: { generation: 0, knownIds: Array.from({ length: 351 }, () => messageId) } })).statusCode).toBe(400);
+    expect((await enabled.inject({ method: 'POST', url: '/api/v1/chat/updates', headers: token, payload: { generation: 0, knownIds: Array.from({ length: 201 }, () => messageId) } })).statusCode).toBe(400);
     expect((await enabled.inject({ method: 'POST', url: '/api/v1/chat/updates', headers: token, payload: { generation: 0 } })).statusCode).toBe(200);
     expect(service.updates).toHaveBeenLastCalledWith(identity, 0, undefined, []);
   });

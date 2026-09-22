@@ -63,6 +63,8 @@ import type { GiftCodeService } from './application/gift-code/gift-code-service.
 import { registerGiftCodeRoutes } from './api/routes/gift-codes.js';
 import type { EventService } from './application/event/event-service.js';
 import { registerEventRoutes } from './api/routes/event.js';
+import type { DirectMessageService } from './application/direct-messages/direct-message-service.js';
+import { registerDirectMessageRoutes } from './api/routes/direct-messages.js';
 
 export type AppDependencies = Readonly<{
   globalChatService?: GlobalChatService;
@@ -121,6 +123,7 @@ export type AppDependencies = Readonly<{
   giftCodeService?: GiftCodeService;
   eventService?: EventService;
   socialService?: SocialService;
+  directMessageService?: DirectMessageService;
   close?: () => Promise<void>;
 }>;
 
@@ -163,6 +166,7 @@ export async function buildApp(
     const authenticate = createAuthenticationHook(dependencies.authIdentityVerifier);
     if (dependencies.tradeService && dependencies.tradePlayer) await app.register(registerTradeRoutes, { authenticate, service: dependencies.tradeService, getPlayer: dependencies.tradePlayer });
     if (dependencies.socialService) await app.register(registerSocialRoutes, { authenticate, service: dependencies.socialService });
+    if (dependencies.directMessageService) await app.register(registerDirectMessageRoutes, { authenticate, service: dependencies.directMessageService });
     if (dependencies.globalChatService && dependencies.chatCommandDispatcher) await app.register(registerChatRoutes, { authenticate, service: dependencies.globalChatService, dispatcher: dependencies.chatCommandDispatcher });
     if (dependencies.choosePlayerElement && dependencies.getCurrentPlayerResources) {
       await app.register(registerPlayerGameRoutes, {

@@ -90,6 +90,43 @@ describe('ChatPanel réel', () => {
     expect(chat.read).toHaveBeenCalledTimes(1)
   })
 
+  it('keeps the specified desktop and mobile action order and anchors report confirmation under the action row', async () => {
+    const container = await mount()
+    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.chat-message-actions button')).map(item => item.getAttribute('aria-label'))).toEqual([
+      'Signaler', 'Masquer ce joueur', 'Copier le message', 'Mentionner', 'Répondre',
+    ])
+    await act(async () => { button(container, 'Actions pour le message de Autre').click() })
+    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.chat-message-menu [role="menuitem"]')).map(item => item.textContent)).toEqual([
+      'Signaler', 'Masquer les messages de ce joueur', 'Copier le message', 'Mentionner', 'Répondre',
+    ])
+    await act(async () => { button(container, 'Signaler').click() })
+    const confirmation = container.querySelector<HTMLElement>('.chat-report-confirm')!
+    expect(confirmation.parentElement).toBe(container.querySelector('.message-content'))
+
+    chat.messages.mockResolvedValue({ messages: [{ ...message, author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi' }], nextCursor: null, generation: 0 })
+    const own = await mount()
+    expect(Array.from(own.querySelectorAll<HTMLButtonElement>('.chat-message-actions button')).map(item => item.getAttribute('aria-label'))).toEqual([
+      'Copier le message', 'Répondre', 'Supprimer',
+    ])
+  })
+
+  it('resynchronizes the latest page whenever a previously loaded collapsed Chat is reopened', async () => {
+    const container = document.createElement('div'); document.body.append(container)
+    const root = createRoot(container); roots.push(root)
+    const render = (collapsed: boolean) => root.render(<ChatPanel playerId={ownId} isCollapsed={collapsed} onToggle={vi.fn()} onOpenPlayers={vi.fn()} onOpenProfile={openProfile} onRefreshScopes={refresh} />)
+    await act(async () => { render(false) })
+    expect(container.textContent).toContain('Bonjour')
+    await act(async () => { render(true) })
+    const latest = { ...message, id: '66666666-6666-4666-8666-666666666666', content: 'Dernier pendant la réduction', createdAt: '2026-09-22T10:00:02.000Z' }
+    chat.messages.mockResolvedValue({ messages: [latest], nextCursor: null, generation: 0 })
+    const calls = chat.messages.mock.calls.length
+    await act(async () => { render(false); await Promise.resolve() })
+    expect(chat.messages.mock.calls.length).toBeGreaterThan(calls)
+    expect(container.textContent).toContain('Dernier pendant la réduction')
+    expect(container.textContent).not.toContain('Bonjour https://example.com/ fin')
+    expect(container.querySelector<HTMLDivElement>('.message-list')?.scrollTop).toBe(container.querySelector<HTMLDivElement>('.message-list')?.scrollHeight)
+  })
+
   it('keeps one send key through ambiguous failure and refreshes only after confirmation', async () => {
     chat.send.mockRejectedValueOnce(new Error('network'))
     const container = await mount()
@@ -472,7 +509,7 @@ describe('ChatPanel réel', () => {
 
   it('defers incremental arrivals at the history cap until the reader rejoins the latest page', async () => {
     const updates = enableUpdates().mockResolvedValue({ generation: 0, reset: false, messages: [], changes: [] })
-    const current = Array.from({ length: 350 }, (_, index) => ({ ...message, id: `33333333-3333-4333-8333-${String(index).padStart(12, '0')}`, content: `recent-${index}` }))
+    const current = Array.from({ length: 200 }, (_, index) => ({ ...message, id: `33333333-3333-4333-8333-${String(index).padStart(12, '0')}`, content: `recent-${index}` }))
     const newest = { ...message, id: '88888888-8888-4888-8888-888888888888', content: 'Tout nouveau', createdAt: '2026-09-22T10:00:01.000Z' }
     chat.messages.mockResolvedValue({ messages: current, nextCursor: null, generation: 0 })
     const container = await mount()
@@ -597,7 +634,7 @@ describe('ChatPanel réel', () => {
 
   it('keeps a new older page visible when the bounded history window is full', async () => {
     const cursor = { createdAt: message.createdAt, id: message.id }
-    const current = Array.from({ length: 350 }, (_, index) => ({ ...message, id: `33333333-3333-4333-8333-${String(index).padStart(12, '0')}`, content: `recent-${index}` }))
+    const current = Array.from({ length: 200 }, (_, index) => ({ ...message, id: `33333333-3333-4333-8333-${String(index).padStart(12, '0')}`, content: `recent-${index}` }))
     chat.messages.mockImplementation(async requestedCursor => requestedCursor
       ? { messages: [{ ...message, id: '77777777-7777-4777-8777-777777777777', content: 'Ancien visible' }], nextCursor: null, generation: 0 }
       : { messages: current, nextCursor: cursor, generation: 0 })
@@ -608,13 +645,13 @@ describe('ChatPanel réel', () => {
     list.scrollTop = 50
     await act(async () => { list.dispatchEvent(new Event('scroll', { bubbles: true })); await Promise.resolve() })
     expect(container.textContent).toContain('Ancien visible')
-    expect(container.querySelectorAll('.chat-message')).toHaveLength(350)
+    expect(container.querySelectorAll('.chat-message')).toHaveLength(200)
   })
 
   it('defers fresh rows at the history cap until the reader chooses the latest page', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
     try {
-      const current = Array.from({ length: 350 }, (_, index) => ({ ...message, id: `33333333-3333-4333-8333-${String(index).padStart(12, '0')}`, content: `recent-${index}` }))
+      const current = Array.from({ length: 200 }, (_, index) => ({ ...message, id: `33333333-3333-4333-8333-${String(index).padStart(12, '0')}`, content: `recent-${index}` }))
       const newest = { ...message, id: '88888888-8888-4888-8888-888888888888', content: 'Tout nouveau' }
       let published = false
       chat.messages.mockImplementation(async () => ({ messages: published ? [...current.slice(-49), newest] : current, nextCursor: null, generation: 0 }))

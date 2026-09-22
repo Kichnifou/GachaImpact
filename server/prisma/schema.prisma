@@ -69,6 +69,14 @@ enum GlobalChatDeletionState {
   @@map("global_chat_deletion_state")
 }
 
+enum DirectConversationRequestState {
+  PENDING
+  ACCEPTED
+  REFUSED
+
+  @@map("direct_conversation_request_state")
+}
+
 enum OperationStatus {
   PENDING
   COMPLETED
@@ -382,6 +390,12 @@ model Player {
   eventMessagesReceived EventSocialMessage[]         @relation("EventMessageRecipient")
   globalChatMessages   GlobalChatMessage[]
   globalChatReadState  GlobalChatReadState?
+  directConversationsAsA DirectConversation[] @relation("DirectConversationA")
+  directConversationsAsB DirectConversation[] @relation("DirectConversationB")
+  directConversationParticipants DirectConversationParticipant[]
+  directConversationRequestsSent DirectConversationRequest[] @relation("DirectRequestSender")
+  directConversationRequestsReceived DirectConversationRequest[] @relation("DirectRequestRecipient")
+  directMessages       DirectMessage[]
 
   @@index([status], map: "players_status_idx")
   @@index([elementKey], map: "players_element_key_idx")
@@ -671,6 +685,7 @@ model BusinessOperation {
   eventCalendarClaim  EventCalendarClaim?
   friendHeart        FriendHeart?
   globalChatMessage  GlobalChatMessage?
+  directMessage      DirectMessage?
 
   @@index([playerId, startedAt(sort: Desc)], map: "business_operations_player_started_at_idx")
   @@index([operationType, startedAt(sort: Desc)], map: "business_operations_type_started_at_idx")
@@ -941,6 +956,89 @@ model PlayerActivityState {
   player                 Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@map("player_activity_state")
+}
+
+model DirectConversation {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerAId     String   @map("player_a_id") @db.Uuid
+  playerBId     String   @map("player_b_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastMessageAt DateTime? @map("last_message_at") @db.Timestamptz(6)
+  playerA       Player   @relation("DirectConversationA", fields: [playerAId], references: [id], onDelete: Restrict)
+  playerB       Player   @relation("DirectConversationB", fields: [playerBId], references: [id], onDelete: Restrict)
+  participants  DirectConversationParticipant[]
+  requests      DirectConversationRequest[]
+  messages      DirectMessage[]
+
+  @@unique([playerAId, playerBId], map: "direct_conversations_player_pair_key")
+  @@index([playerBId, lastMessageAt(sort: Desc)], map: "direct_conversations_player_b_last_message_idx")
+  @@map("direct_conversations")
+}
+
+model DirectConversationParticipant {
+  conversationId          String    @map("conversation_id") @db.Uuid
+  playerId                String    @map("player_id") @db.Uuid
+  joinedAt                DateTime  @default(now()) @map("joined_at") @db.Timestamptz(6)
+  archivedAt              DateTime? @map("archived_at") @db.Timestamptz(6)
+  lastReadMessageId       String?   @map("last_read_message_id") @db.Uuid
+  lastReadCreatedAt       DateTime? @map("last_read_created_at") @db.Timestamptz(6)
+  readReceiptsEnabled     Boolean   @default(true) @map("read_receipts_enabled")
+  lastSharedReadMessageId String?   @map("last_shared_read_message_id") @db.Uuid
+  lastSharedReadCreatedAt DateTime? @map("last_shared_read_created_at") @db.Timestamptz(6)
+  updatedAt               DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  conversation            DirectConversation @relation(fields: [conversationId], references: [id], onDelete: Restrict)
+  player                  Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  lastReadMessage         DirectMessage? @relation("DirectParticipantLastRead", fields: [lastReadMessageId], references: [id], onDelete: Restrict)
+  lastSharedReadMessage   DirectMessage? @relation("DirectParticipantSharedRead", fields: [lastSharedReadMessageId], references: [id], onDelete: Restrict)
+
+  @@id([conversationId, playerId])
+  @@index([playerId, archivedAt], map: "direct_conversation_participants_player_archive_idx")
+  @@index([lastReadMessageId], map: "direct_conversation_participants_last_read_idx")
+  @@index([lastSharedReadMessageId], map: "direct_conversation_participants_shared_read_idx")
+  @@map("direct_conversation_participants")
+}
+
+model DirectConversationRequest {
+  id               String                         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversationId   String                         @map("conversation_id") @db.Uuid
+  senderPlayerId   String                         @map("sender_player_id") @db.Uuid
+  recipientPlayerId String                        @map("recipient_player_id") @db.Uuid
+  firstMessageId   String?                        @unique(map: "direct_conversation_requests_first_message_key") @map("first_message_id") @db.Uuid
+  state            DirectConversationRequestState @default(PENDING)
+  createdAt        DateTime                       @default(now()) @map("created_at") @db.Timestamptz(6)
+  resolvedAt       DateTime?                      @map("resolved_at") @db.Timestamptz(6)
+  retryAfter       DateTime?                      @map("retry_after") @db.Timestamptz(6)
+  conversation     DirectConversation             @relation(fields: [conversationId], references: [id], onDelete: Restrict)
+  sender           Player                         @relation("DirectRequestSender", fields: [senderPlayerId], references: [id], onDelete: Restrict)
+  recipient        Player                         @relation("DirectRequestRecipient", fields: [recipientPlayerId], references: [id], onDelete: Restrict)
+  firstMessage     DirectMessage?                 @relation("DirectRequestFirstMessage", fields: [firstMessageId], references: [id], onDelete: Restrict)
+
+  @@index([conversationId, createdAt(sort: Desc)], map: "direct_conversation_requests_conversation_created_idx")
+  @@index([recipientPlayerId, state, createdAt(sort: Desc)], map: "direct_conversation_requests_recipient_state_idx")
+  @@map("direct_conversation_requests")
+}
+
+model DirectMessage {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversationId   String    @map("conversation_id") @db.Uuid
+  authorPlayerId   String    @map("author_player_id") @db.Uuid
+  content          String?   @db.Text
+  operationId      String    @unique(map: "direct_messages_operation_id_key") @map("operation_id") @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  editedAt         DateTime? @map("edited_at") @db.Timestamptz(6)
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz(6)
+  restoredAt       DateTime? @map("restored_at") @db.Timestamptz(6)
+  contentPurgedAt  DateTime? @map("content_purged_at") @db.Timestamptz(6)
+  conversation     DirectConversation @relation(fields: [conversationId], references: [id], onDelete: Restrict)
+  author           Player @relation(fields: [authorPlayerId], references: [id], onDelete: Restrict)
+  operation        BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  firstForRequest  DirectConversationRequest? @relation("DirectRequestFirstMessage")
+  participantReads DirectConversationParticipant[] @relation("DirectParticipantLastRead")
+  participantSharedReads DirectConversationParticipant[] @relation("DirectParticipantSharedRead")
+
+  @@index([conversationId, createdAt(sort: Desc), id(sort: Desc)], map: "direct_messages_conversation_created_idx")
+  @@index([authorPlayerId, createdAt(sort: Desc)], map: "direct_messages_author_created_idx")
+  @@map("direct_messages")
 }
 
 model GlobalChatMessage {
