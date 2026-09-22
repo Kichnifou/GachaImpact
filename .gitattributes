@@ -1,1 +1,2 @@
 server/prisma/migrations/20260922070000_032_add_global_chat_foundations/migration.sql text eol=lf
+server/prisma/migrations/20260922080000_033_fix_global_chat_content_check/migration.sql text eol=lf

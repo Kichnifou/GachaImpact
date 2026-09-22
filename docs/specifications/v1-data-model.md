@@ -1313,7 +1313,7 @@ Contraintes :
 - les mentions réelles et les non-lus requièrent une résolution serveur/état de lecture propre au Chat, sans notification persistante de mention ; le masquage individuel reste un filtre d'affichage, pas une relation Social ;
 - un signalement conserve un snapshot du message et un contexte privé de modération, distinct du contenu public courant.
 
-La migration 032 matérialise `GlobalChatMessage` et `GlobalChatReadState` (une ligne maximum par Player). Le curseur de lecture retient le message lu et sa position chronologique `(createdAt, id)` ; un Player sans état de lecture voit tous les messages persistés comme non lus jusqu'à une mutation explicite. Le service serveur fournit envoi idempotent, pagination, non-lus, marquage monotone et suppression auteur. Mentions et signalements attendent leur consommateur du lot suivant ; les MP, le transport et l'exécution des commandes ne sont pas matérialisés ici.
+Les migrations 032 puis 033 matérialisent `GlobalChatMessage` et `GlobalChatReadState` (une ligne maximum par Player) et la contrainte interne monoligne de 1 à 500 caractères, y compris CR, LF, U+2028 et U+2029. Le curseur de lecture retient le message lu et sa position chronologique `(createdAt, id)` ; un Player sans état de lecture voit tous les messages persistés comme non lus jusqu'à une mutation explicite. Le service serveur fournit envoi idempotent, pagination, non-lus, marquage monotone et suppression auteur. Mentions et signalements attendent leur consommateur du lot suivant ; les MP, le transport et l'exécution des commandes ne sont pas matérialisés ici.
 
 Le pont Twitch futur peut injecter un message dans ce même flux selon la configuration validée.
 

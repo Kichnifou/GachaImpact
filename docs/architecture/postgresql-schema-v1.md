@@ -1980,7 +1980,7 @@ Les administrateurs ne disposent pas d'une lecture libre des MP.
 
 # 27. Chat global
 
-Cible relationnelle alignée sur le [contrat Chat global R872–R883](../specifications/global-chat-v1.md). La migration additive 032 matérialise `global_chat_messages` et `global_chat_read_states` dans Prisma ; aucune table MP générale n'est encore physique.
+Cible relationnelle alignée sur le [contrat Chat global R872–R883](../specifications/global-chat-v1.md). La migration additive 032 matérialise `global_chat_messages` et `global_chat_read_states` dans Prisma ; 033 corrige additivement la contrainte de contenu interne. Aucune table MP générale n'est encore physique.
 
 ## 27.1 `global_chat_messages`
 

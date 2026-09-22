@@ -2,7 +2,6 @@ import { createHash } from 'node:crypto';
 import { GlobalChatDeletionState, GlobalChatMessageType, Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import { AppError } from '../../api/errors.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
-import { derivePlayerProgression } from '../../domain/player/player-progression.js';
 import { isElementKey } from '../../domain/economy/resources.js';
 import type { Clock } from '../../domain/time/business-date.js';
 import type { RandomSource } from '../../domain/wheel/wheel.js';
@@ -101,7 +100,6 @@ export class GlobalChatService {
       await tx.playerProgression.update({ where: { playerId: player.id }, data: { totalMessages: { increment: 1n } } });
       let xpGranted = 0;
       if (normalized.type === GlobalChatMessageType.PLAYER && actor.element_key && isElementKey(actor.element_key)
-        && derivePlayerProgression(progression).level >= 1
         && (!progression.lastXpMessageAt || now.getTime() - progression.lastXpMessageAt.getTime() >= 2_000)) {
         xpGranted = normalized.length <= 100 ? 1 : normalized.length <= 200 ? 2 : 3;
         await this.xp.grant(tx, { playerId: player.id, playerElementKey: actor.element_key, amount: BigInt(xpGranted), source: 'chat.message', now, operationId: operation.id, sourceChannel: 'INTERNAL_CHAT', random: this.random });

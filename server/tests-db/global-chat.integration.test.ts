@@ -43,15 +43,15 @@ const progress = (id: string) => db.playerProgression.findUniqueOrThrow({ where:
 
 describe('Global Chat foundation on isolated PostgreSQL', () => {
   it('validates Unicode length and lines, classifies commands, and awards XP only to eligible PLAYER messages', async () => {
-    const id = await player(59n);
+    const id = await player(0n);
     await expect(service.send(as(id), '  ', randomUUID())).rejects.toMatchObject({ code: 'CHAT_INVALID' });
     await expect(service.send(as(id), 'a\nb', randomUUID())).rejects.toMatchObject({ code: 'CHAT_INVALID' });
     await expect(service.send(as(id), 'a'.repeat(501), randomUUID())).rejects.toMatchObject({ code: 'CHAT_INVALID' });
     const first = await service.send(as(id), '  😀  ', randomUUID());
     expect(first.message).toMatchObject({ content: '😀', messageType: 'PLAYER' });
     expect(first.xpGranted).toBe(1);
-    expect(await progress(id)).toMatchObject({ xp: 60n, totalMessages: 1n, countedMessages: 1n, lastXpMessageAt: now });
-    expect((await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: id, resourceKey: 'primogems' } } })).amount).toBe(800n);
+    expect(await progress(id)).toMatchObject({ xp: 1n, totalMessages: 1n, countedMessages: 1n, lastXpMessageAt: now });
+    expect((await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: id, resourceKey: 'primogems' } } })).amount).toBe(0n);
     expect((await db.playerActivityState.findUniqueOrThrow({ where: { playerId: id } })).lastInternalChatAt).toEqual(now);
     advance(2_000);
     expect((await service.send(as(id), 'a'.repeat(101), randomUUID())).xpGranted).toBe(2);
@@ -59,7 +59,7 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect((await service.send(as(id), 'a'.repeat(201), randomUUID())).xpGranted).toBe(3);
     advance(2_000);
     expect((await service.send(as(id), ' !help ', randomUUID())).message.messageType).toBe('COMMAND');
-    expect(await progress(id)).toMatchObject({ xp: 65n, totalMessages: 4n, countedMessages: 3n, lastXpMessageAt: new Date(now.getTime() - 2_000) });
+    expect(await progress(id)).toMatchObject({ xp: 6n, totalMessages: 4n, countedMessages: 3n, lastXpMessageAt: new Date(now.getTime() - 2_000) });
     const newcomer = await player(0n, null);
     expect((await service.send(as(newcomer), 'bonjour', randomUUID())).xpGranted).toBe(0);
     expect(await progress(newcomer)).toMatchObject({ xp: 0n, totalMessages: 1n, countedMessages: 0n });
@@ -161,7 +161,7 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(foreignKeys.rows).toHaveLength(5);
   });
 
-  it('records the exact Prisma 032 migration and secures its real public tables', async () => {
+  it('records the exact Prisma 032 and 033 migrations and secures their real public tables', async () => {
     const sql = readFileSync('prisma/migrations/20260922070000_032_add_global_chat_foundations/migration.sql');
     const checksum = createHash('sha256').update(sql).digest('hex');
     const migration = await fixture.admin.query<{ checksum: string; finished_at: Date | null; rolled_back_at: Date | null }>(
@@ -170,8 +170,16 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(migration.rows).toHaveLength(1);
     expect(migration.rows[0]).toMatchObject({ checksum, rolled_back_at: null });
     expect(migration.rows[0]?.finished_at).not.toBeNull();
+    const correctionSql = readFileSync('prisma/migrations/20260922080000_033_fix_global_chat_content_check/migration.sql');
+    const correctionChecksum = createHash('sha256').update(correctionSql).digest('hex');
+    const correction = await fixture.admin.query<{ checksum: string; finished_at: Date | null; rolled_back_at: Date | null }>(
+      'SELECT checksum, finished_at, rolled_back_at FROM public._prisma_migrations WHERE migration_name=$1',
+      ['20260922080000_033_fix_global_chat_content_check']);
+    expect(correction.rows).toHaveLength(1);
+    expect(correction.rows[0]).toMatchObject({ checksum: correctionChecksum, rolled_back_at: null });
+    expect(correction.rows[0]?.finished_at).not.toBeNull();
     const count = await fixture.admin.query<{ count: string }>('SELECT count(*)::text AS count FROM public._prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL');
-    expect(count.rows[0]?.count).toBe('32');
+    expect(count.rows[0]?.count).toBe('33');
     const tables = await fixture.admin.query<{ relname: string; relrowsecurity: boolean }>(
       "SELECT c.relname, c.relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname IN ('global_chat_messages','global_chat_read_states')");
     expect(tables.rows).toHaveLength(2);
@@ -180,5 +188,16 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(grants.rows).toHaveLength(0);
     const checks = await fixture.admin.query<{ conname: string }>("SELECT conname FROM pg_constraint WHERE connamespace='public'::regnamespace AND conname LIKE 'global_chat_messages_%_check'");
     expect(checks.rows.map(row => row.conname)).toEqual(expect.arrayContaining(['global_chat_messages_deletion_check', 'global_chat_messages_player_check', 'global_chat_messages_internal_content_check']));
+    const definition = await fixture.admin.query<{ definition: string }>("SELECT pg_get_constraintdef(oid) AS definition FROM pg_constraint WHERE connamespace='public'::regnamespace AND conname='global_chat_messages_internal_content_check'");
+    expect(definition.rows).toHaveLength(1);
+    expect(definition.rows[0]?.definition).toContain('chr(13)');
+    await fixture.admin.query('CREATE TEMP TABLE global_chat_content_check_probe (source_channel public.source_channel NOT NULL, message_type public.global_chat_message_type NOT NULL, content text NOT NULL)');
+    await fixture.admin.query(`ALTER TABLE global_chat_content_check_probe ADD CONSTRAINT global_chat_content_check_probe_check ${definition.rows[0]!.definition}`);
+    for (const content of ['bonjour', 'r', 'n', '😀', 'a'.repeat(500)]) {
+      await expect(fixture.admin.query("INSERT INTO global_chat_content_check_probe (source_channel, message_type, content) VALUES ('INTERNAL_CHAT', 'PLAYER', $1)", [content])).resolves.toBeDefined();
+    }
+    for (const content of ['', 'a'.repeat(501), 'a\nb', 'a\rb', 'a\u2028b', 'a\u2029b']) {
+      await expect(fixture.admin.query("INSERT INTO global_chat_content_check_probe (source_channel, message_type, content) VALUES ('INTERNAL_CHAT', 'PLAYER', $1)", [content])).rejects.toThrow();
+    }
   });
 });

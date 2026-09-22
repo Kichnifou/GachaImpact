@@ -1,6 +1,6 @@
 # Chat global V1 — contrat produit
 
-Statut : décisions produit validées. Le Lot 1 matérialise uniquement les fondations serveur/DB du Chat global ; la coque `ChatPanel` actuelle utilise encore des mocks et les MP généraux ne sont pas physiques. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte seul l'état vivant et la prochaine étape. Les MP restent régis par [l'audit Social R501–R522](../legacy/14-ami-social-audit.md) ; ce contrat ne modifie ni leurs limites, ni leur historique, ni leurs permissions. Les syntaxes et résultats métier des commandes restent dans la [référence des commandes](../commands/command-reference.md).
+Statut : décisions produit validées. Le Lot 1 matérialise uniquement les fondations serveur/DB du Chat global ; les migrations 032 puis 033 portent la persistance et sa correction additive de contrainte. La coque `ChatPanel` actuelle utilise encore des mocks et les MP généraux ne sont pas physiques. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte seul l'état vivant et la prochaine étape. Les MP restent régis par [l'audit Social R501–R522](../legacy/14-ami-social-audit.md) ; ce contrat ne modifie ni leurs limites, ni leur historique, ni leurs permissions. Les syntaxes et résultats métier des commandes restent dans la [référence des commandes](../commands/command-reference.md).
 
 ## Messages et composition — R872
 
