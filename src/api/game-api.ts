@@ -144,7 +144,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
   return {
     chat: {
       messages: (cursor?: ChatPageDto['nextCursor']) => request<ChatPageDto>('/api/v1/chat/messages' + (cursor ? '?' + new URLSearchParams({ cursorCreatedAt: cursor.createdAt, cursorId: cursor.id }) : '')),
-      unread: () => request<{ unreadCount: number }>('/api/v1/chat/unread'),
+      unread: () => request<{ unreadCount: number; generation: number }>('/api/v1/chat/unread'),
       read: (messageId: string) => request<{ lastReadMessageId: string; changed: boolean }>('/api/v1/chat/read', { method: 'POST', body: JSON.stringify({ messageId }) }),
       send: (content: string, idempotencyKey: string, replyToMessageId: string | null, mentions: ChatMentionDto[]) => request<ChatSendDto>('/api/v1/chat/messages', { method: 'POST', body: JSON.stringify({ content, idempotencyKey, replyToMessageId, mentions }) }),
       remove: (messageId: string) => request<{ id: string; changed: boolean }>(`/api/v1/chat/messages/${encodeURIComponent(messageId)}`, { method: 'DELETE' }),

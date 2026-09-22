@@ -1980,7 +1980,7 @@ Les administrateurs ne disposent pas d'une lecture libre des MP.
 
 # 27. Chat global
 
-Cible relationnelle alignée sur le [contrat Chat global R872–R883](../specifications/global-chat-v1.md). La migration additive 032 matérialise `global_chat_messages` et `global_chat_read_states` dans Prisma ; 033 corrige la contrainte de contenu interne ; 034 ajoute mentions, signalements et éligibilité du Défi Messages. Aucune table MP générale n'est encore physique.
+Cible relationnelle alignée sur le [contrat Chat global R872–R886](../specifications/global-chat-v1.md). La migration additive 032 matérialise `global_chat_messages` et `global_chat_read_states` dans Prisma ; 033 corrige la contrainte de contenu interne ; 034 ajoute mentions, signalements et éligibilité du Défi Messages ; 035 ajoute la génération de visibilité. Aucune table MP générale n'est encore physique.
 
 ## 27.1 `global_chat_messages`
 
@@ -1997,6 +1997,7 @@ Colonnes :
 - `created_at timestamptz NOT NULL DEFAULT now()`
 - `deleted_at timestamptz NULL`
 - `deletion_state global_chat_deletion_state NOT NULL DEFAULT ACTIVE` (`ACTIVE`, `AUTHOR`, `MODERATION`)
+- `generation integer NOT NULL DEFAULT 0` — génération visible du message, conservée lors d'un clear.
 
 Index uniques :
 
@@ -2006,13 +2007,17 @@ Index :
 
 `(created_at DESC, id DESC)`, `(author_player_id, created_at DESC)` et `(reply_to_message_id)`.
 
-Les CHECKs lient l'état de suppression à `deleted_at`, imposent un auteur aux messages joueur/commande et bornent le contenu interne joueur à 1–500 caractères sans saut de ligne. `global_chat_read_states` porte `player_id` comme PK/FK, `last_read_message_id` comme FK, `last_read_created_at` et `updated_at` ; la paire temps/ID donne un ordre stable indépendant de l'ordre lexical seul des UUID. Les deux tables ont RLS activée, aucun droit direct `PUBLIC`/`anon`/`authenticated` et aucune policy navigateur permissive. Aucun `edited_at` global n'est requis. Le contenu supprimé est masqué par la projection serveur ; l'aperçu de réponse suit l'état actuel de la cible. Masquage local, MP et rétention exacte restent hors de cette migration.
+Les CHECKs lient l'état de suppression à `deleted_at`, imposent un auteur aux messages joueur/commande et bornent le contenu interne joueur à 1–500 caractères sans saut de ligne. `global_chat_read_states` porte `player_id` comme PK/FK, `last_read_message_id` comme FK, `last_read_created_at`, `generation` et `updated_at` ; la paire temps/ID donne un ordre stable dans la génération. Les deux tables ont RLS activée, aucun droit direct `PUBLIC`/`anon`/`authenticated` et aucune policy navigateur permissive. Aucun `edited_at` global n'est requis. Le contenu supprimé est masqué par la projection serveur ; l'aperçu de réponse suit l'état actuel de la cible. Masquage local, MP et rétention exacte restent hors de cette migration.
 
 ## 27.2 Mentions et signalements — migration 034
 
 `global_chat_mentions` possède la clé `(message_id, mentioned_player_id)`, deux FK restrictives et un index `(mentioned_player_id, created_at DESC)`. Le serveur vérifie Player ACTIVE, pseudo courant présent dans le texte et absence de blocage dans les deux sens. Le flux ne projette que `mentionedMe` pour le lecteur courant.
 
 `global_chat_reports` possède un UUID, `reporter_player_id`, `message_id`, `reported_player_id`, `message_snapshot jsonb`, `context_snapshot jsonb` et `created_at`. L'unicité reporter/message empêche les doublons ; les FK sont restrictives et le CHECK interdit l'auto-signalement. Le snapshot privé fige la cible et au plus dix messages précédents et suivants déjà existants. Aucune route de lecture arbitraire de ces dossiers n'est exposée. Les deux nouvelles tables ont RLS active, aucun grant navigateur et aucune policy permissive.
+
+## 27.3 Frontière de visibilité — migration 035
+
+`global_chat_state` contient une seule ligne `id = 1`, `generation integer NOT NULL DEFAULT 0` et `updated_at`. Un CHECK borne l'ID et la génération. `global_chat_messages.generation` et `global_chat_read_states.generation` sont additifs, non nuls et initialisés à 0 ; l'index `(generation, created_at DESC, id DESC)` sert les pages visibles. `!clear` augmente la génération sous verrou et garde toutes les anciennes lignes dans la base. La table d'état a RLS active et aucun droit `PUBLIC`/`anon`/`authenticated` ; seul le backend accède au modèle.
 
 ---
 

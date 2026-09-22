@@ -721,6 +721,8 @@ export type ChatMessageDto = {
   replyToMessageId: string | null
   replyPreview: string | null
   mentionedMe: boolean
+  repliedToMe: boolean
+  clientIntentKey?: string | null
 }
-export type ChatPageDto = { messages: ChatMessageDto[]; nextCursor: { createdAt: string; id: string } | null }
-export type ChatSendDto = { message: ChatMessageDto; xpGranted: number; refreshScopes: ChatRefreshScope[]; dailyChallengeCompleted: boolean; replayed: boolean; result: ChatMessageDto | null; results: ChatMessageDto[] }
+export type ChatPageDto = { messages: ChatMessageDto[]; nextCursor: { createdAt: string; id: string } | null; generation: number }
+export type ChatSendDto = { cleared: true; generation: number; replayed: boolean } | { cleared?: false; message: ChatMessageDto; generation: number; xpGranted: number; refreshScopes: ChatRefreshScope[]; dailyChallengeCompleted: boolean; replayed: boolean; result: ChatMessageDto | null; results: ChatMessageDto[] }

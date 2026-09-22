@@ -10,14 +10,14 @@ const playerId = '22222222-2222-4222-8222-222222222222';
 const identity = { subject: 'test-subject' };
 const apps: Awaited<ReturnType<typeof buildApp>>[] = [];
 const service = {
-  list: vi.fn(async () => ({ messages: [{ id: messageId, content: 'bonjour' }], nextCursor: { id: messageId, createdAt: '2026-09-22T10:00:00.000Z' } })),
-  unreadCount: vi.fn(async () => 3),
+  list: vi.fn(async () => ({ messages: [{ id: messageId, content: 'bonjour' }], nextCursor: { id: messageId, createdAt: '2026-09-22T10:00:00.000Z' }, generation: 0 })),
+  unreadCount: vi.fn(async () => ({ unreadCount: 3, generation: 0 })),
   markRead: vi.fn(async () => ({ lastReadMessageId: messageId, changed: true })),
   deleteOwn: vi.fn(async () => ({ id: messageId, changed: true })),
   searchMentions: vi.fn(async () => ({ players: [{ id: playerId, displayName: 'Éléa', elementKey: 'cryo' }] })),
   report: vi.fn(async () => ({ reported: true, duplicate: false })),
 };
-const dispatcher = { send: vi.fn(async () => ({ message: { id: messageId, content: 'bonjour' }, result: null, results: [], refreshScopes: [], replayed: false })) };
+const dispatcher = { send: vi.fn(async () => ({ message: { id: messageId, content: 'bonjour' }, result: null, results: [], refreshScopes: [], replayed: false })), clear: vi.fn(async () => ({ cleared: true, generation: 1, replayed: false })) };
 
 async function app(withChat = true) {
   const instance = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, {
@@ -59,7 +59,7 @@ describe('authenticated Chat routes', () => {
 
   it('routes unread, read, delete, mention search and private report without arbitrary reads', async () => {
     const enabled = await app();
-    expect((await enabled.inject({ method: 'GET', url: '/api/v1/chat/unread', headers: token })).json()).toEqual({ unreadCount: 3 });
+    expect((await enabled.inject({ method: 'GET', url: '/api/v1/chat/unread', headers: token })).json()).toEqual({ unreadCount: 3, generation: 0 });
     expect((await enabled.inject({ method: 'POST', url: '/api/v1/chat/read', headers: token, payload: { messageId } })).statusCode).toBe(200);
     expect((await enabled.inject({ method: 'DELETE', url: `/api/v1/chat/messages/${messageId}`, headers: token })).statusCode).toBe(200);
     expect((await enabled.inject({ method: 'GET', url: '/api/v1/chat/mentions?q=elea', headers: token })).json().players[0].id).toBe(playerId);
@@ -67,5 +67,13 @@ describe('authenticated Chat routes', () => {
     expect(service.report).toHaveBeenCalledWith(identity, messageId);
     expect((await enabled.inject({ method: 'POST', url: `/api/v1/chat/messages/${messageId}/report`, headers: token, payload: { reason: 'invented' } })).statusCode).toBe(400);
     expect((await enabled.inject({ method: 'GET', url: '/api/v1/chat/reports', headers: token })).statusCode).toBe(404);
+  });
+
+  it('dispatches !clear without publishing a normal command result', async () => {
+    const enabled = await app();
+    const response = await enabled.inject({ method: 'POST', url: '/api/v1/chat/messages', headers: token, payload: { content: '!clear', idempotencyKey: messageId } });
+    expect(response.json()).toEqual({ cleared: true, generation: 1, replayed: false });
+    expect(dispatcher.clear).toHaveBeenCalledWith(identity, '!clear', messageId, undefined);
+    expect(dispatcher.send).not.toHaveBeenCalled();
   });
 });

@@ -1288,7 +1288,7 @@ La présence en ligne est un état temps réel distinct de l'historique métier.
 
 Message du chat global GachaImpact.
 
-Le [contrat Chat global R872–R884](global-chat-v1.md) est propriétaire du comportement joueur. Les migrations Prisma 032–034 matérialisent le Chat global actuel ; la 034 ajoute les mentions, les signalements et l'éligibilité du Défi Messages.
+Le [contrat Chat global R872–R886](global-chat-v1.md) est propriétaire du comportement joueur. Les migrations Prisma 032–035 matérialisent le Chat global ; la 034 ajoute les mentions, les signalements et l'éligibilité du Défi Messages, la 035 la génération de visibilité.
 
 Conceptuellement :
 
@@ -1313,7 +1313,7 @@ Contraintes :
 - les mentions réelles et les non-lus requièrent une résolution serveur/état de lecture propre au Chat, sans notification persistante de mention ; le masquage individuel reste un filtre d'affichage, pas une relation Social ;
 - un signalement conserve un snapshot du message et un contexte privé de modération, distinct du contenu public courant.
 
-Les migrations 032 puis 033 matérialisent `GlobalChatMessage` et `GlobalChatReadState` (une ligne maximum par Player) et la contrainte interne monoligne de 1 à 500 caractères, y compris CR, LF, U+2028 et U+2029. La migration 034 crée `GlobalChatMention` (paire message/Player unique) et `GlobalChatReport` (un dossier par reporter/message, snapshots JSON privés), puis rend `daily_messages_10` éligible. Le curseur de lecture retient le message lu et sa position chronologique `(createdAt, id)` ; un Player sans état de lecture voit tous les messages persistés comme non lus jusqu'à une mutation explicite. Le service serveur fournit envoi idempotent, pagination, non-lus, marquage monotone, suppression auteur, mentions sélectionnées et signalement. Le Chat interne exécute les commandes via les services propriétaires ; les MP et Twitch restent non physiques.
+Les migrations 032 puis 033 matérialisent `GlobalChatMessage` et `GlobalChatReadState` (une ligne maximum par Player) et la contrainte interne monoligne de 1 à 500 caractères, y compris CR, LF, U+2028 et U+2029. La migration 034 crée `GlobalChatMention` (paire message/Player unique) et `GlobalChatReport` (un dossier par reporter/message, snapshots JSON privés), puis rend `daily_messages_10` éligible. La migration 035 ajoute une génération persistante au message et à l'état de lecture, plus `GlobalChatState` comme frontière de visibilité unique. Le curseur de lecture retient le message lu et sa position chronologique `(createdAt, id)` dans sa génération ; un Player sans état de lecture dans la génération courante voit ses messages comme non lus jusqu'à une mutation explicite. Le service serveur fournit envoi idempotent, pagination, non-lus, marquage monotone, suppression auteur, mentions résolues côté serveur et signalement. Le Chat interne exécute les commandes via les services propriétaires ; les MP et Twitch restent non physiques.
 
 Le pont Twitch futur peut injecter un message dans ce même flux selon la configuration validée.
 

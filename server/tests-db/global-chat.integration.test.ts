@@ -136,16 +136,16 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     const first = await service.send(as(author), 'origine', randomUUID()); advance(1);
     const second = await service.send(as(reader), 'réponse', randomUUID(), first.message.id); advance(1);
     const third = await service.send(as(author), 'suivant', randomUUID());
-    expect(await service.unreadCount(as(reader))).toBe(3);
+    expect((await service.unreadCount(as(reader))).unreadCount).toBe(3);
     const latest = await service.list(as(reader), 2);
     expect(latest.messages.map(m => m.id)).toEqual([second.message.id, third.message.id]);
     const older = await service.list(as(reader), 2, latest.nextCursor!);
     expect(older.messages.at(-1)?.id).toBe(first.message.id);
     expect((await service.markRead(as(reader), second.message.id)).changed).toBe(true);
-    expect(await service.unreadCount(as(reader))).toBe(1);
+    expect((await service.unreadCount(as(reader))).unreadCount).toBe(1);
     expect((await service.markRead(as(reader), first.message.id)).changed).toBe(false);
     expect((await service.markRead(as(reader), third.message.id)).changed).toBe(true);
-    expect(await service.unreadCount(as(reader))).toBe(0);
+    expect((await service.unreadCount(as(reader))).unreadCount).toBe(0);
     await expect(service.markRead(as(reader), randomUUID())).rejects.toMatchObject({ code: 'CHAT_UNAVAILABLE' });
     await expect(service.deleteOwn(as(reader), first.message.id)).rejects.toMatchObject({ code: 'CHAT_UNAVAILABLE' });
     expect((await service.deleteOwn(as(author), first.message.id)).changed).toBe(true);
@@ -283,12 +283,32 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(await db.globalChatMention.count({ where: { messageId: sent.message.id, mentionedPlayerId: target } })).toBe(1);
     expect((await service.list(as(target))).messages.find(item => item.id === sent.message.id)?.mentionedMe).toBe(true);
     expect((await service.list(as(viewer))).messages.find(item => item.id === sent.message.id)?.mentionedMe).toBe(false);
-    expect((await service.send(as(author), `Salut @${targetName}`, randomUUID())).message.mentionedMe).toBe(false);
-    await expect(service.send(as(author), 'Salut sans mention', randomUUID(), null, [{ playerId: target, displayName: targetName }])).rejects.toMatchObject({ code: 'CHAT_INVALID' });
+    const manual = await service.send(as(author), `Salut @${targetName.toUpperCase()}`, randomUUID());
+    expect(await db.globalChatMention.count({ where: { messageId: manual.message.id, mentionedPlayerId: target } })).toBe(1);
+    const forged = await service.send(as(author), 'Salut sans mention', randomUUID(), null, [{ playerId: target, displayName: targetName }]);
+    expect(await db.globalChatMention.count({ where: { messageId: forged.message.id } })).toBe(0);
     await db.playerBlock.create({ data: { blockerPlayerId: target, blockedPlayerId: author } });
     expect((await service.searchMentions(as(author), targetName)).players.some(item => item.id === target)).toBe(false);
-    await expect(service.send(as(author), `Encore @${targetName}`, randomUUID(), null, [{ playerId: target, displayName: targetName }])).rejects.toMatchObject({ code: 'CHAT_INVALID' });
+    const blocked = await service.send(as(author), `Encore @${targetName}`, randomUUID(), null, [{ playerId: target, displayName: targetName }]);
+    expect(await db.globalChatMention.count({ where: { messageId: blocked.message.id } })).toBe(0);
   }, 20_000);
+
+  it('resolves whole normalized direct mentions, deduplicates, and highlights replies to the viewer', async () => {
+    const author = await player(), target = await player(), other = await player();
+    await db.player.update({ where: { id: target }, data: { displayName: 'Élodie' } });
+    const sent = await service.send(as(author), 'Bonjour @elodie, puis @ÉLODIE ! @Élodiette', randomUUID(), null, [{ playerId: other, displayName: 'Autre' }]);
+    expect(await db.globalChatMention.findMany({ where: { messageId: sent.message.id } })).toHaveLength(1);
+    expect((await service.list(as(target))).messages.find(row => row.id === sent.message.id)?.mentionedMe).toBe(true);
+    const own = await service.send(as(target), 'Mon message', randomUUID());
+    const toMe = await service.send(as(author), 'Une réponse', randomUUID(), own.message.id);
+    expect((await service.list(as(target))).messages.find(row => row.id === toMe.message.id)?.repliedToMe).toBe(true);
+    const command = await service.send(as(author), '!help @Élodie', randomUUID());
+    expect(await db.globalChatMention.count({ where: { messageId: command.message.id } })).toBe(0);
+    const absent = await service.send(as(author), 'Salut @Introuvable', randomUUID());
+    expect(await db.globalChatMention.count({ where: { messageId: absent.message.id } })).toBe(0);
+    const partial = await service.send(as(author), 'Salut @Élodie.extra', randomUUID());
+    expect(await db.globalChatMention.count({ where: { messageId: partial.message.id } })).toBe(0);
+  }, 30_000);
 
   it('freezes bounded report context and retains it after author deletion', async () => {
     const author = await player(), reporter = await player();
@@ -346,7 +366,16 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(newMigration.rows).toHaveLength(1);
     expect(newMigration.rows[0]?.checksum).toBe(newChecksum);
     expect(newMigration.rows[0]?.finished_at).not.toBeNull();
-    expect(count.rows[0]?.count).toBe('34');
+    expect(count.rows[0]?.count).toBe('35');
+    const clearSql = readFileSync('prisma/migrations/20260922120000_035_add_global_chat_generation/migration.sql');
+    const clearMigration = await fixture.admin.query<{ checksum: string; finished_at: Date | null }>('SELECT checksum, finished_at FROM public._prisma_migrations WHERE migration_name=$1', ['20260922120000_035_add_global_chat_generation']);
+    expect(clearMigration.rows).toHaveLength(1);
+    expect(clearMigration.rows[0]?.checksum).toBe(createHash('sha256').update(clearSql).digest('hex'));
+    expect(clearMigration.rows[0]?.finished_at).not.toBeNull();
+    const state = await fixture.admin.query<{ relrowsecurity: boolean }>("SELECT relrowsecurity FROM pg_class WHERE oid='public.global_chat_state'::regclass");
+    expect(state.rows[0]?.relrowsecurity).toBe(true);
+    const stateGrants = await fixture.admin.query("SELECT grantee FROM information_schema.role_table_grants WHERE table_schema='public' AND table_name='global_chat_state' AND grantee IN ('anon','authenticated')");
+    expect(stateGrants.rows).toHaveLength(0);
     const newTables = await fixture.admin.query<{ relname: string; relrowsecurity: boolean }>("SELECT c.relname, c.relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname IN ('global_chat_mentions','global_chat_reports')");
     expect(newTables.rows).toHaveLength(2);
     expect(newTables.rows.every(row => row.relrowsecurity)).toBe(true);
@@ -378,4 +407,41 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
       await expect(fixture.admin.query("INSERT INTO global_chat_content_check_probe (source_channel, message_type, content) VALUES ('INTERNAL_CHAT', 'PLAYER', $1)", [content])).rejects.toThrow();
     }
   });
+
+  it('clears only for active moderator or admin, keeps audit history, and fences player-facing operations', async () => {
+    const author = await player(), moderator = await player(), admin = await player(), tester = await player(), ordinary = await player();
+    await db.playerRoleAssignment.createMany({ data: [
+      { playerId: moderator, role: 'MODERATOR' }, { playerId: admin, role: 'ADMIN' }, { playerId: tester, role: 'TESTER' },
+    ] });
+    const before = await service.send(as(author), 'Avant clear', randomUUID());
+    const command = await service.send(as(author), '!help', randomUUID());
+    const page = await service.list(as(author), 1);
+    await expect(dispatcher.clear(as(tester), '!clear', randomUUID())).rejects.toMatchObject({ code: 'CHAT_FORBIDDEN' });
+    await expect(dispatcher.clear(as(ordinary), '!clear', randomUUID())).rejects.toMatchObject({ code: 'CHAT_FORBIDDEN' });
+    const key = randomUUID();
+    expect(await dispatcher.clear(as(moderator), '!clear', key)).toMatchObject({ cleared: true, generation: 1, replayed: false });
+    expect(await dispatcher.clear(as(moderator), '!clear', key)).toMatchObject({ generation: 1, replayed: true });
+    expect(await db.globalChatMessage.findUnique({ where: { id: before.message.id } })).not.toBeNull();
+    expect(await db.globalChatMessage.count({ where: { content: '!clear' } })).toBe(0);
+    expect((await service.list(as(author))).messages).toHaveLength(0);
+    expect(await service.list(as(author), 1, page.nextCursor ?? { createdAt: before.message.createdAt, id: before.message.id })).toMatchObject({ messages: [], nextCursor: null, generation: 1 });
+    expect(await service.unreadCount(as(author))).toEqual({ unreadCount: 0, generation: 1 });
+    await expect(service.markRead(as(author), before.message.id)).rejects.toMatchObject({ code: 'CHAT_UNAVAILABLE' });
+    await expect(service.deleteOwn(as(author), before.message.id)).rejects.toMatchObject({ code: 'CHAT_UNAVAILABLE' });
+    await expect(service.send(as(author), 'stale reply', randomUUID(), before.message.id)).rejects.toMatchObject({ code: 'CHAT_UNAVAILABLE' });
+    await expect(service.report(as(moderator), before.message.id)).rejects.toMatchObject({ code: 'CHAT_UNAVAILABLE' });
+    await service.publishGameResult(command.message.id, 'Old answer');
+    expect((await service.list(as(author))).messages).toHaveLength(0);
+    const next = await service.send(as(author), 'Après clear', randomUUID());
+    expect((await service.list(as(author))).messages.map(row => row.id)).toContain(next.message.id);
+    expect((await service.unreadCount(as(moderator))).unreadCount).toBe(1);
+    const operation = await db.businessOperation.findFirstOrThrow({ where: { operationType: 'chat.clear', idempotencyKey: key } });
+    expect(operation).toMatchObject({ playerId: moderator, status: 'COMPLETED' });
+    expect(operation.resultSummary).toMatchObject({ generation: 1, previousGeneration: 0 });
+    const concurrent = await Promise.all([service.send(as(author), 'Concurrent', randomUUID()), dispatcher.clear(as(admin), '!clear', randomUUID())]);
+    const current = await service.list(as(author));
+    expect(current.messages.some(row => row.id === concurrent[0].message.id)).toBe(concurrent[0].generation === concurrent[1].generation);
+    await db.playerRoleAssignment.updateMany({ where: { playerId: moderator, role: 'MODERATOR' }, data: { revokedAt: new Date() } });
+    await expect(dispatcher.clear(as(moderator), '!clear', randomUUID())).rejects.toMatchObject({ code: 'CHAT_FORBIDDEN' });
+  }, 60_000);
 });

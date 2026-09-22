@@ -1,6 +1,6 @@
 # Chat global V1 — contrat produit
 
-Statut : décisions produit validées. Le Chat global player-facing est matérialisé par les migrations 032–034, ses routes et le `ChatPanel` réel, avec resynchronisation UI ciblée. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte seul l'état vivant et la validation publique. Les MP restent régis par [l'audit Social R501–R522](../legacy/14-ami-social-audit.md) et ne sont pas encore physiques ; ce contrat ne modifie ni leurs limites, ni leur historique, ni leurs permissions. Les syntaxes et résultats métier des commandes restent dans la [référence des commandes](../commands/command-reference.md).
+Statut : décisions produit validées. Le Chat global player-facing est matérialisé par les migrations 032–035, ses routes et le `ChatPanel` réel, avec resynchronisation UI ciblée. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte seul l'état vivant et la validation publique. Les MP restent régis par [l'audit Social R501–R522](../legacy/14-ami-social-audit.md) et ne sont pas encore physiques ; ce contrat ne modifie ni leurs limites, ni leur historique, ni leurs permissions. Les syntaxes et résultats métier des commandes restent dans la [référence des commandes](../commands/command-reference.md).
 
 ## Messages et composition — R872
 
@@ -18,6 +18,7 @@ Statut : décisions produit validées. Le Chat global player-facing est matéria
 ## Mentions — R875
 
 - `@pseudo` dispose d'une autocomplétion légère et d'une mise en évidence pour la personne réellement mentionnée. Aucune notification persistante n'est ajoutée à la cloche Notifications.
+- R885 complète R875 : la saisie manuelle d'un `@pseudo` entier et valide crée également une mention réelle. Le serveur résout le pseudo courant sans tenir le `playerId` fourni par le navigateur pour autorité, sans distinguer casse ni accents selon la normalisation Social ; il déduplique les cibles et borne leur nombre à dix. Un pseudo partiel ou inexistant reste du texte ordinaire. Les messages `COMMAND` ne créent aucune mention sociale.
 - Un joueur bloqué est exclu des suggestions. Sa chaîne `@pseudo` saisie manuellement reste du texte ordinaire et ne produit pas de mention réelle.
 
 ## Lecture et non-lus — R876 et R877
@@ -31,13 +32,15 @@ Statut : décisions produit validées. Le Chat global player-facing est matéria
 
 - Un `PlayerBlock` empêche les interactions directes définies par Social, sans effacer automatiquement tous les messages de la personne du flux public.
 - Le joueur peut masquer localement les messages d'une personne : chaque ligne masquée reste à sa place sous `Message masqué — Afficher` et peut être rouverte ponctuellement. Ce filtre d'affichage ne crée pas une relation sociale serveur. Son stockage local ou de session est un détail du futur lot.
+- Une action globale `Ne plus masquer ce joueur` restaure toutes ses lignes masquées dans la session.
 - Chaque message global offre `Signaler`. Le signalement conserve un snapshot du message et un contexte raisonnable autour pour la modération privée ; il ne retire pas automatiquement le message public. Le panneau complet de modération reste hors du premier lot.
 
 ## Anti-spam et commandes — R880 et R881
 
 - Le serveur protège le Chat global contre les rafales manifestement abusives. Le seuil exact est technique et sera fixé pendant l'implémentation. Ce frein est distinct du quota général de messages et des cooldowns métier des commandes : une commande en cooldown ne doit pas empêcher de discuter normalement.
-- Une saisie commençant par `!` est un vrai message public du joueur, conservé dans le flux sous sa forme originale. Elle compte dans `totalMessages`, jamais dans l'XP ni dans `countedMessages` du seul fait d'être une commande, selon [l'audit XP](../legacy/04-xp-audit.md). Son exécution métier reste séparée du stockage/transport ; elle appelle le même service que l'UI lorsque ce service existe.
+- Une saisie commençant par `!` est un vrai message public du joueur, conservé dans le flux sous sa forme originale, sauf l'exception de modération R886. Elle compte dans `totalMessages`, jamais dans l'XP ni dans `countedMessages` du seul fait d'être une commande, selon [l'audit XP](../legacy/04-xp-audit.md). Son exécution métier reste séparée du stockage/transport ; elle appelle le même service que l'UI lorsque ce service existe.
 - Les résultats automatiques portent l'identité `GachaImpact` et se distinguent visuellement des messages `PLAYER`. Dans le périmètre initial, **toutes** les réponses de commandes sont publiques : succès, consultation, aide, erreur, mauvaise syntaxe et commande inconnue. La commande du joueur est elle aussi publique. Une erreur inconnue ou invalide peut orienter brièvement vers `!help`. Les contrats particuliers de la référence des commandes restent applicables.
+- R886 définit l'exception interne de modération `!clear` : le serveur exige une attribution active `MODERATOR` ou `ADMIN` ; `TESTER` seul ne suffit pas. L'opération ouvre une nouvelle génération visible du Chat pour tous, y compris après F5 et pour l'historique/non-lus. L'ancien contenu reste conservé côté serveur pour audit. Ni la commande ni un résultat `GachaImpact` de clear ne restent visibles. Cette commande n'est pas envoyée à Twitch et n'apparaît pas dans l'aide joueur ordinaire.
 - Aucune réponse de commande visible seulement par son auteur, aucun canal caché, message système privé ou toast privé n'est prévu ici. Une telle restitution est reportée au polish final, sans préparation technique dans le premier lot.
 
 ## Publications automatiques — R882

@@ -955,6 +955,7 @@ model GlobalChatMessage {
   createdAt        DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
   deletedAt        DateTime?               @map("deleted_at") @db.Timestamptz(6)
   deletionState    GlobalChatDeletionState @default(ACTIVE) @map("deletion_state")
+  generation       Int                     @default(0)
   author           Player?                 @relation(fields: [authorPlayerId], references: [id], onDelete: Restrict)
   operation        BusinessOperation?      @relation(fields: [operationId], references: [id], onDelete: SetNull)
   replyToMessage   GlobalChatMessage?      @relation("GlobalChatReplies", fields: [replyToMessageId], references: [id], onDelete: Restrict)
@@ -965,15 +966,25 @@ model GlobalChatMessage {
 
   @@unique([sourceChannel, externalMessageId], map: "global_chat_messages_source_external_id_key")
   @@index([createdAt(sort: Desc), id(sort: Desc)], map: "global_chat_messages_created_id_idx")
+  @@index([generation, createdAt(sort: Desc), id(sort: Desc)], map: "global_chat_messages_generation_created_id_idx")
   @@index([authorPlayerId, createdAt(sort: Desc)], map: "global_chat_messages_author_created_idx")
   @@index([replyToMessageId], map: "global_chat_messages_reply_to_idx")
   @@map("global_chat_messages")
+}
+
+model GlobalChatState {
+  id         Int      @id @default(1) @db.SmallInt
+  generation Int      @default(0)
+  updatedAt  DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@map("global_chat_state")
 }
 
 model GlobalChatReadState {
   playerId          String            @id @map("player_id") @db.Uuid
   lastReadMessageId String            @map("last_read_message_id") @db.Uuid
   lastReadCreatedAt DateTime          @map("last_read_created_at") @db.Timestamptz(6)
+  generation        Int               @default(0)
   updatedAt         DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   player            Player            @relation(fields: [playerId], references: [id], onDelete: Cascade)
   lastReadMessage   GlobalChatMessage @relation(fields: [lastReadMessageId], references: [id], onDelete: Restrict)

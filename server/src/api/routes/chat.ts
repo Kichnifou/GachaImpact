@@ -29,9 +29,10 @@ export async function registerChatRoutes(app: FastifyInstance, options: Options)
   });
   app.post('/api/v1/chat/messages', config, request => {
     const body = parse(send, request.body);
+    if (/^!clear(?:\s|$)/iu.test(body.content.trim())) return options.dispatcher.clear(requireAuthenticatedIdentity(request), body.content, body.idempotencyKey, body.replyToMessageId);
     return options.dispatcher.send(requireAuthenticatedIdentity(request), body.content, body.idempotencyKey, body.replyToMessageId, body.mentions);
   });
-  app.get('/api/v1/chat/unread', config, async request => ({ unreadCount: await options.service.unreadCount(requireAuthenticatedIdentity(request)) }));
+  app.get('/api/v1/chat/unread', config, async request => options.service.unreadCount(requireAuthenticatedIdentity(request)));
   app.post('/api/v1/chat/read', config, request => options.service.markRead(requireAuthenticatedIdentity(request), parse(read, request.body).messageId));
   app.delete('/api/v1/chat/messages/:messageId', config, request => options.service.deleteOwn(requireAuthenticatedIdentity(request), parse(params, request.params).messageId));
   app.get('/api/v1/chat/mentions', config, request => options.service.searchMentions(requireAuthenticatedIdentity(request), parse(search, request.query).q));

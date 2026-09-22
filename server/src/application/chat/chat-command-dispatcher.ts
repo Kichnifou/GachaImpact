@@ -119,6 +119,11 @@ export class ChatCommandDispatcher {
     return { ...sent, refreshScopes: await this.chat.commandRefreshScopes(sent.message.id), result: published.message, results: published.messages };
   }
 
+  async clear(identity: AuthenticatedIdentity, content: string, idempotencyKey: string, replyToMessageId?: string | null) {
+    if (replyToMessageId) throw new AppError('La commande !clear ne répond pas à un message.', 400, 'CHAT_INVALID');
+    return this.chat.clear(identity, content, idempotencyKey);
+  }
+
   private async resolve(identity: AuthenticatedIdentity, content: string, commandMessageId: string): Promise<string> {
     const [rawRoot = '', ...args] = content.slice(1).trim().split(/\s+/u);
     const definition = findChatCommand(rawRoot);

@@ -482,7 +482,7 @@ return <ActivitiesScreen friendship={friendship.value?.summary} friendshipError=
           <div className="screen-stage" key={activeScreen}>{renderScreen()}</div>
         </main>
 
-        <ChatPanel playerId={player.id} connectedCount={presence.value?.total ?? null}
+        <ChatPanel playerId={player.id} playerDisplayName={player.displayName} playerElementKey={player.elementKey} connectedCount={presence.value?.total ?? null}
           isCollapsed={isChatCollapsed}
           onToggle={() => setIsChatCollapsed((current) => !current)}
           onOpenPlayers={() => setIsPlayersOpen(true)}
