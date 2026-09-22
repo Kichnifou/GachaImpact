@@ -10,6 +10,7 @@ import { currencyAssetPaths } from '../utils/gameAssets'
 
 type BankScreenProps = {
   initialBank: PlayerBankDto | null
+  refreshToken?: number
   onLoad: () => Promise<PlayerBankDto>
   onLoadHistory: (page: number) => Promise<BankHistoryDto>
   onTransfer: (direction: BankTransferDirection, amount: string) => Promise<BankTransferDto>
@@ -17,7 +18,7 @@ type BankScreenProps = {
 
 type Direction = BankTransferDirection
 
-function BankScreen({ initialBank, onLoad, onLoadHistory, onTransfer }: BankScreenProps) {
+function BankScreen({ initialBank, refreshToken = 0, onLoad, onLoadHistory, onTransfer }: BankScreenProps) {
   const [bank, setBank] = useState<PlayerBankDto | null>(initialBank)
   const [amounts, setAmounts] = useState<Record<Direction, string>>({ deposit: '', withdraw: '' })
   const [pending, setPending] = useState<Direction | null>(null)
@@ -28,6 +29,7 @@ function BankScreen({ initialBank, onLoad, onLoadHistory, onTransfer }: BankScre
   const expiredReset = useRef<string | null>(null)
   const latestLoad = useRef(0)
   const mounted = useRef(false)
+  const seenRefreshToken = useRef(refreshToken)
 
   const load = useCallback(async () => {
     const loadId = ++latestLoad.current
@@ -44,6 +46,11 @@ function BankScreen({ initialBank, onLoad, onLoadHistory, onTransfer }: BankScre
     void load().catch((reason) => { if (mounted.current) setError(apiErrorMessage(reason)) })
     return () => { mounted.current = false; latestLoad.current += 1 }
   }, [load])
+  useEffect(() => {
+    if (seenRefreshToken.current === refreshToken) return
+    seenRefreshToken.current = refreshToken
+    void load().catch((reason) => { if (mounted.current) setError(apiErrorMessage(reason)) })
+  }, [load, refreshToken])
 
   useEffect(() => {
     if (!bank) return
@@ -110,7 +117,7 @@ function BankScreen({ initialBank, onLoad, onLoadHistory, onTransfer }: BankScre
           <footer className="bank-history-footer"><button type="button" disabled={bank.recentOperations.length === 0} onClick={() => setHistoryOpen(true)}>Voir l’historique</button></footer>
         </section>
       </div>
-      {historyOpen && <BankHistoryModal onClose={() => setHistoryOpen(false)} onLoad={onLoadHistory} />}
+      {historyOpen && <BankHistoryModal onClose={() => setHistoryOpen(false)} onLoad={onLoadHistory} refreshToken={refreshToken} />}
     </div>
   )
 }
@@ -136,7 +143,7 @@ function OperationList({ operations }: { operations: readonly BankOperationDto[]
   </li>)}</ol>
 }
 
-export function BankHistoryModal({ onClose, onLoad }: { onClose: () => void; onLoad: (page: number) => Promise<BankHistoryDto> }) {
+export function BankHistoryModal({ onClose, onLoad, refreshToken = 0 }: { onClose: () => void; onLoad: (page: number) => Promise<BankHistoryDto>; refreshToken?: number }) {
   const [page, setPage] = useState(1)
   const [history, setHistory] = useState<BankHistoryDto | null>(null)
   const [loading, setLoading] = useState(true)
@@ -158,7 +165,7 @@ export function BankHistoryModal({ onClose, onLoad }: { onClose: () => void; onL
       }
     })
     return () => { active = false }
-  }, [onLoad, page])
+  }, [onLoad, page, refreshToken])
 
   const visiblePage = history?.page ?? page
   const totalPages = Math.max(history?.totalPages ?? 0, 1)

@@ -1,5 +1,5 @@
 import InventoryObjectCard from '../components/InventoryObjectCard'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BoxCharacterDto, DailyChallengeMutationDto, DailyCombatDto, ElementKey, InventoryItemDetailDto, InventoryItemDto, InventoryResourceDto, PlayerBoxDto, PlayerInventoryDto, PlayerResourcesDto, PlayerTeamsDto, StellaUseDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
 import { presentStellaResult, type StellaResultPresentation } from '../box/stella-result-presentation'
@@ -14,6 +14,7 @@ import { currencyAssetPaths, getElementAssetPath } from '../utils/gameAssets'
 
 type InventoryScreenProps = {
   initialInventory: PlayerInventoryDto | null
+  refreshToken?: number
   resources: PlayerResourcesDto
   elementKey: ElementKey
   dailyCombat?: DailyCombatDto
@@ -37,7 +38,7 @@ const categories: readonly { id: InventoryCategory; label: string; icon: string 
   { id: 'collection', label: 'Collection', icon: '▣' },
 ]
 
-function InventoryScreen({ initialInventory, resources, elementKey, dailyCombat, onLoad, onLoadItemDetail, onConvertParticles, onNavigateShop, onNavigateBank, onNavigateTrades, onLoadBox, onSetBoxFavorite, onUseStella, stellaRetryCharacterId, onLoadTeams }: InventoryScreenProps) {
+function InventoryScreen({ initialInventory, refreshToken = 0, resources, elementKey, dailyCombat, onLoad, onLoadItemDetail, onConvertParticles, onNavigateShop, onNavigateBank, onNavigateTrades, onLoadBox, onSetBoxFavorite, onUseStella, stellaRetryCharacterId, onLoadTeams }: InventoryScreenProps) {
   const [inventory, setInventory] = useState(initialInventory)
   const [activeCategory, setActiveCategory] = useState<InventoryCategory>('all')
   const [query, setQuery] = useState('')
@@ -54,6 +55,7 @@ function InventoryScreen({ initialInventory, resources, elementKey, dailyCombat,
   const [stellaFeedback, setStellaFeedback] = useState<StellaResultPresentation | null>(null)
   const [stellaRetryId, setStellaRetryId] = useState(stellaRetryCharacterId)
   const [conversionOpen, setConversionOpen] = useState(false)
+  const seenRefreshToken = useRef(refreshToken)
 
   const load = useCallback(async () => {
     try {
@@ -66,6 +68,13 @@ function InventoryScreen({ initialInventory, resources, elementKey, dailyCombat,
       throw reason
     }
   }, [onLoad])
+
+  useEffect(() => {
+    if (seenRefreshToken.current === refreshToken) return
+    seenRefreshToken.current = refreshToken
+    void load().catch(() => undefined)
+    if (box) void onLoadBox().then(setBox).catch(() => undefined)
+  }, [box, load, onLoadBox, refreshToken])
 
   useEffect(() => {
     let active = true

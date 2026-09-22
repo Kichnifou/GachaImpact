@@ -155,7 +155,7 @@ export class GlobalChatService {
         if (xpPlan.levelsReached.length || xpPlan.overflowRewardsGranted) {
           const levels = xpPlan.levelsReached.length ? `niveau${xpPlan.levelsReached.length > 1 ? 'x' : ''} ${xpPlan.levelsReached.join(', ')}` : `${xpPlan.overflowRewardsGranted} récompense(s) de niveau 100`;
           const rewards = xpPlan.rewards.map(reward => `${reward.amount} ${reward.resourceKey}`).join(', ');
-          await tx.globalChatMessage.create({ data: { authorPlayerId: null, sourceChannel: 'SYSTEM', messageType: 'GAME_RESULT', content: `${player.displayName} atteint ${levels} ! ${rewards}.`, replyToMessageId: message.id } });
+          await tx.globalChatMessage.create({ data: { authorPlayerId: null, sourceChannel: 'SYSTEM', messageType: 'GAME_RESULT', content: `${player.displayName} atteint ${levels} ! ${rewards}.`, replyToMessageId: message.id, createdAt: new Date(message.createdAt.getTime() + 1) } });
         }
       }
       await this.activity.record(tx, player.id, now, 'INTERNAL_CHAT');

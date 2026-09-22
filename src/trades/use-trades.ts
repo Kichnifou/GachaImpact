@@ -106,5 +106,5 @@ export function useTrades(actions: TradeActions, onSnapshot: (value: TradeSnapsh
   }
   const retry = () => { const action = retryAction.current; if (action) void mutate(action.signature, action.run) }
   const clearFeedback = useCallback(() => { setFeedback(''); setError(null) }, [])
-  return { snapshot, partners, pending, error, syncError, feedback, mutate, refresh, canRetry, retry, clearFeedback }
+  return { snapshot, partners, pending, error, syncError, feedback, mutate, refresh, refreshPartners: refreshPartnersAfterConfirmedMutation, canRetry, retry, clearFeedback }
 }

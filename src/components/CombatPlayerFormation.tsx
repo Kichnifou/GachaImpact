@@ -7,6 +7,7 @@ import CharacterAssetImage from './CharacterAssetImage'
 import GameAssetIcon from './GameAssetIcon'
 
 export type CombatBoxBindings = Readonly<{
+  refreshToken?: number
   initialBox: PlayerBoxDto | null
   onLoadBox: () => Promise<PlayerBoxDto>
   onSetFavorite: (characterId: string, favorite: boolean) => Promise<BoxCharacterDto>
@@ -35,7 +36,7 @@ export function ElementIcon({ element }: { element: ElementKey }) {
 }
 
 export function CombatBoxCharacterDetail({ characterId, combat, bindings, onClose }: { characterId: string; combat?: DailyCombatDto; bindings: CombatBoxBindings; onClose: () => void }) {
-  const detail = useBoxCollection({ initialBox: bindings.initialBox, onLoadBox: bindings.onLoadBox, onSetFavorite: bindings.onSetFavorite, onUseStella: bindings.onUseStella, stellaRetryCharacterId: bindings.stellaRetryCharacterId, onCharacterProgressed: bindings.onCharacterProgressed })
+  const detail = useBoxCollection({ initialBox: bindings.initialBox, refreshToken: bindings.refreshToken, onLoadBox: bindings.onLoadBox, onSetFavorite: bindings.onSetFavorite, onUseStella: bindings.onUseStella, stellaRetryCharacterId: bindings.stellaRetryCharacterId, onCharacterProgressed: bindings.onCharacterProgressed })
   const character = detail.box?.characters.find(({ id }) => id === characterId) ?? null
   const combatCharacter = combat?.availableCharacters.find(({ id }) => id === characterId)
   const combatState = combatCharacter && combat ? { ko: combat.koCharacterIds.includes(characterId), stats: combatCharacter.combatStats } : undefined

@@ -14,13 +14,20 @@ const tabs = { create: 'Partenaires', received: 'Reçues', sent: 'Envoyées', hi
 type Tab = keyof typeof tabs
 export type TradeOpenIntent = { token: string; tab?: Tab; partner?: { id: string; displayName: string } }
 const resourceLabel = (key: string) => elementLabels[key.replace('particles_', '') as ElementKey]
-export default function TradesScreen({ actions, onSnapshot, playerId, intent }: { actions: TradeActions; onSnapshot: (value: TradeSnapshot) => void; playerId: string; intent?: TradeOpenIntent }) {
+export default function TradesScreen({ actions, onSnapshot, playerId, intent, refreshToken = 0 }: { actions: TradeActions; onSnapshot: (value: TradeSnapshot) => void; playerId: string; intent?: TradeOpenIntent; refreshToken?: number }) {
   const [tab, setTab] = useState<Tab>(intent?.tab ?? 'create'), [query, setQuery] = useState(intent?.partner?.displayName ?? ''), [page, setPage] = useState(1)
   const [selected, setSelected] = useState<string | null>(intent?.partner?.id ?? null), [amount, setAmount] = useState(''), [searchOpen, setSearchOpen] = useState(false)
   const handledIntent = useRef(intent), searchBox = useRef<HTMLDivElement>(null)
   const controller = useTrades(actions, onSnapshot, query, page, tab === 'create')
   const { snapshot, partners, pending, error, feedback, mutate } = controller
-  const { clearFeedback, refresh } = controller
+  const { clearFeedback, refresh, refreshPartners } = controller
+  const seenRefreshToken = useRef(refreshToken)
+  useEffect(() => {
+    if (seenRefreshToken.current === refreshToken) return
+    seenRefreshToken.current = refreshToken
+    void refresh()
+    refreshPartners()
+  }, [refreshToken, refresh, refreshPartners])
   useEffect(() => { if (intent && intent !== handledIntent.current) { handledIntent.current = intent; setTab(intent.tab ?? 'create'); setQuery(intent.partner?.displayName ?? ''); setPage(1); setSelected(intent.partner?.id ?? null); clearFeedback(); void refresh() } }, [intent, clearFeedback, refresh])
   const selectPartner = (id: string) => { const choice = partners?.partners.find(p => p.id === id); if (!choice) return; setSelected(id); setQuery(choice.displayName); setPage(1); setAmount(''); setSearchOpen(false) }
   const changeTab = (next: Tab) => { if (next !== tab) { clearFeedback(); setTab(next) } }

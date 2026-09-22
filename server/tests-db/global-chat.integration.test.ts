@@ -85,6 +85,20 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(await progress(newcomer)).toMatchObject({ xp: 0n, totalMessages: 1n, countedMessages: 0n });
   }, 30_000);
 
+  it('orders a Chat level-up result after its PLAYER message with a fixed application clock', async () => {
+    const id = await player(29n);
+    const key = randomUUID();
+    const sent = await service.send(as(id), 'Bonjour', key);
+    expect(sent.xpGranted).toBe(1);
+    const result = await db.globalChatMessage.findFirstOrThrow({ where: { replyToMessageId: sent.message.id, messageType: 'GAME_RESULT' } });
+    expect(result.createdAt.getTime()).toBe(new Date(sent.message.createdAt).getTime() + 1);
+    const visible = (await service.list(as(id))).messages.filter(row => row.id === sent.message.id || row.id === result.id);
+    expect(visible.map(row => row.id)).toEqual([sent.message.id, result.id]);
+    expect(visible[1]).toMatchObject({ authorLabel: 'GachaImpact', replyToMessageId: sent.message.id });
+    expect((await service.send(as(id), 'Bonjour', key)).replayed).toBe(true);
+    expect(await db.globalChatMessage.count({ where: { replyToMessageId: sent.message.id, messageType: 'GAME_RESULT' } })).toBe(1);
+  });
+
   it('replays exactly once and rejects a changed payload or another Player on the same key', async () => {
     const id = await player(), other = await player(); const key = randomUUID();
     const sent = await service.send(as(id), 'bonjour', key);

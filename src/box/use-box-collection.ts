@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { BoxCharacterDto, PlayerBoxDto, StellaUseDto } from '../api/types'
 import { ApiError } from '../api/game-api'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
@@ -8,6 +8,7 @@ import { presentStellaResult, type StellaResultPresentation } from './stella-res
 
 type Options = {
   initialBox: PlayerBoxDto | null
+  refreshToken?: number
   onLoadBox: () => Promise<PlayerBoxDto>
   onSetFavorite: (characterId: string, favorite: boolean) => Promise<BoxCharacterDto>
   onUseStella: (characterId: string) => Promise<StellaUseDto>
@@ -15,13 +16,14 @@ type Options = {
   onCharacterProgressed?: () => Promise<unknown> | unknown
 }
 
-export function useBoxCollection({ initialBox, onLoadBox, onSetFavorite, onUseStella, stellaRetryCharacterId, onCharacterProgressed }: Options) {
+export function useBoxCollection({ initialBox, refreshToken = 0, onLoadBox, onSetFavorite, onUseStella, stellaRetryCharacterId, onCharacterProgressed }: Options) {
   const [box, setBox] = useState<PlayerBoxDto | null>(initialBox)
   const [error, setError] = useState<string | null>(null)
   const [favoritePendingId, setFavoritePendingId] = useState<string | null>(null)
   const [stellaPendingId, setStellaPendingId] = useState<string | null>(null)
   const [stellaFeedback, setStellaFeedback] = useState<StellaResultPresentation | null>(null)
   const [stellaRetryId, setStellaRetryId] = useState<string | null>(stellaRetryCharacterId)
+  const seenRefreshToken = useRef(refreshToken)
 
   const load = async () => {
     setError(null)
@@ -42,6 +44,14 @@ export function useBoxCollection({ initialBox, onLoadBox, onSetFavorite, onUseSt
     }).catch((reason) => { if (active) setError(apiErrorMessage(reason)) })
     return () => { active = false }
   }, [onLoadBox])
+
+  useEffect(() => {
+    if (seenRefreshToken.current === refreshToken) return
+    seenRefreshToken.current = refreshToken
+    let active = true
+    void onLoadBox().then(next => { if (active) { setBox(next); setError(null) } }).catch(reason => { if (active) setError(apiErrorMessage(reason)) })
+    return () => { active = false }
+  }, [onLoadBox, refreshToken])
 
   useEffect(() => {
     if (!stellaFeedback?.visual) return

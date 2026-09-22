@@ -16,6 +16,7 @@ import { createExpeditionClientSnapshot, type ExpeditionClientSnapshot } from '.
 
 type BoxScreenProps = {
   initialBox: PlayerBoxDto | null
+  refreshToken?: number
   onLoadBox: () => Promise<PlayerBoxDto>
   onSetFavorite: (characterId: string, favorite: boolean) => Promise<BoxCharacterDto>
   onSetSortPreference: (preference: BoxSortPreferenceDto) => Promise<BoxSortPreferenceDto>
@@ -32,11 +33,11 @@ type BoxScreenProps = {
   onNotificationsChanged?: () => Promise<unknown>
 }
 
-function BoxScreen({ initialBox, dailyCombat, expedition = idleExpeditionSnapshot, expeditionMonotonicNow = 0, openCharacterIntent = null, onOpenCharacterIntentConsumed = () => undefined, onLoadExpedition = async () => idleExpedition, onStartExpedition = async () => { throw new Error('Expédition indisponible.') }, onClaimExpedition = async () => { throw new Error('Expédition indisponible.') }, onNotificationsChanged = async () => undefined, onLoadBox, onSetFavorite, onSetSortPreference, onUseStella, stellaRetryCharacterId }: BoxScreenProps) {
+function BoxScreen({ initialBox, refreshToken = 0, dailyCombat, expedition = idleExpeditionSnapshot, expeditionMonotonicNow = 0, openCharacterIntent = null, onOpenCharacterIntentConsumed = () => undefined, onLoadExpedition = async () => idleExpedition, onStartExpedition = async () => { throw new Error('Expédition indisponible.') }, onClaimExpedition = async () => { throw new Error('Expédition indisponible.') }, onNotificationsChanged = async () => undefined, onLoadBox, onSetFavorite, onSetSortPreference, onUseStella, stellaRetryCharacterId }: BoxScreenProps) {
   const [filters, setFilters] = useState<BoxFilters>(() => initialBoxFiltersWithPreference(initialBox?.preference))
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const consumedOpenIntentToken = useRef<string | null>(null)
-  const { box, error, setError, load, favoritePendingId, stellaPendingId, stellaFeedback, setStellaFeedback, stellaRetryId, toggleFavorite, useStella } = useBoxCollection({ initialBox, onLoadBox, onSetFavorite, onUseStella, stellaRetryCharacterId })
+  const { box, error, setError, load, favoritePendingId, stellaPendingId, stellaFeedback, setStellaFeedback, stellaRetryId, toggleFavorite, useStella } = useBoxCollection({ initialBox, refreshToken, onLoadBox, onSetFavorite, onUseStella, stellaRetryCharacterId })
   const preferenceInteractionRevision = useRef(0)
   const preferenceSaveQueue = useRef(Promise.resolve())
   const [expeditionPending, setExpeditionPending] = useState(false)

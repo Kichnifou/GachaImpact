@@ -4,10 +4,12 @@ import { act, type ComponentProps } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { BoxCharacterDto, DailyCombatDto, ExpeditionDto, MonthlyBossDto, PlayerBoxDto } from '../api/types'
+import type { BoxCharacterDto, DailyCombatDto, ExpeditionDto, MonthlyBossDto, PlayerBankDto, PlayerBoxDto } from '../api/types'
 import { createExpeditionClientSnapshot } from '../expedition/expedition-client-snapshot'
 import { defaultNavigationPreference, hashForScreen } from '../navigation/navigation'
 import GameShell from './GameShell'
+
+vi.mock('./ChatPanel', () => ({ default: ({ onRefreshScopes }: { onRefreshScopes: (scopes: string[]) => Promise<void> }) => <div><button data-chat-refresh="xp" onClick={() => void onRefreshScopes(['progression', 'dailyChallenge', 'resources'])}>Bonjour</button><button data-chat-refresh="bank" onClick={() => void onRefreshScopes(['bank', 'resources'])}>!banque deposer 1000</button></div> }))
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -109,6 +111,18 @@ describe('GameShell Expedition deep-link', () => {
     expect(container.querySelector('.event-game-tabs .active')?.textContent).toBe('Panier')
     expect(container.querySelector('.event-game-c-inbox')?.textContent).toContain('Bon Festival !')
     expect(onConsultEventGameCMessages).toHaveBeenCalledOnce()
+    const eventScreen = container.querySelector('.screen-stage')?.firstElementChild
+    const refreshOwners = vi.fn(async () => undefined)
+    const eventBankRead = vi.fn(async () => ({ walletMoras: '10000', bankMoras: '0', totalWealth: '10000', estimatedInterest: '0', interestRatePercent: 3 as const, nextInterestAt: '2099-01-01T00:00:00Z', recentOperations: [] }))
+    await act(async () => { root.render(<GameShell {...props} event={event} onLoadEvent={vi.fn(async () => event)} onJoinEvent={vi.fn()} onAttemptEventGameA={vi.fn()} onConsultEventGameCMessages={onConsultEventGameCMessages} onRefreshChatScopes={refreshOwners} onLoadBank={eventBankRead} notifications={{ unreadCount: 0, notifications: [] }} />); await Promise.resolve() })
+    await act(async () => { container.querySelector<HTMLButtonElement>('[data-chat-refresh="xp"]')!.click(); await Promise.resolve() })
+    expect(refreshOwners).toHaveBeenCalledWith(['progression', 'dailyChallenge', 'resources'])
+    expect(eventBankRead).not.toHaveBeenCalled()
+    expect(container.querySelector('.screen-stage')?.firstElementChild).toBe(eventScreen)
+    expect(container.querySelector('.event-game-tabs .active')?.textContent).toBe('Panier')
+    await act(async () => { container.querySelector<HTMLButtonElement>('[data-chat-refresh="bank"]')!.click(); await Promise.resolve() })
+    expect(container.querySelector('.screen-stage')?.firstElementChild).toBe(eventScreen)
+    expect(container.querySelector('.event-game-tabs .active')?.textContent).toBe('Panier')
     await navigateByHash('activities-dailies')
     await navigateByHash('activities-event')
     expect(container.querySelector('.event-tabs .active')?.textContent).toBe('Inscription')
@@ -123,6 +137,23 @@ describe('GameShell Expedition deep-link', () => {
     expect(onReadNotification).toHaveBeenCalledExactlyOnceWith(acceptedTrade.id)
     expect(onArchiveNotification).not.toHaveBeenCalled()
     expect(tradeActions.partners).not.toHaveBeenCalled()
+    const bankBefore: PlayerBankDto = { walletMoras: '10000', bankMoras: '0', totalWealth: '10000', estimatedInterest: '0', interestRatePercent: 3, nextInterestAt: '2099-01-01T00:00:00Z', recentOperations: [] }
+    const bankAfter: PlayerBankDto = { ...bankBefore, walletMoras: '9000', bankMoras: '1000', recentOperations: [{ id: 'operation', type: 'DEPOSIT', amount: '1000', bankBalanceAfter: '1000', walletBalanceAfter: '9000', businessDate: '2026-09-22', createdAt: '2026-09-22T12:00:00Z' }] }
+    let bankView: PlayerBankDto = bankBefore
+    const onLoadBank = vi.fn(async () => bankView)
+    await act(async () => { root.render(<GameShell {...props} onRefreshChatScopes={refreshOwners} onLoadBank={onLoadBank} />); await Promise.resolve() })
+    await navigateByHash('bank')
+    const bankScreen = container.querySelector('.bank-screen')
+    await act(async () => { container.querySelector<HTMLButtonElement>('.bank-transfer-form.deposit .bank-max-button')!.click() })
+    expect(container.querySelector<HTMLInputElement>('.bank-transfer-form.deposit input')?.value).toBe('10000')
+    bankView = bankAfter
+    await act(async () => { container.querySelector<HTMLButtonElement>('[data-chat-refresh="bank"]')!.click(); await Promise.resolve() })
+    expect(container.querySelector('.bank-screen')).toBe(bankScreen)
+    expect(container.querySelector<HTMLInputElement>('.bank-transfer-form.deposit input')?.value).toBe('10000')
+    expect(container.querySelector('.bank-balance-card.vault')?.textContent).toContain('1\u202f000')
+    expect(container.querySelectorAll('.bank-history-list li')).toHaveLength(1)
+    expect(onLoadBank).toHaveBeenCalled()
+    expect(props.onDepositBank).not.toHaveBeenCalled()
     act(() => root.unmount())
   })
 })

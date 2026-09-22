@@ -9,7 +9,7 @@ export type BannerVoteActions = Readonly<{
   onReloadCatalog?: () => Promise<void>
 }>
 
-export function useBannerVotes({ onLoadVotes, onVote, onReloadCatalog }: BannerVoteActions, sharedCache?: BannerVoteCache) {
+export function useBannerVotes({ onLoadVotes, onVote, onReloadCatalog }: BannerVoteActions, sharedCache?: BannerVoteCache, refreshToken = 0) {
   const [localCache] = useState(() => new BannerVoteCache())
   const cache = sharedCache ?? localCache
   const [value, setValue] = useState<BannerVoteDto | null>(() => cache.value)
@@ -18,6 +18,14 @@ export function useBannerVotes({ onLoadVotes, onVote, onReloadCatalog }: BannerV
   const alive = useRef(false)
   const revision = useRef(0)
   const catalogVersion = useRef<string | null>(cache.value?.catalogVersion ?? null)
+  const seenRefreshToken = useRef(refreshToken)
+  useEffect(() => {
+    if (seenRefreshToken.current === refreshToken) return
+    seenRefreshToken.current = refreshToken
+    let active = true
+    queueMicrotask(() => { if (active && cache.value) setValue(cache.value) })
+    return () => { active = false }
+  }, [cache, refreshToken])
   useEffect(() => {
     alive.current = true
     let active = true

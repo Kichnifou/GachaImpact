@@ -6,15 +6,17 @@ import ScreenHeader from '../components/ScreenHeader'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
 
-type Props = Readonly<{ onLoad: () => Promise<PlayerGiftCodesDto>; onClaim: (editionId: string, idempotencyKey: string) => Promise<GiftCodeClaimDto> }>
+type Props = Readonly<{ refreshToken?: number; onLoad: () => Promise<PlayerGiftCodesDto>; onClaim: (editionId: string, idempotencyKey: string) => Promise<GiftCodeClaimDto> }>
 
-export default function GiftCodesScreen({ onLoad, onClaim }: Props) {
+export default function GiftCodesScreen({ refreshToken = 0, onLoad, onClaim }: Props) {
   const [tab, setTab] = useState<'available' | 'claimed'>('available')
   const [value, setValue] = useState<PlayerGiftCodesDto | null>(null)
   const [pending, setPending] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const intents = useRef(new Map<string, string>())
+  const seenRefreshToken = useRef(refreshToken)
   useEffect(() => { let active = true; void onLoad().then((next) => { if (active) setValue(next) }).catch((reason) => { if (active) setError(apiErrorMessage(reason)) }); return () => { active = false } }, [onLoad])
+  useEffect(() => { if (seenRefreshToken.current === refreshToken) return; seenRefreshToken.current = refreshToken; let active = true; void onLoad().then(next => { if (active) { setValue(next); setError(null) } }).catch(reason => { if (active) setError(apiErrorMessage(reason)) }); return () => { active = false } }, [onLoad, refreshToken])
   const claim = async (editionId: string) => {
     if (pending) return
     const key = intents.current.get(editionId) ?? crypto.randomUUID()

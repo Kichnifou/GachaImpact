@@ -6,9 +6,9 @@ import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
 import { currencyAssetPaths } from '../utils/gameAssets'
 
-type Props = { initialShop: PlayerShopDto | null; onLoad: () => Promise<PlayerShopDto>; onLoadHistory: (page: number) => Promise<ShopHistoryDto>; onPurchase: (itemId: string, quantity: string) => Promise<ShopPurchaseDto>; onNavigateBank: () => void }
+type Props = { initialShop: PlayerShopDto | null; refreshToken?: number; onLoad: () => Promise<PlayerShopDto>; onLoadHistory: (page: number) => Promise<ShopHistoryDto>; onPurchase: (itemId: string, quantity: string) => Promise<ShopPurchaseDto>; onNavigateBank: () => void }
 
-function ShopScreen({ initialShop, onLoad, onLoadHistory, onPurchase, onNavigateBank }: Props) {
+function ShopScreen({ initialShop, refreshToken = 0, onLoad, onLoadHistory, onPurchase, onNavigateBank }: Props) {
   const [shop, setShop] = useState(initialShop)
   const [quantities, setQuantities] = useState<Record<string, string>>({})
   const [pendingItemId, setPendingItemId] = useState<string | null>(null)
@@ -17,9 +17,11 @@ function ShopScreen({ initialShop, onLoad, onLoadHistory, onPurchase, onNavigate
   const [ticketResult, setTicketResult] = useState<ShopEffectDto | null>(null)
   const [historyOpen, setHistoryOpen] = useState(false)
   const mounted = useRef(false)
+  const seenRefreshToken = useRef(refreshToken)
   const load = useCallback(async () => { const result = await onLoad(); if (mounted.current) { setShop(result); setError(null) }; return result }, [onLoad])
 
   useEffect(() => { mounted.current = true; void load().catch((reason) => { if (mounted.current) setError(apiErrorMessage(reason)) }); return () => { mounted.current = false } }, [load])
+  useEffect(() => { if (seenRefreshToken.current === refreshToken) return; seenRefreshToken.current = refreshToken; void load().catch((reason) => { if (mounted.current) setError(apiErrorMessage(reason)) }) }, [load, refreshToken])
 
   const purchase = async (item: ShopItemDto) => {
     if (pendingItemId || !item.available) return
@@ -46,7 +48,7 @@ function ShopScreen({ initialShop, onLoad, onLoadHistory, onPurchase, onNavigate
       <RecentPurchase purchase={shop.recentPurchases[0] ?? null} onOpenHistory={() => setHistoryOpen(true)} />
     </ScrollableScreenPanel>
     {ticketResult && <TicketResultModal effect={ticketResult} onClose={() => setTicketResult(null)} />}
-    {historyOpen && <ShopHistoryModal onClose={() => setHistoryOpen(false)} onLoad={onLoadHistory} />}
+    {historyOpen && <ShopHistoryModal onClose={() => setHistoryOpen(false)} onLoad={onLoadHistory} refreshToken={refreshToken} />}
   </div>
 }
 
@@ -62,7 +64,7 @@ function RecentPurchase({ purchase, onOpenHistory }: { purchase: ShopPurchaseRec
   return <section className="panel shop-history"><header><div><span className="eyebrow">Activité</span><h2>Dernière transaction</h2></div><button type="button" onClick={onOpenHistory}>Voir l’historique</button></header>{!purchase ? <p className="shop-history-empty">Votre première transaction apparaîtra ici.</p> : <dl className="shop-last-purchase"><div><dt>Article</dt><dd>{purchase.displayName}</dd></div><div><dt>Quantité</dt><dd>{purchase.quantity}</dd></div><div><dt>Date</dt><dd>{formatPurchaseDate(purchase.purchasedAt)}</dd></div><div><dt>Résultat</dt><dd>{effectLabel(purchase.effect)}</dd></div><div><dt>Coût</dt><dd>−{formatResourceAmount(purchase.totalPrice)} Moras</dd></div></dl>}</section>
 }
 
-export function ShopHistoryModal({ onClose, onLoad }: { onClose: () => void; onLoad: (page: number) => Promise<ShopHistoryDto> }) {
+export function ShopHistoryModal({ onClose, onLoad, refreshToken = 0 }: { onClose: () => void; onLoad: (page: number) => Promise<ShopHistoryDto>; refreshToken?: number }) {
   const [page, setPage] = useState(1)
   const [history, setHistory] = useState<ShopHistoryDto | null>(null)
   const [loading, setLoading] = useState(true)
@@ -77,7 +79,7 @@ export function ShopHistoryModal({ onClose, onLoad }: { onClose: () => void; onL
       finally { if (active) setLoading(false) }
     })
     return () => { active = false }
-  }, [onLoad, page])
+  }, [onLoad, page, refreshToken])
   const visiblePage = history?.page ?? page
   return <HistoryModalShell title="Historique" category="Boutique / Achats" labelledBy="shop-history-title" page={visiblePage} totalPages={history?.totalPages ?? 0} loading={loading} onPageChange={setPage} onClose={onClose}>
     <div className="history-table-wrap">{error ? <p className="detail-status error" role="alert">{error}</p> : !history && loading ? <p className="detail-status">Chargement de l’historique…</p> : history?.totalCount === 0 ? <p className="detail-status">Aucun achat enregistré.</p> : <table className="history-table shop-history-table"><thead><tr><th>Date</th><th>Article</th><th>Quantité</th><th>Coût</th><th>Résultat</th></tr></thead><tbody>{history?.purchases.map((purchase) => <tr key={purchase.id}><td>{formatPurchaseDate(purchase.purchasedAt)}</td><td>{purchase.displayName}</td><td>{purchase.quantity}</td><td>−{formatResourceAmount(purchase.totalPrice)} Moras</td><td>{effectLabel(purchase.effect)}</td></tr>)}<HistoryTablePlaceholders count={10 - (history?.purchases.length ?? 0)} colSpan={5} /></tbody></table>}</div>

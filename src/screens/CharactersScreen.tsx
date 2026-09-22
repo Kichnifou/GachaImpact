@@ -8,8 +8,8 @@ import { compareCharacters, normalizeCharacterSearch } from '../characters/chara
 import AppButton from '../components/AppButton'
 import { useBannerVotes, type BannerVoteActions } from '../characters/use-banner-votes'
 
-function CharactersScreen({ characters, voteCache, ...voteActions }: { characters: readonly GachaCharacterDto[]; voteCache?: BannerVoteCache } & BannerVoteActions) {
-  const votes = useBannerVotes(voteActions, voteCache)
+function CharactersScreen({ characters, voteCache, refreshToken = 0, ...voteActions }: { characters: readonly GachaCharacterDto[]; voteCache?: BannerVoteCache; refreshToken?: number } & BannerVoteActions) {
+  const votes = useBannerVotes(voteActions, voteCache, refreshToken)
   const [query, setQuery] = useState('')
   const [rarity, setRarity] = useState<CharacterRarityFilter>('all')
   const [element, setElement] = useState<ElementKey | null>(null)
