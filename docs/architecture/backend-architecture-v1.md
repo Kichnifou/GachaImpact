@@ -627,7 +627,7 @@ Une donnée privée ne doit jamais être envoyée au client pour être cachée e
 
 ## Chat global
 
-Le [contrat Chat global R872–R887](../specifications/global-chat-v1.md) fixe le comportement produit ; les MP gardent leur contrat Social R501–R522. Les migrations 032–035, `GlobalChatService` et `ChatCommandDispatcher` alimentent les huit routes player-facing authentifiées et le `ChatPanel` réel. La 035 est incluse dans le checkpoint public `7ed10b475e8f50ad71a4bac20be7c1a87f8d7516`, appliquée sur Supabase DEV ; 35 migrations Prisma sont suivies. Le candidat sur `review` ajoute le transport HTTP incrémental et les corrections UX sans migration.
+Le [contrat Chat global R872–R887](../specifications/global-chat-v1.md) fixe le comportement produit ; les MP gardent leur contrat Social R501–R522. Les migrations 032–035, `GlobalChatService` et `ChatCommandDispatcher` alimentent les huit routes player-facing authentifiées et le `ChatPanel` réel. La 035 est incluse dans le checkpoint public `7ed10b475e8f50ad71a4bac20be7c1a87f8d7516`, appliquée sur Supabase DEV ; 35 migrations Prisma sont suivies. Le Chat player-facing utilise le transport HTTP incrémental et ses corrections UX, sans migration supplémentaire.
 
 Flux conceptuel cible :
 
