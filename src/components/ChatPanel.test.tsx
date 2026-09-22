@@ -133,6 +133,16 @@ describe('ChatPanel réel', () => {
     expect(chat.send.mock.calls[0]?.[3]).toEqual([{ playerId: otherId, displayName: 'Autre' }])
   })
 
+  it('opens and selects empty mention suggestions from the keyboard', async () => {
+    chat.mentions.mockResolvedValue({ players: Array.from({ length: 6 }, (_, index) => ({ id: `${index}`.padStart(8, '0') + '-0000-4000-8000-000000000000', displayName: `Joueur ${index}`, elementKey: null })) })
+    const container = await mount(), input = container.querySelector<HTMLInputElement>('#chat-message')!
+    await act(async () => { type(container, '@'); await new Promise(resolve => setTimeout(resolve, 10)) })
+    expect(chat.mentions).toHaveBeenCalledWith('')
+    expect(container.querySelectorAll('[role="option"]')).toHaveLength(5)
+    await act(async () => { input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true })) })
+    expect(container.querySelector('[aria-selected="true"]')?.textContent).toBe('Joueur 1')
+  })
+
   it('soft-deletes own rows and updates reply previews without exposing old content', async () => {
     const own = { ...message, author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content: 'Texte ancien' }
     chat.messages.mockResolvedValue({ messages: [own, { ...message, id: '55555555-5555-4555-8555-555555555555', content: 'Réponse', replyToMessageId: own.id, replyPreview: own.content }], nextCursor: null, generation: 0 })

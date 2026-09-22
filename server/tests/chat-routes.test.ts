@@ -76,6 +76,8 @@ describe('authenticated Chat routes', () => {
     expect((await enabled.inject({ method: 'POST', url: '/api/v1/chat/read', headers: token, payload: { messageId } })).statusCode).toBe(200);
     expect((await enabled.inject({ method: 'DELETE', url: `/api/v1/chat/messages/${messageId}`, headers: token })).statusCode).toBe(200);
     expect((await enabled.inject({ method: 'GET', url: '/api/v1/chat/mentions?q=elea', headers: token })).json().players[0].id).toBe(playerId);
+    expect((await enabled.inject({ method: 'GET', url: '/api/v1/chat/mentions?q=', headers: token })).statusCode).toBe(200);
+    expect(service.searchMentions).toHaveBeenLastCalledWith(identity, '');
     expect((await enabled.inject({ method: 'POST', url: `/api/v1/chat/messages/${messageId}/report`, headers: token })).statusCode).toBe(200);
     expect(service.report).toHaveBeenCalledWith(identity, messageId);
     expect((await enabled.inject({ method: 'POST', url: `/api/v1/chat/messages/${messageId}/report`, headers: token, payload: { reason: 'invented' } })).statusCode).toBe(400);

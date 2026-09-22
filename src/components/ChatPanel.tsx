@@ -300,10 +300,12 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
       if (messagesRef.current.some(item => !item.id.startsWith('optimistic:') && item.clientIntentKey === next.key)) return
       setError(cause instanceof Error ? cause.message : 'Envoi indisponible.')
       if (cause instanceof ApiError && cause.status !== null && cause.status < 500) {
+        setFailedOverlayVisible(true)
         setMessages(current => current.filter(item => item.clientIntentKey !== next.key))
         setAmbiguousIntents(current => current.filter(item => item.key !== next.key))
         setFailedIntents(current => current.some(item => item.key === next.key) ? current : [...current, { ...next, reason: cause.message }])
       } else {
+        setAmbiguousOverlayVisible(true)
         setFailedIntents(current => current.filter(item => item.key !== next.key))
         setAmbiguousIntents(current => current.some(item => item.key === next.key) ? current : [...current, next])
       }
