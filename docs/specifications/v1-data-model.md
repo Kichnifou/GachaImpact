@@ -1288,7 +1288,7 @@ La présence en ligne est un état temps réel distinct de l'historique métier.
 
 Message du chat global GachaImpact.
 
-Le [contrat Chat global R872–R883](global-chat-v1.md) est propriétaire du comportement joueur. La migration Prisma 032 crée le flux ; la 034 ajoute les mentions et signalements du premier candidat player-facing.
+Le [contrat Chat global R872–R884](global-chat-v1.md) est propriétaire du comportement joueur. Les migrations Prisma 032–034 matérialisent le Chat global actuel ; la 034 ajoute les mentions, les signalements et l'éligibilité du Défi Messages.
 
 Conceptuellement :
 
