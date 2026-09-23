@@ -716,6 +716,7 @@ export type ChatMessageDto = {
   messageType: 'PLAYER' | 'COMMAND' | 'GAME_RESULT' | 'SYSTEM'
   content: string | null
   createdAt: string
+  submissionOrder: string | null
   deletedAt: string | null
   deletionState: 'ACTIVE' | 'AUTHOR' | 'MODERATION'
   replyToMessageId: string | null
@@ -725,8 +726,8 @@ export type ChatMessageDto = {
   resolvedMentions?: ChatMentionDto[]
   clientIntentKey?: string | null
 }
-export type ChatPageDto = { messages: ChatMessageDto[]; nextCursor: { createdAt: string; id: string } | null; generation: number }
-export type ChatUpdatesDto = { generation: number; reset: boolean; messages: ChatMessageDto[]; changes: ChatMessageDto[] }
+export type ChatPageDto = { messages: ChatMessageDto[]; nextCursor: { createdAt: string; id: string } | null; generation: number; visibleMessageIds?: string[] }
+export type ChatUpdatesDto = { generation: number; reset: boolean; messages: ChatMessageDto[]; changes: ChatMessageDto[]; visibleMessageIds?: string[] }
 export type ChatSendDto = { cleared: true; generation: number; replayed: boolean } | { cleared?: false; message: ChatMessageDto; generation: number; xpGranted: number; refreshScopes: ChatRefreshScope[]; dailyChallengeCompleted: boolean; replayed: boolean; result: ChatMessageDto | null; results: ChatMessageDto[] }
 
 export type DirectMessagePlayerDto = Readonly<{ id: string; displayName: string; elementKey: ElementKey | null }>
@@ -738,6 +739,7 @@ export type DirectMessageDto = Readonly<{
   own: boolean
   content: string | null
   createdAt: string
+  submissionOrder: string
   editedAt: string | null
   deletedAt: string | null
   restoredAt: string | null

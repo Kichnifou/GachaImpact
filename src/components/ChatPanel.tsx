@@ -7,6 +7,10 @@ import DirectMessagePanel, { type DirectMessageOpenIntent } from './DirectMessag
 type Props = { playerId: string; playerDisplayName?: string; playerElementKey?: string | null; connectedCount?: number | null; isCollapsed: boolean; onToggle: () => void; onOpenPlayers: () => void; onOpenProfile: (id: string) => void; onRefreshScopes: (scopes: readonly ChatRefreshScope[]) => Promise<void>; directMessageIntent?: DirectMessageOpenIntent | null; onDirectMessageIntentConsumed?: (token: string) => void }
 type Intent = { key: string; content: string; replyId: string | null; mentions: ChatMentionDto[] }
 type FailedIntent = Intent & { reason: string }
+const CHAT_VISIBLE_MESSAGE_LIMIT = 200
+const CHAT_MIN_SUBMISSION_INTERVAL_MS = 750
+const CHAT_BURST_WINDOW_MS = 4_000
+const CHAT_BURST_LOCK_MS = 4_000
 
 function linkChatText(content: string) {
   return content.split(/(https?:\/\/[^\s]+)/giu).map((part, index) => {
@@ -67,6 +71,10 @@ function chatText(content: string, mentions: readonly ChatMentionDto[] = []) {
 const orderMessages = (items: ChatMessageDto[]) => items.sort((a, b) => {
   if (a.id.startsWith('optimistic:')) return b.id.startsWith('optimistic:') ? a.createdAt.localeCompare(b.createdAt) : 1
   if (b.id.startsWith('optimistic:')) return -1
+  if (a.submissionOrder !== null && b.submissionOrder !== null) {
+    const left = BigInt(a.submissionOrder), right = BigInt(b.submissionOrder)
+    if (left !== right) return left < right ? -1 : 1
+  }
   return a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)
 })
 
@@ -105,14 +113,17 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const readId = useRef<string | null>(null)
   const olderBusy = useRef(false)
   const prepend = useRef<{ top: number; height: number } | null>(null)
+  const viewportAnchor = useRef<{ id: string; offset: number } | null>(null)
   const searchVersion = useRef(0)
   const lastRenderedId = useRef<string | null>(null)
   const messagesRef = useRef<ChatMessageDto[]>([])
+  const visibleMessageIds = useRef<string[]>([])
   const deferredLatest = useRef(false)
   const unseenIds = useRef(new Set<string>())
   const initialScrollPending = useRef(true)
   const composer = useRef<HTMLTextAreaElement>(null)
   const copyFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pacing = useRef<{ accepted: number[]; lastAcceptedAt: number | null; burstLockedUntil: number }>({ accepted: [], lastAcceptedAt: null, burstLockedUntil: 0 })
   const chatActive = !isCollapsed && activeTab === 'chat'
   const wasChatActive = useRef(chatActive)
   const resolvedDirectIntent = directMessageIntent ?? localDirectIntent
@@ -125,6 +136,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   }
 
   useEffect(() => () => { if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current) }, [])
+  useEffect(() => { pacing.current = { accepted: [], lastAcceptedAt: null, burstLockedUntil: 0 } }, [playerId])
   useLayoutEffect(() => {
     if (!composer.current) return
     composer.current.style.height = '0px'
@@ -138,9 +150,15 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     generation.current = value
     messagesRef.current = snapshot
     setMessages(snapshot); setCursor(nextCursor); setLoaded(isLoaded); setUnread(nextUnread); setNewCount(0)
-    readId.current = null; unseenIds.current.clear(); deferredLatest.current = false; atBottom.current = true; setScrollbarAtBottom(true); prepend.current = null; lastRenderedId.current = null
+    readId.current = null; unseenIds.current.clear(); visibleMessageIds.current = snapshot.filter(item => !item.id.startsWith('optimistic:')).map(item => item.id); deferredLatest.current = false; atBottom.current = true; setScrollbarAtBottom(true); prepend.current = null; lastRenderedId.current = null
     initialScrollPending.current = true
     setAmbiguousIntents([])
+  }, [])
+  const captureViewportAnchor = useCallback(() => {
+    if (!list.current) return
+    const bounds = list.current.getBoundingClientRect()
+    const element = [...list.current.querySelectorAll<HTMLElement>('[data-message-id]')].find(item => item.getBoundingClientRect().bottom >= bounds.top)
+    if (element?.dataset.messageId) viewportAnchor.current = { id: element.dataset.messageId, offset: element.getBoundingClientRect().top - bounds.top }
   }, [])
 
   const unreadNow = useCallback(async () => {
@@ -156,9 +174,11 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     const changed = generation.current !== null && generation.current !== page.generation
     if (changed) {
       adoptGeneration(page.generation, page.messages, page.nextCursor, true)
+      visibleMessageIds.current = page.visibleMessageIds ?? page.messages.map(item => item.id)
       return
     }
     generation.current = page.generation
+    visibleMessageIds.current = page.visibleMessageIds ?? page.messages.map(item => item.id)
     const current = messagesRef.current
     const previous = new Set(current.filter(item => !item.id.startsWith('optimistic:')).map(item => item.id))
     const fresh = initial ? [] : page.messages.filter(item => !previous.has(item.id) && item.author?.id !== playerId)
@@ -171,7 +191,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     const retain = (item: ChatMessageDto) => item.id.startsWith('optimistic:') ? byIntent.get(item.clientIntentKey) ?? item : updates.get(item.id) ?? item
     const newlySeen = fresh.filter(item => !unseenIds.current.has(item.id))
     if (newlySeen.length && !atBottom.current) setNewCount(count => count + newlySeen.length)
-    if (!initial && !atBottom.current && current.length >= 200) {
+    if (!initial && !atBottom.current && current.length >= CHAT_VISIBLE_MESSAGE_LIMIT) {
       newlySeen.forEach(item => unseenIds.current.add(item.id))
       deferredLatest.current = true
       const next = orderMessages(current.map(retain).filter((item, index, all) => all.findIndex(other => other.id === item.id) === index))
@@ -179,7 +199,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
       setMessages(next)
       return
     }
-    const next = (initial ? orderMessages([...page.messages, ...current.filter(item => item.id.startsWith('optimistic:') && !byIntent.has(item.clientIntentKey))]) : orderMessages([...current.map(retain), ...page.messages.filter(item => !previous.has(item.id) && !current.some(old => old.clientIntentKey && old.clientIntentKey === item.clientIntentKey))].filter((item, index, all) => all.findIndex(other => other.id === item.id) === index))).slice(-200)
+    const next = (initial ? orderMessages([...page.messages, ...current.filter(item => item.id.startsWith('optimistic:') && !byIntent.has(item.clientIntentKey))]) : orderMessages([...current.map(retain), ...page.messages.filter(item => !previous.has(item.id) && !current.some(old => old.clientIntentKey && old.clientIntentKey === item.clientIntentKey))].filter((item, index, all) => all.findIndex(other => other.id === item.id) === index))).slice(-CHAT_VISIBLE_MESSAGE_LIMIT)
     if (initial) { deferredLatest.current = false; unseenIds.current.clear(); setNewCount(0) }
     messagesRef.current = next
     setMessages(next)
@@ -190,10 +210,11 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     if (typeof api.updates !== 'function') return messagesNow(false)
     if (generation.current === null) return messagesNow(true)
     const anchor = [...messagesRef.current].reverse().find(item => !item.id.startsWith('optimistic:'))
-    const update = await api.updates(generation.current, anchor ? { createdAt: anchor.createdAt, id: anchor.id } : null, messagesRef.current.filter(item => !item.id.startsWith('optimistic:') && item.deletionState === 'ACTIVE').map(item => item.id))
+    const update = await api.updates(generation.current, anchor ? { createdAt: anchor.createdAt, id: anchor.id } : null, visibleMessageIds.current)
     if (update.generation < generation.current) return
     if (update.reset) return messagesNow(true)
     if (!update.messages.length && !update.changes.length) return
+    visibleMessageIds.current = update.visibleMessageIds ?? [...new Set([...visibleMessageIds.current, ...update.messages.map(item => item.id)])].slice(-CHAT_VISIBLE_MESSAGE_LIMIT)
     const current = messagesRef.current
     const known = new Set(current.map(item => item.id))
     const incoming = new Map([...update.messages, ...update.changes].map(item => [item.id, item]))
@@ -209,25 +230,30 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
       return next.replyToMessageId && deleted.has(next.replyToMessageId) ? { ...next, replyPreview: 'Message supprimé' } : next
     }
     const fresh = update.messages.filter(item => !known.has(item.id) && !current.some(old => old.clientIntentKey && old.clientIntentKey === item.clientIntentKey))
+    const latestKnownOrder = current.reduce<bigint | null>((latest, item) => item.submissionOrder === null ? latest : latest === null || BigInt(item.submissionOrder) > latest ? BigInt(item.submissionOrder) : latest, null)
+    const hasLateArrival = latestKnownOrder !== null && fresh.some(item => item.submissionOrder !== null && BigInt(item.submissionOrder) < latestKnownOrder)
     const newlySeen = fresh.filter(item => item.author?.id !== playerId && !unseenIds.current.has(item.id))
     if (newlySeen.length && !atBottom.current && !initialScrollPending.current) setNewCount(value => value + newlySeen.length)
-    if (!atBottom.current && !initialScrollPending.current && current.length >= 200 && fresh.length) {
+    if (!atBottom.current && !initialScrollPending.current && current.length >= CHAT_VISIBLE_MESSAGE_LIMIT && fresh.length && !hasLateArrival) {
       newlySeen.forEach(item => unseenIds.current.add(item.id))
       deferredLatest.current = true
       const retained = orderMessages(current.map(retain).filter((item, index, all) => all.findIndex(other => other.id === item.id) === index))
       messagesRef.current = retained; setMessages(retained)
       return
     }
-    const merged = orderMessages([...current.map(retain), ...fresh].filter((item, index, all) => all.findIndex(other => other.id === item.id) === index)).slice(-200)
+    if (hasLateArrival && !atBottom.current) captureViewportAnchor()
+    const merged = orderMessages([...current.map(retain), ...fresh].filter((item, index, all) => all.findIndex(other => other.id === item.id) === index)).slice(-CHAT_VISIBLE_MESSAGE_LIMIT)
     messagesRef.current = merged; setMessages(merged)
-  }, [api, messagesNow, playerId])
+  }, [api, captureViewportAnchor, messagesNow, playerId])
 
-  useEffect(() => {
+  // oxlint-disable-next-line react/set-state-in-effect -- reopen state and local scroll must settle before the first visible paint
+  useLayoutEffect(() => {
     const reopening = !wasChatActive.current && chatActive
     wasChatActive.current = chatActive
     if (!reopening) return
     initialScrollPending.current = true; atBottom.current = true; deferredLatest.current = false; unseenIds.current.clear()
     setScrollbarAtBottom(true); setNewCount(0)
+    if (list.current) list.current.scrollTop = list.current.scrollHeight
     void messagesNow(true).catch(cause => setError(cause instanceof Error ? cause.message : 'Chat indisponible.'))
   }, [chatActive, messagesNow])
 
@@ -262,6 +288,11 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     messagesRef.current = messages
     if (initialScrollPending.current && messages.length) { list.current.scrollTop = list.current.scrollHeight; initialScrollPending.current = false; atBottom.current = true; setScrollbarAtBottom(true) }
     else if (prepend.current) { list.current.scrollTop = prepend.current.top + list.current.scrollHeight - prepend.current.height; prepend.current = null }
+    else if (viewportAnchor.current) {
+      const anchor = viewportAnchor.current, element = list.current.querySelector<HTMLElement>(`[data-message-id="${anchor.id}"]`)
+      if (element) list.current.scrollTop += element.getBoundingClientRect().top - list.current.getBoundingClientRect().top - anchor.offset
+      viewportAnchor.current = null
+    }
     else if (atBottom.current && messages.at(-1)?.id !== lastRenderedId.current) { list.current.scrollTop = list.current.scrollHeight; setScrollbarAtBottom(true) }
     lastRenderedId.current = messages.at(-1)?.id ?? null
   }, [messages])
@@ -274,7 +305,8 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
       const page = await api.messages(cursor)
       if (generation.current !== null && page.generation !== generation.current) { await messagesNow(true); return }
       prepend.current = anchor
-      setMessages(current => [...page.messages.filter(item => !current.some(old => old.id === item.id)), ...current].slice(0, 200))
+      visibleMessageIds.current = page.visibleMessageIds ?? [...new Set([...visibleMessageIds.current, ...page.messages.map(item => item.id)])].slice(-CHAT_VISIBLE_MESSAGE_LIMIT)
+      setMessages(current => orderMessages([...page.messages.filter(item => !current.some(old => old.id === item.id)), ...current]).slice(0, CHAT_VISIBLE_MESSAGE_LIMIT))
       setCursor(page.nextCursor)
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Historique indisponible.') }
     finally { olderBusy.current = false }
@@ -282,7 +314,6 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const markRecent = () => { const id = [...messagesRef.current].reverse().find(item => !item.id.startsWith('optimistic:'))?.id; if (id && !document.hidden && chatActive && readId.current !== id) { readId.current = id; void api.read(id).then(() => setUnread(0)).catch(() => { readId.current = null }) } }
   const scrollBottom = () => { if (deferredLatest.current) { void messagesNow(true).catch(cause => setError(cause instanceof Error ? cause.message : 'Chat indisponible.')); return } if (list.current) list.current.scrollTop = list.current.scrollHeight; atBottom.current = true; setScrollbarAtBottom(true); setNewCount(0); markRecent() }
   const onScroll = () => { if (!list.current || initialScrollPending.current) return; const remaining = list.current.scrollHeight - list.current.scrollTop - list.current.clientHeight; atBottom.current = remaining < 80; setScrollbarAtBottom(remaining <= 2); if (atBottom.current) { if (deferredLatest.current) scrollBottom(); else { setNewCount(0); markRecent() } } if (list.current.scrollTop < 90) void loadOlder() }
-
   useEffect(() => {
     const match = draft.match(/(?:^|\s)@([^\s@]*)$/u), version = ++searchVersion.current
     if (!match) return
@@ -317,14 +348,14 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
       } else {
         const previousGeneration = generation.current
         if (previousGeneration !== null && result.generation > previousGeneration) {
-          const confirmed = orderMessages([result.message, ...result.results].filter((item, index, all) => all.findIndex(other => other.id === item.id) === index)).slice(-350)
+          const confirmed = orderMessages([result.message, ...result.results].filter((item, index, all) => all.findIndex(other => other.id === item.id) === index)).slice(-CHAT_VISIBLE_MESSAGE_LIMIT)
           adoptGeneration(result.generation, confirmed, null, true)
         } else {
           if (previousGeneration === null) generation.current = result.generation
           setMessages(current => {
             const without = current.filter(item => item.clientIntentKey !== next.key && item.id !== result.message.id)
             const confirmed = result.generation === generation.current ? [result.message, ...result.results].filter(item => !without.some(old => old.id === item.id)) : []
-            const merged = orderMessages([...without, ...confirmed]).slice(-350)
+            const merged = orderMessages([...without, ...confirmed]).slice(-CHAT_VISIBLE_MESSAGE_LIMIT)
             messagesRef.current = merged
             return merged
           })
@@ -334,6 +365,15 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
       }
     } catch (cause) {
       if (messagesRef.current.some(item => !item.id.startsWith('optimistic:') && item.clientIntentKey === next.key)) return
+      if (cause instanceof ApiError && cause.code === 'CHAT_PACING_LIMIT') {
+        const retained = messagesRef.current.filter(item => item.clientIntentKey !== next.key)
+        messagesRef.current = retained; setMessages(retained); setError(null)
+        setAmbiguousIntents(current => current.filter(item => item.key !== next.key)); setFailedIntents(current => current.filter(item => item.key !== next.key))
+        setDraft(current => current || next.content)
+        setReply(current => current ?? messagesRef.current.find(item => item.id === next.replyId) ?? null)
+        setMentions(current => current.length ? current : next.mentions)
+        return
+      }
       setError(cause instanceof Error ? cause.message : 'Envoi indisponible.')
       if (cause instanceof ApiError && cause.status !== null && cause.status < 500) {
         setFailedOverlayVisible(true)
@@ -351,10 +391,14 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const send = (event: FormEvent) => {
     event.preventDefault()
     if ((draft.trim().startsWith('!') && commandPending) || !draft.trim() || Array.from(draft.trim()).length > 500) return
+    const submittedAt = Date.now(), state = pacing.current
+    if (submittedAt < state.burstLockedUntil || state.lastAcceptedAt !== null && submittedAt - state.lastAcceptedAt < CHAT_MIN_SUBMISSION_INTERVAL_MS) return
+    state.lastAcceptedAt = submittedAt; state.accepted = [...state.accepted, submittedAt].slice(-3)
+    if (state.accepted.length === 3 && state.accepted[2]! - state.accepted[0]! < CHAT_BURST_WINDOW_MS) state.burstLockedUntil = submittedAt + CHAT_BURST_LOCK_MS
     const next: Intent = { key: crypto.randomUUID(), content: draft.trim(), replyId: reply?.id ?? null, mentions: mentions.filter(item => draft.includes(`@${item.displayName}`)) }
-    const provisional: ChatMessageDto = { id: `optimistic:${next.key}`, clientIntentKey: next.key, author: { id: playerId, displayName: playerDisplayName, elementKey: playerElementKey }, authorLabel: playerDisplayName, sourceChannel: 'INTERNAL_CHAT', messageType: next.content.startsWith('!') ? 'COMMAND' : 'PLAYER', content: next.content, createdAt: new Date().toISOString(), deletedAt: null, deletionState: 'ACTIVE', replyToMessageId: next.replyId, replyPreview: reply?.content ?? null, mentionedMe: false, repliedToMe: false }
+    const provisional: ChatMessageDto = { id: `optimistic:${next.key}`, clientIntentKey: next.key, author: { id: playerId, displayName: playerDisplayName, elementKey: playerElementKey }, authorLabel: playerDisplayName, sourceChannel: 'INTERNAL_CHAT', messageType: next.content.startsWith('!') ? 'COMMAND' : 'PLAYER', content: next.content, createdAt: new Date().toISOString(), submissionOrder: null, deletedAt: null, deletionState: 'ACTIVE', replyToMessageId: next.replyId, replyPreview: reply?.content ?? null, mentionedMe: false, repliedToMe: false }
     setDraft(''); setReply(null); setSuggestions([]); setMentions([]); setError(null)
-    messagesRef.current = [...messagesRef.current, provisional].slice(-350)
+    messagesRef.current = [...messagesRef.current, provisional].slice(-CHAT_VISIBLE_MESSAGE_LIMIT)
     setMessages(messagesRef.current)
     requestAnimationFrame(() => { if (atBottom.current && list.current) { list.current.scrollTop = list.current.scrollHeight; setScrollbarAtBottom(true) } })
     queueMicrotask(() => void submitIntent(next))
@@ -417,7 +461,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
         const authorStyle = !game && message.author ? { '--chat-author-color': authorColor } as CSSProperties : undefined
         const replyTo = () => { setReply(message); setMenuId(null); focusComposer() }
         const mentionAuthor = () => { if (!message.author) return; setDraft(value => `${value}${value && !value.endsWith(' ') ? ' ' : ''}@${message.author!.displayName} `); setMentions(value => [...value, { playerId: message.author!.id, displayName: message.author!.displayName }]); setMenuId(null); focusComposer() }
-        return <article className={`chat-message${message.mentionedMe || message.repliedToMe ? ' chat-message-mentioned' : ''}${optimistic ? ' chat-message-optimistic' : ''}`} style={authorStyle} data-command={optimistic && message.messageType === 'COMMAND' ? 'true' : undefined} data-hover-suppressed={suppressedHoverId === message.id ? 'true' : undefined} data-report-open={reportId === message.id ? 'true' : undefined} onPointerLeave={() => setSuppressedHoverId(current => current === message.id ? null : current)} key={message.id}>
+        return <article className={`chat-message${message.mentionedMe || message.repliedToMe ? ' chat-message-mentioned' : ''}${optimistic ? ' chat-message-optimistic' : ''}`} style={authorStyle} data-message-id={message.id} data-command={optimistic && message.messageType === 'COMMAND' ? 'true' : undefined} data-hover-suppressed={suppressedHoverId === message.id ? 'true' : undefined} data-report-open={reportId === message.id ? 'true' : undefined} onPointerLeave={() => setSuppressedHoverId(current => current === message.id ? null : current)} key={message.id}>
           {game ? <div className="message-avatar chat-game-avatar" aria-hidden="true">✦</div> : <button type="button" className="message-avatar chat-avatar-button" aria-label={`Profil de ${message.authorLabel}`} onClick={() => message.author && onOpenProfile(message.author.id)}>{message.authorLabel?.slice(0, 1).toLocaleUpperCase('fr-FR')}</button>}
           <div className="message-content"><div className="message-meta">{game ? <strong className="chat-game-label">GachaImpact</strong> : <><button type="button" className="chat-author-button" onClick={() => message.author && onOpenProfile(message.author.id)}>{message.authorLabel}</button>{!own && message.author && <button type="button" className="chat-direct-button" aria-label={`Envoyer un message privé à ${message.authorLabel}`} title="Message privé" onClick={() => openDirectMessage(message.author!)}>MP</button>}</>}<time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time></div>
             {message.replyToMessageId && <div className="chat-reply-preview">↳ {message.replyPreview ?? 'Message supprimé'}</div>}

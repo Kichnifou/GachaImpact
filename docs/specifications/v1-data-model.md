@@ -1288,7 +1288,7 @@ La présence en ligne est un état temps réel distinct de l'historique métier.
 
 Message du chat global GachaImpact.
 
-Le [contrat Chat global R872–R886](global-chat-v1.md) est propriétaire du comportement joueur. Les migrations Prisma 032–035 matérialisent le Chat global ; la 034 ajoute les mentions, les signalements et l'éligibilité du Défi Messages, la 035 la génération de visibilité.
+Le [contrat Chat global R872–R895](global-chat-v1.md) est propriétaire du comportement joueur. Les migrations Prisma 032–035 matérialisent le Chat global ; la 034 ajoute les mentions, les signalements et l'éligibilité du Défi Messages, la 035 la génération de visibilité, la 039 l'ordre de soumission serveur commun au Chat et aux MP.
 
 Conceptuellement :
 
@@ -1298,6 +1298,7 @@ Conceptuellement :
 - type : PLAYER / COMMAND / GAME_RESULT / SYSTEM
 - contenu
 - `createdAt`
+- `submissionOrder`, position persistante réservée à la réception serveur et autorité de chronologie player-facing
 - identifiant externe du message lorsque pertinent
 - opération métier liée lorsque pertinent
 - `replyToMessageId` nullable pour l'aperçu de réponse, résolu depuis l'état courant du message ciblé plutôt qu'une copie player-facing de son texte
@@ -1383,7 +1384,7 @@ Les déblocages sont permanents et idempotents.
 
 ## 25.1 `DirectConversation`
 
-Conversation privée standalone, unique par paire canonique ordonnée de deux Players. `lastMessageAt` sert le tri récent sans remplacer les messages autoritatifs.
+Conversation privée standalone, unique par paire canonique ordonnée de deux Players. `lastMessageOrder` sert le tri récent autoritatif ; `lastMessageAt` reste descriptif sans remplacer les messages.
 
 ## 25.2 `ConversationParticipant`
 
@@ -1395,9 +1396,10 @@ Participants et états personnels :
 - archivage individuel
 - curseur de lecture interne
 - curseur de lecture partagé distinct et réglage d'accusé
+- positions `lastReadSubmissionOrder` et `lastSharedReadSubmissionOrder`, autorités monotones des deux curseurs
 - instant réel du dernier avancement partagé, distinct de la création du message
 
-L'état physique courant est porté par les migrations additives 036–038. Le timestamp partagé ne progresse qu'avec le curseur et les accusés activés ; OFF puis ON ne divulgue pas rétroactivement les lectures privées. Le blocage archive les deux états participant, tandis que le déblocage de l'acteur ne restaure ni amitié ni archive.
+L'état physique courant est porté par les migrations additives 036–039. Le timestamp partagé ne progresse qu'avec le curseur et les accusés activés ; OFF puis ON ne divulgue pas rétroactivement les lectures privées. Les positions de réception 039, et non les timestamps, gouvernent leur monotonie. Le blocage archive les deux états participant, tandis que le déblocage de l'acteur ne restaure ni amitié ni archive.
 
 ## 25.3 `DirectConversationRequest`
 
@@ -1409,13 +1411,14 @@ Demande initiale non amie : expéditeur, destinataire, premier message, état `P
 - auteur
 - contenu courant
 - createdAt
+- submissionOrder, position persistante réservée avant le traitement métier
 - editedAt
 - deletedAt
 - état de restauration temporaire selon les règles validées
 - opération idempotente propriétaire
 - marqueur de purge future séparé du tombstone
 
-La projection normale est bornée aux 500 messages les plus récents ; les lignes antérieures restent conservées.
+La projection normale est bornée aux 500 messages les plus récents selon `submissionOrder` ; les lignes antérieures restent conservées. Pagination, non-lus, accusés, dernier message et tri du fil utilisent ce même ordre R895, jamais l'horloge du navigateur ni l'ordre de commit.
 
 ## 25.5 Modération / signalement
 

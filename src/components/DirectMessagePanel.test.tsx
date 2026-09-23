@@ -17,7 +17,7 @@ const otherId = '22222222-2222-4222-8222-222222222222'
 const conversationId = '33333333-3333-4333-8333-333333333333'
 const requestId = '44444444-4444-4444-8444-444444444444'
 const messageId = '55555555-5555-4555-8555-555555555555'
-const message: DirectMessageDto = { id: messageId, conversationId, authorPlayerId: otherId, own: false, content: 'Bonjour https://example.com/ok', createdAt: '2026-09-23T07:00:00.000Z', editedAt: null, deletedAt: null, restoredAt: null, readByOther: false, readByOtherAt: null }
+const message: DirectMessageDto = { id: messageId, conversationId, authorPlayerId: otherId, own: false, content: 'Bonjour https://example.com/ok', createdAt: '2026-09-23T07:00:00.000Z', submissionOrder: '1', editedAt: null, deletedAt: null, restoredAt: null, readByOther: false, readByOtherAt: null }
 const baseConversation: DirectConversationDto = { id: conversationId, other: { id: otherId, displayName: 'Aster', elementKey: 'hydro' }, archived: false, lastMessageAt: message.createdAt, lastMessage: message, request: null, unreadCount: 2, readReceiptsEnabled: true, canSend: true, blockedByMe: false }
 const roots: ReturnType<typeof createRoot>[] = []
 const unreadChanged = vi.fn(), openProfile = vi.fn(), intentConsumed = vi.fn()
@@ -175,5 +175,17 @@ describe('DirectMessagePanel', () => {
     expect(blocked.textContent).toContain('Bloquer ce joueur')
     await act(async () => { (Array.from(blocked.querySelectorAll('.dm-confirm button')).find(item => item.textContent === 'Confirmer') as HTMLButtonElement).click() }); await settle()
     expect(directMessages.block).toHaveBeenCalledWith(conversationId, expect.any(String))
+  })
+
+  it('reorders a late private message by authoritative submission order without buffering', async () => {
+    const later = { ...message, id: '77777777-7777-4777-8777-777777777777', content: 'B', submissionOrder: '20', createdAt: '2026-09-23T07:00:00.000Z' }
+    const earlier = { ...message, id: '66666666-6666-4666-8666-666666666666', content: 'A', submissionOrder: '19', createdAt: '2026-09-23T07:00:01.000Z' }
+    directMessages.messages.mockResolvedValue({ messages: [later], nextCursor: null, windowSize: 1 })
+    const container = await mount()
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    expect(Array.from(container.querySelectorAll('.dm-message p')).map(node => node.textContent)).toEqual(['B'])
+    directMessages.messages.mockResolvedValue({ messages: [earlier], nextCursor: null, windowSize: 2 })
+    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() }); await settle()
+    expect(Array.from(container.querySelectorAll('.dm-message p')).map(node => node.textContent)).toEqual(['A', 'B'])
   })
 })

@@ -964,6 +964,7 @@ model DirectConversation {
   playerBId     String   @map("player_b_id") @db.Uuid
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   lastMessageAt DateTime? @map("last_message_at") @db.Timestamptz(6)
+  lastMessageOrder BigInt? @map("last_message_order")
   playerA       Player   @relation("DirectConversationA", fields: [playerAId], references: [id], onDelete: Restrict)
   playerB       Player   @relation("DirectConversationB", fields: [playerBId], references: [id], onDelete: Restrict)
   participants  DirectConversationParticipant[]
@@ -982,9 +983,11 @@ model DirectConversationParticipant {
   archivedAt              DateTime? @map("archived_at") @db.Timestamptz(6)
   lastReadMessageId       String?   @map("last_read_message_id") @db.Uuid
   lastReadCreatedAt       DateTime? @map("last_read_created_at") @db.Timestamptz(6)
+  lastReadSubmissionOrder BigInt?   @map("last_read_submission_order")
   readReceiptsEnabled     Boolean   @default(true) @map("read_receipts_enabled")
   lastSharedReadMessageId String?   @map("last_shared_read_message_id") @db.Uuid
   lastSharedReadCreatedAt DateTime? @map("last_shared_read_created_at") @db.Timestamptz(6)
+  lastSharedReadSubmissionOrder BigInt? @map("last_shared_read_submission_order")
   lastSharedReadAt        DateTime? @map("last_shared_read_at") @db.Timestamptz(6)
   updatedAt               DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   conversation            DirectConversation @relation(fields: [conversationId], references: [id], onDelete: Restrict)
@@ -1026,6 +1029,7 @@ model DirectMessage {
   content          String?   @db.Text
   operationId      String    @unique(map: "direct_messages_operation_id_key") @map("operation_id") @db.Uuid
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  submissionOrder  BigInt    @unique(map: "direct_messages_submission_order_key") @default(autoincrement()) @map("submission_order")
   editedAt         DateTime? @map("edited_at") @db.Timestamptz(6)
   deletedAt        DateTime? @map("deleted_at") @db.Timestamptz(6)
   restoredAt       DateTime? @map("restored_at") @db.Timestamptz(6)
@@ -1037,7 +1041,7 @@ model DirectMessage {
   participantReads DirectConversationParticipant[] @relation("DirectParticipantLastRead")
   participantSharedReads DirectConversationParticipant[] @relation("DirectParticipantSharedRead")
 
-  @@index([conversationId, createdAt(sort: Desc), id(sort: Desc)], map: "direct_messages_conversation_created_idx")
+  @@index([conversationId, submissionOrder(sort: Desc)], map: "direct_messages_conversation_submission_idx")
   @@index([authorPlayerId, createdAt(sort: Desc)], map: "direct_messages_author_created_idx")
   @@map("direct_messages")
 }
@@ -1052,6 +1056,7 @@ model GlobalChatMessage {
   operationId      String?                 @unique(map: "global_chat_messages_operation_id_key") @map("operation_id") @db.Uuid
   replyToMessageId String?                 @map("reply_to_message_id") @db.Uuid
   createdAt        DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  submissionOrder  BigInt                  @unique(map: "global_chat_messages_submission_order_key") @default(autoincrement()) @map("submission_order")
   deletedAt        DateTime?               @map("deleted_at") @db.Timestamptz(6)
   deletionState    GlobalChatDeletionState @default(ACTIVE) @map("deletion_state")
   generation       Int                     @default(0)
@@ -1065,7 +1070,7 @@ model GlobalChatMessage {
 
   @@unique([sourceChannel, externalMessageId], map: "global_chat_messages_source_external_id_key")
   @@index([createdAt(sort: Desc), id(sort: Desc)], map: "global_chat_messages_created_id_idx")
-  @@index([generation, createdAt(sort: Desc), id(sort: Desc)], map: "global_chat_messages_generation_created_id_idx")
+  @@index([generation, submissionOrder(sort: Desc)], map: "global_chat_messages_generation_submission_idx")
   @@index([authorPlayerId, createdAt(sort: Desc)], map: "global_chat_messages_author_created_idx")
   @@index([replyToMessageId], map: "global_chat_messages_reply_to_idx")
   @@map("global_chat_messages")
@@ -1083,6 +1088,7 @@ model GlobalChatReadState {
   playerId          String            @id @map("player_id") @db.Uuid
   lastReadMessageId String            @map("last_read_message_id") @db.Uuid
   lastReadCreatedAt DateTime          @map("last_read_created_at") @db.Timestamptz(6)
+  lastReadSubmissionOrder BigInt      @map("last_read_submission_order")
   generation        Int               @default(0)
   updatedAt         DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   player            Player            @relation(fields: [playerId], references: [id], onDelete: Cascade)

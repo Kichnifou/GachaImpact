@@ -9,7 +9,8 @@ const fixture = isolatedBatchDatabase();
 const db = fixture.database;
 let now = new Date('2097-09-22T12:00:00.000Z');
 const clock = { now: () => now };
-const service = new DirectMessageService(db, new GetCurrentPlayer(new PrismaCurrentPlayerStore(db)), clock);
+const getPlayer = new GetCurrentPlayer(new PrismaCurrentPlayerStore(db));
+const service = new DirectMessageService(db, getPlayer, clock);
 const as = (subject: string) => ({ subject });
 const advance = (milliseconds = 10_001) => { now = new Date(now.getTime() + milliseconds); };
 
@@ -197,6 +198,32 @@ describe('Direct-message foundations on isolated PostgreSQL', () => {
     let cursor: { id: string; createdAt: string } | undefined, visible = 0;
     do { const page = await service.messages(as(receiver), direct.conversationId as string, 100, cursor); visible += page.messages.length; cursor = page.nextCursor ?? undefined; } while (cursor);
     expect(visible).toBe(500);
+  }, 30_000);
+
+  it('keeps reservation order when private message A commits after B', async () => {
+    const alice = await player('Ordered Alice'), bob = await player('Ordered Bob');
+    const ids = [alice, bob].sort();
+    await db.friendship.create({ data: { playerAId: ids[0]!, playerBId: ids[1]!, state: 'ACTIVE' } });
+    const conversation = await service.initiate(as(alice), bob, 'Initial', randomUUID());
+    advance();
+    let releaseA!: () => void, announceA!: () => void;
+    const aReserved = new Promise<void>(resolve => { announceA = resolve; });
+    const aGate = new Promise<void>(resolve => { releaseA = resolve; });
+    let reservations = 0;
+    const controlled = new DirectMessageService(db, getPlayer, clock, undefined, async () => {
+      reservations += 1;
+      if (reservations === 1) { announceA(); await aGate; }
+    });
+    const pendingA = controlled.send(as(alice), conversation.conversationId as string, 'A réservé en premier', randomUUID());
+    await aReserved;
+    const sentB = await controlled.send(as(bob), conversation.conversationId as string, 'B validé en premier', randomUUID());
+    releaseA();
+    const sentA = await pendingA;
+    const rows = await db.directMessage.findMany({ where: { id: { in: [sentA.messageId, sentB.messageId] } }, orderBy: { submissionOrder: 'asc' } });
+    expect(rows.map(row => row.id)).toEqual([sentA.messageId, sentB.messageId]);
+    const visible = (await service.messages(as(alice), conversation.conversationId as string)).messages.filter(message => [sentA.messageId, sentB.messageId].includes(message.id));
+    expect(visible.map(message => message.id)).toEqual([sentA.messageId, sentB.messageId]);
+    expect((await service.list(as(alice))).conversations[0]?.lastMessage?.id).toBe(sentB.messageId);
   }, 30_000);
 
   it('rolls back the message, conversation and durable operation when activity recording fails', async () => {

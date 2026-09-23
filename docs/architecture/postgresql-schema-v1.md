@@ -1898,7 +1898,7 @@ Le choix exact peut être finalisé pendant le mapping Prisma sans impact métie
 
 # 26. Messages privés
 
-État physique : la migration additive `20260922225444_036_add_direct_message_foundations` matérialise le socle backend-only ; `20260922232731_037_harden_direct_message_history` rend restrictives les trois FK enfant → conversation afin qu'une suppression de conversation ne puisse effacer l'historique ; `20260923092102_038_add_direct_message_shared_read_at` ajoute l'instant réel d'avancement du curseur partagé nécessaire à l'UI. Les quatre tables ont RLS active, aucune policy navigateur et aucun droit `PUBLIC`/`anon`/`authenticated`. Le premier vertical UI MP est candidat sur `review`; historique/recherche/date/signalement/admin et mutations d'édition/suppression/restauration restent hors périmètre.
+État physique : la migration additive `20260922225444_036_add_direct_message_foundations` matérialise le socle backend-only ; `20260922232731_037_harden_direct_message_history` rend restrictives les trois FK enfant → conversation afin qu'une suppression de conversation ne puisse effacer l'historique ; `20260923092102_038_add_direct_message_shared_read_at` ajoute l'instant réel d'avancement du curseur partagé nécessaire à l'UI ; `20260923104500_039_add_message_submission_order` ajoute l'ordre de réception serveur partagé avec le Chat. Les quatre tables ont RLS active, aucune policy navigateur et aucun droit `PUBLIC`/`anon`/`authenticated`. Le premier vertical UI MP est candidat sur `review`; historique/recherche/date/signalement/admin et mutations d'édition/suppression/restauration restent hors périmètre.
 
 ## 26.1 `direct_conversations`
 
@@ -1909,6 +1909,7 @@ Colonnes :
 - `player_b_id uuid NOT NULL REFERENCES players(id) ON DELETE RESTRICT`
 - `created_at timestamptz NOT NULL DEFAULT now()`
 - `last_message_at timestamptz NULL`
+- `last_message_order bigint NULL`
 
 La paire est ordonnée par CHECK et unique. Elle constitue l'identité durable d'une conversation exactement entre ces deux Players ; un trigger interdit participant, demande ou auteur hors paire.
 
@@ -1924,9 +1925,11 @@ Colonnes :
 - `archived_at timestamptz NULL`
 - `last_read_message_id uuid NULL`
 - `last_read_created_at timestamptz NULL`
+- `last_read_submission_order bigint NULL`
 - `read_receipts_enabled boolean NOT NULL DEFAULT true`
 - `last_shared_read_message_id uuid NULL`
 - `last_shared_read_created_at timestamptz NULL`
+- `last_shared_read_submission_order bigint NULL`
 - `last_shared_read_at timestamptz NULL`
 - `updated_at timestamptz NOT NULL DEFAULT now()`
 
@@ -1960,6 +1963,7 @@ Colonnes :
 - `content text NULL`
 - `operation_id uuid NOT NULL UNIQUE REFERENCES business_operations(id) ON DELETE RESTRICT`
 - `created_at timestamptz NOT NULL DEFAULT now()`
+- `submission_order bigint NOT NULL DEFAULT nextval('direct_messages_submission_order_seq') UNIQUE`
 - `edited_at timestamptz NULL`
 - `deleted_at timestamptz NULL`
 - `restored_at timestamptz NULL`
@@ -1971,10 +1975,10 @@ Contraintes :
 
 Index :
 
-- `(conversation_id, created_at DESC, id DESC)`
+- `(conversation_id, submission_order DESC)`
 - `(author_player_id, created_at DESC)`
 
-Les messages restent historiquement conservés. Le service n'expose que les 500 plus récents dans la conversation normale ; il n'existe pas encore de route Historique.
+Les messages restent historiquement conservés. `submission_order` est réservé avant les traitements susceptibles d'inverser les commits ; il gouverne le fil, les 500 plus récents, les curseurs de lecture, accusés, non-lus et `last_message_order`. `created_at` reste descriptif. Le service n'expose que les 500 plus récents dans la conversation normale ; il n'existe pas encore de route Historique.
 
 ---
 
@@ -1999,7 +2003,7 @@ Les administrateurs ne disposent pas d'une lecture libre des MP.
 
 # 27. Chat global
 
-Cible relationnelle alignée sur le [contrat Chat global R872–R893](../specifications/global-chat-v1.md). La migration additive 032 matérialise `global_chat_messages` et `global_chat_read_states` dans Prisma ; 033 corrige la contrainte de contenu interne ; 034 ajoute mentions, signalements et éligibilité du Défi Messages ; 035 ajoute la génération de visibilité. La migration MP 036 est indépendante et ne modifie aucune table Chat global.
+Cible relationnelle alignée sur le [contrat Chat global R872–R895](../specifications/global-chat-v1.md). La migration additive 032 matérialise `global_chat_messages` et `global_chat_read_states` dans Prisma ; 033 corrige la contrainte de contenu interne ; 034 ajoute mentions, signalements et éligibilité du Défi Messages ; 035 ajoute la génération de visibilité ; 039 ajoute l'ordre de réception serveur au Chat et aux MP sans réécrire 038.
 
 ## 27.1 `global_chat_messages`
 
@@ -2014,6 +2018,7 @@ Colonnes :
 - `operation_id uuid NULL REFERENCES business_operations(id) ON DELETE SET NULL`
 - `reply_to_message_id uuid NULL REFERENCES global_chat_messages(id) ON DELETE RESTRICT`
 - `created_at timestamptz NOT NULL DEFAULT now()`
+- `submission_order bigint NOT NULL DEFAULT nextval('global_chat_messages_submission_order_seq') UNIQUE`
 - `deleted_at timestamptz NULL`
 - `deletion_state global_chat_deletion_state NOT NULL DEFAULT ACTIVE` (`ACTIVE`, `AUTHOR`, `MODERATION`)
 - `generation integer NOT NULL DEFAULT 0` — génération visible du message, conservée lors d'un clear.
@@ -2024,9 +2029,9 @@ Index uniques :
 
 Index :
 
-`(created_at DESC, id DESC)`, `(author_player_id, created_at DESC)` et `(reply_to_message_id)`.
+`(created_at DESC, id DESC)`, `(generation, submission_order DESC)`, `(author_player_id, created_at DESC)` et `(reply_to_message_id)`.
 
-Les CHECKs lient l'état de suppression à `deleted_at`, imposent un auteur aux messages joueur/commande et bornent le contenu interne joueur à 1–500 caractères sans saut de ligne. `global_chat_read_states` porte `player_id` comme PK/FK, `last_read_message_id` comme FK, `last_read_created_at`, `generation` et `updated_at` ; la paire temps/ID donne un ordre stable dans la génération. Les deux tables ont RLS activée, aucun droit direct `PUBLIC`/`anon`/`authenticated` et aucune policy navigateur permissive. Aucun `edited_at` global n'est requis. Le contenu supprimé est masqué par la projection serveur ; l'aperçu de réponse suit l'état actuel de la cible. Masquage local, MP et rétention exacte restent hors de cette migration.
+Les CHECKs lient l'état de suppression à `deleted_at`, imposent un auteur aux messages joueur/commande et bornent le contenu interne joueur à 1–500 caractères sans saut de ligne. `global_chat_read_states` porte `player_id` comme PK/FK, `last_read_message_id` comme FK, `last_read_created_at`, `last_read_submission_order`, `generation` et `updated_at`. `submission_order` est réservé avant le traitement métier et devient l'unique chronologie player-facing ; `created_at` demeure descriptif et la paire temps/ID reste seulement le format de curseur API compatible, résolu vers l'ordre canonique. Les deux tables ont RLS activée, aucun droit direct `PUBLIC`/`anon`/`authenticated` et aucune policy navigateur permissive. Aucun `edited_at` global n'est requis. Le contenu supprimé est masqué par la projection serveur ; l'aperçu de réponse suit l'état actuel de la cible. Masquage local et rétention exacte restent distincts.
 
 ## 27.2 Mentions et signalements — migration 034
 
@@ -2036,7 +2041,11 @@ Les CHECKs lient l'état de suppression à `deleted_at`, imposent un auteur aux 
 
 ## 27.3 Frontière de visibilité — migration 035
 
-`global_chat_state` contient une seule ligne `id = 1`, `generation integer NOT NULL DEFAULT 0` et `updated_at`. Un CHECK borne l'ID et la génération. `global_chat_messages.generation` et `global_chat_read_states.generation` sont additifs, non nuls et initialisés à 0 ; l'index `(generation, created_at DESC, id DESC)` sert les pages visibles. `!clear` augmente la génération sous verrou et garde toutes les anciennes lignes dans la base. La table d'état a RLS active et aucun droit `PUBLIC`/`anon`/`authenticated` ; seul le backend accède au modèle. R890 borne désormais toutes les projections joueur aux 200 dernières lignes de cette génération sans purge SQL.
+`global_chat_state` contient une seule ligne `id = 1`, `generation integer NOT NULL DEFAULT 0` et `updated_at`. Un CHECK borne l'ID et la génération. `global_chat_messages.generation` et `global_chat_read_states.generation` sont additifs, non nuls et initialisés à 0 ; depuis 039, l'index `(generation, submission_order DESC)` sert les pages visibles. `!clear` augmente la génération sous verrou et garde toutes les anciennes lignes dans la base. La table d'état a RLS active et aucun droit `PUBLIC`/`anon`/`authenticated` ; seul le backend accède au modèle. R890 borne désormais toutes les projections joueur aux 200 dernières lignes de cette génération sans purge SQL.
+
+## 27.4 Ordre de réception — migration 039
+
+Les séquences `global_chat_messages_submission_order_seq` et `direct_messages_submission_order_seq` réservent une position monotone avant les traitements métier. Les historiques sont rétro-remplis séparément par `row_number() OVER (ORDER BY created_at, id)` ; lectures Chat/MP, curseur partagé et dernier message MP reprennent la position de leur message. Les gaps dus à un rejet après réservation sont admis et n'altèrent pas l'ordre. `GAME_RESULT`/`SYSTEM` prennent leur position lors de leur insertion, donc après leur commande. RLS reste inchangée et les séquences ne donnent aucun droit à `PUBLIC`, `anon` ou `authenticated`.
 
 ---
 

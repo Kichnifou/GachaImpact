@@ -113,29 +113,79 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(await db.globalChatMessage.count({ where: { authorPlayerId: id } })).toBe(1);
   }, 20_000);
 
-  it('shares a serialized two second XP cooldown and limits both PLAYER and COMMAND to ten sends in ten seconds', async () => {
+  it('serializes simultaneous same-player tabs and exact retries bypass pacing', async () => {
     const id = await player();
-    const pair = await Promise.all([service.send(as(id), 'premier', randomUUID()), service.send(as(id), 'deuxième', randomUUID())]);
-    expect(pair.map(result => result.xpGranted).sort()).toEqual([0, 1]);
-    const firstPage = await service.list(as(id), 1);
-    const secondPage = await service.list(as(id), 1, firstPage.nextCursor!);
-    expect(new Set([firstPage.messages[0]?.id, secondPage.messages[0]?.id])).toEqual(new Set(pair.map(result => result.message.id)));
-    expect(await progress(id)).toMatchObject({ totalMessages: 2n, countedMessages: 1n, xp: 61n });
-    const keys = Array.from({ length: 8 }, () => randomUUID());
-    for (const key of keys) await service.send(as(id), '!help', key);
-    await expect(service.send(as(id), 'onzième', randomUUID())).rejects.toMatchObject({ code: 'CHAT_RATE_LIMIT' });
-    expect((await service.send(as(id), '!help', keys[0]!)).replayed).toBe(true);
-    expect(await progress(id)).toMatchObject({ totalMessages: 10n, countedMessages: 1n });
-    advance(10_001);
-    expect((await service.send(as(id), 'repris', randomUUID())).xpGranted).toBe(1);
+    const keys = [randomUUID(), randomUUID()];
+    const pair = await Promise.allSettled([service.send(as(id), 'premier', keys[0]!), service.send(as(id), 'deuxième', keys[1]!)]);
+    const accepted = pair.find((result): result is PromiseFulfilledResult<Awaited<ReturnType<typeof service.send>>> => result.status === 'fulfilled')!;
+    const rejected = pair.find((result): result is PromiseRejectedResult => result.status === 'rejected')!;
+    expect(pair.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+    expect(rejected.reason).toMatchObject({ code: 'CHAT_PACING_LIMIT' });
+    expect((await service.send(as(id), accepted.value.message.content!, keys[pair.indexOf(accepted)]!))).toMatchObject({ message: { id: accepted.value.message.id }, replayed: true });
+    expect(await progress(id)).toMatchObject({ totalMessages: 1n, countedMessages: 1n, xp: 61n });
   }, 60_000);
+
+  it('enforces the exact pacing boundaries without persisting rejected attempts', async () => {
+    const id = await player();
+    const first = await service.send(as(id), 'M1', randomUUID());
+    const before = await progress(id);
+    advance(749);
+    await expect(service.send(as(id), 'trop tôt', randomUUID())).rejects.toMatchObject({ code: 'CHAT_PACING_LIMIT' });
+    expect(await db.globalChatMessage.count({ where: { authorPlayerId: id } })).toBe(1);
+    expect(await db.businessOperation.count({ where: { playerId: id, operationType: 'chat.send' } })).toBe(1);
+    expect(await progress(id)).toMatchObject({ xp: before.xp, totalMessages: before.totalMessages, countedMessages: before.countedMessages });
+    advance(1);
+    const second = await service.send(as(id), 'M2', randomUUID());
+    expect(BigInt(second.message.submissionOrder)).toBeGreaterThan(BigInt(first.message.submissionOrder));
+    advance(750);
+    await service.send(as(id), 'M3', randomUUID());
+    advance(3_999);
+    await expect(service.send(as(id), 'M4', randomUUID())).rejects.toMatchObject({ code: 'CHAT_PACING_LIMIT' });
+    await expect(service.send(as(id), 'M4 encore bloqué', randomUUID())).rejects.toMatchObject({ code: 'CHAT_PACING_LIMIT' });
+    expect(await db.globalChatMessage.count({ where: { authorPlayerId: id } })).toBe(3);
+    advance(1);
+    expect((await service.send(as(id), 'M4 accepté', randomUUID())).replayed).toBe(false);
+  }, 30_000);
+
+  it('retains the legacy ten-in-ten-seconds server guard', async () => {
+    const id = await player();
+    const times = Array.from({ length: 10 }, (_, index) => new Date(now.getTime() - 9_500 + index * 50));
+    times[7] = new Date(now.getTime() - 1_000);
+    times[8] = new Date(now.getTime() - 5_000);
+    times[9] = new Date(now.getTime() - 9_000);
+    await db.globalChatMessage.createMany({ data: times.map((createdAt, index) => ({ authorPlayerId: id, sourceChannel: 'INTERNAL_CHAT', messageType: 'PLAYER', content: `fixture-${index}`, createdAt })) });
+    await expect(service.send(as(id), 'onzième', randomUUID())).rejects.toMatchObject({ code: 'CHAT_RATE_LIMIT' });
+    expect(await db.businessOperation.count({ where: { playerId: id, operationType: 'chat.send' } })).toBe(0);
+    expect(await progress(id)).toMatchObject({ xp: 60n, totalMessages: 0n, countedMessages: 0n });
+  }, 20_000);
+
+  it('keeps reservation order when A commits after B', async () => {
+    const alice = await player(), bob = await player();
+    let releaseA!: () => void, announceA!: () => void;
+    const aReserved = new Promise<void>(resolve => { announceA = resolve; });
+    const aGate = new Promise<void>(resolve => { releaseA = resolve; });
+    let reservations = 0;
+    const controlled = new GlobalChatService(db, getPlayer, clock, random, undefined, undefined, undefined, async () => {
+      reservations += 1;
+      if (reservations === 1) { announceA(); await aGate; }
+    });
+    const pendingA = controlled.send(as(alice), 'A réservé en premier', randomUUID());
+    await aReserved;
+    const sentB = await controlled.send(as(bob), 'B validé en premier', randomUUID());
+    releaseA();
+    const sentA = await pendingA;
+    expect(BigInt(sentA.message.submissionOrder)).toBeLessThan(BigInt(sentB.message.submissionOrder));
+    const ids = new Set([sentA.message.id, sentB.message.id]);
+    const visible = (await service.list(as(alice))).messages.filter(message => ids.has(message.id));
+    expect(visible.map(message => message.id)).toEqual([sentA.message.id, sentB.message.id]);
+  }, 30_000);
 
   it('keeps replies relational, tombstones author deletion, paginates and advances read cursor monotonically', async () => {
     const author = await player(), reader = await player();
-    const previous = await db.globalChatMessage.findFirst({ orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
+    const previous = await db.globalChatMessage.findFirst({ orderBy: { submissionOrder: 'desc' } });
     if (previous) await service.markRead(as(reader), previous.id);
-    const first = await service.send(as(author), 'origine', randomUUID()); advance(1);
-    const second = await service.send(as(reader), 'réponse', randomUUID(), first.message.id); advance(1);
+    const first = await service.send(as(author), 'origine', randomUUID()); advance(750);
+    const second = await service.send(as(reader), 'réponse', randomUUID(), first.message.id); advance(750);
     const third = await service.send(as(author), 'suivant', randomUUID());
     expect((await service.unreadCount(as(reader))).unreadCount).toBe(3);
     const latest = await service.list(as(reader), 2);
@@ -212,7 +262,9 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(await progress(id)).toMatchObject({ xp: 0n, totalMessages: 1n, countedMessages: 0n });
     expect((await db.playerActivityState.findUniqueOrThrow({ where: { playerId: id } })).lastInternalChatAt).toEqual(activity.lastInternalChatAt);
     expect((await dispatcher.send(as(id), '!inconnue', randomUUID())).result?.content).toBe('Commande inconnue. Utilise !help.');
+    advance(4_000);
     expect((await dispatcher.send(as(id), '!banque deposer non', randomUUID())).result?.content).toBe('Syntaxe : !banque [deposer|retirer <montant|max>].');
+    advance(4_000);
     expect((await dispatcher.send(as(id), '!wish', randomUUID())).result?.content).toBe('Cette commande est réservée à Twitch.');
   }, 30_000);
 
@@ -288,12 +340,15 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(await db.globalChatMention.count({ where: { messageId: sent.message.id, mentionedPlayerId: target } })).toBe(1);
     expect((await service.list(as(target))).messages.find(item => item.id === sent.message.id)?.mentionedMe).toBe(true);
     expect((await service.list(as(viewer))).messages.find(item => item.id === sent.message.id)?.mentionedMe).toBe(false);
+    advance(4_000);
     const manual = await service.send(as(author), `Salut @${targetName.toUpperCase()}`, randomUUID());
     expect(await db.globalChatMention.count({ where: { messageId: manual.message.id, mentionedPlayerId: target } })).toBe(1);
+    advance(4_000);
     const forged = await service.send(as(author), 'Salut sans mention', randomUUID(), null, [{ playerId: target, displayName: targetName }]);
     expect(await db.globalChatMention.count({ where: { messageId: forged.message.id } })).toBe(0);
     await db.playerBlock.create({ data: { blockerPlayerId: target, blockedPlayerId: author } });
     expect((await service.searchMentions(as(author), targetName)).players.some(item => item.id === target)).toBe(false);
+    advance(4_000);
     const blocked = await service.send(as(author), `Encore @${targetName}`, randomUUID(), null, [{ playerId: target, displayName: targetName }]);
     expect(await db.globalChatMention.count({ where: { messageId: blocked.message.id } })).toBe(0);
   }, 20_000);
@@ -305,12 +360,16 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(await db.globalChatMention.findMany({ where: { messageId: sent.message.id } })).toHaveLength(1);
     expect((await service.list(as(target))).messages.find(row => row.id === sent.message.id)?.mentionedMe).toBe(true);
     const own = await service.send(as(target), 'Mon message', randomUUID());
+    advance(750);
     const toMe = await service.send(as(author), 'Une réponse', randomUUID(), own.message.id);
     expect((await service.list(as(target))).messages.find(row => row.id === toMe.message.id)?.repliedToMe).toBe(true);
+    advance(4_000);
     const command = await service.send(as(author), '!help @Élodie', randomUUID());
     expect(await db.globalChatMention.count({ where: { messageId: command.message.id } })).toBe(0);
+    advance(4_000);
     const absent = await service.send(as(author), 'Salut @Introuvable', randomUUID());
     expect(await db.globalChatMention.count({ where: { messageId: absent.message.id } })).toBe(0);
+    advance(4_000);
     const partial = await service.send(as(author), 'Salut @Élodie.extra', randomUUID());
     expect(await db.globalChatMention.count({ where: { messageId: partial.message.id } })).toBe(0);
   }, 30_000);
@@ -341,7 +400,9 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect((await db.playerDailyChallenge.findUniqueOrThrow({ where: { id: challenge.id } })).progress).toBe(10n);
     expect((await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: id, resourceKey: 'primogems' } } })).amount).toBe(800n);
     expect((await service.send(as(id), 'Dixième message', key)).dailyChallengeCompleted).toBe(true);
+    advance(750);
     expect((await service.send(as(id), 'Pendant cooldown', randomUUID())).xpGranted).toBe(0);
+    advance(750);
     expect((await service.send(as(id), '!help', randomUUID())).xpGranted).toBe(0);
     expect((await db.playerDailyChallenge.findUniqueOrThrow({ where: { id: challenge.id } })).progress).toBe(10n);
     expect((await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: id, resourceKey: 'primogems' } } })).amount).toBe(800n);
@@ -368,7 +429,7 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(newMigration.rows).toHaveLength(1);
     expect(newMigration.rows[0]?.checksum).toBe(newChecksum);
     expect(newMigration.rows[0]?.finished_at).not.toBeNull();
-    expect(count.rows[0]?.count).toBe('37');
+    expect(count.rows[0]?.count).toBe('39');
     const clearMigration = await fixture.admin.query<{ checksum: string; finished_at: Date | null }>('SELECT checksum, finished_at FROM public._prisma_migrations WHERE migration_name=$1', ['20260922120000_035_add_global_chat_generation']);
     expect(clearMigration.rows).toHaveLength(1);
     expect(clearMigration.rows[0]?.checksum).toBe(migrationChecksum('prisma/migrations/20260922120000_035_add_global_chat_generation/migration.sql'));
@@ -415,6 +476,7 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
       { playerId: moderator, role: 'MODERATOR' }, { playerId: admin, role: 'ADMIN' }, { playerId: tester, role: 'TESTER' },
     ] });
     const before = await service.send(as(author), 'Avant clear', randomUUID());
+    advance(750);
     const command = await service.send(as(author), '!help', randomUUID());
     const page = await service.list(as(author), 1);
     await expect(dispatcher.clear(as(tester), '!clear', randomUUID())).rejects.toMatchObject({ code: 'CHAT_FORBIDDEN' });
@@ -433,12 +495,14 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     await expect(service.report(as(moderator), before.message.id)).rejects.toMatchObject({ code: 'CHAT_UNAVAILABLE' });
     await service.publishGameResult(command.message.id, 'Old answer');
     expect((await service.list(as(author))).messages).toHaveLength(0);
+    advance(750);
     const next = await service.send(as(author), 'Après clear', randomUUID());
     expect((await service.list(as(author))).messages.map(row => row.id)).toContain(next.message.id);
     expect((await service.unreadCount(as(moderator))).unreadCount).toBe(1);
     const operation = await db.businessOperation.findFirstOrThrow({ where: { operationType: 'chat.clear', idempotencyKey: key } });
     expect(operation).toMatchObject({ playerId: moderator, status: 'COMPLETED' });
     expect(operation.resultSummary).toMatchObject({ generation: 1, previousGeneration: 0 });
+    advance(4_000);
     const concurrent = await Promise.all([service.send(as(author), 'Concurrent', randomUUID()), dispatcher.clear(as(admin), '!clear', randomUUID())]);
     const current = await service.list(as(author));
     expect(current.messages.some(row => row.id === concurrent[0].message.id)).toBe(concurrent[0].generation === concurrent[1].generation);
@@ -457,9 +521,9 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(initial.messages.map(row => row.id)).toEqual([first.message.id]);
     expect(initial.messages[0]?.clientIntentKey).toBe(key);
     expect((await service.updates(as(reader), cleared.generation)).messages[0]?.clientIntentKey).toBeNull();
-    advance(1);
+    advance(750);
     const second = await service.send(as(author), 'Second', randomUUID());
-    advance(1);
+    advance(750);
     const third = await service.send(as(author), 'Troisième', randomUUID());
     const anchor = { createdAt: first.message.createdAt, id: first.message.id };
     expect(await service.updates(as(reader), cleared.generation, { ...anchor, createdAt: '2000-01-01T00:00:00.000Z' })).toEqual({ generation: cleared.generation, reset: true, messages: [], changes: [] });
@@ -483,7 +547,7 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     const anchor = await db.globalChatMessage.create({ data: { authorPlayerId: author, sourceChannel: 'INTERNAL_CHAT', messageType: 'PLAYER', content: 'ancre', createdAt: new Date(now.getTime() + 200), generation } });
     const newIds = Array.from({ length: 101 }, () => randomUUID());
     await db.globalChatMessage.createMany({ data: newIds.map((id, index) => ({ id, authorPlayerId: author, sourceChannel: 'INTERNAL_CHAT', messageType: 'PLAYER', content: `nouveau ${index}`, createdAt: new Date(now.getTime() + 300 + index), generation })) });
-    const page = await service.updates(as(author), generation, { createdAt: anchor.createdAt.toISOString(), id: anchor.id }, oldIds);
+    const page = await service.updates(as(author), generation, { createdAt: anchor.createdAt.toISOString(), id: anchor.id }, [...oldIds, anchor.id]);
     expect(page.messages).toHaveLength(100);
     expect(page.messages.map(row => row.id)).toEqual(newIds.slice(0, 100));
     expect(page.changes).toHaveLength(98);
@@ -491,6 +555,10 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     const tail = await service.updates(as(author), generation, { createdAt: last.createdAt, id: last.id });
     expect(tail.messages.map(row => row.id)).toEqual(newIds.slice(100));
     expect(tail.changes).toEqual([]);
+    const snapshot = await service.list(as(author), 50);
+    expect(snapshot.visibleMessageIds).toHaveLength(200);
+    const snapshotAnchor = snapshot.messages.at(-1)!;
+    expect((await service.updates(as(author), generation, { createdAt: snapshotAnchor.createdAt, id: snapshotAnchor.id }, snapshot.visibleMessageIds)).messages).toEqual([]);
     let cursor: { createdAt: string; id: string } | undefined, visible: string[] = [];
     do { const result = await service.list(as(author), 100, cursor); visible = [...visible, ...result.messages.map(row => row.id)]; cursor = result.nextCursor ?? undefined; } while (cursor);
     expect(visible).toHaveLength(200);

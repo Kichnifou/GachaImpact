@@ -40,6 +40,7 @@ export class DirectMessageService {
     private readonly getCurrentPlayer: GetCurrentPlayer,
     private readonly clock: Clock,
     private readonly activity = new PlayerActivityRecorder(),
+    private readonly onSubmissionReserved?: (order: bigint) => Promise<void>,
   ) {}
 
   private async actor(identity: AuthenticatedIdentity) { return this.getCurrentPlayer.execute(identity); }
@@ -95,21 +96,31 @@ export class DirectMessageService {
   private async rate(tx: Prisma.TransactionClient, playerId: string, now: Date) {
     if (await tx.directMessage.count({ where: { authorPlayerId: playerId, createdAt: { gt: new Date(now.getTime() - 10_000) } } }) >= 10) throw rateLimited();
   }
-  private async createMessage(tx: Prisma.TransactionClient, playerId: string, conversationId: string, content: string, operationId: string, now: Date) {
-    const message = await tx.directMessage.create({ data: { conversationId, authorPlayerId: playerId, content, operationId, createdAt: now } });
-    await tx.directConversation.update({ where: { id: conversationId }, data: { lastMessageAt: now } });
+  private async reserveSubmissionOrder(key: string) {
+    const rows = await this.database.$queryRaw<{ submission_order: bigint | null }[]>`
+      SELECT CASE WHEN EXISTS (
+        SELECT 1 FROM business_operations WHERE source_channel = 'UI'::source_channel AND idempotency_key = ${key}
+      ) THEN NULL ELSE nextval('direct_messages_submission_order_seq') END AS submission_order`;
+    return rows[0]?.submission_order ?? null;
+  }
+  private async createMessage(tx: Prisma.TransactionClient, playerId: string, conversationId: string, content: string, operationId: string, now: Date, submissionOrder: bigint) {
+    const message = await tx.directMessage.create({ data: { conversationId, authorPlayerId: playerId, content, operationId, createdAt: now, submissionOrder } });
+    await tx.directConversation.updateMany({ where: { id: conversationId, OR: [{ lastMessageOrder: null }, { lastMessageOrder: { lt: submissionOrder } }] }, data: { lastMessageAt: now, lastMessageOrder: submissionOrder } });
     await tx.directConversationParticipant.updateMany({ where: { conversationId }, data: { archivedAt: null } });
     return message;
   }
 
   async initiate(identity: AuthenticatedIdentity, targetPlayerId: string, rawContent: string, key: string): Promise<InitiateResult & { replayed: boolean }> {
-    const actor = await this.actor(identity), content = normalizeContent(rawContent);
+    const content = normalizeContent(rawContent), submissionOrder = await this.reserveSubmissionOrder(key);
+    if (submissionOrder !== null && this.onSubmissionReserved) await this.onSubmissionReserved(submissionOrder);
+    const actor = await this.actor(identity);
     if (actor.id === targetPlayerId || !validUuid(targetPlayerId)) throw unavailable();
     const fingerprint = `${targetPlayerId}:${content}`;
     return this.transaction(async tx => {
       await this.lockPlayers(tx, [actor.id, targetPlayerId]);
       const replay = await this.replay<InitiateResult>(tx, actor.id, key, 'direct-message.initiate', fingerprint);
       if (replay) return { ...replay, replayed: true };
+      if (submissionOrder === null) throw conflict();
       const access = await this.permission(tx, actor.id, targetPlayerId);
       const now = this.clock.now();
       await this.rate(tx, actor.id, now);
@@ -121,7 +132,7 @@ export class DirectMessageService {
       if (latestRequest?.state === 'REFUSED' && latestRequest.retryAfter && latestRequest.retryAfter > now) throw new AppError('Une nouvelle demande pourra être envoyée après le délai de 24 h.', 429, 'DIRECT_MESSAGE_RETRY_LATER');
       const accepted = access.friends || latestRequest?.state === 'ACCEPTED';
       const operation = await this.operation(tx, actor.id, key, 'direct-message.initiate', fingerprint, now);
-      const message = await this.createMessage(tx, actor.id, conversation.id, content, operation.id, now);
+      const message = await this.createMessage(tx, actor.id, conversation.id, content, operation.id, now, submissionOrder);
       let requestId: string | null = null, state = 'ACCEPTED';
       if (!accepted) {
         const request = await tx.directConversationRequest.create({ data: { conversationId: conversation.id, senderPlayerId: actor.id, recipientPlayerId: targetPlayerId, firstMessageId: message.id, createdAt: now } });
@@ -135,18 +146,21 @@ export class DirectMessageService {
   }
 
   async send(identity: AuthenticatedIdentity, conversationId: string, rawContent: string, key: string): Promise<SendResult & { replayed: boolean }> {
-    const actor = await this.actor(identity), content = normalizeContent(rawContent), fingerprint = `${conversationId}:${content}`;
+    const content = normalizeContent(rawContent), fingerprint = `${conversationId}:${content}`, submissionOrder = await this.reserveSubmissionOrder(key);
+    if (submissionOrder !== null && this.onSubmissionReserved) await this.onSubmissionReserved(submissionOrder);
+    const actor = await this.actor(identity);
     return this.transaction(async tx => {
       const initial = await this.requireConversation(tx, conversationId, actor.id), otherId = this.other(initial, actor.id);
       await this.lockPlayers(tx, [actor.id, otherId]);
       const replay = await this.replay<SendResult>(tx, actor.id, key, 'direct-message.send', fingerprint);
       if (replay) return { ...replay, replayed: true };
+      if (submissionOrder === null) throw conflict();
       const access = await this.permission(tx, actor.id, otherId);
       const latestRequest = await tx.directConversationRequest.findFirst({ where: { conversationId }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
       if (latestRequest?.state === 'PENDING' || latestRequest?.state === 'REFUSED' && !access.friends) throw unavailable();
       const now = this.clock.now(); await this.rate(tx, actor.id, now);
       const operation = await this.operation(tx, actor.id, key, 'direct-message.send', fingerprint, now);
-      const message = await this.createMessage(tx, actor.id, conversationId, content, operation.id, now);
+      const message = await this.createMessage(tx, actor.id, conversationId, content, operation.id, now, submissionOrder);
       const result: SendResult = { conversationId, messageId: message.id };
       await this.finish(tx, operation.id, fingerprint, result);
       await this.activity.record(tx, actor.id, now, 'INTERNAL_CHAT');
@@ -224,12 +238,12 @@ export class DirectMessageService {
         playerA: { select: { id: true, displayName: true, elementKey: true } }, playerB: { select: { id: true, displayName: true, elementKey: true } },
         participants: true,
         requests: { orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 1 },
-        messages: { orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 1 },
-      }, orderBy: [{ lastMessageAt: 'desc' }, { id: 'desc' }],
+        messages: { orderBy: { submissionOrder: 'desc' }, take: 1 },
+      }, orderBy: [{ lastMessageOrder: 'desc' }, { id: 'desc' }],
     });
     const unreadRows = await this.database.$queryRaw<{ conversation_id: string; unread_count: number }[]>`SELECT p.conversation_id, count(m.id)::integer AS unread_count
       FROM direct_conversation_participants p JOIN direct_messages m ON m.conversation_id = p.conversation_id AND m.author_player_id <> p.player_id
-      WHERE p.player_id = ${actor.id}::uuid AND (p.last_read_created_at IS NULL OR (m.created_at, m.id) > (p.last_read_created_at, p.last_read_message_id))
+      WHERE p.player_id = ${actor.id}::uuid AND (p.last_read_submission_order IS NULL OR m.submission_order > p.last_read_submission_order)
       GROUP BY p.conversation_id`;
     const unreadByConversation = new Map(unreadRows.map(row => [row.conversation_id, row.unread_count]));
     const conversations = [];
@@ -241,22 +255,27 @@ export class DirectMessageService {
       const effectivelyArchived = Boolean(state.archivedAt) || access.blockedByActor || access.blockedByOther;
       if (effectivelyArchived !== archived) continue;
       const canSend = access.allowed && latestRequest?.state !== 'PENDING' && (latestRequest?.state !== 'REFUSED' || access.friends);
-      conversations.push({ id: row.id, other, archived: effectivelyArchived, lastMessageAt: row.lastMessageAt?.toISOString() ?? null, lastMessage: row.messages[0] ? this.projectMessage(row.messages[0], actor.id, null) : null, request: latestRequest ? { id: latestRequest.id, state: latestRequest.state, senderPlayerId: latestRequest.senderPlayerId, retryAfter: latestRequest.retryAfter?.toISOString() ?? null } : null, unreadCount: unreadByConversation.get(row.id) ?? 0, readReceiptsEnabled: state.readReceiptsEnabled, canSend, blockedByMe: access.blockedByActor });
+      conversations.push({ id: row.id, other, archived: effectivelyArchived, lastMessageAt: row.messages[0]?.createdAt.toISOString() ?? null, lastMessage: row.messages[0] ? this.projectMessage(row.messages[0], actor.id, null) : null, request: latestRequest ? { id: latestRequest.id, state: latestRequest.state, senderPlayerId: latestRequest.senderPlayerId, retryAfter: latestRequest.retryAfter?.toISOString() ?? null } : null, unreadCount: unreadByConversation.get(row.id) ?? 0, readReceiptsEnabled: state.readReceiptsEnabled, canSend, blockedByMe: access.blockedByActor });
     }
-    conversations.sort((left, right) => Number(right.unreadCount > 0) - Number(left.unreadCount > 0) || (right.lastMessageAt ?? '').localeCompare(left.lastMessageAt ?? '') || right.id.localeCompare(left.id));
+    conversations.sort((left, right) => {
+      const unreadOrder = Number(right.unreadCount > 0) - Number(left.unreadCount > 0);
+      if (unreadOrder) return unreadOrder;
+      const leftOrder = BigInt(left.lastMessage?.submissionOrder ?? '0'), rightOrder = BigInt(right.lastMessage?.submissionOrder ?? '0');
+      return rightOrder < leftOrder ? -1 : rightOrder > leftOrder ? 1 : right.id.localeCompare(left.id);
+    });
     return { conversations };
   }
 
-  private projectMessage(row: { id: string; conversationId: string; authorPlayerId: string; content: string | null; createdAt: Date; editedAt: Date | null; deletedAt: Date | null; restoredAt: Date | null }, viewerId: string, otherRead: { lastSharedReadCreatedAt: Date | null; lastSharedReadMessageId: string | null; lastSharedReadAt: Date | null } | null) {
-    const readByOther = Boolean(otherRead?.lastSharedReadCreatedAt && (row.createdAt < otherRead.lastSharedReadCreatedAt || row.createdAt.getTime() === otherRead.lastSharedReadCreatedAt.getTime() && row.id <= otherRead.lastSharedReadMessageId!));
-    return { id: row.id, conversationId: row.conversationId, authorPlayerId: row.authorPlayerId, own: row.authorPlayerId === viewerId, content: row.content, createdAt: row.createdAt.toISOString(), editedAt: row.editedAt?.toISOString() ?? null, deletedAt: row.deletedAt?.toISOString() ?? null, restoredAt: row.restoredAt?.toISOString() ?? null, readByOther, readByOtherAt: readByOther ? otherRead?.lastSharedReadAt?.toISOString() ?? null : null };
+  private projectMessage(row: { id: string; conversationId: string; authorPlayerId: string; content: string | null; createdAt: Date; submissionOrder: bigint; editedAt: Date | null; deletedAt: Date | null; restoredAt: Date | null }, viewerId: string, otherRead: { lastSharedReadSubmissionOrder: bigint | null; lastSharedReadAt: Date | null } | null) {
+    const readByOther = Boolean(otherRead?.lastSharedReadSubmissionOrder && row.submissionOrder <= otherRead.lastSharedReadSubmissionOrder);
+    return { id: row.id, conversationId: row.conversationId, authorPlayerId: row.authorPlayerId, own: row.authorPlayerId === viewerId, content: row.content, createdAt: row.createdAt.toISOString(), submissionOrder: row.submissionOrder.toString(), editedAt: row.editedAt?.toISOString() ?? null, deletedAt: row.deletedAt?.toISOString() ?? null, restoredAt: row.restoredAt?.toISOString() ?? null, readByOther, readByOtherAt: readByOther ? otherRead?.lastSharedReadAt?.toISOString() ?? null : null };
   }
 
   async messages(identity: AuthenticatedIdentity, conversationId: string, limit = 50, cursor?: DirectCursor) {
     const actor = await this.actor(identity);
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw invalid('Taille de page invalide.');
     const conversation = await this.requireConversation(this.database as unknown as Prisma.TransactionClient, conversationId, actor.id);
-    const recent = await this.database.directMessage.findMany({ where: { conversationId }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 500 });
+    const recent = await this.database.directMessage.findMany({ where: { conversationId }, orderBy: { submissionOrder: 'desc' }, take: 500 });
     let offset = 0;
     if (cursor) {
       if (!validUuid(cursor.id)) throw invalid('Curseur invalide.');
@@ -267,7 +286,7 @@ export class DirectMessageService {
       offset = index + 1;
     }
     const page = recent.slice(offset, offset + limit), last = page.at(-1);
-    const otherState = await this.database.directConversationParticipant.findUniqueOrThrow({ where: { conversationId_playerId: { conversationId, playerId: this.other(conversation, actor.id) } }, select: { lastSharedReadCreatedAt: true, lastSharedReadMessageId: true, lastSharedReadAt: true } });
+    const otherState = await this.database.directConversationParticipant.findUniqueOrThrow({ where: { conversationId_playerId: { conversationId, playerId: this.other(conversation, actor.id) } }, select: { lastSharedReadSubmissionOrder: true, lastSharedReadAt: true } });
     return { messages: page.reverse().map(row => this.projectMessage(row, actor.id, otherState)), nextCursor: offset + limit < recent.length && last ? { id: last.id, createdAt: last.createdAt.toISOString() } : null, windowSize: recent.length };
   }
 
@@ -275,7 +294,7 @@ export class DirectMessageService {
     const actor = await this.actor(identity);
     const rows = await this.database.$queryRaw<{ conversation_id: string; unread_count: number }[]>`SELECT p.conversation_id, count(m.id)::integer AS unread_count
       FROM direct_conversation_participants p JOIN direct_messages m ON m.conversation_id = p.conversation_id AND m.author_player_id <> p.player_id
-      WHERE p.player_id = ${actor.id}::uuid AND (p.last_read_created_at IS NULL OR (m.created_at, m.id) > (p.last_read_created_at, p.last_read_message_id))
+      WHERE p.player_id = ${actor.id}::uuid AND (p.last_read_submission_order IS NULL OR m.submission_order > p.last_read_submission_order)
       GROUP BY p.conversation_id`;
     return { unreadCount: rows.reduce((sum, row) => sum + row.unread_count, 0), conversations: rows.map(row => ({ conversationId: row.conversation_id, unreadCount: row.unread_count })) };
   }
@@ -289,12 +308,14 @@ export class DirectMessageService {
       const readAt = this.clock.now();
       const rows = await tx.$queryRaw<{ last_read_message_id: string; last_shared_read_at: Date | null }[]>`UPDATE direct_conversation_participants SET
         last_read_message_id = ${target.id}::uuid, last_read_created_at = ${target.createdAt},
+        last_read_submission_order = ${target.submissionOrder},
         last_shared_read_message_id = CASE WHEN read_receipts_enabled THEN ${target.id}::uuid ELSE last_shared_read_message_id END,
         last_shared_read_created_at = CASE WHEN read_receipts_enabled THEN ${target.createdAt} ELSE last_shared_read_created_at END,
+        last_shared_read_submission_order = CASE WHEN read_receipts_enabled THEN ${target.submissionOrder} ELSE last_shared_read_submission_order END,
         last_shared_read_at = CASE WHEN read_receipts_enabled THEN ${readAt} ELSE last_shared_read_at END,
         updated_at = ${readAt}
         WHERE conversation_id = ${conversationId}::uuid AND player_id = ${actor.id}::uuid
-          AND (last_read_created_at IS NULL OR (last_read_created_at, last_read_message_id) < (${target.createdAt}, ${target.id}::uuid))
+          AND (last_read_submission_order IS NULL OR last_read_submission_order < ${target.submissionOrder})
         RETURNING last_read_message_id, last_shared_read_at`;
       const current = rows[0] ?? await tx.directConversationParticipant.findUniqueOrThrow({ where: { conversationId_playerId: { conversationId, playerId: actor.id } }, select: { lastReadMessageId: true, lastSharedReadAt: true } });
       return { lastReadMessageId: 'last_read_message_id' in current ? current.last_read_message_id : current.lastReadMessageId, sharedReadAt: ('last_shared_read_at' in current ? current.last_shared_read_at : current.lastSharedReadAt)?.toISOString() ?? null, changed: Boolean(rows[0]) };

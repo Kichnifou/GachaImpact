@@ -27,7 +27,9 @@ La [source spécialisée Chat global](global-chat-v1.md) détaille ces règles. 
 - `RÉVISÉ R877 / VALIDÉ R890` — Le Chat global player-facing est borné aux 200 messages les plus récents de la génération courante, côté liste/cursors, updates, non-lus et client. Les lignes plus anciennes et les générations précédentes restent conservées dans PostgreSQL pour audit/modération mais ne sont pas exposées par un parcours joueur.
 - `VALIDÉ R891` — Les actions d'un message Chat d'autrui suivent `Signaler | Masquer | Copier | Mentionner | Répondre` sur desktop comme sur tactile ; celles de son propre message suivent `Copier | Répondre | Supprimer`.
 - `VALIDÉ R892` — La confirmation Signaler reste directement sous la rangée d'actions du message concerné, sans être repoussée sous le corps multiligne.
-- `VALIDÉ R893` — Rouvrir le Chat replié resynchronise toujours la page récente et replace le lecteur en bas, même après consultation de l'historique ou arrivée de messages différés.
+- `RÉVISÉ R893` — Rouvrir le Chat replié place le snapshot local au bas avant le premier paint visible, sans attendre le réseau, puis resynchronise la page récente en arrière-plan et maintient le bas tant que ce mode reste actif.
+- `VALIDÉ R894` — Le Chat global impose 750 ms entre nouveaux envois acceptés ; trois envois en moins de quatre secondes verrouillent jusqu'à quatre secondes après le troisième. Les refus locaux et `CHAT_PACING_LIMIT` sont des no-op silencieux qui préservent draft/réponse/mentions et ne prolongent pas le verrou ; un retry exact garde sa clé et ne compte pas comme nouvel envoi. Le filet serveur dix messages/dix secondes demeure.
+- `VALIDÉ R895` — Chat global et MP suivent un ordre persistant réservé à la réception serveur, jamais une horloge client ni la fin de transaction. Aucun buffering temporel : B peut apparaître aussitôt, puis une arrivée tardive A réservée avant lui réordonne immédiatement le fil en A/B. Le même ordre gouverne pages, fenêtres, non-lus, curseurs, accusés et dernier MP.
 
 ## Event — messages du Jeu C (clarification propriétaire du 16/09/2026)
 

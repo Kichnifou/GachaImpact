@@ -17,6 +17,7 @@ import { scopesForOperation, type ChatRefreshScope } from './chat-refresh-scopes
 const invalid = (message: string) => new AppError(message, 400, 'CHAT_INVALID');
 const unavailable = () => new AppError('Ce message est indisponible.', 404, 'CHAT_UNAVAILABLE');
 const conflict = () => new AppError('Cette clé appartient à un autre message.', 409, 'CHAT_IDEMPOTENCY_CONFLICT');
+const pacingLimited = () => new AppError('Envoi Chat temporairement limité.', 429, 'CHAT_PACING_LIMIT');
 const PLAYER_HISTORY_LIMIT = 200;
 export type ChatCursor = { createdAt: string; id: string };
 type ChatOperationSummary = { fingerprint: string; messageId?: string; xpGranted?: number; refreshScopes?: string[]; dailyChallengeCompleted?: boolean; resolvedQuantity?: string; targetId?: string; action?: string };
@@ -47,7 +48,7 @@ function splitGameResult(content: string): string[] {
 
 function project(row: {
   id: string; authorPlayerId: string | null; sourceChannel: string; messageType: string; content: string;
-  createdAt: Date; deletedAt: Date | null; deletionState: GlobalChatDeletionState;
+  createdAt: Date; submissionOrder: bigint; deletedAt: Date | null; deletionState: GlobalChatDeletionState;
   replyToMessageId: string | null; author: { id: string; displayName: string; elementKey: string | null } | null;
   replyToMessage: { id: string; content: string; deletionState: GlobalChatDeletionState; authorPlayerId: string | null } | null;
   mentions: { mentionedPlayerId: string; mentionedPlayer: { displayName: string } }[];
@@ -57,7 +58,7 @@ function project(row: {
   return {
     id: row.id, author: row.author, authorLabel: row.messageType === GlobalChatMessageType.GAME_RESULT ? 'GachaImpact' : row.author?.displayName ?? null,
     sourceChannel: row.sourceChannel, messageType: row.messageType,
-    content: deleted ? null : row.content, createdAt: row.createdAt.toISOString(),
+    content: deleted ? null : row.content, createdAt: row.createdAt.toISOString(), submissionOrder: row.submissionOrder.toString(),
     deletedAt: row.deletedAt?.toISOString() ?? null, deletionState: row.deletionState,
     replyToMessageId: row.replyToMessageId,
     replyPreview: row.replyToMessage ? (row.replyToMessage.deletionState === GlobalChatDeletionState.ACTIVE ? row.replyToMessage.content : 'Message supprimé') : null,
@@ -77,6 +78,7 @@ export class GlobalChatService {
     private readonly xp = new PrismaPlayerXpService(),
     private readonly activity = new PlayerActivityRecorder(),
     private readonly dailyChallenges = new PrismaDailyChallengeStore(database),
+    private readonly onSubmissionReserved?: (order: bigint) => Promise<void>,
   ) {}
 
   private async actor(identity: AuthenticatedIdentity) { return this.currentPlayer.execute(identity); }
@@ -108,6 +110,14 @@ export class GlobalChatService {
     return (await this.database.globalChatState.findUnique({ where: { id: 1 }, select: { generation: true } }))?.generation ?? 0;
   }
 
+  private async reserveSubmissionOrder(idempotencyKey: string) {
+    const rows = await this.database.$queryRaw<{ submission_order: bigint | null }[]>`
+      SELECT CASE WHEN EXISTS (
+        SELECT 1 FROM business_operations WHERE source_channel = 'INTERNAL_CHAT'::source_channel AND idempotency_key = ${idempotencyKey}
+      ) THEN NULL ELSE nextval('global_chat_messages_submission_order_seq') END AS submission_order`;
+    return rows[0]?.submission_order ?? null;
+  }
+
   async clear(identity: AuthenticatedIdentity, content: string, idempotencyKey: string) {
     const player = await this.actor(identity);
     if (content.trim().toLocaleLowerCase('fr-FR') !== '!clear') throw invalid('Syntaxe : !clear.');
@@ -132,7 +142,6 @@ export class GlobalChatService {
   }
 
   async send(identity: AuthenticatedIdentity, content: string, idempotencyKey: string, replyToMessageId?: string | null, mentions: readonly ChatMentionInput[] = []) {
-    const player = await this.actor(identity);
     const normalized = normalize(content);
     if (typeof idempotencyKey !== 'string' || !idempotencyKey.trim() || idempotencyKey.length > 200) throw invalid('Clé de requête invalide.');
     const replyId = replyToMessageId ?? null;
@@ -140,6 +149,10 @@ export class GlobalChatService {
     if (mentions.length > 10 || mentions.some(mention => !/^[0-9a-f-]{36}$/i.test(mention.playerId) || typeof mention.displayName !== 'string' || mention.displayName.length > 100)) throw invalid('Mention invalide.');
     // Hints improve autocomplete only. The text and current server identities determine mentions.
     const fingerprint = createHash('sha256').update(JSON.stringify([normalized.value, replyId])).digest('hex');
+    const submissionOrder = await this.reserveSubmissionOrder(idempotencyKey);
+    if (submissionOrder !== null && this.onSubmissionReserved) await this.onSubmissionReserved(submissionOrder);
+    const player = await this.actor(identity);
+    const submittedAt = this.clock.now();
     return this.transaction(async tx => {
       const actor = await this.lockPlayer(tx, player.id);
       const generation = await this.lockedGeneration(tx);
@@ -150,7 +163,8 @@ export class GlobalChatService {
         const message = await tx.globalChatMessage.findUniqueOrThrow({ where: { id: summary.messageId }, include: messageInclude });
         return { message: project(message, player.id), generation: message.generation, xpGranted: summary.xpGranted ?? 0, refreshScopes: summary.refreshScopes ?? [], dailyChallengeCompleted: summary.dailyChallengeCompleted ?? false, replayed: true };
       }
-      const now = this.clock.now();
+      if (submissionOrder === null) throw conflict();
+      const now = submittedAt;
       if (replyId) {
         const parent = await tx.$queryRaw<{ deletion_state: string; generation: number }[]>`SELECT deletion_state::text, generation FROM global_chat_messages WHERE id = ${replyId}::uuid FOR SHARE`;
         if (parent[0]?.deletion_state !== 'ACTIVE' || parent[0].generation !== generation) throw unavailable();
@@ -187,10 +201,17 @@ export class GlobalChatService {
         }
         resolvedMentions = [...usedPlayers];
       }
+      const recentMessages = await tx.globalChatMessage.findMany({ where: { authorPlayerId: player.id, messageType: { in: ['PLAYER', 'COMMAND'] } }, orderBy: { submissionOrder: 'desc' }, take: 3, select: { createdAt: true } });
+      const latest = recentMessages[0]?.createdAt;
+      if (latest && now.getTime() - latest.getTime() < 750) throw pacingLimited();
+      if (recentMessages.length === 3) {
+        const newest = recentMessages[0]!.createdAt.getTime(), oldest = recentMessages[2]!.createdAt.getTime();
+        if (newest - oldest < 4_000 && now.getTime() < newest + 4_000) throw pacingLimited();
+      }
       const recent = await tx.globalChatMessage.count({ where: { authorPlayerId: player.id, messageType: { in: ['PLAYER', 'COMMAND'] }, createdAt: { gt: new Date(now.getTime() - 10_000) } } });
       if (recent >= 10) throw new AppError('Vous envoyez des messages trop rapidement.', 429, 'CHAT_RATE_LIMIT');
       const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'chat.send', sourceChannel: 'INTERNAL_CHAT', idempotencyKey, status: 'PENDING', startedAt: now, resultSummary: { fingerprint } } });
-      const message = await tx.globalChatMessage.create({ data: { authorPlayerId: player.id, sourceChannel: 'INTERNAL_CHAT', messageType: normalized.type, content: normalized.value, operationId: operation.id, replyToMessageId: replyId, createdAt: now, generation }, include: messageInclude });
+      const message = await tx.globalChatMessage.create({ data: { authorPlayerId: player.id, sourceChannel: 'INTERNAL_CHAT', messageType: normalized.type, content: normalized.value, operationId: operation.id, replyToMessageId: replyId, createdAt: now, submissionOrder, generation }, include: messageInclude });
       if (resolvedMentions.length) await tx.globalChatMention.createMany({ data: resolvedMentions.map(mentionedPlayerId => ({ messageId: message.id, mentionedPlayerId })) });
       const progression = await tx.playerProgression.findUniqueOrThrow({ where: { playerId: player.id } });
       await tx.playerProgression.update({ where: { playerId: player.id }, data: { totalMessages: { increment: 1n } } });
@@ -332,7 +353,7 @@ export class GlobalChatService {
         const date = new Date(cursor.createdAt);
         if (Number.isNaN(date.getTime()) || !/^[0-9a-f-]{36}$/i.test(cursor.id)) throw invalid('Curseur invalide.');
       }
-      const window = await tx.globalChatMessage.findMany({ where: { generation }, include: messageInclude, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: PLAYER_HISTORY_LIMIT });
+      const window = await tx.globalChatMessage.findMany({ where: { generation }, include: messageInclude, orderBy: { submissionOrder: 'desc' }, take: PLAYER_HISTORY_LIMIT });
       const offset = cursor ? window.findIndex(row => row.id === cursor.id && row.createdAt.toISOString() === cursor.createdAt) + 1 : 0;
       if (cursor && offset === 0) {
         const stale = await tx.globalChatMessage.findUnique({ where: { id: cursor.id }, select: { generation: true, createdAt: true } });
@@ -341,7 +362,7 @@ export class GlobalChatService {
       }
       const page = window.slice(offset, offset + limit);
       const last = page.at(-1);
-      return { messages: page.reverse().map(row => project(row, viewer.id)), nextCursor: offset + limit < window.length && last ? { createdAt: last.createdAt.toISOString(), id: last.id } : null, generation };
+      return { messages: page.reverse().map(row => project(row, viewer.id)), nextCursor: offset + limit < window.length && last ? { createdAt: last.createdAt.toISOString(), id: last.id } : null, generation, visibleMessageIds: window.map(row => row.id) };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
 
@@ -350,25 +371,25 @@ export class GlobalChatService {
     if (!Number.isInteger(clientGeneration) || clientGeneration < 0 || knownIds.length > PLAYER_HISTORY_LIMIT || knownIds.some(id => !/^[0-9a-f-]{36}$/i.test(id))) throw invalid('Mise à jour Chat invalide.');
     const generation = await this.generation();
     if (generation !== clientGeneration) return { generation, reset: true, messages: [], changes: [] };
-    const visibleWindow = await this.database.globalChatMessage.findMany({ where: { generation }, include: messageInclude, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: PLAYER_HISTORY_LIMIT });
+    const visibleWindow = await this.database.globalChatMessage.findMany({ where: { generation }, include: messageInclude, orderBy: { submissionOrder: 'desc' }, take: PLAYER_HISTORY_LIMIT });
     const visibleIds = new Set(visibleWindow.map(row => row.id));
     const visibleKnownIds = knownIds.filter(id => visibleIds.has(id));
-    let anchor: { createdAt: Date; generation: number } | null = null;
+    let anchor: { submissionOrder: bigint; generation: number } | null = null;
     if (cursor) {
       const date = new Date(cursor.createdAt);
       if (Number.isNaN(date.getTime()) || !/^[0-9a-f-]{36}$/i.test(cursor.id)) throw invalid('Curseur invalide.');
       const row = visibleWindow.find(message => message.id === cursor.id && message.createdAt.toISOString() === date.toISOString());
       if (!row) return { generation, reset: true, messages: [], changes: [] };
-      anchor = { createdAt: row.createdAt, generation };
+      anchor = { submissionOrder: row.submissionOrder, generation };
     }
     const [messages, changes] = await Promise.all([
-      Promise.resolve(visibleWindow.filter(row => !cursor || !anchor || row.createdAt > anchor.createdAt || row.createdAt.getTime() === anchor.createdAt.getTime() && row.id > cursor.id).reverse().slice(0, 100)),
+      Promise.resolve(visibleWindow.filter(row => visibleKnownIds.length ? !visibleKnownIds.includes(row.id) : !cursor || !anchor || row.submissionOrder > anchor.submissionOrder).reverse().slice(0, 100)),
       visibleKnownIds.length ? this.database.globalChatMessage.findMany({
         where: { generation, id: { in: visibleKnownIds }, deletionState: { not: 'ACTIVE' } },
-        include: messageInclude, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], take: PLAYER_HISTORY_LIMIT,
+        include: messageInclude, orderBy: { submissionOrder: 'asc' }, take: PLAYER_HISTORY_LIMIT,
       }) : Promise.resolve([]),
     ]);
-    return { generation, reset: false, messages: messages.map(row => project(row, viewer.id)), changes: changes.map(row => project(row, viewer.id)) };
+    return { generation, reset: false, messages: messages.map(row => project(row, viewer.id)), changes: changes.map(row => project(row, viewer.id)), ...(messages.length ? { visibleMessageIds: visibleWindow.map(row => row.id) } : {}) };
   }
 
   async rememberCommandRefreshScopes(commandMessageId: string, scopes: readonly ChatRefreshScope[]) {
@@ -403,7 +424,7 @@ export class GlobalChatService {
     const candidates = players.filter(row => normalizePlayerSearch(row.displayName).includes(needle));
     if (needle) return { players: candidates.sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr', { sensitivity: 'base' })).slice(0, 8) };
     const [recentMessages, sessions] = await Promise.all([
-      this.database.globalChatMessage.findMany({ where: { generation: await this.generation(), authorPlayerId: { not: null }, deletionState: 'ACTIVE' }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 50, select: { authorPlayerId: true } }),
+      this.database.globalChatMessage.findMany({ where: { generation: await this.generation(), authorPlayerId: { not: null }, deletionState: 'ACTIVE' }, orderBy: { submissionOrder: 'desc' }, take: 50, select: { authorPlayerId: true } }),
       this.database.playerSession.findMany({ where: { playerId: { notIn: [...excluded] }, endedAt: null, lastHeartbeatAt: { gt: new Date(this.clock.now().getTime() - 180_000) } }, orderBy: { lastHeartbeatAt: 'desc' }, take: 50, select: { playerId: true } }),
     ]);
     const rank = new Map<string, number>();
@@ -421,10 +442,10 @@ export class GlobalChatService {
       if (!target || target.generation !== generation || target.deletionState !== 'ACTIVE' || !target.authorPlayerId || target.authorPlayerId === reporter.id || !['PLAYER', 'COMMAND'].includes(target.messageType)) throw unavailable();
       const existing = await tx.globalChatReport.findUnique({ where: { reporterPlayerId_messageId: { reporterPlayerId: reporter.id, messageId } }, select: { id: true } });
       if (existing) return { reported: true, duplicate: true };
-      const anchor = { createdAt: target.createdAt, id: target.id };
+      const anchor = target.submissionOrder;
       const [before, after] = await Promise.all([
-        tx.globalChatMessage.findMany({ where: { generation, OR: [{ createdAt: { lt: anchor.createdAt } }, { createdAt: anchor.createdAt, id: { lt: anchor.id } }] }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 10, select: { id: true, authorPlayerId: true, messageType: true, content: true, createdAt: true, deletionState: true } }),
-        tx.globalChatMessage.findMany({ where: { generation, OR: [{ createdAt: { gt: anchor.createdAt } }, { createdAt: anchor.createdAt, id: { gt: anchor.id } }] }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], take: 10, select: { id: true, authorPlayerId: true, messageType: true, content: true, createdAt: true, deletionState: true } }),
+        tx.globalChatMessage.findMany({ where: { generation, submissionOrder: { lt: anchor } }, orderBy: { submissionOrder: 'desc' }, take: 10, select: { id: true, authorPlayerId: true, messageType: true, content: true, createdAt: true, deletionState: true } }),
+        tx.globalChatMessage.findMany({ where: { generation, submissionOrder: { gt: anchor } }, orderBy: { submissionOrder: 'asc' }, take: 10, select: { id: true, authorPlayerId: true, messageType: true, content: true, createdAt: true, deletionState: true } }),
       ]);
       const snapshot = (row: typeof before[number]) => ({ id: row.id, authorPlayerId: row.authorPlayerId, messageType: row.messageType, content: row.content, createdAt: row.createdAt.toISOString(), deletionState: row.deletionState });
       await tx.globalChatReport.create({ data: { reporterPlayerId: reporter.id, messageId, reportedPlayerId: target.authorPlayerId,
@@ -438,10 +459,10 @@ export class GlobalChatService {
     // Compare database timestamps at full precision; JS Date would truncate microseconds.
     // Without a read state, every persisted message is unread until an explicit markRead.
     const rows = await this.database.$queryRaw<{ count: number; generation: number }[]>`SELECT count(*)::integer AS count, visible_window.generation FROM (
-        SELECT m.id, m.created_at, m.generation FROM global_chat_state g JOIN global_chat_messages m ON m.generation = g.generation
-        WHERE g.id = 1 ORDER BY m.created_at DESC, m.id DESC LIMIT ${PLAYER_HISTORY_LIMIT}
+        SELECT m.id, m.submission_order, m.generation FROM global_chat_state g JOIN global_chat_messages m ON m.generation = g.generation
+        WHERE g.id = 1 ORDER BY m.submission_order DESC LIMIT ${PLAYER_HISTORY_LIMIT}
       ) visible_window LEFT JOIN global_chat_read_states s ON s.player_id = ${player.id}::uuid
-      WHERE s.player_id IS NULL OR s.generation < visible_window.generation OR (visible_window.created_at, visible_window.id) > (s.last_read_created_at, s.last_read_message_id)
+      WHERE s.player_id IS NULL OR s.generation < visible_window.generation OR visible_window.submission_order > s.last_read_submission_order
       GROUP BY visible_window.generation`;
     return { unreadCount: rows[0]?.count ?? 0, generation: rows[0]?.generation ?? await this.generation() };
   }
@@ -455,16 +476,16 @@ export class GlobalChatService {
       if (!target || target.generation !== generation) throw unavailable();
       const now = this.clock.now();
       const updated = await tx.$queryRaw<{ last_read_message_id: string }[]>`INSERT INTO global_chat_read_states
-        (player_id, last_read_message_id, last_read_created_at, generation, updated_at)
-        SELECT ${player.id}::uuid, id, created_at, generation, ${now} FROM global_chat_messages WHERE id = ${target.id}::uuid
+        (player_id, last_read_message_id, last_read_created_at, last_read_submission_order, generation, updated_at)
+        SELECT ${player.id}::uuid, id, created_at, submission_order, generation, ${now} FROM global_chat_messages WHERE id = ${target.id}::uuid
         ON CONFLICT (player_id) DO UPDATE SET
           last_read_message_id = EXCLUDED.last_read_message_id,
           last_read_created_at = EXCLUDED.last_read_created_at,
+          last_read_submission_order = EXCLUDED.last_read_submission_order,
           generation = EXCLUDED.generation,
           updated_at = EXCLUDED.updated_at
         WHERE global_chat_read_states.generation < EXCLUDED.generation OR
-          (global_chat_read_states.generation = EXCLUDED.generation AND (global_chat_read_states.last_read_created_at, global_chat_read_states.last_read_message_id)
-          < (EXCLUDED.last_read_created_at, EXCLUDED.last_read_message_id))
+          (global_chat_read_states.generation = EXCLUDED.generation AND global_chat_read_states.last_read_submission_order < EXCLUDED.last_read_submission_order)
         RETURNING last_read_message_id`;
       if (updated[0]) return { lastReadMessageId: updated[0].last_read_message_id, changed: true };
       const previous = await tx.globalChatReadState.findUniqueOrThrow({ where: { playerId: player.id }, select: { lastReadMessageId: true } });

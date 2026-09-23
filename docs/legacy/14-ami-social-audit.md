@@ -1087,6 +1087,8 @@ Le panneau de droite contient `Chat` et `MP`.
 - seule l'ouverture réelle d'une conversation marque ses messages comme lus ;
 - aucune notification MP dans le panneau général Notifications.
 
+La décision transverse R895 complète R503, R505 et R506 : l'ordre d'une conversation MP est la position persistante réservée à la réception serveur, jamais l'horloge navigateur ni l'ordre de commit. Il gouverne fenêtre des 500, pagination, non-lus, curseurs interne/partagé, accusés, dernier message et liste ; une arrivée tardive reprend immédiatement sa position sans délai d'attente. Les règles R505 ne changent pas.
+
 ## R507 — Demande de conversation ignorée
 
 - une seule demande ouverte par paire ;

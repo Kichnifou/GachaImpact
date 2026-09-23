@@ -22,7 +22,7 @@ import ChatPanel from './ChatPanel'
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 const ownId = '11111111-1111-4111-8111-111111111111'
 const otherId = '22222222-2222-4222-8222-222222222222'
-const message: ChatMessageDto = { id: '33333333-3333-4333-8333-333333333333', author: { id: otherId, displayName: 'Autre', elementKey: 'cryo' }, authorLabel: 'Autre', sourceChannel: 'INTERNAL_CHAT', messageType: 'PLAYER', content: 'Bonjour https://example.com/ fin', createdAt: '2026-09-22T10:00:00.000Z', deletedAt: null, deletionState: 'ACTIVE', replyToMessageId: null, replyPreview: null, mentionedMe: false, repliedToMe: false }
+const message: ChatMessageDto = { id: '33333333-3333-4333-8333-333333333333', author: { id: otherId, displayName: 'Autre', elementKey: 'cryo' }, authorLabel: 'Autre', sourceChannel: 'INTERNAL_CHAT', messageType: 'PLAYER', content: 'Bonjour https://example.com/ fin', createdAt: '2026-09-22T10:00:00.000Z', submissionOrder: '1', deletedAt: null, deletionState: 'ACTIVE', replyToMessageId: null, replyPreview: null, mentionedMe: false, repliedToMe: false }
 const roots: ReturnType<typeof createRoot>[] = []
 const refresh = vi.fn(async () => undefined), openProfile = vi.fn()
 async function mount(collapsed = false, playerElementKey: string | null = null) {
@@ -55,7 +55,7 @@ beforeEach(() => {
   social.directory.mockResolvedValue({ players: [], page: 1, pageSize: 20, total: 0, totalPages: 0 })
   chat.send.mockImplementation(async (content: string, key: string) => ({ message: { ...message, id: '44444444-4444-4444-8444-444444444444', author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content, clientIntentKey: key }, generation: 0, result: null, results: [], xpGranted: 1, refreshScopes: ['progression', 'dailyChallenge'], dailyChallengeCompleted: false, replayed: false } satisfies ChatSendDto))
 })
-afterEach(() => { act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren() })
+afterEach(() => { vi.useRealTimers(); act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren() })
 
 describe('ChatPanel réel', () => {
   it('switches Chat/MP with crossed unread badges while preserving the Chat draft and read boundary', async () => {
@@ -579,10 +579,13 @@ describe('ChatPanel réel', () => {
   })
 
   it('keeps three PLAYER sends visible and reconciles confirmations out of order', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(0)
     const releases: Array<(value: ChatSendDto) => void> = []
     chat.send.mockImplementation(() => new Promise<ChatSendDto>(resolve => { releases.push(resolve) }))
     const container = await mount()
-    for (const content of ['A', 'B', 'C']) {
+    for (const [index, content] of ['A', 'B', 'C'].entries()) {
+      vi.setSystemTime(index * 750)
       await act(async () => { type(container, content) })
       act(() => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
       await act(async () => { await Promise.resolve() })
@@ -596,13 +599,16 @@ describe('ChatPanel réel', () => {
     for (const index of [1, 2, 0]) {
       const content = ['A', 'B', 'C'][index]!
       const key = chat.send.mock.calls[index]![1] as string
-      await act(async () => { releases[index]!({ message: { ...message, id: `44444444-4444-4444-8444-${String(index).padStart(12, '0')}`, author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content, clientIntentKey: key }, generation: 0, result: null, results: [], xpGranted: 1, refreshScopes: [], dailyChallengeCompleted: false, replayed: false }) })
+      await act(async () => { releases[index]!({ message: { ...message, id: `44444444-4444-4444-8444-${String(index).padStart(12, '0')}`, author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content, clientIntentKey: key, submissionOrder: String(index + 2) }, generation: 0, result: null, results: [], xpGranted: 1, refreshScopes: [], dailyChallengeCompleted: false, replayed: false }) })
     }
     expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
     for (const content of ['A', 'B', 'C']) expect(Array.from(container.querySelectorAll('.chat-message')).filter(node => node.querySelector('p')?.textContent === content)).toHaveLength(1)
+    vi.useRealTimers()
   })
 
   it('allows a PLAYER during a pending command while blocking a second command', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(0)
     let release!: (value: ChatSendDto) => void
     chat.send.mockReturnValueOnce(new Promise<ChatSendDto>(resolve => { release = resolve }))
     const container = await mount()
@@ -611,6 +617,7 @@ describe('ChatPanel réel', () => {
     await act(async () => { await Promise.resolve() })
     await act(async () => { type(container, '!banque') })
     expect(button(container, 'Envoyer le message').disabled).toBe(true)
+    vi.setSystemTime(750)
     await act(async () => { type(container, 'haha') })
     expect(button(container, 'Envoyer le message').disabled).toBe(false)
     await act(async () => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
@@ -618,6 +625,7 @@ describe('ChatPanel réel', () => {
     expect(chat.send.mock.calls[1]![0]).toBe('haha')
     const key = chat.send.mock.calls[0]![1] as string
     await act(async () => { release({ message: { ...message, id: '66666666-6666-4666-8666-666666666666', author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content: '!pull', messageType: 'COMMAND', clientIntentKey: key }, generation: 0, result: null, results: [], xpGranted: 0, refreshScopes: [], dailyChallengeCompleted: false, replayed: false }) })
+    vi.useRealTimers()
   })
 
   it('keeps a scrolled-up reader in place, counts new rows and reads only after returning to bottom', async () => {
@@ -671,9 +679,9 @@ describe('ChatPanel réel', () => {
 
   it('keeps a new older page visible when the bounded history window is full', async () => {
     const cursor = { createdAt: message.createdAt, id: message.id }
-    const current = Array.from({ length: 200 }, (_, index) => ({ ...message, id: `33333333-3333-4333-8333-${String(index).padStart(12, '0')}`, content: `recent-${index}` }))
+    const current = Array.from({ length: 200 }, (_, index) => ({ ...message, id: `33333333-3333-4333-8333-${String(index).padStart(12, '0')}`, content: `recent-${index}`, submissionOrder: String(index + 2) }))
     chat.messages.mockImplementation(async requestedCursor => requestedCursor
-      ? { messages: [{ ...message, id: '77777777-7777-4777-8777-777777777777', content: 'Ancien visible' }], nextCursor: null, generation: 0 }
+      ? { messages: [{ ...message, id: '77777777-7777-4777-8777-777777777777', content: 'Ancien visible', submissionOrder: '1' }], nextCursor: null, generation: 0 }
       : { messages: current, nextCursor: cursor, generation: 0 })
     const container = await mount()
     const list = container.querySelector<HTMLDivElement>('.message-list')!
@@ -804,6 +812,8 @@ describe('ChatPanel réel', () => {
   })
 
   it('dismisses a failed overlay without losing its intent and reopens for a new failure', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(0)
     chat.send.mockRejectedValueOnce(new ApiError('CHAT_INVALID', 'Refus A', 400))
       .mockRejectedValueOnce(new ApiError('CHAT_INVALID', 'Refus B', 400))
     const container = await mount(), form = container.querySelector('form')!
@@ -814,6 +824,7 @@ describe('ChatPanel réel', () => {
     await act(async () => { container.querySelector<HTMLButtonElement>('.chat-failed-status [aria-label="Fermer le feedback"]')!.click() })
     expect(container.querySelector('.chat-failed-status')).toBeNull()
     expect(chat.send).toHaveBeenCalledTimes(1)
+    vi.setSystemTime(750)
     await act(async () => { type(container, 'Message B') })
     await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
     expect(container.querySelector('.chat-failed-status')?.textContent).toContain('2 envois refusés : Message B')
@@ -823,9 +834,12 @@ describe('ChatPanel réel', () => {
     await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('.chat-failed-status button')).find(item => item.textContent === 'Réessayer')!.click(); await Promise.resolve() })
     expect(chat.send.mock.calls[2]![0]).toBe('Message A')
     expect(chat.send.mock.calls[2]![1]).toBe(keyA)
+    vi.useRealTimers()
   })
 
   it('reopens a dismissed ambiguous overlay and reconciles the hidden intent by client key', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(0)
     const updates = enableUpdates().mockResolvedValue({ generation: 0, reset: false, messages: [], changes: [] })
     chat.send.mockRejectedValueOnce(new Error('Réseau A')).mockRejectedValueOnce(new Error('Réseau B'))
     const container = await mount(), form = container.querySelector('form')!
@@ -836,6 +850,7 @@ describe('ChatPanel réel', () => {
     await act(async () => { container.querySelector<HTMLButtonElement>('.chat-composer-accessory [aria-label="Fermer le feedback"]')!.click() })
     expect(container.textContent).not.toContain('Envoi non confirmé.')
     expect(chat.send).toHaveBeenCalledTimes(1)
+    vi.setSystemTime(750)
     await act(async () => { type(container, 'Ambigu B') })
     await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
     const keyB = chat.send.mock.calls[1]![1] as string
@@ -850,6 +865,7 @@ describe('ChatPanel réel', () => {
     await act(async () => { container.querySelector<HTMLButtonElement>('.chat-composer-accessory [aria-label="Fermer le feedback"]')?.click() })
     await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() })
     expect(Array.from(container.querySelectorAll('.chat-message')).filter(item => item.textContent?.includes('Ambigu A'))).toHaveLength(1)
+    vi.useRealTimers()
   })
 
   it('keeps draft B and failed A recoverable without an optimistic ghost', async () => {
@@ -914,5 +930,83 @@ describe('ChatPanel réel', () => {
     expect(container.querySelector('.chat-mention-suggestions')?.parentElement).toBe(field)
     expect(container.querySelector('.chat-composer-accessory')?.parentElement).toBe(field)
     expect(container.querySelector('.chat-composer-reply')).not.toBeNull()
+  })
+
+  it('silently enforces the 750 ms local pacing boundary without consuming the draft', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      vi.setSystemTime(0)
+      const container = await mount(), form = container.querySelector('form')!
+      const submit = async (value: string) => { await act(async () => { type(container, value); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() }) }
+      await submit('M1')
+      expect(chat.send).toHaveBeenCalledTimes(1)
+      vi.setSystemTime(500); await submit('M2')
+      expect(chat.send).toHaveBeenCalledTimes(1)
+      expect(container.querySelector<HTMLTextAreaElement>('#chat-message')?.value).toBe('M2')
+      expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
+      expect(container.querySelector('[role="alert"]')).toBeNull()
+      vi.setSystemTime(749); await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+      expect(chat.send).toHaveBeenCalledTimes(1)
+      vi.setSystemTime(750); await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+      expect(chat.send).toHaveBeenCalledTimes(2)
+    } finally { vi.useRealTimers() }
+  })
+
+  it('locks four seconds from the third fast submission and rejected attempts never extend it', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      vi.setSystemTime(0)
+      const container = await mount(), form = container.querySelector('form')!
+      const submitAt = async (time: number, value?: string) => { vi.setSystemTime(time); await act(async () => { if (value !== undefined) type(container, value); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() }) }
+      await submitAt(0, 'M1'); await submitAt(800, 'M2'); await submitAt(1_600, 'M3')
+      expect(chat.send).toHaveBeenCalledTimes(3)
+      await submitAt(2_500, 'M4'); await submitAt(3_000); await submitAt(5_599)
+      expect(chat.send).toHaveBeenCalledTimes(3)
+      expect(container.querySelector<HTMLTextAreaElement>('#chat-message')?.value).toBe('M4')
+      expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
+      expect(container.querySelector('[role="alert"]')).toBeNull()
+      await submitAt(5_600)
+      expect(chat.send).toHaveBeenCalledTimes(4)
+    } finally { vi.useRealTimers() }
+  })
+
+  it('treats a server pacing rejection as a silent no-op and restores the exact intent', async () => {
+    chat.send.mockRejectedValueOnce(new ApiError('CHAT_PACING_LIMIT', 'limité', 429))
+    const container = await mount()
+    await act(async () => { button(container, 'Répondre').click(); type(container, 'Réponse conservée'); container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve() })
+    expect(container.querySelector<HTMLTextAreaElement>('#chat-message')?.value).toBe('Réponse conservée')
+    expect(container.textContent).toContain('Réponse à Autre')
+    expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
+    expect(container.querySelector('.chat-failed-status')).toBeNull()
+    expect(container.textContent).not.toContain('limité')
+  })
+
+  it('reorders an authoritative late arrival immediately without buffering', async () => {
+    const later = { ...message, id: '77777777-7777-4777-8777-777777777777', content: 'B', submissionOrder: '20', createdAt: '2026-09-22T10:00:00.000Z' }
+    const earlier = { ...message, id: '66666666-6666-4666-8666-666666666666', content: 'A', submissionOrder: '19', createdAt: '2026-09-22T10:00:01.000Z' }
+    chat.messages.mockResolvedValue({ messages: [later], nextCursor: null, generation: 0 })
+    const updates = enableUpdates().mockResolvedValue({ generation: 0, reset: false, messages: [], changes: [] })
+    const container = await mount()
+    expect(Array.from(container.querySelectorAll('.chat-message p')).map(node => node.textContent)).toEqual(['B'])
+    updates.mockResolvedValueOnce({ generation: 0, reset: false, messages: [earlier], changes: [] })
+    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() })
+    expect(Array.from(container.querySelectorAll('.chat-message p')).map(node => node.textContent)).toEqual(['A', 'B'])
+  })
+
+  it('reopens at the local bottom before a pending network refresh can resolve', async () => {
+    const container = document.createElement('div'); document.body.append(container)
+    const root = createRoot(container); roots.push(root)
+    const render = (collapsed: boolean) => root.render(<ChatPanel playerId={ownId} isCollapsed={collapsed} onToggle={vi.fn()} onOpenPlayers={vi.fn()} onOpenProfile={openProfile} onRefreshScopes={refresh} />)
+    await act(async () => { render(false); await Promise.resolve() })
+    const list = container.querySelector<HTMLDivElement>('.message-list')!
+    Object.defineProperty(list, 'scrollHeight', { configurable: true, value: 900 })
+    list.scrollTop = 120
+    await act(async () => { render(true) })
+    let resolve!: (value: { messages: ChatMessageDto[]; nextCursor: null; generation: number }) => void
+    chat.messages.mockReturnValueOnce(new Promise(value => { resolve = value }))
+    await act(async () => { render(false) })
+    expect(list.scrollTop).toBe(900)
+    await act(async () => { resolve({ messages: [{ ...message, content: 'Snapshot récent' }], nextCursor: null, generation: 0 }); await Promise.resolve() })
+    expect(list.scrollTop).toBe(900)
   })
 })

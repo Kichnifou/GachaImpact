@@ -2,7 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getGameApiClient } from '../api/game-api'
 import type { DirectConversationDto, DirectMessageDto, DirectMessagePageDto } from '../api/types'
 
-const orderMessages = (items: readonly DirectMessageDto[]) => [...items].sort((left, right) => left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id)).slice(-500)
+const orderMessages = (items: readonly DirectMessageDto[]) => [...items].sort((left, right) => {
+  const leftOrder = BigInt(left.submissionOrder), rightOrder = BigInt(right.submissionOrder)
+  return leftOrder === rightOrder ? left.id.localeCompare(right.id) : leftOrder < rightOrder ? -1 : 1
+}).slice(-500)
 
 export function useDirectMessages(playerId: string, active: boolean, conversationId: string | null, archivesRequested: boolean, onUnreadChange: (count: number) => void) {
   const api = getGameApiClient().directMessages
