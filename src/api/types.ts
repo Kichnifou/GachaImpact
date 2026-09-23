@@ -737,9 +737,10 @@ export type DirectMessageDto = Readonly<{
   conversationId: string
   authorPlayerId: string
   own: boolean
+  clientIntentKey: string | null
   content: string | null
   createdAt: string
-  submissionOrder: string
+  submissionOrder: string | null
   editedAt: string | null
   deletedAt: string | null
   restoredAt: string | null

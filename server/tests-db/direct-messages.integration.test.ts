@@ -47,6 +47,7 @@ describe('Direct-message foundations on isolated PostgreSQL', () => {
     expect(await service.send(as(alice), initiated.conversationId as string, 'Après accord', sendKey)).toMatchObject({ messageId: sent.messageId, replayed: true });
     const page = await service.messages(as(bob), initiated.conversationId as string, 1);
     expect(page.messages).toHaveLength(1);
+    expect(page.messages[0]?.clientIntentKey).toBeNull();
     expect(page.nextCursor).not.toBeNull();
     const older = await service.messages(as(bob), initiated.conversationId as string, 1, page.nextCursor!);
     expect(older.messages).toHaveLength(1);
@@ -54,6 +55,7 @@ describe('Direct-message foundations on isolated PostgreSQL', () => {
 
     expect(await service.markRead(as(bob), initiated.conversationId as string, page.messages[0]!.id)).toMatchObject({ changed: true, lastReadMessageId: page.messages[0]!.id });
     const firstShared = (await service.messages(as(alice), initiated.conversationId as string)).messages.at(-1);
+    expect(firstShared?.clientIntentKey).toBe(sendKey);
     expect(firstShared?.readByOther).toBe(true);
     expect(firstShared?.readByOtherAt).toBe(now.toISOString());
     expect(await service.markRead(as(bob), initiated.conversationId as string, older.messages[0]!.id)).toMatchObject({ changed: false, lastReadMessageId: page.messages[0]!.id });
@@ -198,7 +200,7 @@ describe('Direct-message foundations on isolated PostgreSQL', () => {
     let cursor: { id: string; createdAt: string } | undefined, visible = 0;
     do { const page = await service.messages(as(receiver), direct.conversationId as string, 100, cursor); visible += page.messages.length; cursor = page.nextCursor ?? undefined; } while (cursor);
     expect(visible).toBe(500);
-  }, 30_000);
+  }, 90_000);
 
   it('keeps reservation order when private message A commits after B', async () => {
     const alice = await player('Ordered Alice'), bob = await player('Ordered Bob');

@@ -1416,9 +1416,10 @@ Demande initiale non amie : expéditeur, destinataire, premier message, état `P
 - deletedAt
 - état de restauration temporaire selon les règles validées
 - opération idempotente propriétaire
+- `clientIntentKey` projetée depuis cette opération uniquement lorsque le lecteur est l'auteur, pour réconcilier l'optimistic sans exposer la clé d'autrui
 - marqueur de purge future séparé du tombstone
 
-La projection normale est bornée aux 500 messages les plus récents selon `submissionOrder` ; les lignes antérieures restent conservées. Pagination, non-lus, accusés, dernier message et tri du fil utilisent ce même ordre R895, jamais l'horloge du navigateur ni l'ordre de commit.
+La projection normale est bornée aux 500 messages les plus récents selon `submissionOrder` ; les lignes antérieures restent conservées. Pagination, non-lus, accusés, dernier message et snapshots utilisent cet ordre durable R895, jamais l'horloge du navigateur ni l'ordre de commit. Une session frontend live ne déplace toutefois pas rétroactivement ses lignes déjà visibles : inconnues ajoutées à la livraison, IDs connus et optimistic remplacés en place.
 
 ## 25.5 Modération / signalement
 

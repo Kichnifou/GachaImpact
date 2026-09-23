@@ -238,7 +238,7 @@ export class DirectMessageService {
         playerA: { select: { id: true, displayName: true, elementKey: true } }, playerB: { select: { id: true, displayName: true, elementKey: true } },
         participants: true,
         requests: { orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 1 },
-        messages: { orderBy: { submissionOrder: 'desc' }, take: 1 },
+        messages: { orderBy: { submissionOrder: 'desc' }, take: 1, include: { operation: { select: { idempotencyKey: true } } } },
       }, orderBy: [{ lastMessageOrder: 'desc' }, { id: 'desc' }],
     });
     const unreadRows = await this.database.$queryRaw<{ conversation_id: string; unread_count: number }[]>`SELECT p.conversation_id, count(m.id)::integer AS unread_count
@@ -266,16 +266,17 @@ export class DirectMessageService {
     return { conversations };
   }
 
-  private projectMessage(row: { id: string; conversationId: string; authorPlayerId: string; content: string | null; createdAt: Date; submissionOrder: bigint; editedAt: Date | null; deletedAt: Date | null; restoredAt: Date | null }, viewerId: string, otherRead: { lastSharedReadSubmissionOrder: bigint | null; lastSharedReadAt: Date | null } | null) {
+  private projectMessage(row: { id: string; conversationId: string; authorPlayerId: string; content: string | null; createdAt: Date; submissionOrder: bigint; editedAt: Date | null; deletedAt: Date | null; restoredAt: Date | null; operation?: { idempotencyKey: string | null } }, viewerId: string, otherRead: { lastSharedReadSubmissionOrder: bigint | null; lastSharedReadAt: Date | null } | null) {
     const readByOther = Boolean(otherRead?.lastSharedReadSubmissionOrder && row.submissionOrder <= otherRead.lastSharedReadSubmissionOrder);
-    return { id: row.id, conversationId: row.conversationId, authorPlayerId: row.authorPlayerId, own: row.authorPlayerId === viewerId, content: row.content, createdAt: row.createdAt.toISOString(), submissionOrder: row.submissionOrder.toString(), editedAt: row.editedAt?.toISOString() ?? null, deletedAt: row.deletedAt?.toISOString() ?? null, restoredAt: row.restoredAt?.toISOString() ?? null, readByOther, readByOtherAt: readByOther ? otherRead?.lastSharedReadAt?.toISOString() ?? null : null };
+    const own = row.authorPlayerId === viewerId;
+    return { id: row.id, conversationId: row.conversationId, authorPlayerId: row.authorPlayerId, own, clientIntentKey: own ? row.operation?.idempotencyKey ?? null : null, content: row.content, createdAt: row.createdAt.toISOString(), submissionOrder: row.submissionOrder.toString(), editedAt: row.editedAt?.toISOString() ?? null, deletedAt: row.deletedAt?.toISOString() ?? null, restoredAt: row.restoredAt?.toISOString() ?? null, readByOther, readByOtherAt: readByOther ? otherRead?.lastSharedReadAt?.toISOString() ?? null : null };
   }
 
   async messages(identity: AuthenticatedIdentity, conversationId: string, limit = 50, cursor?: DirectCursor) {
     const actor = await this.actor(identity);
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw invalid('Taille de page invalide.');
     const conversation = await this.requireConversation(this.database as unknown as Prisma.TransactionClient, conversationId, actor.id);
-    const recent = await this.database.directMessage.findMany({ where: { conversationId }, orderBy: { submissionOrder: 'desc' }, take: 500 });
+    const recent = await this.database.directMessage.findMany({ where: { conversationId }, orderBy: { submissionOrder: 'desc' }, take: 500, include: { operation: { select: { idempotencyKey: true } } } });
     let offset = 0;
     if (cursor) {
       if (!validUuid(cursor.id)) throw invalid('Curseur invalide.');

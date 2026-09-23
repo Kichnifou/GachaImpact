@@ -2,7 +2,7 @@
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ChatMessageDto, ChatSendDto } from '../api/types'
+import type { ChatMessageDto, ChatSendDto, DirectConversationDto } from '../api/types'
 import { ApiError } from '../api/game-api'
 import { elementColors } from '../utils/elementTheme'
 
@@ -67,7 +67,7 @@ describe('ChatPanel réel', () => {
     await act(async () => { await Promise.resolve() })
     type(container, 'Brouillon conservé')
     const readsBeforeMp = chat.read.mock.calls.length
-    const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('[role="tab"]'))
+    const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('.community-tabs [role="tab"]'))
     expect(tabs.map(item => item.textContent)).toEqual(['Chat', 'MP4'])
     await act(async () => { tabs[1]!.click(); await Promise.resolve() })
     expect(tabs[1]!.getAttribute('aria-selected')).toBe('true')
@@ -77,14 +77,29 @@ describe('ChatPanel réel', () => {
     expect(directMessages.read).not.toHaveBeenCalled()
   })
 
-  it('opens a private-message target from a Chat author without changing the existing action order', async () => {
+  it('opens a private-message target from the Chat action row', async () => {
     const container = await mount()
+    expect(container.querySelector('.message-meta .chat-direct-button')).toBeNull()
+    expect(container.querySelector('.message-meta')?.textContent).not.toContain('MP')
     const desktopBefore = Array.from(container.querySelectorAll('.chat-message-actions button')).map(item => item.getAttribute('aria-label'))
-    await act(async () => { (container.querySelector('.chat-direct-button') as HTMLButtonElement).click(); await Promise.resolve() })
+    await act(async () => { button(container, 'Message privé').click(); await Promise.resolve() })
     expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe('MP')
     expect(directMessages.list).toHaveBeenCalledWith(false)
     expect(directMessages.list).toHaveBeenCalledWith(true)
     expect(Array.from(container.querySelectorAll('.chat-message-actions button')).map(item => item.getAttribute('aria-label'))).toEqual(desktopBefore)
+  })
+
+  it('returns an already mounted MP panel to Conversations on every explicit MP tab click', async () => {
+    const conversation: DirectConversationDto = { id: '44444444-4444-4444-8444-444444444444', other: { id: otherId, displayName: 'Autre', elementKey: 'cryo' }, archived: false, lastMessageAt: null, lastMessage: null, request: null, unreadCount: 0, readReceiptsEnabled: true, canSend: true, blockedByMe: false }
+    directMessages.list.mockImplementation(async (archived: boolean) => ({ conversations: archived ? [] : [conversation] }))
+    const container = await mount()
+    await act(async () => { button(container, 'Message privé').click(); await Promise.resolve(); await Promise.resolve() })
+    expect(container.querySelector('.dm-thread-identity strong')?.textContent).toBe('Autre')
+    const communityTabs = () => Array.from(container.querySelectorAll<HTMLButtonElement>('.community-tabs [role="tab"]'))
+    await act(async () => { communityTabs()[0]!.click() })
+    await act(async () => { communityTabs()[1]!.click() })
+    expect(container.querySelector('.dm-thread-identity')).toBeNull()
+    expect(Array.from(container.querySelectorAll('.dm-list-tabs [role="tab"]')).map(node => node.textContent)).toEqual(['Conversations', 'Archives'])
   })
 
   it('shares elementColors between PLAYER avatars and pseudonyms with a readable fallback', async () => {
@@ -130,11 +145,11 @@ describe('ChatPanel réel', () => {
   it('keeps the specified desktop and mobile action order and anchors report confirmation under the action row', async () => {
     const container = await mount()
     expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.chat-message-actions button')).map(item => item.getAttribute('aria-label'))).toEqual([
-      'Signaler', 'Masquer ce joueur', 'Copier le message', 'Mentionner', 'Répondre',
+      'Signaler', 'Masquer ce joueur', 'Copier le message', 'Message privé', 'Mentionner', 'Répondre',
     ])
     await act(async () => { button(container, 'Actions pour le message de Autre').click() })
     expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.chat-message-menu [role="menuitem"]')).map(item => item.textContent)).toEqual([
-      'Signaler', 'Masquer les messages de ce joueur', 'Copier le message', 'Mentionner', 'Répondre',
+      'Signaler', 'Masquer les messages de ce joueur', 'Copier le message', 'MP', 'Mentionner', 'Répondre',
     ])
     await act(async () => { button(container, 'Signaler').click() })
     const confirmation = container.querySelector<HTMLElement>('.chat-report-confirm')!
@@ -604,6 +619,21 @@ describe('ChatPanel réel', () => {
     expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
     for (const content of ['A', 'B', 'C']) expect(Array.from(container.querySelectorAll('.chat-message')).filter(node => node.querySelector('p')?.textContent === content)).toHaveLength(1)
     vi.useRealTimers()
+  })
+
+  it('starts active polls on a 350 ms cadence and never overlaps a slow request', async () => {
+    vi.useFakeTimers()
+    try {
+      let release!: (value: { messages: ChatMessageDto[]; changes: ChatMessageDto[]; generation: number; reset: boolean }) => void
+      const updates = enableUpdates().mockImplementation(() => new Promise(resolve => { release = resolve }))
+      await mount()
+      await act(async () => { await Promise.resolve(); await Promise.resolve() })
+      expect(updates).toHaveBeenCalledTimes(1)
+      await act(async () => { await vi.advanceTimersByTimeAsync(2_000) })
+      expect(updates).toHaveBeenCalledTimes(1)
+      await act(async () => { release({ messages: [], changes: [], generation: 0, reset: false }); await Promise.resolve(); await vi.advanceTimersByTimeAsync(0) })
+      expect(updates).toHaveBeenCalledTimes(2)
+    } finally { vi.useRealTimers() }
   })
 
   it('allows a PLAYER during a pending command while blocking a second command', async () => {
@@ -1139,16 +1169,18 @@ describe('ChatPanel réel', () => {
     expect(rendered.map(item => item.querySelector('p')?.textContent).slice(1)).toEqual(unknown.map(item => item.content))
   })
 
-  it('reorders an authoritative late arrival immediately without buffering', async () => {
+  it('appends an authoritative late arrival without moving visible rows', async () => {
     const later = { ...message, id: '77777777-7777-4777-8777-777777777777', content: 'B', submissionOrder: '20', createdAt: '2026-09-22T10:00:00.000Z' }
     const earlier = { ...message, id: '66666666-6666-4666-8666-666666666666', content: 'A', submissionOrder: '19', createdAt: '2026-09-22T10:00:01.000Z' }
     chat.messages.mockResolvedValue({ messages: [later], nextCursor: null, generation: 0 })
     const updates = enableUpdates().mockResolvedValue({ generation: 0, reset: false, messages: [], changes: [] })
     const container = await mount()
     expect(Array.from(container.querySelectorAll('.chat-message p')).map(node => node.textContent)).toEqual(['B'])
+    const existingRow = container.querySelector('.chat-message')
     updates.mockResolvedValueOnce({ generation: 0, reset: false, messages: [earlier], changes: [] })
     await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() })
-    expect(Array.from(container.querySelectorAll('.chat-message p')).map(node => node.textContent)).toEqual(['A', 'B'])
+    expect(Array.from(container.querySelectorAll('.chat-message p')).map(node => node.textContent)).toEqual(['B', 'A'])
+    expect(container.querySelectorAll('.chat-message')[0]).toBe(existingRow)
   })
 
   it('reopens at the local bottom before a pending network refresh can resolve', async () => {

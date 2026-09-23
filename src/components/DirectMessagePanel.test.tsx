@@ -9,6 +9,7 @@ const directMessages = vi.hoisted(() => ({
 }))
 const social = vi.hoisted(() => ({ directory: vi.fn() }))
 vi.mock('../api/game-api', () => ({ getGameApiClient: () => ({ directMessages, social }) }))
+import { directMessageReceiptLabel } from '../direct-messages/receipt-label'
 import DirectMessagePanel from './DirectMessagePanel'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -17,7 +18,7 @@ const otherId = '22222222-2222-4222-8222-222222222222'
 const conversationId = '33333333-3333-4333-8333-333333333333'
 const requestId = '44444444-4444-4444-8444-444444444444'
 const messageId = '55555555-5555-4555-8555-555555555555'
-const message: DirectMessageDto = { id: messageId, conversationId, authorPlayerId: otherId, own: false, content: 'Bonjour https://example.com/ok', createdAt: '2026-09-23T07:00:00.000Z', submissionOrder: '1', editedAt: null, deletedAt: null, restoredAt: null, readByOther: false, readByOtherAt: null }
+const message: DirectMessageDto = { id: messageId, conversationId, authorPlayerId: otherId, own: false, clientIntentKey: null, content: 'Bonjour https://example.com/ok', createdAt: '2026-09-23T07:00:00.000Z', submissionOrder: '1', editedAt: null, deletedAt: null, restoredAt: null, readByOther: false, readByOtherAt: null }
 const baseConversation: DirectConversationDto = { id: conversationId, other: { id: otherId, displayName: 'Aster', elementKey: 'hydro' }, archived: false, lastMessageAt: message.createdAt, lastMessage: message, request: null, unreadCount: 2, readReceiptsEnabled: true, canSend: true, blockedByMe: false }
 const roots: ReturnType<typeof createRoot>[] = []
 const unreadChanged = vi.fn(), openProfile = vi.fn(), intentConsumed = vi.fn()
@@ -51,13 +52,22 @@ beforeEach(() => {
 afterEach(() => { act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren() })
 
 describe('DirectMessagePanel', () => {
+  it('formats the single read status at the validated deterministic thresholds', () => {
+    const now = Date.parse('2026-09-23T12:00:00.000Z')
+    expect(directMessageReceiptLabel(new Date(now - 59 * 60_000).toISOString(), now)).toBe('Lu ✓')
+    expect(directMessageReceiptLabel(new Date(now - 60 * 60_000).toISOString(), now)).toBe('Lu il y a 1h')
+    expect(directMessageReceiptLabel(new Date(now - 2 * 86_400_000).toISOString(), now)).toBe('Lu il y a 2j')
+    expect(directMessageReceiptLabel(new Date(now - 30 * 86_400_000).toISOString(), now)).toBe('Lu il y a 1 mois')
+    expect(directMessageReceiptLabel(new Date(now - 730 * 86_400_000).toISOString(), now)).toBe('Lu il y a 2 ans')
+  })
+
   it('renders the server-owned list, unread state and archived view', async () => {
     const archived = { ...baseConversation, archived: true, unreadCount: 0 }
     directMessages.list.mockImplementation(async (isArchived: boolean) => ({ conversations: isArchived ? [archived] : [baseConversation] }))
     const container = await mount(baseConversation, true, true)
     expect(container.textContent).toContain('Aster')
     expect(container.querySelector('.dm-badge')?.textContent).toBe('2')
-    await act(async () => { (Array.from(container.querySelectorAll('button')).find(item => item.textContent === 'Conversations archivées') as HTMLButtonElement).click() })
+    await act(async () => { (Array.from(container.querySelectorAll('button')).find(item => item.textContent === 'Archives') as HTMLButtonElement).click() })
     await settle()
     expect(directMessages.list).toHaveBeenCalledWith(true)
     expect(container.textContent).toContain('Conversations')
@@ -76,6 +86,41 @@ describe('DirectMessagePanel', () => {
     await act(async () => { (Array.from(container.querySelectorAll('button')).find(item => item.textContent === 'Accepter') as HTMLButtonElement).click() })
     await settle()
     expect(directMessages.accept).toHaveBeenCalledWith(conversationId, requestId, expect.any(String))
+  })
+
+  it('clears the conversation and total unread badges immediately on opening the thread', async () => {
+    directMessages.read.mockReturnValueOnce(new Promise(() => undefined))
+    const container = await mount()
+    expect(container.querySelector('.dm-badge')?.textContent).toBe('2')
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() })
+    expect(unreadChanged.mock.calls.at(-1)?.[0]).toBe(0)
+    expect(container.querySelector('.dm-badge')).toBeNull()
+  })
+
+  it('seeds a conversation from the list immediately while its refresh is pending', async () => {
+    directMessages.messages.mockReturnValue(new Promise(() => undefined))
+    const container = await mount()
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() })
+    expect(container.querySelector('.dm-thread-identity strong')?.textContent).toBe('Aster')
+    expect(container.querySelector('.dm-message p')?.textContent).toContain('Bonjour')
+    expect(directMessages.messages).toHaveBeenCalledWith(conversationId)
+  })
+
+  it('polls an open conversation at 500 ms start-to-start without overlapping a slow request', async () => {
+    vi.useFakeTimers()
+    try {
+      let release!: (value: { messages: DirectMessageDto[]; nextCursor: null; windowSize: number }) => void
+      directMessages.messages.mockImplementationOnce(() => new Promise(resolve => { release = resolve })).mockResolvedValue({ messages: [message], nextCursor: null, windowSize: 1 })
+      const container = document.createElement('div'); document.body.append(container)
+      const root = createRoot(container); roots.push(root)
+      await act(async () => { root.render(<DirectMessagePanel playerId={ownId} isActive intent={null} onIntentConsumed={intentConsumed} onUnreadChange={unreadChanged} onOpenProfile={openProfile} />); await Promise.resolve(); await Promise.resolve() })
+      await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click(); await Promise.resolve() })
+      expect(directMessages.messages).toHaveBeenCalledTimes(1)
+      await act(async () => { await vi.advanceTimersByTimeAsync(2_000) })
+      expect(directMessages.messages).toHaveBeenCalledTimes(1)
+      await act(async () => { release({ messages: [message], nextCursor: null, windowSize: 1 }); await Promise.resolve(); await vi.advanceTimersByTimeAsync(500) })
+      expect(directMessages.messages.mock.calls.length).toBeGreaterThanOrEqual(2)
+    } finally { vi.useRealTimers() }
   })
 
   it('keeps the draft and the idempotency key for an explicit retry', async () => {
@@ -104,7 +149,7 @@ describe('DirectMessagePanel', () => {
     await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() })
     await settle()
     expect(container.textContent).toContain('lecture seule')
-    expect(container.querySelector('.dm-receipt')?.textContent).toContain('Lu')
+    expect(container.querySelector('.dm-latest-status')?.textContent).toContain('Lu')
     await act(async () => { (container.querySelector('.dm-menu-button') as HTMLButtonElement).click() })
     expect(container.textContent).toContain('Débloquer')
     expect(container.querySelector<HTMLInputElement>('.dm-conversation-menu input')?.checked).toBe(true)
@@ -177,15 +222,143 @@ describe('DirectMessagePanel', () => {
     expect(directMessages.block).toHaveBeenCalledWith(conversationId, expect.any(String))
   })
 
-  it('reorders a late private message by authoritative submission order without buffering', async () => {
+  it('uses the same identity initial in the list and header, never an element abbreviation', async () => {
+    const container = await mount()
+    expect(container.querySelector('.dm-conversation-row .dm-avatar')?.textContent).toBe('A')
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    expect(container.querySelector('.dm-thread-identity .dm-avatar')?.textContent).toBe('A')
+    expect(container.textContent).not.toContain('Hy')
+  })
+
+  it('renders one optimistic bubble immediately, reconciles it in place and keeps status outside the bubble', async () => {
+    let confirm!: (value: { conversationId: string; messageId: string; replayed: boolean }) => void
+    const sentId = '88888888-8888-4888-8888-888888888888'
+    directMessages.send.mockReturnValueOnce(new Promise(resolve => { confirm = resolve }))
+    const container = await mount()
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    const textarea = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, 'Instantané'); textarea.dispatchEvent(new Event('input', { bubbles: true })); textarea.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve() })
+    expect(Array.from(container.querySelectorAll('.dm-message p')).filter(node => node.textContent === 'Instantané')).toHaveLength(1)
+    expect(container.querySelector('.dm-message.pending')?.textContent).toBe('Instantané')
+    expect(container.querySelector('.dm-latest-status')?.textContent).toBe('Envoi...')
+    expect(container.querySelector('.dm-message time')).toBeNull()
+    await act(async () => { confirm({ conversationId, messageId: sentId, replayed: false }); await Promise.resolve() })
+    expect(container.querySelector('.dm-message.pending')).toBeNull()
+    expect(container.querySelector(`[data-message-id="${sentId}"]`)?.textContent).toBe('Instantané')
+    expect(container.querySelector('.dm-latest-status')?.textContent).toBe('Envoyé')
+  })
+
+  it('keeps two intentionally identical messages distinct through intent reconciliation', async () => {
+    directMessages.send
+      .mockResolvedValueOnce({ conversationId, messageId: '77777777-7777-4777-8777-777777777777', replayed: false })
+      .mockResolvedValueOnce({ conversationId, messageId: '88888888-8888-4888-8888-888888888888', replayed: false })
+    const container = await mount()
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    for (const content of ['Même texte', 'Même texte']) {
+      const textarea = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+      await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, content); textarea.dispatchEvent(new Event('input', { bubbles: true })); textarea.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+    }
+    expect(Array.from(container.querySelectorAll('.dm-message p')).filter(node => node.textContent === 'Même texte')).toHaveLength(2)
+    expect(new Set(Array.from(container.querySelectorAll<HTMLElement>('.dm-message')).map(node => node.dataset.messageId)).size).toBe(container.querySelectorAll('.dm-message').length)
+  })
+
+  it('forces the bottom for an own optimistic send and only hides the scrollbar there', async () => {
+    let confirm!: (value: { conversationId: string; messageId: string; replayed: boolean }) => void
+    directMessages.send.mockReturnValueOnce(new Promise(resolve => { confirm = resolve }))
+    const container = await mount()
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    const list = container.querySelector<HTMLDivElement>('.dm-message-list')!
+    Object.defineProperty(list, 'scrollHeight', { configurable: true, value: 1_000 })
+    Object.defineProperty(list, 'clientHeight', { configurable: true, value: 100 })
+    list.scrollTop = 200
+    await act(async () => { list.dispatchEvent(new Event('scroll', { bubbles: true })) })
+    expect(list.classList.contains('dm-scrollbar-hidden')).toBe(false)
+    const textarea = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, 'Retour au bas'); textarea.dispatchEvent(new Event('input', { bubbles: true })); textarea.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve() })
+    expect(list.scrollTop).toBe(1_000)
+    expect(list.classList.contains('dm-scrollbar-hidden')).toBe(true)
+    await act(async () => { confirm({ conversationId, messageId: '99999999-9999-4999-8999-999999999999', replayed: false }); await Promise.resolve() })
+  })
+
+  it('does not move a reader who scrolled up when a received message is appended', async () => {
+    const reply = { ...message, id: '88888888-8888-4888-8888-888888888888', content: 'Nouveau reçu', submissionOrder: '2' }
+    directMessages.messages.mockResolvedValue({ messages: [message], nextCursor: null, windowSize: 1 })
+    const container = await mount()
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    const list = container.querySelector<HTMLDivElement>('.dm-message-list')!
+    Object.defineProperty(list, 'scrollHeight', { configurable: true, value: 1_000 })
+    Object.defineProperty(list, 'clientHeight', { configurable: true, value: 100 })
+    list.scrollTop = 250
+    await act(async () => { list.dispatchEvent(new Event('scroll', { bubbles: true })) })
+    directMessages.messages.mockResolvedValue({ messages: [message, reply], nextCursor: null, windowSize: 2 })
+    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() }); await settle()
+    expect(list.scrollTop).toBe(250)
+    expect(container.textContent).toContain('1 nouveau message ↓')
+  })
+
+  it('keeps a reader at the bottom when a received message is appended', async () => {
+    const reply = { ...message, id: '88888888-8888-4888-8888-888888888888', content: 'Nouveau reçu', submissionOrder: '2' }
+    directMessages.messages.mockResolvedValue({ messages: [message], nextCursor: null, windowSize: 1 })
+    const container = await mount()
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    const list = container.querySelector<HTMLDivElement>('.dm-message-list')!
+    let height = 1_000
+    Object.defineProperty(list, 'scrollHeight', { configurable: true, get: () => height })
+    Object.defineProperty(list, 'clientHeight', { configurable: true, value: 100 })
+    list.scrollTop = 900
+    await act(async () => { list.dispatchEvent(new Event('scroll', { bubbles: true })) })
+    height = 1_100
+    directMessages.messages.mockResolvedValue({ messages: [message, reply], nextCursor: null, windowSize: 2 })
+    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() }); await settle()
+    expect(list.scrollTop).toBe(1_100)
+    expect(list.classList.contains('dm-scrollbar-hidden')).toBe(true)
+  })
+
+  it('lets a received reply supersede the former outgoing delivery status', async () => {
+    const own: DirectMessageDto = { ...message, id: '77777777-7777-4777-8777-777777777777', own: true, authorPlayerId: ownId, content: 'Avant', submissionOrder: '1', readByOther: true, readByOtherAt: '2026-09-23T07:01:00.000Z' }
+    const reply: DirectMessageDto = { ...message, id: '88888888-8888-4888-8888-888888888888', content: 'Réponse', submissionOrder: '2' }
+    directMessages.messages.mockResolvedValue({ messages: [own, reply], nextCursor: null, windowSize: 2 })
+    const container = await mount()
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    expect(container.querySelector('.dm-latest-status')).toBeNull()
+  })
+
+  it('replaces a stale receipt projection with the fresh server object without F5', async () => {
+    const own: DirectMessageDto = { ...message, own: true, authorPlayerId: ownId, content: 'À lire', readByOther: false }
+    directMessages.messages.mockResolvedValue({ messages: [own], nextCursor: null, windowSize: 1 })
+    const container = await mount()
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    expect(container.querySelector('.dm-latest-status')?.textContent).toBe('Envoyé')
+    directMessages.messages.mockResolvedValue({ messages: [{ ...own, readByOther: true, readByOtherAt: new Date().toISOString() }], nextCursor: null, windowSize: 1 })
+    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() }); await settle()
+    expect(container.querySelector('.dm-latest-status')?.textContent).toBe('Lu ✓')
+  })
+
+  it('updates the receipt checkbox immediately and rolls it back on a deterministic error', async () => {
+    let reject!: (reason: Error) => void
+    directMessages.receipts.mockReturnValueOnce(new Promise((_resolve, fail) => { reject = fail }))
+    const container = await mount()
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    await act(async () => { (container.querySelector('.dm-menu-button') as HTMLButtonElement).click() })
+    const receipt = container.querySelector<HTMLInputElement>('.dm-conversation-menu input')!
+    await act(async () => { receipt.click() })
+    expect(receipt.checked).toBe(false)
+    await act(async () => { reject(new Error('Réglage refusé.')); await Promise.resolve() })
+    await settle()
+    expect(container.querySelector<HTMLInputElement>('.dm-conversation-menu input')?.checked).toBe(true)
+  })
+
+  it('appends a late private message without moving already visible rows', async () => {
     const later = { ...message, id: '77777777-7777-4777-8777-777777777777', content: 'B', submissionOrder: '20', createdAt: '2026-09-23T07:00:00.000Z' }
     const earlier = { ...message, id: '66666666-6666-4666-8666-666666666666', content: 'A', submissionOrder: '19', createdAt: '2026-09-23T07:00:01.000Z' }
     directMessages.messages.mockResolvedValue({ messages: [later], nextCursor: null, windowSize: 1 })
     const container = await mount()
     await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
     expect(Array.from(container.querySelectorAll('.dm-message p')).map(node => node.textContent)).toEqual(['B'])
+    const existingRow = container.querySelector('.dm-message')
     directMessages.messages.mockResolvedValue({ messages: [earlier], nextCursor: null, windowSize: 2 })
     await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() }); await settle()
-    expect(Array.from(container.querySelectorAll('.dm-message p')).map(node => node.textContent)).toEqual(['A', 'B'])
+    expect(Array.from(container.querySelectorAll('.dm-message p')).map(node => node.textContent)).toEqual(['B', 'A'])
+    expect(container.querySelectorAll('.dm-message')[0]).toBe(existingRow)
   })
 })

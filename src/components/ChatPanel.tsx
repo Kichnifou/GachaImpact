@@ -87,11 +87,28 @@ const orderMessages = (items: ChatMessageDto[]) => items.sort((a, b) => {
   return a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)
 })
 
+function mergeChatMessagesStable(current: readonly ChatMessageDto[], incoming: readonly ChatMessageDto[]) {
+  const byId = new Map(incoming.map(message => [message.id, message]))
+  const byIntent = new Map(incoming.filter(message => message.clientIntentKey).map(message => [message.clientIntentKey, message]))
+  const consumed = new Set<string>()
+  const next = current.map(message => {
+    const fresh = byId.get(message.id) ?? (message.clientIntentKey ? byIntent.get(message.clientIntentKey) : undefined)
+    if (!fresh) return message
+    consumed.add(fresh.id)
+    return fresh
+  })
+  for (const message of incoming) {
+    if (!consumed.has(message.id) && !next.some(known => known.id === message.id || Boolean(known.clientIntentKey && known.clientIntentKey === message.clientIntentKey))) next.push(message)
+  }
+  return next
+}
+
 function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = null, isCollapsed, onToggle, onOpenPlayers, onOpenProfile, onRefreshScopes, connectedCount = null, directMessageIntent = null, onDirectMessageIntentConsumed = () => undefined }: Props) {
   const api = getGameApiClient().chat
   const [activeTab, setActiveTab] = useState<'chat' | 'direct'>('chat')
   const [directUnread, setDirectUnread] = useState(0)
   const [localDirectIntent, setLocalDirectIntent] = useState<DirectMessageOpenIntent | null>(null)
+  const [directResetToken, setDirectResetToken] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessageDto[]>([])
   const [cursor, setCursor] = useState<{ createdAt: string; id: string } | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -122,7 +139,6 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const readId = useRef<string | null>(null)
   const olderBusy = useRef(false)
   const prepend = useRef<{ top: number; height: number } | null>(null)
-  const viewportAnchor = useRef<{ id: string; offset: number } | null>(null)
   const searchVersion = useRef(0)
   const lastRenderedId = useRef<string | null>(null)
   const messagesRef = useRef<ChatMessageDto[]>([])
@@ -163,13 +179,6 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     initialScrollPending.current = true
     setAmbiguousIntents([])
   }, [])
-  const captureViewportAnchor = useCallback(() => {
-    if (!list.current) return
-    const bounds = list.current.getBoundingClientRect()
-    const element = [...list.current.querySelectorAll<HTMLElement>('[data-message-id]')].find(item => item.getBoundingClientRect().bottom >= bounds.top)
-    if (element?.dataset.messageId) viewportAnchor.current = { id: element.dataset.messageId, offset: element.getBoundingClientRect().top - bounds.top }
-  }, [])
-
   const unreadNow = useCallback(async () => {
     const value = await api.unread()
     if (generation.current !== null && value.generation < generation.current) return
@@ -203,12 +212,12 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     if (!initial && !atBottom.current && current.length >= CHAT_VISIBLE_MESSAGE_LIMIT) {
       newlySeen.forEach(item => unseenIds.current.add(item.id))
       deferredLatest.current = true
-      const next = orderMessages(current.map(retain).filter((item, index, all) => all.findIndex(other => other.id === item.id) === index))
+      const next = current.map(retain).filter((item, index, all) => all.findIndex(other => other.id === item.id) === index)
       messagesRef.current = next
       setMessages(next)
       return
     }
-    const next = (initial ? orderMessages([...page.messages, ...current.filter(item => item.id.startsWith('optimistic:') && !byIntent.has(item.clientIntentKey))]) : orderMessages([...current.map(retain), ...page.messages.filter(item => !previous.has(item.id) && !current.some(old => old.clientIntentKey && old.clientIntentKey === item.clientIntentKey))].filter((item, index, all) => all.findIndex(other => other.id === item.id) === index))).slice(-CHAT_VISIBLE_MESSAGE_LIMIT)
+    const next = (initial ? orderMessages([...page.messages, ...current.filter(item => item.id.startsWith('optimistic:') && !byIntent.has(item.clientIntentKey))]) : mergeChatMessagesStable(current.map(retain), page.messages)).slice(-CHAT_VISIBLE_MESSAGE_LIMIT)
     if (initial) { deferredLatest.current = false; unseenIds.current.clear(); setNewCount(0) }
     messagesRef.current = next
     setMessages(next)
@@ -226,8 +235,9 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     visibleMessageIds.current = update.visibleMessageIds ?? [...new Set([...visibleMessageIds.current, ...update.messages.map(item => item.id)])].slice(-CHAT_VISIBLE_MESSAGE_LIMIT)
     const current = messagesRef.current
     const known = new Set(current.map(item => item.id))
-    const incoming = new Map([...update.messages, ...update.changes].map(item => [item.id, item]))
-    const byIntent = new Map(update.messages.filter(item => item.clientIntentKey).map(item => [item.clientIntentKey, item]))
+    const delivered = [...new Map([...update.messages, ...update.changes].map(item => [item.id, item])).values()]
+    const incoming = new Map(delivered.map(item => [item.id, item]))
+    const byIntent = new Map(delivered.filter(item => item.clientIntentKey).map(item => [item.clientIntentKey, item]))
     if (byIntent.size) {
       setAmbiguousIntents(items => items.filter(item => !byIntent.has(item.key)))
       setFailedIntents(items => items.filter(item => !byIntent.has(item.key)))
@@ -238,22 +248,19 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
       const next = item.id.startsWith('optimistic:') ? byIntent.get(item.clientIntentKey) ?? item : incoming.get(item.id) ?? item
       return next.replyToMessageId && deleted.has(next.replyToMessageId) ? { ...next, replyPreview: 'Message supprimé' } : next
     }
-    const fresh = update.messages.filter(item => !known.has(item.id) && !current.some(old => old.clientIntentKey && old.clientIntentKey === item.clientIntentKey))
-    const latestKnownOrder = current.reduce<bigint | null>((latest, item) => item.submissionOrder === null ? latest : latest === null || BigInt(item.submissionOrder) > latest ? BigInt(item.submissionOrder) : latest, null)
-    const hasLateArrival = latestKnownOrder !== null && fresh.some(item => item.submissionOrder !== null && BigInt(item.submissionOrder) < latestKnownOrder)
+    const fresh = delivered.filter(item => !known.has(item.id) && !current.some(old => old.clientIntentKey && old.clientIntentKey === item.clientIntentKey))
     const newlySeen = fresh.filter(item => item.author?.id !== playerId && !unseenIds.current.has(item.id))
     if (newlySeen.length && !atBottom.current && !initialScrollPending.current) setNewCount(value => value + newlySeen.length)
-    if (!atBottom.current && !initialScrollPending.current && current.length >= CHAT_VISIBLE_MESSAGE_LIMIT && fresh.length && !hasLateArrival) {
+    if (!atBottom.current && !initialScrollPending.current && current.length >= CHAT_VISIBLE_MESSAGE_LIMIT && fresh.length) {
       newlySeen.forEach(item => unseenIds.current.add(item.id))
       deferredLatest.current = true
-      const retained = orderMessages(current.map(retain).filter((item, index, all) => all.findIndex(other => other.id === item.id) === index))
+      const retained = current.map(retain).filter((item, index, all) => all.findIndex(other => other.id === item.id) === index)
       messagesRef.current = retained; setMessages(retained)
       return
     }
-    if (hasLateArrival && !atBottom.current) captureViewportAnchor()
-    const merged = orderMessages([...current.map(retain), ...fresh].filter((item, index, all) => all.findIndex(other => other.id === item.id) === index)).slice(-CHAT_VISIBLE_MESSAGE_LIMIT)
+    const merged = mergeChatMessagesStable(current.map(retain), fresh).slice(-CHAT_VISIBLE_MESSAGE_LIMIT)
     messagesRef.current = merged; setMessages(merged)
-  }, [api, captureViewportAnchor, messagesNow, playerId])
+  }, [api, messagesNow, playerId])
 
   // oxlint-disable-next-line react/set-state-in-effect -- reopen state and local scroll must settle before the first visible paint
   useLayoutEffect(() => {
@@ -276,9 +283,14 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
       catch (cause) { if (!cancelled) setError(cause instanceof Error ? cause.message : 'Chat indisponible.') }
       finally { busy = false }
     }
-    const schedule = () => { clearTimeout(timer); if (!cancelled && !document.hidden) timer = setTimeout(async () => { await tick(); schedule() }, chatActive ? 500 : 5000) }
-    const visible = () => { if (document.hidden) clearTimeout(timer); else { void tick(); schedule() } }
-    void tick().then(schedule)
+    const runAndSchedule = async () => {
+      if (cancelled || busy || document.hidden) return
+      const startedAt = performance.now()
+      await tick()
+      if (!cancelled && !document.hidden) timer = setTimeout(runAndSchedule, Math.max(0, (chatActive ? 350 : 5000) - (performance.now() - startedAt)))
+    }
+    const visible = () => { clearTimeout(timer); if (!document.hidden) void runAndSchedule() }
+    void runAndSchedule()
     document.addEventListener('visibilitychange', visible); window.addEventListener('focus', visible)
     return () => { cancelled = true; clearTimeout(timer); document.removeEventListener('visibilitychange', visible); window.removeEventListener('focus', visible) }
   }, [chatActive, loaded, messagesNow, playerId, unreadNow, updatesNow])
@@ -297,11 +309,6 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     messagesRef.current = messages
     if (initialScrollPending.current && messages.length) { list.current.scrollTop = list.current.scrollHeight; initialScrollPending.current = false; atBottom.current = true; setScrollbarAtBottom(true) }
     else if (prepend.current) { list.current.scrollTop = prepend.current.top + list.current.scrollHeight - prepend.current.height; prepend.current = null }
-    else if (viewportAnchor.current) {
-      const anchor = viewportAnchor.current, element = list.current.querySelector<HTMLElement>(`[data-message-id="${anchor.id}"]`)
-      if (element) list.current.scrollTop += element.getBoundingClientRect().top - list.current.getBoundingClientRect().top - anchor.offset
-      viewportAnchor.current = null
-    }
     else if (atBottom.current && messages.at(-1)?.id !== lastRenderedId.current) { list.current.scrollTop = list.current.scrollHeight; setScrollbarAtBottom(true) }
     lastRenderedId.current = messages.at(-1)?.id ?? null
   }, [messages])
@@ -363,9 +370,9 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
         } else {
           if (previousGeneration === null) generation.current = result.generation
           setMessages(current => {
-            const without = current.filter(item => item.clientIntentKey !== next.key && item.id !== result.message.id)
-            const confirmed = result.generation === generation.current ? [result.message, ...result.results].filter(item => !without.some(old => old.id === item.id)) : []
-            const merged = orderMessages([...without, ...confirmed]).slice(-CHAT_VISIBLE_MESSAGE_LIMIT)
+            const confirmedMessage = { ...result.message, clientIntentKey: next.key }
+            const confirmed = result.generation === generation.current ? [confirmedMessage, ...result.results] : []
+            const merged = mergeChatMessagesStable(current, confirmed).slice(-CHAT_VISIBLE_MESSAGE_LIMIT)
             messagesRef.current = merged
             return merged
           })
@@ -454,7 +461,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
 
   return <aside className={`chat-panel ${isCollapsed ? 'collapsed' : 'panel'}`} aria-label={isCollapsed ? 'Communauté repliée' : 'Communauté'}>
     {isCollapsed ? <button type="button" className="chat-expand-button" onClick={onToggle} aria-label={`Afficher la communauté, ${unread} messages Chat et ${directUnread} messages privés non lus`}><span aria-hidden="true">‹</span><strong>C</strong>{unread > 0 && <span className="unread-count">{unread > 99 ? '99+' : unread}</span>}<strong>M</strong>{directUnread > 0 && <span className="unread-count direct">{directUnread > 99 ? '99+' : directUnread}</span>}</button> : <><div className="chat-header"><div><span className="eyebrow">Communauté</span><h2>{activeTab === 'chat' ? 'Chat global' : 'Messages privés'}</h2></div><button type="button" className="icon-button" onClick={onToggle} aria-label="Replier la communauté"><span className="icon-glyph">›</span></button></div>
-    <div className="community-tabs" role="tablist" aria-label="Communauté"><button type="button" role="tab" aria-selected={activeTab === 'chat'} onClick={() => setActiveTab('chat')}>Chat{unread > 0 && <span className="community-tab-badge">{unread > 99 ? '99+' : unread}</span>}</button><button type="button" role="tab" aria-selected={activeTab === 'direct'} onClick={() => setActiveTab('direct')}>MP{directUnread > 0 && <span className="community-tab-badge">{directUnread > 99 ? '99+' : directUnread}</span>}</button></div></>}
+    <div className="community-tabs" role="tablist" aria-label="Communauté"><button type="button" role="tab" aria-selected={activeTab === 'chat'} onClick={() => setActiveTab('chat')}>Chat{unread > 0 && <span className="community-tab-badge">{unread > 99 ? '99+' : unread}</span>}</button><button type="button" role="tab" aria-selected={activeTab === 'direct'} onClick={() => { setActiveTab('direct'); setDirectResetToken(crypto.randomUUID()) }}>MP{directUnread > 0 && <span className="community-tab-badge">{directUnread > 99 ? '99+' : directUnread}</span>}</button></div></>}
     <section className="community-pane chat-community-pane" hidden={isCollapsed || activeTab !== 'chat'} aria-label="Chat global">
     <button type="button" className="chat-presence" onClick={onOpenPlayers}><span className="status-dot" />{connectedCount === null ? 'Joueurs connectés' : `${connectedCount} joueur${connectedCount > 1 ? 's' : ''} connecté${connectedCount > 1 ? 's' : ''}`}<span aria-hidden="true">›</span></button>
     <div className={`message-list${scrollbarAtBottom ? ' chat-scrollbar-hidden' : ''}`} ref={list} onScroll={onScroll} aria-live="off">{!loaded && <p className="chat-status">Chargement du Chat…</p>}{loaded && !messages.length && <p className="chat-status">Aucun message pour le moment.</p>}
@@ -474,20 +481,21 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
         const mentionAuthor = () => { if (!message.author) return; setDraft(value => `${value}${value && !value.endsWith(' ') ? ' ' : ''}@${message.author!.displayName} `); setMentions(value => [...value, { playerId: message.author!.id, displayName: message.author!.displayName }]); setMenuId(null); focusComposer() }
         return <article className={`chat-message${message.mentionedMe || message.repliedToMe ? ' chat-message-mentioned' : ''}${optimistic ? ' chat-message-optimistic' : ''}`} style={authorStyle} data-message-id={message.id} data-command={optimistic && message.messageType === 'COMMAND' ? 'true' : undefined} data-hover-suppressed={suppressedHoverId === message.id ? 'true' : undefined} data-report-open={reportId === message.id ? 'true' : undefined} onPointerLeave={() => setSuppressedHoverId(current => current === message.id ? null : current)} key={message.id}>
           {game ? <div className="message-avatar chat-game-avatar" aria-hidden="true">✦</div> : <button type="button" className="message-avatar chat-avatar-button" aria-label={`Profil de ${message.authorLabel}`} onClick={() => message.author && onOpenProfile(message.author.id)}>{message.authorLabel?.slice(0, 1).toLocaleUpperCase('fr-FR')}</button>}
-          <div className="message-content"><div className="message-meta">{game ? <strong className="chat-game-label">GachaImpact</strong> : <><button type="button" className="chat-author-button" onClick={() => message.author && onOpenProfile(message.author.id)}>{message.authorLabel}</button>{!own && message.author && <button type="button" className="chat-direct-button" aria-label={`Envoyer un message privé à ${message.authorLabel}`} title="Message privé" onClick={() => openDirectMessage(message.author!)}>MP</button>}</>}<time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time></div>
+          <div className="message-content"><div className="message-meta">{game ? <strong className="chat-game-label">GachaImpact</strong> : <button type="button" className="chat-author-button" onClick={() => message.author && onOpenProfile(message.author.id)}>{message.authorLabel}</button>}<time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time></div>
             {message.replyToMessageId && <div className="chat-reply-preview">↳ {message.replyPreview ?? 'Message supprimé'}</div>}
             <p>{masked ? <>Message masqué — <button type="button" onClick={() => setRevealed(value => [...value, message.id])}>Afficher</button></> : message.deletionState === 'AUTHOR' ? 'Message supprimé' : message.deletionState === 'MODERATION' ? 'Message supprimé par la modération' : chatText(message.content ?? '', message.resolvedMentions)}</p>
             {canAct && <><div className="chat-message-actions" aria-label={`Actions pour le message de ${message.authorLabel}`} onClickCapture={event => { if (event.detail) { setSuppressedHoverId(message.id); (document.activeElement as HTMLElement | null)?.blur() } }}>
               {canReport && <button type="button" title="Signaler" aria-label="Signaler" onClick={() => setReportId(message.id)}>⚑</button>}
               {canMask && <button type="button" title={hidden.includes(message.author!.id) ? 'Démasquer ce joueur' : 'Masquer ce joueur'} aria-label={hidden.includes(message.author!.id) ? 'Démasquer ce joueur' : 'Masquer ce joueur'} onClick={() => hide(message.author!.id)}>◌</button>}
               {message.content && <button type="button" title="Copier le message" aria-label="Copier le message" onClick={() => void copy(message)}>⧉</button>}
+              {canMention && <button type="button" title="Message privé" aria-label="Message privé" onClick={() => openDirectMessage(message.author!)}>MP</button>}
               {canMention && <button type="button" title="Mentionner" aria-label="Mentionner" onClick={mentionAuthor}>@</button>}
               {canReply && <button type="button" title="Répondre" aria-label="Répondre" onClick={replyTo}>↩</button>}
               {canDelete && <button type="button" title="Supprimer" aria-label="Supprimer" onClick={() => void remove(message.id)}>×</button>}
             </div>
             <button type="button" className="chat-message-menu-button" aria-label={`Actions pour le message de ${message.authorLabel}`} aria-expanded={menuId === message.id} onClick={() => setMenuId(value => value === message.id ? null : message.id)}>⋯</button>
             {reportId === message.id && <div className="chat-report-confirm" role="dialog" aria-label="Confirmer le signalement"><p>Signaler ce message ?</p><button type="button" onClick={() => void report(message.id)}>Confirmer</button><button type="button" onClick={() => setReportId(null)}>Annuler</button></div>}
-            {menuId === message.id && <div className="chat-message-menu" role="menu">{canReport && <button type="button" role="menuitem" onClick={() => { setReportId(message.id); setMenuId(null) }}>Signaler</button>}{canMask && <button type="button" role="menuitem" onClick={() => hide(message.author!.id)}>{hidden.includes(message.author!.id) ? 'Démasquer ce joueur' : 'Masquer les messages de ce joueur'}</button>}{message.content && <button type="button" role="menuitem" onClick={() => { void copy(message); setMenuId(null) }}>Copier le message</button>}{canMention && <button type="button" role="menuitem" onClick={mentionAuthor}>Mentionner</button>}{canReply && <button type="button" role="menuitem" onClick={replyTo}>Répondre</button>}{canDelete && <button type="button" role="menuitem" onClick={() => void remove(message.id)}>Supprimer</button>}</div>}</>}
+            {menuId === message.id && <div className="chat-message-menu" role="menu">{canReport && <button type="button" role="menuitem" onClick={() => { setReportId(message.id); setMenuId(null) }}>Signaler</button>}{canMask && <button type="button" role="menuitem" onClick={() => hide(message.author!.id)}>{hidden.includes(message.author!.id) ? 'Démasquer ce joueur' : 'Masquer les messages de ce joueur'}</button>}{message.content && <button type="button" role="menuitem" onClick={() => { void copy(message); setMenuId(null) }}>Copier le message</button>}{canMention && <button type="button" role="menuitem" onClick={() => { openDirectMessage(message.author!); setMenuId(null) }}>MP</button>}{canMention && <button type="button" role="menuitem" onClick={mentionAuthor}>Mentionner</button>}{canReply && <button type="button" role="menuitem" onClick={replyTo}>Répondre</button>}{canDelete && <button type="button" role="menuitem" onClick={() => void remove(message.id)}>Supprimer</button>}</div>}</>}
           </div>
         </article>
       })}</div>
@@ -509,7 +517,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     </div>
     </section>
     <section className="community-pane direct-community-pane" hidden={isCollapsed || activeTab !== 'direct'} aria-label="Messages privés">
-      <DirectMessagePanel playerId={playerId} isActive={!isCollapsed && activeTab === 'direct'} intent={resolvedDirectIntent} onIntentConsumed={token => { setLocalDirectIntent(current => current?.token === token ? null : current); onDirectMessageIntentConsumed(token) }} onUnreadChange={setDirectUnread} onOpenProfile={onOpenProfile} />
+      <DirectMessagePanel playerId={playerId} isActive={!isCollapsed && activeTab === 'direct'} intent={resolvedDirectIntent} resetToken={directResetToken} onIntentConsumed={token => { setLocalDirectIntent(current => current?.token === token ? null : current); onDirectMessageIntentConsumed(token) }} onUnreadChange={setDirectUnread} onOpenProfile={onOpenProfile} />
     </section>
   </aside>
 }

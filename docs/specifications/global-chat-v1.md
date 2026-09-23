@@ -27,7 +27,7 @@ Statut : décisions produit validées. Le Chat global player-facing est matéria
 - Le panneau de droite conserve les onglets Chat/MP de R506. Les nouveaux messages globaux alimentent le badge Chat pendant la consultation des MP, quand le Chat est replié ou quand il n'est pas effectivement consulté. Un message n'est vu que si l'onglet Chat est réellement affiché **et** que le joueur se trouve au niveau des messages récents ; ouvrir l'onglet loin du bas ne purge pas les non-lus.
 - Les vrais messages globaux `PLAYER`, `GAME_RESULT` et `SYSTEM` destinés à tous suivent cette règle. Aucune réponse privée n'est anticipée dans ce mécanisme.
 - R877 est précisée par R890 : le joueur voit au maximum les **200 messages les plus récents de la génération courante**, sur la liste, les curseurs, les mises à jour, les non-lus et la mémoire client. Les lignes plus anciennes restent conservées en base pour audit/modération, mais ne sont pas chargeables par le parcours joueur. Aucun écran séparé « Voir tout l'historique du Chat » n'appartient au premier périmètre.
-- R895 fixe leur chronologie à l'ordre de réception des nouvelles intentions par le serveur, jamais à une horloge navigateur ni à l'ordre de fin des transactions. Une ligne disponible s'affiche sans délai artificiel ; si une intention réservée plus tôt termine ensuite, elle est insérée immédiatement à sa position canonique sans rechargement complet. Cet ordre gouverne aussi pages, fenêtre, non-lus et curseurs de lecture.
+- R895 distingue désormais l'ordre durable de l'affichage live. `submissionOrder` reste l'autorité serveur des snapshots, pages, fenêtres, non-lus et curseurs. Dans une session déjà affichée, une ligne inconnue est ajoutée lors de sa livraison sans déplacer les lignes visibles ; une ligne connue et la confirmation d'un optimistic sont remplacées en place. Un chargement d'historique préfixe les anciennes lignes en préservant le viewport.
 
 ## Blocage, masquage et signalement — R878 et R879
 
@@ -52,7 +52,7 @@ Statut : décisions produit validées. Le Chat global player-facing est matéria
 
 - Avatar et pseudo d'un message `PLAYER` ouvrent son Profil via le pattern existant. Un menu contextuel réutilise les primitives adaptées pour `Répondre`, `Mentionner`, `Signaler` et `Masquer` selon la ligne et les droits pertinents.
 - `Envoyer un message privé` depuis un joueur du Chat peut ouvrir l'onglet MP et le parcours de conversation avec ce joueur, sous les permissions MP existantes. Le MP est toujours rédigé et envoyé dans l'onglet MP ; aucun `!mp` n'existe dans le Chat global ou sur Twitch.
-- L'implémentation player-facing attache cette affordance à l'identité Player, à côté du pseudo, sans modifier la rangée R891 ni le clic avatar/pseudo vers Profil. Le même intent est réutilisé depuis le Profil.
+- L'implémentation player-facing place cette affordance dans les actions du message, entre `Copier` et `Mentionner`, sans bouton accolé au pseudo et sans modifier le clic avatar/pseudo vers Profil. Le même intent est réutilisé depuis le Profil.
 
 ## Couleur des auteurs PLAYER — R888
 
@@ -67,15 +67,22 @@ Statut : décisions produit validées. Le Chat global player-facing est matéria
 
 ## Transport HTTP incrémental — TECHNIQUE R887
 
-- Quand le Chat est ouvert et le document visible, le navigateur transmet son ancre compatible `(createdAt, id)` et les IDs connus de la fenêtre canonique de 200 fournis par le snapshot, même si les pages historiques ne sont pas encore rendues ; le serveur résout l'ancre vers `submissionOrder` et restitue dans une même réponse toutes les lignes réellement inconnues de cette fenêtre, dans l'ordre R895, y compris une arrivée tardive antérieure. Un ID n'est considéré connu qu'après avoir été fourni par un snapshot ou effectivement transmis au client. Les suppressions connues suivent la même fenêtre, à cadence courte sans requêtes qui se chevauchent. Le snapshot complet reste réservé au chargement initial et au changement de génération.
+- Quand le Chat est ouvert et le document visible, le navigateur transmet son ancre compatible `(createdAt, id)` et les IDs connus de la fenêtre canonique de 200 fournis par le snapshot, même si les pages historiques ne sont pas encore rendues ; le serveur résout l'ancre vers `submissionOrder` et restitue dans une même réponse toutes les lignes réellement inconnues de cette fenêtre, y compris une arrivée tardive antérieure. Le frontend ajoute ces inconnues dans l'ordre de livraison observé, sans réordonner les lignes déjà montées. Un ID n'est considéré connu qu'après avoir été fourni par un snapshot ou effectivement transmis au client. Les suppressions connues suivent la même fenêtre, à une cadence start-to-start de 350 ms sans requêtes qui se chevauchent. Le snapshot complet reste réservé au chargement initial et au changement de génération.
 - Le panneau replié interroge seulement les non-lus à cadence plus lente. Ce périmètre utilise le polling HTTP authentifié ; Realtime, WebSocket et SSE n'y sont pas introduits.
 - Selon R893 révisée, toute réouverture du panneau replié place le snapshot local courant au bas avant le premier paint visible, puis recharge autoritativement la page récente en arrière-plan et reste au bas tant que le lecteur demeure dans ce mode. Elle n'attend jamais le réseau et ne reprend pas un ancien scroll comme s'il représentait encore l'état courant.
 
 ## Actions et signalement — R891–R892
 
-- Sur un message d'un autre joueur, desktop et menu tactile suivent `Signaler`, `Masquer`, `Copier`, `Mentionner`, `Répondre`. Sur son propre message : `Copier`, `Répondre`, `Supprimer`.
+- Sur un message d'un autre joueur, desktop et menu tactile suivent `Signaler`, `Masquer`, `Copier`, `MP`, `Mentionner`, `Répondre`. Sur son propre message : `Copier`, `Répondre`, `Supprimer`.
 - La confirmation de signalement est ancrée immédiatement sous la rangée d'actions, même lorsque le message est long.
 
 ## Frontières du premier lot
 
 Le Chat global est physiquement persisté dans PostgreSQL et diffusé au navigateur par polling HTTP authentifié ; sa fenêtre joueur de 200 ne purge pas les anciennes lignes. Le pont Twitch réel reste différé et n'est ni développé ni préparé physiquement par ce checkpoint. `R633/R634` relèvent de l'Historique global. La durée de conservation administrative définitive reste un choix technique ultérieur distinct de cette fenêtre player-facing.
+
+## Polish du premier vertical MP — R896
+
+- La liste locale expose toujours les onglets `Conversations` et `Archives`. Un clic manuel sur l'onglet principal MP revient à `Conversations`, tandis qu'un intent Player explicite ouvre toujours sa cible sans démonter le cache éphémère par Player.
+- Chaque conversation réutilise son snapshot mémoire ou son dernier message connu, puis se revalide immédiatement. L'envoi crée une seule bulle optimistic réconciliée par `clientIntentKey`; la projection serveur fraîche remplace toujours un même ID.
+- Les bulles ne contiennent que le message. Une unique ligne hors bulle décrit le dernier événement s'il est sortant : `Envoi...`, `Envoyé`, `Lu ✓`, puis une durée simple en heures, jours, mois ou années. Elle disparaît après une réponse reçue.
+- Ouverture d'une conversation non lue, envoi et réglage des accusés mettent d'abord l'état local à jour. L'envoi force le bas ; une réception ne le suit que si le lecteur y était déjà. La scrollbar est seulement rendue transparente au bas. Le polling HTTP reste sans overlap : 500 ms start-to-start pour un fil ouvert, 1 250 ms pour la liste visible et 5 s quand MP est inactif.
