@@ -1,13 +1,14 @@
-import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react'
 import { getGameApiClient } from '../api/game-api'
-import type { DirectConversationDto, DirectMessagePlayerDto } from '../api/types'
+import type { DirectConversationDto, DirectMessageDto, DirectMessagePlayerDto } from '../api/types'
 import { directMessageReceiptLabel } from '../direct-messages/receipt-label'
-import { useDirectMessages } from '../direct-messages/use-direct-messages'
+import { createOptimisticDirectMessage, useDirectMessages } from '../direct-messages/use-direct-messages'
 import { elementLabels } from '../utils/formatters'
 
 export type DirectMessageOpenIntent = Readonly<{ playerId: string; token: string; player?: DirectMessagePlayerDto }>
 type View = 'list' | 'archives' | 'conversation' | 'new'
 type SendIntent = { signature: string; key: string }
+type ProvisionalThread = { target: DirectMessagePlayerDto; message: DirectMessageDto; key: string; state: 'SENDING' | 'PENDING' | 'ACCEPTED'; conversationId: string | null; requestId: string | null }
 
 function linkedText(content: string): ReactNode[] {
   return content.split(/(https?:\/\/[^\s]+)/giu).map((part, index) => {
@@ -29,15 +30,18 @@ export default function DirectMessagePanel({ playerId, isActive, intent, resetTo
   const [draft, setDraft] = useState(''), [search, setSearch] = useState(''), [candidates, setCandidates] = useState<DirectMessagePlayerDto[]>([])
   const [searchError, setSearchError] = useState(''), [searching, setSearching] = useState(false), [menuOpen, setMenuOpen] = useState(false), [confirmBlock, setConfirmBlock] = useState(false)
   const [newCount, setNewCount] = useState(0), [sendPending, setSendPending] = useState(false), [now, setNow] = useState(() => Date.now()), [scrollbarAtBottom, setScrollbarAtBottom] = useState(true)
+  const [provisional, setProvisional] = useState<ProvisionalThread | null>(null)
   const intentRef = useRef<SendIntent | null>(null), list = useRef<HTMLDivElement>(null), composer = useRef<HTMLTextAreaElement>(null), atBottom = useRef(true), initialScroll = useRef(false), forceBottom = useRef(false), seenIds = useRef(new Set<string>()), prepend = useRef<{ top: number; height: number } | null>(null), readId = useRef<string | null>(null), sendBusy = useRef(false), readBusy = useRef(false), queuedRead = useRef<{ conversationId: string; messageId: string } | null>(null)
   const model = useDirectMessages(playerId, isActive, selectedId, view === 'archives', onUnreadChange)
-  const selected = model.selected
-  const latestEvent = model.messages.at(-1)
+  const provisionalConversation: DirectConversationDto | null = provisional ? { id: provisional.conversationId ?? `provisional:${provisional.key}`, other: provisional.target, archived: false, lastMessageAt: provisional.message.createdAt, lastMessage: provisional.message, request: provisional.state === 'PENDING' ? { id: provisional.requestId ?? `provisional-request:${provisional.key}`, state: 'PENDING', senderPlayerId: playerId, retryAfter: null } : null, unreadCount: 0, readReceiptsEnabled: true, canSend: provisional.state === 'ACCEPTED', blockedByMe: false } : null
+  const selected = model.selected ?? provisionalConversation
+  const renderedMessages = useMemo(() => provisional && !model.messages.some(message => message.id === provisional.message.id || message.clientIntentKey === provisional.key) ? [provisional.message] : model.messages, [model.messages, provisional])
+  const latestEvent = renderedMessages.at(-1)
   const latestOwn = latestEvent?.own ? latestEvent : null
   const incomingPending = selected?.request?.state === 'PENDING' && selected.request.senderPlayerId !== playerId
   const outgoingPending = selected?.request?.state === 'PENDING' && selected.request.senderPlayerId === playerId
 
-  const openConversation = (conversation: DirectConversationDto) => { model.markConversationSeen(conversation.id); setSelectedId(conversation.id); setTarget(null); setView('conversation'); setMenuOpen(false); setConfirmBlock(false); setNewCount(0); setScrollbarAtBottom(true); seenIds.current.clear(); readId.current = null; queuedRead.current = null; initialScroll.current = true; atBottom.current = true }
+  const openConversation = (conversation: DirectConversationDto) => { model.markConversationSeen(conversation.id); setProvisional(null); setSelectedId(conversation.id); setTarget(null); setView('conversation'); setMenuOpen(false); setConfirmBlock(false); setNewCount(0); setScrollbarAtBottom(true); seenIds.current.clear(); readId.current = null; queuedRead.current = null; initialScroll.current = true; atBottom.current = true }
   const openTarget = async (targetPlayerId: string, fallback?: DirectMessagePlayerDto) => {
     try {
       const existing = await model.openTarget(targetPlayerId)
@@ -48,7 +52,7 @@ export default function DirectMessagePanel({ playerId, isActive, intent, resetTo
   // oxlint-disable-next-line react/set-state-in-effect -- a shell navigation intent deliberately changes the internal panel route
   useEffect(() => { if (!intent) return; void openTarget(intent.playerId, intent.player).finally(() => onIntentConsumed(intent.token)) }, [intent?.token]) // eslint-disable-line react-hooks/exhaustive-deps
   // oxlint-disable-next-line react/set-state-in-effect -- an explicit click on the already mounted MP tab resets its internal route
-  useLayoutEffect(() => { if (!resetToken) return; setView('list'); setSelectedId(null); setTarget(null); setDraft(''); setMenuOpen(false); setConfirmBlock(false); setNewCount(0); setScrollbarAtBottom(true) }, [resetToken])
+  useLayoutEffect(() => { if (!resetToken) return; setView('list'); setProvisional(null); setSelectedId(null); setTarget(null); setDraft(''); setMenuOpen(false); setConfirmBlock(false); setNewCount(0); setScrollbarAtBottom(true) }, [resetToken])
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 60_000); return () => window.clearInterval(timer) }, [])
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect -- leaving or clearing the search immediately clears obsolete suggestions
@@ -65,20 +69,20 @@ export default function DirectMessagePanel({ playerId, isActive, intent, resetTo
   useLayoutEffect(() => {
     const listElement = list.current
     if (!listElement || view !== 'conversation') return
-    if (initialScroll.current && model.messagesLoaded) { listElement.scrollTop = listElement.scrollHeight; initialScroll.current = false; atBottom.current = true; setScrollbarAtBottom(true); seenIds.current = new Set(model.messages.map(message => message.id)); setNewCount(0) }
+    if (initialScroll.current && (model.messagesLoaded || provisional)) { listElement.scrollTop = listElement.scrollHeight; initialScroll.current = false; atBottom.current = true; setScrollbarAtBottom(true); seenIds.current = new Set(renderedMessages.map(message => message.id)); setNewCount(0) }
     else if (prepend.current) { listElement.scrollTop = prepend.current.top + listElement.scrollHeight - prepend.current.height; prepend.current = null }
     else if (forceBottom.current) { listElement.scrollTop = listElement.scrollHeight; forceBottom.current = false; atBottom.current = true; setScrollbarAtBottom(true); setNewCount(0) }
     else {
-      const fresh = model.messages.filter(message => !seenIds.current.has(message.id) && !message.own)
+      const fresh = renderedMessages.filter(message => !seenIds.current.has(message.id) && !message.own)
       fresh.forEach(message => seenIds.current.add(message.id))
       if (fresh.length && atBottom.current) { listElement.scrollTop = listElement.scrollHeight; setScrollbarAtBottom(true) }
       else if (fresh.length) setNewCount(value => value + fresh.length)
     }
     if (isActive && atBottom.current) {
-      const last = [...model.messages].reverse().find(message => !message.id.startsWith('optimistic:'))
+      const last = [...renderedMessages].reverse().find(message => !message.id.startsWith('optimistic:'))
       if (last) markConversationRead(selectedId!, last.id)
     }
-  }, [isActive, model.messages, model.messagesLoaded, selectedId, view]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isActive, model.messages, model.messagesLoaded, provisional, renderedMessages, selectedId, view]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function markConversationRead(conversationId: string, messageId: string) {
     if (readId.current === messageId) return
@@ -94,14 +98,14 @@ export default function DirectMessagePanel({ playerId, isActive, intent, resetTo
       readBusy.current = false
     })()
   }
-  const scrollBottom = () => { if (!list.current) return; list.current.scrollTop = list.current.scrollHeight; atBottom.current = true; setScrollbarAtBottom(true); setNewCount(0); const last = [...model.messages].reverse().find(message => !message.id.startsWith('optimistic:')); if (isActive && selectedId && last) markConversationRead(selectedId, last.id) }
+  const scrollBottom = () => { if (!list.current) return; list.current.scrollTop = list.current.scrollHeight; atBottom.current = true; setScrollbarAtBottom(true); setNewCount(0); const last = [...renderedMessages].reverse().find(message => !message.id.startsWith('optimistic:')); if (isActive && selectedId && last) markConversationRead(selectedId, last.id) }
   const onScroll = () => {
     if (!list.current || initialScroll.current) return
     const remaining = list.current.scrollHeight - list.current.scrollTop - list.current.clientHeight; atBottom.current = remaining < 70; setScrollbarAtBottom(remaining <= 2)
-    if (atBottom.current) { setNewCount(0); const last = [...model.messages].reverse().find(message => !message.id.startsWith('optimistic:')); if (isActive && selectedId && last) markConversationRead(selectedId, last.id) }
+    if (atBottom.current) { setNewCount(0); const last = [...renderedMessages].reverse().find(message => !message.id.startsWith('optimistic:')); if (isActive && selectedId && last) markConversationRead(selectedId, last.id) }
     if (list.current.scrollTop < 70 && model.cursor) { prepend.current = { top: list.current.scrollTop, height: list.current.scrollHeight }; void model.loadOlder() }
   }
-  const returnToList = () => { setView(selected?.archived ? 'archives' : 'list'); setSelectedId(null); setTarget(null); setDraft(''); setMenuOpen(false); setConfirmBlock(false); intentRef.current = null }
+  const returnToList = () => { setView(selected?.archived ? 'archives' : 'list'); setProvisional(null); setSelectedId(null); setTarget(null); setDraft(''); setMenuOpen(false); setConfirmBlock(false); intentRef.current = null }
   const send = async (event: FormEvent) => {
     event.preventDefault(); const content = draft.trim(); if (!content || Array.from(content).length > 1_000 || sendBusy.current) return
     const signature = `${selectedId ?? target?.id}:${content}`
@@ -110,9 +114,15 @@ export default function DirectMessagePanel({ playerId, isActive, intent, resetTo
     const previousDraft = draft; setDraft(''); forceBottom.current = true
     try {
       if (selectedId) await model.send(selectedId, content, currentIntent.key)
-      else if (target) { const result = await model.initiate(target.id, content, currentIntent.key); setSelectedId(result!.conversationId); setView('conversation'); initialScroll.current = true }
+      else if (target) {
+        const optimistic = createOptimisticDirectMessage(playerId, `provisional:${currentIntent.key}`, content, currentIntent.key)
+        setProvisional({ target, message: optimistic, key: currentIntent.key, state: 'SENDING', conversationId: null, requestId: null }); setSelectedId(null); setView('conversation'); initialScroll.current = true; setScrollbarAtBottom(true)
+        const result = await model.initiate(target.id, content, currentIntent.key)
+        setProvisional(current => current?.key === currentIntent.key ? { ...current, message: { ...current.message, id: result.messageId, conversationId: result.conversationId }, state: result.state, conversationId: result.conversationId, requestId: result.requestId } : current)
+        setSelectedId(result.conversationId)
+      }
       intentRef.current = null
-    } catch { setDraft(current => current || previousDraft) }
+    } catch { setProvisional(null); if (!selectedId) { setSelectedId(null); setView('new') } setDraft(previousDraft) }
     finally { sendBusy.current = false; setSendPending(false) }
   }
   const chooseTarget = async (candidate: DirectMessagePlayerDto) => { setTarget(candidate); setSearch(candidate.displayName); setCandidates([]); await openTarget(candidate.id, candidate) }
@@ -137,7 +147,7 @@ export default function DirectMessagePanel({ playerId, isActive, intent, resetTo
   if (view === 'new') return <section className="dm-panel" aria-label="Nouveau message privé"><header className="dm-thread-header"><button type="button" className="dm-back" onClick={() => { setView('list'); setTarget(null); setDraft('') }} aria-label="Retour aux conversations">&lt;</button><div><strong>Nouveau message</strong><small>{target ? target.displayName : 'Choisir un joueur'}</small></div></header><div className="dm-new-body"><label htmlFor="dm-player-search">Rechercher un joueur</label><input id="dm-player-search" type="search" value={search} placeholder="Pseudo du joueur…" autoComplete="off" onChange={event => { setSearch(event.target.value); setTarget(null) }} />{searching && <p>Recherche…</p>}{searchError && <p role="alert" className="error">{searchError}</p>}{candidates.length > 0 && <div className="dm-player-results">{candidates.map(candidate => <button type="button" key={candidate.id} onClick={() => void chooseTarget(candidate)}><Avatar player={candidate} /><span><strong>{candidate.displayName}</strong><small>{candidate.elementKey ? elementLabels[candidate.elementKey] : 'Élément non choisi'}</small></span></button>)}</div>}{target && <p className="dm-new-hint">Écrivez le premier message. La conversation ne sera créée qu’à son envoi.</p>}</div>{target && <Composer draft={draft} setDraft={setDraft} pending={sendPending} error={model.error} onClearError={model.clearError} onSubmit={send} composerRef={composer} />}</section>
 
   const other = selected?.other ?? target
-  return <section className="dm-panel" aria-label={other ? `Conversation avec ${other.displayName}` : 'Conversation privée'}><header className="dm-thread-header"><button type="button" className="dm-back" onClick={returnToList} aria-label="Retour aux conversations">&lt;</button>{other && <><button type="button" className="dm-thread-identity" onClick={() => onOpenProfile(other.id)}><Avatar player={other} /><span><strong>{other.displayName}</strong><small>Voir le profil</small></span></button><button type="button" className="dm-menu-button" aria-label="Actions de conversation" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}>⋯</button></>}{menuOpen && selected && <div className="dm-conversation-menu" role="menu"><label><input type="checkbox" checked={selected.readReceiptsEnabled} disabled={model.pending} onChange={event => { void model.receipts(selected.id, event.target.checked).catch(() => undefined) }} /> Accusés de lecture</label><button type="button" role="menuitem" disabled={model.pending} onClick={() => void act(selected.archived ? 'unarchive' : 'archive')}>{selected.archived ? 'Désarchiver' : 'Archiver'}</button>{selected.blockedByMe ? <button type="button" role="menuitem" disabled={model.pending} onClick={() => void act('unblock')}>Débloquer</button> : <button type="button" role="menuitem" className="danger" disabled={model.pending} onClick={() => setConfirmBlock(true)}>Bloquer</button>}<button type="button" role="menuitem" onClick={() => other && onOpenProfile(other.id)}>Profil</button></div>}</header>{confirmBlock && <div className="dm-confirm" role="dialog" aria-label="Confirmer le blocage"><p>Bloquer ce joueur et archiver la conversation ?</p><button type="button" disabled={model.pending} onClick={() => void act('block')}>Confirmer</button><button type="button" onClick={() => setConfirmBlock(false)}>Annuler</button></div>}{model.error && (!selected?.canSend || incomingPending) && <p className="dm-feedback error" role="alert"><span>{model.error}</span><button type="button" onClick={model.clearError} aria-label="Fermer l’erreur">×</button></p>}{incomingPending && <div className="dm-request"><strong>Demande de conversation</strong><p>Le premier message est visible. Souhaitez-vous poursuivre cet échange ?</p><div><button type="button" disabled={model.pending} onClick={() => void act('accept')}>Accepter</button><button type="button" disabled={model.pending} onClick={() => void act('ignore')}>Ignorer</button><button type="button" disabled={model.pending} onClick={() => setConfirmBlock(true)}>Bloquer</button></div></div>}{outgoingPending && <p className="dm-state">Demande envoyée</p>}<div className={`dm-message-list${scrollbarAtBottom ? ' dm-scrollbar-hidden' : ''}`} ref={list} onScroll={onScroll}>{model.cursor && <button type="button" className="dm-load-older" onClick={() => void model.loadOlder()}>Charger les messages précédents</button>}{!model.messagesLoaded && <p className="dm-empty">Chargement de la conversation…</p>}{model.messages.map(message => <article className={`dm-message ${message.own ? 'own' : 'other'}${message.id.startsWith('optimistic:') ? ' pending' : ''}`} data-message-id={message.id} key={message.id}><div>{message.content ? <p>{linkedText(message.content)}</p> : <p>Message supprimé</p>}</div></article>)}</div>{newCount > 0 && <button type="button" className="dm-new-messages" onClick={scrollBottom}>{newCount} nouveau{newCount > 1 ? 'x' : ''} message{newCount > 1 ? 's' : ''} ↓</button>}{latestOwn && <small className="dm-latest-status" title={latestOwn.readByOtherAt ? new Date(latestOwn.readByOtherAt).toLocaleString('fr-FR') : undefined}>{latestOwn.id.startsWith('optimistic:') ? 'Envoi...' : latestOwn.readByOther ? directMessageReceiptLabel(latestOwn.readByOtherAt, now) : 'Envoyé'}</small>}{selected && incomingPending ? null : selected?.canSend ? <Composer draft={draft} setDraft={setDraft} pending={sendPending} error={model.error} onClearError={model.clearError} onSubmit={send} composerRef={composer} /> : <p className="dm-readonly">Cette conversation est disponible en lecture seule.</p>}</section>
+  return <section className="dm-panel" aria-label={other ? `Conversation avec ${other.displayName}` : 'Conversation privée'}><header className="dm-thread-header"><button type="button" className="dm-back" onClick={returnToList} aria-label="Retour aux conversations">&lt;</button>{other && <><button type="button" className="dm-thread-identity" onClick={() => onOpenProfile(other.id)}><Avatar player={other} /><span><strong>{other.displayName}</strong><small>Voir le profil</small></span></button>{provisional?.state !== 'SENDING' && <button type="button" className="dm-menu-button" aria-label="Actions de conversation" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}>⋯</button>}</>}{menuOpen && selected && <div className="dm-conversation-menu" role="menu"><label><input type="checkbox" checked={selected.readReceiptsEnabled} disabled={model.pending} onChange={event => { void model.receipts(selected.id, event.target.checked).catch(() => undefined) }} /> Accusés de lecture</label><button type="button" role="menuitem" disabled={model.pending} onClick={() => void act(selected.archived ? 'unarchive' : 'archive')}>{selected.archived ? 'Désarchiver' : 'Archiver'}</button>{selected.blockedByMe ? <button type="button" role="menuitem" disabled={model.pending} onClick={() => void act('unblock')}>Débloquer</button> : <button type="button" role="menuitem" className="danger" disabled={model.pending} onClick={() => setConfirmBlock(true)}>Bloquer</button>}<button type="button" role="menuitem" onClick={() => other && onOpenProfile(other.id)}>Profil</button></div>}</header>{confirmBlock && <div className="dm-confirm" role="dialog" aria-label="Confirmer le blocage"><p>Bloquer ce joueur et archiver la conversation ?</p><button type="button" disabled={model.pending} onClick={() => void act('block')}>Confirmer</button><button type="button" onClick={() => setConfirmBlock(false)}>Annuler</button></div>}{model.error && (!selected?.canSend || incomingPending) && <p className="dm-feedback error" role="alert"><span>{model.error}</span><button type="button" onClick={model.clearError} aria-label="Fermer l’erreur">×</button></p>}{incomingPending && <div className="dm-request"><strong>Demande de conversation</strong><p>Le premier message est visible. Souhaitez-vous poursuivre cet échange ?</p><div><button type="button" disabled={model.pending} onClick={() => void act('accept')}>Accepter</button><button type="button" disabled={model.pending} onClick={() => void act('ignore')}>Ignorer</button><button type="button" disabled={model.pending} onClick={() => setConfirmBlock(true)}>Bloquer</button></div></div>}{outgoingPending && <p className="dm-state">Demande envoyée</p>}<div className={`dm-message-list${scrollbarAtBottom ? ' dm-scrollbar-hidden' : ''}`} ref={list} onScroll={onScroll}>{model.cursor && <button type="button" className="dm-load-older" onClick={() => void model.loadOlder()}>Charger les messages précédents</button>}{!model.messagesLoaded && !provisional && <p className="dm-empty">Chargement de la conversation…</p>}{renderedMessages.map(message => <article className={`dm-message ${message.own ? 'own' : 'other'}${message.id.startsWith('optimistic:') ? ' pending' : ''}`} data-message-id={message.id} data-submission-order={message.submissionOrder ?? undefined} data-read-by-other={message.readByOther ? 'true' : 'false'} data-read-by-other-at={message.readByOtherAt ?? undefined} key={message.id}><div>{message.content ? <p>{linkedText(message.content)}</p> : <p>Message supprimé</p>}</div></article>)}</div>{newCount > 0 && <button type="button" className="dm-new-messages" onClick={scrollBottom}>{newCount} nouveau{newCount > 1 ? 'x' : ''} message{newCount > 1 ? 's' : ''} ↓</button>}{latestOwn && <small className="dm-latest-status" title={latestOwn.readByOtherAt ? new Date(latestOwn.readByOtherAt).toLocaleString('fr-FR') : undefined}>{latestOwn.id.startsWith('optimistic:') ? 'Envoi...' : latestOwn.readByOther ? directMessageReceiptLabel(latestOwn.readByOtherAt, now) : 'Envoyé'}</small>}{provisional?.state === 'SENDING' ? null : selected && incomingPending ? null : selected?.canSend ? <Composer draft={draft} setDraft={setDraft} pending={sendPending} error={model.error} onClearError={model.clearError} onSubmit={send} composerRef={composer} /> : <p className="dm-readonly">Cette conversation est disponible en lecture seule.</p>}</section>
 }
 
 function Composer({ draft, setDraft, pending, error, onClearError, onSubmit, composerRef }: { draft: string; setDraft: (value: string) => void; pending: boolean; error: string | null; onClearError: () => void; onSubmit: (event: FormEvent) => void; composerRef: RefObject<HTMLTextAreaElement | null> }) {

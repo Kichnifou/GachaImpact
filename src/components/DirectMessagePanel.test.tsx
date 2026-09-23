@@ -33,6 +33,14 @@ async function mount(conversation: DirectConversationDto = baseConversation, act
   return container
 }
 
+async function openNewMessageTarget(container: HTMLElement) {
+  await act(async () => { (Array.from(container.querySelectorAll('button')).find(item => item.textContent === 'Nouveau message') as HTMLButtonElement).click() })
+  const search = container.querySelector<HTMLInputElement>('#dm-player-search')!
+  await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, 'Ast'); search.dispatchEvent(new Event('input', { bubbles: true })); await new Promise(resolve => setTimeout(resolve, 250)) })
+  await act(async () => { (Array.from(container.querySelectorAll('.dm-player-results button')).find(item => item.textContent?.includes('Aster')) as HTMLButtonElement).click() })
+  await settle()
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   directMessages.list.mockImplementation(async (archived: boolean) => ({ conversations: archived ? [] : [baseConversation] }))
@@ -185,6 +193,71 @@ describe('DirectMessagePanel', () => {
     expect(directMessages.initiate).toHaveBeenCalledWith(otherId, textarea.value || Array.from(`${content}trop-long`).slice(0, 1000).join(''), expect.any(String))
   })
 
+  it('shows the first message optimistically and adopts a pending conversation without a flash or duplicate', async () => {
+    const candidate = { id: otherId, displayName: 'Aster', elementKey: 'hydro' as const }
+    let confirm!: (value: { conversationId: string; messageId: string; requestId: string; state: 'PENDING'; replayed: boolean }) => void
+    directMessages.list.mockResolvedValue({ conversations: [] })
+    directMessages.messages.mockReturnValue(new Promise(() => undefined))
+    directMessages.initiate.mockReturnValueOnce(new Promise(resolve => { confirm = resolve }))
+    social.directory.mockResolvedValue({ players: [candidate], page: 1, pageSize: 20, total: 1, totalPages: 1 })
+    const container = await mount(baseConversation, true, true)
+    await openNewMessageTarget(container)
+    const textarea = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, 'Bonjour'); textarea.dispatchEvent(new Event('input', { bubbles: true })); textarea.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve() })
+    expect(container.querySelector('.dm-thread-identity strong')?.textContent).toBe('Aster')
+    expect(container.querySelector('#dm-player-search')).toBeNull()
+    expect(Array.from(container.querySelectorAll('.dm-message p')).filter(node => node.textContent === 'Bonjour')).toHaveLength(1)
+    expect(container.querySelector('.dm-message time')).toBeNull()
+    expect(container.querySelector('.dm-latest-status')?.textContent).toBe('Envoi...')
+    expect(container.querySelector('#dm-message')).toBeNull()
+    await act(async () => { confirm({ conversationId, messageId, requestId, state: 'PENDING', replayed: false }); await Promise.resolve() })
+    expect(Array.from(container.querySelectorAll('.dm-message p')).filter(node => node.textContent === 'Bonjour')).toHaveLength(1)
+    expect(container.querySelector(`[data-message-id="${messageId}"]`)).not.toBeNull()
+    expect(container.querySelector('.dm-latest-status')?.textContent).toBe('Envoyé')
+    expect(container.textContent).toContain('Demande envoyée')
+    expect(container.querySelector('#dm-message')).toBeNull()
+    expect(directMessages.messages).toHaveBeenCalledWith(conversationId)
+  })
+
+  it('adopts an accepted first message once and enables the normal composer', async () => {
+    const candidate = { id: otherId, displayName: 'Aster', elementKey: 'hydro' as const }
+    let confirm!: (value: { conversationId: string; messageId: string; requestId: null; state: 'ACCEPTED'; replayed: boolean }) => void
+    directMessages.list.mockResolvedValue({ conversations: [] })
+    directMessages.messages.mockReturnValue(new Promise(() => undefined))
+    directMessages.initiate.mockReturnValueOnce(new Promise(resolve => { confirm = resolve }))
+    social.directory.mockResolvedValue({ players: [candidate], page: 1, pageSize: 20, total: 1, totalPages: 1 })
+    const container = await mount(baseConversation, true, true)
+    await openNewMessageTarget(container)
+    const textarea = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, 'Bonjour'); textarea.dispatchEvent(new Event('input', { bubbles: true })); textarea.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve() })
+    await act(async () => { confirm({ conversationId, messageId, requestId: null, state: 'ACCEPTED', replayed: false }); await Promise.resolve() })
+    expect(Array.from(container.querySelectorAll('.dm-message p')).filter(node => node.textContent === 'Bonjour')).toHaveLength(1)
+    expect(container.querySelector('.dm-latest-status')?.textContent).toBe('Envoyé')
+    expect(container.textContent).not.toContain('Demande envoyée')
+    expect(container.querySelector<HTMLTextAreaElement>('#dm-message')).not.toBeNull()
+  })
+
+  it('removes a failed provisional first message, restores the draft and reuses its intent key', async () => {
+    const candidate = { id: otherId, displayName: 'Aster', elementKey: 'hydro' as const }
+    directMessages.list.mockResolvedValue({ conversations: [] })
+    directMessages.initiate.mockRejectedValueOnce(new Error('Initiation refusée.')).mockReturnValueOnce(new Promise(() => undefined))
+    social.directory.mockResolvedValue({ players: [candidate], page: 1, pageSize: 20, total: 1, totalPages: 1 })
+    const container = await mount(baseConversation, true, true)
+    await openNewMessageTarget(container)
+    const textarea = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, 'Bonjour'); textarea.dispatchEvent(new Event('input', { bubbles: true })); textarea.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    await settle()
+    expect(container.querySelector('#dm-player-search')).not.toBeNull()
+    expect(container.querySelector('.dm-message')).toBeNull()
+    expect(container.querySelector<HTMLTextAreaElement>('#dm-message')?.value).toBe('Bonjour')
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('Initiation refusée.')
+    const retry = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    await act(async () => { retry.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve() })
+    expect(directMessages.initiate).toHaveBeenCalledTimes(2)
+    expect(directMessages.initiate.mock.calls[0]?.[2]).toBe(directMessages.initiate.mock.calls[1]?.[2])
+    expect(Array.from(container.querySelectorAll('.dm-message p')).filter(node => node.textContent === 'Bonjour')).toHaveLength(1)
+  })
+
   it('keeps an outgoing pending request visible without a composer', async () => {
     const pending = { ...baseConversation, request: { id: requestId, state: 'PENDING' as const, senderPlayerId: ownId, retryAfter: null }, canSend: false }
     const container = await mount(pending)
@@ -237,7 +310,10 @@ describe('DirectMessagePanel', () => {
     const container = await mount()
     await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
     const textarea = container.querySelector<HTMLTextAreaElement>('#dm-message')!
-    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, 'Instantané'); textarea.dispatchEvent(new Event('input', { bubbles: true })); textarea.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve() })
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, 'Instantané'); textarea.dispatchEvent(new Event('input', { bubbles: true })) })
+    expect(textarea.value).toBe('Instantané')
+    await act(async () => { textarea.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve() })
+    expect(directMessages.send).toHaveBeenCalledTimes(1)
     expect(Array.from(container.querySelectorAll('.dm-message p')).filter(node => node.textContent === 'Instantané')).toHaveLength(1)
     expect(container.querySelector('.dm-message.pending')?.textContent).toBe('Instantané')
     expect(container.querySelector('.dm-latest-status')?.textContent).toBe('Envoi...')
@@ -246,6 +322,35 @@ describe('DirectMessagePanel', () => {
     expect(container.querySelector('.dm-message.pending')).toBeNull()
     expect(container.querySelector(`[data-message-id="${sentId}"]`)?.textContent).toBe('Instantané')
     expect(container.querySelector('.dm-latest-status')?.textContent).toBe('Envoyé')
+  })
+
+  it('keeps a fresher polling projection when the POST acknowledgement arrives later', async () => {
+    let confirm!: (value: { conversationId: string; messageId: string; replayed: boolean }) => void
+    directMessages.send.mockReturnValueOnce(new Promise(resolve => { confirm = resolve }))
+    const container = await mount()
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    const textarea = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, 'Race'); textarea.dispatchEvent(new Event('input', { bubbles: true })) })
+    expect(textarea.value).toBe('Race')
+    await act(async () => { textarea.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve() })
+    const key = directMessages.send.mock.calls[0]?.[2] as string
+    const serverCreatedAt = '2026-09-23T09:00:00.000Z', serverReadAt = new Date().toISOString()
+    const serverMessage: DirectMessageDto = { ...message, id: '88888888-8888-4888-8888-888888888888', authorPlayerId: ownId, own: true, clientIntentKey: key, content: 'Race', createdAt: serverCreatedAt, submissionOrder: '123', readByOther: true, readByOtherAt: serverReadAt }
+    directMessages.messages.mockResolvedValue({ messages: [message, serverMessage], nextCursor: null, windowSize: 2 })
+    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() }); await settle()
+    let row = container.querySelector<HTMLElement>(`[data-message-id="${serverMessage.id}"]`)!
+    expect(Array.from(container.querySelectorAll('.dm-message p')).filter(node => node.textContent === 'Race')).toHaveLength(1)
+    expect(row.dataset.submissionOrder).toBe('123')
+    expect(row.dataset.readByOther).toBe('true')
+    expect(row.dataset.readByOtherAt).toBe(serverReadAt)
+    expect(container.querySelector('.dm-latest-status')?.textContent).toBe('Lu ✓')
+    await act(async () => { confirm({ conversationId, messageId: serverMessage.id, replayed: false }); await Promise.resolve() })
+    row = container.querySelector<HTMLElement>(`[data-message-id="${serverMessage.id}"]`)!
+    expect(Array.from(container.querySelectorAll('.dm-message p')).filter(node => node.textContent === 'Race')).toHaveLength(1)
+    expect(row.dataset.submissionOrder).toBe('123')
+    expect(row.dataset.readByOther).toBe('true')
+    expect(row.dataset.readByOtherAt).toBe(serverReadAt)
+    expect(container.querySelector('.dm-latest-status')?.textContent).toBe('Lu ✓')
   })
 
   it('keeps two intentionally identical messages distinct through intent reconciliation', async () => {

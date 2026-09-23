@@ -28,6 +28,17 @@ function mergeDirectMessages(current: readonly DirectMessageDto[], incoming: rea
   return next.slice(-500)
 }
 
+export function createOptimisticDirectMessage(playerId: string, conversationId: string, content: string, key: string): DirectMessageDto {
+  return { id: `optimistic:${key}`, conversationId, authorPlayerId: playerId, own: true, clientIntentKey: key, content, createdAt: new Date().toISOString(), submissionOrder: null, editedAt: null, deletedAt: null, restoredAt: null, readByOther: false, readByOtherAt: null }
+}
+
+/** A server projection already observed by polling/listing must never be downgraded by a later POST acknowledgement. */
+function confirmDirectMessage(current: readonly DirectMessageDto[], optimistic: DirectMessageDto, messageId: string, key: string) {
+  const authoritative = current.find(message => message.submissionOrder !== null && (message.id === messageId || message.clientIntentKey === key))
+  if (authoritative) return current.filter(message => message === authoritative || message.clientIntentKey !== key).slice(-500)
+  return mergeDirectMessages(current, [{ ...optimistic, id: messageId }])
+}
+
 export function useDirectMessages(playerId: string, active: boolean, conversationId: string | null, archivesRequested: boolean, onUnreadChange: (count: number) => void) {
   const api = getGameApiClient().directMessages
   const [normal, setNormal] = useState<readonly DirectConversationDto[]>([])
@@ -176,15 +187,14 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
   }, [api, publishLists, refreshLists])
 
   const send = useCallback(async (id: string, content: string, key: string) => {
-    const optimistic: DirectMessageDto = { id: `optimistic:${key}`, conversationId: id, authorPlayerId: playerId, own: true, clientIntentKey: key, content, createdAt: new Date().toISOString(), submissionOrder: null, editedAt: null, deletedAt: null, restoredAt: null, readByOther: false, readByOtherAt: null }
+    const optimistic = createOptimisticDirectMessage(playerId, id, content, key)
     const before = caches.current.get(id) ?? { messages: [], cursor: null, fetched: false }
     publishMessages(id, { ...before, messages: mergeDirectMessages(before.messages, [optimistic]) })
     beginMutation()
     try {
       const result = await api.send(id, content, key)
       const current = caches.current.get(id) ?? before
-      const confirmed = { ...optimistic, id: result.messageId }
-      publishMessages(id, { ...current, messages: mergeDirectMessages(current.messages, [confirmed]) })
+      publishMessages(id, { ...current, messages: confirmDirectMessage(current.messages, optimistic, result.messageId, key) })
       revalidate()
       return result
     } catch (reason) {
@@ -194,6 +204,21 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
       throw reason
     } finally { endMutation() }
   }, [api, playerId, publishMessages]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const initiate = useCallback(async (targetPlayerId: string, content: string, key: string) => {
+    beginMutation()
+    try {
+      const result = await api.initiate(targetPlayerId, content, key)
+      const cached = caches.current.get(result.conversationId) ?? { messages: [], cursor: null, fetched: false }
+      const listed = [...normalRef.current, ...archivedRef.current].find(conversation => conversation.id === result.conversationId || conversation.other.id === targetPlayerId)?.lastMessage
+      const observed = listed ? mergeDirectMessages(cached.messages, [listed]) : cached.messages
+      const optimistic = createOptimisticDirectMessage(playerId, result.conversationId, content, key)
+      caches.current.set(result.conversationId, { ...cached, messages: confirmDirectMessage(observed, optimistic, result.messageId, key) })
+      revalidate()
+      return result
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Message non envoyé.'); throw reason }
+    finally { endMutation() }
+  }, [api, playerId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const markConversationSeen = useCallback((id: string) => {
     listRevision.current++
@@ -235,7 +260,7 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
     normal, archived, messages, cursor, selected, listLoaded, messagesLoaded, error, pending,
     clearError: () => setError(null), refreshLists, refreshMessages, refreshUnread, loadOlder, openTarget, markConversationSeen,
     send,
-    initiate: (targetPlayerId: string, content: string, key: string) => mutate(() => api.initiate(targetPlayerId, content, key)),
+    initiate,
     accept: (id: string, requestId: string, key: string) => mutate(() => api.accept(id, requestId, key)),
     ignore: (id: string, requestId: string, key: string) => mutate(() => api.ignore(id, requestId, key)),
     block: (id: string, key: string) => mutate(() => api.block(id, key)),
