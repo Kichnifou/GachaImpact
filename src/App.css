@@ -8894,12 +8894,29 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .dm-message-list.dm-scrollbar-hidden { scrollbar-color: transparent transparent; }
 .dm-message-list.dm-scrollbar-hidden::-webkit-scrollbar-thumb,
 .dm-message-list.dm-scrollbar-hidden::-webkit-scrollbar-track { background: transparent; }
-.dm-message { display: flex; margin: 5px 0; }
+.dm-message { position: relative; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 3px; margin: 5px 0; }
 .dm-message.own { justify-content: flex-end; }
-.dm-message > div { max-width: 84%; padding: 7px 9px; border: 1px solid rgba(104, 142, 193, .2); border-radius: 10px 10px 10px 3px; background: rgba(24, 39, 66, .9); }
-.dm-message.own > div { border-radius: 10px 10px 3px 10px; border-color: rgba(77, 154, 220, .3); background: rgba(30, 79, 125, .82); }
+.dm-message-bubble, .dm-message-edit { max-width: 84%; padding: 7px 9px; border: 1px solid rgba(104, 142, 193, .2); border-radius: 10px 10px 10px 3px; background: rgba(24, 39, 66, .9); }
+.dm-message.own .dm-message-bubble, .dm-message.own .dm-message-edit { border-radius: 10px 10px 3px 10px; border-color: rgba(77, 154, 220, .3); background: rgba(30, 79, 125, .82); }
+.dm-message-bubble.deleted { color: #91a0b5; font-style: italic; }
 .dm-message p { margin: 0; overflow-wrap: anywhere; font-size: 11px; line-height: 1.4; white-space: pre-wrap; }
 .dm-message a { color: #92ddff; text-decoration: underline; }
+.dm-message-edited { display: block; margin-top: 2px; color: #91a9c8; font-size: 8px; font-style: normal; text-align: right; }
+.dm-message-actions { position: relative; align-self: center; }
+.dm-message-actions > button { width: 20px; height: 20px; padding: 0; color: #8092ac; border: 0; background: transparent; opacity: .68; cursor: pointer; }
+.dm-message-actions > button:hover, .dm-message-actions > button:focus-visible, .dm-message-actions > button[aria-expanded="true"] { color: #d9e8fb; opacity: 1; }
+.dm-message-actions > div { position: absolute; z-index: 8; right: 0; bottom: 22px; display: grid; min-width: 82px; padding: 3px; border: 1px solid rgba(104, 142, 193, .3); border-radius: 6px; background: rgba(15, 25, 44, .98); box-shadow: 0 5px 14px rgba(0, 0, 0, .32); }
+.dm-message-actions > div button, .dm-message-edit button, .dm-message-delete-confirm button, .dm-message-action-error button { min-height: 24px; padding: 3px 7px; color: #c5d4e8; font-size: 9px; border: 0; border-radius: 4px; background: rgba(61, 106, 159, .2); cursor: pointer; }
+.dm-message-actions > div button:hover, .dm-message-actions > div button:focus-visible { background: rgba(61, 106, 159, .42); }
+.dm-message-edit { display: grid; width: min(84%, 360px); gap: 4px; }
+.dm-message-edit textarea { width: 100%; min-height: 56px; max-height: 150px; resize: vertical; padding: 5px 6px; color: #e4edf8; font: inherit; border: 1px solid rgba(124, 174, 224, .42); border-radius: 5px; background: rgba(9, 20, 37, .72); }
+.dm-message-edit > small { color: #91a9c8; font-size: 8px; text-align: right; }
+.dm-message-edit > span { display: flex; justify-content: flex-end; gap: 4px; }
+.dm-message-delete-confirm { flex: 0 0 auto; order: 3; margin-left: auto; padding: 5px 6px; border: 1px solid rgba(216, 130, 111, .36); border-radius: 6px; background: rgba(60, 34, 40, .9); }
+.dm-message-delete-confirm p { margin-bottom: 4px; font-size: 9px; }
+.dm-message-delete-confirm button + button { margin-left: 4px; }
+.dm-message-action-error { display: flex; align-items: center; gap: 5px; }
+.dm-message-action-error > span { min-width: 0; flex: 1; }
 .dm-latest-status { align-self: flex-end; min-height: 16px; margin: 0 12px 2px; color: #8092ac; font-size: 8px; line-height: 16px; }
 .dm-load-older { display: block; margin: 0 auto 8px; padding: 5px 8px; font-size: 9px; }
 .dm-new-messages { align-self: center; margin: 3px; padding: 4px 8px; font-size: 9px; }
@@ -8928,6 +8945,6 @@ button.inventory-stella-card { width: 100%; font: inherit; }
   .direct-community-pane { max-height: min(520px, 70dvh); }
   .dm-conversation-row { min-height: 58px; }
   .dm-primary-action { min-height: 42px; }
-  .dm-message > div { max-width: 90%; }
+  .dm-message-bubble, .dm-message-edit { max-width: 90%; }
   .dm-composer textarea { min-height: 46px; }
 }

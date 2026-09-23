@@ -2,7 +2,7 @@ import type { SocialActions, DirectoryPage, Profile, ConnectedPlayers, PrivacySe
 import { loadFrontendConfig } from '../config/environment'
 import type { TradeActions, TradeSnapshot, TradePartners, TradeResult } from '../trades/types'
 import type { BannerVoteDto } from './types'
-import type { ChatMentionDto, ChatPageDto, ChatSendDto, ChatUpdatesDto, DirectConversationListDto, DirectMessageArchiveDto, DirectMessageBlockDto, DirectMessageInitiateDto, DirectMessagePageDto, DirectMessagePlayerDto, DirectMessageReceiptDto, DirectMessageResolveDto, DirectMessageSendDto, DirectMessageUnreadDto } from './types'
+import type { ChatMentionDto, ChatPageDto, ChatSendDto, ChatUpdatesDto, DirectConversationListDto, DirectMessageArchiveDto, DirectMessageBlockDto, DirectMessageInitiateDto, DirectMessageMutationDto, DirectMessagePageDto, DirectMessagePlayerDto, DirectMessageReceiptDto, DirectMessageResolveDto, DirectMessageSendDto, DirectMessageUnreadDto } from './types'
 import { getSupabaseClient } from '../infrastructure/supabase/client'
 import type {
   BackendErrorDto,
@@ -159,6 +159,9 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
       messages: (conversationId: string, cursor?: DirectMessagePageDto['nextCursor']) => request<DirectMessagePageDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/messages` + (cursor ? '?' + new URLSearchParams({ cursorCreatedAt: cursor.createdAt, cursorId: cursor.id }) : '')),
       initiate: (targetPlayerId: string, content: string, idempotencyKey: string) => request<DirectMessageInitiateDto>('/api/v1/me/direct-conversations', { method: 'POST', body: JSON.stringify({ targetPlayerId, content, idempotencyKey }) }),
       send: (conversationId: string, content: string, idempotencyKey: string) => request<DirectMessageSendDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/messages`, { method: 'POST', body: JSON.stringify({ content, idempotencyKey }) }),
+      edit: (conversationId: string, messageId: string, content: string, idempotencyKey: string) => request<DirectMessageMutationDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}`, { method: 'PATCH', body: JSON.stringify({ content, idempotencyKey }) }),
+      remove: (conversationId: string, messageId: string, idempotencyKey: string) => request<DirectMessageMutationDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}/delete`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+      restore: (conversationId: string, messageId: string, idempotencyKey: string) => request<DirectMessageMutationDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}/restore`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
       accept: (conversationId: string, requestId: string, idempotencyKey: string) => request<DirectMessageResolveDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/accept`, { method: 'POST', body: JSON.stringify({ requestId, idempotencyKey }) }),
       ignore: (conversationId: string, requestId: string, idempotencyKey: string) => request<DirectMessageResolveDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/ignore`, { method: 'POST', body: JSON.stringify({ requestId, idempotencyKey }) }),
       block: (conversationId: string, idempotencyKey: string) => request<DirectMessageBlockDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/block`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),

@@ -10,7 +10,7 @@ const chat = vi.hoisted(() => ({
   messages: vi.fn(), unread: vi.fn(), read: vi.fn(), send: vi.fn(), remove: vi.fn(), mentions: vi.fn(), report: vi.fn(),
 }))
 const directMessages = vi.hoisted(() => ({
-  players: vi.fn(), list: vi.fn(), unread: vi.fn(), messages: vi.fn(), initiate: vi.fn(), send: vi.fn(), accept: vi.fn(), ignore: vi.fn(), block: vi.fn(), unblock: vi.fn(), read: vi.fn(), receipts: vi.fn(), archive: vi.fn(),
+  players: vi.fn(), list: vi.fn(), unread: vi.fn(), messages: vi.fn(), initiate: vi.fn(), send: vi.fn(), edit: vi.fn(), remove: vi.fn(), restore: vi.fn(), accept: vi.fn(), ignore: vi.fn(), block: vi.fn(), unblock: vi.fn(), read: vi.fn(), receipts: vi.fn(), archive: vi.fn(),
 }))
 const social = vi.hoisted(() => ({ directory: vi.fn() }))
 vi.mock('../api/game-api', () => ({

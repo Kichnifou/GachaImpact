@@ -20,6 +20,7 @@ type OperationResult = Record<string, Prisma.InputJsonValue | null>;
 type OperationSummary = { fingerprint: string; result: OperationResult };
 type InitiateResult = OperationResult & { conversationId: string; messageId: string; requestId: string | null; state: string };
 type SendResult = OperationResult & { conversationId: string; messageId: string };
+type MessageMutationResult = OperationResult & { conversationId: string; messageId: string };
 type ResolveResult = OperationResult & { conversationId: string; requestId: string; state: string };
 type BlockResult = OperationResult & { conversationId: string; blocked: boolean; changed: boolean };
 type ContactAccess = { allowed: boolean; friends: boolean; level: PrivacyLevel; blockedByActor: boolean; blockedByOther: boolean };
@@ -120,6 +121,20 @@ export class DirectMessageService {
     const message = await tx.directMessage.create({ data: { conversationId, authorPlayerId: playerId, content, operationId, createdAt: now, submissionOrder } });
     await tx.directConversation.updateMany({ where: { id: conversationId, OR: [{ lastMessageOrder: null }, { lastMessageOrder: { lt: submissionOrder } }] }, data: { lastMessageAt: now, lastMessageOrder: submissionOrder } });
     await tx.directConversationParticipant.updateMany({ where: { conversationId }, data: { archivedAt: null } });
+    const boundary = await tx.directMessage.findFirst({ where: { conversationId }, orderBy: { submissionOrder: 'desc' }, skip: 499, select: { submissionOrder: true } });
+    if (boundary) await tx.directMessage.updateMany({
+      where: { conversationId, submissionOrder: { lt: boundary.submissionOrder }, deletedAt: { not: null }, content: { not: null }, contentPurgedAt: null },
+      data: { content: null, contentPurgedAt: now },
+    });
+    return message;
+  }
+
+  private async requireOwnMessage(tx: Prisma.TransactionClient, conversationId: string, messageId: string, playerId: string) {
+    if (!validUuid(conversationId) || !validUuid(messageId)) throw unavailable();
+    await this.requireConversation(tx, conversationId, playerId);
+    await tx.$queryRaw`SELECT id FROM direct_messages WHERE id = ${messageId}::uuid AND conversation_id = ${conversationId}::uuid FOR UPDATE`;
+    const message = await tx.directMessage.findFirst({ where: { id: messageId, conversationId, authorPlayerId: playerId } });
+    if (!message) throw unavailable();
     return message;
   }
 
@@ -175,6 +190,59 @@ export class DirectMessageService {
       const operation = await this.operation(tx, actor.id, key, 'direct-message.send', fingerprint, now);
       const message = await this.createMessage(tx, actor.id, conversationId, content, operation.id, now, submissionOrder);
       const result: SendResult = { conversationId, messageId: message.id };
+      await this.finish(tx, operation.id, fingerprint, result);
+      await this.activity.record(tx, actor.id, now, 'INTERNAL_CHAT');
+      return { ...result, replayed: false };
+    });
+  }
+
+  async editMessage(identity: AuthenticatedIdentity, conversationId: string, messageId: string, rawContent: string, key: string): Promise<MessageMutationResult & { replayed: boolean }> {
+    const content = normalizeContent(rawContent), actor = await this.actor(identity), fingerprint = `${conversationId}:${messageId}:${content}`;
+    return this.transaction(async tx => {
+      await this.requireConversation(tx, conversationId, actor.id);
+      const replay = await this.replay<MessageMutationResult>(tx, actor.id, key, 'direct-message.edit', fingerprint);
+      if (replay) return { ...replay, replayed: true };
+      const message = await this.requireOwnMessage(tx, conversationId, messageId, actor.id);
+      if (message.deletedAt || message.content === null || message.contentPurgedAt) throw unavailable();
+      const now = this.clock.now(), operation = await this.operation(tx, actor.id, key, 'direct-message.edit', fingerprint, now);
+      await tx.directMessage.update({ where: { id: message.id }, data: { content, editedAt: now } });
+      const result: MessageMutationResult = { conversationId, messageId };
+      await this.finish(tx, operation.id, fingerprint, result);
+      await this.activity.record(tx, actor.id, now, 'INTERNAL_CHAT');
+      return { ...result, replayed: false };
+    });
+  }
+
+  async deleteMessage(identity: AuthenticatedIdentity, conversationId: string, messageId: string, key: string): Promise<MessageMutationResult & { replayed: boolean }> {
+    const actor = await this.actor(identity), fingerprint = `${conversationId}:${messageId}`;
+    return this.transaction(async tx => {
+      await this.requireConversation(tx, conversationId, actor.id);
+      const replay = await this.replay<MessageMutationResult>(tx, actor.id, key, 'direct-message.delete', fingerprint);
+      if (replay) return { ...replay, replayed: true };
+      const message = await this.requireOwnMessage(tx, conversationId, messageId, actor.id);
+      if (message.deletedAt || message.content === null || message.contentPurgedAt) throw unavailable();
+      const now = this.clock.now(), operation = await this.operation(tx, actor.id, key, 'direct-message.delete', fingerprint, now);
+      await tx.directMessage.update({ where: { id: message.id }, data: { deletedAt: now, restoredAt: null } });
+      const result: MessageMutationResult = { conversationId, messageId };
+      await this.finish(tx, operation.id, fingerprint, result);
+      await this.activity.record(tx, actor.id, now, 'INTERNAL_CHAT');
+      return { ...result, replayed: false };
+    });
+  }
+
+  async restoreMessage(identity: AuthenticatedIdentity, conversationId: string, messageId: string, key: string): Promise<MessageMutationResult & { replayed: boolean }> {
+    const actor = await this.actor(identity), fingerprint = `${conversationId}:${messageId}`;
+    return this.transaction(async tx => {
+      await this.requireConversation(tx, conversationId, actor.id);
+      const replay = await this.replay<MessageMutationResult>(tx, actor.id, key, 'direct-message.restore', fingerprint);
+      if (replay) return { ...replay, replayed: true };
+      const message = await this.requireOwnMessage(tx, conversationId, messageId, actor.id);
+      if (!message.deletedAt || message.content === null || message.contentPurgedAt) throw unavailable();
+      const newer = await tx.directMessage.count({ where: { conversationId, submissionOrder: { gt: message.submissionOrder } } });
+      if (newer >= 500) throw unavailable();
+      const now = this.clock.now(), operation = await this.operation(tx, actor.id, key, 'direct-message.restore', fingerprint, now);
+      await tx.directMessage.update({ where: { id: message.id }, data: { deletedAt: null, restoredAt: now } });
+      const result: MessageMutationResult = { conversationId, messageId };
       await this.finish(tx, operation.id, fingerprint, result);
       await this.activity.record(tx, actor.id, now, 'INTERNAL_CHAT');
       return { ...result, replayed: false };
@@ -282,7 +350,7 @@ export class DirectMessageService {
   private projectMessage(row: { id: string; conversationId: string; authorPlayerId: string; content: string | null; createdAt: Date; submissionOrder: bigint; editedAt: Date | null; deletedAt: Date | null; restoredAt: Date | null; operation?: { idempotencyKey: string | null } }, viewerId: string, otherRead: { lastSharedReadSubmissionOrder: bigint | null; lastSharedReadAt: Date | null } | null) {
     const readByOther = Boolean(otherRead?.lastSharedReadSubmissionOrder && row.submissionOrder <= otherRead.lastSharedReadSubmissionOrder);
     const own = row.authorPlayerId === viewerId;
-    return { id: row.id, conversationId: row.conversationId, authorPlayerId: row.authorPlayerId, own, clientIntentKey: own ? row.operation?.idempotencyKey ?? null : null, content: row.content, createdAt: row.createdAt.toISOString(), submissionOrder: row.submissionOrder.toString(), editedAt: row.editedAt?.toISOString() ?? null, deletedAt: row.deletedAt?.toISOString() ?? null, restoredAt: row.restoredAt?.toISOString() ?? null, readByOther, readByOtherAt: readByOther ? otherRead?.lastSharedReadAt?.toISOString() ?? null : null };
+    return { id: row.id, conversationId: row.conversationId, authorPlayerId: row.authorPlayerId, own, clientIntentKey: own ? row.operation?.idempotencyKey ?? null : null, content: row.deletedAt ? null : row.content, createdAt: row.createdAt.toISOString(), submissionOrder: row.submissionOrder.toString(), editedAt: row.editedAt?.toISOString() ?? null, deletedAt: row.deletedAt?.toISOString() ?? null, restoredAt: row.restoredAt?.toISOString() ?? null, readByOther, readByOtherAt: readByOther ? otherRead?.lastSharedReadAt?.toISOString() ?? null : null };
   }
 
   async messages(identity: AuthenticatedIdentity, conversationId: string, limit = 50, cursor?: DirectCursor) {

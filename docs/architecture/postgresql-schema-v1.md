@@ -1898,7 +1898,7 @@ Le choix exact peut être finalisé pendant le mapping Prisma sans impact métie
 
 # 26. Messages privés
 
-État physique : la migration additive `20260922225444_036_add_direct_message_foundations` matérialise le socle backend-only ; `20260922232731_037_harden_direct_message_history` rend restrictives les trois FK enfant → conversation afin qu'une suppression de conversation ne puisse effacer l'historique ; `20260923092102_038_add_direct_message_shared_read_at` ajoute l'instant réel d'avancement du curseur partagé nécessaire à l'UI ; `20260923104500_039_add_message_submission_order` ajoute l'ordre de réception serveur partagé avec le Chat. Les quatre tables ont RLS active, aucune policy navigateur et aucun droit `PUBLIC`/`anon`/`authenticated`. Le premier vertical UI MP est sur main ; historique/recherche/date/signalement/admin et mutations d'édition/suppression/restauration restent hors périmètre.
+État physique : la migration additive `20260922225444_036_add_direct_message_foundations` matérialise le socle backend-only ; `20260922232731_037_harden_direct_message_history` rend restrictives les trois FK enfant → conversation afin qu'une suppression de conversation ne puisse effacer l'historique ; `20260923092102_038_add_direct_message_shared_read_at` ajoute l'instant réel d'avancement du curseur partagé nécessaire à l'UI ; `20260923104500_039_add_message_submission_order` ajoute l'ordre de réception serveur partagé avec le Chat. Les quatre tables ont RLS active, aucune policy navigateur et aucun droit `PUBLIC`/`anon`/`authenticated`. Le premier vertical UI MP est sur main ; édition/suppression/restauration sont candidates sur `review` en réutilisant les colonnes existantes. Historique/recherche/date/signalement/admin restent hors périmètre.
 
 ## 26.1 `direct_conversations`
 
@@ -1979,6 +1979,8 @@ Index :
 - `(author_player_id, created_at DESC)`
 
 Les messages restent historiquement conservés. `submission_order` est réservé avant les traitements susceptibles d'inverser les commits ; il gouverne le fil, les 500 plus récents, les curseurs de lecture, accusés, non-lus et `last_message_order`. `created_at` reste descriptif. Le service n'expose que les 500 plus récents dans la conversation normale ; il n'existe pas encore de route Historique.
+
+Le lot avancé candidat ne change aucun DDL. Les mutations auteur-only mettent à jour la ligne sous transaction sérialisable et `BusinessOperation` idempotente. `deleted_at` masque immédiatement `content` dans toute projection normale sans effacer la valeur stockée ; `restored_at` trace le dernier retour. À chaque insertion MP, une lecture indexée de la 500e position fixe une borne, puis un `UPDATE` borné à la conversation met `content = NULL` et `content_purged_at = now` uniquement sur les tombstones plus anciens. Les messages actifs ne sont jamais purgés et aucun scan JS de la table n'est effectué.
 
 ---
 

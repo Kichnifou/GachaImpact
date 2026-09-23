@@ -16,6 +16,7 @@ const service = {
   list: vi.fn(async () => ({ conversations: [] })), unread: vi.fn(async () => ({ unreadCount: 0, conversations: [] })),
   initiate: vi.fn(async () => ({ conversationId, messageId, requestId, state: 'PENDING' })),
   messages: vi.fn(async () => ({ messages: [], nextCursor: null, windowSize: 0 })), send: vi.fn(async () => ({ conversationId, messageId })),
+  editMessage: vi.fn(async () => ({ conversationId, messageId })), deleteMessage: vi.fn(async () => ({ conversationId, messageId })), restoreMessage: vi.fn(async () => ({ conversationId, messageId })),
   resolve: vi.fn(async () => ({ conversationId, requestId, state: 'ACCEPTED' })), block: vi.fn(async () => ({ conversationId, blocked: true })), unblock: vi.fn(async () => ({ conversationId, blocked: false })),
   markRead: vi.fn(async () => ({ lastReadMessageId: messageId, changed: true })), setReadReceipts: vi.fn(async () => ({ conversationId, readReceiptsEnabled: false, changed: true })),
   archive: vi.fn(async () => ({ conversationId, archived: true, changed: true })),
@@ -48,6 +49,12 @@ describe('authenticated direct-message routes', () => {
     expect((await enabled.inject({ method: 'POST', url: '/api/v1/me/direct-conversations', headers: token, payload: { targetPlayerId: targetId, content: 'Bonjour', idempotencyKey: key } })).statusCode).toBe(200);
     expect(service.initiate).toHaveBeenCalledWith(identity, targetId, 'Bonjour', key);
     expect((await enabled.inject({ method: 'POST', url: `/api/v1/me/direct-conversations/${conversationId}/messages`, headers: token, payload: { content: 'Suite', idempotencyKey: key } })).statusCode).toBe(200);
+    expect((await enabled.inject({ method: 'PATCH', url: `/api/v1/me/direct-conversations/${conversationId}/messages/${messageId}`, headers: token, payload: { content: 'Corrigé', idempotencyKey: key } })).statusCode).toBe(200);
+    expect(service.editMessage).toHaveBeenCalledWith(identity, conversationId, messageId, 'Corrigé', key);
+    expect((await enabled.inject({ method: 'POST', url: `/api/v1/me/direct-conversations/${conversationId}/messages/${messageId}/delete`, headers: token, payload: { idempotencyKey: key } })).statusCode).toBe(200);
+    expect(service.deleteMessage).toHaveBeenCalledWith(identity, conversationId, messageId, key);
+    expect((await enabled.inject({ method: 'POST', url: `/api/v1/me/direct-conversations/${conversationId}/messages/${messageId}/restore`, headers: token, payload: { idempotencyKey: key } })).statusCode).toBe(200);
+    expect(service.restoreMessage).toHaveBeenCalledWith(identity, conversationId, messageId, key);
     expect((await enabled.inject({ method: 'POST', url: `/api/v1/me/direct-conversations/${conversationId}/accept`, headers: token, payload: { requestId, idempotencyKey: key } })).statusCode).toBe(200);
     expect((await enabled.inject({ method: 'POST', url: `/api/v1/me/direct-conversations/${conversationId}/ignore`, headers: token, payload: { requestId, idempotencyKey: key } })).statusCode).toBe(200);
     expect((await enabled.inject({ method: 'POST', url: `/api/v1/me/direct-conversations/${conversationId}/block`, headers: token, payload: { idempotencyKey: key } })).statusCode).toBe(200);
@@ -58,5 +65,6 @@ describe('authenticated direct-message routes', () => {
     expect((await enabled.inject({ method: 'GET', url: '/api/v1/me/direct-conversations/unread', headers: token })).statusCode).toBe(200);
     expect((await enabled.inject({ method: 'GET', url: `/api/v1/me/direct-conversations/${conversationId}/messages?cursorId=${messageId}`, headers: token })).statusCode).toBe(400);
     expect((await enabled.inject({ method: 'POST', url: '/api/v1/me/direct-conversations', headers: token, payload: { targetPlayerId: targetId, content: 'Bonjour', idempotencyKey: key, authorPlayerId: targetId } })).statusCode).toBe(400);
+    expect((await enabled.inject({ method: 'PATCH', url: `/api/v1/me/direct-conversations/${conversationId}/messages/${messageId}`, headers: token, payload: { content: 'x'.repeat(2001), idempotencyKey: key } })).statusCode).toBe(400);
   });
 });

@@ -712,6 +712,7 @@ La [source spécialisée Chat global](global-chat-v1.md) détaille ces règles. 
 - `VALIDÉ R512` — Archivage individuel d'une conversation ; nouveau message autorisé la désarchive.
 - `VALIDÉ R513` — Seul le contenu courant modifié est visible avec mention `Modifié`.
 - `VALIDÉ R514` — Pas de suppression globale d'une conversation entière ; utiliser l'archivage.
+- `IMPLÉMENTATION CANDIDATE REVIEW R504 / R513 / R514` — Édition inline auteur-only, tombstone `Message supprimé`, restauration dans les 500 derniers et purge définitive du seul contenu supprimé sorti de cette fenêtre sont matérialisés sans nouvelle décision ni migration. La validation publique reste à faire après review/promotion.
 - `VALIDÉ R515` — Historique complet avec scroll, recherche textuelle et navigation vers une date.
 - `VALIDÉ R516` — Un joueur bloqué reçoit un échec neutre sans fausse livraison.
 - `VALIDÉ R517` — Aucun avertissement immédiat lors d'un signalement ; information seulement en cas de décision de modération.

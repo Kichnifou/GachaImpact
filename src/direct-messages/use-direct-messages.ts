@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { getGameApiClient } from '../api/game-api'
+import { ApiError, getGameApiClient } from '../api/game-api'
 import type { DirectConversationDto, DirectMessageDto, DirectMessagePageDto } from '../api/types'
 
 type MessageCache = { messages: readonly DirectMessageDto[]; cursor: DirectMessagePageDto['nextCursor']; fetched: boolean }
@@ -51,10 +51,16 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
   const caches = useRef(new Map<string, MessageCache>())
   const listRevision = useRef(0), messageRevision = useRef(0), listBusy = useRef(false), unreadBusy = useRef(false), olderBusy = useRef(false)
   const messageBusy = useRef(new Set<string>()), mutationCount = useRef(0), selectedRef = useRef<string | null>(conversationId)
+  const mutationOverlays = useRef(new Map<string, { key: string; message: DirectMessageDto; original: DirectMessageDto }>())
   useEffect(() => { normalRef.current = normal; archivedRef.current = archived; messagesRef.current = messages }, [archived, messages, normal])
 
   const adoptUnread = useCallback((count: number) => onUnreadChange(count), [onUnreadChange])
   const publishLists = useCallback((nextNormal: readonly DirectConversationDto[], nextArchived: readonly DirectConversationDto[]) => {
+    const protect = (items: readonly DirectConversationDto[]) => items.map(item => {
+      const overlay = item.lastMessage ? mutationOverlays.current.get(item.lastMessage.id)?.message : null
+      return overlay ? { ...item, lastMessage: overlay } : item
+    })
+    nextNormal = protect(nextNormal); nextArchived = protect(nextArchived)
     normalRef.current = nextNormal; archivedRef.current = nextArchived
     setNormal(nextNormal); setArchived(nextArchived)
     adoptUnread([...nextNormal, ...nextArchived].reduce((sum, conversation) => sum + conversation.unreadCount, 0))
@@ -92,7 +98,8 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
       const page = await api.messages(id)
       if (revision !== messageRevision.current || selectedRef.current !== id) return
       const cached = caches.current.get(id)
-      const nextMessages = cached?.fetched ? mergeDirectMessages(cached.messages, page.messages) : durableOrder(page.messages)
+      const projected = page.messages.map(message => mutationOverlays.current.get(message.id)?.message ?? message)
+      const nextMessages = cached?.fetched ? mergeDirectMessages(cached.messages, projected) : durableOrder(projected)
       publishMessages(id, { messages: nextMessages, cursor: cached?.fetched ? cached.cursor : page.nextCursor, fetched: true })
       setError(null)
     } catch (reason) { if (revision === messageRevision.current && selectedRef.current === id) setError(reason instanceof Error ? reason.message : 'Conversation indisponible.') }
@@ -205,6 +212,38 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
     } finally { endMutation() }
   }, [api, playerId, publishMessages]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const mutateMessage = useCallback(async (id: string, messageId: string, key: string, transform: (message: DirectMessageDto) => DirectMessageDto, run: () => Promise<unknown>) => {
+    const entry = caches.current.get(id), currentMessage = entry?.messages.find(message => message.id === messageId)
+    if (!entry || !currentMessage) throw new Error('Message indisponible.')
+    const previousOverlay = mutationOverlays.current.get(messageId), original = previousOverlay?.key === key ? previousOverlay.original : currentMessage
+    const optimistic = transform(currentMessage)
+    mutationOverlays.current.set(messageId, { key, message: optimistic, original })
+    messageRevision.current++; listRevision.current++
+    publishMessages(id, { ...entry, messages: entry.messages.map(message => message.id === messageId ? optimistic : message) })
+    const updatePreview = (items: readonly DirectConversationDto[], value: DirectMessageDto) => items.map(item => item.lastMessage?.id === messageId ? { ...item, lastMessage: value } : item)
+    publishLists(updatePreview(normalRef.current, optimistic), updatePreview(archivedRef.current, optimistic))
+    beginMutation()
+    try {
+      const result = await run()
+      if (mutationOverlays.current.get(messageId)?.key === key) {
+        messageRevision.current++; listRevision.current++; mutationOverlays.current.delete(messageId)
+        revalidate()
+      }
+      return result
+    } catch (reason) {
+      const deterministic = reason instanceof ApiError && reason.status !== null && reason.status < 500
+      if (mutationOverlays.current.get(messageId)?.key === key && deterministic) {
+        messageRevision.current++; listRevision.current++; mutationOverlays.current.delete(messageId)
+        const current = caches.current.get(id) ?? entry
+        publishMessages(id, { ...current, messages: current.messages.map(message => message.id === messageId ? original : message) })
+        const rollbackPreview = (items: readonly DirectConversationDto[]) => items.map(item => item.lastMessage?.id === messageId ? { ...item, lastMessage: original } : item)
+        publishLists(rollbackPreview(normalRef.current), rollbackPreview(archivedRef.current))
+      }
+      setError(reason instanceof Error ? reason.message : 'Modification du message indisponible.')
+      throw reason
+    } finally { endMutation() }
+  }, [publishLists, publishMessages]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const initiate = useCallback(async (targetPlayerId: string, content: string, key: string) => {
     beginMutation()
     try {
@@ -260,6 +299,9 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
     normal, archived, messages, cursor, selected, listLoaded, messagesLoaded, error, pending,
     clearError: () => setError(null), refreshLists, refreshMessages, refreshUnread, loadOlder, openTarget, markConversationSeen,
     send,
+    editMessage: (id: string, messageId: string, content: string, key: string) => mutateMessage(id, messageId, key, message => ({ ...message, content, editedAt: new Date().toISOString(), deletedAt: null }), () => api.edit(id, messageId, content, key)),
+    deleteMessage: (id: string, messageId: string, key: string) => mutateMessage(id, messageId, key, message => ({ ...message, content: null, deletedAt: new Date().toISOString(), restoredAt: null }), () => api.remove(id, messageId, key)),
+    restoreMessage: (id: string, messageId: string, key: string) => mutateMessage(id, messageId, key, message => message, () => api.restore(id, messageId, key)),
     initiate,
     accept: (id: string, requestId: string, key: string) => mutate(() => api.accept(id, requestId, key)),
     ignore: (id: string, requestId: string, key: string) => mutate(() => api.ignore(id, requestId, key)),
