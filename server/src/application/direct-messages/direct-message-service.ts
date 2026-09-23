@@ -10,7 +10,7 @@ import { applyPlayerBlock } from '../social/player-block-service.js';
 
 const invalid = (message: string) => new AppError(message, 400, 'DIRECT_MESSAGE_INVALID');
 const unavailable = () => new AppError('Cette conversation est indisponible.', 409, 'DIRECT_MESSAGE_UNAVAILABLE');
-const forbidden = () => new AppError('Cette personne ne peut pas recevoir ce message.', 403, 'DIRECT_MESSAGE_FORBIDDEN');
+const forbidden = () => new AppError('Ce message ne peut pas être envoyé.', 403, 'DIRECT_MESSAGE_FORBIDDEN');
 const conflict = () => new AppError('Cette clé appartient à une autre action.', 409, 'DIRECT_MESSAGE_IDEMPOTENCY_CONFLICT');
 const rateLimited = () => new AppError('Trop de messages envoyés. Réessayez dans quelques secondes.', 429, 'DIRECT_MESSAGE_RATE_LIMIT');
 const pair = (a: string, b: string) => { const values = [a, b].sort(); return { playerAId: values[0]!, playerBId: values[1]! }; };
@@ -243,9 +243,8 @@ export class DirectMessageService {
       offset = index + 1;
     }
     const page = recent.slice(offset, offset + limit), last = page.at(-1);
-    const otherState = await this.database.directConversationParticipant.findUniqueOrThrow({ where: { conversationId_playerId: { conversationId, playerId: this.other(conversation, actor.id) } }, select: { readReceiptsEnabled: true, lastSharedReadCreatedAt: true, lastSharedReadMessageId: true } });
-    const shared = otherState.readReceiptsEnabled ? otherState : null;
-    return { messages: page.reverse().map(row => this.projectMessage(row, actor.id, shared)), nextCursor: offset + limit < recent.length && last ? { id: last.id, createdAt: last.createdAt.toISOString() } : null, windowSize: recent.length };
+    const otherState = await this.database.directConversationParticipant.findUniqueOrThrow({ where: { conversationId_playerId: { conversationId, playerId: this.other(conversation, actor.id) } }, select: { lastSharedReadCreatedAt: true, lastSharedReadMessageId: true } });
+    return { messages: page.reverse().map(row => this.projectMessage(row, actor.id, otherState)), nextCursor: offset + limit < recent.length && last ? { id: last.id, createdAt: last.createdAt.toISOString() } : null, windowSize: recent.length };
   }
 
   async unread(identity: AuthenticatedIdentity) {

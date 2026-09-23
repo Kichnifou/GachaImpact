@@ -55,13 +55,25 @@ describe('Direct-message foundations on isolated PostgreSQL', () => {
     expect((await service.messages(as(alice), initiated.conversationId as string)).messages.at(-1)?.readByOther).toBe(true);
     expect(await service.markRead(as(bob), initiated.conversationId as string, older.messages[0]!.id)).toMatchObject({ changed: false, lastReadMessageId: page.messages[0]!.id });
     await service.setReadReceipts(as(bob), initiated.conversationId as string, false);
+    expect((await service.messages(as(alice), initiated.conversationId as string)).messages.find(message => message.id === sent.messageId)?.readByOther).toBe(true);
     advance();
-    await service.send(as(alice), initiated.conversationId as string, 'Lecture interne seulement', randomUUID());
+    const privateMessage = await service.send(as(alice), initiated.conversationId as string, 'Lecture interne seulement', randomUUID());
     const privateRead = await service.messages(as(bob), initiated.conversationId as string, 1);
     expect((await service.unread(as(bob))).unreadCount).toBe(1);
     await service.markRead(as(bob), initiated.conversationId as string, privateRead.messages[0]!.id);
     expect((await service.unread(as(bob))).unreadCount).toBe(0);
-    expect((await service.messages(as(alice), initiated.conversationId as string)).messages.at(-1)?.readByOther).toBe(false);
+    let projected = (await service.messages(as(alice), initiated.conversationId as string)).messages;
+    expect(projected.find(message => message.id === sent.messageId)?.readByOther).toBe(true);
+    expect(projected.find(message => message.id === privateMessage.messageId)?.readByOther).toBe(false);
+    await service.setReadReceipts(as(bob), initiated.conversationId as string, true);
+    projected = (await service.messages(as(alice), initiated.conversationId as string)).messages;
+    expect(projected.find(message => message.id === privateMessage.messageId)?.readByOther).toBe(false);
+    advance();
+    const resumedMessage = await service.send(as(alice), initiated.conversationId as string, 'Lecture partagée à nouveau', randomUUID());
+    const resumedRead = await service.messages(as(bob), initiated.conversationId as string, 1);
+    await service.markRead(as(bob), initiated.conversationId as string, resumedRead.messages[0]!.id);
+    projected = (await service.messages(as(alice), initiated.conversationId as string)).messages;
+    expect(projected.find(message => message.id === resumedMessage.messageId)?.readByOther).toBe(true);
     const outsider = await player('MP Outsider');
     await expect(service.messages(as(outsider), initiated.conversationId as string)).rejects.toMatchObject({ code: 'DIRECT_MESSAGE_UNAVAILABLE' });
   }, 30_000);
@@ -105,7 +117,7 @@ describe('Direct-message foundations on isolated PostgreSQL', () => {
     expect(await service.block(as(receiver), retry.conversationId as string, randomUUID())).toMatchObject({ blocked: true, changed: true });
     expect(await db.playerBlock.count({ where: { blockerPlayerId: receiver, blockedPlayerId: sender } })).toBe(1);
     expect((await db.friendship.findUniqueOrThrow({ where: { playerAId_playerBId: { playerAId: ids[0]!, playerBId: ids[1]! } } })).state).toBe('ARCHIVED');
-    await expect(service.send(as(sender), retry.conversationId as string, 'Bloqué', randomUUID())).rejects.toMatchObject({ code: 'DIRECT_MESSAGE_FORBIDDEN' });
+    await expect(service.send(as(sender), retry.conversationId as string, 'Bloqué', randomUUID())).rejects.toMatchObject({ code: 'DIRECT_MESSAGE_FORBIDDEN', message: 'Ce message ne peut pas être envoyé.' });
   }, 30_000);
 
   it('serializes opposite requests and lets only one concurrent request transition win', async () => {
@@ -143,7 +155,7 @@ describe('Direct-message foundations on isolated PostgreSQL', () => {
     await expect(service.send(as(sender), direct.conversationId as string, 'x'.repeat(1001), randomUUID())).rejects.toMatchObject({ code: 'DIRECT_MESSAGE_INVALID' });
     await service.block(as(sender), direct.conversationId as string, randomUUID());
     advance();
-    await expect(service.send(as(receiver), direct.conversationId as string, 'Blocage émetteur', randomUUID())).rejects.toMatchObject({ code: 'DIRECT_MESSAGE_FORBIDDEN' });
+    await expect(service.send(as(receiver), direct.conversationId as string, 'Blocage émetteur', randomUUID())).rejects.toMatchObject({ code: 'DIRECT_MESSAGE_FORBIDDEN', message: 'Ce message ne peut pas être envoyé.' });
   }, 30_000);
 
   it('limits direct sends to ten in ten seconds and keeps durable rows beyond the 500-message projection window', async () => {
