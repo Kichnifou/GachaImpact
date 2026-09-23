@@ -1,6 +1,6 @@
 # Chat global V1 — contrat produit
 
-Statut : décisions produit validées. Le Chat global player-facing est matérialisé par les migrations 032–035 et 039, ses routes et le `ChatPanel` réel, avec resynchronisation UI ciblée. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte seul l'état vivant et la validation publique. Le socle serveur/DB des MP est matérialisé par les migrations 036–039 et leur premier vertical UI est candidat sur `review` dans le même panneau Communauté ; leurs règles restent celles de [l'audit Social R501–R522](../legacy/14-ami-social-audit.md). Les syntaxes et résultats métier des commandes restent dans la [référence des commandes](../commands/command-reference.md).
+Statut : décisions produit validées. Le Chat global player-facing est matérialisé par les migrations 032–035 et 039, ses routes et le `ChatPanel` réel, avec resynchronisation UI ciblée. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte seul l'état vivant et la validation publique. Le socle serveur/DB et le premier vertical UI des MP sont matérialisés sur main par les migrations 036–039 dans le même panneau Communauté ; leurs règles restent celles de [l'audit Social R501–R522](../legacy/14-ami-social-audit.md). Les syntaxes et résultats métier des commandes restent dans la [référence des commandes](../commands/command-reference.md).
 
 ## Messages et composition — R872
 

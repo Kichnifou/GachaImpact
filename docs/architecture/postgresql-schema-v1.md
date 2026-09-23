@@ -1898,7 +1898,7 @@ Le choix exact peut être finalisé pendant le mapping Prisma sans impact métie
 
 # 26. Messages privés
 
-État physique : la migration additive `20260922225444_036_add_direct_message_foundations` matérialise le socle backend-only ; `20260922232731_037_harden_direct_message_history` rend restrictives les trois FK enfant → conversation afin qu'une suppression de conversation ne puisse effacer l'historique ; `20260923092102_038_add_direct_message_shared_read_at` ajoute l'instant réel d'avancement du curseur partagé nécessaire à l'UI ; `20260923104500_039_add_message_submission_order` ajoute l'ordre de réception serveur partagé avec le Chat. Les quatre tables ont RLS active, aucune policy navigateur et aucun droit `PUBLIC`/`anon`/`authenticated`. Le premier vertical UI MP est candidat sur `review`; historique/recherche/date/signalement/admin et mutations d'édition/suppression/restauration restent hors périmètre.
+État physique : la migration additive `20260922225444_036_add_direct_message_foundations` matérialise le socle backend-only ; `20260922232731_037_harden_direct_message_history` rend restrictives les trois FK enfant → conversation afin qu'une suppression de conversation ne puisse effacer l'historique ; `20260923092102_038_add_direct_message_shared_read_at` ajoute l'instant réel d'avancement du curseur partagé nécessaire à l'UI ; `20260923104500_039_add_message_submission_order` ajoute l'ordre de réception serveur partagé avec le Chat. Les quatre tables ont RLS active, aucune policy navigateur et aucun droit `PUBLIC`/`anon`/`authenticated`. Le premier vertical UI MP est sur main ; historique/recherche/date/signalement/admin et mutations d'édition/suppression/restauration restent hors périmètre.
 
 ## 26.1 `direct_conversations`
 
