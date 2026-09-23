@@ -1,6 +1,6 @@
 # Chat global V1 — contrat produit
 
-Statut : décisions produit validées. Le Chat global player-facing est matérialisé par les migrations 032–035, ses routes et le `ChatPanel` réel, avec resynchronisation UI ciblée. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte seul l'état vivant et la validation publique. Le socle serveur/DB des MP est matérialisé par les migrations 036–037 sans interface MP ; leurs règles restent celles de [l'audit Social R501–R522](../legacy/14-ami-social-audit.md). Les syntaxes et résultats métier des commandes restent dans la [référence des commandes](../commands/command-reference.md).
+Statut : décisions produit validées. Le Chat global player-facing est matérialisé par les migrations 032–035, ses routes et le `ChatPanel` réel, avec resynchronisation UI ciblée. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte seul l'état vivant et la validation publique. Le socle serveur/DB des MP est matérialisé par les migrations 036–038 et leur premier vertical UI est candidat sur `review` dans le même panneau Communauté ; leurs règles restent celles de [l'audit Social R501–R522](../legacy/14-ami-social-audit.md). Les syntaxes et résultats métier des commandes restent dans la [référence des commandes](../commands/command-reference.md).
 
 ## Messages et composition — R872
 
@@ -51,6 +51,7 @@ Statut : décisions produit validées. Le Chat global player-facing est matéria
 
 - Avatar et pseudo d'un message `PLAYER` ouvrent son Profil via le pattern existant. Un menu contextuel réutilise les primitives adaptées pour `Répondre`, `Mentionner`, `Signaler` et `Masquer` selon la ligne et les droits pertinents.
 - `Envoyer un message privé` depuis un joueur du Chat peut ouvrir l'onglet MP et le parcours de conversation avec ce joueur, sous les permissions MP existantes. Le MP est toujours rédigé et envoyé dans l'onglet MP ; aucun `!mp` n'existe dans le Chat global ou sur Twitch.
+- L'implémentation player-facing attache cette affordance à l'identité Player, à côté du pseudo, sans modifier la rangée R891 ni le clic avatar/pseudo vers Profil. Le même intent est réutilisé depuis le Profil.
 
 ## Couleur des auteurs PLAYER — R888
 

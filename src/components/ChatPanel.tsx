@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type CSSProperties, type ReactNode } from 'react'
 import { ApiError, getGameApiClient } from '../api/game-api'
-import type { ChatMentionDto, ChatMessageDto, ChatRefreshScope } from '../api/types'
+import type { ChatMentionDto, ChatMessageDto, ChatRefreshScope, DirectMessagePlayerDto } from '../api/types'
 import { elementColors } from '../utils/elementTheme'
+import DirectMessagePanel, { type DirectMessageOpenIntent } from './DirectMessagePanel'
 
-type Props = { playerId: string; playerDisplayName?: string; playerElementKey?: string | null; connectedCount?: number | null; isCollapsed: boolean; onToggle: () => void; onOpenPlayers: () => void; onOpenProfile: (id: string) => void; onRefreshScopes: (scopes: readonly ChatRefreshScope[]) => Promise<void> }
+type Props = { playerId: string; playerDisplayName?: string; playerElementKey?: string | null; connectedCount?: number | null; isCollapsed: boolean; onToggle: () => void; onOpenPlayers: () => void; onOpenProfile: (id: string) => void; onRefreshScopes: (scopes: readonly ChatRefreshScope[]) => Promise<void>; directMessageIntent?: DirectMessageOpenIntent | null; onDirectMessageIntentConsumed?: (token: string) => void }
 type Intent = { key: string; content: string; replyId: string | null; mentions: ChatMentionDto[] }
 type FailedIntent = Intent & { reason: string }
 
@@ -69,8 +70,11 @@ const orderMessages = (items: ChatMessageDto[]) => items.sort((a, b) => {
   return a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)
 })
 
-function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = null, isCollapsed, onToggle, onOpenPlayers, onOpenProfile, onRefreshScopes, connectedCount = null }: Props) {
+function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = null, isCollapsed, onToggle, onOpenPlayers, onOpenProfile, onRefreshScopes, connectedCount = null, directMessageIntent = null, onDirectMessageIntentConsumed = () => undefined }: Props) {
   const api = getGameApiClient().chat
+  const [activeTab, setActiveTab] = useState<'chat' | 'direct'>('chat')
+  const [directUnread, setDirectUnread] = useState(0)
+  const [localDirectIntent, setLocalDirectIntent] = useState<DirectMessageOpenIntent | null>(null)
   const [messages, setMessages] = useState<ChatMessageDto[]>([])
   const [cursor, setCursor] = useState<{ createdAt: string; id: string } | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -109,7 +113,16 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const initialScrollPending = useRef(true)
   const composer = useRef<HTMLTextAreaElement>(null)
   const copyFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const wasCollapsed = useRef(isCollapsed)
+  const chatActive = !isCollapsed && activeTab === 'chat'
+  const wasChatActive = useRef(chatActive)
+  const resolvedDirectIntent = directMessageIntent ?? localDirectIntent
+
+  // oxlint-disable-next-line react/set-state-in-effect -- a GameShell deep-link deliberately activates the MP tab
+  useEffect(() => { if (directMessageIntent) setActiveTab('direct') }, [directMessageIntent])
+  const openDirectMessage = (player: NonNullable<ChatMessageDto['author']>) => {
+    const target: DirectMessagePlayerDto = { id: player.id, displayName: player.displayName, elementKey: player.elementKey && player.elementKey in elementColors ? player.elementKey as DirectMessagePlayerDto['elementKey'] : null }
+    setLocalDirectIntent({ playerId: player.id, token: crypto.randomUUID(), player: target }); setActiveTab('direct')
+  }
 
   useEffect(() => () => { if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current) }, [])
   useLayoutEffect(() => {
@@ -210,13 +223,13 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   }, [api, messagesNow, playerId])
 
   useEffect(() => {
-    const reopening = wasCollapsed.current && !isCollapsed
-    wasCollapsed.current = isCollapsed
+    const reopening = !wasChatActive.current && chatActive
+    wasChatActive.current = chatActive
     if (!reopening) return
     initialScrollPending.current = true; atBottom.current = true; deferredLatest.current = false; unseenIds.current.clear()
     setScrollbarAtBottom(true); setNewCount(0)
     void messagesNow(true).catch(cause => setError(cause instanceof Error ? cause.message : 'Chat indisponible.'))
-  }, [isCollapsed, messagesNow])
+  }, [chatActive, messagesNow])
 
   useEffect(() => {
     let cancelled = false, busy = false
@@ -224,25 +237,25 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     const tick = async () => {
       if (cancelled || busy || document.hidden) return
       busy = true
-      try { if (isCollapsed) await unreadNow(); else if (!loaded) await messagesNow(true); else await updatesNow() }
+      try { if (!chatActive) await unreadNow(); else if (!loaded) await messagesNow(true); else await updatesNow() }
       catch (cause) { if (!cancelled) setError(cause instanceof Error ? cause.message : 'Chat indisponible.') }
       finally { busy = false }
     }
-    const schedule = () => { clearTimeout(timer); if (!cancelled && !document.hidden) timer = setTimeout(async () => { await tick(); schedule() }, isCollapsed ? 5000 : 500) }
+    const schedule = () => { clearTimeout(timer); if (!cancelled && !document.hidden) timer = setTimeout(async () => { await tick(); schedule() }, chatActive ? 500 : 5000) }
     const visible = () => { if (document.hidden) clearTimeout(timer); else { void tick(); schedule() } }
     void tick().then(schedule)
     document.addEventListener('visibilitychange', visible); window.addEventListener('focus', visible)
     return () => { cancelled = true; clearTimeout(timer); document.removeEventListener('visibilitychange', visible); window.removeEventListener('focus', visible) }
-  }, [isCollapsed, loaded, messagesNow, playerId, unreadNow, updatesNow])
+  }, [chatActive, loaded, messagesNow, playerId, unreadNow, updatesNow])
 
   useEffect(() => {
-    if (isCollapsed || document.hidden || !atBottom.current || !messages.length) return
+    if (!chatActive || document.hidden || !atBottom.current || !messages.length) return
     const id = [...messages].reverse().find(message => !message.id.startsWith('optimistic:'))?.id
     if (!id) return
     if (readId.current === id) return
     readId.current = id
     void api.read(id).then(() => setUnread(0)).catch(() => { readId.current = null })
-  }, [api, isCollapsed, messages])
+  }, [api, chatActive, messages])
 
   useLayoutEffect(() => {
     if (!list.current) return
@@ -266,7 +279,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Historique indisponible.') }
     finally { olderBusy.current = false }
   }
-  const markRecent = () => { const id = [...messagesRef.current].reverse().find(item => !item.id.startsWith('optimistic:'))?.id; if (id && !document.hidden && !isCollapsed && readId.current !== id) { readId.current = id; void api.read(id).then(() => setUnread(0)).catch(() => { readId.current = null }) } }
+  const markRecent = () => { const id = [...messagesRef.current].reverse().find(item => !item.id.startsWith('optimistic:'))?.id; if (id && !document.hidden && chatActive && readId.current !== id) { readId.current = id; void api.read(id).then(() => setUnread(0)).catch(() => { readId.current = null }) } }
   const scrollBottom = () => { if (deferredLatest.current) { void messagesNow(true).catch(cause => setError(cause instanceof Error ? cause.message : 'Chat indisponible.')); return } if (list.current) list.current.scrollTop = list.current.scrollHeight; atBottom.current = true; setScrollbarAtBottom(true); setNewCount(0); markRecent() }
   const onScroll = () => { if (!list.current || initialScrollPending.current) return; const remaining = list.current.scrollHeight - list.current.scrollTop - list.current.clientHeight; atBottom.current = remaining < 80; setScrollbarAtBottom(remaining <= 2); if (atBottom.current) { if (deferredLatest.current) scrollBottom(); else { setNewCount(0); markRecent() } } if (list.current.scrollTop < 90) void loadOlder() }
 
@@ -384,9 +397,10 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const characterCount = Array.from(draft).length
   const showCharacterCount = characterCount >= 450
 
-  if (isCollapsed) return <aside className="chat-panel collapsed" aria-label="Chat global replié"><button type="button" className="chat-expand-button" onClick={onToggle} aria-label={`Afficher le chat global, ${unread} non lus`}><span aria-hidden="true">‹</span><strong>Chat</strong>{unread > 0 && <span className="unread-count">{unread > 99 ? '99+' : unread}</span>}</button></aside>
-  return <aside className="chat-panel panel" aria-label="Chat global">
-    <div className="chat-header"><div><span className="eyebrow">Communauté</span><h2>Chat global</h2></div><button type="button" className="icon-button" onClick={onToggle} aria-label="Replier le chat global"><span className="icon-glyph">›</span></button></div>
+  return <aside className={`chat-panel ${isCollapsed ? 'collapsed' : 'panel'}`} aria-label={isCollapsed ? 'Communauté repliée' : 'Communauté'}>
+    {isCollapsed ? <button type="button" className="chat-expand-button" onClick={onToggle} aria-label={`Afficher la communauté, ${unread} messages Chat et ${directUnread} messages privés non lus`}><span aria-hidden="true">‹</span><strong>C</strong>{unread > 0 && <span className="unread-count">{unread > 99 ? '99+' : unread}</span>}<strong>M</strong>{directUnread > 0 && <span className="unread-count direct">{directUnread > 99 ? '99+' : directUnread}</span>}</button> : <><div className="chat-header"><div><span className="eyebrow">Communauté</span><h2>{activeTab === 'chat' ? 'Chat global' : 'Messages privés'}</h2></div><button type="button" className="icon-button" onClick={onToggle} aria-label="Replier la communauté"><span className="icon-glyph">›</span></button></div>
+    <div className="community-tabs" role="tablist" aria-label="Communauté"><button type="button" role="tab" aria-selected={activeTab === 'chat'} onClick={() => setActiveTab('chat')}>Chat{unread > 0 && <span className="community-tab-badge">{unread > 99 ? '99+' : unread}</span>}</button><button type="button" role="tab" aria-selected={activeTab === 'direct'} onClick={() => setActiveTab('direct')}>MP{directUnread > 0 && <span className="community-tab-badge">{directUnread > 99 ? '99+' : directUnread}</span>}</button></div></>}
+    <section className="community-pane chat-community-pane" hidden={isCollapsed || activeTab !== 'chat'} aria-label="Chat global">
     <button type="button" className="chat-presence" onClick={onOpenPlayers}><span className="status-dot" />{connectedCount === null ? 'Joueurs connectés' : `${connectedCount} joueur${connectedCount > 1 ? 's' : ''} connecté${connectedCount > 1 ? 's' : ''}`}<span aria-hidden="true">›</span></button>
     <div className={`message-list${scrollbarAtBottom ? ' chat-scrollbar-hidden' : ''}`} ref={list} onScroll={onScroll} aria-live="off">{!loaded && <p className="chat-status">Chargement du Chat…</p>}{loaded && !messages.length && <p className="chat-status">Aucun message pour le moment.</p>}
       {messages.map(message => {
@@ -405,7 +419,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
         const mentionAuthor = () => { if (!message.author) return; setDraft(value => `${value}${value && !value.endsWith(' ') ? ' ' : ''}@${message.author!.displayName} `); setMentions(value => [...value, { playerId: message.author!.id, displayName: message.author!.displayName }]); setMenuId(null); focusComposer() }
         return <article className={`chat-message${message.mentionedMe || message.repliedToMe ? ' chat-message-mentioned' : ''}${optimistic ? ' chat-message-optimistic' : ''}`} style={authorStyle} data-command={optimistic && message.messageType === 'COMMAND' ? 'true' : undefined} data-hover-suppressed={suppressedHoverId === message.id ? 'true' : undefined} data-report-open={reportId === message.id ? 'true' : undefined} onPointerLeave={() => setSuppressedHoverId(current => current === message.id ? null : current)} key={message.id}>
           {game ? <div className="message-avatar chat-game-avatar" aria-hidden="true">✦</div> : <button type="button" className="message-avatar chat-avatar-button" aria-label={`Profil de ${message.authorLabel}`} onClick={() => message.author && onOpenProfile(message.author.id)}>{message.authorLabel?.slice(0, 1).toLocaleUpperCase('fr-FR')}</button>}
-          <div className="message-content"><div className="message-meta">{game ? <strong className="chat-game-label">GachaImpact</strong> : <button type="button" className="chat-author-button" onClick={() => message.author && onOpenProfile(message.author.id)}>{message.authorLabel}</button>}<time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time></div>
+          <div className="message-content"><div className="message-meta">{game ? <strong className="chat-game-label">GachaImpact</strong> : <><button type="button" className="chat-author-button" onClick={() => message.author && onOpenProfile(message.author.id)}>{message.authorLabel}</button>{!own && message.author && <button type="button" className="chat-direct-button" aria-label={`Envoyer un message privé à ${message.authorLabel}`} title="Message privé" onClick={() => openDirectMessage(message.author!)}>MP</button>}</>}<time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time></div>
             {message.replyToMessageId && <div className="chat-reply-preview">↳ {message.replyPreview ?? 'Message supprimé'}</div>}
             <p>{masked ? <>Message masqué — <button type="button" onClick={() => setRevealed(value => [...value, message.id])}>Afficher</button></> : message.deletionState === 'AUTHOR' ? 'Message supprimé' : message.deletionState === 'MODERATION' ? 'Message supprimé par la modération' : chatText(message.content ?? '', message.resolvedMentions)}</p>
             {canAct && <><div className="chat-message-actions" aria-label={`Actions pour le message de ${message.authorLabel}`} onClickCapture={event => { if (event.detail) { setSuppressedHoverId(message.id); (document.activeElement as HTMLElement | null)?.blur() } }}>
@@ -438,6 +452,10 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
         </div>
       </form>
     </div>
+    </section>
+    <section className="community-pane direct-community-pane" hidden={isCollapsed || activeTab !== 'direct'} aria-label="Messages privés">
+      <DirectMessagePanel playerId={playerId} isActive={!isCollapsed && activeTab === 'direct'} intent={resolvedDirectIntent} onIntentConsumed={token => { setLocalDirectIntent(current => current?.token === token ? null : current); onDirectMessageIntentConsumed(token) }} onUnreadChange={setDirectUnread} onOpenProfile={onOpenProfile} />
+    </section>
   </aside>
 }
 export default ChatPanel

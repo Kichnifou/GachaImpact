@@ -46,6 +46,8 @@ Dans une grille dont les cartes changent d’état en direct, toutes les cartes 
 
 La sidebar desktop occupe exactement la hauteur utile que lui attribue le shell et ne devient pas un propriétaire de scroll. Sa densité interne peut varier selon la hauteur du viewport, sans masquer d'information essentielle ; les régions flexibles absorbent le surplus et distribuent leur contenu de façon volontaire, tandis que son bord inférieur reste aligné avec ceux du contenu principal et du chat.
 
+Le panneau Communauté garde un seul body actif. Dans MP, la liste de conversations est l'unique propriétaire de son scroll ; dans une conversation, le header et le composer restent hors du body messages `minmax(0, 1fr)`. Le passage `Chat | MP` masque explicitement la pane inactive sans la démonter. Sur mobile, Communauté reste dans le flux du `GameShell` et ne crée aucun overflow horizontal du document ; le fil et le textarea peuvent défiler verticalement dans leurs propres limites sans couper le footer.
+
 Lorsqu'une carte de sidebar sert de raccourci synthétique dans une enveloppe de hauteur imposée, son contenu se répartit en trois zones : identité en haut, résumé extensible au centre et action/affordance en bas. La zone centrale absorbe la hauteur supplémentaire et reste prête à recevoir une future projection réelle sans modifier le cadre extérieur.
 
 ## Grilles de cartes homogènes

@@ -728,3 +728,40 @@ export type ChatMessageDto = {
 export type ChatPageDto = { messages: ChatMessageDto[]; nextCursor: { createdAt: string; id: string } | null; generation: number }
 export type ChatUpdatesDto = { generation: number; reset: boolean; messages: ChatMessageDto[]; changes: ChatMessageDto[] }
 export type ChatSendDto = { cleared: true; generation: number; replayed: boolean } | { cleared?: false; message: ChatMessageDto; generation: number; xpGranted: number; refreshScopes: ChatRefreshScope[]; dailyChallengeCompleted: boolean; replayed: boolean; result: ChatMessageDto | null; results: ChatMessageDto[] }
+
+export type DirectMessagePlayerDto = Readonly<{ id: string; displayName: string; elementKey: ElementKey | null }>
+export type DirectMessageRequestDto = Readonly<{ id: string; state: 'PENDING' | 'ACCEPTED' | 'REFUSED'; senderPlayerId: string; retryAfter: string | null }>
+export type DirectMessageDto = Readonly<{
+  id: string
+  conversationId: string
+  authorPlayerId: string
+  own: boolean
+  content: string | null
+  createdAt: string
+  editedAt: string | null
+  deletedAt: string | null
+  restoredAt: string | null
+  readByOther: boolean
+  readByOtherAt: string | null
+}>
+export type DirectConversationDto = Readonly<{
+  id: string
+  other: DirectMessagePlayerDto
+  archived: boolean
+  lastMessageAt: string | null
+  lastMessage: DirectMessageDto | null
+  request: DirectMessageRequestDto | null
+  unreadCount: number
+  readReceiptsEnabled: boolean
+  canSend: boolean
+  blockedByMe: boolean
+}>
+export type DirectConversationListDto = Readonly<{ conversations: readonly DirectConversationDto[] }>
+export type DirectMessagePageDto = Readonly<{ messages: readonly DirectMessageDto[]; nextCursor: Readonly<{ createdAt: string; id: string }> | null; windowSize: number }>
+export type DirectMessageUnreadDto = Readonly<{ unreadCount: number; conversations: readonly Readonly<{ conversationId: string; unreadCount: number }>[] }>
+export type DirectMessageSendDto = Readonly<{ conversationId: string; messageId: string; replayed: boolean }>
+export type DirectMessageInitiateDto = DirectMessageSendDto & Readonly<{ requestId: string | null; state: 'PENDING' | 'ACCEPTED' }>
+export type DirectMessageResolveDto = Readonly<{ conversationId: string; requestId: string; state: 'ACCEPTED' | 'REFUSED'; replayed: boolean }>
+export type DirectMessageBlockDto = Readonly<{ conversationId: string; blocked: boolean; changed: boolean; replayed: boolean }>
+export type DirectMessageArchiveDto = Readonly<{ conversationId: string; archived: boolean; changed: boolean }>
+export type DirectMessageReceiptDto = Readonly<{ conversationId: string; readReceiptsEnabled: boolean; changed: boolean }>

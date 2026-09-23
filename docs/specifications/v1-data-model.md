@@ -1395,6 +1395,9 @@ Participants et états personnels :
 - archivage individuel
 - curseur de lecture interne
 - curseur de lecture partagé distinct et réglage d'accusé
+- instant réel du dernier avancement partagé, distinct de la création du message
+
+L'état physique courant est porté par les migrations additives 036–038. Le timestamp partagé ne progresse qu'avec le curseur et les accusés activés ; OFF puis ON ne divulgue pas rétroactivement les lectures privées. Le blocage archive les deux états participant, tandis que le déblocage de l'acteur ne restaure ni amitié ni archive.
 
 ## 25.3 `DirectConversationRequest`
 

@@ -2,7 +2,7 @@ import type { SocialActions, DirectoryPage, Profile, ConnectedPlayers, PrivacySe
 import { loadFrontendConfig } from '../config/environment'
 import type { TradeActions, TradeSnapshot, TradePartners, TradeResult } from '../trades/types'
 import type { BannerVoteDto } from './types'
-import type { ChatMentionDto, ChatPageDto, ChatSendDto, ChatUpdatesDto } from './types'
+import type { ChatMentionDto, ChatPageDto, ChatSendDto, ChatUpdatesDto, DirectConversationListDto, DirectMessageArchiveDto, DirectMessageBlockDto, DirectMessageInitiateDto, DirectMessagePageDto, DirectMessageReceiptDto, DirectMessageResolveDto, DirectMessageSendDto, DirectMessageUnreadDto } from './types'
 import { getSupabaseClient } from '../infrastructure/supabase/client'
 import type {
   BackendErrorDto,
@@ -151,6 +151,20 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
       remove: (messageId: string) => request<{ id: string; changed: boolean }>(`/api/v1/chat/messages/${encodeURIComponent(messageId)}`, { method: 'DELETE' }),
       mentions: (q: string) => request<{ players: { id: string; displayName: string; elementKey: string | null }[] }>('/api/v1/chat/mentions?' + new URLSearchParams({ q })),
       report: (messageId: string) => request<{ reported: boolean; duplicate: boolean }>(`/api/v1/chat/messages/${encodeURIComponent(messageId)}/report`, { method: 'POST' }),
+    },
+    directMessages: {
+      list: (archived = false) => request<DirectConversationListDto>('/api/v1/me/direct-conversations?' + new URLSearchParams({ archived: String(archived) })),
+      unread: () => request<DirectMessageUnreadDto>('/api/v1/me/direct-conversations/unread'),
+      messages: (conversationId: string, cursor?: DirectMessagePageDto['nextCursor']) => request<DirectMessagePageDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/messages` + (cursor ? '?' + new URLSearchParams({ cursorCreatedAt: cursor.createdAt, cursorId: cursor.id }) : '')),
+      initiate: (targetPlayerId: string, content: string, idempotencyKey: string) => request<DirectMessageInitiateDto>('/api/v1/me/direct-conversations', { method: 'POST', body: JSON.stringify({ targetPlayerId, content, idempotencyKey }) }),
+      send: (conversationId: string, content: string, idempotencyKey: string) => request<DirectMessageSendDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/messages`, { method: 'POST', body: JSON.stringify({ content, idempotencyKey }) }),
+      accept: (conversationId: string, requestId: string, idempotencyKey: string) => request<DirectMessageResolveDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/accept`, { method: 'POST', body: JSON.stringify({ requestId, idempotencyKey }) }),
+      ignore: (conversationId: string, requestId: string, idempotencyKey: string) => request<DirectMessageResolveDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/ignore`, { method: 'POST', body: JSON.stringify({ requestId, idempotencyKey }) }),
+      block: (conversationId: string, idempotencyKey: string) => request<DirectMessageBlockDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/block`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+      unblock: (conversationId: string, idempotencyKey: string) => request<DirectMessageBlockDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/unblock`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+      read: (conversationId: string, messageId: string) => request<{ lastReadMessageId: string; sharedReadAt: string | null; changed: boolean }>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/read`, { method: 'POST', body: JSON.stringify({ messageId }) }),
+      receipts: (conversationId: string, enabled: boolean) => request<DirectMessageReceiptDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/read-receipts`, { method: 'PATCH', body: JSON.stringify({ enabled }) }),
+      archive: (conversationId: string, archived: boolean) => request<DirectMessageArchiveDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/archive`, { method: 'PATCH', body: JSON.stringify({ archived }) }),
     },
     getCurrentPlayer: () => request<PlayerDto>('/api/v1/me'),
     getPermissions: () => request<ModerationPermissionsDto>('/api/v1/me/permissions'),

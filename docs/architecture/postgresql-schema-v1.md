@@ -1898,7 +1898,7 @@ Le choix exact peut être finalisé pendant le mapping Prisma sans impact métie
 
 # 26. Messages privés
 
-État physique : la migration additive `20260922225444_036_add_direct_message_foundations` matérialise le socle backend-only ; `20260922232731_037_harden_direct_message_history` rend restrictives les trois FK enfant → conversation afin qu'une suppression de conversation ne puisse effacer l'historique. Les quatre tables ont RLS active, aucune policy navigateur et aucun droit `PUBLIC`/`anon`/`authenticated`. L'interface MP, l'historique/recherche/signalement et les mutations d'édition/suppression/restauration restent hors de ce lot.
+État physique : la migration additive `20260922225444_036_add_direct_message_foundations` matérialise le socle backend-only ; `20260922232731_037_harden_direct_message_history` rend restrictives les trois FK enfant → conversation afin qu'une suppression de conversation ne puisse effacer l'historique ; `20260923092102_038_add_direct_message_shared_read_at` ajoute l'instant réel d'avancement du curseur partagé nécessaire à l'UI. Les quatre tables ont RLS active, aucune policy navigateur et aucun droit `PUBLIC`/`anon`/`authenticated`. Le premier vertical UI MP est candidat sur `review`; historique/recherche/date/signalement/admin et mutations d'édition/suppression/restauration restent hors périmètre.
 
 ## 26.1 `direct_conversations`
 
@@ -1927,6 +1927,7 @@ Colonnes :
 - `read_receipts_enabled boolean NOT NULL DEFAULT true`
 - `last_shared_read_message_id uuid NULL`
 - `last_shared_read_created_at timestamptz NULL`
+- `last_shared_read_at timestamptz NULL`
 - `updated_at timestamptz NOT NULL DEFAULT now()`
 
 PK :
@@ -1936,6 +1937,8 @@ PK :
 Index :
 
 `(player_id, archived_at)` et index des deux FK de curseur.
+
+`last_shared_read_at` mémorise l'heure de lecture, jamais le `created_at` du message. Il avance dans la même écriture monotone que `last_shared_read_*`, uniquement si le curseur interne progresse et si les accusés sont actifs. Désactiver puis réactiver les accusés ne publie donc aucune lecture intermédiaire rétroactivement.
 
 Le curseur interne avance même lorsque l'accusé est désactivé ; seul le curseur partagé s'arrête, afin qu'une lecture future ne soit pas communiquée.
 

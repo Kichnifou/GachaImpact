@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import appBootstrapSource from '../AppBootstrap.tsx?raw'
+import profileScreenSource from '../screens/ProfileScreen.tsx?raw'
 import gameShellSource from './GameShell.tsx?raw'
 
 describe('GameShell shared particle conversion overlay', () => {
@@ -43,6 +44,14 @@ describe('GameShell shared particle conversion overlay', () => {
   it('routes an accepted friendship notification to Amis', () => {
     expect(gameShellSource).toContain("notification.actionKey === 'OPEN_SOCIAL_FRIENDS'")
     expect(gameShellSource).toContain("void friendship.refresh(true); setSocialTab('friends'); navigate('social')")
+  })
+
+  it('routes Profile messages through the same persistent Community panel intent as Chat', () => {
+    expect(profileScreenSource).toContain("onClick={() => onMessage({ id: playerId, displayName: value.player.displayName, elementKey: value.player.elementKey })}")
+    expect(profileScreenSource).toContain('Envoyer un message privé')
+    expect(gameShellSource).toContain('onMessage={openDirectMessage}')
+    expect(gameShellSource).toContain('directMessageIntent={directMessageIntent}')
+    expect(gameShellSource).toContain('onDirectMessageIntentConsumed={token => setDirectMessageIntent(current => current?.token === token ? null : current)}')
   })
 
   it('uses the faster friendship rhythm only while a Social surface is active', () => {

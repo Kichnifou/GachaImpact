@@ -27,7 +27,7 @@ function LastActivity({ value }: { value: Access<string | null> }) {
   return <details className="profile-last-activity"><summary title={date.toLocaleString('fr-FR')}>Dernière activité : {relative}</summary><time dateTime={value.data}>{date.toLocaleString('fr-FR')}</time></details>
 }
 const tabs = ['Aperçu', 'Team active', 'Box', 'Collection', 'Statistiques'] as const
-export default function ProfileScreen({ playerId, ownerPlayerId, actions, controller, onDirectory, onPrivacy, onTrade }: { playerId: string; ownerPlayerId: string; actions: SocialActions; controller: FriendshipController; onDirectory: () => void; onPrivacy: () => void; onTrade?: (player: { id: string; displayName: string }) => void }) {
+export default function ProfileScreen({ playerId, ownerPlayerId, actions, controller, onDirectory, onPrivacy, onMessage, onTrade }: { playerId: string; ownerPlayerId: string; actions: SocialActions; controller: FriendshipController; onDirectory: () => void; onPrivacy: () => void; onMessage?: (player: { id: string; displayName: string; elementKey: ElementKey | null }) => void; onTrade?: (player: { id: string; displayName: string }) => void }) {
   const [value, setValue] = useState<Profile | null>(null), [error, setError] = useState(''), [tab, setTab] = useState<typeof tabs[number]>('Aperçu')
   const [query, setQuery] = useState(''), [rarity, setRarity] = useState<CharacterRarityFilter>('all'), [element, setElement] = useState<ElementKey | null>(null), [sortKey, setSortKey] = useState<CharacterSortKey>('name'), [direction, setDirection] = useState<CharacterSortDirection>('asc')
   const clearFeedback = controller.clearFeedback
@@ -49,6 +49,7 @@ export default function ProfileScreen({ playerId, ownerPlayerId, actions, contro
     {relation.state === 'SENT' && <AppButton disabled>Demande envoyée</AppButton>}
     {relation.state === 'RECEIVED' && <><AppButton disabled={controller.pending} onClick={() => void controller.mutate(playerId, 'ACCEPT', relation.requestId, feedbackScope)}>Accepter</AppButton><AppButton disabled={controller.pending} onClick={() => void controller.mutate(playerId, 'REFUSE', relation.requestId, feedbackScope)}>Refuser</AppButton></>}
     {relation.state === 'FRIEND' && <AppButton disabled={controller.pending || !relation.friend?.canSend} onClick={() => void controller.mutate(playerId, 'HEART', undefined, feedbackScope)}>{relation.friend?.heartSent ? 'Cœur envoyé ✓' : 'Envoyer un cœur'}</AppButton>}
+    {playerId !== ownerPlayerId && value && onMessage && <AppButton onClick={() => onMessage({ id: playerId, displayName: value.player.displayName, elementKey: value.player.elementKey })}>Envoyer un message privé</AppButton>}
     {playerId !== ownerPlayerId && value && onTrade && <AppButton onClick={() => onTrade({ id: playerId, displayName: value.player.displayName })}>Échanger</AppButton>}
     {relation.state === 'FRIEND' && <AppButton variant="danger" disabled={controller.pending} onClick={() => void controller.mutate(playerId, 'REMOVE', undefined, feedbackScope)}>Retirer</AppButton>}
   </div>

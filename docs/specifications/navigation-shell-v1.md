@@ -55,9 +55,9 @@ Banque conserve ses accès contextuels et Menu. Le futur Historique restera auss
 
 Les ressources possèdent aussi des raccourcis contextuels cohérents sans dupliquer leur logique : Primos ouvre Boutique, Moras ouvre Banque et les particules de l’élément personnel ouvrent la modale de conversion partagée. Ces entrées existent dans Sac (`Tout` et `Ressources`) et dans la sidebar. Ouvrir la conversion depuis la sidebar superpose la modale à l’écran courant sans changer de route ; toutes les entrées utilisent le même composant et la même intention idempotente.
 
-## Panneau Communauté — Chat et MP futurs
+## Panneau Communauté — Chat et MP
 
-Le panneau de droite garde la cible `Chat | MP` de Social R506. Le [contrat Chat global V1](global-chat-v1.md) porte les règles de composition, scroll, non-lus, mentions, réponses et modération ; l'[audit Social](../legacy/14-ami-social-audit.md) reste propriétaire des MP. Le Chat global est réel : avatar/pseudo d'un joueur ouvre son Profil et le joueur peut envoyer un message. L'action `Envoyer un message privé` et l'onglet MP attendent le lot physique MP ; aucun onglet fictif ni commande `!mp` n'est affiché.
+Le panneau de droite matérialise `Chat | MP` selon Social R506, sans route ni tuile principale supplémentaire. Le [contrat Chat global V1](global-chat-v1.md) porte les règles de composition, scroll, non-lus, mentions, réponses et modération ; l'[audit Social](../legacy/14-ami-social-audit.md) reste propriétaire des MP. Les deux panes restent montées afin de préserver scroll, draft et intentions Chat, mais une pane masquée ne marque rien lu. Les badges sont croisés et restent compacts lorsque le panneau est replié. L'onglet MP navigue en interne entre liste/nouveau message et conversation, avec archives séparées. `Envoyer un message privé` depuis l'identité d'un auteur Chat ou son Profil ouvre ce même parcours ; aucun `!mp` n'est affiché.
 
 ## Social / Profils — Batch B et Batch C
 

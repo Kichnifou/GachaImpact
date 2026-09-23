@@ -6,7 +6,7 @@ import { isPrismaConcurrencyCollision } from '../../infrastructure/database/pris
 import { GetCurrentPlayer } from '../player/get-current-player.js';
 import { PlayerActivityRecorder } from '../player/player-activity-recorder.js';
 import { PRIVATE_MESSAGES_CATEGORY } from '../social/contact-permission.js';
-import { applyPlayerBlock } from '../social/player-block-service.js';
+import { applyPlayerBlock, removePlayerBlock } from '../social/player-block-service.js';
 
 const invalid = (message: string) => new AppError(message, 400, 'DIRECT_MESSAGE_INVALID');
 const unavailable = () => new AppError('Cette conversation est indisponible.', 409, 'DIRECT_MESSAGE_UNAVAILABLE');
@@ -21,6 +21,7 @@ type InitiateResult = OperationResult & { conversationId: string; messageId: str
 type SendResult = OperationResult & { conversationId: string; messageId: string };
 type ResolveResult = OperationResult & { conversationId: string; requestId: string; state: string };
 type BlockResult = OperationResult & { conversationId: string; blocked: boolean; changed: boolean };
+type ContactAccess = { allowed: boolean; friends: boolean; level: PrivacyLevel; blockedByActor: boolean; blockedByOther: boolean };
 
 function normalizeContent(content: string) {
   if (typeof content !== 'string') throw invalid('Message invalide.');
@@ -74,17 +75,22 @@ export class DirectMessageService {
     return conversation;
   }
   private other(conversation: { playerAId: string; playerBId: string }, playerId: string) { return conversation.playerAId === playerId ? conversation.playerBId : conversation.playerAId; }
-  private async permission(tx: Prisma.TransactionClient, senderId: string, recipientId: string) {
-    const [recipient, friendship, block] = await Promise.all([
+  private async contactAccess(tx: Prisma.TransactionClient | PrismaClient, senderId: string, recipientId: string): Promise<ContactAccess> {
+    const [recipient, friendship, blocks] = await Promise.all([
       tx.player.findFirst({ where: { id: recipientId, status: 'ACTIVE' }, select: { privacySettings: { where: { categoryKey: PRIVATE_MESSAGES_CATEGORY }, select: { level: true }, take: 1 } } }),
       tx.friendship.findUnique({ where: { playerAId_playerBId: pair(senderId, recipientId) }, select: { state: true } }),
-      tx.playerBlock.count({ where: { OR: [{ blockerPlayerId: senderId, blockedPlayerId: recipientId }, { blockerPlayerId: recipientId, blockedPlayerId: senderId }] } }),
+      tx.playerBlock.findMany({ where: { OR: [{ blockerPlayerId: senderId, blockedPlayerId: recipientId }, { blockerPlayerId: recipientId, blockedPlayerId: senderId }] }, select: { blockerPlayerId: true } }),
     ]);
-    if (!recipient || block) throw forbidden();
-    const level: PrivacyLevel = recipient.privacySettings[0]?.level ?? 'PUBLIC';
+    const level: PrivacyLevel = recipient?.privacySettings[0]?.level ?? 'PUBLIC';
     const friends = friendship?.state === 'ACTIVE';
-    if (level === 'PRIVATE' || level === 'FRIENDS' && !friends) throw forbidden();
-    return { friends, level };
+    const blockedByActor = blocks.some(block => block.blockerPlayerId === senderId);
+    const blockedByOther = blocks.some(block => block.blockerPlayerId === recipientId);
+    return { allowed: Boolean(recipient) && !blockedByActor && !blockedByOther && level !== 'PRIVATE' && (level !== 'FRIENDS' || friends), friends, level, blockedByActor, blockedByOther };
+  }
+  private async permission(tx: Prisma.TransactionClient, senderId: string, recipientId: string) {
+    const access = await this.contactAccess(tx, senderId, recipientId);
+    if (!access.allowed) throw forbidden();
+    return access;
   }
   private async rate(tx: Prisma.TransactionClient, playerId: string, now: Date) {
     if (await tx.directMessage.count({ where: { authorPlayerId: playerId, createdAt: { gt: new Date(now.getTime() - 10_000) } } }) >= 10) throw rateLimited();
@@ -184,12 +190,28 @@ export class DirectMessageService {
       if (replay) return { ...replay, replayed: true };
       const now = this.clock.now();
       const result: BlockResult = { conversationId, ...(await applyPlayerBlock(tx, actor.id, otherId, now)) };
-      await tx.directConversationParticipant.update({ where: { conversationId_playerId: { conversationId, playerId: actor.id } }, data: { archivedAt: now } });
+      await tx.directConversationParticipant.updateMany({ where: { conversationId }, data: { archivedAt: now, updatedAt: now } });
       const pending = await tx.directConversationRequest.findFirst({ where: { conversationId, state: 'PENDING' } });
       if (pending) await tx.directConversationRequest.update({ where: { id: pending.id }, data: { state: 'REFUSED', resolvedAt: now, retryAfter: new Date(now.getTime() + 86_400_000) } });
       const operation = await this.operation(tx, actor.id, key, 'direct-message.block', fingerprint, now);
       await this.finish(tx, operation.id, fingerprint, result);
       await this.activity.record(tx, actor.id, now, 'APPLICATION');
+      return { ...result, replayed: false };
+    });
+  }
+
+  async unblock(identity: AuthenticatedIdentity, conversationId: string, key: string): Promise<BlockResult & { replayed: boolean }> {
+    const actor = await this.actor(identity), fingerprint = conversationId;
+    return this.transaction(async tx => {
+      const conversation = await this.requireConversation(tx, conversationId, actor.id), otherId = this.other(conversation, actor.id);
+      await this.lockPlayers(tx, [actor.id, otherId]);
+      const replay = await this.replay<BlockResult>(tx, actor.id, key, 'direct-message.unblock', fingerprint);
+      if (replay) return { ...replay, replayed: true };
+      const now = this.clock.now();
+      const result: BlockResult = { conversationId, ...(await removePlayerBlock(tx, actor.id, otherId)) };
+      const operation = await this.operation(tx, actor.id, key, 'direct-message.unblock', fingerprint, now);
+      await this.finish(tx, operation.id, fingerprint, result);
+      if (result.changed) await this.activity.record(tx, actor.id, now, 'APPLICATION');
       return { ...result, replayed: false };
     });
   }
@@ -205,8 +227,6 @@ export class DirectMessageService {
         messages: { orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 1 },
       }, orderBy: [{ lastMessageAt: 'desc' }, { id: 'desc' }],
     });
-    const blocked = await this.database.playerBlock.findMany({ where: { OR: [{ blockerPlayerId: actor.id }, { blockedPlayerId: actor.id }] } });
-    const blockedIds = new Set(blocked.map(row => row.blockerPlayerId === actor.id ? row.blockedPlayerId : row.blockerPlayerId));
     const unreadRows = await this.database.$queryRaw<{ conversation_id: string; unread_count: number }[]>`SELECT p.conversation_id, count(m.id)::integer AS unread_count
       FROM direct_conversation_participants p JOIN direct_messages m ON m.conversation_id = p.conversation_id AND m.author_player_id <> p.player_id
       WHERE p.player_id = ${actor.id}::uuid AND (p.last_read_created_at IS NULL OR (m.created_at, m.id) > (p.last_read_created_at, p.last_read_message_id))
@@ -216,16 +236,20 @@ export class DirectMessageService {
     for (const row of rows) {
       const other = row.playerAId === actor.id ? row.playerB : row.playerA;
       const state = row.participants.find(item => item.playerId === actor.id)!;
-      const effectivelyArchived = Boolean(state.archivedAt) || blockedIds.has(other.id);
+      const access = await this.contactAccess(this.database, actor.id, other.id);
+      const latestRequest = row.requests[0] ?? null;
+      const effectivelyArchived = Boolean(state.archivedAt) || access.blockedByActor || access.blockedByOther;
       if (effectivelyArchived !== archived) continue;
-      conversations.push({ id: row.id, other, archived: effectivelyArchived, lastMessage: row.messages[0] ? this.projectMessage(row.messages[0], actor.id, null) : null, request: row.requests[0] ? { id: row.requests[0].id, state: row.requests[0].state, senderPlayerId: row.requests[0].senderPlayerId, retryAfter: row.requests[0].retryAfter?.toISOString() ?? null } : null, unreadCount: unreadByConversation.get(row.id) ?? 0, readReceiptsEnabled: state.readReceiptsEnabled });
+      const canSend = access.allowed && latestRequest?.state !== 'PENDING' && (latestRequest?.state !== 'REFUSED' || access.friends);
+      conversations.push({ id: row.id, other, archived: effectivelyArchived, lastMessageAt: row.lastMessageAt?.toISOString() ?? null, lastMessage: row.messages[0] ? this.projectMessage(row.messages[0], actor.id, null) : null, request: latestRequest ? { id: latestRequest.id, state: latestRequest.state, senderPlayerId: latestRequest.senderPlayerId, retryAfter: latestRequest.retryAfter?.toISOString() ?? null } : null, unreadCount: unreadByConversation.get(row.id) ?? 0, readReceiptsEnabled: state.readReceiptsEnabled, canSend, blockedByMe: access.blockedByActor });
     }
+    conversations.sort((left, right) => Number(right.unreadCount > 0) - Number(left.unreadCount > 0) || (right.lastMessageAt ?? '').localeCompare(left.lastMessageAt ?? '') || right.id.localeCompare(left.id));
     return { conversations };
   }
 
-  private projectMessage(row: { id: string; conversationId: string; authorPlayerId: string; content: string | null; createdAt: Date; editedAt: Date | null; deletedAt: Date | null; restoredAt: Date | null }, viewerId: string, otherRead: { lastSharedReadCreatedAt: Date | null; lastSharedReadMessageId: string | null } | null) {
+  private projectMessage(row: { id: string; conversationId: string; authorPlayerId: string; content: string | null; createdAt: Date; editedAt: Date | null; deletedAt: Date | null; restoredAt: Date | null }, viewerId: string, otherRead: { lastSharedReadCreatedAt: Date | null; lastSharedReadMessageId: string | null; lastSharedReadAt: Date | null } | null) {
     const readByOther = Boolean(otherRead?.lastSharedReadCreatedAt && (row.createdAt < otherRead.lastSharedReadCreatedAt || row.createdAt.getTime() === otherRead.lastSharedReadCreatedAt.getTime() && row.id <= otherRead.lastSharedReadMessageId!));
-    return { id: row.id, conversationId: row.conversationId, authorPlayerId: row.authorPlayerId, own: row.authorPlayerId === viewerId, content: row.content, createdAt: row.createdAt.toISOString(), editedAt: row.editedAt?.toISOString() ?? null, deletedAt: row.deletedAt?.toISOString() ?? null, restoredAt: row.restoredAt?.toISOString() ?? null, readByOther };
+    return { id: row.id, conversationId: row.conversationId, authorPlayerId: row.authorPlayerId, own: row.authorPlayerId === viewerId, content: row.content, createdAt: row.createdAt.toISOString(), editedAt: row.editedAt?.toISOString() ?? null, deletedAt: row.deletedAt?.toISOString() ?? null, restoredAt: row.restoredAt?.toISOString() ?? null, readByOther, readByOtherAt: readByOther ? otherRead?.lastSharedReadAt?.toISOString() ?? null : null };
   }
 
   async messages(identity: AuthenticatedIdentity, conversationId: string, limit = 50, cursor?: DirectCursor) {
@@ -243,7 +267,7 @@ export class DirectMessageService {
       offset = index + 1;
     }
     const page = recent.slice(offset, offset + limit), last = page.at(-1);
-    const otherState = await this.database.directConversationParticipant.findUniqueOrThrow({ where: { conversationId_playerId: { conversationId, playerId: this.other(conversation, actor.id) } }, select: { lastSharedReadCreatedAt: true, lastSharedReadMessageId: true } });
+    const otherState = await this.database.directConversationParticipant.findUniqueOrThrow({ where: { conversationId_playerId: { conversationId, playerId: this.other(conversation, actor.id) } }, select: { lastSharedReadCreatedAt: true, lastSharedReadMessageId: true, lastSharedReadAt: true } });
     return { messages: page.reverse().map(row => this.projectMessage(row, actor.id, otherState)), nextCursor: offset + limit < recent.length && last ? { id: last.id, createdAt: last.createdAt.toISOString() } : null, windowSize: recent.length };
   }
 
@@ -262,15 +286,18 @@ export class DirectMessageService {
       await this.requireConversation(tx, conversationId, actor.id);
       const target = await tx.directMessage.findFirst({ where: { id: messageId, conversationId } });
       if (!target) throw unavailable();
-      const rows = await tx.$queryRaw<{ last_read_message_id: string }[]>`UPDATE direct_conversation_participants SET
+      const readAt = this.clock.now();
+      const rows = await tx.$queryRaw<{ last_read_message_id: string; last_shared_read_at: Date | null }[]>`UPDATE direct_conversation_participants SET
         last_read_message_id = ${target.id}::uuid, last_read_created_at = ${target.createdAt},
         last_shared_read_message_id = CASE WHEN read_receipts_enabled THEN ${target.id}::uuid ELSE last_shared_read_message_id END,
         last_shared_read_created_at = CASE WHEN read_receipts_enabled THEN ${target.createdAt} ELSE last_shared_read_created_at END,
-        updated_at = ${this.clock.now()}
+        last_shared_read_at = CASE WHEN read_receipts_enabled THEN ${readAt} ELSE last_shared_read_at END,
+        updated_at = ${readAt}
         WHERE conversation_id = ${conversationId}::uuid AND player_id = ${actor.id}::uuid
           AND (last_read_created_at IS NULL OR (last_read_created_at, last_read_message_id) < (${target.createdAt}, ${target.id}::uuid))
-        RETURNING last_read_message_id`;
-      return { lastReadMessageId: rows[0]?.last_read_message_id ?? (await tx.directConversationParticipant.findUniqueOrThrow({ where: { conversationId_playerId: { conversationId, playerId: actor.id } } })).lastReadMessageId, changed: Boolean(rows[0]) };
+        RETURNING last_read_message_id, last_shared_read_at`;
+      const current = rows[0] ?? await tx.directConversationParticipant.findUniqueOrThrow({ where: { conversationId_playerId: { conversationId, playerId: actor.id } }, select: { lastReadMessageId: true, lastSharedReadAt: true } });
+      return { lastReadMessageId: 'last_read_message_id' in current ? current.last_read_message_id : current.lastReadMessageId, sharedReadAt: ('last_shared_read_at' in current ? current.last_shared_read_at : current.lastSharedReadAt)?.toISOString() ?? null, changed: Boolean(rows[0]) };
     });
   }
 
@@ -291,7 +318,12 @@ export class DirectMessageService {
   async archive(identity: AuthenticatedIdentity, conversationId: string, archived: boolean) {
     const actor = await this.actor(identity), now = this.clock.now();
     return this.transaction(async tx => {
-      await this.requireConversation(tx, conversationId, actor.id);
+      const conversation = await this.requireConversation(tx, conversationId, actor.id);
+      if (!archived) {
+        const otherId = this.other(conversation, actor.id);
+        const blocked = await tx.playerBlock.count({ where: { OR: [{ blockerPlayerId: actor.id, blockedPlayerId: otherId }, { blockerPlayerId: otherId, blockedPlayerId: actor.id }] } });
+        if (blocked) return { conversationId, archived: true, changed: false };
+      }
       const previous = await tx.directConversationParticipant.findUniqueOrThrow({ where: { conversationId_playerId: { conversationId, playerId: actor.id } } });
       const changed = Boolean(previous.archivedAt) !== archived;
       if (changed) {

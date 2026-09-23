@@ -985,6 +985,7 @@ model DirectConversationParticipant {
   readReceiptsEnabled     Boolean   @default(true) @map("read_receipts_enabled")
   lastSharedReadMessageId String?   @map("last_shared_read_message_id") @db.Uuid
   lastSharedReadCreatedAt DateTime? @map("last_shared_read_created_at") @db.Timestamptz(6)
+  lastSharedReadAt        DateTime? @map("last_shared_read_at") @db.Timestamptz(6)
   updatedAt               DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   conversation            DirectConversation @relation(fields: [conversationId], references: [id], onDelete: Restrict)
   player                  Player @relation(fields: [playerId], references: [id], onDelete: Cascade)

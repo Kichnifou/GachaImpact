@@ -9,9 +9,13 @@ import { elementColors } from '../utils/elementTheme'
 const chat = vi.hoisted(() => ({
   messages: vi.fn(), unread: vi.fn(), read: vi.fn(), send: vi.fn(), remove: vi.fn(), mentions: vi.fn(), report: vi.fn(),
 }))
+const directMessages = vi.hoisted(() => ({
+  list: vi.fn(), unread: vi.fn(), messages: vi.fn(), initiate: vi.fn(), send: vi.fn(), accept: vi.fn(), ignore: vi.fn(), block: vi.fn(), unblock: vi.fn(), read: vi.fn(), receipts: vi.fn(), archive: vi.fn(),
+}))
+const social = vi.hoisted(() => ({ directory: vi.fn() }))
 vi.mock('../api/game-api', () => ({
   ApiError: class ApiError extends Error { code: string; status: number | null; constructor(code: string, message: string, status: number | null) { super(message); this.code = code; this.status = status } },
-  getGameApiClient: () => ({ chat }),
+  getGameApiClient: () => ({ chat, directMessages, social }),
 }))
 import ChatPanel from './ChatPanel'
 
@@ -45,11 +49,44 @@ beforeEach(() => {
   chat.unread.mockResolvedValue({ unreadCount: 3, generation: 0 }); chat.read.mockResolvedValue({ changed: true, lastReadMessageId: message.id })
   chat.mentions.mockResolvedValue({ players: [] }); chat.remove.mockResolvedValue({ changed: true, id: message.id })
   chat.report.mockResolvedValue({ reported: true, duplicate: false })
+  directMessages.unread.mockResolvedValue({ unreadCount: 0 })
+  directMessages.list.mockResolvedValue({ conversations: [] })
+  directMessages.messages.mockResolvedValue({ messages: [], nextCursor: null })
+  social.directory.mockResolvedValue({ players: [], page: 1, pageSize: 20, total: 0, totalPages: 0 })
   chat.send.mockImplementation(async (content: string, key: string) => ({ message: { ...message, id: '44444444-4444-4444-8444-444444444444', author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content, clientIntentKey: key }, generation: 0, result: null, results: [], xpGranted: 1, refreshScopes: ['progression', 'dailyChallenge'], dailyChallengeCompleted: false, replayed: false } satisfies ChatSendDto))
 })
 afterEach(() => { act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren() })
 
 describe('ChatPanel réel', () => {
+  it('switches Chat/MP with crossed unread badges while preserving the Chat draft and read boundary', async () => {
+    directMessages.unread.mockResolvedValue({ unreadCount: 4, conversations: [] })
+    const collapsed = await mount(true)
+    await act(async () => { await Promise.resolve() })
+    expect(collapsed.querySelector('.chat-expand-button')?.textContent).toContain('C3M4')
+    const container = await mount()
+    await act(async () => { await Promise.resolve() })
+    type(container, 'Brouillon conservé')
+    const readsBeforeMp = chat.read.mock.calls.length
+    const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('[role="tab"]'))
+    expect(tabs.map(item => item.textContent)).toEqual(['Chat', 'MP4'])
+    await act(async () => { tabs[1]!.click(); await Promise.resolve() })
+    expect(tabs[1]!.getAttribute('aria-selected')).toBe('true')
+    expect(container.querySelector<HTMLTextAreaElement>('#chat-message')?.value).toBe('Brouillon conservé')
+    expect(container.querySelector('.chat-community-pane')?.hasAttribute('hidden')).toBe(true)
+    expect(chat.read).toHaveBeenCalledTimes(readsBeforeMp)
+    expect(directMessages.read).not.toHaveBeenCalled()
+  })
+
+  it('opens a private-message target from a Chat author without changing the existing action order', async () => {
+    const container = await mount()
+    const desktopBefore = Array.from(container.querySelectorAll('.chat-message-actions button')).map(item => item.getAttribute('aria-label'))
+    await act(async () => { (container.querySelector('.chat-direct-button') as HTMLButtonElement).click(); await Promise.resolve() })
+    expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe('MP')
+    expect(directMessages.list).toHaveBeenCalledWith(false)
+    expect(directMessages.list).toHaveBeenCalledWith(true)
+    expect(Array.from(container.querySelectorAll('.chat-message-actions button')).map(item => item.getAttribute('aria-label'))).toEqual(desktopBefore)
+  })
+
   it('shares elementColors between PLAYER avatars and pseudonyms with a readable fallback', async () => {
     const hydro = { ...message, id: '55555555-5555-4555-8555-555555555555', author: { id: '55555555-5555-4555-8555-555555555555', displayName: 'Hydro', elementKey: 'hydro' }, authorLabel: 'Hydro' }
     const fallback = { ...message, id: '66666666-6666-4666-8666-666666666666', author: { id: '66666666-6666-4666-8666-666666666666', displayName: 'Sans élément', elementKey: null }, authorLabel: 'Sans élément' }
@@ -272,7 +309,7 @@ describe('ChatPanel réel', () => {
     expect(selected()?.textContent).toBe('Joueur 0')
     expect(selected()?.classList.contains('selected')).toBe(true)
     expect(await press('ArrowDown')).toBe(true)
-    expect(container.querySelector('[aria-selected="true"]')?.textContent).toBe('Joueur 1')
+    expect(selected()?.textContent).toBe('Joueur 1')
     expect(selected()?.classList.contains('selected')).toBe(true)
     expect(await press('ArrowUp')).toBe(true)
     expect(selected()?.textContent).toBe('Joueur 0')

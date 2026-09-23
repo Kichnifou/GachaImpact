@@ -24,6 +24,7 @@ import BankScreen from '../screens/BankScreen'
 import GiftCodesScreen from '../screens/GiftCodesScreen'
 import ModerationScreen from '../screens/ModerationScreen'
 import ChatPanel from './ChatPanel'
+import type { DirectMessageOpenIntent } from './DirectMessagePanel'
 import GameHeader from './GameHeader'
 import Navigation from './Navigation'
 import OnlinePlayersPanel from './OnlinePlayersPanel'
@@ -205,9 +206,11 @@ function GameShell({ onRefreshChatScopes, player, resources, progression, levelU
   const [activeScreen, setActiveScreen] = useState<ScreenId>(getScreenFromHash)
   const activeScreenRef = useRef(activeScreen)
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
+  const [directMessageIntent, setDirectMessageIntent] = useState<DirectMessageOpenIntent | null>(null)
   const [chatOwnerRevision, setChatOwnerRevision] = useState(0)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isPlayersOpen, setIsPlayersOpen] = useState(false)
+  const openDirectMessage = (target: DirectMessageOpenIntent['player']) => { if (!target) return; setIsChatCollapsed(false); setDirectMessageIntent({ playerId: target.id, player: target, token: crypto.randomUUID() }) }
   const friendship = useFriendships(socialActions, activeScreen === 'social' || activeScreen === 'profile' || isPlayersOpen)
   const clearFriendshipFeedback = friendship.clearFeedback
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -430,7 +433,7 @@ return <ActivitiesScreen friendship={friendship.value?.summary} friendshipError=
       case 'social':
         return socialActions ? <SocialScreen actions={socialActions} onProfile={openProfile} controller={friendship} selectedTab={socialTab} onTabChange={setSocialTab} /> : null
       case 'profile':
-        return socialActions ? <ProfileScreen key={profileId} playerId={profileId} ownerPlayerId={player.id} actions={socialActions} controller={friendship} onTrade={partner => { setTradeIntent({ token: crypto.randomUUID(), partner }); navigate('trades') }} onDirectory={() => { setSocialTab('players'); navigate('social') }} onPrivacy={() => { setConfigurationTab('privacy'); navigate('configuration') }} /> : null
+        return socialActions ? <ProfileScreen key={profileId} playerId={profileId} ownerPlayerId={player.id} actions={socialActions} controller={friendship} onMessage={openDirectMessage} onTrade={partner => { setTradeIntent({ token: crypto.randomUUID(), partner }); navigate('trades') }} onDirectory={() => { setSocialTab('players'); navigate('social') }} onPrivacy={() => { setConfigurationTab('privacy'); navigate('configuration') }} /> : null
       case 'configuration':
         return <ConfigurationScreen socialActions={socialActions} initialTab={configurationTab} preference={menuPreference} onSave={saveMenuPreference} onReset={() => saveMenuPreference(defaultNavigationPreference)} />
       default:
@@ -482,12 +485,14 @@ return <ActivitiesScreen friendship={friendship.value?.summary} friendshipError=
           <div className="screen-stage" key={activeScreen}>{renderScreen()}</div>
         </main>
 
-        <ChatPanel playerId={player.id} playerDisplayName={player.displayName} playerElementKey={player.elementKey} connectedCount={presence.value?.total ?? null}
+        <ChatPanel key={player.id} playerId={player.id} playerDisplayName={player.displayName} playerElementKey={player.elementKey} connectedCount={presence.value?.total ?? null}
           isCollapsed={isChatCollapsed}
           onToggle={() => setIsChatCollapsed((current) => !current)}
           onOpenPlayers={() => setIsPlayersOpen(true)}
           onOpenProfile={openProfile}
           onRefreshScopes={refreshChatScopes}
+          directMessageIntent={directMessageIntent}
+          onDirectMessageIntentConsumed={token => setDirectMessageIntent(current => current?.token === token ? null : current)}
         />
       </div>
 

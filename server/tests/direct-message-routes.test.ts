@@ -15,7 +15,7 @@ const service = {
   list: vi.fn(async () => ({ conversations: [] })), unread: vi.fn(async () => ({ unreadCount: 0, conversations: [] })),
   initiate: vi.fn(async () => ({ conversationId, messageId, requestId, state: 'PENDING' })),
   messages: vi.fn(async () => ({ messages: [], nextCursor: null, windowSize: 0 })), send: vi.fn(async () => ({ conversationId, messageId })),
-  resolve: vi.fn(async () => ({ conversationId, requestId, state: 'ACCEPTED' })), block: vi.fn(async () => ({ conversationId, blocked: true })),
+  resolve: vi.fn(async () => ({ conversationId, requestId, state: 'ACCEPTED' })), block: vi.fn(async () => ({ conversationId, blocked: true })), unblock: vi.fn(async () => ({ conversationId, blocked: false })),
   markRead: vi.fn(async () => ({ lastReadMessageId: messageId, changed: true })), setReadReceipts: vi.fn(async () => ({ conversationId, readReceiptsEnabled: false, changed: true })),
   archive: vi.fn(async () => ({ conversationId, archived: true, changed: true })),
 };
@@ -47,6 +47,7 @@ describe('authenticated direct-message routes', () => {
     expect((await enabled.inject({ method: 'POST', url: `/api/v1/me/direct-conversations/${conversationId}/accept`, headers: token, payload: { requestId, idempotencyKey: key } })).statusCode).toBe(200);
     expect((await enabled.inject({ method: 'POST', url: `/api/v1/me/direct-conversations/${conversationId}/ignore`, headers: token, payload: { requestId, idempotencyKey: key } })).statusCode).toBe(200);
     expect((await enabled.inject({ method: 'POST', url: `/api/v1/me/direct-conversations/${conversationId}/block`, headers: token, payload: { idempotencyKey: key } })).statusCode).toBe(200);
+    expect((await enabled.inject({ method: 'POST', url: `/api/v1/me/direct-conversations/${conversationId}/unblock`, headers: token, payload: { idempotencyKey: key } })).statusCode).toBe(200);
     expect((await enabled.inject({ method: 'POST', url: `/api/v1/me/direct-conversations/${conversationId}/read`, headers: token, payload: { messageId } })).statusCode).toBe(200);
     expect((await enabled.inject({ method: 'PATCH', url: `/api/v1/me/direct-conversations/${conversationId}/read-receipts`, headers: token, payload: { enabled: false } })).statusCode).toBe(200);
     expect((await enabled.inject({ method: 'PATCH', url: `/api/v1/me/direct-conversations/${conversationId}/archive`, headers: token, payload: { archived: true } })).statusCode).toBe(200);

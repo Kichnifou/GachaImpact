@@ -11,3 +11,9 @@ export async function applyPlayerBlock(tx: Prisma.TransactionClient, blockerPlay
   });
   return { blocked: true, changed: !existing };
 }
+
+/** Removes only the actor-owned block. Friendship and conversation archives remain untouched. */
+export async function removePlayerBlock(tx: Prisma.TransactionClient, blockerPlayerId: string, blockedPlayerId: string) {
+  const result = await tx.playerBlock.deleteMany({ where: { blockerPlayerId, blockedPlayerId } });
+  return { blocked: false, changed: result.count > 0 };
+}

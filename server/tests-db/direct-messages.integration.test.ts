@@ -52,7 +52,9 @@ describe('Direct-message foundations on isolated PostgreSQL', () => {
     expect((await service.unread(as(bob))).unreadCount).toBe(2);
 
     expect(await service.markRead(as(bob), initiated.conversationId as string, page.messages[0]!.id)).toMatchObject({ changed: true, lastReadMessageId: page.messages[0]!.id });
-    expect((await service.messages(as(alice), initiated.conversationId as string)).messages.at(-1)?.readByOther).toBe(true);
+    const firstShared = (await service.messages(as(alice), initiated.conversationId as string)).messages.at(-1);
+    expect(firstShared?.readByOther).toBe(true);
+    expect(firstShared?.readByOtherAt).toBe(now.toISOString());
     expect(await service.markRead(as(bob), initiated.conversationId as string, older.messages[0]!.id)).toMatchObject({ changed: false, lastReadMessageId: page.messages[0]!.id });
     await service.setReadReceipts(as(bob), initiated.conversationId as string, false);
     expect((await service.messages(as(alice), initiated.conversationId as string)).messages.find(message => message.id === sent.messageId)?.readByOther).toBe(true);
@@ -68,12 +70,14 @@ describe('Direct-message foundations on isolated PostgreSQL', () => {
     await service.setReadReceipts(as(bob), initiated.conversationId as string, true);
     projected = (await service.messages(as(alice), initiated.conversationId as string)).messages;
     expect(projected.find(message => message.id === privateMessage.messageId)?.readByOther).toBe(false);
+    expect(projected.find(message => message.id === privateMessage.messageId)?.readByOtherAt).toBeNull();
     advance();
     const resumedMessage = await service.send(as(alice), initiated.conversationId as string, 'Lecture partagée à nouveau', randomUUID());
     const resumedRead = await service.messages(as(bob), initiated.conversationId as string, 1);
     await service.markRead(as(bob), initiated.conversationId as string, resumedRead.messages[0]!.id);
     projected = (await service.messages(as(alice), initiated.conversationId as string)).messages;
     expect(projected.find(message => message.id === resumedMessage.messageId)?.readByOther).toBe(true);
+    expect(projected.find(message => message.id === resumedMessage.messageId)?.readByOtherAt).toBe(now.toISOString());
     const outsider = await player('MP Outsider');
     await expect(service.messages(as(outsider), initiated.conversationId as string)).rejects.toMatchObject({ code: 'DIRECT_MESSAGE_UNAVAILABLE' });
   }, 30_000);
@@ -86,6 +90,7 @@ describe('Direct-message foundations on isolated PostgreSQL', () => {
     await db.friendship.create({ data: { playerAId: ids[0]!, playerBId: ids[1]!, state: 'ACTIVE' } });
     const direct = await service.initiate(as(sender), receiver, 'Entre amis', randomUUID());
     expect(direct.state).toBe('ACCEPTED');
+    expect((await service.list(as(sender))).conversations[0]?.canSend).toBe(true);
     await service.archive(as(sender), direct.conversationId as string, true);
     expect((await service.list(as(sender), true)).conversations).toHaveLength(1);
     expect((await service.list(as(receiver))).conversations[0]?.archived).toBe(false);
@@ -94,12 +99,16 @@ describe('Direct-message foundations on isolated PostgreSQL', () => {
     expect((await service.list(as(sender))).conversations[0]?.archived).toBe(false);
     await db.friendship.update({ where: { playerAId_playerBId: { playerAId: ids[0]!, playerBId: ids[1]! } }, data: { state: 'ARCHIVED', archivedAt: now } });
     expect((await service.messages(as(sender), direct.conversationId as string)).messages.length).toBeGreaterThan(0);
+    expect((await service.list(as(sender))).conversations[0]?.canSend).toBe(false);
     advance();
     await expect(service.send(as(sender), direct.conversationId as string, 'Plus amis', randomUUID())).rejects.toMatchObject({ code: 'DIRECT_MESSAGE_FORBIDDEN' });
     await db.friendship.update({ where: { playerAId_playerBId: { playerAId: ids[0]!, playerBId: ids[1]! } }, data: { state: 'ACTIVE', archivedAt: null } });
     await db.privacySetting.update({ where: { playerId_categoryKey: { playerId: receiver, categoryKey: 'PRIVATE_MESSAGES' } }, data: { level: 'PRIVATE' } });
+    expect((await service.list(as(sender))).conversations[0]?.canSend).toBe(false);
     advance();
     await expect(service.send(as(sender), direct.conversationId as string, 'Privé', randomUUID())).rejects.toMatchObject({ code: 'DIRECT_MESSAGE_FORBIDDEN' });
+    await db.privacySetting.update({ where: { playerId_categoryKey: { playerId: receiver, categoryKey: 'PRIVATE_MESSAGES' } }, data: { level: 'PUBLIC' } });
+    expect((await service.list(as(sender))).conversations[0]?.canSend).toBe(true);
   }, 30_000);
 
   it('refuses a repeated public request for 24 hours and lets the recipient block through the Social owner', async () => {
@@ -117,7 +126,21 @@ describe('Direct-message foundations on isolated PostgreSQL', () => {
     expect(await service.block(as(receiver), retry.conversationId as string, randomUUID())).toMatchObject({ blocked: true, changed: true });
     expect(await db.playerBlock.count({ where: { blockerPlayerId: receiver, blockedPlayerId: sender } })).toBe(1);
     expect((await db.friendship.findUniqueOrThrow({ where: { playerAId_playerBId: { playerAId: ids[0]!, playerBId: ids[1]! } } })).state).toBe('ARCHIVED');
+    const archivedParticipants = await db.directConversationParticipant.findMany({ where: { conversationId: retry.conversationId as string }, select: { archivedAt: true } });
+    expect(archivedParticipants.every(participant => participant.archivedAt !== null)).toBe(true);
+    expect((await service.list(as(receiver), true)).conversations[0]).toMatchObject({ archived: true, blockedByMe: true, canSend: false });
+    expect((await service.list(as(sender), true)).conversations[0]).toMatchObject({ archived: true, blockedByMe: false, canSend: false });
     await expect(service.send(as(sender), retry.conversationId as string, 'Bloqué', randomUUID())).rejects.toMatchObject({ code: 'DIRECT_MESSAGE_FORBIDDEN', message: 'Ce message ne peut pas être envoyé.' });
+    expect(await service.unblock(as(receiver), retry.conversationId as string, randomUUID())).toMatchObject({ blocked: false, changed: true });
+    expect(await db.playerBlock.count({ where: { blockerPlayerId: receiver, blockedPlayerId: sender } })).toBe(0);
+    expect((await db.friendship.findUniqueOrThrow({ where: { playerAId_playerBId: { playerAId: ids[0]!, playerBId: ids[1]! } } })).state).toBe('ARCHIVED');
+    expect((await service.list(as(receiver), true)).conversations[0]).toMatchObject({ archived: true, blockedByMe: false });
+    expect((await service.list(as(sender), true)).conversations[0]).toMatchObject({ archived: true, blockedByMe: false });
+    await db.friendship.update({ where: { playerAId_playerBId: { playerAId: ids[0]!, playerBId: ids[1]! } }, data: { state: 'ACTIVE', archivedAt: null } });
+    advance();
+    await service.send(as(sender), retry.conversationId as string, 'Nouvelle activité autorisée', randomUUID());
+    expect((await service.list(as(sender))).conversations[0]?.archived).toBe(false);
+    expect((await service.list(as(receiver))).conversations[0]?.archived).toBe(false);
   }, 30_000);
 
   it('serializes opposite requests and lets only one concurrent request transition win', async () => {
