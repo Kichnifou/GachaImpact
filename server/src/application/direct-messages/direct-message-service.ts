@@ -14,6 +14,7 @@ const unavailable = () => new AppError('Cette conversation est indisponible.', 4
 const forbidden = () => new AppError('Ce message ne peut pas être envoyé.', 403, 'DIRECT_MESSAGE_FORBIDDEN');
 const conflict = () => new AppError('Cette clé appartient à une autre action.', 409, 'DIRECT_MESSAGE_IDEMPOTENCY_CONFLICT');
 const rateLimited = () => new AppError('Trop de messages envoyés. Réessayez dans quelques secondes.', 429, 'DIRECT_MESSAGE_RATE_LIMIT');
+const RESTORABLE_MESSAGE_WINDOW = 500;
 const pair = (a: string, b: string) => { const values = [a, b].sort(); return { playerAId: values[0]!, playerBId: values[1]! }; };
 export type DirectCursor = { createdAt: string; id: string };
 type OperationResult = Record<string, Prisma.InputJsonValue | null>;
@@ -121,12 +122,22 @@ export class DirectMessageService {
     const message = await tx.directMessage.create({ data: { conversationId, authorPlayerId: playerId, content, operationId, createdAt: now, submissionOrder } });
     await tx.directConversation.updateMany({ where: { id: conversationId, OR: [{ lastMessageOrder: null }, { lastMessageOrder: { lt: submissionOrder } }] }, data: { lastMessageAt: now, lastMessageOrder: submissionOrder } });
     await tx.directConversationParticipant.updateMany({ where: { conversationId }, data: { archivedAt: null } });
-    const boundary = await tx.directMessage.findFirst({ where: { conversationId }, orderBy: { submissionOrder: 'desc' }, skip: 499, select: { submissionOrder: true } });
+    const boundary = await tx.directMessage.findFirst({ where: { conversationId }, orderBy: { submissionOrder: 'desc' }, skip: RESTORABLE_MESSAGE_WINDOW - 1, select: { submissionOrder: true } });
     if (boundary) await tx.directMessage.updateMany({
       where: { conversationId, submissionOrder: { lt: boundary.submissionOrder }, deletedAt: { not: null }, content: { not: null }, contentPurgedAt: null },
       data: { content: null, contentPurgedAt: now },
     });
     return message;
+  }
+
+  private async isOutsideRestorableWindow(tx: Prisma.TransactionClient, conversationId: string, submissionOrder: bigint) {
+    const boundary = await tx.directMessage.findFirst({
+      where: { conversationId, submissionOrder: { gt: submissionOrder } },
+      orderBy: { submissionOrder: 'asc' },
+      skip: RESTORABLE_MESSAGE_WINDOW - 1,
+      select: { id: true },
+    });
+    return boundary !== null;
   }
 
   private async requireOwnMessage(tx: Prisma.TransactionClient, conversationId: string, messageId: string, playerId: string) {
@@ -221,8 +232,11 @@ export class DirectMessageService {
       if (replay) return { ...replay, replayed: true };
       const message = await this.requireOwnMessage(tx, conversationId, messageId, actor.id);
       if (message.deletedAt || message.content === null || message.contentPurgedAt) throw unavailable();
+      const outsideWindow = await this.isOutsideRestorableWindow(tx, conversationId, message.submissionOrder);
       const now = this.clock.now(), operation = await this.operation(tx, actor.id, key, 'direct-message.delete', fingerprint, now);
-      await tx.directMessage.update({ where: { id: message.id }, data: { deletedAt: now, restoredAt: null } });
+      await tx.directMessage.update({ where: { id: message.id }, data: outsideWindow
+        ? { deletedAt: now, restoredAt: null, content: null, contentPurgedAt: now }
+        : { deletedAt: now, restoredAt: null, contentPurgedAt: null } });
       const result: MessageMutationResult = { conversationId, messageId };
       await this.finish(tx, operation.id, fingerprint, result);
       await this.activity.record(tx, actor.id, now, 'INTERNAL_CHAT');
@@ -238,8 +252,7 @@ export class DirectMessageService {
       if (replay) return { ...replay, replayed: true };
       const message = await this.requireOwnMessage(tx, conversationId, messageId, actor.id);
       if (!message.deletedAt || message.content === null || message.contentPurgedAt) throw unavailable();
-      const newer = await tx.directMessage.count({ where: { conversationId, submissionOrder: { gt: message.submissionOrder } } });
-      if (newer >= 500) throw unavailable();
+      if (await this.isOutsideRestorableWindow(tx, conversationId, message.submissionOrder)) throw unavailable();
       const now = this.clock.now(), operation = await this.operation(tx, actor.id, key, 'direct-message.restore', fingerprint, now);
       await tx.directMessage.update({ where: { id: message.id }, data: { deletedAt: null, restoredAt: now } });
       const result: MessageMutationResult = { conversationId, messageId };

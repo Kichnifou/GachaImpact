@@ -268,6 +268,32 @@ describe('Direct-message foundations on isolated PostgreSQL', () => {
     expect((await service.messages(as(recipient), activeOld.conversationId as string, 100)).windowSize).toBe(500);
   }, 90_000);
 
+  it('keeps rank 500 restorable and immediately purges rank 501 when deleted', async () => {
+    const author = await player('Boundary Author'), recipient = await player('Boundary Recipient');
+    const ids = [author, recipient].sort();
+    await db.friendship.create({ data: { playerAId: ids[0]!, playerBId: ids[1]!, state: 'ACTIVE' } });
+    const rank501 = await service.initiate(as(author), recipient, 'Rang 501 actif', randomUUID());
+    advance();
+    const rank500 = await service.send(as(author), rank501.conversationId as string, 'Rang 500 actif', randomUUID());
+    const bulk = Array.from({ length: 499 }, (_, index) => ({ operationId: randomUUID(), messageId: randomUUID(), content: `plus-récent-${index}` }));
+    await db.businessOperation.createMany({ data: bulk.map(row => ({ id: row.operationId, playerId: author, sourceChannel: 'UI', operationType: 'direct-message.fixture', status: 'COMPLETED', startedAt: now, completedAt: now, resultSummary: {} })) });
+    await db.directMessage.createMany({ data: bulk.map(row => ({ id: row.messageId, conversationId: rank501.conversationId as string, authorPlayerId: author, content: row.content, operationId: row.operationId, createdAt: now })) });
+
+    const boundaryDeleteKey = randomUUID();
+    expect(await service.deleteMessage(as(author), rank500.conversationId as string, rank500.messageId as string, boundaryDeleteKey)).toMatchObject({ replayed: false });
+    expect(await db.directMessage.findUniqueOrThrow({ where: { id: rank500.messageId as string } })).toMatchObject({ content: 'Rang 500 actif', deletedAt: now, contentPurgedAt: null });
+    expect(await service.restoreMessage(as(author), rank500.conversationId as string, rank500.messageId as string, randomUUID())).toMatchObject({ replayed: false });
+
+    advance();
+    const purgeAt = now, outsideDeleteKey = randomUUID();
+    expect(await service.deleteMessage(as(author), rank501.conversationId as string, rank501.messageId as string, outsideDeleteKey)).toMatchObject({ replayed: false });
+    expect(await db.directMessage.findUniqueOrThrow({ where: { id: rank501.messageId as string } })).toMatchObject({ content: null, deletedAt: purgeAt, restoredAt: null, contentPurgedAt: purgeAt });
+    advance();
+    expect(await service.deleteMessage(as(author), rank501.conversationId as string, rank501.messageId as string, outsideDeleteKey)).toMatchObject({ replayed: true });
+    expect(await db.directMessage.findUniqueOrThrow({ where: { id: rank501.messageId as string } })).toMatchObject({ content: null, deletedAt: purgeAt, contentPurgedAt: purgeAt });
+    await expect(service.restoreMessage(as(author), rank501.conversationId as string, rank501.messageId as string, randomUUID())).rejects.toMatchObject({ code: 'DIRECT_MESSAGE_UNAVAILABLE' });
+  }, 90_000);
+
   it('limits direct sends to ten in ten seconds and keeps durable rows beyond the 500-message projection window', async () => {
     const sender = await player('Rate Sender'), receiver = await player('Rate Receiver');
     const ids = [sender, receiver].sort();
