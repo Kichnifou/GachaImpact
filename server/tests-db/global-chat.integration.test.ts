@@ -159,8 +159,8 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(await progress(id)).toMatchObject({ xp: 60n, totalMessages: 0n, countedMessages: 0n });
   }, 20_000);
 
-  it('keeps reservation order when A commits after B', async () => {
-    const alice = await player(), bob = await player();
+  it('keeps reservation order and applies pacing to temporal submission order when A commits after B', async () => {
+    const author = await player();
     let releaseA!: () => void, announceA!: () => void;
     const aReserved = new Promise<void>(resolve => { announceA = resolve; });
     const aGate = new Promise<void>(resolve => { releaseA = resolve; });
@@ -169,16 +169,36 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
       reservations += 1;
       if (reservations === 1) { announceA(); await aGate; }
     });
-    const pendingA = controlled.send(as(alice), 'A réservé en premier', randomUUID());
+    const pendingA = controlled.send(as(author), 'A réservé en premier', randomUUID());
     await aReserved;
-    const sentB = await controlled.send(as(bob), 'B validé en premier', randomUUID());
+    advance(1_000);
+    const sentB = await controlled.send(as(author), 'B validé en premier', randomUUID());
+    const snapshot = await controlled.list(as(author));
+    expect(snapshot.messages.map(message => message.id)).toContain(sentB.message.id);
+    advance(1_000);
     releaseA();
     const sentA = await pendingA;
     expect(BigInt(sentA.message.submissionOrder)).toBeLessThan(BigInt(sentB.message.submissionOrder));
+    expect(new Date(sentA.message.createdAt).getTime()).toBeGreaterThan(new Date(sentB.message.createdAt).getTime());
     const ids = new Set([sentA.message.id, sentB.message.id]);
-    const visible = (await service.list(as(alice))).messages.filter(message => ids.has(message.id));
+    const visible = (await controlled.list(as(author))).messages.filter(message => ids.has(message.id));
     expect(visible.map(message => message.id)).toEqual([sentA.message.id, sentB.message.id]);
+    const anchor = snapshot.messages.at(-1)!;
+    const late = await controlled.updates(as(author), snapshot.generation, { createdAt: anchor.createdAt, id: anchor.id }, snapshot.visibleMessageIds);
+    expect(late.messages.map(message => message.id)).toEqual([sentA.message.id]);
+    advance(500);
+    await expect(controlled.send(as(author), 'C trop proche du dernier temps serveur', randomUUID())).rejects.toMatchObject({ code: 'CHAT_PACING_LIMIT' });
   }, 30_000);
+
+  it('computes the burst window from the three latest server timestamps, not submission order', async () => {
+    const author = await player(), base = now.getTime();
+    for (const [index, offset] of [10_000, 9_000, 8_500, 0].entries()) {
+      await db.globalChatMessage.create({ data: { authorPlayerId: author, sourceChannel: 'INTERNAL_CHAT', messageType: 'PLAYER', content: `fixture temporelle ${index}`, createdAt: new Date(base + offset) } });
+    }
+    now = new Date(base + 11_000);
+    await expect(service.send(as(author), 'bloqué par la rafale temporelle', randomUUID())).rejects.toMatchObject({ code: 'CHAT_PACING_LIMIT' });
+    expect(await db.globalChatMessage.count({ where: { authorPlayerId: author } })).toBe(4);
+  });
 
   it('keeps replies relational, tombstones author deletion, paginates and advances read cursor monotonically', async () => {
     const author = await player(), reader = await player();
@@ -538,23 +558,25 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(await service.updates(as(reader), cleared.generation - 1, anchor)).toEqual({ generation: cleared.generation, reset: true, messages: [], changes: [] });
   }, 40_000);
 
-  it('bounds every player-facing path to the latest 200 rows while retaining older database rows', async () => {
+  it('delivers all 150 unknown rows exactly once inside the bounded 200-row window', async () => {
     const author = await player(), moderator = await player();
     await db.playerRoleAssignment.create({ data: { playerId: moderator, role: 'MODERATOR' } });
     const { generation } = await dispatcher.clear(as(moderator), '!clear', randomUUID());
-    const oldIds = Array.from({ length: 110 }, () => randomUUID());
+    const oldIds = Array.from({ length: 50 }, () => randomUUID());
     await db.globalChatMessage.createMany({ data: oldIds.map((id, index) => ({ id, authorPlayerId: author, sourceChannel: 'INTERNAL_CHAT', messageType: 'PLAYER', content: `ancien ${index}`, createdAt: new Date(now.getTime() + index), generation, deletedAt: now, deletionState: 'AUTHOR' })) });
     const anchor = await db.globalChatMessage.create({ data: { authorPlayerId: author, sourceChannel: 'INTERNAL_CHAT', messageType: 'PLAYER', content: 'ancre', createdAt: new Date(now.getTime() + 200), generation } });
-    const newIds = Array.from({ length: 101 }, () => randomUUID());
+    const newIds = Array.from({ length: 150 }, () => randomUUID());
     await db.globalChatMessage.createMany({ data: newIds.map((id, index) => ({ id, authorPlayerId: author, sourceChannel: 'INTERNAL_CHAT', messageType: 'PLAYER', content: `nouveau ${index}`, createdAt: new Date(now.getTime() + 300 + index), generation })) });
     const page = await service.updates(as(author), generation, { createdAt: anchor.createdAt.toISOString(), id: anchor.id }, [...oldIds, anchor.id]);
-    expect(page.messages).toHaveLength(100);
-    expect(page.messages.map(row => row.id)).toEqual(newIds.slice(0, 100));
-    expect(page.changes).toHaveLength(98);
+    expect(page.messages).toHaveLength(150);
+    expect(page.messages.map(row => row.id)).toEqual(newIds);
+    expect(new Set(page.messages.map(row => row.id)).size).toBe(150);
+    expect(page.changes).toHaveLength(49);
+    expect(page.visibleMessageIds).toHaveLength(200);
     const last = page.messages.at(-1)!;
-    const tail = await service.updates(as(author), generation, { createdAt: last.createdAt, id: last.id });
-    expect(tail.messages.map(row => row.id)).toEqual(newIds.slice(100));
-    expect(tail.changes).toEqual([]);
+    const caughtUp = await service.updates(as(author), generation, { createdAt: last.createdAt, id: last.id }, page.visibleMessageIds);
+    expect(caughtUp.messages).toEqual([]);
+    expect(caughtUp.changes).toHaveLength(49);
     const snapshot = await service.list(as(author), 50);
     expect(snapshot.visibleMessageIds).toHaveLength(200);
     const snapshotAnchor = snapshot.messages.at(-1)!;
@@ -562,7 +584,7 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     let cursor: { createdAt: string; id: string } | undefined, visible: string[] = [];
     do { const result = await service.list(as(author), 100, cursor); visible = [...visible, ...result.messages.map(row => row.id)]; cursor = result.nextCursor ?? undefined; } while (cursor);
     expect(visible).toHaveLength(200);
-    expect(await db.globalChatMessage.count({ where: { generation } })).toBe(212);
+    expect(await db.globalChatMessage.count({ where: { generation } })).toBe(201);
     expect(visible).not.toContain(oldIds[0]);
     expect((await service.unreadCount(as(author))).unreadCount).toBe(200);
   }, 40_000);

@@ -7,10 +7,19 @@ import DirectMessagePanel, { type DirectMessageOpenIntent } from './DirectMessag
 type Props = { playerId: string; playerDisplayName?: string; playerElementKey?: string | null; connectedCount?: number | null; isCollapsed: boolean; onToggle: () => void; onOpenPlayers: () => void; onOpenProfile: (id: string) => void; onRefreshScopes: (scopes: readonly ChatRefreshScope[]) => Promise<void>; directMessageIntent?: DirectMessageOpenIntent | null; onDirectMessageIntentConsumed?: (token: string) => void }
 type Intent = { key: string; content: string; replyId: string | null; mentions: ChatMentionDto[] }
 type FailedIntent = Intent & { reason: string }
+type PacingAttempt = { key: string; submittedAt: number }
 const CHAT_VISIBLE_MESSAGE_LIMIT = 200
 const CHAT_MIN_SUBMISSION_INTERVAL_MS = 750
 const CHAT_BURST_WINDOW_MS = 4_000
 const CHAT_BURST_LOCK_MS = 4_000
+
+function pacingProjection(attempts: readonly PacingAttempt[]) {
+  const ordered = [...attempts].sort((left, right) => left.submittedAt - right.submittedAt || left.key.localeCompare(right.key))
+  const lastAcceptedAt = ordered.at(-1)?.submittedAt ?? null
+  const recent = ordered.slice(-3)
+  const burstLockedUntil = recent.length === 3 && recent[2]!.submittedAt - recent[0]!.submittedAt < CHAT_BURST_WINDOW_MS ? recent[2]!.submittedAt + CHAT_BURST_LOCK_MS : 0
+  return { lastAcceptedAt, burstLockedUntil }
+}
 
 function linkChatText(content: string) {
   return content.split(/(https?:\/\/[^\s]+)/giu).map((part, index) => {
@@ -123,7 +132,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const initialScrollPending = useRef(true)
   const composer = useRef<HTMLTextAreaElement>(null)
   const copyFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const pacing = useRef<{ accepted: number[]; lastAcceptedAt: number | null; burstLockedUntil: number }>({ accepted: [], lastAcceptedAt: null, burstLockedUntil: 0 })
+  const pacingAttempts = useRef<PacingAttempt[]>([])
   const chatActive = !isCollapsed && activeTab === 'chat'
   const wasChatActive = useRef(chatActive)
   const resolvedDirectIntent = directMessageIntent ?? localDirectIntent
@@ -136,7 +145,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   }
 
   useEffect(() => () => { if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current) }, [])
-  useEffect(() => { pacing.current = { accepted: [], lastAcceptedAt: null, burstLockedUntil: 0 } }, [playerId])
+  useEffect(() => { pacingAttempts.current = [] }, [playerId])
   useLayoutEffect(() => {
     if (!composer.current) return
     composer.current.style.height = '0px'
@@ -366,6 +375,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     } catch (cause) {
       if (messagesRef.current.some(item => !item.id.startsWith('optimistic:') && item.clientIntentKey === next.key)) return
       if (cause instanceof ApiError && cause.code === 'CHAT_PACING_LIMIT') {
+        pacingAttempts.current = pacingAttempts.current.filter(attempt => attempt.key !== next.key)
         const retained = messagesRef.current.filter(item => item.clientIntentKey !== next.key)
         messagesRef.current = retained; setMessages(retained); setError(null)
         setAmbiguousIntents(current => current.filter(item => item.key !== next.key)); setFailedIntents(current => current.filter(item => item.key !== next.key))
@@ -391,11 +401,10 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const send = (event: FormEvent) => {
     event.preventDefault()
     if ((draft.trim().startsWith('!') && commandPending) || !draft.trim() || Array.from(draft.trim()).length > 500) return
-    const submittedAt = Date.now(), state = pacing.current
+    const submittedAt = Date.now(), state = pacingProjection(pacingAttempts.current)
     if (submittedAt < state.burstLockedUntil || state.lastAcceptedAt !== null && submittedAt - state.lastAcceptedAt < CHAT_MIN_SUBMISSION_INTERVAL_MS) return
-    state.lastAcceptedAt = submittedAt; state.accepted = [...state.accepted, submittedAt].slice(-3)
-    if (state.accepted.length === 3 && state.accepted[2]! - state.accepted[0]! < CHAT_BURST_WINDOW_MS) state.burstLockedUntil = submittedAt + CHAT_BURST_LOCK_MS
     const next: Intent = { key: crypto.randomUUID(), content: draft.trim(), replyId: reply?.id ?? null, mentions: mentions.filter(item => draft.includes(`@${item.displayName}`)) }
+    pacingAttempts.current = [...pacingAttempts.current, { key: next.key, submittedAt }].slice(-32)
     const provisional: ChatMessageDto = { id: `optimistic:${next.key}`, clientIntentKey: next.key, author: { id: playerId, displayName: playerDisplayName, elementKey: playerElementKey }, authorLabel: playerDisplayName, sourceChannel: 'INTERNAL_CHAT', messageType: next.content.startsWith('!') ? 'COMMAND' : 'PLAYER', content: next.content, createdAt: new Date().toISOString(), submissionOrder: null, deletedAt: null, deletionState: 'ACTIVE', replyToMessageId: next.replyId, replyPreview: reply?.content ?? null, mentionedMe: false, repliedToMe: false }
     setDraft(''); setReply(null); setSuggestions([]); setMentions([]); setError(null)
     messagesRef.current = [...messagesRef.current, provisional].slice(-CHAT_VISIBLE_MESSAGE_LIMIT)

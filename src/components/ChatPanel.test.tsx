@@ -981,6 +981,74 @@ describe('ChatPanel réel', () => {
     expect(container.textContent).not.toContain('limité')
   })
 
+  it('does not let a server pacing rejection move the local 750 ms boundary', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      vi.setSystemTime(0)
+      const container = await mount(), form = container.querySelector('form')!
+      await act(async () => { type(container, 'M1'); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+      chat.send.mockRejectedValueOnce(new ApiError('CHAT_PACING_LIMIT', 'limité', 429))
+      vi.setSystemTime(750)
+      await act(async () => { type(container, 'M2'); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+      expect(chat.send).toHaveBeenCalledTimes(2)
+      expect(container.querySelector<HTMLTextAreaElement>('#chat-message')?.value).toBe('M2')
+      expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
+      expect(container.querySelector('[role="alert"]')).toBeNull()
+      vi.setSystemTime(1_000)
+      await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+      expect(chat.send).toHaveBeenCalledTimes(3)
+    } finally { vi.useRealTimers() }
+  })
+
+  it('removes only the rejected pacing timestamp without extending 750 ms or a burst lock', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      let rejectM2!: (cause: Error) => void
+      chat.send.mockImplementation((content: string, key: string) => {
+        if (content === 'M2') return new Promise<ChatSendDto>((_resolve, reject) => { rejectM2 = reject })
+        if (content === 'M3') return Promise.reject(new ApiError('CHAT_PACING_LIMIT', 'limité', 429))
+        return Promise.resolve({ message: { ...message, id: crypto.randomUUID(), author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content, clientIntentKey: key }, generation: 0, result: null, results: [], xpGranted: 1, refreshScopes: [], dailyChallengeCompleted: false, replayed: false })
+      })
+      vi.setSystemTime(0)
+      const container = await mount(), form = container.querySelector('form')!
+      const submitAt = async (time: number, value?: string) => {
+        vi.setSystemTime(time)
+        await act(async () => { if (value !== undefined) type(container, value); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+      }
+      await submitAt(0, 'M1')
+      await submitAt(800, 'M2')
+      await submitAt(1_600, 'M3')
+      expect(chat.send).toHaveBeenCalledTimes(3)
+      expect(container.querySelector<HTMLTextAreaElement>('#chat-message')?.value).toBe('M3')
+      expect(container.textContent).not.toContain('limité')
+
+      await submitAt(2_400, 'M4')
+      expect(chat.send).toHaveBeenCalledTimes(4)
+      await act(async () => { rejectM2(new ApiError('CHAT_PACING_LIMIT', 'limité', 429)); await Promise.resolve(); await Promise.resolve() })
+      expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
+      expect(container.querySelector('[role="alert"]')).toBeNull()
+
+      await submitAt(3_000, 'M5')
+      expect(chat.send).toHaveBeenCalledTimes(4)
+      expect(container.querySelector<HTMLTextAreaElement>('#chat-message')?.value).toBe('M5')
+      await submitAt(3_150)
+      expect(chat.send).toHaveBeenCalledTimes(5)
+    } finally { vi.useRealTimers() }
+  })
+
+  it('delivers all 150 unknown rows from one bounded catch-up without loss or duplicates', async () => {
+    const updates = enableUpdates().mockResolvedValue({ generation: 0, reset: false, messages: [], changes: [] })
+    chat.messages.mockResolvedValue({ messages: [message], nextCursor: null, generation: 0, visibleMessageIds: [message.id] })
+    const container = await mount()
+    const unknown = Array.from({ length: 150 }, (_, index) => ({ ...message, id: `77777777-7777-4777-8777-${String(index).padStart(12, '0')}`, content: `catch-up-${index}`, submissionOrder: String(index + 2), createdAt: new Date(Date.parse(message.createdAt) + index + 1).toISOString() }))
+    updates.mockResolvedValueOnce({ generation: 0, reset: false, messages: unknown, changes: [], visibleMessageIds: [message.id, ...unknown.map(item => item.id)] })
+    await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve(); await Promise.resolve() })
+    const rendered = [...container.querySelectorAll<HTMLElement>('.chat-message')]
+    expect(rendered).toHaveLength(151)
+    expect(new Set(rendered.map(item => item.dataset.messageId)).size).toBe(151)
+    expect(rendered.map(item => item.querySelector('p')?.textContent).slice(1)).toEqual(unknown.map(item => item.content))
+  })
+
   it('reorders an authoritative late arrival immediately without buffering', async () => {
     const later = { ...message, id: '77777777-7777-4777-8777-777777777777', content: 'B', submissionOrder: '20', createdAt: '2026-09-22T10:00:00.000Z' }
     const earlier = { ...message, id: '66666666-6666-4666-8666-666666666666', content: 'A', submissionOrder: '19', createdAt: '2026-09-22T10:00:01.000Z' }

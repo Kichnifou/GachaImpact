@@ -151,8 +151,8 @@ export class GlobalChatService {
     const fingerprint = createHash('sha256').update(JSON.stringify([normalized.value, replyId])).digest('hex');
     const submissionOrder = await this.reserveSubmissionOrder(idempotencyKey);
     if (submissionOrder !== null && this.onSubmissionReserved) await this.onSubmissionReserved(submissionOrder);
-    const player = await this.actor(identity);
     const submittedAt = this.clock.now();
+    const player = await this.actor(identity);
     return this.transaction(async tx => {
       const actor = await this.lockPlayer(tx, player.id);
       const generation = await this.lockedGeneration(tx);
@@ -201,7 +201,7 @@ export class GlobalChatService {
         }
         resolvedMentions = [...usedPlayers];
       }
-      const recentMessages = await tx.globalChatMessage.findMany({ where: { authorPlayerId: player.id, messageType: { in: ['PLAYER', 'COMMAND'] } }, orderBy: { submissionOrder: 'desc' }, take: 3, select: { createdAt: true } });
+      const recentMessages = await tx.globalChatMessage.findMany({ where: { authorPlayerId: player.id, messageType: { in: ['PLAYER', 'COMMAND'] } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 3, select: { createdAt: true } });
       const latest = recentMessages[0]?.createdAt;
       if (latest && now.getTime() - latest.getTime() < 750) throw pacingLimited();
       if (recentMessages.length === 3) {
@@ -383,7 +383,7 @@ export class GlobalChatService {
       anchor = { submissionOrder: row.submissionOrder, generation };
     }
     const [messages, changes] = await Promise.all([
-      Promise.resolve(visibleWindow.filter(row => visibleKnownIds.length ? !visibleKnownIds.includes(row.id) : !cursor || !anchor || row.submissionOrder > anchor.submissionOrder).reverse().slice(0, 100)),
+      Promise.resolve(visibleWindow.filter(row => visibleKnownIds.length ? !visibleKnownIds.includes(row.id) : !cursor || !anchor || row.submissionOrder > anchor.submissionOrder).reverse()),
       visibleKnownIds.length ? this.database.globalChatMessage.findMany({
         where: { generation, id: { in: visibleKnownIds }, deletionState: { not: 'ACTIVE' } },
         include: messageInclude, orderBy: { submissionOrder: 'asc' }, take: PLAYER_HISTORY_LIMIT,
