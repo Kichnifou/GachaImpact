@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ApiError, getGameApiClient } from '../api/game-api'
-import type { DirectConversationDto, DirectMessageDto, DirectMessagePageDto } from '../api/types'
+import type { DirectConversationDto, DirectMessageDto, DirectMessageMutationDto, DirectMessagePageDto } from '../api/types'
 
 type MessageCache = { messages: readonly DirectMessageDto[]; cursor: DirectMessagePageDto['nextCursor']; fetched: boolean }
 
@@ -52,6 +52,7 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
   const listRevision = useRef(0), messageRevision = useRef(0), listBusy = useRef(false), unreadBusy = useRef(false), olderBusy = useRef(false)
   const messageBusy = useRef(new Set<string>()), mutationCount = useRef(0), selectedRef = useRef<string | null>(conversationId)
   const mutationOverlays = useRef(new Map<string, { key: string; message: DirectMessageDto; original: DirectMessageDto }>())
+  const deletedContent = useRef(new Map<string, { conversationId: string; content: string }>())
   useEffect(() => { normalRef.current = normal; archivedRef.current = archived; messagesRef.current = messages }, [archived, messages, normal])
 
   const adoptUnread = useCallback((count: number) => onUnreadChange(count), [onUnreadChange])
@@ -127,7 +128,7 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
 
   useLayoutEffect(() => {
     listRevision.current++; messageRevision.current++
-    normalRef.current = []; archivedRef.current = []; messagesRef.current = []; caches.current.clear(); selectedRef.current = null
+    normalRef.current = []; archivedRef.current = []; messagesRef.current = []; caches.current.clear(); mutationOverlays.current.clear(); deletedContent.current.clear(); selectedRef.current = null
     // oxlint-disable-next-line react/set-state-in-effect -- an authenticated Player change owns a complete cache reset
     setNormal([]); setArchived([]); setMessages([]); setCursor(null); setListLoaded(false); setMessagesLoaded(false); setError(null); setPending(false); adoptUnread(0)
   }, [adoptUnread, playerId])
@@ -212,7 +213,7 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
     } finally { endMutation() }
   }, [api, playerId, publishMessages]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const mutateMessage = useCallback(async (id: string, messageId: string, key: string, transform: (message: DirectMessageDto) => DirectMessageDto, run: () => Promise<unknown>) => {
+  const mutateMessage = useCallback(async (id: string, messageId: string, key: string, transform: (message: DirectMessageDto) => DirectMessageDto, run: () => Promise<DirectMessageMutationDto>) => {
     const entry = caches.current.get(id), currentMessage = entry?.messages.find(message => message.id === messageId)
     if (!entry || !currentMessage) throw new Error('Message indisponible.')
     const previousOverlay = mutationOverlays.current.get(messageId), original = previousOverlay?.key === key ? previousOverlay.original : currentMessage
@@ -226,7 +227,12 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
     try {
       const result = await run()
       if (mutationOverlays.current.get(messageId)?.key === key) {
+        const authoritative = { ...optimistic, ...result.message }
         messageRevision.current++; listRevision.current++; mutationOverlays.current.delete(messageId)
+        const current = caches.current.get(id) ?? entry
+        publishMessages(id, { ...current, messages: current.messages.map(message => message.id === messageId ? authoritative : message) })
+        const updateAuthoritativePreview = (items: readonly DirectConversationDto[]) => items.map(item => item.lastMessage?.id === messageId ? { ...item, lastMessage: authoritative } : item)
+        publishLists(updateAuthoritativePreview(normalRef.current), updateAuthoritativePreview(archivedRef.current))
         revalidate()
       }
       return result
@@ -300,8 +306,20 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
     clearError: () => setError(null), refreshLists, refreshMessages, refreshUnread, loadOlder, openTarget, markConversationSeen,
     send,
     editMessage: (id: string, messageId: string, content: string, key: string) => mutateMessage(id, messageId, key, message => ({ ...message, content, editedAt: new Date().toISOString(), deletedAt: null }), () => api.edit(id, messageId, content, key)),
-    deleteMessage: (id: string, messageId: string, key: string) => mutateMessage(id, messageId, key, message => ({ ...message, content: null, deletedAt: new Date().toISOString(), restoredAt: null }), () => api.remove(id, messageId, key)),
-    restoreMessage: (id: string, messageId: string, key: string) => mutateMessage(id, messageId, key, message => message, () => api.restore(id, messageId, key)),
+    deleteMessage: async (id: string, messageId: string, key: string) => {
+      const content = caches.current.get(id)?.messages.find(message => message.id === messageId)?.content
+      if (content) deletedContent.current.set(messageId, { conversationId: id, content })
+      try { return await mutateMessage(id, messageId, key, message => ({ ...message, content: null, deletedAt: new Date().toISOString(), restoredAt: null }), () => api.remove(id, messageId, key)) }
+      catch (reason) { if (reason instanceof ApiError && reason.status !== null && reason.status < 500) deletedContent.current.delete(messageId); throw reason }
+    },
+    restoreMessage: async (id: string, messageId: string, key: string) => {
+      const cached = deletedContent.current.get(messageId)
+      try {
+        const result = await mutateMessage(id, messageId, key, message => cached?.conversationId === id ? { ...message, content: cached.content, deletedAt: null, restoredAt: new Date().toISOString() } : message, () => api.restore(id, messageId, key))
+        deletedContent.current.delete(messageId)
+        return result
+      } catch (reason) { if (reason instanceof ApiError && reason.status !== null && reason.status < 500) deletedContent.current.delete(messageId); throw reason }
+    },
     initiate,
     accept: (id: string, requestId: string, key: string) => mutate(() => api.accept(id, requestId, key)),
     ignore: (id: string, requestId: string, key: string) => mutate(() => api.ignore(id, requestId, key)),

@@ -595,32 +595,43 @@ describe('ChatPanel réel', () => {
     expect(article.dataset.hoverSuppressed).toBeUndefined()
   })
 
-  it('keeps three PLAYER sends visible and reconciles confirmations out of order', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(0)
-    const releases: Array<(value: ChatSendDto) => void> = []
-    chat.send.mockImplementation(() => new Promise<ChatSendDto>(resolve => { releases.push(resolve) }))
-    const container = await mount()
-    for (const [index, content] of ['A', 'B', 'C'].entries()) {
-      vi.setSystemTime(index * 750)
-      await act(async () => { type(container, content) })
-      act(() => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
-      await act(async () => { await Promise.resolve() })
-      expect(container.textContent).toContain(content)
-    }
-    expect(chat.send).toHaveBeenCalledTimes(3)
-    expect(new Set(chat.send.mock.calls.map(call => call[1])).size).toBe(3)
-    expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(3)
-    await act(async () => { type(container, 'D') })
-    expect(button(container, 'Envoyer le message').disabled).toBe(true)
-    for (const index of [1, 2, 0]) {
-      const content = ['A', 'B', 'C'][index]!
-      const key = chat.send.mock.calls[index]![1] as string
-      await act(async () => { releases[index]!({ message: { ...message, id: `44444444-4444-4444-8444-${String(index).padStart(12, '0')}`, author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content, clientIntentKey: key, submissionOrder: String(index + 2) }, generation: 0, result: null, results: [], xpGranted: 1, refreshScopes: [], dailyChallengeCompleted: false, replayed: false }) })
-    }
-    expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
-    for (const content of ['A', 'B', 'C']) expect(Array.from(container.querySelectorAll('.chat-message')).filter(node => node.querySelector('p')?.textContent === content)).toHaveLength(1)
-    vi.useRealTimers()
+  it('keeps a slow 1/2/3 burst optimistic while transporting and confirming it strictly in order', async () => {
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(0)
+      const releases: Array<(value: ChatSendDto) => void> = []
+      chat.send.mockImplementation(() => new Promise<ChatSendDto>(resolve => { releases.push(resolve) }))
+      const container = await mount(), form = container.querySelector('form')!
+      const submitAt = async (time: number, content: string) => {
+        vi.setSystemTime(time)
+        await act(async () => { type(container, content); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+      }
+      await submitAt(0, 'M1'); await submitAt(800, 'M2'); await submitAt(1_600, 'M3')
+      expect(Array.from(container.querySelectorAll('.chat-message-optimistic p')).map(node => node.textContent)).toEqual(['M1', 'M2', 'M3'])
+      expect(chat.send).toHaveBeenCalledTimes(1)
+      expect(chat.send.mock.calls[0]?.[0]).toBe('M1')
+      const textarea = container.querySelector<HTMLTextAreaElement>('#chat-message')!
+      expect(textarea.disabled).toBe(true); expect(textarea.placeholder).toBe('Spam, veuillez attendre...')
+
+      const resolveCall = async (index: number, content: string) => {
+        const key = chat.send.mock.calls[index]![1] as string
+        await act(async () => { releases[index]!({ message: { ...message, id: `44444444-4444-4444-8444-${String(index).padStart(12, '0')}`, author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content, clientIntentKey: key, submissionOrder: String(index + 2), createdAt: new Date().toISOString() }, generation: 0, result: null, results: [], xpGranted: 1, refreshScopes: [], dailyChallengeCompleted: false, replayed: false }); await Promise.resolve(); await Promise.resolve() })
+      }
+      await resolveCall(0, 'M1')
+      expect(chat.send).toHaveBeenCalledTimes(2); expect(chat.send.mock.calls[1]?.[0]).toBe('M2')
+      await resolveCall(1, 'M2')
+      await act(async () => { await vi.advanceTimersByTimeAsync(749) })
+      expect(chat.send).toHaveBeenCalledTimes(2)
+      await act(async () => { await vi.advanceTimersByTimeAsync(1) })
+      expect(chat.send).toHaveBeenCalledTimes(3); expect(chat.send.mock.calls[2]?.[0]).toBe('M3')
+      await resolveCall(2, 'M3')
+
+      expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
+      for (const content of ['M1', 'M2', 'M3']) expect(Array.from(container.querySelectorAll('.chat-message')).filter(node => node.querySelector('p')?.textContent === content)).toHaveLength(1)
+      expect(textarea.value).toBe('')
+      await act(async () => { await vi.advanceTimersByTimeAsync(3_999) }); expect(textarea.disabled).toBe(true)
+      await act(async () => { await vi.advanceTimersByTimeAsync(1) }); expect(textarea.disabled).toBe(false)
+    } finally { vi.useRealTimers() }
   })
 
   it('starts active polls on a 350 ms cadence and never overlaps a slow request', async () => {
@@ -638,7 +649,7 @@ describe('ChatPanel réel', () => {
     } finally { vi.useRealTimers() }
   })
 
-  it('allows a PLAYER during a pending command while blocking a second command', async () => {
+  it('renders a PLAYER during a pending command but queues its network transport', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(0)
     let release!: (value: ChatSendDto) => void
@@ -653,10 +664,12 @@ describe('ChatPanel réel', () => {
     await act(async () => { type(container, 'haha') })
     expect(button(container, 'Envoyer le message').disabled).toBe(false)
     await act(async () => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    expect(chat.send).toHaveBeenCalledTimes(1)
+    expect(Array.from(container.querySelectorAll('.chat-message-optimistic p')).map(node => node.textContent)).toContain('haha')
+    const key = chat.send.mock.calls[0]![1] as string
+    await act(async () => { release({ message: { ...message, id: '66666666-6666-4666-8666-666666666666', author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content: '!pull', messageType: 'COMMAND', clientIntentKey: key, createdAt: new Date().toISOString() }, generation: 0, result: null, results: [], xpGranted: 0, refreshScopes: [], dailyChallengeCompleted: false, replayed: false }); await Promise.resolve(); await Promise.resolve() })
     expect(chat.send).toHaveBeenCalledTimes(2)
     expect(chat.send.mock.calls[1]![0]).toBe('haha')
-    const key = chat.send.mock.calls[0]![1] as string
-    await act(async () => { release({ message: { ...message, id: '66666666-6666-4666-8666-666666666666', author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content: '!pull', messageType: 'COMMAND', clientIntentKey: key }, generation: 0, result: null, results: [], xpGranted: 0, refreshScopes: [], dailyChallengeCompleted: false, replayed: false }) })
     vi.useRealTimers()
   })
 
@@ -1020,7 +1033,7 @@ describe('ChatPanel réel', () => {
   })
 
   it('does not let a server pacing rejection move the local 750 ms boundary', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.useFakeTimers()
     try {
       vi.setSystemTime(0)
       const container = await mount(), form = container.querySelector('form')!
@@ -1034,6 +1047,8 @@ describe('ChatPanel réel', () => {
       expect(container.querySelector('[role="alert"]')).toBeNull()
       vi.setSystemTime(1_000)
       await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+      expect(chat.send).toHaveBeenCalledTimes(2)
+      await act(async () => { await vi.advanceTimersByTimeAsync(500) })
       expect(chat.send).toHaveBeenCalledTimes(3)
     } finally { vi.useRealTimers() }
   })
@@ -1056,26 +1071,22 @@ describe('ChatPanel réel', () => {
       await submitAt(0, 'M1')
       await submitAt(800, 'M2')
       await submitAt(1_600, 'M3')
-      expect(chat.send).toHaveBeenCalledTimes(3)
-      expect(container.querySelector<HTMLTextAreaElement>('#chat-message')?.value).toBe('M3')
+      expect(chat.send).toHaveBeenCalledTimes(2)
+      expect(Array.from(container.querySelectorAll('.chat-message-optimistic p')).map(node => node.textContent)).toEqual(['M2', 'M3'])
       expect(container.textContent).not.toContain('limité')
-
-      await submitAt(2_400, 'M4')
-      expect(chat.send).toHaveBeenCalledTimes(4)
       await act(async () => { rejectM2(new ApiError('CHAT_PACING_LIMIT', 'limité', 429)); await Promise.resolve(); await Promise.resolve() })
+      expect(chat.send).toHaveBeenCalledTimes(3)
+      expect(chat.send.mock.calls[2]?.[0]).toBe('M3')
       expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
       expect(container.querySelector('[role="alert"]')).toBeNull()
-
-      await submitAt(3_000, 'M5')
+      await submitAt(2_400, 'M4')
       expect(chat.send).toHaveBeenCalledTimes(4)
-      expect(container.querySelector<HTMLTextAreaElement>('#chat-message')?.value).toBe('M5')
-      await submitAt(3_150)
-      expect(chat.send).toHaveBeenCalledTimes(5)
+      expect(chat.send.mock.calls[3]?.[0]).toBe('M4')
     } finally { vi.useRealTimers() }
   })
 
   it('does not let a deterministic non-pacing rejection move the local 750 ms boundary', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.useFakeTimers()
     try {
       vi.setSystemTime(0)
       const container = await mount(), form = container.querySelector('form')!
@@ -1086,6 +1097,8 @@ describe('ChatPanel réel', () => {
       expect(chat.send).toHaveBeenCalledTimes(2)
       vi.setSystemTime(1_000)
       await act(async () => { type(container, 'M3'); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+      expect(chat.send).toHaveBeenCalledTimes(2)
+      await act(async () => { await vi.advanceTimersByTimeAsync(500) })
       expect(chat.send).toHaveBeenCalledTimes(3)
     } finally { vi.useRealTimers() }
   })
@@ -1149,7 +1162,7 @@ describe('ChatPanel réel', () => {
   })
 
   it('does not count a confirmed clear as an accepted PLAYER or COMMAND', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.useFakeTimers()
     try {
       vi.setSystemTime(0)
       const container = await mount(), form = container.querySelector('form')!
@@ -1159,6 +1172,8 @@ describe('ChatPanel réel', () => {
       await act(async () => { type(container, '!clear'); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
       vi.setSystemTime(1_000)
       await act(async () => { type(container, 'M2'); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+      expect(chat.send).toHaveBeenCalledTimes(2)
+      await act(async () => { await vi.advanceTimersByTimeAsync(550) })
       expect(chat.send).toHaveBeenCalledTimes(3)
       expect(chat.send.mock.calls[2]?.[0]).toBe('M2')
     } finally { vi.useRealTimers() }

@@ -5,7 +5,7 @@ import { elementColors } from '../utils/elementTheme'
 import DirectMessagePanel, { type DirectMessageOpenIntent } from './DirectMessagePanel'
 
 type Props = { playerId: string; playerDisplayName?: string; playerElementKey?: string | null; connectedCount?: number | null; isCollapsed: boolean; onToggle: () => void; onOpenPlayers: () => void; onOpenProfile: (id: string) => void; onRefreshScopes: (scopes: readonly ChatRefreshScope[]) => Promise<void>; directMessageIntent?: DirectMessageOpenIntent | null; onDirectMessageIntentConsumed?: (token: string) => void }
-type Intent = { key: string; content: string; replyId: string | null; mentions: ChatMentionDto[] }
+type Intent = { key: string; content: string; replyId: string | null; mentions: ChatMentionDto[]; burstTrigger: boolean }
 type FailedIntent = Intent & { reason: string }
 type PacingAttempt = { key: string; submittedAt: number }
 const CHAT_VISIBLE_MESSAGE_LIMIT = 200
@@ -130,6 +130,8 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const [composerExpanded, setComposerExpanded] = useState(false)
   const [pacingNow, setPacingNow] = useState(() => Date.now())
   const [burstLockedUntil, setBurstLockedUntil] = useState(0)
+  const [transportLockedUntil, setTransportLockedUntil] = useState(0)
+  const [transportBurstPending, setTransportBurstPending] = useState(false)
   const [menuId, setMenuId] = useState<string | null>(null)
   const [reportId, setReportId] = useState<string | null>(null)
   const [suppressedHoverId, setSuppressedHoverId] = useState<string | null>(null)
@@ -151,6 +153,9 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const composer = useRef<HTMLTextAreaElement>(null)
   const copyFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pacingAttempts = useRef<PacingAttempt[]>([])
+  const transportTail = useRef<Promise<void>>(Promise.resolve())
+  const lastNewTransportStartAt = useRef<number | null>(null)
+  const transportGeneration = useRef(0)
   const chatActive = !isCollapsed && activeTab === 'chat'
   const wasChatActive = useRef(chatActive)
   const resolvedDirectIntent = directMessageIntent ?? localDirectIntent
@@ -163,14 +168,18 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   }
 
   useEffect(() => () => { if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current) }, [])
-  // oxlint-disable-next-line react/set-state-in-effect -- changing Player invalidates the previous account's local pacing window
-  useEffect(() => { pacingAttempts.current = []; setBurstLockedUntil(0); setPacingNow(Date.now()) }, [playerId])
-  const burstLocked = pacingNow < burstLockedUntil
   useEffect(() => {
-    if (!burstLocked) return
-    const timer = window.setTimeout(() => setPacingNow(Date.now()), Math.max(0, burstLockedUntil - Date.now()))
+    pacingAttempts.current = []; transportGeneration.current += 1; transportTail.current = Promise.resolve(); lastNewTransportStartAt.current = null
+    // oxlint-disable-next-line react/set-state-in-effect -- changing Player invalidates the previous account's local pacing window
+    setBurstLockedUntil(0); setTransportLockedUntil(0); setTransportBurstPending(false); setPacingNow(Date.now())
+  }, [playerId])
+  const effectiveBurstLockedUntil = Math.max(burstLockedUntil, transportLockedUntil)
+  const burstLocked = transportBurstPending || pacingNow < effectiveBurstLockedUntil
+  useEffect(() => {
+    if (transportBurstPending || !burstLocked) return
+    const timer = window.setTimeout(() => setPacingNow(Date.now()), Math.max(0, effectiveBurstLockedUntil - Date.now()))
     return () => window.clearTimeout(timer)
-  }, [burstLocked, burstLockedUntil])
+  }, [burstLocked, effectiveBurstLockedUntil, transportBurstPending])
   useLayoutEffect(() => {
     if (!composer.current) return
     composer.current.style.height = '0px'
@@ -358,12 +367,14 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
 
   const submitIntent = async (next: Intent) => {
     const isCommand = next.content.startsWith('!')
+    let burstOutcomeUntil: number | null = null
     if (isCommand) setCommandPending(true); setError(null)
     try {
       const result = await api.send(next.content, next.key, next.replyId, next.mentions)
       setAmbiguousIntents(current => current.filter(item => item.key !== next.key))
       setFailedIntents(current => current.filter(item => item.key !== next.key))
       if (result.cleared) {
+        burstOutcomeUntil = 0
         pacingAttempts.current = pacingAttempts.current.filter(attempt => attempt.key !== next.key); setBurstLockedUntil(pacingProjection(pacingAttempts.current).burstLockedUntil); setPacingNow(Date.now())
         const previousGeneration = generation.current
         if (previousGeneration === null || result.generation > previousGeneration) adoptGeneration(result.generation, [], null, true)
@@ -372,6 +383,8 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
           void messagesNow(true).catch(cause => setError(cause instanceof Error ? cause.message : 'Chat indisponible.'))
         }
       } else {
+        const serverAcceptedAt = new Date(result.message.createdAt).getTime()
+        burstOutcomeUntil = Math.abs(serverAcceptedAt - Date.now()) <= 60_000 ? serverAcceptedAt + CHAT_BURST_LOCK_MS : Date.now() + CHAT_BURST_LOCK_MS
         const previousGeneration = generation.current
         if (previousGeneration !== null && result.generation > previousGeneration) {
           const confirmed = orderMessages([result.message, ...result.results].filter((item, index, all) => all.findIndex(other => other.id === item.id) === index)).slice(-CHAT_VISIBLE_MESSAGE_LIMIT)
@@ -392,7 +405,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     } catch (cause) {
       if (messagesRef.current.some(item => !item.id.startsWith('optimistic:') && item.clientIntentKey === next.key)) return
       const deterministicRejection = cause instanceof ApiError && cause.status !== null && cause.status < 500
-      if (deterministicRejection) { pacingAttempts.current = pacingAttempts.current.filter(attempt => attempt.key !== next.key); setBurstLockedUntil(pacingProjection(pacingAttempts.current).burstLockedUntil); setPacingNow(Date.now()) }
+      if (deterministicRejection) { burstOutcomeUntil = 0; pacingAttempts.current = pacingAttempts.current.filter(attempt => attempt.key !== next.key); setBurstLockedUntil(pacingProjection(pacingAttempts.current).burstLockedUntil); setPacingNow(Date.now()) }
       if (cause instanceof ApiError && cause.code === 'CHAT_PACING_LIMIT') {
         const retained = messagesRef.current.filter(item => item.clientIntentKey !== next.key)
         messagesRef.current = retained; setMessages(retained); setError(null)
@@ -413,7 +426,32 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
         setFailedIntents(current => current.filter(item => item.key !== next.key))
         setAmbiguousIntents(current => current.some(item => item.key === next.key) ? current : [...current, next])
       }
-    } finally { if (isCommand) setCommandPending(false) }
+    } finally {
+      if (next.burstTrigger) {
+        setTransportBurstPending(false)
+        setTransportLockedUntil(current => burstOutcomeUntil === null ? Math.max(current, Date.now() + CHAT_BURST_LOCK_MS) : Math.max(current, burstOutcomeUntil))
+        setPacingNow(Date.now())
+      }
+      if (isCommand) setCommandPending(false)
+    }
+  }
+
+  const enqueueTransport = (next: Intent, isNewIntent: boolean) => {
+    const generationAtEnqueue = transportGeneration.current
+    if (next.burstTrigger) setTransportBurstPending(true)
+    const run = async () => {
+      if (generationAtEnqueue !== transportGeneration.current) return
+      if (isNewIntent && lastNewTransportStartAt.current !== null) {
+        const remaining = CHAT_MIN_SUBMISSION_INTERVAL_MS - (Date.now() - lastNewTransportStartAt.current)
+        if (remaining > 0) await new Promise<void>(resolve => window.setTimeout(resolve, remaining))
+      }
+      if (generationAtEnqueue !== transportGeneration.current) return
+      if (isNewIntent) lastNewTransportStartAt.current = Date.now()
+      await submitIntent(next)
+    }
+    const queued = transportTail.current.then(run, run)
+    transportTail.current = queued.then(() => undefined, () => undefined)
+    return queued
   }
 
   const send = (event: FormEvent) => {
@@ -421,16 +459,18 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     if ((draft.trim().startsWith('!') && commandPending) || !draft.trim() || Array.from(draft.trim()).length > 500) return
     const submittedAt = Date.now(), state = pacingProjection(pacingAttempts.current)
     if (submittedAt < state.burstLockedUntil || state.lastAcceptedAt !== null && submittedAt - state.lastAcceptedAt < CHAT_MIN_SUBMISSION_INTERVAL_MS) return
-    const next: Intent = { key: crypto.randomUUID(), content: draft.trim(), replyId: reply?.id ?? null, mentions: mentions.filter(item => draft.includes(`@${item.displayName}`)) }
-    pacingAttempts.current = [...pacingAttempts.current, { key: next.key, submittedAt }].slice(-32)
-    setBurstLockedUntil(pacingProjection(pacingAttempts.current).burstLockedUntil)
+    const key = crypto.randomUUID()
+    pacingAttempts.current = [...pacingAttempts.current, { key, submittedAt }].slice(-32)
+    const nextPacing = pacingProjection(pacingAttempts.current)
+    const next: Intent = { key, content: draft.trim(), replyId: reply?.id ?? null, mentions: mentions.filter(item => draft.includes(`@${item.displayName}`)), burstTrigger: nextPacing.burstLockedUntil > submittedAt }
+    setBurstLockedUntil(nextPacing.burstLockedUntil)
     setPacingNow(submittedAt)
     const provisional: ChatMessageDto = { id: `optimistic:${next.key}`, clientIntentKey: next.key, author: { id: playerId, displayName: playerDisplayName, elementKey: playerElementKey }, authorLabel: playerDisplayName, sourceChannel: 'INTERNAL_CHAT', messageType: next.content.startsWith('!') ? 'COMMAND' : 'PLAYER', content: next.content, createdAt: new Date().toISOString(), submissionOrder: null, deletedAt: null, deletionState: 'ACTIVE', replyToMessageId: next.replyId, replyPreview: reply?.content ?? null, mentionedMe: false, repliedToMe: false }
     setDraft(''); setReply(null); setSuggestions([]); setMentions([]); setError(null)
     messagesRef.current = [...messagesRef.current, provisional].slice(-CHAT_VISIBLE_MESSAGE_LIMIT)
     setMessages(messagesRef.current)
     requestAnimationFrame(() => { if (atBottom.current && list.current) { list.current.scrollTop = list.current.scrollHeight; setScrollbarAtBottom(true) } })
-    queueMicrotask(() => void submitIntent(next))
+    queueMicrotask(() => void enqueueTransport(next, true))
   }
 
   const focusComposer = () => requestAnimationFrame(() => { composer.current?.focus(); composer.current?.setSelectionRange(composer.current.value.length, composer.current.value.length) })
@@ -516,8 +556,8 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
         <div className="chat-composer-field">
           {!!suggestions.length && <div className="chat-mention-suggestions" role="listbox" aria-label="Joueurs à mentionner">{suggestions.map((person, index) => <button type="button" role="option" aria-selected={index === suggestionIndex} className={index === suggestionIndex ? 'selected' : undefined} key={person.id} onMouseDown={event => event.preventDefault()} onClick={() => mention(person)}>{person.displayName}</button>)}</div>}
           <div className="chat-composer-accessory">{reply && <div className="chat-composer-reply"><span className="chat-overlay-content">Réponse à {reply.authorLabel}<small>« {reply.deletionState === 'ACTIVE' ? reply.content : 'Message supprimé'} »</small></span><button type="button" className="chat-overlay-close" onClick={() => setReply(null)} aria-label="Fermer la réponse">×</button></div>}
-            {!!failedIntents.length && failedOverlayVisible && <div className="chat-status chat-error chat-failed-status" role="alert"><span className="chat-overlay-content" title={`${failedIntents.at(-1)!.reason} — ${failedIntents.at(-1)!.content}`}>{failedIntents.length > 1 ? `${failedIntents.length} envois refusés : ` : 'Envoi refusé : '}{failedIntents.at(-1)!.content}</span><button type="button" disabled={commandPending} onClick={() => void submitIntent(failedIntents.at(-1)!)}>Réessayer</button><button type="button" disabled={commandPending || !!draft} title={draft ? 'Terminer le brouillon courant pour récupérer ce message' : undefined} onClick={recoverFailed}>Récupérer</button><button type="button" className="chat-overlay-close" aria-label="Fermer le feedback" onClick={() => setFailedOverlayVisible(false)}>×</button></div>}
-            {!!ambiguousIntents.length && !failedIntents.length && ambiguousOverlayVisible && <div className="chat-status"><span className="chat-overlay-content">{ambiguousIntents.length === 1 ? 'Envoi non confirmé.' : `${ambiguousIntents.length} envois non confirmés.`}</span><button type="button" disabled={commandPending} onClick={() => void submitIntent(ambiguousIntents[0]!)}>Réessayer</button><button type="button" className="chat-overlay-close" aria-label="Fermer le feedback" onClick={() => setAmbiguousOverlayVisible(false)}>×</button></div>}
+            {!!failedIntents.length && failedOverlayVisible && <div className="chat-status chat-error chat-failed-status" role="alert"><span className="chat-overlay-content" title={`${failedIntents.at(-1)!.reason} — ${failedIntents.at(-1)!.content}`}>{failedIntents.length > 1 ? `${failedIntents.length} envois refusés : ` : 'Envoi refusé : '}{failedIntents.at(-1)!.content}</span><button type="button" disabled={commandPending} onClick={() => void enqueueTransport(failedIntents.at(-1)!, false)}>Réessayer</button><button type="button" disabled={commandPending || !!draft} title={draft ? 'Terminer le brouillon courant pour récupérer ce message' : undefined} onClick={recoverFailed}>Récupérer</button><button type="button" className="chat-overlay-close" aria-label="Fermer le feedback" onClick={() => setFailedOverlayVisible(false)}>×</button></div>}
+            {!!ambiguousIntents.length && !failedIntents.length && ambiguousOverlayVisible && <div className="chat-status"><span className="chat-overlay-content">{ambiguousIntents.length === 1 ? 'Envoi non confirmé.' : `${ambiguousIntents.length} envois non confirmés.`}</span><button type="button" disabled={commandPending} onClick={() => void enqueueTransport(ambiguousIntents[0]!, false)}>Réessayer</button><button type="button" className="chat-overlay-close" aria-label="Fermer le feedback" onClick={() => setAmbiguousOverlayVisible(false)}>×</button></div>}
             {error && !ambiguousIntents.length && !failedIntents.length && <p className="chat-status chat-error" role="alert"><span className="chat-overlay-content">{error}</span><button type="button" className="chat-overlay-close" aria-label="Fermer le feedback" onClick={() => setError(null)}>×</button></p>}{feedback && !error && !ambiguousIntents.length && !failedIntents.length && <p className="chat-status" role="status"><span className="chat-overlay-content">{feedback}</span><button type="button" className="chat-overlay-close" aria-label="Fermer le feedback" onClick={() => setFeedback(null)}>×</button></p>}
           </div>
           <label className="sr-only" htmlFor="chat-message">Écrire un message</label><textarea ref={composer} id="chat-message" name="chat-composer-current-message" className={`chat-composer-textarea${composerExpanded ? ' is-expanded' : ''}${showCharacterCount ? ' with-counter' : ''}`} data-autogrow="true" rows={1} autoComplete="off" value={draft} disabled={burstLocked} onChange={event => { const value = Array.from(event.target.value.replace(/[\r\n]+/gu, ' ')).slice(0, 500).join(''); setDraft(value); setSuggestions([]); setMentions(current => current.filter(item => value.includes(`@${item.displayName}`))) }} onKeyDown={event => { if (suggestions.length && ['ArrowDown', 'ArrowUp', 'Tab', 'Escape'].includes(event.key)) { event.preventDefault(); if (event.key === 'ArrowDown') setSuggestionIndex(index => (index + 1) % suggestions.length); else if (event.key === 'ArrowUp') setSuggestionIndex(index => (index - 1 + suggestions.length) % suggestions.length); else if (event.key === 'Tab') mention(suggestions[suggestionIndex]!); else setSuggestions([]); return } if (event.key === 'Enter') { if (suggestions.length) { event.preventDefault(); mention(suggestions[suggestionIndex]!); return } event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} maxLength={1000} placeholder={burstLocked ? 'Spam, veuillez attendre...' : 'Écrire un message…'} />

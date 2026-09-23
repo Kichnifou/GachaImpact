@@ -213,32 +213,47 @@ describe('Direct-message foundations on isolated PostgreSQL', () => {
 
     advance();
     const editKey = randomUUID(), editedContent = `${'a'.repeat(499)}\n${'b'.repeat(500)}`;
-    expect(await service.editMessage(as(author), direct.conversationId as string, direct.messageId as string, editedContent, editKey)).toMatchObject({ messageId: direct.messageId, replayed: false });
+    const editedResult = await service.editMessage(as(author), direct.conversationId as string, direct.messageId as string, editedContent, editKey);
+    expect(editedResult).toMatchObject({
+      messageId: direct.messageId,
+      replayed: false,
+      message: { id: direct.messageId, content: editedContent, editedAt: now.toISOString(), deletedAt: null, restoredAt: null }
+    });
     const edited = await db.directMessage.findUniqueOrThrow({ where: { id: direct.messageId as string } });
     expect(edited).toMatchObject({ id: before.id, submissionOrder: before.submissionOrder, content: editedContent, editedAt: now, deletedAt: null });
     advance();
-    expect(await service.editMessage(as(author), direct.conversationId as string, direct.messageId as string, editedContent, editKey)).toMatchObject({ messageId: direct.messageId, replayed: true });
+    expect(await service.editMessage(as(author), direct.conversationId as string, direct.messageId as string, editedContent, editKey)).toMatchObject({ messageId: direct.messageId, replayed: true, message: editedResult.message });
     expect((await db.directMessage.findUniqueOrThrow({ where: { id: direct.messageId as string } })).editedAt).toEqual(edited.editedAt);
 
     await expect(service.deleteMessage(as(recipient), direct.conversationId as string, direct.messageId as string, randomUUID())).rejects.toMatchObject({ code: 'DIRECT_MESSAGE_UNAVAILABLE' });
     const deleteKey = randomUUID();
-    expect(await service.deleteMessage(as(author), direct.conversationId as string, direct.messageId as string, deleteKey)).toMatchObject({ messageId: direct.messageId, replayed: false });
+    const deletedResult = await service.deleteMessage(as(author), direct.conversationId as string, direct.messageId as string, deleteKey);
+    expect(deletedResult).toMatchObject({
+      messageId: direct.messageId,
+      replayed: false,
+      message: { id: direct.messageId, content: null, editedAt: edited.editedAt?.toISOString(), deletedAt: now.toISOString(), restoredAt: null }
+    });
     const deleted = await db.directMessage.findUniqueOrThrow({ where: { id: direct.messageId as string } });
     expect(deleted).toMatchObject({ id: before.id, submissionOrder: before.submissionOrder, content: editedContent, deletedAt: now, restoredAt: null, contentPurgedAt: null });
     expect((await service.messages(as(author), direct.conversationId as string)).messages[0]).toMatchObject({ content: null, deletedAt: now.toISOString() });
     expect((await service.messages(as(recipient), direct.conversationId as string)).messages[0]).toMatchObject({ content: null, deletedAt: now.toISOString() });
     advance();
-    expect(await service.deleteMessage(as(author), direct.conversationId as string, direct.messageId as string, deleteKey)).toMatchObject({ replayed: true });
+    expect(await service.deleteMessage(as(author), direct.conversationId as string, direct.messageId as string, deleteKey)).toMatchObject({ replayed: true, message: deletedResult.message });
     expect((await db.directMessage.findUniqueOrThrow({ where: { id: direct.messageId as string } })).deletedAt).toEqual(deleted.deletedAt);
 
     await expect(service.restoreMessage(as(recipient), direct.conversationId as string, direct.messageId as string, randomUUID())).rejects.toMatchObject({ code: 'DIRECT_MESSAGE_UNAVAILABLE' });
     const restoreKey = randomUUID();
-    expect(await service.restoreMessage(as(author), direct.conversationId as string, direct.messageId as string, restoreKey)).toMatchObject({ messageId: direct.messageId, replayed: false });
+    const restoredResult = await service.restoreMessage(as(author), direct.conversationId as string, direct.messageId as string, restoreKey);
+    expect(restoredResult).toMatchObject({
+      messageId: direct.messageId,
+      replayed: false,
+      message: { id: direct.messageId, content: editedContent, editedAt: edited.editedAt?.toISOString(), deletedAt: null, restoredAt: now.toISOString() }
+    });
     const restored = await db.directMessage.findUniqueOrThrow({ where: { id: direct.messageId as string } });
     expect(restored).toMatchObject({ id: before.id, submissionOrder: before.submissionOrder, content: editedContent, deletedAt: null, restoredAt: now });
     expect((await service.messages(as(recipient), direct.conversationId as string)).messages[0]).toMatchObject({ id: direct.messageId, content: editedContent, restoredAt: now.toISOString() });
     advance();
-    expect(await service.restoreMessage(as(author), direct.conversationId as string, direct.messageId as string, restoreKey)).toMatchObject({ replayed: true });
+    expect(await service.restoreMessage(as(author), direct.conversationId as string, direct.messageId as string, restoreKey)).toMatchObject({ replayed: true, message: restoredResult.message });
     expect((await db.directMessage.findUniqueOrThrow({ where: { id: direct.messageId as string } })).restoredAt).toEqual(restored.restoredAt);
   }, 60_000);
 

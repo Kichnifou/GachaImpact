@@ -763,7 +763,12 @@ export type DirectConversationListDto = Readonly<{ conversations: readonly Direc
 export type DirectMessagePageDto = Readonly<{ messages: readonly DirectMessageDto[]; nextCursor: Readonly<{ createdAt: string; id: string }> | null; windowSize: number }>
 export type DirectMessageUnreadDto = Readonly<{ unreadCount: number; conversations: readonly Readonly<{ conversationId: string; unreadCount: number }>[] }>
 export type DirectMessageSendDto = Readonly<{ conversationId: string; messageId: string; replayed: boolean }>
-export type DirectMessageMutationDto = Readonly<{ conversationId: string; messageId: string; replayed: boolean }>
+export type DirectMessageMutationDto = Readonly<{
+  conversationId: string
+  messageId: string
+  replayed: boolean
+  message: Readonly<Pick<DirectMessageDto, 'id' | 'content' | 'editedAt' | 'deletedAt' | 'restoredAt'>>
+}>
 export type DirectMessageInitiateDto = DirectMessageSendDto & Readonly<{ requestId: string | null; state: 'PENDING' | 'ACCEPTED' }>
 export type DirectMessageResolveDto = Readonly<{ conversationId: string; requestId: string; state: 'ACCEPTED' | 'REFUSED'; replayed: boolean }>
 export type DirectMessageBlockDto = Readonly<{ conversationId: string; blocked: boolean; changed: boolean; replayed: boolean }>

@@ -10,13 +10,14 @@ const requestId = '33333333-3333-4333-8333-333333333333';
 const messageId = '44444444-4444-4444-8444-444444444444';
 const key = '55555555-5555-4555-8555-555555555555';
 const identity = { subject: 'direct-route-subject' };
+const mutationMessage = { id: messageId, content: 'Corrigé', editedAt: '2026-09-23T08:00:00.000Z', deletedAt: null, restoredAt: null };
 const apps: Awaited<ReturnType<typeof buildApp>>[] = [];
 const service = {
   searchPlayers: vi.fn(async () => ({ players: [] })),
   list: vi.fn(async () => ({ conversations: [] })), unread: vi.fn(async () => ({ unreadCount: 0, conversations: [] })),
   initiate: vi.fn(async () => ({ conversationId, messageId, requestId, state: 'PENDING' })),
   messages: vi.fn(async () => ({ messages: [], nextCursor: null, windowSize: 0 })), send: vi.fn(async () => ({ conversationId, messageId })),
-  editMessage: vi.fn(async () => ({ conversationId, messageId })), deleteMessage: vi.fn(async () => ({ conversationId, messageId })), restoreMessage: vi.fn(async () => ({ conversationId, messageId })),
+  editMessage: vi.fn(async () => ({ conversationId, messageId, replayed: false, message: mutationMessage })), deleteMessage: vi.fn(async () => ({ conversationId, messageId, replayed: false, message: { ...mutationMessage, content: null, deletedAt: '2026-09-23T08:01:00.000Z' } })), restoreMessage: vi.fn(async () => ({ conversationId, messageId, replayed: false, message: { ...mutationMessage, content: 'Corrigé', restoredAt: '2026-09-23T08:02:00.000Z' } })),
   resolve: vi.fn(async () => ({ conversationId, requestId, state: 'ACCEPTED' })), block: vi.fn(async () => ({ conversationId, blocked: true })), unblock: vi.fn(async () => ({ conversationId, blocked: false })),
   markRead: vi.fn(async () => ({ lastReadMessageId: messageId, changed: true })), setReadReceipts: vi.fn(async () => ({ conversationId, readReceiptsEnabled: false, changed: true })),
   archive: vi.fn(async () => ({ conversationId, archived: true, changed: true })),
@@ -49,11 +50,14 @@ describe('authenticated direct-message routes', () => {
     expect((await enabled.inject({ method: 'POST', url: '/api/v1/me/direct-conversations', headers: token, payload: { targetPlayerId: targetId, content: 'Bonjour', idempotencyKey: key } })).statusCode).toBe(200);
     expect(service.initiate).toHaveBeenCalledWith(identity, targetId, 'Bonjour', key);
     expect((await enabled.inject({ method: 'POST', url: `/api/v1/me/direct-conversations/${conversationId}/messages`, headers: token, payload: { content: 'Suite', idempotencyKey: key } })).statusCode).toBe(200);
-    expect((await enabled.inject({ method: 'PATCH', url: `/api/v1/me/direct-conversations/${conversationId}/messages/${messageId}`, headers: token, payload: { content: 'Corrigé', idempotencyKey: key } })).statusCode).toBe(200);
+    const edited = await enabled.inject({ method: 'PATCH', url: `/api/v1/me/direct-conversations/${conversationId}/messages/${messageId}`, headers: token, payload: { content: 'Corrigé', idempotencyKey: key } });
+    expect(edited.statusCode).toBe(200); expect(edited.json().message).toEqual(mutationMessage);
     expect(service.editMessage).toHaveBeenCalledWith(identity, conversationId, messageId, 'Corrigé', key);
-    expect((await enabled.inject({ method: 'POST', url: `/api/v1/me/direct-conversations/${conversationId}/messages/${messageId}/delete`, headers: token, payload: { idempotencyKey: key } })).statusCode).toBe(200);
+    const deleted = await enabled.inject({ method: 'POST', url: `/api/v1/me/direct-conversations/${conversationId}/messages/${messageId}/delete`, headers: token, payload: { idempotencyKey: key } });
+    expect(deleted.statusCode).toBe(200); expect(deleted.json().message.content).toBeNull();
     expect(service.deleteMessage).toHaveBeenCalledWith(identity, conversationId, messageId, key);
-    expect((await enabled.inject({ method: 'POST', url: `/api/v1/me/direct-conversations/${conversationId}/messages/${messageId}/restore`, headers: token, payload: { idempotencyKey: key } })).statusCode).toBe(200);
+    const restored = await enabled.inject({ method: 'POST', url: `/api/v1/me/direct-conversations/${conversationId}/messages/${messageId}/restore`, headers: token, payload: { idempotencyKey: key } });
+    expect(restored.statusCode).toBe(200); expect(restored.json().message.content).toBe('Corrigé');
     expect(service.restoreMessage).toHaveBeenCalledWith(identity, conversationId, messageId, key);
     expect((await enabled.inject({ method: 'POST', url: `/api/v1/me/direct-conversations/${conversationId}/accept`, headers: token, payload: { requestId, idempotencyKey: key } })).statusCode).toBe(200);
     expect((await enabled.inject({ method: 'POST', url: `/api/v1/me/direct-conversations/${conversationId}/ignore`, headers: token, payload: { requestId, idempotencyKey: key } })).statusCode).toBe(200);

@@ -21,7 +21,8 @@ type OperationResult = Record<string, Prisma.InputJsonValue | null>;
 type OperationSummary = { fingerprint: string; result: OperationResult };
 type InitiateResult = OperationResult & { conversationId: string; messageId: string; requestId: string | null; state: string };
 type SendResult = OperationResult & { conversationId: string; messageId: string };
-type MessageMutationResult = OperationResult & { conversationId: string; messageId: string };
+type MessageMutationProjection = { id: string; content: string | null; editedAt: string | null; deletedAt: string | null; restoredAt: string | null };
+type MessageMutationResult = OperationResult & { conversationId: string; messageId: string; message: MessageMutationProjection };
 type ResolveResult = OperationResult & { conversationId: string; requestId: string; state: string };
 type BlockResult = OperationResult & { conversationId: string; blocked: boolean; changed: boolean };
 type ContactAccess = { allowed: boolean; friends: boolean; level: PrivacyLevel; blockedByActor: boolean; blockedByOther: boolean };
@@ -35,6 +36,9 @@ function normalizeContent(content: string) {
 }
 
 function validUuid(value: string) { return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value); }
+function mutationProjection(row: { id: string; content: string | null; editedAt: Date | null; deletedAt: Date | null; restoredAt: Date | null }): MessageMutationProjection {
+  return { id: row.id, content: row.deletedAt ? null : row.content, editedAt: row.editedAt?.toISOString() ?? null, deletedAt: row.deletedAt?.toISOString() ?? null, restoredAt: row.restoredAt?.toISOString() ?? null };
+}
 
 /** Authoritative two-person direct-message lifecycle. HTTP is its only current transport. */
 export class DirectMessageService {
@@ -216,8 +220,8 @@ export class DirectMessageService {
       const message = await this.requireOwnMessage(tx, conversationId, messageId, actor.id);
       if (message.deletedAt || message.content === null || message.contentPurgedAt) throw unavailable();
       const now = this.clock.now(), operation = await this.operation(tx, actor.id, key, 'direct-message.edit', fingerprint, now);
-      await tx.directMessage.update({ where: { id: message.id }, data: { content, editedAt: now } });
-      const result: MessageMutationResult = { conversationId, messageId };
+      const updated = await tx.directMessage.update({ where: { id: message.id }, data: { content, editedAt: now } });
+      const result: MessageMutationResult = { conversationId, messageId, message: mutationProjection(updated) };
       await this.finish(tx, operation.id, fingerprint, result);
       await this.activity.record(tx, actor.id, now, 'INTERNAL_CHAT');
       return { ...result, replayed: false };
@@ -234,10 +238,10 @@ export class DirectMessageService {
       if (message.deletedAt || message.content === null || message.contentPurgedAt) throw unavailable();
       const outsideWindow = await this.isOutsideRestorableWindow(tx, conversationId, message.submissionOrder);
       const now = this.clock.now(), operation = await this.operation(tx, actor.id, key, 'direct-message.delete', fingerprint, now);
-      await tx.directMessage.update({ where: { id: message.id }, data: outsideWindow
+      const updated = await tx.directMessage.update({ where: { id: message.id }, data: outsideWindow
         ? { deletedAt: now, restoredAt: null, content: null, contentPurgedAt: now }
         : { deletedAt: now, restoredAt: null, contentPurgedAt: null } });
-      const result: MessageMutationResult = { conversationId, messageId };
+      const result: MessageMutationResult = { conversationId, messageId, message: mutationProjection(updated) };
       await this.finish(tx, operation.id, fingerprint, result);
       await this.activity.record(tx, actor.id, now, 'INTERNAL_CHAT');
       return { ...result, replayed: false };
@@ -254,8 +258,8 @@ export class DirectMessageService {
       if (!message.deletedAt || message.content === null || message.contentPurgedAt) throw unavailable();
       if (await this.isOutsideRestorableWindow(tx, conversationId, message.submissionOrder)) throw unavailable();
       const now = this.clock.now(), operation = await this.operation(tx, actor.id, key, 'direct-message.restore', fingerprint, now);
-      await tx.directMessage.update({ where: { id: message.id }, data: { deletedAt: null, restoredAt: now } });
-      const result: MessageMutationResult = { conversationId, messageId };
+      const updated = await tx.directMessage.update({ where: { id: message.id }, data: { deletedAt: null, restoredAt: now } });
+      const result: MessageMutationResult = { conversationId, messageId, message: mutationProjection(updated) };
       await this.finish(tx, operation.id, fingerprint, result);
       await this.activity.record(tx, actor.id, now, 'INTERNAL_CHAT');
       return { ...result, replayed: false };

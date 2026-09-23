@@ -151,7 +151,6 @@ export class GlobalChatService {
     const fingerprint = createHash('sha256').update(JSON.stringify([normalized.value, replyId])).digest('hex');
     const submissionOrder = await this.reserveSubmissionOrder(idempotencyKey);
     if (submissionOrder !== null && this.onSubmissionReserved) await this.onSubmissionReserved(submissionOrder);
-    const submittedAt = this.clock.now();
     const player = await this.actor(identity);
     return this.transaction(async tx => {
       const actor = await this.lockPlayer(tx, player.id);
@@ -164,7 +163,8 @@ export class GlobalChatService {
         return { message: project(message, player.id), generation: message.generation, xpGranted: summary.xpGranted ?? 0, refreshScopes: summary.refreshScopes ?? [], dailyChallengeCompleted: summary.dailyChallengeCompleted ?? false, replayed: true };
       }
       if (submissionOrder === null) throw conflict();
-      const now = submittedAt;
+      // Pacing time belongs to the serialized Player turn, not to an earlier network arrival.
+      const now = this.clock.now();
       if (replyId) {
         const parent = await tx.$queryRaw<{ deletion_state: string; generation: number }[]>`SELECT deletion_state::text, generation FROM global_chat_messages WHERE id = ${replyId}::uuid FOR SHARE`;
         if (parent[0]?.deletion_state !== 'ACTIVE' || parent[0].generation !== generation) throw unavailable();

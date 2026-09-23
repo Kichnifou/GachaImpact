@@ -159,8 +159,9 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(await progress(id)).toMatchObject({ xp: 60n, totalMessages: 0n, countedMessages: 0n });
   }, 20_000);
 
-  it('keeps reservation order and applies pacing to temporal submission order when A commits after B', async () => {
+  it('captures pacing time after the Player lock when an earlier reservation resumes after a later commit', async () => {
     const author = await player();
+    const keyA = randomUUID(), keyB = randomUUID();
     let releaseA!: () => void, announceA!: () => void;
     const aReserved = new Promise<void>(resolve => { announceA = resolve; });
     const aGate = new Promise<void>(resolve => { releaseA = resolve; });
@@ -169,25 +170,25 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
       reservations += 1;
       if (reservations === 1) { announceA(); await aGate; }
     });
-    const pendingA = controlled.send(as(author), 'A réservé en premier', randomUUID());
+    const pendingA = controlled.send(as(author), 'A réservé en premier', keyA);
     await aReserved;
     advance(1_000);
-    const sentB = await controlled.send(as(author), 'B validé en premier', randomUUID());
-    const snapshot = await controlled.list(as(author));
-    expect(snapshot.messages.map(message => message.id)).toContain(sentB.message.id);
-    advance(1_000);
+    const sentB = await controlled.send(as(author), 'B validé en premier', keyB);
     releaseA();
-    const sentA = await pendingA;
-    expect(BigInt(sentA.message.submissionOrder)).toBeLessThan(BigInt(sentB.message.submissionOrder));
-    expect(new Date(sentA.message.createdAt).getTime()).toBeGreaterThan(new Date(sentB.message.createdAt).getTime());
-    const ids = new Set([sentA.message.id, sentB.message.id]);
-    const visible = (await controlled.list(as(author))).messages.filter(message => ids.has(message.id));
-    expect(visible.map(message => message.id)).toEqual([sentA.message.id, sentB.message.id]);
-    const anchor = snapshot.messages.at(-1)!;
-    const late = await controlled.updates(as(author), snapshot.generation, { createdAt: anchor.createdAt, id: anchor.id }, snapshot.visibleMessageIds);
-    expect(late.messages.map(message => message.id)).toEqual([sentA.message.id]);
-    advance(500);
-    await expect(controlled.send(as(author), 'C trop proche du dernier temps serveur', randomUUID())).rejects.toMatchObject({ code: 'CHAT_PACING_LIMIT' });
+    await expect(pendingA).rejects.toMatchObject({ code: 'CHAT_PACING_LIMIT' });
+
+    expect(await db.globalChatMessage.findMany({
+      where: { authorPlayerId: author },
+      select: { id: true, content: true, createdAt: true }
+    })).toEqual([{ id: sentB.message.id, content: 'B validé en premier', createdAt: now }]);
+    expect(await db.businessOperation.findMany({
+      where: { playerId: author, operationType: 'chat.send' },
+      select: { idempotencyKey: true }
+    })).toEqual([{ idempotencyKey: keyB }]);
+    expect(await controlled.send(as(author), 'B validé en premier', keyB)).toMatchObject({
+      replayed: true,
+      message: { id: sentB.message.id, createdAt: sentB.message.createdAt, submissionOrder: sentB.message.submissionOrder }
+    });
   }, 30_000);
 
   it('computes the burst window from the three latest server timestamps, not submission order', async () => {
