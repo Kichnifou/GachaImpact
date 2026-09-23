@@ -49,7 +49,7 @@ export default function ProfileScreen({ playerId, ownerPlayerId, actions, contro
     {relation.state === 'SENT' && <AppButton disabled>Demande envoyée</AppButton>}
     {relation.state === 'RECEIVED' && <><AppButton disabled={controller.pending} onClick={() => void controller.mutate(playerId, 'ACCEPT', relation.requestId, feedbackScope)}>Accepter</AppButton><AppButton disabled={controller.pending} onClick={() => void controller.mutate(playerId, 'REFUSE', relation.requestId, feedbackScope)}>Refuser</AppButton></>}
     {relation.state === 'FRIEND' && <AppButton disabled={controller.pending || !relation.friend?.canSend} onClick={() => void controller.mutate(playerId, 'HEART', undefined, feedbackScope)}>{relation.friend?.heartSent ? 'Cœur envoyé ✓' : 'Envoyer un cœur'}</AppButton>}
-    {playerId !== ownerPlayerId && value && onMessage && <AppButton onClick={() => onMessage({ id: playerId, displayName: value.player.displayName, elementKey: value.player.elementKey })}>Envoyer un message privé</AppButton>}
+    {playerId !== ownerPlayerId && value && onMessage && <AppButton onClick={() => onMessage({ id: playerId, displayName: value.player.displayName, elementKey: value.player.elementKey })}>Message privé</AppButton>}
     {playerId !== ownerPlayerId && value && onTrade && <AppButton onClick={() => onTrade({ id: playerId, displayName: value.player.displayName })}>Échanger</AppButton>}
     {relation.state === 'FRIEND' && <AppButton variant="danger" disabled={controller.pending} onClick={() => void controller.mutate(playerId, 'REMOVE', undefined, feedbackScope)}>Retirer</AppButton>}
   </div>

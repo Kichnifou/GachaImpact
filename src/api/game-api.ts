@@ -2,7 +2,7 @@ import type { SocialActions, DirectoryPage, Profile, ConnectedPlayers, PrivacySe
 import { loadFrontendConfig } from '../config/environment'
 import type { TradeActions, TradeSnapshot, TradePartners, TradeResult } from '../trades/types'
 import type { BannerVoteDto } from './types'
-import type { ChatMentionDto, ChatPageDto, ChatSendDto, ChatUpdatesDto, DirectConversationListDto, DirectMessageArchiveDto, DirectMessageBlockDto, DirectMessageInitiateDto, DirectMessagePageDto, DirectMessageReceiptDto, DirectMessageResolveDto, DirectMessageSendDto, DirectMessageUnreadDto } from './types'
+import type { ChatMentionDto, ChatPageDto, ChatSendDto, ChatUpdatesDto, DirectConversationListDto, DirectMessageArchiveDto, DirectMessageBlockDto, DirectMessageInitiateDto, DirectMessagePageDto, DirectMessagePlayerDto, DirectMessageReceiptDto, DirectMessageResolveDto, DirectMessageSendDto, DirectMessageUnreadDto } from './types'
 import { getSupabaseClient } from '../infrastructure/supabase/client'
 import type {
   BackendErrorDto,
@@ -153,6 +153,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
       report: (messageId: string) => request<{ reported: boolean; duplicate: boolean }>(`/api/v1/chat/messages/${encodeURIComponent(messageId)}/report`, { method: 'POST' }),
     },
     directMessages: {
+      players: (q: string) => request<{ players: readonly DirectMessagePlayerDto[] }>('/api/v1/me/direct-conversations/players?' + new URLSearchParams({ q })),
       list: (archived = false) => request<DirectConversationListDto>('/api/v1/me/direct-conversations?' + new URLSearchParams({ archived: String(archived) })),
       unread: () => request<DirectMessageUnreadDto>('/api/v1/me/direct-conversations/unread'),
       messages: (conversationId: string, cursor?: DirectMessagePageDto['nextCursor']) => request<DirectMessagePageDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/messages` + (cursor ? '?' + new URLSearchParams({ cursorCreatedAt: cursor.createdAt, cursorId: cursor.id }) : '')),

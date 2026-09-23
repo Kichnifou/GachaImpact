@@ -24,6 +24,22 @@ beforeAll(async () => fixture.setup(), 60_000);
 afterAll(async () => fixture.cleanup(), 60_000);
 
 describe('Direct-message foundations on isolated PostgreSQL', () => {
+  it('searches active recipients by normalized name without exposing self and caps the lightweight result', async () => {
+    const viewer = await player('Search Viewer');
+    const matching = await player('Éléa 02');
+    await player('Elea 10');
+    const inactive = await player('Elea inactive');
+    await db.player.update({ where: { id: inactive }, data: { status: 'SUSPENDED' } });
+    for (let index = 0; index < 20; index += 1) await player(`Elea ${String(index + 20).padStart(2, '0')}`);
+
+    const result = await service.searchPlayers(as(viewer), '  eleA  ');
+
+    expect(result.players).toHaveLength(20);
+    expect(result.players[0]).toMatchObject({ id: matching, displayName: 'Éléa 02', elementKey: null });
+    expect(result.players.some(candidate => candidate.id === viewer || candidate.id === inactive)).toBe(false);
+    expect(Object.keys(result.players[0]!).sort()).toEqual(['displayName', 'elementKey', 'id']);
+  }, 30_000);
+
   it('creates one pending first message, resolves it, pages, counts unread and keeps read receipts private when disabled', async () => {
     const alice = await player('Alice MP'), bob = await player('Bob MP');
     const key = randomUUID();

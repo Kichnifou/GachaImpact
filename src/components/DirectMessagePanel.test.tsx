@@ -1,16 +1,20 @@
 // @vitest-environment happy-dom
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DirectConversationDto, DirectMessageDto } from '../api/types'
 
 const directMessages = vi.hoisted(() => ({
-  list: vi.fn(), unread: vi.fn(), messages: vi.fn(), initiate: vi.fn(), send: vi.fn(), accept: vi.fn(), ignore: vi.fn(), block: vi.fn(), unblock: vi.fn(), read: vi.fn(), receipts: vi.fn(), archive: vi.fn(),
+  players: vi.fn(), list: vi.fn(), unread: vi.fn(), messages: vi.fn(), initiate: vi.fn(), send: vi.fn(), accept: vi.fn(), ignore: vi.fn(), block: vi.fn(), unblock: vi.fn(), read: vi.fn(), receipts: vi.fn(), archive: vi.fn(),
 }))
 const social = vi.hoisted(() => ({ directory: vi.fn() }))
 vi.mock('../api/game-api', () => ({ getGameApiClient: () => ({ directMessages, social }) }))
 import { directMessageReceiptLabel } from '../direct-messages/receipt-label'
 import DirectMessagePanel from './DirectMessagePanel'
+
+const appCss = readFileSync(resolve(process.cwd(), 'src/App.css'), 'utf8')
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 const ownId = '11111111-1111-4111-8111-111111111111'
@@ -36,7 +40,7 @@ async function mount(conversation: DirectConversationDto = baseConversation, act
 async function openNewMessageTarget(container: HTMLElement) {
   await act(async () => { (Array.from(container.querySelectorAll('button')).find(item => item.textContent === 'Nouveau message') as HTMLButtonElement).click() })
   const search = container.querySelector<HTMLInputElement>('#dm-player-search')!
-  await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, 'Ast'); search.dispatchEvent(new Event('input', { bubbles: true })); await new Promise(resolve => setTimeout(resolve, 250)) })
+  await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, 'Ast'); search.dispatchEvent(new Event('input', { bubbles: true })); await new Promise(resolve => setTimeout(resolve, 80)) })
   await act(async () => { (Array.from(container.querySelectorAll('.dm-player-results button')).find(item => item.textContent?.includes('Aster')) as HTMLButtonElement).click() })
   await settle()
 }
@@ -45,6 +49,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   directMessages.list.mockImplementation(async (archived: boolean) => ({ conversations: archived ? [] : [baseConversation] }))
   directMessages.unread.mockResolvedValue({ unreadCount: 0, conversations: [] })
+  directMessages.players.mockResolvedValue({ players: [] })
   directMessages.messages.mockResolvedValue({ messages: [message], nextCursor: null, windowSize: 1 })
   directMessages.read.mockResolvedValue({ lastReadMessageId: messageId, sharedReadAt: null, changed: true })
   directMessages.send.mockResolvedValue({ conversationId, messageId, replayed: false })
@@ -60,6 +65,12 @@ beforeEach(() => {
 afterEach(() => { act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren() })
 
 describe('DirectMessagePanel', () => {
+  it('uses discreet two-column tabs and no dimmed optimistic bubble style', () => {
+    expect(appCss).toContain('.dm-list-tabs { display: grid; grid-template-columns: 1fr 1fr; align-items: end;')
+    expect(appCss).toContain('.dm-list-tabs button[aria-selected="true"]::after')
+    expect(appCss).not.toContain('.dm-message.pending { opacity:')
+  })
+
   it('formats the single read status at the validated deterministic thresholds', () => {
     const now = Date.parse('2026-09-23T12:00:00.000Z')
     expect(directMessageReceiptLabel(new Date(now - 59 * 60_000).toISOString(), now)).toBe('Lu ✓')
@@ -170,14 +181,18 @@ describe('DirectMessagePanel', () => {
   it('searches a Player and creates nothing until the multiline first message is sent', async () => {
     const candidate = { id: otherId, displayName: 'Aster', elementKey: 'hydro' as const }
     directMessages.list.mockResolvedValue({ conversations: [] })
-    social.directory.mockResolvedValue({ players: [candidate], page: 1, pageSize: 20, total: 1, totalPages: 1 })
+    directMessages.players.mockResolvedValue({ players: [candidate] })
     const container = await mount(baseConversation, true, true)
     await act(async () => { (Array.from(container.querySelectorAll('button')).find(item => item.textContent === 'Nouveau message') as HTMLButtonElement).click() })
     const search = container.querySelector<HTMLInputElement>('#dm-player-search')!
-    await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, 'Ast'); search.dispatchEvent(new Event('input', { bubbles: true })); await new Promise(resolve => setTimeout(resolve, 250)) })
-    expect(social.directory).toHaveBeenCalledWith({ q: 'Ast', page: 1 })
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, 'Ast'); search.dispatchEvent(new Event('input', { bubbles: true })); await new Promise(resolve => setTimeout(resolve, 80)) })
+    expect(directMessages.players).toHaveBeenCalledWith('Ast')
+    expect(social.directory).not.toHaveBeenCalled()
     await act(async () => { (Array.from(container.querySelectorAll('.dm-player-results button')).find(item => item.textContent?.includes('Aster')) as HTMLButtonElement).click() })
     await settle()
+    expect(directMessages.players).toHaveBeenCalledTimes(1)
+    expect(container.querySelector('.dm-player-results')).toBeNull()
+    expect(container.textContent).toContain('Écrivez le premier message.')
     expect(directMessages.initiate).not.toHaveBeenCalled()
     const textarea = container.querySelector<HTMLTextAreaElement>('#dm-message')!
     const content = `Première ligne\n${'é'.repeat(980)}`
@@ -193,13 +208,39 @@ describe('DirectMessagePanel', () => {
     expect(directMessages.initiate).toHaveBeenCalledWith(otherId, textarea.value || Array.from(`${content}trop-long`).slice(0, 1000).join(''), expect.any(String))
   })
 
+  it('replaces an old search with a deep-linked target and ignores the late old result', async () => {
+    const oldTarget = { id: otherId, displayName: 'MynonymeTest2', elementKey: 'hydro' as const }
+    const linkedTarget = { id: '66666666-6666-4666-8666-666666666666', displayName: 'MynonymeTest3', elementKey: 'pyro' as const }
+    let release!: (value: { players: readonly typeof oldTarget[] }) => void
+    directMessages.list.mockResolvedValue({ conversations: [] })
+    directMessages.players.mockReturnValueOnce(new Promise(resolve => { release = resolve }))
+    const container = document.createElement('div'); document.body.append(container)
+    const root = createRoot(container); roots.push(root)
+    const render = (intent: Parameters<typeof DirectMessagePanel>[0]['intent']) => root.render(<DirectMessagePanel playerId={ownId} isActive intent={intent} onIntentConsumed={intentConsumed} onUnreadChange={unreadChanged} onOpenProfile={openProfile} />)
+    await act(async () => { render(null); await Promise.resolve() }); await settle()
+    await act(async () => { (Array.from(container.querySelectorAll('button')).find(item => item.textContent === 'Nouveau message') as HTMLButtonElement).click() })
+    const search = container.querySelector<HTMLInputElement>('#dm-player-search')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, oldTarget.displayName); search.dispatchEvent(new Event('input', { bubbles: true })); await new Promise(resolve => setTimeout(resolve, 80)) })
+    expect(directMessages.players).toHaveBeenCalledTimes(1)
+    await act(async () => { render({ playerId: linkedTarget.id, player: linkedTarget, token: 'deep-link-3' }); await Promise.resolve(); await Promise.resolve() })
+    expect(container.querySelector<HTMLInputElement>('#dm-player-search')?.value).toBe(linkedTarget.displayName)
+    expect(container.textContent).not.toContain(oldTarget.displayName)
+    expect(container.querySelector('.dm-player-results')).toBeNull()
+    expect(container.textContent).toContain('Écrivez le premier message. La conversation ne sera créée qu’à son envoi.')
+    expect(container.querySelector('#dm-message')).not.toBeNull()
+    expect(directMessages.players).toHaveBeenCalledTimes(1)
+    await act(async () => { release({ players: [oldTarget] }); await Promise.resolve() })
+    expect(container.textContent).not.toContain(oldTarget.displayName)
+    expect(container.querySelector('.dm-player-results')).toBeNull()
+  })
+
   it('shows the first message optimistically and adopts a pending conversation without a flash or duplicate', async () => {
     const candidate = { id: otherId, displayName: 'Aster', elementKey: 'hydro' as const }
     let confirm!: (value: { conversationId: string; messageId: string; requestId: string; state: 'PENDING'; replayed: boolean }) => void
     directMessages.list.mockResolvedValue({ conversations: [] })
     directMessages.messages.mockReturnValue(new Promise(() => undefined))
     directMessages.initiate.mockReturnValueOnce(new Promise(resolve => { confirm = resolve }))
-    social.directory.mockResolvedValue({ players: [candidate], page: 1, pageSize: 20, total: 1, totalPages: 1 })
+    directMessages.players.mockResolvedValue({ players: [candidate] })
     const container = await mount(baseConversation, true, true)
     await openNewMessageTarget(container)
     const textarea = container.querySelector<HTMLTextAreaElement>('#dm-message')!
@@ -225,7 +266,7 @@ describe('DirectMessagePanel', () => {
     directMessages.list.mockResolvedValue({ conversations: [] })
     directMessages.messages.mockReturnValue(new Promise(() => undefined))
     directMessages.initiate.mockReturnValueOnce(new Promise(resolve => { confirm = resolve }))
-    social.directory.mockResolvedValue({ players: [candidate], page: 1, pageSize: 20, total: 1, totalPages: 1 })
+    directMessages.players.mockResolvedValue({ players: [candidate] })
     const container = await mount(baseConversation, true, true)
     await openNewMessageTarget(container)
     const textarea = container.querySelector<HTMLTextAreaElement>('#dm-message')!
@@ -241,7 +282,7 @@ describe('DirectMessagePanel', () => {
     const candidate = { id: otherId, displayName: 'Aster', elementKey: 'hydro' as const }
     directMessages.list.mockResolvedValue({ conversations: [] })
     directMessages.initiate.mockRejectedValueOnce(new Error('Initiation refusée.')).mockReturnValueOnce(new Promise(() => undefined))
-    social.directory.mockResolvedValue({ players: [candidate], page: 1, pageSize: 20, total: 1, totalPages: 1 })
+    directMessages.players.mockResolvedValue({ players: [candidate] })
     const container = await mount(baseConversation, true, true)
     await openNewMessageTarget(container)
     const textarea = container.querySelector<HTMLTextAreaElement>('#dm-message')!

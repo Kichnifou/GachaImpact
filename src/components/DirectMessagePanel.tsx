@@ -31,7 +31,7 @@ export default function DirectMessagePanel({ playerId, isActive, intent, resetTo
   const [searchError, setSearchError] = useState(''), [searching, setSearching] = useState(false), [menuOpen, setMenuOpen] = useState(false), [confirmBlock, setConfirmBlock] = useState(false)
   const [newCount, setNewCount] = useState(0), [sendPending, setSendPending] = useState(false), [now, setNow] = useState(() => Date.now()), [scrollbarAtBottom, setScrollbarAtBottom] = useState(true)
   const [provisional, setProvisional] = useState<ProvisionalThread | null>(null)
-  const intentRef = useRef<SendIntent | null>(null), list = useRef<HTMLDivElement>(null), composer = useRef<HTMLTextAreaElement>(null), atBottom = useRef(true), initialScroll = useRef(false), forceBottom = useRef(false), seenIds = useRef(new Set<string>()), prepend = useRef<{ top: number; height: number } | null>(null), readId = useRef<string | null>(null), sendBusy = useRef(false), readBusy = useRef(false), queuedRead = useRef<{ conversationId: string; messageId: string } | null>(null)
+  const intentRef = useRef<SendIntent | null>(null), searchVersion = useRef(0), list = useRef<HTMLDivElement>(null), composer = useRef<HTMLTextAreaElement>(null), atBottom = useRef(true), initialScroll = useRef(false), forceBottom = useRef(false), seenIds = useRef(new Set<string>()), prepend = useRef<{ top: number; height: number } | null>(null), readId = useRef<string | null>(null), sendBusy = useRef(false), readBusy = useRef(false), queuedRead = useRef<{ conversationId: string; messageId: string } | null>(null)
   const model = useDirectMessages(playerId, isActive, selectedId, view === 'archives', onUnreadChange)
   const provisionalConversation: DirectConversationDto | null = provisional ? { id: provisional.conversationId ?? `provisional:${provisional.key}`, other: provisional.target, archived: false, lastMessageAt: provisional.message.createdAt, lastMessage: provisional.message, request: provisional.state === 'PENDING' ? { id: provisional.requestId ?? `provisional-request:${provisional.key}`, state: 'PENDING', senderPlayerId: playerId, retryAfter: null } : null, unreadCount: 0, readReceiptsEnabled: true, canSend: provisional.state === 'ACCEPTED', blockedByMe: false } : null
   const selected = model.selected ?? provisionalConversation
@@ -43,11 +43,14 @@ export default function DirectMessagePanel({ playerId, isActive, intent, resetTo
 
   const openConversation = (conversation: DirectConversationDto) => { model.markConversationSeen(conversation.id); setProvisional(null); setSelectedId(conversation.id); setTarget(null); setView('conversation'); setMenuOpen(false); setConfirmBlock(false); setNewCount(0); setScrollbarAtBottom(true); seenIds.current.clear(); readId.current = null; queuedRead.current = null; initialScroll.current = true; atBottom.current = true }
   const openTarget = async (targetPlayerId: string, fallback?: DirectMessagePlayerDto) => {
+    const version = ++searchVersion.current
+    if (fallback) { setTarget(fallback); setSearch(fallback.displayName); setCandidates([]); setSearchError(''); setSearching(false) }
     try {
       const existing = await model.openTarget(targetPlayerId)
+      if (version !== searchVersion.current) return
       if (existing) openConversation(existing)
-      else { setSelectedId(null); setTarget(fallback ?? { id: targetPlayerId, displayName: 'Joueur', elementKey: null }); setView('new'); setDraft(''); intentRef.current = null }
-    } catch (reason) { setSearchError(reason instanceof Error ? reason.message : 'Joueur indisponible.') }
+      else { const chosen = fallback ?? { id: targetPlayerId, displayName: 'Joueur', elementKey: null }; setSelectedId(null); setTarget(chosen); setSearch(chosen.displayName); setCandidates([]); setSearchError(''); setView('new'); setDraft(''); intentRef.current = null }
+    } catch (reason) { if (version === searchVersion.current) setSearchError(reason instanceof Error ? reason.message : 'Joueur indisponible.') }
   }
   // oxlint-disable-next-line react/set-state-in-effect -- a shell navigation intent deliberately changes the internal panel route
   useEffect(() => { if (!intent) return; void openTarget(intent.playerId, intent.player).finally(() => onIntentConsumed(intent.token)) }, [intent?.token]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -56,11 +59,12 @@ export default function DirectMessagePanel({ playerId, isActive, intent, resetTo
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 60_000); return () => window.clearInterval(timer) }, [])
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect -- leaving or clearing the search immediately clears obsolete suggestions
-    if (view !== 'new' || !search.trim()) { setCandidates([]); setSearching(false); return }
-    let alive = true; setSearching(true)
-    const timer = window.setTimeout(() => void getGameApiClient().social.directory({ q: search, page: 1 }).then(result => { if (alive) { setCandidates(result.players.filter(candidate => candidate.id !== playerId).map(candidate => ({ id: candidate.id, displayName: candidate.displayName, elementKey: candidate.elementKey }))); setSearchError('') } }).catch(reason => { if (alive) setSearchError(reason instanceof Error ? reason.message : 'Recherche indisponible.') }).finally(() => { if (alive) setSearching(false) }), 220)
-    return () => { alive = false; window.clearTimeout(timer) }
-  }, [playerId, search, view])
+    if (view !== 'new' || target || !search.trim()) { setCandidates([]); setSearching(false); return }
+    const version = ++searchVersion.current
+    setSearching(true)
+    const timer = window.setTimeout(() => void getGameApiClient().directMessages.players(search).then(result => { if (version === searchVersion.current) { setCandidates([...result.players]); setSearchError('') } }).catch(reason => { if (version === searchVersion.current) setSearchError(reason instanceof Error ? reason.message : 'Recherche indisponible.') }).finally(() => { if (version === searchVersion.current) setSearching(false) }), 50)
+    return () => window.clearTimeout(timer)
+  }, [search, target, view])
 
   useLayoutEffect(() => {
     if (!composer.current) return
@@ -125,7 +129,7 @@ export default function DirectMessagePanel({ playerId, isActive, intent, resetTo
     } catch { setProvisional(null); if (!selectedId) { setSelectedId(null); setView('new') } setDraft(previousDraft) }
     finally { sendBusy.current = false; setSendPending(false) }
   }
-  const chooseTarget = async (candidate: DirectMessagePlayerDto) => { setTarget(candidate); setSearch(candidate.displayName); setCandidates([]); await openTarget(candidate.id, candidate) }
+  const chooseTarget = async (candidate: DirectMessagePlayerDto) => { await openTarget(candidate.id, candidate) }
   const act = async (action: 'accept' | 'ignore' | 'block' | 'unblock' | 'archive' | 'unarchive') => {
     if (!selected) return
     try {

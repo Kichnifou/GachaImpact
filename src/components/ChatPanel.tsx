@@ -128,6 +128,8 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const [feedback, setFeedback] = useState<string | null>(null)
   const [scrollbarAtBottom, setScrollbarAtBottom] = useState(true)
   const [composerExpanded, setComposerExpanded] = useState(false)
+  const [pacingNow, setPacingNow] = useState(() => Date.now())
+  const [burstLockedUntil, setBurstLockedUntil] = useState(0)
   const [menuId, setMenuId] = useState<string | null>(null)
   const [reportId, setReportId] = useState<string | null>(null)
   const [suppressedHoverId, setSuppressedHoverId] = useState<string | null>(null)
@@ -161,7 +163,14 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   }
 
   useEffect(() => () => { if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current) }, [])
-  useEffect(() => { pacingAttempts.current = [] }, [playerId])
+  // oxlint-disable-next-line react/set-state-in-effect -- changing Player invalidates the previous account's local pacing window
+  useEffect(() => { pacingAttempts.current = []; setBurstLockedUntil(0); setPacingNow(Date.now()) }, [playerId])
+  const burstLocked = pacingNow < burstLockedUntil
+  useEffect(() => {
+    if (!burstLocked) return
+    const timer = window.setTimeout(() => setPacingNow(Date.now()), Math.max(0, burstLockedUntil - Date.now()))
+    return () => window.clearTimeout(timer)
+  }, [burstLocked, burstLockedUntil])
   useLayoutEffect(() => {
     if (!composer.current) return
     composer.current.style.height = '0px'
@@ -355,7 +364,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
       setAmbiguousIntents(current => current.filter(item => item.key !== next.key))
       setFailedIntents(current => current.filter(item => item.key !== next.key))
       if (result.cleared) {
-        pacingAttempts.current = pacingAttempts.current.filter(attempt => attempt.key !== next.key)
+        pacingAttempts.current = pacingAttempts.current.filter(attempt => attempt.key !== next.key); setBurstLockedUntil(pacingProjection(pacingAttempts.current).burstLockedUntil); setPacingNow(Date.now())
         const previousGeneration = generation.current
         if (previousGeneration === null || result.generation > previousGeneration) adoptGeneration(result.generation, [], null, true)
         else setMessages(current => current.filter(item => item.clientIntentKey !== next.key))
@@ -383,7 +392,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     } catch (cause) {
       if (messagesRef.current.some(item => !item.id.startsWith('optimistic:') && item.clientIntentKey === next.key)) return
       const deterministicRejection = cause instanceof ApiError && cause.status !== null && cause.status < 500
-      if (deterministicRejection) pacingAttempts.current = pacingAttempts.current.filter(attempt => attempt.key !== next.key)
+      if (deterministicRejection) { pacingAttempts.current = pacingAttempts.current.filter(attempt => attempt.key !== next.key); setBurstLockedUntil(pacingProjection(pacingAttempts.current).burstLockedUntil); setPacingNow(Date.now()) }
       if (cause instanceof ApiError && cause.code === 'CHAT_PACING_LIMIT') {
         const retained = messagesRef.current.filter(item => item.clientIntentKey !== next.key)
         messagesRef.current = retained; setMessages(retained); setError(null)
@@ -414,6 +423,8 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     if (submittedAt < state.burstLockedUntil || state.lastAcceptedAt !== null && submittedAt - state.lastAcceptedAt < CHAT_MIN_SUBMISSION_INTERVAL_MS) return
     const next: Intent = { key: crypto.randomUUID(), content: draft.trim(), replyId: reply?.id ?? null, mentions: mentions.filter(item => draft.includes(`@${item.displayName}`)) }
     pacingAttempts.current = [...pacingAttempts.current, { key: next.key, submittedAt }].slice(-32)
+    setBurstLockedUntil(pacingProjection(pacingAttempts.current).burstLockedUntil)
+    setPacingNow(submittedAt)
     const provisional: ChatMessageDto = { id: `optimistic:${next.key}`, clientIntentKey: next.key, author: { id: playerId, displayName: playerDisplayName, elementKey: playerElementKey }, authorLabel: playerDisplayName, sourceChannel: 'INTERNAL_CHAT', messageType: next.content.startsWith('!') ? 'COMMAND' : 'PLAYER', content: next.content, createdAt: new Date().toISOString(), submissionOrder: null, deletedAt: null, deletionState: 'ACTIVE', replyToMessageId: next.replyId, replyPreview: reply?.content ?? null, mentionedMe: false, repliedToMe: false }
     setDraft(''); setReply(null); setSuggestions([]); setMentions([]); setError(null)
     messagesRef.current = [...messagesRef.current, provisional].slice(-CHAT_VISIBLE_MESSAGE_LIMIT)
@@ -488,14 +499,14 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
               {canReport && <button type="button" title="Signaler" aria-label="Signaler" onClick={() => setReportId(message.id)}>⚑</button>}
               {canMask && <button type="button" title={hidden.includes(message.author!.id) ? 'Démasquer ce joueur' : 'Masquer ce joueur'} aria-label={hidden.includes(message.author!.id) ? 'Démasquer ce joueur' : 'Masquer ce joueur'} onClick={() => hide(message.author!.id)}>◌</button>}
               {message.content && <button type="button" title="Copier le message" aria-label="Copier le message" onClick={() => void copy(message)}>⧉</button>}
-              {canMention && <button type="button" title="Message privé" aria-label="Message privé" onClick={() => openDirectMessage(message.author!)}>MP</button>}
+              {canMention && <button type="button" title="Message privé" aria-label="Message privé" onClick={() => openDirectMessage(message.author!)}>✉</button>}
               {canMention && <button type="button" title="Mentionner" aria-label="Mentionner" onClick={mentionAuthor}>@</button>}
               {canReply && <button type="button" title="Répondre" aria-label="Répondre" onClick={replyTo}>↩</button>}
               {canDelete && <button type="button" title="Supprimer" aria-label="Supprimer" onClick={() => void remove(message.id)}>×</button>}
             </div>
             <button type="button" className="chat-message-menu-button" aria-label={`Actions pour le message de ${message.authorLabel}`} aria-expanded={menuId === message.id} onClick={() => setMenuId(value => value === message.id ? null : message.id)}>⋯</button>
             {reportId === message.id && <div className="chat-report-confirm" role="dialog" aria-label="Confirmer le signalement"><p>Signaler ce message ?</p><button type="button" onClick={() => void report(message.id)}>Confirmer</button><button type="button" onClick={() => setReportId(null)}>Annuler</button></div>}
-            {menuId === message.id && <div className="chat-message-menu" role="menu">{canReport && <button type="button" role="menuitem" onClick={() => { setReportId(message.id); setMenuId(null) }}>Signaler</button>}{canMask && <button type="button" role="menuitem" onClick={() => hide(message.author!.id)}>{hidden.includes(message.author!.id) ? 'Démasquer ce joueur' : 'Masquer les messages de ce joueur'}</button>}{message.content && <button type="button" role="menuitem" onClick={() => { void copy(message); setMenuId(null) }}>Copier le message</button>}{canMention && <button type="button" role="menuitem" onClick={() => { openDirectMessage(message.author!); setMenuId(null) }}>MP</button>}{canMention && <button type="button" role="menuitem" onClick={mentionAuthor}>Mentionner</button>}{canReply && <button type="button" role="menuitem" onClick={replyTo}>Répondre</button>}{canDelete && <button type="button" role="menuitem" onClick={() => void remove(message.id)}>Supprimer</button>}</div>}</>}
+            {menuId === message.id && <div className="chat-message-menu" role="menu">{canReport && <button type="button" role="menuitem" onClick={() => { setReportId(message.id); setMenuId(null) }}>Signaler</button>}{canMask && <button type="button" role="menuitem" onClick={() => hide(message.author!.id)}>{hidden.includes(message.author!.id) ? 'Démasquer ce joueur' : 'Masquer les messages de ce joueur'}</button>}{message.content && <button type="button" role="menuitem" onClick={() => { void copy(message); setMenuId(null) }}>Copier le message</button>}{canMention && <button type="button" role="menuitem" onClick={() => { openDirectMessage(message.author!); setMenuId(null) }}>Message privé</button>}{canMention && <button type="button" role="menuitem" onClick={mentionAuthor}>Mentionner</button>}{canReply && <button type="button" role="menuitem" onClick={replyTo}>Répondre</button>}{canDelete && <button type="button" role="menuitem" onClick={() => void remove(message.id)}>Supprimer</button>}</div>}</>}
           </div>
         </article>
       })}</div>
@@ -509,9 +520,9 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
             {!!ambiguousIntents.length && !failedIntents.length && ambiguousOverlayVisible && <div className="chat-status"><span className="chat-overlay-content">{ambiguousIntents.length === 1 ? 'Envoi non confirmé.' : `${ambiguousIntents.length} envois non confirmés.`}</span><button type="button" disabled={commandPending} onClick={() => void submitIntent(ambiguousIntents[0]!)}>Réessayer</button><button type="button" className="chat-overlay-close" aria-label="Fermer le feedback" onClick={() => setAmbiguousOverlayVisible(false)}>×</button></div>}
             {error && !ambiguousIntents.length && !failedIntents.length && <p className="chat-status chat-error" role="alert"><span className="chat-overlay-content">{error}</span><button type="button" className="chat-overlay-close" aria-label="Fermer le feedback" onClick={() => setError(null)}>×</button></p>}{feedback && !error && !ambiguousIntents.length && !failedIntents.length && <p className="chat-status" role="status"><span className="chat-overlay-content">{feedback}</span><button type="button" className="chat-overlay-close" aria-label="Fermer le feedback" onClick={() => setFeedback(null)}>×</button></p>}
           </div>
-          <label className="sr-only" htmlFor="chat-message">Écrire un message</label><textarea ref={composer} id="chat-message" name="chat-composer-current-message" className={`chat-composer-textarea${composerExpanded ? ' is-expanded' : ''}${showCharacterCount ? ' with-counter' : ''}`} data-autogrow="true" rows={1} autoComplete="off" value={draft} onChange={event => { const value = Array.from(event.target.value.replace(/[\r\n]+/gu, ' ')).slice(0, 500).join(''); setDraft(value); setSuggestions([]); setMentions(current => current.filter(item => value.includes(`@${item.displayName}`))) }} onKeyDown={event => { if (suggestions.length && ['ArrowDown', 'ArrowUp', 'Tab', 'Escape'].includes(event.key)) { event.preventDefault(); if (event.key === 'ArrowDown') setSuggestionIndex(index => (index + 1) % suggestions.length); else if (event.key === 'ArrowUp') setSuggestionIndex(index => (index - 1 + suggestions.length) % suggestions.length); else if (event.key === 'Tab') mention(suggestions[suggestionIndex]!); else setSuggestions([]); return } if (event.key === 'Enter') { if (suggestions.length) { event.preventDefault(); mention(suggestions[suggestionIndex]!); return } event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} maxLength={1000} placeholder="Écrire un message…" />
+          <label className="sr-only" htmlFor="chat-message">Écrire un message</label><textarea ref={composer} id="chat-message" name="chat-composer-current-message" className={`chat-composer-textarea${composerExpanded ? ' is-expanded' : ''}${showCharacterCount ? ' with-counter' : ''}`} data-autogrow="true" rows={1} autoComplete="off" value={draft} disabled={burstLocked} onChange={event => { const value = Array.from(event.target.value.replace(/[\r\n]+/gu, ' ')).slice(0, 500).join(''); setDraft(value); setSuggestions([]); setMentions(current => current.filter(item => value.includes(`@${item.displayName}`))) }} onKeyDown={event => { if (suggestions.length && ['ArrowDown', 'ArrowUp', 'Tab', 'Escape'].includes(event.key)) { event.preventDefault(); if (event.key === 'ArrowDown') setSuggestionIndex(index => (index + 1) % suggestions.length); else if (event.key === 'ArrowUp') setSuggestionIndex(index => (index - 1 + suggestions.length) % suggestions.length); else if (event.key === 'Tab') mention(suggestions[suggestionIndex]!); else setSuggestions([]); return } if (event.key === 'Enter') { if (suggestions.length) { event.preventDefault(); mention(suggestions[suggestionIndex]!); return } event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} maxLength={1000} placeholder={burstLocked ? 'Spam, veuillez attendre...' : 'Écrire un message…'} />
           {showCharacterCount && <span className="chat-character-count" aria-label={`${500 - characterCount} caractères restants`}>{characterCount - 500}</span>}
-          <button type="submit" className="chat-send-button" disabled={!draft.trim() || (draft.trim().startsWith('!') && commandPending)} aria-label="Envoyer le message"><span className="icon-glyph">›</span></button>
+          <button type="submit" className="chat-send-button" disabled={burstLocked || !draft.trim() || (draft.trim().startsWith('!') && commandPending)} aria-label="Envoyer le message"><span className="icon-glyph">›</span></button>
         </div>
       </form>
     </div>

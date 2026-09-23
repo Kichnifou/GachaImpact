@@ -12,6 +12,7 @@ const key = '55555555-5555-4555-8555-555555555555';
 const identity = { subject: 'direct-route-subject' };
 const apps: Awaited<ReturnType<typeof buildApp>>[] = [];
 const service = {
+  searchPlayers: vi.fn(async () => ({ players: [] })),
   list: vi.fn(async () => ({ conversations: [] })), unread: vi.fn(async () => ({ unreadCount: 0, conversations: [] })),
   initiate: vi.fn(async () => ({ conversationId, messageId, requestId, state: 'PENDING' })),
   messages: vi.fn(async () => ({ messages: [], nextCursor: null, windowSize: 0 })), send: vi.fn(async () => ({ conversationId, messageId })),
@@ -37,6 +38,9 @@ describe('authenticated direct-message routes', () => {
     const response = await enabled.inject({ method: 'GET', url: '/api/v1/me/direct-conversations?archived=true', headers: token });
     expect(response.statusCode).toBe(200); expect(response.headers['cache-control']).toBe('no-store');
     expect(service.list).toHaveBeenCalledWith(identity, true);
+    expect((await enabled.inject({ method: 'GET', url: '/api/v1/me/direct-conversations/players?q=Aster', headers: token })).statusCode).toBe(200);
+    expect(service.searchPlayers).toHaveBeenCalledWith(identity, 'Aster');
+    expect((await enabled.inject({ method: 'GET', url: '/api/v1/me/direct-conversations/players', headers: token })).statusCode).toBe(400);
   });
 
   it('routes the complete foundation without accepting an arbitrary actor', async () => {

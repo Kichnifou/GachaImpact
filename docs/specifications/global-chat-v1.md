@@ -35,9 +35,10 @@ Statut : décisions produit validées. Le Chat global player-facing est matéria
 - Le joueur peut masquer localement les messages d'une personne : chaque ligne masquée reste à sa place sous `Message masqué — Afficher` et peut être rouverte ponctuellement. L'action contextuelle de ce même joueur bascule entre `Masquer ce joueur` et `Démasquer ce joueur` et restaure alors toutes ses lignes chargées et futures. Aucun panneau global de joueurs masqués n'est affiché. Ce filtre d'affichage ne crée pas une relation sociale serveur ; son stockage local ou de session est un détail d'implémentation.
 - Chaque message global offre `Signaler`. Le signalement conserve un snapshot du message et un contexte raisonnable autour pour la modération privée ; il ne retire pas automatiquement le message public. Le panneau complet de modération reste hors du premier lot.
 
-## Anti-spam et commandes — R880, R881 et R894
+## Anti-spam et commandes — R880, R881, R894 et R897
 
 - R894 impose 750 ms entre deux nouveaux messages `PLAYER` ou `COMMAND` acceptés. Trois nouveaux envois acceptés dans un intervalle strictement inférieur à quatre secondes déclenchent, au troisième, un verrou jusqu'à quatre secondes après celui-ci. Entrée et Envoyer sont alors des no-op silencieux : aucun intent, appel, optimistic, feedback ou perte de draft/réponse/mentions ; les tentatives bloquées ne prolongent rien. Le serveur applique les mêmes bornes avec `CHAT_PACING_LIMIT`. Un retry exact conserve sa clé, est résolu par l'idempotence avant le pacing et ne compte jamais comme nouvel envoi. Le filet défensif historique de dix messages sur dix secondes reste distinct.
+- R897 rend visible uniquement le verrou long déjà défini par R894 : tant qu'il est actif, le champ ne peut plus être modifié, le bouton est désactivé et le placeholder vaut `Spam, veuillez attendre...`. Le simple espacement de 750 ms reste silencieux et n'empêche jamais d'écrire. Le verrou est dérivé des mêmes tentatives locales et se recalcule après un rejet déterministe ; il disparaît automatiquement à son échéance sans perdre le brouillon.
 - Une saisie commençant par `!` est un vrai message public du joueur, conservé dans le flux sous sa forme originale, sauf l'exception de modération R886. Elle compte dans `totalMessages`, jamais dans l'XP ni dans `countedMessages` du seul fait d'être une commande, selon [l'audit XP](../legacy/04-xp-audit.md). Son exécution métier reste séparée du stockage/transport ; elle appelle le même service que l'UI lorsque ce service existe.
 - Les résultats automatiques portent l'identité `GachaImpact` et se distinguent visuellement des messages `PLAYER`. Dans le périmètre initial, **toutes** les réponses de commandes sont publiques : succès, consultation, aide, erreur, mauvaise syntaxe et commande inconnue. La commande du joueur est elle aussi publique. Une erreur inconnue ou invalide peut orienter brièvement vers `!help`. Les contrats particuliers de la référence des commandes restent applicables.
 - R886 définit l'exception interne de modération `!clear` : le serveur exige une attribution active `MODERATOR` ou `ADMIN` ; `TESTER` seul ne suffit pas. L'opération ouvre une nouvelle génération visible du Chat pour tous, y compris après F5 et pour l'historique/non-lus. L'ancien contenu reste conservé côté serveur pour audit. Ni la commande ni un résultat `GachaImpact` de clear ne restent visibles. Cette commande n'est pas envoyée à Twitch et n'apparaît pas dans l'aide joueur ordinaire.
@@ -51,7 +52,7 @@ Statut : décisions produit validées. Le Chat global player-facing est matéria
 ## Identité et accès aux MP — R883
 
 - Avatar et pseudo d'un message `PLAYER` ouvrent son Profil via le pattern existant. Un menu contextuel réutilise les primitives adaptées pour `Répondre`, `Mentionner`, `Signaler` et `Masquer` selon la ligne et les droits pertinents.
-- `Envoyer un message privé` depuis un joueur du Chat peut ouvrir l'onglet MP et le parcours de conversation avec ce joueur, sous les permissions MP existantes. Le MP est toujours rédigé et envoyé dans l'onglet MP ; aucun `!mp` n'existe dans le Chat global ou sur Twitch.
+- `Message privé` depuis un joueur du Chat peut ouvrir l'onglet MP et le parcours de conversation avec ce joueur, sous les permissions MP existantes. Le MP est toujours rédigé et envoyé dans l'onglet MP ; aucun `!mp` n'existe dans le Chat global ou sur Twitch.
 - L'implémentation player-facing place cette affordance dans les actions du message, entre `Copier` et `Mentionner`, sans bouton accolé au pseudo et sans modifier le clic avatar/pseudo vers Profil. Le même intent est réutilisé depuis le Profil.
 
 ## Couleur des auteurs PLAYER — R888
@@ -73,7 +74,7 @@ Statut : décisions produit validées. Le Chat global player-facing est matéria
 
 ## Actions et signalement — R891–R892
 
-- Sur un message d'un autre joueur, desktop et menu tactile suivent `Signaler`, `Masquer`, `Copier`, `MP`, `Mentionner`, `Répondre`. Sur son propre message : `Copier`, `Répondre`, `Supprimer`.
+- Sur un message d'un autre joueur, desktop et menu tactile suivent `Signaler`, `Masquer`, `Copier`, `Message privé`, `Mentionner`, `Répondre`. Desktop affiche l'action Message privé comme une icône seule accessible dans une rangée compacte ; tactile conserve son texte. Sur son propre message : `Copier`, `Répondre`, `Supprimer`.
 - La confirmation de signalement est ancrée immédiatement sous la rangée d'actions, même lorsque le message est long.
 
 ## Frontières du premier lot
@@ -83,6 +84,7 @@ Le Chat global est physiquement persisté dans PostgreSQL et diffusé au navigat
 ## Polish du premier vertical MP — R896
 
 - La liste locale expose toujours les onglets `Conversations` et `Archives`. Un clic manuel sur l'onglet principal MP revient à `Conversations`, tandis qu'un intent Player explicite ouvre toujours sa cible sans démonter le cache éphémère par Player.
-- Chaque conversation réutilise son snapshot mémoire ou son dernier message connu, puis se revalide immédiatement. L'envoi crée une seule bulle optimistic réconciliée par `clientIntentKey`; la projection serveur fraîche remplace toujours un même ID.
+- Les deux onglets gardent une présentation discrète à soulignement. La recherche de destinataire interroge après 50 ms une route MP légère qui ne projette que l'identité ACTIVE, exclut soi-même, normalise casse et accents et borne le résultat à vingt. Une réponse obsolète ne peut pas remplacer une recherche plus récente. Le premier clic ouvre la cible et la sélection ne relance pas la recherche.
+- Un deep-link Player remplace immédiatement la recherche, ses résultats et toute cible précédente avant la résolution serveur. Chaque conversation réutilise son snapshot mémoire ou son dernier message connu, puis se revalide immédiatement. L'envoi crée une seule bulle optimistic réconciliée par `clientIntentKey`, avec le même rendu opaque qu'une bulle confirmée ; la projection serveur fraîche remplace toujours un même ID.
 - Les bulles ne contiennent que le message. Une unique ligne hors bulle décrit le dernier événement s'il est sortant : `Envoi...`, `Envoyé`, `Lu ✓`, puis une durée simple en heures, jours, mois ou années. Elle disparaît après une réponse reçue.
 - Ouverture d'une conversation non lue, envoi et réglage des accusés mettent d'abord l'état local à jour. L'envoi force le bas ; une réception ne le suit que si le lecteur y était déjà. La scrollbar est seulement rendue transparente au bas. Le polling HTTP reste sans overlap : 500 ms start-to-start pour un fil ouvert, 1 250 ms pour la liste visible et 5 s quand MP est inactif.

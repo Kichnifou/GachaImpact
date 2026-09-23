@@ -7,6 +7,7 @@ import { GetCurrentPlayer } from '../player/get-current-player.js';
 import { PlayerActivityRecorder } from '../player/player-activity-recorder.js';
 import { PRIVATE_MESSAGES_CATEGORY } from '../social/contact-permission.js';
 import { applyPlayerBlock, removePlayerBlock } from '../social/player-block-service.js';
+import { normalizePlayerSearch } from '../social/social-service.js';
 
 const invalid = (message: string) => new AppError(message, 400, 'DIRECT_MESSAGE_INVALID');
 const unavailable = () => new AppError('Cette conversation est indisponible.', 409, 'DIRECT_MESSAGE_UNAVAILABLE');
@@ -95,6 +96,18 @@ export class DirectMessageService {
   }
   private async rate(tx: Prisma.TransactionClient, playerId: string, now: Date) {
     if (await tx.directMessage.count({ where: { authorPlayerId: playerId, createdAt: { gt: new Date(now.getTime() - 10_000) } } }) >= 10) throw rateLimited();
+  }
+
+  async searchPlayers(identity: AuthenticatedIdentity, rawQuery: string) {
+    const actor = await this.actor(identity), needle = normalizePlayerSearch(rawQuery);
+    if (!needle || Array.from(rawQuery.trim()).length > 100) return { players: [] };
+    const rows = await this.database.player.findMany({
+      where: { status: 'ACTIVE', id: { not: actor.id } },
+      select: { id: true, displayName: true, elementKey: true },
+    });
+    const players = rows.filter(row => normalizePlayerSearch(row.displayName).includes(needle));
+    players.sort((left, right) => left.displayName.localeCompare(right.displayName, 'fr', { sensitivity: 'base', numeric: true }) || left.id.localeCompare(right.id));
+    return { players: players.slice(0, 20) };
   }
   private async reserveSubmissionOrder(key: string) {
     const rows = await this.database.$queryRaw<{ submission_order: bigint | null }[]>`

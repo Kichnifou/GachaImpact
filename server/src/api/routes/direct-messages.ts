@@ -9,6 +9,7 @@ const uuid = z.uuid();
 const conversationParams = z.object({ conversationId: uuid }).strict();
 const listQuery = z.object({ archived: z.enum(['true', 'false']).default('false') }).strict();
 const messagesQuery = z.object({ limit: z.coerce.number().int().min(1).max(100).default(50), cursorCreatedAt: z.iso.datetime().optional(), cursorId: uuid.optional() }).strict();
+const playerSearchQuery = z.object({ q: z.string().trim().min(1).max(100) }).strict();
 const initiateBody = z.object({ targetPlayerId: uuid, content: z.string().min(1).max(2000), idempotencyKey: uuid }).strict();
 const sendBody = z.object({ content: z.string().min(1).max(2000), idempotencyKey: uuid }).strict();
 const resolveBody = z.object({ requestId: uuid, idempotencyKey: uuid }).strict();
@@ -26,6 +27,7 @@ export async function registerDirectMessageRoutes(app: FastifyInstance, options:
   const config = { preHandler: options.authenticate };
   app.addHook('onSend', (_request, reply, _payload, done) => { reply.header('Cache-Control', 'no-store'); done(); });
   app.get('/api/v1/me/direct-conversations/unread', config, request => options.service.unread(requireAuthenticatedIdentity(request)));
+  app.get('/api/v1/me/direct-conversations/players', config, request => options.service.searchPlayers(requireAuthenticatedIdentity(request), parse(playerSearchQuery, request.query).q));
   app.get('/api/v1/me/direct-conversations', config, request => options.service.list(requireAuthenticatedIdentity(request), parse(listQuery, request.query).archived === 'true'));
   app.post('/api/v1/me/direct-conversations', config, request => { const body = parse(initiateBody, request.body); return options.service.initiate(requireAuthenticatedIdentity(request), body.targetPlayerId, body.content, body.idempotencyKey); });
   app.get('/api/v1/me/direct-conversations/:conversationId/messages', config, request => {

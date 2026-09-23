@@ -10,7 +10,7 @@ const chat = vi.hoisted(() => ({
   messages: vi.fn(), unread: vi.fn(), read: vi.fn(), send: vi.fn(), remove: vi.fn(), mentions: vi.fn(), report: vi.fn(),
 }))
 const directMessages = vi.hoisted(() => ({
-  list: vi.fn(), unread: vi.fn(), messages: vi.fn(), initiate: vi.fn(), send: vi.fn(), accept: vi.fn(), ignore: vi.fn(), block: vi.fn(), unblock: vi.fn(), read: vi.fn(), receipts: vi.fn(), archive: vi.fn(),
+  players: vi.fn(), list: vi.fn(), unread: vi.fn(), messages: vi.fn(), initiate: vi.fn(), send: vi.fn(), accept: vi.fn(), ignore: vi.fn(), block: vi.fn(), unblock: vi.fn(), read: vi.fn(), receipts: vi.fn(), archive: vi.fn(),
 }))
 const social = vi.hoisted(() => ({ directory: vi.fn() }))
 vi.mock('../api/game-api', () => ({
@@ -50,6 +50,7 @@ beforeEach(() => {
   chat.mentions.mockResolvedValue({ players: [] }); chat.remove.mockResolvedValue({ changed: true, id: message.id })
   chat.report.mockResolvedValue({ reported: true, duplicate: false })
   directMessages.unread.mockResolvedValue({ unreadCount: 0 })
+  directMessages.players.mockResolvedValue({ players: [] })
   directMessages.list.mockResolvedValue({ conversations: [] })
   directMessages.messages.mockResolvedValue({ messages: [], nextCursor: null })
   social.directory.mockResolvedValue({ players: [], page: 1, pageSize: 20, total: 0, totalPages: 0 })
@@ -82,6 +83,7 @@ describe('ChatPanel réel', () => {
     expect(container.querySelector('.message-meta .chat-direct-button')).toBeNull()
     expect(container.querySelector('.message-meta')?.textContent).not.toContain('MP')
     const desktopBefore = Array.from(container.querySelectorAll('.chat-message-actions button')).map(item => item.getAttribute('aria-label'))
+    expect(button(container, 'Message privé').textContent).toBe('✉')
     await act(async () => { button(container, 'Message privé').click(); await Promise.resolve() })
     expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe('MP')
     expect(directMessages.list).toHaveBeenCalledWith(false)
@@ -149,7 +151,7 @@ describe('ChatPanel réel', () => {
     ])
     await act(async () => { button(container, 'Actions pour le message de Autre').click() })
     expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.chat-message-menu [role="menuitem"]')).map(item => item.textContent)).toEqual([
-      'Signaler', 'Masquer les messages de ce joueur', 'Copier le message', 'MP', 'Mentionner', 'Répondre',
+      'Signaler', 'Masquer les messages de ce joueur', 'Copier le message', 'Message privé', 'Mentionner', 'Répondre',
     ])
     await act(async () => { button(container, 'Signaler').click() })
     const confirmation = container.querySelector<HTMLElement>('.chat-report-confirm')!
@@ -610,7 +612,7 @@ describe('ChatPanel réel', () => {
     expect(new Set(chat.send.mock.calls.map(call => call[1])).size).toBe(3)
     expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(3)
     await act(async () => { type(container, 'D') })
-    expect(button(container, 'Envoyer le message').disabled).toBe(false)
+    expect(button(container, 'Envoyer le message').disabled).toBe(true)
     for (const index of [1, 2, 0]) {
       const content = ['A', 'B', 'C'][index]!
       const key = chat.send.mock.calls[index]![1] as string
@@ -982,21 +984,27 @@ describe('ChatPanel réel', () => {
     } finally { vi.useRealTimers() }
   })
 
-  it('locks four seconds from the third fast submission and rejected attempts never extend it', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] })
+  it('locks the composer for four seconds from the third fast submission and re-enables it automatically', async () => {
+    vi.useFakeTimers()
     try {
       vi.setSystemTime(0)
       const container = await mount(), form = container.querySelector('form')!
       const submitAt = async (time: number, value?: string) => { vi.setSystemTime(time); await act(async () => { if (value !== undefined) type(container, value); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() }) }
       await submitAt(0, 'M1'); await submitAt(800, 'M2'); await submitAt(1_600, 'M3')
       expect(chat.send).toHaveBeenCalledTimes(3)
+      const textarea = container.querySelector<HTMLTextAreaElement>('#chat-message')!
+      expect(textarea.disabled).toBe(true)
+      expect(textarea.placeholder).toBe('Spam, veuillez attendre...')
+      expect(button(container, 'Envoyer le message').disabled).toBe(true)
       await submitAt(2_500, 'M4'); await submitAt(3_000); await submitAt(5_599)
       expect(chat.send).toHaveBeenCalledTimes(3)
-      expect(container.querySelector<HTMLTextAreaElement>('#chat-message')?.value).toBe('M4')
+      expect(textarea.value).toBe('M4')
       expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
       expect(container.querySelector('[role="alert"]')).toBeNull()
-      await submitAt(5_600)
-      expect(chat.send).toHaveBeenCalledTimes(4)
+      vi.setSystemTime(5_600)
+      await act(async () => { await vi.advanceTimersByTimeAsync(4_000) })
+      expect(textarea.disabled).toBe(false)
+      expect(textarea.placeholder).toBe('Écrire un message…')
     } finally { vi.useRealTimers() }
   })
 
