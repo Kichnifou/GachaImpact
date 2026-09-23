@@ -1036,6 +1036,96 @@ describe('ChatPanel réel', () => {
     } finally { vi.useRealTimers() }
   })
 
+  it('does not let a deterministic non-pacing rejection move the local 750 ms boundary', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      vi.setSystemTime(0)
+      const container = await mount(), form = container.querySelector('form')!
+      await act(async () => { type(container, 'M1'); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+      chat.send.mockRejectedValueOnce(new ApiError('CHAT_UNAVAILABLE', 'indisponible', 404))
+      vi.setSystemTime(750)
+      await act(async () => { type(container, 'M2'); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+      expect(chat.send).toHaveBeenCalledTimes(2)
+      vi.setSystemTime(1_000)
+      await act(async () => { type(container, 'M3'); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+      expect(chat.send).toHaveBeenCalledTimes(3)
+    } finally { vi.useRealTimers() }
+  })
+
+  it('removes a deterministic third rejection from the local burst window', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      chat.send.mockImplementation((content: string, key: string) => content === 'M3'
+        ? Promise.reject(new ApiError('CHAT_INVALID', 'invalide', 400))
+        : Promise.resolve({ message: { ...message, id: crypto.randomUUID(), author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content, clientIntentKey: key }, generation: 0, result: null, results: [], xpGranted: 1, refreshScopes: [], dailyChallengeCompleted: false, replayed: false }))
+      const container = await mount(), form = container.querySelector('form')!
+      const submitAt = async (time: number, value: string) => {
+        vi.setSystemTime(time)
+        await act(async () => { type(container, value); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+      }
+      await submitAt(0, 'M1'); await submitAt(800, 'M2'); await submitAt(1_600, 'M3'); await submitAt(2_400, 'M4')
+      expect(chat.send).toHaveBeenCalledTimes(4)
+      expect(chat.send.mock.calls[3]?.[0]).toBe('M4')
+    } finally { vi.useRealTimers() }
+  })
+
+  it('removes only a late deterministic rejection and preserves a newer pacing attempt', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      let rejectM2!: (cause: Error) => void
+      chat.send.mockImplementation((content: string, key: string) => content === 'M2'
+        ? new Promise<ChatSendDto>((_resolve, reject) => { rejectM2 = reject })
+        : Promise.resolve({ message: { ...message, id: crypto.randomUUID(), author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content, clientIntentKey: key }, generation: 0, result: null, results: [], xpGranted: 1, refreshScopes: [], dailyChallengeCompleted: false, replayed: false }))
+      const container = await mount(), form = container.querySelector('form')!
+      const submitAt = async (time: number, value?: string) => {
+        vi.setSystemTime(time)
+        await act(async () => { if (value !== undefined) type(container, value); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+      }
+      await submitAt(0, 'M1'); await submitAt(800, 'M2'); await submitAt(1_600, 'M3')
+      await act(async () => { rejectM2(new ApiError('CHAT_UNAVAILABLE', 'indisponible', 404)); await Promise.resolve(); await Promise.resolve() })
+      await submitAt(2_200, 'M4')
+      expect(chat.send).toHaveBeenCalledTimes(3)
+      expect(container.querySelector<HTMLTextAreaElement>('#chat-message')?.value).toBe('M4')
+      await submitAt(2_350)
+      expect(chat.send).toHaveBeenCalledTimes(4)
+    } finally { vi.useRealTimers() }
+  })
+
+  it('keeps an ambiguous network attempt in local pacing', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      vi.setSystemTime(0)
+      const container = await mount(), form = container.querySelector('form')!
+      await act(async () => { type(container, 'M1'); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+      chat.send.mockRejectedValueOnce(new Error('network'))
+      vi.setSystemTime(800)
+      await act(async () => { type(container, 'M2'); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+      vi.setSystemTime(1_000)
+      await act(async () => { type(container, 'M3'); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+      expect(chat.send).toHaveBeenCalledTimes(2)
+      expect(container.querySelector<HTMLTextAreaElement>('#chat-message')?.value).toBe('M3')
+      vi.setSystemTime(1_550)
+      await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+      expect(chat.send).toHaveBeenCalledTimes(3)
+    } finally { vi.useRealTimers() }
+  })
+
+  it('does not count a confirmed clear as an accepted PLAYER or COMMAND', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      vi.setSystemTime(0)
+      const container = await mount(), form = container.querySelector('form')!
+      await act(async () => { type(container, 'M1'); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+      chat.send.mockResolvedValueOnce({ cleared: true, generation: 1, replayed: false })
+      vi.setSystemTime(800)
+      await act(async () => { type(container, '!clear'); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+      vi.setSystemTime(1_000)
+      await act(async () => { type(container, 'M2'); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
+      expect(chat.send).toHaveBeenCalledTimes(3)
+      expect(chat.send.mock.calls[2]?.[0]).toBe('M2')
+    } finally { vi.useRealTimers() }
+  })
+
   it('delivers all 150 unknown rows from one bounded catch-up without loss or duplicates', async () => {
     const updates = enableUpdates().mockResolvedValue({ generation: 0, reset: false, messages: [], changes: [] })
     chat.messages.mockResolvedValue({ messages: [message], nextCursor: null, generation: 0, visibleMessageIds: [message.id] })

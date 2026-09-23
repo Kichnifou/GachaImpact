@@ -348,6 +348,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
       setAmbiguousIntents(current => current.filter(item => item.key !== next.key))
       setFailedIntents(current => current.filter(item => item.key !== next.key))
       if (result.cleared) {
+        pacingAttempts.current = pacingAttempts.current.filter(attempt => attempt.key !== next.key)
         const previousGeneration = generation.current
         if (previousGeneration === null || result.generation > previousGeneration) adoptGeneration(result.generation, [], null, true)
         else setMessages(current => current.filter(item => item.clientIntentKey !== next.key))
@@ -374,8 +375,9 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
       }
     } catch (cause) {
       if (messagesRef.current.some(item => !item.id.startsWith('optimistic:') && item.clientIntentKey === next.key)) return
+      const deterministicRejection = cause instanceof ApiError && cause.status !== null && cause.status < 500
+      if (deterministicRejection) pacingAttempts.current = pacingAttempts.current.filter(attempt => attempt.key !== next.key)
       if (cause instanceof ApiError && cause.code === 'CHAT_PACING_LIMIT') {
-        pacingAttempts.current = pacingAttempts.current.filter(attempt => attempt.key !== next.key)
         const retained = messagesRef.current.filter(item => item.clientIntentKey !== next.key)
         messagesRef.current = retained; setMessages(retained); setError(null)
         setAmbiguousIntents(current => current.filter(item => item.key !== next.key)); setFailedIntents(current => current.filter(item => item.key !== next.key))
@@ -385,7 +387,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
         return
       }
       setError(cause instanceof Error ? cause.message : 'Envoi indisponible.')
-      if (cause instanceof ApiError && cause.status !== null && cause.status < 500) {
+      if (deterministicRejection) {
         setFailedOverlayVisible(true)
         setMessages(current => current.filter(item => item.clientIntentKey !== next.key))
         setAmbiguousIntents(current => current.filter(item => item.key !== next.key))
