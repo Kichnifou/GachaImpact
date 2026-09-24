@@ -951,7 +951,7 @@ Chaque achat standalone produit une seule `BusinessOperation` et une seule ligne
 
 # 16. Missions
 
-## 16.1 Missions permanentes — état physique 041 candidat
+## 16.1 Missions permanentes — état physique 041 promu
 
 `PermanentMissionDefinition` / `permanent_mission_definitions` porte les 31 définitions déterministes : `externalKey`, `metric`, rang B/A/S/Z, nom, description, libellé de progression, `target`, `rewardPrimogems`, ordre, activation et secret. Les couples métrique/rang et rang/ordre sont uniques ; les contraintes SQL limitent les métriques par famille, imposent les récompenses validées et réservent `isSecret` à Z.
 

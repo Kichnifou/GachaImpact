@@ -1346,7 +1346,7 @@ L'envoi individuel et global suivent la même primitive. Chaque cœur possède s
 
 `GET /api/v1/me/event/ranking` résout l'édition mensuelle active côté serveur puis lit uniquement dix `EventParticipant` au maximum avec pseudo public, points et rang. L'ordre est `points DESC, joinedAt ASC, playerId ASC` : les égalités restent stables, sans avantage économique. L'endpoint ne charge ni le snapshot personnel complet ni les états des Jeux et ne crée aucune opération, monnaie, récompense ou notification. Le client appelle ce GET à l'ouverture de l'onglet Classement, puis environ toutes les trois secondes uniquement tant que cet onglet est visible, avec garde anti-chevauchement, réveil focus/visibility et nettoyage au démontage. L'historique des éditions passées et l'écran Historique transversal sont reportés.
 
-## Missions permanentes — socle backend/DB candidat Lot 1
+## Missions permanentes — socle backend/DB promu Lot 1
 
 `PermanentMissionService` est une primitive applicative transaction-local : `initializePlayer(tx, …)`, `reconcile(tx, …)` et `project(tx, …)` reçoivent toujours une `Prisma.TransactionClient` existante et n’ouvrent aucune transaction imbriquée. Le producteur futur conserve donc la transaction propriétaire de son action, puis appelle Missions avant commit. Le service verrouille le Player, initialise défensivement ses lignes, lit les compteurs autoritatifs dans cette transaction et peut retourner plusieurs complétions structurées.
 
