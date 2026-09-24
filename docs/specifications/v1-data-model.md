@@ -1428,7 +1428,11 @@ R504/R513/R514 sont matérialisées sans migration : seul l'auteur peut éditer,
 
 ## 25.5 Modération / signalement
 
-Une copie signalée nécessaire à la modération est distincte du contenu courant modifiable/supprimable par l'auteur.
+`DirectMessageReport` est une preuve backend-only distincte du contenu courant : reporter, joueur signalé, conversation, message, snapshot cible JSON, contexte JSON, fingerprint SHA-256 et date. L'unicité `(reporterPlayerId, messageId)` rend le doublon stable. Les quatre FK sont restrictives et la preuve ne porte ni raison, ni statut, ni sanction.
+
+Le preview participant-only construit au plus dix messages précédents, la cible active de l'autre participant et dix suivants déjà existants, en `submissionOrder ASC`. Un tombstone de contexte conserve `content = null`. La confirmation reconstruit ce même ensemble dans une transaction sérialisable ; un fingerprint différent produit `DIRECT_MESSAGE_REPORT_PREVIEW_STALE` sans dossier et exige une nouvelle confirmation humaine. Après création, édition, suppression/purge et messages futurs ne modifient jamais les deux JSON enregistrés.
+
+La capacité `communityModeration` appartient uniquement à `MODERATOR` et `ADMIN`. Liste paginée et détail lisent exclusivement `DirectMessageReport`; aucune route de modération n'accepte une conversation pour parcourir les MP. Aucun read cursor, blocage, archivage ou Notification n'est produit par le signalement ou sa consultation.
 
 Les MP ne passent jamais par Twitch.
 

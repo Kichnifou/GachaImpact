@@ -48,6 +48,8 @@ La sidebar desktop occupe exactement la hauteur utile que lui attribue le shell 
 
 Le panneau Communauté garde un seul body actif. Dans MP, la liste de conversations est l'unique propriétaire de son scroll ; dans une conversation, le header, l'unique statut de livraison et le composer restent hors du body messages `minmax(0, 1fr)`. La scrollbar du fil devient transparente lorsqu'il est réellement au bas et réapparaît dès que le lecteur remonte, sans `overflow: hidden`. Le passage `Chat | MP` masque explicitement la pane inactive sans la démonter. Sur mobile, Communauté reste dans le flux du `GameShell` et ne crée aucun overflow horizontal du document ; le fil et le textarea peuvent défiler verticalement dans leurs propres limites sans couper le footer.
 
+L'aperçu de signalement MP est un overlay interne qui ne déplace pas le fil ; son contexte 10/1/10 possède son propre scroll et la cible est visuellement distinguée. Dans Modération > Communauté, la liste paginée puis le contexte gelé sont les seuls propriétaires de scroll de leur zone, sans action permettant d'ouvrir, rechercher ou étendre la conversation réelle.
+
 Lorsqu'une carte de sidebar sert de raccourci synthétique dans une enveloppe de hauteur imposée, son contenu se répartit en trois zones : identité en haut, résumé extensible au centre et action/affordance en bas. La zone centrale absorbe la hauteur supplémentaire et reste prête à recevoir une future projection réelle sans modifier le cadre extérieur.
 
 ## Grilles de cartes homogènes

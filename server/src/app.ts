@@ -65,6 +65,8 @@ import type { EventService } from './application/event/event-service.js';
 import { registerEventRoutes } from './api/routes/event.js';
 import type { DirectMessageService } from './application/direct-messages/direct-message-service.js';
 import { registerDirectMessageRoutes } from './api/routes/direct-messages.js';
+import type { DirectMessageReportService } from './application/direct-messages/direct-message-report-service.js';
+import { registerDirectMessageReportRoutes } from './api/routes/direct-message-reports.js';
 
 export type AppDependencies = Readonly<{
   globalChatService?: GlobalChatService;
@@ -124,6 +126,7 @@ export type AppDependencies = Readonly<{
   eventService?: EventService;
   socialService?: SocialService;
   directMessageService?: DirectMessageService;
+  directMessageReportService?: DirectMessageReportService;
   close?: () => Promise<void>;
 }>;
 
@@ -167,6 +170,7 @@ export async function buildApp(
     if (dependencies.tradeService && dependencies.tradePlayer) await app.register(registerTradeRoutes, { authenticate, service: dependencies.tradeService, getPlayer: dependencies.tradePlayer });
     if (dependencies.socialService) await app.register(registerSocialRoutes, { authenticate, service: dependencies.socialService });
     if (dependencies.directMessageService) await app.register(registerDirectMessageRoutes, { authenticate, service: dependencies.directMessageService });
+    if (dependencies.directMessageReportService) await app.register(registerDirectMessageReportRoutes, { authenticate, service: dependencies.directMessageReportService });
     if (dependencies.globalChatService && dependencies.chatCommandDispatcher) await app.register(registerChatRoutes, { authenticate, service: dependencies.globalChatService, dispatcher: dependencies.chatCommandDispatcher });
     if (dependencies.choosePlayerElement && dependencies.getCurrentPlayerResources) {
       await app.register(registerPlayerGameRoutes, {

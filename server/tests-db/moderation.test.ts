@@ -64,7 +64,7 @@ async function cleanupResidualTestFixtures() {
 describe('privileged self-test persistence', () => {
   it('keeps MODERATOR powerless while TESTER and ADMIN receive the capability', async () => {
     const moderator = await createPlayer(['MODERATOR'])
-    expect(await tools.getPermissions(moderator.identity)).toEqual({ roles: ['MODERATOR'], capabilities: { moderationAccess: false, selfResourceTools: false, selfGameplayTools: false, superTools: false, canSelectPlayers: false, canManageTesters: false } })
+    expect(await tools.getPermissions(moderator.identity)).toEqual({ roles: ['MODERATOR'], capabilities: { moderationAccess: true, communityModeration: true, selfResourceTools: false, selfGameplayTools: false, superTools: false, canSelectPlayers: false, canManageTesters: false } })
     await expect(tools.getState(moderator.identity)).rejects.toMatchObject({ code: 'MODERATION_FORBIDDEN' })
     const tester = await createPlayer(['TESTER'])
     expect((await tools.getState(tester.identity)).permissions.capabilities.selfResourceTools).toBe(true)

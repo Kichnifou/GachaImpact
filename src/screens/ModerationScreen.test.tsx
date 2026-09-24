@@ -4,6 +4,8 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ModerationPlayerDto, ModerationStateDto } from '../api/types'
+const moderationReports = vi.hoisted(() => ({ list: vi.fn(), detail: vi.fn() }))
+vi.mock('../api/game-api', () => ({ getGameApiClient: () => ({ getDirectMessageReports: moderationReports.list, getDirectMessageReport: moderationReports.detail }) }))
 import ModerationScreen from './ModerationScreen'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -22,7 +24,7 @@ function state(target = actors.self, superTools = true, stella = target.id === '
     player: target.id === 'self' && !superTools ? { ...target, rank: 'TESTER' } : target,
     permissions: {
       roles: superTools ? ['ADMIN', 'TESTER'] : ['TESTER'],
-      capabilities: { moderationAccess: true, selfResourceTools: true, selfGameplayTools: true, superTools, canSelectPlayers: superTools, canManageTesters: superTools },
+      capabilities: { moderationAccess: true, communityModeration: superTools, selfResourceTools: true, selfGameplayTools: true, superTools, canSelectPlayers: superTools, canManageTesters: superTools },
     },
     resources: { primogems: seed === 1 ? '783880' : String(seed * 1000), moras: seed === 1 ? '5625992' : String(seed * 2000), particles: { pyro: String(seed), hydro: String(seed * 2), cryo: seed === 1 ? '12422' : String(seed * 3), electro: String(seed * 4), anemo: String(seed * 5), geo: String(seed * 6), dendro: String(seed * 7) } },
     progression: { totalXp: target.id === 'player-b' ? '181' : '89', level: target.level, xpIntoCurrentStep: '29', xpPerStep: '30', isMaxLevel: false, level100OverflowRewardsClaimed: 0, totalMessages: '0', countedMessages: '0' },
@@ -158,7 +160,7 @@ describe('ModerationScreen', () => {
   it('keeps player targeting inside Système de jeu and mounts Codes only for a Super who selects that tab', async () => {
     const { container, props } = await mount()
     const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('.moderation-tabs [role="tab"]'))
-    expect(tabs.map((tab) => [tab.textContent, tab.disabled])).toEqual([['Système de jeu', false], ['Codes', false], ['Bannières', true], ['Événements', true], ['Communauté', true]])
+    expect(tabs.map((tab) => [tab.textContent, tab.disabled])).toEqual([['Système de jeu', false], ['Codes', false], ['Bannières', true], ['Événements', true], ['Communauté', false]])
     expect(props.onLoadGiftCodes).not.toHaveBeenCalled()
     tabs[0]!.focus()
     await act(async () => { tabs[0]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); await Promise.resolve(); await Promise.resolve() })
@@ -174,6 +176,26 @@ describe('ModerationScreen', () => {
     const tester = await mount(false)
     const testerCodes = Array.from(tester.container.querySelectorAll<HTMLButtonElement>('.moderation-tabs [role="tab"]')).find((tab) => tab.textContent === 'Codes')!
     expect(testerCodes.disabled).toBe(true)
+  })
+
+  it('opens a moderator-only account directly on Community and renders frozen detail without free browse', async () => {
+    const line = { id: 'message-1', authorPlayerId: 'reported', authorDisplayName: 'Reported', content: 'Preuve figée', createdAt: '2026-09-23T08:00:00.000Z', submissionOrder: '4', editedAt: null, deletedAt: null }
+    const summary = { id: 'report-1', createdAt: '2026-09-24T08:00:00.000Z', source: 'MP' as const, reporter: { id: 'reporter', displayName: 'Reporter' }, reported: { id: 'reported', displayName: 'Reported' }, message: line }
+    moderationReports.list.mockImplementation(async (page: number) => ({ reports: [summary], page, pageSize: 20, total: 21, totalPages: 2 }))
+    moderationReports.detail.mockResolvedValue({ ...summary, snapshotFingerprint: 'a'.repeat(64), context: [{ ...line, id: 'before', content: 'Avant' }, line] })
+    const seeded = await mount(); const props = seeded.props
+    act(() => seeded.root.unmount()); roots.splice(roots.indexOf(seeded.root), 1)
+    const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root)
+    const onLoad = vi.fn(async () => state(actors.self))
+    await act(async () => { root.render(<ModerationScreen {...props} capabilities={{ moderationAccess: true, communityModeration: true, selfResourceTools: false, selfGameplayTools: false, superTools: false, canSelectPlayers: false, canManageTesters: false }} onLoad={onLoad} />); await Promise.resolve(); await Promise.resolve() })
+    expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe('Communauté')
+    expect(onLoad).not.toHaveBeenCalled(); expect(container.textContent).toContain('Signalements MP'); expect(container.textContent).toContain('Preuve figée'); expect(container.textContent).toContain('Page 1 / 2')
+    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.moderation-tabs button')).find(button => button.textContent === 'Système de jeu')?.disabled).toBe(true)
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-reports-panel > footer button')).find(button => button.textContent === 'Suivant'))!.click(); await Promise.resolve(); await Promise.resolve() })
+    expect(moderationReports.list).toHaveBeenCalledWith(2); expect(container.textContent).toContain('Page 2 / 2')
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-reports-list button')!.click(); await Promise.resolve(); await Promise.resolve() })
+    expect(moderationReports.detail).toHaveBeenCalledWith('report-1'); expect(container.querySelector('.dm-moderation-context article.target')?.textContent).toContain('Preuve figée')
+    for (const forbidden of ['Voir la conversation', 'Ouvrir les MP', 'Voir plus de contexte', 'Rechercher dans les MP']) expect(container.textContent).not.toContain(forbidden)
   })
 
   it('shows authoritative current values and changes the resource summary with its selector', async () => {

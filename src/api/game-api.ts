@@ -2,7 +2,7 @@ import type { SocialActions, DirectoryPage, Profile, ConnectedPlayers, PrivacySe
 import { loadFrontendConfig } from '../config/environment'
 import type { TradeActions, TradeSnapshot, TradePartners, TradeResult } from '../trades/types'
 import type { BannerVoteDto } from './types'
-import type { ChatMentionDto, ChatPageDto, ChatSendDto, ChatUpdatesDto, DirectConversationListDto, DirectMessageArchiveDto, DirectMessageBlockDto, DirectMessageHistoryAnchorDto, DirectMessageHistoryPageDto, DirectMessageHistorySearchDto, DirectMessageInitiateDto, DirectMessageMutationDto, DirectMessagePageDto, DirectMessagePlayerDto, DirectMessageReceiptDto, DirectMessageResolveDto, DirectMessageSendDto, DirectMessageUnreadDto } from './types'
+import type { ChatMentionDto, ChatPageDto, ChatSendDto, ChatUpdatesDto, DirectConversationListDto, DirectMessageArchiveDto, DirectMessageBlockDto, DirectMessageHistoryAnchorDto, DirectMessageHistoryPageDto, DirectMessageHistorySearchDto, DirectMessageInitiateDto, DirectMessageMutationDto, DirectMessagePageDto, DirectMessagePlayerDto, DirectMessageReceiptDto, DirectMessageReportDetailDto, DirectMessageReportPageDto, DirectMessageReportPreviewDto, DirectMessageResolveDto, DirectMessageSendDto, DirectMessageUnreadDto } from './types'
 import { getSupabaseClient } from '../infrastructure/supabase/client'
 import type {
   BackendErrorDto,
@@ -172,6 +172,8 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
       read: (conversationId: string, messageId: string) => request<{ lastReadMessageId: string; sharedReadAt: string | null; changed: boolean }>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/read`, { method: 'POST', body: JSON.stringify({ messageId }) }),
       receipts: (conversationId: string, enabled: boolean) => request<DirectMessageReceiptDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/read-receipts`, { method: 'PATCH', body: JSON.stringify({ enabled }) }),
       archive: (conversationId: string, archived: boolean) => request<DirectMessageArchiveDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/archive`, { method: 'PATCH', body: JSON.stringify({ archived }) }),
+      reportPreview: (conversationId: string, messageId: string) => request<DirectMessageReportPreviewDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}/report-preview`),
+      report: (conversationId: string, messageId: string, snapshotFingerprint: string) => request<{ reported: true; duplicate: boolean }>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}/report`, { method: 'POST', body: JSON.stringify({ snapshotFingerprint }) }),
     },
     getCurrentPlayer: () => request<PlayerDto>('/api/v1/me'),
     getPermissions: () => request<ModerationPermissionsDto>('/api/v1/me/permissions'),
@@ -199,6 +201,8 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getNavigationPreferences: () => request<NavigationMenuPreferenceDto>('/api/v1/me/navigation-preferences'),
     putNavigationPreferences: (value: NavigationMenuPreferenceDto) => request<NavigationMenuPreferenceDto>('/api/v1/me/navigation-preferences', { method: 'PUT', body: JSON.stringify(value) }),
     getModerationState: () => request<ModerationStateDto>('/api/v1/moderation/me'),
+    getDirectMessageReports: (page = 1) => request<DirectMessageReportPageDto>('/api/v1/moderation/direct-message-reports?' + new URLSearchParams({ page: String(page) })),
+    getDirectMessageReport: (reportId: string) => request<DirectMessageReportDetailDto>(`/api/v1/moderation/direct-message-reports/${encodeURIComponent(reportId)}`),
     getModerationPlayerState: (playerId: string) => request<ModerationStateDto>(`/api/v1/moderation/players/${playerId}/state`),
     listModerationPlayers: (input: ModerationPlayerListQuery = {}) => {
       const query = new URLSearchParams()

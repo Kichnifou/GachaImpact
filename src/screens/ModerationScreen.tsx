@@ -1,176 +1,725 @@
-import { useCallback, useEffect, useRef, useState, type ComponentProps, type FormEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentProps,
+  type FormEvent,
+} from "react";
 
-import type { ModerationPlayerDto, ModerationPlayerListQuery, ModerationPlayerPageDto, ModerationStateDto } from '../api/types'
-import AppButton from '../components/AppButton'
-import GiftCodeAdminPanel from '../components/GiftCodeAdminPanel'
-import ModerationPlayerBrowser from '../components/ModerationPlayerBrowser'
-import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
-import type { ModerationGachaInput, ModerationResourceInput, ModerationXpInput } from '../moderation/moderation-intent-coordinator'
-import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
+import type {
+  ModerationPlayerDto,
+  ModerationPlayerListQuery,
+  ModerationPlayerPageDto,
+  ModerationStateDto,
+} from "../api/types";
+import AppButton from "../components/AppButton";
+import GiftCodeAdminPanel from "../components/GiftCodeAdminPanel";
+import DirectMessageReportsPanel from "../components/DirectMessageReportsPanel";
+import ModerationPlayerBrowser from "../components/ModerationPlayerBrowser";
+import ScrollableScreenPanel from "../components/ScrollableScreenPanel";
+import type {
+  ModerationGachaInput,
+  ModerationResourceInput,
+  ModerationXpInput,
+} from "../moderation/moderation-intent-coordinator";
+import { apiErrorMessage, formatResourceAmount } from "../utils/formatters";
 
 type Props = {
-  actorPlayerId: string
-  capabilities: ModerationStateDto['permissions']['capabilities']
-  onLoad: (targetPlayerId?: string) => Promise<ModerationStateDto>
-  onListPlayers: (query: ModerationPlayerListQuery) => Promise<ModerationPlayerPageDto>
-  onResource: (targetPlayerId: string, input: ModerationResourceInput) => Promise<ModerationStateDto>
-  onXp: (targetPlayerId: string, input: ModerationXpInput) => Promise<ModerationStateDto>
-  onGacha: (targetPlayerId: string, input: ModerationGachaInput) => Promise<ModerationStateDto>
-  onStella: (targetPlayerId: string, quantity: string) => Promise<ModerationStateDto>
-  onTester: (targetPlayerId: string, enabled: boolean) => Promise<ModerationStateDto>
-  onApplied: (state: ModerationStateDto) => void
-  onLoadGiftCodes?: ComponentProps<typeof GiftCodeAdminPanel>['onLoad']
-  onCreateGiftCode?: ComponentProps<typeof GiftCodeAdminPanel>['onCreate']
-  onPublishGiftCode?: ComponentProps<typeof GiftCodeAdminPanel>['onPublish']
-  onUpdateGiftCode?: ComponentProps<typeof GiftCodeAdminPanel>['onUpdate']
-  onGiftCodeClaimants?: ComponentProps<typeof GiftCodeAdminPanel>['onClaimants']
-}
+  actorPlayerId: string;
+  capabilities: ModerationStateDto["permissions"]["capabilities"];
+  onLoad: (targetPlayerId?: string) => Promise<ModerationStateDto>;
+  onListPlayers: (
+    query: ModerationPlayerListQuery,
+  ) => Promise<ModerationPlayerPageDto>;
+  onResource: (
+    targetPlayerId: string,
+    input: ModerationResourceInput,
+  ) => Promise<ModerationStateDto>;
+  onXp: (
+    targetPlayerId: string,
+    input: ModerationXpInput,
+  ) => Promise<ModerationStateDto>;
+  onGacha: (
+    targetPlayerId: string,
+    input: ModerationGachaInput,
+  ) => Promise<ModerationStateDto>;
+  onStella: (
+    targetPlayerId: string,
+    quantity: string,
+  ) => Promise<ModerationStateDto>;
+  onTester: (
+    targetPlayerId: string,
+    enabled: boolean,
+  ) => Promise<ModerationStateDto>;
+  onApplied: (state: ModerationStateDto) => void;
+  onLoadGiftCodes?: ComponentProps<typeof GiftCodeAdminPanel>["onLoad"];
+  onCreateGiftCode?: ComponentProps<typeof GiftCodeAdminPanel>["onCreate"];
+  onPublishGiftCode?: ComponentProps<typeof GiftCodeAdminPanel>["onPublish"];
+  onUpdateGiftCode?: ComponentProps<typeof GiftCodeAdminPanel>["onUpdate"];
+  onGiftCodeClaimants?: ComponentProps<
+    typeof GiftCodeAdminPanel
+  >["onClaimants"];
+};
 
-const resources = [['primogems', 'Primos'], ['moras', 'Moras'], ['particles_pyro', 'Pyro'], ['particles_hydro', 'Hydro'], ['particles_cryo', 'Cryo'], ['particles_electro', 'Electro'], ['particles_anemo', 'Anémo'], ['particles_geo', 'Géo'], ['particles_dendro', 'Dendro']] as const
-const moderationRankLabels = { SUPER: 'Super', MODERATOR: 'Modérateur', TESTER: 'Testeur', PLAYER: 'Joueur' } as const
-const integerText = (value: string) => value.replace(/[^0-9]/g, '')
+const resources = [
+  ["primogems", "Primos"],
+  ["moras", "Moras"],
+  ["particles_pyro", "Pyro"],
+  ["particles_hydro", "Hydro"],
+  ["particles_cryo", "Cryo"],
+  ["particles_electro", "Electro"],
+  ["particles_anemo", "Anémo"],
+  ["particles_geo", "Géo"],
+  ["particles_dendro", "Dendro"],
+] as const;
+const moderationRankLabels = {
+  SUPER: "Super",
+  MODERATOR: "Modérateur",
+  TESTER: "Testeur",
+  PLAYER: "Joueur",
+} as const;
+const integerText = (value: string) => value.replace(/[^0-9]/g, "");
 
-function ModerationScreen({ actorPlayerId, capabilities, onLoad, onListPlayers, onResource, onXp, onGacha, onStella, onTester, onApplied, onLoadGiftCodes, onCreateGiftCode, onPublishGiftCode, onUpdateGiftCode, onGiftCodeClaimants }: Props) {
-  const [state, setState] = useState<ModerationStateDto | null>(null)
-  const [selectedTargetId, setSelectedTargetId] = useState(actorPlayerId)
-  const [query, setQuery] = useState('')
-  const [players, setPlayers] = useState<readonly ModerationPlayerDto[]>([])
-  const [browserOpen, setBrowserOpen] = useState(false)
-  const [resourceKey, setResourceKey] = useState('primogems')
-  const [amount, setAmount] = useState('160')
-  const [xp, setXp] = useState('')
-  const [pity5, setPity5] = useState('')
-  const [pity4, setPity4] = useState('')
-  const [capture, setCapture] = useState('')
-  const [guarantee, setGuarantee] = useState(false)
-  const [stella, setStella] = useState('0')
-  const [pending, setPending] = useState(true)
-  const [message, setMessage] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'system' | 'codes'>('system')
-  const onLoadRef = useRef(onLoad)
-  const onAppliedRef = useRef(onApplied)
-  const systemTabRef = useRef<HTMLButtonElement>(null)
-  const codesTabRef = useRef<HTMLButtonElement>(null)
-  const requestRevision = useRef(0)
-  const isSuper = capabilities.superTools
-  const isSelf = selectedTargetId === actorPlayerId
-  const canUseGameplayTools = capabilities.selfGameplayTools || isSuper
-  const currentResource = moderationResourceCurrent(state, resourceKey)
-  const codesAvailable = Boolean(isSuper && onLoadGiftCodes && onCreateGiftCode && onPublishGiftCode && onUpdateGiftCode && onGiftCodeClaimants)
+function ModerationScreen({
+  actorPlayerId,
+  capabilities,
+  onLoad,
+  onListPlayers,
+  onResource,
+  onXp,
+  onGacha,
+  onStella,
+  onTester,
+  onApplied,
+  onLoadGiftCodes,
+  onCreateGiftCode,
+  onPublishGiftCode,
+  onUpdateGiftCode,
+  onGiftCodeClaimants,
+}: Props) {
+  const [state, setState] = useState<ModerationStateDto | null>(null);
+  const [selectedTargetId, setSelectedTargetId] = useState(actorPlayerId);
+  const [query, setQuery] = useState("");
+  const [players, setPlayers] = useState<readonly ModerationPlayerDto[]>([]);
+  const [browserOpen, setBrowserOpen] = useState(false);
+  const [resourceKey, setResourceKey] = useState("primogems");
+  const [amount, setAmount] = useState("160");
+  const [xp, setXp] = useState("");
+  const [pity5, setPity5] = useState("");
+  const [pity4, setPity4] = useState("");
+  const [capture, setCapture] = useState("");
+  const [guarantee, setGuarantee] = useState(false);
+  const [stella, setStella] = useState("0");
+  const systemAvailable =
+    capabilities.selfResourceTools ||
+    capabilities.selfGameplayTools ||
+    capabilities.superTools;
+  const [pending, setPending] = useState(systemAvailable);
+  const [message, setMessage] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"system" | "codes" | "community">(
+    () => (systemAvailable ? "system" : "community"),
+  );
+  const onLoadRef = useRef(onLoad);
+  const onAppliedRef = useRef(onApplied);
+  const systemTabRef = useRef<HTMLButtonElement>(null);
+  const codesTabRef = useRef<HTMLButtonElement>(null);
+  const communityTabRef = useRef<HTMLButtonElement>(null);
+  const requestRevision = useRef(0);
+  const isSuper = capabilities.superTools;
+  const isSelf = selectedTargetId === actorPlayerId;
+  const canUseGameplayTools = capabilities.selfGameplayTools || isSuper;
+  const currentResource = moderationResourceCurrent(state, resourceKey);
+  const codesAvailable = Boolean(
+    isSuper &&
+    onLoadGiftCodes &&
+    onCreateGiftCode &&
+    onPublishGiftCode &&
+    onUpdateGiftCode &&
+    onGiftCodeClaimants,
+  );
 
-  useEffect(() => { onLoadRef.current = onLoad }, [onLoad])
-  useEffect(() => { onAppliedRef.current = onApplied }, [onApplied])
+  useEffect(() => {
+    onLoadRef.current = onLoad;
+  }, [onLoad]);
+  useEffect(() => {
+    onAppliedRef.current = onApplied;
+  }, [onApplied]);
 
   const hydrate = useCallback((value: ModerationStateDto) => {
-    setXp(value.progression.totalXp)
-    setPity5(String(value.gachaState.pity5))
-    setPity4(String(value.gachaState.pity4))
-    setCapture(String(value.gachaState.captureProgress))
-    setGuarantee(value.gachaState.guaranteedFeatured5)
-    setStella(value.stella.quantity)
-  }, [])
+    setXp(value.progression.totalXp);
+    setPity5(String(value.gachaState.pity5));
+    setPity4(String(value.gachaState.pity4));
+    setCapture(String(value.gachaState.captureProgress));
+    setGuarantee(value.gachaState.guaranteedFeatured5);
+    setStella(value.stella.quantity);
+  }, []);
 
-  const accept = useCallback((value: ModerationStateDto) => {
-    setState(value)
-    setSelectedTargetId(value.player.id)
-    hydrate(value)
-    onAppliedRef.current(value)
-    setMessage(null)
-  }, [hydrate])
-
-  useEffect(() => {
-    const revision = ++requestRevision.current
-    void onLoadRef.current()
-      .then((value) => { if (requestRevision.current === revision) accept(value) })
-      .catch((error) => { if (requestRevision.current === revision) setMessage(apiErrorMessage(error)) })
-      .finally(() => { if (requestRevision.current === revision) setPending(false) })
-    return () => { requestRevision.current += 1 }
-  }, [accept, actorPlayerId])
+  const accept = useCallback(
+    (value: ModerationStateDto) => {
+      setState(value);
+      setSelectedTargetId(value.player.id);
+      hydrate(value);
+      onAppliedRef.current(value);
+      setMessage(null);
+    },
+    [hydrate],
+  );
 
   useEffect(() => {
-    if (!isSuper || !query.trim()) return
-    let active = true
-    const timer = window.setTimeout(() => void onListPlayers({ query, page: 1, sort: 'name', direction: 'asc' }).then((value) => {
-      if (active) setPlayers(value.players)
-    }).catch((error) => {
-      if (active) setMessage(apiErrorMessage(error))
-    }), 120)
-    return () => { active = false; window.clearTimeout(timer) }
-  }, [isSuper, onListPlayers, query])
+    if (!systemAvailable) return;
+    const revision = ++requestRevision.current;
+    void onLoadRef
+      .current()
+      .then((value) => {
+        if (requestRevision.current === revision) accept(value);
+      })
+      .catch((error) => {
+        if (requestRevision.current === revision)
+          setMessage(apiErrorMessage(error));
+      })
+      .finally(() => {
+        if (requestRevision.current === revision) setPending(false);
+      });
+    return () => {
+      requestRevision.current += 1;
+    };
+  }, [accept, actorPlayerId, systemAvailable]);
 
-  const execute = async (action: () => Promise<ModerationStateDto>, afterSuccess?: () => void) => {
-    if (pending) return
-    const revision = ++requestRevision.current
-    setPending(true)
-    setMessage(null)
+  useEffect(() => {
+    if (!isSuper || !query.trim()) return;
+    let active = true;
+    const timer = window.setTimeout(
+      () =>
+        void onListPlayers({ query, page: 1, sort: "name", direction: "asc" })
+          .then((value) => {
+            if (active) setPlayers(value.players);
+          })
+          .catch((error) => {
+            if (active) setMessage(apiErrorMessage(error));
+          }),
+      120,
+    );
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [isSuper, onListPlayers, query]);
+
+  const execute = async (
+    action: () => Promise<ModerationStateDto>,
+    afterSuccess?: () => void,
+  ) => {
+    if (pending) return;
+    const revision = ++requestRevision.current;
+    setPending(true);
+    setMessage(null);
     try {
-      const value = await action()
-      if (requestRevision.current !== revision) return
-      accept(value)
-      afterSuccess?.()
+      const value = await action();
+      if (requestRevision.current !== revision) return;
+      accept(value);
+      afterSuccess?.();
     } catch (error) {
-      if (requestRevision.current === revision) setMessage(apiErrorMessage(error))
+      if (requestRevision.current === revision)
+        setMessage(apiErrorMessage(error));
     } finally {
-      if (requestRevision.current === revision) setPending(false)
+      if (requestRevision.current === revision) setPending(false);
     }
-  }
-  const submit = (event: FormEvent, action: () => Promise<ModerationStateDto>) => { event.preventDefault(); void execute(action) }
+  };
+  const submit = (
+    event: FormEvent,
+    action: () => Promise<ModerationStateDto>,
+  ) => {
+    event.preventDefault();
+    void execute(action);
+  };
   const selectTarget = (id: string) => {
     if (id === selectedTargetId) {
-      setQuery('')
-      setPlayers([])
-      return
+      setQuery("");
+      setPlayers([]);
+      return;
     }
-    void execute(() => onLoadRef.current(id), () => { setQuery(''); setPlayers([]) })
-  }
+    void execute(
+      () => onLoadRef.current(id),
+      () => {
+        setQuery("");
+        setPlayers([]);
+      },
+    );
+  };
 
-  return <div className="screen-content moderation-screen long-screen-layout">
-    <ScrollableScreenPanel className="moderation-screen-panel" bodyClassName="moderation-tools-body" fixed={<>
-      <nav className="moderation-tabs" role="tablist" aria-label="Outils de modération" onKeyDown={(event) => {
-        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
-        event.preventDefault(); const next = activeTab === 'system' && codesAvailable ? 'codes' : 'system'; setActiveTab(next); (next === 'codes' ? codesTabRef : systemTabRef).current?.focus()
-      }}><AppButton ref={systemTabRef} role="tab" aria-selected={activeTab === 'system'} tabIndex={activeTab === 'system' ? 0 : -1} className={activeTab === 'system' ? 'active' : ''} onClick={() => setActiveTab('system')}>Système de jeu</AppButton><AppButton ref={codesTabRef} role="tab" aria-selected={activeTab === 'codes'} tabIndex={activeTab === 'codes' ? 0 : -1} className={activeTab === 'codes' ? 'active' : ''} disabled={!codesAvailable} onClick={() => setActiveTab('codes')}>Codes</AppButton><AppButton role="tab" aria-selected={false} tabIndex={-1} disabled>Bannières</AppButton><AppButton role="tab" aria-selected={false} tabIndex={-1} disabled>Événements</AppButton><AppButton role="tab" aria-selected={false} tabIndex={-1} disabled>Communauté</AppButton></nav>
-      {activeTab === 'system' && <section className="panel moderation-target" aria-busy={pending}>
-        <div className="moderation-target-heading">
-          <div><span className="eyebrow">Joueur ciblé</span><strong title={state?.player.displayName}>{state?.player.displayName ?? 'Chargement…'}</strong><small>Rang : {state ? moderationRankLabels[state.player.rank] : 'Chargement…'}</small></div>
-          {isSuper && <div className="moderation-target-actions"><button type="button" className="moderation-self-button" disabled={pending || isSelf} onClick={() => selectTarget(actorPlayerId)}>Moi</button><button type="button" className="moderation-self-button primary" disabled={pending} onClick={() => setBrowserOpen(true)}>Choisir</button></div>}
-        </div>
-        {isSuper && <label className="moderation-target-search"><span>Recherche rapide d’un joueur actif</span><input type="search" value={query} onChange={(event) => { setQuery(event.target.value); setPlayers([]) }} placeholder="Saisir un pseudo…" autoComplete="off" /></label>}
-        {isSuper && query.trim() && <div className="moderation-target-results" role="listbox" aria-label="Résultats de recherche">
-          {players.length > 0 ? players.map((candidate) => <button type="button" role="option" aria-selected={candidate.id === selectedTargetId} className={candidate.id === selectedTargetId ? 'active' : ''} disabled={pending} onClick={() => selectTarget(candidate.id)} key={candidate.id}>
-            <span className="moderation-player-identity"><strong title={candidate.displayName}>{candidate.displayName}</strong><small>Niveau {candidate.level}</small></span>
-            {candidate.tester && <span className="moderation-tester-badge">Testeur</span>}
-          </button>) : <p className="moderation-target-empty">Aucun joueur trouvé.</p>}
-        </div>}
-      </section>}
-      {activeTab === 'system' && <p className={`moderation-feedback${message ? ' error' : ' empty'}`} role={message ? 'alert' : undefined}>{message ?? '\u00a0'}</p>}
-    </>}>
-      {activeTab === 'system' && <div className="moderation-grid">
-        <form className="panel moderation-tool" onSubmit={(event) => submit(event, () => onResource(selectedTargetId, { resourceKey, amount, direction: 'add' }))}><ModerationToolHeading title="Ressources" current={currentResource} /><label>Ressource<select value={resourceKey} onChange={(event) => setResourceKey(event.target.value)}>{resources.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label><label>Montant<input inputMode="numeric" pattern="[0-9]*" required value={amount} onChange={(event) => setAmount(integerText(event.target.value))} /></label><div className="moderation-actions"><button disabled={pending}>Ajouter</button><button type="button" disabled={pending} onClick={() => void execute(() => onResource(selectedTargetId, { resourceKey, amount, direction: 'remove' }))}>Retirer</button></div></form>
-        {canUseGameplayTools && <>
-          <form className="panel moderation-tool" onSubmit={(event) => submit(event, () => onXp(selectedTargetId, { totalXp: xp }))}><ModerationToolHeading title="Progression" current={state ? `Actuel : ${formatResourceAmount(state.progression.totalXp)} XP · Niveau ${state.progression.level}` : 'Actuel : chargement…'} /><label>XP totale<input inputMode="numeric" pattern="[0-9]*" required value={xp} onChange={(event) => setXp(integerText(event.target.value))} /></label><div className="moderation-actions"><button disabled={pending}>Définir l’XP</button><button type="button" disabled={pending} onClick={() => void execute(() => onXp(selectedTargetId, { prepareNextLevel: true }))}>Préparer prochain niveau</button></div></form>
-          <form className="panel moderation-tool" onSubmit={(event) => submit(event, () => onGacha(selectedTargetId, { pity5: Number(pity5), pity4: Number(pity4), captureProgress: Number(capture), guaranteedFeatured5: guarantee }))}><ModerationToolHeading title="Gacha" current={state ? `Actuel : Pity 5★ ${state.gachaState.pity5} · Pity 4★ ${state.gachaState.pity4} · Capture ${state.gachaState.captureProgress}/3 · Garantie ${state.gachaState.guaranteedFeatured5 ? 'Oui' : 'Non'}` : 'Actuel : chargement…'} /><div className="moderation-inline"><label>Pity 5★<input inputMode="numeric" pattern="[0-9]*" required value={pity5} onChange={(event) => setPity5(integerText(event.target.value))} /></label><button type="button" onClick={() => setPity5('89')}>89</button><label>Pity 4★<input inputMode="numeric" pattern="[0-9]*" required value={pity4} onChange={(event) => setPity4(integerText(event.target.value))} /></label><button type="button" onClick={() => setPity4('9')}>9</button></div><label>Capture (0–3)<input inputMode="numeric" pattern="[0-9]*" required value={capture} onChange={(event) => setCapture(integerText(event.target.value))} /></label><label className="moderation-check"><input type="checkbox" checked={guarantee} onChange={(event) => setGuarantee(event.target.checked)} />Garantie 5★</label><button disabled={pending}>Appliquer</button></form>
-          <form className="panel moderation-tool" onSubmit={(event) => submit(event, () => onStella(selectedTargetId, stella))}><ModerationToolHeading title="Objets" current={state ? `Actuel : ${formatResourceAmount(state.stella.quantity)} Stella` : 'Actuel : chargement…'} /><label>Masterless Stella Fortuna<input inputMode="numeric" pattern="[0-9]*" required value={stella} onChange={(event) => setStella(integerText(event.target.value))} /></label><button disabled={pending}>Définir la quantité</button></form>
-          {isSuper && !isSelf && <section className="panel moderation-tool moderation-role"><h2>Testeur</h2><p>{state?.player.tester ? 'Ce joueur possède actuellement le rôle Testeur.' : 'Ce joueur ne possède pas le rôle Testeur.'}</p><button disabled={pending} type="button" onClick={() => void execute(() => onTester(selectedTargetId, !state?.player.tester))}>{state?.player.tester ? 'Retirer Testeur' : 'Attribuer Testeur'}</button></section>}
-        </>}
-      </div>}
-      {activeTab === 'codes' && codesAvailable && <GiftCodeAdminPanel onLoad={onLoadGiftCodes!} onCreate={onCreateGiftCode!} onPublish={onPublishGiftCode!} onUpdate={onUpdateGiftCode!} onClaimants={onGiftCodeClaimants!} />}
-    </ScrollableScreenPanel>
-    {browserOpen && <ModerationPlayerBrowser selectedPlayerId={selectedTargetId} onListPlayers={onListPlayers} onConfirm={(playerId) => { setBrowserOpen(false); selectTarget(playerId) }} onClose={() => setBrowserOpen(false)} />}
-  </div>
+  return (
+    <div className="screen-content moderation-screen long-screen-layout">
+      <ScrollableScreenPanel
+        className="moderation-screen-panel"
+        bodyClassName="moderation-tools-body"
+        fixed={<>
+            <nav
+              className="moderation-tabs"
+              role="tablist"
+              aria-label="Outils de modération"
+              onKeyDown={(event) => {
+                if (event.key !== "ArrowLeft" && event.key !== "ArrowRight")
+                  return;
+                event.preventDefault();
+                const tabs = [
+                  ...(systemAvailable ? (["system"] as const) : []),
+                  ...(codesAvailable ? (["codes"] as const) : []),
+                  ...(capabilities.communityModeration ? (["community"] as const) : []),
+                ];
+                const offset = event.key === "ArrowRight" ? 1 : tabs.length - 1;
+                const next = tabs[(tabs.indexOf(activeTab) + offset) % tabs.length]!;
+                setActiveTab(next);
+                (next === "codes" ? codesTabRef : next === "community" ? communityTabRef : systemTabRef).current?.focus();
+              }}
+            >
+              <AppButton
+                ref={systemTabRef}
+                role="tab"
+                aria-selected={activeTab === "system"}
+                tabIndex={activeTab === "system" ? 0 : -1}
+                className={activeTab === "system" ? "active" : ""}
+                disabled={!systemAvailable}
+                onClick={() => setActiveTab("system")}
+              >
+                Système de jeu
+              </AppButton>
+              <AppButton
+                ref={codesTabRef}
+                role="tab"
+                aria-selected={activeTab === "codes"}
+                tabIndex={activeTab === "codes" ? 0 : -1}
+                className={activeTab === "codes" ? "active" : ""}
+                disabled={!codesAvailable}
+                onClick={() => setActiveTab("codes")}
+              >
+                Codes
+              </AppButton>
+              <AppButton
+                role="tab"
+                aria-selected={false}
+                tabIndex={-1}
+                disabled
+              >
+                Bannières
+              </AppButton>
+              <AppButton
+                role="tab"
+                aria-selected={false}
+                tabIndex={-1}
+                disabled
+              >
+                Événements
+              </AppButton>
+              <AppButton
+                ref={communityTabRef}
+                role="tab"
+                aria-selected={activeTab === "community"}
+                tabIndex={activeTab === "community" ? 0 : -1}
+                className={activeTab === "community" ? "active" : ""}
+                disabled={!capabilities.communityModeration}
+                onClick={() => setActiveTab("community")}
+              >
+                Communauté
+              </AppButton>
+            </nav>
+            {activeTab === "system" && (
+              <section className="panel moderation-target" aria-busy={pending}>
+                <div className="moderation-target-heading">
+                  <div>
+                    <span className="eyebrow">Joueur ciblé</span>
+                    <strong title={state?.player.displayName}>
+                      {state?.player.displayName ?? "Chargement…"}
+                    </strong>
+                    <small>
+                      Rang :{" "}
+                      {state
+                        ? moderationRankLabels[state.player.rank]
+                        : "Chargement…"}
+                    </small>
+                  </div>
+                  {isSuper && (
+                    <div className="moderation-target-actions">
+                      <button
+                        type="button"
+                        className="moderation-self-button"
+                        disabled={pending || isSelf}
+                        onClick={() => selectTarget(actorPlayerId)}
+                      >
+                        Moi
+                      </button>
+                      <button
+                        type="button"
+                        className="moderation-self-button primary"
+                        disabled={pending}
+                        onClick={() => setBrowserOpen(true)}
+                      >
+                        Choisir
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {isSuper && (
+                  <label className="moderation-target-search">
+                    <span>Recherche rapide d’un joueur actif</span>
+                    <input
+                      type="search"
+                      value={query}
+                      onChange={(event) => {
+                        setQuery(event.target.value);
+                        setPlayers([]);
+                      }}
+                      placeholder="Saisir un pseudo…"
+                      autoComplete="off"
+                    />
+                  </label>
+                )}
+                {isSuper && query.trim() && (
+                  <div
+                    className="moderation-target-results"
+                    role="listbox"
+                    aria-label="Résultats de recherche"
+                  >
+                    {players.length > 0 ? (
+                      players.map((candidate) => (
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={candidate.id === selectedTargetId}
+                          className={
+                            candidate.id === selectedTargetId ? "active" : ""
+                          }
+                          disabled={pending}
+                          onClick={() => selectTarget(candidate.id)}
+                          key={candidate.id}
+                        >
+                          <span className="moderation-player-identity">
+                            <strong title={candidate.displayName}>
+                              {candidate.displayName}
+                            </strong>
+                            <small>Niveau {candidate.level}</small>
+                          </span>
+                          {candidate.tester && (
+                            <span className="moderation-tester-badge">
+                              Testeur
+                            </span>
+                          )}
+                        </button>
+                      ))
+                    ) : (
+                      <p className="moderation-target-empty">
+                        Aucun joueur trouvé.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </section>
+            )}
+            {activeTab === "system" && (
+              <p
+                className={`moderation-feedback${message ? " error" : " empty"}`}
+                role={message ? "alert" : undefined}
+              >
+                {message ?? "\u00a0"}
+              </p>
+            )}
+          </>}
+      >
+        {activeTab === "system" && (
+          <div className="moderation-grid">
+            <form
+              className="panel moderation-tool"
+              onSubmit={(event) =>
+                submit(event, () =>
+                  onResource(selectedTargetId, {
+                    resourceKey,
+                    amount,
+                    direction: "add",
+                  }),
+                )
+              }
+            >
+              <ModerationToolHeading
+                title="Ressources"
+                current={currentResource}
+              />
+              <label>
+                Ressource
+                <select
+                  value={resourceKey}
+                  onChange={(event) => setResourceKey(event.target.value)}
+                >
+                  {resources.map(([value, label]) => (
+                    <option value={value} key={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Montant
+                <input
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  required
+                  value={amount}
+                  onChange={(event) =>
+                    setAmount(integerText(event.target.value))
+                  }
+                />
+              </label>
+              <div className="moderation-actions">
+                <button disabled={pending}>Ajouter</button>
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() =>
+                    void execute(() =>
+                      onResource(selectedTargetId, {
+                        resourceKey,
+                        amount,
+                        direction: "remove",
+                      }),
+                    )
+                  }
+                >
+                  Retirer
+                </button>
+              </div>
+            </form>
+            {canUseGameplayTools && (
+              <>
+                <form
+                  className="panel moderation-tool"
+                  onSubmit={(event) =>
+                    submit(event, () => onXp(selectedTargetId, { totalXp: xp }))
+                  }
+                >
+                  <ModerationToolHeading
+                    title="Progression"
+                    current={
+                      state
+                        ? `Actuel : ${formatResourceAmount(state.progression.totalXp)} XP · Niveau ${state.progression.level}`
+                        : "Actuel : chargement…"
+                    }
+                  />
+                  <label>
+                    XP totale
+                    <input
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      required
+                      value={xp}
+                      onChange={(event) =>
+                        setXp(integerText(event.target.value))
+                      }
+                    />
+                  </label>
+                  <div className="moderation-actions">
+                    <button disabled={pending}>Définir l’XP</button>
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() =>
+                        void execute(() =>
+                          onXp(selectedTargetId, { prepareNextLevel: true }),
+                        )
+                      }
+                    >
+                      Préparer prochain niveau
+                    </button>
+                  </div>
+                </form>
+                <form
+                  className="panel moderation-tool"
+                  onSubmit={(event) =>
+                    submit(event, () =>
+                      onGacha(selectedTargetId, {
+                        pity5: Number(pity5),
+                        pity4: Number(pity4),
+                        captureProgress: Number(capture),
+                        guaranteedFeatured5: guarantee,
+                      }),
+                    )
+                  }
+                >
+                  <ModerationToolHeading
+                    title="Gacha"
+                    current={
+                      state
+                        ? `Actuel : Pity 5★ ${state.gachaState.pity5} · Pity 4★ ${state.gachaState.pity4} · Capture ${state.gachaState.captureProgress}/3 · Garantie ${state.gachaState.guaranteedFeatured5 ? "Oui" : "Non"}`
+                        : "Actuel : chargement…"
+                    }
+                  />
+                  <div className="moderation-inline">
+                    <label>
+                      Pity 5★
+                      <input
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        required
+                        value={pity5}
+                        onChange={(event) =>
+                          setPity5(integerText(event.target.value))
+                        }
+                      />
+                    </label>
+                    <button type="button" onClick={() => setPity5("89")}>
+                      89
+                    </button>
+                    <label>
+                      Pity 4★
+                      <input
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        required
+                        value={pity4}
+                        onChange={(event) =>
+                          setPity4(integerText(event.target.value))
+                        }
+                      />
+                    </label>
+                    <button type="button" onClick={() => setPity4("9")}>
+                      9
+                    </button>
+                  </div>
+                  <label>
+                    Capture (0–3)
+                    <input
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      required
+                      value={capture}
+                      onChange={(event) =>
+                        setCapture(integerText(event.target.value))
+                      }
+                    />
+                  </label>
+                  <label className="moderation-check">
+                    <input
+                      type="checkbox"
+                      checked={guarantee}
+                      onChange={(event) => setGuarantee(event.target.checked)}
+                    />
+                    Garantie 5★
+                  </label>
+                  <button disabled={pending}>Appliquer</button>
+                </form>
+                <form
+                  className="panel moderation-tool"
+                  onSubmit={(event) =>
+                    submit(event, () => onStella(selectedTargetId, stella))
+                  }
+                >
+                  <ModerationToolHeading
+                    title="Objets"
+                    current={
+                      state
+                        ? `Actuel : ${formatResourceAmount(state.stella.quantity)} Stella`
+                        : "Actuel : chargement…"
+                    }
+                  />
+                  <label>
+                    Masterless Stella Fortuna
+                    <input
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      required
+                      value={stella}
+                      onChange={(event) =>
+                        setStella(integerText(event.target.value))
+                      }
+                    />
+                  </label>
+                  <button disabled={pending}>Définir la quantité</button>
+                </form>
+                {isSuper && !isSelf && (
+                  <section className="panel moderation-tool moderation-role">
+                    <h2>Testeur</h2>
+                    <p>
+                      {state?.player.tester
+                        ? "Ce joueur possède actuellement le rôle Testeur."
+                        : "Ce joueur ne possède pas le rôle Testeur."}
+                    </p>
+                    <button
+                      disabled={pending}
+                      type="button"
+                      onClick={() =>
+                        void execute(() =>
+                          onTester(selectedTargetId, !state?.player.tester),
+                        )
+                      }
+                    >
+                      {state?.player.tester
+                        ? "Retirer Testeur"
+                        : "Attribuer Testeur"}
+                    </button>
+                  </section>
+                )}
+              </>
+            )}
+          </div>
+        )}
+        {activeTab === "codes" && codesAvailable && (
+          <GiftCodeAdminPanel
+            onLoad={onLoadGiftCodes!}
+            onCreate={onCreateGiftCode!}
+            onPublish={onPublishGiftCode!}
+            onUpdate={onUpdateGiftCode!}
+            onClaimants={onGiftCodeClaimants!}
+          />
+        )}
+        {activeTab === "community" && capabilities.communityModeration && (
+          <DirectMessageReportsPanel />
+        )}
+      </ScrollableScreenPanel>
+      {browserOpen && (
+        <ModerationPlayerBrowser
+          selectedPlayerId={selectedTargetId}
+          onListPlayers={onListPlayers}
+          onConfirm={(playerId) => {
+            setBrowserOpen(false);
+            selectTarget(playerId);
+          }}
+          onClose={() => setBrowserOpen(false)}
+        />
+      )}
+    </div>
+  );
 }
 
-function ModerationToolHeading({ title, current }: { title: string; current: string }) {
-  return <header className="moderation-tool-heading"><h2>{title}</h2><small className="moderation-current">{current.replace(/^Actuel :\s*/, '')}</small></header>
+function ModerationToolHeading({
+  title,
+  current,
+}: {
+  title: string;
+  current: string;
+}) {
+  return (
+    <header className="moderation-tool-heading">
+      <h2>{title}</h2>
+      <small className="moderation-current">
+        {current.replace(/^Actuel :\s*/, "")}
+      </small>
+    </header>
+  );
 }
 
-function moderationResourceCurrent(state: ModerationStateDto | null, resourceKey: string) {
-  if (!state) return 'Actuel : chargement…'
-  if (resourceKey === 'primogems') return `Actuel : ${formatResourceAmount(state.resources.primogems)} Primos`
-  if (resourceKey === 'moras') return `Actuel : ${formatResourceAmount(state.resources.moras)} Moras`
-  const element = resourceKey.replace('particles_', '') as keyof ModerationStateDto['resources']['particles']
-  const label = resources.find(([key]) => key === resourceKey)?.[1] ?? ''
-  return `Actuel : ${formatResourceAmount(state.resources.particles[element])} particules ${label}`
+function moderationResourceCurrent(
+  state: ModerationStateDto | null,
+  resourceKey: string,
+) {
+  if (!state) return "Actuel : chargement…";
+  if (resourceKey === "primogems")
+    return `Actuel : ${formatResourceAmount(state.resources.primogems)} Primos`;
+  if (resourceKey === "moras")
+    return `Actuel : ${formatResourceAmount(state.resources.moras)} Moras`;
+  const element = resourceKey.replace(
+    "particles_",
+    "",
+  ) as keyof ModerationStateDto["resources"]["particles"];
+  const label = resources.find(([key]) => key === resourceKey)?.[1] ?? "";
+  return `Actuel : ${formatResourceAmount(state.resources.particles[element])} particules ${label}`;
 }
 
-export default ModerationScreen
+export default ModerationScreen;

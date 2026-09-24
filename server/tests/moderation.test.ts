@@ -8,7 +8,7 @@ const identity = { subject: 'subject' }
 const player = { id: crypto.randomUUID(), displayName: 'Test', elementKey: 'hydro' as const, status: 'ACTIVE' as const }
 const state: ModerationStateDto = {
   player: { id: player.id, displayName: player.displayName, elementKey: player.elementKey, level: 0, tester: true, rank: 'TESTER' },
-  permissions: { roles: ['TESTER'], capabilities: { moderationAccess: true, selfResourceTools: true, selfGameplayTools: true, superTools: false, canSelectPlayers: false, canManageTesters: false } },
+  permissions: { roles: ['TESTER'], capabilities: { moderationAccess: true, communityModeration: false, selfResourceTools: true, selfGameplayTools: true, superTools: false, canSelectPlayers: false, canManageTesters: false } },
   resources: { primogems: '10', moras: '20', particles: { pyro: '0', hydro: '0', cryo: '0', electro: '0', anemo: '0', geo: '0', dendro: '0' } },
   progression: { totalXp: '28', level: 0, xpIntoCurrentStep: '28', xpPerStep: '30', isMaxLevel: false, level100OverflowRewardsClaimed: 0, totalMessages: '0', countedMessages: '0' },
   gachaState: { pity5: 89, pity4: 9, guaranteedFeatured5: false, captureProgress: 3, fiftyFiftyLostStreak: 0, selectedBannerCharacterId: null, totalPulls: '0', totalFiveStars: '0', totalFourStars: '0', fiftyFiftyWon: '0', fiftyFiftyLost: '0', capturesTriggered: '0' },

@@ -91,7 +91,7 @@ Panier utilise la recherche Player partagée avec Modération, dans une surface 
 
 ## Navigation interne de Modération
 
-Modération expose les onglets `Système de jeu | Codes | Bannières | Événements | Communauté`. `Système de jeu` conserve les outils et le sélecteur de Player existants. `Codes` porte l’administration globale des Codes cadeaux sans afficher ni réserver la cible Player, et reste disponible uniquement lorsque les permissions ADMIN/Super et les services correspondants sont présents. Bannières, Événements et Communauté sont des repères désactivés : ils ne créent aucune route ni permission. L’onglet actif est éphémère ; la barre est responsive et les flèches clavier ne parcourent que les onglets activés.
+Modération expose les onglets `Système de jeu | Codes | Bannières | Événements | Communauté`. `Système de jeu` conserve les outils et le sélecteur de Player existants. `Codes` reste ADMIN/Super. `Communauté` devient disponible uniquement avec `communityModeration` et présente les Signalements MP gelés ; un MODERATOR sans outil de test arrive directement sur cet onglet, tandis qu'un TESTER seul ne peut pas y accéder. Bannières et Événements restent des repères désactivés. L’onglet actif est éphémère ; la barre est responsive et les flèches clavier ne parcourent que les onglets activés.
 
 ## Header et Tutoriel futur
 

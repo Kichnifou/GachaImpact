@@ -396,6 +396,8 @@ model Player {
   directConversationRequestsSent DirectConversationRequest[] @relation("DirectRequestSender")
   directConversationRequestsReceived DirectConversationRequest[] @relation("DirectRequestRecipient")
   directMessages       DirectMessage[]
+  directMessageReportsMade DirectMessageReport[] @relation("DirectMessageReportReporter")
+  directMessageReportsReceived DirectMessageReport[] @relation("DirectMessageReportReported")
 
   @@index([status], map: "players_status_idx")
   @@index([elementKey], map: "players_element_key_idx")
@@ -970,6 +972,7 @@ model DirectConversation {
   participants  DirectConversationParticipant[]
   requests      DirectConversationRequest[]
   messages      DirectMessage[]
+  reports       DirectMessageReport[]
 
   @@unique([playerAId, playerBId], map: "direct_conversations_player_pair_key")
   @@index([playerBId, lastMessageAt(sort: Desc)], map: "direct_conversations_player_b_last_message_idx")
@@ -1040,10 +1043,34 @@ model DirectMessage {
   firstForRequest  DirectConversationRequest? @relation("DirectRequestFirstMessage")
   participantReads DirectConversationParticipant[] @relation("DirectParticipantLastRead")
   participantSharedReads DirectConversationParticipant[] @relation("DirectParticipantSharedRead")
+  reports          DirectMessageReport[]
 
   @@index([conversationId, submissionOrder(sort: Desc)], map: "direct_messages_conversation_submission_idx")
   @@index([authorPlayerId, createdAt(sort: Desc)], map: "direct_messages_author_created_idx")
   @@map("direct_messages")
+}
+
+model DirectMessageReport {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reporterPlayerId    String   @map("reporter_player_id") @db.Uuid
+  reportedPlayerId    String   @map("reported_player_id") @db.Uuid
+  conversationId      String   @map("conversation_id") @db.Uuid
+  messageId           String   @map("message_id") @db.Uuid
+  messageSnapshot     Json     @map("message_snapshot") @db.JsonB
+  contextSnapshot     Json     @map("context_snapshot") @db.JsonB
+  snapshotFingerprint String   @map("snapshot_fingerprint") @db.Text
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  reporter             Player   @relation("DirectMessageReportReporter", fields: [reporterPlayerId], references: [id], onDelete: Restrict)
+  reported             Player   @relation("DirectMessageReportReported", fields: [reportedPlayerId], references: [id], onDelete: Restrict)
+  conversation         DirectConversation @relation(fields: [conversationId], references: [id], onDelete: Restrict)
+  message              DirectMessage @relation(fields: [messageId], references: [id], onDelete: Restrict)
+
+  @@unique([reporterPlayerId, messageId], map: "direct_message_reports_reporter_message_key")
+  @@index([createdAt(sort: Desc)], map: "direct_message_reports_created_idx")
+  @@index([reportedPlayerId, createdAt(sort: Desc)], map: "direct_message_reports_reported_created_idx")
+  @@index([conversationId, createdAt(sort: Desc)], map: "direct_message_reports_conversation_created_idx")
+  @@index([messageId], map: "direct_message_reports_message_idx")
+  @@map("direct_message_reports")
 }
 
 model GlobalChatMessage {

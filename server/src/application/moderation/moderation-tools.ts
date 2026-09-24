@@ -8,7 +8,7 @@ export type ModerationPlayerDirection = 'asc' | 'desc'
 export type ModerationTesterFilter = 'all' | 'tester' | 'non-tester'
 export type ModerationPermissionsDto = Readonly<{
   roles: readonly ModerationRole[]
-  capabilities: Readonly<{ moderationAccess: boolean; selfResourceTools: boolean; selfGameplayTools: boolean; superTools: boolean; canSelectPlayers: boolean; canManageTesters: boolean }>
+  capabilities: Readonly<{ moderationAccess: boolean; communityModeration: boolean; selfResourceTools: boolean; selfGameplayTools: boolean; superTools: boolean; canSelectPlayers: boolean; canManageTesters: boolean }>
 }>
 export type ModerationPlayerDto = Readonly<{ id: string; displayName: string; elementKey: string | null; level: number; tester: boolean; rank: ModerationRank }>
 export type ModerationPlayerListQuery = Readonly<{

@@ -1,4 +1,5 @@
 import { SocialService } from '../application/social/social-service.js';
+import { DirectMessageReportService } from '../application/direct-messages/direct-message-report-service.js';
 import { ChoosePlayerElement } from '../application/player/choose-player-element.js';
 import { GetCurrentPlayer } from '../application/player/get-current-player.js';
 import { GetCurrentPlayerResources } from '../application/player/get-current-player-resources.js';
@@ -73,6 +74,7 @@ export function createRuntimeDependencies(config: AppConfig) {
   const random = new NodeRandomSource();
   const globalChatService = new GlobalChatService(database, getCurrentPlayer, clock, random);
   const directMessageService = new DirectMessageService(database, getCurrentPlayer, clock);
+  const directMessageReportService = new DirectMessageReportService(database, getCurrentPlayer);
   const dailyRewardStore = new PrismaDailyRewardStore(database);
   const dailyChallengeStore = new PrismaDailyChallengeStore(database);
   const dailyCombatStore = new PrismaDailyCombatStore(database, { encounter: random, fight: random });
@@ -96,6 +98,7 @@ export function createRuntimeDependencies(config: AppConfig) {
   const dependencies = {
     globalChatService,
     directMessageService,
+    directMessageReportService,
     tradeService,
     tradePlayer: getCurrentPlayer,
     authIdentityVerifier: createSupabaseAuthAdapter(issuer),

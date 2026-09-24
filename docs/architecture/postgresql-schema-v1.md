@@ -1898,7 +1898,7 @@ Le choix exact peut être finalisé pendant le mapping Prisma sans impact métie
 
 # 26. Messages privés
 
-État physique : la migration additive `20260922225444_036_add_direct_message_foundations` matérialise le socle backend-only ; `20260922232731_037_harden_direct_message_history` rend restrictives les trois FK enfant → conversation afin qu'une suppression de conversation ne puisse effacer l'historique ; `20260923092102_038_add_direct_message_shared_read_at` ajoute l'instant réel d'avancement du curseur partagé nécessaire à l'UI ; `20260923104500_039_add_message_submission_order` ajoute l'ordre de réception serveur partagé avec le Chat. Les quatre tables ont RLS active, aucune policy navigateur et aucun droit `PUBLIC`/`anon`/`authenticated`. Le premier vertical UI MP et l'édition/suppression/restauration sont sur main en réutilisant les colonnes existantes ; leur validation publique reste portée par le Master. R515 ajoute l'historique/recherche/date applicatifs sans nouveau DDL ; signalement et administration restent hors périmètre.
+État physique : les migrations 036–039 matérialisent conversations, participants, demandes, messages, lecture partagée et ordre serveur. La migration additive `20260924120000_040_add_direct_message_reports` ajoute la preuve de signalement MP. Les cinq tables ont RLS active, aucune policy navigateur et aucun droit `PUBLIC`/`anon`/`authenticated`. R515 reste sans DDL ; R509/R510/R517 sont candidates sur review et ne sont pas encore validées publiquement.
 
 ## 26.1 `direct_conversations`
 
@@ -1980,28 +1980,27 @@ Index :
 
 Les messages restent historiquement conservés. `submission_order` est réservé avant les traitements susceptibles d'inverser les commits ; il gouverne le fil, les 500 plus récents, les curseurs de lecture, accusés, non-lus et `last_message_order`. `created_at` reste descriptif. Le service n'expose que les 500 plus récents dans la conversation normale ; R515 lit toutes les lignes via une route Historique séparée, paginée par keyset sur le même ordre.
 
-Les `EXPLAIN (ANALYZE, BUFFERS)` R515 ont été exécutés dans une transaction rollbackée sur 250 000 lignes synthétiques, sans Player réel. La pagination utilise bien `direct_messages_conversation_submission_idx`. Sur cette donnée représentative, la recherche bornée à une conversation reste à environ 5,5 ms avec l'index existant, tandis qu'un GIN trigram expérimental atteint environ 20,4 ms à froid ; `pg_trgm` est disponible mais non installé. L'ancre date passe d'environ 2,3 ms à 1,8 ms avec un index expérimental conversation/date. Ces gains ne justifient ni coût d'écriture ni migration : aucune 040 n'est créée, les 39 migrations et les index réels restent inchangés. RLS et grants restent inchangés.
+Les `EXPLAIN (ANALYZE, BUFFERS)` R515 ont été exécutés dans une transaction rollbackée sur 250 000 lignes synthétiques, sans Player réel. La pagination utilise bien `direct_messages_conversation_submission_idx`. Sur cette donnée représentative, la recherche bornée à une conversation reste à environ 5,5 ms avec l'index existant, tandis qu'un GIN trigram expérimental atteint environ 20,4 ms à froid ; `pg_trgm` est disponible mais non installé. L'ancre date passe d'environ 2,3 ms à 1,8 ms avec un index expérimental conversation/date. Ces gains n'ont nécessité aucun index R515 supplémentaire ; la migration 040 ultérieure concerne exclusivement les signalements.
 
 Le lot avancé promu ne change aucun DDL. Les mutations auteur-only mettent à jour la ligne sous transaction sérialisable et `BusinessOperation` idempotente. `deleted_at` masque immédiatement `content` dans toute projection normale ; `restored_at` trace le dernier retour. La fenêtre R504 est gouvernée uniquement par `submission_order` : avec 499 lignes plus récentes, une suppression conserve le contenu serveur et `content_purged_at = NULL`; avec 500 lignes plus récentes, elle écrit atomiquement `content = NULL` et `content_purged_at = now`. À chaque insertion MP, une lecture indexée de la 500e position conserve en complément la purge des tombstones qui sortent ultérieurement de cette fenêtre. Les messages actifs ne sont jamais purgés et aucun scan JS de la table n'est effectué.
 
 ---
 
-## 26.5 `moderation_reports`
+## 26.5 `direct_message_reports` — migration 040
 
 Colonnes :
 
 - `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
 - `reporter_player_id uuid NOT NULL REFERENCES players(id) ON DELETE RESTRICT`
-- `reported_player_id uuid NULL REFERENCES players(id) ON DELETE RESTRICT`
-- `target_type text NOT NULL`
-- `target_id uuid NULL`
-- `reason text NOT NULL`
-- `evidence_snapshot jsonb NULL`
-- `status text NOT NULL`
+- `reported_player_id uuid NOT NULL REFERENCES players(id) ON DELETE RESTRICT`
+- `conversation_id uuid NOT NULL REFERENCES direct_conversations(id) ON DELETE RESTRICT`
+- `message_id uuid NOT NULL REFERENCES direct_messages(id) ON DELETE RESTRICT`
+- `message_snapshot jsonb NOT NULL`
+- `context_snapshot jsonb NOT NULL`
+- `snapshot_fingerprint text NOT NULL`
 - `created_at timestamptz NOT NULL DEFAULT now()`
-- `resolved_at timestamptz NULL`
 
-Les administrateurs ne disposent pas d'une lecture libre des MP.
+Contraintes/index : unique `(reporter_player_id, message_id)`, index `created_at DESC`, `(reported_player_id, created_at DESC)`, `(conversation_id, created_at DESC)` et FK message. Les JSON sont écrits une fois et jamais recalculés depuis les messages courants. La table ne porte ni raison, ni statut, ni sanction. RLS est active et `REVOKE ALL` vise `PUBLIC`, `anon`, `authenticated`; seul le backend authentifié y accède. Les administrateurs et modérateurs ne disposent d'aucune lecture libre des MP.
 
 ---
 

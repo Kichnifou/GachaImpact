@@ -11,7 +11,7 @@ export type PlayerDto = Readonly<{
 
 export type ModerationPermissionsDto = Readonly<{
   roles: readonly ('MODERATOR' | 'TESTER' | 'ADMIN')[]
-  capabilities: Readonly<{ moderationAccess: boolean; selfResourceTools: boolean; selfGameplayTools: boolean; superTools: boolean; canSelectPlayers: boolean; canManageTesters: boolean }>
+  capabilities: Readonly<{ moderationAccess: boolean; communityModeration: boolean; selfResourceTools: boolean; selfGameplayTools: boolean; superTools: boolean; canSelectPlayers: boolean; canManageTesters: boolean }>
 }>
 export type ModerationPlayerDto = Readonly<{ id: string; displayName: string; elementKey: ElementKey | null; level: number; tester: boolean; rank: 'SUPER' | 'MODERATOR' | 'TESTER' | 'PLAYER' }>
 
@@ -778,3 +778,8 @@ export type DirectMessageResolveDto = Readonly<{ conversationId: string; request
 export type DirectMessageBlockDto = Readonly<{ conversationId: string; blocked: boolean; changed: boolean; replayed: boolean }>
 export type DirectMessageArchiveDto = Readonly<{ conversationId: string; archived: boolean; changed: boolean }>
 export type DirectMessageReceiptDto = Readonly<{ conversationId: string; readReceiptsEnabled: boolean; changed: boolean }>
+export type DirectMessageReportSnapshotLineDto = Readonly<{ id: string; authorPlayerId: string; authorDisplayName: string; content: string | null; createdAt: string; submissionOrder: string; editedAt: string | null; deletedAt: string | null }>
+export type DirectMessageReportPreviewDto = Readonly<{ message: DirectMessageReportSnapshotLineDto; context: readonly DirectMessageReportSnapshotLineDto[]; snapshotFingerprint: string; alreadyReported: boolean }>
+export type DirectMessageReportSummaryDto = Readonly<{ id: string; createdAt: string; source: 'MP'; reporter: Readonly<{ id: string; displayName: string }>; reported: Readonly<{ id: string; displayName: string }>; message: DirectMessageReportSnapshotLineDto }>
+export type DirectMessageReportPageDto = Readonly<{ reports: readonly DirectMessageReportSummaryDto[]; page: number; pageSize: 20; total: number; totalPages: number }>
+export type DirectMessageReportDetailDto = DirectMessageReportSummaryDto & Readonly<{ context: readonly DirectMessageReportSnapshotLineDto[]; snapshotFingerprint: string }>

@@ -4,10 +4,10 @@ import { createRoot } from 'react-dom/client'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { DirectConversationDto, DirectMessageDto, DirectMessageMutationDto } from '../api/types'
+import type { DirectConversationDto, DirectMessageDto, DirectMessageMutationDto, DirectMessageReportPreviewDto } from '../api/types'
 
 const directMessages = vi.hoisted(() => ({
-  players: vi.fn(), list: vi.fn(), unread: vi.fn(), messages: vi.fn(), history: vi.fn(), historySearch: vi.fn(), historyDate: vi.fn(), initiate: vi.fn(), send: vi.fn(), edit: vi.fn(), remove: vi.fn(), restore: vi.fn(), accept: vi.fn(), ignore: vi.fn(), block: vi.fn(), unblock: vi.fn(), read: vi.fn(), receipts: vi.fn(), archive: vi.fn(),
+  players: vi.fn(), list: vi.fn(), unread: vi.fn(), messages: vi.fn(), history: vi.fn(), historySearch: vi.fn(), historyDate: vi.fn(), initiate: vi.fn(), send: vi.fn(), edit: vi.fn(), remove: vi.fn(), restore: vi.fn(), accept: vi.fn(), ignore: vi.fn(), block: vi.fn(), unblock: vi.fn(), read: vi.fn(), receipts: vi.fn(), archive: vi.fn(), reportPreview: vi.fn(), report: vi.fn(),
 }))
 const social = vi.hoisted(() => ({ directory: vi.fn() }))
 vi.mock('../api/game-api', () => ({
@@ -27,6 +27,8 @@ const conversationId = '33333333-3333-4333-8333-333333333333'
 const requestId = '44444444-4444-4444-8444-444444444444'
 const messageId = '55555555-5555-4555-8555-555555555555'
 const message: DirectMessageDto = { id: messageId, conversationId, authorPlayerId: otherId, own: false, clientIntentKey: null, content: 'Bonjour https://example.com/ok', createdAt: '2026-09-23T07:00:00.000Z', submissionOrder: '1', editedAt: null, deletedAt: null, restoredAt: null, readByOther: false, readByOtherAt: null }
+const reportLine = { id: messageId, authorPlayerId: otherId, authorDisplayName: 'Aster', content: 'Bonjour https://example.com/ok', createdAt: message.createdAt, submissionOrder: '1', editedAt: null, deletedAt: null }
+const reportPreview: DirectMessageReportPreviewDto = { message: reportLine, context: [reportLine], snapshotFingerprint: 'a'.repeat(64), alreadyReported: false }
 const baseConversation: DirectConversationDto = { id: conversationId, other: { id: otherId, displayName: 'Aster', elementKey: 'hydro' }, archived: false, lastMessageAt: message.createdAt, lastMessage: message, request: null, unreadCount: 2, readReceiptsEnabled: true, canSend: true, blockedByMe: false }
 const roots: ReturnType<typeof createRoot>[] = []
 const unreadChanged = vi.fn(), openProfile = vi.fn(), intentConsumed = vi.fn()
@@ -70,6 +72,8 @@ beforeEach(() => {
   directMessages.unblock.mockResolvedValue({ conversationId, blocked: false, changed: true, replayed: false })
   directMessages.receipts.mockResolvedValue({ conversationId, readReceiptsEnabled: false, changed: true })
   directMessages.archive.mockResolvedValue({ conversationId, archived: true, changed: true })
+  directMessages.reportPreview.mockResolvedValue(reportPreview)
+  directMessages.report.mockResolvedValue({ reported: true, duplicate: false })
   social.directory.mockResolvedValue({ players: [], page: 1, pageSize: 20, total: 0, totalPages: 0 })
 })
 afterEach(() => { act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren() })
@@ -929,5 +933,54 @@ describe('DirectMessagePanel', () => {
     expect(directMessages.remove.mock.calls[1]?.[2]).toBe(operationKey)
     expect(row.querySelector('.dm-message-bubble p')?.textContent).toBe('Archive originale')
     expect(row.querySelector('.dm-message-delete-confirm')).toBeNull()
+  })
+
+  it('offers report only for another active authoritative message in live and full history', async () => {
+    const own = { ...message, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', own: true, authorPlayerId: ownId }
+    const deleted = { ...message, id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', content: null, deletedAt: '2026-09-24T08:00:00.000Z' }
+    directMessages.messages.mockResolvedValue({ messages: [message, own, deleted], nextCursor: null, windowSize: 3 })
+    directMessages.history.mockResolvedValue({ messages: [{ ...message, canRestore: false }], olderCursor: null, newerCursor: null })
+    const container = await mount()
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    expect(container.querySelectorAll('[aria-label="Signaler le message"]')).toHaveLength(1)
+    expect(container.querySelector(`[data-message-id="${own.id}"] [aria-label="Signaler le message"]`)).toBeNull()
+    expect(container.querySelector(`[data-message-id="${deleted.id}"] [aria-label="Signaler le message"]`)).toBeNull()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-menu-button')!.click() })
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-conversation-menu button')).find(button => button.textContent === 'Historique complet'))!.click() }); await settle()
+    expect(container.querySelector('[aria-label="Signaler le message"]')).not.toBeNull()
+  })
+
+  it('previews the frozen context, highlights the target and supports cancel, outside click and Escape', async () => {
+    const context = Array.from({ length: 21 }, (_, index) => ({ ...reportLine, id: `${String(index).padStart(8, '0')}-0000-4000-8000-000000000000`, content: `Contexte ${index}`, submissionOrder: String(index + 1) }))
+    const target = context[10]!
+    directMessages.reportPreview.mockResolvedValue({ ...reportPreview, message: target, context })
+    const container = await mount(); await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    const flag = container.querySelector<HTMLButtonElement>('[aria-label="Signaler le message"]')!
+    await act(async () => { flag.click() }); await settle()
+    expect(directMessages.reportPreview).toHaveBeenCalledWith(conversationId, messageId)
+    expect(container.querySelectorAll('.dm-report-context article')).toHaveLength(21)
+    expect(container.querySelector('.dm-report-context article.target')?.textContent).toContain('Contexte 10')
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-report-dialog button')).find(button => button.textContent === 'Annuler'))!.click() })
+    expect(container.querySelector('.dm-report-overlay')).toBeNull(); expect(directMessages.report).not.toHaveBeenCalled()
+    await act(async () => { flag.click() }); await settle(); await act(async () => { container.querySelector<HTMLElement>('.dm-report-overlay')!.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })) })
+    expect(container.querySelector('.dm-report-overlay')).toBeNull()
+    await act(async () => { flag.click() }); await settle(); act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })))
+    expect(container.querySelector('.dm-report-overlay')).toBeNull()
+  })
+
+  it('reports, distinguishes duplicates and forces a new human confirmation after stale refresh', async () => {
+    const container = await mount(); await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    const open = async () => { await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="Signaler le message"]')!.click() }); await settle() }
+    const confirm = async () => { await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-report-dialog button')).find(button => button.textContent === 'Confirmer'))!.click() }); await settle() }
+    await open(); await confirm(); expect(container.textContent).toContain('Message signal')
+    directMessages.report.mockResolvedValueOnce({ reported: true, duplicate: true })
+    await open(); await confirm(); expect(container.textContent).toContain('Message d')
+    const refreshed = { ...reportPreview, snapshotFingerprint: 'b'.repeat(64), context: [{ ...reportLine, content: 'Contexte actualisÃ©' }] }
+    directMessages.report.mockRejectedValueOnce(new ApiError('DIRECT_MESSAGE_REPORT_PREVIEW_STALE', 'Stale', 409)).mockResolvedValueOnce({ reported: true, duplicate: false })
+    directMessages.reportPreview.mockResolvedValueOnce(reportPreview).mockResolvedValueOnce(refreshed)
+    await open(); await confirm()
+    expect(container.querySelector('.dm-report-notice')).not.toBeNull()
+    expect(container.textContent).toContain('Contexte actualis'); expect(directMessages.report).toHaveBeenCalledTimes(3)
+    await confirm(); expect(directMessages.report).toHaveBeenCalledTimes(4); expect(directMessages.report.mock.calls.at(-1)?.[2]).toBe(refreshed.snapshotFingerprint)
   })
 })
