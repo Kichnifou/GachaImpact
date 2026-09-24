@@ -232,8 +232,9 @@ export default function DirectMessagePanel({ playerId, isActive, intent, resetTo
   const saveEdit = async (messageId: string) => {
     const content = editDraft.trim()
     if (!content || Array.from(content).length > 1000 || messageActionPending !== null) return
-    const result = await mutateMessage({ kind: 'edit', messageId, content, key: crypto.randomUUID() })
-    if (result !== 'deterministic') { setEditingId(null); setEditDraft('') }
+    const key = crypto.randomUUID()
+    setEditingId(null); setEditDraft('')
+    await mutateMessage({ kind: 'edit', messageId, content, key })
   }
   const renderMessage = (message: DirectMessageDto | DirectMessageHistoryMessageDto) => {
     const restorable = !message.deletedAt || view !== 'history' || 'canRestore' in message && message.canRestore

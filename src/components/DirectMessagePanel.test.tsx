@@ -451,6 +451,51 @@ describe('DirectMessagePanel', () => {
     expect(container.querySelector('.dm-message-bubble p')?.textContent).toBe('Texte validé')
   })
 
+  it('closes the editor and publishes the optimistic edit before an Enter mutation resolves', async () => {
+    const own: DirectMessageDto = { ...message, authorPlayerId: ownId, own: true, content: 'Ancien' }
+    directMessages.messages.mockResolvedValue({ messages: [own], nextCursor: null, windowSize: 1 })
+    directMessages.edit.mockReturnValue(new Promise(() => undefined))
+    const container = await mount({ ...baseConversation, lastMessage: own })
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="Modifier le message"]')!.click() })
+    const textarea = container.querySelector<HTMLTextAreaElement>('[aria-label="Modifier le message"]')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, 'Nouveau'); textarea.dispatchEvent(new Event('input', { bubbles: true })); textarea.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); await Promise.resolve() })
+    expect(container.querySelector('.dm-message-edit')).toBeNull()
+    expect(container.textContent).not.toContain('Sauvegarder'); expect(container.textContent).not.toContain('Annuler')
+    expect(container.querySelector('.dm-message-bubble p')?.textContent).toBe('Nouveau')
+    expect(directMessages.edit).toHaveBeenCalledTimes(1)
+  })
+
+  it('closes the editor before a Save click resolves and keeps one authoritative row', async () => {
+    let resolveEdit!: (value: DirectMessageMutationDto) => void
+    let own: DirectMessageDto = { ...message, authorPlayerId: ownId, own: true, content: 'Ancien' }
+    directMessages.messages.mockImplementation(async () => ({ messages: [own], nextCursor: null, windowSize: 1 }))
+    directMessages.edit.mockReturnValue(new Promise(resolve => { resolveEdit = resolve }))
+    const container = await mount({ ...baseConversation, lastMessage: own })
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="Modifier le message"]')!.click() })
+    const textarea = container.querySelector<HTMLTextAreaElement>('[aria-label="Modifier le message"]')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, 'Nouveau'); textarea.dispatchEvent(new Event('input', { bubbles: true })); (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-message-edit button')).find(button => button.textContent === 'Sauvegarder'))!.click(); await Promise.resolve() })
+    expect(container.querySelector('.dm-message-edit')).toBeNull(); expect(container.querySelector('.dm-message-bubble p')?.textContent).toBe('Nouveau'); expect(directMessages.edit).toHaveBeenCalledTimes(1)
+    await act(async () => { own = { ...own, content: 'Nouveau', editedAt: '2026-09-24T09:00:00.000Z' }; resolveEdit({ conversationId, messageId, replayed: false, message: { id: messageId, content: 'Nouveau', editedAt: own.editedAt, deletedAt: null, restoredAt: null } }); await Promise.resolve() }); await settle()
+    expect(container.querySelector('.dm-message-edit')).toBeNull(); expect(container.querySelector('.dm-message-bubble p')?.textContent).toBe('Nouveau'); expect(container.querySelectorAll(`[data-message-id="${messageId}"]`)).toHaveLength(1)
+  })
+
+  it('keeps the editor closed when a deterministic edit refusal rolls back', async () => {
+    let rejectEdit!: (reason: Error) => void
+    const own: DirectMessageDto = { ...message, authorPlayerId: ownId, own: true, content: 'Ancien' }
+    directMessages.messages.mockResolvedValue({ messages: [own], nextCursor: null, windowSize: 1 })
+    directMessages.edit.mockReturnValue(new Promise((_resolve, reject) => { rejectEdit = reject }))
+    const container = await mount({ ...baseConversation, lastMessage: own })
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="Modifier le message"]')!.click() })
+    const textarea = container.querySelector<HTMLTextAreaElement>('[aria-label="Modifier le message"]')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, 'Nouveau'); textarea.dispatchEvent(new Event('input', { bubbles: true })); textarea.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); await Promise.resolve() })
+    expect(container.querySelector('.dm-message-edit')).toBeNull(); expect(container.querySelector('.dm-message-bubble p')?.textContent).toBe('Nouveau')
+    await act(async () => { rejectEdit(new ApiError('DIRECT_MESSAGE_UNAVAILABLE', 'Refusée', 409)); await Promise.resolve(); await Promise.resolve() }); await settle()
+    expect(container.querySelector('.dm-message-edit')).toBeNull(); expect(container.querySelector('.dm-message-bubble p')?.textContent).toBe('Ancien'); expect(container.querySelector('.dm-message-action-error')?.textContent).toContain('Refusée')
+  })
+
   it('cancels edit outside while clicks inside the editor still reach Save', async () => {
     const own: DirectMessageDto = { ...message, authorPlayerId: ownId, own: true, content: 'Original' }
     directMessages.messages.mockResolvedValue({ messages: [own], nextCursor: null, windowSize: 1 })
