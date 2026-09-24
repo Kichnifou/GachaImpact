@@ -951,7 +951,7 @@ Chaque achat standalone produit une seule `BusinessOperation` et une seule ligne
 
 # 16. Missions
 
-## 16.1 Missions permanentes — état physique 041 promu, 042 candidate
+## 16.1 Missions permanentes — état physique 041–042 promu
 
 `PermanentMissionDefinition` / `permanent_mission_definitions` porte les 31 définitions déterministes : `externalKey`, `metric`, rang B/A/S/Z, nom, description, libellé de progression, `target`, `rewardPrimogems`, ordre, activation et secret. Les couples métrique/rang et rang/ordre sont uniques ; les contraintes SQL limitent les métriques par famille, imposent les récompenses validées et réservent `isSecret` à Z.
 
@@ -963,7 +963,7 @@ Le provisionnement initialise les 31 lignes dans sa transaction : B actif, A/S/Z
 
 `PermanentMissionService` reçoit la transaction métier existante. Sa voie producteur lit uniquement les métriques demandées ; la voie catch-up SYSTEM lit tous les compteurs historiques avant la mutation courante. Il calcule la progression effective depuis baseline, cascade les paliers cumulatifs, débloque Z après les 27 B/A/S et évalue immédiatement les quatre conditions Z. Complétion, `BusinessOperation`, mouvement Economy, contexte de complétion et état récompensé sont atomiques ; verrou Player, marqueur de catch-up, clé d’idempotence par Player/définition et lien unique de récompense empêchent le double paiement.
 
-La projection personnelle interne expose B/A/S avec objectif, progression, seuil, état, récompense et rang. Avant `zUnlockedAt`, elle ne renvoie que `{ status: LOCKED }` pour Z, sans définition ni récompense. Le candidat Lot 2 raccorde Chat/XP, Gacha/possessions/C6, Stella, Economy Moras/particules personnelles et intérêts Banque ; il n’ajoute aucune route player-facing.
+La projection personnelle interne expose B/A/S avec objectif, progression, seuil, état, récompense et rang. Avant `zUnlockedAt`, elle ne renvoie que `{ status: LOCKED }` pour Z, sans définition ni récompense. Le Lot 2 promu raccorde Chat/XP, Gacha/possessions/C6, Stella, Economy Moras/particules personnelles et intérêts Banque ; il n’ajoute aucune route player-facing et reste à valider publiquement.
 
 ## 16.3 Défi quotidien payant (`daily-mission` technique)
 

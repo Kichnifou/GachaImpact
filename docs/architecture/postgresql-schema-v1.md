@@ -1236,7 +1236,7 @@ L'API physique 0.79 expose `GET /api/v1/me/shop` et `POST /api/v1/me/shop/:itemI
 
 # 17. Missions
 
-## 17.1 État permanent physique — migration 041 promue, 042 candidate
+## 17.1 État permanent physique — migrations 041–042 promues
 
 `permanent_mission_definitions` contient exactement le catalogue B/A/S/Z. Ses enums physiques sont `permanent_mission_rank`, `permanent_mission_metric` et `permanent_mission_progress_status`. La table stocke external key, métrique, rang, textes, cible, récompense Primogemmes, ordre, activation et secret. Les unicités portent sur external key, métrique/rang et rang/ordre ; les CHECK imposent valeurs positives, textes non vides, métriques compatibles, récompense de chaque rang et secret exclusivement Z.
 
