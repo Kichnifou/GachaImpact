@@ -1,22 +1,27 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
-import { afterAll, afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { Prisma } from '../generated/prisma/client.js';
-import { loadConfig } from '../src/config/environment.js';
 import { PrismaBankingStore } from '../src/infrastructure/database/prisma-banking-store.js';
-import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 import { PermanentMissionService } from '../src/application/missions/permanent-mission-service.js';
+import { isolatedBatchDatabase } from './isolated-batch-database.js';
 
-const config = loadConfig();
-if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Banking database tests.');
-const database = createDatabase(config.databaseUrl);
+const fixture = isolatedBatchDatabase();
+const { database } = fixture;
 const playerIds = new Set<string>();
 
+beforeAll(async () => {
+  await fixture.setup();
+  await database.resourceDefinition.createMany({ data: [
+    { key: 'moras', displayName: 'Moras', category: 'currency' },
+    { key: 'primogems', displayName: 'Primogemmes', category: 'currency' },
+  ] });
+}, 30_000);
 afterEach(async () => cleanupBankTestPlayers());
 afterAll(async () => {
   try { await cleanupBankTestPlayers(); }
-  finally { await database.$disconnect(); }
+  finally { await fixture.cleanup(); }
 });
 
 async function createPlayer(walletMoras: bigint, earned = 0n, spent = 0n) {
@@ -54,13 +59,39 @@ async function cleanupBankTestPlayers(): Promise<void> {
   ids.forEach((id) => playerIds.delete(id));
 }
 
+async function prepareLegacyMissionCandidate(playerId: string, bankBalance: bigint, lastInterestDate: string, historicalMorasEarned = 0n): Promise<void> {
+  await database.$transaction(async (transaction) => {
+    await transaction.playerProgression.create({ data: { playerId, totalMessages: 50n, countedMessages: 50n } });
+    await transaction.playerEconomyStats.update({ where: { playerId }, data: { totalMorasEarned: historicalMorasEarned } });
+    await transaction.playerPermanentMissionState.update({ where: { playerId }, data: { standaloneCatchupCompletedAt: null } });
+    await transaction.playerBankAccount.create({ data: { playerId, balance: bankBalance, lastInterestDate: new Date(`${lastInterestDate}T00:00:00Z`) } });
+  });
+}
+
+async function missionSnapshot(playerId: string) {
+  return database.playerPermanentMissionProgress.findMany({
+    where: { playerId },
+    orderBy: { definitionId: 'asc' },
+    select: {
+      definitionId: true,
+      status: true,
+      progress: true,
+      startedAt: true,
+      completedAt: true,
+      rewardedAt: true,
+      completionTriggerOperationId: true,
+      rewardOperationId: true,
+    },
+  });
+}
+
 const date = '2026-09-09';
 const occurredAt = new Date('2026-09-09T12:00:00.000Z');
 const transfer = (playerId: string, direction: 'deposit' | 'withdraw', amount: bigint | 'max', idempotencyKey = randomUUID(), at = occurredAt) => ({
   playerId, direction, amount, idempotencyKey, businessDate: date, occurredAt: at, sourceChannel: 'UI' as const,
 });
 
-describe('Banking persistence', () => {
+describe('Banking persistence', { timeout: 20_000 }, () => {
   it('starts at zero and performs neutral normal/MAX deposits and withdrawals with an ordered ledger', async () => {
     const playerId = await createPlayer(1_000n, 40n, 20n);
     const store = new PrismaBankingStore(database);
@@ -186,6 +217,58 @@ describe('Banking persistence', () => {
     await store.transfer(transfer(zeroPlayer, 'deposit', 100n));
     expect((await store.getState(zeroPlayer, date, occurredAt)).recentOperations.map(({ type }) => type)).toEqual(['DEPOSIT']);
   });
+
+  it('does not bulk catch up scheduler players and catches up exactly once before the first positive interest', async () => {
+    const zeroPlayer = await createPlayer(0n);
+    const currentPlayer = await createPlayer(0n);
+    const positivePlayer = await createPlayer(0n);
+    const tinyPlayer = await createPlayer(0n);
+    await Promise.all([
+      prepareLegacyMissionCandidate(zeroPlayer, 0n, '2026-09-06'),
+      prepareLegacyMissionCandidate(currentPlayer, 100n, date),
+      prepareLegacyMissionCandidate(positivePlayer, 100n, '2026-09-08', 49_998n),
+      prepareLegacyMissionCandidate(tinyPlayer, 33n, '2026-09-06'),
+    ]);
+    const untouchedPlayers = [zeroPlayer, currentPlayer, tinyPlayer];
+    const before = new Map(await Promise.all(untouchedPlayers.map(async playerId => [playerId, await missionSnapshot(playerId)] as const)));
+    const store = new PrismaBankingStore(database);
+
+    await expect(store.accrueAllInterestThrough(date, occurredAt)).resolves.toEqual({ playersProcessed: 3, daysProcessed: 7 });
+
+    for (const playerId of untouchedPlayers) {
+      expect((await database.playerPermanentMissionState.findUniqueOrThrow({ where: { playerId } })).standaloneCatchupCompletedAt).toBeNull();
+      expect(await database.businessOperation.count({ where: { playerId, operationType: 'permanent-mission.standalone-catchup' } })).toBe(0);
+      expect(await database.businessOperation.count({ where: { playerId, operationType: 'permanent-mission.reward' } })).toBe(0);
+      expect(await database.resourceMovement.count({ where: { playerId, domainKey: 'missions' } })).toBe(0);
+      expect(await missionSnapshot(playerId)).toEqual(before.get(playerId));
+    }
+
+    const catchup = await database.businessOperation.findMany({ where: { playerId: positivePlayer, operationType: 'permanent-mission.standalone-catchup' } });
+    expect(catchup).toHaveLength(1);
+    const catchupOperation = catchup[0];
+    if (!catchupOperation) throw new Error('Expected one standalone catch-up operation.');
+    expect(catchupOperation).toMatchObject({ sourceChannel: 'SYSTEM', status: 'COMPLETED' });
+    const rewards = await database.businessOperation.findMany({ where: { playerId: positivePlayer, operationType: 'permanent-mission.reward' } });
+    expect(rewards).toHaveLength(2);
+    const historicalReward = rewards.find(operation => (operation.resultSummary as { completionContext?: string }).completionContext === 'STANDALONE_CATCHUP');
+    const currentReward = rewards.find(operation => (operation.resultSummary as { completionContext?: string }).completionContext === 'CURRENT_ACTION');
+    expect(historicalReward).toMatchObject({ sourceChannel: 'SYSTEM', status: 'COMPLETED' });
+    expect(currentReward).toMatchObject({ sourceChannel: 'SYSTEM', status: 'COMPLETED' });
+    expect((await database.playerPermanentMissionProgress.findFirstOrThrow({ where: { playerId: positivePlayer, definition: { externalKey: 'messages_b' } } })).completionTriggerOperationId).toBe(catchupOperation.id);
+
+    const interest = await database.businessOperation.findMany({ where: { playerId: positivePlayer, operationType: 'bank.interest' } });
+    expect(interest).toHaveLength(1);
+    const interestOperation = interest[0];
+    if (!interestOperation) throw new Error('Expected one positive bank interest operation.');
+    expect(interestOperation).toMatchObject({ sourceChannel: 'SYSTEM', status: 'COMPLETED' });
+    expect(await database.bankTransaction.findFirstOrThrow({ where: { playerId: positivePlayer, operationId: interestOperation.id } })).toMatchObject({ amount: 3n, bankBalanceAfter: 103n });
+    expect(await database.playerPermanentMissionProgress.findFirstOrThrow({ where: { playerId: positivePlayer, definition: { externalKey: 'moras_b' } } })).toMatchObject({ progress: 50_000n, completionTriggerOperationId: interestOperation.id });
+
+    await store.accrueAllInterestThrough(date, new Date('2026-09-09T20:00:00.000Z'));
+    expect(await database.businessOperation.count({ where: { playerId: positivePlayer, operationType: 'permanent-mission.standalone-catchup' } })).toBe(1);
+    expect(await database.businessOperation.count({ where: { playerId: positivePlayer, operationType: 'permanent-mission.reward' } })).toBe(2);
+    expect(await database.businessOperation.count({ where: { playerId: positivePlayer, operationType: 'bank.interest' } })).toBe(1);
+  }, 20_000);
 
   it('serializes interest catch-up with a concurrent transfer against the same Player lock', async () => {
     const playerId = await createPlayer(1_000n);

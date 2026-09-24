@@ -175,10 +175,10 @@ async function lockWallet(transaction: Prisma.TransactionClient, playerId: strin
 }
 
 async function accruePlayerThrough(transaction: Prisma.TransactionClient, playerId: string, initialAccount: BankAccountCursor, targetDate: string, now: Date, permanentMissions: PermanentMissionService): Promise<BankAccountCursor> {
-  await permanentMissions.catchUpStandalone(transaction, { playerId, now });
   let balance = initialAccount.balance;
   let lastDate = databaseDateToBusinessDate(initialAccount.lastInterestDate);
   let lastInterestOperationId: string | null = null;
+  let standaloneCatchupChecked = false;
   while (lastDate < targetDate) {
     const businessDate = addBusinessDays(lastDate, 1);
     const interest = calculateDailyBankInterest(balance);
@@ -186,6 +186,10 @@ async function accruePlayerThrough(transaction: Prisma.TransactionClient, player
       await transaction.playerBankAccount.update({ where: { playerId }, data: { lastInterestDate: businessDateToDatabaseDate(businessDate) } });
       lastDate = businessDate;
       continue;
+    }
+    if (!standaloneCatchupChecked) {
+      await permanentMissions.catchUpStandalone(transaction, { playerId, now });
+      standaloneCatchupChecked = true;
     }
     const operation = await transaction.businessOperation.create({ data: {
       playerId,
