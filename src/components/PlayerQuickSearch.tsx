@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import type { PlayerBrowserCandidate, PlayerBrowserPage, PlayerBrowserQuery } from './PlayerSelectionBrowser'
 import { apiErrorMessage } from '../utils/formatters'
+import { useLatestRef } from '../hooks/use-latest-ref'
 
 export default function PlayerQuickSearch<Candidate extends PlayerBrowserCandidate>({ value, onValueChange, onListPlayers, onSelect, action }: {
   value: string
@@ -11,16 +12,17 @@ export default function PlayerQuickSearch<Candidate extends PlayerBrowserCandida
 }) {
   const [open, setOpen] = useState(false)
   const [players, setPlayers] = useState<readonly Candidate[]>([]), [error, setError] = useState('')
+  const listPlayersRef = useLatestRef(onListPlayers)
   useEffect(() => {
     if (!open || !value.trim()) return
     let active = true
     const timer = setTimeout(() => {
-      void onListPlayers({ query: value, elementKey: null, sort: 'name', direction: 'asc', page: 1 })
+      void listPlayersRef.current({ query: value, elementKey: null, sort: 'name', direction: 'asc', page: 1 })
         .then(result => { if (active) { setPlayers(result.players); setError('') } })
         .catch(reason => { if (active) setError(apiErrorMessage(reason)) })
     }, 120)
     return () => { active = false; clearTimeout(timer) }
-  }, [value, open, onListPlayers])
+  }, [value, open, listPlayersRef])
   return <div className="player-quick-search" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false) }} onKeyDown={event => { if (event.key === 'Escape') setOpen(false) }}>
     <div className="player-quick-search-heading"><label htmlFor="player-quick-search-input">Recherche rapide d’un joueur</label>{action?.(() => setOpen(false))}</div>
     <input id="player-quick-search-input" type="search" placeholder="Saisir un pseudo…" autoComplete="off" value={value} onChange={event => { onValueChange(event.target.value); setPlayers([]); setError(''); setOpen(true) }} />

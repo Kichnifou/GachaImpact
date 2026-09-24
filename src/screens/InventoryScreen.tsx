@@ -11,6 +11,7 @@ import GameAssetIcon from '../components/GameAssetIcon'
 import ParticleConversionModal from '../components/ParticleConversionModal'
 import { apiErrorMessage, elementLabels, formatResourceAmount } from '../utils/formatters'
 import { currencyAssetPaths, getElementAssetPath } from '../utils/gameAssets'
+import { useLatestRef } from '../hooks/use-latest-ref'
 
 type InventoryScreenProps = {
   initialInventory: PlayerInventoryDto | null
@@ -46,6 +47,7 @@ function InventoryScreen({ initialInventory, refreshToken = 0, resources, elemen
   const [selectedItem, setSelectedItem] = useState<InventoryItemDto | null>(null)
   const [itemDetail, setItemDetail] = useState<InventoryItemDetailDto | null>(null)
   const [itemDetailError, setItemDetailError] = useState<string | null>(null)
+  const [itemDetailLoading, setItemDetailLoading] = useState(false)
   const [stellaPickerOpen, setStellaPickerOpen] = useState(false)
   const [box, setBox] = useState<PlayerBoxDto | null>(null)
   const [boxError, setBoxError] = useState<string | null>(null)
@@ -56,10 +58,14 @@ function InventoryScreen({ initialInventory, refreshToken = 0, resources, elemen
   const [stellaRetryId, setStellaRetryId] = useState(stellaRetryCharacterId)
   const [conversionOpen, setConversionOpen] = useState(false)
   const seenRefreshToken = useRef(refreshToken)
+  const loadRef = useLatestRef(onLoad)
+  const loadBoxRef = useLatestRef(onLoadBox)
+  const loadItemDetailRef = useLatestRef(onLoadItemDetail)
+  const itemDetailRevision = useRef(0)
 
   const load = useCallback(async () => {
     try {
-      const next = await onLoad()
+      const next = await loadRef.current()
       setInventory(next)
       setError(null)
       return next
@@ -67,21 +73,21 @@ function InventoryScreen({ initialInventory, refreshToken = 0, resources, elemen
       setError(apiErrorMessage(reason))
       throw reason
     }
-  }, [onLoad])
+  }, [loadRef])
 
   useEffect(() => {
     if (seenRefreshToken.current === refreshToken) return
     seenRefreshToken.current = refreshToken
     void load().catch(() => undefined)
-    if (box) void onLoadBox().then(setBox).catch(() => undefined)
-  }, [box, load, onLoadBox, refreshToken])
+    if (box) void loadBoxRef.current().then(setBox).catch(() => undefined)
+  }, [box, load, loadBoxRef, refreshToken])
 
   useEffect(() => {
     let active = true
-    void onLoad().then((next) => { if (active) { setInventory(next); setError(null) } })
+    void loadRef.current().then((next) => { if (active) { setInventory(next); setError(null) } })
       .catch((reason) => { if (active) setError(apiErrorMessage(reason)) })
     return () => { active = false }
-  }, [onLoad])
+  }, [loadRef])
 
   useEffect(() => {
     if (!stellaFeedback?.visual) return
@@ -105,11 +111,19 @@ function InventoryScreen({ initialInventory, refreshToken = 0, resources, elemen
   }
 
   const openItemDetail = async (item: InventoryItemDto, page = 1) => {
+    const revision = ++itemDetailRevision.current
     setSelectedItem(item)
     setItemDetailError(null)
+    setItemDetailLoading(true)
     if (page === 1) setItemDetail(null)
-    try { setItemDetail(await onLoadItemDetail(item.id, page)) }
-    catch (reason) { setItemDetailError(apiErrorMessage(reason)) }
+    try {
+      const next = await loadItemDetailRef.current(item.id, page)
+      if (revision === itemDetailRevision.current) setItemDetail(next)
+    } catch (reason) {
+      if (revision === itemDetailRevision.current) setItemDetailError(apiErrorMessage(reason))
+    } finally {
+      if (revision === itemDetailRevision.current) setItemDetailLoading(false)
+    }
   }
 
   const toggleFavorite = async (character: BoxCharacterDto) => {
@@ -173,7 +187,7 @@ function InventoryScreen({ initialInventory, refreshToken = 0, resources, elemen
         </div>
       </section>
     </div>
-    {selectedItem && <ItemDetailModal item={itemDetail?.item ?? selectedItem} detail={itemDetail} error={itemDetailError} onPage={(page) => void openItemDetail(selectedItem, page)} onClose={() => { setSelectedItem(null); setItemDetail(null); setItemDetailError(null) }} onUseStella={selectedItem.externalKey === MASTERLESS_STELLA_FORTUNA_KEY ? () => void openStellaPicker() : undefined} />}
+    {selectedItem && <ItemDetailModal item={itemDetail?.item ?? selectedItem} detail={itemDetail} error={itemDetailError} loading={itemDetailLoading} onPage={(page) => void openItemDetail(selectedItem, page)} onClose={() => { itemDetailRevision.current += 1; setSelectedItem(null); setItemDetail(null); setItemDetailError(null); setItemDetailLoading(false) }} onUseStella={selectedItem.externalKey === MASTERLESS_STELLA_FORTUNA_KEY ? () => void openStellaPicker() : undefined} />}
     {stellaPickerOpen && <StellaPicker box={box} error={boxError} stellaQuantity={stella?.quantity ?? '0'} favoritePendingId={favoritePendingId} onClose={() => { setStellaPickerOpen(false); setSelectedCharacterId(null); setBoxError(null); setStellaFeedback(null) }} onSelect={setSelectedCharacterId} onRetry={() => void openStellaPicker()} onToggleFavorite={toggleFavorite} />}
     {selectedCharacter && <BoxCharacterDetailModal character={selectedCharacter} combatState={combatStateFor(dailyCombat, selectedCharacter.id)} stellaQuantity={stella?.quantity ?? '0'} stellaRetryAvailable={stellaRetryId === selectedCharacter.id} favoritePending={favoritePendingId === selectedCharacter.id} stellaPending={stellaPendingId === selectedCharacter.id} stellaFeedback={stellaFeedback} actionError={boxError} onToggleFavorite={() => void toggleFavorite(selectedCharacter)} onUseStella={() => void submitStella(selectedCharacter)} onClose={() => { setSelectedCharacterId(null); setStellaFeedback(null); setBoxError(null) }} />}
     {conversionOpen && <ParticleConversionModal elementKey={elementKey} stock={inventory.resources.find(({ key }) => key === `particles_${elementKey}`)?.amount ?? '0'} onClose={() => setConversionOpen(false)} onOpenTrades={onNavigateTrades} onConvert={async (amount, idempotencyKey) => {
@@ -243,14 +257,14 @@ function StellaPicker({ box, error, stellaQuantity, favoritePendingId, onClose, 
   </div>
 }
 
-function ItemDetailModal({ item, detail, error, onPage, onClose, onUseStella }: { item: InventoryItemDto; detail: InventoryItemDetailDto | null; error: string | null; onPage: (page: number) => void; onClose: () => void; onUseStella?: () => void }) {
+function ItemDetailModal({ item, detail, error, loading, onPage, onClose, onUseStella }: { item: InventoryItemDto; detail: InventoryItemDetailDto | null; error: string | null; loading: boolean; onPage: (page: number) => void; onClose: () => void; onUseStella?: () => void }) {
   return <div className="modal-layer" role="presentation" onMouseDown={onClose}><section className="floating-panel inventory-item-detail" role="dialog" aria-modal="true" aria-labelledby="inventory-item-title" onMouseDown={(event) => event.stopPropagation()}>
     <header className="floating-panel-heading"><span className="eyebrow">{item.section === 'collection' ? 'Collection' : 'Objet'}</span><button type="button" className="icon-button" onClick={onClose} aria-label="Fermer la fiche"><span className="icon-glyph">×</span></button></header>
     <span className="item-icon violet" aria-hidden="true">{BigInt(item.quantity) > 0n ? '✦' : '?'}</span><h2 id="inventory-item-title">{item.displayName}</h2><strong>× {formatResourceAmount(item.quantity)}</strong><p>{item.description ?? 'Aucune description disponible.'}</p>
     {item.originFestival && <p><b>Origine :</b> {item.originFestival}{item.originMonth ? ` · ${item.originMonth}` : ''}</p>}
     {item.acquisitionHint && <p><b>Obtention :</b> {item.acquisitionHint}</p>}
     <p><b>Première obtention :</b> {item.firstObtainedAt ? formatInventoryDate(item.firstObtainedAt) : 'Non connue'}</p>
-    <section className="inventory-acquisition-history"><h3>Historique d’acquisition</h3>{error ? <p role="alert">{error}</p> : !detail ? <p>Chargement…</p> : detail.history.length === 0 ? <p>Aucune acquisition enregistrée.</p> : <ul>{detail.history.map((entry) => <li key={entry.id}><strong>+{formatResourceAmount(entry.quantity)}</strong><span>{formatInventoryDate(entry.acquiredAt)} · {acquisitionSourceLabel(entry.sourceKey)}</span></li>)}</ul>}{detail && detail.pageCount > 1 && <footer><button type="button" disabled={detail.page <= 1} onClick={() => onPage(detail.page - 1)}>Précédent</button><span>{detail.page} / {detail.pageCount}</span><button type="button" disabled={detail.page >= detail.pageCount} onClick={() => onPage(detail.page + 1)}>Suivant</button></footer>}</section>
+    <section className="inventory-acquisition-history"><h3>Historique d’acquisition</h3>{error ? <p role="alert">{error}</p> : !detail ? <p>Chargement…</p> : detail.history.length === 0 ? <p>Aucune acquisition enregistrée.</p> : <ul>{detail.history.map((entry) => <li key={entry.id}><strong>+{formatResourceAmount(entry.quantity)}</strong><span>{formatInventoryDate(entry.acquiredAt)} · {acquisitionSourceLabel(entry.sourceKey)}</span></li>)}</ul>}{detail && detail.pageCount > 1 && <footer><button type="button" disabled={loading || detail.page <= 1} onClick={() => onPage(detail.page - 1)}>Précédent</button><span>{detail.page} / {detail.pageCount}</span><button type="button" disabled={loading || detail.page >= detail.pageCount} onClick={() => onPage(detail.page + 1)}>Suivant</button></footer>}</section>
     {onUseStella && <button type="button" className="inventory-use-button" disabled={BigInt(item.quantity) === 0n} onClick={onUseStella}>Utiliser</button>}
   </section></div>
 }

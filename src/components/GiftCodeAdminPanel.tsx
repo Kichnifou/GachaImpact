@@ -7,6 +7,7 @@ import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
 import AppButton from './AppButton'
 import ModalCloseButton from './ModalCloseButton'
 import { useModalDialog } from './useModalDialog'
+import { useLatestRef } from '../hooks/use-latest-ref'
 
 const resourceOptions = [
   ['primogems', 'Primos'], ['moras', 'Moras'], ['particles_pyro', 'Particules Pyro'], ['particles_hydro', 'Particules Hydro'], ['particles_cryo', 'Particules Cryo'], ['particles_electro', 'Particules Électro'], ['particles_anemo', 'Particules Anémo'], ['particles_geo', 'Particules Géo'], ['particles_dendro', 'Particules Dendro'],
@@ -84,11 +85,12 @@ function GiftCodeListModal(props: Pick<Props, 'onLoad' | 'onPublish' | 'onUpdate
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState<AdminGiftCodeDto | null>(null)
   const [claimantsCode, setClaimantsCode] = useState<AdminGiftCodeDto | null>(null)
+  const loadRef = useLatestRef(onLoad)
   useEffect(() => {
     let active = true
-    const timer = window.setTimeout(() => void onLoad(query).then((next) => { if (active) { setValue(next); setError(null) } }).catch((reason) => { if (active) setError(apiErrorMessage(reason)) }), query.search ? 150 : 0)
+    const timer = window.setTimeout(() => void loadRef.current(query).then((next) => { if (active) { setValue(next); setError(null) } }).catch((reason) => { if (active) setError(apiErrorMessage(reason)) }), query.search ? 150 : 0)
     return () => { active = false; window.clearTimeout(timer) }
-  }, [onLoad, revision, query])
+  }, [loadRef, revision, query])
   const updateQuery = (change: Partial<GiftCodeAdminQuery>) => setQuery((current) => ({ ...current, ...change, page: change.page ?? 1 }))
   const apply = async (signature: string, request: (key: string) => Promise<AdminGiftCodeMutationDto>) => {
     const result = await props.onMutation(signature, request)
@@ -133,7 +135,8 @@ function GiftCodeClaimantsModal({ code, onLoad, onClose }: Readonly<{ code: Admi
   const [query, setQuery] = useState<GiftCodeClaimantQuery>({ page: 1 })
   const [value, setValue] = useState<GiftCodeClaimantsDto | null>(null)
   const [error, setError] = useState<string | null>(null)
-  useEffect(() => { let active = true; const timer = window.setTimeout(() => void onLoad(code.id, query).then((next) => { if (active) { setValue(next); setError(null) } }).catch((reason) => { if (active) setError(apiErrorMessage(reason)) }), query.search ? 150 : 0); return () => { active = false; window.clearTimeout(timer) } }, [code.id, onLoad, query])
+  const loadRef = useLatestRef(onLoad)
+  useEffect(() => { let active = true; const timer = window.setTimeout(() => void loadRef.current(code.id, query).then((next) => { if (active) { setValue(next); setError(null) } }).catch((reason) => { if (active) setError(apiErrorMessage(reason)) }), query.search ? 150 : 0); return () => { active = false; window.clearTimeout(timer) } }, [code.id, loadRef, query])
   const change = (next: Partial<GiftCodeClaimantQuery>) => setQuery((current) => ({ ...current, ...next, page: next.page ?? 1 }))
   return <div className="modal-layer nested-modal-layer" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}><section ref={dialogRef} tabIndex={-1} className="floating-panel gift-code-claimants-modal" role="dialog" aria-modal="true" aria-label="Détail des récupérations"><header><div><span className="eyebrow">{code.token}</span><h2>Récupérations</h2></div><ModalCloseButton onClose={onClose} /></header><div className="gift-code-claimants-filters"><label>Joueur<input type="search" value={query.search ?? ''} onChange={(event) => change({ search: event.target.value || undefined })} placeholder="Pseudo" /></label><label>Édition<select value={query.editionKey ?? ''} onChange={(event) => change({ editionKey: event.target.value || undefined })}><option value="">Toutes</option>{code.editions.map(({ editionKey }) => <option value={editionKey} key={editionKey}>{editionKey}</option>)}</select></label></div><div className="gift-code-claimants-body">{error && <p role="alert">{error}</p>}{!value && !error && <p role="status">Chargement…</p>}{value?.claimants.map((claim) => <p key={`${claim.playerId}:${claim.editionKey}`}><strong>{claim.displayName}</strong><span>Édition {claim.editionKey} · {new Date(claim.claimedAt).toLocaleString('fr-FR')}</span></p>)}{value?.claimants.length === 0 && <p>Aucune récupération.</p>}</div><footer><AppButton disabled={!value || value.page <= 1} onClick={() => change({ page: query.page - 1 })}>Précédent</AppButton><span>Page {value?.page ?? query.page} / {value?.totalPages ?? 1} · {value?.total ?? 0}</span><AppButton disabled={!value || value.page >= value.totalPages} onClick={() => change({ page: query.page + 1 })}>Suivant</AppButton></footer></section></div>
 }

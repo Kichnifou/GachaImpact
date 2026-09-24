@@ -1,6 +1,7 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { elementKeys, type ElementKey } from '../api/types'
 import { apiErrorMessage } from '../utils/formatters'
+import { useLatestRef } from '../hooks/use-latest-ref'
 
 export type PlayerBrowserQuery = Readonly<{ query: string; elementKey: ElementKey | null; tester?: 'all' | 'tester' | 'non-tester'; sort: 'name' | 'level'; direction: 'asc' | 'desc'; page: number }>
 export type PlayerBrowserCandidate = Readonly<{ id: string; displayName: string; level: number; elementKey: ElementKey | null }>
@@ -24,6 +25,8 @@ export default function PlayerSelectionBrowser<Candidate extends PlayerBrowserCa
   const [temporarySelectionId, setTemporarySelectionId] = useState(selectedPlayerId)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(!searchOnly)
+  const listPlayersRef = useLatestRef(onListPlayers)
+  const requestRevision = useRef(0)
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
     document.addEventListener('keydown', closeOnEscape)
@@ -32,14 +35,15 @@ export default function PlayerSelectionBrowser<Candidate extends PlayerBrowserCa
   useEffect(() => {
     let active = true
     if (searchOnly && !query.trim()) return
-    const load = () => { void onListPlayers({ query, elementKey, ...(showTesterFilter ? { tester } : {}), sort, direction, page })
-      .then((next) => { if (!active) return; setError(null); setResult(next); if (next.page !== page) setPage(next.page) })
-      .catch((reason) => { if (active) setError(apiErrorMessage(reason)) })
-      .finally(() => { if (active) setLoading(false) }) }
+    const revision = ++requestRevision.current
+    const load = () => { void listPlayersRef.current({ query, elementKey, ...(showTesterFilter ? { tester } : {}), sort, direction, page })
+      .then((next) => { if (!active || revision !== requestRevision.current) return; setError(null); setResult(next); if (next.page !== page) setPage(next.page) })
+      .catch((reason) => { if (active && revision === requestRevision.current) setError(apiErrorMessage(reason)) })
+      .finally(() => { if (active && revision === requestRevision.current) setLoading(false) }) }
     const timer = searchOnly ? window.setTimeout(load, 250) : undefined
     if (!searchOnly) load()
     return () => { active = false; window.clearTimeout(timer) }
-  }, [direction, elementKey, onListPlayers, page, query, showTesterFilter, sort, tester, searchOnly])
+  }, [direction, elementKey, listPlayersRef, page, query, showTesterFilter, sort, tester, searchOnly])
   const resetPage = (action: () => void) => { setLoading(true); setPage(1); action() }
   const selected = result?.players.find((candidate) => candidate.id === temporarySelectionId)
   return <div className="modal-layer" role="presentation" onMouseDown={onClose}>

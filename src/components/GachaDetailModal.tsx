@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { GachaHistoryDto, PlayerTeamsDto } from '../api/types'
 import { historyDateLabel, historyEventLabel, historyPityLabel, historyProgressionLabel, historyResultLabel } from '../gacha/history-presentation'
 import { fiveStarProbabilityRows, fourStarProbabilityRows, probabilityPercent } from '../gacha/probabilities'
 import { apiErrorMessage } from '../utils/formatters'
+import { useLatestRef } from '../hooks/use-latest-ref'
 
 type DetailTab = 'history' | 'probabilities' | 'passives'
 
@@ -12,6 +13,8 @@ function GachaDetailModal({ teams, onClose, onGetHistory }: { teams: PlayerTeams
   const [history, setHistory] = useState<GachaHistoryDto | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const historyLoaderRef = useLatestRef(onGetHistory)
+  const requestRevision = useRef(0)
 
   useEffect(() => {
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
@@ -24,21 +27,22 @@ function GachaDetailModal({ teams, onClose, onGetHistory }: { teams: PlayerTeams
   useEffect(() => {
     if (tab !== 'history') return
     let active = true
+    const revision = ++requestRevision.current
     void Promise.resolve().then(async () => {
       if (!active) return
       setLoading(true)
       setError(null)
       try {
-        const nextHistory = await onGetHistory(page)
-        if (active) setHistory(nextHistory)
+        const nextHistory = await historyLoaderRef.current(page)
+        if (active && revision === requestRevision.current) setHistory(nextHistory)
       } catch (reason) {
-        if (active) setError(apiErrorMessage(reason))
+        if (active && revision === requestRevision.current) setError(apiErrorMessage(reason))
       } finally {
-        if (active) setLoading(false)
+        if (active && revision === requestRevision.current) setLoading(false)
       }
     })
     return () => { active = false }
-  }, [onGetHistory, page, tab])
+  }, [historyLoaderRef, page, tab])
 
   return (
     <div className="gacha-detail-overlay" onClick={onClose}>

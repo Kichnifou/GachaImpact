@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { BankHistoryDto, BankTransferDto, PlayerBankDto, PlayerResourcesDto } from '../api/types'
 import { applyBankWalletToResources, formatBankCountdown } from '../bank/bank-presentation'
-import BankScreen from './BankScreen'
+import BankScreen, { BankHistoryModal } from './BankScreen'
 import { ApiError } from '../api/game-api'
 import { BankTransferIntentCoordinator } from '../bank/bank-transfer-intent-coordinator'
 
@@ -49,6 +49,36 @@ function changeInput(input: HTMLInputElement, value: string) {
 }
 
 describe('Bank screen', () => {
+  it('does not reload or flicker history when parent rerenders replace only the loader identity', async () => {
+    let resolveSecond!: (value: BankHistoryDto) => void
+    const second = new Promise<BankHistoryDto>((resolve) => { resolveSecond = resolve })
+    const onLoad = vi.fn((page: number): Promise<BankHistoryDto> => page === 1
+      ? Promise.resolve({ page: 1, totalPages: 4, totalCount: 31, operations: bank().recentOperations })
+      : second)
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    roots.push(root)
+    const render = () => root.render(<BankHistoryModal onClose={vi.fn()} onLoad={(page) => onLoad(page)} />)
+
+    await act(async () => { render(); await Promise.resolve(); await Promise.resolve() })
+    const next = () => Array.from(container.querySelectorAll<HTMLButtonElement>('.bank-history-pagination button')).at(-1)!
+    expect(onLoad).toHaveBeenCalledTimes(1)
+    expect(next().disabled).toBe(false)
+
+    for (let tick = 0; tick < 4; tick += 1) await act(async () => { render(); await Promise.resolve() })
+    expect(onLoad).toHaveBeenCalledTimes(1)
+    expect(next().disabled).toBe(false)
+    expect(container.textContent).toContain('Page 1 / 4')
+
+    await act(async () => { next().click(); await Promise.resolve() })
+    expect(onLoad.mock.calls).toEqual([[1], [2]])
+    expect(next().disabled).toBe(true)
+    await act(async () => { resolveSecond({ page: 2, totalPages: 4, totalCount: 31, operations: bank().recentOperations }); await second; await Promise.resolve() })
+    expect(container.textContent).toContain('Page 2 / 4')
+    expect(next().disabled).toBe(false)
+  })
+
   it('renders the zero account without inventing operations', async () => {
     const { container } = await mount({ onLoad: vi.fn(async () => bank({ walletMoras: '0', bankMoras: '0', totalWealth: '0', estimatedInterest: '0', recentOperations: [] })) })
     expect(container.textContent).toContain('Aucune opération')

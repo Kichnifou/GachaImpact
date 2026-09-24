@@ -5,6 +5,7 @@ import type { BankTransferDirection } from '../bank/bank-transfer-intent-coordin
 import { formatBankCountdown } from '../bank/bank-presentation'
 import GameAssetIcon from '../components/GameAssetIcon'
 import HistoryModalShell, { HistoryTablePlaceholders } from '../components/HistoryModalShell'
+import { useLatestRef } from '../hooks/use-latest-ref'
 import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
 import { currencyAssetPaths } from '../utils/gameAssets'
 
@@ -148,24 +149,27 @@ export function BankHistoryModal({ onClose, onLoad, refreshToken = 0 }: { onClos
   const [history, setHistory] = useState<BankHistoryDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const loadRef = useLatestRef(onLoad)
+  const requestRevision = useRef(0)
 
   useEffect(() => {
     let active = true
+    const revision = ++requestRevision.current
     void Promise.resolve().then(async () => {
       if (!active) return
       setLoading(true)
       setError(null)
       try {
-        const result = await onLoad(page)
-        if (active) setHistory(result)
+        const result = await loadRef.current(page)
+        if (active && revision === requestRevision.current) setHistory(result)
       } catch (reason) {
-        if (active) setError(apiErrorMessage(reason))
+        if (active && revision === requestRevision.current) setError(apiErrorMessage(reason))
       } finally {
-        if (active) setLoading(false)
+        if (active && revision === requestRevision.current) setLoading(false)
       }
     })
     return () => { active = false }
-  }, [onLoad, page, refreshToken])
+  }, [loadRef, page, refreshToken])
 
   const visiblePage = history?.page ?? page
   const totalPages = Math.max(history?.totalPages ?? 0, 1)

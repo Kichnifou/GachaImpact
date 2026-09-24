@@ -2,15 +2,18 @@ import { useEffect, useState } from 'react'
 
 import type { EventRankingDto } from '../api/types'
 import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
+import { useLatestRef } from '../hooks/use-latest-ref'
 
 type Props = Readonly<{ editionId: string; onLoad?: () => Promise<EventRankingDto> }>
 
 export default function EventRankingSection({ editionId, onLoad }: Props) {
   const [ranking, setRanking] = useState<EventRankingDto | null>(null)
   const [error, setError] = useState('')
+  const loadRef = useLatestRef(onLoad)
+  const loadAvailable = Boolean(onLoad)
 
   useEffect(() => {
-    if (!onLoad) return
+    if (!loadRef.current) return
     let active = true
     let inFlight = false
     let timer: number | undefined
@@ -18,7 +21,7 @@ export default function EventRankingSection({ editionId, onLoad }: Props) {
       if (!active || document.visibilityState !== 'visible' || inFlight) return
       inFlight = true
       try {
-        const next = await onLoad()
+        const next = await loadRef.current!()
         if (active && next.editionId === editionId) { setRanking(next); setError('') }
       } catch (reason) {
         if (active) setError(apiErrorMessage(reason))
@@ -35,7 +38,7 @@ export default function EventRankingSection({ editionId, onLoad }: Props) {
     window.addEventListener('focus', wake)
     document.addEventListener('visibilitychange', wake)
     return () => { active = false; window.clearTimeout(timer); window.removeEventListener('focus', wake); document.removeEventListener('visibilitychange', wake) }
-  }, [editionId, onLoad])
+  }, [editionId, loadAvailable, loadRef])
 
   const current = ranking?.editionId === editionId ? ranking : null
 

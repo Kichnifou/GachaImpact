@@ -21,7 +21,7 @@ const base: PlayerShopDto = {
 
 const emptyHistory: ShopHistoryDto = { purchases: [], page: 1, pageSize: 10, totalCount: 0, totalPages: 0 }
 async function mount(onPurchase = vi.fn<(...args: [string, string]) => Promise<ShopPurchaseDto>>(), initialShop: PlayerShopDto | null = base, onLoad: () => Promise<PlayerShopDto> = async () => initialShop ?? base, onLoadHistory: (page: number) => Promise<ShopHistoryDto> = async () => emptyHistory) { const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root); const onNavigateBank = vi.fn(); await act(async () => { root.render(<ShopScreen initialShop={initialShop} onLoad={onLoad} onLoadHistory={onLoadHistory} onPurchase={onPurchase} onNavigateBank={onNavigateBank} />); await Promise.resolve() }); return { container, onPurchase, onNavigateBank } }
-async function mountHistory(onLoad: (page: number) => Promise<ShopHistoryDto>) { const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root); const onClose = vi.fn(); await act(async () => { root.render(<ShopHistoryModal onLoad={onLoad} onClose={onClose} />); await Promise.resolve(); await Promise.resolve() }); return { container, onClose } }
+async function mountHistory(onLoad: (page: number) => Promise<ShopHistoryDto>) { const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root); const onClose = vi.fn(); await act(async () => { root.render(<ShopHistoryModal onLoad={onLoad} onClose={onClose} />); await Promise.resolve(); await Promise.resolve() }); return { container, onClose, root } }
 
 describe('ShopScreen', () => {
   it('uses only the server catalog, omits Défi, and derives displayed Ticket odds', async () => { const { container } = await mount(); expect(shopSource).not.toContain('mockData'); expect(container.textContent).not.toContain('Mission quotidienne'); expect(container.textContent).not.toContain('Défi'); expect(container.textContent?.match(/20 %/g)).toHaveLength(5) })
@@ -43,6 +43,18 @@ describe('ShopScreen', () => {
     expect(container.querySelectorAll('.shop-history-table tbody tr')).toHaveLength(10)
     expect(container.querySelectorAll('.shop-history-table tbody .history-empty-row')).toHaveLength(9)
     expect(container.textContent).toContain('Page 2 / 2')
+  })
+
+  it('does not reload Shop history when only the parent loader wrapper changes', async () => {
+    const onLoad = vi.fn(async (page: number): Promise<ShopHistoryDto> => ({ ...emptyHistory, page, totalPages: 2 }))
+    const { container, root } = await mountHistory((page) => onLoad(page))
+    const rerender = () => root.render(<ShopHistoryModal onLoad={(page) => onLoad(page)} onClose={vi.fn()} />)
+    for (let tick = 0; tick < 3; tick += 1) await act(async () => { rerender(); await Promise.resolve() })
+    expect(onLoad).toHaveBeenCalledTimes(1)
+    const next = Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Suivant')!
+    expect(next.disabled).toBe(false)
+    await act(async () => { next.click(); await Promise.resolve(); await Promise.resolve() })
+    expect(onLoad.mock.calls).toEqual([[1], [2]])
   })
 
   it('renders history loading, empty and error states and closes with X, Escape and backdrop', async () => {

@@ -71,4 +71,19 @@ describe('Event Ranking visible refresh', () => {
     expect(onLoad).toHaveBeenCalledTimes(1)
     expect(container.querySelector('.event-ranking-list')).toBeNull()
   })
+
+  it('does not restart polling when only the loader callback identity changes', async () => {
+    vi.useFakeTimers()
+    const onLoad = vi.fn(async () => ranking())
+    const { root } = mount(() => onLoad())
+    await act(async () => { await Promise.resolve() })
+    expect(onLoad).toHaveBeenCalledTimes(1)
+    for (let tick = 0; tick < 4; tick += 1) {
+      act(() => root.render(<EventRankingSection editionId="edition-one" onLoad={() => onLoad()} />))
+    }
+    await act(async () => { await Promise.resolve() })
+    expect(onLoad).toHaveBeenCalledTimes(1)
+    await act(async () => { await vi.advanceTimersByTimeAsync(3_000) })
+    expect(onLoad).toHaveBeenCalledTimes(2)
+  })
 })

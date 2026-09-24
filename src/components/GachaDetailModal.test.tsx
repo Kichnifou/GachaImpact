@@ -1,5 +1,9 @@
+// @vitest-environment happy-dom
+
+import { act } from 'react'
+import { createRoot, type Root } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ElementKey, GachaHistoryDto, GachaHistoryResultDto, PlayerTeamsDto, TeamPassiveDto } from '../api/types'
 import { historyDateLabel, historyResultLabel } from '../gacha/history-presentation'
 import GachaDetailModal, { HistoryPanel, PassivesPanel } from './GachaDetailModal'
@@ -11,6 +15,12 @@ const historyResult: GachaHistoryResultDto = {
   guaranteeConsumed: false, captureTriggered: false, bonusRewards: [], c6Progression: null, pity5AtPull: 74, pity4AtPull: 9,
 }
 const history: GachaHistoryDto = { page: 1, pageSize: 10, totalResults: 1, totalPages: 1, hasPrevious: false, hasNext: false, results: [historyResult] }
+const roots: Root[] = []
+;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+afterEach(() => {
+  act(() => roots.splice(0).forEach((root) => root.unmount()))
+  document.body.replaceChildren()
+})
 const elements: readonly ElementKey[] = ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro']
 const displayNames: Readonly<Record<ElementKey, string>> = { pyro: 'Pyro', hydro: 'Hydro', cryo: 'Cryo', electro: 'Électro', anemo: 'Anémo', geo: 'Géo', dendro: 'Dendro' }
 const passiveReference = elements.map((elementKey) => ({
@@ -30,6 +40,34 @@ const teams = (activePassives: readonly TeamPassiveDto[] = [], inactivePassives:
 })
 
 describe('GachaDetailModal', () => {
+  it('keeps 199-page history stable across parent ticks and requests page two once', async () => {
+    let resolveSecond!: (value: GachaHistoryDto) => void
+    const second = new Promise<GachaHistoryDto>((resolve) => { resolveSecond = resolve })
+    const page = (value: number): GachaHistoryDto => ({ ...history, page: value, totalResults: 1_990, totalPages: 199, hasPrevious: value > 1, hasNext: value < 199 })
+    const onGetHistory = vi.fn((value: number) => value === 1 ? Promise.resolve(page(1)) : second)
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    roots.push(root)
+    const render = () => root.render(<GachaDetailModal teams={teams()} onClose={vi.fn()} onGetHistory={(value) => onGetHistory(value)} />)
+
+    await act(async () => { render(); await Promise.resolve(); await Promise.resolve() })
+    const next = () => Array.from(container.querySelectorAll<HTMLButtonElement>('.history-pagination button')).at(-1)!
+    expect(onGetHistory).toHaveBeenCalledTimes(1)
+    expect(next().disabled).toBe(false)
+    for (let tick = 0; tick < 4; tick += 1) await act(async () => { render(); await Promise.resolve() })
+    expect(onGetHistory).toHaveBeenCalledTimes(1)
+    expect(next().disabled).toBe(false)
+    expect(container.textContent).toContain('Page 1 / 199')
+
+    await act(async () => { next().click(); await Promise.resolve() })
+    expect(onGetHistory.mock.calls).toEqual([[1], [2]])
+    expect(next().disabled).toBe(true)
+    await act(async () => { resolveSecond(page(2)); await second; await Promise.resolve() })
+    expect(container.textContent).toContain('Page 2 / 199')
+    expect(next().disabled).toBe(false)
+  })
+
   it('renders as an internal overlay with accessible tabs and close control', () => {
     const html = renderToStaticMarkup(<GachaDetailModal teams={teams()} onClose={vi.fn()} onGetHistory={vi.fn()} />)
     expect(html).toContain('gacha-detail-overlay')

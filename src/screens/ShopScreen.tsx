@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PlayerShopDto, ShopEffectDto, ShopHistoryDto, ShopItemDto, ShopPurchaseDto, ShopPurchaseRecordDto } from '../api/types'
 import GameAssetIcon from '../components/GameAssetIcon'
 import HistoryModalShell, { HistoryTablePlaceholders } from '../components/HistoryModalShell'
+import { useLatestRef } from '../hooks/use-latest-ref'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
 import { currencyAssetPaths } from '../utils/gameAssets'
@@ -69,17 +70,20 @@ export function ShopHistoryModal({ onClose, onLoad, refreshToken = 0 }: { onClos
   const [history, setHistory] = useState<ShopHistoryDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const loadRef = useLatestRef(onLoad)
+  const requestRevision = useRef(0)
   useEffect(() => {
     let active = true
+    const revision = ++requestRevision.current
     void Promise.resolve().then(async () => {
       if (!active) return
       setLoading(true); setError(null)
-      try { const result = await onLoad(page); if (active) setHistory(result) }
-      catch (reason) { if (active) setError(apiErrorMessage(reason)) }
-      finally { if (active) setLoading(false) }
+      try { const result = await loadRef.current(page); if (active && revision === requestRevision.current) setHistory(result) }
+      catch (reason) { if (active && revision === requestRevision.current) setError(apiErrorMessage(reason)) }
+      finally { if (active && revision === requestRevision.current) setLoading(false) }
     })
     return () => { active = false }
-  }, [onLoad, page, refreshToken])
+  }, [loadRef, page, refreshToken])
   const visiblePage = history?.page ?? page
   return <HistoryModalShell title="Historique" category="Boutique / Achats" labelledBy="shop-history-title" page={visiblePage} totalPages={history?.totalPages ?? 0} loading={loading} onPageChange={setPage} onClose={onClose}>
     <div className="history-table-wrap">{error ? <p className="detail-status error" role="alert">{error}</p> : !history && loading ? <p className="detail-status">Chargement de l’historique…</p> : history?.totalCount === 0 ? <p className="detail-status">Aucun achat enregistré.</p> : <table className="history-table shop-history-table"><thead><tr><th>Date</th><th>Article</th><th>Quantité</th><th>Coût</th><th>Résultat</th></tr></thead><tbody>{history?.purchases.map((purchase) => <tr key={purchase.id}><td>{formatPurchaseDate(purchase.purchasedAt)}</td><td>{purchase.displayName}</td><td>{purchase.quantity}</td><td>−{formatResourceAmount(purchase.totalPrice)} Moras</td><td>{effectLabel(purchase.effect)}</td></tr>)}<HistoryTablePlaceholders count={10 - (history?.purchases.length ?? 0)} colSpan={5} /></tbody></table>}</div>

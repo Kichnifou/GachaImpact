@@ -8,6 +8,7 @@ import { presenceLabels, type DirectoryPage, type SocialActions, type PresenceSt
 import type { FriendshipController } from '../social/use-friendships'
 import { apiErrorMessage, elementLabels } from '../utils/formatters'
 import { normalizeCharacterSearch } from '../characters/character-catalog'
+import { useLatestRef } from '../hooks/use-latest-ref'
 
 export type SocialTab = 'friends' | 'requests' | 'players'
 const relationLabels: Record<RelationshipFilter, string> = { ALL: 'Toutes les relations', SELF: 'Moi', FRIEND: 'Amis', SENT: 'Demandes envoyées', RECEIVED: 'À accepter', NONE: 'À ajouter' }
@@ -23,6 +24,7 @@ export default function SocialScreen({ actions, onProfile, controller, initialTa
   const tab = selectedTab ?? localTab
   const [q, setQ] = useState(''), [element, setElement] = useState<ElementKey | undefined>(), [status, setStatus] = useState<PresenceStatus | undefined>(), [relation, setRelation] = useState<RelationshipFilter>('ALL'), [page, setPage] = useState(1)
   const [result, setResult] = useState<DirectoryPage | null>(null), [error, setError] = useState(''), [loading, setLoading] = useState(false)
+  const actionsRef = useLatestRef(actions)
   const { value, pending, refreshing, mutate, clearFeedback } = controller
   const scope = `social:${tab}`
   useEffect(() => () => clearFeedback(), [clearFeedback])
@@ -32,12 +34,12 @@ export default function SocialScreen({ actions, onProfile, controller, initialTa
     let active = true, timer: number | undefined
     const load = async () => {
       setLoading(true)
-      try { const next = await actions.directory({ q, element, status, relation: relation === 'ALL' ? undefined : relation, page }); if (active) { setResult(next); setError('') } }
+      try { const next = await actionsRef.current.directory({ q, element, status, relation: relation === 'ALL' ? undefined : relation, page }); if (active) { setResult(next); setError('') } }
       catch (reason) { if (active) setError(apiErrorMessage(reason)) }
       finally { if (active) { setLoading(false); timer = window.setTimeout(() => void load(), 30_000) } }
     }
     void load(); return () => { active = false; window.clearTimeout(timer) }
-  }, [actions, q, element, status, relation, page, tab, value])
+  }, [actionsRef, q, element, status, relation, page, tab, value])
   const change = (run: () => void) => { setPage(1); run() }
   const identities = new Map(value?.players.map(player => [player.id, player]))
   const friends = (value?.friends ?? []).filter(friend => normalizeCharacterSearch(identities.get(friend.playerId)?.displayName ?? '').includes(normalizeCharacterSearch(q))).sort((a, b) => {

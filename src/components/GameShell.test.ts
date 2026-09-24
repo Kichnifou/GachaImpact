@@ -72,6 +72,18 @@ describe('GameShell shared particle conversion overlay', () => {
     expect(appBootstrapSource).not.toContain('onLoadNavigationPreferences={() =>')
   })
 
+  it('keeps paginated and automatic loaders stable across Expedition ticks', () => {
+    for (const callback of ['loadMonthlyBossHistory', 'loadGachaHistory', 'loadInventory', 'loadInventoryItemDetail', 'loadBankHistory']) {
+      expect(appBootstrapSource).toContain(`const ${callback} = useCallback(`)
+    }
+    expect(appBootstrapSource).toContain('onLoadMonthlyBossHistory={loadMonthlyBossHistory}')
+    expect(appBootstrapSource).toContain('onGetGachaHistory={loadGachaHistory}')
+    expect(appBootstrapSource).toContain('onLoadInventory={loadInventory}')
+    expect(appBootstrapSource).toContain('onLoadInventoryItemDetail={loadInventoryItemDetail}')
+    expect(appBootstrapSource).toContain('onLoadBankHistory={loadBankHistory}')
+    expect(appBootstrapSource).not.toMatch(/on(?:Load|Get)(?:MonthlyBossHistory|GachaHistory|Inventory|InventoryItemDetail|BankHistory)=\{\s*\([^)]*\)\s*=>/)
+  })
+
   it('forces one coordinated Contest refresh after successful Stella and Pull mutations', () => {
     expect(appBootstrapSource).toContain('const refreshContest = useCallback(() => contestRequests.refresh(')
     expect(appBootstrapSource).toMatch(/const useStella = useCallback\(async[\s\S]*?await refreshContest\(\)[\s\S]*?return result/)

@@ -1346,7 +1346,15 @@ L'envoi individuel et global suivent la même primitive. Chaque cœur possède s
 
 `GET /api/v1/me/event/ranking` résout l'édition mensuelle active côté serveur puis lit uniquement dix `EventParticipant` au maximum avec pseudo public, points et rang. L'ordre est `points DESC, joinedAt ASC, playerId ASC` : les égalités restent stables, sans avantage économique. L'endpoint ne charge ni le snapshot personnel complet ni les états des Jeux et ne crée aucune opération, monnaie, récompense ou notification. Le client appelle ce GET à l'ouverture de l'onglet Classement, puis environ toutes les trois secondes uniquement tant que cet onglet est visible, avec garde anti-chevauchement, réveil focus/visibility et nettoyage au démontage. L'historique des éditions passées et l'écran Historique transversal sont reportés.
 
-## Missions permanentes — Lots 1 et 2 promus, Lot 2 à valider publiquement
+## Bootstrap frontend — lectures sûres et GET réconciliants
+
+Le chargement authentifié distingue deux groupes. Ressources, progression, Roue du jour, état de récompense quotidienne, état Gacha, catalogue de personnages et permissions sont des lectures indépendantes exécutées en parallèle. Les GET susceptibles de provisionner, expirer, nettoyer, réconcilier ou verrouiller le même Player — Notifications, Expedition, Teams, Défi quotidien, Combat quotidien, Boss mensuel, Concours et Event — sont exécutés séquentiellement pendant ce bootstrap. Cette borne évite que le délai passé à attendre un verrou consomme le timeout de transaction Prisma avant le début du travail utile.
+
+Notifications reste un endpoint autonome et conserve toute sa chaîne métier : réconciliation Expedition, Codes cadeaux, messages Event, cycle de vie Event, archivage quotidien et snapshot. Le bootstrap appelle Notifications avant Expedition ; comme `NotificationService.list()` appelle déjà `ExpeditionService.getState()`, la lecture Expedition autonome nécessaire à sa projection UI intervient ensuite et les deux transactions ne se chevauchent jamais. Aucun paramètre public de contournement du reconcile n’est ajouté et aucun timeout serveur n’est augmenté.
+
+Chaque GET idempotent du bootstrap, y compris la résolution initiale du Player, accepte au plus une seconde tentative après une erreur réseau ou HTTP 5xx. Les 4xx métier/auth ne sont jamais retentées et un second échec reste visible comme erreur de bootstrap. La politique est locale au bootstrap : elle ne modifie ni les mutations ni les règles métier des endpoints.
+
+## Missions permanentes — Lots 1 et 2 promus et validés publiquement
 
 `PermanentMissionService` est une primitive applicative transaction-local : initialisation, catch-up R301, réconciliation complète ou bornée et projection reçoivent toujours une `Prisma.TransactionClient` existante et n’ouvrent aucune transaction imbriquée. Le producteur conserve la transaction propriétaire de son action, puis appelle Missions après sa mutation autoritative et avant commit. La voie bornée ne lit que les agrégats demandés ; Gacha regroupe ainsi Pulls, possessions, C6 et gains économiques en un passage final au lieu d’un scan après chaque sous-récompense.
 

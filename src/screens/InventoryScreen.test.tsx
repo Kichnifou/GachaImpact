@@ -59,10 +59,20 @@ async function mount(overrides: Partial<React.ComponentProps<typeof InventoryScr
   const root = createRoot(container)
   roots.push(root)
   await act(async () => { root.render(<InventoryScreen {...props} />); await Promise.resolve(); await Promise.resolve() })
-  return { container, props }
+  return { container, props, root }
 }
 
 describe('real inventory screen', () => {
+  it('does not reload the inventory when a parent tick only replaces the loader wrapper', async () => {
+    const onLoad = vi.fn(async () => inventory)
+    const { props, root } = await mount({ onLoad })
+    expect(onLoad).toHaveBeenCalledTimes(1)
+    for (let tick = 0; tick < 4; tick += 1) {
+      await act(async () => { root.render(<InventoryScreen {...props} onLoad={() => onLoad()} />); await Promise.resolve() })
+    }
+    expect(onLoad).toHaveBeenCalledTimes(1)
+  })
+
   it('opens Trades only for owned foreign particles and preserves personal conversion', async () => {
     const onNavigateTrades = vi.fn(), { container } = await mount({ onNavigateTrades })
     const tradeButtons = Array.from(container.querySelectorAll<HTMLButtonElement>('button.inventory-resource-card')).filter(b => b.textContent?.includes('Échanger →'))

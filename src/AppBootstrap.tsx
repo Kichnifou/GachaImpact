@@ -25,6 +25,7 @@ import LevelUpFeedback from './components/LevelUpFeedback'
 import { confirmedMutation } from './api/confirmed-mutation'
 import type { ChatRefreshScope } from './api/types'
 import { runChatRefreshScopes } from './chat/refresh-scopes'
+import { loadBootstrapGameState, retryBootstrapRead } from './bootstrap/load-game-state'
 
 function AppBootstrap() {
   const { status: authStatus, session, configurationMessage, signOut } = useAuth()
@@ -169,6 +170,11 @@ function AppBootstrap() {
     publishBankTransfer(await getGameApiClient().withdrawBank(amount, idempotencyKey)), [publishBankTransfer])
   const loadShop = useCallback(() => getGameApiClient().getShop(), [])
   const loadShopHistory = useCallback((page: number) => getGameApiClient().getShopHistory(page), [])
+  const loadBankHistory = useCallback((page: number) => getGameApiClient().getBankHistory(page), [])
+  const loadGachaHistory = useCallback((page: number) => getGameApiClient().getGachaHistory(page), [])
+  const loadInventory = useCallback(() => getGameApiClient().getInventory(), [])
+  const loadInventoryItemDetail = useCallback((itemId: string, page?: number) => getGameApiClient().getInventoryItemDetail(itemId, page), [])
+  const loadMonthlyBossHistory = useCallback((page: number) => getGameApiClient().getMonthlyBossHistory(page), [])
   const purchaseShop = useCallback(async (itemId: string, quantity: string, idempotencyKey: string) => {
     const result: ShopPurchaseDto = await getGameApiClient().purchaseShopItem(itemId, quantity, idempotencyKey)
     setResources(result.resources)
@@ -193,39 +199,39 @@ function AppBootstrap() {
 
   const loadGameState = useCallback(async () => {
     const api = getGameApiClient()
-    const [nextResources, nextProgression, nextWheelToday, nextDailyRewardToday, nextDailyChallenge, nextDailyCombat, nextMonthlyBoss, nextContest, nextEvent, nextExpedition, nextNotifications, nextGacha, nextCatalog, nextTeams, nextPermissions] = await Promise.all([
-      api.getResources(),
-      api.getProgression(),
-      api.getWheelToday(),
-      api.getDailyRewardToday(),
-      api.getDailyChallenge(),
-      api.getDailyCombat(),
-      api.getMonthlyBoss(),
-      loadContest(),
-      eventRequests.read(() => api.getEvent()),
-      api.getExpedition(),
-      api.getNotifications(),
-      api.getCurrentGacha(),
-      api.getCharacters(),
-      api.getTeams(),
-      api.getPermissions(),
-    ])
-    setResources(nextResources)
-    progressionRef.current = nextProgression
-    setProgression(nextProgression)
-    setWheelToday(nextWheelToday)
-    setDailyRewardToday(nextDailyRewardToday)
-    setDailyChallenge(nextDailyChallenge)
-    setDailyCombat(nextDailyCombat)
-    setMonthlyBoss(nextMonthlyBoss)
-    void nextContest
-    void nextEvent
-    publishExpedition(nextExpedition)
-    setNotifications(nextNotifications)
-    setGacha(nextGacha)
-    setCharacters(nextCatalog.characters)
-    setTeams(nextTeams)
-    setPermissions(nextPermissions)
+    const next = await loadBootstrapGameState({
+      resources: api.getResources,
+      progression: api.getProgression,
+      wheel: api.getWheelToday,
+      dailyReward: api.getDailyRewardToday,
+      dailyChallenge: api.getDailyChallenge,
+      dailyCombat: api.getDailyCombat,
+      monthlyBoss: api.getMonthlyBoss,
+      contest: loadContest,
+      event: () => eventRequests.read(() => api.getEvent()),
+      expedition: api.getExpedition,
+      notifications: api.getNotifications,
+      gacha: api.getCurrentGacha,
+      catalog: api.getCharacters,
+      teams: api.getTeams,
+      permissions: api.getPermissions,
+    })
+    setResources(next.resources)
+    progressionRef.current = next.progression
+    setProgression(next.progression)
+    setWheelToday(next.wheel)
+    setDailyRewardToday(next.dailyReward)
+    setDailyChallenge(next.dailyChallenge)
+    setDailyCombat(next.dailyCombat)
+    setMonthlyBoss(next.monthlyBoss)
+    setContest(next.contest)
+    setEvent(next.event)
+    publishExpedition(next.expedition)
+    setNotifications(next.notifications)
+    setGacha(next.gacha)
+    setCharacters(next.catalog.characters)
+    setTeams(next.teams)
+    setPermissions(next.permissions)
   }, [eventRequests, loadContest, publishExpedition])
 
   const publishProgression = useCallback((next: PlayerProgressionDto, options: { id: string; rewards?: readonly { resourceKey: string; amount: string }[]; emitLevelUpFeedback?: boolean }) => {
@@ -321,8 +327,7 @@ function AppBootstrap() {
 
     let active = true
 
-    void getGameApiClient()
-      .getCurrentPlayer()
+    void retryBootstrapRead(() => getGameApiClient().getCurrentPlayer())
       .then(async (nextPlayer) => {
         if (!active) return
         setMilestoneFeedbacks([])
@@ -503,7 +508,7 @@ function AppBootstrap() {
       onCopyActiveTeamToMonthlyBoss={async () => { const next = await getGameApiClient().copyActiveTeamToMonthlyBoss(); setMonthlyBoss(next); return next }}
       onClearMonthlyBossLoadout={async () => { const next = await getGameApiClient().clearMonthlyBossLoadout(); setMonthlyBoss(next); return next }}
       onAttackMonthlyBoss={async (bossId, idempotencyKey) => { const result = await getGameApiClient().attackMonthlyBoss(bossId, idempotencyKey); setMonthlyBoss(result.view); setResources(result.resources); await loadNotifications(); return result }}
-      onLoadMonthlyBossHistory={(page) => getGameApiClient().getMonthlyBossHistory(page)}
+      onLoadMonthlyBossHistory={loadMonthlyBossHistory}
       onPurchaseDailyChallenge={async (idempotencyKey) => {
         const result = await getGameApiClient().purchaseDailyChallenge(idempotencyKey)
         setDailyChallenge(result)
@@ -548,21 +553,21 @@ function AppBootstrap() {
       pendingGachaPullCount={pendingGachaPullCount}
       onGachaPresentationDisclosed={(operationId) => { gachaPresentation.current?.disclose(operationId) }}
       onGachaPresentationAbandoned={() => { gachaPresentation.current?.abandon() }}
-      onGetGachaHistory={(page) => getGameApiClient().getGachaHistory(page)}
+      onGetGachaHistory={loadGachaHistory}
       onLoadBox={loadBox}
       onSetBoxFavorite={setBoxFavorite}
       onSetBoxSortPreference={setBoxSortPreference}
       onUseStella={useStella}
       onLoadBank={loadBank}
-      onLoadInventory={() => getGameApiClient().getInventory()}
-      onLoadInventoryItemDetail={(itemId, page) => getGameApiClient().getInventoryItemDetail(itemId, page)}
+      onLoadInventory={loadInventory}
+      onLoadInventoryItemDetail={loadInventoryItemDetail}
       onConvertParticles={async (amount, idempotencyKey): Promise<DailyChallengeMutationDto> => {
         const result = await getGameApiClient().convertPersonalParticles(amount, idempotencyKey)
         setResources(result.resources)
         setDailyChallenge(result)
         return result
       }}
-      onLoadBankHistory={(page) => getGameApiClient().getBankHistory(page)}
+      onLoadBankHistory={loadBankHistory}
       onDepositBank={depositBank}
       onWithdrawBank={withdrawBank}
       onLoadShop={loadShop}

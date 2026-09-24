@@ -5,6 +5,7 @@ import { isAmbiguousMutationError } from '../api/mutation-errors'
 import ScreenHeader from '../components/ScreenHeader'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
+import { useLatestRef } from '../hooks/use-latest-ref'
 
 type Props = Readonly<{ refreshToken?: number; onLoad: () => Promise<PlayerGiftCodesDto>; onClaim: (editionId: string, idempotencyKey: string) => Promise<GiftCodeClaimDto> }>
 
@@ -15,8 +16,9 @@ export default function GiftCodesScreen({ refreshToken = 0, onLoad, onClaim }: P
   const [error, setError] = useState<string | null>(null)
   const intents = useRef(new Map<string, string>())
   const seenRefreshToken = useRef(refreshToken)
-  useEffect(() => { let active = true; void onLoad().then((next) => { if (active) setValue(next) }).catch((reason) => { if (active) setError(apiErrorMessage(reason)) }); return () => { active = false } }, [onLoad])
-  useEffect(() => { if (seenRefreshToken.current === refreshToken) return; seenRefreshToken.current = refreshToken; let active = true; void onLoad().then(next => { if (active) { setValue(next); setError(null) } }).catch(reason => { if (active) setError(apiErrorMessage(reason)) }); return () => { active = false } }, [onLoad, refreshToken])
+  const loadRef = useLatestRef(onLoad)
+  useEffect(() => { let active = true; void loadRef.current().then((next) => { if (active) setValue(next) }).catch((reason) => { if (active) setError(apiErrorMessage(reason)) }); return () => { active = false } }, [loadRef])
+  useEffect(() => { if (seenRefreshToken.current === refreshToken) return; seenRefreshToken.current = refreshToken; let active = true; void loadRef.current().then(next => { if (active) { setValue(next); setError(null) } }).catch(reason => { if (active) setError(apiErrorMessage(reason)) }); return () => { active = false } }, [loadRef, refreshToken])
   const claim = async (editionId: string) => {
     if (pending) return
     const key = intents.current.get(editionId) ?? crypto.randomUUID()
