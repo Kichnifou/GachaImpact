@@ -1898,7 +1898,7 @@ Le choix exact peut être finalisé pendant le mapping Prisma sans impact métie
 
 # 26. Messages privés
 
-État physique : les migrations 036–039 matérialisent conversations, participants, demandes, messages, lecture partagée et ordre serveur. La migration additive `20260924120000_040_add_direct_message_reports` ajoute la preuve de signalement MP. Les cinq tables ont RLS active, aucune policy navigateur et aucun droit `PUBLIC`/`anon`/`authenticated`. R515 reste sans DDL ; R509/R510/R517 sont candidates sur review et ne sont pas encore validées publiquement.
+État physique : les migrations 036–039 matérialisent conversations, participants, demandes, messages, lecture partagée et ordre serveur. La migration additive `20260924120000_040_add_direct_message_reports` ajoute la preuve de signalement MP. Les cinq tables ont RLS active, aucune policy navigateur et aucun droit `PUBLIC`/`anon`/`authenticated`. R515 reste sans DDL ; R509/R510/R517 sont sur main et ne sont pas encore validées publiquement.
 
 ## 26.1 `direct_conversations`
 
