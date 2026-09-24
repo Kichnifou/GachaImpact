@@ -80,6 +80,61 @@ function Avatar({ player }: { player: DirectMessagePlayerDto }) {
     </span>
   );
 }
+
+function ConversationActionsMenu({
+  conversation,
+  pending,
+  className = "",
+  onHistory,
+  onReceipts,
+  onAction,
+  onProfile,
+}: {
+  conversation: DirectConversationDto;
+  pending: boolean;
+  className?: string;
+  onHistory: () => void;
+  onReceipts: (enabled: boolean) => void;
+  onAction: (action: "archive" | "unarchive" | "block" | "unblock") => void;
+  onProfile: () => void;
+}) {
+  return (
+    <div
+      className={`dm-conversation-menu${className ? ` ${className}` : ""}`}
+      role="menu"
+      onPointerDown={(event) => event.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
+    >
+      <button type="button" role="menuitem" onClick={onHistory}>Historique complet</button>
+      <label>
+        <input
+          type="checkbox"
+          checked={conversation.readReceiptsEnabled}
+          disabled={pending}
+          onChange={(event) => onReceipts(event.target.checked)}
+        />{" "}
+        Accusés de lecture
+      </label>
+      <button type="button" role="menuitem" disabled={pending} onClick={() => onAction(conversation.archived ? "unarchive" : "archive")}>
+        {conversation.archived ? "Désarchiver" : "Archiver"}
+      </button>
+      <button type="button" role="menuitem" className={conversation.blockedByMe ? "" : "danger"} disabled={pending} onClick={() => onAction(conversation.blockedByMe ? "unblock" : "block")}>
+        {conversation.blockedByMe ? "Débloquer" : "Bloquer"}
+      </button>
+      <button type="button" role="menuitem" onClick={onProfile}>Profil</button>
+    </div>
+  );
+}
+
+function BlockConfirmation({ pending, onConfirm, onCancel }: { pending: boolean; onConfirm: () => void; onCancel: () => void }) {
+  return (
+    <div className="dm-confirm" role="dialog" aria-label="Confirmer le blocage">
+      <p>Bloquer ce joueur et archiver la conversation ?</p>
+      <button type="button" disabled={pending} onClick={onConfirm}>Confirmer</button>
+      <button type="button" onClick={onCancel}>Annuler</button>
+    </div>
+  );
+}
 const isCoarsePointer = () =>
   typeof window.matchMedia === "function" &&
   window.matchMedia("(pointer: coarse)").matches;
@@ -110,7 +165,9 @@ export default function DirectMessagePanel({
   const [searchError, setSearchError] = useState(""),
     [searching, setSearching] = useState(false),
     [menuOpen, setMenuOpen] = useState(false),
-    [confirmBlock, setConfirmBlock] = useState(false);
+    [confirmBlock, setConfirmBlock] = useState(false),
+    [listMenuId, setListMenuId] = useState<string | null>(null),
+    [listBlockTarget, setListBlockTarget] = useState<DirectConversationDto | null>(null);
   const [newCount, setNewCount] = useState(0),
     [sendPending, setSendPending] = useState(false),
     [now, setNow] = useState(() => Date.now()),
@@ -157,7 +214,9 @@ export default function DirectMessagePanel({
     readBusy = useRef(false),
     queuedRead = useRef<{ conversationId: string; messageId: string } | null>(
       null,
-    );
+    ),
+    reportFeedbackTimer = useRef<number | null>(null),
+    reportFeedbackRevision = useRef(0);
   const model = useDirectMessages(
     playerId,
     isActive && view !== "history",
@@ -216,6 +275,19 @@ export default function DirectMessagePanel({
   const outgoingPending =
     selected?.request?.state === "PENDING" &&
     selected.request.senderPlayerId === playerId;
+
+  const showReportFeedback = (message: string, autoDismiss = false) => {
+    const revision = ++reportFeedbackRevision.current;
+    if (reportFeedbackTimer.current !== null)
+      window.clearTimeout(reportFeedbackTimer.current);
+    reportFeedbackTimer.current = null;
+    setReportFeedback(message);
+    if (autoDismiss)
+      reportFeedbackTimer.current = window.setTimeout(() => {
+        if (reportFeedbackRevision.current === revision) setReportFeedback("");
+        reportFeedbackTimer.current = null;
+      }, 3_000);
+  };
 
   const openConversation = (conversation: DirectConversationDto) => {
     model.markConversationSeen(conversation.id);
@@ -360,6 +432,13 @@ export default function DirectMessagePanel({
   useEffect(() => {
     const close = (event: PointerEvent) => {
       if (
+        event.target instanceof Element &&
+        !event.target.closest(".dm-conversation-menu, .dm-menu-button, .dm-list-menu-button")
+      ) {
+        setMenuOpen(false);
+        setListMenuId(null);
+      }
+      if (
         !(event.target instanceof Element) ||
         event.target.closest(".dm-message-actions, .dm-message-delete-confirm")
       )
@@ -384,6 +463,8 @@ export default function DirectMessagePanel({
         setReportMessageId(null);
         setReportPreview(null);
         setReportNotice("");
+        setMenuOpen(false);
+        setListMenuId(null);
       }
     };
     document.addEventListener("pointerdown", close);
@@ -393,6 +474,11 @@ export default function DirectMessagePanel({
       window.removeEventListener("keydown", escape);
     };
   }, [editingId, messageActionsId]);
+  useEffect(() => () => {
+    reportFeedbackRevision.current += 1;
+    if (reportFeedbackTimer.current !== null)
+      window.clearTimeout(reportFeedbackTimer.current);
+  }, []);
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect -- a conversation boundary owns and closes its message overlays
     setMessageActionsId(null);
@@ -400,6 +486,10 @@ export default function DirectMessagePanel({
     setReportMessageId(null);
     setReportPreview(null);
     setReportNotice("");
+    reportFeedbackRevision.current += 1;
+    if (reportFeedbackTimer.current !== null)
+      window.clearTimeout(reportFeedbackTimer.current);
+    reportFeedbackTimer.current = null;
     setReportFeedback("");
   }, [selectedId]);
   useLayoutEffect(() => {
@@ -793,9 +883,7 @@ export default function DirectMessagePanel({
       );
     } catch (reason) {
       setReportMessageId(null);
-      setReportFeedback(
-        reason instanceof Error ? reason.message : "Aperçu indisponible.",
-      );
+      showReportFeedback(reason instanceof Error ? reason.message : "Aperçu indisponible.");
     } finally {
       setReportPending(false);
     }
@@ -813,9 +901,7 @@ export default function DirectMessagePanel({
       );
       setReportMessageId(null);
       setReportPreview(null);
-      setReportFeedback(
-        result.duplicate ? "Message déjà signalé." : "Message signalé.",
-      );
+      showReportFeedback(result.duplicate ? "Message déjà signalé." : "Message signalé.", true);
     } catch (reason) {
       if (
         reason instanceof ApiError &&
@@ -834,11 +920,7 @@ export default function DirectMessagePanel({
         } catch (reloadReason) {
           setReportMessageId(null);
           setReportPreview(null);
-          setReportFeedback(
-            reloadReason instanceof Error
-              ? reloadReason.message
-              : "Aperçu indisponible.",
-          );
+          showReportFeedback(reloadReason instanceof Error ? reloadReason.message : "Aperçu indisponible.");
         }
       } else
         setReportNotice(
@@ -1059,7 +1141,7 @@ export default function DirectMessagePanel({
     <div
       className="dm-report-overlay"
       onPointerDown={(event) => {
-        if (event.target === event.currentTarget && !reportPending) {
+        if (event.target === event.currentTarget && (!reportPending || !reportPreview)) {
           setReportMessageId(null);
           setReportPreview(null);
           setReportNotice("");
@@ -1074,7 +1156,7 @@ export default function DirectMessagePanel({
       >
         <header>
           <strong>Signaler ce message ?</strong>
-          <p>Les messages ci-dessous seront transmis à la modération.</p>
+          <p>Les messages ci-dessous seront transmis à la modération. Un contexte plus large, jusqu’à 10 messages avant et après, sera joint au signalement.</p>
         </header>
         {reportNotice && (
           <p className="dm-report-notice" role="alert">
@@ -1082,7 +1164,7 @@ export default function DirectMessagePanel({
           </p>
         )}
         {reportPending && !reportPreview ? (
-          <p>Chargement de l’aperçu…</p>
+          <p className="dm-report-loading">Chargement de l’aperçu…</p>
         ) : (
           reportPreview && (
             <div className="dm-report-context">
@@ -1114,7 +1196,7 @@ export default function DirectMessagePanel({
           </button>
           <button
             type="button"
-            disabled={reportPending}
+            disabled={reportPending && Boolean(reportPreview)}
             onClick={() => {
               setReportMessageId(null);
               setReportPreview(null);
@@ -1155,7 +1237,7 @@ export default function DirectMessagePanel({
               type="button"
               role="tab"
               aria-selected={view === "list"}
-              onClick={() => setView("list")}
+              onClick={() => { setListMenuId(null); setView("list"); }}
             >
               Conversations
             </button>
@@ -1163,7 +1245,7 @@ export default function DirectMessagePanel({
               type="button"
               role="tab"
               aria-selected={view === "archives"}
-              onClick={() => setView("archives")}
+              onClick={() => { setListMenuId(null); setView("archives"); }}
             >
               Archives
             </button>
@@ -1174,43 +1256,75 @@ export default function DirectMessagePanel({
             {model.error}
           </p>
         )}
+        {listBlockTarget && (
+          <BlockConfirmation
+            pending={model.pending}
+            onConfirm={() => {
+              const conversation = listBlockTarget;
+              setListBlockTarget(null);
+              void model.block(conversation.id, crypto.randomUUID()).catch(() => undefined);
+            }}
+            onCancel={() => setListBlockTarget(null)}
+          />
+        )}
         <div className="dm-conversation-list">
           {!model.listLoaded ? (
             <p className="dm-empty">Chargement des conversations…</p>
           ) : rows.length ? (
             rows.map((conversation) => (
-              <button
-                type="button"
-                className={`dm-conversation-row${conversation.unreadCount ? " unread" : ""}`}
-                onClick={() => openConversation(conversation)}
-                key={conversation.id}
-              >
-                <Avatar player={conversation.other} />
-                <span className="dm-conversation-copy">
-                  <strong>{conversation.other.displayName}</strong>
-                  <small>
-                    {conversation.request?.state === "PENDING"
-                      ? conversation.request.senderPlayerId === playerId
-                        ? "Demande envoyée"
-                        : "Demande reçue"
-                      : conversation.lastMessage?.deletedAt
-                        ? "Message supprimé"
-                        : (conversation.lastMessage?.content ?? "Conversation")}
-                  </small>
-                </span>
-                <span className="dm-conversation-meta">
-                  <time dateTime={conversation.lastMessageAt ?? undefined}>
-                    {usefulDate(conversation.lastMessageAt)}
-                  </time>
-                  {conversation.unreadCount > 0 && (
-                    <span className="dm-badge">
-                      {conversation.unreadCount > 99
-                        ? "99+"
-                        : conversation.unreadCount}
-                    </span>
-                  )}
-                </span>
-              </button>
+              <div className={`dm-conversation-row${conversation.unreadCount ? " unread" : ""}`} key={conversation.id} onClick={() => openConversation(conversation)}>
+                <button type="button" className="dm-conversation-row-open" onClick={(event) => { event.stopPropagation(); openConversation(conversation); }}>
+                  <Avatar player={conversation.other} />
+                  <span className="dm-conversation-copy">
+                    <strong>{conversation.other.displayName}</strong>
+                    <small>
+                      {conversation.request?.state === "PENDING"
+                        ? conversation.request.senderPlayerId === playerId ? "Demande envoyée" : "Demande reçue"
+                        : conversation.lastMessage?.deletedAt ? "Message supprimé" : (conversation.lastMessage?.content ?? "Conversation")}
+                    </small>
+                  </span>
+                  <span className="dm-conversation-meta">
+                    <time dateTime={conversation.lastMessageAt ?? undefined}>{usefulDate(conversation.lastMessageAt)}</time>
+                    {conversation.unreadCount > 0 && <span className="dm-badge">{conversation.unreadCount > 99 ? "99+" : conversation.unreadCount}</span>}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="dm-list-menu-button"
+                  aria-label={`Actions de conversation avec ${conversation.other.displayName}`}
+                  aria-expanded={listMenuId === conversation.id}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setListMenuId((current) => current === conversation.id ? null : conversation.id);
+                  }}
+                >⋯</button>
+                {listMenuId === conversation.id && (
+                  <ConversationActionsMenu
+                    conversation={conversation}
+                    pending={model.pending}
+                    className="from-list"
+                    onHistory={() => {
+                      setListMenuId(null);
+                      setSelectedId(conversation.id);
+                      setHistoryQuery("");
+                      setHistoryDate("");
+                      setHistoryHighlight(null);
+                      historyInitialScroll.current = true;
+                      setView("history");
+                    }}
+                    onReceipts={(enabled) => { setListMenuId(null); void model.receipts(conversation.id, enabled).catch(() => undefined); }}
+                    onAction={(action) => {
+                      setListMenuId(null);
+                      if (action === "block") { setListBlockTarget(conversation); return; }
+                      if (action === "archive" || action === "unarchive") void model.archive(conversation.id, action === "archive").catch(() => undefined);
+                      else void model.unblock(conversation.id, crypto.randomUUID()).catch(() => undefined);
+                    }}
+                    onProfile={() => { setListMenuId(null); onOpenProfile(conversation.other.id); }}
+                  />
+                )}
+              </div>
             ))
           ) : (
             <p className="dm-empty">
@@ -1489,81 +1603,21 @@ export default function DirectMessagePanel({
           </>
         )}
         {menuOpen && selected && (
-          <div className="dm-conversation-menu" role="menu">
-            <button type="button" role="menuitem" onClick={openHistory}>
-              Historique complet
-            </button>
-            <label>
-              <input
-                type="checkbox"
-                checked={selected.readReceiptsEnabled}
-                disabled={model.pending}
-                onChange={(event) => {
-                  void model
-                    .receipts(selected.id, event.target.checked)
-                    .catch(() => undefined);
-                }}
-              />{" "}
-              Accusés de lecture
-            </label>
-            <button
-              type="button"
-              role="menuitem"
-              disabled={model.pending}
-              onClick={() =>
-                void act(selected.archived ? "unarchive" : "archive")
-              }
-            >
-              {selected.archived ? "Désarchiver" : "Archiver"}
-            </button>
-            {selected.blockedByMe ? (
-              <button
-                type="button"
-                role="menuitem"
-                disabled={model.pending}
-                onClick={() => void act("unblock")}
-              >
-                Débloquer
-              </button>
-            ) : (
-              <button
-                type="button"
-                role="menuitem"
-                className="danger"
-                disabled={model.pending}
-                onClick={() => setConfirmBlock(true)}
-              >
-                Bloquer
-              </button>
-            )}
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => other && onOpenProfile(other.id)}
-            >
-              Profil
-            </button>
-          </div>
+          <ConversationActionsMenu
+            conversation={selected}
+            pending={model.pending}
+            onHistory={openHistory}
+            onReceipts={(enabled) => { void model.receipts(selected.id, enabled).catch(() => undefined); }}
+            onAction={(action) => {
+              if (action === "block") { setMenuOpen(false); setConfirmBlock(true); return; }
+              void act(action);
+            }}
+            onProfile={() => { setMenuOpen(false); if (other) onOpenProfile(other.id); }}
+          />
         )}
       </header>
       {confirmBlock && (
-        <div
-          className="dm-confirm"
-          role="dialog"
-          aria-label="Confirmer le blocage"
-        >
-          <p>Bloquer ce joueur et archiver la conversation ?</p>
-          <button
-            type="button"
-            disabled={model.pending}
-            onClick={() => void act("block")}
-          >
-            Confirmer
-          </button>
-          <button type="button" onClick={() => setConfirmBlock(false)}>
-            Annuler
-          </button>
-        </div>
+        <BlockConfirmation pending={model.pending} onConfirm={() => void act("block")} onCancel={() => setConfirmBlock(false)} />
       )}
       {model.error && (!selected?.canSend || incomingPending) && (
         <p className="dm-feedback error" role="alert">

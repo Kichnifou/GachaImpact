@@ -88,6 +88,7 @@ describe('DirectMessagePanel', () => {
     expect(appCss).not.toContain('.dm-message.pending { opacity:')
     expect(appCss).toContain('.dm-message-actions { position: absolute;')
     expect(appCss).toContain('.dm-message-delete-confirm { position: absolute;')
+    expect(appCss).toContain('.dm-report-overlay { position: fixed;')
   })
 
   it('formats the single read status at the validated deterministic thresholds', () => {
@@ -950,16 +951,18 @@ describe('DirectMessagePanel', () => {
     expect(container.querySelector('[aria-label="Signaler le message"]')).not.toBeNull()
   })
 
-  it('previews the frozen context, highlights the target and supports cancel, outside click and Escape', async () => {
-    const context = Array.from({ length: 21 }, (_, index) => ({ ...reportLine, id: `${String(index).padStart(8, '0')}-0000-4000-8000-000000000000`, content: `Contexte ${index}`, submissionOrder: String(index + 1) }))
-    const target = context[10]!
+  it('keeps a stable condensed preview, highlights the target and supports cancel, outside click and Escape', async () => {
+    const context = Array.from({ length: 3 }, (_, index) => ({ ...reportLine, id: `${String(index).padStart(8, '0')}-0000-4000-8000-000000000000`, content: `Contexte ${index}`, submissionOrder: String(index + 1) }))
+    const target = context[1]!
     directMessages.reportPreview.mockResolvedValue({ ...reportPreview, message: target, context })
     const container = await mount(); await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
     const flag = container.querySelector<HTMLButtonElement>('[aria-label="Signaler le message"]')!
     await act(async () => { flag.click() }); await settle()
     expect(directMessages.reportPreview).toHaveBeenCalledWith(conversationId, messageId)
-    expect(container.querySelectorAll('.dm-report-context article')).toHaveLength(21)
-    expect(container.querySelector('.dm-report-context article.target')?.textContent).toContain('Contexte 10')
+    expect(container.querySelectorAll('.dm-report-context article')).toHaveLength(3)
+    expect(container.querySelector('.dm-report-context article.target')?.textContent).toContain('Contexte 1')
+    expect(container.textContent).toContain('jusqu’à 10 messages avant et après')
+    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-report-dialog footer button')).every(button => button.offsetParent !== null || document.contains(button))).toBe(true)
     await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-report-dialog button')).find(button => button.textContent === 'Annuler'))!.click() })
     expect(container.querySelector('.dm-report-overlay')).toBeNull(); expect(directMessages.report).not.toHaveBeenCalled()
     await act(async () => { flag.click() }); await settle(); await act(async () => { container.querySelector<HTMLElement>('.dm-report-overlay')!.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })) })
@@ -982,5 +985,64 @@ describe('DirectMessagePanel', () => {
     expect(container.querySelector('.dm-report-notice')).not.toBeNull()
     expect(container.textContent).toContain('Contexte actualis'); expect(directMessages.report).toHaveBeenCalledTimes(3)
     await confirm(); expect(directMessages.report).toHaveBeenCalledTimes(4); expect(directMessages.report.mock.calls.at(-1)?.[2]).toBe(refreshed.snapshotFingerprint)
+  })
+
+  it('dismisses successful report feedback at exactly three seconds without dismissing errors', async () => {
+    const container = await mount(); await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLElement).click() }); await settle()
+    await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="Signaler le message"]')!.click() }); await settle()
+    vi.useFakeTimers()
+    try {
+      await act(async () => {
+        (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-report-dialog button')).find(button => button.textContent === 'Confirmer'))!.click()
+        await Promise.resolve(); await Promise.resolve()
+      })
+      expect(container.textContent).toContain('Message signalé.')
+      await act(async () => { await vi.advanceTimersByTimeAsync(2_999) })
+      expect(container.textContent).toContain('Message signalé.')
+      await act(async () => { await vi.advanceTimersByTimeAsync(1) })
+      expect(container.textContent).not.toContain('Message signalé.')
+    } finally { vi.useRealTimers() }
+  })
+
+  it('shares the exact conversation menu in Conversations and Archives without opening or reading the thread', async () => {
+    const archived = { ...baseConversation, id: '66666666-6666-4666-8666-666666666666', archived: true, unreadCount: 0 }
+    directMessages.list.mockImplementation(async (isArchived: boolean) => ({ conversations: isArchived ? [archived] : [baseConversation] }))
+    const container = await mount(baseConversation, true, true)
+    directMessages.read.mockClear(); directMessages.messages.mockClear()
+    const menuButton = container.querySelector<HTMLButtonElement>('.dm-list-menu-button')!
+    expect(menuButton.getAttribute('aria-label')).toBe('Actions de conversation avec Aster')
+    await act(async () => { menuButton.click() })
+    expect(container.querySelector('.dm-thread-header')).toBeNull()
+    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-conversation-menu button')).map(button => button.textContent)).toEqual(['Historique complet', 'Archiver', 'Bloquer', 'Profil'])
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-conversation-menu button')).find(button => button.textContent === 'Historique complet'))!.click() }); await settle()
+    expect(container.querySelector('.dm-history')).not.toBeNull(); expect(directMessages.read).not.toHaveBeenCalled()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-back')!.click() })
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-back')!.click() })
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-list-tabs button')).find(button => button.textContent === 'Archives'))!.click() }); await settle()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-list-menu-button')!.click() })
+    expect(container.textContent).toContain('Désarchiver')
+    act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })))
+    expect(container.querySelector('.dm-conversation-menu')).toBeNull()
+  })
+
+  it('runs receipts, profile, block confirmation, archive and outside close directly from the list menu', async () => {
+    const container = await mount()
+    const openMenu = async () => { await act(async () => { container.querySelector<HTMLButtonElement>('.dm-list-menu-button')!.click() }) }
+    await openMenu()
+    await act(async () => { container.querySelector<HTMLInputElement>('.dm-conversation-menu input')!.click(); await Promise.resolve() })
+    expect(directMessages.receipts).toHaveBeenCalledWith(conversationId, false); expect(container.querySelector('.dm-conversation-menu')).toBeNull()
+    await openMenu()
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-conversation-menu button')).find(button => button.textContent === 'Profil'))!.click() })
+    expect(openProfile).toHaveBeenCalledWith(otherId); expect(container.querySelector('.dm-conversation-menu')).toBeNull()
+    await openMenu()
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-conversation-menu button')).find(button => button.textContent === 'Bloquer'))!.click() })
+    expect(container.querySelector('[aria-label="Confirmer le blocage"]')).not.toBeNull(); expect(directMessages.block).not.toHaveBeenCalled()
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-confirm button')).find(button => button.textContent === 'Confirmer'))!.click(); await Promise.resolve() })
+    expect(directMessages.block).toHaveBeenCalledWith(conversationId, expect.any(String))
+    await openMenu(); act(() => document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })))
+    expect(container.querySelector('.dm-conversation-menu')).toBeNull()
+    await openMenu()
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-conversation-menu button')).find(button => button.textContent === 'Archiver'))!.click(); await Promise.resolve() })
+    expect(directMessages.archive).toHaveBeenCalledWith(conversationId, true)
   })
 })

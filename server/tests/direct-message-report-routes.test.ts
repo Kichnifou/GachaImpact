@@ -10,7 +10,7 @@ const reportId = '33333333-3333-4333-8333-333333333333';
 const fingerprint = 'a'.repeat(64);
 const headers = { authorization: 'Bearer token' };
 const preview = { message: { id: messageId }, context: [], snapshotFingerprint: fingerprint, alreadyReported: false };
-const service = { preview: vi.fn(async () => preview), report: vi.fn(async () => ({ reported: true, duplicate: false })), list: vi.fn(async () => ({ reports: [], page: 1, pageSize: 20, total: 0, totalPages: 1 })), detail: vi.fn(async () => ({ id: reportId })) };
+const service = { preview: vi.fn(async () => preview), report: vi.fn(async () => ({ reported: true, duplicate: false })), list: vi.fn(async () => ({ reports: [], page: 1, pageSize: 20, total: 0, totalPages: 1 })), detail: vi.fn(async () => ({ id: reportId })), delete: vi.fn(async () => ({ deleted: true })) };
 const apps: Awaited<ReturnType<typeof buildApp>>[] = [];
 
 async function setup(enabled = true) {
@@ -41,7 +41,10 @@ describe('direct-message report routes', () => {
     expect(service.list).toHaveBeenCalledWith(identity, 2);
     expect((await app.inject({ url: `/api/v1/moderation/direct-message-reports/${reportId}`, headers })).statusCode).toBe(200);
     expect(service.detail).toHaveBeenCalledWith(identity, reportId);
+    expect((await app.inject({ method: 'DELETE', url: `/api/v1/moderation/direct-message-reports/${reportId}`, headers })).statusCode).toBe(200);
+    expect(service.delete).toHaveBeenCalledWith(identity, reportId);
     expect((await app.inject({ url: `/api/v1/moderation/direct-message-reports/${reportId}?conversationId=${conversationId}`, headers })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'DELETE', url: `/api/v1/moderation/direct-message-reports/${reportId}?conversationId=${conversationId}`, headers })).statusCode).toBe(400);
     expect((await app.inject({ url: '/api/v1/moderation/direct-message-reports?page=0', headers })).statusCode).toBe(400);
   });
 });

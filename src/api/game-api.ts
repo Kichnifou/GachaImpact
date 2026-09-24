@@ -203,6 +203,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getModerationState: () => request<ModerationStateDto>('/api/v1/moderation/me'),
     getDirectMessageReports: (page = 1) => request<DirectMessageReportPageDto>('/api/v1/moderation/direct-message-reports?' + new URLSearchParams({ page: String(page) })),
     getDirectMessageReport: (reportId: string) => request<DirectMessageReportDetailDto>(`/api/v1/moderation/direct-message-reports/${encodeURIComponent(reportId)}`),
+    deleteDirectMessageReport: (reportId: string) => request<{ deleted: true }>(`/api/v1/moderation/direct-message-reports/${encodeURIComponent(reportId)}`, { method: 'DELETE' }),
     getModerationPlayerState: (playerId: string) => request<ModerationStateDto>(`/api/v1/moderation/players/${playerId}/state`),
     listModerationPlayers: (input: ModerationPlayerListQuery = {}) => {
       const query = new URLSearchParams()

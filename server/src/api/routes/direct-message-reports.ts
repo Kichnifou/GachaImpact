@@ -30,4 +30,5 @@ export async function registerDirectMessageReportRoutes(app: FastifyInstance, op
   });
   app.get('/api/v1/moderation/direct-message-reports', config, request => options.service.list(requireAuthenticatedIdentity(request), parse(listQuery, request.query).page));
   app.get('/api/v1/moderation/direct-message-reports/:reportId', config, request => { parse(emptyQuery, request.query); return options.service.detail(requireAuthenticatedIdentity(request), parse(moderationParams, request.params).reportId); });
+  app.delete('/api/v1/moderation/direct-message-reports/:reportId', config, request => { parse(emptyQuery, request.query); return options.service.delete(requireAuthenticatedIdentity(request), parse(moderationParams, request.params).reportId); });
 }

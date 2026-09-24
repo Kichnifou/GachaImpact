@@ -1107,11 +1107,13 @@ Chaque nouvel envoi vérifie la permission actuelle. Une conversation devenue no
 
 - aucun administrateur ne peut parcourir librement les MP ;
 - un participant signale volontairement un message ;
-- le dossier contient le message, les dix précédents et les dix suivants déjà existants ;
-- le joueur voit ce qui sera transmis avant confirmation ;
+- le preview joueur montre uniquement le voisin chronologique immédiat précédent, la cible en évidence et le voisin immédiat suivant, soit trois lignes maximum ; un voisin supprimé reste visible comme `Message supprimé` ;
+- le joueur est informé avant confirmation qu'un contexte plus large sera transmis ;
+- le dossier de modération contient et conserve le message, les dix précédents et les dix suivants déjà existants, soit 21 lignes maximum ;
 - snapshot figé au moment du signalement ;
 - aucune notification immédiate du joueur signalé ;
 - information seulement si une décision de modération produit avertissement ou sanction.
+- MODERATOR et ADMIN peuvent supprimer le seul dossier après traitement, sans modifier les MP, conversations, notifications, blocages ou amitiés et sans recopier son contenu privé dans l'audit administratif.
 
 ## R511 — Blocage
 

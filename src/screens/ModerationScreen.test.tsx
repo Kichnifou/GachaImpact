@@ -2,10 +2,12 @@
 
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ModerationPlayerDto, ModerationStateDto } from '../api/types'
-const moderationReports = vi.hoisted(() => ({ list: vi.fn(), detail: vi.fn() }))
-vi.mock('../api/game-api', () => ({ getGameApiClient: () => ({ getDirectMessageReports: moderationReports.list, getDirectMessageReport: moderationReports.detail }) }))
+const moderationReports = vi.hoisted(() => ({ list: vi.fn(), detail: vi.fn(), remove: vi.fn() }))
+vi.mock('../api/game-api', () => ({ getGameApiClient: () => ({ getDirectMessageReports: moderationReports.list, getDirectMessageReport: moderationReports.detail, deleteDirectMessageReport: moderationReports.remove }) }))
 import ModerationScreen from './ModerationScreen'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -196,6 +198,43 @@ describe('ModerationScreen', () => {
     await act(async () => { container.querySelector<HTMLButtonElement>('.dm-reports-list button')!.click(); await Promise.resolve(); await Promise.resolve() })
     expect(moderationReports.detail).toHaveBeenCalledWith('report-1'); expect(container.querySelector('.dm-moderation-context article.target')?.textContent).toContain('Preuve figée')
     for (const forbidden of ['Voir la conversation', 'Ouvrir les MP', 'Voir plus de contexte', 'Rechercher dans les MP']) expect(container.textContent).not.toContain(forbidden)
+  })
+
+  it('confirms report deletion from list and detail, closes immediately and revalidates the list', async () => {
+    const line = { id: 'message-delete', authorPlayerId: 'reported', authorDisplayName: 'Reported', content: 'Preuve privée', createdAt: '2026-09-23T08:00:00.000Z', submissionOrder: '4', editedAt: null, deletedAt: null }
+    const summary = { id: 'report-delete', createdAt: '2026-09-24T08:00:00.000Z', source: 'MP' as const, reporter: { id: 'reporter', displayName: 'Reporter' }, reported: { id: 'reported', displayName: 'Reported' }, message: line }
+    moderationReports.list.mockResolvedValue({ reports: [summary], page: 1, pageSize: 20, total: 1, totalPages: 1 })
+    moderationReports.detail.mockResolvedValue({ ...summary, context: [line], snapshotFingerprint: 'a'.repeat(64) })
+    moderationReports.remove.mockResolvedValue({ deleted: true })
+    const { container } = await mount()
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.moderation-tabs button')).find(button => button.textContent === 'Communauté'))!.click(); await Promise.resolve(); await Promise.resolve() })
+    const remove = container.querySelector<HTMLButtonElement>('[aria-label="Supprimer le signalement de Reported"]')!
+    await act(async () => { remove.click() })
+    expect(container.textContent).toContain('Supprimer ce signalement ?')
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.moderation-delete-confirm button')).find(button => button.textContent === 'Annuler'))!.click() })
+    expect(moderationReports.remove).not.toHaveBeenCalled()
+    await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="Supprimer le signalement de Reported"]')!.click() })
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.moderation-delete-confirm button')).find(button => button.textContent === 'Confirmer'))!.click(); await Promise.resolve(); await Promise.resolve() })
+    expect(container.querySelector('.moderation-delete-confirm')).toBeNull(); expect(moderationReports.remove).toHaveBeenCalledWith('report-delete')
+
+    moderationReports.list.mockResolvedValue({ reports: [summary], page: 1, pageSize: 20, total: 1, totalPages: 1 })
+    await act(async () => { await Promise.resolve(); await Promise.resolve() })
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-report-open')!.click(); await Promise.resolve(); await Promise.resolve() })
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-report-detail-actions button')).find(button => button.textContent === 'Supprimer'))!.click() })
+    expect(container.textContent).toContain('Supprimer ce signalement ?')
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.moderation-delete-confirm button')).find(button => button.textContent === 'Confirmer'))!.click(); await Promise.resolve(); await Promise.resolve() })
+    expect(container.querySelector('.moderation-delete-confirm')).toBeNull()
+    expect(container.querySelector('.dm-report-detail')).toBeNull()
+    expect(container.textContent).toContain('Signalements MP')
+    expect(moderationReports.remove).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps enabled report and pagination controls pointer-only in production CSS', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/App.css'), 'utf8')
+    expect(css).toContain('.dm-report-open {')
+    expect(css).toMatch(/\.dm-report-open \{[^}]*cursor: pointer;/u)
+    expect(css).toMatch(/\.dm-reports-panel header button, \.dm-reports-panel > footer button \{[^}]*cursor: pointer;/u)
+    expect(css).toMatch(/\.dm-reports-panel button:disabled \{ cursor: default;/u)
   })
 
   it('shows authoritative current values and changes the resource summary with its selector', async () => {

@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import { AppError } from '../../api/errors.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
@@ -24,7 +24,12 @@ export type DirectMessageReportPreviewDto = Readonly<{
 }>;
 
 type DatabaseClient = PrismaClient | Prisma.TransactionClient;
-type Snapshot = Readonly<{ message: DirectMessageReportSnapshotLine; context: readonly DirectMessageReportSnapshotLine[]; fingerprint: string }>;
+type Snapshot = Readonly<{
+  message: DirectMessageReportSnapshotLine;
+  context: readonly DirectMessageReportSnapshotLine[];
+  previewContext: readonly DirectMessageReportSnapshotLine[];
+  fingerprint: string;
+}>;
 
 const unavailable = () => new AppError('Ce message ne peut pas être signalé.', 409, 'DIRECT_MESSAGE_REPORT_UNAVAILABLE');
 const stale = () => new AppError('Le contexte du signalement a changé.', 409, 'DIRECT_MESSAGE_REPORT_PREVIEW_STALE');
@@ -87,8 +92,10 @@ export class DirectMessageReportService {
       client.directMessage.findMany({ where: { conversationId, submissionOrder: { gt: target.submissionOrder } }, orderBy: { submissionOrder: 'asc' }, take: 10, select: messageSelect }),
     ]);
     const message = project(target);
+    const previous = beforeDescending[0];
     const context = [...beforeDescending.reverse().map(project), message, ...after.map(project)];
-    return { message, context, fingerprint: fingerprint(message, context) };
+    const previewContext = [previous, target, after[0]].filter((row): row is SelectedMessage => Boolean(row)).map(project);
+    return { message, context, previewContext, fingerprint: fingerprint(message, context) };
   }
 
   public async preview(identity: AuthenticatedIdentity, conversationId: string, messageId: string): Promise<DirectMessageReportPreviewDto> {
@@ -97,7 +104,7 @@ export class DirectMessageReportService {
       this.snapshot(this.database, conversationId, messageId, actor.id),
       this.database.directMessageReport.findUnique({ where: { reporterPlayerId_messageId: { reporterPlayerId: actor.id, messageId } }, select: { id: true } }),
     ]);
-    return { message: snapshot.message, context: snapshot.context, snapshotFingerprint: snapshot.fingerprint, alreadyReported: Boolean(report) };
+    return { message: snapshot.message, context: snapshot.previewContext, snapshotFingerprint: snapshot.fingerprint, alreadyReported: Boolean(report) };
   }
 
   public async report(identity: AuthenticatedIdentity, conversationId: string, messageId: string, snapshotFingerprint: string) {
@@ -129,8 +136,8 @@ export class DirectMessageReportService {
     }
   }
 
-  private async requireCommunityModerator(playerId: string) {
-    const assignment = await this.database.playerRoleAssignment.findFirst({
+  private async requireCommunityModerator(playerId: string, client: DatabaseClient = this.database) {
+    const assignment = await client.playerRoleAssignment.findFirst({
       where: { playerId, revokedAt: null, role: { in: ['MODERATOR', 'ADMIN'] } },
       select: { id: true },
     });
@@ -168,5 +175,37 @@ export class DirectMessageReportService {
     });
     if (!row) throw reportNotFound();
     return { id: row.id, createdAt: row.createdAt.toISOString(), source: 'MP' as const, reporter: row.reporter, reported: row.reported, message: row.messageSnapshot, context: row.contextSnapshot, snapshotFingerprint: row.snapshotFingerprint };
+  }
+
+  public async delete(identity: AuthenticatedIdentity, reportId: string) {
+    const actor = await this.actor(identity);
+    return this.database.$transaction(async tx => {
+      await this.requireCommunityModerator(actor.id, tx);
+      const report = await tx.directMessageReport.findUnique({
+        where: { id: reportId },
+        select: { id: true, reportedPlayerId: true },
+      });
+      if (!report) throw reportNotFound();
+      const operation = await tx.businessOperation.create({ data: {
+        playerId: report.reportedPlayerId,
+        operationType: 'moderation.community.delete-direct-message-report',
+        sourceChannel: 'ADMIN',
+        idempotencyKey: randomUUID(),
+        status: 'COMPLETED',
+        completedAt: new Date(),
+        resultSummary: { reportId, deleted: true },
+      } });
+      await tx.adminAuditEntry.create({ data: {
+        actorPlayerId: actor.id,
+        targetPlayerId: report.reportedPlayerId,
+        action: 'delete-direct-message-report',
+        domain: 'community',
+        before: { reportId, reportedPlayerId: report.reportedPlayerId },
+        after: { deleted: true },
+        operationId: operation.id,
+      } });
+      await tx.directMessageReport.delete({ where: { id: reportId } });
+      return { deleted: true as const };
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30_000, maxWait: 30_000 });
   }
 }
