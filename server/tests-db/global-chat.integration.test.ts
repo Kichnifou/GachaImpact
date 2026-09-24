@@ -139,7 +139,7 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(BigInt(second.message.submissionOrder)).toBeGreaterThan(BigInt(first.message.submissionOrder));
     advance(750);
     await service.send(as(id), 'M3', randomUUID());
-    advance(3_999);
+    advance(2_999);
     await expect(service.send(as(id), 'M4', randomUUID())).rejects.toMatchObject({ code: 'CHAT_PACING_LIMIT' });
     await expect(service.send(as(id), 'M4 encore bloqué', randomUUID())).rejects.toMatchObject({ code: 'CHAT_PACING_LIMIT' });
     expect(await db.globalChatMessage.count({ where: { authorPlayerId: id } })).toBe(3);

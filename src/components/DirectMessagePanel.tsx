@@ -89,11 +89,12 @@ export default function DirectMessagePanel({ playerId, isActive, intent, resetTo
       const bubbleMessageId = bubble?.closest<HTMLElement>('[data-message-id]')?.dataset.messageId
       if (!bubble || bubbleMessageId !== messageActionsId) setMessageActionsId(null)
       setDeleteId(null)
+      if (editingId && !event.target.closest('.dm-message-edit')) { setEditingId(null); setEditDraft('') }
     }
-    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') { setMessageActionsId(null); setDeleteId(null) } }
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') { setMessageActionsId(null); setDeleteId(null); setEditingId(null); setEditDraft('') } }
     document.addEventListener('pointerdown', close); window.addEventListener('keydown', escape)
     return () => { document.removeEventListener('pointerdown', close); window.removeEventListener('keydown', escape) }
-  }, [messageActionsId])
+  }, [editingId, messageActionsId])
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect -- a conversation boundary owns and closes its message overlays
     setMessageActionsId(null); setDeleteId(null)
@@ -187,7 +188,7 @@ export default function DirectMessagePanel({ playerId, isActive, intent, resetTo
   }
   const saveEdit = async (messageId: string) => {
     const content = editDraft.trim()
-    if (!content || Array.from(content).length > 1000) return
+    if (!content || Array.from(content).length > 1000 || messageActionPending !== null) return
     const result = await mutateMessage({ kind: 'edit', messageId, content, key: crypto.randomUUID() })
     if (result !== 'deterministic') { setEditingId(null); setEditDraft('') }
   }
@@ -196,10 +197,10 @@ export default function DirectMessagePanel({ playerId, isActive, intent, resetTo
     const actionsOpen = messageActionsId === message.id
     return <article className={`dm-message ${message.own ? 'own' : 'other'}${message.id.startsWith('optimistic:') ? ' pending' : ''}${actionsOpen ? ' actions-open' : ''}`} data-message-id={message.id} data-submission-order={message.submissionOrder ?? undefined} data-read-by-other={message.readByOther ? 'true' : 'false'} data-read-by-other-at={message.readByOtherAt ?? undefined} key={message.id} tabIndex={actionable ? 0 : undefined}>
       <div className="dm-message-content">
-        {editingId === message.id ? <div className="dm-message-edit" ref={editor}><textarea aria-label="Modifier le message" value={editDraft} disabled={messageActionPending === message.id} onChange={event => setEditDraft(Array.from(event.target.value).slice(0, 1000).join(''))} /><small>{Array.from(editDraft).length} / 1 000</small><span><button type="button" disabled={messageActionPending === message.id || !editDraft.trim()} onClick={() => void saveEdit(message.id)}>Sauvegarder</button><button type="button" disabled={messageActionPending === message.id} onClick={() => { setEditingId(null); setEditDraft('') }}>Annuler</button></span></div> : <>
+        {editingId === message.id ? <div className="dm-message-edit" ref={editor}><textarea aria-label="Modifier le message" value={editDraft} disabled={messageActionPending === message.id} onChange={event => setEditDraft(Array.from(event.target.value).slice(0, 1000).join(''))} onKeyDown={event => { if (event.key !== 'Enter' || event.nativeEvent.isComposing) return; event.preventDefault(); if (event.ctrlKey || event.metaKey) { const field = event.currentTarget; field.setRangeText('\n', field.selectionStart, field.selectionEnd, 'end'); setEditDraft(Array.from(field.value).slice(0, 1000).join('')); return } void saveEdit(message.id) }} /><small>{Array.from(editDraft).length} / 1 000</small><span><button type="button" disabled={messageActionPending === message.id || !editDraft.trim()} onClick={() => void saveEdit(message.id)}>Sauvegarder</button><button type="button" disabled={messageActionPending === message.id} onClick={() => { setEditingId(null); setEditDraft('') }}>Annuler</button></span></div> : <>
           <div className={`dm-message-bubble${message.deletedAt ? ' deleted' : ''}`} onClick={event => { if (!actionable || !isCoarsePointer() || (event.target as Element).closest('a, button')) return; setMessageActionsId(value => value === message.id ? null : message.id) }}>{message.content ? <p>{linkedText(message.content)}</p> : <p>Message supprimé</p>}{message.editedAt && !message.deletedAt && <small className="dm-message-edited">Modifié</small>}</div>
           {actionable && <div className="dm-message-actions">{message.deletedAt ? <button type="button" title="Restaurer" aria-label="Restaurer le message" disabled={messageActionPending === message.id} onClick={() => { setMessageActionsId(null); void mutateMessage({ kind: 'restore', messageId: message.id, key: crypto.randomUUID() }) }}>↶</button> : <><button type="button" title="Modifier" aria-label="Modifier le message" disabled={messageActionPending === message.id} onClick={() => { setEditingId(message.id); setEditDraft(message.content ?? ''); setMessageActionsId(null) }}>✎</button><button type="button" title="Supprimer" aria-label="Supprimer le message" disabled={messageActionPending === message.id} onClick={() => { setDeleteId(message.id); setMessageActionsId(null) }}>×</button></>}</div>}
-          {deleteId === message.id && <div className="dm-message-delete-confirm" role="dialog" aria-label="Confirmer la suppression"><p>Supprimer ce message ?</p><button type="button" disabled={messageActionPending === message.id} onClick={async () => { const result = await mutateMessage({ kind: 'delete', messageId: message.id, key: crypto.randomUUID() }); if (result !== 'deterministic') setDeleteId(null) }}>Confirmer</button><button type="button" disabled={messageActionPending === message.id} onClick={() => setDeleteId(null)}>Annuler</button></div>}
+          {deleteId === message.id && <div className="dm-message-delete-confirm" role="dialog" aria-label="Confirmer la suppression"><p>Supprimer ce message ?</p><button type="button" disabled={messageActionPending === message.id} onClick={() => { setDeleteId(null); void mutateMessage({ kind: 'delete', messageId: message.id, key: crypto.randomUUID() }) }}>Confirmer</button><button type="button" disabled={messageActionPending === message.id} onClick={() => setDeleteId(null)}>Annuler</button></div>}
         </>}
       </div>
     </article>

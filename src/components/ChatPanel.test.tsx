@@ -629,7 +629,7 @@ describe('ChatPanel réel', () => {
       expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
       for (const content of ['M1', 'M2', 'M3']) expect(Array.from(container.querySelectorAll('.chat-message')).filter(node => node.querySelector('p')?.textContent === content)).toHaveLength(1)
       expect(textarea.value).toBe('')
-      await act(async () => { await vi.advanceTimersByTimeAsync(3_999) }); expect(textarea.disabled).toBe(true)
+      await act(async () => { await vi.advanceTimersByTimeAsync(2_249) }); expect(textarea.disabled).toBe(true)
       await act(async () => { await vi.advanceTimersByTimeAsync(1) }); expect(textarea.disabled).toBe(false)
     } finally { vi.useRealTimers() }
   })
@@ -997,27 +997,56 @@ describe('ChatPanel réel', () => {
     } finally { vi.useRealTimers() }
   })
 
-  it('locks the composer for four seconds from the third fast submission and re-enables it automatically', async () => {
+  it('locks exactly three seconds from the third fast submission, then restores focus and accepts M4', async () => {
     vi.useFakeTimers()
     try {
       vi.setSystemTime(0)
       const container = await mount(), form = container.querySelector('form')!
-      const submitAt = async (time: number, value?: string) => { vi.setSystemTime(time); await act(async () => { if (value !== undefined) type(container, value); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() }) }
-      await submitAt(0, 'M1'); await submitAt(800, 'M2'); await submitAt(1_600, 'M3')
-      expect(chat.send).toHaveBeenCalledTimes(3)
+      const submit = async (value: string) => { await act(async () => { type(container, value); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() }) }
       const textarea = container.querySelector<HTMLTextAreaElement>('#chat-message')!
+      textarea.focus()
+      await submit('M1'); await act(async () => { await vi.advanceTimersByTimeAsync(800) }); await submit('M2'); await act(async () => { await vi.advanceTimersByTimeAsync(800) }); await submit('M3')
+      expect(chat.send).toHaveBeenCalledTimes(3)
       expect(textarea.disabled).toBe(true)
       expect(textarea.placeholder).toBe('Spam, veuillez attendre...')
       expect(button(container, 'Envoyer le message').disabled).toBe(true)
-      await submitAt(2_500, 'M4'); await submitAt(3_000); await submitAt(5_599)
-      expect(chat.send).toHaveBeenCalledTimes(3)
-      expect(textarea.value).toBe('M4')
-      expect(container.querySelectorAll('.chat-message-optimistic')).toHaveLength(0)
-      expect(container.querySelector('[role="alert"]')).toBeNull()
-      vi.setSystemTime(5_600)
-      await act(async () => { await vi.advanceTimersByTimeAsync(4_000) })
+      textarea.blur()
+      await act(async () => { await vi.advanceTimersByTimeAsync(2_999) })
+      expect(Date.now()).toBe(4_599); expect(textarea.disabled).toBe(true)
+      await act(async () => { await vi.advanceTimersByTimeAsync(1) })
+      expect(Date.now()).toBe(4_600)
       expect(textarea.disabled).toBe(false)
       expect(textarea.placeholder).toBe('Écrire un message…')
+      expect(document.activeElement).toBe(textarea)
+      expect(textarea.selectionStart).toBe(textarea.value.length)
+      await submit('M4')
+      expect(Array.from(container.querySelectorAll('.chat-message p')).map(node => node.textContent)).toContain('M4')
+      expect(textarea.value).toBe('')
+    } finally { vi.useRealTimers() }
+  })
+
+  it('unlocks the composer while M3 is pending but holds M4 transport until the server-safe boundary', async () => {
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(0)
+      let resolveM3!: (value: ChatSendDto) => void
+      const response = (content: string, key: string, createdAt = new Date(Date.now()).toISOString()): ChatSendDto => ({ message: { ...message, id: crypto.randomUUID(), author: { id: ownId, displayName: 'Moi', elementKey: 'pyro' }, authorLabel: 'Moi', content, clientIntentKey: key, createdAt }, generation: 0, result: null, results: [], xpGranted: 1, refreshScopes: [], dailyChallengeCompleted: false, replayed: false })
+      chat.send.mockImplementation((content: string, key: string) => content === 'M3' ? new Promise(resolve => { resolveM3 = resolve }) : Promise.resolve(response(content, key)))
+      const container = await mount(), form = container.querySelector('form')!, textarea = container.querySelector<HTMLTextAreaElement>('#chat-message')!
+      const submit = async (value: string) => { await act(async () => { type(container, value); form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() }) }
+      textarea.focus(); await submit('M1'); await act(async () => { await vi.advanceTimersByTimeAsync(800) }); await submit('M2'); await act(async () => { await vi.advanceTimersByTimeAsync(800) }); await submit('M3')
+      expect(chat.send.mock.calls.map(call => call[0])).toEqual(['M1', 'M2', 'M3'])
+      await act(async () => { await vi.advanceTimersByTimeAsync(3_000) })
+      expect(textarea.disabled).toBe(false); expect(document.activeElement).toBe(textarea)
+      await submit('M4')
+      expect(Array.from(container.querySelectorAll('.chat-message p')).map(node => node.textContent)).toContain('M4')
+      expect(chat.send.mock.calls.map(call => call[0])).toEqual(['M1', 'M2', 'M3'])
+      await act(async () => { resolveM3(response('M3', chat.send.mock.calls[2]![1], new Date(Date.now()).toISOString())); await Promise.resolve(); await Promise.resolve() })
+      await act(async () => { await vi.advanceTimersByTimeAsync(2_999) })
+      expect(chat.send.mock.calls.map(call => call[0])).toEqual(['M1', 'M2', 'M3'])
+      await act(async () => { await vi.advanceTimersByTimeAsync(1) })
+      expect(chat.send.mock.calls.map(call => call[0])).toEqual(['M1', 'M2', 'M3', 'M4'])
+      expect(new Set(Array.from(container.querySelectorAll('.chat-message p')).map(node => node.textContent).filter(text => /^M[1-4]$/.test(text ?? '')))).toEqual(new Set(['M1', 'M2', 'M3', 'M4']))
     } finally { vi.useRealTimers() }
   })
 

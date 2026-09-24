@@ -206,7 +206,7 @@ export class GlobalChatService {
       if (latest && now.getTime() - latest.getTime() < 750) throw pacingLimited();
       if (recentMessages.length === 3) {
         const newest = recentMessages[0]!.createdAt.getTime(), oldest = recentMessages[2]!.createdAt.getTime();
-        if (newest - oldest < 4_000 && now.getTime() < newest + 4_000) throw pacingLimited();
+        if (newest - oldest < 4_000 && now.getTime() < newest + 3_000) throw pacingLimited();
       }
       const recent = await tx.globalChatMessage.count({ where: { authorPlayerId: player.id, messageType: { in: ['PLAYER', 'COMMAND'] }, createdAt: { gt: new Date(now.getTime() - 10_000) } } });
       if (recent >= 10) throw new AppError('Vous envoyez des messages trop rapidement.', 429, 'CHAT_RATE_LIMIT');

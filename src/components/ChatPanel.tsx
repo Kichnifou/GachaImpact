@@ -11,7 +11,7 @@ type PacingAttempt = { key: string; submittedAt: number }
 const CHAT_VISIBLE_MESSAGE_LIMIT = 200
 const CHAT_MIN_SUBMISSION_INTERVAL_MS = 750
 const CHAT_BURST_WINDOW_MS = 4_000
-const CHAT_BURST_LOCK_MS = 4_000
+const CHAT_BURST_LOCK_MS = 3_000
 
 function pacingProjection(attempts: readonly PacingAttempt[]) {
   const ordered = [...attempts].sort((left, right) => left.submittedAt - right.submittedAt || left.key.localeCompare(right.key))
@@ -19,6 +19,15 @@ function pacingProjection(attempts: readonly PacingAttempt[]) {
   const recent = ordered.slice(-3)
   const burstLockedUntil = recent.length === 3 && recent[2]!.submittedAt - recent[0]!.submittedAt < CHAT_BURST_WINDOW_MS ? recent[2]!.submittedAt + CHAT_BURST_LOCK_MS : 0
   return { lastAcceptedAt, burstLockedUntil }
+}
+
+function isCurrentBurstTrigger(attempts: readonly PacingAttempt[], key: string) {
+  const ordered = [...attempts].sort((left, right) => left.submittedAt - right.submittedAt || left.key.localeCompare(right.key))
+  const targetIndex = ordered.findIndex(attempt => attempt.key === key)
+  const recent = targetIndex < 0 ? [] : ordered.slice(0, targetIndex + 1).slice(-3)
+  return recent.length === 3
+    && recent[2]!.key === key
+    && recent[2]!.submittedAt - recent[0]!.submittedAt < CHAT_BURST_WINDOW_MS
 }
 
 function linkChatText(content: string) {
@@ -130,8 +139,6 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const [composerExpanded, setComposerExpanded] = useState(false)
   const [pacingNow, setPacingNow] = useState(() => Date.now())
   const [burstLockedUntil, setBurstLockedUntil] = useState(0)
-  const [transportLockedUntil, setTransportLockedUntil] = useState(0)
-  const [transportBurstPending, setTransportBurstPending] = useState(false)
   const [menuId, setMenuId] = useState<string | null>(null)
   const [reportId, setReportId] = useState<string | null>(null)
   const [suppressedHoverId, setSuppressedHoverId] = useState<string | null>(null)
@@ -155,7 +162,11 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const pacingAttempts = useRef<PacingAttempt[]>([])
   const transportTail = useRef<Promise<void>>(Promise.resolve())
   const lastNewTransportStartAt = useRef<number | null>(null)
+  const nextServerSafeTransportAt = useRef(0)
   const transportGeneration = useRef(0)
+  const restoreComposerFocus = useRef(false)
+  const focusRestoreGeneration = useRef(0)
+  const wasBurstLocked = useRef(false)
   const chatActive = !isCollapsed && activeTab === 'chat'
   const wasChatActive = useRef(chatActive)
   const resolvedDirectIntent = directMessageIntent ?? localDirectIntent
@@ -169,17 +180,33 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
 
   useEffect(() => () => { if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current) }, [])
   useEffect(() => {
-    pacingAttempts.current = []; transportGeneration.current += 1; transportTail.current = Promise.resolve(); lastNewTransportStartAt.current = null
+    pacingAttempts.current = []; transportGeneration.current += 1; transportTail.current = Promise.resolve(); lastNewTransportStartAt.current = null; nextServerSafeTransportAt.current = 0; restoreComposerFocus.current = false
     // oxlint-disable-next-line react/set-state-in-effect -- changing Player invalidates the previous account's local pacing window
-    setBurstLockedUntil(0); setTransportLockedUntil(0); setTransportBurstPending(false); setPacingNow(Date.now())
+    setBurstLockedUntil(0); setPacingNow(Date.now())
   }, [playerId])
-  const effectiveBurstLockedUntil = Math.max(burstLockedUntil, transportLockedUntil)
-  const burstLocked = transportBurstPending || pacingNow < effectiveBurstLockedUntil
+  const burstLocked = pacingNow < burstLockedUntil
   useEffect(() => {
-    if (transportBurstPending || !burstLocked) return
-    const timer = window.setTimeout(() => setPacingNow(Date.now()), Math.max(0, effectiveBurstLockedUntil - Date.now()))
+    if (!burstLocked) return
+    const timer = window.setTimeout(() => setPacingNow(Date.now()), Math.max(0, burstLockedUntil - Date.now()))
     return () => window.clearTimeout(timer)
-  }, [burstLocked, effectiveBurstLockedUntil, transportBurstPending])
+  }, [burstLocked, burstLockedUntil])
+  useEffect(() => {
+    const previouslyLocked = wasBurstLocked.current
+    wasBurstLocked.current = burstLocked
+    if (!previouslyLocked || burstLocked || !restoreComposerFocus.current) return
+    restoreComposerFocus.current = false
+    if (!chatActive || document.visibilityState === 'hidden' || focusRestoreGeneration.current !== transportGeneration.current) return
+    composer.current?.focus(); composer.current?.setSelectionRange(composer.current.value.length, composer.current.value.length)
+  }, [burstLocked, chatActive])
+  useEffect(() => {
+    if (!burstLocked) return
+    const moved = (event: FocusEvent) => {
+      if (!(event.target instanceof Element) || event.target === composer.current) return
+      if (event.target.closest('button, a, input, textarea, select, [tabindex]')) restoreComposerFocus.current = false
+    }
+    document.addEventListener('focusin', moved)
+    return () => document.removeEventListener('focusin', moved)
+  }, [burstLocked])
   useLayoutEffect(() => {
     if (!composer.current) return
     composer.current.style.height = '0px'
@@ -365,16 +392,14 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     return () => { window.removeEventListener('keydown', escape); document.removeEventListener('pointerdown', outside) }
   }, [])
 
-  const submitIntent = async (next: Intent) => {
+  const submitIntent = async (next: Intent, isNewIntent: boolean) => {
     const isCommand = next.content.startsWith('!')
-    let burstOutcomeUntil: number | null = null
     if (isCommand) setCommandPending(true); setError(null)
     try {
       const result = await api.send(next.content, next.key, next.replyId, next.mentions)
       setAmbiguousIntents(current => current.filter(item => item.key !== next.key))
       setFailedIntents(current => current.filter(item => item.key !== next.key))
       if (result.cleared) {
-        burstOutcomeUntil = 0
         pacingAttempts.current = pacingAttempts.current.filter(attempt => attempt.key !== next.key); setBurstLockedUntil(pacingProjection(pacingAttempts.current).burstLockedUntil); setPacingNow(Date.now())
         const previousGeneration = generation.current
         if (previousGeneration === null || result.generation > previousGeneration) adoptGeneration(result.generation, [], null, true)
@@ -383,8 +408,11 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
           void messagesNow(true).catch(cause => setError(cause instanceof Error ? cause.message : 'Chat indisponible.'))
         }
       } else {
-        const serverAcceptedAt = new Date(result.message.createdAt).getTime()
-        burstOutcomeUntil = Math.abs(serverAcceptedAt - Date.now()) <= 60_000 ? serverAcceptedAt + CHAT_BURST_LOCK_MS : Date.now() + CHAT_BURST_LOCK_MS
+        if (isNewIntent && next.burstTrigger && isCurrentBurstTrigger(pacingAttempts.current, next.key)) {
+          const projectedServerAt = new Date(result.message.createdAt).getTime()
+          const serverAcceptedAt = Math.abs(projectedServerAt - Date.now()) <= 60_000 ? projectedServerAt : Date.now()
+          nextServerSafeTransportAt.current = Math.max(nextServerSafeTransportAt.current, serverAcceptedAt + CHAT_BURST_LOCK_MS)
+        }
         const previousGeneration = generation.current
         if (previousGeneration !== null && result.generation > previousGeneration) {
           const confirmed = orderMessages([result.message, ...result.results].filter((item, index, all) => all.findIndex(other => other.id === item.id) === index)).slice(-CHAT_VISIBLE_MESSAGE_LIMIT)
@@ -405,7 +433,8 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     } catch (cause) {
       if (messagesRef.current.some(item => !item.id.startsWith('optimistic:') && item.clientIntentKey === next.key)) return
       const deterministicRejection = cause instanceof ApiError && cause.status !== null && cause.status < 500
-      if (deterministicRejection) { burstOutcomeUntil = 0; pacingAttempts.current = pacingAttempts.current.filter(attempt => attempt.key !== next.key); setBurstLockedUntil(pacingProjection(pacingAttempts.current).burstLockedUntil); setPacingNow(Date.now()) }
+      if (deterministicRejection) { pacingAttempts.current = pacingAttempts.current.filter(attempt => attempt.key !== next.key); setBurstLockedUntil(pacingProjection(pacingAttempts.current).burstLockedUntil); setPacingNow(Date.now()) }
+      else if (isNewIntent && next.burstTrigger && isCurrentBurstTrigger(pacingAttempts.current, next.key)) nextServerSafeTransportAt.current = Math.max(nextServerSafeTransportAt.current, Date.now() + CHAT_BURST_LOCK_MS)
       if (cause instanceof ApiError && cause.code === 'CHAT_PACING_LIMIT') {
         const retained = messagesRef.current.filter(item => item.clientIntentKey !== next.key)
         messagesRef.current = retained; setMessages(retained); setError(null)
@@ -426,28 +455,21 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
         setFailedIntents(current => current.filter(item => item.key !== next.key))
         setAmbiguousIntents(current => current.some(item => item.key === next.key) ? current : [...current, next])
       }
-    } finally {
-      if (next.burstTrigger) {
-        setTransportBurstPending(false)
-        setTransportLockedUntil(current => burstOutcomeUntil === null ? Math.max(current, Date.now() + CHAT_BURST_LOCK_MS) : Math.max(current, burstOutcomeUntil))
-        setPacingNow(Date.now())
-      }
-      if (isCommand) setCommandPending(false)
-    }
+    } finally { if (isCommand) setCommandPending(false) }
   }
 
   const enqueueTransport = (next: Intent, isNewIntent: boolean) => {
     const generationAtEnqueue = transportGeneration.current
-    if (next.burstTrigger) setTransportBurstPending(true)
     const run = async () => {
       if (generationAtEnqueue !== transportGeneration.current) return
-      if (isNewIntent && lastNewTransportStartAt.current !== null) {
-        const remaining = CHAT_MIN_SUBMISSION_INTERVAL_MS - (Date.now() - lastNewTransportStartAt.current)
+      if (isNewIntent) {
+        const startBoundary = lastNewTransportStartAt.current === null ? 0 : lastNewTransportStartAt.current + CHAT_MIN_SUBMISSION_INTERVAL_MS
+        const remaining = Math.max(startBoundary, nextServerSafeTransportAt.current) - Date.now()
         if (remaining > 0) await new Promise<void>(resolve => window.setTimeout(resolve, remaining))
       }
       if (generationAtEnqueue !== transportGeneration.current) return
       if (isNewIntent) lastNewTransportStartAt.current = Date.now()
-      await submitIntent(next)
+      await submitIntent(next, isNewIntent)
     }
     const queued = transportTail.current.then(run, run)
     transportTail.current = queued.then(() => undefined, () => undefined)
@@ -463,6 +485,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     pacingAttempts.current = [...pacingAttempts.current, { key, submittedAt }].slice(-32)
     const nextPacing = pacingProjection(pacingAttempts.current)
     const next: Intent = { key, content: draft.trim(), replyId: reply?.id ?? null, mentions: mentions.filter(item => draft.includes(`@${item.displayName}`)), burstTrigger: nextPacing.burstLockedUntil > submittedAt }
+    if (next.burstTrigger) { restoreComposerFocus.current = document.activeElement === composer.current; focusRestoreGeneration.current = transportGeneration.current }
     setBurstLockedUntil(nextPacing.burstLockedUntil)
     setPacingNow(submittedAt)
     const provisional: ChatMessageDto = { id: `optimistic:${next.key}`, clientIntentKey: next.key, author: { id: playerId, displayName: playerDisplayName, elementKey: playerElementKey }, authorLabel: playerDisplayName, sourceChannel: 'INTERNAL_CHAT', messageType: next.content.startsWith('!') ? 'COMMAND' : 'PLAYER', content: next.content, createdAt: new Date().toISOString(), submissionOrder: null, deletedAt: null, deletionState: 'ACTIVE', replyToMessageId: next.replyId, replyPreview: reply?.content ?? null, mentionedMe: false, repliedToMe: false }
