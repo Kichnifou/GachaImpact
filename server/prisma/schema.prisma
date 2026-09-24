@@ -187,6 +187,41 @@ enum DailyChallengeStatus {
   @@map("daily_challenge_status")
 }
 
+enum PermanentMissionRank {
+  B
+  A
+  S
+  Z
+
+  @@map("permanent_mission_rank")
+}
+
+enum PermanentMissionMetric {
+  COUNTED_MESSAGES
+  PULLS
+  DISTINCT_CHARACTERS_4
+  DISTINCT_CHARACTERS_5
+  MORAS_EARNED
+  MAIN_ELEMENT_PARTICLES_EARNED
+  EXPEDITIONS_COMPLETED
+  COMBAT_WINS
+  FRIEND_HEARTS_SENT
+  C6_CHARACTERS
+  PERFECT_FRIENDSHIP
+  PLAYER_LEVEL
+  MANUAL_COMBAT_WINS
+
+  @@map("permanent_mission_metric")
+}
+
+enum PermanentMissionProgressStatus {
+  LOCKED
+  ACTIVE
+  COMPLETED
+
+  @@map("permanent_mission_progress_status")
+}
+
 enum CombatAttemptMode {
   MANUAL
   AUTO
@@ -334,6 +369,8 @@ model Player {
   bankTransactions      BankTransaction[]
   shopPurchases         ShopPurchase[]
   dailyChallenges       PlayerDailyChallenge[]
+  permanentMissionState    PlayerPermanentMissionState?
+  permanentMissionProgress PlayerPermanentMissionProgress[]
   rolesGranted          PlayerRoleAssignment[]       @relation("RoleSubject")
   rolesGrantedBy        PlayerRoleAssignment[]       @relation("RoleGrantor")
   auditEntriesAsActor   AdminAuditEntry[]            @relation("AuditActor")
@@ -423,6 +460,67 @@ model DailyChallengeDefinition {
 
   @@index([isEnabled, isEligible, displayOrder], map: "daily_challenge_definitions_pool_idx")
   @@map("daily_challenge_definitions")
+}
+
+model PermanentMissionDefinition {
+  id              String                           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  externalKey     String                           @unique(map: "permanent_mission_definitions_external_key_key") @map("external_key") @db.Text
+  metric          PermanentMissionMetric
+  rank            PermanentMissionRank
+  displayName     String                           @map("display_name") @db.Text
+  description     String                           @db.Text
+  progressLabel   String                           @map("progress_label") @db.Text
+  target          BigInt
+  rewardPrimogems BigInt                           @map("reward_primogems")
+  displayOrder    Int                              @map("display_order") @db.SmallInt
+  isActive        Boolean                          @default(true) @map("is_active")
+  isSecret        Boolean                          @default(false) @map("is_secret")
+  createdAt       DateTime                         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime                         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  playerProgress  PlayerPermanentMissionProgress[]
+
+  @@unique([metric, rank], map: "permanent_mission_definitions_metric_rank_key")
+  @@unique([rank, displayOrder], map: "permanent_mission_definitions_rank_order_key")
+  @@index([isActive, rank, displayOrder], map: "permanent_mission_definitions_catalog_idx")
+  @@map("permanent_mission_definitions")
+}
+
+model PlayerPermanentMissionState {
+  playerId      String    @id @map("player_id") @db.Uuid
+  initializedAt DateTime  @default(now()) @map("initialized_at") @db.Timestamptz(6)
+  zUnlockedAt   DateTime? @map("z_unlocked_at") @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player        Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([zUnlockedAt], map: "player_permanent_mission_states_z_unlocked_idx")
+  @@map("player_permanent_mission_states")
+}
+
+model PlayerPermanentMissionProgress {
+  playerId                     String                         @map("player_id") @db.Uuid
+  definitionId                 String                         @map("definition_id") @db.Uuid
+  status                       PermanentMissionProgressStatus @default(LOCKED)
+  progress                     BigInt                         @default(0)
+  baselineValue                BigInt                         @default(0) @map("baseline_value")
+  carriedProgress              BigInt                         @default(0) @map("carried_progress")
+  startedAt                    DateTime?                      @map("started_at") @db.Timestamptz(6)
+  completedAt                  DateTime?                      @map("completed_at") @db.Timestamptz(6)
+  rewardedAt                   DateTime?                      @map("rewarded_at") @db.Timestamptz(6)
+  completionTriggerOperationId String?                        @map("completion_trigger_operation_id") @db.Uuid
+  rewardOperationId            String?                        @unique(map: "player_permanent_mission_progress_reward_operation_key") @map("reward_operation_id") @db.Uuid
+  createdAt                    DateTime                       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                    DateTime                       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player                       Player                         @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  definition                   PermanentMissionDefinition     @relation(fields: [definitionId], references: [id], onDelete: Restrict)
+  completionTriggerOperation   BusinessOperation?             @relation("PermanentMissionCompletionTrigger", fields: [completionTriggerOperationId], references: [id], onDelete: Restrict)
+  rewardOperation              BusinessOperation?             @relation("PermanentMissionRewardOperation", fields: [rewardOperationId], references: [id], onDelete: Restrict)
+
+  @@id([playerId, definitionId])
+  @@index([playerId, status], map: "player_permanent_mission_progress_player_status_idx")
+  @@index([definitionId, status], map: "player_permanent_mission_progress_definition_status_idx")
+  @@index([completionTriggerOperationId], map: "player_permanent_mission_progress_trigger_operation_idx")
+  @@map("player_permanent_mission_progress")
 }
 
 model PlayerDailyChallenge {
@@ -688,6 +786,8 @@ model BusinessOperation {
   friendHeart        FriendHeart?
   globalChatMessage  GlobalChatMessage?
   directMessage      DirectMessage?
+  permanentMissionCompletions PlayerPermanentMissionProgress[] @relation("PermanentMissionCompletionTrigger")
+  permanentMissionRewards PlayerPermanentMissionProgress[] @relation("PermanentMissionRewardOperation")
 
   @@index([playerId, startedAt(sort: Desc)], map: "business_operations_player_started_at_idx")
   @@index([operationType, startedAt(sort: Desc)], map: "business_operations_type_started_at_idx")

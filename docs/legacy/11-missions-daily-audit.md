@@ -1167,7 +1167,7 @@ Lorsqu'un domaine propriétaire fixe sa règle :
 - les termes nécessaires d'une quotidienne attribuée sont snapshotés afin qu'une modification de catalogue ne la transforme pas rétroactivement ;
 - les mutations économiques autoritatives produisent les informations de gain/dépense/transfert utilisées par les Missions ;
 - `MissionService` consomme ces événements métier fiables au lieu de déduire les gains depuis l'UI ou depuis un futur message ;
-- Expedition et Combat ont désormais défini leurs événements autoritatifs de progression ; Social reste propriétaire de la définition exacte de ses événements.
+- Expedition, Combat et Social ont désormais défini leurs sources autoritatives : récupération réussie, victoires/mode persistés, `totalFriendHeartsSent` de l’émetteur et au moins une `Friendship.level = 1000` pour Z.
 
 ---
 
@@ -1196,10 +1196,10 @@ Sont maintenant cadrés :
 
 Recroisements effectués après clôture :
 - Expedition → résolu par R362 ;
-- Combat → résolu par R387/R388.
+- Combat → résolu par R387/R388 ;
+- Ami / Social → résolu par R458/R525 : B/A/S lisent `totalFriendHeartsSent` de l’émetteur et Z vérifie une relation au niveau 1000.
 
 Dépendances restant explicitement reportées :
-- Ami / Social ;
 - Roue / Event pour leur contribution au suivi `!quotis`.
 
 Le Domaine Missions reste clôturé.
@@ -1237,3 +1237,11 @@ La présentation frontend mappe explicitement `DAILY_CHALLENGE_ALREADY_ASSIGNED`
 L’Aperçu liste désormais Récompense quotidienne, Roue, Défi, Combat, Boss, Expédition, Amitié et Événement. Combat projette uniquement Entraînement. Boss possède sa carte indépendante : AVAILABLE affiche `À faire`, `Une attaque disponible.` et deep-link vers `Combat > Boss`; USED affiche `✅ Terminé` et `Attaque effectuée.` sans action ; DEFEATED affiche `✅ Terminé` et `Boss vaincu ce mois-ci.`. Aucun état Boss ne présente de faux `Obtenu`.
 
 Les formulations `aujourd’hui` redondantes sont retirées uniquement des détails de cet Aperçu pour Récompense, Roue, Combat, Boss et Expédition. Les écrans propriétaires conservent leur vocabulaire lorsque le contexte journalier reste utile.
+
+## Missions permanentes — socle physique candidat Lot 1
+
+La migration additive 041 matérialise un catalogue unique de 31 définitions — 27 B/A/S et 4 Z — ainsi que `player_permanent_mission_states` et `player_permanent_mission_progress`. Les external keys et UUID sont déterministes ; rang, métrique, seuil, récompense, ordre, activation et secret Z sont contraints. RLS est active et aucun droit direct `PUBLIC`, `anon` ou `authenticated` n’est accordé.
+
+Le provisionnement crée l’état Player et les 31 lignes dans la même transaction : B actif, A/S verrouillés et Z globalement verrouillé. Pour les standalone antérieurs à 041, la baseline 0 conserve le sens R301 — progression depuis leur provisionnement — mais la migration ne crédite aucun wallet et ne lance aucun rattrapage. Celui-ci reste reporté et devra passer par le moteur transactionnel normal, jamais par SQL direct. `baselineValue` et `carriedProgress` permettent séparément la future reprise conservative R328.
+
+`PermanentMissionService.reconcile(tx, …)` est transaction-local : verrou Player, lecture des compteurs autoritatifs, progression cumulative et simultanée, cascade B→A→S, déblocage après exactement 27 complétions, puis évaluation immédiate des quatre Z. Chaque complétion crée une `BusinessOperation` stable et crédite Economy avant de marquer progression/récompense dans la même transaction. Le résultat structuré prépare les futures restitutions ; la projection interne ne révèle aucun champ des Z avant déblocage. Aucun producteur, endpoint, écran, `!mission`, Profil, notification, Twitch ou import legacy n’est raccordé dans ce lot candidat.

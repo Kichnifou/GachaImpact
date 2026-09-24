@@ -479,6 +479,7 @@ La [source spécialisée Chat global](global-chat-v1.md) détaille ces règles. 
 - `VALIDÉ R299 / MIS À JOUR R355` — L'écran Missions possède deux onglets principaux : Quotidienne / Permanentes ; le suivi général des activités quotidiennes appartient désormais à l'écran transversal distinct `Quotidiennes`.
 - `VALIDÉ R300` — Les rangs B→A→S sont des paliers cumulatifs et ne redémarrent pas à zéro à chaque rang.
 - `VALIDÉ R301` — Les missions permanentes progressent automatiquement dès le provisionnement du joueur, standalone ou Twitch-only ; aucune activation manuelle n'est requise.
+- `APPLICATION TECHNIQUE R301 — LOT 1 CANDIDAT` — Pour les Players standalone provisionnés avant la migration 041, la baseline physique est 0 afin qu’un futur reconcile retrouve leurs compteurs V1 autoritatifs accumulés depuis le provisionnement. La migration n’accorde aucune récompense : le futur rattrapage économique passera exactement une fois par `PermanentMissionService` et Economy. La reprise legacy ambiguë reste régie séparément par R328.
 - `VALIDÉ R302` — Le concept métier d'abandon des missions permanentes est supprimé.
 - `VALIDÉ R303` — Les récompenses sont auto-claim à la complétion.
 - `VALIDÉ R304` — La mission quotidienne expire au reset serveur 00:00 Europe/Paris si elle n'est pas terminée ; aucune nouvelle mission payante n'est attribuée automatiquement.

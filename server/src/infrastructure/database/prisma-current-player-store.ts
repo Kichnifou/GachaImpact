@@ -4,6 +4,7 @@ import type {
   CurrentPlayerStore,
   ProvisionCurrentPlayerInput,
 } from '../../application/player/current-player-store.js';
+import { PermanentMissionService } from '../../application/missions/permanent-mission-service.js';
 import { isPrismaConcurrencyCollision } from './prisma-concurrency.js';
 
 const currentPlayerSelection = {
@@ -17,7 +18,7 @@ const EXPECTED_INITIAL_RESOURCE_COUNT = 9;
 const MAX_PROVISION_ATTEMPTS = 2;
 
 export class PrismaCurrentPlayerStore implements CurrentPlayerStore {
-  public constructor(private readonly database: PrismaClient) {}
+  public constructor(private readonly database: PrismaClient, private readonly permanentMissions = new PermanentMissionService()) {}
 
   public async findByIdentity(provider: string, providerSubject: string) {
     const identity = await this.database.webIdentity.findUnique({
@@ -89,6 +90,7 @@ export class PrismaCurrentPlayerStore implements CurrentPlayerStore {
           );
         }
 
+        const initializedAt = new Date();
         const player = await transaction.player.create({
           data: {
             displayName: input.displayName,
@@ -113,6 +115,7 @@ export class PrismaCurrentPlayerStore implements CurrentPlayerStore {
           },
           select: currentPlayerSelection,
         });
+        await this.permanentMissions.initializePlayer(transaction, player.id, initializedAt);
 
         return { player, created: true };
       },

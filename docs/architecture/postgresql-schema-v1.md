@@ -1236,70 +1236,27 @@ L'API physique 0.79 expose `GET /api/v1/me/shop` et `POST /api/v1/me/shop/:itemI
 
 # 17. Missions
 
-## 17.1 `mission_definitions`
+## 17.1 État permanent physique — migration 041 candidate
 
-Colonnes :
+`permanent_mission_definitions` contient exactement le catalogue B/A/S/Z. Ses enums physiques sont `permanent_mission_rank`, `permanent_mission_metric` et `permanent_mission_progress_status`. La table stocke external key, métrique, rang, textes, cible, récompense Primogemmes, ordre, activation et secret. Les unicités portent sur external key, métrique/rang et rang/ordre ; les CHECK imposent valeurs positives, textes non vides, métriques compatibles, récompense de chaque rang et secret exclusivement Z.
 
-- `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
-- `external_key text NOT NULL UNIQUE`
-- `kind mission_kind NOT NULL`
-- `rank mission_rank NULL`
-- `title text NOT NULL`
-- `objective_type text NOT NULL`
-- `threshold bigint NOT NULL`
-- `objective_config jsonb NULL`
-- `display_order integer NOT NULL`
-- `is_active boolean NOT NULL DEFAULT true`
-- `created_at timestamptz NOT NULL DEFAULT now()`
-- `updated_at timestamptz NOT NULL DEFAULT now()`
+`player_permanent_mission_states` possède une PK/FK `player_id` avec cascade, `initialized_at` et `z_unlocked_at`. Le timestamp de déblocage ne peut précéder l’initialisation.
 
-Contraintes :
+`player_permanent_mission_progress` possède la PK `(player_id, definition_id)`, les FK vers Player/définition et deux FK optionnelles vers `business_operations`. Il stocke état, progression, baseline, report certain, dates et preuve de récompense. Les CHECK interdisent les valeurs négatives et un état `COMPLETED` dépourvu de `completed_at`, `rewarded_at` ou `reward_operation_id`; ce dernier est unique. Les index couvrent Player/état, définition/état, déblocages Z et opération déclenchante.
 
-- `threshold > 0`
-- `rank IS NULL` autorisé pour les quotidiennes
+Le seed de migration et `prisma/seed.ts` sont déterministes et rejouables par `external_key`. Les Players existants reçoivent état + 31 progressions, B actif depuis `players.created_at`, A/S/Z verrouillés, baseline/report à 0. Aucun solde ni mouvement économique n’est écrit. Les trois tables ont RLS active et tous les droits `PUBLIC`, `anon`, `authenticated` révoqués.
 
 ---
 
-## 17.2 `mission_rewards`
+## 17.2 Récompenses permanentes
 
-Colonnes :
-
-- `mission_definition_id uuid NOT NULL REFERENCES mission_definitions(id) ON DELETE CASCADE`
-- `reward_index smallint NOT NULL`
-- `resource_key text NULL REFERENCES resource_definitions(key)`
-- `item_id uuid NULL REFERENCES item_definitions(id)`
-- `amount bigint NOT NULL`
-
-PK :
-
-`PRIMARY KEY(mission_definition_id, reward_index)`
-
-Contrainte :
-
-- `amount > 0`
-- exactement une cible reward (`resource_key` XOR `item_id`)
+Il n’existe pas de table générique `mission_rewards` physique dans le Lot 1 : chaque définition porte sa récompense Primogemmes unique. La preuve exactement-une-fois repose sur une `BusinessOperation` `permanent-mission.reward`, un `ResourceMovement` créé par Economy et le `reward_operation_id` unique de la progression, le tout dans la transaction appelante.
 
 ---
 
-## 17.3 `player_mission_progress`
+## 17.3 Progression et reprise
 
-Colonnes :
-
-- `player_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE`
-- `mission_definition_id uuid NOT NULL REFERENCES mission_definitions(id) ON DELETE RESTRICT`
-- `progress bigint NOT NULL DEFAULT 0`
-- `completed_at timestamptz NULL`
-- `rewarded_at timestamptz NULL`
-- `baseline jsonb NULL`
-- `updated_at timestamptz NOT NULL DEFAULT now()`
-
-PK :
-
-`PRIMARY KEY(player_id, mission_definition_id)`
-
-Contrainte :
-
-`progress >= 0`
+La progression effective vaut `carried_progress + max(compteur_autoritatif - baseline_value, 0)`, bornée à la cible. Baseline 0 couvre les standalone selon R301 ; les deux colonnes restent disponibles pour la future reprise conservative legacy R328. La migration 041 n’exécute aucun catch-up économique.
 
 ---
 

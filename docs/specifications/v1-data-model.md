@@ -951,31 +951,19 @@ Chaque achat standalone produit une seule `BusinessOperation` et une seule ligne
 
 # 16. Missions
 
-## 16.1 `MissionDefinition`
+## 16.1 Missions permanentes — état physique 041 candidat
 
-Définition générique :
+`PermanentMissionDefinition` / `permanent_mission_definitions` porte les 31 définitions déterministes : `externalKey`, `metric`, rang B/A/S/Z, nom, description, libellé de progression, `target`, `rewardPrimogems`, ordre, activation et secret. Les couples métrique/rang et rang/ordre sont uniques ; les contraintes SQL limitent les métriques par famille, imposent les récompenses validées et réservent `isSecret` à Z.
 
-- ID
-- catégorie quotidienne/permanente
-- rang B/A/S/Z ou type équivalent
-- objectif
-- seuil
-- récompense
-- ordre
-- règles de visibilité/déblocage
-- statut actif
+`PlayerPermanentMissionState` / `player_permanent_mission_states` porte l’initialisation et `zUnlockedAt`. `PlayerPermanentMissionProgress` / `player_permanent_mission_progress` porte, par Player et définition : `LOCKED | ACTIVE | COMPLETED`, progression, `baselineValue`, `carriedProgress`, dates de début/complétion/récompense et références facultatives vers l’opération déclenchante et l’opération de récompense. Une ligne terminée exige physiquement ses preuves de complétion et de récompense ; `rewardOperationId` est unique.
 
-## 16.2 `PlayerMissionProgress`
+Le provisionnement initialise les 31 lignes dans sa transaction : B actif, A/S/Z verrouillés. Pour un standalone antérieur à 041, baseline 0 signifie progression depuis le provisionnement selon R301 ; aucune récompense n’est appliquée par la migration. `baselineValue + carriedProgress` permet la future importation conservative R328 sans confondre ce cas avec le rattrapage standalone.
 
-Progression personnelle :
+## 16.2 Invariants applicatifs permanents
 
-- player
-- mission
-- état
-- valeur courante/baseline si nécessaire
-- dates de début/completion/claim selon le contrat du type de mission
+`PermanentMissionService` reçoit la transaction métier existante. Il lit les compteurs serveur, calcule la progression effective depuis baseline, cascade les paliers cumulatifs, débloque Z après les 27 B/A/S et évalue immédiatement les quatre conditions Z. Complétion, `BusinessOperation`, mouvement Economy et état récompensé sont atomiques ; verrou Player, clé d’idempotence par Player/définition et lien unique de récompense empêchent le double paiement.
 
-Les missions permanentes validées sont automatiques et auto-récompensées selon leur domaine.
+La projection personnelle interne expose B/A/S avec objectif, progression, seuil, état, récompense et rang. Avant `zUnlockedAt`, elle ne renvoie que `{ status: LOCKED }` pour Z, sans définition ni récompense. Ce Lot 1 n’ajoute aucune route player-facing et ne raccorde encore aucun producteur.
 
 ## 16.3 Défi quotidien payant (`daily-mission` technique)
 

@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 import { loadConfig } from '../src/config/environment.js';
 import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
+import { permanentMissionCatalog } from '../src/domain/missions/permanent-mission-catalog.js';
 
 const elements = [
   { key: 'pyro', displayName: 'Pyro', displayOrder: 1 },
@@ -76,6 +77,25 @@ try {
           category: resource.category,
           elementKey: resource.elementKey,
           isActive: true,
+        },
+      });
+    }
+
+    for (const mission of permanentMissionCatalog) {
+      await transaction.permanentMissionDefinition.upsert({
+        where: { externalKey: mission.externalKey },
+        create: { ...mission, isActive: true },
+        update: {
+          metric: mission.metric,
+          rank: mission.rank,
+          displayName: mission.displayName,
+          description: mission.description,
+          progressLabel: mission.progressLabel,
+          target: mission.target,
+          rewardPrimogems: mission.rewardPrimogems,
+          displayOrder: mission.displayOrder,
+          isActive: true,
+          isSecret: mission.isSecret,
         },
       });
     }
