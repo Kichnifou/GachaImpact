@@ -2,7 +2,7 @@ import type { SocialActions, DirectoryPage, Profile, ConnectedPlayers, PrivacySe
 import { loadFrontendConfig } from '../config/environment'
 import type { TradeActions, TradeSnapshot, TradePartners, TradeResult } from '../trades/types'
 import type { BannerVoteDto } from './types'
-import type { ChatMentionDto, ChatPageDto, ChatSendDto, ChatUpdatesDto, DirectConversationListDto, DirectMessageArchiveDto, DirectMessageBlockDto, DirectMessageInitiateDto, DirectMessageMutationDto, DirectMessagePageDto, DirectMessagePlayerDto, DirectMessageReceiptDto, DirectMessageResolveDto, DirectMessageSendDto, DirectMessageUnreadDto } from './types'
+import type { ChatMentionDto, ChatPageDto, ChatSendDto, ChatUpdatesDto, DirectConversationListDto, DirectMessageArchiveDto, DirectMessageBlockDto, DirectMessageHistoryAnchorDto, DirectMessageHistoryPageDto, DirectMessageHistorySearchDto, DirectMessageInitiateDto, DirectMessageMutationDto, DirectMessagePageDto, DirectMessagePlayerDto, DirectMessageReceiptDto, DirectMessageResolveDto, DirectMessageSendDto, DirectMessageUnreadDto } from './types'
 import { getSupabaseClient } from '../infrastructure/supabase/client'
 import type {
   BackendErrorDto,
@@ -157,6 +157,9 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
       list: (archived = false) => request<DirectConversationListDto>('/api/v1/me/direct-conversations?' + new URLSearchParams({ archived: String(archived) })),
       unread: () => request<DirectMessageUnreadDto>('/api/v1/me/direct-conversations/unread'),
       messages: (conversationId: string, cursor?: DirectMessagePageDto['nextCursor']) => request<DirectMessagePageDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/messages` + (cursor ? '?' + new URLSearchParams({ cursorCreatedAt: cursor.createdAt, cursorId: cursor.id }) : '')),
+      history: (conversationId: string, cursor: { beforeOrder?: string; afterOrder?: string; aroundOrder?: string } = {}) => request<DirectMessageHistoryPageDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/history?` + new URLSearchParams(cursor)),
+      historySearch: (conversationId: string, q: string, cursor?: string) => request<DirectMessageHistorySearchDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/history/search?` + new URLSearchParams({ q, ...(cursor ? { cursor } : {}) })),
+      historyDate: (conversationId: string, at: string) => request<DirectMessageHistoryAnchorDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/history/date?` + new URLSearchParams({ at })),
       initiate: (targetPlayerId: string, content: string, idempotencyKey: string) => request<DirectMessageInitiateDto>('/api/v1/me/direct-conversations', { method: 'POST', body: JSON.stringify({ targetPlayerId, content, idempotencyKey }) }),
       send: (conversationId: string, content: string, idempotencyKey: string) => request<DirectMessageSendDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/messages`, { method: 'POST', body: JSON.stringify({ content, idempotencyKey }) }),
       edit: (conversationId: string, messageId: string, content: string, idempotencyKey: string) => request<DirectMessageMutationDto>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}`, { method: 'PATCH', body: JSON.stringify({ content, idempotencyKey }) }),

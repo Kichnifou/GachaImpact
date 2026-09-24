@@ -17,6 +17,7 @@ const rateLimited = () => new AppError('Trop de messages envoyés. Réessayez da
 const RESTORABLE_MESSAGE_WINDOW = 500;
 const pair = (a: string, b: string) => { const values = [a, b].sort(); return { playerAId: values[0]!, playerBId: values[1]! }; };
 export type DirectCursor = { createdAt: string; id: string };
+export type DirectHistoryCursor = { beforeOrder?: string; afterOrder?: string; aroundOrder?: string };
 type OperationResult = Record<string, Prisma.InputJsonValue | null>;
 type OperationSummary = { fingerprint: string; result: OperationResult };
 type InitiateResult = OperationResult & { conversationId: string; messageId: string; requestId: string | null; state: string };
@@ -368,6 +369,84 @@ export class DirectMessageService {
     const readByOther = Boolean(otherRead?.lastSharedReadSubmissionOrder && row.submissionOrder <= otherRead.lastSharedReadSubmissionOrder);
     const own = row.authorPlayerId === viewerId;
     return { id: row.id, conversationId: row.conversationId, authorPlayerId: row.authorPlayerId, own, clientIntentKey: own ? row.operation?.idempotencyKey ?? null : null, content: row.deletedAt ? null : row.content, createdAt: row.createdAt.toISOString(), submissionOrder: row.submissionOrder.toString(), editedAt: row.editedAt?.toISOString() ?? null, deletedAt: row.deletedAt?.toISOString() ?? null, restoredAt: row.restoredAt?.toISOString() ?? null, readByOther, readByOtherAt: readByOther ? otherRead?.lastSharedReadAt?.toISOString() ?? null : null };
+  }
+
+  private async historyContext(conversationId: string, actorId: string, otherId: string) {
+    const [boundary, otherState] = await Promise.all([
+      this.database.directMessage.findFirst({ where: { conversationId }, orderBy: { submissionOrder: 'desc' }, skip: RESTORABLE_MESSAGE_WINDOW - 1, select: { submissionOrder: true } }),
+      this.database.directConversationParticipant.findUniqueOrThrow({ where: { conversationId_playerId: { conversationId, playerId: otherId } }, select: { lastSharedReadSubmissionOrder: true, lastSharedReadAt: true } }),
+    ]);
+    return {
+      boundary: boundary?.submissionOrder ?? null,
+      project: (row: { id: string; conversationId: string; authorPlayerId: string; content: string | null; createdAt: Date; submissionOrder: bigint; editedAt: Date | null; deletedAt: Date | null; restoredAt: Date | null; contentPurgedAt: Date | null; operation?: { idempotencyKey: string | null } }) => ({
+        ...this.projectMessage(row, actorId, otherState),
+        canRestore: row.authorPlayerId === actorId && row.deletedAt !== null && row.content !== null && row.contentPurgedAt === null && (boundary === null || row.submissionOrder >= boundary.submissionOrder),
+      }),
+    };
+  }
+
+  private historyOrder(value: string | undefined) {
+    if (!value || !/^[1-9]\d*$/u.test(value)) throw invalid('Curseur historique invalide.');
+    try { return BigInt(value); } catch { throw invalid('Curseur historique invalide.'); }
+  }
+
+  async history(identity: AuthenticatedIdentity, conversationId: string, limit = 50, cursor: DirectHistoryCursor = {}) {
+    const actor = await this.actor(identity);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw invalid('Taille de page invalide.');
+    const conversation = await this.requireConversation(this.database as unknown as Prisma.TransactionClient, conversationId, actor.id);
+    const modes = [cursor.beforeOrder, cursor.afterOrder, cursor.aroundOrder].filter(value => value !== undefined);
+    if (modes.length > 1) throw invalid('Curseurs historiques incompatibles.');
+    const include = { operation: { select: { idempotencyKey: true } } } as const;
+    let rows: Awaited<ReturnType<typeof this.database.directMessage.findMany>>, hasOlder = false, hasNewer = false;
+    if (cursor.aroundOrder) {
+      const order = this.historyOrder(cursor.aroundOrder), olderSize = Math.floor((limit - 1) / 2), newerSize = limit - olderSize - 1;
+      const [left, right] = await Promise.all([
+        this.database.directMessage.findMany({ where: { conversationId, submissionOrder: { lte: order } }, orderBy: { submissionOrder: 'desc' }, take: olderSize + 2, include }),
+        this.database.directMessage.findMany({ where: { conversationId, submissionOrder: { gt: order } }, orderBy: { submissionOrder: 'asc' }, take: newerSize + 1, include }),
+      ]);
+      hasOlder = left.length > olderSize + 1; hasNewer = right.length > newerSize;
+      rows = [...left.slice(0, olderSize + 1).reverse(), ...right.slice(0, newerSize)];
+    } else if (cursor.beforeOrder) {
+      const order = this.historyOrder(cursor.beforeOrder);
+      const page = await this.database.directMessage.findMany({ where: { conversationId, submissionOrder: { lt: order } }, orderBy: { submissionOrder: 'desc' }, take: limit + 1, include });
+      hasOlder = page.length > limit; hasNewer = true; rows = page.slice(0, limit).reverse();
+    } else if (cursor.afterOrder) {
+      const order = this.historyOrder(cursor.afterOrder);
+      const page = await this.database.directMessage.findMany({ where: { conversationId, submissionOrder: { gt: order } }, orderBy: { submissionOrder: 'asc' }, take: limit + 1, include });
+      hasOlder = true; hasNewer = page.length > limit; rows = page.slice(0, limit);
+    } else {
+      const page = await this.database.directMessage.findMany({ where: { conversationId }, orderBy: { submissionOrder: 'desc' }, take: limit + 1, include });
+      hasOlder = page.length > limit; rows = page.slice(0, limit).reverse();
+    }
+    const context = await this.historyContext(conversationId, actor.id, this.other(conversation, actor.id));
+    return {
+      messages: rows.map(context.project),
+      olderCursor: hasOlder ? rows[0]?.submissionOrder.toString() ?? null : null,
+      newerCursor: hasNewer ? rows.at(-1)?.submissionOrder.toString() ?? null : null,
+    };
+  }
+
+  async searchHistory(identity: AuthenticatedIdentity, conversationId: string, rawQuery: string, limit = 50, cursor?: string) {
+    const actor = await this.actor(identity), query = rawQuery.trim();
+    if (!query || Array.from(query).length > 100) throw invalid('Recherche historique invalide.');
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw invalid('Taille de page invalide.');
+    const conversation = await this.requireConversation(this.database as unknown as Prisma.TransactionClient, conversationId, actor.id);
+    const before = cursor ? this.historyOrder(cursor) : null;
+    const rows = await this.database.directMessage.findMany({
+      where: { conversationId, deletedAt: null, content: { not: null, contains: query, mode: 'insensitive' }, ...(before ? { submissionOrder: { lt: before } } : {}) },
+      orderBy: { submissionOrder: 'desc' }, take: limit + 1, include: { operation: { select: { idempotencyKey: true } } },
+    });
+    const page = rows.slice(0, limit), context = await this.historyContext(conversationId, actor.id, this.other(conversation, actor.id));
+    return { results: page.map(context.project), nextCursor: rows.length > limit ? page.at(-1)?.submissionOrder.toString() ?? null : null };
+  }
+
+  async historyDate(identity: AuthenticatedIdentity, conversationId: string, rawAt: string) {
+    const actor = await this.actor(identity), at = new Date(rawAt);
+    if (Number.isNaN(at.getTime())) throw invalid('Date historique invalide.');
+    await this.requireConversation(this.database as unknown as Prisma.TransactionClient, conversationId, actor.id);
+    const selected = await this.database.directMessage.findFirst({ where: { conversationId, createdAt: { gte: at } }, orderBy: [{ createdAt: 'asc' }, { submissionOrder: 'asc' }], select: { id: true, submissionOrder: true, createdAt: true } })
+      ?? await this.database.directMessage.findFirst({ where: { conversationId, createdAt: { lt: at } }, orderBy: [{ createdAt: 'desc' }, { submissionOrder: 'desc' }], select: { id: true, submissionOrder: true, createdAt: true } });
+    return { anchor: selected ? { messageId: selected.id, submissionOrder: selected.submissionOrder.toString(), createdAt: selected.createdAt.toISOString() } : null };
   }
 
   async messages(identity: AuthenticatedIdentity, conversationId: string, limit = 50, cursor?: DirectCursor) {

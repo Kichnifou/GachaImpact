@@ -17,6 +17,9 @@ const service = {
   list: vi.fn(async () => ({ conversations: [] })), unread: vi.fn(async () => ({ unreadCount: 0, conversations: [] })),
   initiate: vi.fn(async () => ({ conversationId, messageId, requestId, state: 'PENDING' })),
   messages: vi.fn(async () => ({ messages: [], nextCursor: null, windowSize: 0 })), send: vi.fn(async () => ({ conversationId, messageId })),
+  history: vi.fn(async () => ({ messages: [], olderCursor: null, newerCursor: null })),
+  searchHistory: vi.fn(async () => ({ results: [], nextCursor: null })),
+  historyDate: vi.fn(async () => ({ anchor: null })),
   editMessage: vi.fn(async () => ({ conversationId, messageId, replayed: false, message: mutationMessage })), deleteMessage: vi.fn(async () => ({ conversationId, messageId, replayed: false, message: { ...mutationMessage, content: null, deletedAt: '2026-09-23T08:01:00.000Z' } })), restoreMessage: vi.fn(async () => ({ conversationId, messageId, replayed: false, message: { ...mutationMessage, content: 'Corrigé', restoredAt: '2026-09-23T08:02:00.000Z' } })),
   resolve: vi.fn(async () => ({ conversationId, requestId, state: 'ACCEPTED' })), block: vi.fn(async () => ({ conversationId, blocked: true })), unblock: vi.fn(async () => ({ conversationId, blocked: false })),
   markRead: vi.fn(async () => ({ lastReadMessageId: messageId, changed: true })), setReadReceipts: vi.fn(async () => ({ conversationId, readReceiptsEnabled: false, changed: true })),
@@ -70,5 +73,27 @@ describe('authenticated direct-message routes', () => {
     expect((await enabled.inject({ method: 'GET', url: `/api/v1/me/direct-conversations/${conversationId}/messages?cursorId=${messageId}`, headers: token })).statusCode).toBe(400);
     expect((await enabled.inject({ method: 'POST', url: '/api/v1/me/direct-conversations', headers: token, payload: { targetPlayerId: targetId, content: 'Bonjour', idempotencyKey: key, authorPlayerId: targetId } })).statusCode).toBe(400);
     expect((await enabled.inject({ method: 'PATCH', url: `/api/v1/me/direct-conversations/${conversationId}/messages/${messageId}`, headers: token, payload: { content: 'x'.repeat(2001), idempotencyKey: key } })).statusCode).toBe(400);
+  });
+
+  it('validates and routes history, search and date with no-store responses', async () => {
+    const enabled = await app();
+    const history = await enabled.inject({ method: 'GET', url: `/api/v1/me/direct-conversations/${conversationId}/history?limit=75&beforeOrder=900`, headers: token });
+    expect(history.statusCode).toBe(200); expect(history.headers['cache-control']).toBe('no-store');
+    expect(service.history).toHaveBeenCalledWith(identity, conversationId, 75, { limit: 75, beforeOrder: '900' });
+    const search = await enabled.inject({ method: 'GET', url: `/api/v1/me/direct-conversations/${conversationId}/history/search?q=Texte&limit=20&cursor=800`, headers: token });
+    expect(search.statusCode).toBe(200); expect(service.searchHistory).toHaveBeenCalledWith(identity, conversationId, 'Texte', 20, '800');
+    const at = '2026-09-24T00:00:00.000Z';
+    const date = await enabled.inject({ method: 'GET', url: `/api/v1/me/direct-conversations/${conversationId}/history/date?at=${encodeURIComponent(at)}`, headers: token });
+    expect(date.statusCode).toBe(200); expect(service.historyDate).toHaveBeenCalledWith(identity, conversationId, at);
+
+    for (const url of [
+      `/api/v1/me/direct-conversations/not-a-uuid/history`,
+      `/api/v1/me/direct-conversations/${conversationId}/history?limit=0`,
+      `/api/v1/me/direct-conversations/${conversationId}/history?beforeOrder=1&afterOrder=2`,
+      `/api/v1/me/direct-conversations/${conversationId}/history?aroundOrder=-1`,
+      `/api/v1/me/direct-conversations/${conversationId}/history/search?q=`,
+      `/api/v1/me/direct-conversations/${conversationId}/history/search?q=${'x'.repeat(101)}`,
+      `/api/v1/me/direct-conversations/${conversationId}/history/date?at=hier`,
+    ]) expect((await enabled.inject({ method: 'GET', url, headers: token })).statusCode).toBe(400);
   });
 });

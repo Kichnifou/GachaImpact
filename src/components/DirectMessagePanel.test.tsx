@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DirectConversationDto, DirectMessageDto, DirectMessageMutationDto } from '../api/types'
 
 const directMessages = vi.hoisted(() => ({
-  players: vi.fn(), list: vi.fn(), unread: vi.fn(), messages: vi.fn(), initiate: vi.fn(), send: vi.fn(), edit: vi.fn(), remove: vi.fn(), restore: vi.fn(), accept: vi.fn(), ignore: vi.fn(), block: vi.fn(), unblock: vi.fn(), read: vi.fn(), receipts: vi.fn(), archive: vi.fn(),
+  players: vi.fn(), list: vi.fn(), unread: vi.fn(), messages: vi.fn(), history: vi.fn(), historySearch: vi.fn(), historyDate: vi.fn(), initiate: vi.fn(), send: vi.fn(), edit: vi.fn(), remove: vi.fn(), restore: vi.fn(), accept: vi.fn(), ignore: vi.fn(), block: vi.fn(), unblock: vi.fn(), read: vi.fn(), receipts: vi.fn(), archive: vi.fn(),
 }))
 const social = vi.hoisted(() => ({ directory: vi.fn() }))
 vi.mock('../api/game-api', () => ({
@@ -55,6 +55,9 @@ beforeEach(() => {
   directMessages.unread.mockResolvedValue({ unreadCount: 0, conversations: [] })
   directMessages.players.mockResolvedValue({ players: [] })
   directMessages.messages.mockResolvedValue({ messages: [message], nextCursor: null, windowSize: 1 })
+  directMessages.history.mockResolvedValue({ messages: [{ ...message, canRestore: false }], olderCursor: null, newerCursor: null })
+  directMessages.historySearch.mockResolvedValue({ results: [], nextCursor: null })
+  directMessages.historyDate.mockResolvedValue({ anchor: { messageId, submissionOrder: message.submissionOrder, createdAt: message.createdAt } })
   directMessages.read.mockResolvedValue({ lastReadMessageId: messageId, sharedReadAt: null, changed: true })
   directMessages.send.mockResolvedValue({ conversationId, messageId, replayed: false })
   directMessages.edit.mockResolvedValue({ conversationId, messageId, replayed: false, message: { id: messageId, content: message.content, editedAt: message.editedAt, deletedAt: message.deletedAt, restoredAt: message.restoredAt } })
@@ -753,5 +756,133 @@ describe('DirectMessagePanel', () => {
     await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() }); await settle()
     expect(Array.from(container.querySelectorAll('.dm-message p')).map(node => node.textContent)).toEqual(['B', 'A'])
     expect(container.querySelectorAll('.dm-message')[0]).toBe(existingRow)
+  })
+
+  it('opens full history without marking it read and returns to the live draft and scroll', async () => {
+    const container = await mount()
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    const composer = container.querySelector<HTMLTextAreaElement>('#dm-message')!, live = container.querySelector<HTMLDivElement>('.dm-message-list')!
+    live.scrollTop = 73
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(composer, 'Brouillon conservÃ©'); composer.dispatchEvent(new Event('input', { bubbles: true })) })
+    directMessages.read.mockClear()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-menu-button')!.click() })
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-conversation-menu button')).find(button => button.textContent === 'Historique complet'))!.click() }); await settle()
+    expect(container.querySelector('.dm-history')).not.toBeNull(); expect(container.textContent).toContain('conversation avec Aster')
+    expect(directMessages.history).toHaveBeenCalledWith(conversationId, {}); expect(directMessages.read).not.toHaveBeenCalled()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-history-recent')!.click() })
+    expect(container.querySelector<HTMLTextAreaElement>('#dm-message')?.value).toBe('Brouillon conservÃ©')
+    expect(container.querySelector<HTMLDivElement>('.dm-message-list')?.scrollTop).toBe(73)
+  })
+
+  it('searches history serially and jumps to search and date anchors with a highlight', async () => {
+    const found = { ...message, id: '99999999-9999-4999-8999-999999999999', content: 'Aiguille historique', submissionOrder: '42', canRestore: false }
+    directMessages.historySearch.mockResolvedValue({ results: [found], nextCursor: null })
+    directMessages.history.mockImplementation(async (_id: string, cursor: { aroundOrder?: string } = {}) => ({ messages: cursor.aroundOrder ? [found] : [{ ...message, canRestore: false }], olderCursor: cursor.aroundOrder ? '40' : null, newerCursor: cursor.aroundOrder ? '44' : null }))
+    directMessages.historyDate.mockResolvedValue({ anchor: { messageId: found.id, submissionOrder: found.submissionOrder, createdAt: found.createdAt } })
+    const container = await mount()
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-menu-button')!.click() })
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-conversation-menu button')).find(button => button.textContent === 'Historique complet'))!.click() }); await settle()
+    const search = container.querySelector<HTMLInputElement>('.dm-history-tools input[type="search"]')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, 'aiguille'); search.dispatchEvent(new Event('input', { bubbles: true })); await new Promise(resolve => setTimeout(resolve, 230)) }); await settle()
+    expect(directMessages.historySearch).toHaveBeenCalledWith(conversationId, 'aiguille', undefined)
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-history-results button')!.click() }); await settle()
+    expect(directMessages.history).toHaveBeenCalledWith(conversationId, { aroundOrder: '42' })
+    expect(container.querySelector(`[data-message-id="${found.id}"]`)?.classList.contains('dm-history-highlight')).toBe(true)
+    const date = container.querySelector<HTMLInputElement>('.dm-history-tools input[type="date"]')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(date, '2026-09-24'); date.dispatchEvent(new Event('input', { bubbles: true })) })
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-history-tools button')).find(button => button.textContent === 'Aller'))!.click(); await Promise.resolve() }); await settle()
+    expect(directMessages.historyDate).toHaveBeenCalledWith(conversationId, new Date('2026-09-24T00:00:00').toISOString())
+  })
+
+  it('loads older history automatically and preserves the visible prepend anchor', async () => {
+    const older = { ...message, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', content: 'Plus ancien', submissionOrder: '99', canRestore: false }
+    const recent = { ...message, id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', content: 'Plus récent', submissionOrder: '100', canRestore: false }
+    let height = 200
+    directMessages.history.mockImplementation(async (_id: string, cursor: { beforeOrder?: string } = {}) => {
+      if (cursor.beforeOrder) { height = 320; return { messages: [older], olderCursor: null, newerCursor: null } }
+      return { messages: [recent], olderCursor: '100', newerCursor: null }
+    })
+    const container = await mount()
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-menu-button')!.click() })
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-conversation-menu button')).find(button => button.textContent === 'Historique complet'))!.click() }); await settle()
+    const owner = container.querySelector<HTMLDivElement>('.dm-history-body')!
+    Object.defineProperty(owner, 'scrollHeight', { configurable: true, get: () => height })
+    Object.defineProperty(owner, 'clientHeight', { configurable: true, value: 100 })
+    owner.scrollTop = 20
+    await act(async () => { owner.dispatchEvent(new Event('scroll', { bubbles: true })); await Promise.resolve() }); await settle()
+    expect(directMessages.history).toHaveBeenCalledWith(conversationId, { beforeOrder: '100' })
+    expect(Array.from(owner.querySelectorAll('.dm-message p')).map(node => node.textContent)).toEqual(['Plus ancien', 'Plus récent'])
+    expect(owner.scrollTop).toBe(140)
+  })
+
+  it('loads newer history automatically after a search jump', async () => {
+    const found = { ...message, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', content: 'Ancre', submissionOrder: '42', canRestore: false }
+    const newer = { ...message, id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', content: 'Après ancre', submissionOrder: '45', canRestore: false }
+    directMessages.historySearch.mockResolvedValue({ results: [found], nextCursor: null })
+    directMessages.history.mockImplementation(async (_id: string, cursor: { aroundOrder?: string; afterOrder?: string } = {}) => {
+      if (cursor.aroundOrder) return { messages: [found], olderCursor: '40', newerCursor: '44' }
+      if (cursor.afterOrder) return { messages: [newer], olderCursor: null, newerCursor: null }
+      return { messages: [{ ...message, canRestore: false }], olderCursor: null, newerCursor: null }
+    })
+    const container = await mount()
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-menu-button')!.click() })
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-conversation-menu button')).find(button => button.textContent === 'Historique complet'))!.click() }); await settle()
+    const search = container.querySelector<HTMLInputElement>('.dm-history-tools input[type="search"]')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, 'ancre'); search.dispatchEvent(new Event('input', { bubbles: true })); await new Promise(resolve => setTimeout(resolve, 230)) }); await settle()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-history-results button')!.click() }); await settle()
+    const owner = container.querySelector<HTMLDivElement>('.dm-history-body')!
+    Object.defineProperty(owner, 'scrollHeight', { configurable: true, value: 300 })
+    Object.defineProperty(owner, 'clientHeight', { configurable: true, value: 100 })
+    owner.scrollTop = 201
+    await act(async () => { owner.dispatchEvent(new Event('scroll', { bubbles: true })); await Promise.resolve() }); await settle()
+    expect(directMessages.history).toHaveBeenCalledWith(conversationId, { afterOrder: '44' })
+    expect(owner.textContent).toContain('Après ancre')
+  })
+
+  it('clears the isolated history cache when the authenticated Player changes', async () => {
+    const container = await mount()
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-menu-button')!.click() })
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-conversation-menu button')).find(button => button.textContent === 'Historique complet'))!.click() }); await settle()
+    expect(directMessages.history).toHaveBeenCalledTimes(1)
+    const root = roots.at(-1)!
+    await act(async () => { root.render(<DirectMessagePanel playerId={otherId} isActive intent={null} onIntentConsumed={intentConsumed} onUnreadChange={unreadChanged} onOpenProfile={openProfile} />) }); await settle()
+    expect(directMessages.history).toHaveBeenCalledTimes(2)
+  })
+
+  it('reuses author actions in history and hides Restore when canRestore is false', async () => {
+    const unavailable = { ...message, id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', authorPlayerId: ownId, own: true, content: null, deletedAt: '2026-09-20T08:00:00.000Z', submissionOrder: '1', canRestore: false }
+    const available = { ...unavailable, id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', submissionOrder: '2', canRestore: true }
+    directMessages.history.mockResolvedValue({ messages: [unavailable, available], olderCursor: null, newerCursor: null })
+    const container = await mount()
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-menu-button')!.click() })
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-conversation-menu button')).find(button => button.textContent === 'Historique complet'))!.click() }); await settle()
+    expect(container.querySelector(`[data-message-id="${unavailable.id}"] [aria-label="Restaurer le message"]`)).toBeNull()
+    const restore = container.querySelector<HTMLButtonElement>(`[data-message-id="${available.id}"] [aria-label="Restaurer le message"]`)!
+    expect(restore).not.toBeNull(); await act(async () => { restore.click(); await Promise.resolve() }); await settle()
+    expect(directMessages.restore).toHaveBeenCalledWith(conversationId, available.id, expect.any(String))
+  })
+
+  it('keeps the original history rollback across an ambiguous delete retry', async () => {
+    const historical = { ...message, authorPlayerId: ownId, own: true, content: 'Archive originale', canRestore: false }
+    directMessages.history.mockResolvedValue({ messages: [historical], olderCursor: null, newerCursor: null })
+    directMessages.remove.mockRejectedValueOnce(new Error('Réponse perdue')).mockRejectedValueOnce(new ApiError('DIRECT_MESSAGE_UNAVAILABLE', 'Refusée', 409))
+    const container = await mount()
+    await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-menu-button')!.click() })
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-conversation-menu button')).find(button => button.textContent === 'Historique complet'))!.click() }); await settle()
+    const row = container.querySelector<HTMLElement>(`[data-message-id="${historical.id}"]`)!
+    await act(async () => { row.querySelector<HTMLButtonElement>('[aria-label="Supprimer le message"]')!.click() })
+    await act(async () => { row.querySelector<HTMLButtonElement>('.dm-message-delete-confirm button')!.click() }); await settle()
+    expect(row.querySelector('.dm-message-bubble p')?.textContent).toBe('Message supprimé')
+    const operationKey = directMessages.remove.mock.calls[0]?.[2]
+    await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-message-action-error button')).find(button => button.textContent === 'Réessayer'))!.click() }); await settle()
+    expect(directMessages.remove.mock.calls[1]?.[2]).toBe(operationKey)
+    expect(row.querySelector('.dm-message-bubble p')?.textContent).toBe('Archive originale')
+    expect(row.querySelector('.dm-message-delete-confirm')).toBeNull()
   })
 })

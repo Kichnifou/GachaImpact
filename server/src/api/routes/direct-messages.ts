@@ -10,6 +10,10 @@ const conversationParams = z.object({ conversationId: uuid }).strict();
 const messageParams = z.object({ conversationId: uuid, messageId: uuid }).strict();
 const listQuery = z.object({ archived: z.enum(['true', 'false']).default('false') }).strict();
 const messagesQuery = z.object({ limit: z.coerce.number().int().min(1).max(100).default(50), cursorCreatedAt: z.iso.datetime().optional(), cursorId: uuid.optional() }).strict();
+const historyOrder = z.string().regex(/^[1-9]\d*$/u);
+const historyQuery = z.object({ limit: z.coerce.number().int().min(1).max(100).default(50), beforeOrder: historyOrder.optional(), afterOrder: historyOrder.optional(), aroundOrder: historyOrder.optional() }).strict();
+const historySearchQuery = z.object({ q: z.string().trim().min(1).max(100), limit: z.coerce.number().int().min(1).max(100).default(50), cursor: historyOrder.optional() }).strict();
+const historyDateQuery = z.object({ at: z.iso.datetime({ offset: true }) }).strict();
 const playerSearchQuery = z.object({ q: z.string().trim().min(1).max(100) }).strict();
 const initiateBody = z.object({ targetPlayerId: uuid, content: z.string().min(1).max(2000), idempotencyKey: uuid }).strict();
 const sendBody = z.object({ content: z.string().min(1).max(2000), idempotencyKey: uuid }).strict();
@@ -32,6 +36,19 @@ export async function registerDirectMessageRoutes(app: FastifyInstance, options:
   app.get('/api/v1/me/direct-conversations/players', config, request => options.service.searchPlayers(requireAuthenticatedIdentity(request), parse(playerSearchQuery, request.query).q));
   app.get('/api/v1/me/direct-conversations', config, request => options.service.list(requireAuthenticatedIdentity(request), parse(listQuery, request.query).archived === 'true'));
   app.post('/api/v1/me/direct-conversations', config, request => { const body = parse(initiateBody, request.body); return options.service.initiate(requireAuthenticatedIdentity(request), body.targetPlayerId, body.content, body.idempotencyKey); });
+  app.get('/api/v1/me/direct-conversations/:conversationId/history', config, request => {
+    const params = parse(conversationParams, request.params), query = parse(historyQuery, request.query);
+    if ([query.beforeOrder, query.afterOrder, query.aroundOrder].filter(Boolean).length > 1) throw new AppError('Curseurs historiques incompatibles.', 400, 'VALIDATION_ERROR');
+    return options.service.history(requireAuthenticatedIdentity(request), params.conversationId, query.limit, query);
+  });
+  app.get('/api/v1/me/direct-conversations/:conversationId/history/search', config, request => {
+    const params = parse(conversationParams, request.params), query = parse(historySearchQuery, request.query);
+    return options.service.searchHistory(requireAuthenticatedIdentity(request), params.conversationId, query.q, query.limit, query.cursor);
+  });
+  app.get('/api/v1/me/direct-conversations/:conversationId/history/date', config, request => {
+    const params = parse(conversationParams, request.params), query = parse(historyDateQuery, request.query);
+    return options.service.historyDate(requireAuthenticatedIdentity(request), params.conversationId, query.at);
+  });
   app.get('/api/v1/me/direct-conversations/:conversationId/messages', config, request => {
     const params = parse(conversationParams, request.params), query = parse(messagesQuery, request.query);
     if (Boolean(query.cursorId) !== Boolean(query.cursorCreatedAt)) throw new AppError('Curseur de messagerie privée invalide.', 400, 'VALIDATION_ERROR');

@@ -761,6 +761,10 @@ export type DirectConversationDto = Readonly<{
 }>
 export type DirectConversationListDto = Readonly<{ conversations: readonly DirectConversationDto[] }>
 export type DirectMessagePageDto = Readonly<{ messages: readonly DirectMessageDto[]; nextCursor: Readonly<{ createdAt: string; id: string }> | null; windowSize: number }>
+export type DirectMessageHistoryMessageDto = DirectMessageDto & Readonly<{ canRestore: boolean }>
+export type DirectMessageHistoryPageDto = Readonly<{ messages: readonly DirectMessageHistoryMessageDto[]; olderCursor: string | null; newerCursor: string | null }>
+export type DirectMessageHistorySearchDto = Readonly<{ results: readonly DirectMessageHistoryMessageDto[]; nextCursor: string | null }>
+export type DirectMessageHistoryAnchorDto = Readonly<{ anchor: Readonly<{ messageId: string; submissionOrder: string; createdAt: string }> | null }>
 export type DirectMessageUnreadDto = Readonly<{ unreadCount: number; conversations: readonly Readonly<{ conversationId: string; unreadCount: number }>[] }>
 export type DirectMessageSendDto = Readonly<{ conversationId: string; messageId: string; replayed: boolean }>
 export type DirectMessageMutationDto = Readonly<{

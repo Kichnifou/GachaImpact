@@ -1,12 +1,13 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react'
 import { ApiError, getGameApiClient } from '../api/game-api'
-import type { DirectConversationDto, DirectMessageDto, DirectMessagePlayerDto } from '../api/types'
+import type { DirectConversationDto, DirectMessageDto, DirectMessageHistoryMessageDto, DirectMessagePlayerDto } from '../api/types'
 import { directMessageReceiptLabel } from '../direct-messages/receipt-label'
+import { useDirectMessageHistory } from '../direct-messages/use-direct-message-history'
 import { createOptimisticDirectMessage, useDirectMessages } from '../direct-messages/use-direct-messages'
 import { elementLabels } from '../utils/formatters'
 
 export type DirectMessageOpenIntent = Readonly<{ playerId: string; token: string; player?: DirectMessagePlayerDto }>
-type View = 'list' | 'archives' | 'conversation' | 'new'
+type View = 'list' | 'archives' | 'conversation' | 'history' | 'new'
 type SendIntent = { signature: string; key: string }
 type MessageMutationIntent = { kind: 'edit'; messageId: string; content: string; key: string } | { kind: 'delete' | 'restore'; messageId: string; key: string }
 type ProvisionalThread = { target: DirectMessagePlayerDto; message: DirectMessageDto; key: string; state: 'SENDING' | 'PENDING' | 'ACCEPTED'; conversationId: string | null; requestId: string | null }
@@ -35,8 +36,10 @@ export default function DirectMessagePanel({ playerId, isActive, intent, resetTo
   const [provisional, setProvisional] = useState<ProvisionalThread | null>(null)
   const [messageActionsId, setMessageActionsId] = useState<string | null>(null), [editingId, setEditingId] = useState<string | null>(null), [editDraft, setEditDraft] = useState(''), [deleteId, setDeleteId] = useState<string | null>(null)
   const [messageActionPending, setMessageActionPending] = useState<string | null>(null), [messageActionError, setMessageActionError] = useState(''), [retryMutation, setRetryMutation] = useState<MessageMutationIntent | null>(null)
-  const intentRef = useRef<SendIntent | null>(null), searchVersion = useRef(0), list = useRef<HTMLDivElement>(null), composer = useRef<HTMLTextAreaElement>(null), editor = useRef<HTMLDivElement>(null), atBottom = useRef(true), initialScroll = useRef(false), forceBottom = useRef(false), seenIds = useRef(new Set<string>()), prepend = useRef<{ top: number; height: number } | null>(null), readId = useRef<string | null>(null), sendBusy = useRef(false), readBusy = useRef(false), queuedRead = useRef<{ conversationId: string; messageId: string } | null>(null)
-  const model = useDirectMessages(playerId, isActive, selectedId, view === 'archives', onUnreadChange)
+  const [historyQuery, setHistoryQuery] = useState(''), [historyDate, setHistoryDate] = useState(''), [historyHighlight, setHistoryHighlight] = useState<string | null>(null)
+  const intentRef = useRef<SendIntent | null>(null), searchVersion = useRef(0), list = useRef<HTMLDivElement>(null), historyList = useRef<HTMLDivElement>(null), composer = useRef<HTMLTextAreaElement>(null), editor = useRef<HTMLDivElement>(null), atBottom = useRef(true), initialScroll = useRef(false), historyInitialScroll = useRef(false), forceBottom = useRef(false), seenIds = useRef(new Set<string>()), prepend = useRef<{ top: number; height: number } | null>(null), historyPrepend = useRef<{ top: number; height: number } | null>(null), liveScrollTop = useRef<number | null>(null), readId = useRef<string | null>(null), sendBusy = useRef(false), readBusy = useRef(false), queuedRead = useRef<{ conversationId: string; messageId: string } | null>(null)
+  const model = useDirectMessages(playerId, isActive && view !== 'history', selectedId, view === 'archives', onUnreadChange)
+  const history = useDirectMessageHistory(playerId, selectedId, isActive && view === 'history', historyQuery)
   const provisionalConversation: DirectConversationDto | null = provisional ? { id: provisional.conversationId ?? `provisional:${provisional.key}`, other: provisional.target, archived: false, lastMessageAt: provisional.message.createdAt, lastMessage: provisional.message, request: provisional.state === 'PENDING' ? { id: provisional.requestId ?? `provisional-request:${provisional.key}`, state: 'PENDING', senderPlayerId: playerId, retryAfter: null } : null, unreadCount: 0, readReceiptsEnabled: true, canSend: provisional.state === 'ACCEPTED', blockedByMe: false } : null
   const selected = model.selected ?? provisionalConversation
   const renderedMessages = useMemo(() => provisional && !model.messages.some(message => message.id === provisional.message.id || message.clientIntentKey === provisional.key) ? [provisional.message] : model.messages, [model.messages, provisional])
@@ -59,7 +62,7 @@ export default function DirectMessagePanel({ playerId, isActive, intent, resetTo
   // oxlint-disable-next-line react/set-state-in-effect -- a shell navigation intent deliberately changes the internal panel route
   useEffect(() => { if (!intent) return; void openTarget(intent.playerId, intent.player).finally(() => onIntentConsumed(intent.token)) }, [intent?.token]) // eslint-disable-line react-hooks/exhaustive-deps
   // oxlint-disable-next-line react/set-state-in-effect -- an explicit click on the already mounted MP tab resets its internal route
-  useLayoutEffect(() => { if (!resetToken) return; setView('list'); setProvisional(null); setSelectedId(null); setTarget(null); setDraft(''); setMenuOpen(false); setConfirmBlock(false); setNewCount(0); setScrollbarAtBottom(true) }, [resetToken])
+  useLayoutEffect(() => { if (!resetToken) return; setView('list'); setProvisional(null); setSelectedId(null); setTarget(null); setDraft(''); setMenuOpen(false); setConfirmBlock(false); setNewCount(0); setScrollbarAtBottom(true); setHistoryQuery(''); setHistoryDate(''); setHistoryHighlight(null) }, [resetToken])
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 60_000); return () => window.clearInterval(timer) }, [])
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect -- leaving or clearing the search immediately clears obsolete suggestions
@@ -75,13 +78,14 @@ export default function DirectMessagePanel({ playerId, isActive, intent, resetTo
     composer.current.style.height = '0px'; const height = Math.min(Math.max(composer.current.scrollHeight, 42), 132); composer.current.style.height = `${height}px`; composer.current.style.overflowY = composer.current.scrollHeight > 132 ? 'auto' : 'hidden'
   }, [draft, view])
   useLayoutEffect(() => {
-    if (!editingId || !editor.current || !list.current) return
-    const owner = list.current, ownerRect = owner.getBoundingClientRect(), editorRect = editor.current.getBoundingClientRect()
+    const owner = view === 'history' ? historyList.current : list.current
+    if (!editingId || !editor.current || !owner) return
+    const ownerRect = owner.getBoundingClientRect(), editorRect = editor.current.getBoundingClientRect()
     if (editorRect.top < ownerRect.top) owner.scrollTop -= ownerRect.top - editorRect.top
     else if (editorRect.bottom > ownerRect.bottom) owner.scrollTop += editorRect.bottom - ownerRect.bottom
     const textarea = editor.current.querySelector<HTMLTextAreaElement>('textarea')
     textarea?.focus(); textarea?.setSelectionRange(textarea.value.length, textarea.value.length)
-  }, [editingId])
+  }, [editingId, view])
   useEffect(() => {
     const close = (event: PointerEvent) => {
       if (!(event.target instanceof Element) || event.target.closest('.dm-message-actions, .dm-message-delete-confirm')) return
@@ -116,6 +120,20 @@ export default function DirectMessagePanel({ playerId, isActive, intent, resetTo
       if (last) markConversationRead(selectedId!, last.id)
     }
   }, [isActive, model.messages, model.messagesLoaded, provisional, renderedMessages, selectedId, view]) // eslint-disable-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => {
+    const owner = historyList.current
+    if (!owner || view !== 'history' || historyQuery.trim()) return
+    if (historyInitialScroll.current && history.loaded) { owner.scrollTop = owner.scrollHeight; historyInitialScroll.current = false }
+    else if (historyPrepend.current) { owner.scrollTop = historyPrepend.current.top + owner.scrollHeight - historyPrepend.current.height; historyPrepend.current = null }
+    if (historyHighlight) {
+      const targetMessage = owner.querySelector<HTMLElement>(`[data-message-id="${historyHighlight}"]`)
+      if (targetMessage) { targetMessage.scrollIntoView({ block: 'center' }); const timer = window.setTimeout(() => setHistoryHighlight(null), 1_800); return () => window.clearTimeout(timer) }
+    }
+  }, [history.loaded, history.messages, historyHighlight, historyQuery, view])
+  useLayoutEffect(() => {
+    if (view !== 'conversation' || liveScrollTop.current === null || !list.current) return
+    list.current.scrollTop = liveScrollTop.current; liveScrollTop.current = null
+  }, [view])
 
   function markConversationRead(conversationId: string, messageId: string) {
     if (readId.current === messageId) return
@@ -137,6 +155,30 @@ export default function DirectMessagePanel({ playerId, isActive, intent, resetTo
     const remaining = list.current.scrollHeight - list.current.scrollTop - list.current.clientHeight; atBottom.current = remaining < 70; setScrollbarAtBottom(remaining <= 2)
     if (atBottom.current) { setNewCount(0); const last = [...renderedMessages].reverse().find(message => !message.id.startsWith('optimistic:')); if (isActive && selectedId && last) markConversationRead(selectedId, last.id) }
     if (list.current.scrollTop < 70 && model.cursor) { prepend.current = { top: list.current.scrollTop, height: list.current.scrollHeight }; void model.loadOlder() }
+  }
+  const openHistory = () => { liveScrollTop.current = list.current?.scrollTop ?? null; setMenuOpen(false); setHistoryQuery(''); setHistoryDate(''); setHistoryHighlight(null); historyInitialScroll.current = true; setView('history') }
+  const closeHistory = () => { setHistoryQuery(''); setHistoryDate(''); setHistoryHighlight(null); setEditingId(null); setEditDraft(''); setDeleteId(null); setMessageActionsId(null); setView('conversation') }
+  const onHistoryScroll = () => {
+    const owner = historyList.current
+    if (!owner) return
+    if (historyQuery.trim()) {
+      if (owner.scrollHeight - owner.scrollTop - owner.clientHeight < 90 && history.searchCursor) void history.loadMoreResults()
+      return
+    }
+    if (owner.scrollTop < 90 && history.olderCursor) { historyPrepend.current = { top: owner.scrollTop, height: owner.scrollHeight }; void history.loadOlder() }
+    if (owner.scrollHeight - owner.scrollTop - owner.clientHeight < 90 && history.newerCursor) void history.loadNewer()
+  }
+  const jumpHistory = async (message: Pick<DirectMessageDto, 'id' | 'submissionOrder'>) => {
+    if (!message.submissionOrder) return
+    setHistoryQuery('')
+    if (await history.jumpTo(message.submissionOrder)) setHistoryHighlight(message.id)
+  }
+  const navigateHistoryDate = async () => {
+    if (!historyDate) return
+    const localStart = new Date(`${historyDate}T00:00:00`)
+    if (Number.isNaN(localStart.getTime())) return
+    const anchor = await history.findDate(localStart.toISOString())
+    if (anchor && await history.jumpTo(anchor.submissionOrder)) setHistoryHighlight(anchor.messageId)
   }
   const returnToList = () => { setView(selected?.archived ? 'archives' : 'list'); setProvisional(null); setSelectedId(null); setTarget(null); setDraft(''); setMenuOpen(false); setConfirmBlock(false); intentRef.current = null }
   const send = async (event: FormEvent) => {
@@ -175,7 +217,8 @@ export default function DirectMessagePanel({ playerId, isActive, intent, resetTo
     if (!selected) return 'deterministic' as const
     setMessageActionPending(mutation.messageId); setMessageActionError(''); setRetryMutation(null)
     try {
-      if (mutation.kind === 'edit') await model.editMessage(selected.id, mutation.messageId, mutation.content, mutation.key)
+      if (view === 'history') await history.mutate(mutation)
+      else if (mutation.kind === 'edit') await model.editMessage(selected.id, mutation.messageId, mutation.content, mutation.key)
       else if (mutation.kind === 'delete') await model.deleteMessage(selected.id, mutation.messageId, mutation.key)
       else await model.restoreMessage(selected.id, mutation.messageId, mutation.key)
       return 'success' as const
@@ -192,10 +235,11 @@ export default function DirectMessagePanel({ playerId, isActive, intent, resetTo
     const result = await mutateMessage({ kind: 'edit', messageId, content, key: crypto.randomUUID() })
     if (result !== 'deterministic') { setEditingId(null); setEditDraft('') }
   }
-  const renderMessage = (message: DirectMessageDto) => {
-    const actionable = message.own && !message.id.startsWith('optimistic:')
+  const renderMessage = (message: DirectMessageDto | DirectMessageHistoryMessageDto) => {
+    const restorable = !message.deletedAt || view !== 'history' || 'canRestore' in message && message.canRestore
+    const actionable = message.own && !message.id.startsWith('optimistic:') && restorable
     const actionsOpen = messageActionsId === message.id
-    return <article className={`dm-message ${message.own ? 'own' : 'other'}${message.id.startsWith('optimistic:') ? ' pending' : ''}${actionsOpen ? ' actions-open' : ''}`} data-message-id={message.id} data-submission-order={message.submissionOrder ?? undefined} data-read-by-other={message.readByOther ? 'true' : 'false'} data-read-by-other-at={message.readByOtherAt ?? undefined} key={message.id} tabIndex={actionable ? 0 : undefined}>
+    return <article className={`dm-message ${message.own ? 'own' : 'other'}${message.id.startsWith('optimistic:') ? ' pending' : ''}${actionsOpen ? ' actions-open' : ''}${historyHighlight === message.id ? ' dm-history-highlight' : ''}`} data-message-id={message.id} data-submission-order={message.submissionOrder ?? undefined} data-read-by-other={message.readByOther ? 'true' : 'false'} data-read-by-other-at={message.readByOtherAt ?? undefined} key={message.id} tabIndex={actionable ? 0 : undefined}>
       <div className="dm-message-content">
         {editingId === message.id ? <div className="dm-message-edit" ref={editor}><textarea aria-label="Modifier le message" value={editDraft} disabled={messageActionPending === message.id} onChange={event => setEditDraft(Array.from(event.target.value).slice(0, 1000).join(''))} onKeyDown={event => { if (event.key !== 'Enter' || event.nativeEvent.isComposing) return; event.preventDefault(); if (event.ctrlKey || event.metaKey) { const field = event.currentTarget; field.setRangeText('\n', field.selectionStart, field.selectionEnd, 'end'); setEditDraft(Array.from(field.value).slice(0, 1000).join('')); return } void saveEdit(message.id) }} /><small>{Array.from(editDraft).length} / 1 000</small><span><button type="button" disabled={messageActionPending === message.id || !editDraft.trim()} onClick={() => void saveEdit(message.id)}>Sauvegarder</button><button type="button" disabled={messageActionPending === message.id} onClick={() => { setEditingId(null); setEditDraft('') }}>Annuler</button></span></div> : <>
           <div className={`dm-message-bubble${message.deletedAt ? ' deleted' : ''}`} onClick={event => { if (!actionable || !isCoarsePointer() || (event.target as Element).closest('a, button')) return; setMessageActionsId(value => value === message.id ? null : message.id) }}>{message.content ? <p>{linkedText(message.content)}</p> : <p>Message supprimé</p>}{message.editedAt && !message.deletedAt && <small className="dm-message-edited">Modifié</small>}</div>
@@ -214,7 +258,14 @@ export default function DirectMessagePanel({ playerId, isActive, intent, resetTo
   if (view === 'new') return <section className="dm-panel" aria-label="Nouveau message privé"><header className="dm-thread-header"><button type="button" className="dm-back" onClick={() => { setView('list'); setTarget(null); setDraft('') }} aria-label="Retour aux conversations">&lt;</button><div><strong>Nouveau message</strong><small>{target ? target.displayName : 'Choisir un joueur'}</small></div></header><div className="dm-new-body"><label htmlFor="dm-player-search">Rechercher un joueur</label><input id="dm-player-search" type="search" value={search} placeholder="Pseudo du joueur…" autoComplete="off" onChange={event => { setSearch(event.target.value); setTarget(null) }} />{searching && <p>Recherche…</p>}{searchError && <p role="alert" className="error">{searchError}</p>}{candidates.length > 0 && <div className="dm-player-results">{candidates.map(candidate => <button type="button" key={candidate.id} onClick={() => void chooseTarget(candidate)}><Avatar player={candidate} /><span><strong>{candidate.displayName}</strong><small>{candidate.elementKey ? elementLabels[candidate.elementKey] : 'Élément non choisi'}</small></span></button>)}</div>}{target && <p className="dm-new-hint">Écrivez le premier message.</p>}</div>{target && <Composer draft={draft} setDraft={setDraft} pending={sendPending} error={model.error} onClearError={model.clearError} onSubmit={send} composerRef={composer} />}</section>
 
   const other = selected?.other ?? target
-  return <section className="dm-panel" aria-label={other ? `Conversation avec ${other.displayName}` : 'Conversation privée'}><header className="dm-thread-header"><button type="button" className="dm-back" onClick={returnToList} aria-label="Retour aux conversations">&lt;</button>{other && <><button type="button" className="dm-thread-identity" onClick={() => onOpenProfile(other.id)}><Avatar player={other} /><span><strong>{other.displayName}</strong><small>Voir le profil</small></span></button>{provisional?.state !== 'SENDING' && <button type="button" className="dm-menu-button" aria-label="Actions de conversation" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}>⋯</button>}</>}{menuOpen && selected && <div className="dm-conversation-menu" role="menu"><label><input type="checkbox" checked={selected.readReceiptsEnabled} disabled={model.pending} onChange={event => { void model.receipts(selected.id, event.target.checked).catch(() => undefined) }} /> Accusés de lecture</label><button type="button" role="menuitem" disabled={model.pending} onClick={() => void act(selected.archived ? 'unarchive' : 'archive')}>{selected.archived ? 'Désarchiver' : 'Archiver'}</button>{selected.blockedByMe ? <button type="button" role="menuitem" disabled={model.pending} onClick={() => void act('unblock')}>Débloquer</button> : <button type="button" role="menuitem" className="danger" disabled={model.pending} onClick={() => setConfirmBlock(true)}>Bloquer</button>}<button type="button" role="menuitem" onClick={() => other && onOpenProfile(other.id)}>Profil</button></div>}</header>{confirmBlock && <div className="dm-confirm" role="dialog" aria-label="Confirmer le blocage"><p>Bloquer ce joueur et archiver la conversation ?</p><button type="button" disabled={model.pending} onClick={() => void act('block')}>Confirmer</button><button type="button" onClick={() => setConfirmBlock(false)}>Annuler</button></div>}{model.error && (!selected?.canSend || incomingPending) && <p className="dm-feedback error" role="alert"><span>{model.error}</span><button type="button" onClick={model.clearError} aria-label="Fermer l’erreur">×</button></p>}{messageActionError && <p className="dm-feedback error dm-message-action-error" role="alert"><span>{messageActionError}</span>{retryMutation && <button type="button" disabled={messageActionPending !== null} onClick={() => void mutateMessage(retryMutation)}>Réessayer</button>}<button type="button" onClick={() => { setMessageActionError(''); setRetryMutation(null); model.clearError() }} aria-label="Fermer l’erreur">×</button></p>}{incomingPending && <div className="dm-request"><strong>Demande de conversation</strong><p>Le premier message est visible. Souhaitez-vous poursuivre cet échange ?</p><div><button type="button" disabled={model.pending} onClick={() => void act('accept')}>Accepter</button><button type="button" disabled={model.pending} onClick={() => void act('ignore')}>Ignorer</button><button type="button" disabled={model.pending} onClick={() => setConfirmBlock(true)}>Bloquer</button></div></div>}{outgoingPending && <p className="dm-state">Demande envoyée</p>}<div className={`dm-message-list${scrollbarAtBottom ? ' dm-scrollbar-hidden' : ''}`} ref={list} onScroll={onScroll}>{model.cursor && <button type="button" className="dm-load-older" onClick={() => void model.loadOlder()}>Charger les messages précédents</button>}{!model.messagesLoaded && !provisional && <p className="dm-empty">Chargement de la conversation…</p>}{renderedMessages.map(renderMessage)}</div>{newCount > 0 && <button type="button" className="dm-new-messages" onClick={scrollBottom}>{newCount} nouveau{newCount > 1 ? 'x' : ''} message{newCount > 1 ? 's' : ''} ↓</button>}{latestOwn && !latestOwn.deletedAt && <small className="dm-latest-status" title={latestOwn.readByOtherAt ? new Date(latestOwn.readByOtherAt).toLocaleString('fr-FR') : undefined}>{latestOwn.id.startsWith('optimistic:') ? 'Envoi...' : latestOwn.readByOther ? directMessageReceiptLabel(latestOwn.readByOtherAt, now) : 'Envoyé'}</small>}{provisional?.state === 'SENDING' ? null : selected && incomingPending ? null : selected?.canSend ? <Composer draft={draft} setDraft={setDraft} pending={sendPending} error={model.error} onClearError={model.clearError} onSubmit={send} composerRef={composer} /> : <p className="dm-readonly">Cette conversation est disponible en lecture seule.</p>}</section>
+  if (view === 'history' && selected && other) return <section className="dm-panel dm-history" aria-label={`Historique complet avec ${other.displayName}`}>
+    <header className="dm-history-header"><button type="button" className="dm-back" onClick={closeHistory} aria-label="Retour aux messages récents">&lt;</button><div><strong>Historique complet</strong><small>MP › conversation avec {other.displayName}</small></div><button type="button" className="dm-history-recent" onClick={closeHistory}>Retour aux messages récents</button></header>
+    <div className="dm-history-tools"><label><span className="sr-only">Rechercher dans l'historique</span><input type="search" value={historyQuery} placeholder="Rechercher dans l'historique…" maxLength={100} onChange={event => setHistoryQuery(event.target.value)} /></label><label className="dm-history-date"><span className="sr-only">Aller à une date</span><input type="date" value={historyDate} onChange={event => setHistoryDate(event.target.value)} /></label><button type="button" disabled={!historyDate || history.loading} onClick={() => void navigateHistoryDate()}>Aller</button></div>
+    {history.error && <p className="dm-feedback error" role="alert"><span>{history.error}</span><button type="button" onClick={history.clearError} aria-label="Fermer l’erreur">×</button></p>}
+    {messageActionError && <p className="dm-feedback error dm-message-action-error" role="alert"><span>{messageActionError}</span>{retryMutation && <button type="button" disabled={messageActionPending !== null} onClick={() => void mutateMessage(retryMutation)}>Réessayer</button>}<button type="button" onClick={() => { setMessageActionError(''); setRetryMutation(null); history.clearError() }} aria-label="Fermer l’erreur">×</button></p>}
+    <div className="dm-history-body" ref={historyList} onScroll={onHistoryScroll}>{historyQuery.trim() ? <div className="dm-history-results">{history.searching && !history.results.length && <p className="dm-empty">Recherche…</p>}{!history.searching && !history.results.length && <p className="dm-empty">Aucun message trouvé.</p>}{history.results.map(message => <button type="button" key={message.id} onClick={() => void jumpHistory(message)}><strong>{message.own ? 'Vous' : other.displayName}</strong><span>{message.content}</span><time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleString('fr-FR')}</time></button>)}{history.searching && history.results.length > 0 && <p className="dm-empty">Recherche…</p>}</div> : <>{!history.loaded && <p className="dm-empty">Chargement de l'historique…</p>}{history.olderCursor && history.loading && <p className="dm-history-loading">Chargement…</p>}{history.messages.map(renderMessage)}{history.newerCursor && history.loading && <p className="dm-history-loading">Chargement…</p>}</>}</div>
+  </section>
+  return <section className="dm-panel" aria-label={other ? `Conversation avec ${other.displayName}` : 'Conversation privée'}><header className="dm-thread-header"><button type="button" className="dm-back" onClick={returnToList} aria-label="Retour aux conversations">&lt;</button>{other && <><button type="button" className="dm-thread-identity" onClick={() => onOpenProfile(other.id)}><Avatar player={other} /><span><strong>{other.displayName}</strong><small>Voir le profil</small></span></button>{provisional?.state !== 'SENDING' && <button type="button" className="dm-menu-button" aria-label="Actions de conversation" aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}>⋯</button>}</>}{menuOpen && selected && <div className="dm-conversation-menu" role="menu"><button type="button" role="menuitem" onClick={openHistory}>Historique complet</button><label><input type="checkbox" checked={selected.readReceiptsEnabled} disabled={model.pending} onChange={event => { void model.receipts(selected.id, event.target.checked).catch(() => undefined) }} /> Accusés de lecture</label><button type="button" role="menuitem" disabled={model.pending} onClick={() => void act(selected.archived ? 'unarchive' : 'archive')}>{selected.archived ? 'Désarchiver' : 'Archiver'}</button>{selected.blockedByMe ? <button type="button" role="menuitem" disabled={model.pending} onClick={() => void act('unblock')}>Débloquer</button> : <button type="button" role="menuitem" className="danger" disabled={model.pending} onClick={() => setConfirmBlock(true)}>Bloquer</button>}<button type="button" role="menuitem" onClick={() => other && onOpenProfile(other.id)}>Profil</button></div>}</header>{confirmBlock && <div className="dm-confirm" role="dialog" aria-label="Confirmer le blocage"><p>Bloquer ce joueur et archiver la conversation ?</p><button type="button" disabled={model.pending} onClick={() => void act('block')}>Confirmer</button><button type="button" onClick={() => setConfirmBlock(false)}>Annuler</button></div>}{model.error && (!selected?.canSend || incomingPending) && <p className="dm-feedback error" role="alert"><span>{model.error}</span><button type="button" onClick={model.clearError} aria-label="Fermer l’erreur">×</button></p>}{messageActionError && <p className="dm-feedback error dm-message-action-error" role="alert"><span>{messageActionError}</span>{retryMutation && <button type="button" disabled={messageActionPending !== null} onClick={() => void mutateMessage(retryMutation)}>Réessayer</button>}<button type="button" onClick={() => { setMessageActionError(''); setRetryMutation(null); model.clearError() }} aria-label="Fermer l’erreur">×</button></p>}{incomingPending && <div className="dm-request"><strong>Demande de conversation</strong><p>Le premier message est visible. Souhaitez-vous poursuivre cet échange ?</p><div><button type="button" disabled={model.pending} onClick={() => void act('accept')}>Accepter</button><button type="button" disabled={model.pending} onClick={() => void act('ignore')}>Ignorer</button><button type="button" disabled={model.pending} onClick={() => setConfirmBlock(true)}>Bloquer</button></div></div>}{outgoingPending && <p className="dm-state">Demande envoyée</p>}<div className={`dm-message-list${scrollbarAtBottom ? ' dm-scrollbar-hidden' : ''}`} ref={list} onScroll={onScroll}>{model.cursor && <button type="button" className="dm-load-older" onClick={() => void model.loadOlder()}>Charger les messages précédents</button>}{!model.messagesLoaded && !provisional && <p className="dm-empty">Chargement de la conversation…</p>}{renderedMessages.map(renderMessage)}</div>{newCount > 0 && <button type="button" className="dm-new-messages" onClick={scrollBottom}>{newCount} nouveau{newCount > 1 ? 'x' : ''} message{newCount > 1 ? 's' : ''} ↓</button>}{latestOwn && !latestOwn.deletedAt && <small className="dm-latest-status" title={latestOwn.readByOtherAt ? new Date(latestOwn.readByOtherAt).toLocaleString('fr-FR') : undefined}>{latestOwn.id.startsWith('optimistic:') ? 'Envoi...' : latestOwn.readByOther ? directMessageReceiptLabel(latestOwn.readByOtherAt, now) : 'Envoyé'}</small>}{provisional?.state === 'SENDING' ? null : selected && incomingPending ? null : selected?.canSend ? <Composer draft={draft} setDraft={setDraft} pending={sendPending} error={model.error} onClearError={model.clearError} onSubmit={send} composerRef={composer} /> : <p className="dm-readonly">Cette conversation est disponible en lecture seule.</p>}</section>
 }
 
 function Composer({ draft, setDraft, pending, error, onClearError, onSubmit, composerRef }: { draft: string; setDraft: (value: string) => void; pending: boolean; error: string | null; onClearError: () => void; onSubmit: (event: FormEvent) => void; composerRef: RefObject<HTMLTextAreaElement | null> }) {

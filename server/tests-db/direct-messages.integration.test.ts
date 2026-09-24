@@ -327,6 +327,77 @@ describe('Direct-message foundations on isolated PostgreSQL', () => {
     expect(visible).toBe(500);
   }, 90_000);
 
+  it('serves complete R515 history with keyset, search, date, privacy and restorability without changing read cursors', async () => {
+    const author = await player('History Author'), recipient = await player('History Recipient'), outsider = await player('History Outsider');
+    const ids = [author, recipient].sort();
+    await db.friendship.create({ data: { playerAId: ids[0]!, playerBId: ids[1]!, state: 'ACTIVE' } });
+    const direct = await service.initiate(as(author), recipient, 'History first', randomUUID());
+    const base = new Date(now.getTime() + 1_000);
+    const bulk = Array.from({ length: 704 }, (_, index) => ({
+      operationId: randomUUID(), messageId: randomUUID(), createdAt: new Date(base.getTime() + index * 1_000),
+      content: index % 7 === 0 ? `SearchHit ${index}` : `Historique ${index}`,
+    }));
+    await db.businessOperation.createMany({ data: bulk.map(row => ({ id: row.operationId, playerId: author, sourceChannel: 'UI', operationType: 'direct-message.history-fixture', status: 'COMPLETED', startedAt: row.createdAt, completedAt: row.createdAt, resultSummary: {} })) });
+    await db.directMessage.createMany({ data: bulk.map(row => ({ id: row.messageId, conversationId: direct.conversationId as string, authorPlayerId: author, content: row.content, operationId: row.operationId, createdAt: row.createdAt })) });
+    const all = await db.directMessage.findMany({ where: { conversationId: direct.conversationId as string }, orderBy: { submissionOrder: 'asc' } });
+    expect(all).toHaveLength(705);
+    const rank501 = all.at(-501)!, rank500 = all.at(-500)!, searchable = all.at(-40)!;
+    await db.directMessage.update({ where: { id: rank500.id }, data: { deletedAt: now } });
+    await db.directMessage.update({ where: { id: rank501.id }, data: { deletedAt: now, content: null, contentPurgedAt: now } });
+    await db.directMessage.update({ where: { id: searchable.id }, data: { content: 'Needle R515 active' } });
+    const retainedDeleted = all.at(-30)!;
+    await db.directMessage.update({ where: { id: retainedDeleted.id }, data: { content: 'Needle R515 hidden', deletedAt: now } });
+
+    expect((await service.messages(as(recipient), direct.conversationId as string, 100)).windowSize).toBe(500);
+    const readBefore = await db.directConversationParticipant.findUniqueOrThrow({ where: { conversationId_playerId: { conversationId: direct.conversationId as string, playerId: recipient } } });
+    const seen = new Set<string>(); let beforeOrder: string | undefined, reachedOldest = false;
+    do {
+      const page = await service.history(as(recipient), direct.conversationId as string, 83, beforeOrder ? { beforeOrder } : {});
+      page.messages.forEach(message => { expect(seen.has(message.id)).toBe(false); seen.add(message.id); });
+      beforeOrder = page.olderCursor ?? undefined; reachedOldest = page.olderCursor === null;
+    } while (!reachedOldest);
+    expect(seen.size).toBe(705); expect(seen.has(direct.messageId as string)).toBe(true);
+
+    const around = await service.history(as(author), direct.conversationId as string, 21, { aroundOrder: all[350]!.submissionOrder.toString() });
+    expect(around.messages.map(message => message.id)).toContain(all[350]!.id);
+    expect(around.olderCursor).not.toBeNull(); expect(around.newerCursor).not.toBeNull();
+    const older = await service.history(as(author), direct.conversationId as string, 20, { beforeOrder: around.olderCursor! });
+    const newer = await service.history(as(author), direct.conversationId as string, 20, { afterOrder: around.newerCursor! });
+    expect(new Set([...older.messages, ...around.messages, ...newer.messages].map(message => message.id)).size).toBe(61);
+
+    const boundary = await service.history(as(author), direct.conversationId as string, 10, { aroundOrder: rank500.submissionOrder.toString() });
+    expect(boundary.messages.find(message => message.id === rank500.id)).toMatchObject({ content: null, canRestore: true });
+    const outside = await service.history(as(author), direct.conversationId as string, 10, { aroundOrder: rank501.submissionOrder.toString() });
+    expect(outside.messages.find(message => message.id === rank501.id)).toMatchObject({ content: null, canRestore: false });
+    expect((await service.history(as(recipient), direct.conversationId as string, 10, { aroundOrder: rank500.submissionOrder.toString() })).messages.find(message => message.id === rank500.id)?.canRestore).toBe(false);
+
+    const search = await service.searchHistory(as(recipient), direct.conversationId as string, 'needle r515', 1);
+    expect(search.results.map(message => message.id)).toEqual([searchable.id]); expect(search.nextCursor).toBeNull();
+    expect(search.results.some(message => message.id === retainedDeleted.id || message.id === rank501.id)).toBe(false);
+    const pagedSearch = await service.searchHistory(as(recipient), direct.conversationId as string, 'searchhit', 10);
+    expect(pagedSearch.results).toHaveLength(10); expect(pagedSearch.nextCursor).not.toBeNull();
+    const pagedSearch2 = await service.searchHistory(as(recipient), direct.conversationId as string, 'searchhit', 10, pagedSearch.nextCursor!);
+    expect(pagedSearch2.results).toHaveLength(10);
+    expect(pagedSearch2.results.some(message => pagedSearch.results.some(previous => previous.id === message.id))).toBe(false);
+
+    const dateTarget = new Date(all[420]!.createdAt.getTime() - 1).toISOString();
+    expect((await service.historyDate(as(recipient), direct.conversationId as string, dateTarget)).anchor).toMatchObject({ messageId: all[420]!.id, submissionOrder: all[420]!.submissionOrder.toString() });
+    expect((await service.historyDate(as(recipient), direct.conversationId as string, '2199-01-01T00:00:00.000Z')).anchor?.messageId).toBe(all.at(-1)!.id);
+
+    await expect(service.history(as(outsider), direct.conversationId as string)).rejects.toMatchObject({ code: 'DIRECT_MESSAGE_UNAVAILABLE' });
+    await db.playerBlock.create({ data: { blockerPlayerId: recipient, blockedPlayerId: author } });
+    expect((await service.history(as(recipient), direct.conversationId as string, 5)).messages).toHaveLength(5);
+    const readAfter = await db.directConversationParticipant.findUniqueOrThrow({ where: { conversationId_playerId: { conversationId: direct.conversationId as string, playerId: recipient } } });
+    expect(readAfter.lastReadSubmissionOrder).toEqual(readBefore.lastReadSubmissionOrder); expect(readAfter.lastSharedReadSubmissionOrder).toEqual(readBefore.lastSharedReadSubmissionOrder);
+
+    const isolatedRecipient = await player('History Isolation');
+    const isolationIds = [author, isolatedRecipient].sort();
+    await db.friendship.create({ data: { playerAId: isolationIds[0]!, playerBId: isolationIds[1]!, state: 'ACTIVE' } });
+    now = new Date(base.getTime() + 715_000);
+    await service.initiate(as(author), isolatedRecipient, 'Needle R515 other conversation', randomUUID());
+    expect((await service.searchHistory(as(recipient), direct.conversationId as string, 'other conversation')).results).toHaveLength(0);
+  }, 120_000);
+
   it('keeps reservation order when private message A commits after B', async () => {
     const alice = await player('Ordered Alice'), bob = await player('Ordered Bob');
     const ids = [alice, bob].sort();

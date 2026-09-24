@@ -8874,6 +8874,26 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .dm-back { width: 24px; height: 28px; color: #a9bdd6; border: 0; background: transparent; }
 .dm-thread-header > div { min-width: 0; display: grid; gap: 2px; }
 .dm-thread-header small { color: #8496b1; font-size: 9px; }
+.dm-history-header { min-height: 58px; display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid rgba(106, 144, 205, .15); background: rgba(9, 18, 36, .92); }
+.dm-history-header > div { min-width: 0; display: grid; flex: 1; gap: 2px; }
+.dm-history-header strong { color: #e5efff; font-size: 12px; }
+.dm-history-header small { overflow: hidden; color: #8496b1; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.dm-history-recent { padding: 5px 7px; cursor: pointer; color: #9ec8ec; font-size: 8px; border: 1px solid rgba(101, 160, 218, .28); border-radius: 6px; background: rgba(26, 59, 94, .46); }
+.dm-history-tools { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 5px; padding: 8px 10px; border-bottom: 1px solid rgba(106, 144, 205, .12); background: rgba(7, 15, 29, .88); }
+.dm-history-tools label { min-width: 0; }
+.dm-history-tools input { width: 100%; min-height: 30px; padding: 5px 7px; color: #dce8f8; font-size: 9px; border: 1px solid rgba(106, 162, 218, .34); border-radius: 6px; color-scheme: dark; background: rgba(5, 11, 24, .84); }
+.dm-history-tools button { min-height: 30px; padding: 4px 7px; cursor: pointer; color: #cce7fb; font-size: 9px; border: 1px solid rgba(101, 160, 218, .3); border-radius: 6px; background: rgba(26, 59, 94, .66); }
+.dm-history-tools button:disabled { cursor: default; opacity: .45; }
+.dm-history-body { min-height: 0; flex: 1; overflow-y: auto; overflow-x: hidden; padding: 10px; }
+.dm-history-loading { margin: 5px; color: #71829e; font-size: 8px; text-align: center; }
+.dm-history-results { display: grid; gap: 5px; }
+.dm-history-results > button { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 8px; padding: 8px; cursor: pointer; color: #cad8eb; text-align: left; border: 1px solid rgba(104, 145, 199, .18); border-radius: 7px; background: rgba(14, 27, 49, .76); }
+.dm-history-results > button:hover, .dm-history-results > button:focus-visible { border-color: rgba(114, 200, 255, .5); background: rgba(28, 58, 92, .82); }
+.dm-history-results strong { overflow: hidden; color: #e4eefc; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.dm-history-results span { min-width: 0; grid-column: 1 / -1; overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.dm-history-results time { color: #7386a3; font-size: 8px; white-space: nowrap; }
+.dm-message.dm-history-highlight .dm-message-bubble { border-color: #8ed7ff; box-shadow: 0 0 0 2px rgba(91, 190, 245, .22), 0 0 18px rgba(91, 190, 245, .22); animation: dm-history-pulse 1.8s ease-out; }
+@keyframes dm-history-pulse { 0%, 35% { filter: brightness(1.35); } 100% { filter: brightness(1); } }
 .dm-thread-identity { min-width: 0; display: flex; align-items: center; flex: 1; gap: 8px; padding: 0; cursor: pointer; color: inherit; text-align: left; border: 0; background: transparent; }
 .dm-thread-identity .dm-avatar { width: 32px; height: 32px; }
 .dm-thread-identity span:last-child { min-width: 0; display: grid; }
@@ -8947,4 +8967,8 @@ button.inventory-stella-card { width: 100%; font: inherit; }
   .dm-primary-action { min-height: 42px; }
   .dm-message-content { max-width: 90%; }
   .dm-composer textarea { min-height: 46px; }
+  .dm-history-header { align-items: flex-start; }
+  .dm-history-recent { max-width: 104px; }
+  .dm-history-tools { grid-template-columns: minmax(0, 1fr) auto; }
+  .dm-history-tools > label:first-child { grid-column: 1 / -1; }
 }
