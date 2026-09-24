@@ -1,10 +1,13 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { loadConfig } from '../src/config/environment.js';
 import { resourceKeys } from '../src/domain/economy/resources.js';
 import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 import { PrismaDailyCombatStore } from '../src/infrastructure/database/prisma-daily-combat-store.js';
+import { PermanentMissionService } from '../src/application/missions/permanent-mission-service.js';
+import { SourceChannel } from '../generated/prisma/client.js';
+import { PrismaEconomyService } from '../src/infrastructure/database/prisma-economy-service.js';
 
 const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Daily Combat database tests.');
@@ -31,6 +34,7 @@ async function createPlayer(characterCount: number) {
     resourceBalances: { create: resourceKeys.map((resourceKey) => ({ resourceKey, amount: 0n })) }, economyStats: { create: {} },
     characters: { create: characters.map((character, index) => ({ characterId: character.id, constellation: index % 7, copies: index % 7 + 1, firstObtainedAt: now })) },
   } });
+  await database.$transaction(tx => new PermanentMissionService().initializePlayer(tx, id, now, true));
   return { id, characters };
 }
 
@@ -42,6 +46,8 @@ async function cleanup() {
   const encounterIds = encounters.map(({ id }) => id);
   if (ids.length) {
     await database.dailyCombatAttempt.deleteMany({ where: { playerId: { in: ids } } });
+    await database.playerPermanentMissionProgress.deleteMany({ where: { playerId: { in: ids } } });
+    await database.playerPermanentMissionState.deleteMany({ where: { playerId: { in: ids } } });
     await database.resourceMovement.deleteMany({ where: { playerId: { in: ids } } });
     await database.businessOperation.deleteMany({ where: { playerId: { in: ids } } });
     await database.player.deleteMany({ where: { id: { in: ids } } });
@@ -56,7 +62,7 @@ describe('Daily Combat persistence', () => {
     const pyro = await database.elementCombatMatchup.findMany({ where: { attackerElementKey: 'pyro' }, orderBy: { defenderElementKey: 'asc' } });
     expect(pyro.map(({ defenderElementKey, relation }) => [defenderElementKey, relation])).toEqual([['cryo', 1], ['dendro', 1], ['geo', -1], ['hydro', -1]]);
     const tables = ['element_combat_matchups','daily_combat_encounters','daily_combat_enemies','player_daily_combat_loadouts','player_daily_combat_loadout_slots','player_daily_combat_states','player_daily_combat_kos','daily_combat_attempts','daily_combat_attempt_members','player_combat_stats','player_character_combat_stats'];
-    const rls = await database.$queryRawUnsafe<{ relname: string; relrowsecurity: boolean }[]>(`SELECT relname, relrowsecurity FROM pg_class WHERE relname = ANY($1::text[]) ORDER BY relname`, tables);
+    const rls = await database.$queryRawUnsafe<{ relname: string; relrowsecurity: boolean }[]>(`SELECT c.relname, c.relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = ANY($1::text[]) ORDER BY c.relname`, tables);
     expect(rls).toHaveLength(tables.length); expect(rls.every(({ relrowsecurity }) => relrowsecurity)).toBe(true);
     const grants = await database.$queryRawUnsafe<{ count: bigint }[]>(`SELECT count(*)::bigint AS count FROM information_schema.role_table_grants WHERE table_name = ANY($1::text[]) AND grantee IN ('anon','authenticated')`, tables);
     expect(grants[0]?.count).toBe(0n);
@@ -163,6 +169,37 @@ describe('Daily Combat persistence', () => {
     expect((await store.fight({ ...context(player.id, dates[2]), idempotencyKey: key, selection: 'AUTO', sourceChannel: 'INTERNAL_CHAT' })).operation.alreadyProcessed).toBe(true);
     expect(await database.dailyCombatAttempt.count({ where: { playerId: player.id } })).toBe(1);
   });
+
+  it('reconciles Combat, manual Z and Moras from one winning Chat operation', async () => {
+    const player = await createPlayer(5);
+    const economy = new PrismaEconomyService(); const missions = new PermanentMissionService(economy);
+    const catchUp = vi.spyOn(missions, 'catchUpStandalone'); const reconcile = vi.spyOn(missions, 'reconcileMetrics');
+    const store = new PrismaDailyCombatStore(database, { encounter: zero, fight: zero }, economy, missions);
+    await database.playerCombatStats.create({ data: { playerId: player.id, totalFights: 99n, totalWins: 99n, totalManualWins: 49n } });
+    await database.playerEconomyStats.update({ where: { playerId: player.id }, data: { totalMorasEarned: 980_000n } });
+    await database.playerPermanentMissionState.update({ where: { playerId: player.id }, data: { zUnlockedAt: now } });
+    await database.playerPermanentMissionProgress.updateMany({
+      where: { playerId: player.id, definition: { externalKey: 'manual_combat_wins_z' } },
+      data: { status: 'ACTIVE', startedAt: now },
+    });
+    await database.team.create({ data: {
+      playerId: player.id, displayPosition: 1, isActive: true, isBaseSlot: true,
+      members: { create: player.characters.slice(0, 4).map((character, index) => ({ position: index + 1, characterId: character.id })) },
+    } });
+    const key = randomUUID();
+    const result = await store.fight({ ...context(player.id, dates[3]), idempotencyKey: key, selection: 'ACTIVE_TEAM', sourceChannel: SourceChannel.INTERNAL_CHAT });
+    expect(result.result).toMatchObject({ won: true, mode: 'MANUAL' });
+    const keys = ['combat_wins_b', 'combat_wins_a', 'combat_wins_s', 'moras_b', 'moras_a', 'moras_s', 'manual_combat_wins_z'];
+    const completed = await database.playerPermanentMissionProgress.findMany({
+      where: { playerId: player.id, status: 'COMPLETED', definition: { externalKey: { in: keys } } },
+      include: { definition: true, rewardOperation: true },
+    });
+    expect(completed.map(row => row.definition.externalKey).sort()).toEqual([...keys].sort());
+    expect(completed.every(row => row.completionTriggerOperationId === result.operation.id)).toBe(true);
+    expect(completed.every(row => row.rewardOperation?.sourceChannel === SourceChannel.INTERNAL_CHAT)).toBe(true);
+    expect((await store.fight({ ...context(player.id, dates[3]), idempotencyKey: key, selection: 'ACTIVE_TEAM', sourceChannel: SourceChannel.INTERNAL_CHAT })).operation.alreadyProcessed).toBe(true);
+    expect(catchUp).toHaveBeenCalledTimes(1); expect(reconcile).toHaveBeenCalledTimes(1);
+  }, 20_000);
 
   it('serializes different concurrent intentions so only one victory can complete the day', async () => {
     const player = await createPlayer(4); const store = new PrismaDailyCombatStore(database, { encounter: zero, fight: zero });

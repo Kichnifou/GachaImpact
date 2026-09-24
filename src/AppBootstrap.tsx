@@ -143,17 +143,17 @@ function AppBootstrap() {
   const loadNotifications = useCallback(() => {
     if (notificationFlight.current && notificationFlight.current.userId === sessionUserId) return notificationFlight.current.promise
     const requestedFor = sessionUserId
-    const promise = getGameApiClient().getNotifications().then(next => { if (notificationSessionRef.current === requestedFor) setNotifications(next); return next }).finally(() => { if (notificationFlight.current?.promise === promise) notificationFlight.current = null })
+    const promise = getGameApiClient().getNotifications().then(next => { if (notificationSessionRef.current === requestedFor) { setNotifications(next); if (next.expedition) publishExpedition(next.expedition) } return next }).finally(() => { if (notificationFlight.current?.promise === promise) notificationFlight.current = null })
     notificationFlight.current = { userId: sessionUserId, promise }
     return promise
-  }, [sessionUserId])
+  }, [publishExpedition, sessionUserId])
   const consultEventGameCMessages = useCallback(async () => { const result = await eventRequests.mutate(() => getGameApiClient().consultEventGameCMessages()); await loadNotifications(); return result }, [eventRequests, loadNotifications])
   useEffect(() => {
     if (expedition?.value.operationalStatus !== 'RUNNING' || !expedition.value.readyAt) return
     const delay = Math.max(0, Date.parse(expedition.value.readyAt) - Date.now()) + 100
-    const timer = window.setTimeout(() => { void Promise.all([loadExpedition(), loadNotifications()]).catch(() => undefined) }, delay)
+    const timer = window.setTimeout(() => { void loadNotifications().catch(() => undefined) }, delay)
     return () => window.clearTimeout(timer)
-  }, [expedition?.value.operationalStatus, expedition?.value.readyAt, loadExpedition, loadNotifications])
+  }, [expedition?.value.operationalStatus, expedition?.value.readyAt, loadNotifications])
   useEffect(() => {
     if (expedition?.value.operationalStatus !== 'RUNNING') return
     const timer = window.setInterval(() => setExpeditionMonotonicNow(performance.now()), 1_000)

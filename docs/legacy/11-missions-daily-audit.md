@@ -268,6 +268,10 @@ Récompenses :
 - A : 1 600 Primogemmes ;
 - S : 16 000 Primogemmes.
 
+État physique standalone — candidat Lot 3 : les neuf catégories B/A/S ont désormais un producteur autoritatif raccordé. Expedition progresse uniquement au claim réussi depuis `PlayerExpedition.totalCompleted`; Combat quotidien progresse depuis `PlayerCombatStats.totalWins`; les cœurs progressent uniquement pour le sender depuis `PlayerSocialStats.totalFriendHeartsSent`. Les récompenses Moras/particules d’Expedition et Moras de Combat sont groupées avec la métrique du producteur dans une seule réconciliation finale.
+
+Les deux raccords Z dépendants sont également physiques dans le candidat : une victoire quotidienne MANUAL alimente `MANUAL_COMBAT_WINS`, jamais AUTO ; le passage réel d’une relation au niveau 1000 réconcilie `PERFECT_FRIENDSHIP` pour ses deux participants, sans attribuer de cœur envoyé ni lancer le rattrapage historique du destinataire passif. Ce constat d’implémentation ne modifie aucune décision produit de cet audit.
+
 Pour chaque catégorie :
 - B doit être terminée avant A ;
 - A doit être terminée avant S.

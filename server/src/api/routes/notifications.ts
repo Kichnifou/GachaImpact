@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { NotificationService } from '../../application/notification/notification-service.js';
 import { requireAuthenticatedIdentity } from '../auth/authentication.js';
 import { AppError } from '../errors.js';
+import type { ExpeditionView } from '../../application/expedition/expedition-service.js';
 
 type Options = Readonly<{ authenticate: preHandlerHookHandler; service: NotificationService }>;
 const paramsSchema = z.object({ notificationId: z.string().uuid() }).strict();
@@ -13,4 +14,4 @@ export const registerNotificationRoutes: FastifyPluginAsync<Options> = async (ap
   app.post('/api/v1/me/notifications/:notificationId/read', { preHandler: options.authenticate }, async request => { const parsed = paramsSchema.safeParse(request.params); if (!parsed.success) throw new AppError('La notification demandée est invalide.', 400, 'VALIDATION_ERROR'); return serialize(await options.service.readOne(requireAuthenticatedIdentity(request), parsed.data.notificationId)); });
   app.post('/api/v1/me/notifications/:notificationId/archive', { preHandler: options.authenticate }, async request => { const parsed = paramsSchema.safeParse(request.params); if (!parsed.success) throw new AppError('La notification demandée est invalide.', 400, 'VALIDATION_ERROR'); return serialize(await options.service.archiveOne(requireAuthenticatedIdentity(request), parsed.data.notificationId)); });
 };
-function serialize(value: Awaited<ReturnType<NotificationService['list']>>) { return { unreadCount: value.unreadCount, notifications: value.notifications.map(item => ({ ...item, createdAt: item.createdAt.toISOString(), readAt: item.readAt?.toISOString() ?? null, resolvedAt: item.resolvedAt?.toISOString() ?? null, archivedAt: item.archivedAt?.toISOString() ?? null })) }; }
+function serialize(value: Readonly<{ unreadCount: number; notifications: Awaited<ReturnType<NotificationService['list']>>['notifications']; expedition?: ExpeditionView }>) { return { unreadCount: value.unreadCount, notifications: value.notifications.map(item => ({ ...item, createdAt: item.createdAt.toISOString(), readAt: item.readAt?.toISOString() ?? null, resolvedAt: item.resolvedAt?.toISOString() ?? null, archivedAt: item.archivedAt?.toISOString() ?? null })), ...(value.expedition ? { expedition: { ...value.expedition, departedAt: value.expedition.departedAt?.toISOString() ?? null, readyAt: value.expedition.readyAt?.toISOString() ?? null, totalCompleted: value.expedition.totalCompleted.toString() } } : {}) }; }

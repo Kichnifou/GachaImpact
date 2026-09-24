@@ -24,6 +24,22 @@ async function mount(onPurchase = vi.fn<(...args: [string, string]) => Promise<S
 async function mountHistory(onLoad: (page: number) => Promise<ShopHistoryDto>) { const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root); const onClose = vi.fn(); await act(async () => { root.render(<ShopHistoryModal onLoad={onLoad} onClose={onClose} />); await Promise.resolve(); await Promise.resolve() }); return { container, onClose, root } }
 
 describe('ShopScreen', () => {
+  it('keeps the Ticket price and purchase behavior without the redundant unit label', async () => {
+    const rich = { ...base, resources: { ...base.resources, moras: '200000' } }
+    const result = {
+      ...rich,
+      purchase: { id: 'ticket-purchase', itemId: 'ticket', externalKey: 'reward-ticket', displayName: 'Ticket', quantity: '1', unitPrice: '150000', totalPrice: '150000', effect: { type: 'ticket_resource' as const, rewardId: 'reward', label: 'Gain', resourceKey: 'moras' as const, amount: '10' }, operationId: 'ticket-operation', purchasedAt: '2026-09-10T12:00:00Z' },
+      operation: { id: 'ticket-operation', alreadyProcessed: false },
+    } satisfies ShopPurchaseDto
+    const onPurchase = vi.fn(async () => result)
+    const { container } = await mount(onPurchase, rich)
+    const ticket = container.querySelector<HTMLElement>('.shop-item.ticket')!
+    expect(ticket.textContent).not.toContain('Achat unitaire')
+    expect(ticket.textContent?.replace(/\s/gu, ' ')).toContain('150 000 Moras')
+    await act(async () => { ticket.querySelector<HTMLButtonElement>('.shop-buy-button')!.click(); await Promise.resolve(); await Promise.resolve() })
+    expect(onPurchase).toHaveBeenCalledWith('ticket', '1')
+  })
+
   it('uses only the server catalog, omits Défi, and derives displayed Ticket odds', async () => { const { container } = await mount(); expect(shopSource).not.toContain('mockData'); expect(container.textContent).not.toContain('Mission quotidienne'); expect(container.textContent).not.toContain('Défi'); expect(container.textContent?.match(/20 %/g)).toHaveLength(5) })
   it('MAX fills the Primogem quantity without purchasing and zero capacity disables MAX', async () => { const { container, onPurchase } = await mount(); const max = Array.from(container.querySelectorAll('button')).find((button) => button.textContent === 'MAX')!; act(() => max.click()); expect(container.querySelector<HTMLInputElement>('.shop-quantity input')!.value).toBe('2'); expect(container.textContent).toContain('+320 Primos'); expect(onPurchase).not.toHaveBeenCalled() })
   it('keeps MAX and purchase disabled when the wallet cannot fund one Primogem bundle', async () => { const poor = { ...base, resources: { ...base.resources, moras: '49999' } }; const { container, onPurchase } = await mount(undefined, poor); const max = Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'MAX')!; const buy = container.querySelector<HTMLButtonElement>('.shop-item.primogems .shop-buy-button')!; expect(max.hasAttribute('disabled')).toBe(true); expect(buy.hasAttribute('disabled')).toBe(true); expect(container.querySelector<HTMLInputElement>('.shop-quantity input')!.value).toBe('1'); expect(onPurchase).not.toHaveBeenCalled() })

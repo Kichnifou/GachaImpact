@@ -9,6 +9,7 @@ import type { GetCurrentPlayer } from '../player/get-current-player.js';
 import type { PlayerResourceBalances } from '../player/player-resource-store.js';
 import { PrismaEconomyService } from '../../infrastructure/database/prisma-economy-service.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
+import { PermanentMissionService } from '../missions/permanent-mission-service.js';
 
 const MAX_ATTEMPTS = 4;
 const characterSelect = { id: true, externalKey: true, name: true, rarity: true, elementKey: true, weaponType: true, region: true, iconPath: true, splashPath: true, wishPath: true, fullbodyPath: true } as const;
@@ -36,7 +37,11 @@ export type ExpeditionClaimResult = Readonly<{
 }>;
 
 export class ExpeditionService {
-  public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly database: PrismaClient, private readonly clock: Clock, private readonly random: RandomSource, private readonly economy = new PrismaEconomyService()) {}
+  private readonly permanentMissions: PermanentMissionService;
+
+  public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly database: PrismaClient, private readonly clock: Clock, private readonly random: RandomSource, private readonly economy = new PrismaEconomyService(), permanentMissions?: PermanentMissionService) {
+    this.permanentMissions = permanentMissions ?? new PermanentMissionService(economy);
+  }
 
   public async getState(identity: AuthenticatedIdentity): Promise<ExpeditionView> {
     const player = await this.getPlayer.execute(identity); const now = this.clock.now(); const businessDate = getBusinessDate(now);
@@ -44,12 +49,12 @@ export class ExpeditionService {
     return readView(this.database, player.id, businessDate, now);
   }
 
-  public async start(identity: AuthenticatedIdentity, characterId: string, idempotencyKey: string) {
+  public async start(identity: AuthenticatedIdentity, characterId: string, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
     const player = await this.getPlayer.execute(identity); const now = this.clock.now(); const businessDate = getBusinessDate(now);
     const operationKey = `expedition.start:${player.id}:${idempotencyKey}`;
     const committed = await this.withRetry(async () => this.database.$transaction(async (transaction) => {
       await lockPlayer(transaction, player.id); await reconcileLocked(transaction, player.id, now);
-      const existing = await transaction.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey: operationKey } });
+      const existing = await transaction.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey: operationKey } });
       if (existing) {
         const summary = objectSummary(existing.resultSummary);
         if (existing.playerId !== player.id || existing.operationType !== 'expedition.start' || summary.characterId !== characterId || existing.status !== OperationStatus.COMPLETED) throw new BusinessError('EXPEDITION_IDEMPOTENCY_CONFLICT', 'Cette tentative ne correspond plus à l’expédition attendue.');
@@ -62,20 +67,20 @@ export class ExpeditionService {
       if (!possession) throw new BusinessError('EXPEDITION_CHARACTER_NOT_OWNED', 'Ce personnage ne fait pas partie de votre Box.');
       if (!possession.character.isActive) throw new BusinessError('EXPEDITION_CHARACTER_INACTIVE', 'Ce personnage n’est plus disponible.');
       const readyAt = new Date(now.getTime() + EXPEDITION_DURATION_MS);
-      const operation = await transaction.businessOperation.create({ data: { playerId: player.id, operationType: 'expedition.start', sourceChannel: SourceChannel.UI, idempotencyKey: operationKey, status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { characterId, characterName: possession.character.name, departedAt: now.toISOString(), readyAt: readyAt.toISOString(), businessDate } }, select: { id: true } });
+      const operation = await transaction.businessOperation.create({ data: { playerId: player.id, operationType: 'expedition.start', sourceChannel, idempotencyKey: operationKey, status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { characterId, characterName: possession.character.name, departedAt: now.toISOString(), readyAt: readyAt.toISOString(), businessDate } }, select: { id: true } });
       await transaction.playerExpedition.upsert({ where: { playerId: player.id }, create: { playerId: player.id, state: 'RUNNING', characterId, departedAt: now, readyAt, departureBusinessDate: businessDateToDatabaseDate(businessDate) }, update: { state: 'RUNNING', characterId, departedAt: now, readyAt, departureBusinessDate: businessDateToDatabaseDate(businessDate) } });
       return { id: operation.id, alreadyProcessed: false };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, timeout: 20_000 }));
     return { operation: committed, view: await readView(this.database, player.id, businessDate, now) };
   }
 
-  public async claim(identity: AuthenticatedIdentity, idempotencyKey: string): Promise<ExpeditionClaimResult> {
+  public async claim(identity: AuthenticatedIdentity, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI): Promise<ExpeditionClaimResult> {
     const player = await this.getPlayer.execute(identity); if (!player.elementKey || !isElementKey(player.elementKey)) throw new BusinessError('PLAYER_ELEMENT_REQUIRED', 'Un élément permanent est requis.');
     const playerElementKey = player.elementKey;
     const now = this.clock.now(); const businessDate = getBusinessDate(now); const operationKey = `expedition.claim:${player.id}:${idempotencyKey}`; let retainedRoll: number | null = null;
     const committed = await this.withRetry(async () => this.database.$transaction(async (transaction) => {
       await lockPlayer(transaction, player.id); await reconcileLocked(transaction, player.id, now);
-      const existing = await transaction.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey: operationKey } });
+      const existing = await transaction.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey: operationKey } });
       if (existing) {
         const summary = objectSummary(existing.resultSummary); const roll = Number(summary.roll);
         if (existing.playerId !== player.id || existing.operationType !== 'expedition.claim' || existing.status !== OperationStatus.COMPLETED || !Number.isInteger(roll)) throw new BusinessError('EXPEDITION_IDEMPOTENCY_CONFLICT', 'Cette tentative ne correspond plus à la récupération attendue.');
@@ -84,12 +89,24 @@ export class ExpeditionService {
       const state = await transaction.playerExpedition.findUnique({ where: { playerId: player.id }, include: { character: true } });
       if (!state || state.state === 'IDLE' || !state.characterId || !state.character) throw new BusinessError('EXPEDITION_NOT_ACTIVE', 'Aucune expédition n’est prête à être récupérée.');
       if (!state.readyAt || state.readyAt.getTime() > now.getTime()) throw new BusinessError('EXPEDITION_NOT_READY', 'Cette expédition n’est pas encore terminée.');
+      await this.permanentMissions.catchUpStandalone(transaction, { playerId: player.id, now });
       const roll = retainedRoll ?? this.random.nextInt(10) + 1; retainedRoll = roll;
       const reward = selectExpeditionReward(roll, playerElementKey);
-      const operation = await transaction.businessOperation.create({ data: { playerId: player.id, operationType: 'expedition.claim', sourceChannel: SourceChannel.UI, idempotencyKey: operationKey, resultSummary: { characterId: state.characterId, roll, rewardKind: reward.kind, resourceKey: reward.resourceKey, amount: reward.amount.toString(), completedAt: now.toISOString() } }, select: { id: true } });
-      await this.economy.credit(transaction, { playerId: player.id, playerElementKey, resourceKey: reward.resourceKey, amount: reward.amount, causeKey: 'expedition.claim', domainKey: 'expedition', operationId: operation.id, sourceChannel: SourceChannel.UI });
+      const operation = await transaction.businessOperation.create({ data: { playerId: player.id, operationType: 'expedition.claim', sourceChannel, idempotencyKey: operationKey, resultSummary: { characterId: state.characterId, roll, rewardKind: reward.kind, resourceKey: reward.resourceKey, amount: reward.amount.toString(), completedAt: now.toISOString() } }, select: { id: true } });
+      await this.economy.credit(transaction, { playerId: player.id, playerElementKey, resourceKey: reward.resourceKey, amount: reward.amount, causeKey: 'expedition.claim', domainKey: 'expedition', operationId: operation.id, sourceChannel, skipPermanentMissions: true });
       await transaction.playerExpedition.update({ where: { playerId: player.id }, data: { state: 'IDLE', characterId: null, departedAt: null, readyAt: null, lastCompletedAt: now, totalCompleted: { increment: 1n } } });
       await transaction.notification.updateMany({ where: { playerId: player.id, domainKey: 'expedition', typeKey: 'ready', state: { in: [NotificationState.UNREAD, NotificationState.READ] } }, data: { state: NotificationState.RESOLVED, resolvedAt: now } });
+      await this.permanentMissions.reconcileMetrics(transaction, {
+        playerId: player.id,
+        sourceChannel,
+        now,
+        triggerOperationId: operation.id,
+        metrics: [
+          'EXPEDITIONS_COMPLETED',
+          ...(reward.kind === 'moras' ? ['MORAS_EARNED' as const] : []),
+          ...(reward.kind === 'particles' ? ['MAIN_ELEMENT_PARTICLES_EARNED' as const] : []),
+        ],
+      });
       await transaction.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now } });
       return { id: operation.id, alreadyProcessed: false, reward, characterId: state.characterId, completedAt: now };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, timeout: 20_000 }));

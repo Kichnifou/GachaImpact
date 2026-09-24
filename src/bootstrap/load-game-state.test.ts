@@ -4,7 +4,8 @@ import { ApiError } from '../api/game-api'
 import { loadBootstrapGameState, retryBootstrapRead, type BootstrapReaders } from './load-game-state'
 
 const independentKeys = ['resources', 'progression', 'wheel', 'dailyReward', 'gacha', 'catalog', 'permissions'] as const
-const reconcilingKeys = ['notifications', 'expedition', 'teams', 'dailyChallenge', 'dailyCombat', 'monthlyBoss', 'contest', 'event'] as const
+const playerLockKeys = ['notifications', 'expedition', 'teams', 'event'] as const
+const independentReconciliationKeys = ['dailyChallenge', 'dailyCombat', 'monthlyBoss', 'contest'] as const
 
 function readersWithConcurrencyTrace() {
   const started: string[] = []
@@ -13,6 +14,10 @@ function readersWithConcurrencyTrace() {
   let independentMaximum = 0
   let reconcilingActive = 0
   let reconcilingMaximum = 0
+  let playerLockActive = 0
+  let playerLockMaximum = 0
+  let independentReconciliationActive = 0
+  let independentReconciliationMaximum = 0
 
   const independent = (key: string) => vi.fn(async () => {
     started.push(key)
@@ -27,7 +32,16 @@ function readersWithConcurrencyTrace() {
     started.push(key)
     reconcilingActive += 1
     reconcilingMaximum = Math.max(reconcilingMaximum, reconcilingActive)
+    if (playerLockKeys.includes(key as typeof playerLockKeys[number])) {
+      playerLockActive += 1
+      playerLockMaximum = Math.max(playerLockMaximum, playerLockActive)
+    } else {
+      independentReconciliationActive += 1
+      independentReconciliationMaximum = Math.max(independentReconciliationMaximum, independentReconciliationActive)
+    }
     await Promise.resolve()
+    if (playerLockKeys.includes(key as typeof playerLockKeys[number])) playerLockActive -= 1
+    else independentReconciliationActive -= 1
     reconcilingActive -= 1
     finished.push(key)
     return key as never
@@ -57,18 +71,23 @@ function readersWithConcurrencyTrace() {
     finished,
     independentMaximum: () => independentMaximum,
     reconcilingMaximum: () => reconcilingMaximum,
+    playerLockMaximum: () => playerLockMaximum,
+    independentReconciliationMaximum: () => independentReconciliationMaximum,
   }
 }
 
 describe('bootstrap game state loading', () => {
-  it('keeps independent reads parallel, serializes reconciling GETs and returns every required state', async () => {
+  it('keeps safe reads parallel, serializes the Player-lock lane and returns every required state', async () => {
     const trace = readersWithConcurrencyTrace()
     const state = await loadBootstrapGameState(trace.readers)
 
     expect(trace.independentMaximum()).toBe(independentKeys.length)
-    expect(trace.reconcilingMaximum()).toBe(1)
+    expect(trace.reconcilingMaximum()).toBe(5)
+    expect(trace.playerLockMaximum()).toBe(1)
+    expect(trace.independentReconciliationMaximum()).toBe(independentReconciliationKeys.length)
     expect(trace.started.filter((key) => independentKeys.includes(key as typeof independentKeys[number]))).toHaveLength(independentKeys.length)
-    expect(trace.started.filter((key) => reconcilingKeys.includes(key as typeof reconcilingKeys[number]))).toEqual(reconcilingKeys)
+    expect(trace.started.filter((key) => playerLockKeys.includes(key as typeof playerLockKeys[number]))).toEqual(playerLockKeys)
+    expect(trace.started.filter((key) => independentReconciliationKeys.includes(key as typeof independentReconciliationKeys[number]))).toEqual(independentReconciliationKeys)
     expect(trace.finished.indexOf('notifications')).toBeLessThan(trace.started.indexOf('expedition'))
     expect(Object.fromEntries(Object.entries(state).map(([key, value]) => [key, value]))).toEqual({
       resources: 'resources', progression: 'progression', wheel: 'wheel', dailyReward: 'dailyReward',
@@ -77,6 +96,18 @@ describe('bootstrap game state loading', () => {
       monthlyBoss: 'monthlyBoss', contest: 'contest', event: 'event',
     })
     for (const reader of Object.values(trace.readers)) expect(reader).toHaveBeenCalledTimes(1)
+  })
+
+  it('reuses the Expedition projection returned by Notifications without a second GET', async () => {
+    const trace = readersWithConcurrencyTrace()
+    const expedition = { operationalStatus: 'RUNNING' } as never
+    trace.readers.notifications.mockResolvedValue({ unreadCount: 0, notifications: [], expedition } as never)
+
+    const state = await loadBootstrapGameState(trace.readers)
+
+    expect(state.expedition).toBe(expedition)
+    expect(trace.readers.expedition).not.toHaveBeenCalled()
+    expect(trace.playerLockMaximum()).toBe(1)
   })
 
   it('retries one transient 5xx or network failure exactly once', async () => {

@@ -7,6 +7,7 @@ import { businessDateToDatabaseDate, databaseDateToBusinessDate } from '../../do
 import type { PlayerResourceBalances } from '../../application/player/player-resource-store.js';
 import { PrismaEconomyService } from './prisma-economy-service.js';
 import { isPrismaConcurrencyCollision } from './prisma-concurrency.js';
+import { PermanentMissionService } from '../../application/missions/permanent-mission-service.js';
 
 const MAX_ATTEMPTS = 4;
 
@@ -22,11 +23,16 @@ type Possession = Prisma.PlayerCharacterGetPayload<{ select: typeof possessionSe
 type Client = PrismaClient | Prisma.TransactionClient;
 
 export class PrismaDailyCombatStore implements DailyCombatStore {
+  private readonly permanentMissions: PermanentMissionService;
+
   public constructor(
     private readonly database: PrismaClient,
     private readonly randoms: DailyCombatRandoms,
     private readonly economy = new PrismaEconomyService(),
-  ) {}
+    permanentMissions?: PermanentMissionService,
+  ) {
+    this.permanentMissions = permanentMissions ?? new PermanentMissionService(economy);
+  }
 
   public async getView(context: DailyCombatContext): Promise<DailyCombatView> {
     const encounterId = await this.ensureEncounter(context.businessDate);
@@ -207,6 +213,7 @@ export class PrismaDailyCombatStore implements DailyCombatStore {
           const roll = retainedRoll ?? (this.randoms.fight.nextInt(200) + 1);
           retainedRoll = roll;
           const won = roll <= preview.finalHalfPoints;
+          await this.permanentMissions.catchUpStandalone(transaction, { playerId: context.playerId, now: context.now });
           const operation = await transaction.businessOperation.create({ data: {
             playerId: context.playerId, operationType: 'daily-combat.fight', sourceChannel, idempotencyKey: operationKey,
             resultSummary: { encounterId, chanceHalfPoints: preview.finalHalfPoints, mode, won, rngRoll: roll },
@@ -235,8 +242,19 @@ export class PrismaDailyCombatStore implements DailyCombatStore {
             playerId: context.playerId, encounterId, wonAt: won ? context.now : null,
           }, update: won ? { wonAt: context.now } : {} });
           if (won) {
-            await this.economy.credit(transaction, { playerId: context.playerId, playerElementKey: context.playerElementKey, resourceKey: 'primogems', amount: DAILY_COMBAT_REWARD.primogems, causeKey: 'daily-combat.victory', domainKey: 'daily-combat', operationId: operation.id, sourceChannel });
-            await this.economy.credit(transaction, { playerId: context.playerId, playerElementKey: context.playerElementKey, resourceKey: 'moras', amount: DAILY_COMBAT_REWARD.moras, causeKey: 'daily-combat.victory', domainKey: 'daily-combat', operationId: operation.id, sourceChannel });
+            await this.economy.credit(transaction, { playerId: context.playerId, playerElementKey: context.playerElementKey, resourceKey: 'primogems', amount: DAILY_COMBAT_REWARD.primogems, causeKey: 'daily-combat.victory', domainKey: 'daily-combat', operationId: operation.id, sourceChannel, skipPermanentMissions: true });
+            await this.economy.credit(transaction, { playerId: context.playerId, playerElementKey: context.playerElementKey, resourceKey: 'moras', amount: DAILY_COMBAT_REWARD.moras, causeKey: 'daily-combat.victory', domainKey: 'daily-combat', operationId: operation.id, sourceChannel, skipPermanentMissions: true });
+            await this.permanentMissions.reconcileMetrics(transaction, {
+              playerId: context.playerId,
+              sourceChannel,
+              now: context.now,
+              triggerOperationId: operation.id,
+              metrics: [
+                'COMBAT_WINS',
+                ...(mode === CombatAttemptMode.MANUAL ? ['MANUAL_COMBAT_WINS' as const] : []),
+                'MORAS_EARNED',
+              ],
+            });
           } else {
             await transaction.playerDailyCombatKo.createMany({ data: ordered.map(({ characterId }) => ({ playerId: context.playerId, encounterId, characterId })), skipDuplicates: true });
           }

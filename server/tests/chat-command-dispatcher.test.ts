@@ -132,6 +132,17 @@ describe('Chat command adapters', () => {
     expect(await send('!quotis')).toBe('Quotidiennes : Roue à faire · Défi disponible · Combat à faire · Expédition à faire.');
   });
 
+  it('attributes Expedition start and claim commands to INTERNAL_CHAT', async () => {
+    const start = harness();
+    await start.send('!expedition A');
+    expect(start.services.expeditionService.start).toHaveBeenCalledWith(expect.anything(), expect.any(String), expect.any(String), 'INTERNAL_CHAT');
+
+    const claim = harness();
+    claim.services.expeditionService.getState.mockResolvedValue({ operationalStatus: 'READY', activeCharacter: { name: 'A' } } as never);
+    await claim.send('!expedition retour');
+    expect(claim.services.expeditionService.claim).toHaveBeenCalledWith(expect.anything(), expect.any(String), 'INTERNAL_CHAT');
+  });
+
   it.each([
     ['!select A', 'setGachaTarget', 'execute'], ['!vote Candidat', 'bannerVotes', 'vote'],
     ['!stella A', 'useMasterlessStella', 'execute'], ['!roue', 'spinDailyWheelChat', 'execute'],

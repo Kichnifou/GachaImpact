@@ -7496,7 +7496,6 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .shop-quantity label { display: grid; gap: 4px; color: var(--muted); font-size: 8px; }
 .shop-quantity input { width: 100%; min-height: 34px; padding: 0 9px; color: white; border: 1px solid var(--border); border-radius: 7px; background: rgba(4, 10, 22, .7); }
 .shop-quantity button, .shop-buy-button { min-height: 34px; padding: 0 11px; cursor: pointer; color: white; border: 1px solid color-mix(in srgb, var(--shop-color) 42%, transparent); border-radius: 7px; background: color-mix(in srgb, var(--shop-color) 14%, rgba(7, 15, 30, .9)); }
-.shop-unit-label { min-height: 34px; display: flex; align-items: center; color: var(--muted); font-size: 8px; }
 .shop-totals { min-height: 36px; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #d8e2f1; font-size: 8px; }
 .shop-totals > span { display: flex; align-items: center; gap: 4px; }
 .shop-price-icon, .shop-reward-icon { width: 17px; height: 17px; display: inline-grid; place-items: center; flex: 0 0 auto; }

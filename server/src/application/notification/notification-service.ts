@@ -13,11 +13,15 @@ export class NotificationService {
   public async list(identity: AuthenticatedIdentity) {
     const player = await this.getPlayer.execute(identity);
     const now = this.clock.now();
-    await this.expeditions.getState(identity);
-    await this.giftCodes?.reconcileNotificationsForPlayer(player.id, now);
-    await this.eventMessages?.reconcileNotificationsForPlayer(player.id, now);
-    await this.eventLifecycle?.reconcileNotificationsForPlayer(player.id, now);
-    return this.snapshot(player.id, now);
+    const expedition = await this.expeditions.getState(identity);
+    await Promise.all([
+      this.giftCodes?.reconcileNotificationsForPlayer(player.id, now),
+      (async () => {
+        await this.eventMessages?.reconcileNotificationsForPlayer(player.id, now);
+        await this.eventLifecycle?.reconcileNotificationsForPlayer(player.id, now);
+      })(),
+    ]);
+    return { ...await this.snapshot(player.id, now), expedition };
   }
 
   public async readOne(identity: AuthenticatedIdentity, notificationId: string) {

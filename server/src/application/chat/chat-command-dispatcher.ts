@@ -464,14 +464,14 @@ export class ChatCommandDispatcher {
             const branch = await this.chat.rememberCommandText(commandMessageId, 'action',
               normalizePlayerSearch(target) === 'retour' || view.operationalStatus === 'READY' && normalizePlayerSearch(view.activeCharacter?.name ?? '') === normalizePlayerSearch(target) ? 'claim' : 'start');
             if (branch === 'claim') {
-              const result = await this.services.expeditionService.claim(identity, commandMessageId);
+              const result = await this.services.expeditionService.claim(identity, commandMessageId, SourceChannel.INTERNAL_CHAT);
               return `Expédition récupérée : ${result.reward.amount} ${result.reward.resourceKey}.`;
             }
             const box = await this.services.getCurrentPlayerBox.execute(identity);
             const character = box.characters.find(entry => normalizePlayerSearch(entry.name) === normalizePlayerSearch(target));
             const characterId = await this.chat.rememberCommandText(commandMessageId, 'targetId', character?.id ?? '');
             if (!characterId) return `Personnage introuvable dans votre Box. ${definition.syntax}.`;
-            await this.services.expeditionService.start(identity, characterId, commandMessageId);
+            await this.services.expeditionService.start(identity, characterId, commandMessageId, SourceChannel.INTERNAL_CHAT);
             return `Expédition lancée avec ${character?.name ?? target}. Retour dans 20 heures.`;
           }
           return view.operationalStatus === 'IDLE' ? `Expédition : ${view.departureUsedToday ? 'départ utilisé aujourd’hui' : 'prête à partir'}.` :

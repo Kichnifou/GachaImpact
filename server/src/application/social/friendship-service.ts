@@ -7,6 +7,7 @@ import { PlayerActivityRecorder } from '../player/player-activity-recorder.js';
 import { unblockedRecipient } from './contact-permission.js';
 import { randomInt } from 'node:crypto';
 import { friendshipPhrases } from './friendship-phrases.js';
+import { PermanentMissionService } from '../missions/permanent-mission-service.js';
 
 export type FriendAction = 'ADD' | 'ACCEPT' | 'REFUSE' | 'CANCEL' | 'REMOVE';
 export type FriendshipSource = Extract<SourceChannel, 'UI' | 'INTERNAL_CHAT' | 'TWITCH'>;
@@ -21,8 +22,12 @@ const unavailable = () => new AppError('Cette interaction est indisponible.', 40
 
 /** Sole owner of friendship transitions and rewards, independently of transport. */
 export class FriendshipService {
+  private readonly permanentMissions: PermanentMissionService;
+
   constructor(private readonly database: PrismaClient, private readonly clock: Clock,
-    private readonly economy = new PrismaEconomyService(), private readonly activity = new PlayerActivityRecorder()) {}
+    private readonly economy = new PrismaEconomyService(), private readonly activity = new PlayerActivityRecorder(), permanentMissions?: PermanentMissionService) {
+    this.permanentMissions = permanentMissions ?? new PermanentMissionService(economy);
+  }
 
   private async transaction<T>(run: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
     for (let attempt = 0; ; attempt++) {
@@ -50,7 +55,7 @@ export class FriendshipService {
     return summary.result;
   }
   private async complete(tx: Prisma.TransactionClient, playerId: string, key: string, source: SourceChannel, type: string, target: string, result: FriendMutationResult | HeartResult, now: Date) {
-    await tx.businessOperation.create({ data: { playerId, idempotencyKey: key, sourceChannel: source, operationType: type, status: 'COMPLETED', startedAt: now, completedAt: now, resultSummary: { target, result } } });
+    return tx.businessOperation.create({ data: { playerId, idempotencyKey: key, sourceChannel: source, operationType: type, status: 'COMPLETED', startedAt: now, completedAt: now, resultSummary: { target, result } }, select: { id: true } });
   }
 
   async mutate(playerId: string, target: string, action: FriendAction, key: string, source: FriendshipSource = 'UI', requestId?: string): Promise<FriendMutationResult> {
@@ -119,15 +124,22 @@ export class FriendshipService {
       const eligible = new Set((await tx.player.findMany({ where: { AND: [unblockedRecipient(playerId), { id: { in: relations.map(r => r.playerAId === playerId ? r.playerBId : r.playerAId) } }] }, select: { id: true } })).map(p => p.id));
       const existing = new Set((await tx.friendHeart.findMany({ where: { senderPlayerId: playerId, businessDate: date, friendshipId: { in: relations.map(r => r.id) } }, select: { friendshipId: true } })).map(h => h.friendshipId));
       const result: HeartResult = { sent: 0, alreadySent: 0, unavailable: 0, activeFriends: relations.length, senderReward: '0', recipientReward: '5', status: 'NO_FRIENDS' };
+      const effectiveRelations = relations.filter(relation => {
+        const recipient = relation.playerAId === playerId ? relation.playerBId : relation.playerAId;
+        return eligible.has(recipient) && !existing.has(relation.id);
+      });
+      if (effectiveRelations.length) await this.permanentMissions.catchUpStandalone(tx, { playerId, now });
+      const perfectFriendshipRecipients = new Set<string>();
       for (const relation of relations) {
         const recipient = relation.playerAId === playerId ? relation.playerBId : relation.playerAId;
         if (!eligible.has(recipient)) { if (target !== 'all') throw unavailable(); result.unavailable++; continue; }
         if (existing.has(relation.id)) { result.alreadySent++; continue; }
         const level = Math.min(1000, relation.level + 1);
+        if (relation.level < 1000 && level === 1000) perfectFriendshipRecipients.add(recipient);
         const operation = await tx.businessOperation.create({ data: { playerId, operationType: 'friendship.heart', sourceChannel: source, status: 'COMPLETED', startedAt: now, completedAt: now, resultSummary: { friendshipId: relation.id, recipientPlayerId: recipient, businessDate: getBusinessDate(now) } } });
         await tx.friendHeart.create({ data: { friendshipId: relation.id, senderPlayerId: playerId, recipientPlayerId: recipient, businessDate: date, operationId: operation.id, createdAt: now } });
         await tx.friendship.update({ where: { id: relation.id }, data: { level, totalHearts: { increment: 1n } } });
-        for (const beneficiary of [playerId, recipient].sort()) await this.economy.credit(tx, { playerId: beneficiary, playerElementKey: null, resourceKey: 'primogems', amount: 5n, causeKey: 'friendship.heart', domainKey: 'social', operationId: operation.id, sourceChannel: source });
+        for (const beneficiary of [playerId, recipient].sort()) await this.economy.credit(tx, { playerId: beneficiary, playerElementKey: null, resourceKey: 'primogems', amount: 5n, causeKey: 'friendship.heart', domainKey: 'social', operationId: operation.id, sourceChannel: source, skipPermanentMissions: true });
         result.sent++; if (target !== 'all') { result.level = level; result.tier = friendshipTier(level); }
       }
       if (result.sent) {
@@ -140,7 +152,25 @@ export class FriendshipService {
         result.message = `${participants.find(p => p.id === playerId)!.displayName} envoie un cœur à ${participants.find(p => p.id === target)!.displayName} : ${friendshipPhrases[randomInt(friendshipPhrases.length)]}`;
       }
       result.status = result.sent ? 'SENT' : !relations.length ? 'NO_FRIENDS' : result.unavailable ? 'UNAVAILABLE' : 'ALL_SENT';
-      await this.complete(tx, playerId, key, source, type, target, result, now);
+      const intent = await this.complete(tx, playerId, key, source, type, target, result, now);
+      if (result.sent) {
+        await this.permanentMissions.reconcileMetrics(tx, {
+          playerId,
+          sourceChannel: source,
+          now,
+          triggerOperationId: intent.id,
+          metrics: ['FRIEND_HEARTS_SENT', ...(perfectFriendshipRecipients.size ? ['PERFECT_FRIENDSHIP' as const] : [])],
+        });
+        for (const recipientPlayerId of [...perfectFriendshipRecipients].sort()) {
+          await this.permanentMissions.reconcileMetrics(tx, {
+            playerId: recipientPlayerId,
+            sourceChannel: source,
+            now,
+            triggerOperationId: intent.id,
+            metrics: ['PERFECT_FRIENDSHIP'],
+          });
+        }
+      }
       return result;
     });
   }

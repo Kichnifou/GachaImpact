@@ -552,7 +552,7 @@ export type NotificationDto = Readonly<{
   createdAt: string
   readAt: string | null
 }>
-export type NotificationsDto = Readonly<{ unreadCount: number; notifications: readonly NotificationDto[] }>
+export type NotificationsDto = Readonly<{ unreadCount: number; notifications: readonly NotificationDto[]; expedition?: ExpeditionDto }>
 
 export type GiftCodeRewardDto = Readonly<{ resourceKey: 'primogems' | 'moras' | `particles_${ElementKey}`; displayName: string; amount: string }>
 export type GiftCodeDto = Readonly<{ id: string; editionId: string; token: string; title: string; description: string; type: 'ONE_OFF' | 'ANNUAL'; editionKey: string; startsAt: string; endsAt: string; available: boolean; claimed: boolean; claimedAt: string | null; rewards: readonly GiftCodeRewardDto[] }>

@@ -12,6 +12,7 @@ import { GetCurrentPlayer } from '../src/application/player/get-current-player.j
 import { EventService } from '../src/application/event/event-service.js';
 import { buildApp } from '../src/app.js';
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
+import { PermanentMissionService } from '../src/application/missions/permanent-mission-service.js';
 
 const fixture = isolatedBatchDatabase(), { database: db } = fixture;
 let now = new Date('2026-09-20T12:00:00Z');
@@ -39,6 +40,7 @@ const player = async () => {
   const p = await db.player.create({ data: { displayName: `Ami ${randomUUID()}` } });
   await db.playerResourceBalance.create({ data: { playerId: p.id, resourceKey: 'primogems', amount: 0n } });
   await db.playerEconomyStats.create({ data: { playerId: p.id } });
+  await db.$transaction(tx => new PermanentMissionService().initializePlayer(tx, p.id, now, true));
   return p.id;
 };
 async function befriend(a: string, b: string) { await service.mutate(a, b, 'ADD', randomUUID()); return service.mutate(b, a, 'ACCEPT', randomUUID()); }
@@ -160,6 +162,33 @@ describe('Friendship isolated PostgreSQL', () => {
     expect((await service.snapshot(a)).friends[0]).toMatchObject({ level: 1000, totalHearts: '1000', tier: 'Amitié Parfaite' });
     expect(await sent(a)).toBe(10001n);
   }, 30_000);
+  it('reconciles sender heart B/A/S and perfect-friendship Z for both participants without passive catch-up', async () => {
+    const a = await player(), b = await player(), relation = await befriend(a, b);
+    await db.friendship.update({ where: { id: relation.friendshipId! }, data: { level: 999, totalHearts: 999n } });
+    await db.playerSocialStats.create({ data: { playerId: a, totalFriendHeartsSent: 199n } });
+    for (const id of [a, b]) {
+      await db.playerPermanentMissionState.update({ where: { playerId: id }, data: { zUnlockedAt: now } });
+      await db.playerPermanentMissionProgress.updateMany({
+        where: { playerId: id, definition: { externalKey: 'perfect_friendship_z' } },
+        data: { status: 'ACTIVE', startedAt: now },
+      });
+    }
+    await db.playerPermanentMissionState.update({ where: { playerId: b }, data: { standaloneCatchupCompletedAt: null } });
+    const result = await service.sendHearts(a, b, randomUUID(), 'INTERNAL_CHAT');
+    expect(result).toMatchObject({ sent: 1, level: 1000, senderReward: '5' });
+    const intent = await db.businessOperation.findFirstOrThrow({ where: { playerId: a, operationType: 'friendship.hearts' }, orderBy: { startedAt: 'desc' } });
+    const sender = await db.playerPermanentMissionProgress.findMany({
+      where: { playerId: a, status: 'COMPLETED', definition: { externalKey: { in: ['friend_hearts_b', 'friend_hearts_a', 'friend_hearts_s', 'perfect_friendship_z'] } } },
+      include: { definition: true, rewardOperation: true },
+    });
+    expect(sender.map(row => row.definition.externalKey).sort()).toEqual(['friend_hearts_a', 'friend_hearts_b', 'friend_hearts_s', 'perfect_friendship_z']);
+    expect(sender.every(row => row.completionTriggerOperationId === intent.id)).toBe(true);
+    expect(sender.every(row => row.rewardOperation?.sourceChannel === 'INTERNAL_CHAT')).toBe(true);
+    const recipientPerfect = await db.playerPermanentMissionProgress.findFirstOrThrow({ where: { playerId: b, definition: { externalKey: 'perfect_friendship_z' } } });
+    expect(recipientPerfect).toMatchObject({ status: 'COMPLETED', completionTriggerOperationId: intent.id });
+    expect((await db.playerPermanentMissionState.findUniqueOrThrow({ where: { playerId: b } })).standaloneCatchupCompletedAt).toBeNull();
+    expect(await db.resourceMovement.count({ where: { playerId: { in: [a, b] }, causeKey: 'friendship.heart', delta: 5n } })).toBe(2);
+  }, 30_000);
   it('atomically sends to all using the individual primitive, with safe individual/all and all/all races', async () => {
     const a = await player(), b = await player(), c = await player(), d = await player();
     for (const p of [b, c, d]) await befriend(a, p);
@@ -178,6 +207,17 @@ describe('Friendship isolated PostgreSQL', () => {
     expect(await balance(e)).toBe(0n); expect(await balance(f)).toBe(0n); expect(await sent(e)).toBe(0n);
     expect((await service.snapshot(e)).friends[0]).toMatchObject({ level: 1, totalHearts: '0', canSend: true });
   }, 60_000);
+  it('runs one sender catch-up and one bounded Mission reconciliation for a multi-heart batch', async () => {
+    const a = await player(), b = await player(), c = await player();
+    await befriend(a, b); await befriend(a, c);
+    const economy = new PrismaEconomyService(); const missions = new PermanentMissionService(economy);
+    const catchUp = vi.spyOn(missions, 'catchUpStandalone'); const reconcile = vi.spyOn(missions, 'reconcileMetrics');
+    const batch = new FriendshipService(db, clock, economy, new PlayerActivityRecorder(), missions);
+    expect(await batch.sendHearts(a, 'all', randomUUID())).toMatchObject({ sent: 2, senderReward: '10' });
+    expect(catchUp).toHaveBeenCalledTimes(1); expect(reconcile).toHaveBeenCalledTimes(1);
+    expect(reconcile.mock.calls[0]?.[1]).toMatchObject({ playerId: a, metrics: ['FRIEND_HEARTS_SENT'] });
+    expect(await sent(a)).toBe(2n); expect(await sent(b)).toBe(0n); expect(await sent(c)).toBe(0n);
+  }, 30_000);
   it('respects blocks and ACTIVE-only privacy through archive/reactivation without resetting settings', async () => {
     const a = await player(), b = await player(); await befriend(a, b);
     await privacy.save(a, 'BOX', 'FRIENDS');

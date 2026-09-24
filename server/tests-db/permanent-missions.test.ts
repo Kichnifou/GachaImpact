@@ -17,7 +17,9 @@ const database = createDatabase(config.databaseUrl);
 const economy = new PrismaEconomyService(() => now);
 const service = new PermanentMissionService(economy);
 const players = new Set<string>();
-const now = new Date('2026-09-24T17:00:00.000Z');
+// Keep all explicit mission timestamps after the real provisioning timestamp so
+// chronological database constraints remain valid regardless of test run date.
+const now = new Date('2099-09-24T17:00:00.000Z');
 
 afterEach(cleanup);
 afterAll(async () => { try { await cleanup(); } finally { await database.$disconnect(); } });

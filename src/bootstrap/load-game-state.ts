@@ -76,17 +76,22 @@ export async function loadBootstrapGameState(readers: BootstrapReaders): Promise
   }))
 
   const reconcilingReads = (async () => {
-    // These GETs may provision, reconcile, mutate, or lock the same Player. In particular,
-    // Notifications reconciles Expedition internally, so its standalone Expedition read
-    // must happen afterwards rather than concurrently.
+    // Notifications owns the first Player-lock lane and returns the Expedition projection
+    // it just reconciled. The fallback keeps rolling frontend/backend deploys compatible.
     const notifications = await retryBootstrapRead(readers.notifications)
-    const expedition = await retryBootstrapRead(readers.expedition)
-    const teams = await retryBootstrapRead(readers.teams)
-    const dailyChallenge = await retryBootstrapRead(readers.dailyChallenge)
-    const dailyCombat = await retryBootstrapRead(readers.dailyCombat)
-    const monthlyBoss = await retryBootstrapRead(readers.monthlyBoss)
-    const contest = await retryBootstrapRead(readers.contest)
-    const event = await retryBootstrapRead(readers.event)
+    const playerLockReads = (async () => {
+      const expedition = notifications.expedition ?? await retryBootstrapRead(readers.expedition)
+      const teams = await retryBootstrapRead(readers.teams)
+      const event = await retryBootstrapRead(readers.event)
+      return { expedition, teams, event }
+    })()
+    const [dailyChallenge, dailyCombat, monthlyBoss, contest] = await Promise.all([
+      retryBootstrapRead(readers.dailyChallenge),
+      retryBootstrapRead(readers.dailyCombat),
+      retryBootstrapRead(readers.monthlyBoss),
+      retryBootstrapRead(readers.contest),
+    ])
+    const { expedition, teams, event } = await playerLockReads
     return { notifications, expedition, teams, dailyChallenge, dailyCombat, monthlyBoss, contest, event }
   })()
 
