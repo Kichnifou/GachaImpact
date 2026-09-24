@@ -39,7 +39,7 @@ describe('Gacha foundation on the development database', () => {
     expect(await database.character.count({ where: { ...canonicalCatalog, rarity: 4 } })).toBe(51);
     expect(await database.bannerRotation.count({ where: { status: 'ACTIVE' } })).toBe(1);
     expect(await database.player.count()).toBe(await database.playerGachaState.count());
-    const rls = await database.$queryRaw<{ relname: string; relrowsecurity: boolean }[]>`SELECT relname, relrowsecurity FROM pg_class WHERE relname IN ('characters','banner_rotations','banner_featured_characters','banner_votes','player_gacha_states')`;
+    const rls = await database.$queryRaw<{ relname: string; relrowsecurity: boolean }[]>`SELECT c.relname, c.relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname IN ('characters','banner_rotations','banner_featured_characters','banner_votes','player_gacha_states')`;
     expect(rls).toHaveLength(5);
     expect(rls.every(({ relrowsecurity }) => relrowsecurity)).toBe(true);
   });
@@ -47,7 +47,7 @@ describe('Gacha foundation on the development database', () => {
   it('has private RLS-enabled pull, possession and C6 tables with database constraints', async () => {
     const names = ['player_characters', 'c6_competition_progress', 'pull_operations', 'pull_results'];
     const rls = await database.$queryRaw<{ relname: string; relrowsecurity: boolean }[]>`
-      SELECT relname, relrowsecurity FROM pg_class WHERE relname = ANY(${names}::text[])
+      SELECT c.relname, c.relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = ANY(${names}::text[])
     `;
     expect(rls).toHaveLength(4);
     expect(rls.every(({ relrowsecurity }) => relrowsecurity)).toBe(true);
@@ -84,6 +84,7 @@ describe('Gacha foundation on the development database', () => {
     const fixture = await createPullPlayer(160n);
     try {
       const store = new PrismaGachaStore(database);
+      await database.playerGachaState.update({ where: { playerId: fixture.playerId }, data: { totalPulls: 49n } });
       const input = { playerId: fixture.playerId, playerElementKey: 'hydro' as const, count: 1 as const,
         idempotencyKey: randomUUID(), now: fixture.now, random: maxRandom, sourceChannel: 'INTERNAL_CHAT' as const };
       const first = await store.pull(input);
@@ -93,6 +94,9 @@ describe('Gacha foundation on the development database', () => {
       expect(pull).toMatchObject({ sourceChannel: 'INTERNAL_CHAT' });
       expect(await database.businessOperation.findUniqueOrThrow({ where: { id: pull.businessOperationId } })).toMatchObject({ sourceChannel: 'INTERNAL_CHAT' });
       expect(await database.resourceMovement.findFirstOrThrow({ where: { operationId: pull.businessOperationId, causeKey: 'gacha.pull.cost' } })).toMatchObject({ sourceChannel: 'INTERNAL_CHAT' });
+      const reward = await database.businessOperation.findFirstOrThrow({ where: { playerId: fixture.playerId, operationType: 'permanent-mission.reward' } });
+      expect(reward).toMatchObject({ sourceChannel: 'INTERNAL_CHAT' });
+      expect((reward.resultSummary as { triggerOperationId?: string }).triggerOperationId).toBe(pull.businessOperationId);
       expect(await database.pullOperation.count({ where: { playerId: fixture.playerId } })).toBe(1);
     } finally { await deletePullPlayer(fixture.playerId); }
   });
@@ -176,7 +180,8 @@ describe('Gacha foundation on the development database', () => {
         businessDate,
         now: fixture.now,
         idempotencyKey: randomUUID(),
-        random: { nextInt: () => 0 },
+        // Both Messages and Pulls are eligible; the second weighted slot is Pulls.
+        random: { nextInt: () => 1 },
       });
       const store = new PrismaGachaStore(database, undefined, undefined, undefined, undefined, challenges);
       await expect(store.pull({ playerId: fixture.playerId, playerElementKey: 'hydro', count: 10, idempotencyKey: randomUUID(), now: fixture.now, random: maxRandom })).rejects.toMatchObject({ code: 'INSUFFICIENT_PRIMOGEMS' });
@@ -349,7 +354,9 @@ describe('Gacha foundation on the development database', () => {
       expect(retry.results).toEqual(result.results);
       expect((await database.playerCharacter.findUniqueOrThrow({ where: { playerId_characterId: { playerId: fixture.playerId, characterId: fixture.targetId } } })).copies).toBe(8);
       const stats = await database.playerEconomyStats.findUniqueOrThrow({ where: { playerId: fixture.playerId } });
-      expect(stats).toMatchObject({ totalPrimosSpent: 160n, totalPrimosEarned: 160n, totalMorasEarned: 100_000n });
+      expect(stats).toMatchObject({ totalPrimosSpent: 160n, totalPrimosEarned: 480n, totalMorasEarned: 100_000n });
+      expect(await database.businessOperation.count({ where: { playerId: fixture.playerId, operationType: 'permanent-mission.reward' } })).toBe(2);
+      expect((await database.businessOperation.findMany({ where: { playerId: fixture.playerId, operationType: 'permanent-mission.reward' } })).every(operation => operation.sourceChannel === 'UI')).toBe(true);
       expect(await database.resourceMovement.count({ where: { playerId: fixture.playerId, causeKey: 'gacha.c6-duplicate-refund' } })).toBe(1);
       expect(await database.resourceMovement.count({ where: { playerId: fixture.playerId, causeKey: 'gacha.c6-maxed-compensation' } })).toBe(1);
     } finally { await deletePullPlayer(fixture.playerId); }
@@ -456,7 +463,7 @@ describe('Gacha foundation on the development database', () => {
       expect(result.results[0]!.passiveEffects.map(({ elementKey }) => elementKey)).toEqual(['geo', 'cryo', 'anemo']);
       const progression = await database.playerProgression.findUniqueOrThrow({ where: { playerId: fixture.playerId } });
       expect(progression).toMatchObject({ xp: 30n, totalMessages: 9n, countedMessages: 4n, lastXpAt: fixture.now, lastXpMessageAt: beforeMessageAt });
-      expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: fixture.playerId, resourceKey: 'primogems' } } })).amount).toBe(2_320n);
+      expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: fixture.playerId, resourceKey: 'primogems' } } })).amount).toBe(2_480n);
       expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: fixture.playerId, resourceKey: 'moras' } } })).amount).toBe(16_250n);
     } finally { await deletePullPlayer(fixture.playerId); }
   }, 15_000);
@@ -578,6 +585,8 @@ async function deletePullPlayer(playerId: string) {
     await transaction.pullResult.deleteMany({ where: { pullOperation: { playerId } } });
     await transaction.pullOperation.deleteMany({ where: { playerId } });
     await transaction.resourceMovement.deleteMany({ where: { playerId } });
+    await transaction.playerPermanentMissionProgress.deleteMany({ where: { playerId } });
+    await transaction.playerPermanentMissionState.deleteMany({ where: { playerId } });
     await transaction.businessOperation.deleteMany({ where: { playerId } });
     await transaction.webIdentity.deleteMany({ where: { playerId } });
     await transaction.player.deleteMany({ where: { id: playerId } });

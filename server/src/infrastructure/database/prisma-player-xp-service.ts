@@ -3,6 +3,7 @@ import type { ElementKey } from '../../domain/economy/resources.js';
 import { planPlayerXpGrant, type PlayerXpGrantPlan } from '../../domain/player/xp-grant.js';
 import type { RandomSource } from '../../domain/wheel/wheel.js';
 import { PrismaEconomyService } from './prisma-economy-service.js';
+import { PermanentMissionService } from '../../application/missions/permanent-mission-service.js';
 
 export type GrantPlayerXpInput = Readonly<{
   playerId: string;
@@ -16,9 +17,14 @@ export type GrantPlayerXpInput = Readonly<{
 }>;
 
 export class PrismaPlayerXpService {
-  public constructor(private readonly economy = new PrismaEconomyService()) {}
+  private readonly permanentMissions: PermanentMissionService;
+
+  public constructor(private readonly economy = new PrismaEconomyService(), permanentMissions?: PermanentMissionService) {
+    this.permanentMissions = permanentMissions ?? new PermanentMissionService(economy);
+  }
 
   public async grant(transaction: Prisma.TransactionClient, input: GrantPlayerXpInput): Promise<PlayerXpGrantPlan> {
+    await this.permanentMissions.catchUpStandalone(transaction, { playerId: input.playerId, now: input.now });
     await transaction.$queryRaw`SELECT player_id FROM player_progression WHERE player_id = ${input.playerId}::uuid FOR UPDATE`;
     const progression = await transaction.playerProgression.findUniqueOrThrow({ where: { playerId: input.playerId } });
     const plan = planPlayerXpGrant(progression, input.amount, input.playerElementKey, input.now, input.random);
@@ -44,6 +50,14 @@ export class PrismaPlayerXpService {
         sourceChannel: input.sourceChannel,
       });
     }
+
+    await this.permanentMissions.reconcileMetrics(transaction, {
+      playerId: input.playerId,
+      sourceChannel: input.sourceChannel,
+      now: input.now,
+      triggerOperationId: input.operationId,
+      metrics: ['PLAYER_LEVEL'],
+    });
 
     return plan;
   }

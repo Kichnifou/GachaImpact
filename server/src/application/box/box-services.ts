@@ -4,6 +4,7 @@ import type { RandomSource } from '../../domain/wheel/wheel.js';
 import { BusinessError } from '../errors.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
 import type { BoxSortPreference, BoxStore } from './box-store.js';
+import { SourceChannel } from '../../../generated/prisma/client.js';
 
 export class GetCurrentPlayerBox {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: BoxStore) {}
@@ -44,11 +45,12 @@ export class UseMasterlessStella {
     private readonly store: BoxStore,
     private readonly clock: Clock,
     private readonly random: RandomSource,
+    private readonly sourceChannel: SourceChannel = SourceChannel.UI,
   ) {}
 
   public async execute(identity: AuthenticatedIdentity, characterId: string, idempotencyKey: string) {
     const player = await this.getPlayer.execute(identity);
-    return this.store.useStella({ playerId: player.id, characterId, idempotencyKey, now: this.clock.now(), random: this.random });
+    return this.store.useStella({ playerId: player.id, characterId, idempotencyKey, now: this.clock.now(), random: this.random, sourceChannel: this.sourceChannel });
   }
 }
 

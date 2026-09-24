@@ -6,6 +6,7 @@ import { Prisma } from '../generated/prisma/client.js';
 import { loadConfig } from '../src/config/environment.js';
 import { PrismaBankingStore } from '../src/infrastructure/database/prisma-banking-store.js';
 import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
+import { PermanentMissionService } from '../src/application/missions/permanent-mission-service.js';
 
 const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Banking database tests.');
@@ -24,9 +25,13 @@ async function createPlayer(walletMoras: bigint, earned = 0n, spent = 0n) {
   await database.$transaction(async (transaction) => {
     await transaction.player.create({ data: { id: playerId, displayName: `Bank ${randomUUID().slice(0, 8)}` } });
     await Promise.all([
-      transaction.playerResourceBalance.create({ data: { playerId, resourceKey: 'moras', amount: walletMoras } }),
+      transaction.playerResourceBalance.createMany({ data: [
+        { playerId, resourceKey: 'moras', amount: walletMoras },
+        { playerId, resourceKey: 'primogems', amount: 0n },
+      ] }),
       transaction.playerEconomyStats.create({ data: { playerId, totalMorasEarned: earned, totalMorasSpent: spent } }),
     ]);
+    await new PermanentMissionService().initializePlayer(transaction, playerId, occurredAt, true);
   });
   return playerId;
 }
@@ -38,6 +43,8 @@ async function cleanupBankTestPlayers(): Promise<void> {
     await transaction.$queryRaw(Prisma.sql`SELECT id FROM players WHERE id IN (${Prisma.join(ids)}) FOR UPDATE`);
     await transaction.bankTransaction.deleteMany({ where: { playerId: { in: ids } } });
     await transaction.resourceMovement.deleteMany({ where: { playerId: { in: ids } } });
+    await transaction.playerPermanentMissionProgress.deleteMany({ where: { playerId: { in: ids } } });
+    await transaction.playerPermanentMissionState.deleteMany({ where: { playerId: { in: ids } } });
     await transaction.businessOperation.deleteMany({ where: { playerId: { in: ids } } });
     await transaction.playerBankAccount.deleteMany({ where: { playerId: { in: ids } } });
     await transaction.playerResourceBalance.deleteMany({ where: { playerId: { in: ids } } });
@@ -66,6 +73,7 @@ describe('Banking persistence', () => {
 
     const stats = await database.playerEconomyStats.findUniqueOrThrow({ where: { playerId } });
     expect(stats).toMatchObject({ totalMorasEarned: 40n, totalMorasSpent: 20n });
+    expect((await database.playerPermanentMissionProgress.findFirstOrThrow({ where: { playerId, definition: { externalKey: 'moras_b' } } })).progress).toBe(0n);
     const state = await store.getState(playerId, date, occurredAt);
     expect(state.recentOperations.map(({ type }) => type)).toEqual(['WITHDRAWAL', 'WITHDRAWAL', 'DEPOSIT', 'DEPOSIT']);
     expect(state.recentOperations[0]).toMatchObject({ bankBalanceAfter: 0n, walletBalanceAfter: 1_000n });
@@ -139,6 +147,10 @@ describe('Banking persistence', () => {
     expect(state).toMatchObject({ walletMoras: 777n, bankMoras: expected });
     expect(state.recentOperations.map(({ amount }) => amount)).toEqual([dayTwo, dayOne]);
     expect((await database.playerEconomyStats.findUniqueOrThrow({ where: { playerId } }))).toMatchObject({ totalMorasEarned: 9n + dayOne + dayTwo, totalMorasSpent: 4n });
+    const missionRewards = await database.businessOperation.findMany({ where: { playerId, operationType: 'permanent-mission.reward' } });
+    expect(missionRewards).toHaveLength(3);
+    expect(missionRewards.every(operation => operation.sourceChannel === 'SYSTEM')).toBe(true);
+    expect((await database.playerPermanentMissionProgress.findFirstOrThrow({ where: { playerId, definition: { externalKey: 'moras_s' } } })).status).toBe('COMPLETED');
 
     const repeated = await store.getState(playerId, date, new Date('2026-09-09T20:00:00Z'));
     expect(repeated.bankMoras).toBe(expected);
@@ -165,6 +177,7 @@ describe('Banking persistence', () => {
       expect(await database.bankTransaction.count({ where: { playerId, transactionType: 'INTEREST' } })).toBe(0);
       expect(await database.businessOperation.count({ where: { playerId, operationType: 'bank.interest' } })).toBe(0);
       expect(await database.playerEconomyStats.findUniqueOrThrow({ where: { playerId } })).toMatchObject({ totalMorasEarned: 7n, totalMorasSpent: 2n });
+      expect(await database.businessOperation.count({ where: { playerId, operationType: 'permanent-mission.reward' } })).toBe(0);
     }
 
     await store.getState(positivePlayer, date, new Date('2026-09-09T20:00:00Z'));

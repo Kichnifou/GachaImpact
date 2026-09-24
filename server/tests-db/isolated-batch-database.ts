@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import pg from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client.js';
+import { permanentMissionCatalog } from '../src/domain/missions/permanent-mission-catalog.js';
 
 // Every mutable table and enum lives in this run's private schema, never public.
 export function isolatedBatchDatabase() {
@@ -23,6 +24,7 @@ export function isolatedBatchDatabase() {
       if (/"public"\.|\bpublic\./.test(ddl)) throw new Error('Fixture DDL targets public');
       await admin.query(ddl);
       await admin.query(`REVOKE ALL ON ALL TABLES IN SCHEMA "${schema}" FROM PUBLIC, anon, authenticated`);
+      await database.permanentMissionDefinition.createMany({ data: permanentMissionCatalog.map(entry => ({ ...entry })) });
     },
     async cleanup() {
       await database.$disconnect();

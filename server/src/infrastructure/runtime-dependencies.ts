@@ -81,6 +81,7 @@ export function createRuntimeDependencies(config: AppConfig) {
   const gachaStore = new PrismaGachaStore(database, undefined, undefined, undefined, undefined, dailyChallengeStore);
   const scheduler = new WeeklyBannerScheduler(gachaStore, clock, random);
   const boxStore = new PrismaBoxStore(database);
+  const useMasterlessStellaChat = new UseMasterlessStella(getCurrentPlayer, boxStore, clock, random, SourceChannel.INTERNAL_CHAT);
   const teamStore = new PrismaTeamStore(database);
   const bankingStore = new PrismaBankingStore(database);
   const inventoryStore = new PrismaInventoryStore(database);
@@ -171,7 +172,10 @@ export function createRuntimeDependencies(config: AppConfig) {
     start: async () => { await tradeScheduler.start(); await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); await giftCodeScheduler.start(); contestScheduler.start(); },
     close: async () => { scheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); giftCodeScheduler.stop(); await tradeScheduler.stop(); await contestScheduler.stop(); await database.$disconnect(); },
   };
-  return { ...dependencies, chatCommandDispatcher: new ChatCommandDispatcher(globalChatService, dependencies) };
+  return {
+    ...dependencies,
+    chatCommandDispatcher: new ChatCommandDispatcher(globalChatService, { ...dependencies, useMasterlessStella: useMasterlessStellaChat }),
+  };
 }
 
 function resolveSupabaseIssuer(config: AppConfig): string {

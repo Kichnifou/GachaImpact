@@ -3,6 +3,7 @@ import { getEconomyEarnedIncrement, getEconomySpentIncrement } from '../../appli
 import { BusinessError } from '../../application/errors.js';
 import type { ElementKey, ResourceKey } from '../../domain/economy/resources.js';
 import { expireTrades, particleStock, reconcileParticleTrades } from '../../application/trades/trade-state.js';
+import { PermanentMissionService } from '../../application/missions/permanent-mission-service.js';
 
 export type CreditResourceInput = Readonly<{
   playerId: string;
@@ -13,13 +14,19 @@ export type CreditResourceInput = Readonly<{
   domainKey: string;
   operationId: string;
   sourceChannel: SourceChannel;
+  /** Internal guard for Mission rewards, which must not recursively activate Missions. */
+  skipPermanentMissions?: boolean;
 }>;
 
 export type DebitResourceInput = CreditResourceInput;
 export type InternalMorasWalletTransferInput = Omit<CreditResourceInput, 'playerElementKey' | 'resourceKey' | 'amount'> & Readonly<{ delta: bigint }>;
 
 export class PrismaEconomyService {
-  constructor(private readonly now: () => Date = () => new Date()) {}
+  private readonly permanentMissions: PermanentMissionService;
+
+  constructor(private readonly now: () => Date = () => new Date(), permanentMissions?: PermanentMissionService) {
+    this.permanentMissions = permanentMissions ?? new PermanentMissionService(this);
+  }
 
   public async adjustWithoutStats(transaction: Prisma.TransactionClient, input: Omit<CreditResourceInput, 'amount' | 'playerElementKey'> & { delta: bigint }) {
     const before = await this.lockBalance(transaction, input.playerId, input.resourceKey);
@@ -108,6 +115,10 @@ export class PrismaEconomyService {
       throw new RangeError('An economic credit amount must be positive.');
     }
 
+    if (!input.skipPermanentMissions) {
+      await this.permanentMissions.catchUpStandalone(transaction, { playerId: input.playerId, now: this.now() });
+    }
+
     const balance = await this.lockBalance(transaction, input.playerId, input.resourceKey);
     const balanceAfter = balance + input.amount;
 
@@ -151,6 +162,19 @@ export class PrismaEconomyService {
         },
       },
     });
+    if (!input.skipPermanentMissions) {
+      const metrics = [
+        ...(increment.totalMorasEarned > 0n ? ['MORAS_EARNED' as const] : []),
+        ...(increment.totalMainElementParticlesEarned > 0n ? ['MAIN_ELEMENT_PARTICLES_EARNED' as const] : []),
+      ];
+      await this.permanentMissions.reconcileMetrics(transaction, {
+        playerId: input.playerId,
+        sourceChannel: input.sourceChannel,
+        now: this.now(),
+        triggerOperationId: input.operationId,
+        metrics,
+      });
+    }
     if (input.resourceKey.startsWith('particles_')) {
       await expireTrades(transaction, this.now());
       await reconcileParticleTrades(transaction, [input.playerId], this.now());

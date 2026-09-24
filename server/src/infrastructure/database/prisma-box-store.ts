@@ -10,6 +10,8 @@ import { isElementKey } from '../../domain/economy/resources.js';
 import { isPrismaConcurrencyCollision } from './prisma-concurrency.js';
 import { PrismaC6ProgressionService } from './prisma-c6-progression-service.js';
 import { PrismaCharacterPossessionService } from './prisma-character-possession-service.js';
+import { PrismaEconomyService } from './prisma-economy-service.js';
+import { PermanentMissionService } from '../../application/missions/permanent-mission-service.js';
 
 const BOX_SORT_PREFERENCE_KEY = 'box.sort';
 const MAX_ATTEMPTS = 5;
@@ -36,6 +38,7 @@ export class PrismaBoxStore implements BoxStore {
     private readonly database: PrismaClient,
     private readonly possessions = new PrismaCharacterPossessionService(),
     private readonly c6 = new PrismaC6ProgressionService(),
+    private readonly permanentMissions = new PermanentMissionService(new PrismaEconomyService()),
   ) {}
 
   public async listVisiblePossessions(playerId: string): Promise<readonly BoxCharacter[]> {
@@ -86,14 +89,15 @@ export class PrismaBoxStore implements BoxStore {
 
   public async useStella(input: UseStellaInput): Promise<StellaUseResult> {
     const operationKey = `box.stella:${input.playerId}:${input.idempotencyKey}`;
+    const sourceChannel = input.sourceChannel ?? SourceChannel.UI;
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
-      const persisted = await this.findPersistedStella(input.playerId, operationKey);
+      const persisted = await this.findPersistedStella(input.playerId, operationKey, sourceChannel);
       if (persisted) return persisted;
       try {
-        return await this.useStellaInTransaction(input, operationKey);
+        return await this.useStellaInTransaction({ ...input, sourceChannel }, operationKey);
       } catch (error) {
         if (!isPrismaConcurrencyCollision(error)) throw error;
-        const retryResult = await this.findPersistedStella(input.playerId, operationKey);
+        const retryResult = await this.findPersistedStella(input.playerId, operationKey, sourceChannel);
         if (retryResult) return retryResult;
         if (attempt === MAX_ATTEMPTS) throw error;
         await new Promise((resolve) => setTimeout(resolve, attempt * 100));
@@ -102,13 +106,13 @@ export class PrismaBoxStore implements BoxStore {
     throw new Error('Stella operation exhausted all retry attempts.');
   }
 
-  private async useStellaInTransaction(input: UseStellaInput, operationKey: string): Promise<StellaUseResult> {
+  private async useStellaInTransaction(input: UseStellaInput & { sourceChannel: SourceChannel }, operationKey: string): Promise<StellaUseResult> {
     return this.database.$transaction(async (transaction) => {
       const players = await transaction.$queryRaw<{ id: string }[]>`SELECT id FROM players WHERE id = ${input.playerId}::uuid FOR UPDATE`;
       if (!players[0]) throw new BusinessError('PLAYER_NOT_FOUND', 'No Player is linked to this account.');
 
       const existing = await transaction.businessOperation.findFirst({
-        where: { playerId: input.playerId, sourceChannel: SourceChannel.UI, idempotencyKey: operationKey },
+        where: { playerId: input.playerId, sourceChannel: input.sourceChannel, idempotencyKey: operationKey },
         select: { id: true, resultSummary: true },
       });
       if (existing) {
@@ -116,6 +120,8 @@ export class PrismaBoxStore implements BoxStore {
         if (persisted) return persisted;
         throw new BusinessError('STELLA_IDEMPOTENCY_CONFLICT', 'Cette intention Stella est déjà en cours.');
       }
+
+      await this.permanentMissions.catchUpStandalone(transaction, { playerId: input.playerId, now: input.now });
 
       const definition = await transaction.itemDefinition.findUnique({
         where: { externalKey: MASTERLESS_STELLA_FORTUNA_KEY }, select: { id: true, isActive: true },
@@ -143,7 +149,7 @@ export class PrismaBoxStore implements BoxStore {
       }
 
       const operation = await transaction.businessOperation.create({ data: {
-        playerId: input.playerId, operationType: 'box.stella.use', sourceChannel: SourceChannel.UI, idempotencyKey: operationKey,
+        playerId: input.playerId, operationType: 'box.stella.use', sourceChannel: input.sourceChannel, idempotencyKey: operationKey,
       }, select: { id: true } });
       await transaction.playerItem.update({
         where: { playerId_itemId: { playerId: input.playerId, itemId: definition.id } },
@@ -157,6 +163,13 @@ export class PrismaBoxStore implements BoxStore {
       const character = await this.readCharacter(transaction, input.playerId, input.characterId);
       if (!character) throw new Error('The Stella possession disappeared during its transaction.');
       const stellaRemaining = quantity - 1n;
+      await this.permanentMissions.reconcileMetrics(transaction, {
+        playerId: input.playerId,
+        sourceChannel: input.sourceChannel,
+        now: input.now,
+        triggerOperationId: operation.id,
+        metrics: ['C6_CHARACTERS'],
+      });
       await transaction.businessOperation.update({ where: { id: operation.id }, data: {
         status: OperationStatus.COMPLETED, completedAt: input.now,
         resultSummary: {
@@ -168,9 +181,9 @@ export class PrismaBoxStore implements BoxStore {
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 20_000 });
   }
 
-  private async findPersistedStella(playerId: string, operationKey: string) {
+  private async findPersistedStella(playerId: string, operationKey: string, sourceChannel: SourceChannel) {
     const operation = await this.database.businessOperation.findFirst({
-      where: { playerId, sourceChannel: SourceChannel.UI, idempotencyKey: operationKey },
+      where: { playerId, sourceChannel, idempotencyKey: operationKey },
       select: { id: true, resultSummary: true },
     });
     return operation ? this.readPersistedStella(this.database, playerId, operation.id, operation.resultSummary, true) : null;

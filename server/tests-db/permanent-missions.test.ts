@@ -8,11 +8,14 @@ import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-pr
 import { loadConfig } from '../src/config/environment.js';
 import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 import { PrismaCurrentPlayerStore } from '../src/infrastructure/database/prisma-current-player-store.js';
+import { PrismaEconomyService } from '../src/infrastructure/database/prisma-economy-service.js';
+import { PrismaPlayerXpService } from '../src/infrastructure/database/prisma-player-xp-service.js';
 
 const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Permanent Mission database tests.');
 const database = createDatabase(config.databaseUrl);
-const service = new PermanentMissionService();
+const economy = new PrismaEconomyService(() => now);
+const service = new PermanentMissionService(economy);
 const players = new Set<string>();
 const now = new Date('2026-09-24T17:00:00.000Z');
 
@@ -50,7 +53,7 @@ const view = (playerId: string) => database.$transaction(tx => service.project(t
 const primogems = async (playerId: string) => (await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId, resourceKey: 'primogems' } } })).amount;
 
 describe('Permanent Mission persistence', () => {
-  it('applies migration 041 with 31 protected definitions and no direct economic backfill', async () => {
+  it('applies migrations 041/042 with 31 protected definitions and no direct economic backfill', async () => {
     expect(await database.$queryRawUnsafe<{ count: bigint }[]>(`SELECT count(*)::bigint AS count FROM _prisma_migrations WHERE migration_name = '20260924170000_041_add_permanent_missions' AND finished_at IS NOT NULL`)).toEqual([{ count: 1n }]);
     const definitions = await database.permanentMissionDefinition.findMany({ orderBy: [{ rank: 'asc' }, { displayOrder: 'asc' }] });
     expect(definitions).toHaveLength(31);
@@ -63,7 +66,7 @@ describe('Permanent Mission persistence', () => {
       { relname: 'player_permanent_mission_states', relrowsecurity: true },
     ]);
     const constraints = await database.$queryRawUnsafe<{ contype: string; count: bigint }[]>(`SELECT contype::text, count(*)::bigint AS count FROM pg_constraint WHERE conrelid IN ('permanent_mission_definitions'::regclass, 'player_permanent_mission_states'::regclass, 'player_permanent_mission_progress'::regclass) GROUP BY contype`);
-    expect(Object.fromEntries(constraints.map(row => [row.contype, row.count]))).toMatchObject({ p: 3n, u: 4n, f: 5n, c: 9n });
+    expect(Object.fromEntries(constraints.map(row => [row.contype, row.count]))).toMatchObject({ p: 3n, u: 4n, f: 5n, c: 10n });
     const indexes = await database.$queryRawUnsafe<{ indexname: string }[]>(`SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND indexname IN ('permanent_mission_definitions_catalog_idx', 'player_permanent_mission_states_z_unlocked_idx', 'player_permanent_mission_progress_player_status_idx', 'player_permanent_mission_progress_definition_status_idx', 'player_permanent_mission_progress_trigger_operation_idx') ORDER BY indexname`);
     expect(indexes.map(row => row.indexname)).toEqual([
       'permanent_mission_definitions_catalog_idx',
@@ -78,6 +81,8 @@ describe('Permanent Mission persistence', () => {
     expect(sql).not.toMatch(/(?:UPDATE|INSERT INTO)\s+"?(?:player_resource_balances|resource_movements|player_economy_stats)"?/iu);
     expect(sql).not.toContain('legacy');
     expect(sql).not.toContain('daily_challenge');
+    const catchupSql = await readFile(new URL('../prisma/migrations/20260924213000_042_add_permanent_mission_catchup_marker/migration.sql', import.meta.url), 'utf8');
+    expect(catchupSql).not.toMatch(/(?:UPDATE|INSERT|DELETE)/iu);
   });
 
   it('initializes a new Player with B active, A/S locked, Z secret and no reward', async () => {
@@ -91,6 +96,123 @@ describe('Permanent Mission persistence', () => {
     expect(JSON.stringify(projection.z)).not.toMatch(/Couronne|Amitié|160000|C6/u);
     expect(await primogems(playerId)).toBe(0n);
     expect(await database.businessOperation.count({ where: { playerId, operationType: 'permanent-mission.reward' } })).toBe(0);
+    expect((await database.playerPermanentMissionState.findUniqueOrThrow({ where: { playerId } })).standaloneCatchupCompletedAt).not.toBeNull();
+  });
+
+  it('catches up standalone history exactly once under SYSTEM and keeps the durable marker atomic', async () => {
+    const playerId = await provision('Catchup');
+    await database.playerPermanentMissionState.update({ where: { playerId }, data: { standaloneCatchupCompletedAt: null } });
+    await database.playerProgression.update({ where: { playerId }, data: { countedMessages: 250n, totalMessages: 250n } });
+
+    const first = await database.$transaction(tx => service.catchUpStandalone(tx, { playerId, now }));
+    expect(first).toMatchObject({ alreadyProcessed: false });
+    expect(first.completions.map(item => item.externalKey)).toEqual(['messages_b', 'messages_a']);
+    expect(await primogems(playerId)).toBe(1_760n);
+    const state = await database.playerPermanentMissionState.findUniqueOrThrow({ where: { playerId } });
+    expect(state.standaloneCatchupCompletedAt).toEqual(now);
+    const catchup = await database.businessOperation.findFirstOrThrow({ where: { playerId, operationType: 'permanent-mission.standalone-catchup' } });
+    expect(catchup).toMatchObject({ sourceChannel: SourceChannel.SYSTEM, status: 'COMPLETED' });
+    const rewards = await database.businessOperation.findMany({ where: { playerId, operationType: 'permanent-mission.reward' }, orderBy: { startedAt: 'asc' } });
+    expect(rewards).toHaveLength(2);
+    expect(rewards.every(item => item.sourceChannel === SourceChannel.SYSTEM && (item.resultSummary as { completionContext?: string }).completionContext === 'STANDALONE_CATCHUP')).toBe(true);
+    expect((await database.playerPermanentMissionProgress.findFirstOrThrow({ where: { playerId, definition: { externalKey: 'messages_b' } } })).completionTriggerOperationId).toBe(catchup.id);
+
+    expect(await database.$transaction(tx => service.catchUpStandalone(tx, { playerId, now }))).toEqual({ alreadyProcessed: true, completions: [] });
+    expect(await primogems(playerId)).toBe(1_760n);
+    expect(await database.businessOperation.count({ where: { playerId, operationType: 'permanent-mission.standalone-catchup' } })).toBe(1);
+  });
+
+  it('rolls back the standalone marker and rewards together, then serializes concurrent retries exactly once', async () => {
+    const playerId = await provision('CatchupAtomic');
+    await database.playerPermanentMissionState.update({ where: { playerId }, data: { standaloneCatchupCompletedAt: null } });
+    await database.playerProgression.update({ where: { playerId }, data: { countedMessages: 50n, totalMessages: 50n } });
+    await expect(database.$transaction(async tx => {
+      await service.catchUpStandalone(tx, { playerId, now });
+      throw new Error('forced catchup rollback');
+    })).rejects.toThrow('forced catchup rollback');
+    expect((await database.playerPermanentMissionState.findUniqueOrThrow({ where: { playerId } })).standaloneCatchupCompletedAt).toBeNull();
+    expect(await primogems(playerId)).toBe(0n);
+    expect(await database.businessOperation.count({ where: { playerId } })).toBe(0);
+
+    const results = await Promise.all([
+      database.$transaction(tx => service.catchUpStandalone(tx, { playerId, now })),
+      database.$transaction(tx => service.catchUpStandalone(tx, { playerId, now })),
+    ]);
+    expect(results.filter(result => !result.alreadyProcessed)).toHaveLength(1);
+    expect(await primogems(playerId)).toBe(160n);
+    expect(await database.businessOperation.count({ where: { playerId, operationType: 'permanent-mission.reward' } })).toBe(1);
+  }, 20_000);
+
+  it('reconciles only requested Lot 2 metrics and leaves pre-existing Lot 3 aggregates untouched', async () => {
+    const playerId = await provision('Scoped');
+    await database.playerCombatStats.create({ data: { playerId, totalFights: 5n, totalWins: 5n } });
+    await database.playerEconomyStats.update({ where: { playerId }, data: { totalMorasEarned: 50_000n } });
+    const operation = await database.businessOperation.create({ data: { playerId, operationType: 'test.moras', sourceChannel: SourceChannel.UI, idempotencyKey: randomUUID() } });
+    const result = await database.$transaction(tx => service.reconcileMetrics(tx, {
+      playerId, sourceChannel: SourceChannel.UI, now, triggerOperationId: operation.id, metrics: ['MORAS_EARNED'],
+    }));
+    expect(result.completions.map(item => item.externalKey)).toEqual(['moras_b']);
+    expect((await database.playerPermanentMissionProgress.findFirstOrThrow({ where: { playerId, definition: { externalKey: 'combat_wins_b' } } })).progress).toBe(0n);
+  });
+
+  it('wires real Mora and personal-particle credits without transfers or Mission reward recursion', async () => {
+    const playerId = await provision('Economy');
+    await database.player.update({ where: { id: playerId }, data: { elementKey: 'pyro' } });
+    const operation = await database.businessOperation.create({ data: {
+      playerId, operationType: 'test.economy', sourceChannel: SourceChannel.UI, idempotencyKey: randomUUID(),
+    } });
+    await database.$transaction(async tx => {
+      await economy.credit(tx, {
+        playerId, playerElementKey: 'pyro', resourceKey: 'moras', amount: 50_000n,
+        causeKey: 'test.moras', domainKey: 'test', operationId: operation.id, sourceChannel: SourceChannel.UI,
+      });
+      await economy.credit(tx, {
+        playerId, playerElementKey: 'pyro', resourceKey: 'particles_pyro', amount: 500n,
+        causeKey: 'test.personal-particles', domainKey: 'test', operationId: operation.id, sourceChannel: SourceChannel.UI,
+      });
+      await economy.credit(tx, {
+        playerId, playerElementKey: 'pyro', resourceKey: 'particles_hydro', amount: 700n,
+        causeKey: 'test.other-particles', domainKey: 'test', operationId: operation.id, sourceChannel: SourceChannel.UI,
+      });
+      await economy.adjustWithoutStats(tx, {
+        playerId, resourceKey: 'particles_pyro', delta: 1_000n,
+        causeKey: 'test.transfer', domainKey: 'test', operationId: operation.id, sourceChannel: SourceChannel.UI,
+      });
+    });
+    const completed = await database.playerPermanentMissionProgress.findMany({
+      where: { playerId, status: PermanentMissionProgressStatus.COMPLETED }, include: { definition: true },
+    });
+    expect(completed.map(row => row.definition.externalKey).sort()).toEqual(['main_particles_b', 'moras_b']);
+    expect(await primogems(playerId)).toBe(320n);
+    expect(await database.businessOperation.count({ where: { playerId, operationType: 'permanent-mission.reward' } })).toBe(2);
+    expect((await database.playerPermanentMissionProgress.findFirstOrThrow({ where: { playerId, definition: { externalKey: 'main_particles_a' } } })).progress).toBe(500n);
+  });
+
+  it('reconciles Player level 100 after XP with the producer trigger and source exactly once', async () => {
+    const playerId = await provision('Level100');
+    await database.player.update({ where: { id: playerId }, data: { elementKey: 'pyro' } });
+    await database.playerProgression.update({ where: { playerId }, data: { xp: 2_999n } });
+    await database.playerPermanentMissionState.update({ where: { playerId }, data: { zUnlockedAt: now } });
+    await database.playerPermanentMissionProgress.update({
+      where: { playerId_definitionId: { playerId, definitionId: '91000000-0000-4000-8000-000000000030' } },
+      data: { status: PermanentMissionProgressStatus.ACTIVE, startedAt: now },
+    });
+    const operation = await database.businessOperation.create({ data: {
+      playerId, operationType: 'test.xp', sourceChannel: SourceChannel.INTERNAL_CHAT, idempotencyKey: randomUUID(),
+    } });
+    const xp = new PrismaPlayerXpService(economy, service);
+    await database.$transaction(tx => xp.grant(tx, {
+      playerId, playerElementKey: 'pyro', amount: 1n, source: 'test', now,
+      operationId: operation.id, sourceChannel: SourceChannel.INTERNAL_CHAT, random: { nextInt: () => 0 },
+    }));
+    const level100 = await database.playerPermanentMissionProgress.findFirstOrThrow({ where: { playerId, definition: { externalKey: 'level_100_z' } } });
+    expect(level100).toMatchObject({ status: PermanentMissionProgressStatus.COMPLETED, completionTriggerOperationId: operation.id });
+    const reward = await database.businessOperation.findUniqueOrThrow({ where: { id: level100.rewardOperationId! } });
+    expect(reward).toMatchObject({ sourceChannel: SourceChannel.INTERNAL_CHAT });
+    await database.$transaction(tx => service.reconcileMetrics(tx, {
+      playerId, sourceChannel: SourceChannel.INTERNAL_CHAT, now, triggerOperationId: operation.id, metrics: ['PLAYER_LEVEL'],
+    }));
+    expect(await database.businessOperation.count({ where: { playerId, operationType: 'permanent-mission.reward' } })).toBe(1);
   });
 
   it('cascades cumulative ranks and independent categories, then replays without a second reward', async () => {

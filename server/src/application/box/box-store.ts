@@ -2,6 +2,7 @@ import type { ElementKey } from '../../domain/economy/resources.js';
 import type { C6StatKey, C6Stats } from '../../domain/contest/c6-progress.js';
 export type C6CompetitionStats = C6Stats & Readonly<{ max: number }>;
 import type { RandomSource } from '../../domain/wheel/wheel.js';
+import type { SourceChannel } from '../../../generated/prisma/client.js';
 
 export const boxSortKeys = ['alphabetical', 'obtainedAt', 'constellation', 'element'] as const;
 export const boxSortDirections = ['asc', 'desc'] as const;
@@ -55,4 +56,5 @@ export type UseStellaInput = Readonly<{
   idempotencyKey: string;
   now: Date;
   random: RandomSource;
+  sourceChannel?: SourceChannel;
 }>;

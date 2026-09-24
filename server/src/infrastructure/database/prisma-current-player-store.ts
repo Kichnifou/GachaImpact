@@ -115,7 +115,8 @@ export class PrismaCurrentPlayerStore implements CurrentPlayerStore {
           },
           select: currentPlayerSelection,
         });
-        await this.permanentMissions.initializePlayer(transaction, player.id, initializedAt);
+        // A newly provisioned Player has no pre-wiring career to catch up.
+        await this.permanentMissions.initializePlayer(transaction, player.id, initializedAt, true);
 
         return { player, created: true };
       },

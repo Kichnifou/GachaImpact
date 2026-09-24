@@ -1236,15 +1236,15 @@ L'API physique 0.79 expose `GET /api/v1/me/shop` et `POST /api/v1/me/shop/:itemI
 
 # 17. Missions
 
-## 17.1 État permanent physique — migration 041 promue
+## 17.1 État permanent physique — migration 041 promue, 042 candidate
 
 `permanent_mission_definitions` contient exactement le catalogue B/A/S/Z. Ses enums physiques sont `permanent_mission_rank`, `permanent_mission_metric` et `permanent_mission_progress_status`. La table stocke external key, métrique, rang, textes, cible, récompense Primogemmes, ordre, activation et secret. Les unicités portent sur external key, métrique/rang et rang/ordre ; les CHECK imposent valeurs positives, textes non vides, métriques compatibles, récompense de chaque rang et secret exclusivement Z.
 
-`player_permanent_mission_states` possède une PK/FK `player_id` avec cascade, `initialized_at` et `z_unlocked_at`. Le timestamp de déblocage ne peut précéder l’initialisation.
+`player_permanent_mission_states` possède une PK/FK `player_id` avec cascade, `initialized_at`, `z_unlocked_at` et `standalone_catchup_completed_at`. Les timestamps de déblocage Z et de catch-up ne peuvent précéder l’initialisation. La migration additive 042 ajoute uniquement cette dernière colonne nullable et son CHECK ; elle ne modifie aucune ligne métier, progression, opération, ressource ou statistique.
 
 `player_permanent_mission_progress` possède la PK `(player_id, definition_id)`, les FK vers Player/définition et deux FK optionnelles vers `business_operations`. Il stocke état, progression, baseline, report certain, dates et preuve de récompense. Les CHECK interdisent les valeurs négatives et un état `COMPLETED` dépourvu de `completed_at`, `rewarded_at` ou `reward_operation_id`; ce dernier est unique. Les index couvrent Player/état, définition/état, déblocages Z et opération déclenchante.
 
-Le seed de migration et `prisma/seed.ts` sont déterministes et rejouables par `external_key`. Les Players existants reçoivent état + 31 progressions, B actif depuis `players.created_at`, A/S/Z verrouillés, baseline/report à 0. Aucun solde ni mouvement économique n’est écrit. Les trois tables ont RLS active et tous les droits `PUBLIC`, `anon`, `authenticated` révoqués.
+Le seed de migration et `prisma/seed.ts` sont déterministes et rejouables par `external_key`. Les Players existants reçoivent état + 31 progressions, B actif depuis `players.created_at`, A/S/Z verrouillés, baseline/report à 0 et marqueur de catch-up nul. Les nouveaux Players sont marqués par le service de provisionnement dans sa transaction. Aucun solde ni mouvement économique n’est écrit par 041 ou 042. Les trois tables ont RLS active et tous les droits `PUBLIC`, `anon`, `authenticated` révoqués.
 
 ---
 
@@ -1256,7 +1256,7 @@ Il n’existe pas de table générique `mission_rewards` physique dans le Lot 1 
 
 ## 17.3 Progression et reprise
 
-La progression effective vaut `carried_progress + max(compteur_autoritatif - baseline_value, 0)`, bornée à la cible. Baseline 0 couvre les standalone selon R301 ; les deux colonnes restent disponibles pour la future reprise conservative legacy R328. La migration 041 n’exécute aucun catch-up économique.
+La progression effective vaut `carried_progress + max(compteur_autoritatif - baseline_value, 0)`, bornée à la cible. Baseline 0 couvre les standalone selon R301 ; les deux colonnes restent disponibles pour la future reprise conservative legacy R328. Le catch-up applicatif crée une `BusinessOperation` SYSTEM dédiée, relie les récompenses historiques à cette opération puis écrit `standalone_catchup_completed_at` atomiquement. Les migrations 041–042 n’exécutent aucun catch-up économique.
 
 ---
 

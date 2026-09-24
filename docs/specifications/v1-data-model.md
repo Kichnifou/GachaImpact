@@ -951,19 +951,19 @@ Chaque achat standalone produit une seule `BusinessOperation` et une seule ligne
 
 # 16. Missions
 
-## 16.1 Missions permanentes — état physique 041 promu
+## 16.1 Missions permanentes — état physique 041 promu, 042 candidate
 
 `PermanentMissionDefinition` / `permanent_mission_definitions` porte les 31 définitions déterministes : `externalKey`, `metric`, rang B/A/S/Z, nom, description, libellé de progression, `target`, `rewardPrimogems`, ordre, activation et secret. Les couples métrique/rang et rang/ordre sont uniques ; les contraintes SQL limitent les métriques par famille, imposent les récompenses validées et réservent `isSecret` à Z.
 
-`PlayerPermanentMissionState` / `player_permanent_mission_states` porte l’initialisation et `zUnlockedAt`. `PlayerPermanentMissionProgress` / `player_permanent_mission_progress` porte, par Player et définition : `LOCKED | ACTIVE | COMPLETED`, progression, `baselineValue`, `carriedProgress`, dates de début/complétion/récompense et références facultatives vers l’opération déclenchante et l’opération de récompense. Une ligne terminée exige physiquement ses preuves de complétion et de récompense ; `rewardOperationId` est unique.
+`PlayerPermanentMissionState` / `player_permanent_mission_states` porte l’initialisation, `zUnlockedAt` et, depuis la migration additive 042, `standaloneCatchupCompletedAt`. Ce dernier reste nullable pour les standalone qui attendent leur première activation Lot 2 et possède un CHECK empêchant une date antérieure à l’initialisation. `PlayerPermanentMissionProgress` / `player_permanent_mission_progress` porte, par Player et définition : `LOCKED | ACTIVE | COMPLETED`, progression, `baselineValue`, `carriedProgress`, dates de début/complétion/récompense et références facultatives vers l’opération déclenchante et l’opération de récompense. Une ligne terminée exige physiquement ses preuves de complétion et de récompense ; `rewardOperationId` est unique.
 
-Le provisionnement initialise les 31 lignes dans sa transaction : B actif, A/S/Z verrouillés. Pour un standalone antérieur à 041, baseline 0 signifie progression depuis le provisionnement selon R301 ; aucune récompense n’est appliquée par la migration. `baselineValue + carriedProgress` permet la future importation conservative R328 sans confondre ce cas avec le rattrapage standalone.
+Le provisionnement initialise les 31 lignes dans sa transaction : B actif, A/S/Z verrouillés, et marque immédiatement le rattrapage standalone comme déjà traité. Pour un standalone antérieur au branchement Lot 2, baseline 0 permet au premier catch-up R301 d’utiliser ses compteurs autoritatifs depuis le provisionnement. Le marqueur, les progressions, les opérations SYSTEM et les récompenses sont validés dans une seule transaction applicative ; la migration 042 ne crée elle-même aucune récompense. `baselineValue + carriedProgress` reste réservé à la future importation conservative R328.
 
 ## 16.2 Invariants applicatifs permanents
 
-`PermanentMissionService` reçoit la transaction métier existante. Il lit les compteurs serveur, calcule la progression effective depuis baseline, cascade les paliers cumulatifs, débloque Z après les 27 B/A/S et évalue immédiatement les quatre conditions Z. Complétion, `BusinessOperation`, mouvement Economy et état récompensé sont atomiques ; verrou Player, clé d’idempotence par Player/définition et lien unique de récompense empêchent le double paiement.
+`PermanentMissionService` reçoit la transaction métier existante. Sa voie producteur lit uniquement les métriques demandées ; la voie catch-up SYSTEM lit tous les compteurs historiques avant la mutation courante. Il calcule la progression effective depuis baseline, cascade les paliers cumulatifs, débloque Z après les 27 B/A/S et évalue immédiatement les quatre conditions Z. Complétion, `BusinessOperation`, mouvement Economy, contexte de complétion et état récompensé sont atomiques ; verrou Player, marqueur de catch-up, clé d’idempotence par Player/définition et lien unique de récompense empêchent le double paiement.
 
-La projection personnelle interne expose B/A/S avec objectif, progression, seuil, état, récompense et rang. Avant `zUnlockedAt`, elle ne renvoie que `{ status: LOCKED }` pour Z, sans définition ni récompense. Ce Lot 1 n’ajoute aucune route player-facing et ne raccorde encore aucun producteur.
+La projection personnelle interne expose B/A/S avec objectif, progression, seuil, état, récompense et rang. Avant `zUnlockedAt`, elle ne renvoie que `{ status: LOCKED }` pour Z, sans définition ni récompense. Le candidat Lot 2 raccorde Chat/XP, Gacha/possessions/C6, Stella, Economy Moras/particules personnelles et intérêts Banque ; il n’ajoute aucune route player-facing.
 
 ## 16.3 Défi quotidien payant (`daily-mission` technique)
 

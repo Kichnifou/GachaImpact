@@ -486,12 +486,13 @@ model PermanentMissionDefinition {
 }
 
 model PlayerPermanentMissionState {
-  playerId      String    @id @map("player_id") @db.Uuid
-  initializedAt DateTime  @default(now()) @map("initialized_at") @db.Timestamptz(6)
-  zUnlockedAt   DateTime? @map("z_unlocked_at") @db.Timestamptz(6)
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  player        Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  playerId                     String    @id @map("player_id") @db.Uuid
+  initializedAt                DateTime  @default(now()) @map("initialized_at") @db.Timestamptz(6)
+  zUnlockedAt                  DateTime? @map("z_unlocked_at") @db.Timestamptz(6)
+  standaloneCatchupCompletedAt DateTime? @map("standalone_catchup_completed_at") @db.Timestamptz(6)
+  createdAt                    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player                       Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@index([zUnlockedAt], map: "player_permanent_mission_states_z_unlocked_idx")
   @@map("player_permanent_mission_states")

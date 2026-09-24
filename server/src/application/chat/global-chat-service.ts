@@ -7,12 +7,14 @@ import type { Clock } from '../../domain/time/business-date.js';
 import { getBusinessDate } from '../../domain/time/business-date.js';
 import type { RandomSource } from '../../domain/wheel/wheel.js';
 import { PrismaPlayerXpService } from '../../infrastructure/database/prisma-player-xp-service.js';
+import { PrismaEconomyService } from '../../infrastructure/database/prisma-economy-service.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
 import { GetCurrentPlayer } from '../player/get-current-player.js';
 import { PlayerActivityRecorder } from '../player/player-activity-recorder.js';
 import { PrismaDailyChallengeStore } from '../../infrastructure/database/prisma-daily-challenge-store.js';
 import { normalizePlayerSearch } from '../social/social-service.js';
 import { scopesForOperation, type ChatRefreshScope } from './chat-refresh-scopes.js';
+import { PermanentMissionService } from '../missions/permanent-mission-service.js';
 
 const invalid = (message: string) => new AppError(message, 400, 'CHAT_INVALID');
 const unavailable = () => new AppError('Ce message est indisponible.', 404, 'CHAT_UNAVAILABLE');
@@ -79,6 +81,7 @@ export class GlobalChatService {
     private readonly activity = new PlayerActivityRecorder(),
     private readonly dailyChallenges = new PrismaDailyChallengeStore(database),
     private readonly onSubmissionReserved?: (order: bigint) => Promise<void>,
+    private readonly permanentMissions = new PermanentMissionService(new PrismaEconomyService()),
   ) {}
 
   private async actor(identity: AuthenticatedIdentity) { return this.currentPlayer.execute(identity); }
@@ -165,6 +168,7 @@ export class GlobalChatService {
       if (submissionOrder === null) throw conflict();
       // Pacing time belongs to the serialized Player turn, not to an earlier network arrival.
       const now = this.clock.now();
+      await this.permanentMissions.catchUpStandalone(tx, { playerId: player.id, now });
       if (replyId) {
         const parent = await tx.$queryRaw<{ deletion_state: string; generation: number }[]>`SELECT deletion_state::text, generation FROM global_chat_messages WHERE id = ${replyId}::uuid FOR SHARE`;
         if (parent[0]?.deletion_state !== 'ACTIVE' || parent[0].generation !== generation) throw unavailable();
@@ -223,6 +227,13 @@ export class GlobalChatService {
         xpGranted = normalized.length <= 100 ? 1 : normalized.length <= 200 ? 2 : 3;
         const xpPlan = await this.xp.grant(tx, { playerId: player.id, playerElementKey: actor.element_key, amount: BigInt(xpGranted), source: 'chat.message', now, operationId: operation.id, sourceChannel: 'INTERNAL_CHAT', random: this.random });
         await tx.playerProgression.update({ where: { playerId: player.id }, data: { countedMessages: { increment: 1n }, lastXpMessageAt: now } });
+        await this.permanentMissions.reconcileMetrics(tx, {
+          playerId: player.id,
+          sourceChannel: 'INTERNAL_CHAT',
+          now,
+          triggerOperationId: operation.id,
+          metrics: ['COUNTED_MESSAGES'],
+        });
         const businessDate = getBusinessDate(now);
         const challengeBefore = await tx.playerDailyChallenge.findUnique({ where: { playerId_businessDate: { playerId: player.id, businessDate: new Date(`${businessDate}T00:00:00.000Z`) } }, select: { status: true } });
         await this.dailyChallenges.progress(tx, { playerId: player.id, playerElementKey: actor.element_key, businessDate, type: 'messages', amount: 1n, now, operationId: operation.id, sourceChannel: 'INTERNAL_CHAT' });

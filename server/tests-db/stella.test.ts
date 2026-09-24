@@ -1,10 +1,13 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
-import { afterAll, afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { loadConfig } from '../src/config/environment.js';
 import { MASTERLESS_STELLA_FORTUNA_KEY } from '../src/application/box/box-store.js';
 import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 import { PrismaBoxStore } from '../src/infrastructure/database/prisma-box-store.js';
+import { PermanentMissionService } from '../src/application/missions/permanent-mission-service.js';
+import { SourceChannel } from '../generated/prisma/client.js';
+import { PrismaEconomyService } from '../src/infrastructure/database/prisma-economy-service.js';
 
 const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Stella database tests.');
@@ -59,13 +62,19 @@ describe('Box preferences and Masterless Stella Fortuna on the development datab
     await credit(player.id, 2n);
     await possess(player.id, c0.id, 0, 1, true);
     await possess(player.id, c5.id, 5, 6, false);
-    const store = new PrismaBoxStore(database);
+    const missions = new PermanentMissionService(new PrismaEconomyService(() => now));
+    const reconcile = vi.spyOn(missions, 'reconcileMetrics');
+    const store = new PrismaBoxStore(database, undefined, undefined, missions);
 
     const first = await use(store, player.id, c0.id);
     expect(first).toMatchObject({ character: { constellation: 1, copies: 2, favorite: true, firstObtainedAt }, stellaRemaining: 1n, c6Progression: null });
+    expect(await database.businessOperation.findUniqueOrThrow({ where: { id: first.operation.id } })).toMatchObject({ sourceChannel: SourceChannel.UI });
     const reachingC6 = await use(store, player.id, c5.id);
     expect(reachingC6).toMatchObject({ character: { constellation: 6, copies: 7, favorite: false, firstObtainedAt }, stellaRemaining: 0n, c6Progression: { type: 'unlocked' } });
     expect(await database.c6CompetitionProgress.findUnique({ where: { playerId_characterId: { playerId: player.id, characterId: c5.id } } })).toMatchObject({ strength: 1, intelligence: 1, beauty: 1, charisma: 1, popularity: 1 });
+    expect(reconcile).toHaveBeenLastCalledWith(expect.anything(), expect.objectContaining({
+      playerId: player.id, sourceChannel: SourceChannel.UI, triggerOperationId: reachingC6.operation.id, metrics: ['C6_CHARACTERS'],
+    }));
   });
 
   it('progresses an eligible C6 without Gacha refunds and refuses a fully maxed C6 atomically', async () => {
@@ -96,9 +105,10 @@ describe('Box preferences and Masterless Stella Fortuna on the development datab
     await possess(other.id, target.id, 0, 1);
     const store = new PrismaBoxStore(database);
     const key = randomUUID();
-    const first = await store.useStella({ playerId: player.id, characterId: target.id, idempotencyKey: key, now, random });
-    const retry = await store.useStella({ playerId: player.id, characterId: target.id, idempotencyKey: key, now, random: { nextInt: () => { throw new Error('must not reroll'); } } });
+    const first = await store.useStella({ playerId: player.id, characterId: target.id, idempotencyKey: key, now, random, sourceChannel: SourceChannel.INTERNAL_CHAT });
+    const retry = await store.useStella({ playerId: player.id, characterId: target.id, idempotencyKey: key, now, random: { nextInt: () => { throw new Error('must not reroll'); } }, sourceChannel: SourceChannel.INTERNAL_CHAT });
     expect(retry.operation).toEqual({ id: first.operation.id, alreadyProcessed: true });
+    expect(await database.businessOperation.findUniqueOrThrow({ where: { id: first.operation.id } })).toMatchObject({ sourceChannel: SourceChannel.INTERNAL_CHAT });
     expect(retry.stellaRemaining).toBe(1n);
     expect((await database.playerCharacter.findUniqueOrThrow({ where: { playerId_characterId: { playerId: player.id, characterId: target.id } } })).copies).toBe(2);
     expect(await store.getStellaQuantity(other.id)).toBe(0n);
@@ -127,6 +137,7 @@ describe('Box preferences and Masterless Stella Fortuna on the development datab
 
 async function createPlayer() {
   const player = await database.player.create({ data: { displayName: `Stella ${randomUUID().slice(0, 8)}` } });
+  await database.$transaction(tx => new PermanentMissionService().initializePlayer(tx, player.id, now, true));
   players.add(player.id);
   return player;
 }

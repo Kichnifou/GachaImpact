@@ -13,6 +13,7 @@ import { applyExactMultiplier, deriveActiveTeamGachaEffects, type ActiveTeamGach
 import { PrismaPlayerXpService } from './prisma-player-xp-service.js';
 import type { DailyChallengeProgressor } from '../../application/daily-challenge/daily-challenge-store.js';
 import { getBusinessDate } from '../../domain/time/business-date.js';
+import { PermanentMissionService } from '../../application/missions/permanent-mission-service.js';
 
 const characterSelection = {
   id: true, externalKey: true, name: true, rarity: true, elementKey: true, weaponType: true,
@@ -27,6 +28,8 @@ const stateSelection = {
 const MAX_PULL_ATTEMPTS = 5;
 
 export class PrismaGachaStore implements GachaStore {
+  private readonly permanentMissions: PermanentMissionService;
+
   public constructor(
     private readonly database: PrismaClient,
     private readonly economy = new PrismaEconomyService(),
@@ -34,7 +37,10 @@ export class PrismaGachaStore implements GachaStore {
     private readonly c6 = new PrismaC6ProgressionService(),
     private readonly xp = new PrismaPlayerXpService(),
     private readonly dailyChallenges?: DailyChallengeProgressor,
-  ) {}
+    permanentMissions?: PermanentMissionService,
+  ) {
+    this.permanentMissions = permanentMissions ?? new PermanentMissionService(economy);
+  }
 
   public async listActiveCharacters(): Promise<readonly GachaCharacter[]> {
     const rows = await this.database.character.findMany({ where: { isActive: true }, select: characterSelection, orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }] });
@@ -164,6 +170,8 @@ export class PrismaGachaStore implements GachaStore {
         throw new BusinessError('GACHA_IDEMPOTENCY_CONFLICT', 'Cette intention d’Invocation est déjà en cours.');
       }
 
+      await this.permanentMissions.catchUpStandalone(transaction, { playerId: input.playerId, now: input.now });
+
       const bannerRow = await transaction.bannerRotation.findFirst({
         where: { status: 'ACTIVE', startsAt: { lte: input.now }, endsAt: { gt: input.now } },
         include: { featuredCharacters: { include: { character: { select: characterSelection } }, orderBy: [{ rarity: 'desc' }, { slot: 'asc' }] } },
@@ -233,7 +241,7 @@ export class PrismaGachaStore implements GachaStore {
           await this.economy.credit(transaction, {
             playerId: input.playerId, playerElementKey: input.playerElementKey,
             resourceKey: resolved.outcome.resourceKey, amount: resourceAmount,
-            causeKey: 'gacha.pull.secondary-reward', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel,
+            causeKey: 'gacha.pull.secondary-reward', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel, skipPermanentMissions: true,
           });
           record = {
             index, resultType: 'resource', character: null, rarity: null,
@@ -251,7 +259,7 @@ export class PrismaGachaStore implements GachaStore {
             bonusRewards.push({ resourceKey: 'primogems', amount: refund, causeKey: 'gacha.c6-duplicate-refund' });
             await this.economy.credit(transaction, {
               playerId: input.playerId, playerElementKey: input.playerElementKey, resourceKey: 'primogems', amount: refund,
-              causeKey: 'gacha.c6-duplicate-refund', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel,
+              causeKey: 'gacha.c6-duplicate-refund', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel, skipPermanentMissions: true,
             });
             if (resolved.outcome.rarity === 5) {
               const progression = await this.c6.progress(transaction, input.playerId, resolved.outcome.character.id, input.now, input.random);
@@ -262,7 +270,7 @@ export class PrismaGachaStore implements GachaStore {
                 bonusRewards.push({ resourceKey: 'moras', amount: progression.amount, causeKey: 'gacha.c6-maxed-compensation' });
                 await this.economy.credit(transaction, {
                   playerId: input.playerId, playerElementKey: input.playerElementKey, resourceKey: 'moras', amount: progression.amount,
-                  causeKey: 'gacha.c6-maxed-compensation', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel,
+                  causeKey: 'gacha.c6-maxed-compensation', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel, skipPermanentMissions: true,
                 });
               }
             }
@@ -299,7 +307,7 @@ export class PrismaGachaStore implements GachaStore {
           const amount = BigInt(activeTeam.effects.primogemRecovery.amount);
           await this.economy.credit(transaction, {
             playerId: input.playerId, playerElementKey: input.playerElementKey, resourceKey: 'primogems', amount,
-            causeKey: 'team.passive.anemo.primogem-recovery', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel,
+            causeKey: 'team.passive.anemo.primogem-recovery', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel, skipPermanentMissions: true,
           });
           bonusRewards.push({ resourceKey: 'primogems', amount, causeKey: 'team.passive.anemo.primogem-recovery' });
           passiveEffects.push({ elementKey: 'anemo', type: 'primogem_recovery', amount });
@@ -311,7 +319,7 @@ export class PrismaGachaStore implements GachaStore {
             await this.economy.credit(transaction, {
               playerId: input.playerId, playerElementKey: input.playerElementKey,
               resourceKey: reward.resourceKey, amount: reward.amount,
-              causeKey: 'team.passive.dendro.bundle', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel,
+              causeKey: 'team.passive.dendro.bundle', domainKey: 'gacha', operationId: businessOperation.id, sourceChannel, skipPermanentMissions: true,
             });
             bonusRewards.push({ ...reward, causeKey: 'team.passive.dendro.bundle' });
           }
@@ -340,6 +348,16 @@ export class PrismaGachaStore implements GachaStore {
         now: input.now,
         operationId: businessOperation.id,
         sourceChannel,
+      });
+      await this.permanentMissions.reconcileMetrics(transaction, {
+        playerId: input.playerId,
+        sourceChannel,
+        now: input.now,
+        triggerOperationId: businessOperation.id,
+        metrics: [
+          'PULLS', 'DISTINCT_CHARACTERS_4', 'DISTINCT_CHARACTERS_5', 'C6_CHARACTERS',
+          'MORAS_EARNED', 'MAIN_ELEMENT_PARTICLES_EARNED',
+        ],
       });
       await transaction.businessOperation.update({ where: { id: businessOperation.id }, data: {
         status: OperationStatus.COMPLETED, completedAt: input.now,

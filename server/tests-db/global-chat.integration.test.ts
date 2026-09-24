@@ -100,6 +100,29 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(await db.globalChatMessage.count({ where: { replyToMessageId: sent.message.id, messageType: 'GAME_RESULT' } })).toBe(1);
   });
 
+  it('reconciles counted Messages on the chat operation, preserves carry into A, and ignores cooldown and commands', async () => {
+    const id = await player(0n);
+    await db.playerProgression.update({ where: { playerId: id }, data: { totalMessages: 49n, countedMessages: 49n } });
+    const key = randomUUID();
+    const accepted = await service.send(as(id), 'cinquantième message', key);
+    const chatOperation = await db.businessOperation.findFirstOrThrow({ where: { playerId: id, operationType: 'chat.send', idempotencyKey: key } });
+    const completed = await db.playerPermanentMissionProgress.findFirstOrThrow({ where: { playerId: id, definition: { externalKey: 'messages_b' } } });
+    expect(completed).toMatchObject({ status: 'COMPLETED', progress: 50n, completionTriggerOperationId: chatOperation.id });
+    const reward = await db.businessOperation.findUniqueOrThrow({ where: { id: completed.rewardOperationId! } });
+    expect(reward).toMatchObject({ sourceChannel: SourceChannel.INTERNAL_CHAT });
+    expect((reward.resultSummary as { completionContext?: string }).completionContext).toBe('CURRENT_ACTION');
+    expect((await db.playerPermanentMissionProgress.findFirstOrThrow({ where: { playerId: id, definition: { externalKey: 'messages_a' } } }))).toMatchObject({ status: 'ACTIVE', progress: 50n });
+
+    expect((await service.send(as(id), 'cinquantième message', key)).replayed).toBe(true);
+    advance(1_000);
+    expect((await service.send(as(id), 'cooldown', randomUUID())).xpGranted).toBe(0);
+    advance(1_000);
+    expect((await service.send(as(id), '!help', randomUUID())).message.messageType).toBe('COMMAND');
+    expect((await progress(id)).countedMessages).toBe(50n);
+    expect(await db.businessOperation.count({ where: { playerId: id, operationType: 'permanent-mission.reward' } })).toBe(1);
+    expect(accepted.xpGranted).toBe(1);
+  });
+
   it('replays exactly once and rejects a changed payload or another Player on the same key', async () => {
     const id = await player(), other = await player(); const key = randomUUID();
     const sent = await service.send(as(id), 'bonjour', key);
@@ -450,7 +473,7 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(newMigration.rows).toHaveLength(1);
     expect(newMigration.rows[0]?.checksum).toBe(newChecksum);
     expect(newMigration.rows[0]?.finished_at).not.toBeNull();
-    expect(count.rows[0]?.count).toBe('40');
+    expect(count.rows[0]?.count).toBe('42');
     const clearMigration = await fixture.admin.query<{ checksum: string; finished_at: Date | null }>('SELECT checksum, finished_at FROM public._prisma_migrations WHERE migration_name=$1', ['20260922120000_035_add_global_chat_generation']);
     expect(clearMigration.rows).toHaveLength(1);
     expect(clearMigration.rows[0]?.checksum).toBe(migrationChecksum('prisma/migrations/20260922120000_035_add_global_chat_generation/migration.sql'));

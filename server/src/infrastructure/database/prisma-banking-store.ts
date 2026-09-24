@@ -5,6 +5,7 @@ import { addBusinessDays, businessDateToDatabaseDate, databaseDateToBusinessDate
 import { calculateDailyBankInterest } from '../../domain/banking/bank-interest.js';
 import { isPrismaConcurrencyCollision } from './prisma-concurrency.js';
 import { PrismaEconomyService } from './prisma-economy-service.js';
+import { PermanentMissionService } from '../../application/missions/permanent-mission-service.js';
 
 const MAX_ATTEMPTS = 4;
 const RECENT_OPERATION_LIMIT = 5;
@@ -12,13 +13,17 @@ const BANK_HISTORY_PAGE_SIZE = 10;
 type BankAccountCursor = Readonly<{ balance: bigint; lastInterestDate: Date }>;
 
 export class PrismaBankingStore implements BankingStore {
-  public constructor(private readonly database: PrismaClient, private readonly economy = new PrismaEconomyService()) {}
+  private readonly permanentMissions: PermanentMissionService;
+
+  public constructor(private readonly database: PrismaClient, private readonly economy = new PrismaEconomyService(), permanentMissions?: PermanentMissionService) {
+    this.permanentMissions = permanentMissions ?? new PermanentMissionService(economy);
+  }
 
   public async getState(playerId: string, businessDate: string, now: Date): Promise<BankState> {
     return this.withRetry(() => this.database.$transaction(async (transaction) => {
       await lockPlayer(transaction, playerId);
       let account = await ensureAndLockAccount(transaction, playerId, businessDate);
-      account = await accruePlayerThrough(transaction, playerId, account, businessDate, now);
+      account = await accruePlayerThrough(transaction, playerId, account, businessDate, now, this.permanentMissions);
       return readState(transaction, playerId, account.balance);
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 20_000 }));
   }
@@ -49,7 +54,7 @@ export class PrismaBankingStore implements BankingStore {
         return await this.database.$transaction(async (transaction) => {
           await lockPlayer(transaction, input.playerId);
           let account = await ensureAndLockAccount(transaction, input.playerId, input.businessDate);
-          account = await accruePlayerThrough(transaction, input.playerId, account, input.businessDate, input.occurredAt);
+          account = await accruePlayerThrough(transaction, input.playerId, account, input.businessDate, input.occurredAt, this.permanentMissions);
 
           const sourceChannel = toSourceChannel(input.sourceChannel);
           const existing = await transaction.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey: input.idempotencyKey } });
@@ -122,7 +127,7 @@ export class PrismaBankingStore implements BankingStore {
         await lockPlayer(transaction, playerId);
         const account = await ensureAndLockAccount(transaction, playerId, businessDate);
         const before = account.lastInterestDate;
-        await accruePlayerThrough(transaction, playerId, account, businessDate, now);
+        await accruePlayerThrough(transaction, playerId, account, businessDate, now, this.permanentMissions);
         return daysBetween(databaseDateToBusinessDate(before), businessDate);
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 20_000 }));
       if (count > 0) playersProcessed += 1;
@@ -169,9 +174,11 @@ async function lockWallet(transaction: Prisma.TransactionClient, playerId: strin
   return (await transaction.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId, resourceKey: 'moras' } }, select: { amount: true } })).amount;
 }
 
-async function accruePlayerThrough(transaction: Prisma.TransactionClient, playerId: string, initialAccount: BankAccountCursor, targetDate: string, now: Date): Promise<BankAccountCursor> {
+async function accruePlayerThrough(transaction: Prisma.TransactionClient, playerId: string, initialAccount: BankAccountCursor, targetDate: string, now: Date, permanentMissions: PermanentMissionService): Promise<BankAccountCursor> {
+  await permanentMissions.catchUpStandalone(transaction, { playerId, now });
   let balance = initialAccount.balance;
   let lastDate = databaseDateToBusinessDate(initialAccount.lastInterestDate);
+  let lastInterestOperationId: string | null = null;
   while (lastDate < targetDate) {
     const businessDate = addBusinessDays(lastDate, 1);
     const interest = calculateDailyBankInterest(balance);
@@ -204,8 +211,18 @@ async function accruePlayerThrough(transaction: Prisma.TransactionClient, player
       completedAt: now,
       resultSummary: { businessDate, interest: interest.toString(), bankMoras: balanceAfter.toString() },
     } });
+    lastInterestOperationId = operation.id;
     balance = balanceAfter;
     lastDate = businessDate;
+  }
+  if (lastInterestOperationId) {
+    await permanentMissions.reconcileMetrics(transaction, {
+      playerId,
+      sourceChannel: SourceChannel.SYSTEM,
+      now,
+      triggerOperationId: lastInterestOperationId,
+      metrics: ['MORAS_EARNED'],
+    });
   }
   return { ...initialAccount, balance, lastInterestDate: businessDateToDatabaseDate(lastDate) };
 }

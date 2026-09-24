@@ -56,9 +56,11 @@ describe('daily reward transaction on the development database', () => {
       expect(await database.resourceMovement.count({ where: { playerId } })).toBe(6);
     } finally {
       if (playerId) await database.$transaction([
-        database.playerDailyRewardState.deleteMany({ where: { playerId } }), database.resourceMovement.deleteMany({ where: { playerId } }), database.businessOperation.deleteMany({ where: { playerId } }),
+        database.playerDailyRewardState.deleteMany({ where: { playerId } }), database.resourceMovement.deleteMany({ where: { playerId } }),
+        database.playerPermanentMissionProgress.deleteMany({ where: { playerId } }), database.playerPermanentMissionState.deleteMany({ where: { playerId } }),
+        database.businessOperation.deleteMany({ where: { playerId } }),
         database.playerResourceBalance.deleteMany({ where: { playerId } }), database.playerEconomyStats.deleteMany({ where: { playerId } }), database.playerWheelStats.deleteMany({ where: { playerId } }), database.webIdentity.deleteMany({ where: { playerId } }), database.player.deleteMany({ where: { id: playerId } }),
       ]);
     }
-  });
+  }, 15_000);
 });
