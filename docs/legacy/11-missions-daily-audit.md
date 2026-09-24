@@ -268,9 +268,9 @@ Récompenses :
 - A : 1 600 Primogemmes ;
 - S : 16 000 Primogemmes.
 
-État physique standalone — candidat Lot 3 : les neuf catégories B/A/S ont désormais un producteur autoritatif raccordé. Expedition progresse uniquement au claim réussi depuis `PlayerExpedition.totalCompleted`; Combat quotidien progresse depuis `PlayerCombatStats.totalWins`; les cœurs progressent uniquement pour le sender depuis `PlayerSocialStats.totalFriendHeartsSent`. Les récompenses Moras/particules d’Expedition et Moras de Combat sont groupées avec la métrique du producteur dans une seule réconciliation finale.
+État physique standalone — Lot 3 approuvé par review indépendante et promu sur `main`, non encore validé publiquement : les neuf catégories B/A/S ont désormais un producteur autoritatif raccordé. Expedition progresse uniquement au claim réussi depuis `PlayerExpedition.totalCompleted`; Combat quotidien progresse depuis `PlayerCombatStats.totalWins`; les cœurs progressent uniquement pour le sender depuis `PlayerSocialStats.totalFriendHeartsSent`. Les récompenses Moras/particules d’Expedition et Moras de Combat sont groupées avec la métrique du producteur dans une seule réconciliation finale.
 
-Les deux raccords Z dépendants sont également physiques dans le candidat : une victoire quotidienne MANUAL alimente `MANUAL_COMBAT_WINS`, jamais AUTO ; le passage réel d’une relation au niveau 1000 réconcilie `PERFECT_FRIENDSHIP` pour ses deux participants, sans attribuer de cœur envoyé ni lancer le rattrapage historique du destinataire passif. Ce constat d’implémentation ne modifie aucune décision produit de cet audit.
+Les deux raccords Z dépendants sont également physiques dans le Lot 3 promu : une victoire quotidienne MANUAL alimente `MANUAL_COMBAT_WINS`, jamais AUTO ; le passage réel d’une relation au niveau 1000 réconcilie `PERFECT_FRIENDSHIP` pour ses deux participants, sans attribuer de cœur envoyé ni lancer le rattrapage historique du destinataire passif. Ce constat d’implémentation ne modifie aucune décision produit de cet audit.
 
 Pour chaque catégorie :
 - B doit être terminée avant A ;
@@ -1242,7 +1242,7 @@ L’Aperçu liste désormais Récompense quotidienne, Roue, Défi, Combat, Boss,
 
 Les formulations `aujourd’hui` redondantes sont retirées uniquement des détails de cet Aperçu pour Récompense, Roue, Combat, Boss et Expédition. Les écrans propriétaires conservent leur vocabulaire lorsque le contexte journalier reste utile.
 
-## Missions permanentes — Lots 1 et 2 promus, Lot 2 à valider publiquement
+## Missions permanentes — Lots 1 et 2 promus et validés publiquement ; Lot 3 promu, non encore validé publiquement
 
 La migration additive 041 matérialise un catalogue unique de 31 définitions — 27 B/A/S et 4 Z — ainsi que `player_permanent_mission_states` et `player_permanent_mission_progress`. Les external keys et UUID sont déterministes ; rang, métrique, seuil, récompense, ordre, activation et secret Z sont contraints. RLS est active et aucun droit direct `PUBLIC`, `anon` ou `authenticated` n’est accordé.
 
@@ -1252,4 +1252,4 @@ Le provisionnement crée l’état Player et les 31 lignes dans la même transac
 
 Recroisements physiques Lot 2 : Chat avance seulement `COUNTED_MESSAGES` après le vrai message XP-counted ; XP relit `PLAYER_LEVEL` ; Gacha regroupe `PULLS`, possessions distinctes 4★/5★, C6 et ses gains économiques après l’état final ; Stella propage UI ou INTERNAL_CHAT et relit C6 ; Economy relit uniquement Moras et particules de l’élément personnel après un vrai crédit ; la Banque exécute R301 immédiatement avant le premier intérêt strictement positif d’une séquence, puis relit Moras sur la vraie opération `bank.interest` avec canal SYSTEM. Le démarrage du scheduler, un compte à intérêt nul ou une date déjà traitée ne déclenchent aucun rattrapage Missions. Dépôt/retrait, échange/transfert de particules, commandes Chat, cooldown, replay et action refusée ne deviennent pas des gains. Une garde interne exclut les crédits Primogemmes des récompenses Missions du hook Economy et empêche toute récursion.
 
-Le Lot 2 ne raccorde ni Expedition, ni Combat, ni Social/cœurs : leurs agrégats ne sont lus que pendant le catch-up historique SYSTEM explicitement séparé. Aucun endpoint, écran, `!mission`, Profil, notification player-facing, Twitch ou import legacy n’est ajouté.
+Le Lot 3 raccorde Expedition, Combat et Social/cœurs dans leurs transactions propriétaires ; tous les producteurs autoritatifs B/A/S/Z sont donc physiques après promotion. Aucun endpoint, écran, `!mission`, Profil, notification player-facing, Twitch ou import legacy n’est ajouté.
