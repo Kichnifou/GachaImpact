@@ -8972,7 +8972,8 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .dm-history-result:focus-within, .dm-history-result:hover { border-color: rgba(114, 200, 255, .5); background: rgba(28, 58, 92, .82); }
 .dm-history-result-jump { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 8px; padding: 8px; cursor: pointer; color: #cad8eb; text-align: left; border: 0; background: transparent; }
 .dm-history-result-reply { padding: 5px 8px; cursor: pointer; color: #a9d9f7; font-size: 8px; border: 0; border-left: 1px solid rgba(104, 145, 199, .18); background: transparent; }
-.dm-history-result-reply:hover, .dm-history-result-reply:focus-visible { background: rgba(61, 106, 159, .3); }
+.dm-history-result-reply:not(:disabled):hover, .dm-history-result-reply:not(:disabled):focus-visible { background: rgba(61, 106, 159, .3); }
+.dm-history-result-reply:disabled { cursor: default; opacity: .45; }
 .dm-history-results strong { overflow: hidden; color: #e4eefc; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .dm-history-results span { min-width: 0; grid-column: 1 / -1; overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .dm-history-results time { color: #7386a3; font-size: 8px; white-space: nowrap; }
@@ -9016,7 +9017,8 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .dm-message.other:hover .dm-message-report-action, .dm-message.other:focus-within .dm-message-report-action, .dm-message.other.actions-open .dm-message-report-action { opacity: 1; pointer-events: auto; }
 .dm-message-report-action { right: 4px; }
 .dm-message-actions > button { width: 22px; height: 22px; padding: 0; color: #b9cbe1; font-size: 13px; border: 0; border-radius: 4px; background: transparent; cursor: pointer; }
-.dm-message-actions > button:hover, .dm-message-actions > button:focus-visible { color: #f1f7ff; background: rgba(61, 106, 159, .42); }
+.dm-message-actions > button:not(:disabled):hover, .dm-message-actions > button:not(:disabled):focus-visible { color: #f1f7ff; background: rgba(61, 106, 159, .42); }
+.dm-message-actions > button:disabled { cursor: default; opacity: .45; }
 .dm-message-edit button, .dm-message-delete-confirm button, .dm-message-action-error button { min-height: 24px; padding: 3px 7px; color: #c5d4e8; font-size: 9px; border: 0; border-radius: 4px; background: rgba(61, 106, 159, .2); cursor: pointer; }
 .dm-message-edit { display: grid; width: min(360px, 76vw); gap: 4px; }
 .dm-message-edit textarea { width: 100%; min-height: 56px; max-height: 150px; resize: vertical; padding: 5px 6px; color: #e4edf8; font: inherit; border: 1px solid rgba(124, 174, 224, .42); border-radius: 5px; background: rgba(9, 20, 37, .72); }
@@ -9075,12 +9077,11 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .dm-player-results small, .dm-new-body p, .dm-new-hint { color: #8092ad; font-size: 9px; }
 
 @media (max-width: 1120px) {
-  .direct-community-pane { min-height: 330px; max-height: 440px; }
-  .dm-panel { min-height: 330px; }
+  .direct-community-pane { height: 440px; min-height: 0; }
 }
 @media (max-width: 760px) {
   .community-tabs button { min-height: 44px; }
-  .direct-community-pane { max-height: min(520px, 70dvh); }
+  .direct-community-pane { height: min(520px, 70dvh); }
   .dm-report-overlay { position: fixed; padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); }
   .dm-report-dialog { max-height: calc(100dvh - 20px); }
   .dm-conversation-row { min-height: 58px; }

@@ -148,7 +148,7 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
     const seed = cached ?? { messages: conversation?.lastMessage ? [conversation.lastMessage] : [], cursor: null, fetched: false }
     caches.current.set(conversationId, seed); messagesRef.current = seed.messages
     // oxlint-disable-next-line react/set-state-in-effect -- selecting a thread publishes its cached snapshot before the first paint
-    setMessages(seed.messages); setCursor(seed.cursor); setMessagesLoaded(cached?.fetched === true || seed.messages.length > 0)
+    setMessages(seed.messages); setCursor(seed.cursor); setMessagesLoaded(cached?.fetched === true)
     void refreshMessages(conversationId)
   }, [conversationId, playerId, refreshMessages])
 

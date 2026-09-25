@@ -1107,6 +1107,7 @@ export default function DirectMessagePanel({
     }
   };
   const chooseReply = (message: DirectMessageDto | DirectMessageHistoryMessageDto) => {
+    if (queuedSendRef.current) return;
     if (!selected?.canSend || message.deletedAt || !message.content || message.id.startsWith("optimistic:")) return;
     replyRevision.current += 1;
     setReplyTarget(message);
@@ -1272,7 +1273,7 @@ export default function DirectMessagePanel({
                         type="button"
                         title="Répondre"
                         aria-label="Répondre au message"
-                        disabled={messageActionPending === message.id}
+                        disabled={messageActionPending === message.id || queuedSend !== null}
                         onClick={() => chooseReply(message)}
                       >
                         ↩
@@ -1296,7 +1297,7 @@ export default function DirectMessagePanel({
               {!message.own && (replyable || reportable) && (
                 <div className="dm-message-actions dm-message-report-action">
                   {replyable && (
-                    <button type="button" title="Répondre" aria-label="Répondre au message" onClick={() => chooseReply(message)}>↩</button>
+                    <button type="button" title="Répondre" aria-label="Répondre au message" disabled={queuedSend !== null} onClick={() => chooseReply(message)}>↩</button>
                   )}
                   {reportable && (
                     <button
@@ -1757,7 +1758,7 @@ export default function DirectMessagePanel({
                     <span>{message.content}</span>
                     <time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleString("fr-FR")}</time>
                   </button>
-                  {selected.canSend && <button type="button" className="dm-history-result-reply" aria-label="Répondre au message trouvé" onClick={() => chooseReply(message)}>Répondre</button>}
+                  {selected.canSend && <button type="button" className="dm-history-result-reply" aria-label="Répondre au message trouvé" disabled={queuedSend !== null} onClick={() => chooseReply(message)}>Répondre</button>}
                 </div>
               ))}
               {history.searching && history.results.length > 0 && (
@@ -1930,7 +1931,7 @@ export default function DirectMessagePanel({
             Charger les messages précédents
           </button>
         )}
-        {!model.messagesLoaded && !provisional && (
+        {!model.messagesLoaded && !provisional && renderedMessages.length === 0 && (
           <p className="dm-empty">Chargement de la conversation…</p>
         )}
         {renderedMessages.map(renderMessage)}

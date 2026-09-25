@@ -91,6 +91,10 @@ describe('DirectMessagePanel', () => {
     expect(appCss).toContain('.dm-report-overlay { position: fixed;')
     expect(appCss).toContain('.dm-composer-reply { display: flex;')
     expect(appCss).toContain('.dm-history-result { grid-template-columns: minmax(0, 1fr); }')
+    expect(appCss).toContain('.direct-community-pane { height: min(520px, 70dvh); }')
+    expect(appCss).toContain('.direct-community-pane { overflow: hidden; }')
+    expect(appCss).toContain('.dm-message-list { min-height: 0; flex: 1; overflow-y: auto;')
+    expect(appCss).toContain('.dm-composer-wrap { flex: 0 0 auto;')
   })
 
   it('formats the single read status at the validated deterministic thresholds', () => {
@@ -182,6 +186,25 @@ describe('DirectMessagePanel', () => {
     expect(textarea.value).toBe('')
   })
 
+  it('opens the loaded live thread at the bottom while retaining its own scroll owner and composer', async () => {
+    let load!: (value: { messages: DirectMessageDto[]; nextCursor: null; windowSize: number }) => void
+    directMessages.messages.mockReturnValueOnce(new Promise(resolve => { load = resolve }))
+    const container = await mount()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-conversation-row-open')!.click() })
+    const list = container.querySelector<HTMLDivElement>('.dm-message-list')!
+    Object.defineProperty(list, 'scrollHeight', { configurable: true, value: 1_000 })
+    Object.defineProperty(list, 'clientHeight', { configurable: true, value: 300 })
+    await act(async () => { load({ messages: [message], nextCursor: null, windowSize: 1 }); await Promise.resolve() }); await settle()
+    expect(list.scrollTop).toBe(1_000)
+    expect(container.querySelector('.dm-composer-wrap #dm-message')).not.toBeNull()
+    list.scrollTop = 100
+    await act(async () => { list.dispatchEvent(new Event('scroll', { bubbles: true })) })
+    expect(list.scrollTop).toBe(100)
+    list.scrollTop = 700
+    await act(async () => { list.dispatchEvent(new Event('scroll', { bubbles: true })) })
+    expect(list.scrollTop).toBe(700)
+  })
+
   it('lets M2 queue visibly while M1 travels, then promotes M2 and frees the composer for M3', async () => {
     let finishFirst!: (value: { conversationId: string; messageId: string; replayed: boolean }) => void
     let finishSecond!: (value: { conversationId: string; messageId: string; replayed: boolean }) => void
@@ -268,6 +291,61 @@ describe('DirectMessagePanel', () => {
     expect(container.querySelector('.dm-composer-reply')).toBeNull()
     keySpy.mockRestore()
     await act(async () => { finishSecond({ conversationId, messageId: '88888888-8888-4888-8888-888888888888', replayed: false }); await Promise.resolve() }); await settle()
+  })
+
+  it('freezes reply actions while M2 is queued, then restores them when M2 starts', async () => {
+    const replyB: DirectMessageDto = { ...message, id: '66666666-6666-4666-8666-666666666666', content: 'Cible B', submissionOrder: '2' }
+    const ownReply: DirectMessageDto = { ...message, id: '99999999-9999-4999-8999-999999999999', authorPlayerId: ownId, own: true, content: 'Cible personnelle', submissionOrder: '3' }
+    directMessages.messages.mockResolvedValue({ messages: [message, replyB, ownReply], nextCursor: null, windowSize: 3 })
+    let finishFirst!: (value: { conversationId: string; messageId: string; replayed: boolean }) => void
+    let finishSecond!: (value: { conversationId: string; messageId: string; replayed: boolean }) => void
+    directMessages.send.mockReturnValueOnce(new Promise(resolve => { finishFirst = resolve })).mockReturnValueOnce(new Promise(resolve => { finishSecond = resolve }))
+    const container = await mount()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-conversation-row-open')!.click() }); await settle()
+    const field = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    const write = async (value: string) => act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(field, value); field.dispatchEvent(new Event('input', { bubbles: true })) })
+    const replyButton = (id: string) => container.querySelector<HTMLButtonElement>(`[data-message-id="${id}"] [aria-label="Répondre au message"]`)!
+    await write('M1')
+    await act(async () => { field.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    await act(async () => { replyButton(messageId).click() })
+    await write('M2')
+    await act(async () => { field.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    expect(container.querySelector('.dm-composer-reply')?.textContent).toContain('Bonjour')
+    expect(replyButton(replyB.id).disabled).toBe(true)
+    expect(replyButton(ownReply.id).disabled).toBe(true)
+    await act(async () => { replyButton(replyB.id).click() })
+    expect(container.querySelector('.dm-composer-reply')?.textContent).toContain('Bonjour')
+    expect(container.querySelector('.dm-composer-reply')?.textContent).not.toContain('Cible B')
+    await act(async () => { finishFirst({ conversationId, messageId: '77777777-7777-4777-8777-777777777777', replayed: false }); await Promise.resolve() }); await settle()
+    expect(directMessages.send.mock.calls[1]?.[3]).toBe(messageId)
+    expect(replyButton(replyB.id).disabled).toBe(false)
+    expect(replyButton(ownReply.id).disabled).toBe(false)
+    await act(async () => { replyButton(replyB.id).click() })
+    expect(container.querySelector('.dm-composer-reply')?.textContent).toContain('Cible B')
+    await act(async () => { finishSecond({ conversationId, messageId: '88888888-8888-4888-8888-888888888888', replayed: false }); await Promise.resolve() }); await settle()
+  })
+
+  it('restores reply actions when a queued M2 becomes a draft after M1 fails', async () => {
+    const replyB: DirectMessageDto = { ...message, id: '66666666-6666-4666-8666-666666666666', content: 'Cible B', submissionOrder: '2' }
+    directMessages.messages.mockResolvedValue({ messages: [message, replyB], nextCursor: null, windowSize: 2 })
+    let failFirst!: (reason: Error) => void
+    directMessages.send.mockReturnValueOnce(new Promise((_resolve, reject) => { failFirst = reject }))
+    const container = await mount()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-conversation-row-open')!.click() }); await settle()
+    const field = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    const write = async (value: string) => act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(field, value); field.dispatchEvent(new Event('input', { bubbles: true })) })
+    const replyButton = (id: string) => container.querySelector<HTMLButtonElement>(`[data-message-id="${id}"] [aria-label="Répondre au message"]`)!
+    await write('M1')
+    await act(async () => { field.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    await act(async () => { replyButton(messageId).click() })
+    await write('M2')
+    await act(async () => { field.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    expect(replyButton(replyB.id).disabled).toBe(true)
+    await act(async () => { failFirst(new Error('M1 échoué')); await Promise.resolve() }); await settle()
+    expect(field.value).toBe('M2')
+    expect(replyButton(replyB.id).disabled).toBe(false)
+    await act(async () => { replyButton(replyB.id).click() })
+    expect(container.querySelector('.dm-composer-reply')?.textContent).toContain('Cible B')
   })
 
   it('never sends a queued message after leaving its session and recovers it in its origin', async () => {
