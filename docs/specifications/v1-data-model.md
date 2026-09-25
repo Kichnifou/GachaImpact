@@ -1820,7 +1820,7 @@ Une projection/read model pourra unifier l'affichage.
 
 Top est entièrement read-only.
 
-Aucune table `top_rankings` n'est nécessaire comme source de vérité métier.
+Aucune table `top_rankings` ou `player_rankings` n'est créée. `RankingService` lit à la demande les sources propriétaires, filtre les catégories Public puis classe en mémoire avant pagination. Le même registre de 32 métriques fournit les métadonnées à `GET /api/v1/rankings` et les aliases de `!top` ; aucun cache ni historique autoritatif.
 
 Les métriques sont lues depuis :
 

@@ -1,4 +1,5 @@
 import { SocialService } from '../application/social/social-service.js';
+import { RankingService } from '../application/ranking/ranking-service.js';
 import { DirectMessageReportService } from '../application/direct-messages/direct-message-report-service.js';
 import { ChoosePlayerElement } from '../application/player/choose-player-element.js';
 import { GetCurrentPlayer } from '../application/player/get-current-player.js';
@@ -177,6 +178,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     giftCodeService,
     eventService,
     socialService: new SocialService(getCurrentPlayer, database, clock),
+    rankingService: new RankingService(database),
     expeditionService,
     notificationService: new NotificationService(getCurrentPlayer, database, clock, expeditionService, giftCodeService, new EventMessageNotificationReconciler(database), new EventLifecycleNotificationReconciler(database, eventService)),
     start: async () => { await tradeScheduler.start(); await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); await giftCodeScheduler.start(); contestScheduler.start(); },

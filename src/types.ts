@@ -16,6 +16,7 @@ export type ScreenId =
   | 'trades'
   | 'social'
   | 'profile'
+  | 'rankings'
   | 'configuration'
   | 'moderation'
 

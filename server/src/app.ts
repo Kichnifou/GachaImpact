@@ -70,10 +70,13 @@ import { registerDirectMessageReportRoutes } from './api/routes/direct-message-r
 import type { GetCurrentPlayerMissions } from './application/missions/get-current-player-missions.js';
 import type { GetPlayerMissions } from './application/missions/get-player-missions.js';
 import { registerMissionRoutes } from './api/routes/missions.js';
+import type { RankingService } from './application/ranking/ranking-service.js';
+import { registerRankingRoutes } from './api/routes/ranking.js';
 
 export type AppDependencies = Readonly<{
   globalChatService?: GlobalChatService;
   chatCommandDispatcher?: ChatCommandDispatcher;
+  rankingService?: RankingService;
   tradeService?: TradeService;
   tradePlayer?: GetCurrentPlayer;
   authIdentityVerifier: AuthIdentityVerifier;
@@ -174,6 +177,7 @@ export async function buildApp(
     const authenticate = createAuthenticationHook(dependencies.authIdentityVerifier);
     if (dependencies.tradeService && dependencies.tradePlayer) await app.register(registerTradeRoutes, { authenticate, service: dependencies.tradeService, getPlayer: dependencies.tradePlayer });
     if (dependencies.socialService) await app.register(registerSocialRoutes, { authenticate, service: dependencies.socialService });
+    if (dependencies.rankingService && dependencies.socialService) await app.register(registerRankingRoutes, { authenticate, service: dependencies.rankingService, social: dependencies.socialService });
     if (dependencies.directMessageService) await app.register(registerDirectMessageRoutes, { authenticate, service: dependencies.directMessageService });
     if (dependencies.directMessageReportService) await app.register(registerDirectMessageReportRoutes, { authenticate, service: dependencies.directMessageReportService });
     if (dependencies.globalChatService && dependencies.chatCommandDispatcher) await app.register(registerChatRoutes, { authenticate, service: dependencies.globalChatService, dispatcher: dependencies.chatCommandDispatcher });

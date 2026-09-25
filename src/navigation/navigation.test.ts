@@ -8,7 +8,7 @@ describe('navigation shell registry', () => {
     expect(activityTabs.map(({ label }) => label)).toEqual(['Quotidiennes', 'Missions', 'Combat', 'Événement', 'Concours'])
   })
   it.each([
-    ['#box', 'characters-box'], ['#team', 'characters-team'], ['#characters', 'characters-catalog'], ['#inventory', 'inventory'], ['#shop', 'shop'], ['#bank', 'bank'], ['#codes', 'codes'], ['#moderation', 'moderation'],
+    ['#box', 'characters-box'], ['#team', 'characters-team'], ['#characters', 'characters-catalog'], ['#inventory', 'inventory'], ['#shop', 'shop'], ['#bank', 'bank'], ['#codes', 'codes'], ['#rankings', 'rankings'], ['#moderation', 'moderation'],
     ['#characters/box', 'characters-box'], ['#activities/dailies', 'activities-dailies'],
   ] as const)('maps %s to %s', (hash, screen) => expect(parseNavigationHash(hash)).toBe(screen))
   it('emits canonical deep links and marks future destinations unavailable', () => {
@@ -16,8 +16,8 @@ describe('navigation shell registry', () => {
     expect(hashForScreen('activities-event')).toBe('activities/event')
     expect(navigationDestinations.filter(({ available }) => !available).map(({ id }) => id)).toEqual(['history', 'tutorial'])
   })
-  it('adds Codes near the economic destinations without changing the seven main tiles', () => {
-    expect(navigationDestinations.map(({ id }) => id)).toEqual(['home', 'invocation', 'box', 'team', 'catalog', 'activities', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'codes', 'social', 'friends', 'trades', 'history', 'tutorial', 'configuration'])
-    expect(new Set(navigationDestinations.map(({ id }) => id)).size).toBe(21)
+  it('adds Rankings to the global menu without changing the seven main tiles', () => {
+    expect(navigationDestinations.map(({ id }) => id)).toEqual(['home', 'invocation', 'box', 'team', 'catalog', 'activities', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'codes', 'social', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'configuration'])
+    expect(new Set(navigationDestinations.map(({ id }) => id)).size).toBe(22)
   })
 })

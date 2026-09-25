@@ -2,6 +2,7 @@ import type { SocialActions, Access, DirectoryPage, Profile, ConnectedPlayers, P
 import { loadFrontendConfig } from '../config/environment'
 import type { TradeActions, TradeSnapshot, TradePartners, TradeResult } from '../trades/types'
 import type { BannerVoteDto } from './types'
+import type { RankingPageDto } from './types'
 import type { ChatMentionDto, ChatPageDto, ChatSendDto, ChatUpdatesDto, DirectConversationListDto, DirectMessageArchiveDto, DirectMessageBlockDto, DirectMessageHistoryAnchorDto, DirectMessageHistoryPageDto, DirectMessageHistorySearchDto, DirectMessageInitiateDto, DirectMessageMutationDto, DirectMessagePageDto, DirectMessagePlayerDto, DirectMessageReceiptDto, DirectMessageReportDetailDto, DirectMessageReportPageDto, DirectMessageReportPreviewDto, DirectMessageResolveDto, DirectMessageSendDto, DirectMessageUnreadDto } from './types'
 import { getSupabaseClient } from '../infrastructure/supabase/client'
 import type {
@@ -178,6 +179,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
       report: (conversationId: string, messageId: string, snapshotFingerprint: string) => request<{ reported: true; duplicate: boolean }>(`/api/v1/me/direct-conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}/report`, { method: 'POST', body: JSON.stringify({ snapshotFingerprint }) }),
     },
     getCurrentPlayer: () => request<PlayerDto>('/api/v1/me'),
+    getRanking: (metric: string, page: number) => request<RankingPageDto>('/api/v1/rankings?' + new URLSearchParams({ metric, page: String(page) })),
     getPermissions: () => request<ModerationPermissionsDto>('/api/v1/me/permissions'),
     social: {
       friends: () => request<FriendsSnapshot>('/api/v1/me/friends'),

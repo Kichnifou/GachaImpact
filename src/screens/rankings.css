@@ -1,0 +1,24 @@
+.rankings-screen { min-width: 0; max-width: 100%; overflow-x: hidden; }
+.rankings-frame { min-height: 0; }
+.rankings-controls { display: grid; gap: 1rem; padding: 1rem; }
+.rankings-categories { display: flex; gap: .5rem; overflow-x: auto; scrollbar-width: none; }
+.rankings-categories button { white-space: nowrap; }
+.rankings-categories button.active { border-color: var(--color-accent, #d7b97e); color: #fff; }
+.rankings-controls label { display: flex; align-items: center; gap: .75rem; }
+.rankings-controls select { max-width: 100%; min-width: 0; background: #1d2330; color: #fff; border: 1px solid #657086; border-radius: 6px; padding: .45rem; }
+.rankings-body { min-width: 0; }
+.rankings-list { list-style: none; padding: 0; margin: 0; display: grid; gap: .45rem; }
+.rankings-list li { display: flex; align-items: center; gap: .7rem; min-width: 0; padding: .65rem .8rem; border: 1px solid #3b4558; border-radius: 8px; background: #171d2b; }
+.rankings-list li.podium { border-color: #b99b60; }
+.rankings-list li.self, .rankings-self { background: #26344b; }
+.rankings-list li button { display: flex; align-items: center; gap: .55rem; min-width: 0; flex: 1 1 auto; background: none; border: 0; color: #fff; cursor: pointer; text-align: left; overflow-wrap: anywhere; }
+.rankings-list li strong { margin-left: auto; text-align: right; overflow-wrap: anywhere; min-width: 0; max-width: 45%; flex: 0 1 auto; }
+.rankings-rank { min-width: 2.5rem; font-weight: 700; }
+.rankings-pages { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1rem; }
+.rankings-pages button:disabled { opacity: .4; }
+@media (max-width: 600px) {
+  .rankings-controls { padding: .65rem; }
+  .rankings-list li { padding: .55rem; gap: .35rem; }
+  .rankings-rank { min-width: 2rem; }
+  .rankings-list li button { gap: .35rem; }
+}

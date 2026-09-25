@@ -28,6 +28,7 @@ import type { SpinDailyWheel } from '../wheel/spin-daily-wheel.js';
 import { SourceChannel } from '../../../generated/prisma/client.js';
 import { normalizePlayerSearch } from '../social/social-service.js';
 import { playerReferenceName, samePlayerReference } from './player-reference.js';
+import { findRanking, rankingRegistry, type RankingService } from '../ranking/ranking-service.js';
 import { chatHelp, findChatCommand } from './chat-command-registry.js';
 import type { GlobalChatService } from './global-chat-service.js';
 import type { ChatMentionInput } from './global-chat-service.js';
@@ -48,6 +49,7 @@ export type ChatCommandServices = Readonly<{
   getCurrentPlayerShop: Pick<GetCurrentPlayerShop, 'execute'>;
   purchaseShopItemChat: Pick<PurchaseShopItem, 'execute'>;
   socialService: Pick<SocialService, 'actor' | 'directory' | 'connected' | 'profile' | 'friends' | 'friendship'>;
+  rankingService: Pick<RankingService, 'chatTop' | 'personal'>;
   tradeService: Pick<TradeService, 'create' | 'mutate' | 'all' | 'snapshot' | 'partners'>;
   tradePlayer: Pick<GetCurrentPlayer, 'execute'>;
   choosePlayerElement: Pick<ChoosePlayerElement, 'execute'>;
@@ -154,6 +156,14 @@ export class ChatCommandDispatcher {
     if (!definition.handler) return 'Cette commande n’est pas encore disponible dans le Chat.';
     try {
       switch (definition.handler) {
+        case 'top': {
+          if (args.length > 1) return syntax(definition.syntax);
+          if (!args.length) return `Classements : ${rankingRegistry.map(metric => metric.aliases[0]).join(', ')}. Utilise !top <metrique> ou !top me.`;
+          const actor = await this.services.socialService.actor(identity);
+          if (args[0]?.toLocaleLowerCase('fr-FR') === 'me') return this.services.rankingService.personal(actor.id);
+          const metric = findRanking(args[0]!);
+          return metric ? this.services.rankingService.chatTop(metric, actor.id) : 'Métrique inconnue. Utilise !top.';
+        }
         case 'help': return args.length <= 1 ? chatHelp(args[0]) : syntax('!help [categorie|commande]');
         case 'element': {
           if (args.length !== 1 || !elementKeys.includes(args[0]!.toLocaleLowerCase('fr-FR') as typeof elementKeys[number])) return syntax(definition.syntax);

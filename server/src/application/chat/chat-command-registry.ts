@@ -33,7 +33,7 @@ export const chatCommandRegistry: readonly ChatCommandDefinition[] = [
   command('stella', 'collection', '!stella <nom exact>', 'READY'),
   command('legende', 'collection', '!legende', 'NOT_PHYSICAL', ['légende']),
   command('concours', 'activites', '!concours', 'READY'),
-  command('top', 'classements', '!top [categorie]', 'NOT_CONNECTED'),
+  command('top', 'classements', '!top [me|metrique]', 'READY'),
   { ...command('giveaway', 'twitch', '!giveaway stats', 'TWITCH_ONLY'), adminOnlySubcommands: ['open', 'close', 'reroll'] },
   command('wish', 'twitch', '!wish', 'TWITCH_ONLY'),
   command('code', 'activites', '!code [CODE]', 'READY'),

@@ -137,6 +137,7 @@ function AppBootstrap() {
   useLayoutEffect(() => { eventRequests.reset() }, [eventRequests, sessionUserId])
   useEventTemporalRefresh(event, sessionUserId, loadEvent)
   const loadNavigationPreferences = useCallback(() => getGameApiClient().getNavigationPreferences(), [])
+  const loadRanking = useCallback((metric: string, page: number) => getGameApiClient().getRanking(metric, page), [])
   const saveNavigationPreferences = useCallback((value: Parameters<ReturnType<typeof getGameApiClient>['putNavigationPreferences']>[0]) => getGameApiClient().putNavigationPreferences(value), [])
   useEffect(() => { contestRequests.reset() }, [contestRequests, sessionUserId])
   const publishExpedition = useCallback((next: ExpeditionDto) => {
@@ -589,6 +590,7 @@ function AppBootstrap() {
       onUpdateGiftCode={updateGiftCode}
       onGiftCodeClaimants={loadGiftCodeClaimants}
       onLoadNavigationPreferences={loadNavigationPreferences}
+      onLoadRanking={loadRanking}
       onSaveNavigationPreferences={saveNavigationPreferences}
       onClaimDailyReward={async () => {
         const { result, resources: nextResources } = await claimDailyRewardAndRefresh(getGameApiClient())

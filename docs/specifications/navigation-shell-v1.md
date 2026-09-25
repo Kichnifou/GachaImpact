@@ -14,6 +14,8 @@ La barre principale contient exactement sept tuiles, dans cet ordre :
 
 `Accueil | Invocation | Personnages | Activités | Sac | Boutique | Configuration`
 
+`Classements` est une destination réelle du Menu global (`#rankings`), ajoutée avant Configuration par la fusion des préférences existantes. Elle n'ajoute aucune tuile principale. Son écran utilise un cadre long à contrôles fixes et liste interne défilante sur desktop ; les cinq catégories, le sélecteur de métrique et la pagination suivent le contrat Top R714–R727.
+
 `Personnages` regroupe, dans cet ordre, `Box | Équipe | Catalogue`. Une nouvelle session ouvre Box par défaut. `Activités` regroupe `Quotidiennes | Missions | Combat | Événement | Concours` et ouvre Quotidiennes par défaut. Le dernier sous-onglet consulté dans chacun de ces deux groupes est retenu seulement en mémoire pour la session courante ; il n’est écrit ni en base ni dans `localStorage`. Un deep link explicite reste prioritaire au chargement.
 
 Les anciennes routes restent compatibles : `#box`, `#team`, `#characters`, `#inventory`, `#shop`, `#bank` et `#moderation`. Les formes canoniques groupées utilisent notamment `#characters/box`, `#characters/team`, `#characters/catalog` et `#activities/dailies`.

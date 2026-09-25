@@ -44,6 +44,7 @@ function harness() {
       friends: vi.fn(async () => ({ friends: [{ playerId: 'other', level: 3, tier: 'CLOSE', heartSent: false }], players: [{ id: 'other', displayName: 'Autre' }], requests: [], summary: { activeFriends: 1, available: 1 } })),
       friendship: { mutate: vi.fn(async () => ({ state: 'ACTIVE' })), sendHearts: vi.fn(async () => ({ message: 'Cœur envoyé.', level: 3 })) },
     },
+    rankingService: { chatTop: vi.fn(async () => 'XP : #1 Autre — 30.'), personal: vi.fn(async () => 'Top personnel — Moi : XP 30.') },
     tradePlayer: execute({ id: 'self' }),
     tradeService: {
       partners: vi.fn(async () => ({ partners: [{ id: 'other', displayName: 'Autre', maximum: 5n }] })),
@@ -86,6 +87,16 @@ function harness() {
 }
 
 describe('Chat command adapters', () => {
+  it('routes !top aliases and personal summary through RankingService', async () => {
+    const { services, send } = harness();
+    expect(await send('!top xp')).toBe('XP : #1 Autre — 30.');
+    expect(services.rankingService.chatTop).toHaveBeenCalledWith(expect.objectContaining({ id: 'xp' }), 'self');
+    expect(await send('!top luck')).toBe('XP : #1 Autre — 30.');
+    expect(services.rankingService.chatTop).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'rate5' }), 'self');
+    expect(await send('!top me')).toBe('Top personnel — Moi : XP 30.');
+    expect(await send('!top unknown')).toContain('Métrique inconnue');
+    expect(await send('!top')).toContain('taux5');
+  });
   it('resolves !infos by the same exact Player with or without a leading mention', async () => {
     const { services, send } = harness();
     const plain = await send('!infos Autre');
