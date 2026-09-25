@@ -198,7 +198,7 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
     return [...current.conversations, ...old.conversations].find(conversation => conversation.other.id === targetPlayerId) ?? null
   }, [api, publishLists, refreshLists])
 
-  const send = useCallback(async (id: string, content: string, key: string, replyToMessageId: string | null = null, replyPreview: string | null = null) => {
+  const send = useCallback(async (id: string, content: string, key: string, replyToMessageId: string | null = null, replyPreview: string | null = null, isCurrent: () => boolean = () => true) => {
     const optimistic = createOptimisticDirectMessage(playerId, id, content, key, replyToMessageId, replyPreview)
     const before = caches.current.get(id) ?? { messages: [], cursor: null, fetched: false }
     publishMessages(id, { ...before, messages: mergeDirectMessages(before.messages, [optimistic]) })
@@ -212,7 +212,7 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
     } catch (reason) {
       const current = caches.current.get(id) ?? before
       publishMessages(id, { ...current, messages: current.messages.filter(message => message.clientIntentKey !== key) })
-      setError(reason instanceof Error ? reason.message : 'Message non envoyé.')
+      if (selectedRef.current === id && isCurrent()) setError(reason instanceof Error ? reason.message : 'Message non envoyé.')
       throw reason
     } finally { endMutation() }
   }, [api, playerId, publishMessages]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -251,7 +251,7 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
     } finally { endMutation() }
   }, [publishLists, publishMessages]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const initiate = useCallback(async (targetPlayerId: string, content: string, key: string) => {
+  const initiate = useCallback(async (targetPlayerId: string, content: string, key: string, isCurrent: () => boolean = () => true) => {
     beginMutation()
     try {
       const result = await api.initiate(targetPlayerId, content, key)
@@ -262,7 +262,7 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
       caches.current.set(result.conversationId, { ...cached, messages: confirmDirectMessage(observed, optimistic, result.messageId, key) })
       revalidate()
       return result
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Message non envoyé.'); throw reason }
+    } catch (reason) { if (isCurrent()) setError(reason instanceof Error ? reason.message : 'Message non envoyé.'); throw reason }
     finally { endMutation() }
   }, [api, playerId]) // eslint-disable-line react-hooks/exhaustive-deps
 

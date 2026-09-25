@@ -182,6 +182,151 @@ describe('DirectMessagePanel', () => {
     expect(textarea.value).toBe('')
   })
 
+  it('does not inject a late failed send or reply from A into B', async () => {
+    const bId = '66666666-6666-4666-8666-666666666666'
+    const b = { ...baseConversation, id: bId, other: { ...baseConversation.other, displayName: 'Beryl' }, unreadCount: 0 }
+    directMessages.list.mockResolvedValue({ conversations: [baseConversation, b] })
+    let rejectA!: (reason: Error) => void
+    directMessages.send.mockReturnValueOnce(new Promise((_resolve, reject) => { rejectA = reject }))
+    const container = await mount(baseConversation, true, true)
+    await act(async () => { (container.querySelectorAll<HTMLButtonElement>('.dm-conversation-row-open')[0]).click() }); await settle()
+    await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="Répondre au message"]')!.click() })
+    const textarea = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, 'Secret A'); textarea.dispatchEvent(new Event('input', { bubbles: true })); textarea.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-back')!.click() })
+    await act(async () => { (container.querySelectorAll<HTMLButtonElement>('.dm-conversation-row-open')[1]).click() }); await settle()
+    const bComposer = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    await act(async () => { bComposer.focus(); Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(bComposer, 'Texte B'); bComposer.dispatchEvent(new Event('input', { bubbles: true })) })
+    await act(async () => { rejectA(new Error('Échec A')); await Promise.resolve() }); await settle()
+    expect(bComposer.value).toBe('Texte B')
+    expect(container.querySelector('.dm-composer-reply')).toBeNull()
+    expect(document.activeElement).toBe(bComposer)
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-back')!.click() })
+    await act(async () => { (container.querySelectorAll<HTMLButtonElement>('.dm-conversation-row-open')[0]).click() }); await settle()
+    expect(container.querySelector<HTMLTextAreaElement>('#dm-message')?.value).toBe('')
+    expect(container.querySelector('.dm-composer-reply')).toBeNull()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-composer-wrap > button')!.click() })
+    expect(container.querySelector<HTMLTextAreaElement>('#dm-message')?.value).toBe('Secret A')
+    expect(container.querySelector('.dm-composer-reply')?.textContent).toContain('Aster')
+    const originalKey = directMessages.send.mock.calls[0]?.[2]
+    await act(async () => { container.querySelector<HTMLTextAreaElement>('#dm-message')!.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) }); await settle()
+    expect(directMessages.send.mock.calls[1]?.[2]).toBe(originalKey)
+  })
+
+  it('does not reactivate an old rollback after A to B to A, and keeps a newer draft', async () => {
+    const b = { ...baseConversation, id: '66666666-6666-4666-8666-666666666666', other: { ...baseConversation.other, displayName: 'Beryl' }, unreadCount: 0 }
+    directMessages.list.mockResolvedValue({ conversations: [baseConversation, b] })
+    let rejectA!: (reason: Error) => void
+    directMessages.send.mockReturnValueOnce(new Promise((_resolve, reject) => { rejectA = reject }))
+    const container = await mount(baseConversation, true, true)
+    await act(async () => { container.querySelectorAll<HTMLButtonElement>('.dm-conversation-row-open')[0].click() }); await settle()
+    const textarea = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, 'Ancien A'); textarea.dispatchEvent(new Event('input', { bubbles: true })); textarea.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-back')!.click() })
+    await act(async () => { container.querySelectorAll<HTMLButtonElement>('.dm-conversation-row-open')[1].click() })
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-back')!.click() })
+    await act(async () => { container.querySelectorAll<HTMLButtonElement>('.dm-conversation-row-open')[0].click() }); await settle()
+    const current = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(current, 'Nouveau A'); current.dispatchEvent(new Event('input', { bubbles: true })) })
+    await act(async () => { rejectA(new Error('Échec ancien')); await Promise.resolve() }); await settle()
+    expect(current.value).toBe('Nouveau A')
+    expect(container.querySelector('.dm-composer-wrap > button')?.textContent).toContain('Récupérer')
+  })
+
+  it('ignores a late successful send after navigation', async () => {
+    const b = { ...baseConversation, id: '66666666-6666-4666-8666-666666666666', other: { ...baseConversation.other, displayName: 'Beryl' }, unreadCount: 0 }
+    directMessages.list.mockResolvedValue({ conversations: [baseConversation, b] })
+    let resolveA!: (value: { conversationId: string; messageId: string; replayed: boolean }) => void
+    directMessages.send.mockReturnValueOnce(new Promise(resolve => { resolveA = resolve }))
+    const container = await mount(baseConversation, true, true)
+    await act(async () => { container.querySelectorAll<HTMLButtonElement>('.dm-conversation-row-open')[0].click() }); await settle()
+    const textarea = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, 'Ancien A'); textarea.dispatchEvent(new Event('input', { bubbles: true })); textarea.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-back')!.click() })
+    await act(async () => { container.querySelectorAll<HTMLButtonElement>('.dm-conversation-row-open')[1].click() }); await settle()
+    const bComposer = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    await act(async () => { bComposer.focus(); Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(bComposer, 'Texte B'); bComposer.dispatchEvent(new Event('input', { bubbles: true })) })
+    await act(async () => { resolveA({ conversationId, messageId, replayed: false }); await Promise.resolve() }); await settle()
+    expect(bComposer.value).toBe('Texte B')
+    expect(document.activeElement).toBe(bComposer)
+    expect(container.querySelector('.dm-composer-wrap > button')).toBeNull()
+  })
+
+  it('does not release a newer B send when the earlier A send finishes', async () => {
+    const bId = '66666666-6666-4666-8666-666666666666'
+    const b = { ...baseConversation, id: bId, other: { ...baseConversation.other, displayName: 'Beryl' }, unreadCount: 0 }
+    directMessages.list.mockResolvedValue({ conversations: [baseConversation, b] })
+    let rejectA!: (reason: Error) => void
+    let resolveB!: (value: { conversationId: string; messageId: string; replayed: boolean }) => void
+    directMessages.send.mockReturnValueOnce(new Promise((_resolve, reject) => { rejectA = reject })).mockReturnValueOnce(new Promise(resolve => { resolveB = resolve }))
+    const container = await mount(baseConversation, true, true)
+    await act(async () => { container.querySelectorAll<HTMLButtonElement>('.dm-conversation-row-open')[0].click() }); await settle()
+    const aComposer = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(aComposer, 'A'); aComposer.dispatchEvent(new Event('input', { bubbles: true })); aComposer.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-back')!.click() })
+    await act(async () => { container.querySelectorAll<HTMLButtonElement>('.dm-conversation-row-open')[1].click() }); await settle()
+    const bComposer = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(bComposer, 'B'); bComposer.dispatchEvent(new Event('input', { bubbles: true })); bComposer.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    expect(directMessages.send).toHaveBeenCalledTimes(2)
+    expect(bComposer.disabled).toBe(true)
+    await act(async () => { rejectA(new Error('Échec A')); await Promise.resolve() }); await settle()
+    expect(bComposer.disabled).toBe(true)
+    expect(bComposer.value).toBe('')
+    await act(async () => { resolveB({ conversationId: bId, messageId, replayed: false }); await Promise.resolve() }); await settle()
+    expect(bComposer.disabled).toBe(false)
+  })
+
+  it('does not select a late initiated conversation after leaving the new message flow', async () => {
+    directMessages.list.mockResolvedValue({ conversations: [] })
+    directMessages.players.mockResolvedValue({ players: [{ id: otherId, displayName: 'Aster', elementKey: null }] })
+    let finish!: (value: { conversationId: string; messageId: string; requestId: string; state: 'PENDING'; replayed: boolean }) => void
+    directMessages.initiate.mockReturnValueOnce(new Promise(resolve => { finish = resolve }))
+    const container = await mount(baseConversation, true, true)
+    await openNewMessageTarget(container)
+    const textarea = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, 'Premier message'); textarea.dispatchEvent(new Event('input', { bubbles: true })); textarea.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-back')!.click() })
+    await act(async () => { finish({ conversationId, messageId, requestId, state: 'PENDING', replayed: false }); await Promise.resolve() }); await settle()
+    expect(container.querySelector('.dm-conversation-list')).not.toBeNull()
+    expect(container.querySelector('.dm-thread-identity')).toBeNull()
+  })
+
+  it('keeps a late initiation failure recoverable only after explicitly reopening its target', async () => {
+    directMessages.list.mockResolvedValue({ conversations: [] })
+    directMessages.players.mockResolvedValue({ players: [{ id: otherId, displayName: 'Aster', elementKey: null }] })
+    let reject!: (reason: Error) => void
+    directMessages.initiate.mockReturnValueOnce(new Promise((_resolve, fail) => { reject = fail }))
+    const container = await mount(baseConversation, true, true)
+    await openNewMessageTarget(container)
+    const textarea = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, 'Premier message'); textarea.dispatchEvent(new Event('input', { bubbles: true })); textarea.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    const originalKey = directMessages.initiate.mock.calls[0]?.[2]
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-back')!.click() })
+    await act(async () => { reject(new Error('Échec tardif')); await Promise.resolve() }); await settle()
+    expect(container.querySelector('.dm-conversation-list')).not.toBeNull()
+    expect(container.textContent).not.toContain('Échec tardif')
+    await openNewMessageTarget(container)
+    expect(container.querySelector<HTMLTextAreaElement>('#dm-message')?.value).toBe('')
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-recover-send')!.click() })
+    expect(container.querySelector<HTMLTextAreaElement>('#dm-message')?.value).toBe('Premier message')
+    await act(async () => { container.querySelector<HTMLTextAreaElement>('#dm-message')!.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) }); await settle()
+    expect(directMessages.initiate.mock.calls[1]?.[2]).toBe(originalKey)
+  })
+
+  it('keeps a newer reply intent when the previous send fails in the same conversation', async () => {
+    let reject!: (reason: Error) => void
+    directMessages.send.mockReturnValueOnce(new Promise((_resolve, fail) => { reject = fail }))
+    const container = await mount()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-conversation-row-open')!.click() }); await settle()
+    const textarea = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, 'Ancien texte'); textarea.dispatchEvent(new Event('input', { bubbles: true })); textarea.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="Répondre au message"]')!.click() })
+    await act(async () => { reject(new Error('Échec ancien')); await Promise.resolve() }); await settle()
+    expect(textarea.value).toBe('')
+    expect(container.querySelector('.dm-composer-reply')?.textContent).toContain('Aster')
+    expect(container.querySelector('.dm-recover-send')).not.toBeNull()
+  })
+
   it('restores composer focus and the end caret after success or failure without stealing a voluntary focus move', async () => {
     const container = await mount()
     await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()

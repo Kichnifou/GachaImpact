@@ -9045,6 +9045,8 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .dm-load-older { display: block; margin: 0 auto 8px; padding: 5px 8px; font-size: 9px; }
 .dm-new-messages { align-self: center; margin: 3px; padding: 4px 8px; font-size: 9px; }
 .dm-composer-wrap { flex: 0 0 auto; padding: 8px 9px 9px; border-top: 1px solid rgba(106, 144, 205, .15); background: rgba(7, 14, 28, .92); }
+.dm-recover-send { min-height: 32px; margin: 0 0 6px; padding: 5px 9px; cursor: pointer; color: #b9d8ee; border: 1px solid rgba(114, 200, 255, .45); border-radius: 6px; background: rgba(24, 54, 84, .52); }
+.dm-recover-send:hover, .dm-recover-send:focus-visible { color: #fff; border-color: #72c8ff; background: rgba(61, 106, 159, .52); }
 .dm-composer-reply { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; padding: 6px 7px 6px 9px; color: #b9d8ee; border-left: 2px solid #72c8ff; border-radius: 5px; background: rgba(24, 54, 84, .52); }
 .dm-composer-reply > span { min-width: 0; display: grid; flex: 1; gap: 1px; }
 .dm-composer-reply strong { font-size: 9px; }
