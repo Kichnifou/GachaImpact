@@ -27,6 +27,7 @@ import type { GetTodayWheelState } from '../wheel/get-today-wheel-state.js';
 import type { SpinDailyWheel } from '../wheel/spin-daily-wheel.js';
 import { SourceChannel } from '../../../generated/prisma/client.js';
 import { normalizePlayerSearch } from '../social/social-service.js';
+import { playerReferenceName, samePlayerReference } from './player-reference.js';
 import { chatHelp, findChatCommand } from './chat-command-registry.js';
 import type { GlobalChatService } from './global-chat-service.js';
 import type { ChatMentionInput } from './global-chat-service.js';
@@ -120,10 +121,10 @@ export class ChatCommandDispatcher {
   constructor(private readonly chat: GlobalChatService, private readonly services: ChatCommandServices) {}
 
   private async player(identity: AuthenticatedIdentity, name: string) {
-    const normalized = normalizePlayerSearch(name);
+    const query = playerReferenceName(name);
     for (let page = 1; ; page += 1) {
-      const directory = await this.services.socialService.directory(identity, { q: name, page });
-      const found = directory.players.find(entry => normalizePlayerSearch(entry.displayName) === normalized);
+      const directory = await this.services.socialService.directory(identity, { q: query, page });
+      const found = directory.players.find(entry => samePlayerReference(entry.displayName, name));
       if (found) return found;
       if (page >= directory.totalPages) return null;
     }
@@ -312,7 +313,7 @@ export class ChatCommandDispatcher {
           if (action === 'coeur') {
             const raw = args.slice(1).join(' ');
             if (!raw) return syntax(definition.syntax);
-            const target = normalizePlayerSearch(raw) === 'all' ? 'all' : state.players.find(player => normalizePlayerSearch(player.displayName) === normalizePlayerSearch(raw))?.id;
+            const target = normalizePlayerSearch(raw) === 'all' ? 'all' : state.players.find(player => samePlayerReference(player.displayName, raw))?.id;
             const targetId = await this.chat.rememberCommandText(commandMessageId, 'targetId', target ?? '');
             if (!targetId) return 'Ami introuvable.';
             const result = await this.services.socialService.friendship.sendHearts(actor.id, targetId, commandMessageId, 'INTERNAL_CHAT');
@@ -357,7 +358,7 @@ export class ChatCommandDispatcher {
             const state = await this.services.tradeService.snapshot(actor.id);
             const requests = action === 'accepter' ? state.received : state.sent;
             const raw = args.slice(1).join(' ');
-            const request = raw ? requests.find(entry => normalizePlayerSearch(action === 'accepter' ? entry.sender.displayName : entry.recipient.displayName) === normalizePlayerSearch(raw)) : requests.length === 1 ? requests[0] : null;
+            const request = raw ? requests.find(entry => samePlayerReference(action === 'accepter' ? entry.sender.displayName : entry.recipient.displayName, raw)) : requests.length === 1 ? requests[0] : null;
             const requestId = await this.chat.rememberCommandText(commandMessageId, 'targetId', request?.id ?? '');
             if (!requestId) return raw ? 'Demande d’échange introuvable.' : syntax(definition.syntax);
             const result = await this.services.tradeService.mutate(actor.id, requestId, action === 'accepter' ? 'accept' : 'cancel', commandMessageId, 'INTERNAL_CHAT');
@@ -368,8 +369,8 @@ export class ChatCommandDispatcher {
           const explicitMax = args.length > 1 && amountToken.toLocaleLowerCase('fr-FR') === 'max';
           if (args.length > 1 && /^-?\d+$/u.test(amountToken) && !hasAmount) return syntax(definition.syntax);
           const name = hasAmount || explicitMax ? args.slice(0, -1).join(' ') : args.join(' ');
-          const partners = await this.services.tradeService.partners(actor.id, name);
-          const target = partners.partners.find(player => normalizePlayerSearch(player.displayName) === normalizePlayerSearch(name));
+          const partners = await this.services.tradeService.partners(actor.id, playerReferenceName(name));
+          const target = partners.partners.find(player => samePlayerReference(player.displayName, name));
           const targetId = await this.chat.rememberCommandText(commandMessageId, 'targetId', target?.id ?? '');
           if (!targetId) return 'Partenaire échangeable introuvable.';
           const result = await this.services.tradeService.create(actor.id, targetId, hasAmount ? BigInt(amountToken) : undefined, commandMessageId, 'INTERNAL_CHAT');
@@ -380,7 +381,7 @@ export class ChatCommandDispatcher {
           if (!target) return syntax(definition.syntax);
           const actor = await this.services.socialService.actor(identity);
           const self = ['me', 'moi'].includes(normalizePlayerSearch(target));
-          const found = self ? actor : (await this.services.socialService.directory(identity, { q: target, page: 1 })).players.find(p => normalizePlayerSearch(p.displayName) === normalizePlayerSearch(target));
+          const found = self ? actor : await this.player(identity, target);
           if (!found) return 'Joueur introuvable.';
           const [profile, friends] = await Promise.all([this.services.socialService.profile(identity, found.id), this.services.socialService.friends(identity)]);
           const pieces = [`${profile.player.displayName} · niveau ${profile.player.level} · ${profile.player.elementKey ?? 'élément inconnu'}`];
@@ -465,8 +466,8 @@ export class ChatCommandDispatcher {
             const recipientName = match[1]!.trim();
             let recipient: { playerId: string; displayName: string } | null = null;
             for (let page = 1; page <= 50; page += 1) {
-              const search = await this.services.eventService.searchGameCRecipients(identity, { q: recipientName, sort: 'name', direction: 'asc', page });
-              recipient = search.recipients.find(entry => normalizePlayerSearch(entry.displayName) === normalizePlayerSearch(recipientName)) ?? null;
+              const search = await this.services.eventService.searchGameCRecipients(identity, { q: playerReferenceName(recipientName), sort: 'name', direction: 'asc', page });
+              recipient = search.recipients.find(entry => samePlayerReference(entry.displayName, recipientName)) ?? null;
               if (recipient || page >= search.totalPages) break;
             }
             const recipientId = await this.chat.rememberCommandText(commandMessageId, 'targetId', recipient?.playerId ?? '');

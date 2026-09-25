@@ -1228,3 +1228,7 @@ La [source spécialisée Chat global](global-chat-v1.md) détaille ces règles. 
 - `VALIDÉ R904` — Le GET reste strictement neutre : aucun provisioning, création, upsert, réconciliation, rattrapage, crédit ou effet temporel. Une source absente donne `null` pour ses métriques, tandis qu'une ligne présente à zéro donne `"0"`.
 - `VALIDÉ R905` — L'UI conserve les quatre groupes lisibles sur desktop et mobile, affiche les entiers lossless, `Non disponible` pour une valeur absente et un pourcentage explicite pour le taux, sans débordement horizontal.
 - `VALIDÉ R906` — `!infos` garde son résumé compact et ses permissions existantes ; les nouvelles métriques n'y sont pas ajoutées. `!top`, rangs et classements globaux relèvent du domaine suivant.
+
+## Références Player dans les commandes Chat — R907 (2026-09-25)
+
+- `VALIDÉ R907` — Les arguments de commandes Chat qui désignent un Player acceptent indifféremment `Pseudo` et `@Pseudo`. La résolution retire l'éventuel `@` initial, puis applique la normalisation existante des noms (casse, accents et Unicode) et confirme une correspondance exacte. Cette règle couvre notamment `!infos`, `!ami`, `!echanger` et le destinataire Player des jeux Event ; elle ne modifie ni les mots-clés (`me`, `moi`, `all`), ni les identifiants de personnage, code, métrique ou autre argument sans sémantique Player. Le test public des Statistiques générales a révélé le défaut initial sur `!infos @Pseudo` ; le correctif reste un candidat `review` jusqu'à validation publique.

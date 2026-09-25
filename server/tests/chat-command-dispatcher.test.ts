@@ -86,6 +86,41 @@ function harness() {
 }
 
 describe('Chat command adapters', () => {
+  it('resolves !infos by the same exact Player with or without a leading mention', async () => {
+    const { services, send } = harness();
+    const plain = await send('!infos Autre');
+    expect(await send('!infos @Autre')).toBe(plain);
+    expect(services.socialService.directory).toHaveBeenLastCalledWith(actor, { q: 'Autre', page: 1 });
+    services.socialService.directory.mockResolvedValue({ players: [{ id: 'other', displayName: 'Éloïse' }], page: 1, totalPages: 1 });
+    expect(await send('!infos   @ÉLOÏSE')).toBe(plain);
+    expect(services.socialService.directory).toHaveBeenLastCalledWith(actor, { q: 'ÉLOÏSE', page: 1 });
+    expect(await send('!infos @Inconnu')).toBe('Joueur introuvable.');
+    expect(await send('!infos me')).toContain('Autre · niveau 5');
+    expect(await send('!infos moi')).toContain('Autre · niveau 5');
+  });
+  it('normalizes Player references throughout friendship and trade commands', async () => {
+    const { services, send } = harness();
+    for (const [plain, mentioned] of [
+      ['!ami ajouter Autre', '!ami ajouter @Autre'], ['!ami voir Autre', '!ami voir @Autre'],
+      ['!ami coeur Autre', '!ami coeur @Autre'], ['!echanger Autre 3', '!echanger @Autre 3'],
+      ['!echanger accepter Autre', '!echanger accepter @Autre'], ['!echanger annuler Autre', '!echanger annuler @Autre'],
+    ] as const) expect(await send(mentioned)).toBe(await send(plain));
+    expect(services.tradeService.partners).toHaveBeenCalledWith('self', 'Autre');
+    expect(await send('!ami coeur all')).toContain('Niveau');
+    expect(services.socialService.friendship.sendHearts).toHaveBeenLastCalledWith('self', 'all', commandId, 'INTERNAL_CHAT');
+    expect(await send('!ami coeur @all')).toBe('Ami introuvable.');
+    expect(await send('!echanger accepter')).toContain('Échanges reçus');
+    expect(await send('!echanger @Inconnu 3')).toBe('Partenaire échangeable introuvable.');
+  });
+  it('normalizes only the Event recipient, preserving message text and non-Player tokens', async () => {
+    const { services, send } = harness();
+    expect(await send('!event Mot doux @Autre "@all est du texte"')).toBe(await send('!event Mot doux Autre "@all est du texte"'));
+    expect(services.eventService.searchGameCRecipients).toHaveBeenLastCalledWith(actor, { q: 'Autre', sort: 'name', direction: 'asc', page: 1 });
+    expect(services.eventService.sendGameC).toHaveBeenLastCalledWith(actor, 'other', '@all est du texte', commandId);
+    expect(await send('!code @CODE')).toBe('Ce code cadeau n’est pas disponible.');
+    expect(services.giftCodeService.claim).not.toHaveBeenCalled();
+    expect(await send('!stella @A')).toBe('Ce personnage ne fait pas partie de votre Box.');
+  });
   it('keeps !infos compact and omits general statistics when access is private', async () => {
     const { services, send } = harness();
     expect(await send('!infos Autre')).toBe('Autre · niveau 5 · pyro · amitié niveau 3.');
