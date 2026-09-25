@@ -730,6 +730,28 @@ export type GachaHistoryDto = Readonly<{
   results: readonly GachaHistoryResultDto[]
 }>
 
+export type BannerHistoryDto = Readonly<{
+  category: 'banners'; page: number; pageSize: 10; total: number; totalPages: number
+  entries: readonly Readonly<{
+    id: string; startsAt: string; endsAt: string; status: string
+    featured: readonly Readonly<{ characterId: string; name: string; rarity: number; slot: number; source: string }>[]
+    generationVoteSnapshot: Readonly<{
+      sourceRotationId: string | null; capturedAt: string
+      candidates: readonly Readonly<{ characterId: string; characterName: string; voteCount: number }>[]
+      selectedCharacterId: string; selectedCharacterName: string; selectionSource: 'COMMUNITY_VOTE' | 'RANDOM_FALLBACK'
+    }> | null
+  }>[]
+}>
+
+export type EventHistoryDto = Readonly<{
+  category: 'event'; page: number; pageSize: 10; total: number; totalPages: number
+  entries: readonly Readonly<{
+    id: string; festival: string; month: number; year: number; startsAt: string; endsAt: string; participantCount: number
+    top: readonly Readonly<{ rank: number; playerId: string; displayName: string; points: number }>[]
+    personal: Readonly<{ rank: number; points: number; milestones: readonly number[]; collectionAcquired: boolean; collectionItemName: string | null }> | null
+  }>[]
+}>
+
 export type BackendErrorDto = Readonly<{
   error: Readonly<{
     code: string

@@ -1,7 +1,7 @@
 import { OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
 import { BusinessError } from '../../application/errors.js';
 import { GACHA_HISTORY_PAGE_SIZE, type CurrentBanner, type GachaHistoryPage, type GachaPassiveEffect, type GachaPullInput, type GachaPullResult, type GachaStore, type PlayerGachaState, type PullResultRecord } from '../../application/gacha/gacha-store.js';
-import type { BannerVoteWeight, FeaturedSelection, GachaCharacter } from '../../domain/gacha/gacha.js';
+import { generationVoteSnapshot, type BannerVoteWeight, type FeaturedSelection, type GachaCharacter } from '../../domain/gacha/gacha.js';
 import { PULL_COST, resolvePulls, type PullState } from '../../domain/gacha/pull.js';
 import { elementKeys, isElementKey, isResourceKey, particleResourceKey, type ElementKey, type ResourceKey } from '../../domain/economy/resources.js';
 import { isPrismaConcurrencyCollision } from './prisma-concurrency.js';
@@ -425,12 +425,15 @@ export class PrismaGachaStore implements GachaStore {
       const catalog = (await tx.character.findMany({ where: { isActive: true }, select: characterSelection })).map(toCharacter);
       const voteCounts = new Map<string, number>();
       for (const vote of previous?.votes ?? []) voteCounts.set(vote.characterId, (voteCounts.get(vote.characterId) ?? 0) + 1);
-      const selections = select(catalog, new Set(previous?.featuredCharacters.map(({ characterId }) => characterId) ?? []), [...voteCounts].map(([characterId, votes]) => ({ characterId, votes })));
+      const previousIds = new Set(previous?.featuredCharacters.map(({ characterId }) => characterId) ?? []);
+      const weights = [...voteCounts].map(([characterId, votes]) => ({ characterId, votes }));
+      const selections = select(catalog, previousIds, weights);
       validateSelections(selections);
+      const voteSnapshot = generationVoteSnapshot(previous?.id ?? null, new Date(), catalog, previousIds, weights, selections);
 
       if (previous) await tx.bannerRotation.update({ where: { id: previous.id }, data: { status: 'ENDED' } });
       const created = await tx.bannerRotation.create({
-        data: { startsAt, endsAt, status: 'ACTIVE', featuredCharacters: { create: selections.map(({ character, slot, selectionSource }) => ({ characterId: character.id, rarity: character.rarity, slot, selectionSource })) } },
+        data: { startsAt, endsAt, status: 'ACTIVE', generationVoteSnapshot: voteSnapshot, featuredCharacters: { create: selections.map(({ character, slot, selectionSource }) => ({ characterId: character.id, rarity: character.rarity, slot, selectionSource })) } },
         include: { featuredCharacters: { include: { character: { select: characterSelection } } } },
       });
       if (previous) {

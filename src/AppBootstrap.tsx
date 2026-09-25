@@ -138,6 +138,7 @@ function AppBootstrap() {
   useEventTemporalRefresh(event, sessionUserId, loadEvent)
   const loadNavigationPreferences = useCallback(() => getGameApiClient().getNavigationPreferences(), [])
   const loadRanking = useCallback((metric: string, page: number) => getGameApiClient().getRanking(metric, page), [])
+  const loadHistory = useCallback((category: 'banners' | 'event', page: number) => getGameApiClient().getHistory(category, page), [])
   const saveNavigationPreferences = useCallback((value: Parameters<ReturnType<typeof getGameApiClient>['putNavigationPreferences']>[0]) => getGameApiClient().putNavigationPreferences(value), [])
   useEffect(() => { contestRequests.reset() }, [contestRequests, sessionUserId])
   const publishExpedition = useCallback((next: ExpeditionDto) => {
@@ -178,7 +179,7 @@ function AppBootstrap() {
     publishBankTransfer(await getGameApiClient().withdrawBank(amount, idempotencyKey)), [publishBankTransfer])
   const loadShop = useCallback(() => getGameApiClient().getShop(), [])
   const loadShopHistory = useCallback((page: number) => getGameApiClient().getShopHistory(page), [])
-  const loadBankHistory = useCallback((page: number) => getGameApiClient().getBankHistory(page), [])
+  const loadBankHistory = useCallback((page: number, type?: 'DEPOSIT' | 'WITHDRAWAL' | 'INTEREST') => getGameApiClient().getBankHistory(page, type), [])
   const loadGachaHistory = useCallback((page: number) => getGameApiClient().getGachaHistory(page), [])
   const loadInventory = useCallback(() => getGameApiClient().getInventory(), [])
   const loadInventoryItemDetail = useCallback((itemId: string, page?: number) => getGameApiClient().getInventoryItemDetail(itemId, page), [])
@@ -591,6 +592,7 @@ function AppBootstrap() {
       onGiftCodeClaimants={loadGiftCodeClaimants}
       onLoadNavigationPreferences={loadNavigationPreferences}
       onLoadRanking={loadRanking}
+      onLoadHistory={loadHistory}
       onSaveNavigationPreferences={saveNavigationPreferences}
       onClaimDailyReward={async () => {
         const { result, resources: nextResources } = await claimDailyRewardAndRefresh(getGameApiClient())

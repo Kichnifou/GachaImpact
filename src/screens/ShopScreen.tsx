@@ -7,9 +7,9 @@ import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
 import { currencyAssetPaths } from '../utils/gameAssets'
 
-type Props = { initialShop: PlayerShopDto | null; refreshToken?: number; onLoad: () => Promise<PlayerShopDto>; onLoadHistory: (page: number) => Promise<ShopHistoryDto>; onPurchase: (itemId: string, quantity: string) => Promise<ShopPurchaseDto>; onNavigateBank: () => void }
+type Props = { initialShop: PlayerShopDto | null; refreshToken?: number; onLoad: () => Promise<PlayerShopDto>; onLoadHistory: (page: number) => Promise<ShopHistoryDto>; onOpenGlobalHistory?: () => void; onPurchase: (itemId: string, quantity: string) => Promise<ShopPurchaseDto>; onNavigateBank: () => void }
 
-function ShopScreen({ initialShop, refreshToken = 0, onLoad, onLoadHistory, onPurchase, onNavigateBank }: Props) {
+function ShopScreen({ initialShop, refreshToken = 0, onLoad, onLoadHistory, onOpenGlobalHistory, onPurchase, onNavigateBank }: Props) {
   const [shop, setShop] = useState(initialShop)
   const [quantities, setQuantities] = useState<Record<string, string>>({})
   const [pendingItemId, setPendingItemId] = useState<string | null>(null)
@@ -46,7 +46,7 @@ function ShopScreen({ initialShop, refreshToken = 0, onLoad, onLoadHistory, onPu
       <div className="shop-feedback-slot" aria-live="polite">{error ? <span className="error" role="alert">{error}</span> : feedback ? <span>{feedback}</span> : <span aria-hidden="true">&nbsp;</span>}</div>
     </>}>
       <section className="shop-grid" aria-label="Catalogue Boutique">{shop.items.map((item) => <ShopItemCard key={item.id} item={item} walletMoras={shop.resources.moras} quantity={quantities[item.id] ?? '1'} pending={pendingItemId === item.id} anyPending={pendingItemId !== null} onQuantity={(value) => setQuantities((current) => ({ ...current, [item.id]: value.replace(/[^0-9]/g, '') }))} onMax={() => setQuantities((current) => ({ ...current, [item.id]: (BigInt(shop.resources.moras) / BigInt(item.priceAmount)).toString() }))} onPurchase={() => void purchase(item)} />)}</section>
-      <RecentPurchase purchase={shop.recentPurchases[0] ?? null} onOpenHistory={() => setHistoryOpen(true)} />
+      <RecentPurchase purchase={shop.recentPurchases[0] ?? null} onOpenHistory={onOpenGlobalHistory ?? (() => setHistoryOpen(true))} />
     </ScrollableScreenPanel>
     {ticketResult && <TicketResultModal effect={ticketResult} onClose={() => setTicketResult(null)} />}
     {historyOpen && <ShopHistoryModal onClose={() => setHistoryOpen(false)} onLoad={onLoadHistory} refreshToken={refreshToken} />}

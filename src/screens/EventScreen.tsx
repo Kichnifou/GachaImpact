@@ -32,6 +32,7 @@ type Props = Readonly<{
   openMessagesToken?: number
   openShopToken?: number
   onOpenCodes?: () => void
+  onOpenHistory?: () => void
 }>
 
 const periodFormatter = new Intl.DateTimeFormat('fr-FR', {
@@ -70,7 +71,7 @@ function EventCooldownButton({ durationMs }: Readonly<{ durationMs: number }>) {
   return <button type="button" className="small-primary-button event-cooldown-button" disabled>Patientez {remainingSeconds} seconde{remainingSeconds > 1 ? 's' : ''}...</button>
 }
 
-export default function EventScreen({ sessionUserId, value, onLoad, onLoadRanking, onJoin, onClaimCalendar, onClaimDailyBonus, onConvertShop, onPurchaseCollection, onAttempt, onAttemptB, onSearchRecipients = unavailableRecipientSearch, onSendGameC = unavailableGameCSend, onConsultMessages, openMessagesToken = 0, openShopToken = 0, onOpenCodes }: Props) {
+export default function EventScreen({ sessionUserId, value, onLoad, onLoadRanking, onJoin, onClaimCalendar, onClaimDailyBonus, onConvertShop, onPurchaseCollection, onAttempt, onAttemptB, onSearchRecipients = unavailableRecipientSearch, onSendGameC = unavailableGameCSend, onConsultMessages, openMessagesToken = 0, openShopToken = 0, onOpenCodes, onOpenHistory }: Props) {
   const calendarAction = useCalendarClaim(`${sessionUserId}:${value.edition.id}:${value.businessDate}`, onClaimCalendar)
   const [section, setSection] = useState<'registration' | 'games' | 'shop' | 'ranking'>(openShopToken > 0 ? 'shop' : openMessagesToken > 0 ? 'games' : 'registration')
   useEffect(() => {
@@ -351,6 +352,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
       <button type="button" className={section === 'shop' ? 'active' : ''} aria-current={section === 'shop' ? 'page' : undefined} onClick={() => setSection('shop')}>Shop</button>
       <button type="button" className={section === 'ranking' ? 'active' : ''} aria-current={section === 'ranking' ? 'page' : undefined} onClick={() => setSection('ranking')}>Classement</button>
     </nav>
+    {onOpenHistory && <AppButton onClick={onOpenHistory}>Voir l’historique</AppButton>}
     {section === 'games' && <nav className="activity-inner-tabs event-game-tabs" aria-label="Jeux du Festival">
       {presentation.games.map((game, index) => <button type="button" className={index === gameTab ? 'active' : ''} aria-current={index === gameTab ? 'page' : undefined} disabled={index < 2 ? !value.participation.joined : !value.gameC.available} onClick={() => { setGameTab(index as 0 | 1 | 2); if (index === 1) void onLoad().catch(() => undefined) }} key={game}>{game}</button>)}
     </nav>}

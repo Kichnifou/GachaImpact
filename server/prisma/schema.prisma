@@ -663,6 +663,7 @@ model BannerRotation {
   startsAt           DateTime                  @unique(map: "banner_rotations_starts_at_key") @map("starts_at") @db.Timestamptz(6)
   endsAt             DateTime                  @map("ends_at") @db.Timestamptz(6)
   status             BannerStatus
+  generationVoteSnapshot Json?          @map("generation_vote_snapshot") @db.JsonB
   createdAt          DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
   featuredCharacters BannerFeaturedCharacter[]
   votes              BannerVote[]

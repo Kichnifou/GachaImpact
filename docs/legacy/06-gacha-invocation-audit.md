@@ -1286,6 +1286,8 @@ Cela permet :
 - statistiques ;
 - affichage futur dans l'historique.
 
+**R911 — révision physique du snapshot.** La migration 044 ajoute `banner_rotations.generation_vote_snapshot` en JSONB nullable. Chaque nouvelle rotation conserve, dans sa transaction de génération, l'ID de la rotation source, l'instant de capture, le pool final éligible des candidats 5★ avec les compteurs exacts y compris zéro, et le personnage/source du slot communautaire. L'éligibilité pendant la semaine reste dynamique : le pool est figé seulement à la génération suivante. Les rotations antérieures restent à `null` ; leurs candidats à zéro vote ne sont pas reconstitués. Historique affiche leurs dates, leur composition et leurs sources existantes, puis « Snapshot détaillé des votes indisponible pour cette rotation antérieure. » Le lot est candidat `review`, sans validation publique.
+
 L'UI pourra notamment indiquer quel personnage occupait la quatrième place issue du système communautaire.
 
 ---

@@ -13,6 +13,37 @@ export type FeaturedSelection = Readonly<{
 }>;
 
 export type BannerVoteWeight = Readonly<{ characterId: string; votes: number }>;
+export type GenerationVoteSnapshot = Readonly<{
+  sourceRotationId: string | null;
+  capturedAt: string;
+  candidates: readonly Readonly<{ characterId: string; characterName: string; voteCount: number }>[];
+  selectedCharacterId: string;
+  selectedCharacterName: string;
+  selectionSource: 'COMMUNITY_VOTE' | 'RANDOM_FALLBACK';
+}>;
+
+export function generationVoteSnapshot(
+  sourceRotationId: string | null,
+  capturedAt: Date,
+  catalog: readonly GachaCharacter[],
+  previousCharacterIds: ReadonlySet<string>,
+  votes: readonly BannerVoteWeight[],
+  selections: readonly FeaturedSelection[],
+): GenerationVoteSnapshot {
+  const voteCounts = new Map(votes.map(vote => [vote.characterId, vote.votes]));
+  const chosen = selections.find(selection => selection.character.rarity === 5 && selection.slot === 4);
+  if (!chosen || chosen.selectionSource === 'RANDOM') throw new Error('The generated banner has no community slot.');
+  return {
+    sourceRotationId,
+    capturedAt: capturedAt.toISOString(),
+    candidates: catalog.filter(character => character.rarity === 5 && !previousCharacterIds.has(character.id))
+      .map(character => ({ characterId: character.id, characterName: character.name, voteCount: voteCounts.get(character.id) ?? 0 }))
+      .sort((a, b) => a.characterId.localeCompare(b.characterId)),
+    selectedCharacterId: chosen.character.id,
+    selectedCharacterName: chosen.character.name,
+    selectionSource: chosen.selectionSource,
+  };
+}
 
 export function selectBannerFeatured(
   catalog: readonly GachaCharacter[],

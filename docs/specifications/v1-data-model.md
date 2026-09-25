@@ -1814,6 +1814,8 @@ Il agrège les historiques de domaines tels que :
 
 Une projection/read model pourra unifier l'affichage.
 
+Le lot candidat `review` matérialise cinq catégories sans table globale : `PullResult` (10 résultats/page), `BannerRotation` et ses `BannerFeaturedCharacter`, `BankTransaction` avec filtre de type, `ShopPurchase.effectSnapshot`, et `EventEdition` avec participants, claims de paliers et acquisition Collection. La projection Event classe les participants d'une édition terminée et expose le Top public et le détail propre à l'acteur authentifié. La migration Gacha 044 ajoute seulement `BannerRotation.generationVoteSnapshot` nullable (`generation_vote_snapshot` JSONB). Ce snapshot des nouvelles rotations conserve les candidats 5★ finaux, même à zéro vote ; `null` signifie détail indisponible pour les anciennes rotations, sans backfill. Aucune écriture n'est faite par les routes History.
+
 ---
 
 # 32. Top / Classements

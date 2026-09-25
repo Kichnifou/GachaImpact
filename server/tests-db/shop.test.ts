@@ -36,6 +36,8 @@ async function cleanup() {
       await tx.$queryRaw(Prisma.sql`SELECT id FROM players WHERE id IN (${Prisma.join(ids)}) FOR UPDATE`);
       await tx.shopPurchase.deleteMany({ where: { playerId: { in: ids } } });
       await tx.resourceMovement.deleteMany({ where: { playerId: { in: ids } } });
+      await tx.playerPermanentMissionProgress.deleteMany({ where: { playerId: { in: ids } } });
+      await tx.playerPermanentMissionState.deleteMany({ where: { playerId: { in: ids } } });
       await tx.businessOperation.deleteMany({ where: { playerId: { in: ids } } });
       await tx.playerGachaState.deleteMany({ where: { playerId: { in: ids } } });
       await tx.playerResourceBalance.deleteMany({ where: { playerId: { in: ids } } });

@@ -14,12 +14,13 @@ type BankScreenProps = {
   refreshToken?: number
   onLoad: () => Promise<PlayerBankDto>
   onLoadHistory: (page: number) => Promise<BankHistoryDto>
+  onOpenGlobalHistory?: () => void
   onTransfer: (direction: BankTransferDirection, amount: string) => Promise<BankTransferDto>
 }
 
 type Direction = BankTransferDirection
 
-function BankScreen({ initialBank, refreshToken = 0, onLoad, onLoadHistory, onTransfer }: BankScreenProps) {
+function BankScreen({ initialBank, refreshToken = 0, onLoad, onLoadHistory, onOpenGlobalHistory, onTransfer }: BankScreenProps) {
   const [bank, setBank] = useState<PlayerBankDto | null>(initialBank)
   const [amounts, setAmounts] = useState<Record<Direction, string>>({ deposit: '', withdraw: '' })
   const [pending, setPending] = useState<Direction | null>(null)
@@ -115,7 +116,7 @@ function BankScreen({ initialBank, refreshToken = 0, onLoad, onLoadHistory, onTr
         <section className="panel bank-history-panel">
           <div className="bank-section-heading"><div><span className="eyebrow">Activité</span><h2>Opérations récentes</h2></div></div>
           {bank.recentOperations.length ? <OperationList operations={bank.recentOperations.slice(0, 5)} /> : <div className="bank-empty-history"><span aria-hidden="true">◇</span><strong>Aucune opération</strong><p>Votre premier dépôt apparaîtra ici.</p></div>}
-          <footer className="bank-history-footer"><button type="button" disabled={bank.recentOperations.length === 0} onClick={() => setHistoryOpen(true)}>Voir l’historique</button></footer>
+          <footer className="bank-history-footer"><button type="button" onClick={onOpenGlobalHistory ?? (() => setHistoryOpen(true))}>Voir l’historique</button></footer>
         </section>
       </div>
       {historyOpen && <BankHistoryModal onClose={() => setHistoryOpen(false)} onLoad={onLoadHistory} refreshToken={refreshToken} />}

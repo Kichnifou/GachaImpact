@@ -19,7 +19,7 @@ const transferSchema = z.object({
   idempotencyKey: z.uuid(),
 }).strict();
 
-const historyQuerySchema = z.object({ page: z.coerce.number().int().positive().default(1) }).strict();
+const historyQuerySchema = z.object({ page: z.coerce.number().int().positive().default(1), type: z.enum(['DEPOSIT', 'WITHDRAWAL', 'INTEREST']).optional() }).strict();
 
 export async function registerBankRoutes(app: FastifyInstance, options: Options): Promise<void> {
   app.get('/api/v1/me/bank', { preHandler: options.authenticate }, async (request) =>
@@ -28,7 +28,7 @@ export async function registerBankRoutes(app: FastifyInstance, options: Options)
   app.get('/api/v1/me/bank/history', { preHandler: options.authenticate }, async (request) => {
     const parsed = historyQuerySchema.safeParse(request.query);
     if (!parsed.success) throw new AppError('Une page d’historique Banque entière et positive est requise.', 400, 'VALIDATION_ERROR');
-    return bankHistoryDto(await options.getPlayerBankHistory.execute(requireAuthenticatedIdentity(request), parsed.data.page));
+    return bankHistoryDto(await options.getPlayerBankHistory.execute(requireAuthenticatedIdentity(request), parsed.data.page, parsed.data.type));
   });
 
   app.post('/api/v1/me/bank/deposit', { preHandler: options.authenticate }, async (request) => {

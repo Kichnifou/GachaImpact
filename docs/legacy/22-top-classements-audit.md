@@ -523,7 +523,7 @@ Cette décision est explicitement attendue à partir de R714+.
 Règles déjà validées :
 
 - solde Banque Public par défaut (R908) ;
-- soldes monnaies privés par défaut ;
+- soldes monnaies Public par défaut (R908) ;
 - aucun calcul dérivé ne doit permettre de reconstruire une Banque privée.
 
 Donc :
@@ -1158,9 +1158,9 @@ Ces métriques appartiennent à des catégories économiques sensibles.
 
 Elles ne participent au classement global que lorsque leur visibilité nécessaire est `Public`.
 
-Comme les soldes de monnaies et la Banque sont privés par défaut :
+Les soldes de monnaies et la Banque sont Public par défaut (R908) :
 
-- beaucoup de joueurs seront naturellement absents de ces classements tant qu'ils n'ont pas choisi de les rendre publics.
+- un joueur reste absent d'une métrique économique si sa visibilité effective n'est pas `Public` ou si les critères de participation ne sont pas remplis.
 
 ---
 

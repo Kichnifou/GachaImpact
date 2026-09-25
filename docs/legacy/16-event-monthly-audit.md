@@ -1265,6 +1265,8 @@ Le propriétaire peut également consulter :
 
 Ces informations personnelles détaillées ne deviennent pas automatiquement publiques.
 
+**État du candidat `review` Historique global :** `HistoryService` projette les éditions persistées terminées à partir du snapshot Event, des participants, des `EventMilestoneClaim` réellement récompensés et des acquisitions Collection. Le Top 10 et le nombre de participants sont publics ; le rang exact, les points, les paliers réclamés et l'objet Collection appartiennent au seul joueur authentifié. Aucune édition absente n'est reconstituée ; aucune nouvelle table Event ni validation publique n'est revendiquée.
+
 ---
 
 ## R635 — Classement en temps réel — ✅ VALIDÉ A

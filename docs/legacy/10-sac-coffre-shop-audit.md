@@ -839,9 +839,9 @@ Un objet inconnu ne compte pas dans le compteur de complétion des objets connus
 
 ---
 
-### R287 — Sac privé par défaut, partage configurable — ✅ RÉVISÉ PAR R473/R486/R488
+### R287 — Sac privé par défaut, partage configurable — ✅ RÉVISÉ PAR R473/R486/R488 PUIS R908
 
-Le véritable écran Sac est `Privé` par défaut.
+Le véritable écran Sac est `Amis uniquement` par défaut selon R908.
 
 La rubrique `Sac` peut être réglée :
 - Public ;
@@ -941,9 +941,9 @@ La Collection événementielle reste consultée avec `!coffre` afin de ne pas su
 
 ---
 
-### R294 — Historique Shop privé par défaut — ✅ RÉVISÉ PAR R518
+### R294 — Historique Shop privé par défaut — ✅ RÉVISÉ PAR R518 PUIS R908
 
-La rubrique Historique Boutique est `Privé` par défaut, mais configurable :
+La rubrique Historique Boutique est `Amis uniquement` par défaut selon R908, mais configurable :
 - Public ;
 - Amis uniquement ;
 - Privé.
@@ -1183,7 +1183,7 @@ Shop :
 - pity via Gacha ;
 - Mission via Missions ;
 - pagination Twitch au-delà de 5 articles ;
-- historique privé par défaut mais configurable Public/Amis/Privé ;
+- historique Amis uniquement par défaut selon R908, configurable Public/Amis/Privé ;
 - achats atomiques/idempotents.
 
 Frontières Missions et Event explicitement reportées.

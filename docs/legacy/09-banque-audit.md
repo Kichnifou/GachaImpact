@@ -363,9 +363,9 @@ Les erreurs de syntaxe utilisent en plus les helpers globaux courts déjà défi
 
 ---
 
-### R245 — Historique bancaire privé par défaut — ✅ RÉVISÉ PAR R518
+### R245 — Historique bancaire privé par défaut — ✅ RÉVISÉ PAR R518 PUIS R908
 
-La rubrique Historique Banque est `Privé` par défaut, mais configurable :
+La rubrique Historique Banque est `Amis uniquement` par défaut selon R908, mais configurable :
 - Public ;
 - Amis uniquement ;
 - Privé.

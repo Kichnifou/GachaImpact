@@ -28,11 +28,12 @@ export class PrismaBankingStore implements BankingStore {
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 20_000 }));
   }
 
-  public async getHistory(playerId: string, page: number): Promise<BankHistoryPage> {
+  public async getHistory(playerId: string, page: number, type?: 'DEPOSIT' | 'WITHDRAWAL' | 'INTEREST'): Promise<BankHistoryPage> {
+    const where = { playerId, ...(type ? { transactionType: type } : {}) };
     const [totalCount, operations] = await Promise.all([
-      this.database.bankTransaction.count({ where: { playerId } }),
+      this.database.bankTransaction.count({ where }),
       this.database.bankTransaction.findMany({
-        where: { playerId },
+        where,
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         skip: (page - 1) * BANK_HISTORY_PAGE_SIZE,
         take: BANK_HISTORY_PAGE_SIZE,

@@ -24,6 +24,7 @@ beforeAll(async () => {
   for (const rarity of [5, 4]) for (let i = 0; i < 14; i++) await database.character.create({ data: { externalKey: `vote-${rarity}-${i}`, name: `Fixture ${rarity} ${i}`, rarity, elementKey: 'pyro' } });
   const banner = await store.ensureRotation(new Date('2026-09-13T22:00:00Z'), new Date('2026-09-20T22:00:00Z'), select);
   rotationId = banner.id;
+  expect((await database.bannerRotation.findUniqueOrThrow({ where: { id: banner.id } })).generationVoteSnapshot).toMatchObject({ sourceRotationId: null, selectionSource: 'RANDOM_FALLBACK' });
   featuredId = banner.featuredFiveStars[0]!.id;
   fourId = banner.featuredFourStars[0]!.id;
   candidateIds = (await votes.getCurrent(await player())).candidates.map(c => c.characterId);
@@ -68,6 +69,7 @@ describe('Banner votes isolated PostgreSQL', () => {
     const identity = await player();
     await database.playerGachaState.create({ data: { playerId: identity.subject, selectedBannerCharacterId: featuredId } });
     const rows = await database.bannerVote.findMany({ orderBy: { id: 'asc' } });
+    const excluded = await database.character.create({ data: { externalKey: randomUUID(), name: 'Still inactive', rarity: 5, elementKey: 'pyro', isActive: false } });
     now = new Date('2026-09-20T22:00:00Z');
     expect((await votes.getCurrent(identity)).canVote).toBe(false);
     await expect(votes.vote(identity, candidateIds[0]!, rotationId)).rejects.toMatchObject({ code: 'BANNER_VOTE_CLOSED' });
@@ -84,6 +86,22 @@ describe('Banner votes isolated PostgreSQL', () => {
       // Keep voted candidates out of the first three random slots.
       return selectBannerFeatured([...catalog].sort((a, b) => Number(weightedIds.has(a.id)) - Number(weightedIds.has(b.id))), previous, weights, { nextInt: () => 0 });
     });
+    const snapshot = (await database.bannerRotation.findUniqueOrThrow({ where: { id: next.id } })).generationVoteSnapshot as { sourceRotationId: string; selectionSource: string; selectedCharacterId: string; candidates: { characterId: string; voteCount: number }[] };
+    expect(snapshot.sourceRotationId).toBe(rotationId);
+    expect(snapshot.selectionSource).toBe('COMMUNITY_VOTE');
+    expect(snapshot.selectedCharacterId).toBe((await database.bannerFeaturedCharacter.findFirstOrThrow({ where: { bannerRotationId: next.id, rarity: 5, slot: 4 } })).characterId);
+    expect(snapshot.candidates.find(row => row.characterId === candidateIds[2])).toMatchObject({ voteCount: 2 });
+    expect(snapshot.candidates.some(row => row.voteCount === 0)).toBe(true);
+    expect(snapshot.candidates.some(row => row.characterId === featuredId)).toBe(false);
+    expect(snapshot.candidates.some(row => row.characterId === excluded.id)).toBe(false);
+    const imported = await database.character.findFirstOrThrow({ where: { name: 'Inactive' } });
+    expect(snapshot.candidates.some(row => row.characterId === imported.id)).toBe(true);
+    const retried = await store.ensureRotation(now, end, select);
+    expect(retried.id).toBe(next.id);
+    expect((await database.bannerRotation.findUniqueOrThrow({ where: { id: next.id } })).generationVoteSnapshot).toEqual(snapshot);
+    const concurrent = await Promise.all([store.ensureRotation(now, end, select), store.ensureRotation(now, end, select)]);
+    expect(concurrent.map(row => row.id)).toEqual([next.id, next.id]);
+    expect(await database.bannerRotation.count({ where: { startsAt: now } })).toBe(1);
     expect(await database.bannerFeaturedCharacter.count({ where: { bannerRotationId: next.id, selectionSource: 'COMMUNITY_VOTE' } })).toBe(1);
     expect(next.featuredFiveStars.some(c => c.id === featuredId)).toBe(false);
     expect(next.featuredFourStars.some(c => c.id === fourId)).toBe(false);

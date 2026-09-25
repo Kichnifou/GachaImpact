@@ -32,7 +32,7 @@ describe('GlobalMenu', () => {
     expect(renderedIds).toEqual(navigationDestinations.map(({ id }) => id))
     expect(new Set(renderedIds).size).toBe(navigationDestinations.length)
     expect(container.textContent).toContain('Page 3 / 3')
-    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.global-menu-grid > button')).find((button) => button.textContent?.includes('Historique'))?.disabled).toBe(true)
+    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.global-menu-grid > button')).find((button) => button.textContent?.includes('Historique'))?.disabled).toBe(false)
     act(() => Array.from(container.querySelectorAll('button')).find((button) => button.textContent === 'Précédent')!.click())
     act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })))
     expect(onClose).toHaveBeenCalled()

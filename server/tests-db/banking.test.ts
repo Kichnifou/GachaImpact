@@ -299,5 +299,9 @@ describe('Banking persistence', { timeout: 20_000 }, () => {
     expect(first.operations.map(({ createdAt }) => createdAt.getTime())).toEqual([...first.operations].map(({ createdAt }) => createdAt.getTime()).sort((a, b) => b - a));
     expect([...first.operations, ...second.operations].every((operation) => operation.amount === 1n)).toBe(true);
     expect((await store.getState(playerId, date, occurredAt)).recentOperations).toHaveLength(5);
+    await store.transfer(transfer(playerId, 'withdraw', 2n, randomUUID(), new Date(occurredAt.getTime() + 200)));
+    expect(await store.getHistory(playerId, 1, 'DEPOSIT')).toMatchObject({ totalCount: 12, totalPages: 2 });
+    expect((await store.getHistory(playerId, 1, 'WITHDRAWAL')).operations).toMatchObject([{ amount: 2n, type: 'WITHDRAWAL' }]);
+    expect(await store.getHistory(playerId, 1, 'INTEREST')).toMatchObject({ totalCount: 0, operations: [] });
   }, 30_000);
 });

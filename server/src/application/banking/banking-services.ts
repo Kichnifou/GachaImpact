@@ -25,10 +25,10 @@ export class GetCurrentPlayerBank {
 
 export class GetPlayerBankHistory {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: BankingStore) {}
-  public async execute(identity: AuthenticatedIdentity, page: number): Promise<BankHistoryPage> {
+  public async execute(identity: AuthenticatedIdentity, page: number, type?: 'DEPOSIT' | 'WITHDRAWAL' | 'INTEREST'): Promise<BankHistoryPage> {
     if (!Number.isInteger(page) || page < 1) throw new BusinessError('BANK_HISTORY_PAGE_INVALID', 'La page d’historique Banque doit être un entier positif.');
     const player = await this.getPlayer.execute(identity);
-    return this.store.getHistory(player.id, page);
+    return this.store.getHistory(player.id, page, type);
   }
 }
 

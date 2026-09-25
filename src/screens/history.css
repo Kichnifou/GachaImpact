@@ -1,0 +1,20 @@
+.history-screen { min-width: 0; max-width: 100%; overflow-x: hidden; }
+.history-frame { min-height: 0; }
+.history-controls { display: grid; gap: .55rem; padding: .8rem 1rem; border-bottom: 1px solid rgba(108,195,255,.2); }
+.history-tabs, .history-filters { display: flex; gap: .45rem; overflow-x: auto; scrollbar-width: none; }
+.history-tabs .app-button, .history-filters .app-button { flex: 0 0 auto; white-space: nowrap; min-height: 36px; }
+.history-tabs .active, .history-filters .active { color: #f2fbff; border-color: rgba(83,210,255,.62); background: rgba(24,81,126,.88); box-shadow: inset 0 -2px #5fd7ff; }
+.history-body { min-width: 0; }
+.history-list, .history-cards { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: minmax(0,1fr); gap: .65rem; min-width: 0; max-width: 100%; }
+.history-list li, .history-card { min-width: 0; max-width: 100%; padding: .75rem 1rem; border: 1px solid rgba(101,168,236,.28); border-radius: 10px; background: linear-gradient(120deg, rgba(27,53,83,.85), rgba(18,34,55,.93)); overflow-wrap: anywhere; }
+.history-list li { display: grid; gap: .25rem; }
+.history-list li span, .history-list li small { color: #bcd5e9; }
+.history-card h2 { font-size: 1.1rem; margin: 0 0 .5rem; }
+.history-card h3 { font-size: 1rem; margin: 1rem 0 .4rem; }
+.history-card p { margin: .35rem 0; }
+.history-votes, .history-event-top { list-style: none; display: grid; grid-template-columns: minmax(0,1fr); gap: .3rem; padding: 0; min-width: 0; }
+.history-votes li, .history-event-top li { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .4rem; min-width: 0; padding: .2rem 0; overflow-wrap: anywhere; }
+.history-votes strong, .history-event-top strong { margin-left: auto; white-space: nowrap; }
+.history-pagination { display: flex; align-items: center; justify-content: center; gap: .75rem; }
+.history-error { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+@media (max-width: 600px) { .history-controls { padding: .6rem; } .history-pagination { gap: .3rem; } .history-pagination .app-button { min-width: 0; padding-inline: .5rem; } }
