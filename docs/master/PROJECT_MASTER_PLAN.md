@@ -1,13 +1,15 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : Classements et Historique validés publiquement sur le plan fonctionnel ; micro-polish R912 candidat review
+Version : Classements et Historique validés publiquement sur le plan fonctionnel ; R912 et premier vertical Apparence candidats review
 Date : 2026-09-25
-Statut : R907, CLASSEMENTS ET HISTORIQUE GLOBAL VALIDÉS PUBLIQUEMENT SUR LE PLAN FONCTIONNEL ; R912 CANDIDAT REVIEW ; PROCHAINE ROTATION R911 À OBSERVER
+Statut : R907, CLASSEMENTS ET HISTORIQUE GLOBAL VALIDÉS PUBLIQUEMENT SUR LE PLAN FONCTIONNEL ; R912 ET APPARENCE CANDIDATS REVIEW ; PROCHAINE ROTATION R911 À OBSERVER
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
 
 ## Reprise rapide — état vivant
+
+- **Apparence / avatars / titres : premier vertical candidat `review`.** La migration additive `20260925190000_045_add_player_cosmetics` est appliquée et suivie sur Supabase DEV : **45 migrations Prisma** ; les deux nouvelles tables ont RLS active et aucun droit navigateur direct. Catalogue initial vide, sans titre ni récompense inventés. L'avatar élémentaire provient de `Player.elementKey`, sans possession ni notification technique ; le service d'unlock central est idempotent et ne notifie qu'un nouveau déblocage réel demandé. `GET/PATCH /api/v1/me/appearance` authentifiés, équipement contrôlé côté serveur, Profil propriétaire > Personnalisation et avatars projetés dans les identités standalone sont candidats. Le titre équipé est projeté uniquement sur le Profil. Contrôles techniques et review indépendante restent à compléter ; aucune validation publique d'Apparence n'est acquise.
 
 - **Validation publique et candidat R912.** Le propriétaire confirme les parcours fonctionnels Classements (34 métriques, confidentialité, pagination, raccourci Profil, notification Trade) et Historique global (cinq catégories, filtres, deep-links, pagination et responsive). Seul le style des cinq onglets principaux de chaque écran restait à aligner sur `activity-inner-tabs` ; ce micro-polish visuel est candidat `review` et attend la revue puis la validation publique. Le propriétaire autorise l'ouverture d'Apparence sans attendre ce nouveau test visuel. La rotation naturelle future doit encore confirmer qu'un nouveau snapshot complet R911 apparaît en production ; la logique R911 est techniquement validée.
 
@@ -63,8 +65,8 @@ But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de compren
 - Validation automatisée de la révision R884 : 378 tests backend sur 51 fichiers, typecheck, build et lint ciblé réussis. Suites PostgreSQL exécutées séparément et réussies : Chat (13), Gacha (23), Roue (1), Combat quotidien (8), Boss (8), Social (8), Échanges (21), Expédition (9), Event de base (8), Boutique Event (6), Classement Event (1), Jeu B (7), Jeu C (7, dont le passage réel Chat → EventService), Calendrier Event (5). La suite PostgreSQL Concours complète n'a pas été relancée dans ce lot : au checkpoint précédent sur DEV partagée, elle ne passait pas (11/25), avec un scénario de salon reproduit seul et deux Concours terminés préexistants contrariant l'attente d'historique isolé. Seule la frontière de lecture `!concours` est vérifiée ici ; le domaine Concours n'est pas déclaré validé. **Historique R884 :** aucune migration nouvelle n'était alors ajoutée et DEV comptait 33 migrations. **État courant :** la migration Gacha 044 est également appliquée sur DEV, avec 44 migrations suivies.
 - Le cycle Chat/MP complet est **PROMU ET VALIDÉ PUBLIQUEMENT** : R890–R898 et R504–R517 sont acquis, avec réponses persistantes, Historique, signalement, sécurisation des fins d'envoi, queue séquentielle, focus et responsive MP. Le propriétaire a confirmé le dernier correctif `88e2b5c` sur le focus queued→active et la géométrie des bulles. Aucun défaut MP connu ne reste ouvert dans ce cycle.
 - Lire [le workflow](../process/implementation-workflow.md), [le contrat Chat global](../specifications/global-chat-v1.md), [l'audit Social pour les MP](../legacy/14-ami-social-audit.md), [la navigation](../specifications/navigation-shell-v1.md) et le checkpoint ci-dessous. Les checkpoints antérieurs sont historiques et ne constituent pas une prochaine étape encore active.
-- Domaine actif : **micro-polish visuel R912 candidat `review`, puis Apparence / avatars / titres**. Classements et Historique sont validés publiquement sur le plan fonctionnel ; R911 reste à observer lors d'une future rotation naturelle. DEV compte **44 migrations Prisma**, dont la 044 spécialisée Gacha.
-- Prochaine étape exacte : **achever et publier R912, puis ouvrir Apparence / avatars / titres dans un second commit `review`**. TwitchIdentity reste l'étape suivante après Apparence. Restent non implémentés : notifications Missions player-facing, Twitch et migration legacy R328. `PAID_INFRA_APPROVED = false`.
+- Domaine actif : **Apparence / avatars / titres, premier vertical candidat `review`**. R912 est déjà publié sur `review` ; Classements et Historique sont validés publiquement sur le plan fonctionnel. R911 reste à observer lors d'une future rotation naturelle. DEV compte **45 migrations Prisma**, dont 045 pour Apparence.
+- Prochaine étape exacte : **terminer les contrôles du candidat Apparence, publier son commit séparé sur `review`, puis attendre la review indépendante et le test public d'Axel**. TwitchIdentity reste l'étape suivante et n'est pas commencée. Restent non implémentés : notifications Missions player-facing, Twitch et migration legacy R328. `PAID_INFRA_APPROVED = false`.
 
 ---
 

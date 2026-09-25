@@ -455,7 +455,7 @@ describe('ChatPanel réel', () => {
     expect(Array.from(container.querySelectorAll('.chat-inline-mention')).map(node => node.textContent)).toEqual(['@Kichnifou', '@kIcHnIfOu', '@Jean Dupont', '@Dr. Watson', '@E\u0301lodie'])
     expect(container.textContent).toContain('@Jean Dupontx')
     expect(container.querySelector('a')?.getAttribute('href')).toBe('https://example.com/')
-    expect(container.querySelector('img')).toBeNull()
+    expect(Array.from(container.querySelectorAll('img')).every(image => image.getAttribute('src')?.startsWith('/assets/genshin/elements/'))).toBe(true)
   })
 
   it('uses incremental updates after the initial snapshot without unread polling', async () => {

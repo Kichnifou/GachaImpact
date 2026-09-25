@@ -17,7 +17,7 @@ afterEach(() => { act(() => root?.unmount()); root = undefined; document.body.re
 const player = { id: 'owner', displayName: 'Éloïse', level: 3, elementKey: 'pyro' as const }
 const profile: Profile = { player, own: false, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'ALLOWED', data: [] }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
 function actions(): SocialActions {
-  return { directory: vi.fn(async () => ({ players: [{ ...player, presence: { access: 'PRIVATE' as const }, relation: 'SELF' as const, requestId: null }], page: 1, pageSize: 20, total: 21, totalPages: 2 })), profile: vi.fn(async () => profile), connected: vi.fn(async () => ({ players: [{ ...player, status: 'AWAY' as const }], total: 1 })),
+  return { directory: vi.fn(async () => ({ players: [{ ...player, presence: { access: 'PRIVATE' as const }, relation: 'SELF' as const, requestId: null }], page: 1, pageSize: 20, total: 21, totalPages: 2 })), profile: vi.fn(async () => profile), appearance: vi.fn(async () => ({ avatar: { kind: 'ELEMENT' as const, assetPath: null }, title: null, equippedAvatarCosmeticId: null, equippedTitleCosmeticId: null, catalog: [] })), equipAppearance: vi.fn(async () => ({ avatar: { kind: 'ELEMENT' as const, assetPath: null }, title: null, equippedAvatarCosmeticId: null, equippedTitleCosmeticId: null, catalog: [] })), connected: vi.fn(async () => ({ players: [{ ...player, status: 'AWAY' as const }], total: 1 })),
     friends: vi.fn(async () => ({ businessDate: '2026-09-20', sort: 'presence' as const, totalFriendHeartsSent: '0', players: [], friends: [], requests: [], summary: { activeFriends: 0, available: 0, alreadySent: 0 } })),
     friendAction: vi.fn(async () => ({ state: 'PENDING' })), sendHearts: vi.fn(async () => ({ sent: 0, alreadySent: 0, unavailable: 0, activeFriends: 0, senderReward: '0', recipientReward: '5', status: 'NO_FRIENDS' as const })), saveFriendSort: vi.fn(async sort => ({ sort })),
     privacy: vi.fn(async () => ({ version: 1, settings: [{ categoryKey: 'BOX' as const, level: 'PUBLIC' as const }] })),
@@ -31,8 +31,25 @@ async function mount(element: React.ReactNode) { const container = document.crea
 const click = async (container: HTMLElement, label: string) => act(async () => { Array.from(container.querySelectorAll('button')).find(b => b.textContent === label)!.click() })
 function Directory({ api, open }: { api: SocialActions; open: (id: string) => void }) { const controller = useFriendships(api); return <SocialScreen actions={api} onProfile={open} initialTab="players" controller={controller} /> }
 function ProfileSurface({ api }: { api: SocialActions }) { const controller = useFriendships(api); return <ProfileScreen playerId="owner" ownerPlayerId="owner" actions={api} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()} /> }
+function ProfileVisitorSurface({ api }: { api: SocialActions }) { const controller = useFriendships(api); return <ProfileScreen playerId="owner" ownerPlayerId="other" actions={api} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()} /> }
 function PlayersSurface({ api, onProfile, onDirectory, onClose }: { api: SocialActions; onProfile: (id: string) => void; onDirectory: () => void; onClose: () => void }) { const controller = useFriendships(api); const [value, setValue] = useState<Awaited<ReturnType<SocialActions['connected']>> | null>(null); useEffect(() => { void api.connected().then(setValue) }, [api]); return <OnlinePlayersPanel value={value} error={false} ownerPlayerId="owner" controller={controller} onProfile={onProfile} onDirectory={onDirectory} onClose={onClose} /> }
 describe('Social UI', () => {
+  it('shows owner personalization with honest empty titles and hides controls from visitors', async () => {
+    const api = actions()
+    api.profile = vi.fn(async () => ({ ...profile, own: true, player: { ...player, title: null } }))
+    const owner = await mount(<ProfileSurface api={api} />)
+    await act(async () => { Array.from(owner.querySelectorAll('button')).find(button => button.textContent === 'Personnalisation')!.click(); await Promise.resolve() })
+    expect(owner.querySelector('nav.activity-inner-tabs[aria-label="Cosmétiques"]')).not.toBeNull()
+    expect(owner.textContent).toContain('Avatar élémentaire permanent')
+    await click(owner, 'Titres')
+    expect(owner.textContent).toContain('Aucun titre débloqué.')
+    expect(owner.textContent).toContain('Aucun titre')
+    act(() => root?.unmount()); root = undefined; document.body.replaceChildren()
+    api.profile = vi.fn(async () => ({ ...profile, player: { ...player, title: 'Fixture title' } }))
+    const visitor = await mount(<ProfileVisitorSurface api={api} />)
+    expect(visitor.textContent).toContain('Fixture title')
+    expect(visitor.textContent).not.toContain('Personnalisation')
+  })
   it('searches and filters on the server, paginates and opens identity without a fake offline status', async () => {
     const api = actions(), open = vi.fn(), container = await mount(<Directory api={api} open={open} />)
     expect(container.querySelector('.social-player-list')?.textContent).not.toContain('Hors ligne')

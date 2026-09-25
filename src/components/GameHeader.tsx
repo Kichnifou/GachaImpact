@@ -2,9 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import type { NotificationDto, NotificationsDto } from '../api/types'
 import { resolveNotificationPresentation } from '../notifications/notification-presentation'
 import AppButton from './AppButton'
+import PlayerAvatar from './PlayerAvatar'
 
 type GameHeaderProps = {
   displayName: string
+  elementKey?: string | null
+  avatarAssetPath?: string | null
   onNavigateHome: () => void
   onOpenSidebar: () => void
   onSignOut: () => Promise<void>
@@ -22,7 +25,7 @@ type GameHeaderProps = {
 }
 
 const emptyNotifications: NotificationsDto = { unreadCount: 0, notifications: [] }
-function GameHeader({ displayName, onNavigateHome, onOpenSidebar, onSignOut, showModeration, onOpenModeration, onOpenMenu, notifications = emptyNotifications, pollSessionKey, onRefreshNotifications = async () => undefined, onReadNotification = async () => emptyNotifications, onArchiveNotification = async () => emptyNotifications, onReadAllNotifications = async () => emptyNotifications, onArchiveReadNotifications = async () => emptyNotifications, onOpenNotification = () => undefined }: GameHeaderProps) {
+function GameHeader({ displayName, elementKey = null, avatarAssetPath = null, onNavigateHome, onOpenSidebar, onSignOut, showModeration, onOpenModeration, onOpenMenu, notifications = emptyNotifications, pollSessionKey, onRefreshNotifications = async () => undefined, onReadNotification = async () => emptyNotifications, onArchiveNotification = async () => emptyNotifications, onReadAllNotifications = async () => emptyNotifications, onArchiveReadNotifications = async () => emptyNotifications, onOpenNotification = () => undefined }: GameHeaderProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const [archivingNotificationId, setArchivingNotificationId] = useState<string | null>(null)
   const notificationAnchorRef = useRef<HTMLDivElement>(null)
@@ -72,7 +75,7 @@ function GameHeader({ displayName, onNavigateHome, onOpenSidebar, onSignOut, sho
   return <header className="game-header">
     <button type="button" className="brand" onClick={onNavigateHome} aria-label="GachaImpact — accueil"><span className="brand-mark" aria-hidden="true">✦</span><span><strong>Gacha<span>Impact</span></strong><small>Chroniques astrales</small></span></button>
     <div className="header-actions">
-      <button type="button" className="mobile-player-button" onClick={onOpenSidebar}><span aria-hidden="true">{displayName.slice(0, 1).toUpperCase()}</span><strong>{displayName}</strong></button>
+      <button type="button" className="mobile-player-button" onClick={onOpenSidebar}><PlayerAvatar displayName={displayName} elementKey={elementKey} avatarAssetPath={avatarAssetPath} className="mobile-player-art" /><strong>{displayName}</strong></button>
       <button type="button" className="menu-header-button" onClick={onOpenMenu}>Menu</button>
       {showModeration && <button type="button" className="moderation-header-button" onClick={onOpenModeration}>Modération</button>}
       <button type="button" className="sign-out-button" onClick={() => void onSignOut()}>Déconnexion</button>

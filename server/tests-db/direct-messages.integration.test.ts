@@ -48,7 +48,7 @@ describe('Direct-message foundations on isolated PostgreSQL', () => {
     expect(result.players).toHaveLength(20);
     expect(result.players[0]).toMatchObject({ id: matching, displayName: 'Éléa 02', elementKey: null });
     expect(result.players.some(candidate => candidate.id === viewer || candidate.id === inactive)).toBe(false);
-    expect(Object.keys(result.players[0]!).sort()).toEqual(['displayName', 'elementKey', 'id']);
+    expect(Object.keys(result.players[0]!).sort()).toEqual(['avatarAssetPath', 'displayName', 'elementKey', 'id']);
   }, 30_000);
 
   it('creates one pending first message, resolves it, pages, counts unread and keeps read receipts private when disabled', async () => {

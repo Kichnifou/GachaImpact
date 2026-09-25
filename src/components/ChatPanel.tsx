@@ -3,8 +3,9 @@ import { ApiError, getGameApiClient } from '../api/game-api'
 import type { ChatMentionDto, ChatMessageDto, ChatRefreshScope, DirectMessagePlayerDto } from '../api/types'
 import { elementColors } from '../utils/elementTheme'
 import DirectMessagePanel, { type DirectMessageOpenIntent } from './DirectMessagePanel'
+import PlayerAvatar from './PlayerAvatar'
 
-type Props = { playerId: string; playerDisplayName?: string; playerElementKey?: string | null; connectedCount?: number | null; isCollapsed: boolean; onToggle: () => void; onOpenPlayers: () => void; onOpenProfile: (id: string) => void; onRefreshScopes: (scopes: readonly ChatRefreshScope[]) => Promise<void>; directMessageIntent?: DirectMessageOpenIntent | null; onDirectMessageIntentConsumed?: (token: string) => void }
+type Props = { playerId: string; playerDisplayName?: string; playerElementKey?: string | null; playerAvatarAssetPath?: string | null; connectedCount?: number | null; isCollapsed: boolean; onToggle: () => void; onOpenPlayers: () => void; onOpenProfile: (id: string) => void; onRefreshScopes: (scopes: readonly ChatRefreshScope[]) => Promise<void>; directMessageIntent?: DirectMessageOpenIntent | null; onDirectMessageIntentConsumed?: (token: string) => void }
 type Intent = { key: string; content: string; replyId: string | null; mentions: ChatMentionDto[]; burstTrigger: boolean }
 type FailedIntent = Intent & { reason: string }
 type PacingAttempt = { key: string; submittedAt: number }
@@ -112,7 +113,7 @@ function mergeChatMessagesStable(current: readonly ChatMessageDto[], incoming: r
   return next
 }
 
-function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = null, isCollapsed, onToggle, onOpenPlayers, onOpenProfile, onRefreshScopes, connectedCount = null, directMessageIntent = null, onDirectMessageIntentConsumed = () => undefined }: Props) {
+function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = null, playerAvatarAssetPath = null, isCollapsed, onToggle, onOpenPlayers, onOpenProfile, onRefreshScopes, connectedCount = null, directMessageIntent = null, onDirectMessageIntentConsumed = () => undefined }: Props) {
   const api = getGameApiClient().chat
   const [activeTab, setActiveTab] = useState<'chat' | 'direct'>('chat')
   const [directUnread, setDirectUnread] = useState(0)
@@ -488,7 +489,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     if (next.burstTrigger) { restoreComposerFocus.current = document.activeElement === composer.current; focusRestoreGeneration.current = transportGeneration.current }
     setBurstLockedUntil(nextPacing.burstLockedUntil)
     setPacingNow(submittedAt)
-    const provisional: ChatMessageDto = { id: `optimistic:${next.key}`, clientIntentKey: next.key, author: { id: playerId, displayName: playerDisplayName, elementKey: playerElementKey }, authorLabel: playerDisplayName, sourceChannel: 'INTERNAL_CHAT', messageType: next.content.startsWith('!') ? 'COMMAND' : 'PLAYER', content: next.content, createdAt: new Date().toISOString(), submissionOrder: null, deletedAt: null, deletionState: 'ACTIVE', replyToMessageId: next.replyId, replyPreview: reply?.content ?? null, mentionedMe: false, repliedToMe: false }
+    const provisional: ChatMessageDto = { id: `optimistic:${next.key}`, clientIntentKey: next.key, author: { id: playerId, displayName: playerDisplayName, elementKey: playerElementKey, avatarAssetPath: playerAvatarAssetPath }, authorLabel: playerDisplayName, sourceChannel: 'INTERNAL_CHAT', messageType: next.content.startsWith('!') ? 'COMMAND' : 'PLAYER', content: next.content, createdAt: new Date().toISOString(), submissionOrder: null, deletedAt: null, deletionState: 'ACTIVE', replyToMessageId: next.replyId, replyPreview: reply?.content ?? null, mentionedMe: false, repliedToMe: false }
     setDraft(''); setReply(null); setSuggestions([]); setMentions([]); setError(null)
     messagesRef.current = [...messagesRef.current, provisional].slice(-CHAT_VISIBLE_MESSAGE_LIMIT)
     setMessages(messagesRef.current)
@@ -554,7 +555,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
         const replyTo = () => { setReply(message); setMenuId(null); focusComposer() }
         const mentionAuthor = () => { if (!message.author) return; setDraft(value => `${value}${value && !value.endsWith(' ') ? ' ' : ''}@${message.author!.displayName} `); setMentions(value => [...value, { playerId: message.author!.id, displayName: message.author!.displayName }]); setMenuId(null); focusComposer() }
         return <article className={`chat-message${message.mentionedMe || message.repliedToMe ? ' chat-message-mentioned' : ''}${optimistic ? ' chat-message-optimistic' : ''}`} style={authorStyle} data-message-id={message.id} data-command={optimistic && message.messageType === 'COMMAND' ? 'true' : undefined} data-hover-suppressed={suppressedHoverId === message.id ? 'true' : undefined} data-report-open={reportId === message.id ? 'true' : undefined} onPointerLeave={() => setSuppressedHoverId(current => current === message.id ? null : current)} key={message.id}>
-          {game ? <div className="message-avatar chat-game-avatar" aria-hidden="true">✦</div> : <button type="button" className="message-avatar chat-avatar-button" aria-label={`Profil de ${message.authorLabel}`} onClick={() => message.author && onOpenProfile(message.author.id)}>{message.authorLabel?.slice(0, 1).toLocaleUpperCase('fr-FR')}</button>}
+          {game ? <div className="message-avatar chat-game-avatar" aria-hidden="true">✦</div> : <button type="button" className="message-avatar chat-avatar-button" aria-label={`Profil de ${message.authorLabel}`} onClick={() => message.author && onOpenProfile(message.author.id)}><PlayerAvatar displayName={message.authorLabel ?? ''} elementKey={message.author?.elementKey ?? null} avatarAssetPath={message.author?.avatarAssetPath} className="chat-avatar-art" /></button>}
           <div className="message-content"><div className="message-meta">{game ? <strong className="chat-game-label">GachaImpact</strong> : <button type="button" className="chat-author-button" onClick={() => message.author && onOpenProfile(message.author.id)}>{message.authorLabel}</button>}<time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time></div>
             {message.replyToMessageId && <div className="chat-reply-preview">↳ {message.replyPreview ?? 'Message supprimé'}</div>}
             <p>{masked ? <>Message masqué — <button type="button" onClick={() => setRevealed(value => [...value, message.id])}>Afficher</button></> : message.deletionState === 'AUTHOR' ? 'Message supprimé' : message.deletionState === 'MODERATION' ? 'Message supprimé par la modération' : chatText(message.content ?? '', message.resolvedMentions)}</p>

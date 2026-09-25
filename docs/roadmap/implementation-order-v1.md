@@ -59,9 +59,9 @@ Cette séquence inclut les domaines déjà traversés ; elle ne les déclare pas
 10. **Chat global et messages privés** — suivre [14-ami-social-audit.md](../legacy/14-ami-social-audit.md), avec logique métier serveur partagée.
 11. **Missions permanentes B / A / S / Z** — implémenter [11-missions-daily-audit.md](../legacy/11-missions-daily-audit.md).
 12. **Statistiques générales** — consolider les projections transversales avant les classements.
-13. **Top / classements globaux** — candidat implémenté sur `review` selon [22-top-classements-audit.md](../legacy/22-top-classements-audit.md) ; review indépendante et validation publique à venir.
-14. **Historique global** — créer la surface transverse unique prévue, sans dupliquer les historiques métier locaux utiles.
-15. **Apparence / avatars / titres** — intégrer ces choix aux profils selon [14-ami-social-audit.md](../legacy/14-ami-social-audit.md).
+13. **Top / classements globaux** — fonctionnellement validés publiquement ; seul le micro-polish visuel R912 attend sa review et revalidation.
+14. **Historique global** — fonctionnellement validé publiquement ; R912 attend sa review et revalidation, la prochaine rotation naturelle confirmera un nouveau snapshot R911.
+15. **Apparence / avatars / titres** — premier vertical candidat `review` selon [14-ami-social-audit.md](../legacy/14-ami-social-audit.md), sans catalogue produit inventé.
 16. **Liaison TwitchIdentity** — préparer l’identité stable selon [14-ami-social-audit.md](../legacy/14-ami-social-audit.md) et [03-command-data-matrix.md](../legacy/03-command-data-matrix.md).
 17. **Commandes et événements Twitch** — brancher les contrats de [command-reference.md](../commands/command-reference.md) sur les services métier communs ; Streamer.bot reste absent.
 18. **Faveur de l’Astre** — implémenter [18-faveur-subscription-audit.md](../legacy/18-faveur-subscription-audit.md).

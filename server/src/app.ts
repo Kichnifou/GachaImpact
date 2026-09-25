@@ -3,6 +3,8 @@ import type { TradeService } from './application/trades/trade-service.js';
 import type { GetCurrentPlayer } from './application/player/get-current-player.js';
 import { registerTradeRoutes } from './api/routes/trades.js';
 import { registerSocialRoutes } from './api/routes/social.js';
+import { registerAppearanceRoutes } from './api/routes/appearance.js';
+import type { AppearanceService } from './application/appearance/appearance-service.js';
 import { registerChatRoutes } from './api/routes/chat.js';
 import type { GlobalChatService } from './application/chat/global-chat-service.js';
 import type { ChatCommandDispatcher } from './application/chat/chat-command-dispatcher.js';
@@ -134,6 +136,7 @@ export type AppDependencies = Readonly<{
   giftCodeService?: GiftCodeService;
   eventService?: EventService;
   socialService?: SocialService;
+  appearanceService?: AppearanceService;
   directMessageService?: DirectMessageService;
   directMessageReportService?: DirectMessageReportService;
   getCurrentPlayerMissions?: GetCurrentPlayerMissions;
@@ -175,11 +178,13 @@ export async function buildApp(
     await app.register(registerCurrentPlayerRoutes, {
       authenticate: createAuthenticationHook(dependencies.authIdentityVerifier),
       getOrProvisionCurrentPlayer: dependencies.getOrProvisionCurrentPlayer,
+      appearanceService: dependencies.appearanceService,
     });
 
     const authenticate = createAuthenticationHook(dependencies.authIdentityVerifier);
     if (dependencies.tradeService && dependencies.tradePlayer) await app.register(registerTradeRoutes, { authenticate, service: dependencies.tradeService, getPlayer: dependencies.tradePlayer });
     if (dependencies.socialService) await app.register(registerSocialRoutes, { authenticate, service: dependencies.socialService });
+    if (dependencies.appearanceService) await app.register(registerAppearanceRoutes, { authenticate, service: dependencies.appearanceService });
     if (dependencies.rankingService && dependencies.socialService) await app.register(registerRankingRoutes, { authenticate, service: dependencies.rankingService, social: dependencies.socialService });
     if (dependencies.historyService && dependencies.socialService) await app.register(registerHistoryRoutes, { authenticate, service: dependencies.historyService, social: dependencies.socialService });
     if (dependencies.directMessageService) await app.register(registerDirectMessageRoutes, { authenticate, service: dependencies.directMessageService });

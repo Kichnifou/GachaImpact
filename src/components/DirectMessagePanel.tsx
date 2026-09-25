@@ -23,6 +23,7 @@ import {
   useDirectMessages,
 } from "../direct-messages/use-direct-messages";
 import { elementLabels } from "../utils/formatters";
+import PlayerAvatar from './PlayerAvatar'
 
 export type DirectMessageOpenIntent = Readonly<{
   playerId: string;
@@ -83,12 +84,7 @@ function usefulDate(value: string | null) {
     : date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
 }
 function Avatar({ player }: { player: DirectMessagePlayerDto }) {
-  return (
-    <span className={`dm-avatar ${player.elementKey ?? ""}`} aria-hidden="true">
-      {Array.from(player.displayName.trim())[0]?.toLocaleUpperCase("fr-FR") ??
-        "✦"}
-    </span>
-  );
+  return <PlayerAvatar {...player} className="dm-avatar" />;
 }
 
 function ConversationActionsMenu({

@@ -17,6 +17,21 @@ enum PlayerStatus {
   @@map("player_status")
 }
 
+enum CosmeticType {
+  AVATAR
+  TITLE
+
+  @@map("cosmetic_type")
+}
+
+enum CosmeticVisibility {
+  VISIBLE
+  MYSTERY
+  SECRET
+
+  @@map("cosmetic_visibility")
+}
+
 enum FriendshipState {
   ACTIVE
   ARCHIVED
@@ -340,6 +355,11 @@ model Player {
   id                    String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   displayName           String                       @map("display_name") @db.Text
   elementKey            String?                      @map("element_key") @db.Text
+  equippedAvatarCosmeticId String?                   @map("equipped_avatar_cosmetic_id") @db.Uuid
+  equippedTitleCosmeticId String?                    @map("equipped_title_cosmetic_id") @db.Uuid
+  equippedAvatarCosmetic CosmeticDefinition?        @relation("EquippedAvatar", fields: [equippedAvatarCosmeticId], references: [id], onDelete: Restrict)
+  equippedTitleCosmetic CosmeticDefinition?         @relation("EquippedTitle", fields: [equippedTitleCosmeticId], references: [id], onDelete: Restrict)
+  cosmetics             PlayerCosmetic[]
   status                PlayerStatus                 @default(ACTIVE)
   createdAt             DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt             DateTime                     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -438,7 +458,43 @@ model Player {
 
   @@index([status], map: "players_status_idx")
   @@index([elementKey], map: "players_element_key_idx")
+  @@index([equippedAvatarCosmeticId], map: "players_equipped_avatar_cosmetic_id_idx")
+  @@index([equippedTitleCosmeticId], map: "players_equipped_title_cosmetic_id_idx")
   @@map("players")
+}
+
+model CosmeticDefinition {
+  id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  externalKey     String             @unique(map: "cosmetic_definitions_external_key_key") @map("external_key") @db.Text
+  type            CosmeticType
+  displayName     String             @map("display_name") @db.Text
+  assetPath       String?            @map("asset_path") @db.Text
+  unlockRule      Json?              @map("unlock_rule") @db.JsonB
+  conditionText   String?            @map("condition_text") @db.Text
+  visibility      CosmeticVisibility @default(VISIBLE)
+  isActive        Boolean            @default(true) @map("is_active")
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  owners          PlayerCosmetic[]
+  equippedAsAvatarBy Player[]        @relation("EquippedAvatar")
+  equippedAsTitleBy  Player[]        @relation("EquippedTitle")
+
+  @@index([type, isActive], map: "cosmetic_definitions_type_active_idx")
+  @@map("cosmetic_definitions")
+}
+
+model PlayerCosmetic {
+  playerId      String             @map("player_id") @db.Uuid
+  cosmeticId    String             @map("cosmetic_id") @db.Uuid
+  unlockedAt    DateTime           @default(now()) @map("unlocked_at") @db.Timestamptz(6)
+  unlockSource  String             @map("unlock_source") @db.Text
+  provenance    Json?              @db.JsonB
+  player        Player             @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  cosmetic      CosmeticDefinition @relation(fields: [cosmeticId], references: [id], onDelete: Restrict)
+
+  @@id([playerId, cosmeticId])
+  @@index([cosmeticId], map: "player_cosmetics_cosmetic_id_idx")
+  @@map("player_cosmetics")
 }
 
 model DailyChallengeDefinition {

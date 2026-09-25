@@ -1367,6 +1367,8 @@ Le profil du joueur référence :
 
 Les déblocages sont permanents et idempotents.
 
+Mapping physique du premier vertical : `Player` porte les deux références nullable vers `CosmeticDefinition`. Le catalogue possède `externalKey`, `visibility` (VISIBLE/MYSTERY/SECRET), `conditionText` et `unlockRule` JSON optionnels ; `PlayerCosmetic` porte une provenance JSON optionnelle. Le fallback élémentaire est une présentation de `Player.elementKey`, sans ligne de catalogue ni possession créée. Aucun titre Profil canonique ni autre avatar déblocable n'est inséré dans le premier lot.
+
 ---
 
 # 25. Messages privés

@@ -8,6 +8,7 @@ import { PlayerActivityRecorder } from '../player/player-activity-recorder.js';
 import { PRIVATE_MESSAGES_CATEGORY } from '../social/contact-permission.js';
 import { applyPlayerBlock, removePlayerBlock } from '../social/player-block-service.js';
 import { normalizePlayerSearch } from '../social/social-service.js';
+import { appearanceSelect, avatarAssetPath } from '../appearance/appearance-service.js';
 
 const invalid = (message: string) => new AppError(message, 400, 'DIRECT_MESSAGE_INVALID');
 const unavailable = () => new AppError('Cette conversation est indisponible.', 409, 'DIRECT_MESSAGE_UNAVAILABLE');
@@ -114,11 +115,11 @@ export class DirectMessageService {
     if (!needle || Array.from(rawQuery.trim()).length > 100) return { players: [] };
     const rows = await this.database.player.findMany({
       where: { status: 'ACTIVE', id: { not: actor.id } },
-      select: { id: true, displayName: true, elementKey: true },
+      select: { id: true, displayName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic },
     });
     const players = rows.filter(row => normalizePlayerSearch(row.displayName).includes(needle));
     players.sort((left, right) => left.displayName.localeCompare(right.displayName, 'fr', { sensitivity: 'base', numeric: true }) || left.id.localeCompare(right.id));
-    return { players: players.slice(0, 20) };
+    return { players: players.slice(0, 20).map(row => ({ id: row.id, displayName: row.displayName, elementKey: row.elementKey, avatarAssetPath: avatarAssetPath(row) })) };
   }
   private async reserveSubmissionOrder(key: string) {
     const rows = await this.database.$queryRaw<{ submission_order: bigint | null }[]>`
@@ -344,7 +345,7 @@ export class DirectMessageService {
     const rows = await this.database.directConversation.findMany({
       where: { participants: { some: { playerId: actor.id } } },
       include: {
-        playerA: { select: { id: true, displayName: true, elementKey: true } }, playerB: { select: { id: true, displayName: true, elementKey: true } },
+        playerA: { select: { id: true, displayName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic } }, playerB: { select: { id: true, displayName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic } },
         participants: true,
         requests: { orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 1 },
         messages: { orderBy: { submissionOrder: 'desc' }, take: 1, include: directMessageInclude },
@@ -364,7 +365,7 @@ export class DirectMessageService {
       const effectivelyArchived = Boolean(state.archivedAt) || access.blockedByActor || access.blockedByOther;
       if (effectivelyArchived !== archived) continue;
       const canSend = access.allowed && latestRequest?.state !== 'PENDING' && (latestRequest?.state !== 'REFUSED' || access.friends);
-      conversations.push({ id: row.id, other, archived: effectivelyArchived, lastMessageAt: row.messages[0]?.createdAt.toISOString() ?? null, lastMessage: row.messages[0] ? this.projectMessage(row.messages[0], actor.id, null) : null, request: latestRequest ? { id: latestRequest.id, state: latestRequest.state, senderPlayerId: latestRequest.senderPlayerId, retryAfter: latestRequest.retryAfter?.toISOString() ?? null } : null, unreadCount: unreadByConversation.get(row.id) ?? 0, readReceiptsEnabled: state.readReceiptsEnabled, canSend, blockedByMe: access.blockedByActor });
+      conversations.push({ id: row.id, other: { id: other.id, displayName: other.displayName, elementKey: other.elementKey, avatarAssetPath: avatarAssetPath(other) }, archived: effectivelyArchived, lastMessageAt: row.messages[0]?.createdAt.toISOString() ?? null, lastMessage: row.messages[0] ? this.projectMessage(row.messages[0], actor.id, null) : null, request: latestRequest ? { id: latestRequest.id, state: latestRequest.state, senderPlayerId: latestRequest.senderPlayerId, retryAfter: latestRequest.retryAfter?.toISOString() ?? null } : null, unreadCount: unreadByConversation.get(row.id) ?? 0, readReceiptsEnabled: state.readReceiptsEnabled, canSend, blockedByMe: access.blockedByActor });
     }
     conversations.sort((left, right) => {
       const unreadOrder = Number(right.unreadCount > 0) - Number(left.unreadCount > 0);

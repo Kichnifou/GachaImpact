@@ -3,6 +3,7 @@ import type { RankingPageDto } from '../api/types'
 import ScreenHeader from '../components/ScreenHeader'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import AppButton from '../components/AppButton'
+import PlayerAvatar from '../components/PlayerAvatar'
 import { apiErrorMessage } from '../utils/formatters'
 import './rankings.css'
 
@@ -29,7 +30,7 @@ export default function RankingsScreen({ onLoad, onProfile }: Props) {
       {error && <div className="rankings-error" role="alert"><p>{error}</p><AppButton onClick={() => setRequest(value => value + 1)}>Réessayer</AppButton></div>}
       {loading && <p role="status">Chargement des classements…</p>}
       {!loading && visibleData && <>
-        {visibleData.entries.length ? <ol className="rankings-list" start={(visibleData.page - 1) * visibleData.pageSize + 1}>{visibleData.entries.map(entry => <li key={entry.playerId} className={`${entry.isSelf ? 'self' : ''} ${entry.rank <= 3 ? 'podium' : ''}`}><span className="rankings-rank">#{entry.rank}</span><button type="button" onClick={() => onProfile(entry.playerId)} aria-label={`Voir le profil de ${entry.displayName}`}><span className={`mini-avatar ${entry.elementKey}`} aria-hidden="true">{entry.displayName.slice(0, 1).toUpperCase()}</span>{entry.displayName}</button><strong>{entry.value}</strong></li>)}</ol> : <p className="rankings-empty">Aucune donnée publique positive pour cette métrique.</p>}
+        {visibleData.entries.length ? <ol className="rankings-list" start={(visibleData.page - 1) * visibleData.pageSize + 1}>{visibleData.entries.map(entry => <li key={entry.playerId} className={`${entry.isSelf ? 'self' : ''} ${entry.rank <= 3 ? 'podium' : ''}`}><span className="rankings-rank">#{entry.rank}</span><button type="button" onClick={() => onProfile(entry.playerId)} aria-label={`Voir le profil de ${entry.displayName}`}><PlayerAvatar {...entry} />{entry.displayName}</button><strong>{entry.value}</strong></li>)}</ol> : <p className="rankings-empty">Aucune donnée publique positive pour cette métrique.</p>}
         {visibleData.self && !visibleData.entries.some(entry => entry.isSelf) && <p className="rankings-self">Votre rang : #{visibleData.self.rank} · {visibleData.self.value}</p>}
         {!visibleData.self && <p className="rankings-self">{visibleData.selfStatus === 'NOT_PUBLIC' ? 'Votre donnée n’est pas publique : vous ne participez pas à ce classement.' : 'Vous n’avez pas de rang pour cette métrique : valeur absente, nulle ou critère de participation non rempli.'}</p>}
         <div className="rankings-pages"><AppButton disabled={page <= 1} onClick={() => turnPage(page - 1)}>Précédent</AppButton><span>Page {page} / {visibleData.totalPages}</span><AppButton disabled={page >= visibleData.totalPages} onClick={() => turnPage(page + 1)}>Suivant</AppButton></div>

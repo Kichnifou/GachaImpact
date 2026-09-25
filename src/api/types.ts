@@ -6,6 +6,7 @@ export type PlayerDto = Readonly<{
   id: string
   displayName: string
   elementKey: ElementKey | null
+  avatarAssetPath?: string | null
   status: 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED'
 }>
 
@@ -18,7 +19,7 @@ export type ModerationPlayerDto = Readonly<{ id: string; displayName: string; el
 export const navigationMenuDestinationIds = ['home', 'invocation', 'box', 'team', 'catalog', 'activities', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'codes', 'social', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'configuration'] as const
 export type RankingCategory = 'PROGRESSION' | 'GACHA' | 'RESSOURCES' | 'COLLECTION' | 'ACTIVITE'
 export type RankingMetricDto = Readonly<{ id: string; label: string; category: RankingCategory; aliases: readonly string[]; source: string; format: 'INTEGER' | 'PERCENT' | 'PITY5'; privacy: readonly string[]; eligibility: string }>
-export type RankingEntryDto = Readonly<{ playerId: string; displayName: string; elementKey: string; rank: number; value: string; isSelf: boolean }>
+export type RankingEntryDto = Readonly<{ playerId: string; displayName: string; elementKey: string; avatarAssetPath?: string | null; rank: number; value: string; isSelf: boolean }>
 export type RankingPageDto = Readonly<{ metric: RankingMetricDto; categories: readonly RankingCategory[]; metrics: readonly RankingMetricDto[]; page: number; pageSize: number; total: number; totalPages: number; entries: readonly RankingEntryDto[]; self: RankingEntryDto | null; selfStatus: 'RANKED' | 'NOT_PUBLIC' | 'NOT_ELIGIBLE' }>
 export type NavigationMenuDestinationId = (typeof navigationMenuDestinationIds)[number]
 export type NavigationMenuPreferenceDto = Readonly<{ version: 1; order: readonly NavigationMenuDestinationId[]; hidden: readonly NavigationMenuDestinationId[] }>
@@ -769,7 +770,7 @@ export type ChatRefreshScope = 'player' | 'resources' | 'progression' | 'gacha' 
 export type ChatMentionDto = { playerId: string; displayName: string }
 export type ChatMessageDto = {
   id: string
-  author: { id: string; displayName: string; elementKey: string | null } | null
+  author: { id: string; displayName: string; elementKey: string | null; avatarAssetPath?: string | null } | null
   authorLabel: string | null
   sourceChannel: string
   messageType: 'PLAYER' | 'COMMAND' | 'GAME_RESULT' | 'SYSTEM'
@@ -789,7 +790,15 @@ export type ChatPageDto = { messages: ChatMessageDto[]; nextCursor: { createdAt:
 export type ChatUpdatesDto = { generation: number; reset: boolean; messages: ChatMessageDto[]; changes: ChatMessageDto[]; visibleMessageIds?: string[] }
 export type ChatSendDto = { cleared: true; generation: number; replayed: boolean } | { cleared?: false; message: ChatMessageDto; generation: number; xpGranted: number; refreshScopes: ChatRefreshScope[]; dailyChallengeCompleted: boolean; replayed: boolean; result: ChatMessageDto | null; results: ChatMessageDto[] }
 
-export type DirectMessagePlayerDto = Readonly<{ id: string; displayName: string; elementKey: ElementKey | null }>
+export type DirectMessagePlayerDto = Readonly<{ id: string; displayName: string; elementKey: ElementKey | null; avatarAssetPath?: string | null }>
+
+export type AppearanceDto = Readonly<{
+  avatar: Readonly<{ kind: 'CUSTOM' | 'ELEMENT' | 'INITIAL'; assetPath: string | null }>
+  title: string | null
+  equippedAvatarCosmeticId: string | null
+  equippedTitleCosmeticId: string | null
+  catalog: readonly Readonly<{ id: string; type: 'AVATAR' | 'TITLE'; displayName: string; assetPath: string | null; condition: string | null; visibility: 'VISIBLE' | 'MYSTERY' | 'SECRET'; owned: boolean; isActive: boolean }>[]
+}>
 export type DirectMessageRequestDto = Readonly<{ id: string; state: 'PENDING' | 'ACCEPTED' | 'REFUSED'; senderPlayerId: string; retryAfter: string | null }>
 export type DirectMessageDto = Readonly<{
   id: string

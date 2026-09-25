@@ -2,6 +2,7 @@ import type { FastifyInstance, preHandlerHookHandler } from 'fastify';
 import { z } from 'zod';
 
 import type { GetOrProvisionCurrentPlayer } from '../../application/player/get-or-provision-current-player.js';
+import type { AppearanceService } from '../../application/appearance/appearance-service.js';
 import type { CurrentPlayer } from '../../domain/player/current-player.js';
 import { requireAuthenticatedIdentity } from '../auth/authentication.js';
 import { AppError } from '../errors.js';
@@ -15,6 +16,7 @@ const onboardingBodySchema = z
 type CurrentPlayerRouteOptions = Readonly<{
   authenticate: preHandlerHookHandler;
   getOrProvisionCurrentPlayer: GetOrProvisionCurrentPlayer;
+  appearanceService?: AppearanceService;
 }>;
 
 function toCurrentPlayerDto(player: CurrentPlayer) {
@@ -34,7 +36,7 @@ export async function registerCurrentPlayerRoutes(
     const identity = requireAuthenticatedIdentity(request);
     const result = await options.getOrProvisionCurrentPlayer.execute(identity);
 
-    return toCurrentPlayerDto(result.player);
+    return { ...toCurrentPlayerDto(result.player), avatarAssetPath: options.appearanceService ? await options.appearanceService.playerAvatarAssetPath(result.player.id) : null };
   });
 
   app.post(
@@ -53,7 +55,7 @@ export async function registerCurrentPlayerRoutes(
         parsedBody.data.displayName,
       );
 
-      return reply.status(result.created ? 201 : 200).send(toCurrentPlayerDto(result.player));
+      return reply.status(result.created ? 201 : 200).send({ ...toCurrentPlayerDto(result.player), avatarAssetPath: options.appearanceService ? await options.appearanceService.playerAvatarAssetPath(result.player.id) : null });
     },
   );
 }

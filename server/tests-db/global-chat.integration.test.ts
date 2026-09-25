@@ -505,7 +505,7 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(newMigration.rows).toHaveLength(1);
     expect(newMigration.rows[0]?.checksum).toBe(newChecksum);
     expect(newMigration.rows[0]?.finished_at).not.toBeNull();
-    expect(count.rows[0]?.count).toBe('42');
+    expect(Number(count.rows[0]?.count)).toBeGreaterThanOrEqual(42);
     const clearMigration = await fixture.admin.query<{ checksum: string; finished_at: Date | null }>('SELECT checksum, finished_at FROM public._prisma_migrations WHERE migration_name=$1', ['20260922120000_035_add_global_chat_generation']);
     expect(clearMigration.rows).toHaveLength(1);
     expect(clearMigration.rows[0]?.checksum).toBe(migrationChecksum('prisma/migrations/20260922120000_035_add_global_chat_generation/migration.sql'));

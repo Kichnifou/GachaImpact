@@ -1822,8 +1822,11 @@ Colonnes :
 - `display_name text NOT NULL`
 - `asset_path text NULL`
 - `unlock_rule jsonb NULL`
+- `condition_text text NULL`
+- `visibility cosmetic_visibility NOT NULL DEFAULT 'VISIBLE'`
 - `is_active boolean NOT NULL DEFAULT true`
 - `created_at timestamptz NOT NULL DEFAULT now()`
+- `updated_at timestamptz NOT NULL DEFAULT now()`
 
 ---
 
@@ -1835,6 +1838,7 @@ Colonnes :
 - `cosmetic_id uuid NOT NULL REFERENCES cosmetic_definitions(id) ON DELETE RESTRICT`
 - `unlocked_at timestamptz NOT NULL`
 - `unlock_source text NOT NULL`
+- `provenance jsonb NULL`
 
 PK :
 
@@ -1849,7 +1853,7 @@ Dans `players` ou table dédiée légère :
 - `equipped_avatar_cosmetic_id`
 - `equipped_title_cosmetic_id`
 
-Le choix exact peut être finalisé pendant le mapping Prisma sans impact métier.
+Le mapping 045 retient les deux colonnes nullable sur `players`, avec FK `ON DELETE RESTRICT`. Le service serveur impose possession, type et activité avant un nouvel équipement ; l'avatar élémentaire reste une projection de `element_key`, sans fausse possession. `cosmetic_definitions` et `player_cosmetics` ont RLS active et aucun grant navigateur direct. La 045 est appliquée et suivie sur DEV ; elle ne seed aucun cosmétique.
 
 ---
 

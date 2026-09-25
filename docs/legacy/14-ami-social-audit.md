@@ -796,6 +796,8 @@ Chaque cosmétique verrouillé peut être déclaré :
 
 Cette propriété appartient au catalogue serveur.
 
+**État physique du premier vertical (2026-09-25, candidat review).** La migration 045 et `AppearanceService` matérialisent le catalogue, les possessions, les deux équipements et les trois visibilités. Le catalogue initial reste vide : l'élément permanent fournit l'avatar de base sans unlock ; aucun titre Profil n'est inventé. Profil > Personnalisation, API personnelle, notification conditionnelle et projection de l'avatar dans les surfaces standalone pertinentes sont candidats. Les décisions R478–R493 ci-dessus restent inchangées et l'ajout d'entrées/règles réelles attend une décision produit.
+
 ---
 
 # 10. Invariants techniques déjà acquis

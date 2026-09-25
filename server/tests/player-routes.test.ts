@@ -100,7 +100,7 @@ describe('authenticated player routes', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual(existingPlayer);
+    expect(response.json()).toEqual({ ...existingPlayer, avatarAssetPath: null });
     expect(store.provisionInputs).toHaveLength(0);
   });
 
@@ -160,7 +160,7 @@ describe('authenticated player routes', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual(existingPlayer);
+    expect(response.json()).toEqual({ ...existingPlayer, avatarAssetPath: null });
     expect(store.provisionInputs).toHaveLength(0);
   });
 });

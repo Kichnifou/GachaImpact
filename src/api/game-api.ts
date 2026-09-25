@@ -3,6 +3,7 @@ import { loadFrontendConfig } from '../config/environment'
 import type { TradeActions, TradeSnapshot, TradePartners, TradeResult } from '../trades/types'
 import type { BannerVoteDto } from './types'
 import type { RankingPageDto } from './types'
+import type { AppearanceDto } from './types'
 import type { ChatMentionDto, ChatPageDto, ChatSendDto, ChatUpdatesDto, DirectConversationListDto, DirectMessageArchiveDto, DirectMessageBlockDto, DirectMessageHistoryAnchorDto, DirectMessageHistoryPageDto, DirectMessageHistorySearchDto, DirectMessageInitiateDto, DirectMessageMutationDto, DirectMessagePageDto, DirectMessagePlayerDto, DirectMessageReceiptDto, DirectMessageReportDetailDto, DirectMessageReportPageDto, DirectMessageReportPreviewDto, DirectMessageResolveDto, DirectMessageSendDto, DirectMessageUnreadDto } from './types'
 import { getSupabaseClient } from '../infrastructure/supabase/client'
 import type {
@@ -190,6 +191,8 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
       saveFriendSort: sort => request<{ sort: FriendSort }>('/api/v1/me/friends/sort', { method: 'PATCH', body: JSON.stringify({ sort }) }),
       directory: query => request<DirectoryPage>('/api/v1/players?' + new URLSearchParams({ q: query.q, page: String(query.page), ...(query.element ? { element: query.element } : {}), ...(query.status ? { status: query.status } : {}), ...(query.relation ? { relation: query.relation } : {}) })),
       profile: id => request<Profile>('/api/v1/players/' + encodeURIComponent(id) + '/profile'),
+      appearance: () => request<AppearanceDto>('/api/v1/me/appearance'),
+      equipAppearance: (type, cosmeticId) => request<AppearanceDto>('/api/v1/me/appearance', { method: 'PATCH', body: JSON.stringify({ type, cosmeticId }) }),
       ownMissions: () => request<PlayerMissionsDto>('/api/v1/me/missions'),
       playerMissions: id => request<Access<PermanentMissionProjectionDto>>('/api/v1/players/' + encodeURIComponent(id) + '/missions'),
       connected: () => request<ConnectedPlayers>('/api/v1/social/presence'),

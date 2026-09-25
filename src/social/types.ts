@@ -1,10 +1,10 @@
-import type { BoxCharacterDto, ElementKey, InventoryItemDto, PermanentMissionProjectionDto, PlayerMissionsDto, PlayerTeamDto } from '../api/types'
+import type { AppearanceDto, BoxCharacterDto, ElementKey, InventoryItemDto, PermanentMissionProjectionDto, PlayerMissionsDto, PlayerTeamDto } from '../api/types'
 
 export type Access<T> = { access: 'PRIVATE' } | { access: 'ALLOWED'; data: T }
 export type PresenceStatus = 'ONLINE' | 'AWAY' | 'OFFLINE'
 export type RelationshipState = 'SELF' | 'FRIEND' | 'SENT' | 'RECEIVED' | 'NONE'
 export type RelationshipFilter = RelationshipState | 'ALL'
-export type SocialIdentity = { id: string; displayName: string; level: number; elementKey: ElementKey | null }
+export type SocialIdentity = { id: string; displayName: string; level: number; elementKey: ElementKey | null; avatarAssetPath?: string | null; title?: string | null }
 export type DirectoryQuery = { q: string; element?: ElementKey; status?: PresenceStatus; relation?: Exclude<RelationshipFilter, 'ALL'>; page: number }
 export type DirectoryPage = { players: (SocialIdentity & { presence: Access<PresenceStatus>; relation: RelationshipState; requestId: string | null })[]; page: number; pageSize: number; total: number; totalPages: number }
 export type FriendSort = 'presence' | 'name' | 'level' | 'heart'
@@ -45,6 +45,8 @@ export type SocialActions = {
   saveFriendSort: (sort: FriendSort) => Promise<{ sort: FriendSort }>
   directory: (query: DirectoryQuery) => Promise<DirectoryPage>
   profile: (id: string) => Promise<Profile>
+  appearance: () => Promise<AppearanceDto>
+  equipAppearance: (type: 'AVATAR' | 'TITLE', cosmeticId: string | null) => Promise<AppearanceDto>
   ownMissions: () => Promise<PlayerMissionsDto>
   playerMissions: (id: string) => Promise<Access<PermanentMissionProjectionDto>>
   connected: () => Promise<ConnectedPlayers>

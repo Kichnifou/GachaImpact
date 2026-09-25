@@ -15,6 +15,7 @@ import { PrismaDailyChallengeStore } from '../../infrastructure/database/prisma-
 import { normalizePlayerSearch } from '../social/social-service.js';
 import { scopesForOperation, type ChatRefreshScope } from './chat-refresh-scopes.js';
 import { PermanentMissionService } from '../missions/permanent-mission-service.js';
+import { appearanceSelect, avatarAssetPath } from '../appearance/appearance-service.js';
 
 const invalid = (message: string) => new AppError(message, 400, 'CHAT_INVALID');
 const unavailable = () => new AppError('Ce message est indisponible.', 404, 'CHAT_UNAVAILABLE');
@@ -24,7 +25,7 @@ const PLAYER_HISTORY_LIMIT = 200;
 export type ChatCursor = { createdAt: string; id: string };
 type ChatOperationSummary = { fingerprint: string; messageId?: string; xpGranted?: number; refreshScopes?: string[]; dailyChallengeCompleted?: boolean; resolvedQuantity?: string; targetId?: string; action?: string };
 export type ChatMentionInput = { playerId: string; displayName: string };
-const messageInclude = { author: { select: { id: true, displayName: true, elementKey: true } }, operation: { select: { idempotencyKey: true } }, replyToMessage: { select: { id: true, content: true, deletionState: true, authorPlayerId: true } }, mentions: { select: { mentionedPlayerId: true, mentionedPlayer: { select: { displayName: true } } } } } as const;
+const messageInclude = { author: { select: { id: true, displayName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic } }, operation: { select: { idempotencyKey: true } }, replyToMessage: { select: { id: true, content: true, deletionState: true, authorPlayerId: true } }, mentions: { select: { mentionedPlayerId: true, mentionedPlayer: { select: { displayName: true } } } } } as const;
 
 function normalize(content: string) {
   if (typeof content !== 'string' || /[\r\n\u2028\u2029]/u.test(content)) throw invalid('Un message doit tenir sur une seule ligne.');
@@ -51,14 +52,14 @@ function splitGameResult(content: string): string[] {
 function project(row: {
   id: string; authorPlayerId: string | null; sourceChannel: string; messageType: string; content: string;
   createdAt: Date; submissionOrder: bigint; deletedAt: Date | null; deletionState: GlobalChatDeletionState;
-  replyToMessageId: string | null; author: { id: string; displayName: string; elementKey: string | null } | null;
+  replyToMessageId: string | null; author: { id: string; displayName: string; elementKey: string | null; equippedAvatarCosmetic: { id: string; type: import('../../../generated/prisma/client.js').CosmeticType; assetPath: string | null } | null } | null;
   replyToMessage: { id: string; content: string; deletionState: GlobalChatDeletionState; authorPlayerId: string | null } | null;
   mentions: { mentionedPlayerId: string; mentionedPlayer: { displayName: string } }[];
   operation: { idempotencyKey: string | null } | null;
 }, viewerId?: string) {
   const deleted = row.deletionState !== GlobalChatDeletionState.ACTIVE;
   return {
-    id: row.id, author: row.author, authorLabel: row.messageType === GlobalChatMessageType.GAME_RESULT ? 'GachaImpact' : row.author?.displayName ?? null,
+    id: row.id, author: row.author ? { id: row.author.id, displayName: row.author.displayName, elementKey: row.author.elementKey, avatarAssetPath: avatarAssetPath(row.author) } : null, authorLabel: row.messageType === GlobalChatMessageType.GAME_RESULT ? 'GachaImpact' : row.author?.displayName ?? null,
     sourceChannel: row.sourceChannel, messageType: row.messageType,
     content: deleted ? null : row.content, createdAt: row.createdAt.toISOString(), submissionOrder: row.submissionOrder.toString(),
     deletedAt: row.deletedAt?.toISOString() ?? null, deletionState: row.deletionState,

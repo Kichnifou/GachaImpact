@@ -3,6 +3,7 @@ import type { CurrentGachaDto, PlayerDto, PlayerProgressionDto, PlayerResourcesD
 import { getProgressionPercent } from '../progression/presentation'
 import type { ScreenId } from '../types'
 import { currencyAssetPaths, getElementAssetPath } from '../utils/gameAssets'
+import PlayerAvatar from './PlayerAvatar'
 import { elementLabels, formatResourceAmount } from '../utils/formatters'
 import CharacterAssetImage from './CharacterAssetImage'
 import CharacterShowcaseCard from './CharacterShowcaseCard'
@@ -65,7 +66,7 @@ function PlayerSidebar({ isOpen, onClose, onOpenProfile, onNavigate, onOpenParti
         <section className={`panel profile-card${profileLevelUpActive ? ' level-up-active' : ''} sidebar-clickable`} style={profileStyle} {...cardAction("Ouvrir mon profil", () => onOpenProfile?.())}>
           {playerData.elementKey && <GameAssetIcon className="profile-element-watermark" src={getElementAssetPath(playerData.elementKey)} fallback="" />}
           <button type="button" onClick={onOpenProfile} className="avatar-placeholder" aria-label={`Avatar de ${playerData.displayName}`}>
-            <span>{playerData.displayName.slice(0, 1).toUpperCase()}</span>
+            <PlayerAvatar {...playerData} className="sidebar-avatar-art" />
           </button>
           <div className="profile-copy">
             <h2><button type="button" className="profile-name-button" onClick={onOpenProfile}>{playerData.displayName}</button></h2>

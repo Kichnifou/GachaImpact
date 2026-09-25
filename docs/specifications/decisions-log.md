@@ -693,6 +693,7 @@ La [source spécialisée Chat global](global-chat-v1.md) détaille ces règles. 
 - `VALIDÉ R491` — Avatar/pseudo ouvrent le profil depuis les vues standalone pertinentes.
 - `VALIDÉ R492` — Profil > Personnalisation avec onglets Avatars/Titres.
 - `VALIDÉ R493` — Chaque cosmétique verrouillé choisit condition visible, silhouette mystérieuse ou secret total.
+  - État physique au 2026-09-25 : le premier vertical Apparence est candidat `review` avec catalogue, possession, équipement, fallback élémentaire et Profil > Personnalisation. Aucun catalogue produit ni producteur de déblocage n'est décidé ou ajouté par ce lot ; les règles R478–R493 ci-dessus restent la source des décisions.
 - `VALIDÉ R494` — Famille `!ami` explicite ; `!ami <pseudo>` est un alias de `!ami voir <pseudo>`.
 - `VALIDÉ R495` — `!ami` sans argument produit un résumé compact ; listes et demandes sont paginées.
 - `VALIDÉ R496` — Résultats adaptés au canal ; confirmations Twitch toujours explicites mais refus/retrait sobres.

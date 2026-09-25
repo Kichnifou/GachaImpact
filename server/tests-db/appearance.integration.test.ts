@@ -1,0 +1,81 @@
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { isolatedBatchDatabase } from './isolated-batch-database.js';
+import { AppearanceService, appearanceSelect, effectiveAvatar } from '../src/application/appearance/appearance-service.js';
+import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
+import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
+import { SocialService } from '../src/application/social/social-service.js';
+import { RankingService } from '../src/application/ranking/ranking-service.js';
+import { buildApp } from '../src/app.js';
+
+const fixture = isolatedBatchDatabase();
+const { database } = fixture;
+let owner: string, other: string, avatarId: string, titleId: string;
+let appearance: AppearanceService;
+let app: Awaited<ReturnType<typeof buildApp>>;
+beforeAll(async () => {
+  await fixture.setup();
+  await database.element.create({ data: { key: 'pyro', displayName: 'Pyro', displayOrder: 1 } });
+  owner = (await database.player.create({ data: { displayName: 'Owner', elementKey: 'pyro', progression: { create: { xp: 100n } } } })).id;
+  other = (await database.player.create({ data: { displayName: 'Other', elementKey: 'pyro' } })).id;
+  avatarId = (await database.cosmeticDefinition.create({ data: { externalKey: 'fixture-avatar', type: 'AVATAR', displayName: 'Fixture avatar', assetPath: '/assets/fixture/avatar.png', conditionText: 'Condition test', visibility: 'VISIBLE' } })).id;
+  titleId = (await database.cosmeticDefinition.create({ data: { externalKey: 'fixture-title', type: 'TITLE', displayName: 'Fixture title', visibility: 'MYSTERY' } })).id;
+  await database.cosmeticDefinition.create({ data: { externalKey: 'fixture-secret', type: 'TITLE', displayName: 'Fixture secret', visibility: 'SECRET' } });
+  const store = { findByIdentity: async (_provider: string, subject: string) => { const row = await database.player.findUnique({ where: { id: subject } }); return row ? { id: row.id, displayName: row.displayName, status: row.status, elementKey: row.elementKey } : null; }, provision: async () => { throw Error('no provisioning'); } };
+  const getPlayer = new GetCurrentPlayer(store);
+  appearance = new AppearanceService(database, getPlayer);
+  app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, { authIdentityVerifier: { verify: async token => ({ subject: token }) }, getOrProvisionCurrentPlayer: new GetOrProvisionCurrentPlayer(store), appearanceService: appearance, socialService: new SocialService(getPlayer, database, { now: () => new Date() }), rankingService: new RankingService(database) });
+}, 60_000);
+afterAll(async () => { await app?.close(); await fixture.cleanup(); }, 60_000);
+const auth = () => ({ authorization: `Bearer ${owner}` });
+const patch = (type: string, cosmeticId: string | null) => app.inject({ method: 'PATCH', url: '/api/v1/me/appearance', headers: auth(), payload: { type, cosmeticId } });
+
+describe('Appearance isolated PostgreSQL', () => {
+  it('serves an honest, read-only catalog and the permanent elemental fallback', async () => {
+    const before = await database.playerCosmetic.count();
+    const response = await app.inject({ url: '/api/v1/me/appearance', headers: auth() });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().avatar).toMatchObject({ kind: 'ELEMENT' });
+    expect(response.json().title).toBeNull();
+    expect(response.json().catalog).toHaveLength(2);
+    expect(response.json().catalog.find((item: { id: string }) => item.id === avatarId)).toMatchObject({ owned: false, condition: 'Condition test' });
+    expect(response.json().catalog.find((item: { id: string }) => item.id === titleId)).toMatchObject({ displayName: 'Cosmétique mystérieux', condition: null, assetPath: null });
+    expect(await database.playerCosmetic.count()).toBe(before);
+    expect((await app.inject({ url: '/api/v1/me/appearance' })).statusCode).toBe(401);
+    expect(effectiveAvatar({ displayName: 'No element', elementKey: null, equippedAvatarCosmetic: null }).kind).toBe('INITIAL');
+  });
+  it('unlocks once, preserves source and notification, and permits only owned correctly typed active cosmetics', async () => {
+    const progressionBefore = await database.playerProgression.findUniqueOrThrow({ where: { playerId: owner } });
+    expect((await patch('AVATAR', avatarId)).statusCode).toBe(403);
+    const first = await appearance.unlockCosmetic({ playerId: owner, externalKey: 'fixture-avatar', source: 'TEST', notify: true });
+    const replay = await appearance.unlockCosmetic({ playerId: owner, externalKey: 'fixture-avatar', source: 'REPLAY', notify: true });
+    expect(first.unlocked).toBe(true); expect(replay.unlocked).toBe(false);
+    expect(await database.playerCosmetic.findUnique({ where: { playerId_cosmeticId: { playerId: owner, cosmeticId: avatarId } } })).toMatchObject({ unlockSource: 'TEST' });
+    expect(await database.notification.count({ where: { playerId: owner, typeKey: 'COSMETIC_UNLOCKED' } })).toBe(1);
+    expect((await patch('TITLE', avatarId)).statusCode).toBe(400);
+    expect((await patch('AVATAR', avatarId)).statusCode).toBe(200);
+    expect((await app.inject({ url: '/api/v1/me/appearance', headers: auth() })).json().avatar).toMatchObject({ kind: 'CUSTOM', assetPath: '/assets/fixture/avatar.png' });
+    expect((await app.inject({ url: `/api/v1/players/${owner}/profile`, headers: auth() })).json().player).toMatchObject({ avatarAssetPath: '/assets/fixture/avatar.png', title: null });
+    expect((await app.inject({ url: `/api/v1/players/${other}/profile`, headers: auth() })).json().player.title).toBeNull();
+    await database.cosmeticDefinition.update({ where: { id: avatarId }, data: { isActive: false } });
+    expect((await patch('AVATAR', avatarId)).statusCode).toBe(404);
+    expect(await database.playerCosmetic.count({ where: { playerId: owner, cosmeticId: avatarId } })).toBe(1);
+    expect((await app.inject({ url: '/api/v1/me/appearance', headers: auth() })).json().catalog.find((item: { id: string }) => item.id === avatarId)).toMatchObject({ owned: true, isActive: false });
+    expect((await patch('AVATAR', null)).statusCode).toBe(200);
+    await appearance.unlockCosmetic({ playerId: owner, externalKey: 'fixture-title', source: 'BACKFILL' });
+    expect((await patch('TITLE', titleId)).statusCode).toBe(200);
+    expect((await app.inject({ url: `/api/v1/players/${owner}/profile`, headers: auth() })).json().player.title).toBe('Fixture title');
+    expect((await patch('TITLE', null)).statusCode).toBe(200);
+    expect(await database.notification.count({ where: { playerId: owner, typeKey: 'COSMETIC_UNLOCKED' } })).toBe(1);
+    expect(await database.playerProgression.findUniqueOrThrow({ where: { playerId: owner } })).toMatchObject({ xp: progressionBefore.xp });
+  });
+  it('uses joined equipped avatars in ranking and social projections without changing scores', async () => {
+    await database.cosmeticDefinition.update({ where: { id: avatarId }, data: { isActive: true } });
+    await patch('AVATAR', avatarId);
+    const social = await app.inject({ url: '/api/v1/players?q=Owner', headers: auth() });
+    expect(social.json().players[0].avatarAssetPath).toBe('/assets/fixture/avatar.png');
+    const ranking = await app.inject({ url: '/api/v1/rankings?metric=xp', headers: auth() });
+    expect(ranking.json().entries[0]).toMatchObject({ playerId: owner, avatarAssetPath: '/assets/fixture/avatar.png', value: '100' });
+    const row = await database.player.findUniqueOrThrow({ where: { id: owner }, select: { displayName: true, elementKey: true, ...appearanceSelect } });
+    expect(effectiveAvatar(row).kind).toBe('CUSTOM');
+  });
+});

@@ -816,11 +816,11 @@ describe('DirectMessagePanel', () => {
     expect(directMessages.block).toHaveBeenCalledWith(conversationId, expect.any(String))
   })
 
-  it('uses the same identity initial in the list and header, never an element abbreviation', async () => {
+  it('uses the same official elemental avatar in the list and header', async () => {
     const container = await mount()
-    expect(container.querySelector('.dm-conversation-row .dm-avatar')?.textContent).toBe('A')
+    expect(container.querySelector('.dm-conversation-row .dm-avatar img')?.getAttribute('src')).toBe('/assets/genshin/elements/hydro-badge.png')
     await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
-    expect(container.querySelector('.dm-thread-identity .dm-avatar')?.textContent).toBe('A')
+    expect(container.querySelector('.dm-thread-identity .dm-avatar img')?.getAttribute('src')).toBe('/assets/genshin/elements/hydro-badge.png')
     expect(container.textContent).not.toContain('Hy')
   })
 

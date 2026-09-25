@@ -1,4 +1,5 @@
 import { SocialService } from '../application/social/social-service.js';
+import { AppearanceService } from '../application/appearance/appearance-service.js';
 import { RankingService } from '../application/ranking/ranking-service.js';
 import { HistoryService } from '../application/history/history-service.js';
 import { DirectMessageReportService } from '../application/direct-messages/direct-message-report-service.js';
@@ -179,6 +180,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     giftCodeService,
     eventService,
     socialService: new SocialService(getCurrentPlayer, database, clock),
+    appearanceService: new AppearanceService(database, getCurrentPlayer),
     rankingService: new RankingService(database),
     historyService: new HistoryService(database, () => clock.now()),
     expeditionService,

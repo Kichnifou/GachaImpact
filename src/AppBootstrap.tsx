@@ -443,6 +443,7 @@ function AppBootstrap() {
   return (
     <><GameShell
       onRefreshChatScopes={refreshChatScopes}
+      onRefreshPlayer={async () => setPlayer(await getGameApiClient().getCurrentPlayer())}
       key={player.id}
       socialActions={socialActions}
       tradeActions={tradeActions}
