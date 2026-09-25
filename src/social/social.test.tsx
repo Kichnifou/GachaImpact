@@ -22,6 +22,8 @@ function actions(): SocialActions {
     friendAction: vi.fn(async () => ({ state: 'PENDING' })), sendHearts: vi.fn(async () => ({ sent: 0, alreadySent: 0, unavailable: 0, activeFriends: 0, senderReward: '0', recipientReward: '5', status: 'NO_FRIENDS' as const })), saveFriendSort: vi.fn(async sort => ({ sort })),
     privacy: vi.fn(async () => ({ version: 1, settings: [{ categoryKey: 'BOX' as const, level: 'PUBLIC' as const }] })),
     savePrivacy: vi.fn(async (categoryKey, level) => ({ version: 1, settings: [{ categoryKey, level }] })),
+    ownMissions: vi.fn(async () => { throw new Error('unused') }),
+    playerMissions: vi.fn(async () => { throw new Error('unused') }),
     session: vi.fn(async () => ({})), heartbeat: vi.fn(async () => ({})), end: vi.fn(async () => ({})),
   }
 }

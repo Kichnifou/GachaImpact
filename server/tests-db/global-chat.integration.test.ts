@@ -6,7 +6,7 @@ import { GlobalChatService } from '../src/application/chat/global-chat-service.j
 import { ChatCommandDispatcher, type ChatCommandServices } from '../src/application/chat/chat-command-dispatcher.js';
 import { GetCurrentPlayerBank, TransferPlayerBank } from '../src/application/banking/banking-services.js';
 import { PrismaBankingStore } from '../src/infrastructure/database/prisma-banking-store.js';
-import { ConvertPersonalParticles } from '../src/application/daily-challenge/daily-challenge-services.js';
+import { ConvertPersonalParticles, GetDailyChallenge } from '../src/application/daily-challenge/daily-challenge-services.js';
 import { PrismaDailyChallengeStore } from '../src/infrastructure/database/prisma-daily-challenge-store.js';
 import { SocialService } from '../src/application/social/social-service.js';
 import { SourceChannel } from '../generated/prisma/client.js';
@@ -14,6 +14,9 @@ import { GetCurrentPlayer } from '../src/application/player/get-current-player.j
 import { PlayerActivityRecorder } from '../src/application/player/player-activity-recorder.js';
 import { PrismaCurrentPlayerStore } from '../src/infrastructure/database/prisma-current-player-store.js';
 import { elementKeys, resourceKeys } from '../src/domain/economy/resources.js';
+import { GetCurrentPlayerMissions } from '../src/application/missions/get-current-player-missions.js';
+import { PermanentMissionService } from '../src/application/missions/permanent-mission-service.js';
+import { PrismaEconomyService } from '../src/infrastructure/database/prisma-economy-service.js';
 
 const fixture = isolatedBatchDatabase();
 const db = fixture.database;
@@ -23,11 +26,15 @@ const random = { nextInt: () => 0 };
 const getPlayer = new GetCurrentPlayer(new PrismaCurrentPlayerStore(db));
 const service = new GlobalChatService(db, getPlayer, clock, random);
 const bankStore = new PrismaBankingStore(db);
+const dailyChallengeStore = new PrismaDailyChallengeStore(db);
+const commandMissions = new PermanentMissionService(new PrismaEconomyService(() => now));
 const commandServices = {
   getCurrentPlayerBank: new GetCurrentPlayerBank(getPlayer, bankStore, clock),
   depositPlayerBankChat: new TransferPlayerBank('deposit', getPlayer, bankStore, clock, 'CHAT'),
   withdrawPlayerBankChat: new TransferPlayerBank('withdraw', getPlayer, bankStore, clock, 'CHAT'),
-  convertPersonalParticlesChat: new ConvertPersonalParticles(getPlayer, new PrismaDailyChallengeStore(db), clock, SourceChannel.INTERNAL_CHAT),
+  convertPersonalParticlesChat: new ConvertPersonalParticles(getPlayer, dailyChallengeStore, clock, SourceChannel.INTERNAL_CHAT),
+  getDailyChallenge: new GetDailyChallenge(getPlayer, dailyChallengeStore, clock),
+  getCurrentPlayerMissions: new GetCurrentPlayerMissions(getPlayer, db, clock, commandMissions),
   socialService: new SocialService(getPlayer, db, clock),
 } as unknown as ChatCommandServices;
 const dispatcher = new ChatCommandDispatcher(service, commandServices);
@@ -310,6 +317,31 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect((await dispatcher.send(as(id), '!banque deposer non', randomUUID())).result?.content).toBe('Syntaxe : !banque [deposer|retirer <montant|max>].');
     advance(4_000);
     expect((await dispatcher.send(as(id), '!wish', randomUUID())).result?.content).toBe('Cette commande est réservée à Twitch.');
+  }, 30_000);
+
+  it('runs R301 exactly once through !mission and refreshes resources without attributing history to Chat', async () => {
+    const id = await player(0n);
+    await db.playerProgression.update({ where: { playerId: id }, data: { totalMessages: 50n, countedMessages: 50n } });
+    const key = randomUUID();
+    const first = await dispatcher.send(as(id), '!mission', key);
+    expect(first.result?.content).toContain('Défi : disponible, non attribué');
+    expect(first.result?.content).toContain('B 1/9 terminées');
+    expect(first.refreshScopes).toContain('resources');
+    const catchUps = await db.businessOperation.findMany({ where: { playerId: id, operationType: 'permanent-mission.standalone-catchup' } });
+    expect(catchUps).toHaveLength(1);
+    expect(catchUps[0]).toMatchObject({ sourceChannel: SourceChannel.SYSTEM });
+    const rewards = await db.businessOperation.findMany({ where: { playerId: id, operationType: 'permanent-mission.reward' } });
+    expect(rewards).toHaveLength(1);
+    expect(rewards[0]).toMatchObject({ sourceChannel: SourceChannel.SYSTEM });
+    const completed = await db.playerPermanentMissionProgress.findFirstOrThrow({ where: { playerId: id, definition: { externalKey: 'messages_b' } } });
+    expect(completed.completionTriggerOperationId).toBe(catchUps[0]!.id);
+    const chatOperation = await db.businessOperation.findFirstOrThrow({ where: { playerId: id, operationType: 'chat.send', idempotencyKey: key } });
+    expect(completed.completionTriggerOperationId).not.toBe(chatOperation.id);
+    const replay = await dispatcher.send(as(id), '!mission', key);
+    expect(replay.replayed).toBe(true);
+    expect(await db.businessOperation.count({ where: { playerId: id, operationType: 'permanent-mission.standalone-catchup' } })).toBe(1);
+    expect(await db.businessOperation.count({ where: { playerId: id, operationType: 'permanent-mission.reward' } })).toBe(1);
+    expect(await progress(id)).toMatchObject({ totalMessages: 51n, countedMessages: 50n, xp: 0n });
   }, 30_000);
 
   it('publishes every part of a long game result atomically and replays the same ordered messages', async () => {

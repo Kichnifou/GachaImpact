@@ -2,6 +2,7 @@ import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { ChatCommandDispatcher, type ChatCommandServices } from '../src/application/chat/chat-command-dispatcher.js';
 import type { GlobalChatService } from '../src/application/chat/global-chat-service.js';
 import { BusinessError } from '../src/application/errors.js';
+import type { CurrentPlayerMissions } from '../src/application/missions/get-current-player-missions.js';
 
 const commandId = '11111111-1111-4111-8111-111111111111';
 const actor = { subject: 'actor' };
@@ -66,7 +67,16 @@ function harness() {
     contestService: { getCurrent: vi.fn(async () => ({ active: null, theme: { label: 'Force' }, dailyUsed: false })) },
     dailyCombatService: { getDaily: vi.fn(async () => ({ status: 'TODO', loadout: { slots: [] }, preview: null, playerStats: { totalFights: 0n, totalWins: 0n, totalManualWins: 0n, totalLosses: 0n }, encounter: { enemies: [{ character: { name: 'Ennemi', elementKey: 'cryo' }, weakAgainstElements: ['pyro'], resistantAgainstElements: ['hydro'] }] }, canFight: false })), previewActiveTeam: vi.fn(async () => ({ finalHalfPoints: 140 })), getElementMatrix: vi.fn(async () => [{ element: 'cryo', weakAgainstElements: ['pyro'], resistantAgainstElements: ['hydro'] }]), fight: vi.fn(async () => ({ result: { won: true, chanceHalfPoints: 140 } })) },
     monthlyBossService: { getCurrentForChat: vi.fn(async () => ({ boss: { id: 'boss', name: 'Boss', currentHp: 10n, maxHp: 20n, resistanceElementKey: 'pyro' }, status: 'ALIVE', attackState: 'AVAILABLE', preview: null, playerStats: { totalDamage: 0n, totalAttacks: 0n, totalParticipated: 0n, totalRewarded: 0n, finalBlows: 0n, bestHit: 0n } })), attackWithActiveTeam: vi.fn(async () => ({ result: { damage: 5n, defeated: false }, view: { boss: { name: 'Boss' } } })) },
-    getDailyChallenge: execute({ status: 'AVAILABLE' }),
+    getDailyChallenge: execute({ status: 'AVAILABLE', challenge: null }),
+    getCurrentPlayerMissions: execute({
+      catchUpApplied: false,
+      ranks: {
+        B: Array.from({ length: 9 }, (_, index) => ({ externalKey: `b${index}`, rank: 'B', displayName: `Mission B ${index + 1}`, description: '', progressLabel: '', progress: BigInt(index), target: 9n, status: index === 0 ? 'COMPLETED' : 'ACTIVE', rewardPrimogems: 160n, completedAt: null })),
+        A: Array.from({ length: 9 }, (_, index) => ({ externalKey: `a${index}`, rank: 'A', displayName: `Mission A ${index + 1}`, description: '', progressLabel: '', progress: 0n, target: 20n, status: 'LOCKED', rewardPrimogems: 1600n, completedAt: null })),
+        S: Array.from({ length: 9 }, (_, index) => ({ externalKey: `s${index}`, rank: 'S', displayName: `Mission S ${index + 1}`, description: '', progressLabel: '', progress: 0n, target: 30n, status: 'LOCKED', rewardPrimogems: 16000n, completedAt: null })),
+      },
+      z: { status: 'LOCKED' },
+    }),
     getTodayWheelState: execute({ spun: false }),
     spinDailyWheelChat: execute({ resultType: 'primogems', resourceKey: 'primogems', amount: 160n }),
   };
@@ -107,7 +117,7 @@ describe('Chat command adapters', () => {
     const { send, services } = harness();
     expect(await send('!pull 11')).toBe('Syntaxe : !pull [1..10].');
     expect(await send('!echanger')).toContain('Partenaires échangeables');
-    expect(await send('!mission')).toBe('Cette fonctionnalité n’est pas encore disponible.');
+    expect(await send('!mission inconnu')).toBe('Syntaxe : !mission [B|A|S|Z].');
     expect(await send('!gift')).toBe('Commande inconnue. Utilise !help.');
     expect(services.performGachaPullChat.execute).not.toHaveBeenCalled();
   });
@@ -130,6 +140,56 @@ describe('Chat command adapters', () => {
   it('formats daily states as player-facing text', async () => {
     const { send } = harness();
     expect(await send('!quotis')).toBe('Quotidiennes : Roue à faire · Défi disponible · Combat à faire · Expédition à faire.');
+  });
+
+  it('formats mission summary, compatibility alias and canonical ranks without leaking locked Z', async () => {
+    const { send } = harness();
+    const summary = await send('!mission');
+    expect(summary).toContain('Défi : disponible, non attribué');
+    expect(summary).toContain('B 1/9 terminées · A 0/9 · S 0/9 · Z verrouillé');
+    expect(await send('!mission resume')).toBe(summary);
+    expect(await send('!mission b')).toMatch(/^Missions B : ▶ Mission B 2 1\/9/u);
+    expect(await send('!mission Z')).toBe('Rang Z verrouillé : accessible après accomplissement de toutes les missions B, A et S.');
+    expect(await send('!mission pseudo')).toBe('Syntaxe : !mission [B|A|S|Z].');
+  });
+
+  it('formats active and completed Défi states plus unlocked Z counts', async () => {
+    const active = harness();
+    active.services.getDailyChallenge.execute.mockResolvedValue({ status: 'ACTIVE', challenge: { displayName: 'Invocations', progress: 2n, target: 5n } } as never);
+    const unlocked = await active.services.getCurrentPlayerMissions.execute() as CurrentPlayerMissions;
+    active.services.getCurrentPlayerMissions.execute.mockResolvedValue({ ...unlocked, z: { status: 'ACTIVE', unlockedAt: new Date(), missions: [
+      { ...unlocked.ranks.B[0]!, externalKey: 'z1', rank: 'Z', status: 'COMPLETED' },
+      { ...unlocked.ranks.B[1]!, externalKey: 'z2', rank: 'Z', status: 'ACTIVE' },
+      { ...unlocked.ranks.B[2]!, externalKey: 'z3', rank: 'Z', status: 'LOCKED' },
+      { ...unlocked.ranks.B[3]!, externalKey: 'z4', rank: 'Z', status: 'LOCKED' },
+    ] } } as never);
+    expect(await active.send('!mission')).toContain('Défi : Invocations 2/5');
+    expect(await active.send('!mission')).toContain('Z 1/4 terminées');
+    expect(await active.send('!mission Z')).toContain('Missions Z : ▶');
+
+    const completed = harness();
+    completed.services.getDailyChallenge.execute.mockResolvedValue({ status: 'COMPLETED', challenge: { displayName: 'Conversion', progress: 1n, target: 1n } } as never);
+    const completeView = await completed.services.getCurrentPlayerMissions.execute() as CurrentPlayerMissions;
+    completed.services.getCurrentPlayerMissions.execute.mockResolvedValue({ ...completeView, z: { status: 'COMPLETED', unlockedAt: new Date(), missions: [] } } as never);
+    expect(await completed.send('!mission resume')).toContain('Défi : Conversion terminé');
+    expect(await completed.send('!mission resume')).toContain('Z terminé');
+  });
+
+  it('refreshes resources only when the personal projection applies R301', async () => {
+    const { chat, services, send } = harness();
+    const current = await services.getCurrentPlayerMissions.execute() as CurrentPlayerMissions;
+    services.getCurrentPlayerMissions.execute.mockResolvedValue({ ...current, catchUpApplied: true } as never);
+    await send('!mission A');
+    expect(chat.rememberCommandRefreshScopes).toHaveBeenCalledWith(commandId, ['resources']);
+  });
+
+  it('hands one complete response longer than 500 characters to the existing Chat splitter', async () => {
+    const { chat, services, send } = harness();
+    const current = await services.getCurrentPlayerMissions.execute() as CurrentPlayerMissions;
+    services.getCurrentPlayerMissions.execute.mockResolvedValue({ ...current, ranks: { ...current.ranks, B: current.ranks.B.map((mission, index) => ({ ...mission, displayName: `Mission ${index + 1} ${'très-longue '.repeat(8)}` })) } } as never);
+    const response = await send('!mission B');
+    expect((response ?? '').length).toBeGreaterThan(500);
+    expect(chat.publishGameResult).toHaveBeenCalledWith(commandId, response);
   });
 
   it('attributes Expedition start and claim commands to INTERNAL_CHAT', async () => {

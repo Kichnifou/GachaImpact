@@ -8010,6 +8010,8 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .missions-frame .scrollable-screen-panel-controls { border-bottom: 1px solid rgba(121, 153, 198, .16); }
 .missions-frame .activity-inner-tabs { border-bottom: 0; }
 .missions-frame .scrollable-screen-panel-body { padding: 12px 4px 4px 0; }
+.mission-projection-view > .missions-rank-tabs { position: sticky; z-index: 2; top: -12px; margin: -12px 0 12px; border-bottom: 1px solid rgba(121, 153, 198, .16); background: rgba(7, 20, 39, .97); }
+.profile-frame .mission-projection-view > .missions-rank-tabs { top: 0; margin-top: 0; }
 .missions-rank-tabs button { min-width: 58px; font-weight: 800; }
 .mission-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .mission-card { min-width: 0; display: grid; grid-template-rows: auto auto auto auto auto; gap: 10px; padding: 14px; border: 1px solid rgba(105, 159, 219, .2); border-radius: 12px; background: linear-gradient(145deg, rgba(16, 39, 68, .94), rgba(7, 20, 39, .96)); box-shadow: inset 0 1px rgba(255, 255, 255, .025); }

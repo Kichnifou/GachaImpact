@@ -7,6 +7,7 @@ import ProfileScreen from '../screens/ProfileScreen'
 import OnlinePlayersPanel from '../components/OnlinePlayersPanel'
 import { defaultNavigationPreference } from '../navigation/navigation'
 import type { Profile, SocialActions } from './types'
+import type { PermanentMissionDto, PermanentMissionProjectionDto } from '../api/types'
 import type { FriendshipController } from './use-friendships'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -21,6 +22,15 @@ async function mount(node: ReactNode) {
 const player = { id: 'owner', displayName: 'Test Player', level: 3, elementKey: 'pyro' as const }
 const button = (container: HTMLElement, text: string) => Array.from(container.querySelectorAll('button')).find(b => b.textContent === text)!
 const controller = { value: { businessDate: '2026-09-20', sort: 'presence', totalFriendHeartsSent: '0', players: [], friends: [], requests: [], summary: { activeFriends: 0, available: 0, alreadySent: 0 } }, error: '', feedback: '', feedbackScope: '', pending: false, refresh: vi.fn(), mutate: vi.fn(), saveSort: vi.fn(), clearFeedback: vi.fn() } as unknown as FriendshipController
+const permanent = (rank: 'B' | 'A' | 'S', index: number, status: PermanentMissionDto['status']): PermanentMissionDto => ({ externalKey: `${rank}${index}`, rank, displayName: `Mission ${rank}${index}`, description: 'Objectif', progressLabel: 'Actions', progress: String(index), target: '9', status, rewardPrimogems: '160', completedAt: null })
+const missions: PermanentMissionProjectionDto = {
+  ranks: {
+    B: Array.from({ length: 9 }, (_, index) => permanent('B', index, 'COMPLETED')),
+    A: [permanent('A', 0, 'COMPLETED'), permanent('A', 1, 'ACTIVE'), permanent('A', 2, 'LOCKED')],
+    S: [permanent('S', 0, 'LOCKED')],
+  },
+  z: { status: 'LOCKED' },
+}
 
 describe('Social screens', () => {
   it('keeps confirmed privacy after a failed save, then accepts server confirmation without touching Menu', async () => {
@@ -80,5 +90,62 @@ describe('Social screens', () => {
     await act(async () => { roots.at(-1)!.render(<OnlinePlayersPanel value={{ total: 0, players: [] }} error={false} ownerPlayerId={player.id} controller={controller} onClose={vi.fn()} onProfile={onProfile} onDirectory={onDirectory} />) })
     expect(container.textContent).toContain('Aucun joueur connecté visible.')
     expect(container.textContent).not.toContain('Présence indisponible.')
+  })
+
+  it('loads owner Missions lazily, selects A, partitions unfinished cards and refreshes on re-entry', async () => {
+    const value: Profile = { player, own: true, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
+    const ownMissions = vi.fn(async () => ({ ...missions, catchUpApplied: false }))
+    const actions = { profile: vi.fn(async () => value), ownMissions, playerMissions: vi.fn() } as unknown as SocialActions
+    const container = await mount(<ProfileScreen playerId={player.id} ownerPlayerId={player.id} actions={actions} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()} />)
+    expect(ownMissions).not.toHaveBeenCalled()
+    await act(async () => { button(container, 'Missions').click(); await Promise.resolve(); await Promise.resolve() })
+    expect(ownMissions).toHaveBeenCalledOnce()
+    expect(actions.playerMissions).not.toHaveBeenCalled()
+    expect(container.querySelector('[data-mission-rank="A"]')).not.toBeNull()
+    expect(Array.from(container.querySelectorAll('[data-mission-key]')).map(node => node.getAttribute('data-mission-key'))).toEqual(['A1', 'A2', 'A0'])
+    await act(async () => { button(container, 'Aperçu').click(); await Promise.resolve() })
+    await act(async () => { button(container, 'Missions').click(); await Promise.resolve(); await Promise.resolve() })
+    expect(ownMissions).toHaveBeenCalledTimes(2)
+  })
+
+  it('uses the privacy-aware third-party route and renders no Mission detail when private', async () => {
+    const value: Profile = { player, own: false, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
+    const playerMissions = vi.fn(async () => ({ access: 'PRIVATE' as const }))
+    const actions = { profile: vi.fn(async () => value), ownMissions: vi.fn(), playerMissions } as unknown as SocialActions
+    const container = await mount(<ProfileScreen playerId={player.id} ownerPlayerId="another-owner" actions={actions} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()} />)
+    await act(async () => { button(container, 'Missions').click(); await Promise.resolve(); await Promise.resolve() })
+    expect(playerMissions).toHaveBeenCalledWith(player.id)
+    expect(actions.ownMissions).not.toHaveBeenCalled()
+    expect(container.textContent).toContain('Cette rubrique est privée.')
+    expect(container.textContent).not.toMatch(/Mission A|Rang Z|Primogemmes/)
+  })
+
+  it('offers retry after a lazy Mission failure', async () => {
+    const value: Profile = { player, own: false, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
+    const playerMissions = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ access: 'ALLOWED', data: missions })
+    const actions = { profile: vi.fn(async () => value), ownMissions: vi.fn(), playerMissions } as unknown as SocialActions
+    const container = await mount(<ProfileScreen playerId={player.id} ownerPlayerId="another-owner" actions={actions} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()} />)
+    await act(async () => { button(container, 'Missions').click(); await Promise.resolve(); await Promise.resolve() })
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('Missions indisponibles')
+    await act(async () => { button(container, 'Réessayer').click(); await Promise.resolve(); await Promise.resolve() })
+    expect(playerMissions).toHaveBeenCalledTimes(2)
+    expect(container.querySelector('[data-mission-rank="A"]')).not.toBeNull()
+  })
+
+  it('invalidates a stale Mission response when the Profile target changes', async () => {
+    let resolveOld!: (value: { access: 'PRIVATE' }) => void
+    const value: Profile = { player, own: false, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
+    const playerMissions = vi.fn((id: string) => id === 'old-target'
+      ? new Promise<{ access: 'PRIVATE' }>(resolve => { resolveOld = resolve })
+      : Promise.resolve({ access: 'ALLOWED' as const, data: missions }))
+    const actions = { profile: vi.fn(async () => value), ownMissions: vi.fn(), playerMissions } as unknown as SocialActions
+    const props = { ownerPlayerId: 'owner', actions, controller, onDirectory: vi.fn(), onPrivacy: vi.fn() }
+    const container = await mount(<ProfileScreen playerId="old-target" {...props} />)
+    await act(async () => { button(container, 'Missions').click(); await Promise.resolve() })
+    await act(async () => { roots.at(-1)!.render(<ProfileScreen playerId="new-target" {...props} />); await Promise.resolve(); await Promise.resolve() })
+    expect(container.querySelector('[data-mission-rank="A"]')).not.toBeNull()
+    await act(async () => { resolveOld({ access: 'PRIVATE' }); await Promise.resolve() })
+    expect(container.querySelector('[data-mission-rank="A"]')).not.toBeNull()
+    expect(container.textContent).not.toContain('Cette rubrique est privée.')
   })
 })

@@ -29,4 +29,11 @@ describe('Chat command registry', () => {
     expect(chatHelp('activites')).toContain('!concours');
     expect(chatHelp('concours')).not.toContain('open');
   });
+
+  it('publishes the canonical Mission help without advertising the resume alias', () => {
+    expect(findChatCommand('mission')).toMatchObject({ internalChat: 'READY', syntax: '!mission [B|A|S|Z]' });
+    expect(chatHelp('activites')).toContain('!mission');
+    expect(chatHelp('mission')).toBe('Aide mission : !mission [B|A|S|Z].');
+    expect(chatHelp('mission')).not.toContain('resume');
+  });
 });

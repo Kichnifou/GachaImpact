@@ -6,8 +6,9 @@ import InventoryObjectCard from '../components/InventoryObjectCard'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import ScreenHeader from '../components/ScreenHeader'
 import GameAssetIcon from '../components/GameAssetIcon'
+import MissionProjectionView from '../missions/MissionProjectionView'
 import { compareCharacters, normalizeCharacterSearch } from '../characters/character-catalog'
-import type { ElementKey } from '../api/types'
+import type { ElementKey, PermanentMissionProjectionDto } from '../api/types'
 import { presenceLabels, type Access, type Profile, type SocialActions } from '../social/types'
 import { apiErrorMessage, elementLabels, formatResourceAmount } from '../utils/formatters'
 import { getElementAssetPath } from '../utils/gameAssets'
@@ -26,9 +27,11 @@ function LastActivity({ value }: { value: Access<string | null> }) {
   const relative = minutes < 1 ? 'À l’instant' : minutes < 60 ? `Il y a ${minutes} min` : minutes < 1440 ? `Il y a ${Math.floor(minutes / 60)} h` : `Il y a ${Math.floor(minutes / 1440)} j`
   return <details className="profile-last-activity"><summary title={date.toLocaleString('fr-FR')}>Dernière activité : {relative}</summary><time dateTime={value.data}>{date.toLocaleString('fr-FR')}</time></details>
 }
-const tabs = ['Aperçu', 'Team active', 'Box', 'Collection', 'Statistiques'] as const
+const tabs = ['Aperçu', 'Team active', 'Box', 'Collection', 'Statistiques', 'Missions'] as const
 export default function ProfileScreen({ playerId, ownerPlayerId, actions, controller, onDirectory, onPrivacy, onMessage, onTrade }: { playerId: string; ownerPlayerId: string; actions: SocialActions; controller: FriendshipController; onDirectory: () => void; onPrivacy: () => void; onMessage?: (player: { id: string; displayName: string; elementKey: ElementKey | null }) => void; onTrade?: (player: { id: string; displayName: string }) => void }) {
   const [value, setValue] = useState<Profile | null>(null), [error, setError] = useState(''), [tab, setTab] = useState<typeof tabs[number]>('Aperçu')
+  const [missions, setMissions] = useState<Access<PermanentMissionProjectionDto> | null>(null), [missionsError, setMissionsError] = useState(''), [missionsRequest, setMissionsRequest] = useState(0)
+  const [missionsTarget, setMissionsTarget] = useState('')
   const [query, setQuery] = useState(''), [rarity, setRarity] = useState<CharacterRarityFilter>('all'), [element, setElement] = useState<ElementKey | null>(null), [sortKey, setSortKey] = useState<CharacterSortKey>('name'), [direction, setDirection] = useState<CharacterSortDirection>('asc')
   const clearFeedback = controller.clearFeedback
   useEffect(() => () => clearFeedback(), [clearFeedback])
@@ -41,6 +44,17 @@ export default function ProfileScreen({ playerId, ownerPlayerId, actions, contro
     }
     void load(); return () => { active = false; window.clearTimeout(timer) }
   }, [actions, playerId])
+  useEffect(() => {
+    if (tab !== 'Missions') return
+    let active = true
+    const load = playerId === ownerPlayerId
+      ? actions.ownMissions().then(data => ({ access: 'ALLOWED' as const, data }))
+      : actions.playerMissions(playerId)
+    void load.then(next => { if (active) { setMissions(next); setMissionsError(''); setMissionsTarget(playerId) } }).catch(reason => { if (active) { setMissions(null); setMissionsError(apiErrorMessage(reason)); setMissionsTarget(playerId) } })
+    return () => { active = false }
+  }, [actions, missionsRequest, ownerPlayerId, playerId, tab])
+  const currentMissions = missionsTarget === playerId ? missions : null
+  const currentMissionsError = missionsTarget === playerId ? missionsError : ''
   const team = value && <Section value={value.team}>{team => team ? <div className="character-grid">{team.slots.map(slot => slot.character ? <CharacterCard key={slot.position} character={slot.character} footer={<p className="profile-character-meta">C{slot.character.constellation}</p>} /> : <div key={slot.position} className="profile-empty-slot">Emplacement {slot.position} vide</div>)}</div> : <p>Aucune Team active.</p>}</Section>
   const relation = relationshipContext(controller.value, ownerPlayerId, playerId), feedbackScope = `profile:${playerId}`
   const socialActions = relation.state === 'SELF' ? null : <div className="profile-social-actions">
@@ -55,7 +69,7 @@ export default function ProfileScreen({ playerId, ownerPlayerId, actions, contro
   </div>
   return <div className="screen-content profile-screen long-screen-layout">
     <ScreenHeader eyebrow="Social" title={value?.player.displayName ?? 'Profil'} />
-    <ScrollableScreenPanel className="profile-frame" fixed={<><div className="profile-navigation"><AppButton onClick={onDirectory}>Joueurs</AppButton>{value?.own && <AppButton onClick={onPrivacy}>Confidentialité</AppButton>}</div><nav className="secondary-navigation" aria-label="Rubriques du profil">{tabs.map(t => <AppButton key={t} className={tab === t ? 'active' : ''} aria-pressed={tab === t} onClick={() => { controller.clearFeedback(); setTab(t) }}>{t}</AppButton>)}</nav>{tab === 'Box' && value?.box.access === 'ALLOWED' && <CollectionFilters placeholder="Rechercher un personnage…" query={query} rarity={rarity} element={element} sortKey={sortKey} direction={direction} onQueryChange={setQuery} onRarityChange={setRarity} onElementChange={setElement} onSortKeyChange={setSortKey} onDirectionChange={() => setDirection(direction === 'asc' ? 'desc' : 'asc')} />}</>}>
+    <ScrollableScreenPanel className="profile-frame" fixed={<><div className="profile-navigation"><AppButton onClick={onDirectory}>Joueurs</AppButton>{value?.own && <AppButton onClick={onPrivacy}>Confidentialité</AppButton>}</div><nav className="secondary-navigation" aria-label="Rubriques du profil">{tabs.map(t => <AppButton key={t} className={tab === t ? 'active' : ''} aria-pressed={tab === t} onClick={() => { controller.clearFeedback(); if (t === 'Missions' && tab !== 'Missions') setMissionsTarget(''); setTab(t) }}>{t}</AppButton>)}</nav>{tab === 'Box' && value?.box.access === 'ALLOWED' && <CollectionFilters placeholder="Rechercher un personnage…" query={query} rarity={rarity} element={element} sortKey={sortKey} direction={direction} onQueryChange={setQuery} onRarityChange={setRarity} onElementChange={setElement} onSortKeyChange={setSortKey} onDirectionChange={() => setDirection(direction === 'asc' ? 'desc' : 'asc')} />}</>}>
       {error ? <p role="alert">{error}</p> : !value ? <p role="status">Chargement du profil…</p> : <>
         {tab === 'Aperçu' && <div className="profile-overview"><div className="profile-identity"><span className={`mini-avatar ${value.player.elementKey ?? ''}`} aria-hidden="true">{value.player.displayName.slice(0, 1).toUpperCase()}</span><div className="profile-identity-copy"><div className="profile-name-line"><h2>{value.player.displayName}</h2><span className="profile-element" role="img" aria-label={value.player.elementKey ? `Élément ${elementLabels[value.player.elementKey]}` : 'Élément non choisi'}>{value.player.elementKey && <GameAssetIcon src={getElementAssetPath(value.player.elementKey)} fallback="✦" />}</span></div><p className="profile-presence">{value.presence.access === 'ALLOWED' ? <><span className={`presence-dot presence-${value.presence.data.toLowerCase()}`} aria-hidden="true" />{presenceLabels[value.presence.data]}</> : 'Présence privée'}</p><p>Niveau {value.player.level}</p>{socialActions}<div className="social-feedback" role="status">{controller.feedbackScope === feedbackScope ? controller.feedback : ''}</div></div></div><div className="profile-activity-section"><LastActivity value={value.lastActivity} /></div></div>}
         {tab === 'Team active' && team}
@@ -65,6 +79,10 @@ export default function ProfileScreen({ playerId, ownerPlayerId, actions, contro
         }}</Section>}
         {tab === 'Collection' && <Section value={value.collection}>{items => <><div className="inventory-grid">{items.map(item => <InventoryObjectCard key={item.id} item={item} />)}</div>{!items.length && <p>Collection encore vide.</p>}</>}</Section>}
         {tab === 'Statistiques' && <Section value={value.statistics}>{stats => <dl className="profile-statistics">{([['totalXp', 'XP'], ['totalPulls', 'Invocations'], ['totalFiveStars', '5★ obtenus'], ['totalFourStars', '4★ obtenus'], ['combatWins', 'Victoires Combat'], ['expeditionsCompleted', 'Expéditions terminées']] as const).map(([key, label]) => <div key={key}><dt>{label}</dt><dd>{stats[key] === null ? 'Non disponible' : formatResourceAmount(stats[key])}</dd></div>)}</dl>}</Section>}
+        {tab === 'Missions' && (currentMissionsError
+          ? <div className="missions-state" role="alert"><strong>Missions indisponibles</strong><p>{currentMissionsError}</p><button type="button" className="small-primary-button" onClick={() => { setMissionsTarget(''); setMissionsRequest(current => current + 1) }}>Réessayer</button></div>
+          : !currentMissions ? <p role="status">Chargement des Missions…</p>
+          : <Section value={currentMissions}>{projection => <MissionProjectionView key={playerId} value={projection} />}</Section>)}
       </>}
     </ScrollableScreenPanel>
   </div>

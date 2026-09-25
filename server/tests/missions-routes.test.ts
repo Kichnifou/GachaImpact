@@ -1,11 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { CurrentPlayerMissions } from '../src/application/missions/get-current-player-missions.js';
 import type { GetCurrentPlayerMissions } from '../src/application/missions/get-current-player-missions.js';
+import type { GetPlayerMissions, PlayerMissionsAccess } from '../src/application/missions/get-player-missions.js';
 import { buildApp } from '../src/app.js';
 
 const identity = { subject: 'missions-owner-subject' } as const;
 const completedAt = new Date('2026-09-25T06:00:00.000Z');
 const unlockedAt = new Date('2026-09-25T05:00:00.000Z');
+const targetPlayerId = '22222222-2222-4222-8222-222222222222';
 
 const mission = (rank: 'B' | 'A' | 'S' | 'Z', index: number, status: 'ACTIVE' | 'LOCKED' | 'COMPLETED' = 'ACTIVE') => ({
   externalKey: `mission_${rank.toLowerCase()}_${index}`,
@@ -80,5 +82,49 @@ describe('Personal Missions HTTP route', () => {
     expect(payload.z).toMatchObject({ status: 'ACTIVE', unlockedAt: unlockedAt.toISOString() });
     expect(payload.z.missions).toHaveLength(4);
     expect(payload.z.missions[0]).toMatchObject({ rank: 'Z', status: 'COMPLETED', rewardPrimogems: '160000', completedAt: completedAt.toISOString() });
+  });
+});
+
+describe('Profile Missions HTTP route', () => {
+  const apps: Awaited<ReturnType<typeof buildApp>>[] = [];
+  afterEach(async () => Promise.all(apps.splice(0).map(app => app.close())));
+
+  async function setupProfile(result: PlayerMissionsAccess) {
+    const execute = vi.fn(async () => result);
+    const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, {
+      authIdentityVerifier: { verify: async () => identity },
+      getOrProvisionCurrentPlayer: { execute: vi.fn() } as never,
+      getCurrentPlayerMissions: { execute: vi.fn() } as unknown as GetCurrentPlayerMissions,
+      getPlayerMissions: { execute } as unknown as GetPlayerMissions,
+    });
+    apps.push(app);
+    return { app, execute };
+  }
+
+  it('requires authentication and returns the privacy envelope without Mission data', async () => {
+    const { app, execute } = await setupProfile({ access: 'PRIVATE' });
+    expect((await app.inject({ url: `/api/v1/players/${targetPlayerId}/missions` })).statusCode).toBe(401);
+    const response = await app.inject({ url: `/api/v1/players/${targetPlayerId}/missions`, headers: { authorization: 'Bearer viewer' } });
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['cache-control']).toBe('no-store');
+    expect(response.json()).toEqual({ access: 'PRIVATE' });
+    expect(execute).toHaveBeenCalledWith(identity, targetPlayerId);
+  });
+
+  it('reuses the safe serializer and keeps locked Z absent from the raw authorized payload', async () => {
+    const { app } = await setupProfile({ access: 'ALLOWED', data: { ranks, z: { status: 'LOCKED' } } });
+    const response = await app.inject({ url: `/api/v1/players/${targetPlayerId}/missions`, headers: { authorization: 'Bearer viewer' } });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ access: 'ALLOWED', data: { z: { status: 'LOCKED' } } });
+    expect(response.json().data.ranks.B).toHaveLength(9);
+    expect(response.body).not.toMatch(/mission_z_|160000|Couronne des constellations/u);
+    expect(response.body).not.toContain('catchUpApplied');
+  });
+
+  it('rejects malformed target IDs before invoking the profile reader', async () => {
+    const { app, execute } = await setupProfile({ access: 'PRIVATE' });
+    const response = await app.inject({ url: '/api/v1/players/not-a-uuid/missions', headers: { authorization: 'Bearer viewer' } });
+    expect(response.statusCode).toBe(400);
+    expect(execute).not.toHaveBeenCalled();
   });
 });

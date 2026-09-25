@@ -1,4 +1,4 @@
-import type { SocialActions, DirectoryPage, Profile, ConnectedPlayers, PrivacySettings, FriendsSnapshot, HeartResult, FriendSort } from '../social/types'
+import type { SocialActions, Access, DirectoryPage, Profile, ConnectedPlayers, PrivacySettings, FriendsSnapshot, HeartResult, FriendSort } from '../social/types'
 import { loadFrontendConfig } from '../config/environment'
 import type { TradeActions, TradeSnapshot, TradePartners, TradeResult } from '../trades/types'
 import type { BannerVoteDto } from './types'
@@ -11,6 +11,7 @@ import type {
   PlayerDto,
   PlayerResourcesDto,
   PlayerMissionsDto,
+  PermanentMissionProjectionDto,
   PlayerProgressionDto,
   WheelSpinDto,
   WheelTodayDto,
@@ -185,6 +186,8 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
       saveFriendSort: sort => request<{ sort: FriendSort }>('/api/v1/me/friends/sort', { method: 'PATCH', body: JSON.stringify({ sort }) }),
       directory: query => request<DirectoryPage>('/api/v1/players?' + new URLSearchParams({ q: query.q, page: String(query.page), ...(query.element ? { element: query.element } : {}), ...(query.status ? { status: query.status } : {}), ...(query.relation ? { relation: query.relation } : {}) })),
       profile: id => request<Profile>('/api/v1/players/' + encodeURIComponent(id) + '/profile'),
+      ownMissions: () => request<PlayerMissionsDto>('/api/v1/me/missions'),
+      playerMissions: id => request<Access<PermanentMissionProjectionDto>>('/api/v1/players/' + encodeURIComponent(id) + '/missions'),
       connected: () => request<ConnectedPlayers>('/api/v1/social/presence'),
       privacy: () => request<PrivacySettings>('/api/v1/me/privacy'),
       savePrivacy: (categoryKey, level) => request<PrivacySettings>('/api/v1/me/privacy', { method: 'PATCH', body: JSON.stringify({ categoryKey, level }) }),

@@ -1,10 +1,11 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { afterAll, afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { PermanentMissionProgressStatus, Prisma, SourceChannel } from '../generated/prisma/client.js';
 import { PermanentMissionService } from '../src/application/missions/permanent-mission-service.js';
 import { GetCurrentPlayerMissions } from '../src/application/missions/get-current-player-missions.js';
+import { GetPlayerMissions } from '../src/application/missions/get-player-missions.js';
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
 import { loadConfig } from '../src/config/environment.js';
 import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
@@ -22,7 +23,7 @@ const players = new Set<string>();
 // chronological database constraints remain valid regardless of test run date.
 const now = new Date('2099-09-24T17:00:00.000Z');
 
-afterEach(cleanup);
+afterEach(async () => { vi.restoreAllMocks(); await cleanup(); });
 afterAll(async () => { try { await cleanup(); } finally { await database.$disconnect(); } });
 
 async function provision(label: string) {
@@ -92,6 +93,41 @@ describe('Permanent Mission persistence', () => {
     expect(sql).not.toContain('daily_challenge');
     const catchupSql = await readFile(new URL('../prisma/migrations/20260924213000_042_add_permanent_mission_catchup_marker/migration.sql', import.meta.url), 'utf8');
     expect(catchupSql).not.toMatch(/(?:UPDATE|INSERT|DELETE)/iu);
+  });
+
+  it('projects an authorized third-party profile without passive catch-up or any economic write', async () => {
+    const targetId = await provision('ProfileTarget');
+    const viewerId = await provision('ProfileViewer');
+    await database.playerPermanentMissionState.update({ where: { playerId: targetId }, data: { standaloneCatchupCompletedAt: null } });
+    const catchUp = vi.spyOn(service, 'catchUpStandalone');
+    const operationsBefore = await database.businessOperation.count({ where: { playerId: targetId } });
+    const movementsBefore = await database.resourceMovement.count({ where: { playerId: targetId } });
+    const query = new GetPlayerMissions(
+      { execute: async () => ({ id: viewerId, displayName: 'Viewer', elementKey: null, status: 'ACTIVE' as const }) } as never,
+      database,
+      service,
+    );
+    const result = await query.execute({ subject: `viewer-${viewerId}` }, targetId);
+    expect(result.access).toBe('ALLOWED');
+    expect(catchUp).not.toHaveBeenCalled();
+    expect((await database.playerPermanentMissionState.findUniqueOrThrow({ where: { playerId: targetId } })).standaloneCatchupCompletedAt).toBeNull();
+    expect(await database.businessOperation.count({ where: { playerId: targetId } })).toBe(operationsBefore);
+    expect(await database.resourceMovement.count({ where: { playerId: targetId } })).toBe(movementsBefore);
+    expect(await database.businessOperation.count({ where: { playerId: targetId, operationType: 'permanent-mission.reward' } })).toBe(0);
+  });
+
+  it('returns 404 for an inactive profile target before projecting Missions', async () => {
+    const targetId = await provision('InactiveProfile');
+    const viewerId = await provision('InactiveViewer');
+    await database.player.update({ where: { id: targetId }, data: { status: 'ARCHIVED' } });
+    const projection = vi.spyOn(service, 'project');
+    const query = new GetPlayerMissions(
+      { execute: async () => ({ id: viewerId, displayName: 'Viewer', elementKey: null, status: 'ACTIVE' as const }) } as never,
+      database,
+      service,
+    );
+    await expect(query.execute({ subject: `viewer-${viewerId}` }, targetId)).rejects.toMatchObject({ statusCode: 404, code: 'PLAYER_NOT_FOUND' });
+    expect(projection).not.toHaveBeenCalled();
   });
 
   it('initializes a new Player with B active, A/S locked, Z secret and no reward', async () => {

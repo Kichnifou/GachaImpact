@@ -65,8 +65,7 @@ export type PermanentMissionDto = Readonly<{
   completedAt: string | null
 }>
 
-export type PlayerMissionsDto = Readonly<{
-  catchUpApplied: boolean
+export type PermanentMissionProjectionDto = Readonly<{
   ranks: Readonly<{
     B: readonly PermanentMissionDto[]
     A: readonly PermanentMissionDto[]
@@ -80,6 +79,8 @@ export type PlayerMissionsDto = Readonly<{
         missions: readonly PermanentMissionDto[]
       }>
 }>
+
+export type PlayerMissionsDto = PermanentMissionProjectionDto & Readonly<{ catchUpApplied: boolean }>
 
 export type InventoryResourceDto = Readonly<{
   key: 'primogems' | 'moras' | `particles_${ElementKey}`

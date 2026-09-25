@@ -168,7 +168,7 @@ export class GlobalChatService {
       if (submissionOrder === null) throw conflict();
       // Pacing time belongs to the serialized Player turn, not to an earlier network arrival.
       const now = this.clock.now();
-      await this.permanentMissions.catchUpStandalone(tx, { playerId: player.id, now });
+      const missionCatchUp = await this.permanentMissions.catchUpStandalone(tx, { playerId: player.id, now });
       if (replyId) {
         const parent = await tx.$queryRaw<{ deletion_state: string; generation: number }[]>`SELECT deletion_state::text, generation FROM global_chat_messages WHERE id = ${replyId}::uuid FOR SHARE`;
         if (parent[0]?.deletion_state !== 'ACTIVE' || parent[0].generation !== generation) throw unavailable();
@@ -221,7 +221,7 @@ export class GlobalChatService {
       await tx.playerProgression.update({ where: { playerId: player.id }, data: { totalMessages: { increment: 1n } } });
       let xpGranted = 0;
       let dailyChallengeCompleted = false;
-      const refreshScopes: string[] = [];
+      const refreshScopes: string[] = missionCatchUp.alreadyProcessed ? [] : ['resources'];
       if (normalized.type === GlobalChatMessageType.PLAYER && actor.element_key && isElementKey(actor.element_key)
         && (!progression.lastXpMessageAt || now.getTime() - progression.lastXpMessageAt.getTime() >= 2_000)) {
         xpGranted = normalized.length <= 100 ? 1 : normalized.length <= 200 ? 2 : 3;

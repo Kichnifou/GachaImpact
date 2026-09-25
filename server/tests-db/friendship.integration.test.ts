@@ -238,6 +238,21 @@ describe('Friendship isolated PostgreSQL', () => {
     expect((await service.sendHearts(a, 'all', randomUUID())).unavailable).toBe(1);
     expect((await privacy.permissions(a, b)).PRESENCE).toBe(false);
   }, 30_000);
+  it('enforces PUBLIC, FRIENDS and PRIVATE for Missions with ACTIVE friendship only', async () => {
+    const owner = await player(), viewer = await player();
+    expect((await privacy.permissions(owner, viewer)).MISSIONS).toBe(true);
+    await privacy.save(owner, 'MISSIONS', 'FRIENDS');
+    expect((await privacy.permissions(owner, viewer)).MISSIONS).toBe(false);
+    const pending = await service.mutate(viewer, owner, 'ADD', randomUUID());
+    expect((await privacy.permissions(owner, viewer)).MISSIONS).toBe(false);
+    await service.mutate(owner, viewer, 'ACCEPT', randomUUID(), 'UI', pending.requestId!);
+    expect((await privacy.permissions(owner, viewer)).MISSIONS).toBe(true);
+    await service.mutate(owner, viewer, 'REMOVE', randomUUID());
+    expect((await privacy.permissions(owner, viewer)).MISSIONS).toBe(false);
+    await privacy.save(owner, 'MISSIONS', 'PRIVATE');
+    expect((await privacy.permissions(owner, viewer)).MISSIONS).toBe(false);
+    expect((await privacy.permissions(owner, owner)).MISSIONS).toBe(true);
+  }, 30_000);
   it('keeps activity monotonic, updates only the actor and excludes heartbeat, polling, failed action and passive recipients', async () => {
     const a = await player(), b = await player(), presence = new PresenceService(db, clock), key = randomUUID();
     await presence.touch(a, key, false, true);

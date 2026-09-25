@@ -1,4 +1,4 @@
-import type { BoxCharacterDto, ElementKey, InventoryItemDto, PlayerTeamDto } from '../api/types'
+import type { BoxCharacterDto, ElementKey, InventoryItemDto, PermanentMissionProjectionDto, PlayerMissionsDto, PlayerTeamDto } from '../api/types'
 
 export type Access<T> = { access: 'PRIVATE' } | { access: 'ALLOWED'; data: T }
 export type PresenceStatus = 'ONLINE' | 'AWAY' | 'OFFLINE'
@@ -39,6 +39,8 @@ export type SocialActions = {
   saveFriendSort: (sort: FriendSort) => Promise<{ sort: FriendSort }>
   directory: (query: DirectoryQuery) => Promise<DirectoryPage>
   profile: (id: string) => Promise<Profile>
+  ownMissions: () => Promise<PlayerMissionsDto>
+  playerMissions: (id: string) => Promise<Access<PermanentMissionProjectionDto>>
   connected: () => Promise<ConnectedPlayers>
   privacy: () => Promise<PrivacySettings>
   savePrivacy: (categoryKey: PrivacyCategory, level: PrivacyLevel) => Promise<PrivacySettings>

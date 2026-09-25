@@ -68,6 +68,7 @@ import { registerDirectMessageRoutes } from './api/routes/direct-messages.js';
 import type { DirectMessageReportService } from './application/direct-messages/direct-message-report-service.js';
 import { registerDirectMessageReportRoutes } from './api/routes/direct-message-reports.js';
 import type { GetCurrentPlayerMissions } from './application/missions/get-current-player-missions.js';
+import type { GetPlayerMissions } from './application/missions/get-player-missions.js';
 import { registerMissionRoutes } from './api/routes/missions.js';
 
 export type AppDependencies = Readonly<{
@@ -130,6 +131,7 @@ export type AppDependencies = Readonly<{
   directMessageService?: DirectMessageService;
   directMessageReportService?: DirectMessageReportService;
   getCurrentPlayerMissions?: GetCurrentPlayerMissions;
+  getPlayerMissions?: GetPlayerMissions;
   close?: () => Promise<void>;
 }>;
 
@@ -175,7 +177,7 @@ export async function buildApp(
     if (dependencies.directMessageService) await app.register(registerDirectMessageRoutes, { authenticate, service: dependencies.directMessageService });
     if (dependencies.directMessageReportService) await app.register(registerDirectMessageReportRoutes, { authenticate, service: dependencies.directMessageReportService });
     if (dependencies.globalChatService && dependencies.chatCommandDispatcher) await app.register(registerChatRoutes, { authenticate, service: dependencies.globalChatService, dispatcher: dependencies.chatCommandDispatcher });
-    if (dependencies.getCurrentPlayerMissions) await app.register(registerMissionRoutes, { authenticate, getCurrentPlayerMissions: dependencies.getCurrentPlayerMissions });
+    if (dependencies.getCurrentPlayerMissions) await app.register(registerMissionRoutes, { authenticate, getCurrentPlayerMissions: dependencies.getCurrentPlayerMissions, getPlayerMissions: dependencies.getPlayerMissions });
     if (dependencies.choosePlayerElement && dependencies.getCurrentPlayerResources) {
       await app.register(registerPlayerGameRoutes, {
         authenticate,

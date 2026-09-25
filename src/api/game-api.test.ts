@@ -78,6 +78,16 @@ describe('game API client', () => {
     expect(fetchImplementation.mock.calls[0]?.[1]?.method).toBeUndefined()
   })
 
+  it('uses separate personal and privacy-aware Profile Mission endpoints', async () => {
+    const payload = { access: 'PRIVATE' }
+    const fetchImplementation = vi.fn<typeof fetch>(async () => new Response(JSON.stringify(payload)))
+    const client = createGameApiClient({ baseUrl: 'http://127.0.0.1:3001', getAccessToken: async () => 'token', fetchImplementation })
+    await client.social.ownMissions()
+    await expect(client.social.playerMissions('22222222-2222-4222-8222-222222222222')).resolves.toEqual(payload)
+    expect(fetchImplementation.mock.calls[0]?.[0]).toBe('http://127.0.0.1:3001/api/v1/me/missions')
+    expect(fetchImplementation.mock.calls[1]?.[0]).toBe('http://127.0.0.1:3001/api/v1/players/22222222-2222-4222-8222-222222222222/missions')
+  })
+
   it('loads the aggregate personal inventory through its read-only endpoint', async () => {
     const payload = { resources: [{ key: 'primogems', displayName: 'Primogemmes', category: 'currency', elementKey: null, amount: '9007199254740993' }], items: [] }
     const fetchImplementation = vi.fn<typeof fetch>(async () => new Response(JSON.stringify(payload)))

@@ -79,8 +79,9 @@ function AppBootstrap() {
   ), [loadResources])
 
   const socialActions = useMemo(() => ({ ...getGameApiClient().social,
+    ownMissions: loadMissions,
     sendHearts: (target: string, key: string) => confirmedMutation(() => getGameApiClient().social.sendHearts(target, key), loadResources),
-  }), [loadResources])
+  }), [loadMissions, loadResources])
 
   const tradeActions = useMemo(() => getGameApiClient().trades, [])
 

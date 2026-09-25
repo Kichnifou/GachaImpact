@@ -20,6 +20,8 @@ import type { ContestService } from '../contest/contest-service.js';
 import type { EventService } from '../event/event-service.js';
 import type { GiftCodeService } from '../gift-code/gift-code-service.js';
 import type { GetDailyChallenge } from '../daily-challenge/daily-challenge-services.js';
+import type { GetCurrentPlayerMissions } from '../missions/get-current-player-missions.js';
+import type { PermanentMissionProjection, PermanentMissionProjectionEntry } from '../missions/permanent-mission-service.js';
 import type { ConvertPersonalParticles } from '../daily-challenge/daily-challenge-services.js';
 import type { GetTodayWheelState } from '../wheel/get-today-wheel-state.js';
 import type { SpinDailyWheel } from '../wheel/spin-daily-wheel.js';
@@ -55,6 +57,7 @@ export type ChatCommandServices = Readonly<{
   eventService: Pick<EventService, 'getCurrent' | 'getRanking' | 'join' | 'attemptGameA' | 'attemptGameB' | 'searchGameCRecipients' | 'sendGameC' | 'claimCalendar' | 'convertShop' | 'purchaseCollection'>;
   giftCodeService: Pick<GiftCodeService, 'listForPlayer' | 'claim'>;
   getDailyChallenge: Pick<GetDailyChallenge, 'execute'>;
+  getCurrentPlayerMissions: Pick<GetCurrentPlayerMissions, 'execute'>;
   getTodayWheelState: Pick<GetTodayWheelState, 'execute'>;
   spinDailyWheelChat: Pick<SpinDailyWheel, 'execute'>;
   convertPersonalParticlesChat: Pick<ConvertPersonalParticles, 'execute'>;
@@ -70,6 +73,23 @@ const statusLabel = (status: string) => ({
   TODO: 'à faire', IN_PROGRESS: 'en cours', BLOCKED: 'bloqué',
   IDLE: 'à faire', RUNNING: 'en cours', READY: 'prêt', LOBBY: 'salon ouvert',
 }[status] ?? status.toLocaleLowerCase('fr-FR'));
+const orderedMissions = (missions: readonly PermanentMissionProjectionEntry[]) => [
+  ...missions.filter(mission => mission.status !== 'COMPLETED'),
+  ...missions.filter(mission => mission.status === 'COMPLETED'),
+];
+const missionState = (mission: PermanentMissionProjectionEntry) => mission.status === 'COMPLETED' ? '✅' : mission.status === 'ACTIVE' ? '▶' : '🔒';
+const missionRankText = (rank: 'B' | 'A' | 'S' | 'Z', missions: readonly PermanentMissionProjectionEntry[]) =>
+  `Missions ${rank} : ${orderedMissions(missions).map(mission => `${missionState(mission)} ${mission.displayName} ${mission.progress}/${mission.target}`).join(' · ')}.`;
+const completedCount = (missions: readonly PermanentMissionProjectionEntry[]) => missions.filter(mission => mission.status === 'COMPLETED').length;
+const missionSummary = (view: PermanentMissionProjection) => {
+  const z = view.z.status === 'LOCKED' ? 'verrouillé' : view.z.status === 'COMPLETED' ? 'terminé' : `${completedCount(view.z.missions)}/4 terminées`;
+  return `Permanentes : B ${completedCount(view.ranks.B)}/9 terminées · A ${completedCount(view.ranks.A)}/9 · S ${completedCount(view.ranks.S)}/9 · Z ${z}`;
+};
+const dailyChallengeSummary = (challenge: Awaited<ReturnType<GetDailyChallenge['execute']>>) => {
+  if (!challenge.challenge) return 'Défi : disponible, non attribué';
+  if (challenge.status === 'COMPLETED') return `Défi : ${challenge.challenge.displayName} terminé`;
+  return `Défi : ${challenge.challenge.displayName} ${challenge.challenge.progress}/${challenge.challenge.target}`;
+};
 const named = <T extends { name: string }>(items: readonly T[], raw: string, fuzzy = false): T | null => {
   const query = normalizePlayerSearch(raw);
   if (!query) return null;
@@ -526,6 +546,22 @@ export class ChatCommandDispatcher {
             this.services.dailyCombatService.getDaily(identity), this.services.expeditionService.getState(identity),
           ]);
           return `Quotidiennes : Roue ${wheel.spun ? 'faite' : 'à faire'} · Défi ${statusLabel(challenge.status)} · Combat ${statusLabel(combat.status)} · Expédition ${statusLabel(expedition.operationalStatus)}.`;
+        }
+        case 'mission': {
+          if (args.length > 1) return syntax(definition.syntax);
+          const requested = args[0]?.toLocaleUpperCase('fr-FR');
+          if (requested && !['B', 'A', 'S', 'Z', 'RESUME'].includes(requested)) return syntax(definition.syntax);
+          const view = await this.services.getCurrentPlayerMissions.execute(identity);
+          if (view.catchUpApplied) await this.chat.rememberCommandRefreshScopes(commandMessageId, ['resources']);
+          if (!requested || requested === 'RESUME') {
+            const challenge = await this.services.getDailyChallenge.execute(identity);
+            return `${dailyChallengeSummary(challenge)} · ${missionSummary(view)}.`;
+          }
+          if (requested === 'Z') return view.z.status === 'LOCKED'
+            ? 'Rang Z verrouillé : accessible après accomplissement de toutes les missions B, A et S.'
+            : missionRankText('Z', view.z.missions);
+          const rank = requested as 'B' | 'A' | 'S';
+          return missionRankText(rank, view.ranks[rank]);
         }
         default: return 'Cette commande n’est pas encore disponible dans le Chat.';
       }

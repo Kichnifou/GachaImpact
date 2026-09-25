@@ -43,8 +43,20 @@ describe('MissionsScreen', () => {
     expect(container.textContent).toContain('Mission B1')
     expect(container.textContent).toContain('9 007 199 254 740 993 / 9 007 199 254 740 993')
     expect(container.textContent).toContain('+1 600 Primogemmes')
-    expect(container.textContent).toMatch(/Terminée.*En cours.*Verrouillée/s)
+    expect(container.textContent).toMatch(/En cours.*Verrouillée.*Terminée/s)
     expect(container.querySelector('[data-mission-key] button')).toBeNull()
+  })
+
+  it('opens the first incomplete rank and keeps a manual selection for the mounted entry', async () => {
+    const completedRank = (rank: 'B' | 'A' | 'S') => Array.from({ length: 9 }, (_, index) => mission(rank, index, 'COMPLETED'))
+    const projection: PlayerMissionsDto = { ...locked, ranks: { B: completedRank('B'), A: nine('A'), S: nine('S') } }
+    const { container, root, onLoad } = await mount(vi.fn(async () => projection))
+    expect(container.querySelector('[data-mission-rank="A"]')).not.toBeNull()
+    await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('.missions-rank-tabs button')).find(button => button.textContent === 'B')!.click() })
+    expect(container.querySelector('[data-mission-rank="B"]')).not.toBeNull()
+    await act(async () => { root.render(<MissionsScreen onLoad={onLoad} />); await Promise.resolve() })
+    expect(container.querySelector('[data-mission-rank="B"]')).not.toBeNull()
+    expect(onLoad).toHaveBeenCalledOnce()
   })
 
   it('switches B/A/S/Z locally without another GET and exposes the generic locked Z copy only', async () => {

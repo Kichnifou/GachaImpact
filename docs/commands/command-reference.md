@@ -2,7 +2,7 @@
 
 Statut : CONSOLIDÉ APRÈS SWEEPS LEGACY — 37 scripts + 17 JSON vérifiés.
 
-État physique du Chat interne, selon [R884](../specifications/global-chat-v1.md) : `help`, `element` (choix défensif), `banniere`, `select`, `vote`, `pity`, `pull` (tout entier 1..10), `obtention`, `stella`, `passifs`, `roue`, `ami`, `echanger`, `infos`, `liste`, `banque`, `convertir`, `sac`, `coffre`, `shop`, `code`, `event` complet avec Jeux A/B/C, `expedition`, `combat` et `quotis` appellent les propriétaires modernes. `!concours` consulte uniquement la projection du Concours standalone ; aucune action Concours n'est disponible dans `INTERNAL_CHAT`. `box` et `team` restent des consultations synthétiques : leurs sous-commandes historiques de tri ou de mutation ne font pas partie de ce branchement. `!echanger annuler` sans pseudo requiert une seule demande envoyée non ambiguë ; aucune action globale d'annulation n'existe dans `TradeService`. `top` n'a pas encore son classement global ; `legende`, `mission` et `faveur` attendent un service adapté ou leur domaine physique. `giveaway` et `wish` restent Twitch uniquement. Le `ChatPanel` et les routes Chat navigateur sont actifs. `!clear` est l'exception interne de modération R886, absente de l'aide joueur.
+État physique du Chat interne, selon [R884](../specifications/global-chat-v1.md) : `help`, `element` (choix défensif), `banniere`, `select`, `vote`, `pity`, `pull` (tout entier 1..10), `obtention`, `stella`, `passifs`, `roue`, `ami`, `echanger`, `infos`, `liste`, `banque`, `convertir`, `sac`, `coffre`, `shop`, `code`, `event` complet avec Jeux A/B/C, `expedition`, `combat`, `quotis` et `mission` appellent les propriétaires modernes. `!concours` consulte uniquement la projection du Concours standalone ; aucune action Concours n'est disponible dans `INTERNAL_CHAT`. `box` et `team` restent des consultations synthétiques : leurs sous-commandes historiques de tri ou de mutation ne font pas partie de ce branchement. `!echanger annuler` sans pseudo requiert une seule demande envoyée non ambiguë ; aucune action globale d'annulation n'existe dans `TradeService`. `top` n'a pas encore son classement global ; `legende` et `faveur` attendent un service adapté ou leur domaine physique. `giveaway` et `wish` restent Twitch uniquement. Le `ChatPanel` et les routes Chat navigateur sont actifs. `!clear` est l'exception interne de modération R886, absente de l'aide joueur.
 
 ### `!clear` — modération interne R886
 
@@ -726,6 +726,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 ## `!mission`
 
 - **Statut audit :** Clôturé — R299 à R339
+- **État physique :** candidat Chat interne ; projection personnelle canonique, résumé Défi + permanentes, rangs B/A/S/Z, alias `resume` accepté mais absent de l’aide, longues réponses découpées par `GlobalChatService`
 - **But :** Consulter la mission quotidienne et les progressions permanentes du joueur.
 - **Syntaxes cible :**
   - `!mission`
@@ -736,7 +737,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Alias de compatibilité accepté :** `!mission resume` peut agir comme `!mission`, mais n'est pas mis en avant dans les helpers
 - **Bouton UI équivalent :** `Activités > Missions` avec rangs B / A / S / Z ; l’ancienne quotidienne payante est le `Défi` de Quotidiennes
 - **Disponible chat GachaImpact :** oui
-- **Disponible Twitch :** oui
+- **Disponible Twitch :** cible oui ; intégration physique non implémentée
 - **Consultation d'un autre joueur :** non via commande ; la visibilité publique passe par le profil standalone
 - **Activation :** aucune ; les missions permanentes progressent automatiquement dès le provisionnement du joueur
 - **Abandon :** supprimé du fonctionnement cible
@@ -1005,7 +1006,7 @@ Les aides ne recommandent qu'une seule syntaxe canonique.
 
 ## `!infos`
 
-État physique : Profil UI standalone implémenté pour Aperçu/Team active/Box/Collection/Statistiques selon permissions. `!infos` Chat interne candidat consulte ce service et les données d'amitié du demandeur ; Twitch reste non branché.
+État physique : Profil UI standalone implémenté pour Aperçu/Team active/Box/Collection/Statistiques et Missions selon permissions. Missions est chargé paresseusement par une route dédiée ; sa lecture tierce consomme Privacy `MISSIONS` sans mutation. `!infos` Chat interne consulte le service Profil et les données d'amitié du demandeur ; Twitch reste non branché.
 
 - **Statut audit :** CLÔTURÉ — R471/R489/R490/R525
 - **Syntaxe canonique :** `!infos <pseudo>`
