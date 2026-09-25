@@ -67,6 +67,8 @@ import type { DirectMessageService } from './application/direct-messages/direct-
 import { registerDirectMessageRoutes } from './api/routes/direct-messages.js';
 import type { DirectMessageReportService } from './application/direct-messages/direct-message-report-service.js';
 import { registerDirectMessageReportRoutes } from './api/routes/direct-message-reports.js';
+import type { GetCurrentPlayerMissions } from './application/missions/get-current-player-missions.js';
+import { registerMissionRoutes } from './api/routes/missions.js';
 
 export type AppDependencies = Readonly<{
   globalChatService?: GlobalChatService;
@@ -127,6 +129,7 @@ export type AppDependencies = Readonly<{
   socialService?: SocialService;
   directMessageService?: DirectMessageService;
   directMessageReportService?: DirectMessageReportService;
+  getCurrentPlayerMissions?: GetCurrentPlayerMissions;
   close?: () => Promise<void>;
 }>;
 
@@ -172,6 +175,7 @@ export async function buildApp(
     if (dependencies.directMessageService) await app.register(registerDirectMessageRoutes, { authenticate, service: dependencies.directMessageService });
     if (dependencies.directMessageReportService) await app.register(registerDirectMessageReportRoutes, { authenticate, service: dependencies.directMessageReportService });
     if (dependencies.globalChatService && dependencies.chatCommandDispatcher) await app.register(registerChatRoutes, { authenticate, service: dependencies.globalChatService, dispatcher: dependencies.chatCommandDispatcher });
+    if (dependencies.getCurrentPlayerMissions) await app.register(registerMissionRoutes, { authenticate, getCurrentPlayerMissions: dependencies.getCurrentPlayerMissions });
     if (dependencies.choosePlayerElement && dependencies.getCurrentPlayerResources) {
       await app.register(registerPlayerGameRoutes, {
         authenticate,

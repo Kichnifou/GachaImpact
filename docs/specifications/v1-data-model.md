@@ -963,7 +963,7 @@ Le provisionnement initialise les 31 lignes dans sa transaction : B actif, A/S/Z
 
 `PermanentMissionService` reçoit la transaction métier existante. Sa voie producteur lit uniquement les métriques demandées ; la voie catch-up SYSTEM lit tous les compteurs historiques avant la mutation courante. Il calcule la progression effective depuis baseline, cascade les paliers cumulatifs, débloque Z après les 27 B/A/S et évalue immédiatement les quatre conditions Z. Complétion, `BusinessOperation`, mouvement Economy, contexte de complétion et état récompensé sont atomiques ; verrou Player, marqueur de catch-up, clé d’idempotence par Player/définition et lien unique de récompense empêchent le double paiement.
 
-La projection personnelle interne expose B/A/S avec objectif, progression, seuil, état, récompense et rang. Avant `zUnlockedAt`, elle ne renvoie que `{ status: LOCKED }` pour Z, sans définition ni récompense. Le Lot 2 promu raccorde Chat/XP, Gacha/possessions/C6, Stella, Economy Moras/particules personnelles et intérêts Banque ; il n’ajoute aucune route player-facing et reste à valider publiquement.
+La projection personnelle canonique expose B/A/S avec objectif, progression, seuil, état, récompense et rang. Avant `zUnlockedAt`, elle ne renvoie que `{ status: LOCKED }` pour Z, sans définition ni récompense. Le candidat Lot 4 la sérialise par la route personnelle authentifiée `/api/v1/me/missions` après le catch-up R301 exactly-once éventuel ; aucun modèle ou table supplémentaire n’est créé. La consultation tierce, le Profil, les notifications et la migration legacy restent absents.
 
 ## 16.3 Défi quotidien payant (`daily-mission` technique)
 

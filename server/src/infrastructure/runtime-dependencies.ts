@@ -57,6 +57,9 @@ import { GlobalChatService } from '../application/chat/global-chat-service.js';
 import { ChatCommandDispatcher } from '../application/chat/chat-command-dispatcher.js';
 import { SourceChannel } from '../../generated/prisma/client.js';
 import { DirectMessageService } from '../application/direct-messages/direct-message-service.js';
+import { GetCurrentPlayerMissions } from '../application/missions/get-current-player-missions.js';
+import { PermanentMissionService } from '../application/missions/permanent-mission-service.js';
+import { PrismaEconomyService } from './database/prisma-economy-service.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
   if (!config.databaseUrl) {
@@ -95,11 +98,14 @@ export function createRuntimeDependencies(config: AppConfig) {
   const giftCodeService = new GiftCodeService(getCurrentPlayer, database, clock);
   const giftCodeScheduler = new GiftCodeScheduler(giftCodeService);
   const eventService = new EventService(getCurrentPlayer, database, clock, random, giftCodeService);
+  const missionEconomy = new PrismaEconomyService();
+  const getCurrentPlayerMissions = new GetCurrentPlayerMissions(getCurrentPlayer, database, clock, new PermanentMissionService(missionEconomy));
 
   const dependencies = {
     globalChatService,
     directMessageService,
     directMessageReportService,
+    getCurrentPlayerMissions,
     tradeService,
     tradePlayer: getCurrentPlayer,
     authIdentityVerifier: createSupabaseAuthAdapter(issuer),

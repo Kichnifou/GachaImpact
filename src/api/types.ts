@@ -49,6 +49,38 @@ export type PlayerResourcesDto = Readonly<{
   particles: Readonly<Record<ElementKey, string>>
 }>
 
+export type PermanentMissionRankDto = 'B' | 'A' | 'S' | 'Z'
+export type PermanentMissionStatusDto = 'LOCKED' | 'ACTIVE' | 'COMPLETED'
+
+export type PermanentMissionDto = Readonly<{
+  externalKey: string
+  rank: PermanentMissionRankDto
+  displayName: string
+  description: string
+  progressLabel: string
+  progress: string
+  target: string
+  status: PermanentMissionStatusDto
+  rewardPrimogems: string
+  completedAt: string | null
+}>
+
+export type PlayerMissionsDto = Readonly<{
+  catchUpApplied: boolean
+  ranks: Readonly<{
+    B: readonly PermanentMissionDto[]
+    A: readonly PermanentMissionDto[]
+    S: readonly PermanentMissionDto[]
+  }>
+  z:
+    | Readonly<{ status: 'LOCKED' }>
+    | Readonly<{
+        status: 'ACTIVE' | 'COMPLETED'
+        unlockedAt: string
+        missions: readonly PermanentMissionDto[]
+      }>
+}>
+
 export type InventoryResourceDto = Readonly<{
   key: 'primogems' | 'moras' | `particles_${ElementKey}`
   displayName: string

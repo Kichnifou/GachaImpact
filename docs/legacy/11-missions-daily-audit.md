@@ -1242,7 +1242,7 @@ L’Aperçu liste désormais Récompense quotidienne, Roue, Défi, Combat, Boss,
 
 Les formulations `aujourd’hui` redondantes sont retirées uniquement des détails de cet Aperçu pour Récompense, Roue, Combat, Boss et Expédition. Les écrans propriétaires conservent leur vocabulaire lorsque le contexte journalier reste utile.
 
-## Missions permanentes — Lots 1 à 3 promus et validés publiquement
+## Missions permanentes — Lots 1 à 3 validés publiquement ; Lot 4 candidat sur review
 
 La migration additive 041 matérialise un catalogue unique de 31 définitions — 27 B/A/S et 4 Z — ainsi que `player_permanent_mission_states` et `player_permanent_mission_progress`. Les external keys et UUID sont déterministes ; rang, métrique, seuil, récompense, ordre, activation et secret Z sont contraints. RLS est active et aucun droit direct `PUBLIC`, `anon` ou `authenticated` n’est accordé.
 
@@ -1252,6 +1252,8 @@ Le provisionnement crée l’état Player et les 31 lignes dans la même transac
 
 Recroisements physiques Lot 2 : Chat avance seulement `COUNTED_MESSAGES` après le vrai message XP-counted ; XP relit `PLAYER_LEVEL` ; Gacha regroupe `PULLS`, possessions distinctes 4★/5★, C6 et ses gains économiques après l’état final ; Stella propage UI ou INTERNAL_CHAT et relit C6 ; Economy relit uniquement Moras et particules de l’élément personnel après un vrai crédit ; la Banque exécute R301 immédiatement avant le premier intérêt strictement positif d’une séquence, puis relit Moras sur la vraie opération `bank.interest` avec canal SYSTEM. Le démarrage du scheduler, un compte à intérêt nul ou une date déjà traitée ne déclenchent aucun rattrapage Missions. Dépôt/retrait, échange/transfert de particules, commandes Chat, cooldown, replay et action refusée ne deviennent pas des gains. Une garde interne exclut les crédits Primogemmes des récompenses Missions du hook Economy et empêche toute récursion.
 
-Le Lot 3 raccorde Expedition, Combat et Social/cœurs dans leurs transactions propriétaires ; tous les producteurs autoritatifs B/A/S/Z sont donc physiques après promotion. Aucun endpoint, écran, `!mission`, Profil, notification player-facing, Twitch ou import legacy n’est ajouté.
+Le Lot 3 raccorde Expedition, Combat et Social/cœurs dans leurs transactions propriétaires ; tous les producteurs autoritatifs B/A/S/Z sont donc physiques après promotion.
+
+Le candidat Lot 4 expose la projection personnelle par `GET /api/v1/me/missions` et par le vrai écran `Activités > Missions`. Le premier GET d’un standalone dont le marqueur est nul exécute R301 exactly-once puis projette l’état confirmé ; les consultations suivantes sont essentiellement projectives. B/A/S exposent neuf missions dans l’ordre canonique et Z verrouillé ne sérialise que son statut global, sans définition secrète. Le frontend charge à la demande, rafraîchit Ressources seulement lorsqu’un catch-up vient d’être appliqué et ne propose aucune action sur les Missions automatiques. `!mission`, Profil, confidentialité tierce, notifications player-facing, Twitch et import legacy restent hors de ce lot.
 
 Les smoke tests publics confirment ces raccords : un claim Expedition UI a fait passer `totalCompleted` de 11 à 12 et la progression S à 12/30, sans récompense Mission parasite ; une victoire Combat AUTO a fait passer `totalWins` de 13 à 14 sans modifier `totalManualWins = 6` ; un cœur UI a fait passer `totalFriendHeartsSent` de 28 à 29 et crédité le destinataire de 5 Primogemmes sans catch-up R301 passif.

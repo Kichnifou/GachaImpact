@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { PermanentMissionProgressStatus, Prisma, SourceChannel } from '../generated/prisma/client.js';
 import { PermanentMissionService } from '../src/application/missions/permanent-mission-service.js';
+import { GetCurrentPlayerMissions } from '../src/application/missions/get-current-player-missions.js';
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
 import { loadConfig } from '../src/config/environment.js';
 import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
@@ -53,6 +54,12 @@ const reconcile = (playerId: string) => database.$transaction(
 );
 const view = (playerId: string) => database.$transaction(tx => service.project(tx, playerId));
 const primogems = async (playerId: string) => (await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId, resourceKey: 'primogems' } } })).amount;
+const personalQuery = (playerId: string, missions: Pick<PermanentMissionService, 'catchUpStandalone' | 'project'> = service) => new GetCurrentPlayerMissions(
+  { execute: async () => ({ id: playerId, displayName: 'Mission owner', elementKey: null, status: 'ACTIVE' as const }) } as never,
+  database,
+  { now: () => now },
+  missions as PermanentMissionService,
+).execute({ subject: `owner-${playerId}` });
 
 describe('Permanent Mission persistence', () => {
   it('applies migrations 041/042 with 31 protected definitions and no direct economic backfill', async () => {
@@ -122,6 +129,47 @@ describe('Permanent Mission persistence', () => {
     expect(await database.$transaction(tx => service.catchUpStandalone(tx, { playerId, now }))).toEqual({ alreadyProcessed: true, completions: [] });
     expect(await primogems(playerId)).toBe(1_760n);
     expect(await database.businessOperation.count({ where: { playerId, operationType: 'permanent-mission.standalone-catchup' } })).toBe(1);
+  });
+
+  it('serves the personal query after exactly-once catch-up without a fictitious view operation', async () => {
+    const playerId = await provision('PersonalQuery');
+    await database.playerPermanentMissionState.update({ where: { playerId }, data: { standaloneCatchupCompletedAt: null } });
+    await database.playerProgression.update({ where: { playerId }, data: { countedMessages: 250n, totalMessages: 250n } });
+
+    const first = await personalQuery(playerId);
+    expect(first.catchUpApplied).toBe(true);
+    expect(first.ranks.B).toHaveLength(9);
+    expect(first.ranks.A).toHaveLength(9);
+    expect(first.ranks.S).toHaveLength(9);
+    expect(first.ranks.B.map(item => item.externalKey)).toEqual(['messages_b', 'pulls_b', 'characters4_b', 'characters5_b', 'moras_b', 'main_particles_b', 'expeditions_b', 'combat_wins_b', 'friend_hearts_b']);
+    expect(first.ranks.B[0]).toMatchObject({ status: 'COMPLETED', progress: 50n, target: 50n });
+    expect(first.ranks.A[0]).toMatchObject({ status: 'COMPLETED', progress: 200n, target: 200n });
+    expect(first.ranks.S[0]).toMatchObject({ status: 'ACTIVE', progress: 250n, target: 1_000n });
+    expect(first.z).toEqual({ status: 'LOCKED' });
+    expect(await primogems(playerId)).toBe(1_760n);
+
+    const second = await personalQuery(playerId);
+    expect(second.catchUpApplied).toBe(false);
+    expect(await primogems(playerId)).toBe(1_760n);
+    const operations = await database.businessOperation.findMany({ where: { playerId }, select: { operationType: true } });
+    expect(operations.map(item => item.operationType).sort()).toEqual(['permanent-mission.reward', 'permanent-mission.reward', 'permanent-mission.standalone-catchup']);
+  });
+
+  it('rolls back the personal query marker and rewards if catch-up fails before projection', async () => {
+    const playerId = await provision('PersonalQueryAtomic');
+    await database.playerPermanentMissionState.update({ where: { playerId }, data: { standaloneCatchupCompletedAt: null } });
+    await database.playerProgression.update({ where: { playerId }, data: { countedMessages: 50n, totalMessages: 50n } });
+    const failingMissions = {
+      catchUpStandalone: async (transaction: Prisma.TransactionClient, input: { playerId: string; now: Date }) => {
+        await service.catchUpStandalone(transaction, input);
+        throw new Error('forced personal query rollback');
+      },
+      project: service.project.bind(service),
+    };
+    await expect(personalQuery(playerId, failingMissions)).rejects.toThrow('forced personal query rollback');
+    expect((await database.playerPermanentMissionState.findUniqueOrThrow({ where: { playerId } })).standaloneCatchupCompletedAt).toBeNull();
+    expect(await primogems(playerId)).toBe(0n);
+    expect(await database.businessOperation.count({ where: { playerId } })).toBe(0);
   });
 
   it('rolls back the standalone marker and rewards together, then serializes concurrent retries exactly once', async () => {

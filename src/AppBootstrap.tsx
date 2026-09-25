@@ -26,6 +26,7 @@ import { confirmedMutation } from './api/confirmed-mutation'
 import type { ChatRefreshScope } from './api/types'
 import { runChatRefreshScopes } from './chat/refresh-scopes'
 import { loadBootstrapGameState, retryBootstrapRead } from './bootstrap/load-game-state'
+import { createMissionLoader } from './missions/load-missions'
 
 function AppBootstrap() {
   const { status: authStatus, session, configurationMessage, signOut } = useAuth()
@@ -71,6 +72,11 @@ function AppBootstrap() {
     setResources(nextResources)
     return nextResources
   }, [])
+
+  const loadMissions = useMemo(() => createMissionLoader(
+    () => getGameApiClient().getMissions(),
+    loadResources,
+  ), [loadResources])
 
   const socialActions = useMemo(() => ({ ...getGameApiClient().social,
     sendHearts: (target: string, key: string) => confirmedMutation(() => getGameApiClient().social.sendHearts(target, key), loadResources),
@@ -454,6 +460,7 @@ function AppBootstrap() {
       dailyRewardToday={dailyRewardToday}
       dailyChallenge={dailyChallenge}
       dailyCombat={dailyCombat}
+      onLoadMissions={loadMissions}
       monthlyBoss={monthlyBoss}
       contest={contest}
       event={event}

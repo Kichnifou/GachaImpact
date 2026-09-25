@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import type { ContestDto, ContestHistoryDto, ContestSnapshotDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyCombatFightDto, DailyRewardClaimDto, DailyRewardTodayDto, ElementKey, EventDto, EventRankingDto, EventGameAAttemptDto, EventJoinDto, ExpeditionDto, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto, WheelSpinDto, WheelTodayDto } from '../api/types'
+import type { ContestDto, ContestHistoryDto, ContestSnapshotDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyCombatFightDto, DailyRewardClaimDto, DailyRewardTodayDto, ElementKey, EventDto, EventRankingDto, EventGameAAttemptDto, EventJoinDto, ExpeditionDto, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto, PlayerMissionsDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
 import { formatResourceAmount, formatWheelOverviewResult } from '../utils/formatters'
 import WheelCard from '../components/WheelCard'
@@ -16,6 +16,7 @@ import { createExpeditionClientSnapshot, type ExpeditionClientSnapshot } from '.
 import { eventCurrencyLabel, eventDailyDetail, eventHasActionableContentToday } from '../event/event-presentation'
 import ContestScreen from './ContestScreen'
 import EventScreen from './EventScreen'
+import MissionsScreen from './MissionsScreen'
 import type { EventDailyBonusClaimDto, EventCalendarClaimDto, EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto } from '../api/types'
 
 type ActivitiesScreenProps = {
@@ -24,6 +25,7 @@ type ActivitiesScreenProps = {
   onOpenFriends?: () => void
   sessionUserId: string
   screen: ScreenId
+  onLoadMissions?: () => Promise<PlayerMissionsDto>
   wheelToday: WheelTodayDto
   onSpinWheel: () => Promise<WheelSpinDto>
   dailyRewardToday: DailyRewardTodayDto
@@ -91,6 +93,7 @@ type ActivitiesScreenProps = {
 function ActivitiesScreen(props: ActivitiesScreenProps) {
   const { screen, dailyCombat = unavailableDailyCombat, monthlyBoss = unavailableMonthlyBoss, contest = unavailableContest, bossRequestToken = 0, expedition, dailyCombatBox, onSetDailyCombatSlot = async () => unavailableDailyCombat, onRemoveDailyCombatSlot = async () => unavailableDailyCombat, onCopyActiveTeamToDailyCombat = async () => unavailableDailyCombat, onAutoSelectDailyCombat = async () => unavailableDailyCombat, onClearDailyCombatLoadout = async () => unavailableDailyCombat, onFightDailyCombat = async () => { throw new Error('Combat indisponible.') }, onSetMonthlyBossSlot = async () => unavailableMonthlyBoss, onRemoveMonthlyBossSlot = async () => unavailableMonthlyBoss, onCopyActiveTeamToMonthlyBoss = async () => unavailableMonthlyBoss, onClearMonthlyBossLoadout = async () => unavailableMonthlyBoss, onAttackMonthlyBoss = async () => { throw new Error('Boss indisponible.') }, onLoadMonthlyBossHistory = async () => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, bosses: [] }), onOpenBoss } = props
   if (screen === 'activities-dailies') return <DailiesScreen {...props} dailyCombat={dailyCombat} monthlyBoss={monthlyBoss} expedition={expedition} onOpenBoss={onOpenBoss} />
+  if (screen === 'activities-missions' && props.onLoadMissions) return <MissionsScreen onLoad={props.onLoadMissions} />
   if (screen === 'activities-combat') return <DailyCombatScreen value={dailyCombat} box={dailyCombatBox} onSetSlot={onSetDailyCombatSlot} onRemoveSlot={onRemoveDailyCombatSlot} onCopyActive={onCopyActiveTeamToDailyCombat} onAuto={onAutoSelectDailyCombat} onClear={onClearDailyCombatLoadout} onFight={onFightDailyCombat} monthlyBoss={monthlyBoss} bossRequestToken={bossRequestToken} onSetBossSlot={onSetMonthlyBossSlot} onRemoveBossSlot={onRemoveMonthlyBossSlot} onCopyActiveToBoss={onCopyActiveTeamToMonthlyBoss} onClearBoss={onClearMonthlyBossLoadout} onAttackBoss={onAttackMonthlyBoss} onLoadBossHistory={onLoadMonthlyBossHistory} />
   if (screen === 'activities-contest') {
     const unchanged = async () => contest
@@ -99,8 +102,8 @@ function ActivitiesScreen(props: ActivitiesScreenProps) {
     return <ContestScreen value={contest} onRefresh={props.onRefreshContest ?? unchanged} onLoadHistory={props.onLoadContestHistory ?? emptyHistory} onLoadHistoryDetail={props.onLoadContestHistoryDetail ?? emptyDetail} onOpen={props.onOpenContest ?? unchanged} onJoin={props.onJoinContest ?? unchanged} onSelectLegend={props.onSelectContestLegend ?? unchanged} onReady={props.onSetContestReady ?? unchanged} onStart={props.onStartContest ?? unchanged} onSpectate={props.onSpectateContest ?? unchanged} onLeave={props.onLeaveContest ?? unchanged} onCancel={props.onCancelContest ?? unchanged} onPlay={props.onPlayContest ?? unchanged} onSupport={props.onSupportContest ?? unchanged} onRemoveParticipant={props.onRemoveContestParticipant ?? unchanged} onRemoveSpectator={props.onRemoveContestSpectator ?? unchanged} />
   }
 if (screen === 'activities-event' && props.event && props.onLoadEvent && props.onJoinEvent && props.onAttemptEventGameA) return <EventScreen key={`${props.sessionUserId}:${props.event.edition.id}`} sessionUserId={props.sessionUserId} value={props.event} onLoad={props.onLoadEvent} onLoadRanking={props.onLoadEventRanking} onJoin={props.onJoinEvent} onClaimCalendar={props.onClaimEventCalendar} onClaimDailyBonus={props.onClaimEventDailyBonus} onConvertShop={props.onConvertEventShop} onPurchaseCollection={props.onPurchaseEventCollection} onAttempt={props.onAttemptEventGameA} onAttemptB={props.onAttemptEventGameB ?? (async () => { throw new Error('Jeu B indisponible.') })} onSearchRecipients={props.onSearchEventGameCRecipients} onSendGameC={props.onSendEventGameC} onConsultMessages={props.onConsultEventGameCMessages} openMessagesToken={props.eventMessagesRequestToken} openShopToken={props.eventShopRequestToken} onOpenCodes={() => props.onNavigate?.("codes")} />
-  const content = screen === 'activities-missions' ? { title: 'Missions', description: 'Les missions permanentes seront disponibles ici.', tabs: ['B', 'A', 'S', 'Z'] } : screen === 'activities-event' ? { title: 'Événement', description: 'Chargement du Festival mensuel indisponible.', tabs: ['Inscription', 'Jeux', 'Shop', 'Classement'] } : { title: 'Concours', description: 'Le Concours C6 sera accessible ici lorsqu’il sera implémenté.', tabs: [] }
-  return <div className="screen-content activity-shell"><ScreenHeader eyebrow="Activités" title={content.title} description={content.description} /><nav className="activity-inner-tabs" aria-label={`Sections ${content.title}`}>{content.tabs.map((tab) => <button type="button" disabled key={tab}>{tab}</button>)}</nav><section className="panel unavailable-shell"><strong>{screen === 'activities-event' ? 'Festival indisponible' : 'Bientôt disponible'}</strong><p>Aucune progression fictive n’est affichée.</p></section></div>
+  const content = screen === 'activities-missions' ? { title: 'Missions', description: 'Chargement des missions permanentes indisponible.', tabs: ['B', 'A', 'S', 'Z'] } : screen === 'activities-event' ? { title: 'Événement', description: 'Chargement du Festival mensuel indisponible.', tabs: ['Inscription', 'Jeux', 'Shop', 'Classement'] } : { title: 'Concours', description: 'Le Concours C6 sera accessible ici lorsqu’il sera implémenté.', tabs: [] }
+  return <div className="screen-content activity-shell"><ScreenHeader eyebrow="Activités" title={content.title} description={content.description} /><nav className="activity-inner-tabs" aria-label={`Sections ${content.title}`}>{content.tabs.map((tab) => <button type="button" disabled key={tab}>{tab}</button>)}</nav><section className="panel unavailable-shell"><strong>{screen === 'activities-event' ? 'Festival indisponible' : screen === 'activities-missions' ? 'Missions indisponibles' : 'Bientôt disponible'}</strong><p>Aucune progression fictive n’est affichée.</p></section></div>
 }
 
 const unavailableDailyCombat: DailyCombatDto = {

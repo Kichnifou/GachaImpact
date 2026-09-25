@@ -8006,6 +8006,34 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .dailies-frame .scrollable-screen-panel-body,
 .configuration-frame .scrollable-screen-panel-body { padding-right: 4px; }
 
+.missions-frame { min-height: 0; }
+.missions-frame .scrollable-screen-panel-controls { border-bottom: 1px solid rgba(121, 153, 198, .16); }
+.missions-frame .activity-inner-tabs { border-bottom: 0; }
+.missions-frame .scrollable-screen-panel-body { padding: 12px 4px 4px 0; }
+.missions-rank-tabs button { min-width: 58px; font-weight: 800; }
+.mission-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.mission-card { min-width: 0; display: grid; grid-template-rows: auto auto auto auto auto; gap: 10px; padding: 14px; border: 1px solid rgba(105, 159, 219, .2); border-radius: 12px; background: linear-gradient(145deg, rgba(16, 39, 68, .94), rgba(7, 20, 39, .96)); box-shadow: inset 0 1px rgba(255, 255, 255, .025); }
+.mission-card > header, .mission-card > footer, .mission-progress-copy { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.mission-rank-badge { padding: 3px 8px; color: #9ed7ff; font-size: 10px; font-weight: 900; letter-spacing: .08em; border: 1px solid rgba(108, 195, 255, .27); border-radius: 999px; background: rgba(55, 121, 183, .18); }
+.mission-status { color: #9eb1ca; font-size: 10px; font-weight: 800; }
+.mission-card-completed { border-color: rgba(132, 154, 180, .2); filter: saturate(.62); background: linear-gradient(145deg, rgba(25, 37, 52, .9), rgba(12, 21, 34, .94)); }
+.mission-card-completed .mission-status { color: #79ddb0; }
+.mission-card-locked { opacity: .78; }
+.mission-card-copy { min-height: 67px; }
+.mission-card h2 { margin: 0; color: #eef7ff; font-size: 14px; line-height: 1.25; }
+.mission-card-copy p { margin: 6px 0 0; color: var(--muted); font-size: 10px; line-height: 1.45; }
+.mission-progress-copy { align-items: end; color: #9eb1ca; font-size: 10px; }
+.mission-progress-copy strong { min-width: 0; color: #e9f3ff; font-size: 11px; overflow-wrap: anywhere; text-align: right; }
+.mission-progress-track { height: 7px; overflow: hidden; border-radius: 999px; background: rgba(104, 146, 205, .2); }
+.mission-progress-track > span { height: 100%; display: block; border-radius: inherit; background: linear-gradient(90deg, #4f9fe0, #75d0ff); }
+.mission-card-completed .mission-progress-track > span { background: linear-gradient(90deg, #3fa97b, #79ddb0); }
+.mission-card > footer { padding-top: 9px; color: #9eb1ca; font-size: 10px; border-top: 1px solid rgba(121, 153, 198, .13); }
+.mission-card > footer strong { color: #f4c867; font-size: 11px; white-space: nowrap; }
+.missions-state { min-height: 180px; display: grid; place-content: center; justify-items: center; gap: 9px; padding: 24px; color: #e9f3ff; text-align: center; }
+.mission-rank-summary { margin: 0 0 10px; color: #79ddb0; font-size: 11px; font-weight: 800; text-align: right; }
+.missions-state p { max-width: 560px; margin: 0; color: var(--muted); font-size: 11px; line-height: 1.55; }
+.missions-z-locked { border: 1px dashed rgba(121, 153, 198, .24); border-radius: 12px; background: rgba(7, 20, 39, .45); }
+
 .menu-configuration-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 4px 8px; }
 .menu-configuration-heading p { color: var(--muted); font-size: 9px; }
 .menu-configuration-heading button,
@@ -8087,14 +8115,16 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 
 @media (min-width: 1121px) {
   .secondary-navigation { width: 100%; overflow-x: hidden; }
-  .dailies-shell { grid-template-rows: auto minmax(0, 1fr); }
+  .dailies-shell, .missions-screen { grid-template-rows: auto minmax(0, 1fr); }
   .configuration-screen.long-screen-layout:has(> .screen-header) { grid-template-rows: auto auto minmax(0, 1fr); }
-  .dailies-frame, .configuration-frame,
+  .dailies-frame, .missions-frame, .configuration-frame,
   .dailies-frame > .scrollable-screen-panel-content,
+  .missions-frame > .scrollable-screen-panel-content,
   .configuration-frame > .scrollable-screen-panel-content { height: 100%; }
 }
 
 @media (max-width: 900px) {
+  .mission-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .shop-last-purchase { grid-template-columns: 1fr 1fr; }
   .menu-configuration-list li { grid-template-columns: 22px 1fr auto; }
   .menu-configuration-list li > small { grid-column: 2; }
@@ -8102,6 +8132,11 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 }
 
 @media (max-width: 760px) {
+  .missions-frame .scrollable-screen-panel-body { padding-top: 10px; }
+  .mission-grid { grid-template-columns: 1fr; }
+  .mission-card-copy { min-height: 0; }
+  .mission-progress-copy, .mission-card > footer { align-items: flex-start; flex-direction: column; }
+  .mission-progress-copy strong { text-align: left; }
   .moderation-header-button,
   .sign-out-button { width: 39px; padding: 0; overflow: hidden; font-size: 0; }
   .moderation-header-button::after { content: 'M'; font-size: 11px; }
