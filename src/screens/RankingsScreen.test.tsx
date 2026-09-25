@@ -16,6 +16,28 @@ const page = (metric = 'xp', number = 1): RankingPageDto => ({ metric: metrics.f
   self: { playerId: 'me', displayName: 'Moi', elementKey: 'hydro', rank: 22, value: '42', isSelf: true }, selfStatus: 'RANKED',
 })
 describe('RankingsScreen', () => {
+  it('uses the shared tabs for all five categories with an accessible active state', async () => {
+    const container = document.createElement('div'); const root = createRoot(container)
+    const allMetrics: RankingPageDto['metrics'] = [
+      ...metrics,
+      { ...metrics[0]!, id: 'mora', label: 'Moras', category: 'RESSOURCES' },
+      { ...metrics[0]!, id: 'items', label: 'Objets', category: 'COLLECTION' },
+      { ...metrics[0]!, id: 'activity', label: 'Activité', category: 'ACTIVITE' },
+    ]
+    const onLoad = vi.fn(async (metric: string, number: number): Promise<RankingPageDto> => ({ ...page(metric, number), metric: allMetrics.find(item => item.id === metric)!, metrics: allMetrics, categories: ['PROGRESSION', 'GACHA', 'RESSOURCES', 'COLLECTION', 'ACTIVITE'] }))
+    try {
+      await act(async () => { root.render(<RankingsScreen onLoad={onLoad} onProfile={() => {}} />); await Promise.resolve() })
+      const nav = container.querySelector<HTMLElement>('nav.activity-inner-tabs[role="tablist"]')!
+      expect([...nav.querySelectorAll('button')].map(button => button.textContent)).toEqual(['Progression', 'Gacha', 'Ressources', 'Collection', 'Activité'])
+      expect(nav.querySelectorAll('.app-button, .rankings-categories')).toHaveLength(0)
+      for (const [name, metric] of [['Gacha', 'pulls'], ['Ressources', 'mora'], ['Collection', 'items'], ['Activité', 'activity']] as const) {
+        await act(async () => { [...nav.querySelectorAll('button')].find(button => button.textContent === name)!.click(); await Promise.resolve() })
+        expect(onLoad).toHaveBeenLastCalledWith(metric, 1)
+        expect(nav.querySelectorAll('[aria-selected="true"]')).toHaveLength(1)
+        expect([...nav.querySelectorAll('button')].find(button => button.textContent === name)?.getAttribute('aria-selected')).toBe('true')
+      }
+    } finally { act(() => root.unmount()) }
+  })
   it('shows the personal rank outside the page, opens Profile, and changes metric and page', async () => {
     const container = document.createElement('div'); const root = createRoot(container)
     const onLoad = vi.fn(async (metric: string, number: number) => page(metric, number))

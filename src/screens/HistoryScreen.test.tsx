@@ -17,6 +17,21 @@ const props = {
 const tab = (container: HTMLElement, name: string) => [...container.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(button => button.textContent === name)!
 
 describe('HistoryScreen', () => {
+  it('uses the shared tabs for five categories and keeps bank filters secondary', async () => {
+    const container = document.createElement('div'); const root = createRoot(container)
+    try {
+      await act(async () => { root.render(<HistoryScreen {...props} />); await Promise.resolve() })
+      const nav = container.querySelector<HTMLElement>('nav.activity-inner-tabs[role="tablist"]')!
+      expect([...nav.querySelectorAll('button')].map(button => button.textContent)).toEqual(['Invocations', 'Bannières', 'Banque', 'Boutique', 'Event'])
+      expect(nav.querySelectorAll('.app-button, .history-tabs')).toHaveLength(0)
+      for (const name of ['Bannières', 'Banque', 'Boutique', 'Event']) {
+        await act(async () => { tab(container, name).click(); await Promise.resolve() })
+        expect(nav.querySelectorAll('[aria-selected="true"]')).toHaveLength(1)
+        expect(tab(container, name).getAttribute('aria-selected')).toBe('true')
+        if (name === 'Banque') expect(container.querySelector('[aria-label="Filtrer les opérations bancaires"]')).not.toBeNull()
+      }
+    } finally { act(() => root.unmount()); vi.clearAllMocks() }
+  })
   it('keeps empty categories on page one and uses a compact neutral header', async () => {
     const container = document.createElement('div'); const root = createRoot(container)
     try {

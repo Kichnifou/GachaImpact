@@ -23,7 +23,7 @@ export default function RankingsScreen({ onLoad, onProfile }: Props) {
   return <div className="screen-content rankings-screen long-screen-layout">
     <ScreenHeader eyebrow="Communauté" title="Classements" />
     <ScrollableScreenPanel className="rankings-frame" bodyClassName="rankings-body" fixed={<div className="rankings-controls">
-      <div className="rankings-categories" role="tablist" aria-label="Catégories des classements">{data?.categories.map(item => <AppButton key={item} role="tab" aria-selected={category === item} className={category === item ? 'active' : ''} onClick={() => choose(data.metrics.find(metric => metric.category === item)?.id ?? 'xp')}>{categoryLabels[item]}</AppButton>)}</div>
+      <nav className="activity-inner-tabs" role="tablist" aria-label="Catégories des classements">{data?.categories.map(item => <button type="button" key={item} role="tab" aria-selected={category === item} className={category === item ? 'active' : ''} onClick={() => choose(data.metrics.find(metric => metric.category === item)?.id ?? 'xp')}>{categoryLabels[item]}</button>)}</nav>
       <label>Métrique <select value={metric} onChange={event => choose(event.target.value)}>{data?.metrics.filter(item => item.category === category).map(item => <option key={item.id} value={item.id}>{item.label}</option>) ?? <option value="xp">XP</option>}</select></label>
     </div>}>
       {error && <div className="rankings-error" role="alert"><p>{error}</p><AppButton onClick={() => setRequest(value => value + 1)}>Réessayer</AppButton></div>}

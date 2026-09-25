@@ -8000,7 +8000,9 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 
 .dailies-frame,
 .configuration-frame { min-height: 0; }
-.activity-inner-tabs { overflow-y: hidden; scrollbar-width: none; }
+.activity-inner-tabs { min-width: 0; padding-block: 6px; overflow-y: hidden; scrollbar-width: none; touch-action: pan-x; }
+.activity-inner-tabs button { flex: 0 0 auto; }
+.activity-inner-tabs button:focus-visible { outline: 2px solid #70dcff; outline-offset: 2px; }
 .dailies-frame .scrollable-screen-panel-controls { border-bottom: 1px solid rgba(121, 153, 198, .16); }
 .dailies-frame .activity-inner-tabs { border-bottom: 0; }
 .dailies-frame .scrollable-screen-panel-body,

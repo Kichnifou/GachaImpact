@@ -1,10 +1,6 @@
 .rankings-screen { min-width: 0; max-width: 100%; overflow-x: hidden; }
 .rankings-frame { min-height: 0; }
 .rankings-controls { display: grid; gap: .8rem; padding: .8rem 1rem; border-bottom: 1px solid rgba(108, 195, 255, .2); }
-.rankings-categories { display: flex; gap: .45rem; overflow-x: auto; scrollbar-width: none; touch-action: pan-x; }
-.rankings-categories::-webkit-scrollbar { display: none; }
-.rankings-categories .app-button { flex: 0 0 auto; white-space: nowrap; min-height: 36px; }
-.rankings-categories .app-button.active { color: #f2fbff; border-color: rgba(83, 210, 255, .62); background: rgba(24, 81, 126, .88); box-shadow: inset 0 -2px #5fd7ff; }
 .rankings-controls label { display: flex; align-items: center; gap: .75rem; }
 .rankings-controls select { max-width: 100%; min-width: 0; min-height: 38px; background: #1d3149; color: #f4fbff; border: 1px solid rgba(108, 195, 255, .45); border-radius: 8px; padding: .45rem .7rem; font: inherit; }
 .rankings-controls select:hover { border-color: rgba(108, 211, 255, .8); }
