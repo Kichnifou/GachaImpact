@@ -354,4 +354,14 @@ describe('game API client', () => {
       [`http://127.0.0.1:3001/api/v1/contest/spectators/${spectatorId}`, 'DELETE', { idempotencyKey }],
     ])
   })
+
+  it('sends the optional persistent direct-message reply target', async () => {
+    const fetchImplementation = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ conversationId: 'c', messageId: 'm', replayed: false })))
+    const client = createGameApiClient({ baseUrl: 'http://127.0.0.1:3001', getAccessToken: async () => 'token', fetchImplementation })
+    const conversationId = crypto.randomUUID(), replyToMessageId = crypto.randomUUID(), idempotencyKey = crypto.randomUUID()
+    await client.directMessages.send(conversationId, 'Réponse', idempotencyKey, replyToMessageId)
+    const [url, init] = fetchImplementation.mock.calls[0]!
+    expect(url).toBe(`http://127.0.0.1:3001/api/v1/me/direct-conversations/${conversationId}/messages`)
+    expect(JSON.parse(String(init?.body))).toEqual({ content: 'Réponse', idempotencyKey, replyToMessageId })
+  })
 })

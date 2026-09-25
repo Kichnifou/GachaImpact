@@ -24,6 +24,17 @@ beforeAll(async () => fixture.setup(), 60_000);
 afterAll(async () => fixture.cleanup(), 60_000);
 
 describe('Direct-message foundations on isolated PostgreSQL', () => {
+  it('has migration 043 registered with the nullable reply column, restrictive self-FK and dedicated index', async () => {
+    const migration = await fixture.admin.query<{ count: string }>("SELECT count(*)::text AS count FROM public._prisma_migrations WHERE migration_name='20260925100000_043_add_direct_message_replies' AND finished_at IS NOT NULL AND rolled_back_at IS NULL");
+    const column = await fixture.admin.query<{ is_nullable: string }>("SELECT is_nullable FROM information_schema.columns WHERE table_schema='public' AND table_name='direct_messages' AND column_name='reply_to_message_id'");
+    const foreignKey = await fixture.admin.query<{ delete_rule: string }>(`SELECT rc.delete_rule FROM information_schema.referential_constraints rc WHERE rc.constraint_schema='public' AND rc.constraint_name='direct_messages_reply_to_message_id_fkey'`);
+    const index = await fixture.admin.query<{ count: string }>("SELECT count(*)::text AS count FROM pg_indexes WHERE schemaname='public' AND tablename='direct_messages' AND indexname='direct_messages_reply_to_message_idx'");
+    expect(migration.rows).toEqual([{ count: '1' }]);
+    expect(column.rows).toEqual([{ is_nullable: 'YES' }]);
+    expect(foreignKey.rows).toEqual([{ delete_rule: 'RESTRICT' }]);
+    expect(index.rows).toEqual([{ count: '1' }]);
+  });
+
   it('searches active recipients by normalized name without exposing self and caps the lightweight result', async () => {
     const viewer = await player('Search Viewer');
     const matching = await player('Éléa 02');
@@ -397,6 +408,47 @@ describe('Direct-message foundations on isolated PostgreSQL', () => {
     await service.initiate(as(author), isolatedRecipient, 'Needle R515 other conversation', randomUUID());
     expect((await service.searchHistory(as(recipient), direct.conversationId as string, 'other conversation')).results).toHaveLength(0);
   }, 120_000);
+
+  it('persists replies, scopes targets, fingerprints idempotency and projects the current target state everywhere', async () => {
+    const alice = await player('Reply Alice'), bob = await player('Reply Bob'), clara = await player('Reply Clara');
+    const aliceBob = [alice, bob].sort(), aliceClara = [alice, clara].sort();
+    await db.friendship.createMany({ data: [
+      { playerAId: aliceBob[0]!, playerBId: aliceBob[1]!, state: 'ACTIVE' },
+      { playerAId: aliceClara[0]!, playerBId: aliceClara[1]!, state: 'ACTIVE' },
+    ] });
+    const conversation = await service.initiate(as(alice), bob, 'Cible initiale', randomUUID());
+    const otherConversation = await service.initiate(as(alice), clara, 'Cible étrangère', randomUUID());
+    advance();
+
+    const key = randomUUID();
+    const reply = await service.send(as(bob), conversation.conversationId as string, 'Réponse persistante', key, conversation.messageId as string);
+    expect((await db.directMessage.findUniqueOrThrow({ where: { id: reply.messageId } })).replyToMessageId).toBe(conversation.messageId);
+    expect(await service.send(as(bob), conversation.conversationId as string, 'Réponse persistante', key, conversation.messageId as string)).toMatchObject({ messageId: reply.messageId, replayed: true });
+    await expect(service.send(as(bob), conversation.conversationId as string, 'Réponse persistante', key, reply.messageId)).rejects.toMatchObject({ code: 'DIRECT_MESSAGE_IDEMPOTENCY_CONFLICT' });
+    await expect(service.send(as(bob), conversation.conversationId as string, 'Inconnue', randomUUID(), randomUUID())).rejects.toMatchObject({ code: 'DIRECT_MESSAGE_UNAVAILABLE' });
+    await expect(service.send(as(bob), conversation.conversationId as string, 'Croisée', randomUUID(), otherConversation.messageId as string)).rejects.toMatchObject({ code: 'DIRECT_MESSAGE_UNAVAILABLE' });
+
+    advance();
+    const ownReply = await service.send(as(bob), conversation.conversationId as string, 'Réponse à soi', randomUUID(), reply.messageId);
+    expect((await db.directMessage.findUniqueOrThrow({ where: { id: ownReply.messageId } })).replyToMessageId).toBe(reply.messageId);
+    const assertPreview = async (expected: string) => {
+      expect((await service.list(as(bob))).conversations[0]?.lastMessage).toMatchObject({ id: ownReply.messageId, replyToMessageId: reply.messageId, replyPreview: 'Réponse persistante' });
+      expect((await service.messages(as(alice), conversation.conversationId as string)).messages.find(message => message.id === reply.messageId)).toMatchObject({ replyToMessageId: conversation.messageId, replyPreview: expected });
+      expect((await service.history(as(alice), conversation.conversationId as string)).messages.find(message => message.id === reply.messageId)).toMatchObject({ replyToMessageId: conversation.messageId, replyPreview: expected });
+      expect((await service.searchHistory(as(alice), conversation.conversationId as string, 'Réponse persistante')).results[0]).toMatchObject({ id: reply.messageId, replyToMessageId: conversation.messageId, replyPreview: expected });
+    };
+    await assertPreview('Cible initiale');
+    advance();
+    await service.editMessage(as(alice), conversation.conversationId as string, conversation.messageId as string, 'Cible corrigée', randomUUID());
+    await assertPreview('Cible corrigée');
+    advance();
+    await service.deleteMessage(as(alice), conversation.conversationId as string, conversation.messageId as string, randomUUID());
+    await assertPreview('Message supprimé');
+    await expect(service.send(as(bob), conversation.conversationId as string, 'Cible supprimée', randomUUID(), conversation.messageId as string)).rejects.toMatchObject({ code: 'DIRECT_MESSAGE_UNAVAILABLE' });
+    advance();
+    await service.restoreMessage(as(alice), conversation.conversationId as string, conversation.messageId as string, randomUUID());
+    await assertPreview('Cible corrigée');
+  }, 30_000);
 
   it('keeps reservation order when private message A commits after B', async () => {
     const alice = await player('Ordered Alice'), bob = await player('Ordered Bob');

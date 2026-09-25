@@ -195,6 +195,7 @@ export default function DirectMessagePanel({
   const [historyQuery, setHistoryQuery] = useState(""),
     [historyDate, setHistoryDate] = useState(""),
     [historyHighlight, setHistoryHighlight] = useState<string | null>(null);
+  const [replyTarget, setReplyTarget] = useState<DirectMessageDto | null>(null);
   const intentRef = useRef<SendIntent | null>(null),
     searchVersion = useRef(0),
     list = useRef<HTMLDivElement>(null),
@@ -211,12 +212,23 @@ export default function DirectMessagePanel({
     liveScrollTop = useRef<number | null>(null),
     readId = useRef<string | null>(null),
     sendBusy = useRef(false),
+    composerFocusEligible = useRef(false),
+    restoreComposerFocus = useRef(false),
+    replyRevision = useRef(0),
+    viewRef = useRef(view),
+    selectedIdRef = useRef(selectedId),
+    targetIdRef = useRef(target?.id ?? null),
+    activeRef = useRef(isActive),
     readBusy = useRef(false),
     queuedRead = useRef<{ conversationId: string; messageId: string } | null>(
       null,
     ),
     reportFeedbackTimer = useRef<number | null>(null),
     reportFeedbackRevision = useRef(0);
+  viewRef.current = view;
+  selectedIdRef.current = selectedId;
+  targetIdRef.current = target?.id ?? null;
+  activeRef.current = isActive;
   const model = useDirectMessages(
     playerId,
     isActive && view !== "history",
@@ -275,6 +287,23 @@ export default function DirectMessagePanel({
   const outgoingPending =
     selected?.request?.state === "PENDING" &&
     selected.request.senderPlayerId === playerId;
+  const currentReplyTarget = replyTarget
+    ? [...model.messages, ...history.messages].find((message) => message.id === replyTarget.id) ?? replyTarget
+    : null;
+
+  const clearReply = () => {
+    replyRevision.current += 1;
+    setReplyTarget(null);
+  };
+  const focusComposerAtEnd = () => {
+    window.requestAnimationFrame(() => {
+      const field = composer.current;
+      if (!field || field.disabled || document.hidden || !activeRef.current) return;
+      field.focus();
+      field.setSelectionRange(field.value.length, field.value.length);
+      composerFocusEligible.current = true;
+    });
+  };
 
   const showReportFeedback = (message: string, autoDismiss = false) => {
     const revision = ++reportFeedbackRevision.current;
@@ -304,6 +333,7 @@ export default function DirectMessagePanel({
     queuedRead.current = null;
     initialScroll.current = true;
     atBottom.current = true;
+    clearReply();
   };
   const openTarget = async (
     targetPlayerId: string,
@@ -335,6 +365,7 @@ export default function DirectMessagePanel({
         setView("new");
         setDraft("");
         intentRef.current = null;
+        clearReply();
       }
     } catch (reason) {
       if (version === searchVersion.current)
@@ -365,7 +396,21 @@ export default function DirectMessagePanel({
     setHistoryQuery("");
     setHistoryDate("");
     setHistoryHighlight(null);
+    clearReply();
   }, [resetToken]);
+  useEffect(() => {
+    const trackFocus = (event: FocusEvent) => {
+      if (event.target === composer.current) {
+        composerFocusEligible.current = true;
+        return;
+      }
+      if (event.target instanceof Element && event.target.closest(".dm-send")) return;
+      composerFocusEligible.current = false;
+      restoreComposerFocus.current = false;
+    };
+    document.addEventListener("focusin", trackFocus);
+    return () => document.removeEventListener("focusin", trackFocus);
+  }, []);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 60_000);
     return () => window.clearInterval(timer);
@@ -696,24 +741,31 @@ export default function DirectMessagePanel({
     setMenuOpen(false);
     setConfirmBlock(false);
     intentRef.current = null;
+    clearReply();
   };
   const send = async (event: FormEvent) => {
     event.preventDefault();
     const content = draft.trim();
     if (!content || Array.from(content).length > 1_000 || sendBusy.current)
       return;
-    const signature = `${selectedId ?? target?.id}:${content}`;
+    const reply = selectedId ? currentReplyTarget : null;
+    const signature = `${selectedId ?? target?.id}:${content}:${reply?.id ?? ""}`;
     if (intentRef.current?.signature !== signature)
       intentRef.current = { signature, key: crypto.randomUUID() };
     const currentIntent = intentRef.current;
+    const focusBoundary = { view, selectedId, targetId: target?.id ?? null };
+    restoreComposerFocus.current = composerFocusEligible.current;
+    const sentReplyRevision = replyRevision.current;
     sendBusy.current = true;
     setSendPending(true);
     model.clearError();
     const previousDraft = draft;
+    const previousReply = reply;
     setDraft("");
+    if (reply) setReplyTarget(null);
     forceBottom.current = true;
     try {
-      if (selectedId) await model.send(selectedId, content, currentIntent.key);
+      if (selectedId) await model.send(selectedId, content, currentIntent.key, reply?.id ?? null, reply?.content ?? "Message supprimé");
       else if (target) {
         const optimistic = createOptimisticDirectMessage(
           playerId,
@@ -763,9 +815,21 @@ export default function DirectMessagePanel({
         setView("new");
       }
       setDraft(previousDraft);
+      if (previousReply && replyRevision.current === sentReplyRevision)
+        setReplyTarget(previousReply);
     } finally {
       sendBusy.current = false;
       setSendPending(false);
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+        if (!restoreComposerFocus.current) return;
+        restoreComposerFocus.current = false;
+        if (document.hidden || !activeRef.current || viewRef.current !== focusBoundary.view || selectedIdRef.current !== focusBoundary.selectedId || targetIdRef.current !== focusBoundary.targetId) return;
+        const field = composer.current;
+        if (!field || field.disabled) return;
+        field.focus();
+        field.setSelectionRange(field.value.length, field.value.length);
+        composerFocusEligible.current = true;
+      }));
     }
   };
   const chooseTarget = async (candidate: DirectMessagePlayerDto) => {
@@ -932,6 +996,22 @@ export default function DirectMessagePanel({
       setReportPending(false);
     }
   };
+  const chooseReply = (message: DirectMessageDto | DirectMessageHistoryMessageDto) => {
+    if (!selected?.canSend || message.deletedAt || !message.content || message.id.startsWith("optimistic:")) return;
+    replyRevision.current += 1;
+    setReplyTarget(message);
+    setMessageActionsId(null);
+    setEditingId(null);
+    setEditDraft("");
+    setDeleteId(null);
+    if (view === "history") {
+      setHistoryQuery("");
+      setHistoryDate("");
+      setHistoryHighlight(null);
+      setView("conversation");
+    }
+    focusComposerAtEnd();
+  };
   const renderMessage = (
     message: DirectMessageDto | DirectMessageHistoryMessageDto,
   ) => {
@@ -946,6 +1026,11 @@ export default function DirectMessagePanel({
       !message.deletedAt &&
       Boolean(message.content) &&
       !message.id.startsWith("optimistic:");
+    const replyable =
+      Boolean(selected?.canSend) &&
+      !message.deletedAt &&
+      Boolean(message.content) &&
+      !message.id.startsWith("optimistic:");
     const actionsOpen = messageActionsId === message.id;
     return (
       <article
@@ -955,7 +1040,7 @@ export default function DirectMessagePanel({
         data-read-by-other={message.readByOther ? "true" : "false"}
         data-read-by-other-at={message.readByOtherAt ?? undefined}
         key={message.id}
-        tabIndex={actionable || reportable ? 0 : undefined}
+        tabIndex={actionable || reportable || replyable ? 0 : undefined}
       >
         <div className="dm-message-content">
           {editingId === message.id ? (
@@ -1028,6 +1113,9 @@ export default function DirectMessagePanel({
                   );
                 }}
               >
+                {message.replyToMessageId && (
+                  <div className="dm-reply-preview">↳ {message.replyPreview ?? "Message supprimé"}</div>
+                )}
                 {message.content ? (
                   <p>{linkedText(message.content)}</p>
                 ) : (
@@ -1073,6 +1161,15 @@ export default function DirectMessagePanel({
                       </button>
                       <button
                         type="button"
+                        title="Répondre"
+                        aria-label="Répondre au message"
+                        disabled={messageActionPending === message.id}
+                        onClick={() => chooseReply(message)}
+                      >
+                        ↩
+                      </button>
+                      <button
+                        type="button"
                         title="Supprimer"
                         aria-label="Supprimer le message"
                         disabled={messageActionPending === message.id}
@@ -1087,17 +1184,22 @@ export default function DirectMessagePanel({
                   )}
                 </div>
               )}
-              {reportable && (
+              {!message.own && (replyable || reportable) && (
                 <div className="dm-message-actions dm-message-report-action">
-                  <button
-                    type="button"
-                    title="Signaler"
-                    aria-label="Signaler le message"
-                    disabled={reportPending}
-                    onClick={() => void openReport(message.id)}
-                  >
-                    ⚑
-                  </button>
+                  {replyable && (
+                    <button type="button" title="Répondre" aria-label="Répondre au message" onClick={() => chooseReply(message)}>↩</button>
+                  )}
+                  {reportable && (
+                    <button
+                      type="button"
+                      title="Signaler"
+                      aria-label="Signaler le message"
+                      disabled={reportPending}
+                      onClick={() => void openReport(message.id)}
+                    >
+                      ⚑
+                    </button>
+                  )}
                 </div>
               )}
               {deleteId === message.id && (
@@ -1177,6 +1279,7 @@ export default function DirectMessagePanel({
                   data-report-message-id={line.id}
                 >
                   <strong>{line.authorDisplayName}</strong>
+                  {line.replyToMessageId && <div className="dm-reply-preview">↳ {line.replyPreview ?? "Message supprimé"}</div>}
                   <p>{line.content ?? "Message supprimé"}</p>
                   <time dateTime={line.createdAt}>
                     {new Date(line.createdAt).toLocaleString("fr-FR")}
@@ -1410,6 +1513,11 @@ export default function DirectMessagePanel({
             onClearError={model.clearError}
             onSubmit={send}
             composerRef={composer}
+            reply={null}
+            replyAuthorName=""
+            onCancelReply={() => undefined}
+            onComposerFocus={() => { composerFocusEligible.current = true; }}
+            onSendPointerDown={() => { composerFocusEligible.current = document.activeElement === composer.current; }}
           />
         )}
       </section>
@@ -1526,17 +1634,15 @@ export default function DirectMessagePanel({
                 <p className="dm-empty">Aucun message trouvé.</p>
               )}
               {history.results.map((message) => (
-                <button
-                  type="button"
-                  key={message.id}
-                  onClick={() => void jumpHistory(message)}
-                >
-                  <strong>{message.own ? "Vous" : other.displayName}</strong>
-                  <span>{message.content}</span>
-                  <time dateTime={message.createdAt}>
-                    {new Date(message.createdAt).toLocaleString("fr-FR")}
-                  </time>
-                </button>
+                <div className="dm-history-result" key={message.id}>
+                  <button type="button" className="dm-history-result-jump" onClick={() => void jumpHistory(message)}>
+                    <strong>{message.own ? "Vous" : other.displayName}</strong>
+                    {message.replyToMessageId && <small>↳ {message.replyPreview ?? "Message supprimé"}</small>}
+                    <span>{message.content}</span>
+                    <time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleString("fr-FR")}</time>
+                  </button>
+                  {selected.canSend && <button type="button" className="dm-history-result-reply" aria-label="Répondre au message trouvé" onClick={() => chooseReply(message)}>Répondre</button>}
+                </div>
               ))}
               {history.searching && history.results.length > 0 && (
                 <p className="dm-empty">Recherche…</p>
@@ -1749,6 +1855,11 @@ export default function DirectMessagePanel({
           onClearError={model.clearError}
           onSubmit={send}
           composerRef={composer}
+          reply={currentReplyTarget}
+          replyAuthorName={currentReplyTarget?.own ? "Vous" : other?.displayName ?? ""}
+          onCancelReply={() => { clearReply(); focusComposerAtEnd(); }}
+          onComposerFocus={() => { composerFocusEligible.current = true; }}
+          onSendPointerDown={() => { composerFocusEligible.current = document.activeElement === composer.current; }}
         />
       ) : (
         <p className="dm-readonly">
@@ -1768,6 +1879,11 @@ function Composer({
   onClearError,
   onSubmit,
   composerRef,
+  reply,
+  replyAuthorName,
+  onCancelReply,
+  onComposerFocus,
+  onSendPointerDown,
 }: {
   draft: string;
   setDraft: (value: string) => void;
@@ -1776,6 +1892,11 @@ function Composer({
   onClearError: () => void;
   onSubmit: (event: FormEvent) => void;
   composerRef: RefObject<HTMLTextAreaElement | null>;
+  reply: DirectMessageDto | null;
+  replyAuthorName: string;
+  onCancelReply: () => void;
+  onComposerFocus: () => void;
+  onSendPointerDown: () => void;
 }) {
   const count = Array.from(draft).length;
   return (
@@ -1792,6 +1913,12 @@ function Composer({
           </button>
         </p>
       )}
+      {reply && (
+        <div className="dm-composer-reply">
+          <span><strong>Réponse à {replyAuthorName}</strong><small>« {reply.content ?? "Message supprimé"} »</small></span>
+          <button type="button" aria-label="Annuler la réponse" onClick={onCancelReply}>×</button>
+        </div>
+      )}
       <form className="dm-composer" onSubmit={onSubmit}>
         <label className="sr-only" htmlFor="dm-message">
           Écrire un message privé
@@ -1803,6 +1930,7 @@ function Composer({
           value={draft}
           disabled={pending}
           placeholder="Écrire un message privé…"
+          onFocus={onComposerFocus}
           onChange={(event) =>
             setDraft(Array.from(event.target.value).slice(0, 1000).join(""))
           }
@@ -1821,6 +1949,7 @@ function Composer({
           className="dm-send"
           aria-label="Envoyer le message privé"
           disabled={pending || !draft.trim() || count > 1000}
+          onPointerDown={onSendPointerDown}
         >
           ›
         </button>

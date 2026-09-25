@@ -1138,6 +1138,7 @@ model DirectMessage {
   deletedAt        DateTime? @map("deleted_at") @db.Timestamptz(6)
   restoredAt       DateTime? @map("restored_at") @db.Timestamptz(6)
   contentPurgedAt  DateTime? @map("content_purged_at") @db.Timestamptz(6)
+  replyToMessageId String?   @map("reply_to_message_id") @db.Uuid
   conversation     DirectConversation @relation(fields: [conversationId], references: [id], onDelete: Restrict)
   author           Player @relation(fields: [authorPlayerId], references: [id], onDelete: Restrict)
   operation        BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
@@ -1145,9 +1146,12 @@ model DirectMessage {
   participantReads DirectConversationParticipant[] @relation("DirectParticipantLastRead")
   participantSharedReads DirectConversationParticipant[] @relation("DirectParticipantSharedRead")
   reports          DirectMessageReport[]
+  replyToMessage   DirectMessage? @relation("DirectMessageReplies", fields: [replyToMessageId], references: [id], onDelete: Restrict)
+  replies          DirectMessage[] @relation("DirectMessageReplies")
 
   @@index([conversationId, submissionOrder(sort: Desc)], map: "direct_messages_conversation_submission_idx")
   @@index([authorPlayerId, createdAt(sort: Desc)], map: "direct_messages_author_created_idx")
+  @@index([replyToMessageId], map: "direct_messages_reply_to_message_idx")
   @@map("direct_messages")
 }
 

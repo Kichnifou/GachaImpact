@@ -16,7 +16,7 @@ const historySearchQuery = z.object({ q: z.string().trim().min(1).max(100), limi
 const historyDateQuery = z.object({ at: z.iso.datetime({ offset: true }) }).strict();
 const playerSearchQuery = z.object({ q: z.string().trim().min(1).max(100) }).strict();
 const initiateBody = z.object({ targetPlayerId: uuid, content: z.string().min(1).max(2000), idempotencyKey: uuid }).strict();
-const sendBody = z.object({ content: z.string().min(1).max(2000), idempotencyKey: uuid }).strict();
+const sendBody = z.object({ content: z.string().min(1).max(2000), idempotencyKey: uuid, replyToMessageId: uuid.nullish() }).strict();
 const editBody = z.object({ content: z.string().min(1).max(2000), idempotencyKey: uuid }).strict();
 const resolveBody = z.object({ requestId: uuid, idempotencyKey: uuid }).strict();
 const keyBody = z.object({ idempotencyKey: uuid }).strict();
@@ -54,7 +54,7 @@ export async function registerDirectMessageRoutes(app: FastifyInstance, options:
     if (Boolean(query.cursorId) !== Boolean(query.cursorCreatedAt)) throw new AppError('Curseur de messagerie privée invalide.', 400, 'VALIDATION_ERROR');
     return options.service.messages(requireAuthenticatedIdentity(request), params.conversationId, query.limit, query.cursorId && query.cursorCreatedAt ? { id: query.cursorId, createdAt: query.cursorCreatedAt } : undefined);
   });
-  app.post('/api/v1/me/direct-conversations/:conversationId/messages', config, request => { const params = parse(conversationParams, request.params), body = parse(sendBody, request.body); return options.service.send(requireAuthenticatedIdentity(request), params.conversationId, body.content, body.idempotencyKey); });
+  app.post('/api/v1/me/direct-conversations/:conversationId/messages', config, request => { const params = parse(conversationParams, request.params), body = parse(sendBody, request.body); return options.service.send(requireAuthenticatedIdentity(request), params.conversationId, body.content, body.idempotencyKey, body.replyToMessageId ?? null); });
   app.patch('/api/v1/me/direct-conversations/:conversationId/messages/:messageId', config, request => { const params = parse(messageParams, request.params), body = parse(editBody, request.body); return options.service.editMessage(requireAuthenticatedIdentity(request), params.conversationId, params.messageId, body.content, body.idempotencyKey); });
   app.post('/api/v1/me/direct-conversations/:conversationId/messages/:messageId/delete', config, request => { const params = parse(messageParams, request.params), body = parse(keyBody, request.body); return options.service.deleteMessage(requireAuthenticatedIdentity(request), params.conversationId, params.messageId, body.idempotencyKey); });
   app.post('/api/v1/me/direct-conversations/:conversationId/messages/:messageId/restore', config, request => { const params = parse(messageParams, request.params), body = parse(keyBody, request.body); return options.service.restoreMessage(requireAuthenticatedIdentity(request), params.conversationId, params.messageId, body.idempotencyKey); });

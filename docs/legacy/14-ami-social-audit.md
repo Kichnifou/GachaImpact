@@ -1139,6 +1139,17 @@ Chaque nouvel envoi vérifie la permission actuelle. Une conversation devenue no
 
 La fenêtre utilise scroll complet, recherche textuelle et navigation vers une date. Un message supprimé n'apparaît jamais dans les résultats de recherche.
 
+## R898 — Réponses persistantes et focus du composer
+
+- tout message actif persistant de la conversation peut être ciblé, qu'il appartienne à l'auteur ou à l'autre participant ;
+- une cible absente, supprimée, purgée ou provenant d'une autre conversation est refusée ;
+- les lignes anciennes restent sans réponse et aucun texte cible n'est copié dans le message ;
+- l'aperçu suit le contenu courant de la cible dans liste, fil récent, historique et recherche, puis affiche `Message supprimé` pour un tombstone ;
+- Répondre depuis l'Historique revient au fil récent et place le focus dans le composer ;
+- une réponse optimistic est visible immédiatement et un échec restaure l'accessoire uniquement si le joueur ne l'a pas remplacé ;
+- la preuve de signalement fige relation et aperçu, contrairement à l'affichage joueur dynamique ;
+- après succès ou échec d'envoi, focus et caret reviennent seulement si le composer les possédait et qu'aucun focus volontaire, changement de conversation/vue, lecture seule ou masquage du document n'est intervenu.
+
 ## R516 — Retour au joueur bloqué
 
 L'envoi échoue réellement avec un texte neutre, sans révéler explicitement le blocage et sans simuler une livraison.

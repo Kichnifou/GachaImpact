@@ -8968,8 +8968,11 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .dm-history-body { min-height: 0; flex: 1; overflow-y: auto; overflow-x: hidden; padding: 10px; }
 .dm-history-loading { margin: 5px; color: #71829e; font-size: 8px; text-align: center; }
 .dm-history-results { display: grid; gap: 5px; }
-.dm-history-results > button { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 8px; padding: 8px; cursor: pointer; color: #cad8eb; text-align: left; border: 1px solid rgba(104, 145, 199, .18); border-radius: 7px; background: rgba(14, 27, 49, .76); }
-.dm-history-results > button:hover, .dm-history-results > button:focus-visible { border-color: rgba(114, 200, 255, .5); background: rgba(28, 58, 92, .82); }
+.dm-history-result { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; border: 1px solid rgba(104, 145, 199, .18); border-radius: 7px; overflow: hidden; background: rgba(14, 27, 49, .76); }
+.dm-history-result:focus-within, .dm-history-result:hover { border-color: rgba(114, 200, 255, .5); background: rgba(28, 58, 92, .82); }
+.dm-history-result-jump { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 8px; padding: 8px; cursor: pointer; color: #cad8eb; text-align: left; border: 0; background: transparent; }
+.dm-history-result-reply { padding: 5px 8px; cursor: pointer; color: #a9d9f7; font-size: 8px; border: 0; border-left: 1px solid rgba(104, 145, 199, .18); background: transparent; }
+.dm-history-result-reply:hover, .dm-history-result-reply:focus-visible { background: rgba(61, 106, 159, .3); }
 .dm-history-results strong { overflow: hidden; color: #e4eefc; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .dm-history-results span { min-width: 0; grid-column: 1 / -1; overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .dm-history-results time { color: #7386a3; font-size: 8px; white-space: nowrap; }
@@ -9002,6 +9005,7 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .dm-message-bubble, .dm-message-edit { max-width: 100%; padding: 7px 9px; border: 1px solid rgba(104, 142, 193, .2); border-radius: 10px 10px 10px 3px; background: rgba(24, 39, 66, .9); }
 .dm-message.own .dm-message-bubble, .dm-message.own .dm-message-edit { border-radius: 10px 10px 3px 10px; border-color: rgba(77, 154, 220, .3); background: rgba(30, 79, 125, .82); }
 .dm-message-bubble.deleted { color: #91a0b5; font-style: italic; }
+.dm-reply-preview { max-width: 100%; margin: 0 0 5px; padding: 4px 6px; overflow: hidden; color: #9cc8e5; font-size: 9px; font-style: normal; text-overflow: ellipsis; white-space: nowrap; border-left: 2px solid rgba(111, 198, 246, .66); border-radius: 3px; background: rgba(5, 16, 31, .34); }
 .dm-message p { margin: 0; overflow-wrap: anywhere; font-size: 11px; line-height: 1.4; white-space: pre-wrap; }
 .dm-message a { color: #92ddff; text-decoration: underline; }
 .dm-message-edited { display: block; margin-top: 2px; color: #91a9c8; font-size: 8px; font-style: normal; text-align: right; }
@@ -9041,6 +9045,12 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .dm-load-older { display: block; margin: 0 auto 8px; padding: 5px 8px; font-size: 9px; }
 .dm-new-messages { align-self: center; margin: 3px; padding: 4px 8px; font-size: 9px; }
 .dm-composer-wrap { flex: 0 0 auto; padding: 8px 9px 9px; border-top: 1px solid rgba(106, 144, 205, .15); background: rgba(7, 14, 28, .92); }
+.dm-composer-reply { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; padding: 6px 7px 6px 9px; color: #b9d8ee; border-left: 2px solid #72c8ff; border-radius: 5px; background: rgba(24, 54, 84, .52); }
+.dm-composer-reply > span { min-width: 0; display: grid; flex: 1; gap: 1px; }
+.dm-composer-reply strong { font-size: 9px; }
+.dm-composer-reply small { overflow: hidden; color: #8fa9c2; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.dm-composer-reply button { width: 26px; height: 26px; padding: 0; cursor: pointer; color: #b9cbe1; border: 0; border-radius: 4px; background: transparent; }
+.dm-composer-reply button:hover, .dm-composer-reply button:focus-visible { color: #fff; background: rgba(61, 106, 159, .42); }
 .dm-composer { position: relative; }
 .dm-composer textarea { width: 100%; min-height: 42px; max-height: 132px; display: block; padding: 10px 40px 8px 10px; resize: none; color: #dce8f8; font: inherit; font-size: 12px; line-height: 19px; border: 1px solid rgba(106, 162, 218, .48); border-radius: 9px; outline: 0; background: rgba(4, 10, 21, .95); }
 .dm-composer textarea:focus { border-color: #72c8ff; box-shadow: 0 0 0 2px rgba(79, 174, 231, .12); }
@@ -9073,4 +9083,6 @@ button.inventory-stella-card { width: 100%; font: inherit; }
   .dm-history-recent { max-width: 104px; }
   .dm-history-tools { grid-template-columns: minmax(0, 1fr) auto; }
   .dm-history-tools > label:first-child { grid-column: 1 / -1; }
+  .dm-history-result { grid-template-columns: minmax(0, 1fr); }
+  .dm-history-result-reply { min-height: 32px; border-top: 1px solid rgba(104, 145, 199, .18); border-left: 0; }
 }

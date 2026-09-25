@@ -14,6 +14,8 @@ export type DirectMessageReportSnapshotLine = Readonly<{
   submissionOrder: string;
   editedAt: string | null;
   deletedAt: string | null;
+  replyToMessageId: string | null;
+  replyPreview: string | null;
 }>;
 
 export type DirectMessageReportPreviewDto = Readonly<{
@@ -44,7 +46,9 @@ const messageSelect = {
   submissionOrder: true,
   editedAt: true,
   deletedAt: true,
+  replyToMessageId: true,
   author: { select: { displayName: true } },
+  replyToMessage: { select: { content: true, deletedAt: true, contentPurgedAt: true } },
 } as const;
 
 type SelectedMessage = Prisma.DirectMessageGetPayload<{ select: typeof messageSelect }>;
@@ -59,6 +63,8 @@ function project(row: SelectedMessage): DirectMessageReportSnapshotLine {
     submissionOrder: row.submissionOrder.toString(),
     editedAt: row.editedAt?.toISOString() ?? null,
     deletedAt: row.deletedAt?.toISOString() ?? null,
+    replyToMessageId: row.replyToMessageId,
+    replyPreview: row.replyToMessageId === null ? null : row.replyToMessage && !row.replyToMessage.deletedAt && row.replyToMessage.content !== null && !row.replyToMessage.contentPurgedAt ? row.replyToMessage.content : 'Message supprimé',
   };
 }
 

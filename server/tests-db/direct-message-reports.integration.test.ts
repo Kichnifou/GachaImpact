@@ -26,9 +26,9 @@ async function thread(label: string) {
   return { author, reporter, conversation };
 }
 
-async function message(conversationId: string, authorPlayerId: string, order: bigint, content = `Message ${order}`, deletedAt: Date | null = null) {
+async function message(conversationId: string, authorPlayerId: string, order: bigint, content = `Message ${order}`, deletedAt: Date | null = null, replyToMessageId: string | null = null) {
   const operation = await db.businessOperation.create({ data: { playerId: authorPlayerId, operationType: 'report-test.message', sourceChannel: 'UI', idempotencyKey: randomUUID(), status: 'COMPLETED', completedAt: new Date() } });
-  return db.directMessage.create({ data: { conversationId, authorPlayerId, operationId: operation.id, submissionOrder: (orderBases.get(conversationId) ?? 0n) + order, content, deletedAt } });
+  return db.directMessage.create({ data: { conversationId, authorPlayerId, operationId: operation.id, submissionOrder: (orderBases.get(conversationId) ?? 0n) + order, content, deletedAt, replyToMessageId } });
 }
 
 beforeAll(async () => fixture.setup(), 60_000);
@@ -85,8 +85,9 @@ describe('private direct-message reports on isolated PostgreSQL', () => {
   it('rejects stale target/context fingerprints, accepts a refreshed preview, deduplicates and freezes evidence without notifications', async () => {
     const { author, reporter, conversation } = await thread('Freeze');
     const before = await message(conversation.id, reporter.id, 1n, 'Before');
-    const target = await message(conversation.id, author.id, 2n, 'Original');
+    const target = await message(conversation.id, author.id, 2n, 'Original', null, before.id);
     const first = await service.preview(reporter.identity, conversation.id, target.id);
+    expect(first.message).toMatchObject({ replyToMessageId: before.id, replyPreview: 'Before' });
     await db.directMessage.update({ where: { id: target.id }, data: { content: 'Edited before confirm', editedAt: new Date() } });
     await expect(service.report(reporter.identity, conversation.id, target.id, first.snapshotFingerprint)).rejects.toMatchObject({ code: 'DIRECT_MESSAGE_REPORT_PREVIEW_STALE', statusCode: 409 });
     expect(await db.directMessageReport.count({ where: { messageId: target.id } })).toBe(0);
@@ -99,10 +100,13 @@ describe('private direct-message reports on isolated PostgreSQL', () => {
     expect(await service.report(reporter.identity, conversation.id, target.id, '0'.repeat(64))).toEqual({ reported: true, duplicate: true });
     expect(await db.directMessageReport.count({ where: { messageId: target.id } })).toBe(1);
     const frozen = await db.directMessageReport.findFirstOrThrow({ where: { messageId: target.id } });
+    expect(frozen.messageSnapshot).toMatchObject({ replyToMessageId: before.id, replyPreview: 'Before' });
+    await db.directMessage.update({ where: { id: before.id }, data: { content: 'Before edited', editedAt: new Date() } });
     await db.directMessage.update({ where: { id: target.id }, data: { content: null, deletedAt: new Date(), contentPurgedAt: new Date() } });
     await message(conversation.id, author.id, 4n, 'After report');
     const unchanged = await db.directMessageReport.findFirstOrThrow({ where: { messageId: target.id } });
     expect(unchanged.messageSnapshot).toEqual(frozen.messageSnapshot);
+    expect(unchanged.messageSnapshot).toMatchObject({ replyToMessageId: before.id, replyPreview: 'Before' });
     expect(unchanged.contextSnapshot).toEqual(frozen.contextSnapshot);
     expect(JSON.stringify(unchanged.contextSnapshot)).toContain(before.id);
     expect(JSON.stringify(unchanged.contextSnapshot)).toContain(future.id);

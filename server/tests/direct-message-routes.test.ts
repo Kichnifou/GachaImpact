@@ -53,6 +53,9 @@ describe('authenticated direct-message routes', () => {
     expect((await enabled.inject({ method: 'POST', url: '/api/v1/me/direct-conversations', headers: token, payload: { targetPlayerId: targetId, content: 'Bonjour', idempotencyKey: key } })).statusCode).toBe(200);
     expect(service.initiate).toHaveBeenCalledWith(identity, targetId, 'Bonjour', key);
     expect((await enabled.inject({ method: 'POST', url: `/api/v1/me/direct-conversations/${conversationId}/messages`, headers: token, payload: { content: 'Suite', idempotencyKey: key } })).statusCode).toBe(200);
+    expect(service.send).toHaveBeenLastCalledWith(identity, conversationId, 'Suite', key, null);
+    expect((await enabled.inject({ method: 'POST', url: `/api/v1/me/direct-conversations/${conversationId}/messages`, headers: token, payload: { content: 'Réponse', idempotencyKey: key, replyToMessageId: messageId } })).statusCode).toBe(200);
+    expect(service.send).toHaveBeenLastCalledWith(identity, conversationId, 'Réponse', key, messageId);
     const edited = await enabled.inject({ method: 'PATCH', url: `/api/v1/me/direct-conversations/${conversationId}/messages/${messageId}`, headers: token, payload: { content: 'Corrigé', idempotencyKey: key } });
     expect(edited.statusCode).toBe(200); expect(edited.json().message).toEqual(mutationMessage);
     expect(service.editMessage).toHaveBeenCalledWith(identity, conversationId, messageId, 'Corrigé', key);
@@ -72,6 +75,7 @@ describe('authenticated direct-message routes', () => {
     expect((await enabled.inject({ method: 'GET', url: '/api/v1/me/direct-conversations/unread', headers: token })).statusCode).toBe(200);
     expect((await enabled.inject({ method: 'GET', url: `/api/v1/me/direct-conversations/${conversationId}/messages?cursorId=${messageId}`, headers: token })).statusCode).toBe(400);
     expect((await enabled.inject({ method: 'POST', url: '/api/v1/me/direct-conversations', headers: token, payload: { targetPlayerId: targetId, content: 'Bonjour', idempotencyKey: key, authorPlayerId: targetId } })).statusCode).toBe(400);
+    expect((await enabled.inject({ method: 'POST', url: '/api/v1/me/direct-conversations', headers: token, payload: { targetPlayerId: targetId, content: 'Bonjour', idempotencyKey: key, replyToMessageId: messageId } })).statusCode).toBe(400);
     expect((await enabled.inject({ method: 'PATCH', url: `/api/v1/me/direct-conversations/${conversationId}/messages/${messageId}`, headers: token, payload: { content: 'x'.repeat(2001), idempotencyKey: key } })).statusCode).toBe(400);
   });
 

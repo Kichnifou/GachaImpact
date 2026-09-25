@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ApiError, getGameApiClient } from '../api/game-api'
 import type { DirectConversationDto, DirectMessageDto, DirectMessageMutationDto, DirectMessagePageDto } from '../api/types'
+import { applyDirectMessageProjection, applyDirectMessageProjectionToConversations } from './reply-preview'
 
 type MessageCache = { messages: readonly DirectMessageDto[]; cursor: DirectMessagePageDto['nextCursor']; fetched: boolean }
 
@@ -28,8 +29,8 @@ function mergeDirectMessages(current: readonly DirectMessageDto[], incoming: rea
   return next.slice(-500)
 }
 
-export function createOptimisticDirectMessage(playerId: string, conversationId: string, content: string, key: string): DirectMessageDto {
-  return { id: `optimistic:${key}`, conversationId, authorPlayerId: playerId, own: true, clientIntentKey: key, content, createdAt: new Date().toISOString(), submissionOrder: null, editedAt: null, deletedAt: null, restoredAt: null, readByOther: false, readByOtherAt: null }
+export function createOptimisticDirectMessage(playerId: string, conversationId: string, content: string, key: string, replyToMessageId: string | null = null, replyPreview: string | null = null): DirectMessageDto {
+  return { id: `optimistic:${key}`, conversationId, authorPlayerId: playerId, own: true, clientIntentKey: key, content, createdAt: new Date().toISOString(), submissionOrder: null, editedAt: null, deletedAt: null, restoredAt: null, replyToMessageId, replyPreview, readByOther: false, readByOtherAt: null }
 }
 
 /** A server projection already observed by polling/listing must never be downgraded by a later POST acknowledgement. */
@@ -58,8 +59,10 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
   const adoptUnread = useCallback((count: number) => onUnreadChange(count), [onUnreadChange])
   const publishLists = useCallback((nextNormal: readonly DirectConversationDto[], nextArchived: readonly DirectConversationDto[]) => {
     const protect = (items: readonly DirectConversationDto[]) => items.map(item => {
-      const overlay = item.lastMessage ? mutationOverlays.current.get(item.lastMessage.id)?.message : null
-      return overlay ? { ...item, lastMessage: overlay } : item
+      if (!item.lastMessage) return item
+      let lastMessage = item.lastMessage
+      for (const overlay of mutationOverlays.current.values()) [lastMessage] = applyDirectMessageProjection([lastMessage], overlay.message)
+      return lastMessage === item.lastMessage ? item : { ...item, lastMessage }
     })
     nextNormal = protect(nextNormal); nextArchived = protect(nextArchived)
     normalRef.current = nextNormal; archivedRef.current = nextArchived
@@ -99,7 +102,8 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
       const page = await api.messages(id)
       if (revision !== messageRevision.current || selectedRef.current !== id) return
       const cached = caches.current.get(id)
-      const projected = page.messages.map(message => mutationOverlays.current.get(message.id)?.message ?? message)
+      let projected: readonly DirectMessageDto[] = page.messages
+      for (const overlay of mutationOverlays.current.values()) projected = applyDirectMessageProjection(projected, overlay.message)
       const nextMessages = cached?.fetched ? mergeDirectMessages(cached.messages, projected) : durableOrder(projected)
       publishMessages(id, { messages: nextMessages, cursor: cached?.fetched ? cached.cursor : page.nextCursor, fetched: true })
       setError(null)
@@ -194,13 +198,13 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
     return [...current.conversations, ...old.conversations].find(conversation => conversation.other.id === targetPlayerId) ?? null
   }, [api, publishLists, refreshLists])
 
-  const send = useCallback(async (id: string, content: string, key: string) => {
-    const optimistic = createOptimisticDirectMessage(playerId, id, content, key)
+  const send = useCallback(async (id: string, content: string, key: string, replyToMessageId: string | null = null, replyPreview: string | null = null) => {
+    const optimistic = createOptimisticDirectMessage(playerId, id, content, key, replyToMessageId, replyPreview)
     const before = caches.current.get(id) ?? { messages: [], cursor: null, fetched: false }
     publishMessages(id, { ...before, messages: mergeDirectMessages(before.messages, [optimistic]) })
     beginMutation()
     try {
-      const result = await api.send(id, content, key)
+      const result = await api.send(id, content, key, replyToMessageId)
       const current = caches.current.get(id) ?? before
       publishMessages(id, { ...current, messages: confirmDirectMessage(current.messages, optimistic, result.messageId, key) })
       revalidate()
@@ -220,9 +224,8 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
     const optimistic = transform(currentMessage)
     mutationOverlays.current.set(messageId, { key, message: optimistic, original })
     messageRevision.current++; listRevision.current++
-    publishMessages(id, { ...entry, messages: entry.messages.map(message => message.id === messageId ? optimistic : message) })
-    const updatePreview = (items: readonly DirectConversationDto[], value: DirectMessageDto) => items.map(item => item.lastMessage?.id === messageId ? { ...item, lastMessage: value } : item)
-    publishLists(updatePreview(normalRef.current, optimistic), updatePreview(archivedRef.current, optimistic))
+    publishMessages(id, { ...entry, messages: applyDirectMessageProjection(entry.messages, optimistic) })
+    publishLists(applyDirectMessageProjectionToConversations(normalRef.current, optimistic), applyDirectMessageProjectionToConversations(archivedRef.current, optimistic))
     beginMutation()
     try {
       const result = await run()
@@ -230,9 +233,8 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
         const authoritative = { ...optimistic, ...result.message }
         messageRevision.current++; listRevision.current++; mutationOverlays.current.delete(messageId)
         const current = caches.current.get(id) ?? entry
-        publishMessages(id, { ...current, messages: current.messages.map(message => message.id === messageId ? authoritative : message) })
-        const updateAuthoritativePreview = (items: readonly DirectConversationDto[]) => items.map(item => item.lastMessage?.id === messageId ? { ...item, lastMessage: authoritative } : item)
-        publishLists(updateAuthoritativePreview(normalRef.current), updateAuthoritativePreview(archivedRef.current))
+        publishMessages(id, { ...current, messages: applyDirectMessageProjection(current.messages, authoritative) })
+        publishLists(applyDirectMessageProjectionToConversations(normalRef.current, authoritative), applyDirectMessageProjectionToConversations(archivedRef.current, authoritative))
         revalidate()
       }
       return result
@@ -241,9 +243,8 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
       if (mutationOverlays.current.get(messageId)?.key === key && deterministic) {
         messageRevision.current++; listRevision.current++; mutationOverlays.current.delete(messageId)
         const current = caches.current.get(id) ?? entry
-        publishMessages(id, { ...current, messages: current.messages.map(message => message.id === messageId ? original : message) })
-        const rollbackPreview = (items: readonly DirectConversationDto[]) => items.map(item => item.lastMessage?.id === messageId ? { ...item, lastMessage: original } : item)
-        publishLists(rollbackPreview(normalRef.current), rollbackPreview(archivedRef.current))
+        publishMessages(id, { ...current, messages: applyDirectMessageProjection(current.messages, original) })
+        publishLists(applyDirectMessageProjectionToConversations(normalRef.current, original), applyDirectMessageProjectionToConversations(archivedRef.current, original))
       }
       setError(reason instanceof Error ? reason.message : 'Modification du message indisponible.')
       throw reason

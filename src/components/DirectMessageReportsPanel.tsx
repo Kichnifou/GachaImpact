@@ -98,6 +98,7 @@ export default function DirectMessageReportsPanel() {
           {detail.context.map((line) => (
             <article key={line.id} className={line.id === detail.message.id ? "target" : ""}>
               <strong>{line.authorDisplayName}</strong>
+              {line.replyToMessageId && <div className="dm-reply-preview">↳ {line.replyPreview ?? "Message supprimé"}</div>}
               <p>{line.content ?? "Message supprimé"}</p>
               <time dateTime={line.createdAt}>{new Date(line.createdAt).toLocaleString("fr-FR")}</time>
             </article>

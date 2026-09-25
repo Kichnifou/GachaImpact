@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ApiError, getGameApiClient } from '../api/game-api'
 import type { DirectMessageHistoryMessageDto, DirectMessageMutationDto } from '../api/types'
+import { applyDirectMessageProjection } from './reply-preview'
 
 type HistoryCache = { messages: readonly DirectMessageHistoryMessageDto[]; olderCursor: string | null; newerCursor: string | null; fetched: boolean }
 type Mutation = { kind: 'edit'; messageId: string; content: string; key: string } | { kind: 'delete' | 'restore'; messageId: string; key: string }
@@ -135,19 +136,22 @@ export function useDirectMessageHistory(playerId: string, conversationId: string
     const optimistic: DirectMessageHistoryMessageDto = intent.kind === 'edit' ? { ...currentMessage, content: intent.content, editedAt: new Date().toISOString() }
       : intent.kind === 'delete' ? { ...currentMessage, content: null, deletedAt: new Date().toISOString(), restoredAt: null, canRestore: false }
         : { ...currentMessage, content: deletedContent.current.get(original.id) ?? currentMessage.content, deletedAt: null, restoredAt: new Date().toISOString(), canRestore: false }
-    publish(id, { ...cache, messages: cache.messages.map(message => message.id === currentMessage.id ? optimistic : message) })
-    setResults(current => intent.kind === 'delete' ? current.filter(message => message.id !== currentMessage.id) : current.map(message => message.id === currentMessage.id ? optimistic : message))
+    publish(id, { ...cache, messages: applyDirectMessageProjection(cache.messages, optimistic) })
+    setResults(current => {
+      const projected = applyDirectMessageProjection(current, optimistic)
+      return intent.kind === 'delete' ? projected.filter(message => message.id !== currentMessage.id) : projected
+    })
     try {
       const result = intent.kind === 'edit' ? await api.edit(id, original.id, intent.content, intent.key) : intent.kind === 'delete' ? await api.remove(id, original.id, intent.key) : await api.restore(id, original.id, intent.key)
       const authoritative = { ...optimistic, ...result.message }
       const current = caches.current.get(id) ?? cache
-      publish(id, { ...current, messages: current.messages.map(message => message.id === currentMessage.id ? authoritative : message) })
+      publish(id, { ...current, messages: applyDirectMessageProjection(current.messages, authoritative) })
       if (intent.kind === 'restore') deletedContent.current.delete(original.id)
       const context = await fetchPage(id, { aroundOrder: currentMessage.submissionOrder ?? undefined })
       const confirmed = context.messages.find(message => message.id === currentMessage.id)
       if (confirmed) {
         const latest = caches.current.get(id) ?? current
-        publish(id, { ...latest, messages: latest.messages.map(message => message.id === currentMessage.id ? confirmed : message) })
+        publish(id, { ...latest, messages: applyDirectMessageProjection(latest.messages, confirmed) })
       }
       if (query.trim()) { const version = ++searchVersion.current; await runSearch(id, query.trim(), undefined, false, version) }
       mutationOriginals.current.delete(operationKey); setError(''); return result
@@ -155,7 +159,7 @@ export function useDirectMessageHistory(playerId: string, conversationId: string
       const deterministic = reason instanceof ApiError && reason.status !== null && reason.status < 500
       if (deterministic) {
         const current = caches.current.get(id) ?? cache
-        publish(id, { ...current, messages: current.messages.map(message => message.id === original.id ? original : message) })
+        publish(id, { ...current, messages: applyDirectMessageProjection(current.messages, original) })
         if (intent.kind === 'delete' && original.content) deletedContent.current.delete(original.id)
         mutationOriginals.current.delete(operationKey)
         if (query.trim()) { const version = ++searchVersion.current; await runSearch(id, query.trim(), undefined, false, version) }

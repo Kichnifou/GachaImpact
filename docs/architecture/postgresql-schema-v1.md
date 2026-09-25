@@ -1855,7 +1855,7 @@ Le choix exact peut être finalisé pendant le mapping Prisma sans impact métie
 
 # 26. Messages privés
 
-État physique final du cycle : les migrations 036–039 matérialisent conversations, participants, demandes, messages, lecture partagée et ordre serveur. La migration additive `20260924120000_040_add_direct_message_reports` ajoute la preuve de signalement MP. DEV suit **40 migrations Prisma** ; 040 est la dernière et aucune 041 n'appartient à ce cycle. Les cinq tables ont RLS active, aucune policy navigateur et aucun droit `PUBLIC`/`anon`/`authenticated`. R515 reste sans DDL ; R509/R510/R517, le preview joueur condensé 1/cible/1 et la suppression modérateur du seul dossier sont sur main et validés publiquement, sans nouveau DDL ; la preuve serveur conserve jusqu'à 10/cible/10 messages.
+État physique courant : les migrations 036–039 matérialisent conversations, participants, demandes, messages, lecture partagée et ordre serveur. La 040 ajoute la preuve de signalement MP et la migration additive `20260925100000_043_add_direct_message_replies` ajoute l'auto-référence nullable de R898, sans backfill. DEV suit **43 migrations Prisma** appliquées. Les cinq tables ont RLS active, aucune policy navigateur et aucun droit `PUBLIC`/`anon`/`authenticated`. R515 reste sans DDL ; R509/R510/R517 et R898 conservent la frontière privée et la preuve serveur jusqu'à 10/cible/10 messages.
 
 ## 26.1 `direct_conversations`
 
@@ -1925,6 +1925,7 @@ Colonnes :
 - `deleted_at timestamptz NULL`
 - `restored_at timestamptz NULL`
 - `content_purged_at timestamptz NULL`
+- `reply_to_message_id uuid NULL REFERENCES direct_messages(id) ON DELETE RESTRICT`
 
 Contraintes :
 
@@ -1934,8 +1935,9 @@ Index :
 
 - `(conversation_id, submission_order DESC)`
 - `(author_player_id, created_at DESC)`
+- `(reply_to_message_id)`
 
-Les messages restent historiquement conservés. `submission_order` est réservé avant les traitements susceptibles d'inverser les commits ; il gouverne le fil, les 500 plus récents, les curseurs de lecture, accusés, non-lus et `last_message_order`. `created_at` reste descriptif. Le service n'expose que les 500 plus récents dans la conversation normale ; R515 lit toutes les lignes via une route Historique séparée, paginée par keyset sur le même ordre.
+Les messages restent historiquement conservés. `submission_order` est réservé avant les traitements susceptibles d'inverser les commits ; il gouverne le fil, les 500 plus récents, les curseurs de lecture, accusés, non-lus et `last_message_order`. `created_at` reste descriptif. Le service n'expose que les 500 plus récents dans la conversation normale ; R515 lit toutes les lignes via une route Historique séparée, paginée par keyset sur le même ordre. `reply_to_message_id` ne copie aucun contenu : le serveur joint la cible pour produire un aperçu dynamique et refuse à l'écriture toute cible absente, supprimée, purgée ou issue d'une autre conversation.
 
 Les `EXPLAIN (ANALYZE, BUFFERS)` R515 ont été exécutés dans une transaction rollbackée sur 250 000 lignes synthétiques, sans Player réel. La pagination utilise bien `direct_messages_conversation_submission_idx`. Sur cette donnée représentative, la recherche bornée à une conversation reste à environ 5,5 ms avec l'index existant, tandis qu'un GIN trigram expérimental atteint environ 20,4 ms à froid ; `pg_trgm` est disponible mais non installé. L'ancre date passe d'environ 2,3 ms à 1,8 ms avec un index expérimental conversation/date. Ces gains n'ont nécessité aucun index R515 supplémentaire ; la migration 040 ultérieure concerne exclusivement les signalements.
 
@@ -2795,7 +2797,7 @@ Expose les stacks de passifs dérivées.
 
 Le schéma ne sera pas créé en une migration géante.
 
-Cette numérotation décrit le découpage thématique cible historique, pas les noms physiques déjà versionnés. La séquence réelle est autoritative dans `server/prisma/migrations/` et atteint actuellement `20260922232731_037_harden_direct_message_history` sur Supabase DEV ; les ajouts restent versionnés dans leur migration réelle et ne sont jamais réécrits rétroactivement.
+Cette numérotation décrit le découpage thématique cible historique, pas les noms physiques déjà versionnés. La séquence réelle est autoritative dans `server/prisma/migrations/` et atteint actuellement `20260925100000_043_add_direct_message_replies` sur Supabase DEV ; les ajouts restent versionnés dans leur migration réelle et ne sont jamais réécrits rétroactivement.
 
 ## Migration 001 — fondations
 

@@ -27,6 +27,10 @@ type MessageMutationResult = OperationResult & { conversationId: string; message
 type ResolveResult = OperationResult & { conversationId: string; requestId: string; state: string };
 type BlockResult = OperationResult & { conversationId: string; blocked: boolean; changed: boolean };
 type ContactAccess = { allowed: boolean; friends: boolean; level: PrivacyLevel; blockedByActor: boolean; blockedByOther: boolean };
+const directMessageInclude = {
+  operation: { select: { idempotencyKey: true } },
+  replyToMessage: { select: { content: true, deletedAt: true, contentPurgedAt: true } },
+} as const;
 
 function normalizeContent(content: string) {
   if (typeof content !== 'string') throw invalid('Message invalide.');
@@ -123,8 +127,8 @@ export class DirectMessageService {
       ) THEN NULL ELSE nextval('direct_messages_submission_order_seq') END AS submission_order`;
     return rows[0]?.submission_order ?? null;
   }
-  private async createMessage(tx: Prisma.TransactionClient, playerId: string, conversationId: string, content: string, operationId: string, now: Date, submissionOrder: bigint) {
-    const message = await tx.directMessage.create({ data: { conversationId, authorPlayerId: playerId, content, operationId, createdAt: now, submissionOrder } });
+  private async createMessage(tx: Prisma.TransactionClient, playerId: string, conversationId: string, content: string, operationId: string, now: Date, submissionOrder: bigint, replyToMessageId: string | null = null) {
+    const message = await tx.directMessage.create({ data: { conversationId, authorPlayerId: playerId, content, operationId, createdAt: now, submissionOrder, replyToMessageId } });
     await tx.directConversation.updateMany({ where: { id: conversationId, OR: [{ lastMessageOrder: null }, { lastMessageOrder: { lt: submissionOrder } }] }, data: { lastMessageAt: now, lastMessageOrder: submissionOrder } });
     await tx.directConversationParticipant.updateMany({ where: { conversationId }, data: { archivedAt: null } });
     const boundary = await tx.directMessage.findFirst({ where: { conversationId }, orderBy: { submissionOrder: 'desc' }, skip: RESTORABLE_MESSAGE_WINDOW - 1, select: { submissionOrder: true } });
@@ -189,8 +193,10 @@ export class DirectMessageService {
     });
   }
 
-  async send(identity: AuthenticatedIdentity, conversationId: string, rawContent: string, key: string): Promise<SendResult & { replayed: boolean }> {
-    const content = normalizeContent(rawContent), fingerprint = `${conversationId}:${content}`, submissionOrder = await this.reserveSubmissionOrder(key);
+  async send(identity: AuthenticatedIdentity, conversationId: string, rawContent: string, key: string, replyToMessageId: string | null = null): Promise<SendResult & { replayed: boolean }> {
+    const content = normalizeContent(rawContent);
+    if (replyToMessageId !== null && !validUuid(replyToMessageId)) throw unavailable();
+    const fingerprint = replyToMessageId === null ? `${conversationId}:${content}` : JSON.stringify([conversationId, content, replyToMessageId]), submissionOrder = await this.reserveSubmissionOrder(key);
     if (submissionOrder !== null && this.onSubmissionReserved) await this.onSubmissionReserved(submissionOrder);
     const actor = await this.actor(identity);
     return this.transaction(async tx => {
@@ -202,9 +208,13 @@ export class DirectMessageService {
       const access = await this.permission(tx, actor.id, otherId);
       const latestRequest = await tx.directConversationRequest.findFirst({ where: { conversationId }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
       if (latestRequest?.state === 'PENDING' || latestRequest?.state === 'REFUSED' && !access.friends) throw unavailable();
+      if (replyToMessageId) {
+        const target = await tx.directMessage.findFirst({ where: { id: replyToMessageId, conversationId }, select: { content: true, deletedAt: true, contentPurgedAt: true } });
+        if (!target || target.deletedAt || target.content === null || target.contentPurgedAt) throw unavailable();
+      }
       const now = this.clock.now(); await this.rate(tx, actor.id, now);
       const operation = await this.operation(tx, actor.id, key, 'direct-message.send', fingerprint, now);
-      const message = await this.createMessage(tx, actor.id, conversationId, content, operation.id, now, submissionOrder);
+      const message = await this.createMessage(tx, actor.id, conversationId, content, operation.id, now, submissionOrder, replyToMessageId);
       const result: SendResult = { conversationId, messageId: message.id };
       await this.finish(tx, operation.id, fingerprint, result);
       await this.activity.record(tx, actor.id, now, 'INTERNAL_CHAT');
@@ -337,7 +347,7 @@ export class DirectMessageService {
         playerA: { select: { id: true, displayName: true, elementKey: true } }, playerB: { select: { id: true, displayName: true, elementKey: true } },
         participants: true,
         requests: { orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 1 },
-        messages: { orderBy: { submissionOrder: 'desc' }, take: 1, include: { operation: { select: { idempotencyKey: true } } } },
+        messages: { orderBy: { submissionOrder: 'desc' }, take: 1, include: directMessageInclude },
       }, orderBy: [{ lastMessageOrder: 'desc' }, { id: 'desc' }],
     });
     const unreadRows = await this.database.$queryRaw<{ conversation_id: string; unread_count: number }[]>`SELECT p.conversation_id, count(m.id)::integer AS unread_count
@@ -365,10 +375,11 @@ export class DirectMessageService {
     return { conversations };
   }
 
-  private projectMessage(row: { id: string; conversationId: string; authorPlayerId: string; content: string | null; createdAt: Date; submissionOrder: bigint; editedAt: Date | null; deletedAt: Date | null; restoredAt: Date | null; operation?: { idempotencyKey: string | null } }, viewerId: string, otherRead: { lastSharedReadSubmissionOrder: bigint | null; lastSharedReadAt: Date | null } | null) {
+  private projectMessage(row: { id: string; conversationId: string; authorPlayerId: string; content: string | null; createdAt: Date; submissionOrder: bigint; editedAt: Date | null; deletedAt: Date | null; restoredAt: Date | null; replyToMessageId: string | null; operation?: { idempotencyKey: string | null }; replyToMessage?: { content: string | null; deletedAt: Date | null; contentPurgedAt: Date | null } | null }, viewerId: string, otherRead: { lastSharedReadSubmissionOrder: bigint | null; lastSharedReadAt: Date | null } | null) {
     const readByOther = Boolean(otherRead?.lastSharedReadSubmissionOrder && row.submissionOrder <= otherRead.lastSharedReadSubmissionOrder);
     const own = row.authorPlayerId === viewerId;
-    return { id: row.id, conversationId: row.conversationId, authorPlayerId: row.authorPlayerId, own, clientIntentKey: own ? row.operation?.idempotencyKey ?? null : null, content: row.deletedAt ? null : row.content, createdAt: row.createdAt.toISOString(), submissionOrder: row.submissionOrder.toString(), editedAt: row.editedAt?.toISOString() ?? null, deletedAt: row.deletedAt?.toISOString() ?? null, restoredAt: row.restoredAt?.toISOString() ?? null, readByOther, readByOtherAt: readByOther ? otherRead?.lastSharedReadAt?.toISOString() ?? null : null };
+    const replyPreview = row.replyToMessageId === null ? null : row.replyToMessage && !row.replyToMessage.deletedAt && row.replyToMessage.content !== null && !row.replyToMessage.contentPurgedAt ? row.replyToMessage.content : 'Message supprimé';
+    return { id: row.id, conversationId: row.conversationId, authorPlayerId: row.authorPlayerId, own, clientIntentKey: own ? row.operation?.idempotencyKey ?? null : null, content: row.deletedAt ? null : row.content, createdAt: row.createdAt.toISOString(), submissionOrder: row.submissionOrder.toString(), editedAt: row.editedAt?.toISOString() ?? null, deletedAt: row.deletedAt?.toISOString() ?? null, restoredAt: row.restoredAt?.toISOString() ?? null, replyToMessageId: row.replyToMessageId, replyPreview, readByOther, readByOtherAt: readByOther ? otherRead?.lastSharedReadAt?.toISOString() ?? null : null };
   }
 
   private async historyContext(conversationId: string, actorId: string, otherId: string) {
@@ -378,7 +389,7 @@ export class DirectMessageService {
     ]);
     return {
       boundary: boundary?.submissionOrder ?? null,
-      project: (row: { id: string; conversationId: string; authorPlayerId: string; content: string | null; createdAt: Date; submissionOrder: bigint; editedAt: Date | null; deletedAt: Date | null; restoredAt: Date | null; contentPurgedAt: Date | null; operation?: { idempotencyKey: string | null } }) => ({
+      project: (row: { id: string; conversationId: string; authorPlayerId: string; content: string | null; createdAt: Date; submissionOrder: bigint; editedAt: Date | null; deletedAt: Date | null; restoredAt: Date | null; contentPurgedAt: Date | null; replyToMessageId: string | null; operation?: { idempotencyKey: string | null }; replyToMessage?: { content: string | null; deletedAt: Date | null; contentPurgedAt: Date | null } | null }) => ({
         ...this.projectMessage(row, actorId, otherState),
         canRestore: row.authorPlayerId === actorId && row.deletedAt !== null && row.content !== null && row.contentPurgedAt === null && (boundary === null || row.submissionOrder >= boundary.submissionOrder),
       }),
@@ -396,7 +407,7 @@ export class DirectMessageService {
     const conversation = await this.requireConversation(this.database as unknown as Prisma.TransactionClient, conversationId, actor.id);
     const modes = [cursor.beforeOrder, cursor.afterOrder, cursor.aroundOrder].filter(value => value !== undefined);
     if (modes.length > 1) throw invalid('Curseurs historiques incompatibles.');
-    const include = { operation: { select: { idempotencyKey: true } } } as const;
+    const include = directMessageInclude;
     let rows: Awaited<ReturnType<typeof this.database.directMessage.findMany>>, hasOlder = false, hasNewer = false;
     if (cursor.aroundOrder) {
       const order = this.historyOrder(cursor.aroundOrder), olderSize = Math.floor((limit - 1) / 2), newerSize = limit - olderSize - 1;
@@ -434,7 +445,7 @@ export class DirectMessageService {
     const before = cursor ? this.historyOrder(cursor) : null;
     const rows = await this.database.directMessage.findMany({
       where: { conversationId, deletedAt: null, content: { not: null, contains: query, mode: 'insensitive' }, ...(before ? { submissionOrder: { lt: before } } : {}) },
-      orderBy: { submissionOrder: 'desc' }, take: limit + 1, include: { operation: { select: { idempotencyKey: true } } },
+      orderBy: { submissionOrder: 'desc' }, take: limit + 1, include: directMessageInclude,
     });
     const page = rows.slice(0, limit), context = await this.historyContext(conversationId, actor.id, this.other(conversation, actor.id));
     return { results: page.map(context.project), nextCursor: rows.length > limit ? page.at(-1)?.submissionOrder.toString() ?? null : null };
@@ -453,7 +464,7 @@ export class DirectMessageService {
     const actor = await this.actor(identity);
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw invalid('Taille de page invalide.');
     const conversation = await this.requireConversation(this.database as unknown as Prisma.TransactionClient, conversationId, actor.id);
-    const recent = await this.database.directMessage.findMany({ where: { conversationId }, orderBy: { submissionOrder: 'desc' }, take: 500, include: { operation: { select: { idempotencyKey: true } } } });
+    const recent = await this.database.directMessage.findMany({ where: { conversationId }, orderBy: { submissionOrder: 'desc' }, take: 500, include: directMessageInclude });
     let offset = 0;
     if (cursor) {
       if (!validUuid(cursor.id)) throw invalid('Curseur invalide.');
