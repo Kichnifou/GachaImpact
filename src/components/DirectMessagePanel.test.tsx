@@ -76,7 +76,7 @@ beforeEach(() => {
   directMessages.report.mockResolvedValue({ reported: true, duplicate: false })
   social.directory.mockResolvedValue({ players: [], page: 1, pageSize: 20, total: 0, totalPages: 0 })
 })
-afterEach(() => { act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren() })
+afterEach(() => { vi.restoreAllMocks(); act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren() })
 
 describe('DirectMessagePanel', () => {
   it('uses discreet two-column tabs and no dimmed optimistic bubble style', () => {
@@ -182,6 +182,121 @@ describe('DirectMessagePanel', () => {
     expect(textarea.value).toBe('')
   })
 
+  it('lets M2 queue visibly while M1 travels, then promotes M2 and frees the composer for M3', async () => {
+    let finishFirst!: (value: { conversationId: string; messageId: string; replayed: boolean }) => void
+    let finishSecond!: (value: { conversationId: string; messageId: string; replayed: boolean }) => void
+    directMessages.send.mockReturnValueOnce(new Promise(resolve => { finishFirst = resolve })).mockReturnValueOnce(new Promise(resolve => { finishSecond = resolve }))
+    const container = await mount()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-conversation-row-open')!.click() }); await settle()
+    const field = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    const write = async (value: string) => act(async () => { field.focus(); Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(field, value); field.dispatchEvent(new Event('input', { bubbles: true })) })
+    await write('M1')
+    await act(async () => { field.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) }); await settle()
+    expect(directMessages.send).toHaveBeenCalledTimes(1)
+    expect(container.querySelector('.dm-message.pending')?.textContent).toContain('M1')
+    expect(field.disabled).toBe(false)
+    expect(document.activeElement).toBe(field)
+    await write('M2')
+    await act(async () => { field.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    expect(field.value).toBe('M2')
+    expect(field.disabled).toBe(true)
+    expect(container.querySelector('.dm-composer-wrap')?.classList.contains('queued')).toBe(true)
+    expect(directMessages.send).toHaveBeenCalledTimes(1)
+    expect(container.textContent).not.toContain('M2Envoi')
+    await act(async () => { finishFirst({ conversationId, messageId: '77777777-7777-4777-8777-777777777777', replayed: false }); await Promise.resolve() }); await settle()
+    expect(directMessages.send).toHaveBeenCalledTimes(2)
+    expect(directMessages.send.mock.calls[1]?.[1]).toBe('M2')
+    expect(container.querySelectorAll('.dm-message.pending')).toHaveLength(1)
+    expect(container.querySelector('.dm-message.pending')?.textContent).toContain('M2')
+    expect(field.value).toBe('')
+    expect(field.disabled).toBe(false)
+    expect(document.activeElement).toBe(field)
+    await write('M3')
+    expect(field.value).toBe('M3')
+    await act(async () => { finishSecond({ conversationId, messageId: '88888888-8888-4888-8888-888888888888', replayed: false }); await Promise.resolve() }); await settle()
+  })
+
+  it('releases queued M2 as an editable reply after M1 fails, and recovers M1 with its original key', async () => {
+    let failFirst!: (reason: Error) => void
+    directMessages.send.mockReturnValueOnce(new Promise((_resolve, reject) => { failFirst = reject }))
+    const container = await mount()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-conversation-row-open')!.click() }); await settle()
+    const field = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    const write = async (value: string) => act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(field, value); field.dispatchEvent(new Event('input', { bubbles: true })) })
+    await write('M1')
+    await act(async () => { field.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    const firstKey = directMessages.send.mock.calls[0]?.[2]
+    await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="Répondre au message"]')!.click() })
+    await write('M2')
+    await act(async () => { field.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    expect(field.disabled).toBe(true)
+    await act(async () => { failFirst(new Error('M1 échoué')); await Promise.resolve() }); await settle()
+    expect(directMessages.send).toHaveBeenCalledTimes(1)
+    expect(field.disabled).toBe(false)
+    expect(field.value).toBe('M2')
+    expect(container.querySelector('.dm-composer-reply')?.textContent).toContain('Aster')
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-recover-send')!.click() })
+    expect(field.value).toBe('M1')
+    expect(container.querySelector('.dm-composer-reply')).toBeNull()
+    await act(async () => { field.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) }); await settle()
+    expect(directMessages.send.mock.calls[1]?.[2]).toBe(firstKey)
+  })
+
+  it('keeps the reply target and the queued idempotency key when M2 starts', async () => {
+    let finishFirst!: (value: { conversationId: string; messageId: string; replayed: boolean }) => void
+    let finishSecond!: (value: { conversationId: string; messageId: string; replayed: boolean }) => void
+    directMessages.send.mockReturnValueOnce(new Promise(resolve => { finishFirst = resolve })).mockReturnValueOnce(new Promise(resolve => { finishSecond = resolve }))
+    const container = await mount()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-conversation-row-open')!.click() }); await settle()
+    const field = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    const write = async (value: string) => act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(field, value); field.dispatchEvent(new Event('input', { bubbles: true })) })
+    await write('M1')
+    await act(async () => { field.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="Répondre au message"]')!.click() })
+    await write('M2 avec réponse')
+    const queuedKey = crypto.randomUUID()
+    const keySpy = vi.spyOn(crypto, 'randomUUID').mockReturnValue(queuedKey)
+    await act(async () => { field.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    expect(keySpy).toHaveBeenCalledTimes(1)
+    expect(container.querySelector('.dm-composer-reply')?.textContent).toContain('Bonjour')
+    expect(field.disabled).toBe(true)
+    await act(async () => { finishFirst({ conversationId, messageId: '77777777-7777-4777-8777-777777777777', replayed: false }); await Promise.resolve() }); await settle()
+    expect(directMessages.send.mock.calls[1]?.[3]).toBe(messageId)
+    expect(directMessages.send.mock.calls[1]?.[2]).toBe(queuedKey)
+    expect(keySpy).toHaveBeenCalledTimes(1)
+    expect(container.querySelector('.dm-message.pending .dm-reply-preview')?.textContent).toContain('Bonjour')
+    expect(container.querySelector('.dm-composer-reply')).toBeNull()
+    keySpy.mockRestore()
+    await act(async () => { finishSecond({ conversationId, messageId: '88888888-8888-4888-8888-888888888888', replayed: false }); await Promise.resolve() }); await settle()
+  })
+
+  it('never sends a queued message after leaving its session and recovers it in its origin', async () => {
+    const b = { ...baseConversation, id: '66666666-6666-4666-8666-666666666666', other: { ...baseConversation.other, displayName: 'Beryl' }, unreadCount: 0 }
+    directMessages.list.mockResolvedValue({ conversations: [baseConversation, b] })
+    let finishFirst!: (value: { conversationId: string; messageId: string; replayed: boolean }) => void
+    directMessages.send.mockReturnValueOnce(new Promise(resolve => { finishFirst = resolve }))
+    const container = await mount(baseConversation, true, true)
+    await act(async () => { container.querySelectorAll<HTMLButtonElement>('.dm-conversation-row-open')[0].click() }); await settle()
+    const field = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    for (const value of ['M1', 'M2']) {
+      await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(field, value); field.dispatchEvent(new Event('input', { bubbles: true })) })
+      await act(async () => { field.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    }
+    expect(field.disabled).toBe(true)
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-back')!.click() })
+    await act(async () => { container.querySelectorAll<HTMLButtonElement>('.dm-conversation-row-open')[1].click() }); await settle()
+    await act(async () => { finishFirst({ conversationId, messageId, replayed: false }); await Promise.resolve() }); await settle()
+    expect(directMessages.send).toHaveBeenCalledTimes(1)
+    expect(container.querySelector<HTMLTextAreaElement>('#dm-message')?.value).toBe('')
+    expect(container.querySelector('.dm-recover-send')).toBeNull()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-back')!.click() })
+    await act(async () => { container.querySelectorAll<HTMLButtonElement>('.dm-conversation-row-open')[0].click() }); await settle()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-recover-send')!.click() })
+    expect(container.querySelector<HTMLTextAreaElement>('#dm-message')?.value).toBe('M2')
+    await act(async () => { container.querySelector<HTMLTextAreaElement>('#dm-message')!.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) }); await settle()
+    expect(directMessages.send.mock.calls[1]?.[1]).toBe('M2')
+  })
+
   it('does not inject a late failed send or reply from A into B', async () => {
     const bId = '66666666-6666-4666-8666-666666666666'
     const b = { ...baseConversation, id: bId, other: { ...baseConversation.other, displayName: 'Beryl' }, unreadCount: 0 }
@@ -268,9 +383,9 @@ describe('DirectMessagePanel', () => {
     const bComposer = container.querySelector<HTMLTextAreaElement>('#dm-message')!
     await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(bComposer, 'B'); bComposer.dispatchEvent(new Event('input', { bubbles: true })); bComposer.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
     expect(directMessages.send).toHaveBeenCalledTimes(2)
-    expect(bComposer.disabled).toBe(true)
+    expect(bComposer.disabled).toBe(false)
     await act(async () => { rejectA(new Error('Échec A')); await Promise.resolve() }); await settle()
-    expect(bComposer.disabled).toBe(true)
+    expect(bComposer.disabled).toBe(false)
     expect(bComposer.value).toBe('')
     await act(async () => { resolveB({ conversationId: bId, messageId, replayed: false }); await Promise.resolve() }); await settle()
     expect(bComposer.disabled).toBe(false)
@@ -592,7 +707,7 @@ describe('DirectMessagePanel', () => {
     expect(container.querySelector('.dm-message time')).toBeNull()
     await act(async () => { confirm({ conversationId, messageId: sentId, replayed: false }); await Promise.resolve() })
     expect(container.querySelector('.dm-message.pending')).toBeNull()
-    expect(container.querySelector(`[data-message-id="${sentId}"] .dm-message-bubble`)?.textContent).toBe('Instantané')
+    expect(container.querySelector(`[data-message-id="${sentId}"] .dm-message-bubble p`)?.textContent).toBe('Instantané')
     expect(container.querySelector('.dm-latest-status')?.textContent).toBe('Envoyé')
   })
 
@@ -645,6 +760,43 @@ describe('DirectMessagePanel', () => {
     expect(Array.from(row.querySelectorAll('button')).map(button => button.textContent)).toEqual(['Sauvegarder', 'Annuler'])
     rect.mockRestore()
   })
+
+  for (const surface of ['recent', 'history'] as const) {
+    it(`scrolls only the ${surface} message owner just enough to reveal a delete confirmation`, async () => {
+      const own = { ...message, authorPlayerId: ownId, own: true, content: 'À supprimer', canRestore: false }
+      directMessages.messages.mockResolvedValue({ messages: [own], nextCursor: null, windowSize: 1 })
+      directMessages.history.mockResolvedValue({ messages: [own], olderCursor: null, newerCursor: null })
+      const container = await mount({ ...baseConversation, lastMessage: own })
+      await act(async () => { container.querySelector<HTMLButtonElement>('.dm-conversation-row-open')!.click() }); await settle()
+      if (surface === 'history') {
+        await act(async () => { container.querySelector<HTMLButtonElement>('.dm-menu-button')!.click() })
+        await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-conversation-menu button')).find(button => button.textContent === 'Historique complet')!.click() }); await settle()
+      }
+      const owner = container.querySelector<HTMLDivElement>(surface === 'history' ? '.dm-history-body' : '.dm-message-list')!
+      owner.scrollTop = 20
+      const globalScroll = vi.spyOn(window, 'scrollTo')
+      const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+        if (this === owner) return { top: 0, bottom: 100, left: 0, right: 300, width: 300, height: 100, x: 0, y: 0, toJSON: () => ({}) }
+        if (this.classList.contains('dm-message-delete-confirm')) return { top: 85, bottom: 130, left: 0, right: 160, width: 160, height: 45, x: 0, y: 85, toJSON: () => ({}) }
+        return { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}) }
+      })
+      const row = owner.querySelector<HTMLElement>(`[data-message-id="${messageId}"]`)!
+      expect(row.querySelector('.dm-message-bubble > .dm-message-actions')).not.toBeNull()
+      await act(async () => { row.querySelector<HTMLButtonElement>('[aria-label="Supprimer le message"]')!.click() })
+      expect(owner.scrollTop).toBe(50)
+      expect(globalScroll).not.toHaveBeenCalled()
+      await act(async () => { row.querySelector<HTMLButtonElement>('.dm-message-delete-confirm button:last-child')!.click() })
+      owner.scrollTop = 20
+      rect.mockImplementation(function (this: HTMLElement) {
+        if (this === owner) return { top: 0, bottom: 100, left: 0, right: 300, width: 300, height: 100, x: 0, y: 0, toJSON: () => ({}) }
+        if (this.classList.contains('dm-message-delete-confirm')) return { top: 30, bottom: 80, left: 0, right: 160, width: 160, height: 50, x: 0, y: 30, toJSON: () => ({}) }
+        return { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}) }
+      })
+      await act(async () => { row.querySelector<HTMLButtonElement>('[aria-label="Supprimer le message"]')!.click() })
+      expect(owner.scrollTop).toBe(20)
+      rect.mockRestore(); globalScroll.mockRestore()
+    })
+  }
 
   it('saves edit on Enter, inserts a newline on Ctrl+Enter and ignores composing Enter', async () => {
     let own: DirectMessageDto = { ...message, authorPlayerId: ownId, own: true, content: 'Texte initial' }
@@ -766,7 +918,7 @@ describe('DirectMessagePanel', () => {
     await act(async () => { ownRow.querySelector<HTMLButtonElement>('[aria-label="Supprimer le message"]')!.click() })
     expect(ownRow.textContent).toContain('Supprimer ce message ?')
     await act(async () => { (Array.from(ownRow.querySelectorAll('.dm-message-delete-confirm button')).find(button => button.textContent === 'Confirmer') as HTMLButtonElement).click() }); await settle()
-    expect(container.querySelector(`[data-message-id="${messageId}"] .dm-message-bubble`)?.textContent).toBe('Message supprimé')
+    expect(container.querySelector(`[data-message-id="${messageId}"] .dm-message-bubble p`)?.textContent).toBe('Message supprimé')
     expect(container.querySelectorAll(`[data-message-id="${messageId}"]`)).toHaveLength(1)
     expect(container.querySelector('.dm-latest-status')).toBeNull()
     await act(async () => { container.querySelector<HTMLButtonElement>('.dm-back')!.click() }); await settle()

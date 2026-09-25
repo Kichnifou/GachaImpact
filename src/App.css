@@ -9002,17 +9002,19 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .dm-message.own { justify-content: flex-end; }
 .dm-message-content { position: relative; display: flex; max-width: 84%; flex-direction: column; align-items: flex-start; }
 .dm-message.own .dm-message-content { align-items: flex-end; }
-.dm-message-bubble, .dm-message-edit { max-width: 100%; padding: 7px 9px; border: 1px solid rgba(104, 142, 193, .2); border-radius: 10px 10px 10px 3px; background: rgba(24, 39, 66, .9); }
+.dm-message-bubble, .dm-message-edit { position: relative; max-width: 100%; padding: 7px 9px; border: 1px solid rgba(104, 142, 193, .2); border-radius: 10px 10px 10px 3px; background: rgba(24, 39, 66, .9); }
+.dm-message-bubble.has-actions { min-width: 90px; padding-right: 88px; }
+.dm-message.other .dm-message-bubble.has-actions { min-width: 65px; padding-right: 63px; }
 .dm-message.own .dm-message-bubble, .dm-message.own .dm-message-edit { border-radius: 10px 10px 3px 10px; border-color: rgba(77, 154, 220, .3); background: rgba(30, 79, 125, .82); }
 .dm-message-bubble.deleted { color: #91a0b5; font-style: italic; }
 .dm-reply-preview { max-width: 100%; margin: 0 0 5px; padding: 4px 6px; overflow: hidden; color: #9cc8e5; font-size: 9px; font-style: normal; text-overflow: ellipsis; white-space: nowrap; border-left: 2px solid rgba(111, 198, 246, .66); border-radius: 3px; background: rgba(5, 16, 31, .34); }
 .dm-message p { margin: 0; overflow-wrap: anywhere; font-size: 11px; line-height: 1.4; white-space: pre-wrap; }
 .dm-message a { color: #92ddff; text-decoration: underline; }
 .dm-message-edited { display: block; margin-top: 2px; color: #91a9c8; font-size: 8px; font-style: normal; text-align: right; }
-.dm-message-actions { position: absolute; z-index: 8; top: 50%; right: calc(100% + 4px); display: flex; gap: 2px; padding: 2px; opacity: 0; pointer-events: none; transform: translateY(-50%); border: 1px solid rgba(104, 142, 193, .28); border-radius: 6px; background: rgba(15, 25, 44, .96); box-shadow: 0 4px 12px rgba(0, 0, 0, .28); transition: opacity .12s ease; }
+.dm-message-actions { position: absolute; z-index: 8; top: 4px; right: 4px; display: flex; gap: 2px; padding: 2px; opacity: 0; pointer-events: none; border: 1px solid rgba(104, 142, 193, .28); border-radius: 6px; background: rgba(15, 25, 44, .96); box-shadow: 0 4px 12px rgba(0, 0, 0, .28); transition: opacity .12s ease; }
 .dm-message.own:hover .dm-message-actions, .dm-message.own:focus-within .dm-message-actions, .dm-message.own.actions-open .dm-message-actions { opacity: 1; pointer-events: auto; }
 .dm-message.other:hover .dm-message-report-action, .dm-message.other:focus-within .dm-message-report-action, .dm-message.other.actions-open .dm-message-report-action { opacity: 1; pointer-events: auto; }
-.dm-message-report-action { right: auto; left: calc(100% + 4px); }
+.dm-message-report-action { right: 4px; }
 .dm-message-actions > button { width: 22px; height: 22px; padding: 0; color: #b9cbe1; font-size: 13px; border: 0; border-radius: 4px; background: transparent; cursor: pointer; }
 .dm-message-actions > button:hover, .dm-message-actions > button:focus-visible { color: #f1f7ff; background: rgba(61, 106, 159, .42); }
 .dm-message-edit button, .dm-message-delete-confirm button, .dm-message-action-error button { min-height: 24px; padding: 3px 7px; color: #c5d4e8; font-size: 9px; border: 0; border-radius: 4px; background: rgba(61, 106, 159, .2); cursor: pointer; }
@@ -9045,6 +9047,10 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .dm-load-older { display: block; margin: 0 auto 8px; padding: 5px 8px; font-size: 9px; }
 .dm-new-messages { align-self: center; margin: 3px; padding: 4px 8px; font-size: 9px; }
 .dm-composer-wrap { flex: 0 0 auto; padding: 8px 9px 9px; border-top: 1px solid rgba(106, 144, 205, .15); background: rgba(7, 14, 28, .92); }
+.dm-composer-wrap.queued { background: rgba(21, 28, 40, .95); }
+.dm-composer-wrap.queued .dm-composer textarea, .dm-composer-wrap.queued .dm-composer-reply { color: #91a0b5; border-color: rgba(117, 134, 158, .3); background: rgba(34, 42, 54, .9); }
+.dm-composer-wrap.queued .dm-composer textarea { cursor: wait; }
+.dm-composer-wrap.queued .dm-composer-reply button { cursor: default; opacity: .45; }
 .dm-recover-send { min-height: 32px; margin: 0 0 6px; padding: 5px 9px; cursor: pointer; color: #b9d8ee; border: 1px solid rgba(114, 200, 255, .45); border-radius: 6px; background: rgba(24, 54, 84, .52); }
 .dm-recover-send:hover, .dm-recover-send:focus-visible { color: #fff; border-color: #72c8ff; background: rgba(61, 106, 159, .52); }
 .dm-composer-reply { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; padding: 6px 7px 6px 9px; color: #b9d8ee; border-left: 2px solid #72c8ff; border-radius: 5px; background: rgba(24, 54, 84, .52); }

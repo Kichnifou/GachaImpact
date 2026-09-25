@@ -32,6 +32,15 @@ export type DirectMessageOpenIntent = Readonly<{
 type View = "list" | "archives" | "conversation" | "history" | "new";
 type SendIntent = { signature: string; key: string };
 type FailedSend = { content: string; reply: DirectMessageDto | null; intent: SendIntent; operationId: number };
+type SendPayload = FailedSend & {
+  destination: string;
+  conversationId: string | null;
+  target: DirectMessagePlayerDto | null;
+  session: number;
+  draftRevision: number;
+  replyRevision: number;
+  focusBoundary: { view: View; selectedId: string | null; targetId: string | null };
+};
 type MessageMutationIntent =
   | { kind: "edit"; messageId: string; content: string; key: string }
   | { kind: "delete" | "restore"; messageId: string; key: string };
@@ -197,8 +206,10 @@ export default function DirectMessagePanel({
     [historyDate, setHistoryDate] = useState(""),
     [historyHighlight, setHistoryHighlight] = useState<string | null>(null);
   const [replyTarget, setReplyTarget] = useState<DirectMessageDto | null>(null);
-  const [failedSends, setFailedSends] = useState<Record<string, FailedSend>>({});
+  const [failedSends, setFailedSends] = useState<Record<string, FailedSend[]>>({});
+  const [queuedSend, setQueuedSend] = useState<SendPayload | null>(null);
   const intentRef = useRef<SendIntent | null>(null),
+    queuedSendRef = useRef<SendPayload | null>(null),
     composerSession = useRef(0),
     activeSendId = useRef<number | null>(null),
     nextSendId = useRef(0),
@@ -301,7 +312,19 @@ export default function DirectMessagePanel({
     replyRevision.current += 1;
     setReplyTarget(null);
   };
+  const rememberFailed = (payload: SendPayload | FailedSend, destination: string) => {
+    setFailedSends((current) => {
+      const previous = current[destination] ?? [];
+      if (previous.some((failed) => failed.intent.key === payload.intent.key)) return current;
+      return { ...current, [destination]: [...previous, payload].sort((left, right) => left.operationId - right.operationId) };
+    });
+  };
   const leaveComposerSession = () => {
+    if (queuedSendRef.current) {
+      rememberFailed(queuedSendRef.current, queuedSendRef.current.destination);
+      queuedSendRef.current = null;
+      setQueuedSend(null);
+    }
     composerSession.current += 1;
     searchVersion.current += 1;
     activeSendId.current = null;
@@ -316,14 +339,19 @@ export default function DirectMessagePanel({
     setDraft(value);
   };
   const recoverSend = (destination: string) => {
-    const failed = failedSends[destination];
+    const failed = failedSends[destination]?.[0];
     if (!failed) return;
+    if (draft || replyTarget) {
+      const signature = `${selectedId ?? target?.id}:${draft.trim()}:${replyTarget?.id ?? ""}`;
+      rememberFailed({ content: draft, reply: replyTarget, intent: intentRef.current?.signature === signature ? intentRef.current : { signature, key: crypto.randomUUID() }, operationId: ++nextSendId.current }, destination);
+    }
     changeDraft(failed.content);
     replyRevision.current += 1;
     setReplyTarget(failed.reply);
     intentRef.current = failed.intent;
     setFailedSends((current) => {
-      const next = { ...current }; delete next[destination]; return next;
+      const remaining = (current[destination] ?? []).filter((item) => item.intent.key !== failed.intent.key);
+      return { ...current, [destination]: remaining };
     });
     focusComposerAtEnd();
   };
@@ -524,6 +552,19 @@ export default function DirectMessagePanel({
     textarea?.focus();
     textarea?.setSelectionRange(textarea.value.length, textarea.value.length);
   }, [editingId, view]);
+  useLayoutEffect(() => {
+    const owner = view === "history" ? historyList.current : list.current;
+    if (!deleteId || !owner) return;
+    const confirmation = Array.from(owner.querySelectorAll<HTMLElement>(".dm-message-delete-confirm"))
+      .find((element) => element.closest<HTMLElement>("[data-message-id]")?.dataset.messageId === deleteId);
+    if (!confirmation) return;
+    const ownerRect = owner.getBoundingClientRect();
+    const confirmationRect = confirmation.getBoundingClientRect();
+    if (confirmationRect.bottom > ownerRect.bottom)
+      owner.scrollTop += Math.ceil(confirmationRect.bottom - ownerRect.bottom);
+    else if (confirmationRect.top < ownerRect.top)
+      owner.scrollTop -= Math.ceil(ownerRect.top - confirmationRect.top);
+  }, [deleteId, view]);
   useEffect(() => {
     const close = (event: PointerEvent) => {
       if (
@@ -796,111 +837,110 @@ export default function DirectMessagePanel({
     intentRef.current = null;
     clearReply();
   };
-  const send = async (event: FormEvent) => {
-    event.preventDefault();
-    const content = draft.trim();
-    if (!content || Array.from(content).length > 1_000 || sendBusy.current)
-      return;
-    const reply = selectedId ? currentReplyTarget : null;
-    const signature = `${selectedId ?? target?.id}:${content}:${reply?.id ?? ""}`;
-    if (intentRef.current?.signature !== signature)
-      intentRef.current = { signature, key: crypto.randomUUID() };
-    const currentIntent = intentRef.current;
-    const session = composerSession.current;
-    const operationId = ++nextSendId.current;
-    activeSendId.current = operationId;
-    const destination = selectedId ?? `target:${target?.id}`;
-    const draftAtSend = draftRevision.current;
-    const focusBoundary = { view, selectedId, targetId: target?.id ?? null };
-    restoreComposerFocus.current = composerFocusEligible.current;
-    const sentReplyRevision = replyRevision.current;
+  const restoreSendFocus = (payload: SendPayload) => {
+    window.requestAnimationFrame(() => {
+      if (!restoreComposerFocus.current || composerSession.current !== payload.session || document.hidden || !activeRef.current) return;
+      const boundary = payload.focusBoundary;
+      if (viewRef.current !== boundary.view || selectedIdRef.current !== boundary.selectedId || targetIdRef.current !== boundary.targetId) return;
+      const field = composer.current;
+      if (!field || field.disabled) return;
+      field.focus();
+      field.setSelectionRange(field.value.length, field.value.length);
+      composerFocusEligible.current = true;
+    });
+  };
+  const runTransport = async (payload: SendPayload) => {
+    activeSendId.current = payload.operationId;
     sendBusy.current = true;
-    setSendPending(true);
+    if (!payload.conversationId) setSendPending(true);
     model.clearError();
-    const previousDraft = draft;
-    const previousReply = reply;
+    intentRef.current = null;
     setDraft("");
-    if (reply) setReplyTarget(null);
+    if (payload.reply) setReplyTarget(null);
     forceBottom.current = true;
+    if (payload.conversationId) restoreSendFocus(payload);
     try {
-      if (selectedId) await model.send(selectedId, content, currentIntent.key, reply?.id ?? null, reply?.content ?? "Message supprimé", () => composerSession.current === session && activeSendId.current === operationId);
-      else if (target) {
-        const optimistic = createOptimisticDirectMessage(
-          playerId,
-          `provisional:${currentIntent.key}`,
-          content,
-          currentIntent.key,
-        );
-        setProvisional({
-          target,
-          message: optimistic,
-          key: currentIntent.key,
-          state: "SENDING",
-          conversationId: null,
-          requestId: null,
-        });
+      if (payload.conversationId) {
+        await model.send(payload.conversationId, payload.content, payload.intent.key, payload.reply?.id ?? null, payload.reply?.content ?? "Message supprimé", () => composerSession.current === payload.session && activeSendId.current === payload.operationId);
+      } else if (payload.target) {
+        const optimistic = createOptimisticDirectMessage(playerId, `provisional:${payload.intent.key}`, payload.content, payload.intent.key);
+        setProvisional({ target: payload.target, message: optimistic, key: payload.intent.key, state: "SENDING", conversationId: null, requestId: null });
         setSelectedId(null);
         setView("conversation");
         initialScroll.current = true;
         setScrollbarAtBottom(true);
-        const result = await model.initiate(
-          target.id,
-          content,
-          currentIntent.key,
-          () => composerSession.current === session && activeSendId.current === operationId,
-        );
-        if (composerSession.current !== session || activeSendId.current !== operationId) return;
-        setProvisional((current) =>
-          current?.key === currentIntent.key
-            ? {
-                ...current,
-                message: {
-                  ...current.message,
-                  id: result.messageId,
-                  conversationId: result.conversationId,
-                },
-                state: result.state,
-                conversationId: result.conversationId,
-                requestId: result.requestId,
-              }
-            : current,
-        );
+        const result = await model.initiate(payload.target.id, payload.content, payload.intent.key, () => composerSession.current === payload.session && activeSendId.current === payload.operationId);
+        if (composerSession.current !== payload.session || activeSendId.current !== payload.operationId) return;
+        setProvisional((current) => current?.key === payload.intent.key ? { ...current, message: { ...current.message, id: result.messageId, conversationId: result.conversationId }, state: result.state, conversationId: result.conversationId, requestId: result.requestId } : current);
         setSelectedId(result.conversationId);
       }
-      if (composerSession.current === session && activeSendId.current === operationId) {
-        intentRef.current = null;
-        setFailedSends((current) => {
-          if (current[destination]?.intent.key !== currentIntent.key) return current;
-          const next = { ...current }; delete next[destination]; return next;
-        });
+      if (composerSession.current !== payload.session || activeSendId.current !== payload.operationId) return;
+      setFailedSends((current) => {
+        const previous = current[payload.destination] ?? [];
+        if (!previous.some((failed) => failed.intent.key === payload.intent.key)) return current;
+        return { ...current, [payload.destination]: previous.filter((failed) => failed.intent.key !== payload.intent.key) };
+      });
+      const next = queuedSendRef.current;
+      if (next && next.session === payload.session && next.destination === payload.destination) {
+        queuedSendRef.current = null;
+        setQueuedSend(null);
+        restoreComposerFocus.current = composerFocusEligible.current;
+        void runTransport(next);
       }
     } catch {
-      const currentSession = composerSession.current === session && activeSendId.current === operationId;
-      const untouchedComposer = draftRevision.current === draftAtSend && replyRevision.current === sentReplyRevision;
-      if (!currentSession || !untouchedComposer)
-        setFailedSends((current) => current[destination]?.operationId > operationId ? current : ({ ...current, [destination]: { content: previousDraft, reply: previousReply, intent: currentIntent, operationId } }));
+      const currentSession = composerSession.current === payload.session && activeSendId.current === payload.operationId;
+      const queued = currentSession ? queuedSendRef.current : null;
+      const untouchedComposer = draftRevision.current === payload.draftRevision && replyRevision.current === payload.replyRevision;
+      if (!currentSession || queued || !untouchedComposer) rememberFailed(payload, payload.destination);
       if (currentSession) {
         setProvisional(null);
-        if (!selectedId) { setSelectedId(null); setView("new"); }
-        if (untouchedComposer) { setDraft(previousDraft); setReplyTarget(previousReply); }
+        if (!payload.conversationId) { setSelectedId(null); setView("new"); }
+        if (queued) {
+          queuedSendRef.current = null;
+          setQueuedSend(null);
+          intentRef.current = queued.intent;
+        } else if (untouchedComposer) {
+          setDraft(payload.content);
+          setReplyTarget(payload.reply);
+          intentRef.current = payload.intent;
+        }
       }
     } finally {
-      if (composerSession.current === session && activeSendId.current === operationId) {
+      if (composerSession.current === payload.session && activeSendId.current === payload.operationId) {
         activeSendId.current = null;
         sendBusy.current = false;
         setSendPending(false);
-        window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
-          if (!restoreComposerFocus.current) return;
-          restoreComposerFocus.current = false;
-          if (composerSession.current !== session || document.hidden || !activeRef.current || viewRef.current !== focusBoundary.view || selectedIdRef.current !== focusBoundary.selectedId || targetIdRef.current !== focusBoundary.targetId) return;
-          const field = composer.current;
-          if (!field || field.disabled) return;
-          field.focus();
-          field.setSelectionRange(field.value.length, field.value.length);
-          composerFocusEligible.current = true;
-        }));
+        window.requestAnimationFrame(() => restoreSendFocus(payload));
       }
     }
+  };
+  const send = (event: FormEvent) => {
+    event.preventDefault();
+    const content = draft.trim();
+    if (!content || Array.from(content).length > 1_000 || queuedSendRef.current || (!selectedId && sendBusy.current)) return;
+    const reply = selectedId ? currentReplyTarget : null;
+    const signature = `${selectedId ?? target?.id}:${content}:${reply?.id ?? ""}`;
+    if (intentRef.current?.signature !== signature) intentRef.current = { signature, key: crypto.randomUUID() };
+    const payload: SendPayload = {
+      destination: selectedId ?? `target:${target?.id}`,
+      conversationId: selectedId,
+      target,
+      content,
+      reply,
+      intent: intentRef.current,
+      session: composerSession.current,
+      operationId: ++nextSendId.current,
+      draftRevision: draftRevision.current,
+      replyRevision: replyRevision.current,
+      focusBoundary: { view, selectedId, targetId: target?.id ?? null },
+    };
+    restoreComposerFocus.current = composerFocusEligible.current;
+    if (sendBusy.current) {
+      queuedSendRef.current = payload;
+      setQueuedSend(payload);
+      return;
+    }
+    void runTransport(payload);
   };
   const chooseTarget = async (candidate: DirectMessagePlayerDto) => {
     await openTarget(candidate.id, candidate);
@@ -1170,7 +1210,7 @@ export default function DirectMessagePanel({
           ) : (
             <>
               <div
-                className={`dm-message-bubble${message.deletedAt ? " deleted" : ""}`}
+                className={`dm-message-bubble${message.deletedAt ? " deleted" : ""}${actionable || replyable || reportable ? " has-actions" : ""}`}
                 onClick={(event) => {
                   if (
                     !(actionable || reportable) ||
@@ -1194,7 +1234,6 @@ export default function DirectMessagePanel({
                 {message.editedAt && !message.deletedAt && (
                   <small className="dm-message-edited">Modifié</small>
                 )}
-              </div>
               {actionable && (
                 <div className="dm-message-actions">
                   {message.deletedAt ? (
@@ -1272,6 +1311,7 @@ export default function DirectMessagePanel({
                   )}
                 </div>
               )}
+              </div>
               {deleteId === message.id && (
                 <div
                   className="dm-message-delete-confirm"
@@ -1582,6 +1622,7 @@ export default function DirectMessagePanel({
             draft={draft}
             setDraft={changeDraft}
             pending={sendPending}
+            queued={false}
             error={model.error}
             onClearError={model.clearError}
             onSubmit={send}
@@ -1591,7 +1632,7 @@ export default function DirectMessagePanel({
             onCancelReply={() => undefined}
             onComposerFocus={() => { composerFocusEligible.current = true; }}
             onSendPointerDown={() => { composerFocusEligible.current = document.activeElement === composer.current; }}
-            failedSend={target ? failedSends[`target:${target.id}`] : undefined}
+            failedSend={target ? (failedSends[`target:${target.id}`]?.length ?? 0) > 0 : false}
             onRecover={() => { if (target) recoverSend(`target:${target.id}`); }}
           />
         )}
@@ -1925,7 +1966,8 @@ export default function DirectMessagePanel({
         <Composer
           draft={draft}
           setDraft={changeDraft}
-          pending={sendPending}
+          pending={queuedSend !== null}
+          queued={queuedSend !== null}
           error={model.error}
           onClearError={model.clearError}
           onSubmit={send}
@@ -1935,7 +1977,7 @@ export default function DirectMessagePanel({
           onCancelReply={() => { clearReply(); focusComposerAtEnd(); }}
           onComposerFocus={() => { composerFocusEligible.current = true; }}
           onSendPointerDown={() => { composerFocusEligible.current = document.activeElement === composer.current; }}
-          failedSend={selectedId ? failedSends[selectedId] : undefined}
+          failedSend={selectedId ? (failedSends[selectedId]?.length ?? 0) > 0 : false}
           onRecover={() => { if (selectedId) recoverSend(selectedId); }}
         />
       ) : (
@@ -1952,6 +1994,7 @@ function Composer({
   draft,
   setDraft,
   pending,
+  queued,
   error,
   onClearError,
   onSubmit,
@@ -1967,6 +2010,7 @@ function Composer({
   draft: string;
   setDraft: (value: string) => void;
   pending: boolean;
+  queued: boolean;
   error: string | null;
   onClearError: () => void;
   onSubmit: (event: FormEvent) => void;
@@ -1976,13 +2020,13 @@ function Composer({
   onCancelReply: () => void;
   onComposerFocus: () => void;
   onSendPointerDown: () => void;
-  failedSend?: FailedSend;
+  failedSend: boolean;
   onRecover: () => void;
 }) {
   const count = Array.from(draft).length;
   return (
-    <div className="dm-composer-wrap">
-      {failedSend && <button type="button" className="dm-recover-send" onClick={onRecover}>Récupérer le message non envoyé</button>}
+    <div className={`dm-composer-wrap${queued ? " queued" : ""}`}>
+      {failedSend && <button type="button" className="dm-recover-send" disabled={queued} onClick={onRecover}>Récupérer le message non envoyé</button>}
       {error && (
         <p className="dm-feedback error" role="alert">
           <span>{error}</span>
@@ -1998,7 +2042,7 @@ function Composer({
       {reply && (
         <div className="dm-composer-reply">
           <span><strong>Réponse à {replyAuthorName}</strong><small>« {reply.content ?? "Message supprimé"} »</small></span>
-          <button type="button" aria-label="Annuler la réponse" onClick={onCancelReply}>×</button>
+          <button type="button" aria-label="Annuler la réponse" disabled={queued} onClick={onCancelReply}>×</button>
         </div>
       )}
       <form className="dm-composer" onSubmit={onSubmit}>
