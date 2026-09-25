@@ -8771,8 +8771,14 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .profile-frame .secondary-navigation .active { border-color: var(--gold); }
 .profile-character-meta { padding: 8px; margin: 0; }
 .profile-empty-slot { min-height: 150px; border: 1px dashed var(--border); display: grid; place-items: center; }
-.profile-statistics { display: grid; gap: 10px; }
-.profile-statistics > div { display: flex; justify-content: space-between; padding: 12px; background: #151f31; border-radius: 8px; }
+.profile-statistics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; min-width: 0; }
+.profile-statistics-group { min-width: 0; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: #111a2a; }
+.profile-statistics-group h2 { margin: 0 0 12px; color: var(--gold); font-size: 18px; }
+.profile-statistics-group dl { display: grid; gap: 2px; margin: 0; }
+.profile-statistics-group dl > div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 10px 0; border-top: 1px solid var(--border); min-width: 0; }
+.profile-statistics-group dt { min-width: 0; overflow-wrap: anywhere; color: var(--muted); }
+.profile-statistics-group dd { margin: 0; min-width: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+@media (max-width: 850px) { .profile-statistics { grid-template-columns: minmax(0, 1fr); } }
 .profile-last-activity summary { cursor: pointer; }
 .profile-name-button { color: inherit; font: inherit; padding: 0; background: transparent; border: 0; cursor: pointer; }
 .profile-name-button:focus-visible, .avatar-placeholder:focus-visible { outline: 2px solid var(--gold); }

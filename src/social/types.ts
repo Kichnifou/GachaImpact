@@ -21,7 +21,13 @@ export type ConnectedPlayers = { players: (SocialIdentity & { status: 'ONLINE' |
 export type Profile = {
   player: SocialIdentity; own: boolean; presence: Access<PresenceStatus>; lastActivity: Access<string | null>
   team: Access<PlayerTeamDto | null>; box: Access<Omit<BoxCharacterDto, 'favorite' | 'c6CompetitionStats'>[]>; collection: Access<InventoryItemDto[]>
-  statistics: Access<{ totalXp: string | null; totalPulls: string | null; totalFiveStars: string | null; totalFourStars: string | null; combatWins: string | null; expeditionsCompleted: string | null }>
+  statistics: Access<GeneralStatistics>
+}
+export type GeneralStatistics = {
+  totalXp: string | null; totalMessages: string | null; countedMessages: string | null
+  totalPulls: string | null; totalFiveStars: string | null; totalFourStars: string | null; fiftyFiftyWon: string | null; fiftyFiftyLost: string | null; capturesTriggered: string | null; fiveStarRate: string | null
+  totalPrimosEarned: string | null; totalPrimosSpent: string | null; totalMorasEarned: string | null; totalMorasSpent: string | null; totalMainElementParticlesEarned: string | null
+  totalFights: string | null; combatWins: string | null; totalLosses: string | null; totalManualWins: string | null; expeditionsCompleted: string | null; totalFriendHeartsSent: string | null; totalSpins: string | null; totalJackpots: string | null
 }
 export const privacyLabels = {
   ACTIVE_TEAM: 'Team active', BOX: 'Box', COLLECTION: 'Collection', GENERAL_STATISTICS: 'Statistiques générales',

@@ -86,6 +86,15 @@ function harness() {
 }
 
 describe('Chat command adapters', () => {
+  it('keeps !infos compact and omits general statistics when access is private', async () => {
+    const { services, send } = harness();
+    expect(await send('!infos Autre')).toBe('Autre · niveau 5 · pyro · amitié niveau 3.');
+    services.socialService.profile.mockResolvedValue({
+      player: { displayName: 'Autre', level: 5, elementKey: 'pyro' }, box: { access: 'PRIVATE' }, team: { access: 'PRIVATE' },
+      statistics: { access: 'ALLOWED', data: { totalPulls: '20', combatWins: '5', totalPrimosEarned: '999999', fiveStarRate: '5.00' } },
+    } as unknown as Awaited<ReturnType<typeof services.socialService.profile>>);
+    expect(await send('!infos Autre')).toBe('Autre · niveau 5 · pyro · 20 Pulls, 5 victoires Combat · amitié niveau 3.');
+  });
   it('requires only the Contest read projection in its dependency contract', () => {
     expectTypeOf<keyof ChatCommandServices['contestService']>().toEqualTypeOf<'getCurrent'>();
   });

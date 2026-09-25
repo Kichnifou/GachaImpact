@@ -9,7 +9,7 @@ import GameAssetIcon from '../components/GameAssetIcon'
 import MissionProjectionView from '../missions/MissionProjectionView'
 import { compareCharacters, normalizeCharacterSearch } from '../characters/character-catalog'
 import type { ElementKey, PermanentMissionProjectionDto } from '../api/types'
-import { presenceLabels, type Access, type Profile, type SocialActions } from '../social/types'
+import { presenceLabels, type Access, type GeneralStatistics, type Profile, type SocialActions } from '../social/types'
 import { apiErrorMessage, elementLabels, formatResourceAmount } from '../utils/formatters'
 import { getElementAssetPath } from '../utils/gameAssets'
 import { relationshipContext } from '../social/relationship'
@@ -17,6 +17,17 @@ import type { FriendshipController } from '../social/use-friendships'
 
 function Section<T>({ value, children }: { value: Access<T>; children: (data: T) => ReactNode }) {
   return value.access === 'PRIVATE' ? <p className="profile-private">Cette rubrique est privée.</p> : children(value.data)
+}
+const statisticGroups: { title: string; metrics: { key: keyof GeneralStatistics; label: string }[] }[] = [
+  { title: 'Progression', metrics: [{ key: 'totalXp', label: 'XP totale' }, { key: 'totalMessages', label: 'Messages envoyés' }, { key: 'countedMessages', label: 'Messages comptés pour l’XP' }] },
+  { title: 'Gacha', metrics: [{ key: 'totalPulls', label: 'Invocations' }, { key: 'totalFiveStars', label: '5★ obtenus' }, { key: 'totalFourStars', label: '4★ obtenus' }, { key: 'fiftyFiftyWon', label: '50/50 gagnés' }, { key: 'fiftyFiftyLost', label: '50/50 perdus' }, { key: 'capturesTriggered', label: 'Captures déclenchées' }, { key: 'fiveStarRate', label: 'Taux de 5★' }] },
+  { title: 'Économie', metrics: [{ key: 'totalPrimosEarned', label: 'Primos gagnées' }, { key: 'totalPrimosSpent', label: 'Primos dépensées' }, { key: 'totalMorasEarned', label: 'Moras gagnées' }, { key: 'totalMorasSpent', label: 'Moras dépensées' }, { key: 'totalMainElementParticlesEarned', label: 'Particules de l’élément principal gagnées' }] },
+  { title: 'Activités', metrics: [{ key: 'totalFights', label: 'Combats quotidiens' }, { key: 'combatWins', label: 'Victoires' }, { key: 'totalLosses', label: 'Défaites' }, { key: 'totalManualWins', label: 'Victoires manuelles' }, { key: 'expeditionsCompleted', label: 'Expéditions terminées' }, { key: 'totalFriendHeartsSent', label: 'Cœurs envoyés' }, { key: 'totalSpins', label: 'Tours de Roue' }, { key: 'totalJackpots', label: 'Jackpots Roue' }] },
+]
+function Statistics({ stats }: { stats: GeneralStatistics }) {
+  return <div className="profile-statistics">{statisticGroups.map(group => <section key={group.title} className="profile-statistics-group" aria-label={group.title}>
+    <h2>{group.title}</h2><dl>{group.metrics.map(({ key, label }) => <div key={key}><dt>{label}</dt><dd>{stats[key] === null ? 'Non disponible' : key === 'fiveStarRate' ? `${stats[key]!.replace('.', ',')} %` : formatResourceAmount(stats[key]!)}</dd></div>)}</dl>
+  </section>)}</div>
 }
 function LastActivity({ value }: { value: Access<string | null> }) {
   const [now, setNow] = useState(() => Date.now())
@@ -78,7 +89,7 @@ export default function ProfileScreen({ playerId, ownerPlayerId, actions, contro
           return <><div className="character-grid">{filtered.map(c => <CharacterCard key={c.id} character={c} footer={<p className="profile-character-meta">C{c.constellation} · {c.copies} copies</p>} />)}</div>{!filtered.length && <p>{characters.length ? 'Aucun personnage ne correspond aux filtres.' : 'Aucun personnage possédé.'}</p>}</>
         }}</Section>}
         {tab === 'Collection' && <Section value={value.collection}>{items => <><div className="inventory-grid">{items.map(item => <InventoryObjectCard key={item.id} item={item} />)}</div>{!items.length && <p>Collection encore vide.</p>}</>}</Section>}
-        {tab === 'Statistiques' && <Section value={value.statistics}>{stats => <dl className="profile-statistics">{([['totalXp', 'XP'], ['totalPulls', 'Invocations'], ['totalFiveStars', '5★ obtenus'], ['totalFourStars', '4★ obtenus'], ['combatWins', 'Victoires Combat'], ['expeditionsCompleted', 'Expéditions terminées']] as const).map(([key, label]) => <div key={key}><dt>{label}</dt><dd>{stats[key] === null ? 'Non disponible' : formatResourceAmount(stats[key])}</dd></div>)}</dl>}</Section>}
+        {tab === 'Statistiques' && <Section value={value.statistics}>{stats => <Statistics stats={stats} />}</Section>}
         {tab === 'Missions' && (currentMissionsError
           ? <div className="missions-state" role="alert"><strong>Missions indisponibles</strong><p>{currentMissionsError}</p><button type="button" className="small-primary-button" onClick={() => { setMissionsTarget(''); setMissionsRequest(current => current + 1) }}>Réessayer</button></div>
           : !currentMissions ? <p role="status">Chargement des Missions…</p>

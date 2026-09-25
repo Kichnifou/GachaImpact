@@ -2,7 +2,7 @@ import type { PrismaClient } from '../../../generated/prisma/client.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import type { Clock } from '../../domain/time/business-date.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
-import { derivePlayerProgression } from '../../domain/player/player-progression.js';
+import { derivePlayerLevel } from '../../domain/player/player-progression.js';
 import { isElementKey } from '../../domain/economy/resources.js';
 import { PrismaBoxStore } from '../../infrastructure/database/prisma-box-store.js';
 import { PrismaTeamStore } from '../../infrastructure/database/prisma-team-store.js';
@@ -11,6 +11,7 @@ import { AppError } from '../../api/errors.js';
 import { PrivacyService, privacyAllowedWhere } from './privacy-service.js';
 import { PresenceService, derivePresence, PRESENCE_CONNECTION_TIMEOUT_MS } from './presence-service.js';
 import { FriendshipService } from './friendship-service.js';
+import { GeneralStatisticsProjection } from '../statistics/general-statistics-projection.js';
 
 export type SocialQuery = { q: string; element?: string; status?: 'ONLINE' | 'AWAY' | 'OFFLINE'; relation?: 'SELF' | 'FRIEND' | 'SENT' | 'RECEIVED' | 'NONE'; page: number };
 export type Access<T> = { access: 'PRIVATE' } | { access: 'ALLOWED'; data: T };
@@ -33,8 +34,8 @@ export class SocialService {
     return player;
   }
   private async identities(element?: string) {
-    const rows = await this.database.player.findMany({ where: { status: 'ACTIVE', ...(element ? { elementKey: element } : {}) }, select: { id: true, displayName: true, elementKey: true, progression: true } });
-    return rows.map(row => ({ id: row.id, displayName: row.displayName, elementKey: row.elementKey && isElementKey(row.elementKey) ? row.elementKey : null, level: row.progression ? derivePlayerProgression(row.progression).level : 0 }))
+    const rows = await this.database.player.findMany({ where: { status: 'ACTIVE', ...(element ? { elementKey: element } : {}) }, select: { id: true, displayName: true, elementKey: true, progression: { select: { xp: true } } } });
+    return rows.map(row => ({ id: row.id, displayName: row.displayName, elementKey: row.elementKey && isElementKey(row.elementKey) ? row.elementKey : null, level: row.progression ? derivePlayerLevel(row.progression.xp) : 0 }))
       .sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr', { sensitivity: 'base' }) || a.id.localeCompare(b.id));
   }
   private async visiblePresence(viewer: string, ids: string[]) {
@@ -81,7 +82,7 @@ export class SocialService {
   }
   async profile(identity: AuthenticatedIdentity, playerId: string) {
     const viewer = await this.actor(identity);
-    const row = await this.database.player.findFirst({ where: { id: playerId, status: 'ACTIVE' }, select: { id: true, displayName: true, elementKey: true, progression: true } });
+    const row = await this.database.player.findFirst({ where: { id: playerId, status: 'ACTIVE' }, select: { id: true, displayName: true, elementKey: true, progression: { select: { xp: true } } } });
     if (!row) throw new AppError('Joueur introuvable.', 404, 'PLAYER_NOT_FOUND');
     const permissions = await this.privacy.permissions(playerId, viewer.id);
     const [presence, activity, team, box, collection, statistics] = await Promise.all([
@@ -90,17 +91,8 @@ export class SocialService {
       permissions.ACTIVE_TEAM ? new PrismaTeamStore(this.database).readActive(playerId).then(allowed) : hidden,
       permissions.BOX ? new PrismaBoxStore(this.database).listProfilePossessions(playerId).then(rows => allowed(rows.map(c => ({ ...c, firstObtainedAt: c.firstObtainedAt.toISOString() })))) : hidden,
       permissions.COLLECTION ? new PrismaInventoryStore(this.database).getCollection(playerId).then(items => allowed(items.map(i => ({ ...i, quantity: i.quantity.toString(), firstObtainedAt: i.firstObtainedAt?.toISOString() ?? null })))) : hidden,
-      permissions.GENERAL_STATISTICS ? this.statistics(playerId).then(allowed) : hidden,
+      permissions.GENERAL_STATISTICS ? new GeneralStatisticsProjection(this.database).read(playerId).then(allowed) : hidden,
     ]);
-    return { player: { id: row.id, displayName: row.displayName, elementKey: row.elementKey, level: row.progression ? derivePlayerProgression(row.progression).level : 0 }, own: viewer.id === playerId, presence, lastActivity: activity, team, box, collection, statistics };
-  }
-  private async statistics(playerId: string) {
-    const [progression, gacha, combat, expedition] = await Promise.all([
-      this.database.playerProgression.findUnique({ where: { playerId }, select: { xp: true } }),
-      this.database.playerGachaState.findUnique({ where: { playerId }, select: { totalPulls: true, totalFiveStars: true, totalFourStars: true } }),
-      this.database.playerCombatStats.findUnique({ where: { playerId }, select: { totalWins: true } }),
-      this.database.playerExpedition.findUnique({ where: { playerId }, select: { totalCompleted: true } }),
-    ]);
-    return { totalXp: progression?.xp.toString() ?? null, totalPulls: gacha?.totalPulls.toString() ?? null, totalFiveStars: gacha?.totalFiveStars.toString() ?? null, totalFourStars: gacha?.totalFourStars.toString() ?? null, combatWins: combat?.totalWins.toString() ?? null, expeditionsCompleted: expedition?.totalCompleted.toString() ?? null };
+    return { player: { id: row.id, displayName: row.displayName, elementKey: row.elementKey, level: row.progression ? derivePlayerLevel(row.progression.xp) : 0 }, own: viewer.id === playerId, presence, lastActivity: activity, team, box, collection, statistics };
   }
 }

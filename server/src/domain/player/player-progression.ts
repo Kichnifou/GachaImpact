@@ -22,13 +22,18 @@ export type PlayerProgression = Readonly<{
   countedMessages: bigint;
 }>;
 
+export function derivePlayerLevel(xp: bigint): number {
+  if (xp < 0n) throw new RangeError('Player XP cannot be negative.');
+  return xp >= MAX_LEVEL_XP ? MAX_PLAYER_LEVEL : Number(xp / XP_PER_LEVEL);
+}
+
 export function derivePlayerProgression(state: PlayerProgressionState): PlayerProgression {
   if (state.xp < 0n) {
     throw new RangeError('Player XP cannot be negative.');
   }
 
   const isMaxLevel = state.xp >= MAX_LEVEL_XP;
-  const level = isMaxLevel ? MAX_PLAYER_LEVEL : Number(state.xp / XP_PER_LEVEL);
+  const level = derivePlayerLevel(state.xp);
   const xpIntoCurrentStep = isMaxLevel
     ? (state.xp - MAX_LEVEL_XP) % XP_PER_LEVEL
     : state.xp % XP_PER_LEVEL;

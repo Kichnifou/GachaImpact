@@ -35,6 +35,50 @@ const identity = (subject: string) => ({ subject });
 const profile = (visitor = viewer) => service.profile(identity(visitor), owner);
 
 describe('Social isolated PostgreSQL', () => {
+  it('projects every general statistic without creating missing source rows, and checks privacy before reading', async () => {
+    const subject = (await database.player.create({ data: { displayName: 'Statistics fixture', progression: { create: { xp: 9007199254740993n, totalMessages: 21n, countedMessages: 13n } }, gachaState: { create: { totalPulls: 20n, totalFiveStars: 1n, totalFourStars: 3n, fiftyFiftyWon: 1n, fiftyFiftyLost: 0n, capturesTriggered: 2n } } } })).id;
+    await Promise.all([
+      database.playerEconomyStats.create({ data: { playerId: subject, totalPrimosEarned: 11n, totalPrimosSpent: 7n, totalMorasEarned: 99n, totalMorasSpent: 0n, totalMainElementParticlesEarned: 4n } }),
+      database.playerCombatStats.create({ data: { playerId: subject, totalFights: 8n, totalWins: 5n, totalLosses: 3n, totalManualWins: 2n } }),
+      database.playerExpedition.create({ data: { playerId: subject, totalCompleted: 6n } }),
+      database.playerSocialStats.create({ data: { playerId: subject, totalFriendHeartsSent: 9n } }),
+      database.playerWheelStats.create({ data: { playerId: subject, totalSpins: 10n, totalJackpots: 1n } }),
+    ]);
+    const read = (id: string) => service.profile(identity(id), subject);
+    const expected = { totalXp: '9007199254740993', totalMessages: '21', countedMessages: '13', totalPulls: '20', totalFiveStars: '1', totalFourStars: '3', fiftyFiftyWon: '1', fiftyFiftyLost: '0', capturesTriggered: '2', fiveStarRate: '5.00', totalPrimosEarned: '11', totalPrimosSpent: '7', totalMorasEarned: '99', totalMorasSpent: '0', totalMainElementParticlesEarned: '4', totalFights: '8', combatWins: '5', totalLosses: '3', totalManualWins: '2', expeditionsCompleted: '6', totalFriendHeartsSent: '9', totalSpins: '10', totalJackpots: '1' };
+    expect((await read(viewer)).statistics).toEqual({ access: 'ALLOWED', data: expected });
+    const response = await app.inject({ url: `/api/v1/players/${subject}/profile`, headers: { authorization: `Bearer ${viewer}` } });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().statistics).toEqual({ access: 'ALLOWED', data: expected });
+    await service.privacy.save(subject, 'GENERAL_STATISTICS', 'FRIENDS');
+    const [playerAId, playerBId] = [subject, friendId].sort();
+    await database.friendship.create({ data: { playerAId: playerAId!, playerBId: playerBId!, state: 'ACTIVE' } });
+    const readStats = vi.spyOn(database.playerGachaState, 'findUnique');
+    try {
+      expect((await read(viewer)).statistics).toEqual({ access: 'PRIVATE' });
+      expect(readStats).not.toHaveBeenCalled();
+      expect((await read(friendId)).statistics).toEqual({ access: 'ALLOWED', data: expected });
+      expect((await read(subject)).statistics).toEqual({ access: 'ALLOWED', data: expected });
+      await service.privacy.save(subject, 'GENERAL_STATISTICS', 'PRIVATE');
+      readStats.mockClear();
+      expect((await read(viewer)).statistics).toEqual({ access: 'PRIVATE' });
+      expect(readStats).not.toHaveBeenCalled();
+    } finally { readStats.mockRestore(); }
+    // A physically absent source remains unavailable; a present zero is still zero.
+    const empty = (await database.player.create({ data: { displayName: 'Statistics absent fixture' } })).id;
+    const sourceCounts = () => Promise.all([
+      database.playerProgression.count({ where: { playerId: empty } }), database.playerGachaState.count({ where: { playerId: empty } }),
+      database.playerEconomyStats.count({ where: { playerId: empty } }), database.playerCombatStats.count({ where: { playerId: empty } }),
+      database.playerExpedition.count({ where: { playerId: empty } }), database.playerSocialStats.count({ where: { playerId: empty } }),
+      database.playerWheelStats.count({ where: { playerId: empty } }),
+    ]);
+    const before = await sourceCounts();
+    const emptyProfile = await service.profile(identity(empty), empty);
+    expect(emptyProfile.statistics).toMatchObject({ access: 'ALLOWED', data: { totalXp: null, totalPulls: null, fiveStarRate: null, totalSpins: null } });
+    expect(await sourceCounts()).toEqual(before);
+    await database.playerGachaState.create({ data: { playerId: empty } });
+    expect((await service.profile(identity(empty), empty)).statistics).toMatchObject({ access: 'ALLOWED', data: { totalPulls: '0', totalFiveStars: '0', fiveStarRate: null } });
+  }, 45_000);
   it('enforces defaults, private vs empty, owner access, active friendship and overrides without resetting other categories', async () => {
     expect((await profile()).team).toEqual({ access: 'ALLOWED', data: null });
     expect((await profile()).box).toEqual({ access: 'ALLOWED', data: [] });

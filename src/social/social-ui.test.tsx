@@ -6,7 +6,7 @@ import ConfigurationScreen from '../screens/ConfigurationScreen'
 import ProfileScreen from '../screens/ProfileScreen'
 import OnlinePlayersPanel from '../components/OnlinePlayersPanel'
 import { defaultNavigationPreference } from '../navigation/navigation'
-import type { Profile, SocialActions } from './types'
+import type { GeneralStatistics, Profile, SocialActions } from './types'
 import type { PermanentMissionDto, PermanentMissionProjectionDto } from '../api/types'
 import type { FriendshipController } from './use-friendships'
 
@@ -33,6 +33,22 @@ const missions: PermanentMissionProjectionDto = {
 }
 
 describe('Social screens', () => {
+  it('groups general statistics and renders exact large values, zero, unavailable values and the five-star rate', async () => {
+    const keys: (keyof GeneralStatistics)[] = ['totalXp', 'totalMessages', 'countedMessages', 'totalPulls', 'totalFiveStars', 'totalFourStars', 'fiftyFiftyWon', 'fiftyFiftyLost', 'capturesTriggered', 'fiveStarRate', 'totalPrimosEarned', 'totalPrimosSpent', 'totalMorasEarned', 'totalMorasSpent', 'totalMainElementParticlesEarned', 'totalFights', 'combatWins', 'totalLosses', 'totalManualWins', 'expeditionsCompleted', 'totalFriendHeartsSent', 'totalSpins', 'totalJackpots']
+    const statistics = Object.fromEntries(keys.map(key => [key, '0'])) as GeneralStatistics
+    statistics.totalXp = '9007199254740993'; statistics.totalSpins = null; statistics.fiveStarRate = '5.00'
+    const value: Profile = { player, own: false, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'ALLOWED', data: statistics } }
+    const actions = { profile: vi.fn().mockResolvedValue(value) } as unknown as SocialActions
+    const container = await mount(<ProfileScreen playerId={player.id} ownerPlayerId="other" actions={actions} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()} />)
+    await act(async () => { button(container, 'Statistiques').click() })
+    expect(Array.from(container.querySelectorAll('.profile-statistics-group h2')).map(element => element.textContent)).toEqual(['Progression', 'Gacha', 'Économie', 'Activités'])
+    expect(container.textContent).toContain(BigInt(statistics.totalXp).toLocaleString('fr-FR'))
+    expect(container.textContent).toContain('Taux de 5★5,00 %')
+    expect(container.textContent).toContain('Tours de RoueNon disponible')
+    expect(container.textContent).toContain('50/50 perdus0')
+    expect(container.querySelectorAll('.profile-statistics-group dt')).toHaveLength(keys.length)
+    expect(container.textContent).not.toContain('Cette rubrique est privée.')
+  })
   it('keeps confirmed privacy after a failed save, then accepts server confirmation without touching Menu', async () => {
     const settings = { version: 1, settings: [{ categoryKey: 'BOX' as const, level: 'PUBLIC' as const }] }
     const savePrivacy = vi.fn().mockRejectedValueOnce(new Error('save failed')).mockResolvedValueOnce({ version: 1, settings: [{ categoryKey: 'BOX', level: 'PRIVATE' }] })
@@ -72,6 +88,9 @@ describe('Social screens', () => {
     expect(container.textContent).toContain('Aucun personnage possédé.')
     expect(container.textContent).not.toContain('Cette rubrique est privée.')
     expect(container.textContent).not.toMatch(/Stella|Favori|Acheter|Confidentialité|Ajouter/)
+    await act(async () => { button(container, 'Statistiques').click() })
+    expect(container.textContent).toContain('Cette rubrique est privée.')
+    expect(container.querySelector('.profile-statistics')).toBeNull()
   })
 
   it('renders the real connected projection and opens Profile or Social without a fake friendship action', async () => {
