@@ -44,12 +44,27 @@ describe('global rankings R714–R727', () => {
     expect(first?.self?.rank).toBe(3);
     expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { status: 'ACTIVE', elementKey: { not: null } } }));
   });
-  it('requires both public permissions for wealth and omits missing source rows', async () => {
+  it('requires both public permissions for wealth and treats an unmaterialized Bank as zero', async () => {
     const rows = [player('A', 1n, { CURRENCY_BALANCES: 'PUBLIC', BANK: 'PUBLIC' }), player('B', 1n, { CURRENCY_BALANCES: 'PUBLIC' }), player('C', 1n, { BANK: 'PUBLIC' })];
     const { service } = harness(rows);
     expect((await service.list('moras', 'B'))?.entries.map(entry => [entry.playerId, entry.value])).toEqual([['A', '300']]);
     rows[0]!.bankAccount = null as unknown as { balance: bigint };
+    expect((await service.list('moras', 'A'))?.entries.map(entry => [entry.playerId, entry.value])).toEqual([['A', '100']]);
+    rows[0]!.resourceBalances = rows[0]!.resourceBalances.filter(balance => balance.resourceKey !== 'moras');
     expect((await service.list('moras', 'A'))?.entries).toEqual([]);
+  });
+  it('keeps competition ties across the page boundary', async () => {
+    const { service } = harness([player('A', 100n), player('B', 90n), player('C', 90n), player('D', 80n)]);
+    expect((await service.list('xp', 'A', 1, 2))?.entries.map(entry => [entry.playerId, entry.rank])).toEqual([['A', 1], ['B', 2]]);
+    expect((await service.list('xp', 'A', 2, 2))?.entries.map(entry => [entry.playerId, entry.rank])).toEqual([['C', 2], ['D', 4]]);
+  });
+  it('formats Pity as X/90 in API values and Chat while ranking on numeric pity', async () => {
+    const rows = [player('A', 1n), player('B', 1n)];
+    rows[0]!.gachaState.pity5 = 74; rows[1]!.gachaState.pity5 = 73;
+    const { service } = harness(rows);
+    expect(findRanking('pity')?.format).toBe('PITY5');
+    expect((await service.list('pity5', 'A'))?.entries.map(entry => [entry.playerId, entry.rank, entry.value])).toEqual([['A', 1, '74/90'], ['B', 2, '73/90']]);
+    expect(await service.chatTop(findRanking('pity')!, 'A')).toContain('#1 A — 74/90');
   });
   it('orders five-star rates by exact fractions after the 100-pull threshold', async () => {
     const rows = [player('A', 1n), player('B', 1n), player('C', 1n)];
@@ -90,6 +105,7 @@ describe('global rankings R714–R727', () => {
     expect(personal).toContain('XP 100');
     expect(personal).toContain('niveau 3');
     expect(personal).toContain('Taux 5★ 100.00 %');
+    expect(personal).toContain('Pity 5★ 2/90');
     expect(personal).toContain('Primos 10 · Moras 20 · Box 1 · C6 1');
     expect(findUnique).toHaveBeenCalledTimes(1);
     expect((await service.list('unknown', 'A'))).toBeNull();

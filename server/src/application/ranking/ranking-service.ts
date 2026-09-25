@@ -12,8 +12,8 @@ type ValueKey = 'xp' | 'level' | 'messages' | 'messagesXp' | 'pulls' | 'rate5' |
   'primosEarned' | 'primosSpent' | 'morasEarned' | 'morasSpent' | 'box' | 'c6' | 'copies' | 'combat' | 'combatManual' | 'expeditions' | 'hearts';
 type Ratio = { numerator: bigint; denominator: bigint };
 type Values = Record<ValueKey, bigint | Ratio | null>;
-export type RankingDefinition = Readonly<{ id: ValueKey; label: string; category: RankingCategory; aliases: readonly string[]; source: Source; format: 'INTEGER' | 'PERCENT'; privacy: readonly PrivacyCategory[]; eligibility: string }>;
-const define = (id: ValueKey, label: string, category: RankingCategory, source: Source, privacy: readonly PrivacyCategory[], aliases: string[] = [], format: 'INTEGER' | 'PERCENT' = 'INTEGER', eligibility = 'positive'): RankingDefinition =>
+export type RankingDefinition = Readonly<{ id: ValueKey; label: string; category: RankingCategory; aliases: readonly string[]; source: Source; format: 'INTEGER' | 'PERCENT' | 'PITY5'; privacy: readonly PrivacyCategory[]; eligibility: string }>;
+const define = (id: ValueKey, label: string, category: RankingCategory, source: Source, privacy: readonly PrivacyCategory[], aliases: string[] = [], format: 'INTEGER' | 'PERCENT' | 'PITY5' = 'INTEGER', eligibility = 'positive'): RankingDefinition =>
   ({ id, label, category, source, privacy, aliases: [...new Set([...aliases, id.toLowerCase()])], format, eligibility });
 const general = ['GENERAL_STATISTICS'] as const;
 const currency = ['CURRENCY_BALANCES'] as const;
@@ -22,7 +22,7 @@ export const rankingRegistry: readonly RankingDefinition[] = [
   define('messages', 'Messages', 'PROGRESSION', 'progression', general, ['msg']), define('messagesXp', 'Messages XP', 'PROGRESSION', 'progression', general, ['messages-xp', 'counted']),
   define('pulls', 'Pulls', 'GACHA', 'gacha', general), define('rate5', 'Taux de 5★', 'GACHA', 'gacha', general, ['taux5', 'luck'], 'PERCENT', 'pulls>=100'),
   define('stars5', '5★ obtenus', 'GACHA', 'gacha', general, ['5stars', '5']), define('stars4', '4★ obtenus', 'GACHA', 'gacha', general, ['4stars', '4']),
-  define('pity5', 'Pity 5★', 'GACHA', 'gacha', ['PITY_GUARANTEE'], ['pity']), define('won5050', '50/50 gagnés', 'GACHA', 'gacha', general, ['5050', '50/50']),
+  define('pity5', 'Pity 5★', 'GACHA', 'gacha', ['PITY_GUARANTEE'], ['pity'], 'PITY5'), define('won5050', '50/50 gagnés', 'GACHA', 'gacha', general, ['5050', '50/50']),
   define('lost5050', '50/50 perdus', 'GACHA', 'gacha', general, ['lose5050', 'lost5050']),
   define('primos', 'Primogemmes', 'RESSOURCES', 'balances', currency), define('moras', 'Patrimoine Moras', 'RESSOURCES', 'bank', ['CURRENCY_BALANCES', 'BANK']),
   define('particles', 'Particules totales', 'RESSOURCES', 'balances', currency, ['particules']),
@@ -45,7 +45,9 @@ const compare = (a: bigint | Ratio, b: bigint | Ratio) => {
   const delta = left.numerator * right.denominator - right.numerator * left.denominator;
   return delta > 0n ? 1 : delta < 0n ? -1 : 0;
 };
-const display = (score: bigint | Ratio) => typeof score === 'bigint' ? score.toString() : `${fiveStarRate(score.numerator, score.denominator)} %`;
+const display = (metric: RankingDefinition, score: bigint | Ratio) => typeof score === 'bigint'
+  ? metric.format === 'PITY5' ? `${score}/90` : score.toString()
+  : `${fiveStarRate(score.numerator, score.denominator)} %`;
 
 export class RankingService {
   constructor(private readonly database: PrismaClient) {}
@@ -71,6 +73,7 @@ export class RankingService {
       if (!metric.privacy.every(category => (overrides.get(category) ?? privacyDefaults[category]) === 'PUBLIC')) continue;
       const balances = new Map(player.resourceBalances.map(balance => [balance.resourceKey, balance.amount]));
       const balance = (key: string) => balances.get(key) ?? null;
+      const walletMoras = balance('moras');
       const particles = elementKeys.map(key => balance(`particles_${key}`));
       const values: Values = {
         xp: player.progression?.xp ?? null, level: player.progression ? BigInt(derivePlayerLevel(player.progression.xp)) : null,
@@ -79,7 +82,7 @@ export class RankingService {
         rate5: player.gachaState && player.gachaState.totalPulls >= 100n ? { numerator: player.gachaState.totalFiveStars, denominator: player.gachaState.totalPulls } : null,
         stars5: player.gachaState?.totalFiveStars ?? null, stars4: player.gachaState?.totalFourStars ?? null,
         pity5: player.gachaState ? BigInt(player.gachaState.pity5) : null, won5050: player.gachaState?.fiftyFiftyWon ?? null, lost5050: player.gachaState?.fiftyFiftyLost ?? null,
-        primos: balance('primogems'), moras: balance('moras') !== null && player.bankAccount ? balance('moras')! + player.bankAccount.balance : null,
+        primos: balance('primogems'), moras: walletMoras === null ? null : walletMoras + (player.bankAccount?.balance ?? 0n),
         particles: particles.every(value => value !== null) ? particles.reduce<bigint>((sum, value) => sum + value!, 0n) : null,
         pyro: particles[0] ?? null, hydro: particles[1] ?? null, cryo: particles[2] ?? null, electro: particles[3] ?? null, anemo: particles[4] ?? null, geo: particles[5] ?? null, dendro: particles[6] ?? null,
         primosEarned: player.economyStats?.totalPrimosEarned ?? null, primosSpent: player.economyStats?.totalPrimosSpent ?? null,
@@ -103,7 +106,7 @@ export class RankingService {
     if (!metric) return null;
     const ranked = await this.ranked(metric);
     const totalPages = Math.max(1, Math.ceil(ranked.length / pageSize));
-    const toEntry = (row: Ranked): Entry => ({ playerId: row.playerId, displayName: row.displayName, elementKey: row.elementKey, rank: row.rank, value: display(row.score), isSelf: row.playerId === viewerId });
+    const toEntry = (row: Ranked): Entry => ({ playerId: row.playerId, displayName: row.displayName, elementKey: row.elementKey, rank: row.rank, value: display(metric, row.score), isSelf: row.playerId === viewerId });
     const self = ranked.find(row => row.playerId === viewerId);
     let selfStatus: 'RANKED' | 'NOT_PUBLIC' | 'NOT_ELIGIBLE' = self ? 'RANKED' : 'NOT_ELIGIBLE';
     if (!self && metric.privacy.length) {
@@ -135,6 +138,6 @@ export class RankingService {
     const balance = (key: string) => player.resourceBalances.find(row => row.resourceKey === key)?.amount.toString() ?? 'indisponible';
     const gacha = player.gachaState;
     const rate = fiveStarRate(gacha?.totalFiveStars ?? null, gacha?.totalPulls ?? null);
-    return `Top personnel — ${player.displayName} : niveau ${player.progression ? derivePlayerLevel(player.progression.xp) : 'indisponible'} · XP ${player.progression?.xp ?? 'indisponible'} · Pulls ${gacha?.totalPulls ?? 'indisponible'} · 5★ ${gacha?.totalFiveStars ?? 'indisponible'} · Taux 5★ ${rate ? `${rate} %` : 'indisponible'} · Pity 5★ ${gacha?.pity5 ?? 'indisponible'} · Primos ${balance('primogems')} · Moras ${balance('moras')} · Box ${player.characters.length} · C6 ${player.characters.filter(row => row.constellation >= 6).length}.`;
+    return `Top personnel — ${player.displayName} : niveau ${player.progression ? derivePlayerLevel(player.progression.xp) : 'indisponible'} · XP ${player.progression?.xp ?? 'indisponible'} · Pulls ${gacha?.totalPulls ?? 'indisponible'} · 5★ ${gacha?.totalFiveStars ?? 'indisponible'} · Taux 5★ ${rate ? `${rate} %` : 'indisponible'} · Pity 5★ ${gacha ? `${gacha.pity5}/90` : 'indisponible'} · Primos ${balance('primogems')} · Moras ${balance('moras')} · Box ${player.characters.length} · C6 ${player.characters.filter(row => row.constellation >= 6).length}.`;
   }
 }

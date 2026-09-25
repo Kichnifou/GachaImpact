@@ -9,6 +9,7 @@ import RankingsScreen from './RankingsScreen'
 const metrics: RankingPageDto['metrics'] = [
   { id: 'xp', label: 'XP', category: 'PROGRESSION', aliases: ['xp'], source: 'progression', format: 'INTEGER', privacy: ['GENERAL_STATISTICS'], eligibility: 'positive' },
   { id: 'pulls', label: 'Pulls', category: 'GACHA', aliases: ['pulls'], source: 'gacha', format: 'INTEGER', privacy: ['GENERAL_STATISTICS'], eligibility: 'positive' },
+  { id: 'pity5', label: 'Pity 5★', category: 'GACHA', aliases: ['pity'], source: 'gacha', format: 'PITY5', privacy: ['PITY_GUARANTEE'], eligibility: 'positive' },
 ]
 const page = (metric = 'xp', number = 1): RankingPageDto => ({ metric: metrics.find(item => item.id === metric)!, metrics, categories: ['PROGRESSION', 'GACHA'], page: number, pageSize: 20, total: 21, totalPages: 2,
   entries: [{ playerId: 'p1', displayName: 'Éloïse', elementKey: 'pyro', rank: number === 1 ? 1 : 21, value: '9007199254740993', isSelf: false }],
@@ -37,6 +38,49 @@ describe('RankingsScreen', () => {
       await act(async () => { root.render(<RankingsScreen onLoad={async () => ({ ...page(), self: null, selfStatus: 'NOT_PUBLIC' })} onProfile={() => {}} />); await Promise.resolve() })
       expect(container.textContent).toContain('Votre donnée n’est pas publique')
       expect(container.textContent).not.toContain('Votre rang :')
+    } finally { act(() => root.unmount()) }
+  })
+  it('does not show an XP snapshot after Pulls fails', async () => {
+    const container = document.createElement('div'); const root = createRoot(container)
+    const onLoad = vi.fn(async (metric: string, number: number) => {
+      if (metric === 'pulls') throw new Error('Lecture Pulls indisponible')
+      return page(metric, number)
+    })
+    try {
+      await act(async () => { root.render(<RankingsScreen onLoad={onLoad} onProfile={() => {}} />); await Promise.resolve() })
+      expect(container.textContent).toContain('9007199254740993')
+      await act(async () => { [...container.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(button => button.textContent === 'Gacha')!.click(); await Promise.resolve() })
+      expect(onLoad).toHaveBeenLastCalledWith('pulls', 1)
+      expect(container.querySelector('select')?.value).toBe('pulls')
+      expect(container.querySelector('[role="alert"]')).not.toBeNull()
+      expect(container.textContent).not.toContain('9007199254740993')
+      expect(container.textContent).not.toContain('Page 1 / 2')
+    } finally { act(() => root.unmount()) }
+  })
+  it('does not present page 1 as page 2 after a paging error', async () => {
+    const container = document.createElement('div'); const root = createRoot(container)
+    const onLoad = vi.fn(async (metric: string, number: number) => {
+      if (number === 2) throw new Error('Page indisponible')
+      return page(metric, number)
+    })
+    try {
+      await act(async () => { root.render(<RankingsScreen onLoad={onLoad} onProfile={() => {}} />); await Promise.resolve() })
+      await act(async () => { [...container.querySelectorAll<HTMLButtonElement>('.rankings-pages button')].find(button => button.textContent === 'Suivant')!.click(); await Promise.resolve() })
+      expect(onLoad).toHaveBeenLastCalledWith('xp', 2)
+      expect(container.querySelector('[role="alert"]')).not.toBeNull()
+      expect(container.textContent).not.toContain('9007199254740993')
+      expect(container.textContent).not.toContain('Page 2 / 2')
+    } finally { act(() => root.unmount()) }
+  })
+  it('shows the server-provided Pity value without changing it into a frontend score', async () => {
+    const container = document.createElement('div'); const root = createRoot(container)
+    const onLoad = vi.fn(async (metric: string, number: number): Promise<RankingPageDto> => ({ ...page(metric, number), entries: [{ ...page(metric, number).entries[0]!, value: metric === 'pity5' ? '74/90' : '10' }] }))
+    try {
+      await act(async () => { root.render(<RankingsScreen onLoad={onLoad} onProfile={() => {}} />); await Promise.resolve() })
+      await act(async () => { [...container.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(button => button.textContent === 'Gacha')!.click(); await Promise.resolve() })
+      await act(async () => { const select = container.querySelector('select')!; select.value = 'pity5'; select.dispatchEvent(new Event('change', { bubbles: true })); await Promise.resolve() })
+      expect(onLoad).toHaveBeenLastCalledWith('pity5', 1)
+      expect(container.textContent).toContain('74/90')
     } finally { act(() => root.unmount()) }
   })
 });

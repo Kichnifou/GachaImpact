@@ -93,6 +93,8 @@ describe('Chat command adapters', () => {
     expect(services.rankingService.chatTop).toHaveBeenCalledWith(expect.objectContaining({ id: 'xp' }), 'self');
     expect(await send('!top luck')).toBe('XP : #1 Autre — 30.');
     expect(services.rankingService.chatTop).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'rate5' }), 'self');
+    await send('!top pity');
+    expect(services.rankingService.chatTop).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'pity5', format: 'PITY5' }), 'self');
     expect(await send('!top me')).toBe('Top personnel — Moi : XP 30.');
     expect(await send('!top unknown')).toContain('Métrique inconnue');
     expect(await send('!top')).toContain('taux5');

@@ -50,14 +50,24 @@ describe('Ranking isolated PostgreSQL', () => {
     await database.privacySetting.update({ where: { playerId_categoryKey: { playerId: publicId, categoryKey: 'GENERAL_STATISTICS' } }, data: { level: 'PUBLIC' } });
     expect((await ranking.list('xp', viewer))?.entries[0]?.rank).toBe(1);
   });
-  it('requires both currency and bank public for derived wealth', async () => {
+  it('ranks a public wallet without materializing Bank, then adds its balance when present', async () => {
     await database.playerResourceBalance.create({ data: { playerId: publicId, resourceKey: 'moras', amount: 50n } });
-    await database.playerBankAccount.create({ data: { playerId: publicId, balance: 100n, lastInterestDate: new Date('2026-09-25') } });
     expect((await ranking.list('moras', viewer))?.entries).toEqual([]);
     await database.privacySetting.createMany({ data: [{ playerId: publicId, categoryKey: 'CURRENCY_BALANCES', level: 'PUBLIC' }, { playerId: publicId, categoryKey: 'BANK', level: 'PUBLIC' }] });
+    expect(await database.playerBankAccount.count({ where: { playerId: publicId } })).toBe(0);
+    expect((await ranking.list('moras', viewer))?.entries[0]?.value).toBe('50');
+    expect(await database.playerBankAccount.count({ where: { playerId: publicId } })).toBe(0);
+    await database.playerBankAccount.create({ data: { playerId: publicId, balance: 100n, lastInterestDate: new Date('2026-09-25') } });
     expect((await ranking.list('moras', viewer))?.entries[0]?.value).toBe('150');
     await database.privacySetting.update({ where: { playerId_categoryKey: { playerId: publicId, categoryKey: 'BANK' } }, data: { level: 'FRIENDS' } });
     expect((await ranking.list('moras', viewer))?.entries).toEqual([]);
+  });
+  it('serves the Pity value as X/90 while retaining the numeric rank', async () => {
+    await database.playerGachaState.create({ data: { playerId: publicId, pity5: 74 } });
+    const response = await app.inject({ url: '/api/v1/rankings?metric=pity5', headers: { authorization: `Bearer ${viewer}` } });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().metric.format).toBe('PITY5');
+    expect(response.json().entries[0]).toMatchObject({ playerId: publicId, rank: 1, value: '74/90' });
   });
   it('counts only currently active catalogue possessions for Box, C6 and copies', async () => {
     const active = await database.character.create({ data: { externalKey: 'rank-active', name: 'Active', rarity: 5, elementKey: 'pyro', isActive: true } });

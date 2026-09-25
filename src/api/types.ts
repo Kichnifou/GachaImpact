@@ -17,7 +17,7 @@ export type ModerationPlayerDto = Readonly<{ id: string; displayName: string; el
 
 export const navigationMenuDestinationIds = ['home', 'invocation', 'box', 'team', 'catalog', 'activities', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'codes', 'social', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'configuration'] as const
 export type RankingCategory = 'PROGRESSION' | 'GACHA' | 'RESSOURCES' | 'COLLECTION' | 'ACTIVITE'
-export type RankingMetricDto = Readonly<{ id: string; label: string; category: RankingCategory; aliases: readonly string[]; source: string; format: 'INTEGER' | 'PERCENT'; privacy: readonly string[]; eligibility: string }>
+export type RankingMetricDto = Readonly<{ id: string; label: string; category: RankingCategory; aliases: readonly string[]; source: string; format: 'INTEGER' | 'PERCENT' | 'PITY5'; privacy: readonly string[]; eligibility: string }>
 export type RankingEntryDto = Readonly<{ playerId: string; displayName: string; elementKey: string; rank: number; value: string; isSelf: boolean }>
 export type RankingPageDto = Readonly<{ metric: RankingMetricDto; categories: readonly RankingCategory[]; metrics: readonly RankingMetricDto[]; page: number; pageSize: number; total: number; totalPages: number; entries: readonly RankingEntryDto[]; self: RankingEntryDto | null; selfStatus: 'RANKED' | 'NOT_PUBLIC' | 'NOT_ELIGIBLE' }>
 export type NavigationMenuDestinationId = (typeof navigationMenuDestinationIds)[number]
