@@ -231,6 +231,7 @@ export default function DirectMessagePanel({
     sendBusy = useRef(false),
     composerFocusEligible = useRef(false),
     restoreComposerFocus = useRef(false),
+    promotionFocus = useRef<SendPayload | null>(null),
     replyRevision = useRef(0),
     viewRef = useRef(view),
     selectedIdRef = useRef(selectedId),
@@ -332,6 +333,7 @@ export default function DirectMessagePanel({
     setSendPending(false);
     restoreComposerFocus.current = false;
     composerFocusEligible.current = false;
+    promotionFocus.current = null;
     intentRef.current = null;
   };
   const changeDraft = (value: string) => {
@@ -485,6 +487,7 @@ export default function DirectMessagePanel({
       if (event.target instanceof Element && event.target.closest(".dm-send")) return;
       composerFocusEligible.current = false;
       restoreComposerFocus.current = false;
+      promotionFocus.current = null;
     };
     document.addEventListener("focusin", trackFocus);
     return () => document.removeEventListener("focusin", trackFocus);
@@ -849,6 +852,19 @@ export default function DirectMessagePanel({
       composerFocusEligible.current = true;
     });
   };
+  useLayoutEffect(() => {
+    if (queuedSend !== null || !promotionFocus.current) return;
+    const payload = promotionFocus.current;
+    promotionFocus.current = null;
+    if (!restoreComposerFocus.current || !composerFocusEligible.current || composerSession.current !== payload.session || activeSendId.current !== payload.operationId || document.hidden || !activeRef.current) return;
+    const boundary = payload.focusBoundary;
+    if (viewRef.current !== boundary.view || selectedIdRef.current !== boundary.selectedId || targetIdRef.current !== boundary.targetId) return;
+    const field = composer.current;
+    if (!field || field.disabled) return;
+    field.focus();
+    field.setSelectionRange(field.value.length, field.value.length);
+    composerFocusEligible.current = true;
+  }, [queuedSend]);
   const runTransport = async (payload: SendPayload) => {
     activeSendId.current = payload.operationId;
     sendBusy.current = true;
@@ -882,9 +898,11 @@ export default function DirectMessagePanel({
       });
       const next = queuedSendRef.current;
       if (next && next.session === payload.session && next.destination === payload.destination) {
+        const focusEligible = composerFocusEligible.current;
         queuedSendRef.current = null;
         setQueuedSend(null);
-        restoreComposerFocus.current = composerFocusEligible.current;
+        restoreComposerFocus.current = focusEligible;
+        promotionFocus.current = focusEligible ? next : null;
         void runTransport(next);
       }
     } catch {
@@ -1211,7 +1229,7 @@ export default function DirectMessagePanel({
           ) : (
             <>
               <div
-                className={`dm-message-bubble${message.deletedAt ? " deleted" : ""}${actionable || replyable || reportable ? " has-actions" : ""}`}
+                className={`dm-message-bubble${message.deletedAt ? " deleted" : ""}`}
                 onClick={(event) => {
                   if (
                     !(actionable || reportable) ||

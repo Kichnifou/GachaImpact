@@ -9004,8 +9004,6 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .dm-message-content { position: relative; display: flex; max-width: 84%; flex-direction: column; align-items: flex-start; }
 .dm-message.own .dm-message-content { align-items: flex-end; }
 .dm-message-bubble, .dm-message-edit { position: relative; max-width: 100%; padding: 7px 9px; border: 1px solid rgba(104, 142, 193, .2); border-radius: 10px 10px 10px 3px; background: rgba(24, 39, 66, .9); }
-.dm-message-bubble.has-actions { min-width: 90px; padding-right: 88px; }
-.dm-message.other .dm-message-bubble.has-actions { min-width: 65px; padding-right: 63px; }
 .dm-message.own .dm-message-bubble, .dm-message.own .dm-message-edit { border-radius: 10px 10px 3px 10px; border-color: rgba(77, 154, 220, .3); background: rgba(30, 79, 125, .82); }
 .dm-message-bubble.deleted { color: #91a0b5; font-style: italic; }
 .dm-reply-preview { max-width: 100%; margin: 0 0 5px; padding: 4px 6px; overflow: hidden; color: #9cc8e5; font-size: 9px; font-style: normal; text-overflow: ellipsis; white-space: nowrap; border-left: 2px solid rgba(111, 198, 246, .66); border-radius: 3px; background: rgba(5, 16, 31, .34); }
@@ -9013,9 +9011,12 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .dm-message a { color: #92ddff; text-decoration: underline; }
 .dm-message-edited { display: block; margin-top: 2px; color: #91a9c8; font-size: 8px; font-style: normal; text-align: right; }
 .dm-message-actions { position: absolute; z-index: 8; top: 4px; right: 4px; display: flex; gap: 2px; padding: 2px; opacity: 0; pointer-events: none; border: 1px solid rgba(104, 142, 193, .28); border-radius: 6px; background: rgba(15, 25, 44, .96); box-shadow: 0 4px 12px rgba(0, 0, 0, .28); transition: opacity .12s ease; }
-.dm-message.own:hover .dm-message-actions, .dm-message.own:focus-within .dm-message-actions, .dm-message.own.actions-open .dm-message-actions { opacity: 1; pointer-events: auto; }
-.dm-message.other:hover .dm-message-report-action, .dm-message.other:focus-within .dm-message-report-action, .dm-message.other.actions-open .dm-message-report-action { opacity: 1; pointer-events: auto; }
-.dm-message-report-action { right: 4px; }
+.dm-message.own:focus-within .dm-message-actions, .dm-message.own.actions-open .dm-message-actions { opacity: 1; pointer-events: auto; }
+.dm-message.other:focus-within .dm-message-report-action, .dm-message.other.actions-open .dm-message-report-action { opacity: 1; pointer-events: auto; }
+@media (hover: hover) and (pointer: fine) {
+  .dm-message.own:hover .dm-message-actions, .dm-message.other:hover .dm-message-report-action { opacity: 1; pointer-events: auto; }
+}
+.dm-message-report-action { right: auto; left: 4px; }
 .dm-message-actions > button { width: 22px; height: 22px; padding: 0; color: #b9cbe1; font-size: 13px; border: 0; border-radius: 4px; background: transparent; cursor: pointer; }
 .dm-message-actions > button:not(:disabled):hover, .dm-message-actions > button:not(:disabled):focus-visible { color: #f1f7ff; background: rgba(61, 106, 159, .42); }
 .dm-message-actions > button:disabled { cursor: default; opacity: .45; }

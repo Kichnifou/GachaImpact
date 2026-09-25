@@ -87,6 +87,7 @@ describe('DirectMessagePanel', () => {
     expect(appCss).toContain('.dm-list-tabs button[aria-selected="true"]::after')
     expect(appCss).not.toContain('.dm-message.pending { opacity:')
     expect(appCss).toContain('.dm-message-actions { position: absolute;')
+    expect(appCss.includes('.dm-message-bubble.has-actions')).toBe(false)
     expect(appCss).toContain('.dm-message-delete-confirm { position: absolute;')
     expect(appCss).toContain('.dm-report-overlay { position: fixed;')
     expect(appCss).toContain('.dm-composer-reply { display: flex;')
@@ -236,6 +237,61 @@ describe('DirectMessagePanel', () => {
     expect(document.activeElement).toBe(field)
     await write('M3')
     expect(field.value).toBe('M3')
+    await act(async () => { finishSecond({ conversationId, messageId: '88888888-8888-4888-8888-888888888888', replayed: false }); await Promise.resolve() }); await settle()
+  })
+
+  it('focuses M3 immediately when queued M2 starts, before M2 network completion', async () => {
+    let finishFirst!: (value: { conversationId: string; messageId: string; replayed: boolean }) => void
+    let finishSecond!: (value: { conversationId: string; messageId: string; replayed: boolean }) => void
+    directMessages.send.mockReturnValueOnce(new Promise(resolve => { finishFirst = resolve })).mockReturnValueOnce(new Promise(resolve => { finishSecond = resolve }))
+    const container = await mount()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-conversation-row-open')!.click() }); await settle()
+    const field = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    const write = async (value: string) => act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(field, value); field.dispatchEvent(new Event('input', { bubbles: true })) })
+    field.focus()
+    await write('M1')
+    await act(async () => { field.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) }); await settle()
+    await write('M2')
+    field.blur() // Simulate the browser releasing focus as the queued textarea becomes disabled.
+    await act(async () => { field.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    expect(field.disabled).toBe(true)
+    expect(document.activeElement).not.toBe(field)
+    const frame = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => { callback(0); return 1 })
+    try {
+      await act(async () => { finishFirst({ conversationId, messageId: '77777777-7777-4777-8777-777777777777', replayed: false }); await Promise.resolve() })
+      expect(directMessages.send).toHaveBeenCalledTimes(2)
+      expect(container.querySelector('.dm-message.pending')?.textContent).toContain('M2')
+      expect(field.disabled).toBe(false)
+      expect(field.value).toBe('')
+      expect(document.activeElement).toBe(field)
+      expect(field.selectionStart).toBe(0)
+      await write('M3')
+      expect(field.value).toBe('M3')
+      expect(directMessages.send).toHaveBeenCalledTimes(2)
+      await act(async () => { finishSecond({ conversationId, messageId: '88888888-8888-4888-8888-888888888888', replayed: false }); await Promise.resolve() })
+    } finally { frame.mockRestore() }
+  })
+
+  it('does not steal focus from a control chosen while M2 is queued', async () => {
+    let finishFirst!: (value: { conversationId: string; messageId: string; replayed: boolean }) => void
+    let finishSecond!: (value: { conversationId: string; messageId: string; replayed: boolean }) => void
+    directMessages.send.mockReturnValueOnce(new Promise(resolve => { finishFirst = resolve })).mockReturnValueOnce(new Promise(resolve => { finishSecond = resolve }))
+    const container = await mount()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-conversation-row-open')!.click() }); await settle()
+    const field = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    const write = async (value: string) => act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(field, value); field.dispatchEvent(new Event('input', { bubbles: true })) })
+    field.focus()
+    await write('M1')
+    await act(async () => { field.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) }); await settle()
+    await write('M2')
+    await act(async () => { field.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    const back = container.querySelector<HTMLButtonElement>('.dm-back')!
+    back.focus()
+    expect(document.activeElement).toBe(back)
+    await act(async () => { finishFirst({ conversationId, messageId: '77777777-7777-4777-8777-777777777777', replayed: false }); await Promise.resolve() }); await settle()
+    expect(directMessages.send).toHaveBeenCalledTimes(2)
+    expect(field.disabled).toBe(false)
+    expect(document.activeElement).toBe(back)
     await act(async () => { finishSecond({ conversationId, messageId: '88888888-8888-4888-8888-888888888888', replayed: false }); await Promise.resolve() }); await settle()
   })
 
