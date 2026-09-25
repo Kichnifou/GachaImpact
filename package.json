@@ -6,8 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "typecheck": "tsc -b --pretty false",
     "lint": "oxlint",
     "test": "vitest run",
+    "verify:quick": "node scripts/verify.mjs quick",
+    "verify:full": "node scripts/verify.mjs full",
     "preview": "vite preview"
   },
   "dependencies": {

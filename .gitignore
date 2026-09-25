@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 *.local
+docs/work/TASK_STATE.md
 .env
 .env.*
 !.env.example
