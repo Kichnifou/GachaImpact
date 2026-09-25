@@ -7488,10 +7488,11 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .shop-item-heading h2 { margin: 3px 0 0; font-size: 15px; }
 .shop-item-symbol { width: 42px; height: 42px; display: grid; place-items: center; flex: 0 0 auto; color: var(--shop-color); font-size: 22px; border: 1px solid color-mix(in srgb, var(--shop-color) 36%, transparent); border-radius: 13px 5px; background: color-mix(in srgb, var(--shop-color) 10%, transparent); }
 .shop-description { min-height: 45px; margin: 12px 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
-.shop-ticket-odds { min-height: 112px; display: grid; gap: 4px; margin: 0; padding: 8px; list-style: none; border: 1px solid rgba(135, 157, 197, .13); border-radius: 8px; background: rgba(3, 9, 20, .34); }
+.shop-card-options { min-height: 82px; display: grid; align-content: end; }
+.shop-ticket-odds { min-height: 82px; display: grid; gap: 4px; margin: 0; padding: 8px; list-style: none; border: 1px solid rgba(135, 157, 197, .13); border-radius: 8px; background: rgba(3, 9, 20, .34); }
 .shop-ticket-odds li { display: flex; justify-content: space-between; gap: 8px; color: #afbdd2; font-size: 7px; }
 .shop-ticket-odds strong { color: var(--shop-color); }
-.shop-card-controls { min-height: 150px; display: grid; align-content: end; gap: 7px; margin-top: auto; }
+.shop-card-controls { min-height: 0; display: grid; align-content: end; gap: 7px; margin-top: auto; }
 .shop-quantity { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 7px; }
 .shop-quantity label { display: grid; gap: 4px; color: var(--muted); font-size: 8px; }
 .shop-quantity input { width: 100%; min-height: 34px; padding: 0 9px; color: white; border: 1px solid var(--border); border-radius: 7px; background: rgba(4, 10, 22, .7); }
