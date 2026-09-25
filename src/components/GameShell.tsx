@@ -438,7 +438,7 @@ return <ActivitiesScreen friendship={friendship.value?.summary} friendshipError=
       case 'social':
         return socialActions ? <SocialScreen actions={socialActions} onProfile={openProfile} controller={friendship} selectedTab={socialTab} onTabChange={setSocialTab} /> : null
       case 'profile':
-        return socialActions ? <ProfileScreen key={profileId} playerId={profileId} ownerPlayerId={player.id} actions={socialActions} controller={friendship} onMessage={openDirectMessage} onTrade={partner => { setTradeIntent({ token: crypto.randomUUID(), partner }); navigate('trades') }} onDirectory={() => { setSocialTab('players'); navigate('social') }} onPrivacy={() => { setConfigurationTab('privacy'); navigate('configuration') }} /> : null
+        return socialActions ? <ProfileScreen key={profileId} playerId={profileId} ownerPlayerId={player.id} actions={socialActions} controller={friendship} onMessage={openDirectMessage} onTrade={partner => { setTradeIntent({ token: crypto.randomUUID(), partner }); navigate('trades') }} onDirectory={() => { setSocialTab('players'); navigate('social') }} onRankings={() => navigate('rankings')} onPrivacy={() => { setConfigurationTab('privacy'); navigate('configuration') }} /> : null
       case 'rankings':
         return <RankingsScreen onLoad={onLoadRanking} onProfile={openProfile} />
       case 'configuration':

@@ -23,8 +23,8 @@ describe('Social policies', () => {
     expect(normalizePlayerSearch('Yelan').includes('ya')).toBe(false);
   });
   it('keeps R518 defaults and separate presence/last activity categories', () => {
-    expect(Object.entries(privacyDefaults).filter(([,v]) => v === 'PUBLIC').map(([k]) => k)).toEqual(['ACTIVE_TEAM', 'BOX', 'COLLECTION', 'GENERAL_STATISTICS', 'MISSIONS', 'LAST_ACTIVITY', 'PITY_GUARANTEE', 'PRIVATE_MESSAGES', 'PRESENCE']);
+    expect(Object.entries(privacyDefaults).filter(([,v]) => v === 'PUBLIC').map(([k]) => k)).toEqual(['ACTIVE_TEAM', 'BOX', 'COLLECTION', 'GENERAL_STATISTICS', 'MISSIONS', 'LAST_ACTIVITY', 'PITY_GUARANTEE', 'PRIVATE_MESSAGES', 'PRESENCE', 'CURRENCY_BALANCES', 'BANK']);
     expect(privacyDefaults.FRIEND_LIST).toBe('FRIENDS');
-    expect(Object.values(privacyDefaults).filter(v => v === 'PRIVATE')).toHaveLength(8);
+    expect(Object.values(privacyDefaults).filter(v => v === 'FRIENDS')).toHaveLength(7);
   });
 });

@@ -1,24 +1,33 @@
 .rankings-screen { min-width: 0; max-width: 100%; overflow-x: hidden; }
 .rankings-frame { min-height: 0; }
-.rankings-controls { display: grid; gap: 1rem; padding: 1rem; }
-.rankings-categories { display: flex; gap: .5rem; overflow-x: auto; scrollbar-width: none; }
-.rankings-categories button { white-space: nowrap; }
-.rankings-categories button.active { border-color: var(--color-accent, #d7b97e); color: #fff; }
+.rankings-controls { display: grid; gap: .8rem; padding: .8rem 1rem; border-bottom: 1px solid rgba(108, 195, 255, .2); }
+.rankings-categories { display: flex; gap: .45rem; overflow-x: auto; scrollbar-width: none; touch-action: pan-x; }
+.rankings-categories::-webkit-scrollbar { display: none; }
+.rankings-categories .app-button { flex: 0 0 auto; white-space: nowrap; min-height: 36px; }
+.rankings-categories .app-button.active { color: #f2fbff; border-color: rgba(83, 210, 255, .62); background: rgba(24, 81, 126, .88); box-shadow: inset 0 -2px #5fd7ff; }
 .rankings-controls label { display: flex; align-items: center; gap: .75rem; }
-.rankings-controls select { max-width: 100%; min-width: 0; background: #1d2330; color: #fff; border: 1px solid #657086; border-radius: 6px; padding: .45rem; }
+.rankings-controls select { max-width: 100%; min-width: 0; min-height: 38px; background: #1d3149; color: #f4fbff; border: 1px solid rgba(108, 195, 255, .45); border-radius: 8px; padding: .45rem .7rem; font: inherit; }
+.rankings-controls select:hover { border-color: rgba(108, 211, 255, .8); }
+.rankings-controls select:focus-visible { outline: 2px solid #70dcff; outline-offset: 2px; }
 .rankings-body { min-width: 0; }
-.rankings-list { list-style: none; padding: 0; margin: 0; display: grid; gap: .45rem; }
-.rankings-list li { display: flex; align-items: center; gap: .7rem; min-width: 0; padding: .65rem .8rem; border: 1px solid #3b4558; border-radius: 8px; background: #171d2b; }
-.rankings-list li.podium { border-color: #b99b60; }
+.rankings-list { list-style: none; padding: 0; margin: 0; display: grid; gap: .5rem; min-height: 280px; align-content: start; }
+.rankings-list li { display: flex; align-items: center; gap: .7rem; min-width: 0; min-height: 49px; padding: .55rem .8rem; border: 1px solid rgba(101, 168, 236, .24); border-radius: 10px; background: linear-gradient(120deg, rgba(27, 53, 83, .85), rgba(18, 34, 55, .93)); }
+.rankings-list li.podium { border-color: rgba(215, 185, 126, .55); box-shadow: inset 3px 0 rgba(215, 185, 126, .72); }
 .rankings-list li.self, .rankings-self { background: #26344b; }
-.rankings-list li button { display: flex; align-items: center; gap: .55rem; min-width: 0; flex: 1 1 auto; background: none; border: 0; color: #fff; cursor: pointer; text-align: left; overflow-wrap: anywhere; }
+.rankings-list li button { display: flex; align-items: center; gap: .55rem; min-width: 0; flex: 1 1 auto; background: none; border: 0; color: #fff; cursor: pointer; text-align: left; overflow-wrap: anywhere; font: inherit; }
+.rankings-list li button:hover { color: #80ddff; }
+.rankings-list li button:focus-visible { outline: 2px solid #70dcff; outline-offset: 2px; border-radius: 4px; }
 .rankings-list li strong { margin-left: auto; text-align: right; overflow-wrap: anywhere; min-width: 0; max-width: 45%; flex: 0 1 auto; }
 .rankings-rank { min-width: 2.5rem; font-weight: 700; }
-.rankings-pages { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1rem; }
-.rankings-pages button:disabled { opacity: .4; }
+.rankings-pages { display: flex; align-items: center; justify-content: center; gap: .75rem; margin-top: .75rem; }
+.rankings-pages .app-button { min-width: 105px; }
+.rankings-empty { min-height: 280px; display: grid; place-items: center; text-align: center; }
+.rankings-error { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
 @media (max-width: 600px) {
   .rankings-controls { padding: .65rem; }
   .rankings-list li { padding: .55rem; gap: .35rem; }
   .rankings-rank { min-width: 2rem; }
   .rankings-list li button { gap: .35rem; }
+  .rankings-pages { gap: .35rem; }
+  .rankings-pages .app-button { min-width: 0; padding-inline: .5rem; }
 }

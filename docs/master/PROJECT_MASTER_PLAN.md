@@ -1,16 +1,16 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : Statistiques générales validées publiquement ; R907 et Classements promus sur main, test public à venir
+Version : R907 validé publiquement ; correctifs Classements post-test en candidat review ; Historique global à venir
 Date : 2026-09-25
-Statut : STATISTIQUES GÉNÉRALES PROMUES ET VALIDÉES PUBLIQUEMENT ; R907 ET TOP / CLASSEMENTS GLOBAUX APPROUVÉS EN REVIEW ET PROMUS SUR MAIN DANS CE CHECKPOINT, SANS VALIDATION PUBLIQUE DE CES DEUX LOTS ; LOTS MISSIONS 1 À 5 ET CYCLE MESSAGES PRIVÉS PROMUS ET VALIDÉS PUBLIQUEMENT ; WORKFLOW CODEX PROMU ET ACTIF
+Statut : R907 VALIDÉ PUBLIQUEMENT ; CLASSEMENTS MÉTIER TESTÉS PUBLIQUEMENT, CORRECTIFS UI/PERFORMANCE/PRODUIT EN CANDIDAT REVIEW, DOMAINE NON CLÔTURÉ PUBLIQUEMENT ; STATISTIQUES GÉNÉRALES, MISSIONS 1 À 5 ET MESSAGES PRIVÉS VALIDÉS PUBLIQUEMENT
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ---
 
 ## Reprise rapide — état vivant
 
-- **Statistiques générales promues sur `main` et validées publiquement par le propriétaire.** `Profil > Statistiques` présente Progression, Gacha, Économie et Activités depuis une projection serveur en lecture seule des sept tables propriétaires. Les 23 métriques, dont le taux de 5★ dérivé sans perte de précision, suivent `GENERAL_STATISTICS` ; `!infos` reste compact. Le propriétaire confirme les quatre groupes, le taux Gacha, les valeurs Économie/Activités, la confidentialité `GENERAL_STATISTICS` et le rendu mobile. Pendant cette validation, `!infos @Pseudo` a révélé un défaut transverse de résolution des références Player. R907 est approuvée par review indépendante et promue sur `main` dans ce checkpoint ; son résultat public reste à vérifier. Aucune migration Prisma supplémentaire. Les Lots Missions 1 à 5 et le cycle Messages privés restent promus et validés publiquement. Restent non implémentés les notifications de complétion Missions player-facing, Twitch et la migration legacy R328.
-- **Top / Classements globaux V1 approuvés en review et promus sur `main` dans ce checkpoint ; test public en attente.** Le registre serveur couvre 32 métriques en cinq catégories ; `RankingService` relit les sources canoniques, filtre strictement les permissions Public et les valeurs positives, puis calcule les rangs compétition avant une pagination de 20. Le taux 5★ est classé par fraction exacte avec 100 Pulls minimum ; le patrimoine Moras additionne portefeuille et Banque seulement si les deux sont Public. Après correction review, une Banque non matérialisée compte pour zéro sans provisioning, Pity s'affiche `X/90` sans modifier son score, l'écran ne montre plus un snapshot ancien après erreur, et un test couvre les ex æquo de part et d'autre d'une page. `GET /api/v1/rankings` authentifié alimente l'écran Classements du Menu global et `!top` utilise le même service pour le Top 5 et le résumé personnel. Aucune migration, récompense, saison, table ni cache Ranking. Railway, Cloudflare Pages, healthcheck et test public restent à vérifier après promotion.
+- **Statistiques générales et R907 validées publiquement par le propriétaire.** `Profil > Statistiques` présente quatre groupes et 23 métriques en lecture seule. Le test public confirme `!infos Pseudo`, `!infos @Pseudo`, les références Player avec `@` dans le Chat et `!echanger @Pseudo`. Le correctif Notifications Trade ci-dessous est distinct de R907. Les Lots Missions 1 à 5 et le cycle Messages privés restent validés publiquement ; notifications de complétion Missions player-facing, Twitch et migration legacy R328 restent reportés.
+- **Classements métier testés publiquement, correctifs post-test en candidat `review` ; domaine non encore clôturé publiquement.** Le propriétaire confirme écran, données, égalités, confidentialité Public, navigation et métriques. Le candidat porte 34 métriques en cinq catégories, dont C6 5★/4★/total ; les rangs sont calculés globalement avant pagination de cinq. Le service charge seulement les relations nécessaires à la métrique ; `GET /api/v1/rankings` et `!top` partagent ce calcul. Les Tops globaux restent strictement Public. `CURRENCY_BALANCES` et `BANK` deviennent Public par défaut, les six autres anciens défauts Privé deviennent Amis uniquement ; les overrides explicites restent inchangés. Le raccourci `Profil > Statistiques → Classements` ouvre `#rankings`. Le clic Trade accepté navigue puis archive, tandis que l'agrégat Reçues reste dynamique. Aucun déploiement ni nouveau test public de ces correctifs n'est revendiqué.
 - **Contrôles techniques du lot Classements approuvé.** Backend non DB **423/423**, frontend non DB **849/849** avec un worker, tests PostgreSQL isolés Ranking **5/5**, ciblés Ranking/Chat **119/119** et écran Ranking **5/5**, builds frontend/backend, lint réussi avec deux avertissements préexistants dans ContestScreen et `verify:quick` **5/5**. La suite frontend parallèle du lot précédent avait reproduit le timeout intermittent de ChatPanel ; ChatPanel isolé **63/63**, puis suite complète avec un worker **849/849**. Le contrôle visuel local antérieur tenté avec un harnais Edge incomplet ne permet pas de conclure sur le `GameShell` réel ; la validation visuelle/mobile publique reste à faire. Aucun déploiement Railway/Cloudflare ni healthcheck n'est revendiqué à ce stade.
 - **Contrôles du lot Statistiques avant promotion.** Tests ciblés frontend **8/8** et backend **110/110**, suites complètes non-DB frontend **843/843** et backend **410/410**, suite PostgreSQL Social/Profil **9/9**, builds frontend/backend et `verify:quick` **5/5** exécutés localement sur le candidat approuvé `631da2827f69fdf7f059edc01b4031387f92f008`. Un harnais temporaire avec le vrai `ProfileScreen`, les CSS de production et la géométrie du shell a été vérifié sous Edge à **1920×1080, 1366×768 et 390×844** : quatre groupes présents, `Non disponible` visible dans le DOM, aucune valeur coupée ni débordement horizontal mesuré. La validation publique fonctionnelle d'Axel est désormais rapportée ; ce lot n'a pas revérifié séparément Railway, Cloudflare Pages ni le healthcheck.
 - **R898 MP promue et validée publiquement.** Le propriétaire confirme réponse à autrui, réponse à soi, aperçus dynamiques et contexte dans l'Historique et le signalement. La migration additive 043, présente sur `main` et appliquée sur DEV, porte les réponses persistantes dans une même conversation ; liste, fil récent, historique, recherche et preuves de signalement projettent leur contexte selon le contrat dynamique/figé.
@@ -75,7 +75,7 @@ But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de compren
 - Expédition : l'action start/claim déclenchée est transmise à la modale ; READY → clic Récupérer → publication IDLE → refresh Notifications encore pending conserve `Récupération…`, jamais `Départ…`.
 - Partenaires : recherche, quantité, MAX et Envoyer sur une ligne desktop, wrap mobile ; largeur visuelle quantité d'environ dix chiffres, sans plafond métier ajouté. Suggestions et liste remplissent le champ avec le displayName, sans caption ni ancien texte d'aide. Retaper invalide la sélection. Debounce 120 ms, annulation dès nouvelle saisie, latest-wins, erreurs d'annulation silencieuses, aucun fetch hors onglet ; polling/focus ne concurrence ni debounce ni requête. Une mutation confirmée annule/invalide une lecture antérieure et déclenche une projection fraîche seulement sur Partenaires.
 - Coût serveur partenaires inspecté : lectures déjà groupées (acteur, joueurs, paires pending, soldes, réservations), sans requête par candidat ; verrou/expiration transactionnels conservés. La normalisation de la requête est calculée une fois par lecture. Aucun gain de latence publique chiffré ni refonte de pagination/stock/concurrence revendiqué.
-- **R24 révisée explicitement** dans l'audit Ressources et decisions-log : acceptation commitée = une TRADE_ACCEPTED à l'expéditeur, clé `trade-accepted:<requestId>`, destination Historique et READ normal. Aucune pour l'accepteur, les replays ou autres résolutions. Transfert/exécution/notification atomiques ; Accept All notifie chaque acceptation réelle seulement. R19 reste l'agrégat PENDING, diminué/résolu immédiatement après annulation par l'expéditeur.
+- **R24 révisée explicitement, puis cycle de clic R909** : acceptation commitée = une TRADE_ACCEPTED à l'expéditeur, clé `trade-accepted:<requestId>`, destination Historique et archive après navigation. Aucune pour l'accepteur, les replays ou autres résolutions. Transfert/exécution/notification atomiques ; Accept All notifie chaque acceptation réelle seulement. R19 reste l'agrégat PENDING, diminué/résolu immédiatement après annulation par l'expéditeur et non archivé automatiquement.
 - Panier : recherche rapide inline à 120 ms protégée des réponses obsolètes ; destinataire stable ; navigateur Player partagé intégral, filtres Event publics et pagination, sans Testeur ni mode searchOnly. Conversion : CTA principal/secondaire de même géométrie. Sidebar : collision CSS de Convertir supprimée ; Profil/Objectif utilisent le parent accessible, les contrôles internes ne doublent pas l'action.
 - Social : recherche/tri/cœurs alignés à 39 px desktop ; listes Amis/Demandes/Joueurs dans le body bordé, arrondi, rembourré et propriétaire du scroll. Marge de focus préserve la première carte. Mobile conserve le flux naturel prévu par le contrat UI, sans scrollbar imbriquée.
 - Validation : **652 tests frontend / 82 fichiers**, **274 tests backend / 49 fichiers**, **21 scénarios PostgreSQL Échanges** réussis sur schéma isolé (dont rollback après création de notification, cancel, accept, replays et Accept All). Ciblés frontend 152 et backend Notifications/scheduler 6 réussis ; le métier Trade est exercé par la suite DB réelle. Builds frontend/backend, typecheck backend, lint et diff-check contrôlés. Les deux warnings ContestScreen et les bruits mocks localhost:3000 restent préexistants.
@@ -1294,7 +1294,7 @@ La Boutique affiche quelques achats récents.
 - écran global `Historique` ;
 - catégorie `Boutique / Achats`.
 
-L'historique détaillé Shop est privé par défaut mais configurable Public/Amis/Privé.
+L'historique détaillé Shop est Amis uniquement par défaut (R908), configurable Public/Amis/Privé.
 
 Ne jamais fabriquer d'historique legacy absent.
 
@@ -2718,7 +2718,7 @@ Décisions principales :
 - compte à rebours uniquement UI ;
 - pas de notification quotidienne d'intérêt ;
 - historique récent Banque + Historique global complet ;
-- historique bancaire détaillé privé par défaut mais configurable Public/Amis/Privé ;
+- historique bancaire détaillé Amis uniquement par défaut (R908), configurable Public/Amis/Privé ;
 - solde Banque soumis à Public / Amis / Privé ;
 - protection contre fuite via données dérivées ;
 - sidebar = portefeuille uniquement ;
@@ -2771,7 +2771,7 @@ Décisions principales :
 - pity Ticket via moteur Gacha ;
 - Mission achetable depuis Shop ou Missions ;
 - `!shop` paginé au-delà de 5 articles ;
-- historique Shop privé par défaut via l'écran Historique global, mais configurable Public/Amis/Privé ;
+- historique Shop Amis uniquement par défaut (R908) via l'écran Historique global, configurable Public/Amis/Privé ;
 - achats atomiques/idempotents.
 
 Frontières reportées :
@@ -3301,7 +3301,7 @@ Expedition désormais cadré notamment sur :
 - workflow principal directement dans la Box ;
 - aucune vue Expedition dédiée ;
 - personnage prêt temporairement placé avant les favoris ;
-- état Expedition privé par défaut, configurable par sa rubrique dédiée et jamais révélé implicitement par la seule visibilité de la Box ;
+- état Expedition Amis uniquement par défaut (R908), configurable par sa rubrique dédiée et jamais révélé implicitement par la seule visibilité de la Box ;
 - badges `En expédition` / `À récupérer` ;
 - Expedition considérée faite dans les Quotidiennes dès le départ ;
 - Expedition prête bloquant un nouveau départ ;

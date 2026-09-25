@@ -253,6 +253,23 @@ describe('Friendship isolated PostgreSQL', () => {
     expect((await privacy.permissions(owner, viewer)).MISSIONS).toBe(false);
     expect((await privacy.permissions(owner, owner)).MISSIONS).toBe(true);
   }, 30_000);
+  it('applies versioned resource and sensitive defaults without overwriting explicit privacy choices', async () => {
+    const owner = await player(), friend = await player(), stranger = await player();
+    const original = await privacy.settings(owner);
+    expect(original.version).toBe(2);
+    expect(original.settings.find(row => row.categoryKey === 'CURRENCY_BALANCES')?.level).toBe('PUBLIC');
+    expect(original.settings.find(row => row.categoryKey === 'BANK')?.level).toBe('PUBLIC');
+    expect(original.settings.find(row => row.categoryKey === 'INVENTORY')?.level).toBe('FRIENDS');
+    expect((await privacy.permissions(owner, stranger)).INVENTORY).toBe(false);
+    await befriend(owner, friend);
+    expect((await privacy.permissions(owner, friend)).INVENTORY).toBe(true);
+    await privacy.save(owner, 'CURRENCY_BALANCES', 'PRIVATE');
+    await privacy.save(owner, 'INVENTORY', 'PUBLIC');
+    expect((await privacy.settings(owner)).settings.find(row => row.categoryKey === 'CURRENCY_BALANCES')?.level).toBe('PRIVATE');
+    expect((await privacy.permissions(owner, friend)).CURRENCY_BALANCES).toBe(false);
+    expect((await privacy.permissions(owner, stranger)).INVENTORY).toBe(true);
+    expect((await privacy.permissions(owner, owner)).CURRENCY_BALANCES).toBe(true);
+  }, 30_000);
   it('keeps activity monotonic, updates only the actor and excludes heartbeat, polling, failed action and passive recipients', async () => {
     const a = await player(), b = await player(), presence = new PresenceService(db, clock), key = randomUUID();
     await presence.touch(a, key, false, true);

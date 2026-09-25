@@ -184,7 +184,7 @@ La [source spécialisée Chat global](global-chat-v1.md) détaille ces règles. 
 - `VALIDÉ` — Aucun format abrégé `k/m` ou montant décimal en V1.
 - `VALIDÉ` — Aucun notification dédiée au crédit d'intérêt.
 - `VALIDÉ` — Historique récent dans Banque + `Voir tout` vers l'Historique global filtrable Tous/Dépôts/Retraits/Intérêts.
-- `RÉVISÉ R518` — L'historique bancaire détaillé est privé par défaut mais configurable Public/Amis/Privé ; aucune donnée dérivée ne contourne ce réglage.
+- `RÉVISÉ R908` — L'historique bancaire détaillé est Amis uniquement par défaut, configurable Public/Amis/Privé ; aucune donnée dérivée ne contourne ce réglage.
 - `VALIDÉ` — Le solde Banque peut être Public / Amis / Privé selon confidentialité.
 - `VALIDÉ` — Ne jamais exposer une donnée dérivée permettant de reconstruire une Banque privée.
 - `VALIDÉ` — La sidebar affiche seulement le portefeuille Moras.
@@ -273,7 +273,7 @@ La [source spécialisée Chat global](global-chat-v1.md) détaille ces règles. 
 - `VALIDÉ` — Dans le chat, la quantité réellement échangeable est affichée entre parenthèses à côté du pseudo.
 - `VALIDÉ` — À partir de GachaImpact, conserver côté serveur un historique des événements importants d'échange pour sécurité, diagnostic et statistiques futures, sans inventer d'historique rétroactif legacy.
 - `VALIDÉ` — L'historique serveur complet n'est pas exposé intégralement ; l'écran Échanges affiche seulement une fenêtre récente limitée à environ 20–30 transactions.
-- `RÉVISÉ — R24, 2026-09-21` — Une acceptation d'échange commitée crée une notification individuelle TRADE_ACCEPTED pour l'expéditeur uniquement, dédupliquée par request UUID et ouvrant Échanges > Historique (READ normal, sans archive automatique). Replays, refus, annulation, réduction automatique, suppression à 0, expiration et acceptation impossible n'en créent aucune. Accepter tout notifie chaque acceptation réelle, jamais UNAVAILABLE. R19 reste l'agrégat dynamique des demandes reçues PENDING, diminué/résolu immédiatement à l'annulation par l'expéditeur.
+- `RÉVISÉ — R24/R909, 2026-09-25` — Une acceptation d'échange commitée crée une notification individuelle TRADE_ACCEPTED pour l'expéditeur uniquement, dédupliquée par request UUID et ouvrant Échanges > Historique, puis archivée au clic. Replays, refus, annulation, réduction automatique, suppression à 0, expiration et acceptation impossible n'en créent aucune. Accepter tout notifie chaque acceptation réelle, jamais UNAVAILABLE. R19 reste l'agrégat dynamique des demandes reçues PENDING, diminué/résolu immédiatement à l'annulation par l'expéditeur et sans archive automatique au clic.
 - `VALIDÉ` — L'écran Échanges affiche un historique récent des transactions : environ 3 visibles immédiatement, avec scroll jusqu'à environ 20–30 dernières transactions maximum.
 - `VALIDÉ` — L'historique serveur complet reste disponible au-delà de cette fenêtre UI pour audit, diagnostic et statistiques futures.
 - `VALIDÉ` — Ajouter une action `Refuser tout` pour les demandes reçues ; UI et future commande chat doivent appeler la même logique métier, syntaxe chat exacte à définir plus tard.
@@ -463,13 +463,13 @@ La [source spécialisée Chat global](global-chat-v1.md) détaille ces règles. 
 - `VALIDÉ` — Le nombre d'invocations possibles reste visible dans le Sac et `!sac`, uniquement comme donnée dérivée.
 - `VALIDÉ` — `!coffre` trie les possessions alphabétiquement.
 - `VALIDÉ MIGRATION` — Un ID Collection inconnu est conservé et affiché sous placeholder sans fausser le compteur des objets connus.
-- `RÉVISÉ R473/R486/R487` — Le Sac complet est privé par défaut mais sa rubrique peut être rendue publique ou réservée aux amis ; `!sac` reste une commande personnelle et la consultation tierce passe par l'UI en lecture seule.
+- `RÉVISÉ R908` — Le Sac complet est Amis uniquement par défaut, configurable Public/Amis/Privé ; `!sac` reste une commande personnelle et la consultation tierce passe par l'UI en lecture seule.
 - `VALIDÉ TECHNIQUE` — Le catalogue peut supporter des limites d'achat par joueur/période sans en imposer aux articles actuels.
 - `VALIDÉ` — Aucun stock mondial limité en V1 ; extensibilité future autorisée.
 - `VALIDÉ` — `!sac` garde l'élément principal en premier et affiche aussi les objets spéciaux persistants possédés.
 - `VALIDÉ` — `!shop` utilise une pagination de 5 articles lorsque nécessaire.
 - `VALIDÉ` — Les articles visibles mais indisponibles restent présentés dans `!shop`.
-- `RÉVISÉ R518` — L'historique détaillé Boutique est privé par défaut mais configurable Public/Amis/Privé.
+- `RÉVISÉ R908` — L'historique détaillé Boutique est Amis uniquement par défaut, configurable Public/Amis/Privé.
 - `VALIDÉ` — Quantité et méthode d'obtention peuvent être publiques avec la Collection ; l'historique d'acquisition doit supporter une confidentialité granulaire.
 - `VALIDÉ TECHNIQUE` — Une limite d'achat affiche sa progression.
 - `VALIDÉ TECHNIQUE` — Un article indisponible affiche sa raison lorsqu'elle est connue.
@@ -562,7 +562,7 @@ La [source spécialisée Chat global](global-chat-v1.md) détaille ces règles. 
 - `VALIDÉ TECHNIQUE R366` — À `readyAt`, la Box ouverte se met à jour en temps réel ; personnage remonté, badge `À récupérer`, notification UI, aucune popup forcée ni récompense automatique.
 - `VALIDÉ TECHNIQUE R367` — Le reset quotidien n'annule ni ne modifie une Expedition active ; une Expedition précédente continue à bloquer le nouveau départ jusqu'à récupération.
 - `VALIDÉ MIGRATION` — `readyAt` peut être reconstruit depuis un `startedAt` fiable ; ne jamais reconstruire une Expedition depuis des données résiduelles insuffisantes ni déclencher gain/statistique pendant une réparation de migration.
-- `RÉSOLU R473/R474/R486/R487` — `totalExpeditionsCompleted` appartient aux statistiques publiques par défaut et configurables ; l'état de l'Expedition actuelle est privé par défaut mais sa rubrique peut être rendue publique ou réservée aux amis.
+- `RÉSOLU R908` — `totalExpeditionsCompleted` appartient aux statistiques publiques par défaut et configurables ; l'état de l'Expedition actuelle est Amis uniquement par défaut, configurable Public/Amis/Privé.
 - `CLÔTURÉ R369` — Domaine Expedition clôturé après R369.
 
 ## Combat
@@ -1056,7 +1056,7 @@ La [source spécialisée Chat global](global-chat-v1.md) détaille ces règles. 
 - `TECHNIQUE` — Les caches éventuels de Ranking ne sont pas sources de vérité et sont invalidés lorsqu'une permission susceptible d'exposer la métrique change.
 - `TECHNIQUE` — UI standalone, chat interne et Twitch utilisent le même service de Ranking.
 - `MIGRATION` — Aucun historique de rang, podium ou saison Top legacy n'est inventé ; les classements sont recalculés depuis les données sources migrées.
-- `CLÔTURÉ R727` — Domaine Top / Classements globaux clôturé.
+- `RÉVISÉ R910` — Le métier principal des Classements est validé au test public ; les correctifs post-test restent en candidat `review` et le domaine attend leur validation publique.
 
 ## Help / cohérence finale des commandes
 - `VALIDÉ R728` — `!help` utilise trois niveaux : catégories principales, résumé d'une catégorie et aide directe par commande.
@@ -1231,4 +1231,10 @@ La [source spécialisée Chat global](global-chat-v1.md) détaille ces règles. 
 
 ## Références Player dans les commandes Chat — R907 (2026-09-25)
 
-- `VALIDÉ R907` — Les arguments de commandes Chat qui désignent un Player acceptent indifféremment `Pseudo` et `@Pseudo`. La résolution retire l'éventuel `@` initial, puis applique la normalisation existante des noms (casse, accents et Unicode) et confirme une correspondance exacte. Cette règle couvre notamment `!infos`, `!ami`, `!echanger` et le destinataire Player des jeux Event ; elle ne modifie ni les mots-clés (`me`, `moi`, `all`), ni les identifiants de personnage, code, métrique ou autre argument sans sémantique Player. Le test public des Statistiques générales a révélé le défaut initial sur `!infos @Pseudo` ; le correctif reste un candidat `review` jusqu'à validation publique.
+- `VALIDÉ PUBLIQUEMENT R907` — Les arguments de commandes Chat qui désignent un Player acceptent indifféremment `Pseudo` et `@Pseudo`. La résolution retire l'éventuel `@` initial, puis applique la normalisation existante des noms (casse, accents et Unicode) et confirme une correspondance exacte. Le test public confirme notamment `!infos Pseudo`, `!infos @Pseudo` et `!echanger @Pseudo`.
+
+## Correctifs post-test public — R908–R910 (2026-09-25)
+
+- `VALIDÉ R908` — Politique de confidentialité version 2 : `CURRENCY_BALANCES` et `BANK` sont Public par défaut ; `INVENTORY`, `SAVED_TEAMS`, `ACTIVE_EXPEDITION`, `DAILY_COMBAT`, `BOSS_STATE` et `DETAILED_HISTORY` sont Amis uniquement par défaut. Les autres catégories conservent leur fallback. Seules les absences d'override utilisent cette politique ; les choix physiques Public/Amis/Privé restent autoritatifs, sans migration ni mise à jour de masse. R715 continue d'exclure Amis et Privé des Tops globaux. Le patrimoine Moras exige toujours que soldes et Banque soient tous deux Public.
+- `VALIDÉ R909` — Le clic sur `trades / TRADE_ACCEPTED / OPEN_TRADES_HISTORY` ouvre Échanges > Historique puis archive la notification ; un échec d'archive ne revient pas sur la navigation. `TRADES_PENDING` ouvre Reçues sans archivage automatique.
+- `VALIDÉ R910` — Classements en cinq lignes par page, calcul des rangs et égalités avant pagination ; 34 métriques dont C6 5★, C6 4★ et C6 total (`c6`), depuis les possessions actives. Lecture serveur limitée aux sources de la métrique. L'écran utilise les onglets et boutons communs, sans sous-titre ni titre de métrique redondant. Le raccourci `Profil > Statistiques → Classements` ouvre `#rankings` pour son profil comme celui d'autrui, sans filtre implicite. Ces correctifs sont candidats `review` jusqu'au prochain test public.

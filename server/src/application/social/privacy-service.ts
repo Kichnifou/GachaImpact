@@ -1,12 +1,12 @@
 import { Prisma, type PrismaClient, type PrivacyLevel } from '../../../generated/prisma/client.js';
 
 /** R518 + R519. Missing rows use this versioned policy; overrides are never reset. */
-export const PRIVACY_POLICY_VERSION = 1;
+export const PRIVACY_POLICY_VERSION = 2;
 export const privacyDefaults = {
   ACTIVE_TEAM: 'PUBLIC', BOX: 'PUBLIC', COLLECTION: 'PUBLIC', GENERAL_STATISTICS: 'PUBLIC',
   MISSIONS: 'PUBLIC', LAST_ACTIVITY: 'PUBLIC', PITY_GUARANTEE: 'PUBLIC', PRIVATE_MESSAGES: 'PUBLIC', PRESENCE: 'PUBLIC',
-  FRIEND_LIST: 'FRIENDS', CURRENCY_BALANCES: 'PRIVATE', BANK: 'PRIVATE', INVENTORY: 'PRIVATE',
-  SAVED_TEAMS: 'PRIVATE', ACTIVE_EXPEDITION: 'PRIVATE', DAILY_COMBAT: 'PRIVATE', BOSS_STATE: 'PRIVATE', DETAILED_HISTORY: 'PRIVATE',
+  FRIEND_LIST: 'FRIENDS', CURRENCY_BALANCES: 'PUBLIC', BANK: 'PUBLIC', INVENTORY: 'FRIENDS',
+  SAVED_TEAMS: 'FRIENDS', ACTIVE_EXPEDITION: 'FRIENDS', DAILY_COMBAT: 'FRIENDS', BOSS_STATE: 'FRIENDS', DETAILED_HISTORY: 'FRIENDS',
 } as const satisfies Record<string, PrivacyLevel>;
 export type PrivacyCategory = keyof typeof privacyDefaults;
 export const privacyCategories = Object.keys(privacyDefaults) as PrivacyCategory[];
@@ -18,8 +18,8 @@ export function unblockedWith(viewer: string): Prisma.PlayerWhereInput {
   return { blocksCreated: { none: { blockedPlayerId: viewer } }, blocksReceived: { none: { blockerPlayerId: viewer } } };
 }
 export function privacyAllowedWhere(viewer: string, category: PrivacyCategory): Prisma.PlayerWhereInput {
-  const fallback = privacyDefaults[category];
-  const defaultAccess: Prisma.PlayerWhereInput[] = fallback === 'PRIVATE' ? [] : [{ AND: [
+  const fallback: PrivacyLevel = privacyDefaults[category];
+  const defaultAccess: Prisma.PlayerWhereInput[] = [{ AND: [
     { privacySettings: { none: { categoryKey: category } } }, ...(fallback === 'FRIENDS' ? [activeFriendOf(viewer)] : []),
   ] }];
   const visibility: Prisma.PlayerWhereInput = { OR: [

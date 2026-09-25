@@ -39,8 +39,13 @@ describe('Social screens', () => {
     statistics.totalXp = '9007199254740993'; statistics.totalSpins = null; statistics.fiveStarRate = '5.00'
     const value: Profile = { player, own: false, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'ALLOWED', data: statistics } }
     const actions = { profile: vi.fn().mockResolvedValue(value) } as unknown as SocialActions
-    const container = await mount(<ProfileScreen playerId={player.id} ownerPlayerId="other" actions={actions} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()} />)
+    const onDirectory = vi.fn(), onRankings = vi.fn()
+    const container = await mount(<ProfileScreen playerId={player.id} ownerPlayerId="other" actions={actions} controller={controller} onDirectory={onDirectory} onRankings={onRankings} onPrivacy={vi.fn()} />)
+    expect(container.querySelector('.profile-navigation')?.textContent).not.toContain('Classements')
     await act(async () => { button(container, 'Statistiques').click() })
+    expect(container.querySelector('.profile-navigation')?.textContent).toContain('JoueursClassements')
+    await act(async () => { button(container, 'Classements').click(); button(container, 'Joueurs').click() })
+    expect(onRankings).toHaveBeenCalledOnce(); expect(onDirectory).toHaveBeenCalledOnce()
     expect(Array.from(container.querySelectorAll('.profile-statistics-group h2')).map(element => element.textContent)).toEqual(['Progression', 'Gacha', 'Économie', 'Activités'])
     expect(container.textContent).toContain(BigInt(statistics.totalXp).toLocaleString('fr-FR'))
     expect(container.textContent).toContain('Taux de 5★5,00 %')
@@ -90,6 +95,7 @@ describe('Social screens', () => {
     expect(container.textContent).not.toMatch(/Stella|Favori|Acheter|Confidentialité|Ajouter/)
     await act(async () => { button(container, 'Statistiques').click() })
     expect(container.textContent).toContain('Cette rubrique est privée.')
+    expect(container.querySelector('.profile-navigation')?.textContent).toContain('JoueursClassements')
     expect(container.querySelector('.profile-statistics')).toBeNull()
   })
 

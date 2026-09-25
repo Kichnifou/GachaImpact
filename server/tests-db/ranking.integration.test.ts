@@ -52,7 +52,8 @@ describe('Ranking isolated PostgreSQL', () => {
   });
   it('ranks a public wallet without materializing Bank, then adds its balance when present', async () => {
     await database.playerResourceBalance.create({ data: { playerId: publicId, resourceKey: 'moras', amount: 50n } });
-    expect((await ranking.list('moras', viewer))?.entries).toEqual([]);
+    expect((await ranking.list('moras', viewer))?.entries[0]?.value).toBe('50');
+    expect((await database.privacySetting.count({ where: { playerId: publicId, categoryKey: { in: ['CURRENCY_BALANCES', 'BANK'] } } }))).toBe(0);
     await database.privacySetting.createMany({ data: [{ playerId: publicId, categoryKey: 'CURRENCY_BALANCES', level: 'PUBLIC' }, { playerId: publicId, categoryKey: 'BANK', level: 'PUBLIC' }] });
     expect(await database.playerBankAccount.count({ where: { playerId: publicId } })).toBe(0);
     expect((await ranking.list('moras', viewer))?.entries[0]?.value).toBe('50');
@@ -71,16 +72,20 @@ describe('Ranking isolated PostgreSQL', () => {
   });
   it('counts only currently active catalogue possessions for Box, C6 and copies', async () => {
     const active = await database.character.create({ data: { externalKey: 'rank-active', name: 'Active', rarity: 5, elementKey: 'pyro', isActive: true } });
+    const activeFour = await database.character.create({ data: { externalKey: 'rank-four', name: 'Four', rarity: 4, elementKey: 'pyro', isActive: true } });
     const disabled = await database.character.create({ data: { externalKey: 'rank-disabled', name: 'Disabled', rarity: 5, elementKey: 'pyro', isActive: false } });
     await database.playerCharacter.createMany({ data: [
       { playerId: publicId, characterId: active.id, constellation: 6, copies: 7, firstObtainedAt: new Date() },
+      { playerId: publicId, characterId: activeFour.id, constellation: 6, copies: 7, firstObtainedAt: new Date() },
       { playerId: publicId, characterId: disabled.id, constellation: 6, copies: 7, firstObtainedAt: new Date() },
     ] });
-    expect((await ranking.list('box', viewer))?.entries[0]?.value).toBe('1');
-    expect((await ranking.list('c6', viewer))?.entries[0]?.value).toBe('1');
-    expect((await ranking.list('copies', viewer))?.entries[0]?.value).toBe('7');
+    expect((await ranking.list('box', viewer))?.entries[0]?.value).toBe('2');
+    expect((await ranking.list('c6-5', viewer))?.entries[0]?.value).toBe('1');
+    expect((await ranking.list('c6-4', viewer))?.entries[0]?.value).toBe('1');
+    expect((await ranking.list('c6', viewer))?.entries[0]?.value).toBe('2');
+    expect((await ranking.list('copies', viewer))?.entries[0]?.value).toBe('14');
     await database.privacySetting.create({ data: { playerId: publicId, categoryKey: 'BOX', level: 'PRIVATE' } });
     expect((await ranking.list('box', viewer))?.entries).toEqual([]);
-    expect(await ranking.personal(publicId)).toContain('Box 1 · C6 1');
+    expect(await ranking.personal(publicId)).toContain('Box 2 · C6 2');
   });
 });

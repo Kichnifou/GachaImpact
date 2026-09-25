@@ -83,4 +83,21 @@ describe('RankingsScreen', () => {
       expect(container.textContent).toContain('74/90')
     } finally { act(() => root.unmount()) }
   })
+  it('keeps the latest metric when an earlier response arrives late', async () => {
+    const container = document.createElement('div'); const root = createRoot(container)
+    let resolvePulls!: (value: RankingPageDto) => void
+    const onLoad = vi.fn((metric: string, number: number) => metric === 'pulls'
+      ? new Promise<RankingPageDto>(resolve => { resolvePulls = resolve })
+      : Promise.resolve(page(metric, number)))
+    try {
+      await act(async () => { root.render(<RankingsScreen onLoad={onLoad} onProfile={() => {}} />); await Promise.resolve() })
+      await act(async () => { [...container.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(button => button.textContent === 'Gacha')!.click() })
+      expect(container.textContent).toContain('Chargement des classements')
+      await act(async () => { [...container.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(button => button.textContent === 'Progression')!.click(); await Promise.resolve() })
+      await act(async () => { resolvePulls(page('pulls')); await Promise.resolve() })
+      expect(container.querySelector('select')?.value).toBe('xp')
+      expect(container.textContent).toContain('9007199254740993')
+      expect(container.querySelector('[role="alert"]')).toBeNull()
+    } finally { act(() => root.unmount()) }
+  })
 });

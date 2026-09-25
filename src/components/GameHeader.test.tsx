@@ -27,9 +27,15 @@ describe('GameHeader moderation capability', () => {
     act(() => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
     await act(async () => { container.querySelector<HTMLButtonElement>('.notification-item')!.click(); await Promise.resolve() })
     expect(onOpenNotification).toHaveBeenCalledWith(trade)
-    expect(onReadNotification).toHaveBeenCalledWith(trade.id)
-    expect(onArchiveNotification).not.toHaveBeenCalled()
-    await act(async () => { resolveRead({ unreadCount: 0, notifications: [] }); await Promise.resolve() })
+    if (typeKey === 'TRADE_ACCEPTED') {
+      expect(onArchiveNotification).toHaveBeenCalledWith(trade.id)
+      expect(onReadNotification).not.toHaveBeenCalled()
+      expect(onOpenNotification.mock.invocationCallOrder[0]).toBeLessThan(onArchiveNotification.mock.invocationCallOrder[0]!)
+    } else {
+      expect(onReadNotification).toHaveBeenCalledWith(trade.id)
+      expect(onArchiveNotification).not.toHaveBeenCalled()
+      await act(async () => { resolveRead({ unreadCount: 0, notifications: [] }); await Promise.resolve() })
+    }
   })
   it('refreshes open notifications every three seconds and preserves a trade aggregate on opening', async () => {
     vi.useFakeTimers()

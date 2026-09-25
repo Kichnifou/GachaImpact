@@ -58,7 +58,8 @@ function GameHeader({ displayName, onNavigateHome, onOpenSidebar, onSignOut, sho
     }
     setIsNotificationsOpen(false)
     onOpenNotification(notification)
-    if (notification.domainKey === 'social' && notification.typeKey === 'FRIEND_REQUEST_ACCEPTED' && notification.actionKey === 'OPEN_SOCIAL_FRIENDS') {
+    if ((notification.domainKey === 'social' && notification.typeKey === 'FRIEND_REQUEST_ACCEPTED' && notification.actionKey === 'OPEN_SOCIAL_FRIENDS') ||
+      (notification.domainKey === 'trades' && notification.typeKey === 'TRADE_ACCEPTED' && notification.actionKey === 'OPEN_TRADES_HISTORY')) {
       void onArchiveNotification(notification.id).catch(() => undefined)
       return
     }

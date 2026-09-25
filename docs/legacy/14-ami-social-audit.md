@@ -1162,7 +1162,7 @@ Maximum dix MP en dix secondes par joueur. Le brouillon n'est pas perdu lors d'u
 
 # 14. Confidentialité et présence — R518 à R521
 
-## R518 — Matrice initiale
+## R518 — Matrice initiale, révisée par R908
 
 Même politique pour comptes migrés et nouveaux comptes :
 
@@ -1178,16 +1178,16 @@ Même politique pour comptes migrés et nouveaux comptes :
 | Pity et garantie | Public |
 | Liste d'amis | Amis uniquement |
 | Autorisation de recevoir des MP | Public |
-| Soldes de monnaies | Privé |
-| Banque | Privé |
-| Sac | Privé |
-| Saved Teams | Privé |
-| Expedition active | Privé |
-| État Combat quotidien | Privé |
-| Slots, KO et composition Boss | Privé |
-| Historiques détaillés | Privé |
+| Soldes de monnaies | Public |
+| Banque | Public |
+| Sac | Amis uniquement |
+| Saved Teams | Amis uniquement |
+| Expedition active | Amis uniquement |
+| État Combat quotidien | Amis uniquement |
+| Slots, KO et composition Boss | Amis uniquement |
+| Historiques détaillés | Amis uniquement |
 
-Toutes les rubriques non marquées Toujours visible restent configurables Public/Amis/Privé. Les historiques privés par défaut ne sont donc plus déclarés définitivement impossibles à partager.
+Toutes les rubriques non marquées Toujours visible restent configurables Public/Amis/Privé. R908 change seulement le fallback des joueurs sans ligne `privacy_setting` ; les choix explicites déjà enregistrés restent autoritatifs, sans mise à jour de masse.
 
 ## R519 — Visibilité de la présence
 

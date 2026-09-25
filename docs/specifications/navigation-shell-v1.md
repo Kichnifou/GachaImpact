@@ -16,6 +16,8 @@ La barre principale contient exactement sept tuiles, dans cet ordre :
 
 `Classements` est une destination réelle du Menu global (`#rankings`), ajoutée avant Configuration par la fusion des préférences existantes. Elle n'ajoute aucune tuile principale. Son écran utilise un cadre long à contrôles fixes et liste interne défilante sur desktop ; les cinq catégories, le sélecteur de métrique et la pagination suivent le contrat Top R714–R727.
 
+Dans `Profil > Statistiques`, le raccourci `Classements` à côté de `Joueurs` ouvre `#rankings`, pour le profil personnel comme pour celui d'autrui. Il ne présélectionne ni joueur ni métrique.
+
 `Personnages` regroupe, dans cet ordre, `Box | Équipe | Catalogue`. Une nouvelle session ouvre Box par défaut. `Activités` regroupe `Quotidiennes | Missions | Combat | Événement | Concours` et ouvre Quotidiennes par défaut. Le dernier sous-onglet consulté dans chacun de ces deux groupes est retenu seulement en mémoire pour la session courante ; il n’est écrit ni en base ni dans `localStorage`. Un deep link explicite reste prioritaire au chargement.
 
 Les anciennes routes restent compatibles : `#box`, `#team`, `#characters`, `#inventory`, `#shop`, `#bank` et `#moderation`. Les formes canoniques groupées utilisent notamment `#characters/box`, `#characters/team`, `#characters/catalog` et `#activities/dailies`.
@@ -81,7 +83,7 @@ Sac > Tout/Ressources conserve `Convertir →` sur l'élément personnel et expo
 
 La notification agrégée `trades / TRADES_PENDING / OPEN_TRADES` ouvre explicitement **Échanges > Reçues**, même si un autre onglet Échanges est déjà ouvert, et déclenche une relecture sans archivage automatique. À l'ouverture, au focus, au retour visible et toutes les trois secondes visibles, le snapshot est rafraîchi sans superposition. Les partenaires sont lus séparément, seulement sur Partenaires, à la recherche/pagination ou après mutation ; la recherche attend 120 ms et ignore les réponses obsolètes. Le même snapshot autoritaire publie les particules dans la sidebar et le cache Sac ; la sortie arrête le polling. Un succès de mutation est présenté dès confirmation serveur, avant les relectures secondaires. Seul un résultat réellement ambigu conserve sa clé et son retry.
 
-La notification individuelle `trades / TRADE_ACCEPTED / OPEN_TRADES_HISTORY` ouvre **Échanges > Historique**, y compris depuis un autre onglet déjà ouvert, via le même TradeOpenIntent. Le clic navigue immédiatement, marque READ en arrière-plan et ne déclenche pas d'archivage automatique.
+La notification individuelle `trades / TRADE_ACCEPTED / OPEN_TRADES_HISTORY` ouvre **Échanges > Historique**, y compris depuis un autre onglet déjà ouvert, via le même TradeOpenIntent. Le clic navigue immédiatement puis archive cette notification consommable ; un échec d'archive ne bloque pas la navigation.
 
 Le volet des stocks est replié initialement. Partenaires combine une recherche avec résultats sélectionnables et la liste parcourable en dessous, sur la même sélection, sans second select. Les feedbacks persistent jusqu'à la prochaine action, au changement d'onglet ou à la sortie, sans timeout. La conversion propose `Échanger avec des joueurs`, qui ferme la modale puis ouvre Échanges. Le profil d'autrui propose `Échanger` entre le cœur et le retrait pour un ami : l'intention sélectionne ce Player uniquement si la recherche serveur le confirme échangeable ; sinon elle explique l'indisponibilité. Aucun échange vers soi.
 

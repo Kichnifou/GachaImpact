@@ -9,7 +9,7 @@ export type RankingCategory = 'PROGRESSION' | 'GACHA' | 'RESSOURCES' | 'COLLECTI
 type Source = 'progression' | 'gacha' | 'economy' | 'combat' | 'expedition' | 'social' | 'balances' | 'bank' | 'box';
 type ValueKey = 'xp' | 'level' | 'messages' | 'messagesXp' | 'pulls' | 'rate5' | 'stars5' | 'stars4' | 'pity5' | 'won5050' | 'lost5050' |
   'primos' | 'moras' | 'particles' | 'pyro' | 'hydro' | 'cryo' | 'electro' | 'anemo' | 'geo' | 'dendro' |
-  'primosEarned' | 'primosSpent' | 'morasEarned' | 'morasSpent' | 'box' | 'c6' | 'copies' | 'combat' | 'combatManual' | 'expeditions' | 'hearts';
+  'primosEarned' | 'primosSpent' | 'morasEarned' | 'morasSpent' | 'box' | 'c6' | 'c6-5' | 'c6-4' | 'copies' | 'combat' | 'combatManual' | 'expeditions' | 'hearts';
 type Ratio = { numerator: bigint; denominator: bigint };
 type Values = Record<ValueKey, bigint | Ratio | null>;
 export type RankingDefinition = Readonly<{ id: ValueKey; label: string; category: RankingCategory; aliases: readonly string[]; source: Source; format: 'INTEGER' | 'PERCENT' | 'PITY5'; privacy: readonly PrivacyCategory[]; eligibility: string }>;
@@ -31,7 +31,8 @@ export const rankingRegistry: readonly RankingDefinition[] = [
   define('primosSpent', 'Primogemmes dépensées', 'RESSOURCES', 'economy', general, ['primos-spent']),
   define('morasEarned', 'Moras gagnées', 'RESSOURCES', 'economy', general, ['moras-earned']),
   define('morasSpent', 'Moras dépensées', 'RESSOURCES', 'economy', general, ['moras-spent']),
-  define('box', 'Personnages possédés', 'COLLECTION', 'box', ['BOX']), define('c6', 'C6', 'COLLECTION', 'box', ['BOX']), define('copies', 'Copies', 'COLLECTION', 'box', ['BOX']),
+  define('box', 'Personnages possédés', 'COLLECTION', 'box', ['BOX']), define('c6-5', 'C6 5★', 'COLLECTION', 'box', ['BOX']),
+  define('c6-4', 'C6 4★', 'COLLECTION', 'box', ['BOX']), define('c6', 'C6 total', 'COLLECTION', 'box', ['BOX']), define('copies', 'Copies', 'COLLECTION', 'box', ['BOX']),
   define('combat', 'Victoires Combat', 'ACTIVITE', 'combat', general), define('combatManual', 'Victoires Combat manuel', 'ACTIVITE', 'combat', general, ['combat-manuel']),
   define('expeditions', 'Expéditions terminées', 'ACTIVITE', 'expedition', general), define('hearts', 'Cœurs envoyés', 'ACTIVITE', 'social', general, ['coeurs']),
 ];
@@ -57,21 +58,23 @@ export class RankingService {
       where: { status: 'ACTIVE', elementKey: { not: null } },
       select: {
         id: true, displayName: true, elementKey: true,
-        privacySettings: { select: { categoryKey: true, level: true } },
-        progression: { select: { xp: true, totalMessages: true, countedMessages: true } },
-        gachaState: { select: { totalPulls: true, totalFiveStars: true, totalFourStars: true, pity5: true, fiftyFiftyWon: true, fiftyFiftyLost: true } },
-        economyStats: { select: { totalPrimosEarned: true, totalPrimosSpent: true, totalMorasEarned: true, totalMorasSpent: true } },
-        combatStats: { select: { totalWins: true, totalManualWins: true } },
-        expedition: { select: { totalCompleted: true } }, socialStats: { select: { totalFriendHeartsSent: true } },
-        resourceBalances: { select: { resourceKey: true, amount: true } }, bankAccount: { select: { balance: true } },
-        characters: { where: { character: { isActive: true } }, select: { constellation: true, copies: true } },
+        privacySettings: metric.privacy.length ? { where: { categoryKey: { in: [...metric.privacy] } }, select: { categoryKey: true, level: true } } : undefined,
+        progression: metric.source === 'progression' ? { select: { xp: true, totalMessages: true, countedMessages: true } } : undefined,
+        gachaState: metric.source === 'gacha' ? { select: { totalPulls: true, totalFiveStars: true, totalFourStars: true, pity5: true, fiftyFiftyWon: true, fiftyFiftyLost: true } } : undefined,
+        economyStats: metric.source === 'economy' ? { select: { totalPrimosEarned: true, totalPrimosSpent: true, totalMorasEarned: true, totalMorasSpent: true } } : undefined,
+        combatStats: metric.source === 'combat' ? { select: { totalWins: true, totalManualWins: true } } : undefined,
+        expedition: metric.source === 'expedition' ? { select: { totalCompleted: true } } : undefined,
+        socialStats: metric.source === 'social' ? { select: { totalFriendHeartsSent: true } } : undefined,
+        resourceBalances: metric.source === 'balances' || metric.source === 'bank' ? { where: { resourceKey: { in: metric.id === 'moras' ? ['moras'] : metric.id === 'primos' ? ['primogems'] : metric.id === 'particles' ? elementKeys.map(key => `particles_${key}`) : [`particles_${metric.id}`] } }, select: { resourceKey: true, amount: true } } : undefined,
+        bankAccount: metric.source === 'bank' ? { select: { balance: true } } : undefined,
+        characters: metric.source === 'box' ? { where: { character: { isActive: true } }, select: { constellation: true, copies: true, character: { select: { rarity: true } } } } : undefined,
       },
     });
     const eligible: Ranked[] = [];
     for (const player of players) {
-      const overrides = new Map(player.privacySettings.map(setting => [setting.categoryKey, setting.level]));
+      const overrides = new Map((player.privacySettings ?? []).map(setting => [setting.categoryKey, setting.level]));
       if (!metric.privacy.every(category => (overrides.get(category) ?? privacyDefaults[category]) === 'PUBLIC')) continue;
-      const balances = new Map(player.resourceBalances.map(balance => [balance.resourceKey, balance.amount]));
+      const balances = new Map((player.resourceBalances ?? []).map(balance => [balance.resourceKey, balance.amount]));
       const balance = (key: string) => balances.get(key) ?? null;
       const walletMoras = balance('moras');
       const particles = elementKeys.map(key => balance(`particles_${key}`));
@@ -87,8 +90,10 @@ export class RankingService {
         pyro: particles[0] ?? null, hydro: particles[1] ?? null, cryo: particles[2] ?? null, electro: particles[3] ?? null, anemo: particles[4] ?? null, geo: particles[5] ?? null, dendro: particles[6] ?? null,
         primosEarned: player.economyStats?.totalPrimosEarned ?? null, primosSpent: player.economyStats?.totalPrimosSpent ?? null,
         morasEarned: player.economyStats?.totalMorasEarned ?? null, morasSpent: player.economyStats?.totalMorasSpent ?? null,
-        box: BigInt(player.characters.length), c6: BigInt(player.characters.filter(character => character.constellation >= 6).length),
-        copies: player.characters.reduce((sum, character) => sum + BigInt(character.copies), 0n),
+        box: BigInt(player.characters?.length ?? 0), c6: BigInt(player.characters?.filter(character => character.constellation >= 6).length ?? 0),
+        'c6-5': BigInt(player.characters?.filter(character => character.constellation >= 6 && (character as typeof character & { character: { rarity: number } }).character.rarity === 5).length ?? 0),
+        'c6-4': BigInt(player.characters?.filter(character => character.constellation >= 6 && (character as typeof character & { character: { rarity: number } }).character.rarity === 4).length ?? 0),
+        copies: player.characters?.reduce((sum, character) => sum + BigInt(character.copies), 0n) ?? 0n,
         combat: player.combatStats?.totalWins ?? null, combatManual: player.combatStats?.totalManualWins ?? null,
         expeditions: player.expedition?.totalCompleted ?? null, hearts: player.socialStats?.totalFriendHeartsSent ?? null,
       };
@@ -101,7 +106,7 @@ export class RankingService {
     return eligible;
   }
 
-  async list(metricId: string, viewerId: string, page = 1, pageSize = 20) {
+  async list(metricId: string, viewerId: string, page = 1, pageSize = 5) {
     const metric = rankingRegistry.find(entry => entry.id === metricId);
     if (!metric) return null;
     const ranked = await this.ranked(metric);

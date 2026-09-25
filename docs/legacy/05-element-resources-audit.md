@@ -659,7 +659,7 @@ L'agrégat R19 reste réservé aux **demandes reçues actuellement PENDING** : d
 
 Révision propriétaire du 2026-09-21 : une acceptation réellement commitée crée **une notification individuelle de succès pour l'expéditeur uniquement**, `trades / TRADE_ACCEPTED`, dédupliquée par `trade-accepted:<requestId>`. Transfert, exécution et notification sont atomiques ; replay, refus, annulation, réduction, montant zéro, expiration et acceptation impossible n'en créent aucune. Accepter tout produit une notification par demande réellement acceptée, jamais pour UNAVAILABLE.
 
-Le clic `OPEN_TRADES_HISTORY` ouvre **Échanges > Historique**, puis suit READ / archivage normal sans archive automatique. L'accepteur conserve son feedback immédiat, sans notification dupliquée.
+Le clic `OPEN_TRADES_HISTORY` ouvre **Échanges > Historique**, puis archive la notification consommable (R909) ; l'échec d'archive ne bloque pas la navigation. L'agrégat `TRADES_PENDING` ouvre Reçues sans archive automatique. L'accepteur conserve son feedback immédiat, sans notification dupliquée.
 
 Pour informer le joueur des échanges réellement effectués, l'écran Échanges doit posséder une zone d'historique récent.
 

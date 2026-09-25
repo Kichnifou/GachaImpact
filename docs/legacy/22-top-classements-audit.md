@@ -449,7 +449,7 @@ Source :
 
 Le Domaine Social a fixé :
 
-**Soldes de monnaies = Privé par défaut**, configurable Public / Amis / Privé.
+**Soldes de monnaies = Public par défaut (R908)**, configurable Public / Amis / Privé.
 
 Le legacy `!top primos` viole donc la politique cible s'il affiche tout le monde sans contrôle.
 
@@ -522,7 +522,7 @@ Cette décision est explicitement attendue à partir de R714+.
 
 Règles déjà validées :
 
-- solde Banque privé par défaut ;
+- solde Banque Public par défaut (R908) ;
 - soldes monnaies privés par défaut ;
 - aucun calcul dérivé ne doit permettre de reconstruire une Banque privée.
 
@@ -1333,7 +1333,7 @@ L'écran `Classements` organise les métriques par catégories.
 ### Collection
 
 - personnages possédés / Box ;
-- C6 ;
+- C6 5★, C6 4★ et C6 total (R910) ;
 - copies.
 
 ### Activité
@@ -1554,7 +1554,7 @@ Le Domaine Top / Classements est prêt pour la V1 si les tests peuvent prouver n
 
 # 45. Conclusion du domaine
 
-**Domaine Top / Classements globaux : CLÔTURÉ après R727.**
+**Domaine Top / Classements globaux : cadrage clos après R727 ; correctifs R908/R910 candidats `review`, validation publique finale en attente.**
 
 Le domaine définit maintenant :
 

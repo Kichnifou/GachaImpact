@@ -11,7 +11,7 @@ function player(id: string, xp: bigint, overrides: Record<string, 'PUBLIC' | 'FR
     economyStats: { totalPrimosEarned: 100n, totalPrimosSpent: 50n, totalMorasEarned: 100n, totalMorasSpent: 50n },
     combatStats: { totalWins: 3n, totalManualWins: 2n }, expedition: { totalCompleted: 4n }, socialStats: { totalFriendHeartsSent: 5n },
     bankAccount: { balance: 200n }, resourceBalances: [{ resourceKey: 'moras', amount: 100n }, { resourceKey: 'primogems', amount: 10n }, ...['pyro','hydro','cryo','electro','anemo','geo','dendro'].map(key => ({ resourceKey: `particles_${key}`, amount: 1n }))],
-    characters: [{ constellation: 6, copies: 7 }, { constellation: 0, copies: 1 }],
+    characters: [{ constellation: 6, copies: 7, character: { rarity: 5 } }, { constellation: 0, copies: 1, character: { rarity: 4 } }],
   };
 }
 function harness(rows: ReturnType<typeof player>[]) {
@@ -23,12 +23,15 @@ function harness(rows: ReturnType<typeof player>[]) {
   return { service: new RankingService(database), findMany, findUnique };
 }
 describe('global rankings R714–R727', () => {
-  it('registers all 32 metrics and historical aliases without specialist rankings', () => {
-    expect(rankingRegistry).toHaveLength(32);
+  it('registers all 34 metrics and historical aliases without specialist rankings', () => {
+    expect(rankingRegistry).toHaveLength(34);
     const aliases = rankingRegistry.flatMap(metric => metric.aliases);
     expect(new Set(aliases).size).toBe(aliases.length);
     expect(findRanking('luck')?.id).toBe('rate5');
     expect(findRanking('50/50')?.id).toBe('won5050');
+    expect(findRanking('c6')?.label).toBe('C6 total');
+    expect(findRanking('c6-5')?.label).toBe('C6 5★');
+    expect(findRanking('c6-4')?.label).toBe('C6 4★');
     expect(findRanking('event')).toBeUndefined();
   });
   it('filters private, friends and zero before competition ranks and paginates afterwards', async () => {
@@ -43,9 +46,28 @@ describe('global rankings R714–R727', () => {
     expect(first?.total).toBe(3);
     expect(first?.self?.rank).toBe(3);
     expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { status: 'ACTIVE', elementKey: { not: null } } }));
+    expect(first?.pageSize).toBe(2);
+  });
+  it('loads only the source needed for XP and defaults screen pagination to five', async () => {
+    const { service, findMany } = harness(Array.from({ length: 7 }, (_, i) => player(`P${i}`, BigInt(i + 1))));
+    const result = await service.list('xp', 'P0');
+    expect(result?.entries).toHaveLength(5);
+    expect(result?.totalPages).toBe(2);
+    const select = findMany.mock.calls[0]?.[0] as { select: Record<string, unknown> };
+    expect(select.select.progression).toBeDefined();
+    for (const name of ['characters', 'bankAccount', 'resourceBalances', 'gachaState', 'economyStats', 'combatStats']) expect(select.select[name]).toBeUndefined();
+    expect(findMany).toHaveBeenCalledTimes(1);
+  });
+  it('splits active C6 possessions by rarity while total includes every rarity', async () => {
+    const row = player('A', 1n);
+    row.characters.push({ constellation: 6, copies: 7, character: { rarity: 4 } });
+    const { service } = harness([row]);
+    expect((await service.list('c6-5', 'A'))?.entries[0]?.value).toBe('1');
+    expect((await service.list('c6-4', 'A'))?.entries[0]?.value).toBe('1');
+    expect((await service.list('c6', 'A'))?.entries[0]?.value).toBe('2');
   });
   it('requires both public permissions for wealth and treats an unmaterialized Bank as zero', async () => {
-    const rows = [player('A', 1n, { CURRENCY_BALANCES: 'PUBLIC', BANK: 'PUBLIC' }), player('B', 1n, { CURRENCY_BALANCES: 'PUBLIC' }), player('C', 1n, { BANK: 'PUBLIC' })];
+    const rows = [player('A', 1n), player('B', 1n, { BANK: 'FRIENDS' }), player('C', 1n, { CURRENCY_BALANCES: 'PRIVATE' })];
     const { service } = harness(rows);
     expect((await service.list('moras', 'B'))?.entries.map(entry => [entry.playerId, entry.value])).toEqual([['A', '300']]);
     rows[0]!.bankAccount = null as unknown as { balance: bigint };
@@ -100,7 +122,7 @@ describe('global rankings R714–R727', () => {
     const { service, findMany, findUnique } = harness([player('A', 1n)]);
     expect((await service.list('copies', 'A'))?.entries[0]?.value).toBe('8');
     expect((await service.list('c6', 'A'))?.entries[0]?.value).toBe('1');
-    expect(findMany.mock.calls[0]?.[0]).toEqual(expect.objectContaining({ select: expect.objectContaining({ characters: { where: { character: { isActive: true } }, select: { constellation: true, copies: true } } }) }));
+    expect(findMany.mock.calls[0]?.[0]).toEqual(expect.objectContaining({ select: expect.objectContaining({ characters: { where: { character: { isActive: true } }, select: { constellation: true, copies: true, character: { select: { rarity: true } } } } }) }));
     const personal = await service.personal('A');
     expect(personal).toContain('XP 100');
     expect(personal).toContain('niveau 3');
