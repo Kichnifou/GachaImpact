@@ -35,6 +35,16 @@ describe('History read projections on isolated PostgreSQL', () => {
     expect(await database.bannerVote.count()).toBe(0);
   });
 
+  it('hides a pending closure and projects only the completed vote snapshot', async () => {
+    const closedVoteSnapshot = { state: 'CLOSED', sourceRotationId: legacyRotationId, capturedAt: '2026-09-08T00:00:00Z', candidates: [{ characterId: randomUUID(), characterName: 'Candidate', voteCount: 0 }] };
+    await database.bannerRotation.update({ where: { id: legacyRotationId }, data: { generationVoteSnapshot: { closedVoteSnapshot } } });
+    expect((await history.banners(1)).entries.find(entry => entry.id === legacyRotationId)?.generationVoteSnapshot).toBeNull();
+    const final = { sourceRotationId: legacyRotationId, capturedAt: closedVoteSnapshot.capturedAt, candidates: closedVoteSnapshot.candidates,
+      selectedCharacterId: closedVoteSnapshot.candidates[0]!.characterId, selectedCharacterName: 'Candidate', selectionSource: 'RANDOM_FALLBACK' };
+    await database.bannerRotation.update({ where: { id: legacyRotationId }, data: { generationVoteSnapshot: { ...final, closedVoteSnapshot } } });
+    expect((await history.banners(1)).entries.find(entry => entry.id === legacyRotationId)?.generationVoteSnapshot).toEqual(final);
+  });
+
   it('projects a completed edition with public ranking and owner-only detail', async () => {
     const before = await database.businessOperation.count();
     const result = await history.events(owner, 1);

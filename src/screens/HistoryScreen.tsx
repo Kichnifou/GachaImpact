@@ -51,12 +51,12 @@ export default function HistoryScreen({ initialCategory = 'invocations', onInvoc
   }, [category, page, bankFilter, revision, onInvocations, onBannersOrEvent, onBank, onShop])
 
   const value = !error && loaded?.category === category && loaded.page === page && loaded.filter === bankFilter ? loaded.value : null
-  const totalPages = value?.totalPages ?? 1
+  const totalPages = Math.max(1, value?.totalPages ?? 1)
   const choose = (next: HistoryCategory) => { if (next === category) return; setLoading(true); setError(null); setCategory(next); setPage(1) }
   const changeFilter = (next: BankFilter) => { if (next === bankFilter) return; setLoading(true); setError(null); setBankFilter(next); setPage(1) }
   const turnPage = (next: number) => { setLoading(true); setError(null); setPage(next) }
   return <div className="screen-content history-screen long-screen-layout">
-    <ScreenHeader eyebrow="Archives personnelles" title="Historique" description="Retrouvez vos activités et les éditions passées." />
+    <ScreenHeader eyebrow="ARCHIVES" title="Historique" />
     <ScrollableScreenPanel className="history-frame" bodyClassName="history-body" fixed={<div className="history-controls">
       <div className="history-tabs" role="tablist" aria-label="Catégories de l’historique">{categories.map(item => <AppButton key={item.id} role="tab" aria-selected={category === item.id} className={category === item.id ? 'active' : ''} onClick={() => choose(item.id)}>{item.label}</AppButton>)}</div>
       {category === 'bank' && <div className="history-filters" role="group" aria-label="Filtrer les opérations bancaires">{bankFilters.map(item => <AppButton key={item.id} aria-pressed={bankFilter === item.id} className={bankFilter === item.id ? 'active' : ''} onClick={() => changeFilter(item.id)}>{item.label}</AppButton>)}</div>}

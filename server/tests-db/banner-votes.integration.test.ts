@@ -24,7 +24,8 @@ beforeAll(async () => {
   for (const rarity of [5, 4]) for (let i = 0; i < 14; i++) await database.character.create({ data: { externalKey: `vote-${rarity}-${i}`, name: `Fixture ${rarity} ${i}`, rarity, elementKey: 'pyro' } });
   const banner = await store.ensureRotation(new Date('2026-09-13T22:00:00Z'), new Date('2026-09-20T22:00:00Z'), select);
   rotationId = banner.id;
-  expect((await database.bannerRotation.findUniqueOrThrow({ where: { id: banner.id } })).generationVoteSnapshot).toMatchObject({ sourceRotationId: null, selectionSource: 'RANDOM_FALLBACK' });
+  expect((await database.bannerRotation.findUniqueOrThrow({ where: { id: banner.id } })).generationVoteSnapshot).toBeNull();
+  expect((await admin.query<{ isNull: boolean }>('SELECT generation_vote_snapshot IS NULL AS "isNull" FROM banner_rotations WHERE id = $1', [banner.id])).rows[0]?.isNull).toBe(true);
   featuredId = banner.featuredFiveStars[0]!.id;
   fourId = banner.featuredFourStars[0]!.id;
   candidateIds = (await votes.getCurrent(await player())).candidates.map(c => c.characterId);
@@ -65,7 +66,7 @@ describe('Banner votes isolated PostgreSQL', () => {
     expect((await votes.getCurrent(first)).candidates.find(c => c.characterId === candidateIds[2])?.voteCount).toBe(2);
   }, 60_000);
 
-  it('freezes expired votes, preserves them on failed rotation, consumes them on successful retry and clears old targets', async () => {
+  it('persists one closed snapshot across failed generations and uses it after catalog changes and concurrent retries', async () => {
     const identity = await player();
     await database.playerGachaState.create({ data: { playerId: identity.subject, selectedBannerCharacterId: featuredId } });
     const rows = await database.bannerVote.findMany({ orderBy: { id: 'asc' } });
@@ -77,16 +78,29 @@ describe('Banner votes isolated PostgreSQL', () => {
     await database.character.updateMany({ where: { rarity: 4 }, data: { isActive: false } });
     const end = new Date('2026-09-27T22:00:00Z');
     await expect(store.ensureRotation(now, end, select)).rejects.toThrow('valid weekly banner');
-    expect(await database.bannerRotation.findUnique({ where: { id: rotationId } })).toMatchObject({ status: 'ACTIVE' });
+    const source = await database.bannerRotation.findUniqueOrThrow({ where: { id: rotationId } });
+    expect(source.status).toBe('ACTIVE');
+    const closed = (source.generationVoteSnapshot as { closedVoteSnapshot: { sourceRotationId: string; capturedAt: string; candidates: { characterId: string; characterName: string; voteCount: number }[] } }).closedVoteSnapshot;
+    expect(closed).toMatchObject({ state: 'CLOSED', sourceRotationId: rotationId });
+    expect(closed.candidates.some(row => row.voteCount === 0)).toBe(true);
+    await expect(store.ensureRotation(now, end, select)).rejects.toThrow('valid weekly banner');
+    expect((await database.bannerRotation.findUniqueOrThrow({ where: { id: rotationId } })).generationVoteSnapshot).toEqual(source.generationVoteSnapshot);
     expect(await database.bannerVote.findMany({ orderBy: { id: 'asc' } })).toEqual(rows);
     await database.character.updateMany({ where: { id: { in: fourStars.map(c => c.id) } }, data: { isActive: true } });
-    const next = await store.ensureRotation(now, end, (catalog, previous, weights) => {
+    await database.character.update({ where: { id: excluded.id }, data: { isActive: true } });
+    const added = await database.character.create({ data: { externalKey: randomUUID(), name: 'Added after closure', rarity: 5, elementKey: 'pyro' } });
+    await database.character.update({ where: { id: candidateIds[2]! }, data: { name: 'Renamed after closure' } });
+    const resume = (catalog: Parameters<typeof select>[0], previous: Parameters<typeof select>[1], weights: Parameters<typeof select>[2]) => {
       expect(weights.reduce((sum, row) => sum + row.votes, 0)).toBe(rows.length);
+      expect(catalog.some(row => row.id === excluded.id || row.id === added.id)).toBe(false);
       const weightedIds = new Set(weights.map(row => row.characterId));
       // Keep voted candidates out of the first three random slots.
       return selectBannerFeatured([...catalog].sort((a, b) => Number(weightedIds.has(a.id)) - Number(weightedIds.has(b.id))), previous, weights, { nextInt: () => 0 });
-    });
-    const snapshot = (await database.bannerRotation.findUniqueOrThrow({ where: { id: next.id } })).generationVoteSnapshot as { sourceRotationId: string; selectionSource: string; selectedCharacterId: string; candidates: { characterId: string; voteCount: number }[] };
+    };
+    const concurrentRetry = await Promise.all([store.ensureRotation(now, end, resume), store.ensureRotation(now, end, resume)]);
+    const next = concurrentRetry[0]!;
+    expect(concurrentRetry.map(row => row.id)).toEqual([next.id, next.id]);
+    const snapshot = (await database.bannerRotation.findUniqueOrThrow({ where: { id: next.id } })).generationVoteSnapshot as { sourceRotationId: string; selectionSource: string; selectedCharacterId: string; selectedCharacterName: string; candidates: { characterId: string; characterName: string; voteCount: number }[] };
     expect(snapshot.sourceRotationId).toBe(rotationId);
     expect(snapshot.selectionSource).toBe('COMMUNITY_VOTE');
     expect(snapshot.selectedCharacterId).toBe((await database.bannerFeaturedCharacter.findFirstOrThrow({ where: { bannerRotationId: next.id, rarity: 5, slot: 4 } })).characterId);
@@ -94,6 +108,11 @@ describe('Banner votes isolated PostgreSQL', () => {
     expect(snapshot.candidates.some(row => row.voteCount === 0)).toBe(true);
     expect(snapshot.candidates.some(row => row.characterId === featuredId)).toBe(false);
     expect(snapshot.candidates.some(row => row.characterId === excluded.id)).toBe(false);
+    expect(snapshot.candidates.some(row => row.characterId === added.id)).toBe(false);
+    expect(snapshot.candidates).toEqual(closed.candidates);
+    expect((await database.bannerRotation.findUniqueOrThrow({ where: { id: rotationId } })).generationVoteSnapshot).toEqual(source.generationVoteSnapshot);
+    expect(snapshot.selectedCharacterName).toBe(closed.candidates.find(row => row.characterId === snapshot.selectedCharacterId)?.characterName);
+    expect(snapshot.candidates.find(row => row.characterId === candidateIds[2])?.characterName).not.toBe('Renamed after closure');
     const imported = await database.character.findFirstOrThrow({ where: { name: 'Inactive' } });
     expect(snapshot.candidates.some(row => row.characterId === imported.id)).toBe(true);
     const retried = await store.ensureRotation(now, end, select);

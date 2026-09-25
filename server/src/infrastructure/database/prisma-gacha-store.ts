@@ -1,7 +1,7 @@
 import { OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
 import { BusinessError } from '../../application/errors.js';
 import { GACHA_HISTORY_PAGE_SIZE, type CurrentBanner, type GachaHistoryPage, type GachaPassiveEffect, type GachaPullInput, type GachaPullResult, type GachaStore, type PlayerGachaState, type PullResultRecord } from '../../application/gacha/gacha-store.js';
-import { generationVoteSnapshot, type BannerVoteWeight, type FeaturedSelection, type GachaCharacter } from '../../domain/gacha/gacha.js';
+import { closeBannerVoteSnapshot, generationVoteSnapshot, readClosedVoteSnapshot, type BannerVoteWeight, type FeaturedSelection, type GachaCharacter } from '../../domain/gacha/gacha.js';
 import { PULL_COST, resolvePulls, type PullState } from '../../domain/gacha/pull.js';
 import { elementKeys, isElementKey, isResourceKey, particleResourceKey, type ElementKey, type ResourceKey } from '../../domain/economy/resources.js';
 import { isPrismaConcurrencyCollision } from './prisma-concurrency.js';
@@ -406,10 +406,33 @@ export class PrismaGachaStore implements GachaStore {
     select: (catalog: readonly GachaCharacter[], previous: ReadonlySet<string>, votes: readonly BannerVoteWeight[]) => readonly FeaturedSelection[],
   ): Promise<CurrentBanner> {
     for (let attempt = 1; attempt <= 3; attempt += 1) {
-      try { return await this.ensureRotationTransaction(startsAt, endsAt, select); }
+      try {
+        await this.closeRotationVotes(startsAt);
+        return await this.ensureRotationTransaction(startsAt, endsAt, select);
+      }
       catch (error) { if (!isPrismaConcurrencyCollision(error) || attempt === 3) throw error; }
     }
     throw new Error('Banner rotation exhausted all retry attempts.');
+  }
+
+  private async closeRotationVotes(startsAt: Date): Promise<void> {
+    await this.database.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(70422401)`;
+      if (await tx.bannerRotation.findUnique({ where: { startsAt }, select: { id: true } })) return;
+      const previous = await tx.bannerRotation.findFirst({ where: { status: 'ACTIVE' }, include: { featuredCharacters: true, votes: true } });
+      if (!previous || readClosedVoteSnapshot(previous.generationVoteSnapshot, previous.id)) return;
+      const catalog = (await tx.character.findMany({ where: { isActive: true, rarity: 5 }, select: characterSelection })).map(toCharacter);
+      const counts = new Map<string, number>();
+      for (const vote of previous.votes) counts.set(vote.characterId, (counts.get(vote.characterId) ?? 0) + 1);
+      const closed = closeBannerVoteSnapshot(previous.id, new Date(), catalog,
+        new Set(previous.featuredCharacters.map(row => row.characterId)),
+        [...counts].map(([characterId, votes]) => ({ characterId, votes })));
+      const existing = previous.generationVoteSnapshot;
+      const final = existing && typeof existing === 'object' && !Array.isArray(existing) ? existing : {};
+      await tx.bannerRotation.update({ where: { id: previous.id }, data: {
+        generationVoteSnapshot: { ...final, closedVoteSnapshot: closed } as Prisma.InputJsonObject,
+      } });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
   private async ensureRotationTransaction(
@@ -421,19 +444,28 @@ export class PrismaGachaStore implements GachaStore {
       const existing = await tx.bannerRotation.findUnique({ where: { startsAt }, include: { featuredCharacters: { include: { character: { select: characterSelection } } } } });
       if (existing) return toBanner(existing);
 
-      const previous = await tx.bannerRotation.findFirst({ where: { status: 'ACTIVE' }, include: { featuredCharacters: true, votes: true } });
-      const catalog = (await tx.character.findMany({ where: { isActive: true }, select: characterSelection })).map(toCharacter);
-      const voteCounts = new Map<string, number>();
-      for (const vote of previous?.votes ?? []) voteCounts.set(vote.characterId, (voteCounts.get(vote.characterId) ?? 0) + 1);
+      const previous = await tx.bannerRotation.findFirst({ where: { status: 'ACTIVE' }, include: { featuredCharacters: true } });
       const previousIds = new Set(previous?.featuredCharacters.map(({ characterId }) => characterId) ?? []);
-      const weights = [...voteCounts].map(([characterId, votes]) => ({ characterId, votes }));
+      const closed = previous ? readClosedVoteSnapshot(previous.generationVoteSnapshot, previous.id) : null;
+      if (previous && !closed) throw new Error('The previous banner votes have not been closed.');
+      const [fiveStars, fourStars] = await Promise.all([
+        closed ? tx.character.findMany({ where: { id: { in: closed.candidates.map(row => row.characterId) }, rarity: 5 }, select: characterSelection })
+          : tx.character.findMany({ where: { isActive: true, rarity: 5 }, select: characterSelection }),
+        tx.character.findMany({ where: { isActive: true, rarity: 4 }, select: characterSelection }),
+      ]);
+      if (closed && fiveStars.length !== closed.candidates.length) throw new Error('The closed banner vote catalog is incomplete.');
+      const catalog = [...fiveStars, ...fourStars].map(toCharacter);
+      const weights = closed?.candidates.map(row => ({ characterId: row.characterId, votes: row.voteCount })) ?? [];
       const selections = select(catalog, previousIds, weights);
       validateSelections(selections);
-      const voteSnapshot = generationVoteSnapshot(previous?.id ?? null, new Date(), catalog, previousIds, weights, selections);
+      if (selections.some(selection => !catalog.some(character => character.id === selection.character.id))) {
+        throw new Error('Banner selection contains a character outside the closed catalog.');
+      }
+      const voteSnapshot = closed ? generationVoteSnapshot(closed, selections) : null;
 
       if (previous) await tx.bannerRotation.update({ where: { id: previous.id }, data: { status: 'ENDED' } });
       const created = await tx.bannerRotation.create({
-        data: { startsAt, endsAt, status: 'ACTIVE', generationVoteSnapshot: voteSnapshot, featuredCharacters: { create: selections.map(({ character, slot, selectionSource }) => ({ characterId: character.id, rarity: character.rarity, slot, selectionSource })) } },
+        data: { startsAt, endsAt, status: 'ACTIVE', ...(voteSnapshot ? { generationVoteSnapshot: voteSnapshot } : {}), featuredCharacters: { create: selections.map(({ character, slot, selectionSource }) => ({ characterId: character.id, rarity: character.rarity, slot, selectionSource })) } },
         include: { featuredCharacters: { include: { character: { select: characterSelection } } } },
       });
       if (previous) {

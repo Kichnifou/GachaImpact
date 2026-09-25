@@ -9,14 +9,29 @@ import HistoryScreen from './HistoryScreen'
 const banners: BannerHistoryDto = { category: 'banners', page: 1, pageSize: 10, total: 1, totalPages: 1, entries: [{ id: 'old', startsAt: '2026-09-01T00:00:00Z', endsAt: '2026-09-08T00:00:00Z', status: 'ENDED', featured: [], generationVoteSnapshot: null }] }
 const events: EventHistoryDto = { category: 'event', page: 1, pageSize: 10, total: 0, totalPages: 1, entries: [] }
 const props = {
-  onInvocations: vi.fn(async () => ({ page: 1, pageSize: 10 as const, totalResults: 0, totalPages: 1, hasPrevious: false, hasNext: false, results: [] })),
+  onInvocations: vi.fn(async () => ({ page: 1, pageSize: 10 as const, totalResults: 0, totalPages: 0, hasPrevious: false, hasNext: false, results: [] })),
   onBannersOrEvent: vi.fn(async (category: 'banners' | 'event') => category === 'banners' ? banners : events),
-  onBank: vi.fn(async (page: number) => ({ page, totalPages: 1, totalCount: 0, operations: [] })),
-  onShop: vi.fn(async (page: number) => ({ page, pageSize: 10 as const, totalPages: 1, totalCount: 0, purchases: [] })),
+  onBank: vi.fn(async (page: number) => ({ page, totalPages: 0, totalCount: 0, operations: [] })),
+  onShop: vi.fn(async (page: number) => ({ page, pageSize: 10 as const, totalPages: 0, totalCount: 0, purchases: [] })),
 }
 const tab = (container: HTMLElement, name: string) => [...container.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(button => button.textContent === name)!
 
 describe('HistoryScreen', () => {
+  it('keeps empty categories on page one and uses a compact neutral header', async () => {
+    const container = document.createElement('div'); const root = createRoot(container)
+    try {
+      await act(async () => { root.render(<HistoryScreen {...props} />); await Promise.resolve() })
+      expect(container.textContent).toContain('ARCHIVES')
+      expect(container.textContent).toContain('Historique')
+      expect(container.textContent).not.toContain('Retrouvez vos activités')
+      for (const category of ['Invocations', 'Banque', 'Boutique']) {
+        if (category !== 'Invocations') await act(async () => { tab(container, category).click(); await Promise.resolve() })
+        expect(container.textContent).toContain('Page 1 / 1')
+        expect(container.textContent).not.toContain('Page 1 / 0')
+      }
+    } finally { act(() => root.unmount()); vi.clearAllMocks() }
+  })
+
   it('loads only the selected category and shows unavailable legacy banner votes', async () => {
     const container = document.createElement('div'); const root = createRoot(container)
     try {

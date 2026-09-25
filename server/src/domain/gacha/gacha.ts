@@ -13,8 +13,14 @@ export type FeaturedSelection = Readonly<{
 }>;
 
 export type BannerVoteWeight = Readonly<{ characterId: string; votes: number }>;
+export type ClosedVoteSnapshot = Readonly<{
+  state: 'CLOSED';
+  sourceRotationId: string;
+  capturedAt: string;
+  candidates: readonly Readonly<{ characterId: string; characterName: string; voteCount: number }>[];
+}>;
 export type GenerationVoteSnapshot = Readonly<{
-  sourceRotationId: string | null;
+  sourceRotationId: string;
   capturedAt: string;
   candidates: readonly Readonly<{ characterId: string; characterName: string; voteCount: number }>[];
   selectedCharacterId: string;
@@ -22,25 +28,54 @@ export type GenerationVoteSnapshot = Readonly<{
   selectionSource: 'COMMUNITY_VOTE' | 'RANDOM_FALLBACK';
 }>;
 
-export function generationVoteSnapshot(
-  sourceRotationId: string | null,
+export function closeBannerVoteSnapshot(
+  sourceRotationId: string,
   capturedAt: Date,
   catalog: readonly GachaCharacter[],
   previousCharacterIds: ReadonlySet<string>,
   votes: readonly BannerVoteWeight[],
-  selections: readonly FeaturedSelection[],
-): GenerationVoteSnapshot {
+): ClosedVoteSnapshot {
   const voteCounts = new Map(votes.map(vote => [vote.characterId, vote.votes]));
-  const chosen = selections.find(selection => selection.character.rarity === 5 && selection.slot === 4);
-  if (!chosen || chosen.selectionSource === 'RANDOM') throw new Error('The generated banner has no community slot.');
   return {
-    sourceRotationId,
-    capturedAt: capturedAt.toISOString(),
+    state: 'CLOSED', sourceRotationId, capturedAt: capturedAt.toISOString(),
     candidates: catalog.filter(character => character.rarity === 5 && !previousCharacterIds.has(character.id))
       .map(character => ({ characterId: character.id, characterName: character.name, voteCount: voteCounts.get(character.id) ?? 0 }))
       .sort((a, b) => a.characterId.localeCompare(b.characterId)),
+  };
+}
+
+export function readClosedVoteSnapshot(value: unknown, sourceRotationId: string): ClosedVoteSnapshot | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  if (!Object.hasOwn(record, 'closedVoteSnapshot')) return null;
+  const closed = record.closedVoteSnapshot;
+  if (!closed || typeof closed !== 'object' || Array.isArray(closed)) throw new Error('Invalid closed banner vote snapshot.');
+  const row = closed as Record<string, unknown>;
+  if (row.state !== 'CLOSED' || row.sourceRotationId !== sourceRotationId || typeof row.capturedAt !== 'string' ||
+    !Number.isFinite(Date.parse(row.capturedAt)) || !Array.isArray(row.candidates) ||
+    row.candidates.some(candidate => !candidate || typeof candidate !== 'object' || Array.isArray(candidate) ||
+      typeof candidate.characterId !== 'string' || typeof candidate.characterName !== 'string' ||
+      !Number.isSafeInteger(candidate.voteCount) || candidate.voteCount < 0) ||
+    new Set(row.candidates.map(candidate => candidate.characterId)).size !== row.candidates.length) {
+    throw new Error('Invalid closed banner vote snapshot.');
+  }
+  return closed as ClosedVoteSnapshot;
+}
+
+export function generationVoteSnapshot(
+  closed: ClosedVoteSnapshot,
+  selections: readonly FeaturedSelection[],
+): GenerationVoteSnapshot {
+  const chosen = selections.find(selection => selection.character.rarity === 5 && selection.slot === 4);
+  if (!chosen || chosen.selectionSource === 'RANDOM') throw new Error('The generated banner has no community slot.');
+  const candidate = closed.candidates.find(row => row.characterId === chosen.character.id);
+  if (!candidate) throw new Error('The community slot is absent from the closed vote snapshot.');
+  return {
+    sourceRotationId: closed.sourceRotationId,
+    capturedAt: closed.capturedAt,
+    candidates: closed.candidates,
     selectedCharacterId: chosen.character.id,
-    selectedCharacterName: chosen.character.name,
+    selectedCharacterName: candidate.characterName,
     selectionSource: chosen.selectionSource,
   };
 }

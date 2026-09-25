@@ -7,12 +7,19 @@ const pageResult = (page: number, total: number) => ({ page, pageSize: PAGE_SIZE
 function voteSnapshot(value: unknown): GenerationVoteSnapshot | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const row = value as Record<string, unknown>;
-  if (!Array.isArray(row.candidates) || typeof row.capturedAt !== 'string' || typeof row.selectedCharacterId !== 'string' ||
+  if (typeof row.sourceRotationId !== 'string' || !Array.isArray(row.candidates) || typeof row.capturedAt !== 'string' || typeof row.selectedCharacterId !== 'string' ||
     typeof row.selectedCharacterName !== 'string' || !['COMMUNITY_VOTE', 'RANDOM_FALLBACK'].includes(String(row.selectionSource))) return null;
   if (!row.candidates.every((candidate: unknown) => candidate && typeof candidate === 'object' &&
     typeof (candidate as Record<string, unknown>).characterId === 'string' && typeof (candidate as Record<string, unknown>).characterName === 'string' &&
     Number.isInteger((candidate as Record<string, unknown>).voteCount) && Number((candidate as Record<string, unknown>).voteCount) >= 0)) return null;
-  return value as GenerationVoteSnapshot;
+  return {
+    sourceRotationId: row.sourceRotationId, capturedAt: row.capturedAt,
+    candidates: row.candidates.map((candidate: Record<string, unknown>) => ({
+      characterId: candidate.characterId as string, characterName: candidate.characterName as string, voteCount: candidate.voteCount as number,
+    })),
+    selectedCharacterId: row.selectedCharacterId, selectedCharacterName: row.selectedCharacterName,
+    selectionSource: row.selectionSource as GenerationVoteSnapshot['selectionSource'],
+  };
 }
 
 export class HistoryService {

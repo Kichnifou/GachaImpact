@@ -2667,7 +2667,7 @@ Projection sur les historiques spécialisés :
 
 Pas de table globale qui duplique tous les événements.
 
-La migration `20260925160000_044_add_banner_generation_vote_snapshot` ajoute uniquement la colonne nullable `banner_rotations.generation_vote_snapshot JSONB`. Elle est appliquée sur DEV ; le registre Prisma compte 44 migrations. Le snapshot est écrit dans la transaction de création de la rotation avec sa composition. Les rotations existantes restent `NULL`. La projection History lit les tables propriétaires Gacha, Banque, Boutique et Event ; elle ne crée ni table ni écriture transverse. Cette migration n'est pas encore promue sur `main` ni déployée publiquement.
+La migration `20260925160000_044_add_banner_generation_vote_snapshot` ajoute uniquement la colonne nullable `banner_rotations.generation_vote_snapshot JSONB`. Elle est appliquée sur DEV ; le registre Prisma compte 44 migrations. Sans nouvelle migration, la rotation source reçoit d'abord un état de fermeture durable dans ce JSONB ; la transaction suivante relit ce pool figé et écrit le snapshot final sur la nouvelle rotation. Un retry conserve la même fermeture. La toute première rotation sans source conserve SQL `NULL` ; les rotations anciennes sans snapshot restent également `NULL`. La projection History ne publie que le snapshot final et lit les tables propriétaires Gacha, Banque, Boutique et Event ; elle ne crée ni table ni écriture transverse. Cette migration n'est pas encore promue sur `main` ni déployée publiquement.
 
 ## Help
 
