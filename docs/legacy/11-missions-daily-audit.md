@@ -1242,7 +1242,7 @@ L’Aperçu liste désormais Récompense quotidienne, Roue, Défi, Combat, Boss,
 
 Les formulations `aujourd’hui` redondantes sont retirées uniquement des détails de cet Aperçu pour Récompense, Roue, Combat, Boss et Expédition. Les écrans propriétaires conservent leur vocabulaire lorsque le contexte journalier reste utile.
 
-## Missions permanentes — Lots 1 à 3 validés publiquement ; Lot 4 candidat sur review
+## Missions permanentes — Lots 1 à 3 validés publiquement ; Lot 4 approuvé et promu, à validation publique
 
 La migration additive 041 matérialise un catalogue unique de 31 définitions — 27 B/A/S et 4 Z — ainsi que `player_permanent_mission_states` et `player_permanent_mission_progress`. Les external keys et UUID sont déterministes ; rang, métrique, seuil, récompense, ordre, activation et secret Z sont contraints. RLS est active et aucun droit direct `PUBLIC`, `anon` ou `authenticated` n’est accordé.
 
@@ -1254,6 +1254,6 @@ Recroisements physiques Lot 2 : Chat avance seulement `COUNTED_MESSAGES` après 
 
 Le Lot 3 raccorde Expedition, Combat et Social/cœurs dans leurs transactions propriétaires ; tous les producteurs autoritatifs B/A/S/Z sont donc physiques après promotion.
 
-Le candidat Lot 4 expose la projection personnelle par `GET /api/v1/me/missions` et par le vrai écran `Activités > Missions`. Le premier GET d’un standalone dont le marqueur est nul exécute R301 exactly-once puis projette l’état confirmé ; les consultations suivantes sont essentiellement projectives. B/A/S exposent neuf missions dans l’ordre canonique et Z verrouillé ne sérialise que son statut global, sans définition secrète. Le frontend charge à la demande, rafraîchit Ressources seulement lorsqu’un catch-up vient d’être appliqué et ne propose aucune action sur les Missions automatiques. `!mission`, Profil, confidentialité tierce, notifications player-facing, Twitch et import legacy restent hors de ce lot.
+Le Lot 4, approuvé par review indépendante et promu sur `main` mais non encore validé publiquement, expose la projection personnelle par `GET /api/v1/me/missions` et par le vrai écran `Activités > Missions`. Le premier GET d’un standalone dont le marqueur est nul exécute R301 exactly-once puis projette l’état confirmé ; les consultations suivantes sont essentiellement projectives. B/A/S exposent neuf missions dans l’ordre canonique et Z verrouillé ne sérialise que son statut global, sans définition secrète. Le frontend charge à la demande, rafraîchit Ressources seulement lorsqu’un catch-up vient d’être appliqué et ne propose aucune action sur les Missions automatiques. `!mission`, Profil, confidentialité tierce, notifications player-facing, Twitch et import legacy restent hors de ce lot.
 
 Les smoke tests publics confirment ces raccords : un claim Expedition UI a fait passer `totalCompleted` de 11 à 12 et la progression S à 12/30, sans récompense Mission parasite ; une victoire Combat AUTO a fait passer `totalWins` de 13 à 14 sans modifier `totalManualWins = 6` ; un cœur UI a fait passer `totalFriendHeartsSent` de 28 à 29 et crédité le destinataire de 5 Primogemmes sans catch-up R301 passif.
