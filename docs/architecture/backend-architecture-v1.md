@@ -1356,7 +1356,7 @@ Notifications reste un endpoint autonome et conserve toute sa chaîne métier : 
 
 Chaque GET idempotent du bootstrap, y compris la résolution initiale du Player, accepte au plus une seconde tentative après une erreur réseau ou HTTP 5xx. Les 4xx métier/auth ne sont jamais retentées et un second échec reste visible comme erreur de bootstrap. La politique est locale au bootstrap : elle ne modifie ni les mutations ni les règles métier des endpoints.
 
-## Missions permanentes — Lots 1 à 4 validés publiquement ; Lot 5 candidat sur review
+## Missions permanentes — Lots 1 à 4 validés publiquement ; Lot 5 promu, validation publique en attente
 
 `PermanentMissionService` est une primitive applicative transaction-local : initialisation, catch-up R301, réconciliation complète ou bornée et projection reçoivent toujours une `Prisma.TransactionClient` existante et n’ouvrent aucune transaction imbriquée. Le producteur conserve la transaction propriétaire de son action, puis appelle Missions après sa mutation autoritative et avant commit. La voie bornée ne lit que les agrégats demandés ; Gacha regroupe ainsi Pulls, possessions, C6 et gains économiques en un passage final au lieu d’un scan après chaque sous-récompense.
 
@@ -1378,6 +1378,6 @@ Le Lot 4 validé publiquement ajoute `GetCurrentPlayerMissions`, propriétaire d
 
 `GET /api/v1/me/missions` est authentifié, sans `playerId` client et avec `Cache-Control: no-store`. Un serializer unique convertit BigInt en chaînes décimales et dates en ISO/null ; avant déblocage, le JSON Z vaut strictement `{ "status": "LOCKED" }`.
 
-Le candidat Lot 5 raccorde `!mission` à cette query personnelle et au propriétaire du Défi. R301 reste SYSTEM/exactly-once et, s’il est appliqué par l’envoi Chat avant le dispatcher, le résultat durable `chat.send` porte le refresh `resources`; le `commandMessageId` n’est jamais la preuve des complétions historiques. Le handler produit une chaîne logique monoligne et laisse `GlobalChatService.splitGameResult()` publier atomiquement les segments de 500 caractères maximum.
+Le Lot 5 promu raccorde `!mission` à cette query personnelle et au propriétaire du Défi. R301 reste SYSTEM/exactly-once et, s’il est appliqué par l’envoi Chat avant le dispatcher, le résultat durable `chat.send` porte le refresh `resources`; le `commandMessageId` n’est jamais la preuve des complétions historiques. Le handler produit une chaîne logique monoligne et laisse `GlobalChatService.splitGameResult()` publier atomiquement les segments de 500 caractères maximum.
 
 `GET /api/v1/players/:playerId/missions` authentifie le viewer, exige une cible ACTIVE, évalue `PrivacyService.permissions(target, viewer).MISSIONS`, puis retourne `PRIVATE` sans donnée ou la projection persistée sérialisée par le même serializer. Cette lecture n’appelle que `project` dans une transaction read-only applicative : aucun catch-up, reconcile, reward, `BusinessOperation` ou `ResourceMovement`, y compris si le marqueur R301 de la cible est nul. Le Profil utilise `/me/missions` pour son propriétaire et cette route dédiée seulement pour un tiers ; le payload général Profil et son polling restent inchangés. Notification player-facing, Twitch et migration legacy restent absents.
