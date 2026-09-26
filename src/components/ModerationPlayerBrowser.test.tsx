@@ -19,7 +19,7 @@ afterEach(() => {
 
 function response(input: ModerationPlayerListQuery): ModerationPlayerPageDto {
   const page = input.page ?? 1
-  return { players: [{ id: `player-${page}`, displayName: page === 1 ? 'Alpha' : 'Zeta', elementKey: 'geo', level: page, tester: page === 1, rank: page === 1 ? 'TESTER' : 'PLAYER' }], page, pageSize: 10, total: 12, totalPages: 2 }
+  return { players: [{ id: `player-${page}`, displayName: page === 1 ? 'Alpha' : 'Zeta', elementKey: 'geo', avatarAssetPath: page === 1 ? '/assets/fixture/alpha.png' : null, level: page, tester: page === 1, rank: page === 1 ? 'TESTER' : 'PLAYER' }], page, pageSize: 10, total: 12, totalPages: 2 }
 }
 
 describe('ModerationPlayerBrowser', () => {
@@ -35,6 +35,7 @@ describe('ModerationPlayerBrowser', () => {
     const root = createRoot(container); roots.push(root)
     await act(async () => { root.render(<ModerationPlayerBrowser selectedPlayerId="player-1" onListPlayers={onListPlayers} onConfirm={vi.fn()} onClose={vi.fn()} />); await Promise.resolve(); await Promise.resolve() })
     expect(onListPlayers).toHaveBeenLastCalledWith({ query: '', elementKey: null, tester: 'all', sort: 'name', direction: 'asc', page: 1 })
+    expect(container.querySelector<HTMLImageElement>('.moderation-browser-results .player-avatar img')?.getAttribute('src')).toBe('/assets/fixture/alpha.png')
     const selects = container.querySelectorAll('select')
     expect(Array.from(selects[0]!.options).map(({ value }) => value)).toEqual(['all', 'pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro'])
     const search = container.querySelector<HTMLInputElement>('input[type="search"]')!
@@ -64,7 +65,7 @@ describe('ModerationPlayerBrowser', () => {
     const onConfirm = vi.fn()
     const onListPlayers = vi.fn(async (input: ModerationPlayerListQuery): Promise<ModerationPlayerPageDto> => input.query === 'absent'
       ? { players: [], page: 1, pageSize: 10, total: 0, totalPages: 1 }
-      : { players: [{ id: 'long-player', displayName: 'Un pseudo volontairement très long pour le navigateur', elementKey: 'dendro', level: 99, tester: false, rank: 'PLAYER' }], page: 1, pageSize: 10, total: 1, totalPages: 1 })
+      : { players: [{ id: 'long-player', displayName: 'Un pseudo volontairement très long pour le navigateur', elementKey: 'dendro', avatarAssetPath: null, level: 99, tester: false, rank: 'PLAYER' }], page: 1, pageSize: 10, total: 1, totalPages: 1 })
     const container = document.createElement('div'); document.body.append(container)
     const root = createRoot(container); roots.push(root)
     await act(async () => { root.render(<ModerationPlayerBrowser selectedPlayerId="actor" onListPlayers={onListPlayers} onConfirm={onConfirm} onClose={vi.fn()} />); await Promise.resolve(); await Promise.resolve() })

@@ -14,9 +14,9 @@ export type ModerationPermissionsDto = Readonly<{
   roles: readonly ('MODERATOR' | 'TESTER' | 'ADMIN')[]
   capabilities: Readonly<{ moderationAccess: boolean; communityModeration: boolean; selfResourceTools: boolean; selfGameplayTools: boolean; superTools: boolean; canSelectPlayers: boolean; canManageTesters: boolean }>
 }>
-export type ModerationPlayerDto = Readonly<{ id: string; displayName: string; elementKey: ElementKey | null; level: number; tester: boolean; rank: 'SUPER' | 'MODERATOR' | 'TESTER' | 'PLAYER' }>
+export type ModerationPlayerDto = Readonly<{ id: string; displayName: string; elementKey: ElementKey | null; avatarAssetPath: string | null; level: number; tester: boolean; rank: 'SUPER' | 'MODERATOR' | 'TESTER' | 'PLAYER' }>
 
-export const navigationMenuDestinationIds = ['home', 'invocation', 'box', 'team', 'catalog', 'activities', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'codes', 'social', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'configuration'] as const
+export const navigationMenuDestinationIds = ['home', 'invocation', 'box', 'team', 'catalog', 'activities', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'codes', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'configuration'] as const
 export type RankingCategory = 'PROGRESSION' | 'GACHA' | 'RESSOURCES' | 'COLLECTION' | 'ACTIVITE'
 export type RankingMetricDto = Readonly<{ id: string; label: string; category: RankingCategory; aliases: readonly string[]; source: string; format: 'INTEGER' | 'PERCENT' | 'PITY5'; privacy: readonly string[]; eligibility: string }>
 export type RankingEntryDto = Readonly<{ playerId: string; displayName: string; elementKey: string; avatarAssetPath?: string | null; rank: number; value: string; isSelf: boolean }>
@@ -676,7 +676,7 @@ export type EventRankingDto = Readonly<{ editionId: string; entries: readonly Re
 export type EventGameAAttemptDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; attempt: Readonly<{ succeeded: boolean }> }>
 export type EventGameBAttemptDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; attempt: Readonly<{ kind: 'ALREADY_TESTED' | 'INCORRECT' | 'CORRECT' }> }>
 export type EventGameCRecipientQuery = Readonly<{ query: string; elementKey: ElementKey | null; sort: 'name' | 'level'; direction: 'asc' | 'desc'; page: number }>
-export type EventGameCRecipientDto = Readonly<{ playerId: string; displayName: string; level: number; elementKey: ElementKey | null }>
+export type EventGameCRecipientDto = Readonly<{ playerId: string; displayName: string; level: number; elementKey: ElementKey | null; avatarAssetPath: string | null }>
 export type EventGameCRecipientsDto = Readonly<{ page: number; pageSize: 10; total: number; totalPages: number; recipients: readonly EventGameCRecipientDto[] }>
 export type EventGameCSendDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }> }>
 

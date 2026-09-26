@@ -135,8 +135,11 @@ describe('Particle trades isolated PostgreSQL', () => {
   it('discovers only eligible partners with accent/case search and bounded server pagination', async () => {
     const a = await player(), b = await player('pyro');
     const name = `Élise ${randomUUID()}`; await db.player.update({ where: { id: b }, data: { displayName: name } });
+    const cosmetic = await db.cosmeticDefinition.create({ data: { externalKey: `test-trade-avatar-${randomUUID()}`, type: 'AVATAR', displayName: 'Fixture avatar', assetPath: '/assets/fixture/trade.png' } });
+    await db.playerCosmetic.create({ data: { playerId: b, cosmeticId: cosmetic.id, unlockSource: 'TEST' } });
+    await db.player.update({ where: { id: b }, data: { equippedAvatarCosmeticId: cosmetic.id } });
     const result = await service.partners(a, name.replace('Élise', 'ELISE'));
-    expect(result.partners.map(p => p.id)).toEqual([b]); expect(result.partners[0]?.maximum).toBe('500');
+    expect(result.partners.map(p => p.id)).toEqual([b]); expect(result.partners[0]).toMatchObject({ maximum: '500', avatarAssetPath: '/assets/fixture/trade.png' });
     await request(a, b); expect((await service.partners(a, name)).partners).toEqual([]);
   }, 30_000);
   it('concurrent creations cannot over-reserve sender stock', async () => {

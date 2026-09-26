@@ -62,6 +62,21 @@ async function cleanupResidualTestFixtures() {
 }
 
 describe('privileged self-test persistence', () => {
+  it('projects the selected Player avatar without changing role badges', async () => {
+    const admin = await createPlayer(['ADMIN'])
+    const target = await createPlayer(['TESTER'])
+    const cosmetic = await database.cosmeticDefinition.create({ data: { externalKey: `test-moderation-avatar-${randomUUID()}`, type: 'AVATAR', displayName: 'Fixture avatar', assetPath: '/assets/fixture/moderation.png' } })
+    try {
+      await database.playerCosmetic.create({ data: { playerId: target.id, cosmeticId: cosmetic.id, unlockSource: 'TEST' } })
+      await database.player.update({ where: { id: target.id }, data: { equippedAvatarCosmeticId: cosmetic.id } })
+      const result = await tools.listPlayers(admin.identity, { query: 'Moderation', elementKey: null, tester: 'tester', sort: 'name', direction: 'asc', page: 1 })
+      expect(result.players.find(player => player.id === target.id)).toMatchObject({ avatarAssetPath: '/assets/fixture/moderation.png', tester: true, rank: 'TESTER' })
+    } finally {
+      await database.player.update({ where: { id: target.id }, data: { equippedAvatarCosmeticId: null } })
+      await database.playerCosmetic.deleteMany({ where: { cosmeticId: cosmetic.id } })
+      await database.cosmeticDefinition.delete({ where: { id: cosmetic.id } })
+    }
+  }, 30_000)
   it('keeps MODERATOR powerless while TESTER and ADMIN receive the capability', async () => {
     const moderator = await createPlayer(['MODERATOR'])
     expect(await tools.getPermissions(moderator.identity)).toEqual({ roles: ['MODERATOR'], capabilities: { moderationAccess: true, communityModeration: true, selfResourceTools: false, selfGameplayTools: false, superTools: false, canSelectPlayers: false, canManageTesters: false } })

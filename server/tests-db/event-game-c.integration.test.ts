@@ -20,6 +20,7 @@ const provision = new GetOrProvisionCurrentPlayer(store);
 const getPlayer = new GetCurrentPlayer(store);
 const playerIds: string[] = [];
 const editionIds: string[] = [];
+const cosmeticIds: string[] = [];
 let year = 2190;
 let now = new Date(`${year}-09-15T12:00:00.000Z`);
 const service = new EventService(getPlayer, database, { now: () => now }, { nextInt: () => 0 });
@@ -65,12 +66,23 @@ afterEach(async () => {
     await database.webIdentity.deleteMany({ where: { playerId: { in: ids } } });
     await database.player.deleteMany({ where: { id: { in: ids } } });
   }
+  if (cosmeticIds.length) await database.cosmeticDefinition.deleteMany({ where: { id: { in: cosmeticIds.splice(0) } } });
   year += 1;
   now = new Date(`${year}-09-15T12:00:00.000Z`);
 });
 afterAll(async () => database.$disconnect());
 
 describe('Event Game C with isolated future editions and fixture Players', () => {
+  it('projects a recipient equipped avatar in the same candidate query', async () => {
+    const sender = await fixture('Sender'); const recipient = await fixture('Recipient');
+    await join(sender);
+    const cosmetic = await database.cosmeticDefinition.create({ data: { externalKey: `test-event-avatar-${randomUUID()}`, type: 'AVATAR', displayName: 'Fixture avatar', assetPath: '/assets/fixture/event.png' } });
+    cosmeticIds.push(cosmetic.id);
+    await database.playerCosmetic.create({ data: { playerId: recipient.playerId, cosmeticId: cosmetic.id, unlockSource: 'TEST' } });
+    await database.player.update({ where: { id: recipient.playerId }, data: { equippedAvatarCosmeticId: cosmetic.id } });
+    const result = await service.searchGameCRecipients(sender.identity, { q: recipient.displayName, sort: 'name', direction: 'asc', page: 1 });
+    expect(result.recipients.find(candidate => candidate.playerId === recipient.playerId)).toMatchObject({ avatarAssetPath: '/assets/fixture/event.png' });
+  }, 30_000);
   it('runs Game C through public Chat and the same Event state, with exact text, replay and business refusal', async () => {
     const sender = await fixture('Sender'); const recipient = await fixture('Recipient');
     await join(sender); await view(recipient);
@@ -93,6 +105,7 @@ describe('Event Game C with isolated future editions and fixture Players', () =>
     expect(replay.message.id).toBe(first.message.id);
     expect(replay.result?.id).toBe(first.result?.id);
     expect(await database.eventSocialMessage.count({ where: { senderPlayerId: sender.playerId } })).toBe(1);
+    now = new Date(now.getTime() + 1_000);
     const refused = await dispatcher.send(sender.identity, `!event ${theme} ${recipient.displayName} "Deuxième message"`, randomUUID());
     expect(refused.result).toMatchObject({ messageType: 'GAME_RESULT', sourceChannel: 'SYSTEM' });
     expect(refused.result?.content).toContain('déjà');

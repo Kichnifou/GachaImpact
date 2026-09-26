@@ -883,6 +883,8 @@ Prévoir conceptuellement :
 - statut actif/retiré du catalogue ;
 - preuve de déblocage migrée ou native.
 
+État physique du correctif `review` 2026-09-26 : 045 matérialise catalogue, possession et équipement ; 046 retire uniquement l'équipement d'un AVATAR désactivé, sans retirer sa possession ni le rééquiper lors d'une réactivation. `unlockCosmetic` exige le choix explicite entre notification player-facing et import silencieux. La propagation Avatar couvre les sélecteurs Event > Panier, Modération et partenaires Échanges ; aucun catalogue produit n'est créé ici. Les décisions historiques R478–R493 et les clarifications R913–R915 du journal restent les autorités.
+
 ## MP et blocages
 
 Prévoir conceptuellement :

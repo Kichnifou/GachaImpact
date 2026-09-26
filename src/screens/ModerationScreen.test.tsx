@@ -13,7 +13,7 @@ import ModerationScreen from './ModerationScreen'
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const roots: Root[] = []
-const player = (id: string, displayName: string, tester = false, level = 2): ModerationPlayerDto => ({ id, displayName, elementKey: 'hydro', level, tester, rank: id === 'self' ? 'SUPER' : tester ? 'TESTER' : 'PLAYER' })
+const player = (id: string, displayName: string, tester = false, level = 2): ModerationPlayerDto => ({ id, displayName, elementKey: 'hydro', avatarAssetPath: id === 'player-a' ? '/assets/fixture/mod.png' : null, level, tester, rank: id === 'self' ? 'SUPER' : tester ? 'TESTER' : 'PLAYER' })
 const actors = {
   self: player('self', 'Kichnifou', true, 8),
   a: player('player-a', 'Mynonyme', false, 4),
@@ -277,6 +277,7 @@ describe('ModerationScreen', () => {
     const { container, onLoad } = await mount()
     await search(container, 'Mynonyme')
     let options = Array.from(container.querySelectorAll<HTMLButtonElement>('[role="option"]'))
+    expect(options.find((button) => button.textContent?.includes('Mynonyme') && !button.textContent.includes('Test1'))?.querySelector('img')?.getAttribute('src')).toBe('/assets/fixture/mod.png')
     await act(async () => { options.find((button) => button.textContent?.includes('Mynonyme') && !button.textContent.includes('Test1'))!.click(); await Promise.resolve(); await Promise.resolve() })
     expect(stellaInput(container).value).toBe('17')
     expect(tool(container, 'Ressources').querySelector('.moderation-current')?.textContent).toBe('2 000 Primos')

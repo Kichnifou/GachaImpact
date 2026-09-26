@@ -18,13 +18,14 @@
 .trade-compose input, .trade-compose .app-button { height: 39px; box-sizing: border-box; }
 .trade-compose label { display: grid; gap: 4px; font-size: .8rem; min-width: 0; }
 .trade-list { display: grid; gap: 8px; }
-.trade-partner { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; color: #e6edff; background: #162238; border: 1px solid #ffffff20; border-radius: 10px; padding: 10px; text-align: left; cursor: pointer; }
+.trade-partner { display: grid; grid-template-columns: 32px 24px minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; color: #e6edff; background: #162238; border: 1px solid #ffffff20; border-radius: 10px; padding: 10px; text-align: left; cursor: pointer; }
 .trade-partner > span:last-child { text-align: right; justify-self: end; }
 .trades-panel .scrollable-screen-panel-body { padding: 4px; }
 .trade-controls label { display: grid; gap: 4px; }
 .trade-search { position: relative; min-width: 0; max-width: 100%; }
 .trade-search-results:not([hidden]) { position: absolute; top: 100%; left: 0; right: 0; z-index: 5; display: grid; max-height: 150px; overflow-y: auto; padding: 4px; border: 1px solid #79cafa; border-radius: 8px; background: #121d30; }
 .trade-search-results button { color: #eef4ff; background: transparent; border: 0; padding: 8px; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
+.trade-search-results button { display: flex; align-items: center; gap: 8px; }
 .trade-search-results button:focus-visible { outline: 2px solid #79cafa; outline-offset: -2px; }
 .trade-partner:hover, .trade-partner.selected { border-color: #70bded; background: #20344e; }
 .trade-partner:disabled { cursor: not-allowed; opacity: .6; }
@@ -41,8 +42,8 @@
   .trade-stock-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .trade-compose { grid-template-columns: minmax(0, 1fr) auto auto; }
   .trade-compose > .trade-search { grid-column: 1 / -1; }
-  .trade-partner { grid-template-columns: 24px minmax(0, 1fr) auto; }
-  .trade-partner > span:last-child { grid-column: 2 / -1; font-size: .8rem; }
+  .trade-partner { grid-template-columns: 32px 24px minmax(0, 1fr) auto; }
+  .trade-partner > span:last-child { grid-column: 3 / -1; font-size: .8rem; }
   .trade-request { grid-template-columns: minmax(0, 1fr); }
   .trade-tabs { gap: 4px; }
   .trade-tabs .app-button { padding-inline: 8px; }

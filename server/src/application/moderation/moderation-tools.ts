@@ -10,7 +10,7 @@ export type ModerationPermissionsDto = Readonly<{
   roles: readonly ModerationRole[]
   capabilities: Readonly<{ moderationAccess: boolean; communityModeration: boolean; selfResourceTools: boolean; selfGameplayTools: boolean; superTools: boolean; canSelectPlayers: boolean; canManageTesters: boolean }>
 }>
-export type ModerationPlayerDto = Readonly<{ id: string; displayName: string; elementKey: string | null; level: number; tester: boolean; rank: ModerationRank }>
+export type ModerationPlayerDto = Readonly<{ id: string; displayName: string; elementKey: string | null; avatarAssetPath: string | null; level: number; tester: boolean; rank: ModerationRank }>
 export type ModerationPlayerListQuery = Readonly<{
   query: string
   elementKey: string | null

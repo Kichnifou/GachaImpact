@@ -9,7 +9,7 @@ describe('navigation shell registry', () => {
   })
   it.each([
     ['#box', 'characters-box'], ['#team', 'characters-team'], ['#characters', 'characters-catalog'], ['#inventory', 'inventory'], ['#shop', 'shop'], ['#bank', 'bank'], ['#codes', 'codes'], ['#rankings', 'rankings'], ['#history', 'history'], ['#moderation', 'moderation'],
-    ['#characters/box', 'characters-box'], ['#activities/dailies', 'activities-dailies'],
+    ['#characters/box', 'characters-box'], ['#activities/dailies', 'activities-dailies'], ['#social', 'social'],
   ] as const)('maps %s to %s', (hash, screen) => expect(parseNavigationHash(hash)).toBe(screen))
   it('emits canonical deep links and marks future destinations unavailable', () => {
     expect(hashForScreen('characters-team')).toBe('characters/team')
@@ -17,7 +17,7 @@ describe('navigation shell registry', () => {
     expect(navigationDestinations.filter(({ available }) => !available).map(({ id }) => id)).toEqual(['tutorial'])
   })
   it('adds Rankings to the global menu without changing the seven main tiles', () => {
-    expect(navigationDestinations.map(({ id }) => id)).toEqual(['home', 'invocation', 'box', 'team', 'catalog', 'activities', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'codes', 'social', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'configuration'])
-    expect(new Set(navigationDestinations.map(({ id }) => id)).size).toBe(22)
+    expect(navigationDestinations.map(({ id }) => id)).toEqual(['home', 'invocation', 'box', 'team', 'catalog', 'activities', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'codes', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'configuration'])
+    expect(new Set(navigationDestinations.map(({ id }) => id)).size).toBe(21)
   })
 })

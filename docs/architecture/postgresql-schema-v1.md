@@ -1855,6 +1855,8 @@ Dans `players` ou table dédiée légère :
 
 Le mapping 045 retient les deux colonnes nullable sur `players`, avec FK `ON DELETE RESTRICT`. Le service serveur impose possession, type et activité avant un nouvel équipement ; l'avatar élémentaire reste une projection de `element_key`, sans fausse possession. `cosmetic_definitions` et `player_cosmetics` ont RLS active et aucun grant navigateur direct. La 045 est appliquée et suivie sur DEV ; elle ne seed aucun cosmétique.
 
+La migration additive `20260926100000_046_clear_disabled_equipped_avatars` crée un trigger `AFTER UPDATE OF is_active` sur `cosmetic_definitions`. Au seul passage `true → false` d'un `AVATAR`, il met à `NULL` les références `players.equipped_avatar_cosmetic_id` correspondantes. Il ne touche ni aux possessions, ni aux titres, ni aux notifications ; un retour à `true` ne restaure aucun équipement. 045 reste byte pour byte inchangée. DEV compte 46 migrations terminées ; les deux tables Apparence gardent RLS et aucune permission directe `PUBLIC`/`anon`/`authenticated`.
+
 ---
 
 # 26. Messages privés

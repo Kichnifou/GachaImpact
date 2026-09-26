@@ -1241,7 +1241,13 @@ La [source spécialisée Chat global](global-chat-v1.md) détaille ces règles. 
 - `VALIDÉ R910` — Classements en cinq lignes par page, calcul des rangs et égalités avant pagination ; 34 métriques dont C6 5★, C6 4★ et C6 total (`c6`), depuis les possessions actives. Lecture serveur limitée aux sources de la métrique. L'écran utilise les onglets et boutons communs, sans sous-titre ni titre de métrique redondant. Le raccourci `Profil > Statistiques → Classements` ouvre `#rankings` pour son profil comme celui d'autrui, sans filtre implicite. Ces correctifs sont candidats `review` jusqu'au prochain test public.
 ## R912 — Onglets internes Classements et Historique (2026-09-25)
 
-- `VALIDÉ COMME DÉCISION UX ; IMPLÉMENTATION CANDIDATE REVIEW` — Les catégories principales de Classements et Historique réutilisent le pattern `activity-inner-tabs` du shell, comme Quotidiennes, Combat, Event et Missions. Aucun composant ou style d'onglet autonome n'est maintenu pour ces catégories ; le filtre Banque reste secondaire.
+- `VALIDÉ COMME DÉCISION UX ; IMPLÉMENTATION APPROUVÉE PAR REVIEW INDÉPENDANTE, VALIDATION PUBLIQUE EN ATTENTE` — Les catégories principales de Classements et Historique réutilisent le pattern `activity-inner-tabs` du shell, comme Quotidiennes, Combat, Event et Missions. Aucun composant ou style d'onglet autonome n'est maintenu pour ces catégories ; le filtre Banque reste secondaire.
+
+## R913–R915 — Correctifs Apparence et sélections Player (2026-09-26)
+
+- `VALIDÉ R913 ; CORRECTIF CANDIDAT REVIEW` — L'avatar Player est propagé aux surfaces qui présentent une identité ou une sélection réelle : Event > Panier, Modération et partenaires Échanges en plus des surfaces déjà couvertes. Les historiques, résultats textuels, palmarès et portraits de personnages Concours ne reçoivent pas d'avatar décoratif. Le titre reste exclusivement sur le Profil.
+- `VALIDÉ R914 ; CORRECTIF CANDIDAT REVIEW` — La désactivation d'un AVATAR équipé retire immédiatement sa référence d'équipement, sans supprimer la possession. Le fallback élémentaire puis l'initiale s'applique. Une réactivation ne rééquipe jamais automatiquement ; le Player choisit de nouveau Équiper. Ce comportement n'est pas étendu aux TITLE.
+- `VALIDÉ R915 ; CORRECTIF CANDIDAT REVIEW` — Chaque appel à `unlockCosmetic` choisit explicitement `PLAYER_FACING` (premier unlock notifié, replay neutre) ou `SILENT_BACKFILL` (import technique sans notification). Aucun producteur gameplay de cosmétique n'est ajouté.
 
 ## R911 — Snapshot de génération Bannières et Historique global (2026-09-25)
 

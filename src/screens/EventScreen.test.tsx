@@ -109,6 +109,41 @@ describe('EventScreen presentation', () => {
     expect(track.hidden).toBe(false)
     expect(button.textContent).toBe('Rétracter les paliers')
   })
+  it('opens collapsed milestones from the whole banner by pointer or keyboard, and closes only by its button', () => {
+    const { container } = mount({ sessionUserId: 'banner-interaction', value: afterJoin })
+    const banner = container.querySelector<HTMLElement>('.event-milestone-progress')!
+    const control = banner.querySelector<HTMLButtonElement>('button')!
+    const track = container.querySelector<HTMLElement>('#event-milestone-track')!
+    act(() => control.click())
+    expect(track.hidden).toBe(true)
+    expect(banner.querySelector('.event-milestone-hit-area')).not.toBeNull()
+    act(() => banner.querySelector<HTMLButtonElement>('.event-milestone-hit-area')!.click())
+    expect(track.hidden).toBe(false)
+    act(() => banner.click())
+    expect(track.hidden).toBe(false)
+    act(() => control.click())
+    expect(track.hidden).toBe(true)
+    act(() => banner.querySelector<HTMLButtonElement>('.event-milestone-hit-area')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })))
+    act(() => banner.querySelector<HTMLButtonElement>('.event-milestone-hit-area')!.click())
+    expect(track.hidden).toBe(false)
+    act(() => control.click())
+    act(() => banner.querySelector<HTMLButtonElement>('.event-milestone-hit-area')!.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true })))
+    act(() => banner.querySelector<HTMLButtonElement>('.event-milestone-hit-area')!.click())
+    expect(track.hidden).toBe(false)
+  })
+  it('places the single Event history access in the compact hero', () => {
+    const mounted = mount({ value: afterJoin })
+    const onOpenHistory = vi.fn()
+    act(() => mounted.root.render(<EventScreen {...mounted.props} onOpenHistory={onOpenHistory} />))
+    const hero = mounted.container.querySelector<HTMLElement>('.event-hero')!
+    const history = hero.querySelector<HTMLButtonElement>('.event-hero-history')!
+    expect(history.textContent).toBe('Voir l’historique →')
+    expect(mounted.container.querySelectorAll('.event-hero-history')).toHaveLength(1)
+    expect(mounted.container.querySelector('.event-tabs + .app-button')).toBeNull()
+    expect(readFileSync('src/App.css', 'utf8')).toMatch(/\.event-hero \{[^}]*min-height: 104px;/s)
+    act(() => history.click())
+    expect(onOpenHistory).toHaveBeenCalledOnce()
+  })
 
   it('keeps the three game labels while removing their repeated large titles', () => {
     const { container } = mount({ value: afterJoin })
@@ -136,10 +171,10 @@ describe('EventScreen presentation', () => {
     expect(mounted.container.textContent).toContain('Non inscrit')
     expect(mounted.container.querySelector<HTMLButtonElement>('.event-foundation-card button')?.disabled).toBe(false)
     const tabs = Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
-    expect(tabs.map(({ textContent }) => textContent)).toEqual(['Inscription', 'Jeux', 'Shop', 'Classement'])
+    expect(tabs.map(({ textContent }) => textContent)).toEqual(['Général', 'Jeux', 'Shop', 'Classement'])
     expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, false, false])
     act(() => tabs[1].click())
-    expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Inscription')
+    expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Général')
     expect(mounted.container.querySelector('.event-stat-grid')).not.toBeNull()
     expect(mounted.container.textContent).not.toMatch(/À venir|Bientôt disponible|prochains lots/)
   })
@@ -149,7 +184,7 @@ describe('EventScreen presentation', () => {
     act(() => mounted.root.render(<EventScreen {...mounted.props} value={afterJoin} />))
     const tabs = Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
     expect(tabs.map(({ disabled }) => disabled)).toEqual([false, false, false, false])
-    expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Inscription')
+    expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Général')
     expect(mounted.container.textContent).toContain('Événement rejoint')
     expect(mounted.container.querySelector('.event-game-a')).toBeNull()
   })
@@ -180,7 +215,7 @@ describe('EventScreen presentation', () => {
     act(() => { convert().click(); convert().click() })
     expect(onConvertShop).toHaveBeenCalledTimes(1)
     expect(onConvertShop).toHaveBeenCalledWith('PRIMOGEMS', 1, expect.any(String))
-    act(() => { tab('Inscription').click(); tab('Shop').click() })
+    act(() => { tab('Général').click(); tab('Shop').click() })
     expect(convert().disabled).toBe(true)
     expect(convert().textContent).toBe('Échange…')
     await act(async () => { completeFirst(shopValue); await first })
@@ -290,7 +325,7 @@ describe('EventScreen presentation', () => {
 
     const tabs = Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
     expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, false, false])
-    expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Inscription')
+    expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Général')
     expect(mounted.container.textContent).toContain('Recevez 1 Jeton de Récolte')
     expect(mounted.container.querySelector('.event-stat-grid')).not.toBeNull()
   })
@@ -438,7 +473,7 @@ describe('EventScreen presentation', () => {
     const oldKey = onAttemptB.mock.calls[0][1]
     const nextEdition: EventDto = { ...afterJoin, edition: { ...afterJoin.edition, id: 'edition-2027', year: 2027 }, businessDate: '2027-09-15' }
     act(() => mounted.root.render(<EventScreen {...mounted.props} value={nextEdition} />))
-    expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Inscription')
+    expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Général')
     expect(mounted.container.querySelector('.event-game-b')).toBeNull()
     act(() => mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button')[1].click())
     act(() => mounted.container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[1].click())
@@ -517,14 +552,14 @@ describe('EventScreen presentation', () => {
   it('returns to registration if a stale message notification has no current-day inbox', async () => {
     const mounted = mount({ value: beforeJoin, onLoad: vi.fn(async () => beforeJoin), openMessagesToken: 1 })
     await act(async () => { await Promise.resolve() })
-    expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Inscription')
+    expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Général')
     expect(mounted.container.querySelector('.event-game-c')).toBeNull()
   })
 
   it('selects directly from inline search and ignores stale results after typing or selection', async () => {
     vi.useFakeTimers()
     let release!: (value: EventGameCRecipientsDto) => void
-    const page = (name: string): EventGameCRecipientsDto => ({ page: 1, pageSize: 10, total: 1, totalPages: 1, recipients: [{ playerId: name, displayName: name, level: 9, elementKey: 'hydro' }] })
+    const page = (name: string): EventGameCRecipientsDto => ({ page: 1, pageSize: 10, total: 1, totalPages: 1, recipients: [{ playerId: name, displayName: name, level: 9, elementKey: 'hydro', avatarAssetPath: '/assets/fixture/recipient.png' }] })
     const onSearchRecipients = vi.fn((query: EventGameCRecipientQuery) => query.query === 'A' ? new Promise<EventGameCRecipientsDto>(resolve => { release = resolve }) : Promise.resolve(page('Céo')))
     const { container } = mount({ value: afterJoin, onSearchRecipients })
     selectGames(container)
@@ -533,6 +568,7 @@ describe('EventScreen presentation', () => {
     const type = async (text: string) => act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, text); input.dispatchEvent(new Event('input', { bubbles: true })) })
     await type('A'); await act(async () => vi.advanceTimersByTimeAsync(120))
     await type('C'); await act(async () => vi.advanceTimersByTimeAsync(120))
+    expect(container.querySelector<HTMLImageElement>('.player-quick-search .player-avatar img')?.getAttribute('src')).toBe('/assets/fixture/recipient.png')
     await act(async () => container.querySelector<HTMLButtonElement>('.player-quick-search .moderation-target-results button')!.click())
     expect(input.value).toBe('Céo')
     expect(container.querySelector('.player-quick-search .moderation-target-results')).toBeNull()
@@ -544,7 +580,7 @@ describe('EventScreen presentation', () => {
 
   it('keeps the selected Player in the search field and invalidates the ID when the text changes', async () => {
     vi.useFakeTimers()
-    const onSearchRecipients = vi.fn(async () => ({ page: 1, pageSize: 10 as const, total: 1, totalPages: 1, recipients: [{ playerId: 'mika-id', displayName: 'Mika', level: 9, elementKey: 'hydro' as const }] }))
+    const onSearchRecipients = vi.fn(async () => ({ page: 1, pageSize: 10 as const, total: 1, totalPages: 1, recipients: [{ playerId: 'mika-id', displayName: 'Mika', level: 9, elementKey: 'hydro' as const, avatarAssetPath: null }] }))
     const { container } = mount({ value: afterJoin, onSearchRecipients })
     selectGames(container)
     act(() => container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[2]!.click())
@@ -566,7 +602,7 @@ describe('EventScreen presentation', () => {
 
   it('clears the Game C recipient at business-date and session boundaries', async () => {
     vi.useFakeTimers()
-    const onSearchRecipients = vi.fn(async () => ({ page: 1, pageSize: 10 as const, total: 1, totalPages: 1, recipients: [{ playerId: 'mika-id', displayName: 'Mika', level: 9, elementKey: 'hydro' as const }] }))
+    const onSearchRecipients = vi.fn(async () => ({ page: 1, pageSize: 10 as const, total: 1, totalPages: 1, recipients: [{ playerId: 'mika-id', displayName: 'Mika', level: 9, elementKey: 'hydro' as const, avatarAssetPath: null }] }))
     const mounted = mount({ value: afterJoin, onSearchRecipients })
     selectGames(mounted.container)
     act(() => mounted.container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[2]!.click())
@@ -599,7 +635,7 @@ describe('EventScreen presentation', () => {
 
   it('replaces old search text when the shared browser confirms another Player and keeps the compact layout', async () => {
     vi.useFakeTimers()
-    const onSearchRecipients = vi.fn(async (query: EventGameCRecipientQuery) => ({ page: 1, pageSize: 10 as const, total: 1, totalPages: 1, recipients: [{ playerId: 'mika-id', displayName: 'Mika', level: 9, elementKey: 'hydro' as const }, ...(query.query === 'Céo' ? [{ playerId: 'ceo-id', displayName: 'Céo', level: 9, elementKey: 'hydro' as const }] : [])] }))
+    const onSearchRecipients = vi.fn(async (query: EventGameCRecipientQuery) => ({ page: 1, pageSize: 10 as const, total: 1, totalPages: 1, recipients: [{ playerId: 'mika-id', displayName: 'Mika', level: 9, elementKey: 'hydro' as const, avatarAssetPath: null }, ...(query.query === 'Céo' ? [{ playerId: 'ceo-id', displayName: 'Céo', level: 9, elementKey: 'hydro' as const, avatarAssetPath: null }] : [])] }))
     const { container } = mount({ value: afterJoin, onSearchRecipients })
     selectGames(container)
     act(() => container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[2]!.click())
@@ -631,7 +667,7 @@ describe('EventScreen presentation', () => {
 
   it('searches an eligible recipient, selects their ID and sends one trimmed daily message', async () => {
     vi.useFakeTimers()
-    const onSearchRecipients = vi.fn(async () => ({ page: 1, pageSize: 10 as const, total: 1, totalPages: 1, recipients: [{ playerId: 'player-2', displayName: 'Ami Panier', level: 5, elementKey: 'hydro' as const }] }))
+    const onSearchRecipients = vi.fn(async () => ({ page: 1, pageSize: 10 as const, total: 1, totalPages: 1, recipients: [{ playerId: 'player-2', displayName: 'Ami Panier', level: 5, elementKey: 'hydro' as const, avatarAssetPath: null }] }))
     const onSendGameC = vi.fn(async () => ({ ...afterJoin, gameC: { ...afterJoin.gameC, sentToday: true, canSend: false }, participation: { ...afterJoin.participation, points: 1 }, currency: { amount: '2' }, operation: { id: 'operation-c', alreadyProcessed: false } }))
     const mounted = mount({ value: afterJoin, onSearchRecipients, onSendGameC })
     selectGames(mounted.container)
@@ -655,7 +691,7 @@ describe('EventScreen presentation', () => {
     vi.useFakeTimers()
     const onSearchRecipients = vi.fn(async (query: EventGameCRecipientQuery): Promise<EventGameCRecipientsDto> => ({
       page: query.page, pageSize: 10, total: 11, totalPages: 2,
-      recipients: [{ playerId: `recipient-${query.page}`, displayName: 'Destinataire', level: 9, elementKey: 'geo' }],
+      recipients: [{ playerId: `recipient-${query.page}`, displayName: 'Destinataire', level: 9, elementKey: 'geo', avatarAssetPath: null }],
     }))
     const { container } = mount({ value: afterJoin, onSearchRecipients })
     selectGames(container)

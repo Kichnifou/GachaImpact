@@ -1369,6 +1369,8 @@ Les déblocages sont permanents et idempotents.
 
 Mapping physique du premier vertical : `Player` porte les deux références nullable vers `CosmeticDefinition`. Le catalogue possède `externalKey`, `visibility` (VISIBLE/MYSTERY/SECRET), `conditionText` et `unlockRule` JSON optionnels ; `PlayerCosmetic` porte une provenance JSON optionnelle. Le fallback élémentaire est une présentation de `Player.elementKey`, sans ligne de catalogue ni possession créée. Aucun titre Profil canonique ni autre avatar déblocable n'est inséré dans le premier lot.
 
+R914 : un AVATAR désactivé cesse d'être équipé, mais `PlayerCosmetic` reste intact. Après réactivation, l'équipement demeure vide jusqu'au nouveau choix explicite du Player. Cette règle n'établit rien pour les TITLE. R915 : un déblocage déclare toujours son mode de notification (`PLAYER_FACING` ou `SILENT_BACKFILL`) ; aucun mode silencieux implicite.
+
 ---
 
 # 25. Messages privés

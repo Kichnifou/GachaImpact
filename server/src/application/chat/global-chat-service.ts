@@ -52,7 +52,7 @@ function splitGameResult(content: string): string[] {
 function project(row: {
   id: string; authorPlayerId: string | null; sourceChannel: string; messageType: string; content: string;
   createdAt: Date; submissionOrder: bigint; deletedAt: Date | null; deletionState: GlobalChatDeletionState;
-  replyToMessageId: string | null; author: { id: string; displayName: string; elementKey: string | null; equippedAvatarCosmetic: { id: string; type: import('../../../generated/prisma/client.js').CosmeticType; assetPath: string | null } | null } | null;
+  replyToMessageId: string | null; author: { id: string; displayName: string; elementKey: string | null; equippedAvatarCosmetic: { id: string; type: import('../../../generated/prisma/client.js').CosmeticType; isActive: boolean; assetPath: string | null } | null } | null;
   replyToMessage: { id: string; content: string; deletionState: GlobalChatDeletionState; authorPlayerId: string | null } | null;
   mentions: { mentionedPlayerId: string; mentionedPlayer: { displayName: string } }[];
   operation: { idempotencyKey: string | null } | null;

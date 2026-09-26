@@ -9,6 +9,7 @@ import { PlayerActivityRecorder } from '../player/player-activity-recorder.js';
 import { unblockedRecipient } from '../social/contact-permission.js';
 import { normalizePlayerSearch } from '../social/social-service.js';
 import { expireTrades, particleStock, reconcileParticleTrades, refreshTradeNotification } from './trade-state.js';
+import { appearanceSelect, avatarAssetPath } from '../appearance/appearance-service.js';
 
 export type TradeSource = Extract<SourceChannel, 'UI' | 'INTERNAL_CHAT' | 'TWITCH'>;
 export type TradeAction = 'accept' | 'refuse' | 'cancel';
@@ -183,7 +184,7 @@ export class TradeService {
   async partners(playerId: string, q = '', requestedPage = 1) {
     return this.transaction(async tx => {
       const actor = await this.actor(tx, playerId);
-      const players = await tx.player.findMany({ where: { AND: [unblockedRecipient(playerId), { elementKey: { not: actor.elementKey } }] }, select: identity });
+      const players = await tx.player.findMany({ where: { AND: [unblockedRecipient(playerId), { elementKey: { not: actor.elementKey } }] }, select: { ...identity, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic } });
       const pending = await tx.tradeRequest.findMany({ where: { state: 'PENDING', OR: [{ senderPlayerId: playerId }, { recipientPlayerId: playerId }] }, select: { senderPlayerId: true, recipientPlayerId: true } });
       const paired = new Set(pending.flatMap(r => [r.senderPlayerId, r.recipientPlayerId]));
       const normalizedQuery = normalizePlayerSearch(q);
@@ -197,7 +198,7 @@ export class TradeService {
       for (const player of candidates) {
         const a = available.get(`${playerId}:particles_${player.elementKey}`) ?? 0n, b = available.get(`${player.id}:${particleResourceKey(actor.elementKey)}`) ?? 0n;
         const max = a < b ? a : b;
-        if (max > 0n) rows.push({ ...player, maximum: max.toString() });
+        if (max > 0n) rows.push({ id: player.id, displayName: player.displayName, elementKey: player.elementKey, avatarAssetPath: avatarAssetPath(player), maximum: max.toString() });
       }
       rows.sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr', { sensitivity: 'base' }) || a.id.localeCompare(b.id));
       const totalPages = Math.max(1, Math.ceil(rows.length / 10)), page = Math.min(totalPages, Math.max(1, requestedPage));

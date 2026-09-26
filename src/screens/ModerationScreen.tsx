@@ -17,6 +17,7 @@ import AppButton from "../components/AppButton";
 import GiftCodeAdminPanel from "../components/GiftCodeAdminPanel";
 import DirectMessageReportsPanel from "../components/DirectMessageReportsPanel";
 import ModerationPlayerBrowser from "../components/ModerationPlayerBrowser";
+import PlayerAvatar from "../components/PlayerAvatar";
 import ScrollableScreenPanel from "../components/ScrollableScreenPanel";
 import type {
   ModerationGachaInput,
@@ -393,6 +394,7 @@ function ModerationScreen({
                           onClick={() => selectTarget(candidate.id)}
                           key={candidate.id}
                         >
+                          <PlayerAvatar {...candidate} />
                           <span className="moderation-player-identity">
                             <strong title={candidate.displayName}>
                               {candidate.displayName}

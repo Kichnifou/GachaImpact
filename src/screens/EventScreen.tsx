@@ -339,7 +339,8 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
   }
   const milestoneProgress = Math.min(87.5, Math.max(0, (value.milestones.currentPoints - 10) / 70 * 87.5))
   const tabs = <>
-    <section className="event-milestone-progress" aria-label="Progression du Festival">
+    <section className={`event-milestone-progress${milestonesCollapsed ? ' collapsed' : ''}`} aria-label="Progression du Festival">
+      {milestonesCollapsed && <button type="button" className="event-milestone-hit-area" aria-label="Afficher les paliers depuis le bandeau" aria-expanded="false" aria-controls="event-milestone-track" onClick={toggleMilestones} />}
       <div className="event-milestone-summary"><strong>{formatResourceAmount(String(value.milestones.currentPoints))} points</strong><span>Votre progression</span><button type="button" aria-expanded={!milestonesCollapsed} aria-controls="event-milestone-track" onClick={toggleMilestones}>{milestonesCollapsed ? 'Afficher les paliers' : 'Rétracter les paliers'}</button></div>
       <div id="event-milestone-track" className="event-milestone-track-scroll" hidden={milestonesCollapsed}><div className="event-milestone-track">
         <span className="event-milestone-fill" role="progressbar" aria-label="Paliers du Festival" aria-valuemin={0} aria-valuemax={80} aria-valuenow={Math.min(80, value.milestones.currentPoints)} style={{ width: `${milestoneProgress}%` }} />
@@ -347,12 +348,11 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
       </div></div>
     </section>
     <nav className="activity-inner-tabs event-tabs" aria-label="Sections Événement">
-      <button type="button" className={section === 'registration' ? 'active' : ''} aria-current={section === 'registration' ? 'page' : undefined} onClick={() => setSection('registration')}>Inscription</button>
+      <button type="button" className={section === 'registration' ? 'active' : ''} aria-current={section === 'registration' ? 'page' : undefined} onClick={() => setSection('registration')}>Général</button>
       <button type="button" className={section === 'games' ? 'active' : ''} aria-current={section === 'games' ? 'page' : undefined} disabled={!value.participation.joined && !value.gameC.available} onClick={() => { setGameTab(value.participation.joined ? 0 : 2); setSection('games') }}>Jeux</button>
       <button type="button" className={section === 'shop' ? 'active' : ''} aria-current={section === 'shop' ? 'page' : undefined} onClick={() => setSection('shop')}>Shop</button>
       <button type="button" className={section === 'ranking' ? 'active' : ''} aria-current={section === 'ranking' ? 'page' : undefined} onClick={() => setSection('ranking')}>Classement</button>
     </nav>
-    {onOpenHistory && <AppButton onClick={onOpenHistory}>Voir l’historique</AppButton>}
     {section === 'games' && <nav className="activity-inner-tabs event-game-tabs" aria-label="Jeux du Festival">
       {presentation.games.map((game, index) => <button type="button" className={index === gameTab ? 'active' : ''} aria-current={index === gameTab ? 'page' : undefined} disabled={index < 2 ? !value.participation.joined : !value.gameC.available} onClick={() => { setGameTab(index as 0 | 1 | 2); if (index === 1) void onLoad().catch(() => undefined) }} key={game}>{game}</button>)}
     </nav>}
@@ -371,6 +371,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
           <p>{value.participation.joined ? 'Vous participez à cette édition.' : 'Le Festival est consultable librement. Rejoignez-le lorsque vous êtes prêt.'}</p>
         </div>
         <span className={`event-membership ${value.participation.joined ? 'joined' : ''}`}>{value.participation.joined ? 'Inscrit' : 'Non inscrit'}</span>
+        {onOpenHistory && <button type="button" className="event-hero-history" onClick={onOpenHistory}>Voir l’historique →</button>}
       </section>
 
       <div className="event-stat-grid">

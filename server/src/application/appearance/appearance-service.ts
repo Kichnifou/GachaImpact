@@ -7,19 +7,19 @@ type Database = PrismaClient | Prisma.TransactionClient;
 type AppearancePlayer = {
   displayName: string;
   elementKey: string | null;
-  equippedAvatarCosmetic: { id: string; type: CosmeticType; assetPath: string | null } | null;
+  equippedAvatarCosmetic: { id: string; type: CosmeticType; isActive: boolean; assetPath: string | null } | null;
   equippedTitleCosmetic: { id: string; type: CosmeticType; displayName: string } | null;
 };
 
 const officialAsset = (path: string | null) => path && /^\/assets\/[A-Za-z0-9/_-]+\.(?:png|webp|svg)$/.test(path) ? path : null;
 export const appearanceSelect = {
-  equippedAvatarCosmetic: { select: { id: true, type: true, assetPath: true } },
+  equippedAvatarCosmetic: { select: { id: true, type: true, isActive: true, assetPath: true } },
   equippedTitleCosmetic: { select: { id: true, type: true, displayName: true } },
 } as const;
 
 export function effectiveAvatar(player: Pick<AppearancePlayer, 'displayName' | 'elementKey' | 'equippedAvatarCosmetic'>) {
   const custom = player.equippedAvatarCosmetic;
-  if (custom?.type === CosmeticType.AVATAR && officialAsset(custom.assetPath)) return { kind: 'CUSTOM' as const, assetPath: custom.assetPath };
+  if (custom?.type === CosmeticType.AVATAR && custom.isActive && officialAsset(custom.assetPath)) return { kind: 'CUSTOM' as const, assetPath: custom.assetPath };
   if (player.elementKey && ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro'].includes(player.elementKey)) return { kind: 'ELEMENT' as const, assetPath: null };
   return { kind: 'INITIAL' as const, assetPath: null };
 }
@@ -84,13 +84,13 @@ export class AppearanceService {
     return this.get(identity);
   }
 
-  /** Transaction-aware; only a newly inserted real unlock creates a notification. */
-  async unlockCosmetic(input: { playerId: string; externalKey: string; source: string; provenance?: Prisma.InputJsonValue; notify?: boolean }, transaction?: Prisma.TransactionClient) {
+  /** Transaction-aware; each caller must declare whether this is a player-facing unlock or a silent technical import. */
+  async unlockCosmetic(input: { playerId: string; externalKey: string; source: string; provenance?: Prisma.InputJsonValue; notificationMode: 'PLAYER_FACING' | 'SILENT_BACKFILL' }, transaction?: Prisma.TransactionClient) {
     const run = async (db: Database) => {
       const definition = await db.cosmeticDefinition.findUnique({ where: { externalKey: input.externalKey }, select: { id: true, displayName: true, type: true, isActive: true } });
       if (!definition || !definition.isActive) throw new AppError('Cosmétique indisponible.', 404, 'COSMETIC_UNAVAILABLE');
       const inserted = await db.playerCosmetic.createMany({ data: [{ playerId: input.playerId, cosmeticId: definition.id, unlockSource: input.source, ...(input.provenance ? { provenance: input.provenance } : {}) }], skipDuplicates: true });
-      if (inserted.count && input.notify) await db.notification.create({ data: { playerId: input.playerId, domainKey: 'appearance', typeKey: 'COSMETIC_UNLOCKED', payload: { cosmeticId: definition.id, type: definition.type, displayName: definition.displayName }, actionKey: 'OPEN_PROFILE_PERSONALIZATION', deduplicationKey: `cosmetic-unlock:${input.playerId}:${definition.id}` } });
+      if (inserted.count && input.notificationMode === 'PLAYER_FACING') await db.notification.create({ data: { playerId: input.playerId, domainKey: 'appearance', typeKey: 'COSMETIC_UNLOCKED', payload: { cosmeticId: definition.id, type: definition.type, displayName: definition.displayName }, actionKey: 'OPEN_PROFILE_PERSONALIZATION', deduplicationKey: `cosmetic-unlock:${input.playerId}:${definition.id}` } });
       return { unlocked: inserted.count === 1, cosmeticId: definition.id };
     };
     return transaction ? run(transaction) : this.database.$transaction(run);

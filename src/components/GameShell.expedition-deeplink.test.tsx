@@ -153,7 +153,7 @@ describe('GameShell Expedition deep-link', () => {
     expect(container.querySelector('.event-game-tabs .active')?.textContent).toBe('Panier')
     await navigateByHash('activities-dailies')
     await navigateByHash('activities-event')
-    expect(container.querySelector('.event-tabs .active')?.textContent).toBe('Inscription')
+    expect(container.querySelector('.event-tabs .active')?.textContent).toBe('Général')
     const acceptedTrade = { id: 'trade-accepted', domainKey: 'trades', typeKey: 'TRADE_ACCEPTED', actionKey: 'OPEN_TRADES_HISTORY', actionTargetId: 'request', state: 'UNREAD' as const, createdAt: '2026-09-21T12:00:00Z', readAt: null, payload: { accepterDisplayName: 'Céo' } }
     const tradeActions = { snapshot: vi.fn(async () => ({ stocks: [], received: [], sent: [], history: [] })), partners: vi.fn(async () => ({ partners: [], page: 1, pageSize: 10 as const, total: 0, totalPages: 1 })), create: vi.fn(), mutate: vi.fn(), all: vi.fn() }
     const onReadNotification = vi.fn(async () => ({ unreadCount: 0, notifications: [] })), onArchiveNotification = vi.fn(async () => ({ unreadCount: 0, notifications: [] }))

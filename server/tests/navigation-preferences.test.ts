@@ -32,9 +32,15 @@ describe('navigation preferences', () => {
     expect(oldPreference.order.at(-1)).toBe('configuration')
     expect(oldPreference.order.at(-2)).toBe('tutorial')
     expect(oldPreference.order.indexOf('codes')).toBeLessThan(oldPreference.order.indexOf('configuration'))
-    expect(oldPreference.order).toEqual(expect.arrayContaining(['activities', 'social']))
+    expect(oldPreference.order).toEqual(expect.arrayContaining(['activities', 'friends']))
     expect(oldPreference.hidden).toEqual(['combat', 'codes'])
     expect(new Set(oldPreference.order).size).toBe(navigationLength())
+  })
+  it('drops the retired Social menu entry without resetting other saved choices', () => {
+    const merged = mergeNavigationMenuPreference({ version: 1, order: ['bank', 'social', 'friends', 'configuration'], hidden: ['shop', 'social'] })
+    expect(merged.order.slice(0, 2)).toEqual(['bank', 'friends'])
+    expect(merged.order).not.toContain('social')
+    expect(merged.hidden).toEqual(['shop'])
   })
   it('authenticates GET/PUT, rejects invalid shapes and persists only player-owned ids', async () => {
     let stored: unknown = null

@@ -18,6 +18,7 @@ import type { GetCurrentPlayer } from '../player/get-current-player.js';
 import { eligibleContactRecipient } from '../social/contact-permission.js';
 import { calendarReward, projectCalendar } from '../../domain/event/calendar.js';
 import type { GiftCodeService } from '../gift-code/gift-code-service.js';
+import { appearanceSelect, avatarAssetPath } from '../appearance/appearance-service.js';
 
 type Database = PrismaClient | Prisma.TransactionClient;
 
@@ -333,10 +334,10 @@ export class EventService {
     if (!participant) throw new BusinessError('EVENT_NOT_JOINED', 'Rejoignez le Festival avant de jouer.');
     const rows = await this.database.player.findMany({
       where: { ...eligibleContactRecipient(player.id), ...(q ? { displayName: { contains: q, mode: 'insensitive' as const } } : {}), ...(query.elementKey ? { elementKey: query.elementKey } : {}) },
-      select: { id: true, displayName: true, elementKey: true, progression: { select: { xp: true } } },
+      select: { id: true, displayName: true, elementKey: true, progression: { select: { xp: true } }, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic },
     });
     const collator = new Intl.Collator('fr-FR', { sensitivity: 'base', numeric: true });
-    const recipients = rows.map(({ id, displayName, elementKey, progression }) => ({ playerId: id, displayName, elementKey, level: Math.min(MAX_PLAYER_LEVEL, Number((progression?.xp ?? 0n) / XP_PER_LEVEL)) }));
+    const recipients = rows.map(row => ({ playerId: row.id, displayName: row.displayName, elementKey: row.elementKey, avatarAssetPath: avatarAssetPath(row), level: Math.min(MAX_PLAYER_LEVEL, Number((row.progression?.xp ?? 0n) / XP_PER_LEVEL)) }));
     const direction = query.direction === 'asc' ? 1 : -1;
     recipients.sort((left, right) => {
       const primary = query.sort === 'level' ? left.level - right.level : collator.compare(left.displayName, right.displayName);

@@ -12,7 +12,6 @@ export const navigationDestinations: readonly NavigationDestination[] = [
   { id: 'activities', label: 'Activités', icon: '◫', screen: 'activities-dailies', available: true },
   { id: 'dailies', label: 'Quotidiennes', icon: '☼', screen: 'activities-dailies', available: true }, { id: 'missions', label: 'Missions', icon: '▤', screen: 'activities-missions', available: true }, { id: 'combat', label: 'Combat', icon: '⚔', screen: 'activities-combat', available: true }, { id: 'event', label: 'Événement', icon: '◈', screen: 'activities-event', available: true }, { id: 'contest', label: 'Concours', icon: '♜', screen: 'activities-contest', available: true },
   { id: 'inventory', label: 'Sac', icon: '◇', screen: 'inventory', available: true }, { id: 'shop', label: 'Boutique', icon: '♢', screen: 'shop', available: true }, { id: 'bank', label: 'Banque', icon: '●', screen: 'bank', available: true }, { id: 'codes', label: 'Codes', icon: '✧', screen: 'codes', available: true },
-  { id: 'social', label: 'Social', icon: '♙', screen: 'social', available: true },
   { id: 'friends', label: 'Amis', icon: '♥', screen: 'social', available: true },
   { id: 'trades', label: 'Échanges', icon: '⇄', screen: 'trades', available: true },
   { id: 'rankings', label: 'Classements', icon: '♛', screen: 'rankings', available: true },

@@ -8,7 +8,7 @@ import { ApiError } from '../api/game-api'
 import { resolveNotificationPresentation } from '../notifications/notification-presentation'
 import { hashForScreen, parseNavigationHash, mainNavigation, navigationDestinations } from '../navigation/navigation'
 
-const a = { id: 'a', displayName: 'Alice', elementKey: 'cryo' as const }, b = { id: 'b', displayName: 'Bob', elementKey: 'pyro' as const }
+const a = { id: 'a', displayName: 'Alice', elementKey: 'cryo' as const, avatarAssetPath: null }, b = { id: 'b', displayName: 'Bob', elementKey: 'pyro' as const, avatarAssetPath: '/assets/fixture/bob.png' }
 const request: TradeRequest = { id: 'offer', sender: a, recipient: b, senderResourceKey: 'particles_pyro', recipientResourceKey: 'particles_cryo', currentAmount: '200', originalAmount: '500', createdAt: '2026-09-21T12:00:00Z', expiresAt: '2026-09-21T22:00:00Z' }
 const empty: TradeSnapshot = { stocks: [{ resourceKey: 'particles_pyro', total: '500', reserved: '200', available: '300' }], received: [], sent: [], history: [] }
 const roots: Root[] = []
@@ -41,12 +41,14 @@ describe('Particle trades UI', () => {
     expect(actions.partners).not.toHaveBeenCalled()
     await act(async () => vi.advanceTimersByTimeAsync(90))
     expect(actions.partners).toHaveBeenCalledExactlyOnceWith('Bob', 1, expect.any(AbortSignal))
+    expect(node.querySelector<HTMLImageElement>('.trade-search-results .player-avatar img')?.getAttribute('src')).toBe('/assets/fixture/bob.png')
     await act(async () => node.querySelector<HTMLButtonElement>('[role="option"]')!.click())
     expect(input.value).toBe('Bob')
     expect(node.querySelector('[role="listbox"]')?.hasAttribute('hidden')).toBe(true)
     await type('B')
     expect(node.querySelector('.trade-partner[aria-pressed="true"]')).toBeNull()
     await choose(node)
+    expect(node.querySelector<HTMLImageElement>('.trade-partner .player-avatar img')?.getAttribute('src')).toBe('/assets/fixture/bob.png')
     expect(input.value).toBe('Bob')
     expect(node.textContent).not.toContain('Partenaire :')
     expect(node.textContent).not.toContain('Seules vos particules')
@@ -149,7 +151,7 @@ describe('Particle trades UI', () => {
   })
   it('replaces an in-flight partner projection after a confirmed creation', async () => {
     vi.useFakeTimers()
-    const c = { id: 'ceo', displayName: 'Céo', elementKey: 'pyro' as const, maximum: '300' }
+    const c = { id: 'ceo', displayName: 'Céo', elementKey: 'pyro' as const, avatarAssetPath: null, maximum: '300' }
     const actions = api(), { node } = await mount(actions)
     await act(async () => Promise.resolve())
     actions.partners.mockClear()

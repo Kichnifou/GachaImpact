@@ -2,3 +2,5 @@ server/prisma/migrations/20260922070000_032_add_global_chat_foundations/migratio
 server/prisma/migrations/20260922080000_033_fix_global_chat_content_check/migration.sql text eol=lf
 server/prisma/migrations/20260922090000_034_chat_mentions_reports_and_daily_messages/migration.sql text eol=lf
 server/prisma/migrations/20260925160000_044_add_banner_generation_vote_snapshot/migration.sql text eol=lf
+server/prisma/migrations/20260925190000_045_add_player_cosmetics/migration.sql text eol=lf
+server/prisma/migrations/20260926100000_046_clear_disabled_equipped_avatars/migration.sql text eol=lf
