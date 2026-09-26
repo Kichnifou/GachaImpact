@@ -1,0 +1,4 @@
+[
+  { "id": 119, "nom": "Vesna", "rarete": 5, "element": "Anémo", "arme": "Épée", "region": "Snezhnaya", "classe": "", "bannerFeatured": false, "passif": "" },
+  { "id": 120, "nom": "Vodyanitsa", "rarete": 5, "element": "Hydro", "arme": "Catalyseur", "region": "Snezhnaya", "classe": "", "bannerFeatured": false, "passif": "" }
+]

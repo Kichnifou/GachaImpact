@@ -15,8 +15,11 @@ describe('personal C6 migration mapping', () => {
       intelligenceParticipations: 3n, intelligenceWins: 1n, intelligenceTitleFloor: 1, totalContests: 7n, totalWins: 2n }]);
     expect(result.rows[0]?.unlockedAt).toEqual(new Date('2026-09-01T10:00:00.000Z'));
   });
-  it('blocks an unknown unlock date instead of inventing one', () => {
+  it('preserves an unknown unlock date as null with legacy provenance', () => {
     const source = { Kichnifou: { characters: { '1': { characterId: 1, createdAt: '', stats } } } };
-    expect(mapLegacyC6(source, 'kichnifou', box, catalog).blockers).not.toEqual([]);
+    const result = mapLegacyC6(source, 'kichnifou', box, catalog);
+    expect(result.blockers).toEqual([]);
+    expect(result.rows[0]).toMatchObject({ unlockedAt: null, legacyProvenance: { source: 'c6_characters.json', specializedEntryPresent: true } });
+    expect(result.anomalies).toEqual(expect.arrayContaining([expect.stringContaining('null')]));
   });
 });

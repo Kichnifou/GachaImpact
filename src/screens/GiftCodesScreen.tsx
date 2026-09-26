@@ -43,9 +43,9 @@ function GiftCodeCard({ code, pending, disabled, onClaim }: { code: GiftCodeDto;
   return <article className={`panel gift-code-card${code.claimed ? ' claimed' : ''}`}>
     <div className="gift-code-copy"><span className="eyebrow">{code.type === 'ANNUAL' ? `Édition ${code.editionKey}` : 'Code temporaire'}</span><h2>{code.title}</h2><code>{code.token}</code><p>{code.description}</p><small>{formatPeriod(code.startsAt, code.endsAt)}</small></div>
     <div className="gift-code-rewards" aria-label="Récompenses">{code.rewards.map((reward) => <span key={reward.resourceKey}><b>+{formatResourceAmount(reward.amount)}</b>{reward.displayName}</span>)}</div>
-    {code.claimed ? <strong className="gift-code-claimed">✓ Récupéré le {formatDate(code.claimedAt!)}</strong> : <button type="button" className="primary-button" disabled={disabled} aria-busy={pending} onClick={onClaim}>{pending ? 'Récupération…' : 'Récupérer'}</button>}
+    {code.claimed ? <strong className="gift-code-claimed">✓ {code.claimedAt ? `Récupéré le ${formatDate(code.claimedAt)}` : 'Récupéré (date indisponible)'}</strong> : <button type="button" className="primary-button" disabled={disabled} aria-busy={pending} onClick={onClaim}>{pending ? 'Récupération…' : 'Récupérer'}</button>}
   </article>
 }
 
-function formatPeriod(startsAt: string, endsAt: string) { const format = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeZone: 'Europe/Paris' }); if (new Date(endsAt).getUTCFullYear() >= 9999) return `Disponible depuis le ${format.format(new Date(startsAt))}, sans expiration`; return `Disponible du ${format.format(new Date(startsAt))} au ${format.format(new Date(Date.parse(endsAt) - 1))}` }
+function formatPeriod(startsAt: string | null, endsAt: string | null) { if (!startsAt || !endsAt) return 'Période indisponible'; const format = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeZone: 'Europe/Paris' }); if (new Date(endsAt).getUTCFullYear() >= 9999) return `Disponible depuis le ${format.format(new Date(startsAt))}, sans expiration`; return `Disponible du ${format.format(new Date(startsAt))} au ${format.format(new Date(Date.parse(endsAt) - 1))}` }
 function formatDate(value: string) { return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Paris' }).format(new Date(value)) }

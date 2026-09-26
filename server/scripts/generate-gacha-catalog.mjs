@@ -51,6 +51,14 @@ export function buildCatalog(legacyDocument, assetReport) {
 }
 
 const legacyDocument = JSON.parse(await readFile(legacyPath, 'utf8'))
+// Public catalog metadata verified against frozen snapshot 20260926T145119069Z.
+// Keep the tracked historical source intact; new entries live in this addendum.
+const additions = JSON.parse(await readFile(path.join(scriptDirectory, '..', 'prisma', 'data', 'legacy-character-additions.json'), 'utf8'))
+for (const entry of additions) {
+  const existing = legacyDocument.characters.find(character => character.id === entry.id)
+  if (existing && JSON.stringify(existing) !== JSON.stringify(entry)) throw new Error(`Catalog addition conflicts with legacy ID ${entry.id}`)
+  if (!existing) legacyDocument.characters.push(entry)
+}
 const assetReport = JSON.parse(await readFile(assetReportPath, 'utf8'))
 const catalog = buildCatalog(legacyDocument, assetReport)
 await mkdir(path.dirname(outputPath), { recursive: true })

@@ -593,15 +593,15 @@ export type NotificationDto = Readonly<{
 export type NotificationsDto = Readonly<{ unreadCount: number; notifications: readonly NotificationDto[]; expedition?: ExpeditionDto }>
 
 export type GiftCodeRewardDto = Readonly<{ resourceKey: 'primogems' | 'moras' | `particles_${ElementKey}`; displayName: string; amount: string }>
-export type GiftCodeDto = Readonly<{ id: string; editionId: string; token: string; title: string; description: string; type: 'ONE_OFF' | 'ANNUAL'; editionKey: string; startsAt: string; endsAt: string; available: boolean; claimed: boolean; claimedAt: string | null; rewards: readonly GiftCodeRewardDto[] }>
+export type GiftCodeDto = Readonly<{ id: string; editionId: string; token: string; title: string; description: string; type: 'ONE_OFF' | 'ANNUAL'; editionKey: string; startsAt: string | null; endsAt: string | null; available: boolean; claimed: boolean; claimedAt: string | null; rewards: readonly GiftCodeRewardDto[] }>
 export type PlayerGiftCodesDto = Readonly<{ available: readonly GiftCodeDto[]; claimed: readonly GiftCodeDto[] }>
 export type GiftCodeClaimDto = PlayerGiftCodesDto & Readonly<{ resources: PlayerResourcesDto; operation: Readonly<{ id: string; alreadyProcessed: boolean }> }>
-export type AdminGiftCodeDto = Readonly<{ id: string; token: string; title: string; description: string; type: 'ONE_OFF' | 'ANNUAL'; status: 'DRAFT' | 'PUBLISHED' | 'DISABLED'; recurringMonth: number | null; startsAt: string | null; endsAt: string | null; createdAt: string; publishedAt: string | null; claimCount: number; locked: boolean; rewards: readonly GiftCodeRewardDto[]; editions: readonly Readonly<{ id: string; editionKey: string; startsAt: string; endsAt: string; claimCount: number }>[] }>
+export type AdminGiftCodeDto = Readonly<{ id: string; token: string; title: string; description: string; type: 'ONE_OFF' | 'ANNUAL'; status: 'DRAFT' | 'PUBLISHED' | 'DISABLED'; recurringMonth: number | null; startsAt: string | null; endsAt: string | null; createdAt: string; publishedAt: string | null; claimCount: number; locked: boolean; rewards: readonly GiftCodeRewardDto[]; editions: readonly Readonly<{ id: string; editionKey: string; startsAt: string | null; endsAt: string | null; claimCount: number }>[] }>
 export type GiftCodeAdminQuery = Readonly<{ page: number; search?: string; status?: AdminGiftCodeDto['status']; type?: AdminGiftCodeDto['type']; availability?: 'CURRENT' | 'FUTURE' | 'OUTSIDE'; sort: 'createdAt' | 'publishedAt' | 'title' | 'claims'; direction: 'asc' | 'desc' }>
 export type AdminGiftCodesDto = Readonly<{ actorPlayerId: string; page: number; pageSize: 20; total: number; totalPages: number; codes: readonly AdminGiftCodeDto[] }>
 export type AdminGiftCodeMutationDto = Readonly<{ code: AdminGiftCodeDto }>
 export type GiftCodeClaimantQuery = Readonly<{ page: number; search?: string; editionKey?: string }>
-export type GiftCodeClaimantsDto = Readonly<{ code: Readonly<{ id: string; token: string; title: string }>; page: number; pageSize: 20; total: number; totalPages: number; claimants: readonly Readonly<{ playerId: string; displayName: string; editionKey: string; claimedAt: string }>[] }>
+export type GiftCodeClaimantsDto = Readonly<{ code: Readonly<{ id: string; token: string; title: string }>; page: number; pageSize: 20; total: number; totalPages: number; claimants: readonly Readonly<{ playerId: string; displayName: string; editionKey: string; claimedAt: string | null }>[] }>
 
 export type EventDto = Readonly<{
   giftCode?: Readonly<{ available: boolean }>
@@ -762,7 +762,7 @@ export type BackendErrorDto = Readonly<{
 }>
 export type BannerVoteDto = Readonly<{
   bannerRotationId: string; startsAt: string; endsAt: string; canVote: boolean
-  ownVote: Readonly<{ characterId: string; votedAt: string }> | null
+  ownVote: Readonly<{ characterId: string; votedAt: string | null }> | null
   candidates: readonly Readonly<{ characterId: string; voteCount: number }>[]
   catalogVersion: string
 }>

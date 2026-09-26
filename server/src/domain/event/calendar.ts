@@ -1,6 +1,6 @@
 import type { RandomSource } from '../wheel/wheel.js';
 
-export type CalendarClaim = Readonly<{ calendarDay: number; rewardAmount: number }>;
+export type CalendarClaim = Readonly<{ calendarDay: number; rewardAmount: number | null }>;
 
 export function calendarReward(day: number, random: RandomSource): number {
   if (!Number.isInteger(day) || day < 1 || day > 25) throw new Error('Invalid calendar day.');
@@ -24,7 +24,7 @@ export function projectCalendar(festivalKey: string, businessDate: string, joine
       const calendarDay = index + 1;
       const reward = rewards.get(calendarDay);
       const state: 'OPENED' | 'AVAILABLE' | 'MISSED' | 'FUTURE' = reward !== undefined ? 'OPENED' : calendarDay < day ? 'MISSED' : calendarDay === day ? 'AVAILABLE' : 'FUTURE';
-      return { day: calendarDay, state, reward: reward ?? (calendarDay === 25 ? 50 : null) };
+      return { day: calendarDay, state, reward: rewards.has(calendarDay) ? reward ?? null : (calendarDay === 25 ? 50 : null) };
     }),
   };
 }

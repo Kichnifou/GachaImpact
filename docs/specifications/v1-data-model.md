@@ -1,5 +1,11 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## Extension migration globale R927–R938 — candidat `review`, 2026-09-26
+
+Le [contrat canonique de mapping](../architecture/legacy-migration-v1.md) et le [runbook](../process/legacy-cutover-runbook.md) détaillent le cutover. `MigrationBatch` possède fichiers source vérifiés, mappings d'identité et issues bloquantes/avertissements/quarantaines ; il relie les preuves importées sans dupliquer les JSON privés en Git. L'identité durable est le Twitch User ID vérifié. Un compte web rattaché conserve Player ID, Auth, pseudo, rôles, préférences non gameplay et confidentialité ; son gameplay est remplacé. Un compte web non rattaché conserve cette identité et revient à `elementKey = null` après purge du gameplay de test.
+
+Les preuves durables nouvelles sont `BossLegacyAggregate` et `BossLegacyContribution` (totaux source, joueur, jour de dernière attaque sans heure inventée), `FriendshipLegacyHeartState` (cooldown directionnel sans faux cœur), `ContestLegacyDailyLock` (jour consommé sans faux Concours), Faveur (état, grants et claims), Giveaway (session, participants, statistiques chat), et `TwitchEventReceipt` pour une ingestion future non branchée. La bannière, le Jeu B Event et le Combat quotidien distinguent leur état legacy certain d'un timestamp natif. Les claims historiques Codes/Event/Boss/C6 conservent `origin = LEGACY`, provenance et date/opération nullables lorsque inconnues ; une ligne native continue à porter ses preuves complètes. La migration établit les soldes initiaux sans faux mouvement, opération, acquisition ou récompense. Aucun Player n'est créé pour un profil sans élément ou une relation qui le vise.
+
 > Statut : **CONSOLIDÉ — Phase B / modèle de données cible V1 finalisé**  
 > Baseline documentaire : `main` au commit `cb663d1c58a4d28aeee3e4c99a859c6704b5db58`  
 > Nature du document : modèle conceptuel/relational cible destiné à préparer le backend et la migration.  

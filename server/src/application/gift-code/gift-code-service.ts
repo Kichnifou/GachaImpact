@@ -101,6 +101,7 @@ export class GiftCodeService {
           if (!edition) throw new BusinessError('GIFT_CODE_NOT_FOUND', 'Ce code cadeau n’existe pas.');
           if (!isEditionAvailable(edition.giftCode.status, edition.startsAt, edition.endsAt, now)) throw new BusinessError('GIFT_CODE_UNAVAILABLE', 'Ce code cadeau n’est pas disponible.');
           if (edition.claims.length > 0) {
+            if (!edition.claims[0]!.operationId) throw new BusinessError('GIFT_CODE_ALREADY_CLAIMED', 'Ce code cadeau a déjà été utilisé.');
             return { operationId: edition.claims[0]!.operationId, alreadyProcessed: true };
           }
           const playerElementKey = player.elementKey && isElementKey(player.elementKey) ? player.elementKey : null;
@@ -297,7 +298,7 @@ export class GiftCodeService {
       this.database.giftCodeClaim.findMany({ where, include: { player: { select: { id: true, displayName: true } }, edition: { select: { editionKey: true } } }, orderBy: [{ claimedAt: 'desc' }, { giftCodeEditionId: 'asc' }, { playerId: 'asc' }], skip: (page - 1) * pageSize, take: pageSize }),
       this.database.giftCodeClaim.count({ where }),
     ]);
-    return { code, page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)), claimants: claims.map((claim) => ({ playerId: claim.player.id, displayName: claim.player.displayName, editionKey: claim.edition.editionKey, claimedAt: claim.claimedAt.toISOString() })) };
+    return { code, page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)), claimants: claims.map((claim) => ({ playerId: claim.player.id, displayName: claim.player.displayName, editionKey: claim.edition.editionKey, claimedAt: claim.claimedAt?.toISOString() ?? null })) };
   }
 
   public async reconcileAllActivePlayers(now = this.clock.now()): Promise<void> {
@@ -395,7 +396,7 @@ export class GiftCodeScheduler {
 }
 
 function monthStart(year: number, month: number) { return getBusinessDayStartAt(`${year}-${String(month).padStart(2, '0')}-01`); }
-function isEditionAvailable(status: GiftCodeStatus, startsAt: Date, endsAt: Date, now: Date) { return status === GiftCodeStatus.PUBLISHED && startsAt <= now && endsAt > now; }
+function isEditionAvailable(status: GiftCodeStatus, startsAt: Date | null, endsAt: Date | null, now: Date) { return status === GiftCodeStatus.PUBLISHED && startsAt !== null && endsAt !== null && startsAt <= now && endsAt > now; }
 const adminCodeInclude = {
   rewards: { include: { resource: true }, orderBy: { resourceKey: 'asc' as const } },
   editions: { include: { _count: { select: { claims: true } } }, orderBy: { startsAt: 'desc' as const } },
@@ -427,11 +428,11 @@ function adminOrder(sort: GiftCodeAdminQuery['sort'], direction: GiftCodeAdminQu
 }
 function serializePlayerCode(edition: Prisma.GiftCodeEditionGetPayload<{ include: { giftCode: { include: { rewards: { include: { resource: true } } } }; claims: true } }>, now: Date) {
   const claim = edition.claims[0];
-  return { id: edition.giftCode.id, editionId: edition.id, token: edition.giftCode.token, title: edition.giftCode.title, description: edition.giftCode.description, type: edition.giftCode.type, editionKey: edition.editionKey, startsAt: edition.startsAt.toISOString(), endsAt: edition.endsAt.toISOString(), available: isEditionAvailable(edition.giftCode.status, edition.startsAt, edition.endsAt, now), claimed: Boolean(claim), claimedAt: claim?.claimedAt.toISOString() ?? null, rewards: edition.giftCode.rewards.map((reward) => ({ resourceKey: reward.resourceKey, displayName: reward.resource.displayName, amount: reward.amount.toString() })) };
+  return { id: edition.giftCode.id, editionId: edition.id, token: edition.giftCode.token, title: edition.giftCode.title, description: edition.giftCode.description, type: edition.giftCode.type, editionKey: edition.editionKey, startsAt: edition.startsAt?.toISOString() ?? null, endsAt: edition.endsAt?.toISOString() ?? null, available: isEditionAvailable(edition.giftCode.status, edition.startsAt, edition.endsAt, now), claimed: Boolean(claim), claimedAt: claim?.claimedAt?.toISOString() ?? null, rewards: edition.giftCode.rewards.map((reward) => ({ resourceKey: reward.resourceKey, displayName: reward.resource.displayName, amount: reward.amount.toString() })) };
 }
 function serializeAdminCode(code: Prisma.GiftCodeGetPayload<{ include: { rewards: { include: { resource: true } }; editions: { include: { _count: { select: { claims: true } } } } } }>) {
   const claimCount = code.editions.reduce((total, edition) => total + edition._count.claims, 0);
-  return { id: code.id, token: code.token, title: code.title, description: code.description, type: code.type, status: code.status, recurringMonth: code.recurringMonth, startsAt: code.startsAt?.toISOString() ?? null, endsAt: code.endsAt?.toISOString() ?? null, createdAt: code.createdAt.toISOString(), publishedAt: code.publishedAt?.toISOString() ?? null, claimCount, locked: claimCount > 0, rewards: code.rewards.map((reward) => ({ resourceKey: reward.resourceKey, displayName: reward.resource.displayName, amount: reward.amount.toString() })), editions: code.editions.map((edition) => ({ id: edition.id, editionKey: edition.editionKey, startsAt: edition.startsAt.toISOString(), endsAt: edition.endsAt.toISOString(), claimCount: edition._count.claims })) };
+  return { id: code.id, token: code.token, title: code.title, description: code.description, type: code.type, status: code.status, recurringMonth: code.recurringMonth, startsAt: code.startsAt?.toISOString() ?? null, endsAt: code.endsAt?.toISOString() ?? null, createdAt: code.createdAt.toISOString(), publishedAt: code.publishedAt?.toISOString() ?? null, claimCount, locked: claimCount > 0, rewards: code.rewards.map((reward) => ({ resourceKey: reward.resourceKey, displayName: reward.resource.displayName, amount: reward.amount.toString() })), editions: code.editions.map((edition) => ({ id: edition.id, editionKey: edition.editionKey, startsAt: edition.startsAt?.toISOString() ?? null, endsAt: edition.endsAt?.toISOString() ?? null, claimCount: edition._count.claims })) };
 }
 function validateDraft(input: GiftCodeDraftInput) {
   if (!input.title.trim() || !input.description.trim()) throw invalidConfiguration();

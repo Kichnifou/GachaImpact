@@ -122,7 +122,9 @@ export class FriendshipService {
       if (target !== 'all' && !relations.length) throw unavailable();
       const now = this.clock.now(), date = businessDateToDatabaseDate(getBusinessDate(now));
       const eligible = new Set((await tx.player.findMany({ where: { AND: [unblockedRecipient(playerId), { id: { in: relations.map(r => r.playerAId === playerId ? r.playerBId : r.playerAId) } }] }, select: { id: true } })).map(p => p.id));
-      const existing = new Set((await tx.friendHeart.findMany({ where: { senderPlayerId: playerId, businessDate: date, friendshipId: { in: relations.map(r => r.id) } }, select: { friendshipId: true } })).map(h => h.friendshipId));
+      const nativeHearts = await tx.friendHeart.findMany({ where: { senderPlayerId: playerId, businessDate: date, friendshipId: { in: relations.map(r => r.id) } }, select: { friendshipId: true } });
+      const legacyHearts = await tx.friendshipLegacyHeartState.findMany({ where: { senderPlayerId: playerId, lastHeartSentDate: date, friendshipId: { in: relations.map(r => r.id) } }, select: { friendshipId: true } });
+      const existing = new Set([...nativeHearts, ...legacyHearts].map(h => h.friendshipId));
       const result: HeartResult = { sent: 0, alreadySent: 0, unavailable: 0, activeFriends: relations.length, senderReward: '0', recipientReward: '5', status: 'NO_FRIENDS' };
       const effectiveRelations = relations.filter(relation => {
         const recipient = relation.playerAId === playerId ? relation.playerBId : relation.playerAId;
@@ -178,15 +180,16 @@ export class FriendshipService {
   async snapshot(playerId: string) {
     const now = this.clock.now(), date = businessDateToDatabaseDate(getBusinessDate(now));
     return this.database.$transaction(async tx => {
-      const [relations, requests, hearts, eligible, stats, preference] = await Promise.all([
+      const [relations, requests, hearts, legacyHearts, eligible, stats, preference] = await Promise.all([
         tx.friendship.findMany({ where: { ...relationWhere(playerId), state: 'ACTIVE' } }),
         tx.friendRequest.findMany({ where: { state: 'PENDING', OR: [{ senderPlayerId: playerId }, { recipientPlayerId: playerId }] }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] }),
         tx.friendHeart.findMany({ where: { senderPlayerId: playerId, businessDate: date }, select: { friendshipId: true } }),
+        tx.friendshipLegacyHeartState.findMany({ where: { senderPlayerId: playerId, lastHeartSentDate: date }, select: { friendshipId: true } }),
         tx.player.findMany({ where: unblockedRecipient(playerId), select: { id: true } }),
         tx.playerSocialStats.findUnique({ where: { playerId } }),
         tx.playerPreference.findUnique({ where: { playerId_preferenceKey: { playerId, preferenceKey: 'friend_sort_v1' } } }),
       ]);
-      const sent = new Set(hearts.map(h => h.friendshipId)), allowed = new Set(eligible.map(p => p.id));
+      const sent = new Set([...hearts, ...legacyHearts].map(h => h.friendshipId)), allowed = new Set(eligible.map(p => p.id));
       const friends = relations.map(r => { const target = r.playerAId === playerId ? r.playerBId : r.playerAId; return { id: r.id, playerId: target, level: r.level, tier: friendshipTier(r.level), totalHearts: r.totalHearts.toString(), heartSent: sent.has(r.id), canSend: !sent.has(r.id) && allowed.has(target) }; });
       return { businessDate: getBusinessDate(now), friends, requests: requests.map(r => ({ id: r.id, playerId: r.senderPlayerId === playerId ? r.recipientPlayerId : r.senderPlayerId, direction: r.senderPlayerId === playerId ? 'SENT' as const : 'RECEIVED' as const, createdAt: r.createdAt.toISOString() })), totalFriendHeartsSent: stats?.totalFriendHeartsSent.toString() ?? '0', sort: friendSorts.includes(preference?.value as FriendSort) ? preference!.value as FriendSort : 'presence' as FriendSort, summary: { activeFriends: friends.length, available: friends.filter(r => r.canSend).length, alreadySent: friends.filter(r => r.heartSent).length } };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });

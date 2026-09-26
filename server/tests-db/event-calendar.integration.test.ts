@@ -33,6 +33,19 @@ beforeAll(async () => {
   await admin.query(fixtureSchema);
   await admin.query(`DROP TABLE "${schema}".event_calendar_claims`);
   await admin.query(migration);
+  // Migration 026 owns this table's original constraints; mirror its additive
+  // 051 provenance columns because the Prisma client now targets that shape.
+  await admin.query(`
+    ALTER TABLE "${schema}".event_calendar_claims ALTER COLUMN reward_amount DROP NOT NULL;
+    ALTER TABLE "${schema}".event_calendar_claims ALTER COLUMN operation_id DROP NOT NULL;
+    ALTER TABLE "${schema}".event_calendar_claims ALTER COLUMN claimed_at DROP NOT NULL;
+    ALTER TABLE "${schema}".event_calendar_claims ADD COLUMN origin text NOT NULL DEFAULT 'NATIVE';
+    ALTER TABLE "${schema}".event_calendar_claims ADD COLUMN legacy_provenance jsonb;
+    ALTER TABLE "${schema}".event_calendar_claims ADD CONSTRAINT event_calendar_claims_origin_check CHECK (
+      (origin = 'NATIVE' AND reward_amount IS NOT NULL AND operation_id IS NOT NULL AND claimed_at IS NOT NULL AND legacy_provenance IS NULL)
+      OR (origin = 'LEGACY' AND operation_id IS NULL AND legacy_provenance IS NOT NULL)
+    );
+  `);
   const originals = (await admin.query("SELECT * FROM public.event_definitions WHERE calendar_month IN (1,11,12)")).rows;
   for (const row of originals) await database.eventDefinition.create({ data: { id: randomUUID(), externalKey: row.external_key, displayName: row.display_name, calendarMonth: row.calendar_month, currencyKey: row.currency_key, config: row.config } });
 }, 60_000);
@@ -123,10 +136,12 @@ describe('Christmas calendar isolated PostgreSQL', () => {
     await service.join(identity, randomUUID());
     const result = await service.claimCalendar(identity, randomUUID());
     const claim = await database.eventCalendarClaim.findUniqueOrThrow({ where: { operationId: result.operation.id } });
-    await expect(database.eventCalendarClaim.create({ data: claim })).rejects.toThrow();
-    await expect(database.eventCalendarClaim.create({ data: { ...claim, calendarDay: 7 } })).rejects.toThrow();
+    const nativeClaim = { eventEditionId: claim.eventEditionId, playerId: claim.playerId,
+      calendarDay: claim.calendarDay, rewardAmount: claim.rewardAmount!, operationId: claim.operationId!, claimedAt: claim.claimedAt! };
+    await expect(database.eventCalendarClaim.create({ data: nativeClaim })).rejects.toThrow();
+    await expect(database.eventCalendarClaim.create({ data: { ...nativeClaim, calendarDay: 7 } })).rejects.toThrow();
     for (const data of [{ calendarDay: 0 }, { calendarDay: 26 }, { rewardAmount: 6 }, { calendarDay: 25, rewardAmount: 5 }, { playerId: randomUUID() }, { operationId: randomUUID() }, { eventEditionId: randomUUID() }]) {
-      await expect(database.eventCalendarClaim.update({ where: { operationId: claim.operationId }, data })).rejects.toThrow();
+      await expect(database.eventCalendarClaim.update({ where: { operationId: claim.operationId! }, data })).rejects.toThrow();
     }
     const security = (await admin.query(`SELECT relrowsecurity AS rls, has_table_privilege('anon',oid,'SELECT,INSERT,UPDATE,DELETE') AS anon, has_table_privilege('authenticated',oid,'SELECT,INSERT,UPDATE,DELETE') AS authenticated FROM pg_class WHERE oid = '"${schema}".event_calendar_claims'::regclass`)).rows;
     expect(security).toEqual([{ rls: true, anon: false, authenticated: false }]);

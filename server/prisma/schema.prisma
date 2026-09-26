@@ -255,6 +255,7 @@ enum BannerSelectionSource {
   RANDOM
   COMMUNITY_VOTE
   RANDOM_FALLBACK
+  LEGACY_UNKNOWN
 
   @@map("banner_selection_source")
 }
@@ -371,6 +372,16 @@ model Player {
   twitchLinkStates      TwitchLinkState[]
   migrationPreviews     MigrationPreview[]
   migrationRuns         MigrationRun[]
+  migrationIssues       MigrationIssue[]
+  bossLegacyContributions BossLegacyContribution[]
+  friendshipLegacyHeartStates FriendshipLegacyHeartState[]
+  favorState            PlayerFavorState?
+  favorGrants           FavorGrant[]
+  favorDailyClaims      FavorDailyClaim[]
+  giveawaySessionsWon   GiveawaySession[] @relation("GiveawayWinner")
+  giveawaySessionsPreviouslyWon GiveawaySession[] @relation("GiveawayPreviousWinner")
+  giveawayParticipations GiveawayParticipant[]
+  giveawayChatStats     GiveawayChatStat[]
   businessOperations    BusinessOperation[]
   resourceBalances      PlayerResourceBalance[]
   resourceMovements     ResourceMovement[]
@@ -426,6 +437,7 @@ model Player {
   contestEventsAsTarget ContestEvent[]               @relation("ContestEventTarget")
   contestSupportPicks   Contest[]                    @relation("ContestSelectedSpectator")
   contestRewards        ContestReward[]
+  contestLegacyDailyLocks ContestLegacyDailyLock[]
   giftCodeClaims        GiftCodeClaim[]
   giftCodesCreated      GiftCode[]                   @relation("GiftCodeCreator")
   giftCodesUpdated      GiftCode[]                   @relation("GiftCodeUpdater")
@@ -552,6 +564,7 @@ model PlayerPermanentMissionState {
   initializedAt                DateTime  @default(now()) @map("initialized_at") @db.Timestamptz(6)
   zUnlockedAt                  DateTime? @map("z_unlocked_at") @db.Timestamptz(6)
   standaloneCatchupCompletedAt DateTime? @map("standalone_catchup_completed_at") @db.Timestamptz(6)
+  legacyProvenance             Json?     @map("legacy_provenance") @db.JsonB
   createdAt                    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt                    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   player                       Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
@@ -603,6 +616,7 @@ model PlayerDailyChallenge {
   status                        DailyChallengeStatus     @default(ACTIVE)
   assignedAt                    DateTime                 @map("assigned_at") @db.Timestamptz(6)
   completedAt                   DateTime?                @map("completed_at") @db.Timestamptz(6)
+  legacyProvenance              Json?                    @map("legacy_provenance") @db.JsonB
   switchCount                   Int                      @default(0) @map("switch_count")
   createdAt                     DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt                     DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -728,6 +742,7 @@ model BannerRotation {
   endsAt             DateTime                  @map("ends_at") @db.Timestamptz(6)
   status             BannerStatus
   generationVoteSnapshot Json?          @map("generation_vote_snapshot") @db.JsonB
+  legacyProvenance Json?                @map("legacy_provenance") @db.JsonB
   createdAt          DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
   featuredCharacters BannerFeaturedCharacter[]
   votes              BannerVote[]
@@ -758,7 +773,8 @@ model BannerVote {
   playerId         String         @map("player_id") @db.Uuid
   characterId      String         @map("character_id") @db.Uuid
   sourceChannel    SourceChannel  @map("source_channel")
-  votedAt          DateTime       @default(now()) @map("voted_at") @db.Timestamptz(6)
+  votedAt          DateTime?      @default(now()) @map("voted_at") @db.Timestamptz(6)
+  legacyProvenance Json?         @map("legacy_provenance") @db.JsonB
   bannerRotation   BannerRotation @relation(fields: [bannerRotationId], references: [id], onDelete: Restrict)
   player           Player         @relation(fields: [playerId], references: [id], onDelete: Restrict)
   character        Character      @relation(fields: [characterId], references: [id], onDelete: Restrict)
@@ -782,6 +798,7 @@ model PlayerGachaState {
   fiftyFiftyWon             BigInt     @default(0) @map("fifty_fifty_won")
   fiftyFiftyLost            BigInt     @default(0) @map("fifty_fifty_lost")
   capturesTriggered         BigInt     @default(0) @map("captures_triggered")
+  legacyLastPullWasFiveStar Boolean?   @map("legacy_last_pull_was_five_star")
   createdAt                 DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt                 DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   player                    Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
@@ -865,11 +882,249 @@ model MigrationRun {
   summary      Json     @db.JsonB
   startedAt    DateTime @default(now()) @map("started_at") @db.Timestamptz(6)
   completedAt  DateTime @default(now()) @map("completed_at") @db.Timestamptz(6)
+  batchId      String?  @map("batch_id") @db.Uuid
   player       Player   @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  batch        MigrationBatch? @relation(fields: [batchId], references: [id], onDelete: Restrict)
 
-  @@unique([playerId, snapshotHash], map: "migration_runs_player_hash_key")
   @@index([playerId, completedAt(sort: Desc)], map: "migration_runs_player_completed_idx")
   @@map("migration_runs")
+}
+
+model MigrationBatch {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  snapshotHash String @map("snapshot_hash") @db.Text
+  status String @default("ANALYZING") @db.Text
+  mode String @db.Text
+  migratorVersion String @map("migrator_version") @db.Text
+  capturedAt DateTime? @map("captured_at") @db.Timestamptz(6)
+  startedAt DateTime @default(now()) @map("started_at") @db.Timestamptz(6)
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
+  summary Json? @db.JsonB
+  sourceFiles MigrationSourceFile[]
+  mappings MigrationMapping[]
+  issues MigrationIssue[]
+  runs MigrationRun[]
+  bossLegacyContributions BossLegacyContribution[]
+  bossLegacyAggregates BossLegacyAggregate[]
+  contestLegacyDailyLocks ContestLegacyDailyLock[]
+
+  @@index([snapshotHash, startedAt(sort: Desc)], map: "migration_batches_hash_started_idx")
+  @@map("migration_batches")
+}
+
+model MigrationSourceFile {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batchId String @map("batch_id") @db.Uuid
+  sourceName String @map("source_name") @db.Text
+  contentHash String @map("content_hash") @db.Text
+  byteSize BigInt @map("byte_size")
+  capturedAt DateTime? @map("captured_at") @db.Timestamptz(6)
+  sourceModifiedAt DateTime? @map("source_modified_at") @db.Timestamptz(6)
+  batch MigrationBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, sourceName], map: "migration_source_files_batch_source_key")
+  @@map("migration_source_files")
+}
+
+model MigrationMapping {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batchId String @map("batch_id") @db.Uuid
+  sourceName String @map("source_name") @db.Text
+  legacyType String @map("legacy_type") @db.Text
+  legacyKey String @map("legacy_key") @db.Text
+  targetType String @map("target_type") @db.Text
+  targetId String @map("target_id") @db.Uuid
+  twitchUserId String? @map("twitch_user_id") @db.Text
+  twitchLogin String? @map("twitch_login") @db.Text
+  twitchDisplayName String? @map("twitch_display_name") @db.Text
+  mappingMode String? @map("mapping_mode") @db.Text
+  status String @default("RESOLVED") @db.Text
+  metadata Json? @db.JsonB
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  batch MigrationBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, sourceName, legacyType, legacyKey, targetType], map: "migration_mappings_source_key")
+  @@index([batchId, targetType, targetId], map: "migration_mappings_target_idx")
+  @@map("migration_mappings")
+}
+
+model MigrationIssue {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batchId String @map("batch_id") @db.Uuid
+  sourceName String @map("source_name") @db.Text
+  path String? @db.Text
+  legacyKey String? @map("legacy_key") @db.Text
+  playerId String? @map("player_id") @db.Uuid
+  domain String? @db.Text
+  severity String @db.Text
+  issueCode String @map("issue_code") @db.Text
+  description String @db.Text
+  resolution String? @db.Text
+  details Json? @db.JsonB
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz(6)
+  batch MigrationBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  player Player? @relation(fields: [playerId], references: [id], onDelete: Restrict)
+
+  @@index([batchId, severity, resolvedAt], map: "migration_issues_open_idx")
+  @@map("migration_issues")
+}
+
+model BossLegacyContribution {
+  bossId String @map("boss_id") @db.Uuid
+  playerId String @map("player_id") @db.Uuid
+  totalDamage BigInt @default(0) @map("total_damage")
+  attackCount BigInt @default(0) @map("attack_count")
+  bestHit BigInt @default(0) @map("best_hit")
+  firstAttackAt DateTime? @map("first_attack_at") @db.Timestamptz(6)
+  lastAttackAt DateTime? @map("last_attack_at") @db.Timestamptz(6)
+  lastAttackDate DateTime? @map("last_attack_date") @db.Date
+  rewardKnown Boolean? @map("reward_known")
+  batchId String @map("batch_id") @db.Uuid
+  legacyProvenance Json @map("legacy_provenance") @db.JsonB
+  boss MonthlyBoss @relation(fields: [bossId], references: [id], onDelete: Restrict)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  batch MigrationBatch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+
+  @@id([bossId, playerId])
+  @@index([playerId], map: "boss_legacy_contributions_player_idx")
+  @@map("boss_legacy_contributions")
+}
+
+model BossLegacyAggregate {
+  bossId String @id @map("boss_id") @db.Uuid
+  reportedTotalDamage BigInt @map("reported_total_damage")
+  reportedTotalAttacks BigInt @map("reported_total_attacks")
+  globalStats Json? @map("global_stats") @db.JsonB
+  batchId String @map("batch_id") @db.Uuid
+  legacyProvenance Json @map("legacy_provenance") @db.JsonB
+  boss MonthlyBoss @relation(fields: [bossId], references: [id], onDelete: Restrict)
+  batch MigrationBatch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+
+  @@map("boss_legacy_aggregates")
+}
+
+model ContestLegacyDailyLock {
+  playerId String @map("player_id") @db.Uuid
+  businessDate DateTime @map("business_date") @db.Date
+  legacyCharacterId Int? @map("legacy_character_id")
+  batchId String @map("batch_id") @db.Uuid
+  legacyProvenance Json @map("legacy_provenance") @db.JsonB
+  player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  batch MigrationBatch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+
+  @@id([playerId, businessDate])
+  @@map("contest_legacy_daily_locks")
+}
+
+model FriendshipLegacyHeartState {
+  friendshipId String @map("friendship_id") @db.Uuid
+  senderPlayerId String @map("sender_player_id") @db.Uuid
+  lastHeartSentDate DateTime? @map("last_heart_sent_date") @db.Date
+  legacyProvenance Json @map("legacy_provenance") @db.JsonB
+  friendship Friendship @relation(fields: [friendshipId], references: [id], onDelete: Restrict)
+  sender Player @relation(fields: [senderPlayerId], references: [id], onDelete: Restrict)
+
+  @@id([friendshipId, senderPlayerId])
+  @@map("friendship_legacy_heart_state")
+}
+
+model PlayerFavorState {
+  playerId String @id @map("player_id") @db.Uuid
+  daysRemaining Int @map("days_remaining")
+  obtainedDate DateTime? @map("obtained_date") @db.Date
+  lastClaimDate DateTime? @map("last_claim_date") @db.Date
+  legacyProvenance Json? @map("legacy_provenance") @db.JsonB
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
+
+  @@map("player_favor_states")
+}
+
+model FavorGrant {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId String @map("player_id") @db.Uuid
+  daysGranted Int @map("days_granted")
+  operationId String @unique @map("operation_id") @db.Uuid
+  grantedAt DateTime @default(now()) @map("granted_at") @db.Timestamptz(6)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  operation BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+
+  @@map("favor_grants")
+}
+
+model FavorDailyClaim {
+  playerId String @map("player_id") @db.Uuid
+  businessDate DateTime @map("business_date") @db.Date
+  origin String @default("NATIVE") @db.Text
+  operationId String? @unique @map("operation_id") @db.Uuid
+  claimedAt DateTime? @map("claimed_at") @db.Timestamptz(6)
+  legacyProvenance Json? @map("legacy_provenance") @db.JsonB
+  player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  operation BusinessOperation? @relation(fields: [operationId], references: [id], onDelete: Restrict)
+
+  @@id([playerId, businessDate])
+  @@map("favor_daily_claims")
+}
+
+model GiveawaySession {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  legacySessionKey String? @unique @map("legacy_session_key") @db.Text
+  status String @db.Text
+  winnerPlayerId String? @map("winner_player_id") @db.Uuid
+  previousWinnerPlayerId String? @map("previous_winner_player_id") @db.Uuid
+  openedAt DateTime? @map("opened_at") @db.Timestamptz(6)
+  closedAt DateTime? @map("closed_at") @db.Timestamptz(6)
+  rerolledAt DateTime? @map("rerolled_at") @db.Timestamptz(6)
+  rerollCount Int? @default(0) @map("reroll_count")
+  rewardStatus String? @map("reward_status") @db.Text
+  distributionState Json? @map("distribution_state") @db.JsonB
+  legacyProvenance Json? @map("legacy_provenance") @db.JsonB
+  winner Player? @relation("GiveawayWinner", fields: [winnerPlayerId], references: [id], onDelete: Restrict)
+  previousWinner Player? @relation("GiveawayPreviousWinner", fields: [previousWinnerPlayerId], references: [id], onDelete: Restrict)
+  participants GiveawayParticipant[]
+  chatStats GiveawayChatStat[]
+
+  @@map("giveaway_sessions")
+}
+
+model GiveawayParticipant {
+  sessionId String @map("session_id") @db.Uuid
+  playerId String @map("player_id") @db.Uuid
+  joinedAt DateTime? @map("joined_at") @db.Timestamptz(6)
+  legacyProvenance Json? @map("legacy_provenance") @db.JsonB
+  session GiveawaySession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
+
+  @@id([sessionId, playerId])
+  @@map("giveaway_participants")
+}
+
+model GiveawayChatStat {
+  sessionId String @map("session_id") @db.Uuid
+  playerId String @map("player_id") @db.Uuid
+  messageCount BigInt @map("message_count")
+  legacyProvenance Json? @map("legacy_provenance") @db.JsonB
+  session GiveawaySession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
+
+  @@id([sessionId, playerId])
+  @@map("giveaway_chat_stats")
+}
+
+model TwitchEventReceipt {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  externalEventId String @unique @map("external_event_id") @db.Text
+  eventType String @map("event_type") @db.Text
+  twitchUserId String? @map("twitch_user_id") @db.Text
+  state String @default("RECEIVED") @db.Text
+  payloadHash String? @map("payload_hash") @db.Text
+  receivedAt DateTime @default(now()) @map("received_at") @db.Timestamptz(6)
+  processedAt DateTime? @map("processed_at") @db.Timestamptz(6)
+
+  @@index([eventType, receivedAt(sort: Desc)], map: "twitch_event_receipts_type_received_idx")
+  @@index([twitchUserId, receivedAt(sort: Desc)], map: "twitch_event_receipts_user_received_idx")
+  @@map("twitch_event_receipts")
 }
 
 model BusinessOperation {
@@ -895,6 +1150,8 @@ model BusinessOperation {
   dailyCombatAttempt DailyCombatAttempt?
   bossAttack         BossAttack?
   bossRewards        BossReward[]
+  favorGrants        FavorGrant[]
+  favorDailyClaims   FavorDailyClaim[]
   contestReward      ContestReward?
   itemAcquisitions   ItemAcquisition[]
   eventCollectionAcquisition EventCollectionAcquisition?
@@ -956,12 +1213,14 @@ model EventCalendarClaim {
   eventEditionId String            @map("event_edition_id") @db.Uuid
   playerId       String            @map("player_id") @db.Uuid
   calendarDay    Int               @map("calendar_day") @db.SmallInt
-  rewardAmount   Int               @map("reward_amount") @db.SmallInt
-  operationId    String            @unique(map: "event_calendar_claims_operation_id_key") @map("operation_id") @db.Uuid
-  claimedAt      DateTime          @default(now()) @map("claimed_at") @db.Timestamptz(6)
+  rewardAmount   Int?              @map("reward_amount") @db.SmallInt
+  operationId    String?           @unique(map: "event_calendar_claims_operation_id_key") @map("operation_id") @db.Uuid
+  claimedAt      DateTime?         @default(now()) @map("claimed_at") @db.Timestamptz(6)
+  origin         String            @default("NATIVE") @db.Text
+  legacyProvenance Json?           @map("legacy_provenance") @db.JsonB
   edition        EventEdition      @relation(fields: [eventEditionId], references: [id], onDelete: Restrict)
   player         Player            @relation(fields: [playerId], references: [id], onDelete: Restrict)
-  operation      BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  operation      BusinessOperation? @relation(fields: [operationId], references: [id], onDelete: Restrict)
 
   @@id([eventEditionId, playerId, calendarDay])
   @@index([playerId], map: "event_calendar_claims_player_idx")
@@ -972,14 +1231,16 @@ model EventCollectionAcquisition {
   eventEditionId    String            @map("event_edition_id") @db.Uuid
   playerId          String            @map("player_id") @db.Uuid
   itemId            String            @map("item_id") @db.Uuid
-  itemAcquisitionId String            @unique(map: "event_collection_acquisitions_item_acquisition_key") @map("item_acquisition_id") @db.Uuid
-  operationId       String            @unique(map: "event_collection_acquisitions_operation_key") @map("operation_id") @db.Uuid
-  acquiredAt        DateTime          @default(now()) @map("acquired_at") @db.Timestamptz(6)
+  itemAcquisitionId String?           @unique(map: "event_collection_acquisitions_item_acquisition_key") @map("item_acquisition_id") @db.Uuid
+  operationId       String?           @unique(map: "event_collection_acquisitions_operation_key") @map("operation_id") @db.Uuid
+  acquiredAt        DateTime?         @default(now()) @map("acquired_at") @db.Timestamptz(6)
+  origin            String            @default("NATIVE") @db.Text
+  legacyProvenance  Json?             @map("legacy_provenance") @db.JsonB
   edition           EventEdition      @relation(fields: [eventEditionId], references: [id], onDelete: Restrict)
   player            Player            @relation(fields: [playerId], references: [id], onDelete: Restrict)
   item              ItemDefinition    @relation(fields: [itemId], references: [id], onDelete: Restrict)
-  itemAcquisition   ItemAcquisition   @relation(fields: [itemAcquisitionId], references: [id], onDelete: Restrict)
-  operation         BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  itemAcquisition   ItemAcquisition?  @relation(fields: [itemAcquisitionId], references: [id], onDelete: Restrict)
+  operation         BusinessOperation? @relation(fields: [operationId], references: [id], onDelete: Restrict)
 
   @@id([eventEditionId, playerId])
   @@index([playerId], map: "event_collection_acquisitions_player_idx")
@@ -1004,7 +1265,8 @@ model EventParticipant {
   eventEditionId String       @map("event_edition_id") @db.Uuid
   playerId       String       @map("player_id") @db.Uuid
   points         Int          @default(0)
-  joinedAt       DateTime     @default(now()) @map("joined_at") @db.Timestamptz(6)
+  joinedAt       DateTime?    @default(now()) @map("joined_at") @db.Timestamptz(6)
+  legacyProvenance Json?      @map("legacy_provenance") @db.JsonB
   edition        EventEdition @relation(fields: [eventEditionId], references: [id], onDelete: Restrict)
   player         Player       @relation(fields: [playerId], references: [id], onDelete: Restrict)
 
@@ -1017,11 +1279,13 @@ model EventMilestoneClaim {
   eventEditionId String            @map("event_edition_id") @db.Uuid
   playerId       String            @map("player_id") @db.Uuid
   milestone      Int
-  operationId    String            @unique(map: "event_milestone_claims_operation_id_key") @map("operation_id") @db.Uuid
-  claimedAt      DateTime          @default(now()) @map("claimed_at") @db.Timestamptz(6)
+  operationId    String?           @unique(map: "event_milestone_claims_operation_id_key") @map("operation_id") @db.Uuid
+  claimedAt      DateTime?         @default(now()) @map("claimed_at") @db.Timestamptz(6)
+  origin         String            @default("NATIVE") @db.Text
+  legacyProvenance Json?           @map("legacy_provenance") @db.JsonB
   edition        EventEdition      @relation(fields: [eventEditionId], references: [id], onDelete: Restrict)
   player         Player            @relation(fields: [playerId], references: [id], onDelete: Restrict)
-  operation      BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  operation      BusinessOperation? @relation(fields: [operationId], references: [id], onDelete: Restrict)
 
   @@id([eventEditionId, playerId, milestone])
   @@index([playerId], map: "event_milestone_claims_player_idx")
@@ -1053,6 +1317,8 @@ model EventGameBDailyState {
   businessDate      DateTime     @map("business_date") @db.Date
   solutionCode      String       @map("solution_code") @db.Text
   solvedAt          DateTime?    @map("solved_at") @db.Timestamptz(6)
+  legacyFound       Boolean      @default(false) @map("legacy_found")
+  legacyProvenance  Json?        @map("legacy_provenance") @db.JsonB
   discovererPlayerId String?    @map("discoverer_player_id") @db.Uuid
   testedCodes       Json         @default("[]") @map("tested_codes") @db.JsonB
   updatedAt         DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -1078,6 +1344,7 @@ model Friendship {
   playerA         Player          @relation("FriendshipA", fields: [playerAId], references: [id], onDelete: Restrict)
   playerB         Player          @relation("FriendshipB", fields: [playerBId], references: [id], onDelete: Restrict)
   hearts          FriendHeart[]
+  legacyHeartStates FriendshipLegacyHeartState[]
 
   @@unique([playerAId, playerBId], map: "friendships_player_pair_key")
   @@index([playerBId], map: "friendships_player_b_idx")
@@ -1591,6 +1858,7 @@ model PlayerDailyRewardState {
   lastClaimDate   DateTime?          @map("last_claim_date") @db.Date
   lastClaimedAt   DateTime?          @map("last_claimed_at") @db.Timestamptz(6)
   lastOperationId String?            @unique(map: "player_daily_reward_state_last_operation_id_key") @map("last_operation_id") @db.Uuid
+  legacyProvenance Json?              @map("legacy_provenance") @db.JsonB
   updatedAt       DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   player          Player             @relation(fields: [playerId], references: [id], onDelete: Cascade)
   lastOperation   BusinessOperation? @relation(fields: [lastOperationId], references: [id], onDelete: SetNull)
@@ -1643,7 +1911,8 @@ model C6CompetitionProgress {
   popularityParticipations   BigInt    @default(0) @map("popularity_participations")
   popularityWins             BigInt    @default(0) @map("popularity_wins")
   popularityTitleFloor       Int       @default(0) @map("popularity_title_floor") @db.SmallInt
-  unlockedAt                 DateTime  @map("unlocked_at") @db.Timestamptz(6)
+  unlockedAt                 DateTime? @map("unlocked_at") @db.Timestamptz(6)
+  legacyProvenance           Json?     @map("legacy_provenance") @db.JsonB
   createdAt                  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt                  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   player                     Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
@@ -1820,6 +2089,7 @@ model PullOperation {
   pullCount           Int               @map("pull_count") @db.SmallInt
   primogemCost        BigInt            @map("primogem_cost")
   sourceChannel       SourceChannel     @map("source_channel")
+  legacyPreviousWasFiveStar Boolean?    @map("legacy_previous_was_five_star")
   businessOperationId String            @unique(map: "pull_operations_business_operation_id_key") @map("business_operation_id") @db.Uuid
   createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
   player              Player            @relation(fields: [playerId], references: [id], onDelete: Restrict)
@@ -1957,6 +2227,8 @@ model PlayerDailyCombatState {
   playerId    String               @map("player_id") @db.Uuid
   encounterId String               @map("encounter_id") @db.Uuid
   wonAt       DateTime?            @map("won_at") @db.Timestamptz(6)
+  legacyWon   Boolean              @default(false) @map("legacy_won")
+  legacyProvenance Json?           @map("legacy_provenance") @db.JsonB
   createdAt   DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   player      Player               @relation(fields: [playerId], references: [id], onDelete: Cascade)
@@ -2095,6 +2367,7 @@ model GiftCode {
   endsAt         DateTime?         @map("ends_at") @db.Timestamptz(6)
   publishedAt    DateTime?         @map("published_at") @db.Timestamptz(6)
   disabledAt     DateTime?         @map("disabled_at") @db.Timestamptz(6)
+  legacyProvenance Json?           @map("legacy_provenance") @db.JsonB
   createdById    String?           @map("created_by_id") @db.Uuid
   updatedById    String?           @map("updated_by_id") @db.Uuid
   createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -2113,8 +2386,9 @@ model GiftCodeEdition {
   id         String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   giftCodeId String          @map("gift_code_id") @db.Uuid
   editionKey String          @map("edition_key") @db.Text
-  startsAt   DateTime        @map("starts_at") @db.Timestamptz(6)
-  endsAt     DateTime        @map("ends_at") @db.Timestamptz(6)
+  startsAt   DateTime?       @map("starts_at") @db.Timestamptz(6)
+  endsAt     DateTime?       @map("ends_at") @db.Timestamptz(6)
+  legacyProvenance Json?     @map("legacy_provenance") @db.JsonB
   year       Int?            @db.SmallInt
   createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
   giftCode   GiftCode        @relation(fields: [giftCodeId], references: [id], onDelete: Cascade)
@@ -2140,11 +2414,13 @@ model GiftCodeClaim {
   giftCodeEditionId String            @map("gift_code_edition_id") @db.Uuid
   playerId          String            @map("player_id") @db.Uuid
   sourceChannel     SourceChannel     @map("source_channel")
-  operationId       String            @unique(map: "gift_code_claims_operation_id_key") @map("operation_id") @db.Uuid
-  claimedAt         DateTime          @default(now()) @map("claimed_at") @db.Timestamptz(6)
+  operationId       String?           @unique(map: "gift_code_claims_operation_id_key") @map("operation_id") @db.Uuid
+  claimedAt         DateTime?         @default(now()) @map("claimed_at") @db.Timestamptz(6)
+  origin            String            @default("NATIVE") @db.Text
+  legacyProvenance  Json?             @map("legacy_provenance") @db.JsonB
   edition           GiftCodeEdition   @relation(fields: [giftCodeEditionId], references: [id], onDelete: Restrict)
   player            Player            @relation(fields: [playerId], references: [id], onDelete: Restrict)
-  operation         BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  operation         BusinessOperation? @relation(fields: [operationId], references: [id], onDelete: Restrict)
 
   @@id([giftCodeEditionId, playerId])
   @@index([playerId, claimedAt(sort: Desc)], map: "gift_code_claims_player_claimed_idx")
@@ -2168,6 +2444,8 @@ model MonthlyBoss {
   attacks              BossAttack[]
   participations       PlayerBossParticipation[]
   rewards              BossReward[]
+  legacyContributions  BossLegacyContribution[]
+  legacyAggregate      BossLegacyAggregate?
 
   @@index([monthStart(sort: Desc)], map: "monthly_bosses_created_idx")
   @@index([resistanceElementKey], map: "monthly_bosses_resistance_idx")
@@ -2241,8 +2519,8 @@ model PlayerBossParticipation {
   totalDamage   BigInt      @default(0) @map("total_damage")
   attackCount   BigInt      @default(0) @map("attack_count")
   bestHit       BigInt      @default(0) @map("best_hit")
-  firstAttackAt DateTime    @map("first_attack_at") @db.Timestamptz(6)
-  lastAttackAt  DateTime    @map("last_attack_at") @db.Timestamptz(6)
+  firstAttackAt DateTime?   @map("first_attack_at") @db.Timestamptz(6)
+  lastAttackAt  DateTime?   @map("last_attack_at") @db.Timestamptz(6)
   createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   boss          MonthlyBoss @relation(fields: [bossId], references: [id], onDelete: Restrict)
@@ -2271,13 +2549,15 @@ model PlayerBossStats {
 model BossReward {
   bossId      String            @map("boss_id") @db.Uuid
   playerId    String            @map("player_id") @db.Uuid
-  primogems   BigInt
-  moras       BigInt
-  operationId String            @map("operation_id") @db.Uuid
-  awardedAt   DateTime          @map("awarded_at") @db.Timestamptz(6)
+  primogems   BigInt?
+  moras       BigInt?
+  operationId String?           @map("operation_id") @db.Uuid
+  awardedAt   DateTime?         @map("awarded_at") @db.Timestamptz(6)
+  origin      String            @default("NATIVE") @db.Text
+  legacyProvenance Json?        @map("legacy_provenance") @db.JsonB
   boss        MonthlyBoss       @relation(fields: [bossId], references: [id], onDelete: Restrict)
   player      Player            @relation(fields: [playerId], references: [id], onDelete: Restrict)
-  operation   BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  operation   BusinessOperation? @relation(fields: [operationId], references: [id], onDelete: Restrict)
 
   @@id([bossId, playerId])
   @@index([playerId, awardedAt(sort: Desc)], map: "boss_rewards_player_idx")

@@ -506,16 +506,17 @@ export class ContestService {
 
   private async readView(playerId: string) {
     const businessDate = getBusinessDate(this.clock.now());
-    const [theme, active, legends, daily, ownedC6] = await Promise.all([
+    const [theme, active, legends, daily, ownedC6, legacyDaily] = await Promise.all([
       readOrCreateDailyTheme(this.database, businessDate, this.random),
       this.database.contest.findFirst({ where: { status: { in: [...ACTIVE_STATUSES] } }, include: liveContestInclude }),
       this.database.c6CompetitionProgress.findMany({ where: { playerId, character: { isActive: true, rarity: 5 } }, include: { character: true }, orderBy: { character: { displayOrder: 'asc' } } }),
       this.database.contestDailyParticipation.findUnique({ where: { playerId_businessDate: { playerId, businessDate: businessDateToDatabaseDate(businessDate) } } }),
       this.database.playerCharacter.findMany({ where: { playerId, constellation: 6, character: { isActive: true, rarity: 5 } }, select: { characterId: true } }),
+      this.database.contestLegacyDailyLock.findUnique({ where: { playerId_businessDate: { playerId, businessDate: businessDateToDatabaseDate(businessDate) } } }),
     ]);
     const ownedIds = new Set(ownedC6.map(({ characterId }) => characterId));
     const eligibleLegends = legends.filter((legend) => ownedIds.has(legend.characterId));
-    const dailyUsed = Boolean(daily && !daily.refundedAt);
+    const dailyUsed = Boolean(daily && !daily.refundedAt) || Boolean(legacyDaily);
     const participant = active?.participants.find((item) => item.playerId === playerId);
     const spectator = active?.spectators.some((item) => item.playerId === playerId) ?? false;
     const formerParticipant = active && !participant && !spectator ? await wasContestParticipant(this.database, active, playerId) : false;
@@ -667,16 +668,25 @@ async function ensureDailyTheme(tx: Client, businessDate: string, random: Random
   const existing = await tx.contestDailyTheme.findUnique({ where: { businessDate: date } });
   if (existing) return existing.theme;
   const theme = selectContestTheme(random) as ContestTheme;
-  try { return (await tx.contestDailyTheme.create({ data: { businessDate: date, theme } })).theme; }
-  catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') return (await tx.contestDailyTheme.findUniqueOrThrow({ where: { businessDate: date } })).theme;
-    throw error;
-  }
+  return (await tx.contestDailyTheme.upsert({ where: { businessDate: date }, create: { businessDate: date, theme }, update: {} })).theme;
 }
 
 async function readOrCreateDailyTheme(database: PrismaClient, businessDate: string, random: RandomSource): Promise<ContestTheme> {
-  const existing = await database.contestDailyTheme.findUnique({ where: { businessDate: businessDateToDatabaseDate(businessDate) } });
-  return existing?.theme ?? database.$transaction((tx) => ensureDailyTheme(tx, businessDate, random), serializable);
+  const date = businessDateToDatabaseDate(businessDate);
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const existing = await database.contestDailyTheme.findUnique({ where: { businessDate: date } });
+    if (existing) return existing.theme;
+    try { return await database.$transaction((tx) => ensureDailyTheme(tx, businessDate, random), serializable); }
+    catch (error) {
+      const uniqueRace = error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+      if (!uniqueRace && !isRetryableTransactionError(error)) throw error;
+      const winner = await database.contestDailyTheme.findUnique({ where: { businessDate: date } });
+      if (winner) return winner.theme;
+      if (attempt === 4) throw error;
+      await wait(50 * 2 ** attempt);
+    }
+  }
+  throw new Error('Daily Contest theme could not be resolved.');
 }
 
 async function findLegend(tx: Client, playerId: string, characterId: string) {
@@ -687,7 +697,8 @@ async function findLegend(tx: Client, playerId: string, characterId: string) {
 
 async function assertDailyAvailable(tx: Client, playerId: string, businessDate: string) {
   const daily = await tx.contestDailyParticipation.findUnique({ where: { playerId_businessDate: { playerId, businessDate: businessDateToDatabaseDate(businessDate) } } });
-  if (daily && !daily.refundedAt) throw new BusinessError('CONTEST_DAILY_ALREADY_USED', 'Votre participation quotidienne a déjà été utilisée.');
+  const legacyDaily = await tx.contestLegacyDailyLock.findUnique({ where: { playerId_businessDate: { playerId, businessDate: businessDateToDatabaseDate(businessDate) } } });
+  if ((daily && !daily.refundedAt) || legacyDaily) throw new BusinessError('CONTEST_DAILY_ALREADY_USED', 'Votre participation quotidienne a déjà été utilisée.');
 }
 
 async function consumeDaily(tx: Prisma.TransactionClient, playerId: string, businessDate: string, contestId: string, now: Date) {

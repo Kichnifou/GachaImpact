@@ -37,8 +37,8 @@ describe('Gacha foundation on the development database', () => {
     expect(first.featuredFiveStars).toHaveLength(4);
     expect(first.featuredFourStars).toHaveLength(6);
     const canonicalCatalog = { externalKey: { startsWith: 'legacy:' } };
-    expect(await database.character.count({ where: canonicalCatalog })).toBe(118);
-    expect(await database.character.count({ where: { ...canonicalCatalog, rarity: 5 } })).toBe(67);
+    expect(await database.character.count({ where: canonicalCatalog })).toBe(120);
+    expect(await database.character.count({ where: { ...canonicalCatalog, rarity: 5 } })).toBe(69);
     expect(await database.character.count({ where: { ...canonicalCatalog, rarity: 4 } })).toBe(51);
     expect(await database.bannerRotation.count({ where: { status: 'ACTIVE' } })).toBe(1);
     expect(await database.player.count()).toBe(await database.playerGachaState.count());

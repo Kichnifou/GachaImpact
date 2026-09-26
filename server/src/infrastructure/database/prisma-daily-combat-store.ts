@@ -164,7 +164,7 @@ export class PrismaDailyCombatStore implements DailyCombatStore {
           }
           const encounter = await loadEncounter(transaction, encounterId);
           const state = await transaction.playerDailyCombatState.findUnique({ where: { playerId_encounterId: { playerId: context.playerId, encounterId } } });
-          if (state?.wonAt) throw new BusinessError('DAILY_COMBAT_ALREADY_COMPLETED', 'Le Combat quotidien est déjà terminé.');
+          if (state?.wonAt || state?.legacyWon) throw new BusinessError('DAILY_COMBAT_ALREADY_COMPLETED', 'Le Combat quotidien est déjà terminé.');
           if (context.selection) {
             let ids: string[];
             if (context.selection === 'ACTIVE_TEAM') {
@@ -327,7 +327,7 @@ async function readView(client: Client, playerId: string, _businessDate: string,
   const relations = relationMap(matchups);
   const preview = complete && !hasKo ? calculateDailyCombatPreview(selected.map((character) => ({ id: character.id, rarity: character.rarity, constellation: character.constellation, elementKey: character.elementKey })), encounter.enemies.map(({ elementKeySnapshot }) => elementKey(elementKeySnapshot)), relations) : null;
   const availableCharacterCount = characters.filter(({ id }) => !koIds.has(id)).length;
-  const status = state?.wonAt ? 'COMPLETED' : availableCharacterCount < 4 ? 'BLOCKED' : lastAttempt ? 'IN_PROGRESS' : 'TODO';
+  const status = state?.wonAt || state?.legacyWon ? 'COMPLETED' : availableCharacterCount < 4 ? 'BLOCKED' : lastAttempt ? 'IN_PROGRESS' : 'TODO';
   return {
     businessDate: databaseDateToBusinessDate(encounter.businessDate), status,
     encounter: { id: encounter.id, enemies: encounter.enemies.map(({ position, character, elementKeySnapshot }) => { const defenderElement = elementKey(elementKeySnapshot); return ({ position: position as 1 | 2 | 3 | 4, character: {

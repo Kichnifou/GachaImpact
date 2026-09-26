@@ -74,8 +74,8 @@ Cette séquence inclut les domaines déjà traversés ; elle ne les déclare pas
 25. **Tutoriel interactif et Help final** — suivre [23-help-command-coherence-audit.md](../legacy/23-help-command-coherence-audit.md) et la navigation propriétaire.
 26. **Recette fonctionnelle complète et équilibrage économie/progression** — vérifier ensemble les domaines physiques et leurs interactions.
 27. **Finition technique et visuelle** — responsive/mobile, accessibilité, sécurité, concurrence, performances et cohérence avec [ui-layout-contract-v1.md](../specifications/ui-layout-contract-v1.md).
-28. **Migration pilote legacy** — reprendre les preuves de [01-data-sources-inventory.md](../legacy/01-data-sources-inventory.md), [02-current-player-model.md](../legacy/02-current-player-model.md) et [03-command-data-matrix.md](../legacy/03-command-data-matrix.md) sur un petit ensemble contrôlé.
-29. **Migration générale / cutover** — migrer uniquement après validation du pilote et stabilisation des domaines requis.
+28. **Migration foundation / rehearsal — domaine actif** — bâtir les modèles et mappings globaux, couvrir les 17 sources, résoudre les identités Twitch, produire un plan de purge et répéter le snapshot complet en schéma privé selon [le contrat canonique](../architecture/legacy-migration-v1.md). Le pilote Kichnifou R916–R926 reste une étape historique, sans import public.
+29. **Migration finale / cutover — mission distincte** — capturer le snapshot final, refaire couverture/résolution/répétition, valider le plan et suivre le [runbook](../process/legacy-cutover-runbook.md) avant toute purge/import de Players publics. Streamer.bot reste autoritatif jusque-là.
 30. **Validation finale V1** — exécuter la recette publique finale et clôturer les écarts restants.
 
 ## Sujet hors séquence obligatoire

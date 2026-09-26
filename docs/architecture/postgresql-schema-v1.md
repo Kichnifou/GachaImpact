@@ -1,5 +1,11 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## Additions legacy 050/051 — candidat `review`, 2026-09-27
+
+Les migrations additives `20260926223000_050_add_legacy_migration_foundation` et `20260926224000_051_add_legacy_claim_provenance` ne modifient pas 049. 050 introduit les tables de batch/fichiers/mappings/issues, Boss agrégé et contributions, dernier cœur directionnel, verrou Concours legacy, Faveur, Giveaway et reçu Twitch. Chaque nouvelle table active RLS et retire tous les droits à `PUBLIC`, `anon` et `authenticated` ; seul le backend direct écrit. Le catalogue Character ajoute 119/120 via le générateur et le seed existants, sans copier les JSON privés. Le DDL a été contrôlé en schéma privé avant application DEV. Les migrations 050/051 sont appliquées et suivies par Prisma sur DEV : 51 migrations terminées, 15 nouvelles tables avec RLS et droits navigateur révoqués, 120 personnages catalogue, dix Players inchangés en nombre et aucun batch de migration publique.
+
+051 rend les preuves legacy représentables dans les tables de claims existantes : `operation_id`/timestamp métier nullables uniquement avec provenance legacy, contraintes NATIVE conservées, définition one-off désactivée sans période lorsque le catalogue historique l'a perdue. 050 ajoute aussi la provenance et les états legacy de bannière, Jeu B et Combat quotidien ; les heures d'attaque Boss inconnues restent `NULL` et le dernier jour est une colonne `date`. Le [mapping canonique](legacy-migration-v1.md) donne les règles métier et le [runbook](../process/legacy-cutover-runbook.md) les gates. Aucun Player public ni historique de test n'est modifié par ces migrations de structure.
+
 > Statut : **CONSOLIDÉ — Phase C2 / schéma relationnel cible**
 >
 > Date : **2026-09-04**

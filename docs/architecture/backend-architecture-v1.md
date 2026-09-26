@@ -1,5 +1,11 @@
 # GachaImpact — Architecture backend V1
 
+## Pipeline migration legacy globale — candidat `review`, 2026-09-26
+
+La migration est une tâche opérateur hors routes HTTP : lecture d'une copie Streamer.bot horodatée, vérification manifest/hash, couverture des 17 JSON et de tous les profils, sélection par élément valide, résolution Helix explicite des Twitch User IDs, vérification des comptes existants, validation des catalogues, construction du plan et des issues, plan de purge par table, répétition en schéma privé, contrôles puis batch terminé. Les fixtures Twitch numériques du test privé ne sont jamais une identité réelle. Aucune API publique n'applique la migration et aucune mutation des Players publics n'est fournie dans ce lot.
+
+L'application privée suit les domaines personnels, Social, Giveaway, Codes, Boss, Event, Bannière, Combat quotidien et Concours conditionnel ; elle ne crée aucune opération ou récompense fictive. La purge est explicite, vérifie les FK et conserve Auth/Player ID, pseudo web, rôles, préférences et confidentialité. Un chemin source, une table, une identité ou un domaine conditionnel inconnu bloque avant ouverture. Les services natifs reconnaissent les preuves legacy pour empêcher un second claim, cœur, vote, attaque Boss/Combat ou action Event. Le [contrat détaillé](legacy-migration-v1.md) et le [runbook](../process/legacy-cutover-runbook.md) fixent les autorités et gates ; le cutover public reste une mission séparée.
+
 > Statut : **DÉCISION TECHNIQUE — Phase C / socle backend retenu**
 >
 > Date de décision : **2026-09-04**

@@ -48,6 +48,6 @@ export class BannerVoteService {
     const catalog = await tx.character.aggregate({ where: { isActive: true }, _count: true, _max: { updatedAt: true } });
     const weights = new Map(counts.map(row => [row.characterId, row._count._all]));
     const now = this.clock.now();
-    return { bannerRotationId: banner.id, startsAt: banner.startsAt.toISOString(), endsAt: banner.endsAt.toISOString(), canVote: !own && now >= banner.startsAt && now < banner.endsAt, ownVote: own ? { characterId: own.characterId, votedAt: own.votedAt.toISOString() } : null, candidates: candidates.map(c => ({ characterId: c.id, voteCount: weights.get(c.id) ?? 0 })), catalogVersion: `${catalog._count}:${catalog._max.updatedAt?.toISOString() ?? ''}` };
+    return { bannerRotationId: banner.id, startsAt: banner.startsAt.toISOString(), endsAt: banner.endsAt.toISOString(), canVote: !own && now >= banner.startsAt && now < banner.endsAt, ownVote: own ? { characterId: own.characterId, votedAt: own.votedAt?.toISOString() ?? null } : null, candidates: candidates.map(c => ({ characterId: c.id, voteCount: weights.get(c.id) ?? 0 })), catalogVersion: `${catalog._count}:${catalog._max.updatedAt?.toISOString() ?? ''}` };
   }
 }

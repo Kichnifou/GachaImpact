@@ -238,6 +238,8 @@ export class MonthlyBossService {
           if (databaseDateToBusinessDate(boss.monthStart) !== getBusinessMonth(context.now)) throw new BusinessError('BOSS_INSTANCE_CHANGED', 'Le Boss mensuel a changé. Rechargez sa fiche.');
           if (boss.defeatedAt) throw new BusinessError('BOSS_DEFEATED', 'Le Boss de ce mois est déjà vaincu.');
           const businessDate = businessDateToDatabaseDate(context.businessDate);
+          const legacyAttack = await transaction.bossLegacyContribution.findUnique({ where: { bossId_playerId: { bossId, playerId: context.playerId } }, select: { lastAttackDate: true } });
+          if (legacyAttack?.lastAttackDate?.getTime() === businessDate.getTime()) throw new BusinessError('BOSS_ATTACK_ALREADY_USED', 'Votre attaque Boss a déjà été utilisée aujourd’hui.');
           if (await transaction.bossAttack.findUnique({ where: { bossId_playerId_businessDate: { bossId, playerId: context.playerId, businessDate } } })) throw new BusinessError('BOSS_ATTACK_ALREADY_USED', 'Votre attaque Boss a déjà été utilisée aujourd’hui.');
           if (copyActiveTeam) {
             const team = await transaction.team.findFirst({ where: { playerId: context.playerId, isActive: true }, include: { members: { include: { character: true }, orderBy: { position: 'asc' } } } });
@@ -435,12 +437,13 @@ export class MonthlyBossScheduler {
 }
 
 async function readView(client: Client, playerId: string, businessDate: string, bossId: string): Promise<MonthlyBossView> {
-  const [boss, loadout, possessions, todayAttack, stats] = await Promise.all([
+  const [boss, loadout, possessions, todayAttack, stats, legacyAttack] = await Promise.all([
     client.monthlyBoss.findUniqueOrThrow({ where: { id: bossId }, include: { finalBlowPlayer: { select: { id: true, displayName: true } } } }),
     client.playerBossLoadout.findUnique({ where: { playerId }, include: { slots: { orderBy: { position: 'asc' } } } }),
     client.playerCharacter.findMany({ where: { playerId, character: { isActive: true } }, select: possessionSelection }),
     client.bossAttack.findUnique({ where: { bossId_playerId_businessDate: { bossId, playerId, businessDate: businessDateToDatabaseDate(businessDate) } } }),
     client.playerBossStats.findUnique({ where: { playerId } }),
+    client.bossLegacyContribution.findUnique({ where: { bossId_playerId: { bossId, playerId } }, select: { lastAttackDate: true } }),
   ]);
   const summaryData = (await readBossSummaries(client, [boss])).get(boss.id)!;
   const summary = summaryData.summary;
@@ -461,8 +464,8 @@ async function readView(client: Client, playerId: string, businessDate: string, 
     businessDate,
     boss: { id: boss.id, monthStart: databaseDateToBusinessDate(boss.monthStart), name: boss.nameSnapshot, baseHp: boss.baseHp, hpVariationPercent: boss.hpVariationPercent, maxHp: boss.maxHp, currentHp: boss.currentHp, resistanceElementKey: elementKey(boss.resistanceElementKey), defeatedAt: boss.defeatedAt, finalBlowPlayer: boss.finalBlowPlayer, nextBaseAdjustment },
     status: defeated ? 'DEFEATED' : 'ALIVE',
-    attackState: defeated ? 'DEFEATED' : todayAttack ? 'USED' : 'AVAILABLE',
-    canAttack: !defeated && !todayAttack && complete,
+    attackState: defeated ? 'DEFEATED' : todayAttack || legacyAttack?.lastAttackDate?.getTime() === businessDateToDatabaseDate(businessDate).getTime() ? 'USED' : 'AVAILABLE',
+    canAttack: !defeated && !todayAttack && legacyAttack?.lastAttackDate?.getTime() !== businessDateToDatabaseDate(businessDate).getTime() && complete,
     loadout: { slots },
     availableCharacters: characters,
     preview,
@@ -535,8 +538,10 @@ async function readBossSummaries(client: Client, bosses: readonly BossSummarySou
   }));
 }
 
-function compareParticipationRanking(left: { totalDamage: bigint; firstAttackAt: Date; playerId: string }, right: { totalDamage: bigint; firstAttackAt: Date; playerId: string }): number {
-  return compareBigIntDesc(left.totalDamage, right.totalDamage) || left.firstAttackAt.getTime() - right.firstAttackAt.getTime() || compareText(left.playerId, right.playerId);
+function compareParticipationRanking(left: { totalDamage: bigint; firstAttackAt: Date | null; playerId: string }, right: { totalDamage: bigint; firstAttackAt: Date | null; playerId: string }): number {
+  const dateOrder = left.firstAttackAt && right.firstAttackAt ? left.firstAttackAt.getTime() - right.firstAttackAt.getTime()
+    : left.firstAttackAt ? -1 : right.firstAttackAt ? 1 : 0;
+  return compareBigIntDesc(left.totalDamage, right.totalDamage) || dateOrder || compareText(left.playerId, right.playerId);
 }
 
 function compareMostAttacks(left: MonthlyBossRankingEntry, right: MonthlyBossRankingEntry): number {

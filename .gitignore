@@ -13,6 +13,7 @@ dist-ssr
 *.local
 docs/work/TASK_STATE.md
 local-data/streamerbot-snapshots/
+local-data/identity-resolutions/
 .env
 .env.*
 !.env.example

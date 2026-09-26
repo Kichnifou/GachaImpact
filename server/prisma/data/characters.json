@@ -2004,5 +2004,39 @@
     "sourceMetadata": {
       "legacyId": 118
     }
+  },
+  {
+    "externalKey": "legacy:119",
+    "name": "Vesna",
+    "rarity": 5,
+    "elementKey": "anemo",
+    "weaponType": "Épée",
+    "region": "Snezhnaya",
+    "classKey": null,
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": null,
+    "displayOrder": 119,
+    "sourceMetadata": {
+      "legacyId": 119
+    }
+  },
+  {
+    "externalKey": "legacy:120",
+    "name": "Vodyanitsa",
+    "rarity": 5,
+    "elementKey": "hydro",
+    "weaponType": "Catalyseur",
+    "region": "Snezhnaya",
+    "classKey": null,
+    "iconPath": null,
+    "splashPath": null,
+    "wishPath": null,
+    "fullbodyPath": null,
+    "displayOrder": 120,
+    "sourceMetadata": {
+      "legacyId": 120
+    }
   }
 ]

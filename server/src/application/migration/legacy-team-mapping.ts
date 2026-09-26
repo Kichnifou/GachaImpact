@@ -21,7 +21,8 @@ export function mapLegacyTeams(viewer: Record<string, unknown>, box: readonly Po
   };
   const slots: TeamSlot[] = Array.from({ length: 10 }, (_, index) => ({ position: index + 1, name: null, isActive: false, isBaseSlot: true, legacySavedAt: null, members: [] }));
   const source = record(viewer.savedTeams);
-  if (!source) blockers.push('savedTeams absent ou illisible.');
+  if (!source && viewer.savedTeams != null) blockers.push('savedTeams illisible.');
+  if (!source && viewer.savedTeams == null) anomalies.push('Saved Teams absentes : positions initiales vides.');
   const seen = new Set<string>();
   for (const [key, raw] of Object.entries(source ?? {}).sort(([a], [b]) => Number(a) - Number(b))) {
     const position = Number(key);
@@ -37,7 +38,7 @@ export function mapLegacyTeams(viewer: Record<string, unknown>, box: readonly Po
     slots[position - 1] = { position, name: typeof entry.name === 'string' ? entry.name.slice(0, 120) : null,
       isActive: false, isBaseSlot: true, legacySavedAt: savedAt, members };
   }
-  const activeMembers = resolve(viewer.team, 'Team active');
+  const activeMembers = resolve(viewer.team ?? [], 'Team active');
   if (activeMembers) {
     const same = slots.findIndex(slot => slot.members.length === activeMembers.length &&
       slot.members.length > 0 && [...slot.members].sort().join('|') === [...activeMembers].sort().join('|'));

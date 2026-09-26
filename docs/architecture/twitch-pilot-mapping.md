@@ -1,5 +1,7 @@
 # Pilote Kichnifou — correspondance du snapshot figé
 
+> **Supplanté pour le cutover global par [Migration legacy V1](legacy-migration-v1.md).** Cette matrice reste le compte rendu historique du pilote R916–R926. Ses catégories différées et ses mouvements d'ajustement ne définissent pas le migrateur global R927–R938 ; utiliser le contrat canonique et le [runbook](../process/legacy-cutover-runbook.md) pour toute nouvelle préparation.
+
 Cette matrice décrit le candidat `review` R916–R926 et le dry-run du snapshot local figé du 26 septembre 2026, hash `1852d7141a121c335c5928a8265c20e840e5c5dd20ccee12b054b99f780806ba`. Le dossier source Streamer.bot reste en lecture seule et autoritatif jusqu'au cutover ; ses modifications après la copie n'invalident pas la copie. Aucun import du Player public n'a été exécuté. Les audits propriétaires, du [XP](../legacy/04-xp-audit.md) au [Giveaway](../legacy/21-giveaway-wish-audit.md), restent les références de chaque domaine.
 
 | Domaine | Source legacy | Cible et règle du pilote | Catégorie |

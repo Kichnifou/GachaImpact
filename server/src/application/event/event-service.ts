@@ -176,8 +176,8 @@ export class EventService {
           });
 
           if (!participant) {
-            const gameB = await tx.eventGameBDailyState.findUniqueOrThrow({ where: { eventEditionId_businessDate: { eventEditionId: context.edition.id, businessDate: businessDateToDatabaseDate(context.period.businessDate) } }, select: { solvedAt: true } });
-            const lateReward = gameB.solvedAt !== null;
+            const gameB = await tx.eventGameBDailyState.findUniqueOrThrow({ where: { eventEditionId_businessDate: { eventEditionId: context.edition.id, businessDate: businessDateToDatabaseDate(context.period.businessDate) } }, select: { solvedAt: true, legacyFound: true } });
+            const lateReward = gameB.solvedAt !== null || gameB.legacyFound;
             await tx.eventParticipant.create({
               data: { eventEditionId: context.edition.id, playerId: player.id, points: 0, joinedAt: now },
             });
@@ -294,7 +294,7 @@ export class EventService {
           const participant = await tx.eventParticipant.findUnique({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: player.id } } });
           if (!participant) throw new BusinessError('EVENT_NOT_JOINED', 'Rejoignez le Festival avant de jouer.');
           const global = await tx.eventGameBDailyState.findUniqueOrThrow({ where: { eventEditionId_businessDate: key } });
-          if (global.solvedAt) throw new BusinessError('EVENT_GAME_B_ALREADY_SOLVED', 'La combinaison a déjà été découverte aujourd’hui.');
+          if (global.solvedAt || global.legacyFound) throw new BusinessError('EVENT_GAME_B_ALREADY_SOLVED', 'La combinaison a déjà été découverte aujourd’hui.');
           const testedCodes = parseEventGameBTestedCodes(global.testedCodes);
           const alreadyTested = testedCodes.includes(code);
           const daily = await this.ensureDailyState(tx, context.edition.id, player.id, context.period.businessDate, now);
@@ -707,7 +707,7 @@ export class EventService {
       },
       participation: {
         joined: Boolean(participant),
-        joinedAt: participant?.joinedAt.toISOString() ?? null,
+        joinedAt: participant?.joinedAt?.toISOString() ?? null,
         points: participant?.points ?? 0,
       },
       currency: { amount: (balance?.amount ?? 0n).toString() },
@@ -724,10 +724,10 @@ export class EventService {
       gameA,
       gameB: {
         available: Boolean(participant), theme: { key: context.editionSnapshot.externalKey, label: gameBTheme },
-        solvedToday: global.solvedAt !== null, resolvedCode: global.solvedAt ? global.solutionCode : null, discoveredBy: discoverer,
+        solvedToday: global.solvedAt !== null || global.legacyFound, resolvedCode: global.solvedAt || global.legacyFound ? global.solutionCode : null, discoveredBy: discoverer,
         attemptsUsed, attemptsRemaining: participant ? Math.max(0, EVENT_GAME_B_MAX_ATTEMPTS - attemptsUsed) : 0,
         testedCodes, remainingCodes,
-        canAttempt: Boolean(participant) && !global.solvedAt && attemptsUsed < EVENT_GAME_B_MAX_ATTEMPTS && remainingCodes.length > 0,
+        canAttempt: Boolean(participant) && !global.solvedAt && !global.legacyFound && attemptsUsed < EVENT_GAME_B_MAX_ATTEMPTS && remainingCodes.length > 0,
       },
       gameC: {
         available: Boolean(participant) || receivedMessages.length > 0,

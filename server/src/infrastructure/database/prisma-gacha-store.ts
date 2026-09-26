@@ -186,6 +186,9 @@ export class PrismaGachaStore implements GachaStore {
       await transaction.$queryRaw`SELECT player_id FROM player_gacha_states WHERE player_id = ${input.playerId}::uuid FOR UPDATE`;
       const storedState = await transaction.playerGachaState.findUnique({ where: { playerId: input.playerId }, select: stateSelection });
       if (!storedState) throw new BusinessError('GACHA_BANNER_UNAVAILABLE', 'L’état Gacha du joueur est indisponible.');
+      const legacyContext = await transaction.playerGachaState.findUniqueOrThrow({
+        where: { playerId: input.playerId }, select: { legacyLastPullWasFiveStar: true },
+      });
       if (!storedState.selectedBannerCharacterId) throw new BusinessError('GACHA_TARGET_REQUIRED', 'Choisissez une cible 5★ avant d’invoquer.');
       const target = banner.featuredFiveStars.find(({ id }) => id === storedState.selectedBannerCharacterId);
       if (!target) throw new BusinessError('GACHA_TARGET_INVALID', 'La cible choisie ne fait pas partie de la bannière active.');
@@ -199,6 +202,7 @@ export class PrismaGachaStore implements GachaStore {
       const pullOperation = await transaction.pullOperation.create({ data: {
         playerId: input.playerId, bannerRotationId: banner.id, targetCharacterId: target.id,
         pullCount: input.count, primogemCost: cost, sourceChannel,
+        legacyPreviousWasFiveStar: legacyContext.legacyLastPullWasFiveStar,
         businessOperationId: businessOperation.id, createdAt: input.now,
       }, select: { id: true } });
 
@@ -345,7 +349,7 @@ export class PrismaGachaStore implements GachaStore {
         playerId: input.playerId, characterIds: [...newCharacterIds], now: input.now,
       });
 
-      const playerState = await transaction.playerGachaState.update({ where: { playerId: input.playerId }, data: state, select: stateSelection });
+      const playerState = await transaction.playerGachaState.update({ where: { playerId: input.playerId }, data: { ...state, legacyLastPullWasFiveStar: null }, select: stateSelection });
       await this.dailyChallenges?.progress(transaction, {
         playerId: input.playerId,
         playerElementKey: input.playerElementKey,

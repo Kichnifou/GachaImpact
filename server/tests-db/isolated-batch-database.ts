@@ -13,9 +13,9 @@ export function isolatedBatchDatabase() {
   const connectionString = process.env['DATABASE_URL'];
   if (!connectionString) throw new Error('DATABASE_URL required');
   const admin = new pg.Client({ connectionString });
-  // A private suite needs only a small pool. Keeping it bounded prevents a
-  // long sequential run from exhausting Supabase's shared connection limit.
-  const database = new PrismaClient({ adapter: new PrismaPg({ connectionString, options: `-c search_path=${schema},public`, max: 2, idleTimeoutMillis: 1_000 }, { schema }) });
+  // Concurrent mutation tests need a third connection while keeping each
+  // sequential private fixture well below Supabase's shared connection limit.
+  const database = new PrismaClient({ adapter: new PrismaPg({ connectionString, options: `-c search_path=${schema},public`, max: 3, idleTimeoutMillis: 1_000 }, { schema }) });
   let created = false;
   return { database, admin, schema,
     async setup(options: { seedPublicCatalog?: boolean } = {}) {
@@ -44,7 +44,7 @@ export function isolatedBatchDatabase() {
         // all claims stay out of the fixture.
         await admin.query(`INSERT INTO "${schema}"."gift_codes" SELECT (jsonb_populate_record(NULL::"${schema}"."gift_codes", to_jsonb(row) || '{"created_by_id":null,"updated_by_id":null}'::jsonb)).* FROM public."gift_codes" AS row WHERE row.token LIKE 'FESTIVAL%'`);
         for (const table of ['gift_code_editions', 'gift_code_rewards']) {
-          await admin.query(`INSERT INTO "${schema}"."${table}" SELECT * FROM public."${table}" WHERE gift_code_id IN (SELECT id FROM "${schema}"."gift_codes")`);
+          await admin.query(`INSERT INTO "${schema}"."${table}" SELECT (jsonb_populate_record(NULL::"${schema}"."${table}", to_jsonb(row))).* FROM public."${table}" AS row WHERE gift_code_id IN (SELECT id FROM "${schema}"."gift_codes")`);
         }
         // Prisma's schema diff omits migration-only CHECK constraints, partial
         // indexes and RLS flags. Mirror those physical guards into the private
@@ -67,7 +67,17 @@ export function isolatedBatchDatabase() {
           WHERE n.nspname = 'public' AND t.relkind = 'r' AND t.relrowsecurity AND t.relname <> '_prisma_migrations' ORDER BY t.relname`);
         const physicalSql: string[] = [];
         for (const { table_name, name, definition } of checks.rows) {
-          const localDefinition = definition.replaceAll('::public.', `::"${schema}".`);
+          const localDefinition = table_name === 'player_daily_challenges' && name === 'player_daily_challenges_completion_check'
+            ? `CHECK ((status = 'COMPLETED' AND progress = target_snapshot AND ((completed_at IS NOT NULL AND legacy_provenance IS NULL) OR (completed_at IS NULL AND legacy_provenance IS NOT NULL))) OR (status <> 'COMPLETED' AND completed_at IS NULL))`
+            : table_name === 'player_permanent_mission_states' && name === 'player_permanent_mission_states_unlock_check'
+            ? `CHECK (z_unlocked_at IS NULL OR z_unlocked_at >= initialized_at OR legacy_provenance IS NOT NULL)`
+            : table_name === 'player_daily_reward_state' && name === 'player_daily_reward_state_claim_dates_check'
+            ? `CHECK ((first_claim_date IS NULL AND last_claim_date IS NULL) OR (first_claim_date IS NOT NULL AND last_claim_date IS NOT NULL AND first_claim_date <= last_claim_date) OR (first_claim_date IS NULL AND last_claim_date IS NOT NULL AND legacy_provenance IS NOT NULL))`
+            : table_name === 'gift_codes' && name === 'gift_codes_recurrence_check'
+            ? `CHECK ((type = 'ANNUAL' AND recurring_month BETWEEN 1 AND 12 AND starts_at IS NULL AND ends_at IS NULL) OR (type = 'ONE_OFF' AND recurring_month IS NULL AND starts_at IS NOT NULL AND ends_at IS NOT NULL AND ends_at > starts_at) OR (type = 'ONE_OFF' AND status = 'DISABLED' AND recurring_month IS NULL AND starts_at IS NULL AND ends_at IS NULL AND legacy_provenance IS NOT NULL))`
+            : table_name === 'event_game_b_daily_states' && name === 'event_game_b_daily_states_solved_discoverer_check'
+            ? `CHECK (discoverer_player_id IS NULL OR solved_at IS NOT NULL OR (legacy_found AND legacy_provenance IS NOT NULL))`
+            : definition.replaceAll('::public.', `::"${schema}".`);
           if (!/^[a-z0-9_]+$/.test(table_name) || !/^[a-z0-9_]+$/.test(name) || /;|\bpublic\./i.test(localDefinition)) throw new Error(`Unsafe CHECK fixture: ${table_name}.${name}: ${definition}`);
           physicalSql.push(`ALTER TABLE "${schema}"."${table_name}" ADD CONSTRAINT "${name}" ${localDefinition};`);
         }

@@ -57,7 +57,7 @@ export class HistoryService {
     return { category: 'event' as const, ...pageResult(page, total), entries: editions.map(edition => {
       const snapshot = edition.snapshot && typeof edition.snapshot === 'object' && !Array.isArray(edition.snapshot) ? edition.snapshot as Record<string, unknown> : {};
       const sorted = participants.filter(row => row.eventEditionId === edition.id)
-        .sort((a, b) => b.points - a.points || a.joinedAt.getTime() - b.joinedAt.getTime() || a.playerId.localeCompare(b.playerId));
+        .sort((a, b) => b.points - a.points || (a.joinedAt?.getTime() ?? Number.MAX_SAFE_INTEGER) - (b.joinedAt?.getTime() ?? Number.MAX_SAFE_INTEGER) || a.playerId.localeCompare(b.playerId));
       const ranked = sorted.map((row, index) => ({ rank: index + 1, playerId: row.playerId, displayName: row.player.displayName, points: row.points }));
       const own = ranked.find(row => row.playerId === playerId);
       const acquired = acquisitions.find(row => row.eventEditionId === edition.id);

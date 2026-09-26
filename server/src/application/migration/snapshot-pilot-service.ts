@@ -76,7 +76,7 @@ export class SnapshotPilotService {
     return { player, linked, snapshot, viewer };
   }
 
-  private async report(playerId: string, viewer: Record<string, unknown>, sources: Readonly<Record<string, unknown>>, login: string) {
+  private async report(playerId: string, viewer: Record<string, unknown>, sources: Readonly<Record<string, unknown>>, login: string, at: Date = new Date()) {
     const progression = await this.db.playerProgression.findUnique({ where: { playerId } });
     const balances = await this.db.playerResourceBalance.findMany({ where: { playerId } });
     const openTrades = await this.db.tradeRequest.count({ where: { senderPlayerId: playerId, state: 'PENDING' } });
@@ -85,7 +85,7 @@ export class SnapshotPilotService {
     const characters = await this.db.playerCharacter.count({ where: { playerId } });
     const boxSource = record(viewer.box);
     const boxCatalog = await this.db.character.findMany({ where: { externalKey: { in: Object.keys(boxSource).map(key => `legacy:${key}`) } }, select: { id: true, externalKey: true, rarity: true } });
-    const boxMapping = mapLegacyBox(viewer, boxCatalog, new Date());
+    const boxMapping = mapLegacyBox(viewer, boxCatalog, at);
     const c6Mapping = mapLegacyC6(sources['c6_characters.json'], login, boxMapping.rows, boxCatalog);
     const teamMapping = mapLegacyTeams(viewer, boxMapping.rows);
     const currentC6 = await this.db.c6CompetitionProgress.count({ where: { playerId } });
@@ -110,7 +110,7 @@ export class SnapshotPilotService {
     for (const [externalKey, rawQuantity] of [...Object.entries(coffre), ['masterless-stella-fortuna', specialItems.masterlessStellaFortuna] as const]) {
       const itemId = itemIds.get(externalKey);
       if (!itemId) { itemBlockers.push('Objet legacy sans définition catalogue physique.'); continue; }
-      itemRows.push({ itemId, externalKey, quantity: integer(rawQuantity, `item ${externalKey}`) });
+      itemRows.push({ itemId, externalKey, quantity: integer(rawQuantity ?? 0, `item ${externalKey}`) });
     }
     const socialStats = await this.db.playerSocialStats.findUnique({ where: { playerId } });
     const economyStats = await this.db.playerEconomyStats.findUnique({ where: { playerId } });
@@ -125,7 +125,7 @@ export class SnapshotPilotService {
     if (overflowClaims > 2_147_483_647n) throw new AppError('Compteur legacy trop grand.', 422, 'SNAPSHOT_VALUE_INVALID');
     const resources = resourceAmounts(viewer);
     const bankSource = record(viewer.bank);
-    const bankBalance = integer(bankSource.moras, 'bank.moras');
+    const bankBalance = integer(bankSource.moras ?? 0, 'bank.moras');
     const current = new Map(balances.map(row => [row.resourceKey, row.amount]));
     const domains: Domain[] = names.map(initialDomain);
     domains[0] = { name: 'Progression', category: 'PLAYER_LOCAL_PHYSICAL', action: progression ? (progression.xp === xp && progression.totalMessages === totalMessages && progression.countedMessages === countedMessages && progression.level100OverflowRewardsClaimed === Number(overflowClaims) ? 'NO_CHANGE' : 'REPLACE') : 'CREATE',
@@ -135,35 +135,35 @@ export class SnapshotPilotService {
       current: `${balances.length} soldes, Primos ${asText(current.get('primogems'))}, Moras ${asText(current.get('moras'))}`,
       snapshot: `${resources.size} soldes, Primos ${resources.get('primogems')}, Moras ${resources.get('moras')}`, reason: null, anomalies: [] };
     if (openTrades) { domains[1]!.category = 'BLOCKED_AMBIGUOUS'; domains[1]!.action = 'BLOCKED'; domains[1]!.reason = 'Échanges sortants en attente liés aux ressources à remplacer.'; domains[1]!.anomalies.push(`${openTrades} échange(s) sortant(s) en attente : résolution requise avant import.`); }
-    const cutoverDate = getBusinessDate(new Date());
+    const cutoverDate = getBusinessDate(at);
     const dates = record(viewer.dates);
     const lastWheelDate = legacyDate(dates.lastWheelDate, 'dates.lastWheelDate');
     const lastDailyRewardDate = legacyDate(dates.lastDailyFirstMessageReward, 'dates.lastDailyFirstMessageReward');
-    const wheelSpins = integer(stats.totalWheelSpins, 'stats.totalWheelSpins');
-    const wheelJackpots = integer(stats.totalWheelJackpots, 'stats.totalWheelJackpots');
+    const wheelSpins = integer(stats.totalWheelSpins ?? 0, 'stats.totalWheelSpins');
+    const wheelJackpots = integer(stats.totalWheelJackpots ?? 0, 'stats.totalWheelJackpots');
     const pity = record(viewer.pity);
     const guarantee = record(viewer.guarantee);
     if (typeof guarantee.guaranteedFeatured5 !== 'boolean') throw new AppError('Garantie Gacha legacy invalide.', 422, 'SNAPSHOT_VALUE_INVALID');
-    const lostStreak = smallInteger(stats.fiftyFiftyLostStreak, 'stats.fiftyFiftyLostStreak');
+    const lostStreak = smallInteger(stats.fiftyFiftyLostStreak ?? 0, 'stats.fiftyFiftyLostStreak');
     const gachaState = {
       pity5: smallInteger(pity.pity5, 'pity.pity5', 89), pity4: smallInteger(pity.pity4, 'pity.pity4', 9),
       guaranteedFeatured5: guarantee.guaranteedFeatured5,
       fiftyFiftyLostStreak: lostStreak, captureProgress: Math.min(lostStreak, 3), selectedBannerCharacterId: null,
-      totalPulls: integer(stats.totalPulls, 'stats.totalPulls'), totalFiveStars: integer(stats.totalFiveStars, 'stats.totalFiveStars'),
-      totalFourStars: integer(stats.totalFourStars, 'stats.totalFourStars'), fiftyFiftyWon: integer(stats.fiftyFiftyWon, 'stats.fiftyFiftyWon'),
-      fiftyFiftyLost: integer(stats.fiftyFiftyLost, 'stats.fiftyFiftyLost'), capturesTriggered: 0n,
+      totalPulls: integer(stats.totalPulls ?? 0, 'stats.totalPulls'), totalFiveStars: integer(stats.totalFiveStars ?? 0, 'stats.totalFiveStars'),
+      totalFourStars: integer(stats.totalFourStars ?? 0, 'stats.totalFourStars'), fiftyFiftyWon: integer(stats.fiftyFiftyWon ?? 0, 'stats.fiftyFiftyWon'),
+      fiftyFiftyLost: integer(stats.fiftyFiftyLost ?? 0, 'stats.fiftyFiftyLost'), capturesTriggered: 0n,
     };
     const economyState = {
-      totalPrimosEarned: integer(stats.totalPrimosEarned, 'stats.totalPrimosEarned'),
-      totalPrimosSpent: integer(stats.totalPrimosSpent, 'stats.totalPrimosSpent'),
-      totalMorasEarned: integer(stats.totalMorasEarned, 'stats.totalMorasEarned'),
-      totalMorasSpent: integer(stats.totalMorasSpent, 'stats.totalMorasSpent'),
-      totalMainElementParticlesEarned: integer(stats.totalMainElementParticlesEarned, 'stats.totalMainElementParticlesEarned'),
+      totalPrimosEarned: integer(stats.totalPrimosEarned ?? 0, 'stats.totalPrimosEarned'),
+      totalPrimosSpent: integer(stats.totalPrimosSpent ?? 0, 'stats.totalPrimosSpent'),
+      totalMorasEarned: integer(stats.totalMorasEarned ?? 0, 'stats.totalMorasEarned'),
+      totalMorasSpent: integer(stats.totalMorasSpent ?? 0, 'stats.totalMorasSpent'),
+      totalMainElementParticlesEarned: integer(stats.totalMainElementParticlesEarned ?? 0, 'stats.totalMainElementParticlesEarned'),
     };
-    const socialState = { totalFriendHeartsSent: integer(stats.totalFriendHeartsSent, 'stats.totalFriendHeartsSent') };
-    const totalCompleted = integer(stats.totalExpeditionsCompleted, 'stats.totalExpeditionsCompleted');
-    const combatState = { totalFights: integer(stats.totalCombatFights, 'stats.totalCombatFights'),
-      totalWins: integer(stats.totalCombatWins, 'stats.totalCombatWins'), totalLosses: integer(stats.totalCombatLosses, 'stats.totalCombatLosses'),
+    const socialState = { totalFriendHeartsSent: integer(stats.totalFriendHeartsSent ?? 0, 'stats.totalFriendHeartsSent') };
+    const totalCompleted = integer(stats.totalExpeditionsCompleted ?? 0, 'stats.totalExpeditionsCompleted');
+    const combatState = { totalFights: integer(stats.totalCombatFights ?? 0, 'stats.totalCombatFights'),
+      totalWins: integer(stats.totalCombatWins ?? 0, 'stats.totalCombatWins'), totalLosses: integer(stats.totalCombatLosses ?? 0, 'stats.totalCombatLosses'),
       totalManualWins: stats.totalManualCombatWins == null ? 0n : integer(stats.totalManualCombatWins, 'stats.totalManualCombatWins') };
     const combatSource = record(viewer.combat);
     const wins = record(combatSource.characterWins);
@@ -189,18 +189,19 @@ export class SnapshotPilotService {
       C6_CHARACTERS: BigInt(boxMapping.rows.filter(row => row.constellation === 6).length), PERFECT_FRIENDSHIP: 0n,
       PLAYER_LEVEL: BigInt(derivePlayerLevel(xp)), MANUAL_COMBAT_WINS: combatState.totalManualWins,
     };
-    const missionMapping = mapLegacyPermanentMissions(viewer, missionDefinitions, missionMetrics, new Date());
+    const missionMapping = mapLegacyPermanentMissions(viewer, missionDefinitions, missionMetrics, at);
     const dailySource = record(record(viewer.missions).daily);
     const dailyDate = dailySource ? legacyDate(dailySource.startedAt, 'missions.daily.startedAt') : null;
-    const dailyDefinition = dailyDate === getBusinessDate(new Date()) && typeof dailySource?.missionId === 'string'
+    const dailyDefinition = dailyDate === cutoverDate && typeof dailySource?.missionId === 'string'
       ? await this.db.dailyChallengeDefinition.findUnique({ where: { externalKey: dailySource.missionId } }) : null;
     const missionBlockers = [...missionMapping.blockers];
     let dailyData: { businessDate: Date; definitionId: string; definitionExternalKeySnapshot: string; typeSnapshot: string;
       displayNameSnapshot: string; descriptionSnapshot: string; progressLabelSnapshot: string; targetSnapshot: bigint;
       rewardPrimogemsSnapshot: bigint; progress: bigint; status: 'ACTIVE' | 'COMPLETED'; assignedAt: Date;
-      completedAt: null; switchCount: number } | null = null;
-    if (dailyDate === getBusinessDate(new Date())) {
-      if (!dailySource || !dailyDefinition || typeof dailySource.type !== 'string' || dailySource.type !== dailyDefinition.type ||
+      completedAt: null; switchCount: number; legacyProvenance: { source: string; historicalCompletionAtKnown: false; originalType: string } } | null = null;
+    if (dailyDate === cutoverDate) {
+      if (!dailySource || !dailyDefinition || typeof dailySource.type !== 'string' ||
+          (dailySource.type !== dailyDefinition.type && !(dailySource.completed === true && dailySource.rewardClaimed === true)) ||
           typeof dailySource.completed !== 'boolean' || typeof dailySource.rewardClaimed !== 'boolean' ||
           (dailySource.completed && !dailySource.rewardClaimed)) missionBlockers.push('Défi quotidien du jour absent, incompatible ou récompense contradictoire.');
       else {
@@ -214,13 +215,13 @@ export class SnapshotPilotService {
           progressLabelSnapshot: dailyDefinition.progressLabel, targetSnapshot: target,
           rewardPrimogemsSnapshot: dailyDefinition.rewardPrimogems, progress,
           status: dailySource.completed ? 'COMPLETED' : 'ACTIVE', assignedAt: getBusinessDayStartAt(dailyDate),
-          completedAt: null, switchCount };
+          completedAt: null, switchCount, legacyProvenance: { source: 'viewers_data.json.missions.daily', historicalCompletionAtKnown: false, originalType: dailySource.type as string } };
       }
     }
     const expeditionSource = record(viewer.expedition);
     const expeditionAnomalies: string[] = [];
     const expeditionBlockers: string[] = [];
-    if (typeof expeditionSource.active !== 'boolean') expeditionBlockers.push('Statut Expedition legacy illisible.');
+    if (expeditionSource.active != null && typeof expeditionSource.active !== 'boolean') expeditionBlockers.push('Statut Expedition legacy illisible.');
     const departureBusinessDate = legacyDate(expeditionSource.lastStartedDate, 'expedition.lastStartedDate');
     let expeditionState: 'IDLE' | 'RUNNING' | 'READY' = 'IDLE';
     let expeditionCharacterId: string | null = null;
@@ -236,7 +237,7 @@ export class SnapshotPilotService {
         readyAt = parseLegacyParisInstant(expeditionSource.readyAt);
         if (!readyAt && departedAt) { readyAt = new Date(departedAt.getTime() + 20 * 3_600_000); expeditionAnomalies.push('readyAt Expedition reconstruit depuis startedAt + 20 h.'); }
         if (!departedAt || !readyAt) expeditionAnomalies.push('Expedition active annulée : dates insuffisantes.');
-        else { expeditionCharacterId = character.id; expeditionState = readyAt <= new Date() ? 'READY' : 'RUNNING'; }
+        else { expeditionCharacterId = character.id; expeditionState = readyAt <= at ? 'READY' : 'RUNNING'; }
       }
     }
     const expeditionData = { state: expeditionState, characterId: expeditionCharacterId,
@@ -370,6 +371,12 @@ export class SnapshotPilotService {
     return { snapshotHash: snapshot.hash, files: snapshot.files, viewerFound: true, domains: report.domains };
   }
 
+  /** Reuses the audited personal mapping for a global rehearsal, without invoking the pilot confirmation route. */
+  async globalPlayerPlan(playerId: string, login: string, snapshot: ReturnType<typeof parseStreamerbotSnapshot>, cutoverAt: Date) {
+    const viewer = resolveSnapshotViewer(snapshot, login);
+    return this.report(playerId, viewer.data, snapshot.sources, login, cutoverAt);
+  }
+
   async apply(identity: AuthenticatedIdentity, files: SnapshotFiles, previewId: string) {
     if (!this.previewKey) throw new AppError('Le pilote snapshot n’est pas configuré.', 503, 'SNAPSHOT_UNAVAILABLE');
     const { player, linked, snapshot, viewer } = await this.context(identity, files);
@@ -385,7 +392,7 @@ export class SnapshotPilotService {
       if (await tx.migrationPreview.findUnique({ where: { id: previewToken.id } }))
         throw new AppError('Cette confirmation a déjà été utilisée.', 409, 'SNAPSHOT_PREVIEW_REQUIRED');
       await tx.migrationPreview.create({ data: { id: previewToken.id, playerId: player.id, snapshotHash: snapshot.hash, expiresAt: previewToken.expiresAt } });
-      const existing = await tx.migrationRun.findUnique({ where: { playerId_snapshotHash: { playerId: player.id, snapshotHash: snapshot.hash } } });
+      const existing = await tx.migrationRun.findFirst({ where: { playerId: player.id, snapshotHash: snapshot.hash, batchId: null } });
       if (existing) return { snapshotHash: snapshot.hash, replayed: true, imported: [], deferred: report.domains.filter(d => d.action === 'DEFERRED').map(d => d.name) };
       // A historical ledger may hold newer standalone test entries; the migration records a single adjustment per changed balance.
       const operation = await tx.businessOperation.findFirst({ where: { playerId: player.id, operationType: 'migration.streamerbot-refresh', idempotencyKey: `streamerbot:${snapshot.hash}` } })
