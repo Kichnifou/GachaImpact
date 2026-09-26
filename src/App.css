@@ -3886,6 +3886,8 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 .mini-avatar.anemo { background: linear-gradient(145deg, #359c7e, #254d51); }
 .player-avatar { overflow: hidden; flex: 0 0 auto; }
 .player-avatar img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.player-avatar[data-avatar-kind="element"] { background: #1d2d43; }
+.player-avatar[data-avatar-kind="element"] img { width: 78%; height: 78%; object-fit: contain; }
 .sidebar-avatar-art { position: relative; z-index: 1; display: grid; place-items: center; width: 100%; height: 100%; color: white; font-size: 24px; font-weight: 800; }
 .avatar-placeholder:has(.player-avatar img)::before { display: none; }
 .chat-avatar-art { display: grid; place-items: center; width: 100%; height: 100%; }
@@ -8850,7 +8852,10 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .appearance-preview small { color: var(--muted); }
 .appearance-preview-avatar { display: grid; place-items: center; width: 80px; height: 80px; border-radius: 14px; background: #243550; color: white; font-size: 27px; }
 .appearance-preview-avatar img { width: 80px; height: 80px; object-fit: cover; }
+.appearance-preview-avatar[data-avatar-kind="element"] img { width: 78%; height: 78%; object-fit: contain; }
 .appearance-catalog { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); }
+.appearance-character-section { display: grid; gap: 10px; min-width: 0; }
+.appearance-character-section h3 { margin: 0; color: #d8e9ff; font-size: 13px; font-weight: 700; }
 .appearance-card { display: flex; gap: 10px; align-items: center; min-width: 0; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: #111a2a; }
 .appearance-card > div { display: grid; gap: 4px; min-width: 0; }
 .appearance-card small { color: var(--muted); overflow-wrap: anywhere; }

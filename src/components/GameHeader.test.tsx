@@ -18,10 +18,23 @@ function mount(props: Partial<React.ComponentProps<typeof GameHeader>> = {}) {
 }
 
 describe('GameHeader moderation capability', () => {
+  it('opens character avatars before archiving and keeps navigation when archive fails', async () => {
+    const onOpenNotification = vi.fn()
+    const onArchiveNotification = vi.fn(async () => { throw new Error('archive unavailable') })
+    const onReadNotification = vi.fn(async () => ({ unreadCount: 0, notifications: [] }))
+    const avatar = { id: 'avatar-unlocks', domainKey: 'appearance', typeKey: 'CHARACTER_AVATARS_UNLOCKED', payload: { count: 5 }, state: 'UNREAD' as const, actionKey: 'OPEN_PROFILE_PERSONALIZATION', actionTargetId: null, createdAt: '2026-09-26T12:00:00Z', readAt: null }
+    const container = mount({ notifications: { unreadCount: 1, notifications: [avatar] }, onOpenNotification, onArchiveNotification, onReadNotification })
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
+    await act(async () => { container.querySelector<HTMLButtonElement>('.notification-item')!.click(); await Promise.resolve() })
+    expect(onOpenNotification).toHaveBeenCalledWith(avatar)
+    expect(onArchiveNotification).toHaveBeenCalledWith(avatar.id)
+    expect(onOpenNotification.mock.invocationCallOrder[0]).toBeLessThan(onArchiveNotification.mock.invocationCallOrder[0]!)
+    expect(onReadNotification).not.toHaveBeenCalled()
+  })
   it.each([['TRADES_PENDING', 'OPEN_TRADES'], ['TRADE_ACCEPTED', 'OPEN_TRADES_HISTORY']])('opens %s before its pending background read completes', async (typeKey, actionKey) => {
     let resolveRead!: (value: { unreadCount: number; notifications: never[] }) => void
     const onReadNotification = vi.fn(() => new Promise<{ unreadCount: number; notifications: never[] }>(resolve => { resolveRead = resolve }))
-    const onOpenNotification = vi.fn(), onArchiveNotification = vi.fn()
+    const onOpenNotification = vi.fn(), onArchiveNotification = vi.fn(async () => ({ unreadCount: 0, notifications: [] }))
     const trade = { id: 'trade', domainKey: 'trades', typeKey, payload: { count: 2 }, state: 'UNREAD' as const, actionKey, actionTargetId: null, createdAt: '2026-09-21T12:00:00Z', readAt: null }
     const container = mount({ notifications: { unreadCount: 1, notifications: [trade] }, onReadNotification, onOpenNotification, onArchiveNotification })
     act(() => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())

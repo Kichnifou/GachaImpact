@@ -62,7 +62,8 @@ function GameHeader({ displayName, elementKey = null, avatarAssetPath = null, on
     setIsNotificationsOpen(false)
     onOpenNotification(notification)
     if ((notification.domainKey === 'social' && notification.typeKey === 'FRIEND_REQUEST_ACCEPTED' && notification.actionKey === 'OPEN_SOCIAL_FRIENDS') ||
-      (notification.domainKey === 'trades' && notification.typeKey === 'TRADE_ACCEPTED' && notification.actionKey === 'OPEN_TRADES_HISTORY')) {
+      (notification.domainKey === 'trades' && notification.typeKey === 'TRADE_ACCEPTED' && notification.actionKey === 'OPEN_TRADES_HISTORY') ||
+      (notification.domainKey === 'appearance' && notification.typeKey === 'CHARACTER_AVATARS_UNLOCKED' && notification.actionKey === 'OPEN_PROFILE_PERSONALIZATION')) {
       void onArchiveNotification(notification.id).catch(() => undefined)
       return
     }

@@ -9,6 +9,11 @@ const pending: NotificationDto = {
 }
 
 describe('Event message notification presentation', () => {
+  it('uses natural singular and plural wording for the live character-avatar aggregate', () => {
+    const avatar = { ...pending, domainKey: 'appearance', typeKey: 'CHARACTER_AVATARS_UNLOCKED', actionKey: 'OPEN_PROFILE_PERSONALIZATION' }
+    expect(resolveNotificationPresentation({ ...avatar, payload: { count: 1 } })).toEqual({ title: 'Nouvel avatar débloqué', message: 'Disponibles dans Profil > Personnalisation.', destination: 'profile-personalization' })
+    expect(resolveNotificationPresentation({ ...avatar, payload: { count: 5 } }).title).toBe('5 nouveaux avatars débloqués')
+  })
   it('presents an accepted trade separately from the received aggregate', () => {
     const notification = { ...pending, domainKey: 'trades', typeKey: 'TRADE_ACCEPTED', actionKey: 'OPEN_TRADES_HISTORY', payload: { accepterDisplayName: 'Céo' } }
     expect(resolveNotificationPresentation(notification)).toEqual({ title: 'Échange accepté', message: 'Céo a accepté votre échange de particules.', destination: 'trades-history' })

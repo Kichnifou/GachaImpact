@@ -466,6 +466,7 @@ model Player {
 model CosmeticDefinition {
   id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   externalKey     String             @unique(map: "cosmetic_definitions_external_key_key") @map("external_key") @db.Text
+  sourceCharacterId String?           @unique(map: "cosmetic_definitions_source_character_id_key") @map("source_character_id") @db.Uuid
   type            CosmeticType
   displayName     String             @map("display_name") @db.Text
   assetPath       String?            @map("asset_path") @db.Text
@@ -476,6 +477,7 @@ model CosmeticDefinition {
   createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   owners          PlayerCosmetic[]
+  sourceCharacter Character?         @relation(fields: [sourceCharacterId], references: [id], onDelete: Restrict)
   equippedAsAvatarBy Player[]        @relation("EquippedAvatar")
   equippedAsTitleBy  Player[]        @relation("EquippedTitle")
 
@@ -695,6 +697,7 @@ model Character {
   bannerVotes               BannerVote[]
   selectedByGachaStates     PlayerGachaState[]
   playerPossessions         PlayerCharacter[]
+  avatarCosmetic             CosmeticDefinition?
   c6Progress                C6CompetitionProgress[]
   contestParticipants       ContestParticipant[]
   pullTargets               PullOperation[]

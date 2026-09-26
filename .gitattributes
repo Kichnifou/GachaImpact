@@ -5,3 +5,4 @@ server/prisma/migrations/20260925160000_044_add_banner_generation_vote_snapshot/
 server/prisma/migrations/20260925190000_045_add_player_cosmetics/migration.sql text eol=lf
 server/prisma/migrations/20260926100000_046_clear_disabled_equipped_avatars/migration.sql text eol=lf
 server/prisma/migrations/20260926110000_047_harden_avatar_trigger_search_path/migration.sql text eol=lf
+server/prisma/migrations/20260926130000_048_unlock_owned_character_avatars/migration.sql text eol=lf

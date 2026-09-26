@@ -7,6 +7,10 @@ export type NotificationPresentation = Readonly<{ title: string; message: string
 type Resolver = (notification: NotificationDto) => NotificationPresentation
 
 const resolvers: Readonly<Record<string, Resolver>> = {
+  'appearance:CHARACTER_AVATARS_UNLOCKED': notification => {
+    const count = typeof notification.payload.count === 'number' && Number.isSafeInteger(notification.payload.count) && notification.payload.count > 0 ? notification.payload.count : 1
+    return { title: count === 1 ? 'Nouvel avatar débloqué' : `${count} nouveaux avatars débloqués`, message: 'Disponibles dans Profil > Personnalisation.', destination: notification.actionKey === 'OPEN_PROFILE_PERSONALIZATION' ? 'profile-personalization' : null }
+  },
   'appearance:COSMETIC_UNLOCKED': notification => ({ title: 'Cosmétique débloqué', message: `${text(notification.payload.displayName, 'Un cosmétique')} est disponible dans votre Profil.`, destination: notification.actionKey === 'OPEN_PROFILE_PERSONALIZATION' ? 'profile-personalization' : null }),
   'trades:TRADE_ACCEPTED': notification => ({ title: 'Échange accepté', message: `${text(notification.payload.accepterDisplayName, 'Un joueur')} a accepté votre échange de particules.`, destination: notification.actionKey === 'OPEN_TRADES_HISTORY' ? 'trades-history' : null }),
   'trades:TRADES_PENDING': notification => ({ title: 'Échanges de particules', message: `${typeof notification.payload.count === 'number' ? notification.payload.count : 0} demande(s) d’échange en attente`, destination: notification.actionKey === 'OPEN_TRADES' ? 'trades' : null }),

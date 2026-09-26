@@ -797,7 +797,7 @@ export type AppearanceDto = Readonly<{
   title: string | null
   equippedAvatarCosmeticId: string | null
   equippedTitleCosmeticId: string | null
-  catalog: readonly Readonly<{ id: string; type: 'AVATAR' | 'TITLE'; displayName: string; assetPath: string | null; condition: string | null; visibility: 'VISIBLE' | 'MYSTERY' | 'SECRET'; owned: boolean; isActive: boolean }>[]
+  catalog: readonly Readonly<{ id: string; type: 'AVATAR' | 'TITLE'; sourceCharacterId?: string | null; displayName: string; assetPath: string | null; condition: string | null; visibility: 'VISIBLE' | 'MYSTERY' | 'SECRET'; owned: boolean; isActive: boolean }>[]
 }>
 export type DirectMessageRequestDto = Readonly<{ id: string; state: 'PENDING' | 'ACCEPTED' | 'REFUSED'; senderPlayerId: string; retryAfter: string | null }>
 export type DirectMessageDto = Readonly<{

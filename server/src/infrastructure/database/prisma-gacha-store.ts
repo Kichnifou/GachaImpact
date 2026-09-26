@@ -14,6 +14,7 @@ import { PrismaPlayerXpService } from './prisma-player-xp-service.js';
 import type { DailyChallengeProgressor } from '../../application/daily-challenge/daily-challenge-store.js';
 import { getBusinessDate } from '../../domain/time/business-date.js';
 import { PermanentMissionService } from '../../application/missions/permanent-mission-service.js';
+import { unlockCharacterAvatars } from '../../application/appearance/character-avatar-unlocks.js';
 
 const characterSelection = {
   id: true, externalKey: true, name: true, rarity: true, elementKey: true, weaponType: true,
@@ -208,6 +209,7 @@ export class PrismaGachaStore implements GachaStore {
 
       let state: PullState = storedState;
       const records: PullResultRecord[] = [];
+      const newCharacterIds = new Set<string>();
       for (let index = 1; index <= input.count; index += 1) {
         const resolved = resolvePulls(
           state,
@@ -251,6 +253,7 @@ export class PrismaGachaStore implements GachaStore {
           };
         } else {
           const acquisition = await this.possessions.acquire(transaction, input.playerId, resolved.outcome.character.id, input.now);
+          if (acquisition.wasNewCharacter) newCharacterIds.add(resolved.outcome.character.id);
           if (resolved.outcome.rarity === 5 && acquisition.reachedC6) {
             await this.c6.unlock(transaction, input.playerId, resolved.outcome.character.id, input.now);
           }
@@ -337,6 +340,10 @@ export class PrismaGachaStore implements GachaStore {
         } });
         records.push(record);
       }
+
+      if (newCharacterIds.size) await unlockCharacterAvatars(transaction, {
+        playerId: input.playerId, characterIds: [...newCharacterIds], now: input.now,
+      });
 
       const playerState = await transaction.playerGachaState.update({ where: { playerId: input.playerId }, data: state, select: stateSelection });
       await this.dailyChallenges?.progress(transaction, {

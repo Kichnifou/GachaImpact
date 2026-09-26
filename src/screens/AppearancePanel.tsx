@@ -23,6 +23,12 @@ export default function AppearancePanel({ actions, displayName, elementKey, onCh
   }
   const entries = value?.catalog.filter(item => item.type === tab) ?? []
   const visible = entries.filter(item => item.displayName.toLocaleLowerCase('fr-FR').includes(query.trim().toLocaleLowerCase('fr-FR')))
+  const characterEntries = visible.filter(item => item.sourceCharacterId && item.owned).sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr-FR') || a.id.localeCompare(b.id))
+  const otherEntries = visible.filter(item => !item.sourceCharacterId)
+  const renderCard = (item: AppearanceDto['catalog'][number]) => {
+    const equipped = (item.type === 'AVATAR' ? value?.equippedAvatarCosmeticId : value?.equippedTitleCosmeticId) === item.id
+    return <article className={`appearance-card${item.sourceCharacterId ? ' appearance-character-card' : ''}`} key={item.id}>{item.type === 'AVATAR' && (item.visibility === 'MYSTERY' && !item.owned ? <span className="appearance-mystery" aria-hidden="true">?</span> : <PlayerAvatar displayName={item.displayName} elementKey={item.sourceCharacterId ? elementKey : null} avatarAssetPath={item.assetPath} />)}<div><strong>{item.displayName}</strong>{!item.owned && item.condition && <small>{item.condition}</small>}</div><span>{equipped ? 'Équipé' : !item.isActive ? 'Indisponible' : item.owned ? 'Possédé' : 'Verrouillé'}</span>{item.owned && item.isActive && !equipped && <AppButton disabled={pending} onClick={() => void equip(item.type, item.id)}>Équiper</AppButton>}</article>
+  }
   return <section className="appearance-panel" aria-label="Personnalisation du profil">
     <nav className="activity-inner-tabs" role="tablist" aria-label="Cosmétiques"><button type="button" role="tab" aria-selected={tab === 'AVATAR'} className={tab === 'AVATAR' ? 'active' : ''} onClick={() => { setTab('AVATAR'); setQuery('') }}>Avatars</button><button type="button" role="tab" aria-selected={tab === 'TITLE'} className={tab === 'TITLE' ? 'active' : ''} onClick={() => { setTab('TITLE'); setQuery('') }}>Titres</button></nav>
     {error && <p role="alert">{error}</p>}
@@ -31,10 +37,8 @@ export default function AppearancePanel({ actions, displayName, elementKey, onCh
       {tab === 'AVATAR' && <div className="appearance-card"><PlayerAvatar displayName={displayName} elementKey={elementKey} className="mini-avatar" /><span>Avatar élémentaire permanent</span><strong>{value.equippedAvatarCosmeticId === null ? 'Équipé' : 'Disponible'}</strong>{value.equippedAvatarCosmeticId !== null && <AppButton disabled={pending} onClick={() => void equip('AVATAR', null)}>Équiper</AppButton>}</div>}
       {tab === 'TITLE' && <div className="appearance-card"><span>Aucun titre</span><strong>{value.equippedTitleCosmeticId === null ? 'Équipé' : 'Disponible'}</strong>{value.equippedTitleCosmeticId !== null && <AppButton disabled={pending} onClick={() => void equip('TITLE', null)}>Déséquiper</AppButton>}</div>}
       {entries.length >= 8 && <label className="appearance-search">Rechercher <input value={query} onChange={event => setQuery(event.target.value)} /></label>}
-      {visible.length > 0 && <div className="appearance-catalog">{visible.map(item => {
-        const equipped = (item.type === 'AVATAR' ? value.equippedAvatarCosmeticId : value.equippedTitleCosmeticId) === item.id
-        return <article className="appearance-card" key={item.id}>{item.type === 'AVATAR' && (item.visibility === 'MYSTERY' && !item.owned ? <span className="appearance-mystery" aria-hidden="true">?</span> : <PlayerAvatar displayName={item.displayName} elementKey={null} avatarAssetPath={item.assetPath} />)}<div><strong>{item.displayName}</strong>{!item.owned && item.condition && <small>{item.condition}</small>}</div><span>{equipped ? 'Équipé' : !item.isActive ? 'Indisponible' : item.owned ? 'Possédé' : 'Verrouillé'}</span>{item.owned && item.isActive && !equipped && <AppButton disabled={pending} onClick={() => void equip(item.type, item.id)}>Équiper</AppButton>}</article>
-      })}</div>}
+      {characterEntries.length > 0 && <section className="appearance-character-section" aria-label="Avatars de vos personnages"><h3>Avatars de vos personnages</h3><div className="appearance-catalog appearance-character-grid">{characterEntries.map(renderCard)}</div></section>}
+      {otherEntries.length > 0 && <div className="appearance-catalog">{otherEntries.map(renderCard)}</div>}
       {!entries.length && <p>{tab === 'AVATAR' ? 'Aucun autre avatar disponible.' : 'Aucun titre débloqué.'}</p>}
       {!!entries.length && !visible.length && <p>Aucun cosmétique trouvé.</p>}
     </>}

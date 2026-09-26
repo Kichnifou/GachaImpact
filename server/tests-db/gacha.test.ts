@@ -168,6 +168,31 @@ describe('Gacha foundation on the development database', () => {
     } finally { await deletePullPlayer(concurrent.playerId); }
   }, 15_000);
 
+  it('unlocks every first character from a x10 in one avatar notification and leaves replay unchanged', async () => {
+    const fixture = await createPullPlayer(1_600n);
+    try {
+      let probabilityCall = 0;
+      let featuredSlot = 0;
+      const random = { nextInt: (maximum: number) => maximum === 10_000
+        ? probabilityCall++ % 2 === 0 ? 9_999 : 0
+        : maximum === 6 ? featuredSlot++ % 6 : maximum - 1 };
+      const store = new PrismaGachaStore(database);
+      const input = { playerId: fixture.playerId, playerElementKey: 'hydro' as const, count: 10 as const, idempotencyKey: randomUUID(), now: fixture.now, random };
+      const first = await store.pull(input);
+      const newIds = [...new Set(first.results.filter(row => row.wasNewCharacter).map(row => row.character!.id))];
+      expect(newIds).toHaveLength(6);
+      expect(await database.playerCosmetic.count({ where: { playerId: fixture.playerId, cosmetic: { sourceCharacterId: { in: newIds } } } })).toBe(6);
+      expect(await database.cosmeticDefinition.count({ where: { sourceCharacterId: { in: newIds } } })).toBe(6);
+      const key = `appearance:character-avatars:${fixture.playerId}`;
+      const notification = await database.notification.findUniqueOrThrow({ where: { deduplicationKey: key } });
+      expect(notification).toMatchObject({ typeKey: 'CHARACTER_AVATARS_UNLOCKED', payload: { count: 6 }, state: 'UNREAD' });
+      const replay = await store.pull({ ...input, random: { nextInt: () => { throw Error('Replay rerolled.'); } } });
+      expect(replay.operation.alreadyProcessed).toBe(true);
+      expect(await database.notification.findUniqueOrThrow({ where: { deduplicationKey: key } })).toMatchObject({ id: notification.id, payload: { count: 6 } });
+      expect(await database.playerCosmetic.count({ where: { playerId: fixture.playerId } })).toBe(6);
+    } finally { await deletePullPlayer(fixture.playerId); }
+  }, 60_000);
+
   it('advances and completes a pull Daily Challenge inside the pull transaction exactly once', async () => {
     const fixture = await createPullPlayer(160n);
     try {

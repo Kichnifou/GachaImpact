@@ -1371,6 +1371,8 @@ Mapping physique du premier vertical : `Player` porte les deux références null
 
 R914 : un AVATAR désactivé cesse d'être équipé, mais `PlayerCosmetic` reste intact. Après réactivation, l'équipement demeure vide jusqu'au nouveau choix explicite du Player. Cette règle n'établit rien pour les TITLE. R915 : un déblocage déclare toujours son mode de notification (`PLAYER_FACING` ou `SILENT_BACKFILL`) ; aucun mode silencieux implicite.
 
+La migration additive 048 ajoute `CosmeticDefinition.sourceCharacterId` nullable, unique et référencé vers `Character.id` avec suppression restreinte ; une valeur non nulle impose le type AVATAR. La clé `character-avatar:<externalKey>` ne reçoit aucune copie d'image (`assetPath = NULL`) : la projection lit le `Character.iconPath` courant. Seuls les personnages 4★/5★ possédés ont une définition initiale et un `PlayerCosmetic` ; un personnage non possédé reste absent de la projection du Player. Le backfill conserve `unlockSource = character-possession-backfill-048` et une provenance de première obtention. Le Gacha live utilise `gacha-first-ownership` et une notification unique par Player (`appearance:character-avatars:<playerId>`) avec compteur des nouveaux avatars depuis la dernière consultation. DEV : 48 migrations terminées, zéro rollback ; 28 définitions et 60 possessions backfillées, sans changement des possessions Character ni de l'économie.
+
 ---
 
 # 25. Messages privés

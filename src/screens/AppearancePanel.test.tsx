@@ -14,6 +14,26 @@ const initial: AppearanceDto = { avatar: { kind: 'ELEMENT', assetPath: null }, t
 ] }
 
 describe('AppearancePanel', () => {
+  it('shows owned character portraits alphabetically and falls back to the simple element icon', async () => {
+    const container = document.createElement('div'); const root = createRoot(container)
+    const catalog: AppearanceDto['catalog'] = [
+      { id: 'z', sourceCharacterId: 'character-z', type: 'AVATAR', displayName: 'Zeta', assetPath: null, condition: null, visibility: 'SECRET', owned: true, isActive: true },
+      { id: 'a', sourceCharacterId: 'character-a', type: 'AVATAR', displayName: 'Alpha', assetPath: '/assets/genshin/characters/alpha.png', condition: null, visibility: 'SECRET', owned: true, isActive: true },
+      { id: 'hidden', sourceCharacterId: 'character-hidden', type: 'AVATAR', displayName: 'Unowned', assetPath: null, condition: null, visibility: 'SECRET', owned: false, isActive: true },
+    ]
+    const equipAppearance = vi.fn(async (_type: 'AVATAR' | 'TITLE', _id: string | null) => ({ ...initial, catalog }))
+    try {
+      await act(async () => { root.render(<AppearancePanel actions={{ appearance: async () => ({ ...initial, catalog }), equipAppearance } as unknown as SocialActions} displayName="Élodie" elementKey="pyro" onChanged={async () => undefined} />); await Promise.resolve() })
+      const cards = [...container.querySelectorAll('.appearance-character-card')]
+      expect(cards).toHaveLength(2)
+      expect(cards.map(card => card.querySelector('strong')?.textContent)).toEqual(['Alpha', 'Zeta'])
+      expect(cards[0]?.querySelector('img')?.getAttribute('src')).toBe('/assets/genshin/characters/alpha.png')
+      expect(cards[1]?.querySelector('img')?.getAttribute('src')).toBe('/assets/genshin/elements/pyro.png')
+      expect(container.textContent).not.toContain('Unowned')
+      await act(async () => { cards[0]?.querySelector<HTMLButtonElement>('button')?.click(); await Promise.resolve() })
+      expect(equipAppearance).toHaveBeenCalledWith('AVATAR', 'a')
+    } finally { act(() => root.unmount()) }
+  })
   it('shows the elemental fallback, visibility levels, equips owned items and supports no title', async () => {
     const container = document.createElement('div'); const root = createRoot(container)
     const appearance = vi.fn(async () => initial)
