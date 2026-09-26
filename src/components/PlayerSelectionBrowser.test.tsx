@@ -23,6 +23,32 @@ const result = (page: number): PlayerBrowserPage<Candidate> => ({
 })
 
 describe('PlayerSelectionBrowser loader stability', () => {
+  it('keeps the avatar and player text together before a moderation badge', async () => {
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    roots.push(root)
+    await act(async () => {
+      root.render(<PlayerSelectionBrowser
+        eyebrow="Modération"
+        title="Choisir"
+        selectedPlayerId=""
+        onListPlayers={async () => result(1)}
+        onConfirm={vi.fn()}
+        onClose={vi.fn()}
+        showTesterFilter
+        renderBadge={() => <span className="tester-badge">Testeur</span>}
+      />)
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    const row = container.querySelector('.moderation-browser-results > button')!
+    const identity = row.querySelector('.player-identity-inline')!
+    expect(identity.querySelector('.player-avatar')).not.toBeNull()
+    expect(identity.querySelector('.moderation-player-identity')?.textContent).toContain('Player 1')
+    expect(row.lastElementChild?.className).toBe('tester-badge')
+  })
+
   it('ignores callback identity churn and loads a requested page exactly once', async () => {
     const onListPlayers = vi.fn(async ({ page }: { page: number }) => result(page))
     const container = document.createElement('div')

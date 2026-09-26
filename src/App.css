@@ -7224,6 +7224,8 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .moderation-target-results > button:hover, .moderation-target-results > button:focus-visible { border-color: rgba(92, 179, 245, .32); outline: none; background: rgba(27, 65, 108, .58); }
 .moderation-target-results > button.active { border-color: rgba(89, 206, 255, .5); background: rgba(30, 89, 140, .56); box-shadow: inset 3px 0 0 var(--cyan); }
 .moderation-player-identity { min-width: 0; display: grid; gap: 3px; }
+.player-identity-inline { display: inline-flex; flex: 0 1 auto; align-items: center; gap: 12px; min-width: 0; max-width: 100%; text-align: left; }
+.player-identity-inline .moderation-player-identity { min-width: 0; }
 .moderation-player-identity strong { overflow: hidden; color: #edf6ff; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .moderation-player-identity small { color: var(--muted); font-size: 8px; }
 .moderation-tester-badge { flex: 0 0 auto; padding: 4px 7px; color: #c7a7ff; font-size: 7px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; border: 1px solid rgba(184, 126, 255, .32); border-radius: 999px; background: rgba(101, 48, 150, .28); }
@@ -7287,7 +7289,6 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .moderation-browser-filters select { width: 100%; min-width: 0; min-height: 38px; padding: 0 10px; color: #e8f2ff; border: 1px solid var(--border); border-radius: 8px; outline: none; background: rgba(4, 10, 22, .72); }
 .moderation-browser-results { min-height: 0; display: grid; grid-template-rows: repeat(10, minmax(0, 1fr)); align-content: stretch; gap: 6px; padding: 12px 16px; overflow: hidden; }
 .moderation-browser-results > button { width: 100%; min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 11px; cursor: pointer; color: #c9d7eb; text-align: left; border: 1px solid rgba(104, 146, 205, .15); border-radius: 9px; background: rgba(19, 34, 59, .54); }
-.moderation-browser-results > button .moderation-player-identity, .moderation-target-results > button .moderation-player-identity { flex: 1; }
 .moderation-browser-placeholder { min-height: 0; border: 1px solid rgba(104, 146, 205, .07); border-radius: 9px; background: rgba(19, 34, 59, .18); }
 .moderation-browser-results > button:hover,
 .moderation-browser-results > button:focus-visible { border-color: rgba(92, 179, 245, .34); outline: none; background: rgba(27, 65, 108, .58); }

@@ -1393,3 +1393,7 @@ Sont finalisés :
 - producteurs et consommateurs.
 
 Le domaine actif et la prochaine reprise sont indiqués uniquement dans le Master.
+
+## Addendum R913 — sélecteurs Player (2026-09-26)
+
+Le correctif candidat `review` regroupe avatar et pseudo dans les sélecteurs Event > Panier et Modération ainsi que dans la recherche rapide Event. Le badge de Modération reste à droite. Dans Échanges > Partenaires, avatar et pseudo sont à gauche ; élément et quantité échangeable sont à droite, avec adaptation mobile. Les suggestions de recherche Échanges présentent aussi avatar et pseudo ensemble. Les historiques et classements conservent leur présentation actuelle. Contrôle visuel technique aux formats 1920×1080, 1366×768 et 390×844 ; validation publique encore en attente.
