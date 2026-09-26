@@ -4,6 +4,7 @@ import type { TradeActions, TradeSnapshot, TradePartners, TradeResult } from '..
 import type { BannerVoteDto } from './types'
 import type { RankingPageDto } from './types'
 import type { AppearanceDto } from './types'
+import type { TwitchAccountDto, SnapshotPreviewDto, SnapshotApplyDto } from './types'
 import type { ChatMentionDto, ChatPageDto, ChatSendDto, ChatUpdatesDto, DirectConversationListDto, DirectMessageArchiveDto, DirectMessageBlockDto, DirectMessageHistoryAnchorDto, DirectMessageHistoryPageDto, DirectMessageHistorySearchDto, DirectMessageInitiateDto, DirectMessageMutationDto, DirectMessagePageDto, DirectMessagePlayerDto, DirectMessageReceiptDto, DirectMessageReportDetailDto, DirectMessageReportPageDto, DirectMessageReportPreviewDto, DirectMessageResolveDto, DirectMessageSendDto, DirectMessageUnreadDto } from './types'
 import { getSupabaseClient } from '../infrastructure/supabase/client'
 import type {
@@ -210,6 +211,11 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
       all: (action, idempotencyKey) => request<{ results: TradeResult[] }>(`/api/v1/me/trades/${action}-all`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     } satisfies TradeActions,
     getNavigationPreferences: () => request<NavigationMenuPreferenceDto>('/api/v1/me/navigation-preferences'),
+    getTwitchAccount: () => request<TwitchAccountDto>('/api/v1/me/twitch'),
+    startTwitchLink: () => request<{ url: string }>('/api/v1/me/twitch/start', { method: 'POST' }),
+    unlinkTwitch: () => request<{ linked: false }>('/api/v1/me/twitch', { method: 'DELETE' }),
+    previewTwitchSnapshot: (files: Record<string, string>) => request<SnapshotPreviewDto>('/api/v1/me/twitch/snapshot/preview', { method: 'POST', body: JSON.stringify({ files }) }),
+    applyTwitchSnapshot: (files: Record<string, string>, previewId: string) => request<SnapshotApplyDto>('/api/v1/me/twitch/snapshot/apply', { method: 'POST', body: JSON.stringify({ files, previewId }) }),
     putNavigationPreferences: (value: NavigationMenuPreferenceDto) => request<NavigationMenuPreferenceDto>('/api/v1/me/navigation-preferences', { method: 'PUT', body: JSON.stringify(value) }),
     getModerationState: () => request<ModerationStateDto>('/api/v1/moderation/me'),
     getDirectMessageReports: (page = 1) => request<DirectMessageReportPageDto>('/api/v1/moderation/direct-message-reports?' + new URLSearchParams({ page: String(page) })),

@@ -243,6 +243,8 @@ Contraintes :
 - `twitchUserId` unique ;
 - le pseudo Twitch n'est jamais la clé durable.
 
+Pilote R916–R926 : un seul Player explicitement autorisé par le serveur peut lier le compte `kichnifou` via OAuth Code Grant et token OIDC signé. `playerId` et `twitchUserId` sont chacun uniques. Le `state` et le `nonce` sont aléatoires, liés par tentative, conservés uniquement sous forme de hash et consommés une fois ; l'ID durable provient du `sub` signé. Le login et le display name sont des attributs actualisables ; aucun token Twitch n'est conservé. Délier retire uniquement cette relation, sans effacer le Player ou ses données. Le futur rapprochement de deux Players reste une opération contrôlée, jamais une fusion implicite. Les domaines du snapshot pilote et leur règle de remplacement sont dans [la matrice](../architecture/twitch-pilot-mapping.md).
+
 ## 4.4 État d'onboarding
 
 L'onboarding ne nécessite pas une grosse structure générique.
@@ -1883,6 +1885,8 @@ Une tentative/import :
 - version du migrateur
 - statistiques globales
 - hash/identité du snapshot si utile
+
+Le pilote Kichnifou lie chaque tentative confirmée à un Player et au SHA-256 stable des 17 fichiers. La preview expire et doit correspondre exactement au bundle confirmé. Le résumé d'import distingue les domaines remplacés, différés ou bloqués et ne conserve pas les JSON bruts. Les sources locales restent une preuve ignorée par Git. Le mapping physique du premier candidat est encore en cours ; le modèle cible complet de 34.6 ne doit pas être lu comme déjà importable.
 
 ## 34.2 `MigrationSourceSnapshot`
 

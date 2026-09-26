@@ -8074,6 +8074,24 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .menu-configuration-heading button:disabled { cursor: not-allowed; opacity: .4; }
 .menu-visibility-button { width: 78px; }
 .configuration-error { margin: 0 0 8px; color: #ffc2ba; font-size: 9px; }
+.account-settings { display: grid; gap: 12px; min-width: 0; padding: 4px; }
+.account-section { min-width: 0; padding: 14px; border: 1px solid rgba(108, 145, 205, .2); border-radius: 10px; background: rgba(8, 20, 39, .5); }
+.account-section h3 { margin: 0 0 8px; font-size: 14px; }
+.account-section p { color: var(--muted); line-height: 1.5; overflow-wrap: anywhere; }
+.account-section button, .account-confirm button { min-height: 34px; padding: 7px 12px; color: white; border: 1px solid var(--border); border-radius: 7px; background: rgba(25, 59, 99, .72); cursor: pointer; }
+.account-section button:disabled { opacity: .5; cursor: not-allowed; }
+.account-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.account-actions label { display: grid; gap: 5px; min-width: 0; font-size: 11px; }
+.account-actions input { max-width: 100%; }
+.account-preview code { overflow-wrap: anywhere; }
+.account-domain-list { display: grid; gap: 5px; }
+.account-domain-list article { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; min-width: 0; padding: 8px; border: 1px solid rgba(108, 145, 205, .14); border-radius: 7px; }
+.account-domain-list small { grid-column: 1 / -1; color: var(--muted); overflow-wrap: anywhere; }
+.account-warning { color: #ffcf84 !important; }
+.account-confirm-backdrop { position: fixed; z-index: 130; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(2, 7, 18, .8); }
+.account-confirm { width: min(480px, 100%); padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: #0d1a31; }
+.account-confirm p { line-height: 1.5; }
+.account-confirm > div { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
 
 .shop-wallet { cursor: pointer; color: inherit; text-align: left; }
 .shop-wallet:hover, .shop-wallet:focus-visible { border-color: rgba(238, 193, 82, .58); background: rgba(74, 54, 22, .46); }

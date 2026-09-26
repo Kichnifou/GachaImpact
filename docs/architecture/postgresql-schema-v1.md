@@ -301,6 +301,12 @@ Pas de FK physique obligatoire vers `auth.users`.
 
 Cela garde le modèle portable.
 
+## 4.3 `twitch_identities` — pilote DEV
+
+La migration Prisma additive 049 est appliquée sur DEV. Elle matérialise `player_id uuid PRIMARY KEY REFERENCES players(id) ON DELETE RESTRICT`, `twitch_user_id text UNIQUE NOT NULL`, login courant, display name nullable, `linked_at`, `updated_at`, `first_seen_at` et `last_message_at` nullable. Les tokens OAuth ne sont jamais stockés. `twitch_link_states` conserve les SHA-256 de l'état et du nonce, Player et expiration. `migration_previews` enregistre seulement les confirmations consommées (UUID, Player, SHA-256, expiration) ; le dry-run utilise un token signé et n'écrit rien en DB. `migration_runs` conserve Player, hash, statut, source et résumé sans JSON source. Une colonne `legacy_provenance` permet de conserver une Mission terminée dans le snapshot sans inventer un versement standalone. Les quatre nouvelles tables sont backend-only : RLS active, aucun droit `PUBLIC`/`anon`/`authenticated`, aucune policy navigateur. Le registre Prisma confirme 049 appliquée ; les quatre tables ont été inspectées et les tables publiques de liaison et de runs sont vides.
+
+Ce sous-ensemble physique du pilote ne remplace pas les structures cibles complètes de la section 34. Le mapping personnel sûr et les domaines explicitement différés sont détaillés dans [la matrice du pilote](twitch-pilot-mapping.md). La migration générale reste future.
+
 ---
 
 ## 4.3 `twitch_identities`

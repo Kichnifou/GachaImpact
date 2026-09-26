@@ -1,6 +1,9 @@
 import type { SocialService } from './application/social/social-service.js';
 import type { TradeService } from './application/trades/trade-service.js';
 import type { GetCurrentPlayer } from './application/player/get-current-player.js';
+import type { TwitchPilotService } from './application/twitch/twitch-pilot-service.js';
+import type { SnapshotPilotService } from './application/migration/snapshot-pilot-service.js';
+import { registerTwitchPilotRoutes } from './api/routes/twitch-pilot.js';
 import { registerTradeRoutes } from './api/routes/trades.js';
 import { registerSocialRoutes } from './api/routes/social.js';
 import { registerAppearanceRoutes } from './api/routes/appearance.js';
@@ -83,6 +86,8 @@ export type AppDependencies = Readonly<{
   rankingService?: RankingService;
   historyService?: HistoryService;
   tradeService?: TradeService;
+  twitchPilot?: TwitchPilotService;
+  snapshotPilot?: SnapshotPilotService;
   tradePlayer?: GetCurrentPlayer;
   authIdentityVerifier: AuthIdentityVerifier;
   getOrProvisionCurrentPlayer: GetOrProvisionCurrentPlayer;
@@ -182,6 +187,7 @@ export async function buildApp(
     });
 
     const authenticate = createAuthenticationHook(dependencies.authIdentityVerifier);
+    if (dependencies.twitchPilot && dependencies.snapshotPilot) await app.register(registerTwitchPilotRoutes, { authenticate, twitch: dependencies.twitchPilot, snapshot: dependencies.snapshotPilot, config });
     if (dependencies.tradeService && dependencies.tradePlayer) await app.register(registerTradeRoutes, { authenticate, service: dependencies.tradeService, getPlayer: dependencies.tradePlayer });
     if (dependencies.socialService) await app.register(registerSocialRoutes, { authenticate, service: dependencies.socialService });
     if (dependencies.appearanceService) await app.register(registerAppearanceRoutes, { authenticate, service: dependencies.appearanceService });

@@ -367,6 +367,10 @@ model Player {
   legacyUsername        String?                      @map("legacy_username") @db.Text
   element               Element?                     @relation(fields: [elementKey], references: [key], onDelete: Restrict)
   webIdentity           WebIdentity?
+  twitchIdentity        TwitchIdentity?
+  twitchLinkStates      TwitchLinkState[]
+  migrationPreviews     MigrationPreview[]
+  migrationRuns         MigrationRun[]
   businessOperations    BusinessOperation[]
   resourceBalances      PlayerResourceBalance[]
   resourceMovements     ResourceMovement[]
@@ -566,6 +570,7 @@ model PlayerPermanentMissionProgress {
   startedAt                    DateTime?                      @map("started_at") @db.Timestamptz(6)
   completedAt                  DateTime?                      @map("completed_at") @db.Timestamptz(6)
   rewardedAt                   DateTime?                      @map("rewarded_at") @db.Timestamptz(6)
+  legacyProvenance             Json?                          @map("legacy_provenance") @db.JsonB
   completionTriggerOperationId String?                        @map("completion_trigger_operation_id") @db.Uuid
   rewardOperationId            String?                        @unique(map: "player_permanent_mission_progress_reward_operation_key") @map("reward_operation_id") @db.Uuid
   createdAt                    DateTime                       @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -813,6 +818,58 @@ model WebIdentity {
 
   @@unique([provider, providerSubject], map: "web_identities_provider_provider_subject_key")
   @@map("web_identities")
+}
+
+model TwitchIdentity {
+  playerId       String   @id @map("player_id") @db.Uuid
+  twitchUserId   String   @unique(map: "twitch_identities_twitch_user_id_key") @map("twitch_user_id") @db.Text
+  login          String   @db.Text
+  displayName    String?  @map("display_name") @db.Text
+  linkedAt       DateTime @default(now()) @map("linked_at") @db.Timestamptz(6)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  firstSeenAt    DateTime? @map("first_seen_at") @db.Timestamptz(6)
+  lastMessageAt  DateTime? @map("last_message_at") @db.Timestamptz(6)
+  player         Player   @relation(fields: [playerId], references: [id], onDelete: Restrict)
+
+  @@map("twitch_identities")
+}
+
+model TwitchLinkState {
+  stateHash String   @id @map("state_hash") @db.Text
+  nonceHash String   @map("nonce_hash") @db.Text
+  playerId  String   @map("player_id") @db.Uuid
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, expiresAt], map: "twitch_link_states_player_expiry_idx")
+  @@map("twitch_link_states")
+}
+
+model MigrationPreview {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId     String   @map("player_id") @db.Uuid
+  snapshotHash String   @map("snapshot_hash") @db.Text
+  expiresAt    DateTime @map("expires_at") @db.Timestamptz(6)
+  player       Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, expiresAt], map: "migration_previews_player_expiry_idx")
+  @@map("migration_previews")
+}
+
+model MigrationRun {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId     String   @map("player_id") @db.Uuid
+  snapshotHash String   @map("snapshot_hash") @db.Text
+  source       String   @default("STREAMERBOT_SNAPSHOT") @db.Text
+  status       String   @default("COMPLETED") @db.Text
+  summary      Json     @db.JsonB
+  startedAt    DateTime @default(now()) @map("started_at") @db.Timestamptz(6)
+  completedAt  DateTime @default(now()) @map("completed_at") @db.Timestamptz(6)
+  player       Player   @relation(fields: [playerId], references: [id], onDelete: Restrict)
+
+  @@unique([playerId, snapshotHash], map: "migration_runs_player_hash_key")
+  @@index([playerId, completedAt(sort: Desc)], map: "migration_runs_player_completed_idx")
+  @@map("migration_runs")
 }
 
 model BusinessOperation {

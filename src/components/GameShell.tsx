@@ -208,7 +208,7 @@ function GameShell({ onRefreshChatScopes, player, onRefreshPlayer, resources, pr
   const { close: closePresence, ...presence } = usePresence(player.id, socialActions)
   const [profileId, setProfileId] = useState(player.id)
   const [appearanceRequestToken, setAppearanceRequestToken] = useState(0)
-  const [configurationTab, setConfigurationTab] = useState<'menu' | 'privacy'>('menu')
+  const [configurationTab, setConfigurationTab] = useState<'menu' | 'privacy' | 'account'>(() => new URLSearchParams(window.location.search).has('twitch') ? 'account' : 'menu')
   const openProfile = (id: string) => { setProfileId(id); setAppearanceRequestToken(0); setIsPlayersOpen(false); setIsSidebarOpen(false); navigate('profile') }
   const voteCache = useMemo(() => new BannerVoteCache(player.id), [player.id])
   useEffect(() => () => voteCache.clear(), [voteCache])

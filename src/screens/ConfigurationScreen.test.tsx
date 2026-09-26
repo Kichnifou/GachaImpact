@@ -23,8 +23,8 @@ describe('ConfigurationScreen', () => {
     await act(async () => root.render(<ConfigurationScreen preference={defaultNavigationPreference} onSave={onSave} onReset={onReset} />))
 
     const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('.configuration-tabs button'))
-    expect(tabs.map(({ textContent }) => textContent)).toEqual(['Menu', 'Confidentialité', 'Apparence'])
-    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, true])
+    expect(tabs.map(({ textContent }) => textContent)).toEqual(['Menu', 'Confidentialité', 'Compte', 'Apparence'])
+    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, false, true])
     expect(container.querySelector('.configuration-frame .scrollable-screen-panel-body .screen-header')).toBeNull()
     expect(container.querySelector('.configuration-frame .scrollable-screen-panel-body .configuration-tabs')).toBeNull()
     expect(container.querySelector('.menu-visibility-button')).not.toBeNull()

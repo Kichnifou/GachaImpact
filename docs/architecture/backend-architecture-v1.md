@@ -1088,6 +1088,10 @@ Onboarding + Ressources + Roue.
 ## C6 — Migration pilote
 Après une première base métier stable, conformément à la roadmap.
 
+Pilote Kichnifou R916–R926, candidat `review` en contrôle : `Configuration > Compte` appelle des routes `/api/v1/me/twitch/...` protégées par Supabase Auth et une allowlist serveur de Player IDs. Le backend conserve les hash SHA-256 d'un `state` et d'un `nonce` aléatoires, expirants et liés à une tentative à usage unique. Il échange le code côté serveur, vérifie la signature RS256 du token OIDC avec le JWKS Twitch, `iss`, `aud`, expiration, `sub` et `nonce`, puis recoupe le `sub` durable avec `/validate` et `/helix/users`. Le scope demandé est `openid`, sans permission de chat ; aucun token n'est persisté. Le callback revient uniquement à `FRONTEND_ORIGIN` configuré.
+
+Le navigateur transmet les 17 JSON avec une limite de taille ; le parseur en mémoire contrôle noms, JSON et empreinte. Le dry-run ne fait aucune écriture DB : il fournit l'état actuel, la source, l'action, la catégorie et la raison par domaine, avec un token signé lié au Player, au hash et à une expiration. La confirmation doit renvoyer exactement les mêmes fichiers ; le token est enregistré comme consommé uniquement dans la transaction d'apply. Le remplacement utilise un verrou Player et une transaction sérialisable, sans appel des services de récompense ou de notification. Le garde backend bloque les domaines personnels physiques non mappés et les ambiguïtés ; les domaines globaux, interjoueurs et sans cible physique sont documentés et différés sans créer d'autre Player. La matrice est dans [le mapping du pilote](twitch-pilot-mapping.md). Aucun import réel Kichnifou, chat Twitch, EventSub ni synchronisation JSON continue n'a eu lieu.
+
 ---
 
 # 23. Alternatives réévaluables

@@ -64,6 +64,8 @@ import { GetCurrentPlayerMissions } from '../application/missions/get-current-pl
 import { GetPlayerMissions } from '../application/missions/get-player-missions.js';
 import { PermanentMissionService } from '../application/missions/permanent-mission-service.js';
 import { PrismaEconomyService } from './database/prisma-economy-service.js';
+import { TwitchPilotService } from '../application/twitch/twitch-pilot-service.js';
+import { SnapshotPilotService } from '../application/migration/snapshot-pilot-service.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
   if (!config.databaseUrl) {
@@ -74,6 +76,7 @@ export function createRuntimeDependencies(config: AppConfig) {
   const database = createDatabase(config.databaseUrl);
   const store = new PrismaCurrentPlayerStore(database);
   const getCurrentPlayer = new GetCurrentPlayer(store);
+  const twitchPilot = new TwitchPilotService(database, getCurrentPlayer, config);
   const wheelStore = new PrismaWheelStore(database);
   const clock = new SystemClock();
   const tradeService = new TradeService(database, clock);
@@ -108,6 +111,8 @@ export function createRuntimeDependencies(config: AppConfig) {
   const getPlayerMissions = new GetPlayerMissions(getCurrentPlayer, database, permanentMissionService);
 
   const dependencies = {
+    twitchPilot,
+    snapshotPilot: new SnapshotPilotService(database, twitchPilot, config.twitch?.clientSecret ?? ''),
     globalChatService,
     directMessageService,
     directMessageReportService,

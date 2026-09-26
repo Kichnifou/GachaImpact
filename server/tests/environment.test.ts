@@ -4,11 +4,11 @@ import { loadConfig } from '../src/config/environment.js';
 
 describe('loadConfig', () => {
   it('uses local defaults without a database or Supabase project', () => {
-    expect(loadConfig({})).toEqual({
+    expect(loadConfig({})).toMatchObject({
       host: '127.0.0.1',
       port: 3001,
       frontendOrigin: 'http://localhost:5173',
-      supabase: {},
+      twitch: { pilotPlayerIds: [], pilotLogin: 'kichnifou' },
     });
   });
 

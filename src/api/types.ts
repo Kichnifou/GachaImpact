@@ -799,6 +799,10 @@ export type AppearanceDto = Readonly<{
   equippedTitleCosmeticId: string | null
   catalog: readonly Readonly<{ id: string; type: 'AVATAR' | 'TITLE'; sourceCharacterId?: string | null; displayName: string; assetPath: string | null; condition: string | null; visibility: 'VISIBLE' | 'MYSTERY' | 'SECRET'; owned: boolean; isActive: boolean }>[]
 }>
+export type TwitchAccountDto = Readonly<{ pilotAvailable: boolean; eligible: boolean; linked: null | { login: string; displayName: string | null; linkedAt: string }; snapshotAvailable: boolean; lastImport: null | { at: string; snapshotHash: string } }>
+export type SnapshotDomainDto = Readonly<{ name: string; category: 'PLAYER_LOCAL_PHYSICAL' | 'DEFERRED_CROSS_PLAYER_OR_GLOBAL' | 'DEFERRED_NOT_PHYSICAL' | 'BLOCKED_AMBIGUOUS'; action: 'NO_CHANGE' | 'UPDATE' | 'REPLACE' | 'CREATE' | 'PENDING_MAPPING' | 'DEFERRED' | 'BLOCKED'; current: string; snapshot: string; reason: string | null; anomalies: readonly string[] }>
+export type SnapshotPreviewDto = Readonly<{ previewId: string; snapshotHash: string; viewerFound: boolean; files: number; domains: readonly SnapshotDomainDto[]; warning: string }>
+export type SnapshotApplyDto = Readonly<{ snapshotHash: string; replayed: boolean; imported: readonly string[]; deferred: readonly string[] }>
 export type DirectMessageRequestDto = Readonly<{ id: string; state: 'PENDING' | 'ACCEPTED' | 'REFUSED'; senderPlayerId: string; retryAfter: string | null }>
 export type DirectMessageDto = Readonly<{
   id: string
