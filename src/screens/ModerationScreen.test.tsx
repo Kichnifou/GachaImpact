@@ -157,6 +157,13 @@ describe('ModerationScreen', () => {
     expect(listbox.textContent).toContain('Mynonyme')
     expect(listbox.textContent).toContain('Niveau 6')
     expect(listbox.textContent).toContain('Testeur')
+    const row = listbox.querySelector('button')!
+    const identity = row.querySelector('.player-identity-inline')!
+    expect(identity.querySelector('.player-avatar')).not.toBeNull()
+    expect(identity.querySelector('.moderation-player-identity')?.textContent).toContain('Mynonyme')
+    const testerRow = Array.from(listbox.querySelectorAll('button')).find((candidate) => candidate.textContent?.includes('MynonymeTest1'))!
+    expect(testerRow.querySelector('.player-identity-inline .moderation-player-identity')?.textContent).toContain('MynonymeTest1')
+    expect(testerRow.lastElementChild?.classList.contains('moderation-tester-badge')).toBe(true)
   })
 
   it('keeps player targeting inside Système de jeu and mounts Codes only for a Super who selects that tab', async () => {
