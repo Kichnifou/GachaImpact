@@ -1,17 +1,20 @@
 import 'dotenv/config';
 
 import { randomUUID } from 'node:crypto';
-import { afterAll, afterEach, describe, expect, it } from 'vitest';
+import { beforeAll, afterAll, afterEach, describe, expect, it } from 'vitest';
+import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { EventService } from '../src/application/event/event-service.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
 import { loadConfig } from '../src/config/environment.js';
 import { PrismaCurrentPlayerStore } from '../src/infrastructure/database/prisma-current-player-store.js';
-import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 
 const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Event milestone DB tests.');
-const database = createDatabase(config.databaseUrl);
+const isolated = isolatedBatchDatabase();
+const database = isolated.database;
+beforeAll(() => isolated.setup({ seedPublicCatalog: true }), 60_000);
+afterAll(() => isolated.cleanup(), 60_000);
 const store = new PrismaCurrentPlayerStore(database);
 const provision = new GetOrProvisionCurrentPlayer(store);
 const getPlayer = new GetCurrentPlayer(store);
@@ -56,8 +59,9 @@ afterEach(async () => {
   if (players.length) {
     await database.notification.deleteMany({ where: { playerId: { in: players } } });
     await database.playerEventCurrencyBalance.deleteMany({ where: { playerId: { in: players } } });
-    await database.resourceMovement.deleteMany({ where: { playerId: { in: players }, domainKey: 'event' } });
-    await database.businessOperation.deleteMany({ where: { playerId: { in: players }, operationType: { startsWith: 'event.' } } });
+    await database.resourceMovement.deleteMany({ where: { playerId: { in: players } } });
+    await database.playerPermanentMissionProgress.deleteMany({ where: { playerId: { in: players } } });
+    await database.businessOperation.deleteMany({ where: { playerId: { in: players } } });
     await database.webIdentity.deleteMany({ where: { playerId: { in: players } } });
     await database.player.deleteMany({ where: { id: { in: players } } });
   }
@@ -129,14 +133,16 @@ describe('Event daily bonus and milestone persistence', () => {
     if (milestone === 30) await database.player.update({ where: { id: sender.playerId }, data: { elementKey: 'geo' } });
     await setPoints(sender.playerId, joined.edition.id, milestone - 1);
     const before = resourceKey ? await balance(sender.playerId, resourceKey) : 0n;
+    const movementBefore = resourceKey ? await database.resourceMovement.aggregate({ where: { playerId: sender.playerId, resourceKey }, _sum: { delta: true } }) : null;
     const key = randomUUID();
     const sent = await service.sendGameC(sender.identity, recipient.playerId, 'Bonjour !', key);
     expect(sent.participation.points).toBe(milestone);
     expect(sent.milestones.thresholds.find((item) => item.points === milestone)).toMatchObject({ reached: true, rewarded: true });
     expect(BigInt(sent.currency.amount)).toBe(2n + currencyBonus);
     if (resourceKey) {
-      expect(await balance(sender.playerId, resourceKey)).toBe(before + amount);
-      expect(await database.resourceMovement.count({ where: { playerId: sender.playerId, resourceKey, causeKey: `event.milestone.${milestone}` } })).toBe(1);
+      const movementAfter = await database.resourceMovement.aggregate({ where: { playerId: sender.playerId, resourceKey }, _sum: { delta: true } });
+      expect(await balance(sender.playerId, resourceKey)).toBe(before + (movementAfter._sum.delta ?? 0n) - (movementBefore?._sum.delta ?? 0n));
+      expect((await database.resourceMovement.findMany({ where: { playerId: sender.playerId, resourceKey, causeKey: `event.milestone.${milestone}` }, select: { delta: true } })).map(({ delta }) => delta)).toEqual([amount]);
     }
     const claim = await database.eventMilestoneClaim.findUniqueOrThrow({ where: { eventEditionId_playerId_milestone: { eventEditionId: joined.edition.id, playerId: sender.playerId, milestone } }, include: { operation: true } });
     expect(claim.operation).toMatchObject({ operationType: 'event.milestone.reward', sourceChannel: 'SYSTEM', status: 'COMPLETED' });

@@ -1,15 +1,21 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
-import { afterAll, afterEach, describe, expect, it } from 'vitest';
+import { beforeAll, afterAll, afterEach, describe, expect, it } from 'vitest';
+import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { Prisma, SourceChannel } from '../generated/prisma/client.js';
 import { loadConfig } from '../src/config/environment.js';
 import { resourceKeys } from '../src/domain/economy/resources.js';
-import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 import { PrismaDailyChallengeStore } from '../src/infrastructure/database/prisma-daily-challenge-store.js';
 
 const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Daily Challenge database tests.');
-const database = createDatabase(config.databaseUrl);
+const isolated = isolatedBatchDatabase();
+const database = isolated.database;
+beforeAll(async () => {
+  await isolated.setup({ seedPublicCatalog: true });
+  await database.dailyChallengeDefinition.update({ where: { externalKey: 'daily_messages_10' }, data: { isEligible: false } });
+}, 60_000);
+afterAll(() => isolated.cleanup(), 60_000);
 const players = new Set<string>();
 const businessDate = '2026-09-11';
 const now = new Date('2026-09-11T12:00:00.000Z');

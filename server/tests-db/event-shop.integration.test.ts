@@ -1,17 +1,20 @@
 import 'dotenv/config';
 
 import { randomUUID } from 'node:crypto';
-import { afterAll, afterEach, describe, expect, it } from 'vitest';
+import { beforeAll, afterAll, afterEach, describe, expect, it } from 'vitest';
+import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { EventService } from '../src/application/event/event-service.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
 import { loadConfig } from '../src/config/environment.js';
 import { PrismaCurrentPlayerStore } from '../src/infrastructure/database/prisma-current-player-store.js';
-import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 
 const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Event Shop DB tests.');
-const database = createDatabase(config.databaseUrl);
+const isolated = isolatedBatchDatabase();
+const database = isolated.database;
+beforeAll(() => isolated.setup({ seedPublicCatalog: true }), 60_000);
+afterAll(() => isolated.cleanup(), 60_000);
 const store = new PrismaCurrentPlayerStore(database);
 const provision = new GetOrProvisionCurrentPlayer(store);
 let year = 2400;
@@ -35,6 +38,9 @@ async function setCurrency(playerId: string, amount: bigint) {
 async function resource(playerId: string, key: string) {
   return (await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId, resourceKey: key } } })).amount;
 }
+async function movementTotal(playerId: string, resourceKey: string) {
+  return (await database.resourceMovement.aggregate({ where: { playerId, resourceKey }, _sum: { delta: true } }))._sum.delta ?? 0n;
+}
 
 afterEach(async () => {
   const editions = editionIds.splice(0);
@@ -49,6 +55,7 @@ afterEach(async () => {
     await database.eventParticipant.deleteMany({ where: { playerId: { in: players } } });
     await database.playerEventCurrencyBalance.deleteMany({ where: { playerId: { in: players } } });
     await database.resourceMovement.deleteMany({ where: { playerId: { in: players } } });
+    await database.playerPermanentMissionProgress.deleteMany({ where: { playerId: { in: players } } });
     await database.businessOperation.deleteMany({ where: { playerId: { in: players } } });
     await database.webIdentity.deleteMany({ where: { playerId: { in: players } } });
     await database.player.deleteMany({ where: { id: { in: players } } });
@@ -81,6 +88,8 @@ describe('Event Shop persistence', () => {
     await expect(service.convertShop(player.identity, 'MORAS', 2, randomUUID())).rejects.toMatchObject({ code: 'EVENT_SHOP_INSUFFICIENT_CURRENCY' });
     const primosBefore = await resource(player.playerId, 'primogems');
     const morasBefore = await resource(player.playerId, 'moras');
+    const primoMovementsBefore = await movementTotal(player.playerId, 'primogems');
+    const moraMovementsBefore = await movementTotal(player.playerId, 'moras');
     const key = randomUUID();
     const first = await service.convertShop(player.identity, 'PRIMOGEMS', 1, key);
     expect(first.shop.balance).toBe('0');
@@ -94,9 +103,11 @@ describe('Event Shop persistence', () => {
     expect(singleMoras.shop.balance).toBe('4');
     const multiMoras = await service.convertShop(player.identity, 'MORAS', 4, randomUUID());
     expect(multiMoras.shop.balance).toBe('0');
-    expect(await resource(player.playerId, 'primogems')).toBe(primosBefore + 640n);
-    expect(await resource(player.playerId, 'moras')).toBe(morasBefore + 100_000n);
-    expect(await database.resourceMovement.count({ where: { playerId: player.playerId, causeKey: 'event.shop.convert' } })).toBe(4);
+    expect(await resource(player.playerId, 'primogems')).toBe(primosBefore + await movementTotal(player.playerId, 'primogems') - primoMovementsBefore);
+    expect(await resource(player.playerId, 'moras')).toBe(morasBefore + await movementTotal(player.playerId, 'moras') - moraMovementsBefore);
+    const shopCredits = await database.resourceMovement.findMany({ where: { playerId: player.playerId, causeKey: 'event.shop.convert' } });
+    expect(shopCredits).toHaveLength(4);
+    expect(shopCredits.map(({ resourceKey, delta }) => [resourceKey, delta])).toEqual(expect.arrayContaining([['primogems', 160n], ['primogems', 480n], ['moras', 20_000n], ['moras', 80_000n]]));
   }, 90_000);
 
   it('rolls back the Event debit when the economy credit overflows', async () => {

@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
-import { afterAll, describe, expect, it } from 'vitest';
+import { beforeAll, afterAll, describe, expect, it } from 'vitest';
+import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { ClaimDailyReward } from '../src/application/daily-reward/claim-daily-reward.js';
 import { GetTodayDailyReward } from '../src/application/daily-reward/get-today-daily-reward.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
@@ -8,13 +9,15 @@ import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-pr
 import { loadConfig } from '../src/config/environment.js';
 import { PrismaCurrentPlayerStore } from '../src/infrastructure/database/prisma-current-player-store.js';
 import { PrismaDailyRewardStore } from '../src/infrastructure/database/prisma-daily-reward-store.js';
-import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 import { PrismaPlayerElementStore } from '../src/infrastructure/database/prisma-player-element-store.js';
 import { ChoosePlayerElement } from '../src/application/player/choose-player-element.js';
 
 const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for database daily reward tests.');
-const database = createDatabase(config.databaseUrl);
+const isolated = isolatedBatchDatabase();
+const database = isolated.database;
+beforeAll(() => isolated.setup({ seedPublicCatalog: true }), 60_000);
+afterAll(() => isolated.cleanup(), 60_000);
 afterAll(async () => database.$disconnect());
 
 describe('daily reward transaction on the development database', () => {

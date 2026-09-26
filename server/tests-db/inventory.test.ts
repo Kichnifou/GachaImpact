@@ -1,13 +1,16 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
-import { afterAll, afterEach, describe, expect, it } from 'vitest';
+import { beforeAll, afterAll, afterEach, describe, expect, it } from 'vitest';
+import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { loadConfig } from '../src/config/environment.js';
-import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 import { PrismaInventoryStore } from '../src/infrastructure/database/prisma-inventory-store.js';
 
 const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Inventory database tests.');
-const database = createDatabase(config.databaseUrl);
+const isolated = isolatedBatchDatabase();
+const database = isolated.database;
+beforeAll(() => isolated.setup({ seedPublicCatalog: true }), 60_000);
+afterAll(() => isolated.cleanup(), 60_000);
 const playerIds = new Set<string>();
 const itemDefinitionIds = new Set<string>();
 
@@ -45,8 +48,8 @@ describe('personal inventory persistence', () => {
     const items = (await new PrismaInventoryStore(database).getInventory(player.id)).items.filter(({ externalKey }) => expectedKeys.includes(externalKey));
     expect(items).toHaveLength(12);
     expect(items.every(({ quantity }) => quantity === 0n)).toBe(true);
-    expect(await database.$queryRawUnsafe<{ relrowsecurity: boolean }[]>(`SELECT relrowsecurity FROM pg_class WHERE relname = 'item_acquisitions'`)).toEqual([{ relrowsecurity: true }]);
-    expect(await database.$queryRawUnsafe<{ count: bigint }[]>(`SELECT count(*)::bigint AS count FROM information_schema.role_table_grants WHERE table_name = 'item_acquisitions' AND grantee IN ('anon','authenticated')`)).toEqual([{ count: 0n }]);
+    expect(await database.$queryRawUnsafe<{ relrowsecurity: boolean }[]>(`SELECT c.relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = 'item_acquisitions'`)).toEqual([{ relrowsecurity: true }]);
+    expect(await database.$queryRawUnsafe<{ count: bigint }[]>(`SELECT count(*)::bigint AS count FROM information_schema.role_table_grants WHERE table_schema = 'public' AND table_name = 'item_acquisitions' AND grantee IN ('anon','authenticated')`)).toEqual([{ count: 0n }]);
     expect(await database.$queryRawUnsafe<{ count: bigint }[]>(`SELECT count(*)::bigint AS count FROM _prisma_migrations WHERE migration_name = '20260914120000_018_add_collection_catalog_and_acquisitions' AND finished_at IS NOT NULL`)).toEqual([{ count: 1n }]);
   });
   it('returns the nine stable resources at zero and isolates lossless player balances', async () => {

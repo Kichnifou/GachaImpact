@@ -1,9 +1,9 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
-import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, afterAll, afterEach, describe, expect, it, vi } from 'vitest';
+import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { loadConfig } from '../src/config/environment.js';
 import { MASTERLESS_STELLA_FORTUNA_KEY } from '../src/application/box/box-store.js';
-import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 import { PrismaBoxStore } from '../src/infrastructure/database/prisma-box-store.js';
 import { PermanentMissionService } from '../src/application/missions/permanent-mission-service.js';
 import { SourceChannel } from '../generated/prisma/client.js';
@@ -11,7 +11,10 @@ import { PrismaEconomyService } from '../src/infrastructure/database/prisma-econ
 
 const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Stella database tests.');
-const database = createDatabase(config.databaseUrl);
+const isolated = isolatedBatchDatabase();
+const database = isolated.database;
+beforeAll(() => isolated.setup({ seedPublicCatalog: true }), 60_000);
+afterAll(() => isolated.cleanup(), 60_000);
 const players = new Set<string>();
 const characters = new Set<string>();
 const now = new Date('2026-09-07T18:00:00.000Z');

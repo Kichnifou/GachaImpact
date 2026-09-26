@@ -1,14 +1,17 @@
 import 'dotenv/config'
 import { randomUUID } from 'node:crypto'
-import { afterAll, describe, expect, it } from 'vitest'
+import { beforeAll, afterAll, describe, expect, it } from 'vitest';
+import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { loadConfig } from '../src/config/environment.js'
-import { createDatabase } from '../src/infrastructure/database/prisma-database.js'
 import { PrismaNavigationPreferenceStore } from '../src/infrastructure/database/prisma-navigation-preference-store.js'
 import { mergeNavigationMenuPreference, navigationMenuPreferenceKey } from '../src/application/navigation/navigation-preferences.js'
 
 const config = loadConfig()
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for navigation preference database tests.')
-const database = createDatabase(config.databaseUrl)
+const isolated = isolatedBatchDatabase();
+const database = isolated.database;
+beforeAll(() => isolated.setup({ seedPublicCatalog: true }), 60_000);
+afterAll(() => isolated.cleanup(), 60_000);
 const players = new Set<string>()
 afterAll(async () => { await database.player.deleteMany({ where: { id: { in: [...players] } } }); await database.$disconnect() })
 

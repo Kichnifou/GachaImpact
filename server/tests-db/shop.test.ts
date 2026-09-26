@@ -1,15 +1,18 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
-import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, afterAll, afterEach, describe, expect, it, vi } from 'vitest';
+import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { OperationStatus, Prisma, SourceChannel } from '../generated/prisma/client.js';
 import { loadConfig } from '../src/config/environment.js';
 import { resourceKeys } from '../src/domain/economy/resources.js';
-import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 import { PrismaShopStore } from '../src/infrastructure/database/prisma-shop-store.js';
 
 const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Shop database tests.');
-const database = createDatabase(config.databaseUrl);
+const isolated = isolatedBatchDatabase();
+const database = isolated.database;
+beforeAll(() => isolated.setup({ seedPublicCatalog: true }), 60_000);
+afterAll(() => isolated.cleanup(), 60_000);
 const players = new Set<string>();
 const temporaryItems = new Set<string>();
 const now = new Date('2026-09-10T18:00:00.000Z');

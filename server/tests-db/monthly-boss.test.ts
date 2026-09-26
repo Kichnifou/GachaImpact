@@ -1,15 +1,18 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { MonthlyBossService } from '../src/application/combat/monthly-boss-service.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import { loadConfig } from '../src/config/environment.js';
 import { resourceKeys } from '../src/domain/economy/resources.js';
 import { calculateContributionBasisPoints, calculateNextBossBase, MONTHLY_BOSS_REWARD } from '../src/domain/combat/monthly-boss.js';
-import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 
 const config = loadConfig(); if (!config.databaseUrl) throw new Error('DATABASE_URL is required for monthly Boss database tests.');
-const database = createDatabase(config.databaseUrl);
+const isolated = isolatedBatchDatabase();
+const database = isolated.database;
+beforeAll(() => isolated.setup({ seedPublicCatalog: true }), 60_000);
+afterAll(() => isolated.cleanup(), 60_000);
 const playerIds = new Set<string>();
 const characterIds = new Set<string>();
 const anchorMonth = '2097-12-01';
@@ -64,6 +67,7 @@ async function cleanup() {
   }
   if (ids.length) {
     await database.resourceMovement.deleteMany({ where: { playerId: { in: ids } } });
+    await database.playerPermanentMissionProgress.deleteMany({ where: { playerId: { in: ids } } });
     await database.businessOperation.deleteMany({ where: { playerId: { in: ids } } });
   }
   if (bossIds.length) await database.monthlyBoss.deleteMany({ where: { id: { in: bossIds } } });
@@ -75,9 +79,9 @@ async function cleanup() {
 describe('monthly Boss persistence', () => {
   it('protects every Boss table from browser roles', async () => {
     const tables = ['monthly_bosses','player_boss_loadouts','player_boss_loadout_slots','boss_attacks','boss_attack_members','player_boss_participations','player_boss_stats','boss_rewards'];
-    const rls = await database.$queryRawUnsafe<{ relname: string; relrowsecurity: boolean }[]>(`SELECT relname, relrowsecurity FROM pg_class WHERE relname = ANY($1::text[]) ORDER BY relname`, tables);
+    const rls = await database.$queryRawUnsafe<{ relname: string; relrowsecurity: boolean }[]>(`SELECT c.relname, c.relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = ANY($1::text[]) ORDER BY c.relname`, tables);
     expect(rls).toHaveLength(tables.length); expect(rls.every(({ relrowsecurity }) => relrowsecurity)).toBe(true);
-    const grants = await database.$queryRawUnsafe<{ count: bigint }[]>(`SELECT count(*)::bigint AS count FROM information_schema.role_table_grants WHERE table_name = ANY($1::text[]) AND grantee IN ('anon','authenticated')`, tables);
+    const grants = await database.$queryRawUnsafe<{ count: bigint }[]>(`SELECT count(*)::bigint AS count FROM information_schema.role_table_grants WHERE table_schema = 'public' AND table_name = ANY($1::text[]) AND grantee IN ('anon','authenticated')`, tables);
     expect(grants[0]?.count).toBe(0n);
   });
 
@@ -173,8 +177,12 @@ describe('monthly Boss persistence', () => {
       ],
     });
     for (const player of [left, right]) {
-      expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: player.id, resourceKey: 'primogems' } } })).amount).toBe(16_000n);
-      expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: player.id, resourceKey: 'moras' } } })).amount).toBe(500_000n);
+      for (const [resourceKey, reward] of [['primogems', MONTHLY_BOSS_REWARD.primogems], ['moras', MONTHLY_BOSS_REWARD.moras]] as const) {
+        const movements = await database.resourceMovement.findMany({ where: { playerId: player.id, resourceKey } });
+        expect(movements.filter(({ causeKey }) => causeKey === 'monthly-boss.victory').map(({ delta }) => delta)).toEqual([reward]);
+        expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: player.id, resourceKey } } })).amount)
+          .toBe(movements.reduce((total, movement) => total + movement.delta, 0n));
+      }
     }
     const finalBlows = await database.playerBossStats.aggregate({ where: { playerId: { in: [left.id, right.id] } }, _sum: { finalBlows: true, totalRewarded: true } });
     expect(finalBlows._sum).toMatchObject({ finalBlows: 1n, totalRewarded: 2n });

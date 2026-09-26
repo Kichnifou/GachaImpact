@@ -1,18 +1,21 @@
 import 'dotenv/config';
 
 import { randomUUID } from 'node:crypto';
-import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { isolatedBatchDatabase } from './isolated-batch-database.js';
 
 import { GiftCodeService } from '../src/application/gift-code/gift-code-service.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
 import { loadConfig } from '../src/config/environment.js';
 import { PrismaCurrentPlayerStore } from '../src/infrastructure/database/prisma-current-player-store.js';
-import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 
 const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for gift-code integration tests.');
-const database = createDatabase(config.databaseUrl);
+const isolated = isolatedBatchDatabase();
+const database = isolated.database;
+beforeAll(() => isolated.setup({ seedPublicCatalog: true }), 60_000);
+afterAll(() => isolated.cleanup(), 60_000);
 const store = new PrismaCurrentPlayerStore(database);
 const provision = new GetOrProvisionCurrentPlayer(store);
 const getPlayer = new GetCurrentPlayer(store);
@@ -32,12 +35,12 @@ function deferred() {
 async function cleanupSubject(subject: string) {
   const identity = await database.webIdentity.findUnique({ where: { provider_providerSubject: { provider: 'supabase', providerSubject: subject } }, select: { playerId: true } });
   if (identity) {
-    const operations = await database.businessOperation.findMany({ where: { playerId: identity.playerId, operationType: { startsWith: 'gift-code.' } }, select: { id: true } });
     await database.notification.deleteMany({ where: { playerId: identity.playerId } });
     await database.giftCodeClaim.deleteMany({ where: { playerId: identity.playerId } });
-    await database.resourceMovement.deleteMany({ where: { operationId: { in: operations.map(({ id }) => id) } } });
+    await database.resourceMovement.deleteMany({ where: { playerId: identity.playerId } });
     await database.adminAuditEntry.deleteMany({ where: { OR: [{ actorPlayerId: identity.playerId }, { targetPlayerId: identity.playerId }] } });
-    await database.businessOperation.deleteMany({ where: { id: { in: operations.map(({ id }) => id) } } });
+    await database.playerPermanentMissionProgress.deleteMany({ where: { playerId: identity.playerId } });
+    await database.businessOperation.deleteMany({ where: { playerId: identity.playerId } });
     await database.webIdentity.deleteMany({ where: { playerId: identity.playerId, providerSubject: subject } });
     await database.player.delete({ where: { id: identity.playerId } });
   }
@@ -135,7 +138,8 @@ describe('GiftCodeService on Supabase DEV', () => {
     ]);
     expect(claimCount).toBe(1);
     expect(movements.map(({ resourceKey, delta }) => [resourceKey, delta])).toEqual([['moras', 200000n], ['primogems', 1600n]]);
-    expect(balances.map(({ resourceKey, amount }) => [resourceKey, amount])).toEqual([['moras', 200000n], ['primogems', 1600n]]);
+    const allMovements = await database.resourceMovement.findMany({ where: { playerId: created.player.id, resourceKey: { in: ['moras', 'primogems'] } } });
+    expect(balances.map(({ resourceKey, amount }) => [resourceKey, amount])).toEqual(['moras', 'primogems'].map(resourceKey => [resourceKey, allMovements.filter(movement => movement.resourceKey === resourceKey).reduce((total, movement) => total + movement.delta, 0n)]));
     expect(notification?.state).toBe('RESOLVED');
     expect(expeditionNotification.state).toBe('UNREAD');
     const after = await service.listForPlayer(identity);
@@ -153,7 +157,7 @@ describe('GiftCodeService on Supabase DEV', () => {
     ]);
     expect(expiredClaimCount).toBe(1);
     expect(expiredMovements.map(({ resourceKey, delta }) => [resourceKey, delta])).toEqual([['moras', 200000n], ['primogems', 1600n]]);
-    expect(expiredBalances.map(({ resourceKey, amount }) => [resourceKey, amount])).toEqual([['moras', 200000n], ['primogems', 1600n]]);
+    expect(expiredBalances.map(({ resourceKey, amount }) => [resourceKey, amount])).toEqual(balances.map(({ resourceKey, amount }) => [resourceKey, amount]));
 
   }, 15_000);
 

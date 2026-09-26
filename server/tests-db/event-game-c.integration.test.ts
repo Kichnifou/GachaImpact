@@ -1,7 +1,8 @@
 import 'dotenv/config';
 
 import { randomUUID } from 'node:crypto';
-import { afterAll, afterEach, describe, expect, it } from 'vitest';
+import { beforeAll, afterAll, afterEach, describe, expect, it } from 'vitest';
+import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { EventService } from '../src/application/event/event-service.js';
 import { ChatCommandDispatcher, type ChatCommandServices } from '../src/application/chat/chat-command-dispatcher.js';
 import { GlobalChatService } from '../src/application/chat/global-chat-service.js';
@@ -10,11 +11,13 @@ import { GetCurrentPlayer } from '../src/application/player/get-current-player.j
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
 import { loadConfig } from '../src/config/environment.js';
 import { PrismaCurrentPlayerStore } from '../src/infrastructure/database/prisma-current-player-store.js';
-import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 
 const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Event Game C DB tests.');
-const database = createDatabase(config.databaseUrl);
+const isolated = isolatedBatchDatabase();
+const database = isolated.database;
+beforeAll(() => isolated.setup({ seedPublicCatalog: true }), 60_000);
+afterAll(() => isolated.cleanup(), 60_000);
 const store = new PrismaCurrentPlayerStore(database);
 const provision = new GetOrProvisionCurrentPlayer(store);
 const getPlayer = new GetCurrentPlayer(store);

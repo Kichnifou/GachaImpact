@@ -1,14 +1,17 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { ContestService } from '../src/application/contest/contest-service.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import { loadConfig } from '../src/config/environment.js';
 import { resourceKeys } from '../src/domain/economy/resources.js';
-import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 
 const config = loadConfig(); if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Contest database tests.');
-const database = createDatabase(config.databaseUrl);
+const isolated = isolatedBatchDatabase();
+const database = isolated.database;
+beforeAll(() => isolated.setup({ seedPublicCatalog: true }), 60_000);
+afterAll(() => isolated.cleanup(), 60_000);
 const playerIds = new Set<string>();
 const characterIds = new Set<string>();
 const fixtureDates = ['2098-09-01', '2098-09-02', '2098-09-03', '2098-09-04', '2098-09-05', '2098-09-06', '2098-09-07', '2098-09-08', '2098-09-09', '2098-09-10', '2098-09-11', '2098-09-12', '2098-09-13', '2098-09-14', '2098-09-15', '2098-09-16', '2098-09-17', '2098-09-18', '2098-09-19', '2098-09-20'] as const;
@@ -70,6 +73,7 @@ async function cleanup() {
   const ids = [...playerIds];
   if (ids.length) {
     await database.resourceMovement.deleteMany({ where: { playerId: { in: ids } } });
+    await database.playerPermanentMissionProgress.deleteMany({ where: { playerId: { in: ids } } });
     await database.businessOperation.deleteMany({ where: { playerId: { in: ids } } });
     await database.player.deleteMany({ where: { id: { in: ids } } });
   }
@@ -82,9 +86,9 @@ async function cleanup() {
 describe('Contest persistence', () => {
   it('protects every new table from browser roles and tracks migration 017', async () => {
     const tables = ['contest_daily_themes', 'contests', 'contest_participants', 'contest_spectators', 'contest_daily_participations', 'contest_lobby_removals', 'contest_events', 'contest_rewards'];
-    const rls = await database.$queryRawUnsafe<{ relname: string; relrowsecurity: boolean }[]>(`SELECT relname, relrowsecurity FROM pg_class WHERE relname = ANY($1::text[]) ORDER BY relname`, tables);
+    const rls = await database.$queryRawUnsafe<{ relname: string; relrowsecurity: boolean }[]>(`SELECT c.relname, c.relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = ANY($1::text[]) ORDER BY c.relname`, tables);
     expect(rls).toHaveLength(tables.length); expect(rls.every(({ relrowsecurity }) => relrowsecurity)).toBe(true);
-    const grants = await database.$queryRawUnsafe<{ count: bigint }[]>(`SELECT count(*)::bigint AS count FROM information_schema.role_table_grants WHERE table_name = ANY($1::text[]) AND grantee IN ('anon','authenticated')`, tables);
+    const grants = await database.$queryRawUnsafe<{ count: bigint }[]>(`SELECT count(*)::bigint AS count FROM information_schema.role_table_grants WHERE table_schema = 'public' AND table_name = ANY($1::text[]) AND grantee IN ('anon','authenticated')`, tables);
     expect(grants[0]?.count).toBe(0n);
     expect(await database.$queryRawUnsafe<{ count: bigint }[]>(`SELECT count(*)::bigint AS count FROM _prisma_migrations WHERE migration_name = '20260913170000_017_add_contests' AND finished_at IS NOT NULL`)).toEqual([{ count: 1n }]);
   });
@@ -171,12 +175,19 @@ describe('Contest persistence', () => {
     expect(persisted).toMatchObject({ themeStatSnapshot: 20, basePointsSnapshot: 5, titleRankSnapshot: 0 });
     await database.c6CompetitionProgress.update({ where: { playerId_characterId: { playerId: player.id, characterId: player.character.id } }, data: { strength: 1, totalContests: 2n, totalWins: 2n, strengthParticipations: 2n, strengthWins: 2n } });
     expect((await database.contestParticipant.findUniqueOrThrow({ where: { contestId_slot: { contestId, slot: human.slot } } })).themeStatSnapshot).toBe(20);
-    await database.contestParticipant.update({ where: { contestId_slot: { contestId, slot: human.slot } }, data: { score: 49 } });
+    await database.contestParticipant.updateMany({ where: { contestId }, data: { turnOrder: null } });
+    await database.contestParticipant.update({ where: { contestId_slot: { contestId, slot: human.slot } }, data: { score: 49, turnOrder: 1 } });
+    let nextTurn = 2;
+    for (const participant of started.active!.participants.filter(({ slot }) => slot !== human.slot)) {
+      await database.contestParticipant.update({ where: { contestId_slot: { contestId, slot: participant.slot } }, data: { turnOrder: nextTurn++ } });
+    }
     const playKey = randomUUID(); const finished = await player.service.play(identity, 'BASIC', playKey); const replay = await player.service.play(identity, 'BASIC', playKey);
     expect(finished).toMatchObject({ active: null, lastResult: { winnerSlot: human.slot } }); expect(replay.lastResult?.id).toBe(contestId);
     await expect(player.service.play(identity, 'RISK', playKey)).rejects.toMatchObject({ code: 'CONTEST_IDEMPOTENCY_CONFLICT' });
-    expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: player.id, resourceKey: 'primogems' } } })).amount).toBe(800n);
-    expect(await database.resourceMovement.count({ where: { playerId: player.id, causeKey: 'contest.ranking' } })).toBe(1);
+    const primogemMovements = await database.resourceMovement.findMany({ where: { playerId: player.id, resourceKey: 'primogems' } });
+    expect(primogemMovements.filter(({ causeKey }) => causeKey === 'contest.ranking').map(({ delta }) => delta)).toEqual([800n]);
+    expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: player.id, resourceKey: 'primogems' } } })).amount)
+      .toBe(primogemMovements.reduce((total, movement) => total + movement.delta, 0n));
     expect(await database.contestReward.count({ where: { contestId } })).toBe(1);
     expect(await database.c6CompetitionProgress.findUniqueOrThrow({ where: { playerId_characterId: { playerId: player.id, characterId: player.character.id } } })).toMatchObject({ totalContests: 3n, totalWins: 3n, strengthParticipations: 3n, strengthWins: 3n, strengthTitleFloor: 2 });
     expect(await database.contestEvent.findFirst({ where: { contestId, type: 'TITLE_PROMOTED', targetPlayerId: player.id } })).toMatchObject({ payload: expect.objectContaining({ from: 0, to: 2, title: 'Titan d’Argent' }) });

@@ -1,21 +1,24 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, afterAll, afterEach, describe, expect, it, vi } from 'vitest';
+import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { PermanentMissionProgressStatus, Prisma, SourceChannel } from '../generated/prisma/client.js';
 import { PermanentMissionService } from '../src/application/missions/permanent-mission-service.js';
 import { GetCurrentPlayerMissions } from '../src/application/missions/get-current-player-missions.js';
 import { GetPlayerMissions } from '../src/application/missions/get-player-missions.js';
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
 import { loadConfig } from '../src/config/environment.js';
-import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 import { PrismaCurrentPlayerStore } from '../src/infrastructure/database/prisma-current-player-store.js';
 import { PrismaEconomyService } from '../src/infrastructure/database/prisma-economy-service.js';
 import { PrismaPlayerXpService } from '../src/infrastructure/database/prisma-player-xp-service.js';
 
 const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Permanent Mission database tests.');
-const database = createDatabase(config.databaseUrl);
+const isolated = isolatedBatchDatabase();
+const database = isolated.database;
+beforeAll(() => isolated.setup({ seedPublicCatalog: true }), 60_000);
+afterAll(() => isolated.cleanup(), 60_000);
 const economy = new PrismaEconomyService(() => now);
 const service = new PermanentMissionService(economy);
 const players = new Set<string>();
@@ -75,7 +78,7 @@ describe('Permanent Mission persistence', () => {
       { relname: 'player_permanent_mission_progress', relrowsecurity: true },
       { relname: 'player_permanent_mission_states', relrowsecurity: true },
     ]);
-    const constraints = await database.$queryRawUnsafe<{ contype: string; count: bigint }[]>(`SELECT contype::text, count(*)::bigint AS count FROM pg_constraint WHERE conrelid IN ('permanent_mission_definitions'::regclass, 'player_permanent_mission_states'::regclass, 'player_permanent_mission_progress'::regclass) GROUP BY contype`);
+    const constraints = await database.$queryRawUnsafe<{ contype: string; count: bigint }[]>(`SELECT contype::text, count(*)::bigint AS count FROM pg_constraint WHERE conrelid IN ('public.permanent_mission_definitions'::regclass, 'public.player_permanent_mission_states'::regclass, 'public.player_permanent_mission_progress'::regclass) GROUP BY contype`);
     expect(Object.fromEntries(constraints.map(row => [row.contype, row.count]))).toMatchObject({ p: 3n, u: 4n, f: 5n, c: 10n });
     const indexes = await database.$queryRawUnsafe<{ indexname: string }[]>(`SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND indexname IN ('permanent_mission_definitions_catalog_idx', 'player_permanent_mission_states_z_unlocked_idx', 'player_permanent_mission_progress_player_status_idx', 'player_permanent_mission_progress_definition_status_idx', 'player_permanent_mission_progress_trigger_operation_idx') ORDER BY indexname`);
     expect(indexes.map(row => row.indexname)).toEqual([

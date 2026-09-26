@@ -1,9 +1,9 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { loadConfig } from '../src/config/environment.js';
 import { resourceKeys } from '../src/domain/economy/resources.js';
-import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 import { PrismaDailyCombatStore } from '../src/infrastructure/database/prisma-daily-combat-store.js';
 import { PermanentMissionService } from '../src/application/missions/permanent-mission-service.js';
 import { SourceChannel } from '../generated/prisma/client.js';
@@ -11,7 +11,10 @@ import { PrismaEconomyService } from '../src/infrastructure/database/prisma-econ
 
 const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Daily Combat database tests.');
-const database = createDatabase(config.databaseUrl);
+const isolated = isolatedBatchDatabase();
+const database = isolated.database;
+beforeAll(() => isolated.setup({ seedPublicCatalog: true }), 60_000);
+afterAll(() => isolated.cleanup(), 60_000);
 const players = new Set<string>();
 const dates = ['2099-06-01', '2099-06-02', '2099-06-03', '2099-06-04'] as const;
 const now = new Date('2099-06-01T12:00:00.000Z');

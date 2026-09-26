@@ -1,16 +1,19 @@
 import 'dotenv/config'
 import { randomUUID } from 'node:crypto'
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { loadConfig } from '../src/config/environment.js'
 import { resourceKeys } from '../src/domain/economy/resources.js'
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js'
-import { createDatabase } from '../src/infrastructure/database/prisma-database.js'
 import { PrismaCurrentPlayerStore } from '../src/infrastructure/database/prisma-current-player-store.js'
 import { PrismaModerationTools } from '../src/infrastructure/database/prisma-moderation-tools.js'
 
 const config = loadConfig()
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Moderation database tests.')
-const database = createDatabase(config.databaseUrl)
+const isolated = isolatedBatchDatabase();
+const database = isolated.database;
+beforeAll(() => isolated.setup({ seedPublicCatalog: true }), 60_000);
+afterAll(() => isolated.cleanup(), 60_000);
 const playerIds = new Set<string>()
 const tools = new PrismaModerationTools(database, new GetCurrentPlayer(new PrismaCurrentPlayerStore(database)))
 

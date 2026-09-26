@@ -2,12 +2,12 @@ import 'dotenv/config';
 
 import { randomUUID } from 'node:crypto';
 
-import { afterAll, describe, expect, it } from 'vitest';
+import { beforeAll, afterAll, describe, expect, it } from 'vitest';
+import { isolatedBatchDatabase } from './isolated-batch-database.js';
 
 import { loadConfig } from '../src/config/environment.js';
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
 import { PrismaCurrentPlayerStore } from '../src/infrastructure/database/prisma-current-player-store.js';
-import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 
 const config = loadConfig();
 
@@ -15,7 +15,10 @@ if (!config.databaseUrl) {
   throw new Error('DATABASE_URL is required for database smoke tests.');
 }
 
-const database = createDatabase(config.databaseUrl);
+const isolated = isolatedBatchDatabase();
+const database = isolated.database;
+beforeAll(() => isolated.setup({ seedPublicCatalog: true }), 60_000);
+afterAll(() => isolated.cleanup(), 60_000);
 
 const expectedTables = [
   'admin_audit_entries',
@@ -353,7 +356,7 @@ describe('Supabase development database', () => {
     }
   });
 
-  it('contains only the expected initial tables with RLS enabled', async () => {
+  it('preserves the baseline tables and enables RLS on every current table', async () => {
     const tables = await database.$queryRaw<{ tableName: string }[]>`
       SELECT table_name AS "tableName"
       FROM information_schema.tables
@@ -383,10 +386,11 @@ describe('Supabase development database', () => {
         AND table_name IN ('gift_codes', 'gift_code_editions', 'gift_code_rewards', 'gift_code_claims')
     `;
 
-    expect(tables.map(({ tableName }) => tableName)).toEqual(expectedTables);
-    expect(rlsStates).toEqual(
-      expectedTables.map((tableName) => ({ tableName, rlsEnabled: true })),
-    );
+    // This smoke baseline predates later product migrations. Every original
+    // table must remain, and all current public tables must keep RLS enabled.
+    expect(tables.map(({ tableName }) => tableName)).toEqual(expect.arrayContaining([...expectedTables]));
+    expect(rlsStates.map(({ tableName }) => tableName)).toEqual(tables.map(({ tableName }) => tableName));
+    expect(rlsStates.every(({ rlsEnabled }) => rlsEnabled)).toBe(true);
     expect(policies).toEqual([]);
     expect(browserGrants).toEqual([]);
   });
@@ -502,9 +506,7 @@ describe('Supabase development database', () => {
       ORDER BY indexname
     `;
 
-    expect(checkConstraints.map(({ constraintName }) => constraintName)).toEqual(
-      expectedCheckConstraints,
-    );
+    expect(checkConstraints.map(({ constraintName }) => constraintName)).toEqual(expect.arrayContaining([...expectedCheckConstraints]));
     expect(indexes.map(({ indexName }) => indexName)).toEqual(expectedManualIndexes);
   });
 

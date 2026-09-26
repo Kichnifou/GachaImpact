@@ -1,18 +1,21 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { ExpeditionService } from '../src/application/expedition/expedition-service.js';
 import { NotificationService } from '../src/application/notification/notification-service.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import { loadConfig } from '../src/config/environment.js';
 import { resourceKeys } from '../src/domain/economy/resources.js';
-import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 import { PermanentMissionService } from '../src/application/missions/permanent-mission-service.js';
 import { SourceChannel } from '../generated/prisma/client.js';
 import { PrismaEconomyService } from '../src/infrastructure/database/prisma-economy-service.js';
 
 const config = loadConfig(); if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Expedition database tests.');
-const database = createDatabase(config.databaseUrl); const playerIds = new Set<string>(); const characterIds = new Set<string>();
+const isolated = isolatedBatchDatabase();
+const database = isolated.database;
+beforeAll(() => isolated.setup({ seedPublicCatalog: true }), 60_000);
+afterAll(() => isolated.cleanup(), 60_000); const playerIds = new Set<string>(); const characterIds = new Set<string>();
 let now = new Date('2099-08-01T10:00:00.000Z'); let randomCalls = 0; let nextRoll = 0;
 const clock = { now: () => now }; const random = { nextInt: () => { randomCalls += 1; return nextRoll; } };
 const identity = { subject: 'expedition-fixture' } as const;

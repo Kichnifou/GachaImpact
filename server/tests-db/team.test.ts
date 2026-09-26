@@ -1,14 +1,17 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { isolatedBatchDatabase } from './isolated-batch-database.js';
 
 import { loadConfig } from '../src/config/environment.js';
-import { createDatabase } from '../src/infrastructure/database/prisma-database.js';
 import { PrismaTeamStore } from '../src/infrastructure/database/prisma-team-store.js';
 
 const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Team database tests.');
-const database = createDatabase(config.databaseUrl);
+const isolated = isolatedBatchDatabase();
+const database = isolated.database;
+beforeAll(() => isolated.setup({ seedPublicCatalog: true }), 60_000);
+afterAll(() => isolated.cleanup(), 60_000);
 const playerIds = new Set<string>();
 const characterIds = new Set<string>();
 let activeCharacterIds: string[] = [];
