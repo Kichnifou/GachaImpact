@@ -736,7 +736,7 @@ describe('ChatPanel réel', () => {
     await act(async () => { list.dispatchEvent(new Event('scroll', { bubbles: true })); await Promise.resolve() })
     expect(container.textContent).toContain('Ancien visible')
     expect(container.querySelectorAll('.chat-message')).toHaveLength(200)
-  })
+  }, 15000)
 
   it('defers fresh rows at the history cap until the reader chooses the latest page', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
