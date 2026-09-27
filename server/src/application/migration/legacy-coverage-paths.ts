@@ -327,6 +327,8 @@ export const approvedLegacyPaths = {
     "participantCount": "MIGRATED",
     "participants": "MIGRATED",
     "participants[]": "MIGRATED",
+    "previousWinner": "MIGRATED",
+    "rerolledAt": "MIGRATED",
     "rewardPrimos": "MIGRATED",
     "status": "MIGRATED",
     "winner": "MIGRATED"

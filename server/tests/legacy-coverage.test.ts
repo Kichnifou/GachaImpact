@@ -36,6 +36,17 @@ describe('legacy coverage gate', () => {
     expect(changed.unknown).toEqual([{ file: 'viewers_data.json', path: '*.box.*.newlyAdded' }]);
   });
 
+  it('recognizes optional Giveaway reroll facts and blocks any other new property', () => {
+    const known = scanLegacyCoverage(parseStreamerbotSnapshot(fixture({}, { name: 'giveaway.json', value: {
+      status: 'closed', previousWinner: 'alice', rerolledAt: '2026-09-26 20:15:00',
+    } })));
+    expect(known.unknown).toEqual([]);
+    const changed = scanLegacyCoverage(parseStreamerbotSnapshot(fixture({}, { name: 'giveaway.json', value: {
+      status: 'closed', previousWinner: 'alice', rerolledAt: '2026-09-26 20:15:00', futureDrawState: true,
+    } })));
+    expect(changed.unknown).toEqual([{ file: 'giveaway.json', path: 'futureDrawState' }]);
+  });
+
   it('accepts usernames and numeric keys only at declared map positions', () => {
     expect(normalizeCoverageKey('friendships_data.json', 'friendships.*.lastHeartSent', 'eligible')).toBe('*');
     expect(normalizeCoverageKey('monthly_events_data.json', 'dailyWindows.*', '2026-09-26')).toBe('*');

@@ -10,7 +10,7 @@ Les migrations versionnées 050/051 et `20260927014500_052_align_legacy_favor_gi
 >
 > Date : **2026-09-04**
 >
-> Baseline repository : `main` au commit `ab6b58b43d7a991fb6efbb5195b3a1a5ff2c679d`
+> Baseline historique de rédaction initiale : `main` au commit `ab6b58b43d7a991fb6efbb5195b3a1a5ff2c679d`. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte l'état vivant.
 >
 > Ce document traduit `docs/specifications/v1-data-model.md` vers un schéma PostgreSQL concret.
 >

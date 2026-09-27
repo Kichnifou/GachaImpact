@@ -8,7 +8,12 @@ function knownInstant(value: unknown): Date | null {
   if (value == null || value === '') return null;
   const paris = parseLegacyParisInstant(value);
   if (paris) return paris;
-  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(value)) throw new Error('Invalid present Giveaway instant.');
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value))
+    throw new Error('Invalid present Giveaway instant.');
+  const calendarDay = value.slice(0, 10);
+  const parsedDay = new Date(`${calendarDay}T00:00:00.000Z`);
+  if (Number.isNaN(parsedDay.getTime()) || parsedDay.toISOString().slice(0, 10) !== calendarDay)
+    throw new Error('Invalid present Giveaway instant.');
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) throw new Error('Invalid present Giveaway instant.');
   return parsed;
@@ -20,14 +25,25 @@ export async function applyLegacyGiveaway(tx: Prisma.TransactionClient, snapshot
   if (source.status !== 'closed') throw new Error('Open Giveaway requires a dedicated cutover contract.');
   const winnerId = typeof source.winner === 'string' ? byName.get(normalizeLegacyName(source.winner)) : null;
   if (source.winner && !winnerId) throw new Error('Giveaway winner is outside the migrable population.');
+  const hasPreviousWinner = Object.hasOwn(source, 'previousWinner');
+  const previousWinnerId = hasPreviousWinner && typeof source.previousWinner === 'string' && source.previousWinner.trim()
+    ? byName.get(normalizeLegacyName(source.previousWinner)) : null;
+  if (hasPreviousWinner && !previousWinnerId)
+    throw new Error('Giveaway previousWinner is outside the migrable population or invalid.');
+  if (previousWinnerId && (!winnerId || previousWinnerId === winnerId))
+    throw new Error('Giveaway previousWinner contradicts the current winner.');
+  const hasRerolledAt = Object.hasOwn(source, 'rerolledAt');
+  const rerolledAt = hasRerolledAt ? knownInstant(source.rerolledAt) : null;
+  if (hasRerolledAt && !rerolledAt) throw new Error('Invalid present Giveaway rerolledAt.');
   const openedByPlayerId = typeof source.openedBy === 'string' ? byName.get(normalizeLegacyName(source.openedBy)) ?? null : null;
   const closedByPlayerId = typeof source.closedBy === 'string' ? byName.get(normalizeLegacyName(source.closedBy)) ?? null : null;
   const participants = Array.isArray(source.participants) ? source.participants : [];
   const messageCounts = object(source.messageCounts);
   const session = await tx.giveawaySession.create({ data: { legacySessionKey: `streamerbot:${snapshot.hash}`,
-    status: 'CLOSED', winnerPlayerId: winnerId ?? null, openedByPlayerId, closedByPlayerId,
+    status: 'CLOSED', winnerPlayerId: winnerId ?? null, previousWinnerPlayerId: previousWinnerId ?? null,
+    openedByPlayerId, closedByPlayerId,
     openedAt: knownInstant(source.openedAt),
-    closedAt: knownInstant(source.closedAt), rerollCount: null, rerolledAt: null,
+    closedAt: knownInstant(source.closedAt), rerollCount: null, rerolledAt,
     rewardStatus: 'UNKNOWN', distributionState: {
       chatRewardsDistributed: source.chatRewardsDistributed === true,
       rewardPrimos: typeof source.rewardPrimos === 'number' ? source.rewardPrimos : null,
@@ -35,7 +51,9 @@ export async function applyLegacyGiveaway(tx: Prisma.TransactionClient, snapshot
       lastWishAt: knownInstant(source.lastWishAt)?.toISOString() ?? null,
     }, legacyProvenance: { source: 'giveaway.json', batchId, snapshotHash: snapshot.hash,
       openedByLegacy: typeof source.openedBy === 'string' ? source.openedBy : null,
-      closedByLegacy: typeof source.closedBy === 'string' ? source.closedBy : null } } });
+      closedByLegacy: typeof source.closedBy === 'string' ? source.closedBy : null,
+      previousWinnerLegacy: hasPreviousWinner && typeof source.previousWinner === 'string' ? source.previousWinner : null,
+      previousWinnerRole: previousWinnerId ? 'IMMEDIATE_PREDECESSOR_ONLY' : null } } });
   // Index 0 means the sole result proven by this snapshot, not a reconstructed initial draw.
   if (winnerId) await tx.giveawayWin.create({ data: { sessionId: session.id, drawIndex: 0,
     playerId: winnerId, origin: 'LEGACY', operationId: null, drawnAt: null,
