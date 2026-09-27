@@ -3324,6 +3324,9 @@
 .box-constellation-filter { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 9px; }
 .box-constellation-filter select { padding: 7px 23px 7px 9px; color: #d6e0f2; font-size: 9px; border: 1px solid rgba(118, 152, 210, 0.18); border-radius: 8px; background: #0d1a31; }
 .box-inline-error { padding: 7px 10px; color: #ffc1c1; font-size: 9px; border: 1px solid rgba(255, 102, 102, .26); border-radius: 9px; background: rgba(93, 20, 30, .32); }
+.box-collection-panel .scrollable-screen-panel-controls { gap: 4px; }
+.box-collection-panel .scrollable-screen-panel-content { gap: 8px; }
+.collection-screen-panel .scrollable-screen-panel-footer { min-width: 0; }
 .box-status { min-height: 220px; display: grid; place-content: center; justify-items: center; gap: 8px; padding: 28px; text-align: center; }
 .box-status > span { color: var(--cyan); font-size: 30px; }
 .box-status.loading > span { animation: pulse 1.4s ease-in-out infinite; }

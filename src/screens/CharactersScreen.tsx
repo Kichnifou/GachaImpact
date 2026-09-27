@@ -32,8 +32,7 @@ function CharactersScreen({ characters, voteCache, refreshToken = 0, ...voteActi
   const reset = () => { setQuery(''); setRarity('all'); setElement(null); setSortKey('name'); setDirection('asc') }
 
   return <div className="screen-content collection-screen catalog-screen long-screen-layout">
-    <ScrollableScreenPanel className="collection-screen-panel" bodyClassName="collection-results-body scroll-content-frame" fixed={<>
-      <div className="collection-summary"><span>{filtering ? `${filtered.length} / ${characters.length} personnages` : `${characters.length} personnages actifs`}</span></div>
+    <ScrollableScreenPanel className="collection-screen-panel" bodyClassName="collection-results-body scroll-content-frame" footer={<div className="collection-summary"><span>{filtering ? `${filtered.length} / ${characters.length} personnages` : `${characters.length} personnages actifs`}</span></div>} fixed={<>
       <CollectionFilters allowVotes placeholder="Rechercher un personnage…" query={query} rarity={rarity} element={element} sortKey={sortKey} direction={direction} onQueryChange={setQuery} onRarityChange={setRarity} onElementChange={setElement} onSortKeyChange={(key) => { setSortKey(key); if (key === 'votes') setDirection('desc') }} onDirectionChange={() => setDirection((value) => value === 'asc' ? 'desc' : 'asc')} />
     </>}>
     <div className="catalog-vote-feedback" role="alert">{votes.error}</div>

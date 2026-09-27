@@ -125,10 +125,9 @@ export function BoxView({ box, dailyCombat, expedition = idleExpeditionSnapshot,
   const value = expedition.value
   const visibleCharacters = useMemo(() => prioritizeReady(presentBoxCharacters(box.characters, filters), value), [box.characters, filters, value])
   return <div className="screen-content collection-screen box-screen long-screen-layout">
-    <ScrollableScreenPanel className="collection-screen-panel" bodyClassName="collection-results-body scroll-content-frame" fixed={<>
-      <BoxSummary summary={box.summary} />
+    <ScrollableScreenPanel className="collection-screen-panel box-collection-panel" bodyClassName="collection-results-body scroll-content-frame" footer={<BoxSummary summary={box.summary} />} fixed={<>
       <BoxFiltersBar filters={filters} onChange={onFilters} />
-      <p className={`box-inline-error${error ? '' : ' empty'}`} role={error ? 'alert' : undefined}>{error ?? '\u00a0'}</p>
+      {error && <p className="box-inline-error" role="alert">{error}</p>}
     </>}>
     {box.characters.length === 0 ? <BoxStatus kind="empty" title="Votre Box est encore vide" detail="Vos prochains personnages obtenus apparaîtront ici." />
       : visibleCharacters.length === 0 ? <BoxStatus kind="empty" title="Aucun personnage trouvé" detail="Modifiez votre recherche ou vos filtres pour retrouver vos personnages." />
