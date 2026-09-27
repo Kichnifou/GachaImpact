@@ -43,6 +43,16 @@ button {
   color: inherit;
 }
 
+:where(button:not(:disabled), a[href], summary, [role="button"]:not([aria-disabled="true"]), [role="tab"]:not([aria-disabled="true"])) {
+  cursor: pointer;
+}
+
+:is(button, a[href], summary, [role="button"], [role="tab"])[aria-disabled="true"],
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 button:focus-visible,
 input:focus-visible,
 a:focus-visible {

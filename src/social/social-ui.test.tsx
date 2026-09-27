@@ -60,6 +60,7 @@ describe('Social screens', () => {
     const onSave = vi.fn(), onReset = vi.fn()
     const actions = { privacy: vi.fn().mockResolvedValue(settings), savePrivacy } as unknown as SocialActions
     const container = await mount(<ConfigurationScreen socialActions={actions} preference={defaultNavigationPreference} onSave={onSave} onReset={onReset} />)
+    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.configuration-tabs button'), ({ textContent, disabled }) => [textContent, disabled])).toEqual([['Menu', false], ['Confidentialité', false], ['Compte', false], ['Apparence', true]])
     expect(actions.privacy).not.toHaveBeenCalled()
     expect(button(container, 'Apparence').disabled).toBe(true)
     await act(async () => { button(container, 'Confidentialité').click() })

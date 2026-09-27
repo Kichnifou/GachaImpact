@@ -8,10 +8,11 @@ import ConfigurationScreen from './ConfigurationScreen'
 import configurationSource from './ConfigurationScreen.tsx?raw'
 
 const appCssSource = readFileSync('src/App.css', 'utf8')
+const globalCssSource = readFileSync('src/index.css', 'utf8')
 
 const roots: ReturnType<typeof createRoot>[] = []
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
-afterEach(() => { act(() => roots.splice(0).forEach((root) => root.unmount())); document.body.replaceChildren() })
+afterEach(() => { act(() => roots.splice(0).forEach((root) => root.unmount())); document.body.replaceChildren(); document.head.replaceChildren() })
 
 describe('ConfigurationScreen', () => {
   it('reserves three desktop grid tracks with specificity above the generic two-track screen', () => {
@@ -25,6 +26,8 @@ describe('ConfigurationScreen', () => {
     const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('.configuration-tabs button'))
     expect(tabs.map(({ textContent }) => textContent)).toEqual(['Menu', 'Confidentialité', 'Compte', 'Apparence'])
     expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, false, true])
+    const style = document.createElement('style'); style.textContent = globalCssSource; document.head.append(style)
+    expect(tabs.map((tab) => window.getComputedStyle(tab).cursor)).toEqual(['pointer', 'not-allowed', 'pointer', 'not-allowed'])
     expect(container.querySelector('.configuration-frame .scrollable-screen-panel-body .screen-header')).toBeNull()
     expect(container.querySelector('.configuration-frame .scrollable-screen-panel-body .configuration-tabs')).toBeNull()
     expect(container.querySelector('.menu-visibility-button')).not.toBeNull()
