@@ -4,6 +4,8 @@ import type { GetCurrentPlayer } from './application/player/get-current-player.j
 import type { TwitchPilotService } from './application/twitch/twitch-pilot-service.js';
 import type { SnapshotPilotService } from './application/migration/snapshot-pilot-service.js';
 import { registerTwitchPilotRoutes } from './api/routes/twitch-pilot.js';
+import { registerTwitchEventSubRoutes } from './api/routes/twitch-eventsub.js';
+import type { TwitchEventObserver } from './application/twitch/twitch-event-observer.js';
 import { registerTradeRoutes } from './api/routes/trades.js';
 import { registerSocialRoutes } from './api/routes/social.js';
 import { registerAppearanceRoutes } from './api/routes/appearance.js';
@@ -87,6 +89,7 @@ export type AppDependencies = Readonly<{
   historyService?: HistoryService;
   tradeService?: TradeService;
   twitchPilot?: TwitchPilotService;
+  twitchEventObserver?: TwitchEventObserver;
   snapshotPilot?: SnapshotPilotService;
   tradePlayer?: GetCurrentPlayer;
   authIdentityVerifier: AuthIdentityVerifier;
@@ -179,6 +182,10 @@ export async function buildApp(
   await app.register(registerHealthRoute);
 
   if (dependencies) {
+    if (config.twitchEventSub?.enabled) {
+      if (!config.twitchEventSub.secret || !dependencies.twitchEventObserver) throw new Error('Twitch EventSub webhook is enabled without a secret or observer.');
+      await app.register(registerTwitchEventSubRoutes, { secret: config.twitchEventSub.secret, observer: dependencies.twitchEventObserver });
+    }
     registerAuthenticationContext(app);
     await app.register(registerCurrentPlayerRoutes, {
       authenticate: createAuthenticationHook(dependencies.authIdentityVerifier),

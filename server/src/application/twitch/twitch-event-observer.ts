@@ -10,6 +10,7 @@ export type TwitchObservedEvent = Readonly<{
   displayName?: string | null;
   sourceTimestamp?: string | null;
   contentHash?: string | null;
+  transportPayloadHash?: string | null;
 }>;
 
 export class TwitchObservationConflict extends Error {
@@ -35,6 +36,8 @@ function normalize(input: TwitchObservedEvent) {
     throw new Error('Invalid source timestamp.');
   const contentHash = optional(input.contentHash, 'content hash', 64);
   if (contentHash && !/^[0-9a-f]{64}$/i.test(contentHash)) throw new Error('Invalid content hash.');
+  const transportPayloadHash = optional(input.transportPayloadHash, 'transport payload hash', 64);
+  if (transportPayloadHash && !/^[0-9a-f]{64}$/i.test(transportPayloadHash)) throw new Error('Invalid transport payload hash.');
   return {
     externalEventId: required(input.externalEventId, 'external event ID', 256),
     eventType: required(input.eventType, 'event type', 120),
@@ -43,6 +46,7 @@ function normalize(input: TwitchObservedEvent) {
     displayName: optional(input.displayName, 'display name', 128),
     sourceTimestamp: parsedTimestamp?.toISOString() ?? null,
     contentHash: contentHash?.toLowerCase() ?? null,
+    transportPayloadHash: transportPayloadHash?.toLowerCase() ?? null,
   };
 }
 

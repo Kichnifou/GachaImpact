@@ -9,6 +9,7 @@ describe('loadConfig', () => {
       port: 3001,
       frontendOrigin: 'http://localhost:5173',
       twitch: { pilotPlayerIds: [], pilotLogin: 'kichnifou' },
+      twitchEventSub: { enabled: false },
     });
   });
 
@@ -19,5 +20,11 @@ describe('loadConfig', () => {
   it('accepts the platform port, public bind address and HTTPS frontend origin', () => {
     expect(loadConfig({ HOST: '0.0.0.0', PORT: '8080', FRONTEND_ORIGIN: 'https://alpha.example.pages.dev' }))
       .toMatchObject({ host: '0.0.0.0', port: 8080, frontendOrigin: 'https://alpha.example.pages.dev' });
+  });
+  it('requires an ASCII EventSub secret only when the webhook is enabled', () => {
+    expect(loadConfig({ TWITCH_EVENTSUB_WEBHOOK_ENABLED: 'false' }).twitchEventSub).toMatchObject({ enabled: false });
+    expect(() => loadConfig({ TWITCH_EVENTSUB_WEBHOOK_ENABLED: 'true' })).toThrow('TWITCH_EVENTSUB_SECRET');
+    expect(() => loadConfig({ TWITCH_EVENTSUB_WEBHOOK_ENABLED: 'true', TWITCH_EVENTSUB_SECRET: 'too-short' })).toThrow('TWITCH_EVENTSUB_SECRET');
+    expect(loadConfig({ TWITCH_EVENTSUB_WEBHOOK_ENABLED: 'true', TWITCH_EVENTSUB_SECRET: 'valid-ascii-secret' }).twitchEventSub).toMatchObject({ enabled: true });
   });
 });

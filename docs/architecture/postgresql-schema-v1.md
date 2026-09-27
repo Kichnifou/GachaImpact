@@ -14,6 +14,8 @@ La migration additive `20260927150000_053_key_pilot_refresh_by_preview` retire l
 
 `TwitchEventReceipt`, introduit par 050, porte l'identifiant externe unique, le type d'événement, le Twitch User ID, un hash de l'enveloppe normalisée et un payload minimal sans texte brut de chat. Il sert de frontière de déduplication transactionnelle au service interne d'observation. Le reçu peut exister sans Player résolu ; seule une `TwitchIdentity.twitchUserId` correspondante permet de retourner un Player. La phase 1 ne crée ni table, ni route publique, ni effet gameplay, et conserve 53 migrations.
 
+Le webhook EventSub phase 2A candidat réutilise ce modèle sans migration. Sa route est désactivée par défaut ; aucune notification Twitch réelle ni aucun reçu public ne sont attendus avant une activation distincte.
+
 > Statut : **CONSOLIDÉ — Phase C2 / schéma relationnel cible**
 >
 > Date : **2026-09-04**
