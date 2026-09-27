@@ -63,7 +63,7 @@ Cette séquence inclut les domaines déjà traversés ; elle ne les déclare pas
 14. **Historique global** — fonctionnellement validé publiquement ; R912 approuvé en review indépendante mais validation publique visuelle en attente, prochain snapshot naturel R911 à observer.
 15. **Apparence / avatars / titres** — correctif R913–R915 candidat `review` selon [14-ami-social-audit.md](../legacy/14-ami-social-audit.md), sans catalogue produit inventé.
 16. **Liaison TwitchIdentity** — préparer l’identité stable selon [14-ami-social-audit.md](../legacy/14-ami-social-audit.md) et [03-command-data-matrix.md](../legacy/03-command-data-matrix.md).
-17. **Commandes et événements Twitch** — brancher les contrats de [command-reference.md](../commands/command-reference.md) sur les services métier communs ; Streamer.bot reste absent.
+17. **Commandes et événements Twitch** — commencer par la fondation runtime observation-only et la déduplication des reçus, sans transport ni effet métier tant que Streamer.bot reste live et autoritatif. Une mission ultérieure, distincte, pourra brancher les contrats de [command-reference.md](../commands/command-reference.md) sur les services métier communs après validation.
 18. **Faveur de l’Astre** — implémenter [18-faveur-subscription-audit.md](../legacy/18-faveur-subscription-audit.md).
 19. **Gift Suprême** — implémenter [20-gift-twitch-audit.md](../legacy/20-gift-twitch-audit.md).
 20. **Giveaway / Wish** — implémenter [21-giveaway-wish-audit.md](../legacy/21-giveaway-wish-audit.md).
@@ -74,7 +74,7 @@ Cette séquence inclut les domaines déjà traversés ; elle ne les déclare pas
 25. **Tutoriel interactif et Help final** — suivre [23-help-command-coherence-audit.md](../legacy/23-help-command-coherence-audit.md) et la navigation propriétaire.
 26. **Recette fonctionnelle complète et équilibrage économie/progression** — vérifier ensemble les domaines physiques et leurs interactions.
 27. **Finition technique et visuelle** — responsive/mobile, accessibilité, sécurité, concurrence, performances et cohérence avec [ui-layout-contract-v1.md](../specifications/ui-layout-contract-v1.md).
-28. **Migration foundation / rehearsal — domaine actif** — bâtir les modèles et mappings globaux, couvrir les 17 sources, résoudre les identités Twitch, produire un plan de purge et répéter le snapshot complet en schéma privé selon [le contrat canonique](../architecture/legacy-migration-v1.md). Le pilote Kichnifou R916–R926 reste une étape historique, sans import public.
+28. **Migration foundation / rehearsal** — bâtir les modèles et mappings globaux, couvrir les 17 sources, résoudre les identités Twitch, produire un plan de purge et répéter le snapshot complet en schéma privé selon [le contrat canonique](../architecture/legacy-migration-v1.md). Le premier import public du seul pilote Kichnifou a réussi ; il ne constitue pas le cutover global.
 29. **Migration finale / cutover — mission distincte** — capturer le snapshot final, refaire couverture/résolution/répétition, valider le plan et suivre le [runbook](../process/legacy-cutover-runbook.md) avant toute purge/import de Players publics. Streamer.bot reste autoritatif jusque-là.
 30. **Validation finale V1** — exécuter la recette publique finale et clôturer les écarts restants.
 

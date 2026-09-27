@@ -2,7 +2,7 @@
 
 > **Supplanté pour le cutover global par [Migration legacy V1](legacy-migration-v1.md).** Cette matrice décrit le pilote temporaire R916–R926, désormais aligné sur les faits personnels du contrat global R927–R938. Utiliser le contrat canonique et le [runbook](../process/legacy-cutover-runbook.md) pour toute préparation de cutover.
 
-Cette matrice décrit le pilote R916–R926 et le dry-run du snapshot local figé du 26 septembre 2026, hash `1852d7141a121c335c5928a8265c20e840e5c5dd20ccee12b054b99f780806ba`. Le dossier source Streamer.bot reste en lecture seule et autoritatif jusqu'au cutover ; ses modifications après la copie n'invalident pas la copie. Aucun import du Player public n'a été exécuté. Les audits propriétaires, du [XP](../legacy/04-xp-audit.md) au [Giveaway](../legacy/21-giveaway-wish-audit.md), restent les références de chaque domaine.
+Cette matrice décrit le pilote R916–R926 et le snapshot local figé du 26 septembre 2026, hash `1852d7141a121c335c5928a8265c20e840e5c5dd20ccee12b054b99f780806ba`. Le premier import pilote Kichnifou a ensuite été exécuté publiquement : un MigrationRun `COMPLETED`, 15 domaines personnels importés, dix globaux différés, zéro anomalie. Le dossier source Streamer.bot reste en lecture seule et autoritatif jusqu'au cutover ; ses modifications après la copie n'invalident pas la copie. Aucun cutover global n'a été exécuté. Les audits propriétaires, du [XP](../legacy/04-xp-audit.md) au [Giveaway](../legacy/21-giveaway-wish-audit.md), restent les références de chaque domaine.
 
 | Domaine | Source legacy | Cible et règle du pilote | Catégorie |
 | --- | --- | --- | --- |
