@@ -45,6 +45,7 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
   const [normal, setNormal] = useState<readonly DirectConversationDto[]>([])
   const [archived, setArchived] = useState<readonly DirectConversationDto[]>([])
   const [messages, setMessages] = useState<readonly DirectMessageDto[]>([])
+  const [otherTypingUntil, setOtherTypingUntil] = useState<string | null>(null)
   const [cursor, setCursor] = useState<DirectMessagePageDto['nextCursor']>(null)
   const [listLoaded, setListLoaded] = useState(false), [messagesLoaded, setMessagesLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null), [pending, setPending] = useState(false)
@@ -106,6 +107,7 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
       for (const overlay of mutationOverlays.current.values()) projected = applyDirectMessageProjection(projected, overlay.message)
       const nextMessages = cached?.fetched ? mergeDirectMessages(cached.messages, projected) : durableOrder(projected)
       publishMessages(id, { messages: nextMessages, cursor: cached?.fetched ? cached.cursor : page.nextCursor, fetched: true })
+      setOtherTypingUntil(page.otherTypingUntil ?? null)
       setError(null)
     } catch (reason) { if (revision === messageRevision.current && selectedRef.current === id) setError(reason instanceof Error ? reason.message : 'Conversation indisponible.') }
     finally { messageBusy.current.delete(id) }
@@ -134,11 +136,13 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
     listRevision.current++; messageRevision.current++
     normalRef.current = []; archivedRef.current = []; messagesRef.current = []; caches.current.clear(); mutationOverlays.current.clear(); deletedContent.current.clear(); selectedRef.current = null
     // oxlint-disable-next-line react/set-state-in-effect -- an authenticated Player change owns a complete cache reset
-    setNormal([]); setArchived([]); setMessages([]); setCursor(null); setListLoaded(false); setMessagesLoaded(false); setError(null); setPending(false); adoptUnread(0)
+    setNormal([]); setArchived([]); setMessages([]); setOtherTypingUntil(null); setCursor(null); setListLoaded(false); setMessagesLoaded(false); setError(null); setPending(false); adoptUnread(0)
   }, [adoptUnread, playerId])
 
   useLayoutEffect(() => {
     messageRevision.current++; selectedRef.current = conversationId
+    // oxlint-disable-next-line react/set-state-in-effect -- a thread switch must never display another thread's ephemeral typing state
+    setOtherTypingUntil(null)
     // oxlint-disable-next-line react/set-state-in-effect -- a thread switch clears obsolete request feedback before paint
     setError(null)
     // oxlint-disable-next-line react/set-state-in-effect -- an empty route must not retain the previous thread snapshot
@@ -153,28 +157,33 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
   }, [conversationId, playerId, refreshMessages])
 
   useEffect(() => {
-    let stopped = false, busy = false, timer: number | undefined, lastListAt = 0
-    const cadence = () => active ? (selectedRef.current ? 500 : 1_250) : 5_000
+    let stopped = false, busy = false, rerunRequested = false, timer: number | undefined, lastListAt = 0
+    const cadence = () => document.hidden ? 5_000 : active ? (selectedRef.current ? 500 : 1_250) : 5_000
     const tick = async () => {
-      if (stopped || busy || document.hidden) return
+      if (stopped || busy) return
       busy = true
       try {
-        if (!active) await refreshUnread()
+        if (document.hidden || !active) await refreshUnread()
         else if (selectedRef.current) {
           const now = Date.now()
           const includeArchived = archivesRequested || archivedRef.current.some(item => item.id === selectedRef.current)
           const jobs: Promise<unknown>[] = [refreshMessages(selectedRef.current)]
-          if (now - lastListAt >= 1_250) { lastListAt = now; jobs.push(refreshLists(includeArchived)) }
+          const refreshList = now - lastListAt >= 1_250
+          if (refreshList) { lastListAt = now; jobs.push(refreshLists(includeArchived)) }
           await Promise.all(jobs)
-        } else await refreshLists(archivesRequested)
+          if (refreshList) await refreshUnread()
+        } else { await refreshLists(archivesRequested); await refreshUnread() }
       } finally { busy = false }
     }
     const runAndSchedule = async () => {
       const startedAt = performance.now()
-      await tick()
-      if (!stopped && !document.hidden) timer = window.setTimeout(runAndSchedule, Math.max(0, cadence() - (performance.now() - startedAt)))
+      try { await tick() } catch { /* Unread is best effort; keep the single polling loop alive. */ }
+      if (!stopped) {
+        if (rerunRequested) { rerunRequested = false; void runAndSchedule() }
+        else timer = window.setTimeout(runAndSchedule, Math.max(0, cadence() - (performance.now() - startedAt)))
+      }
     }
-    const visible = () => { window.clearTimeout(timer); if (!document.hidden) void runAndSchedule() }
+    const visible = () => { window.clearTimeout(timer); if (busy) rerunRequested = true; else void runAndSchedule() }
     void runAndSchedule()
     window.addEventListener('focus', visible); document.addEventListener('visibilitychange', visible)
     return () => { stopped = true; window.clearTimeout(timer); window.removeEventListener('focus', visible); document.removeEventListener('visibilitychange', visible) }
@@ -303,7 +312,7 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
 
   const selected = useMemo(() => [...normal, ...archived].find(conversation => conversation.id === conversationId) ?? null, [archived, conversationId, normal])
   return {
-    normal, archived, messages, cursor, selected, listLoaded, messagesLoaded, error, pending,
+    normal, archived, messages, otherTypingUntil, cursor, selected, listLoaded, messagesLoaded, error, pending,
     clearError: () => setError(null), refreshLists, refreshMessages, refreshUnread, loadOlder, openTarget, markConversationSeen,
     send,
     editMessage: (id: string, messageId: string, content: string, key: string) => mutateMessage(id, messageId, key, message => ({ ...message, content, editedAt: new Date().toISOString(), deletedAt: null }), () => api.edit(id, messageId, content, key)),

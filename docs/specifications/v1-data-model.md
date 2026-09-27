@@ -1403,6 +1403,7 @@ Participants et états personnels :
 - curseur de lecture partagé distinct et réglage d'accusé
 - positions `lastReadSubmissionOrder` et `lastSharedReadSubmissionOrder`, autorités monotones des deux curseurs
 - instant réel du dernier avancement partagé, distinct de la création du message
+- `typingUntil` nullable, TTL éphémère de présence de saisie (migration 054), sans conservation historique ni effet métier
 
 L'état physique courant est porté par les migrations additives 036–039. Le timestamp partagé ne progresse qu'avec le curseur et les accusés activés ; OFF puis ON ne divulgue pas rétroactivement les lectures privées. Les positions de réception 039, et non les timestamps, gouvernent leur monotonie. Le blocage archive les deux états participant, tandis que le déblocage de l'acteur ne restaure ni amitié ni archive.
 

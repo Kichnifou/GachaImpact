@@ -834,7 +834,7 @@ export type DirectConversationDto = Readonly<{
   blockedByMe: boolean
 }>
 export type DirectConversationListDto = Readonly<{ conversations: readonly DirectConversationDto[] }>
-export type DirectMessagePageDto = Readonly<{ messages: readonly DirectMessageDto[]; nextCursor: Readonly<{ createdAt: string; id: string }> | null; windowSize: number }>
+export type DirectMessagePageDto = Readonly<{ messages: readonly DirectMessageDto[]; nextCursor: Readonly<{ createdAt: string; id: string }> | null; windowSize: number; otherTypingUntil?: string | null }>
 export type DirectMessageHistoryMessageDto = DirectMessageDto & Readonly<{ canRestore: boolean }>
 export type DirectMessageHistoryPageDto = Readonly<{ messages: readonly DirectMessageHistoryMessageDto[]; olderCursor: string | null; newerCursor: string | null }>
 export type DirectMessageHistorySearchDto = Readonly<{ results: readonly DirectMessageHistoryMessageDto[]; nextCursor: string | null }>

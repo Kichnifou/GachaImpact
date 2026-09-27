@@ -10,7 +10,7 @@ const chat = vi.hoisted(() => ({
   messages: vi.fn(), unread: vi.fn(), read: vi.fn(), send: vi.fn(), remove: vi.fn(), mentions: vi.fn(), report: vi.fn(),
 }))
 const directMessages = vi.hoisted(() => ({
-  players: vi.fn(), list: vi.fn(), unread: vi.fn(), messages: vi.fn(), initiate: vi.fn(), send: vi.fn(), edit: vi.fn(), remove: vi.fn(), restore: vi.fn(), accept: vi.fn(), ignore: vi.fn(), block: vi.fn(), unblock: vi.fn(), read: vi.fn(), receipts: vi.fn(), archive: vi.fn(),
+  players: vi.fn(), list: vi.fn(), unread: vi.fn(), messages: vi.fn(), typing: vi.fn(), initiate: vi.fn(), send: vi.fn(), edit: vi.fn(), remove: vi.fn(), restore: vi.fn(), accept: vi.fn(), ignore: vi.fn(), block: vi.fn(), unblock: vi.fn(), read: vi.fn(), receipts: vi.fn(), archive: vi.fn(),
 }))
 const social = vi.hoisted(() => ({ directory: vi.fn() }))
 vi.mock('../api/game-api', () => ({
@@ -783,6 +783,30 @@ describe('ChatPanel réel', () => {
       expect(chat.messages).toHaveBeenCalledTimes(afterUnmount)
       expect(container.isConnected).toBe(true)
     } finally { vi.useRealTimers(); Object.defineProperty(document, 'hidden', { configurable: true, value: false }) }
+  })
+
+  it('updates the browser title from lightweight MP unread polling while hidden', async () => {
+    const descriptor = Object.getOwnPropertyDescriptor(document, 'hidden')
+    Object.defineProperty(document, 'hidden', { configurable: true, value: true })
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] })
+    try {
+      await mount(true)
+      const listCount = directMessages.list.mock.calls.length
+      const messagesCount = directMessages.messages.mock.calls.length
+      directMessages.unread.mockResolvedValue({ unreadCount: 1, conversations: [] })
+      await act(async () => { await vi.advanceTimersByTimeAsync(5_000) })
+      expect(directMessages.unread.mock.calls.length).toBeGreaterThan(1)
+      expect(directMessages.list).toHaveBeenCalledTimes(listCount)
+      expect(directMessages.messages).toHaveBeenCalledTimes(messagesCount)
+      expect(document.title).toBe('Vous avez 1 nouveau message !')
+      directMessages.unread.mockResolvedValue({ unreadCount: 0, conversations: [] })
+      await act(async () => { await vi.advanceTimersByTimeAsync(5_000) })
+      expect(document.title).toBe('GachaImpact')
+    } finally {
+      vi.useRealTimers()
+      if (descriptor) Object.defineProperty(document, 'hidden', descriptor)
+      else Reflect.deleteProperty(document, 'hidden')
+    }
   })
 
   it('reconciles a concurrent polling result with the optimistic row without a duplicate', async () => {

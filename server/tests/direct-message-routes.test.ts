@@ -16,7 +16,7 @@ const service = {
   searchPlayers: vi.fn(async () => ({ players: [] })),
   list: vi.fn(async () => ({ conversations: [] })), unread: vi.fn(async () => ({ unreadCount: 0, conversations: [] })),
   initiate: vi.fn(async () => ({ conversationId, messageId, requestId, state: 'PENDING' })),
-  messages: vi.fn(async () => ({ messages: [], nextCursor: null, windowSize: 0 })), send: vi.fn(async () => ({ conversationId, messageId })),
+  messages: vi.fn(async () => ({ messages: [], nextCursor: null, windowSize: 0 })), send: vi.fn(async () => ({ conversationId, messageId })), setTyping: vi.fn(async (_identity: unknown, _id: string, typing: boolean) => ({ conversationId, typingUntil: typing ? '2026-09-27T23:00:04.000Z' : null })),
   history: vi.fn(async () => ({ messages: [], olderCursor: null, newerCursor: null })),
   searchHistory: vi.fn(async () => ({ results: [], nextCursor: null })),
   historyDate: vi.fn(async () => ({ anchor: null })),
@@ -36,6 +36,22 @@ async function app(enabled = true) {
 afterEach(async () => { vi.clearAllMocks(); await Promise.all(apps.splice(0).map(item => item.close())); });
 
 describe('authenticated direct-message routes', () => {
+  it('accepts only authenticated boolean typing for the addressed conversation', async () => {
+    const enabled = await app();
+    const url = `/api/v1/me/direct-conversations/${conversationId}/typing`;
+    expect((await enabled.inject({ method: 'POST', url, payload: { typing: true } })).statusCode).toBe(401);
+    const started = await enabled.inject({ method: 'POST', url, headers: token, payload: { typing: true } });
+    expect(started.statusCode).toBe(200);
+    expect(started.headers['cache-control']).toBe('no-store');
+    expect(service.setTyping).toHaveBeenCalledWith(identity, conversationId, true);
+    const stopped = await enabled.inject({ method: 'POST', url, headers: token, payload: { typing: false } });
+    expect(stopped.statusCode).toBe(200);
+    expect(service.setTyping).toHaveBeenCalledWith(identity, conversationId, false);
+    for (const payload of [{ typing: 'true' }, { typing: true, playerId: targetId }, {}]) {
+      expect((await enabled.inject({ method: 'POST', url, headers: token, payload })).statusCode).toBe(400);
+    }
+    expect((await enabled.inject({ method: 'POST', url: '/api/v1/me/direct-conversations/not-a-uuid/typing', headers: token, payload: { typing: true } })).statusCode).toBe(400);
+  });
   it('registers only with the service, requires auth and keeps responses private', async () => {
     expect((await (await app(false)).inject({ method: 'GET', url: '/api/v1/me/direct-conversations', headers: token })).statusCode).toBe(404);
     const enabled = await app();

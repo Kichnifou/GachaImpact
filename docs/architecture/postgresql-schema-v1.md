@@ -1890,7 +1890,7 @@ La migration additive `20260926130000_048_unlock_owned_character_avatars` ajoute
 
 # 26. Messages privés
 
-État physique courant : les migrations 036–039 matérialisent conversations, participants, demandes, messages, lecture partagée et ordre serveur. La 040 ajoute la preuve de signalement MP et la migration additive `20260925100000_043_add_direct_message_replies` ajoute l'auto-référence nullable de R898, sans backfill. DEV suit **43 migrations Prisma** appliquées. Les cinq tables ont RLS active, aucune policy navigateur et aucun droit `PUBLIC`/`anon`/`authenticated`. R515 reste sans DDL ; R509/R510/R517 et R898 conservent la frontière privée et la preuve serveur jusqu'à 10/cible/10 messages.
+État physique du domaine : les migrations 036–039 matérialisent conversations, participants, demandes, messages, lecture partagée et ordre serveur. La 040 ajoute la preuve de signalement MP et `20260925100000_043_add_direct_message_replies` ajoute l'auto-référence nullable de R898, sans backfill. La migration additive `20260927230000_054_add_direct_message_typing_state` ajoute seulement `typing_until` nullable au participant, sans modifier les données MP historiques ; elle est appliquée sur DEV, désormais à 54 migrations. Les cinq tables conservent RLS active, aucune policy navigateur et aucun droit `PUBLIC`/`anon`/`authenticated`. R515 reste sans DDL ; R509/R510/R517 et R898 conservent la frontière privée et la preuve serveur jusqu'à 10/cible/10 messages.
 
 ## 26.1 `direct_conversations`
 
@@ -1915,6 +1915,7 @@ Colonnes :
 - `player_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE`
 - `joined_at timestamptz NOT NULL DEFAULT now()`
 - `archived_at timestamptz NULL`
+- `typing_until timestamptz NULL` (migration 054 ; TTL éphémère, jamais un historique)
 - `last_read_message_id uuid NULL`
 - `last_read_created_at timestamptz NULL`
 - `last_read_submission_order bigint NULL`

@@ -238,7 +238,9 @@ export default function DirectMessagePanel({
       null,
     ),
     reportFeedbackTimer = useRef<number | null>(null),
-    reportFeedbackRevision = useRef(0);
+    reportFeedbackRevision = useRef(0),
+    typingConversation = useRef<string | null>(null),
+    lastTypingHeartbeatAt = useRef(0);
   viewRef.current = view;
   selectedIdRef.current = selectedId;
   targetIdRef.current = target?.id ?? null;
@@ -305,6 +307,24 @@ export default function DirectMessagePanel({
     ? [...model.messages, ...history.messages].find((message) => message.id === replyTarget.id) ?? replyTarget
     : null;
 
+  const stopTyping = () => {
+    const id = typingConversation.current;
+    typingConversation.current = null;
+    lastTypingHeartbeatAt.current = 0;
+    if (id) void getGameApiClient().directMessages.typing(id, false).catch(() => undefined);
+  };
+  const signalTyping = (value: string) => {
+    if (!value.trim()) { stopTyping(); return }
+    if (!selectedId || !selected?.canSend || selected.archived || view !== "conversation" || !isActive || document.hidden || document.activeElement !== composer.current) return;
+    if (typingConversation.current && typingConversation.current !== selectedId) stopTyping();
+    const at = Date.now();
+    if (typingConversation.current === selectedId && at - lastTypingHeartbeatAt.current < 2_000) return;
+    typingConversation.current = selectedId;
+    lastTypingHeartbeatAt.current = at;
+    void getGameApiClient().directMessages.typing(selectedId, true).catch(() => undefined);
+  };
+  const otherTyping = Boolean(selected && !selected.archived && model.otherTypingUntil && Date.parse(model.otherTypingUntil) > Date.now());
+
   const clearReply = () => {
     replyRevision.current += 1;
     setReplyTarget(null);
@@ -317,6 +337,7 @@ export default function DirectMessagePanel({
     });
   };
   const leaveComposerSession = () => {
+    stopTyping();
     if (queuedSendRef.current) {
       rememberFailed(queuedSendRef.current, queuedSendRef.current.destination);
       queuedSendRef.current = null;
@@ -336,6 +357,7 @@ export default function DirectMessagePanel({
     draftRevision.current += 1;
     setDraft(value);
   };
+  const typeDraft = (value: string) => { if (value === draft) return; changeDraft(value); signalTyping(value) };
   const recoverSend = (destination: string) => {
     const failed = failedSends[destination]?.[0];
     if (!failed) return;
@@ -492,6 +514,20 @@ export default function DirectMessagePanel({
     const timer = window.setInterval(() => setNow(Date.now()), 60_000);
     return () => window.clearInterval(timer);
   }, []);
+  useEffect(() => {
+    if (typingConversation.current && (typingConversation.current !== selectedId || view !== "conversation" || !isActive || !selected?.canSend || selected.archived)) stopTyping();
+  }, [selectedId, view, isActive, selected?.canSend, selected?.archived, playerId]);
+  useEffect(() => {
+    if (!model.otherTypingUntil) return;
+    const delay = Math.max(0, Date.parse(model.otherTypingUntil) - Date.now()) + 20;
+    const timer = window.setTimeout(() => setNow(Date.now()), delay);
+    return () => window.clearTimeout(timer);
+  }, [model.otherTypingUntil]);
+  useEffect(() => () => {
+    const id = typingConversation.current;
+    typingConversation.current = null;
+    if (id) void getGameApiClient().directMessages.typing(id, false).catch(() => undefined);
+  }, [playerId]);
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect -- leaving or clearing the search immediately clears obsolete suggestions
     if (view !== "new" || target || !search.trim()) {
@@ -932,6 +968,7 @@ export default function DirectMessagePanel({
     event.preventDefault();
     const content = draft.trim();
     if (!content || Array.from(content).length > 1_000 || queuedSendRef.current || (!selectedId && sendBusy.current)) return;
+    stopTyping();
     const reply = selectedId ? currentReplyTarget : null;
     const signature = `${selectedId ?? target?.id}:${content}:${reply?.id ?? ""}`;
     if (intentRef.current?.signature !== signature) intentRef.current = { signature, key: crypto.randomUUID() };
@@ -1646,6 +1683,7 @@ export default function DirectMessagePanel({
             replyAuthorName=""
             onCancelReply={() => undefined}
             onComposerFocus={() => { composerFocusEligible.current = true; }}
+            onComposerBlur={() => undefined}
             onSendPointerDown={() => { composerFocusEligible.current = document.activeElement === composer.current; }}
             failedSend={target ? (failedSends[`target:${target.id}`]?.length ?? 0) > 0 : false}
             onRecover={() => { if (target) recoverSend(`target:${target.id}`); }}
@@ -1960,27 +1998,14 @@ export default function DirectMessagePanel({
           {newCount > 1 ? "s" : ""} ↓
         </button>
       )}
-      {latestOwn && !latestOwn.deletedAt && (
-        <small
-          className="dm-latest-status"
-          title={
-            latestOwn.readByOtherAt
-              ? new Date(latestOwn.readByOtherAt).toLocaleString("fr-FR")
-              : undefined
-          }
-        >
-          {latestOwn.id.startsWith("optimistic:")
-            ? "Envoi..."
-            : latestOwn.readByOther
-              ? directMessageReceiptLabel(latestOwn.readByOtherAt, now)
-              : "Envoyé"}
-        </small>
-      )}
+      <small className="dm-latest-status" aria-live="polite" title={!otherTyping && latestOwn && !latestOwn.deletedAt && latestOwn.readByOtherAt ? new Date(latestOwn.readByOtherAt).toLocaleString("fr-FR") : undefined}>
+        {otherTyping ? `${selected?.other.displayName} est en train d’écrire…` : latestOwn && !latestOwn.deletedAt ? latestOwn.id.startsWith("optimistic:") ? "Envoi..." : latestOwn.readByOther ? directMessageReceiptLabel(latestOwn.readByOtherAt, now) : "Envoyé" : null}
+      </small>
       {provisional?.state === "SENDING" ? null : selected &&
         incomingPending ? null : selected?.canSend ? (
         <Composer
           draft={draft}
-          setDraft={changeDraft}
+          setDraft={typeDraft}
           pending={queuedSend !== null}
           queued={queuedSend !== null}
           error={model.error}
@@ -1991,6 +2016,7 @@ export default function DirectMessagePanel({
           replyAuthorName={currentReplyTarget?.own ? "Vous" : other?.displayName ?? ""}
           onCancelReply={() => { clearReply(); focusComposerAtEnd(); }}
           onComposerFocus={() => { composerFocusEligible.current = true; }}
+          onComposerBlur={stopTyping}
           onSendPointerDown={() => { composerFocusEligible.current = document.activeElement === composer.current; }}
           failedSend={selectedId ? (failedSends[selectedId]?.length ?? 0) > 0 : false}
           onRecover={() => { if (selectedId) recoverSend(selectedId); }}
@@ -2018,6 +2044,7 @@ function Composer({
   replyAuthorName,
   onCancelReply,
   onComposerFocus,
+  onComposerBlur,
   onSendPointerDown,
   failedSend,
   onRecover,
@@ -2034,6 +2061,7 @@ function Composer({
   replyAuthorName: string;
   onCancelReply: () => void;
   onComposerFocus: () => void;
+  onComposerBlur: () => void;
   onSendPointerDown: () => void;
   failedSend: boolean;
   onRecover: () => void;
@@ -2072,6 +2100,7 @@ function Composer({
           disabled={pending}
           placeholder="Écrire un message privé…"
           onFocus={onComposerFocus}
+          onBlur={onComposerBlur}
           onChange={(event) =>
             setDraft(Array.from(event.target.value).slice(0, 1000).join(""))
           }

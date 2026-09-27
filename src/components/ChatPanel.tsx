@@ -3,6 +3,7 @@ import { ApiError, getGameApiClient } from '../api/game-api'
 import type { ChatMentionDto, ChatMessageDto, ChatRefreshScope, DirectMessagePlayerDto } from '../api/types'
 import { elementColors } from '../utils/elementTheme'
 import DirectMessagePanel, { type DirectMessageOpenIntent } from './DirectMessagePanel'
+import { useDirectMessageDocumentTitle } from '../direct-messages/use-direct-message-document-title'
 import PlayerAvatar from './PlayerAvatar'
 
 type Props = { playerId: string; playerDisplayName?: string; playerElementKey?: string | null; playerAvatarAssetPath?: string | null; connectedCount?: number | null; isCollapsed: boolean; onToggle: () => void; onOpenPlayers: () => void; onOpenProfile: (id: string) => void; onRefreshScopes: (scopes: readonly ChatRefreshScope[]) => Promise<void>; directMessageIntent?: DirectMessageOpenIntent | null; onDirectMessageIntentConsumed?: (token: string) => void }
@@ -117,6 +118,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const api = getGameApiClient().chat
   const [activeTab, setActiveTab] = useState<'chat' | 'direct'>('chat')
   const [directUnread, setDirectUnread] = useState(0)
+  useDirectMessageDocumentTitle(directUnread, playerId)
   const [localDirectIntent, setLocalDirectIntent] = useState<DirectMessageOpenIntent | null>(null)
   const [directResetToken, setDirectResetToken] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessageDto[]>([])

@@ -16,6 +16,7 @@ const forbidden = () => new AppError('Ce message ne peut pas être envoyé.', 40
 const conflict = () => new AppError('Cette clé appartient à une autre action.', 409, 'DIRECT_MESSAGE_IDEMPOTENCY_CONFLICT');
 const rateLimited = () => new AppError('Trop de messages envoyés. Réessayez dans quelques secondes.', 429, 'DIRECT_MESSAGE_RATE_LIMIT');
 const RESTORABLE_MESSAGE_WINDOW = 500;
+const TYPING_TTL_MS = 4_000;
 const pair = (a: string, b: string) => { const values = [a, b].sort(); return { playerAId: values[0]!, playerBId: values[1]! }; };
 export type DirectCursor = { createdAt: string; id: string };
 export type DirectHistoryCursor = { beforeOrder?: string; afterOrder?: string; aroundOrder?: string };
@@ -476,8 +477,32 @@ export class DirectMessageService {
       offset = index + 1;
     }
     const page = recent.slice(offset, offset + limit), last = page.at(-1);
-    const otherState = await this.database.directConversationParticipant.findUniqueOrThrow({ where: { conversationId_playerId: { conversationId, playerId: this.other(conversation, actor.id) } }, select: { lastSharedReadSubmissionOrder: true, lastSharedReadAt: true } });
-    return { messages: page.reverse().map(row => this.projectMessage(row, actor.id, otherState)), nextCursor: offset + limit < recent.length && last ? { id: last.id, createdAt: last.createdAt.toISOString() } : null, windowSize: recent.length };
+    const otherId = this.other(conversation, actor.id);
+    const otherState = await this.database.directConversationParticipant.findUniqueOrThrow({ where: { conversationId_playerId: { conversationId, playerId: otherId } }, select: { lastSharedReadSubmissionOrder: true, lastSharedReadAt: true, typingUntil: true, archivedAt: true } });
+    let otherTypingUntil: string | null = null;
+    if (otherState.typingUntil && otherState.typingUntil > this.clock.now() && !otherState.archivedAt) {
+      const access = await this.contactAccess(this.database, otherId, actor.id);
+      const latestRequest = await this.database.directConversationRequest.findFirst({ where: { conversationId }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
+      if (access.allowed && latestRequest?.state !== 'PENDING' && (latestRequest?.state !== 'REFUSED' || access.friends)) otherTypingUntil = otherState.typingUntil.toISOString();
+    }
+    return { messages: page.reverse().map(row => this.projectMessage(row, actor.id, otherState)), nextCursor: offset + limit < recent.length && last ? { id: last.id, createdAt: last.createdAt.toISOString() } : null, windowSize: recent.length, otherTypingUntil };
+  }
+
+  async setTyping(identity: AuthenticatedIdentity, conversationId: string, typing: boolean) {
+    const actor = await this.actor(identity);
+    return this.database.$transaction(async tx => {
+      const conversation = await this.requireConversation(tx, conversationId, actor.id);
+      if (typing) {
+        const participant = await tx.directConversationParticipant.findUniqueOrThrow({ where: { conversationId_playerId: { conversationId, playerId: actor.id } }, select: { archivedAt: true } });
+        if (participant.archivedAt) throw forbidden();
+        const access = await this.permission(tx, actor.id, this.other(conversation, actor.id));
+        const latestRequest = await tx.directConversationRequest.findFirst({ where: { conversationId }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
+        if (latestRequest?.state === 'PENDING' || latestRequest?.state === 'REFUSED' && !access.friends) throw forbidden();
+      }
+      const until = typing ? new Date(this.clock.now().getTime() + TYPING_TTL_MS) : null;
+      await tx.directConversationParticipant.update({ where: { conversationId_playerId: { conversationId, playerId: actor.id } }, data: { typingUntil: until } });
+      return { conversationId, typingUntil: until?.toISOString() ?? null };
+    });
   }
 
   async unread(identity: AuthenticatedIdentity) {

@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DirectConversationDto, DirectMessageDto, DirectMessageMutationDto, DirectMessageReportPreviewDto } from '../api/types'
 
 const directMessages = vi.hoisted(() => ({
-  players: vi.fn(), list: vi.fn(), unread: vi.fn(), messages: vi.fn(), history: vi.fn(), historySearch: vi.fn(), historyDate: vi.fn(), initiate: vi.fn(), send: vi.fn(), edit: vi.fn(), remove: vi.fn(), restore: vi.fn(), accept: vi.fn(), ignore: vi.fn(), block: vi.fn(), unblock: vi.fn(), read: vi.fn(), receipts: vi.fn(), archive: vi.fn(), reportPreview: vi.fn(), report: vi.fn(),
+  players: vi.fn(), list: vi.fn(), unread: vi.fn(), messages: vi.fn(), typing: vi.fn(), history: vi.fn(), historySearch: vi.fn(), historyDate: vi.fn(), initiate: vi.fn(), send: vi.fn(), edit: vi.fn(), remove: vi.fn(), restore: vi.fn(), accept: vi.fn(), ignore: vi.fn(), block: vi.fn(), unblock: vi.fn(), read: vi.fn(), receipts: vi.fn(), archive: vi.fn(), reportPreview: vi.fn(), report: vi.fn(),
 }))
 const social = vi.hoisted(() => ({ directory: vi.fn() }))
 vi.mock('../api/game-api', () => ({
@@ -57,6 +57,7 @@ beforeEach(() => {
   directMessages.unread.mockResolvedValue({ unreadCount: 0, conversations: [] })
   directMessages.players.mockResolvedValue({ players: [] })
   directMessages.messages.mockResolvedValue({ messages: [message], nextCursor: null, windowSize: 1 })
+  directMessages.typing.mockResolvedValue({ conversationId, typingUntil: null })
   directMessages.history.mockResolvedValue({ messages: [{ ...message, canRestore: false }], olderCursor: null, newerCursor: null })
   directMessages.historySearch.mockResolvedValue({ results: [], nextCursor: null })
   directMessages.historyDate.mockResolvedValue({ anchor: { messageId, submissionOrder: message.submissionOrder, createdAt: message.createdAt } })
@@ -79,6 +80,96 @@ beforeEach(() => {
 afterEach(() => { vi.restoreAllMocks(); act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren() })
 
 describe('DirectMessagePanel', () => {
+  it('signals real typing activity at most every two seconds and stops on clear, blur, send and leave', async () => {
+    const container = await mount()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-conversation-row')!.click() }); await settle()
+    const input = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    let now = 1_000_000
+    vi.spyOn(Date, 'now').mockImplementation(() => now)
+    const write = async (value: string) => act(async () => {
+      input.focus()
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await write('a')
+    expect(directMessages.typing).toHaveBeenCalledWith(conversationId, true)
+    expect(directMessages.typing).toHaveBeenCalledTimes(1)
+    now += 1_999; await write('ab')
+    expect(directMessages.typing).toHaveBeenCalledTimes(1)
+    now += 1; await write('abc')
+    expect(directMessages.typing).toHaveBeenCalledTimes(2)
+    await write('')
+    expect(directMessages.typing).toHaveBeenLastCalledWith(conversationId, false)
+    now += 2_000; await write('d')
+    await act(async () => { input.blur() })
+    expect(directMessages.typing).toHaveBeenLastCalledWith(conversationId, false)
+    now += 2_000; await write('de')
+    await act(async () => { input.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    expect(directMessages.typing).toHaveBeenLastCalledWith(conversationId, false)
+    now += 2_000; await write('f')
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-back')!.click() })
+    expect(directMessages.typing).toHaveBeenLastCalledWith(conversationId, false)
+  })
+
+  it('stops typing when the MP pane closes or the authenticated Player changes', async () => {
+    const container = await mount()
+    const root = roots.at(-1)!
+    const render = (playerId: string, active: boolean) => root.render(<DirectMessagePanel playerId={playerId} isActive={active} intent={null} onIntentConsumed={intentConsumed} onUnreadChange={unreadChanged} onOpenProfile={openProfile} />)
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-conversation-row')!.click() }); await settle()
+    const write = async (value: string) => act(async () => {
+      const input = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+      input.focus()
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await write('a')
+    expect(directMessages.typing).toHaveBeenLastCalledWith(conversationId, true)
+    await act(async () => { render(ownId, false) })
+    expect(directMessages.typing).toHaveBeenLastCalledWith(conversationId, false)
+    await act(async () => { render(ownId, true) })
+    await write('ab')
+    expect(directMessages.typing).toHaveBeenLastCalledWith(conversationId, true)
+    await act(async () => { render(otherId, true) })
+    expect(directMessages.typing).toHaveBeenLastCalledWith(conversationId, false)
+  })
+
+  it('replaces the receipt with the other participant typing, then restores it after TTL', async () => {
+    const own = { ...message, own: true, authorPlayerId: ownId, readByOther: false }
+    directMessages.messages.mockResolvedValue({ messages: [own], nextCursor: null, windowSize: 1, otherTypingUntil: new Date(Date.now() + 120).toISOString() })
+    const container = await mount({ ...baseConversation, lastMessage: own })
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-conversation-row')!.click() }); await settle()
+    const status = container.querySelector<HTMLElement>('.dm-latest-status')!
+    expect(status.textContent).toBe('Aster est en train d’écrire…')
+    expect(appCss).toContain('.dm-latest-status { align-self: flex-end; min-height: 16px;')
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 150)) })
+    expect(status.textContent).toBe('Envoyé')
+  })
+
+  it('polls only unread while hidden and refreshes the full view on visibility return', async () => {
+    const container = await mount()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-conversation-row')!.click() }); await settle()
+    directMessages.list.mockClear(); directMessages.messages.mockClear(); directMessages.unread.mockClear()
+    const original = Object.getOwnPropertyDescriptor(document, 'hidden')
+    Object.defineProperty(document, 'hidden', { configurable: true, value: true })
+    vi.useFakeTimers()
+    try {
+      await act(async () => { document.dispatchEvent(new Event('visibilitychange')); await Promise.resolve() })
+      expect(directMessages.unread).toHaveBeenCalled()
+      expect(directMessages.list).not.toHaveBeenCalled()
+      expect(directMessages.messages).not.toHaveBeenCalled()
+      const count = directMessages.unread.mock.calls.length
+      await act(async () => { await vi.advanceTimersByTimeAsync(5_100) })
+      expect(directMessages.unread.mock.calls.length).toBeGreaterThan(count)
+      expect(directMessages.messages).not.toHaveBeenCalled()
+      Object.defineProperty(document, 'hidden', { configurable: true, value: false })
+      await act(async () => { document.dispatchEvent(new Event('visibilitychange')); await Promise.resolve() })
+      expect(directMessages.messages).toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+      if (original) Object.defineProperty(document, 'hidden', original)
+      else Reflect.deleteProperty(document, 'hidden')
+    }
+  })
   it('uses discreet two-column tabs and no dimmed optimistic bubble style', () => {
     expect(appCss).toContain('.dm-list-tabs { display: grid; grid-template-columns: 1fr 1fr; align-items: end;')
     expect(appCss).toContain('.dm-list-tabs button { text-align: center; }')
@@ -1054,7 +1145,7 @@ describe('DirectMessagePanel', () => {
     await act(async () => { (Array.from(ownRow.querySelectorAll('.dm-message-delete-confirm button')).find(button => button.textContent === 'Confirmer') as HTMLButtonElement).click() }); await settle()
     expect(container.querySelector(`[data-message-id="${messageId}"] .dm-message-bubble p`)?.textContent).toBe('Message supprimé')
     expect(container.querySelectorAll(`[data-message-id="${messageId}"]`)).toHaveLength(1)
-    expect(container.querySelector('.dm-latest-status')).toBeNull()
+    expect(container.querySelector('.dm-latest-status')?.textContent).toBe('')
     await act(async () => { container.querySelector<HTMLButtonElement>('.dm-back')!.click() }); await settle()
     expect(container.querySelector('.dm-conversation-copy small')?.textContent).toBe('Message supprimé')
   })
@@ -1262,7 +1353,7 @@ describe('DirectMessagePanel', () => {
     directMessages.messages.mockResolvedValue({ messages: [own, reply], nextCursor: null, windowSize: 2 })
     const container = await mount()
     await act(async () => { (container.querySelector('.dm-conversation-row') as HTMLButtonElement).click() }); await settle()
-    expect(container.querySelector('.dm-latest-status')).toBeNull()
+    expect(container.querySelector('.dm-latest-status')?.textContent).toBe('')
   })
 
   it('replaces a stale receipt projection with the fresh server object without F5', async () => {
