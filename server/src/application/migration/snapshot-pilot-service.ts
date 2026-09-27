@@ -415,7 +415,8 @@ export class SnapshotPilotService {
     if (!this.previewKey) throw new AppError('Le pilote snapshot n’est pas configuré.', 503, 'SNAPSHOT_UNAVAILABLE');
     const { player, linked, snapshot, viewer } = await this.context(identity, files);
     const previewToken = this.verifyPreviewToken(previewId, player.id, snapshot.hash);
-    const replayResult = (summary: Prisma.JsonValue) => ({ snapshotHash: snapshot.hash, replayed: true, imported: [] as string[],
+    const replayResult = (summary: Prisma.JsonValue) => ({ snapshotHash: snapshot.hash, replayed: true,
+      imported: Array.isArray(record(summary).imported) ? (record(summary).imported as string[]) : [],
       deferred: Array.isArray(record(summary).deferred) ? (record(summary).deferred as string[]) : [] });
     const completed = await this.db.migrationRun.findUnique({ where: { previewId: previewToken.id } });
     if (completed && completed.playerId === player.id && completed.snapshotHash === snapshot.hash && completed.batchId === null)
@@ -434,7 +435,7 @@ export class SnapshotPilotService {
       if (await tx.migrationPreview.findUnique({ where: { id: previewToken.id } }))
         throw new AppError('Cette confirmation a déjà été utilisée.', 409, 'SNAPSHOT_PREVIEW_REQUIRED');
       await tx.migrationPreview.create({ data: { id: previewToken.id, playerId: player.id, snapshotHash: snapshot.hash, expiresAt: previewToken.expiresAt } });
-      await tx.player.update({ where: { id: player.id }, data: { elementKey: report.facts.elementKey,
+      await tx.player.update({ where: { id: player.id }, data: { elementKey: report.facts.elementKey, legacyUsername: viewer.name,
         equippedAvatarCosmeticId: null, equippedTitleCosmeticId: null } });
       await tx.twitchIdentity.update({ where: { playerId: player.id }, data: {
         firstSeenAt: report.facts.firstSeenAt, lastMessageAt: report.facts.lastMessageAt } });
@@ -474,13 +475,13 @@ export class SnapshotPilotService {
       await tx.playerCombatStats.upsert({ where: { playerId: player.id }, create: { playerId: player.id, ...report.combatState }, update: report.combatState });
       await tx.playerCharacterCombatStats.deleteMany({ where: { playerId: player.id } });
       if (report.characterCombatRows.length) await tx.playerCharacterCombatStats.createMany({ data: report.characterCombatRows.map(row => ({ playerId: player.id, ...row })) });
-      const priorMissionState = await tx.playerPermanentMissionState.findUnique({ where: { playerId: player.id }, select: { initializedAt: true } });
-      const missionCutoverAt = new Date(Math.max(Date.now(), (priorMissionState?.initializedAt.getTime() ?? 0) + 1));
-      const zUnlockedAt = report.missionMapping.zUnlockedAt ? missionCutoverAt : null;
+      const missionCutoverAt = new Date();
+      const missionProvenance = { source: 'viewers_data.json.longMissions', snapshotHash: snapshot.hash };
       await tx.playerPermanentMissionState.upsert({ where: { playerId: player.id },
-        create: { playerId: player.id, initializedAt: new Date(missionCutoverAt.getTime() - 1), zUnlockedAt,
-          standaloneCatchupCompletedAt: missionCutoverAt },
-        update: { zUnlockedAt, standaloneCatchupCompletedAt: missionCutoverAt } });
+        create: { playerId: player.id, initializedAt: missionCutoverAt, zUnlockedAt: report.missionMapping.zUnlockedAt,
+          standaloneCatchupCompletedAt: missionCutoverAt, legacyProvenance: missionProvenance },
+        update: { zUnlockedAt: report.missionMapping.zUnlockedAt, standaloneCatchupCompletedAt: missionCutoverAt,
+          legacyProvenance: missionProvenance } });
       await tx.playerPermanentMissionProgress.deleteMany({ where: { playerId: player.id } });
       await tx.playerPermanentMissionProgress.createMany({ data: report.missionMapping.rows.map(row => ({ playerId: player.id, ...row })) });
       await tx.playerDailyChallenge.deleteMany({ where: { playerId: player.id } });
@@ -503,8 +504,12 @@ export class SnapshotPilotService {
         legacyProvenance: { source: 'viewers_data.json', lastWheelDate: report.wheel.lastWheelDate },
       } });
       await tx.playerDailyRewardState.upsert({ where: { playerId: player.id },
-        create: { playerId: player.id, firstClaimDate: null, lastClaimDate: report.wheel.lastDailyRewardDate ? businessDateToDatabaseDate(report.wheel.lastDailyRewardDate) : null },
-        update: { firstClaimDate: null, lastClaimDate: report.wheel.lastDailyRewardDate ? businessDateToDatabaseDate(report.wheel.lastDailyRewardDate) : null, lastClaimedAt: null, lastOperationId: null } });
+        create: { playerId: player.id, firstClaimDate: null, lastClaimDate: report.wheel.lastDailyRewardDate ? businessDateToDatabaseDate(report.wheel.lastDailyRewardDate) : null,
+          lastClaimedAt: null, lastOperationId: null,
+          legacyProvenance: { source: 'viewers_data.json.dates.lastDailyFirstMessageReward', snapshotHash: snapshot.hash } },
+        update: { firstClaimDate: null, lastClaimDate: report.wheel.lastDailyRewardDate ? businessDateToDatabaseDate(report.wheel.lastDailyRewardDate) : null,
+          lastClaimedAt: null, lastOperationId: null,
+          legacyProvenance: { source: 'viewers_data.json.dates.lastDailyFirstMessageReward', snapshotHash: snapshot.hash } } });
       await tx.playerPreference.upsert({ where: { playerId_preferenceKey: { playerId: player.id, preferenceKey: 'box.sort' } },
         create: { playerId: player.id, preferenceKey: 'box.sort', value: report.facts.boxSort },
         update: { value: report.facts.boxSort } });

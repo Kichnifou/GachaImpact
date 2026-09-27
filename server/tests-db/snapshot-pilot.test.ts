@@ -19,7 +19,8 @@ const service = new SnapshotPilotService(db, twitch, 'private-test-preview-secre
 const categories = ['messages', 'pulls', 'characters4', 'characters5', 'morasEarned', 'mainParticlesEarned', 'expeditions', 'combatWins', 'friendHeartsSent'];
 const zKeys = ['c6_5_characters_z', 'perfect_friendship_z', 'level_100_z', 'manual_combat_wins_z'];
 
-function bundle(options: { xp?: number; moras?: number; bank?: number; box?: boolean; stella?: number; favor?: boolean } = {}) {
+function bundle(options: { xp?: number; moras?: number; bank?: number; box?: boolean; stella?: number; favor?: boolean;
+  zAcceptedAt?: string; dailyRewardDate?: string } = {}) {
   const id = Number(characterKey.slice(7));
   const viewer = {
     element: 'Cryo',
@@ -31,13 +32,14 @@ function bundle(options: { xp?: number; moras?: number; bank?: number; box?: boo
     boxFavorites: [], team: [], savedTeams: {},
     dates: { firstSeen: '2026-09-01 10:00:00', lastSeen: '2026-09-26 14:00:00',
       lastMessageTime: '2026-09-25 13:00:00', lastXpDate: '2026-09-25',
-      lastWheelDate: null, lastDailyFirstMessageReward: null },
+      lastWheelDate: null, lastDailyFirstMessageReward: options.dailyRewardDate ?? null },
     options: { boxSort: 'd', boxSortDescending: true },
     favor: options.favor === false ? null : { daysRemaining: 5, obtainedDate: '2026-09-20', lastClaimDate: '2026-09-25' },
     missions: { daily: null },
-    longMissions: { unlockedZ: false, categories: Object.fromEntries(categories.map(key => [key, {
+    longMissions: { unlockedZ: !!options.zAcceptedAt, categories: Object.fromEntries(categories.map(key => [key, {
       progress: 0, active: false, activeRank: '', completedRanks: [], acceptedRanks: [], startedAt: '', baselineValue: 0,
-    }])), z: Object.fromEntries(zKeys.map(key => [key, { active: false, completed: false, progress: 0, acceptedAt: '' }])) },
+    }])), z: Object.fromEntries(zKeys.map((key, index) => [key, { active: false, completed: false, progress: 0,
+      acceptedAt: index === 0 ? options.zAcceptedAt ?? '' : '' }])) },
     combat: { characterWins: {}, characterLosses: {}, lostCharacters: {} },
     expedition: { active: false, lastStartedDate: null },
     coffre: {}, specialItems: { masterlessStellaFortuna: options.stella ?? 0 }, usedCodes: [],
@@ -70,7 +72,7 @@ afterAll(() => isolated.cleanup(), 60_000);
 
 describe('private snapshot pilot transaction', () => {
   it('replaces personal rows, replays the exact confirmation and refreshes the same hash after standalone changes', async () => {
-    const first = bundle();
+    const first = bundle({ zAcceptedAt: '2026-09-20 12:00:00', dailyRewardDate: '2026-09-25' });
     const preview = await service.preview(identity, first);
     expect(await db.migrationPreview.count({ where: { playerId } })).toBe(0);
     expect(preview.domains.filter(domain => domain.category === 'PLAYER_LOCAL_PHYSICAL')).toHaveLength(15);
@@ -81,7 +83,8 @@ describe('private snapshot pilot transaction', () => {
     const applied = await service.apply(identity, first, preview.previewId);
     expect(applied.replayed).toBe(false);
     expect(applied.imported).toContain('Faveur');
-    expect((await db.player.findUniqueOrThrow({ where: { id: playerId } })).elementKey).toBe('cryo');
+    expect((await db.player.findUniqueOrThrow({ where: { id: playerId } }))).toMatchObject({
+      elementKey: 'cryo', legacyUsername: 'Kichnifou', displayName: 'Private Snapshot Fixture' });
     expect((await db.playerProgression.findUniqueOrThrow({ where: { playerId } })).xp).toBe(300n);
     const progression = await db.playerProgression.findUniqueOrThrow({ where: { playerId } });
     expect(progression.lastXpAt).toBeNull();
@@ -103,11 +106,21 @@ describe('private snapshot pilot transaction', () => {
     expect(await db.playerCharacter.count({ where: { playerId } })).toBe(1);
     expect(await db.team.count({ where: { playerId } })).toBe(10);
     expect(await db.playerPermanentMissionProgress.count({ where: { playerId } })).toBe(31);
+    const missionState = await db.playerPermanentMissionState.findUniqueOrThrow({ where: { playerId } });
+    expect(missionState.zUnlockedAt?.toISOString()).toBe('2026-09-20T10:00:00.000Z');
+    expect(missionState.legacyProvenance).toEqual({ source: 'viewers_data.json.longMissions', snapshotHash: preview.snapshotHash });
+    expect(missionState.standaloneCatchupCompletedAt).toEqual(missionState.initializedAt);
+    const dailyReward = await db.playerDailyRewardState.findUniqueOrThrow({ where: { playerId } });
+    expect(dailyReward.lastClaimDate?.toISOString().slice(0, 10)).toBe('2026-09-25');
+    expect(dailyReward.firstClaimDate).toBeNull();
+    expect(dailyReward.lastClaimedAt).toBeNull();
+    expect(dailyReward.lastOperationId).toBeNull();
+    expect(dailyReward.legacyProvenance).toEqual({ source: 'viewers_data.json.dates.lastDailyFirstMessageReward', snapshotHash: preview.snapshotHash });
     expect(await db.notification.count({ where: { playerId } })).toBe(0);
     expect(await db.businessOperation.count({ where: { playerId, operationType: 'permanent-mission.reward' } })).toBe(0);
     expect(await db.player.count()).toBe(1);
     expect(await db.playerCosmetic.count({ where: { playerId } })).toBe(1);
-    expect((await service.apply(identity, first, preview.previewId)).replayed).toBe(true);
+    expect(await service.apply(identity, first, preview.previewId)).toEqual({ ...applied, replayed: true });
     expect(await db.migrationRun.count({ where: { playerId, snapshotHash: preview.snapshotHash } })).toBe(1);
     await db.playerProgression.update({ where: { playerId }, data: { xp: 999n } });
     await db.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId, resourceKey: 'moras' } }, data: { amount: 999n } });
@@ -135,6 +148,23 @@ describe('private snapshot pilot transaction', () => {
     expect(await db.playerCosmetic.count({ where: { playerId } })).toBe(0);
     expect(await db.playerFavorState.count({ where: { playerId } })).toBe(1);
     expect(await db.notification.count({ where: { playerId } })).toBe(0);
+    expect((await db.playerPermanentMissionState.findUniqueOrThrow({ where: { playerId } })).initializedAt).toEqual(missionState.initializedAt);
+    expect((await db.playerDailyRewardState.findUniqueOrThrow({ where: { playerId } })).legacyProvenance).toEqual({
+      source: 'viewers_data.json.dates.lastDailyFirstMessageReward', snapshotHash: newerPreview.snapshotHash });
+  }, 60_000);
+
+  it('keeps the exact legacy Z date when refreshing an existing Mission State', async () => {
+    const before = await db.playerPermanentMissionState.findUniqueOrThrow({ where: { playerId } });
+    const source = bundle({ zAcceptedAt: '2026-09-19 18:30:00' });
+    const preview = await service.preview(identity, source);
+    await service.apply(identity, source, preview.previewId);
+    const after = await db.playerPermanentMissionState.findUniqueOrThrow({ where: { playerId } });
+    expect(after.initializedAt).toEqual(before.initializedAt);
+    expect(after.zUnlockedAt?.toISOString()).toBe('2026-09-19T16:30:00.000Z');
+    expect(after.legacyProvenance).toEqual({ source: 'viewers_data.json.longMissions', snapshotHash: preview.snapshotHash });
+    expect(after.standaloneCatchupCompletedAt?.getTime()).toBeGreaterThanOrEqual(before.standaloneCatchupCompletedAt!.getTime());
+    expect(await db.notification.count({ where: { playerId } })).toBe(0);
+    expect(await db.businessOperation.count({ where: { playerId, operationType: 'permanent-mission.reward' } })).toBe(0);
   }, 60_000);
 
   it('rejects a different bundle and makes concurrent confirmation a single logical refresh', async () => {
