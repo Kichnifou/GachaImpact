@@ -872,6 +872,7 @@ model MigrationPreview {
   snapshotHash String   @map("snapshot_hash") @db.Text
   expiresAt    DateTime @map("expires_at") @db.Timestamptz(6)
   player       Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  run          MigrationRun?
 
   @@index([playerId, expiresAt], map: "migration_previews_player_expiry_idx")
   @@map("migration_previews")
@@ -887,8 +888,10 @@ model MigrationRun {
   startedAt    DateTime @default(now()) @map("started_at") @db.Timestamptz(6)
   completedAt  DateTime @default(now()) @map("completed_at") @db.Timestamptz(6)
   batchId      String?  @map("batch_id") @db.Uuid
+  previewId    String?  @unique(map: "migration_runs_preview_id_key") @map("preview_id") @db.Uuid
   player       Player   @relation(fields: [playerId], references: [id], onDelete: Restrict)
   batch        MigrationBatch? @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  preview      MigrationPreview? @relation(fields: [previewId], references: [id], onDelete: Restrict)
 
   @@index([playerId, completedAt(sort: Desc)], map: "migration_runs_player_completed_idx")
   @@map("migration_runs")

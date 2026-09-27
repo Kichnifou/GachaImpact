@@ -7,6 +7,7 @@ import { SnapshotPilotService } from '../src/application/migration/snapshot-pilo
 import { snapshotFileNames } from '../src/application/migration/streamerbot-snapshot.js';
 import type { TwitchPilotService } from '../src/application/twitch/twitch-pilot-service.js';
 import type { AuthenticatedIdentity } from '../src/domain/identity/authenticated-identity.js';
+import { getBusinessDate } from '../src/domain/time/business-date.js';
 
 const isolated = isolatedBatchDatabase();
 const db = isolated.database;
@@ -18,16 +19,21 @@ const service = new SnapshotPilotService(db, twitch, 'private-test-preview-secre
 const categories = ['messages', 'pulls', 'characters4', 'characters5', 'morasEarned', 'mainParticlesEarned', 'expeditions', 'combatWins', 'friendHeartsSent'];
 const zKeys = ['c6_5_characters_z', 'perfect_friendship_z', 'level_100_z', 'manual_combat_wins_z'];
 
-function bundle(options: { xp?: number; moras?: number; bank?: number; box?: boolean; stella?: number } = {}) {
+function bundle(options: { xp?: number; moras?: number; bank?: number; box?: boolean; stella?: number; favor?: boolean } = {}) {
   const id = Number(characterKey.slice(7));
   const viewer = {
+    element: 'Cryo',
     xp: options.xp ?? 300, primogems: 120, moras: options.moras ?? 80,
     particles: Object.fromEntries(['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro'].map(key => [key, 0])),
     bank: { moras: options.bank ?? 40, lastInterestDate: '2026-09-25' },
     pity: { pity5: 3, pity4: 2 }, guarantee: { guaranteedFeatured5: false },
     box: options.box === false ? {} : { [id]: { characterId: id, constellation: 0, copies: 1, firstObtainedAt: '2026-09-25 12:00:00' } },
     boxFavorites: [], team: [], savedTeams: {},
-    dates: { lastWheelDate: null, lastDailyFirstMessageReward: null },
+    dates: { firstSeen: '2026-09-01 10:00:00', lastSeen: '2026-09-26 14:00:00',
+      lastMessageTime: '2026-09-25 13:00:00', lastXpDate: '2026-09-25',
+      lastWheelDate: null, lastDailyFirstMessageReward: null },
+    options: { boxSort: 'd', boxSortDescending: true },
+    favor: options.favor === false ? null : { daysRemaining: 5, obtainedDate: '2026-09-20', lastClaimDate: '2026-09-25' },
     missions: { daily: null },
     longMissions: { unlockedZ: false, categories: Object.fromEntries(categories.map(key => [key, {
       progress: 0, active: false, activeRank: '', completedRanks: [], acceptedRanks: [], startedAt: '', baselineValue: 0,
@@ -37,6 +43,7 @@ function bundle(options: { xp?: number; moras?: number; bank?: number; box?: boo
     coffre: {}, specialItems: { masterlessStellaFortuna: options.stella ?? 0 }, usedCodes: [],
     stats: { totalMessages: 10, countedMessages: 9, level100OverflowRewardsClaimed: 0,
       totalPulls: 4, totalFiveStars: 0, totalFourStars: 0, fiftyFiftyLostStreak: 0, fiftyFiftyWon: 0, fiftyFiftyLost: 0,
+      lastPullWasFiveStar: true,
       totalPrimosEarned: 120, totalPrimosSpent: 0, totalMorasEarned: 80, totalMorasSpent: 0, totalMainElementParticlesEarned: 0,
       totalFriendHeartsSent: 0, totalWheelSpins: 0, totalWheelJackpots: 0,
       totalExpeditionsCompleted: 0, totalCombatFights: 0, totalCombatWins: 0, totalCombatLosses: 0, totalManualCombatWins: 0 },
@@ -47,6 +54,8 @@ function bundle(options: { xp?: number; moras?: number; bank?: number; box?: boo
 
 beforeAll(async () => {
   await isolated.setup({ seedPublicCatalog: true });
+  // DEV may still have the 052 hash index while this fixture already uses the 053 Prisma schema.
+  await isolated.admin.query('DROP INDEX IF EXISTS "migration_runs_pilot_player_hash_key"');
   const migration = readFileSync(new URL('../prisma/migrations/20260926150000_049_add_twitch_pilot_identity_snapshot/migration.sql', import.meta.url), 'utf8');
   const missionSql = migration.split('-- BEGIN LEGACY MISSION PROVENANCE')[1]?.split('-- END LEGACY MISSION PROVENANCE')[0];
   if (!missionSql) throw new Error('Missing migration 049 mission provenance DDL');
@@ -60,16 +69,36 @@ beforeAll(async () => {
 afterAll(() => isolated.cleanup(), 60_000);
 
 describe('private snapshot pilot transaction', () => {
-  it('replaces personal rows, is idempotent, and accepts a later snapshot with lower values and vanished possessions', async () => {
+  it('replaces personal rows, replays the exact confirmation and refreshes the same hash after standalone changes', async () => {
     const first = bundle();
     const preview = await service.preview(identity, first);
     expect(await db.migrationPreview.count({ where: { playerId } })).toBe(0);
-    expect(preview.domains.filter(domain => domain.category === 'PLAYER_LOCAL_PHYSICAL')).toHaveLength(14);
-    expect(preview.domains.filter(domain => domain.category === 'DEFERRED_CROSS_PLAYER_OR_GLOBAL')).toHaveLength(9);
+    expect(preview.domains.filter(domain => domain.category === 'PLAYER_LOCAL_PHYSICAL')).toHaveLength(15);
+    expect(preview.domains.filter(domain => domain.category === 'DEFERRED_CROSS_PLAYER_OR_GLOBAL')).toHaveLength(10);
+    expect(preview.domains.find(domain => domain.name === 'Faveur')).toMatchObject({ category: 'PLAYER_LOCAL_PHYSICAL', action: 'CREATE' });
+    expect(preview.domains.find(domain => domain.name === 'Giveaway')).toMatchObject({ category: 'DEFERRED_CROSS_PLAYER_OR_GLOBAL', action: 'DEFERRED' });
     expect(preview.domains.some(domain => domain.category === 'BLOCKED_AMBIGUOUS' || domain.action === 'PENDING_MAPPING')).toBe(false);
     const applied = await service.apply(identity, first, preview.previewId);
     expect(applied.replayed).toBe(false);
+    expect(applied.imported).toContain('Faveur');
+    expect((await db.player.findUniqueOrThrow({ where: { id: playerId } })).elementKey).toBe('cryo');
     expect((await db.playerProgression.findUniqueOrThrow({ where: { playerId } })).xp).toBe(300n);
+    const progression = await db.playerProgression.findUniqueOrThrow({ where: { playerId } });
+    expect(progression.lastXpAt).toBeNull();
+    expect(progression.lastXpMessageAt?.toISOString()).toBe('2026-09-25T11:00:00.000Z');
+    expect(progression.legacyLastXpDate?.toISOString().slice(0, 10)).toBe('2026-09-25');
+    const linked = await db.twitchIdentity.findUniqueOrThrow({ where: { playerId } });
+    expect(linked.firstSeenAt?.toISOString()).toBe('2026-09-01T08:00:00.000Z');
+    expect(linked.lastMessageAt?.toISOString()).toBe('2026-09-26T12:00:00.000Z');
+    expect((await db.playerActivityState.findUniqueOrThrow({ where: { playerId } })).lastTwitchActivityAt).toEqual(linked.lastMessageAt);
+    expect((await db.playerGachaState.findUniqueOrThrow({ where: { playerId } })).legacyLastPullWasFiveStar).toBe(true);
+    expect((await db.playerPreference.findUniqueOrThrow({ where: { playerId_preferenceKey: { playerId, preferenceKey: 'box.sort' } } })).value).toEqual({ sortKey: 'obtainedAt', direction: 'desc' });
+    const favor = await db.playerFavorState.findUniqueOrThrow({ where: { playerId } });
+    expect(favor.activeFromDate?.toISOString().slice(0, 10)).toBe(getBusinessDate(new Date()));
+    expect(favor.legacyObtainedDate?.toISOString().slice(0, 10)).toBe('2026-09-20');
+    expect(favor.legacyLastClaimDate?.toISOString().slice(0, 10)).toBe('2026-09-25');
+    expect(await db.favorDailyClaim.findMany({ where: { playerId } })).toMatchObject([{ origin: 'LEGACY', sourceChannel: null, operationId: null, claimedAt: null }]);
+    expect(await db.favorGrant.count({ where: { playerId } })).toBe(0);
     expect((await db.playerBankAccount.findUniqueOrThrow({ where: { playerId } })).balance).toBe(40n);
     expect(await db.playerCharacter.count({ where: { playerId } })).toBe(1);
     expect(await db.team.count({ where: { playerId } })).toBe(10);
@@ -78,10 +107,24 @@ describe('private snapshot pilot transaction', () => {
     expect(await db.businessOperation.count({ where: { playerId, operationType: 'permanent-mission.reward' } })).toBe(0);
     expect(await db.player.count()).toBe(1);
     expect(await db.playerCosmetic.count({ where: { playerId } })).toBe(1);
-    const movements = await db.resourceMovement.count({ where: { playerId } });
-    const replayPreview = await service.preview(identity, first);
-    expect((await service.apply(identity, first, replayPreview.previewId)).replayed).toBe(true);
-    expect(await db.resourceMovement.count({ where: { playerId } })).toBe(movements);
+    expect((await service.apply(identity, first, preview.previewId)).replayed).toBe(true);
+    expect(await db.migrationRun.count({ where: { playerId, snapshotHash: preview.snapshotHash } })).toBe(1);
+    await db.playerProgression.update({ where: { playerId }, data: { xp: 999n } });
+    await db.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId, resourceKey: 'moras' } }, data: { amount: 999n } });
+    const testTitle = await db.cosmeticDefinition.create({ data: { externalKey: `pilot-test-title-${playerId}`, type: 'TITLE', displayName: 'Test title' } });
+    await db.playerCosmetic.create({ data: { playerId, cosmeticId: testTitle.id, unlockSource: 'standalone-test' } });
+    await db.player.update({ where: { id: playerId }, data: { equippedTitleCosmeticId: testTitle.id } });
+    const refresh = await service.preview(identity, first);
+    expect(refresh.snapshotHash).toBe(preview.snapshotHash);
+    expect((await service.apply(identity, first, refresh.previewId)).replayed).toBe(false);
+    expect((await db.playerProgression.findUniqueOrThrow({ where: { playerId } })).xp).toBe(300n);
+    expect((await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId, resourceKey: 'moras' } } })).amount).toBe(80n);
+    expect((await db.player.findUniqueOrThrow({ where: { id: playerId } })).equippedTitleCosmeticId).toBeNull();
+    expect(await db.playerCosmetic.count({ where: { playerId } })).toBe(1);
+    expect(await db.migrationRun.count({ where: { playerId, snapshotHash: preview.snapshotHash } })).toBe(2);
+    expect(await db.businessOperation.count({ where: { playerId, operationType: 'migration.streamerbot-refresh' } })).toBe(0);
+    expect(await db.resourceMovement.count({ where: { playerId, sourceChannel: 'MIGRATION' } })).toBe(0);
+    expect(await db.itemAcquisition.count({ where: { playerId, sourceKey: 'migration.streamerbot-snapshot' } })).toBe(0);
     const newer = bundle({ xp: 100, moras: 7, bank: 3, box: false, stella: 0 });
     const newerPreview = await service.preview(identity, newer);
     await service.apply(identity, newer, newerPreview.previewId);
@@ -90,10 +133,11 @@ describe('private snapshot pilot transaction', () => {
     expect((await db.playerBankAccount.findUniqueOrThrow({ where: { playerId } })).balance).toBe(3n);
     expect(await db.playerCharacter.count({ where: { playerId } })).toBe(0);
     expect(await db.playerCosmetic.count({ where: { playerId } })).toBe(0);
+    expect(await db.playerFavorState.count({ where: { playerId } })).toBe(1);
     expect(await db.notification.count({ where: { playerId } })).toBe(0);
   }, 60_000);
 
-  it('rejects a different bundle than the preview and consumes one confirmation once', async () => {
+  it('rejects a different bundle and makes concurrent confirmation a single logical refresh', async () => {
     const source = bundle({ xp: 500 });
     const preview = await service.preview(identity, source);
     await expect(service.apply(identity, bundle({ xp: 501 }), preview.previewId)).rejects.toMatchObject({ code: 'SNAPSHOT_PREVIEW_REQUIRED' });
@@ -101,14 +145,22 @@ describe('private snapshot pilot transaction', () => {
     const first = preview.previewId[signatureStart]!;
     const forged = preview.previewId.slice(0, signatureStart) + (first === 'A' ? 'B' : 'A') + preview.previewId.slice(signatureStart + 1);
     await expect(service.apply(identity, source, forged)).rejects.toMatchObject({ code: 'SNAPSHOT_PREVIEW_REQUIRED' });
-    const outcomes = await Promise.allSettled([service.apply(identity, source, preview.previewId), service.apply(identity, source, preview.previewId)]);
-    expect(outcomes.filter(outcome => outcome.status === 'fulfilled')).toHaveLength(1);
-    expect(await db.migrationRun.count({ where: { playerId } })).toBe(3);
+    const beforeRuns = await db.migrationRun.count({ where: { playerId } });
+    const outcomes = await Promise.all([service.apply(identity, source, preview.previewId), service.apply(identity, source, preview.previewId)]);
+    expect(outcomes.map(outcome => outcome.replayed).sort()).toEqual([false, true]);
+    expect(await db.migrationRun.count({ where: { playerId } })).toBe(beforeRuns + 1);
+    expect((await db.playerProgression.findUniqueOrThrow({ where: { playerId } })).xp).toBe(500n);
+    expect(await db.notification.count({ where: { playerId } })).toBe(0);
+    expect(await db.businessOperation.count({ where: { playerId, operationType: 'permanent-mission.reward' } })).toBe(0);
+    expect(await db.favorGrant.count({ where: { playerId } })).toBe(0);
+    expect(await db.giveawaySession.count()).toBe(0);
+    expect(await db.friendship.count()).toBe(0);
   }, 60_000);
 
   it('rolls back earlier domain replacements after a later insert fails', async () => {
     const before = await db.playerProgression.findUniqueOrThrow({ where: { playerId } });
     const runs = await db.migrationRun.count({ where: { playerId } });
+    const previews = await db.migrationPreview.count({ where: { playerId } });
     const preview = await service.preview(identity, bundle({ xp: 999, moras: 1 }));
     await isolated.admin.query(`CREATE FUNCTION snapshot_fixture_reject_mission() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'private fixture rejection'; END $$`);
     await isolated.admin.query(`CREATE TRIGGER snapshot_fixture_reject_mission BEFORE INSERT ON player_permanent_mission_progress FOR EACH ROW EXECUTE FUNCTION snapshot_fixture_reject_mission()`);
@@ -120,7 +172,7 @@ describe('private snapshot pilot transaction', () => {
     }
     expect((await db.playerProgression.findUniqueOrThrow({ where: { playerId } })).xp).toBe(before.xp);
     expect(await db.migrationRun.count({ where: { playerId } })).toBe(runs);
-    expect(await db.migrationPreview.count({ where: { playerId } })).toBe(4);
+    expect(await db.migrationPreview.count({ where: { playerId } })).toBe(previews);
   }, 60_000);
 
   it('reports cross-player facts without creating players and blocks an ambiguous personal source', async () => {

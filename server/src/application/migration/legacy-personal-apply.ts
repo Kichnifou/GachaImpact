@@ -1,40 +1,18 @@
 import { CosmeticType, CosmeticVisibility, type Prisma } from '../../../generated/prisma/client.js';
 import { businessDateToDatabaseDate, getBusinessDate } from '../../domain/time/business-date.js';
-import { parseLegacyParisInstant } from './legacy-box-mapping.js';
-import { projectLegacyFavorPeriod } from './legacy-favor-calendar.js';
-import { mapLegacyXpProvenance } from './legacy-xp-provenance.js';
+import { mapLegacyPersonalFacts } from './legacy-personal-facts.js';
 import type { PlannedPlayer } from './legacy-global-plan.js';
 import type { SnapshotPilotService } from './snapshot-pilot-service.js';
 
 type PlayerMapping = Awaited<ReturnType<SnapshotPilotService['globalPlayerPlan']>>;
-const object = (value: unknown): Record<string, unknown> => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
-function date(value: unknown): Date | null {
-  if (value == null || value === '') return null;
-  const paris = parseLegacyParisInstant(value);
-  if (paris) return paris;
-  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}(T.*)?$/.test(value)) throw new Error('Invalid present legacy instant.');
-  const parsed = new Date(value.length === 10 ? `${value}T00:00:00.000Z` : value);
-  if (Number.isNaN(parsed.getTime())) throw new Error('Invalid present legacy instant.');
-  return parsed;
-}
-function businessDate(value: unknown): Date | null {
-  if (value == null || value === '') return null;
-  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error('Invalid present legacy business date.');
-  const parsed = businessDateToDatabaseDate(value);
-  if (parsed.toISOString().slice(0, 10) !== value) throw new Error('Invalid present legacy business date.');
-  return parsed;
-}
-
 /** Writes only current, proven personal state. No synthetic BusinessOperation, movement or acquisition. */
 export async function applyLegacyPersonalState(tx: Prisma.TransactionClient, player: PlannedPlayer,
   mapping: PlayerMapping, batchId: string, snapshotHash: string, cutoverAt: Date) {
   const blockers = mapping.domains.filter(domain => domain.category === 'BLOCKED_AMBIGUOUS' || domain.action === 'PENDING_MAPPING');
   if (blockers.length) throw new Error(`Personal mapping blocked in ${blockers.map(domain => domain.name).join(', ')}.`);
   const viewer = player.viewer;
-  const dates = object(viewer.dates);
-  const lastMessageAt = date(dates.lastSeen);
-  const lastXpMessageAt = date(dates.lastMessageTime);
-  const xpProvenance = mapLegacyXpProvenance(dates.lastXpDate, lastXpMessageAt);
+  const facts = mapLegacyPersonalFacts(viewer, snapshotHash, cutoverAt);
+  const { lastMessageAt, xpProvenance } = facts;
   const cutoverDate = getBusinessDate(cutoverAt);
   const isExisting = player.mappingMode === 'EXISTING_VERIFIED_TWITCH';
   if (isExisting) await tx.player.update({ where: { id: player.playerId }, data: { elementKey: player.elementKey, legacyUsername: player.legacyUsername,
@@ -53,8 +31,8 @@ export async function applyLegacyPersonalState(tx: Prisma.TransactionClient, pla
     details: xpProvenance.issue.details } });
   await tx.twitchIdentity.upsert({ where: { playerId: player.playerId }, create: { playerId: player.playerId,
     twitchUserId: player.twitchUserId, login: player.twitchLogin, displayName: player.twitchDisplayName,
-    firstSeenAt: date(dates.firstSeen), lastMessageAt }, update: { login: player.twitchLogin, displayName: player.twitchDisplayName,
-    firstSeenAt: date(dates.firstSeen), lastMessageAt } });
+    firstSeenAt: facts.firstSeenAt, lastMessageAt }, update: { login: player.twitchLogin, displayName: player.twitchDisplayName,
+    firstSeenAt: facts.firstSeenAt, lastMessageAt } });
   await tx.playerActivityState.upsert({ where: { playerId: player.playerId }, create: { playerId: player.playerId, lastTwitchActivityAt: lastMessageAt },
     update: { lastTwitchActivityAt: lastMessageAt } });
   await tx.playerProgression.upsert({ where: { playerId: player.playerId }, create: { playerId: player.playerId,
@@ -67,8 +45,7 @@ export async function applyLegacyPersonalState(tx: Prisma.TransactionClient, pla
   await tx.playerBankAccount.upsert({ where: { playerId: player.playerId }, create: { playerId: player.playerId,
     balance: mapping.bankBalance, lastInterestDate: businessDateToDatabaseDate(cutoverDate) },
     update: { balance: mapping.bankBalance, lastInterestDate: businessDateToDatabaseDate(cutoverDate) } });
-  const gachaLegacy = object(viewer.stats).lastPullWasFiveStar;
-  const gacha = { ...mapping.gachaState, legacyLastPullWasFiveStar: typeof gachaLegacy === 'boolean' ? gachaLegacy : null };
+  const gacha = { ...mapping.gachaState, legacyLastPullWasFiveStar: facts.legacyLastPullWasFiveStar };
   await tx.playerGachaState.upsert({ where: { playerId: player.playerId }, create: { playerId: player.playerId, ...gacha }, update: gacha });
   await tx.playerCharacter.deleteMany({ where: { playerId: player.playerId } });
   if (mapping.boxRows.length) await tx.playerCharacter.createMany({ data: mapping.boxRows.map(row => ({ playerId: player.playerId,
@@ -113,27 +90,15 @@ export async function applyLegacyPersonalState(tx: Prisma.TransactionClient, pla
     legacyProvenance: { source: 'viewers_data.json.dates.lastDailyFirstMessageReward', snapshotHash } },
     update: { firstClaimDate: null, lastClaimDate: mapping.wheel.lastDailyRewardDate ? businessDateToDatabaseDate(mapping.wheel.lastDailyRewardDate) : null,
       lastClaimedAt: null, lastOperationId: null, legacyProvenance: { source: 'viewers_data.json.dates.lastDailyFirstMessageReward', snapshotHash } } });
-  const options = object(viewer.options);
-  const sortKey = ({ a: 'alphabetical', d: 'obtainedAt', c: 'constellation', e: 'element' } as Record<string, string>)[String(options.boxSort)] ?? 'alphabetical';
-  const direction = options.boxSortDescending === true ? 'desc' : 'asc';
   await tx.playerPreference.upsert({ where: { playerId_preferenceKey: { playerId: player.playerId, preferenceKey: 'box.sort' } },
-    create: { playerId: player.playerId, preferenceKey: 'box.sort', value: { sortKey, direction } },
-    update: { value: { sortKey, direction } } });
-  const favor = object(viewer.favor);
-  if (viewer.favor != null) {
-    const daysRemaining = favor.daysRemaining;
-    if (typeof daysRemaining !== 'number' || !Number.isSafeInteger(daysRemaining)) throw new Error('Invalid legacy Faveur balance.');
-    const obtainedDate = businessDate(favor.obtainedDate);
-    const lastClaimDate = businessDate(favor.lastClaimDate);
-    const period = projectLegacyFavorPeriod(daysRemaining, cutoverDate,
-      obtainedDate?.toISOString().slice(0, 10) ?? null, lastClaimDate?.toISOString().slice(0, 10) ?? null);
-    const favorData = { ...period, legacyObtainedDate: obtainedDate, legacyLastClaimDate: lastClaimDate,
-      legacyProvenance: { source: 'viewers_data.json.favor', snapshotHash, cutoverBusinessDate: cutoverDate,
-        initialDaysRemaining: daysRemaining, intervalBounds: 'inclusive' } };
+    create: { playerId: player.playerId, preferenceKey: 'box.sort', value: facts.boxSort },
+    update: { value: facts.boxSort } });
+  if (facts.favor) {
+    const favorData = facts.favor.state;
     await tx.playerFavorState.upsert({ where: { playerId: player.playerId }, create: { playerId: player.playerId,
       ...favorData }, update: favorData });
-    if (lastClaimDate) await tx.favorDailyClaim.upsert({ where: { playerId_businessDate: { playerId: player.playerId, businessDate: lastClaimDate } },
-      create: { playerId: player.playerId, businessDate: lastClaimDate, origin: 'LEGACY', sourceChannel: null,
+    if (facts.favor.claimDate) await tx.favorDailyClaim.upsert({ where: { playerId_businessDate: { playerId: player.playerId, businessDate: facts.favor.claimDate } },
+      create: { playerId: player.playerId, businessDate: facts.favor.claimDate, origin: 'LEGACY', sourceChannel: null,
         operationId: null, claimedAt: null,
         legacyProvenance: { source: 'viewers_data.json.favor.lastClaimDate', snapshotHash } }, update: {} });
   }

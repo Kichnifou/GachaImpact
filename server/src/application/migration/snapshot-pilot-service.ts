@@ -11,16 +11,16 @@ import { mapLegacyBox, parseLegacyParisInstant } from './legacy-box-mapping.js';
 import { mapLegacyC6 } from './legacy-c6-mapping.js';
 import { mapLegacyTeams } from './legacy-team-mapping.js';
 import { mapLegacyPermanentMissions } from './legacy-mission-mapping.js';
+import { mapLegacyPersonalFacts } from './legacy-personal-facts.js';
+import { remainingFavorDays } from './legacy-favor-calendar.js';
 
 const keys = ['primogems', 'moras', 'particles_pyro', 'particles_hydro', 'particles_cryo', 'particles_electro', 'particles_anemo', 'particles_geo', 'particles_dendro'] as const;
 const names = ['Progression', 'Ressources', 'Banque', 'Gacha / pity', 'Personnages / constellations', 'Teams', 'Missions', 'Roue / Quotidiennes', 'Expédition', 'Combat', 'Boss', 'Concours', 'Amitié', 'Event', 'Codes', 'Collection / objets', 'Statistiques économiques / sociales', 'Votes', 'Catalogues', 'Faveur', 'Giveaway', 'Concours / C6 personnel', 'Combat quotidien actuel', 'Cosmétiques de personnages', 'Cible de bannière'] as const;
 type DomainCategory = 'PLAYER_LOCAL_PHYSICAL' | 'DEFERRED_CROSS_PLAYER_OR_GLOBAL' | 'DEFERRED_NOT_PHYSICAL' | 'BLOCKED_AMBIGUOUS';
 type Domain = { name: string; category: DomainCategory; action: 'NO_CHANGE' | 'UPDATE' | 'REPLACE' | 'CREATE' | 'PENDING_MAPPING' | 'DEFERRED' | 'BLOCKED'; current: string; snapshot: string; reason: string | null; anomalies: string[] };
-const deferredGlobal = new Set<string>(['Boss', 'Concours', 'Amitié', 'Event', 'Codes', 'Votes', 'Catalogues', 'Combat quotidien actuel', 'Cible de bannière']);
-const deferredAbsent = new Set<string>(['Faveur', 'Giveaway']);
+const deferredGlobal = new Set<string>(['Boss', 'Concours', 'Amitié', 'Event', 'Codes', 'Votes', 'Catalogues', 'Combat quotidien actuel', 'Cible de bannière', 'Giveaway']);
 function initialDomain(name: string): Domain {
   if (deferredGlobal.has(name)) return { name, category: 'DEFERRED_CROSS_PLAYER_OR_GLOBAL', action: 'DEFERRED', current: 'État autonome conservé', snapshot: 'État source à rapprocher du référentiel global ou d’autres Players', reason: 'Identités ou état partagé nécessaires au rapprochement ; aucun autre Player créé.', anomalies: [] };
-  if (deferredAbsent.has(name)) return { name, category: 'DEFERRED_NOT_PHYSICAL', action: 'DEFERRED', current: 'Cible absente', snapshot: 'Donnée legacy conservée dans le snapshot', reason: 'Aucune table Player correspondante n’est encore matérialisée.', anomalies: [] };
   return { name, category: 'PLAYER_LOCAL_PHYSICAL', action: 'PENDING_MAPPING', current: 'État autonome conservé', snapshot: 'Source personnelle reconnue', reason: 'Mapping ou remplacement transactionnel non encore implémenté ; import bloqué.', anomalies: [] };
 }
 const record = (value: unknown): Record<string, unknown> => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -44,6 +44,7 @@ function legacyDate(value: unknown, label: string): string | null {
   return value;
 }
 const asText = (value: bigint | number | null | undefined) => value == null ? 'Absent' : String(value);
+const sameDate = (left: Date | null | undefined, right: Date | null | undefined) => (left?.getTime() ?? null) === (right?.getTime() ?? null);
 
 export class SnapshotPilotService {
   private readonly previewKey: Buffer | null;
@@ -62,7 +63,7 @@ export class SnapshotPilotService {
     const expiresAt = Number(match[2]);
     const supplied = Buffer.from(match[3]!, 'base64url');
     const expected = this.previewSignature(match[1]!, playerId, snapshotHash, expiresAt);
-    if (expiresAt <= Date.now() || supplied.length !== expected.length || !timingSafeEqual(supplied, expected))
+    if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected))
       throw new AppError('Nouvelle prévisualisation requise pour ce snapshot.', 409, 'SNAPSHOT_PREVIEW_REQUIRED');
     return { id: match[1]!, expiresAt: new Date(expiresAt) };
   }
@@ -76,7 +77,11 @@ export class SnapshotPilotService {
     return { player, linked, snapshot, viewer };
   }
 
-  private async report(playerId: string, viewer: Record<string, unknown>, sources: Readonly<Record<string, unknown>>, login: string, at: Date = new Date()) {
+  private async report(playerId: string, viewer: Record<string, unknown>, sources: Readonly<Record<string, unknown>>, login: string, snapshotHash: string, at: Date = new Date()) {
+    const facts = mapLegacyPersonalFacts(viewer, snapshotHash, at);
+    const player = await this.db.player.findUniqueOrThrow({ where: { id: playerId }, select: { elementKey: true, equippedAvatarCosmeticId: true, equippedTitleCosmeticId: true } });
+    const identity = await this.db.twitchIdentity.findUnique({ where: { playerId }, select: { firstSeenAt: true, lastMessageAt: true } });
+    const activity = await this.db.playerActivityState.findUnique({ where: { playerId }, select: { lastTwitchActivityAt: true } });
     const progression = await this.db.playerProgression.findUnique({ where: { playerId } });
     const balances = await this.db.playerResourceBalance.findMany({ where: { playerId } });
     const openTrades = await this.db.tradeRequest.count({ where: { senderPlayerId: playerId, state: 'PENDING' } });
@@ -89,7 +94,11 @@ export class SnapshotPilotService {
     const c6Mapping = mapLegacyC6(sources['c6_characters.json'], login, boxMapping.rows, boxCatalog);
     const teamMapping = mapLegacyTeams(viewer, boxMapping.rows);
     const currentC6 = await this.db.c6CompetitionProgress.count({ where: { playerId } });
-    const currentAvatars = await this.db.playerCosmetic.count({ where: { playerId, cosmetic: { sourceCharacterId: { not: null } } } });
+    const currentCosmetics = await this.db.playerCosmetic.count({ where: { playerId } });
+    const favorState = await this.db.playerFavorState.findUnique({ where: { playerId } });
+    const favorClaims = await this.db.favorDailyClaim.findMany({ where: { playerId }, select: { businessDate: true, origin: true } });
+    const favorGrants = await this.db.favorGrant.count({ where: { playerId } });
+    const boxPreference = await this.db.playerPreference.findUnique({ where: { playerId_preferenceKey: { playerId, preferenceKey: 'box.sort' } } });
     const teams = await this.db.team.count({ where: { playerId } });
     const expedition = await this.db.playerExpedition.findUnique({ where: { playerId }, select: { state: true } });
     const combatStats = await this.db.playerCombatStats.findUnique({ where: { playerId } });
@@ -128,8 +137,17 @@ export class SnapshotPilotService {
     const bankBalance = integer(bankSource.moras ?? 0, 'bank.moras');
     const current = new Map(balances.map(row => [row.resourceKey, row.amount]));
     const domains: Domain[] = names.map(initialDomain);
-    domains[0] = { name: 'Progression', category: 'PLAYER_LOCAL_PHYSICAL', action: progression ? (progression.xp === xp && progression.totalMessages === totalMessages && progression.countedMessages === countedMessages && progression.level100OverflowRewardsClaimed === Number(overflowClaims) ? 'NO_CHANGE' : 'REPLACE') : 'CREATE',
-      current: `XP ${asText(progression?.xp)}, messages ${asText(progression?.totalMessages)}`, snapshot: `XP ${xp}, messages ${totalMessages}`, reason: null, anomalies: [] };
+    const sameIdentity = player.elementKey === facts.elementKey && sameDate(identity?.firstSeenAt, facts.firstSeenAt)
+      && sameDate(identity?.lastMessageAt, facts.lastMessageAt) && sameDate(activity?.lastTwitchActivityAt, facts.lastMessageAt);
+    const sameXp = progression && progression.xp === xp && progression.totalMessages === totalMessages
+      && progression.countedMessages === countedMessages && progression.level100OverflowRewardsClaimed === Number(overflowClaims)
+      && sameDate(progression.lastXpAt, facts.xpProvenance.lastXpAt)
+      && sameDate(progression.lastXpMessageAt, facts.xpProvenance.lastXpMessageAt)
+      && sameDate(progression.legacyLastXpDate, facts.xpProvenance.legacyLastXpDate);
+    domains[0] = { name: 'Progression', category: 'PLAYER_LOCAL_PHYSICAL', action: progression ? (sameXp && sameIdentity ? 'NO_CHANGE' : 'REPLACE') : 'CREATE',
+      current: `XP ${asText(progression?.xp)}, élément ${player.elementKey ?? 'absent'}, jour XP ${progression?.legacyLastXpDate?.toISOString().slice(0, 10) ?? 'absent'}`,
+      snapshot: `XP ${xp}, élément ${facts.elementKey}, jour XP ${facts.xpProvenance.legacyLastXpDate?.toISOString().slice(0, 10) ?? 'absent'}`,
+      reason: null, anomalies: facts.xpProvenance.issue ? [facts.xpProvenance.issue.code] : [] };
     const sameResources = [...resources].every(([key, amount]) => current.get(key) === amount);
     domains[1] = { name: 'Ressources', category: 'PLAYER_LOCAL_PHYSICAL', action: balances.length ? (sameResources ? 'NO_CHANGE' : 'REPLACE') : 'CREATE',
       current: `${balances.length} soldes, Primos ${asText(current.get('primogems'))}, Moras ${asText(current.get('moras'))}`,
@@ -152,6 +170,7 @@ export class SnapshotPilotService {
       totalPulls: integer(stats.totalPulls ?? 0, 'stats.totalPulls'), totalFiveStars: integer(stats.totalFiveStars ?? 0, 'stats.totalFiveStars'),
       totalFourStars: integer(stats.totalFourStars ?? 0, 'stats.totalFourStars'), fiftyFiftyWon: integer(stats.fiftyFiftyWon ?? 0, 'stats.fiftyFiftyWon'),
       fiftyFiftyLost: integer(stats.fiftyFiftyLost ?? 0, 'stats.fiftyFiftyLost'), capturesTriggered: 0n,
+      legacyLastPullWasFiveStar: facts.legacyLastPullWasFiveStar,
     };
     const economyState = {
       totalPrimosEarned: integer(stats.totalPrimosEarned ?? 0, 'stats.totalPrimosEarned'),
@@ -253,7 +272,8 @@ export class SnapshotPilotService {
       reason: null, anomalies: [] };
     domains[4] = { name: 'Personnages / constellations', category: boxMapping.blockers.length ? 'BLOCKED_AMBIGUOUS' : 'PLAYER_LOCAL_PHYSICAL',
       action: boxMapping.blockers.length ? 'BLOCKED' : characters ? 'REPLACE' : 'CREATE',
-      current: `${characters} possessions standalone`, snapshot: `Possessions : ${boxMapping.rows.length}`,
+      current: `${characters} possessions standalone ; tri Box ${boxPreference ? JSON.stringify(boxPreference.value) : 'absent'}`,
+      snapshot: `Possessions : ${boxMapping.rows.length} ; tri Box ${facts.boxSort.sortKey}/${facts.boxSort.direction}`,
       reason: boxMapping.blockers.length ? 'Correspondance Box → catalogue ou structure legacy ambiguë.' : null,
       anomalies: [...boxMapping.anomalies, ...boxMapping.blockers] };
     const c6 = Object.entries(record(sources['c6_characters.json'])).filter(([name]) => normalizeLegacyName(name) === normalizeLegacyName(login));
@@ -270,8 +290,8 @@ export class SnapshotPilotService {
       reason: c6Mapping.blockers.length ? 'Progression personnelle C6 impossible à rattacher sans ambiguïté.' : null,
       anomalies: [...c6Mapping.anomalies, ...c6Mapping.blockers] };
     domains[23] = { name: 'Cosmétiques de personnages', category: 'PLAYER_LOCAL_PHYSICAL',
-      action: currentAvatars || boxMapping.rows.length ? 'REPLACE' : 'NO_CHANGE',
-      current: `${currentAvatars} avatar(s) personnage possédé(s)`, snapshot: `${boxMapping.rows.length} avatar(s) dérivables de la Box`,
+      action: currentCosmetics || boxMapping.rows.length || player.equippedAvatarCosmeticId || player.equippedTitleCosmeticId ? 'REPLACE' : 'NO_CHANGE',
+      current: `${currentCosmetics} cosmétique(s) standalone`, snapshot: `${boxMapping.rows.length} avatar(s) dérivables de la Box`,
       reason: null, anomalies: [] };
     domains[5] = { name: 'Teams', category: teamMapping.blockers.length ? 'BLOCKED_AMBIGUOUS' : 'PLAYER_LOCAL_PHYSICAL',
       action: teamMapping.blockers.length ? 'BLOCKED' : teams ? 'REPLACE' : 'CREATE',
@@ -321,8 +341,22 @@ export class SnapshotPilotService {
     domains[22]!.current = 'Rencontre quotidienne standalone conservée';
     domains[22]!.snapshot = `${Array.isArray(dailyCombatSource.enemyTeam) ? dailyCombatSource.enemyTeam.length : 0} ennemi(s) du jour, ${Object.keys(record(combatSource.lostCharacters)).length} KO personnel(s) legacy`;
     domains[22]!.reason = 'Les KO dépendent de la rencontre globale du jour, non rapprochée pendant le pilote.';
-    domains[19]!.snapshot = `Faveur legacy ${viewer.favor == null ? 'absente' : 'présente'}`;
+    const expectedFavor = facts.favor?.state;
+    const sameFavor = expectedFavor
+      ? !!favorState && sameDate(favorState.activeFromDate, expectedFavor.activeFromDate)
+        && sameDate(favorState.activeUntilDate, expectedFavor.activeUntilDate)
+        && sameDate(favorState.legacyObtainedDate, expectedFavor.legacyObtainedDate)
+        && sameDate(favorState.legacyLastClaimDate, expectedFavor.legacyLastClaimDate)
+        && favorClaims.length === (facts.favor?.claimDate ? 1 : 0)
+        && (!facts.favor?.claimDate || favorClaims.some(claim => claim.origin === 'LEGACY' && sameDate(claim.businessDate, facts.favor?.claimDate)))
+        && favorGrants === 0 : !favorState && favorClaims.length === 0 && favorGrants === 0;
+    domains[19] = { name: 'Faveur', category: 'PLAYER_LOCAL_PHYSICAL',
+      action: sameFavor ? 'NO_CHANGE' : favorState || favorClaims.length || favorGrants ? 'REPLACE' : expectedFavor ? 'CREATE' : 'NO_CHANGE',
+      current: `Faveur ${favorState ? `${remainingFavorDays(favorState.activeFromDate, favorState.activeUntilDate, cutoverDate)} jour(s) restant(s)` : 'absente'}, dernier claim ${favorState?.legacyLastClaimDate?.toISOString().slice(0, 10) ?? 'absent'}`,
+      snapshot: `Faveur ${facts.favor ? `${facts.favor.daysRemaining} jour(s) restant(s)` : 'absente'}, dernier claim ${facts.favor?.claimDate?.toISOString().slice(0, 10) ?? 'absent'}`,
+      reason: null, anomalies: [] };
     domains[20]!.snapshot = `Giveaway legacy ${Object.keys(record(sources['giveaway.json'])).length ? 'présent' : 'absent'}`;
+    domains[20]!.reason = 'Session, participants, compteurs et gagnant partagés : rapprochement réservé à la migration globale.';
     domains[24]!.current = `Cible standalone ${gacha?.selectedBannerCharacterId ? 'définie' : 'absente'}`;
     domains[24]!.snapshot = `Cible legacy ${viewer.selectedBannerCharacterId == null ? 'absente' : 'présente'}`;
     domains[24]!.reason = 'La cible ne peut être liée sûrement qu’après rapprochement de la rotation globale de bannière.';
@@ -350,54 +384,62 @@ export class SnapshotPilotService {
       current: `${asText(combatStats?.totalFights)} combats, ${currentCharacterCombatStats} compteurs personnage`,
       snapshot: `${combatState.totalFights} combats, ${characterCombatRows.length} compteurs personnage`,
       reason: combatBlockers.length ? 'Compte ou personnage Combat impossible à rapprocher.' : null, anomalies: combatBlockers };
-    return { domains, resources, bankBalance, boxRows: boxMapping.rows, c6Rows: c6Mapping.rows, teamSlots: teamMapping.slots, itemRows, missionMapping, dailyData, gachaState, economyState, socialState, expeditionData, combatState, characterCombatRows, wheel: { totalSpins: wheelSpins, totalJackpots: wheelJackpots, lastWheelDate, lastDailyRewardDate }, progression: { xp, totalMessages, countedMessages, level100OverflowRewardsClaimed: Number(overflowClaims) } };
+    return { domains, resources, bankBalance, boxRows: boxMapping.rows, c6Rows: c6Mapping.rows, teamSlots: teamMapping.slots, itemRows, missionMapping, dailyData, gachaState, economyState, socialState, expeditionData, combatState, characterCombatRows, wheel: { totalSpins: wheelSpins, totalJackpots: wheelJackpots, lastWheelDate, lastDailyRewardDate }, progression: { xp, totalMessages, countedMessages, level100OverflowRewardsClaimed: Number(overflowClaims), lastXpAt: facts.xpProvenance.lastXpAt, lastXpMessageAt: facts.xpProvenance.lastXpMessageAt, legacyLastXpDate: facts.xpProvenance.legacyLastXpDate }, facts };
   }
 
   async preview(identity: AuthenticatedIdentity, files: SnapshotFiles) {
     if (!this.previewKey) throw new AppError('Le pilote snapshot n’est pas configuré.', 503, 'SNAPSHOT_UNAVAILABLE');
     const { player, linked, snapshot, viewer } = await this.context(identity, files);
-    const report = await this.report(player.id, viewer.data, snapshot.sources, linked.login);
+    const report = await this.report(player.id, viewer.data, snapshot.sources, linked.login, snapshot.hash);
     const id = randomUUID();
     const expiresAt = Date.now() + 15 * 60_000;
     const signature = this.previewSignature(id, player.id, snapshot.hash, expiresAt).toString('base64url');
     return { previewId: `${id}.${expiresAt}.${signature}`, snapshotHash: snapshot.hash, viewerFound: true, files: snapshot.files, domains: report.domains,
-      warning: 'Ce rafraîchissement remplacera les domaines personnels mappés par le snapshot sélectionné. Le pilote reste bloqué tant qu’un domaine personnel physique attend son mapping ou qu’une ambiguïté subsiste. Les domaines globaux, interjoueurs ou sans cible physique restent explicitement différés.' };
+      warning: 'Ce rafraîchissement remplacera les domaines personnels mappés par le snapshot sélectionné. Le pilote reste bloqué tant qu’un domaine personnel physique attend son mapping ou qu’une ambiguïté subsiste. Les domaines globaux et interjoueurs restent explicitement différés.' };
   }
 
   async localReadOnlyReport(playerId: string, login: string, files: SnapshotFiles) {
     const snapshot = parseStreamerbotSnapshot(files);
     const viewer = resolveSnapshotViewer(snapshot, login);
-    const report = await this.report(playerId, viewer.data, snapshot.sources, login);
+    const report = await this.report(playerId, viewer.data, snapshot.sources, login, snapshot.hash);
     return { snapshotHash: snapshot.hash, files: snapshot.files, viewerFound: true, domains: report.domains };
   }
 
   /** Reuses the audited personal mapping for a global rehearsal, without invoking the pilot confirmation route. */
   async globalPlayerPlan(playerId: string, login: string, snapshot: ReturnType<typeof parseStreamerbotSnapshot>, cutoverAt: Date) {
     const viewer = resolveSnapshotViewer(snapshot, login);
-    return this.report(playerId, viewer.data, snapshot.sources, login, cutoverAt);
+    return this.report(playerId, viewer.data, snapshot.sources, login, snapshot.hash, cutoverAt);
   }
 
   async apply(identity: AuthenticatedIdentity, files: SnapshotFiles, previewId: string) {
     if (!this.previewKey) throw new AppError('Le pilote snapshot n’est pas configuré.', 503, 'SNAPSHOT_UNAVAILABLE');
     const { player, linked, snapshot, viewer } = await this.context(identity, files);
-    const report = await this.report(player.id, viewer.data, snapshot.sources, linked.login);
+    const previewToken = this.verifyPreviewToken(previewId, player.id, snapshot.hash);
+    const replayResult = (summary: Prisma.JsonValue) => ({ snapshotHash: snapshot.hash, replayed: true, imported: [] as string[],
+      deferred: Array.isArray(record(summary).deferred) ? (record(summary).deferred as string[]) : [] });
+    const completed = await this.db.migrationRun.findUnique({ where: { previewId: previewToken.id } });
+    if (completed && completed.playerId === player.id && completed.snapshotHash === snapshot.hash && completed.batchId === null)
+      return replayResult(completed.summary);
+    const report = await this.report(player.id, viewer.data, snapshot.sources, linked.login, snapshot.hash);
     if (report.domains.some(domain => domain.category === 'BLOCKED_AMBIGUOUS' || (domain.category === 'PLAYER_LOCAL_PHYSICAL' && domain.action === 'PENDING_MAPPING')))
       throw new AppError('Le mapping du snapshot est incomplet ; aucun import ne peut être confirmé.', 409, 'SNAPSHOT_MAPPING_INCOMPLETE');
-    const previewToken = this.verifyPreviewToken(previewId, player.id, snapshot.hash);
     const applyOnce = () => this.db.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
+      const completedInTransaction = await tx.migrationRun.findUnique({ where: { previewId: previewToken.id } });
+      if (completedInTransaction && completedInTransaction.playerId === player.id && completedInTransaction.snapshotHash === snapshot.hash && completedInTransaction.batchId === null)
+        return replayResult(completedInTransaction.summary);
       if (previewToken.expiresAt.getTime() <= Date.now()) throw new AppError('Nouvelle prévisualisation requise pour ce snapshot.', 409, 'SNAPSHOT_PREVIEW_REQUIRED');
       const openTrades = await tx.tradeRequest.count({ where: { senderPlayerId: player.id, state: 'PENDING' } });
       if (openTrades) throw new AppError('Résolvez les échanges en attente avant ce remplacement des ressources.', 409, 'SNAPSHOT_PENDING_TRADES');
       if (await tx.migrationPreview.findUnique({ where: { id: previewToken.id } }))
         throw new AppError('Cette confirmation a déjà été utilisée.', 409, 'SNAPSHOT_PREVIEW_REQUIRED');
       await tx.migrationPreview.create({ data: { id: previewToken.id, playerId: player.id, snapshotHash: snapshot.hash, expiresAt: previewToken.expiresAt } });
-      const existing = await tx.migrationRun.findFirst({ where: { playerId: player.id, snapshotHash: snapshot.hash, batchId: null } });
-      if (existing) return { snapshotHash: snapshot.hash, replayed: true, imported: [], deferred: report.domains.filter(d => d.action === 'DEFERRED').map(d => d.name) };
-      // A historical ledger may hold newer standalone test entries; the migration records a single adjustment per changed balance.
-      const operation = await tx.businessOperation.findFirst({ where: { playerId: player.id, operationType: 'migration.streamerbot-refresh', idempotencyKey: `streamerbot:${snapshot.hash}` } })
-        ?? await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'migration.streamerbot-refresh', sourceChannel: 'MIGRATION',
-          idempotencyKey: `streamerbot:${snapshot.hash}`, status: 'COMPLETED', completedAt: new Date(), resultSummary: { snapshotHash: snapshot.hash } } });
+      await tx.player.update({ where: { id: player.id }, data: { elementKey: report.facts.elementKey,
+        equippedAvatarCosmeticId: null, equippedTitleCosmeticId: null } });
+      await tx.twitchIdentity.update({ where: { playerId: player.id }, data: {
+        firstSeenAt: report.facts.firstSeenAt, lastMessageAt: report.facts.lastMessageAt } });
+      await tx.playerActivityState.upsert({ where: { playerId: player.id }, create: { playerId: player.id,
+        lastTwitchActivityAt: report.facts.lastMessageAt }, update: { lastTwitchActivityAt: report.facts.lastMessageAt } });
       await tx.playerProgression.upsert({ where: { playerId: player.id }, create: { playerId: player.id, ...report.progression }, update: report.progression });
       await tx.playerGachaState.upsert({ where: { playerId: player.id }, create: { playerId: player.id, ...report.gachaState }, update: report.gachaState });
       await tx.playerCharacter.deleteMany({ where: { playerId: player.id } });
@@ -415,17 +457,11 @@ export class SnapshotPilotService {
       const avatarByCharacter = new Map(avatarDefinitions.map(definition => [definition.sourceCharacterId, definition]));
       if (avatarCharacters.some(character => avatarByCharacter.get(character.id)?.externalKey !== `character-avatar:${character.externalKey}` || avatarByCharacter.get(character.id)?.type !== CosmeticType.AVATAR))
         throw new AppError('Définition Avatar personnage incohérente.', 409, 'SNAPSHOT_AVATAR_CONFLICT');
-      const removedAvatars = await tx.playerCosmetic.findMany({ where: { playerId: player.id, cosmetic: { sourceCharacterId: { not: null } },
-        cosmeticId: { notIn: avatarDefinitions.map(definition => definition.id) } }, select: { cosmeticId: true } });
-      if (removedAvatars.length) {
-        await tx.playerCosmetic.deleteMany({ where: { playerId: player.id, cosmeticId: { in: removedAvatars.map(row => row.cosmeticId) } } });
-        await tx.player.updateMany({ where: { id: player.id, equippedAvatarCosmeticId: { in: removedAvatars.map(row => row.cosmeticId) } },
-          data: { equippedAvatarCosmeticId: null } });
-      }
+      await tx.playerCosmetic.deleteMany({ where: { playerId: player.id } });
       if (avatarDefinitions.length) await tx.playerCosmetic.createMany({ data: avatarDefinitions.map(definition => ({
-        playerId: player.id, cosmeticId: definition.id, unlockSource: 'migration.streamerbot-snapshot',
-        provenance: { snapshotHash: snapshot.hash, sourceCharacterId: definition.sourceCharacterId },
-      })), skipDuplicates: true });
+        playerId: player.id, cosmeticId: definition.id, unlockSource: 'legacy-proven-ownership',
+        provenance: { source: 'viewers_data.json.box', snapshotHash: snapshot.hash },
+      })) });
       await tx.c6CompetitionProgress.deleteMany({ where: { playerId: player.id } });
       if (report.c6Rows.length) await tx.c6CompetitionProgress.createMany({ data: report.c6Rows.map(row => ({ playerId: player.id, ...row })) as Prisma.C6CompetitionProgressCreateManyInput[] });
       await tx.team.deleteMany({ where: { playerId: player.id } });
@@ -453,10 +489,6 @@ export class SnapshotPilotService {
       if (report.itemRows.length) await tx.playerItem.createMany({ data: report.itemRows.map(row => ({ playerId: player.id, itemId: row.itemId, quantity: row.quantity,
         firstObtainedAt: null, legacyProvenance: { source: 'viewers_data.json', externalKey: row.externalKey, snapshotHash: snapshot.hash } })) });
       await tx.itemAcquisition.deleteMany({ where: { playerId: player.id, sourceKey: 'migration.streamerbot-snapshot' } });
-      const collectionRows = report.itemRows.filter(row => row.externalKey !== 'masterless-stella-fortuna' && row.quantity > 0n);
-      if (collectionRows.length) await tx.itemAcquisition.createMany({ data: collectionRows.map(row => ({ playerId: player.id, itemId: row.itemId,
-        quantity: row.quantity, sourceKey: 'migration.streamerbot-snapshot', operationId: operation.id,
-        provenance: { snapshotHash: snapshot.hash, historicalDateKnown: false } })) });
       // The legacy bank date is provenance only. Accrual starts at the next Paris reset after cutover.
       const cutoverDate = businessDateToDatabaseDate(getBusinessDate(new Date()));
       await tx.playerBankAccount.upsert({ where: { playerId: player.id },
@@ -466,29 +498,43 @@ export class SnapshotPilotService {
         create: { playerId: player.id, totalSpins: report.wheel.totalSpins, totalJackpots: report.wheel.totalJackpots },
         update: { totalSpins: report.wheel.totalSpins, totalJackpots: report.wheel.totalJackpots } });
       await tx.playerWheelDailyState.deleteMany({ where: { playerId: player.id } });
-      if (report.wheel.lastWheelDate) await tx.playerWheelDailyState.create({ data: {
+      if (report.wheel.lastWheelDate === getBusinessDate(new Date())) await tx.playerWheelDailyState.create({ data: {
         playerId: player.id, businessDate: businessDateToDatabaseDate(report.wheel.lastWheelDate), resultKnown: false,
         legacyProvenance: { source: 'viewers_data.json', lastWheelDate: report.wheel.lastWheelDate },
       } });
       await tx.playerDailyRewardState.upsert({ where: { playerId: player.id },
         create: { playerId: player.id, firstClaimDate: null, lastClaimDate: report.wheel.lastDailyRewardDate ? businessDateToDatabaseDate(report.wheel.lastDailyRewardDate) : null },
         update: { firstClaimDate: null, lastClaimDate: report.wheel.lastDailyRewardDate ? businessDateToDatabaseDate(report.wheel.lastDailyRewardDate) : null, lastClaimedAt: null, lastOperationId: null } });
-      for (const [key, amount] of report.resources) {
-        const prior = await tx.playerResourceBalance.findUnique({ where: { playerId_resourceKey: { playerId: player.id, resourceKey: key } } });
-        const before = prior?.amount ?? 0n;
-        await tx.playerResourceBalance.upsert({ where: { playerId_resourceKey: { playerId: player.id, resourceKey: key } }, create: { playerId: player.id, resourceKey: key, amount }, update: { amount } });
-        if (before !== amount) await tx.resourceMovement.create({ data: { playerId: player.id, resourceKey: key, delta: amount - before,
-          balanceBefore: before, balanceAfter: amount, causeKey: 'migration.streamerbot-refresh', domainKey: 'migration', operationId: operation.id, sourceChannel: 'MIGRATION' } });
+      await tx.playerPreference.upsert({ where: { playerId_preferenceKey: { playerId: player.id, preferenceKey: 'box.sort' } },
+        create: { playerId: player.id, preferenceKey: 'box.sort', value: report.facts.boxSort },
+        update: { value: report.facts.boxSort } });
+      await tx.favorGrant.deleteMany({ where: { playerId: player.id } });
+      await tx.favorDailyClaim.deleteMany({ where: { playerId: player.id } });
+      await tx.playerFavorState.deleteMany({ where: { playerId: player.id } });
+      if (report.facts.favor) {
+        await tx.playerFavorState.create({ data: { playerId: player.id, ...report.facts.favor.state } });
+        if (report.facts.favor.claimDate) await tx.favorDailyClaim.create({ data: { playerId: player.id,
+          businessDate: report.facts.favor.claimDate, origin: 'LEGACY', sourceChannel: null,
+          operationId: null, claimedAt: null,
+          legacyProvenance: { source: 'viewers_data.json.favor.lastClaimDate', snapshotHash: snapshot.hash } } });
       }
-      await tx.migrationRun.create({ data: { playerId: player.id, snapshotHash: snapshot.hash,
-        summary: { imported: ['Progression', 'Ressources', 'Banque', 'Gacha / pity', 'Personnages / constellations', 'Teams', 'Missions', 'Roue / Quotidiennes', 'Statistiques économiques / sociales', 'Concours / C6 personnel', 'Collection / objets', 'Expédition', 'Combat', 'Cosmétiques de personnages'], deferred: report.domains.filter(d => d.action === 'DEFERRED').map(d => d.name), bankLegacyLastInterestDate: record(viewer.data.bank).lastInterestDate ?? null, legacySelectedBannerCharacterId: viewer.data.selectedBannerCharacterId ?? null, legacyZUnlockedAt: report.missionMapping.zUnlockedAt?.toISOString() ?? null, anomalies: report.domains.flatMap(d => d.anomalies) } as Prisma.InputJsonValue } });
-      return { snapshotHash: snapshot.hash, replayed: false, imported: ['Progression', 'Ressources', 'Banque', 'Gacha / pity', 'Personnages / constellations', 'Teams', 'Missions', 'Roue / Quotidiennes', 'Statistiques économiques / sociales', 'Concours / C6 personnel', 'Collection / objets', 'Expédition', 'Combat', 'Cosmétiques de personnages'], deferred: report.domains.filter(d => d.action === 'DEFERRED').map(d => d.name) };
+      await tx.playerResourceBalance.deleteMany({ where: { playerId: player.id } });
+      await tx.playerResourceBalance.createMany({ data: [...report.resources].map(([resourceKey, amount]) => ({ playerId: player.id, resourceKey, amount })) });
+      const imported = report.domains.filter(domain => domain.category === 'PLAYER_LOCAL_PHYSICAL').map(domain => domain.name);
+      const deferred = report.domains.filter(domain => domain.action === 'DEFERRED').map(domain => domain.name);
+      await tx.migrationRun.create({ data: { playerId: player.id, previewId: previewToken.id, snapshotHash: snapshot.hash,
+        summary: { imported, deferred, bankLegacyLastInterestDate: record(viewer.data.bank).lastInterestDate ?? null,
+          legacySelectedBannerCharacterId: viewer.data.selectedBannerCharacterId ?? null,
+          legacyZUnlockedAt: report.missionMapping.zUnlockedAt?.toISOString() ?? null,
+          anomalies: report.domains.flatMap(domain => domain.anomalies) } as Prisma.InputJsonValue } });
+      return { snapshotHash: snapshot.hash, replayed: false, imported, deferred };
     }, { isolationLevel: 'Serializable', timeout: 30_000 });
     for (let attempt = 0; attempt < 3; attempt++) {
       try { return await applyOnce(); }
       catch (error) {
         const code = error && typeof error === 'object' && 'code' in error ? error.code : null;
-        if (code !== 'P2034' || attempt === 2) throw error;
+        const serializationConflict = code === 'P2034' || (code === 'P2010' && error instanceof Error && error.message.includes('40001'));
+        if (!serializationConflict || attempt === 2) throw error;
       }
     }
     throw new AppError('Import indisponible.', 503, 'SNAPSHOT_RETRY_EXHAUSTED');
