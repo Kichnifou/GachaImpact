@@ -380,8 +380,11 @@ model Player {
   favorDailyClaims      FavorDailyClaim[]
   giveawaySessionsWon   GiveawaySession[] @relation("GiveawayWinner")
   giveawaySessionsPreviouslyWon GiveawaySession[] @relation("GiveawayPreviousWinner")
+  giveawaySessionsOpened GiveawaySession[] @relation("GiveawayOpener")
+  giveawaySessionsClosed GiveawaySession[] @relation("GiveawayCloser")
   giveawayParticipations GiveawayParticipant[]
   giveawayChatStats     GiveawayChatStat[]
+  giveawayWins          GiveawayWin[]
   businessOperations    BusinessOperation[]
   resourceBalances      PlayerResourceBalance[]
   resourceMovements     ResourceMovement[]
@@ -816,6 +819,7 @@ model PlayerProgression {
   countedMessages                BigInt    @default(0) @map("counted_messages")
   lastXpAt                       DateTime? @map("last_xp_at") @db.Timestamptz(6)
   lastXpMessageAt                DateTime? @map("last_xp_message_at") @db.Timestamptz(6)
+  legacyLastXpDate               DateTime? @map("legacy_last_xp_date") @db.Date
   createdAt                      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt                      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   player                         Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
@@ -1031,9 +1035,10 @@ model FriendshipLegacyHeartState {
 
 model PlayerFavorState {
   playerId String @id @map("player_id") @db.Uuid
-  daysRemaining Int @map("days_remaining")
-  obtainedDate DateTime? @map("obtained_date") @db.Date
-  lastClaimDate DateTime? @map("last_claim_date") @db.Date
+  activeFromDate DateTime? @map("active_from_date") @db.Date
+  activeUntilDate DateTime? @map("active_until_date") @db.Date
+  legacyObtainedDate DateTime? @map("legacy_obtained_date") @db.Date
+  legacyLastClaimDate DateTime? @map("legacy_last_claim_date") @db.Date
   legacyProvenance Json? @map("legacy_provenance") @db.JsonB
   updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
   player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
@@ -1044,12 +1049,20 @@ model PlayerFavorState {
 model FavorGrant {
   id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   playerId String @map("player_id") @db.Uuid
-  daysGranted Int @map("days_granted")
+  twitchEventReceiptId String? @unique @map("twitch_event_receipt_id") @db.Uuid
+  subscriptionTier String? @map("subscription_tier") @db.Text
+  requestedDays Int @map("requested_days")
+  addedDays Int @map("added_days")
+  blockedDays Int @map("blocked_days")
+  immediatePrimogems BigInt @map("immediate_primogems")
+  compensationPrimogems BigInt @map("compensation_primogems")
   operationId String @unique @map("operation_id") @db.Uuid
   grantedAt DateTime @default(now()) @map("granted_at") @db.Timestamptz(6)
   player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
   operation BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  twitchEventReceipt TwitchEventReceipt? @relation(fields: [twitchEventReceiptId], references: [id], onDelete: Restrict)
 
+  @@index([playerId, grantedAt(sort: Desc)], map: "favor_grants_player_granted_idx")
   @@map("favor_grants")
 }
 
@@ -1057,6 +1070,7 @@ model FavorDailyClaim {
   playerId String @map("player_id") @db.Uuid
   businessDate DateTime @map("business_date") @db.Date
   origin String @default("NATIVE") @db.Text
+  sourceChannel SourceChannel? @map("source_channel")
   operationId String? @unique @map("operation_id") @db.Uuid
   claimedAt DateTime? @map("claimed_at") @db.Timestamptz(6)
   legacyProvenance Json? @map("legacy_provenance") @db.JsonB
@@ -1073,6 +1087,8 @@ model GiveawaySession {
   status String @db.Text
   winnerPlayerId String? @map("winner_player_id") @db.Uuid
   previousWinnerPlayerId String? @map("previous_winner_player_id") @db.Uuid
+  openedByPlayerId String? @map("opened_by_player_id") @db.Uuid
+  closedByPlayerId String? @map("closed_by_player_id") @db.Uuid
   openedAt DateTime? @map("opened_at") @db.Timestamptz(6)
   closedAt DateTime? @map("closed_at") @db.Timestamptz(6)
   rerolledAt DateTime? @map("rerolled_at") @db.Timestamptz(6)
@@ -1082,8 +1098,11 @@ model GiveawaySession {
   legacyProvenance Json? @map("legacy_provenance") @db.JsonB
   winner Player? @relation("GiveawayWinner", fields: [winnerPlayerId], references: [id], onDelete: Restrict)
   previousWinner Player? @relation("GiveawayPreviousWinner", fields: [previousWinnerPlayerId], references: [id], onDelete: Restrict)
+  openedBy Player? @relation("GiveawayOpener", fields: [openedByPlayerId], references: [id], onDelete: Restrict)
+  closedBy Player? @relation("GiveawayCloser", fields: [closedByPlayerId], references: [id], onDelete: Restrict)
   participants GiveawayParticipant[]
   chatStats GiveawayChatStat[]
+  wins GiveawayWin[]
 
   @@map("giveaway_sessions")
 }
@@ -1112,15 +1131,37 @@ model GiveawayChatStat {
   @@map("giveaway_chat_stats")
 }
 
+model GiveawayWin {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId String @map("session_id") @db.Uuid
+  drawIndex Int @map("draw_index")
+  playerId String @map("player_id") @db.Uuid
+  origin String @default("NATIVE") @db.Text
+  operationId String? @unique @map("operation_id") @db.Uuid
+  drawnAt DateTime? @map("drawn_at") @db.Timestamptz(6)
+  legacyProvenance Json? @map("legacy_provenance") @db.JsonB
+  session GiveawaySession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  operation BusinessOperation? @relation(fields: [operationId], references: [id], onDelete: Restrict)
+
+  @@unique([sessionId, drawIndex], map: "giveaway_wins_session_draw_key")
+  @@index([playerId], map: "giveaway_wins_player_idx")
+  @@map("giveaway_wins")
+}
+
 model TwitchEventReceipt {
   id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   externalEventId String @unique @map("external_event_id") @db.Text
   eventType String @map("event_type") @db.Text
   twitchUserId String? @map("twitch_user_id") @db.Text
   state String @default("RECEIVED") @db.Text
+  externalReference String? @map("external_reference") @db.Text
   payloadHash String? @map("payload_hash") @db.Text
+  payloadMinimal Json? @map("payload_minimal") @db.JsonB
   receivedAt DateTime @default(now()) @map("received_at") @db.Timestamptz(6)
   processedAt DateTime? @map("processed_at") @db.Timestamptz(6)
+  errorMessage String? @map("error_message") @db.Text
+  favorGrant FavorGrant?
 
   @@index([eventType, receivedAt(sort: Desc)], map: "twitch_event_receipts_type_received_idx")
   @@index([twitchUserId, receivedAt(sort: Desc)], map: "twitch_event_receipts_user_received_idx")
@@ -1152,6 +1193,7 @@ model BusinessOperation {
   bossRewards        BossReward[]
   favorGrants        FavorGrant[]
   favorDailyClaims   FavorDailyClaim[]
+  giveawayWin        GiveawayWin?
   contestReward      ContestReward?
   itemAcquisitions   ItemAcquisition[]
   eventCollectionAcquisition EventCollectionAcquisition?

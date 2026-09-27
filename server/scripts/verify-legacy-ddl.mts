@@ -34,18 +34,19 @@ try {
   await client.query(`ALTER TABLE "player_daily_reward_state" ADD CONSTRAINT "player_daily_reward_state_claim_dates_check" CHECK (("first_claim_date" IS NULL AND "last_claim_date" IS NULL) OR ("first_claim_date" IS NOT NULL AND "last_claim_date" IS NOT NULL AND "first_claim_date" <= "last_claim_date"))`);
   await client.query(`ALTER TABLE "gift_codes" ADD CONSTRAINT "gift_codes_recurrence_check" CHECK (("type" = 'ANNUAL' AND "recurring_month" BETWEEN 1 AND 12 AND "starts_at" IS NULL AND "ends_at" IS NULL) OR ("type" = 'ONE_OFF' AND "recurring_month" IS NULL AND "starts_at" IS NOT NULL AND "ends_at" IS NOT NULL AND "ends_at" > "starts_at"))`);
   await client.query(`ALTER TABLE "event_game_b_daily_states" ADD CONSTRAINT "event_game_b_daily_states_solved_discoverer_check" CHECK ("discoverer_player_id" IS NULL OR "solved_at" IS NOT NULL)`);
-  for (const migration of ['20260926223000_050_add_legacy_migration_foundation', '20260926224000_051_add_legacy_claim_provenance']) {
+  for (const migration of ['20260926223000_050_add_legacy_migration_foundation', '20260926224000_051_add_legacy_claim_provenance',
+    '20260927014500_052_align_legacy_favor_giveaway_provenance']) {
     const sql = await readFile(join('prisma', 'migrations', migration, 'migration.sql'), 'utf8');
     if (/"public"\.|\bpublic\./.test(sql)) throw new Error(`${migration} addresses public.`);
     await client.query(sql);
   }
-  const tables = await client.query<{ count: string }>(`SELECT count(*)::text AS count FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=$1 AND c.relkind='r' AND c.relname IN ('migration_batches','migration_source_files','migration_mappings','migration_issues','boss_legacy_contributions','boss_legacy_aggregates','contest_legacy_daily_locks','friendship_legacy_heart_state','player_favor_states','favor_grants','favor_daily_claims','giveaway_sessions','giveaway_participants','giveaway_chat_stats','twitch_event_receipts')`, [schema]);
-  if (tables.rows[0]?.count !== '15') throw new Error('Expected 15 private foundation tables.');
+  const tables = await client.query<{ count: string }>(`SELECT count(*)::text AS count FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=$1 AND c.relkind='r' AND c.relname IN ('migration_batches','migration_source_files','migration_mappings','migration_issues','boss_legacy_contributions','boss_legacy_aggregates','contest_legacy_daily_locks','friendship_legacy_heart_state','player_favor_states','favor_grants','favor_daily_claims','giveaway_sessions','giveaway_participants','giveaway_chat_stats','giveaway_wins','twitch_event_receipts')`, [schema]);
+  if (tables.rows[0]?.count !== '16') throw new Error('Expected 16 private foundation tables.');
   const security = await client.query<{ relname: string; relrowsecurity: boolean; anon: boolean; authenticated: boolean }>(`
     SELECT c.relname, c.relrowsecurity, has_table_privilege('anon',c.oid,'SELECT,INSERT,UPDATE,DELETE') AS anon,
       has_table_privilege('authenticated',c.oid,'SELECT,INSERT,UPDATE,DELETE') AS authenticated
     FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-    WHERE n.nspname=$1 AND c.relname IN ('migration_batches','migration_source_files','migration_mappings','migration_issues','boss_legacy_contributions','boss_legacy_aggregates','contest_legacy_daily_locks','friendship_legacy_heart_state','player_favor_states','favor_grants','favor_daily_claims','giveaway_sessions','giveaway_participants','giveaway_chat_stats','twitch_event_receipts')`, [schema]);
+    WHERE n.nspname=$1 AND c.relname IN ('migration_batches','migration_source_files','migration_mappings','migration_issues','boss_legacy_contributions','boss_legacy_aggregates','contest_legacy_daily_locks','friendship_legacy_heart_state','player_favor_states','favor_grants','favor_daily_claims','giveaway_sessions','giveaway_participants','giveaway_chat_stats','giveaway_wins','twitch_event_receipts')`, [schema]);
   if (security.rows.some(row => !row.relrowsecurity || row.anon || row.authenticated)) throw new Error('Private table security mismatch.');
   const provenance = await client.query<{ count: string }>(`SELECT count(*)::text AS count FROM information_schema.columns WHERE table_schema=$1 AND column_name='legacy_provenance'`, [schema]);
   const expectedDdl = execFileSync(process.execPath, ['node_modules/prisma/build/index.js', 'migrate', 'diff', '--from-empty', '--to-schema', 'prisma/schema.prisma', '--script'], { encoding: 'utf8' })

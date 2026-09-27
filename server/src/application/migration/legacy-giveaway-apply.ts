@@ -5,11 +5,13 @@ import type { LegacyGlobalPlan } from './legacy-global-plan.js';
 
 const object = (value: unknown): Record<string, unknown> => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 function knownInstant(value: unknown): Date | null {
+  if (value == null || value === '') return null;
   const paris = parseLegacyParisInstant(value);
   if (paris) return paris;
-  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(value)) return null;
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(value)) throw new Error('Invalid present Giveaway instant.');
   const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  if (Number.isNaN(parsed.getTime())) throw new Error('Invalid present Giveaway instant.');
+  return parsed;
 }
 
 export async function applyLegacyGiveaway(tx: Prisma.TransactionClient, snapshot: Snapshot, plan: LegacyGlobalPlan, batchId: string) {
@@ -18,19 +20,27 @@ export async function applyLegacyGiveaway(tx: Prisma.TransactionClient, snapshot
   if (source.status !== 'closed') throw new Error('Open Giveaway requires a dedicated cutover contract.');
   const winnerId = typeof source.winner === 'string' ? byName.get(normalizeLegacyName(source.winner)) : null;
   if (source.winner && !winnerId) throw new Error('Giveaway winner is outside the migrable population.');
+  const openedByPlayerId = typeof source.openedBy === 'string' ? byName.get(normalizeLegacyName(source.openedBy)) ?? null : null;
+  const closedByPlayerId = typeof source.closedBy === 'string' ? byName.get(normalizeLegacyName(source.closedBy)) ?? null : null;
   const participants = Array.isArray(source.participants) ? source.participants : [];
   const messageCounts = object(source.messageCounts);
   const session = await tx.giveawaySession.create({ data: { legacySessionKey: `streamerbot:${snapshot.hash}`,
-    status: 'CLOSED', winnerPlayerId: winnerId ?? null, openedAt: knownInstant(source.openedAt),
+    status: 'CLOSED', winnerPlayerId: winnerId ?? null, openedByPlayerId, closedByPlayerId,
+    openedAt: knownInstant(source.openedAt),
     closedAt: knownInstant(source.closedAt), rerollCount: null, rerolledAt: null,
     rewardStatus: 'UNKNOWN', distributionState: {
       chatRewardsDistributed: source.chatRewardsDistributed === true,
       rewardPrimos: typeof source.rewardPrimos === 'number' ? source.rewardPrimos : null,
       lastParticipantId: typeof source.lastParticipant === 'string' ? byName.get(normalizeLegacyName(source.lastParticipant)) ?? null : null,
       lastWishAt: knownInstant(source.lastWishAt)?.toISOString() ?? null,
-      openedByPlayerId: typeof source.openedBy === 'string' ? byName.get(normalizeLegacyName(source.openedBy)) ?? null : null,
-      closedByPlayerId: typeof source.closedBy === 'string' ? byName.get(normalizeLegacyName(source.closedBy)) ?? null : null,
-    }, legacyProvenance: { source: 'giveaway.json', batchId, snapshotHash: snapshot.hash } } });
+    }, legacyProvenance: { source: 'giveaway.json', batchId, snapshotHash: snapshot.hash,
+      openedByLegacy: typeof source.openedBy === 'string' ? source.openedBy : null,
+      closedByLegacy: typeof source.closedBy === 'string' ? source.closedBy : null } } });
+  // Index 0 means the sole result proven by this snapshot, not a reconstructed initial draw.
+  if (winnerId) await tx.giveawayWin.create({ data: { sessionId: session.id, drawIndex: 0,
+    playerId: winnerId, origin: 'LEGACY', operationId: null, drawnAt: null,
+    legacyProvenance: { source: 'giveaway.json.winner', batchId, snapshotHash: snapshot.hash,
+      ordinalKnown: false } } });
   let importedParticipants = 0, importedChatStats = 0;
   for (const raw of participants) {
     if (typeof raw !== 'string') throw new Error('Invalid Giveaway participant.');
@@ -48,5 +58,6 @@ export async function applyLegacyGiveaway(tx: Prisma.TransactionClient, snapshot
       legacyProvenance: { source: 'giveaway.json.messageCounts', batchId } } });
     importedChatStats++;
   }
-  return { sessions: 1, participants: importedParticipants, chatStats: importedChatStats, rewardsCreated: 0 };
+  return { sessions: 1, wins: winnerId ? 1 : 0, participants: importedParticipants,
+    chatStats: importedChatStats, rewardsCreated: 0 };
 }

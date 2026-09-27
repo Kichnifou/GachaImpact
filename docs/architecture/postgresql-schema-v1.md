@@ -1,8 +1,8 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
-## Additions legacy 050/051 — candidat `review`, 2026-09-27
+## Additions legacy 050–052 — candidat `review`, 2026-09-27
 
-Les migrations additives `20260926223000_050_add_legacy_migration_foundation` et `20260926224000_051_add_legacy_claim_provenance` ne modifient pas 049. 050 introduit les tables de batch/fichiers/mappings/issues, Boss agrégé et contributions, dernier cœur directionnel, verrou Concours legacy, Faveur, Giveaway et reçu Twitch. Chaque nouvelle table active RLS et retire tous les droits à `PUBLIC`, `anon` et `authenticated` ; seul le backend direct écrit. Le catalogue Character ajoute 119/120 via le générateur et le seed existants, sans copier les JSON privés. Le DDL a été contrôlé en schéma privé avant application DEV. Les migrations 050/051 sont appliquées et suivies par Prisma sur DEV : 51 migrations terminées, 15 nouvelles tables avec RLS et droits navigateur révoqués, 120 personnages catalogue, dix Players inchangés en nombre et aucun batch de migration publique.
+Les migrations versionnées 050/051 et `20260927014500_052_align_legacy_favor_giveaway_provenance` ne modifient pas 049. 050 introduit les tables de batch/fichiers/mappings/issues, Boss agrégé et contributions, dernier cœur directionnel, verrou Concours legacy, Faveur, Giveaway et reçu Twitch ; 051 ajoute les provenances de claims. 052 aligne le calendrier Faveur, ajoute `GiveawayWin`, complète les preuves Twitch et conserve le jour XP legacy. Les 16 tables de fondation ont RLS active et aucun droit `PUBLIC`, `anon` ou `authenticated` ; seul le backend direct écrit. Le catalogue Character ajoute 119/120 via le générateur et le seed existants, sans copier les JSON privés. Le DDL 050–052 a été contrôlé en schéma privé avant application DEV. DEV suit 52 migrations, avec 120 personnages catalogue, dix Players publics et aucun batch de migration public.
 
 051 rend les preuves legacy représentables dans les tables de claims existantes : `operation_id`/timestamp métier nullables uniquement avec provenance legacy, contraintes NATIVE conservées, définition one-off désactivée sans période lorsque le catalogue historique l'a perdue. 050 ajoute aussi la provenance et les états legacy de bannière, Jeu B et Combat quotidien ; les heures d'attaque Boss inconnues restent `NULL` et le dernier jour est une colonne `date`. Le [mapping canonique](legacy-migration-v1.md) donne les règles métier et le [runbook](../process/legacy-cutover-runbook.md) les gates. Aucun Player public ni historique de test n'est modifié par ces migrations de structure.
 
@@ -163,10 +163,11 @@ Pour V1, les valeurs stables peuvent être des enums.
 - `ACTIVE`
 - `FINISHED`
 
-## `giveaway_state`
+## État Giveaway (contrainte `text`, pas enum SQL)
 
 - `OPEN`
 - `CLOSED`
+- `CANCELLED`
 
 ## `contest_state`
 
@@ -175,10 +176,9 @@ Pour V1, les valeurs stables peuvent être des enums.
 - `FINISHED`
 - `CANCELLED`
 
-## `twitch_receipt_state`
+## État TwitchEventReceipt (contrainte `text`, pas enum SQL)
 
 - `RECEIVED`
-- `PROCESSING`
 - `PROCESSED`
 - `FAILED`
 
@@ -461,8 +461,11 @@ Colonnes :
 - `counted_messages bigint NOT NULL DEFAULT 0`
 - `last_xp_at timestamptz NULL`
 - `last_xp_message_at timestamptz NULL`
+- `legacy_last_xp_date date NULL` (jour source conservé, distinct d'un instant XP)
 - `created_at timestamptz NOT NULL DEFAULT now()`
 - `updated_at timestamptz NOT NULL DEFAULT now()`
+
+À l'import legacy, `last_xp_message_at` garde l'instant du message XP connu ; `last_xp_at` reste `NULL` car l'heure du dernier gain XP toutes sources confondues est inconnue.
 
 Contraintes :
 
@@ -1784,6 +1787,8 @@ Index :
 
 L'état En ligne/Absent/Hors ligne reste dérivé.
 
+Le futur cutover legacy vide cette table avant import du gameplay ; les sessions web précédentes ne sont pas conservées et les utilisateurs se reconnectent.
+
 ---
 
 ## 23.2 `player_activity_state`
@@ -2372,24 +2377,25 @@ PK :
 
 # 30. Faveur
 
-## 30.1 `player_favors`
+## 30.1 `player_favor_states`
 
 Une ligne par joueur.
 
 Colonnes :
 
-- `player_id uuid PRIMARY KEY REFERENCES players(id) ON DELETE CASCADE`
+- `player_id uuid PRIMARY KEY REFERENCES players(id) ON DELETE RESTRICT`
 - `active_from_date date NULL`
 - `active_until_date date NULL`
-- `legacy_obtained_at timestamptz NULL`
+- `legacy_obtained_date date NULL`
 - `legacy_last_claim_date date NULL`
+- `legacy_provenance jsonb NULL`
 - `updated_at timestamptz NOT NULL DEFAULT now()`
 
 Contrainte :
 
-- si les deux existent : `active_from_date <= active_until_date`
+- les deux bornes sont nulles ensemble ou présentes ensemble avec `active_from_date <= active_until_date`.
 
-Le nombre de jours restants est dérivé.
+Les bornes sont inclusives. Au jour métier `J`, les jours restants sont l'intersection de `[J, +∞[` et de l'intervalle actif ; un état épuisé a deux bornes nulles. Le snapshot legacy de `N` jours est projeté au cutover sans décrément rétroactif : début `J`, sauf si `lastClaimDate = J` ou `obtainedDate = J`, auquel cas début `J+1`. Les dates source restent des dates, jamais des timestamps inventés.
 
 ---
 
@@ -2399,19 +2405,19 @@ Colonnes :
 
 - `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
 - `player_id uuid NOT NULL REFERENCES players(id) ON DELETE RESTRICT`
-- `twitch_event_receipt_id uuid NULL`
+- `twitch_event_receipt_id uuid NULL UNIQUE REFERENCES twitch_event_receipts(id) ON DELETE RESTRICT`
 - `subscription_tier text NULL`
 - `requested_days integer NOT NULL`
 - `added_days integer NOT NULL`
-- `blocked_days integer NOT NULL DEFAULT 0`
-- `immediate_primogems bigint NOT NULL DEFAULT 0`
-- `compensation_primogems bigint NOT NULL DEFAULT 0`
+- `blocked_days integer NOT NULL`
+- `immediate_primogems bigint NOT NULL`
+- `compensation_primogems bigint NOT NULL`
 - `operation_id uuid NOT NULL UNIQUE REFERENCES business_operations(id) ON DELETE RESTRICT`
-- `created_at timestamptz NOT NULL DEFAULT now()`
+- `granted_at timestamptz NOT NULL DEFAULT now()`
 
 Contraintes :
 
-tous les nombres >= 0.
+Tous les nombres sont positifs ou nuls ; `added_days <= requested_days` et `blocked_days = requested_days - added_days`. Index `(player_id, granted_at DESC)`. Le snapshot n'invente aucun grant.
 
 ---
 
@@ -2421,13 +2427,17 @@ Colonnes :
 
 - `player_id uuid NOT NULL REFERENCES players(id) ON DELETE RESTRICT`
 - `business_date date NOT NULL`
-- `source_channel source_channel NOT NULL`
-- `operation_id uuid NOT NULL UNIQUE REFERENCES business_operations(id) ON DELETE RESTRICT`
-- `claimed_at timestamptz NOT NULL DEFAULT now()`
+- `origin text NOT NULL DEFAULT 'NATIVE'`
+- `source_channel source_channel NULL`
+- `operation_id uuid NULL UNIQUE REFERENCES business_operations(id) ON DELETE RESTRICT`
+- `claimed_at timestamptz NULL`
+- `legacy_provenance jsonb NULL`
 
 PK :
 
 `PRIMARY KEY(player_id, business_date)`
+
+`NATIVE` exige canal, opération et instant, sans provenance legacy. `LEGACY` exige une provenance, sans canal, opération ni instant inventés. Un jour sans claim n'est pas rémunéré.
 
 ---
 
@@ -2438,15 +2448,19 @@ PK :
 Colonnes :
 
 - `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
-- `state giveaway_state NOT NULL`
-- `opened_by_player_id uuid NOT NULL REFERENCES players(id) ON DELETE RESTRICT`
-- `opened_at timestamptz NOT NULL DEFAULT now()`
+- `legacy_session_key text NULL UNIQUE`
+- `status text NOT NULL` (`OPEN`, `CLOSED`, `CANCELLED`)
+- `winner_player_id uuid NULL REFERENCES players(id) ON DELETE RESTRICT`
+- `previous_winner_player_id uuid NULL REFERENCES players(id) ON DELETE RESTRICT`
+- `opened_by_player_id uuid NULL REFERENCES players(id) ON DELETE RESTRICT`
+- `closed_by_player_id uuid NULL REFERENCES players(id) ON DELETE RESTRICT`
+- `opened_at timestamptz NULL`
 - `closed_at timestamptz NULL`
-- `created_at timestamptz NOT NULL DEFAULT now()`
+- `rerolled_at timestamptz NULL`
+- `reroll_count integer NULL DEFAULT 0`, borné à `>= 0`
+- `reward_status text NULL`, `distribution_state jsonb NULL`, `legacy_provenance jsonb NULL`
 
-Index unique partiel :
-
-un seul Giveaway `OPEN`.
+Le schéma actuel n'a pas d'index partiel limitant les sessions `OPEN`. Les champs de gagnant sont des projections de session ; `giveaway_wins` porte les preuves de tirage.
 
 ---
 
@@ -2454,13 +2468,14 @@ un seul Giveaway `OPEN`.
 
 Colonnes :
 
-- `giveaway_session_id uuid NOT NULL REFERENCES giveaway_sessions(id) ON DELETE RESTRICT`
+- `session_id uuid NOT NULL REFERENCES giveaway_sessions(id) ON DELETE RESTRICT`
 - `player_id uuid NOT NULL REFERENCES players(id) ON DELETE RESTRICT`
-- `joined_at timestamptz NOT NULL DEFAULT now()`
+- `joined_at timestamptz NULL`
+- `legacy_provenance jsonb NULL`
 
 PK :
 
-`PRIMARY KEY(giveaway_session_id, player_id)`
+`PRIMARY KEY(session_id, player_id)`
 
 ---
 
@@ -2468,32 +2483,35 @@ PK :
 
 Colonnes :
 
-- `giveaway_session_id uuid NOT NULL REFERENCES giveaway_sessions(id) ON DELETE RESTRICT`
+- `session_id uuid NOT NULL REFERENCES giveaway_sessions(id) ON DELETE RESTRICT`
 - `player_id uuid NOT NULL REFERENCES players(id) ON DELETE RESTRICT`
-- `message_count bigint NOT NULL DEFAULT 0`
+- `message_count bigint NOT NULL` avec `CHECK (message_count >= 0)`
+- `legacy_provenance jsonb NULL`
 
 PK :
 
-`PRIMARY KEY(giveaway_session_id, player_id)`
+`PRIMARY KEY(session_id, player_id)`
 
 ---
 
 ## 31.4 `giveaway_wins`
 
-Permet le gagnant initial et les rerolls.
+Porte les tirages natifs et le résultat effectivement connu du snapshot legacy. L'ordre historique précis du résultat legacy est inconnu : `draw_index = 0` est un emplacement de migration, pas la preuve d'un premier tirage.
 
 Colonnes :
 
 - `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
-- `giveaway_session_id uuid NOT NULL REFERENCES giveaway_sessions(id) ON DELETE RESTRICT`
+- `session_id uuid NOT NULL REFERENCES giveaway_sessions(id) ON DELETE RESTRICT`
 - `draw_index integer NOT NULL`
 - `player_id uuid NOT NULL REFERENCES players(id) ON DELETE RESTRICT`
-- `operation_id uuid NOT NULL UNIQUE REFERENCES business_operations(id) ON DELETE RESTRICT`
-- `drawn_at timestamptz NOT NULL DEFAULT now()`
+- `origin text NOT NULL DEFAULT 'NATIVE'`
+- `operation_id uuid NULL UNIQUE REFERENCES business_operations(id) ON DELETE RESTRICT`
+- `drawn_at timestamptz NULL`
+- `legacy_provenance jsonb NULL`
 
 Contrainte :
 
-`UNIQUE(giveaway_session_id, draw_index)`
+`UNIQUE(session_id, draw_index)` et `draw_index >= 0`. `NATIVE` exige opération et instant, sans provenance legacy ; `LEGACY` exige une provenance et n'invente pas d'opération. Index joueur, RLS active et droits navigateur révoqués.
 
 ---
 
@@ -2507,7 +2525,7 @@ Colonnes :
 - `external_event_id text NOT NULL UNIQUE`
 - `event_type text NOT NULL`
 - `twitch_user_id text NULL`
-- `state twitch_receipt_state NOT NULL DEFAULT 'RECEIVED'`
+- `state text NOT NULL DEFAULT 'RECEIVED'` (`RECEIVED`, `PROCESSED`, `FAILED`)
 - `external_reference text NULL`
 - `payload_hash text NULL`
 - `payload_minimal jsonb NULL`
@@ -2523,6 +2541,8 @@ Index :
 ---
 
 ## 32.2 `gift_supreme_redemptions`
+
+**Cible future non matérialisée en 052.** Les colonnes ci-dessous sont une proposition de modèle ; aucune table `gift_supreme_redemptions` n'existe encore dans les migrations Prisma. L'ingestion Twitch et Gift Suprême demandent une mission dédiée.
 
 Colonnes :
 
@@ -2574,77 +2594,29 @@ Une notification actionable devient `RESOLVED` dès que son action n'est plus di
 
 ---
 
-# 34. Migration / provenance
+# 34. Migration / provenance — physique actuel 049–052
 
 ## 34.1 `migration_runs`
 
-Colonnes :
+Table du pilote 049 conservée : `id`, `player_id` FK, `snapshot_hash`, `source`, `status`, `summary`, `started_at`, `completed_at`, et `batch_id` nullable FK vers `migration_batches` ajouté par 050. Deux index uniques partiels séparent les runs du pilote `(player_id, snapshot_hash)` sans batch et les runs globaux `(batch_id, player_id)` avec batch.
 
-- `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
-- `source_commit_sha text NULL`
-- `source_snapshot_label text NOT NULL`
-- `status text NOT NULL`
-- `started_at timestamptz NOT NULL DEFAULT now()`
-- `completed_at timestamptz NULL`
-- `summary jsonb NULL`
+## 34.2 `migration_batches`
 
----
+`id uuid` PK, `snapshot_hash text NOT NULL` (SHA-256 de 64 caractères), `status text NOT NULL` (`ANALYZING`, `BLOCKED`, `APPLYING`, `COMPLETED`, `FAILED`), `mode text NOT NULL` (`REHEARSAL`, `CUTOVER`), `migrator_version text NOT NULL`, `captured_at timestamptz NULL`, `started_at timestamptz NOT NULL`, `completed_at timestamptz NULL`, `summary jsonb NULL`. Index `(snapshot_hash, started_at DESC)`.
 
-## 34.2 `migration_source_snapshots`
+## 34.3 `migration_source_files`
 
-Colonnes :
+`id uuid` PK, `batch_id uuid NOT NULL` FK CASCADE, `source_name text NOT NULL`, `content_hash text NOT NULL` (SHA-256), `byte_size bigint NOT NULL` non négatif, `captured_at timestamptz NULL`, `source_modified_at timestamptz NULL`. Unique `(batch_id, source_name)`. Les JSON restent hors Git et hors table : seules leurs empreintes et tailles y figurent.
 
-- `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
-- `migration_run_id uuid NOT NULL REFERENCES migration_runs(id) ON DELETE CASCADE`
-- `source_name text NOT NULL`
-- `content_hash text NOT NULL`
-- `metadata jsonb NULL`
-- `captured_at timestamptz NOT NULL DEFAULT now()`
+## 34.4 `migration_mappings`
 
-Contrainte :
+`id uuid` PK, `batch_id uuid NOT NULL` FK CASCADE, `source_name`, `legacy_type`, `legacy_key`, `target_type` non nuls, `target_id uuid NOT NULL`, `twitch_user_id`, `twitch_login`, `twitch_display_name`, `mapping_mode` nullables, `status text NOT NULL`, `metadata jsonb NULL`, `created_at timestamptz NOT NULL`. Unique `(batch_id, source_name, legacy_type, legacy_key, target_type)` ; index `(batch_id, target_type, target_id)`.
 
-`UNIQUE(migration_run_id, source_name)`
+## 34.5 `migration_issues`
 
----
+`id uuid` PK, `batch_id uuid NOT NULL` FK CASCADE, `source_name text NOT NULL`, `path text NULL`, `legacy_key text NULL`, `player_id uuid NULL` FK RESTRICT, `domain text NULL`, `severity text NOT NULL` (`BLOCKER`, `WARNING`, `QUARANTINE`, `INFO`), `issue_code text NOT NULL`, `description text NOT NULL`, `resolution text NULL`, `details jsonb NULL`, `created_at timestamptz NOT NULL`, `resolved_at timestamptz NULL`. Index `(batch_id, severity, resolved_at)`.
 
-## 34.3 `migration_mappings`
-
-Colonnes :
-
-- `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
-- `migration_run_id uuid NOT NULL REFERENCES migration_runs(id) ON DELETE CASCADE`
-- `source_name text NOT NULL`
-- `legacy_type text NOT NULL`
-- `legacy_key text NOT NULL`
-- `target_type text NOT NULL`
-- `target_id uuid NOT NULL`
-- `mapping_metadata jsonb NULL`
-- `created_at timestamptz NOT NULL DEFAULT now()`
-
-Contrainte :
-
-`UNIQUE(migration_run_id, source_name, legacy_type, legacy_key, target_type)`
-
----
-
-## 34.4 `migration_issues`
-
-Colonnes :
-
-- `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
-- `migration_run_id uuid NOT NULL REFERENCES migration_runs(id) ON DELETE CASCADE`
-- `source_name text NOT NULL`
-- `legacy_key text NULL`
-- `severity text NOT NULL`
-- `issue_code text NOT NULL`
-- `description text NOT NULL`
-- `details jsonb NULL`
-- `resolved_at timestamptz NULL`
-- `created_at timestamptz NOT NULL DEFAULT now()`
-
-Index :
-
-`(migration_run_id, severity, resolved_at)`
+Les quatre nouvelles tables de batch (`migration_batches`, `migration_source_files`, `migration_mappings`, `migration_issues`) ont RLS active et droits navigateur révoqués ; `migration_runs` existait avant ce lot. L'ancienne description `migration_source_snapshots` n'était pas une table physique.
 
 ---
 

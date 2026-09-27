@@ -2,6 +2,8 @@
 
 ## Extension migration globale R927–R938 — candidat `review`, 2026-09-26
 
+L'alignement physique 052 conserve `PlayerProgression.legacyLastXpDate`, le calendrier Faveur et `GiveawayWin` avec provenance NATIVE/LEGACY. Le schéma physique exact est décrit dans [l'architecture PostgreSQL](../architecture/postgresql-schema-v1.md) ; ces additions ne changent pas les décisions R927–R938.
+
 Le [contrat canonique de mapping](../architecture/legacy-migration-v1.md) et le [runbook](../process/legacy-cutover-runbook.md) détaillent le cutover. `MigrationBatch` possède fichiers source vérifiés, mappings d'identité et issues bloquantes/avertissements/quarantaines ; il relie les preuves importées sans dupliquer les JSON privés en Git. L'identité durable est le Twitch User ID vérifié. Un compte web rattaché conserve Player ID, Auth, pseudo, rôles, préférences non gameplay et confidentialité ; son gameplay est remplacé. Un compte web non rattaché conserve cette identité et revient à `elementKey = null` après purge du gameplay de test.
 
 Les preuves durables nouvelles sont `BossLegacyAggregate` et `BossLegacyContribution` (totaux source, joueur, jour de dernière attaque sans heure inventée), `FriendshipLegacyHeartState` (cooldown directionnel sans faux cœur), `ContestLegacyDailyLock` (jour consommé sans faux Concours), Faveur (état, grants et claims), Giveaway (session, participants, statistiques chat), et `TwitchEventReceipt` pour une ingestion future non branchée. La bannière, le Jeu B Event et le Combat quotidien distinguent leur état legacy certain d'un timestamp natif. Les claims historiques Codes/Event/Boss/C6 conservent `origin = LEGACY`, provenance et date/opération nullables lorsque inconnues ; une ligne native continue à porter ses preuves complètes. La migration établit les soldes initiaux sans faux mouvement, opération, acquisition ou récompense. Aucun Player n'est créé pour un profil sans élément ou une relation qui le vise.
@@ -410,7 +412,7 @@ Le niveau est dérivé de l'XP selon les règles validées.
 
 Si le niveau est matérialisé techniquement pour lecture rapide, il reste une projection contrôlée et ne peut pas diverger de l'XP.
 
-Les notions legacy `lastXpDate` et `lastMessageTime` sont migrées selon leur vraie sémantique documentée, sans conserver leurs noms trompeurs comme contrat V1.
+Les notions legacy `lastXpDate` et `lastMessageTime` sont migrées selon leur vraie sémantique documentée. Le jour `lastXpDate` reste dans `legacyLastXpDate` pour la provenance ; l'instant du message reste dans `lastXpMessageAt`. L'heure du dernier gain XP toutes sources confondues n'est pas connue : `lastXpAt` reste nul jusqu'à un gain natif daté.
 
 État physique 0.71 : une primitive serveur centrale accorde l'XP dans la transaction du domaine appelant, calcule tous les paliers traversés et les nouveaux blocs d'overflow niveau 100, crédite leurs récompenses par le moteur économique et met à jour `lastXpAt`. La source Team/Cryo n'est pas une source message et laisse donc `totalMessages`, `countedMessages` et `lastXpMessageAt` inchangés.
 
@@ -1783,7 +1785,7 @@ Ne devient pas un historique général du chat.
 
 ## 29.4 Résultat
 
-Le résultat et les récompenses doivent être persistés avant d'être considérés définitifs côté public.
+Le résultat et les récompenses doivent être persistés avant d'être considérés définitifs côté public. `GiveawayWin` porte le tirage natif avec son opération et son instant. Le résultat legacy certain est conservé avec provenance, sans opération ni instant inventés ; son index `0` de migration ne prouve pas l'ordre historique du tirage. Les champs gagnant de session sont une projection, et les acteurs d'ouverture/fermeture sont reliés aux Players résolus lorsqu'ils sont connus.
 
 ---
 

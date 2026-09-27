@@ -3,6 +3,7 @@ import { normalizeLegacyName, type Snapshot } from './streamerbot-snapshot.js';
 import { scanLegacyCoverage } from './legacy-coverage.js';
 import type { ResolvedTwitchUser } from './twitch-identity-resolver.js';
 import { getBusinessDate } from '../../domain/time/business-date.js';
+import { isValidLegacyXpDate } from './legacy-xp-provenance.js';
 
 const elements = new Set(['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro']);
 const record = (value: unknown): Record<string, unknown> => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -57,6 +58,9 @@ export function buildLegacyGlobalPlan(snapshot: Snapshot, resolved: readonly Res
   for (const [login, raw] of selected) {
     const key = normalizeLegacyName(login);
     const viewer = record(raw);
+    if (!isValidLegacyXpDate(record(viewer.dates).lastXpDate))
+      issues.push({ code: 'LEGACY_XP_DATE_INVALID', severity: 'BLOCKER', source: 'viewers_data.json',
+        path: '*.dates.lastXpDate', legacyKey: login });
     const box = record(viewer.box);
     for (const [characterKey, rawCharacter] of Object.entries(box)) {
       if (!catalogKeys.has(`legacy:${characterKey}`)) issues.push({ code: 'CHARACTER_CATALOG_GAP', severity: 'BLOCKER', source: 'viewers_data.json', path: '*.box.*', legacyKey: login });

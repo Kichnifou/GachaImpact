@@ -8,17 +8,17 @@ export const referenceTables = [
 ] as const;
 export const preservedTables = [
   '_prisma_migrations', 'players', 'web_identities', 'twitch_identities', 'player_preferences',
-  'privacy_settings', 'player_role_assignments', 'player_sessions',
+  'privacy_settings', 'player_role_assignments',
 ] as const;
 export const clearTables = [
-  'admin_audit_entries', 'trade_requests', 'trade_executions', 'player_cosmetics', 'player_permanent_mission_states',
+  'admin_audit_entries', 'player_sessions', 'trade_requests', 'trade_executions', 'player_cosmetics', 'player_permanent_mission_states',
   'player_permanent_mission_progress', 'player_daily_challenges', 'player_items', 'item_acquisitions',
   'banner_rotations', 'banner_featured_characters', 'banner_votes', 'player_gacha_states',
   'player_progression', 'twitch_link_states', 'migration_previews', 'migration_runs',
   'migration_batches', 'migration_source_files', 'migration_mappings', 'migration_issues',
   'boss_legacy_contributions', 'boss_legacy_aggregates', 'contest_legacy_daily_locks', 'friendship_legacy_heart_state', 'player_favor_states',
   'favor_grants', 'favor_daily_claims', 'giveaway_sessions', 'giveaway_participants',
-  'giveaway_chat_stats', 'twitch_event_receipts', 'business_operations', 'event_editions',
+  'giveaway_chat_stats', 'giveaway_wins', 'twitch_event_receipts', 'business_operations', 'event_editions',
   'event_calendar_claims', 'event_collection_acquisitions', 'player_event_currency_balances',
   'event_participants', 'event_milestone_claims', 'event_daily_player_states',
   'event_game_b_daily_states', 'friendships', 'friend_requests', 'friend_hearts',

@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { isolatedBatchDatabase } from '../tests-db/isolated-batch-database.js';
@@ -16,6 +16,8 @@ import { applyLegacyBanner } from '../src/application/migration/legacy-banner-ap
 import { applyLegacyDailyCombat } from '../src/application/migration/legacy-daily-combat-apply.js';
 import { applyPrivateCutoverPurge, buildCutoverPurgePlan } from '../src/application/migration/legacy-cutover-purge.js';
 import { applyLegacyContest } from '../src/application/migration/legacy-contest-apply.js';
+import { remainingFavorDays } from '../src/application/migration/legacy-favor-calendar.js';
+import { getBusinessDate } from '../src/domain/time/business-date.js';
 
 const directory = process.argv[2];
 if (!directory) throw new Error('Usage: tsx scripts/rehearse-legacy-global.mts <ignored-snapshot-directory> [cutover-ISO-instant]');
@@ -48,6 +50,7 @@ try {
   await db.playerPreference.create({ data: { playerId: existingId, preferenceKey: 'menu.defaultTab', value: 'inventory' } });
   await db.privacySetting.create({ data: { playerId: existingId, categoryKey: 'CURRENCY_BALANCES', level: 'FRIENDS' } });
   await db.playerRoleAssignment.create({ data: { playerId: existingId, role: 'TESTER', source: 'private-rehearsal' } });
+  await db.playerSession.create({ data: { playerId: existingId, sessionTokenHash: randomBytes(32).toString('hex') } });
   await db.twitchIdentity.create({ data: { playerId: existingId, twitchUserId: identities[0]!.twitchUserId, login: identities[0]!.currentLogin,
     displayName: 'Stale twitch fixture' } });
   await db.playerProgression.createMany({ data: [{ playerId: unmatchedId, xp: 999n }, { playerId: existingId, xp: 888n }] });
@@ -66,11 +69,12 @@ try {
   const purgePlan = await buildCutoverPurgePlan(db, isolated.schema);
   if (purgePlan.retainedPlayers !== 2n || purgePlan.retainedWebIdentities !== 2n || purgePlan.retainedRoles !== 1n ||
     purgePlan.retainedPreferences !== 1n || purgePlan.retainedPrivacy !== 1n) throw new Error('Existing web preservation plan is incomplete.');
-  for (const table of ['global_chat_messages', 'direct_messages', 'notifications']) {
+  for (const table of ['global_chat_messages', 'direct_messages', 'notifications', 'player_sessions']) {
     if (purgePlan.deleteOrder.find(row => row.table === table)?.rows !== 1n) throw new Error(`Private purge missed seeded ${table}.`);
   }
   await applyPrivateCutoverPurge(db, purgePlan);
-  if (await db.playerProgression.count() !== 0 || await db.player.count() !== 2 || await db.webIdentity.count() !== 2)
+  if (await db.playerProgression.count() !== 0 || await db.playerSession.count() !== 0 ||
+    await db.player.count() !== 2 || await db.webIdentity.count() !== 2)
     throw new Error('Private purge did not preserve accounts or clear test gameplay.');
   await db.player.update({ where: { id: unmatchedId }, data: { elementKey: null } });
   const manifest = JSON.parse((await readFile(resolve(directory, 'manifest.json'), 'utf8')).replace(/^\uFEFF/, '')) as {
@@ -112,6 +116,24 @@ try {
   const banner = await db.$transaction(tx => applyLegacyBanner(tx, snapshot, plan, batch.id, cutoverAt), { timeout: 30_000 });
   const dailyCombat = await db.$transaction(tx => applyLegacyDailyCombat(tx, snapshot, plan, batch.id, cutoverAt), { timeout: 30_000 });
   const contest = await db.$transaction(tx => applyLegacyContest(tx, snapshot, plan, batch.id, cutoverAt), { timeout: 30_000 });
+  const favorRows = await db.playerFavorState.findMany({ select: { playerId: true, activeFromDate: true, activeUntilDate: true } });
+  const favorByPlayer = new Map(favorRows.map(row => [row.playerId, row]));
+  for (const player of plan.players) {
+    if (player.viewer.favor == null) continue;
+    const days = (player.viewer.favor as { daysRemaining: number }).daysRemaining;
+    const state = favorByPlayer.get(player.playerId);
+    if (!state || remainingFavorDays(state.activeFromDate, state.activeUntilDate, getBusinessDate(cutoverAt)) !== days)
+      throw new Error('Private Faveur calendar differs from legacy starting balance.');
+  }
+  const progressionRows = await db.playerProgression.findMany({ select: { playerId: true, legacyLastXpDate: true } });
+  const xpByPlayer = new Map(progressionRows.map(row => [row.playerId, row.legacyLastXpDate?.toISOString().slice(0, 10) ?? null]));
+  for (const player of plan.players) {
+    const expected = (player.viewer.dates as { lastXpDate?: string } | undefined)?.lastXpDate ?? null;
+    if (xpByPlayer.get(player.playerId) !== expected) throw new Error('Private legacy lastXpDate was not retained.');
+  }
+  const legacyWin = await db.giveawayWin.findFirst({ where: { origin: 'LEGACY' } });
+  if (!legacyWin || legacyWin.drawIndex !== 0 || legacyWin.operationId !== null || legacyWin.drawnAt !== null)
+    throw new Error('Private Giveaway result provenance is incomplete.');
   const issueRows = await db.migrationIssue.findMany({ where: { batchId: batch.id }, select: { severity: true, issueCode: true, domain: true } });
   const issueCounts = Object.fromEntries([...new Set(issueRows.map(issue => `${issue.severity}:${issue.issueCode}`))].sort()
     .map(key => [key, issueRows.filter(issue => `${issue.severity}:${issue.issueCode}` === key).length]));
@@ -126,7 +148,10 @@ try {
       notifications: await db.notification.count() },
     clearedMessaging: { globalChat: await db.globalChatMessage.count(), directMessages: await db.directMessage.count(),
       tradeRequests: await db.tradeRequest.count() },
-    favor: { states: await db.playerFavorState.count(), grants: await db.favorGrant.count(), claims: await db.favorDailyClaim.count() },
+    favor: { states: await db.playerFavorState.count(), calendarChecked: favorRows.length,
+      grants: await db.favorGrant.count(), claims: await db.favorDailyClaim.count() },
+    xpDatesRetained: progressionRows.filter(row => row.legacyLastXpDate !== null).length,
+    clearedSessions: await db.playerSession.count(),
     bossAggregates: await db.bossLegacyAggregate.count(),
     unmatchedWebElement: (await db.player.findUniqueOrThrow({ where: { id: unmatchedId } })).elementKey,
     retainedWebDisplayName: (await db.player.findUniqueOrThrow({ where: { id: existingId } })).displayName,
@@ -159,7 +184,9 @@ try {
     stats.unknownPaths !== 0 || issueRows.some(issue => issue.severity === 'BLOCKER') ||
     stats.social.friendships !== plan.friendshipCount || stats.social.requests !== plan.requestCount ||
     Object.values(stats.fabricatedHistories).some(count => count !== 0) || Object.values(stats.clearedMessaging).some(count => count !== 0) ||
-    stats.favor.states !== expectedFavorStates || stats.favor.grants !== 0 || stats.favor.claims > stats.favor.states || stats.bossAggregates !== stats.boss.bosses)
+    stats.favor.states !== expectedFavorStates || stats.favor.calendarChecked !== expectedFavorStates ||
+    stats.favor.grants !== 0 || stats.favor.claims > stats.favor.states || stats.bossAggregates !== stats.boss.bosses ||
+    stats.clearedSessions !== 0 || stats.giveaway.wins !== 1)
     throw new Error(`Personal rehearsal invariant failed: ${JSON.stringify(stats)}`);
   if (snapshot.hash === '1852d7141a121c335c5928a8265c20e840e5c5dd20ccee12b054b99f780806ba' &&
     (plan.players.length !== 45 || plan.excludedProfiles !== 168 || stats.social.friendships !== 86 || stats.social.requests !== 19 ||

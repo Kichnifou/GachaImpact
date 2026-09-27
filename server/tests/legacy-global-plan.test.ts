@@ -35,4 +35,12 @@ describe('global legacy population and identity plan', () => {
     expect(plan.issues.map(issue => issue.code)).toContain('TWITCH_EXISTING_IDENTITY_CONFLICT');
     expect(plan.players).toHaveLength(0);
   });
+
+  it('classifies an invalid present XP day as a blocker before import', () => {
+    const files: Record<string, string> = Object.fromEntries(snapshotFileNames.map(name => [name, name === 'monthly_events.json' ? '' : '{}']));
+    files['viewers_data.json'] = JSON.stringify({ alice: { element: 'pyro', dates: { lastXpDate: '2026-02-30' } } });
+    const plan = buildLegacyGlobalPlan(parseStreamerbotSnapshot(files), twitch, [], new Set());
+    expect(plan.issues).toContainEqual({ code: 'LEGACY_XP_DATE_INVALID', severity: 'BLOCKER',
+      source: 'viewers_data.json', path: '*.dates.lastXpDate', legacyKey: 'alice' });
+  });
 });

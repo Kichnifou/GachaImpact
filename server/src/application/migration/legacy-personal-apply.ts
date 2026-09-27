@@ -1,6 +1,8 @@
 import { CosmeticType, CosmeticVisibility, type Prisma } from '../../../generated/prisma/client.js';
 import { businessDateToDatabaseDate, getBusinessDate } from '../../domain/time/business-date.js';
 import { parseLegacyParisInstant } from './legacy-box-mapping.js';
+import { projectLegacyFavorPeriod } from './legacy-favor-calendar.js';
+import { mapLegacyXpProvenance } from './legacy-xp-provenance.js';
 import type { PlannedPlayer } from './legacy-global-plan.js';
 import type { SnapshotPilotService } from './snapshot-pilot-service.js';
 
@@ -32,6 +34,7 @@ export async function applyLegacyPersonalState(tx: Prisma.TransactionClient, pla
   const dates = object(viewer.dates);
   const lastMessageAt = date(dates.lastSeen);
   const lastXpMessageAt = date(dates.lastMessageTime);
+  const xpProvenance = mapLegacyXpProvenance(dates.lastXpDate, lastXpMessageAt);
   const cutoverDate = getBusinessDate(cutoverAt);
   const isExisting = player.mappingMode === 'EXISTING_VERIFIED_TWITCH';
   if (isExisting) await tx.player.update({ where: { id: player.playerId }, data: { elementKey: player.elementKey, legacyUsername: player.legacyUsername,
@@ -43,6 +46,11 @@ export async function applyLegacyPersonalState(tx: Prisma.TransactionClient, pla
     sourceName: 'viewers_data.json', legacyKey: player.legacyUsername, playerId: player.playerId,
     domain, severity: 'WARNING', issueCode: 'PERSONAL_MAPPING_ANOMALY',
     description: 'Personal legacy mapping required a documented adjustment.', details: { note } })) });
+  if (xpProvenance.issue) await tx.migrationIssue.create({ data: { batchId, sourceName: 'viewers_data.json',
+    path: '*.dates.lastXpDate', legacyKey: player.legacyUsername, playerId: player.playerId, domain: 'Progression',
+    severity: xpProvenance.issue.severity, issueCode: xpProvenance.issue.code,
+    description: 'The legacy XP day and XP message instant have different precision or dates.',
+    details: xpProvenance.issue.details } });
   await tx.twitchIdentity.upsert({ where: { playerId: player.playerId }, create: { playerId: player.playerId,
     twitchUserId: player.twitchUserId, login: player.twitchLogin, displayName: player.twitchDisplayName,
     firstSeenAt: date(dates.firstSeen), lastMessageAt }, update: { login: player.twitchLogin, displayName: player.twitchDisplayName,
@@ -50,8 +58,10 @@ export async function applyLegacyPersonalState(tx: Prisma.TransactionClient, pla
   await tx.playerActivityState.upsert({ where: { playerId: player.playerId }, create: { playerId: player.playerId, lastTwitchActivityAt: lastMessageAt },
     update: { lastTwitchActivityAt: lastMessageAt } });
   await tx.playerProgression.upsert({ where: { playerId: player.playerId }, create: { playerId: player.playerId,
-    ...mapping.progression, lastXpAt: lastXpMessageAt, lastXpMessageAt }, update: { ...mapping.progression,
-    lastXpAt: lastXpMessageAt, lastXpMessageAt } });
+    ...mapping.progression, lastXpAt: xpProvenance.lastXpAt, lastXpMessageAt: xpProvenance.lastXpMessageAt,
+    legacyLastXpDate: xpProvenance.legacyLastXpDate }, update: { ...mapping.progression,
+    lastXpAt: xpProvenance.lastXpAt, lastXpMessageAt: xpProvenance.lastXpMessageAt,
+    legacyLastXpDate: xpProvenance.legacyLastXpDate } });
   await tx.playerResourceBalance.deleteMany({ where: { playerId: player.playerId } });
   await tx.playerResourceBalance.createMany({ data: [...mapping.resources].map(([resourceKey, amount]) => ({ playerId: player.playerId, resourceKey, amount })) });
   await tx.playerBankAccount.upsert({ where: { playerId: player.playerId }, create: { playerId: player.playerId,
@@ -112,15 +122,19 @@ export async function applyLegacyPersonalState(tx: Prisma.TransactionClient, pla
   const favor = object(viewer.favor);
   if (viewer.favor != null) {
     const daysRemaining = favor.daysRemaining;
-    if (!Number.isSafeInteger(daysRemaining) || Number(daysRemaining) < 0) throw new Error('Invalid legacy Faveur balance.');
+    if (typeof daysRemaining !== 'number' || !Number.isSafeInteger(daysRemaining)) throw new Error('Invalid legacy Faveur balance.');
+    const obtainedDate = businessDate(favor.obtainedDate);
+    const lastClaimDate = businessDate(favor.lastClaimDate);
+    const period = projectLegacyFavorPeriod(daysRemaining, cutoverDate,
+      obtainedDate?.toISOString().slice(0, 10) ?? null, lastClaimDate?.toISOString().slice(0, 10) ?? null);
+    const favorData = { ...period, legacyObtainedDate: obtainedDate, legacyLastClaimDate: lastClaimDate,
+      legacyProvenance: { source: 'viewers_data.json.favor', snapshotHash, cutoverBusinessDate: cutoverDate,
+        initialDaysRemaining: daysRemaining, intervalBounds: 'inclusive' } };
     await tx.playerFavorState.upsert({ where: { playerId: player.playerId }, create: { playerId: player.playerId,
-      daysRemaining: Number(daysRemaining), obtainedDate: businessDate(favor.obtainedDate), lastClaimDate: businessDate(favor.lastClaimDate),
-      legacyProvenance: { source: 'viewers_data.json.favor', snapshotHash } }, update: {
-      daysRemaining: Number(daysRemaining), obtainedDate: businessDate(favor.obtainedDate), lastClaimDate: businessDate(favor.lastClaimDate),
-      legacyProvenance: { source: 'viewers_data.json.favor', snapshotHash } } });
-    const lastClaim = businessDate(favor.lastClaimDate);
-    if (lastClaim) await tx.favorDailyClaim.upsert({ where: { playerId_businessDate: { playerId: player.playerId, businessDate: lastClaim } },
-      create: { playerId: player.playerId, businessDate: lastClaim, origin: 'LEGACY', operationId: null, claimedAt: null,
+      ...favorData }, update: favorData });
+    if (lastClaimDate) await tx.favorDailyClaim.upsert({ where: { playerId_businessDate: { playerId: player.playerId, businessDate: lastClaimDate } },
+      create: { playerId: player.playerId, businessDate: lastClaimDate, origin: 'LEGACY', sourceChannel: null,
+        operationId: null, claimedAt: null,
         legacyProvenance: { source: 'viewers_data.json.favor.lastClaimDate', snapshotHash } }, update: {} });
   }
   const avatarDefinitions = await tx.cosmeticDefinition.findMany({ where: { sourceCharacterId: { in: mapping.boxRows.map(row => row.characterId) }, type: CosmeticType.AVATAR }, select: { id: true } });
