@@ -60,6 +60,13 @@ describe('GameShell Expedition deep-link', () => {
     const root = createRoot(container)
     await act(async () => { root.render(<GameShell {...props} />); await Promise.resolve() })
     expect(props.onLoadNavigationPreferences).toHaveBeenCalledTimes(1)
+    const sidebar = container.querySelector('.player-sidebar')!
+    expect(sidebar.textContent).toContain('Niveau 1')
+    await act(async () => { root.render(<GameShell {...props} progression={{ ...props.progression, level: 12 }} resources={{ ...props.resources, primogems: '2480' }} />); await Promise.resolve() })
+    expect(container.querySelector('.player-sidebar')).toBe(sidebar)
+    expect(sidebar.textContent).toContain('Niveau 12')
+    expect(sidebar.querySelector('[aria-label="Ouvrir la Boutique, 2 480 Primos"]')).not.toBeNull()
+    await act(async () => { root.render(<GameShell {...props} />); await Promise.resolve() })
     await act(async () => { root.render(<GameShell {...props} expeditionMonotonicNow={1_000} />); await Promise.resolve() })
     expect(props.onLoadNavigationPreferences).toHaveBeenCalledTimes(1)
 

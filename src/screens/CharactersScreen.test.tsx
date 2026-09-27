@@ -19,6 +19,8 @@ function namesInGrid(container: HTMLElement) { return Array.from(container.query
 describe('CharactersScreen real catalog controls', () => {
   it('renders shared catalog cards and starts with Nom ascending without Niveau', () => {
     const container = mount()
+    expect(container.querySelector('.collection-results-body.scroll-content-frame .character-grid')).not.toBeNull()
+    expect(container.querySelector('.scrollable-screen-panel-controls .collection-filters .search-field')).not.toBeNull()
     expect(container.querySelector('.character-portrait-frame')).not.toBeNull()
     expect(container.textContent).toContain('7 personnages actifs')
     expect(container.textContent).not.toContain('Niveau')

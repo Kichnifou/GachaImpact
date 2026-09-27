@@ -3355,6 +3355,8 @@
 }
 
 .search-field input::placeholder { color: #65738d; }
+.search-field:has(input:focus-visible) { border-color: #70dcff; box-shadow: inset 0 0 0 2px rgba(112, 220, 255, .54); }
+.search-field input:focus-visible { outline: none; }
 
 .filter-group,
 .element-filters {
@@ -4131,7 +4133,8 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .inventory-stella-picker { width: min(850px, calc(100vw - 24px)); max-height: calc(100dvh - 40px); display: grid; grid-template-rows: auto auto minmax(0, 1fr); overflow: hidden; }
 .inventory-stella-picker > .floating-panel-heading { padding: 17px; border-bottom: 1px solid rgba(108, 146, 206, .14); }
 .inventory-stella-picker h2 { margin-top: 4px; font-size: 19px; }
-.inventory-stella-grid { min-height: 0; display: grid; grid-template-columns: repeat(5, minmax(110px, 1fr)); align-content: start; gap: 9px; padding: 14px; overflow-y: auto; }
+.inventory-stella-grid { min-height: 0; display: grid; grid-template-columns: repeat(5, minmax(110px, 1fr)); grid-auto-rows: max-content; align-content: start; gap: 9px; margin: 12px; padding: 14px; overflow-y: auto; border: 1px solid rgba(108, 164, 220, .4); border-radius: 10px; background: rgba(5, 15, 30, .7); }
+.inventory-stella-grid > .box-character-card { align-self: start; }
 
 .shop-tabs {
   display: flex;
@@ -4923,6 +4926,7 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
   .filter-group { display: grid; grid-template-columns: 1fr 1fr 1fr; }
   .element-filters { display: grid; grid-template-columns: repeat(7, 1fr); }
   .element-filters button { width: 100%; }
+  .box-filter-secondary .element-filters { min-width: 0; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 5px; }
 
   .catalog-legend { justify-content: flex-start; flex-wrap: wrap; }
   .bonus-grid { grid-template-columns: 1fr; }
@@ -7284,6 +7288,10 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .scrollable-screen-panel-content { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; padding: 4px; overflow: hidden; }
 .scrollable-screen-panel-controls { min-width: 0; display: grid; gap: 10px; }
 .scrollable-screen-panel-body { min-width: 0; min-height: 0; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track); }
+.scrollable-screen-panel-body.scroll-content-frame { padding: 12px; border: 1px solid rgba(108, 164, 220, .4); border-radius: 10px; background: rgba(5, 15, 30, .7); }
+.collection-results-body.scroll-content-frame { display: block; }
+.collection-results-body.scroll-content-frame .character-grid { padding: 2px; }
+.menu-scroll-frame .menu-configuration-list { align-content: start; }
 .moderation-player-browser { width: min(850px, calc(100vw - 32px)); height: min(760px, calc(100dvh - 32px)); display: grid; grid-template-rows: auto auto minmax(180px, 1fr) auto; overflow: hidden; }
 .moderation-player-browser .floating-panel-heading h2 { margin-top: 3px; font-size: 22px; }
 .moderation-browser-filters { display: grid; grid-template-columns: minmax(170px, 1.4fr) repeat(3, minmax(120px, 1fr)) auto; align-items: end; gap: 9px; padding: 14px 16px; border-bottom: 1px solid rgba(104, 146, 205, .16); }
@@ -8030,7 +8038,7 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .dailies-frame .scrollable-screen-panel-controls { border-bottom: 1px solid rgba(121, 153, 198, .16); }
 .dailies-frame .activity-inner-tabs { border-bottom: 0; }
 .dailies-frame .scrollable-screen-panel-body,
-.configuration-frame .scrollable-screen-panel-body { padding-right: 4px; }
+.configuration-frame .scrollable-screen-panel-body:not(.scroll-content-frame) { padding-right: 4px; }
 
 .missions-frame { min-height: 0; }
 .missions-frame .scrollable-screen-panel-controls { border-bottom: 1px solid rgba(121, 153, 198, .16); }
@@ -8092,6 +8100,11 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .account-confirm { width: min(480px, 100%); padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: #0d1a31; }
 .account-confirm p { line-height: 1.5; }
 .account-confirm > div { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.account-confirm[aria-busy="true"] { cursor: wait; }
+.account-confirm button:disabled { cursor: not-allowed; opacity: .56; }
+.account-apply-progress { display: flex; align-items: center; gap: 8px; color: #a9dfff; }
+.account-apply-spinner { width: 14px; height: 14px; border: 2px solid rgba(112, 220, 255, .25); border-top-color: #70dcff; border-radius: 50%; animation: account-apply-spin .8s linear infinite; }
+@keyframes account-apply-spin { to { transform: rotate(360deg); } }
 
 .shop-wallet { cursor: pointer; color: inherit; text-align: left; }
 .shop-wallet:hover, .shop-wallet:focus-visible { border-color: rgba(238, 193, 82, .58); background: rgba(74, 54, 22, .46); }

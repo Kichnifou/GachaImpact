@@ -42,6 +42,8 @@ describe('real personal Box', () => {
   })
   it('renders API values, summary, tabs, seven elements including Dendro, and C0 through C6', () => {
     const html = renderView()
+    expect(html).toContain('collection-results-body scroll-content-frame')
+    expect(html).toContain('aria-label="Personnages possédés"')
     expect(html).toContain('Émilie')
     expect(html).toContain('<strong>4</strong> obtenus')
     for (const label of ['Tous', '5★', '4★', 'Pyro', 'Hydro', 'Cryo', 'Électro', 'Anémo', 'Géo', 'Dendro']) expect(html).toContain(label)

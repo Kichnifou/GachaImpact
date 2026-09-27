@@ -191,6 +191,9 @@ describe('real inventory screen', () => {
     const useButton = container.querySelector<HTMLButtonElement>('button.inventory-stella-card')!
     await act(async () => { useButton.click(); await Promise.resolve(); await Promise.resolve() })
     expect(container.querySelector('.inventory-stella-picker')?.textContent).toContain('Furina')
+    expect(container.querySelector('.inventory-stella-picker > .floating-panel-heading')).not.toBeNull()
+    expect(container.querySelector('.inventory-stella-grid > .box-character-card')).not.toBeNull()
+    expect(appCssSource).toMatch(/\.inventory-stella-grid\s*\{[^}]*grid-auto-rows:\s*max-content;[^}]*overflow-y:\s*auto;/s)
     expect(container.querySelector('.inventory-stella-picker')?.textContent).not.toContain('Collei')
     act(() => container.querySelector<HTMLButtonElement>('[aria-label="Ouvrir la fiche de Furina"]')!.click())
     expect(container.querySelector('.box-detail-modal')?.textContent).toContain('Utiliser une Stella')

@@ -125,7 +125,7 @@ export function BoxView({ box, dailyCombat, expedition = idleExpeditionSnapshot,
   const value = expedition.value
   const visibleCharacters = useMemo(() => prioritizeReady(presentBoxCharacters(box.characters, filters), value), [box.characters, filters, value])
   return <div className="screen-content collection-screen box-screen long-screen-layout">
-    <ScrollableScreenPanel className="collection-screen-panel" bodyClassName="collection-results-body" fixed={<>
+    <ScrollableScreenPanel className="collection-screen-panel" bodyClassName="collection-results-body scroll-content-frame" fixed={<>
       <BoxSummary summary={box.summary} />
       <BoxFiltersBar filters={filters} onChange={onFilters} />
       <p className={`box-inline-error${error ? '' : ' empty'}`} role={error ? 'alert' : undefined}>{error ?? '\u00a0'}</p>

@@ -72,6 +72,7 @@ const chatCacheScopesByScreen: Partial<Record<ScreenId, readonly ChatRefreshScop
 
 type GameShellProps = {
   onRefreshChatScopes: (scopes: readonly ChatRefreshScope[]) => Promise<void>
+  onRefreshPlayerState?: () => Promise<void>
   player: PlayerDto
   onRefreshPlayer?: () => Promise<void>
   resources: PlayerResourcesDto
@@ -202,7 +203,7 @@ type GameShellProps = {
   onSaveNavigationPreferences: (value: NavigationMenuPreferenceDto) => Promise<NavigationMenuPreferenceDto>
 }
 
-function GameShell({ onRefreshChatScopes, player, onRefreshPlayer, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, dailyChallenge, onPurchaseDailyChallenge, onSwitchDailyChallenge, dailyCombat, onLoadMissions, monthlyBoss, onLoadMonthlyBoss, contest, event, onLoadEvent, onLoadEventRanking, onJoinEvent, onClaimEventCalendar, onClaimEventDailyBonus, onConvertEventShop, onPurchaseEventCollection, onAttemptEventGameA, onAttemptEventGameB, onSearchEventGameCRecipients, onSendEventGameC, onConsultEventGameCMessages, onRefreshContest, onLoadContestHistory, onLoadContestHistoryDetail, onOpenContest, onJoinContest, onSelectContestLegend, onSetContestReady, onStartContest, onSpectateContest, onLeaveContest, onCancelContest, onPlayContest, onSupportContest, onRemoveContestParticipant, onRemoveContestSpectator, expedition, expeditionMonotonicNow, notifications, onLoadExpedition, onStartExpedition, onClaimExpedition, onLoadNotifications, onReadNotification, onArchiveNotification, onReadAllNotifications, onArchiveReadNotifications, onLoadDailyCombat, onSetDailyCombatSlot, onRemoveDailyCombatSlot, onCopyActiveTeamToDailyCombat, onAutoSelectDailyCombat, onClearDailyCombatLoadout, onFightDailyCombat, onSetMonthlyBossSlot, onRemoveMonthlyBossSlot, onCopyActiveTeamToMonthlyBoss, onClearMonthlyBossLoadout, onAttackMonthlyBoss, onLoadMonthlyBossHistory, onSignOut, gacha, characters, bannerVoteActions, socialActions, tradeActions, onTradeSnapshot, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank, onLoadShop, onLoadShopHistory, onPurchaseShop, onLoadGiftCodes, onClaimGiftCode, onLoadInventory, onLoadInventoryItemDetail, onConvertParticles, permissions, onLoadModeration, onListModerationPlayers, onModerationResource, onModerationXp, onModerationGacha, onModerationStella, onModerationTester, onModerationApplied, onLoadAdminGiftCodes, onCreateGiftCode, onPublishGiftCode, onUpdateGiftCode, onGiftCodeClaimants, onLoadNavigationPreferences, onSaveNavigationPreferences, onLoadRanking, onLoadHistory }: GameShellProps) {
+function GameShell({ onRefreshChatScopes, onRefreshPlayerState, player, onRefreshPlayer, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, dailyChallenge, onPurchaseDailyChallenge, onSwitchDailyChallenge, dailyCombat, onLoadMissions, monthlyBoss, onLoadMonthlyBoss, contest, event, onLoadEvent, onLoadEventRanking, onJoinEvent, onClaimEventCalendar, onClaimEventDailyBonus, onConvertEventShop, onPurchaseEventCollection, onAttemptEventGameA, onAttemptEventGameB, onSearchEventGameCRecipients, onSendEventGameC, onConsultEventGameCMessages, onRefreshContest, onLoadContestHistory, onLoadContestHistoryDetail, onOpenContest, onJoinContest, onSelectContestLegend, onSetContestReady, onStartContest, onSpectateContest, onLeaveContest, onCancelContest, onPlayContest, onSupportContest, onRemoveContestParticipant, onRemoveContestSpectator, expedition, expeditionMonotonicNow, notifications, onLoadExpedition, onStartExpedition, onClaimExpedition, onLoadNotifications, onReadNotification, onArchiveNotification, onReadAllNotifications, onArchiveReadNotifications, onLoadDailyCombat, onSetDailyCombatSlot, onRemoveDailyCombatSlot, onCopyActiveTeamToDailyCombat, onAutoSelectDailyCombat, onClearDailyCombatLoadout, onFightDailyCombat, onSetMonthlyBossSlot, onRemoveMonthlyBossSlot, onCopyActiveTeamToMonthlyBoss, onClearMonthlyBossLoadout, onAttackMonthlyBoss, onLoadMonthlyBossHistory, onSignOut, gacha, characters, bannerVoteActions, socialActions, tradeActions, onTradeSnapshot, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank, onLoadShop, onLoadShopHistory, onPurchaseShop, onLoadGiftCodes, onClaimGiftCode, onLoadInventory, onLoadInventoryItemDetail, onConvertParticles, permissions, onLoadModeration, onListModerationPlayers, onModerationResource, onModerationXp, onModerationGacha, onModerationStella, onModerationTester, onModerationApplied, onLoadAdminGiftCodes, onCreateGiftCode, onPublishGiftCode, onUpdateGiftCode, onGiftCodeClaimants, onLoadNavigationPreferences, onSaveNavigationPreferences, onLoadRanking, onLoadHistory }: GameShellProps) {
   const [socialTab, setSocialTab] = useState<SocialTab>('friends')
   const [historyIntent, setHistoryIntent] = useState<{ category: HistoryCategory; token: string } | null>(null)
   const { close: closePresence, ...presence } = usePresence(player.id, socialActions)
@@ -319,6 +320,17 @@ function GameShell({ onRefreshChatScopes, player, onRefreshPlayer, resources, pr
       : onWithdrawBank(amount, idempotencyKey))),
   ), [bankCache, bankTransferIntents, onDepositBank, onWithdrawBank, player.id])
   const loadShop = useCallback(() => shopCache.revalidate(player.id, onLoadShop), [onLoadShop, player.id, shopCache])
+  const refreshAfterSnapshotImport = useCallback(async () => {
+    if (!onRefreshPlayerState) return
+    await onRefreshPlayerState()
+    boxCache.clear()
+    inventoryCache.clear()
+    bankCache.clear()
+    shopCache.clear()
+    voteCache.clear()
+    setChatOwnerRevision(value => value + 1)
+    setAppearanceRequestToken(value => value + 1)
+  }, [onRefreshPlayerState, boxCache, inventoryCache, bankCache, shopCache, voteCache])
   const refreshChatScopes = useCallback(async (scopes: readonly ChatRefreshScope[]) => {
     const results = await Promise.allSettled([onRefreshChatScopes(scopes), runChatRefreshScopes(scopes, {
       box: loadBox,
@@ -450,7 +462,7 @@ return <ActivitiesScreen friendship={friendship.value?.summary} friendshipError=
       case 'history':
         return <HistoryScreen key={historyIntent?.token ?? player.id} initialCategory={historyIntent?.category ?? 'invocations'} onInvocations={onGetGachaHistory} onBannersOrEvent={onLoadHistory} onBank={onLoadBankHistory} onShop={onLoadShopHistory} />
       case 'configuration':
-        return <ConfigurationScreen socialActions={socialActions} initialTab={configurationTab} preference={menuPreference} onSave={saveMenuPreference} onReset={() => saveMenuPreference(defaultNavigationPreference)} />
+        return <ConfigurationScreen onRefreshPlayerState={refreshAfterSnapshotImport} socialActions={socialActions} initialTab={configurationTab} preference={menuPreference} onSave={saveMenuPreference} onReset={() => saveMenuPreference(defaultNavigationPreference)} />
       default:
         return <HomeScreen onNavigate={navigate} gacha={gacha} onSetGachaTarget={onSetGachaTarget} />
     }

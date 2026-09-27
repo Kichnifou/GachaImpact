@@ -12,7 +12,7 @@ import AccountSettingsPanel from './AccountSettingsPanel'
 const roots: ReturnType<typeof createRoot>[] = []
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 afterEach(() => { act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren(); vi.clearAllMocks() })
-const mount = async () => { const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root); await act(async () => root.render(<AccountSettingsPanel />)); return container }
+const mount = async (onRefreshPlayerState?: () => Promise<void>) => { const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root); await act(async () => root.render(<AccountSettingsPanel onRefreshPlayerState={onRefreshPlayerState} />)); return container }
 const linkedAccount = { pilotAvailable: true, eligible: true, linked: { login: 'kichnifou', displayName: 'Kichnifou', linkedAt: '2026-09-26T00:00:00Z' }, snapshotAvailable: true, lastImport: null }
 const button = (container: HTMLElement, label: string) => Array.from(container.querySelectorAll('button')).find(element => element.textContent === label)!
 async function selectSnapshot(container: HTMLElement) {
@@ -81,6 +81,47 @@ describe('Configuration > Compte', () => {
     await act(async () => button(container.querySelector('[role="dialog"]')!, 'Confirmer').click())
     expect(api.applyTwitchSnapshot).toHaveBeenCalledWith(expect.any(Object), 'preview-a')
     expect(container.querySelector('[role="status"]')?.textContent).toContain('Import terminé')
+  })
+  it('locks the confirmation and snapshot controls during apply, then refreshes the Player without a browser reload', async () => {
+    api.getTwitchAccount.mockResolvedValue(linkedAccount)
+    api.previewTwitchSnapshot.mockResolvedValue({ previewId: 'preview-a', snapshotHash: 'a'.repeat(64), viewerFound: true, files: 17,
+      warning: 'Remplacement', domains: [{ name: 'Progression', category: 'PLAYER_LOCAL_PHYSICAL', action: 'REPLACE', current: 'A', snapshot: 'B', reason: null, anomalies: [] }] })
+    let finish!: (value: unknown) => void
+    api.applyTwitchSnapshot.mockReturnValue(new Promise(resolve => { finish = resolve }))
+    const refresh = vi.fn(async () => undefined)
+    const container = await mount(refresh)
+    await selectSnapshot(container)
+    await act(async () => button(container, 'Prévisualiser le snapshot').click())
+    await act(async () => button(container, 'Confirmer l’import').click())
+    await act(async () => button(container.querySelector('[role="dialog"]')!, 'Confirmer').click())
+    const dialog = container.querySelector<HTMLElement>('[role="dialog"]')!
+    expect(dialog.getAttribute('aria-busy')).toBe('true')
+    expect(button(dialog, 'Import en cours…').disabled).toBe(true)
+    expect(button(dialog, 'Annuler').disabled).toBe(true)
+    expect(Array.from(container.querySelectorAll<HTMLInputElement>('input[type="file"]')).every(input => input.disabled)).toBe(true)
+    await act(async () => { button(dialog, 'Import en cours…').click(); window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })) })
+    expect(api.applyTwitchSnapshot).toHaveBeenCalledTimes(1)
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull()
+    await act(async () => finish({ snapshotHash: 'a'.repeat(64), replayed: false, imported: ['Progression'], deferred: [] }))
+    expect(refresh).toHaveBeenCalledTimes(1)
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
+    expect(container.textContent).toContain('Import terminé.')
+  })
+  it('keeps the preview and unlocks confirmation after a failed apply', async () => {
+    api.getTwitchAccount.mockResolvedValue(linkedAccount)
+    api.previewTwitchSnapshot.mockResolvedValue({ previewId: 'preview-a', snapshotHash: 'a'.repeat(64), viewerFound: true, files: 17,
+      warning: 'Remplacement', domains: [{ name: 'Progression', category: 'PLAYER_LOCAL_PHYSICAL', action: 'REPLACE', current: 'A', snapshot: 'B', reason: null, anomalies: [] }] })
+    api.applyTwitchSnapshot.mockRejectedValue(new Error('Échec réseau'))
+    const container = await mount()
+    await selectSnapshot(container)
+    await act(async () => button(container, 'Prévisualiser le snapshot').click())
+    await act(async () => button(container, 'Confirmer l’import').click())
+    await act(async () => button(container.querySelector('[role="dialog"]')!, 'Confirmer').click())
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('erreur')
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull()
+    expect(button(container.querySelector('[role="dialog"]')!, 'Confirmer').disabled).toBe(false)
+    expect(Array.from(container.querySelectorAll<HTMLInputElement>('input[type="file"]')).every(input => !input.disabled)).toBe(true)
+    expect(container.textContent).toContain('Snapshot :')
   })
   it.each(['PENDING_MAPPING', 'BLOCKED'] as const)('keeps confirmation disabled for %s', async action => {
     api.getTwitchAccount.mockResolvedValue(linkedAccount)

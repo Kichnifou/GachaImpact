@@ -243,6 +243,12 @@ function AppBootstrap() {
     setPermissions(next.permissions)
   }, [eventRequests, loadContest, publishExpedition])
 
+  const refreshPlayerState = useCallback(async () => {
+    const nextPlayer = await getGameApiClient().getCurrentPlayer()
+    await loadGameState()
+    setPlayer(nextPlayer)
+  }, [loadGameState])
+
   const publishProgression = useCallback((next: PlayerProgressionDto, options: { id: string; rewards?: readonly { resourceKey: string; amount: string }[]; emitLevelUpFeedback?: boolean }) => {
     const published = publishProgressionUpdate(progressionRef.current, next, options)
     progressionRef.current = published.progression
@@ -443,6 +449,7 @@ function AppBootstrap() {
   return (
     <><GameShell
       onRefreshChatScopes={refreshChatScopes}
+      onRefreshPlayerState={refreshPlayerState}
       onRefreshPlayer={async () => setPlayer(await getGameApiClient().getCurrentPlayer())}
       key={player.id}
       socialActions={socialActions}

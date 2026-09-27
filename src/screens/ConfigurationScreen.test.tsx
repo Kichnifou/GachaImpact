@@ -30,6 +30,8 @@ describe('ConfigurationScreen', () => {
     expect(tabs.map((tab) => window.getComputedStyle(tab).cursor)).toEqual(['pointer', 'not-allowed', 'pointer', 'not-allowed'])
     expect(container.querySelector('.configuration-frame .scrollable-screen-panel-body .screen-header')).toBeNull()
     expect(container.querySelector('.configuration-frame .scrollable-screen-panel-body .configuration-tabs')).toBeNull()
+    expect(container.querySelector('.menu-scroll-frame .menu-configuration-list')).not.toBeNull()
+    expect(container.querySelector('.scrollable-screen-panel-controls .menu-configuration-heading')).not.toBeNull()
     expect(container.querySelector('.menu-visibility-button')).not.toBeNull()
     expect(Array.from(container.querySelectorAll('li')).every((row) => row.getAttribute('draggable') === null)).toBe(true)
 
