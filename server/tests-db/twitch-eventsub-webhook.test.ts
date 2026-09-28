@@ -4,6 +4,8 @@ import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { TwitchEventObserver } from '../src/application/twitch/twitch-event-observer.js';
+import { TwitchReceiptRetention } from '../src/application/twitch/twitch-receipt-retention.js';
+import type { PrismaClient } from '../generated/prisma/client.js';
 import { isolatedBatchDatabase } from './isolated-batch-database.js';
 
 const fixture = isolatedBatchDatabase();
@@ -35,6 +37,23 @@ beforeAll(async () => {
 afterAll(async () => { await app?.close(); await offApp?.close(); await fixture.cleanup(); }, 60_000);
 
 describe('Twitch EventSub webhook transport', () => {
+  it('ACKs a signed message and its duplicate even when maintenance fails', async () => {
+    const findMany = vi.fn().mockRejectedValue(new Error('private maintenance failure'));
+    const retention = new TwitchReceiptRetention({ twitchEventReceipt: { findMany } } as unknown as PrismaClient);
+    const testApp = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {}, twitchEventSub: { enabled: true, secret } }, {
+      authIdentityVerifier: { verify: async () => ({ subject: 'test' }) }, getOrProvisionCurrentPlayer: {} as never,
+      twitchEventObserver: new TwitchEventObserver(db, retention),
+    });
+    const id = randomUUID();
+    try {
+      const value = signed('notification', chat(), id);
+      expect((await post(testApp, value)).statusCode).toBe(204);
+      expect((await post(testApp, value)).statusCode).toBe(204);
+      expect(await db.twitchEventReceipt.count({ where: { externalEventId: id } })).toBe(1);
+      expect(findMany).toHaveBeenCalledTimes(1);
+    } finally { await testApp.close(); }
+    await db.twitchEventReceipt.delete({ where: { externalEventId: id } });
+  });
   it('does not expose the route or create receipts while the flag is off', async () => {
     expect((await post(offApp, signed('notification', chat()))).statusCode).toBe(404);
     expect(await db.twitchEventReceipt.count()).toBe(0);

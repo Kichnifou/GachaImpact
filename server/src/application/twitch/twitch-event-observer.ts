@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { PrismaClient, TwitchEventReceipt } from '../../../generated/prisma/client.js';
+import { TwitchReceiptRetention } from './twitch-receipt-retention.js';
 
 /** Internal observation contract. A future transport must pass only a digest of message content, never raw chat text. */
 export type TwitchObservedEvent = Readonly<{
@@ -51,7 +52,7 @@ function normalize(input: TwitchObservedEvent) {
 }
 
 export class TwitchEventObserver {
-  constructor(private readonly db: PrismaClient) {}
+  constructor(private readonly db: PrismaClient, private readonly retention = new TwitchReceiptRetention(db)) {}
 
   async observeTwitchEvent(input: TwitchObservedEvent) {
     const event = normalize(input);
@@ -74,15 +75,18 @@ export class TwitchEventObserver {
       } });
       return result(receipt, identity?.playerId ?? null, false);
     });
-    try { return await observe(); }
+    let observed;
+    try { observed = await observe(); }
     catch (error) {
       if (!(error && typeof error === 'object' && 'code' in error && error.code === 'P2002')) throw error;
-      return this.db.$transaction(async tx => {
+      observed = await this.db.$transaction(async tx => {
         const receipt = await tx.twitchEventReceipt.findUnique({ where: { externalEventId: event.externalEventId } });
         if (!receipt) throw error;
         const identity = await tx.twitchIdentity.findUnique({ where: { twitchUserId: event.twitchUserId }, select: { playerId: true } });
         return check(receipt, identity?.playerId ?? null);
       });
     }
+    if (event.eventType === 'channel.chat.message') this.retention.maybeCleanup();
+    return observed;
   }
 }
