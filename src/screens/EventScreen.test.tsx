@@ -41,6 +41,24 @@ function selectGames(container: HTMLElement) {
 }
 
 describe('EventScreen presentation', () => {
+  it.each([false, true])('keeps the joined=%s membership capsule next to the unchanged hero copy and History action', (joined) => {
+    const mounted = mount({ value: joined ? afterJoin : beforeJoin });
+    const onOpenHistory = vi.fn();
+    act(() => mounted.root.render(<EventScreen {...mounted.props} onOpenHistory={onOpenHistory} />));
+    const hero = mounted.container.querySelector('.event-hero')!;
+    const badge = hero.querySelector('.event-membership')!;
+    expect(badge.textContent).toBe(joined ? 'Inscrit' : 'Non inscrit');
+    expect(badge.classList.contains('joined')).toBe(joined);
+    expect(Array.from(hero.children, child => child.className)).toEqual(['event-hero-symbol', 'event-hero-copy', joined ? 'event-membership joined' : 'event-membership ', 'event-hero-history']);
+    expect(hero.querySelector('.event-hero-copy h2')?.textContent).toBe('Festival des Récoltes');
+    act(() => hero.querySelector<HTMLButtonElement>('.event-hero-history')!.click());
+    expect(onOpenHistory).toHaveBeenCalledOnce();
+  });
+  it('sizes membership capsules intrinsically at the top right and preserves the mobile left alignment', () => {
+    const css = readFileSync('src/App.css', 'utf8');
+    expect(css).toMatch(/\.event-membership\s*\{[^}]*grid-column:\s*3;[^}]*grid-row:\s*1;[^}]*justify-self:\s*end;[^}]*align-self:\s*start;[^}]*width:\s*max-content;[^}]*white-space:\s*nowrap;/s);
+    expect(css).toMatch(/\.event-membership\s*\{\s*grid-column:\s*1;\s*grid-row:\s*2;\s*justify-self:\s*start;\s*\}/);
+  });
   it('exposes only a Codes navigation action and honors the Shop notification intent', () => {
     const mounted = mount({ value: { ...afterJoin, giftCode: { available: true } } })
     const onOpenCodes = vi.fn()
