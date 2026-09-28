@@ -1,8 +1,8 @@
 # GachaImpact — Architecture backend V1
 
-## Faveur de l'Astre — core Lot 1, candidat `review` uniquement
+## Faveur de l'Astre — core Lot 1, promu techniquement sur `main`
 
-`FavorService` expose trois primitives serveur internes : `getCurrent(playerId)`, `grant({ playerId, idempotencyKey, tier, twitchEventReceiptId? })` et `claimToday(playerId, sourceChannel)`. Aucun endpoint, consumer Twitch, dispatcher, présence automatique, Profil, Quotidiennes, notification ou animation n'est branché dans ce lot. Ce core invisible n'a pas été testé publiquement et n'est pas promu sur `main`.
+`FavorService` expose trois primitives serveur internes : `getCurrent(playerId)`, `grant({ playerId, idempotencyKey, tier, twitchEventReceiptId? })` et `claimToday(playerId, sourceChannel)`. Aucun endpoint, consumer Twitch, dispatcher, présence automatique, Profil, Quotidiennes, notification ou animation n'est branché dans ce lot. Ce core est promu techniquement sur `main`, sans surface utilisateur : aucun test public Faveur requis ou acquis à ce stade. Déploiement Railway et healthcheck à vérifier par ChatGPT après le push `main`, sans succès ni validation publique anticipés. Les règles fonctionnelles du candidat approuvé `f0823276feb5717de4115bbd9ca5db08752a0cac` sont inchangées.
 
 Le calendrier inclusif appartient à `domain/favor/favor-calendar.ts`, avec les helpers existants `getBusinessDate`, `addBusinessDays` et porteurs PostgreSQL DATE ; la migration réexporte le même calcul de jours restants. Une lecture `REPEATABLE READ` projette la business date Paris, actif/inactif, au plus 180 jours restants (y compris les jours futurs), et `AVAILABLE / CLAIMED / UNAVAILABLE` pour aujourd'hui. Bornes nulles ou expirées : inactif ; intervalle futur : jours restants mais aucun claim. Aucun scheduler ni décrément physique, aucun paiement ni écriture de provenance à la lecture.
 
