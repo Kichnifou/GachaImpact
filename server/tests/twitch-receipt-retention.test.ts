@@ -4,6 +4,8 @@ import { TwitchReceiptRetention } from '../src/application/twitch/twitch-receipt
 import { TwitchEventObserver } from '../src/application/twitch/twitch-event-observer.js';
 
 const HOUR = 60 * 60 * 1_000;
+const MINUTE = 60 * 1_000;
+const fullBatch = () => Array.from({ length: 1_000 }, (_value, index) => ({ id: `old-${index}` }));
 const flush = () => new Promise<void>(resolve => setImmediate(resolve));
 function setup() {
   let now = Date.parse('2026-09-28T12:00:00Z');
@@ -28,22 +30,75 @@ describe('bounded Twitch observation receipt retention', () => {
     advance(1); retention.maybeCleanup(); await flush();
     expect(receipts.findMany).toHaveBeenCalledTimes(2);
   });
-  it('does not start another cleanup while the previous one is still running, even after an hour', async () => {
+  it('keeps one running cleanup and starts the normal delay after a long attempt completes', async () => {
     const { retention, receipts, advance } = setup();
     let release!: (rows: { id: string }[]) => void;
     receipts.findMany.mockImplementationOnce(() => new Promise(resolve => { release = resolve; }));
     retention.maybeCleanup(); advance(2 * HOUR); retention.maybeCleanup();
     expect(receipts.findMany).toHaveBeenCalledTimes(1);
     release([{ id: 'old' }]); await flush(); retention.maybeCleanup(); await flush();
+    expect(receipts.findMany).toHaveBeenCalledTimes(1);
+    advance(HOUR - 1); retention.maybeCleanup(); await flush();
+    expect(receipts.findMany).toHaveBeenCalledTimes(1);
+    advance(1); retention.maybeCleanup(); await flush();
     expect(receipts.findMany).toHaveBeenCalledTimes(2);
   });
   it.each(['findMany', 'deleteMany'] as const)('isolates %s failure and keeps the hourly retry bound', async method => {
     const { retention, receipts, advance } = setup();
-    receipts[method].mockRejectedValueOnce(new Error('private maintenance failure'));
-    retention.maybeCleanup(); await flush(); retention.maybeCleanup(); await flush();
+    let rejectCleanup!: (reason: Error) => void;
+    receipts[method].mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectCleanup = reject; }));
+    retention.maybeCleanup(); await flush(); advance(2 * HOUR);
+    rejectCleanup(new Error('private maintenance failure')); await flush();
+    retention.maybeCleanup(); advance(HOUR - 1); retention.maybeCleanup(); await flush();
     expect(receipts.findMany).toHaveBeenCalledTimes(1);
-    advance(HOUR); retention.maybeCleanup(); await flush();
+    advance(1); retention.maybeCleanup(); await flush();
     expect(receipts.findMany).toHaveBeenCalledTimes(2);
+  });
+  it('waits a minute after a full selection, ignores intervening messages and runs only one batch per attempt', async () => {
+    const { retention, receipts, advance } = setup(); receipts.findMany.mockResolvedValue(fullBatch());
+    retention.maybeCleanup(); await flush();
+    expect(receipts.findMany).toHaveBeenCalledTimes(1); expect(receipts.deleteMany).toHaveBeenCalledTimes(1);
+    advance(MINUTE - 1);
+    for (let index = 0; index < 20; index++) retention.maybeCleanup();
+    await flush(); expect(receipts.findMany).toHaveBeenCalledTimes(1);
+    advance(1); retention.maybeCleanup(); await flush();
+    expect(receipts.findMany).toHaveBeenCalledTimes(2); expect(receipts.deleteMany).toHaveBeenCalledTimes(2);
+    expect(receipts.deleteMany.mock.calls[0]![0].where.id.in).toHaveLength(1_000);
+    await flush(); expect(receipts.findMany).toHaveBeenCalledTimes(2);
+  });
+  it('uses full selection rather than a lower DELETE count to keep catch-up cadence', async () => {
+    const { retention, receipts, advance } = setup();
+    receipts.findMany.mockResolvedValue(fullBatch()); receipts.deleteMany.mockResolvedValue({ count: 0 });
+    retention.maybeCleanup(); await flush(); advance(MINUTE); retention.maybeCleanup(); await flush();
+    expect(receipts.findMany).toHaveBeenCalledTimes(2);
+  });
+  it('returns to an hour after a partial batch following catch-up', async () => {
+    const { retention, receipts, advance } = setup(); receipts.findMany.mockResolvedValueOnce(fullBatch());
+    retention.maybeCleanup(); await flush(); advance(MINUTE); retention.maybeCleanup(); await flush();
+    expect(receipts.findMany).toHaveBeenCalledTimes(2);
+    advance(HOUR - 1); retention.maybeCleanup(); await flush(); expect(receipts.findMany).toHaveBeenCalledTimes(2);
+    advance(1); retention.maybeCleanup(); await flush(); expect(receipts.findMany).toHaveBeenCalledTimes(3);
+  });
+  it('keeps one catch-up cleanup running and waits a fresh minute after slow DELETE completion', async () => {
+    const { retention, receipts, advance } = setup(); receipts.findMany.mockResolvedValue(fullBatch());
+    retention.maybeCleanup(); await flush(); advance(MINUTE);
+    let release!: (result: { count: number }) => void;
+    receipts.deleteMany.mockImplementationOnce(() => new Promise(resolve => { release = resolve; }));
+    retention.maybeCleanup(); await flush(); advance(2 * HOUR);
+    for (let index = 0; index < 20; index++) retention.maybeCleanup();
+    expect(receipts.findMany).toHaveBeenCalledTimes(2); expect(receipts.deleteMany).toHaveBeenCalledTimes(2);
+    release({ count: 1_000 }); await flush(); retention.maybeCleanup(); advance(MINUTE - 1); retention.maybeCleanup();
+    expect(receipts.findMany).toHaveBeenCalledTimes(2);
+    advance(1); retention.maybeCleanup(); await flush(); expect(receipts.findMany).toHaveBeenCalledTimes(3);
+  });
+  it.each(['findMany', 'deleteMany'] as const)('leaves catch-up on %s failure and retries only after an hour', async method => {
+    const { retention, receipts, advance } = setup(); receipts.findMany.mockResolvedValue(fullBatch());
+    retention.maybeCleanup(); await flush();
+    receipts[method].mockRejectedValueOnce(new Error('private catch-up failure'));
+    advance(MINUTE); retention.maybeCleanup(); await flush();
+    advance(MINUTE); retention.maybeCleanup(); await flush(); expect(receipts.findMany).toHaveBeenCalledTimes(2);
+    advance(HOUR - MINUTE - 1); retention.maybeCleanup(); await flush(); expect(receipts.findMany).toHaveBeenCalledTimes(2);
+    advance(1); retention.maybeCleanup(); await flush(); expect(receipts.findMany).toHaveBeenCalledTimes(3);
   });
   it('skips DELETE when there is no eligible receipt and never loops over a backlog', async () => {
     const { retention, receipts } = setup(); receipts.findMany.mockResolvedValueOnce([]);

@@ -20,7 +20,7 @@ La Phase 2B-1 approuvée et promue techniquement sur `main`, sans activation, r�
 
 > Statut : **CONSOLIDÉ — Phase C2 / schéma relationnel cible**
 >
-> Conservation/purge : [politique canonique R943–R945](../specifications/data-retention-v1.md). Seule la purge Chat Twitch observation-only est codée dans le candidat : cible 24 h, exclusions traitement/référence/provenance/FavorGrant, cleanup applicatif opportuniste horaire non bloquant et lot maximal 1 000 IDs, sans migration. Les autres durées sont décidées, pas des purges déjà implémentées ; aucune modification de 054 ni création de 055, DEV reste à 54 migrations.
+> Conservation/purge : [politique canonique R943–R945](../specifications/data-retention-v1.md). Seule la purge Chat Twitch observation-only est codée dans le candidat : cible 24 h, exclusions traitement/référence/provenance/FavorGrant, cleanup applicatif opportuniste non bloquant, cadence normale 1 h / rattrapage 1 min si sélection pleine de 1 000 IDs. Un lot par tentative, aucune concurrence ou boucle immédiate ; délai depuis la fin, lot partiel/échec → 1 h, recheck au DELETE inchangé, sans migration. Les autres durées sont décidées, pas des purges déjà implémentées ; aucune modification de 054 ni création de 055, DEV reste à 54 migrations.
 >
 > Date : **2026-09-04**
 >

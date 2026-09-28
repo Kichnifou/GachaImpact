@@ -37,8 +37,11 @@ beforeAll(async () => {
 afterAll(async () => { await app?.close(); await offApp?.close(); await fixture.cleanup(); }, 60_000);
 
 describe('Twitch EventSub webhook transport', () => {
-  it('ACKs a signed message and its duplicate even when maintenance fails', async () => {
-    const findMany = vi.fn().mockRejectedValue(new Error('private maintenance failure'));
+  it.each(['blocked', 'failed'] as const)('ACKs a signed message and its duplicate even when maintenance is %s', async mode => {
+    let rejectCleanup: ((reason: Error) => void) | undefined;
+    const findMany = vi.fn().mockImplementation(() => mode === 'failed'
+      ? Promise.reject(new Error('private maintenance failure'))
+      : new Promise((_resolve, reject) => { rejectCleanup = reject; }));
     const retention = new TwitchReceiptRetention({ twitchEventReceipt: { findMany } } as unknown as PrismaClient);
     const testApp = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {}, twitchEventSub: { enabled: true, secret } }, {
       authIdentityVerifier: { verify: async () => ({ subject: 'test' }) }, getOrProvisionCurrentPlayer: {} as never,
@@ -51,7 +54,11 @@ describe('Twitch EventSub webhook transport', () => {
       expect((await post(testApp, value)).statusCode).toBe(204);
       expect(await db.twitchEventReceipt.count({ where: { externalEventId: id } })).toBe(1);
       expect(findMany).toHaveBeenCalledTimes(1);
-    } finally { await testApp.close(); }
+    } finally {
+      rejectCleanup?.(new Error('private maintenance released'));
+      await new Promise<void>(resolve => setImmediate(resolve));
+      await testApp.close();
+    }
     await db.twitchEventReceipt.delete({ where: { externalEventId: id } });
   });
   it('does not expose the route or create receipts while the flag is off', async () => {
