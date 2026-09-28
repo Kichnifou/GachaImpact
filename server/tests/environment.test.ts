@@ -3,6 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/config/environment.js';
 
 describe('loadConfig', () => {
+  it('accepts an optional fixed HTTPS EventSub callback without requiring activation', () => {
+    expect(loadConfig({ TWITCH_EVENTSUB_CALLBACK_URL: 'https://backend.example/api/v1/twitch/eventsub' }).twitchEventSub)
+      .toMatchObject({ enabled: false, callbackUrl: 'https://backend.example/api/v1/twitch/eventsub' });
+    for (const value of ['http://backend.example/api/v1/twitch/eventsub', 'https://backend.example/other', 'https://backend.example/api/v1/twitch/eventsub?q=x', 'https://backend.example/api/v1/twitch/eventsub#x', 'https://user:password@backend.example/api/v1/twitch/eventsub'])
+      expect(() => loadConfig({ TWITCH_EVENTSUB_CALLBACK_URL: value })).toThrow('TWITCH_EVENTSUB_CALLBACK_URL');
+  });
   it('uses local defaults without a database or Supabase project', () => {
     expect(loadConfig({})).toMatchObject({
       host: '127.0.0.1',

@@ -24,6 +24,15 @@ async function selectSnapshot(container: HTMLElement) {
 }
 
 describe('Configuration > Compte', () => {
+  it.each(['runtime-authorized', 'runtime-error', 'runtime-future'])('silently clears the %s outcome without reporting a failed identity link', async outcome => {
+    api.getTwitchAccount.mockResolvedValue(linkedAccount);
+    history.replaceState(null, '', `/?twitch=${outcome}`);
+    const container = await mount();
+    expect(location.search).not.toContain('twitch=');
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(container.textContent).toContain('Kichnifou · Connecté');
+    expect(api.startTwitchLink).not.toHaveBeenCalled();
+  });
   it('shows an unavailable pilot without an active link action', async () => {
     api.getTwitchAccount.mockResolvedValue({ pilotAvailable: false, eligible: false, linked: null, snapshotAvailable: false, lastImport: null })
     const container = await mount()

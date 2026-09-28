@@ -2,6 +2,7 @@ import type { FastifyInstance, preHandlerHookHandler } from 'fastify';
 import { z } from 'zod';
 import type { AppConfig } from '../../config/environment.js';
 import type { TwitchPilotService } from '../../application/twitch/twitch-pilot-service.js';
+import { twitchOAuthPurpose } from '../../application/twitch/twitch-pilot-service.js';
 import type { SnapshotPilotService } from '../../application/migration/snapshot-pilot-service.js';
 import { SnapshotParseError } from '../../application/migration/streamerbot-snapshot.js';
 import { requireAuthenticatedIdentity } from '../auth/authentication.js';
@@ -22,12 +23,21 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
   const authenticated = { preHandler: options.authenticate };
   app.get('/api/v1/me/twitch', authenticated, request => options.twitch.status(requireAuthenticatedIdentity(request)));
   app.post('/api/v1/me/twitch/start', authenticated, request => options.twitch.start(requireAuthenticatedIdentity(request)));
+  app.post('/api/v1/me/twitch/runtime/start', authenticated, request => {
+    if (!z.object({}).strict().safeParse(request.body ?? {}).success) throw new AppError('Paramètres runtime Twitch invalides.', 400, 'VALIDATION_ERROR');
+    return options.twitch.startRuntime(requireAuthenticatedIdentity(request));
+  });
   app.delete('/api/v1/me/twitch', authenticated, request => options.twitch.unlink(requireAuthenticatedIdentity(request)));
   app.get('/api/v1/me/twitch/callback', { logLevel: 'silent' }, async (request, reply) => {
     const query = callbackSchema.safeParse(request.query);
     let outcome = 'error';
-    try { if (query.success) { await options.twitch.callback(query.data); outcome = 'connected'; } }
-    catch (error) { if (error instanceof AppError) outcome = error.code; }
+    let runtime = false;
+    try { if (query.success) {
+      runtime = twitchOAuthPurpose(query.data.state) === 'AUTHORIZE_RUNTIME';
+      await options.twitch.callback(query.data);
+      outcome = runtime ? 'runtime-authorized' : 'connected';
+    } }
+    catch (error) { outcome = runtime ? 'runtime-error' : error instanceof AppError ? error.code : 'error'; }
     const target = new URL(options.config.frontendOrigin ?? 'http://localhost:5173');
     target.searchParams.set('twitch', outcome);
     target.hash = 'configuration';

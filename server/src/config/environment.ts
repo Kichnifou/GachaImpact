@@ -17,6 +17,7 @@ const environmentSchema = z.object({
   TWITCH_PILOT_LOGIN: z.string().trim().default('kichnifou'),
   TWITCH_EVENTSUB_WEBHOOK_ENABLED: z.enum(['true', 'false']).default('false'),
   TWITCH_EVENTSUB_SECRET: z.string().optional(),
+  TWITCH_EVENTSUB_CALLBACK_URL: optionalUrl,
 });
 
 export type AppConfig = Readonly<{
@@ -30,7 +31,7 @@ export type AppConfig = Readonly<{
     jwtIssuer?: string;
   }>;
   twitch?: Readonly<{ clientId?: string; clientSecret?: string; redirectUri?: string; pilotPlayerIds: readonly string[]; pilotLogin: string }>;
-  twitchEventSub?: Readonly<{ enabled: boolean; secret?: string }>;
+  twitchEventSub?: Readonly<{ enabled: boolean; secret?: string; callbackUrl?: string }>;
 }>;
 
 export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -41,6 +42,12 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
   }
   const eventSubEnabled = parsed.data.TWITCH_EVENTSUB_WEBHOOK_ENABLED === 'true';
   const eventSubSecret = parsed.data.TWITCH_EVENTSUB_SECRET;
+  const callbackUrl = parsed.data.TWITCH_EVENTSUB_CALLBACK_URL;
+  if (callbackUrl) {
+    const url = new URL(callbackUrl);
+    if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash || url.port && url.port !== '443' || url.pathname !== '/api/v1/twitch/eventsub')
+      throw new Error('TWITCH_EVENTSUB_CALLBACK_URL must be an HTTPS webhook URL without credentials, query or fragment.');
+  }
   if (eventSubEnabled && (!eventSubSecret || eventSubSecret.length < 10 || eventSubSecret.length > 100 || !/^[\x20-\x7e]+$/.test(eventSubSecret))) {
     throw new Error('TWITCH_EVENTSUB_SECRET must be 10–100 ASCII characters when the webhook is enabled.');
   }
@@ -62,6 +69,6 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
       pilotPlayerIds: parsed.data.TWITCH_PILOT_PLAYER_IDS.split(',').map(value => value.trim()).filter(Boolean),
       pilotLogin: parsed.data.TWITCH_PILOT_LOGIN.toLowerCase(),
     },
-    twitchEventSub: { enabled: eventSubEnabled, secret: eventSubSecret },
+    twitchEventSub: { enabled: eventSubEnabled, secret: eventSubSecret, callbackUrl },
   };
 }

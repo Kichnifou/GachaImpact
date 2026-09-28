@@ -66,6 +66,9 @@ import { PermanentMissionService } from '../application/missions/permanent-missi
 import { PrismaEconomyService } from './database/prisma-economy-service.js';
 import { TwitchPilotService } from '../application/twitch/twitch-pilot-service.js';
 import { TwitchEventObserver } from '../application/twitch/twitch-event-observer.js';
+import { TwitchEventSubSubscriptionManager } from '../application/twitch/twitch-eventsub-subscription-manager.js';
+import { TwitchAppAccessTokenProvider } from './twitch/twitch-app-access-token-provider.js';
+import { TwitchEventSubClient } from './twitch/twitch-eventsub-client.js';
 import { SnapshotPilotService } from '../application/migration/snapshot-pilot-service.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
@@ -79,6 +82,10 @@ export function createRuntimeDependencies(config: AppConfig) {
   const getCurrentPlayer = new GetCurrentPlayer(store);
   const twitchPilot = new TwitchPilotService(database, getCurrentPlayer, config);
   const twitchEventObserver = new TwitchEventObserver(database);
+  // Construction is inert. Phase 2B-1 exposes no invocation or scheduler for this manager.
+  const twitchSubscriptions = config.twitch?.clientId && config.twitch.clientSecret
+    ? new TwitchEventSubSubscriptionManager(database, config, new TwitchEventSubClient(config.twitch.clientId,
+      new TwitchAppAccessTokenProvider(config.twitch.clientId, config.twitch.clientSecret))) : undefined;
   const wheelStore = new PrismaWheelStore(database);
   const clock = new SystemClock();
   const tradeService = new TradeService(database, clock);
@@ -115,6 +122,7 @@ export function createRuntimeDependencies(config: AppConfig) {
   const dependencies = {
     twitchPilot,
     twitchEventObserver,
+    twitchSubscriptions,
     snapshotPilot: new SnapshotPilotService(database, twitchPilot, config.twitch?.clientSecret ?? ''),
     globalChatService,
     directMessageService,

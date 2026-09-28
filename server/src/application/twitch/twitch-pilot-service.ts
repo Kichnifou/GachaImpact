@@ -9,11 +9,19 @@ import { AppError } from '../../api/errors.js';
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 const normalizeLogin = (value: string) => value.trim().normalize('NFKC').toLowerCase();
 const twitchKeys = createRemoteJWKSet(new URL('https://id.twitch.tv/oauth2/keys'));
+export const TWITCH_RUNTIME_SCOPES = ['openid', 'user:read:chat', 'user:bot', 'channel:bot'] as const;
+export type TwitchOAuthPurpose = 'LINK_IDENTITY' | 'AUTHORIZE_RUNTIME';
+export function twitchOAuthPurpose(state: string | undefined): TwitchOAuthPurpose {
+  if (state && /^runtime_[A-Za-z0-9_-]{43}$/.test(state)) return 'AUTHORIZE_RUNTIME';
+  if (state && /^[A-Za-z0-9_-]{43}$/.test(state)) return 'LINK_IDENTITY';
+  throw new AppError('État OAuth invalide.', 400, 'TWITCH_STATE_INVALID');
+}
 
 export async function verifyTwitchIdToken(token: string, clientId: string, nonceHash: string, keys: JWTVerifyGetKey = twitchKeys) {
   const { payload } = await jwtVerify(token, keys, {
     issuer: 'https://id.twitch.tv/oauth2', audience: clientId, algorithms: ['RS256'],
     requiredClaims: ['exp', 'iat', 'sub', 'nonce'],
+    maxTokenAge: '10m',
   });
   if (typeof payload.sub !== 'string' || !/^[0-9]+$/.test(payload.sub) ||
       typeof payload.nonce !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(payload.nonce))
@@ -54,31 +62,45 @@ export class TwitchPilotService {
       eligible,
       linked: linked ? { login: linked.login, displayName: linked.displayName, linkedAt: linked.linkedAt.toISOString() } : null,
       snapshotAvailable: eligible && Boolean(linked) && this.oauthReady(),
+      runtimeAuthorizationAvailable: eligible && Boolean(linked) && this.oauthReady(),
+      // Phase 2B-1 has no activation entry point, even when the webhook is configured.
+      runtimeSubscriptionAvailable: false,
       lastImport: lastRun ? { at: lastRun.completedAt.toISOString(), snapshotHash: lastRun.snapshotHash } : null,
     };
   }
 
   async start(identity: AuthenticatedIdentity) {
+    return this.startForPurpose(identity, 'LINK_IDENTITY');
+  }
+
+  async startRuntime(identity: AuthenticatedIdentity) {
+    return this.startForPurpose(identity, 'AUTHORIZE_RUNTIME');
+  }
+
+  private async startForPurpose(identity: AuthenticatedIdentity, purpose: TwitchOAuthPurpose) {
     const player = await this.pilot(identity);
     if (!this.oauthReady()) throw new AppError('La liaison Twitch nâ€™est pas configurÃ©e.', 503, 'TWITCH_UNAVAILABLE');
-    const state = randomBytes(32).toString('base64url');
+    if (purpose === 'AUTHORIZE_RUNTIME' && !await this.db.twitchIdentity.findUnique({ where: { playerId: player.id } }))
+      throw new AppError('Une identité Twitch liée est nécessaire.', 409, 'TWITCH_RUNTIME_IDENTITY_REQUIRED');
+    const state = (purpose === 'AUTHORIZE_RUNTIME' ? 'runtime_' : '') + randomBytes(32).toString('base64url');
     const nonce = randomBytes(32).toString('base64url');
     await this.db.twitchLinkState.create({ data: { stateHash: hash(state), nonceHash: hash(nonce), playerId: player.id, expiresAt: new Date(Date.now() + 10 * 60_000) } });
     const url = new URL('https://id.twitch.tv/oauth2/authorize');
     url.searchParams.set('response_type', 'code');
     url.searchParams.set('client_id', this.settings.clientId!);
     url.searchParams.set('redirect_uri', this.settings.redirectUri!);
-    url.searchParams.set('scope', 'openid');
+    url.searchParams.set('scope', purpose === 'AUTHORIZE_RUNTIME' ? TWITCH_RUNTIME_SCOPES.join(' ') : 'openid');
     url.searchParams.set('state', state);
     url.searchParams.set('nonce', nonce);
     return { url: url.toString() };
   }
 
-  async callback(input: { state?: string; code?: string; error?: string }) {
+  async callback(input: { state?: string; code?: string; error?: string }, expectedPurpose?: TwitchOAuthPurpose) {
     if (!this.oauthReady()) throw new AppError('La liaison Twitch nâ€™est pas configurÃ©e.', 503, 'TWITCH_UNAVAILABLE');
-    if (!input.state || !/^[A-Za-z0-9_-]{40,60}$/.test(input.state)) throw new AppError('Ã‰tat OAuth invalide.', 400, 'TWITCH_STATE_INVALID');
+    const purpose = twitchOAuthPurpose(input.state);
+    if (expectedPurpose && purpose !== expectedPurpose) throw new AppError('État OAuth invalide.', 400, 'TWITCH_STATE_INVALID');
     const consumed = await this.db.$queryRaw<{ player_id: string; nonce_hash: string }[]>`
-      DELETE FROM twitch_link_states WHERE state_hash = ${hash(input.state)} AND expires_at > now() RETURNING player_id, nonce_hash`;
+      DELETE FROM twitch_link_states WHERE state_hash = ${hash(input.state!)} AND expires_at > now() RETURNING player_id, nonce_hash`;
     if (consumed.length !== 1) throw new AppError('Ã‰tat OAuth expirÃ© ou dÃ©jÃ  utilisÃ©.', 400, 'TWITCH_STATE_INVALID');
     const playerId = consumed[0]!.player_id;
     if (!this.settings.pilotPlayerIds.includes(playerId)) throw new AppError('Pilote non autorisÃ©.', 403, 'TWITCH_PILOT_FORBIDDEN');
@@ -106,7 +128,11 @@ export class TwitchPilotService {
       throw new AppError('IdentitÃ© Twitch non vÃ©rifiÃ©e.', 502, 'TWITCH_IDENTITY_INVALID');
     }
     const login = normalizeLogin(validation.login);
+    if (purpose === 'AUTHORIZE_RUNTIME' && !TWITCH_RUNTIME_SCOPES.every(scope => (validation.scopes as unknown[]).includes(scope)))
+      throw new AppError('Permissions Twitch Chat incomplètes.', 403, 'TWITCH_RUNTIME_SCOPES_MISSING');
     const existing = await this.db.twitchIdentity.findUnique({ where: { playerId } });
+    if (purpose === 'AUTHORIZE_RUNTIME' && (!existing || existing.twitchUserId !== twitchUserId || normalizeLogin(existing.login) !== login))
+      throw new AppError('Ce compte Twitch ne correspond pas à l’identité liée.', 409, 'TWITCH_ACCOUNT_MISMATCH');
     if (existing ? existing.twitchUserId !== twitchUserId : login !== normalizeLogin(this.settings.pilotLogin)) {
       throw new AppError('Ce compte Twitch ne correspond pas au pilote.', 409, 'TWITCH_ACCOUNT_MISMATCH');
     }
@@ -121,6 +147,14 @@ export class TwitchPilotService {
     }
     const owner = await this.db.twitchIdentity.findUnique({ where: { twitchUserId } });
     if (owner && owner.playerId !== playerId) throw new AppError('Ce compte Twitch est dÃ©jÃ  liÃ© Ã  un autre Player.', 409, 'TWITCH_IDENTITY_CONFLICT');
+    if (purpose === 'AUTHORIZE_RUNTIME') {
+      // Recheck after network calls; authorization must not recreate an unlinked identity.
+      const current = await this.db.twitchIdentity.findUnique({ where: { playerId } });
+      if (!current || current.twitchUserId !== twitchUserId || normalizeLogin(current.login) !== login)
+        throw new AppError('Identité Twitch liée modifiée.', 409, 'TWITCH_ACCOUNT_MISMATCH');
+      // User tokens leave scope here. No subscription creation or identity mutation in Phase 2B-1.
+      return { runtimeAuthorized: true };
+    }
     try {
       await this.db.twitchIdentity.upsert({ where: { playerId }, create: {
         playerId, twitchUserId, login, displayName: typeof user.display_name === 'string' ? user.display_name : null,

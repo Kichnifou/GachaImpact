@@ -29,7 +29,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     const url = new URL(location.href)
     const outcome = url.searchParams.get('twitch')
     if (outcome) { url.searchParams.delete('twitch'); history.replaceState(history.state, '', url)
-      if (outcome !== 'connected') setError(outcome === 'TWITCH_IDENTITY_CONFLICT' ? 'Ce compte Twitch est déjà lié à un autre joueur.' : 'La liaison Twitch a échoué ou a été annulée.') }
+      if (outcome !== 'connected' && !outcome.startsWith('runtime-')) setError(outcome === 'TWITCH_IDENTITY_CONFLICT' ? 'Ce compte Twitch est déjà lié à un autre joueur.' : 'La liaison Twitch a échoué ou a été annulée.') }
     return () => { active = false }
   }, [api])
   useEffect(() => {

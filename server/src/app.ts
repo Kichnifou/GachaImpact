@@ -6,6 +6,7 @@ import type { SnapshotPilotService } from './application/migration/snapshot-pilo
 import { registerTwitchPilotRoutes } from './api/routes/twitch-pilot.js';
 import { registerTwitchEventSubRoutes } from './api/routes/twitch-eventsub.js';
 import type { TwitchEventObserver } from './application/twitch/twitch-event-observer.js';
+import type { TwitchEventSubSubscriptionManager } from './application/twitch/twitch-eventsub-subscription-manager.js';
 import { registerTradeRoutes } from './api/routes/trades.js';
 import { registerSocialRoutes } from './api/routes/social.js';
 import { registerAppearanceRoutes } from './api/routes/appearance.js';
@@ -90,6 +91,7 @@ export type AppDependencies = Readonly<{
   tradeService?: TradeService;
   twitchPilot?: TwitchPilotService;
   twitchEventObserver?: TwitchEventObserver;
+  twitchSubscriptions?: TwitchEventSubSubscriptionManager;
   snapshotPilot?: SnapshotPilotService;
   tradePlayer?: GetCurrentPlayer;
   authIdentityVerifier: AuthIdentityVerifier;

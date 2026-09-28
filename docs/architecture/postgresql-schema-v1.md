@@ -16,6 +16,8 @@ La migration additive `20260927150000_053_key_pilot_refresh_by_preview` retire l
 
 Le webhook EventSub phase 2A promu techniquement sur `main` réutilise ce modèle sans migration. Sa route est désactivée par défaut ; aucune notification Twitch réelle ni aucun reçu public ne sont attendus avant une activation distincte.
 
+La Phase 2B-1 réutilise `twitch_link_states` inchangée : le hash porte le state complet, dont le préfixe `runtime_` pour le purpose d’autorisation Chat, avec nonce hashé, expiration de dix minutes et consommation atomique one-shot. Les states de liaison restent distincts. Aucun token user, refresh token, ID token, App Access Token, secret EventSub ou cache de souscription n’est persisté. Aucun DDL ni migration 055 ; DEV reste à 54 migrations. Le statut runtime est une disponibilité de configuration, sans preuve de consentement durable stockée.
+
 > Statut : **CONSOLIDÉ — Phase C2 / schéma relationnel cible**
 >
 > Date : **2026-09-04**

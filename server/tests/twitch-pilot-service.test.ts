@@ -4,7 +4,7 @@ import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT, type JWTVerifyG
 import type { PrismaClient } from '../generated/prisma/client.js';
 import type { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import type { AuthenticatedIdentity } from '../src/domain/identity/authenticated-identity.js';
-import { TwitchPilotService, verifyTwitchIdToken } from '../src/application/twitch/twitch-pilot-service.js';
+import { TwitchPilotService, TWITCH_RUNTIME_SCOPES, verifyTwitchIdToken } from '../src/application/twitch/twitch-pilot-service.js';
 
 const playerId = '11111111-1111-4111-8111-111111111111';
 const otherId = '22222222-2222-4222-8222-222222222222';
@@ -38,10 +38,10 @@ async function signedToken(overrides: Record<string, unknown> = {}, signingKey =
     .setIssuer('https://id.twitch.tv/oauth2').setAudience('client')
     .setIssuedAt().setExpirationTime('5m').sign(signingKey);
 }
-async function mockTwitch(login = 'kichnifou', userId = '12345') {
+async function mockTwitch(login = 'kichnifou', userId = '12345', scopes: readonly string[] = ['openid'], claims: Record<string, unknown> = {}) {
   const fetchMock = vi.spyOn(globalThis, 'fetch');
-  fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ access_token: 'transient', id_token: await signedToken(), refresh_token: 'discarded' }) } as Response);
-  fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ client_id: 'client', user_id: userId, login, scopes: ['openid'] }) } as Response);
+  fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ access_token: 'transient', id_token: await signedToken(claims), refresh_token: 'discarded' }) } as Response);
+  fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ client_id: 'client', user_id: userId, login, scopes }) } as Response);
   fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ data: [{ id: userId, login, display_name: 'Kichnifou' }] }) } as Response);
 }
 afterEach(() => vi.restoreAllMocks());
@@ -85,6 +85,12 @@ describe('Twitch identity pilot', () => {
     await expect(verifyTwitchIdToken(expired, 'client', nonceHash, keys)).rejects.toThrow();
     const other = await generateKeyPair('RS256');
     await expect(verifyTwitchIdToken(await signedToken({}, other.privateKey), 'client', nonceHash, keys)).rejects.toThrow();
+    const futureIssuedAt = await new SignJWT({ sub: '12345', nonce }).setProtectedHeader({ alg: 'RS256', kid: 'test-key' })
+      .setIssuer('https://id.twitch.tv/oauth2').setAudience('client').setIssuedAt(Math.floor(Date.now() / 1_000) + 120).setExpirationTime('5m').sign(privateKey);
+    await expect(verifyTwitchIdToken(futureIssuedAt, 'client', nonceHash, keys)).rejects.toThrow();
+    const missingIssuedAt = await new SignJWT({ sub: '12345', nonce }).setProtectedHeader({ alg: 'RS256', kid: 'test-key' })
+      .setIssuer('https://id.twitch.tv/oauth2').setAudience('client').setExpirationTime('5m').sign(privateKey);
+    await expect(verifyTwitchIdToken(missingIssuedAt, 'client', nonceHash, keys)).rejects.toThrow();
   });
   it('links the signed Twitch subject and never persists tokens', async () => {
     const { service, db } = setup(); await mockTwitch();
@@ -108,5 +114,112 @@ describe('Twitch identity pilot', () => {
     const { service, db } = setup();
     await expect(service.unlink(identity)).resolves.toEqual({ linked: false });
     expect(db.twitchIdentity.deleteMany).toHaveBeenCalledWith({ where: { playerId } });
+  });
+});
+
+describe('separate Twitch Chat runtime authorization', () => {
+  const runtimeState = `runtime_${state}`;
+  const linked = { playerId, twitchUserId: '12345', login: 'kichnifou', displayName: 'Original name', linkedAt: new Date('2026-09-26') };
+  function runtimeSetup() {
+    const value = setup(); value.db.twitchIdentity.findUnique.mockResolvedValue(linked); return value;
+  }
+
+  it('requires an allowlisted Player, configured OAuth and an existing TwitchIdentity', async () => {
+    await expect(setup(otherId).service.startRuntime(identity)).rejects.toMatchObject({ code: 'TWITCH_PILOT_FORBIDDEN' });
+    const { service, db } = setup();
+    await expect(service.startRuntime(identity)).rejects.toMatchObject({ code: 'TWITCH_RUNTIME_IDENTITY_REQUIRED' });
+    expect(db.twitchLinkState.create).not.toHaveBeenCalled();
+    const off = new TwitchPilotService(db as unknown as PrismaClient, { execute: async () => ({ id: playerId }) } as unknown as GetCurrentPlayer, { ...config, twitch: { pilotPlayerIds: [playerId], pilotLogin: 'kichnifou' } }, keys);
+    await expect(off.startRuntime(identity)).rejects.toMatchObject({ code: 'TWITCH_UNAVAILABLE' });
+  });
+  it('requests exactly the four runtime scopes with 256-bit state/nonce, purpose in the full hash and ten-minute expiry', async () => {
+    const { service, db } = runtimeSetup();
+    const now = Date.now();
+    const url = new URL((await service.startRuntime(identity)).url);
+    expect(url.searchParams.get('scope')?.split(' ')).toEqual([...TWITCH_RUNTIME_SCOPES]);
+    expect(url.searchParams.get('state')).toMatch(/^runtime_[A-Za-z0-9_-]{43}$/);
+    expect(url.searchParams.get('nonce')).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    const stored = db.twitchLinkState.create.mock.calls[0]![0].data;
+    expect(stored.stateHash).toBe(createHash('sha256').update(url.searchParams.get('state')!).digest('hex'));
+    expect(stored.nonceHash).toBe(createHash('sha256').update(url.searchParams.get('nonce')!).digest('hex'));
+    expect(stored.expiresAt.getTime()).toBeGreaterThanOrEqual(now + 600_000);
+    expect(stored.expiresAt.getTime()).toBeLessThanOrEqual(Date.now() + 600_000);
+    const linkUrl = new URL((await service.start(identity)).url);
+    expect(linkUrl.searchParams.get('scope')).toBe('openid');
+  });
+  it('refuses crossing LINK/RUNTIME purposes before consuming state', async () => {
+    const { service, db } = runtimeSetup();
+    await expect(service.callback({ state, code: 'code' }, 'AUTHORIZE_RUNTIME')).rejects.toMatchObject({ code: 'TWITCH_STATE_INVALID' });
+    await expect(service.callback({ state: runtimeState, code: 'code' }, 'LINK_IDENTITY')).rejects.toMatchObject({ code: 'TWITCH_STATE_INVALID' });
+    expect(db.$queryRaw).not.toHaveBeenCalled();
+  });
+  it('uses the complete state hash, so adding/removing a prefix misses the lookup, and refuses replay', async () => {
+    const { service, db } = runtimeSetup();
+    let consumed = false;
+    const digest = createHash('sha256').update(runtimeState).digest('hex');
+    db.$queryRaw.mockImplementation(async (_query: unknown, value: string) => {
+      if (value !== digest || consumed) return [];
+      consumed = true; return [{ player_id: playerId, nonce_hash: nonceHash }];
+    });
+    await expect(service.callback({ state, code: 'code' })).rejects.toMatchObject({ code: 'TWITCH_STATE_INVALID' });
+    await mockTwitch('kichnifou', '12345', TWITCH_RUNTIME_SCOPES);
+    await expect(service.callback({ state: runtimeState, code: 'code' })).resolves.toEqual({ runtimeAuthorized: true });
+    await expect(service.callback({ state: runtimeState, code: 'code' })).rejects.toMatchObject({ code: 'TWITCH_STATE_INVALID' });
+    expect(globalThis.fetch).toHaveBeenCalledTimes(3);
+  });
+  it('authorizes the existing identity without mutating it, persisting tokens or creating subscriptions', async () => {
+    const { service, db } = runtimeSetup(); await mockTwitch('kichnifou', '12345', TWITCH_RUNTIME_SCOPES);
+    await expect(service.callback({ state: runtimeState, code: 'secret-code' })).resolves.toEqual({ runtimeAuthorized: true });
+    expect(db.twitchIdentity.upsert).not.toHaveBeenCalled(); expect(db.twitchIdentity.deleteMany).not.toHaveBeenCalled();
+    expect(linked.login).toBe('kichnifou'); expect(linked.displayName).toBe('Original name');
+    expect(JSON.stringify([db.twitchLinkState.create.mock.calls, db.$queryRaw.mock.calls])).not.toMatch(/transient|discarded|secret-code/);
+    const urls = vi.mocked(fetch).mock.calls.map(([url]) => String(url));
+    expect(urls).toEqual(['https://id.twitch.tv/oauth2/token', 'https://id.twitch.tv/oauth2/validate', 'https://api.twitch.tv/helix/users']);
+  });
+  it.each(TWITCH_RUNTIME_SCOPES)('rejects a missing %s grant', async scope => {
+    const { service, db } = runtimeSetup(); await mockTwitch('kichnifou', '12345', TWITCH_RUNTIME_SCOPES.filter(value => value !== scope));
+    await expect(service.callback({ state: runtimeState, code: 'code' })).rejects.toMatchObject({ code: scope === 'openid' ? 'TWITCH_IDENTITY_INVALID' : 'TWITCH_RUNTIME_SCOPES_MISSING' });
+    expect(db.twitchIdentity.upsert).not.toHaveBeenCalled();
+    expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).includes('eventsub'))).toBe(false);
+  });
+  it.each([
+    ['different subject', 'kichnifou', '98765', { sub: '98765' }, 'TWITCH_ACCOUNT_MISMATCH'],
+    ['different login', 'other', '12345', {}, 'TWITCH_ACCOUNT_MISMATCH'],
+    ['wrong nonce', 'kichnifou', '12345', { nonce: 'C'.repeat(43) }, 'TWITCH_NONCE_INVALID'],
+    ['missing nonce', 'kichnifou', '12345', { nonce: undefined }, 'TWITCH_IDENTITY_INVALID'],
+  ] as const)('rejects %s without replacing the identity', async (_label, login, id, claims, code) => {
+    const { service, db } = runtimeSetup(); await mockTwitch(login, id, TWITCH_RUNTIME_SCOPES, claims);
+    await expect(service.callback({ state: runtimeState, code: 'code' })).rejects.toMatchObject({ code });
+    expect(db.twitchIdentity.upsert).not.toHaveBeenCalled();
+  });
+  it('fails if identity is unlinked during the callback', async () => {
+    const { service, db } = runtimeSetup();
+    db.twitchIdentity.findUnique.mockResolvedValueOnce(linked).mockResolvedValueOnce(linked).mockResolvedValueOnce(null);
+    await mockTwitch('kichnifou', '12345', TWITCH_RUNTIME_SCOPES);
+    await expect(service.callback({ state: runtimeState, code: 'code' })).rejects.toMatchObject({ code: 'TWITCH_ACCOUNT_MISMATCH' });
+    expect(db.twitchIdentity.upsert).not.toHaveBeenCalled();
+  });
+  it('refuses adding a runtime prefix to a stored LINK state', async () => {
+    const { service, db } = runtimeSetup();
+    const digest = createHash('sha256').update(state).digest('hex');
+    db.$queryRaw.mockImplementation(async (_query: unknown, value: string) => value === digest ? [{ player_id: playerId, nonce_hash: nonceHash }] : []);
+    await expect(service.callback({ state: runtimeState, code: 'code' })).rejects.toMatchObject({ code: 'TWITCH_STATE_INVALID' });
+  });
+  it('rejects missing identity and inconsistent Helix profiles without changing the linked data', async () => {
+    const missing = setup(); await mockTwitch('kichnifou', '12345', TWITCH_RUNTIME_SCOPES);
+    await expect(missing.service.callback({ state: runtimeState, code: 'code' })).rejects.toMatchObject({ code: 'TWITCH_ACCOUNT_MISMATCH' });
+    vi.restoreAllMocks();
+    const { service, db } = runtimeSetup(); await mockTwitch('kichnifou', '12345', TWITCH_RUNTIME_SCOPES);
+    const calls = vi.mocked(fetch);
+    calls.mockReset().mockResolvedValueOnce({ ok: true, json: async () => ({ access_token: 'transient', id_token: await signedToken() }) } as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ client_id: 'client', user_id: '12345', login: 'kichnifou', scopes: TWITCH_RUNTIME_SCOPES }) } as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ data: [{ id: '12345', login: 'different' }] }) } as Response);
+    await expect(service.callback({ state: runtimeState, code: 'code' })).rejects.toMatchObject({ code: 'TWITCH_PROFILE_FAILED' });
+    expect(db.twitchIdentity.upsert).not.toHaveBeenCalled();
+  });
+  it('status reports configuration readiness only, with no network or subscription work', async () => {
+    const { service } = runtimeSetup(); const network = vi.spyOn(globalThis, 'fetch');
+    await expect(service.status(identity)).resolves.toMatchObject({ runtimeAuthorizationAvailable: true, runtimeSubscriptionAvailable: false });
+    expect(network).not.toHaveBeenCalled();
   });
 });
