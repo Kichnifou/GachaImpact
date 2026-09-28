@@ -108,6 +108,7 @@ Pour éviter les contradictions et rendre la documentation sûre pour Codex :
 - `docs/roadmap/implementation-order-v1.md` est le propriétaire de la séquence durable des développements V1 et de leurs dépendances principales, sans suivre les checkpoints ;
 - un document `docs/legacy/*-audit.md` décrit uniquement son domaine : legacy réel, décisions validées, cible standalone, migration, dépendances et état propre du domaine ;
 - `docs/specifications/decisions-log.md` conserve les décisions validées de manière durable et cumulative, sans devenir un tracker de reprise ;
+- `docs/specifications/data-retention-v1.md` est la source canonique des durées de conservation/purge et de leurs exemptions ;
 - `docs/specifications/v1-data-model.md`, `docs/architecture/backend-architecture-v1.md` et `docs/architecture/postgresql-schema-v1.md` décrivent respectivement le modèle conceptuel, l’architecture backend/son état physique et le schéma relationnel cible/physique ;
 - `docs/specifications/navigation-shell-v1.md` et `docs/specifications/ui-layout-contract-v1.md` possèdent la navigation et les règles UI transversales ;
 - `docs/commands/command-reference.md` décrit les contrats et comportements des commandes ;
@@ -589,7 +590,7 @@ Twitch futur :
 - EventSub ;
 - Twitch User ID stable ;
 - résolution vers un playerId interne ;
-- réponse via bot / API Twitch ;
+- éventuelle réponse via bot / API Twitch, après comparaison des `.txt` legacy, test standalone et validation propriétaire selon [R941](../docs/specifications/decisions-log.md#r939r945--transports-twitch-et-rétention-2026-09-28) ;
 - pas besoin de Streamer.bot ou d'un PC toujours allumé.
 
 Un joueur peut commencer en Twitch-only puis lier plus tard un compte web au même joueur.
@@ -732,6 +733,7 @@ Commencer par récupérer les HEAD actuels de `main` et `review`, noter leurs SH
 11. [postgresql-schema-v1.md](../docs/architecture/postgresql-schema-v1.md) — vérifier le schéma relationnel cible et physique avant toute évolution DB ;
 12. [navigation-shell-v1.md](../docs/specifications/navigation-shell-v1.md) et [ui-layout-contract-v1.md](../docs/specifications/ui-layout-contract-v1.md) lorsqu’une UI est concernée — préserver navigation, scroll, pagination, modales et responsive ;
 13. [command-reference.md](../docs/commands/command-reference.md) lorsqu’un chat, Twitch ou une commande est concerné — vérifier le contrat player-facing partagé.
+14. [data-retention-v1.md](../docs/specifications/data-retention-v1.md) lorsqu'une conservation, purge ou maintenance est concernée — distinguer décisions, exemptions et mécanismes réellement codés.
 
 Avant d’orchestrer un nouveau lot Codex, une nouvelle conversation ChatGPT doit donc avoir consulté au minimum `AGENTS.md`, le Master, `implementation-workflow.md` et `conversation-handoff.md`, en plus du présent guide. Le premier décrit le workflow d'un lot ; le second celui de la passation entre conversations.
 

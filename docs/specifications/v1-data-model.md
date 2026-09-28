@@ -1,12 +1,12 @@
 # GachaImpact — Modèle de données V1 consolidé
 
-## Extension migration globale R927–R938 — candidat `review`, 2026-09-26
+## Extension migration globale R927–R938 — socle promu, sans cutover
 
 L'alignement physique 052 conserve `PlayerProgression.legacyLastXpDate`, le calendrier Faveur et `GiveawayWin` avec provenance NATIVE/LEGACY. Le schéma physique exact est décrit dans [l'architecture PostgreSQL](../architecture/postgresql-schema-v1.md) ; ces additions ne changent pas les décisions R927–R938.
 
 Le [contrat canonique de mapping](../architecture/legacy-migration-v1.md) et le [runbook](../process/legacy-cutover-runbook.md) détaillent le cutover. `MigrationBatch` possède fichiers source vérifiés, mappings d'identité et issues bloquantes/avertissements/quarantaines ; il relie les preuves importées sans dupliquer les JSON privés en Git. L'identité durable est le Twitch User ID vérifié. Un compte web rattaché conserve Player ID, Auth, pseudo, rôles, préférences non gameplay et confidentialité ; son gameplay est remplacé. Un compte web non rattaché conserve cette identité et revient à `elementKey = null` après purge du gameplay de test.
 
-Les preuves durables nouvelles sont `BossLegacyAggregate` et `BossLegacyContribution` (totaux source, joueur, jour de dernière attaque sans heure inventée), `FriendshipLegacyHeartState` (cooldown directionnel sans faux cœur), `ContestLegacyDailyLock` (jour consommé sans faux Concours), Faveur (état, grants et claims), Giveaway (session, participants, statistiques chat), et `TwitchEventReceipt` pour une ingestion future non branchée. La bannière, le Jeu B Event et le Combat quotidien distinguent leur état legacy certain d'un timestamp natif. Les claims historiques Codes/Event/Boss/C6 conservent `origin = LEGACY`, provenance et date/opération nullables lorsque inconnues ; une ligne native continue à porter ses preuves complètes. La migration établit les soldes initiaux sans faux mouvement, opération, acquisition ou récompense. Aucun Player n'est créé pour un profil sans élément ou une relation qui le vise.
+Les preuves durables nouvelles sont `BossLegacyAggregate` et `BossLegacyContribution` (totaux source, joueur, jour de dernière attaque sans heure inventée), `FriendshipLegacyHeartState` (cooldown directionnel sans faux cœur), `ContestLegacyDailyLock` (jour consommé sans faux Concours), Faveur (état, grants et claims), Giveaway (session, participants, statistiques chat), et `TwitchEventReceipt`, réutilisé par le pilote observation-only, sans consommateur gameplay branché. La bannière, le Jeu B Event et le Combat quotidien distinguent leur état legacy certain d'un timestamp natif. Les claims historiques Codes/Event/Boss/C6 conservent `origin = LEGACY`, provenance et date/opération nullables lorsque inconnues ; une ligne native continue à porter ses preuves complètes. La migration établit les soldes initiaux sans faux mouvement, opération, acquisition ou récompense. Aucun Player n'est créé pour un profil sans élément ou une relation qui le vise.
 
 > Statut : **CONSOLIDÉ — Phase B / modèle de données cible V1 finalisé**  
 > Baseline documentaire : `main` au commit `cb663d1c58a4d28aeee3e4c99a859c6704b5db58`  
@@ -18,6 +18,8 @@ Les preuves durables nouvelles sont `BossLegacyAggregate` et `BossLegacyContribu
 ---
 
 # 1. Objectif
+
+La conservation/purge du détail historique suit la [politique canonique R943–R945](data-retention-v1.md), distincte du modèle courant et des preuves métier durables. Seule la rétention Twitch observation-only est codée dans le complément candidat ; les purges des autres domaines restent à auditer/implémenter. Les états, statistiques, claims, idempotence et provenances nécessaires sont protégés. `TwitchEventReceipt` sert déjà au pilote d'observation sans gameplay ; le modèle conceptuel ne signifie pas que les futurs consommateurs sont activés.
 
 Ce document transforme les audits legacy clôturés en un modèle de données V1 cohérent.
 
@@ -1831,7 +1833,7 @@ Il agrège les historiques de domaines tels que :
 
 Une projection/read model pourra unifier l'affichage.
 
-Le lot candidat `review` matérialise cinq catégories sans table globale : `PullResult` (10 résultats/page), `BannerRotation` et ses `BannerFeaturedCharacter`, `BankTransaction` avec filtre de type, `ShopPurchase.effectSnapshot`, et `EventEdition` avec participants, claims de paliers et acquisition Collection. La projection Event classe les participants d'une édition terminée et expose le Top public et le détail propre à l'acteur authentifié. La migration Gacha 044 ajoute seulement `BannerRotation.generationVoteSnapshot` nullable (`generation_vote_snapshot` JSONB). La rotation source porte d'abord une fermeture durable des candidats 5★ et de leurs votes, même à zéro ; après reprise éventuelle, la nouvelle rotation porte le snapshot final issu de cette fermeture. La première rotation sans source reste à SQL `NULL` ; History masque l'état fermé et présente `null` pour les anciennes rotations sans snapshot, sans backfill. Aucune écriture n'est faite par les routes History.
+Le lot Historique promu matérialise cinq catégories sans table globale : `PullResult` (10 résultats/page), `BannerRotation` et ses `BannerFeaturedCharacter`, `BankTransaction` avec filtre de type, `ShopPurchase.effectSnapshot`, et `EventEdition` avec participants, claims de paliers et acquisition Collection. La projection Event classe les participants d'une édition terminée et expose le Top public et le détail propre à l'acteur authentifié. La migration Gacha 044 ajoute seulement `BannerRotation.generationVoteSnapshot` nullable (`generation_vote_snapshot` JSONB). La rotation source porte d'abord une fermeture durable des candidats 5★ et de leurs votes, même à zéro ; après reprise éventuelle, la nouvelle rotation porte le snapshot final issu de cette fermeture. La première rotation sans source reste à SQL `NULL` ; History masque l'état fermé et présente `null` pour les anciennes rotations sans snapshot, sans backfill. Aucune écriture n'est faite par les routes History.
 
 ---
 

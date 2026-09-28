@@ -796,7 +796,7 @@ Chaque cosmétique verrouillé peut être déclaré :
 
 Cette propriété appartient au catalogue serveur.
 
-**État physique du premier vertical (2026-09-25, candidat review).** La migration 045 et `AppearanceService` matérialisent le catalogue, les possessions, les deux équipements et les trois visibilités. Le catalogue initial reste vide : l'élément permanent fournit l'avatar de base sans unlock ; aucun titre Profil n'est inventé. Profil > Personnalisation, API personnelle, notification conditionnelle et projection de l'avatar dans les surfaces standalone pertinentes sont candidats. Les décisions R478–R493 ci-dessus restent inchangées et l'ajout d'entrées/règles réelles attend une décision produit.
+**Historique du premier vertical (2026-09-25, alors candidat review ; socle désormais promu).** L'état courant des avatars possédés depuis 048 et les validations rapportées appartiennent au [Master](../master/PROJECT_MASTER_PLAN.md) et à [l'architecture Apparence](../architecture/backend-architecture-v1.md#apparence--socle-et-avatars-possédés-promus) ; le catalogue vide ci-dessous décrit seulement ce premier checkpoint. La migration 045 et `AppearanceService` matérialisent le catalogue, les possessions, les deux équipements et les trois visibilités. Le catalogue initial reste vide : l'élément permanent fournit l'avatar de base sans unlock ; aucun titre Profil n'est inventé. Profil > Personnalisation, API personnelle, notification conditionnelle et projection de l'avatar dans les surfaces standalone pertinentes sont candidats. Les décisions R478–R493 ci-dessus restent inchangées et l'ajout d'entrées/règles réelles attend une décision produit.
 
 ---
 
@@ -883,7 +883,7 @@ Prévoir conceptuellement :
 - statut actif/retiré du catalogue ;
 - preuve de déblocage migrée ou native.
 
-État physique du correctif `review` 2026-09-26 : 045 matérialise catalogue, possession et équipement ; 046 retire uniquement l'équipement d'un AVATAR désactivé, sans retirer sa possession ni le rééquiper lors d'une réactivation. `unlockCosmetic` exige le choix explicite entre notification player-facing et import silencieux. La propagation Avatar couvre les sélecteurs Event > Panier, Modération et partenaires Échanges ; aucun catalogue produit n'est créé ici. Les décisions historiques R478–R493 et les clarifications R913–R915 du journal restent les autorités.
+État physique du correctif 2026-09-26, désormais promu sur `main` : 045 matérialise catalogue, possession et équipement ; 046 retire uniquement l'équipement d'un AVATAR désactivé, sans retirer sa possession ni le rééquiper lors d'une réactivation. `unlockCosmetic` exige le choix explicite entre notification player-facing et import silencieux. La propagation Avatar couvre les sélecteurs Event > Panier, Modération et partenaires Échanges ; aucun catalogue produit n'est créé ici. Les décisions historiques R478–R493 et les clarifications R913–R915 du journal restent les autorités.
 
 ## MP et blocages
 
@@ -1397,4 +1397,4 @@ Le domaine actif et la prochaine reprise sont indiqués uniquement dans le Maste
 
 ## Addendum R913 — sélecteurs Player (2026-09-26)
 
-Le correctif candidat `review` regroupe avatar et pseudo dans les sélecteurs Event > Panier et Modération ainsi que dans la recherche rapide Event. Le badge de Modération reste à droite. Dans Échanges > Partenaires, avatar et pseudo sont à gauche ; élément et quantité échangeable sont à droite, avec adaptation mobile. Les suggestions de recherche Échanges présentent aussi avatar et pseudo ensemble. Les historiques et classements conservent leur présentation actuelle. Contrôle visuel technique aux formats 1920×1080, 1366×768 et 390×844 ; validation publique encore en attente.
+Le correctif promu regroupe avatar et pseudo dans les sélecteurs Event > Panier et Modération ainsi que dans la recherche rapide Event. Le badge de Modération reste à droite. Dans Échanges > Partenaires, avatar et pseudo sont à gauche ; élément et quantité échangeable sont à droite, avec adaptation mobile. Les suggestions de recherche Échanges présentent aussi avatar et pseudo ensemble. Les historiques et classements conservent leur présentation actuelle. Contrôle visuel technique aux formats 1920×1080, 1366×768 et 390×844. Le Master rapporte désormais la validation publique des sélecteurs Event/Échanges et des retouches Modération ; aucune validation exhaustive d'Apparence n'est déduite.

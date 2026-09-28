@@ -12,6 +12,14 @@ Syntaxe exacte : `!clear`. Seul un Player avec attribution active `MODERATOR` ou
 
 Ce fichier deviendra la base documentaire de la future section **Aide / Commandes** intégrée à GachaImpact.
 
+## Passe finale Twitch / commandes R939–R942
+
+Twitch et Chat standalone peuvent rester deux flux distincts, sans mirroring obligatoire. Tous les messages Twitch devront pouvoir alimenter en mémoire la future classification, XP et le parser ; seules les commandes nécessaires atteindront les services métier communs. L'adapter Twitch n'exécute aujourd'hui aucune commande et ne répond pas sur Twitch.
+
+**Dette explicite de parité des sorties :** la formulation standalone actuelle n'est pas déclarée équivalente au legacy. Les sources `.txt` sont réellement versionnées dans [legacy/streamerbot/commands](../../legacy/streamerbot/commands) ; exemples exacts : [Help.txt](../../legacy/streamerbot/commands/Help.txt), [Infos.txt](../../legacy/streamerbot/commands/Infos.txt), [Pull.txt](../../legacy/streamerbot/commands/Pull.txt), [Event.txt](../../legacy/streamerbot/commands/Event.txt) et [Banque.txt](../../legacy/streamerbot/commands/Banque.txt). La passe finale devra inventorier chaque fichier et ses usages, comparer chaque sortie standalone, corriger les formulations partagées, tester **d'abord uniquement dans le Chat standalone avec Kichnifou**, puis faire valider les textes par le propriétaire. Seulement après ce gate décider/implémenter l'envoi des mêmes réponses sur Twitch. Aucun outbound avant, aucune réécriture de texte ni syntaxe métier dans ce checkpoint.
+
+Après validation du transport 2B-2, pause de Twitch avancé et passage aux domaines V1 suivants. La recette de charge finale précède toute décision d'activation définitive ; [l'architecture](../architecture/backend-architecture-v1.md) décrit le trafic/latence/pool/retries à mesurer. Le pilote conserve une écriture Receipt par notification ; sa seule purge codée suit la [politique de rétention](../specifications/data-retention-v1.md). Les commandes ordinaires seront évaluées en mémoire, sans historique Twitch ordinaire persistant lorsque inutile.
+
 ## Règle d'audit
 
 Pour chaque commande :
