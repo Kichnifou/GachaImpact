@@ -16,7 +16,7 @@ La route `POST /api/v1/twitch/eventsub` n'est enregistrée que si `TWITCH_EVENTS
 
 Cette phase ne crée ni souscription EventSub, ni token, ni scope OAuth, ni gestionnaire d'abonnements, ni ordonnanceur, ni réponse Twitch, ni commande ou effet gameplay. Le transport entrant ne sera activé qu'après mission distincte. Le schéma PostgreSQL et les 53 migrations existantes sont inchangés par ce sous-lot.
 
-## Twitch runtime Phase 2B-1 — candidat `review`, sans activation
+## Twitch runtime Phase 2B-1 — approuvé et promu techniquement sur `main`, sans activation
 
 La liaison d’identité `POST /api/v1/me/twitch/start` conserve exclusivement `openid`. Le flow distinct `POST /api/v1/me/twitch/runtime/start`, authentifié et sans paramètres configurables par le Player, exige l’allowlist pilote, OAuth configuré et une TwitchIdentity déjà liée. Il demande exactement `openid user:read:chat user:bot channel:bot` pour le même compte pilote comme broadcaster et chatting user. Le [contrat Twitch `channel.chat.message` v1](https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/#channelchatmessage) requiert la lecture Chat, le grant bot et l’autorisation du broadcaster lors de l’usage d’un App Access Token. Aucun scope outbound, Faveur, Gift, abonnement ou modération n’est demandé.
 
@@ -28,7 +28,7 @@ Pipeline préparé : **OAuth runtime grant → autorisation du Client ID ; Clien
 
 La construction du provider/client/manager ne déclenche aucun appel réseau. **Aucun appel ensure au boot, au callback OAuth, dans status/health, depuis un scheduler ou depuis le frontend**. Le manager exige aussi la configuration webhook active avant un appel explicite ; il n’existe aucune entrée d’activation dans ce lot. Le DTO `runtimeAuthorizationAvailable` décrit uniquement la disponibilité du flow ; `runtimeSubscriptionAvailable` reste `false`. Aucun consentement réel n’est lancé, aucune variable Railway n’est ajoutée, aucune souscription publique créée. Phase 2A reste OFF. Le callback runtime produit `runtime-authorized` ou `runtime-error` ; l’UI Compte les efface silencieusement sans annonce de liaison échouée, sans bouton, section ou texte nouveau. Le link conserve `connected`.
 
-DEV reste à 54 migrations, sans modification de 054 ni 055. L’observer reste observation-only, sans commande, gameplay ou réponse Twitch. Streamer.bot reste live et autoritatif. Après review/promotion, l’approbation du petit contrôle UI Compte puis l’activation pilote 2B-2 nécessitent une mission séparée.
+DEV reste à 54 migrations, sans modification de 054 ni 055. L’observer reste observation-only, sans commande, gameplay ou réponse Twitch. Streamer.bot reste live et autoritatif. Aucun runtime OAuth réel n’a encore été exécuté. Après validation publique du badge Event, l’approbation propriétaire du futur petit contrôle visible Configuration > Compte puis l’activation pilote 2B-2 nécessitent une mission séparée ; 2B-2 reste inactive.
 
 > Statut : **DÉCISION TECHNIQUE — Phase C / socle backend retenu**
 >
