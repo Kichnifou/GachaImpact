@@ -1131,6 +1131,7 @@ Chaque nouvel envoi vérifie la permission actuelle. Une conversation devenue no
 ## R512/R514 — Archivage
 
 - archivage individuel ;
+- rangement personnel distinct de la permission d'envoi : une archive envoyable autorise le typing et sa lecture par l'autre participant ; le typing seul ne désarchive jamais ;
 - aucun effet chez l'autre participant ;
 - rubrique Conversations archivées ;
 - nouveau message reçu désarchivant automatiquement ;

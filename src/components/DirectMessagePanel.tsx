@@ -315,7 +315,7 @@ export default function DirectMessagePanel({
   };
   const signalTyping = (value: string) => {
     if (!value.trim()) { stopTyping(); return }
-    if (!selectedId || !selected?.canSend || selected.archived || view !== "conversation" || !isActive || document.hidden || document.activeElement !== composer.current) return;
+    if (!selectedId || !selected?.canSend || view !== "conversation" || !isActive || document.hidden || document.activeElement !== composer.current) return;
     if (typingConversation.current && typingConversation.current !== selectedId) stopTyping();
     const at = Date.now();
     if (typingConversation.current === selectedId && at - lastTypingHeartbeatAt.current < 2_000) return;
@@ -323,7 +323,7 @@ export default function DirectMessagePanel({
     lastTypingHeartbeatAt.current = at;
     void getGameApiClient().directMessages.typing(selectedId, true).catch(() => undefined);
   };
-  const otherTyping = Boolean(selected && !selected.archived && model.otherTypingUntil && Date.parse(model.otherTypingUntil) > Date.now());
+  const otherTyping = Boolean(selected && model.otherTypingUntil && Date.parse(model.otherTypingUntil) > Date.now());
 
   const clearReply = () => {
     replyRevision.current += 1;
@@ -515,8 +515,8 @@ export default function DirectMessagePanel({
     return () => window.clearInterval(timer);
   }, []);
   useEffect(() => {
-    if (typingConversation.current && (typingConversation.current !== selectedId || view !== "conversation" || !isActive || !selected?.canSend || selected.archived)) stopTyping();
-  }, [selectedId, view, isActive, selected?.canSend, selected?.archived, playerId]);
+    if (typingConversation.current && (typingConversation.current !== selectedId || view !== "conversation" || !isActive || !selected?.canSend)) stopTyping();
+  }, [selectedId, view, isActive, selected?.canSend, playerId]);
   useEffect(() => {
     if (!model.otherTypingUntil) return;
     const delay = Math.max(0, Date.parse(model.otherTypingUntil) - Date.now()) + 20;

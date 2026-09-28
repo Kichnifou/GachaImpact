@@ -478,9 +478,9 @@ export class DirectMessageService {
     }
     const page = recent.slice(offset, offset + limit), last = page.at(-1);
     const otherId = this.other(conversation, actor.id);
-    const otherState = await this.database.directConversationParticipant.findUniqueOrThrow({ where: { conversationId_playerId: { conversationId, playerId: otherId } }, select: { lastSharedReadSubmissionOrder: true, lastSharedReadAt: true, typingUntil: true, archivedAt: true } });
+    const otherState = await this.database.directConversationParticipant.findUniqueOrThrow({ where: { conversationId_playerId: { conversationId, playerId: otherId } }, select: { lastSharedReadSubmissionOrder: true, lastSharedReadAt: true, typingUntil: true } });
     let otherTypingUntil: string | null = null;
-    if (otherState.typingUntil && otherState.typingUntil > this.clock.now() && !otherState.archivedAt) {
+    if (otherState.typingUntil && otherState.typingUntil > this.clock.now()) {
       const access = await this.contactAccess(this.database, otherId, actor.id);
       const latestRequest = await this.database.directConversationRequest.findFirst({ where: { conversationId }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
       if (access.allowed && latestRequest?.state !== 'PENDING' && (latestRequest?.state !== 'REFUSED' || access.friends)) otherTypingUntil = otherState.typingUntil.toISOString();
@@ -493,8 +493,6 @@ export class DirectMessageService {
     return this.database.$transaction(async tx => {
       const conversation = await this.requireConversation(tx, conversationId, actor.id);
       if (typing) {
-        const participant = await tx.directConversationParticipant.findUniqueOrThrow({ where: { conversationId_playerId: { conversationId, playerId: actor.id } }, select: { archivedAt: true } });
-        if (participant.archivedAt) throw forbidden();
         const access = await this.permission(tx, actor.id, this.other(conversation, actor.id));
         const latestRequest = await tx.directConversationRequest.findFirst({ where: { conversationId }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
         if (latestRequest?.state === 'PENDING' || latestRequest?.state === 'REFUSED' && !access.friends) throw forbidden();

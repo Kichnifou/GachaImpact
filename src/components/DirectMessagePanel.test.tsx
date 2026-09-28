@@ -80,6 +80,36 @@ beforeEach(() => {
 afterEach(() => { vi.restoreAllMocks(); act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren() })
 
 describe('DirectMessagePanel', () => {
+  it.each([true, false])('respects canSend=%s when opening a conversation from Archives without unarchiving for typing', async (canSend) => {
+    const archived = { ...baseConversation, archived: true, canSend }
+    directMessages.list.mockImplementation(async (isArchived: boolean) => ({ conversations: isArchived ? [archived] : [] }))
+    directMessages.messages.mockResolvedValue({ messages: [message], nextCursor: null, windowSize: 1, otherTypingUntil: new Date(Date.now() + 4_000).toISOString() })
+    const container = await mount(archived, true, true)
+    await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-list-tabs button')).find(button => button.textContent === 'Archives')!.click() }); await settle()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-conversation-row')!.click() }); await settle()
+    expect(container.querySelector('.dm-latest-status')?.textContent).toBe('Aster est en train d’écrire…')
+    const input = container.querySelector<HTMLTextAreaElement>('#dm-message')
+    if (canSend) {
+      expect(input).not.toBeNull()
+      await act(async () => {
+        input!.focus()
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(input, 'a')
+        input!.dispatchEvent(new Event('input', { bubbles: true }))
+      })
+      expect(directMessages.typing).toHaveBeenCalledWith(conversationId, true)
+      await act(async () => { input!.blur() })
+      expect(directMessages.typing).toHaveBeenLastCalledWith(conversationId, false)
+    } else {
+      expect(input).toBeNull()
+      expect(directMessages.typing).not.toHaveBeenCalledWith(conversationId, true)
+    }
+    expect(directMessages.archive).not.toHaveBeenCalled()
+    expect(directMessages.send).not.toHaveBeenCalled()
+    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-back')!.click() }); await settle()
+    expect(container.querySelector('.dm-list-tabs [aria-selected="true"]')?.textContent).toBe('Archives')
+    expect(container.querySelector('.dm-conversation-row')).not.toBeNull()
+  })
+
   it('signals real typing activity at most every two seconds and stops on clear, blur, send and leave', async () => {
     const container = await mount()
     await act(async () => { container.querySelector<HTMLButtonElement>('.dm-conversation-row')!.click() }); await settle()

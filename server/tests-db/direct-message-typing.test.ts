@@ -75,8 +75,25 @@ describe('ephemeral direct-message typing', () => {
     expect(await db.globalChatMessage.count()).toBe(0);
   });
 
-  it('refuses nonmembers and blocked senders and never updates the other participant', async () => {
+  it('allows archived participants to type without unarchiving, projects it, and reactivates only on a real send', async () => {
+    await service.archive(as(alice), firstId, true);
+    await service.archive(as(bob), firstId, true);
+    const before = await db.directConversationParticipant.findMany({ where: { conversationId: firstId }, orderBy: { playerId: 'asc' } });
+    const operations = await db.businessOperation.count();
+    const typing = await service.setTyping(as(alice), firstId, true);
+    expect(Date.parse(typing.typingUntil!)).toBeGreaterThan(now.getTime());
+    expect((await service.messages(as(bob), firstId)).otherTypingUntil).toBe(typing.typingUntil);
+    const after = await db.directConversationParticipant.findMany({ where: { conversationId: firstId }, orderBy: { playerId: 'asc' } });
+    expect(after.map(row => row.archivedAt)).toEqual(before.map(row => row.archivedAt));
+    expect(after.every(row => row.archivedAt !== null)).toBe(true);
+    expect(await db.businessOperation.count()).toBe(operations);
+    await service.send(as(alice), firstId, 'Message depuis les archives', randomUUID());
+    expect(await db.directConversationParticipant.count({ where: { conversationId: firstId, archivedAt: { not: null } } })).toBe(0);
+  });
+
+  it('refuses nonmembers and blocked archived senders, but permits cleanup after permission changes', async () => {
     await expect(service.setTyping(as(charlie), firstId, true)).rejects.toMatchObject({ code: 'DIRECT_MESSAGE_UNAVAILABLE' });
+    await service.archive(as(alice), firstId, true);
     await service.setTyping(as(alice), firstId, true);
     const bobBefore = await db.directConversationParticipant.findUniqueOrThrow({ where: { conversationId_playerId: { conversationId: firstId, playerId: bob } } });
     expect(bobBefore.typingUntil).toBeNull();
@@ -84,6 +101,9 @@ describe('ephemeral direct-message typing', () => {
     await expect(service.setTyping(as(alice), firstId, true)).rejects.toMatchObject({ code: 'DIRECT_MESSAGE_FORBIDDEN' });
     expect((await service.messages(as(bob), firstId)).otherTypingUntil).toBeNull();
     await service.setTyping(as(alice), firstId, false);
+    const aliceAfter = await db.directConversationParticipant.findUniqueOrThrow({ where: { conversationId_playerId: { conversationId: firstId, playerId: alice } } });
+    expect(aliceAfter.typingUntil).toBeNull();
+    expect(aliceAfter.archivedAt).not.toBeNull();
     expect((await db.directConversationParticipant.findUniqueOrThrow({ where: { conversationId_playerId: { conversationId: firstId, playerId: bob } } })).typingUntil).toBeNull();
   });
 });
