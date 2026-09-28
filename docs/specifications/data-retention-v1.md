@@ -32,7 +32,7 @@ Si le détail historique reste la seule source d'une statistique ou d'une preuve
 - **Notifications :** une notification toujours active/non résolue reste conservée même après un an.
 - **Chat :** la génération visible et `!clear` gardent leurs règles UI. Les preuves de modération figées dans un signalement sont distinctes de l'historique ordinaire ; conserver tout le Chat indéfiniment « pour audit » n'est plus la cible. Le runtime Chat ne change pas dans ce checkpoint.
 
-## Twitch pilote — R945, seule rétention codée dans ce candidat
+## Twitch pilote — R945, rétention promue techniquement
 
 Un reçu est éligible uniquement si **toutes** les conditions sont vraies :
 
@@ -55,6 +55,6 @@ Cette purge limite la croissance du stockage ; elle **ne supprime pas le coût d
 
 ## État physique et travaux reportés
 
-Le complément de rétention Twitch est **candidat `review`**, sans activation réelle. Les autres durées sont **décidées et non implémentées par ce lot** ; les mécanismes éphémères existants restent en place. Le lot ultérieur « Finition technique / rétention / maintenance », dans [l'étape 27](../roadmap/implementation-order-v1.md), vérifiera chaque domaine avant purge et la maintenance DB.
+Le complément de rétention Twitch 24 h et sa cadence adaptative sont **promus techniquement sur `main`**, sans activation réelle ni test public du transport. Les autres durées sont **décidées et non implémentées par ce lot** ; les mécanismes éphémères existants restent en place. Le lot ultérieur « Finition technique / rétention / maintenance », dans [l'étape 27](../roadmap/implementation-order-v1.md), vérifiera chaque domaine avant purge et la maintenance DB.
 
 La passe finale Twitch évaluera tous les messages ordinaires en mémoire pour XP/classification/parser, avec absence de persistance de chat ordinaire lorsque inutile. Les reçus durables devraient être réservés à l'idempotence, aux effets métier et aux diagnostics bornés nécessaires. Ni cette refonte, ni XP/commandes, ni mirroring, ni outbound ne sont développés ici ; voir [l'architecture Twitch](../architecture/backend-architecture-v1.md).

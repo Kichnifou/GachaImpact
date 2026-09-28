@@ -19,7 +19,7 @@ Les preuves durables nouvelles sont `BossLegacyAggregate` et `BossLegacyContribu
 
 # 1. Objectif
 
-La conservation/purge du détail historique suit la [politique canonique R943–R945](data-retention-v1.md), distincte du modèle courant et des preuves métier durables. Seule la rétention Twitch observation-only est codée dans le complément candidat ; les purges des autres domaines restent à auditer/implémenter. Les états, statistiques, claims, idempotence et provenances nécessaires sont protégés. `TwitchEventReceipt` sert déjà au pilote d'observation sans gameplay ; le modèle conceptuel ne signifie pas que les futurs consommateurs sont activés.
+La conservation/purge du détail historique suit la [politique canonique R943–R945](data-retention-v1.md), distincte du modèle courant et des preuves métier durables. Seule la rétention Twitch observation-only est codée dans le complément promu techniquement, sans activation réelle ; les purges des autres domaines restent à auditer/implémenter. Les états, statistiques, claims, idempotence et provenances nécessaires sont protégés. `TwitchEventReceipt` sert déjà au pilote d'observation sans gameplay ; le modèle conceptuel ne signifie pas que les futurs consommateurs sont activés.
 
 Ce document transforme les audits legacy clôturés en un modèle de données V1 cohérent.
 
