@@ -786,10 +786,9 @@ La [source spécialisée Chat global](global-chat-v1.md) détaille ces règles. 
 - `FUTUR / À CONCEVOIR` — Streak quotidien avec bonus après 7 jours consécutifs ; idée actuelle : +1 000 Primogemmes, +30 000 Moras, +800 particules de l'élément personnel. La règle exacte n'est pas encore figée.
 - `FUTUR / À CONCEVOIR` — Des calendriers de connexion événementiels pourront proposer des récompenses différentes selon les jours pendant certains événements.
 
-## Faveur
-- `VALIDÉ` — Une Faveur GachaImpact est inspirée de la Blessing of the Welkin Moon, mais ses jours ne diminuent que lorsqu'une récompense est effectivement réclamée.
-- `VALIDÉ` — Une absence ne consomme donc pas de jour de Faveur.
-- `À AUDITER` — Les attributions par événements de stream et abonnements Twitch, ainsi que leur future intégration sans Streamer.bot, seront traitées dans le domaine Faveur/Twitch.
+## Faveur — orientation historique supersédée
+- `HISTORIQUE SUPERSÉDÉ PAR R657–R672` — L'ancienne orientation suspendait les jours sans récompense réclamée. Elle n'est plus une règle actuelle : R657 impose l'écoulement calendaire `Europe/Paris`, même en cas d'absence ; R658 réserve les +800 à une présence dans la journée, sans rattrapage.
+- Le contrat actuel d'attribution, calendrier, récompenses et consultation est fixé par R657–R672 ci-dessous et [l'audit Faveur clôturé](../legacy/18-faveur-subscription-audit.md). Aucune nouvelle décision produit n'est introduite par cette réconciliation.
 
 ## Concours / C6 — domaine en cours
 - `VALIDÉ R526` — Le Concours est visible par tous. Sans personnage 5★ C6 éligible, un joueur peut consulter le système et agir comme spectateur/support, mais pas participer comme concurrent.

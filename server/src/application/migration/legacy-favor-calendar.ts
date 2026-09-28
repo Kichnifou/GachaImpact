@@ -1,4 +1,5 @@
 import { businessDateToDatabaseDate } from '../../domain/time/business-date.js';
+export { remainingFavorDays } from '../../domain/favor/favor-calendar.js';
 
 const dayMs = 86_400_000;
 function addBusinessDays(day: string, count: number): Date {
@@ -17,11 +18,4 @@ export function projectLegacyFavorPeriod(daysRemaining: number, cutoverDay: stri
   const firstOffset = obtainedDay === cutoverDay || lastClaimDay === cutoverDay ? 1 : 0;
   return { activeFromDate: addBusinessDays(cutoverDay, firstOffset),
     activeUntilDate: addBusinessDays(cutoverDay, firstOffset + daysRemaining - 1) };
-}
-
-export function remainingFavorDays(activeFromDate: Date | null, activeUntilDate: Date | null, businessDay: string): number {
-  if (!activeFromDate || !activeUntilDate) return 0;
-  const today = businessDateToDatabaseDate(businessDay);
-  const first = today > activeFromDate ? today : activeFromDate;
-  return Math.max(0, Math.round((activeUntilDate.getTime() - first.getTime()) / dayMs) + 1);
 }

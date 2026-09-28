@@ -4,6 +4,8 @@ import { BusinessError, type BusinessErrorCode } from '../application/errors.js'
 import { AppError } from './errors.js';
 
 const businessStatusCodes: Readonly<Record<BusinessErrorCode, number>> = {
+  FAVOR_IDEMPOTENCY_CONFLICT: 409,
+  FAVOR_PROOF_INVALID: 400,
   TRADE_STOCK_CHANGED: 409,
   INSUFFICIENT_AVAILABLE_PARTICLES: 409,
   BANNER_VOTE_CLOSED: 409,

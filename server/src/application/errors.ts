@@ -9,6 +9,8 @@ export class BusinessError extends Error {
 }
 
 export type BusinessErrorCode =
+  | 'FAVOR_IDEMPOTENCY_CONFLICT'
+  | 'FAVOR_PROOF_INVALID'
   | 'TRADE_STOCK_CHANGED'
   | 'INSUFFICIENT_AVAILABLE_PARTICLES'
   | 'BANNER_VOTE_CLOSED'
