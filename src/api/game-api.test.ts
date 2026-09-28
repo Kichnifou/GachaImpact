@@ -2,6 +2,18 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { createGameApiClient } from './game-api'
 
+it('uses authenticated pilot runtime routes without accepting subscription IDs and forwards status cancellation', async () => {
+  const fetchImplementation = vi.fn().mockImplementation(async () => new Response('{}'));
+  const client = createGameApiClient({ baseUrl: 'https://api.example', getAccessToken: async () => 'private-test-token', fetchImplementation });
+  const controller = new AbortController();
+  await client.getTwitchAccount(controller.signal);
+  await client.startTwitchRuntime();
+  await client.disableTwitchRuntime();
+  expect(fetchImplementation.mock.calls.map(([url]) => url)).toEqual(['https://api.example/api/v1/me/twitch', 'https://api.example/api/v1/me/twitch/runtime/start', 'https://api.example/api/v1/me/twitch/runtime/subscription']);
+  expect(fetchImplementation.mock.calls[0]?.[1]).toMatchObject({ signal: controller.signal });
+  expect(fetchImplementation.mock.calls[2]?.[1]).toMatchObject({ method: 'DELETE', headers: { authorization: 'Bearer private-test-token' } });
+});
+
 describe('game API client', () => {
   it('adds the current Bearer token without exposing it in the response', async () => {
     const fetchImplementation = vi.fn<typeof fetch>(async (_input, _init) =>

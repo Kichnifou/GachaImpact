@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
+import AppButton from '../components/AppButton'
 import { getGameApiClient } from '../api/game-api'
 import type { SnapshotApplyDto, SnapshotPreviewDto, TwitchAccountDto } from '../api/types'
 import { apiErrorMessage } from '../utils/formatters'
 
 const expected = new Set(['banner_votes.json', 'c6_characters.json', 'combat_config.json', 'combat_data.json', 'contests_data.json', 'element_passives.json', 'friendships_data.json', 'genshin_characters.json', 'gift_codes.json', 'giveaway.json', 'long_missions.json', 'missions_pool.json', 'monthly_boss.json', 'monthly_events.json', 'monthly_events_data.json', 'shop_items.json', 'viewers_data.json'])
 type ConfirmAction = 'unlink' | 'apply' | null
+const runtimeStatusError = (error: 'CONFLICT' | 'UNAVAILABLE') => error === 'CONFLICT'
+  ? 'La réception du chat Twitch nécessite un contrôle opérateur.'
+  : 'Le statut du chat Twitch est temporairement indisponible. Réessayez plus tard.'
 
 export default function AccountSettingsPanel({ onRefreshPlayerState = async () => undefined }: { onRefreshPlayerState?: () => Promise<void> }) {
   const api = getGameApiClient()
@@ -14,6 +18,8 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
   const [preview, setPreview] = useState<SnapshotPreviewDto | null>(null)
   const [result, setResult] = useState<SnapshotApplyDto | null>(null)
   const [pending, setPending] = useState(false)
+  const pendingRef = useRef(false)
+  const [runtimeChecking, setRuntimeChecking] = useState(false)
   const [applying, setApplying] = useState(false)
   const applyingRef = useRef(false)
   const [error, setError] = useState('')
@@ -25,12 +31,36 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
   useEffect(() => { folderRef.current?.setAttribute('webkitdirectory', '') }, [])
   useEffect(() => {
     let active = true
-    void api.getTwitchAccount().then(value => { if (active) setAccount(value) }).catch(reason => { if (active) setError(apiErrorMessage(reason)) })
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let cancelWait: (() => void) | undefined
+    const controller = new AbortController()
+    const deadline = setTimeout(() => controller.abort(), 8_000)
     const url = new URL(location.href)
     const outcome = url.searchParams.get('twitch')
     if (outcome) { url.searchParams.delete('twitch'); history.replaceState(history.state, '', url)
       if (outcome !== 'connected' && !outcome.startsWith('runtime-')) setError(outcome === 'TWITCH_IDENTITY_CONFLICT' ? 'Ce compte Twitch est déjà lié à un autre joueur.' : 'La liaison Twitch a échoué ou a été annulée.') }
-    return () => { active = false }
+    if (outcome === 'runtime-error') setError('L’autorisation ou l’activation du chat Twitch a échoué ou a été annulée.')
+    void (async () => {
+      try {
+        let value = await api.getTwitchAccount(controller.signal)
+        if (!active) return
+        setAccount(value)
+        if (value.runtimeChatPending && value.runtimeSubscriptionAvailable) {
+          setRuntimeChecking(true)
+          for (let attempt = 0; attempt < 4 && active && value.runtimeChatPending; attempt++) {
+            await new Promise<void>(resolve => { cancelWait = resolve; timer = setTimeout(resolve, 1_000) })
+            if (!active) return
+            value = await api.getTwitchAccount(controller.signal)
+            if (!active) return
+            setAccount(value)
+          }
+          if (active && value.runtimeChatPending) setError('La réception du chat Twitch n’a pas pu être confirmée. Réessayez plus tard.')
+        }
+        if (active && value.runtimeChatError) setError(runtimeStatusError(value.runtimeChatError))
+      } catch (reason) { if (active) setError(controller.signal.aborted ? 'Le statut du chat Twitch n’a pas pu être confirmé. Réessayez plus tard.' : apiErrorMessage(reason)) }
+      finally { clearTimeout(deadline); if (active) setRuntimeChecking(false) }
+    })()
+    return () => { active = false; controller.abort(); clearTimeout(deadline); clearTimeout(timer); cancelWait?.() }
   }, [api])
   useEffect(() => {
     if (!confirm) return
@@ -47,7 +77,13 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     window.addEventListener('keydown', keys)
     return () => { window.removeEventListener('keydown', keys); openerRef.current?.focus() }
   }, [confirm])
-  const run = async (action: () => Promise<void>) => { setPending(true); setError(''); try { await action() } catch (reason) { setError(apiErrorMessage(reason)) } finally { setPending(false) } }
+  const run = async (action: () => Promise<void>) => {
+    if (pendingRef.current || applyingRef.current || runtimeChecking) return
+    pendingRef.current = true
+    setPending(true); setError('')
+    try { await action() } catch (reason) { setError(apiErrorMessage(reason)) }
+    finally { pendingRef.current = false; setPending(false) }
+  }
   const select = async (list: FileList | null) => {
     if (applyingRef.current) return
     setFiles(null); setPreview(null); setResult(null); setError('')
@@ -62,8 +98,20 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     } catch { setError('Impossible de lire les fichiers sélectionnés.') }
   }
   const connect = () => void run(async () => { const { url } = await api.startTwitchLink(); if (new URL(url).origin !== 'https://id.twitch.tv') throw new Error('URL Twitch invalide.'); location.assign(url) })
+  const activateRuntime = () => void run(async () => {
+    const { url } = await api.startTwitchRuntime()
+    const target = new URL(url)
+    if (target.origin !== 'https://id.twitch.tv' || target.pathname !== '/oauth2/authorize' || target.username || target.password) throw new Error('URL Twitch invalide.')
+    location.assign(target.toString())
+  })
+  const disableRuntime = () => void run(async () => {
+    await api.disableTwitchRuntime()
+    const value = await api.getTwitchAccount()
+    setAccount(value)
+    if (value.runtimeChatError) setError(runtimeStatusError(value.runtimeChatError))
+  })
   const confirmAction = () => {
-    if (pending || applyingRef.current) return
+    if (pendingRef.current || pending || applyingRef.current || runtimeChecking) return
     if (confirm === 'unlink') { void run(async () => { await api.unlinkTwitch(); setAccount(await api.getTwitchAccount()); setPreview(null); setFiles(null); setConfirm(null) }); return }
     if (confirm !== 'apply' || !preview || !files) return
     applyingRef.current = true
@@ -86,7 +134,14 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     <div className="account-settings">
       {error && <p className="configuration-error" role="alert">{error}</p>}
       {!account ? <p>Chargement du compte…</p> : <section className="account-section"><h3>Compte Twitch</h3>
-        {account.linked ? <><p><strong>{account.linked.displayName || account.linked.login}</strong> · Connecté</p><p>Lié le {new Date(account.linked.linkedAt).toLocaleDateString('fr-FR')}</p><button type="button" disabled={pending} onClick={event => { openerRef.current = event.currentTarget; setConfirm('unlink') }}>Délier Twitch</button></>
+        {account.linked ? <><p><strong>{account.linked.displayName || account.linked.login}</strong> · Connecté</p><p>Lié le {new Date(account.linked.linkedAt).toLocaleDateString('fr-FR')}</p>
+          {account.eligible && account.runtimeSubscriptionAvailable && <div className="account-twitch-runtime" aria-busy={pending || runtimeChecking}>
+            <h4>Réception du chat Twitch</h4>
+            <p className={account.runtimeChatActive ? 'account-twitch-active' : undefined}>{runtimeChecking ? 'Chargement du compte…' : account.runtimeChatActive ? '● Activée' : 'Non activée'}</p>
+            <p className="account-twitch-description">{account.runtimeChatActive ? 'GachaImpact reçoit les messages du chat Twitch.' : 'Permet à GachaImpact de recevoir les messages du chat Twitch pendant le pilote.'}</p>
+            <AppButton disabled={pending || runtimeChecking || account.runtimeChatPending} aria-busy={pending} onClick={account.runtimeChatActive ? disableRuntime : activateRuntime}>{account.runtimeChatActive ? 'Désactiver' : 'Autoriser et activer'}</AppButton>
+          </div>}
+          <button type="button" disabled={pending || runtimeChecking} onClick={event => { openerRef.current = event.currentTarget; setConfirm('unlink') }}>Délier Twitch</button></>
           : <><p>Non connecté</p><button type="button" disabled={!account.pilotAvailable || pending} onClick={connect}>Connecter Twitch</button>{!account.pilotAvailable && <p>La liaison Twitch est indisponible pour ce compte ou sur ce serveur.</p>}</>}
       </section>}
       {account?.snapshotAvailable && <section className="account-section"><h3>Snapshot Streamer.bot</h3><p>Le standalone est un miroir de test. Sélectionnez les fichiers locaux ; ils ne seront pas modifiés.</p>

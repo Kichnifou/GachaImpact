@@ -24,36 +24,40 @@ export class TwitchEventSubClient {
   constructor(private readonly clientId: string, private readonly tokens: TwitchAppAccessTokenProvider,
     private readonly request: typeof fetch = fetch) {}
 
-  private async call(method: 'GET' | 'POST', cursor?: string, body?: PilotChatSubscriptionRequest) {
+  private async call(method: 'GET' | 'POST' | 'DELETE', cursor?: string, body?: PilotChatSubscriptionRequest, subscriptionId?: string, signal?: AbortSignal) {
     const url = new URL('https://api.twitch.tv/helix/eventsub/subscriptions');
     if (method === 'GET') url.searchParams.set('type', 'channel.chat.message');
     if (cursor) url.searchParams.set('after', cursor);
+    if (subscriptionId) url.searchParams.set('id', subscriptionId);
     for (let attempt = 0; attempt < 2; attempt++) {
+      signal?.throwIfAborted();
       const token = await this.tokens.getToken();
+      signal?.throwIfAborted();
       let response: Response;
       try {
         response = await this.request(url, {
           method, headers: { authorization: `Bearer ${token}`, 'client-id': this.clientId, 'content-type': 'application/json' },
-          ...(body ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(10_000),
+          ...(body ? { body: JSON.stringify(body) } : {}), signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(10_000)]) : AbortSignal.timeout(10_000),
         });
       } catch { throw new TwitchEventSubApiError(0); }
       if (response.status === 401) {
         this.tokens.invalidate(token);
         if (attempt === 0) continue;
       }
-      if (response.status !== (method === 'POST' ? 202 : 200)) throw new TwitchEventSubApiError(response.status);
+      if (response.status !== (method === 'POST' ? 202 : method === 'DELETE' ? 204 : 200)) throw new TwitchEventSubApiError(response.status);
+      if (method === 'DELETE') return;
       try { return await response.json() as unknown; }
       catch { throw invalid(); }
     }
     throw new TwitchEventSubApiError(401);
   }
 
-  async listChatSubscriptions(): Promise<TwitchEventSubSubscription[]> {
+  async listChatSubscriptions(signal?: AbortSignal): Promise<TwitchEventSubSubscription[]> {
     const subscriptions: TwitchEventSubSubscription[] = [];
     const seen = new Set<string>();
     let cursor: string | undefined;
     do {
-      const parsed = pageSchema.safeParse(await this.call('GET', cursor));
+      const parsed = pageSchema.safeParse(await this.call('GET', cursor, undefined, undefined, signal));
       if (!parsed.success) throw invalid();
       subscriptions.push(...parsed.data.data);
       cursor = parsed.data.pagination.cursor;
@@ -67,5 +71,9 @@ export class TwitchEventSubClient {
     const parsed = createdSchema.safeParse(await this.call('POST', undefined, body));
     if (!parsed.success) throw invalid();
     return parsed.data.data[0]!;
+  }
+
+  async deleteChatSubscription(subscriptionId: string): Promise<void> {
+    await this.call('DELETE', undefined, undefined, subscriptionId);
   }
 }

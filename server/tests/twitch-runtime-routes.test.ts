@@ -13,7 +13,7 @@ async function setup() {
   const twitch = { status: vi.fn(async () => ({ runtimeAuthorizationAvailable: true, runtimeSubscriptionAvailable: false })),
     start: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize' })),
     startRuntime: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize?scope=openid' })),
-    callback: vi.fn(async () => ({})), unlink: vi.fn() };
+    callback: vi.fn(async () => ({})), unlink: vi.fn(), disableRuntime: vi.fn(async () => ({ runtimeChatActive: false, runtimeChatPending: false })) };
   const subscriptions = { ensurePilotChatSubscription: vi.fn() };
   const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {}, frontendOrigin: 'https://game.example' }, {
     authIdentityVerifier: { verify: async () => ({ subject: 'operator' }) }, getOrProvisionCurrentPlayer: {} as never,
@@ -22,7 +22,18 @@ async function setup() {
   });
   apps.push(app); return { app, twitch, subscriptions };
 }
-describe('Twitch runtime routes without activation', () => {
+describe('Twitch runtime pilot routes with mocked services', () => {
+  it('authenticates disable and rejects browser-supplied IDs without calling the service', async () => {
+    const { app, twitch } = await setup();
+    const url = '/api/v1/me/twitch/runtime/subscription';
+    expect((await app.inject({ method: 'DELETE', url })).statusCode).toBe(401);
+    const headers = { authorization: 'Bearer test' };
+    expect((await app.inject({ method: 'DELETE', url: `${url}?id=arbitrary`, headers })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'DELETE', url, headers, payload: { subscriptionId: 'arbitrary' } })).statusCode).toBe(400);
+    expect(twitch.disableRuntime).not.toHaveBeenCalled();
+    expect((await app.inject({ method: 'DELETE', url, headers })).json()).toEqual({ runtimeChatActive: false, runtimeChatPending: false });
+    expect(twitch.disableRuntime).toHaveBeenCalledWith({ subject: 'operator' });
+  });
   it('authenticates the separate backend start and refuses arbitrary runtime inputs', async () => {
     const { app, twitch, subscriptions } = await setup();
     const url = '/api/v1/me/twitch/runtime/start', headers = { authorization: 'Bearer test' };
@@ -35,7 +46,7 @@ describe('Twitch runtime routes without activation', () => {
       expect((await app.inject({ method: 'POST', url, headers, payload })).statusCode).toBe(400);
     expect(subscriptions.ensurePilotChatSubscription).not.toHaveBeenCalled();
   });
-  it.each([[state, 'connected'], [runtimeState, 'runtime-authorized']])('redirects purpose %s to its own outcome at the configured frontend', async (oauthState, outcome) => {
+  it.each([[state, 'connected'], [runtimeState, 'runtime-activated']])('redirects purpose %s to its own outcome at the configured frontend', async (oauthState, outcome) => {
     const { app, subscriptions } = await setup();
     const response = await app.inject({ method: 'GET', url: `/api/v1/me/twitch/callback?state=${oauthState}&code=test-code&callback=https://evil.example` });
     expect(response.statusCode).toBe(302);

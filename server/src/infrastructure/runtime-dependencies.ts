@@ -80,12 +80,12 @@ export function createRuntimeDependencies(config: AppConfig) {
   const database = createDatabase(config.databaseUrl);
   const store = new PrismaCurrentPlayerStore(database);
   const getCurrentPlayer = new GetCurrentPlayer(store);
-  const twitchPilot = new TwitchPilotService(database, getCurrentPlayer, config);
   const twitchEventObserver = new TwitchEventObserver(database);
-  // Construction is inert. Phase 2B-1 exposes no invocation or scheduler for this manager.
+  // Construction is inert. Only explicit pilot actions and configured status reads invoke the manager.
   const twitchSubscriptions = config.twitch?.clientId && config.twitch.clientSecret
     ? new TwitchEventSubSubscriptionManager(database, config, new TwitchEventSubClient(config.twitch.clientId,
       new TwitchAppAccessTokenProvider(config.twitch.clientId, config.twitch.clientSecret))) : undefined;
+  const twitchPilot = new TwitchPilotService(database, getCurrentPlayer, config, undefined, twitchSubscriptions);
   const wheelStore = new PrismaWheelStore(database);
   const clock = new SystemClock();
   const tradeService = new TradeService(database, clock);

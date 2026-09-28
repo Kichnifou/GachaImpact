@@ -28,6 +28,11 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
     return options.twitch.startRuntime(requireAuthenticatedIdentity(request));
   });
   app.delete('/api/v1/me/twitch', authenticated, request => options.twitch.unlink(requireAuthenticatedIdentity(request)));
+  app.delete('/api/v1/me/twitch/runtime/subscription', authenticated, request => {
+    if (!z.object({}).strict().safeParse(request.body ?? {}).success || Object.keys(request.query as object).length)
+      throw new AppError('Paramètres de réception du chat invalides.', 400, 'VALIDATION_ERROR');
+    return options.twitch.disableRuntime(requireAuthenticatedIdentity(request));
+  });
   app.get('/api/v1/me/twitch/callback', { logLevel: 'silent' }, async (request, reply) => {
     const query = callbackSchema.safeParse(request.query);
     let outcome = 'error';
@@ -35,7 +40,7 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
     try { if (query.success) {
       runtime = twitchOAuthPurpose(query.data.state) === 'AUTHORIZE_RUNTIME';
       await options.twitch.callback(query.data);
-      outcome = runtime ? 'runtime-authorized' : 'connected';
+      outcome = runtime ? 'runtime-activated' : 'connected';
     } }
     catch (error) { outcome = runtime ? 'runtime-error' : error instanceof AppError ? error.code : 'error'; }
     const target = new URL(options.config.frontendOrigin ?? 'http://localhost:5173');

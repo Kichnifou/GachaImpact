@@ -8091,6 +8091,11 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .account-section p { color: var(--muted); line-height: 1.5; overflow-wrap: anywhere; }
 .account-section button, .account-confirm button { min-height: 34px; padding: 7px 12px; color: white; border: 1px solid var(--border); border-radius: 7px; background: rgba(25, 59, 99, .72); cursor: pointer; }
 .account-section button:disabled { opacity: .5; cursor: not-allowed; }
+.account-twitch-runtime { display: grid; gap: 8px; min-width: 0; margin: 14px 0; padding: 14px 0; border-block: 1px solid rgba(108, 145, 205, .2); font-size: 14px; }
+.account-twitch-runtime h4, .account-twitch-runtime p { margin: 0; }
+.account-twitch-runtime .account-twitch-description { min-height: 4.5em; }
+.account-twitch-runtime .account-twitch-active { color: #70e0bc; }
+.account-twitch-runtime button { justify-self: start; max-width: 100%; }
 .account-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .account-actions label { display: grid; gap: 5px; min-width: 0; font-size: 11px; }
 .account-actions input { max-width: 100%; }

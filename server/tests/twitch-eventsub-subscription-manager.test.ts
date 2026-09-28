@@ -118,3 +118,70 @@ describe('EventSub pilot subscription manager', () => {
     expect(network).not.toHaveBeenCalled();
   });
 });
+
+describe('inspection, disable and serialized unlink', () => {
+  it.each([['INACTIVE', null], ['ACTIVE', 'enabled'], ['VERIFICATION_PENDING', 'webhook_callback_verification_pending']] as const)('inspects %s without mutations', async (expected, status) => {
+    const { manager, network } = setup(); network.mockResolvedValueOnce(page(status ? [{ ...subscription, status }] : []));
+    expect(await manager.inspectPilotChatSubscription(playerId)).toBe(expected);
+    expect(network.mock.calls.map(([, options]) => options?.method)).toEqual(['GET']);
+  });
+  it('does not delete anything when already inactive, including concurrent disables', async () => {
+    const { manager, network } = setup(); network.mockResolvedValueOnce(page([]));
+    expect(await Promise.all([manager.disablePilotChatSubscription(playerId), manager.disablePilotChatSubscription(playerId)])).toEqual(['INACTIVE', 'INACTIVE']);
+    expect(network).toHaveBeenCalledOnce();
+  });
+  it.each(['enabled', 'webhook_callback_verification_pending'])('removes only the exact %s subscription with an empty 204 response', async status => {
+    const { manager, network } = setup(); network.mockResolvedValueOnce(page([{ ...subscription, status }])).mockResolvedValueOnce(new Response(null, { status: 204 }));
+    expect(await Promise.all([manager.disablePilotChatSubscription(playerId), manager.disablePilotChatSubscription(playerId)])).toEqual(['INACTIVE', 'INACTIVE']);
+    expect(network).toHaveBeenCalledTimes(2);
+    expect(network.mock.calls[1]![1]?.method).toBe('DELETE');
+    expect(new URL(String(network.mock.calls[1]![0])).searchParams.get('id')).toBe(subscription.id);
+  });
+  it.each([false, true])('re-lists after DELETE 404 and succeeds only if the exact subscription disappeared (present=%s)', async present => {
+    const { manager, network } = setup();
+    network.mockResolvedValueOnce(page([subscription])).mockResolvedValueOnce(response({}, 404)).mockResolvedValueOnce(page(present ? [subscription] : []));
+    if (present) await expect(manager.disablePilotChatSubscription(playerId)).rejects.toMatchObject({ code: 'TWITCH_EVENTSUB_SUBSCRIPTION_CONFLICT' });
+    else expect(await manager.disablePilotChatSubscription(playerId)).toBe('INACTIVE');
+    expect(network.mock.calls.map(([, options]) => options?.method)).toEqual(['GET', 'DELETE', 'GET']);
+  });
+  it.each([
+    { ...subscription, condition: { broadcaster_user_id: '12345', user_id: 'other' } },
+    { ...subscription, version: '2' },
+    { ...subscription, transport: { method: 'webhook', callback: 'https://other.example' } },
+    { ...subscription, transport: { method: 'websocket' } },
+    { ...subscription, status: 'authorization_revoked' },
+  ])('reports conflicts during inspect and disable, never deletes an incompatible subscription', async item => {
+    const { manager, network } = setup(); network.mockImplementation(async () => page([item]));
+    await expect(manager.inspectPilotChatSubscription(playerId)).rejects.toMatchObject({ code: 'TWITCH_EVENTSUB_SUBSCRIPTION_CONFLICT' });
+    await expect(manager.disablePilotChatSubscription(playerId)).rejects.toMatchObject({ code: 'TWITCH_EVENTSUB_SUBSCRIPTION_CONFLICT' });
+    expect(network.mock.calls.every(([, options]) => options?.method === 'GET')).toBe(true);
+  });
+  it('refuses duplicates instead of deleting one arbitrarily', async () => {
+    const { manager, network } = setup(); network.mockResolvedValueOnce(page([subscription, { ...subscription, id: 'duplicate' }]));
+    await expect(manager.disablePilotChatSubscription(playerId)).rejects.toMatchObject({ code: 'TWITCH_EVENTSUB_SUBSCRIPTION_CONFLICT' });
+    expect(network).toHaveBeenCalledOnce();
+  });
+  it('serializes ensure and unlink, leaving no orphan even when consent races with unlink', async () => {
+    const { manager, network, db } = setup();
+    const order: string[] = [];
+    network.mockImplementation(async (_url, options) => {
+      order.push(options!.method!);
+      if (options?.method === 'POST') return response({ data: [subscription] }, 202);
+      if (options?.method === 'DELETE') return new Response(null, { status: 204 });
+      return page(order.length === 1 ? [] : [subscription]);
+    });
+    const ensure = manager.ensurePilotChatSubscription(playerId, '12345');
+    const unlink = manager.unlinkPilotChatIdentity(playerId, async () => { order.push('identity'); db.twitchIdentity.findUnique.mockResolvedValue(null); });
+    await Promise.all([ensure, unlink]);
+    expect(order).toEqual(['GET', 'POST', 'GET', 'DELETE', 'identity']);
+    await expect(manager.ensurePilotChatSubscription(playerId, '12345')).rejects.toMatchObject({ code: 'TWITCH_RUNTIME_IDENTITY_REQUIRED' });
+    expect(order).toHaveLength(5);
+  });
+  it('removes before unlink even with reception OFF, and preserves identity on failed removal', async () => {
+    const { manager, network } = setup({ ...config, twitchEventSub: { ...config.twitchEventSub!, enabled: false } });
+    const remove = vi.fn(async () => undefined);
+    network.mockResolvedValueOnce(page([subscription])).mockResolvedValueOnce(response({}, 503));
+    await expect(manager.unlinkPilotChatIdentity(playerId, remove)).rejects.toMatchObject({ code: 'TWITCH_EVENTSUB_API_FAILED' });
+    expect(remove).not.toHaveBeenCalled();
+  });
+});

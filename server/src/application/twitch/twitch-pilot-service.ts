@@ -5,6 +5,7 @@ import type { AppConfig } from '../../config/environment.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
 import { AppError } from '../../api/errors.js';
+import type { TwitchEventSubSubscriptionManager } from './twitch-eventsub-subscription-manager.js';
 
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 const normalizeLogin = (value: string) => value.trim().normalize('NFKC').toLowerCase();
@@ -35,14 +36,18 @@ export async function verifyTwitchIdToken(token: string, clientId: string, nonce
 
 export class TwitchPilotService {
   private readonly settings: NonNullable<AppConfig['twitch']>;
+  private readonly eventSubConfigured: boolean;
   constructor(private readonly db: PrismaClient, private readonly getPlayer: GetCurrentPlayer, config: AppConfig,
-    private readonly keys: JWTVerifyGetKey = twitchKeys) {
+    private readonly keys: JWTVerifyGetKey = twitchKeys, private readonly subscriptions?: TwitchEventSubSubscriptionManager) {
     this.settings = config.twitch ?? { pilotPlayerIds: [], pilotLogin: 'kichnifou' };
+    this.eventSubConfigured = Boolean(config.twitchEventSub?.enabled || config.twitchEventSub?.callbackUrl || config.twitchEventSub?.secret);
   }
 
   private oauthReady() {
     return Boolean(this.settings.clientId && this.settings.clientSecret && this.settings.redirectUri);
   }
+
+  private runtimeReady() { return this.oauthReady() && Boolean(this.subscriptions?.activationAvailable); }
 
   private async pilot(identity: AuthenticatedIdentity) {
     const player = await this.getPlayer.execute(identity);
@@ -57,14 +62,32 @@ export class TwitchPilotService {
     const eligible = this.settings.pilotPlayerIds.includes(player.id);
     const linked = eligible ? await this.db.twitchIdentity.findUnique({ where: { playerId: player.id } }) : null;
     const lastRun = linked ? await this.db.migrationRun.findFirst({ where: { playerId: player.id }, orderBy: { completedAt: 'desc' }, select: { completedAt: true, snapshotHash: true } }) : null;
+    let runtimeSubscriptionAvailable = eligible && Boolean(linked) && this.runtimeReady();
+    let runtimeChatActive = false, runtimeChatPending = false;
+    let runtimeChatError: 'CONFLICT' | 'UNAVAILABLE' | undefined;
+    if (runtimeSubscriptionAvailable) {
+      try {
+        // Return the identity information even when Twitch or the lifecycle queue stalls.
+        const signal = AbortSignal.timeout(3_000);
+        const state = await Promise.race([
+          this.subscriptions!.inspectPilotChatSubscription(player.id, signal),
+          new Promise<never>((_resolve, reject) => signal.addEventListener('abort', () => reject(new Error('Runtime status timed out')), { once: true })),
+        ]);
+        runtimeChatActive = state === 'ACTIVE';
+        runtimeChatPending = state === 'VERIFICATION_PENDING';
+      } catch (error) {
+        runtimeSubscriptionAvailable = false;
+        runtimeChatError = error instanceof AppError && error.code === 'TWITCH_EVENTSUB_SUBSCRIPTION_CONFLICT' ? 'CONFLICT' : 'UNAVAILABLE';
+      }
+    }
     return {
       pilotAvailable: eligible && this.oauthReady(),
       eligible,
       linked: linked ? { login: linked.login, displayName: linked.displayName, linkedAt: linked.linkedAt.toISOString() } : null,
       snapshotAvailable: eligible && Boolean(linked) && this.oauthReady(),
       runtimeAuthorizationAvailable: eligible && Boolean(linked) && this.oauthReady(),
-      // Phase 2B-1 has no activation entry point, even when the webhook is configured.
-      runtimeSubscriptionAvailable: false,
+      runtimeSubscriptionAvailable, runtimeChatActive, runtimeChatPending,
+      ...(runtimeChatError ? { runtimeChatError } : {}),
       lastImport: lastRun ? { at: lastRun.completedAt.toISOString(), snapshotHash: lastRun.snapshotHash } : null,
     };
   }
@@ -74,6 +97,8 @@ export class TwitchPilotService {
   }
 
   async startRuntime(identity: AuthenticatedIdentity) {
+    await this.pilot(identity);
+    if (!this.runtimeReady()) throw new AppError('Réception du chat Twitch indisponible.', 503, 'TWITCH_RUNTIME_UNAVAILABLE');
     return this.startForPurpose(identity, 'AUTHORIZE_RUNTIME');
   }
 
@@ -152,8 +177,10 @@ export class TwitchPilotService {
       const current = await this.db.twitchIdentity.findUnique({ where: { playerId } });
       if (!current || current.twitchUserId !== twitchUserId || normalizeLogin(current.login) !== login)
         throw new AppError('Identité Twitch liée modifiée.', 409, 'TWITCH_ACCOUNT_MISMATCH');
-      // User tokens leave scope here. No subscription creation or identity mutation in Phase 2B-1.
-      return { runtimeAuthorized: true };
+      if (!this.runtimeReady()) throw new AppError('Réception du chat Twitch indisponible.', 503, 'TWITCH_RUNTIME_UNAVAILABLE');
+      // Only validated runtime consent may create the configured pilot subscription. Tokens are never persisted.
+      const subscription = await this.subscriptions!.ensurePilotChatSubscription(playerId, twitchUserId);
+      return { runtimeActivated: true, runtimeChatPending: subscription.status === 'webhook_callback_verification_pending' };
     }
     try {
       await this.db.twitchIdentity.upsert({ where: { playerId }, create: {
@@ -169,7 +196,20 @@ export class TwitchPilotService {
 
   async unlink(identity: AuthenticatedIdentity) {
     const player = await this.pilot(identity);
-    await this.db.twitchIdentity.deleteMany({ where: { playerId: player.id } });
+    const linked = await this.db.twitchIdentity.findUnique({ where: { playerId: player.id } });
+    const remove = async () => { await this.db.twitchIdentity.deleteMany({ where: { playerId: player.id } }); };
+    if (linked && this.subscriptions?.managementAvailable) await this.subscriptions.unlinkPilotChatIdentity(player.id, remove);
+    else {
+      if (linked && this.eventSubConfigured) throw new AppError('Impossible de vérifier l’arrêt du chat Twitch. Réessayez plus tard.', 503, 'TWITCH_RUNTIME_UNAVAILABLE');
+      await remove();
+    }
     return { linked: false };
+  }
+
+  async disableRuntime(identity: AuthenticatedIdentity) {
+    const player = await this.pilot(identity);
+    if (!this.subscriptions?.managementAvailable) throw new AppError('Réception du chat Twitch indisponible.', 503, 'TWITCH_RUNTIME_UNAVAILABLE');
+    await this.subscriptions.disablePilotChatSubscription(player.id);
+    return { runtimeChatActive: false, runtimeChatPending: false };
   }
 }

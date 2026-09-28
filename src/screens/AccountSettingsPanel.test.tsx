@@ -4,14 +4,14 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const api = vi.hoisted(() => ({
-  getTwitchAccount: vi.fn(), startTwitchLink: vi.fn(), unlinkTwitch: vi.fn(), previewTwitchSnapshot: vi.fn(), applyTwitchSnapshot: vi.fn(),
+  getTwitchAccount: vi.fn(), startTwitchLink: vi.fn(), startTwitchRuntime: vi.fn(), disableTwitchRuntime: vi.fn(), unlinkTwitch: vi.fn(), previewTwitchSnapshot: vi.fn(), applyTwitchSnapshot: vi.fn(),
 }))
 vi.mock('../api/game-api', () => ({ getGameApiClient: () => api }))
 import AccountSettingsPanel from './AccountSettingsPanel'
 
 const roots: ReturnType<typeof createRoot>[] = []
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
-afterEach(() => { act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren(); vi.clearAllMocks() })
+afterEach(() => { act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren(); vi.clearAllMocks(); vi.restoreAllMocks(); vi.useRealTimers(); history.replaceState(null, '', '/') })
 const mount = async (onRefreshPlayerState?: () => Promise<void>) => { const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root); await act(async () => root.render(<AccountSettingsPanel onRefreshPlayerState={onRefreshPlayerState} />)); return container }
 const linkedAccount = { pilotAvailable: true, eligible: true, linked: { login: 'kichnifou', displayName: 'Kichnifou', linkedAt: '2026-09-26T00:00:00Z' }, snapshotAvailable: true, lastImport: null }
 const button = (container: HTMLElement, label: string) => Array.from(container.querySelectorAll('button')).find(element => element.textContent === label)!
@@ -24,7 +24,7 @@ async function selectSnapshot(container: HTMLElement) {
 }
 
 describe('Configuration > Compte', () => {
-  it.each(['runtime-authorized', 'runtime-error', 'runtime-future'])('silently clears the %s outcome without reporting a failed identity link', async outcome => {
+  it.each(['runtime-activated', 'runtime-authorized', 'runtime-future'])('clears the %s outcome without reporting a failed identity link', async outcome => {
     api.getTwitchAccount.mockResolvedValue(linkedAccount);
     history.replaceState(null, '', `/?twitch=${outcome}`);
     const container = await mount();
@@ -144,3 +144,124 @@ describe('Configuration > Compte', () => {
     expect(container.textContent).toContain('Ambiguïté')
   })
 })
+
+describe('pilot chat reception', () => {
+  const inactive = { ...linkedAccount, runtimeSubscriptionAvailable: true, runtimeChatActive: false, runtimeChatPending: false };
+  it.each([
+    { ...inactive, eligible: false },
+    { ...inactive, linked: null },
+    { ...inactive, runtimeSubscriptionAvailable: false },
+  ])('hides pilot controls unless eligible, linked and configured', async value => {
+    api.getTwitchAccount.mockResolvedValue(value);
+    expect((await mount()).textContent).not.toContain('Réception du chat Twitch');
+  });
+  it.each([false, true])('shows only the approved active=%s presentation between link info and unlink', async active => {
+    api.getTwitchAccount.mockResolvedValue({ ...inactive, runtimeChatActive: active });
+    const container = await mount();
+    const block = container.querySelector('.account-twitch-runtime')!;
+    expect(block.textContent).toContain('Réception du chat Twitch');
+    expect(block.textContent).toContain(active ? '● Activée' : 'Non activée');
+    expect(block.textContent).toContain(active ? 'GachaImpact reçoit les messages du chat Twitch.' : 'Permet à GachaImpact de recevoir les messages du chat Twitch pendant le pilote.');
+    expect(button(block as HTMLElement, active ? 'Désactiver' : 'Autoriser et activer')).toBeDefined();
+    expect(block.nextElementSibling?.textContent).toBe('Délier Twitch');
+    expect(block.previousElementSibling?.textContent).toContain('Lié le');
+    expect(block.textContent).not.toMatch(/EventSub|webhook|scope|token/i);
+    expect(container.textContent).toContain('Snapshot Streamer.bot');
+  });
+  it('starts runtime once under a synchronous double click and accepts only Twitch authorize navigation', async () => {
+    api.getTwitchAccount.mockResolvedValue(inactive);
+    let release!: (value: { url: string }) => void;
+    api.startTwitchRuntime.mockReturnValue(new Promise(resolve => { release = resolve; }));
+    const navigate = vi.spyOn(location, 'assign').mockImplementation(() => undefined);
+    const container = await mount(), start = button(container, 'Autoriser et activer');
+    act(() => { start.click(); start.click(); });
+    expect(api.startTwitchRuntime).toHaveBeenCalledOnce();
+    expect(start.disabled).toBe(true);
+    expect(start.textContent).toBe('Autoriser et activer');
+    expect(start.getAttribute('aria-busy')).toBe('true');
+    await act(async () => release({ url: 'https://id.twitch.tv/oauth2/authorize?state=private-fixture' }));
+    expect(navigate).toHaveBeenCalledWith('https://id.twitch.tv/oauth2/authorize?state=private-fixture');
+    expect(api.startTwitchLink).not.toHaveBeenCalled();
+  });
+  it.each(['https://evil.example/oauth2/authorize', 'javascript:alert(1)', 'https://id.twitch.tv/other', 'https://user:password@id.twitch.tv/oauth2/authorize'])('rejects redirect %s without navigating', async url => {
+    api.getTwitchAccount.mockResolvedValue(inactive);
+    api.startTwitchRuntime.mockResolvedValue({ url });
+    const navigate = vi.spyOn(location, 'assign').mockImplementation(() => undefined);
+    const container = await mount();
+    await act(async () => button(container, 'Autoriser et activer').click());
+    expect(navigate).not.toHaveBeenCalled();
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
+  });
+  it('disables once and reloads status without unlinking or changing the snapshot', async () => {
+    api.getTwitchAccount.mockResolvedValueOnce({ ...inactive, runtimeChatActive: true }).mockResolvedValue(inactive);
+    let finish!: () => void;
+    api.disableTwitchRuntime.mockReturnValue(new Promise<void>(resolve => { finish = resolve; }));
+    const container = await mount(), disable = button(container, 'Désactiver');
+    act(() => { disable.click(); disable.click(); });
+    expect(disable.disabled).toBe(true);
+    expect(disable.textContent).toBe('Désactiver');
+    expect(api.disableTwitchRuntime).toHaveBeenCalledOnce();
+    await act(async () => finish());
+    expect(api.getTwitchAccount).toHaveBeenCalledTimes(2);
+    expect(container.textContent).toContain('Non activée');
+    expect(button(container, 'Autoriser et activer')).toBeDefined();
+    expect(api.unlinkTwitch).not.toHaveBeenCalled();
+  });
+  it('cleans runtime callback and waits for real enabled status with bounded reads', async () => {
+    vi.useFakeTimers();
+    history.replaceState(null, '', '/?twitch=runtime-activated#configuration');
+    api.getTwitchAccount.mockResolvedValueOnce({ ...inactive, runtimeChatPending: true }).mockResolvedValue({ ...inactive, runtimeChatActive: true });
+    const container = await mount();
+    expect(location.search).not.toContain('twitch=');
+    expect(container.textContent).toContain('Chargement du compte…');
+    expect(container.textContent).not.toContain('● Activée');
+    await act(async () => vi.advanceTimersByTimeAsync(1_000));
+    expect(api.getTwitchAccount).toHaveBeenCalledTimes(2);
+    expect(container.textContent).toContain('● Activée');
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    await act(async () => vi.advanceTimersByTimeAsync(10_000));
+    expect(api.getTwitchAccount).toHaveBeenCalledTimes(2);
+  });
+  it('times out pending without presenting a false activation or an infinite polling loop', async () => {
+    vi.useFakeTimers();
+    history.replaceState(null, '', '/?twitch=runtime-activated');
+    api.getTwitchAccount.mockResolvedValue({ ...inactive, runtimeChatPending: true });
+    const container = await mount();
+    await act(async () => vi.advanceTimersByTimeAsync(10_000));
+    expect(api.getTwitchAccount).toHaveBeenCalledTimes(5);
+    expect(container.textContent).not.toContain('● Activée');
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('n’a pas pu être confirmée');
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it('cancels pending polling on unmount', async () => {
+    vi.useFakeTimers(); api.getTwitchAccount.mockResolvedValue({ ...inactive, runtimeChatPending: true });
+    await mount(); act(() => roots.pop()!.unmount());
+    await act(async () => vi.advanceTimersByTimeAsync(10_000));
+    expect(api.getTwitchAccount).toHaveBeenCalledOnce();
+  });
+  it('bounds the entire confirmation even when a status request stalls', async () => {
+    vi.useFakeTimers();
+    api.getTwitchAccount.mockResolvedValueOnce({ ...inactive, runtimeChatPending: true })
+      .mockImplementationOnce((signal: AbortSignal) => new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true })));
+    const container = await mount();
+    await act(async () => vi.advanceTimersByTimeAsync(8_000));
+    expect(api.getTwitchAccount).toHaveBeenCalledTimes(2);
+    expect(container.textContent).not.toContain('● Activée');
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('n’a pas pu être confirmé');
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it.each(['CONFLICT', 'UNAVAILABLE'])('preserves identity and displays %s in the existing error zone', async runtimeChatError => {
+    api.getTwitchAccount.mockResolvedValue({ ...inactive, runtimeSubscriptionAvailable: false, runtimeChatError });
+    const container = await mount();
+    expect(container.textContent).toContain('Kichnifou · Connecté');
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
+    expect(container.textContent).not.toContain('Non activée');
+  });
+  it('reports runtime OAuth failure separately from identity-link failure', async () => {
+    history.replaceState(null, '', '/?twitch=runtime-error'); api.getTwitchAccount.mockResolvedValue(inactive);
+    const container = await mount();
+    expect(location.search).not.toContain('twitch=');
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('chat Twitch');
+    expect(container.textContent).toContain('Kichnifou · Connecté');
+  });
+});

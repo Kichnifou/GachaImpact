@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { createHmac, randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { TwitchEventObserver } from '../src/application/twitch/twitch-event-observer.js';
 import { isolatedBatchDatabase } from './isolated-batch-database.js';
@@ -11,6 +11,7 @@ const db = fixture.database;
 const secret = 'private-eventsub-test-secret';
 let app: FastifyInstance;
 let offApp: FastifyInstance;
+let observer: TwitchEventObserver;
 const challenge = { subscription: { type: 'channel.chat.message', version: '1' }, challenge: 'exact-challenge-value' };
 const chat = (text = 'hello') => ({ subscription: { type: 'channel.chat.message', version: '1' }, event: { chatter_user_id: '424242', chatter_user_login: 'known', chatter_user_name: 'Known', message: { text } } });
 
@@ -26,7 +27,8 @@ beforeAll(async () => {
   await fixture.setup();
   const player = await db.player.create({ data: { displayName: 'EventSub private fixture' } });
   await db.twitchIdentity.create({ data: { playerId: player.id, twitchUserId: '424242', login: 'known' } });
-  const dependencies = { authIdentityVerifier: { verify: async () => ({ subject: 'test' }) }, getOrProvisionCurrentPlayer: {} as never, twitchEventObserver: new TwitchEventObserver(db) };
+  observer = new TwitchEventObserver(db);
+  const dependencies = { authIdentityVerifier: { verify: async () => ({ subject: 'test' }) }, getOrProvisionCurrentPlayer: {} as never, twitchEventObserver: observer };
   app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {}, twitchEventSub: { enabled: true, secret } }, dependencies);
   offApp = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {}, twitchEventSub: { enabled: false } }, dependencies);
 }, 60_000);
@@ -77,5 +79,27 @@ describe('Twitch EventSub webhook transport', () => {
     expect(await db.globalChatMessage.count()).toBe(0);
     expect(await db.directMessage.count()).toBe(0);
     expect(await db.notification.count()).toBe(0);
+  });
+  it('receives both broadcaster and other chatter on the same channel, resolving only known identities', async () => {
+    const observe = vi.spyOn(observer, 'observeTwitchEvent');
+    const ids = [randomUUID(), randomUUID()];
+    const playersBefore = await db.player.count();
+    for (const [index, chatter] of ['424242', '99999'].entries()) {
+      const payload = { subscription: { type: 'channel.chat.message', version: '1', condition: { broadcaster_user_id: '424242', user_id: '424242' } },
+        event: { broadcaster_user_id: '424242', chatter_user_id: chatter, chatter_user_login: index ? 'unknown' : 'known',
+          message: { text: `private chat text ${index}` } } };
+      const value = signed('notification', payload, ids[index]);
+      expect((await post(app, value)).statusCode).toBe(204);
+      expect((await post(app, value)).statusCode).toBe(204);
+    }
+    const receipts = await db.twitchEventReceipt.findMany({ where: { externalEventId: { in: ids } } });
+    expect(receipts).toHaveLength(2);
+    const observed = await Promise.all(observe.mock.results.map(result => result.value));
+    expect(observed.find(result => result.receipt.twitchUserId === '424242')?.identity).toBe('resolved');
+    expect(observed.find(result => result.receipt.twitchUserId === '99999')?.identity).toBe('unresolved');
+    observe.mockRestore();
+    expect(JSON.stringify(receipts)).not.toContain('private chat text');
+    expect(await db.player.count()).toBe(playersBefore);
+    expect(await Promise.all([db.businessOperation.count(), db.resourceMovement.count(), db.playerProgression.count(), db.globalChatMessage.count(), db.directMessage.count(), db.notification.count()])).toEqual([0, 0, 0, 0, 0, 0]);
   });
 });

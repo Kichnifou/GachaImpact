@@ -4,7 +4,9 @@ import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT, type JWTVerifyG
 import type { PrismaClient } from '../generated/prisma/client.js';
 import type { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import type { AuthenticatedIdentity } from '../src/domain/identity/authenticated-identity.js';
+import { AppError } from '../src/api/errors.js';
 import { TwitchPilotService, TWITCH_RUNTIME_SCOPES, verifyTwitchIdToken } from '../src/application/twitch/twitch-pilot-service.js';
+import type { TwitchEventSubSubscriptionManager } from '../src/application/twitch/twitch-eventsub-subscription-manager.js';
 
 const playerId = '11111111-1111-4111-8111-111111111111';
 const otherId = '22222222-2222-4222-8222-222222222222';
@@ -22,7 +24,7 @@ beforeAll(async () => {
   privateKey = pair.privateKey;
   keys = createLocalJWKSet({ keys: [{ ...await exportJWK(pair.publicKey), kid: 'test-key', alg: 'RS256', use: 'sig' }] });
 });
-function setup(id = playerId) {
+function setup(id = playerId, runtime = false) {
   const db = {
     twitchIdentity: { findUnique: vi.fn().mockResolvedValue(null), upsert: vi.fn().mockResolvedValue({}), deleteMany: vi.fn().mockResolvedValue({ count: 1 }) },
     twitchLinkState: { create: vi.fn().mockResolvedValue({}) },
@@ -30,7 +32,14 @@ function setup(id = playerId) {
     $queryRaw: vi.fn().mockResolvedValue([{ player_id: id, nonce_hash: nonceHash }]),
   };
   const getPlayer = { execute: vi.fn().mockResolvedValue({ id }) };
-  return { db, service: new TwitchPilotService(db as unknown as PrismaClient, getPlayer as unknown as GetCurrentPlayer, config, keys) };
+  const subscriptions = { activationAvailable: true, managementAvailable: true,
+    ensurePilotChatSubscription: vi.fn().mockResolvedValue({ status: 'enabled' }),
+    inspectPilotChatSubscription: vi.fn().mockResolvedValue('INACTIVE'),
+    disablePilotChatSubscription: vi.fn().mockResolvedValue('INACTIVE'),
+    unlinkPilotChatIdentity: vi.fn(async (_id: string, remove: () => Promise<void>) => { await subscriptions.disablePilotChatSubscription(_id); await remove(); }) };
+  return { db, subscriptions, service: new TwitchPilotService(db as unknown as PrismaClient, getPlayer as unknown as GetCurrentPlayer,
+    runtime ? { ...config, twitchEventSub: { enabled: true, secret: 'test-secret', callbackUrl: 'https://backend.example/api/v1/twitch/eventsub' } } : config,
+    keys, runtime ? subscriptions as unknown as TwitchEventSubSubscriptionManager : undefined) };
 }
 async function signedToken(overrides: Record<string, unknown> = {}, signingKey = privateKey) {
   const payload = { sub: '12345', nonce, ...overrides };
@@ -121,16 +130,16 @@ describe('separate Twitch Chat runtime authorization', () => {
   const runtimeState = `runtime_${state}`;
   const linked = { playerId, twitchUserId: '12345', login: 'kichnifou', displayName: 'Original name', linkedAt: new Date('2026-09-26') };
   function runtimeSetup() {
-    const value = setup(); value.db.twitchIdentity.findUnique.mockResolvedValue(linked); return value;
+    const value = setup(playerId, true); value.db.twitchIdentity.findUnique.mockResolvedValue(linked); return value;
   }
 
   it('requires an allowlisted Player, configured OAuth and an existing TwitchIdentity', async () => {
     await expect(setup(otherId).service.startRuntime(identity)).rejects.toMatchObject({ code: 'TWITCH_PILOT_FORBIDDEN' });
-    const { service, db } = setup();
+    const { service, db } = setup(playerId, true);
     await expect(service.startRuntime(identity)).rejects.toMatchObject({ code: 'TWITCH_RUNTIME_IDENTITY_REQUIRED' });
     expect(db.twitchLinkState.create).not.toHaveBeenCalled();
     const off = new TwitchPilotService(db as unknown as PrismaClient, { execute: async () => ({ id: playerId }) } as unknown as GetCurrentPlayer, { ...config, twitch: { pilotPlayerIds: [playerId], pilotLogin: 'kichnifou' } }, keys);
-    await expect(off.startRuntime(identity)).rejects.toMatchObject({ code: 'TWITCH_UNAVAILABLE' });
+    await expect(off.startRuntime(identity)).rejects.toMatchObject({ code: 'TWITCH_RUNTIME_UNAVAILABLE' });
   });
   it('requests exactly the four runtime scopes with 256-bit state/nonce, purpose in the full hash and ten-minute expiry', async () => {
     const { service, db } = runtimeSetup();
@@ -163,13 +172,14 @@ describe('separate Twitch Chat runtime authorization', () => {
     });
     await expect(service.callback({ state, code: 'code' })).rejects.toMatchObject({ code: 'TWITCH_STATE_INVALID' });
     await mockTwitch('kichnifou', '12345', TWITCH_RUNTIME_SCOPES);
-    await expect(service.callback({ state: runtimeState, code: 'code' })).resolves.toEqual({ runtimeAuthorized: true });
+    await expect(service.callback({ state: runtimeState, code: 'code' })).resolves.toEqual({ runtimeActivated: true, runtimeChatPending: false });
     await expect(service.callback({ state: runtimeState, code: 'code' })).rejects.toMatchObject({ code: 'TWITCH_STATE_INVALID' });
     expect(globalThis.fetch).toHaveBeenCalledTimes(3);
   });
-  it('authorizes the existing identity without mutating it, persisting tokens or creating subscriptions', async () => {
-    const { service, db } = runtimeSetup(); await mockTwitch('kichnifou', '12345', TWITCH_RUNTIME_SCOPES);
-    await expect(service.callback({ state: runtimeState, code: 'secret-code' })).resolves.toEqual({ runtimeAuthorized: true });
+  it('activates only after validated runtime consent without mutating identity or persisting tokens', async () => {
+    const { service, db, subscriptions } = runtimeSetup(); await mockTwitch('kichnifou', '12345', TWITCH_RUNTIME_SCOPES);
+    await expect(service.callback({ state: runtimeState, code: 'secret-code' })).resolves.toEqual({ runtimeActivated: true, runtimeChatPending: false });
+    expect(subscriptions.ensurePilotChatSubscription).toHaveBeenCalledWith(playerId, '12345');
     expect(db.twitchIdentity.upsert).not.toHaveBeenCalled(); expect(db.twitchIdentity.deleteMany).not.toHaveBeenCalled();
     expect(linked.login).toBe('kichnifou'); expect(linked.displayName).toBe('Original name');
     expect(JSON.stringify([db.twitchLinkState.create.mock.calls, db.$queryRaw.mock.calls])).not.toMatch(/transient|discarded|secret-code/);
@@ -217,9 +227,89 @@ describe('separate Twitch Chat runtime authorization', () => {
     await expect(service.callback({ state: runtimeState, code: 'code' })).rejects.toMatchObject({ code: 'TWITCH_PROFILE_FAILED' });
     expect(db.twitchIdentity.upsert).not.toHaveBeenCalled();
   });
-  it('status reports configuration readiness only, with no network or subscription work', async () => {
-    const { service } = runtimeSetup(); const network = vi.spyOn(globalThis, 'fetch');
-    await expect(service.status(identity)).resolves.toMatchObject({ runtimeAuthorizationAvailable: true, runtimeSubscriptionAvailable: false });
+  it('status reads the configured pilot manager without creating subscriptions', async () => {
+    const { service, subscriptions } = runtimeSetup(); const network = vi.spyOn(globalThis, 'fetch');
+    await expect(service.status(identity)).resolves.toMatchObject({ runtimeSubscriptionAvailable: true, runtimeChatActive: false });
+    expect(subscriptions.inspectPilotChatSubscription).toHaveBeenCalledWith(playerId, expect.any(AbortSignal));
+    expect(subscriptions.ensurePilotChatSubscription).not.toHaveBeenCalled();
     expect(network).not.toHaveBeenCalled();
+  });
+});
+
+describe('runtime account status, activation and safe unlink', () => {
+  const linked = { playerId, twitchUserId: '12345', login: 'kichnifou', displayName: 'Kichnifou', linkedAt: new Date('2026-09-26') };
+  const runtimeSetup = () => { const value = setup(playerId, true); value.db.twitchIdentity.findUnique.mockResolvedValue(linked); return value; };
+  it('returns linked account information within the status deadline even if Twitch stalls', async () => {
+    const controller = new AbortController();
+    const timeout = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(controller.signal);
+    const { service, subscriptions } = runtimeSetup();
+    subscriptions.inspectPilotChatSubscription.mockReturnValue(new Promise(() => undefined));
+    const status = service.status(identity);
+    await vi.waitFor(() => expect(subscriptions.inspectPilotChatSubscription).toHaveBeenCalled());
+    expect(timeout).toHaveBeenCalledWith(3_000);
+    controller.abort();
+    expect(await status).toMatchObject({ linked: { login: 'kichnifou' }, runtimeSubscriptionAvailable: false, runtimeChatError: 'UNAVAILABLE' });
+  });
+  it.each(['INACTIVE', 'VERIFICATION_PENDING', 'ACTIVE'])('derives status from Twitch %s after each read, without local persistence', async state => {
+    const { service, subscriptions } = runtimeSetup();
+    subscriptions.inspectPilotChatSubscription.mockResolvedValue(state);
+    expect(await service.status(identity)).toMatchObject({ runtimeSubscriptionAvailable: true, runtimeChatActive: state === 'ACTIVE', runtimeChatPending: state === 'VERIFICATION_PENDING' });
+    subscriptions.inspectPilotChatSubscription.mockResolvedValue('INACTIVE');
+    expect(await service.status(identity)).toMatchObject({ runtimeChatActive: false, runtimeChatPending: false });
+    expect(subscriptions.ensurePilotChatSubscription).not.toHaveBeenCalled();
+  });
+  it.each(['off', 'non-pilot', 'unlinked'])('does no subscription work when %s', async kind => {
+    const value = kind === 'off' ? setup() : kind === 'non-pilot' ? setup(otherId, true) : setup(playerId, true);
+    if (kind === 'off') value.db.twitchIdentity.findUnique.mockResolvedValue(linked);
+    expect(await value.service.status(identity)).toMatchObject({ runtimeSubscriptionAvailable: false, runtimeChatActive: false });
+    expect(value.subscriptions.inspectPilotChatSubscription).not.toHaveBeenCalled();
+  });
+  it.each(['TWITCH_EVENTSUB_SUBSCRIPTION_CONFLICT', 'TWITCH_EVENTSUB_API_FAILED'])('preserves linked account information on %s', async code => {
+    const { service, subscriptions, db } = runtimeSetup();
+    subscriptions.inspectPilotChatSubscription.mockRejectedValue(new AppError('technical', 502, code));
+    expect(await service.status(identity)).toMatchObject({ linked: { login: 'kichnifou' }, runtimeSubscriptionAvailable: false, runtimeChatError: code.includes('CONFLICT') ? 'CONFLICT' : 'UNAVAILABLE' });
+    expect(db.twitchIdentity.deleteMany).not.toHaveBeenCalled();
+  });
+  it('never activates identity-link OAuth and accepts runtime challenge pending only after all checks', async () => {
+    const value = runtimeSetup(); await mockTwitch();
+    await expect(value.service.callback({ state, code: 'code' })).resolves.toEqual({ linked: true });
+    expect(value.subscriptions.ensurePilotChatSubscription).not.toHaveBeenCalled();
+    vi.restoreAllMocks(); await mockTwitch('kichnifou', '12345', TWITCH_RUNTIME_SCOPES);
+    value.subscriptions.ensurePilotChatSubscription.mockResolvedValue({ status: 'webhook_callback_verification_pending' });
+    expect(await value.service.callback({ state: `runtime_${state}`, code: 'code' })).toMatchObject({ runtimeActivated: true, runtimeChatPending: true });
+  });
+  it('does not create a subscription for invalid consent or when server activation becomes unavailable', async () => {
+    const { service, subscriptions, db } = runtimeSetup();
+    await mockTwitch('kichnifou', '12345', ['openid']);
+    await expect(service.callback({ state: `runtime_${state}`, code: 'code' })).rejects.toMatchObject({ code: 'TWITCH_RUNTIME_SCOPES_MISSING' });
+    expect(subscriptions.ensurePilotChatSubscription).not.toHaveBeenCalled();
+    vi.restoreAllMocks(); await mockTwitch('kichnifou', '12345', TWITCH_RUNTIME_SCOPES);
+    subscriptions.activationAvailable = false;
+    await expect(service.callback({ state: `runtime_${state}`, code: 'code' })).rejects.toMatchObject({ code: 'TWITCH_RUNTIME_UNAVAILABLE' });
+    expect(subscriptions.ensurePilotChatSubscription).not.toHaveBeenCalled();
+    expect(db.twitchIdentity.deleteMany).not.toHaveBeenCalled();
+  });
+  it('removes the subscription before deleting only TwitchIdentity', async () => {
+    const { service, subscriptions, db } = runtimeSetup();
+    const order: string[] = [];
+    subscriptions.disablePilotChatSubscription.mockImplementation(async () => { order.push('disable'); return 'INACTIVE'; });
+    db.twitchIdentity.deleteMany.mockImplementation(async () => { order.push('identity'); return { count: 1 }; });
+    expect(await service.unlink(identity)).toEqual({ linked: false });
+    expect(order).toEqual(['disable', 'identity']);
+    expect(db.twitchIdentity.deleteMany).toHaveBeenCalledWith({ where: { playerId } });
+    expect(Object.keys(db)).toEqual(['twitchIdentity', 'twitchLinkState', 'migrationRun', '$queryRaw']);
+  });
+  it('preserves identity when deletion cannot be guaranteed', async () => {
+    const { service, subscriptions, db } = runtimeSetup();
+    subscriptions.disablePilotChatSubscription.mockRejectedValue(new Error('upstream unavailable'));
+    await expect(service.unlink(identity)).rejects.toThrow();
+    expect(db.twitchIdentity.deleteMany).not.toHaveBeenCalled();
+  });
+  it('explicit disable resolves only the authenticated pilot and never unlinks identity', async () => {
+    const { service, subscriptions, db } = runtimeSetup();
+    expect(await service.disableRuntime(identity)).toEqual({ runtimeChatActive: false, runtimeChatPending: false });
+    expect(subscriptions.disablePilotChatSubscription).toHaveBeenCalledWith(playerId);
+    expect(db.twitchIdentity.deleteMany).not.toHaveBeenCalled();
+    await expect(setup(otherId, true).service.disableRuntime(identity)).rejects.toMatchObject({ code: 'TWITCH_PILOT_FORBIDDEN' });
   });
 });
