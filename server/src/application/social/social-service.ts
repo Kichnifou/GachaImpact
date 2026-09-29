@@ -1,3 +1,4 @@
+import { FavorService } from '../favor/favor-service.js';
 import type { PrismaClient } from '../../../generated/prisma/client.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import type { Clock } from '../../domain/time/business-date.js';
@@ -16,6 +17,8 @@ import { appearanceSelect, avatarAssetPath, equippedTitle } from '../appearance/
 
 export type SocialQuery = { q: string; element?: string; status?: 'ONLINE' | 'AWAY' | 'OFFLINE'; relation?: 'SELF' | 'FRIEND' | 'SENT' | 'RECEIVED' | 'NONE'; page: number };
 export type Access<T> = { access: 'PRIVATE' } | { access: 'ALLOWED'; data: T };
+type FavorState = Awaited<ReturnType<FavorService['getCurrent']>>;
+export type ProfileFavor = Pick<FavorState, 'active' | 'daysRemaining' | 'maxDays'> & Partial<Pick<FavorState, 'dailyPrimogems' | 'claimedToday' | 'claimStatus'>>;
 const hidden = { access: 'PRIVATE' } as const;
 const allowed = <T>(data: T): Access<T> => ({ access: 'ALLOWED', data });
 export const normalizePlayerSearch = (value: string) => value.trim().normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('fr-FR');
@@ -81,19 +84,28 @@ export class SocialService {
     players.sort((a, b) => Number(a.status === 'AWAY') - Number(b.status === 'AWAY') || a.displayName.localeCompare(b.displayName, 'fr', { sensitivity: 'base' }));
     return { players, total: players.length };
   }
+  async favor(identity: AuthenticatedIdentity, playerId: string): Promise<Access<ProfileFavor>> {
+    const viewer = await this.actor(identity);
+    if (!await this.database.player.count({ where: { id: playerId, status: 'ACTIVE' } })) throw new AppError('Joueur introuvable.', 404, 'PLAYER_NOT_FOUND');
+    if (!(await this.privacy.permissions(playerId, viewer.id)).FAVOR) return hidden;
+    const state = await new FavorService(this.database, this.clock).getCurrent(playerId);
+    const publicState = { active: state.active, daysRemaining: state.daysRemaining, maxDays: state.maxDays };
+    return allowed(viewer.id === playerId ? { ...publicState, dailyPrimogems: state.dailyPrimogems, claimedToday: state.claimedToday, claimStatus: state.claimStatus } : publicState);
+  }
   async profile(identity: AuthenticatedIdentity, playerId: string) {
     const viewer = await this.actor(identity);
     const row = await this.database.player.findFirst({ where: { id: playerId, status: 'ACTIVE' }, select: { id: true, displayName: true, elementKey: true, ...appearanceSelect, progression: { select: { xp: true } } } });
     if (!row) throw new AppError('Joueur introuvable.', 404, 'PLAYER_NOT_FOUND');
     const permissions = await this.privacy.permissions(playerId, viewer.id);
-    const [presence, activity, team, box, collection, statistics] = await Promise.all([
+    const [presence, activity, team, box, collection, statistics, favor] = await Promise.all([
       permissions.PRESENCE ? this.visiblePresence(viewer.id, [playerId]).then(m => allowed(m.get(playerId)!)) : hidden,
       permissions.LAST_ACTIVITY ? this.database.playerActivityState.findUnique({ where: { playerId }, select: { lastAppActivityAt: true } }).then(r => allowed(r?.lastAppActivityAt?.toISOString() ?? null)) : hidden,
       permissions.ACTIVE_TEAM ? new PrismaTeamStore(this.database).readActive(playerId).then(allowed) : hidden,
       permissions.BOX ? new PrismaBoxStore(this.database).listProfilePossessions(playerId).then(rows => allowed(rows.map(c => ({ ...c, firstObtainedAt: c.firstObtainedAt.toISOString() })))) : hidden,
       permissions.COLLECTION ? new PrismaInventoryStore(this.database).getCollection(playerId).then(items => allowed(items.map(i => ({ ...i, quantity: i.quantity.toString(), firstObtainedAt: i.firstObtainedAt?.toISOString() ?? null })))) : hidden,
       permissions.GENERAL_STATISTICS ? new GeneralStatisticsProjection(this.database).read(playerId).then(allowed) : hidden,
+      this.favor(identity, playerId),
     ]);
-    return { player: { id: row.id, displayName: row.displayName, elementKey: row.elementKey, avatarAssetPath: avatarAssetPath(row), title: equippedTitle(row), level: row.progression ? derivePlayerLevel(row.progression.xp) : 0 }, own: viewer.id === playerId, presence, lastActivity: activity, team, box, collection, statistics };
+    return { player: { id: row.id, displayName: row.displayName, elementKey: row.elementKey, avatarAssetPath: avatarAssetPath(row), title: equippedTitle(row), level: row.progression ? derivePlayerLevel(row.progression.xp) : 0 }, own: viewer.id === playerId, presence, lastActivity: activity, team, box, collection, statistics, favor };
   }
 }

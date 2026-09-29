@@ -209,3 +209,19 @@ describe('Social isolated PostgreSQL', () => {
     expect((await service.privacy.settings(owner)).settings.find(s => s.categoryKey === 'BOX')?.level).toBe('PUBLIC');
   }, 30_000);
 });
+
+it('defaults missing FAVOR to PUBLIC with policy 3 and persists all independent overrides through routes', async () => {
+  const before = await service.privacy.settings(owner);
+  expect(before.version).toBe(3);
+  expect(before.settings.find(s => s.categoryKey === 'FAVOR')?.level).toBe('PUBLIC');
+  expect(await database.privacySetting.count({ where: { playerId: owner, categoryKey: 'FAVOR' } })).toBe(0);
+  const others = before.settings.filter(s => s.categoryKey !== 'FAVOR');
+  for (const level of ['PUBLIC', 'FRIENDS', 'PRIVATE'] as const) {
+    const reply = await app.inject({ method: 'PATCH', url: '/api/v1/me/privacy', headers: { authorization: 'Bearer ' + owner }, payload: { categoryKey: 'FAVOR', level } });
+    expect(reply.statusCode).toBe(200);
+    expect(reply.json().version).toBe(3);
+    const read = await service.privacy.settings(owner);
+    expect(read.settings.find(s => s.categoryKey === 'FAVOR')?.level).toBe(level);
+    expect(read.settings.filter(s => s.categoryKey !== 'FAVOR')).toEqual(others);
+  }
+});

@@ -48,7 +48,7 @@ export type ChatCommandServices = Readonly<{
   withdrawPlayerBankChat: Pick<TransferPlayerBank, 'execute'>;
   getCurrentPlayerShop: Pick<GetCurrentPlayerShop, 'execute'>;
   purchaseShopItemChat: Pick<PurchaseShopItem, 'execute'>;
-  socialService: Pick<SocialService, 'actor' | 'directory' | 'connected' | 'profile' | 'friends' | 'friendship'>;
+  socialService: Pick<SocialService, 'actor' | 'directory' | 'connected' | 'profile' | 'favor' | 'friends' | 'friendship'>;
   rankingService: Pick<RankingService, 'chatTop' | 'personal'>;
   tradeService: Pick<TradeService, 'create' | 'mutate' | 'all' | 'snapshot' | 'partners'>;
   tradePlayer: Pick<GetCurrentPlayer, 'execute'>;
@@ -163,6 +163,16 @@ export class ChatCommandDispatcher {
           if (args[0]?.toLocaleLowerCase('fr-FR') === 'me') return this.services.rankingService.personal(actor.id);
           const metric = findRanking(args[0]!);
           return metric ? this.services.rankingService.chatTop(metric, actor.id) : 'Métrique inconnue. Utilise !top.';
+        }
+        case 'faveur': {
+          const actor = await this.services.socialService.actor(identity);
+          const target = args.length ? await this.player(identity, args.join(' ')) : actor;
+          if (!target) return 'Joueur introuvable.';
+          const view = await this.services.socialService.favor(identity, target.id);
+          if (view.access === 'PRIVATE') return `La Faveur de ${target.displayName} est privée.`;
+          const favor = view.data;
+          if (target.id !== actor.id) return favor.active ? `${target.displayName} : Faveur active · ${favor.daysRemaining} jours restants.` : `${target.displayName} : aucune Faveur active.`;
+          return favor.active ? `Faveur de l’Astre : ${favor.daysRemaining} jours restants / ${favor.maxDays} · +${favor.dailyPrimogems} Primogemmes/jour · récompense du jour ${favor.claimedToday ? 'reçue' : 'disponible'}.` : 'Faveur de l’Astre : inactive.';
         }
         case 'help': return args.length <= 1 ? chatHelp(args[0]) : syntax('!help [categorie|commande]');
         case 'element': {

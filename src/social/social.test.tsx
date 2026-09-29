@@ -15,7 +15,7 @@ import { privacyLabels, type Profile, type SocialActions } from './types'
 let root: Root | undefined
 afterEach(() => { act(() => root?.unmount()); root = undefined; document.body.replaceChildren(); vi.useRealTimers(); vi.restoreAllMocks() })
 const player = { id: 'owner', displayName: 'Éloïse', level: 3, elementKey: 'pyro' as const }
-const profile: Profile = { player, own: false, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'ALLOWED', data: [] }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
+const profile: Profile = { player, own: false, favor: { access: 'PRIVATE' }, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'ALLOWED', data: [] }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
 function actions(): SocialActions {
   return { directory: vi.fn(async () => ({ players: [{ ...player, presence: { access: 'PRIVATE' as const }, relation: 'SELF' as const, requestId: null }], page: 1, pageSize: 20, total: 21, totalPages: 2 })), profile: vi.fn(async () => profile), appearance: vi.fn(async () => ({ avatar: { kind: 'ELEMENT' as const, assetPath: null }, title: null, equippedAvatarCosmeticId: null, equippedTitleCosmeticId: null, catalog: [] })), equipAppearance: vi.fn(async () => ({ avatar: { kind: 'ELEMENT' as const, assetPath: null }, title: null, equippedAvatarCosmeticId: null, equippedTitleCosmeticId: null, catalog: [] })), connected: vi.fn(async () => ({ players: [{ ...player, status: 'AWAY' as const }], total: 1 })),
     friends: vi.fn(async () => ({ businessDate: '2026-09-20', sort: 'presence' as const, totalFriendHeartsSent: '0', players: [], friends: [], requests: [], summary: { activeFriends: 0, available: 0, alreadySent: 0 } })),
@@ -87,7 +87,7 @@ describe('Social UI', () => {
     await act(async () => { select.value = 'PUBLIC'; select.dispatchEvent(new Event('change', { bubbles: true })) })
     expect(container.querySelector('[role="alert"]')).not.toBeNull()
     expect(select.value).toBe('PRIVATE')
-    expect(Object.keys(privacyLabels)).toHaveLength(18)
+    expect(Object.keys(privacyLabels)).toHaveLength(19)
   })
   it('renders the real connected count and accessible profile/directory links without friendship mocks', async () => {
     const api = actions(), onProfile = vi.fn(), onDirectory = vi.fn(), onClose = vi.fn()

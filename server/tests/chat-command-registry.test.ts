@@ -37,3 +37,5 @@ describe('Chat command registry', () => {
     expect(chatHelp('mission')).not.toContain('resume');
   });
 });
+
+it('makes Favor available in standalone Help',()=>{expect(findChatCommand('faveur')).toMatchObject({internalChat:'READY',handler:'faveur'});expect(chatHelp('progression')).toContain('!faveur');expect(chatHelp('faveur')).toBe('Aide faveur : !faveur [pseudo].')});

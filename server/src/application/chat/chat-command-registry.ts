@@ -45,7 +45,7 @@ export const chatCommandRegistry: readonly ChatCommandDefinition[] = [
   command('coffre', 'ressources', '!coffre', 'READY'),
   command('shop', 'ressources', '!shop [page|primos <quantite|max>|ticket]', 'READY'),
   command('mission', 'activites', '!mission [B|A|S|Z]', 'READY'),
-  command('faveur', 'progression', '!faveur [pseudo]', 'NOT_PHYSICAL'),
+  command('faveur', 'progression', '!faveur [pseudo]', 'READY'),
   command('roue', 'activites', '!roue', 'READY'),
   command('quotis', 'activites', '!quotis', 'READY'),
   command('expedition', 'activites', '!expedition [personnage|retour]', 'READY'),

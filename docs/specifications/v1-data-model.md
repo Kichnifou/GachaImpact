@@ -1343,7 +1343,7 @@ Contient :
 - version/politique initiale si utile
 - date de modification
 
-Le serveur applique la permission avant de lire/projeter les données privées. Batch B matérialise les 18 catégories R518/R519 par une matrice serveur versionnée : absence de ligne = défaut, ligne existante = override prioritaire. Aucun backfill/reset. Présence et dernière activité sont distinctes ; FRIENDS exige une amitié ACTIVE, les blocages masquent présence et dernière activité.
+Le serveur applique la permission avant de lire/projeter les données privées. Batch B matérialise les 18 catégories R518/R519 par une matrice serveur versionnée : absence de ligne = défaut, ligne existante = override prioritaire. Lot 9 ajoute FAVOR PUBLIC par défaut (19 catégories, politique version 3) ; les choix explicites restent prioritaires. Aucun backfill/reset ni migration : categoryKey est déjà Text. Présence et dernière activité sont distinctes ; FRIENDS exige une amitié ACTIVE, les blocages masquent présence et dernière activité.
 
 Une donnée privée et une donnée vide restent deux états différents.
 

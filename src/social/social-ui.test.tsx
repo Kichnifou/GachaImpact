@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import PrivacySettingsPanel from '../screens/PrivacySettingsPanel'
 import { act, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -37,7 +38,7 @@ describe('Social screens', () => {
     const keys: (keyof GeneralStatistics)[] = ['totalXp', 'totalMessages', 'countedMessages', 'totalPulls', 'totalFiveStars', 'totalFourStars', 'fiftyFiftyWon', 'fiftyFiftyLost', 'capturesTriggered', 'fiveStarRate', 'totalPrimosEarned', 'totalPrimosSpent', 'totalMorasEarned', 'totalMorasSpent', 'totalMainElementParticlesEarned', 'totalFights', 'combatWins', 'totalLosses', 'totalManualWins', 'expeditionsCompleted', 'totalFriendHeartsSent', 'totalSpins', 'totalJackpots']
     const statistics = Object.fromEntries(keys.map(key => [key, '0'])) as GeneralStatistics
     statistics.totalXp = '9007199254740993'; statistics.totalSpins = null; statistics.fiveStarRate = '5.00'
-    const value: Profile = { player, own: false, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'ALLOWED', data: statistics } }
+    const value: Profile = { player, own: false, favor: { access: 'PRIVATE' }, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'ALLOWED', data: statistics } }
     const actions = { profile: vi.fn().mockResolvedValue(value) } as unknown as SocialActions
     const onDirectory = vi.fn(), onRankings = vi.fn()
     const container = await mount(<ProfileScreen playerId={player.id} ownerPlayerId="other" actions={actions} controller={controller} onDirectory={onDirectory} onRankings={onRankings} onPrivacy={vi.fn()} />)
@@ -79,7 +80,7 @@ describe('Social screens', () => {
   })
 
   it('distinguishes a private section from an empty public section and exposes no mutation controls', async () => {
-    const value: Profile = { player, own: false, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'ALLOWED', data: null }, box: { access: 'ALLOWED', data: [] }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
+    const value: Profile = { player, own: false, favor: { access: 'PRIVATE' }, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'ALLOWED', data: null }, box: { access: 'ALLOWED', data: [] }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
     const actions = { profile: vi.fn().mockResolvedValue(value) } as unknown as SocialActions
     const container = await mount(<ProfileScreen playerId={player.id} ownerPlayerId={player.id} actions={actions} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()} />)
     expect(container.textContent).toContain('Présence privée')
@@ -119,7 +120,7 @@ describe('Social screens', () => {
   })
 
   it('loads owner Missions lazily, selects A, partitions unfinished cards and refreshes on re-entry', async () => {
-    const value: Profile = { player, own: true, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
+    const value: Profile = { player, own: true, favor: { access: 'PRIVATE' }, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
     const ownMissions = vi.fn(async () => ({ ...missions, catchUpApplied: false }))
     const actions = { profile: vi.fn(async () => value), ownMissions, playerMissions: vi.fn() } as unknown as SocialActions
     const container = await mount(<ProfileScreen playerId={player.id} ownerPlayerId={player.id} actions={actions} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()} />)
@@ -135,7 +136,7 @@ describe('Social screens', () => {
   })
 
   it('uses the privacy-aware third-party route and renders no Mission detail when private', async () => {
-    const value: Profile = { player, own: false, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
+    const value: Profile = { player, own: false, favor: { access: 'PRIVATE' }, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
     const playerMissions = vi.fn(async () => ({ access: 'PRIVATE' as const }))
     const actions = { profile: vi.fn(async () => value), ownMissions: vi.fn(), playerMissions } as unknown as SocialActions
     const container = await mount(<ProfileScreen playerId={player.id} ownerPlayerId="another-owner" actions={actions} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()} />)
@@ -147,7 +148,7 @@ describe('Social screens', () => {
   })
 
   it('offers retry after a lazy Mission failure', async () => {
-    const value: Profile = { player, own: false, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
+    const value: Profile = { player, own: false, favor: { access: 'PRIVATE' }, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
     const playerMissions = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ access: 'ALLOWED', data: missions })
     const actions = { profile: vi.fn(async () => value), ownMissions: vi.fn(), playerMissions } as unknown as SocialActions
     const container = await mount(<ProfileScreen playerId={player.id} ownerPlayerId="another-owner" actions={actions} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()} />)
@@ -160,7 +161,7 @@ describe('Social screens', () => {
 
   it('invalidates a stale Mission response when the Profile target changes', async () => {
     let resolveOld!: (value: { access: 'PRIVATE' }) => void
-    const value: Profile = { player, own: false, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
+    const value: Profile = { player, own: false, favor: { access: 'PRIVATE' }, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
     const playerMissions = vi.fn((id: string) => id === 'old-target'
       ? new Promise<{ access: 'PRIVATE' }>(resolve => { resolveOld = resolve })
       : Promise.resolve({ access: 'ALLOWED' as const, data: missions }))
@@ -175,3 +176,21 @@ describe('Social screens', () => {
     expect(container.textContent).not.toContain('Cette rubrique est privée.')
   })
 })
+
+ it.each([{own:true,active:true,claimedToday:false},{own:true,active:true,claimedToday:true},{own:true,active:false},{own:false,active:true},{own:false,active:false},{own:false,active:true,private:true}])('renders the Favor profile without disclosing third-party claims: %j',async state=>{
+  const value: Profile={player,own:state.own,favor:state.private?{access:'PRIVATE'}:{access:'ALLOWED',data:{active:state.active,daysRemaining:30,maxDays:180,dailyPrimogems:'800',claimedToday:state.claimedToday??true,claimStatus:'CLAIMED'}},presence:{access:'PRIVATE'},lastActivity:{access:'PRIVATE'},team:{access:'PRIVATE'},box:{access:'PRIVATE'},collection:{access:'PRIVATE'},statistics:{access:'PRIVATE'}};
+  const actions={profile:vi.fn().mockResolvedValue(value)} as unknown as SocialActions;
+  const container=await mount(<ProfileScreen playerId={player.id} ownerPlayerId={state.own?player.id:'other'} actions={actions} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()}/>);
+  const card=container.querySelector('.profile-favor')!;expect(card.textContent).toContain('Faveur de l’Astre');
+  if(state.private){expect(card.textContent).toContain('Cette information est privée.');expect(card.textContent).not.toContain('30')}
+  else if(state.active){expect(card.textContent).toContain('Faveur active');expect(card.textContent).toContain('30 jours restants');if(state.own){expect(card.textContent).toContain('+800 Primogemmes par jour');expect(card.textContent).toContain(state.claimedToday?'✓ Récompense du jour reçue':'Récompense du jour disponible')}}
+  else expect(card.textContent).toContain('Aucune Faveur active.');
+  const link=card.querySelector('a');if(state.own&&!state.active){expect(link?.getAttribute('href')).toBe('https://www.twitch.tv/kichnifou');expect(link?.getAttribute('target')).toBe('_blank');expect(link?.getAttribute('rel')).toBe('noopener noreferrer')}else expect(link).toBeNull();
+  if(!state.own){expect(card.textContent).not.toContain('Primogemmes');expect(card.textContent).not.toContain('Récompense du jour')}
+ });
+ it('shows one Favor select and persists/reloads choices through existing privacy API',async()=>{
+  let setting={version:3,settings:[{categoryKey:'FAVOR',level:'PUBLIC'}]};const actions={privacy:vi.fn(async()=>setting),savePrivacy:vi.fn(async(categoryKey,level)=>setting={version:3,settings:[{categoryKey,level}]})} as unknown as SocialActions;
+  const container=await mount(<PrivacySettingsPanel actions={actions}/>);const select=container.querySelector<HTMLSelectElement>('select[aria-label="Faveur de l’Astre"]')!;expect(select.value).toBe('PUBLIC');expect([...select.options].map(o=>o.text)).toEqual(['Public','Amis uniquement','Privé']);
+  for(const level of ['FRIENDS','PRIVATE','PUBLIC']){await act(async()=>{select.value=level;select.dispatchEvent(new Event('change',{bubbles:true}))});expect(actions.savePrivacy).toHaveBeenLastCalledWith('FAVOR',level);expect(select.value).toBe(level)}
+  const reloaded=await mount(<PrivacySettingsPanel actions={actions}/>);expect(reloaded.querySelector<HTMLSelectElement>('select')?.value).toBe('PUBLIC');expect(container.querySelectorAll('select')).toHaveLength(1);
+ });

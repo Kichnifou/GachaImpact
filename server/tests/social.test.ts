@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { derivePresence, PRESENCE_AWAY_MS, PRESENCE_INACTIVE_MS, PRESENCE_CONNECTION_TIMEOUT_MS } from '../src/application/social/presence-service.js';
-import { privacyDefaults } from '../src/application/social/privacy-service.js';
+import { privacyDefaults, PRIVACY_POLICY_VERSION } from '../src/application/social/privacy-service.js';
 import { normalizePlayerSearch } from '../src/application/social/social-service.js';
 
 const now = new Date('2026-09-20T12:00:00Z');
@@ -23,7 +23,8 @@ describe('Social policies', () => {
     expect(normalizePlayerSearch('Yelan').includes('ya')).toBe(false);
   });
   it('keeps R518 defaults and separate presence/last activity categories', () => {
-    expect(Object.entries(privacyDefaults).filter(([,v]) => v === 'PUBLIC').map(([k]) => k)).toEqual(['ACTIVE_TEAM', 'BOX', 'COLLECTION', 'GENERAL_STATISTICS', 'MISSIONS', 'LAST_ACTIVITY', 'PITY_GUARANTEE', 'PRIVATE_MESSAGES', 'PRESENCE', 'CURRENCY_BALANCES', 'BANK']);
+    expect(PRIVACY_POLICY_VERSION).toBe(3);
+    expect(Object.entries(privacyDefaults).filter(([,v]) => v === 'PUBLIC').map(([k]) => k)).toEqual(['FAVOR', 'ACTIVE_TEAM', 'BOX', 'COLLECTION', 'GENERAL_STATISTICS', 'MISSIONS', 'LAST_ACTIVITY', 'PITY_GUARANTEE', 'PRIVATE_MESSAGES', 'PRESENCE', 'CURRENCY_BALANCES', 'BANK']);
     expect(privacyDefaults.FRIEND_LIST).toBe('FRIENDS');
     expect(Object.values(privacyDefaults).filter(v => v === 'FRIENDS')).toHaveLength(7);
   });

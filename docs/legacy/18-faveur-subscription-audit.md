@@ -844,15 +844,11 @@ channel.subscribe ne couvre pas les resubs ; les Message IDs des deux producteur
 
 ## R670 — Consultation de la Faveur soumise à la confidentialité — ✅ VALIDÉ A
 
-`!faveur`
+Précision propriétaire Lot 9 : catégorie dédiée `FAVOR`, **PUBLIC par défaut**. Niveaux PUBLIC / FRIENDS / PRIVATE ; propriétaire toujours autorisé, FRIENDS uniquement pour les amitiés ACTIVE. Indépendant de GENERAL_STATISTICS, MISSIONS, PRESENCE et des autres catégories.
 
-permet toujours de consulter sa propre Faveur.
+Profil tiers et `!faveur <pseudo>` (ou `@pseudo`) utilisent exactement cette permission commune. Tiers autorisé : active, daysRemaining et maxDays seulement ; aucun claim quotidien, reward, origine, Grant ou détail Twitch. Refus : `{ access: 'PRIVATE' }`, sans révéler actif/inactif ni durée. Sa propre Faveur reste toujours consultable.
 
-`!faveur <pseudo>`
-
-peut être conservé, mais l'accès aux informations d'un autre joueur respecte les règles de visibilité de profil déjà définies.
-
-La durée restante d'une Faveur ne contourne pas les préférences de confidentialité du joueur.
+Politique version 3 : ligne PrivacySetting FAVOR absente → PUBLIC ; choix explicite prioritaire. Aucun backfill ou migration. Consultation strictement read-only, aucun claim économique.
 
 ---
 
@@ -864,7 +860,9 @@ Elle est présentée principalement :
 
 ### Profil personnel
 
-Afficher notamment :
+Précision propriétaire Lot 9 : carte compacte dans **Profil > Aperçu**, sans nouvel onglet. Les tiers autorisés voient seulement actif/inactif et jours restants ; en privé, le titre et « Cette information est privée. ».
+
+Pour le propriétaire, afficher :
 
 - Faveur active / inactive ;
 - jours restants sur 180 ;
@@ -883,13 +881,13 @@ Le lien d’abonnement de la cible Profil ci-dessous ne s’applique pas à cett
 
 ### Faveur inactive
 
-Afficher une mention expliquant que la Faveur peut être obtenue en s'abonnant à la chaîne Twitch de Kichnifou.
+Dans Profil > Aperçu, pour le **propriétaire uniquement**, afficher « Aucune Faveur active. » et « Voir la chaîne Twitch ». Aucun CTA pour un tiers ni sur la carte Quotidiennes.
 
 Lien externe :
 
 `https://www.twitch.tv/kichnifou`
 
-L'action ouvre Twitch ; aucun paiement Twitch n'est exécuté par GachaImpact lui-même.
+Ouverture dans un nouvel onglet, noopener/noreferrer. Le lien ne lance aucun paiement, OAuth ou activation EventSub.
 
 ---
 

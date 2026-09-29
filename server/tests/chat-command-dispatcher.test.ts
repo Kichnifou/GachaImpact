@@ -37,6 +37,7 @@ function harness() {
     getCurrentPlayerShop: execute({ resources: { moras: 100_000n }, items: [{ id: 'primos', externalKey: 'primogem-bundle', displayName: 'Lot de Primogemmes', priceAmount: 50_000n, available: true }, { id: 'ticket', externalKey: 'reward-ticket', displayName: 'Ticket', priceAmount: 150_000n, available: true }] }),
     purchaseShopItemChat: execute({ purchase: { quantity: 2n, displayName: 'Lot de Primogemmes', totalPrice: 100_000n, effect: { type: 'resource_bundle', amount: 320n, resourceKey: 'primogems' } } }),
     socialService: {
+      favor: vi.fn(async () => ({ access: 'ALLOWED', data: { active: false, daysRemaining: 0, maxDays: 180 } })),
       actor: vi.fn(async () => ({ id: 'self', displayName: 'Moi' })),
       directory: vi.fn(async () => ({ players: [{ id: 'other', displayName: 'Autre' }], page: 1, totalPages: 1 })),
       connected: vi.fn(async () => ({ players: [{ status: 'ONLINE', displayName: 'Autre' }], total: 1 })),
@@ -382,5 +383,35 @@ describe('Chat command adapters', () => {
   it.each(['!combat boss non', '!combat auto encore', '!event Coffre 01234', '!event Mot doux Autre bonjour', '!ami ajouter', '!stella', '!element inconnu'])('publishes syntax for malformed %s', async command => {
     const { send } = harness();
     expect(await send(command)).toContain('Syntaxe :');
+  });
+});
+
+describe('Favor consultation without domain mutations', () => {
+  it.each([false, true])('formats self available/claimed = %s from the shared projection', async claimedToday => {
+    const { services, send, chat } = harness();
+    services.socialService.favor.mockResolvedValue({ access: 'ALLOWED', data: { active: true, daysRemaining: 180, maxDays: 180, dailyPrimogems: '800', claimedToday, claimStatus: claimedToday ? 'CLAIMED' : 'AVAILABLE' } } as never);
+    expect(await send('!faveur')).toBe(`Faveur de l’Astre : 180 jours restants / 180 · +800 Primogemmes/jour · récompense du jour ${claimedToday ? 'reçue' : 'disponible'}.`);
+    expect(services.socialService.favor).toHaveBeenCalledWith(actor, 'self');
+    expect(services.socialService.profile).not.toHaveBeenCalled();
+    expect(chat.rememberCommandRefreshScopes).not.toHaveBeenCalled();
+  });
+  it('returns self inactive and unknown player without loading a profile', async () => {
+    const { send, services } = harness();
+    expect(await send('!faveur')).toBe('Faveur de l’Astre : inactive.');
+    expect(await send('!faveur introuvable')).toBe('Joueur introuvable.');
+    expect(services.socialService.favor).toHaveBeenCalledOnce();
+  });
+  it.each(['Autre', '@Autre', 'Autre Joueur'])('uses the player reference and privacy projection for %s', async name => {
+    const { send, services, chat } = harness();
+    const displayName = name.replace('@', '');
+    services.socialService.directory.mockResolvedValue({ players: [{ id: 'other', displayName }], page: 1, totalPages: 1 });
+    services.socialService.favor.mockResolvedValue({ access: 'ALLOWED', data: { active: true, daysRemaining: 30, maxDays: 180, claimedToday: true } } as never);
+    expect(await send('!faveur ' + name)).toBe(displayName + ' : Faveur active · 30 jours restants.');
+    services.socialService.favor.mockResolvedValue({ access: 'ALLOWED', data: { active: false, daysRemaining: 0, maxDays: 180 } });
+    expect(await send('!faveur ' + name)).toBe(displayName + ' : aucune Faveur active.');
+    services.socialService.favor.mockResolvedValue({ access: 'PRIVATE' } as never);
+    expect(await send('!faveur ' + name)).toBe('La Faveur de ' + displayName + ' est privée.');
+    expect(services.socialService.profile).not.toHaveBeenCalled();
+    expect(chat.rememberCommandRefreshScopes).not.toHaveBeenCalled();
   });
 });

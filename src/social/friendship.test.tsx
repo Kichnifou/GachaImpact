@@ -204,7 +204,7 @@ describe('Friendship UI and shared projection', () => {
   it('keeps profile friendship controls neutral until the friendship snapshot is loaded', async () => {
     let resolve!: (value: FriendsSnapshot) => void
     const { api } = makeApi(); vi.mocked(api.friends).mockImplementationOnce(() => new Promise(done => { resolve = done }))
-    api.profile = vi.fn(async (): Promise<Profile> => ({ player: person, own: false, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }))
+    api.profile = vi.fn(async (): Promise<Profile> => ({ player: person, own: false, favor: { access: 'PRIVATE' }, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }))
     const c = await mount(<ProfileSurface api={api} />)
     await act(async () => { await new Promise(resolve => window.setTimeout(resolve, 0)) })
     expect(button(c, 'Chargement…').disabled).toBe(true)
@@ -213,7 +213,7 @@ describe('Friendship UI and shared projection', () => {
     expect(button(c, 'Ajouter').disabled).toBe(false)
   })
   it('shows profile status under the avatar and the exact empty activity without duplicating Team', async () => {
-    const profile: Profile = { player: person, own: false, presence: { access: 'ALLOWED', data: 'ONLINE' }, lastActivity: { access: 'ALLOWED', data: null }, team: { access: 'ALLOWED', data: null }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
+    const profile: Profile = { player: person, own: false, favor: { access: 'PRIVATE' }, presence: { access: 'ALLOWED', data: 'ONLINE' }, lastActivity: { access: 'ALLOWED', data: null }, team: { access: 'ALLOWED', data: null }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
     const { api } = makeApi(); api.profile = vi.fn(async () => profile)
     const onTrade = vi.fn(), c = await mount(<ProfileSurface api={api} onTrade={onTrade} />)
     expect(Array.from(c.querySelectorAll('.profile-social-actions button'), b => b.textContent)).toEqual(['Envoyer un cœur', 'Échanger', 'Retirer'])

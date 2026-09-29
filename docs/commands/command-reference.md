@@ -2,7 +2,7 @@
 
 Statut : CONSOLIDÉ APRÈS SWEEPS LEGACY — 37 scripts + 17 JSON vérifiés.
 
-État physique du Chat interne, selon [R884](../specifications/global-chat-v1.md) : `help`, `element` (choix défensif), `banniere`, `select`, `vote`, `pity`, `pull` (tout entier 1..10), `obtention`, `stella`, `passifs`, `roue`, `ami`, `echanger`, `infos`, `liste`, `banque`, `convertir`, `sac`, `coffre`, `shop`, `code`, `event` complet avec Jeux A/B/C, `expedition`, `combat`, `quotis`, `mission` et `top` appellent les propriétaires modernes. `!concours` consulte uniquement la projection du Concours standalone ; aucune action Concours n'est disponible dans `INTERNAL_CHAT`. `box` et `team` restent des consultations synthétiques : leurs sous-commandes historiques de tri ou de mutation ne font pas partie de ce branchement. `!echanger annuler` sans pseudo requiert une seule demande envoyée non ambiguë ; aucune action globale d'annulation n'existe dans `TradeService`. `legende` et `faveur` attendent un service adapté ou leur domaine physique. `giveaway` et `wish` restent Twitch uniquement. Le `ChatPanel` et les routes Chat navigateur sont actifs. `!clear` est l'exception interne de modération R886, absente de l'aide joueur.
+État physique du Chat interne, selon [R884](../specifications/global-chat-v1.md) : `help`, `element` (choix défensif), `banniere`, `select`, `vote`, `pity`, `pull` (tout entier 1..10), `obtention`, `stella`, `passifs`, `roue`, `ami`, `echanger`, `infos`, `liste`, `banque`, `convertir`, `sac`, `coffre`, `shop`, `code`, `event` complet avec Jeux A/B/C, `expedition`, `combat`, `quotis`, `mission`, `faveur` et `top` appellent les propriétaires modernes. `!concours` consulte uniquement la projection du Concours standalone ; aucune action Concours n'est disponible dans `INTERNAL_CHAT`. `box` et `team` restent des consultations synthétiques : leurs sous-commandes historiques de tri ou de mutation ne font pas partie de ce branchement. `!echanger annuler` sans pseudo requiert une seule demande envoyée non ambiguë ; aucune action globale d'annulation n'existe dans `TradeService`. `legende` attend son domaine physique ; `faveur` est READY dans le Chat GachaImpact depuis le Lot 9. `giveaway` et `wish` restent Twitch uniquement. Le `ChatPanel` et les routes Chat navigateur sont actifs. `!clear` est l'exception interne de modération R886, absente de l'aide joueur.
 
 La fondation Twitch runtime phase 1 promue techniquement sur `main` enregistre uniquement des reçus d'observation internes. La phase 2A promue techniquement sur `main` prépare un webhook entrant signé, toujours OFF et sans souscription EventSub. La Phase 2B-1 approuvée et promue techniquement sur `main` prépare seulement l’autorisation Chat et le manager GET/POST EventSub, sans consentement réel déclenché ni souscription publique créée. La Phase 2B-2 promue techniquement, sans activation ni test public, code uniquement l’UI pilote, l’activation volontaire après OAuth, le statut Twitch, la désactivation et l’unlink sûr ; production reste OFF après promotion. La souscription écoute tous les chatters de la chaîne Kichnifou : `user_id` n’est pas un filtre auteur. Le webhook n’écrit que des reçus avec hash du texte, aucun GlobalChatMessage standalone. Aucun scope `user:write:chat`, aucune commande ou réponse Twitch n’est ajouté. Aucune commande de ce registre n'est exécutée depuis Twitch et aucune réponse n'y est envoyée ; Streamer.bot reste l'exécuteur live et autoritatif jusqu'à une mission de bascule distincte.
 
@@ -766,7 +766,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 
 - **Statut audit :** CLÔTURÉ — Domaine Faveur / Subscription après R672
 - **But :** Consulter l'état de la Faveur de l'Astre.
-- **Syntaxes :** `!faveur` ; `!faveur <pseudo>`
+- **Syntaxes :** `!faveur` ; `!faveur <pseudo>` ; `!faveur @pseudo` (résolution existante, pseudos multi-mots inclus)
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui lorsque l'intégration Twitch sera disponible
 - **UI équivalente :** informations Faveur dans Profil et Quotidiennes ; aucun écran Faveur complet dédié
@@ -781,8 +781,8 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Tier 3 :** +20 800 Primogemmes immédiates
 - **Overflow :** compensation supplémentaire `1600 × jours perdus / 30`
 - **Gift :** la Faveur appartient au bénéficiaire ; gifter éligible non anonyme = total Twitch × récompense Tier (1 600 / 9 600 / 20 800), indépendamment des bénéficiaires ; aucun jour pour le gifter
-- **Confidentialité :** `!faveur <pseudo>` respecte la visibilité du profil
-- **Commande :** consultation uniquement ; `!faveur` ne constitue pas un claim économique séparé
+- **Confidentialité :** catégorie dédiée FAVOR, PUBLIC par défaut, Public / Amis ACTIVE / Privé ; propriétaire toujours autorisé. Profil et commande partagent SocialService.favor. Tiers autorisé : uniquement active/daysRemaining/maxDays ; refus sans révéler actif/inactif, durée ou claim.
+- **Commande physique Lot 9 :** consultation read-only dans le Chat GachaImpact ; FavorService.getCurrent reste autoritatif. Aucun claimToday, opération Faveur, mouvement Economy, refresh Ressources, catch-up Missions, activité spécifique ou provisionnement. COMMAND et GAME_RESULT suivent le pipeline Chat normal. Aucun transport de commandes Twitch activé.
 - **Migration :** préserver les jours restants certains et le claim du jour sans reconstruire les anciens jours absents
 - **Atomicité :** attribution, overflow, daily et bonus gifter protégés contre retry et doublons Twitch
 

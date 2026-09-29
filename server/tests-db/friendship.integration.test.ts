@@ -256,7 +256,7 @@ describe('Friendship isolated PostgreSQL', () => {
   it('applies versioned resource and sensitive defaults without overwriting explicit privacy choices', async () => {
     const owner = await player(), friend = await player(), stranger = await player();
     const original = await privacy.settings(owner);
-    expect(original.version).toBe(2);
+    expect(original.version).toBe(3);
     expect(original.settings.find(row => row.categoryKey === 'CURRENCY_BALANCES')?.level).toBe('PUBLIC');
     expect(original.settings.find(row => row.categoryKey === 'BANK')?.level).toBe('PUBLIC');
     expect(original.settings.find(row => row.categoryKey === 'INVENTORY')?.level).toBe('FRIENDS');

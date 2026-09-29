@@ -18,7 +18,9 @@ export type FriendsSnapshot = {
 }
 export type HeartResult = { sent: number; alreadySent: number; unavailable: number; activeFriends: number; senderReward: string; recipientReward: string; status: 'SENT' | 'NO_FRIENDS' | 'ALL_SENT' | 'UNAVAILABLE'; level?: number; tier?: string; message?: string }
 export type ConnectedPlayers = { players: (SocialIdentity & { status: 'ONLINE' | 'AWAY' })[]; total: number }
+export type ProfileFavor = { active: boolean; daysRemaining: number; maxDays: number; dailyPrimogems?: string; claimedToday?: boolean; claimStatus?: 'AVAILABLE' | 'CLAIMED' | 'UNAVAILABLE' }
 export type Profile = {
+  favor: Access<ProfileFavor>
   player: SocialIdentity; own: boolean; presence: Access<PresenceStatus>; lastActivity: Access<string | null>
   team: Access<PlayerTeamDto | null>; box: Access<Omit<BoxCharacterDto, 'favorite' | 'c6CompetitionStats'>[]>; collection: Access<InventoryItemDto[]>
   statistics: Access<GeneralStatistics>
@@ -30,7 +32,7 @@ export type GeneralStatistics = {
   totalFights: string | null; combatWins: string | null; totalLosses: string | null; totalManualWins: string | null; expeditionsCompleted: string | null; totalFriendHeartsSent: string | null; totalSpins: string | null; totalJackpots: string | null
 }
 export const privacyLabels = {
-  ACTIVE_TEAM: 'Team active', BOX: 'Box', COLLECTION: 'Collection', GENERAL_STATISTICS: 'Statistiques générales',
+  FAVOR: 'Faveur de l’Astre', ACTIVE_TEAM: 'Team active', BOX: 'Box', COLLECTION: 'Collection', GENERAL_STATISTICS: 'Statistiques générales',
   MISSIONS: 'Missions', LAST_ACTIVITY: 'Dernière activité', PITY_GUARANTEE: 'Pity / garantie', PRIVATE_MESSAGES: 'Autorisation MP', PRESENCE: 'Présence',
   FRIEND_LIST: 'Liste d’amis', CURRENCY_BALANCES: 'Soldes de monnaies', BANK: 'Banque', INVENTORY: 'Sac', SAVED_TEAMS: 'Saved Teams',
   ACTIVE_EXPEDITION: 'Expédition active', DAILY_COMBAT: 'Combat quotidien', BOSS_STATE: 'Slots / KO / Boss', DETAILED_HISTORY: 'Historiques détaillés',
