@@ -1,6 +1,6 @@
 # GachaImpact — Architecture backend V1
 
-## Gift Suprême — correction de l'incident public, candidate sur review
+## Gift Suprême — correction de l'incident public promue techniquement sur main
 
 L'activation réelle du pilote a révélé quatre réponses webhook 409 après une redemption visible côté Twitch : aucun reçu Gift, crédit, opération ni notification n'avait été créé, et l'UI a ensuite demandé un contrôle opérateur. La notification EventSub HMAC authentifiée et son envelope type/version/condition validé passent désormais par la correspondance locale pilote + TwitchIdentity + credential.rewardId avant toute lecture distante de Reward ou d'EventSub. Le reçu transport durable est écrit dès cette correspondance, avec Message ID/hash, redemption/reward/broadcaster/gifter IDs, sans `user_input` brut ; le token Gift est vérifié ensuite, avant le core. Une Reward désactivée ou une subscription devenue terminale après l'achat ne bloque plus le règlement du Gift déjà signé.
 
@@ -8,7 +8,7 @@ La sélection EventSub sépare `enabled` et `webhook_callback_verification_pendi
 
 Chemin signé : EventSub HMAC → identité/credential/reward locaux → reçu delivery durable → token → traitement commun de la redemption → core `GiftSupremeService.process` → settlement → annonce. Chemin de récupération explicite : `POST /gift-supreme/ensure` / « Réessayer » → ensure Reward/Subscription → [GET redemptions `UNFULFILLED`](https://dev.twitch.tv/docs/api/reference/#get-custom-reward-redemption) paginé et borné → même traitement commun/core/settlement/annonce. La récupération Helix ne forge aucun Message ID EventSub ni reçu transport ; le reçu métier `gift-supreme:<redemptionId>` porte l'idempotence. L'annonce conserve NONE/RESERVED/SENT/FAILED/AMBIGUOUS et son maximum d'un envoi automatique. Un échec écrit un log structuré limité au stage, code et identifiants techniques, sans input ou secret.
 
-Le résultat FULFILL conserve `balanceAfterParticles`, solde `player_resource_balances.particles_<element>` relu dans la transaction après crédit. Le replay réutilise ce total durable. R696 s'affiche exactement « 🎁 <gifter> offre un Gift Suprême à <target> ! +1600 particules <Élément> (<TOTAL>) » ; la notification standalone conserve son texte initial. Aucune migration nouvelle, aucune compensation publique manuelle. Ce correctif reste à approuver, promouvoir, puis éprouver en public sur la redemption UNFULFILLED déjà dépensée en cliquant uniquement « Réessayer ».
+Le résultat FULFILL conserve `balanceAfterParticles`, solde `player_resource_balances.particles_<element>` relu dans la transaction après crédit. Le replay réutilise ce total durable. R696 s'affiche exactement « 🎁 <gifter> offre un Gift Suprême à <target> ! +1600 particules <Élément> (<TOTAL>) » ; la notification standalone conserve son texte initial. Aucune migration nouvelle, aucune compensation publique manuelle. Le correctif `ad826c7` est approuvé et promu techniquement sur `main` ; SHA Railway et health restent à vérifier avant le clic unique « Réessayer » du propriétaire, puis la récupération publique de la redemption UNFULFILLED déjà dépensée reste à valider.
 
 ## Gift Suprême Lot 12 — bridge Twitch durable, promu techniquement sur main
 
