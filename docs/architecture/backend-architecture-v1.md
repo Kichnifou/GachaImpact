@@ -135,7 +135,7 @@ Profil > Aperçu et !faveur consultent exclusivement getCurrent : aucun claimTod
 
 Carte compacte utilisant les panels Profil ; état quotidien personnel et lien Twitch sûr uniquement pour le propriétaire inactif. Tiers autorisé sans état quotidien/CTA, privé sans indice. UI sans paiement/OAuth et aucun écran dédié. Lot 9 promu techniquement sur main après review indépendante ChatGPT du candidat e8542189a567e62cd766c3027518f2054706a865, checkpoint documentaire et fast-forward strict ; code/test inchangé. Checkpoint fa38818 : Railway exact SHA SUCCESS / Application ready / health 1/1 et frontend joignable, selon les preuves fournies dans la mission Lot 10. Le propriétaire confirme la validation fonctionnelle publique du Lot 9 ; seul le polish CTA Profil est porté au Lot 10. Lots 7/8 standalone restent validés publiquement ; Gift/Resub/EventSub Twitch restent techniques uniquement. Aucune mutation publique ni activation réelle dans cette promotion.
 
-## Faveur Lot 10 — présence quotidienne Twitch spécialisée et corrections UI, candidat review
+## Faveur Lot 10 — présence quotidienne Twitch spécialisée et corrections UI, promu techniquement sur main
 
 Signed channel.chat.message v1 → classification normale en mémoire → Observer/receipt volatile → TwitchFavorChatPresenceConsumer → FavorService.claimToday(playerId, TWITCH). HMAC, fraîcheur, envelope, hashes, challenge/revocation et conflit 409 existants restent inchangés. Texte trim vide ou trimStart commençant par ! : observation seule. Aucun raw text ni flag de classification persisté.
 
@@ -145,7 +145,7 @@ Le consumer n’écrit **jamais** le receipt : RECEIVED, processedAt null, exter
 
 UI Profil : lien propriétaire toujours présent, actif/inactif/claim reçu ou disponible, bottom-right discret et accessible ; aucun CTA tiers ni changement privacy. Event : helper pur commun disponibilité/texte/destination, priorité Général → A → B → C selon actions réelles, labels dynamiques ; intent Quotidiennes one-shot, consommé et annulé par navigation/notification suivante. Notifications Messages/Shop et historique/refresh conservés ; aucune mutation économique nouvelle.
 
-Tests mocks et PostgreSQL privés uniquement ; QA publique propriétaire volontairement conservée, aucun OAuth/EventSub/message réel ou changement Railway. 54 migrations dernière 054, aucune 055. Candidat review, main fa38818 inchangé ; review indépendante puis promotion/test public UI. Claim Twitch seulement techniquement validé, activation réelle séparée.
+Tests mocks et PostgreSQL privés uniquement ; QA publique propriétaire volontairement conservée, aucun OAuth/EventSub/message réel ou changement Railway. 54 migrations dernière 054, aucune 055. Candidat 2117f672417d093fa549bdfceb78cacea94edb94 approuvé en review indépendante ChatGPT, puis checkpoint documentaire et promotion sur main par fast-forward strict ; code/test identique au candidat. Lot 10 promu techniquement, GitHub/Railway/health/frontend à vérifier par ChatGPT après push, validation publique propriétaire CTA Profil/deep-link Event restante. Claim Twitch seulement techniquement validé, runtime Chat toujours inactif et activation réelle séparée. Après validation UI seulement, clôture standalone Faveur puis avancée possible vers Gift Suprême ; validation publique du claim Twitch différée au prochain checkpoint d’activation Twitch.
 
 ## Pipeline migration legacy globale — socle promu, cutover reporté
 
