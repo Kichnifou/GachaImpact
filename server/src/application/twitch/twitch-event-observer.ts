@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { PrismaClient, TwitchEventReceipt } from '../../../generated/prisma/client.js';
 import { TwitchReceiptRetention } from './twitch-receipt-retention.js';
+import { twitchSubscriptionProof, type TwitchSubscriptionProof } from './twitch-subscription-proof.js';
 
 /** Internal observation contract. A future transport must pass only a digest of message content, never raw chat text. */
 export type TwitchObservedEvent = Readonly<{
@@ -12,6 +13,7 @@ export type TwitchObservedEvent = Readonly<{
   sourceTimestamp?: string | null;
   contentHash?: string | null;
   transportPayloadHash?: string | null;
+  subscriptionProof?: TwitchSubscriptionProof;
 }>;
 
 export class TwitchObservationConflict extends Error {
@@ -39,6 +41,7 @@ function normalize(input: TwitchObservedEvent) {
   if (contentHash && !/^[0-9a-f]{64}$/i.test(contentHash)) throw new Error('Invalid content hash.');
   const transportPayloadHash = optional(input.transportPayloadHash, 'transport payload hash', 64);
   if (transportPayloadHash && !/^[0-9a-f]{64}$/i.test(transportPayloadHash)) throw new Error('Invalid transport payload hash.');
+  if (input.subscriptionProof !== undefined && input.eventType !== 'channel.subscribe') throw new Error('Invalid subscription proof.');
   return {
     externalEventId: required(input.externalEventId, 'external event ID', 256),
     eventType: required(input.eventType, 'event type', 120),
@@ -48,6 +51,8 @@ function normalize(input: TwitchObservedEvent) {
     sourceTimestamp: parsedTimestamp?.toISOString() ?? null,
     contentHash: contentHash?.toLowerCase() ?? null,
     transportPayloadHash: transportPayloadHash?.toLowerCase() ?? null,
+    // Omit this member for Chat: preserve the existing observation/hash contract.
+    ...(input.subscriptionProof ? { subscriptionProof: twitchSubscriptionProof.parse(input.subscriptionProof) } : {}),
   };
 }
 

@@ -8,7 +8,7 @@ import { BusinessError } from '../errors.js';
 import { isElementKey } from '../../domain/economy/resources.js';
 
 export type FavorClaimSource = Extract<SourceChannel, 'UI' | 'INTERNAL_CHAT' | 'TWITCH'>;
-/** Trusted internal adapter input. Proof verification/resolution belongs to the future transport. */
+/** Trusted internal adapter input. Proof verification/resolution belongs to the transport. */
 export type FavorGrantInput = {
   playerId: string;
   idempotencyKey: string;
@@ -26,7 +26,7 @@ export type FavorClaimResult = {
   creditedPrimogems: string; operationId: string | null;
 };
 
-/** Server-owned core only: no HTTP route, presence hook, scheduler or Twitch consumer. */
+/** Server-owned rules, shared by internal callers and the authenticated Twitch consumer. */
 export class FavorService {
   constructor(private readonly database: PrismaClient, private readonly clock: Clock,
     private readonly economy = new PrismaEconomyService(() => clock.now())) {}
@@ -45,13 +45,14 @@ export class FavorService {
     }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
 
-  async grant(input: FavorGrantInput): Promise<FavorGrantResult> {
+  /** A consumer may supply its SERIALIZABLE transaction to finalize its proof atomically. */
+  async grant(input: FavorGrantInput, transaction?: Prisma.TransactionClient): Promise<FavorGrantResult> {
     if (!input.idempotencyKey.trim() || ![1, 2, 3].includes(input.tier)) {
       throw new BusinessError('FAVOR_PROOF_INVALID', 'La preuve d’attribution de Faveur est invalide.');
     }
     // Acquisition is Twitch-only; channel is fixed by the core, never supplied by a client.
     const key = `favor:grant:${input.idempotencyKey}`;
-    return this.transaction(async tx => {
+    const run = async (tx: Prisma.TransactionClient): Promise<FavorGrantResult> => {
       await this.lockPlayer(tx, input.playerId);
       const operation = await tx.businessOperation.findFirst({ where: { sourceChannel: 'TWITCH', idempotencyKey: key } });
       if (operation) return this.replayGrant(operation, input);
@@ -92,7 +93,8 @@ export class FavorService {
       await tx.businessOperation.update({ where: { id: op.id }, data: { status: 'COMPLETED', completedAt: now,
         resultSummary: { twitchEventReceiptId: input.twitchEventReceiptId ?? null, result } } });
       return result;
-    });
+    };
+    return transaction ? run(transaction) : this.transaction(run);
   }
 
   async claimToday(playerId: string, sourceChannel: FavorClaimSource = 'UI'): Promise<FavorClaimResult> {

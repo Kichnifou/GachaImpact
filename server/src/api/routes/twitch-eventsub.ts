@@ -2,14 +2,26 @@ import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { TwitchObservationConflict, type TwitchEventObserver } from '../../application/twitch/twitch-event-observer.js';
+import type { TwitchFavorSubscriptionConsumer } from '../../application/twitch/twitch-favor-subscription-consumer.js';
 
 const MAX_AGE_MS = 10 * 60 * 1000;
 const header = (value: string | string[] | undefined) => typeof value === 'string' ? value : null;
 const envelope = z.object({ subscription: z.object({ type: z.string(), version: z.string(), status: z.string().optional() }) });
 const challengeEnvelope = envelope.extend({ challenge: z.string().min(1).max(1024) });
 const chatEnvelope = envelope.extend({ event: z.object({ chatter_user_id: z.string().min(1), chatter_user_login: z.string().optional(), chatter_user_name: z.string().optional(), message: z.object({ text: z.string() }) }) });
+const twitchId = z.string().regex(/^\d+$/).max(128);
+const login = z.string().trim().min(1).max(64);
+const name = z.string().trim().min(1).max(128);
+const subscribeEnvelope = envelope.extend({
+  subscription: envelope.shape.subscription.extend({ condition: z.object({ broadcaster_user_id: twitchId }).strict() }),
+  event: z.object({ user_id: twitchId, user_login: login, user_name: name,
+    broadcaster_user_id: twitchId, broadcaster_user_login: login, broadcaster_user_name: name,
+    tier: z.enum(['1000', '2000', '3000']), is_gift: z.boolean() }).strict(),
+}).refine(body => body.subscription.condition.broadcaster_user_id === body.event.broadcaster_user_id);
 
-export async function registerTwitchEventSubRoutes(app: FastifyInstance, options: { secret: string; observer: TwitchEventObserver }) {
+export async function registerTwitchEventSubRoutes(app: FastifyInstance, options: {
+  secret: string; observer: TwitchEventObserver; favorSubscriptions: TwitchFavorSubscriptionConsumer;
+}) {
   // Fastify's ordinary JSON parser loses the exact bytes Twitch signed. This parser is scoped to this route plugin.
   app.addContentTypeParser('application/json', { parseAs: 'buffer' }, (_request, body, done) => done(null, body));
   app.post('/api/v1/twitch/eventsub', { bodyLimit: 256_000, logLevel: 'silent' }, async (request, reply) => {
@@ -40,10 +52,24 @@ export async function registerTwitchEventSubRoutes(app: FastifyInstance, options
       return reply.code(204).send();
     }
     if (kind !== 'notification') return reply.code(400).send();
-    const parsed = chatEnvelope.safeParse(body);
-    if (!parsed.success) return reply.code(400).send();
-    if (parsed.data.subscription.type !== 'channel.chat.message' || parsed.data.subscription.version !== '1') return reply.code(422).send();
+    const notification = envelope.safeParse(body);
+    if (!notification.success) return reply.code(400).send();
+    if (notification.data.subscription.version !== '1'
+      || !['channel.chat.message', 'channel.subscribe'].includes(notification.data.subscription.type)) return reply.code(422).send();
     try {
+      if (notification.data.subscription.type === 'channel.subscribe') {
+        const parsed = subscribeEnvelope.safeParse(body);
+        if (!parsed.success) return reply.code(400).send();
+        const event = parsed.data.event;
+        const observed = await options.observer.observeTwitchEvent({ externalEventId: id, eventType: 'channel.subscribe',
+          twitchUserId: event.user_id, login: event.user_login, displayName: event.user_name, sourceTimestamp: timestamp,
+          transportPayloadHash: createHash('sha256').update(raw).digest('hex'),
+          subscriptionProof: { broadcasterTwitchId: event.broadcaster_user_id, tier: event.tier, isGift: event.is_gift } });
+        await options.favorSubscriptions.consume(observed.receipt.id);
+        return reply.code(204).send();
+      }
+      const parsed = chatEnvelope.safeParse(body);
+      if (!parsed.success) return reply.code(400).send();
       await options.observer.observeTwitchEvent({
         externalEventId: id,
         eventType: parsed.data.subscription.type,

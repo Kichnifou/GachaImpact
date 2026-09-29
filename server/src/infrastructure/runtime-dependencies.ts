@@ -66,6 +66,7 @@ import { PermanentMissionService } from '../application/missions/permanent-missi
 import { PrismaEconomyService } from './database/prisma-economy-service.js';
 import { TwitchPilotService } from '../application/twitch/twitch-pilot-service.js';
 import { TwitchEventObserver } from '../application/twitch/twitch-event-observer.js';
+import { TwitchFavorSubscriptionConsumer } from '../application/twitch/twitch-favor-subscription-consumer.js';
 import { TwitchEventSubSubscriptionManager } from '../application/twitch/twitch-eventsub-subscription-manager.js';
 import { TwitchAppAccessTokenProvider } from './twitch/twitch-app-access-token-provider.js';
 import { TwitchEventSubClient } from './twitch/twitch-eventsub-client.js';
@@ -122,6 +123,7 @@ export function createRuntimeDependencies(config: AppConfig) {
   const dependencies = {
     twitchPilot,
     twitchEventObserver,
+    twitchFavorSubscriptions: new TwitchFavorSubscriptionConsumer(database, clock),
     twitchSubscriptions,
     snapshotPilot: new SnapshotPilotService(database, twitchPilot, config.twitch?.clientSecret ?? ''),
     globalChatService,

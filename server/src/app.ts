@@ -6,6 +6,7 @@ import type { SnapshotPilotService } from './application/migration/snapshot-pilo
 import { registerTwitchPilotRoutes } from './api/routes/twitch-pilot.js';
 import { registerTwitchEventSubRoutes } from './api/routes/twitch-eventsub.js';
 import type { TwitchEventObserver } from './application/twitch/twitch-event-observer.js';
+import type { TwitchFavorSubscriptionConsumer } from './application/twitch/twitch-favor-subscription-consumer.js';
 import type { TwitchEventSubSubscriptionManager } from './application/twitch/twitch-eventsub-subscription-manager.js';
 import { registerTradeRoutes } from './api/routes/trades.js';
 import { registerSocialRoutes } from './api/routes/social.js';
@@ -91,6 +92,7 @@ export type AppDependencies = Readonly<{
   tradeService?: TradeService;
   twitchPilot?: TwitchPilotService;
   twitchEventObserver?: TwitchEventObserver;
+  twitchFavorSubscriptions?: TwitchFavorSubscriptionConsumer;
   twitchSubscriptions?: TwitchEventSubSubscriptionManager;
   snapshotPilot?: SnapshotPilotService;
   tradePlayer?: GetCurrentPlayer;
@@ -185,8 +187,9 @@ export async function buildApp(
 
   if (dependencies) {
     if (config.twitchEventSub?.enabled) {
-      if (!config.twitchEventSub.secret || !dependencies.twitchEventObserver) throw new Error('Twitch EventSub webhook is enabled without a secret or observer.');
-      await app.register(registerTwitchEventSubRoutes, { secret: config.twitchEventSub.secret, observer: dependencies.twitchEventObserver });
+      if (!config.twitchEventSub.secret || !dependencies.twitchEventObserver || !dependencies.twitchFavorSubscriptions) throw new Error('Twitch EventSub webhook is enabled without a secret, observer or Favor consumer.');
+      await app.register(registerTwitchEventSubRoutes, { secret: config.twitchEventSub.secret, observer: dependencies.twitchEventObserver,
+        favorSubscriptions: dependencies.twitchFavorSubscriptions });
     }
     registerAuthenticationContext(app);
     await app.register(registerCurrentPlayerRoutes, {

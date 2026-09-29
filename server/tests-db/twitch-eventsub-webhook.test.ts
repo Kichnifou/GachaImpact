@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { TwitchEventObserver } from '../src/application/twitch/twitch-event-observer.js';
+import { TwitchFavorSubscriptionConsumer } from '../src/application/twitch/twitch-favor-subscription-consumer.js';
 import { TwitchReceiptRetention } from '../src/application/twitch/twitch-receipt-retention.js';
 import type { PrismaClient } from '../generated/prisma/client.js';
 import { isolatedBatchDatabase } from './isolated-batch-database.js';
@@ -30,7 +31,8 @@ beforeAll(async () => {
   const player = await db.player.create({ data: { displayName: 'EventSub private fixture' } });
   await db.twitchIdentity.create({ data: { playerId: player.id, twitchUserId: '424242', login: 'known' } });
   observer = new TwitchEventObserver(db);
-  const dependencies = { authIdentityVerifier: { verify: async () => ({ subject: 'test' }) }, getOrProvisionCurrentPlayer: {} as never, twitchEventObserver: observer };
+  const dependencies = { authIdentityVerifier: { verify: async () => ({ subject: 'test' }) }, getOrProvisionCurrentPlayer: {} as never,
+    twitchEventObserver: observer, twitchFavorSubscriptions: new TwitchFavorSubscriptionConsumer(db, { now: () => new Date() }) };
   app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {}, twitchEventSub: { enabled: true, secret } }, dependencies);
   offApp = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {}, twitchEventSub: { enabled: false } }, dependencies);
 }, 60_000);
@@ -46,6 +48,7 @@ describe('Twitch EventSub webhook transport', () => {
     const testApp = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {}, twitchEventSub: { enabled: true, secret } }, {
       authIdentityVerifier: { verify: async () => ({ subject: 'test' }) }, getOrProvisionCurrentPlayer: {} as never,
       twitchEventObserver: new TwitchEventObserver(db, retention),
+      twitchFavorSubscriptions: new TwitchFavorSubscriptionConsumer(db, { now: () => new Date() }),
     });
     const id = randomUUID();
     try {
