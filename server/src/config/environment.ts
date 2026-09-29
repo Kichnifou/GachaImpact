@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { parseTwitchCredentialKey } from '../infrastructure/twitch/twitch-gift-credential-cipher.js';
 
 const optionalUrl = z.url().optional();
 
@@ -18,6 +19,8 @@ const environmentSchema = z.object({
   TWITCH_EVENTSUB_WEBHOOK_ENABLED: z.enum(['true', 'false']).default('false'),
   TWITCH_EVENTSUB_SECRET: z.string().optional(),
   TWITCH_EVENTSUB_CALLBACK_URL: optionalUrl,
+  TWITCH_GIFT_SUPREME_ENABLED: z.enum(['true', 'false']).default('false'),
+  TWITCH_OAUTH_CREDENTIAL_KEY: z.string().optional(),
 });
 
 export type AppConfig = Readonly<{
@@ -32,6 +35,7 @@ export type AppConfig = Readonly<{
   }>;
   twitch?: Readonly<{ clientId?: string; clientSecret?: string; redirectUri?: string; pilotPlayerIds: readonly string[]; pilotLogin: string }>;
   twitchEventSub?: Readonly<{ enabled: boolean; secret?: string; callbackUrl?: string }>;
+  twitchGiftSupreme?: Readonly<{ enabled: boolean; credentialKey?: string }>;
 }>;
 
 export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -43,6 +47,7 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
   const eventSubEnabled = parsed.data.TWITCH_EVENTSUB_WEBHOOK_ENABLED === 'true';
   const eventSubSecret = parsed.data.TWITCH_EVENTSUB_SECRET;
   const callbackUrl = parsed.data.TWITCH_EVENTSUB_CALLBACK_URL;
+  if (parsed.data.TWITCH_OAUTH_CREDENTIAL_KEY !== undefined) parseTwitchCredentialKey(parsed.data.TWITCH_OAUTH_CREDENTIAL_KEY);
   if (callbackUrl) {
     const url = new URL(callbackUrl);
     if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash || url.port && url.port !== '443' || url.pathname !== '/api/v1/twitch/eventsub')
@@ -70,5 +75,6 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
       pilotLogin: parsed.data.TWITCH_PILOT_LOGIN.toLowerCase(),
     },
     twitchEventSub: { enabled: eventSubEnabled, secret: eventSubSecret, callbackUrl },
+    twitchGiftSupreme: { enabled: parsed.data.TWITCH_GIFT_SUPREME_ENABLED === 'true', credentialKey: parsed.data.TWITCH_OAUTH_CREDENTIAL_KEY },
   };
 }

@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const api = vi.hoisted(() => ({
+  startTwitchGiftSupreme: vi.fn(), ensureTwitchGiftSupreme: vi.fn(), disableTwitchGiftSupreme: vi.fn(),
   getTwitchAccount: vi.fn(), startTwitchLink: vi.fn(), startTwitchFavor: vi.fn(), disableTwitchFavor: vi.fn(), startTwitchRuntime: vi.fn(), disableTwitchRuntime: vi.fn(), unlinkTwitch: vi.fn(), previewTwitchSnapshot: vi.fn(), applyTwitchSnapshot: vi.fn(),
 }))
 vi.mock('../api/game-api', () => ({ getGameApiClient: () => api }))
@@ -341,4 +342,47 @@ it('bounds stalled Faveur confirmation and cleans the deadline', async () => {
     .mockImplementationOnce((signal:AbortSignal)=>new Promise((_resolve,reject)=>signal.addEventListener('abort',()=>reject(Error('aborted')),{once:true})));
   const container=await mount(); await act(async()=>vi.advanceTimersByTimeAsync(8000));
   expect(api.getTwitchAccount).toHaveBeenCalledTimes(2); expect(container.querySelector('[role="alert"]')?.textContent).toContain('abonnements Twitch'); expect(vi.getTimerCount()).toBe(0);
+});
+
+
+describe('Gift Suprême account controls', () => {
+  const giftAccount = { ...linkedAccount, giftSupremeAvailable: true, giftSupremeAuthorized: false, giftSupremeActive: false, giftSupremePending: false };
+  it.each([{ eligible: false }, { linked: null }, { giftSupremeAvailable: false }])('hides Gift outside eligible linked available pilots', async flags => {
+    api.getTwitchAccount.mockResolvedValue({ ...giftAccount, ...flags }); expect((await mount()).textContent).not.toContain('Gift Suprême Twitch');
+  });
+  it('shows inactive Gift and refuses an untrusted OAuth URL without redirect', async () => {
+    api.getTwitchAccount.mockResolvedValue(giftAccount); api.startTwitchGiftSupreme.mockResolvedValue({ url: 'https://evil.example/oauth2/authorize' });
+    const container = await mount(); expect(container.textContent).toContain('gérer automatiquement'); await act(async () => button(container, 'Autoriser et activer').click());
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('Une erreur inattendue'); expect(api.startTwitchFavor).not.toHaveBeenCalled();
+  });
+  it('validates a trusted OAuth URL before redirect', async () => {
+    api.getTwitchAccount.mockResolvedValue(giftAccount); api.startTwitchGiftSupreme.mockResolvedValue({ url: 'https://id.twitch.tv/oauth2/authorize?state=gift_test' });
+    const redirect = vi.spyOn(location, 'assign').mockImplementation(() => undefined); const container = await mount();
+    await act(async () => button(container, 'Autoriser et activer').click()); expect(redirect).toHaveBeenCalledWith('https://id.twitch.tv/oauth2/authorize?state=gift_test');
+  });
+  it('clears activated OAuth return and disables Gift then rereads authoritative status', async () => {
+    history.replaceState(null, '', '/?twitch=gift-supreme-activated');
+    api.getTwitchAccount.mockResolvedValueOnce({ ...giftAccount, giftSupremeAuthorized: true, giftSupremeActive: true }).mockResolvedValueOnce(giftAccount);
+    api.disableTwitchGiftSupreme.mockResolvedValue({ giftSupremeActive: false }); const container = await mount(); expect(container.textContent).toContain('● Activé'); expect(location.search).toBe('');
+    await act(async () => button(container, 'Désactiver').click()); expect(api.disableTwitchGiftSupreme).toHaveBeenCalledOnce(); expect(container.textContent).toContain('Non activé'); expect(api.disableTwitchFavor).not.toHaveBeenCalled();
+  });
+  it('shows a dedicated OAuth failure and clears its outcome', async () => {
+    history.replaceState(null, '', '/?twitch=gift-supreme-error'); api.getTwitchAccount.mockResolvedValue(giftAccount); const container = await mount();
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('Gift Suprême'); expect(location.search).toBe('');
+  });
+  it('reports old manual reward conflict and retries ensure without another authorization', async () => {
+    api.getTwitchAccount.mockResolvedValueOnce({ ...giftAccount, giftSupremeAuthorized: true, giftSupremeError: 'MANUAL_REWARD_CONFLICT' }).mockResolvedValueOnce({ ...giftAccount, giftSupremeAuthorized: true, giftSupremeActive: true });
+    api.ensureTwitchGiftSupreme.mockResolvedValue({ giftSupremeActive: true }); const container = await mount(); expect(container.querySelector('[role="alert"]')?.textContent).toContain('ancienne récompense');
+    await act(async () => button(container, 'Réessayer').click()); expect(api.ensureTwitchGiftSupreme).toHaveBeenCalledOnce(); expect(api.startTwitchGiftSupreme).not.toHaveBeenCalled(); expect(container.textContent).toContain('● Activé');
+  });
+  it('keeps active on failed disable and pending never pretends active, polling stays bounded', async () => {
+    api.getTwitchAccount.mockResolvedValue({ ...giftAccount, giftSupremeAuthorized: true, giftSupremeActive: true }); api.disableTwitchGiftSupreme.mockRejectedValue(Error('remote cleanup failed'));
+    const container = await mount(); await act(async () => button(container, 'Désactiver').click()); expect(container.textContent).toContain('● Activé');
+  });
+  it('polls pending at most four times and never shows active without remote proof', async () => {
+    vi.useFakeTimers(); api.getTwitchAccount.mockResolvedValue({ ...giftAccount, giftSupremeAuthorized: true, giftSupremePending: true });
+    const container = await mount(); expect(container.textContent).toContain('Vérification en cours'); expect(container.textContent).not.toContain('● Activé');
+    for (let i = 0; i < 4; i++) await act(async () => vi.advanceTimersByTimeAsync(1000));
+    expect(api.getTwitchAccount).toHaveBeenCalledTimes(5); expect(container.querySelector('[role="alert"]')?.textContent).toContain('Gift Suprême n’a pas pu être confirmée');
+  });
 });

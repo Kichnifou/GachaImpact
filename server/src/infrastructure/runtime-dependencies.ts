@@ -76,6 +76,8 @@ import { TwitchEventSubSubscriptionManager } from '../application/twitch/twitch-
 import { TwitchAppAccessTokenProvider } from './twitch/twitch-app-access-token-provider.js';
 import { TwitchEventSubClient } from './twitch/twitch-eventsub-client.js';
 import { SnapshotPilotService } from '../application/migration/snapshot-pilot-service.js';
+import { TwitchGiftSupremeManager } from '../application/twitch/twitch-gift-supreme-manager.js';
+import { TwitchGiftSupremeRuntime } from '../application/twitch/twitch-gift-supreme-runtime.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
   if (!config.databaseUrl) {
@@ -91,9 +93,11 @@ export function createRuntimeDependencies(config: AppConfig) {
   const twitchSubscriptions = config.twitch?.clientId && config.twitch.clientSecret
     ? new TwitchEventSubSubscriptionManager(database, config, new TwitchEventSubClient(config.twitch.clientId,
       new TwitchAppAccessTokenProvider(config.twitch.clientId, config.twitch.clientSecret))) : undefined;
-  const twitchPilot = new TwitchPilotService(database, getCurrentPlayer, config, undefined, twitchSubscriptions);
+  const twitchGiftSupremeManager = twitchSubscriptions ? new TwitchGiftSupremeManager(database, config, twitchSubscriptions) : undefined;
+  const twitchPilot = new TwitchPilotService(database, getCurrentPlayer, config, undefined, twitchSubscriptions, twitchGiftSupremeManager);
   const wheelStore = new PrismaWheelStore(database);
   const clock = new SystemClock();
+  const twitchGiftSupreme = twitchGiftSupremeManager?.available ? new TwitchGiftSupremeRuntime(database, clock, twitchGiftSupremeManager) : undefined;
   const tradeService = new TradeService(database, clock);
   const tradeScheduler = new TradeScheduler(tradeService, clock);
   const random = new NodeRandomSource();
@@ -133,6 +137,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     twitchFavorResubs: new TwitchFavorResubConsumer(database, clock),
     twitchFavorChatPresence: new TwitchFavorChatPresenceConsumer(database, clock),
     twitchSubscriptions,
+    twitchGiftSupreme,
     snapshotPilot: new SnapshotPilotService(database, twitchPilot, config.twitch?.clientSecret ?? ''),
     globalChatService,
     directMessageService,

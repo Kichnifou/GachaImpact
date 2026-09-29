@@ -1,5 +1,14 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## Credential Gift Suprême 055 — candidat review
+
+Migration additive `20260929151500_055_add_twitch_gift_supreme_credential`, table `twitch_gift_supreme_credentials`. Colonnes : player_id UUID PK/FK players RESTRICT, twitch_user_id TEXT unique (1–128 chiffres), encrypted_refresh_token TEXT non vide/envelope v1 GCM bornée, reward_id TEXT nullable (1–128 caractères), scopes JSONB array contenant les trois scopes Gift, revision INTEGER strictement positive (défaut 1), authorized_at/updated_at TIMESTAMPTZ(6). Aucun access token, ID token ou refresh clair ; aucun booléen local ACTIVE. Refresh chiffré uniquement et contexte AAD Player/Twitch/purpose vérifié applicativement.
+
+RLS activée, zéro policy navigateur et REVOKE ALL PUBLIC/anon/authenticated. Backend direct seul lecteur/rédacteur. Reward ID et révision sont des métadonnées de gestion, sans modifier l'économie ni le journal Gift Lot 11. Celui-ci reste TwitchEventReceipt/BusinessOperation/ResourceMovement/Notification ; confirmation distante et réservation d'annonce ajoutées à payloadMinimal.remote, preuve Lot 11 préservée.
+
+055 appliquée par Prisma et testée en schéma privé avec chaîne complète de 55 migrations et migrate status à jour. Les fonctions historiques explicitement publiques de 030/047 sont redirigées vers le schéma privé pour la répétition ; SQL 055/checksum exact conservé. DEV publique reste à 54/054 ; 055 en attente avant future activation, sans migration publique ni backfill dans cette mission. [Architecture](backend-architecture-v1.md#gift-suprême-lot-12--bridge-twitch-durable-candidat-review) et [Master](../master/PROJECT_MASTER_PLAN.md) portent le statut courant.
+
+
 ## Additions legacy 050–052 — promues, 2026-09-27
 
 Les migrations versionnées 050/051 et `20260927014500_052_align_legacy_favor_giveaway_provenance` ne modifient pas 049. 050 introduit les tables de batch/fichiers/mappings/issues, Boss agrégé et contributions, dernier cœur directionnel, verrou Concours legacy, Faveur, Giveaway et reçu Twitch ; 051 ajoute les provenances de claims. 052 aligne le calendrier Faveur, ajoute `GiveawayWin`, complète les preuves Twitch et conserve le jour XP legacy. Les 16 tables de fondation ont RLS active et aucun droit `PUBLIC`, `anon` ou `authenticated` ; seul le backend direct écrit. Le catalogue Character ajoute 119/120 via le générateur et le seed existants, sans copier les JSON privés. Le DDL 050–052 a été contrôlé en schéma privé avant application DEV. DEV conserve 120 personnages catalogue, dix Players publics et aucun batch de migration public.

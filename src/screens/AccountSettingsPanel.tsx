@@ -14,7 +14,11 @@ const runtimeStatusError = (error: 'CONFLICT' | 'UNAVAILABLE') => error === 'CON
 const favorStatusError = (error: 'CONFLICT' | 'UNAVAILABLE') => error === 'CONFLICT'
   ? 'La réception des abonnements Twitch nécessite un contrôle opérateur.'
   : 'Le statut des abonnements Twitch est temporairement indisponible. Réessayez plus tard.'
-const awaitingSubscription = (value: TwitchAccountDto) => Boolean(value.runtimeChatPending && value.runtimeSubscriptionAvailable || value.favorSubscriptionPending && value.favorSubscriptionAvailable)
+const giftStatusError = (error: NonNullable<TwitchAccountDto['giftSupremeError']>) => error === 'MANUAL_REWARD_CONFLICT'
+  ? 'Désactivez ou supprimez l’ancienne récompense Gift Suprême manuelle dans Twitch, puis cliquez sur Réessayer.'
+  : error === 'CREDENTIAL_INVALID' ? 'L’autorisation Gift Suprême doit être renouvelée.'
+    : error === 'CONFLICT' ? 'Gift Suprême nécessite un contrôle opérateur.' : 'Le statut Gift Suprême est temporairement indisponible. Réessayez plus tard.'
+const awaitingSubscription = (value: TwitchAccountDto) => Boolean(value.giftSupremePending && value.giftSupremeAvailable || value.runtimeChatPending && value.runtimeSubscriptionAvailable || value.favorSubscriptionPending && value.favorSubscriptionAvailable)
 
 export default function AccountSettingsPanel({ onRefreshPlayerState = async () => undefined }: { onRefreshPlayerState?: () => Promise<void> }) {
   const api = getGameApiClient()
@@ -43,9 +47,11 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     const url = new URL(location.href)
     const outcome = url.searchParams.get('twitch')
     if (outcome) { url.searchParams.delete('twitch'); history.replaceState(history.state, '', url)
-      if (outcome !== 'connected' && !outcome.startsWith('runtime-') && !outcome.startsWith('favor-runtime-')) setError(outcome === 'TWITCH_IDENTITY_CONFLICT' ? 'Ce compte Twitch est déjà lié à un autre joueur.' : 'La liaison Twitch a échoué ou a été annulée.') }
+      if (outcome !== 'connected' && !outcome.startsWith('runtime-') && !outcome.startsWith('favor-runtime-') && !outcome.startsWith('gift-supreme-')) setError(outcome === 'TWITCH_IDENTITY_CONFLICT' ? 'Ce compte Twitch est déjà lié à un autre joueur.' : 'La liaison Twitch a échoué ou a été annulée.') }
     if (outcome === 'runtime-error') setError('L’autorisation ou l’activation du chat Twitch a échoué ou a été annulée.')
     if (outcome === 'favor-runtime-error') setError('L’autorisation ou l’activation des abonnements Twitch a échoué ou a été annulée.')
+    if (outcome === 'gift-supreme-error') setError('L’autorisation ou l’activation Gift Suprême a échoué ou a été annulée.')
+    let checkingGift = false
     let checkingFavor = false
     void (async () => {
       try {
@@ -53,6 +59,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
         if (!active) return
         setAccount(value)
         checkingFavor = Boolean(value.favorSubscriptionPending)
+        checkingGift = Boolean(value.giftSupremePending)
         if (awaitingSubscription(value)) {
           setRuntimeChecking(true)
           for (let attempt = 0; attempt < 4 && active && awaitingSubscription(value); attempt++) {
@@ -62,11 +69,12 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
             if (!active) return
             setAccount(value)
             checkingFavor = Boolean(value.favorSubscriptionPending)
+            checkingGift = Boolean(value.giftSupremePending)
           }
-          if (active && awaitingSubscription(value)) setError(value.favorSubscriptionPending ? 'La réception des abonnements Twitch n’a pas pu être confirmée. Réessayez plus tard.' : 'La réception du chat Twitch n’a pas pu être confirmée. Réessayez plus tard.')
+          if (active && awaitingSubscription(value)) setError(value.giftSupremePending ? 'L’activation Gift Suprême n’a pas pu être confirmée. Réessayez plus tard.' : value.favorSubscriptionPending ? 'La réception des abonnements Twitch n’a pas pu être confirmée. Réessayez plus tard.' : 'La réception du chat Twitch n’a pas pu être confirmée. Réessayez plus tard.')
         }
         if (active && (value.runtimeChatError || value.favorSubscriptionError)) setError([value.runtimeChatError && runtimeStatusError(value.runtimeChatError), value.favorSubscriptionError && favorStatusError(value.favorSubscriptionError)].filter(Boolean).join(' '))
-      } catch (reason) { if (active) setError(controller.signal.aborted ? checkingFavor ? 'Le statut des abonnements Twitch n’a pas pu être confirmé. Réessayez plus tard.' : 'Le statut du chat Twitch n’a pas pu être confirmé. Réessayez plus tard.' : apiErrorMessage(reason)) }
+      } catch (reason) { if (active) setError(controller.signal.aborted ? checkingGift ? 'Le statut Gift Suprême n’a pas pu être confirmé. Réessayez plus tard.' : checkingFavor ? 'Le statut des abonnements Twitch n’a pas pu être confirmé. Réessayez plus tard.' : 'Le statut du chat Twitch n’a pas pu être confirmé. Réessayez plus tard.' : apiErrorMessage(reason)) }
       finally { clearTimeout(deadline); if (active) setRuntimeChecking(false) }
     })()
     return () => { active = false; controller.abort(); clearTimeout(deadline); clearTimeout(timer); cancelWait?.() }
@@ -119,6 +127,27 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     if (target.origin !== 'https://id.twitch.tv' || target.pathname !== '/oauth2/authorize' || target.username || target.password) throw new Error('URL Twitch invalide.')
     location.assign(target.toString())
   })
+  const activateGift = () => void run(async () => {
+    const { url } = await api.startTwitchGiftSupreme()
+    const target = new URL(url)
+    if (target.origin !== 'https://id.twitch.tv' || target.pathname !== '/oauth2/authorize' || target.username || target.password) throw new Error('URL Twitch invalide.')
+    location.assign(target.toString())
+  })
+  const refreshGift = async (poll = false) => {
+    const controller = new AbortController(), deadline = setTimeout(() => controller.abort(), 8_000)
+    try {
+      let value = await api.getTwitchAccount(controller.signal)
+      setAccount(value)
+      for (let attempt = 0; poll && value.giftSupremePending && attempt < 4; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 1_000))
+        value = await api.getTwitchAccount(controller.signal)
+        setAccount(value)
+      }
+      if (poll && value.giftSupremePending) setError('L’activation Gift Suprême n’a pas pu être confirmée. Réessayez plus tard.')
+    } finally { clearTimeout(deadline) }
+  }
+  const retryGift = () => void run(async () => { await api.ensureTwitchGiftSupreme(); await refreshGift(true) })
+  const disableGift = () => void run(async () => { await api.disableTwitchGiftSupreme(); await refreshGift() })
   const disableFavor = () => void run(async () => {
     await api.disableTwitchFavor()
     const value = await api.getTwitchAccount()
@@ -167,6 +196,14 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
             <p className={account.favorSubscriptionActive ? 'account-twitch-active' : undefined}>{account.favorSubscriptionPending ? 'Vérification en cours…' : account.favorSubscriptionActive ? '● Activée' : 'Non activée'}</p>
             <p className="account-twitch-description">{account.favorSubscriptionActive ? 'GachaImpact reçoit les nouveaux abonnements Twitch pour la Faveur.' : 'Permet à GachaImpact de détecter les nouveaux abonnements Twitch et d’attribuer automatiquement la Faveur aux joueurs éligibles.'}</p>
             <AppButton disabled={pending || runtimeChecking || account.favorSubscriptionPending} aria-busy={pending} onClick={account.favorSubscriptionActive ? disableFavor : activateFavor}>{account.favorSubscriptionActive ? 'Désactiver' : 'Autoriser et activer'}</AppButton>
+          </div>}
+          {account.eligible && account.giftSupremeAvailable && <div className="account-twitch-runtime account-twitch-gift" aria-busy={pending || runtimeChecking}>
+            <h4>Gift Suprême Twitch</h4>
+            <p className={account.giftSupremeActive ? 'account-twitch-active' : undefined}>{account.giftSupremePending ? 'Vérification en cours…' : account.giftSupremeActive ? '● Activé' : 'Non activé'}</p>
+            <p className="account-twitch-description">Permet à GachaImpact de gérer automatiquement la récompense Twitch Gift Suprême.</p>
+            {account.giftSupremeError && <p className="configuration-error" role="alert">{giftStatusError(account.giftSupremeError)}</p>}
+            <AppButton disabled={pending || runtimeChecking || account.giftSupremePending} aria-busy={pending} onClick={account.giftSupremeActive ? disableGift : account.giftSupremeAuthorized && account.giftSupremeError !== 'CREDENTIAL_INVALID' ? retryGift : activateGift}>{account.giftSupremeActive ? 'Désactiver' : account.giftSupremeAuthorized && account.giftSupremeError !== 'CREDENTIAL_INVALID' ? 'Réessayer' : 'Autoriser et activer'}</AppButton>
+            {account.giftSupremeAuthorized && !account.giftSupremeActive && <AppButton disabled={pending || runtimeChecking} onClick={disableGift}>Désactiver</AppButton>}
           </div>}
           <button type="button" disabled={pending || runtimeChecking} onClick={event => { openerRef.current = event.currentTarget; setConfirm('unlink') }}>Délier Twitch</button></>
           : <><p>Non connecté</p><button type="button" disabled={!account.pilotAvailable || pending} onClick={connect}>Connecter Twitch</button>{!account.pilotAvailable && <p>La liaison Twitch est indisponible pour ce compte ou sur ce serveur.</p>}</>}

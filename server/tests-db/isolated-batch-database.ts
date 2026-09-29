@@ -6,6 +6,7 @@ import pg from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client.js';
 import { permanentMissionCatalog } from '../src/domain/missions/permanent-mission-catalog.js';
+import { rehearsePrivateMigrations } from './private-migration-rehearsal.js';
 
 // Every mutable table and enum lives in this run's private schema, never public.
 export function isolatedBatchDatabase() {
@@ -17,12 +18,15 @@ export function isolatedBatchDatabase() {
   // sequential private fixture well below Supabase's shared connection limit.
   const database = new PrismaClient({ adapter: new PrismaPg({ connectionString, options: `-c search_path=${schema},public`, max: 3, idleTimeoutMillis: 1_000 }, { schema }) });
   let created = false;
+  let migrationStatus = '';
   return { database, admin, schema,
-    async setup(options: { seedPublicCatalog?: boolean } = {}) {
+    get migrationStatus() { return migrationStatus; },
+    async setup(options: { seedPublicCatalog?: boolean; prismaMigrations?: boolean } = {}) {
       await admin.connect();
       await admin.query(`CREATE SCHEMA "${schema}"`); created = true;
       await admin.query(`REVOKE ALL ON SCHEMA "${schema}" FROM PUBLIC, anon, authenticated`);
       await admin.query(`SET search_path TO "${schema}", public`);
+      if (options.prismaMigrations) { migrationStatus = await rehearsePrivateMigrations(admin, schema, connectionString); return; }
       const ddl = execFileSync(process.execPath, ['node_modules/prisma/build/index.js', 'migrate', 'diff', '--from-empty', '--to-schema', 'prisma/schema.prisma', '--script'], { encoding: 'utf8' }).replace('CREATE SCHEMA IF NOT EXISTS "public";', '');
       if (/"public"\.|\bpublic\./.test(ddl)) throw new Error('Fixture DDL targets public');
       await admin.query(ddl);

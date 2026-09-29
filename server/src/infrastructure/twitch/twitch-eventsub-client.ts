@@ -10,7 +10,12 @@ const subscriptionSchema = z.object({
 const pageSchema = z.object({ data: z.array(subscriptionSchema), pagination: z.object({ cursor: z.string().min(1).optional() }) });
 const createdSchema = z.object({ data: z.array(subscriptionSchema).length(1) });
 export type TwitchEventSubSubscription = z.infer<typeof subscriptionSchema>;
-export type PilotEventSubType = 'channel.chat.message' | 'channel.subscribe' | 'channel.subscription.gift' | 'channel.subscription.message';
+export type PilotEventSubType = 'channel.chat.message' | 'channel.subscribe' | 'channel.subscription.gift' | 'channel.subscription.message' | 'channel.channel_points_custom_reward_redemption.add';
+export type PilotGiftSupremeSubscriptionRequest = Readonly<{
+  type: 'channel.channel_points_custom_reward_redemption.add'; version: '1';
+  condition: { broadcaster_user_id: string; reward_id: string };
+  transport: { method: 'webhook'; callback: string; secret: string };
+}>;
 export type PilotChatSubscriptionRequest = Readonly<{
   type: 'channel.chat.message'; version: '1';
   condition: { broadcaster_user_id: string; user_id: string };
@@ -31,7 +36,7 @@ export class TwitchEventSubClient {
     private readonly request: typeof fetch = fetch) {}
 
   private async call(method: 'GET' | 'POST' | 'DELETE', cursor?: string,
-    body?: PilotChatSubscriptionRequest | PilotFavorSubscriptionRequest, subscriptionId?: string, signal?: AbortSignal,
+    body?: PilotChatSubscriptionRequest | PilotFavorSubscriptionRequest | PilotGiftSupremeSubscriptionRequest, subscriptionId?: string, signal?: AbortSignal,
     type: PilotEventSubType = 'channel.chat.message') {
     const url = new URL('https://api.twitch.tv/helix/eventsub/subscriptions');
     if (method === 'GET') url.searchParams.set('type', type);
@@ -79,6 +84,12 @@ export class TwitchEventSubClient {
   async listFavorSubscriptions(signal?: AbortSignal) { return this.listSubscriptions('channel.subscribe', signal); }
   async listGiftSubscriptions(signal?: AbortSignal) { return this.listSubscriptions('channel.subscription.gift', signal); }
   async listResubSubscriptions(signal?: AbortSignal) { return this.listSubscriptions('channel.subscription.message', signal); }
+  async listGiftSupremeSubscriptions(signal?: AbortSignal) { return this.listSubscriptions('channel.channel_points_custom_reward_redemption.add', signal); }
+  async createGiftSupremeSubscription(body: PilotGiftSupremeSubscriptionRequest): Promise<TwitchEventSubSubscription> {
+    const parsed = createdSchema.safeParse(await this.call('POST', undefined, body));
+    if (!parsed.success) throw invalid();
+    return parsed.data.data[0]!;
+  }
 
   async createChatSubscription(body: PilotChatSubscriptionRequest): Promise<TwitchEventSubSubscription> {
     const parsed = createdSchema.safeParse(await this.call('POST', undefined, body));

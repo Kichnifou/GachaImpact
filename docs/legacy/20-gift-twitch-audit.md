@@ -7,9 +7,13 @@
 
 ---
 
-## État physique Lot 11 — candidat review
+## État physique Lots 11 + 12 — review
 
-R692–R701 restent inchangées. Core GiftSupremeService et matching exact/contains/fuzzy testables, crédit Economy +1600 particules personnelles/stats et notification informative atomiques. Journal R701 porté par TwitchEventReceipt durable PROCESSED et BusinessOperation.resultSummary, sans table dédiée ni migration 055. Résultats locaux SUCCESS/INVALID et FULFILL/CANCEL pour le futur bridge ; aucun FULFILLED/CANCELED réellement appliqué à Twitch. Contradictions et ambiguïtés refusées, replay/concurrence/rollback/post-commit couverts en schémas privés. Parser redemption.add v1/consumer authentifié futur sans wiring runtime/public ; reward ID fake/test configurable, jamais le titre. Custom Reward, OAuth durable, Update Redemption Status et message Twitch restent Lot 12. Voir [architecture](../architecture/backend-architecture-v1.md#gift-suprême-lot-11--core-métier-et-frontière-redemption-inerte-candidat-review) et Master pour reprise : review indépendante, puis Lot 12 sur review sans promotion intermédiaire.
+R692–R701 restent inchangées. Lot 11 approuvé indépendamment par ChatGPT au commit 88f841b ; core Economy +1600 particules personnelles/stats et notification informative atomiques, matching et journal R701 conservés. Lot 12 prépare OAuth Gift durable, credential refresh chiffré AES-256-GCM/AAD, provider user access validé en mémoire et migration additive 055 backend-only. Reward exacte app-owned avec recovery et conflit manuel dédié ; EventSub redemption.add v1 exact broadcaster/reward ID, jamais identification par titre. Lifecycle commun Chat/Faveur/Gift/unlink ; la suppression locale attend le cleanup distant confirmé.
+
+Webhook HMAC existant → résultat local durable → FULFILLED/CANCELED distant confirmé/retry. Preuve Lot 11 préservée dans le receipt ; input brut non persisté. Après FULFILLED seulement, annonce spécialisée avec réservation atomique NONE → RESERVED → SENT/FAILED/AMBIGUOUS. Limite at-most-once : timeout/envoi ambigu ou crash après réservation ne déclenchent aucun renvoi automatique ; une annonce peut manquer, le Gift payé reste acquis. Erreur certaine avant dispatch : réservation libérée et retry permis. Aucun outbound générique, commande, XP, mirroring ou Player créé.
+
+Candidat review, feature flag par défaut OFF ; aucune activation réelle. 055 éprouvée/enregistrée en schéma privé (55 migrations), DEV publique à 54 avec 055 en attente. Lots 11 + 12 seront promus ensemble après review indépendante Lot 12. [Architecture](../architecture/backend-architecture-v1.md#gift-suprême-lot-12--bridge-twitch-durable-candidat-review) et [Master](../master/PROJECT_MASTER_PLAN.md) portent les détails et la reprise exacte.
 
 ---
 

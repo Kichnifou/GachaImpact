@@ -110,3 +110,7 @@ Le futur Tutoriel sera un overlay/spotlight capable de changer automatiquement d
 ## Responsive et validation
 
 Le shell doit rester exploitable à 1920×1080, 2560×1440, environ 390×844 et en paysage mobile raisonnable. Les modales ferment par bouton, backdrop et `Escape`. Aucune barre, sous-navigation, grille Menu ou écran Configuration ne doit imposer de largeur minimale provoquant un overflow horizontal.
+
+## Compte — pilote Gift Suprême Lot 12
+
+Bloc « Gift Suprême Twitch » distinct de Chat et Faveur, seulement pilote éligible, Twitch liée et feature serveur disponible. Inactif : description de gestion de la reward et « Autoriser et activer » ; actif prouvé à distance : « ● Activé » et « Désactiver » ; pending explicite, polling borné. Credential conservé après panne : Réessayer sans refaire OAuth, ou renouveler l'autorisation invalide. Conflit manuel : consigne de désactiver/supprimer l'ancienne reward dans Twitch. Aucun reward ID, token ou ciphertext visible. Boutons AppButton et scroll Compte existant réutilisés. Corrections Profil/Event/Quotidiennes du Lot 11 conservées ; statut et reprise au [Master](../master/PROJECT_MASTER_PLAN.md).

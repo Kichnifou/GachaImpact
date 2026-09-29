@@ -6,6 +6,9 @@ import type { TwitchFavorSubscriptionConsumer } from '../../application/twitch/t
 import type { TwitchFavorGiftConsumer } from '../../application/twitch/twitch-favor-gift-consumer.js';
 import type { TwitchFavorResubConsumer } from '../../application/twitch/twitch-favor-resub-consumer.js';
 import { isFavorEligibleTwitchChatMessage, type TwitchFavorChatPresenceConsumer } from '../../application/twitch/twitch-favor-chat-presence-consumer.js';
+import { twitchGiftSupremeRedemption } from '../../application/twitch/twitch-gift-supreme-redemption.js';
+import type { TwitchGiftSupremeRuntime } from '../../application/twitch/twitch-gift-supreme-runtime.js';
+import { GiftSupremeIdempotencyConflict, GIFT_SUPREME_EVENT_TYPE } from '../../application/gift-supreme/gift-supreme-service.js';
 
 const MAX_AGE_MS = 10 * 60 * 1000;
 const header = (value: string | string[] | undefined) => typeof value === 'string' ? value : null;
@@ -44,11 +47,16 @@ const resubEnvelope = envelope.extend({
     message: z.object({ text: z.string(), emotes: z.array(emote) }).strict(),
   }).strict(),
 }).refine(body => body.subscription.condition.broadcaster_user_id === body.event.broadcaster_user_id);
+const giftSupremeEnvelope = twitchGiftSupremeRedemption.extend({ subscription: twitchGiftSupremeRedemption.shape.subscription.extend({
+  status: z.literal('enabled'), condition: z.object({ broadcaster_user_id: twitchId, reward_id: z.string().min(1).max(128) }).strict(),
+}) }).refine(body => body.subscription.condition.broadcaster_user_id === body.event.broadcaster_user_id
+  && body.subscription.condition.reward_id === body.event.reward.id);
 
 export async function registerTwitchEventSubRoutes(app: FastifyInstance, options: {
   secret: string; observer: TwitchEventObserver; favorSubscriptions: TwitchFavorSubscriptionConsumer; favorGifts: TwitchFavorGiftConsumer;
   favorResubs: TwitchFavorResubConsumer;
   favorChatPresence: TwitchFavorChatPresenceConsumer;
+  giftSupreme?: TwitchGiftSupremeRuntime;
 }) {
   // Fastify's ordinary JSON parser loses the exact bytes Twitch signed. This parser is scoped to this route plugin.
   app.addContentTypeParser('application/json', { parseAs: 'buffer' }, (_request, body, done) => done(null, body));
@@ -83,8 +91,14 @@ export async function registerTwitchEventSubRoutes(app: FastifyInstance, options
     const notification = envelope.safeParse(body);
     if (!notification.success) return reply.code(400).send();
     if (notification.data.subscription.version !== '1'
-      || !['channel.chat.message', 'channel.subscribe', 'channel.subscription.gift', 'channel.subscription.message'].includes(notification.data.subscription.type)) return reply.code(422).send();
+      || !['channel.chat.message', 'channel.subscribe', 'channel.subscription.gift', 'channel.subscription.message', ...(options.giftSupreme ? [GIFT_SUPREME_EVENT_TYPE] : [])].includes(notification.data.subscription.type)) return reply.code(422).send();
     try {
+      if (notification.data.subscription.type === GIFT_SUPREME_EVENT_TYPE) {
+        const parsed = giftSupremeEnvelope.safeParse(body);
+        if (!parsed.success) return reply.code(400).send();
+        await options.giftSupreme!.consumeAuthenticated(parsed.data, { messageId: id, payloadHash: createHash('sha256').update(raw).digest('hex') });
+        return reply.code(204).send();
+      }
       if (notification.data.subscription.type === 'channel.subscription.message') {
         const parsed = resubEnvelope.safeParse(body);
         if (!parsed.success) return reply.code(400).send();
@@ -134,7 +148,7 @@ export async function registerTwitchEventSubRoutes(app: FastifyInstance, options
       if (normalMessage) await options.favorChatPresence.consume(observed.receipt.id);
       return reply.code(204).send();
     } catch (error) {
-      if (error instanceof TwitchObservationConflict) return reply.code(409).send();
+      if (error instanceof TwitchObservationConflict || error instanceof GiftSupremeIdempotencyConflict) return reply.code(409).send();
       throw error;
     }
   });

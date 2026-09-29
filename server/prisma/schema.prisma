@@ -369,6 +369,7 @@ model Player {
   element               Element?                     @relation(fields: [elementKey], references: [key], onDelete: Restrict)
   webIdentity           WebIdentity?
   twitchIdentity        TwitchIdentity?
+  twitchGiftSupremeCredential TwitchGiftSupremeCredential?
   twitchLinkStates      TwitchLinkState[]
   migrationPreviews     MigrationPreview[]
   migrationRuns         MigrationRun[]
@@ -853,6 +854,20 @@ model TwitchIdentity {
   player         Player   @relation(fields: [playerId], references: [id], onDelete: Restrict)
 
   @@map("twitch_identities")
+}
+
+model TwitchGiftSupremeCredential {
+  playerId String @id @map("player_id") @db.Uuid
+  twitchUserId String @unique(map: "twitch_gift_supreme_credentials_twitch_user_key") @map("twitch_user_id") @db.Text
+  encryptedRefreshToken String @map("encrypted_refresh_token") @db.Text
+  rewardId String? @map("reward_id") @db.Text
+  scopes Json @db.JsonB
+  revision Int @default(1)
+  authorizedAt DateTime @default(now()) @map("authorized_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
+
+  @@map("twitch_gift_supreme_credentials")
 }
 
 model TwitchLinkState {

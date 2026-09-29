@@ -37,6 +37,13 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
       throw new AppError('Paramètres Faveur Twitch invalides.', 400, 'VALIDATION_ERROR');
     return options.twitch.disableFavor(requireAuthenticatedIdentity(request));
   });
+  const giftParameters = (request: { body: unknown; query: unknown }) => {
+    if (!z.object({}).strict().safeParse(request.body === undefined ? {} : request.body).success || Object.keys(request.query as object).length)
+      throw new AppError('Paramètres Gift Suprême invalides.', 400, 'VALIDATION_ERROR');
+  };
+  app.post('/api/v1/me/twitch/gift-supreme/start', authenticated, request => { giftParameters(request); return options.twitch.startGiftSupreme(requireAuthenticatedIdentity(request)); });
+  app.post('/api/v1/me/twitch/gift-supreme/ensure', authenticated, request => { giftParameters(request); return options.twitch.ensureGiftSupreme(requireAuthenticatedIdentity(request)); });
+  app.delete('/api/v1/me/twitch/gift-supreme', authenticated, request => { giftParameters(request); return options.twitch.disableGiftSupreme(requireAuthenticatedIdentity(request)); });
   app.delete('/api/v1/me/twitch', authenticated, request => options.twitch.unlink(requireAuthenticatedIdentity(request)));
   app.delete('/api/v1/me/twitch/runtime/subscription', authenticated, request => {
     if (!z.object({}).strict().safeParse(request.body ?? {}).success || Object.keys(request.query as object).length)
@@ -48,14 +55,16 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
     let outcome = 'error';
     let runtime = false;
     let favor = false;
+    let gift = false;
     try { if (query.success) {
       const purpose = twitchOAuthPurpose(query.data.state);
       runtime = purpose === 'AUTHORIZE_RUNTIME';
       favor = purpose === 'AUTHORIZE_FAVOR_SUBSCRIPTIONS';
+      gift = purpose === 'AUTHORIZE_GIFT_SUPREME';
       await options.twitch.callback(query.data);
-      outcome = favor ? 'favor-runtime-activated' : runtime ? 'runtime-activated' : 'connected';
+      outcome = gift ? 'gift-supreme-activated' : favor ? 'favor-runtime-activated' : runtime ? 'runtime-activated' : 'connected';
     } }
-    catch (error) { outcome = favor ? 'favor-runtime-error' : runtime ? 'runtime-error' : error instanceof AppError ? error.code : 'error'; }
+    catch (error) { outcome = gift ? 'gift-supreme-error' : favor ? 'favor-runtime-error' : runtime ? 'runtime-error' : error instanceof AppError ? error.code : 'error'; }
     const target = new URL(options.config.frontendOrigin ?? 'http://localhost:5173');
     target.searchParams.set('twitch', outcome);
     target.hash = 'configuration';

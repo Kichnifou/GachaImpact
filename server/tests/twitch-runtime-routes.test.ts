@@ -13,6 +13,9 @@ async function setup() {
   const twitch = { status: vi.fn(async () => ({ runtimeAuthorizationAvailable: true, runtimeSubscriptionAvailable: false })),
     start: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize' })),
     startRuntime: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize?scope=openid' })),
+    startGiftSupreme: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize' })),
+    ensureGiftSupreme: vi.fn(async () => ({ giftSupremeActive: true, giftSupremePending: false })),
+    disableGiftSupreme: vi.fn(async () => ({ giftSupremeActive: false, giftSupremePending: false })),
     startFavor: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize?scope=openid+channel%3Aread%3Asubscriptions' })),
     disableFavor: vi.fn(async () => ({ favorSubscriptionActive: false, favorSubscriptionPending: false })),
     callback: vi.fn(async () => ({})), unlink: vi.fn(), disableRuntime: vi.fn(async () => ({ runtimeChatActive: false, runtimeChatPending: false })) };
@@ -106,4 +109,22 @@ it('authenticates Faveur disable with strict empty body/query and leaves Chat al
     expect((await app.inject({ method: 'DELETE', url, headers: { ...headers, 'content-type': 'application/json' }, payload: JSON.stringify(payload) })).statusCode).toBe(400);
   expect((await app.inject({ method: 'DELETE', url: url + '?id=other', headers })).statusCode).toBe(400);
   expect(twitch.disableFavor).toHaveBeenCalledOnce(); expect(twitch.disableRuntime).not.toHaveBeenCalled(); expect(twitch.unlink).not.toHaveBeenCalled();
+});
+
+
+describe('Gift pilot routes', () => {
+  it.each([['POST', '/api/v1/me/twitch/gift-supreme/start'], ['POST', '/api/v1/me/twitch/gift-supreme/ensure'], ['DELETE', '/api/v1/me/twitch/gift-supreme']] as const)('strict authenticated %s %s', async (method, url) => {
+    const { app } = await setup(); const headers = { authorization: 'Bearer test', 'content-type': 'application/json' };
+    expect((await app.inject({ method, url })).statusCode).toBe(401);
+    for (const payload of [{ rewardId: 'arbitrary' }, { access_token: 'bad' }, [], 'text', null])
+      expect((await app.inject({ method, url, headers, payload: JSON.stringify(payload) })).statusCode).toBe(400);
+    expect((await app.inject({ method, url: url + '?reward_id=bad', headers: { authorization: 'Bearer test' } })).statusCode).toBe(400);
+    expect((await app.inject({ method, url, headers: { authorization: 'Bearer test' } })).statusCode).toBe(200);
+  });
+  it('redirects Gift activation and errors to fixed outcomes without OAuth secrets', async () => {
+    const { app, twitch } = await setup(); const url = '/api/v1/me/twitch/callback?state=gift_' + state + '&code=private-code';
+    const good = await app.inject({ method: 'GET', url }); expect(new URL(good.headers.location!).searchParams.get('twitch')).toBe('gift-supreme-activated');
+    twitch.callback.mockRejectedValueOnce(Error('private-access')); const bad = await app.inject({ method: 'GET', url });
+    expect(new URL(bad.headers.location!).searchParams.get('twitch')).toBe('gift-supreme-error'); expect(bad.headers.location).not.toMatch(/private-access|private-code/);
+  });
 });

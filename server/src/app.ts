@@ -13,6 +13,7 @@ import type { TwitchFavorSubscriptionConsumer } from './application/twitch/twitc
 import type { TwitchFavorGiftConsumer } from './application/twitch/twitch-favor-gift-consumer.js';
 import type { TwitchFavorResubConsumer } from './application/twitch/twitch-favor-resub-consumer.js';
 import type { TwitchEventSubSubscriptionManager } from './application/twitch/twitch-eventsub-subscription-manager.js';
+import type { TwitchGiftSupremeRuntime } from './application/twitch/twitch-gift-supreme-runtime.js';
 import { registerTradeRoutes } from './api/routes/trades.js';
 import { registerSocialRoutes } from './api/routes/social.js';
 import { registerAppearanceRoutes } from './api/routes/appearance.js';
@@ -102,6 +103,7 @@ export type AppDependencies = Readonly<{
   twitchFavorResubs?: TwitchFavorResubConsumer;
   twitchFavorChatPresence?: TwitchFavorChatPresenceConsumer;
   twitchSubscriptions?: TwitchEventSubSubscriptionManager;
+  twitchGiftSupreme?: TwitchGiftSupremeRuntime;
   snapshotPilot?: SnapshotPilotService;
   tradePlayer?: GetCurrentPlayer;
   currentPlayerFavor?: CurrentPlayerFavorService;
@@ -198,7 +200,8 @@ export async function buildApp(
     if (config.twitchEventSub?.enabled) {
       if (!config.twitchEventSub.secret || !dependencies.twitchEventObserver || !dependencies.twitchFavorSubscriptions || !dependencies.twitchFavorGifts || !dependencies.twitchFavorResubs || !dependencies.twitchFavorChatPresence) throw new Error('Twitch EventSub webhook is enabled without a secret, observer or Favor consumers.');
       await app.register(registerTwitchEventSubRoutes, { secret: config.twitchEventSub.secret, observer: dependencies.twitchEventObserver,
-        favorSubscriptions: dependencies.twitchFavorSubscriptions, favorGifts: dependencies.twitchFavorGifts, favorResubs: dependencies.twitchFavorResubs, favorChatPresence: dependencies.twitchFavorChatPresence });
+        favorSubscriptions: dependencies.twitchFavorSubscriptions, favorGifts: dependencies.twitchFavorGifts, favorResubs: dependencies.twitchFavorResubs, favorChatPresence: dependencies.twitchFavorChatPresence,
+        giftSupreme: config.twitchGiftSupreme?.enabled && config.twitchGiftSupreme.credentialKey ? dependencies.twitchGiftSupreme : undefined });
     }
     registerAuthenticationContext(app);
     await app.register(registerCurrentPlayerRoutes, {

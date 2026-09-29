@@ -1,11 +1,12 @@
 import type { PrismaClient } from '../../../generated/prisma/client.js';
 import type { AppConfig } from '../../config/environment.js';
 import { AppError } from '../../api/errors.js';
+import { TwitchLifecycleCoordinator } from './twitch-lifecycle-coordinator.js';
 import { TwitchEventSubApiError, type PilotEventSubType, type TwitchEventSubClient, type TwitchEventSubSubscription } from '../../infrastructure/twitch/twitch-eventsub-client.js';
 
 export type PilotSubscriptionState = 'INACTIVE' | 'VERIFICATION_PENDING' | 'ACTIVE';
 export type PilotChatState = PilotSubscriptionState;
-type SubscriptionContext = { userId: string; callback: string };
+type SubscriptionContext = { userId: string; callback: string; rewardId?: string };
 export type PilotFavorSubscriptions = {
   status: 'enabled' | 'webhook_callback_verification_pending';
   subscriptions: readonly [TwitchEventSubSubscription, TwitchEventSubSubscription, TwitchEventSubSubscription];
@@ -18,7 +19,7 @@ const unavailable = () => new AppError('Réception du chat Twitch indisponible.'
 
 /** Explicit pilot operations. Construction and health never call Twitch. */
 export class TwitchEventSubSubscriptionManager {
-  private readonly queues = new Map<string, Promise<void>>();
+  readonly lifecycle = new TwitchLifecycleCoordinator();
   private readonly pending = new Map<string, Promise<TwitchEventSubSubscription>>();
   private readonly favorPending = new Map<string, Promise<PilotFavorSubscriptions>>();
   private readonly disabling = new Map<string, Promise<PilotChatState>>();
@@ -33,14 +34,10 @@ export class TwitchEventSubSubscriptionManager {
   }
 
   private async serial<T>(playerId: string, action: () => Promise<T>): Promise<T> {
-    const job = (this.queues.get(playerId) ?? Promise.resolve()).then(action);
-    const settled = job.then(() => undefined, () => undefined);
-    this.queues.set(playerId, settled);
-    try { return await job; }
-    finally { if (this.queues.get(playerId) === settled) this.queues.delete(playerId); }
+    return this.lifecycle.run(playerId, action);
   }
 
-  private async context(playerId: string, activation = false, expectedUserId?: string, expectedLogin?: string) {
+  private async context(playerId: string, activation = false, expectedUserId?: string, expectedLogin?: string): Promise<SubscriptionContext> {
     if (!this.config.twitch?.pilotPlayerIds.includes(playerId)) throw new AppError('Pilote Twitch non autorisé.', 403, 'TWITCH_PILOT_FORBIDDEN');
     if (activation ? !this.activationAvailable : !this.managementAvailable) throw unavailable();
     const linked = await this.db.twitchIdentity.findUnique({ where: { playerId } });
@@ -52,20 +49,22 @@ export class TwitchEventSubSubscriptionManager {
     return { userId: linked.twitchUserId, callback: this.config.twitchEventSub!.callbackUrl! };
   }
 
-  private exact(subscriptions: TwitchEventSubSubscription[], userId: string, callback: string, type: PilotEventSubType) {
+  private exact(subscriptions: TwitchEventSubSubscription[], userId: string, callback: string, type: PilotEventSubType, rewardId?: string) {
     // Another chatting user on this broadcaster is a conflict, never a second pilot subscription.
     const related = subscriptions.filter(item => item.type === type && item.condition.broadcaster_user_id === userId);
     if (!related.length) return undefined;
     if (related.length !== 1) throw conflict(type);
     const item = related[0]!;
     if (item.version !== '1' || (type === 'channel.chat.message' && item.condition.user_id !== userId)
-      || Object.keys(item.condition).length !== (type === 'channel.chat.message' ? 2 : 1) ||
+      || (type === 'channel.channel_points_custom_reward_redemption.add' && (!rewardId || item.condition.reward_id !== rewardId))
+      || Object.keys(item.condition).length !== (type === 'channel.chat.message' || type === 'channel.channel_points_custom_reward_redemption.add' ? 2 : 1) ||
       item.transport.method !== 'webhook' || item.transport.callback !== callback ||
       !['enabled', 'webhook_callback_verification_pending'].includes(item.status)) throw conflict(type);
     return item;
   }
 
   private list(type: PilotEventSubType, signal?: AbortSignal) {
+    if (type === 'channel.channel_points_custom_reward_redemption.add') return this.client.listGiftSupremeSubscriptions(signal);
     return type === 'channel.chat.message' ? this.client.listChatSubscriptions(signal)
       : type === 'channel.subscribe' ? this.client.listFavorSubscriptions(signal)
         : type === 'channel.subscription.gift' ? this.client.listGiftSubscriptions(signal) : this.client.listResubSubscriptions(signal);
@@ -90,22 +89,24 @@ export class TwitchEventSubSubscriptionManager {
     });
   }
 
-  private async ensureExact({ userId, callback }: SubscriptionContext, type: PilotEventSubType): Promise<TwitchEventSubSubscription> {
-    const existing = this.exact(await this.list(type), userId, callback, type);
+  private async ensureExact({ userId, callback, rewardId }: SubscriptionContext, type: PilotEventSubType): Promise<TwitchEventSubSubscription> {
+    const existing = this.exact(await this.list(type), userId, callback, type, rewardId);
     if (existing) return existing;
     try {
       const transport = { method: 'webhook' as const, callback, secret: this.config.twitchEventSub!.secret! };
-      const created = type === 'channel.chat.message' ? await this.client.createChatSubscription({ type, version: '1',
+      const created = type === 'channel.channel_points_custom_reward_redemption.add' ? await this.client.createGiftSupremeSubscription({ type, version: '1',
+        condition: { broadcaster_user_id: userId, reward_id: rewardId! }, transport })
+        : type === 'channel.chat.message' ? await this.client.createChatSubscription({ type, version: '1',
         condition: { broadcaster_user_id: userId, user_id: userId }, transport })
         : type === 'channel.subscribe' ? await this.client.createFavorSubscription({ type, version: '1', condition: { broadcaster_user_id: userId }, transport })
         : type === 'channel.subscription.gift' ? await this.client.createGiftSubscription({ type, version: '1', condition: { broadcaster_user_id: userId }, transport })
           : await this.client.createResubSubscription({ type, version: '1', condition: { broadcaster_user_id: userId }, transport });
-      const matching = this.exact([created], userId, callback, type);
+      const matching = this.exact([created], userId, callback, type, rewardId);
       if (!matching) throw conflict(type);
       return matching;
     } catch (error) {
       if (!(error instanceof TwitchEventSubApiError) || error.upstreamStatus !== 409) throw error;
-      const recovered = this.exact(await this.list(type), userId, callback, type);
+      const recovered = this.exact(await this.list(type), userId, callback, type, rewardId);
       if (!recovered) throw conflict(type);
       return recovered;
     }
@@ -143,13 +144,13 @@ export class TwitchEventSubSubscriptionManager {
 
   private async disable(playerId: string, type: PilotEventSubType, context?: SubscriptionContext): Promise<PilotChatState> {
     // Removal remains possible after the receiving flag is switched OFF.
-    const { userId, callback } = context ?? await this.context(playerId);
-    const existing = this.exact(await this.list(type), userId, callback, type);
+    const { userId, callback, rewardId } = context ?? await this.context(playerId);
+    const existing = this.exact(await this.list(type), userId, callback, type, rewardId);
     if (!existing) return 'INACTIVE';
     try { await this.client.deleteSubscription(existing.id); }
     catch (error) {
       if (!(error instanceof TwitchEventSubApiError) || error.upstreamStatus !== 404) throw error;
-      if (this.exact(await this.list(type), userId, callback, type)) throw conflict(type);
+      if (this.exact(await this.list(type), userId, callback, type, rewardId)) throw conflict(type);
     }
     return 'INACTIVE';
   }
@@ -169,6 +170,24 @@ export class TwitchEventSubSubscriptionManager {
   }
   async disablePilotChatSubscription(playerId: string) { return this.disablePilotSubscription(playerId, 'channel.chat.message'); }
   async disablePilotFavorSubscription(playerId: string) { return this.disablePilotSubscription(playerId, 'FAVOR'); }
+
+  // Gift calls these ONLY while holding lifecycle.run; adding another queue here would deadlock.
+  async inspectGiftSupremeUnlocked(playerId: string, rewardId: string, signal?: AbortSignal) {
+    const { userId, callback } = await this.context(playerId, true);
+    const item = this.exact(await this.list('channel.channel_points_custom_reward_redemption.add', signal), userId, callback, 'channel.channel_points_custom_reward_redemption.add', rewardId);
+    return !item ? 'INACTIVE' as const : item.status === 'enabled' ? 'ACTIVE' as const : 'VERIFICATION_PENDING' as const;
+  }
+  async ensureGiftSupremeUnlocked(playerId: string, rewardId: string, expectedUserId: string, expectedLogin: string) {
+    return this.ensureExact({ ...await this.context(playerId, true, expectedUserId, expectedLogin), rewardId }, 'channel.channel_points_custom_reward_redemption.add');
+  }
+  async disableGiftSupremeUnlocked(playerId: string, rewardId: string) {
+    return this.disable(playerId, 'channel.channel_points_custom_reward_redemption.add', { ...await this.context(playerId), rewardId });
+  }
+  async assertGiftSupremeAbsentUnlocked(playerId: string) {
+    const { userId } = await this.context(playerId);
+    if ((await this.list('channel.channel_points_custom_reward_redemption.add')).some(item => item.condition.broadcaster_user_id === userId))
+      throw conflict('channel.channel_points_custom_reward_redemption.add');
+  }
 
   async unlinkPilotIdentity(playerId: string, removeIdentity: () => Promise<void>) {
     return this.serial(playerId, async () => {
