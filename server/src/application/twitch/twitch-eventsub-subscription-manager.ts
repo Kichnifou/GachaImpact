@@ -190,12 +190,13 @@ export class TwitchEventSubSubscriptionManager {
   }
 
   async unlinkPilotIdentity(playerId: string, removeIdentity: () => Promise<void>) {
-    return this.serial(playerId, async () => {
-      const context = await this.context(playerId);
-      await this.disable(playerId, 'channel.chat.message', context);
-      for (const type of favorTypes) await this.disable(playerId, type, context);
-      // Keep deletion in the same queue so an OAuth callback cannot create an orphan.
-      await removeIdentity();
-    });
+    return this.serial(playerId, () => this.unlinkPilotIdentityUnlocked(playerId, removeIdentity));
+  }
+  /** Gift phase B already holds the shared Player queue. Never acquire it again here. */
+  async unlinkPilotIdentityUnlocked(playerId: string, removeIdentity: () => Promise<void>) {
+    const context = await this.context(playerId);
+    await this.disable(playerId, 'channel.chat.message', context);
+    for (const type of favorTypes) await this.disable(playerId, type, context);
+    await removeIdentity();
   }
 }

@@ -56,6 +56,25 @@ export class TwitchGiftHelixClient {
     return this.oneReward(await this.call(playerId, 'channel_points/custom_rewards', 'PATCH', { broadcaster_id: broadcasterId, id: rewardId },
       { ...GIFT_SUPREME_REWARD, is_enabled: enabled }), broadcasterId, rewardId);
   }
+  /** Stop at the first pending redemption; absence requires exhausting the bounded cursor chain. */
+  async hasUnfulfilledRedemptions(playerId: string, broadcasterId: string, rewardId: string): Promise<boolean> {
+    const signal = AbortSignal.timeout(15_000), cursors = new Set<string>();
+    let after: string | undefined;
+    for (let page = 0; page < 10; page++) {
+      const parsed = z.object({ data: z.array(redemptionSchema).max(50), pagination: z.object({ cursor: z.string().min(1).max(4096).optional() }) })
+        .safeParse(await this.call(playerId, 'channel_points/custom_rewards/redemptions', 'GET',
+          { broadcaster_id: broadcasterId, reward_id: rewardId, status: 'UNFULFILLED', first: '50', sort: 'OLDEST', ...(after ? { after } : {}) }, undefined, signal));
+      if (!parsed.success || parsed.data.data.some(row => row.broadcaster_id !== broadcasterId || row.reward.id !== rewardId || row.status !== 'UNFULFILLED'))
+        throw new TwitchGiftHelixError(200);
+      if (parsed.data.data.length) return true;
+      after = parsed.data.pagination.cursor;
+      if (!after) return false;
+      if (cursors.has(after)) throw new TwitchGiftHelixError(200);
+      cursors.add(after);
+    }
+    // Incomplete inspection is never proof of absence.
+    throw new TwitchGiftHelixError(200);
+  }
   async settle(playerId: string, broadcasterId: string, rewardId: string, redemptionId: string, status: TwitchGiftRemoteStatus) {
     let confirmed = false;
     try {

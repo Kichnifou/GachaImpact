@@ -347,6 +347,37 @@ it('bounds stalled Faveur confirmation and cleans the deadline', async () => {
 
 describe('Gift Suprême account controls', () => {
   const giftAccount = { ...linkedAccount, giftSupremeAvailable: true, giftSupremeAuthorized: false, giftSupremeActive: false, giftSupremePending: false };
+  it('rereads partial disable, displays a retryable error, and retries disable without ensure or OAuth', async () => {
+    api.getTwitchAccount.mockResolvedValueOnce({ ...giftAccount, giftSupremeAuthorized: true, giftSupremeActive: true })
+      .mockResolvedValueOnce({ ...giftAccount, giftSupremeAuthorized: true, giftSupremeDisabling: true }).mockResolvedValueOnce(giftAccount);
+    api.disableTwitchGiftSupreme.mockRejectedValueOnce(Object.assign(Error('private upstream input'), { code: 'TWITCH_GIFT_PENDING_REDEMPTIONS' })).mockResolvedValueOnce({ giftSupremeActive: false });
+    const container = await mount(); await act(async () => button(container, 'Désactiver').click());
+    expect(container.textContent).toContain('Désactivation en cours'); expect(container.textContent).not.toContain('● Activé');
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('encore en cours de traitement'); expect(container.textContent).not.toContain('private upstream input');
+    await act(async () => button(container, 'Réessayer la désactivation').click());
+    expect(api.disableTwitchGiftSupreme).toHaveBeenCalledTimes(2); expect(api.ensureTwitchGiftSupreme).not.toHaveBeenCalled(); expect(api.startTwitchGiftSupreme).not.toHaveBeenCalled();
+    expect(container.textContent).toContain('Non activé'); expect(container.querySelector('[role="alert"]')).toBeNull();
+  });
+  it('reactivates a partial disable only through an explicit owner action', async () => {
+    api.getTwitchAccount.mockResolvedValueOnce({ ...giftAccount, giftSupremeAuthorized: true, giftSupremeDisabling: true })
+      .mockResolvedValueOnce({ ...giftAccount, giftSupremeAuthorized: true, giftSupremeActive: true }); api.ensureTwitchGiftSupreme.mockResolvedValue({ giftSupremeActive: true });
+    const container = await mount(); expect(api.ensureTwitchGiftSupreme).not.toHaveBeenCalled();
+    await act(async () => button(container, 'Réactiver').click()); expect(api.ensureTwitchGiftSupreme).toHaveBeenCalledOnce(); expect(container.textContent).toContain('● Activé');
+  });
+  it('keeps the linked account after blocked unlink and refreshes its partial shutdown status', async () => {
+    api.getTwitchAccount.mockResolvedValueOnce({ ...giftAccount, giftSupremeAuthorized: true, giftSupremeActive: true })
+      .mockResolvedValueOnce({ ...giftAccount, giftSupremeAuthorized: true, giftSupremeDisabling: true });
+    api.unlinkTwitch.mockRejectedValueOnce(Object.assign(Error('pending'), { code: 'TWITCH_GIFT_PENDING_REDEMPTIONS' }));
+    const container = await mount(); await act(async () => button(container, 'Délier Twitch').click()); await act(async () => button(container, 'Confirmer').click());
+    expect(container.textContent).toContain('Kichnifou · Connecté'); expect(container.textContent).toContain('Désactivation en cours');
+    expect(container.querySelector('[role="dialog"]')).toBeNull(); expect(container.querySelector('[role="alert"]')?.textContent).toContain('encore en cours de traitement');
+  });
+  it('preserves the pending cleanup error if its authoritative status refresh fails', async () => {
+    api.getTwitchAccount.mockResolvedValueOnce({ ...giftAccount, giftSupremeAuthorized: true, giftSupremeActive: true }).mockRejectedValueOnce(Error('read failed'));
+    api.disableTwitchGiftSupreme.mockRejectedValueOnce(Object.assign(Error('pending'), { code: 'TWITCH_GIFT_PENDING_REDEMPTIONS' }));
+    const container = await mount(); await act(async () => button(container, 'Désactiver').click());
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('encore en cours de traitement'); expect(api.ensureTwitchGiftSupreme).not.toHaveBeenCalled();
+  });
   it.each([{ eligible: false }, { linked: null }, { giftSupremeAvailable: false }])('hides Gift outside eligible linked available pilots', async flags => {
     api.getTwitchAccount.mockResolvedValue({ ...giftAccount, ...flags }); expect((await mount()).textContent).not.toContain('Gift Suprême Twitch');
   });

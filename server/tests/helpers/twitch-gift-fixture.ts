@@ -13,12 +13,12 @@ export const giftKey = Buffer.alloc(32, 7).toString('base64');
 export const giftConfig: AppConfig = { host: '127.0.0.1', port: 3001, frontendOrigin: 'https://game.example', supabase: {},
   twitch: { clientId: 'client', clientSecret: 'private-secret', redirectUri: 'https://api.example/api/v1/me/twitch/callback', pilotPlayerIds: [giftPlayerId], pilotLogin: 'kichnifou' },
   twitchEventSub: { enabled: true, callbackUrl: 'https://api.example/api/v1/twitch/eventsub', secret: 'event-secret' }, twitchGiftSupreme: { enabled: true, credentialKey: giftKey } };
-export const giftReward = (id = 'reward-1'): TwitchGiftReward => ({ id, broadcaster_id: '12345', ...GIFT_SUPREME_REWARD, is_enabled: true });
+export const giftReward = (id = 'reward-1', broadcasterId = '12345'): TwitchGiftReward => ({ id, broadcaster_id: broadcasterId, ...GIFT_SUPREME_REWARD, is_enabled: true });
 export const linkedGiftIdentity = { playerId: giftPlayerId, twitchUserId: '12345', login: 'kichnifou', displayName: 'Kichnifou', linkedAt: new Date('2026-09-29T00:00:00Z') };
-export function giftFixture(actualDb?: PrismaClient, playerId = giftPlayerId) {
-  const linked = { ...linkedGiftIdentity, playerId };
-  let row: TwitchGiftSupremeCredential | null = { playerId, twitchUserId: '12345', rewardId: null, scopes: [...TWITCH_GIFT_SUPREME_SCOPES], revision: 1,
-    encryptedRefreshToken: new TwitchGiftCredentialCipher(giftKey).encrypt('private-refresh', playerId, '12345'), authorizedAt: new Date(), updatedAt: new Date() };
+export function giftFixture(actualDb?: PrismaClient, playerId = giftPlayerId, broadcasterId = '12345') {
+  const linked = { ...linkedGiftIdentity, playerId, twitchUserId: broadcasterId };
+  let row: TwitchGiftSupremeCredential | null = { playerId, twitchUserId: broadcasterId, rewardId: null, scopes: [...TWITCH_GIFT_SUPREME_SCOPES], revision: 1,
+    encryptedRefreshToken: new TwitchGiftCredentialCipher(giftKey).encrypt('private-refresh', playerId, broadcasterId), authorizedAt: new Date(), updatedAt: new Date() };
   const credential = {
     findUnique: vi.fn(async () => row),
     updateMany: vi.fn(async (args: { where: { revision?: number }; data: Omit<Partial<TwitchGiftSupremeCredential>, 'revision'> & { revision?: { increment: number } | number } }) => {
@@ -31,12 +31,12 @@ export function giftFixture(actualDb?: PrismaClient, playerId = giftPlayerId) {
     }),
     deleteMany: vi.fn(async () => { row = null; return { count: 1 }; }),
   };
-  const mocks = { twitchGiftSupremeCredential: credential, twitchIdentity: { findUnique: vi.fn(async () => linked), deleteMany: vi.fn(async () => ({ count: 1 })) } };
+  const mocks = { $queryRaw: vi.fn(async () => [] as { id: string }[]), twitchGiftSupremeCredential: credential, twitchIdentity: { findUnique: vi.fn(async () => linked), deleteMany: vi.fn(async () => ({ count: 1 })) } };
   const db = actualDb ?? mocks as unknown as PrismaClient;
-  const state = { manageable: [] as TwitchGiftReward[], manual: [] as TwitchGiftReward[], subscriptions: [] as TwitchEventSubSubscription[], redemptionStatus: 'UNFULFILLED', message: '', failPatch: false, chatMode: 'success' };
+  const state = { manageable: [] as TwitchGiftReward[], manual: [] as TwitchGiftReward[], subscriptions: [] as TwitchEventSubSubscription[], unfulfilledIds: [] as string[], redemptionStatus: 'UNFULFILLED', message: '', failPatch: false, chatMode: 'success' };
   const network = vi.fn<typeof fetch>(async (input, options) => {
     const url = new URL(String(input)); const method = options?.method ?? 'GET'; const body = options?.body ? JSON.parse(String(options.body)) as Record<string, unknown> : {};
-    if (url.pathname === '/oauth2/validate') return Response.json({ client_id: 'client', user_id: '12345', scopes: TWITCH_GIFT_SUPREME_SCOPES, expires_in: 3600 });
+    if (url.pathname === '/oauth2/validate') return Response.json({ client_id: 'client', user_id: broadcasterId, scopes: TWITCH_GIFT_SUPREME_SCOPES, expires_in: 3600 });
     // The refresh endpoint uses URLSearchParams, handled by the dedicated token network below.
     if (url.pathname.endsWith('/chat/messages')) {
       state.message = String(body['message']);
@@ -45,11 +45,16 @@ export function giftFixture(actualDb?: PrismaClient, playerId = giftPlayerId) {
       return Response.json({ data: [{ is_sent: true, message_id: 'chat-message-1' }] });
     }
     if (url.pathname.endsWith('/redemptions')) {
-      if (method === 'PATCH') { if (state.failPatch) return Response.json({}, { status: 500 }); state.redemptionStatus = String(body['status']); }
-      return Response.json({ data: [{ id: url.searchParams.get('id'), broadcaster_id: '12345', reward: { id: 'reward-1' }, status: state.redemptionStatus }] });
+      if (method === 'PATCH') {
+        if (state.failPatch) return Response.json({}, { status: 500 });
+        state.redemptionStatus = String(body['status']); state.unfulfilledIds = state.unfulfilledIds.filter(id => id !== url.searchParams.get('id'));
+      }
+      const ids = url.searchParams.has('id') ? [url.searchParams.get('id')!] : state.unfulfilledIds;
+      return Response.json({ data: ids.map(id => ({ id, broadcaster_id: broadcasterId, reward: { id: url.searchParams.get('reward_id') },
+        status: url.searchParams.has('id') ? state.redemptionStatus : 'UNFULFILLED' })), pagination: {} });
     }
     if (method === 'GET') return Response.json({ data: [...state.manageable, ...(url.searchParams.get('only_manageable_rewards') === 'false' ? state.manual : [])] });
-    if (method === 'POST') { const reward = giftReward(); state.manageable.push(reward); return Response.json({ data: [reward] }); }
+    if (method === 'POST') { const reward = giftReward('reward-1', broadcasterId); state.manageable.push(reward); return Response.json({ data: [reward] }); }
     const reward = state.manageable.find(item => item.id === url.searchParams.get('id'));
     if (!reward) return Response.json({}, { status: 404 });
     Object.assign(reward, body); return Response.json({ data: [reward] });

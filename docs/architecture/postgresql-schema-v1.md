@@ -6,6 +6,8 @@ Migration additive `20260929151500_055_add_twitch_gift_supreme_credential`, tabl
 
 RLS activée, zéro policy navigateur et REVOKE ALL PUBLIC/anon/authenticated. Backend direct seul lecteur/rédacteur. Reward ID et révision sont des métadonnées de gestion, sans modifier l'économie ni le journal Gift Lot 11. Celui-ci reste TwitchEventReceipt/BusinessOperation/ResourceMovement/Notification ; confirmation distante et réservation d'annonce ajoutées à payloadMinimal.remote, preuve Lot 11 préservée.
 
+Correctif shutdown Lot 12 sans changement de schéma : guard sur les preuves Gift existantes de TwitchEventReceipt (SUCCESS sans FULFILLED / INVALID sans CANCELED), rattachées à la reward ou au broadcaster via delivery signée. AnnouncementState ne bloque pas le cleanup. Aucun flag DB ni migration 056 ; SQL/checksum 055 inchangés.
+
 055 appliquée par Prisma et testée en schéma privé avec chaîne complète de 55 migrations et migrate status à jour. Les fonctions historiques explicitement publiques de 030/047 sont redirigées vers le schéma privé pour la répétition ; SQL 055/checksum exact conservé. DEV publique reste à 54/054 ; 055 en attente avant future activation, sans migration publique ni backfill dans cette mission. [Architecture](backend-architecture-v1.md#gift-suprême-lot-12--bridge-twitch-durable-candidat-review) et [Master](../master/PROJECT_MASTER_PLAN.md) portent le statut courant.
 
 

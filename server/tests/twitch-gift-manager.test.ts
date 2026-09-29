@@ -72,7 +72,7 @@ describe('Gift reward, EventSub and shared lifecycle', () => {
     if (kind === 'eventsub') f.client.deleteSubscription.mockRejectedValueOnce(Error('eventsub fail'));
     if (kind === 'reward') vi.spyOn(f.manager.helix!, 'updateReward').mockRejectedValueOnce(Error('reward fail'));
     if (kind === 'credential') f.credential.deleteMany.mockRejectedValueOnce(Error('DB fail'));
-    await expect(f.subscriptions.unlinkPilotIdentity(giftPlayerId, async () => { await f.manager.disableUnlocked(giftPlayerId); await f.mocks.twitchIdentity.deleteMany(); })).rejects.toThrow();
+    await expect(f.manager.unlink(giftPlayerId, async () => { await f.mocks.twitchIdentity.deleteMany(); })).rejects.toThrow();
     expect(f.row).not.toBeNull(); expect(f.mocks.twitchIdentity.deleteMany).not.toHaveBeenCalled();
     await f.manager.disable(giftPlayerId); expect(f.row).toBeNull(); expect(f.state.manageable[0]!.is_enabled).toBe(false); expect(f.state.subscriptions).toHaveLength(0);
   });
@@ -88,7 +88,7 @@ describe('Gift reward, EventSub and shared lifecycle', () => {
     const ensure = f.manager.ensure(giftPlayerId); await entered.promise;
     const second = kind === 'disable' ? f.manager.disable(giftPlayerId) : kind === 'chat' ? f.subscriptions.ensurePilotChatSubscription(giftPlayerId)
       : kind === 'favor' ? f.subscriptions.ensurePilotFavorSubscription(giftPlayerId)
-        : f.subscriptions.unlinkPilotIdentity(giftPlayerId, async () => { await f.manager.disableUnlocked(giftPlayerId); await f.mocks.twitchIdentity.deleteMany(); });
+        : f.manager.unlink(giftPlayerId, async () => { await f.mocks.twitchIdentity.deleteMany(); });
     await new Promise<void>(resolve => setImmediate(resolve));
     expect(f.client.listChatSubscriptions).not.toHaveBeenCalled(); expect(f.client.listFavorSubscriptions).not.toHaveBeenCalled();
     expect(f.client.createChatSubscription).not.toHaveBeenCalled(); expect(f.credential.deleteMany).not.toHaveBeenCalled();
@@ -100,7 +100,7 @@ describe('Gift reward, EventSub and shared lifecycle', () => {
     const f = giftFixture(), entered = deferred(), gate = deferred(); const create = f.client.createGiftSupremeSubscription.getMockImplementation()!;
     f.client.createGiftSupremeSubscription.mockImplementationOnce(async args => { entered.release(); await gate.promise; return create(args); });
     const callback = f.manager.authorize({ playerId: giftPlayerId, twitchUserId: '12345', login: 'kichnifou', refreshToken: 'private-refresh', accessToken: 'private-access', scopes: ['openid', 'channel:manage:redemptions', 'user:write:chat'], expiresIn: 3600, linkedAt: f.linked.linkedAt });
-    await entered.promise; const unlink = f.subscriptions.unlinkPilotIdentity(giftPlayerId, async () => { await f.manager.disableUnlocked(giftPlayerId); await f.mocks.twitchIdentity.deleteMany(); });
+    await entered.promise; const unlink = f.manager.unlink(giftPlayerId, async () => { await f.mocks.twitchIdentity.deleteMany(); });
     expect(f.mocks.twitchIdentity.deleteMany).not.toHaveBeenCalled(); gate.release(); await Promise.all([callback, unlink]);
     expect(f.row).toBeNull(); expect(f.state.subscriptions).toHaveLength(0); expect(f.state.manageable[0]!.is_enabled).toBe(false);
     f.mocks.twitchIdentity.findUnique.mockResolvedValueOnce({ ...f.linked, linkedAt: new Date(+f.linked.linkedAt + 1) });

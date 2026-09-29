@@ -147,7 +147,11 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     } finally { clearTimeout(deadline) }
   }
   const retryGift = () => void run(async () => { await api.ensureTwitchGiftSupreme(); await refreshGift(true) })
-  const disableGift = () => void run(async () => { await api.disableTwitchGiftSupreme(); await refreshGift() })
+  const disableGift = () => void run(async () => {
+    try { await api.disableTwitchGiftSupreme() }
+    catch (reason) { try { await refreshGift() } catch { /* Preserve the original cleanup error. */ } throw reason }
+    await refreshGift()
+  })
   const disableFavor = () => void run(async () => {
     await api.disableTwitchFavor()
     const value = await api.getTwitchAccount()
@@ -162,7 +166,11 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
   })
   const confirmAction = () => {
     if (pendingRef.current || pending || applyingRef.current || runtimeChecking) return
-    if (confirm === 'unlink') { void run(async () => { await api.unlinkTwitch(); setAccount(await api.getTwitchAccount()); setPreview(null); setFiles(null); setConfirm(null) }); return }
+    if (confirm === 'unlink') { void run(async () => {
+      try { await api.unlinkTwitch() }
+      catch (reason) { try { await refreshGift() } catch { /* Preserve the original cleanup error. */ } setConfirm(null); throw reason }
+      setAccount(await api.getTwitchAccount()); setPreview(null); setFiles(null); setConfirm(null)
+    }); return }
     if (confirm !== 'apply' || !preview || !files) return
     applyingRef.current = true
     setApplying(true)
@@ -199,11 +207,12 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
           </div>}
           {account.eligible && account.giftSupremeAvailable && <div className="account-twitch-runtime account-twitch-gift" aria-busy={pending || runtimeChecking}>
             <h4>Gift Suprême Twitch</h4>
-            <p className={account.giftSupremeActive ? 'account-twitch-active' : undefined}>{account.giftSupremePending ? 'Vérification en cours…' : account.giftSupremeActive ? '● Activé' : 'Non activé'}</p>
+            <p className={account.giftSupremeActive ? 'account-twitch-active' : undefined}>{account.giftSupremeDisabling ? 'Désactivation en cours…' : account.giftSupremePending ? 'Vérification en cours…' : account.giftSupremeActive ? '● Activé' : 'Non activé'}</p>
             <p className="account-twitch-description">Permet à GachaImpact de gérer automatiquement la récompense Twitch Gift Suprême.</p>
             {account.giftSupremeError && <p className="configuration-error" role="alert">{giftStatusError(account.giftSupremeError)}</p>}
-            <AppButton disabled={pending || runtimeChecking || account.giftSupremePending} aria-busy={pending} onClick={account.giftSupremeActive ? disableGift : account.giftSupremeAuthorized && account.giftSupremeError !== 'CREDENTIAL_INVALID' ? retryGift : activateGift}>{account.giftSupremeActive ? 'Désactiver' : account.giftSupremeAuthorized && account.giftSupremeError !== 'CREDENTIAL_INVALID' ? 'Réessayer' : 'Autoriser et activer'}</AppButton>
-            {account.giftSupremeAuthorized && !account.giftSupremeActive && <AppButton disabled={pending || runtimeChecking} onClick={disableGift}>Désactiver</AppButton>}
+            <AppButton disabled={pending || runtimeChecking || account.giftSupremePending} aria-busy={pending} onClick={account.giftSupremeDisabling || account.giftSupremeActive ? disableGift : account.giftSupremeAuthorized && account.giftSupremeError !== 'CREDENTIAL_INVALID' ? retryGift : activateGift}>{account.giftSupremeDisabling ? 'Réessayer la désactivation' : account.giftSupremeActive ? 'Désactiver' : account.giftSupremeAuthorized && account.giftSupremeError !== 'CREDENTIAL_INVALID' ? 'Réessayer' : 'Autoriser et activer'}</AppButton>
+            {account.giftSupremeDisabling && account.giftSupremeAuthorized && <AppButton disabled={pending || runtimeChecking} onClick={retryGift}>Réactiver</AppButton>}
+            {account.giftSupremeAuthorized && !account.giftSupremeActive && !account.giftSupremeDisabling && <AppButton disabled={pending || runtimeChecking} onClick={disableGift}>Désactiver</AppButton>}
           </div>}
           <button type="button" disabled={pending || runtimeChecking} onClick={event => { openerRef.current = event.currentTarget; setConfirm('unlink') }}>Délier Twitch</button></>
           : <><p>Non connecté</p><button type="button" disabled={!account.pilotAvailable || pending} onClick={connect}>Connecter Twitch</button>{!account.pilotAvailable && <p>La liaison Twitch est indisponible pour ce compte ou sur ce serveur.</p>}</>}

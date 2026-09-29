@@ -2,6 +2,25 @@ import { describe, expect, it, vi } from 'vitest';
 import { giftFixture, giftPlayerId } from './helpers/twitch-gift-fixture.js';
 import { TwitchGiftHelixError } from '../src/infrastructure/twitch/twitch-gift-helix-client.js';
 describe('Gift typed Helix client', () => {
+  it('reads exact UNFULFILLED filters and follows an empty page cursor before proving absence', async () => {
+    const f = giftFixture(); await f.manager.tokens!.getToken(giftPlayerId); f.network.mockClear();
+    f.network.mockResolvedValueOnce(Response.json({ data: [], pagination: { cursor: 'next-page' } })).mockResolvedValueOnce(Response.json({ data: [], pagination: {} }));
+    expect(await f.manager.helix!.hasUnfulfilledRedemptions(giftPlayerId, '12345', 'reward-1')).toBe(false);
+    const queries = f.network.mock.calls.map(([url]) => Object.fromEntries(new URL(String(url)).searchParams));
+    expect(queries).toEqual([{ broadcaster_id: '12345', reward_id: 'reward-1', status: 'UNFULFILLED', first: '50', sort: 'OLDEST' },
+      { broadcaster_id: '12345', reward_id: 'reward-1', status: 'UNFULFILLED', first: '50', sort: 'OLDEST', after: 'next-page' }]);
+    f.state.unfulfilledIds.push('pending'); expect(await f.manager.helix!.hasUnfulfilledRedemptions(giftPlayerId, '12345', 'reward-1')).toBe(true);
+  });
+  it.each(['foreign-broadcaster', 'foreign-reward', 'terminal-state', 'missing-pagination', 'loop', 'limit', 'upstream'])('never proves absence with %s responses', async kind => {
+    const f = giftFixture(); await f.manager.tokens!.getToken(giftPlayerId); f.network.mockClear();
+    const redemption = { id: 'redemption', broadcaster_id: kind === 'foreign-broadcaster' ? '999' : '12345', reward: { id: kind === 'foreign-reward' ? 'other' : 'reward-1' }, status: kind === 'terminal-state' ? 'FULFILLED' : 'UNFULFILLED', user_input: 'private input' };
+    if (kind === 'loop') f.network.mockImplementation(async () => Response.json({ data: [], pagination: { cursor: 'same' } }));
+    else if (kind === 'limit') f.network.mockImplementation(async () => Response.json({ data: [], pagination: { cursor: String(f.network.mock.calls.length) } }));
+    else f.network.mockResolvedValueOnce(kind === 'upstream' ? Response.json({}, { status: 500 }) : Response.json({ data: [redemption], ...(kind === 'missing-pagination' ? {} : { pagination: {} }) }));
+    const failure = f.manager.helix!.hasUnfulfilledRedemptions(giftPlayerId, '12345', 'reward-1');
+    await expect(failure).rejects.toBeInstanceOf(TwitchGiftHelixError); await expect(failure).rejects.not.toThrow('private input');
+    expect(f.network.mock.calls.length).toBeLessThanOrEqual(10);
+  });
   it.each(['FULFILLED', 'CANCELED'] as const)('settles exact IDs as %s', async status => {
     const f = giftFixture(); await f.manager.helix!.settle(giftPlayerId, '12345', 'reward-1', 'redemption-1', status);
     const [url, options] = f.network.mock.calls.at(-1)!;

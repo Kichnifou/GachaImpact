@@ -285,14 +285,18 @@ export class TwitchPilotService {
     const player = await this.pilot(identity);
     const linked = await this.db.twitchIdentity.findUnique({ where: { playerId: player.id } });
     const remove = async () => {
-      if (this.gift) await this.gift.disableUnlocked(player.id);
-      else if (this.db.twitchGiftSupremeCredential && await this.db.twitchGiftSupremeCredential.findUnique({ where: { playerId: player.id } }))
-        throw new AppError('Impossible de confirmer l’arrêt Gift Suprême.', 503, 'TWITCH_GIFT_UNAVAILABLE');
       await this.db.twitchIdentity.deleteMany({ where: { playerId: player.id } });
     };
-    if (linked && this.subscriptions?.managementAvailable) await this.subscriptions.unlinkPilotIdentity(player.id, remove);
+    if (linked && this.gift) await this.gift.unlink(player.id, remove);
+    else if (linked && this.subscriptions?.managementAvailable) {
+      if (this.db.twitchGiftSupremeCredential && await this.db.twitchGiftSupremeCredential.findUnique({ where: { playerId: player.id } }))
+        throw new AppError('Impossible de confirmer l’arrêt Gift Suprême.', 503, 'TWITCH_GIFT_UNAVAILABLE');
+      await this.subscriptions.unlinkPilotIdentity(player.id, remove);
+    }
     else {
       if (linked && this.eventSubConfigured) throw new AppError('Impossible de vérifier l’arrêt des réceptions Twitch. Réessayez plus tard.', 503, 'TWITCH_RUNTIME_UNAVAILABLE');
+      if (this.db.twitchGiftSupremeCredential && await this.db.twitchGiftSupremeCredential.findUnique({ where: { playerId: player.id } }))
+        throw new AppError('Impossible de confirmer l’arrêt Gift Suprême.', 503, 'TWITCH_GIFT_UNAVAILABLE');
       await remove();
     }
     return { linked: false };
