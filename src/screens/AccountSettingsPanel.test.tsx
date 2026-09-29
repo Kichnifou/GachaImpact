@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const api = vi.hoisted(() => ({
-  getTwitchAccount: vi.fn(), startTwitchLink: vi.fn(), startTwitchRuntime: vi.fn(), disableTwitchRuntime: vi.fn(), unlinkTwitch: vi.fn(), previewTwitchSnapshot: vi.fn(), applyTwitchSnapshot: vi.fn(),
+  getTwitchAccount: vi.fn(), startTwitchLink: vi.fn(), startTwitchFavor: vi.fn(), disableTwitchFavor: vi.fn(), startTwitchRuntime: vi.fn(), disableTwitchRuntime: vi.fn(), unlinkTwitch: vi.fn(), previewTwitchSnapshot: vi.fn(), applyTwitchSnapshot: vi.fn(),
 }))
 vi.mock('../api/game-api', () => ({ getGameApiClient: () => api }))
 import AccountSettingsPanel from './AccountSettingsPanel'
@@ -264,4 +264,81 @@ describe('pilot chat reception', () => {
     expect(container.querySelector('[role="alert"]')?.textContent).toContain('chat Twitch');
     expect(container.textContent).toContain('Kichnifou · Connecté');
   });
+});
+
+
+describe('independent Faveur subscription controls', () => {
+  const inactive = { ...linkedAccount, runtimeSubscriptionAvailable: true, runtimeChatActive: false, favorSubscriptionAvailable: true, favorSubscriptionActive: false, favorSubscriptionPending: false };
+  const block = (container: HTMLElement) => container.querySelector<HTMLElement>('.account-twitch-favor')!;
+  it.each([{ ...inactive, linked: null }, { ...inactive, eligible: false }, { ...inactive, favorSubscriptionAvailable: false }])('hides Faveur outside its availability', async value => {
+    api.getTwitchAccount.mockResolvedValue(value); expect((await mount()).querySelector('.account-twitch-favor')).toBeNull();
+  });
+  it.each([[false, false], [true, false], [false, true], [true, true]])('shows independent Chat=%s / Faveur=%s and keeps unlink after both', async (chat, favor) => {
+    api.getTwitchAccount.mockResolvedValue({ ...inactive, runtimeChatActive: chat, favorSubscriptionActive: favor });
+    const container = await mount(), favorBlock = block(container), chatBlock = container.querySelector('.account-twitch-runtime')!;
+    expect(favorBlock.textContent).toContain(favor ? '● Activée' : 'Non activée');
+    expect(chatBlock.textContent).toContain(chat ? '● Activée' : 'Non activée');
+    expect(favorBlock.previousElementSibling).toBe(chatBlock); expect(favorBlock.nextElementSibling?.textContent).toBe('Délier Twitch');
+    expect(container.textContent).toContain('Snapshot Streamer.bot'); expect(favorBlock.textContent).not.toMatch(/EventSub|webhook|scope|token/i);
+  });
+  it('starts only Faveur once and locks buttons while redirect is pending', async () => {
+    api.getTwitchAccount.mockResolvedValue(inactive); let release!: (value: { url: string }) => void;
+    api.startTwitchFavor.mockReturnValue(new Promise(resolve => { release = resolve; }));
+    const navigate = vi.spyOn(location, 'assign').mockImplementation(() => undefined), container = await mount();
+    act(() => { button(block(container), 'Autoriser et activer').click(); button(block(container), 'Autoriser et activer').click(); });
+    expect(api.startTwitchFavor).toHaveBeenCalledOnce(); expect(api.startTwitchRuntime).not.toHaveBeenCalled(); expect(button(container, 'Délier Twitch').disabled).toBe(true);
+    await act(async () => release({ url: 'https://id.twitch.tv/oauth2/authorize?state=private-favor' }));
+    expect(navigate).toHaveBeenCalledWith('https://id.twitch.tv/oauth2/authorize?state=private-favor');
+  });
+  it.each(['https://evil.example/oauth2/authorize', 'javascript:alert(1)', 'https://id.twitch.tv/other', 'https://user:password@id.twitch.tv/oauth2/authorize', 'http://id.twitch.tv/oauth2/authorize'])('rejects Faveur redirect %s', async url => {
+    api.getTwitchAccount.mockResolvedValue(inactive); api.startTwitchFavor.mockResolvedValue({ url });
+    const navigate = vi.spyOn(location, 'assign').mockImplementation(() => undefined), container = await mount();
+    await act(async () => button(block(container), 'Autoriser et activer').click()); expect(navigate).not.toHaveBeenCalled(); expect(container.querySelector('[role="alert"]')).not.toBeNull();
+  });
+  it('disables Faveur only, reloads its proof and preserves Chat and snapshot', async () => {
+    api.getTwitchAccount.mockResolvedValueOnce({ ...inactive, runtimeChatActive: true, favorSubscriptionActive: true }).mockResolvedValue({ ...inactive, runtimeChatActive: true });
+    let finish!: () => void; api.disableTwitchFavor.mockReturnValue(new Promise<void>(resolve => { finish = resolve; }));
+    const container = await mount(), disable = button(block(container), 'Désactiver'); act(() => { disable.click(); disable.click(); });
+    expect(disable.disabled).toBe(true); expect(api.disableTwitchFavor).toHaveBeenCalledOnce(); expect(api.disableTwitchRuntime).not.toHaveBeenCalled();
+    await act(async () => finish()); expect(block(container).textContent).toContain('Non activée'); expect(container.querySelector('.account-twitch-runtime')?.textContent).toContain('● Activée');
+    expect(api.unlinkTwitch).not.toHaveBeenCalled(); expect(container.textContent).toContain('Snapshot Streamer.bot');
+  });
+  it('clears Faveur callback and shares bounded polling without confusing Chat activation', async () => {
+    vi.useFakeTimers(); history.replaceState(null, '', '/?twitch=favor-runtime-activated#configuration');
+    api.getTwitchAccount.mockResolvedValueOnce({ ...inactive, runtimeChatActive: true, favorSubscriptionPending: true }).mockResolvedValue({ ...inactive, runtimeChatActive: true, favorSubscriptionActive: true });
+    const container = await mount(); expect(location.search).not.toContain('twitch='); expect(block(container).textContent).toContain('Vérification en cours'); expect(block(container).textContent).not.toContain('● Activée');
+    expect(container.querySelector('.account-twitch-runtime')?.textContent).toContain('● Activée');
+    await act(async () => vi.advanceTimersByTimeAsync(1000)); expect(block(container).textContent).toContain('● Activée'); expect(container.querySelector('[role="alert"]')).toBeNull();
+    await act(async () => vi.advanceTimersByTimeAsync(10000)); expect(api.getTwitchAccount).toHaveBeenCalledTimes(2); expect(vi.getTimerCount()).toBe(0);
+  });
+  it('stops both pending checks after four shared retries and cleans timers', async () => {
+    vi.useFakeTimers(); api.getTwitchAccount.mockResolvedValue({ ...inactive, runtimeChatPending: true, favorSubscriptionPending: true });
+    const container = await mount(); await act(async () => vi.advanceTimersByTimeAsync(10000));
+    expect(api.getTwitchAccount).toHaveBeenCalledTimes(5); expect(container.textContent).not.toContain('● Activée'); expect(container.querySelector('[role="alert"]')?.textContent).toContain('abonnements Twitch'); expect(vi.getTimerCount()).toBe(0);
+  });
+  it('cancels Faveur polling on unmount', async () => {
+    vi.useFakeTimers(); api.getTwitchAccount.mockResolvedValue({ ...inactive, favorSubscriptionPending: true });
+    await mount(); act(() => roots.pop()!.unmount()); await act(async () => vi.advanceTimersByTimeAsync(10000)); expect(api.getTwitchAccount).toHaveBeenCalledOnce(); expect(vi.getTimerCount()).toBe(0);
+  });
+  it.each(['CONFLICT', 'UNAVAILABLE'])('shows Faveur %s without confusing the identity link', async favorSubscriptionError => {
+    api.getTwitchAccount.mockResolvedValue({ ...inactive, favorSubscriptionAvailable: false, favorSubscriptionError });
+    const container = await mount(); expect(container.querySelector('[role="alert"]')?.textContent).toContain('abonnements Twitch'); expect(container.textContent).toContain('Connecté');
+  });
+  it('reports Faveur OAuth error separately and preserves other URL parameters', async () => {
+    history.replaceState(null, '', '/?keep=1&twitch=favor-runtime-error#configuration'); api.getTwitchAccount.mockResolvedValue(inactive);
+    const container = await mount(); expect(location.search).toBe('?keep=1'); expect(container.querySelector('[role="alert"]')?.textContent).toContain('abonnements Twitch'); expect(container.querySelector('[role="alert"]')?.textContent).not.toContain('liaison Twitch');
+  });
+});
+
+it('disabling Chat preserves an active Faveur', async () => {
+  const value={...linkedAccount,runtimeSubscriptionAvailable:true,runtimeChatActive:true,favorSubscriptionAvailable:true,favorSubscriptionActive:true};
+  api.getTwitchAccount.mockResolvedValueOnce(value).mockResolvedValue({...value,runtimeChatActive:false}); api.disableTwitchRuntime.mockResolvedValue({});
+  const container=await mount(); await act(async()=>button(container.querySelector<HTMLElement>('.account-twitch-runtime')!,'Désactiver').click());
+  expect(container.querySelector('.account-twitch-favor')?.textContent).toContain('● Activée'); expect(api.disableTwitchFavor).not.toHaveBeenCalled();
+});
+it('bounds stalled Faveur confirmation and cleans the deadline', async () => {
+  vi.useFakeTimers(); api.getTwitchAccount.mockResolvedValueOnce({...linkedAccount,favorSubscriptionAvailable:true,favorSubscriptionPending:true})
+    .mockImplementationOnce((signal:AbortSignal)=>new Promise((_resolve,reject)=>signal.addEventListener('abort',()=>reject(Error('aborted')),{once:true})));
+  const container=await mount(); await act(async()=>vi.advanceTimersByTimeAsync(8000));
+  expect(api.getTwitchAccount).toHaveBeenCalledTimes(2); expect(container.querySelector('[role="alert"]')?.textContent).toContain('abonnements Twitch'); expect(vi.getTimerCount()).toBe(0);
 });

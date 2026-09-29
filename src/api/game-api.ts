@@ -214,6 +214,8 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getNavigationPreferences: () => request<NavigationMenuPreferenceDto>('/api/v1/me/navigation-preferences'),
     getTwitchAccount: (signal?: AbortSignal) => request<TwitchAccountDto>('/api/v1/me/twitch', { signal }),
     startTwitchLink: () => request<{ url: string }>('/api/v1/me/twitch/start', { method: 'POST' }),
+    startTwitchFavor: () => request<{ url: string }>('/api/v1/me/twitch/favor/start', { method: 'POST' }),
+    disableTwitchFavor: () => request<{ favorSubscriptionActive: false; favorSubscriptionPending: false }>('/api/v1/me/twitch/favor/subscription', { method: 'DELETE' }),
     startTwitchRuntime: () => request<{ url: string }>('/api/v1/me/twitch/runtime/start', { method: 'POST' }),
     disableTwitchRuntime: () => request<{ runtimeChatActive: false; runtimeChatPending: false }>('/api/v1/me/twitch/runtime/subscription', { method: 'DELETE' }),
     unlinkTwitch: () => request<{ linked: false }>('/api/v1/me/twitch', { method: 'DELETE' }),

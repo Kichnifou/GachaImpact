@@ -14,6 +14,7 @@ async function setup() {
     start: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize' })),
     startRuntime: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize?scope=openid' })),
     startFavor: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize?scope=openid+channel%3Aread%3Asubscriptions' })),
+    disableFavor: vi.fn(async () => ({ favorSubscriptionActive: false, favorSubscriptionPending: false })),
     callback: vi.fn(async () => ({})), unlink: vi.fn(), disableRuntime: vi.fn(async () => ({ runtimeChatActive: false, runtimeChatPending: false })) };
   const subscriptions = { ensurePilotChatSubscription: vi.fn() };
   const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {}, frontendOrigin: 'https://game.example' }, {
@@ -95,4 +96,14 @@ describe('Twitch runtime pilot routes with mocked services', () => {
     await app.inject({ method: 'GET', url: '/api/v1/me/twitch', headers: { authorization: 'Bearer test' } });
     expect(subscriptions.ensurePilotChatSubscription).not.toHaveBeenCalled();
   });
+});
+
+it('authenticates Faveur disable with strict empty body/query and leaves Chat alone', async () => {
+  const { app, twitch } = await setup(), url = '/api/v1/me/twitch/favor/subscription', headers = { authorization: 'Bearer test' };
+  expect((await app.inject({ method: 'DELETE', url })).statusCode).toBe(401);
+  expect((await app.inject({ method: 'DELETE', url, headers })).json()).toEqual({ favorSubscriptionActive: false, favorSubscriptionPending: false });
+  for (const payload of [{ subscriptionId: 'other' }, { broadcaster_user_id: 'other' }, null, [], 'bad'])
+    expect((await app.inject({ method: 'DELETE', url, headers: { ...headers, 'content-type': 'application/json' }, payload: JSON.stringify(payload) })).statusCode).toBe(400);
+  expect((await app.inject({ method: 'DELETE', url: url + '?id=other', headers })).statusCode).toBe(400);
+  expect(twitch.disableFavor).toHaveBeenCalledOnce(); expect(twitch.disableRuntime).not.toHaveBeenCalled(); expect(twitch.unlink).not.toHaveBeenCalled();
 });

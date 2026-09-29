@@ -377,3 +377,14 @@ describe('game API client', () => {
     expect(JSON.parse(String(init?.body))).toEqual({ content: 'Réponse', idempotencyKey, replyToMessageId })
   })
 })
+
+it('uses separate Faveur routes and preserves separate status fields', async () => {
+  const account = { runtimeChatActive: true, favorSubscriptionAvailable: true, favorSubscriptionActive: false, favorSubscriptionPending: true };
+  const fetchImplementation = vi.fn<typeof fetch>(async () => new Response(JSON.stringify(account)));
+  const client = createGameApiClient({ baseUrl: 'https://api.example', getAccessToken: async () => 'private-test-token', fetchImplementation });
+  expect(await client.getTwitchAccount()).toEqual(account);
+  await client.startTwitchFavor(); await client.disableTwitchFavor();
+  expect(fetchImplementation.mock.calls.map(([url]) => url)).toEqual(['https://api.example/api/v1/me/twitch', 'https://api.example/api/v1/me/twitch/favor/start', 'https://api.example/api/v1/me/twitch/favor/subscription']);
+  expect(fetchImplementation.mock.calls[1]![1]).toMatchObject({ method: 'POST', headers: { authorization: 'Bearer private-test-token' } });
+  expect(fetchImplementation.mock.calls[2]![1]).toMatchObject({ method: 'DELETE' });
+});

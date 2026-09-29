@@ -64,32 +64,38 @@ export class TwitchPilotService {
     const eligible = this.settings.pilotPlayerIds.includes(player.id);
     const linked = eligible ? await this.db.twitchIdentity.findUnique({ where: { playerId: player.id } }) : null;
     const lastRun = linked ? await this.db.migrationRun.findFirst({ where: { playerId: player.id }, orderBy: { completedAt: 'desc' }, select: { completedAt: true, snapshotHash: true } }) : null;
-    let runtimeSubscriptionAvailable = eligible && Boolean(linked) && this.runtimeReady();
-    let runtimeChatActive = false, runtimeChatPending = false;
-    let runtimeChatError: 'CONFLICT' | 'UNAVAILABLE' | undefined;
-    if (runtimeSubscriptionAvailable) {
+    const available = eligible && Boolean(linked) && this.runtimeReady();
+    // Both queued inspections share one deadline; a slow Chat read cannot add another three seconds for Faveur.
+    const signal = available ? AbortSignal.timeout(3_000) : undefined;
+    const inspect = async (read: () => Promise<'INACTIVE' | 'VERIFICATION_PENDING' | 'ACTIVE'>) => {
+      if (!signal) return { available: false, active: false, pending: false };
+      let cancel!: () => void;
       try {
-        // Return the identity information even when Twitch or the lifecycle queue stalls.
-        const signal = AbortSignal.timeout(3_000);
-        const state = await Promise.race([
-          this.subscriptions!.inspectPilotChatSubscription(player.id, signal),
-          new Promise<never>((_resolve, reject) => signal.addEventListener('abort', () => reject(new Error('Runtime status timed out')), { once: true })),
-        ]);
-        runtimeChatActive = state === 'ACTIVE';
-        runtimeChatPending = state === 'VERIFICATION_PENDING';
+        const state = await Promise.race([read(), new Promise<never>((_resolve, reject) => {
+          cancel = () => reject(new Error('Twitch status timed out'));
+          signal.addEventListener('abort', cancel, { once: true });
+          if (signal.aborted) cancel();
+        })]);
+        return { available: true, active: state === 'ACTIVE', pending: state === 'VERIFICATION_PENDING' };
       } catch (error) {
-        runtimeSubscriptionAvailable = false;
-        runtimeChatError = error instanceof AppError && error.code === 'TWITCH_EVENTSUB_SUBSCRIPTION_CONFLICT' ? 'CONFLICT' : 'UNAVAILABLE';
-      }
-    }
+        return { available: false, active: false, pending: false,
+          error: error instanceof AppError && error.code === 'TWITCH_EVENTSUB_SUBSCRIPTION_CONFLICT' ? 'CONFLICT' as const : 'UNAVAILABLE' as const };
+      } finally { signal.removeEventListener('abort', cancel); }
+    };
+    const [chat, favor] = await Promise.all([
+      inspect(() => this.subscriptions!.inspectPilotChatSubscription(player.id, signal)),
+      inspect(() => this.subscriptions!.inspectPilotFavorSubscription(player.id, signal)),
+    ]);
     return {
       pilotAvailable: eligible && this.oauthReady(),
       eligible,
       linked: linked ? { login: linked.login, displayName: linked.displayName, linkedAt: linked.linkedAt.toISOString() } : null,
       snapshotAvailable: eligible && Boolean(linked) && this.oauthReady(),
       runtimeAuthorizationAvailable: eligible && Boolean(linked) && this.oauthReady(),
-      runtimeSubscriptionAvailable, runtimeChatActive, runtimeChatPending,
-      ...(runtimeChatError ? { runtimeChatError } : {}),
+      runtimeSubscriptionAvailable: chat.available, runtimeChatActive: chat.active, runtimeChatPending: chat.pending,
+      ...(chat.error ? { runtimeChatError: chat.error } : {}),
+      favorSubscriptionAvailable: favor.available, favorSubscriptionActive: favor.active, favorSubscriptionPending: favor.pending,
+      ...(favor.error ? { favorSubscriptionError: favor.error } : {}),
       lastImport: lastRun ? { at: lastRun.completedAt.toISOString(), snapshotHash: lastRun.snapshotHash } : null,
     };
   }
@@ -219,6 +225,13 @@ export class TwitchPilotService {
       await remove();
     }
     return { linked: false };
+  }
+
+  async disableFavor(identity: AuthenticatedIdentity) {
+    const player = await this.pilot(identity);
+    if (!this.subscriptions?.managementAvailable) throw new AppError('Réception des abonnements Twitch indisponible.', 503, 'TWITCH_RUNTIME_UNAVAILABLE');
+    await this.subscriptions.disablePilotFavorSubscription(player.id);
+    return { favorSubscriptionActive: false, favorSubscriptionPending: false };
   }
 
   async disableRuntime(identity: AuthenticatedIdentity) {

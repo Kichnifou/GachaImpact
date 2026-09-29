@@ -36,6 +36,7 @@ function setup(id = playerId, runtime = false) {
     ensurePilotChatSubscription: vi.fn().mockResolvedValue({ status: 'enabled' }),
     ensurePilotFavorSubscription: vi.fn().mockResolvedValue({ status: 'enabled' }),
     inspectPilotChatSubscription: vi.fn().mockResolvedValue('INACTIVE'),
+    inspectPilotFavorSubscription: vi.fn().mockResolvedValue('INACTIVE'),
     disablePilotChatSubscription: vi.fn().mockResolvedValue('INACTIVE'),
     disablePilotFavorSubscription: vi.fn().mockResolvedValue('INACTIVE'),
     unlinkPilotIdentity: vi.fn(async (_id: string, remove: () => Promise<void>) => {
@@ -406,5 +407,46 @@ describe('runtime account status, activation and safe unlink', () => {
     expect(subscriptions.disablePilotChatSubscription).toHaveBeenCalledWith(playerId);
     expect(db.twitchIdentity.deleteMany).not.toHaveBeenCalled();
     await expect(setup(otherId, true).service.disableRuntime(identity)).rejects.toMatchObject({ code: 'TWITCH_PILOT_FORBIDDEN' });
+  });
+});
+
+
+describe('Faveur status projection and independent disable', () => {
+  const prepare = () => { const value = setup(playerId, true); value.db.twitchIdentity.findUnique.mockResolvedValue({ playerId, twitchUserId: '12345', login: 'kichnifou', linkedAt: new Date() }); return value; };
+  it.each(['INACTIVE', 'ACTIVE', 'VERIFICATION_PENDING'])('projects Faveur %s without changing Chat', async state => {
+    const { service, subscriptions, db } = prepare();
+    subscriptions.inspectPilotFavorSubscription.mockResolvedValue(state);
+    subscriptions.inspectPilotChatSubscription.mockResolvedValue('ACTIVE');
+    expect(await service.status(identity)).toMatchObject({ favorSubscriptionAvailable: true, favorSubscriptionActive: state === 'ACTIVE', favorSubscriptionPending: state === 'VERIFICATION_PENDING', runtimeChatActive: true });
+    expect(subscriptions.inspectPilotFavorSubscription.mock.calls[0]![1]).toBe(subscriptions.inspectPilotChatSubscription.mock.calls[0]![1]);
+    expect(subscriptions.ensurePilotFavorSubscription).not.toHaveBeenCalled(); expect(db.twitchIdentity.upsert).not.toHaveBeenCalled();
+  });
+  it.each(['TWITCH_EVENTSUB_SUBSCRIPTION_CONFLICT', 'TWITCH_EVENTSUB_API_FAILED'])('projects Faveur %s independently', async code => {
+    const { service, subscriptions } = prepare(); subscriptions.inspectPilotFavorSubscription.mockRejectedValue(new AppError('technical', 502, code));
+    expect(await service.status(identity)).toMatchObject({ favorSubscriptionAvailable: false, favorSubscriptionActive: false, favorSubscriptionError: code.includes('CONFLICT') ? 'CONFLICT' : 'UNAVAILABLE', runtimeSubscriptionAvailable: true });
+  });
+  it.each(['unlinked', 'non-pilot', 'off'])('skips Faveur network when %s', async kind => {
+    const value = kind === 'off' ? setup() : kind === 'non-pilot' ? setup(otherId, true) : setup(playerId, true);
+    expect(await value.service.status(identity)).toMatchObject({ favorSubscriptionAvailable: false, favorSubscriptionActive: false });
+    expect(value.subscriptions.inspectPilotFavorSubscription).not.toHaveBeenCalled();
+  });
+  it('bounds two stalled reads with one deadline and preserves linked information', async () => {
+    const { service, subscriptions } = prepare(), controller = new AbortController();
+    const timeout = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(controller.signal);
+    subscriptions.inspectPilotChatSubscription.mockReturnValue(new Promise(() => undefined));
+    subscriptions.inspectPilotFavorSubscription.mockReturnValue(new Promise(() => undefined));
+    const result = service.status(identity); await vi.waitFor(() => expect(subscriptions.inspectPilotFavorSubscription).toHaveBeenCalled());
+    expect(timeout).toHaveBeenCalledOnce(); expect(timeout).toHaveBeenCalledWith(3000); controller.abort();
+    expect(await result).toMatchObject({ linked: { login: 'kichnifou' }, runtimeChatError: 'UNAVAILABLE', favorSubscriptionError: 'UNAVAILABLE' });
+  });
+  it('disables only its own type and keeps shared unlink stopping both', async () => {
+    const { service, subscriptions } = prepare();
+    expect(await service.disableFavor(identity)).toEqual({ favorSubscriptionActive: false, favorSubscriptionPending: false });
+    expect(subscriptions.disablePilotFavorSubscription).toHaveBeenCalledWith(playerId); expect(subscriptions.disablePilotChatSubscription).not.toHaveBeenCalled();
+    subscriptions.disablePilotFavorSubscription.mockClear(); await service.disableRuntime(identity);
+    expect(subscriptions.disablePilotChatSubscription).toHaveBeenCalledOnce(); expect(subscriptions.disablePilotFavorSubscription).not.toHaveBeenCalled();
+    subscriptions.disablePilotChatSubscription.mockClear(); await service.unlink(identity);
+    expect(subscriptions.disablePilotChatSubscription).toHaveBeenCalledOnce(); expect(subscriptions.disablePilotFavorSubscription).toHaveBeenCalledOnce();
+    await expect(setup(otherId, true).service.disableFavor(identity)).rejects.toMatchObject({ code: 'TWITCH_PILOT_FORBIDDEN' });
   });
 });

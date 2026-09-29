@@ -11,6 +11,11 @@ const runtimeStatusError = (error: 'CONFLICT' | 'UNAVAILABLE') => error === 'CON
   ? 'La réception du chat Twitch nécessite un contrôle opérateur.'
   : 'Le statut du chat Twitch est temporairement indisponible. Réessayez plus tard.'
 
+const favorStatusError = (error: 'CONFLICT' | 'UNAVAILABLE') => error === 'CONFLICT'
+  ? 'La réception des abonnements Twitch nécessite un contrôle opérateur.'
+  : 'Le statut des abonnements Twitch est temporairement indisponible. Réessayez plus tard.'
+const awaitingSubscription = (value: TwitchAccountDto) => Boolean(value.runtimeChatPending && value.runtimeSubscriptionAvailable || value.favorSubscriptionPending && value.favorSubscriptionAvailable)
+
 export default function AccountSettingsPanel({ onRefreshPlayerState = async () => undefined }: { onRefreshPlayerState?: () => Promise<void> }) {
   const api = getGameApiClient()
   const [account, setAccount] = useState<TwitchAccountDto | null>(null)
@@ -38,26 +43,30 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     const url = new URL(location.href)
     const outcome = url.searchParams.get('twitch')
     if (outcome) { url.searchParams.delete('twitch'); history.replaceState(history.state, '', url)
-      if (outcome !== 'connected' && !outcome.startsWith('runtime-')) setError(outcome === 'TWITCH_IDENTITY_CONFLICT' ? 'Ce compte Twitch est déjà lié à un autre joueur.' : 'La liaison Twitch a échoué ou a été annulée.') }
+      if (outcome !== 'connected' && !outcome.startsWith('runtime-') && !outcome.startsWith('favor-runtime-')) setError(outcome === 'TWITCH_IDENTITY_CONFLICT' ? 'Ce compte Twitch est déjà lié à un autre joueur.' : 'La liaison Twitch a échoué ou a été annulée.') }
     if (outcome === 'runtime-error') setError('L’autorisation ou l’activation du chat Twitch a échoué ou a été annulée.')
+    if (outcome === 'favor-runtime-error') setError('L’autorisation ou l’activation des abonnements Twitch a échoué ou a été annulée.')
+    let checkingFavor = false
     void (async () => {
       try {
         let value = await api.getTwitchAccount(controller.signal)
         if (!active) return
         setAccount(value)
-        if (value.runtimeChatPending && value.runtimeSubscriptionAvailable) {
+        checkingFavor = Boolean(value.favorSubscriptionPending)
+        if (awaitingSubscription(value)) {
           setRuntimeChecking(true)
-          for (let attempt = 0; attempt < 4 && active && value.runtimeChatPending; attempt++) {
+          for (let attempt = 0; attempt < 4 && active && awaitingSubscription(value); attempt++) {
             await new Promise<void>(resolve => { cancelWait = resolve; timer = setTimeout(resolve, 1_000) })
             if (!active) return
             value = await api.getTwitchAccount(controller.signal)
             if (!active) return
             setAccount(value)
+            checkingFavor = Boolean(value.favorSubscriptionPending)
           }
-          if (active && value.runtimeChatPending) setError('La réception du chat Twitch n’a pas pu être confirmée. Réessayez plus tard.')
+          if (active && awaitingSubscription(value)) setError(value.favorSubscriptionPending ? 'La réception des abonnements Twitch n’a pas pu être confirmée. Réessayez plus tard.' : 'La réception du chat Twitch n’a pas pu être confirmée. Réessayez plus tard.')
         }
-        if (active && value.runtimeChatError) setError(runtimeStatusError(value.runtimeChatError))
-      } catch (reason) { if (active) setError(controller.signal.aborted ? 'Le statut du chat Twitch n’a pas pu être confirmé. Réessayez plus tard.' : apiErrorMessage(reason)) }
+        if (active && (value.runtimeChatError || value.favorSubscriptionError)) setError([value.runtimeChatError && runtimeStatusError(value.runtimeChatError), value.favorSubscriptionError && favorStatusError(value.favorSubscriptionError)].filter(Boolean).join(' '))
+      } catch (reason) { if (active) setError(controller.signal.aborted ? checkingFavor ? 'Le statut des abonnements Twitch n’a pas pu être confirmé. Réessayez plus tard.' : 'Le statut du chat Twitch n’a pas pu être confirmé. Réessayez plus tard.' : apiErrorMessage(reason)) }
       finally { clearTimeout(deadline); if (active) setRuntimeChecking(false) }
     })()
     return () => { active = false; controller.abort(); clearTimeout(deadline); clearTimeout(timer); cancelWait?.() }
@@ -104,6 +113,18 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     if (target.origin !== 'https://id.twitch.tv' || target.pathname !== '/oauth2/authorize' || target.username || target.password) throw new Error('URL Twitch invalide.')
     location.assign(target.toString())
   })
+  const activateFavor = () => void run(async () => {
+    const { url } = await api.startTwitchFavor()
+    const target = new URL(url)
+    if (target.origin !== 'https://id.twitch.tv' || target.pathname !== '/oauth2/authorize' || target.username || target.password) throw new Error('URL Twitch invalide.')
+    location.assign(target.toString())
+  })
+  const disableFavor = () => void run(async () => {
+    await api.disableTwitchFavor()
+    const value = await api.getTwitchAccount()
+    setAccount(value)
+    if (value.favorSubscriptionError) setError(favorStatusError(value.favorSubscriptionError))
+  })
   const disableRuntime = () => void run(async () => {
     await api.disableTwitchRuntime()
     const value = await api.getTwitchAccount()
@@ -137,9 +158,15 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
         {account.linked ? <><p><strong>{account.linked.displayName || account.linked.login}</strong> · Connecté</p><p>Lié le {new Date(account.linked.linkedAt).toLocaleDateString('fr-FR')}</p>
           {account.eligible && account.runtimeSubscriptionAvailable && <div className="account-twitch-runtime" aria-busy={pending || runtimeChecking}>
             <h4>Réception du chat Twitch</h4>
-            <p className={account.runtimeChatActive ? 'account-twitch-active' : undefined}>{runtimeChecking ? 'Chargement du compte…' : account.runtimeChatActive ? '● Activée' : 'Non activée'}</p>
+            <p className={account.runtimeChatActive ? 'account-twitch-active' : undefined}>{runtimeChecking && account.runtimeChatPending ? 'Chargement du compte…' : account.runtimeChatActive ? '● Activée' : 'Non activée'}</p>
             <p className="account-twitch-description">{account.runtimeChatActive ? 'GachaImpact reçoit les messages du chat Twitch.' : 'Permet à GachaImpact de recevoir les messages du chat Twitch pendant le pilote.'}</p>
             <AppButton disabled={pending || runtimeChecking || account.runtimeChatPending} aria-busy={pending} onClick={account.runtimeChatActive ? disableRuntime : activateRuntime}>{account.runtimeChatActive ? 'Désactiver' : 'Autoriser et activer'}</AppButton>
+          </div>}
+          {account.eligible && account.favorSubscriptionAvailable && <div className="account-twitch-runtime account-twitch-favor" aria-busy={pending || runtimeChecking}>
+            <h4>Faveur de l’Astre</h4>
+            <p className={account.favorSubscriptionActive ? 'account-twitch-active' : undefined}>{account.favorSubscriptionPending ? 'Vérification en cours…' : account.favorSubscriptionActive ? '● Activée' : 'Non activée'}</p>
+            <p className="account-twitch-description">{account.favorSubscriptionActive ? 'GachaImpact reçoit les nouveaux abonnements Twitch pour la Faveur.' : 'Permet à GachaImpact de détecter les nouveaux abonnements Twitch et d’attribuer automatiquement la Faveur aux joueurs éligibles.'}</p>
+            <AppButton disabled={pending || runtimeChecking || account.favorSubscriptionPending} aria-busy={pending} onClick={account.favorSubscriptionActive ? disableFavor : activateFavor}>{account.favorSubscriptionActive ? 'Désactiver' : 'Autoriser et activer'}</AppButton>
           </div>}
           <button type="button" disabled={pending || runtimeChecking} onClick={event => { openerRef.current = event.currentTarget; setConfirm('unlink') }}>Délier Twitch</button></>
           : <><p>Non connecté</p><button type="button" disabled={!account.pilotAvailable || pending} onClick={connect}>Connecter Twitch</button>{!account.pilotAvailable && <p>La liaison Twitch est indisponible pour ce compte ou sur ce serveur.</p>}</>}

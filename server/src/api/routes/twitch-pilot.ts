@@ -32,6 +32,11 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
       throw new AppError('Paramètres Faveur Twitch invalides.', 400, 'VALIDATION_ERROR');
     return options.twitch.startFavor(requireAuthenticatedIdentity(request));
   });
+  app.delete('/api/v1/me/twitch/favor/subscription', authenticated, request => {
+    if (!z.object({}).strict().safeParse(request.body === undefined ? {} : request.body).success || Object.keys(request.query as object).length)
+      throw new AppError('Paramètres Faveur Twitch invalides.', 400, 'VALIDATION_ERROR');
+    return options.twitch.disableFavor(requireAuthenticatedIdentity(request));
+  });
   app.delete('/api/v1/me/twitch', authenticated, request => options.twitch.unlink(requireAuthenticatedIdentity(request)));
   app.delete('/api/v1/me/twitch/runtime/subscription', authenticated, request => {
     if (!z.object({}).strict().safeParse(request.body ?? {}).success || Object.keys(request.query as object).length)
