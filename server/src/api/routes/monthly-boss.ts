@@ -60,6 +60,7 @@ function parse<Schema extends z.ZodType>(schema: Schema, value: unknown): z.infe
 function serializeView(view: MonthlyBossView) {
   return {
     ...view,
+    todayDamage: view.todayDamage?.toString() ?? null,
     boss: { ...view.boss, baseHp: view.boss.baseHp.toString(), maxHp: view.boss.maxHp.toString(), currentHp: view.boss.currentHp.toString(), defeatedAt: view.boss.defeatedAt?.toISOString() ?? null, nextBaseAdjustment: view.boss.nextBaseAdjustment?.toString() ?? null },
     loadout: { slots: view.loadout.slots.map((slot) => ({ ...slot, character: slot.character ? serializeCharacter(slot.character) : null })) },
     availableCharacters: view.availableCharacters.map(serializeCharacter),

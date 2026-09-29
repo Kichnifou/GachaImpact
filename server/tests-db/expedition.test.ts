@@ -199,3 +199,22 @@ describe('Expedition persistence', () => {
     expect((await database.notification.findUniqueOrThrow({ where: { id: rows[4]!.id } })).state).toBe('UNREAD');
   });
 });
+
+ it.each([[0, 'primogems', 'primogems', '1600'], [1, 'particles', 'particles_hydro', '800'], [4, 'moras', 'moras', '30000']] as const)('projects persistent native reward %s without paying on read/replay', async (roll, kind, resourceKey, amount) => {
+  now = new Date('2099-11-01T01:00:00Z'); nextRoll = roll; const p = await fixture();
+  await p.service.start(identity, p.character.id, randomUUID()); now = new Date('2099-11-01T21:00:00Z'); const key = randomUUID();
+  const claim = await p.service.claim(identity, key); expect(claim.view.todayReward).toEqual({ kind, resourceKey, amount });
+  const before = await database.resourceMovement.count({ where: { playerId: p.id } });
+  expect((await p.service.getState(identity)).todayReward).toEqual({ kind, resourceKey, amount });
+  expect((await p.service.claim(identity, key)).view.todayReward).toEqual({ kind, resourceKey, amount });
+  expect(await database.resourceMovement.count({ where: { playerId: p.id } })).toBe(before);
+  now = new Date('2099-11-01T23:00:00Z'); expect((await p.service.getState(identity)).todayReward).toBeNull();
+ });
+ it('does not infer a legacy Expedition reward from completion counters alone', async () => {
+  now = new Date('2099-11-04T12:00:00Z'); const p = await fixture();
+  await database.playerExpedition.create({ data: { playerId: p.id, state: 'IDLE', totalCompleted: 99n, lastCompletedAt: now } });
+  expect((await p.service.getState(identity)).todayReward).toBeNull();
+  const operation = await database.businessOperation.create({ data: { playerId: p.id, operationType: 'expedition.claim', sourceChannel: 'UI', status: 'COMPLETED', completedAt: now, resultSummary: { roll: 1, rewardKind: 'primogems', resourceKey: 'primogems', amount: 'unknown', completedAt: now.toISOString() } } });
+  expect((await p.service.getState(identity)).todayReward).toBeNull();
+  await database.businessOperation.delete({ where: { id: operation.id } });
+ });

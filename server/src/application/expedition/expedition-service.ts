@@ -26,6 +26,7 @@ export type ExpeditionView = Readonly<{
   remainingSeconds: number;
   startedOnCurrentBusinessDate: boolean;
   totalCompleted: bigint;
+  todayReward: null | Readonly<{ kind: 'primogems' | 'particles' | 'moras'; resourceKey: string; amount: string }>;
 }>;
 
 export type ExpeditionClaimResult = Readonly<{
@@ -138,7 +139,16 @@ async function reconcileLocked(transaction: Prisma.TransactionClient, playerId: 
 async function readView(client: Client, playerId: string, businessDate: string, now: Date): Promise<ExpeditionView> {
   const state = await client.playerExpedition.findUnique({ where: { playerId }, include: { character: { select: characterSelect } } });
   const departureDate = state?.departureBusinessDate ? databaseDateToBusinessDate(state.departureBusinessDate) : null; const status = state?.state ?? 'IDLE';
-  return { businessDate, operationalStatus: status, departureUsedToday: departureDate === businessDate, canStartToday: status === 'IDLE' && departureDate !== businessDate, activeCharacter: state?.character ?? null, departedAt: state?.departedAt ?? null, readyAt: state?.readyAt ?? null, remainingSeconds: status === 'RUNNING' && state?.readyAt ? Math.max(0, Math.ceil((state.readyAt.getTime() - now.getTime()) / 1_000)) : 0, startedOnCurrentBusinessDate: departureDate === businessDate, totalCompleted: state?.totalCompleted ?? 0n };
+  let todayReward: ExpeditionView['todayReward'] = null;
+  if (state?.lastCompletedAt && getBusinessDate(state.lastCompletedAt) === businessDate) {
+    const operation = await client.businessOperation.findFirst({ where: { playerId, operationType: 'expedition.claim', status: 'COMPLETED', completedAt: state.lastCompletedAt }, orderBy: { id: 'desc' } });
+    const proof = objectSummary(operation?.resultSummary ?? null);
+    const kind = proof.rewardKind, key = proof.resourceKey, amount = proof.amount;
+    if ((kind === 'primogems' || kind === 'particles' || kind === 'moras') && typeof key === 'string' && resourceKeys.some(value => value === key)
+      && (kind === 'particles' ? key.startsWith('particles_') : key === kind) && typeof amount === 'string' && /^\d+$/.test(amount)
+      && proof.completedAt === state.lastCompletedAt.toISOString()) todayReward = { kind, resourceKey: key, amount };
+  }
+  return { businessDate, operationalStatus: status, departureUsedToday: departureDate === businessDate, canStartToday: status === 'IDLE' && departureDate !== businessDate, activeCharacter: state?.character ?? null, departedAt: state?.departedAt ?? null, readyAt: state?.readyAt ?? null, remainingSeconds: status === 'RUNNING' && state?.readyAt ? Math.max(0, Math.ceil((state.readyAt.getTime() - now.getTime()) / 1_000)) : 0, startedOnCurrentBusinessDate: departureDate === businessDate, totalCompleted: state?.totalCompleted ?? 0n, todayReward };
 }
 async function lockPlayer(transaction: Prisma.TransactionClient, playerId: string) { const rows = await transaction.$queryRaw<{ id: string }[]>`SELECT id FROM players WHERE id = ${playerId}::uuid FOR UPDATE`; if (!rows[0]) throw new BusinessError('PLAYER_NOT_FOUND', 'Aucun joueur n’est lié à ce compte.'); }
 async function readBalances(client: Client, playerId: string): Promise<PlayerResourceBalances> { const rows = await client.playerResourceBalance.findMany({ where: { playerId, resourceKey: { in: [...resourceKeys] } }, select: { resourceKey: true, amount: true } }); const values = new Map(rows.map(row => [row.resourceKey, row.amount])); if (!resourceKeys.every(key => values.has(key))) throw new BusinessError('RESOURCE_STATE_INCOMPLETE', 'L’état des ressources du joueur est incomplet.'); return Object.fromEntries(resourceKeys.map(key => [key, values.get(key)!])) as PlayerResourceBalances; }

@@ -86,6 +86,7 @@ export type MonthlyBossView = Readonly<{
   };
   status: 'ALIVE' | 'DEFEATED';
   attackState: 'AVAILABLE' | 'USED' | 'DEFEATED';
+  todayDamage: bigint | null;
   canAttack: boolean;
   loadout: { slots: readonly { position: 1 | 2 | 3 | 4; character: MonthlyBossCharacter | null }[] };
   availableCharacters: readonly MonthlyBossCharacter[];
@@ -465,6 +466,7 @@ async function readView(client: Client, playerId: string, businessDate: string, 
     boss: { id: boss.id, monthStart: databaseDateToBusinessDate(boss.monthStart), name: boss.nameSnapshot, baseHp: boss.baseHp, hpVariationPercent: boss.hpVariationPercent, maxHp: boss.maxHp, currentHp: boss.currentHp, resistanceElementKey: elementKey(boss.resistanceElementKey), defeatedAt: boss.defeatedAt, finalBlowPlayer: boss.finalBlowPlayer, nextBaseAdjustment },
     status: defeated ? 'DEFEATED' : 'ALIVE',
     attackState: defeated ? 'DEFEATED' : todayAttack || legacyAttack?.lastAttackDate?.getTime() === businessDateToDatabaseDate(businessDate).getTime() ? 'USED' : 'AVAILABLE',
+    todayDamage: todayAttack?.damage ?? null,
     canAttack: !defeated && !todayAttack && legacyAttack?.lastAttackDate?.getTime() !== businessDateToDatabaseDate(businessDate).getTime() && complete,
     loadout: { slots },
     availableCharacters: characters,

@@ -14,7 +14,7 @@ export type FriendsSnapshot = {
   players: (SocialIdentity & { presence: Access<PresenceStatus> })[]
   friends: { id: string; playerId: string; level: number; tier: string; totalHearts: string; heartSent: boolean; canSend: boolean }[]
   requests: { id: string; playerId: string; direction: 'SENT' | 'RECEIVED'; createdAt: string }[]
-  summary: { activeFriends: number; available: number; alreadySent: number }
+  summary: { earnedPrimogemsToday?: string; activeFriends: number; available: number; alreadySent: number }
 }
 export type HeartResult = { sent: number; alreadySent: number; unavailable: number; activeFriends: number; senderReward: string; recipientReward: string; status: 'SENT' | 'NO_FRIENDS' | 'ALL_SENT' | 'UNAVAILABLE'; level?: number; tier?: string; message?: string }
 export type ConnectedPlayers = { players: (SocialIdentity & { status: 'ONLINE' | 'AWAY' })[]; total: number }

@@ -1,3 +1,4 @@
+import type { FavorDto, FavorPresenceDto } from './types'
 import type { SocialActions, Access, DirectoryPage, Profile, ConnectedPlayers, PrivacySettings, FriendsSnapshot, HeartResult, FriendSort } from '../social/types'
 import { loadFrontendConfig } from '../config/environment'
 import type { TradeActions, TradeSnapshot, TradePartners, TradeResult } from '../trades/types'
@@ -341,6 +342,8 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getProgression: () => request<PlayerProgressionDto>('/api/v1/me/progression'),
     getWheelToday: () => request<WheelTodayDto>('/api/v1/wheel/today'),
     spinWheel: () => request<WheelSpinDto>('/api/v1/wheel/spin', { method: 'POST' }),
+    getFavor: () => request<FavorDto>('/api/v1/me/favor'),
+    recordFavorPresence: () => request<FavorPresenceDto>('/api/v1/me/favor/presence', { method: 'POST' }),
     getDailyRewardToday: () => request<DailyRewardTodayDto>('/api/v1/daily-reward/today'),
     claimDailyReward: () => request<DailyRewardClaimDto>('/api/v1/daily-reward/claim', { method: 'POST' }),
     getCharacters: () => request<CharacterCatalogDto>('/api/v1/characters'),

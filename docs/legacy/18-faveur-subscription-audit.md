@@ -873,11 +873,13 @@ Afficher notamment :
 
 ### Hub Quotidiennes
 
-Lorsqu'une Faveur est active, une carte peut afficher :
+Précision propriétaire Lot 8 : la carte Faveur est toujours visible, en première position de l’Aperçu des Quotidiennes. Elle conserve les dimensions de la grille existante et ne porte aucun bouton.
 
-- reward du jour disponible ;
-- reward déjà reçu ;
-- jours restants.
+- inactive : `Aucune Faveur active.`, sans statut Terminé ni lien Twitch dans cette carte ;
+- active : jours restants et état Active tant que la récompense du jour n’est pas reçue ;
+- active et claim du jour confirmé : `✅ Terminé` et ligne jaune `Obtenu : +800 Primogemmes`.
+
+Le lien d’abonnement de la cible Profil ci-dessous ne s’applique pas à cette carte passive du Lot 8.
 
 ### Faveur inactive
 
@@ -897,7 +899,7 @@ La restitution principale de la Faveur dans le standalone concerne la récompens
 
 Lorsque la première présence standalone du jour déclenche réellement les +800 :
 
-- petite animation dédiée à la Faveur ;
+- modale globale dédiée à la Faveur, dans la famille Level-up/Défi ;
 - affichage du gain ;
 - mise à jour immédiate des Primogemmes ;
 - profil marqué `Récompense du jour reçue`.
@@ -911,6 +913,8 @@ Si les +800 ont déjà été obtenues auparavant dans la journée via Twitch :
 Inversement, une récompense déjà obtenue dans le standalone empêche naturellement un nouveau paiement lors du premier message Twitch ultérieur.
 
 L'état quotidien est donc global au joueur et non propre au canal.
+
+Précision propriétaire Lot 8 : le frontend appelle la présence personnelle au démarrage authentifié et au retour réellement visible après masquage, sans polling Faveur ni claim à la navigation interne. Seul le résultat de CET appel `CLAIMED` avec crédit `"800"` autorise une modale et un refresh des Ressources serveur ; `ALREADY_CLAIMED`, `INACTIVE` ou erreur réseau n’inventent aucun gain. La modale attend derrière Gacha/Level-up et Défi, sans chevaucher la conversion ; un claim ne produit qu’une modale. Durée 5,4 s, verrou initial 1 s puis Escape/backdrop, fermeture automatique et styles existants respectant la réduction des mouvements.
 
 L'obtention/prolongation Twitch peut produire son message de confirmation adapté au canal, tandis que le standalone reflète immédiatement les nouveaux jours et les Primogemmes dans le profil.
 

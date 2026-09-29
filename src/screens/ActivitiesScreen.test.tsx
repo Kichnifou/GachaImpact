@@ -1,3 +1,4 @@
+import { unavailableMonthlyBoss } from '../combat/monthly-boss-unavailable'
 // @vitest-environment happy-dom
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -25,7 +26,7 @@ const expeditionSnapshot = (value: ExpeditionDto, observedAt = 0) => createExped
 
 describe('Activities shells', () => {
   it('keeps daily tabs outside the framed scroll body for overview, Wheel and Challenge', () => { const { container } = mount(); const frame = container.querySelector('.dailies-frame')!; expect(frame.querySelector('.scrollable-screen-panel-controls .activity-inner-tabs')).not.toBeNull(); expect(frame.querySelector('.scrollable-screen-panel-body .dailies-overview')).not.toBeNull(); act(() => Array.from(frame.querySelectorAll('button')).find((button) => button.textContent === 'Roue')!.click()); expect(frame.querySelector('.scrollable-screen-panel-body .wheel-card')).not.toBeNull(); act(() => Array.from(frame.querySelectorAll('button')).find((button) => button.textContent === 'Défi')!.click()); expect(frame.querySelector('.scrollable-screen-panel-body .daily-challenge-card')).not.toBeNull() })
-  it('lists the eight decided daily activities in order without fake progress', () => { const { container } = mount(); expect(Array.from(container.querySelectorAll<HTMLElement>('[data-daily-activity]'), (entry) => entry.dataset.dailyActivity)).toEqual(['Récompense quotidienne', 'Roue', 'Défi', 'Combat', 'Boss', 'Expédition', 'Amitié', 'Événement']); expect(container.textContent).toContain('Disponible.'); expect(container.textContent).not.toContain('Mission quotidienne'); expect(container.textContent).not.toMatch(/\d+\s*\/\s*\d+/); expect(container.querySelector('.dailies-overview')).not.toBeNull() })
+  it('lists the nine decided daily activities in order without fake progress', () => { const { container } = mount(); expect(Array.from(container.querySelectorAll<HTMLElement>('[data-daily-activity]'), (entry) => entry.dataset.dailyActivity)).toEqual(['Faveur de l’Astre', 'Récompense quotidienne', 'Roue', 'Défi', 'Combat', 'Boss', 'Expédition', 'Amitié', 'Événement']); expect(container.textContent).toContain('Disponible.'); expect(container.textContent).not.toContain('Mission quotidienne'); expect(container.textContent).not.toMatch(/\d+\s*\/\s*\d+/); expect(container.querySelector('.dailies-overview')).not.toBeNull() })
   it('uses the shared overview card and action geometry for available and claimed Daily Reward states', () => {
     const available = mount()
     const reward = activity(available.container, 'Récompense quotidienne')
@@ -227,4 +228,19 @@ describe('Activities shells', () => {
   it('renders the real Event surface with Games guarded until registration', () => { const { container } = mount({ event: eventBeforeJoin, onLoadEvent: vi.fn(async () => eventBeforeJoin), onJoinEvent: vi.fn(), onAttemptEventGameA: vi.fn() }, 'activities-event'); const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('.event-tabs button')); expect(tabs.map(({ textContent }) => textContent)).toEqual(['Général', 'Jeux', 'Shop', 'Classement']); expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, false, false]); expect(container.textContent).not.toMatch(/À venir|Bientôt disponible|La suite du Festival/) })
   it('keeps the unavailable Event fallback aligned with the official tab order', () => { const { container } = mount({}, 'activities-event'); const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('.activity-inner-tabs button')); expect(tabs.map(({ textContent }) => textContent)).toEqual(['Général', 'Jeux', 'Shop', 'Classement']); expect(tabs.every(({ disabled }) => disabled)).toBe(true); expect(container.textContent).toContain('Festival indisponible') })
   it('renders real Entraînement and the compact physical Boss view', () => { const { container } = mount({}, 'activities-combat'); expect(container.textContent).toContain('Entraînement'); expect(container.textContent).toContain('Rencontre du jour'); expect(container.textContent).toContain('Ennemis'); act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('.combat-tabs button')).find((button) => button.textContent === 'Boss')!.click()); expect(container.textContent).toContain('Bilan →'); expect(container.textContent).toContain('PV'); expect(container.textContent).not.toContain('Classement du mois'); expect(container.textContent).not.toContain('Bientôt disponible') })
+})
+
+it('keeps Favor first and passive for inactive, available and claimed projections', () => {
+  const base = { businessDate: '2026-09-29', active: false, daysRemaining: 0, maxDays: 180, dailyPrimogems: '800', claimedToday: false, claimStatus: 'UNAVAILABLE' as const }
+  const inactive = mount({ favor: base }); const card = activity(inactive.container, 'Faveur de l’Astre')
+  expect(card.textContent).toContain('Aucune Faveur active.'); expect(card.querySelector('button')).toBeNull(); expect(card.querySelector('.daily-overview-obtained')).toBeNull()
+  const available = mount({ favor: { ...base, active: true, daysRemaining: 1, claimStatus: 'AVAILABLE' } }); expect(activity(available.container, 'Faveur de l’Astre').textContent).toContain('1 jour restant'); expect(activity(available.container, 'Faveur de l’Astre').querySelector('.daily-overview-obtained')).toBeNull()
+  const claimed = mount({ favor: { ...base, active: true, daysRemaining: 30, claimedToday: true, claimStatus: 'CLAIMED' } }); expect(activity(claimed.container, 'Faveur de l’Astre').textContent).toContain('✅ Terminé'); expect(activity(claimed.container, 'Faveur de l’Astre').querySelector('.daily-overview-obtained')?.textContent).toBe('Obtenu : +800 Primogemmes')
+})
+it('shows only exact persistent Expedition, sender heart and native Boss values in yellow', () => {
+  const value = mount({ expedition: expeditionSnapshot(expedition({ departureUsedToday: true, todayReward: { kind: 'particles', resourceKey: 'particles_hydro', amount: '800' } })), friendship: { activeFriends: 3, available: 2, alreadySent: 1, earnedPrimogemsToday: '5' }, monthlyBoss: { ...unavailableMonthlyBoss, attackState: 'USED', todayDamage: '12345' } })
+  expect(activity(value.container, 'Expédition').querySelector('.daily-overview-obtained')?.textContent).toBe('Obtenu : +800 particules Hydro')
+  expect(activity(value.container, 'Amitié').querySelector('.daily-overview-obtained')?.textContent).toBe('Obtenu : +5 Primogemmes')
+  expect(activity(value.container, 'Boss').querySelector('.daily-overview-obtained')?.textContent).toBe('Dégâts : 12 345 PV retirés')
+  const absent = mount(); for (const title of ['Expédition', 'Amitié', 'Boss']) expect(activity(absent.container, title).querySelector('.daily-overview-obtained')).toBeNull()
 })

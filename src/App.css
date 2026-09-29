@@ -9192,3 +9192,6 @@ button.inventory-stella-card { width: 100%; font: inherit; }
   .dm-history-result { grid-template-columns: minmax(0, 1fr); }
   .dm-history-result-reply { min-height: 32px; border-top: 1px solid rgba(104, 145, 199, .18); border-left: 0; }
 }
+
+/* Favor reuses the feedback family and fits its overlay padding on mobile. */
+.favor-daily-feedback { width: min(620px, 100%); }

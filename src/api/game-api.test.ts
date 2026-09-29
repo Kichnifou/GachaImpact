@@ -388,3 +388,12 @@ it('uses separate Faveur routes and preserves separate status fields', async () 
   expect(fetchImplementation.mock.calls[1]![1]).toMatchObject({ method: 'POST', headers: { authorization: 'Bearer private-test-token' } });
   expect(fetchImplementation.mock.calls[2]![1]).toMatchObject({ method: 'DELETE' });
 });
+
+it('uses the personal Favor contract without browser identity, date or source', async () => {
+ const fetchImplementation = vi.fn().mockImplementation(async () => new Response('{}'))
+ const client = createGameApiClient({ baseUrl: 'https://api.example', getAccessToken: async () => 'private-token', fetchImplementation })
+ await client.getFavor(); await client.recordFavorPresence()
+ expect(fetchImplementation.mock.calls.map(([url]) => url)).toEqual(['https://api.example/api/v1/me/favor', 'https://api.example/api/v1/me/favor/presence'])
+ expect(fetchImplementation.mock.calls[1]?.[1]).toMatchObject({ method: 'POST', headers: { authorization: 'Bearer private-token' } })
+ expect(fetchImplementation.mock.calls[1]?.[1]?.body).toBeUndefined()
+})

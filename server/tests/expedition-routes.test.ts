@@ -5,7 +5,7 @@ import type { NotificationService } from '../src/application/notification/notifi
 import { buildApp } from '../src/app.js';
 
 const characterId = randomUUID(); const playerId = randomUUID();
-const view: ExpeditionView = { businessDate: '2026-09-12', operationalStatus: 'RUNNING', departureUsedToday: true, canStartToday: false, activeCharacter: { id: characterId, externalKey: 'fixture', name: 'Fixture', rarity: 5, elementKey: 'hydro', weaponType: null, region: null, iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null }, departedAt: new Date('2026-09-12T10:00:00Z'), readyAt: new Date('2026-09-13T06:00:00Z'), remainingSeconds: 72_000, startedOnCurrentBusinessDate: true, totalCompleted: 0n };
+const view: ExpeditionView = { todayReward: null, businessDate: '2026-09-12', operationalStatus: 'RUNNING', departureUsedToday: true, canStartToday: false, activeCharacter: { id: characterId, externalKey: 'fixture', name: 'Fixture', rarity: 5, elementKey: 'hydro', weaponType: null, region: null, iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null }, departedAt: new Date('2026-09-12T10:00:00Z'), readyAt: new Date('2026-09-13T06:00:00Z'), remainingSeconds: 72_000, startedOnCurrentBusinessDate: true, totalCompleted: 0n };
 const balances = { primogems: 1600n, moras: 0n, particles_pyro: 0n, particles_hydro: 0n, particles_cryo: 0n, particles_electro: 0n, particles_anemo: 0n, particles_geo: 0n, particles_dendro: 0n };
 
 describe('Expedition and notification HTTP contracts', () => {

@@ -73,6 +73,13 @@ function AppBootstrap() {
     return nextResources
   }, [])
 
+  const refreshFavorResources = useCallback(async () => {
+    const owner = notificationSessionRef.current
+    const nextResources = await getGameApiClient().getResources()
+    if (notificationSessionRef.current === owner) setResources(nextResources)
+    return nextResources
+  }, [])
+
   const loadMissions = useMemo(() => createMissionLoader(
     () => getGameApiClient().getMissions(),
     loadResources,
@@ -448,6 +455,8 @@ function AppBootstrap() {
 
   return (
     <><GameShell
+      onRefreshResources={refreshFavorResources}
+      externalFeedbackPending={milestoneFeedbacks.length > 0}
       onRefreshChatScopes={refreshChatScopes}
       onRefreshPlayerState={refreshPlayerState}
       onRefreshPlayer={async () => setPlayer(await getGameApiClient().getCurrentPlayer())}

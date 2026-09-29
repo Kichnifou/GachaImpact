@@ -5,7 +5,7 @@ import { buildApp } from '../src/app.js';
 
 const bossId = randomUUID();
 const playerId = randomUUID();
-const view: MonthlyBossView = {
+const view: MonthlyBossView = { todayDamage: null,
   businessDate: '2026-09-13',
   boss: { id: bossId, monthStart: '2026-09-01', name: 'Seigneur des Ruines Oubliées', baseHp: 1_500_000n, hpVariationPercent: 0, maxHp: 1_500_000n, currentHp: 1_490_000n, resistanceElementKey: 'hydro', defeatedAt: null, finalBlowPlayer: null, nextBaseAdjustment: null },
   status: 'ALIVE', attackState: 'AVAILABLE', canAttack: false,

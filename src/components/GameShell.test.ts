@@ -55,8 +55,8 @@ describe('GameShell shared particle conversion overlay', () => {
     expect(gameShellSource).toContain('onDirectMessageIntentConsumed={token => setDirectMessageIntent(current => current?.token === token ? null : current)}')
   })
 
-  it('uses the faster friendship rhythm only while a Social surface is active', () => {
-    expect(gameShellSource).toContain("useFriendships(socialActions, activeScreen === 'social' || activeScreen === 'profile' || isPlayersOpen)")
+  it('uses the faster friendship rhythm while a Social surface or daily friendship summary is active', () => {
+    expect(gameShellSource).toContain("useFriendships(socialActions, activeScreen === 'social' || activeScreen === 'profile' || activeScreen === 'activities-dailies' || isPlayersOpen)")
   })
 
   it('passes the same central Expedition snapshot and monotonic clock to Box and Activities', () => {

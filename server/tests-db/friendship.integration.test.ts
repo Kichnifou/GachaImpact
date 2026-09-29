@@ -335,3 +335,14 @@ describe('Friendship isolated PostgreSQL', () => {
     expect((await db.playerActivityState.findUniqueOrThrow({ where: { playerId: a } })).lastAppActivityAt).toEqual(activity.lastAppActivityAt);
   }, 30_000);
 });
+
+ it('projects exact sender credits for zero, one and multiple hearts, survives reads, and resets next Paris day', async () => {
+  now = new Date('2026-09-25T21:00:00Z'); const a = await player(), b = await player(), c = await player(); await befriend(a,b); await befriend(a,c);
+  expect((await service.snapshot(a)).summary.earnedPrimogemsToday).toBe('0');
+  await service.sendHearts(a,b,randomUUID()); expect((await service.snapshot(a)).summary.earnedPrimogemsToday).toBe('5');
+  await service.sendHearts(a,c,randomUUID()); expect((await service.snapshot(a)).summary.earnedPrimogemsToday).toBe('10');
+  const before = await balance(a), operations = await db.businessOperation.count({ where: { playerId: a } });
+  expect((await service.snapshot(a)).summary.earnedPrimogemsToday).toBe('10'); expect(await balance(a)).toBe(before); expect(await db.businessOperation.count({ where: { playerId: a } })).toBe(operations);
+  expect((await service.snapshot(b)).summary.earnedPrimogemsToday).toBe('0');
+  now = new Date('2026-09-25T22:00:00Z'); expect((await service.snapshot(a)).summary.earnedPrimogemsToday).toBe('0');
+ });

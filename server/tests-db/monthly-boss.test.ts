@@ -16,7 +16,7 @@ afterAll(() => isolated.cleanup(), 60_000);
 const playerIds = new Set<string>();
 const characterIds = new Set<string>();
 const anchorMonth = '2097-12-01';
-const months = ['2098-01-01', '2098-02-01', '2098-03-01', '2098-04-01', '2098-05-01', '2098-06-01'] as const;
+const months = ['2098-01-01', '2098-02-01', '2098-03-01', '2098-04-01', '2098-05-01', '2098-06-01', '2098-07-01', '2098-08-01'] as const;
 let now = new Date('2098-01-10T12:00:00.000Z');
 let randomCalls = 0;
 const clock = { now: () => now };
@@ -241,3 +241,20 @@ describe('monthly Boss persistence', () => {
     expect(failed).toMatchObject({ status: 'FAILED', nextBaseAdjustment: calculateNextBossBase({ baseHp: failed.baseHp, currentHp: failed.currentHp, monthStart: failed.monthStart, defeatedAt: null }).adjustment, community: { participantCount: 0, attackCount: 0n, totalDamage: 0n, averageDamage: 0n } });
   }, 30_000);
 });
+
+ it('projects only today native hit, never monthly/best damage, and reads do not add effects', async () => {
+  now = new Date('2098-08-10T12:00:00Z'); const p = await fixture(); await fill(p.service,p.characters);
+  const initial = await p.service.getCurrent(identity); expect(initial.todayDamage).toBeNull();
+  const attack = await p.service.attack(identity,initial.boss.id,randomUUID()); expect(attack.view.todayDamage).toBe(attack.result.damage);
+  const before = await database.bossAttack.count({ where: { playerId: p.id } });
+  expect((await p.service.getCurrent(identity)).todayDamage).toBe(attack.result.damage); expect(await database.bossAttack.count({ where: { playerId: p.id } })).toBe(before);
+  now = new Date('2098-08-11T12:00:00Z'); expect((await p.service.getCurrent(identity)).todayDamage).toBeNull();
+ });
+ it('keeps legacy USED status without inventing today damage', async () => {
+  now = new Date('2098-08-15T12:00:00Z'); const p = await fixture(); const view = await p.service.getCurrent(identity);
+  const batch = await database.migrationBatch.create({ data: { snapshotHash: 'f'.repeat(64), mode: 'REHEARSAL', migratorVersion: 'private-lot8' } });
+  try {
+   await database.bossLegacyContribution.create({ data: { bossId: view.boss.id, playerId: p.id, batchId: batch.id, totalDamage: 123456n, bestHit: 5000n, attackCount: 5n, lastAttackDate: new Date('2098-08-15'), legacyProvenance: { private: true } } });
+   expect(await p.service.getCurrent(identity)).toMatchObject({ attackState: 'USED', todayDamage: null });
+  } finally { await database.bossLegacyContribution.deleteMany({ where: { playerId: p.id, batchId: batch.id } }); await database.migrationBatch.delete({ where: { id: batch.id } }); }
+ });

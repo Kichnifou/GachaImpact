@@ -183,15 +183,17 @@ export class FriendshipService {
       const [relations, requests, hearts, legacyHearts, eligible, stats, preference] = await Promise.all([
         tx.friendship.findMany({ where: { ...relationWhere(playerId), state: 'ACTIVE' } }),
         tx.friendRequest.findMany({ where: { state: 'PENDING', OR: [{ senderPlayerId: playerId }, { recipientPlayerId: playerId }] }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] }),
-        tx.friendHeart.findMany({ where: { senderPlayerId: playerId, businessDate: date }, select: { friendshipId: true } }),
+        tx.friendHeart.findMany({ where: { senderPlayerId: playerId, businessDate: date }, select: { friendshipId: true, operationId: true } }),
         tx.friendshipLegacyHeartState.findMany({ where: { senderPlayerId: playerId, lastHeartSentDate: date }, select: { friendshipId: true } }),
         tx.player.findMany({ where: unblockedRecipient(playerId), select: { id: true } }),
         tx.playerSocialStats.findUnique({ where: { playerId } }),
         tx.playerPreference.findUnique({ where: { playerId_preferenceKey: { playerId, preferenceKey: 'friend_sort_v1' } } }),
       ]);
       const sent = new Set([...hearts, ...legacyHearts].map(h => h.friendshipId)), allowed = new Set(eligible.map(p => p.id));
+      const earned = await tx.resourceMovement.aggregate({ where: { playerId, operationId: { in: hearts.map(h => h.operationId) },
+        resourceKey: 'primogems', causeKey: 'friendship.heart', delta: { gt: 0 }, operation: { operationType: 'friendship.heart', status: 'COMPLETED', playerId } }, _sum: { delta: true } });
       const friends = relations.map(r => { const target = r.playerAId === playerId ? r.playerBId : r.playerAId; return { id: r.id, playerId: target, level: r.level, tier: friendshipTier(r.level), totalHearts: r.totalHearts.toString(), heartSent: sent.has(r.id), canSend: !sent.has(r.id) && allowed.has(target) }; });
-      return { businessDate: getBusinessDate(now), friends, requests: requests.map(r => ({ id: r.id, playerId: r.senderPlayerId === playerId ? r.recipientPlayerId : r.senderPlayerId, direction: r.senderPlayerId === playerId ? 'SENT' as const : 'RECEIVED' as const, createdAt: r.createdAt.toISOString() })), totalFriendHeartsSent: stats?.totalFriendHeartsSent.toString() ?? '0', sort: friendSorts.includes(preference?.value as FriendSort) ? preference!.value as FriendSort : 'presence' as FriendSort, summary: { activeFriends: friends.length, available: friends.filter(r => r.canSend).length, alreadySent: friends.filter(r => r.heartSent).length } };
+      return { businessDate: getBusinessDate(now), friends, requests: requests.map(r => ({ id: r.id, playerId: r.senderPlayerId === playerId ? r.recipientPlayerId : r.senderPlayerId, direction: r.senderPlayerId === playerId ? 'SENT' as const : 'RECEIVED' as const, createdAt: r.createdAt.toISOString() })), totalFriendHeartsSent: stats?.totalFriendHeartsSent.toString() ?? '0', sort: friendSorts.includes(preference?.value as FriendSort) ? preference!.value as FriendSort : 'presence' as FriendSort, summary: { earnedPrimogemsToday: (earned._sum.delta ?? 0n).toString(), activeFriends: friends.length, available: friends.filter(r => r.canSend).length, alreadySent: friends.filter(r => r.heartSent).length } };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
   async saveSort(playerId: string, sort: FriendSort) {

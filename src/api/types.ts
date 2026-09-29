@@ -456,6 +456,7 @@ export type MonthlyBossRecordsDto = Readonly<{
 }>
 export type MonthlyBossSummaryDto = Readonly<{ victoryDayCount: number | null; daysRemainingAfterVictory: number | null; community: MonthlyBossCommunitySummaryDto; records: MonthlyBossRecordsDto }>
 export type MonthlyBossDto = Readonly<{
+  todayDamage?: string | null
   businessDate: string
   boss: Readonly<{ id: string; monthStart: string; name: string; baseHp: string; hpVariationPercent: number; maxHp: string; currentHp: string; resistanceElementKey: ElementKey; defeatedAt: string | null; finalBlowPlayer: Readonly<{ id: string; displayName: string }> | null; nextBaseAdjustment: string | null }>
   status: 'ALIVE' | 'DEFEATED'
@@ -559,6 +560,7 @@ export type ContestHistorySummaryDto = Readonly<{
 export type ContestHistoryDto = Readonly<{ page: number; pageSize: number; total: number; pageCount: number; contests: readonly ContestHistorySummaryDto[] }>
 
 export type ExpeditionDto = Readonly<{
+  todayReward?: null | Readonly<{ kind: 'primogems' | 'particles' | 'moras'; resourceKey: string; amount: string }>
   businessDate: string
   operationalStatus: 'IDLE' | 'RUNNING' | 'READY'
   departureUsedToday: boolean
@@ -857,3 +859,6 @@ export type DirectMessageReportPreviewDto = Readonly<{ message: DirectMessageRep
 export type DirectMessageReportSummaryDto = Readonly<{ id: string; createdAt: string; source: 'MP'; reporter: Readonly<{ id: string; displayName: string }>; reported: Readonly<{ id: string; displayName: string }>; message: DirectMessageReportSnapshotLineDto }>
 export type DirectMessageReportPageDto = Readonly<{ reports: readonly DirectMessageReportSummaryDto[]; page: number; pageSize: 20; total: number; totalPages: number }>
 export type DirectMessageReportDetailDto = DirectMessageReportSummaryDto & Readonly<{ context: readonly DirectMessageReportSnapshotLineDto[]; snapshotFingerprint: string }>
+
+export type FavorDto = Readonly<{ businessDate: string; active: boolean; daysRemaining: number; maxDays: number; dailyPrimogems: string; claimedToday: boolean; claimStatus: 'AVAILABLE' | 'CLAIMED' | 'UNAVAILABLE' }>
+export type FavorPresenceDto = Readonly<{ status: 'CLAIMED' | 'ALREADY_CLAIMED' | 'INACTIVE'; businessDate: string; creditedPrimogems: string; favor: FavorDto }>
