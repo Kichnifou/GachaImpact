@@ -10,9 +10,15 @@ const subscriptionSchema = z.object({
 const pageSchema = z.object({ data: z.array(subscriptionSchema), pagination: z.object({ cursor: z.string().min(1).optional() }) });
 const createdSchema = z.object({ data: z.array(subscriptionSchema).length(1) });
 export type TwitchEventSubSubscription = z.infer<typeof subscriptionSchema>;
+export type PilotEventSubType = 'channel.chat.message' | 'channel.subscribe';
 export type PilotChatSubscriptionRequest = Readonly<{
   type: 'channel.chat.message'; version: '1';
   condition: { broadcaster_user_id: string; user_id: string };
+  transport: { method: 'webhook'; callback: string; secret: string };
+}>;
+export type PilotFavorSubscriptionRequest = Readonly<{
+  type: 'channel.subscribe'; version: '1';
+  condition: { broadcaster_user_id: string };
   transport: { method: 'webhook'; callback: string; secret: string };
 }>;
 export class TwitchEventSubApiError extends AppError {
@@ -24,9 +30,11 @@ export class TwitchEventSubClient {
   constructor(private readonly clientId: string, private readonly tokens: TwitchAppAccessTokenProvider,
     private readonly request: typeof fetch = fetch) {}
 
-  private async call(method: 'GET' | 'POST' | 'DELETE', cursor?: string, body?: PilotChatSubscriptionRequest, subscriptionId?: string, signal?: AbortSignal) {
+  private async call(method: 'GET' | 'POST' | 'DELETE', cursor?: string,
+    body?: PilotChatSubscriptionRequest | PilotFavorSubscriptionRequest, subscriptionId?: string, signal?: AbortSignal,
+    type: PilotEventSubType = 'channel.chat.message') {
     const url = new URL('https://api.twitch.tv/helix/eventsub/subscriptions');
-    if (method === 'GET') url.searchParams.set('type', 'channel.chat.message');
+    if (method === 'GET') url.searchParams.set('type', type);
     if (cursor) url.searchParams.set('after', cursor);
     if (subscriptionId) url.searchParams.set('id', subscriptionId);
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -52,12 +60,12 @@ export class TwitchEventSubClient {
     throw new TwitchEventSubApiError(401);
   }
 
-  async listChatSubscriptions(signal?: AbortSignal): Promise<TwitchEventSubSubscription[]> {
+  private async listSubscriptions(type: PilotEventSubType, signal?: AbortSignal): Promise<TwitchEventSubSubscription[]> {
     const subscriptions: TwitchEventSubSubscription[] = [];
     const seen = new Set<string>();
     let cursor: string | undefined;
     do {
-      const parsed = pageSchema.safeParse(await this.call('GET', cursor, undefined, undefined, signal));
+      const parsed = pageSchema.safeParse(await this.call('GET', cursor, undefined, undefined, signal, type));
       if (!parsed.success) throw invalid();
       subscriptions.push(...parsed.data.data);
       cursor = parsed.data.pagination.cursor;
@@ -67,13 +75,23 @@ export class TwitchEventSubClient {
     return subscriptions;
   }
 
+  async listChatSubscriptions(signal?: AbortSignal) { return this.listSubscriptions('channel.chat.message', signal); }
+  async listFavorSubscriptions(signal?: AbortSignal) { return this.listSubscriptions('channel.subscribe', signal); }
+
   async createChatSubscription(body: PilotChatSubscriptionRequest): Promise<TwitchEventSubSubscription> {
     const parsed = createdSchema.safeParse(await this.call('POST', undefined, body));
     if (!parsed.success) throw invalid();
     return parsed.data.data[0]!;
   }
 
-  async deleteChatSubscription(subscriptionId: string): Promise<void> {
+  async createFavorSubscription(body: PilotFavorSubscriptionRequest): Promise<TwitchEventSubSubscription> {
+    const parsed = createdSchema.safeParse(await this.call('POST', undefined, body));
+    if (!parsed.success) throw invalid();
+    return parsed.data.data[0]!;
+  }
+
+  async deleteSubscription(subscriptionId: string): Promise<void> {
     await this.call('DELETE', undefined, undefined, subscriptionId);
   }
+  async deleteChatSubscription(subscriptionId: string) { return this.deleteSubscription(subscriptionId); }
 }

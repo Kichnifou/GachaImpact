@@ -13,6 +13,7 @@ async function setup() {
   const twitch = { status: vi.fn(async () => ({ runtimeAuthorizationAvailable: true, runtimeSubscriptionAvailable: false })),
     start: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize' })),
     startRuntime: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize?scope=openid' })),
+    startFavor: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize?scope=openid+channel%3Aread%3Asubscriptions' })),
     callback: vi.fn(async () => ({})), unlink: vi.fn(), disableRuntime: vi.fn(async () => ({ runtimeChatActive: false, runtimeChatPending: false })) };
   const subscriptions = { ensurePilotChatSubscription: vi.fn() };
   const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {}, frontendOrigin: 'https://game.example' }, {
@@ -23,6 +24,32 @@ async function setup() {
   apps.push(app); return { app, twitch, subscriptions };
 }
 describe('Twitch runtime pilot routes with mocked services', () => {
+  it('authenticates Faveur start, accepts only an empty body/no query and only returns its URL', async () => {
+    const { app, twitch, subscriptions } = await setup(), url = '/api/v1/me/twitch/favor/start';
+    expect((await app.inject({ method: 'POST', url })).statusCode).toBe(401);
+    const headers = { authorization: 'Bearer test' };
+    const response = await app.inject({ method: 'POST', url, headers });
+    expect(response.statusCode).toBe(200); expect(response.json()).toEqual({ url: 'https://id.twitch.tv/oauth2/authorize?scope=openid+channel%3Aread%3Asubscriptions' });
+    expect(twitch.startFavor).toHaveBeenCalledWith({ subject: 'operator' }); expect(twitch.startRuntime).not.toHaveBeenCalled();
+    for (const payload of [{ scopes: ['openid'] }, { broadcaster_user_id: 'other' }, { callback: 'https://evil.example' }, [], 'text'])
+      expect((await app.inject({ method: 'POST', url, headers: { ...headers, 'content-type': 'application/json' }, payload: JSON.stringify(payload) })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'POST', url, headers: { ...headers, 'content-type': 'application/json' }, payload: 'null' })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'POST', url: `${url}?playerId=other`, headers })).statusCode).toBe(400);
+    expect(twitch.startFavor).toHaveBeenCalledOnce(); expect(subscriptions.ensurePilotChatSubscription).not.toHaveBeenCalled();
+  });
+  it('redirects Faveur success/pending and errors to distinct fixed frontend outcomes', async () => {
+    const { app, twitch } = await setup();
+    for (const pending of [false, true]) {
+      twitch.callback.mockResolvedValueOnce({ favorRuntimeActivated: true, favorSubscriptionPending: pending } as never);
+      const response = await app.inject({ method: 'GET', url: `/api/v1/me/twitch/callback?state=favor_${state}&code=private-code` });
+      const target = new URL(response.headers.location!);
+      expect(target.origin).toBe('https://game.example'); expect(target.searchParams.get('twitch')).toBe('favor-runtime-activated');
+      expect(target.hash).toBe('#configuration'); expect(target.toString()).not.toContain('private-code'); expect(response.headers['cache-control']).toBe('no-store');
+    }
+    twitch.callback.mockRejectedValueOnce(new AppError('scope missing', 403, 'TWITCH_FAVOR_SCOPES_MISSING'));
+    const response = await app.inject({ method: 'GET', url: `/api/v1/me/twitch/callback?state=favor_${state}&code=test` });
+    expect(new URL(response.headers.location!).searchParams.get('twitch')).toBe('favor-runtime-error');
+  });
   it('authenticates disable and rejects browser-supplied IDs without calling the service', async () => {
     const { app, twitch } = await setup();
     const url = '/api/v1/me/twitch/runtime/subscription';

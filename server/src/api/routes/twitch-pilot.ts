@@ -27,6 +27,11 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
     if (!z.object({}).strict().safeParse(request.body ?? {}).success) throw new AppError('Paramètres runtime Twitch invalides.', 400, 'VALIDATION_ERROR');
     return options.twitch.startRuntime(requireAuthenticatedIdentity(request));
   });
+  app.post('/api/v1/me/twitch/favor/start', authenticated, request => {
+    if (!z.object({}).strict().safeParse(request.body === undefined ? {} : request.body).success || Object.keys(request.query as object).length)
+      throw new AppError('Paramètres Faveur Twitch invalides.', 400, 'VALIDATION_ERROR');
+    return options.twitch.startFavor(requireAuthenticatedIdentity(request));
+  });
   app.delete('/api/v1/me/twitch', authenticated, request => options.twitch.unlink(requireAuthenticatedIdentity(request)));
   app.delete('/api/v1/me/twitch/runtime/subscription', authenticated, request => {
     if (!z.object({}).strict().safeParse(request.body ?? {}).success || Object.keys(request.query as object).length)
@@ -37,12 +42,15 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
     const query = callbackSchema.safeParse(request.query);
     let outcome = 'error';
     let runtime = false;
+    let favor = false;
     try { if (query.success) {
-      runtime = twitchOAuthPurpose(query.data.state) === 'AUTHORIZE_RUNTIME';
+      const purpose = twitchOAuthPurpose(query.data.state);
+      runtime = purpose === 'AUTHORIZE_RUNTIME';
+      favor = purpose === 'AUTHORIZE_FAVOR_SUBSCRIPTIONS';
       await options.twitch.callback(query.data);
-      outcome = runtime ? 'runtime-activated' : 'connected';
+      outcome = favor ? 'favor-runtime-activated' : runtime ? 'runtime-activated' : 'connected';
     } }
-    catch (error) { outcome = runtime ? 'runtime-error' : error instanceof AppError ? error.code : 'error'; }
+    catch (error) { outcome = favor ? 'favor-runtime-error' : runtime ? 'runtime-error' : error instanceof AppError ? error.code : 'error'; }
     const target = new URL(options.config.frontendOrigin ?? 'http://localhost:5173');
     target.searchParams.set('twitch', outcome);
     target.hash = 'configuration';

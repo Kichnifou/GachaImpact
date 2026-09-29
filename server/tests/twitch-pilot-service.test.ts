@@ -5,7 +5,7 @@ import type { PrismaClient } from '../generated/prisma/client.js';
 import type { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import type { AuthenticatedIdentity } from '../src/domain/identity/authenticated-identity.js';
 import { AppError } from '../src/api/errors.js';
-import { TwitchPilotService, TWITCH_RUNTIME_SCOPES, verifyTwitchIdToken } from '../src/application/twitch/twitch-pilot-service.js';
+import { TwitchPilotService, TWITCH_RUNTIME_SCOPES, TWITCH_FAVOR_SCOPES, twitchOAuthPurpose, verifyTwitchIdToken } from '../src/application/twitch/twitch-pilot-service.js';
 import type { TwitchEventSubSubscriptionManager } from '../src/application/twitch/twitch-eventsub-subscription-manager.js';
 
 const playerId = '11111111-1111-4111-8111-111111111111';
@@ -34,9 +34,12 @@ function setup(id = playerId, runtime = false) {
   const getPlayer = { execute: vi.fn().mockResolvedValue({ id }) };
   const subscriptions = { activationAvailable: true, managementAvailable: true,
     ensurePilotChatSubscription: vi.fn().mockResolvedValue({ status: 'enabled' }),
+    ensurePilotFavorSubscription: vi.fn().mockResolvedValue({ status: 'enabled' }),
     inspectPilotChatSubscription: vi.fn().mockResolvedValue('INACTIVE'),
     disablePilotChatSubscription: vi.fn().mockResolvedValue('INACTIVE'),
-    unlinkPilotChatIdentity: vi.fn(async (_id: string, remove: () => Promise<void>) => { await subscriptions.disablePilotChatSubscription(_id); await remove(); }) };
+    disablePilotFavorSubscription: vi.fn().mockResolvedValue('INACTIVE'),
+    unlinkPilotIdentity: vi.fn(async (_id: string, remove: () => Promise<void>) => {
+      await subscriptions.disablePilotChatSubscription(_id); await subscriptions.disablePilotFavorSubscription(_id); await remove(); }) };
   return { db, subscriptions, service: new TwitchPilotService(db as unknown as PrismaClient, getPlayer as unknown as GetCurrentPlayer,
     runtime ? { ...config, twitchEventSub: { enabled: true, secret: 'test-secret', callbackUrl: 'https://backend.example/api/v1/twitch/eventsub' } } : config,
     keys, runtime ? subscriptions as unknown as TwitchEventSubSubscriptionManager : undefined) };
@@ -54,6 +57,98 @@ async function mockTwitch(login = 'kichnifou', userId = '12345', scopes: readonl
   fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ data: [{ id: userId, login, display_name: 'Kichnifou' }] }) } as Response);
 }
 afterEach(() => vi.restoreAllMocks());
+
+describe('separate Faveur OAuth purpose', () => {
+  const linked = { playerId, twitchUserId: '12345', login: 'kichnifou', displayName: 'Original', linkedAt: new Date() };
+  const favorState = `favor_${state}`;
+  const favorSetup = () => { const value = setup(playerId, true); value.db.twitchIdentity.findUnique.mockResolvedValue(linked); return value; };
+  it('requests only openid and subscriptions with hashed, fresh state and separate nonce, without activating', async () => {
+    const { service, db, subscriptions } = favorSetup();
+    const first = new URL((await service.startFavor(identity)).url), second = new URL((await service.startFavor(identity)).url);
+    expect(first.searchParams.get('scope')?.split(' ')).toEqual(['openid', 'channel:read:subscriptions']);
+    expect(first.searchParams.get('state')).toMatch(/^favor_[A-Za-z0-9_-]{43}$/);
+    expect(first.searchParams.get('nonce')).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(first.searchParams.get('state')?.slice(6)).not.toBe(first.searchParams.get('nonce'));
+    expect(first.searchParams.get('state')).not.toBe(second.searchParams.get('state'));
+    expect(first.searchParams.get('nonce')).not.toBe(second.searchParams.get('nonce'));
+    expect(db.twitchLinkState.create.mock.calls[0]![0].data).toMatchObject({ playerId,
+      stateHash: createHash('sha256').update(first.searchParams.get('state')!).digest('hex'),
+      nonceHash: createHash('sha256').update(first.searchParams.get('nonce')!).digest('hex') });
+    expect(db.twitchLinkState.create.mock.calls[0]![0].data.expiresAt.getTime() - Date.now()).toBeGreaterThan(590_000);
+    expect(subscriptions.ensurePilotChatSubscription).not.toHaveBeenCalled(); expect(subscriptions.ensurePilotFavorSubscription).not.toHaveBeenCalled();
+  });
+  it('requires a pilot, configured transport/OAuth and an existing identity', async () => {
+    await expect(setup(otherId, true).service.startFavor(identity)).rejects.toMatchObject({ code: 'TWITCH_PILOT_FORBIDDEN' });
+    await expect(setup().service.startFavor(identity)).rejects.toMatchObject({ code: 'TWITCH_RUNTIME_UNAVAILABLE' });
+    const { service, db } = setup(playerId, true);
+    await expect(service.startFavor(identity)).rejects.toMatchObject({ code: 'TWITCH_RUNTIME_IDENTITY_REQUIRED' });
+    expect(db.twitchLinkState.create).not.toHaveBeenCalled();
+  });
+  const purposes = ['LINK_IDENTITY', 'AUTHORIZE_RUNTIME', 'AUTHORIZE_FAVOR_SUBSCRIPTIONS'] as const;
+  const states = [state, `runtime_${state}`, favorState];
+  it.each(purposes.flatMap((purpose, i) => purposes.filter(expected => expected !== purpose).map(expected => [states[i]!, expected] as const)))
+    ('rejects state %s in purpose %s before consumption', async (inputState, expected) => {
+      const { service, db } = favorSetup();
+      await expect(service.callback({ state: inputState, code: 'test' }, expected)).rejects.toMatchObject({ code: 'TWITCH_STATE_INVALID' });
+      expect(db.$queryRaw).not.toHaveBeenCalled();
+    });
+  it('hashes the complete Faveur purpose and rejects changing its prefix or replaying it', async () => {
+    const { service, db, subscriptions } = favorSetup();
+    let consumed = false;
+    db.$queryRaw.mockImplementation(async (_query: unknown, digest: string) => {
+      if (consumed || digest !== createHash('sha256').update(favorState).digest('hex')) return [];
+      consumed = true; return [{ player_id: playerId, nonce_hash: nonceHash }];
+    });
+    for (const altered of [state, `runtime_${state}`])
+      await expect(service.callback({ state: altered, code: 'test' })).rejects.toMatchObject({ code: 'TWITCH_STATE_INVALID' });
+    await mockTwitch('kichnifou', '12345', TWITCH_FAVOR_SCOPES);
+    expect(await service.callback({ state: favorState, code: 'test' })).toEqual({ favorRuntimeActivated: true, favorSubscriptionPending: false });
+    await expect(service.callback({ state: favorState, code: 'test' })).rejects.toMatchObject({ code: 'TWITCH_STATE_INVALID' });
+    expect(subscriptions.ensurePilotFavorSubscription).toHaveBeenCalledOnce();
+  });
+  it.each(['enabled', 'webhook_callback_verification_pending'])('ensures only Faveur after all checks (%s) without persisting tokens or identity', async status => {
+    const { service, db, subscriptions } = favorSetup(); await mockTwitch('kichnifou', '12345', TWITCH_FAVOR_SCOPES);
+    subscriptions.ensurePilotFavorSubscription.mockResolvedValue({ status });
+    expect(await service.callback({ state: favorState, code: 'private-code' })).toEqual({ favorRuntimeActivated: true, favorSubscriptionPending: status !== 'enabled' });
+    expect(subscriptions.ensurePilotFavorSubscription).toHaveBeenCalledWith(playerId, '12345', 'kichnifou');
+    expect(subscriptions.ensurePilotChatSubscription).not.toHaveBeenCalled(); expect(db.twitchIdentity.upsert).not.toHaveBeenCalled();
+    expect(JSON.stringify([db.twitchLinkState.create.mock.calls, db.$queryRaw.mock.calls])).not.toMatch(/transient|discarded|private-code/);
+    expect(twitchOAuthPurpose(favorState)).toBe('AUTHORIZE_FAVOR_SUBSCRIPTIONS');
+  });
+  it.each(TWITCH_FAVOR_SCOPES)('rejects a missing %s scope before ensure', async missing => {
+    const { service, subscriptions } = favorSetup();
+    await mockTwitch('kichnifou', '12345', TWITCH_FAVOR_SCOPES.filter(scope => scope !== missing));
+    await expect(service.callback({ state: favorState, code: 'test' })).rejects.toMatchObject({
+      code: missing === 'openid' ? 'TWITCH_IDENTITY_INVALID' : 'TWITCH_FAVOR_SCOPES_MISSING' });
+    expect(subscriptions.ensurePilotFavorSubscription).not.toHaveBeenCalled();
+  });
+  it.each([
+    ['subject', 'kichnifou', '98765', { sub: '98765' }, 'TWITCH_ACCOUNT_MISMATCH'],
+    ['login', 'different', '12345', {}, 'TWITCH_ACCOUNT_MISMATCH'],
+    ['nonce', 'kichnifou', '12345', { nonce: 'C'.repeat(43) }, 'TWITCH_NONCE_INVALID'],
+  ] as const)('rejects inconsistent %s', async (_label, login, id, claims, code) => {
+    const { service, db, subscriptions } = favorSetup(); await mockTwitch(login, id, TWITCH_FAVOR_SCOPES, claims);
+    await expect(service.callback({ state: favorState, code: 'test' })).rejects.toMatchObject({ code });
+    expect(subscriptions.ensurePilotFavorSubscription).not.toHaveBeenCalled(); expect(db.twitchIdentity.upsert).not.toHaveBeenCalled();
+  });
+  it.each(['client', 'helix-id', 'helix-login'] as const)('rejects inconsistent %s response', async bad => {
+    const { service, subscriptions } = favorSetup(); await mockTwitch('kichnifou', '12345', TWITCH_FAVOR_SCOPES);
+    vi.mocked(fetch).mockReset().mockResolvedValueOnce({ ok: true, json: async () => ({ access_token: 'transient', id_token: await signedToken() }) } as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ client_id: bad === 'client' ? 'other' : 'client', user_id: '12345', login: 'kichnifou', scopes: TWITCH_FAVOR_SCOPES }) } as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ data: [{ id: bad === 'helix-id' ? '99999' : '12345', login: bad === 'helix-login' ? 'other' : 'kichnifou' }] }) } as Response);
+    await expect(service.callback({ state: favorState, code: 'test' })).rejects.toMatchObject({ code: bad === 'client' ? 'TWITCH_IDENTITY_INVALID' : 'TWITCH_PROFILE_FAILED' });
+    expect(subscriptions.ensurePilotFavorSubscription).not.toHaveBeenCalled();
+  });
+  it('fails after concurrent unlink or unavailable activation without recreating identity', async () => {
+    const { service, db, subscriptions } = favorSetup(); await mockTwitch('kichnifou', '12345', TWITCH_FAVOR_SCOPES);
+    db.twitchIdentity.findUnique.mockResolvedValueOnce(linked).mockResolvedValueOnce(linked).mockResolvedValueOnce(null);
+    await expect(service.callback({ state: favorState, code: 'test' })).rejects.toMatchObject({ code: 'TWITCH_ACCOUNT_MISMATCH' });
+    expect(subscriptions.ensurePilotFavorSubscription).not.toHaveBeenCalled(); expect(db.twitchIdentity.upsert).not.toHaveBeenCalled();
+    vi.restoreAllMocks(); await mockTwitch('kichnifou', '12345', TWITCH_FAVOR_SCOPES);
+    db.twitchIdentity.findUnique.mockResolvedValue(linked); subscriptions.activationAvailable = false;
+    await expect(service.callback({ state: favorState, code: 'test' })).rejects.toMatchObject({ code: 'TWITCH_RUNTIME_UNAVAILABLE' });
+  });
+});
 
 describe('Twitch identity pilot', () => {
   it('gates non-pilot Players on the backend', async () => {

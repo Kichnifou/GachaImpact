@@ -164,24 +164,25 @@ describe('inspection, disable and serialized unlink', () => {
   it('serializes ensure and unlink, leaving no orphan even when consent races with unlink', async () => {
     const { manager, network, db } = setup();
     const order: string[] = [];
-    network.mockImplementation(async (_url, options) => {
+    network.mockImplementation(async (url, options) => {
       order.push(options!.method!);
+      if (new URL(String(url)).searchParams.get('type') === 'channel.subscribe') return page([]);
       if (options?.method === 'POST') return response({ data: [subscription] }, 202);
       if (options?.method === 'DELETE') return new Response(null, { status: 204 });
       return page(order.length === 1 ? [] : [subscription]);
     });
     const ensure = manager.ensurePilotChatSubscription(playerId, '12345');
-    const unlink = manager.unlinkPilotChatIdentity(playerId, async () => { order.push('identity'); db.twitchIdentity.findUnique.mockResolvedValue(null); });
+    const unlink = manager.unlinkPilotIdentity(playerId, async () => { order.push('identity'); db.twitchIdentity.findUnique.mockResolvedValue(null); });
     await Promise.all([ensure, unlink]);
-    expect(order).toEqual(['GET', 'POST', 'GET', 'DELETE', 'identity']);
+    expect(order).toEqual(['GET', 'POST', 'GET', 'DELETE', 'GET', 'identity']);
     await expect(manager.ensurePilotChatSubscription(playerId, '12345')).rejects.toMatchObject({ code: 'TWITCH_RUNTIME_IDENTITY_REQUIRED' });
-    expect(order).toHaveLength(5);
+    expect(order).toHaveLength(6);
   });
   it('removes before unlink even with reception OFF, and preserves identity on failed removal', async () => {
     const { manager, network } = setup({ ...config, twitchEventSub: { ...config.twitchEventSub!, enabled: false } });
     const remove = vi.fn(async () => undefined);
     network.mockResolvedValueOnce(page([subscription])).mockResolvedValueOnce(response({}, 503));
-    await expect(manager.unlinkPilotChatIdentity(playerId, remove)).rejects.toMatchObject({ code: 'TWITCH_EVENTSUB_API_FAILED' });
+    await expect(manager.unlinkPilotIdentity(playerId, remove)).rejects.toMatchObject({ code: 'TWITCH_EVENTSUB_API_FAILED' });
     expect(remove).not.toHaveBeenCalled();
   });
 });

@@ -53,7 +53,8 @@ describe('private DB runtime OAuth states', () => {
     await db.twitchEventReceipt.create({ data: { externalEventId: 'private-historical-receipt', eventType: 'channel.chat.message', twitchUserId: '12345' } });
     const receiptsBefore = await db.twitchEventReceipt.findMany();
     const playerBefore = await db.player.findUniqueOrThrow({ where: { id: playerId } });
-    network.mockResolvedValueOnce(new Response(JSON.stringify({ data: [subscription], pagination: {} }))).mockResolvedValueOnce(new Response(null, { status: 204 }));
+    network.mockResolvedValueOnce(new Response(JSON.stringify({ data: [subscription], pagination: {} }))).mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ data: [], pagination: {} })));
     expect(await service.unlink(identity)).toEqual({ linked: false });
     expect(await db.twitchIdentity.count()).toBe(0);
     expect(await db.player.findUniqueOrThrow({ where: { id: playerId } })).toEqual(playerBefore);

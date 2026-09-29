@@ -11,9 +11,11 @@ const hash = (value: string) => createHash('sha256').update(value).digest('hex')
 const normalizeLogin = (value: string) => value.trim().normalize('NFKC').toLowerCase();
 const twitchKeys = createRemoteJWKSet(new URL('https://id.twitch.tv/oauth2/keys'));
 export const TWITCH_RUNTIME_SCOPES = ['openid', 'user:read:chat', 'user:bot', 'channel:bot'] as const;
-export type TwitchOAuthPurpose = 'LINK_IDENTITY' | 'AUTHORIZE_RUNTIME';
+export const TWITCH_FAVOR_SCOPES = ['openid', 'channel:read:subscriptions'] as const;
+export type TwitchOAuthPurpose = 'LINK_IDENTITY' | 'AUTHORIZE_RUNTIME' | 'AUTHORIZE_FAVOR_SUBSCRIPTIONS';
 export function twitchOAuthPurpose(state: string | undefined): TwitchOAuthPurpose {
   if (state && /^runtime_[A-Za-z0-9_-]{43}$/.test(state)) return 'AUTHORIZE_RUNTIME';
+  if (state && /^favor_[A-Za-z0-9_-]{43}$/.test(state)) return 'AUTHORIZE_FAVOR_SUBSCRIPTIONS';
   if (state && /^[A-Za-z0-9_-]{43}$/.test(state)) return 'LINK_IDENTITY';
   throw new AppError('État OAuth invalide.', 400, 'TWITCH_STATE_INVALID');
 }
@@ -102,19 +104,26 @@ export class TwitchPilotService {
     return this.startForPurpose(identity, 'AUTHORIZE_RUNTIME');
   }
 
+  async startFavor(identity: AuthenticatedIdentity) {
+    await this.pilot(identity);
+    if (!this.runtimeReady()) throw new AppError('Réception des abonnements Twitch indisponible.', 503, 'TWITCH_RUNTIME_UNAVAILABLE');
+    return this.startForPurpose(identity, 'AUTHORIZE_FAVOR_SUBSCRIPTIONS');
+  }
+
   private async startForPurpose(identity: AuthenticatedIdentity, purpose: TwitchOAuthPurpose) {
     const player = await this.pilot(identity);
     if (!this.oauthReady()) throw new AppError('La liaison Twitch nâ€™est pas configurÃ©e.', 503, 'TWITCH_UNAVAILABLE');
-    if (purpose === 'AUTHORIZE_RUNTIME' && !await this.db.twitchIdentity.findUnique({ where: { playerId: player.id } }))
+    if (purpose !== 'LINK_IDENTITY' && !await this.db.twitchIdentity.findUnique({ where: { playerId: player.id } }))
       throw new AppError('Une identité Twitch liée est nécessaire.', 409, 'TWITCH_RUNTIME_IDENTITY_REQUIRED');
-    const state = (purpose === 'AUTHORIZE_RUNTIME' ? 'runtime_' : '') + randomBytes(32).toString('base64url');
+    const state = (purpose === 'AUTHORIZE_RUNTIME' ? 'runtime_' : purpose === 'AUTHORIZE_FAVOR_SUBSCRIPTIONS' ? 'favor_' : '') + randomBytes(32).toString('base64url');
     const nonce = randomBytes(32).toString('base64url');
     await this.db.twitchLinkState.create({ data: { stateHash: hash(state), nonceHash: hash(nonce), playerId: player.id, expiresAt: new Date(Date.now() + 10 * 60_000) } });
     const url = new URL('https://id.twitch.tv/oauth2/authorize');
     url.searchParams.set('response_type', 'code');
     url.searchParams.set('client_id', this.settings.clientId!);
     url.searchParams.set('redirect_uri', this.settings.redirectUri!);
-    url.searchParams.set('scope', purpose === 'AUTHORIZE_RUNTIME' ? TWITCH_RUNTIME_SCOPES.join(' ') : 'openid');
+    url.searchParams.set('scope', purpose === 'AUTHORIZE_RUNTIME' ? TWITCH_RUNTIME_SCOPES.join(' ')
+      : purpose === 'AUTHORIZE_FAVOR_SUBSCRIPTIONS' ? TWITCH_FAVOR_SCOPES.join(' ') : 'openid');
     url.searchParams.set('state', state);
     url.searchParams.set('nonce', nonce);
     return { url: url.toString() };
@@ -155,8 +164,10 @@ export class TwitchPilotService {
     const login = normalizeLogin(validation.login);
     if (purpose === 'AUTHORIZE_RUNTIME' && !TWITCH_RUNTIME_SCOPES.every(scope => (validation.scopes as unknown[]).includes(scope)))
       throw new AppError('Permissions Twitch Chat incomplètes.', 403, 'TWITCH_RUNTIME_SCOPES_MISSING');
+    if (purpose === 'AUTHORIZE_FAVOR_SUBSCRIPTIONS' && !TWITCH_FAVOR_SCOPES.every(scope => (validation.scopes as unknown[]).includes(scope)))
+      throw new AppError('Permissions Twitch Faveur incomplètes.', 403, 'TWITCH_FAVOR_SCOPES_MISSING');
     const existing = await this.db.twitchIdentity.findUnique({ where: { playerId } });
-    if (purpose === 'AUTHORIZE_RUNTIME' && (!existing || existing.twitchUserId !== twitchUserId || normalizeLogin(existing.login) !== login))
+    if (purpose !== 'LINK_IDENTITY' && (!existing || existing.twitchUserId !== twitchUserId || normalizeLogin(existing.login) !== login))
       throw new AppError('Ce compte Twitch ne correspond pas à l’identité liée.', 409, 'TWITCH_ACCOUNT_MISMATCH');
     if (existing ? existing.twitchUserId !== twitchUserId : login !== normalizeLogin(this.settings.pilotLogin)) {
       throw new AppError('Ce compte Twitch ne correspond pas au pilote.', 409, 'TWITCH_ACCOUNT_MISMATCH');
@@ -172,13 +183,17 @@ export class TwitchPilotService {
     }
     const owner = await this.db.twitchIdentity.findUnique({ where: { twitchUserId } });
     if (owner && owner.playerId !== playerId) throw new AppError('Ce compte Twitch est dÃ©jÃ  liÃ© Ã  un autre Player.', 409, 'TWITCH_IDENTITY_CONFLICT');
-    if (purpose === 'AUTHORIZE_RUNTIME') {
+    if (purpose !== 'LINK_IDENTITY') {
       // Recheck after network calls; authorization must not recreate an unlinked identity.
       const current = await this.db.twitchIdentity.findUnique({ where: { playerId } });
       if (!current || current.twitchUserId !== twitchUserId || normalizeLogin(current.login) !== login)
         throw new AppError('Identité Twitch liée modifiée.', 409, 'TWITCH_ACCOUNT_MISMATCH');
       if (!this.runtimeReady()) throw new AppError('Réception du chat Twitch indisponible.', 503, 'TWITCH_RUNTIME_UNAVAILABLE');
-      // Only validated runtime consent may create the configured pilot subscription. Tokens are never persisted.
+      // Only validated consent may create its own type. Tokens are never persisted.
+      if (purpose === 'AUTHORIZE_FAVOR_SUBSCRIPTIONS') {
+        const subscription = await this.subscriptions!.ensurePilotFavorSubscription(playerId, twitchUserId, login);
+        return { favorRuntimeActivated: true, favorSubscriptionPending: subscription.status === 'webhook_callback_verification_pending' };
+      }
       const subscription = await this.subscriptions!.ensurePilotChatSubscription(playerId, twitchUserId);
       return { runtimeActivated: true, runtimeChatPending: subscription.status === 'webhook_callback_verification_pending' };
     }
@@ -198,9 +213,9 @@ export class TwitchPilotService {
     const player = await this.pilot(identity);
     const linked = await this.db.twitchIdentity.findUnique({ where: { playerId: player.id } });
     const remove = async () => { await this.db.twitchIdentity.deleteMany({ where: { playerId: player.id } }); };
-    if (linked && this.subscriptions?.managementAvailable) await this.subscriptions.unlinkPilotChatIdentity(player.id, remove);
+    if (linked && this.subscriptions?.managementAvailable) await this.subscriptions.unlinkPilotIdentity(player.id, remove);
     else {
-      if (linked && this.eventSubConfigured) throw new AppError('Impossible de vérifier l’arrêt du chat Twitch. Réessayez plus tard.', 503, 'TWITCH_RUNTIME_UNAVAILABLE');
+      if (linked && this.eventSubConfigured) throw new AppError('Impossible de vérifier l’arrêt des réceptions Twitch. Réessayez plus tard.', 503, 'TWITCH_RUNTIME_UNAVAILABLE');
       await remove();
     }
     return { linked: false };

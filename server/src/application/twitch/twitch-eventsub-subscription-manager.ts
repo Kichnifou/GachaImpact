@@ -1,10 +1,13 @@
 import type { PrismaClient } from '../../../generated/prisma/client.js';
 import type { AppConfig } from '../../config/environment.js';
 import { AppError } from '../../api/errors.js';
-import { TwitchEventSubApiError, type TwitchEventSubClient, type TwitchEventSubSubscription } from '../../infrastructure/twitch/twitch-eventsub-client.js';
+import { TwitchEventSubApiError, type PilotEventSubType, type TwitchEventSubClient, type TwitchEventSubSubscription } from '../../infrastructure/twitch/twitch-eventsub-client.js';
 
-export type PilotChatState = 'INACTIVE' | 'VERIFICATION_PENDING' | 'ACTIVE';
-const conflict = () => new AppError('Réception du chat Twitch incompatible ; contrôle opérateur nécessaire.', 409, 'TWITCH_EVENTSUB_SUBSCRIPTION_CONFLICT');
+export type PilotSubscriptionState = 'INACTIVE' | 'VERIFICATION_PENDING' | 'ACTIVE';
+export type PilotChatState = PilotSubscriptionState;
+const conflict = (type: PilotEventSubType) => new AppError(type === 'channel.subscribe'
+  ? 'Réception des abonnements Twitch incompatible ; contrôle opérateur nécessaire.'
+  : 'Réception du chat Twitch incompatible ; contrôle opérateur nécessaire.', 409, 'TWITCH_EVENTSUB_SUBSCRIPTION_CONFLICT');
 const unavailable = () => new AppError('Réception du chat Twitch indisponible.', 503, 'TWITCH_RUNTIME_UNAVAILABLE');
 
 /** Explicit pilot operations. Construction and health never call Twitch. */
@@ -30,88 +33,107 @@ export class TwitchEventSubSubscriptionManager {
     finally { if (this.queues.get(playerId) === settled) this.queues.delete(playerId); }
   }
 
-  private async context(playerId: string, activation = false, expectedUserId?: string) {
+  private async context(playerId: string, activation = false, expectedUserId?: string, expectedLogin?: string) {
     if (!this.config.twitch?.pilotPlayerIds.includes(playerId)) throw new AppError('Pilote Twitch non autorisé.', 403, 'TWITCH_PILOT_FORBIDDEN');
     if (activation ? !this.activationAvailable : !this.managementAvailable) throw unavailable();
     const linked = await this.db.twitchIdentity.findUnique({ where: { playerId } });
     if (!linked || !/^\d+$/.test(linked.twitchUserId))
       throw new AppError('Une identité Twitch liée est nécessaire.', 409, 'TWITCH_RUNTIME_IDENTITY_REQUIRED');
-    if (expectedUserId && linked.twitchUserId !== expectedUserId)
+    if (expectedUserId && linked.twitchUserId !== expectedUserId
+      || expectedLogin && linked.login.trim().normalize('NFKC').toLowerCase() !== expectedLogin)
       throw new AppError('Identité Twitch liée modifiée.', 409, 'TWITCH_ACCOUNT_MISMATCH');
     return { userId: linked.twitchUserId, callback: this.config.twitchEventSub!.callbackUrl! };
   }
 
-  private exact(subscriptions: TwitchEventSubSubscription[], userId: string, callback: string) {
+  private exact(subscriptions: TwitchEventSubSubscription[], userId: string, callback: string, type: PilotEventSubType) {
     // Another chatting user on this broadcaster is a conflict, never a second pilot subscription.
-    const related = subscriptions.filter(item => item.type === 'channel.chat.message' && item.condition.broadcaster_user_id === userId);
+    const related = subscriptions.filter(item => item.type === type && item.condition.broadcaster_user_id === userId);
     if (!related.length) return undefined;
-    if (related.length !== 1) throw conflict();
+    if (related.length !== 1) throw conflict(type);
     const item = related[0]!;
-    if (item.version !== '1' || item.condition.user_id !== userId || Object.keys(item.condition).length !== 2 ||
+    if (item.version !== '1' || (type === 'channel.chat.message' && item.condition.user_id !== userId)
+      || Object.keys(item.condition).length !== (type === 'channel.chat.message' ? 2 : 1) ||
       item.transport.method !== 'webhook' || item.transport.callback !== callback ||
-      !['enabled', 'webhook_callback_verification_pending'].includes(item.status)) throw conflict();
+      !['enabled', 'webhook_callback_verification_pending'].includes(item.status)) throw conflict(type);
     return item;
   }
 
-  async inspectPilotChatSubscription(playerId: string, signal?: AbortSignal): Promise<PilotChatState> {
+  private list(type: PilotEventSubType, signal?: AbortSignal) {
+    return type === 'channel.chat.message' ? this.client.listChatSubscriptions(signal) : this.client.listFavorSubscriptions(signal);
+  }
+
+  private async inspect(playerId: string, type: PilotEventSubType, signal?: AbortSignal): Promise<PilotChatState> {
     return this.serial(playerId, async () => {
       const { userId, callback } = await this.context(playerId, true);
-      const item = this.exact(await this.client.listChatSubscriptions(signal), userId, callback);
+      const item = this.exact(await this.list(type, signal), userId, callback, type);
       return !item ? 'INACTIVE' : item.status === 'enabled' ? 'ACTIVE' : 'VERIFICATION_PENDING';
     });
   }
+  async inspectPilotChatSubscription(playerId: string, signal?: AbortSignal) { return this.inspect(playerId, 'channel.chat.message', signal); }
+  async inspectPilotFavorSubscription(playerId: string, signal?: AbortSignal) { return this.inspect(playerId, 'channel.subscribe', signal); }
 
-  async ensurePilotChatSubscription(playerId: string, expectedUserId?: string): Promise<TwitchEventSubSubscription> {
-    const running = this.pending.get(playerId);
+  private async ensure(playerId: string, type: PilotEventSubType, expectedUserId?: string, expectedLogin?: string): Promise<TwitchEventSubSubscription> {
+    // Separate types/validated identities while retaining one lifecycle queue per Player.
+    const key = JSON.stringify([playerId, type, expectedUserId, expectedLogin]);
+    const running = this.pending.get(key);
     if (running) return running;
     const job = this.serial(playerId, async () => {
-      const { userId, callback } = await this.context(playerId, true, expectedUserId);
-      const existing = this.exact(await this.client.listChatSubscriptions(), userId, callback);
+      const { userId, callback } = await this.context(playerId, true, expectedUserId, expectedLogin);
+      const existing = this.exact(await this.list(type), userId, callback, type);
       if (existing) return existing;
       try {
-        const created = await this.client.createChatSubscription({ type: 'channel.chat.message', version: '1',
+        const transport = { method: 'webhook' as const, callback, secret: this.config.twitchEventSub!.secret! };
+        const created = type === 'channel.chat.message' ? await this.client.createChatSubscription({ type, version: '1',
           condition: { broadcaster_user_id: userId, user_id: userId },
-          transport: { method: 'webhook', callback, secret: this.config.twitchEventSub!.secret! } });
-        const matching = this.exact([created], userId, callback);
-        if (!matching) throw conflict();
+          transport }) : await this.client.createFavorSubscription({ type, version: '1', condition: { broadcaster_user_id: userId }, transport });
+        const matching = this.exact([created], userId, callback, type);
+        if (!matching) throw conflict(type);
         return matching;
       } catch (error) {
         if (!(error instanceof TwitchEventSubApiError) || error.upstreamStatus !== 409) throw error;
-        const recovered = this.exact(await this.client.listChatSubscriptions(), userId, callback);
-        if (!recovered) throw conflict();
+        const recovered = this.exact(await this.list(type), userId, callback, type);
+        if (!recovered) throw conflict(type);
         return recovered;
       }
     });
-    this.pending.set(playerId, job);
+    this.pending.set(key, job);
     try { return await job; }
-    finally { this.pending.delete(playerId); }
+    finally { this.pending.delete(key); }
+  }
+  async ensurePilotChatSubscription(playerId: string, expectedUserId?: string) { return this.ensure(playerId, 'channel.chat.message', expectedUserId); }
+  async ensurePilotFavorSubscription(playerId: string, expectedUserId?: string, expectedLogin?: string) {
+    return this.ensure(playerId, 'channel.subscribe', expectedUserId, expectedLogin);
   }
 
-  private async disable(playerId: string): Promise<PilotChatState> {
+  private async disable(playerId: string, type: PilotEventSubType): Promise<PilotChatState> {
     // Removal remains possible after the receiving flag is switched OFF.
     const { userId, callback } = await this.context(playerId);
-    const existing = this.exact(await this.client.listChatSubscriptions(), userId, callback);
+    const existing = this.exact(await this.list(type), userId, callback, type);
     if (!existing) return 'INACTIVE';
-    try { await this.client.deleteChatSubscription(existing.id); }
+    try { await this.client.deleteSubscription(existing.id); }
     catch (error) {
       if (!(error instanceof TwitchEventSubApiError) || error.upstreamStatus !== 404) throw error;
-      if (this.exact(await this.client.listChatSubscriptions(), userId, callback)) throw conflict();
+      if (this.exact(await this.list(type), userId, callback, type)) throw conflict(type);
     }
     return 'INACTIVE';
   }
 
-  async disablePilotChatSubscription(playerId: string): Promise<PilotChatState> {
-    const running = this.disabling.get(playerId);
+  private async disablePilotSubscription(playerId: string, type: PilotEventSubType): Promise<PilotChatState> {
+    const key = JSON.stringify([playerId, type]);
+    const running = this.disabling.get(key);
     if (running) return running;
-    const job = this.serial(playerId, () => this.disable(playerId));
-    this.disabling.set(playerId, job);
+    const job = this.serial(playerId, () => this.disable(playerId, type));
+    this.disabling.set(key, job);
     try { return await job; }
-    finally { this.disabling.delete(playerId); }
+    finally { this.disabling.delete(key); }
   }
+  async disablePilotChatSubscription(playerId: string) { return this.disablePilotSubscription(playerId, 'channel.chat.message'); }
+  async disablePilotFavorSubscription(playerId: string) { return this.disablePilotSubscription(playerId, 'channel.subscribe'); }
 
-  async unlinkPilotChatIdentity(playerId: string, removeIdentity: () => Promise<void>) {
+  async unlinkPilotIdentity(playerId: string, removeIdentity: () => Promise<void>) {
     return this.serial(playerId, async () => {
-      await this.disable(playerId);
+      await this.disable(playerId, 'channel.chat.message');
+      await this.disable(playerId, 'channel.subscribe');
       // Keep deletion in the same queue so an OAuth callback cannot create an orphan.
       await removeIdentity();
     });
