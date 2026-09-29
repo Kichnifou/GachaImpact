@@ -51,7 +51,7 @@ POST /api/v1/me/twitch/favor/start réutilise le Lot 3. DELETE /api/v1/me/twitch
 
 Configuration > Compte affiche informations de liaison, Chat, Faveur de l’Astre, unlink, avec styles/boutons partagés et scroll existant. Faveur n’apparaît que pour le pilote lié/disponible ; panne/conflit utilise la zone d’erreur existante. Chaque bloc reflète sa preuve enabled/pending/absent. Retours favor-runtime-activated/error distincts de LINK/Chat, paramètre retiré ; URL authorize HTTPS/origin/path/absence de credentials vérifiée avant navigation. Pending des deux types partage au plus quatre retries d’une seconde et une échéance totale huit secondes, annulation au démontage et nettoyage des timers. Aucun badge actif fondé sur le seul retour OAuth. Actions protégées des doubles clics ; unlink et snapshot/import conservent leur comportement.
 
-Ce lot est promu techniquement sur main, code/test approuvé `2bdfac7b17f14a0d022ceb18a4c92732b39401e8` inchangé. Le propriétaire confirme dans la mission Lot 5 son déploiement technique au checkpoint 57f06504cc29172ef90b60fd41eba34f114287c2 ; aucun nouveau contrôle Railway/health exécuté par Codex. Chat/Faveur restent indépendants ; aucun OAuth/consentement/EventSub réel, activation publique, variable Railway, faux receipt/grant public, gameplay supplémentaire, migration 055 ou nouvelle Rxxx. Aucun test public Subscription acquis. La suite propriétaire actuelle est portée par le Master : Lot 5 approuvé en review, Lot 6 ci-dessous candidat review, review indépendante puis poursuite possible sur review ; aucune promotion ni activation automatique.
+Ce lot est promu techniquement sur main, code/test approuvé `2bdfac7b17f14a0d022ceb18a4c92732b39401e8` inchangé. Le propriétaire confirme dans la mission Lot 5 son déploiement technique au checkpoint 57f06504cc29172ef90b60fd41eba34f114287c2 ; aucun nouveau contrôle Railway/health exécuté par Codex. Chat/Faveur restent indépendants ; aucun OAuth/consentement/EventSub réel, activation publique, variable Railway, faux receipt/grant public, gameplay supplémentaire, migration 055 ou nouvelle Rxxx. Aucun test public Subscription acquis. La suite propriétaire actuelle est portée par le Master : Lots 5 et 6 approuvés en review, Lot 7 ci-dessous candidat review, review indépendante puis poursuite possible sur review ; aucune promotion ni activation automatique.
 
 ## Faveur Lot 5 — Gift global et groupe EventSub, approuvé en review
 
@@ -73,7 +73,7 @@ Callback OAuth Faveur validé ensure les deux avant résultat enabled/pending. D
 
 Réutilisation du schéma : 54 migrations, dernière 054, aucune 055. Lot 5 approuvé indépendamment par ChatGPT au SHA 005a0333cbf589f4f2606dfacad843780a037e70, selon la mission Lot 6 ; aucune activation réelle, OAuth/EventSub réel, donnée métier publique, modification Railway ou promotion main. Review indépendante puis poursuite possible de petits lots approuvés sur review selon le workflow ; main reste le dernier checkpoint promu.
 
-## Faveur Lot 6 — Resub fiable et groupe à trois subscriptions, candidat review
+## Faveur Lot 6 — Resub fiable et groupe à trois subscriptions, approuvé en review
 
 Le quatrième type reçu par le webhook signé est [channel.subscription.message v1](https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/#channelsubscriptionmessage), avec le même scope channel:read:subscriptions et condition broadcaster-only. Twitch le décrit comme le message de resub partagé par le subscriber ; channel.subscribe exclut les resubs. Aucun renouvellement silencieux, échéance supposée ou corrélation économique Subscribe/Resub n'est inventé (R669 précisée).
 
@@ -87,7 +87,19 @@ Le groupe Faveur courant exige Subscribe → Gift → Subscription Message. GET 
 
 Callback OAuth Faveur ensure les trois dans la même file Player avant son résultat enabled/pending. Disable Faveur garantit l'arrêt des trois ; Chat est indépendant. Unlink Chat → Subscribe → Gift → Message → TwitchIdentity, suppression seulement après les quatre arrêts ; panne/conflit conserve l'identité et permet la reprise. Bloc Compte/DTO/polling existants inchangés visuellement ; status reflète le groupe complet avec deadline totale trois secondes pour Chat + trois inspections Faveur. Aucun nouveau flag DB ni interface.
 
-Lot 6 candidat review au-dessus du Lot 5 approuvé ; main reste 57f06504cc29172ef90b60fd41eba34f114287c2. Aucune migration 055, 54 migrations dernière 054. Mocks et schémas privés uniquement ; aucun OAuth/EventSub réel, activation publique, donnée métier publique, changement Railway ou promotion main. Review indépendante ChatGPT puis poursuite possible sur review, sans promotion automatique ; workflow du Lot 5 inchangé, aucune nouvelle Rxxx.
+Lot 6 approuvé indépendamment par ChatGPT au SHA 3483bb86156aa2d5059681310c0b509aab28ccba, selon la mission Lot 7 ; main reste 57f06504cc29172ef90b60fd41eba34f114287c2. Aucune migration 055, 54 migrations dernière 054. Mocks et schémas privés uniquement ; aucun OAuth/EventSub réel, activation publique, donnée métier publique, changement Railway ou promotion main. Review indépendante ChatGPT puis poursuite possible sur review, sans promotion automatique ; workflow du Lot 5 inchangé, aucune nouvelle Rxxx.
+
+## Faveur Lot 7 — adaptateur standalone personnel et présence, candidat review
+
+CurrentPlayerFavorService compose GetCurrentPlayer et FavorService : identité authentifiée → WebIdentity Supabase → Player existant → core Faveur. Aucun provisionnement, Player ID ou date navigateur. Get appelle seulement getCurrent ; presence appelle exactement claimToday(playerId, UI), puis getCurrent, sans réimplémentation du calendrier ou de l’économie.
+
+GET /api/v1/me/favor, authentifié, query vide et Cache-Control: no-store : projection exacte businessDate, active, daysRemaining, maxDays, dailyPrimogems (chaîne), claimedToday, claimStatus (AVAILABLE/CLAIMED/UNAVAILABLE). Lecture strictement sans paiement ni mutation, aucune information Twitch interne ni operationId.
+
+POST /api/v1/me/favor/presence, authentifié et no-store, corps absent ou objet vide strict et query vide ; null, listes, primitives et toute propriété/date/canal/clé/Player sont refusés avant appel applicatif. Réponse { status, businessDate, creditedPrimogems, favor }. Status et crédit proviennent du résultat de CET claim : CLAIMED +"800" autorisera seul une animation future ; ALREADY_CLAIMED/INACTIVE +"0" ne signalent aucun gain. Aucun operationId exposé. businessDate est celle du claim ; favor est relue ensuite et peut refléter la nouvelle journée si minuit intervient entre les deux appels.
+
+La PK Player/businessDate, le verrou Player et les transactions SERIALIZABLE/retries du core restent propriétaires de l’unicité tous canaux UI/INTERNAL_CHAT/TWITCH. Deux présences simultanées ou UI/Twitch concurrents ne paient qu’une fois ; une présence après un paiement Twitch retourne ALREADY_CLAIMED. Faveur absente/expirée ou commençant demain : INACTIVE sans opération/mouvement. Journée serveur Europe/Paris seulement, J+1 et aucun rattrapage. Economy/statistiques/Missions et core Faveur inchangés.
+
+Lot 7 backend/API uniquement, aucun écran/animation/bouton Réclamer ni raccord frontend. La cible produit reste un paiement automatique à une présence pertinente ; raccord ultérieur distinct après validation du contrat. Lots 5/6 et lifecycle Twitch inchangés, aucun OAuth/EventSub réel ou activation publique. 54 migrations dernière 054, aucune 055. Candidat review au-dessus des Lots 5/6 approuvés, main reste 57f06504cc29172ef90b60fd41eba34f114287c2 ; review indépendante ChatGPT sans promotion automatique. Audit R658/R672 et workflow conservés, aucune nouvelle Rxxx.
 
 ## Pipeline migration legacy globale — socle promu, cutover reporté
 

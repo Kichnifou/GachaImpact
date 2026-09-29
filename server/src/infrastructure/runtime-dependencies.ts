@@ -5,6 +5,8 @@ import { HistoryService } from '../application/history/history-service.js';
 import { DirectMessageReportService } from '../application/direct-messages/direct-message-report-service.js';
 import { ChoosePlayerElement } from '../application/player/choose-player-element.js';
 import { GetCurrentPlayer } from '../application/player/get-current-player.js';
+import { CurrentPlayerFavorService } from '../application/favor/current-player-favor-service.js';
+import { FavorService } from '../application/favor/favor-service.js';
 import { GetCurrentPlayerResources } from '../application/player/get-current-player-resources.js';
 import { GetOrProvisionCurrentPlayer } from '../application/player/get-or-provision-current-player.js';
 import { GetCurrentPlayerProgression } from '../application/player/get-current-player-progression.js';
@@ -134,6 +136,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     directMessageService,
     directMessageReportService,
     getCurrentPlayerMissions,
+    currentPlayerFavor: new CurrentPlayerFavorService(getCurrentPlayer, new FavorService(database, clock)),
     getPlayerMissions,
     tradeService,
     tradePlayer: getCurrentPlayer,

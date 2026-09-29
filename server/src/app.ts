@@ -1,6 +1,8 @@
 import type { SocialService } from './application/social/social-service.js';
 import type { TradeService } from './application/trades/trade-service.js';
 import type { GetCurrentPlayer } from './application/player/get-current-player.js';
+import type { CurrentPlayerFavorService } from './application/favor/current-player-favor-service.js';
+import { registerFavorRoutes } from './api/routes/favor.js';
 import type { TwitchPilotService } from './application/twitch/twitch-pilot-service.js';
 import type { SnapshotPilotService } from './application/migration/snapshot-pilot-service.js';
 import { registerTwitchPilotRoutes } from './api/routes/twitch-pilot.js';
@@ -100,6 +102,7 @@ export type AppDependencies = Readonly<{
   twitchSubscriptions?: TwitchEventSubSubscriptionManager;
   snapshotPilot?: SnapshotPilotService;
   tradePlayer?: GetCurrentPlayer;
+  currentPlayerFavor?: CurrentPlayerFavorService;
   authIdentityVerifier: AuthIdentityVerifier;
   getOrProvisionCurrentPlayer: GetOrProvisionCurrentPlayer;
   choosePlayerElement?: ChoosePlayerElement;
@@ -236,6 +239,7 @@ export async function buildApp(
     if (dependencies.getTodayDailyReward && dependencies.claimDailyReward) {
       await app.register(registerDailyRewardRoutes, { authenticate, getTodayDailyReward: dependencies.getTodayDailyReward, claimDailyReward: dependencies.claimDailyReward });
     }
+    if (dependencies.currentPlayerFavor) await app.register(registerFavorRoutes, { authenticate, service: dependencies.currentPlayerFavor });
     if (dependencies.getCharacters && dependencies.getCurrentGacha && dependencies.setGachaTarget) {
       await app.register(registerGachaRoutes, { authenticate, getCharacters: dependencies.getCharacters, getCurrentGacha: dependencies.getCurrentGacha, setGachaTarget: dependencies.setGachaTarget, performGachaPull: dependencies.performGachaPull, getGachaHistory: dependencies.getGachaHistory, bannerVotes: dependencies.bannerVotes });
     }
