@@ -78,7 +78,7 @@ describe('Faveur private PostgreSQL core', () => {
   });
   it.each([1, 2, 3] as const)('grants Tier %i tomorrow, credits via Economy and persists one durable grant', async tier => {
     const id = await player();
-    const amount = ({ 1: 1600n, 2: 4800n, 3: 9600n })[tier];
+    const amount = ({ 1: 1600n, 2: 9600n, 3: 20800n })[tier];
     const result = await service.grant(input(id, { tier }));
     expect(result).toMatchObject({ tier, requestedDays: 30, addedDays: 30, blockedDays: 0, creditedPrimogems: amount.toString(), compensationPrimogems: '0', activeFromDate: '2026-09-29', activeUntilDate: '2026-10-28' });
     expect(await service.getCurrent(id)).toMatchObject({ active: false, daysRemaining: 30, claimStatus: 'UNAVAILABLE' });
@@ -101,7 +101,7 @@ describe('Faveur private PostgreSQL core', () => {
   });
   it.each([
     [170, 1, 10, 20, 1067n, 2667n], [180, 1, 0, 30, 1600n, 3200n],
-    [170, 2, 10, 20, 1067n, 5867n], [180, 3, 0, 30, 1600n, 11200n],
+    [170, 2, 10, 20, 1067n, 10667n], [180, 3, 0, 30, 1600n, 22400n],
     [151, 1, 29, 1, 53n, 1653n],
   ] as const)('caps %i days at Tier %i with one immediate + compensation operation', async (days, tier, added, blocked, compensation, amount) => {
     const id = await player(); await setPeriod(id, days);

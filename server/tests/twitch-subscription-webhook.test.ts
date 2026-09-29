@@ -3,6 +3,7 @@ import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
 import { registerTwitchEventSubRoutes } from '../src/api/routes/twitch-eventsub.js';
 import { TwitchObservationConflict, type TwitchEventObserver } from '../src/application/twitch/twitch-event-observer.js';
+import type { TwitchFavorGiftConsumer } from '../src/application/twitch/twitch-favor-gift-consumer.js';
 import type { TwitchFavorSubscriptionConsumer } from '../src/application/twitch/twitch-favor-subscription-consumer.js';
 import { subscriptionFavorTier } from '../src/application/twitch/twitch-subscription-proof.js';
 
@@ -29,7 +30,8 @@ async function setup() {
   const consume = vi.fn().mockResolvedValue({ state: 'PROCESSED' });
   await app.register(registerTwitchEventSubRoutes, { secret,
     observer: { observeTwitchEvent: observe } as unknown as TwitchEventObserver,
-    favorSubscriptions: { consume } as unknown as TwitchFavorSubscriptionConsumer });
+    favorSubscriptions: { consume } as unknown as TwitchFavorSubscriptionConsumer,
+    favorGifts: { consume: vi.fn() } as unknown as TwitchFavorGiftConsumer });
   return { app, observe, consume };
 }
 
@@ -66,7 +68,7 @@ describe('signed subscription webhook boundary', () => {
       expect(observe).not.toHaveBeenCalled(); expect(consume).not.toHaveBeenCalled();
     });
   });
-  it.each(['channel.subscription.gift', 'channel.subscription.message', 'channel.chat.notification', 'channel.subscription.end'])('rejects unsupported %s', async type => {
+  it.each(['channel.subscription.message', 'channel.chat.notification', 'channel.subscription.end'])('rejects unsupported %s', async type => {
     await withRoute(async (app, observe) => {
       const body = subscription(); body.subscription.type = type;
       expect((await app.inject(signed(body))).statusCode).toBe(422); expect(observe).not.toHaveBeenCalled();

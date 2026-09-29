@@ -7,6 +7,7 @@ import { buildApp } from '../src/app.js';
 import { FavorService } from '../src/application/favor/favor-service.js';
 import { TwitchEventObserver, type TwitchObservedEvent } from '../src/application/twitch/twitch-event-observer.js';
 import { subscriptionFavorKey, TwitchFavorSubscriptionConsumer } from '../src/application/twitch/twitch-favor-subscription-consumer.js';
+import { TwitchFavorGiftConsumer } from '../src/application/twitch/twitch-favor-gift-consumer.js';
 import { TwitchReceiptRetention } from '../src/application/twitch/twitch-receipt-retention.js';
 import { subscriptionFavorTier } from '../src/application/twitch/twitch-subscription-proof.js';
 import { isolatedBatchDatabase } from './isolated-batch-database.js';
@@ -82,14 +83,14 @@ describe('private subscription consumption and durable terminal decisions', () =
       expect(replay.duplicate).toBe(true);
       expect(await consumer.consume(replay.receipt.id)).toEqual(first);
       expect(await counts()).toEqual(before); expect(grantSpy).toHaveBeenCalledTimes(1);
-      await assertEffect(player.playerId, observed.receipt.id, ({ '1000': 1600n, '2000': 4800n, '3000': 9600n })[tier]);
+      await assertEffect(player.playerId, observed.receipt.id, ({ '1000': 1600n, '2000': 9600n, '3000': 20800n })[tier]);
     } finally { grantSpy.mockRestore(); }
   });
   it('pays a gift recipient normally and produces no gifter bonus or unrelated effect', async () => {
     const recipient = await beneficiary(), gifter = await beneficiary();
     const before = await counts(), observed = await observer.observeTwitchEvent(event(recipient.twitchUserId, '2000', true));
     await consumer.consume(observed.receipt.id);
-    await assertEffect(recipient.playerId, observed.receipt.id, 4800n);
+    await assertEffect(recipient.playerId, observed.receipt.id, 9600n);
     expect(await db.favorGrant.count({ where: { playerId: gifter.playerId } })).toBe(0);
     expect(await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: gifter.playerId, resourceKey: 'primogems' } } })).toMatchObject({ amount: 42n });
     expect(await counts()).toEqual(before.map((value, index) => value + ([2, 3, 4].includes(index) ? 1 : 0)));
@@ -102,7 +103,7 @@ describe('private subscription consumption and durable terminal decisions', () =
     expect(terminal).toMatchObject({ state: 'PROCESSED', processedAt: now, externalReference: 'favor:ignored:identity-unresolved', errorMessage: null });
     expect(await counts()).toEqual(before);
     const player = await db.player.create({ data: { displayName: 'Private later account', elementKey: 'pyro' } });
-    await db.twitchIdentity.create({ data: { playerId: player.id, twitchUserId: input.twitchUserId, login: 'recipient' } });
+    await db.twitchIdentity.create({ data: { playerId: player.id, twitchUserId: input.twitchUserId!, login: 'recipient' } });
     const later = await counts();
     await observer.observeTwitchEvent(input);
     expect(await consumer.consume(observed.receipt.id)).toEqual(terminal);
@@ -188,7 +189,7 @@ describe('private subscription consumption and durable terminal decisions', () =
     const secret = 'private-subscription-secret', player = await beneficiary();
     const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {}, twitchEventSub: { enabled: true, secret } }, {
       authIdentityVerifier: { verify: async () => ({ subject: 'test' }) }, getOrProvisionCurrentPlayer: {} as never,
-      twitchEventObserver: observer, twitchFavorSubscriptions: consumer,
+      twitchEventObserver: observer, twitchFavorSubscriptions: consumer, twitchFavorGifts: new TwitchFavorGiftConsumer(db, clock),
     });
     const deliver = (id: string, userId: string, isGift = false) => {
       const timestamp = new Date().toISOString(), payload = JSON.stringify({ subscription: {

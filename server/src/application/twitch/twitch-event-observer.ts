@@ -1,19 +1,20 @@
 import { createHash } from 'node:crypto';
 import type { PrismaClient, TwitchEventReceipt } from '../../../generated/prisma/client.js';
 import { TwitchReceiptRetention } from './twitch-receipt-retention.js';
-import { twitchSubscriptionProof, type TwitchSubscriptionProof } from './twitch-subscription-proof.js';
+import { twitchSubscriptionProof, twitchSubscriptionGiftProof, type TwitchSubscriptionProof, type TwitchSubscriptionGiftProof } from './twitch-subscription-proof.js';
 
 /** Internal observation contract. A future transport must pass only a digest of message content, never raw chat text. */
 export type TwitchObservedEvent = Readonly<{
   externalEventId: string;
   eventType: string;
-  twitchUserId: string;
+  twitchUserId: string | null;
   login?: string | null;
   displayName?: string | null;
   sourceTimestamp?: string | null;
   contentHash?: string | null;
   transportPayloadHash?: string | null;
   subscriptionProof?: TwitchSubscriptionProof;
+  subscriptionGiftProof?: TwitchSubscriptionGiftProof;
 }>;
 
 export class TwitchObservationConflict extends Error {
@@ -42,10 +43,17 @@ function normalize(input: TwitchObservedEvent) {
   const transportPayloadHash = optional(input.transportPayloadHash, 'transport payload hash', 64);
   if (transportPayloadHash && !/^[0-9a-f]{64}$/i.test(transportPayloadHash)) throw new Error('Invalid transport payload hash.');
   if (input.subscriptionProof !== undefined && input.eventType !== 'channel.subscribe') throw new Error('Invalid subscription proof.');
+  if (input.subscriptionGiftProof !== undefined && input.eventType !== 'channel.subscription.gift') throw new Error('Invalid gift proof.');
+  const giftProof = input.subscriptionGiftProof === undefined ? undefined : twitchSubscriptionGiftProof.parse(input.subscriptionGiftProof);
+  if (input.eventType === 'channel.subscription.gift' && !giftProof) throw new Error('Missing gift proof.');
+  if (giftProof?.isAnonymous) {
+    if (input.twitchUserId != null || input.login != null || input.displayName != null) throw new Error('Anonymous gift has an identity.');
+  } else if (input.twitchUserId == null) throw new Error('Missing Twitch User ID.');
+  if (giftProof && input.twitchUserId != null && !/^\d+$/.test(input.twitchUserId)) throw new Error('Invalid gifter User ID.');
   return {
     externalEventId: required(input.externalEventId, 'external event ID', 256),
     eventType: required(input.eventType, 'event type', 120),
-    twitchUserId: required(input.twitchUserId, 'Twitch User ID', 128),
+    twitchUserId: input.twitchUserId == null ? null : required(input.twitchUserId, 'Twitch User ID', 128),
     login: optional(input.login, 'login', 64),
     displayName: optional(input.displayName, 'display name', 128),
     sourceTimestamp: parsedTimestamp?.toISOString() ?? null,
@@ -53,6 +61,7 @@ function normalize(input: TwitchObservedEvent) {
     transportPayloadHash: transportPayloadHash?.toLowerCase() ?? null,
     // Omit this member for Chat: preserve the existing observation/hash contract.
     ...(input.subscriptionProof ? { subscriptionProof: twitchSubscriptionProof.parse(input.subscriptionProof) } : {}),
+    ...(giftProof ? { subscriptionGiftProof: giftProof } : {}),
   };
 }
 
@@ -71,7 +80,7 @@ export class TwitchEventObserver {
       return result(receipt, playerId, true);
     };
     const observe = () => this.db.$transaction(async tx => {
-      const identity = await tx.twitchIdentity.findUnique({ where: { twitchUserId: event.twitchUserId }, select: { playerId: true } });
+      const identity = event.twitchUserId == null ? null : await tx.twitchIdentity.findUnique({ where: { twitchUserId: event.twitchUserId }, select: { playerId: true } });
       const existing = await tx.twitchEventReceipt.findUnique({ where: { externalEventId: event.externalEventId } });
       if (existing) return check(existing, identity?.playerId ?? null);
       const receipt = await tx.twitchEventReceipt.create({ data: {
@@ -87,7 +96,7 @@ export class TwitchEventObserver {
       observed = await this.db.$transaction(async tx => {
         const receipt = await tx.twitchEventReceipt.findUnique({ where: { externalEventId: event.externalEventId } });
         if (!receipt) throw error;
-        const identity = await tx.twitchIdentity.findUnique({ where: { twitchUserId: event.twitchUserId }, select: { playerId: true } });
+        const identity = event.twitchUserId == null ? null : await tx.twitchIdentity.findUnique({ where: { twitchUserId: event.twitchUserId }, select: { playerId: true } });
         return check(receipt, identity?.playerId ?? null);
       });
     }

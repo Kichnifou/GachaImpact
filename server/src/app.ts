@@ -7,6 +7,7 @@ import { registerTwitchPilotRoutes } from './api/routes/twitch-pilot.js';
 import { registerTwitchEventSubRoutes } from './api/routes/twitch-eventsub.js';
 import type { TwitchEventObserver } from './application/twitch/twitch-event-observer.js';
 import type { TwitchFavorSubscriptionConsumer } from './application/twitch/twitch-favor-subscription-consumer.js';
+import type { TwitchFavorGiftConsumer } from './application/twitch/twitch-favor-gift-consumer.js';
 import type { TwitchEventSubSubscriptionManager } from './application/twitch/twitch-eventsub-subscription-manager.js';
 import { registerTradeRoutes } from './api/routes/trades.js';
 import { registerSocialRoutes } from './api/routes/social.js';
@@ -93,6 +94,7 @@ export type AppDependencies = Readonly<{
   twitchPilot?: TwitchPilotService;
   twitchEventObserver?: TwitchEventObserver;
   twitchFavorSubscriptions?: TwitchFavorSubscriptionConsumer;
+  twitchFavorGifts?: TwitchFavorGiftConsumer;
   twitchSubscriptions?: TwitchEventSubSubscriptionManager;
   snapshotPilot?: SnapshotPilotService;
   tradePlayer?: GetCurrentPlayer;
@@ -187,9 +189,9 @@ export async function buildApp(
 
   if (dependencies) {
     if (config.twitchEventSub?.enabled) {
-      if (!config.twitchEventSub.secret || !dependencies.twitchEventObserver || !dependencies.twitchFavorSubscriptions) throw new Error('Twitch EventSub webhook is enabled without a secret, observer or Favor consumer.');
+      if (!config.twitchEventSub.secret || !dependencies.twitchEventObserver || !dependencies.twitchFavorSubscriptions || !dependencies.twitchFavorGifts) throw new Error('Twitch EventSub webhook is enabled without a secret, observer or Favor consumers.');
       await app.register(registerTwitchEventSubRoutes, { secret: config.twitchEventSub.secret, observer: dependencies.twitchEventObserver,
-        favorSubscriptions: dependencies.twitchFavorSubscriptions });
+        favorSubscriptions: dependencies.twitchFavorSubscriptions, favorGifts: dependencies.twitchFavorGifts });
     }
     registerAuthenticationContext(app);
     await app.register(registerCurrentPlayerRoutes, {

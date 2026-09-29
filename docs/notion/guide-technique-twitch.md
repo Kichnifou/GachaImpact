@@ -2014,8 +2014,8 @@ Une attribution reçue aujourd'hui commence ses nouvelles journées à partir du
 💎 Bonus immédiat Subscription
 Tier	Bonus
 Tier 1	+1 600 Primogemmes
-Tier 2	+4 800
-Tier 3	+9 600
+Tier 2	+9 600
+Tier 3	+20 800
 
 Lorsque le plafond de 180 jours empêche d'ajouter toute la durée prévue, une compensation supplémentaire est calculée sur les jours perdus.
 
@@ -2040,7 +2040,7 @@ le gifter éligible reçoit également un bonus.
 
 Bonus gifter :
 
-💎 +1 600 Primogemmes par sub offert
+💎 T1 +1 600 / T2 +9 600 / T3 +20 800 Primogemmes par sub offert. Bonus global = total Twitch × récompense du tier, indépendamment de l’éligibilité des bénéficiaires. Gifter anonyme/non éligible = 0 ; aucun jour de Faveur ajouté au gifter.
 
 🎁 Gift Suprême
 

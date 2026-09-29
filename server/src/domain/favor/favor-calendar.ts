@@ -4,7 +4,7 @@ export const FAVOR_MAX_DAYS = 180;
 export const FAVOR_GRANT_DAYS = 30;
 export const FAVOR_DAILY_PRIMOGEMS = 800n;
 export type FavorTier = 1 | 2 | 3;
-export const FAVOR_TIER_PRIMOGEMS = { 1: 1600n, 2: 4800n, 3: 9600n } as const;
+export const FAVOR_TIER_PRIMOGEMS = { 1: 1600n, 2: 9600n, 3: 20800n } as const;
 
 export type FavorPeriod = { activeFromDate: Date | null; activeUntilDate: Date | null };
 

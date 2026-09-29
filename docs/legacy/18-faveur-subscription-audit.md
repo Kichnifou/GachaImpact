@@ -802,68 +802,33 @@ Si son Twitch est correctement relié, il satisfait donc automatiquement R664.
 
 ---
 
-## R666 — Bonus du gifter — ✅ VALIDÉ A
+## R666 — Bonus du gifter — ✅ VALIDÉ, révisé propriétaire Lot 5
 
-Conserver :
+Le bonus par abonnement offert dépend du tier : **T1 +1 600 / T2 +9 600 / T3 +20 800 Primogemmes**.
 
-**+1 600 Primogemmes au gifter par abonnement offert**
+Le paiement utilise le total autoritatif de channel.subscription.gift, indépendamment de l'éligibilité ou de la réception des événements des bénéficiaires. Gifter non anonyme, TwitchIdentity connue, Player existant ACTIVE et élément personnel valide requis ; aucun seuil de niveau supplémentaire. Gifter anonyme ou non éligible : zéro, événement définitivement consommé, sans création ni entitlement différé.
 
-Le gifter doit lui-même correspondre à un joueur GachaImpact éligible.
-
-Pour un joueur Twitch-only, appliquer le même principe de participation active que R664.
-
-Pour un joueur standalone correctement lié, le niveau ne constitue pas un blocage.
-
-Un gifter anonyme ou ne correspondant à aucun joueur éligible ne reçoit aucun bonus GachaImpact.
+Le bonus ne donne aucun jour de Faveur au gifter. Les bénéficiaires sont traités séparément.
 
 ---
 
-## R667 — Gift multiple proportionnel — ✅ VALIDÉ A
+## R667 — Gift multiple proportionnel — ✅ VALIDÉ, révisé propriétaire Lot 5
 
-Le bonus gifter est accordé **par abonnement réellement offert**.
+Le bonus gifter vaut **total Twitch × récompense du tier**, exactement une fois par Message ID global.
 
-Exemple :
+10 gifts Tier 2 : **10 × 9 600 = 96 000 Primogemmes** au gifter éligible, même si sept, dix ou zéro bénéficiaire sont éligibles. Aucun événement bénéficiaire n'est attendu ni compté pour ce paiement. cumulative_total ne sert pas au calcul ni à la persistance.
 
-5 gift subs éligibles :
-
-`5 × 1 600 = 8 000 Primogemmes`
-
-Le backend doit utiliser les données autoritatives Twitch de quantité du gift et garantir l'idempotence.
-
-Un même gift ne doit jamais être comptabilisé une fois via l'événement global puis une deuxième fois via les événements des bénéficiaires.
+channel.subscription.gift paie uniquement le gifter ; channel.subscribe is_gift=true attribue uniquement la Faveur individuelle du bénéficiaire. Aucun double crédit ni dépendance économique entre les deux côtés.
 
 ---
 
-## R668 — Tier Twitch modifie uniquement la récompense immédiate — ✅ VALIDÉ PERSONNALISÉ
+## R668 — Récompense immédiate du bénéficiaire par tier — ✅ VALIDÉ, révisé propriétaire Lot 5
 
-Les tiers ne changent pas :
+Table définitive : **T1 +1 600 / T2 +9 600 / T3 +20 800 Primogemmes**. Les anciennes valeurs sont supersédées comme règle produit active.
 
-- la durée de 30 jours ;
-- le cap 180 ;
-- les +800 quotidiennes ;
-- la formule de compensation des jours perdus.
+Restent inchangés : +30 jours par attribution, plafond 180 jours, +800 quotidien, nouvelles journées à J+1. La compensation du plafond reste round(1600 × jours perdus / 30), soit **1 600 pour 30 jours bloqués quel que soit le tier**.
 
-Ils modifient uniquement la récompense immédiate du bénéficiaire.
-
-### Tier 1
-
-**+1 600 Primogemmes**
-
-### Tier 2
-
-**+4 800 Primogemmes**
-
-### Tier 3
-
-**+9 600 Primogemmes**
-
-La compensation du plafond reste calculée sur :
-
-**1 600 Primogemmes pour 30 jours perdus**
-
-quel que soit le tier.
-
-Le bonus gifter défini par R666 reste lui aussi à +1 600 par abonnement offert, quel que soit le tier, sauf révision produit explicite ultérieure.
+Le bonus gifter utilise la table Tier de R666, sans lui donner de jours.
 
 ---
 
@@ -969,11 +934,11 @@ L'obtention/prolongation Twitch peut produire son message de confirmation adapt�
 - Une animation ne constitue jamais la preuve métier d'un paiement.
 - La récompense quotidienne et son état sont persistés de manière à être immédiatement visibles depuis l'autre canal.
 - Le profil affiche un état dérivé du serveur et ne décrémente jamais localement les jours.
-- Les récompenses immédiates par tier sont : T1 1 600, T2 4 800, T3 9 600.
+- Les récompenses immédiates par tier sont : T1 1 600, T2 9 600, T3 20 800.
 - La compensation du plafond est distincte du bonus immédiat et utilise `round(1600 × jours_perdus / 30)`.
 - Les événements Twitch sont dédupliqués par identifiant externe / clé d'idempotence.
 - L'événement `channel.subscription.gift` ou équivalent est propriétaire du bonus gifter afin de ne pas le doubler avec les événements individuels de bénéficiaires.
-- Un gift multiple applique le nombre autoritatif de gifts exactement une fois.
+- Un gift multiple applique total Twitch × récompense Tier exactement une fois, indépendamment des bénéficiaires.
 - Un événement de subscription ne crée jamais à lui seul un joueur interne.
 - Twitch-only : l'éligibilité Faveur utilise la règle centrale `élément choisi = joueur activé` ; aucun seuil de niveau supplémentaire.
 - Standalone onboardé + Twitch lié : l'élément est déjà obligatoire, donc aucune condition supplémentaire d'activation ou de niveau.
@@ -1154,8 +1119,8 @@ Le Domaine Faveur / Subscription est prêt pour la V1 si les tests peuvent prouv
 8. le profil indique correctement `Récompense du jour reçue` ;
 9. l'animation standalone n'apparaît que lorsqu'un vrai paiement est effectué ;
 10. Tier 1 donne +1 600 immédiates ;
-11. Tier 2 donne +4 800 immédiates ;
-12. Tier 3 donne +9 600 immédiates ;
+11. Tier 2 donne +9 600 immédiates ;
+12. Tier 3 donne +20 800 immédiates ;
 13. chaque jour bloqué par le plafond produit la compensation proportionnelle validée ;
 14. la compensation s'ajoute au bonus immédiat ;
 15. un nouveau bloc de 30 jours commence ses daily rewards le lendemain ;
@@ -1164,7 +1129,7 @@ Le Domaine Faveur / Subscription est prêt pour la V1 si les tests peuvent prouv
 18. un joueur standalone onboardé et correctement Twitch-lié est éligible quel que soit son niveau ;
 19. un gift ne crée pas automatiquement un joueur GachaImpact ;
 20. une Faveur ignorée n'est pas réclamable rétroactivement après activation ;
-21. le gifter éligible reçoit exactement +1 600 par sub offert ;
+21. le gifter éligible reçoit total Twitch × récompense Tier (1 600 / 9 600 / 20 800), indépendamment des bénéficiaires ;
 22. un gift multiple n'est jamais doublé par les événements des bénéficiaires ;
 23. un même événement Twitch retraité ne produit aucune seconde récompense ;
 24. un resub n'est crédité que lorsqu'une preuve Twitch suffisamment fiable existe ;

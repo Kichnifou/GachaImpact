@@ -777,10 +777,10 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Daily :** +800 Primogemmes une fois par journée active si le joueur se manifeste
 - **Temps :** les jours s'écoulent même si le joueur est absent
 - **Tier 1 :** +1 600 Primogemmes immédiates
-- **Tier 2 :** +4 800 Primogemmes immédiates
-- **Tier 3 :** +9 600 Primogemmes immédiates
+- **Tier 2 :** +9 600 Primogemmes immédiates
+- **Tier 3 :** +20 800 Primogemmes immédiates
 - **Overflow :** compensation supplémentaire `1600 × jours perdus / 30`
-- **Gift :** la Faveur appartient au bénéficiaire ; gifter éligible = +1 600 par sub offert
+- **Gift :** la Faveur appartient au bénéficiaire ; gifter éligible non anonyme = total Twitch × récompense Tier (1 600 / 9 600 / 20 800), indépendamment des bénéficiaires ; aucun jour pour le gifter
 - **Confidentialité :** `!faveur <pseudo>` respecte la visibilité du profil
 - **Commande :** consultation uniquement ; `!faveur` ne constitue pas un claim économique séparé
 - **Migration :** préserver les jours restants certains et le claim du jour sans reconstruire les anciens jours absents

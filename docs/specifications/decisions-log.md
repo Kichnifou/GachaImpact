@@ -957,9 +957,9 @@ La [source spécialisée Chat global](global-chat-v1.md) détaille ces règles. 
 - `VALIDÉ R663` — Une attribution ajoute 30 jours, cumulables jusqu'à 180.
 - `VALIDÉ R664` — Faveur réutilise la règle centrale Twitch `élément choisi = joueur activé` ; aucun seuil de niveau supplémentaire. Le standalone satisfait automatiquement ce verrou après onboarding.
 - `VALIDÉ R665` — Un sub/gift ne crée pas de joueur et aucune Faveur ignorée n'est mise en attente : un profil Twitch-only doit déjà exister et avoir choisi son élément ; une activation ultérieure ne ressuscite pas l'ancienne Faveur.
-- `VALIDÉ R666` — Le gifter éligible reçoit +1 600 Primogemmes par abonnement offert.
-- `VALIDÉ R667` — Un gift multiple récompense le gifter proportionnellement au nombre réel de subs offerts.
-- `VALIDÉ R668` — Récompense immédiate bénéficiaire : Tier 1 = 1 600, Tier 2 = 4 800, Tier 3 = 9 600 ; durée, daily et compensation overflow restent identiques.
+- `VALIDÉ R666` — Révision propriétaire Lot 5 : le gifter éligible non anonyme reçoit T1 1 600 / T2 9 600 / T3 20 800 par gift, sur le total Twitch autoritatif, indépendamment des bénéficiaires ; gifter anonyme/non éligible = 0, sans jours ni entitlement différé.
+- `VALIDÉ R667` — Révision propriétaire Lot 5 : gift multiple = total Twitch × récompense Tier ; aucun comptage/corrélation économique des bénéficiaires ni double paiement depuis channel.subscribe is_gift=true.
+- `VALIDÉ R668` — Récompense immédiate bénéficiaire : Tier 1 = 1 600, Tier 2 = 9 600, Tier 3 = 20 800 (révision propriétaire Lot 5 ; ancienne table supersédée) ; durée, daily et compensation overflow restent identiques.
 - `VALIDÉ R669` — Une resub donne une nouvelle Faveur seulement lorsqu'un événement Twitch suffisamment fiable la prouve ; aucun renouvellement silencieux n'est estimé.
 - `VALIDÉ R670` — `!faveur pseudo` respecte la visibilité du profil ; sa propre Faveur reste toujours consultable.
 - `VALIDÉ R671` — Pas d'écran Faveur dédié : informations dans Profil et Quotidiennes ; si inactive, lien vers `https://www.twitch.tv/kichnifou` pour s'abonner.

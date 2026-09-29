@@ -25,6 +25,10 @@ export type FavorClaimResult = {
   status: 'CLAIMED' | 'ALREADY_CLAIMED' | 'INACTIVE'; businessDate: string;
   creditedPrimogems: string; operationId: string | null;
 };
+export type FavorGifterBonusInput = FavorGrantInput & { total: number };
+export type FavorGifterBonusResult = {
+  operationId: string; tier: FavorTier; total: number; creditedPrimogems: string;
+};
 
 /** Server-owned rules, shared by internal callers and the authenticated Twitch consumer. */
 export class FavorService {
@@ -119,6 +123,57 @@ export class FavorService {
       await tx.businessOperation.update({ where: { id: operation.id }, data: { status: 'COMPLETED', completedAt: now, resultSummary: result } });
       return result;
     });
+  }
+
+  /** A global gift receipt pays only its gifter; no calendar, grant or mission catch-up. */
+  async creditGifterBonus(input: FavorGifterBonusInput, transaction?: Prisma.TransactionClient): Promise<FavorGifterBonusResult> {
+    this.validateGifterBonus(input);
+    const run = async (tx: Prisma.TransactionClient): Promise<FavorGifterBonusResult> => {
+      await this.lockPlayer(tx, input.playerId);
+      const existing = await this.recoverGifterBonus(input, tx);
+      if (existing) return existing;
+      const player = await this.requirePlayer(tx, input.playerId);
+      if (!player.elementKey) throw new BusinessError('PLAYER_ELEMENT_REQUIRED', 'Choisissez votre élément avant de recevoir ce bonus.');
+      if (input.twitchEventReceiptId && !await tx.twitchEventReceipt.findUnique({ where: { id: input.twitchEventReceiptId }, select: { id: true } }))
+        throw new BusinessError('FAVOR_PROOF_INVALID', 'Le reçu du bonus est absent.');
+      const amount = FAVOR_TIER_PRIMOGEMS[input.tier] * BigInt(input.total);
+      const now = this.clock.now();
+      const operation = await tx.businessOperation.create({ data: {
+        playerId: input.playerId, operationType: 'favor.gifter-bonus', sourceChannel: 'TWITCH',
+        idempotencyKey: `favor:gifter:${input.idempotencyKey}`, startedAt: now,
+      } });
+      await this.economy.credit(tx, { playerId: input.playerId, playerElementKey: player.elementKey,
+        resourceKey: 'primogems', amount, causeKey: 'favor.gifter-bonus', domainKey: 'favor',
+        operationId: operation.id, sourceChannel: 'TWITCH', skipPermanentMissions: true });
+      const result: FavorGifterBonusResult = { operationId: operation.id, tier: input.tier,
+        total: input.total, creditedPrimogems: amount.toString() };
+      await tx.businessOperation.update({ where: { id: operation.id }, data: { status: 'COMPLETED', completedAt: now,
+        resultSummary: { twitchEventReceiptId: input.twitchEventReceiptId ?? null, result } } });
+      return result;
+    };
+    return transaction ? run(transaction) : this.transaction(run);
+  }
+
+  /** Recover durable payment before eligibility can change; never grant again on redelivery. */
+  async recoverGifterBonus(input: Omit<FavorGifterBonusInput, 'playerId'> & { playerId?: string }, tx: Prisma.TransactionClient): Promise<FavorGifterBonusResult | null> {
+    this.validateGifterBonus(input);
+    const operation = await tx.businessOperation.findFirst({ where: {
+      sourceChannel: 'TWITCH', idempotencyKey: `favor:gifter:${input.idempotencyKey}`,
+    } });
+    if (!operation) return null;
+    const summary = operation.resultSummary as { twitchEventReceiptId?: string | null; result?: FavorGifterBonusResult } | null;
+    if (input.playerId !== undefined && operation.playerId !== input.playerId
+      || operation.operationType !== 'favor.gifter-bonus' || operation.status !== 'COMPLETED'
+      || !summary?.result || summary.result.operationId !== operation.id || summary.result.tier !== input.tier
+      || summary.result.total !== input.total || summary.twitchEventReceiptId !== (input.twitchEventReceiptId ?? null)
+      || summary.result.creditedPrimogems !== (FAVOR_TIER_PRIMOGEMS[input.tier] * BigInt(input.total)).toString())
+      throw new BusinessError('FAVOR_IDEMPOTENCY_CONFLICT', 'Cette preuve appartient à un autre bonus Faveur.');
+    return summary.result;
+  }
+
+  private validateGifterBonus(input: Omit<FavorGifterBonusInput, 'playerId'>) {
+    if (!input.idempotencyKey.trim() || ![1, 2, 3].includes(input.tier) || !Number.isSafeInteger(input.total) || input.total <= 0)
+      throw new BusinessError('FAVOR_PROOF_INVALID', 'La preuve du bonus Faveur est invalide.');
   }
 
   private replayGrant(operation: { playerId: string | null; operationType: string; status: string; resultSummary: Prisma.JsonValue | null }, input: FavorGrantInput): FavorGrantResult {

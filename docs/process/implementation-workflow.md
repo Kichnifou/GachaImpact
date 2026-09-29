@@ -34,7 +34,7 @@ Tant que le propriétaire demande encore de l’analyse ou des questions, ChatGP
 
 Chaque gros prompt Codex doit demander de :
 
-- vérifier le HEAD exact de départ ;
+- vérifier les HEAD exacts de `origin/main` et `origin/review`, la base `review` approuvée et documenter la divergence attendue avant tout nouveau lot ;
 - lire `AGENTS.md`, le Master et les sources spécialisées utiles ;
 - persister, si nécessaire, la validation du lot précédent ;
 - persister les nouvelles décisions durables réellement prises ;
@@ -95,13 +95,13 @@ Pour tout lot DB, la validation confronte le dossier versionné `server/prisma/m
 
 Le workflow Git permanent est le suivant :
 
-1. `main` représente le dernier état public et la production ;
+1. `main` reste le dernier checkpoint promu ; plusieurs petits lots indépendamment reviewés peuvent s'accumuler sur `review` ;
 2. Codex travaille sur un lot borné, exécute les tests pertinents et contrôle son périmètre ;
 3. dans la même intervention, le candidat est committé puis poussé normalement sur la branche permanente `review` ;
 4. ChatGPT inspecte sur GitHub le vrai commit et son diff par rapport à `main` avant de valider ou de demander une correction technique ;
 5. chaque correction éventuelle suit à son tour `modification → tests → commit séparé → push review` ;
 6. ChatGPT re-review le vrai nouveau commit ;
-7. une fois la review approuvée, ChatGPT fournit directement le modèle/niveau Codex recommandés et un prompt dédié de promotion copiable. L'exécution volontaire de ce prompt par le propriétaire constitue l'autorisation explicite de cette mission ; avant le fast-forward, cette mission finalise le Master et les documents de statut concernés dans un état qui restera exact après la promotion. Le commit documentaire final est poussé sur `review`, le gate Git est exécuté, puis toute `review` est avancée proprement vers `main` par fast-forward strict ;
+7. une review approuvée n'impose pas de promotion immédiate : le lot suivant peut partir du HEAD `review` approuvé. Une promotion dédiée intervient pour un test/une activation publique, un changement infrastructure/migration, un checkpoint fonctionnel cohérent ou une décision explicite du propriétaire. ChatGPT fournit alors le modèle/niveau et le prompt de promotion ; son exécution volontaire constitue l'autorisation. La mission finalise les statuts exacts après promotion, pousse le commit documentaire sur `review`, revalide le gate puis avance toute `review` vers `main` par fast-forward strict, sans force-push ;
 8. l’arrivée du commit sur `main` déclenche les déploiements de production ;
 9. ChatGPT vérifie `main == review`, Railway, Cloudflare Pages et le healthcheck ;
 10. ChatGPT fournit immédiatement **À tester en public**, sans attendre une demande : checklist concise basée sur le diff réellement promu, regroupée par parcours utilisateur, limitée aux ajouts/modifications et interactions à risque, sans recopier les tests automatisés ni lister tout le jeu ;
@@ -126,11 +126,11 @@ git status
 
 ChatGPT vérifie le HEAD de `review`, le compare au dernier état de `main`, contrôle la liste des fichiers, la documentation et les fichiers critiques. Cette review de référence porte sur le vrai commit GitHub, jamais uniquement sur le résumé d’un worktree local non publié. Il distingue les validations automatisées déjà acquises des validations publiques encore impossibles à ce stade.
 
-Si le lot n’est pas acceptable, les corrections restent sur `review`. S’il est acceptable, ChatGPT fournit directement le prompt Codex dédié de promotion, avec le modèle et le niveau de réflexion recommandés. Ce prompt ne déclenche rien seul : son exécution volontaire par le propriétaire est l'autorisation explicite requise. ChatGPT ne promeut jamais silencieusement un candidat et ne demande pas une seconde confirmation conversationnelle après avoir fourni ce prompt.
+Si le lot n’est pas acceptable, les corrections restent sur `review`. S'il est acceptable, ChatGPT peut préparer le petit lot suivant depuis ce HEAD approuvé, après vérification des deux HEAD et de la divergence attendue. Il fournit un prompt de promotion dédié uniquement lorsque l'un des critères de l'étape 7 le nécessite. Ce prompt ne déclenche rien seul : son exécution volontaire par le propriétaire est l'autorisation explicite requise. ChatGPT ne promeut jamais silencieusement un candidat et ne demande pas une seconde confirmation conversationnelle après avoir fourni ce prompt.
 
 ## 6. Promouvoir vers `main`, déployer et valider publiquement
 
-Après approbation de la review, le passage contrôlé de `review` vers `main` constitue le checkpoint de production. L’équipe vérifie ensuite les déploiements Railway et Cloudflare Pages avant d’effectuer le test public sur [gachaimpact.pages.dev](https://gachaimpact.pages.dev).
+Lorsqu'une promotion dédiée est nécessaire et explicitement demandée, le passage contrôlé de la `review` approuvée vers `main` constitue le checkpoint de production. L’équipe vérifie ensuite les déploiements Railway et Cloudflare Pages avant le test public requis sur [gachaimpact.pages.dev](https://gachaimpact.pages.dev). Une review indépendante réussie seule n'autorise ni n'impose cette promotion.
 
 La mission de promotion ne laisse pas dans le commit promu une prochaine étape devenue fausse par son propre fast-forward, telle que « promouvoir ce candidat » ou « attendre la promotion ». Elle décrit l’état post-promotion réellement attendu, sans anticiper Cloudflare, Railway, le healthcheck ou une validation publique : ces preuves sont contrôlées après le push `main` par ChatGPT. Aucun commit documentaire supplémentaire n’est créé uniquement pour constater la promotion ; il faut un changement d’état réel, par exemple un déploiement vérifié, une validation publique, un défaut, une clôture de lot, un changement de domaine ou une décision produit ou technique.
 

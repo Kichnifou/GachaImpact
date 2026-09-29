@@ -10,14 +10,14 @@ const subscriptionSchema = z.object({
 const pageSchema = z.object({ data: z.array(subscriptionSchema), pagination: z.object({ cursor: z.string().min(1).optional() }) });
 const createdSchema = z.object({ data: z.array(subscriptionSchema).length(1) });
 export type TwitchEventSubSubscription = z.infer<typeof subscriptionSchema>;
-export type PilotEventSubType = 'channel.chat.message' | 'channel.subscribe';
+export type PilotEventSubType = 'channel.chat.message' | 'channel.subscribe' | 'channel.subscription.gift';
 export type PilotChatSubscriptionRequest = Readonly<{
   type: 'channel.chat.message'; version: '1';
   condition: { broadcaster_user_id: string; user_id: string };
   transport: { method: 'webhook'; callback: string; secret: string };
 }>;
 export type PilotFavorSubscriptionRequest = Readonly<{
-  type: 'channel.subscribe'; version: '1';
+  type: 'channel.subscribe' | 'channel.subscription.gift'; version: '1';
   condition: { broadcaster_user_id: string };
   transport: { method: 'webhook'; callback: string; secret: string };
 }>;
@@ -77,6 +77,7 @@ export class TwitchEventSubClient {
 
   async listChatSubscriptions(signal?: AbortSignal) { return this.listSubscriptions('channel.chat.message', signal); }
   async listFavorSubscriptions(signal?: AbortSignal) { return this.listSubscriptions('channel.subscribe', signal); }
+  async listGiftSubscriptions(signal?: AbortSignal) { return this.listSubscriptions('channel.subscription.gift', signal); }
 
   async createChatSubscription(body: PilotChatSubscriptionRequest): Promise<TwitchEventSubSubscription> {
     const parsed = createdSchema.safeParse(await this.call('POST', undefined, body));
@@ -92,6 +93,9 @@ export class TwitchEventSubClient {
 
   async deleteSubscription(subscriptionId: string): Promise<void> {
     await this.call('DELETE', undefined, undefined, subscriptionId);
+  }
+  async createGiftSubscription(body: PilotFavorSubscriptionRequest & { type: 'channel.subscription.gift' }) {
+    return this.createFavorSubscription(body);
   }
   async deleteChatSubscription(subscriptionId: string) { return this.deleteSubscription(subscriptionId); }
 }
