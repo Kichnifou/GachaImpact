@@ -121,7 +121,7 @@ Les Lots 5–8 sont promus techniquement sur main par checkpoint documentaire et
 
 **Validation publique standalone Lots 7/8 acquise :** preuves ChatGPT/propriétaire persistées dans le [Master](../master/PROJECT_MASTER_PLAN.md#reprise-rapide--état-vivant), checkpoint 7fdcb16 exact déployé Railway SUCCESS / Application ready / health 1/1 et frontend Lot 8 observé publiquement. Fenêtre QA 30 jours temporaire sans Grant/Twitch/bonus Tier : premier Ctrl+F5, une modale et +800 réel ; second, aucun doublon. DB : un claim, une opération daily COMPLETED, mouvements +800. QA retirée, bornes nulles/inactive, claim NATIVE de preuve conservé. Cette validation ne couvre aucun Gift/Resub/EventSub Twitch réel ; Codex n’a exécuté aucun nouveau contrôle public dans le Lot 9.
 
-## Faveur Lot 9 — projection Profil/Chat et confidentialité dédiée, candidat review
+## Faveur Lot 9 — projection Profil/Chat et confidentialité dédiée, promu techniquement sur main
 
 FavorService reste propriétaire du calendrier, des jours et du claim status. PrivacyService reste propriétaire de la permission FAVOR. SocialService.favor(identity, targetPlayerId) compose les deux : résolution serveur du viewer existant, cible ACTIVE, permission FAVOR **avant** FavorService.getCurrent, puis projection adaptée. Profile et ChatCommandDispatcher utilisent cette même primitive ; la commande ne charge pas le Profil complet.
 
@@ -133,7 +133,7 @@ FAVOR PUBLIC par défaut ; FRIENDS requiert une amitié ACTIVE ; PRIVATE autoris
 
 Profil > Aperçu et !faveur consultent exclusivement getCurrent : aucun claimToday, opération Faveur, mouvement Economy, refresh Ressources, catch-up Missions, activité propre à la consultation ou provisionnement. Le pipeline Chat existant conserve ses messages COMMAND/GAME_RESULT. Commande READY/help, résolution pseudo/@pseudo/multi-mots existante ; transports Twitch/OAuth/EventSub/core/consumers/présence Lots 7/8 inchangés.
 
-Carte compacte utilisant les panels Profil ; état quotidien personnel et lien Twitch sûr uniquement pour le propriétaire inactif. Tiers autorisé sans état quotidien/CTA, privé sans indice. UI sans paiement/OAuth et aucun écran dédié. Candidat review uniquement, main reste 7fdcb16 ; prochaine étape : review indépendante ChatGPT, puis promotion et tests publics explicitement approuvés.
+Carte compacte utilisant les panels Profil ; état quotidien personnel et lien Twitch sûr uniquement pour le propriétaire inactif. Tiers autorisé sans état quotidien/CTA, privé sans indice. UI sans paiement/OAuth et aucun écran dédié. Lot 9 promu techniquement sur main après review indépendante ChatGPT du candidat e8542189a567e62cd766c3027518f2054706a865, checkpoint documentaire et fast-forward strict ; code/test inchangé. Railway/health/frontend public restent À VÉRIFIER par ChatGPT, validation publique Profil/confidentialité FAVOR/!faveur restante. Suite : contrôles GitHub et déploiement par ChatGPT, puis tests publics propriétaire ; validation publique seulement après réussite. Lots 7/8 standalone restent validés publiquement ; Gift/Resub/EventSub Twitch restent techniques uniquement. Aucune mutation publique ni activation réelle dans cette promotion.
 
 ## Pipeline migration legacy globale — socle promu, cutover reporté
 
