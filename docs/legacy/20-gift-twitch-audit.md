@@ -7,13 +7,13 @@
 
 ---
 
-## État physique Lots 11 + 12 — review
+## Lots 11 + 12 et shutdown — promus techniquement sur main
 
 R692–R701 restent inchangées. Lot 11 approuvé indépendamment par ChatGPT au commit 88f841b ; core Economy +1600 particules personnelles/stats et notification informative atomiques, matching et journal R701 conservés. Lot 12 prépare OAuth Gift durable, credential refresh chiffré AES-256-GCM/AAD, provider user access validé en mémoire et migration additive 055 backend-only. Reward exacte app-owned avec recovery et conflit manuel dédié ; EventSub redemption.add v1 exact broadcaster/reward ID, jamais identification par titre. Lifecycle commun Chat/Faveur/Gift/unlink ; correctif shutdown Lot 12 : Reward OFF confirmée en phase A, relâche/reprise de la même file pour drain, guards Twitch UNFULFILLED et settlement local avant EventSub OFF/credential/cache, puis Chat/Faveur/identité pour unlink. Un pending conserve le chemin de retry signé malgré la reward OFF ; l’annonce secondaire ne bloque pas le cleanup. R692–R701, core Lot 11 et migration 055 inchangés, aucune 056.
 
 Webhook HMAC existant → résultat local durable → FULFILLED/CANCELED distant confirmé/retry. Preuve Lot 11 préservée dans le receipt ; input brut non persisté. Après FULFILLED seulement, annonce spécialisée avec réservation atomique NONE → RESERVED → SENT/FAILED/AMBIGUOUS. Limite at-most-once : timeout/envoi ambigu ou crash après réservation ne déclenchent aucun renvoi automatique ; une annonce peut manquer, le Gift payé reste acquis. Erreur certaine avant dispatch : réservation libérée et retry permis. Aucun outbound générique, commande, XP, mirroring ou Player créé.
 
-Candidat review, feature flag par défaut OFF ; aucune activation réelle. 055 éprouvée/enregistrée en schéma privé (55 migrations), DEV publique à 54 avec 055 en attente. Lots 11 + 12 seront promus ensemble après review indépendante Lot 12. [Architecture](../architecture/backend-architecture-v1.md#gift-suprême-lot-12--bridge-twitch-durable-candidat-review) et [Master](../master/PROJECT_MASTER_PLAN.md) portent les détails et la reprise exacte.
+Lots 11 + 12 et correctif shutdown approuvés indépendamment puis promus techniquement ensemble, feature flag par défaut OFF ; aucune activation réelle ni validation publique Gift. 055 éprouvée/enregistrée en schéma privé (55 migrations), mais application DEV après promotion encore à vérifier ; dernière lecture publique avant promotion : 54/054, table credential absente. R692–R701 inchangées. [Architecture](../architecture/backend-architecture-v1.md#gift-suprême-lot-12--bridge-twitch-durable-promu-techniquement-sur-main) et [Master](../master/PROJECT_MASTER_PLAN.md) portent les détails et la reprise exacte.
 
 ---
 

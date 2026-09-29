@@ -1,6 +1,6 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
-## Credential Gift Suprême 055 — candidat review
+## Credential Gift Suprême 055 — promu techniquement sur main
 
 Migration additive `20260929151500_055_add_twitch_gift_supreme_credential`, table `twitch_gift_supreme_credentials`. Colonnes : player_id UUID PK/FK players RESTRICT, twitch_user_id TEXT unique (1–128 chiffres), encrypted_refresh_token TEXT non vide/envelope v1 GCM bornée, reward_id TEXT nullable (1–128 caractères), scopes JSONB array contenant les trois scopes Gift, revision INTEGER strictement positive (défaut 1), authorized_at/updated_at TIMESTAMPTZ(6). Aucun access token, ID token ou refresh clair ; aucun booléen local ACTIVE. Refresh chiffré uniquement et contexte AAD Player/Twitch/purpose vérifié applicativement.
 
@@ -8,7 +8,7 @@ RLS activée, zéro policy navigateur et REVOKE ALL PUBLIC/anon/authenticated. B
 
 Correctif shutdown Lot 12 sans changement de schéma : guard sur les preuves Gift existantes de TwitchEventReceipt (SUCCESS sans FULFILLED / INVALID sans CANCELED), rattachées à la reward ou au broadcaster via delivery signée. AnnouncementState ne bloque pas le cleanup. Aucun flag DB ni migration 056 ; SQL/checksum 055 inchangés.
 
-055 appliquée par Prisma et testée en schéma privé avec chaîne complète de 55 migrations et migrate status à jour. Les fonctions historiques explicitement publiques de 030/047 sont redirigées vers le schéma privé pour la répétition ; SQL 055/checksum exact conservé. DEV publique reste à 54/054 ; 055 en attente avant future activation, sans migration publique ni backfill dans cette mission. [Architecture](backend-architecture-v1.md#gift-suprême-lot-12--bridge-twitch-durable-candidat-review) et [Master](../master/PROJECT_MASTER_PLAN.md) portent le statut courant.
+055 appliquée par Prisma et testée en schéma privé avec chaîne complète de 55 migrations et migrate status à jour. Les fonctions historiques explicitement publiques de 030/047 sont redirigées vers le schéma privé pour la répétition ; SQL 055/checksum exact conservé. Dernière lecture DEV avant promotion : 54/054, table credential absente ; 055 est versionnée dans le code promu, mais son application publique et la présence de la table restent à vérifier par ChatGPT après le push main. Aucun SQL public ni backfill par Codex dans cette mission. [Architecture](backend-architecture-v1.md#gift-suprême-lot-12--bridge-twitch-durable-promu-techniquement-sur-main) et [Master](../master/PROJECT_MASTER_PLAN.md) portent le statut courant.
 
 
 ## Additions legacy 050–052 — promues, 2026-09-27

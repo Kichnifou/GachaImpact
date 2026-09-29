@@ -1,8 +1,8 @@
 # GachaImpact — Architecture backend V1
 
-## Gift Suprême Lot 12 — bridge Twitch durable, candidat review
+## Gift Suprême Lot 12 — bridge Twitch durable, promu techniquement sur main
 
-Cette section actualise le bridge inerte du checkpoint Lot 11, approuvé indépendamment. Core économique/parser et R692–R701 inchangés ; aucune activation réelle. Flag TWITCH_GIFT_SUPREME_ENABLED OFF par défaut : pas d'OAuth Gift, ensure, consumer public ou bloc Compte actif. Nettoyage reste possible OFF si credential existant et configuration de gestion valide. Construction/health sans réseau Twitch.
+Cette section décrit le bridge Lot 12 et son correctif shutdown, approuvés indépendamment puis promus techniquement avec le Lot 11 par fast-forward strict. Core économique/parser et R692–R701 inchangés ; aucune activation réelle. Flag TWITCH_GIFT_SUPREME_ENABLED OFF par défaut : pas d'OAuth Gift, ensure, consumer public ou bloc Compte actif. Nettoyage reste possible OFF si credential existant et configuration de gestion valide. Construction/health sans réseau Twitch.
 
 OAuth AUTHORIZE_GIFT_SUPREME demande exactement openid channel:manage:redemptions user:write:chat. State gift_ + 32 bytes base64url, hash complet, nonce séparé, TTL dix minutes, DELETE one-shot. RS256/issuer/audience/iat/exp/nonce/subject numérique, /validate client/user/login/scopes/expiry et /helix/users concordants, allowlist et liaison recontrôlées avant écriture ; linkedAt empêche unlink/relink concurrent. Les trois autres purposes gardent leurs scopes et ne persistent aucun token.
 
@@ -24,7 +24,7 @@ Phase B relit la reward OFF et interroge [Get Custom Reward Redemption](https://
 
 Uniquement après ces guards : supprimer l'EventSub Gift exact, confirmer l'absence de toute souscription Gift du broadcaster, relire la reward OFF, supprimer le credential puis invalider le cache. La phase B d'unlink enchaîne ensuite l'arrêt Chat/trois Faveur et la suppression d'identité dans cette même file, sans réacquisition. En cas de pending, Reward OFF mais EventSub/credential/identité restent utilisables pour le retry signé FULFILLED/CANCELED ; un prochain disable/unlink termine après confirmation. Reward connue introuvable/non manageable ou contrat incohérent : garder l'autorisation pour contrôle opérateur. Autorisation interrompue avant création de reward : absence reward/EventSub et garde locale vérifiées avant retrait. Aucun flag DB de shutdown, aucune migration 056 ; 055 et politique d'annonce inchangées.
 
-[Schéma 055](postgresql-schema-v1.md#credential-gift-suprême-055--candidat-review) ; [déploiement et clé](../deployment/free-first-v1.md#gift-suprême-lot-12--préparation-sans-activation) ; statut et validations : [Master](../master/PROJECT_MASTER_PLAN.md).
+[Schéma 055](postgresql-schema-v1.md#credential-gift-suprême-055--promu-techniquement-sur-main) ; [déploiement et clé](../deployment/free-first-v1.md#gift-suprême-lot-12--préparation-sans-activation) ; statut et validations : [Master](../master/PROJECT_MASTER_PLAN.md).
 
 
 ## Faveur de l'Astre — core Lot 1, promu techniquement sur `main`
@@ -174,7 +174,7 @@ UI Profil : lien propriétaire toujours présent, actif/inactif/claim reçu ou d
 
 Tests mocks et PostgreSQL privés uniquement ; QA publique propriétaire volontairement conservée, aucun OAuth/EventSub/message réel ou changement Railway. 54 migrations dernière 054, aucune 055. Candidat 2117f672417d093fa549bdfceb78cacea94edb94 approuvé en review indépendante ChatGPT, puis checkpoint documentaire et promotion sur main par fast-forward strict ; code/test identique au candidat. Lot 10 promu techniquement, GitHub/Railway/health/frontend à vérifier par ChatGPT après push, validation publique propriétaire CTA Profil/deep-link Event restante. Claim Twitch seulement techniquement validé, runtime Chat toujours inactif et activation réelle séparée. Après validation UI seulement, clôture standalone Faveur puis avancée possible vers Gift Suprême ; validation publique du claim Twitch différée au prochain checkpoint d’activation Twitch.
 
-## Gift Suprême Lot 11 — core métier et frontière redemption inerte, candidat review
+## Gift Suprême Lot 11 — core métier et frontière redemption inerte, promu techniquement sur main
 
 GiftSupremeService reçoit seulement une preuve interne authentifiée future : redemption/reward IDs, gifter Twitch ID et nom éventuel, userInput, redeemedAt. Configuration giftSupremeRewardId obligatoire au constructeur sans ID réel ; autres rewards ignorées, jamais identifiées par titre. Aucun wiring runtime, route navigateur, subscription/Custom Reward réelle, OAuth durable, credential/token persistant, outbound ou Update Redemption Status. Parser/consumer v1 testé directement ; le futur transport doit vérifier HMAC/envelope avant consumeAuthenticated, puis broadcaster configuré/status unfulfilled. [Contrat Twitch officiel](https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/#channelchannel_points_custom_reward_redemptionadd), vérifié pour Lot 11.
 
@@ -184,7 +184,7 @@ Une transaction Serializable bornée, sans appel réseau, sérialise la preuve r
 
 Résultat interne FULFILL avec cible/nom/élément/1600/opération/notification, ou CANCEL et raison stable ; aucun statut Twitch effectivement changé. Replay durable avant nouvelle résolution/éligibilité/configuration de reward, conflits de proof refusés ; collisions unique/Serializable retriées, erreurs infrastructure rollback complet, retry post-commit sans deuxième effet. Receipt redemption durable exclu du TTL Chat ; conserver ces preuves R701. Les tables existantes suffisent, aucune 055 ni table dédiée ; mapping physique précisé dans modèle/schéma documentaire.
 
-Correctifs post-Lot 10 : Profil relative, lien propriétaire absolute bottom-right avec espace réservé et focus-visible, état/jours/Primos/claim compact, rouge 3/2/1 et vert reçu ; privacy inchangée. Quotidiennes Event Festival/solde seul ; helper interne garde A incomplet prioritaire même hors fenêtre avant B/C, sans modification du moteur Event. Intent one-shot et notifications existants conservés. Lot 10 promu 4424b43 et globalement validé publiquement selon le propriétaire, défauts associés corrigés ici ; QA Faveur publique intacte. Lot 11 candidat review, review indépendante puis Lot 12 directement sur review, sans promotion intermédiaire ni activation réelle.
+Correctifs post-Lot 10 : Profil relative, lien propriétaire absolute bottom-right avec espace réservé et focus-visible, état/jours/Primos/claim compact, rouge 3/2/1 et vert reçu ; privacy inchangée. Quotidiennes Event Festival/solde seul ; helper interne garde A incomplet prioritaire même hors fenêtre avant B/C, sans modification du moteur Event. Intent one-shot et notifications existants conservés. Lot 10 promu 4424b43 et globalement validé publiquement selon le propriétaire, défauts associés corrigés ici ; QA Faveur publique intacte. Lot 11 approuvé indépendamment ; Lot 12 et son correctif shutdown approuvés ensuite sur review, puis tous promus ensemble par fast-forward strict. Correctifs Profil/Event en attente de contrôle public propriétaire ; aucune activation Gift réelle.
 
 ## Pipeline migration legacy globale — socle promu, cutover reporté
 
