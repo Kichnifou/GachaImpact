@@ -7,6 +7,7 @@ import { Prisma, type PrismaClient } from '../generated/prisma/client.js';
 import { buildApp } from '../src/app.js';
 import { FavorService } from '../src/application/favor/favor-service.js';
 import { TwitchEventObserver, TwitchObservationConflict, type TwitchObservedEvent } from '../src/application/twitch/twitch-event-observer.js';
+import { TwitchFavorResubConsumer } from '../src/application/twitch/twitch-favor-resub-consumer.js';
 import { TwitchFavorGiftConsumer } from '../src/application/twitch/twitch-favor-gift-consumer.js';
 import { TwitchFavorSubscriptionConsumer } from '../src/application/twitch/twitch-favor-subscription-consumer.js';
 import { PrismaEconomyService } from '../src/infrastructure/database/prisma-economy-service.js';
@@ -23,7 +24,7 @@ beforeAll(async () => {
   await fixture.setup({ seedPublicCatalog: true });
   app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {}, twitchEventSub: { enabled: true, secret } }, {
     authIdentityVerifier: { verify: async () => ({ subject: 'private-test' }) }, getOrProvisionCurrentPlayer: {} as never,
-    twitchEventObserver: observer, twitchFavorSubscriptions: beneficiaries, twitchFavorGifts: consumer,
+    twitchEventObserver: observer, twitchFavorSubscriptions: beneficiaries, twitchFavorGifts: consumer, twitchFavorResubs: new TwitchFavorResubConsumer(db, clock),
   });
 }, 60_000);
 afterAll(async () => {

@@ -7,6 +7,7 @@ import { buildApp } from '../src/app.js';
 import { FavorService } from '../src/application/favor/favor-service.js';
 import { TwitchEventObserver, type TwitchObservedEvent } from '../src/application/twitch/twitch-event-observer.js';
 import { subscriptionFavorKey, TwitchFavorSubscriptionConsumer } from '../src/application/twitch/twitch-favor-subscription-consumer.js';
+import { TwitchFavorResubConsumer } from '../src/application/twitch/twitch-favor-resub-consumer.js';
 import { TwitchFavorGiftConsumer } from '../src/application/twitch/twitch-favor-gift-consumer.js';
 import { TwitchReceiptRetention } from '../src/application/twitch/twitch-receipt-retention.js';
 import { subscriptionFavorTier } from '../src/application/twitch/twitch-subscription-proof.js';
@@ -189,7 +190,7 @@ describe('private subscription consumption and durable terminal decisions', () =
     const secret = 'private-subscription-secret', player = await beneficiary();
     const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {}, twitchEventSub: { enabled: true, secret } }, {
       authIdentityVerifier: { verify: async () => ({ subject: 'test' }) }, getOrProvisionCurrentPlayer: {} as never,
-      twitchEventObserver: observer, twitchFavorSubscriptions: consumer, twitchFavorGifts: new TwitchFavorGiftConsumer(db, clock),
+      twitchEventObserver: observer, twitchFavorSubscriptions: consumer, twitchFavorGifts: new TwitchFavorGiftConsumer(db, clock), twitchFavorResubs: new TwitchFavorResubConsumer(db, clock),
     });
     const deliver = (id: string, userId: string, isGift = false) => {
       const timestamp = new Date().toISOString(), payload = JSON.stringify({ subscription: {

@@ -15,5 +15,7 @@ export const twitchSubscriptionGiftProof = z.object({
   isAnonymous: z.boolean(),
 }).strict();
 export type TwitchSubscriptionGiftProof = z.infer<typeof twitchSubscriptionGiftProof>;
+export const twitchSubscriptionMessageProof = twitchSubscriptionProof.pick({ broadcasterTwitchId: true, tier: true }).strict();
+export type TwitchSubscriptionMessageProof = z.infer<typeof twitchSubscriptionMessageProof>;
 export const subscriptionFavorTier = (tier: TwitchSubscriptionProof['tier']): FavorTier =>
   ({ '1000': 1, '2000': 2, '3000': 3 } as const)[tier];

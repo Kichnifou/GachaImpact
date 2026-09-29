@@ -68,6 +68,7 @@ import { TwitchPilotService } from '../application/twitch/twitch-pilot-service.j
 import { TwitchEventObserver } from '../application/twitch/twitch-event-observer.js';
 import { TwitchFavorSubscriptionConsumer } from '../application/twitch/twitch-favor-subscription-consumer.js';
 import { TwitchFavorGiftConsumer } from '../application/twitch/twitch-favor-gift-consumer.js';
+import { TwitchFavorResubConsumer } from '../application/twitch/twitch-favor-resub-consumer.js';
 import { TwitchEventSubSubscriptionManager } from '../application/twitch/twitch-eventsub-subscription-manager.js';
 import { TwitchAppAccessTokenProvider } from './twitch/twitch-app-access-token-provider.js';
 import { TwitchEventSubClient } from './twitch/twitch-eventsub-client.js';
@@ -126,6 +127,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     twitchEventObserver,
     twitchFavorSubscriptions: new TwitchFavorSubscriptionConsumer(database, clock),
     twitchFavorGifts: new TwitchFavorGiftConsumer(database, clock),
+    twitchFavorResubs: new TwitchFavorResubConsumer(database, clock),
     twitchSubscriptions,
     snapshotPilot: new SnapshotPilotService(database, twitchPilot, config.twitch?.clientSecret ?? ''),
     globalChatService,

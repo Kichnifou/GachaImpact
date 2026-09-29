@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import type { PrismaClient, TwitchEventReceipt } from '../../../generated/prisma/client.js';
 import { TwitchReceiptRetention } from './twitch-receipt-retention.js';
-import { twitchSubscriptionProof, twitchSubscriptionGiftProof, type TwitchSubscriptionProof, type TwitchSubscriptionGiftProof } from './twitch-subscription-proof.js';
+import { twitchSubscriptionProof, twitchSubscriptionGiftProof, twitchSubscriptionMessageProof,
+  type TwitchSubscriptionProof, type TwitchSubscriptionGiftProof, type TwitchSubscriptionMessageProof } from './twitch-subscription-proof.js';
 
 /** Internal observation contract. A future transport must pass only a digest of message content, never raw chat text. */
 export type TwitchObservedEvent = Readonly<{
@@ -15,6 +16,7 @@ export type TwitchObservedEvent = Readonly<{
   transportPayloadHash?: string | null;
   subscriptionProof?: TwitchSubscriptionProof;
   subscriptionGiftProof?: TwitchSubscriptionGiftProof;
+  subscriptionMessageProof?: TwitchSubscriptionMessageProof;
 }>;
 
 export class TwitchObservationConflict extends Error {
@@ -44,6 +46,10 @@ function normalize(input: TwitchObservedEvent) {
   if (transportPayloadHash && !/^[0-9a-f]{64}$/i.test(transportPayloadHash)) throw new Error('Invalid transport payload hash.');
   if (input.subscriptionProof !== undefined && input.eventType !== 'channel.subscribe') throw new Error('Invalid subscription proof.');
   if (input.subscriptionGiftProof !== undefined && input.eventType !== 'channel.subscription.gift') throw new Error('Invalid gift proof.');
+  if (input.subscriptionMessageProof !== undefined && input.eventType !== 'channel.subscription.message') throw new Error('Invalid resub proof.');
+  const resubProof = input.subscriptionMessageProof === undefined ? undefined : twitchSubscriptionMessageProof.parse(input.subscriptionMessageProof);
+  if (input.eventType === 'channel.subscription.message' && !resubProof) throw new Error('Missing resub proof.');
+  if (resubProof && (input.twitchUserId == null || !/^\d+$/.test(input.twitchUserId))) throw new Error('Invalid resubscriber User ID.');
   const giftProof = input.subscriptionGiftProof === undefined ? undefined : twitchSubscriptionGiftProof.parse(input.subscriptionGiftProof);
   if (input.eventType === 'channel.subscription.gift' && !giftProof) throw new Error('Missing gift proof.');
   if (giftProof?.isAnonymous) {
@@ -62,6 +68,7 @@ function normalize(input: TwitchObservedEvent) {
     // Omit this member for Chat: preserve the existing observation/hash contract.
     ...(input.subscriptionProof ? { subscriptionProof: twitchSubscriptionProof.parse(input.subscriptionProof) } : {}),
     ...(giftProof ? { subscriptionGiftProof: giftProof } : {}),
+    ...(resubProof ? { subscriptionMessageProof: resubProof } : {}),
   };
 }
 

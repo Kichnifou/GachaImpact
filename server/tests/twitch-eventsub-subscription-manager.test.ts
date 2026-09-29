@@ -174,9 +174,9 @@ describe('inspection, disable and serialized unlink', () => {
     const ensure = manager.ensurePilotChatSubscription(playerId, '12345');
     const unlink = manager.unlinkPilotIdentity(playerId, async () => { order.push('identity'); db.twitchIdentity.findUnique.mockResolvedValue(null); });
     await Promise.all([ensure, unlink]);
-    expect(order).toEqual(['GET', 'POST', 'GET', 'DELETE', 'GET', 'GET', 'identity']);
+    expect(order).toEqual(['GET', 'POST', 'GET', 'DELETE', 'GET', 'GET', 'GET', 'identity']);
     await expect(manager.ensurePilotChatSubscription(playerId, '12345')).rejects.toMatchObject({ code: 'TWITCH_RUNTIME_IDENTITY_REQUIRED' });
-    expect(order).toHaveLength(7);
+    expect(order).toHaveLength(8);
   });
   it('removes before unlink even with reception OFF, and preserves identity on failed removal', async () => {
     const { manager, network } = setup({ ...config, twitchEventSub: { ...config.twitchEventSub!, enabled: false } });

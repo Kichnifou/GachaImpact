@@ -66,15 +66,16 @@ describe('private PostgreSQL Faveur OAuth and safe multi-subscription unlink', (
     await expect(service.callback({ state: expiredFavor, error: 'access_denied' })).rejects.toMatchObject({ code: 'TWITCH_STATE_INVALID' });
     expect(forbidden).not.toHaveBeenCalled();
   });
-  it.each([['enabled', 'enabled'], ['enabled', 'webhook_callback_verification_pending'], ['webhook_callback_verification_pending', 'enabled'], ['webhook_callback_verification_pending', 'webhook_callback_verification_pending']])('validates signed OAuth then ensures group %s / %s using the App token, without tokens/identity/economy persisted', async (status, giftStatus) => {
+  it.each([['enabled', 'enabled', 'enabled'], ['enabled', 'enabled', 'webhook_callback_verification_pending'], ['enabled', 'webhook_callback_verification_pending', 'enabled'], ['webhook_callback_verification_pending', 'enabled', 'enabled'], ['webhook_callback_verification_pending', 'webhook_callback_verification_pending', 'webhook_callback_verification_pending']])('validates signed OAuth then ensures group %s / %s / %s using the App token, without tokens/identity/economy persisted', async (status, giftStatus, resubStatus) => {
     const { service, identity, userId, network, player } = await setup();
     const before = await db.twitchIdentity.findUniqueOrThrow({ where: { playerId: player.id } });
     const url = new URL((await service.startFavor(identity)).url), state = url.searchParams.get('state')!;
     await oauth(userId, url.searchParams.get('nonce')!);
     const subscription = { id: randomUUID(), type: 'channel.subscribe', version: '1', status, condition: { broadcaster_user_id: userId }, transport: { method: 'webhook', callback } };
     network.mockResolvedValueOnce(new Response(JSON.stringify({ data: [], pagination: {} }))).mockResolvedValueOnce(new Response(JSON.stringify({ data: [subscription] }), { status: 202 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ data: [], pagination: {} }))).mockResolvedValueOnce(new Response(JSON.stringify({ data: [{ ...subscription, id: randomUUID(), type: 'channel.subscription.gift', status: giftStatus }] }), { status: 202 }));
-    expect(await service.callback({ state, code: 'private-code' })).toEqual({ favorRuntimeActivated: true, favorSubscriptionPending: status !== 'enabled' || giftStatus !== 'enabled' });
+      .mockResolvedValueOnce(new Response(JSON.stringify({ data: [], pagination: {} }))).mockResolvedValueOnce(new Response(JSON.stringify({ data: [{ ...subscription, id: randomUUID(), type: 'channel.subscription.gift', status: giftStatus }] }), { status: 202 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ data: [], pagination: {} }))).mockResolvedValueOnce(new Response(JSON.stringify({ data: [{ ...subscription, id: randomUUID(), type: 'channel.subscription.message', status: resubStatus }] }), { status: 202 }));
+    expect(await service.callback({ state, code: 'private-code' })).toEqual({ favorRuntimeActivated: true, favorSubscriptionPending: status !== 'enabled' || giftStatus !== 'enabled' || resubStatus !== 'enabled' });
     expect(await db.twitchIdentity.findUniqueOrThrow({ where: { playerId: player.id } })).toEqual(before);
     expect(await db.twitchLinkState.count({ where: { playerId: player.id } })).toBe(0);
     expect(JSON.stringify(await db.twitchIdentity.findMany())).not.toMatch(/private-user-token|private-refresh-token|private-app-token|private-code/);
@@ -89,12 +90,13 @@ describe('private PostgreSQL Faveur OAuth and safe multi-subscription unlink', (
     await oauth(value.userId, url.searchParams.get('nonce')!, () => value.service.unlink(value.identity).then(() => undefined));
     await expect(value.service.callback({ state: url.searchParams.get('state')!, code: 'private-code' })).rejects.toMatchObject({ code: 'TWITCH_ACCOUNT_MISMATCH' });
     expect(await db.twitchIdentity.findUnique({ where: { playerId: value.player.id } })).toBeNull();
-    expect(value.network.mock.calls.map(([, options]) => options?.method)).toEqual(['GET', 'GET', 'GET']);
+    expect(value.network.mock.calls.map(([, options]) => options?.method)).toEqual(['GET', 'GET', 'GET', 'GET']);
   });
   it('preserves the identity after partially stopping Chat and completes Faveur unlink on retry', async () => {
     const value = await setup(), before = await db.player.findUniqueOrThrow({ where: { id: value.player.id } });
     const subscriptions: TwitchEventSubSubscription[] = [
       { id: 'private-chat', type: 'channel.chat.message', version: '1', status: 'enabled', condition: { broadcaster_user_id: value.userId, user_id: value.userId }, transport: { method: 'webhook', callback } },
+      { id: 'private-resub', type: 'channel.subscription.message', version: '1', status: 'enabled', condition: { broadcaster_user_id: value.userId }, transport: { method: 'webhook', callback } },
       { id: 'private-gift', type: 'channel.subscription.gift', version: '1', status: 'enabled', condition: { broadcaster_user_id: value.userId }, transport: { method: 'webhook', callback } },
       { id: 'private-favor', type: 'channel.subscribe', version: '1', status: 'enabled', condition: { broadcaster_user_id: value.userId }, transport: { method: 'webhook', callback } },
     ];
@@ -109,7 +111,7 @@ describe('private PostgreSQL Faveur OAuth and safe multi-subscription unlink', (
       return new Response(null, { status: 204 });
     });
     await expect(value.service.unlink(value.identity)).rejects.toMatchObject({ code: 'TWITCH_EVENTSUB_API_FAILED' });
-    expect(subscriptions.map(item => item.id)).toEqual(['private-gift', 'private-favor']);
+    expect(subscriptions.map(item => item.id)).toEqual(['private-resub', 'private-gift', 'private-favor']);
     expect(await db.twitchIdentity.findUnique({ where: { playerId: value.player.id } })).not.toBeNull();
     failFavor = false; expect(await value.service.unlink(value.identity)).toEqual({ linked: false });
     expect(subscriptions).toEqual([]); expect(await db.twitchIdentity.findUnique({ where: { playerId: value.player.id } })).toBeNull();

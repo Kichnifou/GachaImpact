@@ -832,19 +832,13 @@ Le bonus gifter utilise la table Tier de R666, sans lui donner de jours.
 
 ---
 
-## R669 — Resub uniquement sur événement fiable — ✅ VALIDÉ A
+## R669 — Resub uniquement sur événement fiable — ✅ VALIDÉ A, précision Lot 6
 
-Une nouvelle attribution de Faveur est produite lorsqu'un événement Twitch suffisamment fiable prouve le resub.
+Une resub donne une attribution complète de Faveur seulement lorsqu'un événement Twitch fiable la prouve. L'implémentation actuelle retient **channel.subscription.message v1**, émis lorsque le subscriber partage son message de resubscription ; il reçoit la récompense Tier normale et +30 jours, sans bonus gifter.
 
-Sont notamment acceptables :
+Cette preuve couvre uniquement les resubs dont Twitch émet ce message. Les compteurs cumulative_months, duration_months et streak_months ne multiplient ni le montant ni les jours. Aucun renouvellement automatique silencieux, date théorique de renouvellement ou resub sans événement fiable n'est estimé. Si aucun événement fiable n'est reçu, aucune attribution n'est inventée.
 
-- nouveau subscription ;
-- gift subscription ;
-- resub explicitement remonté par Twitch selon l'intégration disponible.
-
-Un renouvellement automatique silencieux que l'intégration ne peut pas identifier de manière fiable ne doit pas être inventé à partir d'une estimation de date.
-
-Si Twitch expose ultérieurement un événement fiable couvrant ces renouvellements, l'intégration pourra l'utiliser sans changer la règle métier.
+channel.subscribe ne couvre pas les resubs ; les Message IDs des deux producteurs restent indépendants, sans corrélation artificielle. Un futur événement fiable couvrant les renouvellements silencieux nécessitera une mission explicite avant branchement, sans changer ce principe produit.
 
 ---
 

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { TwitchObservationConflict, type TwitchEventObserver } from '../../application/twitch/twitch-event-observer.js';
 import type { TwitchFavorSubscriptionConsumer } from '../../application/twitch/twitch-favor-subscription-consumer.js';
 import type { TwitchFavorGiftConsumer } from '../../application/twitch/twitch-favor-gift-consumer.js';
+import type { TwitchFavorResubConsumer } from '../../application/twitch/twitch-favor-resub-consumer.js';
 
 const MAX_AGE_MS = 10 * 60 * 1000;
 const header = (value: string | string[] | undefined) => typeof value === 'string' ? value : null;
@@ -30,9 +31,22 @@ const giftEnvelope = envelope.extend({
   .refine(({ event }) => event.is_anonymous
     ? event.user_id == null && event.user_login == null && event.user_name == null
     : event.user_id != null);
+const monthCount = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
+const emote = z.object({ id: z.string().min(1), begin: monthCount, end: monthCount }).strict()
+  .refine(value => value.end >= value.begin);
+const resubEnvelope = envelope.extend({
+  subscription: envelope.shape.subscription.extend({ condition: z.object({ broadcaster_user_id: twitchId }).strict() }),
+  event: z.object({ user_id: twitchId, user_login: login, user_name: name,
+    broadcaster_user_id: twitchId, broadcaster_user_login: login, broadcaster_user_name: name,
+    tier: z.enum(['1000', '2000', '3000']), cumulative_months: monthCount,
+    duration_months: monthCount, streak_months: monthCount.nullable(),
+    message: z.object({ text: z.string(), emotes: z.array(emote) }).strict(),
+  }).strict(),
+}).refine(body => body.subscription.condition.broadcaster_user_id === body.event.broadcaster_user_id);
 
 export async function registerTwitchEventSubRoutes(app: FastifyInstance, options: {
   secret: string; observer: TwitchEventObserver; favorSubscriptions: TwitchFavorSubscriptionConsumer; favorGifts: TwitchFavorGiftConsumer;
+  favorResubs: TwitchFavorResubConsumer;
 }) {
   // Fastify's ordinary JSON parser loses the exact bytes Twitch signed. This parser is scoped to this route plugin.
   app.addContentTypeParser('application/json', { parseAs: 'buffer' }, (_request, body, done) => done(null, body));
@@ -67,8 +81,19 @@ export async function registerTwitchEventSubRoutes(app: FastifyInstance, options
     const notification = envelope.safeParse(body);
     if (!notification.success) return reply.code(400).send();
     if (notification.data.subscription.version !== '1'
-      || !['channel.chat.message', 'channel.subscribe', 'channel.subscription.gift'].includes(notification.data.subscription.type)) return reply.code(422).send();
+      || !['channel.chat.message', 'channel.subscribe', 'channel.subscription.gift', 'channel.subscription.message'].includes(notification.data.subscription.type)) return reply.code(422).send();
     try {
+      if (notification.data.subscription.type === 'channel.subscription.message') {
+        const parsed = resubEnvelope.safeParse(body);
+        if (!parsed.success) return reply.code(400).send();
+        const event = parsed.data.event;
+        const observed = await options.observer.observeTwitchEvent({ externalEventId: id, eventType: 'channel.subscription.message',
+          twitchUserId: event.user_id, login: event.user_login, displayName: event.user_name, sourceTimestamp: timestamp,
+          transportPayloadHash: createHash('sha256').update(raw).digest('hex'),
+          subscriptionMessageProof: { broadcasterTwitchId: event.broadcaster_user_id, tier: event.tier } });
+        await options.favorResubs.consume(observed.receipt.id);
+        return reply.code(204).send();
+      }
       if (notification.data.subscription.type === 'channel.subscription.gift') {
         const parsed = giftEnvelope.safeParse(body);
         if (!parsed.success) return reply.code(400).send();

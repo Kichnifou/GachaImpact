@@ -3,11 +3,11 @@ import type { Clock } from '../../domain/time/business-date.js';
 import { FavorService } from '../favor/favor-service.js';
 import { TwitchFavorBeneficiaryConsumer } from './twitch-favor-beneficiary-consumer.js';
 
-export const subscriptionFavorKey = (messageId: string) => 'eventsub:channel.subscribe:' + messageId;
+export const resubFavorKey = (messageId: string) => 'eventsub:channel.subscription.message:' + messageId;
 
-/** Initial subscriptions (including gift recipients); no global gifter payment. */
-export class TwitchFavorSubscriptionConsumer extends TwitchFavorBeneficiaryConsumer {
+/** Reliable resub messages only; never infer a silent renewal or pay a gifter. */
+export class TwitchFavorResubConsumer extends TwitchFavorBeneficiaryConsumer {
   constructor(database: PrismaClient, clock: Clock, favor = new FavorService(database, clock)) {
-    super(database, clock, 'channel.subscribe', favor);
+    super(database, clock, 'channel.subscription.message', favor);
   }
 }

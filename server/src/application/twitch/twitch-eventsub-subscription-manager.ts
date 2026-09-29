@@ -8,9 +8,9 @@ export type PilotChatState = PilotSubscriptionState;
 type SubscriptionContext = { userId: string; callback: string };
 export type PilotFavorSubscriptions = {
   status: 'enabled' | 'webhook_callback_verification_pending';
-  subscriptions: readonly [TwitchEventSubSubscription, TwitchEventSubSubscription];
+  subscriptions: readonly [TwitchEventSubSubscription, TwitchEventSubSubscription, TwitchEventSubSubscription];
 };
-const favorTypes = ['channel.subscribe', 'channel.subscription.gift'] as const;
+const favorTypes = ['channel.subscribe', 'channel.subscription.gift', 'channel.subscription.message'] as const;
 const conflict = (type: PilotEventSubType) => new AppError(type !== 'channel.chat.message'
   ? 'Réception des abonnements Twitch incompatible ; contrôle opérateur nécessaire.'
   : 'Réception du chat Twitch incompatible ; contrôle opérateur nécessaire.', 409, 'TWITCH_EVENTSUB_SUBSCRIPTION_CONFLICT');
@@ -67,7 +67,8 @@ export class TwitchEventSubSubscriptionManager {
 
   private list(type: PilotEventSubType, signal?: AbortSignal) {
     return type === 'channel.chat.message' ? this.client.listChatSubscriptions(signal)
-      : type === 'channel.subscribe' ? this.client.listFavorSubscriptions(signal) : this.client.listGiftSubscriptions(signal);
+      : type === 'channel.subscribe' ? this.client.listFavorSubscriptions(signal)
+        : type === 'channel.subscription.gift' ? this.client.listGiftSubscriptions(signal) : this.client.listResubSubscriptions(signal);
   }
 
   private async inspect(playerId: string, type: PilotEventSubType, signal?: AbortSignal): Promise<PilotChatState> {
@@ -82,7 +83,7 @@ export class TwitchEventSubSubscriptionManager {
     return this.serial(playerId, async () => {
       const { userId, callback } = await this.context(playerId, true);
       const items: (TwitchEventSubSubscription | undefined)[] = [];
-      // Inspect both even when the first is absent: the second can conflict or fail.
+      // Inspect the entire group even when earlier members are absent.
       for (const type of favorTypes) items.push(this.exact(await this.list(type, signal), userId, callback, type));
       if (items.some(item => item?.status === 'webhook_callback_verification_pending')) return 'VERIFICATION_PENDING';
       return items.every(item => item?.status === 'enabled') ? 'ACTIVE' : 'INACTIVE';
@@ -97,7 +98,8 @@ export class TwitchEventSubSubscriptionManager {
       const created = type === 'channel.chat.message' ? await this.client.createChatSubscription({ type, version: '1',
         condition: { broadcaster_user_id: userId, user_id: userId }, transport })
         : type === 'channel.subscribe' ? await this.client.createFavorSubscription({ type, version: '1', condition: { broadcaster_user_id: userId }, transport })
-        : await this.client.createGiftSubscription({ type, version: '1', condition: { broadcaster_user_id: userId }, transport });
+        : type === 'channel.subscription.gift' ? await this.client.createGiftSubscription({ type, version: '1', condition: { broadcaster_user_id: userId }, transport })
+          : await this.client.createResubSubscription({ type, version: '1', condition: { broadcaster_user_id: userId }, transport });
       const matching = this.exact([created], userId, callback, type);
       if (!matching) throw conflict(type);
       return matching;
@@ -130,7 +132,8 @@ export class TwitchEventSubSubscriptionManager {
       const context = await this.context(playerId, true, expectedUserId, expectedLogin);
       const beneficiary = await this.ensureExact(context, 'channel.subscribe');
       const gift = await this.ensureExact(context, 'channel.subscription.gift');
-      return { subscriptions: [beneficiary, gift], status: beneficiary.status === 'enabled' && gift.status === 'enabled'
+      const resub = await this.ensureExact(context, 'channel.subscription.message');
+      return { subscriptions: [beneficiary, gift, resub], status: [beneficiary, gift, resub].every(item => item.status === 'enabled')
         ? 'enabled' : 'webhook_callback_verification_pending' };
     });
     this.favorPending.set(key, job);
