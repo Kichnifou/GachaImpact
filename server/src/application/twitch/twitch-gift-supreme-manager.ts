@@ -219,14 +219,20 @@ export class TwitchGiftSupremeManager {
     const found = await this.db.twitchGiftSupremeCredential.findUnique({ where: { twitchUserId: broadcasterId } });
     if (!found || found.rewardId !== rewardId || !this.config.twitch!.pilotPlayerIds.includes(found.playerId)) return { action: 'IGNORE' as const };
     return this.subscriptions.lifecycle.run(found.playerId, async () => {
-      const linked = await this.context(found.playerId, broadcasterId);
+      const linked = await this.db.twitchIdentity.findUnique({ where: { playerId: found.playerId } });
+      if (!linked || linked.twitchUserId !== broadcasterId) return { action: 'IGNORE' as const };
       const row = await this.db.twitchGiftSupremeCredential.findUnique({ where: { playerId: linked.playerId } });
       if (!row || row.rewardId !== rewardId || row.twitchUserId !== broadcasterId) return { action: 'IGNORE' as const };
-      await this.tokens!.getToken(row.playerId);
-      const rewards = await this.helix!.rewards(row.playerId, broadcasterId, true), reward = rewards.find(item => item.id === rewardId);
-      // A disabled reward stops new purchases, but retained authorization/EventSub must still settle in-flight deliveries.
-      if (!reward || !giftRewardMatches(reward)) throw conflict();
-      if (await this.subscriptions.inspectGiftSupremeUnlocked(row.playerId, rewardId) !== 'ACTIVE') throw unavailable();
+      // The signed delivery plus stored credential/reward identity is sufficient. Remote state can change after redemption.
+      return action(row, this.helix!);
+    });
+  }
+  async withRecovery<T>(playerId: string, action: (row: TwitchGiftSupremeCredential, helix: TwitchGiftHelixClient) => Promise<T>) {
+    if (!this.available) throw unavailable();
+    return this.subscriptions.lifecycle.run(playerId, async () => {
+      const linked = await this.context(playerId);
+      const row = await this.db.twitchGiftSupremeCredential.findUnique({ where: { playerId } });
+      if (!row?.rewardId || row.twitchUserId !== linked.twitchUserId) throw unavailable();
       return action(row, this.helix!);
     });
   }

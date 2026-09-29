@@ -1,11 +1,11 @@
-import { Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
+import { Prisma, type PrismaClient, type TwitchGiftSupremeCredential } from '../../../generated/prisma/client.js';
 import type { Clock } from '../../domain/time/business-date.js';
 import { AppError } from '../../api/errors.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
-import { TwitchGiftHelixError } from '../../infrastructure/twitch/twitch-gift-helix-client.js';
-import { GiftSupremeService, GIFT_SUPREME_EVENT_TYPE } from '../gift-supreme/gift-supreme-service.js';
+import { TwitchGiftHelixError, type TwitchGiftHelixClient } from '../../infrastructure/twitch/twitch-gift-helix-client.js';
+import { GiftSupremeService, GIFT_SUPREME_EVENT_TYPE, type GiftSupremeInput } from '../gift-supreme/gift-supreme-service.js';
 import { TwitchObservationConflict } from './twitch-event-observer.js';
-import { twitchGiftSupremeRedemption, TwitchGiftSupremeRedemptionConsumer } from './twitch-gift-supreme-redemption.js';
+import { twitchGiftSupremeRedemption } from './twitch-gift-supreme-redemption.js';
 import type { TwitchGiftSupremeManager } from './twitch-gift-supreme-manager.js';
 
 const object = (value: Prisma.JsonValue | undefined): Prisma.JsonObject => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -16,20 +16,62 @@ export class TwitchGiftSupremeRuntime {
   async consumeAuthenticated(payload: unknown, transport: { messageId: string; payloadHash: string }) {
     const parsed = twitchGiftSupremeRedemption.parse(payload), event = parsed.event;
     if (event.status !== 'unfulfilled') return { action: 'IGNORE' as const };
-    return this.manager.withRuntime(event.broadcaster_user_id, event.reward.id, async (row, helix) => {
-      const delivery = await this.recordDelivery(transport, event.id, event.reward.id, row.twitchUserId, event.user_id);
-      const core = new GiftSupremeService(this.db, this.clock, row.rewardId!);
-      const result = await new TwitchGiftSupremeRedemptionConsumer(core, row.twitchUserId).consumeAuthenticated(parsed);
+    let stage = 'identity';
+    try {
+      return await this.manager.withRuntime(event.broadcaster_user_id, event.reward.id, (row, helix) => {
+        stage = 'delivery';
+        return this.processTrustedGiftRedemption(row, helix, {
+          redemptionId: event.id, rewardId: event.reward.id, gifterTwitchUserId: event.user_id,
+          gifterLogin: event.user_login, gifterDisplayName: event.user_name, userInput: event.user_input, redeemedAt: event.redeemed_at,
+        }, value => { stage = value; }, transport);
+      });
+    } catch (error) {
+      this.logFailure(stage, error, event.broadcaster_user_id, event.reward.id, event.id, transport.messageId);
+      throw error;
+    }
+  }
+  async recoverUnfulfilled(playerId: string) {
+    return this.manager.withRecovery(playerId, async (row, helix) => {
+      let redemptions;
+      try { redemptions = await helix.listUnfulfilledRedemptions(row.playerId, row.twitchUserId, row.rewardId!); }
+      catch (error) { this.logFailure('recovery-list', error, row.twitchUserId, row.rewardId!); throw error; }
+      for (const redemption of redemptions) {
+        let stage = 'recovery-token';
+        try {
+          await this.processTrustedGiftRedemption(row, helix, {
+            redemptionId: redemption.id, rewardId: redemption.reward.id, gifterTwitchUserId: redemption.user_id,
+            gifterLogin: redemption.user_login, gifterDisplayName: redemption.user_name, userInput: redemption.user_input,
+            redeemedAt: redemption.redeemed_at,
+          }, value => { stage = value; });
+        } catch (error) {
+          this.logFailure(stage, error, row.twitchUserId, row.rewardId!, redemption.id);
+          throw error;
+        }
+      }
+      return { recovered: redemptions.length };
+    });
+  }
+  private async processTrustedGiftRedemption(row: TwitchGiftSupremeCredential, helix: TwitchGiftHelixClient,
+    input: GiftSupremeInput, stage: (value: string) => void, transport?: { messageId: string; payloadHash: string }) {
+      // Only a real signed EventSub notification has a transport receipt.
+      const delivery = transport ? await this.recordDelivery(transport, input.redemptionId, input.rewardId, row.twitchUserId,
+        input.gifterTwitchUserId) : null;
+      stage('token');
+      await this.manager.tokens!.getToken(row.playerId);
+      stage('core');
+      const result = await new GiftSupremeService(this.db, this.clock, row.rewardId!).process(input);
       if (result.action === 'IGNORE') return result;
-      const receipt = await this.db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: `gift-supreme:${event.id}` } });
+      const receipt = await this.db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: `gift-supreme:${input.redemptionId}` } });
       const desired = result.action === 'FULFILL' ? 'FULFILLED' as const : 'CANCELED' as const;
       const journal = object(receipt.payloadMinimal), remote = object(journal['remote']);
       if (remote['settlementState'] !== desired) {
-        await helix.settle(row.playerId, row.twitchUserId, row.rewardId!, event.id, desired);
+        stage('settlement');
+        await helix.settle(row.playerId, row.twitchUserId, row.rewardId!, input.redemptionId, desired);
         await this.journal(receipt.id, value => ({ ...value, settlementState: desired, settledAt: this.clock.now().toISOString(),
           broadcasterId: row.twitchUserId, rewardId: row.rewardId!, announcementState: value['announcementState'] ?? 'NONE' }));
       }
       if (result.action === 'FULFILL') {
+        stage('announcement');
         let reserved = false;
         await this.journal(receipt.id, value => {
           if (value['announcementState'] === undefined || value['announcementState'] === 'NONE') {
@@ -38,12 +80,13 @@ export class TwitchGiftSupremeRuntime {
           return value;
         });
         if (reserved) {
-          const gifter = typeof journal['gifterDisplayName'] === 'string' ? journal['gifterDisplayName'] : event.user_name;
+          const gifter = typeof journal['gifterDisplayName'] === 'string' ? journal['gifterDisplayName'] : input.gifterDisplayName;
           const element = result.elementKey[0]!.toUpperCase() + result.elementKey.slice(1);
-          const message = `🎁 ${gifter} offre un Gift Suprême à ${result.targetDisplayName} ! +1 600 particules ${element}`;
+          const message = `🎁 ${gifter} offre un Gift Suprême à ${result.targetDisplayName} ! +1600 particules ${element} (${result.balanceAfterParticles})`;
           let messageId: string;
           try { messageId = await helix.announce(row.playerId, row.twitchUserId, message); }
           catch (error) {
+            this.logFailure('announcement', error, row.twitchUserId, row.rewardId!, input.redemptionId, transport?.messageId);
             const state = error instanceof TwitchGiftHelixError ? error.uncertain ? 'AMBIGUOUS' : error.upstreamStatus === 0 ? 'NONE' : 'FAILED' : 'NONE';
             await this.journal(receipt.id, value => ({ ...value, announcementState: state, announcementError: state === 'AMBIGUOUS' ? 'DISPATCH_UNCERTAIN' : 'SEND_FAILED' }));
             if (state === 'NONE') throw new AppError('Annonce Gift Suprême temporairement indisponible.', 503, 'TWITCH_GIFT_UNAVAILABLE');
@@ -54,10 +97,17 @@ export class TwitchGiftSupremeRuntime {
           if (messageId) await this.journal(receipt.id, value => ({ ...value, announcementState: 'SENT', messageId, announcedAt: this.clock.now().toISOString() }));
         }
       }
-      await this.db.twitchEventReceipt.update({ where: { id: delivery.id }, data: { state: 'PROCESSED', processedAt: this.clock.now(),
-        externalReference: `gift-supreme:receipt:${receipt.id}` } });
+      if (delivery) {
+        stage('delivery-complete');
+        await this.db.twitchEventReceipt.update({ where: { id: delivery.id }, data: { state: 'PROCESSED', processedAt: this.clock.now(),
+          externalReference: `gift-supreme:receipt:${receipt.id}` } });
+      }
       return result;
-    });
+  }
+  private logFailure(stage: string, error: unknown, broadcasterId: string, rewardId: string, redemptionId?: string, messageId?: string) {
+    const code = error instanceof AppError ? error.code : error instanceof TwitchObservationConflict ? 'TWITCH_TRANSPORT_CONFLICT'
+      : error instanceof Error && 'code' in error && typeof error.code === 'string' ? error.code : 'GIFT_PROCESSING_FAILED';
+    process.stderr.write(JSON.stringify({ domain: 'gift-supreme', stage, code, broadcasterId, rewardId, redemptionId, messageId }) + '\n');
   }
   private async recordDelivery(transport: { messageId: string; payloadHash: string }, redemptionId: string, rewardId: string, broadcasterId: string, gifterId: string) {
     for (let attempt = 0; ; attempt++) {

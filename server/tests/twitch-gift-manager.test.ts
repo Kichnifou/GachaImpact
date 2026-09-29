@@ -67,6 +67,36 @@ describe('Gift reward, EventSub and shared lifecycle', () => {
     const f = giftFixture(); await f.manager.ensure(giftPlayerId); const action = vi.fn();
     expect(await f.manager.withRuntime('12345', 'other-reward', action)).toEqual({ action: 'IGNORE' }); expect(action).not.toHaveBeenCalled();
   });
+  it('ignores a signed Gift when the linked Twitch identity no longer matches the credential', async () => {
+    const f = giftFixture(); await f.manager.ensure(giftPlayerId);
+    f.mocks.twitchIdentity.findUnique.mockResolvedValueOnce({ ...f.linked, twitchUserId: '67890' });
+    const action = vi.fn();
+    expect(await f.manager.withRuntime('12345', 'reward-1', action)).toEqual({ action: 'IGNORE' });
+    expect(action).not.toHaveBeenCalled();
+  });
+  it('recreates Gift EventSub after a terminal failure and ignores the terminal entry during cleanup', async () => {
+    const f = giftFixture(); await f.manager.ensure(giftPlayerId);
+    f.state.subscriptions[0]!.status = 'notification_failures_exceeded';
+    expect(await f.subscriptions.inspectGiftSupremeUnlocked(giftPlayerId, 'reward-1')).toBe('INACTIVE');
+    await f.subscriptions.assertGiftSupremeAbsentUnlocked(giftPlayerId);
+    expect((await f.manager.status(giftPlayerId)).giftSupremeActive).toBe(false);
+    expect(await f.manager.ensure(giftPlayerId)).toEqual({ giftSupremeActive: true, giftSupremePending: false });
+    expect(f.state.subscriptions).toHaveLength(2);
+    expect(f.state.subscriptions[0]!.status).toBe('notification_failures_exceeded');
+    await f.manager.disable(giftPlayerId);
+    expect(f.state.subscriptions).toHaveLength(1);
+    expect(f.state.subscriptions[0]!.status).toBe('notification_failures_exceeded');
+    expect(f.row).toBeNull();
+  });
+  it('accepts a signed Gift from its stored identity without Reward or EventSub live preflight', async () => {
+    const f = giftFixture(); await f.manager.ensure(giftPlayerId);
+    f.state.manageable[0]!.is_enabled = false; f.state.subscriptions[0]!.status = 'notification_failures_exceeded';
+    const action = vi.fn(async () => 'trusted');
+    const rewards = vi.spyOn(f.manager.helix!, 'rewards'); f.client.listGiftSupremeSubscriptions.mockClear();
+    expect(await f.manager.withRuntime('12345', 'reward-1', action)).toBe('trusted');
+    expect(action).toHaveBeenCalledOnce(); expect(rewards).not.toHaveBeenCalled();
+    expect(f.client.listGiftSupremeSubscriptions).not.toHaveBeenCalled();
+  });
   it.each(['eventsub', 'reward', 'credential'])('retains identity and credential on %s cleanup failure', async kind => {
     const f = giftFixture(); await f.manager.ensure(giftPlayerId);
     if (kind === 'eventsub') f.client.deleteSubscription.mockRejectedValueOnce(Error('eventsub fail'));

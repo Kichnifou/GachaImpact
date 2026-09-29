@@ -26,7 +26,8 @@ async function effects(playerId: string) {
 describe('Gift Suprême atomic native core, private schema only', () => {
   it.each(['pyro', 'hydro'])('credits only 1600 %s with a durable journal and one informational notification', async element => {
     const p = await player(`Gift ${element}`, element), beforeCount = await db.player.count(), sent = input(p.displayName);
-    const result = await service.process(sent); expect(result).toMatchObject({ action: 'FULFILL', targetPlayerId: p.id, elementKey: element, creditedParticles: '1600' });
+    const result = await service.process(sent); expect(result).toMatchObject({ action: 'FULFILL', targetPlayerId: p.id, elementKey: element,
+      creditedParticles: '1600', balanceAfterParticles: '1700' });
     const snapshot = await effects(p.id);
     expect(snapshot.wallet.every(row => row.amount === (row.resourceKey === `particles_${element}` ? 1700n : 100n))).toBe(true);
     expect(snapshot.stats).toMatchObject({ totalMainElementParticlesEarned: 1600n, totalPrimosEarned: 0n, totalMorasEarned: 0n });
@@ -48,6 +49,12 @@ describe('Gift Suprême atomic native core, private schema only', () => {
   it('permits self-gift and never requires a gifter Player', async () => {
     const p = await player('Self Gift'); await db.twitchIdentity.create({ data: { playerId: p.id, twitchUserId: '12345', login: 'self_gift' } });
     expect(await service.process(input(p.displayName, { gifterTwitchUserId: '12345' }))).toMatchObject({ action: 'FULFILL', targetPlayerId: p.id });
+  });
+  it('replays the original durable balance after a later credit to the same element', async () => {
+    const p = await player('Durable Gift Balance', 'cryo'), first = input(p.displayName), second = input(p.displayName);
+    const original = await service.process(first); expect(original).toMatchObject({ action: 'FULFILL', balanceAfterParticles: '1700' });
+    expect(await service.process(second)).toMatchObject({ action: 'FULFILL', balanceAfterParticles: '3300' });
+    expect(await service.process(first)).toEqual(original);
   });
   it.each(['empty', 'absent', 'inactive', 'no-element', 'ambiguous'])('durably cancels %s without economy or notification', async mode => {
     let name = 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz';

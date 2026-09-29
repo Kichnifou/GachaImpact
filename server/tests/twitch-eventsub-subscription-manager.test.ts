@@ -61,7 +61,7 @@ describe('EventSub pilot subscription manager', () => {
     { ...subscription, transport: { method: 'webhook', callback: 'https://other.example/api/v1/twitch/eventsub' } },
     { ...subscription, version: '2' },
     { ...subscription, transport: { method: 'websocket' } },
-    { ...subscription, status: 'authorization_revoked' },
+    { ...subscription, status: 'unrecognized_status' },
     { ...subscription, condition: { ...subscription.condition, extra: 'unexpected' } },
   ])('reports incompatible subscriptions without creating or deleting anything', async incompatible => {
     const { manager, network } = setup(); network.mockResolvedValueOnce(page([incompatible]));
@@ -120,6 +120,30 @@ describe('EventSub pilot subscription manager', () => {
 });
 
 describe('inspection, disable and serialized unlink', () => {
+  it.each(['webhook_callback_verification_failed', 'notification_failures_exceeded', 'authorization_revoked',
+    'moderator_removed', 'user_removed', 'version_removed', 'beta_maintenance'])
+  ('treats terminal %s as inactive for inspection and disable', async status => {
+    const { manager, network } = setup(); network.mockImplementation(async () => page([{ ...subscription, status }]));
+    expect(await manager.inspectPilotChatSubscription(playerId)).toBe('INACTIVE');
+    expect(await manager.disablePilotChatSubscription(playerId)).toBe('INACTIVE');
+    expect(network.mock.calls.every(([, options]) => options?.method === 'GET')).toBe(true);
+  });
+  it('ignores multiple terminal entries alongside one exact live subscription, but rejects two live entries', async () => {
+    const { manager, network } = setup(); const terminal = ['notification_failures_exceeded', 'authorization_revoked']
+      .map((status, index) => ({ ...subscription, id: `terminal-${index}`, status }));
+    network.mockResolvedValueOnce(page([...terminal, subscription]));
+    expect(await manager.inspectPilotChatSubscription(playerId)).toBe('ACTIVE');
+    network.mockResolvedValueOnce(page([...terminal, { ...subscription, status: 'webhook_callback_verification_pending' }]));
+    expect(await manager.inspectPilotChatSubscription(playerId)).toBe('VERIFICATION_PENDING');
+    network.mockResolvedValueOnce(page([...terminal, subscription, { ...subscription, id: 'other-live' }]));
+    await expect(manager.inspectPilotChatSubscription(playerId)).rejects.toMatchObject({ code: 'TWITCH_EVENTSUB_SUBSCRIPTION_CONFLICT' });
+  });
+  it('allows a new exact subscription after terminal failures without deleting old entries', async () => {
+    const { manager, network } = setup(); const terminal = { ...subscription, status: 'notification_failures_exceeded' };
+    network.mockResolvedValueOnce(page([terminal])).mockResolvedValueOnce(response({ data: [{ ...subscription, id: 'new', status: 'webhook_callback_verification_pending' }] }, 202));
+    expect((await manager.ensurePilotChatSubscription(playerId)).status).toBe('webhook_callback_verification_pending');
+    expect(network.mock.calls.map(([, options]) => options?.method)).toEqual(['GET', 'POST']);
+  });
   it.each([['INACTIVE', null], ['ACTIVE', 'enabled'], ['VERIFICATION_PENDING', 'webhook_callback_verification_pending']] as const)('inspects %s without mutations', async (expected, status) => {
     const { manager, network } = setup(); network.mockResolvedValueOnce(page(status ? [{ ...subscription, status }] : []));
     expect(await manager.inspectPilotChatSubscription(playerId)).toBe(expected);
@@ -149,7 +173,7 @@ describe('inspection, disable and serialized unlink', () => {
     { ...subscription, version: '2' },
     { ...subscription, transport: { method: 'webhook', callback: 'https://other.example' } },
     { ...subscription, transport: { method: 'websocket' } },
-    { ...subscription, status: 'authorization_revoked' },
+    { ...subscription, status: 'unrecognized_status' },
   ])('reports conflicts during inspect and disable, never deletes an incompatible subscription', async item => {
     const { manager, network } = setup(); network.mockImplementation(async () => page([item]));
     await expect(manager.inspectPilotChatSubscription(playerId)).rejects.toMatchObject({ code: 'TWITCH_EVENTSUB_SUBSCRIPTION_CONFLICT' });

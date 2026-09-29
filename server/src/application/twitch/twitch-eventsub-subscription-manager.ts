@@ -12,6 +12,9 @@ export type PilotFavorSubscriptions = {
   subscriptions: readonly [TwitchEventSubSubscription, TwitchEventSubSubscription, TwitchEventSubSubscription];
 };
 const favorTypes = ['channel.subscribe', 'channel.subscription.gift', 'channel.subscription.message'] as const;
+const liveStatuses = new Set(['enabled', 'webhook_callback_verification_pending']);
+const terminalStatuses = new Set(['webhook_callback_verification_failed', 'notification_failures_exceeded', 'authorization_revoked',
+  'moderator_removed', 'user_removed', 'version_removed', 'beta_maintenance']);
 const conflict = (type: PilotEventSubType) => new AppError(type !== 'channel.chat.message'
   ? 'Réception des abonnements Twitch incompatible ; contrôle opérateur nécessaire.'
   : 'Réception du chat Twitch incompatible ; contrôle opérateur nécessaire.', 409, 'TWITCH_EVENTSUB_SUBSCRIPTION_CONFLICT');
@@ -49,17 +52,22 @@ export class TwitchEventSubSubscriptionManager {
     return { userId: linked.twitchUserId, callback: this.config.twitchEventSub!.callbackUrl! };
   }
 
-  private exact(subscriptions: TwitchEventSubSubscription[], userId: string, callback: string, type: PilotEventSubType, rewardId?: string) {
-    // Another chatting user on this broadcaster is a conflict, never a second pilot subscription.
+  private live(subscriptions: TwitchEventSubSubscription[], userId: string, type: PilotEventSubType) {
     const related = subscriptions.filter(item => item.type === type && item.condition.broadcaster_user_id === userId);
-    if (!related.length) return undefined;
-    if (related.length !== 1) throw conflict(type);
-    const item = related[0]!;
+    if (related.some(item => !liveStatuses.has(item.status) && !terminalStatuses.has(item.status))) throw conflict(type);
+    return related.filter(item => liveStatuses.has(item.status));
+  }
+
+  private exact(subscriptions: TwitchEventSubSubscription[], userId: string, callback: string, type: PilotEventSubType, rewardId?: string) {
+    // Terminal webhook entries do not represent a live subscription; unknown states remain conflicts.
+    const live = this.live(subscriptions, userId, type);
+    if (!live.length) return undefined;
+    if (live.length !== 1) throw conflict(type);
+    const item = live[0]!;
     if (item.version !== '1' || (type === 'channel.chat.message' && item.condition.user_id !== userId)
       || (type === 'channel.channel_points_custom_reward_redemption.add' && (!rewardId || item.condition.reward_id !== rewardId))
       || Object.keys(item.condition).length !== (type === 'channel.chat.message' || type === 'channel.channel_points_custom_reward_redemption.add' ? 2 : 1) ||
-      item.transport.method !== 'webhook' || item.transport.callback !== callback ||
-      !['enabled', 'webhook_callback_verification_pending'].includes(item.status)) throw conflict(type);
+      item.transport.method !== 'webhook' || item.transport.callback !== callback) throw conflict(type);
     return item;
   }
 
@@ -185,7 +193,8 @@ export class TwitchEventSubSubscriptionManager {
   }
   async assertGiftSupremeAbsentUnlocked(playerId: string) {
     const { userId } = await this.context(playerId);
-    if ((await this.list('channel.channel_points_custom_reward_redemption.add')).some(item => item.condition.broadcaster_user_id === userId))
+    if (this.live(await this.list('channel.channel_points_custom_reward_redemption.add'), userId,
+      'channel.channel_points_custom_reward_redemption.add').length)
       throw conflict('channel.channel_points_custom_reward_redemption.add');
   }
 

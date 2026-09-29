@@ -1006,7 +1006,7 @@ La [source spécialisée Chat global](global-chat-v1.md) détaille ces règles. 
 - `VALIDÉ R693` — Le bénéficiaire reçoit +1 600 particules de son élément personnel.
 - `VALIDÉ R694` — Le gifter n'a pas besoin d'être joueur GachaImpact ; n'importe quel viewer Twitch peut offrir à un bénéficiaire valide.
 - `VALIDÉ R695` — Conserver la résolution legacy exact / contains / fuzzy Levenshtein et ses seuils de tolérance.
-- `VALIDÉ R696` — Un Gift réussi produit un message public Twitch compact.
+- `VALIDÉ R696` — Un Gift réussi produit le message public Twitch « 🎁 <gifter> offre un Gift Suprême à <target> ! +1600 particules <Élément> (<TOTAL APRÈS CRÉDIT>) ». Le total est le solde réel de `particles_<element>` du bénéficiaire après le crédit, enregistré dans le résultat métier durable et réutilisé tel quel en replay ; ce n'est ni le cumul statistique ni le montant du Gift.
 - `VALIDÉ R697` — Le bénéficiaire reçoit une notification standalone informationnelle du Gift déjà crédité ; elle reste disponible afin d'être vue ultérieurement et ne possède aucun second claim.
 - `VALIDÉ R698` — Lors du branchement Twitch réel, recréer Gift Suprême comme Custom Reward appartenant à l'application GachaImpact ; aucun bouton standalone ne permet de dépenser les Points de chaîne.
 - `VALIDÉ R699` — Une cible invalide produit zéro gain et une redemption `CANCELED` afin de rembourser les Points de chaîne ; succès → `FULFILLED`.

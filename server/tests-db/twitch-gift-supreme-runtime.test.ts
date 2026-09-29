@@ -5,6 +5,7 @@ import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { giftFixture } from '../tests/helpers/twitch-gift-fixture.js';
 import { TwitchGiftSupremeRuntime } from '../src/application/twitch/twitch-gift-supreme-runtime.js';
 import { TwitchGiftSupremeManager } from '../src/application/twitch/twitch-gift-supreme-manager.js';
+import { TwitchPilotService } from '../src/application/twitch/twitch-pilot-service.js';
 import { TwitchEventSubSubscriptionManager } from '../src/application/twitch/twitch-eventsub-subscription-manager.js';
 import { TwitchGiftHelixError } from '../src/infrastructure/twitch/twitch-gift-helix-client.js';
 import type { TwitchEventSubClient } from '../src/infrastructure/twitch/twitch-eventsub-client.js';
@@ -30,10 +31,13 @@ beforeAll(async () => {
   await f.manager.ensure(pilot.id); runtime = new TwitchGiftSupremeRuntime(db, clock, f.manager); app = await makeApp(runtime);
 }, 90_000);
 afterAll(async () => { for (const value of apps) await value.close(); await fixture.cleanup(); }, 60_000);
-async function target(name: string, elementKey: string | null = 'pyro') {
+async function target(name: string, elementKey: string | null = 'pyro', initialBalance = 100n) {
   return db.player.create({ data: { displayName: name, elementKey, progression: { create: { xp: 0n } }, economyStats: { create: {} },
-    resourceBalances: { create: resourceKeys.map(resourceKey => ({ resourceKey, amount: 100n })) } } });
+    resourceBalances: { create: resourceKeys.map(resourceKey => ({ resourceKey,
+      amount: resourceKey === `particles_${elementKey}` ? initialBalance : 100n })) } } });
 }
+const pilotService = () => new TwitchPilotService(db, { execute: async () => ({ id: f.linked.playerId }) } as never,
+  f.config, undefined, f.subscriptions, f.manager, runtime);
 const payload = (name: string, redemptionId = randomUUID()) => ({ subscription: { type: 'channel.channel_points_custom_reward_redemption.add', version: '1', status: 'enabled', condition: { broadcaster_user_id: '12345', reward_id: 'reward-1' } },
   event: { id: redemptionId, broadcaster_user_id: '12345', user_id: '999999', user_login: 'outside_gifter', user_name: 'Outside Gifter', user_input: name, status: 'unfulfilled', reward: { id: 'reward-1', title: 'irrelevant wire title', cost: 10000 }, redeemed_at: '2026-09-29T12:00:00Z' } });
 const signed = (body: object, messageId = randomUUID(), timestamp = new Date().toISOString()) => {
@@ -43,19 +47,73 @@ const signed = (body: object, messageId = randomUUID(), timestamp = new Date().t
 const post = (body: ReturnType<typeof signed>, instance = app) => instance.inject({ method: 'POST', url: '/api/v1/twitch/eventsub', ...body });
 const receipt = (id: string) => db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: 'gift-supreme:' + id } });
 const announcementCalls = () => f.network.mock.calls.filter(([url]) => String(url).endsWith('/chat/messages')).length;
-const effects = async (playerId: string) => ({ balance: (await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId, resourceKey: 'particles_pyro' } } })).amount,
+const effects = async (playerId: string, resourceKey = 'particles_pyro') => ({ balance: (await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId, resourceKey } } })).amount,
   stats: (await db.playerEconomyStats.findUniqueOrThrow({ where: { playerId } })).totalMainElementParticlesEarned, notifications: await db.notification.count({ where: { playerId } }),
   operations: await db.businessOperation.count({ where: { playerId } }), movements: await db.resourceMovement.count({ where: { playerId } }) });
 describe('Gift signed webhook to economy, settlement and at-most-once announcement, private DB only', () => {
   it('credits exactly 1600, stats and notification, confirms settlement before one exact announcement and safely replays', async () => {
     const p = await target('Runtime Success Target'), body = payload(p.displayName), delivery = signed(body), before = announcementCalls();
     expect((await post(delivery)).statusCode).toBe(204); expect(await effects(p.id)).toEqual({ balance: 1700n, stats: 1600n, notifications: 1, operations: 1, movements: 1 });
-    expect(f.state.message).toBe('🎁 Outside Gifter offre un Gift Suprême à Runtime Success Target ! +1 600 particules Pyro');
+    expect(f.state.message).toBe('🎁 Outside Gifter offre un Gift Suprême à Runtime Success Target ! +1600 particules Pyro (1700)');
     expect((await receipt(body.event.id)).payloadMinimal).toMatchObject({ proof: { redemptionId: body.event.id }, result: { action: 'FULFILL' }, remote: { settlementState: 'FULFILLED', announcementState: 'SENT' } });
     const persisted = await db.twitchEventReceipt.findMany({ where: { OR: [{ externalEventId: delivery.headers['twitch-eventsub-message-id'] }, { externalEventId: 'gift-supreme:' + body.event.id }] } });
     expect(JSON.stringify(persisted)).not.toContain('user_input'); expect(JSON.stringify(persisted)).not.toMatch(/private-access|private-refresh/);
     expect((await post(delivery)).statusCode).toBe(204); expect((await post(signed(body))).statusCode).toBe(204);
     expect(announcementCalls() - before).toBe(1); expect((await effects(p.id)).balance).toBe(1700n);
+  });
+  it('accepts a signed in-flight delivery after Reward disable and EventSub terminal failure, without live preflight', async () => {
+    const p = await target('Signed Terminal Gift'), body = payload(p.displayName);
+    f.state.manageable[0]!.is_enabled = false; f.state.subscriptions[0]!.status = 'notification_failures_exceeded';
+    const rewards = vi.spyOn(f.manager.helix!, 'rewards'); f.client.listGiftSupremeSubscriptions.mockClear();
+    try {
+      const messageId = randomUUID(); expect((await post(signed(body, messageId))).statusCode).toBe(204);
+      expect(rewards).not.toHaveBeenCalled(); expect(f.client.listGiftSupremeSubscriptions).not.toHaveBeenCalled();
+      expect(await db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: messageId } })).toMatchObject({
+        state: 'PROCESSED', payloadMinimal: { redemptionId: body.event.id, rewardId: 'reward-1', broadcasterId: '12345' } });
+      expect((await effects(p.id)).balance).toBe(1700n);
+    } finally { rewards.mockRestore(); f.state.manageable[0]!.is_enabled = true; f.state.subscriptions[0]!.status = 'enabled'; }
+  });
+  it('persists the signed transport receipt before token recovery or other remote work', async () => {
+    const body = payload('Token Retry Target'), messageId = randomUUID();
+    const token = vi.spyOn(f.manager.tokens!, 'getToken').mockRejectedValueOnce(Error('private token failure'));
+    const rewards = vi.spyOn(f.manager.helix!, 'rewards'); f.client.listGiftSupremeSubscriptions.mockClear();
+    try {
+      expect((await post(signed(body, messageId))).statusCode).toBeGreaterThanOrEqual(500);
+      expect(await db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: messageId } })).toMatchObject({
+        state: 'RECEIVED', payloadMinimal: { redemptionId: body.event.id, rewardId: body.event.reward.id,
+          broadcasterId: body.event.broadcaster_user_id } });
+      expect(await db.twitchEventReceipt.count({ where: { externalEventId: `gift-supreme:${body.event.id}` } })).toBe(0);
+      expect(rewards).not.toHaveBeenCalled(); expect(f.client.listGiftSupremeSubscriptions).not.toHaveBeenCalled();
+    } finally { token.mockRestore(); rewards.mockRestore(); }
+  });
+  it('Retry recreates a terminal subscription and recovers the already-spent UNFULFILLED Gift once', async () => {
+    const p = await target('Kichnifou', 'cryo', 85850n), id = randomUUID(), before = announcementCalls();
+    f.state.subscriptions[0]!.status = 'notification_failures_exceeded';
+    f.state.unfulfilledIds.push(id); f.state.redemptionInputs[id] = p.displayName;
+    f.state.redemptionGifters[id] = { id: '12345', login: 'kichnifou', name: 'Kichnifou' };
+    expect(await pilotService().ensureGiftSupreme({} as never)).toEqual({ giftSupremeActive: true, giftSupremePending: false });
+    expect(f.state.subscriptions.filter(item => item.status === 'enabled')).toHaveLength(1);
+    expect(f.state.subscriptions.some(item => item.status === 'notification_failures_exceeded')).toBe(true);
+    expect((await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: p.id, resourceKey: 'particles_cryo' } } })).amount).toBe(87450n);
+    expect(f.state.message).toBe('🎁 Kichnifou offre un Gift Suprême à Kichnifou ! +1600 particules Cryo (87450)');
+    expect((await receipt(id)).payloadMinimal).toMatchObject({ result: { balanceAfterParticles: '87450' },
+      remote: { settlementState: 'FULFILLED', announcementState: 'SENT' } });
+    expect(await db.twitchEventReceipt.count({ where: { externalEventId: id } })).toBe(0);
+    expect((await effects(p.id, 'particles_cryo'))).toMatchObject({ balance: 87450n, operations: 1, notifications: 1, movements: 1 });
+    expect(announcementCalls() - before).toBe(1);
+    await pilotService().ensureGiftSupreme({} as never);
+    expect((await effects(p.id, 'particles_cryo'))).toMatchObject({ balance: 87450n, operations: 1, notifications: 1, movements: 1 });
+    expect(announcementCalls() - before).toBe(1);
+  });
+  it('Retry cancels invalid UNFULFILLED targets without credit or announcement', async () => {
+    const withoutElement = await target('Recovery No Element', null), ids = [randomUUID(), randomUUID()], before = announcementCalls();
+    f.state.unfulfilledIds.push(...ids); f.state.redemptionInputs[ids[0]!] = 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz';
+    f.state.redemptionInputs[ids[1]!] = withoutElement.displayName;
+    await pilotService().ensureGiftSupreme({} as never);
+    for (const id of ids) expect((await receipt(id)).payloadMinimal).toMatchObject({ result: { action: 'CANCEL' },
+      remote: { settlementState: 'CANCELED', announcementState: 'NONE' } });
+    expect((await effects(withoutElement.id))).toMatchObject({ balance: 100n, operations: 0, notifications: 0, movements: 0 });
+    expect(announcementCalls()).toBe(before);
   });
   it.each(['absent', 'no-element', 'ambiguous'])('durably CANCELED %s with zero credit or success message', async kind => {
     let name = 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz'; if (kind === 'no-element') { name = 'Runtime No Element'; await target(name, null); }

@@ -94,10 +94,10 @@ export function createRuntimeDependencies(config: AppConfig) {
     ? new TwitchEventSubSubscriptionManager(database, config, new TwitchEventSubClient(config.twitch.clientId,
       new TwitchAppAccessTokenProvider(config.twitch.clientId, config.twitch.clientSecret))) : undefined;
   const twitchGiftSupremeManager = twitchSubscriptions ? new TwitchGiftSupremeManager(database, config, twitchSubscriptions) : undefined;
-  const twitchPilot = new TwitchPilotService(database, getCurrentPlayer, config, undefined, twitchSubscriptions, twitchGiftSupremeManager);
   const wheelStore = new PrismaWheelStore(database);
   const clock = new SystemClock();
   const twitchGiftSupreme = twitchGiftSupremeManager?.available ? new TwitchGiftSupremeRuntime(database, clock, twitchGiftSupremeManager) : undefined;
+  const twitchPilot = new TwitchPilotService(database, getCurrentPlayer, config, undefined, twitchSubscriptions, twitchGiftSupremeManager, twitchGiftSupreme);
   const tradeService = new TradeService(database, clock);
   const tradeScheduler = new TradeScheduler(tradeService, clock);
   const random = new NodeRandomSource();

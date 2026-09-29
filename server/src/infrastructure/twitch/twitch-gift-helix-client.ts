@@ -7,6 +7,10 @@ const id = z.string().min(1).max(128), twitchId = z.string().regex(/^\d+$/).max(
 const rewardSchema = z.object({ id, broadcaster_id: twitchId, title: z.string(), cost: z.number().int().nonnegative(), prompt: z.string(),
   is_user_input_required: z.boolean(), should_redemptions_skip_request_queue: z.boolean(), is_enabled: z.boolean() });
 const redemptionSchema = z.object({ id, broadcaster_id: twitchId, reward: z.object({ id }), status: z.enum(['UNFULFILLED', 'FULFILLED', 'CANCELED']) });
+const recoveryRedemptionSchema = redemptionSchema.extend({ user_id: twitchId, user_login: z.string().min(1).max(100),
+  user_name: z.string().min(1).max(100), user_input: z.string().max(500), redeemed_at: z.iso.datetime({ offset: true }),
+  reward: z.object({ id, title: z.string(), cost: z.number().int().nonnegative() }) });
+export type TwitchGiftRecoveryRedemption = z.infer<typeof recoveryRedemptionSchema>;
 const messageSchema = z.object({ data: z.array(z.object({ message_id: z.string(), is_sent: z.boolean() })).length(1) });
 export type TwitchGiftReward = z.infer<typeof rewardSchema>;
 export type TwitchGiftRemoteStatus = 'FULFILLED' | 'CANCELED';
@@ -73,6 +77,30 @@ export class TwitchGiftHelixClient {
       cursors.add(after);
     }
     // Incomplete inspection is never proof of absence.
+    throw new TwitchGiftHelixError(200);
+  }
+  /** Explicit operator recovery only: inspect the complete bounded backlog before processing any redemption. */
+  async listUnfulfilledRedemptions(playerId: string, broadcasterId: string, rewardId: string): Promise<TwitchGiftRecoveryRedemption[]> {
+    const signal = AbortSignal.timeout(15_000), cursors = new Set<string>(), ids = new Set<string>();
+    const redemptions: TwitchGiftRecoveryRedemption[] = [];
+    let after: string | undefined;
+    for (let page = 0; page < 10; page++) {
+      const parsed = z.object({ data: z.array(recoveryRedemptionSchema).max(50),
+        pagination: z.object({ cursor: z.string().min(1).max(4096).optional() }) })
+        .safeParse(await this.call(playerId, 'channel_points/custom_rewards/redemptions', 'GET',
+          { broadcaster_id: broadcasterId, reward_id: rewardId, status: 'UNFULFILLED', first: '50', sort: 'OLDEST',
+            ...(after ? { after } : {}) }, undefined, signal));
+      if (!parsed.success || parsed.data.data.some(row => row.broadcaster_id !== broadcasterId || row.reward.id !== rewardId
+        || row.status !== 'UNFULFILLED' || ids.has(row.id))) throw new TwitchGiftHelixError(200);
+      for (const row of parsed.data.data) {
+        if (ids.has(row.id)) throw new TwitchGiftHelixError(200);
+        ids.add(row.id); redemptions.push(row);
+      }
+      after = parsed.data.pagination.cursor;
+      if (!after) return redemptions;
+      if (cursors.has(after)) throw new TwitchGiftHelixError(200);
+      cursors.add(after);
+    }
     throw new TwitchGiftHelixError(200);
   }
   async settle(playerId: string, broadcasterId: string, rewardId: string, redemptionId: string, status: TwitchGiftRemoteStatus) {

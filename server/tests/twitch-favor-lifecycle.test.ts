@@ -212,7 +212,7 @@ describe('Faveur group and shared pilot lifecycle queue', () => {
     it.each([
       { ...subscription, version: '2' }, { ...subscription, condition: { broadcaster_user_id: '12345', user_id: '12345' } },
       { ...subscription, transport: { method: 'websocket' } }, { ...subscription, transport: { method: 'webhook', callback: 'https://other.example' } },
-      { ...subscription, status: 'authorization_revoked' },
+      { ...subscription, status: 'unrecognized_status' },
     ])('refuses incompatible group member %j without changing it', async item => {
       const value = simulatedSubscriptions([item as TwitchEventSubSubscription]);
       for (const run of [() => value.manager.inspectPilotFavorSubscription(playerId), () => value.manager.ensurePilotFavorSubscription(playerId), () => value.manager.disablePilotFavorSubscription(playerId)])
@@ -279,6 +279,14 @@ describe('Faveur group and shared pilot lifecycle queue', () => {
     expect((await value.manager.ensurePilotFavorSubscription(playerId)).status).toBe('webhook_callback_verification_pending');
     expect(value.order).toEqual(['GET:channel.subscribe', 'GET:channel.subscription.gift', 'GET:channel.subscription.message']);
   });
+  it('treats a terminal Faveur member as inactive and creates a new live member without touching the old one', async () => {
+    const oldGift = { ...gift, id: 'old-terminal-gift', status: 'notification_failures_exceeded' };
+    const value = simulatedSubscriptions([favor, oldGift, resub]);
+    expect(await value.manager.inspectPilotFavorSubscription(playerId)).toBe('INACTIVE');
+    expect((await value.manager.ensurePilotFavorSubscription(playerId)).status).toBe('enabled');
+    expect(value.current).toContainEqual(oldGift);
+    expect(value.order.filter(entry => entry.startsWith('POST:'))).toEqual(['POST:channel.subscription.gift']);
+  });
   it('coalesces concurrent group ensures into three exact creations', async () => {
     const value = simulatedSubscriptions([]);
     const [first, second] = await Promise.all([value.manager.ensurePilotFavorSubscription(playerId), value.manager.ensurePilotFavorSubscription(playerId)]);
@@ -335,7 +343,7 @@ describe('Faveur group and shared pilot lifecycle queue', () => {
     expect(value.current).toEqual([]); expect(value.order.at(-1)).toBe('identity');
   });
   it.each([chat, ...members])('preserves identity on conflict in $type', async subscription => {
-    const value = simulatedSubscriptions([chat, ...members].map(item => item.type === subscription.type ? { ...item, status: 'authorization_revoked' } : item));
+    const value = simulatedSubscriptions([chat, ...members].map(item => item.type === subscription.type ? { ...item, status: 'unrecognized_status' } : item));
     await expect(value.manager.unlinkPilotIdentity(playerId, value.remove)).rejects.toMatchObject({ code: 'TWITCH_EVENTSUB_SUBSCRIPTION_CONFLICT' });
     expect(value.remove).not.toHaveBeenCalled(); expect(value.order).not.toContain('DELETE:' + subscription.id);
   });

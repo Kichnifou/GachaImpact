@@ -33,7 +33,10 @@ export function giftFixture(actualDb?: PrismaClient, playerId = giftPlayerId, br
   };
   const mocks = { $queryRaw: vi.fn(async () => [] as { id: string }[]), twitchGiftSupremeCredential: credential, twitchIdentity: { findUnique: vi.fn(async () => linked), deleteMany: vi.fn(async () => ({ count: 1 })) } };
   const db = actualDb ?? mocks as unknown as PrismaClient;
-  const state = { manageable: [] as TwitchGiftReward[], manual: [] as TwitchGiftReward[], subscriptions: [] as TwitchEventSubSubscription[], unfulfilledIds: [] as string[], redemptionStatus: 'UNFULFILLED', message: '', failPatch: false, chatMode: 'success' };
+  const state = { manageable: [] as TwitchGiftReward[], manual: [] as TwitchGiftReward[], subscriptions: [] as TwitchEventSubSubscription[],
+    unfulfilledIds: [] as string[], redemptionInputs: {} as Record<string, string>,
+    redemptionGifters: {} as Record<string, { id: string; login: string; name: string }>, redemptionStatus: 'UNFULFILLED',
+    message: '', failPatch: false, chatMode: 'success' };
   const network = vi.fn<typeof fetch>(async (input, options) => {
     const url = new URL(String(input)); const method = options?.method ?? 'GET'; const body = options?.body ? JSON.parse(String(options.body)) as Record<string, unknown> : {};
     if (url.pathname === '/oauth2/validate') return Response.json({ client_id: 'client', user_id: broadcasterId, scopes: TWITCH_GIFT_SUPREME_SCOPES, expires_in: 3600 });
@@ -50,7 +53,11 @@ export function giftFixture(actualDb?: PrismaClient, playerId = giftPlayerId, br
         state.redemptionStatus = String(body['status']); state.unfulfilledIds = state.unfulfilledIds.filter(id => id !== url.searchParams.get('id'));
       }
       const ids = url.searchParams.has('id') ? [url.searchParams.get('id')!] : state.unfulfilledIds;
-      return Response.json({ data: ids.map(id => ({ id, broadcaster_id: broadcasterId, reward: { id: url.searchParams.get('reward_id') },
+      return Response.json({ data: ids.map(id => ({ id, broadcaster_id: broadcasterId,
+        user_id: state.redemptionGifters[id]?.id ?? '999999', user_login: state.redemptionGifters[id]?.login ?? 'outside_gifter',
+        user_name: state.redemptionGifters[id]?.name ?? 'Outside Gifter',
+        user_input: state.redemptionInputs[id] ?? 'private target', redeemed_at: '2026-09-29T12:00:00Z',
+        reward: { id: url.searchParams.get('reward_id'), title: 'Gift Suprême', cost: 10000 },
         status: url.searchParams.has('id') ? state.redemptionStatus : 'UNFULFILLED' })), pagination: {} });
     }
     if (method === 'GET') return Response.json({ data: [...state.manageable, ...(url.searchParams.get('only_manageable_rewards') === 'false' ? state.manual : [])] });

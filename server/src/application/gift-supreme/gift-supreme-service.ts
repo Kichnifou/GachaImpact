@@ -18,7 +18,7 @@ export type GiftSupremeInput = z.infer<typeof giftSupremeInput>;
 const cancelReason = z.enum(['EMPTY_INPUT', 'TARGET_NOT_FOUND', 'TARGET_AMBIGUOUS', 'TARGET_INACTIVE', 'TARGET_ELEMENT_MISSING']);
 const resultSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('FULFILL'), targetPlayerId: z.uuid(), targetDisplayName: z.string(), elementKey: z.enum(elementKeys),
-    creditedParticles: z.literal('1600'), operationId: z.uuid(), notificationId: z.uuid() }),
+    creditedParticles: z.literal('1600'), balanceAfterParticles: z.string().regex(/^\d+$/), operationId: z.uuid(), notificationId: z.uuid() }),
   z.object({ action: z.literal('CANCEL'), reason: cancelReason }),
 ]);
 export type GiftSupremeResult = z.infer<typeof resultSchema>;
@@ -80,13 +80,16 @@ export class GiftSupremeService {
             amount: 1600n, causeKey: 'gift-supreme', domainKey: 'gift-supreme', sourceChannel: 'TWITCH', operationId: operation.id,
             // Passive beneficiary credit: no standalone mission catch-up or extra reward.
             skipPermanentMissions: true });
+          const balance = await tx.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: {
+            playerId: target.id, resourceKey: particleResourceKey(target.elementKey) } }, select: { amount: true } });
           const gifter = input.gifterDisplayName ?? input.gifterLogin ?? input.gifterTwitchUserId;
           const element = target.elementKey[0]!.toUpperCase() + target.elementKey.slice(1);
           const notification = await tx.notification.create({ data: { playerId: target.id, domainKey: 'gift-supreme', typeKey: 'GIFT_SUPREME_RECEIVED',
             deduplicationKey: key, payload: { title: '🎁 Gift Suprême reçu', message: `${gifter} t'a offert +1 600 particules ${element}.`,
               gifterDisplayName: gifter, elementKey: target.elementKey, creditedParticles: '1600' }, createdAt: now } });
           const result: GiftSupremeResult = { action: 'FULFILL', targetPlayerId: target.id, targetDisplayName: target.displayName,
-            elementKey: target.elementKey, creditedParticles: '1600', operationId: operation.id, notificationId: notification.id };
+            elementKey: target.elementKey, creditedParticles: '1600', balanceAfterParticles: balance.amount.toString(),
+            operationId: operation.id, notificationId: notification.id };
           await tx.businessOperation.update({ where: { id: operation.id }, data: { status: 'COMPLETED', completedAt: now,
             resultSummary: { proof, receiptId: receipt.id, result } } });
           return finalize(result, target.id);

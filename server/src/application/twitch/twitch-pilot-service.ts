@@ -8,6 +8,7 @@ import type { GetCurrentPlayer } from '../player/get-current-player.js';
 import { AppError } from '../../api/errors.js';
 import type { TwitchEventSubSubscriptionManager } from './twitch-eventsub-subscription-manager.js';
 import type { GiftSupremeStatus, TwitchGiftSupremeManager } from './twitch-gift-supreme-manager.js';
+import type { TwitchGiftSupremeRuntime } from './twitch-gift-supreme-runtime.js';
 import { TWITCH_GIFT_SUPREME_SCOPES } from './twitch-gift-supreme-contract.js';
 
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
@@ -45,7 +46,7 @@ export class TwitchPilotService {
   private readonly eventSubConfigured: boolean;
   constructor(private readonly db: PrismaClient, private readonly getPlayer: GetCurrentPlayer, config: AppConfig,
     private readonly keys: JWTVerifyGetKey = twitchKeys, private readonly subscriptions?: TwitchEventSubSubscriptionManager,
-    private readonly gift?: TwitchGiftSupremeManager) {
+    private readonly gift?: TwitchGiftSupremeManager, private readonly giftRuntime?: TwitchGiftSupremeRuntime) {
     this.settings = config.twitch ?? { pilotPlayerIds: [], pilotLogin: 'kichnifou' };
     this.eventSubConfigured = Boolean(config.twitchEventSub?.enabled || config.twitchEventSub?.callbackUrl || config.twitchEventSub?.secret);
   }
@@ -142,7 +143,9 @@ export class TwitchPilotService {
   async ensureGiftSupreme(identity: AuthenticatedIdentity) {
     const player = await this.pilot(identity);
     if (!this.gift?.available) throw new AppError('Gift Suprême Twitch indisponible.', 503, 'TWITCH_GIFT_UNAVAILABLE');
-    return this.gift.ensure(player.id);
+    const activation = await this.gift.ensure(player.id);
+    if (this.giftRuntime) await this.giftRuntime.recoverUnfulfilled(player.id);
+    return activation;
   }
   async disableGiftSupreme(identity: AuthenticatedIdentity) {
     const player = await this.pilot(identity);
