@@ -1,3 +1,4 @@
+import { TwitchFavorChatPresenceConsumer } from '../src/application/twitch/twitch-favor-chat-presence-consumer.js';
 import 'dotenv/config';
 import { createHmac, randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
@@ -34,7 +35,7 @@ beforeAll(async () => {
   await db.twitchIdentity.create({ data: { playerId: player.id, twitchUserId: '424242', login: 'known' } });
   observer = new TwitchEventObserver(db);
   const dependencies = { authIdentityVerifier: { verify: async () => ({ subject: 'test' }) }, getOrProvisionCurrentPlayer: {} as never,
-    twitchEventObserver: observer, twitchFavorSubscriptions: new TwitchFavorSubscriptionConsumer(db, { now: () => new Date() }), twitchFavorGifts: new TwitchFavorGiftConsumer(db, { now: () => new Date() }), twitchFavorResubs: new TwitchFavorResubConsumer(db, { now: () => new Date() }) };
+    twitchEventObserver: observer, twitchFavorSubscriptions: new TwitchFavorSubscriptionConsumer(db, { now: () => new Date() }), twitchFavorGifts: new TwitchFavorGiftConsumer(db, { now: () => new Date() }), twitchFavorChatPresence: new TwitchFavorChatPresenceConsumer(db, { now: () => new Date() }), twitchFavorResubs: new TwitchFavorResubConsumer(db, { now: () => new Date() }) };
   app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {}, twitchEventSub: { enabled: true, secret } }, dependencies);
   offApp = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {}, twitchEventSub: { enabled: false } }, dependencies);
 }, 60_000);
@@ -50,7 +51,7 @@ describe('Twitch EventSub webhook transport', () => {
     const testApp = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {}, twitchEventSub: { enabled: true, secret } }, {
       authIdentityVerifier: { verify: async () => ({ subject: 'test' }) }, getOrProvisionCurrentPlayer: {} as never,
       twitchEventObserver: new TwitchEventObserver(db, retention),
-      twitchFavorSubscriptions: new TwitchFavorSubscriptionConsumer(db, { now: () => new Date() }), twitchFavorGifts: new TwitchFavorGiftConsumer(db, { now: () => new Date() }), twitchFavorResubs: new TwitchFavorResubConsumer(db, { now: () => new Date() }),
+      twitchFavorSubscriptions: new TwitchFavorSubscriptionConsumer(db, { now: () => new Date() }), twitchFavorGifts: new TwitchFavorGiftConsumer(db, { now: () => new Date() }), twitchFavorChatPresence: new TwitchFavorChatPresenceConsumer(db, { now: () => new Date() }), twitchFavorResubs: new TwitchFavorResubConsumer(db, { now: () => new Date() }),
     });
     const id = randomUUID();
     try {

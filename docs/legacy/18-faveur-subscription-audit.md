@@ -623,6 +623,10 @@ Lorsqu'elle est réellement accordée depuis le standalone :
 
 Le premier message normal éligible du joueur peut continuer à déclencher la récompense quotidienne, comme dans l'esprit du système actuel.
 
+Implémentation physique Lot 10 (candidat review) : channel.chat.message v1 signé uniquement ; texte non vide, commandes ! après trimStart exclues, classification en mémoire sans raw text persisté. Observer/hashes → consumer spécialisé TwitchFavorChatPresenceConsumer → FavorService.claimToday(playerId, TWITCH), même claim durable tous canaux confondus. Identité Twitch déjà liée (linkedAt ≤ receipt.receivedAt), Player existant ACTIVE ; liaison/re-liaison ultérieure ne peut consommer un ancien message. Aucun provisionnement, parser, XP, Missions Chat ou outbound.
+
+Receipts Chat restent RECEIVED, processedAt/externalReference null, sans FavorGrant ni FK vers le claim, soumis au TTL 24 h R943–R945. Le claim/économie demeure durable après purge ; panne infrastructure propagée 500 pour retry sans double crédit. Runtime Réception Chat indépendant du groupe Subscription/Gift/Resub ; transport Chat inactif = aucune présence Twitch, standalone toujours possible. Aucun transport réel activé ou testé dans ce lot ; pause Twitch avancée R942 conservée.
+
 ### État partagé
 
 Si la récompense a déjà été reçue sur Twitch puis que le joueur ouvre le standalone :
@@ -881,7 +885,7 @@ Le lien d’abonnement de la cible Profil ci-dessous ne s’applique pas à cett
 
 ### Faveur inactive
 
-Dans Profil > Aperçu, pour le **propriétaire uniquement**, afficher « Aucune Faveur active. » et « Voir la chaîne Twitch ». Aucun CTA pour un tiers ni sur la carte Quotidiennes.
+Précision propriétaire Lot 10 : dans Profil > Aperçu, le lien **Voir la chaîne Twitch →** est toujours présent pour le propriétaire, Faveur active/inactive et claim reçu/disponible. Style discret cyan inspiré de Convertir →, fond transparent, sans bordure, petite typographie et focus-visible ; bas à droite dans le rectangle en flux, sans chevauchement. Aucun CTA pour un tiers ni sur la carte Quotidiennes. L’état inactive conserve « Aucune Faveur active. ».
 
 Lien externe :
 

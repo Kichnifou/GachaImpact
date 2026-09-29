@@ -8839,6 +8839,10 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .profile-statistics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; min-width: 0; }
 .profile-statistics-group { min-width: 0; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: #111a2a; }
 .profile-statistics-group h2 { margin: 0 0 12px; color: var(--gold); font-size: 18px; }
+.profile-favor { display: flex; flex-direction: column; }
+.profile-favor-twitch-link { align-self: flex-end; margin-top: 8px; padding: 0; border: 0; background: transparent; color: #83d9ff; font-size: 11px; font-weight: 800; text-decoration: none; cursor: pointer; }
+.profile-favor-twitch-link:hover { text-decoration: underline; }
+.profile-favor-twitch-link:focus-visible { outline: 2px solid #83d9ff; outline-offset: 4px; border-radius: 2px; }
 .profile-statistics-group dl { display: grid; gap: 2px; margin: 0; }
 .profile-statistics-group dl > div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 10px 0; border-top: 1px solid var(--border); min-width: 0; }
 .profile-statistics-group dt { min-width: 0; overflow-wrap: anywhere; color: var(--muted); }

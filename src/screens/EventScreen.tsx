@@ -11,7 +11,7 @@ import EventShopSection, { type EventShopIntent, type EventShopTarget } from './
 import EventCalendar from './EventCalendar'
 import { useCalendarClaim } from '../event/use-calendar-claim'
 import EventRankingSection from './EventRankingSection'
-import { eventCurrencyLabel, eventGameAExpiredToday, eventPresentation } from '../event/event-presentation'
+import { eventCurrencyLabel, eventGameAExpiredToday, eventPresentation, type EventDailyOpenIntent } from '../event/event-presentation'
 import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
 
 type Props = Readonly<{
@@ -31,6 +31,8 @@ type Props = Readonly<{
   onConsultMessages?: () => Promise<EventDto>
   openMessagesToken?: number
   openShopToken?: number
+  dailyIntent?: EventDailyOpenIntent | null
+  onDailyIntentConsumed?: (token: string) => void
   onOpenCodes?: () => void
   onOpenHistory?: () => void
 }>
@@ -71,14 +73,26 @@ function EventCooldownButton({ durationMs }: Readonly<{ durationMs: number }>) {
   return <button type="button" className="small-primary-button event-cooldown-button" disabled>Patientez {remainingSeconds} seconde{remainingSeconds > 1 ? 's' : ''}...</button>
 }
 
-export default function EventScreen({ sessionUserId, value, onLoad, onLoadRanking, onJoin, onClaimCalendar, onClaimDailyBonus, onConvertShop, onPurchaseCollection, onAttempt, onAttemptB, onSearchRecipients = unavailableRecipientSearch, onSendGameC = unavailableGameCSend, onConsultMessages, openMessagesToken = 0, openShopToken = 0, onOpenCodes, onOpenHistory }: Props) {
+export default function EventScreen({ sessionUserId, value, onLoad, onLoadRanking, onJoin, onClaimCalendar, onClaimDailyBonus, onConvertShop, onPurchaseCollection, onAttempt, onAttemptB, onSearchRecipients = unavailableRecipientSearch, onSendGameC = unavailableGameCSend, onConsultMessages, openMessagesToken = 0, openShopToken = 0, dailyIntent, onDailyIntentConsumed, onOpenCodes, onOpenHistory }: Props) {
   const calendarAction = useCalendarClaim(`${sessionUserId}:${value.edition.id}:${value.businessDate}`, onClaimCalendar)
-  const [section, setSection] = useState<'registration' | 'games' | 'shop' | 'ranking'>(openShopToken > 0 ? 'shop' : openMessagesToken > 0 ? 'games' : 'registration')
+  const [section, setSection] = useState<'registration' | 'games' | 'shop' | 'ranking'>(openShopToken > 0 ? 'shop' : openMessagesToken > 0 ? 'games' : dailyIntent?.section ?? 'registration')
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect -- Explicit notification navigation intent.
     if (openShopToken > 0) setSection('shop')
   }, [openShopToken])
-  const [gameTab, setGameTab] = useState<0 | 1 | 2>(openMessagesToken > 0 ? 2 : 0)
+  const [gameTab, setGameTab] = useState<0 | 1 | 2>(openMessagesToken > 0 ? 2 : dailyIntent?.section === 'games' ? dailyIntent.game : 0)
+  const consumedDailyToken = useRef<string | null>(null)
+  useLayoutEffect(() => {
+    if (!dailyIntent || consumedDailyToken.current === dailyIntent.token) return
+    consumedDailyToken.current = dailyIntent.token
+    // Notification intents take precedence if incompatible callers supply both.
+    if (!openMessagesToken && !openShopToken) {
+      // oxlint-disable-next-line react/set-state-in-effect -- Explicit one-shot navigation intent.
+      setSection(dailyIntent.section)
+      setGameTab(dailyIntent.section === 'games' ? dailyIntent.game : 0)
+    }
+    onDailyIntentConsumed?.(dailyIntent.token)
+  }, [dailyIntent, onDailyIntentConsumed, openMessagesToken, openShopToken])
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
   const [gameBIntent, setGameBIntent] = useState<Readonly<{ code: string; key: string }> | null>(null)
   const [gameBFeedback, setGameBFeedback] = useState<string | null>(null)

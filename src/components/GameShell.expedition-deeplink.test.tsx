@@ -4,7 +4,7 @@ import { act, type ComponentProps } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { BoxCharacterDto, DailyCombatDto, ExpeditionDto, MonthlyBossDto, PlayerBankDto, PlayerBoxDto } from '../api/types'
+import type { BoxCharacterDto, DailyCombatDto, EventDto, ExpeditionDto, MonthlyBossDto, PlayerBankDto, PlayerBoxDto } from '../api/types'
 import { createExpeditionClientSnapshot } from '../expedition/expedition-client-snapshot'
 import { defaultNavigationPreference, hashForScreen } from '../navigation/navigation'
 import GameShell from './GameShell'
@@ -161,6 +161,32 @@ describe('GameShell Expedition deep-link', () => {
     await navigateByHash('activities-dailies')
     await navigateByHash('activities-event')
     expect(container.querySelector('.event-tabs .active')?.textContent).toBe('Général')
+    // Daily intents select the first real action, then disappear on a normal Event return.
+    for (const game of [null, 0, 1, 2] as const) {
+      const dailyEvent: EventDto = { ...event, canJoin: false,
+        participation: { joined: true, joinedAt: '2026-09-15T12:00:00Z', points: 0 },
+        dailyBonus: { claimedToday: game !== null, canClaim: game === null },
+        gameA: { ...event.gameA, available: true, completedToday: game !== 0, windows: [{ startAt: '2026-09-15T18:00:00Z', endAt: '2026-09-15T19:00:00Z', state: 'FUTURE' }] },
+        gameB: { ...event.gameB, available: true, solvedToday: game !== 1, canAttempt: game === 1 },
+        gameC: { ...event.gameC, available: true, unviewedCount: 0, canSend: game === 2, receivedMessages: [] },
+      }
+      await act(async () => root.render(<GameShell {...props} event={dailyEvent} onLoadEvent={vi.fn(async () => dailyEvent)} onJoinEvent={vi.fn()} onAttemptEventGameA={vi.fn()} />))
+      await navigateByHash('activities-dailies')
+      const card = container.querySelector('[data-daily-activity="Événement"]')!
+      const expected = game === null ? 'Bonus quotidien à réclamer' : ['Récolte disponible', 'Grenier disponible', 'Message du Festival disponible'][game]
+      expect(card.textContent).toContain(expected)
+      await act(async () => card.querySelector<HTMLButtonElement>('button')!.click())
+      expect(container.querySelector('.event-tabs .active')?.textContent).toBe(game === null ? 'Général' : 'Jeux')
+      if (game !== null) expect(container.querySelector('.event-game-tabs .active')?.textContent).toBe(['Récolte', 'Grenier', 'Panier'][game])
+      await navigateByHash('home')
+      await navigateByHash('activities-event')
+      expect(container.querySelector('.event-tabs .active')?.textContent).toBe('Général')
+    }
+    const shopNotification = { ...eventNotification, id: 'event-shop', actionKey: 'OPEN_EVENT_SHOP', typeKey: 'EVENT_EDITION_LAST_DAY' }
+    await act(async () => root.render(<GameShell {...props} event={event} onLoadEvent={vi.fn(async () => event)} onJoinEvent={vi.fn()} onAttemptEventGameA={vi.fn()} notifications={{ unreadCount: 1, notifications: [shopNotification] }} />))
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
+    await act(async () => container.querySelector<HTMLButtonElement>('.notification-item')!.click())
+    expect(container.querySelector('.event-tabs .active')?.textContent).toBe('Shop')
     const acceptedTrade = { id: 'trade-accepted', domainKey: 'trades', typeKey: 'TRADE_ACCEPTED', actionKey: 'OPEN_TRADES_HISTORY', actionTargetId: 'request', state: 'UNREAD' as const, createdAt: '2026-09-21T12:00:00Z', readAt: null, payload: { accepterDisplayName: 'Céo' } }
     const tradeActions = { snapshot: vi.fn(async () => ({ stocks: [], received: [], sent: [], history: [] })), partners: vi.fn(async () => ({ partners: [], page: 1, pageSize: 10 as const, total: 0, totalPages: 1 })), create: vi.fn(), mutate: vi.fn(), all: vi.fn() }
     const onReadNotification = vi.fn(async () => ({ unreadCount: 0, notifications: [] })), onArchiveNotification = vi.fn(async () => ({ unreadCount: 0, notifications: [] }))

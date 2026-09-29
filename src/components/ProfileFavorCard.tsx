@@ -7,6 +7,7 @@ export default function ProfileFavorCard({ favor, own }: { favor: Access<Profile
       <p>Faveur active</p>
       <p>{favor.data.daysRemaining} jours restants{own ? ` / ${favor.data.maxDays}` : ''}</p>
       {own && <><p>+{favor.data.dailyPrimogems} Primogemmes par jour</p><p>{favor.data.claimedToday ? '✓ Récompense du jour reçue' : 'Récompense du jour disponible'}</p></>}
-    </> : <><p>Aucune Faveur active.</p>{own && <a className="app-button" href="https://www.twitch.tv/kichnifou" target="_blank" rel="noopener noreferrer">Voir la chaîne Twitch</a>}</>}
+    </> : <p>Aucune Faveur active.</p>}
+    {own && <a className="profile-favor-twitch-link" href="https://www.twitch.tv/kichnifou" target="_blank" rel="noopener noreferrer">Voir la chaîne Twitch →</a>}
   </section>
 }

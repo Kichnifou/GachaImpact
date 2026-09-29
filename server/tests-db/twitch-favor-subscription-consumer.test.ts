@@ -1,3 +1,4 @@
+import { TwitchFavorChatPresenceConsumer } from '../src/application/twitch/twitch-favor-chat-presence-consumer.js';
 import 'dotenv/config';
 import { createHmac, randomUUID } from 'node:crypto';
 import pg from 'pg';
@@ -190,7 +191,7 @@ describe('private subscription consumption and durable terminal decisions', () =
     const secret = 'private-subscription-secret', player = await beneficiary();
     const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {}, twitchEventSub: { enabled: true, secret } }, {
       authIdentityVerifier: { verify: async () => ({ subject: 'test' }) }, getOrProvisionCurrentPlayer: {} as never,
-      twitchEventObserver: observer, twitchFavorSubscriptions: consumer, twitchFavorGifts: new TwitchFavorGiftConsumer(db, clock), twitchFavorResubs: new TwitchFavorResubConsumer(db, clock),
+      twitchEventObserver: observer, twitchFavorSubscriptions: consumer, twitchFavorGifts: new TwitchFavorGiftConsumer(db, clock), twitchFavorChatPresence: new TwitchFavorChatPresenceConsumer(db, clock), twitchFavorResubs: new TwitchFavorResubConsumer(db, clock),
     });
     const deliver = (id: string, userId: string, isGift = false) => {
       const timestamp = new Date().toISOString(), payload = JSON.stringify({ subscription: {

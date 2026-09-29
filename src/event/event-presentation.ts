@@ -38,17 +38,34 @@ export function eventGameAExpiredToday(event: EventDto): boolean {
   return event.participation.joined && !event.gameA.completedToday && !eventGameAHasRemainingWindow(event)
 }
 
+export type EventDailyDestination = { section: 'registration' } | { section: 'games'; game: 0 | 1 | 2 }
+export type EventDailyOpenIntent = Readonly<EventDailyDestination & { token: string }>
+
+export function eventNextDailyDestination(event: EventDto): EventDailyDestination | null {
+  if (event.canJoin || event.calendar?.canClaimToday || event.dailyBonus.canClaim) return { section: 'registration' }
+  if (event.participation.joined && !event.gameA.completedToday && eventGameAHasRemainingWindow(event)) return { section: 'games', game: 0 }
+  if (event.participation.joined && !event.gameB.solvedToday && event.gameB.canAttempt) return { section: 'games', game: 1 }
+  if (event.gameC.canSend || event.gameC.unviewedCount > 0) return { section: 'games', game: 2 }
+  return null
+}
+
 export function eventHasActionableContentToday(event: EventDto): boolean {
-  return event.canJoin || Boolean(event.calendar?.canClaimToday) || event.dailyBonus.canClaim || (!event.gameA.completedToday && eventGameAHasRemainingWindow(event)) || event.gameB.canAttempt || event.gameC.canSend || event.gameC.unviewedCount > 0
+  return eventNextDailyDestination(event) !== null
 }
 
 export function eventDailyDetail(event: EventDto): string {
-  if (event.calendar?.canClaimToday) return 'Case du Calendrier de Noël disponible'
-  if (event.gameC.unviewedCount > 0) return `${event.gameC.unviewedCount} message${event.gameC.unviewedCount > 1 ? 's' : ''} du Festival à consulter`
-  if (!event.participation.joined) return 'Participation disponible'
-  if (event.dailyBonus.canClaim && !event.gameC.canSend && !event.gameB.canAttempt && (event.gameA.completedToday || !eventGameAHasRemainingWindow(event))) return 'Bonus quotidien à réclamer'
-  if (event.gameC.canSend && !event.gameB.canAttempt && (event.gameA.completedToday || !eventGameAHasRemainingWindow(event))) return 'Message du Festival disponible'
-  if (event.gameB.canAttempt && (event.gameA.completedToday || !eventGameAHasRemainingWindow(event))) return 'Énigme du jour disponible'
+  const destination = eventNextDailyDestination(event)
+  if (destination?.section === 'registration') {
+    if (event.canJoin) return 'Participation disponible'
+    if (event.calendar?.canClaimToday) return 'Case du Calendrier de Noël disponible'
+    return 'Bonus quotidien à réclamer'
+  }
+  if (destination?.section === 'games') {
+    if (destination.game === 2) return event.gameC.unviewedCount > 0
+      ? `${event.gameC.unviewedCount} message${event.gameC.unviewedCount > 1 ? 's' : ''} du Festival à consulter`
+      : 'Message du Festival disponible'
+    return `${eventPresentation(event.festival.key).games[destination.game]} disponible`
+  }
   if (event.gameA.completedToday) return 'Jeu du jour réussi'
   return eventGameAHasRemainingWindow(event) ? 'Jeu du jour disponible' : 'Délai dépassé'
 }

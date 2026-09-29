@@ -1,3 +1,4 @@
+import type { TwitchFavorChatPresenceConsumer } from '../src/application/twitch/twitch-favor-chat-presence-consumer.js';
 import { createHmac } from 'node:crypto';
 import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
@@ -33,6 +34,7 @@ async function setup() {
     observer: { observeTwitchEvent: observe } as unknown as TwitchEventObserver,
     favorSubscriptions: { consume } as unknown as TwitchFavorSubscriptionConsumer,
     favorGifts: { consume: vi.fn() } as unknown as TwitchFavorGiftConsumer,
+    favorChatPresence: { consume: vi.fn() } as unknown as TwitchFavorChatPresenceConsumer,
     favorResubs: { consume: vi.fn() } as unknown as TwitchFavorResubConsumer });
   return { app, observe, consume };
 }

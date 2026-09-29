@@ -5,6 +5,7 @@ import { TwitchObservationConflict, type TwitchEventObserver } from '../../appli
 import type { TwitchFavorSubscriptionConsumer } from '../../application/twitch/twitch-favor-subscription-consumer.js';
 import type { TwitchFavorGiftConsumer } from '../../application/twitch/twitch-favor-gift-consumer.js';
 import type { TwitchFavorResubConsumer } from '../../application/twitch/twitch-favor-resub-consumer.js';
+import { isFavorEligibleTwitchChatMessage, type TwitchFavorChatPresenceConsumer } from '../../application/twitch/twitch-favor-chat-presence-consumer.js';
 
 const MAX_AGE_MS = 10 * 60 * 1000;
 const header = (value: string | string[] | undefined) => typeof value === 'string' ? value : null;
@@ -47,6 +48,7 @@ const resubEnvelope = envelope.extend({
 export async function registerTwitchEventSubRoutes(app: FastifyInstance, options: {
   secret: string; observer: TwitchEventObserver; favorSubscriptions: TwitchFavorSubscriptionConsumer; favorGifts: TwitchFavorGiftConsumer;
   favorResubs: TwitchFavorResubConsumer;
+  favorChatPresence: TwitchFavorChatPresenceConsumer;
 }) {
   // Fastify's ordinary JSON parser loses the exact bytes Twitch signed. This parser is scoped to this route plugin.
   app.addContentTypeParser('application/json', { parseAs: 'buffer' }, (_request, body, done) => done(null, body));
@@ -118,7 +120,8 @@ export async function registerTwitchEventSubRoutes(app: FastifyInstance, options
       }
       const parsed = chatEnvelope.safeParse(body);
       if (!parsed.success) return reply.code(400).send();
-      await options.observer.observeTwitchEvent({
+      const normalMessage = isFavorEligibleTwitchChatMessage(parsed.data.event.message.text);
+      const observed = await options.observer.observeTwitchEvent({
         externalEventId: id,
         eventType: parsed.data.subscription.type,
         twitchUserId: parsed.data.event.chatter_user_id,
@@ -128,6 +131,7 @@ export async function registerTwitchEventSubRoutes(app: FastifyInstance, options
         contentHash: createHash('sha256').update(parsed.data.event.message.text).digest('hex'),
         transportPayloadHash: createHash('sha256').update(raw).digest('hex'),
       });
+      if (normalMessage) await options.favorChatPresence.consume(observed.receipt.id);
       return reply.code(204).send();
     } catch (error) {
       if (error instanceof TwitchObservationConflict) return reply.code(409).send();

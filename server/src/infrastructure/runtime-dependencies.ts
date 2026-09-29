@@ -1,3 +1,4 @@
+import { TwitchFavorChatPresenceConsumer } from '../application/twitch/twitch-favor-chat-presence-consumer.js';
 import { SocialService } from '../application/social/social-service.js';
 import { AppearanceService } from '../application/appearance/appearance-service.js';
 import { RankingService } from '../application/ranking/ranking-service.js';
@@ -130,6 +131,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     twitchFavorSubscriptions: new TwitchFavorSubscriptionConsumer(database, clock),
     twitchFavorGifts: new TwitchFavorGiftConsumer(database, clock),
     twitchFavorResubs: new TwitchFavorResubConsumer(database, clock),
+    twitchFavorChatPresence: new TwitchFavorChatPresenceConsumer(database, clock),
     twitchSubscriptions,
     snapshotPilot: new SnapshotPilotService(database, twitchPilot, config.twitch?.clientSecret ?? ''),
     globalChatService,

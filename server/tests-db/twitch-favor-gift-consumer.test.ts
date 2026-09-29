@@ -1,3 +1,4 @@
+import { TwitchFavorChatPresenceConsumer } from '../src/application/twitch/twitch-favor-chat-presence-consumer.js';
 import 'dotenv/config';
 import { createHmac, randomUUID } from 'node:crypto';
 import pg from 'pg';
@@ -24,7 +25,7 @@ beforeAll(async () => {
   await fixture.setup({ seedPublicCatalog: true });
   app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {}, twitchEventSub: { enabled: true, secret } }, {
     authIdentityVerifier: { verify: async () => ({ subject: 'private-test' }) }, getOrProvisionCurrentPlayer: {} as never,
-    twitchEventObserver: observer, twitchFavorSubscriptions: beneficiaries, twitchFavorGifts: consumer, twitchFavorResubs: new TwitchFavorResubConsumer(db, clock),
+    twitchEventObserver: observer, twitchFavorSubscriptions: beneficiaries, twitchFavorGifts: consumer, twitchFavorChatPresence: new TwitchFavorChatPresenceConsumer(db, clock), twitchFavorResubs: new TwitchFavorResubConsumer(db, clock),
   });
 }, 60_000);
 afterAll(async () => {

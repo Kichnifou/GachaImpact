@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import type { EventDailyOpenIntent } from '../event/event-presentation'
 import { readFileSync } from 'node:fs'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -28,10 +29,10 @@ const joinedGameA = { available: true, theme: { key: 'recolte', label: 'Récolte
 ], activeWindowIndex: 1, canAttempt: true, cooldownRemainingMs: 0 }
 const afterJoin: EventJoinDto = { ...beforeJoin, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, dailyBonus: { claimedToday: false, canClaim: true }, gameA: joinedGameA, gameB: { ...beforeJoin.gameB, available: true, attemptsRemaining: 3, canAttempt: true }, gameC: { ...beforeJoin.gameC, available: true, canSend: true }, operation: { id: 'operation-1', alreadyProcessed: false } }
 
-function mount(options: { sessionUserId?: string; value?: EventDto; onLoad?: () => Promise<EventDto>; onLoadRanking?: () => Promise<{ editionId: string; entries: { rank: number; playerId: string; displayName: string; points: number }[] }>; onJoin?: (key: string) => Promise<EventJoinDto>; onClaimDailyBonus?: (key: string) => Promise<EventDailyBonusClaimDto>; onConvertShop?: (target: 'PRIMOGEMS' | 'MORAS', quantity: number, key: string) => Promise<EventDto>; onPurchaseCollection?: (key: string) => Promise<EventDto>; onAttempt?: (key: string) => Promise<EventGameAAttemptDto>; onAttemptB?: (code: string, key: string) => Promise<EventGameBAttemptDto>; onSearchRecipients?: (query: EventGameCRecipientQuery) => Promise<EventGameCRecipientsDto>; onSendGameC?: (recipientId: string, message: string, key: string) => Promise<EventGameCSendDto>; onConsultMessages?: () => Promise<EventDto>; openMessagesToken?: number } = {}) {
+function mount(options: { sessionUserId?: string; value?: EventDto; onLoad?: () => Promise<EventDto>; onLoadRanking?: () => Promise<{ editionId: string; entries: { rank: number; playerId: string; displayName: string; points: number }[] }>; onJoin?: (key: string) => Promise<EventJoinDto>; onClaimDailyBonus?: (key: string) => Promise<EventDailyBonusClaimDto>; onConvertShop?: (target: 'PRIMOGEMS' | 'MORAS', quantity: number, key: string) => Promise<EventDto>; onPurchaseCollection?: (key: string) => Promise<EventDto>; onAttempt?: (key: string) => Promise<EventGameAAttemptDto>; onAttemptB?: (code: string, key: string) => Promise<EventGameBAttemptDto>; onSearchRecipients?: (query: EventGameCRecipientQuery) => Promise<EventGameCRecipientsDto>; onSendGameC?: (recipientId: string, message: string, key: string) => Promise<EventGameCSendDto>; onConsultMessages?: () => Promise<EventDto>; openMessagesToken?: number; openShopToken?: number; dailyIntent?: EventDailyOpenIntent; onDailyIntentConsumed?: (token: string) => void } = {}) {
   const container = document.createElement('div'); document.body.append(container)
   const root = createRoot(container); roots.push(root)
-  const props = { sessionUserId: options.sessionUserId ?? 'player-1', value: options.value ?? beforeJoin, onLoad: options.onLoad ?? vi.fn(async () => beforeJoin), onLoadRanking: options.onLoadRanking, onJoin: options.onJoin ?? vi.fn(async () => afterJoin), onClaimDailyBonus: options.onClaimDailyBonus, onConvertShop: options.onConvertShop, onPurchaseCollection: options.onPurchaseCollection, onAttempt: options.onAttempt ?? vi.fn(async () => ({ ...afterJoin, attempt: { succeeded: false } })), onAttemptB: options.onAttemptB ?? vi.fn(async () => ({ ...afterJoin, attempt: { kind: 'INCORRECT' as const } })), onSearchRecipients: options.onSearchRecipients, onSendGameC: options.onSendGameC, onConsultMessages: options.onConsultMessages, openMessagesToken: options.openMessagesToken }
+  const props = { sessionUserId: options.sessionUserId ?? 'player-1', value: options.value ?? beforeJoin, onLoad: options.onLoad ?? vi.fn(async () => beforeJoin), onLoadRanking: options.onLoadRanking, onJoin: options.onJoin ?? vi.fn(async () => afterJoin), onClaimDailyBonus: options.onClaimDailyBonus, onConvertShop: options.onConvertShop, onPurchaseCollection: options.onPurchaseCollection, onAttempt: options.onAttempt ?? vi.fn(async () => ({ ...afterJoin, attempt: { succeeded: false } })), onAttemptB: options.onAttemptB ?? vi.fn(async () => ({ ...afterJoin, attempt: { kind: 'INCORRECT' as const } })), onSearchRecipients: options.onSearchRecipients, onSendGameC: options.onSendGameC, onConsultMessages: options.onConsultMessages, openMessagesToken: options.openMessagesToken, openShopToken: options.openShopToken, dailyIntent: options.dailyIntent, onDailyIntentConsumed: options.onDailyIntentConsumed }
   act(() => root.render(<EventScreen {...props} />))
   return { container, root, props }
 }
@@ -41,6 +42,28 @@ function selectGames(container: HTMLElement) {
 }
 
 describe('EventScreen presentation', () => {
+  it.each([{ section: 'registration' as const }, { section: 'games' as const, game: 0 as const }, { section: 'games' as const, game: 1 as const }, { section: 'games' as const, game: 2 as const }])('consumes the daily destination once: %j', async destination => {
+    const intent = { ...destination, token: 'daily-one' }, consumed = vi.fn()
+    const { container, props, root } = mount({ value: afterJoin, onLoad: vi.fn(async () => afterJoin), dailyIntent: intent, onDailyIntentConsumed: consumed })
+    await act(async () => { await Promise.resolve() })
+    expect(container.querySelector('.event-tabs .active')?.textContent).toBe(destination.section === 'games' ? 'Jeux' : 'Général')
+    if (destination.section === 'games') expect(container.querySelector('.event-game-tabs .active')?.textContent).toBe(['Récolte', 'Grenier', 'Panier'][destination.game!])
+    expect(consumed).toHaveBeenCalledExactlyOnceWith(intent.token)
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('.event-tabs button')).find(b => b.textContent === 'Général')!.click())
+    act(() => root.render(<EventScreen {...props} />))
+    expect(container.querySelector('.event-tabs .active')?.textContent).toBe('Général')
+    expect(consumed).toHaveBeenCalledOnce()
+    act(() => root.render(<EventScreen {...props} dailyIntent={{ section: 'games', game: 1, token: 'daily-two' }} />))
+    expect(container.querySelector('.event-game-tabs .active')?.textContent).toBe('Grenier')
+    const normal = mount({ value: afterJoin, onLoad: vi.fn(async () => afterJoin) })
+    expect(normal.container.querySelector('.event-tabs .active')?.textContent).toBe('Général')
+  })
+  it.each(['messages', 'shop'] as const)('keeps notification %s ahead of an incompatible daily intent', async mode => {
+    const { container } = mount({ value: afterJoin, onLoad: vi.fn(async () => afterJoin), dailyIntent: { token: 'obsolete', section: 'games', game: 0 }, openMessagesToken: mode === 'messages' ? 1 : 0, openShopToken: mode === 'shop' ? 1 : 0 })
+    await act(async () => { await Promise.resolve() })
+    expect(container.querySelector('.event-tabs .active')?.textContent).toBe(mode === 'shop' ? 'Shop' : 'Jeux')
+    if (mode === 'messages') expect(container.querySelector('.event-game-tabs .active')?.textContent).toBe('Panier')
+  })
   it.each([false, true])('keeps the joined=%s membership capsule next to the unchanged hero copy and History action', (joined) => {
     const mounted = mount({ value: joined ? afterJoin : beforeJoin });
     const onOpenHistory = vi.fn();

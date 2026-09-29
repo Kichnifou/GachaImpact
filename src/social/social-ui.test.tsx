@@ -185,7 +185,7 @@ describe('Social screens', () => {
   if(state.private){expect(card.textContent).toContain('Cette information est privée.');expect(card.textContent).not.toContain('30')}
   else if(state.active){expect(card.textContent).toContain('Faveur active');expect(card.textContent).toContain('30 jours restants');if(state.own){expect(card.textContent).toContain('+800 Primogemmes par jour');expect(card.textContent).toContain(state.claimedToday?'✓ Récompense du jour reçue':'Récompense du jour disponible')}}
   else expect(card.textContent).toContain('Aucune Faveur active.');
-  const link=card.querySelector('a');if(state.own&&!state.active){expect(link?.getAttribute('href')).toBe('https://www.twitch.tv/kichnifou');expect(link?.getAttribute('target')).toBe('_blank');expect(link?.getAttribute('rel')).toBe('noopener noreferrer')}else expect(link).toBeNull();
+  const link=card.querySelector('a');if(state.own){expect(link?.textContent).toBe('Voir la chaîne Twitch →');expect(link?.className).toBe('profile-favor-twitch-link');expect(link?.getAttribute('href')).toBe('https://www.twitch.tv/kichnifou');expect(link?.getAttribute('target')).toBe('_blank');expect(link?.getAttribute('rel')).toBe('noopener noreferrer')}else expect(link).toBeNull();
   if(!state.own){expect(card.textContent).not.toContain('Primogemmes');expect(card.textContent).not.toContain('Récompense du jour')}
  });
  it('shows one Favor select and persists/reloads choices through existing privacy API',async()=>{
