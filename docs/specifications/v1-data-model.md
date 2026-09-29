@@ -368,7 +368,7 @@ Le stockage intégral et permanent de tous les payloads Twitch n'est pas imposé
 
 ## 4.9 `GiftSupremeRedemption`
 
-État métier d'une redemption Gift Suprême.
+État métier logique d’une redemption Gift Suprême. Lot 11 le matérialise sans table dédiée : TwitchEventReceipt durable (clé redemption, preuve minimale et résultat local SUCCESS/INVALID) + BusinessOperation.resultSummary + ResourceMovement + Notification. FULFILL/CANCEL sont des décisions internes ; statut Twitch réel différé au bridge Lot 12. Les champs conceptuels ci-dessous décrivent cette preuve, sans imposer une migration 055 ni un Historique Gift. Voir l’architecture Lot 11 pour le mapping physique.
 
 Conceptuellement :
 

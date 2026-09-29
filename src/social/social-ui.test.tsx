@@ -183,14 +183,26 @@ describe('Social screens', () => {
   const container=await mount(<ProfileScreen playerId={player.id} ownerPlayerId={state.own?player.id:'other'} actions={actions} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()}/>);
   const card=container.querySelector('.profile-favor')!;expect(card.textContent).toContain('Faveur de l’Astre');
   if(state.private){expect(card.textContent).toContain('Cette information est privée.');expect(card.textContent).not.toContain('30')}
-  else if(state.active){expect(card.textContent).toContain('Faveur active');expect(card.textContent).toContain('30 jours restants');if(state.own){expect(card.textContent).toContain('+800 Primogemmes par jour');expect(card.textContent).toContain(state.claimedToday?'✓ Récompense du jour reçue':'Récompense du jour disponible')}}
+  else if(state.active){expect(card.textContent).toContain('Faveur active');expect(card.textContent).toContain('Reste : 30 jours');if(state.own){expect(card.textContent).toContain('Récompense : +800 Primos par jour');expect(card.textContent).toContain(state.claimedToday?"✅ Récupérée aujourd'hui":"Récompense disponible aujourd'hui")}}
   else expect(card.textContent).toContain('Aucune Faveur active.');
   const link=card.querySelector('a');if(state.own){expect(link?.textContent).toBe('Voir la chaîne Twitch →');expect(link?.className).toBe('profile-favor-twitch-link');expect(link?.getAttribute('href')).toBe('https://www.twitch.tv/kichnifou');expect(link?.getAttribute('target')).toBe('_blank');expect(link?.getAttribute('rel')).toBe('noopener noreferrer')}else expect(link).toBeNull();
-  if(!state.own){expect(card.textContent).not.toContain('Primogemmes');expect(card.textContent).not.toContain('Récompense du jour')}
+  if(!state.own){expect(card.textContent).not.toContain('Primos');expect(card.textContent).not.toContain('Récompense')}
  });
  it('shows one Favor select and persists/reloads choices through existing privacy API',async()=>{
   let setting={version:3,settings:[{categoryKey:'FAVOR',level:'PUBLIC'}]};const actions={privacy:vi.fn(async()=>setting),savePrivacy:vi.fn(async(categoryKey,level)=>setting={version:3,settings:[{categoryKey,level}]})} as unknown as SocialActions;
   const container=await mount(<PrivacySettingsPanel actions={actions}/>);const select=container.querySelector<HTMLSelectElement>('select[aria-label="Faveur de l’Astre"]')!;expect(select.value).toBe('PUBLIC');expect([...select.options].map(o=>o.text)).toEqual(['Public','Amis uniquement','Privé']);
   for(const level of ['FRIENDS','PRIVATE','PUBLIC']){await act(async()=>{select.value=level;select.dispatchEvent(new Event('change',{bubbles:true}))});expect(actions.savePrivacy).toHaveBeenLastCalledWith('FAVOR',level);expect(select.value).toBe(level)}
   const reloaded=await mount(<PrivacySettingsPanel actions={actions}/>);expect(reloaded.querySelector<HTMLSelectElement>('select')?.value).toBe('PUBLIC');expect(container.querySelectorAll('select')).toHaveLength(1);
+ });
+
+ it.each([30, 4, 3, 2, 1])('styles owner Favor days %i and the credited status', async daysRemaining => {
+  const value: Profile = { player, own: true, favor: { access: 'ALLOWED', data: { active: true, daysRemaining, maxDays: 180, dailyPrimogems: '800', claimedToday: true, claimStatus: 'CLAIMED' } }, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } };
+  const actions = { profile: vi.fn().mockResolvedValue(value) } as unknown as SocialActions;
+  const container = await mount(<ProfileScreen playerId={player.id} ownerPlayerId={player.id} actions={actions} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()} />);
+  const card = container.querySelector('.profile-favor')!;
+  expect(card.textContent).toContain('Reste : ' + daysRemaining + (daysRemaining === 1 ? ' jour' : ' jours'));
+  expect(card.querySelector('.profile-favor-expiring') !== null).toBe(daysRemaining <= 3);
+  expect(card.querySelector('.profile-favor-claimed')?.textContent).toBe("✅ Récupérée aujourd'hui");
+  expect(card.querySelector('[style]')).toBeNull();
+  expect(card.querySelector('a')).not.toBeNull();
  });

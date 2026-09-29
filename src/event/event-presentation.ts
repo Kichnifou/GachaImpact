@@ -43,7 +43,7 @@ export type EventDailyOpenIntent = Readonly<EventDailyDestination & { token: str
 
 export function eventNextDailyDestination(event: EventDto): EventDailyDestination | null {
   if (event.canJoin || event.calendar?.canClaimToday || event.dailyBonus.canClaim) return { section: 'registration' }
-  if (event.participation.joined && !event.gameA.completedToday && eventGameAHasRemainingWindow(event)) return { section: 'games', game: 0 }
+  if (event.participation.joined && !event.gameA.completedToday) return { section: 'games', game: 0 }
   if (event.participation.joined && !event.gameB.solvedToday && event.gameB.canAttempt) return { section: 'games', game: 1 }
   if (event.gameC.canSend || event.gameC.unviewedCount > 0) return { section: 'games', game: 2 }
   return null
@@ -51,21 +51,4 @@ export function eventNextDailyDestination(event: EventDto): EventDailyDestinatio
 
 export function eventHasActionableContentToday(event: EventDto): boolean {
   return eventNextDailyDestination(event) !== null
-}
-
-export function eventDailyDetail(event: EventDto): string {
-  const destination = eventNextDailyDestination(event)
-  if (destination?.section === 'registration') {
-    if (event.canJoin) return 'Participation disponible'
-    if (event.calendar?.canClaimToday) return 'Case du Calendrier de Noël disponible'
-    return 'Bonus quotidien à réclamer'
-  }
-  if (destination?.section === 'games') {
-    if (destination.game === 2) return event.gameC.unviewedCount > 0
-      ? `${event.gameC.unviewedCount} message${event.gameC.unviewedCount > 1 ? 's' : ''} du Festival à consulter`
-      : 'Message du Festival disponible'
-    return `${eventPresentation(event.festival.key).games[destination.game]} disponible`
-  }
-  if (event.gameA.completedToday) return 'Jeu du jour réussi'
-  return eventGameAHasRemainingWindow(event) ? 'Jeu du jour disponible' : 'Délai dépassé'
 }

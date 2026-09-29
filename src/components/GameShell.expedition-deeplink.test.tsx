@@ -162,18 +162,19 @@ describe('GameShell Expedition deep-link', () => {
     await navigateByHash('activities-event')
     expect(container.querySelector('.event-tabs .active')?.textContent).toBe('Général')
     // Daily intents select the first real action, then disappear on a normal Event return.
-    for (const game of [null, 0, 1, 2] as const) {
+    for (const destination of [null, 0, 1, 2, 'past'] as const) {
+      const game = destination === 'past' ? 0 : destination
       const dailyEvent: EventDto = { ...event, canJoin: false,
         participation: { joined: true, joinedAt: '2026-09-15T12:00:00Z', points: 0 },
         dailyBonus: { claimedToday: game !== null, canClaim: game === null },
-        gameA: { ...event.gameA, available: true, completedToday: game !== 0, windows: [{ startAt: '2026-09-15T18:00:00Z', endAt: '2026-09-15T19:00:00Z', state: 'FUTURE' }] },
+        gameA: { ...event.gameA, available: true, completedToday: game !== 0, windows: [{ startAt: '2026-09-15T18:00:00Z', endAt: '2026-09-15T19:00:00Z', state: destination === 'past' ? 'PAST' : 'FUTURE' }] },
         gameB: { ...event.gameB, available: true, solvedToday: game !== 1, canAttempt: game === 1 },
-        gameC: { ...event.gameC, available: true, unviewedCount: 0, canSend: game === 2, receivedMessages: [] },
+        gameC: { ...event.gameC, available: true, unviewedCount: destination === 'past' ? 1 : 0, canSend: game === 2, receivedMessages: [] },
       }
       await act(async () => root.render(<GameShell {...props} event={dailyEvent} onLoadEvent={vi.fn(async () => dailyEvent)} onJoinEvent={vi.fn()} onAttemptEventGameA={vi.fn()} />))
       await navigateByHash('activities-dailies')
       const card = container.querySelector('[data-daily-activity="Événement"]')!
-      const expected = game === null ? 'Bonus quotidien à réclamer' : ['Récolte disponible', 'Grenier disponible', 'Message du Festival disponible'][game]
+      const expected = 'Festival des Récoltes · 0 Jetons de Récolte'
       expect(card.textContent).toContain(expected)
       await act(async () => card.querySelector<HTMLButtonElement>('button')!.click())
       expect(container.querySelector('.event-tabs .active')?.textContent).toBe(game === null ? 'Général' : 'Jeux')

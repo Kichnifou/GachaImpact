@@ -885,7 +885,7 @@ Le lien d’abonnement de la cible Profil ci-dessous ne s’applique pas à cett
 
 ### Faveur inactive
 
-Précision propriétaire Lot 10 : dans Profil > Aperçu, le lien **Voir la chaîne Twitch →** est toujours présent pour le propriétaire, Faveur active/inactive et claim reçu/disponible. Style discret cyan inspiré de Convertir →, fond transparent, sans bordure, petite typographie et focus-visible ; bas à droite dans le rectangle en flux, sans chevauchement. Aucun CTA pour un tiers ni sur la carte Quotidiennes. L’état inactive conserve « Aucune Faveur active. ».
+Précision propriétaire Lot 10 : dans Profil > Aperçu, le lien **Voir la chaîne Twitch →** est toujours présent pour le propriétaire, Faveur active/inactive et claim reçu/disponible. Style discret cyan inspiré de Convertir →, fond transparent, sans bordure, petite typographie et focus-visible ; bas à droite dans le rectangle, sans chevauchement ; correction propriétaire Lot 11 : carte relative et lien absolute avec espace inférieur réservé, état actif mis en évidence, Reste : X jour(s) rouge à 3/2/1, Récompense : +800 Primos par jour et ✅ Récupérée aujourd'hui en vert. Aucun CTA pour un tiers ni sur la carte Quotidiennes. L’état inactive conserve « Aucune Faveur active. ».
 
 Lien externe :
 

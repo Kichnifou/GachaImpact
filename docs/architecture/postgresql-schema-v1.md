@@ -2557,7 +2557,7 @@ Index :
 
 ## 32.2 `gift_supreme_redemptions`
 
-**Cible future non matérialisée en 052.** Les colonnes ci-dessous sont une proposition de modèle ; aucune table `gift_supreme_redemptions` n'existe encore dans les migrations Prisma. L'ingestion Twitch et Gift Suprême demandent une mission dédiée.
+**Proposition de table dédiée non matérialisée et non nécessaire au Lot 11.** L’état logique R701 est couvert par TwitchEventReceipt durable PROCESSED (externalEventId `gift-supreme:<redemptionId>`, preuve minimale/fingerprint/résultat SUCCESS ou INVALID), BusinessOperation.resultSummary, ResourceMovement et Notification dédupliquée. Aucun statut Twitch réel modifié, bridge différé au Lot 12 ; aucun TTL Chat sur ce receipt. Les colonnes ci-dessous restent une proposition future, pas le schéma physique ni une migration 055 requise. 54 migrations, dernière 054, inchangées.
 
 Colonnes :
 

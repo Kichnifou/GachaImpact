@@ -9,6 +9,11 @@ const pending: NotificationDto = {
 }
 
 describe('Event message notification presentation', () => {
+  it('presents an already credited Gift without an economic destination', () => {
+    const notification = { ...pending, domainKey: 'gift-supreme', typeKey: 'GIFT_SUPREME_RECEIVED', actionKey: null,
+      payload: { message: "Axel t'a offert +1 600 particules Hydro." } }
+    expect(resolveNotificationPresentation(notification)).toEqual({ title: '🎁 Gift Suprême reçu', message: notification.payload.message, destination: null })
+  })
   it('uses natural singular and plural wording for the live character-avatar aggregate', () => {
     const avatar = { ...pending, domainKey: 'appearance', typeKey: 'CHARACTER_AVATARS_UNLOCKED', actionKey: 'OPEN_PROFILE_PERSONALIZATION' }
     expect(resolveNotificationPresentation({ ...avatar, payload: { count: 1 } })).toEqual({ title: 'Nouvel avatar débloqué', message: 'Disponibles dans Profil > Personnalisation.', destination: 'profile-personalization' })

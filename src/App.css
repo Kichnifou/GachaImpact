@@ -8839,8 +8839,14 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .profile-statistics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; min-width: 0; }
 .profile-statistics-group { min-width: 0; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: #111a2a; }
 .profile-statistics-group h2 { margin: 0 0 12px; color: var(--gold); font-size: 18px; }
-.profile-favor { display: flex; flex-direction: column; }
-.profile-favor-twitch-link { align-self: flex-end; margin-top: 8px; padding: 0; border: 0; background: transparent; color: #83d9ff; font-size: 11px; font-weight: 800; text-decoration: none; cursor: pointer; }
+.profile-favor { position: relative; }
+.profile-favor-own { padding-bottom: 44px; }
+.profile-favor p { margin: 7px 0 0; font-size: 12px; line-height: 1.45; }
+.profile-favor .profile-favor-status { color: #eef7ff; font-size: 13px; font-weight: 900; }
+.profile-favor .profile-favor-expiring { color: #ff8d96; }
+.profile-favor .profile-favor-reward, .profile-favor .profile-favor-available { color: var(--muted); font-size: 11px; }
+.profile-favor .profile-favor-claimed { color: #8fe6bc; font-weight: 900; }
+.profile-favor-twitch-link { position: absolute; right: 16px; bottom: 16px; padding: 0; border: 0; background: transparent; color: #83d9ff; font-size: 11px; font-weight: 800; text-decoration: none; cursor: pointer; }
 .profile-favor-twitch-link:hover { text-decoration: underline; }
 .profile-favor-twitch-link:focus-visible { outline: 2px solid #83d9ff; outline-offset: 4px; border-radius: 2px; }
 .profile-statistics-group dl { display: grid; gap: 2px; margin: 0; }

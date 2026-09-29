@@ -7,6 +7,12 @@
 
 ---
 
+## État physique Lot 11 — candidat review
+
+R692–R701 restent inchangées. Core GiftSupremeService et matching exact/contains/fuzzy testables, crédit Economy +1600 particules personnelles/stats et notification informative atomiques. Journal R701 porté par TwitchEventReceipt durable PROCESSED et BusinessOperation.resultSummary, sans table dédiée ni migration 055. Résultats locaux SUCCESS/INVALID et FULFILL/CANCEL pour le futur bridge ; aucun FULFILLED/CANCELED réellement appliqué à Twitch. Contradictions et ambiguïtés refusées, replay/concurrence/rollback/post-commit couverts en schémas privés. Parser redemption.add v1/consumer authentifié futur sans wiring runtime/public ; reward ID fake/test configurable, jamais le titre. Custom Reward, OAuth durable, Update Redemption Status et message Twitch restent Lot 12. Voir [architecture](../architecture/backend-architecture-v1.md#gift-suprême-lot-11--core-métier-et-frontière-redemption-inerte-candidat-review) et Master pour reprise : review indépendante, puis Lot 12 sur review sans promotion intermédiaire.
+
+---
+
 # 1. Objectif du domaine
 
 Auditer puis spécifier la mécanique **Gift Suprême**.

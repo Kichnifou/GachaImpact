@@ -19,7 +19,8 @@ const base: EventDto = {
   gameC: { available: false, theme: { key: 'harvest', label: 'Panier' }, sentToday: false, canSend: false, receivedMessages: [], unviewedCount: 0 },
 }
 
-const value: EventDto = { ...base, businessDate: '2026-12-14', canJoin: false, participation: { joined: true, joinedAt: '', points: 9 }, festival: { ...base.festival, key: 'christmas', currency: { key: 'christmas-stars', unit: 'Étoile de Noël', label: 'Étoiles de Noël', emoji: '🎄' } }, calendar: { startsOn: '2026-12-01', endsOn: '2026-12-25', currentDay: 14, recap: false, canClaimToday: true, days: Array.from({ length: 25 }, (_, index) => ({ day: index + 1, state: index < 13 ? 'MISSED' : index === 13 ? 'AVAILABLE' : 'FUTURE', reward: index === 24 ? 50 : null })) } }
+// Calendar-only fixture: Game A is already complete under the Lot 11 incomplete-priority rule.
+const value: EventDto = { ...base, gameA: { ...base.gameA, completedToday: true }, businessDate: '2026-12-14', canJoin: false, participation: { joined: true, joinedAt: '', points: 9 }, festival: { ...base.festival, key: 'christmas', currency: { key: 'christmas-stars', unit: 'Étoile de Noël', label: 'Étoiles de Noël', emoji: '🎄' } }, calendar: { startsOn: '2026-12-01', endsOn: '2026-12-25', currentDay: 14, recap: false, canClaimToday: true, days: Array.from({ length: 25 }, (_, index) => ({ day: index + 1, state: index < 13 ? 'MISSED' : index === 13 ? 'AVAILABLE' : 'FUTURE', reward: index === 24 ? 50 : null })) } }
 const roots: ReturnType<typeof createRoot>[] = []
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 afterEach(() => { act(() => roots.splice(0).forEach((root) => root.unmount())); document.body.replaceChildren() })
