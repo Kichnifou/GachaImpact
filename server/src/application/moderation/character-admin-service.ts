@@ -62,6 +62,8 @@ export class CharacterAdminService {
 }
 
 function invalid() { return new AppError('Métadonnées personnage invalides.', 400, 'CHARACTER_INVALID'); }
-function characterAudit(row: { id: string; externalKey: string; name: string; rarity: number; elementKey: string; isActive: boolean }) {
-  return { characterId: row.id, externalKey: row.externalKey, name: row.name, rarity: row.rarity, elementKey: row.elementKey, isActive: row.isActive };
+function characterAudit(row: { id: string; externalKey: string; name: string; rarity: number; elementKey: string;
+  weaponType: string | null; region: string | null; classKey: string | null; displayOrder: number | null; isActive: boolean }) {
+  return { characterId: row.id, externalKey: row.externalKey, name: row.name, rarity: row.rarity, elementKey: row.elementKey,
+    weaponType: row.weaponType, region: row.region, classKey: row.classKey, displayOrder: row.displayOrder, isActive: row.isActive };
 }

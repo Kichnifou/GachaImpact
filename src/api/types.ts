@@ -12,7 +12,7 @@ export type PlayerDto = Readonly<{
 
 export type ModerationPermissionsDto = Readonly<{
   roles: readonly ('MODERATOR' | 'TESTER' | 'ADMIN')[]
-  capabilities: Readonly<{ moderationAccess: boolean; communityModeration: boolean; selfResourceTools: boolean; selfGameplayTools: boolean; superTools: boolean; canSelectPlayers: boolean; canManageTesters: boolean }>
+  capabilities: Readonly<{ moderationAccess: boolean; communityModeration: boolean; selfResourceTools: boolean; selfGameplayTools: boolean; superTools: boolean; canSelectPlayers: boolean }>
 }>
 
 export type GiveawayStateDto = Readonly<{

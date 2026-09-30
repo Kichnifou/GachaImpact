@@ -65,7 +65,10 @@ export async function registerAdministrationRoutes(app: FastifyInstance, { authe
     const value = parse(z.object({ fiveStarIds: z.array(uuid).length(4), fourStarIds: z.array(uuid).length(6), idempotencyKey: uuid }).strict(), request.body);
     return services.banners.correct(identity(request), pathId(request.params, 'rotationId'), value);
   });
-  app.post('/api/v1/moderation/banners/retry-generation', { preHandler: authenticate }, request => services.banners.retryGeneration(identity(request), parse(key, request.body).idempotencyKey));
+  app.post('/api/v1/moderation/banners/retry-generation', { preHandler: authenticate }, request => {
+    const value = parse(key.extend({ expectedWeekStartsAt: z.iso.datetime() }), request.body);
+    return services.banners.retryGeneration(identity(request), value.idempotencyKey, value.expectedWeekStartsAt);
+  });
   app.get('/api/v1/moderation/events', { preHandler: authenticate }, request => services.events.list(identity(request)));
   app.patch('/api/v1/moderation/events/:definitionId', { preHandler: authenticate }, request => {
     const value = parse(z.object({ isActive: z.boolean().optional(), config: config.optional(), idempotencyKey: uuid }).strict(), request.body);

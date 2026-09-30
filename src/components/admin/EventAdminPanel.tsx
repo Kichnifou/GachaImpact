@@ -8,7 +8,7 @@ export default function EventAdminPanel() {
   const [events, setEvents] = useState<AdminEvent[]>([])
   const [selected, setSelected] = useState<AdminEvent | null>(null)
   const [config, setConfig] = useState<AdminEventConfig | null>(null)
-  const [confirm, setConfirm] = useState<AdminEvent | null>(null)
+  const [confirm, setConfirm] = useState<{ id: string; displayName: string; isActive: boolean } | null>(null)
   const [reload, setReload] = useState(0)
   const [loadError, setLoadError] = useState('')
   const task = useAdminTask(() => setReload(value => value + 1))
@@ -27,13 +27,15 @@ export default function EventAdminPanel() {
   }
   const save = (event: FormEvent) => { event.preventDefault(); if (!selected || !config) return
     void task.execute(JSON.stringify({ id: selected.id, config }), key => getGameApiClient().updateAdminEvent(selected.id, { config, idempotencyKey: key })) }
-  const toggle = (event: AdminEvent) => { setConfirm(null)
-    void task.execute(JSON.stringify({ id: event.id, isActive: !event.isActive }), key => getGameApiClient().updateAdminEvent(event.id, { isActive: !event.isActive, idempotencyKey: key })) }
+  const toggle = async (intent: { id: string; displayName: string; isActive: boolean }) => {
+    const success = await task.execute(JSON.stringify(intent), key => getGameApiClient().updateAdminEvent(intent.id, { isActive: intent.isActive, idempotencyKey: key }))
+    if (success) setConfirm(null)
+  }
   return <div className="admin-domain" aria-label="Administration des événements"><AdminFeedback error={task.error || loadError} notice={task.notice} />
     <section className="panel admin-list"><h2>Définitions Festival</h2><div className="admin-scroll-list">{events.map(event => <article key={event.id} className="admin-list-row">
       <div><strong>{event.displayName} · mois {event.calendarMonth}</strong><small>{event.externalKey} · {event.currencyKey} · {event.isActive ? 'Actif' : 'Inactif'}</small>
         {event.editions.map(edition => <small key={edition.id}>Édition {edition.year} · {edition.status} · {new Date(edition.startsAt).toLocaleDateString('fr-FR')}–{new Date(edition.endsAt).toLocaleDateString('fr-FR')} · {edition._count.participants} participant(s)</small>)}</div>
-      <button type="button" onClick={() => choose(event)}>Configuration</button><button type="button" className={event.isActive ? 'danger' : ''} onClick={() => event.isActive ? setConfirm(event) : toggle(event)}>{event.isActive ? 'Désactiver' : 'Réactiver'}</button>
+      <button type="button" onClick={() => choose(event)}>Configuration</button><button type="button" className={event.isActive ? 'danger' : ''} onClick={() => { const intent = { id: event.id, displayName: event.displayName, isActive: !event.isActive }; if (event.isActive) setConfirm(intent); else void toggle(intent) }}>{event.isActive ? 'Désactiver' : 'Réactiver'}</button>
     </article>)}</div></section>
     {selected && config && <section className="panel admin-editor"><h2>Configuration future de {selected.displayName}</h2><p>Les éditions démarrées et les snapshots existants restent figés.</p>
       <form onSubmit={save}><label>Emoji Festival<input value={config.emoji} onChange={event => changeConfig('emoji', event.target.value)} required /></label>
@@ -42,7 +44,7 @@ export default function EventAdminPanel() {
         <label>Clé Collection<input value={config.collection.key} onChange={event => changeConfig('collection.key', event.target.value)} required /></label>
         <label>Nom Collection<input value={config.collection.label} onChange={event => changeConfig('collection.label', event.target.value)} required /></label>
         <button type="submit" disabled={task.pending}>Enregistrer</button><button type="button" onClick={() => setSelected(null)}>Fermer</button></form></section>}
-    {confirm && <ConfirmAction title={`Désactiver ${confirm.displayName} ?`} pending={task.pending} onCancel={() => setConfirm(null)} onConfirm={() => toggle(confirm)}>
+    {confirm && <ConfirmAction title={`Désactiver ${confirm.displayName} ?`} pending={task.pending} onCancel={() => setConfirm(null)} onConfirm={() => void toggle(confirm)}>
       Le Festival ne sera plus résolu comme actif. Ses éditions, participants, points, récompenses et claims restent conservés.</ConfirmAction>}
   </div>
 }

@@ -49,8 +49,8 @@ describe('GameShell Expedition deep-link', () => {
       onLoadBox: vi.fn(async () => box), onSetBoxFavorite: vi.fn(), onSetBoxSortPreference: vi.fn(), onUseStella: vi.fn(),
       onLoadBank: vi.fn(), onLoadBankHistory: vi.fn(), onDepositBank: vi.fn(), onWithdrawBank: vi.fn(),
       onLoadShop: vi.fn(), onLoadShopHistory: vi.fn(), onPurchaseShop: vi.fn(), onLoadInventory: vi.fn(), onLoadInventoryItemDetail: vi.fn(), onConvertParticles: vi.fn(),
-      permissions: { roles: [], capabilities: { moderationAccess: false, selfResourceTools: false, selfGameplayTools: false, superTools: false, canSelectPlayers: false, canManageTesters: false } },
-      onLoadModeration: vi.fn(), onListModerationPlayers: vi.fn(), onModerationResource: vi.fn(), onModerationXp: vi.fn(), onModerationGacha: vi.fn(), onModerationStella: vi.fn(), onModerationTester: vi.fn(), onModerationApplied: vi.fn(),
+      permissions: { roles: [], capabilities: { moderationAccess: false, selfResourceTools: false, selfGameplayTools: false, superTools: false, canSelectPlayers: false } },
+      onLoadModeration: vi.fn(), onListModerationPlayers: vi.fn(), onModerationResource: vi.fn(), onModerationXp: vi.fn(), onModerationGacha: vi.fn(), onModerationStella: vi.fn(), onModerationApplied: vi.fn(),
       onLoadNavigationPreferences: vi.fn(async () => defaultNavigationPreference), onSaveNavigationPreferences: vi.fn(async (value) => value),
     } as unknown as ComponentProps<typeof GameShell>
 

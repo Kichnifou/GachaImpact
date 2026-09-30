@@ -8,7 +8,7 @@ export type ModerationPlayerDirection = 'asc' | 'desc'
 export type ModerationTesterFilter = 'all' | 'tester' | 'non-tester'
 export type ModerationPermissionsDto = Readonly<{
   roles: readonly ModerationRole[]
-  capabilities: Readonly<{ moderationAccess: boolean; communityModeration: boolean; selfResourceTools: boolean; selfGameplayTools: boolean; superTools: boolean; canSelectPlayers: boolean; canManageTesters: boolean }>
+  capabilities: Readonly<{ moderationAccess: boolean; communityModeration: boolean; selfResourceTools: boolean; selfGameplayTools: boolean; superTools: boolean; canSelectPlayers: boolean }>
 }>
 export type ModerationPlayerDto = Readonly<{ id: string; displayName: string; elementKey: string | null; avatarAssetPath: string | null; level: number; tester: boolean; rank: ModerationRank; roles: readonly ModerationRole[] }>
 export type ModerationPlayerListQuery = Readonly<{
@@ -43,5 +43,4 @@ export interface ModerationTools {
   setXp(identity: AuthenticatedIdentity, targetPlayerId: string, input: { totalXp?: bigint; prepareNextLevel?: boolean; idempotencyKey: string }): Promise<ModerationStateDto>
   setGacha(identity: AuthenticatedIdentity, targetPlayerId: string, input: { pity5?: number; pity4?: number; guaranteedFeatured5?: boolean; captureProgress?: number; idempotencyKey: string }): Promise<ModerationStateDto>
   setStella(identity: AuthenticatedIdentity, targetPlayerId: string, input: { quantity: bigint; idempotencyKey: string }): Promise<ModerationStateDto>
-  setTester(identity: AuthenticatedIdentity, targetPlayerId: string, enabled: boolean, idempotencyKey: string): Promise<ModerationStateDto>
 }

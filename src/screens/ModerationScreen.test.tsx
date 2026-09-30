@@ -6,10 +6,10 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ModerationPlayerDto, ModerationStateDto } from '../api/types'
-const moderationReports = vi.hoisted(() => ({ list: vi.fn(), detail: vi.fn(), remove: vi.fn(), setRole: vi.fn(), characters: vi.fn(), possessions: vi.fn() }))
+const moderationReports = vi.hoisted(() => ({ list: vi.fn(), detail: vi.fn(), remove: vi.fn(), setRole: vi.fn(), characters: vi.fn(), possessions: vi.fn(), giveaway: vi.fn() }))
 vi.mock('../api/game-api', () => ({ getGameApiClient: () => ({ getDirectMessageReports: moderationReports.list, getDirectMessageReport: moderationReports.detail,
   deleteDirectMessageReport: moderationReports.remove, setAdminRole: moderationReports.setRole,
-  getAdminCharacters: moderationReports.characters, getAdminPossessions: moderationReports.possessions }) }))
+  getAdminCharacters: moderationReports.characters, getAdminPossessions: moderationReports.possessions, getGiveawayState: moderationReports.giveaway }) }))
 import ModerationScreen from './ModerationScreen'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -28,7 +28,7 @@ function state(target = actors.self, superTools = true, stella = target.id === '
     player: target.id === 'self' && !superTools ? { ...target, rank: 'TESTER' } : target,
     permissions: {
       roles: superTools ? ['ADMIN', 'TESTER'] : ['TESTER'],
-      capabilities: { moderationAccess: true, communityModeration: superTools, selfResourceTools: true, selfGameplayTools: true, superTools, canSelectPlayers: superTools, canManageTesters: superTools },
+      capabilities: { moderationAccess: true, communityModeration: superTools, selfResourceTools: true, selfGameplayTools: true, superTools, canSelectPlayers: superTools },
     },
     resources: { primogems: seed === 1 ? '783880' : String(seed * 1000), moras: seed === 1 ? '5625992' : String(seed * 2000), particles: { pyro: String(seed), hydro: String(seed * 2), cryo: seed === 1 ? '12422' : String(seed * 3), electro: String(seed * 4), anemo: String(seed * 5), geo: String(seed * 6), dendro: String(seed * 7) } },
     progression: { totalXp: target.id === 'player-b' ? '181' : '89', level: target.level, xpIntoCurrentStep: '29', xpPerStep: '30', isMaxLevel: false, level100OverflowRewardsClaimed: 0, totalMessages: '0', countedMessages: '0' },
@@ -81,12 +81,6 @@ async function mount(superTools = true) {
     const players = Object.values(actors).filter(({ displayName }) => displayName.toLocaleLowerCase('fr').includes(query.toLocaleLowerCase('fr')))
     return { players, page: 1, pageSize: 10 as const, total: players.length, totalPages: 1 }
   })
-  const onTester = vi.fn(async (targetPlayerId: string, enabled: boolean) => {
-    const current = states.get(targetPlayerId)!
-    const updated = { ...current, player: { ...current.player, tester: enabled } }
-    states.set(targetPlayerId, updated)
-    return updated
-  })
   moderationReports.setRole.mockImplementation(async (targetPlayerId: string, role: 'ADMIN' | 'MODERATOR' | 'TESTER', enabled: boolean) => {
     const current = states.get(targetPlayerId)!
     const roles = current.player.roles ?? []
@@ -125,7 +119,7 @@ async function mount(superTools = true) {
       const updated = state(states.get(target)!.player, superTools, quantity)
       states.set(target, updated)
       return updated
-    }), onTester, onApplied: vi.fn(),
+    }), onApplied: vi.fn(),
     ...(superTools ? {
       onLoadGiftCodes: vi.fn(async () => ({ actorPlayerId: 'self', page: 1, pageSize: 20 as const, total: 0, totalPages: 1, codes: [] })),
       onCreateGiftCode: vi.fn(async () => { throw new Error('not used') }),
@@ -139,7 +133,7 @@ async function mount(superTools = true) {
   const root = createRoot(container)
   roots.push(root)
   await act(async () => { root.render(<ModerationScreen {...props} />); await Promise.resolve(); await Promise.resolve() })
-  return { container, onLoad, onListPlayers, onTester, props, root }
+  return { container, onLoad, onListPlayers, props, root }
 }
 
 describe('ModerationScreen', () => {
@@ -198,6 +192,40 @@ describe('ModerationScreen', () => {
     expect(testerTabs.map(tab => tab.textContent)).toEqual(['Système de jeu'])
   })
 
+  it('shows only Community and Giveaway to MODERATOR and combines them with self tools for TESTER plus MODERATOR', async () => {
+    moderationReports.list.mockResolvedValue({ reports: [], page: 1, pageSize: 20, total: 0, totalPages: 1 })
+    moderationReports.giveaway.mockImplementation(() => new Promise(() => {}))
+    const seeded = await mount(false)
+    const moderatorCapabilities = { moderationAccess: true, communityModeration: true, selfResourceTools: false, selfGameplayTools: false,
+      superTools: false, canSelectPlayers: false }
+    await act(async () => { seeded.root.render(<ModerationScreen {...seeded.props} capabilities={moderatorCapabilities} />); await Promise.resolve() })
+    let tabs = Array.from(seeded.container.querySelectorAll<HTMLButtonElement>('.moderation-tabs [role="tab"]'))
+    expect(tabs.map(tab => tab.textContent)).toEqual(['Communauté', 'Giveaway'])
+    tabs[0]!.focus()
+    act(() => tabs[0]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })))
+    expect(document.activeElement).toBe(tabs[1])
+    const combined = { ...moderatorCapabilities, selfResourceTools: true, selfGameplayTools: true }
+    await act(async () => { seeded.root.render(<ModerationScreen {...seeded.props} capabilities={combined} />); await Promise.resolve() })
+    tabs = Array.from(seeded.container.querySelectorAll<HTMLButtonElement>('.moderation-tabs [role="tab"]'))
+    expect(tabs.map(tab => tab.textContent)).toEqual(['Système de jeu', 'Communauté', 'Giveaway'])
+    act(() => tabs[0]!.click())
+    tabs[0]!.focus()
+    act(() => tabs[0]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })))
+    expect(document.activeElement).toBe(tabs[1])
+  })
+
+  it('removes ADMIN tabs immediately when the actor capabilities lose ADMIN', async () => {
+    const seeded = await mount()
+    const characterTab = Array.from(seeded.container.querySelectorAll<HTMLButtonElement>('.moderation-tabs [role="tab"]')).find(tab => tab.textContent === 'Personnages')!
+    act(() => characterTab.click())
+    const testerCapabilities = { moderationAccess: true, communityModeration: false, selfResourceTools: true, selfGameplayTools: true,
+      superTools: false, canSelectPlayers: false }
+    await act(async () => { seeded.root.render(<ModerationScreen {...seeded.props} capabilities={testerCapabilities} />); await Promise.resolve() })
+    const tabs = Array.from(seeded.container.querySelectorAll<HTMLButtonElement>('.moderation-tabs [role="tab"]'))
+    expect(tabs.map(tab => tab.textContent)).toEqual(['Système de jeu'])
+    expect(tabs[0]!.getAttribute('aria-selected')).toBe('true')
+  })
+
   it('opens a moderator-only account directly on Community and renders frozen detail without free browse', async () => {
     const line = { id: 'message-1', authorPlayerId: 'reported', authorDisplayName: 'Reported', content: 'Preuve figée', createdAt: '2026-09-23T08:00:00.000Z', submissionOrder: '4', editedAt: null, deletedAt: null }
     const summary = { id: 'report-1', createdAt: '2026-09-24T08:00:00.000Z', source: 'MP' as const, reporter: { id: 'reporter', displayName: 'Reporter' }, reported: { id: 'reported', displayName: 'Reported' }, message: line }
@@ -207,7 +235,7 @@ describe('ModerationScreen', () => {
     act(() => seeded.root.unmount()); roots.splice(roots.indexOf(seeded.root), 1)
     const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root)
     const onLoad = vi.fn(async () => state(actors.self))
-    await act(async () => { root.render(<ModerationScreen {...props} capabilities={{ moderationAccess: true, communityModeration: true, selfResourceTools: false, selfGameplayTools: false, superTools: false, canSelectPlayers: false, canManageTesters: false }} onLoad={onLoad} />); await Promise.resolve(); await Promise.resolve() })
+    await act(async () => { root.render(<ModerationScreen {...props} capabilities={{ moderationAccess: true, communityModeration: true, selfResourceTools: false, selfGameplayTools: false, superTools: false, canSelectPlayers: false }} onLoad={onLoad} />); await Promise.resolve(); await Promise.resolve() })
     expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe('Communauté')
     expect(onLoad).not.toHaveBeenCalled(); expect(container.textContent).toContain('Signalements MP'); expect(container.textContent).toContain('Preuve figée'); expect(container.textContent).toContain('Page 1 / 2')
     expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.moderation-tabs button')).find(button => button.textContent === 'Système de jeu')).toBeUndefined()

@@ -7,6 +7,7 @@ import { resourceKeys } from '../src/domain/economy/resources.js'
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js'
 import { PrismaCurrentPlayerStore } from '../src/infrastructure/database/prisma-current-player-store.js'
 import { PrismaModerationTools } from '../src/infrastructure/database/prisma-moderation-tools.js'
+import { RoleAdminService } from '../src/application/moderation/role-admin-service.js'
 
 const config = loadConfig()
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Moderation database tests.')
@@ -16,6 +17,7 @@ beforeAll(() => isolated.setup({ seedPublicCatalog: true }), 60_000);
 afterAll(() => isolated.cleanup(), 60_000);
 const playerIds = new Set<string>()
 const tools = new PrismaModerationTools(database, new GetCurrentPlayer(new PrismaCurrentPlayerStore(database)))
+const roleAdmin = new RoleAdminService(database, new GetCurrentPlayer(new PrismaCurrentPlayerStore(database)))
 
 beforeAll(cleanupResidualTestFixtures)
 afterEach(cleanup)
@@ -82,7 +84,7 @@ describe('privileged self-test persistence', () => {
   }, 30_000)
   it('keeps MODERATOR powerless while TESTER and ADMIN receive the capability', async () => {
     const moderator = await createPlayer(['MODERATOR'])
-    expect(await tools.getPermissions(moderator.identity)).toEqual({ roles: ['MODERATOR'], capabilities: { moderationAccess: true, communityModeration: true, selfResourceTools: false, selfGameplayTools: false, superTools: false, canSelectPlayers: false, canManageTesters: false } })
+    expect(await tools.getPermissions(moderator.identity)).toEqual({ roles: ['MODERATOR'], capabilities: { moderationAccess: true, communityModeration: true, selfResourceTools: false, selfGameplayTools: false, superTools: false, canSelectPlayers: false } })
     await expect(tools.getState(moderator.identity)).rejects.toMatchObject({ code: 'MODERATION_FORBIDDEN' })
     const tester = await createPlayer(['TESTER'])
     expect((await tools.getState(tester.identity)).permissions.capabilities.selfResourceTools).toBe(true)
@@ -205,10 +207,10 @@ describe('privileged self-test persistence', () => {
     await expect(tools.setGacha(tester.identity, target.id, { pity5: 1, idempotencyKey: randomUUID() })).rejects.toMatchObject({ code: 'MODERATION_FORBIDDEN' })
     await expect(tools.setStella(tester.identity, target.id, { quantity: 1n, idempotencyKey: randomUUID() })).rejects.toMatchObject({ code: 'MODERATION_FORBIDDEN' })
     const grantKey = randomUUID()
-    await tools.setTester(superPlayer.identity, target.id, true, grantKey)
-    await tools.setTester(superPlayer.identity, target.id, true, grantKey)
+    await roleAdmin.setRole(superPlayer.identity, target.id, 'TESTER', true, grantKey)
+    expect((await roleAdmin.setRole(superPlayer.identity, target.id, 'TESTER', true, grantKey)).alreadyProcessed).toBe(true)
     expect(await database.playerRoleAssignment.count({ where: { playerId: target.id, role: 'TESTER', revokedAt: null } })).toBe(1)
-    await tools.setTester(superPlayer.identity, target.id, false, randomUUID())
+    await roleAdmin.setRole(superPlayer.identity, target.id, 'TESTER', false, randomUUID())
     expect(await database.playerRoleAssignment.count({ where: { playerId: target.id, role: 'TESTER', revokedAt: { not: null } } })).toBe(1)
     expect((await tools.getPermissions(target.identity)).capabilities.moderationAccess).toBe(false)
   })

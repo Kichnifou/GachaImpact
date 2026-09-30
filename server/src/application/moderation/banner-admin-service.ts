@@ -71,16 +71,23 @@ export class BannerAdminService {
       } });
   }
 
-  async retryGeneration(identity: AuthenticatedIdentity, idempotencyKey: string) {
+  async retryGeneration(identity: AuthenticatedIdentity, idempotencyKey: string, expectedWeekStartsAt: string) {
     const actorId = await this.operation.actor(identity, 'ADMIN');
+    const assertCurrentWeek = () => {
+      if (getParisWeekWindow(new Date()).startsAt.toISOString() !== expectedWeekStartsAt)
+        throw new AppError('La semaine a changé : rechargez le cycle avant de confirmer.', 409, 'BANNER_ADMIN_WEEK_CHANGED');
+    };
+    assertCurrentWeek();
     // The scheduler owns two serializable transactions: vote closure and rotation creation.
     // It is itself idempotent; record the authorized retry request, then invoke that owner.
     const operation = await this.operation.run(identity, { scope: 'ADMIN', domain: 'banners', action: 'retry-generation', idempotencyKey,
-      request: { currentWeek: getParisWeekWindow(new Date()).startsAt.toISOString() },
+      request: { currentWeek: expectedWeekStartsAt },
       change: async tx => {
+        assertCurrentWeek();
         const before = await tx.bannerRotation.findFirst({ where: { status: 'ACTIVE' }, select: { id: true } });
         return { before: { activeRotationId: before?.id ?? null }, after: { retryRequestedBy: actorId, activeRotationId: before?.id ?? null } };
       } });
+    assertCurrentWeek();
     await this.scheduler.catchUp();
     return { ...operation, overview: await this.overview(identity) };
   }

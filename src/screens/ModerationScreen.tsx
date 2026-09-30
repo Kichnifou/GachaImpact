@@ -56,10 +56,6 @@ type Props = {
     targetPlayerId: string,
     quantity: string,
   ) => Promise<ModerationStateDto>;
-  onTester: (
-    targetPlayerId: string,
-    enabled: boolean,
-  ) => Promise<ModerationStateDto>;
   onApplied: (state: ModerationStateDto) => void;
   onLoadGiftCodes?: ComponentProps<typeof GiftCodeAdminPanel>["onLoad"];
   onCreateGiftCode?: ComponentProps<typeof GiftCodeAdminPanel>["onCreate"];
@@ -159,6 +155,10 @@ function ModerationScreen({
     ...(capabilities.communityModeration ? (['community', 'giveaway'] as const) : []),
     ...(isSuper ? (['audit'] as const) : []),
   ];
+
+  useEffect(() => {
+    if (availableTabs.length && !availableTabs.includes(activeTab)) setActiveTab(availableTabs[0]!);
+  }, [activeTab, systemAvailable, isSuper, codesAvailable, capabilities.communityModeration]);
 
   useEffect(() => {
     onLoadRef.current = onLoad;

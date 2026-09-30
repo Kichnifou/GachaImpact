@@ -4,6 +4,9 @@ import type { AdminBannerOverview, AdminCharacter } from '../../api/admin-types'
 import { apiErrorMessage } from '../../utils/formatters'
 import { AdminFeedback, ConfirmAction, useAdminTask } from './AdminUi'
 
+type BannerIntent = Readonly<{ kind: 'correct'; rotationId: string; fiveStarIds: readonly string[]; fourStarIds: readonly string[]; summary: string }>
+  | Readonly<{ kind: 'retry'; weekStartsAt: string }>
+
 async function allActive(rarity: 4 | 5): Promise<AdminCharacter[]> {
   const api = getGameApiClient()
   const first = await api.getAdminCharacters({ page: 1, rarity, active: true, sort: 'name' })
@@ -20,7 +23,7 @@ export default function BannerAdminPanel() {
   const [fourIds, setFourIds] = useState<string[]>([])
   const [reload, setReload] = useState(0)
   const [loadError, setLoadError] = useState('')
-  const [confirm, setConfirm] = useState<'correct' | 'retry' | null>(null)
+  const [confirm, setConfirm] = useState<BannerIntent | null>(null)
   const task = useAdminTask(() => setReload(value => value + 1))
   useEffect(() => { let live = true
     void Promise.all([getGameApiClient().getAdminBanners(), allActive(5), allActive(4)])
@@ -30,10 +33,17 @@ export default function BannerAdminPanel() {
       .catch(error => { if (live) setLoadError(apiErrorMessage(error)) })
     return () => { live = false }
   }, [reload])
-  const correct = () => { if (!overview?.active) return; setConfirm(null)
-    const input = { fiveStarIds: fiveIds, fourStarIds: fourIds }
-    void task.execute(JSON.stringify({ rotationId: overview.active.id, ...input }), key => getGameApiClient().correctAdminBanner(overview.active!.id, { ...input, idempotencyKey: key })) }
-  const retry = () => { setConfirm(null); void task.execute(`retry:${overview?.currentWeek.startsAt ?? ''}`, key => getGameApiClient().retryAdminBanner(key)) }
+  const openCorrection = () => { if (!overview?.active || !valid) return
+    const names = [...fiveIds.map(id => five.find(row => row.id === id)?.name ?? id), ...fourIds.map(id => four.find(row => row.id === id)?.name ?? id)]
+    setConfirm({ kind: 'correct', rotationId: overview.active.id, fiveStarIds: [...fiveIds], fourStarIds: [...fourIds], summary: names.join(' · ') })
+  }
+  const apply = async (intent: BannerIntent) => {
+    const success = intent.kind === 'correct'
+      ? await task.execute(JSON.stringify(intent), key => getGameApiClient().correctAdminBanner(intent.rotationId,
+        { fiveStarIds: [...intent.fiveStarIds], fourStarIds: [...intent.fourStarIds], idempotencyKey: key }))
+      : await task.execute(`retry:${intent.weekStartsAt}`, key => getGameApiClient().retryAdminBanner(key, intent.weekStartsAt))
+    if (success) setConfirm(null)
+  }
   const changeSlot = (rarity: 4 | 5, index: number, id: string) => {
     const setter = rarity === 5 ? setFiveIds : setFourIds
     setter(previous => { const next = [...previous]; next[index] = id; return next })
@@ -58,20 +68,20 @@ export default function BannerAdminPanel() {
                 {value && !catalog.some(row => row.id === value) && <option value={value}>{current?.character.name ?? value} · inactif</option>}
               </select></label>
           })}</fieldset>)}</div>
-        <button type="button" disabled={task.pending || !valid || !overview.diagnostics.withinWindow} onClick={() => setConfirm('correct')}>Corriger la bannière active</button>
+        <button type="button" disabled={task.pending || !valid || !overview.diagnostics.withinWindow} onClick={openCorrection}>Corriger la bannière active</button>
         <details><summary>Snapshot de génération et provenance</summary><pre>{JSON.stringify(overview.active.generationVoteSnapshot, null, 2)}</pre>
           <pre>{JSON.stringify(overview.active.legacyProvenance, null, 2)}</pre></details>
       </> : <p>Aucune rotation active.</p>}</section>
       <section className="panel admin-list"><h2>Cycle de vote</h2><p>{overview.voteCycle.totalVotes} vote(s). Prochaine fenêtre : {new Date(overview.currentWeek.endsAt).toLocaleString('fr-FR')}</p>
         <div className="admin-scroll-list">{overview.voteCycle.candidates.map(row => <p key={row.id}>{row.name} · {row.voteCount} vote(s)</p>)}</div>
         {overview.next && <p>Rotation connue suivante : {new Date(overview.next.startsAt).toLocaleString('fr-FR')} · {overview.next.status}</p>}
-        <button type="button" disabled={task.pending} onClick={() => setConfirm('retry')}>Réessayer la génération courante</button></section>
+        <button type="button" disabled={task.pending} onClick={() => setConfirm({ kind: 'retry', weekStartsAt: overview.currentWeek.startsAt })}>Réessayer la génération courante</button></section>
     </>}
-    {confirm === 'correct' && <ConfirmAction title="Corriger cette bannière active ?" pending={task.pending} onCancel={() => setConfirm(null)} onConfirm={correct}>
-      La composition change immédiatement. Les Pulls, pity, garanties et Capture restent inchangés ; les cibles 5★ devenues invalides seront vidées. L’ancienne composition restera dans l’audit.
+    {confirm?.kind === 'correct' && <ConfirmAction title="Corriger cette bannière active ?" pending={task.pending} onCancel={() => setConfirm(null)} onConfirm={() => void apply(confirm)}>
+      Rotation {confirm.rotationId}. Composition confirmée : {confirm.summary}. Les Pulls, pity, garanties et Capture restent inchangés ; les cibles 5★ devenues invalides seront vidées. L’ancienne composition restera dans l’audit.
     </ConfirmAction>}
-    {confirm === 'retry' && <ConfirmAction title="Réessayer la génération ?" pending={task.pending} onCancel={() => setConfirm(null)} onConfirm={retry}>
-      Le moteur officiel réutilisera le snapshot fermé et les conditions courantes. Une bannière déjà créée reste inchangée.
+    {confirm?.kind === 'retry' && <ConfirmAction title="Réessayer la génération ?" pending={task.pending} onCancel={() => setConfirm(null)} onConfirm={() => void apply(confirm)}>
+      Semaine du {new Date(confirm.weekStartsAt).toLocaleString('fr-FR')}. Le moteur officiel réutilisera le snapshot fermé et les conditions courantes. Une bannière déjà créée reste inchangée.
     </ConfirmAction>}
   </div>
 }

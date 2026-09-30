@@ -298,7 +298,6 @@ function AppBootstrap() {
   const moderateXp = useCallback((targetPlayerId: string, input: Parameters<ReturnType<typeof getGameApiClient>['setModerationPlayerXp']>[1]) => getGameApiClient().setModerationPlayerXp(targetPlayerId, input), [])
   const moderateGacha = useCallback((targetPlayerId: string, input: Parameters<ReturnType<typeof getGameApiClient>['setModerationPlayerGacha']>[1]) => getGameApiClient().setModerationPlayerGacha(targetPlayerId, input), [])
   const moderateStella = useCallback((targetPlayerId: string, quantity: string, idempotencyKey: string) => getGameApiClient().setModerationPlayerStella(targetPlayerId, quantity, idempotencyKey), [])
-  const moderateTester = useCallback((targetPlayerId: string, enabled: boolean, idempotencyKey: string) => getGameApiClient().setModerationPlayerTester(targetPlayerId, enabled, idempotencyKey), [])
   const handleModerationApplied = useCallback((state: ModerationStateDto, targetIsSelf: boolean) => {
     if (targetIsSelf) applyModerationState(state)
   }, [applyModerationState])
@@ -558,7 +557,6 @@ function AppBootstrap() {
       onModerationXp={moderateXp}
       onModerationGacha={moderateGacha}
       onModerationStella={moderateStella}
-      onModerationTester={moderateTester}
       onModerationApplied={handleModerationApplied}
       levelUpFeedbacks={levelUpFeedbacks}
       onLevelUpFeedbackFinished={dismissLevelUpFeedback}

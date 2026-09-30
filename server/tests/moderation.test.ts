@@ -8,7 +8,7 @@ const identity = { subject: 'subject' }
 const player = { id: crypto.randomUUID(), displayName: 'Test', elementKey: 'hydro' as const, status: 'ACTIVE' as const }
 const state: ModerationStateDto = {
   player: { id: player.id, displayName: player.displayName, elementKey: player.elementKey, avatarAssetPath: null, level: 0, tester: true, rank: 'TESTER', roles: ['TESTER'] },
-  permissions: { roles: ['TESTER'], capabilities: { moderationAccess: true, communityModeration: false, selfResourceTools: true, selfGameplayTools: true, superTools: false, canSelectPlayers: false, canManageTesters: false } },
+  permissions: { roles: ['TESTER'], capabilities: { moderationAccess: true, communityModeration: false, selfResourceTools: true, selfGameplayTools: true, superTools: false, canSelectPlayers: false } },
   resources: { primogems: '10', moras: '20', particles: { pyro: '0', hydro: '0', cryo: '0', electro: '0', anemo: '0', geo: '0', dendro: '0' } },
   progression: { totalXp: '28', level: 0, xpIntoCurrentStep: '28', xpPerStep: '30', isMaxLevel: false, level100OverflowRewardsClaimed: 0, totalMessages: '0', countedMessages: '0' },
   gachaState: { pity5: 89, pity4: 9, guaranteedFeatured5: false, captureProgress: 3, fiftyFiftyLostStreak: 0, selectedBannerCharacterId: null, totalPulls: '0', totalFiveStars: '0', totalFourStars: '0', fiftyFiftyWon: '0', fiftyFiftyLost: '0', capturesTriggered: '0' },
@@ -26,12 +26,18 @@ describe('moderation self-test API', () => {
   }
   const allowed = (): ModerationTools => ({
     getPermissions: vi.fn(async () => state.permissions), getState: vi.fn(async () => state),
-    listPlayers: vi.fn(async () => ({ players: [], page: 1, pageSize: 10 as const, total: 0, totalPages: 1 })), adjustResource: vi.fn(async () => state), setXp: vi.fn(async () => state), setGacha: vi.fn(async () => state), setStella: vi.fn(async () => state), setTester: vi.fn(async () => state),
+    listPlayers: vi.fn(async () => ({ players: [], page: 1, pageSize: 10 as const, total: 0, totalPages: 1 })), adjustResource: vi.fn(async () => state), setXp: vi.fn(async () => state), setGacha: vi.fn(async () => state), setStella: vi.fn(async () => state),
   })
 
   it('requires authentication for permissions and every moderation endpoint', async () => {
     const app = await setup(allowed())
     for (const [method, url] of [['GET','/api/v1/me/permissions'],['GET','/api/v1/moderation/me'],['POST','/api/v1/moderation/me/resources'],['POST','/api/v1/moderation/me/xp'],['POST','/api/v1/moderation/me/gacha'],['POST','/api/v1/moderation/me/stella']] as const) expect((await app.inject({ method, url })).statusCode).toBe(401)
+  })
+
+  it('does not expose the former TESTER mutation route', async () => {
+    const app = await setup(allowed())
+    expect((await app.inject({ method: 'POST', url: `/api/v1/moderation/players/${player.id}/tester`, headers: { authorization: 'Bearer token' },
+      payload: { enabled: true, idempotencyKey: crypto.randomUUID() } })).statusCode).toBe(404)
   })
 
   it('returns 403 when server-side capability authorization refuses a normal or MODERATOR-only player', async () => {

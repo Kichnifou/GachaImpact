@@ -5,18 +5,20 @@ import { AdminFeedback, ConfirmAction, useAdminTask } from './AdminUi'
 
 const roles = ['TESTER', 'MODERATOR', 'ADMIN'] as const
 const labels = { TESTER: 'Testeur', MODERATOR: 'Modérateur', ADMIN: 'Administrateur' }
+type RoleIntent = Readonly<{ playerId: string; playerDisplayName: string; role: typeof roles[number]; enabled: boolean }>
 
 export default function RoleAdminPanel({ state, onChanged }: { state: ModerationStateDto; onChanged: () => Promise<void> }) {
-  const [confirmation, setConfirmation] = useState<{ role: typeof roles[number]; enabled: boolean } | null>(null)
+  const [confirmation, setConfirmation] = useState<RoleIntent | null>(null)
   const task = useAdminTask(() => { void onChanged() })
   const assigned = state.player.roles ?? []
   const change = (role: typeof roles[number], enabled: boolean) => {
-    if (role !== 'TESTER') { setConfirmation({ role, enabled }); return }
-    void apply(role, enabled)
+    const intent = { playerId: state.player.id, playerDisplayName: state.player.displayName, role, enabled }
+    if (role !== 'TESTER') { setConfirmation(intent); return }
+    void apply(intent)
   }
-  const apply = async (role: typeof roles[number], enabled: boolean) => {
-    setConfirmation(null)
-    await task.execute(JSON.stringify({ playerId: state.player.id, role, enabled }), key => getGameApiClient().setAdminRole(state.player.id, role, enabled, key))
+  const apply = async (intent: RoleIntent) => {
+    const success = await task.execute(JSON.stringify(intent), key => getGameApiClient().setAdminRole(intent.playerId, intent.role, intent.enabled, key))
+    if (success) setConfirmation(null)
   }
   return <section className="panel moderation-tool moderation-role" aria-label="Rôles du joueur ciblé" aria-busy={task.pending}>
     <h2>Rôles</h2><p>Rôles actifs de {state.player.displayName}</p>
@@ -26,9 +28,9 @@ export default function RoleAdminPanel({ state, onChanged }: { state: Moderation
       return <div key={role}><span>{labels[role]} · {active ? 'actif' : 'absent'}</span>
         <button type="button" disabled={task.pending} onClick={() => change(role, !active)}>{active ? 'Retirer' : 'Attribuer'}</button></div>
     })}</div>
-    {confirmation && <ConfirmAction title={`${confirmation.enabled ? 'Attribuer' : 'Retirer'} le rôle ${labels[confirmation.role]} ?`}
-      pending={task.pending} onCancel={() => setConfirmation(null)} onConfirm={() => void apply(confirmation.role, confirmation.enabled)}>
-      Ce changement de droits est immédiat et sera inscrit au journal. Le dernier administrateur actif ne peut pas être retiré.
+    {confirmation && <ConfirmAction title={`${confirmation.enabled ? 'Attribuer' : 'Retirer'} le rôle ${labels[confirmation.role]} à ${confirmation.playerDisplayName} ?`}
+      pending={task.pending} onCancel={() => setConfirmation(null)} onConfirm={() => void apply(confirmation)}>
+      Ce changement de droits pour {confirmation.playerDisplayName} est immédiat et sera inscrit au journal. Le dernier administrateur actif ne peut pas être retiré.
     </ConfirmAction>}
   </section>
 }

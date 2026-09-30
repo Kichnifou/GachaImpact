@@ -237,7 +237,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     changeAdminPossession: (playerId: string, characterId: string, input: { action: 'add' | 'remove' | 'constellation'; constellation?: number; idempotencyKey: string }) => request<AdminMutationDto>(`/api/v1/moderation/players/${playerId}/characters/${characterId}`, { method: 'POST', body: JSON.stringify(input) }),
     getAdminBanners: () => request<AdminBannerOverview>('/api/v1/moderation/banners'),
     correctAdminBanner: (rotationId: string, input: { fiveStarIds: string[]; fourStarIds: string[]; idempotencyKey: string }) => request<AdminMutationDto>(`/api/v1/moderation/banners/${rotationId}/correct`, { method: 'POST', body: JSON.stringify(input) }),
-    retryAdminBanner: (idempotencyKey: string) => request<AdminMutationDto>('/api/v1/moderation/banners/retry-generation', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+    retryAdminBanner: (idempotencyKey: string, expectedWeekStartsAt: string) => request<AdminMutationDto>('/api/v1/moderation/banners/retry-generation', { method: 'POST', body: JSON.stringify({ idempotencyKey, expectedWeekStartsAt }) }),
     getAdminEvents: () => request<{ entries: AdminEvent[] }>('/api/v1/moderation/events'),
     updateAdminEvent: (id: string, input: { isActive?: boolean; config?: AdminEventConfig; idempotencyKey: string }) => request<AdminMutationDto>(`/api/v1/moderation/events/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
     getAdminChatReports: (page = 1) => request<AdminPage<AdminChatReport>>(`/api/v1/moderation/global-chat-reports?page=${page}`),
@@ -276,7 +276,6 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     setModerationPlayerXp: (playerId: string, input: { totalXp?: string; prepareNextLevel?: true; idempotencyKey: string }) => request<ModerationStateDto>(`/api/v1/moderation/players/${playerId}/xp`, { method: 'POST', body: JSON.stringify(input) }),
     setModerationPlayerGacha: (playerId: string, input: { pity5?: number; pity4?: number; guaranteedFeatured5?: boolean; captureProgress?: number; idempotencyKey: string }) => request<ModerationStateDto>(`/api/v1/moderation/players/${playerId}/gacha`, { method: 'POST', body: JSON.stringify(input) }),
     setModerationPlayerStella: (playerId: string, quantity: string, idempotencyKey: string) => request<ModerationStateDto>(`/api/v1/moderation/players/${playerId}/stella`, { method: 'POST', body: JSON.stringify({ quantity, idempotencyKey }) }),
-    setModerationPlayerTester: (playerId: string, enabled: boolean, idempotencyKey: string) => request<ModerationStateDto>(`/api/v1/moderation/players/${playerId}/tester`, { method: 'POST', body: JSON.stringify({ enabled, idempotencyKey }) }),
     onboardPlayer: (displayName: string) =>
       request<PlayerDto>('/api/v1/onboarding/player', {
         method: 'POST',

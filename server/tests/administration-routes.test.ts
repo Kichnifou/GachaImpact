@@ -53,9 +53,12 @@ describe('private administration routes', () => {
       payload: { role: 'ADMIN', enabled: true, idempotencyKey: key, surprise: true } })).statusCode).toBe(400);
     expect((await app.inject({ method: 'POST', url: `/api/v1/moderation/banners/${crypto.randomUUID()}/correct`, headers,
       payload: { fiveStarIds: [], fourStarIds: [], idempotencyKey: key } })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'POST', url: '/api/v1/moderation/banners/retry-generation', headers,
+      payload: { idempotencyKey: key } })).statusCode).toBe(400);
     expect((await app.inject({ url: '/api/v1/moderation/audit?page=0', headers })).statusCode).toBe(400);
     expect(admin.roles.setRole).not.toHaveBeenCalled();
     expect(admin.banners.correct).not.toHaveBeenCalled();
+    expect(admin.banners.retryGeneration).not.toHaveBeenCalled();
     expect(admin.audit.list).not.toHaveBeenCalled();
   });
 
