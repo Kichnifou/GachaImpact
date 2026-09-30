@@ -29,11 +29,11 @@ La migration additive `20260927150000_053_key_pilot_refresh_by_preview` retire l
 
 Le webhook EventSub phase 2A promu techniquement sur `main` réutilise ce modèle sans migration. Sa route est désactivée par défaut ; aucune notification Twitch réelle ni aucun reçu public ne sont attendus avant une activation distincte.
 
-La Phase 2B-1 approuvée et promue techniquement sur `main`, sans activation, réutilise `twitch_link_states` inchangée : le hash porte le state complet, dont le préfixe `runtime_` pour le purpose d’autorisation Chat, avec nonce hashé, expiration de dix minutes et consommation atomique one-shot. Les states de liaison restent distincts. Aucun token user, refresh token, ID token, App Access Token, secret EventSub ou cache de souscription n’est persisté. Aucun DDL ni migration 055 ; DEV reste à 54 migrations. Au checkpoint 2B-1, le statut runtime était une disponibilité de configuration. La Phase 2B-2 promue techniquement, sans activation ni test public, dérive active/pending de Twitch GET EventSub, sans preuve de consentement, token, souscription ou flag durable stocké. Aucun DDL ; 054 reste la dernière des 54 migrations. Unlink conserve les reçus historiques et ne retire l’identité qu’après suppression confirmée de la souscription.
+Au checkpoint des Phases 2B-1/2B-2, approuvées et promues techniquement sur `main` sans activation, `twitch_link_states` était réutilisée sans changement : le hash portait le state complet, dont le préfixe `runtime_` pour l'autorisation Chat, avec nonce hashé, expiration de dix minutes et consommation atomique one-shot. Les states de liaison restaient distincts. Aucun token user, refresh token, ID token, App Access Token, secret EventSub ou cache de souscription n'était alors persisté. Ces phases n'ajoutaient aucun DDL ; DEV comptait à ce checkpoint 54 migrations, dernière 054. Le statut runtime 2B-1 était une disponibilité de configuration ; 2B-2 dérivait active/pending de Twitch GET EventSub sans flag durable. Unlink conservait les reçus historiques et ne retirait l'identité qu'après suppression confirmée de la souscription. L'état Gift et le nombre courant de migrations figurent en tête de ce document.
 
 > Statut : **CONSOLIDÉ — Phase C2 / schéma relationnel cible**
 >
-> Conservation/purge : [politique canonique R943–R945](../specifications/data-retention-v1.md). Seule la purge Chat Twitch observation-only est promue techniquement, sans activation réelle : cible 24 h, exclusions traitement/référence/provenance/FavorGrant, cleanup applicatif opportuniste non bloquant, cadence normale 1 h / rattrapage 1 min si sélection pleine de 1 000 IDs. Un lot par tentative, aucune concurrence ou boucle immédiate ; délai depuis la fin, lot partiel/échec → 1 h, recheck au DELETE inchangé, sans migration. Les autres durées sont décidées, pas des purges déjà implémentées ; aucune modification de 054 ni création de 055, DEV reste à 54 migrations.
+> Conservation/purge : [politique canonique R943–R945](../specifications/data-retention-v1.md). Seule la purge Chat Twitch observation-only était promue techniquement à ce checkpoint, sans activation réelle : cible 24 h, exclusions traitement/référence/provenance/FavorGrant, cleanup applicatif opportuniste non bloquant, cadence normale 1 h / rattrapage 1 min si sélection pleine de 1 000 IDs. Un lot par tentative, aucune concurrence ou boucle immédiate ; délai depuis la fin, lot partiel/échec → 1 h, recheck au DELETE inchangé, sans migration dans ce lot. Les autres durées sont décidées, pas des purges déjà implémentées ; 054 restait inchangée et DEV comptait alors 54 migrations. L'état courant de la chaîne Prisma est indiqué en tête du document.
 >
 > Date : **2026-09-04**
 >
@@ -1907,7 +1907,7 @@ La migration additive `20260926130000_048_unlock_owned_character_avatars` ajoute
 
 # 26. Messages privés
 
-État physique du domaine : les migrations 036–039 matérialisent conversations, participants, demandes, messages, lecture partagée et ordre serveur. La 040 ajoute la preuve de signalement MP et `20260925100000_043_add_direct_message_replies` ajoute l'auto-référence nullable de R898, sans backfill. La migration additive `20260927230000_054_add_direct_message_typing_state` ajoute seulement `typing_until` nullable au participant, sans modifier les données MP historiques ; elle est appliquée sur DEV, désormais à 54 migrations. Les cinq tables conservent RLS active, aucune policy navigateur et aucun droit `PUBLIC`/`anon`/`authenticated`. R515 reste sans DDL ; R509/R510/R517 et R898 conservent la frontière privée et la preuve serveur jusqu'à 10/cible/10 messages.
+État physique du domaine : les migrations 036–039 matérialisent conversations, participants, demandes, messages, lecture partagée et ordre serveur. La 040 ajoute la preuve de signalement MP et `20260925100000_043_add_direct_message_replies` ajoute l'auto-référence nullable de R898, sans backfill. La migration additive `20260927230000_054_add_direct_message_typing_state` ajoute seulement `typing_until` nullable au participant, sans modifier les données MP historiques ; au checkpoint de son application, DEV comptait 54 migrations. Les cinq tables conservent RLS active, aucune policy navigateur et aucun droit `PUBLIC`/`anon`/`authenticated`. R515 reste sans DDL ; R509/R510/R517 et R898 conservent la frontière privée et la preuve serveur jusqu'à 10/cible/10 messages.
 
 ## 26.1 `direct_conversations`
 
@@ -2570,9 +2570,11 @@ Index :
 
 ## 32.2 `gift_supreme_redemptions`
 
-**Proposition de table dédiée non matérialisée et non nécessaire au Lot 11.** L’état logique R701 est couvert par TwitchEventReceipt durable PROCESSED (externalEventId `gift-supreme:<redemptionId>`, preuve minimale/fingerprint/résultat SUCCESS ou INVALID), BusinessOperation.resultSummary, ResourceMovement et Notification dédupliquée. Aucun statut Twitch réel modifié, bridge différé au Lot 12 ; aucun TTL Chat sur ce receipt. Les colonnes ci-dessous restent une proposition future, pas le schéma physique ni une migration 055 requise. 54 migrations, dernière 054, inchangées.
+**Proposition de table dédiée non matérialisée : aucune table `gift_supreme_redemptions` n'a finalement été nécessaire.** R701 est couvert par le receipt métier durable `TwitchEventReceipt` (`externalEventId = gift-supreme:<redemptionId>`), qui conserve preuve/fingerprint, résultat SUCCESS ou INVALID, cible, état du settlement distant et état de l'annonce. `BusinessOperation` porte l'opération économique, `ResourceMovement` le crédit et `Notification` l'information standalone. Le bridge Twitch Lot 12 est réalisé : EventSub signé et récupération Helix convergent vers le même core, qui pilote réellement FULFILLED ou CANCELED côté Twitch. Aucun TTL Chat ne s'applique au receipt métier Gift. La migration 055 crée uniquement le credential Gift Suprême, pas cette table. État physique courant : 55 migrations appliquées, dernière `20260929151500_055_add_twitch_gift_supreme_credential`.
 
-Colonnes :
+Les colonnes ci-dessous sont historiques et conceptuelles uniquement ; elles ne décrivent pas une table physique actuelle.
+
+Colonnes proposées historiquement :
 
 - `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`
 - `redemption_id text NOT NULL UNIQUE`
@@ -2588,7 +2590,7 @@ Colonnes :
 - `created_at timestamptz NOT NULL DEFAULT now()`
 - `processed_at timestamptz NULL`
 
-Contrainte :
+Contrainte proposée historiquement :
 
 `amount > 0`
 
