@@ -2,17 +2,18 @@
 
 Statut : évolutif.
 
-## Giveaway / Wish — décisions validées R946–R952 (2026-09-30)
+## Giveaway / Wish — décisions validées R946–R953 (2026-09-30)
 
 - `VALIDÉ R946` — Implémenter complètement le domaine natif spécialisé : core et persistance, `!wish`, `!giveaway stats/open/close`, messages humains Twitch, annonces, économie, notifications, panneau Admin et lifecycle du bridge. Le code candidat sur `review` reste OFF par défaut ; Streamer.bot demeure autoritatif, sans activation publique implicite.
-- `VALIDÉ R947` — Après review, promotion et déploiement, une mission distincte pourra faire un pilote public temporaire : suspendre les chemins Streamer.bot conflictuels, activer volontairement le bridge natif, tester un petit Giveaway réel, le désactiver puis rendre l'autorité à Streamer.bot. Aucun cutover permanent n'est décidé.
+- `VALIDÉ PUBLIQUEMENT R947` — Le pilote temporaire a exercé Twitch `!giveaway open` → `!giveaway stat/stats` et `!wish` → messages Twitch → fermeture standalone, tirage, récompenses, notification, annonces et shutdown. Les chemins standalone Open et Twitch `!giveaway close`, implémentés et couverts par les suites automatisées, n'ont pas été rejoués publiquement : le propriétaire clôture R947 sans la session B. Streamer.bot Giveaway/Wish a été restauré ; aucun cutover permanent ou global.
 - `VALIDÉ R948` — Aucune route, tuile, action de participation, vue live ou historique Giveaway côté joueur standalone. Seuls soldes crédités et notification informationnelle sont visibles indirectement.
 - `VALIDÉ R949` — Panneau privé Modération compact : preuve du bridge, état/durée/session/opérateur, participants, chatters, Top 3, gagnant et diagnostic des annonces. Open/Close pour ADMIN ou MODERATOR ; lifecycle OAuth/activation pour ADMIN ; TESTER seul exclu. Close demande confirmation ; Open est immédiat.
 - `VALIDÉ R950 ; SUPERSÈDE R708` — Aucun reroll V1 : ni commande, bouton, API, service, paiement ni critère d'acceptation. `previousWinnerPlayerId`, `rerolledAt`, `rerollCount` et `GiveawayWin` legacy restent des preuves de migration historiques, jamais une action native.
 - `VALIDÉ R951` — Ouvrir exige côté backend une preuve active des capacités Twitch `channel.chat.message` et de la restitution chat nécessaires. Une indication UI ou un flag local ne suffit pas. La lecture Admin reste possible bridge inactif.
 - `VALIDÉ R952` — Chaque annonce Twitch sortante a un état durable ; un échec certain permet un retry explicite sans rejouer l'économie. Un envoi ambigu ne se renvoie pas automatiquement. À la fermeture, résultat du tirage et classement sont deux messages et deux retries indépendants.
+- `VALIDÉ R953 ; PRÉCISE R702` — Dans le contexte opérationnel actuel, une sortie automatique d'un système tiers publiée sous le même Twitch User ID qu'un Player est traitée comme un message de ce Player si aucune preuve d'outbound GachaImpact ni identité bot distincte ne permet de l'exclure. Le pilote R947 a ainsi compté 7 messages sous Kichnifou : 4 humains et 3 réponses Streamer.bot émises sous son compte. Le propriétaire accepte ce comportement ; il ne bloque pas R947. Aucun filtrage heuristique par le texte. Réévaluer seulement si un futur cutover fournit une identité bot distincte ou une preuve d'outbound exploitable.
 
-Le [contrat Giveaway actualisé](../legacy/21-giveaway-wish-audit.md) porte l'analyse historique ; [la référence commandes](../commands/command-reference.md) indique le contrat natif. Ces décisions ne constituent ni promotion `main`, ni déploiement, ni validation publique.
+Le [contrat Giveaway actualisé](../legacy/21-giveaway-wish-audit.md) porte l'analyse historique ; [la référence commandes](../commands/command-reference.md) indique le contrat natif. La validation publique R947 porte uniquement sur le parcours réellement exercé et ne constitue pas un cutover Twitch global.
 
 ## Chat global — décisions produit validées pour le premier lot
 

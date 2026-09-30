@@ -5,7 +5,9 @@
 > Ce document est la source spécialisée validée du domaine Giveaway / Wish.  
 > L'état global du projet et la prochaine reprise exacte restent la responsabilité du Master.
 
-> **Mise à jour V1 R946–R952 (2026-09-30).** Ce document conserve l'analyse du script et les décisions historiques pour la provenance. R950 **supersède R708** : aucun reroll natif V1, commande, bouton, service, paiement ou critère d'acceptation. Les mentions de reroll ci-dessous décrivent exclusivement le legacy et l'ancien contrat abandonné. Le contrat V1 courant est : `!wish`, `!giveaway stats/open/close`, messages humains Twitch comptés, bridge spécialisé prouvé actif avant ouverture, panneau privé Modération, fermeture atomique et deux annonces indépendantes avec retry seulement après échec certain. R947 réserve le pilote public temporaire à une mission ultérieure ; ce candidat ne vaut ni activation ni validation publique. Aucun écran joueur Giveaway n'est prévu (R948).
+> **Mise à jour V1 R946–R953 (2026-09-30).** Ce document conserve l'analyse du script et les décisions historiques pour la provenance. R950 **supersède R708** : aucun reroll natif V1, commande, bouton, service, paiement ou critère d'acceptation. Les mentions de reroll ci-dessous décrivent exclusivement le legacy et l'ancien contrat abandonné. Le contrat V1 courant est : `!wish`, `!giveaway stats/open/close`, messages Twitch de Players liés, bridge spécialisé prouvé actif avant ouverture, panneau privé Modération, fermeture atomique et deux annonces indépendantes avec retry seulement après échec certain. R947 est **validé publiquement par décision propriétaire** sur le parcours Twitch Open → Standalone Close ; la session B Standalone Open → Twitch Close n'a pas été exécutée publiquement. Aucun écran joueur Giveaway n'est prévu (R948).
+
+> **Recette publique R947 et limite R953.** Une session native a été ouverte depuis Twitch puis fermée depuis le standalone : un participant `!wish`, refus de la réinscription, un gagnant, +1 600 Primogemmes, +2 000 particules Cryo au rang 1, statistiques Economy, une notification agrégée et deux annonces `RESULT`/`RANKING` envoyées et visibles. Le classement final indique 7 messages sous Kichnifou : 4 humains et 3 réponses automatiques Streamer.bot émises sous le même Twitch User ID. Faute de preuve d'origine distincte, ces trois sorties tierces sont comptées conformément au comportement accepté par le propriétaire ; aucun filtre par texte n'est ajouté. Le bridge est revenu OFF, Streamer.bot Giveaway/Wish ON, sans cutover global. Les chemins Standalone Open et Twitch Close restent implémentés et couverts par les suites automatisées, sans validation publique lors de ce pilote.
 
 ---
 
@@ -1244,7 +1246,7 @@ Le Domaine Giveaway / Wish est prêt pour la V1 si les tests peuvent prouver not
 5. `!wish` inscrit une seule fois ;
 6. `!wish` ne compte pas dans le classement messages ;
 7. aucune commande `!xxx` ne compte ;
-8. les messages bot/système ne comptent pas ;
+8. les messages bot/système identifiables ne comptent pas ; les sorties tierces émises sous le même Twitch User ID qu'un Player sans preuve d'origine distincte suivent R953 ;
 9. chaque vrai message normal éligible compte sans cooldown Giveaway ;
 10. une redelivery du même `message_id` ne compte pas deux fois ;
 11. les messages du chat interne standalone ne comptent jamais ;
@@ -1279,7 +1281,7 @@ Le Domaine Giveaway / Wish est prêt pour la V1 si les tests peuvent prouver not
 
 # 39. Conclusion du domaine
 
-**Domaine Giveaway / Wish : décisions R946–R952 validées ; implémentation native candidate en review, validation publique en attente.**
+**Domaine Giveaway / Wish : décisions R946–R953 validées ; R947 validé publiquement par décision propriétaire dans le périmètre Twitch Open → Standalone Close, sans session B publique.**
 
 Le tirage, l'activité chat, les récompenses, les ex æquo, les commandes, les notifications, l'administration standalone, l'intégration Twitch, la migration et l'idempotence sont définis pour la V1 sans reroll natif. Les sections anciennes qui décrivent le reroll restent une archive du comportement legacy et de R708 supersédée.
 
